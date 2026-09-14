@@ -4,6 +4,9 @@ use super::*;
 use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode};
 use ubaa_core::facade as domain;
 
+#[path = "tests/bykc_catalog.rs"]
+mod bykc_catalog;
+
 #[test]
 fn 图书馆日程映射保持逐日原始关联() {
     let mapped = super::mappers::map_libbook_area_schedule(domain::LibBookAreaSchedule {

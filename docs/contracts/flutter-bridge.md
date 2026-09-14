@@ -24,6 +24,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
   caller-pinned 的概览/记录回读与安全提交收据。版本 9 为 Evaluation 增加 typed
   `submitEligibility/submitTarget`、只含 targets 的批量请求、四态逐项结果与 caller-pinned 原路线回读。
   版本 10 新增 `libbookAreaSchedule`，保留每个原始日期自己的时段；旧 `libbookAreaDetail` 的展平形状不变。
+  同一候选版本新增 `bykcCourseCatalog` 与 `bykcCourseFullDetail`，旧博雅列表和详情的形状、请求次数不变。
   版本 10 不与版本 9 或更早的生成绑定混用；CLI schema10、Session2、配置1和既有写入权威不变。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
@@ -148,6 +149,8 @@ final 发送后无法确定结果才进入不可重试的 `outcome_unknown`。�
 | `bykcProfile` | 无 | `BykcUserProfile` |
 | `bykcCourses` | `page: i32, size: i32, all: bool` | `BykcCoursePage` |
 | `bykcCourseDetail` | `id: i64` | `BykcCourse` |
+| `bykcCourseCatalog` | `page: i32, size: i32, all: bool` | `BykcCourseCatalogPage` |
+| `bykcCourseFullDetail` | `id: i64` | `BykcCourseFullDetail` |
 | `bykcChosenCourses` | 无 | `List<BykcChosenCourse>` |
 | `bykcStatistics` | 无 | `BykcStatistics` |
 | `libbookLibraries` | `day: String` | `List<LibBookLibrary>` |
@@ -197,6 +200,13 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
   `BykcCourse {id,courseName,coursePosition?,courseTeacher?,courseStartDate?,courseEndDate?,courseSelectStartDate?,courseSelectEndDate?,courseCancelEndDate?,courseMaxCount?,courseCurrentCount?,status,selected?,selectEligibility,deselectEligibility}`；
   两项 eligibility 都是 `allowed/denied/unknown` 的封闭枚举，缺失 action 或 `unknown` 均必须按拒绝处理；
   `BykcCoursePage {content,totalElements,totalPages,size,number}`。
+- `BykcCourseCatalogItem {course,category?,subCategory?,audienceCampuses,hasSignPoints}` 组合旧课程结构，
+  `BykcCourseCatalogPage {content,totalElements,totalPages,size,number}` 保留服务器分页；类别/校区只在当前页筛选。
+  `BykcCourseFullDetail {course,courseContact?,courseContactMobile?,organizerCollegeName?,descriptionPlainText?,audienceColleges,audienceTerms,audienceGroups,signConfig?,attendance?}`。
+  其中 `BykcSignDisplayConfig {signStartDate?,signEndDate?,signOutStartDate?,signOutEndDate?,signPointCount}`
+  只传可空显示窗口和完整点数；`BykcCourseAttendanceDisplay {recordId,courseId,checkin?,pass?}` 仅供显示，
+  不含位置坐标、原始配置或写资格。新完整详情校验课程身份；严格已选时在同一 Core runtime 顺序补查当前学期及已选记录，
+  补查失败整次失败，合法无匹配才为空。主详情配置优先，独立写前的已选配置优先级不变。
 - `BykcChosenCourse` 仅保留课程/签到所需的公开字段
   `{id,courseId,courseName,coursePosition?,courseTeacher?,courseStartDate?,courseEndDate?,selectDate?,courseCancelEndDate?,category?,subCategory?,checkin?,score?,pass?,signEligibility,signOutEligibility,deselectEligibility,signConfig?,courseSignType?}`；
   三项 eligibility 均为 `allowed/denied/unknown` 的封闭枚举，`checkin` 缺失时保持 `null`；`signConfig` 仅含四个时间字段与
@@ -273,9 +283,10 @@ ID/分页字段：
 | `examNotArranged` | `term?` | `examArrangement(term)` 后取 `notArranged` |
 | `gradesScored` | `term?` | `grades(term)` 后按 `score` 非空本地派生 |
 | `gradesMissing` | `term?` | `grades(term)` 后按 `score` 空值本地派生 |
-| `bykcDetail` | `courseId`（正整数） | `bykcCourseDetail(courseId)` |
+| 博雅 `summary` | `page`、`size` | `bykcCourseCatalog(page,size,all=true)` |
+| `bykcDetail` | `courseId`（正整数） | `bykcCourseFullDetail(courseId)` |
 | `bykcProfile` | 无 | `bykcProfile` |
-| `bykcChosenCourses` | 无 | `bykcChosenCourses` |
+| `bykcChosenCourses` | `courseId?`（正整数） | 不含 `courseId` 时只调用 `bykcChosenCourses`；已选详情带 `courseId` 时先独立读取已选记录，再读取完整详情 |
 | `bykcStatistics` | 无 | `bykcStatistics` |
 | `libbookAreas` | `premisesId`，`storeyId?`，`date?` | `libbookAreas(premisesId, storeyId?, day)` |
 | `libbookAreaDetail` | `areaId` | `libbookAreaDetail(areaId)` |
@@ -292,6 +303,11 @@ ID/分页字段：
 | `judgeBatchDetails` | `judgeKeys: List<{courseId,assignmentId}>`，至少一项 | `judgeAssignmentDetails(keys)` |
 | `signinPending` | 无 | `signinToday` 后按 `signinEligibility == allowed` 本地派生 |
 | `signinCompleted` | 无 | `signinToday` 后按 `signinEligibility == denied` 本地派生 |
+
+博雅课程列表与首页待办沿 `bykcDetail` 读取完整详情。已选详情的 `courseId` 只在 App 组合读取中使用，
+不增加上游筛选参数；两次读取路线不同或任何读取失败均不返回完整成功。UI 仍按父已选帧的
+`(recordId,courseId)` 唯一定位，补查考勤不能覆盖另一条记录或生成动作；普通详情的签到路径先进入独立已选读取。
+当前帧三维筛选在面板开关、详情返回和当前查询刷新时保留，账号切换清除；跨重启存储由 Task3D2 实施。
 
 缺少必填 ID、时段或批量键时由 bridge 返回 `invalid_input`；Dart 不拼接 URL、JSON 或 Cookie。Judge
 批量键在 UI 中使用每行 `课程编号/作业编号` 的公开编号格式解析为 typed 列表，不把该文本作为 raw

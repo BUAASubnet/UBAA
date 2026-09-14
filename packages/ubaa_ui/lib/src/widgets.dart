@@ -51,6 +51,7 @@ part 'features/bykc/display.dart';
 part 'features/bykc/course_card.dart';
 part 'features/bykc/chosen_card.dart';
 part 'features/bykc/details.dart';
+part 'features/bykc/supplement.dart';
 part 'features/bykc/statistics.dart';
 part 'features/ygdk/summary.dart';
 part 'features/ygdk/record_card.dart';

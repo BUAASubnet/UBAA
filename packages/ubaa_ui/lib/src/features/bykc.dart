@@ -56,6 +56,55 @@ extension _BykcQueryControls on _FeatureQueryControlsState {
                     ),
                 ],
               ),
+              const SizedBox(height: 12),
+              const Text('当前页课程类别'),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final category in BykcCourseSubCategory.values.where(
+                    (value) => value != BykcCourseSubCategory.unknown,
+                  ))
+                    FilterChip(
+                      label: Text(category.displayName),
+                      selected: widget.bykcCategories.contains(
+                        category.displayName,
+                      ),
+                      onSelected: (selected) {
+                        final values = {...widget.bykcCategories};
+                        selected
+                            ? values.add(category.displayName)
+                            : values.remove(category.displayName);
+                        widget.onBykcCategoriesChanged?.call(values);
+                      },
+                    ),
+                ],
+              ),
+              const SizedBox(height: 12),
+              const Text('适用校区'),
+              Wrap(
+                spacing: 8,
+                runSpacing: 4,
+                children: [
+                  for (final campus in _bykcCampusOptions(
+                    widget.details,
+                    widget.bykcCampuses,
+                  ))
+                    FilterChip(
+                      label: Text(campus),
+                      selected: widget.bykcCampuses.contains(campus),
+                      onSelected: (selected) {
+                        final values = {...widget.bykcCampuses};
+                        selected ? values.add(campus) : values.remove(campus);
+                        widget.onBykcCampusesChanged?.call(values);
+                      },
+                    ),
+                ],
+              ),
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text('仅筛选当前服务器页；其他页请翻页查询。'),
+              ),
               Row(
                 children: [
                   TextButton(
@@ -63,9 +112,7 @@ extension _BykcQueryControls on _FeatureQueryControlsState {
                     child: const Text('状态不限'),
                   ),
                   TextButton(
-                    onPressed: () => widget.onBykcStatusesChanged?.call(
-                      _defaultBykcStatuses,
-                    ),
+                    onPressed: widget.onBykcReset,
                     child: const Text('恢复默认'),
                   ),
                 ],

@@ -55,11 +55,21 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
       // 失效通知可能仍携带旧子页快照；只接收边界之后的新读取代次。
       _externalAfterRevision =
           oldWidget.snapshot.readContext?.requestRevision ?? -1;
+      if (current.bykcChosenKey != null) {
+        current.snapshot = incoming.copyWith(
+          status: FeatureLoadStatus.loading,
+          clearDetails: true,
+        );
+      }
     }
     if (_current.isLanding) {
       _current.snapshot = incoming;
       return;
     }
+    if (_current.bykcChosenKey != null &&
+        _externalAfterRevision != null &&
+        (context?.requestRevision ?? -1) <= _externalAfterRevision!)
+      return;
     if (context != null &&
         _externalAfterRevision != null &&
         context.requestRevision > _externalAfterRevision!) {
@@ -69,14 +79,31 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
         return;
       }
     }
+    final isChosenParentRead =
+        _current.bykcChosenKey != null &&
+        context?.query?.view == FeatureQueryView.bykcChosenCourses &&
+        context?.query?.courseId == null;
     if (!identical(incoming, oldWidget.snapshot) &&
-        (context == null || context.hasSameQuery(_current.query))) {
-      _current.snapshot = incoming;
-      if (_current.bykcChosenKey != null && context != null) {
-        // 本地详情与父列表共享同一次已选查询；新结果也更新父页，防止返回复活旧记录。
+        (context == null ||
+            context.hasSameQuery(_current.query) ||
+            isChosenParentRead)) {
+      _current.snapshot =
+          incoming.feature == FeatureId.bykc &&
+              context?.query?.view == FeatureQueryView.bykcDetail &&
+              incoming.status == FeatureLoadStatus.stale
+          ? incoming.copyWith(
+              status: FeatureLoadStatus.failure,
+              clearDetails: true,
+            )
+          : incoming;
+      if (_current.bykcChosenKey != null &&
+          context != null &&
+          incoming.status != FeatureLoadStatus.loading) {
+        // 组合详情中的已选读取仍更新具体父帧，返回时不能复活旧记录。
         for (final frame in _frames) {
           if (!identical(frame, _current) &&
-              context.hasSameQuery(frame.query)) {
+              (context.hasSameQuery(frame.query) ||
+                  frame.id == _current.bykcChosenParentId)) {
             frame.snapshot = incoming;
           }
         }
@@ -186,23 +213,36 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
     await widget.onQuery!(target.query);
   }
 
-  void _openBykcChosen(FeatureDetail detail) {
+  Future<void> _openBykcChosen(FeatureDetail detail) async {
     if (widget.snapshot.feature != FeatureId.bykc ||
         _current.snapshot.status == FeatureLoadStatus.loading ||
         !_current.snapshot.details.any((d) => identical(d, detail)))
       return;
     final value = detail.presentation;
-    if (value is! BykcChosenPresentation) return;
+    if (value is! BykcChosenPresentation ||
+        value.courseId <= 0 ||
+        widget.onQuery == null)
+      return;
+    final parent = _current;
+    final query = FeatureQuery(
+      view: FeatureQueryView.bykcChosenCourses,
+      courseId: '${value.courseId}',
+    );
     setState(
       () => _frames.add(
         _ReadFrame(
           _nextId++,
-          _current.snapshot,
-          _current.query,
+          parent.snapshot.copyWith(
+            status: FeatureLoadStatus.loading,
+            clearDetails: true,
+          ),
+          query,
           bykcChosenKey: (value.recordId, value.courseId),
+          bykcChosenParentId: parent.id,
         ),
       ),
     );
+    await widget.onQuery!(query);
   }
 
   @override
@@ -273,12 +313,14 @@ class _ReadFrame {
     this.isLanding = false,
     this.navigationQuery,
     this.bykcChosenKey,
+    this.bykcChosenParentId,
   }) : menuSnapshot = FeatureSnapshot(feature: snapshot.feature);
   final bool isLanding;
   String? scheduleTitle;
   final FeatureQuery? navigationQuery;
   final FeatureSnapshot menuSnapshot;
   (int, int)? bykcChosenKey;
+  final int? bykcChosenParentId;
   FeatureSnapshot? _chosenSource, _chosenSnapshot;
   FeatureSnapshot get visibleSnapshot {
     if (isLanding) return menuSnapshot;
@@ -297,7 +339,28 @@ class _ReadFrame {
           )
           .toList();
       final unique = matches.length == 1;
+      final full = unique
+          ? (matches.single.presentation! as BykcChosenPresentation).fullDetail
+          : null;
+      final complete = full?.id == key.$2 && full?.supplement != null;
       _chosenSource = snapshot;
+      if (snapshot.status == FeatureLoadStatus.stale ||
+          unique && snapshot.status == FeatureLoadStatus.success && !complete) {
+        _chosenSnapshot = snapshot.copyWith(
+          status: FeatureLoadStatus.failure,
+          clearDetails: true,
+          clearPagination: true,
+          error:
+              snapshot.error ??
+              const UiError(
+                code: UbaaErrorCode.upstreamChanged,
+                title: '详情读取失败',
+                message: '课程补充详情尚未读取，请刷新。',
+                retryable: true,
+              ),
+        );
+        return _chosenSnapshot!;
+      }
       _chosenSnapshot = snapshot.copyWith(
         details: unique ? matches : const [],
         clearPagination: true,

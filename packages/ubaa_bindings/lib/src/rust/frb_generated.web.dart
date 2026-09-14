@@ -55,6 +55,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool dco_decode_box_autoadd_bool(dynamic raw);
 
   @protected
+  BridgeBykcCourseAttendanceDisplay
+  dco_decode_box_autoadd_bridge_bykc_course_attendance_display(dynamic raw);
+
+  @protected
   BridgeBykcCourseCategory dco_decode_box_autoadd_bridge_bykc_course_category(
     dynamic raw,
   );
@@ -76,6 +80,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeBykcSignCourseRequest
   dco_decode_box_autoadd_bridge_bykc_sign_course_request(dynamic raw);
+
+  @protected
+  BridgeBykcSignDisplayConfig
+  dco_decode_box_autoadd_bridge_bykc_sign_display_config(dynamic raw);
 
   @protected
   BridgeCgyyCancelOrderRequest
@@ -163,7 +171,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeBykcCourse dco_decode_bridge_bykc_course(dynamic raw);
 
   @protected
+  BridgeBykcCourseAttendanceDisplay
+  dco_decode_bridge_bykc_course_attendance_display(dynamic raw);
+
+  @protected
+  BridgeBykcCourseCatalogItem dco_decode_bridge_bykc_course_catalog_item(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeBykcCourseCatalogPage dco_decode_bridge_bykc_course_catalog_page(
+    dynamic raw,
+  );
+
+  @protected
   BridgeBykcCourseCategory dco_decode_bridge_bykc_course_category(dynamic raw);
+
+  @protected
+  BridgeBykcCourseFullDetail dco_decode_bridge_bykc_course_full_detail(
+    dynamic raw,
+  );
 
   @protected
   BridgeBykcCoursePage dco_decode_bridge_bykc_course_page(dynamic raw);
@@ -184,6 +211,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeBykcSignCourseRequest dco_decode_bridge_bykc_sign_course_request(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeBykcSignDisplayConfig dco_decode_bridge_bykc_sign_display_config(
     dynamic raw,
   );
 
@@ -462,6 +494,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeRoutedBykcCourse dco_decode_bridge_routed_bykc_course(dynamic raw);
 
   @protected
+  BridgeRoutedBykcCourseCatalog dco_decode_bridge_routed_bykc_course_catalog(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeRoutedBykcCourseFullDetail
+  dco_decode_bridge_routed_bykc_course_full_detail(dynamic raw);
+
+  @protected
   BridgeRoutedBykcCourses dco_decode_bridge_routed_bykc_courses(dynamic raw);
 
   @protected
@@ -681,6 +722,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BridgeBykcCourse> dco_decode_list_bridge_bykc_course(dynamic raw);
 
   @protected
+  List<BridgeBykcCourseCatalogItem>
+  dco_decode_list_bridge_bykc_course_catalog_item(dynamic raw);
+
+  @protected
   List<BridgeBykcSignPoint> dco_decode_list_bridge_bykc_sign_point(dynamic raw);
 
   @protected
@@ -830,6 +875,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool? dco_decode_opt_box_autoadd_bool(dynamic raw);
 
   @protected
+  BridgeBykcCourseAttendanceDisplay?
+  dco_decode_opt_box_autoadd_bridge_bykc_course_attendance_display(dynamic raw);
+
+  @protected
   BridgeBykcCourseCategory?
   dco_decode_opt_box_autoadd_bridge_bykc_course_category(dynamic raw);
 
@@ -841,6 +890,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeBykcSignConfig? dco_decode_opt_box_autoadd_bridge_bykc_sign_config(
     dynamic raw,
   );
+
+  @protected
+  BridgeBykcSignDisplayConfig?
+  dco_decode_opt_box_autoadd_bridge_bykc_sign_display_config(dynamic raw);
 
   @protected
   BridgeCgyyCancelOrderTarget?
@@ -930,6 +983,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
+  BridgeBykcCourseAttendanceDisplay
+  sse_decode_box_autoadd_bridge_bykc_course_attendance_display(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeBykcCourseCategory sse_decode_box_autoadd_bridge_bykc_course_category(
     SseDeserializer deserializer,
   );
@@ -953,6 +1012,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeBykcSignCourseRequest
   sse_decode_box_autoadd_bridge_bykc_sign_course_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcSignDisplayConfig
+  sse_decode_box_autoadd_bridge_bykc_sign_display_config(
     SseDeserializer deserializer,
   );
 
@@ -1072,7 +1137,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeBykcCourse sse_decode_bridge_bykc_course(SseDeserializer deserializer);
 
   @protected
+  BridgeBykcCourseAttendanceDisplay
+  sse_decode_bridge_bykc_course_attendance_display(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcCourseCatalogItem sse_decode_bridge_bykc_course_catalog_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcCourseCatalogPage sse_decode_bridge_bykc_course_catalog_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeBykcCourseCategory sse_decode_bridge_bykc_course_category(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcCourseFullDetail sse_decode_bridge_bykc_course_full_detail(
     SseDeserializer deserializer,
   );
 
@@ -1103,6 +1189,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeBykcSignCourseRequest sse_decode_bridge_bykc_sign_course_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcSignDisplayConfig sse_decode_bridge_bykc_sign_display_config(
     SseDeserializer deserializer,
   );
 
@@ -1471,6 +1562,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeRoutedBykcCourseCatalog sse_decode_bridge_routed_bykc_course_catalog(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRoutedBykcCourseFullDetail
+  sse_decode_bridge_routed_bykc_course_full_detail(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeRoutedBykcCourses sse_decode_bridge_routed_bykc_courses(
     SseDeserializer deserializer,
   );
@@ -1756,6 +1858,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeBykcCourseCatalogItem>
+  sse_decode_list_bridge_bykc_course_catalog_item(SseDeserializer deserializer);
+
+  @protected
   List<BridgeBykcSignPoint> sse_decode_list_bridge_bykc_sign_point(
     SseDeserializer deserializer,
   );
@@ -1937,6 +2043,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
+  BridgeBykcCourseAttendanceDisplay?
+  sse_decode_opt_box_autoadd_bridge_bykc_course_attendance_display(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeBykcCourseCategory?
   sse_decode_opt_box_autoadd_bridge_bykc_course_category(
     SseDeserializer deserializer,
@@ -1950,6 +2062,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeBykcSignConfig? sse_decode_opt_box_autoadd_bridge_bykc_sign_config(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcSignDisplayConfig?
+  sse_decode_opt_box_autoadd_bridge_bykc_sign_display_config(
     SseDeserializer deserializer,
   );
 
@@ -2058,6 +2176,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_bridge_bykc_course_attendance_display(
+    BridgeBykcCourseAttendanceDisplay self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bridge_bykc_course_category(
     BridgeBykcCourseCategory self,
     SseSerializer serializer,
@@ -2084,6 +2208,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_bykc_sign_course_request(
     BridgeBykcSignCourseRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bykc_sign_display_config(
+    BridgeBykcSignDisplayConfig self,
     SseSerializer serializer,
   );
 
@@ -2214,8 +2344,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_bykc_course_attendance_display(
+    BridgeBykcCourseAttendanceDisplay self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_course_catalog_item(
+    BridgeBykcCourseCatalogItem self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_course_catalog_page(
+    BridgeBykcCourseCatalogPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_bykc_course_category(
     BridgeBykcCourseCategory self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_course_full_detail(
+    BridgeBykcCourseFullDetail self,
     SseSerializer serializer,
   );
 
@@ -2252,6 +2406,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_bykc_sign_course_request(
     BridgeBykcSignCourseRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_sign_display_config(
+    BridgeBykcSignDisplayConfig self,
     SseSerializer serializer,
   );
 
@@ -2697,6 +2857,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_routed_bykc_course_catalog(
+    BridgeRoutedBykcCourseCatalog self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_bykc_course_full_detail(
+    BridgeRoutedBykcCourseFullDetail self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_routed_bykc_courses(
     BridgeRoutedBykcCourses self,
     SseSerializer serializer,
@@ -3045,6 +3217,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_bykc_course_catalog_item(
+    List<BridgeBykcCourseCatalogItem> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_bykc_sign_point(
     List<BridgeBykcSignPoint> self,
     SseSerializer serializer,
@@ -3279,6 +3457,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_bridge_bykc_course_attendance_display(
+    BridgeBykcCourseAttendanceDisplay? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_bridge_bykc_course_category(
     BridgeBykcCourseCategory? self,
     SseSerializer serializer,
@@ -3293,6 +3477,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_bykc_sign_config(
     BridgeBykcSignConfig? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_bykc_sign_display_config(
+    BridgeBykcSignDisplayConfig? self,
     SseSerializer serializer,
   );
 

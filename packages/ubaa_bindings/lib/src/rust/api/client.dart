@@ -22,7 +22,17 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeRoutedBykcChosenCourses> bykcChosenCourses();
 
+  Future<BridgeRoutedBykcCourseCatalog> bykcCourseCatalog({
+    required int page,
+    required int size,
+    required bool all,
+  });
+
   Future<BridgeRoutedBykcCourse> bykcCourseDetail({required PlatformInt64 id});
+
+  Future<BridgeRoutedBykcCourseFullDetail> bykcCourseFullDetail({
+    required PlatformInt64 id,
+  });
 
   Future<BridgeRoutedBykcCourses> bykcCourses({
     required int page,

@@ -10,7 +10,7 @@ Future<FeatureResult> _loadBykcFeature(
     case FeatureId.bykc:
       switch (query.view) {
         case FeatureQueryView.summary:
-          final result = await client.bykcCourses(
+          final result = await client.bykcCourseCatalog(
             // Core 的分页合同为 1-based；UI 的通用查询默认从 0 开始，
             // 因此这里在 bridge 边界显式收敛为首个有效页。
             page: query.page <= 0 ? 1 : query.page,
@@ -18,11 +18,12 @@ Future<FeatureResult> _loadBykcFeature(
             all: true,
           );
           final details = result.data.content
-              .map(
-                (item) => FeatureDetail(
+              .map((catalog) {
+                final item = catalog.course;
+                return FeatureDetail(
                   title: item.courseName,
                   subtitle: item.courseTeacher,
-                  presentation: _bykcCoursePresentation(item),
+                  presentation: _bykcCoursePresentation(item, catalog: catalog),
                   readNavigation: item.id <= 0
                       ? null
                       : FeatureReadNavigation(
@@ -59,8 +60,8 @@ Future<FeatureResult> _loadBykcFeature(
                     _field('选课截止', item.courseSelectEndDate),
                     _field('退选截止', item.courseCancelEndDate),
                   ]),
-                ),
-              )
+                );
+              })
               .toList(growable: false);
           return _countResult(
             result.data.content.length,
@@ -76,15 +77,29 @@ Future<FeatureResult> _loadBykcFeature(
           );
         case FeatureQueryView.bykcDetail:
           final id = _requiredPositiveQueryInt(query.courseId, '课程 ID');
-          final result = await client.bykcCourseDetail(id: id);
-          final item = result.data;
+          final result = await client.bykcCourseFullDetail(id: id);
+          final item = result.data.course.course;
           return FeatureResult.success(
             summary: '博雅课程详情',
             details: <FeatureDetail>[
               FeatureDetail(
                 title: item.courseName,
                 subtitle: item.courseTeacher,
-                presentation: _bykcCoursePresentation(item, isDetail: true),
+                presentation: _bykcCoursePresentation(
+                  item,
+                  isDetail: true,
+                  catalog: result.data.course,
+                  supplement: _bykcSupplement(result.data),
+                ),
+                // 签到入口必须先独立读取已选记录；补查考勤本身不携带动作权威。
+                readNavigation: item.selected == true
+                    ? const FeatureReadNavigation(
+                        feature: FeatureId.bykc,
+                        query: FeatureQuery(
+                          view: FeatureQueryView.bykcChosenCourses,
+                        ),
+                      )
+                    : null,
                 actions: <FeatureAction>[
                   BykcSelectAction(
                     courseId: item.id,
@@ -152,7 +167,24 @@ Future<FeatureResult> _loadBykcFeature(
             resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
           );
         case FeatureQueryView.bykcChosenCourses:
+          final detailId = query.courseId == null
+              ? null
+              : _requiredPositiveQueryInt(query.courseId, '课程 ID');
           final result = await client.bykcChosenCourses();
+          BykcCoursePresentation? fullDetail;
+          if (detailId case final id?) {
+            final full = await client.bykcCourseFullDetail(id: id);
+            if (full.data.course.course.id != id ||
+                full.route.resolvedRoute != result.route.resolvedRoute) {
+              throw const BackendException(UbaaErrorCode.operationConflict);
+            }
+            fullDetail = _bykcCoursePresentation(
+              full.data.course.course,
+              isDetail: true,
+              catalog: full.data.course,
+              supplement: _bykcSupplement(full.data),
+            );
+          }
           final details = result.data
               .map((item) {
                 final signEligibility = _toBykcActionEligibility(
@@ -167,7 +199,12 @@ Future<FeatureResult> _loadBykcFeature(
                 return FeatureDetail(
                   title: item.courseName,
                   subtitle: item.courseTeacher,
-                  presentation: _bykcChosenPresentation(item),
+                  presentation: _bykcChosenPresentation(
+                    item,
+                    fullDetail: fullDetail?.id == item.courseId
+                        ? fullDetail
+                        : null,
+                  ),
                   actions: <FeatureAction>[
                     BykcDeselectAction(
                       courseId: item.courseId,
@@ -329,6 +366,8 @@ bool _requiresBykcCoordinates(BridgeBykcSignConfig? config) {
 BykcCoursePresentation _bykcCoursePresentation(
   BridgeBykcCourse item, {
   bool isDetail = false,
+  BridgeBykcCourseCatalogItem? catalog,
+  BykcCourseSupplement? supplement,
 }) => BykcCoursePresentation(
   id: item.id,
   courseName: item.courseName,
@@ -351,40 +390,91 @@ BykcCoursePresentation _bykcCoursePresentation(
   },
   selected: item.selected,
   isDetail: isDetail,
+  category: switch (catalog?.category) {
+    BridgeBykcCourseCategory.boya => BykcCourseCategory.boya,
+    BridgeBykcCourseCategory.unknown => BykcCourseCategory.unknown,
+    null => null,
+  },
+  subCategory: switch (catalog?.subCategory) {
+    BridgeBykcCourseSubCategory.moral => BykcCourseSubCategory.moral,
+    BridgeBykcCourseSubCategory.aesthetic => BykcCourseSubCategory.aesthetic,
+    BridgeBykcCourseSubCategory.labor => BykcCourseSubCategory.labor,
+    BridgeBykcCourseSubCategory.safetyHealth =>
+      BykcCourseSubCategory.safetyHealth,
+    BridgeBykcCourseSubCategory.other => BykcCourseSubCategory.other,
+    BridgeBykcCourseSubCategory.unknown => BykcCourseSubCategory.unknown,
+    null => null,
+  },
+  audienceCampuses: List.unmodifiable(
+    catalog?.audienceCampuses ?? const <String>[],
+  ),
+  hasSignPoints: catalog?.hasSignPoints ?? false,
+  supplement: supplement,
 );
 
-BykcChosenPresentation _bykcChosenPresentation(BridgeBykcChosenCourse item) =>
-    BykcChosenPresentation(
-      recordId: item.id,
-      courseId: item.courseId,
-      courseName: item.courseName,
-      courseTeacher: item.courseTeacher,
-      coursePosition: item.coursePosition,
-      courseStartDate: item.courseStartDate,
-      courseEndDate: item.courseEndDate,
-      courseCancelEndDate: item.courseCancelEndDate,
-      selectDate: item.selectDate,
-      category: switch (item.category) {
-        BridgeBykcCourseCategory.boya => '博雅课程',
-        BridgeBykcCourseCategory.unknown => '未知分类',
-        null => null,
-      },
-      subCategory: switch (item.subCategory) {
-        BridgeBykcCourseSubCategory.moral => '德育',
-        BridgeBykcCourseSubCategory.aesthetic => '美育',
-        BridgeBykcCourseSubCategory.labor => '劳动教育',
-        BridgeBykcCourseSubCategory.safetyHealth => '安全健康',
-        BridgeBykcCourseSubCategory.other => '其他方面',
-        BridgeBykcCourseSubCategory.unknown => '未知类型',
-        null => null,
-      },
-      checkin: item.checkin,
-      pass: item.pass,
-      score: item.score,
-      signStartDate: item.signConfig?.signStartDate,
-      signEndDate: item.signConfig?.signEndDate,
-      signOutStartDate: item.signConfig?.signOutStartDate,
-      signOutEndDate: item.signConfig?.signOutEndDate,
-      signPointCount: item.signConfig?.signPoints.length,
-      courseSignType: item.courseSignType,
+BykcCourseSupplement _bykcSupplement(BridgeBykcCourseFullDetail detail) =>
+    BykcCourseSupplement(
+      courseContact: detail.courseContact,
+      courseContactMobile: detail.courseContactMobile,
+      organizerCollegeName: detail.organizerCollegeName,
+      descriptionPlainText: detail.descriptionPlainText,
+      audienceColleges: List.unmodifiable(detail.audienceColleges),
+      audienceTerms: List.unmodifiable(detail.audienceTerms),
+      audienceGroups: List.unmodifiable(detail.audienceGroups),
+      signConfig: detail.signConfig == null
+          ? null
+          : BykcSignDisplayConfig(
+              signStartDate: detail.signConfig!.signStartDate,
+              signEndDate: detail.signConfig!.signEndDate,
+              signOutStartDate: detail.signConfig!.signOutStartDate,
+              signOutEndDate: detail.signConfig!.signOutEndDate,
+              signPointCount: detail.signConfig!.signPointCount,
+            ),
+      attendance: detail.attendance == null
+          ? null
+          : BykcAttendanceDisplay(
+              recordId: detail.attendance!.recordId,
+              courseId: detail.attendance!.courseId,
+              checkin: detail.attendance!.checkin,
+              pass: detail.attendance!.pass,
+            ),
     );
+
+BykcChosenPresentation _bykcChosenPresentation(
+  BridgeBykcChosenCourse item, {
+  BykcCoursePresentation? fullDetail,
+}) => BykcChosenPresentation(
+  recordId: item.id,
+  courseId: item.courseId,
+  courseName: item.courseName,
+  courseTeacher: item.courseTeacher,
+  coursePosition: item.coursePosition,
+  courseStartDate: item.courseStartDate,
+  courseEndDate: item.courseEndDate,
+  courseCancelEndDate: item.courseCancelEndDate,
+  selectDate: item.selectDate,
+  category: switch (item.category) {
+    BridgeBykcCourseCategory.boya => '博雅课程',
+    BridgeBykcCourseCategory.unknown => '未知分类',
+    null => null,
+  },
+  subCategory: switch (item.subCategory) {
+    BridgeBykcCourseSubCategory.moral => '德育',
+    BridgeBykcCourseSubCategory.aesthetic => '美育',
+    BridgeBykcCourseSubCategory.labor => '劳动教育',
+    BridgeBykcCourseSubCategory.safetyHealth => '安全健康',
+    BridgeBykcCourseSubCategory.other => '其他方面',
+    BridgeBykcCourseSubCategory.unknown => '未知类型',
+    null => null,
+  },
+  checkin: item.checkin,
+  pass: item.pass,
+  score: item.score,
+  signStartDate: item.signConfig?.signStartDate,
+  signEndDate: item.signConfig?.signEndDate,
+  signOutStartDate: item.signConfig?.signOutStartDate,
+  signOutEndDate: item.signConfig?.signOutEndDate,
+  signPointCount: item.signConfig?.signPoints.length,
+  courseSignType: item.courseSignType,
+  fullDetail: fullDetail,
+);

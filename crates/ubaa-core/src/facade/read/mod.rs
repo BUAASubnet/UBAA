@@ -2,5 +2,6 @@
 
 mod academic;
 mod assignments;
+mod bykc_catalog;
 mod evaluation;
 mod services;

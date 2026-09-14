@@ -154,6 +154,9 @@ class _CharacterizationBridgeClient implements BridgeClient {
             route: _webVpnRoute,
           ),
         );
+      case #bykcCourseFullDetail:
+      case #bykcCourseCatalog:
+        return _bykcCatalogRead(invocation, emptyReads: emptyReads);
       case #bykcCourseDetail:
         return Future<BridgeRoutedBykcCourse>.value(
           const BridgeRoutedBykcCourse(
@@ -779,6 +782,8 @@ const _readyLoginOutcome = BridgeLoginOutcome(
 const _readMembers = <Symbol>{
   #bykcChosenCourses,
   #bykcCourseDetail,
+  #bykcCourseFullDetail,
+  #bykcCourseCatalog,
   #bykcCourses,
   #bykcProfile,
   #bykcStatistics,
@@ -926,6 +931,9 @@ BridgeJudgeAssignmentDetail _judgeDetail(
 String _describeReadCall(Invocation invocation) {
   final named = invocation.namedArguments;
   return switch (invocation.memberName) {
+    #bykcCourseFullDetail => 'bykcCourseFullDetail:id=${named[#id]}',
+    #bykcCourseCatalog =>
+      'bykcCourseCatalog:page=${named[#page]},size=${named[#size]},all=${named[#all]}',
     #bykcCourseDetail => 'bykcCourseDetail:id=${named[#id]}',
     #bykcCourses =>
       'bykcCourses:page=${named[#page]},size=${named[#size]},all=${named[#all]}',

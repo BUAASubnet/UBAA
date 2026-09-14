@@ -9,6 +9,8 @@ use ubaa_core::facade::{
     BykcSignRequest, ConnectionMode, ErrorCode, ErrorKind, Result, RouteClient, UbaaError,
 };
 
+#[path = "bykc/full_detail.rs"]
+mod full_detail;
 #[path = "bykc/write_authority.rs"]
 mod write_authority;
 

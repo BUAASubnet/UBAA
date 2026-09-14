@@ -205,3 +205,46 @@ bool _matchesBykcStatuses(
         _ => course.status == status,
       },
     );
+
+bool _matchesBykcFilters(
+  BykcCoursePresentation course,
+  Set<BykcCourseStatus> statuses,
+  Set<String> categories,
+  Set<String> campuses,
+) =>
+    _matchesBykcStatuses(course, statuses) &&
+    (categories.isEmpty || categories.contains(course.categoryDisplayName)) &&
+    (campuses.isEmpty || course.audienceCampuses.any(campuses.contains));
+
+List<String> _bykcCampusOptions(
+  List<FeatureDetail> details,
+  Set<String> selected,
+) {
+  final values =
+      <String>{
+            ...selected,
+            for (final course
+                in details
+                    .map((detail) => detail.presentation)
+                    .whereType<BykcCoursePresentation>())
+              ...course.audienceCampuses,
+          }
+          .map((value) => value.trim())
+          .where((value) => value.isNotEmpty)
+          .toSet()
+          .toList();
+  int rank(String value) => value.startsWith('学院路')
+      ? 0
+      : value.startsWith('沙河')
+      ? 1
+      : value.startsWith('杭州')
+      ? 2
+      : value == '未指定校区'
+      ? 3
+      : 4;
+  values.sort((a, b) {
+    final order = rank(a).compareTo(rank(b));
+    return order == 0 ? a.compareTo(b) : order;
+  });
+  return values;
+}

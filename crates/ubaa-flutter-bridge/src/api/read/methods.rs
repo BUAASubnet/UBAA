@@ -8,30 +8,30 @@ use ubaa_core::facade::{RoutedResult, UbaaClient};
 
 use super::evaluation::map_evaluation;
 use super::mappers::{
-    map_bykc_chosen_courses, map_bykc_course, map_bykc_course_page, map_bykc_profile,
-    map_bykc_statistics, map_cgyy_day_info, map_cgyy_lock_code, map_cgyy_order, map_cgyy_orders,
-    map_cgyy_purpose_types, map_cgyy_sites, map_classroom_query, map_exam_arrangement,
-    map_grade_data, map_judge_detail, map_judge_details, map_judge_summaries,
-    map_libbook_area_detail, map_libbook_area_schedule, map_libbook_areas, map_libbook_bookings,
-    map_libbook_libraries, map_libbook_seats, map_signin_classes, map_spoc_assignments,
-    map_spoc_detail, map_terms, map_today_classes, map_weekly_schedule, map_weeks,
-    map_ygdk_overview, map_ygdk_records,
+    map_bykc_catalog, map_bykc_chosen_courses, map_bykc_course, map_bykc_course_page,
+    map_bykc_full_detail, map_bykc_profile, map_bykc_statistics, map_cgyy_day_info,
+    map_cgyy_lock_code, map_cgyy_order, map_cgyy_orders, map_cgyy_purpose_types, map_cgyy_sites,
+    map_classroom_query, map_exam_arrangement, map_grade_data, map_judge_detail, map_judge_details,
+    map_judge_summaries, map_libbook_area_detail, map_libbook_area_schedule, map_libbook_areas,
+    map_libbook_bookings, map_libbook_libraries, map_libbook_seats, map_signin_classes,
+    map_spoc_assignments, map_spoc_detail, map_terms, map_today_classes, map_weekly_schedule,
+    map_weeks, map_ygdk_overview, map_ygdk_records,
 };
 use super::{
     BridgeCallerPinnedCgyyOrder, BridgeCallerPinnedCgyyOrders, BridgeCallerPinnedEvaluation,
     BridgeCallerPinnedYgdkOverview, BridgeCallerPinnedYgdkRecords, BridgeJudgeAssignmentKey,
-    BridgeRoutedBykcChosenCourses, BridgeRoutedBykcCourse, BridgeRoutedBykcCourses,
-    BridgeRoutedBykcProfile, BridgeRoutedBykcStatistics, BridgeRoutedCgyyDayInfo,
-    BridgeRoutedCgyyLockCode, BridgeRoutedCgyyOrder, BridgeRoutedCgyyOrders,
-    BridgeRoutedCgyyPurposeTypes, BridgeRoutedCgyySites, BridgeRoutedClassroomQuery,
-    BridgeRoutedEvaluation, BridgeRoutedExamArrangement, BridgeRoutedGrades,
-    BridgeRoutedJudgeAssignmentDetail, BridgeRoutedJudgeAssignmentDetails,
-    BridgeRoutedJudgeSummaries, BridgeRoutedLibBookAreaDetail, BridgeRoutedLibBookAreaSchedule,
-    BridgeRoutedLibBookAreas, BridgeRoutedLibBookBookings, BridgeRoutedLibBookLibraries,
-    BridgeRoutedLibBookSeats, BridgeRoutedSigninClasses, BridgeRoutedSpocAssignmentDetail,
-    BridgeRoutedSpocAssignments, BridgeRoutedTerms, BridgeRoutedTodayClasses,
-    BridgeRoutedWeeklySchedule, BridgeRoutedWeeks, BridgeRoutedYgdkOverview,
-    BridgeRoutedYgdkRecords,
+    BridgeRoutedBykcChosenCourses, BridgeRoutedBykcCourse, BridgeRoutedBykcCourseCatalog,
+    BridgeRoutedBykcCourseFullDetail, BridgeRoutedBykcCourses, BridgeRoutedBykcProfile,
+    BridgeRoutedBykcStatistics, BridgeRoutedCgyyDayInfo, BridgeRoutedCgyyLockCode,
+    BridgeRoutedCgyyOrder, BridgeRoutedCgyyOrders, BridgeRoutedCgyyPurposeTypes,
+    BridgeRoutedCgyySites, BridgeRoutedClassroomQuery, BridgeRoutedEvaluation,
+    BridgeRoutedExamArrangement, BridgeRoutedGrades, BridgeRoutedJudgeAssignmentDetail,
+    BridgeRoutedJudgeAssignmentDetails, BridgeRoutedJudgeSummaries, BridgeRoutedLibBookAreaDetail,
+    BridgeRoutedLibBookAreaSchedule, BridgeRoutedLibBookAreas, BridgeRoutedLibBookBookings,
+    BridgeRoutedLibBookLibraries, BridgeRoutedLibBookSeats, BridgeRoutedSigninClasses,
+    BridgeRoutedSpocAssignmentDetail, BridgeRoutedSpocAssignments, BridgeRoutedTerms,
+    BridgeRoutedTodayClasses, BridgeRoutedWeeklySchedule, BridgeRoutedWeeks,
+    BridgeRoutedYgdkOverview, BridgeRoutedYgdkRecords,
 };
 use crate::api::client::{
     BridgeClient, BridgeConnectionMode, BridgeError, BridgeRouteDecision, catch_panic,
@@ -273,6 +273,32 @@ impl BridgeClient {
             )
             .await?;
         Ok(BridgeRoutedBykcChosenCourses { data, route })
+    }
+    pub async fn bykc_course_catalog(
+        &self,
+        page: i32,
+        size: i32,
+        all: bool,
+    ) -> Result<BridgeRoutedBykcCourseCatalog, BridgeError> {
+        let (data, route) = self
+            .execute_read(
+                |client| Box::pin(async move { client.bykc_course_catalog(page, size, all).await }),
+                map_bykc_catalog,
+            )
+            .await?;
+        Ok(BridgeRoutedBykcCourseCatalog { data, route })
+    }
+    pub async fn bykc_course_full_detail(
+        &self,
+        id: i64,
+    ) -> Result<BridgeRoutedBykcCourseFullDetail, BridgeError> {
+        let (data, route) = self
+            .execute_read(
+                |client| Box::pin(async move { client.bykc_course_full_detail(id).await }),
+                map_bykc_full_detail,
+            )
+            .await?;
+        Ok(BridgeRoutedBykcCourseFullDetail { data, route })
     }
     pub async fn bykc_statistics(&self) -> Result<BridgeRoutedBykcStatistics, BridgeError> {
         let (data, route) = self

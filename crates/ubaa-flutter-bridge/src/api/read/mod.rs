@@ -277,6 +277,51 @@ pub struct BridgeBykcCoursePage {
     pub size: i32,
     pub number: i32,
 }
+#[derive(Clone, Debug)]
+pub struct BridgeBykcCourseCatalogItem {
+    pub course: BridgeBykcCourse,
+    pub category: Option<BridgeBykcCourseCategory>,
+    pub sub_category: Option<BridgeBykcCourseSubCategory>,
+    pub audience_campuses: Vec<String>,
+    pub has_sign_points: bool,
+}
+#[derive(Clone, Debug)]
+pub struct BridgeBykcCourseCatalogPage {
+    pub content: Vec<BridgeBykcCourseCatalogItem>,
+    pub total_elements: i32,
+    pub total_pages: i32,
+    pub size: i32,
+    pub number: i32,
+}
+/// 完整详情只公开显示窗口和点数，不额外传出位置或原始配置。
+#[derive(Clone, Debug)]
+pub struct BridgeBykcSignDisplayConfig {
+    pub sign_start_date: Option<String>,
+    pub sign_end_date: Option<String>,
+    pub sign_out_start_date: Option<String>,
+    pub sign_out_end_date: Option<String>,
+    pub sign_point_count: i32,
+}
+#[derive(Clone, Debug)]
+pub struct BridgeBykcCourseAttendanceDisplay {
+    pub record_id: i64,
+    pub course_id: i64,
+    pub checkin: Option<i32>,
+    pub pass: Option<i32>,
+}
+#[derive(Clone, Debug)]
+pub struct BridgeBykcCourseFullDetail {
+    pub course: BridgeBykcCourseCatalogItem,
+    pub course_contact: Option<String>,
+    pub course_contact_mobile: Option<String>,
+    pub organizer_college_name: Option<String>,
+    pub description_plain_text: Option<String>,
+    pub audience_colleges: Vec<String>,
+    pub audience_terms: Vec<String>,
+    pub audience_groups: Vec<String>,
+    pub sign_config: Option<BridgeBykcSignDisplayConfig>,
+    pub attendance: Option<BridgeBykcCourseAttendanceDisplay>,
+}
 #[derive(Clone, Copy, Debug)]
 pub enum BridgeBykcCourseCategory {
     Boya,
@@ -673,6 +718,8 @@ routed!(
 routed!(BridgeRoutedBykcProfile, BridgeBykcUserProfile);
 routed!(BridgeRoutedBykcCourses, BridgeBykcCoursePage);
 routed!(BridgeRoutedBykcCourse, BridgeBykcCourse);
+routed!(BridgeRoutedBykcCourseCatalog, BridgeBykcCourseCatalogPage);
+routed!(BridgeRoutedBykcCourseFullDetail, BridgeBykcCourseFullDetail);
 routed!(BridgeRoutedBykcChosenCourses, Vec<BridgeBykcChosenCourse>);
 routed!(BridgeRoutedBykcStatistics, BridgeBykcStatistics);
 routed!(BridgeRoutedLibBookLibraries, Vec<BridgeLibBookLibrary>);

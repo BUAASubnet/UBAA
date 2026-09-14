@@ -7,6 +7,8 @@ class _FeatureDetailList extends StatefulWidget {
     required this.details,
     this.filter = '',
     this.bykcStatuses = _defaultBykcStatuses,
+    this.bykcCategories = const {},
+    this.bykcCampuses = const {},
     this.isBykcChosenDetail = false,
     this.onOpenBykcChosen,
     this.pagination,
@@ -30,6 +32,7 @@ class _FeatureDetailList extends StatefulWidget {
 
   final String filter;
   final Set<BykcCourseStatus> bykcStatuses;
+  final Set<String> bykcCategories, bykcCampuses;
   final bool isBykcChosenDetail;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final FeatureId feature;
@@ -67,7 +70,9 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
   void didUpdateWidget(covariant _FeatureDetailList oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.filter != widget.filter ||
-        oldWidget.bykcStatuses != widget.bykcStatuses)
+        oldWidget.bykcStatuses != widget.bykcStatuses ||
+        oldWidget.bykcCategories != widget.bykcCategories ||
+        oldWidget.bykcCampuses != widget.bykcCampuses)
       _page = 0;
     final validKeys = <String>{
       for (final detail in widget.details)
@@ -110,9 +115,11 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                 (detail) =>
                     detail.presentation is! BykcCoursePresentation ||
                     (detail.presentation! as BykcCoursePresentation).isDetail ||
-                    _matchesBykcStatuses(
+                    _matchesBykcFilters(
                       detail.presentation! as BykcCoursePresentation,
                       widget.bykcStatuses,
+                      widget.bykcCategories,
+                      widget.bykcCampuses,
                     ),
               )
               .toList();
@@ -189,7 +196,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                     child: Text(
                       widget.feature == FeatureId.bykc &&
                               widget.query?.view == FeatureQueryView.summary
-                          ? '当前筛选条件下暂无课程'
+                          ? '当前页没有匹配项'
                           : '没有匹配的详情',
                     ),
                   )

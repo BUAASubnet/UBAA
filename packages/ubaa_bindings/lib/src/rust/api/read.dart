@@ -7,7 +7,7 @@ import '../frb_generated.dart';
 import 'client.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `hash`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `hash`
 
 enum BridgeActionEligibility { allowed, denied, unknown }
 
@@ -177,7 +177,160 @@ class BridgeBykcCourse {
           deselectEligibility == other.deselectEligibility;
 }
 
+class BridgeBykcCourseAttendanceDisplay {
+  final PlatformInt64 recordId;
+  final PlatformInt64 courseId;
+  final int? checkin;
+  final int? pass;
+
+  const BridgeBykcCourseAttendanceDisplay({
+    required this.recordId,
+    required this.courseId,
+    this.checkin,
+    this.pass,
+  });
+
+  @override
+  int get hashCode =>
+      recordId.hashCode ^ courseId.hashCode ^ checkin.hashCode ^ pass.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeBykcCourseAttendanceDisplay &&
+          runtimeType == other.runtimeType &&
+          recordId == other.recordId &&
+          courseId == other.courseId &&
+          checkin == other.checkin &&
+          pass == other.pass;
+}
+
+class BridgeBykcCourseCatalogItem {
+  final BridgeBykcCourse course;
+  final BridgeBykcCourseCategory? category;
+  final BridgeBykcCourseSubCategory? subCategory;
+  final List<String> audienceCampuses;
+  final bool hasSignPoints;
+
+  const BridgeBykcCourseCatalogItem({
+    required this.course,
+    this.category,
+    this.subCategory,
+    required this.audienceCampuses,
+    required this.hasSignPoints,
+  });
+
+  @override
+  int get hashCode =>
+      course.hashCode ^
+      category.hashCode ^
+      subCategory.hashCode ^
+      audienceCampuses.hashCode ^
+      hasSignPoints.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeBykcCourseCatalogItem &&
+          runtimeType == other.runtimeType &&
+          course == other.course &&
+          category == other.category &&
+          subCategory == other.subCategory &&
+          audienceCampuses == other.audienceCampuses &&
+          hasSignPoints == other.hasSignPoints;
+}
+
+class BridgeBykcCourseCatalogPage {
+  final List<BridgeBykcCourseCatalogItem> content;
+  final int totalElements;
+  final int totalPages;
+  final int size;
+  final int number;
+
+  const BridgeBykcCourseCatalogPage({
+    required this.content,
+    required this.totalElements,
+    required this.totalPages,
+    required this.size,
+    required this.number,
+  });
+
+  @override
+  int get hashCode =>
+      content.hashCode ^
+      totalElements.hashCode ^
+      totalPages.hashCode ^
+      size.hashCode ^
+      number.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeBykcCourseCatalogPage &&
+          runtimeType == other.runtimeType &&
+          content == other.content &&
+          totalElements == other.totalElements &&
+          totalPages == other.totalPages &&
+          size == other.size &&
+          number == other.number;
+}
+
 enum BridgeBykcCourseCategory { boya, unknown }
+
+class BridgeBykcCourseFullDetail {
+  final BridgeBykcCourseCatalogItem course;
+  final String? courseContact;
+  final String? courseContactMobile;
+  final String? organizerCollegeName;
+  final String? descriptionPlainText;
+  final List<String> audienceColleges;
+  final List<String> audienceTerms;
+  final List<String> audienceGroups;
+  final BridgeBykcSignDisplayConfig? signConfig;
+  final BridgeBykcCourseAttendanceDisplay? attendance;
+
+  const BridgeBykcCourseFullDetail({
+    required this.course,
+    this.courseContact,
+    this.courseContactMobile,
+    this.organizerCollegeName,
+    this.descriptionPlainText,
+    required this.audienceColleges,
+    required this.audienceTerms,
+    required this.audienceGroups,
+    this.signConfig,
+    this.attendance,
+  });
+
+  @override
+  int get hashCode =>
+      course.hashCode ^
+      courseContact.hashCode ^
+      courseContactMobile.hashCode ^
+      organizerCollegeName.hashCode ^
+      descriptionPlainText.hashCode ^
+      audienceColleges.hashCode ^
+      audienceTerms.hashCode ^
+      audienceGroups.hashCode ^
+      signConfig.hashCode ^
+      attendance.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeBykcCourseFullDetail &&
+          runtimeType == other.runtimeType &&
+          course == other.course &&
+          courseContact == other.courseContact &&
+          courseContactMobile == other.courseContactMobile &&
+          organizerCollegeName == other.organizerCollegeName &&
+          descriptionPlainText == other.descriptionPlainText &&
+          audienceColleges == other.audienceColleges &&
+          audienceTerms == other.audienceTerms &&
+          audienceGroups == other.audienceGroups &&
+          signConfig == other.signConfig &&
+          attendance == other.attendance;
+}
 
 class BridgeBykcCoursePage {
   final List<BridgeBykcCourse> content;
@@ -265,6 +418,42 @@ class BridgeBykcSignConfig {
           signOutStartDate == other.signOutStartDate &&
           signOutEndDate == other.signOutEndDate &&
           signPoints == other.signPoints;
+}
+
+/// 完整详情只公开显示窗口和点数，不额外传出位置或原始配置。
+class BridgeBykcSignDisplayConfig {
+  final String? signStartDate;
+  final String? signEndDate;
+  final String? signOutStartDate;
+  final String? signOutEndDate;
+  final int signPointCount;
+
+  const BridgeBykcSignDisplayConfig({
+    this.signStartDate,
+    this.signEndDate,
+    this.signOutStartDate,
+    this.signOutEndDate,
+    required this.signPointCount,
+  });
+
+  @override
+  int get hashCode =>
+      signStartDate.hashCode ^
+      signEndDate.hashCode ^
+      signOutStartDate.hashCode ^
+      signOutEndDate.hashCode ^
+      signPointCount.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeBykcSignDisplayConfig &&
+          runtimeType == other.runtimeType &&
+          signStartDate == other.signStartDate &&
+          signEndDate == other.signEndDate &&
+          signOutStartDate == other.signOutStartDate &&
+          signOutEndDate == other.signOutEndDate &&
+          signPointCount == other.signPointCount;
 }
 
 class BridgeBykcSignPoint {
@@ -1880,6 +2069,48 @@ class BridgeRoutedBykcCourse {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BridgeRoutedBykcCourse &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          route == other.route;
+}
+
+class BridgeRoutedBykcCourseCatalog {
+  final BridgeBykcCourseCatalogPage data;
+  final BridgeRouteDecision route;
+
+  const BridgeRoutedBykcCourseCatalog({
+    required this.data,
+    required this.route,
+  });
+
+  @override
+  int get hashCode => data.hashCode ^ route.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeRoutedBykcCourseCatalog &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          route == other.route;
+}
+
+class BridgeRoutedBykcCourseFullDetail {
+  final BridgeBykcCourseFullDetail data;
+  final BridgeRouteDecision route;
+
+  const BridgeRoutedBykcCourseFullDetail({
+    required this.data,
+    required this.route,
+  });
+
+  @override
+  int get hashCode => data.hashCode ^ route.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeRoutedBykcCourseFullDetail &&
           runtimeType == other.runtimeType &&
           data == other.data &&
           route == other.route;

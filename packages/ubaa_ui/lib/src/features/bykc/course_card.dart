@@ -40,6 +40,13 @@ class _BykcCourseCard extends StatelessWidget {
               const SizedBox(height: 4),
               _BykcInfoLine('教师', course.courseTeacher, maxLines: 1),
               _BykcInfoLine('地点', course.coursePosition, maxLines: 1),
+              _BykcInfoLine('类别', course.categoryDisplayName, maxLines: 1),
+              _BykcInfoLine(
+                '适用校区',
+                course.audienceCampuses.join('、'),
+                maxLines: 1,
+              ),
+              if (course.hasSignPoints) const Text('含地点签到配置'),
               _BykcInfoLine(
                 '时间',
                 _bykcRange(course.courseStartDate, course.courseEndDate),

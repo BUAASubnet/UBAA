@@ -38,7 +38,7 @@ fn string(map: &Map<String, Value>, key: &str) -> Option<String> {
     map.get(key).and_then(Value::as_str).map(str::to_owned)
 }
 
-fn int(map: &Map<String, Value>, key: &str) -> Option<i32> {
+pub(super) fn int(map: &Map<String, Value>, key: &str) -> Option<i32> {
     map.get(key)
         .and_then(Value::as_i64)
         .and_then(|v| i32::try_from(v).ok())
@@ -49,7 +49,7 @@ fn int(map: &Map<String, Value>, key: &str) -> Option<i32> {
         })
 }
 
-fn course(value: &Value, now: NaiveDateTime) -> Result<BykcCourse> {
+pub(super) fn course(value: &Value, now: NaiveDateTime) -> Result<BykcCourse> {
     let m = value.as_object().ok_or_else(|| error("博雅课程字段无效"))?;
     let id = m
         .get("id")
@@ -385,13 +385,13 @@ fn ensure_optional_i32(map: &Map<String, Value>, key: &str) -> Result<()> {
     Err(error("博雅写前资格字段类型无效"))
 }
 
-fn normalized_string(map: &Map<String, Value>, key: &str) -> Option<String> {
+pub(super) fn normalized_string(map: &Map<String, Value>, key: &str) -> Option<String> {
     string(map, key)
         .map(|value| value.trim().to_owned())
         .filter(|value| !value.is_empty())
 }
 
-fn nested_kind_name<'a>(map: &'a Map<String, Value>, key: &str) -> Option<&'a str> {
+pub(super) fn nested_kind_name<'a>(map: &'a Map<String, Value>, key: &str) -> Option<&'a str> {
     map.get(key)
         .and_then(Value::as_object)
         .and_then(|kind| kind.get("kindName"))
@@ -400,14 +400,14 @@ fn nested_kind_name<'a>(map: &'a Map<String, Value>, key: &str) -> Option<&'a st
         .filter(|value| !value.is_empty())
 }
 
-fn parse_category(value: &str) -> BykcCourseCategory {
+pub(super) fn parse_category(value: &str) -> BykcCourseCategory {
     match value {
         "博雅课程" => BykcCourseCategory::Boya,
         _ => BykcCourseCategory::Unknown,
     }
 }
 
-fn parse_sub_category(value: &str) -> BykcCourseSubCategory {
+pub(super) fn parse_sub_category(value: &str) -> BykcCourseSubCategory {
     match value {
         "德育" => BykcCourseSubCategory::Moral,
         "美育" => BykcCourseSubCategory::Aesthetic,

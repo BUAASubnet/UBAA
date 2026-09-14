@@ -66,6 +66,55 @@ pub struct BykcCoursePage {
     pub number: i32,
 }
 
+/// 课程目录的显示字段；组合旧课程值以保持旧 API 序列化合同。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BykcCourseCatalogItem {
+    pub course: BykcCourse,
+    pub category: Option<BykcCourseCategory>,
+    pub sub_category: Option<BykcCourseSubCategory>,
+    pub audience_campuses: Vec<String>,
+    /// 仅表示来源配置含签到点，不表示位置有效或具备写资格。
+    pub has_sign_points: bool,
+}
+
+/// 目录仍使用服务器分页元数据。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BykcCourseCatalogPage {
+    pub content: Vec<BykcCourseCatalogItem>,
+    pub total_elements: i32,
+    pub total_pages: i32,
+    pub size: i32,
+    pub number: i32,
+}
+
+/// 完整只读详情。显示配置和补查考勤不参与写前资格校验。
+#[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BykcCourseFullDetail {
+    pub course: BykcCourseCatalogItem,
+    pub course_contact: Option<String>,
+    pub course_contact_mobile: Option<String>,
+    pub organizer_college_name: Option<String>,
+    pub description_plain_text: Option<String>,
+    pub audience_colleges: Vec<String>,
+    pub audience_terms: Vec<String>,
+    pub audience_groups: Vec<String>,
+    pub sign_config: Option<BykcSignConfig>,
+    pub attendance: Option<BykcCourseAttendanceDisplay>,
+}
+
+/// 按课程标识补查的首项考勤显示，不是已选记录写入目标。
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct BykcCourseAttendanceDisplay {
+    pub record_id: i64,
+    pub course_id: i64,
+    pub checkin: Option<i32>,
+    pub pass: Option<i32>,
+}
+
 /// 博雅已选课程记录。
 #[derive(Clone, Debug, Default, Deserialize, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]

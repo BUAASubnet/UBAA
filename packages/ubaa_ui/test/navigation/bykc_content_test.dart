@@ -242,7 +242,36 @@ Future<void> _open(
               id: FeatureSnapshot(
                 feature: id,
                 status: FeatureLoadStatus.success,
-                details: id == FeatureId.bykc ? details : const [],
+                details: id != FeatureId.bykc
+                    ? const []
+                    : [
+                        for (final detail in details)
+                          if (currentQuery.view ==
+                                  FeatureQueryView.bykcChosenCourses &&
+                              currentQuery.courseId != null &&
+                              detail.presentation is BykcChosenPresentation)
+                            FeatureDetail(
+                              title: detail.title,
+                              fields: detail.fields,
+                              actions: detail.actions,
+                              presentation:
+                                  (detail.presentation!
+                                          as BykcChosenPresentation)
+                                      .withFullDetail(
+                                        BykcCoursePresentation(
+                                          id: int.parse(currentQuery.courseId!),
+                                          courseName: detail.title,
+                                          status: BykcCourseStatus.selected,
+                                          selected: true,
+                                          isDetail: true,
+                                          supplement:
+                                              const BykcCourseSupplement(),
+                                        ),
+                                      ),
+                            )
+                          else
+                            detail,
+                      ],
                 readContext: id == FeatureId.bykc
                     ? FeatureReadContext(
                         query: currentQuery,

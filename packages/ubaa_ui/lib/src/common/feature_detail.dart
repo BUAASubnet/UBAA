@@ -94,6 +94,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
   final _searchController = TextEditingController();
   bool _panelOpen = false;
   Set<BykcCourseStatus> _bykcStatuses = {..._defaultBykcStatuses};
+  Set<String> _bykcCategories = {}, _bykcCampuses = {};
 
   void togglePanel() {
     if (!_panelOpen)
@@ -430,6 +431,17 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
       return widget.onQuery!(query);
     },
     bykcStatuses: _bykcStatuses,
+    bykcCategories: _bykcCategories,
+    bykcCampuses: _bykcCampuses,
+    onBykcCategoriesChanged: (values) =>
+        setState(() => _bykcCategories = {...values}),
+    onBykcCampusesChanged: (values) =>
+        setState(() => _bykcCampuses = {...values}),
+    onBykcReset: () => setState(() {
+      _bykcStatuses = {..._defaultBykcStatuses};
+      _bykcCategories = {};
+      _bykcCampuses = {};
+    }),
     onBykcStatusesChanged: (value) =>
         setState(() => _bykcStatuses = {...value}),
   );
@@ -468,6 +480,8 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
       details: widget.snapshot.details,
       filter: _searchController.text,
       bykcStatuses: _bykcStatuses,
+      bykcCategories: _bykcCategories,
+      bykcCampuses: _bykcCampuses,
       isBykcChosenDetail: widget.isBykcChosenDetail,
       onOpenBykcChosen: widget.onOpenBykcChosen,
       pagination: widget.snapshot.pagination,

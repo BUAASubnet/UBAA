@@ -5,6 +5,9 @@ use chrono::Local;
 use serde_json::Value;
 
 use super::auth::{request_api, request_preflight_api};
+use super::catalog::{
+    merge_chosen_display, parse_catalog_at, parse_chosen_display, parse_full_detail,
+};
 use super::parser::{
     parse_chosen_courses, parse_chosen_courses_for_write, parse_course_detail,
     parse_course_detail_for_write, parse_courses_at, parse_profile, parse_sign_config,
@@ -38,7 +41,7 @@ pub(crate) async fn get_courses(
             &request_api(
                 runtime,
                 "queryStudentSemesterCourseByPage",
-                serde_json::json!({"pageNumber":page,"pageSize":size}),
+                catalog_payload(page, size),
             )
             .await?,
         ),
@@ -52,6 +55,36 @@ pub(crate) async fn get_course_detail(
     id: i64,
 ) -> Result<BykcCourse> {
     get_course_detail_inner(runtime, id, false).await
+}
+
+pub(crate) async fn get_course_catalog(
+    runtime: &mut crate::runtime::ClientRuntime,
+    page: i32,
+    size: i32,
+    all: bool,
+) -> Result<crate::domain::BykcCourseCatalogPage> {
+    let body = wrap(
+        &request_api(
+            runtime,
+            "queryStudentSemesterCourseByPage",
+            catalog_payload(page, size),
+        )
+        .await?,
+    );
+    parse_catalog_at(&body, all, Local::now().naive_local())
+}
+
+pub(crate) async fn get_course_full_detail(
+    runtime: &mut crate::runtime::ClientRuntime,
+    id: i64,
+) -> Result<crate::domain::BykcCourseFullDetail> {
+    let body = wrap(&request_api(runtime, "queryCourseById", detail_payload(id)).await?);
+    let mut detail = parse_full_detail(&body, id)?;
+    if detail.course.course.selected == Some(true) {
+        let chosen = parse_chosen_display(&get_chosen_body(runtime, false).await?)?;
+        merge_chosen_display(&mut detail, chosen);
+    }
+    Ok(detail)
 }
 
 pub(crate) async fn get_course_detail_for_write(
@@ -70,7 +103,7 @@ async fn get_course_detail_inner(
         &request_for_purpose(
             runtime,
             "queryCourseById",
-            serde_json::json!({"id":id}),
+            detail_payload(id),
             write_preflight,
         )
         .await?,
@@ -86,8 +119,7 @@ pub(crate) async fn get_course_sign_config_for_write(
     runtime: &mut crate::runtime::ClientRuntime,
     id: i64,
 ) -> Result<Option<crate::domain::BykcSignConfig>> {
-    let value =
-        request_preflight_api(runtime, "queryCourseById", serde_json::json!({"id":id})).await?;
+    let value = request_preflight_api(runtime, "queryCourseById", detail_payload(id)).await?;
     let course = value
         .as_object()
         .ok_or_else(|| super::error("博雅课程详情结构无效"))?;
@@ -120,6 +152,18 @@ async fn get_chosen_courses_inner(
     runtime: &mut crate::runtime::ClientRuntime,
     write_preflight: bool,
 ) -> Result<Vec<BykcChosenCourse>> {
+    let body = get_chosen_body(runtime, write_preflight).await?;
+    if write_preflight {
+        parse_chosen_courses_for_write(&body)
+    } else {
+        parse_chosen_courses(&body)
+    }
+}
+
+async fn get_chosen_body(
+    runtime: &mut crate::runtime::ClientRuntime,
+    write_preflight: bool,
+) -> Result<String> {
     let config = request_for_purpose(
         runtime,
         "getAllConfig",
@@ -128,20 +172,15 @@ async fn get_chosen_courses_inner(
     )
     .await?;
     let (start, end) = resolve_current_semester(&config, Local::now().naive_local())?;
-    let body = wrap(
+    Ok(wrap(
         &request_for_purpose(
             runtime,
             "queryChosenCourse",
-            serde_json::json!({"startDate":start,"endDate":end}),
+            chosen_payload(&start, &end),
             write_preflight,
         )
         .await?,
-    );
-    if write_preflight {
-        parse_chosen_courses_for_write(&body)
-    } else {
-        parse_chosen_courses(&body)
-    }
+    ))
 }
 
 async fn request_for_purpose(
@@ -163,4 +202,39 @@ pub(crate) async fn get_statistics(
     parse_statistics(&wrap(
         &request_api(runtime, "queryStatisticByUserId", serde_json::json!({})).await?,
     ))
+}
+
+fn catalog_payload(page: i32, size: i32) -> Value {
+    serde_json::json!({"pageNumber":page,"pageSize":size})
+}
+fn detail_payload(id: i64) -> Value {
+    serde_json::json!({"id":id})
+}
+fn chosen_payload(start: &str, end: &str) -> Value {
+    serde_json::json!({"startDate":start,"endDate":end})
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn 博雅读取参数保持冻结精确键并直接使用学期字符串() {
+        assert_eq!(
+            catalog_payload(2, 17),
+            serde_json::json!({"pageNumber":2,"pageSize":17})
+        );
+        assert_eq!(detail_payload(71), serde_json::json!({"id":71}));
+        let (start, end) = resolve_current_semester(
+            &serde_json::json!({"semester":[{
+                "semesterStartDate":"2000-01-02 03:04:05", "semesterEndDate":"2999-06-07 08:09:10"
+            }]}),
+            Local::now().naive_local(),
+        )
+        .unwrap();
+        assert_eq!(
+            chosen_payload(&start, &end),
+            serde_json::json!({
+            "startDate":"2000-01-02 03:04:05","endDate":"2999-06-07 08:09:10"})
+        );
+    }
 }

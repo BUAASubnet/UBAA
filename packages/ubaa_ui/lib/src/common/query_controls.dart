@@ -12,6 +12,11 @@ class _FeatureQueryControls extends StatefulWidget {
     this.readCacheEpoch = 0,
     this.bykcStatuses = _defaultBykcStatuses,
     this.onBykcStatusesChanged,
+    this.bykcCategories = const {},
+    this.bykcCampuses = const {},
+    this.onBykcCategoriesChanged,
+    this.onBykcCampusesChanged,
+    this.onBykcReset,
     super.key,
   });
 
@@ -25,6 +30,10 @@ class _FeatureQueryControls extends StatefulWidget {
   onLoadAcademicWeeks;
   final int readCacheEpoch;
   final Set<BykcCourseStatus> bykcStatuses;
+  final Set<String> bykcCategories, bykcCampuses;
+  final ValueChanged<Set<String>>? onBykcCategoriesChanged,
+      onBykcCampusesChanged;
+  final VoidCallback? onBykcReset;
   final ValueChanged<Set<BykcCourseStatus>>? onBykcStatusesChanged;
 
   @override

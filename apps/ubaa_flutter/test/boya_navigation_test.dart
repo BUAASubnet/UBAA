@@ -7,12 +7,15 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../integration_test/ui_boya/backend.dart';
 
 void main() {
-  testWidgets('已选博雅详情不新增读取，准备取消后仍回到同一详情', (tester) async {
+  testWidgets('已选博雅详情补充读取后，准备取消仍回到同一详情', (tester) async {
     final backend = await _open(tester);
     final count = backend.boyaReads.length;
     await _tap(tester, find.widgetWithText(Card, '合成已选课 1'));
     expect(find.widgetWithText(AppBar, '课程详情'), findsOneWidget);
-    expect(backend.boyaReads, hasLength(count));
+    expect(backend.boyaReads, hasLength(count + 1));
+    expect(backend.boyaReads.last.view, FeatureQueryView.bykcChosenCourses);
+    expect(backend.boyaReads.last.courseId, '101');
+    expect(find.text('合成课程联系人'), findsOneWidget);
     await _tap(tester, find.widgetWithText(OutlinedButton, '准备退选'));
     expect(backend.preparedBoya, [
       (WriteOperation.bykcDeselectCourse, 101, null),
