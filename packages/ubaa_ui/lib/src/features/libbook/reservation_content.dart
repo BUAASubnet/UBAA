@@ -137,7 +137,10 @@ extension _LibbookReservationContent on _LibbookReservationFlowState {
                     .length ==
                 1;
             final canSelect =
-                unique && widget.onReserve != null && _canReserveSeat(target);
+                unique &&
+                widget.onReserve != null &&
+                _canReserveSeat(target) &&
+                _seatBelongsToQuery(seat, target);
             final status =
                 target == null ||
                     target.eligibility == ActionEligibility.unknown
@@ -194,7 +197,9 @@ extension _LibbookReservationContent on _LibbookReservationFlowState {
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed:
-                        _canReserveSeat(action) && widget.onReserve != null
+                        _canReserveSeat(action) &&
+                            widget.onReserve != null &&
+                            _seatBelongsToQuery(p, action)
                         ? () => widget.onReserve!(action!)
                         : null,
                     icon: const Icon(Icons.event_available),

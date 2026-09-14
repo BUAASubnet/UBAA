@@ -11,6 +11,27 @@ void main() {
   final read = File('lib/src/rust/api/read.dart').readAsStringSync();
   final write = File('lib/src/rust/api/write.dart').readAsStringSync();
 
+  test('图书馆新增逐日日程且旧详情序列化字段不变', () {
+    List<String> fields(String name) {
+      final body = RegExp(
+        'class $name \\{(.*?)\\n\\}',
+        dotAll: true,
+      ).firstMatch(read)!.group(1)!;
+      return RegExp(
+        r'final [^;]+ (\w+);',
+      ).allMatches(body).map((m) => m.group(1)!).toList();
+    }
+
+    expect(fields('BridgeLibBookAreaDetail'), [
+      'id',
+      'name',
+      'availableDates',
+      'timeSlots',
+    ]);
+    expect(fields('BridgeLibBookAreaSchedule'), ['id', 'name', 'days']);
+    expect(fields('BridgeLibBookDaySchedule'), ['day', 'timeSlots']);
+  });
+
   test('生成读取 API 保持单一 canonical 输出文件', () {
     const apiRoot = 'lib/src/rust/api/';
     final readArtifacts =
@@ -62,6 +83,7 @@ void main() {
       'libbookLibraries',
       'libbookAreas',
       'libbookAreaDetail',
+      'libbookAreaSchedule',
       'libbookSeats',
       'libbookBookings',
       'ygdkOverview',
@@ -324,6 +346,8 @@ void main() {
       'BridgeJudgeProblem',
       'BridgeLibBookArea',
       'BridgeLibBookAreaDetail',
+      'BridgeLibBookAreaSchedule',
+      'BridgeLibBookDaySchedule',
       'BridgeLibBookBooking',
       'BridgeLibBookBookingsPage',
       'BridgeLibBookLibrary',
@@ -349,6 +373,7 @@ void main() {
       'BridgeRoutedJudgeAssignmentDetails',
       'BridgeRoutedJudgeSummaries',
       'BridgeRoutedLibBookAreaDetail',
+      'BridgeRoutedLibBookAreaSchedule',
       'BridgeRoutedLibBookAreas',
       'BridgeRoutedLibBookBookings',
       'BridgeRoutedLibBookLibraries',

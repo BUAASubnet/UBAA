@@ -61,7 +61,7 @@ class _ProfileClient implements BridgeClient {
   final BridgeUserProfile profile;
   int calls = 0;
   @override
-  int contractVersion() => 9;
+  int contractVersion() => 10;
   @override
   Future<BridgeRoutedUserProfile> userInfo() async {
     calls++;

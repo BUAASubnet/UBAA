@@ -116,6 +116,10 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String areaId,
   });
 
+  Future<BridgeRoutedLibBookAreaSchedule> libbookAreaSchedule({
+    required String areaId,
+  });
+
   Future<BridgeRoutedLibBookAreas> libbookAreas({
     required String premisesId,
     String? storeyId,

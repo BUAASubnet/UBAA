@@ -380,6 +380,18 @@ pub struct BridgeLibBookAreaDetail {
     pub available_dates: Vec<String>,
     pub time_slots: Vec<BridgeLibBookTimeSlot>,
 }
+/// 分区原始日期与其自己的时段，独立于旧展平详情。
+#[derive(Clone, Debug)]
+pub struct BridgeLibBookAreaSchedule {
+    pub id: String,
+    pub name: String,
+    pub days: Vec<BridgeLibBookDaySchedule>,
+}
+#[derive(Clone, Debug)]
+pub struct BridgeLibBookDaySchedule {
+    pub day: String,
+    pub time_slots: Vec<BridgeLibBookTimeSlot>,
+}
 #[derive(Clone, Debug)]
 pub struct BridgeLibBookSeat {
     pub id: String,
@@ -666,6 +678,7 @@ routed!(BridgeRoutedBykcStatistics, BridgeBykcStatistics);
 routed!(BridgeRoutedLibBookLibraries, Vec<BridgeLibBookLibrary>);
 routed!(BridgeRoutedLibBookAreas, Vec<BridgeLibBookArea>);
 routed!(BridgeRoutedLibBookAreaDetail, BridgeLibBookAreaDetail);
+routed!(BridgeRoutedLibBookAreaSchedule, BridgeLibBookAreaSchedule);
 routed!(BridgeRoutedLibBookSeats, Vec<BridgeLibBookSeat>);
 routed!(BridgeRoutedLibBookBookings, BridgeLibBookBookingsPage);
 routed!(BridgeRoutedYgdkOverview, BridgeYgdkOverview);

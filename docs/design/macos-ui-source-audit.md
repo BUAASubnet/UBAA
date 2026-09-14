@@ -49,7 +49,7 @@ LOG-01至LOG-11的实现和独立复审已在41ece772完成，最终774项Flutte
 ## 必须显式保留的旧版能力差异
 
 1. **博雅类别/校区筛选和完整详情**：旧BykcCourseDto已含category/subCategory/audienceCampuses/hasSignPoints；旧LocalBykcApi.kt:524–541明确映射。旧详情另含联系人、适用范围、description和signConfig（:554–580）。当前Core BykcCourse与BridgeBykcCourse均未承载这些字段，UI不存在相应选择/内容；不能从地点或课程名猜类别和校区。此前视觉批次不改Bridge v9的范围已留下该缺口；本次完整功能专项已裁决允许有来源的非敏感typed只读补齐及候选Bridge10，仍未实施或标完成。
-2. **图书馆日期与时段关联**：旧mapAreaDetail取原date.list第一项times，同时可用日期先过滤空日；当前公开读法同样展开，UI无法可靠配对。当前Core已经有parse_area_detail_for_day，仅用于预约fresh authority，按目标日唯一匹配且有测试。恢复自然选择应以有证据的typed日期关联为依据，不把所有日期套同一时段，也不让“请明确选择日期”成为没有选择控件的文案。实施前九列和兼容方案已写入[日期来源](../migration/source-parity-ui-libbook-dates.md)。
+2. **图书馆日期与时段关联**：旧mapAreaDetail取原date.list第一项times，同时可用日期先过滤空日；旧ViewModel再各取日期/时段首项自动查询，旧屏幕仅显示selectedDay，并无已证明的跨日选择按钮。当前公开读法同样展开，却要求用户手输日期，UI无法可靠配对。当前Core已有parse_area_detail_for_day，仅用于预约fresh authority，按目标日唯一匹配且有测试。本轮显式日期选择是为完整任务增加的必要优化，依据同一响应中的typed关联，不宣称复刻旧跨日控件、不把一组时段套给全部日期。实施前九列和兼容方案见[日期来源](../migration/source-parity-ui-libbook-dates.md)。
 3. **门锁密码**：旧CgyyLockCodeScreen从qrCode/dueDate/orderView派生，30秒刷新；当前Core CgyyLockCode/Bridge只公开available，旧普通合同只含available。当前菜单“门锁状态”只能准确描述现能力，不能冒充旧“查看密码”已恢复；本专项已裁决新增专用短期视图，保留旧普通接口不变，待实现。
 4. **登录验证码**：旧LoginScreen有图片、刷新及输入，当前旧非交互接口遇captcha仍拒绝，生产UI缺完整链。本专项已裁决新增独立交互入口，只传受限像素帧并用opaque句柄绑定答案；此次真实登录未要求captcha，因此登录成功不证明该旧能力存在。
 5. **阳光自动默认值**：旧表单允许自动选项目、随机时间及无图时透明图；现Bridge v9要求canonical target/时间和必需照片。这些差异必须单列，不能复刻任意随机字段绕过当前typed确认权威，也不能称所有旧按钮已保留。

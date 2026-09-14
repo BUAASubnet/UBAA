@@ -385,12 +385,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeLibBookAreaDetail dco_decode_bridge_lib_book_area_detail(dynamic raw);
 
   @protected
+  BridgeLibBookAreaSchedule dco_decode_bridge_lib_book_area_schedule(
+    dynamic raw,
+  );
+
+  @protected
   BridgeLibBookBooking dco_decode_bridge_lib_book_booking(dynamic raw);
 
   @protected
   BridgeLibBookBookingsPage dco_decode_bridge_lib_book_bookings_page(
     dynamic raw,
   );
+
+  @protected
+  BridgeLibBookDaySchedule dco_decode_bridge_lib_book_day_schedule(dynamic raw);
 
   @protected
   BridgeLibBookLibrary dco_decode_bridge_lib_book_library(dynamic raw);
@@ -515,6 +523,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeRoutedLibBookAreaDetail dco_decode_bridge_routed_lib_book_area_detail(
     dynamic raw,
   );
+
+  @protected
+  BridgeRoutedLibBookAreaSchedule
+  dco_decode_bridge_routed_lib_book_area_schedule(dynamic raw);
 
   @protected
   BridgeRoutedLibBookAreas dco_decode_bridge_routed_lib_book_areas(dynamic raw);
@@ -755,6 +767,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<BridgeLibBookBooking> dco_decode_list_bridge_lib_book_booking(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeLibBookDaySchedule> dco_decode_list_bridge_lib_book_day_schedule(
     dynamic raw,
   );
 
@@ -1341,12 +1358,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeLibBookAreaSchedule sse_decode_bridge_lib_book_area_schedule(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeLibBookBooking sse_decode_bridge_lib_book_booking(
     SseDeserializer deserializer,
   );
 
   @protected
   BridgeLibBookBookingsPage sse_decode_bridge_lib_book_bookings_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibBookDaySchedule sse_decode_bridge_lib_book_day_schedule(
     SseDeserializer deserializer,
   );
 
@@ -1527,6 +1554,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeRoutedLibBookAreaDetail sse_decode_bridge_routed_lib_book_area_detail(
     SseDeserializer deserializer,
   );
+
+  @protected
+  BridgeRoutedLibBookAreaSchedule
+  sse_decode_bridge_routed_lib_book_area_schedule(SseDeserializer deserializer);
 
   @protected
   BridgeRoutedLibBookAreas sse_decode_bridge_routed_lib_book_areas(
@@ -1831,6 +1862,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<BridgeLibBookBooking> sse_decode_list_bridge_lib_book_booking(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeLibBookDaySchedule> sse_decode_list_bridge_lib_book_day_schedule(
     SseDeserializer deserializer,
   );
 
@@ -2527,6 +2563,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_lib_book_area_schedule(
+    BridgeLibBookAreaSchedule self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_lib_book_booking(
     BridgeLibBookBooking self,
     SseSerializer serializer,
@@ -2535,6 +2577,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_lib_book_bookings_page(
     BridgeLibBookBookingsPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_lib_book_day_schedule(
+    BridgeLibBookDaySchedule self,
     SseSerializer serializer,
   );
 
@@ -2745,6 +2793,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_routed_lib_book_area_detail(
     BridgeRoutedLibBookAreaDetail self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_routed_lib_book_area_schedule(
+    BridgeRoutedLibBookAreaSchedule self,
     SseSerializer serializer,
   );
 
@@ -3129,6 +3183,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_bridge_lib_book_booking(
     List<BridgeLibBookBooking> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_lib_book_day_schedule(
+    List<BridgeLibBookDaySchedule> self,
     SseSerializer serializer,
   );
 

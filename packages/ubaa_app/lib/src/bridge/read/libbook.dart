@@ -97,24 +97,30 @@ Future<FeatureResult> _loadLibbookFeature(
           );
         case FeatureQueryView.libbookAreaDetail:
           final areaId = _requiredQueryValue(query.areaId, '分区 ID');
-          final result = await client.libbookAreaDetail(areaId: areaId);
+          final result = await client.libbookAreaSchedule(areaId: areaId);
           final detail = result.data;
           return FeatureResult.success(
-            summary: '可用日期 ${detail.availableDates.length} 天',
+            summary: '可用日期 ${detail.days.length} 天',
             details: <FeatureDetail>[
               FeatureDetail(
                 title: detail.name,
-                presentation: LibbookAreaDetailPresentation(
+                presentation: LibbookAreaSchedulePresentation(
                   id: detail.id,
                   name: detail.name,
-                  availableDates: List.unmodifiable(detail.availableDates),
-                  timeSlots: List.unmodifiable(
-                    detail.timeSlots.map(
-                      (slot) => LibbookTimeSlotPresentation(
-                        id: slot.id,
-                        start: slot.start,
-                        end: slot.end,
-                        label: slot.label,
+                  days: List.unmodifiable(
+                    detail.days.map(
+                      (day) => LibbookDaySchedulePresentation(
+                        day: day.day,
+                        timeSlots: List.unmodifiable(
+                          day.timeSlots.map(
+                            (slot) => LibbookTimeSlotPresentation(
+                              id: slot.id,
+                              start: slot.start,
+                              end: slot.end,
+                              label: slot.label,
+                            ),
+                          ),
+                        ),
                       ),
                     ),
                   ),
@@ -123,15 +129,20 @@ Future<FeatureResult> _loadLibbookFeature(
                   _field('分区 ID', detail.id),
                   _field(
                     '可用日期',
-                    detail.availableDates.isEmpty
+                    detail.days.isEmpty
                         ? null
-                        : detail.availableDates.join('、'),
+                        : detail.days.map((day) => day.day).join('、'),
                   ),
                   _field(
                     '时段',
-                    detail.timeSlots.isEmpty
+                    detail.days.isEmpty
                         ? null
-                        : detail.timeSlots.map((slot) => slot.label).join('、'),
+                        : detail.days
+                              .map(
+                                (day) =>
+                                    '${day.day}：${day.timeSlots.map((slot) => slot.label).join('、')}',
+                              )
+                              .join('；'),
                   ),
                 ]),
               ),

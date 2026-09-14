@@ -13,12 +13,12 @@ use super::{
     BridgeClassroomInfo, BridgeClassroomQuery, BridgeCourseClass, BridgeExam,
     BridgeExamArrangement, BridgeGrade, BridgeGradeData, BridgeJudgeAssignmentDetail,
     BridgeJudgeAssignmentSummary, BridgeJudgeProblem, BridgeJudgeSubmissionStatus,
-    BridgeLibBookArea, BridgeLibBookAreaDetail, BridgeLibBookBooking, BridgeLibBookBookingsPage,
-    BridgeLibBookLibrary, BridgeLibBookSeat, BridgeLibBookStorey, BridgeLibBookTimeSlot,
-    BridgeSigninClass, BridgeSpocAssignmentDetail, BridgeSpocAssignmentSummary,
-    BridgeSpocAssignments, BridgeSpocSubmissionStatus, BridgeTerm, BridgeTodayClass, BridgeWeek,
-    BridgeWeeklySchedule, BridgeYgdkItem, BridgeYgdkOverview, BridgeYgdkRecord,
-    BridgeYgdkRecordsPage, BridgeYgdkSubmitTarget, BridgeYgdkTermSummary,
+    BridgeLibBookArea, BridgeLibBookAreaDetail, BridgeLibBookAreaSchedule, BridgeLibBookBooking,
+    BridgeLibBookBookingsPage, BridgeLibBookDaySchedule, BridgeLibBookLibrary, BridgeLibBookSeat,
+    BridgeLibBookStorey, BridgeLibBookTimeSlot, BridgeSigninClass, BridgeSpocAssignmentDetail,
+    BridgeSpocAssignmentSummary, BridgeSpocAssignments, BridgeSpocSubmissionStatus, BridgeTerm,
+    BridgeTodayClass, BridgeWeek, BridgeWeeklySchedule, BridgeYgdkItem, BridgeYgdkOverview,
+    BridgeYgdkRecord, BridgeYgdkRecordsPage, BridgeYgdkSubmitTarget, BridgeYgdkTermSummary,
 };
 
 // 转换函数保持显式字段清单；禁止使用 serde/json 反射把 Core DTO 整体透传。
@@ -438,6 +438,31 @@ pub(super) fn map_libbook_area_detail(v: domain::LibBookAreaDetail) -> BridgeLib
                 start: s.start,
                 end: s.end,
                 label: s.label,
+            })
+            .collect(),
+    }
+}
+pub(super) fn map_libbook_area_schedule(
+    v: domain::LibBookAreaSchedule,
+) -> BridgeLibBookAreaSchedule {
+    BridgeLibBookAreaSchedule {
+        id: v.id,
+        name: v.name,
+        days: v
+            .days
+            .into_iter()
+            .map(|day| BridgeLibBookDaySchedule {
+                day: day.day,
+                time_slots: day
+                    .time_slots
+                    .into_iter()
+                    .map(|slot| BridgeLibBookTimeSlot {
+                        id: slot.id,
+                        start: slot.start,
+                        end: slot.end,
+                        label: slot.label,
+                    })
+                    .collect(),
             })
             .collect(),
     }

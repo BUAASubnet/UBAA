@@ -81,6 +81,27 @@ final class LibbookTimeSlotPresentation {
   final String label;
 }
 
+/// 同一次分区读取的逐日日程，日期与时段的关联由 Core 保留。
+final class LibbookAreaSchedulePresentation extends FeaturePresentation {
+  const LibbookAreaSchedulePresentation({
+    required this.id,
+    required this.name,
+    required this.days,
+  });
+  final String id;
+  final String name;
+  final List<LibbookDaySchedulePresentation> days;
+}
+
+final class LibbookDaySchedulePresentation {
+  const LibbookDaySchedulePresentation({
+    required this.day,
+    required this.timeSlots,
+  });
+  final String day;
+  final List<LibbookTimeSlotPresentation> timeSlots;
+}
+
 final class LibbookSeatPresentation extends FeaturePresentation {
   const LibbookSeatPresentation({
     required this.id,

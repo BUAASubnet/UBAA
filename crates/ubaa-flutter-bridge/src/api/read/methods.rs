@@ -12,9 +12,10 @@ use super::mappers::{
     map_bykc_statistics, map_cgyy_day_info, map_cgyy_lock_code, map_cgyy_order, map_cgyy_orders,
     map_cgyy_purpose_types, map_cgyy_sites, map_classroom_query, map_exam_arrangement,
     map_grade_data, map_judge_detail, map_judge_details, map_judge_summaries,
-    map_libbook_area_detail, map_libbook_areas, map_libbook_bookings, map_libbook_libraries,
-    map_libbook_seats, map_signin_classes, map_spoc_assignments, map_spoc_detail, map_terms,
-    map_today_classes, map_weekly_schedule, map_weeks, map_ygdk_overview, map_ygdk_records,
+    map_libbook_area_detail, map_libbook_area_schedule, map_libbook_areas, map_libbook_bookings,
+    map_libbook_libraries, map_libbook_seats, map_signin_classes, map_spoc_assignments,
+    map_spoc_detail, map_terms, map_today_classes, map_weekly_schedule, map_weeks,
+    map_ygdk_overview, map_ygdk_records,
 };
 use super::{
     BridgeCallerPinnedCgyyOrder, BridgeCallerPinnedCgyyOrders, BridgeCallerPinnedEvaluation,
@@ -25,11 +26,12 @@ use super::{
     BridgeRoutedCgyyPurposeTypes, BridgeRoutedCgyySites, BridgeRoutedClassroomQuery,
     BridgeRoutedEvaluation, BridgeRoutedExamArrangement, BridgeRoutedGrades,
     BridgeRoutedJudgeAssignmentDetail, BridgeRoutedJudgeAssignmentDetails,
-    BridgeRoutedJudgeSummaries, BridgeRoutedLibBookAreaDetail, BridgeRoutedLibBookAreas,
-    BridgeRoutedLibBookBookings, BridgeRoutedLibBookLibraries, BridgeRoutedLibBookSeats,
-    BridgeRoutedSigninClasses, BridgeRoutedSpocAssignmentDetail, BridgeRoutedSpocAssignments,
-    BridgeRoutedTerms, BridgeRoutedTodayClasses, BridgeRoutedWeeklySchedule, BridgeRoutedWeeks,
-    BridgeRoutedYgdkOverview, BridgeRoutedYgdkRecords,
+    BridgeRoutedJudgeSummaries, BridgeRoutedLibBookAreaDetail, BridgeRoutedLibBookAreaSchedule,
+    BridgeRoutedLibBookAreas, BridgeRoutedLibBookBookings, BridgeRoutedLibBookLibraries,
+    BridgeRoutedLibBookSeats, BridgeRoutedSigninClasses, BridgeRoutedSpocAssignmentDetail,
+    BridgeRoutedSpocAssignments, BridgeRoutedTerms, BridgeRoutedTodayClasses,
+    BridgeRoutedWeeklySchedule, BridgeRoutedWeeks, BridgeRoutedYgdkOverview,
+    BridgeRoutedYgdkRecords,
 };
 use crate::api::client::{
     BridgeClient, BridgeConnectionMode, BridgeError, BridgeRouteDecision, catch_panic,
@@ -324,6 +326,18 @@ impl BridgeClient {
             )
             .await?;
         Ok(BridgeRoutedLibBookAreaDetail { data, route })
+    }
+    pub async fn libbook_area_schedule(
+        &self,
+        area_id: String,
+    ) -> Result<BridgeRoutedLibBookAreaSchedule, BridgeError> {
+        let (data, route) = self
+            .execute_read(
+                move |client| Box::pin(async move { client.libbook_area_schedule(&area_id).await }),
+                map_libbook_area_schedule,
+            )
+            .await?;
+        Ok(BridgeRoutedLibBookAreaSchedule { data, route })
     }
     pub async fn libbook_seats(
         &self,

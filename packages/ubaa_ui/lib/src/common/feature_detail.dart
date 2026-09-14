@@ -218,6 +218,8 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
               _libraryQueryExpansion.expand();
               setState(() => _panelOpen = true);
             },
+            onDraftChanged: (query) => _queryKey.currentState
+                ?.adoptLibraryQuery(query, clearDate: query.date == null),
           )
         : !widget.isLanding &&
               widget.feature == FeatureId.cgyy &&
@@ -424,6 +426,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
     readCacheEpoch: widget.readCacheEpoch,
     onApply: (query) {
       _scheduleKey.currentState?.stopAutomatic();
+      _libraryKey.currentState?.adoptManualQuery(query);
       return widget.onQuery!(query);
     },
     bykcStatuses: _bykcStatuses,

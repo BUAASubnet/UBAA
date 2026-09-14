@@ -63,6 +63,7 @@ part 'features/cgyy/order_row.dart';
 part 'features/evaluation.dart';
 part 'features/libbook.dart';
 part 'features/libbook/reservation_flow.dart';
+part 'features/libbook/reservation_schedule.dart';
 part 'features/libbook/reservation_choices.dart';
 part 'features/libbook/reservation_content.dart';
 part 'features/libbook/booking_row.dart';

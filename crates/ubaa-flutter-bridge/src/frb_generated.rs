@@ -40,7 +40,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -1734999102;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -424415058;
 
 // Section: executor
 
@@ -1635,6 +1635,66 @@ fn wire__crate__api__client__BridgeClient_libbook_area_detail_impl(
                         }
                         let api_that_guard = api_that_guard.unwrap();
                         let output_ok = crate::api::client::BridgeClient::libbook_area_detail(
+                            &*api_that_guard,
+                            api_area_id,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__client__BridgeClient_libbook_area_schedule_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeClient_libbook_area_schedule",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeClient>,
+            >>::sse_decode(&mut deserializer);
+            let api_area_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::client::BridgeError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::client::BridgeClient::libbook_area_schedule(
                             &*api_that_guard,
                             api_area_id,
                         )
@@ -4828,6 +4888,21 @@ impl SseDecode for crate::api::read::BridgeLibBookAreaDetail {
     }
 }
 
+impl SseDecode for crate::api::read::BridgeLibBookAreaSchedule {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_id = <String>::sse_decode(deserializer);
+        let mut var_name = <String>::sse_decode(deserializer);
+        let mut var_days =
+            <Vec<crate::api::read::BridgeLibBookDaySchedule>>::sse_decode(deserializer);
+        return crate::api::read::BridgeLibBookAreaSchedule {
+            id: var_id,
+            name: var_name,
+            days: var_days,
+        };
+    }
+}
+
 impl SseDecode for crate::api::read::BridgeLibBookBooking {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -4872,6 +4947,19 @@ impl SseDecode for crate::api::read::BridgeLibBookBookingsPage {
             page: var_page,
             limit: var_limit,
             total: var_total,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::BridgeLibBookDaySchedule {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_day = <String>::sse_decode(deserializer);
+        let mut var_timeSlots =
+            <Vec<crate::api::read::BridgeLibBookTimeSlot>>::sse_decode(deserializer);
+        return crate::api::read::BridgeLibBookDaySchedule {
+            day: var_day,
+            time_slots: var_timeSlots,
         };
     }
 }
@@ -5350,6 +5438,18 @@ impl SseDecode for crate::api::read::BridgeRoutedLibBookAreaDetail {
         let mut var_data = <crate::api::read::BridgeLibBookAreaDetail>::sse_decode(deserializer);
         let mut var_route = <crate::api::client::BridgeRouteDecision>::sse_decode(deserializer);
         return crate::api::read::BridgeRoutedLibBookAreaDetail {
+            data: var_data,
+            route: var_route,
+        };
+    }
+}
+
+impl SseDecode for crate::api::read::BridgeRoutedLibBookAreaSchedule {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_data = <crate::api::read::BridgeLibBookAreaSchedule>::sse_decode(deserializer);
+        let mut var_route = <crate::api::client::BridgeRouteDecision>::sse_decode(deserializer);
+        return crate::api::read::BridgeRoutedLibBookAreaSchedule {
             data: var_data,
             route: var_route,
         };
@@ -6368,6 +6468,20 @@ impl SseDecode for Vec<crate::api::read::BridgeLibBookBooking> {
     }
 }
 
+impl SseDecode for Vec<crate::api::read::BridgeLibBookDaySchedule> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::read::BridgeLibBookDaySchedule>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::api::read::BridgeLibBookLibrary> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -6938,180 +7052,186 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        28 => wire__crate__api__client__BridgeClient_libbook_areas_impl(
+        28 => wire__crate__api__client__BridgeClient_libbook_area_schedule_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        29 => wire__crate__api__client__BridgeClient_libbook_bookings_impl(
+        29 => wire__crate__api__client__BridgeClient_libbook_areas_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        30 => wire__crate__api__client__BridgeClient_libbook_libraries_impl(
+        30 => wire__crate__api__client__BridgeClient_libbook_bookings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        31 => wire__crate__api__client__BridgeClient_libbook_seats_impl(
+        31 => wire__crate__api__client__BridgeClient_libbook_libraries_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        32 => wire__crate__api__client__BridgeClient_login_impl(port, ptr, rust_vec_len, data_len),
-        33 => wire__crate__api__client__BridgeClient_logout_impl(port, ptr, rust_vec_len, data_len),
-        35 => wire__crate__api__client__BridgeClient_prepare_bykc_deselect_course_impl(
+        32 => wire__crate__api__client__BridgeClient_libbook_seats_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        36 => wire__crate__api__client__BridgeClient_prepare_bykc_select_course_impl(
+        33 => wire__crate__api__client__BridgeClient_login_impl(port, ptr, rust_vec_len, data_len),
+        34 => wire__crate__api__client__BridgeClient_logout_impl(port, ptr, rust_vec_len, data_len),
+        36 => wire__crate__api__client__BridgeClient_prepare_bykc_deselect_course_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        37 => wire__crate__api__client__BridgeClient_prepare_bykc_sign_course_impl(
+        37 => wire__crate__api__client__BridgeClient_prepare_bykc_select_course_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        38 => wire__crate__api__client__BridgeClient_prepare_cgyy_cancel_order_impl(
+        38 => wire__crate__api__client__BridgeClient_prepare_bykc_sign_course_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        39 => wire__crate__api__client__BridgeClient_prepare_cgyy_submit_reservation_impl(
+        39 => wire__crate__api__client__BridgeClient_prepare_cgyy_cancel_order_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        40 => wire__crate__api__client__BridgeClient_prepare_evaluation_submit_courses_impl(
+        40 => wire__crate__api__client__BridgeClient_prepare_cgyy_submit_reservation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        41 => wire__crate__api__client__BridgeClient_prepare_libbook_cancel_booking_impl(
+        41 => wire__crate__api__client__BridgeClient_prepare_evaluation_submit_courses_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        42 => wire__crate__api__client__BridgeClient_prepare_libbook_reserve_impl(
+        42 => wire__crate__api__client__BridgeClient_prepare_libbook_cancel_booking_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        43 => wire__crate__api__client__BridgeClient_prepare_login_impl(
+        43 => wire__crate__api__client__BridgeClient_prepare_libbook_reserve_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        44 => wire__crate__api__client__BridgeClient_prepare_signin_perform_impl(
+        44 => wire__crate__api__client__BridgeClient_prepare_login_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        45 => wire__crate__api__client__BridgeClient_prepare_ygdk_submit_impl(
+        45 => wire__crate__api__client__BridgeClient_prepare_signin_perform_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        46 => wire__crate__api__client__BridgeClient_route_settings_impl(
+        46 => wire__crate__api__client__BridgeClient_prepare_ygdk_submit_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        47 => wire__crate__api__client__BridgeClient_schedule_terms_impl(
+        47 => wire__crate__api__client__BridgeClient_route_settings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        48 => wire__crate__api__client__BridgeClient_schedule_today_impl(
+        48 => wire__crate__api__client__BridgeClient_schedule_terms_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        49 => wire__crate__api__client__BridgeClient_schedule_week_impl(
+        49 => wire__crate__api__client__BridgeClient_schedule_today_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        50 => wire__crate__api__client__BridgeClient_schedule_weeks_impl(
+        50 => wire__crate__api__client__BridgeClient_schedule_week_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        51 => wire__crate__api__client__BridgeClient_set_default_route_policy_impl(
+        51 => wire__crate__api__client__BridgeClient_schedule_weeks_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        52 => wire__crate__api__client__BridgeClient_signin_today_impl(
+        52 => wire__crate__api__client__BridgeClient_set_default_route_policy_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        53 => wire__crate__api__client__BridgeClient_spoc_assignment_impl(
+        53 => wire__crate__api__client__BridgeClient_signin_today_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        54 => wire__crate__api__client__BridgeClient_spoc_assignments_impl(
+        54 => wire__crate__api__client__BridgeClient_spoc_assignment_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        55 => {
+        55 => wire__crate__api__client__BridgeClient_spoc_assignments_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        56 => {
             wire__crate__api__client__BridgeClient_user_info_impl(port, ptr, rust_vec_len, data_len)
         }
-        56 => wire__crate__api__client__BridgeClient_ygdk_overview_impl(
+        57 => wire__crate__api__client__BridgeClient_ygdk_overview_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        57 => wire__crate__api__client__BridgeClient_ygdk_overview_on_route_impl(
+        58 => wire__crate__api__client__BridgeClient_ygdk_overview_on_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        58 => wire__crate__api__client__BridgeClient_ygdk_records_impl(
+        59 => wire__crate__api__client__BridgeClient_ygdk_records_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        59 => wire__crate__api__client__BridgeClient_ygdk_records_on_route_impl(
+        60 => wire__crate__api__client__BridgeClient_ygdk_records_on_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        61 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        62 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -7129,8 +7249,8 @@ fn pde_ffi_dispatcher_sync_impl(
             rust_vec_len,
             data_len,
         ),
-        34 => wire__crate__api__client__BridgeClient_open_impl(ptr, rust_vec_len, data_len),
-        60 => wire__crate__api__simple__bridge_hello_impl(ptr, rust_vec_len, data_len),
+        35 => wire__crate__api__client__BridgeClient_open_impl(ptr, rust_vec_len, data_len),
+        61 => wire__crate__api__simple__bridge_hello_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -8658,6 +8778,28 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeLibBookAreaDetail
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeLibBookAreaSchedule {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.id.into_into_dart().into_dart(),
+            self.name.into_into_dart().into_dart(),
+            self.days.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::BridgeLibBookAreaSchedule
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeLibBookAreaSchedule>
+    for crate::api::read::BridgeLibBookAreaSchedule
+{
+    fn into_into_dart(self) -> crate::api::read::BridgeLibBookAreaSchedule {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeLibBookBooking {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -8707,6 +8849,27 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeLibBookBookingsPa
     for crate::api::read::BridgeLibBookBookingsPage
 {
     fn into_into_dart(self) -> crate::api::read::BridgeLibBookBookingsPage {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeLibBookDaySchedule {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.day.into_into_dart().into_dart(),
+            self.time_slots.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::BridgeLibBookDaySchedule
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeLibBookDaySchedule>
+    for crate::api::read::BridgeLibBookDaySchedule
+{
+    fn into_into_dart(self) -> crate::api::read::BridgeLibBookDaySchedule {
         self
     }
 }
@@ -9464,6 +9627,27 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeRoutedLibBookArea
     for crate::api::read::BridgeRoutedLibBookAreaDetail
 {
     fn into_into_dart(self) -> crate::api::read::BridgeRoutedLibBookAreaDetail {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeRoutedLibBookAreaSchedule {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.data.into_into_dart().into_dart(),
+            self.route.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::BridgeRoutedLibBookAreaSchedule
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeRoutedLibBookAreaSchedule>
+    for crate::api::read::BridgeRoutedLibBookAreaSchedule
+{
+    fn into_into_dart(self) -> crate::api::read::BridgeRoutedLibBookAreaSchedule {
         self
     }
 }
@@ -11187,6 +11371,15 @@ impl SseEncode for crate::api::read::BridgeLibBookAreaDetail {
     }
 }
 
+impl SseEncode for crate::api::read::BridgeLibBookAreaSchedule {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.id, serializer);
+        <String>::sse_encode(self.name, serializer);
+        <Vec<crate::api::read::BridgeLibBookDaySchedule>>::sse_encode(self.days, serializer);
+    }
+}
+
 impl SseEncode for crate::api::read::BridgeLibBookBooking {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -11214,6 +11407,14 @@ impl SseEncode for crate::api::read::BridgeLibBookBookingsPage {
         <i32>::sse_encode(self.page, serializer);
         <i32>::sse_encode(self.limit, serializer);
         <i32>::sse_encode(self.total, serializer);
+    }
+}
+
+impl SseEncode for crate::api::read::BridgeLibBookDaySchedule {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.day, serializer);
+        <Vec<crate::api::read::BridgeLibBookTimeSlot>>::sse_encode(self.time_slots, serializer);
     }
 }
 
@@ -11553,6 +11754,14 @@ impl SseEncode for crate::api::read::BridgeRoutedLibBookAreaDetail {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <crate::api::read::BridgeLibBookAreaDetail>::sse_encode(self.data, serializer);
+        <crate::api::client::BridgeRouteDecision>::sse_encode(self.route, serializer);
+    }
+}
+
+impl SseEncode for crate::api::read::BridgeRoutedLibBookAreaSchedule {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::read::BridgeLibBookAreaSchedule>::sse_encode(self.data, serializer);
         <crate::api::client::BridgeRouteDecision>::sse_encode(self.route, serializer);
     }
 }
@@ -12275,6 +12484,16 @@ impl SseEncode for Vec<crate::api::read::BridgeLibBookBooking> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::api::read::BridgeLibBookBooking>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::read::BridgeLibBookDaySchedule> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::read::BridgeLibBookDaySchedule>::sse_encode(item, serializer);
         }
     }
 }

@@ -17,7 +17,7 @@ void main() {
   _registerAssignmentsBridgeBackendTests();
 
   test('BridgeBackend 接受当前合同版本', () {
-    final client = _ContractVersionClient(9);
+    final client = _ContractVersionClient(10);
 
     final backend = BridgeBackend(client);
 
@@ -27,6 +27,12 @@ void main() {
   test('BridgeBackend 在 release 可执行路径明确拒绝旧 v8 合同', () {
     final client = _ContractVersionClient(8);
 
+    expect(() => BridgeBackend(client), throwsA(isA<StateError>()));
+    expect(client.disposeCalls, 1);
+  });
+
+  test('BridgeBackend 拒绝缺少逐日日程的旧 v9 合同', () {
+    final client = _ContractVersionClient(9);
     expect(() => BridgeBackend(client), throwsA(isA<StateError>()));
     expect(client.disposeCalls, 1);
   });
@@ -637,7 +643,7 @@ class _ContractVersionClient implements BridgeClient {
 
 abstract class _CompatibleBridgeClient implements BridgeClient {
   @override
-  int contractVersion() => 9;
+  int contractVersion() => 10;
 }
 
 class _FakeClassroomClient extends _CompatibleBridgeClient {

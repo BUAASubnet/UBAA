@@ -4,9 +4,9 @@ use serde_json::{Value, json};
 use tracing::debug;
 
 use crate::domain::{
-    ActionEligibility, LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelPreflight,
-    LibBookCancelRequest, LibBookCancelResult, LibBookLibrary, LibBookReservePreflight,
-    LibBookReserveRequest, LibBookReserveResult, LibBookSeat,
+    ActionEligibility, LibBookArea, LibBookAreaDetail, LibBookAreaSchedule, LibBookBookingsPage,
+    LibBookCancelPreflight, LibBookCancelRequest, LibBookCancelResult, LibBookLibrary,
+    LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult, LibBookSeat,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
@@ -17,6 +17,7 @@ use super::parser::{
     error, is_expired_body, parse_area_detail_for, parse_area_detail_for_day, parse_areas,
     parse_bookings_for_request, parse_bookings_with_strict_metadata, parse_libraries, parse_seats,
 };
+use super::schedule::parse_area_schedule_for;
 
 const BASE_URL: &str = "https://booking.lib.buaa.edu.cn";
 const CAS_URL: &str = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbooking.lib.buaa.edu.cn%2Fv4%2Flogin%2Fcas";
@@ -49,6 +50,17 @@ pub(crate) async fn get_area_detail(
     area_id: &str,
 ) -> Result<LibBookAreaDetail> {
     parse_area_detail_for(
+        area_id,
+        &request_json(runtime, "Space/map", json!({"id": area_id}), true).await?,
+    )
+}
+
+/// 一次读取分区全部逐日日程，沿用原请求器、认证与参数。
+pub(crate) async fn get_area_schedule(
+    runtime: &mut crate::runtime::ClientRuntime,
+    area_id: &str,
+) -> Result<LibBookAreaSchedule> {
+    parse_area_schedule_for(
         area_id,
         &request_json(runtime, "Space/map", json!({"id": area_id}), true).await?,
     )

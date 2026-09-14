@@ -2,6 +2,34 @@ part of '../bridge_backend_characterization_test.dart';
 
 void registerLibbookPresentationTests() {
   final day = DateTime(2026, 9, 4);
+  test('图书馆日程投影保留日期与各自时段的嵌套关联', () async {
+    final client = _LibraryScheduleClient();
+    final result = await BridgeBackend(client).loadFeatureQuery(
+      FeatureId.libbook,
+      FeatureQuery(
+        view: FeatureQueryView.libbookAreaDetail,
+        areaId: 'area-1',
+        date: day,
+      ),
+    );
+    expect(
+      result.details.single.presentation,
+      isA<LibbookAreaSchedulePresentation>(),
+    );
+    final schedule =
+        result.details.single.presentation! as LibbookAreaSchedulePresentation;
+    expect(schedule.id, 'area-1');
+    expect(schedule.days.map((day) => day.day), ['2026-09-04', '2026-09-05']);
+    expect(schedule.days.first.timeSlots.single.id, 'first-slot');
+    final slot = schedule.days.last.timeSlots.single;
+    expect(
+      [slot.id, slot.start, slot.end, slot.label],
+      ['second-slot', '14:00', '16:00', '同名时段'],
+    );
+    expect(client.calls, ['libbookAreaSchedule:areaId=area-1']);
+    expect(result.details.single.actions, isEmpty);
+    expect(result.resolvedRoute, ConnectionMode.webvpn);
+  });
   test('图书馆投影保留同名楼层的独立ID和当前读取日期', () async {
     final client = _LibraryPresentationClient();
     final result = await BridgeBackend(
@@ -51,12 +79,12 @@ void registerLibbookPresentationTests() {
         );
     expect(result.details.single.presentation, isNotNull);
     final p =
-        result.details.single.presentation! as LibbookAreaDetailPresentation;
-    expect(p.availableDates, ['2026-09-04']);
-    expect(p.timeSlots.single.id, 'slot-read-1');
-    expect(p.timeSlots.single.start, '08:00');
-    expect(p.timeSlots.single.end, '10:00');
-    expect(p.timeSlots.single.label, '上午');
+        result.details.single.presentation! as LibbookAreaSchedulePresentation;
+    expect(p.days.single.day, '2026-09-04');
+    expect(p.days.single.timeSlots.single.id, 'slot-read-1');
+    expect(p.days.single.timeSlots.single.start, '08:00');
+    expect(p.days.single.timeSlots.single.end, '10:00');
+    expect(p.days.single.timeSlots.single.label, '上午');
     expect(result.details.single.actions, isEmpty);
     expect(result.details.single.readNavigation, isNull);
   });
@@ -139,6 +167,51 @@ class _LibraryPresentationClient extends _CharacterizationBridgeClient {
               ],
             ),
           ],
+        ),
+      );
+    }
+    return super.noSuchMethod(invocation);
+  }
+}
+
+class _LibraryScheduleClient extends _CharacterizationBridgeClient {
+  @override
+  dynamic noSuchMethod(Invocation invocation) {
+    if (invocation.memberName == #libbookAreaSchedule) {
+      calls.add(
+        'libbookAreaSchedule:areaId=${invocation.namedArguments[#areaId]}',
+      );
+      return Future.value(
+        const BridgeRoutedLibBookAreaSchedule(
+          route: _webVpnRoute,
+          data: BridgeLibBookAreaSchedule(
+            id: 'area-1',
+            name: '合成分区',
+            days: [
+              BridgeLibBookDaySchedule(
+                day: '2026-09-04',
+                timeSlots: [
+                  BridgeLibBookTimeSlot(
+                    id: 'first-slot',
+                    start: '08:00',
+                    end: '10:00',
+                    label: '同名时段',
+                  ),
+                ],
+              ),
+              BridgeLibBookDaySchedule(
+                day: '2026-09-05',
+                timeSlots: [
+                  BridgeLibBookTimeSlot(
+                    id: 'second-slot',
+                    start: '14:00',
+                    end: '16:00',
+                    label: '同名时段',
+                  ),
+                ],
+              ),
+            ],
+          ),
         ),
       );
     }

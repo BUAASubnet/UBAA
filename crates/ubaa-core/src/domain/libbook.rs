@@ -38,6 +38,21 @@ pub struct LibBookAreaDetail {
     pub available_dates: Vec<String>,
     pub time_slots: Vec<LibBookTimeSlot>,
 }
+/// 同一次分区响应中的逐日日程；与旧展平详情保持独立合同。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookAreaSchedule {
+    pub id: String,
+    pub name: String,
+    pub days: Vec<LibBookDaySchedule>,
+}
+/// 日期和时段必须来自同一个原始日期条目。
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct LibBookDaySchedule {
+    pub day: String,
+    pub time_slots: Vec<LibBookTimeSlot>,
+}
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct LibBookTimeSlot {

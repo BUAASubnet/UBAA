@@ -99,13 +99,16 @@ canonical 时间和必需照片，并加入 expected-route 原子提交与 calle
 
 Phase 11J 为 Evaluation 课程增加 typed `submitEligibility/submitTarget`，把 prepare 请求收紧为非空、有序、
 无重复的 targets，并新增 `success/failure/outcomeUnknown/unattempted` 四态逐项结果及 caller-pinned 原路线回读；
-当前 CLI envelope 显式升为 schema v10、Flutter bridge contract 升为 v9，合同测试拒绝旧 schema v9/bridge v8。
+当时 CLI envelope 显式升为 schema v10、Flutter bridge contract 升为 v9，合同测试拒绝旧 schema v9/bridge v8。
 该阶段的 typed 实现与本地确定性门禁已在 `4b0dcb0` 落地；整轮结构治理的最终候选与远端证据仍单独记录。
 
 Phase 11K 的 `WriteCoordinator` 同时服务生产链与旧 `WriteFlowController` 类型别名。app 测试覆盖旧方法
 签名/错误码、prepare/cancel/confirm 单次消费、未知结果回读、失效晚到结果与同步通知重入；Host 测试覆盖
 生产接线和平台位置等待期间注销，UI 测试覆盖状态外部所有权及缺任一写命令时默认拒绝。UI 测试 harness
 只连接真实 coordinator 与脱敏 callback，不复制业务状态机；对 app 的依赖仅存在于 UI 的 dev dependencies。
+
+当前 CLI envelope 显式升为 schema v10；2026-09-15候选 Flutter bridge contract 升为 v10，新增图书馆逐日日程，拒绝旧 bridge v9。
+原 CLI、Session 与配置版本不变；新日程用合成双日/双路线与组件查询验证，不能代替 Core-live 或实际 App 验收。
 
 ## 写入测试边界
 

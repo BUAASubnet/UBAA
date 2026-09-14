@@ -1,10 +1,10 @@
 # 图书馆日期与时段完整接线：实施前来源核对
 
-2026-09-15。旧版固定为 `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`，示例固定为 `efb7976bf513f38364b88aeb83d704586cff9b2a`；本轮 `just refs` 已通过。本页只记录事实、接口裁决和下一批要求，不代表实现或实窗通过。
+2026-09-15。旧版固定为 `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`，示例固定为 `efb7976bf513f38364b88aeb83d704586cff9b2a`；本轮 `just refs` 已通过。前四节是在实施前记录的来源事实与接口裁决；下方另列本批实现边界。确定性测试不代表实窗或真实上游通过。
 
 ## 按钮级缺口
 
-旧版 `LibBookReserveScreen.kt`、`LibBookViewModel.kt` 有日期选择、时段选择和座位查询。当前 `features/libbook.dart` 虽写“请明确选择日期”，却只给日期文本框；`reservation_choices.dart` 的时段操作只回填编号和起止时间，清除日期。完整任务依赖用户手输原始参数，旧版的自然选择流程没有保留。
+旧版 `LibBookViewModel.kt:340–359` 从 `availableDates.firstOrNull` 与 `timeSlots.firstOrNull` 初始化日期和时段，然后自动读取座位；`LibBookReserveScreen.kt:328` 只展示 `selectedDay`，没有已证明的跨日日期选择按钮。当前 `features/libbook.dart` 虽写“请明确选择日期”，却只给日期文本框；`reservation_content.dart` 的时段操作只回填编号和起止时间，清除日期，正常路径仍依赖用户手输原始参数。本轮新增显式日期选择、同日时段关联和明确查询按钮，是根据同一 `Space/map` 原始数据做的必要优化，不声称冻结旧 UI 已具备完整跨日选择。
 
 这不是在 UI 中补一个日期控件就能完整解决的问题。冻结 `LocalLibBookApi.kt:466` 从 `data.date.list` 收集非空日期，却只从原列表第一项取 `times`。当前 `features/libbook/parser.rs:152` 保持相同展平结构，另有顶层兼容回退。因此 `availableDates.first` 不能证明它与公开 `timeSlots` 对应：第一项日期为空、第二项有日期时会错配。现有 `parse_area_detail_for_day` 已证明同一原始条目中的日期和时段可以可靠配对，且重复目标日期会被拒绝；它目前只服务预约的内部 fresh 权威校验。
 
@@ -42,3 +42,14 @@
 3. App投影保留日期与时段的嵌套对应关系；UI日期选择与取消、时段选择/取消、父层变化、关闭再开及返回都要验证。选择第二天必须得到第二天的原id/start/end，不能手工补日期才可用。
 4. 保留原手输兼容入口，并让正常楼馆→楼层→分区→日期→时段→查询座位路径无需手输id或日期。只读取，不执行真实预约。
 5. 聚焦GREEN后执行敏感检查、`just check`、相关Flutter完整回归与生成绑定一致性检查。最后在实际macOS产物上逐按钮复测；Mock、widget、native合成和真实上游证据分别记账。
+
+## 本批实现与兼容边界
+
+- Core 新增 `LibBookAreaSchedule {id,name,days}` 和 `LibBookDaySchedule {day,timeSlots}`，`RouteClient` 与 `UbaaClient` 新增 `libbook_area_schedule`。日程读取直接复用现有 `request_json` 的 `Space/map` 路径及原 `id` 正文；不从旧展平 DTO 重建关联，也不更改最终预约的 `parse_area_detail_for_day`。
+- Bridge 新增 `libbookAreaSchedule`、两项 DTO 与路线结果；候选合同统一为10。App 只读取此 typed 方法并生成不可变的 `LibbookAreaSchedulePresentation`/`LibbookDaySchedulePresentation` 嵌套列表，保留原日期顺序及原时段 id/start/end。字段与 label 不反向生成写入目标。
+- 缺少日期列表、空列表或日期条目没有时段时如实返回空日程/空时段。空日期条目被跳过，其时段不转移；`day` 为空时仍支持同条目的旧 `date` 字段。重复日期、畸形列表、非对象时段或 id/start/end 为空时明确返回 `upstream_changed`；错误信封保留原错误类别。只有旧顶层 `availableDates/timeSlots` 的响应返回空日程，不猜关联。
+- 正常页面在楼馆、楼层、分区后提供日期和时段选择及清除按钮；选项仅来自已接受、分区 ID 一致的日程。只有明确点击“查询座位”才读取座位；切父层、日期、时段或清除选择会立即隐藏旧座位并取消原选择。关闭面板保留草稿，不发请求。新日程缺失的旧合成 presentation 继续使用受限的旧入口，提示日期关联未知；“更多查询”手输入口保留。
+- 仍拒绝明确冲突的父字段，缺省父字段沿本次查询所属的原始唯一分区 ID 处理。保持 query、epoch、generation 与账号隔离；座位动作还必须匹配当前读取的分区、日期、时段与起止时间。原 `LibbookReserveAction`、资格、canonical target、prepare→确认→单次 commit→既定回读不变。
+- 原 Core/Bridge `LibBookAreaDetail` 与旧读取方法继续保持 `id/name/availableDates/timeSlots`，CLI 仍使用旧方法，schema10 不加字段；Session2、配置1不变。图书馆专用 `live_readonly_test.dart` 仅同步新类型和自然选择步骤，本批没有执行此驱动、native 构建、生产只读或真实写入。
+
+可编译 RED 分别记录了旧公开详情不能表达逐日关联/接受重复日期、旧 App 投影不含嵌套关联、组件缺少日期选择。随后独立新 API 的 GREEN 覆盖同响应两个日期的不同原时段、空首日期、重复日期、空/畸形时段、双路线原请求、旧详情形状、App 投影和实际组件选择/清除/切父项/返回与迟到结果。完整命令与退出码保存在本机仓库外私有证据目录 `macos-ui-20260915/libbook-dates/`；最终候选与 macOS 实操仍由主线分别验收。

@@ -9,6 +9,8 @@ use ubaa_core::facade::{
     RouteClient,
 };
 
+#[path = "libbook/area_schedule.rs"]
+mod area_schedule;
 #[path = "libbook/cancel_authority.rs"]
 mod cancel_authority;
 #[path = "libbook/write_authority.rs"]

@@ -1,6 +1,7 @@
 # Flutter Bridge 合同
 
-状态：合同 v9 的 Phase 11J typed 实现已在 `4b0dcb0` 完成本地确定性门禁、FRB 零漂移与脱敏宿主
+状态：2026-09-15 未发布候选升级为合同 v10，新增图书馆逐日日程只读方法与独立 DTO，旧详情和写入合同保持兼容。
+历史合同 v9 的 Phase 11J typed 实现已在 `4b0dcb0` 完成本地确定性门禁、FRB 零漂移与脱敏宿主
 integration；Phase 11K `b6ff2c7` 完成 Dart 单一写入协调器与共享宿主接线，保持合同 v9。
 此前 P1 证据只作历史基线，实体设备上的原生 isolate/内存观测仍是后置发布证据。
 
@@ -11,7 +12,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `9`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `10`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -22,7 +23,8 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
   `submitEligibility/submitTarget`，将提交请求收紧为完整 typed target、canonical 时间和必需照片，并新增
   caller-pinned 的概览/记录回读与安全提交收据。版本 9 为 Evaluation 增加 typed
   `submitEligibility/submitTarget`、只含 targets 的批量请求、四态逐项结果与 caller-pinned 原路线回读。
-  版本 9 不与版本 8 或更早的生成绑定混用。
+  版本 10 新增 `libbookAreaSchedule`，保留每个原始日期自己的时段；旧 `libbookAreaDetail` 的展平形状不变。
+  版本 10 不与版本 9 或更早的生成绑定混用；CLI schema10、Session2、配置1和既有写入权威不变。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -38,7 +40,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=9` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=10` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -151,6 +153,7 @@ final 发送后无法确定结果才进入不可重试的 `outcome_unknown`。�
 | `libbookLibraries` | `day: String` | `List<LibBookLibrary>` |
 | `libbookAreas` | `premisesId: String, storeyId: String?, day: String` | `List<LibBookArea>` |
 | `libbookAreaDetail` | `areaId: String` | `LibBookAreaDetail` |
+| `libbookAreaSchedule` | `areaId: String` | `LibBookAreaSchedule` |
 | `libbookSeats` | `areaId: String, day: String, startTime: String, endTime: String` | `List<LibBookSeat>` |
 | `libbookBookings` | `page: i32, limit: i32` | `LibBookBookingsPage` |
 | `ygdkOverview` | 无 | `YgdkOverview` |
@@ -203,6 +206,10 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
 - `LibBookLibrary {id,name,freeNum,totalNum,storeys}`；`LibBookStorey` 同名计数字段；
   `LibBookArea {id,name,areaName,premisesId,storeyId,freeNum,totalNum}`；
   `LibBookAreaDetail {id,name,availableDates,timeSlots}`；时段 `{id,start,end,label}`；
+  新增 `LibBookAreaSchedule {id,name,days}`，其中 `days` 为原顺序的 `{day,timeSlots}`。
+  日程读取沿用同一次 `Space/map` 请求，只含原 `id` 参数，不新增日期参数。
+  空日期条目不转移时段，空日期列表与日期下无时段如实为空；重复日期、畸形时段列表或缺少 id/start/end
+  返回 `upstream_changed`，不伪装空结果。旧顶层 `availableDates/timeSlots` 不用于推断逐日关联。
   座位 `{id,name,no,status?,statusName,reserveEligibility,reserveTarget?}`；`status` 只允许可空整数，
   eligibility 为 `allowed|denied|unknown`，仅明确状态与非空稳定目标产生 target；预约
   `{id,nameMerge,areaName,seatNo,day,beginTime,endTime,status?,statusName,cancelEligibility,cancelTarget?}`；

@@ -4,6 +4,43 @@ use super::*;
 use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode};
 use ubaa_core::facade as domain;
 
+#[test]
+fn 图书馆日程映射保持逐日原始关联() {
+    let mapped = super::mappers::map_libbook_area_schedule(domain::LibBookAreaSchedule {
+        id: "area-safe".to_owned(),
+        name: "合成分区".to_owned(),
+        days: vec![
+            domain::LibBookDaySchedule {
+                day: "2026-09-04".to_owned(),
+                time_slots: vec![],
+            },
+            domain::LibBookDaySchedule {
+                day: "2026-09-05".to_owned(),
+                time_slots: vec![domain::LibBookTimeSlot {
+                    id: "second-slot".to_owned(),
+                    start: "14:00".to_owned(),
+                    end: "16:00".to_owned(),
+                    label: "同名时段".to_owned(),
+                }],
+            },
+        ],
+    });
+    assert_eq!(mapped.id, "area-safe");
+    assert_eq!(mapped.days[0].day, "2026-09-04");
+    assert!(mapped.days[0].time_slots.is_empty());
+    assert_eq!(mapped.days[1].day, "2026-09-05");
+    let slot = &mapped.days[1].time_slots[0];
+    assert_eq!(
+        (
+            &slot.id[..],
+            &slot.start[..],
+            &slot.end[..],
+            &slot.label[..]
+        ),
+        ("second-slot", "14:00", "16:00", "同名时段")
+    );
+}
+
 fn target(
     rwid: &str,
     wjid: &str,

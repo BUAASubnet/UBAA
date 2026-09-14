@@ -43,7 +43,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 9;
+  int contractVersion() => 10;
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
@@ -473,6 +473,31 @@ class _CharacterizationBridgeClient implements BridgeClient {
             route: _webVpnRoute,
           ),
         );
+      case #libbookAreaSchedule:
+        return Future<BridgeRoutedLibBookAreaSchedule>.value(
+          BridgeRoutedLibBookAreaSchedule(
+            data: BridgeLibBookAreaSchedule(
+              id: named[#areaId] as String,
+              name: '分区详情',
+              days: emptyReads
+                  ? const []
+                  : const [
+                      BridgeLibBookDaySchedule(
+                        day: '2026-09-04',
+                        timeSlots: [
+                          BridgeLibBookTimeSlot(
+                            id: 'slot-read-1',
+                            start: '08:00',
+                            end: '10:00',
+                            label: '上午',
+                          ),
+                        ],
+                      ),
+                    ],
+            ),
+            route: _webVpnRoute,
+          ),
+        );
       case #libbookAreaDetail:
         return Future<BridgeRoutedLibBookAreaDetail>.value(
           BridgeRoutedLibBookAreaDetail(
@@ -772,6 +797,7 @@ const _readMembers = <Symbol>{
   #judgeAssignmentDetails,
   #judgeAssignments,
   #libbookAreaDetail,
+  #libbookAreaSchedule,
   #libbookAreas,
   #libbookBookings,
   #libbookLibraries,
@@ -919,6 +945,7 @@ String _describeReadCall(Invocation invocation) {
     #judgeAssignments =>
       'judgeAssignments:includeExpired=${named[#includeExpired]}',
     #libbookAreaDetail => 'libbookAreaDetail:areaId=${named[#areaId]}',
+    #libbookAreaSchedule => 'libbookAreaSchedule:areaId=${named[#areaId]}',
     #libbookAreas =>
       'libbookAreas:premisesId=${named[#premisesId]},storeyId=${named[#storeyId]},day=${named[#day]}',
     #libbookBookings =>

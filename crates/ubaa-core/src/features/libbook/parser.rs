@@ -17,7 +17,7 @@ pub(super) fn error(message: impl Into<String>) -> UbaaError {
     )
 }
 
-fn text(map: &Map<String, Value>, keys: &[&str]) -> String {
+pub(super) fn text(map: &Map<String, Value>, keys: &[&str]) -> String {
     keys.iter()
         .find_map(|key| {
             let value = map.get(*key)?;
@@ -233,7 +233,7 @@ pub(super) fn parse_area_detail_for_day(
     }))
 }
 
-fn parse_time_slots(slots: &[Value]) -> Vec<LibBookTimeSlot> {
+pub(super) fn parse_time_slots(slots: &[Value]) -> Vec<LibBookTimeSlot> {
     slots
         .iter()
         .filter_map(Value::as_object)
