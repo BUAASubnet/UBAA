@@ -6,6 +6,11 @@ on:
   pull_request:
     branches: [ main, dev ]
   workflow_dispatch:
+    inputs:
+      ios_only:
+        description: 仅验证完整 iOS App 的未签名归档
+        type: boolean
+        default: false
 
 env:
   UPDATE_DOWNLOAD_URL: https://github.com/BUAASubnet/UBAA/releases
@@ -13,6 +18,7 @@ env:
 jobs:
   test-android:
     name: Test Android
+    if: github.event_name != 'workflow_dispatch' || !inputs.ios_only
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -31,6 +37,7 @@ jobs:
 
   test-desktop-linux:
     name: Test Desktop Linux
+    if: github.event_name != 'workflow_dispatch' || !inputs.ios_only
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -51,6 +58,7 @@ jobs:
 
   test-server:
     name: Test Server
+    if: github.event_name != 'workflow_dispatch' || !inputs.ios_only
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -72,6 +80,7 @@ jobs:
 
   test-web-wasm:
     name: Test Web Wasm
+    if: github.event_name != 'workflow_dispatch' || !inputs.ios_only
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -90,6 +99,7 @@ jobs:
 
   test-web-js:
     name: Test Web JS
+    if: github.event_name != 'workflow_dispatch' || !inputs.ios_only
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
@@ -108,7 +118,10 @@ jobs:
 
   test-ios:
     name: Test iOS
-    runs-on: macos-latest
+    runs-on: macos-15
+    timeout-minutes: 75
+    env:
+      DEVELOPER_DIR: /Applications/Xcode_26.3.app/Contents/Developer
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -121,13 +134,25 @@ jobs:
           distribution: 'temurin'
       - name: Setup Gradle
         uses: gradle/actions/setup-gradle@v4
-      - name: Compile iOS
+      - name: 验证完整 iOS App 归档
         env:
           API_ENDPOINT: ${{ secrets.API_ENDPOINT }}
-        run: ./gradlew :composeApp:compileKotlinIosArm64
+        run: |
+          xcodebuild -version
+          xcodebuild archive \
+            -project iosApp/iosApp.xcodeproj \
+            -scheme iosApp \
+            -configuration Release \
+            -destination 'generic/platform=iOS' \
+            -archivePath "$RUNNER_TEMP/UBAA-unsigned.xcarchive" \
+            -derivedDataPath "$RUNNER_TEMP/ubaa-ios-derived-data" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY=
 
   test-windows:
     name: Test Windows
+    if: github.event_name != 'workflow_dispatch' || !inputs.ios_only
     runs-on: windows-latest
     steps:
       - name: Checkout

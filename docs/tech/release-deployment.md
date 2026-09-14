@@ -80,7 +80,7 @@ gh workflow run release.yml --ref dev -f ios_only=true -f ios_upload=false
 - API 认证失败：检查 Key ID、Issuer ID、`.p8` 原文及 API Key 权限。
 - 上传成功但 TestFlight 暂不可见：等待 Apple 处理，并在 App Store Connect 查看处理状态或出口合规要求。
 
-本地可运行 `python3 -m unittest discover -s .github/scripts -p 'test_ios_release.py'` 检查版本号和签名校验规则；`actionlint .github/workflows/release.yml .github/workflows/test.yml` 检查工作流。规则测试、Xcode 归档、GitHub Actions 签名构建和 App Store Connect 实际上传分别提供对应阶段的证据。
+本地可运行 `python3 -m unittest discover -s .github/scripts -p 'test_ios_release.py'` 检查版本号和签名校验规则；`actionlint .github/workflows/release.yml .github/workflows/test.yml` 检查工作流。`test.yml` 的 iOS 检查会构建完整的未签名 App 归档，覆盖 Kotlin、Swift 链接和资源集成；可用 `gh workflow run test.yml --ref dev -f ios_only=true` 独立运行，无需签名 Secrets。规则测试、未签名归档、GitHub Actions 签名构建和 App Store Connect 实际上传分别提供对应阶段的证据。
 
 ## Web Wasm 发布
 
