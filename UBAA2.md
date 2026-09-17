@@ -2,7 +2,7 @@
 
 状态：规划稿  
 目标分支：`ubaa2`  
-旧版参考：`ubaa_old/` 与 Git Tag `ubaa-v1-reference`
+旧版参考：`examples/ubaa_old/` 与 Git Tag `ubaa-v1-reference`
 
 ## 1. 目标
 

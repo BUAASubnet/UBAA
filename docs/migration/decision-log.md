@@ -16,9 +16,33 @@
 保留专用链路，其他默认页首次访问时加载。不拆分会话或删除锁，不改协议。
 来源、RED 与验收见[首页性能记录](source-parity-home-loading-2026-09-17.md)。完整 UI/UX 目标继续暂停。
 
+## 2026-09-17：冻结 buaa-api 引用更新至最新上游
+
+用户要求将 `buaa-api` 引用更新至最新版。
+
+- 冻结引用从 `efb7976bf513f38364b88aeb83d704586cff9b2a` 更新至上游 `main` 分支最新提交 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`（“refactor(class): Refresh token early in `ClassAPI` when VPN mode”）。
+- `scripts/check/references.sh` 与 `scripts/bootstrap/references.sh` 同步更新目标预期提交。
+- `docs/migration/references.md`、`docs/migration/status.md` 及 `THIRD_PARTY_NOTICES.md` 同步更新声明。
+- 纯只读校验门禁 `just refs` 与引用合同测试 `scripts/tests/references.sh` 已完成 RED-GREEN 验证并全量通过。
+
 ## 2026-09-17 课堂签到追加修复
 
 以用户指定的当前冻结旧版为协议权威；此前“全面对齐两份来源”及 sessionId/loginName 可混用的描述由[逐操作修正记录](source-parity-signin-2026-09-17.md)取代。本轮修复旧版登录入口、严格业务会话和数字时间戳，完整 UI 目标保持暂停。
+
+## 2026-09-17：整理时校正签到历史描述
+
+待提交的早期说明仍描述 `sessionId` 缺失时回退 `login_name`，与已经提交的签到修正冲突。
+本次统一引用[逐操作修正记录](source-parity-signin-2026-09-17.md)：采用旧版业务登录和严格会话，
+保留 Direct/WebVPN 端口与路径差异，不将两份来源的不同协议拼接，也不扩大既有实时验证结论。
+
+## 2026-09-17：冻结旧版引用更新至最新上游并收纳至 examples/
+
+用户明确要求将冻结旧版代码库 `ubaa_old` 更新至 GitHub 上游最新并移至 `examples/` 目录下。
+
+- 目标路径由根目录 `ubaa_old/` 调整为 `examples/ubaa_old/`，根目录下重复的 `ubaa_old/` 予以清理。
+- 冻结引用从 `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 更新至上游 `main` 分支最新提交 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`（标签 `v1.8.0`，“修复课表在线加载与本地化并重新发布 1.8.0”）。
+- `scripts/check/references.sh` 与 `scripts/bootstrap/references.sh` 同步更新目标检查与 bootstrap 路径及预期提交。
+- 纯只读校验门禁 `just refs` 与引用合同测试 `scripts/tests/references.sh` 已完成 RED-GREEN 验证并全量通过。
 
 ## 2026-09-07：贯通安全错误诊断并保持既有业务权威
 

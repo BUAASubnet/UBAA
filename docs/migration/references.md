@@ -2,8 +2,8 @@
 
 | 参考 | 远端 | 固定提交 | 用途 |
 |---|---|---|---|
-| `ubaa_old/` | `https://github.com/BUAASubnet/UBAA.git` | `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` | Kotlin 本地 Direct/WebVPN 认证、解析器、Cookie、DTO 和测试 |
-| `examples/buaa-api/` | `https://github.com/fontlos/buaa-api.git` | `efb7976bf513f38364b88aeb83d704586cff9b2a` | 独立 Rust SSO、用户中心、请求、Cookie、凭据和错误证据 |
+| `examples/ubaa_old/` | `https://github.com/BUAASubnet/UBAA.git` | `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` | Kotlin 本地 Direct/WebVPN 认证、解析器、Cookie、DTO 和测试 |
+| `examples/buaa-api/` | `https://github.com/fontlos/buaa-api.git` | `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` | 独立 Rust SSO、用户中心、请求、Cookie、凭据和错误证据 |
 
 两个目录都是本地忽略的嵌套 Git 仓库。必须在固定提交读取；不得修改、暂存、打标签或从中复制凭据。仅在
 缺失时显式运行 `just refs-bootstrap`：它在同父目录的临时路径完成 clone/fetch/checkout 和校验，成功后原子

@@ -20,9 +20,9 @@ macOS 生产只读两路线通过。本次首页显示约 1.2 秒、签到约 1.
 
 以用户指定的当前冻结旧版为协议权威；此前“全面对齐两份来源”及 sessionId/loginName 可混用的描述由[逐操作修正记录](source-parity-signin-2026-09-17.md)取代。本轮修复旧版登录入口、严格业务会话和数字时间戳，完整 UI 目标保持暂停。
 
-当前状态（2026-09-14）：**已暂停**，按用户要求整理并提交既有工作区。P5-F阶段成果已保存于 `b5fa7dfebf360b5029033bfc628caaa39e68e5cc`；本轮未继续功能实施、设备验收或实时读取。完整事实与恢复顺序见[暂停交接记录](evidence/2026-09-14-ui-ux-pause.md)。
+当前状态（2026-09-17）：完整 UI/UX 目标继续**暂停**。本轮仅整理既有工作区、校验并分步提交；签到修复事实以以上逐操作修正记录为准，不恢复功能实施或实时验收。
 
-更新日期：2026-09-14，Asia/Shanghai。
+更新日期：2026-09-17，Asia/Shanghai。
 
 证据存储更新：3,981张运行截图及配套记录已归档到仓库外，并从40个未发布提交中移除截图。所有对应提交的代码、测试和文字内容经逐提交比较保持一致；历史SHA通过[映射表](evidence/2026-09-14-ui-ux-commit-map.txt)定位。`.gitignore`与代理规则已防止继续提交验收媒体，详情见[迁移记录](evidence/2026-09-14-ui-ux-evidence-storage.md)。此项是版本管理整理，目标继续暂停。
 
@@ -67,7 +67,7 @@ P4-A新增四项资料同次投影、个人页本地展开/默认遮罩与手机
 ## 本次已核实
 
 - 起始工作区为 `ubaa2`，计划制定前 `git status --short --branch` 无未提交改动。
-- `just refs` 通过：冻结 `ubaa_old` 为 `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`，`examples/buaa-api` 为 `efb7976bf513f38364b88aeb83d704586cff9b2a`；未改写冻结目录。
+- `just refs` 通过：冻结 `examples/ubaa_old` 为 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，`examples/buaa-api` 为 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`；未改写冻结目录。
 - 已阅读功能矩阵、现行 UI 规格、主题/首页与测试入口、平台矩阵及门禁脚本，确认共享 `ubaa_ui`、`ubaa_app`、`ubaa_host` 的实施定位；这不等于完成逐操作盘点或实际界面审查。
 - 现有文档声明 CLI JSON schema v10、Flutter bridge contract v9、`session.json` v2、`config.toml` v1；新合同要求执行前重新校验，禁止以 UI 改造静默改变公开合同。
 

@@ -61,14 +61,14 @@ check_references_main() {
   repo_root=$(ubaa_repo_root)
   check_reference \
     "$repo_root" \
-    "$repo_root/ubaa_old" \
+    "$repo_root/examples/ubaa_old" \
     'https://github.com/BUAASubnet/UBAA.git' \
-    '6e75e120a26b0eefb3ab4a6f8251d1230db4a62e'
+    '1f4b8f8412272b6a423d4ad92b396e3db721e6f3'
   check_reference \
     "$repo_root" \
     "$repo_root/examples/buaa-api" \
     'https://github.com/fontlos/buaa-api.git' \
-    'efb7976bf513f38364b88aeb83d704586cff9b2a'
+    'a63712fa2ae0a6c8066197063ddee98e3a6b5b81'
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then
