@@ -7,6 +7,7 @@
 //! ```
 
 mod auth;
+mod cache;
 mod config;
 mod connection;
 pub(crate) mod connection_codec;

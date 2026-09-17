@@ -44,3 +44,10 @@ pub use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
 // 这些类型是宿主可见的安全路线诊断投影；其余 connection 实现仍属于 Core 内部。
 pub use crate::connection::{NetworkState, RouteDiagnostic, RouteResolution};
+
+// 独立本地仓库不获取 UbaaClient 网络锁；载荷白名单不包含学校写入资格。
+pub use crate::cache::{
+    CACHE_SCHEMA_VERSION, CacheCompleteness, CacheError, CacheKey, CacheLimits, CachePayload,
+    CachePublication, CacheQuery, CacheReadTicket, CacheRecord, CacheResult, CacheScope,
+    OfflineRepository,
+};

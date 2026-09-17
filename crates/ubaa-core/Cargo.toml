@@ -33,6 +33,11 @@ tokio = { version = "1.49.0", features = ["rt", "sync", "time"] }
 toml = "1.1.4"
 tracing = "0.1.44"
 url = "2.5.7"
+rusqlite = { version = "0.38.0", features = ["bundled"] }
+aes-gcm = "0.10.3"
+hmac = "0.12.1"
+sha2 = "0.10.9"
+zeroize = "1.9.0"
 
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.189"

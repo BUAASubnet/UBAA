@@ -33,3 +33,13 @@ macOS 仓库外 Swift Keychain 原型采用随机独立 service 和合成 32 字
 选型依据：[rusqlite 官方仓库](https://github.com/rusqlite/rusqlite) 的 bundled 构建和 [RustCrypto AES-GCM](https://docs.rs/aes-gcm/0.10.3/aes_gcm/) 的认证载荷接口；Apple 密钥保护使用 [设备本机的首次解锁后可访问策略](https://developer.apple.com/documentation/security/ksecattraccessibleafterfirstunlockthisdeviceonly)。当前只锁定可行性方向，后续业务缓存仍须 RED/GREEN、精确键/事务/代次/容量/故障注入验证。
 
 下一步：实现 Core 独立本地加密仓库及平台安全密钥合同，再连接本地首页与首帧恢复。P0 全阶段未完成，P1–P5 未完成。
+
+## P0-B：Core 加密缓存基础
+
+新增独立 OfflineRepository，使用 bundled SQLite 短事务、AES-256-GCM 随机 nonce、HMAC 查询索引和 Zeroizing 密钥；账号采用随机内部别名，各库独立，查询依据和载荷都加密。只允许白名单课表/希冀索引与展示 DTO，不能保存任意 JSON、Cookie、写资格或 opaque handle。业务读取尚未接线，新增库不会自动访问学校网络或启用离线首页。
+
+请求 ticket 由持久修订和账号代次保护；新请求使旧响应失效，退出/清理使所有旧句柄回写失效；成功完整空集合可替换，部分/失败保留旧内容和 fetchedAt。单条损坏只隔离该范围；未知版本/错误密钥不重建成明文；软容量优先淘汰旧详情，硬容量和 SQLite 页数失败保留上个事务。随机内部别名不是用户名。
+
+RED：缓存类型/仓库缺失，聚焦命令退出 101。实现中路径测试暴露 macOS /var 系统祖先链接与 SQLITE_OPEN_NOFOLLOW 的冲突，已在校验调用方目录后固定 canonical 父目录；数据库与 journal/wal/shm 自身链接仍拒绝。同秒失败新鲜度断言实际失败，增加独立成功标记后 GREEN。最终新增 13 项仓库行为测试全部通过（命令过滤同时运行 2 项既有内存 cache 测试，共 15 项）；覆盖加密重开、日期/路线/账号隔离、AAD 交换拒绝、失败/部分/完整空集合、旧修订/重复/跨账号 ticket、跨句柄退出清理、容量淘汰、真正 SQLITE_FULL 回滚、损坏隔离、未知版本和符号链接。
+
+`cargo clippy --locked -p ubaa-core --all-targets --all-features -- -D warnings` 和本阶段 `just check` 均退出 0；依赖及编译合同的两个 Cargo.lock 已同步，旧 CLI/Bridge 合同版本不变。这里证明 Core 仓库基础，不证明平台安全材料接线、业务接入、多端缓存首屏或真实性能。下一步继续安全存储适配与本地账号索引。
