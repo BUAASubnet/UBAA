@@ -16,6 +16,8 @@ use ubaa_core::facade::{
 mod bootstrap;
 #[path = "facade/cgyy.rs"]
 mod cgyy;
+#[path = "facade/recovery.rs"]
+mod recovery;
 #[path = "facade/routing.rs"]
 mod routing;
 #[path = "facade/ygdk.rs"]

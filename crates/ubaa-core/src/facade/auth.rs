@@ -9,8 +9,23 @@ use crate::features::user;
 use crate::session::DualSessionCoordinator;
 
 use super::client::UbaaClient;
+use super::types::{Operation, RoutedResult};
 
 impl UbaaClient {
+    /// 校验当前任务所需路线，不等待另一条路线或提交凭据。
+    ///
+    /// # Errors
+    ///
+    /// 路线无本地会话、校验失败或会话所有权冲突时返回带实际路线的错误。
+    pub async fn recover_required_session(
+        &mut self,
+        feature: crate::domain::ReadonlyFeature,
+    ) -> RoutedResult<AuthStatus> {
+        let resolution = self.resolve_operation(Operation::Feature(feature))?;
+        let result = self.auth_status_route(resolution.mode).await;
+        self.finish_routed(resolution, result)
+    }
+
     /// 按固定 Direct、`WebVPN` 顺序准备两条路线并返回安全路线状态。
     pub async fn prepare_login(&mut self) -> DualLoginPreparation {
         if let Err(error) = self.guard_latest_session_ownership() {
