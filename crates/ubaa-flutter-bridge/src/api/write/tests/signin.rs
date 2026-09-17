@@ -266,23 +266,22 @@ fn signin_entry_request() -> ExpectedRequest {
         url,
         HttpResponse::new(
             200,
-            format!("https://iclass.buaa.edu.cn:8346/?loginName={SESSION_ID}"),
+            "https://iclass.buaa.edu.cn:8346/?loginName=login-safe",
             Vec::new(),
         ),
     )
 }
 
 fn signin_login_request() -> ExpectedRequest {
-    let url = format!(
-        "https://iclass.buaa.edu.cn:8346/eschool/app/user/login_buaa.do?password=&phone={SESSION_ID}&userLevel=1&verificationType=2&verificationUrl="
-    );
+    let url = "https://iclass.buaa.edu.cn:8347/app/user/login.action?password=&phone=login-safe&userLevel=1&verificationType=2&verificationUrl=";
     ExpectedRequest::new(
         HttpMethod::Get,
-        &url,
+        url,
         HttpResponse::new(
             200,
-            &url,
-            format!(r#"{{"STATUS":"0","result":{{"id":"{USER_ID}"}}}}"#).into_bytes(),
+            url,
+            format!(r#"{{"STATUS":"0","result":{{"id":"{USER_ID}","sessionId":"{SESSION_ID}"}}}}"#)
+                .into_bytes(),
         ),
     )
 }
@@ -329,17 +328,17 @@ fn json_escape(value: &str) -> String {
 }
 
 fn signin_timestamp_request() -> ExpectedRequest {
-    let url = "https://iclass.buaa.edu.cn:8347/app/common/get_timestamp.action";
+    let url = "http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action";
     ExpectedRequest::new(
         HttpMethod::Get,
         url,
-        HttpResponse::new(200, url, br#"{"timestamp":"1700000000000"}"#.to_vec()),
+        HttpResponse::new(200, url, br#"{"timestamp":1700000000000}"#.to_vec()),
     )
 }
 
 fn signin_write_request(body: &'static str) -> ExpectedRequest {
     let url = format!(
-        "https://iclass.buaa.edu.cn:8347/eschool/app/course/stu_scan_sign.action?courseSchedId={SCHEDULE_ID}&timestamp=1700000000000"
+        "http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action?courseSchedId={SCHEDULE_ID}&timestamp=1700000000000"
     );
     ExpectedRequest::new(
         HttpMethod::Post,

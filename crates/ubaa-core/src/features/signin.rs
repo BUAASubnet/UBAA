@@ -9,7 +9,7 @@ use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 
 const SIGNIN_ENTRY_URL: &str = "https://iclass.buaa.edu.cn:8346/?type=jumpMyCenter";
-const SIGNIN_LOGIN_URL: &str = "https://iclass.buaa.edu.cn:8346/eschool/app/user/login_buaa.do";
+const SIGNIN_LOGIN_URL: &str = "https://iclass.buaa.edu.cn:8347/app/user/login.action";
 const SIGNIN_TODAY_URL: &str =
     "https://iclass.buaa.edu.cn:8347/app/course/get_stu_course_sched.action";
 const REDIRECT_LIMIT: usize = 8;
@@ -26,6 +26,8 @@ struct LoginResponse {
 #[derive(Deserialize)]
 struct LoginResult {
     id: String,
+    #[serde(default, rename = "sessionId")]
+    session_id: Option<String>,
 }
 
 #[derive(Deserialize)]
@@ -106,14 +108,17 @@ pub(crate) async fn perform_signin(
 ) -> Result<SigninActionResult> {
     preflight_signin(runtime, course_id).await?;
     let credential = current_credential(runtime).await?;
-    let timestamp_url =
-        runtime.url("https://iclass.buaa.edu.cn:8347/app/common/get_timestamp.action")?;
+    let timestamp_url = signin_checkin_url(
+        runtime.mode(),
+        "app/common/get_timestamp.action",
+        "app/common/get_timestamp.action",
+    )?;
     let timestamp = runtime.request(HttpRequest::get(timestamp_url)).await?;
     if timestamp.status != 200 {
         return Err(upstream_error("无法获取签到时间戳"));
     }
     let timestamp = parse_timestamp(&timestamp.body)?;
-    let url = build_signin_url(runtime, course_id, &timestamp)?;
+    let url = build_signin_url(runtime.mode(), course_id, &timestamp)?;
     let response = submit_signin(runtime, url, &credential).await?;
     if response.status != 200 || final_url_is_authentication(&response.final_url) {
         return Err(write_outcome_unknown());
@@ -121,15 +126,36 @@ pub(crate) async fn perform_signin(
     parse_action_response(&response.body)
 }
 
+fn signin_checkin_url(
+    mode: crate::domain::ConnectionMode,
+    direct_path: &str,
+    webvpn_path: &str,
+) -> Result<String> {
+    let upstream_url = match mode {
+        crate::domain::ConnectionMode::WebVpn => {
+            format!("https://iclass.buaa.edu.cn:8347/{webvpn_path}")
+        }
+        crate::domain::ConnectionMode::Direct => {
+            format!("http://iclass.buaa.edu.cn:8081/{direct_path}")
+        }
+    };
+    match mode {
+        crate::domain::ConnectionMode::Direct => Ok(upstream_url),
+        crate::domain::ConnectionMode::WebVpn => crate::connection::to_webvpn_url(&upstream_url),
+    }
+}
+
 fn build_signin_url(
-    runtime: &crate::runtime::ClientRuntime,
+    mode: crate::domain::ConnectionMode,
     course_id: &str,
     timestamp: &str,
 ) -> Result<String> {
-    let mut url = url::Url::parse(
-        &runtime.url("https://iclass.buaa.edu.cn:8347/eschool/app/course/stu_scan_sign.action")?,
-    )
-    .map_err(|_| invalid_url())?;
+    let base_url = signin_checkin_url(
+        mode,
+        "eschool/app/course/stu_scan_sign.action",
+        "app/course/stu_scan_sign.action",
+    )?;
+    let mut url = url::Url::parse(&base_url).map_err(|_| invalid_url())?;
     url.query_pairs_mut()
         .append_pair("courseSchedId", course_id)
         .append_pair("timestamp", timestamp);
@@ -217,10 +243,12 @@ fn parse_timestamp(body: &[u8]) -> Result<String> {
         serde_json::from_slice(body).map_err(|_| upstream_error("签到时间戳响应格式无效"))?;
     value
         .get("timestamp")
-        .and_then(Value::as_str)
-        .map(str::trim)
+        .and_then(|value| match value {
+            Value::String(text) => Some(text.trim().to_owned()),
+            Value::Number(number) if number.is_i64() || number.is_u64() => Some(number.to_string()),
+            _ => None,
+        })
         .filter(|value| !value.is_empty())
-        .map(str::to_owned)
         .ok_or_else(|| upstream_error("签到时间戳为空"))
 }
 
@@ -307,22 +335,27 @@ async fn login(runtime: &mut crate::runtime::ClientRuntime) -> Result<SigninCred
     if response.status != 200 {
         return Err(upstream_error("无法建立签到业务会话"));
     }
-    parse_login_credential(&response.body, &login_name)
+    parse_login_credential(&response.body)
 }
 
-fn parse_login_credential(body: &[u8], login_name: &str) -> Result<SigninCredential> {
+fn parse_login_credential(body: &[u8]) -> Result<SigninCredential> {
     let response: LoginResponse =
         serde_json::from_slice(body).map_err(|_| upstream_error("签到登录响应格式无效"))?;
     let result = response
         .result
         .filter(|_| success(&response.status))
         .ok_or_else(|| upstream_error("签到业务登录失败"))?;
-    if result.id.trim().is_empty() || login_name.trim().is_empty() {
+    if result.id.trim().is_empty() {
         return Err(upstream_error("签到登录响应缺少会话字段"));
     }
+    let session_id = result
+        .session_id
+        .map(|value| value.trim().to_owned())
+        .filter(|value| !value.is_empty())
+        .ok_or_else(|| upstream_error("签到登录响应缺少会话字段"))?;
     Ok(SigninCredential {
         user_id: result.id,
-        session_id: login_name.to_owned(),
+        session_id,
     })
 }
 
@@ -493,9 +526,61 @@ mod contract_tests;
 #[cfg(test)]
 mod tests {
     use super::{
-        SIGNIN_LOGIN_URL, build_signin_form, build_today_request, integer_value,
-        parse_login_credential, parse_timestamp,
+        SIGNIN_LOGIN_URL, build_signin_form, build_signin_url, build_today_request, integer_value,
+        parse_login_credential, parse_timestamp, signin_checkin_url,
     };
+
+    #[test]
+    fn 直连与webvpn签到地址生成对齐冻结旧版() {
+        let direct_ts = signin_checkin_url(
+            crate::domain::ConnectionMode::Direct,
+            "app/common/get_timestamp.action",
+            "app/common/get_timestamp.action",
+        )
+        .expect("直连时间戳地址应可构造");
+        assert_eq!(
+            direct_ts,
+            "http://iclass.buaa.edu.cn:8081/app/common/get_timestamp.action"
+        );
+
+        let direct_sign = build_signin_url(
+            crate::domain::ConnectionMode::Direct,
+            "course-123",
+            "1700000000000",
+        )
+        .expect("直连签到提交地址应可构造");
+        assert_eq!(
+            direct_sign,
+            "http://iclass.buaa.edu.cn:8081/eschool/app/course/stu_scan_sign.action?courseSchedId=course-123&timestamp=1700000000000"
+        );
+
+        let vpn_ts = signin_checkin_url(
+            crate::domain::ConnectionMode::WebVpn,
+            "app/common/get_timestamp.action",
+            "app/common/get_timestamp.action",
+        )
+        .expect("WebVPN 时间戳地址应可构造");
+        let vpn_ts_direct =
+            crate::connection::from_webvpn_url(&vpn_ts).expect("WebVPN 应可反向解码");
+        assert_eq!(
+            vpn_ts_direct,
+            "https://iclass.buaa.edu.cn:8347/app/common/get_timestamp.action"
+        );
+
+        let vpn_sign = build_signin_url(
+            crate::domain::ConnectionMode::WebVpn,
+            "course-123",
+            "1700000000000",
+        )
+        .expect("WebVPN 签到提交地址应可构造");
+        let vpn_sign_direct =
+            crate::connection::from_webvpn_url(&vpn_sign).expect("WebVPN 应可反向解码");
+        assert_eq!(
+            vpn_sign_direct,
+            "https://iclass.buaa.edu.cn:8347/app/course/stu_scan_sign.action?courseSchedId=course-123&timestamp=1700000000000"
+        );
+        assert!(!vpn_sign_direct.contains("eschool"));
+    }
 
     #[test]
     fn 今日查询请求匹配冻结方法和会话头() {
@@ -533,10 +618,10 @@ mod tests {
     }
 
     #[test]
-    fn 签到业务登录使用已验证的新入口() {
+    fn 签到业务登录使用冻结旧版入口() {
         assert_eq!(
             SIGNIN_LOGIN_URL,
-            "https://iclass.buaa.edu.cn:8346/eschool/app/user/login_buaa.do"
+            "https://iclass.buaa.edu.cn:8347/app/user/login.action"
         );
     }
 
@@ -548,14 +633,13 @@ mod tests {
     }
 
     #[test]
-    fn 新版登录响应仅需用户标识并使用登录名作为会话() {
+    fn 登录响应包含会话标识时优先使用服务端会话() {
         let credential = parse_login_credential(
-            r#"{"STATUS":"0","result":{"id":"用户标识已脱敏"}}"#.as_bytes(),
-            "登录名已脱敏",
+            r#"{"STATUS":"0","result":{"id":"user-1","sessionId":"session-1"}}"#.as_bytes(),
         )
-        .expect("新版登录响应应可解析");
-        assert_eq!(credential.user_id, "用户标识已脱敏");
-        assert_eq!(credential.session_id, "登录名已脱敏");
+        .expect("包含会话标识的响应应可解析");
+        assert_eq!(credential.user_id, "user-1");
+        assert_eq!(credential.session_id, "session-1");
     }
 
     #[test]

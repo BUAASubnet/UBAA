@@ -57,6 +57,7 @@ impl HttpTransport for ReqwestTransport {
             HttpMethod::Get => reqwest::Method::GET,
             HttpMethod::Post => reqwest::Method::POST,
         };
+        tracing::debug!(target: "ubaa::transport", method = ?method, "HTTP 请求发送");
         let mut builder = self.client.request(method, &request.url);
         for (name, value) in request.headers {
             builder = builder.header(name, value);
@@ -65,6 +66,12 @@ impl HttpTransport for ReqwestTransport {
             builder = builder.body(request.body);
         }
         let mut response = builder.send().await.map_err(|error| {
+            tracing::debug!(
+                target: "ubaa::transport",
+                timeout = error.is_timeout(),
+                connect = error.is_connect(),
+                "HTTP 请求发送失败"
+            );
             diagnostic::record_reqwest_failure(
                 diagnostic::TransportStage::Send,
                 &error,
@@ -84,6 +91,13 @@ impl HttpTransport for ReqwestTransport {
             }
         }
         let body = collect_response_body(&mut response, started).await?;
+        tracing::debug!(
+            target: "ubaa::transport",
+            status = status,
+            body_bytes = body.len(),
+            elapsed = ?started.elapsed(),
+            "HTTP 响应完成"
+        );
         Ok(HttpResponse {
             status,
             final_url,

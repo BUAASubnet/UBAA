@@ -59,3 +59,37 @@ fn empty_schedule_id_has_no_write_target() {
     assert_eq!(classes[0].signin_eligibility, ActionEligibility::Unknown);
     assert_eq!(classes[0].signin_target, None);
 }
+
+#[test]
+fn 数字时间戳按旧版转为提交参数() {
+    assert_eq!(
+        super::parse_timestamp(br#"{"STATUS":"0","timestamp":1700000000000}"#).unwrap(),
+        "1700000000000"
+    );
+    assert_eq!(
+        super::parse_timestamp(br#"{"timestamp":"1700000000000"}"#).unwrap(),
+        "1700000000000"
+    );
+    for body in [
+        br#"{"timestamp":null}"#.as_slice(),
+        br#"{"timestamp":true}"#,
+        br#"{"timestamp":{}}"#,
+        br#"{"timestamp":" "}"#,
+    ] {
+        assert!(super::parse_timestamp(body).is_err());
+    }
+}
+
+#[test]
+fn 旧版业务登录不能以跳转登录名替代缺失会话() {
+    assert_eq!(
+        super::SIGNIN_LOGIN_URL,
+        "https://iclass.buaa.edu.cn:8347/app/user/login.action"
+    );
+    for body in [
+        r#"{"STATUS":"0","result":{"id":"user-safe"}}"#,
+        r#"{"STATUS":"0","result":{"id":"user-safe","sessionId":" "}}"#,
+    ] {
+        assert!(super::parse_login_credential(body.as_bytes()).is_err());
+    }
+}
