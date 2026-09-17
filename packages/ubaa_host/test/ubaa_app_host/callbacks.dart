@@ -64,7 +64,13 @@ void _registerCallbackTests() {
     expect(shell.initialTab, 2);
     backend.resetReadCalls();
     await shell.onRefresh();
-    expect(backend.loadedFeatures, FeatureId.values);
+    expect(backend.loadedFeatures, [
+      FeatureId.schedule,
+      FeatureId.signin,
+      FeatureId.spoc,
+      FeatureId.judge,
+      FeatureId.ygdk,
+    ]);
     expect(backend.queryCalls, isEmpty);
 
     backend.resetReadCalls();

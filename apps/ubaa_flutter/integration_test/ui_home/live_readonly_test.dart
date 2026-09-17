@@ -19,6 +19,7 @@ void main() {
         (route != 'direct' && route != 'webvpn')) {
       throw StateError('必须显式提供生产只读开关、隔离配置和预期路线');
     }
+    final elapsed = Stopwatch()..start();
     Widget? app;
     await bootstrapUbaaFlutterApp(runApplication: (value) => app = value);
     await tester.pumpWidget(app!);
@@ -36,13 +37,14 @@ void main() {
       '隔离会话未恢复',
     );
     expect(find.byType(UbaaMainShell).evaluate().isNotEmpty, isTrue);
+    debugPrint('首页计时 shell_ready_ms=${elapsed.elapsedMilliseconds}');
     UbaaMainShell shell() =>
         tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
     for (final feature in [
       FeatureId.schedule,
+      FeatureId.signin,
       FeatureId.spoc,
       FeatureId.judge,
-      FeatureId.signin,
       FeatureId.ygdk,
     ]) {
       await waitFor(() {
@@ -52,7 +54,7 @@ void main() {
       }, '首页默认来源未在限定时间完成');
       final value = shell().homeSnapshots![feature]!;
       debugPrint(
-        '首页只读 feature=${feature.name} status=${value.status.name} route=${value.resolvedRoute?.name} count=${value.details.length} error=${value.error?.code.name}',
+        '首页只读 feature=${feature.name} status=${value.status.name} route=${value.resolvedRoute?.name} count=${value.details.length} error=${value.error?.code.name} observed_ms=${elapsed.elapsedMilliseconds}',
       );
       expect(
         value.status == FeatureLoadStatus.success ||
@@ -61,14 +63,21 @@ void main() {
       );
       expect(value.resolvedRoute?.name, route);
     }
-    await waitFor(
-      () => [FeatureId.schedule, FeatureId.bykc, FeatureId.cgyy].every(
-        (f) =>
-            shell().snapshots[f]!.status != FeatureLoadStatus.idle &&
-            shell().snapshots[f]!.status != FeatureLoadStatus.loading,
-      ),
-      '领域默认读取尚未结束',
-    );
+    for (final feature in [
+      FeatureId.exam,
+      FeatureId.grades,
+      FeatureId.bykc,
+      FeatureId.classroom,
+      FeatureId.libbook,
+      FeatureId.cgyy,
+      FeatureId.evaluation,
+    ]) {
+      expect(
+        shell().snapshots[feature]!.status,
+        FeatureLoadStatus.idle,
+        reason: '首页不得预载未访问的领域默认页',
+      );
+    }
     for (final source in HomeSupplement.values) {
       final before = shell().snapshots;
       FeatureResult? result;

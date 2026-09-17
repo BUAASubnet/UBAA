@@ -1,11 +1,22 @@
 part of '../app_controller.dart';
 
+// 仅预载首页直接展示的来源。博雅已选、研讨室订单、周次与成绩提醒
+// 走各自专用读取；其他默认页由导航器在首次打开时加载。
+// Bridge 共用会话锁，今日课表和签到先入队，避免被无关查询阻塞。
+const _homeDefaultFeatures = <FeatureId>[
+  FeatureId.schedule,
+  FeatureId.signin,
+  FeatureId.spoc,
+  FeatureId.judge,
+  FeatureId.ygdk,
+];
+
 extension _AppControllerRefresh on AppController {
   Future<void> _refreshHome({Iterable<FeatureId>? only}) async {
     if (_disposed) return;
     _readCacheEpoch++;
     final lifecycleEpoch = _lifecycleEpoch;
-    final features = (only ?? FeatureId.values).toList(growable: false);
+    final features = (only ?? _homeDefaultFeatures).toList(growable: false);
     final generations = <FeatureId, int>{
       for (final feature in features) feature: _nextFeatureGeneration(feature),
     };

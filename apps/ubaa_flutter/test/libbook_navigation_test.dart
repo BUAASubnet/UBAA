@@ -140,8 +140,7 @@ void main() {
     await _tap(tester, find.byIcon(Icons.home_outlined));
     final before = backend.libraryReads.length;
     await _tap(tester, find.byTooltip('刷新'));
-    expect(backend.libraryReads, hasLength(before + 1));
-    expect(backend.libraryReads.last.view, FeatureQueryView.summary);
+    expect(backend.libraryReads, hasLength(before));
   });
   testWidgets('图书馆明确空座位后重新加载不复活已清掉的选择', (tester) async {
     final backend = await _open(tester);

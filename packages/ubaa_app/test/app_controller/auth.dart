@@ -1,7 +1,7 @@
 part of '../app_controller_test.dart';
 
 void _registerAuthTests() {
-  test('登录后独立加载普通与高级只读功能', () async {
+  test('登录后先加载首页，其他功能保持待访问', () async {
     final controller = AppController(
       backend: DemoBackend(loginDelay: Duration.zero),
       credentialVault: MemoryCredentialVault(),
@@ -14,10 +14,22 @@ void _registerAuthTests() {
     expect(controller.phase, AppPhase.home);
     await controller.refreshHome();
     expect(
-      controller.snapshots.values.every(
-        (snapshot) => snapshot.status == FeatureLoadStatus.success,
-      ),
+      controller.homeSnapshots.values
+          .where(
+            (s) => [
+              FeatureId.schedule,
+              FeatureId.signin,
+              FeatureId.spoc,
+              FeatureId.judge,
+              FeatureId.ygdk,
+            ].contains(s.feature),
+          )
+          .every((snapshot) => snapshot.status == FeatureLoadStatus.success),
       isTrue,
+    );
+    expect(
+      controller.snapshots[FeatureId.exam]!.status,
+      FeatureLoadStatus.idle,
     );
     controller.dispose();
   });

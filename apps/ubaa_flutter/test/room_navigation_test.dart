@@ -74,13 +74,12 @@ void main() {
     );
     expect(backend.commitCalls, 0);
   });
-  testWidgets('研讨室隐藏后首页刷新加载站点基线及待办订单，不扩展日期空间', (tester) async {
+  testWidgets('研讨室隐藏后首页仅刷新待办订单，不重读站点或扩展日期空间', (tester) async {
     final backend = await _open(tester, width: 1280);
     await _tap(tester, find.byIcon(Icons.home_outlined));
     final before = backend.roomReads.length;
     await _tap(tester, find.byTooltip('刷新'));
     expect(backend.roomReads.skip(before).map((query) => query.view), [
-      FeatureQueryView.summary,
       FeatureQueryView.cgyyOrders,
     ]);
     expect(backend.roomReads.last.page, 0);

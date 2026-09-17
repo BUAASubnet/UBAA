@@ -40,6 +40,18 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
             widget.onQuery != null && _hasLandingMenu(widget.snapshot.feature),
       ),
     );
+    if (widget.snapshot.status == FeatureLoadStatus.idle) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        // 首页待办或成绩提醒可能已在同帧打开指定查询，不能再用默认
+        // 读取覆盖它；此时宿主的旧 idle 快照还来不及随重建更新。
+        if (mounted &&
+            widget.snapshot.status == FeatureLoadStatus.idle &&
+            _current.snapshot.status == FeatureLoadStatus.idle &&
+            _current.query == null) {
+          widget.onRetry();
+        }
+      });
+    }
   }
 
   @override
