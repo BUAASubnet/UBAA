@@ -36,3 +36,11 @@
 | 保存/读希冀摘要/详情 | 无网络；不修改 assignID | 不适用 | 同上 | 不适用；课程+作业/包含历史进入键 | 同上 | 同上 | 现有 Summary/Detail，仅展示，无 action | 来源路线、请求修订、账号代次校验；失败不重写 fetchedAt | 同上 |
 
 新存储与冻结实现的明确差异：业务内容通过独立事务仓库认证加密，随机账号别名不暴露账号正文，索引采用密钥摘要，载荷/查询依据一起加密；本地读取不等待网络锁。退出先关闭仓库并增加代次，清理缓存也推进代次，旧句柄/迟到 ticket 不可回写。不会把冻结旧版 Settings 明文持久化或历史永久集合直接复制进新实现。
+
+## P0-C 平台安全材料与账号索引
+
+本步骤不修改 CAS、URL、请求体、Cookie 或学校错误语义。旧 `CredentialStore.kt` 和当前 `Credential` 的 username/password/autoLogin 结构保留；旧 autoLogin=false 原样读取，不因迁移自动提交密码。新的安全索引仅保留随机账号别名、已核实身份、允许恢复标记和代次；密码独立 namespace，业务正文仅归 Core 数据库。退出先持久关闭恢复；清除账号先关闭恢复再删除密钥；密钥缺失不自动生成替代密钥覆盖旧缓存。索引最多 16 个本机账号，超过范围明确失败，不静默淘汰账号。
+
+平台依据：[固定安全存储插件](https://pub.dev/packages/flutter_secure_storage/versions/10.0.0)；[OpenHarmony HUKS 官方加解密流程](https://github.com/openharmony/docs/blob/master/en/application-dev/security/UniversalKeystoreKit/huks-encryption-decryption-arkts.md) 和本机 API26 声明。HUKS 使用随机 12 字节 nonce、材料键为 AAD、16 字节认证标签；包装密钥不导出，Preferences 只保存密文。未引用示例代码中的日志或固定 nonce。五端插件和 HUKS 不替代学校协议来源。
+
+macOS 实测发现 darwin 0.2.0 原生解析 `useDataProtectionKeyChain`，Dart 默认输出 `usesDataProtectionKeychain`；未适配会得到 -34018。适配后实际调用系统登录钥匙串，保留沙箱，未关闭 TLS、未降低到明文、未要求更改用户证书。

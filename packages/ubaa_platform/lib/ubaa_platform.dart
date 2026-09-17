@@ -13,3 +13,5 @@ export 'src/ui_error.dart';
 export 'src/reminders.dart';
 export 'src/grade_scores.dart';
 export 'src/app_information.dart';
+export 'src/secure_material.dart';
+export 'src/local_accounts.dart';

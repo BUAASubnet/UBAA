@@ -43,3 +43,15 @@ macOS 仓库外 Swift Keychain 原型采用随机独立 service 和合成 32 字
 RED：缓存类型/仓库缺失，聚焦命令退出 101。实现中路径测试暴露 macOS /var 系统祖先链接与 SQLITE_OPEN_NOFOLLOW 的冲突，已在校验调用方目录后固定 canonical 父目录；数据库与 journal/wal/shm 自身链接仍拒绝。同秒失败新鲜度断言实际失败，增加独立成功标记后 GREEN。最终新增 13 项仓库行为测试全部通过（命令过滤同时运行 2 项既有内存 cache 测试，共 15 项）；覆盖加密重开、日期/路线/账号隔离、AAD 交换拒绝、失败/部分/完整空集合、旧修订/重复/跨账号 ticket、跨句柄退出清理、容量淘汰、真正 SQLITE_FULL 回滚、损坏隔离、未知版本和符号链接。
 
 `cargo clippy --locked -p ubaa-core --all-targets --all-features -- -D warnings` 和本阶段 `just check` 均退出 0；依赖及编译合同的两个 Cargo.lock 已同步，旧 CLI/Bridge 合同版本不变。这里证明 Core 仓库基础，不证明平台安全材料接线、业务接入、多端缓存首屏或真实性能。下一步继续安全存储适配与本地账号索引。
+
+## P0-C：安全材料和本机账号索引
+
+增加安全材料适配、本机账号索引和独立随机缓存密钥。索引/密码/缓存密钥分开保存，退出持久关闭恢复并递增代次；换账号不共享密钥，旧密钥缺失明确失败而不悄悄生成替代。旧 autoLogin=false 保持 false；存在原生旧凭据通道时优先保留其路径。新代码尚未接入 AppController 启动，不能把本阶段当成本地首页完成。
+
+RED：安全材料和账号索引接口缺失，Flutter 新增测试失败；实现后 GREEN。共享 Flutter 全部 7 个 package/宿主检查通过：domain 54、platform 65、app 273、UI 249、bindings 15、host 30、官方宿主 54，共 740 项。随后针对 macOS 插件真实参数差异增加回归测试，platform 完整复验为 66 项。`flutter analyze`、格式化与本阶段 `just check`、refs/sensitive 均通过。新增原生测试归入 integration_test/offline，保持每层目录结构门禁，不扩大 baseline。
+
+macOS 真实合成探测：`integration_test/offline/secure_material_test.dart -d macos` 的同一测试内容执行 1 项通过，验证实际系统安全存储写入、重新建立适配器读取、删除及确认空值。整个探测仅用随机独立测试键和合成文本，finally 清理。初次添加 Keychain Sharing 使本地无开发签名构建失败；改用登录钥匙串后又由允许字段诊断定位原生 -34018，最终按固定 darwin 0.2.0 的真实参数键修复并通过。保持沙箱；没有读取用户现有凭据、没有签名发布。工具报告无法将窗口置前，但原生测试进程执行成功；不据此声称视觉验收通过。
+
+OHOS：新增独立 HUKS 通道，按本机 API26 和官方 AES-GCM 合同编译；`UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 退出 0，HAP 和 arm64 动态库门禁通过。只有无签名构建证据，未在设备运行 HUKS。构建生成的 SDK 相对锁路径和 buildinfo 已恢复为原基线，生成 rawfile/动态库/BuildProfile 明确忽略，不把临时工程资源提交。
+
+iOS/Android 安全材料运行及 Windows/Linux 原生运行仍未验证；这些平台有插件接线，不以接线替代运行。下一步 P1 首帧本地首页与立即恢复；P0 的 Judge 分段及全操作合同仍需继续补齐。

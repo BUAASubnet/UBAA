@@ -47,3 +47,8 @@ session.json
 .idea/
 .vscode/
 *.swp
+
+# OHOS 构建生成的资源、配置与动态库
+/apps/ubaa_ohos/ohos/entry/src/main/resources/rawfile/
+/packages/ubaa_bindings/ohos/BuildProfile.ets
+/packages/ubaa_bindings/ohos/libs/

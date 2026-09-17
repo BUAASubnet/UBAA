@@ -1,4 +1,5 @@
 import 'credentials.dart';
+import 'secure_material.dart';
 import 'location.dart';
 import 'media.dart';
 
@@ -12,23 +13,32 @@ final class PlatformCapabilities {
     required this.photoPicker,
     required this.permissionGateway,
     required this.locationProvider,
+    this.secureMaterials,
   });
 
   final CredentialVault credentialVault;
+  final SecureMaterialStore? secureMaterials;
   final PlatformPhotoPicker photoPicker;
   final PlatformPermissionGateway permissionGateway;
   final PlatformLocationProvider locationProvider;
 }
 
 Future<PlatformCapabilities> createDefaultPlatformCapabilities() async {
-  final credentialStore = MethodChannelSecureCredentialStore();
-  await credentialStore.probe();
+  final legacyStore = MethodChannelSecureCredentialStore();
+  await legacyStore.probe();
+  final materials = SecureMaterialStore();
+  await materials.probe();
+  // 已存在的原生凭据接线优先，避免升级后隐式迁移密码授权。
+  final PlatformSecureCredentialStore credentialStore = legacyStore.isAvailable
+      ? legacyStore
+      : MaterialCredentialStore(materials);
   final photoPicker = MethodChannelPhotoPicker();
   await photoPicker.probe();
   final locationProvider = MethodChannelLocationProvider();
   await locationProvider.probe();
   return PlatformCapabilities(
     credentialVault: PlatformCredentialVault(store: credentialStore),
+    secureMaterials: materials,
     photoPicker: photoPicker,
     permissionGateway: MethodChannelPermissionGateway(),
     locationProvider: locationProvider,

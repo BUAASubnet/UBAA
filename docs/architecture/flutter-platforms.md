@@ -81,9 +81,15 @@ DevEco/API21 的失败仅保留在迁移状态中作为历史记录。
 
 照片能力已接入iOS14+系统PHPicker、macOS11+只读NSOpenPanel、Android系统GetContent及OHOS PhotoViewPicker。photos权限状态表示可以请求系统选择器，所选图片的访问由系统选择结果授予，不代表全量相册授权。macOS仅启用用户选中文件只读；路径/URI不离开原生层，图片限制10MiB，原生失败不伪装取消。macOS系统窗口选择/取消/重选/超限/清除已补实操；手机/平板系统选图仍待。Android旧拍照已按P5-F接线并构建，真实相机待设备；Windows/Linux照片仍待接线，详见本轮分批证据。
 
-当前已完成 Dart typed 适配器、输入校验和 MethodChannel Mock 合同测试；Android Keystore、
-iOS/macOS Keychain、Linux Secret Service、Windows 安全存储和 HarmonyOS HUKS 的原生 handler
-尚未接入，实体设备权限、生命周期和硬件安全存储验证继续记录为后置 `BLOCKED`。
+2026-09-17 离线恢复实施分支增加独立安全材料层：官方五端使用固定
+`flutter_secure_storage 10.0.0`，OHOS 使用 `SecureMaterialChannel` 的 HUKS AES-GCM
+包装密钥和仅含密文的 Preferences。凭据、账号索引和随机业务缓存密钥使用独立命名空间，
+不枚举或导出已有密钥；原有凭据通道可用时优先保留，旧 autoLogin 授权值不变。
+macOS 本地构建采用系统登录钥匙串；固定 darwin 0.2.0 的参数拼写差异在适配层显式兼容，
+避免误启用需要开发证书的数据保护钥匙串。Android 禁止自动备份，iOS 配置 Keychain 权限。
+本轮 macOS 真实合成材料写/重开读/删除通过，OHOS 无签名 HAP/arm64 门禁通过；
+iOS/Android 及 Windows/Linux/OHOS 的实际安全材料运行仍未验证，不标记为六端运行通过。
+详见[离线实施记录](../migration/evidence/2026-09-17-offline-home.md)。
 
 两个平台 `main.dart` 只保留锁定 SDK/FRB 初始化、平台能力工厂和 `runApp` 注入；共享 `ubaa_host`
 负责 AppController 生命周期与 callback 接线。生产默认通过 `createProductionBackend()` 打开
