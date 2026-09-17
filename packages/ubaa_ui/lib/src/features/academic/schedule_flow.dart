@@ -259,18 +259,139 @@ class _ScheduleFlowState extends State<_ScheduleFlow> {
     );
   }
 
+  Future<void> _openWeekDialog(BuildContext context, String term) async {
+    final selected = await showDialog<int>(
+      context: context,
+      builder: (_) => _AcademicWeekDialog(
+        term: term,
+        selected: widget.query?.week,
+        loader: (force) => widget.loadWeeks(term, force),
+      ),
+    );
+    if (!mounted || selected == null) return;
+    _request(
+      FeatureQuery(
+        view: FeatureQueryView.scheduleWeek,
+        term: term,
+        week: selected,
+      ),
+    );
+  }
+
   @override
-  Widget build(BuildContext context) => _ScheduleWeekScope(
-    week: _visibleWeek?.presentation as WeekPresentation?,
-    child: _selectionNeeded
-        ? const Center(child: Text('请从右上角选择学期和教学周'))
-        : !_started &&
-              widget.query == null &&
-              widget.onQuery != null &&
-              widget.visible
-        ? const Center(child: CircularProgressIndicator())
-        : widget.child,
-  );
+  Widget build(BuildContext context) {
+    final term = widget.query?.term ?? _weeksTerm;
+    final candidates = term != null
+        ? _weekCandidates(term)
+        : const <FeatureDetail>[];
+    final currentWeekNum =
+        widget.query?.week ??
+        (_visibleWeek?.presentation as WeekPresentation?)?.number;
+    final currentIndex = candidates.indexWhere(
+      (d) => (d.presentation as WeekPresentation).number == currentWeekNum,
+    );
+    final prevWeek = currentIndex > 0
+        ? (candidates[currentIndex - 1].presentation as WeekPresentation).number
+        : (currentWeekNum != null && currentWeekNum > 1
+              ? currentWeekNum - 1
+              : null);
+    final nextWeek = currentIndex >= 0 && currentIndex < candidates.length - 1
+        ? (candidates[currentIndex + 1].presentation as WeekPresentation).number
+        : (currentWeekNum != null ? currentWeekNum + 1 : null);
+
+    final weekHeader = Container(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          IconButton(
+            tooltip: '上一周',
+            icon: const Icon(Icons.chevron_left),
+            onPressed: prevWeek == null || widget.onQuery == null
+                ? null
+                : () => _request(
+                    FeatureQuery(
+                      view: FeatureQueryView.scheduleWeek,
+                      term: term,
+                      week: prevWeek,
+                    ),
+                  ),
+          ),
+          InkWell(
+            borderRadius: BorderRadius.circular(8),
+            onTap: term == null ? null : () => _openWeekDialog(context, term),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    currentWeekNum != null ? '第 $currentWeekNum 周' : '选择周次',
+                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(width: 4),
+                  const Icon(Icons.arrow_drop_down, size: 20),
+                ],
+              ),
+            ),
+          ),
+          IconButton(
+            tooltip: '下一周',
+            icon: const Icon(Icons.chevron_right),
+            onPressed: nextWeek == null || widget.onQuery == null
+                ? null
+                : () => _request(
+                    FeatureQuery(
+                      view: FeatureQueryView.scheduleWeek,
+                      term: term,
+                      week: nextWeek,
+                    ),
+                  ),
+          ),
+        ],
+      ),
+    );
+
+    Widget content;
+    if (_selectionNeeded) {
+      content = Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('请从右上角选择学期和教学周'),
+            const SizedBox(height: 12),
+            FilledButton.icon(
+              icon: const Icon(Icons.calendar_view_week),
+              label: const Text('选择教学周'),
+              onPressed: term == null
+                  ? null
+                  : () => _openWeekDialog(context, term),
+            ),
+          ],
+        ),
+      );
+    } else if (!_started &&
+        widget.query == null &&
+        widget.onQuery != null &&
+        widget.visible) {
+      content = const Center(child: CircularProgressIndicator());
+    } else {
+      content = widget.child;
+    }
+
+    return _ScheduleWeekScope(
+      week: _visibleWeek?.presentation as WeekPresentation?,
+      child: Column(
+        children: [
+          weekHeader,
+          Expanded(child: content),
+        ],
+      ),
+    );
+  }
 }
 
 class _ScheduleWeekScope extends InheritedWidget {

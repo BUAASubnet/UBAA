@@ -58,6 +58,109 @@ extension _CgyyReservationChoices on _CgyyReservationFlowState {
     );
   }
 
+  Widget buildInlineChips(BuildContext context) {
+    final campuses = _sites.map((s) => s.campusName).toSet().toList()
+      ..sort((a, b) => _campusRank(a).compareTo(_campusRank(b)));
+    final day = _day;
+    final allCampuses = ['全部', ...campuses];
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (_sites.isNotEmpty)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                for (final campus in allCampuses)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text(_campusLabel(campus)),
+                      selected: _campus == campus,
+                      onSelected: _busy || widget.onQuery == null
+                          ? null
+                          : (_) {
+                              _change(() {
+                                _campus = campus;
+                                _selected.clear();
+                              });
+                              final sites = _visibleSites;
+                              if (sites.isNotEmpty) {
+                                final previous = sites.where(
+                                  (s) => s.id == _site,
+                                );
+                                unawaited(
+                                  _selectSite(
+                                    (previous.isEmpty
+                                            ? sites.first
+                                            : previous.single)
+                                        .id,
+                                    _parseDay(day?.reservationDate) ??
+                                        widget.query.date,
+                                  ),
+                                );
+                              }
+                            },
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        if (day != null && day.availableDates.isNotEmpty)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                for (final date in day.availableDates.toSet())
+                  if (_parseDay(date) != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: FilterChip(
+                        label: Text(date),
+                        selected: day.reservationDate == date,
+                        onSelected: _busy || widget.onQuery == null
+                            ? null
+                            : (_) => unawaited(
+                                _selectSite(day.venueSiteId, _parseDay(date)),
+                              ),
+                      ),
+                    ),
+              ],
+            ),
+          ),
+        if (_visibleSites.isNotEmpty)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                for (final site in _visibleSites)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text(_siteLabel(site)),
+                      selected: _site == site.id,
+                      onSelected: _busy || widget.onQuery == null
+                          ? null
+                          : (_) => unawaited(
+                              _selectSite(
+                                site.id,
+                                _parseDay(day?.reservationDate) ??
+                                    widget.query.date,
+                              ),
+                            ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+      ],
+    );
+  }
+
   Widget _choice<T>(
     String label,
     T? selected,

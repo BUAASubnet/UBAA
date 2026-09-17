@@ -6,6 +6,10 @@ import '../support/navigation.dart';
 
 void main() {
   testWidgets('图书馆沿旧版显示楼馆楼层并使用typed ID进入分区', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    tester.view.physicalSize = const Size(402, 874);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.view.resetPhysicalSize);
     final queries = <FeatureQuery>[];
     await tester.pumpWidget(
       MaterialApp(
@@ -61,8 +65,7 @@ void main() {
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.libbook);
     expect(find.byType(FilterChip), findsNothing);
-    await tester.tap(find.byTooltip('搜索与筛选'));
-    await tester.pumpAndSettle();
+    await openQueryPanel(tester);
     expect(
       tester
           .widget<DropdownButton<String>>(

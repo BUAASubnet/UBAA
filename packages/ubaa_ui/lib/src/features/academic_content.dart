@@ -20,17 +20,25 @@ class _AcademicResultContent extends StatelessWidget {
   const _AcademicResultContent({
     required this.feature,
     required this.details,
+    this.query,
+    this.onQuery,
     this.onNavigate,
   });
   final FeatureId feature;
   final List<FeatureDetail> details;
+  final FeatureQuery? query;
+  final Future<void> Function(FeatureQuery)? onQuery;
   final Future<void> Function(FeatureReadNavigation)? onNavigate;
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       if (feature == FeatureId.classroom) {
-        return _ClassroomContent(details: details);
+        return _ClassroomContent(
+          details: details,
+          query: query,
+          onQuery: onQuery,
+        );
       }
       final weekly =
           feature == FeatureId.schedule &&

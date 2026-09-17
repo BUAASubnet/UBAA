@@ -336,6 +336,7 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
         if (_areaOptions case final area?) Text(area.name),
         if (_day != null)
           Text(_day!, style: Theme.of(context).textTheme.bodySmall),
+        if (MediaQuery.sizeOf(context).width >= 600) buildInlineChips(context),
         if (!_busy && mapAreas.length == 1)
           _LibraryMapControl(
             areaId: mapAreas.keys.single,

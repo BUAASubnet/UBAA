@@ -7,6 +7,8 @@ class _FeatureDetailList extends StatefulWidget {
     required this.details,
     this.filter = '',
     this.bykcStatuses = _defaultBykcStatuses,
+    this.onBykcStatusesChanged,
+    this.onOpenFilterPanel,
     this.isBykcChosenDetail = false,
     this.onOpenBykcChosen,
     this.pagination,
@@ -30,6 +32,8 @@ class _FeatureDetailList extends StatefulWidget {
 
   final String filter;
   final Set<BykcCourseStatus> bykcStatuses;
+  final ValueChanged<Set<BykcCourseStatus>>? onBykcStatusesChanged;
+  final VoidCallback? onOpenFilterPanel;
   final bool isBykcChosenDetail;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final FeatureId feature;
@@ -171,6 +175,15 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
           pendingEvaluations,
           selectedEvaluations,
         ),
+        if (widget.feature == FeatureId.bykc &&
+            !widget.isBykcChosenDetail &&
+            (widget.query?.view ?? FeatureQueryView.summary) ==
+                FeatureQueryView.summary &&
+            widget.onOpenFilterPanel != null)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            child: _buildBykcFiltersBar(context, theme),
+          ),
         Expanded(
           // 翻页创建新的内容滚动位置；搜索与批量选择仍由外层 State 保留。
           // 同页刷新、父子返回不改变 key，继续保留本页滚动状态。
@@ -211,6 +224,8 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                 ? _AcademicResultContent(
                     feature: widget.feature,
                     details: visible,
+                    query: widget.query,
+                    onQuery: widget.onQuery,
                     onNavigate: widget.onNavigate,
                   )
                 : ListView.separated(
@@ -434,6 +449,70 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
         ),
         ..._paginationFields(setState, serverPagination, pageCount, page),
       ],
+    );
+  }
+
+  Widget _buildBykcFiltersBar(BuildContext context, ThemeData theme) {
+    final isCustom = widget.bykcStatuses != _defaultBykcStatuses;
+    final statusText = widget.bykcStatuses.isEmpty
+        ? '状态不限（显示所有课程）'
+        : isCustom
+        ? widget.bykcStatuses.map(_bykcStatusLabel).join('、')
+        : '默认显示可选、预告、人数已满课程';
+    return Card(
+      elevation: 0,
+      color: theme.colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+        child: Row(
+          children: [
+            Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: theme.colorScheme.primaryContainer,
+                borderRadius: BorderRadius.circular(8),
+              ),
+              child: Icon(
+                Icons.tune,
+                size: 20,
+                color: theme.colorScheme.onPrimaryContainer,
+              ),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    isCustom
+                        ? '已应用筛选 (${widget.bykcStatuses.length} 项状态)'
+                        : '课程筛选',
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    statusText,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            FilledButton.tonalIcon(
+              icon: const Icon(Icons.filter_list, size: 18),
+              label: Text(isCustom ? '调整' : '筛选'),
+              onPressed: widget.onOpenFilterPanel,
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

@@ -64,6 +64,101 @@ extension _LibbookReservationChoices on _LibbookReservationFlowState {
     );
   }
 
+  Widget buildInlineChips(BuildContext context) {
+    final libraries = _libraries
+        .where(
+          (item) =>
+              item.id.trim().isNotEmpty &&
+              _libraries.where((other) => other.id == item.id).length == 1,
+        )
+        .toList();
+    final selected = libraries.where((item) => item.id == _libraryId);
+    final library = selected.length == 1 ? selected.single : null;
+    final floors = library?.storeys ?? const <LibbookStoreyPresentation>[];
+    final areas = _areas
+        .map((d) => d.presentation)
+        .whereType<LibbookAreaPresentation>()
+        .toList();
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        if (libraries.isNotEmpty)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                for (final item in libraries)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text(
+                        '${item.name} ${item.freeNum}/${item.totalNum}',
+                      ),
+                      selected: item.id == _libraryId,
+                      onSelected: _busy || widget.onQuery == null
+                          ? null
+                          : (_) => unawaited(_chooseLibrary(item)),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        if (floors.isNotEmpty)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                for (final floor in floors)
+                  if (floor.id.trim().isNotEmpty &&
+                      floors.where((other) => other.id == floor.id).length == 1)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: FilterChip(
+                        label: Text(
+                          '${floor.name} ${floor.freeNum}/${floor.totalNum}',
+                        ),
+                        selected: floor.id == _storeyId,
+                        onSelected: _busy || widget.onQuery == null
+                            ? null
+                            : (_) => unawaited(_chooseFloor(floor)),
+                      ),
+                    ),
+              ],
+            ),
+          ),
+        if (areas.isNotEmpty)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            child: Row(
+              children: [
+                for (final area in areas)
+                  if (area.id.trim().isNotEmpty &&
+                      areas.where((other) => other.id == area.id).length == 1)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: FilterChip(
+                        label: Text(
+                          '${area.name} · 空闲 ${area.freeNum}/${area.totalNum}',
+                        ),
+                        selected: area.id == _areaId,
+                        onSelected: _busy || widget.onQuery == null
+                            ? null
+                            : (_) => unawaited(_chooseArea(area)),
+                      ),
+                    ),
+              ],
+            ),
+          ),
+        if (_areaOptions case final area? when !_busy)
+          _areaDetail(context, area),
+      ],
+    );
+  }
+
   Widget _libraryChoice(
     String label,
     String? selected,

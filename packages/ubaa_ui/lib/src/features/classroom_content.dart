@@ -2,19 +2,46 @@ part of '../widgets.dart';
 
 /// 沿旧版楼栋分组和14节表格；只呈现已读取的原空闲令牌。
 class _ClassroomContent extends StatefulWidget {
-  const _ClassroomContent({required this.details});
+  const _ClassroomContent({required this.details, this.query, this.onQuery});
   final List<FeatureDetail> details;
+  final FeatureQuery? query;
+  final Future<void> Function(FeatureQuery)? onQuery;
   @override
   State<_ClassroomContent> createState() => _ClassroomContentState();
 }
 
 class _ClassroomContentState extends State<_ClassroomContent> {
   final _horizontal = ScrollController();
-  List<FeatureDetail> get details => widget.details;
+  final _searchController = TextEditingController();
+  String? _selectedBuilding;
+
   @override
   void dispose() {
     _horizontal.dispose();
+    _searchController.dispose();
     super.dispose();
+  }
+
+  Future<void> _pickDate(
+    BuildContext context,
+    DateTime currentDate,
+    int campus,
+  ) async {
+    final selected = await showDatePicker(
+      context: context,
+      initialDate: currentDate,
+      firstDate: DateTime(1),
+      lastDate: DateTime(9999, 12, 31),
+      helpText: '选择查询日期',
+      cancelText: '取消',
+      confirmText: '确定',
+    );
+    if (selected == null || !mounted) return;
+    final nextQuery = (widget.query ?? const FeatureQuery()).copyWith(
+      campus: campus,
+      date: selected,
+    );
+    widget.onQuery?.call(nextQuery);
   }
 
   // 表格可横滚，来源与楼栋标题始终留在可视宽度内。
@@ -31,199 +58,353 @@ class _ClassroomContentState extends State<_ClassroomContent> {
   );
 
   @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final scale = MediaQuery.textScalerOf(context).scale(11) / 11;
-      final visibleWidth = math.max(0.0, constraints.maxWidth - 32);
-      final width = math.max(visibleWidth, 324 * scale);
-      final rowHeight = 44 * scale;
-      final groups = <String, List<(int, FeatureDetail)>>{};
-      for (final (index, detail) in details.indexed) {
-        final p = detail.presentation! as ClassroomPresentation;
-        (groups[p.floorName] ??= []).add((index, detail));
+  Widget build(BuildContext context) {
+    final first =
+        widget.details.isNotEmpty &&
+            widget.details.first.presentation is ClassroomPresentation
+        ? widget.details.first.presentation! as ClassroomPresentation
+        : null;
+    final campus = widget.query?.campus ?? first?.campus ?? 1;
+    final now = DateTime.now();
+    final dateObj =
+        widget.query?.date ??
+        (first?.queryDate != null
+            ? DateTime.tryParse(first!.queryDate!)
+            : null) ??
+        DateTime(now.year, now.month, now.day);
+    final queryDate =
+        '${dateObj.year.toString().padLeft(4, '0')}-${dateObj.month.toString().padLeft(2, '0')}-${dateObj.day.toString().padLeft(2, '0')}';
+
+    final availableBuildings =
+        widget.details
+            .map((d) => (d.presentation as ClassroomPresentation).floorName)
+            .toSet()
+            .toList()
+          ..sort();
+
+    final searchQuery = _searchController.text.trim().toLowerCase();
+    final filteredDetails = widget.details.where((d) {
+      final p = d.presentation! as ClassroomPresentation;
+      if (_selectedBuilding != null && p.floorName != _selectedBuilding) {
+        return false;
       }
-      final entries = <({String? group, (int, FeatureDetail)? item})>[
-        for (final group in groups.entries) ...[
-          (group: group.key, item: null),
-          for (final item in group.value) (group: null, item: item),
-        ],
-      ];
-      final first = details.first.presentation! as ClassroomPresentation;
-      final sameSource = details.every((detail) {
-        final p = detail.presentation! as ClassroomPresentation;
-        return p.queryDate == first.queryDate && p.campus == first.campus;
-      });
-      return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16),
-        child: Scrollbar(
-          controller: _horizontal,
-          thumbVisibility: width > visibleWidth,
-          notificationPredicate: (notification) =>
-              notification.metrics.axis == Axis.horizontal,
-          child: SingleChildScrollView(
-            controller: _horizontal,
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: width,
-              height: constraints.maxHeight,
-              child: CustomScrollView(
-                key: const ValueKey('classroom-table-scroll'),
-                slivers: [
-                  SliverToBoxAdapter(
-                    child: _fixedColumn(
-                      visibleWidth,
-                      Padding(
-                        padding: const EdgeInsets.symmetric(vertical: 8),
-                        child: Wrap(
-                          spacing: 12,
-                          runSpacing: 4,
-                          crossAxisAlignment: WrapCrossAlignment.center,
-                          children: [
-                            if (sameSource &&
-                                first.queryDate != null &&
-                                first.campus != null)
-                              Text(
-                                '${first.queryDate} · ${_classroomCampusName(first.campus!)}',
-                                style: Theme.of(context).textTheme.bodySmall,
-                              ),
-                            Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                Container(
-                                  width: 12,
-                                  height: 12,
-                                  color: const Color(0xFF98FB98),
-                                ),
-                                const SizedBox(width: 4),
-                                Text(
-                                  '空闲',
-                                  style: Theme.of(context).textTheme.labelSmall,
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
+      if (searchQuery.isNotEmpty) {
+        final titleMatch = d.title.toLowerCase().contains(searchQuery);
+        final floorMatch = p.floorName.toLowerCase().contains(searchQuery);
+        if (!titleMatch && !floorMatch) return false;
+      }
+      return true;
+    }).toList();
+
+    final wide = MediaQuery.sizeOf(context).width >= 600;
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        if (wide) ...[
+          // 顶行：校区切换
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            child: SegmentedButton<int>(
+              segments: const [
+                ButtonSegment(value: 1, label: Text('学院路')),
+                ButtonSegment(value: 2, label: Text('沙河')),
+                ButtonSegment(value: 3, label: Text('杭州')),
+              ],
+              selected: {campus},
+              onSelectionChanged: widget.onQuery == null
+                  ? null
+                  : (set) {
+                      final newCampus = set.first;
+                      if (newCampus != campus) {
+                        setState(() => _selectedBuilding = null);
+                        widget.onQuery?.call(
+                          (widget.query ?? const FeatureQuery()).copyWith(
+                            campus: newCampus,
+                            date: dateObj,
+                          ),
+                        );
+                      }
+                    },
+            ),
+          ),
+          // 次行：日期卡片 + 教室过滤
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+            child: Row(
+              children: [
+                Expanded(
+                  flex: 2,
+                  child: OutlinedButton.icon(
+                    icon: const Icon(Icons.date_range, size: 18),
+                    label: Text(
+                      queryDate,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    onPressed: widget.onQuery == null
+                        ? null
+                        : () => _pickDate(context, dateObj, campus),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  flex: 3,
+                  child: TextField(
+                    controller: _searchController,
+                    decoration: InputDecoration(
+                      hintText: '搜索教室/楼栋',
+                      prefixIcon: const Icon(Icons.search, size: 18),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                        horizontal: 12,
+                        vertical: 10,
+                      ),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
                       ),
                     ),
+                    onChanged: (_) => setState(() {}),
                   ),
-                  SliverPersistentHeader(
-                    pinned: true,
-                    delegate: _ClassroomTableHeader(
-                      height: 40 * scale,
-                      controller: _horizontal,
-                      nameWidth: width * 22 / 162,
-                      theme: Theme.of(context),
+                ),
+              ],
+            ),
+          ),
+          // 第三行：楼栋 FilterChips
+          if (availableBuildings.isNotEmpty)
+            SingleChildScrollView(
+              scrollDirection: Axis.horizontal,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              child: Row(
+                children: [
+                  for (final building in availableBuildings)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 6),
+                      child: FilterChip(
+                        label: Text(building),
+                        selected: _selectedBuilding == building,
+                        onSelected: (selected) => setState(() {
+                          _selectedBuilding = selected ? building : null;
+                        }),
+                      ),
                     ),
-                  ),
-                  SliverList.builder(
-                    itemCount: entries.length,
-                    itemBuilder: (context, index) {
-                      final entry = entries[index];
-                      if (entry.group case final name?) {
-                        return _fixedColumn(
-                          visibleWidth,
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Center(
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  color: Theme.of(
-                                    context,
-                                  ).colorScheme.secondaryContainer,
-                                  borderRadius: BorderRadius.circular(4),
+                ],
+              ),
+            ),
+        ],
+        // 第四行：主体表格
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final scale = MediaQuery.textScalerOf(context).scale(11) / 11;
+              final visibleWidth = math.max(0.0, constraints.maxWidth - 32);
+              final width = math.max(visibleWidth, 324 * scale);
+              final rowHeight = 44 * scale;
+              final groups = <String, List<(int, FeatureDetail)>>{};
+              for (final (index, detail) in filteredDetails.indexed) {
+                final p = detail.presentation! as ClassroomPresentation;
+                (groups[p.floorName] ??= []).add((index, detail));
+              }
+              final entries = <({String? group, (int, FeatureDetail)? item})>[
+                for (final group in groups.entries) ...[
+                  (group: group.key, item: null),
+                  for (final item in group.value) (group: null, item: item),
+                ],
+              ];
+              return Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: Scrollbar(
+                  controller: _horizontal,
+                  thumbVisibility: width > visibleWidth,
+                  notificationPredicate: (notification) =>
+                      notification.metrics.axis == Axis.horizontal,
+                  child: SingleChildScrollView(
+                    controller: _horizontal,
+                    scrollDirection: Axis.horizontal,
+                    child: SizedBox(
+                      width: width,
+                      height: constraints.maxHeight,
+                      child: CustomScrollView(
+                        key: const ValueKey('classroom-table-scroll'),
+                        slivers: [
+                          SliverToBoxAdapter(
+                            child: _fixedColumn(
+                              visibleWidth,
+                              Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  vertical: 8,
                                 ),
-                                child: Padding(
-                                  padding: const EdgeInsets.symmetric(
-                                    horizontal: 24,
-                                    vertical: 4,
-                                  ),
-                                  child: Text(
-                                    name.isEmpty ? '楼栋未说明' : name,
-                                    style: Theme.of(context)
-                                        .textTheme
-                                        .titleMedium
-                                        ?.copyWith(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.onSecondaryContainer,
+                                child: Wrap(
+                                  spacing: 12,
+                                  runSpacing: 4,
+                                  crossAxisAlignment: WrapCrossAlignment.center,
+                                  children: [
+                                    if (first case final f?
+                                        when f.queryDate != null &&
+                                            f.campus != null)
+                                      Text(
+                                        '${f.queryDate} · ${_classroomCampusName(f.campus!)}',
+                                        style: Theme.of(
+                                          context,
+                                        ).textTheme.bodySmall,
+                                      ),
+                                    Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Container(
+                                          width: 12,
+                                          height: 12,
+                                          color: const Color(0xFF98FB98),
                                         ),
-                                  ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '空闲',
+                                          style: Theme.of(
+                                            context,
+                                          ).textTheme.labelSmall,
+                                        ),
+                                      ],
+                                    ),
+                                  ],
                                 ),
                               ),
                             ),
                           ),
-                        );
-                      }
-                      final (rowIndex, detail) = entry.item!;
-                      final p = detail.presentation! as ClassroomPresentation;
-                      final free = p.sectionTokens
-                          .map(int.tryParse)
-                          .whereType<int>()
-                          .where((n) => n >= 1 && n <= 14)
-                          .toSet();
-                      return SizedBox(
-                        key: ValueKey('classroom-row-$rowIndex'),
-                        height: rowHeight,
-                        child: Stack(
-                          children: [
-                            Row(
-                              children: [
-                                const Expanded(flex: 22, child: SizedBox()),
-                                for (var section = 1; section <= 14; section++)
-                                  Expanded(
-                                    flex: 10,
-                                    child: Tooltip(
-                                      message:
-                                          '第$section节${free.contains(section) ? '空闲' : '未列为空闲'}',
-                                      child: _ClassroomCell(
-                                        color: free.contains(section)
-                                            ? const Color(0xFF98FB98)
-                                            : null,
-                                      ),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                            _ClassroomPinnedName(
+                          SliverPersistentHeader(
+                            pinned: true,
+                            delegate: _ClassroomTableHeader(
+                              height: 40 * scale,
                               controller: _horizontal,
-                              width: width * 22 / 162,
-                              child: _ClassroomCell(
-                                child: InkWell(
-                                  onTap: () =>
-                                      _showClassroomDetails(context, detail),
-                                  child: Center(
-                                    child: Text(
-                                      detail.title,
-                                      maxLines: 2,
-                                      overflow: TextOverflow.ellipsis,
-                                      textAlign: TextAlign.center,
-                                      style: TextStyle(
-                                        fontSize: 11,
-                                        height: 12 / 11,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.primary,
-                                        fontWeight: FontWeight.w500,
+                              nameWidth: width * 22 / 162,
+                              theme: Theme.of(context),
+                            ),
+                          ),
+                          SliverList.builder(
+                            itemCount: entries.length,
+                            itemBuilder: (context, index) {
+                              final entry = entries[index];
+                              if (entry.group case final name?) {
+                                return _fixedColumn(
+                                  visibleWidth,
+                                  Padding(
+                                    padding: const EdgeInsets.symmetric(
+                                      vertical: 12,
+                                    ),
+                                    child: Center(
+                                      child: DecoratedBox(
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.secondaryContainer,
+                                          borderRadius: BorderRadius.circular(
+                                            4,
+                                          ),
+                                        ),
+                                        child: Padding(
+                                          padding: const EdgeInsets.symmetric(
+                                            horizontal: 24,
+                                            vertical: 4,
+                                          ),
+                                          child: Text(
+                                            name.isEmpty ? '楼栋未说明' : name,
+                                            style: Theme.of(context)
+                                                .textTheme
+                                                .titleMedium
+                                                ?.copyWith(
+                                                  color: Theme.of(context)
+                                                      .colorScheme
+                                                      .onSecondaryContainer,
+                                                ),
+                                          ),
+                                        ),
                                       ),
                                     ),
                                   ),
+                                );
+                              }
+                              final (rowIndex, detail) = entry.item!;
+                              final p =
+                                  detail.presentation! as ClassroomPresentation;
+                              final free = p.sectionTokens
+                                  .map(int.tryParse)
+                                  .whereType<int>()
+                                  .where((n) => n >= 1 && n <= 14)
+                                  .toSet();
+                              return SizedBox(
+                                key: ValueKey('classroom-row-$rowIndex'),
+                                height: rowHeight,
+                                child: Stack(
+                                  children: [
+                                    Row(
+                                      children: [
+                                        const Expanded(
+                                          flex: 22,
+                                          child: SizedBox(),
+                                        ),
+                                        for (
+                                          var section = 1;
+                                          section <= 14;
+                                          section++
+                                        )
+                                          Expanded(
+                                            flex: 10,
+                                            child: Tooltip(
+                                              message:
+                                                  '第$section节${free.contains(section) ? '空闲' : '未列为空闲'}',
+                                              child: _ClassroomCell(
+                                                color: free.contains(section)
+                                                    ? const Color(0xFF98FB98)
+                                                    : null,
+                                              ),
+                                            ),
+                                          ),
+                                      ],
+                                    ),
+                                    _ClassroomPinnedName(
+                                      controller: _horizontal,
+                                      width: width * 22 / 162,
+                                      child: _ClassroomCell(
+                                        child: InkWell(
+                                          onTap: () => _showClassroomDetails(
+                                            context,
+                                            detail,
+                                          ),
+                                          child: Center(
+                                            child: Text(
+                                              detail.title,
+                                              maxLines: 2,
+                                              overflow: TextOverflow.ellipsis,
+                                              textAlign: TextAlign.center,
+                                              style: TextStyle(
+                                                fontSize: 11,
+                                                height: 12 / 11,
+                                                color: Theme.of(
+                                                  context,
+                                                ).colorScheme.primary,
+                                                fontWeight: FontWeight.w500,
+                                              ),
+                                            ),
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
                                 ),
-                              ),
-                            ),
-                          ],
-                        ),
-                      );
-                    },
+                              );
+                            },
+                          ),
+                          const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                        ],
+                      ),
+                    ),
                   ),
-                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
-                ],
-              ),
-            ),
+                ),
+              );
+            },
           ),
         ),
-      );
-    },
-  );
+      ],
+    );
+  }
 }
 
 class _ClassroomCell extends StatelessWidget {

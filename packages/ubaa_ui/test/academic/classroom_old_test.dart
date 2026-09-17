@@ -78,7 +78,7 @@ void main() {
       [],
       size: const Size(834, 1000),
     );
-    expect(find.text('教学楼'), findsOneWidget);
+    expect(find.text('教学楼'), findsAtLeastNWidgets(1));
     expect(find.byTooltip('下一页'), findsNothing);
     final scroll = find.byType(Scrollable).hitTestable().last;
     await tester.scrollUntilVisible(
@@ -97,7 +97,7 @@ void main() {
       room('其他教室'),
     ], queries);
     await openQueryPanel(tester);
-    expect(find.text('学院路'), findsOneWidget);
+    expect(find.text('学院路'), findsAtLeastNWidgets(1));
     await tester.enterText(find.widgetWithText(TextField, '筛选详情'), 'ID-目标教室');
     await closeQueryPanel(tester);
     expect(find.text('目标教室'), findsOneWidget);

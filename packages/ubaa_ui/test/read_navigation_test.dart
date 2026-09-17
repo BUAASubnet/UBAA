@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'support/navigation.dart';
 
 void main() {
   testWidgets('刷新当前查询使用已应用参数而不采用未应用草稿', (tester) async {
@@ -91,8 +92,7 @@ void main() {
 }
 
 Future<void> _edit(WidgetTester tester, String label, String value) async {
-  await tester.tap(find.byTooltip('搜索与筛选'));
-  await tester.pumpAndSettle();
+  await openQueryPanel(tester);
   await tester.enterText(find.widgetWithText(TextField, label), value);
   FocusManager.instance.primaryFocus?.unfocus();
   await tester.pumpAndSettle();
@@ -101,8 +101,7 @@ Future<void> _edit(WidgetTester tester, String label, String value) async {
 }
 
 Future<String> _fieldText(WidgetTester tester, String label) async {
-  await tester.tap(find.byTooltip('搜索与筛选'));
-  await tester.pumpAndSettle();
+  await openQueryPanel(tester);
   final value = tester
       .widget<TextField>(find.widgetWithText(TextField, label))
       .controller!

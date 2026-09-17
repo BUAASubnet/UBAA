@@ -26,6 +26,8 @@ class _GradesFlowState extends State<_GradesFlow> {
   GradesAggregate? _aggregate;
   bool _loading = false, _refreshAfterRead = false, _scheduled = false;
   int _serial = 0;
+  String? _selectedTermCode;
+  String _localSearch = '';
   bool get _ready => {
     FeatureLoadStatus.success,
     FeatureLoadStatus.empty,
@@ -46,6 +48,8 @@ class _GradesFlowState extends State<_GradesFlow> {
       _aggregate = null;
       _loading = false;
       _refreshAfterRead = false;
+      _selectedTermCode = null;
+      _localSearch = '';
     } else if (widget.snapshot.status == FeatureLoadStatus.loading &&
         oldWidget.snapshot.status != FeatureLoadStatus.loading &&
         oldWidget.snapshot.readContext?.hasSameQuery(
@@ -122,8 +126,29 @@ class _GradesFlowState extends State<_GradesFlow> {
         current == null ||
         !_supportsAcademicContent(FeatureId.grades, snapshot.details))
       return widget.fallback;
-    final filter = widget.filter.trim().toLowerCase();
-    final details = snapshot.details
+
+    final terms = aggregate?.terms ?? const <GradeTermRead>[];
+    final selectedCode = _selectedTermCode ?? current.termCode;
+    var termIndex = terms.indexWhere((t) => t.code == selectedCode);
+    if (termIndex == -1) termIndex = 0;
+    final hasTerms = terms.length > 1;
+    final activeTerm = hasTerms ? terms[termIndex] : null;
+    final isCurrentTerm =
+        activeTerm == null || activeTerm.code == current.termCode;
+    final activeOverview = isCurrentTerm ? current : activeTerm.overview;
+    final activeDetails = isCurrentTerm
+        ? snapshot.details
+        : activeTerm.result.details;
+    final canPrev = hasTerms && termIndex > 0;
+    final canNext = hasTerms && termIndex < terms.length - 1;
+
+    final theme = Theme.of(context);
+    final wide = MediaQuery.sizeOf(context).width >= 600;
+    final localQ = _localSearch.trim().toLowerCase();
+    final panelQ = widget.filter.trim().toLowerCase();
+    final filter = localQ.isNotEmpty ? localQ : panelQ;
+
+    final details = activeDetails
         .where(
           (detail) =>
               filter.isEmpty ||
@@ -147,6 +172,119 @@ class _GradesFlowState extends State<_GradesFlow> {
             padding: const EdgeInsets.only(bottom: 12),
             child: Text('${snapshot.error?.message ?? '刷新失败。'} 以下为上次成功加载的数据。'),
           ),
+        if (hasTerms && activeTerm != null) ...[
+          Card(
+            elevation: 0,
+            color: theme.colorScheme.surfaceContainerLow,
+            shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+              child: Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.chevron_left),
+                    tooltip: '上一学期',
+                    onPressed: canPrev
+                        ? () => setState(
+                            () => _selectedTermCode = terms[termIndex - 1].code,
+                          )
+                        : null,
+                  ),
+                  Expanded(
+                    child: PopupMenuButton<String>(
+                      tooltip: '选择学期',
+                      initialValue: selectedCode,
+                      onSelected: (code) =>
+                          setState(() => _selectedTermCode = code),
+                      itemBuilder: (context) => [
+                        for (final term in terms)
+                          PopupMenuItem(
+                            value: term.code,
+                            child: Row(
+                              children: [
+                                if (term.code == selectedCode)
+                                  Icon(
+                                    Icons.check,
+                                    size: 18,
+                                    color: theme.colorScheme.primary,
+                                  )
+                                else
+                                  const SizedBox(width: 18),
+                                const SizedBox(width: 8),
+                                Text(term.name),
+                                if (term.code == current.termCode)
+                                  Text(
+                                    ' (本学期)',
+                                    style: TextStyle(
+                                      color: theme.colorScheme.primary,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                              ],
+                            ),
+                          ),
+                      ],
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                isCurrentTerm
+                                    ? '${activeTerm.name} (本学期)'
+                                    : activeTerm.name,
+                                style: theme.textTheme.titleSmall?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                              ),
+                            ),
+                            const SizedBox(width: 4),
+                            const Icon(Icons.arrow_drop_down, size: 20),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.chevron_right),
+                    tooltip: '下一学期',
+                    onPressed: canNext
+                        ? () => setState(
+                            () => _selectedTermCode = terms[termIndex + 1].code,
+                          )
+                        : null,
+                  ),
+                ],
+              ),
+            ),
+          ),
+          const SizedBox(height: 12),
+        ],
+        if (wide) ...[
+          TextField(
+            decoration: InputDecoration(
+              hintText: '搜索课程名称/代码/教师/属性...',
+              prefixIcon: const Icon(Icons.search, size: 20),
+              suffixIcon: _localSearch.isNotEmpty
+                  ? IconButton(
+                      icon: const Icon(Icons.clear, size: 18),
+                      onPressed: () => setState(() => _localSearch = ''),
+                    )
+                  : null,
+              isDense: true,
+              border: OutlineInputBorder(
+                borderRadius: BorderRadius.circular(10),
+              ),
+            ),
+            onChanged: (val) => setState(() => _localSearch = val),
+          ),
+          const SizedBox(height: 12),
+        ],
         _GradeSummaryCard(
           title: '全部成绩',
           statistics: aggregate?.statistics,
@@ -168,8 +306,10 @@ class _GradesFlowState extends State<_GradesFlow> {
         ),
         const SizedBox(height: 12),
         _GradeSummaryCard(
-          title: '本学期',
-          statistics: GradeStatistics.calculate(current.grades),
+          title: isCurrentTerm ? '本学期' : activeTerm.name,
+          statistics: activeOverview != null
+              ? GradeStatistics.calculate(activeOverview.grades)
+              : null,
           showCourseAndCredits: true,
         ),
         const SizedBox(height: 12),

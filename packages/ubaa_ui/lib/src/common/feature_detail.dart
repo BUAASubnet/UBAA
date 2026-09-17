@@ -465,6 +465,9 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
       details: widget.snapshot.details,
       filter: _searchController.text,
       bykcStatuses: _bykcStatuses,
+      onBykcStatusesChanged: (statuses) =>
+          setState(() => _bykcStatuses = statuses),
+      onOpenFilterPanel: togglePanel,
       isBykcChosenDetail: widget.isBykcChosenDetail,
       onOpenBykcChosen: widget.onOpenBykcChosen,
       pagination: widget.snapshot.pagination,

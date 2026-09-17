@@ -209,33 +209,10 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
     ))
       return widget.fallback;
     final actions = _actions;
-    final selectedSites = _sites
-        .where((site) => site.id == day?.venueSiteId)
-        .toList();
+    final wide = MediaQuery.sizeOf(context).width >= 600;
     return Column(
       children: [
-        if (day != null)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 8),
-            child: Align(
-              alignment: Alignment.centerLeft,
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  if (selectedSites.length == 1)
-                    Text(
-                      _siteLabel(selectedSites.single),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  Text(
-                    day.reservationDate,
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                ],
-              ),
-            ),
-          ),
+        if (wide) buildInlineChips(context),
         Expanded(
           child: _busy
               ? const Center(child: CircularProgressIndicator())

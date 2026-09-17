@@ -116,4 +116,92 @@ void main() {
     expect(find.text('0'), findsOneWidget);
     expect(find.text('暂无成绩'), findsOneWidget);
   });
+  testWidgets('学期切换与行内搜索可切至历史学期并联动更新统计和列表', (tester) async {
+    const term1Course = GradePresentation(
+      courseName: '第一学期课程',
+      courseCode: 'T1-1',
+      score: '95',
+      credit: 3,
+      courseType: '必修',
+    );
+    const term2Course = GradePresentation(
+      courseName: '第二学期课程',
+      courseCode: 'T2-1',
+      score: '88',
+      credit: 2,
+      courseType: '选修',
+    );
+    final overview1 = const GradesTermOverview(
+      requestTerm: 'term1',
+      termCode: 'term1',
+      grades: [term1Course],
+    );
+    final overview2 = const GradesTermOverview(
+      requestTerm: 'term2',
+      termCode: 'term2',
+      grades: [term2Course],
+    );
+    await showFeature(
+      tester,
+      FeatureId.grades,
+      const [FeatureDetail(title: '第一学期课程', presentation: term1Course)],
+      [],
+      overview: overview1,
+      size: const Size(1200, 1200),
+      onLoadAllGrades: (_) async => GradesAggregate(
+        terms: [
+          GradeTermRead(
+            code: 'term1',
+            name: '2024秋',
+            result: FeatureResult.success(
+              overview: overview1,
+              details: const [
+                FeatureDetail(title: '第一学期课程', presentation: term1Course),
+              ],
+            ),
+          ),
+          GradeTermRead(
+            code: 'term2',
+            name: '2025春',
+            result: FeatureResult.success(
+              overview: overview2,
+              details: const [
+                FeatureDetail(title: '第二学期课程', presentation: term2Course),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+
+    // 默认在第一学期（本学期）
+    expect(find.text('本学期'), findsOneWidget);
+    expect(find.text('第一学期课程'), findsOneWidget);
+    expect(find.text('第二学期课程'), findsNothing);
+
+    // 点击下一学期按钮 (chevron_right)
+    await tester.tap(find.byTooltip('下一学期'));
+    await tester.pumpAndSettle();
+
+    // 切换至 2025春
+    expect(find.text('2025春'), findsNWidgets(2));
+    expect(find.text('第二学期课程'), findsOneWidget);
+    expect(find.text('第一学期课程'), findsNothing);
+
+    // 点击上一学期回到 2024秋（本学期）
+    await tester.tap(find.byTooltip('上一学期'));
+    await tester.pumpAndSettle();
+    expect(find.text('本学期'), findsOneWidget);
+    expect(find.text('第一学期课程'), findsOneWidget);
+
+    // 行内搜索测试
+    await tester.enterText(
+      find.widgetWithText(TextField, '搜索课程名称/代码/教师/属性...'),
+      '不存在',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('没有匹配的成绩'), findsOneWidget);
+    expect(find.text('第一学期课程'), findsNothing);
+  });
 }

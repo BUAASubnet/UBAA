@@ -1,5 +1,13 @@
 # 当前迁移与交付状态
 
+## 2026-09-17 工作区整理
+
+按用户要求分步保存既有改动：冻结引用配置与文档、首页和侧栏、查询与预约界面及测试。
+完整 UI/UX 目标继续暂停。本轮 `just refs`、`just layout-check`、`just check-sensitive`、
+`just check`（含 CLI 端到端 16 项）和 `just flutter-check`（735 项测试及静态分析）通过。
+忽略规则已覆盖现有本地产物，无需新增规则；图标和 golden 基准属于工程资源，继续纳入 Git。
+详情及验收边界见[整理记录](evidence/2026-09-17-workspace-cleanup.md)。
+
 ## 2026-09-17 离线首页与后台恢复设计
 
 按用户最新要求形成[完整设计提案](../design/offline-home-and-background-sync.md)：可恢复账号先进入本地首页，

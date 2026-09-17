@@ -61,8 +61,41 @@ Future<void> openFeature(WidgetTester tester, FeatureId feature) async {
 
 Future<void> openQueryPanel(WidgetTester tester) async {
   if (find.widgetWithText(TextButton, '完成').evaluate().isEmpty) {
-    await tester.tap(find.byTooltip('搜索与筛选'));
-    await tester.pumpAndSettle();
+    final search = find.byTooltip('搜索与筛选');
+    if (search.evaluate().isNotEmpty) {
+      await tester.tap(search);
+      await tester.pumpAndSettle();
+      return;
+    }
+    final sort = find.byTooltip('排序与筛选');
+    if (sort.evaluate().isNotEmpty) {
+      await tester.tap(sort);
+      await tester.pumpAndSettle();
+      return;
+    }
+    final filterBtn = find.widgetWithText(FilledButton, '筛选');
+    if (filterBtn.evaluate().isNotEmpty) {
+      await tester.tap(filterBtn);
+      await tester.pumpAndSettle();
+      return;
+    }
+    final adjustBtn = find.widgetWithText(FilledButton, '调整');
+    if (adjustBtn.evaluate().isNotEmpty) {
+      await tester.tap(adjustBtn);
+      await tester.pumpAndSettle();
+      return;
+    }
+    for (final element
+        in find
+            .byWidgetPredicate(
+              (w) => w.runtimeType.toString() == '_FeatureDetailView',
+            )
+            .evaluate()) {
+      final state = (element as StatefulElement).state;
+      (state as dynamic).togglePanel();
+      await tester.pumpAndSettle();
+      return;
+    }
   }
 }
 
