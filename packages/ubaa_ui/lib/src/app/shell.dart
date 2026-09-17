@@ -664,33 +664,101 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     onThemeModeChanged: widget.onThemeModeChanged,
   );
 
-  Widget _buildRail(BuildContext context) => NavigationRail(
-    scrollable: true,
-    minWidth: 80,
-    minExtendedWidth: 200,
-    selectedIndex: _selectedIndex,
-    onDestinationSelected: _selectTab,
-    extended: MediaQuery.sizeOf(context).width >= 1000,
-    labelType: MediaQuery.sizeOf(context).width >= 1000
-        ? NavigationRailLabelType.none
-        : NavigationRailLabelType.selected,
-    leading: Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: CircleAvatar(
-        radius: 28,
-        child: Text((widget.user?.preferredName ?? 'U').characters.first),
+  Widget _buildRail(BuildContext context) {
+    final extended = MediaQuery.sizeOf(context).width >= 1000;
+    return NavigationRail(
+      scrollable: true,
+      minWidth: 80,
+      minExtendedWidth: 200,
+      selectedIndex: _selectedIndex,
+      onDestinationSelected: _selectTab,
+      extended: extended,
+      labelType: extended
+          ? NavigationRailLabelType.none
+          : NavigationRailLabelType.selected,
+      leading: _buildRailLeading(context, extended),
+      destinations: _tabs
+          .map(
+            (tab) => NavigationRailDestination(
+              icon: Icon(tab.icon),
+              selectedIcon: Icon(tab.selectedIcon),
+              label: Text(tab.label),
+            ),
+          )
+          .toList(),
+    );
+  }
+
+  Widget _buildRailLeading(BuildContext context, bool extended) {
+    final theme = Theme.of(context);
+    final iconWidget = ClipRRect(
+      borderRadius: BorderRadius.circular(8),
+      child: Image.asset(
+        'assets/icons/app_icon.png',
+        package: 'ubaa_ui',
+        width: 36,
+        height: 36,
+        fit: BoxFit.cover,
+        errorBuilder: (_, __, ___) => CircleAvatar(
+          radius: 18,
+          child: Text((widget.user?.preferredName ?? 'U').characters.first),
+        ),
       ),
-    ),
-    destinations: _tabs
-        .map(
-          (tab) => NavigationRailDestination(
-            icon: Icon(tab.icon),
-            selectedIcon: Icon(tab.selectedIcon),
-            label: Text(tab.label),
-          ),
-        )
-        .toList(),
-  );
+    );
+
+    final name = widget.user?.preferredName ?? '用户';
+    final username = widget.user?.username ?? '';
+
+    return InkWell(
+      borderRadius: BorderRadius.circular(12),
+      onTap: () {
+        if (widget.writeState.intent != null) return;
+        setState(() {
+          _openedFeature = null;
+          _utilityPage = '我的资料';
+        });
+      },
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+        child: extended
+            ? Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  iconWidget,
+                  const SizedBox(width: 10),
+                  Flexible(
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          name,
+                          style: theme.textTheme.titleSmall?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                        ),
+                        if (username.isNotEmpty && username != name) ...[
+                          const SizedBox(height: 2),
+                          Text(
+                            username,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant,
+                            ),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                          ),
+                        ],
+                      ],
+                    ),
+                  ),
+                ],
+              )
+            : iconWidget,
+      ),
+    );
+  }
 
   Drawer _buildDrawer(BuildContext context) => Drawer(
     child: SafeArea(
@@ -802,146 +870,5 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         ],
       ),
     );
-  }
-
-  Future<void> _startBykcWrite(WriteOperation operation, int courseId) async {
-    final prepare = widget.onPrepareBykcWrite;
-    if (prepare == null) return;
-    await _prepareWrite(
-      prepare: () => prepare(operation, courseId),
-      expectedOperation: operation,
-      failureMessage: '暂时无法准备操作；尚未提交任何写请求。',
-    );
-  }
-
-  Future<void> _startBykcSignWrite(BykcSignAction action) async {
-    final prepare = widget.onPrepareBykcSignWrite;
-    if (prepare == null) return;
-    await _prepareWrite(
-      prepare: () => prepare(action),
-      failureMessage: '暂时无法准备博雅签到；尚未提交任何写请求。',
-      expectedOperation: action.operation,
-    );
-  }
-
-  Future<void> _startSigninWrite(SigninPerformAction action) async {
-    final prepare = widget.onPrepareSigninWrite;
-    if (prepare == null) return;
-    await _prepareWrite(
-      prepare: () => prepare(action),
-      failureMessage: '暂时无法准备签到；尚未提交任何写请求。',
-      expectedOperation: action.operation,
-    );
-  }
-
-  Future<void> _startCgyyCancelWrite(CgyyCancelAction action) async {
-    final prepare = widget.onPrepareCgyyCancelWrite;
-    if (prepare == null) return;
-    await _prepareWrite(
-      prepare: () => prepare(action),
-      failureMessage: '暂时无法准备取消研讨室订单；尚未提交任何写请求。',
-      expectedOperation: action.operation,
-    );
-  }
-
-  Future<void> _startLibbookReserveWrite(LibbookReserveAction action) async {
-    final prepare = widget.onPrepareLibbookReserveWrite;
-    if (prepare == null) return;
-    await _prepareWrite(
-      prepare: () => prepare(action),
-      failureMessage: '暂时无法准备图书馆预约；尚未提交任何写请求。',
-      expectedOperation: action.operation,
-    );
-  }
-
-  Future<void> _startLibbookCancelWrite(LibbookCancelAction action) async {
-    final prepare = widget.onPrepareLibbookCancelWrite;
-    if (prepare == null) return;
-    await _prepareWrite(
-      prepare: () => prepare(action),
-      failureMessage: '暂时无法准备取消图书馆预约；尚未提交任何写请求。',
-      expectedOperation: action.operation,
-    );
-  }
-
-  Future<void> _startEvaluation(List<EvaluationSubmitTarget> targets) async {
-    final prepare = widget.onPrepareEvaluationWrite;
-    if (prepare == null) return;
-    await _prepareWrite(
-      prepare: () => prepare(targets),
-      failureMessage: '暂时无法准备教学评教；尚未提交任何写请求。',
-      expectedOperation: WriteOperation.evaluationSubmitCourses,
-    );
-  }
-
-  Future<void> _startYgdkSubmitWrite(YgdkSubmitInput input) async {
-    final prepare = widget.onPrepareYgdkSubmitWrite;
-    if (!_hasYgdkSubmissionCapabilities || prepare == null) return;
-    await _prepareWrite(
-      prepare: () => prepare(input),
-      failureMessage: '暂时无法准备阳光打卡；尚未提交任何写请求。',
-      expectedOperation: WriteOperation.ygdkSubmit,
-    );
-  }
-
-  Future<void> _startCgyySubmitWrite(CgyySubmitInput input) async {
-    final prepare = widget.onPrepareCgyySubmitWrite;
-    if (prepare == null) return;
-    await _prepareWrite(
-      prepare: () => prepare(input),
-      failureMessage: '暂时无法准备研讨室预约；尚未提交任何写请求。',
-      expectedOperation: WriteOperation.cgyySubmitReservation,
-    );
-  }
-
-  Future<void> _prepareWrite({
-    required Future<WriteIntent> Function() prepare,
-    required String failureMessage,
-    required WriteOperation expectedOperation,
-  }) async {
-    final run = widget.onRunWritePrepare;
-    if (!_hasWriteCommands || run == null || widget.writeState.isSubmitting) {
-      return;
-    }
-    try {
-      await run(prepare, expectedOperation: expectedOperation);
-    } on Object {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(failureMessage)));
-    }
-  }
-
-  Future<void> _cancelWrite() async {
-    final cancel = widget.onCancelWrite;
-    if (cancel == null || widget.writeState.isSubmitting) return;
-    try {
-      await cancel();
-    } on Object {
-      if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('暂时无法取消待确认操作，请重试。')));
-    }
-  }
-
-  Future<void> _confirmWrite() async {
-    final intent = widget.writeState.intent;
-    if (intent == null || widget.writeState.isSubmitting) return;
-    if (intent.operation == WriteOperation.ygdkSubmit &&
-        !_hasYgdkSubmissionCapabilities) {
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(const SnackBar(content: Text('阳光打卡能力不完整；尚未提交任何写请求。')));
-      return;
-    }
-    final confirm = widget.onConfirmWrite;
-    if (confirm == null) return;
-    final outcome = await confirm();
-    if (!mounted || outcome == null) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(outcome.message)));
   }
 }

@@ -76,10 +76,7 @@ class _HomeViewState extends State<_HomeView> {
   }
 
   void _scheduleLoads() {
-    if (_scheduled ||
-        !widget.visible ||
-        widget.onLoadSupplement == null ||
-        !widget.snapshots.values.any((s) => s.updatedAt != null))
+    if (_scheduled || !widget.visible || widget.onLoadSupplement == null)
       return;
     final needed = HomeSupplement.values
         .where((s) => !_supplements.containsKey(s) && !_loading.contains(s))
@@ -160,8 +157,7 @@ class _HomeViewState extends State<_HomeView> {
     _scheduleLoads();
     if (widget.visible &&
         widget.onCheckGradeUpdates != null &&
-        _gradeCheckEpoch != widget.cacheEpoch &&
-        widget.snapshots.values.any((s) => s.updatedAt != null)) {
+        _gradeCheckEpoch != widget.cacheEpoch) {
       final epoch = widget.cacheEpoch;
       _gradeCheckEpoch = epoch;
       WidgetsBinding.instance.addPostFrameCallback((_) {

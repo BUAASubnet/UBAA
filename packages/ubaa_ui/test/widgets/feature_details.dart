@@ -338,10 +338,16 @@ void _registerFeatureInputTests() {
     await tester.tap(find.text('选择照片'));
     await tester.pumpAndSettle();
     expect(find.text('已选择照片：photo-placeholder.png'), findsOneWidget);
-    expect(find.byType(Image), findsOneWidget);
+    expect(
+      find.byWidgetPredicate((w) => w is Image && w.image is! AssetImage),
+      findsOneWidget,
+    );
     await tester.tap(find.text('继续确认'));
     await tester.pumpAndSettle();
-    expect(find.byType(Image), findsNothing);
+    expect(
+      find.byWidgetPredicate((w) => w is Image && w.image is! AssetImage),
+      findsNothing,
+    );
     expect(prepareCalls, 1);
     expect(commitCalls, 0);
     expect(find.text('确认阳光打卡'), findsOneWidget);

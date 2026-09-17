@@ -15,6 +15,7 @@ part 'app/profile.dart';
 part 'app/about.dart';
 part 'app/profile_details.dart';
 part 'app/shell.dart';
+part 'app/shell_write.dart';
 part 'app/splash.dart';
 part 'common/detail_fields.dart';
 part 'common/detail_list.dart';
