@@ -94,13 +94,8 @@ object VpnCipher {
             null -> "$scheme://$host"
             else -> "$scheme://$host:$port"
           }
-      val pathSegments = segments.drop(2)
-      val path =
-          when {
-            pathSegments.isNotEmpty() -> pathSegments.joinToString(separator = "/", prefix = "/")
-            uri.rawPath.endsWith("/") -> "/"
-            else -> ""
-          }
+      // 保留原始路径中的尾斜杠和重复斜杠，避免改变登录回调的路径语义。
+      val path = uri.rawPath.split('/', limit = 4).getOrNull(3)?.let { "/$it" }.orEmpty()
       "$authority${path.orEmpty()}${uri.rawQuery?.let { "?$it" }.orEmpty()}${uri.rawFragment?.let { "#$it" }.orEmpty()}"
     } catch (_: Exception) {
       url

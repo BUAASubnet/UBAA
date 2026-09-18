@@ -2,6 +2,7 @@ package cn.edu.ubaa.api
 
 import cn.edu.ubaa.api.feature.IhomeException
 import cn.edu.ubaa.api.feature.IhomeUpstreamClient
+import cn.edu.ubaa.api.local.LocalWebVpnSupport
 import cn.edu.ubaa.model.dto.*
 import io.ktor.client.HttpClient
 import io.ktor.client.engine.mock.*
@@ -21,6 +22,83 @@ class IhomeUpstreamClientTest {
       """{"id":42,"content":"合成诉求","is_follow":$followed,"follow_count":$followed,"is_praise":0,"praise_count":0}"""
 
   private val jsonHeaders = headersOf(HttpHeaders.ContentType, "application/json")
+
+  @Test
+  fun `真实WebVPN编码的CAS回调可提取片段令牌而不循环加载web页面`() = runTest {
+    val requests = mutableListOf<HttpRequestData>()
+    var callbacks = 0
+    val wrappedIhome =
+        "https://d.buaa.edu.cn/http/77726476706e69737468656265737421f9b94389263126557a1dc7af96"
+    val base =
+        HttpClient(
+            MockEngine { request ->
+              requests += request
+              assertEquals("d.buaa.edu.cn", request.url.host)
+              assertEquals("https", request.url.protocol.name)
+              when {
+                request.url.encodedPath.endsWith("/login") -> {
+                  assertEquals(
+                      "http://i.buaa.edu.cn/api/authLogin",
+                      request.url.parameters["service"],
+                  )
+                  respond(
+                      "",
+                      HttpStatusCode.Found,
+                      headersOf(
+                          HttpHeaders.Location,
+                          "$wrappedIhome/api/authLogin?ticket=fixture-ticket",
+                      ),
+                  )
+                }
+                request.url.encodedPath.endsWith("/api/authLogin") -> {
+                  callbacks++
+                  assertEquals(
+                      if (callbacks == 1) setOf("ticket") else emptySet(),
+                      request.url.parameters.names(),
+                  )
+                  respond(
+                      "",
+                      HttpStatusCode.Found,
+                      headersOf(
+                          HttpHeaders.Location,
+                          if (callbacks == 1) "$wrappedIhome/api/authLogin"
+                          else "$wrappedIhome/web/#/login?type=0&token=fixture-token",
+                      ),
+                  )
+                }
+                request.url.encodedPath.endsWith("/web") ->
+                    respond(
+                        "",
+                        HttpStatusCode.MovedPermanently,
+                        headersOf(HttpHeaders.Location, "$wrappedIhome/web/"),
+                    )
+                else -> {
+                  assertTrue(request.url.encodedPath.endsWith("/api/appeal/42"))
+                  assertEquals("Bearer fixture-token", request.headers[HttpHeaders.Authorization])
+                  respond(ok(appeal()), headers = jsonHeaders)
+                }
+              }
+            }
+        )
+    val client =
+        IhomeUpstreamClient(
+            base,
+            LocalWebVpnSupport::toWebVpnUrl,
+            LocalWebVpnSupport::fromWebVpnUrl,
+        )
+    try {
+      assertEquals(42L, client.getDetail(42).id)
+      assertEquals(4, requests.size)
+      assertEquals(2, callbacks)
+      assertTrue(requests.take(3).all { it.headers[HttpHeaders.Authorization] == null })
+      assertTrue(
+          requests.none { it.url.encodedPath.contains("/web") || it.url.fragment.isNotEmpty() }
+      )
+    } finally {
+      client.close()
+      base.close()
+    }
+  }
 
   @Test
   fun `WebVPN登录和业务请求始终保持所选路由`() = runTest {

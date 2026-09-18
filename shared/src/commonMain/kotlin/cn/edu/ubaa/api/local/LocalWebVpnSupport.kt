@@ -22,7 +22,7 @@ internal object LocalWebVpnSupport {
           else -> "${parsed.protocol.name}-${parsed.specifiedPort}"
         }
     val encodedHost = encryptHost(parsed.host)
-    val queryPart = parsed.encodedQuery.takeIf { it.isNotBlank() }?.let { "?$it" }.orEmpty()
+    val queryPart = queryPart(url)
     val fragmentPart = parsed.fragment.takeIf { it.isNotBlank() }?.let { "#$it" }.orEmpty()
     return "https://$gatewayHost/$protocolPart/$encodedHost${parsed.encodedPath}$queryPart$fragmentPart"
   }
@@ -49,13 +49,9 @@ internal object LocalWebVpnSupport {
           null -> "$scheme://$host"
           else -> "$scheme://$host:$port"
         }
-    val pathPart =
-        if (segments.size > 2) {
-          "/" + segments.drop(2).joinToString("/")
-        } else {
-          ""
-        }
-    val queryPart = parsed.encodedQuery.takeIf { it.isNotBlank() }?.let { "?$it" }.orEmpty()
+    // 仅移除协议和加密主机前缀；重组非空片段会丢失 /web/ 的尾斜杠，使 iHome 登录循环。
+    val pathPart = parsed.encodedPath.split('/', limit = 4).getOrNull(3)?.let { "/$it" }.orEmpty()
+    val queryPart = queryPart(url)
     val fragmentPart = parsed.fragment.takeIf { it.isNotBlank() }?.let { "#$it" }.orEmpty()
     return "$authority$pathPart$queryPart$fragmentPart"
   }
@@ -64,6 +60,14 @@ internal object LocalWebVpnSupport {
     if (url.isNullOrBlank()) return false
     return fromWebVpnUrl(url).contains("sso.buaa.edu.cn", ignoreCase = true)
   }
+
+  // 片段中的 ?type=...&token=... 不属于请求查询，不能在转换时复制到 # 之前。
+  private fun queryPart(url: String): String =
+      url.substringBefore('#')
+          .substringAfter('?', "")
+          .takeIf { it.isNotBlank() }
+          ?.let { "?$it" }
+          .orEmpty()
 
   private fun encryptHost(host: String): String {
     val plain = host.encodeToByteArray()
