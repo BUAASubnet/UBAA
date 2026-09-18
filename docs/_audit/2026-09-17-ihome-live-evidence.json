@@ -1,0 +1,2543 @@
+{
+  "description": "Playwright MCP 现场脱敏接口证据；不包含账号、凭据、诉求正文或实际诉求 ID",
+  "date": "2026-09-17",
+  "session": "本轮重建后的稳定 stdio MCP 会话",
+  "requests": [
+    {
+      "number": 44,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 45,
+      "method": "POST",
+      "path": "/api/mobile/accesslog",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 46,
+      "method": "GET",
+      "path": "/api/general_set_more",
+      "query": [
+        {
+          "name": "key[]",
+          "value": "title"
+        },
+        {
+          "name": "key[]",
+          "value": "fabulous"
+        },
+        {
+          "name": "key[]",
+          "value": "department_count"
+        },
+        {
+          "name": "key[]",
+          "value": "admin_depart_count"
+        },
+        {
+          "name": "key[]",
+          "value": "appeal_desc"
+        },
+        {
+          "name": "key[]",
+          "value": "appeal_title"
+        },
+        {
+          "name": "key[]",
+          "value": "open_to_users"
+        },
+        {
+          "name": "key[]",
+          "value": "visits_display"
+        },
+        {
+          "name": "key[]",
+          "value": "fabulous_show"
+        },
+        {
+          "name": "key[]",
+          "value": "step_on"
+        },
+        {
+          "name": "key[]",
+          "value": "comment"
+        },
+        {
+          "name": "key[]",
+          "value": "distribution"
+        },
+        {
+          "name": "key[]",
+          "value": "pc_header_img"
+        },
+        {
+          "name": "key[]",
+          "value": "school_header_img_logo"
+        },
+        {
+          "name": "key[]",
+          "value": "reminder"
+        },
+        {
+          "name": "key[]",
+          "value": "pc_title_color"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 47,
+      "method": "GET",
+      "path": "/api/user/user_info",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 48,
+      "method": "GET",
+      "path": "/api/department",
+      "query": [
+        {
+          "name": "limit",
+          "value": "6"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 49,
+      "method": "GET",
+      "path": "/api/department",
+      "query": [
+        {
+          "name": "limit",
+          "value": "1000"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 50,
+      "method": "GET",
+      "path": "/api/notice",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 51,
+      "method": "GET",
+      "path": "/api/mobile/types",
+      "query": [
+        {
+          "name": "type_mark",
+          "value": "SQLB"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 64,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "keyword",
+          "value": "校园"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 67,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "sqlb_id",
+          "value": "4"
+        },
+        {
+          "name": "keyword",
+          "value": "校园"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 73,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "sqlb_id",
+          "value": "4"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 78,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "reply",
+          "value": "0"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 79,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "reply",
+          "value": "1"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 87,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "publish_time",
+          "value": "1"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 88,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "publish_time",
+          "value": "0"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 103,
+      "method": "GET",
+      "path": "/api/appeal/{id}",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 104,
+      "method": "POST",
+      "path": "/api/mobile/accesslog",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 107,
+      "method": "POST",
+      "path": "/api/mobile/accesslog",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 108,
+      "method": "GET",
+      "path": "/api/department",
+      "query": [
+        {
+          "name": "limit",
+          "value": "6"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 109,
+      "method": "GET",
+      "path": "/api/department",
+      "query": [
+        {
+          "name": "limit",
+          "value": "1000"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 110,
+      "method": "GET",
+      "path": "/api/notice",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 111,
+      "method": "GET",
+      "path": "/api/mobile/types",
+      "query": [
+        {
+          "name": "type_mark",
+          "value": "SQLB"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 112,
+      "method": "GET",
+      "path": "/api/appeal/my_appreal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "publish_time",
+          "value": "1"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 114,
+      "method": "GET",
+      "path": "/api/appeal/my_appreal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "reply_time",
+          "value": "0"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 115,
+      "method": "GET",
+      "path": "/api/appeal/my_appreal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "is_reply",
+          "value": "0"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 116,
+      "method": "GET",
+      "path": "/api/appeal/my_appreal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "is_reply",
+          "value": "1"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 117,
+      "method": "GET",
+      "path": "/api/appeal/my_appreal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "publish_time",
+          "value": "1"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 118,
+      "method": "GET",
+      "path": "/api/appeal/my_appreal/{id}",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 119,
+      "method": "POST",
+      "path": "/api/mobile/accesslog",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 122,
+      "method": "GET",
+      "path": "/api/appraise/my_appraise",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 123,
+      "method": "POST",
+      "path": "/api/mobile/accesslog",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 124,
+      "method": "GET",
+      "path": "/api/department",
+      "query": [
+        {
+          "name": "limit",
+          "value": "6"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 125,
+      "method": "GET",
+      "path": "/api/department",
+      "query": [
+        {
+          "name": "limit",
+          "value": "1000"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 126,
+      "method": "GET",
+      "path": "/api/notice",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 129,
+      "method": "GET",
+      "path": "/api/appeal/my_follow",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 130,
+      "method": "POST",
+      "path": "/api/mobile/accesslog",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 131,
+      "method": "GET",
+      "path": "/api/department",
+      "query": [
+        {
+          "name": "limit",
+          "value": "6"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 132,
+      "method": "GET",
+      "path": "/api/department",
+      "query": [
+        {
+          "name": "limit",
+          "value": "1000"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 133,
+      "method": "GET",
+      "path": "/api/notice",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 134,
+      "method": "GET",
+      "path": "/api/notice",
+      "query": [
+        {
+          "name": "id",
+          "value": "<已隐去>"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 136,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "2"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 137,
+      "method": "GET",
+      "path": "/api/appeal/my_appreal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "2"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 138,
+      "method": "GET",
+      "path": "/api/appeal/my_appreal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "2"
+        },
+        {
+          "name": "page",
+          "value": "2"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 139,
+      "method": "GET",
+      "path": "/api/appraise/my_appraise",
+      "query": [
+        {
+          "name": "limit",
+          "value": "2"
+        },
+        {
+          "name": "page",
+          "value": "2"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 140,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 141,
+      "method": "POST",
+      "path": "/api/mobile/accesslog",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 142,
+      "method": "GET",
+      "path": "/api/department",
+      "query": [
+        {
+          "name": "limit",
+          "value": "6"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 143,
+      "method": "GET",
+      "path": "/api/department",
+      "query": [
+        {
+          "name": "limit",
+          "value": "1000"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 144,
+      "method": "GET",
+      "path": "/api/notice",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 145,
+      "method": "GET",
+      "path": "/api/mobile/types",
+      "query": [
+        {
+          "name": "type_mark",
+          "value": "SQLB"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 153,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "publish_time",
+          "value": "1"
+        },
+        {
+          "name": "keyword",
+          "value": "UBAA接口核对无匹配20260917"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 154,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "publish_time",
+          "value": "1"
+        },
+        {
+          "name": "keyword",
+          "value": "照片"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 166,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 167,
+      "method": "GET",
+      "path": "/api/appraise/wait_department/{id}",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 168,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "publish_time",
+          "value": "1"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 179,
+      "method": "POST",
+      "path": "/api/mobile/accesslog",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 180,
+      "method": "GET",
+      "path": "/api/department",
+      "query": [
+        {
+          "name": "limit",
+          "value": "6"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 181,
+      "method": "GET",
+      "path": "/api/department",
+      "query": [
+        {
+          "name": "limit",
+          "value": "1000"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 182,
+      "method": "GET",
+      "path": "/api/notice",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 183,
+      "method": "GET",
+      "path": "/api/mobile/types",
+      "query": [
+        {
+          "name": "type_mark",
+          "value": "SQLB"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 184,
+      "method": "GET",
+      "path": "/api/appeal/my_appreal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "publish_time",
+          "value": "1"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 186,
+      "method": "GET",
+      "path": "/api/appeal/my_appreal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "reply_time",
+          "value": "0"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 187,
+      "method": "GET",
+      "path": "/api/appeal/my_appreal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "reply_time",
+          "value": "0"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 188,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "keyword",
+          "value": "校园"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 189,
+      "method": "POST",
+      "path": "/api/mobile/accesslog",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 190,
+      "method": "GET",
+      "path": "/api/department",
+      "query": [
+        {
+          "name": "limit",
+          "value": "6"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 191,
+      "method": "GET",
+      "path": "/api/department",
+      "query": [
+        {
+          "name": "limit",
+          "value": "1000"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 192,
+      "method": "GET",
+      "path": "/api/notice",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 193,
+      "method": "GET",
+      "path": "/api/mobile/types",
+      "query": [
+        {
+          "name": "type_mark",
+          "value": "SQLB"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 196,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "reply_time",
+          "value": "0"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 197,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "reply_time",
+          "value": "0"
+        },
+        {
+          "name": "keyword",
+          "value": "报名"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 208,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "reply_time",
+          "value": "0"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 209,
+      "method": "GET",
+      "path": "/api/appeal/{id}",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 210,
+      "method": "POST",
+      "path": "/api/mobile/accesslog",
+      "query": [],
+      "httpStatus": 200
+    },
+    {
+      "number": 211,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "reply_time",
+          "value": "0"
+        },
+        {
+          "name": "keyword",
+          "value": "搜索"
+        }
+      ],
+      "httpStatus": 200
+    },
+    {
+      "number": 219,
+      "method": "GET",
+      "path": "/api/appeal",
+      "query": [
+        {
+          "name": "limit",
+          "value": "15"
+        },
+        {
+          "name": "page",
+          "value": "1"
+        },
+        {
+          "name": "reply_time",
+          "value": "0"
+        },
+        {
+          "name": "keyword",
+          "value": "新北"
+        }
+      ],
+      "httpStatus": 200
+    }
+  ],
+  "responseSummaries": [
+    {
+      "index": 44,
+      "label": "首页",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 20,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "praise_count",
+        "is_praise",
+        "tread_count",
+        "is_tread",
+        "is_follow",
+        "is_user",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 20
+    },
+    {
+      "index": 64,
+      "label": "关键词校园",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 20,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "praise_count",
+        "is_praise",
+        "tread_count",
+        "is_tread",
+        "is_follow",
+        "is_user",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 20
+    },
+    {
+      "index": 67,
+      "label": "建议与关键词",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 20,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "praise_count",
+        "is_praise",
+        "tread_count",
+        "is_tread",
+        "is_follow",
+        "is_user",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 20
+    },
+    {
+      "index": 73,
+      "label": "建议分类",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 20,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "praise_count",
+        "is_praise",
+        "tread_count",
+        "is_tread",
+        "is_follow",
+        "is_user",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 20
+    },
+    {
+      "index": 78,
+      "label": "未回复",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 0,
+      "itemKeys": [],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 20
+    },
+    {
+      "index": 79,
+      "label": "已回复",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 20,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "praise_count",
+        "is_praise",
+        "tread_count",
+        "is_tread",
+        "is_follow",
+        "is_user",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 20
+    },
+    {
+      "index": 87,
+      "label": "时间参数1",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 20,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "praise_count",
+        "is_praise",
+        "tread_count",
+        "is_tread",
+        "is_follow",
+        "is_user",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 20
+    },
+    {
+      "index": 88,
+      "label": "时间参数0",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 20,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "praise_count",
+        "is_praise",
+        "tread_count",
+        "is_tread",
+        "is_follow",
+        "is_user",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 20
+    },
+    {
+      "index": 103,
+      "label": "完整诉求详情",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "id",
+        "content",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "appraise_count",
+        "praise_count",
+        "is_praise",
+        "is_follow",
+        "is_user",
+        "tread_count",
+        "is_tread",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "sqlb",
+        "appraise",
+        "change_history"
+      ]
+    },
+    {
+      "index": 112,
+      "label": "我的发起默认",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 7,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_user",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "departments_count",
+        "is_follow",
+        "is_user",
+        "appraise_count",
+        "tread_count",
+        "is_tread",
+        "is_praise",
+        "praise_count",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "comment",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": "15",
+      "total": 7
+    },
+    {
+      "index": 118,
+      "label": "我的发起详情",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "id",
+        "content",
+        "publish_user",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "appraise_count",
+        "is_follow",
+        "is_user",
+        "tread_count",
+        "is_tread",
+        "is_praise",
+        "praise_count",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "comment",
+        "sqlb",
+        "appraise",
+        "change_history"
+      ]
+    },
+    {
+      "index": 122,
+      "label": "我的评价",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 7,
+      "itemKeys": [
+        "id",
+        "appeal_id",
+        "speed",
+        "satisfaction",
+        "degree",
+        "avg_grade",
+        "user_id",
+        "content",
+        "department",
+        "created_at",
+        "updated_at",
+        "appeal",
+        "user"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": "15",
+      "total": 7
+    },
+    {
+      "index": 129,
+      "label": "我的关注空列表",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 0,
+      "itemKeys": [],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": "15",
+      "total": 0
+    },
+    {
+      "index": 134,
+      "label": "公告详情",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "id",
+        "title",
+        "content",
+        "is_show",
+        "hits",
+        "sort",
+        "created_at",
+        "update_at",
+        "deleted_at",
+        "date",
+        "notice_files"
+      ]
+    },
+    {
+      "index": 136,
+      "label": "首页第二页只读探测",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 20,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "praise_count",
+        "is_praise",
+        "tread_count",
+        "is_tread",
+        "is_follow",
+        "is_user",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 20
+    },
+    {
+      "index": 137,
+      "label": "我的发起小分页第一页",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 2,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_user",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "departments_count",
+        "is_follow",
+        "is_user",
+        "appraise_count",
+        "tread_count",
+        "is_tread",
+        "is_praise",
+        "praise_count",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "comment",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 4,
+      "per_page": "2",
+      "total": 7
+    },
+    {
+      "index": 138,
+      "label": "我的发起小分页第二页",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 2,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_user",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "departments_count",
+        "is_follow",
+        "is_user",
+        "appraise_count",
+        "tread_count",
+        "is_tread",
+        "is_praise",
+        "praise_count",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "comment",
+        "sqlb"
+      ],
+      "current_page": 2,
+      "last_page": 4,
+      "per_page": "2",
+      "total": 7
+    },
+    {
+      "index": 139,
+      "label": "我的评价小分页第二页",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 2,
+      "itemKeys": [
+        "id",
+        "appeal_id",
+        "speed",
+        "satisfaction",
+        "degree",
+        "avg_grade",
+        "user_id",
+        "content",
+        "department",
+        "created_at",
+        "updated_at",
+        "appeal",
+        "user"
+      ],
+      "current_page": 2,
+      "last_page": 4,
+      "per_page": "2",
+      "total": 7
+    },
+    {
+      "index": 153,
+      "label": "搜索无匹配",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 0,
+      "itemKeys": [],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 20
+    },
+    {
+      "index": 154,
+      "label": "搜索照片",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 20,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "praise_count",
+        "is_praise",
+        "tread_count",
+        "is_tread",
+        "is_follow",
+        "is_user",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 20
+    },
+    {
+      "index": 167,
+      "label": "已评价诉求的待评价部门",
+      "code": 40001,
+      "success": "",
+      "dataKeys": [],
+      "count": 0,
+      "itemKeys": []
+    },
+    {
+      "index": 114,
+      "label": "我的发起回复时间排序",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 7,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_user",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "departments_count",
+        "is_follow",
+        "is_user",
+        "appraise_count",
+        "tread_count",
+        "is_tread",
+        "is_praise",
+        "praise_count",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "comment",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": "15",
+      "total": 7
+    },
+    {
+      "index": 115,
+      "label": "我的发起未回复",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 0,
+      "itemKeys": [],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": "15",
+      "total": 0
+    },
+    {
+      "index": 116,
+      "label": "我的发起已回复",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 7,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_user",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "departments_count",
+        "is_follow",
+        "is_user",
+        "appraise_count",
+        "tread_count",
+        "is_tread",
+        "is_praise",
+        "praise_count",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "comment",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": "15",
+      "total": 7
+    },
+    {
+      "index": 197,
+      "label": "用户搜索报名",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 20,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "praise_count",
+        "is_praise",
+        "tread_count",
+        "is_tread",
+        "is_follow",
+        "is_user",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 20
+    },
+    {
+      "index": 211,
+      "label": "用户搜索搜索",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 20,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "praise_count",
+        "is_praise",
+        "tread_count",
+        "is_tread",
+        "is_follow",
+        "is_user",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 20
+    },
+    {
+      "index": 219,
+      "label": "用户搜索新北",
+      "code": 20000,
+      "success": true,
+      "dataKeys": [
+        "current_page",
+        "data",
+        "first_page_url",
+        "from",
+        "last_page",
+        "last_page_url",
+        "next_page_url",
+        "path",
+        "per_page",
+        "prev_page_url",
+        "to",
+        "total"
+      ],
+      "count": 20,
+      "itemKeys": [
+        "id",
+        "content",
+        "publish_status",
+        "publish_date",
+        "publish_time",
+        "anonymous",
+        "reply",
+        "reply_time",
+        "hot",
+        "is_restart",
+        "restart_pid",
+        "sqlb_id",
+        "user_is_show",
+        "created_at",
+        "updated_at",
+        "deleted_at",
+        "visible_range",
+        "campus",
+        "forward_count",
+        "top",
+        "follow_up",
+        "follow_count",
+        "comment_count",
+        "praise_count",
+        "is_praise",
+        "tread_count",
+        "is_tread",
+        "is_follow",
+        "is_user",
+        "publish_status_text",
+        "user",
+        "appeal_reply",
+        "departments",
+        "annex",
+        "sqlb"
+      ],
+      "current_page": 1,
+      "last_page": 1,
+      "per_page": 20,
+      "total": 20
+    }
+  ],
+  "checks": {
+    "homePage2RepeatsPage1": true,
+    "myAppealPagesHaveNoOverlappingIds": true,
+    "bearerOnlyReadSucceeded": true,
+    "bearerOnlyReadCookieHeaderPresent": false,
+    "bearerOnlyReadXsrfHeaderPresent": false,
+    "manualSearches": [
+      {
+        "request": 197,
+        "keyword": "报名",
+        "returned": 20,
+        "contentMatches": 18,
+        "replyMatches": 5,
+        "contentOrReplyMatches": 20
+      },
+      {
+        "request": 211,
+        "keyword": "搜索",
+        "returned": 20,
+        "contentMatches": 13,
+        "replyMatches": 8,
+        "contentOrReplyMatches": 20
+      },
+      {
+        "request": 219,
+        "keyword": "新北",
+        "returned": 20,
+        "contentMatches": 20,
+        "replyMatches": 2,
+        "contentOrReplyMatches": 20
+      }
+    ],
+    "writeOperationsSubmitted": false
+  },
+  "limitations": [
+    "公共列表没有成功翻到下一批数据",
+    "评价提交未执行，待评价部门只有失败样本",
+    "非空附件与重启记录未验证",
+    "关闭的通用功能未绕过配置调用"
+  ]
+}

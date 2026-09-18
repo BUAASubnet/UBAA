@@ -47,6 +47,8 @@ import cn.edu.ubaa.ui.screens.grade.GradeScoreWatchViewModel
 import cn.edu.ubaa.ui.screens.grade.GradeScreen
 import cn.edu.ubaa.ui.screens.grade.GradeUiState
 import cn.edu.ubaa.ui.screens.grade.GradeViewModel
+import cn.edu.ubaa.ui.screens.ihome.IhomeScreen
+import cn.edu.ubaa.ui.screens.ihome.IhomeViewModel
 import cn.edu.ubaa.ui.screens.judge.JudgeAssignmentDetailScreen
 import cn.edu.ubaa.ui.screens.judge.JudgeAssignmentsScreen
 import cn.edu.ubaa.ui.screens.judge.JudgeSortField
@@ -86,6 +88,7 @@ enum class AppScreen {
   SCHEDULE,
   EXAM,
   GRADE,
+  IHOME,
   COURSE_DETAIL,
   BYKC_HOME,
   BYKC_COURSES,
@@ -231,6 +234,8 @@ fun MainAppScreen(
   val spocViewModel: SpocViewModel =
       viewModel(key = "spoc-${userData.schoolid}") { SpocViewModel() }
   val spocUiState by spocViewModel.uiState.collectAsState()
+  val ihomeViewModel: IhomeViewModel =
+      viewModel(key = "ihome-${userData.schoolid}") { IhomeViewModel() }
   val judgeViewModel: JudgeViewModel =
       viewModel(key = "judge-${userData.schoolid}") { JudgeViewModel(userKey = userData.schoolid) }
   val judgeUiState by judgeViewModel.uiState.collectAsState()
@@ -412,6 +417,7 @@ fun MainAppScreen(
               AppScreen.LIBBOOK_RESERVE,
               AppScreen.LIBBOOK_BOOKINGS -> BottomNavTab.REGULAR
               AppScreen.ADVANCED,
+              AppScreen.IHOME,
               AppScreen.BYKC_HOME,
               AppScreen.BYKC_COURSES,
               AppScreen.BYKC_DETAIL,
@@ -453,6 +459,7 @@ fun MainAppScreen(
             AppScreen.LIBBOOK_RESERVE,
             AppScreen.LIBBOOK_BOOKINGS -> BottomNavTab.REGULAR
             AppScreen.ADVANCED,
+            AppScreen.IHOME,
             AppScreen.BYKC_HOME,
             AppScreen.BYKC_COURSES,
             AppScreen.BYKC_DETAIL,
@@ -564,6 +571,7 @@ fun MainAppScreen(
     scheduleViewModel.resetLoadedState()
     signinViewModel.resetLoadedState()
     spocViewModel.resetLoadedState()
+    ihomeViewModel.resetLoadedState()
     judgeViewModel.resetLoadedState()
     bykcViewModel.resetLoadedState()
     // 按需 ViewModel（当前可能为 null，仅在存活时重置）
@@ -599,6 +607,7 @@ fun MainAppScreen(
       }
       AppScreen.EVALUATION -> evaluationViewModel?.ensureLoaded(forceRefresh = true)
       AppScreen.SPOC_ASSIGNMENTS -> spocViewModel.ensureAssignmentsLoaded(forceRefresh = true)
+      AppScreen.IHOME -> ihomeViewModel.ensureLoaded()
       AppScreen.JUDGE_ASSIGNMENTS -> judgeViewModel.ensureAssignmentsLoaded(forceRefresh = true)
       AppScreen.LIBBOOK_HOME,
       AppScreen.LIBBOOK_RESERVE -> libBookViewModel?.ensureInitialLoaded(forceRefresh = true)
@@ -704,6 +713,7 @@ fun MainAppScreen(
         AppScreen.CLASSROOM_QUERY -> "空教室查询"
         AppScreen.EVALUATION -> "自动评教"
         AppScreen.SPOC_ASSIGNMENTS -> "SPOC作业"
+        AppScreen.IHOME -> "iHome"
         AppScreen.SPOC_ASSIGNMENT_DETAIL -> "作业详情"
         AppScreen.JUDGE_ASSIGNMENTS -> "希冀作业"
         AppScreen.JUDGE_ASSIGNMENT_DETAIL -> "作业详情"
@@ -824,11 +834,13 @@ fun MainAppScreen(
                   onJudgeClick = { navigateTo(AppScreen.JUDGE_ASSIGNMENTS) },
                   onLibBookClick = { navigateTo(AppScreen.LIBBOOK_HOME) },
               )
+          AppScreen.IHOME -> IhomeScreen(ihomeViewModel)
           AppScreen.ADVANCED ->
               AdvancedFeaturesScreen(
                   onCgyyClick = { navigateTo(AppScreen.CGYY_HOME) },
                   onEvaluationClick = { navigateTo(AppScreen.EVALUATION) },
                   onYgdkClick = { navigateTo(AppScreen.YGDK_HOME) },
+                  onIhomeClick = { navigateTo(AppScreen.IHOME) },
               )
           AppScreen.MY -> MyScreen(userInfo = userInfo)
           AppScreen.SETTINGS ->
@@ -1086,6 +1098,7 @@ fun MainAppScreen(
                   AppScreen.YGDK_HOME,
                   AppScreen.YGDK_FORM,
                   AppScreen.SPOC_ASSIGNMENTS,
+                  AppScreen.IHOME,
                   AppScreen.SPOC_ASSIGNMENT_DETAIL,
                   AppScreen.JUDGE_ASSIGNMENTS,
                   AppScreen.JUDGE_ASSIGNMENT_DETAIL,

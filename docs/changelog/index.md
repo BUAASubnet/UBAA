@@ -6,7 +6,15 @@ UBAA 的版本号由 `gradle.properties` 管理，发布资产通过 GitHub Rele
 
 ---
 
-## v1.8.0 <Badge type="tip" text="最新" />
+## v1.8.1 <Badge type="tip" text="最新" />
+
+**发布日期：** 2026-09-18
+
+- 新增 iHome 功能。
+
+[GitHub Release](https://github.com/BUAASubnet/UBAA/releases/tag/v1.8.1)
+
+## v1.8.0
 
 **发布日期：** 2026-09-14
 

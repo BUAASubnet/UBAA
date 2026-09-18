@@ -16,6 +16,7 @@ import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AssignmentTurnedIn
 import androidx.compose.material.icons.filled.DateRange
+import androidx.compose.material.icons.filled.Forum
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.WbSunny
 import androidx.compose.material3.Card
@@ -40,6 +41,12 @@ internal data class AdvancedFeatureItem(
 
 internal fun advancedFeatureItems(): List<AdvancedFeatureItem> =
     listOf(
+        AdvancedFeatureItem(
+            id = "ihome",
+            title = "iHome",
+            description = "校园诉求、回复与关注",
+            icon = Icons.Default.Forum,
+        ),
         AdvancedFeatureItem(
             id = "cgyy",
             title = "研讨室预约",
@@ -71,6 +78,7 @@ fun AdvancedFeaturesScreen(
     onCgyyClick: () -> Unit,
     onEvaluationClick: () -> Unit,
     onYgdkClick: () -> Unit,
+    onIhomeClick: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
   val features = advancedFeatureItems()
@@ -86,6 +94,7 @@ fun AdvancedFeaturesScreen(
             feature = feature,
             onClick = {
               when (feature.id) {
+                "ihome" -> onIhomeClick()
                 "cgyy" -> onCgyyClick()
                 "ygdk" -> onYgdkClick()
                 "evaluation" -> onEvaluationClick()

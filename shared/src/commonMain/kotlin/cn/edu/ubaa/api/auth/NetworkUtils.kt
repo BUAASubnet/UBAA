@@ -93,6 +93,12 @@ internal fun userFacingMessageForCode(code: String?, status: HttpStatusCode): St
     "user_info_failed" -> "用户信息查询失败，请稍后重试"
     "classroom_query_failed" -> "空闲教室查询失败，请稍后重试"
     "evaluation_error" -> "评教服务暂时不可用，请稍后重试"
+    "ihome_auth" -> "ihome 登录已失效，请重新登录"
+    "ihome_disabled" -> "平台当前未开放此功能"
+    "ihome_protocol" -> "ihome 数据结构发生变化，请稍后重试"
+    "ihome_business",
+    "ihome_upstream",
+    "ihome_error" -> "ihome 请求失败，请刷新确认当前状态"
     "internal_server_error" -> "服务器开小差了，请稍后再试"
     else -> userFacingMessageForStatus(status)
   }

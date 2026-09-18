@@ -192,6 +192,7 @@ class ApiFactoryDispatchTest {
     assertTrue(DefaultApiFactory.evaluationService() is LocalEvaluationServiceBackend)
     assertTrue(DefaultApiFactory.gradeApi() is LocalGradeApiBackend)
     assertTrue(DefaultApiFactory.libBookApi() is LocalLibBookApiBackend)
+    assertTrue(DefaultApiFactory.ihomeApi() is cn.edu.ubaa.api.local.LocalIhomeApiBackend)
   }
 
   @Test
@@ -200,6 +201,7 @@ class ApiFactoryDispatchTest {
     ConnectionRuntime.resolveSelectedMode()
     val directBackends =
         listOf(
+            DefaultApiFactory.ihomeApi() to DefaultApiFactory.ihomeApi(),
             DefaultApiFactory.authService() to DefaultApiFactory.authService(),
             DefaultApiFactory.userService() to DefaultApiFactory.userService(),
             DefaultApiFactory.scheduleApi() to DefaultApiFactory.scheduleApi(),
@@ -221,6 +223,7 @@ class ApiFactoryDispatchTest {
     ConnectionRuntime.resolveSelectedMode()
     val webVpnBackends =
         listOf(
+            DefaultApiFactory.ihomeApi() to DefaultApiFactory.ihomeApi(),
             DefaultApiFactory.authService() to DefaultApiFactory.authService(),
             DefaultApiFactory.userService() to DefaultApiFactory.userService(),
             DefaultApiFactory.scheduleApi() to DefaultApiFactory.scheduleApi(),
@@ -258,6 +261,8 @@ private class FakeApiFactory(
     private val gradeBackend: GradeApiBackend = FakeGradeApiBackend(),
     private val libBookBackend: LibBookApiBackend = FakeLibBookApiBackend(),
 ) : ApiFactory {
+  override fun ihomeApi(): cn.edu.ubaa.api.feature.IhomeApiBackend = error("此测试未配置 ihome")
+
   override fun authService(): AuthServiceBackend = authBackend
 
   override fun userService(): UserServiceBackend = userBackend

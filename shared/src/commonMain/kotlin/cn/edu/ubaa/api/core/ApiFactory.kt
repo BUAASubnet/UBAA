@@ -11,6 +11,7 @@ import cn.edu.ubaa.api.feature.CgyyApiBackend
 import cn.edu.ubaa.api.feature.ClassroomApiBackend
 import cn.edu.ubaa.api.feature.EvaluationServiceBackend
 import cn.edu.ubaa.api.feature.GradeApiBackend
+import cn.edu.ubaa.api.feature.IhomeApiBackend
 import cn.edu.ubaa.api.feature.JudgeApiBackend
 import cn.edu.ubaa.api.feature.LibBookApiBackend
 import cn.edu.ubaa.api.feature.RelayBykcApiBackend
@@ -18,6 +19,7 @@ import cn.edu.ubaa.api.feature.RelayCgyyApiBackend
 import cn.edu.ubaa.api.feature.RelayClassroomApiBackend
 import cn.edu.ubaa.api.feature.RelayEvaluationServiceBackend
 import cn.edu.ubaa.api.feature.RelayGradeApiBackend
+import cn.edu.ubaa.api.feature.RelayIhomeApiBackend
 import cn.edu.ubaa.api.feature.RelayJudgeApiBackend
 import cn.edu.ubaa.api.feature.RelayLibBookApiBackend
 import cn.edu.ubaa.api.feature.RelayScheduleApiBackend
@@ -34,6 +36,7 @@ import cn.edu.ubaa.api.local.LocalCgyyApiBackend
 import cn.edu.ubaa.api.local.LocalClassroomApiBackend
 import cn.edu.ubaa.api.local.LocalEvaluationServiceBackend
 import cn.edu.ubaa.api.local.LocalGradeApiBackend
+import cn.edu.ubaa.api.local.LocalIhomeApiBackend
 import cn.edu.ubaa.api.local.LocalJudgeApiBackend
 import cn.edu.ubaa.api.local.LocalLibBookApiBackend
 import cn.edu.ubaa.api.local.LocalScheduleApiBackend
@@ -43,6 +46,8 @@ import cn.edu.ubaa.api.local.LocalUserServiceBackend
 import cn.edu.ubaa.api.local.LocalYgdkApiBackend
 
 interface ApiFactory {
+  fun ihomeApi(): IhomeApiBackend
+
   fun authService(): AuthServiceBackend
 
   fun userService(): UserServiceBackend
@@ -76,6 +81,12 @@ internal object DefaultApiFactory : ApiFactory {
 
   private fun mode(): ConnectionMode =
       ConnectionRuntime.currentMode() ?: ConnectionMode.SERVER_RELAY
+
+  override fun ihomeApi(): IhomeApiBackend =
+      when (mode()) {
+        ConnectionMode.SERVER_RELAY -> RelayIhomeApiBackend()
+        else -> localBackends(mode()).ihomeApi
+      }
 
   fun clearCachedBackends() {
     directBackends.clearCache()
@@ -181,6 +192,7 @@ internal object DefaultApiFactory : ApiFactory {
       }
 
   private class LocalBackendSet {
+    val ihomeApi = LocalIhomeApiBackend()
     val authService = LocalAuthServiceBackend()
     val userService = LocalUserServiceBackend()
     val scheduleApi = LocalScheduleApiBackend()
@@ -196,6 +208,7 @@ internal object DefaultApiFactory : ApiFactory {
     val libBookApi = LocalLibBookApiBackend()
 
     fun clearCache() {
+      ihomeApi.clearCache()
       signinApi.clearCache()
       spocApi.clearCache()
       judgeApi.clearCache()
@@ -210,6 +223,8 @@ internal object DefaultApiFactory : ApiFactory {
 }
 
 internal object RelayApiFactory : ApiFactory {
+  override fun ihomeApi(): IhomeApiBackend = RelayIhomeApiBackend()
+
   override fun authService(): AuthServiceBackend = RelayAuthServiceBackend()
 
   override fun userService(): UserServiceBackend = RelayUserServiceBackend()

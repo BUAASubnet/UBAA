@@ -23,6 +23,7 @@ export default defineConfig({
           items: [
             { text: '功能总览', link: '/features/' },
             { text: '登录与连接模式', link: '/features/auth-and-connection' },
+            { text: 'iHome', link: '/features/ihome' },
             { text: '课表与考试', link: '/features/schedule-and-exam' },
             { text: '成绩查询', link: '/features/grades' },
             { text: '博雅课程', link: '/features/bykc' },

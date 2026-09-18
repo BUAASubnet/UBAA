@@ -15,6 +15,7 @@ shared API 是客户端和服务端之间的稳定层。UI 不直接拼接服务
 - 认证与用户：`AuthApi.kt`、`AnnouncementService.kt`、`UpdateService.kt`。
 - 课程与学习：`ScheduleApi.kt`、`GradeApi.kt`、`SpocApi.kt`、`JudgeApi.kt`。
 - 校园服务：`BykcApi.kt`、`ClassroomApi.kt`、`SigninApi.kt`、`CgyyApi.kt`、`LibBookApi.kt`、`YgdkApi.kt`、`EvaluationService.kt`。
+- 校园诉求：`IhomeApi.kt`，协议解析和上游调用由本地与中转共用，详见 [iHome](/features/ihome)。
 - 存储：Token、凭据、公告已读、博雅筛选、研讨室表单。
 
 ## 兼容性

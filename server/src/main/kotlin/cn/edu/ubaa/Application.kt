@@ -22,6 +22,8 @@ import cn.edu.ubaa.exam.examRouting
 import cn.edu.ubaa.grade.gradeRouting
 import cn.edu.ubaa.health.RedisReadinessProbe
 import cn.edu.ubaa.health.healthRouting
+import cn.edu.ubaa.ihome.GlobalIhomeService
+import cn.edu.ubaa.ihome.ihomeRouting
 import cn.edu.ubaa.judge.GlobalJudgeService
 import cn.edu.ubaa.judge.judgeRouting
 import cn.edu.ubaa.libbook.GlobalLibBookService
@@ -200,6 +202,7 @@ internal fun Application.module(
       val expiredJudgeClients = judgeService.cleanupExpiredClients()
       val expiredLibBookClients = libBookService.cleanupExpiredClients()
       val expiredYgdkClients = ygdkService.cleanupExpiredClients()
+      GlobalIhomeService.instance.cleanup()
       AppObservability.recordCleanupRemovals("session", expiredSessions)
       AppObservability.recordCleanupRemovals("prelogin", expiredPreLogin)
       AppObservability.recordCleanupRemovals("signin_client", expiredSigninClients)
@@ -245,6 +248,7 @@ internal fun Application.module(
     judgeService.clearCache()
     libBookService.clearCache()
     ygdkService.clearCache()
+    GlobalIhomeService.instance.close()
     GlobalAcademicPortalWarmupCoordinator.close()
     GlobalSessionManager.close()
     GlobalAppVersionService.release(appVersionService)
@@ -278,6 +282,7 @@ internal fun Application.module(
       judgeRouting()
       libBookRouting()
       ygdkRouting()
+      ihomeRouting()
     }
 
     get("/") { call.respondText("Ktor: ${Greeting().greet()}") }

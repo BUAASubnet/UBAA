@@ -27,6 +27,7 @@ server 使用 Ktor 注册公开路由、认证路由和业务路由。除健康�
 - `/api/v1/judge/*`
 - `/api/v1/libbook/*`
 - `/api/v1/ygdk/*`
+- `/api/v1/ihome/*`：诉求、个人列表、公告及目标状态操作，具体契约见 [iHome](/features/ihome)。
 
 图书馆座位当前注册的具体路由为：
 
