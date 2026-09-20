@@ -151,8 +151,15 @@ Future<FeatureResult> _loadAcademicFeature(
         case FeatureQueryView.summary:
         case FeatureQueryView.examArranged:
         case FeatureQueryView.examNotArranged:
-          final term = query.term ?? await _selectedTerm(backend);
-          if (term == null) return const FeatureResult.empty();
+          final terms = await client.examTerms();
+          final term = query.term ?? _selectTerm(terms.data);
+          if (term == null)
+            return FeatureResult.empty(
+              overview: AcademicApplicationOverview(
+                terms: _termNames(terms.data),
+              ),
+              resolvedRoute: _toConnectionMode(terms.route.resolvedRoute),
+            );
           final result = await client.examArrangement(term: term);
           final exams = <({BridgeExam item, bool arranged})>[
             if (query.view != FeatureQueryView.examNotArranged)
@@ -176,6 +183,9 @@ Future<FeatureResult> _loadAcademicFeature(
             exams.length,
             label,
             details: details,
+            overview: AcademicApplicationOverview(
+              terms: _termNames(terms.data),
+            ),
             resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
           );
         default:
@@ -186,6 +196,8 @@ Future<FeatureResult> _loadAcademicFeature(
         case FeatureQueryView.summary:
         case FeatureQueryView.gradesScored:
         case FeatureQueryView.gradesMissing:
+          final overview = await client.gradeOverview();
+          if (overview.data.graduate) return _graduateGrades(overview, query);
           final term = query.term ?? await _selectedTerm(backend);
           if (term == null) return const FeatureResult.empty();
           final result = await client.grades(term: term);
@@ -247,10 +259,14 @@ Future<FeatureResult> _loadAcademicFeature(
 
 Future<String?> _selectedTerm(BridgeBackend backend) async {
   final result = await backend.client.scheduleTerms();
-  for (final term in result.data) {
+  return _selectTerm(result.data);
+}
+
+String? _selectTerm(List<BridgeTerm> terms) {
+  for (final term in terms) {
     if (term.selected && term.itemCode.trim().isNotEmpty) return term.itemCode;
   }
-  for (final term in result.data) {
+  for (final term in terms) {
     if (term.itemCode.trim().isNotEmpty) return term.itemCode;
   }
   return null;
@@ -343,3 +359,57 @@ GradePresentation _mapGradePresentation(BridgeGrade item) => GradePresentation(
   scoreType: item.scoreType,
   termCode: item.termCode,
 );
+
+Map<String, String> _termNames(List<BridgeTerm> terms) =>
+    Map.unmodifiable({for (final term in terms) term.itemCode: term.itemName});
+
+FeatureResult _graduateGrades(
+  BridgeRoutedGradeOverview result,
+  FeatureQuery query,
+) {
+  final data = result.data;
+  final selected = query.term;
+  BridgeGradeStatistics? statistics = data.statistics;
+  if (selected != null) {
+    statistics = null;
+    for (final term in data.terms) {
+      if (term.termCode == selected) statistics = term.statistics;
+    }
+  }
+  final grades = data.grades
+      .where((g) => selected == null || g.termCode == selected)
+      .toList();
+  final projected = projectGrades(
+    GradesTermOverview(
+      requestTerm: selected ?? '',
+      termCode: selected ?? '',
+      grades: grades.map(_mapGradePresentation).toList(),
+    ),
+    query.view,
+    _toConnectionMode(result.route.resolvedRoute),
+  );
+  final overview = AcademicApplicationOverview(
+    terms: Map.unmodifiable({
+      for (final term in data.terms) term.termCode: term.termName,
+    }),
+    graduateGrades: true,
+    statistics: GradeStatistics(
+      courseCount: grades.length,
+      totalCredits: null,
+      gpa: statistics?.gpa,
+      weightedAverage: statistics?.averageScore,
+    ),
+    statisticsLabel: selected == null ? '全部研究生成绩' : '所选学期研究生成绩',
+  );
+  return projected.isEmpty
+      ? FeatureResult.empty(
+          overview: overview,
+          resolvedRoute: projected.resolvedRoute,
+        )
+      : FeatureResult.success(
+          overview: overview,
+          details: projected.details,
+          summary: projected.summary,
+          resolvedRoute: projected.resolvedRoute,
+        );
+}

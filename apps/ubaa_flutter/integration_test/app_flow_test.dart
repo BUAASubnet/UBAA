@@ -33,7 +33,11 @@ void main() {
     return;
   }
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  registerAppFlowTests();
+}
 
+/// 同一组脱敏流程同时运行于 widget 门禁和原生宿主。
+void registerAppFlowTests() {
   _registerAuthFlowTests();
   _registerPrimaryWriteFlowTests();
   _registerQueryFlowTests();

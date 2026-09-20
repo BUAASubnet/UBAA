@@ -37,6 +37,26 @@ use crate::api::client::{
 };
 
 impl BridgeClient {
+    pub async fn exam_terms(&self) -> Result<BridgeRoutedTerms, BridgeError> {
+        let (data, route) = self
+            .execute_read(
+                |client| Box::pin(async move { client.exam_terms().await }),
+                map_terms,
+            )
+            .await?;
+        Ok(BridgeRoutedTerms { data, route })
+    }
+
+    pub async fn grade_overview(&self) -> Result<super::BridgeRoutedGradeOverview, BridgeError> {
+        let (data, route) = self
+            .execute_read(
+                |client| Box::pin(async move { client.grade_overview().await }),
+                super::mappers::map_grade_overview,
+            )
+            .await?;
+        Ok(super::BridgeRoutedGradeOverview { data, route })
+    }
+
     async fn execute_read<T, O, F>(
         &self,
         call: F,

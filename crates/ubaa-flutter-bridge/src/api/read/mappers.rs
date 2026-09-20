@@ -65,6 +65,15 @@ fn map_course(v: domain::CourseClass) -> BridgeCourseClass {
 }
 pub(super) fn map_weekly_schedule(v: domain::WeeklySchedule) -> BridgeWeeklySchedule {
     BridgeWeeklySchedule {
+        section_times: v
+            .section_times
+            .into_iter()
+            .map(|section| super::BridgeSectionTime {
+                section: section.section,
+                start_time: section.start_time,
+                end_time: section.end_time,
+            })
+            .collect(),
         arranged_list: v.arranged_list.into_iter().map(map_course).collect(),
         code: v.code,
         name: v.name,
@@ -105,6 +114,9 @@ pub(super) fn map_exam_arrangement(v: domain::ExamArrangement) -> BridgeExamArra
 }
 fn map_grade(v: domain::Grade) -> BridgeGrade {
     BridgeGrade {
+        graduate: v.graduate,
+        term_name: v.term_name,
+        average_score: v.average_score,
         course_name: v.course_name,
         course_code: v.course_code,
         credit: v.credit,
@@ -119,6 +131,30 @@ pub(super) fn map_grade_data(v: domain::GradeData) -> BridgeGradeData {
     BridgeGradeData {
         term_code: v.term_code,
         grades: v.grades.into_iter().map(map_grade).collect(),
+    }
+}
+fn map_grade_statistics(v: domain::GradeStatistics) -> super::BridgeGradeStatistics {
+    super::BridgeGradeStatistics {
+        gpa: v.gpa,
+        average_score: v.average_score,
+        gpa_credits: v.gpa_credits,
+        average_credits: v.average_credits,
+    }
+}
+pub(super) fn map_grade_overview(v: domain::GradeOverview) -> super::BridgeGradeOverview {
+    super::BridgeGradeOverview {
+        graduate: v.graduate,
+        grades: v.grades.into_iter().map(map_grade).collect(),
+        statistics: v.statistics.map(map_grade_statistics),
+        terms: v
+            .terms
+            .into_iter()
+            .map(|term| super::BridgeGradeTermStatistics {
+                term_code: term.term_code,
+                term_name: term.term_name,
+                statistics: map_grade_statistics(term.statistics),
+            })
+            .collect(),
     }
 }
 pub(super) fn map_classroom_query(v: domain::ClassroomQuery) -> BridgeClassroomQuery {

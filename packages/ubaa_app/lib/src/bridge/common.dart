@@ -283,6 +283,7 @@ UbaaErrorCode _typedErrorCode(BridgeErrorCode code) => switch (code) {
   BridgeErrorCode.upstreamUnavailable => UbaaErrorCode.upstreamUnavailable,
   BridgeErrorCode.upstreamChanged => UbaaErrorCode.upstreamChanged,
   BridgeErrorCode.parseError => UbaaErrorCode.parseError,
+  BridgeErrorCode.unsupported => UbaaErrorCode.unsupported,
   BridgeErrorCode.internalError ||
   BridgeErrorCode.clientDisposed => UbaaErrorCode.internalError,
   BridgeErrorCode.confirmationRequired => UbaaErrorCode.confirmationRequired,

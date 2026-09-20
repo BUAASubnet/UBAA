@@ -22,6 +22,12 @@ use crate::io::input::internal_error;
 
 #[async_trait]
 impl RoutedCliBackend for UbaaClient {
+    async fn exam_terms(&mut self) -> RoutedResult<Vec<Term>> {
+        UbaaClient::exam_terms(self).await
+    }
+    async fn grade_overview(&mut self) -> RoutedResult<ubaa_core::facade::GradeOverview> {
+        UbaaClient::grade_overview(self).await
+    }
     async fn evaluation_all(&mut self) -> RoutedResult<EvaluationCoursesResponse> {
         UbaaClient::evaluation_all(self).await
     }

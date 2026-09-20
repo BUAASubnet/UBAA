@@ -6,6 +6,7 @@ final class _IntegrationBackend
   bool _signedIn = false;
   bool get signedIn => _signedIn;
   FeatureQuery? lastQuery;
+  int _weeklyLoads = 0;
 
   @override
   Future<AuthStatus> authStatus() async =>
@@ -77,12 +78,50 @@ final class _IntegrationBackend
     FeatureId feature,
     FeatureQuery query,
   ) async {
+    // 元数据回读不覆盖要断言的用户查询；返回与自动课表选择匹配的 typed 样本。
+    if (query.view == FeatureQueryView.scheduleTerms) {
+      return const FeatureResult.success(
+        resolvedRoute: ConnectionMode.direct,
+        details: [
+          FeatureDetail(
+            title: '合成学期',
+            presentation: TermPresentation(
+              code: '2026-2027-1',
+              selected: true,
+              index: 1,
+            ),
+          ),
+        ],
+      );
+    }
+    if (query.view == FeatureQueryView.scheduleWeeks) {
+      return FeatureResult.success(
+        resolvedRoute: ConnectionMode.direct,
+        details: [
+          FeatureDetail(
+            title: '第3周',
+            presentation: WeekPresentation(
+              requestTerm: query.term!,
+              responseTerm: query.term!,
+              number: 3,
+              current: true,
+              startDate: '2026-09-14',
+              endDate: '2026-09-20',
+            ),
+          ),
+        ],
+      );
+    }
     lastQuery = query;
-    return const FeatureResult.success(
+    final title =
+        query.view == FeatureQueryView.scheduleWeek && _weeklyLoads++ == 0
+        ? '集成测试课程'
+        : '查询后的课程';
+    return FeatureResult.success(
       summary: '指定周课表',
       details: <FeatureDetail>[
         FeatureDetail(
-          title: '查询后的课程',
+          title: title,
           fields: <FeatureField>[FeatureField(label: '周次', value: '3')],
         ),
       ],

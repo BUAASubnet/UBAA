@@ -318,6 +318,7 @@ impl ClientRuntime {
     pub(crate) fn clear_memory(&mut self) {
         self.jar = CookieJar::default();
         self.authenticated_at = None;
+        self.account_name = None;
         self.last_activity = None;
         self.feature_state.clear();
     }

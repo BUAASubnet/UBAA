@@ -58,7 +58,7 @@ SPOC HTML 不进入公共 DTO。Fixture/Mock 只证明请求形状；真实证�
 
 隐藏的 `spoc diagnostics` 和 `judge diagnostics` CLI 命令调用独立 facade 方法，仅供确定性
 测试和实时验证使用。它们不增加业务请求、不接受 URL、不暴露上游内部信息，也不改变稳定用户
-命令面。输出与普通读取相同的 schema-v10 路由 envelope，并且一次完整功能运行必须保持同一
+命令面。输出与普通读取相同的 schema-v11 路由 envelope，并且一次完整功能运行必须保持同一
 条已解析路线。
 
 SPOC 诊断恰好返回 `globalPageCount` 和普通 `result`。该计数为正 `u32`，证明权威加密全局
@@ -82,3 +82,14 @@ Cgyy 目的类型诊断返回 `items` 与 `source`。`source=upstream` 表示本
 `source=static_fallback` 表示请求失败或上游返回空集合而使用冻结静态列表；两者都不得把
 原始响应投影到宿主。Cgyy 锁码仍只公开 `available`，真实验证永远不调用预约、取消或锁码
 写入口。
+# 研究生学业扩展（2026-09-20）
+
+按用户中心已确认的学号分流：八位数字为本科，ASCII 字母前缀加数字为研究生（字母大小写均可）；未知格式停止教务请求。学期参数和 HTTP 失败都不会改变学籍或回退到另一套接口。本科保留原 byxt/app 协议；研究生使用 GSMIS。
+
+- `exam_terms` / CLI `exam terms`：读取考试应用自己的学期。
+- `grade_overview` / CLI `grades overview`：研究生完整历史成绩、分学期与全局统计；本科返回 `graduate=false`，保持原有按学期查询。
+- `Grade` 增加 `graduate`、`termName`、`averageScore`；`WeeklySchedule` 增加 `sectionTimes`。CLI schema v11。
+- 研究生非空考试明细目前缺少可靠样本，明确返回 `unsupported`，不会冒充空结果。空成绩统计分母为零时 GPA/均分为 null。
+- Flutter 只投影 Core 的研究生统计，保留本科展示逻辑；研究生成绩及考试筛选学期来自各自应用，不从课表列表推断。
+
+协议与验证边界见 [提取记录](../migration/evidence/2026-09-20-graduate-academic.md)。本增量不包含离线课表或个人分支的界面重写。

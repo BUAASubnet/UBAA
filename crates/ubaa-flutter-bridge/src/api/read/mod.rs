@@ -61,6 +61,13 @@ pub struct BridgeWeeklySchedule {
     pub arranged_list: Vec<BridgeCourseClass>,
     pub code: String,
     pub name: String,
+    pub section_times: Vec<BridgeSectionTime>,
+}
+#[derive(Clone, Debug)]
+pub struct BridgeSectionTime {
+    pub section: i32,
+    pub start_time: String,
+    pub end_time: String,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeTodayClass {
@@ -91,6 +98,9 @@ pub struct BridgeExamArrangement {
 }
 #[derive(Clone, Debug)]
 pub struct BridgeGrade {
+    pub graduate: bool,
+    pub term_name: Option<String>,
+    pub average_score: Option<f64>,
     pub course_name: Option<String>,
     pub course_code: Option<String>,
     pub credit: Option<f64>,
@@ -105,6 +115,27 @@ pub struct BridgeGradeData {
     pub term_code: String,
     pub grades: Vec<BridgeGrade>,
 }
+#[derive(Clone, Debug)]
+pub struct BridgeGradeStatistics {
+    pub gpa: Option<f64>,
+    pub average_score: Option<f64>,
+    pub gpa_credits: f64,
+    pub average_credits: f64,
+}
+#[derive(Clone, Debug)]
+pub struct BridgeGradeTermStatistics {
+    pub term_code: String,
+    pub term_name: String,
+    pub statistics: BridgeGradeStatistics,
+}
+#[derive(Clone, Debug)]
+pub struct BridgeGradeOverview {
+    pub graduate: bool,
+    pub grades: Vec<BridgeGrade>,
+    pub statistics: Option<BridgeGradeStatistics>,
+    pub terms: Vec<BridgeGradeTermStatistics>,
+}
+routed!(BridgeRoutedGradeOverview, BridgeGradeOverview);
 #[derive(Clone, Debug)]
 pub struct BridgeClassroomInfo {
     pub id: String,

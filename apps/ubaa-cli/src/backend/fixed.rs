@@ -22,6 +22,12 @@ use super::CliBackend;
 
 #[async_trait]
 impl CliBackend for RouteClient {
+    async fn exam_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
+        self.exam_terms().await
+    }
+    async fn grade_overview(&mut self) -> Result<FeatureResult<ubaa_core::facade::GradeOverview>> {
+        self.grade_overview().await
+    }
     fn mode(&self) -> ConnectionMode {
         self.mode()
     }

@@ -75,6 +75,7 @@ fn routed_primary_success_representatives() -> Vec<(CliFeature, serde_json::Valu
         (
             CliFeature::Schedule,
             serde_json::to_value(WeeklySchedule {
+                section_times: vec![],
                 arranged_list: vec![CourseClass::default()],
                 code: "2025-2026-1".into(),
                 name: "Term".into(),

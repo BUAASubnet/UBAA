@@ -8,7 +8,7 @@
 | Core 单元/合同 | `crates/ubaa-core/src/**` 内单元测试、`crates/ubaa-core/tests/` | DTO、解析、加密向量、错误、URL、Cookie、Session CAS、路线与 facade 行为 |
 | 脱敏 Fixture | `fixtures/`、`crates/ubaa-test-support/src/fixtures.rs` | 最小合成 payload 的解析形状与敏感标记拒绝；不证明真实上游当前行为 |
 | Rust Mock 集成 | `crates/ubaa-test-support/tests/auth.rs`、`readonly.rs` | 精确方法/URL/参数/Header/分页、认证顺序、缓存并发和 Direct/WebVPN 路线锁定 |
-| CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v10、旧 v9 envelope 拒绝、路线诊断、脱敏、写确认和退出语义 |
+| CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v11、旧 v9 envelope 拒绝、路线诊断、脱敏、写确认和退出语义 |
 | CLI 二进制/Core-live | `apps/ubaa-cli/tests/binary_e2e.rs`、`apps/ubaa-cli/tests/core_live_runtime.rs`、`apps/ubaa-cli/src/bin/core_live/{main,args,evidence,steps}.rs` | facade-only 宿主、真实进程 stdout/stderr、缺凭据/auto 拒绝、安全摘要与会话清理 |
 | 结构与 Shell 合同 | `scripts/tests/layout.sh`、`contract-versions.sh`、`references.sh`、`flutter-toolchains.sh`、`live-launchers.sh`、`facade-test-contract.sh` | index/工作树结构棘轮、公开版本、refs 副作用边界、工具链完整输出与失败退出码、凭据 stdin、构建失败/信号清理与测试注入关闭态 |
 | FRB bridge | `crates/ubaa-flutter-bridge` 测试、`packages/ubaa_bindings/test/` | typed DTO/错误、panic 归约、公开 schema 快照和 codegen 零漂移 |
@@ -99,7 +99,7 @@ canonical 时间和必需照片，并加入 expected-route 原子提交与 calle
 
 Phase 11J 为 Evaluation 课程增加 typed `submitEligibility/submitTarget`，把 prepare 请求收紧为非空、有序、
 无重复的 targets，并新增 `success/failure/outcomeUnknown/unattempted` 四态逐项结果及 caller-pinned 原路线回读；
-当前 CLI envelope 显式升为 schema v10、Flutter bridge contract 升为 v9，合同测试拒绝旧 schema v9/bridge v8。
+当前 CLI envelope 显式升为 schema v11、Flutter bridge contract 升为 v10，合同测试拒绝旧 schema v9/bridge v8。
 该阶段的 typed 实现与本地确定性门禁已在 `4b0dcb0` 落地；整轮结构治理的最终候选与远端证据仍单独记录。
 
 Phase 11K 的 `WriteCoordinator` 同时服务生产链与旧 `WriteFlowController` 类型别名。app 测试覆盖旧方法

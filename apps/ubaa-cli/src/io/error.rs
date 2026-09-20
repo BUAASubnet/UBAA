@@ -95,6 +95,7 @@ const fn error_code_name(code: ErrorCode) -> &'static str {
         ErrorCode::UpstreamChanged => "upstream_changed",
         ErrorCode::ParseError => "parse_error",
         ErrorCode::InternalError => "internal_error",
+        ErrorCode::Unsupported => "unsupported",
     }
 }
 
@@ -124,6 +125,7 @@ fn is_error_code(code: &str) -> bool {
             | "upstream_changed"
             | "parse_error"
             | "internal_error"
+            | "unsupported"
     )
 }
 

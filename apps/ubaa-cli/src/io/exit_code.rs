@@ -25,7 +25,9 @@ pub(crate) const fn exit_code(code: ErrorCode) -> ExitCode {
         | ErrorCode::Timeout
         | ErrorCode::UpstreamUnavailable
         | ErrorCode::OutcomeUnknown => ExitCode::Network,
-        ErrorCode::UpstreamChanged | ErrorCode::ParseError => ExitCode::Upstream,
+        ErrorCode::UpstreamChanged | ErrorCode::ParseError | ErrorCode::Unsupported => {
+            ExitCode::Upstream
+        }
         ErrorCode::InternalError => ExitCode::Internal,
     }
 }
@@ -40,7 +42,7 @@ pub(crate) fn safe_error_exit_code(error: &SafeError) -> i32 {
         "network_error" | "timeout" | "upstream_unavailable" | "outcome_unknown" => {
             ExitCode::Network as i32
         }
-        "upstream_changed" | "parse_error" => ExitCode::Upstream as i32,
+        "upstream_changed" | "parse_error" | "unsupported" => ExitCode::Upstream as i32,
         _ => ExitCode::Internal as i32,
     }
 }

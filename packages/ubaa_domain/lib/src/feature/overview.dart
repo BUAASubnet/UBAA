@@ -1,9 +1,24 @@
 import '../common/error.dart';
 import 'presentation.dart';
+import 'grades.dart';
 
 /// 只读结果的集合级统计，不从局部搜索或分页重新计算。
 sealed class FeatureOverview {
   const FeatureOverview();
+}
+
+/// 学期来自各自应用；研究生统计由 Core 计算，不套用本科规则。
+final class AcademicApplicationOverview extends FeatureOverview {
+  const AcademicApplicationOverview({
+    required this.terms,
+    this.graduateGrades = false,
+    this.statistics,
+    this.statisticsLabel,
+  });
+  final Map<String, String> terms;
+  final bool graduateGrades;
+  final GradeStatistics? statistics;
+  final String? statisticsLabel;
 }
 
 final class SpocTermOverview extends FeatureOverview {

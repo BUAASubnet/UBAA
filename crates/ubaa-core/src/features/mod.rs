@@ -7,6 +7,7 @@ pub mod cgyy;
 pub mod classroom;
 pub mod evaluation;
 pub mod grades;
+mod gsmis;
 pub mod judge;
 pub mod libbook;
 pub mod schedule;

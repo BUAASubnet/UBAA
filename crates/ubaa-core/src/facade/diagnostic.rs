@@ -398,6 +398,26 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
+    /// 读取考试自身的学期列表。
+    /// # Errors
+    /// 会话、网络或协议校验失败时返回安全错误。
+    pub async fn exam_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::schedule::get_exam_terms(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 读取完整研究生成绩；本科保持原学期查询入口。
+    /// # Errors
+    /// 会话、网络、分页或协议校验失败时不返回部分数据。
+    pub async fn grade_overview(&mut self) -> Result<FeatureResult<crate::domain::GradeOverview>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::grades::get_overview(&mut self.runtime).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
     /// 查询可用教室。
     ///
     /// # Errors

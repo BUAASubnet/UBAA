@@ -34,6 +34,37 @@ pub const AAS_VERIFY_URL: &str =
 const SCHEDULE_REFERER_URL: &str = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html";
 const EXAM_REFERER_URL: &str = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/home/index.html";
 
+/// User-supplied student-number rule; None is unknown, never assumed undergraduate.
+pub(crate) fn graduate_account(runtime: &crate::runtime::ClientRuntime) -> Option<bool> {
+    classify_student_number(runtime.account_name()?)
+}
+
+fn classify_student_number(number: &str) -> Option<bool> {
+    let number = number.trim();
+    if number.len() == 8 && number.bytes().all(|c| c.is_ascii_digit()) {
+        return Some(false);
+    }
+    let digits = number.trim_start_matches(|c: char| c.is_ascii_alphabetic());
+    if digits.len() < number.len()
+        && !digits.is_empty()
+        && digits.bytes().all(|c| c.is_ascii_digit())
+    {
+        return Some(true);
+    }
+    None
+}
+
+pub(crate) fn require_academic_identity(runtime: &crate::runtime::ClientRuntime) -> Result<bool> {
+    graduate_account(runtime).ok_or_else(|| {
+        UbaaError::new(
+            ErrorCode::InvalidInput,
+            ErrorKind::Input,
+            false,
+            "无法确认本科或研究生身份，已停止教务查询",
+        )
+    })
+}
+
 #[derive(Debug, Deserialize)]
 struct ListResponse<T> {
     code: String,
@@ -92,7 +123,15 @@ pub fn parse_exam(body: &str) -> Result<ExamArrangement> {
 
 /// 通过当前认证路线获取学期。
 pub(crate) async fn get_terms(runtime: &mut crate::runtime::ClientRuntime) -> Result<Vec<Term>> {
+    super::require_session(runtime)?;
+    if require_academic_identity(runtime)? {
+        return super::gsmis::terms(runtime).await;
+    }
     ensure_undergraduate_portal(runtime).await?;
+    get_undergraduate_terms(runtime).await
+}
+
+async fn get_undergraduate_terms(runtime: &mut crate::runtime::ClientRuntime) -> Result<Vec<Term>> {
     let url = runtime.url(TERMS_URL)?;
     let referer = runtime.url(SCHEDULE_REFERER_URL)?;
     let response = super::get_with_redirects(
@@ -115,6 +154,10 @@ pub(crate) async fn get_weeks(
     runtime: &mut crate::runtime::ClientRuntime,
     term: &str,
 ) -> Result<Vec<Week>> {
+    if require_academic_identity(runtime)? {
+        let date = super::gsmis::current_date(runtime);
+        return super::gsmis::schedule(runtime, term).await?.weeks(date);
+    }
     if term.trim().is_empty() {
         return Err(UbaaError::new(
             ErrorCode::InvalidInput,
@@ -148,6 +191,9 @@ pub(crate) async fn get_week(
     term: &str,
     week: i32,
 ) -> Result<WeeklySchedule> {
+    if require_academic_identity(runtime)? {
+        return super::gsmis::schedule(runtime, term).await?.weekly(week);
+    }
     ensure_undergraduate_portal(runtime).await?;
     let url = runtime.url(WEEK_URL)?;
     let referer = runtime.url(SCHEDULE_REFERER_URL)?;
@@ -172,6 +218,16 @@ pub(crate) async fn get_week(
 
 /// 使用上海日历日期获取今日课程。
 pub(crate) async fn get_today(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> Result<Vec<TodayClass>> {
+    super::require_session(runtime)?;
+    if require_academic_identity(runtime)? {
+        return super::gsmis::today(runtime).await;
+    }
+    get_undergraduate_today(runtime).await
+}
+
+async fn get_undergraduate_today(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> Result<Vec<TodayClass>> {
     ensure_undergraduate_portal(runtime).await?;
@@ -200,6 +256,9 @@ pub(crate) async fn get_exam(
     runtime: &mut crate::runtime::ClientRuntime,
     term: &str,
 ) -> Result<ExamArrangement> {
+    if require_academic_identity(runtime)? {
+        return super::gsmis::exams(runtime, term).await;
+    }
     ensure_undergraduate_portal(runtime).await?;
     let mut url = url::Url::parse(&runtime.url(EXAM_URL)?).map_err(|_| invalid_url())?;
     url.query_pairs_mut().append_pair("termCode", term);
@@ -217,6 +276,17 @@ pub(crate) async fn get_exam(
     .await?;
     super::check_response(&response, "exam")?;
     parse_exam(&super::body(&response))
+}
+
+pub(crate) async fn get_exam_terms(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> Result<Vec<Term>> {
+    super::require_session(runtime)?;
+    if require_academic_identity(runtime)? {
+        return super::gsmis::exam_terms(runtime).await;
+    }
+    ensure_undergraduate_portal(runtime).await?;
+    get_undergraduate_terms(runtime).await
 }
 
 async fn ensure_undergraduate_portal(runtime: &mut crate::runtime::ClientRuntime) -> Result<()> {
@@ -279,7 +349,15 @@ fn classify_undergraduate_portal(response: &crate::ports::HttpResponse) -> Resul
             "本科教务门户需要认证",
         ));
     }
-    if response.final_url.contains("/jwapp/sys/byrhmhsy/") {
+    let direct_url = crate::connection::from_webvpn_url(&response.final_url)
+        .unwrap_or_else(|_| response.final_url.clone());
+    let text = super::body(response);
+    if response.status == 200
+        && direct_url.contains("/jwapp/sys/byrhmhsy/")
+        && (text.trim_start().starts_with('{')
+            || text.trim_start().starts_with('[')
+            || text.trim().is_empty())
+    {
         return Err(UbaaError::new(
             ErrorCode::PermissionDenied,
             ErrorKind::Authentication,
@@ -301,6 +379,14 @@ fn classify_undergraduate_portal(response: &crate::ports::HttpResponse) -> Resul
             ErrorKind::Upstream,
             false,
             "本科教务门户探测失败",
+        ));
+    }
+    if !text.trim_start().starts_with('{') && !text.trim_start().starts_with('[') {
+        return Err(UbaaError::new(
+            ErrorCode::UpstreamChanged,
+            ErrorKind::Upstream,
+            false,
+            "本科教务门户未返回资料数据",
         ));
     }
     Ok(())
@@ -365,4 +451,4 @@ fn ensure_ok(code: &str, context: &str) -> Result<()> {
 
 #[cfg(test)]
 #[path = "schedule/contract_tests.rs"]
-mod contract_tests;
+pub(crate) mod contract_tests;

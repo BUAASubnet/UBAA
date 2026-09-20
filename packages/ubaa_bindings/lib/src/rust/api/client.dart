@@ -97,6 +97,10 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeRoutedExamArrangement> examArrangement({required String term});
 
+  Future<BridgeRoutedTerms> examTerms();
+
+  Future<BridgeRoutedGradeOverview> gradeOverview();
+
   Future<BridgeRoutedGrades> grades({required String term});
 
   Future<BridgeRoutedJudgeAssignmentDetail> judgeAssignment({
@@ -323,6 +327,7 @@ enum BridgeErrorCode {
   intentExpired,
   operationConflict,
   outcomeUnknown,
+  unsupported,
 }
 
 /// bridge 对外的安全错误类别。

@@ -2,6 +2,16 @@ use clap::{CommandFactory, Parser};
 use ubaa_cli::{BykcCommand, Cli, Command};
 
 #[test]
+fn graduate_academic_commands_do_not_require_schedule_terms() {
+    for args in [["ubaa", "exam", "terms"], ["ubaa", "grades", "overview"]] {
+        assert!(
+            Cli::try_parse_from(args).is_ok(),
+            "missing command: {args:?}"
+        );
+    }
+}
+
+#[test]
 fn 博雅课程命令可显式包含已结束课程() {
     let cli = Cli::try_parse_from(["ubaa", "bykc", "courses", "--all"]).unwrap();
 

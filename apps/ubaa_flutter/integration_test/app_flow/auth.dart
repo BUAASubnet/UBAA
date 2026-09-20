@@ -19,11 +19,10 @@ void _registerAuthFlowTests() {
     await tester.pumpAndSettle();
     expect(find.byType(UbaaMainShell), findsOneWidget);
 
-    expect(find.text('课表查询'), findsOneWidget);
-    await tester.tap(find.text('课表查询'));
-    await tester.pumpAndSettle();
+    await _openFeature(tester, FeatureId.schedule);
     expect(find.text('集成测试课程'), findsOneWidget);
 
+    await _openQueryPanel(tester);
     final queryMenu = find.byType(DropdownButton<FeatureQueryView>);
     expect(queryMenu, findsOneWidget);
     await tester.tap(queryMenu);
@@ -43,11 +42,13 @@ void _registerAuthFlowTests() {
     expect(backend.lastQuery?.view, FeatureQueryView.scheduleWeek);
     expect(backend.lastQuery?.term, '2026-2027-1');
     expect(backend.lastQuery?.week, 3);
+    await _closeQueryPanel(tester);
     expect(find.text('查询后的课程'), findsOneWidget);
 
-    await tester.tap(find.text('返回功能列表'));
+    await _leaveFeature(tester);
+    tester.state<ScaffoldState>(find.byType(Scaffold)).openDrawer();
     await tester.pumpAndSettle();
-    await tester.tap(find.byIcon(Icons.person_outline));
+    await tester.tap(find.text('设置'));
     await tester.pumpAndSettle();
     expect(find.text('直连'), findsOneWidget);
   });

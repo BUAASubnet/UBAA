@@ -113,6 +113,23 @@ pub(crate) struct FakeRoutedBackend {
 
 #[async_trait]
 impl RoutedCliBackend for FakeRoutedBackend {
+    async fn exam_terms(&mut self) -> RoutedResult<Vec<Term>> {
+        Ok(Routed {
+            data: Vec::new(),
+            resolution: direct_resolution(),
+        })
+    }
+    async fn grade_overview(&mut self) -> RoutedResult<ubaa_core::facade::GradeOverview> {
+        Ok(Routed {
+            data: ubaa_core::facade::GradeOverview {
+                graduate: true,
+                grades: Vec::new(),
+                statistics: None,
+                terms: Vec::new(),
+            },
+            resolution: direct_resolution(),
+        })
+    }
     async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
         self.ygdk_overview_calls += 1;
         Ok(Routed {

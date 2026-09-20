@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `9`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `10`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -38,7 +38,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=9` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=10` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -513,10 +513,15 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
   Flutter Bridge contract v8 和相应生成类型。安全收据已严格收窄为 `{recordId}`，公开字段禁曝；完整
   Rust/CLI/Bridge/Dart/Flutter 门禁、FRB 零漂移、macOS 脱敏宿主 integration 与独立终审均已通过并提交为
   `d8484ad`。该阶段没有联网、上传照片或执行真实写入，也不构成签名、实体设备或正式发布证据。
-- Phase 11J 提交 `4b0dcb0` 已升级到 CLI JSON schema v10、Flutter Bridge contract v9，并实现 Evaluation
+- Phase 11J 提交 `4b0dcb0` 已升级到 CLI JSON schema v11、Flutter Bridge contract v10，并实现 Evaluation
   typed target、批量四态结果和 caller-pinned 回读；本地确定性门禁、FRB 零漂移与 macOS 脱敏宿主
   integration 已完成。该阶段没有执行真实评教写入，证据范围见[当前状态](../migration/status.md)。
 - Phase 11K 提交 `b6ff2c7` 将 Dart 写状态收归 `WriteCoordinator`，状态模型归 `ubaa_domain`，
   backend 绑定与会话失效归 `AppController`，宿主装配及 UI 状态/命令接线归 `ubaa_host`；安全结果消息与
-  只读核对由应用层 `WriteReceiptVerifier` 统一编排。该阶段保持 CLI schema v10、bridge v9 和生成绑定，
+  只读核对由应用层 `WriteReceiptVerifier` 统一编排。该阶段保持 CLI schema v11、bridge v9 和生成绑定，
   不改变上游协议；结构治理的最终候选与发布证据继续单独记录。
+# 研究生学业扩展（2026-09-20）
+
+Bridge v10 新增 `examTerms()`、`gradeOverview()`，仅调用 Core facade。`BridgeGradeOverview` 投影研究生标记、完整成绩、历史学期及 Core 已计算的统计。`BridgeGrade` 增加研究生标记、学期名及折算均分；`BridgeWeeklySchedule` 增加完整节次时间。新增稳定错误 `unsupported`，用于尚未适配的非空研究生考试明细。
+
+FRB 2.13.0 重新生成绑定；生产 Dart 同步只接受 v10，不手工修改生成文件。Flutter 查询使用考试自己的学期，研究生成绩直接读取总览；不会应用本科 UI 统计公式。

@@ -148,6 +148,28 @@ extension _AcademicQueryControls on _FeatureQueryControlsState {
           _scheduleView == FeatureQueryView.scheduleWeek);
 
   Future<void> _chooseTerm() async {
+    final overview = widget.snapshot.overview;
+    if (overview is AcademicApplicationOverview) {
+      final epoch = widget.readCacheEpoch;
+      final selected = await showDialog<String>(
+        context: context,
+        builder: (context) => SimpleDialog(
+          title: const Text('选择学期'),
+          children: [
+            if (overview.terms.isEmpty)
+              const Padding(padding: EdgeInsets.all(24), child: Text('暂无可选学期')),
+            for (final term in overview.terms.entries)
+              SimpleDialogOption(
+                onPressed: () => Navigator.pop(context, term.key),
+                child: Text(term.value),
+              ),
+          ],
+        ),
+      );
+      if (selected != null && mounted && widget.readCacheEpoch == epoch)
+        _updateQueryDraft(() => _termController.text = selected);
+      return;
+    }
     final loader = widget.onLoadAcademicTerms;
     if (loader == null) return;
     final epoch = widget.readCacheEpoch;

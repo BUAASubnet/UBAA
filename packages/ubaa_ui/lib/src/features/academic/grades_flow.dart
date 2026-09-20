@@ -58,6 +58,7 @@ class _GradesFlowState extends State<_GradesFlow> {
   }
 
   void _schedule() {
+    if (widget.snapshot.overview is AcademicApplicationOverview) return;
     if (_scheduled ||
         !widget.visible ||
         !_ready ||
@@ -105,6 +106,38 @@ class _GradesFlowState extends State<_GradesFlow> {
   Widget build(BuildContext context) {
     final snapshot = widget.snapshot;
     final value = snapshot.overview;
+    if (_ready &&
+        value is AcademicApplicationOverview &&
+        value.graduateGrades) {
+      final filter = widget.filter.trim().toLowerCase();
+      final details = snapshot.details.where(
+        (d) =>
+            filter.isEmpty ||
+            '${d.title} ${d.subtitle ?? ''} ${d.fields.map((f) => f.value).join(' ')}'
+                .toLowerCase()
+                .contains(filter),
+      );
+      return ListView(
+        padding: const EdgeInsets.all(16),
+        children: [
+          if (snapshot.status == FeatureLoadStatus.stale)
+            Text('${snapshot.error?.message ?? '刷新失败。'} 以下为上次成功加载的数据。'),
+          _GradeSummaryCard(
+            title: value.statisticsLabel ?? '研究生成绩',
+            statistics: value.statistics,
+            showCourseAndCredits: false,
+          ),
+          const SizedBox(height: 12),
+          if (details.isEmpty)
+            Center(child: Text(filter.isEmpty ? '暂无成绩' : '没有匹配的成绩')),
+          for (final detail in details)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _GradeCard(detail: detail),
+            ),
+        ],
+      );
+    }
     final current = value is GradesTermOverview ? value : null;
     final aggregate = _aggregate;
     final routes = <String, ConnectionMode>{

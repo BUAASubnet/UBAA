@@ -114,6 +114,7 @@ fn resolve_feature_redirect(
         "sso.buaa.edu.cn"
             | "uc.buaa.edu.cn"
             | "byxt.buaa.edu.cn"
+            | "gsmis.buaa.edu.cn"
             | "app.buaa.edu.cn"
             | "spoc.buaa.edu.cn"
             | "judge.buaa.edu.cn"

@@ -29,7 +29,7 @@ session-only/Noop 语义；各平台 Keychain、Keystore、Secret Service、Cred
 ## UI 错误映射
 
 `UiErrorMapper`/`mapCoreErrorJson` 接受 Rust Core 的稳定 `code`、`kind`、`retryable`
-字段以及当前 CLI schema-v10 的 `error` envelope，映射到 `ubaa_domain` 的 `UiError` 和
+字段以及当前 CLI schema-v11 的 `error` envelope，映射到 `ubaa_domain` 的 `UiError` 和
 安全中文文案，并保留失败实际路线。未知或畸形载荷统一归约为 `internal_error`；上游 message
 不展示也不再保留在 `technicalDetail`，旧详情参数仅供兼容。app 的映射入口委托同一策略。
 

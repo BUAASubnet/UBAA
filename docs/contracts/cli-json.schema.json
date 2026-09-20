@@ -33,6 +33,7 @@
         "upstream_unavailable",
         "outcome_unknown",
         "upstream_changed",
+        "unsupported",
         "parse_error",
         "internal_error"
       ]
@@ -161,6 +162,16 @@
       "type": "object",
       "required": ["arrangedList", "code", "name"],
       "properties": {
+        "sectionTimes": { "type": "array", "items": {
+          "type": "object",
+          "required": ["section", "startTime", "endTime"],
+          "properties": {
+            "section": { "type": "integer" },
+            "startTime": { "type": "string" },
+            "endTime": { "type": "string" }
+          },
+          "additionalProperties": false
+        } },
         "arrangedList": { "type": "array", "items": { "$ref": "#/$defs/courseClass" } },
         "code": { "type": "string" },
         "name": { "type": "string" }
@@ -759,6 +770,9 @@
       "type": "object",
       "required": ["courseName", "courseCode", "credit", "score", "gradePoint", "courseType", "scoreType", "termCode"],
       "properties": {
+        "graduate": { "type": "boolean" },
+        "termName": { "$ref": "#/$defs/nullableString" },
+        "averageScore": { "type": ["number", "null"] },
         "courseName": { "$ref": "#/$defs/nullableString" },
         "courseCode": { "$ref": "#/$defs/nullableString" },
         "credit": { "type": ["number", "null"] },
@@ -776,6 +790,37 @@
       "properties": {
         "termCode": { "type": "string" },
         "grades": { "type": "array", "items": { "$ref": "#/$defs/grade" } }
+      },
+      "additionalProperties": false
+    },
+    "gradeStatistics": {
+      "type": "object",
+      "required": ["gpa", "averageScore", "gpaCredits", "averageCredits"],
+      "properties": {
+        "gpa": { "type": ["number", "null"] },
+        "averageScore": { "type": ["number", "null"] },
+        "gpaCredits": { "type": "number" },
+        "averageCredits": { "type": "number" }
+      },
+      "additionalProperties": false
+    },
+    "gradeOverview": {
+      "type": "object",
+      "required": ["graduate", "grades", "statistics", "terms"],
+      "properties": {
+        "graduate": { "type": "boolean" },
+        "grades": { "type": "array", "items": { "$ref": "#/$defs/grade" } },
+        "statistics": { "oneOf": [{ "$ref": "#/$defs/gradeStatistics" }, { "type": "null" }] },
+        "terms": { "type": "array", "items": {
+          "type": "object",
+          "required": ["termCode", "termName", "statistics"],
+          "properties": {
+            "termCode": { "type": "string" },
+            "termName": { "type": "string" },
+            "statistics": { "$ref": "#/$defs/gradeStatistics" }
+          },
+          "additionalProperties": false
+        } }
       },
       "additionalProperties": false
     },
@@ -1082,7 +1127,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "schemaVersion": { "const": 10 },
+        "schemaVersion": { "const": 11 },
         "ok": { "type": "boolean" },
         "data": {},
         "error": { "$ref": "#/$defs/error" },
@@ -1130,13 +1175,13 @@
               {
                 "properties": {
                   "meta": { "properties": { "feature": { "const": "exam" } }, "required": ["feature"] },
-                  "data": { "$ref": "#/$defs/examArrangement" }
+                  "data": { "oneOf": [{ "$ref": "#/$defs/examArrangement" }, { "type": "array", "items": { "$ref": "#/$defs/term" } }] }
                 }
               },
               {
                 "properties": {
                   "meta": { "properties": { "feature": { "const": "grades" } }, "required": ["feature"] },
-                  "data": { "$ref": "#/$defs/gradeData" }
+                  "data": { "oneOf": [{ "$ref": "#/$defs/gradeData" }, { "$ref": "#/$defs/gradeOverview" }] }
                 }
               },
               {
@@ -1243,7 +1288,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "error", "meta"],
       "properties": {
-        "schemaVersion": { "const": 10 },
+        "schemaVersion": { "const": 11 },
         "ok": { "const": false },
         "error": { "$ref": "#/$defs/error" },
         "meta": { "$ref": "#/$defs/unresolvedRoutedMeta" }
@@ -1399,7 +1444,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 10 },
+        "schemaVersion": { "const": 11 },
         "ok": { "type": "boolean" },
         "data": { "$ref": "#/$defs/aggregateAuthData" },
         "error": { "$ref": "#/$defs/error" },
@@ -1475,7 +1520,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 10 },
+        "schemaVersion": { "const": 11 },
         "ok": { "const": true },
         "data": { "$ref": "#/$defs/aggregateLogoutData" },
         "meta": { "$ref": "#/$defs/aggregateMeta" }

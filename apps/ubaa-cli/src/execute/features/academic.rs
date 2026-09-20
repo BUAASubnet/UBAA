@@ -41,6 +41,10 @@ pub(in crate::execute) async fn run_exam<B: CliBackend + Send>(
     backend: &mut B,
 ) -> Result<CommandOutput> {
     match arguments.command {
+        ExamCommand::Terms => backend
+            .exam_terms()
+            .await
+            .and_then(|result| readonly(result, CliFeature::Exam)),
         ExamCommand::List { term } => backend
             .exam_arrangement(&term)
             .await
@@ -53,6 +57,10 @@ pub(in crate::execute) async fn run_grades<B: CliBackend + Send>(
     backend: &mut B,
 ) -> Result<CommandOutput> {
     match arguments.command {
+        GradesCommand::Overview => backend
+            .grade_overview()
+            .await
+            .and_then(|result| readonly(result, CliFeature::Grades)),
         GradesCommand::List { term } => backend
             .grades(&term)
             .await
@@ -98,6 +106,7 @@ pub(in crate::execute) async fn run_routed_exam<B: RoutedCliBackend + Send>(
     backend: &mut B,
 ) -> RoutedResult<CommandOutput> {
     match arguments.command {
+        ExamCommand::Terms => routed_readonly(backend.exam_terms().await, CliFeature::Exam),
         ExamCommand::List { term } => {
             routed_readonly(backend.exam_arrangement(&term).await, CliFeature::Exam)
         }
@@ -109,6 +118,9 @@ pub(in crate::execute) async fn run_routed_grades<B: RoutedCliBackend + Send>(
     backend: &mut B,
 ) -> RoutedResult<CommandOutput> {
     match arguments.command {
+        GradesCommand::Overview => {
+            routed_readonly(backend.grade_overview().await, CliFeature::Grades)
+        }
         GradesCommand::List { term } => {
             routed_readonly(backend.grades(&term).await, CliFeature::Grades)
         }

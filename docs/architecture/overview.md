@@ -28,8 +28,8 @@ CLI                  Flutter/OHOS
 
 CLI 与 Rust bridge 的生产业务调用只经 facade；CLI 在自身 `command/backend/execute/io` 边界拥有参数解析、
 JSON/human 渲染和退出策略。Dart 与平台宿主只经 bridge 使用 Core，不处理 URL、Cookie、Session、加密或
-上游正文；`upstream` 解析/URL 模块为 crate-private。当前公开版本为 CLI JSON schema v10 与
-Flutter bridge contract v9；实际 envelope 的 JSON Schema 校验、schema-v10 聚合
+上游正文；`upstream` 解析/URL 模块为 crate-private。当前公开版本为 CLI JSON schema v11 与
+Flutter bridge contract v10；实际 envelope 的 JSON Schema 校验、schema-v11 聚合
 登录输出、参数错误 envelope、不支持交互式登录步骤的显式
 拒绝、脱敏展示、带 revision 的原子双路线会话、Core 所有的 TCP 路由诊断和非交互式本地验证器
 均已实现。Flutter 侧 typed bridge、共享 domain/app/UI、十二项读取页面、十项写入确认和无签名六平台宿主
@@ -43,9 +43,9 @@ Phase 11K 提交 `b6ff2c7` 将 Dart 生产写状态统一到 `ubaa_app` 的 `Wri
 UI callback 接线，向 UI 提供状态及 prepare/cancel/confirm 命令。UI 只保留页面交互状态，不拥有第二份
 待确认意图或提交状态机；Rust bridge 继续负责 opaque intent 的一次性消费与失效。
 
-CLI envelope 的 schema v10 与磁盘 Session 版本相互独立：前者描述 stdout 的封闭公开合同，后者仍是
+CLI envelope 的 schema v11 与磁盘 Session 版本相互独立：前者描述 stdout 的封闭公开合同，后者仍是
 `session.json` schema v2 双路线快照，`config.toml` 仍为版本 1；本次 CLI 升级不迁移或改写本地持久化。
-Flutter bridge contract v9 在 v8 的 Ygdk typed 提交合同之上，新增 Evaluation typed
+Flutter bridge contract v10 在 v8 的 Ygdk typed 提交合同之上，新增 Evaluation typed
 `submitEligibility/submitTarget`、仅含 targets 的批量请求、四态逐项结果和 caller-pinned 回读；同时继续承载
 Ygdk 的完整 typed 请求、安全结果和 caller-pinned 概览/记录回读，并承载
 LibBook seat 与 booking 的可空整数状态，以及 typed

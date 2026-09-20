@@ -503,6 +503,19 @@ fn 聚合门面只保留唯一运行时选择器和路线算法() {
     let facade_dir = manifest_dir.join("src/facade");
 
     let observed = audited_route_usage(&facade_dir);
+    let academic_tokens = rust_tokens(&source(&facade_dir.join("read/academic.rs")));
+    let identity =
+        function_body(&academic_tokens, "ensure_academic_identity").expect("定位共享教务身份核验");
+    assert_eq!(count_sequence(identity, &["resolve_operation", "("]), 0);
+    assert_eq!(
+        count_sequence(identity, &["runtime_for", "("]),
+        count_sequence(
+            identity,
+            &["runtime_for", "(", "resolution", ".", "mode", ")"]
+        ),
+        "身份核验只能复用调用者已解析的路线"
+    );
+    let identity_usage = route_usage(identity);
     let shared_route_execution_reuse = assert_cgyy_cancel_atomic_route_boundary(&facade_dir)
         + assert_ygdk_submit_atomic_route_boundary(&facade_dir)
         + assert_evaluation_submit_atomic_route_boundary(&facade_dir);
@@ -513,12 +526,12 @@ fn 聚合门面只保留唯一运行时选择器和路线算法() {
         "每个公开异步业务入口必须恰好选择 routed 或 caller-pinned 路线语义"
     );
     assert_eq!(
-        observed.entry_points,
+        observed.entry_points + identity_usage.runtime_for,
         observed.runtime_for + observed.route_parts_for + shared_route_execution_reuse,
-        "每个业务入口必须只取得一次对应路线槽位"
+        "除共享身份核验外，每个业务入口必须只取得一次对应路线槽位"
     );
     assert_eq!(
-        observed.entry_points,
+        observed.entry_points + identity_usage.finish_routed,
         observed.finish_routed + observed.finish_caller_pinned + shared_route_execution_reuse,
         "每个公开异步业务入口都必须经过统一收尾"
     );

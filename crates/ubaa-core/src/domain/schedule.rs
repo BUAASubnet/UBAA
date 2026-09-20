@@ -41,6 +41,16 @@ pub struct WeeklySchedule {
     pub arranged_list: Vec<CourseClass>,
     pub code: String,
     pub name: String,
+    #[serde(default)]
+    pub section_times: Vec<SectionTime>,
+}
+/// 上游节次方案中的完整时间轴。
+#[derive(Clone, Debug, Default, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SectionTime {
+    pub section: i32,
+    pub start_time: String,
+    pub end_time: String,
 }
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]

@@ -26,6 +26,14 @@ mod routed;
 /// 命令执行所需的认证门面。
 #[async_trait]
 pub trait CliBackend {
+    /// 查询考试学期。
+    async fn exam_terms(&mut self) -> Result<FeatureResult<Vec<Term>>> {
+        Err(unavailable("考试功能不可用"))
+    }
+    /// 查询研究生成绩概览。
+    async fn grade_overview(&mut self) -> Result<FeatureResult<ubaa_core::facade::GradeOverview>> {
+        Err(unavailable("成绩功能不可用"))
+    }
     /// 当前后端固定使用的连接模式。
     fn mode(&self) -> ConnectionMode;
     /// 提交凭据并返回已认证的用户资料。
@@ -338,6 +346,14 @@ pub trait CliBackend {
 /// 不自行选择或修复路由。
 #[async_trait]
 pub trait RoutedCliBackend {
+    /// 查询考试学期。
+    async fn exam_terms(&mut self) -> RoutedResult<Vec<Term>> {
+        Err(routed_unavailable("考试功能不可用"))
+    }
+    /// 查询研究生成绩概览。
+    async fn grade_overview(&mut self) -> RoutedResult<ubaa_core::facade::GradeOverview> {
+        Err(routed_unavailable("成绩功能不可用"))
+    }
     /// 通过 Core 路由查询全部评教课程。
     async fn evaluation_all(&mut self) -> RoutedResult<EvaluationCoursesResponse> {
         Err(routed_unavailable("评教功能不可用"))

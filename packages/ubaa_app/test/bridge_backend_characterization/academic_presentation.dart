@@ -114,7 +114,14 @@ void registerAcademicPresentationTests() {
         view == FeatureQueryView.examArranged,
       );
     }
-    expect(client.calls, ['exam:term', 'exam:term', 'exam:term']);
+    expect(client.calls, [
+      'terms',
+      'exam:term',
+      'terms',
+      'exam:term',
+      'terms',
+      'exam:term',
+    ]);
   });
 
   test('成绩三视图保留完整未筛选集合与请求响应学期用于旧统计', () async {
@@ -260,6 +267,7 @@ class _AcademicPresentationClient extends _CharacterizationBridgeClient {
     calls.add('week:$term/$week');
     return const BridgeRoutedWeeklySchedule(
       data: BridgeWeeklySchedule(
+        sectionTimes: const [],
         code: 'response-code',
         name: '周表',
         arrangedList: [
@@ -305,12 +313,13 @@ class _AcademicPresentationClient extends _CharacterizationBridgeClient {
         termCode: 'term',
         grades: [
           BridgeGrade(
+            graduate: false,
             courseName: '成绩课程',
             score: '通过',
             gradePoint: '优秀',
             credit: 2.5,
           ),
-          BridgeGrade(courseCode: 'pending'),
+          BridgeGrade(graduate: false, courseCode: 'pending'),
         ],
       ),
       route: _webVpnRoute,

@@ -49,7 +49,7 @@ P4-A新增四项资料同次投影、个人页本地展开/默认遮罩与手机
 - 起始工作区为 `ubaa2`，计划制定前 `git status --short --branch` 无未提交改动。
 - `just refs` 通过：冻结 `ubaa_old` 为 `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`，`examples/buaa-api` 为 `efb7976bf513f38364b88aeb83d704586cff9b2a`；未改写冻结目录。
 - 已阅读功能矩阵、现行 UI 规格、主题/首页与测试入口、平台矩阵及门禁脚本，确认共享 `ubaa_ui`、`ubaa_app`、`ubaa_host` 的实施定位；这不等于完成逐操作盘点或实际界面审查。
-- 现有文档声明 CLI JSON schema v10、Flutter bridge contract v9、`session.json` v2、`config.toml` v1；新合同要求执行前重新校验，禁止以 UI 改造静默改变公开合同。
+- 现有文档声明 CLI JSON schema v11、Flutter bridge contract v10、`session.json` v2、`config.toml` v1；新合同要求执行前重新校验，禁止以 UI 改造静默改变公开合同。
 
 完整设计与实施清单已形成，九场景三视口明暗54张原型已实际渲染自评，手机摘要过密已修。P1部分子视图的实际视觉仍未闭合，随P4领域批次完成；P3草稿/筛选/滚动的失败测试、修复与移动原生复验已提交于 `b2b91d46`；任务导航、运行时主题与共享视觉已完成本批实现，手机平板原生竖屏与7项宿主集成复验通过；原生旋转已实际跑通，追加修复刷新/短视口及主题颜色；稳定软键盘整机证据已通过，下一步进入学业领域。
 
@@ -264,3 +264,7 @@ P5-E系统选图实操补验（2026-09-12）：当前20项源码SHA与r3记录�
 AndroidX官方源码[TakePicturePreview](https://android.googlesource.com/platform/frameworks/support/+/dd97834aa54671ee1f56d65fa46668b4ffeb57e8/activity/activity/src/main/java/androidx/activity/result/contract/ActivityResultContracts.kt)核实其Intent为MediaStore.ACTION_IMAGE_CAPTURE、成功结果Bitmap来自data extra。当前AndroidManifest没有CAMERA权限；恢复系统相机委托，不新增直接相机/存储权限或持久照片文件，能力探测需核对可处理Intent。必要优化为原生及Dart均受10MiB约束、固定错误、取消保原图、选择/拍照单pending及代次失效保护。拍照作为可选本地平台接口穿过宿主/共享UI，不能放宽学校业务写入资格。先记录缺少拍照能力行为RED，再实现、构建、脱敏原生渲染；真实设备相机操作仍独立验收。
 
 P5-F阶段保存（2026-09-14）：按用户暂停整理要求，保留既有Android相机委托、Platform/Host/UI接线与测试。当前17个源码及20张合成截图摘要一致；本轮723项Flutter、just check（含CLI端到端16项）、refs、敏感扫描与Android Debug APK构建均退出0。20图静态审阅及证据范围见[阶段说明](../design/evidence/ui-ux/old-p5f-native/阶段说明.md)。本轮没有运行设备集成或实时读取；Android真实相机、其他平台照片欠验与P4余项/P5全领域/P6/P7保持未完成。
+
+## 2026-09-20 聚焦提取：研究生学业接口
+
+从 upstream ubaa2@0f73bd2c 提取个人分支 22f751a5 的 GSMIS 与身份隔离；完整个人分支保留不变。范围、协议证据与验收记录见 [graduate academic](evidence/2026-09-20-graduate-academic.md)。离线课表、平台功能与布局迁移另行提交。CLI JSON schema v11 / Flutter bridge contract v10。

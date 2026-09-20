@@ -169,7 +169,7 @@ fn submit_arguments(
 
 #[test]
 fn cli_阳光打卡合同升级为唯一_schema_v10并拒绝旧v9() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 10);
+    assert_eq!(CLI_JSON_SCHEMA_VERSION, 11);
     for definition in [
         "resolvedRoutedEnvelope",
         "unresolvedRoutedFailure",
@@ -177,11 +177,11 @@ fn cli_阳光打卡合同升级为唯一_schema_v10并拒绝旧v9() {
         "aggregateLogoutEnvelope",
     ] {
         let schema = &contract_schema()["$defs"][definition];
-        assert_eq!(schema["properties"]["schemaVersion"]["const"], 10);
+        assert_eq!(schema["properties"]["schemaVersion"]["const"], 11);
     }
 
     let receipt = json!({
-        "schemaVersion": 10,
+        "schemaVersion": 11,
         "ok": true,
         "data": {"success": true, "message": "阳光打卡已提交", "recordId": 77},
         "meta": {
@@ -252,7 +252,7 @@ async fn 阳光打卡概览投影再次关闭重复错配与非allowed目标() {
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 10);
+    assert_eq!(value["schemaVersion"], 11);
     assert_eq!(value["data"]["items"][0]["submitEligibility"], "allowed");
     assert_eq!(value["data"]["items"][0]["submitTarget"]["classifyId"], 11);
     assert_eq!(
@@ -436,7 +436,7 @@ async fn 阳光打卡提交构造typed请求且仅输出固定安全收据() {
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 10);
+    assert_eq!(value["schemaVersion"], 11);
     assert_eq!(
         value["data"],
         json!({"success": true, "message": "阳光打卡已提交", "recordId": 77})

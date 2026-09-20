@@ -7,7 +7,7 @@ import '../frb_generated.dart';
 import 'client.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `hash`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `hash`
 
 enum BridgeActionEligibility { allowed, denied, unknown }
 
@@ -1252,6 +1252,9 @@ class BridgeExamArrangement {
 }
 
 class BridgeGrade {
+  final bool graduate;
+  final String? termName;
+  final double? averageScore;
   final String? courseName;
   final String? courseCode;
   final double? credit;
@@ -1262,6 +1265,9 @@ class BridgeGrade {
   final String? termCode;
 
   const BridgeGrade({
+    required this.graduate,
+    this.termName,
+    this.averageScore,
     this.courseName,
     this.courseCode,
     this.credit,
@@ -1274,6 +1280,9 @@ class BridgeGrade {
 
   @override
   int get hashCode =>
+      graduate.hashCode ^
+      termName.hashCode ^
+      averageScore.hashCode ^
       courseName.hashCode ^
       courseCode.hashCode ^
       credit.hashCode ^
@@ -1288,6 +1297,9 @@ class BridgeGrade {
       identical(this, other) ||
       other is BridgeGrade &&
           runtimeType == other.runtimeType &&
+          graduate == other.graduate &&
+          termName == other.termName &&
+          averageScore == other.averageScore &&
           courseName == other.courseName &&
           courseCode == other.courseCode &&
           credit == other.credit &&
@@ -1314,6 +1326,93 @@ class BridgeGradeData {
           runtimeType == other.runtimeType &&
           termCode == other.termCode &&
           grades == other.grades;
+}
+
+class BridgeGradeOverview {
+  final bool graduate;
+  final List<BridgeGrade> grades;
+  final BridgeGradeStatistics? statistics;
+  final List<BridgeGradeTermStatistics> terms;
+
+  const BridgeGradeOverview({
+    required this.graduate,
+    required this.grades,
+    this.statistics,
+    required this.terms,
+  });
+
+  @override
+  int get hashCode =>
+      graduate.hashCode ^
+      grades.hashCode ^
+      statistics.hashCode ^
+      terms.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeGradeOverview &&
+          runtimeType == other.runtimeType &&
+          graduate == other.graduate &&
+          grades == other.grades &&
+          statistics == other.statistics &&
+          terms == other.terms;
+}
+
+class BridgeGradeStatistics {
+  final double? gpa;
+  final double? averageScore;
+  final double gpaCredits;
+  final double averageCredits;
+
+  const BridgeGradeStatistics({
+    this.gpa,
+    this.averageScore,
+    required this.gpaCredits,
+    required this.averageCredits,
+  });
+
+  @override
+  int get hashCode =>
+      gpa.hashCode ^
+      averageScore.hashCode ^
+      gpaCredits.hashCode ^
+      averageCredits.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeGradeStatistics &&
+          runtimeType == other.runtimeType &&
+          gpa == other.gpa &&
+          averageScore == other.averageScore &&
+          gpaCredits == other.gpaCredits &&
+          averageCredits == other.averageCredits;
+}
+
+class BridgeGradeTermStatistics {
+  final String termCode;
+  final String termName;
+  final BridgeGradeStatistics statistics;
+
+  const BridgeGradeTermStatistics({
+    required this.termCode,
+    required this.termName,
+    required this.statistics,
+  });
+
+  @override
+  int get hashCode =>
+      termCode.hashCode ^ termName.hashCode ^ statistics.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeGradeTermStatistics &&
+          runtimeType == other.runtimeType &&
+          termCode == other.termCode &&
+          termName == other.termName &&
+          statistics == other.statistics;
 }
 
 class BridgeJudgeAssignmentDetail {
@@ -2058,6 +2157,24 @@ class BridgeRoutedExamArrangement {
           route == other.route;
 }
 
+class BridgeRoutedGradeOverview {
+  final BridgeGradeOverview data;
+  final BridgeRouteDecision route;
+
+  const BridgeRoutedGradeOverview({required this.data, required this.route});
+
+  @override
+  int get hashCode => data.hashCode ^ route.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeRoutedGradeOverview &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          route == other.route;
+}
+
 class BridgeRoutedGrades {
   final BridgeGradeData data;
   final BridgeRouteDecision route;
@@ -2394,6 +2511,30 @@ class BridgeRoutedYgdkRecords {
           route == other.route;
 }
 
+class BridgeSectionTime {
+  final int section;
+  final String startTime;
+  final String endTime;
+
+  const BridgeSectionTime({
+    required this.section,
+    required this.startTime,
+    required this.endTime,
+  });
+
+  @override
+  int get hashCode => section.hashCode ^ startTime.hashCode ^ endTime.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeSectionTime &&
+          runtimeType == other.runtimeType &&
+          section == other.section &&
+          startTime == other.startTime &&
+          endTime == other.endTime;
+}
+
 class BridgeSigninClass {
   final String courseId;
   final String courseName;
@@ -2684,15 +2825,21 @@ class BridgeWeeklySchedule {
   final List<BridgeCourseClass> arrangedList;
   final String code;
   final String name;
+  final List<BridgeSectionTime> sectionTimes;
 
   const BridgeWeeklySchedule({
     required this.arrangedList,
     required this.code,
     required this.name,
+    required this.sectionTimes,
   });
 
   @override
-  int get hashCode => arrangedList.hashCode ^ code.hashCode ^ name.hashCode;
+  int get hashCode =>
+      arrangedList.hashCode ^
+      code.hashCode ^
+      name.hashCode ^
+      sectionTimes.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -2701,7 +2848,8 @@ class BridgeWeeklySchedule {
           runtimeType == other.runtimeType &&
           arrangedList == other.arrangedList &&
           code == other.code &&
-          name == other.name;
+          name == other.name &&
+          sectionTimes == other.sectionTimes;
 }
 
 class BridgeYgdkItem {

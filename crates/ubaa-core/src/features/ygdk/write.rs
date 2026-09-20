@@ -244,6 +244,7 @@ fn sanitize_authority_error(error: UbaaError) -> UbaaError {
         ErrorCode::UpstreamUnavailable => "阳光打卡资格核对服务暂时不可用",
         ErrorCode::ParseError => "阳光打卡资格核对响应无法解析",
         ErrorCode::OutcomeUnknown => "阳光打卡资格核对结果未知",
+        ErrorCode::Unsupported => "阳光打卡资格核对暂不支持",
         ErrorCode::AuthenticationRequired | ErrorCode::InternalError | ErrorCode::InvalidInput => {
             return error;
         }
@@ -265,6 +266,7 @@ mod tests {
             (ErrorCode::NetworkError, ErrorKind::Network, true),
             (ErrorCode::Timeout, ErrorKind::Network, true),
             (ErrorCode::UpstreamUnavailable, ErrorKind::Upstream, true),
+            (ErrorCode::Unsupported, ErrorKind::Upstream, false),
         ] {
             let sanitized = sanitize_authority_error(UbaaError::new(
                 code,

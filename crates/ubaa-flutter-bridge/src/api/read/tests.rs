@@ -4,6 +4,52 @@ use super::*;
 use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeErrorCode};
 use ubaa_core::facade as domain;
 
+#[test]
+fn unsupported_exam_keeps_typed_code_and_route() {
+    let error = crate::api::client::BridgeError::from_core(
+        domain::UbaaError::new(
+            domain::ErrorCode::Unsupported,
+            domain::ErrorKind::Upstream,
+            false,
+            "暂不支持",
+        ),
+        Some(BridgeConnectionMode::WebVpn),
+    );
+    assert_eq!(error.code, BridgeErrorCode::Unsupported);
+    assert_eq!(error.kind, crate::api::client::BridgeErrorKind::Upstream);
+    assert!(!error.retryable);
+    assert_eq!(error.resolved_route, Some(BridgeConnectionMode::WebVpn));
+}
+
+#[test]
+fn graduate_overview_preserves_core_statistics_and_historical_terms() {
+    let statistics = domain::GradeStatistics {
+        gpa: Some(3.125),
+        average_score: None,
+        gpa_credits: 2.0,
+        average_credits: 0.0,
+    };
+    let result = super::mappers::map_grade_overview(domain::GradeOverview {
+        graduate: true,
+        grades: vec![domain::Grade {
+            graduate: true,
+            term_name: Some("历史学期".into()),
+            ..Default::default()
+        }],
+        statistics: Some(statistics.clone()),
+        terms: vec![domain::GradeTermStatistics {
+            term_code: "20251".into(),
+            term_name: "历史学期".into(),
+            statistics,
+        }],
+    });
+    assert!(result.graduate);
+    assert!(result.grades[0].graduate);
+    assert_eq!(result.grades[0].term_name.as_deref(), Some("历史学期"));
+    assert_eq!(result.statistics.as_ref().unwrap().gpa, Some(3.125));
+    assert_eq!(result.terms[0].statistics.average_score, None);
+}
+
 fn target(
     rwid: &str,
     wjid: &str,

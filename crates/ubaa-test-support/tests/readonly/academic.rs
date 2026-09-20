@@ -26,6 +26,7 @@ async fn schedule_and_exam_use_verified_requests_and_sanitized_fixtures() {
     let today_url = format!("{TODAY_URL}?rq={}&lxdm=student", shanghai_date());
     let exam_url = format!("{EXAM_URL}?termCode=2025-2026-1");
     let transport = MockTransport::new([
+        undergraduate_identity(ConnectionMode::Direct),
         expected_get(current_user, r#"{"user":"ok"}"#),
         expected_get(terms_url, readonly_fixture("schedule-terms.json").unwrap()),
         expected_get(current_user, r#"{"user":"ok"}"#),
@@ -48,6 +49,7 @@ async fn schedule_and_exam_use_verified_requests_and_sanitized_fixtures() {
     let observed = transport.clone();
     let mut client =
         RouteClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
+    client.get_user_info().await.unwrap();
 
     assert_eq!(client.schedule_terms().await.unwrap().data.len(), 1);
     assert_eq!(
@@ -83,7 +85,7 @@ async fn schedule_and_exam_use_verified_requests_and_sanitized_fixtures() {
 
     observed.assert_exhausted().unwrap();
     let requests = observed.requests().unwrap();
-    for index in [1, 3, 5, 7] {
+    for index in [2, 4, 6, 8] {
         assert_eq!(
             requests[index].headers.get("Referer").map(String::as_str),
             Some("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html")
@@ -97,15 +99,15 @@ async fn schedule_and_exam_use_verified_requests_and_sanitized_fixtures() {
         );
     }
     assert_eq!(
-        requests[9].headers.get("Referer").map(String::as_str),
+        requests[10].headers.get("Referer").map(String::as_str),
         Some("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/home/index.html")
     );
     assert_eq!(
-        String::from_utf8(requests[5].body.clone()).unwrap(),
+        String::from_utf8(requests[6].body.clone()).unwrap(),
         "termCode=2025-2026-1&type=week&week=1"
     );
     assert_eq!(
-        requests[5].headers.get("Content-Type").map(String::as_str),
+        requests[6].headers.get("Content-Type").map(String::as_str),
         Some("application/x-www-form-urlencoded")
     );
 }
@@ -115,6 +117,7 @@ async fn route_client_readonly_authentication_required_clears_the_selected_sessi
     let current_user = CURRENT_USER_URL;
     let terms = TERMS_URL;
     let transport = MockTransport::new([
+        undergraduate_identity(ConnectionMode::Direct),
         expected_get(current_user, r#"{"user":"ok"}"#),
         ExpectedRequest::new(HttpMethod::Get, terms, response(401, terms, "")),
     ]);
@@ -122,6 +125,7 @@ async fn route_client_readonly_authentication_required_clears_the_selected_sessi
     let store = session_store();
     let mut client =
         RouteClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
+    client.get_user_info().await.unwrap();
 
     let error = client
         .schedule_terms()
@@ -140,6 +144,7 @@ async fn schedule_activates_aas_after_the_portal_probe_requires_sso() {
     let aas_login = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp";
     let aas_verify = "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.do?contextPath=/jwapp";
     let transport = MockTransport::new([
+        undergraduate_identity(ConnectionMode::Direct),
         ExpectedRequest::new(
             HttpMethod::Get,
             current_user,
@@ -161,6 +166,7 @@ async fn schedule_activates_aas_after_the_portal_probe_requires_sso() {
     let observed = transport.clone();
     let mut client =
         RouteClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
+    client.get_user_info().await.unwrap();
 
     let result = client.schedule_terms().await.expect("AAS recovery");
 
@@ -180,6 +186,7 @@ async fn schedule_aas_recovery_stays_on_the_webvpn_gateway() {
     let aas_login = to_webvpn_url(direct_aas_login).unwrap();
     let aas_verify = to_webvpn_url(direct_aas_verify).unwrap();
     let transport = MockTransport::new([
+        undergraduate_identity(ConnectionMode::WebVpn),
         ExpectedRequest::new(
             HttpMethod::Get,
             &current_user,
@@ -205,6 +212,7 @@ async fn schedule_aas_recovery_stays_on_the_webvpn_gateway() {
         session_store_for(ConnectionMode::WebVpn, "webvpn-aas-recovery-fixture"),
     )
     .unwrap();
+    client.get_user_info().await.unwrap();
 
     let result = client.schedule_terms().await.expect("WebVPN AAS recovery");
 
@@ -223,6 +231,7 @@ async fn schedule_aas_recovery_stays_on_the_webvpn_gateway() {
 async fn grades_use_verified_activation_form_and_sanitized_fixture() {
     let url = GRADES_URL;
     let transport = MockTransport::new([
+        undergraduate_identity(ConnectionMode::Direct),
         expected_get(url, readonly_fixture("grades-page.html").unwrap()),
         ExpectedRequest::new(
             HttpMethod::Post,
@@ -233,6 +242,7 @@ async fn grades_use_verified_activation_form_and_sanitized_fixture() {
     let observed = transport.clone();
     let mut client =
         RouteClient::with_transport(ConnectionMode::Direct, transport, session_store()).unwrap();
+    client.get_user_info().await.unwrap();
 
     let result = client.grades("2025-2026-1").await.unwrap();
 
@@ -244,21 +254,21 @@ async fn grades_use_verified_activation_form_and_sanitized_fixture() {
     assert_eq!(result.data.grades[0].score.as_deref(), Some("95"));
     observed.assert_exhausted().unwrap();
     let requests = observed.requests().unwrap();
-    assert_eq!(requests[0].method, HttpMethod::Get);
-    assert_eq!(requests[1].method, HttpMethod::Post);
+    assert_eq!(requests[1].method, HttpMethod::Get);
+    assert_eq!(requests[2].method, HttpMethod::Post);
     assert_eq!(
-        String::from_utf8(requests[1].body.clone()).unwrap(),
+        String::from_utf8(requests[2].body.clone()).unwrap(),
         "xq=1&year=2025-2026"
     );
     assert_eq!(
-        requests[1]
+        requests[2]
             .headers
             .get("X-Requested-With")
             .map(String::as_str),
         Some("XMLHttpRequest")
     );
     assert_eq!(
-        requests[1].headers.get("Referer").map(String::as_str),
+        requests[2].headers.get("Referer").map(String::as_str),
         Some(url)
     );
 }
@@ -322,6 +332,7 @@ async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
     let schedule_referer =
         to_webvpn_url("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html").unwrap();
     let schedule_transport = MockTransport::new([
+        undergraduate_identity(ConnectionMode::WebVpn),
         expected_get(&current_user, r#"{"user":"ok"}"#),
         expected_get(&terms, readonly_fixture("schedule-terms.json").unwrap()),
     ]);
@@ -332,20 +343,21 @@ async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
         session_store_for(ConnectionMode::WebVpn, "webvpn-schedule-fixture"),
     )
     .unwrap();
+    schedule_client.get_user_info().await.unwrap();
     schedule_client.schedule_terms().await.unwrap();
     schedule_observed.assert_exhausted().unwrap();
     for request in schedule_observed.requests().unwrap() {
         assert!(request.url.starts_with("https://d.buaa.edu.cn/"));
     }
     assert_eq!(
-        schedule_observed.requests().unwrap()[0]
+        schedule_observed.requests().unwrap()[1]
             .headers
             .get("Referer")
             .map(String::as_str),
         Some(schedule_referer.as_str())
     );
     assert_eq!(
-        schedule_observed.requests().unwrap()[1]
+        schedule_observed.requests().unwrap()[2]
             .headers
             .get("Referer")
             .map(String::as_str),
@@ -386,6 +398,7 @@ async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
 
     let grades_url = to_webvpn_url(GRADES_URL).unwrap();
     let grades_transport = MockTransport::new([
+        undergraduate_identity(ConnectionMode::WebVpn),
         expected_get(&grades_url, readonly_fixture("grades-page.html").unwrap()),
         ExpectedRequest::new(
             HttpMethod::Post,
@@ -400,13 +413,14 @@ async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
         session_store_for(ConnectionMode::WebVpn, "webvpn-grades-fixture"),
     )
     .unwrap();
+    grades_client.get_user_info().await.unwrap();
     grades_client.grades("2025-2026-1").await.unwrap();
     grades_observed.assert_exhausted().unwrap();
     for request in grades_observed.requests().unwrap() {
         assert!(request.url.starts_with("https://d.buaa.edu.cn/"));
     }
     assert_eq!(
-        grades_observed.requests().unwrap()[1]
+        grades_observed.requests().unwrap()[2]
             .headers
             .get("Referer")
             .map(String::as_str),
@@ -431,4 +445,17 @@ fn shanghai_date() -> String {
     let month = mp + if mp < 10 { 3 } else { -9 };
     year += i64::from(month <= 2);
     format!("{year:04}-{month:02}-{day:02}")
+}
+
+// Academic reads need a verified undergraduate identity, not an anonymous SID.
+fn undergraduate_identity(mode: ConnectionMode) -> ExpectedRequest {
+    let direct = "https://uc.buaa.edu.cn/api/uc/userinfo";
+    let url = match mode {
+        ConnectionMode::Direct => direct.to_owned(),
+        ConnectionMode::WebVpn => to_webvpn_url(direct).unwrap(),
+    };
+    expected_get(
+        &url,
+        r#"{"code":0,"data":{"schoolId":"19000001","username":"19000001"}}"#,
+    )
 }

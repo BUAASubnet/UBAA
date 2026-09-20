@@ -38,7 +38,9 @@ pub(crate) async fn get_user_info(
     if response.status != 200 {
         return Err(status_error(response.status, "用户中心资料请求失败"));
     }
-    parse_user_info(&body)
+    let profile = parse_user_info(&body)?;
+    runtime.remember_account_name(profile.school_id.as_deref().or(profile.username.as_deref()));
+    Ok(profile)
 }
 
 pub(crate) async fn validate_status(
@@ -71,6 +73,7 @@ pub(crate) async fn validate_status(
         }
     };
     let (authenticated_at, last_activity) = runtime.refresh_authentication(clear_workflow)?;
+    runtime.remember_account_name(user.school_id.as_deref().or(user.username.as_deref()));
     Ok(AuthStatus {
         user,
         authenticated_at,

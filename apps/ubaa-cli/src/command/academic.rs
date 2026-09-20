@@ -40,6 +40,8 @@ pub struct ExamArgs {
 /// 考试操作。
 #[derive(Debug, Subcommand)]
 pub enum ExamCommand {
+    /// 列出考试应用提供的学期。
+    Terms,
     /// 列出指定学期的考试。
     List {
         #[arg(long)]
@@ -57,6 +59,8 @@ pub struct GradesArgs {
 /// 成绩操作。
 #[derive(Debug, Subcommand)]
 pub enum GradesCommand {
+    /// 查询研究生全部学期成绩与 GPA 统计。
+    Overview,
     /// 列出指定学期的成绩。
     List {
         #[arg(long)]

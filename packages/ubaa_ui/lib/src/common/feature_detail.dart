@@ -158,6 +158,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                 ),
               if (widget.snapshot.overview case final overview?
                   when overview is! GradesTermOverview &&
+                      overview is! AcademicApplicationOverview &&
                       (widget.snapshot.status == FeatureLoadStatus.success ||
                           widget.snapshot.status == FeatureLoadStatus.empty ||
                           widget.snapshot.status == FeatureLoadStatus.stale))

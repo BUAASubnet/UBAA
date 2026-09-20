@@ -36,6 +36,83 @@ fn aggregate_facade_opens_without_config_or_session() {
 struct CountingTransport(Arc<AtomicUsize>);
 
 #[derive(Clone)]
+struct AcademicIdentityTransport {
+    student: &'static str,
+    profiles: Arc<AtomicUsize>,
+}
+
+#[async_trait]
+impl HttpTransport for AcademicIdentityTransport {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if request.url.ends_with("/api/uc/userinfo") {
+            self.profiles.fetch_add(1, Ordering::SeqCst);
+            let body = serde_json::json!({"code":0,"data":{"schoolid":self.student,"username":"fixture-alias"}});
+            return Ok(HttpResponse::new(
+                200,
+                request.url,
+                serde_json::to_vec(&body).unwrap(),
+            ));
+        }
+        assert_ne!(
+            self.student, "623000001",
+            "unknown identity must not query either academic system"
+        );
+        assert_eq!(
+            request.url.contains("gsmis.buaa.edu.cn"),
+            self.student.to_ascii_uppercase().starts_with("SY")
+        );
+        Ok(HttpResponse::new(503, request.url, Vec::new()))
+    }
+}
+
+#[test]
+fn restored_session_recovers_identity_once_and_rejects_unknown_numbers() {
+    let executor = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    for student in [
+        "19000001",
+        "SY2600001",
+        "sy2600001",
+        "Sy2600001",
+        "623000001",
+    ] {
+        let root = test_root("academic-identity");
+        let store = FileSessionStore::new(&root).unwrap();
+        store
+            .save(&SessionSnapshot {
+                mode: ConnectionMode::Direct,
+                cookies: vec![],
+                authenticated_at: 1000,
+                last_activity: 1001,
+            })
+            .unwrap();
+        let profiles = Arc::new(AtomicUsize::new(0));
+        let transport = AcademicIdentityTransport {
+            student,
+            profiles: profiles.clone(),
+        };
+        let mut client = UbaaClient::with_routing(
+            transport.clone(),
+            transport,
+            store,
+            RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
+            NeverProbe,
+        )
+        .unwrap();
+        let first = executor.block_on(client.schedule_terms()).unwrap_err();
+        let second = executor.block_on(client.exam_terms()).unwrap_err();
+        if student == "623000001" {
+            assert_eq!(first.error.code, ErrorCode::InvalidInput);
+            assert_eq!(second.error.code, ErrorCode::InvalidInput);
+        }
+        assert_eq!(profiles.load(Ordering::SeqCst), 1);
+        let _ = std::fs::remove_dir_all(root);
+    }
+}
+
+#[derive(Clone)]
 struct TaggedTransport {
     calls: Arc<AtomicUsize>,
     status: u16,

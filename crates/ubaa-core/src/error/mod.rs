@@ -18,6 +18,8 @@ pub enum ErrorCode {
     PasswordRiskConfirmationFailed,
     /// 已认证账号缺少权限。
     PermissionDenied,
+    /// 已知功能或数据形态尚未适配。
+    Unsupported,
     /// 网络操作失败。
     NetworkError,
     /// 有界网络操作超时。

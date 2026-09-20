@@ -43,7 +43,16 @@ class _CharacterizationBridgeClient implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 9;
+  int contractVersion() => 10;
+
+  @override
+  Future<BridgeRoutedGradeOverview> gradeOverview() async =>
+      const BridgeRoutedGradeOverview(
+        data: BridgeGradeOverview(graduate: false, grades: [], terms: []),
+        route: _webVpnRoute,
+      );
+  @override
+  Future<BridgeRoutedTerms> examTerms() => scheduleTerms();
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
@@ -416,6 +425,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
                   ? const <BridgeGrade>[]
                   : const <BridgeGrade>[
                       BridgeGrade(
+                        graduate: false,
                         courseName: '成绩课程',
                         courseCode: 'GRADE1',
                         score: '95',
@@ -616,6 +626,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
         return Future<BridgeRoutedWeeklySchedule>.value(
           BridgeRoutedWeeklySchedule(
             data: BridgeWeeklySchedule(
+              sectionTimes: const [],
               arrangedList: emptyReads
                   ? const <BridgeCourseClass>[]
                   : const <BridgeCourseClass>[

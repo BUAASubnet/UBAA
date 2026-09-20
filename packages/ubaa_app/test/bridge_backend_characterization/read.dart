@@ -594,6 +594,7 @@ void registerBridgeBackendReadCharacterization() {
       'cgyySites',
       'classroomSearch:campus=2,date=2026-09-04',
       'evaluationAll',
+      'scheduleTerms',
       'examArrangement:term=2026-fall',
       'grades:term=2026-fall',
       'judgeAssignment:courseId=course-1,assignmentId=assignment-1',
