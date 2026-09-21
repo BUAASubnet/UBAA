@@ -9,6 +9,7 @@ import '../contracts/lifecycle.dart';
 import '../contracts/offline.dart';
 import '../contracts/query.dart';
 import '../contracts/routing.dart';
+import '../contracts/recovery.dart';
 import '../contracts/write.dart';
 import '../presentation/grades.dart';
 import '../write/cgyy_validation.dart';
@@ -31,6 +32,7 @@ part 'app_controller/diagnostics.dart';
 part 'app_controller/offline_startup.dart';
 part 'app_controller/offline/cache.dart';
 part 'app_controller/offline/resume.dart';
+part 'app_controller/offline/required.dart';
 part 'app_controller/authentication.dart';
 
 enum AppPhase { splash, checkingSession, login, loggingIn, home }
@@ -109,9 +111,19 @@ class AppController extends ChangeNotifier {
   final LocalAccountStore? _localAccountStore;
   LocalAccount? _localAccount;
   bool _isSigningOut = false;
+  bool _automaticCredentialBlocked = false;
   bool _appForeground = true;
-  Completer<void>? _deferredRecovery;
+  final _queuedRecoveries = <FeatureId, _RecoveryRequest>{};
+  _RecoveryRequest? _activeRecovery;
+  ConnectionMode? _recoveredRoute;
+  final _featureRecoveryStates = <FeatureId, SessionRecoveryStatus>{};
+  final _featureRecoveryErrors = <FeatureId, UiError>{};
+  int _readRequestRevision = 0;
+  SessionRecoveryStatus recoveryStatusFor(FeatureId feature) =>
+      _featureRecoveryStates[feature] ?? SessionRecoveryStatus.idle;
+  ConnectionMode? get recoveredRoute => _recoveredRoute;
   bool _deferredRecoveryScheduled = false;
+  int? _pendingHomeRecoveryEpoch;
   UiError? _localCacheError;
   UiError? get localCacheError => _localCacheError;
   bool _usesLocalRecovery = false;
@@ -133,7 +145,10 @@ class AppController extends ChangeNotifier {
     }
   }
 
-  Future<void> recoverSession() => _recoverSession();
+  Future<void> recoverSession({
+    FeatureId feature = FeatureId.schedule,
+    bool refreshHomeAfter = true,
+  }) => _recoverSession(feature: feature, refreshHomeAfter: refreshHomeAfter);
 
   /// 生命周期只更新可见状态；后台不开始未发送的恢复或首页同步。
   void setAppForeground(bool foreground) {
@@ -431,8 +446,12 @@ class AppController extends ChangeNotifier {
   Future<void> refreshHome({Iterable<FeatureId>? only}) =>
       _refreshHome(only: only);
 
-  Future<void> retryFeature(FeatureId feature) =>
-      refreshHome(only: <FeatureId>[feature]);
+  Future<void> retryFeature(FeatureId feature) {
+    final query = _snapshots[feature]?.readContext?.query;
+    return query == null
+        ? refreshHome(only: <FeatureId>[feature])
+        : refreshFeatureQuery(feature, query);
+  }
 
   /// 对支持 [FeatureQueryBackend] 的生产实现执行单领域筛选读取。
   Future<void> refreshFeatureQuery(FeatureId feature, FeatureQuery query) =>
@@ -816,6 +835,9 @@ class AppController extends ChangeNotifier {
   };
 
   void _resetFeatureSnapshots({bool advanceLifecycle = true}) {
+    _featureRecoveryStates.clear();
+    _featureRecoveryErrors.clear();
+    _recoveredRoute = null;
     _readCacheEpoch++;
     if (advanceLifecycle) _lifecycleEpoch++;
     _ygdkGeneration++;

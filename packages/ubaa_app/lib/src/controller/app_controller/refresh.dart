@@ -18,13 +18,24 @@ extension _AppControllerRefresh on AppController {
     final lifecycleEpoch = _lifecycleEpoch;
     final features = (only ?? _homeDefaultFeatures).toList(growable: false);
     final generations = <FeatureId, int>{
-      for (final feature in features) feature: _nextFeatureGeneration(feature),
+      for (final feature in features) feature: ++_readRequestRevision,
     };
-    final ygdkGeneration = features.contains(FeatureId.ygdk)
+    final ygdkGeneration =
+        features.contains(FeatureId.ygdk) &&
+            _snapshots[FeatureId.ygdk]?.readContext?.query == null
         ? ++_ygdkGeneration
         : null;
     for (final feature in features) {
-      _beginFeatureRead(feature, generations[feature]!, null);
+      final generation = generations[feature]!;
+      if (_snapshots[feature]?.readContext?.query != null) {
+        _beginHomeDefault(
+          feature,
+          FeatureReadContext(requestRevision: generation),
+        );
+      } else {
+        _featureRefreshGenerations[feature] = generation;
+        _beginFeatureRead(feature, generation, null);
+      }
     }
     _notify();
     await Future.wait(
@@ -102,7 +113,7 @@ extension _AppControllerRefresh on AppController {
   }
 
   int _nextFeatureGeneration(FeatureId feature) {
-    final next = (_featureRefreshGenerations[feature] ?? 0) + 1;
+    final next = ++_readRequestRevision;
     _featureRefreshGenerations[feature] = next;
     return next;
   }
@@ -136,7 +147,22 @@ extension _AppControllerRefresh on AppController {
             previous.evidence != null);
     try {
       if (_usesLocalRecovery) {
-        await _requireReadSession();
+        if (query != null && _backend is RequiredSessionBackend) {
+          await _recoverSession(feature: feature, refreshHomeAfter: false);
+          if (_disposed || lifecycleEpoch != _lifecycleEpoch) return;
+          final status = recoveryStatusFor(feature);
+          if (status != SessionRecoveryStatus.ready) {
+            if (_featureRecoveryErrors[feature] case final error?)
+              throw BackendException.fromUi(error);
+            throw BackendException(
+              status == SessionRecoveryStatus.unavailable
+                  ? UbaaErrorCode.networkError
+                  : UbaaErrorCode.authenticationRequired,
+            );
+          }
+        } else {
+          await _requireReadSession(feature: feature);
+        }
         if (_disposed || lifecycleEpoch != _lifecycleEpoch) return;
       }
       final result =

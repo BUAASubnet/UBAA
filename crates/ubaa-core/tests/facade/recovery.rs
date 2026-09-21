@@ -192,3 +192,111 @@ fn required_session_auto_preserves_core_feature_route_without_guessing() {
     assert_eq!(probe_calls.load(Ordering::SeqCst), 1);
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn required_route_login_failure_never_contacts_the_sibling_route() {
+    for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+        let root = test_root("required-route-login");
+        let requested = Arc::new(AtomicUsize::new(0));
+        let sibling = Arc::new(AtomicUsize::new(0));
+        let failing = TaggedTransport {
+            calls: requested.clone(),
+            status: 503,
+        };
+        let untouched = CountingTransport(sibling.clone());
+        let store = FileSessionStore::new(&root).unwrap();
+        let mut client = if route == ConnectionMode::Direct {
+            UbaaClient::with_routing(
+                failing,
+                untouched,
+                store,
+                RouteConfig::default(),
+                NeverProbe,
+            )
+        } else {
+            UbaaClient::with_routing(
+                untouched,
+                failing,
+                store,
+                RouteConfig::default(),
+                NeverProbe,
+            )
+        }
+        .unwrap();
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let error = runtime
+            .block_on(client.login_required_route(
+                route,
+                ubaa_core::facade::LoginInput {
+                    username: "fixture-user".into(),
+                    password: ubaa_core::facade::SecretValue::new("synthetic"),
+                },
+            ))
+            .unwrap_err();
+        assert_eq!(error.code, ErrorCode::UpstreamUnavailable);
+        assert!(requested.load(Ordering::SeqCst) > 0);
+        assert_eq!(sibling.load(Ordering::SeqCst), 0);
+        let _ = std::fs::remove_dir_all(root);
+    }
+}
+
+#[derive(Clone)]
+struct ExistingSsoTransport(Arc<std::sync::Mutex<Vec<HttpRequest>>>);
+#[async_trait]
+impl HttpTransport for ExistingSsoTransport {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        self.0.lock().unwrap().push(request.clone());
+        assert_eq!(request.method, ubaa_core::facade::testing::HttpMethod::Get);
+        let response = match request.url.as_str() {
+            "https://sso.buaa.edu.cn/login" => HttpResponse::new(302, request.url, Vec::new()),
+            "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin" => {
+                HttpResponse::new(200, request.url, b"ready".to_vec())
+            }
+            "https://uc.buaa.edu.cn/api/uc/status" | "https://uc.buaa.edu.cn/api/uc/userinfo" => {
+                HttpResponse::new(
+                    200,
+                    request.url,
+                    include_bytes!("../../../../fixtures/auth/userinfo-success.json").to_vec(),
+                )
+            }
+            _ => panic!("不应增加认证请求"),
+        };
+        Ok(response)
+    }
+}
+#[test]
+fn required_route_login_reuses_valid_sso_and_returns_the_pinned_profile() {
+    let root = test_root("required-route-existing-sso");
+    let requests = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let sibling = Arc::new(AtomicUsize::new(0));
+    let mut client = UbaaClient::with_routing(
+        ExistingSsoTransport(requests.clone()),
+        CountingTransport(sibling.clone()),
+        FileSessionStore::new(&root).unwrap(),
+        RouteConfig::default(),
+        NeverProbe,
+    )
+    .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let result = runtime
+        .block_on(client.login_required_route(
+            ConnectionMode::Direct,
+            ubaa_core::facade::LoginInput {
+                username: "fixture-user".into(),
+                password: ubaa_core::facade::SecretValue::new("synthetic"),
+            },
+        ))
+        .unwrap();
+    assert_eq!(result.pinned_route, ConnectionMode::Direct);
+    assert_eq!(result.data.username.as_deref(), Some("fixture-user"));
+    assert_eq!(sibling.load(Ordering::SeqCst), 0);
+    assert_eq!(requests.lock().unwrap().len(), 4);
+    assert_eq!(client.active_routes(), vec![ConnectionMode::Direct]);
+    let _ = std::fs::remove_dir_all(root);
+}

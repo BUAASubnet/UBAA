@@ -172,6 +172,7 @@ extension _AppControllerAuthentication on AppController {
         retainSession: input.rememberPassword,
       );
       if (!current()) return;
+      if (_error == null) _automaticCredentialBlocked = false;
       _sessionRecoveryStatus = SessionRecoveryStatus.ready;
       _setPhase(AppPhase.home);
       await _recordAppOpen();

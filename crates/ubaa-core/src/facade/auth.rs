@@ -26,6 +26,24 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
+    /// 登录校验结果指定的所需路线，不附带另一条路线的认证。
+    ///
+    /// # Errors
+    /// 双槽所有权冲突或所选路线的原认证流程失败时返回稳定错误。
+    pub async fn login_required_route(
+        &mut self,
+        route: ConnectionMode,
+        input: LoginInput,
+    ) -> Result<super::types::CallerPinned<UserProfile>> {
+        self.guard_latest_session_ownership()?;
+        let result = self.login_route(route, input).await;
+        self.clear_on_session_conflict()?;
+        result.map(|data| super::types::CallerPinned {
+            data,
+            pinned_route: route,
+        })
+    }
+
     /// 按固定 Direct、`WebVPN` 顺序准备两条路线并返回安全路线状态。
     pub async fn prepare_login(&mut self) -> DualLoginPreparation {
         if let Err(error) = self.guard_latest_session_ownership() {

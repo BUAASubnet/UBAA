@@ -29,20 +29,28 @@ Future<AuthStatus> _authStatus(BridgeBackend backend) async {
 Future<UserSummary?> _userInfo(BridgeBackend backend) async {
   try {
     final result = await backend.client.userInfo();
-    final profile = result.data;
-    final username = profile.username?.trim();
-    if (username == null || username.isEmpty) return null;
-    return UserSummary(
-      username: username,
-      displayName: _nonBlank(profile.name),
-      schoolId: _nonBlank(profile.schoolId),
-      email: _nonBlank(profile.email),
-      phone: _nonBlank(profile.phone),
-      idCardTypeName: _nonBlank(profile.idCardTypeName),
-    );
+    return _profileSummary(result.data);
   } on BridgeError catch (error) {
     throw _mapError(error);
   }
+}
+
+UserSummary? _profileSummary(
+  BridgeUserProfile profile, {
+  bool allowSchoolIdIdentity = false,
+}) {
+  final username =
+      _nonBlank(profile.username) ??
+      (allowSchoolIdIdentity ? _nonBlank(profile.schoolId) : null);
+  if (username == null || username.isEmpty) return null;
+  return UserSummary(
+    username: username,
+    displayName: _nonBlank(profile.name),
+    schoolId: _nonBlank(profile.schoolId),
+    email: _nonBlank(profile.email),
+    phone: _nonBlank(profile.phone),
+    idCardTypeName: _nonBlank(profile.idCardTypeName),
+  );
 }
 
 Future<void> _prepareLogin(BridgeBackend backend, RoutePolicy policy) async {

@@ -46,77 +46,50 @@ extension _AppControllerOfflineStartup on AppController {
     }
   }
 
-  Future<void> _recoverSession() {
+  Future<void> _recoverSession({
+    FeatureId feature = FeatureId.schedule,
+    bool refreshHomeAfter = true,
+  }) {
     if (_disposed ||
         _isSigningOut ||
         !_usesLocalRecovery ||
         _phase != AppPhase.home)
       return Future<void>.value();
-    final existing = _sessionRecoveryFuture;
-    if (existing != null) return existing;
-    // 已准备/提交的操作使用自己的路线和资格；认证不能破坏它的生命周期。
-    if (_recoveryMustWait) return _deferRecovery();
-    final deferred = _deferredRecovery;
-    _deferredRecovery = null;
-    final completer = Completer<void>();
-    _sessionRecoveryFuture = completer.future;
-    final epoch = _lifecycleEpoch;
-    _writeTransitions++;
-    _sessionRecoveryStatus = SessionRecoveryStatus.restoring;
-    _writeCoordinator.invalidate();
-    _notify();
-    unawaited(
-      _performSessionRecovery(epoch).whenComplete(() {
-        _writeTransitions--;
-        _sessionRecoveryFuture = null;
-        if (!_disposed) _notify();
-        completer.complete();
-        if (deferred != null && !deferred.isCompleted) deferred.complete();
-      }),
+    final active = _activeRecovery;
+    if (active != null && active.feature == feature) {
+      active.refreshHomeAfter |= refreshHomeAfter;
+      active.interactive |= !refreshHomeAfter;
+      return active.completion.future;
+    }
+    final request = _queuedRecoveries.putIfAbsent(
+      feature,
+      () => _RecoveryRequest(feature, _lifecycleEpoch, refreshHomeAfter),
     );
-    return completer.future;
+    request.refreshHomeAfter |= refreshHomeAfter;
+    request.interactive |= !refreshHomeAfter;
+    _startNextRecovery();
+    return request.completion.future;
   }
 
   bool _recoveryIsCurrent(int epoch) =>
       !_disposed && epoch == _lifecycleEpoch && _phase == AppPhase.home;
 
-  Future<void> _performSessionRecovery(int epoch) async {
+  Future<void> _performSessionRecovery(_RecoveryRequest request) async {
+    final epoch = request.epoch;
     try {
       if (_backend case final RouteSettingsBackend settings) {
         final result = await settings.routeSettings();
         if (!_recoveryIsCurrent(epoch)) return;
         _applyRouteSettings(result);
       }
-      final status = await _backend.authStatus();
-      if (!_recoveryIsCurrent(epoch)) return;
-      if (status == AuthStatus.signedOut) {
-        final saved = await _credentialVault.read();
-        if (!_recoveryIsCurrent(epoch)) return;
-        if (saved == null ||
-            !saved.isUsable ||
-            !saved.autoLogin ||
-            !_credentialVault.isAvailable ||
-            (_localAccount != null &&
-                saved.username != _localAccount!.username) ||
-            (_localAccount == null &&
-                _user != null &&
-                saved.username != _user!.username &&
-                saved.username != _user!.schoolId)) {
-          _sessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
-          return;
-        }
-        await _backend.login(
-          LoginInput(
-            username: saved.username,
-            password: saved.password,
-            rememberPassword: true,
-            autoLogin: true,
-            routePolicy: _loginForm.routePolicy,
-          ),
-        );
-        if (!_recoveryIsCurrent(epoch)) return;
-      }
-      final profile = await _backend.userInfo();
+      final backend = _backend;
+      final profile = backend is RequiredSessionBackend
+          ? await _recoverRequiredProfile(
+              backend as RequiredSessionBackend,
+              request.feature,
+              epoch,
+            )
+          : await _recoverLegacyProfile(epoch);
       if (!_recoveryIsCurrent(epoch)) return;
       if (profile == null) {
         _sessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
@@ -136,9 +109,14 @@ extension _AppControllerOfflineStartup on AppController {
       _error = null;
       _sessionRecoveryStatus = SessionRecoveryStatus.ready;
       _notify();
-      if (_appForeground) unawaited(refreshHome());
+      if (request.refreshHomeAfter) _pendingHomeRecoveryEpoch = epoch;
     } on Object catch (error, stackTrace) {
       if (!_recoveryIsCurrent(epoch)) return;
+      if (error is BackendException &&
+          (error.code == UbaaErrorCode.invalidCredentials ||
+              error.code == UbaaErrorCode.upstreamChanged)) {
+        _automaticCredentialBlocked = true;
+      }
       if (error is BackendException &&
           error.code == UbaaErrorCode.invalidCredentials) {
         try {
@@ -165,8 +143,12 @@ extension _AppControllerOfflineStartup on AppController {
     }
   }
 
-  Future<void> _requireReadSession() async {
+  Future<void> _requireReadSession({FeatureId? feature}) async {
     if (!_usesLocalRecovery) return;
+    if (_backend is RequiredSessionBackend &&
+        feature != null &&
+        recoveryStatusFor(feature) == SessionRecoveryStatus.ready)
+      return;
     final pending = _sessionRecoveryFuture;
     if (pending != null) await pending;
     if (_disposed)

@@ -12,6 +12,7 @@ import '../write/ygdk_validation.dart';
 
 part 'common.dart';
 part 'offline.dart';
+part 'recovery.dart';
 part 'read/academic.dart';
 part 'read/assignments.dart';
 part 'read/bykc.dart';
@@ -24,7 +25,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 11;
+const _supportedBridgeContractVersion = 12;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -46,6 +47,7 @@ class BridgeBackend
         CgyyWriteBackend,
         EvaluationWriteBackend,
         RouteSettingsBackend,
+        RequiredSessionBackend,
         OfflineCacheBackend,
         BackendLifecycle {
   BridgeBackend(this.client, {this.configDirectory}) {
@@ -84,6 +86,15 @@ class BridgeBackend
     _offlineCache = null;
     _offlineAccount = null;
   });
+
+  @override
+  Future<RecoveredRouteSession> recoverRequiredSession(FeatureId feature) =>
+      _recoverRequiredSession(this, feature);
+  @override
+  Future<RecoveredRouteSession> loginRequiredRoute(
+    ConnectionMode route,
+    LoginInput input,
+  ) => _loginRequiredRoute(this, route, input);
 
   @override
   Future<AuthStatus> authStatus() => _authStatus(this);

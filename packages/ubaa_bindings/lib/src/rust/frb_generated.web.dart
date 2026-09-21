@@ -9,6 +9,7 @@
 import 'api/client.dart';
 import 'api/offline.dart';
 import 'api/read.dart';
+import 'api/recovery.dart';
 import 'api/simple.dart';
 import 'api/write.dart';
 import 'dart:async';
@@ -473,6 +474,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgePhotoUpload dco_decode_bridge_photo_upload(dynamic raw);
+
+  @protected
+  BridgeRecoveryFeature dco_decode_bridge_recovery_feature(dynamic raw);
+
+  @protected
+  BridgeRequiredSession dco_decode_bridge_required_session(dynamic raw);
 
   @protected
   BridgeRouteDecision dco_decode_bridge_route_decision(dynamic raw);
@@ -1523,6 +1530,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgePhotoUpload sse_decode_bridge_photo_upload(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRecoveryFeature sse_decode_bridge_recovery_feature(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeRequiredSession sse_decode_bridge_required_session(
     SseDeserializer deserializer,
   );
 
@@ -2807,6 +2824,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_photo_upload(
     BridgePhotoUpload self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_recovery_feature(
+    BridgeRecoveryFeature self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_required_session(
+    BridgeRequiredSession self,
     SseSerializer serializer,
   );
 

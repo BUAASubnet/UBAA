@@ -1,11 +1,16 @@
 part of '../../app_controller.dart';
 
-extension _AppControllerDeferredRecovery on AppController {
-  Future<void> _deferRecovery() {
-    final pending = _deferredRecovery ??= Completer<void>();
-    return pending.future;
-  }
+final class _RecoveryRequest {
+  _RecoveryRequest(this.feature, this.epoch, this.refreshHomeAfter)
+    : interactive = !refreshHomeAfter;
+  final FeatureId feature;
+  final int epoch;
+  bool refreshHomeAfter;
+  bool interactive;
+  final completion = Completer<void>();
+}
 
+extension _AppControllerDeferredRecovery on AppController {
   bool get _recoveryMustWait =>
       !_appForeground ||
       isLoggingIn ||
@@ -13,39 +18,82 @@ extension _AppControllerDeferredRecovery on AppController {
       _writeCoordinator.hasPendingOperation;
 
   void _cancelDeferredRecovery() {
-    final pending = _deferredRecovery;
-    _deferredRecovery = null;
-    if (pending != null && !pending.isCompleted) pending.complete();
+    final requests = _queuedRecoveries.values.toList();
+    _queuedRecoveries.clear();
+    _pendingHomeRecoveryEpoch = null;
+    for (final request in requests) {
+      if (!request.completion.isCompleted) request.completion.complete();
+    }
   }
 
   void _drainDeferredRecovery() {
-    if (_deferredRecovery == null || _deferredRecoveryScheduled) return;
+    if ((_queuedRecoveries.isEmpty && _pendingHomeRecoveryEpoch == null) ||
+        _deferredRecoveryScheduled)
+      return;
     if (_disposed || _isSigningOut || _phase == AppPhase.login) {
       _cancelDeferredRecovery();
       return;
     }
-    if (_phase != AppPhase.home || _recoveryMustWait) return;
+    if (_phase != AppPhase.home || _recoveryMustWait || _activeRecovery != null)
+      return;
     _deferredRecoveryScheduled = true;
     scheduleMicrotask(() {
       _deferredRecoveryScheduled = false;
-      if (_disposed || _isSigningOut || _phase != AppPhase.home) {
-        _cancelDeferredRecovery();
-        return;
-      }
-      if (_recoveryMustWait) return;
-      final pending = _deferredRecovery;
-      if (pending == null) return;
-      _deferredRecovery = null;
-      unawaited(
-        _recoverSession().then(
-          (_) {
-            if (!pending.isCompleted) pending.complete();
-          },
-          onError: (Object error, StackTrace stack) {
-            if (!pending.isCompleted) pending.completeError(error, stack);
-          },
-        ),
-      );
+      _startNextRecovery();
     });
+  }
+
+  void _startNextRecovery() {
+    if (_disposed || _isSigningOut || _phase != AppPhase.home) {
+      _cancelDeferredRecovery();
+      return;
+    }
+    if (_activeRecovery != null || _recoveryMustWait) return;
+    for (final request in _queuedRecoveries.values.toList()) {
+      if (request.epoch != _lifecycleEpoch) {
+        _queuedRecoveries.remove(request.feature);
+        request.completion.complete();
+      }
+    }
+    if (_queuedRecoveries.isEmpty) {
+      final epoch = _pendingHomeRecoveryEpoch;
+      _pendingHomeRecoveryEpoch = null;
+      if (epoch == _lifecycleEpoch) unawaited(refreshHome());
+      return;
+    }
+    // 已发送检查不可抢占；下个安全边界先处理用户显式目标。
+    final explicit = _queuedRecoveries.values.where(
+      (request) => request.interactive,
+    );
+    final request = explicit.isEmpty
+        ? _queuedRecoveries.values.first
+        : explicit.first;
+    _queuedRecoveries.remove(request.feature);
+    _activeRecovery = request;
+    _sessionRecoveryFuture = request.completion.future;
+    _writeTransitions++;
+    _error = null;
+    _sessionRecoveryStatus = SessionRecoveryStatus.restoring;
+    _featureRecoveryStates[request.feature] = SessionRecoveryStatus.restoring;
+    _writeCoordinator.invalidate();
+    _notify();
+    unawaited(
+      _performSessionRecovery(request).whenComplete(() {
+        if (_recoveryIsCurrent(request.epoch)) {
+          _featureRecoveryStates[request.feature] = _sessionRecoveryStatus;
+          final error = _error;
+          if (error == null) {
+            _featureRecoveryErrors.remove(request.feature);
+          } else {
+            _featureRecoveryErrors[request.feature] = error;
+          }
+        }
+        _writeTransitions--;
+        _activeRecovery = null;
+        _sessionRecoveryFuture = null;
+        request.completion.complete();
+        if (!_disposed) _notify();
+      }),
+    );
   }
 }

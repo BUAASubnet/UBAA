@@ -76,3 +76,15 @@ P1 可以暂用旧双路线聚合 backend 的 authStatus/login（设计 4.2 已�
 ## P2-A 生命周期恢复与写流程收尾（实现前）
 
 此步仅调整前台恢复触发及排队，不修改上文认证九列合同或学校请求。既有会话/密码校验仍沿原 backend、原路线与错误分类；不因 resumed 新建持久会话客户端。写准备、待确认、提交及回读都由唯一 WriteCoordinator 拥有，期间恢复请求合并等待；只有活动完全收尾才能开始认证。退出/销毁取消等待，不自动确认或重发。这里只解决生命周期触发与安全等待，所需路线优先及网络长批次让位仍需后续明确合同。
+
+## P2-B 所需路线登录与 Bridge 接线（实现前，2026-09-22）
+
+再次直接核对冻结旧 `LocalConnectionAuth.kt:451` 的登录、表单、UC 验证及模式 Cookie，和示例 `src/api/sso/auth.rs`、`src/request.rs`、`src/store/{cookies,cred}.rs`。状态校验沿本文件开头九列。新 `login_required_route` 声明 caller-pinned 目标；App 只传入 Core 所需路线校验返回的目标，不重算 Auto，不在有效目标会话时提交密码。
+
+| 操作 | CAS/bootstrap/service | 重定向/最终 URL | Cookie/会话 | HTTP/参数 | 头/编码 | 加密/签名 | DTO | 缓存/并发 | 错误/退出 |
+|---|---|---|---|---|---|---|---|---|---|
+| 指定所需路线登录 | 旧模式内 loginUrl/UC 激活；示例 direct SSO 与 login_vpn 分开，VPN service 不与旧模式随意混用；新出口调用现有 AuthWorkflow，不增加 URL | 保留当前 prepare/login_response/UC 最终验证，已有重定向、密码风险、未支持交互边界不变；示例只凭 status 的成功不足以替代 UC | 原 UbaaClient 持有所选路线 AuthWorkflow 和 DualSessionCoordinator，双槽所有权检查；不创建第二客户端 | 复用原 GET 登录页、既有 CAS form POST、UC activate/status/info；不新增字段；execution 和表单内容仍由原解析器确定 | 保留 application/x-www-form-urlencoded 及既有头；示例固定六字段不足以替代旧动态表单 | 无新常量，原表单加密/编码规则保持 | 原 UserProfile，加 caller-pinned route；不返回虚假的双路线 all_ready | 新调用仅持锁完成所需路线，归还后其他任务可执行；密码只用于获准且明确失效的路线 | 继承原细分错误，Bridge 附目标路线；全局冲突仍仲裁；旧 prepare_login/login/auth_status 的双路线语义与 CLI 不变 |
+
+明确差异：旧 WebVPN 登录成功后附带 `establishDirectSsoSession`，而当前 Core 原本就由双路线 facade 显式协调两槽。已接受设计要求所需路线可先服务，因此新单路线出口不附带旧旁路 Direct 登录；其他路线通过其实际任务再恢复。保留旧双路线接口，不把旧旁路复制成持久客户端或让单路线调用暗中访问另一条路线。此为调度范围变化，不是学校协议字段变化。
+
+身份补充核对：旧 `LocalConnectionAuth.kt:360` 使用 `user.schoolid ?: user.username` 建立本地会话身份。新单路线状态投影允许用实际返回的非空 schoolId 作为最小身份，再与本机索引核对；两字段都缺失仍失败，不以姓名、本机缓存或输入值填造上游身份。旧独立 userInfo 的严格投影合同保持不变，完整资料按需读取另行接入。

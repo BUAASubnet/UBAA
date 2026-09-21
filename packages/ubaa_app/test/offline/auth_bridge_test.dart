@@ -15,6 +15,28 @@ void main() {
       ),
     );
   });
+  test('所需路线适配保留 Core 目标与身份，不再调用聚合认证或资料接口', () async {
+    final client = _RequiredClient();
+    final backend = BridgeBackend(client);
+    final recovered = await backend.recoverRequiredSession(FeatureId.signin);
+    expect(client.feature, BridgeRecoveryFeature.signin);
+    expect(recovered.route, ConnectionMode.webvpn);
+    expect(recovered.profile.username, 'fixture-user');
+    await backend.loginRequiredRoute(
+      ConnectionMode.webvpn,
+      const LoginInput(username: 'fixture-user', password: 'synthetic'),
+    );
+    expect(client.loginRoute, BridgeConnectionMode.webVpn);
+  });
+  test('状态只提供已核实学号时仍可作为恢复身份，不能借用本机资料填空', () async {
+    final client = _RequiredClient()
+      ..profile = const BridgeUserProfile(schoolId: 'fixture-user');
+    final recovered = await BridgeBackend(
+      client,
+    ).recoverRequiredSession(FeatureId.schedule);
+    expect(recovered.profile.username, 'fixture-user');
+    expect(recovered.profile.schoolId, 'fixture-user');
+  });
   test('只有两条路线均明确缺少认证时才返回 signedOut', () async {
     expect(
       await BridgeBackend(_Client('authentication_required')).authStatus(),
@@ -27,7 +49,7 @@ class _Client implements BridgeClient {
   _Client(this.code);
   final String code;
   @override
-  int contractVersion() => 11;
+  int contractVersion() => 12;
   @override
   Future<BridgeLoginOutcome> authStatus() async => BridgeLoginOutcome(
     readiness: BridgeLoginReadiness.noneReady,
@@ -56,4 +78,35 @@ class _Client implements BridgeClient {
   );
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _RequiredClient extends _Client {
+  _RequiredClient() : super('authentication_required');
+  BridgeRecoveryFeature? feature;
+  BridgeConnectionMode? loginRoute;
+  BridgeUserProfile profile = const BridgeUserProfile(username: 'fixture-user');
+  @override
+  Future<BridgeLoginOutcome> authStatus() => throw StateError('该路径禁止聚合认证');
+  @override
+  Future<BridgeRequiredSession> recoverRequiredSession({
+    required BridgeRecoveryFeature feature,
+  }) async {
+    this.feature = feature;
+    return _session;
+  }
+
+  @override
+  Future<BridgeRequiredSession> loginRequiredRoute({
+    required BridgeConnectionMode route,
+    required String username,
+    required String password,
+  }) async {
+    loginRoute = route;
+    return _session;
+  }
+
+  BridgeRequiredSession get _session => BridgeRequiredSession(
+    route: BridgeConnectionMode.webVpn,
+    profile: profile,
+  );
 }

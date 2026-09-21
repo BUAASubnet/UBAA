@@ -142,7 +142,7 @@ class _FailingReadClient implements BridgeClient {
   final BridgeErrorCode code;
   final BridgeErrorKind kind;
   @override
-  int contractVersion() => 11;
+  int contractVersion() => 12;
 
   @override
   Future<BridgeRoutedTodayClasses> scheduleToday() async => throw BridgeError(

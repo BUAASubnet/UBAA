@@ -7,6 +7,7 @@ import '../frb_generated.dart';
 import 'offline.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
+import 'recovery.dart';
 import 'write.dart';
 
 // These functions are ignored because they are not marked as `pub`: `catch_panic`, `disposed_error`, `from_core`, `from_routed`, `local`, `map_login_outcome`, `map_preparation`, `map_profile`, `map_route_login`, `map_route`, `map_safe_error`, `panic_error`
@@ -156,6 +157,16 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String password,
   });
 
+  /// 仅向刚校验为缺少认证的目标路线提交获准材料。
+  ///
+  /// # Errors
+  /// 空输入、学校写意图冲突或原认证流程失败时返回稳定错误。
+  Future<BridgeRequiredSession> loginRequiredRoute({
+    required BridgeConnectionMode route,
+    required String username,
+    required String password,
+  });
+
   /// 清理 Core Session 并执行尽力远端注销。
   ///
   /// # Errors
@@ -212,6 +223,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeWriteIntent> prepareYgdkSubmit({
     required BridgeYgdkSubmitRequest request,
+  });
+
+  /// 校验所需路线并在完成后归还客户端锁。
+  ///
+  /// # Errors
+  /// 原路线校验失败、已有学校写意图或客户端失效时返回稳定错误。
+  Future<BridgeRequiredSession> recoverRequiredSession({
+    required BridgeRecoveryFeature feature,
   });
 
   /// 读取全局路线策略与已认证槽位。

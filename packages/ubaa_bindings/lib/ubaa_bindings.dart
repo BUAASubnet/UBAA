@@ -6,3 +6,4 @@ export 'src/rust/api/read.dart';
 export 'src/rust/api/write.dart';
 export 'src/rust/frb_generated.dart' show RustLib;
 export 'src/rust/api/offline.dart';
+export 'src/rust/api/recovery.dart';
