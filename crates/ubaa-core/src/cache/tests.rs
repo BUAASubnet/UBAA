@@ -749,3 +749,131 @@ fn 首页持久投影从类型层面剥离学校写资格与目标() {
         assert!(!text.contains("signinTarget") && !text.contains("submitTarget"));
     }
 }
+
+#[test]
+fn 博雅缓存按页大小筛选路线隔离且不持久化写资格与位置结果() {
+    use crate::domain::{ActionEligibility, BykcCourse, BykcCoursePage};
+    let root = root();
+    let mut repository = open(&root);
+    let query = CacheScope {
+        route: ConnectionMode::Direct,
+        query: CacheQuery::BykcCourses {
+            page: 1,
+            size: 20,
+            all: false,
+        },
+    };
+    let ticket = repository.begin_read(query.clone()).unwrap();
+    let page = BykcCoursePage {
+        content: vec![BykcCourse {
+            id: 42,
+            course_name: "合成课程".into(),
+            select_eligibility: ActionEligibility::Allowed,
+            ..Default::default()
+        }],
+        number: 1,
+        size: 20,
+        ..Default::default()
+    };
+    repository
+        .publish(
+            &ticket,
+            CachePayload::BykcCourses(page.into()),
+            123,
+            CacheCompleteness::Complete,
+        )
+        .unwrap();
+    for (page, size, all, route) in [
+        (2, 20, false, ConnectionMode::Direct),
+        (1, 10, false, ConnectionMode::Direct),
+        (1, 20, true, ConnectionMode::Direct),
+        (1, 20, false, ConnectionMode::WebVpn),
+    ] {
+        assert!(
+            repository
+                .read(
+                    &CacheScope {
+                        route,
+                        query: CacheQuery::BykcCourses { page, size, all }
+                    },
+                    124
+                )
+                .unwrap()
+                .is_none()
+        );
+    }
+    let record = repository.read(&query, 124).unwrap().unwrap();
+    assert!(
+        !serde_json::to_string(&record.payload)
+            .unwrap()
+            .contains("eligibility")
+    );
+    assert!(
+        repository
+            .begin_read(CacheScope {
+                route: ConnectionMode::Direct,
+                query: CacheQuery::BykcCourses {
+                    page: 0,
+                    size: 20,
+                    all: false
+                }
+            })
+            .is_err()
+    );
+    let detail = repository
+        .begin_read(CacheScope {
+            route: ConnectionMode::Direct,
+            query: CacheQuery::BykcDetail { course_id: 42 },
+        })
+        .unwrap();
+    assert_eq!(
+        repository.publish(
+            &detail,
+            CachePayload::BykcDetail(
+                BykcCourse {
+                    id: 43,
+                    ..Default::default()
+                }
+                .into()
+            ),
+            123,
+            CacheCompleteness::Complete
+        ),
+        Err(CacheError::InvalidInput)
+    );
+    drop(repository);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn 博雅已选持久投影不保存写资格或位置结果() {
+    use crate::domain::{ActionEligibility, BykcChosenCourse, BykcSignConfig, BykcSignPoint};
+    let chosen = CachedBykcChosenCourse::from(BykcChosenCourse {
+        id: 1,
+        course_id: 42,
+        sign_info: Some("合成位置结果不得持久化".into()),
+        sign_eligibility: ActionEligibility::Allowed,
+        sign_config: Some(BykcSignConfig {
+            sign_start_date: Some("2026-09-22 08:00:00".into()),
+            sign_points: vec![BykcSignPoint {
+                lat: 1.0,
+                lng: 2.0,
+                radius: 3.0,
+            }],
+            ..Default::default()
+        }),
+        ..Default::default()
+    });
+    let json = serde_json::to_string(&chosen).unwrap();
+    for forbidden in [
+        "eligibility",
+        "sign_info",
+        "sign_points",
+        "latitude",
+        "longitude",
+        "位置结果",
+    ] {
+        assert!(!json.contains(forbidden));
+    }
+    assert!(chosen.sign_window.unwrap().has_points);
+}

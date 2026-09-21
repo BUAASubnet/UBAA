@@ -14,6 +14,8 @@ use ubaa_core::facade::{
 
 #[path = "facade/bootstrap.rs"]
 mod bootstrap;
+#[path = "facade/bykc_cache.rs"]
+mod bykc_cache;
 #[path = "facade/cgyy.rs"]
 mod cgyy;
 #[path = "facade/home_cache.rs"]

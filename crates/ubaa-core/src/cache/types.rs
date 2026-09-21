@@ -1,10 +1,12 @@
 //! 缓存持久合同只包含可再次阅读的数据，不包含写入资格。
-use super::{CachedSigninClass, CachedYgdkOverview};
+use super::{
+    CachedBykcChosen, CachedBykcCourse, CachedBykcCoursePage, CachedSigninClass, CachedYgdkOverview,
+};
 use crate::domain::{
     Assignment, ClassroomQuery, ConnectionMode, Course, ExamArrangement, GradeData,
     JudgeAssignmentDetail, JudgeAssignmentSummary, Term, TodayClass, Week, WeeklySchedule,
 };
-use crate::domain::{SpocAssignmentDetail, SpocAssignments};
+use crate::domain::{BykcStatistics, BykcUserProfile, SpocAssignmentDetail, SpocAssignments};
 use serde::{Deserialize, Serialize};
 
 /// 独立于 Session 和 Bridge 的业务缓存版本。
@@ -20,6 +22,17 @@ pub enum CacheQuery {
         term: String,
         week: i32,
     },
+    BykcProfile,
+    BykcCourses {
+        page: i32,
+        size: i32,
+        all: bool,
+    },
+    BykcDetail {
+        course_id: i64,
+    },
+    BykcChosen,
+    BykcStatistics,
     ScheduleTerms,
     ScheduleWeeks {
         term: String,
@@ -68,6 +81,11 @@ pub struct CacheScope {
 /// 仅白名单领域值可写入，禁止任意 JSON、原始响应或 action 投影。
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum CachePayload {
+    BykcProfile(BykcUserProfile),
+    BykcCourses(CachedBykcCoursePage),
+    BykcDetail(CachedBykcCourse),
+    BykcChosen(CachedBykcChosen),
+    BykcStatistics(BykcStatistics),
     Today(Vec<TodayClass>),
     SigninToday(Vec<CachedSigninClass>),
     SpocAssignments(SpocAssignments),
@@ -181,6 +199,8 @@ impl CacheScope {
     pub(crate) fn validate(&self) -> CacheResult<()> {
         let id = |s: &str| !s.trim().is_empty() && s.len() <= 1024;
         let valid = match &self.query {
+            CacheQuery::BykcCourses { page, size, .. } => *page > 0 && *size > 0,
+            CacheQuery::BykcDetail { course_id } => *course_id > 0,
             CacheQuery::SigninToday { date } => chrono::NaiveDate::parse_from_str(date, "%Y%m%d")
                 .is_ok_and(|value| value.format("%Y%m%d").to_string() == *date),
             CacheQuery::SpocDetail { assignment_id } => id(assignment_id),
@@ -217,7 +237,14 @@ impl CacheScope {
 impl CachePayload {
     pub(super) fn matches(&self, query: &CacheQuery) -> bool {
         match (self, query) {
-            (Self::SigninToday(_), CacheQuery::SigninToday { .. })
+            (Self::BykcDetail(v), CacheQuery::BykcDetail { course_id }) => v.id == *course_id,
+            (Self::BykcChosen(v), CacheQuery::BykcChosen) => {
+                !v.semester_start.trim().is_empty() && !v.semester_end.trim().is_empty()
+            }
+            (Self::BykcProfile(_), CacheQuery::BykcProfile)
+            | (Self::BykcStatistics(_), CacheQuery::BykcStatistics)
+            | (Self::BykcCourses(_), CacheQuery::BykcCourses { .. })
+            | (Self::SigninToday(_), CacheQuery::SigninToday { .. })
             | (Self::SpocAssignments(_), CacheQuery::SpocAssignments)
             | (Self::YgdkOverview(_), CacheQuery::YgdkOverview)
             | (Self::Terms(_), CacheQuery::ScheduleTerms)

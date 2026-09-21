@@ -161,3 +161,18 @@ P4-D 审查补充：阳光仅沿原 term_good_count_show/term_good_count/term_co
 复用 P4-D 四个已对照操作，Bridge 只显式映射公开字段，不新增学校请求协议。缓存签到/阳光 DTO 不包含资格或写目标；仅本次在线返回保留原实时资格，仍交唯一 WriteCoordinator 的实时复核/prepare/确认/commit。新增签到既定回读的明确 backend 能力，继续调用原不带缓存恢复的读取入口，避免 pending 写流程被新增身份检查阻塞。SPOC/阳光不完整刷新以 complete 与 Stored/Preserved 分别展示；不得以保存成功或旧 signStatus 推断可提交。缓存签到筛选按上次状态展示，不称作实时“可签到”。
 
 P4-E 实施复核：学校协议仍仅为 P4-D 原操作，未新增 URL/参数、Cookie 客户端、ETag 或增量游标。原 SPOC/签到呈现抽取至 home_projection 共用；缓存签到按旧状态分组而在线仍按本次 eligibility 分组。阳光概览只保存显示统计，本次同路线记录页不因旧统计合并丢失。首页跨日签到、部分成功无错误码、未知统计与待确认写回读均纳入脱敏测试。
+
+
+## P4-F：博雅只读持久范围（实施前）
+
+两源固定 SHA 与 P4-D 相同。重新读取旧版 `BykcApi.kt`、`LocalBykcApi.kt`、`LocalBykcCrypto.kt`、`model/dto/Bykc.kt` 及 `LocalBykcApiBackendTest.kt`；另一源为 `api/boya/{core,opt,data}.rs`、request.rs、store/{cred,cookies}.rs。当前 Core 的 get_profile/get_courses/get_course_detail/get_chosen_courses/get_statistics 为学校读取唯一实现，本次仅包装持久范围。
+
+| 操作 | bootstrap/service、跳转 | Cookie/会话 | 方法及精确参数 | 头/正文、加密常量 | DTO/解析 | 缓存/并发 | 错误/退出 |
+|---|---|---|---|---|---|---|---|
+| 资料 | 旧 /sscv/cas/login 经 SSO 服务；另一源显式 noAutoRedirect 的 SSO URL，不替换现有入口；原8跳、final/Location、WebVPN还原/重包保持 | 原路线Cookie+业务内存token；不借用另一源持久token | POST getUserProfile {}；另一源无专用方法，universal_request 示例同路径 | 五项共用旧双 auth_token/authtoken、ak/sk/ts、JSON、Origin/Referer；AES128ECB/PKCS7、RSA PKCS1v1.5、公钥/keyChars沿旧常量，SHA1十六进制摘要；不修改 | 当前公开id/employee_id/real_name/student_no/college_name，不保存原响应 | 账号/实际路线/资料独立范围，加密存储 | 原信封/认证/解析分类，失败不写空 |
+| 课程分页 | 同资料 | 同资料 | POST queryStudentSemesterCourseByPage {pageNumber,pageSize}；all仅原本地过滤 | 同资料；另一源单token/JSON字符串差异不借用 | 原课程显示字段、status/selected、原number/size/total；不落盘select/deselect eligibility | page/size/all三者完整隔离；一页完整不冒称全列表完整 | 原错误；非法持久范围在请求前拒绝；不添加翻页或推断游标 |
+| 单课程 | 同资料 | 同资料 | POST queryCourseById {id}；另一源同id | 同资料 | 原公开BykcCourse；不新增旧版UI未迁入字段、不重算资格 | 精确正数id，响应id不匹配不能存为该详情 | 原在线解析保持，缓存保存失败单列，退出票据硬拒绝 |
+| 当前已选 | 同资料 | 同资料 | POST getAllConfig {}，按原当前时间/最新结束学期规则后 POST queryChosenCourse {startDate,endDate}；另一源只取首学期，禁止借用 | 同资料 | 原记录id与内层course_id区分，日期/考勤/成绩/分类/作业；观察到的实际起止范围随快照保存；不长期存signInfo位置结果/写资格/签到点坐标 | 当前视图整集合替换，不拼跨学期；范围日期来自这次原请求选择，不能自行估计 | 学期缺失/配置失败不保存空；写前专用读取语义不变 |
+| 修读统计 | 同资料 | 同资料 | POST queryStatisticByUserId {}；另一源同操作 | 同资料 | 原validCount/statistical类别映射，无任意JSON | 独立统计范围，不用课程页重新计数 | 原错误；失败保留旧统计 |
+
+另一源 SignInfo 明确为 lng/lat/inSignArea，故其原字符串不是可长期保存的普通文字。本次持久已选 DTO 仅保留签到时间窗及是否有学校签到点，不保存用户位置结果/签到点坐标；在线公开值与学校写前校验仍完整。两个来源都没有本方案统一持久缓存，本地范围/完整替换/账号退出栅栏依已接受设计；不改变TLS校验或会话存储方式。本阶段先实现 Core，Bridge/App 待独立接线，不能声称本机首页博雅已可离线显示。

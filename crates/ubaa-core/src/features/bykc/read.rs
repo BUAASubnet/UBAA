@@ -107,19 +107,29 @@ pub(crate) async fn get_course_sign_config_for_write(
 pub(crate) async fn get_chosen_courses(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> Result<Vec<BykcChosenCourse>> {
-    get_chosen_courses_inner(runtime, false).await
+    get_chosen_courses_observed(runtime)
+        .await
+        .map(|(_, _, courses)| courses)
 }
 
 pub(crate) async fn get_chosen_courses_for_write(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> Result<Vec<BykcChosenCourse>> {
-    get_chosen_courses_inner(runtime, true).await
+    get_chosen_courses_inner(runtime, true)
+        .await
+        .map(|(_, _, courses)| courses)
+}
+
+pub(crate) async fn get_chosen_courses_observed(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> Result<(String, String, Vec<BykcChosenCourse>)> {
+    get_chosen_courses_inner(runtime, false).await
 }
 
 async fn get_chosen_courses_inner(
     runtime: &mut crate::runtime::ClientRuntime,
     write_preflight: bool,
-) -> Result<Vec<BykcChosenCourse>> {
+) -> Result<(String, String, Vec<BykcChosenCourse>)> {
     let config = request_for_purpose(
         runtime,
         "getAllConfig",
@@ -137,11 +147,12 @@ async fn get_chosen_courses_inner(
         )
         .await?,
     );
-    if write_preflight {
+    let courses = if write_preflight {
         parse_chosen_courses_for_write(&body)
     } else {
         parse_chosen_courses(&body)
-    }
+    }?;
+    Ok((start, end, courses))
 }
 
 async fn request_for_purpose(

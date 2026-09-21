@@ -1,4 +1,9 @@
 //! 与网络客户端锁独立的本地业务缓存，不保存认证材料或写入资格。
+mod bykc;
+pub use bykc::{
+    CachedBykcChosen, CachedBykcChosenCourse, CachedBykcCourse, CachedBykcCoursePage,
+    CachedBykcSignWindow,
+};
 mod crypto;
 mod files;
 mod home;

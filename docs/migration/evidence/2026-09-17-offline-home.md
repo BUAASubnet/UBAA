@@ -269,3 +269,12 @@ GREEN：Bridge 本地读不等待网络锁、路线隔离、退出屏障及 pend
 余项仍包括十二领域其他持久范围、阳光记录分页、SPOC/无缓存希冀等大读取安全分段、剩余生命周期/异常场景及多端和双路线真实只读/性能测量。P0–P5 整体不勾选完成；活动合同继续。
 
 P4-E 收尾审查：首页来源说明对无错误码部分结果曾误称“刷新失败”，新增 `/tmp/ubaa-p4e-home-caption-red.log` 后修复；UI 全套追加验证 258 项通过、analyze 无问题。阳光同分类但已观察学期改变曾拼入旧统计，`/tmp/ubaa-p4e-term-red.log` 复现后按 termId 共同约束，App 全套追加验证 358 项通过、analyze 无问题。收尾日志为 `/tmp/ubaa-p4e-ui-final-{analyze,test}.log` 与 `/tmp/ubaa-p4e-app-final-{analyze,test}.log`；与其余未变套件合计 840 项，之前单次完整门禁为 838 项，二者不混记。最终 layout/sensitive 再验通过，仍为 5240 文件；源码差异和暂存内容复核未含凭据、会话、冻结材料或验收媒体。
+
+
+## P4-F：博雅 Core 五项只读持久化（2026-09-22）
+
+实施基线 `ee40fc63`，冻结引用纯校验通过，原工作区未修改。先核对两个冻结来源的五个只读操作、CAS/业务令牌、加密和错误处理，记录于来源对照 P4-F。新增 `cache/bykc.rs` 的不可写课程/已选投影及 facade `BykcCacheQuery/BykcReadData/refresh_cached_bykc/read_bykc`。原在线 DTO 不丢字段，持久投影排除 eligibility、signInfo 位置结果、签到点坐标和附件路径。已选快照记录原 getAllConfig 真正选择的起止日期；分页只保存该请求页，不称作全课程覆盖。
+
+RED：`/tmp/ubaa-p4f-red.log` 为新持久类型/分页键不存在；`/tmp/ubaa-p4f-facade-red.log` 为新 facade/本地读取入口不存在。GREEN：`/tmp/ubaa-p4f-cache-green.log`、`/tmp/ubaa-p4f-facade-{green,final}.log`，覆盖 page/size/all/路线隔离、非法参数不发请求、在线与不可写持久投影分离、五项业务失败保留旧值、实际学期范围、空成功替换、详情 ID 不符只影响保存及退出后拒绝读取。测试 transport 只允许五个原只读端点和 getAllConfig，不解密/记录随机加密正文，不调用真实学校写入。
+
+首轮 `just check` 因重复 match 分支与超长测试函数失败；按职责合并分支、拆出测试准备/替换断言和独立位置剥离测试，未降低 lint 标准。最终 `just check` 退出 0：Core 默认与 test-contract 各 246 项、facade 50 项、Bridge 119 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。refs 两个固定 SHA、layout 零 baseline 违例、sensitive 5243 文件和 diff 检查通过。收尾日志为 `/tmp/ubaa-p4f-check-final.log`、`/tmp/ubaa-p4f-layout.log`、`/tmp/ubaa-p4f-sensitive-final.log`。本阶段不改 Bridge/Dart 合同，未运行 App、原生或真实双路线验收，也未测性能，不能把 Core 缓存完成当作博雅离线首页已接线。

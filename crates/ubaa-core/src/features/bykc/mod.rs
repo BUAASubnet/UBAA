@@ -16,7 +16,8 @@ pub(crate) use parser::{
     parse_chosen_courses, parse_course_detail, parse_courses, parse_profile, parse_statistics,
 };
 pub(crate) use read::{
-    get_chosen_courses, get_course_detail, get_courses, get_profile, get_statistics,
+    get_chosen_courses, get_chosen_courses_observed, get_course_detail, get_courses, get_profile,
+    get_statistics,
 };
 pub(crate) use write::{deselect_course, preflight_sign_course, select_course, sign_course};
 
