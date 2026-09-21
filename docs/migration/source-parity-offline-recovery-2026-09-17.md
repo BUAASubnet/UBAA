@@ -188,3 +188,21 @@ P4-G 实施复核：分页仍按 App 既有规范将 page<=0 收敛1、size限�
 ## P4-G 审查修正：缓存类型不得扩大 Bridge 公开边界
 
 核对研讨室时重新发现主对照文档 2026-09-02 的禁曝决定，以及 bindings/schema_snapshot_test 对 BridgeBykcChosenCourse 的既有禁曝断言。P4-G 的新 BridgeCachedBykcChosenCourse 虽没有资格与坐标，却额外包含 homework/homeworkAttachmentName，违反相同边界。先增加缓存 DTO 禁曝失败测试，再删除两字段及映射，升级合同 v19 并重生绑定。Core 加密缓存可保留已接受设计允许的业务文字，但它不等于宿主公开合同，禁止用统一序列化穿透既有收窄。学校请求、原在线 DTO、App 展示和写路径均不改变。
+
+
+## P4-H：研讨室 Core 持久范围（实施前）
+
+冻结 SHA 仍为 old@1f4b8f8412272b6a423d4ad92b396e3db721e6f3 与 buaa-api@a63712fa2ae0a6c8066197063ddee98e3a6b5b81。重新核对 CgyyApi/LocalCgyyApi、Cgyy DTO、LocalCgyySigner 及 BackendTest 的直接读取/用途回退/认证测试。另一来源没有 venue-zhjs-server 协议；其 api/srs/core/opt 是 byxk/xsxk 选课，不能借用 URL、token、数据模型或错误。request/credential/cookie 公共实现沿 P4-F 对照，无本次可借用的场馆协议。
+
+| 操作 | bootstrap/service、重定向 | Cookie/会话 | 方法/精确参数 | 头/编码/签名 | DTO/解析 | 缓存与并发 | 错误/退出 |
+|---|---|---|---|---|---|---|---|
+| 站点 | 原 manageLogin→SSO→api/login；原允许主机/最终URL、WebVPN Cookie同步与重包规则不变 | 原路线 sso_buaa_zhjs_token→Sso-Token→access_token，不复制Cookie | GET front/website/venues，page=-1/size=-1/reservationRoleId=3 | 原 Accept/Referer/app-key/timestamp/sign/cgAuthorization，GET nocache；MD5 prefix/path/排序标量/timestamp/空格/prefix，常量沿LocalCgyySigner | 原 siteList 展开及站点字段 | 独立账号/路线站点范围 | 原成功信封code=200；失败不替换 |
+| 用途 | 同站点 | 同站点 | GET codes，仅nocache | 同站点 | 原递归key/name与Upstream/StaticFallback明确来源 | 动态成功完整替换；静态回退记部分，不能覆盖旧动态完整记录；不新建会话 | 原认证错误不回退，其他异常仍返回冻结静态表；不能称上游刚成功 |
+| 日期空间 | 同站点 | 同站点 | GET reservation/day/info，searchDate/venueSiteId/nocache | 同站点 | 原day/date/空间/时段显示；不落盘reservation token、资格、target、交易号或占用审计材料 | 精确正站点/严格日期；无跨日借用或预取 | 原空对象合法、null/缺失/标量错误；未知状态保持未知 |
+| 本人订单 | 同站点 | 同站点 | GET orders/mine，零基page/size/nocache | 同站点 | 原content及分页；只保存已公开显示字段，不含phone/joiners/交易号/审核内部文本/取消资格和target | 精确页/大小，单页完整不等于全订单遍历 | 原合法data=null空页仍可替换该页；失败保留旧数据 |
+| 订单详情 | 同站点 | 同站点 | GET orders/{正id}，nocache | 同站点 | 原Order显示字段；空data原DTO默认id=0保留在线兼容 | 精确id，响应id不符不能写入该范围或证明删除 | 仅本地保存失败降级，账号/退出屏障硬拒绝 |
+| 门锁状态 | 同站点 | 同站点 | 原 GET orders/lock/code | 同站点 | 仅原 available 布尔摘要，原始锁码不公开 | 维持按需实时读取，不进入长期缓存 | 不把旧门锁状态称为当前可用 |
+
+签名常量沿已核对主矩阵：app-key=8fceb735082b5a529312040b58ea780b，prefix=c640ca392cd45fb3a55b00a63a86c618；不修改 TLS、重试或业务登录。新增持久类型以 Bridge 既有字段白名单为上限，先剥离资格与内部材料，禁止重复 P4-G 的字段越界。学校写链及 caller-pinned 回读保持；此阶段只接 Core，不声称 App/真实读取或大查询抢占通过。
+
+P4-H 实施复核：新增类型仅显式复制既有 Bridge 公开字段（再剥离资格/target），不直接序列化内部 CgyyOrder/SlotStatus。原用途解析还要求名称包含“类”，脱敏测试据此使用“合成用途类”，没有修改解析规则。日期回退实际 date_key 与查询不一致、详情默认 id=0 均标未完成并拒绝保存，原 CLI/caller-pinned 接口保持不变。

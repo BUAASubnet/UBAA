@@ -7,7 +7,9 @@ mod judge_scan;
 pub use judge_refresh::{JudgeRefresh, JudgeRefreshBatch, JudgeRefreshOptions};
 mod academic_cache;
 mod bykc_cache;
+mod cgyy_cache;
 pub use bykc_cache::{BykcCacheQuery, BykcReadData};
+pub use cgyy_cache::{CgyyCacheQuery, CgyyReadData, CgyyRefresh};
 mod home_cache;
 mod offline;
 pub use academic_cache::AcademicQuery;
@@ -62,6 +64,7 @@ pub use crate::cache::{
     CACHE_SCHEMA_VERSION, CacheCompleteness, CacheError, CacheKey, CacheLimits, CacheObservation,
     CachePayload, CachePublication, CacheQuery, CacheReadTicket, CacheRecord, CacheResult,
     CacheScope, CachedBykcChosen, CachedBykcChosenCourse, CachedBykcCourse, CachedBykcCoursePage,
-    CachedBykcSignWindow, CachedSigninClass, CachedYgdkItem, CachedYgdkOverview, JudgeCourseReview,
-    OfflineRepository,
+    CachedBykcSignWindow, CachedCgyyDayInfo, CachedCgyyOrder, CachedCgyyOrdersPage,
+    CachedCgyySlotStatus, CachedCgyySpaceAvailability, CachedSigninClass, CachedYgdkItem,
+    CachedYgdkOverview, JudgeCourseReview, OfflineRepository,
 };

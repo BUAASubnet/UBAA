@@ -302,3 +302,14 @@ macOS 原生合成：v18 缓存集成 1 项通过，新增五个博雅空库读�
 完整 Flutter `just flutter-check` 退出 0，57/66/361/260/16/32/54，共 846 项通过，format/analyze 无问题。FRB v19 零漂移，refs 固定 SHA、layout 零 baseline 违例、sensitive 5248 文件通过。macOS 原生合成缓存测试 1 项通过，版本19与全部本地入口/缺会话入口/句柄栅栏经真实绑定运行；依然无法置前（open returned 1），不算独立实窗验收。没有本轮真实学校调用、验收媒体或性能数据。
 
 日志为 `/tmp/ubaa-p4g-boundary-{red,codegen,drift,flutter,native,layout,sensitive}.log`。`/tmp/ubaa-p4g-boundary-check.log` 中 `just check` 退出 0：Core 两配置各 246 项、facade 50 项、Bridge 120 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。源工作区仍干净，阶段暂存内容复核未含凭据、会话、冻结材料或验收媒体。此次修正独立提交；研讨室已开始源码核对，但尚无该领域新增缓存实现，不将此修正冒充研讨室交付。完整 Goal 继续活动。
+
+
+## P4-H：研讨室 Core 五范围缓存与兼容回退保护（2026-09-22）
+
+基线 `e9ea9db6`。先核对旧版 Cgyy API/本地实现/DTO/签名/测试；另一冻结源 Srs 为 byxk/xsxk 选课，不借用。新增 cache/cgyy.rs 明确只读字段、CgyyCacheQuery/CgyyReadData/CgyyRefresh 及 refresh_cached_cgyy/read_cgyy。范围为站点、用途、站点/日期空间、零基订单页、订单详情；门锁继续按需在线，不落盘。原学校 feature、签名、会话和写路径未修改。
+
+RED：`/tmp/ubaa-p4h-cache-red.log` 为持久范围/不可写 DTO 尚不存在；`/tmp/ubaa-p4h-facade-red.log` 为新 facade 缺失；`/tmp/ubaa-p4h-scope-red.log` 证明日期响应回退到其它日期时仍被标为 complete。GREEN：`/tmp/ubaa-p4h-cache-green.log`、`/tmp/ubaa-p4h-facade-final.log`，覆盖写资格与内部材料剥离、日期严格校验、跨日/路线/分页隔离、失败保留、合法空订单页替换、默认空详情不得覆盖、错日期不归档且未完成、动态用途失败保护旧值、首次 StaticFallback 保存为 Partial。
+
+期间修正合成用途名称未包含旧 parser 要求的“类”、模块注释放置、枚举大小和函数长度；没有修改上游解析规则或降低 lint。CgyyDay/Detail 响应必须对应请求才可标完成，静态用途回退不等于成功动态更新。最终 `just check` 退出 0：Core 两配置各 249 项、facade 52 项、Bridge 120 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。refs 两个原固定 SHA、layout 零 baseline 违例、sensitive 5252 文件和暂存 diff 检查通过；日志为 `/tmp/ubaa-p4h-check.log`、`/tmp/ubaa-p4h-layout.log`、`/tmp/ubaa-p4h-sensitive-final.log`。
+
+本阶段仅 Core，Bridge/Dart 合同仍为 v19，未把旧 Flutter/原生结果当作新的研讨室接线证明。未访问真实学校服务、未执行真实写入、未生成媒体或测量性能。Bridge/App、其他领域/阳光分页/跨范围失效/剩余长读取与完整生命周期、多端真实只读和性能验收继续。原工作区保持干净。

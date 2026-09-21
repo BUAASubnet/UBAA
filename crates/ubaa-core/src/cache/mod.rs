@@ -1,4 +1,9 @@
 //! 与网络客户端锁独立的本地业务缓存，不保存认证材料或写入资格。
+mod cgyy;
+pub use cgyy::{
+    CachedCgyyDayInfo, CachedCgyyOrder, CachedCgyyOrdersPage, CachedCgyySlotStatus,
+    CachedCgyySpaceAvailability,
+};
 mod bykc;
 pub use bykc::{
     CachedBykcChosen, CachedBykcChosenCourse, CachedBykcCourse, CachedBykcCoursePage,
@@ -17,3 +22,6 @@ pub use types::*;
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod cgyy_tests;

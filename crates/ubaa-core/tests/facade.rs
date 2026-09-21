@@ -18,6 +18,8 @@ mod bootstrap;
 mod bykc_cache;
 #[path = "facade/cgyy.rs"]
 mod cgyy;
+#[path = "facade/cgyy_cache.rs"]
+mod cgyy_cache;
 #[path = "facade/home_cache.rs"]
 mod home_cache;
 #[path = "facade/judge_scan.rs"]

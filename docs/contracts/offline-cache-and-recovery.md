@@ -188,3 +188,14 @@ App 将原博雅五个展示映射抽到 `read/bykc_projection.dart` 共用，`b
 本批不新增未访问课程预取或大读取抢占，也未完成研讨室/图书馆/评教等剩余领域、阳光分页和最终多端验收。写后跨持久范围的精确失效仍需随剩余领域统一验证，不能用当前页回读通过替代该项。
 
 P4-G 收尾审查修正：Bridge v19 删除缓存已选类型中的作业正文/附件名称，持久数据可保存的集合不能自动成为宿主可见集合；既有 Bridge 禁曝边界同样覆盖所有新增缓存类型。Core-only 保存范围没有变化，宿主仍只取得已有公开展示字段。
+
+
+## P4-H 研讨室 Core 精确范围与回退保护
+
+新增 CgyyCacheQuery/refresh_cached_cgyy/read_cgyy，覆盖站点、用途、明确站点与日期的空间、零基 page/size 订单页、正 order_id 详情。新增 schema v1 命名载荷标签，不改变旧条目；学校操作继续调用原 features/cgyy，不新建 Cookie 或修改认证/签名。完整度只针对当前查询范围，不能把单页称为全部订单。
+
+`CachedCgyySlotStatus/SpaceAvailability/DayInfo/Order/OrdersPage` 采用既有公开字段白名单，排除预约/取消资格与 target、预约上下文 token、交易号、用户电话、参加人员、内部占用/审核说明。状态数值仅是上次观察，不能产生学校写权限。在线 CgyyReadData 仍保留原 DTO，订单详情用 Box 限制枚举体积，不改变字段语义。
+
+用途接口的原 StaticFallback 容错保持，但新增缓存 complete=false；旧记录由 Partial 发布规则保留，本次返回值明确区分 Stored/Preserved。首次回退可以保存为 Partial，不能称为动态用途已更新。站点/日期输入在恢复认证前校验；日期响应沿旧 parser 回退到别日时 complete=false 且保存拒绝，不把其它日期放进当前键。订单详情默认 id=0 或不匹配请求时同样不能保存或宣称完成；原在线兼容行为不被重写。
+
+合法空订单页可替换原同页快照；业务/网络失败保留旧值及原取得时间。新 facade 仍执行账号身份核对、实际路线选择、退出/替代票据屏障。门锁原始材料与 available 状态均不进入长期缓存，继续按需在线查询。当前仅 Core 完成，Bridge/App、读后/写后跨范围核对和真实性能仍待后续，不据此关闭 P4/P5。
