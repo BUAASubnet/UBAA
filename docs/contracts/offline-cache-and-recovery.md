@@ -250,3 +250,12 @@ App 在显示研讨室缓存刷新前核对日期/站点、订单ID和页信息�
 独立complete观察贯穿激活、任务、问卷与课程请求。原非认证失败空回退、丢弃畸形行等在线兼容输出保留，但其缓存发布为Partial。缺身份/名称/ypjcs状态、重复课程身份或父上下文冲突亦为Partial；遇到10项任务达到原固定页上限且没有覆盖证据，不宣称全部完成。合法成功空任务可以替换当前范围；任一子失败保留旧完整记录，首次Partial可存储但不能显示全部完成。Stored/Preserved和原取得时间明确返回；认证失败仍传播、账号/退出/修订屏障不可降级。
 
 原 get_all、CLI以及strict fresh写authority沿原语义，观察完整度不授予或撤销写资格；缓存不调用问卷修订、题目读取或提交。当前仍是原runtime串行聚合，安全分段让位另待实现。本阶段Core-only，Bridge/App不得宣称已接入，进度展示必须结合complete与固定任务范围。
+
+
+## P4-N 评教 Bridge/App 接线
+
+Bridge v22新增read_evaluation/evaluation_cached。前者在独立本地句柄读取当前固定任务范围，返回四字段不可写课程和进度；后者复用原安全在线映射，明确返回complete、取得时间、Stored/Preserved和保存错误，pending写意图阻止隐式恢复。CLI及旧evaluationAll/evaluationAllOnRoute合同不变。
+
+App摘要和待评视图共享实际当前任务快照，筛选只在投影进行，各视图保持FeatureQuery身份。CachedFeatureProjection明确白名单复制EvaluationProgressOverview并剥离全部动作。部分刷新有同路线旧记录时保留其课程、进度及原时间，首次Stored Partial不冒称旧数据；无完整刷新不展示写动作。真正完整在线结果继续原资格映射和WriteCoordinator。
+
+页面缓存loading时内容仍可读，显示原保存时间；complete=false时显示“评教任务尚未核对完整，进度暂不汇总”，不展示零待评结论或比例。原EvaluationSubmissionReadbackBackend仍使用固定路线evaluationAllOnRoute，未进入新增缓存恢复。其余长读取分段、跨范围写后失效、资料/阳光分页和最终多端性能仍需继续。

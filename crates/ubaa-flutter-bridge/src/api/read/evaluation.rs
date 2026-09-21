@@ -9,7 +9,7 @@ use super::{
     BridgeEvaluationProgress, BridgeEvaluationSubmitTarget,
 };
 
-pub(super) fn map_evaluation(
+pub(crate) fn map_evaluation(
     response: domain::EvaluationCoursesResponse,
 ) -> BridgeEvaluationCoursesResponse {
     let mut target_counts = HashMap::new();

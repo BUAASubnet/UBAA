@@ -7,6 +7,28 @@ import 'package:flutter_test/flutter_test.dart';
 /// 该测试不读取真实数据，只固定公开方法、DTO 和枚举的最小集合；完整字节漂移仍由
 /// `just flutter-codegen-check` 负责。这样生成器意外删除一个业务入口时，Dart 门禁会先失败。
 void main() {
+  test('评教缓存类型仅展示课程而不公开提交材料', () {
+    final source = File(
+      'lib/src/rust/api/offline_evaluation.dart',
+    ).readAsStringSync();
+    final type = RegExp(
+      r'class BridgeCachedEvaluationCourse \{(?<body>.*?)\n\}',
+      dotAll: true,
+    ).firstMatch(source);
+    expect(type, isNotNull);
+    for (final field in [
+      'Eligibility',
+      'Target',
+      'rwid',
+      'wjid',
+      'msid',
+      'pjrdm',
+      'pjrmc',
+    ]) {
+      expect(type!.namedGroup('body'), isNot(contains(field)));
+    }
+  });
+
   test('图书馆缓存公开类型不含预约取消资格', () {
     final source = File(
       'lib/src/rust/api/offline_libbook.dart',

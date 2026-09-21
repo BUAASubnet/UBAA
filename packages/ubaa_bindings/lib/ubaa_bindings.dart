@@ -16,3 +16,4 @@ export 'src/rust/api/offline_bykc.dart';
 
 export 'src/rust/api/offline_cgyy.dart';
 export 'src/rust/api/offline_libbook.dart';
+export 'src/rust/api/offline_evaluation.dart';

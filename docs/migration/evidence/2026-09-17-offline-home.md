@@ -376,3 +376,16 @@ RED：/tmp/ubaa-p4m-red.log为新facade缺失；partial-red.log在接入旧读�
 此阶段不访问真实学校服务、没有真实写入或媒体，没有Flutter/原生/真实性能新增证据。Bridge/App评教接线、长聚合分段、剩余领域/生命周期及双路线真实只读验收继续待办。
 
 最终just check退出0（/tmp/ubaa-p4m-check.log）：Core两配置各253、facade55、Bridge122通过/2既有忽略、CLI二进制端到端16；fmt/clippy/Shell/build/doc和layout零baseline违例通过。refs固定SHA校验、暂存敏感扫描5273文件通过，diff无空白错误。Core-only无Dart/Bridge结构变化，本阶段未重复Flutter或原生测试，不能继承旧原生证据为本轮通过。原始源工作区干净；隔离阶段继续下一项评教Bridge/App。
+
+
+## P4-N 评教 Bridge/App 只读恢复（2026-09-22）
+
+基线45068685。Bridge v22增加本地与缓存刷新入口，缓存白名单课程/进度不带提交材料；App恢复摘要和待评视图、原进度与取得时间，部分失败旧数据保留，完整在线资格维持原映射。EvaluationSubmissionReadbackBackend原固定路线回读未改。
+
+RED：/tmp/ubaa-p4n-bridge-red.log（本地方法不存在）；schema-red.log（只读类型文件尚未生成）；app-red.log（查询不恢复缓存且未调用新刷新入口）；ui-red.log（Partial仍显示待评0）。GREEN：本地读取独立网络锁、路线/退出隔离、pending写保护；schema禁曝；缓存筛选/进度/动作剥离、部分旧时间保留、首次Partial来源、完整在线资格和固定路线回读；Partial进度和loading可读、原课程内容回归12项通过。日志短名均使用/tmp/ubaa-p4n-前缀。
+
+当前不宣称真实学校协议、真实App业务或性能通过；原生合成与确定性门禁单独记录。整个P0–P5仍未完成。
+
+最终门禁：just check退出0（/tmp/ubaa-p4n-check.log），Core两配置各253、facade55、Bridge123通过/2既有忽略、CLI二进制端到端16，fmt/clippy/Shell/build/doc与layout零baseline违例通过。完整Flutter 57/66/378/265/19/32/54，共871项及静态分析通过（flutter.log）；FRB v22零漂移（codegen-final.log）；refs固定SHA校验、暂存敏感扫描5278文件通过，diff无空白错误。上述短日志名均/tmp/ubaa-p4n-前缀。
+
+macOS合成集成1项通过（native.log），实际v22绑定执行了新增评教空本地读取与缺会话缓存刷新错误路径，以及原多句柄退出屏障。仍有Failed to foreground app; open returned 1，不能记作实窗、真实业务或非空评教DTO原生展示。未做真实学校写入、未生成验收媒体或性能数据。源工作区干净，整个目标继续，下一项为阳光记录分页和资料/缓存管理等余项。

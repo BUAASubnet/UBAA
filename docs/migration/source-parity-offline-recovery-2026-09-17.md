@@ -266,3 +266,10 @@ P4-L 分页展示补充：博雅 App 的 currentPage/pageSize 改为使用本次
 EvaluationCurrent 固定范围是当前任务第1页/每页10，账号和实际路线独立；不是全部学期历史评教。只读payload不得含提交目标和资格；旧在线DTO及strict fresh写authority流程不变，缓存不调用reviseQuestionnairePattern、getQuestionnaireTopic、submit或其他写验证。两源写字段/常量不得因缓存便利引入持久类型。大聚合的分段让位仍需独立实现，当前阶段不声称解决评教长读抢占。
 
 P4-M实施复核：get_all和strict读取经共享观察实现后仍返回原DTO，只有新缓存facade使用complete。课程id沿既有公开不透明组合键，不额外落盘结构化submit_target。Bridge现有Evaluation映射核对的公开字段为id/kcmc/bpmc/is_evaluated，新增缓存只取这四项；msid/评价人/题目内部字段均排除。部分成功、激活失败、课程503、状态缺失、任务页满、认证401分别用合成backend覆盖。
+
+
+## P4-N：评教 Bridge/App 接线（实施前）
+
+复用P4-M当前任务固定1/10读取链和完整度观察，不新增学校请求。Bridge缓存DTO仅四展示字段和进度，无资格/target/问卷内部参数；App摘要/待评筛选复用同一当前任务快照，保留视图查询身份和取得时间。Partial保留同账号/路线旧内容，进度不得冒称本次全部核对，缓存无动作。原EvaluationSubmissionReadbackBackend仍用evaluationAllOnRoute固定路线回读，不进入新增恢复入口，不改唯一WriteCoordinator。
+
+P4-N实施复核：Bridge缓存DTO仅id/kcmc/bpmc/is_evaluated及三项进度，schema禁曝覆盖资格、target和内部材料。App没有新增学校参数，evaluationPending只筛选同一响应。固定路线回读经脱敏backend验证调用原入口且不增加缓存恢复；Partial投影无动作，部分进度不输出全部完成结论。

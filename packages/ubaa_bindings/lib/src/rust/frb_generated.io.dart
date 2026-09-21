@@ -10,6 +10,7 @@ import 'api/offline.dart';
 import 'api/offline_academic.dart';
 import 'api/offline_bykc.dart';
 import 'api/offline_cgyy.dart';
+import 'api/offline_evaluation.dart';
 import 'api/offline_home.dart';
 import 'api/offline_libbook.dart';
 import 'api/read.dart';
@@ -224,6 +225,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedCgyySitesRecord
   dco_decode_box_autoadd_bridge_cached_cgyy_sites_record(dynamic raw);
+
+  @protected
+  BridgeCachedEvaluationRecord
+  dco_decode_box_autoadd_bridge_cached_evaluation_record(dynamic raw);
 
   @protected
   BridgeCachedHomeSignin dco_decode_box_autoadd_bridge_cached_home_signin(
@@ -589,6 +594,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_bridge_cached_cgyy_space_availability(dynamic raw);
 
   @protected
+  BridgeCachedEvaluationCourse dco_decode_bridge_cached_evaluation_course(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedEvaluationCourses dco_decode_bridge_cached_evaluation_courses(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedEvaluationRecord dco_decode_bridge_cached_evaluation_record(
+    dynamic raw,
+  );
+
+  @protected
   BridgeCachedHomeSignin dco_decode_bridge_cached_home_signin(dynamic raw);
 
   @protected
@@ -812,6 +832,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeEvaluationProgress dco_decode_bridge_evaluation_progress(dynamic raw);
+
+  @protected
+  BridgeEvaluationRefresh dco_decode_bridge_evaluation_refresh(dynamic raw);
 
   @protected
   BridgeEvaluationSubmitCoursesRequest
@@ -1253,6 +1276,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_list_bridge_cached_cgyy_space_availability(dynamic raw);
 
   @protected
+  List<BridgeCachedEvaluationCourse>
+  dco_decode_list_bridge_cached_evaluation_course(dynamic raw);
+
+  @protected
   List<BridgeCachedLibBookBooking>
   dco_decode_list_bridge_cached_lib_book_booking(dynamic raw);
 
@@ -1504,6 +1531,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedCgyySitesRecord?
   dco_decode_opt_box_autoadd_bridge_cached_cgyy_sites_record(dynamic raw);
+
+  @protected
+  BridgeCachedEvaluationRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_evaluation_record(dynamic raw);
 
   @protected
   BridgeCachedHomeSignin? dco_decode_opt_box_autoadd_bridge_cached_home_signin(
@@ -1846,6 +1877,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedCgyySitesRecord
   sse_decode_box_autoadd_bridge_cached_cgyy_sites_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedEvaluationRecord
+  sse_decode_box_autoadd_bridge_cached_evaluation_record(
     SseDeserializer deserializer,
   );
 
@@ -2303,6 +2340,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedEvaluationCourse sse_decode_bridge_cached_evaluation_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedEvaluationCourses sse_decode_bridge_cached_evaluation_courses(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedEvaluationRecord sse_decode_bridge_cached_evaluation_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedHomeSignin sse_decode_bridge_cached_home_signin(
     SseDeserializer deserializer,
   );
@@ -2594,6 +2646,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeEvaluationProgress sse_decode_bridge_evaluation_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeEvaluationRefresh sse_decode_bridge_evaluation_refresh(
     SseDeserializer deserializer,
   );
 
@@ -3181,6 +3238,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeCachedEvaluationCourse>
+  sse_decode_list_bridge_cached_evaluation_course(SseDeserializer deserializer);
+
+  @protected
   List<BridgeCachedLibBookBooking>
   sse_decode_list_bridge_cached_lib_book_booking(SseDeserializer deserializer);
 
@@ -3498,6 +3559,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedCgyySitesRecord?
   sse_decode_opt_box_autoadd_bridge_cached_cgyy_sites_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedEvaluationRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_evaluation_record(
     SseDeserializer deserializer,
   );
 
@@ -3890,6 +3957,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_cached_cgyy_sites_record(
     BridgeCachedCgyySitesRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_evaluation_record(
+    BridgeCachedEvaluationRecord self,
     SseSerializer serializer,
   );
 
@@ -4422,6 +4495,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_cached_evaluation_course(
+    BridgeCachedEvaluationCourse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_evaluation_courses(
+    BridgeCachedEvaluationCourses self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_evaluation_record(
+    BridgeCachedEvaluationRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_cached_home_signin(
     BridgeCachedHomeSignin self,
     SseSerializer serializer,
@@ -4775,6 +4866,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_evaluation_progress(
     BridgeEvaluationProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_evaluation_refresh(
+    BridgeEvaluationRefresh self,
     SseSerializer serializer,
   );
 
@@ -5481,6 +5578,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_cached_evaluation_course(
+    List<BridgeCachedEvaluationCourse> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_cached_lib_book_booking(
     List<BridgeCachedLibBookBooking> self,
     SseSerializer serializer,
@@ -5858,6 +5961,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_cached_cgyy_sites_record(
     BridgeCachedCgyySitesRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_evaluation_record(
+    BridgeCachedEvaluationRecord? self,
     SseSerializer serializer,
   );
 

@@ -30,6 +30,7 @@ part 'read/cgyy_cache/load.dart';
 part 'read/cgyy_cache/local.dart';
 part 'read/cgyy_day.dart';
 part 'read/evaluation.dart';
+part 'read/evaluation/cache.dart';
 part 'read/libbook.dart';
 part 'read/libbook_cache/projection.dart';
 part 'read/libbook_cache/load.dart';
@@ -39,7 +40,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 21;
+const _supportedBridgeContractVersion = 22;
 
 /// 基于 FRB opaque client 的生产后端。
 ///

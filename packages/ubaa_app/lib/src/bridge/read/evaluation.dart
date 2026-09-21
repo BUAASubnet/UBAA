@@ -28,6 +28,8 @@ Future<FeatureResult> _loadEvaluationFeature(
   switch (query.view) {
     case FeatureQueryView.summary:
     case FeatureQueryView.evaluationPending:
+      final cached = await _loadCachedEvaluationFeature(backend, query);
+      if (cached != null) return cached;
       final result = await backend.client.evaluationAll();
       return _mapEvaluationResult(
         result.data,

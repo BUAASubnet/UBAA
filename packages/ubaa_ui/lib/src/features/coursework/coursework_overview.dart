@@ -1,7 +1,8 @@
 part of '../../widgets.dart';
 
 class _CourseworkOverview extends StatelessWidget {
-  const _CourseworkOverview({required this.overview});
+  const _CourseworkOverview({required this.overview, this.complete = true});
+  final bool complete;
   final FeatureOverview overview;
   @override
   Widget build(BuildContext context) => Padding(
@@ -24,15 +25,19 @@ class _CourseworkOverview extends StatelessWidget {
               children: [
                 Text('评教进度', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
-                Wrap(
-                  spacing: 16,
-                  runSpacing: 4,
-                  children: [
-                    Text('已评 ${p.evaluatedCourses} / ${p.totalCourses} 门'),
-                    Text('待评 ${p.pendingCourses} 门'),
-                  ],
-                ),
-                if (p.totalCourses > 0 &&
+                if (!complete)
+                  const Text('评教任务尚未核对完整，进度暂不汇总')
+                else
+                  Wrap(
+                    spacing: 16,
+                    runSpacing: 4,
+                    children: [
+                      Text('已评 ${p.evaluatedCourses} / ${p.totalCourses} 门'),
+                      Text('待评 ${p.pendingCourses} 门'),
+                    ],
+                  ),
+                if (complete &&
+                    p.totalCourses > 0 &&
                     p.evaluatedCourses >= 0 &&
                     p.evaluatedCourses <= p.totalCourses)
                   Padding(

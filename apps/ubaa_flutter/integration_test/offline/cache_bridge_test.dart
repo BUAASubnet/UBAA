@@ -21,7 +21,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 21);
+      expect(client.contractVersion(), 22);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -84,6 +84,20 @@ void main() {
         ),
       );
       await _checkLibbookCache(client, first);
+      expect(
+        await first.readEvaluation(route: BridgeConnectionMode.direct),
+        isNull,
+      );
+      await expectLater(
+        client.evaluationCached(cache: first),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.code,
+            '合成评教缺会话',
+            BridgeErrorCode.authenticationRequired,
+          ),
+        ),
+      );
       expect(
         await first.readCgyySites(route: BridgeConnectionMode.direct),
         isNull,

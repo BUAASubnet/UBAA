@@ -65,6 +65,11 @@ final class CachedFeatureProjection {
 
 FeatureOverview? _readonlyOverview(FeatureOverview? overview) =>
     switch (overview) {
+      EvaluationProgressOverview value => EvaluationProgressOverview(
+        totalCourses: value.totalCourses,
+        evaluatedCourses: value.evaluatedCourses,
+        pendingCourses: value.pendingCourses,
+      ),
       BykcChosenOverview value => BykcChosenOverview(
         semesterStart: value.semesterStart,
         semesterEnd: value.semesterEnd,

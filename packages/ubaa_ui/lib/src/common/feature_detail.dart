@@ -12,6 +12,7 @@ bool _readableCachedContent(FeatureSnapshot snapshot) =>
       FeatureId.bykc,
       FeatureId.cgyy,
       FeatureId.libbook,
+      FeatureId.evaluation,
     }.contains(snapshot.feature) &&
     snapshot.evidence?.origin == DataOrigin.persisted;
 
@@ -197,7 +198,10 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                           (widget.snapshot.status ==
                                   FeatureLoadStatus.loading &&
                               _readableCachedContent(widget.snapshot))))
-                _CourseworkOverview(overview: overview),
+                _CourseworkOverview(
+                  overview: overview,
+                  complete: widget.snapshot.evidence?.complete ?? true,
+                ),
               Expanded(
                 key: const ValueKey<String>('stable-detail-list'),
                 child: Stack(

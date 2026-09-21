@@ -5,6 +5,7 @@ pub mod offline;
 pub mod offline_academic;
 pub mod offline_bykc;
 pub mod offline_cgyy;
+pub mod offline_evaluation;
 pub mod offline_home;
 pub mod offline_libbook;
 pub mod read;

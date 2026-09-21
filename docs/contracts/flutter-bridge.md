@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `21`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `22`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -38,7 +38,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=21` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=22` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -584,3 +584,8 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
 ## 合同 v21：图书馆只读持久入口
 
 新增五项 read_libbook_* / libbook_*_cached，精确保留日期/楼层/时段/分页参数。缓存 DTO 剥离预约取消资格与 target；在线刷新状态分别报告完整度、Stored/Preserved、取得时间和保存错误。新在线入口受 pending 写保护，本地入口独立于网络锁。原 CLI 与学校写接口、回读语义保持，App/Rust 同步 v21。
+
+
+## 合同 v22：评教只读持久入口
+
+新增read_evaluation与evaluation_cached，前者只返回四字段课程及进度，后者明确报告完整度/Stored/Preserved/保存错误。当前任务范围固定1/10，缓存没有资格或提交目标。原evaluationAll/evaluationAllOnRoute和提交链保持。App与Rust同步v22。

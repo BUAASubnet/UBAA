@@ -10,6 +10,7 @@ import 'offline.dart';
 import 'offline_academic.dart';
 import 'offline_bykc.dart';
 import 'offline_cgyy.dart';
+import 'offline_evaluation.dart';
 import 'offline_home.dart';
 import 'offline_libbook.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
@@ -265,6 +266,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 在调用方指定的已认证路线读取评教课程，不执行 Auto 探测或回退。
   Future<BridgeCallerPinnedEvaluation> evaluationAllOnRoute({
     required BridgeConnectionMode route,
+  });
+
+  /// 沿原读取保存只读副本；待确认写意图禁止隐式恢复。
+  ///
+  /// # Errors
+  /// 原认证/业务与账号/退出屏障保持。
+  Future<BridgeEvaluationRefresh> evaluationCached({
+    required BridgeOfflineCache cache,
   });
 
   Future<BridgeRoutedExamArrangement> examArrangement({required String term});

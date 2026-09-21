@@ -48,7 +48,7 @@ Cookie/Session/Token 作用域、HTTP 方法和精确参数、Header/正文、�
 
 CLI 公开 envelope 的版本与本地持久化版本分别治理。破坏性 DTO/错误合同变化必须显式提升 CLI
 `schemaVersion` 并由 JSON Schema 与真实序列化合同共同验证；不得在旧版本号下静默改变字段。当前 CLI envelope 为 schema v10，
-`session.json` 仍为 schema v2，`config.toml` 仍为版本 1。Flutter bridge 当前 contract 为 v21；Ygdk 只允许
+`session.json` 仍为 schema v2，`config.toml` 仍为版本 1。Flutter bridge 当前 contract 为 v22；Ygdk 只允许
 fresh overview 派生的 typed `submitEligibility/submitTarget` 形成写 action，primitive ID、默认项或展示名称
 均不得兑换权限。LibBook 座位只允许通过可空整数 `status`、typed 资格和稳定目标开放预约，booking 也只
 允许通过 nullable int `status` 与 typed `cancelEligibility/cancelTarget` 开放取消，不得恢复或从展示文案
