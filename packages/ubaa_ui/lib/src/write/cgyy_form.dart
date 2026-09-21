@@ -82,6 +82,7 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
   bool loading = false;
   UiError? loadError;
   ConnectionMode? purposeRoute;
+  DataEvidence? purposeEvidence;
   String? error;
 
   @override
@@ -128,7 +129,10 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
     setState(() {
       loading = false;
       loadError = result.error;
+      if (result.error != null && result.details.isEmpty && options.isNotEmpty)
+        return;
       purposeRoute = result.resolvedRoute;
+      purposeEvidence = result.evidence;
       final candidates = result.details
           .map((d) => d.presentation)
           .whereType<CgyyPurposePresentation>()

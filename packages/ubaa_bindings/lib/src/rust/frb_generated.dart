@@ -9,6 +9,7 @@ import 'api/judge_scan.dart';
 import 'api/offline.dart';
 import 'api/offline_academic.dart';
 import 'api/offline_bykc.dart';
+import 'api/offline_cgyy.dart';
 import 'api/offline_home.dart';
 import 'api/read.dart';
 import 'api/recovery.dart';
@@ -76,7 +77,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 1693768392;
+  int get rustContentHash => 1813328664;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -201,10 +202,23 @@ abstract class RustLibApi extends BaseApi {
     required BridgeOfflineCache cache,
   });
 
+  Future<BridgeCgyyDayRefresh> crateApiClientBridgeClientCgyyDayCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required int siteId,
+    required String date,
+  });
+
   Future<BridgeRoutedCgyyDayInfo> crateApiClientBridgeClientCgyyDayInfo({
     required BridgeClient that,
     required int siteId,
     required String date,
+  });
+
+  Future<BridgeCgyyDetailRefresh> crateApiClientBridgeClientCgyyDetailCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required int orderId,
   });
 
   Future<BridgeRoutedCgyyLockCode> crateApiClientBridgeClientCgyyLockCode({
@@ -229,6 +243,13 @@ abstract class RustLibApi extends BaseApi {
     required int size,
   });
 
+  Future<BridgeCgyyOrdersRefresh> crateApiClientBridgeClientCgyyOrdersCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required int page,
+    required int size,
+  });
+
   Future<BridgeCallerPinnedCgyyOrders>
   crateApiClientBridgeClientCgyyOrdersOnRoute({
     required BridgeClient that,
@@ -240,8 +261,19 @@ abstract class RustLibApi extends BaseApi {
   Future<BridgeRoutedCgyyPurposeTypes>
   crateApiClientBridgeClientCgyyPurposeTypes({required BridgeClient that});
 
+  Future<BridgeCgyyPurposesRefresh>
+  crateApiClientBridgeClientCgyyPurposesCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+  });
+
   Future<BridgeRoutedCgyySites> crateApiClientBridgeClientCgyySites({
     required BridgeClient that,
+  });
+
+  Future<BridgeCgyySitesRefresh> crateApiClientBridgeClientCgyySitesCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
   });
 
   Future<BridgeRoutedClassroomQuery> crateApiClientBridgeClientClassroomSearch({
@@ -633,6 +665,41 @@ abstract class RustLibApi extends BaseApi {
 
   Future<BridgeCachedBykcStatisticsRecord?>
   crateApiOfflineBridgeOfflineCacheReadBykcStatistics({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+  });
+
+  Future<BridgeCachedCgyyDayRecord?>
+  crateApiOfflineBridgeOfflineCacheReadCgyyDay({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required int siteId,
+    required String date,
+  });
+
+  Future<BridgeCachedCgyyDetailRecord?>
+  crateApiOfflineBridgeOfflineCacheReadCgyyDetail({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required int orderId,
+  });
+
+  Future<BridgeCachedCgyyOrdersRecord?>
+  crateApiOfflineBridgeOfflineCacheReadCgyyOrders({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required int page,
+    required int size,
+  });
+
+  Future<BridgeCachedCgyyPurposesRecord?>
+  crateApiOfflineBridgeOfflineCacheReadCgyyPurposes({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+  });
+
+  Future<BridgeCachedCgyySitesRecord?>
+  crateApiOfflineBridgeOfflineCacheReadCgyySites({
     required BridgeOfflineCache that,
     required BridgeConnectionMode route,
   });
@@ -1528,6 +1595,51 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeCgyyDayRefresh> crateApiClientBridgeClientCgyyDayCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required int siteId,
+    required String date,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          sse_encode_i_32(siteId, serializer);
+          sse_encode_String(date, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 20,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_cgyy_day_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientCgyyDayCachedConstMeta,
+        argValues: [that, cache, siteId, date],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientCgyyDayCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_cgyy_day_cached",
+        argNames: ["that", "cache", "siteId", "date"],
+      );
+
+  @override
   Future<BridgeRoutedCgyyDayInfo> crateApiClientBridgeClientCgyyDayInfo({
     required BridgeClient that,
     required int siteId,
@@ -1546,7 +1658,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 21,
             port: port_,
           );
         },
@@ -1568,6 +1680,49 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeCgyyDetailRefresh> crateApiClientBridgeClientCgyyDetailCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required int orderId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          sse_encode_i_32(orderId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 22,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_cgyy_detail_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientCgyyDetailCachedConstMeta,
+        argValues: [that, cache, orderId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientCgyyDetailCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_cgyy_detail_cached",
+        argNames: ["that", "cache", "orderId"],
+      );
+
+  @override
   Future<BridgeRoutedCgyyLockCode> crateApiClientBridgeClientCgyyLockCode({
     required BridgeClient that,
   }) {
@@ -1582,7 +1737,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 23,
             port: port_,
           );
         },
@@ -1620,7 +1775,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 24,
             port: port_,
           );
         },
@@ -1661,7 +1816,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 25,
             port: port_,
           );
         },
@@ -1702,7 +1857,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 24,
+            funcId: 26,
             port: port_,
           );
         },
@@ -1721,6 +1876,51 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(
         debugName: "BridgeClient_cgyy_orders",
         argNames: ["that", "page", "size"],
+      );
+
+  @override
+  Future<BridgeCgyyOrdersRefresh> crateApiClientBridgeClientCgyyOrdersCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required int page,
+    required int size,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          sse_encode_i_32(page, serializer);
+          sse_encode_i_32(size, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 27,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_cgyy_orders_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientCgyyOrdersCachedConstMeta,
+        argValues: [that, cache, page, size],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientCgyyOrdersCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_cgyy_orders_cached",
+        argNames: ["that", "cache", "page", "size"],
       );
 
   @override
@@ -1745,7 +1945,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 28,
             port: port_,
           );
         },
@@ -1780,7 +1980,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 26,
+            funcId: 29,
             port: port_,
           );
         },
@@ -1802,6 +2002,48 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeCgyyPurposesRefresh>
+  crateApiClientBridgeClientCgyyPurposesCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 30,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_cgyy_purposes_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientCgyyPurposesCachedConstMeta,
+        argValues: [that, cache],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientCgyyPurposesCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_cgyy_purposes_cached",
+        argNames: ["that", "cache"],
+      );
+
+  @override
   Future<BridgeRoutedCgyySites> crateApiClientBridgeClientCgyySites({
     required BridgeClient that,
   }) {
@@ -1816,7 +2058,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 27,
+            funcId: 31,
             port: port_,
           );
         },
@@ -1838,6 +2080,47 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeCgyySitesRefresh> crateApiClientBridgeClientCgyySitesCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 32,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_cgyy_sites_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientCgyySitesCachedConstMeta,
+        argValues: [that, cache],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientCgyySitesCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_cgyy_sites_cached",
+        argNames: ["that", "cache"],
+      );
+
+  @override
   Future<BridgeRoutedClassroomQuery> crateApiClientBridgeClientClassroomSearch({
     required BridgeClient that,
     required int campus,
@@ -1856,7 +2139,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 33,
             port: port_,
           );
         },
@@ -1894,7 +2177,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 29,
+            funcId: 34,
             port: port_,
           );
         },
@@ -1925,7 +2208,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 30)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 35)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_32,
@@ -1961,7 +2244,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 31,
+            funcId: 36,
             port: port_,
           );
         },
@@ -1995,7 +2278,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 32,
+            funcId: 37,
             port: port_,
           );
         },
@@ -2031,7 +2314,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 33,
+            funcId: 38,
             port: port_,
           );
         },
@@ -2070,7 +2353,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 34,
+            funcId: 39,
             port: port_,
           );
         },
@@ -2109,7 +2392,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 35,
+            funcId: 40,
             port: port_,
           );
         },
@@ -2147,7 +2430,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 36,
+            funcId: 41,
             port: port_,
           );
         },
@@ -2188,7 +2471,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 42,
             port: port_,
           );
         },
@@ -2229,7 +2512,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 38,
+            funcId: 43,
             port: port_,
           );
         },
@@ -2273,7 +2556,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 39,
+            funcId: 44,
             port: port_,
           );
         },
@@ -2314,7 +2597,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 40,
+            funcId: 45,
             port: port_,
           );
         },
@@ -2355,7 +2638,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 41,
+            funcId: 46,
             port: port_,
           );
         },
@@ -2394,7 +2677,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 47,
             port: port_,
           );
         },
@@ -2434,7 +2717,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 43,
+            funcId: 48,
             port: port_,
           );
         },
@@ -2477,7 +2760,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 44,
+            funcId: 49,
             port: port_,
           );
         },
@@ -2517,7 +2800,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 45,
+            funcId: 50,
             port: port_,
           );
         },
@@ -2559,7 +2842,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 46,
+            funcId: 51,
             port: port_,
           );
         },
@@ -2600,7 +2883,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 47,
+            funcId: 52,
             port: port_,
           );
         },
@@ -2639,7 +2922,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 48,
+            funcId: 53,
             port: port_,
           );
         },
@@ -2683,7 +2966,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 49,
+            funcId: 54,
             port: port_,
           );
         },
@@ -2723,7 +3006,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 50,
+            funcId: 55,
             port: port_,
           );
         },
@@ -2765,7 +3048,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 51,
+            funcId: 56,
             port: port_,
           );
         },
@@ -2799,7 +3082,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 52,
+            funcId: 57,
             port: port_,
           );
         },
@@ -2837,7 +3120,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 53,
+            funcId: 58,
             port: port_,
           );
         },
@@ -2878,7 +3161,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 54,
+            funcId: 59,
             port: port_,
           );
         },
@@ -2906,7 +3189,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(configDir, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 55)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 60)!;
         },
         codec: SseCodec(
           decodeSuccessData:
@@ -2947,7 +3230,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 56,
+            funcId: 61,
             port: port_,
           );
         },
@@ -2990,7 +3273,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 57,
+            funcId: 62,
             port: port_,
           );
         },
@@ -3032,7 +3315,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 58,
+            funcId: 63,
             port: port_,
           );
         },
@@ -3073,7 +3356,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 59,
+            funcId: 64,
             port: port_,
           );
         },
@@ -3116,7 +3399,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 60,
+            funcId: 65,
             port: port_,
           );
         },
@@ -3160,7 +3443,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 61,
+            funcId: 66,
             port: port_,
           );
         },
@@ -3204,7 +3487,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 62,
+            funcId: 67,
             port: port_,
           );
         },
@@ -3247,7 +3530,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 63,
+            funcId: 68,
             port: port_,
           );
         },
@@ -3283,7 +3566,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 64,
+            funcId: 69,
             port: port_,
           );
         },
@@ -3324,7 +3607,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 65,
+            funcId: 70,
             port: port_,
           );
         },
@@ -3365,7 +3648,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 66,
+            funcId: 71,
             port: port_,
           );
         },
@@ -3404,7 +3687,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 67,
+            funcId: 72,
             port: port_,
           );
         },
@@ -3441,7 +3724,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 68,
+            funcId: 73,
             port: port_,
           );
         },
@@ -3477,7 +3760,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 69,
+            funcId: 74,
             port: port_,
           );
         },
@@ -3513,7 +3796,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 70,
+            funcId: 75,
             port: port_,
           );
         },
@@ -3554,7 +3837,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 71,
+            funcId: 76,
             port: port_,
           );
         },
@@ -3594,7 +3877,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 72,
+            funcId: 77,
             port: port_,
           );
         },
@@ -3632,7 +3915,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 73,
+            funcId: 78,
             port: port_,
           );
         },
@@ -3670,7 +3953,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 74,
+            funcId: 79,
             port: port_,
           );
         },
@@ -3706,7 +3989,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 75,
+            funcId: 80,
             port: port_,
           );
         },
@@ -3745,7 +4028,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 76,
+            funcId: 81,
             port: port_,
           );
         },
@@ -3780,7 +4063,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 77,
+            funcId: 82,
             port: port_,
           );
         },
@@ -3816,7 +4099,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 78,
+            funcId: 83,
             port: port_,
           );
         },
@@ -3852,7 +4135,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 79,
+            funcId: 84,
             port: port_,
           );
         },
@@ -3891,7 +4174,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 80,
+            funcId: 85,
             port: port_,
           );
         },
@@ -3931,7 +4214,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 81,
+            funcId: 86,
             port: port_,
           );
         },
@@ -3974,7 +4257,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 82,
+            funcId: 87,
             port: port_,
           );
         },
@@ -4007,7 +4290,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 83)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 88)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -4037,7 +4320,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 84)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 89)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -4071,7 +4354,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 85,
+            funcId: 90,
             port: port_,
           );
         },
@@ -4107,7 +4390,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 86,
+            funcId: 91,
             port: port_,
           );
         },
@@ -4143,7 +4426,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 87,
+            funcId: 92,
             port: port_,
           );
         },
@@ -4179,7 +4462,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 88,
+            funcId: 93,
             port: port_,
           );
         },
@@ -4218,7 +4501,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 89,
+            funcId: 94,
             port: port_,
           );
         },
@@ -4262,7 +4545,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 90,
+            funcId: 95,
             port: port_,
           );
         },
@@ -4306,7 +4589,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 91,
+            funcId: 96,
             port: port_,
           );
         },
@@ -4349,7 +4632,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 92,
+            funcId: 97,
             port: port_,
           );
         },
@@ -4391,7 +4674,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 93,
+            funcId: 98,
             port: port_,
           );
         },
@@ -4436,7 +4719,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 94,
+            funcId: 99,
             port: port_,
           );
         },
@@ -4479,7 +4762,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 95,
+            funcId: 100,
             port: port_,
           );
         },
@@ -4520,7 +4803,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 96,
+            funcId: 101,
             port: port_,
           );
         },
@@ -4566,7 +4849,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 97,
+            funcId: 102,
             port: port_,
           );
         },
@@ -4609,7 +4892,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 98,
+            funcId: 103,
             port: port_,
           );
         },
@@ -4649,7 +4932,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 99,
+            funcId: 104,
             port: port_,
           );
         },
@@ -4690,7 +4973,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 100,
+            funcId: 105,
             port: port_,
           );
         },
@@ -4715,6 +4998,217 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeCachedCgyyDayRecord?>
+  crateApiOfflineBridgeOfflineCacheReadCgyyDay({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required int siteId,
+    required String date,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_i_32(siteId, serializer);
+          sse_encode_String(date, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 106,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_cgyy_day_record,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiOfflineBridgeOfflineCacheReadCgyyDayConstMeta,
+        argValues: [that, route, siteId, date],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOfflineBridgeOfflineCacheReadCgyyDayConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_cgyy_day",
+        argNames: ["that", "route", "siteId", "date"],
+      );
+
+  @override
+  Future<BridgeCachedCgyyDetailRecord?>
+  crateApiOfflineBridgeOfflineCacheReadCgyyDetail({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required int orderId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_i_32(orderId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 107,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_cgyy_detail_record,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiOfflineBridgeOfflineCacheReadCgyyDetailConstMeta,
+        argValues: [that, route, orderId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOfflineBridgeOfflineCacheReadCgyyDetailConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_cgyy_detail",
+        argNames: ["that", "route", "orderId"],
+      );
+
+  @override
+  Future<BridgeCachedCgyyOrdersRecord?>
+  crateApiOfflineBridgeOfflineCacheReadCgyyOrders({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required int page,
+    required int size,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_i_32(page, serializer);
+          sse_encode_i_32(size, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 108,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_cgyy_orders_record,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiOfflineBridgeOfflineCacheReadCgyyOrdersConstMeta,
+        argValues: [that, route, page, size],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOfflineBridgeOfflineCacheReadCgyyOrdersConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_cgyy_orders",
+        argNames: ["that", "route", "page", "size"],
+      );
+
+  @override
+  Future<BridgeCachedCgyyPurposesRecord?>
+  crateApiOfflineBridgeOfflineCacheReadCgyyPurposes({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 109,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_cgyy_purposes_record,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiOfflineBridgeOfflineCacheReadCgyyPurposesConstMeta,
+        argValues: [that, route],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOfflineBridgeOfflineCacheReadCgyyPurposesConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_cgyy_purposes",
+        argNames: ["that", "route"],
+      );
+
+  @override
+  Future<BridgeCachedCgyySitesRecord?>
+  crateApiOfflineBridgeOfflineCacheReadCgyySites({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 110,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_cgyy_sites_record,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiOfflineBridgeOfflineCacheReadCgyySitesConstMeta,
+        argValues: [that, route],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiOfflineBridgeOfflineCacheReadCgyySitesConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_cgyy_sites",
+        argNames: ["that", "route"],
+      );
+
+  @override
   Future<BridgeCachedHomeSignin?>
   crateApiOfflineBridgeOfflineCacheReadHomeSignin({
     required BridgeOfflineCache that,
@@ -4732,7 +5226,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 101,
+            funcId: 111,
             port: port_,
           );
         },
@@ -4771,7 +5265,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 102,
+            funcId: 112,
             port: port_,
           );
         },
@@ -4812,7 +5306,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 103,
+            funcId: 113,
             port: port_,
           );
         },
@@ -4853,7 +5347,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 104,
+            funcId: 114,
             port: port_,
           );
         },
@@ -4893,7 +5387,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 105,
+            funcId: 115,
             port: port_,
           );
         },
@@ -4936,7 +5430,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 106,
+            funcId: 116,
             port: port_,
           );
         },
@@ -4976,7 +5470,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 107,
+            funcId: 117,
             port: port_,
           );
         },
@@ -5006,7 +5500,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 108,
+            funcId: 118,
           )!;
         },
         codec: SseCodec(
@@ -5033,7 +5527,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 109,
+            funcId: 119,
             port: port_,
           );
         },
@@ -5065,7 +5559,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 110,
+            funcId: 120,
             port: port_,
           );
         },
@@ -5377,6 +5871,41 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   dco_decode_box_autoadd_bridge_cached_bykc_statistics_record(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_bridge_cached_bykc_statistics_record(raw);
+  }
+
+  @protected
+  BridgeCachedCgyyDayRecord
+  dco_decode_box_autoadd_bridge_cached_cgyy_day_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_cgyy_day_record(raw);
+  }
+
+  @protected
+  BridgeCachedCgyyDetailRecord
+  dco_decode_box_autoadd_bridge_cached_cgyy_detail_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_cgyy_detail_record(raw);
+  }
+
+  @protected
+  BridgeCachedCgyyOrdersRecord
+  dco_decode_box_autoadd_bridge_cached_cgyy_orders_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_cgyy_orders_record(raw);
+  }
+
+  @protected
+  BridgeCachedCgyyPurposesRecord
+  dco_decode_box_autoadd_bridge_cached_cgyy_purposes_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_cgyy_purposes_record(raw);
+  }
+
+  @protected
+  BridgeCachedCgyySitesRecord
+  dco_decode_box_autoadd_bridge_cached_cgyy_sites_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_cgyy_sites_record(raw);
   }
 
   @protected
@@ -6249,6 +6778,176 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedCgyyDayInfo dco_decode_bridge_cached_cgyy_day_info(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return BridgeCachedCgyyDayInfo(
+      venueSiteId: dco_decode_i_32(arr[0]),
+      reservationDate: dco_decode_String(arr[1]),
+      availableDates: dco_decode_list_String(arr[2]),
+      timeSlots: dco_decode_list_bridge_cgyy_time_slot(arr[3]),
+      spaces: dco_decode_list_bridge_cached_cgyy_space_availability(arr[4]),
+      reservationTotalNum: dco_decode_opt_box_autoadd_i_32(arr[5]),
+    );
+  }
+
+  @protected
+  BridgeCachedCgyyDayRecord dco_decode_bridge_cached_cgyy_day_record(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedCgyyDayRecord(
+      data: dco_decode_bridge_cached_cgyy_day_info(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedCgyyDetailRecord dco_decode_bridge_cached_cgyy_detail_record(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedCgyyDetailRecord(
+      data: dco_decode_bridge_cached_cgyy_order(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedCgyyOrder dco_decode_bridge_cached_cgyy_order(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 15)
+      throw Exception('unexpected arr length: expect 15 but see ${arr.length}');
+    return BridgeCachedCgyyOrder(
+      id: dco_decode_i_32(arr[0]),
+      venueSiteId: dco_decode_opt_box_autoadd_i_32(arr[1]),
+      reservationDate: dco_decode_opt_String(arr[2]),
+      reservationDateDetail: dco_decode_opt_String(arr[3]),
+      venueSpaceName: dco_decode_opt_String(arr[4]),
+      campusName: dco_decode_opt_String(arr[5]),
+      venueName: dco_decode_opt_String(arr[6]),
+      siteName: dco_decode_opt_String(arr[7]),
+      reservationStartDate: dco_decode_opt_String(arr[8]),
+      reservationEndDate: dco_decode_opt_String(arr[9]),
+      orderStatus: dco_decode_opt_box_autoadd_i_32(arr[10]),
+      checkStatus: dco_decode_opt_box_autoadd_i_32(arr[11]),
+      theme: dco_decode_opt_String(arr[12]),
+      purposeTypeName: dco_decode_opt_String(arr[13]),
+      joinerNum: dco_decode_opt_box_autoadd_i_32(arr[14]),
+    );
+  }
+
+  @protected
+  BridgeCachedCgyyOrdersPage dco_decode_bridge_cached_cgyy_orders_page(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeCachedCgyyOrdersPage(
+      content: dco_decode_list_bridge_cached_cgyy_order(arr[0]),
+      totalElements: dco_decode_i_32(arr[1]),
+      totalPages: dco_decode_i_32(arr[2]),
+      size: dco_decode_i_32(arr[3]),
+      number: dco_decode_i_32(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeCachedCgyyOrdersRecord dco_decode_bridge_cached_cgyy_orders_record(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedCgyyOrdersRecord(
+      data: dco_decode_bridge_cached_cgyy_orders_page(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedCgyyPurposesRecord dco_decode_bridge_cached_cgyy_purposes_record(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedCgyyPurposesRecord(
+      data: dco_decode_bridge_cgyy_purpose_types(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedCgyySitesRecord dco_decode_bridge_cached_cgyy_sites_record(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedCgyySitesRecord(
+      data: dco_decode_list_bridge_cgyy_venue_site(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedCgyySlotStatus dco_decode_bridge_cached_cgyy_slot_status(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedCgyySlotStatus(
+      timeId: dco_decode_i_32(arr[0]),
+      reservationStatus: dco_decode_opt_box_autoadd_i_32(arr[1]),
+      startDate: dco_decode_opt_String(arr[2]),
+      endDate: dco_decode_opt_String(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedCgyySpaceAvailability
+  dco_decode_bridge_cached_cgyy_space_availability(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeCachedCgyySpaceAvailability(
+      spaceId: dco_decode_i_32(arr[0]),
+      spaceName: dco_decode_String(arr[1]),
+      venueSiteId: dco_decode_i_32(arr[2]),
+      venueSpaceGroupId: dco_decode_opt_box_autoadd_i_32(arr[3]),
+      slots: dco_decode_list_bridge_cached_cgyy_slot_status(arr[4]),
+    );
+  }
+
+  @protected
   BridgeCachedHomeSignin dco_decode_bridge_cached_home_signin(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -6505,6 +7204,32 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCgyyDayRefresh dco_decode_bridge_cgyy_day_refresh(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeCgyyDayRefresh(
+      data: dco_decode_bridge_cgyy_day_info(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+      state: dco_decode_bridge_cgyy_refresh_state(arr[2]),
+    );
+  }
+
+  @protected
+  BridgeCgyyDetailRefresh dco_decode_bridge_cgyy_detail_refresh(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeCgyyDetailRefresh(
+      data: dco_decode_bridge_cgyy_order(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+      state: dco_decode_bridge_cgyy_refresh_state(arr[2]),
+    );
+  }
+
+  @protected
   BridgeCgyyLockCode dco_decode_bridge_cgyy_lock_code(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -6560,6 +7285,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCgyyOrdersRefresh dco_decode_bridge_cgyy_orders_refresh(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeCgyyOrdersRefresh(
+      data: dco_decode_bridge_cgyy_orders_page(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+      state: dco_decode_bridge_cgyy_refresh_state(arr[2]),
+    );
+  }
+
+  @protected
   BridgeCgyyPurposeSource dco_decode_bridge_cgyy_purpose_source(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return BridgeCgyyPurposeSource.values[raw as int];
@@ -6586,6 +7324,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return BridgeCgyyPurposeTypes(
       items: dco_decode_list_bridge_cgyy_purpose_type(arr[0]),
       source: dco_decode_bridge_cgyy_purpose_source(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeCgyyPurposesRefresh dco_decode_bridge_cgyy_purposes_refresh(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeCgyyPurposesRefresh(
+      data: dco_decode_bridge_cgyy_purpose_types(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+      state: dco_decode_bridge_cgyy_refresh_state(arr[2]),
+    );
+  }
+
+  @protected
+  BridgeCgyyRefreshState dco_decode_bridge_cgyy_refresh_state(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeCgyyRefreshState(
+      fetchedAt: dco_decode_i_64(arr[0]),
+      complete: dco_decode_bool(arr[1]),
+      savedForOffline: dco_decode_bool(arr[2]),
+      preservedPrevious: dco_decode_bool(arr[3]),
+      saveError: dco_decode_opt_box_autoadd_bridge_cache_failure(arr[4]),
     );
   }
 
@@ -6635,6 +7403,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       timeId: dco_decode_i_32(arr[3]),
       venueSpaceGroupId: dco_decode_opt_box_autoadd_i_32(arr[4]),
       timeOrdinal: dco_decode_i_32(arr[5]),
+    );
+  }
+
+  @protected
+  BridgeCgyySitesRefresh dco_decode_bridge_cgyy_sites_refresh(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeCgyySitesRefresh(
+      data: dco_decode_list_bridge_cgyy_venue_site(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+      state: dco_decode_bridge_cgyy_refresh_state(arr[2]),
     );
   }
 
@@ -8406,6 +9187,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<BridgeCachedCgyyOrder> dco_decode_list_bridge_cached_cgyy_order(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_cached_cgyy_order)
+        .toList();
+  }
+
+  @protected
+  List<BridgeCachedCgyySlotStatus>
+  dco_decode_list_bridge_cached_cgyy_slot_status(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_cached_cgyy_slot_status)
+        .toList();
+  }
+
+  @protected
+  List<BridgeCachedCgyySpaceAvailability>
+  dco_decode_list_bridge_cached_cgyy_space_availability(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_cached_cgyy_space_availability)
+        .toList();
+  }
+
+  @protected
   List<BridgeCachedSigninClass> dco_decode_list_bridge_cached_signin_class(
     dynamic raw,
   ) {
@@ -8885,6 +9694,51 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return raw == null
         ? null
         : dco_decode_box_autoadd_bridge_cached_bykc_statistics_record(raw);
+  }
+
+  @protected
+  BridgeCachedCgyyDayRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_cgyy_day_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_cgyy_day_record(raw);
+  }
+
+  @protected
+  BridgeCachedCgyyDetailRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_cgyy_detail_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_cgyy_detail_record(raw);
+  }
+
+  @protected
+  BridgeCachedCgyyOrdersRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_cgyy_orders_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_cgyy_orders_record(raw);
+  }
+
+  @protected
+  BridgeCachedCgyyPurposesRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_cgyy_purposes_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_cgyy_purposes_record(raw);
+  }
+
+  @protected
+  BridgeCachedCgyySitesRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_cgyy_sites_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_cgyy_sites_record(raw);
   }
 
   @protected
@@ -9420,6 +10274,51 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_bridge_cached_bykc_statistics_record(deserializer));
+  }
+
+  @protected
+  BridgeCachedCgyyDayRecord
+  sse_decode_box_autoadd_bridge_cached_cgyy_day_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_cgyy_day_record(deserializer));
+  }
+
+  @protected
+  BridgeCachedCgyyDetailRecord
+  sse_decode_box_autoadd_bridge_cached_cgyy_detail_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_cgyy_detail_record(deserializer));
+  }
+
+  @protected
+  BridgeCachedCgyyOrdersRecord
+  sse_decode_box_autoadd_bridge_cached_cgyy_orders_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_cgyy_orders_record(deserializer));
+  }
+
+  @protected
+  BridgeCachedCgyyPurposesRecord
+  sse_decode_box_autoadd_bridge_cached_cgyy_purposes_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_cgyy_purposes_record(deserializer));
+  }
+
+  @protected
+  BridgeCachedCgyySitesRecord
+  sse_decode_box_autoadd_bridge_cached_cgyy_sites_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_cgyy_sites_record(deserializer));
   }
 
   @protected
@@ -10483,6 +11382,211 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedCgyyDayInfo sse_decode_bridge_cached_cgyy_day_info(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_venueSiteId = sse_decode_i_32(deserializer);
+    var var_reservationDate = sse_decode_String(deserializer);
+    var var_availableDates = sse_decode_list_String(deserializer);
+    var var_timeSlots = sse_decode_list_bridge_cgyy_time_slot(deserializer);
+    var var_spaces = sse_decode_list_bridge_cached_cgyy_space_availability(
+      deserializer,
+    );
+    var var_reservationTotalNum = sse_decode_opt_box_autoadd_i_32(deserializer);
+    return BridgeCachedCgyyDayInfo(
+      venueSiteId: var_venueSiteId,
+      reservationDate: var_reservationDate,
+      availableDates: var_availableDates,
+      timeSlots: var_timeSlots,
+      spaces: var_spaces,
+      reservationTotalNum: var_reservationTotalNum,
+    );
+  }
+
+  @protected
+  BridgeCachedCgyyDayRecord sse_decode_bridge_cached_cgyy_day_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_cached_cgyy_day_info(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedCgyyDayRecord(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedCgyyDetailRecord sse_decode_bridge_cached_cgyy_detail_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_cached_cgyy_order(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedCgyyDetailRecord(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedCgyyOrder sse_decode_bridge_cached_cgyy_order(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_i_32(deserializer);
+    var var_venueSiteId = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_reservationDate = sse_decode_opt_String(deserializer);
+    var var_reservationDateDetail = sse_decode_opt_String(deserializer);
+    var var_venueSpaceName = sse_decode_opt_String(deserializer);
+    var var_campusName = sse_decode_opt_String(deserializer);
+    var var_venueName = sse_decode_opt_String(deserializer);
+    var var_siteName = sse_decode_opt_String(deserializer);
+    var var_reservationStartDate = sse_decode_opt_String(deserializer);
+    var var_reservationEndDate = sse_decode_opt_String(deserializer);
+    var var_orderStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_checkStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_theme = sse_decode_opt_String(deserializer);
+    var var_purposeTypeName = sse_decode_opt_String(deserializer);
+    var var_joinerNum = sse_decode_opt_box_autoadd_i_32(deserializer);
+    return BridgeCachedCgyyOrder(
+      id: var_id,
+      venueSiteId: var_venueSiteId,
+      reservationDate: var_reservationDate,
+      reservationDateDetail: var_reservationDateDetail,
+      venueSpaceName: var_venueSpaceName,
+      campusName: var_campusName,
+      venueName: var_venueName,
+      siteName: var_siteName,
+      reservationStartDate: var_reservationStartDate,
+      reservationEndDate: var_reservationEndDate,
+      orderStatus: var_orderStatus,
+      checkStatus: var_checkStatus,
+      theme: var_theme,
+      purposeTypeName: var_purposeTypeName,
+      joinerNum: var_joinerNum,
+    );
+  }
+
+  @protected
+  BridgeCachedCgyyOrdersPage sse_decode_bridge_cached_cgyy_orders_page(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_content = sse_decode_list_bridge_cached_cgyy_order(deserializer);
+    var var_totalElements = sse_decode_i_32(deserializer);
+    var var_totalPages = sse_decode_i_32(deserializer);
+    var var_size = sse_decode_i_32(deserializer);
+    var var_number = sse_decode_i_32(deserializer);
+    return BridgeCachedCgyyOrdersPage(
+      content: var_content,
+      totalElements: var_totalElements,
+      totalPages: var_totalPages,
+      size: var_size,
+      number: var_number,
+    );
+  }
+
+  @protected
+  BridgeCachedCgyyOrdersRecord sse_decode_bridge_cached_cgyy_orders_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_cached_cgyy_orders_page(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedCgyyOrdersRecord(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedCgyyPurposesRecord sse_decode_bridge_cached_cgyy_purposes_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_cgyy_purpose_types(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedCgyyPurposesRecord(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedCgyySitesRecord sse_decode_bridge_cached_cgyy_sites_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_cgyy_venue_site(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedCgyySitesRecord(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedCgyySlotStatus sse_decode_bridge_cached_cgyy_slot_status(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_timeId = sse_decode_i_32(deserializer);
+    var var_reservationStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_startDate = sse_decode_opt_String(deserializer);
+    var var_endDate = sse_decode_opt_String(deserializer);
+    return BridgeCachedCgyySlotStatus(
+      timeId: var_timeId,
+      reservationStatus: var_reservationStatus,
+      startDate: var_startDate,
+      endDate: var_endDate,
+    );
+  }
+
+  @protected
+  BridgeCachedCgyySpaceAvailability
+  sse_decode_bridge_cached_cgyy_space_availability(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_spaceId = sse_decode_i_32(deserializer);
+    var var_spaceName = sse_decode_String(deserializer);
+    var var_venueSiteId = sse_decode_i_32(deserializer);
+    var var_venueSpaceGroupId = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_slots = sse_decode_list_bridge_cached_cgyy_slot_status(
+      deserializer,
+    );
+    return BridgeCachedCgyySpaceAvailability(
+      spaceId: var_spaceId,
+      spaceName: var_spaceName,
+      venueSiteId: var_venueSiteId,
+      venueSpaceGroupId: var_venueSpaceGroupId,
+      slots: var_slots,
+    );
+  }
+
+  @protected
   BridgeCachedHomeSignin sse_decode_bridge_cached_home_signin(
     SseDeserializer deserializer,
   ) {
@@ -10773,6 +11877,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCgyyDayRefresh sse_decode_bridge_cgyy_day_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_cgyy_day_info(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    var var_state = sse_decode_bridge_cgyy_refresh_state(deserializer);
+    return BridgeCgyyDayRefresh(
+      data: var_data,
+      route: var_route,
+      state: var_state,
+    );
+  }
+
+  @protected
+  BridgeCgyyDetailRefresh sse_decode_bridge_cgyy_detail_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_cgyy_order(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    var var_state = sse_decode_bridge_cgyy_refresh_state(deserializer);
+    return BridgeCgyyDetailRefresh(
+      data: var_data,
+      route: var_route,
+      state: var_state,
+    );
+  }
+
+  @protected
   BridgeCgyyLockCode sse_decode_bridge_cgyy_lock_code(
     SseDeserializer deserializer,
   ) {
@@ -10852,6 +11986,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCgyyOrdersRefresh sse_decode_bridge_cgyy_orders_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_cgyy_orders_page(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    var var_state = sse_decode_bridge_cgyy_refresh_state(deserializer);
+    return BridgeCgyyOrdersRefresh(
+      data: var_data,
+      route: var_route,
+      state: var_state,
+    );
+  }
+
+  @protected
   BridgeCgyyPurposeSource sse_decode_bridge_cgyy_purpose_source(
     SseDeserializer deserializer,
   ) {
@@ -10878,6 +12027,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_items = sse_decode_list_bridge_cgyy_purpose_type(deserializer);
     var var_source = sse_decode_bridge_cgyy_purpose_source(deserializer);
     return BridgeCgyyPurposeTypes(items: var_items, source: var_source);
+  }
+
+  @protected
+  BridgeCgyyPurposesRefresh sse_decode_bridge_cgyy_purposes_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_cgyy_purpose_types(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    var var_state = sse_decode_bridge_cgyy_refresh_state(deserializer);
+    return BridgeCgyyPurposesRefresh(
+      data: var_data,
+      route: var_route,
+      state: var_state,
+    );
+  }
+
+  @protected
+  BridgeCgyyRefreshState sse_decode_bridge_cgyy_refresh_state(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    var var_savedForOffline = sse_decode_bool(deserializer);
+    var var_preservedPrevious = sse_decode_bool(deserializer);
+    var var_saveError = sse_decode_opt_box_autoadd_bridge_cache_failure(
+      deserializer,
+    );
+    return BridgeCgyyRefreshState(
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+      savedForOffline: var_savedForOffline,
+      preservedPrevious: var_preservedPrevious,
+      saveError: var_saveError,
+    );
   }
 
   @protected
@@ -10930,6 +12115,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       timeId: var_timeId,
       venueSpaceGroupId: var_venueSpaceGroupId,
       timeOrdinal: var_timeOrdinal,
+    );
+  }
+
+  @protected
+  BridgeCgyySitesRefresh sse_decode_bridge_cgyy_sites_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_cgyy_venue_site(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    var var_state = sse_decode_bridge_cgyy_refresh_state(deserializer);
+    return BridgeCgyySitesRefresh(
+      data: var_data,
+      route: var_route,
+      state: var_state,
     );
   }
 
@@ -12963,6 +14163,48 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<BridgeCachedCgyyOrder> sse_decode_list_bridge_cached_cgyy_order(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeCachedCgyyOrder>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_cached_cgyy_order(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeCachedCgyySlotStatus>
+  sse_decode_list_bridge_cached_cgyy_slot_status(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeCachedCgyySlotStatus>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_cached_cgyy_slot_status(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeCachedCgyySpaceAvailability>
+  sse_decode_list_bridge_cached_cgyy_space_availability(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeCachedCgyySpaceAvailability>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_cached_cgyy_space_availability(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<BridgeCachedSigninClass> sse_decode_list_bridge_cached_signin_class(
     SseDeserializer deserializer,
   ) {
@@ -13769,6 +15011,86 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedCgyyDayRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_cgyy_day_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_cgyy_day_record(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeCachedCgyyDetailRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_cgyy_detail_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_cgyy_detail_record(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeCachedCgyyOrdersRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_cgyy_orders_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_cgyy_orders_record(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeCachedCgyyPurposesRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_cgyy_purposes_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_cgyy_purposes_record(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeCachedCgyySitesRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_cgyy_sites_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_cgyy_sites_record(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   BridgeCachedHomeSignin? sse_decode_opt_box_autoadd_bridge_cached_home_signin(
     SseDeserializer deserializer,
   ) {
@@ -14442,6 +15764,51 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_bridge_cached_bykc_statistics_record(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_cgyy_day_record(
+    BridgeCachedCgyyDayRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_cgyy_day_record(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_cgyy_detail_record(
+    BridgeCachedCgyyDetailRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_cgyy_detail_record(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_cgyy_orders_record(
+    BridgeCachedCgyyOrdersRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_cgyy_orders_record(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_cgyy_purposes_record(
+    BridgeCachedCgyyPurposesRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_cgyy_purposes_record(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_cgyy_sites_record(
+    BridgeCachedCgyySitesRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_cgyy_sites_record(self, serializer);
   }
 
   @protected
@@ -15278,6 +16645,144 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bridge_cached_cgyy_day_info(
+    BridgeCachedCgyyDayInfo self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.venueSiteId, serializer);
+    sse_encode_String(self.reservationDate, serializer);
+    sse_encode_list_String(self.availableDates, serializer);
+    sse_encode_list_bridge_cgyy_time_slot(self.timeSlots, serializer);
+    sse_encode_list_bridge_cached_cgyy_space_availability(
+      self.spaces,
+      serializer,
+    );
+    sse_encode_opt_box_autoadd_i_32(self.reservationTotalNum, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_day_record(
+    BridgeCachedCgyyDayRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_cgyy_day_info(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_detail_record(
+    BridgeCachedCgyyDetailRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_cgyy_order(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_order(
+    BridgeCachedCgyyOrder self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.id, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.venueSiteId, serializer);
+    sse_encode_opt_String(self.reservationDate, serializer);
+    sse_encode_opt_String(self.reservationDateDetail, serializer);
+    sse_encode_opt_String(self.venueSpaceName, serializer);
+    sse_encode_opt_String(self.campusName, serializer);
+    sse_encode_opt_String(self.venueName, serializer);
+    sse_encode_opt_String(self.siteName, serializer);
+    sse_encode_opt_String(self.reservationStartDate, serializer);
+    sse_encode_opt_String(self.reservationEndDate, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.orderStatus, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.checkStatus, serializer);
+    sse_encode_opt_String(self.theme, serializer);
+    sse_encode_opt_String(self.purposeTypeName, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.joinerNum, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_orders_page(
+    BridgeCachedCgyyOrdersPage self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_cached_cgyy_order(self.content, serializer);
+    sse_encode_i_32(self.totalElements, serializer);
+    sse_encode_i_32(self.totalPages, serializer);
+    sse_encode_i_32(self.size, serializer);
+    sse_encode_i_32(self.number, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_orders_record(
+    BridgeCachedCgyyOrdersRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_cgyy_orders_page(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_purposes_record(
+    BridgeCachedCgyyPurposesRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cgyy_purpose_types(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_sites_record(
+    BridgeCachedCgyySitesRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_cgyy_venue_site(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_slot_status(
+    BridgeCachedCgyySlotStatus self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.timeId, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.reservationStatus, serializer);
+    sse_encode_opt_String(self.startDate, serializer);
+    sse_encode_opt_String(self.endDate, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_space_availability(
+    BridgeCachedCgyySpaceAvailability self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.spaceId, serializer);
+    sse_encode_String(self.spaceName, serializer);
+    sse_encode_i_32(self.venueSiteId, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.venueSpaceGroupId, serializer);
+    sse_encode_list_bridge_cached_cgyy_slot_status(self.slots, serializer);
+  }
+
+  @protected
   void sse_encode_bridge_cached_home_signin(
     BridgeCachedHomeSignin self,
     SseSerializer serializer,
@@ -15486,6 +16991,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bridge_cgyy_day_refresh(
+    BridgeCgyyDayRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cgyy_day_info(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+    sse_encode_bridge_cgyy_refresh_state(self.state, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_detail_refresh(
+    BridgeCgyyDetailRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cgyy_order(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+    sse_encode_bridge_cgyy_refresh_state(self.state, serializer);
+  }
+
+  @protected
   void sse_encode_bridge_cgyy_lock_code(
     BridgeCgyyLockCode self,
     SseSerializer serializer,
@@ -15540,6 +17067,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bridge_cgyy_orders_refresh(
+    BridgeCgyyOrdersRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cgyy_orders_page(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+    sse_encode_bridge_cgyy_refresh_state(self.state, serializer);
+  }
+
+  @protected
   void sse_encode_bridge_cgyy_purpose_source(
     BridgeCgyyPurposeSource self,
     SseSerializer serializer,
@@ -15566,6 +17104,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_bridge_cgyy_purpose_type(self.items, serializer);
     sse_encode_bridge_cgyy_purpose_source(self.source, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_purposes_refresh(
+    BridgeCgyyPurposesRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cgyy_purpose_types(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+    sse_encode_bridge_cgyy_refresh_state(self.state, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_refresh_state(
+    BridgeCgyyRefreshState self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+    sse_encode_bool(self.savedForOffline, serializer);
+    sse_encode_bool(self.preservedPrevious, serializer);
+    sse_encode_opt_box_autoadd_bridge_cache_failure(self.saveError, serializer);
   }
 
   @protected
@@ -15603,6 +17165,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.timeId, serializer);
     sse_encode_opt_box_autoadd_i_32(self.venueSpaceGroupId, serializer);
     sse_encode_i_32(self.timeOrdinal, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cgyy_sites_refresh(
+    BridgeCgyySitesRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_cgyy_venue_site(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+    sse_encode_bridge_cgyy_refresh_state(self.state, serializer);
   }
 
   @protected
@@ -17168,6 +18741,42 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_bridge_cached_cgyy_order(
+    List<BridgeCachedCgyyOrder> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_cached_cgyy_order(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_cached_cgyy_slot_status(
+    List<BridgeCachedCgyySlotStatus> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_cached_cgyy_slot_status(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_cached_cgyy_space_availability(
+    List<BridgeCachedCgyySpaceAvailability> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_cached_cgyy_space_availability(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_bridge_cached_signin_class(
     List<BridgeCachedSigninClass> self,
     SseSerializer serializer,
@@ -17886,6 +19495,74 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_cgyy_day_record(
+    BridgeCachedCgyyDayRecord? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_cgyy_day_record(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_cgyy_detail_record(
+    BridgeCachedCgyyDetailRecord? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_cgyy_detail_record(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_cgyy_orders_record(
+    BridgeCachedCgyyOrdersRecord? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_cgyy_orders_record(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_cgyy_purposes_record(
+    BridgeCachedCgyyPurposesRecord? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_cgyy_purposes_record(
+        self,
+        serializer,
+      );
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_cgyy_sites_record(
+    BridgeCachedCgyySitesRecord? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_cgyy_sites_record(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_bridge_cached_home_signin(
     BridgeCachedHomeSignin? self,
     SseSerializer serializer,
@@ -18429,6 +20106,21 @@ class BridgeClientImpl extends RustOpaque implements BridgeClient {
     cache: cache,
   );
 
+  /// 原查询与只读保存；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误及账号/退出栅栏。
+  Future<BridgeCgyyDayRefresh> cgyyDayCached({
+    required BridgeOfflineCache cache,
+    required int siteId,
+    required String date,
+  }) => RustLib.instance.api.crateApiClientBridgeClientCgyyDayCached(
+    that: this,
+    cache: cache,
+    siteId: siteId,
+    date: date,
+  );
+
   Future<BridgeRoutedCgyyDayInfo> cgyyDayInfo({
     required int siteId,
     required String date,
@@ -18436,6 +20128,19 @@ class BridgeClientImpl extends RustOpaque implements BridgeClient {
     that: this,
     siteId: siteId,
     date: date,
+  );
+
+  /// 原查询与只读保存；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误及账号/退出栅栏。
+  Future<BridgeCgyyDetailRefresh> cgyyDetailCached({
+    required BridgeOfflineCache cache,
+    required int orderId,
+  }) => RustLib.instance.api.crateApiClientBridgeClientCgyyDetailCached(
+    that: this,
+    cache: cache,
+    orderId: orderId,
   );
 
   Future<BridgeRoutedCgyyLockCode> cgyyLockCode() =>
@@ -18465,6 +20170,21 @@ class BridgeClientImpl extends RustOpaque implements BridgeClient {
     size: size,
   );
 
+  /// 原查询与只读保存；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误及账号/退出栅栏。
+  Future<BridgeCgyyOrdersRefresh> cgyyOrdersCached({
+    required BridgeOfflineCache cache,
+    required int page,
+    required int size,
+  }) => RustLib.instance.api.crateApiClientBridgeClientCgyyOrdersCached(
+    that: this,
+    cache: cache,
+    page: page,
+    size: size,
+  );
+
   /// 在调用方指定的已认证路线读取场馆订单，不执行 Auto 探测或回退。
   Future<BridgeCallerPinnedCgyyOrders> cgyyOrdersOnRoute({
     required BridgeConnectionMode route,
@@ -18482,8 +20202,30 @@ class BridgeClientImpl extends RustOpaque implements BridgeClient {
       .api
       .crateApiClientBridgeClientCgyyPurposeTypes(that: this);
 
+  /// 原查询与只读保存；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误及账号/退出栅栏。
+  Future<BridgeCgyyPurposesRefresh> cgyyPurposesCached({
+    required BridgeOfflineCache cache,
+  }) => RustLib.instance.api.crateApiClientBridgeClientCgyyPurposesCached(
+    that: this,
+    cache: cache,
+  );
+
   Future<BridgeRoutedCgyySites> cgyySites() =>
       RustLib.instance.api.crateApiClientBridgeClientCgyySites(that: this);
+
+  /// 原查询与只读保存；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误及账号/退出栅栏。
+  Future<BridgeCgyySitesRefresh> cgyySitesCached({
+    required BridgeOfflineCache cache,
+  }) => RustLib.instance.api.crateApiClientBridgeClientCgyySitesCached(
+    that: this,
+    cache: cache,
+  );
 
   Future<BridgeRoutedClassroomQuery> classroomSearch({
     required int campus,
@@ -19178,6 +20920,71 @@ class BridgeOfflineCacheImpl extends RustOpaque implements BridgeOfflineCache {
         that: this,
         route: route,
       );
+
+  /// 无网络读取精确本地范围。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或损坏返回稳定错误；缺记录返回 None。
+  Future<BridgeCachedCgyyDayRecord?> readCgyyDay({
+    required BridgeConnectionMode route,
+    required int siteId,
+    required String date,
+  }) => RustLib.instance.api.crateApiOfflineBridgeOfflineCacheReadCgyyDay(
+    that: this,
+    route: route,
+    siteId: siteId,
+    date: date,
+  );
+
+  /// 无网络读取精确本地范围。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或损坏返回稳定错误；缺记录返回 None。
+  Future<BridgeCachedCgyyDetailRecord?> readCgyyDetail({
+    required BridgeConnectionMode route,
+    required int orderId,
+  }) => RustLib.instance.api.crateApiOfflineBridgeOfflineCacheReadCgyyDetail(
+    that: this,
+    route: route,
+    orderId: orderId,
+  );
+
+  /// 无网络读取精确本地范围。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或损坏返回稳定错误；缺记录返回 None。
+  Future<BridgeCachedCgyyOrdersRecord?> readCgyyOrders({
+    required BridgeConnectionMode route,
+    required int page,
+    required int size,
+  }) => RustLib.instance.api.crateApiOfflineBridgeOfflineCacheReadCgyyOrders(
+    that: this,
+    route: route,
+    page: page,
+    size: size,
+  );
+
+  /// 无网络读取精确本地范围。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或损坏返回稳定错误；缺记录返回 None。
+  Future<BridgeCachedCgyyPurposesRecord?> readCgyyPurposes({
+    required BridgeConnectionMode route,
+  }) => RustLib.instance.api.crateApiOfflineBridgeOfflineCacheReadCgyyPurposes(
+    that: this,
+    route: route,
+  );
+
+  /// 无网络读取精确本地范围。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或损坏返回稳定错误；缺记录返回 None。
+  Future<BridgeCachedCgyySitesRecord?> readCgyySites({
+    required BridgeConnectionMode route,
+  }) => RustLib.instance.api.crateApiOfflineBridgeOfflineCacheReadCgyySites(
+    that: this,
+    route: route,
+  );
 
   /// 独立本地读取不等待网络锁，不进行认证。
   ///

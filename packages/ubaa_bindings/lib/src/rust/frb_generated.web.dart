@@ -12,6 +12,7 @@ import 'api/judge_scan.dart';
 import 'api/offline.dart';
 import 'api/offline_academic.dart';
 import 'api/offline_bykc.dart';
+import 'api/offline_cgyy.dart';
 import 'api/offline_home.dart';
 import 'api/read.dart';
 import 'api/recovery.dart';
@@ -204,6 +205,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedBykcStatisticsRecord
   dco_decode_box_autoadd_bridge_cached_bykc_statistics_record(dynamic raw);
+
+  @protected
+  BridgeCachedCgyyDayRecord
+  dco_decode_box_autoadd_bridge_cached_cgyy_day_record(dynamic raw);
+
+  @protected
+  BridgeCachedCgyyDetailRecord
+  dco_decode_box_autoadd_bridge_cached_cgyy_detail_record(dynamic raw);
+
+  @protected
+  BridgeCachedCgyyOrdersRecord
+  dco_decode_box_autoadd_bridge_cached_cgyy_orders_record(dynamic raw);
+
+  @protected
+  BridgeCachedCgyyPurposesRecord
+  dco_decode_box_autoadd_bridge_cached_cgyy_purposes_record(dynamic raw);
+
+  @protected
+  BridgeCachedCgyySitesRecord
+  dco_decode_box_autoadd_bridge_cached_cgyy_sites_record(dynamic raw);
 
   @protected
   BridgeCachedHomeSignin dco_decode_box_autoadd_bridge_cached_home_signin(
@@ -504,6 +525,51 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_bridge_cached_bykc_statistics_record(dynamic raw);
 
   @protected
+  BridgeCachedCgyyDayInfo dco_decode_bridge_cached_cgyy_day_info(dynamic raw);
+
+  @protected
+  BridgeCachedCgyyDayRecord dco_decode_bridge_cached_cgyy_day_record(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedCgyyDetailRecord dco_decode_bridge_cached_cgyy_detail_record(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedCgyyOrder dco_decode_bridge_cached_cgyy_order(dynamic raw);
+
+  @protected
+  BridgeCachedCgyyOrdersPage dco_decode_bridge_cached_cgyy_orders_page(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedCgyyOrdersRecord dco_decode_bridge_cached_cgyy_orders_record(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedCgyyPurposesRecord dco_decode_bridge_cached_cgyy_purposes_record(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedCgyySitesRecord dco_decode_bridge_cached_cgyy_sites_record(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedCgyySlotStatus dco_decode_bridge_cached_cgyy_slot_status(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedCgyySpaceAvailability
+  dco_decode_bridge_cached_cgyy_space_availability(dynamic raw);
+
+  @protected
   BridgeCachedHomeSignin dco_decode_bridge_cached_home_signin(dynamic raw);
 
   @protected
@@ -574,6 +640,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeCgyyDayInfo dco_decode_bridge_cgyy_day_info(dynamic raw);
 
   @protected
+  BridgeCgyyDayRefresh dco_decode_bridge_cgyy_day_refresh(dynamic raw);
+
+  @protected
+  BridgeCgyyDetailRefresh dco_decode_bridge_cgyy_detail_refresh(dynamic raw);
+
+  @protected
   BridgeCgyyLockCode dco_decode_bridge_cgyy_lock_code(dynamic raw);
 
   @protected
@@ -583,6 +655,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeCgyyOrdersPage dco_decode_bridge_cgyy_orders_page(dynamic raw);
 
   @protected
+  BridgeCgyyOrdersRefresh dco_decode_bridge_cgyy_orders_refresh(dynamic raw);
+
+  @protected
   BridgeCgyyPurposeSource dco_decode_bridge_cgyy_purpose_source(dynamic raw);
 
   @protected
@@ -590,6 +665,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCgyyPurposeTypes dco_decode_bridge_cgyy_purpose_types(dynamic raw);
+
+  @protected
+  BridgeCgyyPurposesRefresh dco_decode_bridge_cgyy_purposes_refresh(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCgyyRefreshState dco_decode_bridge_cgyy_refresh_state(dynamic raw);
 
   @protected
   BridgeCgyyReservationReceipt dco_decode_bridge_cgyy_reservation_receipt(
@@ -605,6 +688,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeCgyyReservationTarget dco_decode_bridge_cgyy_reservation_target(
     dynamic raw,
   );
+
+  @protected
+  BridgeCgyySitesRefresh dco_decode_bridge_cgyy_sites_refresh(dynamic raw);
 
   @protected
   BridgeCgyySlotStatus dco_decode_bridge_cgyy_slot_status(dynamic raw);
@@ -1071,6 +1157,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeCachedCgyyOrder> dco_decode_list_bridge_cached_cgyy_order(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeCachedCgyySlotStatus>
+  dco_decode_list_bridge_cached_cgyy_slot_status(dynamic raw);
+
+  @protected
+  List<BridgeCachedCgyySpaceAvailability>
+  dco_decode_list_bridge_cached_cgyy_space_availability(dynamic raw);
+
+  @protected
   List<BridgeCachedSigninClass> dco_decode_list_bridge_cached_signin_class(
     dynamic raw,
   );
@@ -1293,6 +1392,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedBykcStatisticsRecord?
   dco_decode_opt_box_autoadd_bridge_cached_bykc_statistics_record(dynamic raw);
+
+  @protected
+  BridgeCachedCgyyDayRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_cgyy_day_record(dynamic raw);
+
+  @protected
+  BridgeCachedCgyyDetailRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_cgyy_detail_record(dynamic raw);
+
+  @protected
+  BridgeCachedCgyyOrdersRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_cgyy_orders_record(dynamic raw);
+
+  @protected
+  BridgeCachedCgyyPurposesRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_cgyy_purposes_record(dynamic raw);
+
+  @protected
+  BridgeCachedCgyySitesRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_cgyy_sites_record(dynamic raw);
 
   @protected
   BridgeCachedHomeSignin? dco_decode_opt_box_autoadd_bridge_cached_home_signin(
@@ -1579,6 +1698,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedBykcStatisticsRecord
   sse_decode_box_autoadd_bridge_cached_bykc_statistics_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyyDayRecord
+  sse_decode_box_autoadd_bridge_cached_cgyy_day_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyyDetailRecord
+  sse_decode_box_autoadd_bridge_cached_cgyy_detail_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyyOrdersRecord
+  sse_decode_box_autoadd_bridge_cached_cgyy_orders_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyyPurposesRecord
+  sse_decode_box_autoadd_bridge_cached_cgyy_purposes_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyySitesRecord
+  sse_decode_box_autoadd_bridge_cached_cgyy_sites_record(
     SseDeserializer deserializer,
   );
 
@@ -1955,6 +2104,57 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   sse_decode_bridge_cached_bykc_statistics_record(SseDeserializer deserializer);
 
   @protected
+  BridgeCachedCgyyDayInfo sse_decode_bridge_cached_cgyy_day_info(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyyDayRecord sse_decode_bridge_cached_cgyy_day_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyyDetailRecord sse_decode_bridge_cached_cgyy_detail_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyyOrder sse_decode_bridge_cached_cgyy_order(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyyOrdersPage sse_decode_bridge_cached_cgyy_orders_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyyOrdersRecord sse_decode_bridge_cached_cgyy_orders_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyyPurposesRecord sse_decode_bridge_cached_cgyy_purposes_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyySitesRecord sse_decode_bridge_cached_cgyy_sites_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyySlotStatus sse_decode_bridge_cached_cgyy_slot_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyySpaceAvailability
+  sse_decode_bridge_cached_cgyy_space_availability(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedHomeSignin sse_decode_bridge_cached_home_signin(
     SseDeserializer deserializer,
   );
@@ -2045,6 +2245,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCgyyDayRefresh sse_decode_bridge_cgyy_day_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyDetailRefresh sse_decode_bridge_cgyy_detail_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCgyyLockCode sse_decode_bridge_cgyy_lock_code(
     SseDeserializer deserializer,
   );
@@ -2054,6 +2264,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCgyyOrdersPage sse_decode_bridge_cgyy_orders_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyOrdersRefresh sse_decode_bridge_cgyy_orders_refresh(
     SseDeserializer deserializer,
   );
 
@@ -2073,6 +2288,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCgyyPurposesRefresh sse_decode_bridge_cgyy_purposes_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyRefreshState sse_decode_bridge_cgyy_refresh_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCgyyReservationReceipt sse_decode_bridge_cgyy_reservation_receipt(
     SseDeserializer deserializer,
   );
@@ -2084,6 +2309,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCgyyReservationTarget sse_decode_bridge_cgyy_reservation_target(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyySitesRefresh sse_decode_bridge_cgyy_sites_refresh(
     SseDeserializer deserializer,
   );
 
@@ -2716,6 +2946,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeCachedCgyyOrder> sse_decode_list_bridge_cached_cgyy_order(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeCachedCgyySlotStatus>
+  sse_decode_list_bridge_cached_cgyy_slot_status(SseDeserializer deserializer);
+
+  @protected
+  List<BridgeCachedCgyySpaceAvailability>
+  sse_decode_list_bridge_cached_cgyy_space_availability(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BridgeCachedSigninClass> sse_decode_list_bridge_cached_signin_class(
     SseDeserializer deserializer,
   );
@@ -2994,6 +3239,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedBykcStatisticsRecord?
   sse_decode_opt_box_autoadd_bridge_cached_bykc_statistics_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyyDayRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_cgyy_day_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyyDetailRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_cgyy_detail_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyyOrdersRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_cgyy_orders_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyyPurposesRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_cgyy_purposes_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedCgyySitesRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_cgyy_sites_record(
     SseDeserializer deserializer,
   );
 
@@ -3326,6 +3601,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_cached_bykc_statistics_record(
     BridgeCachedBykcStatisticsRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_cgyy_day_record(
+    BridgeCachedCgyyDayRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_cgyy_detail_record(
+    BridgeCachedCgyyDetailRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_cgyy_orders_record(
+    BridgeCachedCgyyOrdersRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_cgyy_purposes_record(
+    BridgeCachedCgyyPurposesRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_cgyy_sites_record(
+    BridgeCachedCgyySitesRecord self,
     SseSerializer serializer,
   );
 
@@ -3768,6 +4073,66 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_cached_cgyy_day_info(
+    BridgeCachedCgyyDayInfo self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_day_record(
+    BridgeCachedCgyyDayRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_detail_record(
+    BridgeCachedCgyyDetailRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_order(
+    BridgeCachedCgyyOrder self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_orders_page(
+    BridgeCachedCgyyOrdersPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_orders_record(
+    BridgeCachedCgyyOrdersRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_purposes_record(
+    BridgeCachedCgyyPurposesRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_sites_record(
+    BridgeCachedCgyySitesRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_slot_status(
+    BridgeCachedCgyySlotStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_cgyy_space_availability(
+    BridgeCachedCgyySpaceAvailability self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_cached_home_signin(
     BridgeCachedHomeSignin self,
     SseSerializer serializer,
@@ -3876,6 +4241,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_cgyy_day_refresh(
+    BridgeCgyyDayRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_detail_refresh(
+    BridgeCgyyDetailRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_cgyy_lock_code(
     BridgeCgyyLockCode self,
     SseSerializer serializer,
@@ -3890,6 +4267,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_cgyy_orders_page(
     BridgeCgyyOrdersPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_orders_refresh(
+    BridgeCgyyOrdersRefresh self,
     SseSerializer serializer,
   );
 
@@ -3912,6 +4295,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_cgyy_purposes_refresh(
+    BridgeCgyyPurposesRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_refresh_state(
+    BridgeCgyyRefreshState self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_cgyy_reservation_receipt(
     BridgeCgyyReservationReceipt self,
     SseSerializer serializer,
@@ -3926,6 +4321,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_cgyy_reservation_target(
     BridgeCgyyReservationTarget self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_sites_refresh(
+    BridgeCgyySitesRefresh self,
     SseSerializer serializer,
   );
 
@@ -4689,6 +5090,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_cached_cgyy_order(
+    List<BridgeCachedCgyyOrder> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_cached_cgyy_slot_status(
+    List<BridgeCachedCgyySlotStatus> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_cached_cgyy_space_availability(
+    List<BridgeCachedCgyySpaceAvailability> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_cached_signin_class(
     List<BridgeCachedSigninClass> self,
     SseSerializer serializer,
@@ -5024,6 +5443,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_cached_bykc_statistics_record(
     BridgeCachedBykcStatisticsRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_cgyy_day_record(
+    BridgeCachedCgyyDayRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_cgyy_detail_record(
+    BridgeCachedCgyyDetailRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_cgyy_orders_record(
+    BridgeCachedCgyyOrdersRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_cgyy_purposes_record(
+    BridgeCachedCgyyPurposesRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_cgyy_sites_record(
+    BridgeCachedCgyySitesRecord? self,
     SseSerializer serializer,
   );
 

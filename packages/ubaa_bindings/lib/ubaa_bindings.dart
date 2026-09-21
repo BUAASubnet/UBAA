@@ -13,3 +13,5 @@ export 'src/rust/api/offline_academic.dart';
 export 'src/rust/api/offline_home.dart';
 
 export 'src/rust/api/offline_bykc.dart';
+
+export 'src/rust/api/offline_cgyy.dart';

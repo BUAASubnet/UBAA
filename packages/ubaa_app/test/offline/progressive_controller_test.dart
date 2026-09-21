@@ -12,6 +12,42 @@ Future<void> until(bool Function() ready) async {
 }
 
 void main() {
+  test('预约写后订单回读绕过新增缓存认证并保留写意图', () async {
+    final backend = _ReadbackBackend();
+    final controller = AppController(backend: backend);
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await until(() => backend.task.calls == 1);
+    controller.writeCoordinator.setIntent(
+      WriteIntent(
+        intentId: 'synthetic',
+        operation: WriteOperation.cgyySubmitReservation,
+        targetSummary: '合成目标',
+        resolvedRoute: ConnectionMode.direct,
+        warnings: const [],
+        expiresAt: DateTime.now().add(const Duration(minutes: 1)),
+        requestDigest: 'synthetic',
+      ),
+    );
+    final calls = backend.authCalls;
+    final future = controller.refreshAfterWrite(
+      WriteOperation.cgyySubmitReservation,
+    );
+    backend.task.first.complete(
+      const FeatureReadBatch(
+        FeatureResult.empty(),
+        finished: false,
+        publish: false,
+      ),
+    );
+    await future;
+    expect(backend.cgyyReadbacks, 1);
+    expect(backend.authCalls, calls);
+    expect(controller.writeCoordinator.intent, isNotNull);
+    controller.writeCoordinator.invalidate();
+    await until(() => backend.task.calls == 2);
+  });
+
   test('博雅写意图存在时既定回读只调用专用在线入口', () async {
     final backend = _ReadbackBackend();
     final controller = AppController(backend: backend);
@@ -343,7 +379,18 @@ class _Task implements FeatureReadTask {
 }
 
 class _ReadbackBackend extends _Backend
-    implements SigninReadbackBackend, BykcReadbackBackend {
+    implements
+        SigninReadbackBackend,
+        BykcReadbackBackend,
+        CgyyReservationReadbackBackend {
+  int cgyyReadbacks = 0;
+  @override
+  Future<FeatureResult> readCgyyAfterWrite(FeatureQuery query) async {
+    cgyyReadbacks++;
+    expect(query.view, FeatureQueryView.cgyyOrders);
+    return const FeatureResult.empty();
+  }
+
   int bykcReadbacks = 0;
   @override
   Future<FeatureResult> readBykcAfterWrite(FeatureQuery query) async {

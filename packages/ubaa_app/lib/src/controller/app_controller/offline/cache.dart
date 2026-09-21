@@ -27,9 +27,12 @@ extension _AppControllerOfflineCache on AppController {
       if (!current()) return;
       for (final projection in projections) {
         final supplement =
-            projection.feature == FeatureId.bykc &&
-            projection.readContext.query?.view ==
-                FeatureQueryView.bykcChosenCourses;
+            (projection.feature == FeatureId.bykc &&
+                projection.readContext.query?.view ==
+                    FeatureQueryView.bykcChosenCourses) ||
+            (projection.feature == FeatureId.cgyy &&
+                projection.readContext.query?.view ==
+                    FeatureQueryView.cgyyOrders);
         if (projection.accountId != account.id ||
             (!_homeDefaultFeatures.contains(projection.feature) && !supplement))
           continue;

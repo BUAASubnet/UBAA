@@ -12,6 +12,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await mount(tester, date: '2026-09-21', empty: true, failSupplement: true);
     expect(find.text('缓存博雅待办'), findsOneWidget);
+    expect(find.text('缓存研讨室待办'), findsOneWidget);
     expect(find.textContaining('博雅：上次保存'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
@@ -23,6 +24,7 @@ void main() {
     addTearDown(tester.view.resetDevicePixelRatio);
     await mount(tester, date: '2026-09-21', empty: true);
     expect(find.text('缓存博雅待办'), findsOneWidget);
+    expect(find.text('缓存研讨室待办'), findsOneWidget);
     expect(find.textContaining('博雅：上次保存'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
@@ -76,6 +78,28 @@ Future<void> mount(
           user: const UserSummary(username: 'synthetic'),
           snapshots: {
             for (final id in FeatureId.values) id: FeatureSnapshot(feature: id),
+            FeatureId.cgyy: CachedFeatureProjection(
+              feature: FeatureId.cgyy,
+              query: const FeatureQuery(view: FeatureQueryView.cgyyOrders),
+              accountId: 'synthetic',
+              route: ConnectionMode.direct,
+              fetchedAt: DateTime.utc(2026, 9, 20, 15),
+              complete: true,
+              details: const [
+                FeatureDetail(
+                  title: '缓存研讨室待办',
+                  presentation: CgyyOrderPresentation(
+                    id: 9,
+                    statusText: '审批通过',
+                    venueName: '缓存研讨室待办',
+                    reservationStartDate: '2026-09-21 09:00:00',
+                    reservationEndDate: '2026-09-21 10:00:00',
+                    orderStatus: 1,
+                    checkStatus: 1,
+                  ),
+                ),
+              ],
+            ).toSnapshot(),
             FeatureId.bykc: CachedFeatureProjection(
               feature: FeatureId.bykc,
               query: const FeatureQuery(

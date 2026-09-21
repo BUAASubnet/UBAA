@@ -313,3 +313,18 @@ RED：`/tmp/ubaa-p4h-cache-red.log` 为持久范围/不可写 DTO 尚不存在�
 期间修正合成用途名称未包含旧 parser 要求的“类”、模块注释放置、枚举大小和函数长度；没有修改上游解析规则或降低 lint。CgyyDay/Detail 响应必须对应请求才可标完成，静态用途回退不等于成功动态更新。最终 `just check` 退出 0：Core 两配置各 249 项、facade 52 项、Bridge 120 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。refs 两个原固定 SHA、layout 零 baseline 违例、sensitive 5252 文件和暂存 diff 检查通过；日志为 `/tmp/ubaa-p4h-check.log`、`/tmp/ubaa-p4h-layout.log`、`/tmp/ubaa-p4h-sensitive-final.log`。
 
 本阶段仅 Core，Bridge/Dart 合同仍为 v19，未把旧 Flutter/原生结果当作新的研讨室接线证明。未访问真实学校服务、未执行真实写入、未生成媒体或测量性能。Bridge/App、其他领域/阳光分页/跨范围失效/剩余长读取与完整生命周期、多端真实只读和性能验收继续。原工作区保持干净。
+
+
+## P4-I：研讨室 Bridge/App 五范围、用途与首页订单（2026-09-22）
+
+基线 `89d71d60`。Bridge v20 增加 sites/purposes/day/orders/detail 五项本地与在线缓存入口，缓存 DTO 只含既有公开字段且无学校操作资格。App 共用原投影，保持明确日期和订单零基请求/一基显示；首页缓存以 cgyyOrders 补充身份恢复，不污染普通站点列表。用途辅助读取复用本地优先机制并保留 evidence，预约后的明确 readback 能力绕过新增认证，取消原固定路线双回读未修改。
+
+RED：`/tmp/ubaa-p4i-bridge-red.log` 为本地订单入口不存在；`/tmp/ubaa-p4i-app-red.log` 为预约既定回读能力不存在；`/tmp/ubaa-p4i-home-red.log` 为用途等待认证和首页拒绝研讨室缓存；`/tmp/ubaa-p4i-ui-red.log` 复现无 error 的 stale 缓存触发空值断言；`/tmp/ubaa-p4i-first-partial-red.log` 复现首次 Stored Partial 被误标为旧内容；`/tmp/ubaa-p4i-purpose-retry-red.log` 在正确进入用途选择弹窗后复现失败清空已选选项。代码生成过程重复 visibility、mapper 命名、临时格式化差异，以及测试 import、fixture 必填字段和导航准备错误均已修正，不计作业务 RED。
+
+GREEN：本地读取不等待网络锁、路线/分页隔离、pending 写意图和退出屏障；五类缓存公开字段禁曝；原页信息、站点导航日期、只读详情与首页订单；部分用途/错日期保留同范围旧内容，首次 Partial 来源不失真；无缓存写动作；预约回读不增加恢复调用，取消原两读保持；首帧前用途可本地返回；时段 stale/error/loading 分开处理；用途保存提示、完整度及失败后的选项/草稿保留均通过。
+
+确定性门禁：`just check` 退出 0，Core 两配置各 249 项、facade 52 项、Bridge 121 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。单次 `just flutter-check` 57/66/364/261/17/32/54，共 851 项通过；收尾新增测试及修复后 App 全套 367 项、UI 全套 263 项及各自 analyze 通过，与其余未变套件合计 856 项。FRB v20 最终零漂移，第一次漂移仅为 private mapper 改名的生成注释，已重新生成并核对；等待生成完成后 diff 检查通过，未把生成过程的临时空白当作稳定结果。最终 refs 校验两个固定 SHA，layout 零 baseline 违例，sensitive 检查暂存后的 5258 文件通过（选项 helper 重命名已归并），暂存 diff 无空白错误或敏感材料。
+
+日志为 `/tmp/ubaa-p4i-check-final.log`、`/tmp/ubaa-p4i-flutter-final.log`、`/tmp/ubaa-p4i-app-{analyze,final}.log`、`/tmp/ubaa-p4i-ui-{analyze,final}.log`、`/tmp/ubaa-p4i-codegen-final.log`、`/tmp/ubaa-p4i-layout.log`、`/tmp/ubaa-p4i-sensitive-final.log`。macOS v20 原生合成缓存集成 1 项通过（`/tmp/ubaa-p4i-native.log`），五个新增本地入口及缺会话在线入口经真实 FRB；仍无法置前（open returned 1），不算独立实窗验收。未访问真实学校服务、未做真实写入、未生成验收媒体或性能数据。
+
+其余图书馆/评教/资料与阳光分页、跨范围失效、长读取余项、完整生命周期/多端/双路线真实只读与性能仍需继续；不关闭整个 P4/P5。源工作区保持干净。

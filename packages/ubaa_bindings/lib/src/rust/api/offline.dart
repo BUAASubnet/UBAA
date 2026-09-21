@@ -7,6 +7,7 @@ import '../frb_generated.dart';
 import 'client.dart';
 import 'offline_academic.dart';
 import 'offline_bykc.dart';
+import 'offline_cgyy.dart';
 import 'offline_home.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
@@ -146,6 +147,51 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   /// # Errors
   /// 账号关闭、范围无效或记录损坏返回稳定错误。
   Future<BridgeCachedBykcStatisticsRecord?> readBykcStatistics({
+    required BridgeConnectionMode route,
+  });
+
+  /// 无网络读取精确本地范围。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或损坏返回稳定错误；缺记录返回 None。
+  Future<BridgeCachedCgyyDayRecord?> readCgyyDay({
+    required BridgeConnectionMode route,
+    required int siteId,
+    required String date,
+  });
+
+  /// 无网络读取精确本地范围。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或损坏返回稳定错误；缺记录返回 None。
+  Future<BridgeCachedCgyyDetailRecord?> readCgyyDetail({
+    required BridgeConnectionMode route,
+    required int orderId,
+  });
+
+  /// 无网络读取精确本地范围。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或损坏返回稳定错误；缺记录返回 None。
+  Future<BridgeCachedCgyyOrdersRecord?> readCgyyOrders({
+    required BridgeConnectionMode route,
+    required int page,
+    required int size,
+  });
+
+  /// 无网络读取精确本地范围。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或损坏返回稳定错误；缺记录返回 None。
+  Future<BridgeCachedCgyyPurposesRecord?> readCgyyPurposes({
+    required BridgeConnectionMode route,
+  });
+
+  /// 无网络读取精确本地范围。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或损坏返回稳定错误；缺记录返回 None。
+  Future<BridgeCachedCgyySitesRecord?> readCgyySites({
     required BridgeConnectionMode route,
   });
 

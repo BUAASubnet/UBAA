@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `19`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `20`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -38,7 +38,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=19` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=20` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -574,3 +574,8 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
 ## 合同 v19：缓存 DTO 遵守相同禁曝边界
 
 移除 v18 `BridgeCachedBykcChosenCourse` 误带出的 `homework/homeworkAttachmentName`，与原 `BridgeBykcChosenCourse` 的禁曝合同一致。已选课程、考勤状态与时间窗仍保留；不改变学校协议、Core 缓存或 App 展示。schema_snapshot_test 同时约束在线与缓存 DTO，防止新类型绕过旧白名单。v19 必须与同次生成的 Dart/Rust 绑定配套。
+
+
+## 合同 v20：研讨室只读持久入口
+
+`api/offline_cgyy.rs` 提供五项 `read_cgyy_*` 与 `cgyy_*_cached`。缓存 DTO 不含预约或取消资格/target、交易号、电话、人员或审核内部材料；schema_snapshot_test 对新类型增加同等禁曝约束。部分刷新与缓存发布结果分离；本地读取无网络锁，在线恢复受 pending 写保护。原 Cgyy caller-pinned 双回读及门锁方法不变。App 与 Rust 必须同为 v20。

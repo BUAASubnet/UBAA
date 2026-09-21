@@ -69,9 +69,13 @@ extension _AppControllerCgyyPurposes on AppController {
         );
       } else {
         result = result.isEmpty
-            ? FeatureResult.empty(resolvedRoute: result.resolvedRoute)
+            ? FeatureResult.empty(
+                resolvedRoute: result.resolvedRoute,
+                evidence: result.evidence,
+              )
             : FeatureResult.success(
                 summary: result.summary,
+                evidence: result.evidence,
                 resolvedRoute: result.resolvedRoute,
                 details: List.unmodifiable(
                   result.details.map(

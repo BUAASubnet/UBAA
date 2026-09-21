@@ -6,6 +6,67 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../support/navigation.dart';
 
 void main() {
+  testWidgets('活动类型刷新失败保留已显示选项和草稿选择', (tester) async {
+    var calls = 0;
+    await _open(
+      tester,
+      _dayDetails,
+      [],
+      loadPurposes: (_) async => ++calls == 1
+          ? _purposes
+          : const FeatureResult.failure(
+              UiError(
+                code: UbaaErrorCode.networkError,
+                title: '合成刷新失败',
+                message: '保持选择',
+              ),
+            ),
+    );
+    await _form(tester);
+    expect(find.widgetWithText(OutlinedButton, '合成研讨甲'), findsOneWidget);
+    await tester.ensureVisible(find.widgetWithText(OutlinedButton, '合成研讨甲'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '合成研讨甲'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('刷新活动类型'));
+    await tester.tap(find.text('刷新活动类型'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(ListTile, '合成研讨甲'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, '关闭'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(OutlinedButton, '合成研讨甲'), findsOneWidget);
+    expect(find.text('保持选择'), findsOneWidget);
+  });
+
+  testWidgets('已保存用途明确显示时间和未完整状态', (tester) async {
+    await _open(
+      tester,
+      _dayDetails,
+      [],
+      loadPurposes: (_) async => FeatureResult.success(
+        details: _purposes.details,
+        resolvedRoute: ConnectionMode.direct,
+        evidence: DataEvidence(
+          accountId: 'synthetic',
+          origin: DataOrigin.persisted,
+          fetchedAt: DateTime(2026, 9, 22),
+          complete: false,
+          savedForOffline: true,
+        ),
+      ),
+    );
+    await _form(tester);
+    expect(find.textContaining('活动类型上次保存'), findsOneWidget);
+    expect(find.text('活动类型尚未核对完整'), findsOneWidget);
+  });
+
+  testWidgets('已保存研讨室时段无错误码也可阅读且没有预约下一步', (tester) async {
+    await _open(tester, _dayDetails, [], cached: true);
+    expect(tester.takeException(), isNull);
+    expect(find.text('合成研讨室'), findsWidgets);
+    expect(find.textContaining('上次保存'), findsWidgets);
+    expect(find.text('下一步'), findsNothing);
+  });
+
   testWidgets('研讨室用途按原key选择，显示来源且返回保留选择', (tester) async {
     var calls = 0;
     CgyySubmitInput? input;
@@ -236,6 +297,7 @@ Future<void> _open(
   List<FeatureDetail> details,
   List<FeatureQuery> queries, {
   Future<FeatureResult> Function(bool)? loadPurposes,
+  bool cached = false,
   ValueNotifier<int>? epoch,
   Future<WriteIntent> Function(CgyySubmitInput)? prepare,
 }) async {
@@ -256,12 +318,21 @@ Future<void> _open(
           user: const UserSummary(username: 'synthetic'),
           snapshots: {
             for (final id in FeatureId.values)
-              id: FeatureSnapshot(
-                feature: id,
-                status: FeatureLoadStatus.success,
-                resolvedRoute: ConnectionMode.direct,
-                details: id == FeatureId.cgyy ? details : const [],
-              ),
+              id: cached && id == FeatureId.cgyy
+                  ? CachedFeatureProjection(
+                      feature: id,
+                      accountId: 'synthetic',
+                      route: ConnectionMode.direct,
+                      fetchedAt: DateTime(2026, 9, 22),
+                      complete: true,
+                      details: details,
+                    ).toSnapshot()
+                  : FeatureSnapshot(
+                      feature: id,
+                      status: FeatureLoadStatus.success,
+                      resolvedRoute: ConnectionMode.direct,
+                      details: id == FeatureId.cgyy ? details : const [],
+                    ),
           },
           routePolicy: RoutePolicy.auto,
           telemetryEnabled: false,

@@ -7,7 +7,7 @@ import 'package:ubaa_bindings/ubaa_bindings.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  testWidgets('原生 Bridge v19 缓存句柄可重开且退出栅栏跨句柄生效', (tester) async {
+  testWidgets('原生 Bridge v20 缓存句柄可重开且退出栅栏跨句柄生效', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: Text('本地缓存合成验证'))),
     );
@@ -21,7 +21,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 19);
+      expect(client.contractVersion(), 20);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -75,6 +75,47 @@ void main() {
       );
       await expectLater(
         client.bykcCoursesCached(cache: first, page: 1, size: 20, all: true),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.code,
+            '缺少会话',
+            BridgeErrorCode.authenticationRequired,
+          ),
+        ),
+      );
+      expect(
+        await first.readCgyySites(route: BridgeConnectionMode.direct),
+        isNull,
+      );
+      expect(
+        await first.readCgyyPurposes(route: BridgeConnectionMode.direct),
+        isNull,
+      );
+      expect(
+        await first.readCgyyDay(
+          route: BridgeConnectionMode.direct,
+          siteId: 4,
+          date: '2026-09-22',
+        ),
+        isNull,
+      );
+      expect(
+        await first.readCgyyOrders(
+          route: BridgeConnectionMode.direct,
+          page: 0,
+          size: 20,
+        ),
+        isNull,
+      );
+      expect(
+        await first.readCgyyDetail(
+          route: BridgeConnectionMode.direct,
+          orderId: 9,
+        ),
+        isNull,
+      );
+      await expectLater(
+        client.cgyyOrdersCached(cache: first, page: 0, size: 20),
         throwsA(
           isA<BridgeError>().having(
             (error) => error.code,
@@ -249,6 +290,47 @@ void main() {
       );
       await expectLater(
         client.bykcCoursesCached(cache: first, page: 1, size: 20, all: true),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.code,
+            '缺少会话',
+            BridgeErrorCode.authenticationRequired,
+          ),
+        ),
+      );
+      expect(
+        await first.readCgyySites(route: BridgeConnectionMode.direct),
+        isNull,
+      );
+      expect(
+        await first.readCgyyPurposes(route: BridgeConnectionMode.direct),
+        isNull,
+      );
+      expect(
+        await first.readCgyyDay(
+          route: BridgeConnectionMode.direct,
+          siteId: 4,
+          date: '2026-09-22',
+        ),
+        isNull,
+      );
+      expect(
+        await first.readCgyyOrders(
+          route: BridgeConnectionMode.direct,
+          page: 0,
+          size: 20,
+        ),
+        isNull,
+      );
+      expect(
+        await first.readCgyyDetail(
+          route: BridgeConnectionMode.direct,
+          orderId: 9,
+        ),
+        isNull,
+      );
+      await expectLater(
+        client.cgyyOrdersCached(cache: first, page: 0, size: 20),
         throwsA(
           isA<BridgeError>().having(
             (error) => error.code,

@@ -102,6 +102,13 @@ extension _AppControllerProgressive on AppController {
     final backend = _backend;
     Future<FeatureResult> ordinary() {
       if (writeReadback &&
+          feature == FeatureId.cgyy &&
+          backend is CgyyReservationReadbackBackend) {
+        return (backend as CgyyReservationReadbackBackend).readCgyyAfterWrite(
+          query ?? const FeatureQuery(),
+        );
+      }
+      if (writeReadback &&
           feature == FeatureId.bykc &&
           backend is BykcReadbackBackend) {
         return (backend as BykcReadbackBackend).readBykcAfterWrite(

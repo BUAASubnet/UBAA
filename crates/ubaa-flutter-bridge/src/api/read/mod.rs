@@ -15,6 +15,10 @@ pub(super) use mappers::{
     map_bykc_profile, map_bykc_statistics, map_bykc_status, map_bykc_subcategory,
 };
 pub(super) use mappers::{
+    map_cgyy_day_info, map_cgyy_order, map_cgyy_orders, map_cgyy_purpose_types, map_cgyy_sites,
+    map_cgyy_time_slot,
+};
+pub(super) use mappers::{
     map_classroom_query, map_exam_arrangement, map_grade_data, map_terms, map_weekly_schedule,
     map_weeks,
 };

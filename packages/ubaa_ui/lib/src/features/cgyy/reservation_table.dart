@@ -120,7 +120,18 @@ extension _CgyyReservationTable on _CgyyReservationFlowState {
     return CustomScrollView(
       key: const ValueKey('cgyy-room-rows'),
       slivers: [
-        if (widget.snapshot.status == FeatureLoadStatus.stale)
+        if (widget.snapshot.evidence?.origin == DataOrigin.persisted)
+          SliverToBoxAdapter(
+            child: Text(
+              '上次保存 ${_savedScheduleTime(widget.snapshot.evidence!.fetchedAt)}，连接后核对更新',
+            ),
+          ),
+        if (widget.snapshot.evidence?.complete == false)
+          const SliverToBoxAdapter(child: Text('查询范围尚未更新完整')),
+        if (_busy && widget.snapshot.evidence?.origin == DataOrigin.persisted)
+          const SliverToBoxAdapter(child: Text('正在核对更新')),
+        if (widget.snapshot.status == FeatureLoadStatus.stale &&
+            widget.snapshot.error != null)
           SliverToBoxAdapter(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.stretch,

@@ -109,8 +109,16 @@ Future<OfflineHomeRead> _readCachedHome(
     policy,
   );
   failure ??= bykc.error;
+  final cgyy = await _readCachedQuery(
+    backend,
+    FeatureId.cgyy,
+    const FeatureQuery(view: FeatureQueryView.cgyyOrders),
+    policy,
+  );
+  failure ??= cgyy.error;
   return OfflineHomeRead([
     if (bykc.projection != null) bykc.projection!,
+    if (cgyy.projection != null) cgyy.projection!,
     ...additional,
     if (newest != null)
       CachedFeatureProjection(

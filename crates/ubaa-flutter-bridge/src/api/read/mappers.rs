@@ -577,7 +577,7 @@ pub(super) fn map_ygdk_records(v: domain::YgdkRecordsPage) -> BridgeYgdkRecordsP
         has_more: v.has_more,
     }
 }
-pub(super) fn map_cgyy_sites(v: Vec<domain::CgyyVenueSite>) -> Vec<BridgeCgyyVenueSite> {
+pub(crate) fn map_cgyy_sites(v: Vec<domain::CgyyVenueSite>) -> Vec<BridgeCgyyVenueSite> {
     v.into_iter()
         .map(|s| BridgeCgyyVenueSite {
             id: s.id,
@@ -592,7 +592,7 @@ pub(super) fn map_cgyy_sites(v: Vec<domain::CgyyVenueSite>) -> Vec<BridgeCgyyVen
         })
         .collect()
 }
-pub(super) fn map_cgyy_purpose_types(v: domain::CgyyPurposeTypes) -> BridgeCgyyPurposeTypes {
+pub(crate) fn map_cgyy_purpose_types(v: domain::CgyyPurposeTypes) -> BridgeCgyyPurposeTypes {
     BridgeCgyyPurposeTypes {
         items: v
             .items
@@ -608,7 +608,7 @@ pub(super) fn map_cgyy_purpose_types(v: domain::CgyyPurposeTypes) -> BridgeCgyyP
         },
     }
 }
-fn map_cgyy_time_slot(v: domain::CgyyTimeSlot) -> BridgeCgyyTimeSlot {
+pub(crate) fn map_cgyy_time_slot(v: domain::CgyyTimeSlot) -> BridgeCgyyTimeSlot {
     BridgeCgyyTimeSlot {
         id: v.id,
         begin_time: v.begin_time,
@@ -635,7 +635,7 @@ fn map_cgyy_slot(v: domain::CgyySlotStatus) -> BridgeCgyySlotStatus {
         end_date: v.end_date,
     }
 }
-pub(super) fn map_cgyy_day_info(v: domain::CgyyDayInfo) -> BridgeCgyyDayInfo {
+pub(crate) fn map_cgyy_day_info(v: domain::CgyyDayInfo) -> BridgeCgyyDayInfo {
     BridgeCgyyDayInfo {
         venue_site_id: v.venue_site_id,
         reservation_date: v.reservation_date,
@@ -705,7 +705,7 @@ pub(crate) fn map_cgyy_order(v: domain::CgyyOrder) -> BridgeCgyyOrder {
         cancelled_target,
     }
 }
-pub(super) fn map_cgyy_orders(v: domain::CgyyOrdersPage) -> BridgeCgyyOrdersPage {
+pub(crate) fn map_cgyy_orders(v: domain::CgyyOrdersPage) -> BridgeCgyyOrdersPage {
     BridgeCgyyOrdersPage {
         content: v.content.into_iter().map(map_cgyy_order).collect(),
         total_elements: v.total_elements,

@@ -37,7 +37,7 @@ part 'app_controller/diagnostics.dart';
 part 'app_controller/offline_startup.dart';
 part 'app_controller/offline/cache.dart';
 part 'app_controller/offline/query.dart';
-part 'app_controller/offline/academic_options.dart';
+part 'app_controller/offline/read_options.dart';
 part 'app_controller/offline/resume.dart';
 part 'app_controller/offline/required.dart';
 part 'app_controller/authentication.dart';
@@ -421,7 +421,7 @@ class AppController extends ChangeNotifier {
 
   /// 用户明确请求学期选项，不占用全局课表快照。
   Future<FeatureResult> loadAcademicTerms({bool forceRefresh = false}) =>
-      _localFirstAcademicOptions(
+      _localFirstOptions(
         const FeatureQuery(view: FeatureQueryView.scheduleTerms),
         forceRefresh,
         () => _loadAcademicTerms(forceRefresh: forceRefresh),
@@ -431,7 +431,7 @@ class AppController extends ChangeNotifier {
   Future<FeatureResult> loadAcademicWeeks(
     String term, {
     bool forceRefresh = false,
-  }) => _localFirstAcademicOptions(
+  }) => _localFirstOptions(
     FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: term),
     forceRefresh,
     () => _loadAcademicWeeks(term, forceRefresh: forceRefresh),
@@ -439,7 +439,12 @@ class AppController extends ChangeNotifier {
 
   /// 活动类型独立读取，不覆盖研讨室日时段和已选目标。
   Future<FeatureResult> loadCgyyPurposes({bool forceRefresh = false}) =>
-      _loadCgyyPurposes(forceRefresh: forceRefresh);
+      _localFirstOptions(
+        const FeatureQuery(view: FeatureQueryView.cgyyPurposeTypes),
+        forceRefresh,
+        () => _loadCgyyPurposes(forceRefresh: forceRefresh),
+        feature: FeatureId.cgyy,
+      );
 
   /// 成绩统计的独立读取，不改变当前页面的查询或详情帧。
   Future<FeatureResult> loadGradeTerm(

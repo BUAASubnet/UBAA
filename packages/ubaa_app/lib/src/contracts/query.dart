@@ -77,3 +77,8 @@ abstract interface class SigninReadbackBackend {
 abstract interface class BykcReadbackBackend {
   Future<FeatureResult> readBykcAfterWrite(FeatureQuery query);
 }
+
+/// 预约提交的既定回读沿原在线入口，取消仍使用独立 caller-pinned 双回读。
+abstract interface class CgyyReservationReadbackBackend {
+  Future<FeatureResult> readCgyyAfterWrite(FeatureQuery query);
+}

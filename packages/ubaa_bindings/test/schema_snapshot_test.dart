@@ -7,6 +7,36 @@ import 'package:flutter_test/flutter_test.dart';
 /// 该测试不读取真实数据，只固定公开方法、DTO 和枚举的最小集合；完整字节漂移仍由
 /// `just flutter-codegen-check` 负责。这样生成器意外删除一个业务入口时，Dart 门禁会先失败。
 void main() {
+  test('研讨室缓存 DTO 不跨公开边界传递资格和内部材料', () {
+    final source = File(
+      'lib/src/rust/api/offline_cgyy.dart',
+    ).readAsStringSync();
+    for (final name in [
+      'BridgeCachedCgyyOrder',
+      'BridgeCachedCgyySlotStatus',
+    ]) {
+      final type = RegExp(
+        'class $name \\{(?<body>.*?)\\n\\}',
+        dotAll: true,
+      ).firstMatch(source);
+      expect(type, isNotNull);
+      final body = type!.namedGroup('body')!;
+      for (final field in [
+        'Eligibility',
+        'Target',
+        'tradeNo',
+        'phone',
+        'joiners',
+        'checkContent',
+        'handleReason',
+        'remark',
+        'takeUp',
+      ]) {
+        expect(body, isNot(contains(field)), reason: '$name 禁止透传 $field');
+      }
+    }
+  });
+
   test('博雅持久只读 DTO 同样遵守内部材料禁曝边界', () {
     final cached = File(
       'lib/src/rust/api/offline_bykc.dart',

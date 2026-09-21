@@ -115,11 +115,13 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
   void _consume() {
     final snapshot = widget.snapshot;
     if (identical(snapshot, _consumed) ||
-        !const {
-          FeatureLoadStatus.success,
-          FeatureLoadStatus.stale,
-          FeatureLoadStatus.empty,
-        }.contains(snapshot.status))
+        (!const {
+              FeatureLoadStatus.success,
+              FeatureLoadStatus.stale,
+              FeatureLoadStatus.empty,
+            }.contains(snapshot.status) &&
+            !(snapshot.status == FeatureLoadStatus.loading &&
+                snapshot.evidence?.origin == DataOrigin.persisted)))
       return;
     if (_afterRevision != null &&
         (snapshot.readContext?.requestRevision ?? -1) <= _afterRevision!)
@@ -200,7 +202,9 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
   Widget build(BuildContext context) {
     final snapshot = widget.snapshot;
     final day = _day;
-    if (_sites.isEmpty && day == null) return widget.fallback;
+    if ((_sites.isEmpty || snapshot.evidence?.origin == DataOrigin.persisted) &&
+        day == null)
+      return widget.fallback;
     if (snapshot.details.any(
       (d) =>
           d.presentation is! CgyySitePresentation &&
@@ -214,7 +218,10 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
       children: [
         if (wide) buildInlineChips(context),
         Expanded(
-          child: _busy
+          child:
+              _busy &&
+                  !(snapshot.evidence?.origin == DataOrigin.persisted &&
+                      day != null)
               ? const Center(child: CircularProgressIndicator())
               : snapshot.status == FeatureLoadStatus.failure
               ? widget.fallback

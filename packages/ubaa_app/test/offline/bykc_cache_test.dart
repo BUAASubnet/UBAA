@@ -122,6 +122,13 @@ class _Api implements RustLibApi {
 }
 
 class _Cache implements BridgeOfflineCache {
+  @override
+  Future<BridgeCachedCgyyOrdersRecord?> readCgyyOrders({
+    required BridgeConnectionMode route,
+    required int page,
+    required int size,
+  }) async => null;
+
   static int? requestPage;
   @override
   Future<BridgeCachedBykcDetailRecord?> readBykcDetail({
@@ -237,7 +244,7 @@ class _Cache implements BridgeOfflineCache {
 class _Client implements BridgeClient {
   int cachedReads = 0, plainReads = 0;
   @override
-  int contractVersion() => 19;
+  int contractVersion() => 20;
   @override
   Future<BridgeBykcCoursesRefresh> bykcCoursesCached({
     required BridgeOfflineCache cache,

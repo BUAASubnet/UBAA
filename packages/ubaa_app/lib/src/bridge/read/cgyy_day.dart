@@ -1,6 +1,10 @@
 part of '../bridge_backend.dart';
 
-FeatureResult _mapCgyyDayInfo(BridgeCgyyDayInfo data, ConnectionMode route) {
+FeatureResult _mapCgyyDayInfo(
+  BridgeCgyyDayInfo data,
+  ConnectionMode route, {
+  bool persisted = false,
+}) {
   final details = <FeatureDetail>[
     FeatureDetail(
       title: '预约时间',
@@ -81,14 +85,15 @@ FeatureResult _mapCgyyDayInfo(BridgeCgyyDayInfo data, ConnectionMode route) {
             _field('开始时间', time?.beginTime),
             _field('结束时间', time?.endTime),
             _field('状态码', slot.reservationStatus?.toString()),
-            _field(
-              '可预约',
-              usable
-                  ? '是'
-                  : eligibility == ActionEligibility.denied
-                  ? '否'
-                  : '无法确认',
-            ),
+            if (!persisted)
+              _field(
+                '可预约',
+                usable
+                    ? '是'
+                    : eligibility == ActionEligibility.denied
+                    ? '否'
+                    : '无法确认',
+              ),
           ]),
           actions: [
             if (usable)

@@ -50,88 +50,31 @@ Future<FeatureResult> _loadCgyyFeature(
   BridgeBackend backend,
   FeatureId feature,
   FeatureQuery query,
-  String today,
-) async {
+  String today, {
+  bool useCache = true,
+}) async {
+  if (useCache &&
+      feature == FeatureId.cgyy &&
+      _isCgyyCacheQuery(feature, query)) {
+    final result = await _loadCachedCgyyFeature(backend, query, today);
+    if (result != null) return result;
+  }
   final client = backend.client;
   switch (feature) {
     case FeatureId.cgyy:
       switch (query.view) {
         case FeatureQueryView.summary:
           final result = await client.cgyySites();
-          final details = result.data
-              .map(
-                (item) => FeatureDetail(
-                  title: item.siteName,
-                  subtitle: item.venueName,
-                  presentation: CgyySitePresentation(
-                    id: item.id,
-                    siteName: item.siteName,
-                    venueName: item.venueName,
-                    campusName: item.campusName,
-                    seatCount: item.seatCount,
-                    reservationSpaceCount: item.reservationSpaceCount,
-                    openStartDate: item.openStartDate,
-                    openEndDate: item.openEndDate,
-                    queryDate: today,
-                  ),
-                  readNavigation: item.id <= 0
-                      ? null
-                      : FeatureReadNavigation(
-                          feature: FeatureId.cgyy,
-                          query: FeatureQuery(
-                            view: FeatureQueryView.cgyyDayInfo,
-                            siteId: item.id,
-                            date: DateTime.parse(today),
-                          ),
-                        ),
-                  fields: _compactFields(<FeatureField?>[
-                    _field('站点 ID', '${item.id}'),
-                    _field('校区', item.campusName),
-                    item.seatCount == null
-                        ? null
-                        : _field('座位数', '${item.seatCount}'),
-                    item.reservationSpaceCount == null
-                        ? null
-                        : _field('空间数', '${item.reservationSpaceCount}'),
-                    _field('开放开始', item.openStartDate),
-                    _field('开放结束', item.openEndDate),
-                  ]),
-                ),
-              )
-              .toList(growable: false);
-          return _countResult(
-            result.data.length,
-            '个研讨室预约站点',
-            details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+          return _projectCgyySites(
+            result.data,
+            _toConnectionMode(result.route.resolvedRoute),
+            today,
           );
         case FeatureQueryView.cgyyPurposeTypes:
           final result = await client.cgyyPurposeTypes();
-          final source = result.data.source == BridgeCgyyPurposeSource.upstream
-              ? '上游'
-              : '本地冻结回退';
-          final details = result.data.items
-              .map(
-                (item) => FeatureDetail(
-                  title: item.name,
-                  presentation: CgyyPurposePresentation(
-                    key: item.key,
-                    name: item.name,
-                    isStaticFallback:
-                        result.data.source ==
-                        BridgeCgyyPurposeSource.staticFallback,
-                  ),
-                  fields: <FeatureField>[
-                    FeatureField(label: '用途编号', value: '${item.key}'),
-                    FeatureField(label: '来源', value: source),
-                  ],
-                ),
-              )
-              .toList(growable: false);
-          return FeatureResult.success(
-            summary: '用途类型（来源：$source）',
-            details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+          return _projectCgyyPurposes(
+            result.data,
+            _toConnectionMode(result.route.resolvedRoute),
           );
         case FeatureQueryView.cgyyDayInfo:
           final siteId = _requiredPositiveInt(query.siteId, '站点 ID');

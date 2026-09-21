@@ -4,6 +4,7 @@ pub mod judge_scan;
 pub mod offline;
 pub mod offline_academic;
 pub mod offline_bykc;
+pub mod offline_cgyy;
 pub mod offline_home;
 pub mod read;
 pub mod recovery;

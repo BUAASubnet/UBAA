@@ -23,6 +23,15 @@ void main() {
     expect(cached.updatedAt, backend.fetched);
     final chosen = controller.homeSnapshots[FeatureId.bykc]!;
     expect(chosen.details.single.title, '已保存博雅');
+    expect(
+      controller.homeSnapshots[FeatureId.cgyy]!.details.single.title,
+      '已保存研讨室',
+    );
+    expect(
+      controller.homeSnapshots[FeatureId.cgyy]!.readContext?.query?.view,
+      FeatureQueryView.cgyyOrders,
+    );
+    expect(controller.snapshots[FeatureId.cgyy]!.details, isEmpty);
     expect(chosen.readContext?.query?.view, FeatureQueryView.bykcChosenCourses);
     expect(controller.snapshots[FeatureId.bykc]!.details, isEmpty);
     backend.gate!.completeError(
@@ -245,6 +254,15 @@ class _CachedBackend extends support.FakeRecoveryBackend
   @override
   Future<OfflineHomeRead> readCachedHome(RoutePolicy policy) async {
     final result = [
+      CachedFeatureProjection(
+        feature: FeatureId.cgyy,
+        query: const FeatureQuery(view: FeatureQueryView.cgyyOrders),
+        accountId: account!.id,
+        route: ConnectionMode.direct,
+        fetchedAt: fetched,
+        complete: true,
+        details: const [FeatureDetail(title: '已保存研讨室')],
+      ),
       CachedFeatureProjection(
         feature: FeatureId.bykc,
         query: const FeatureQuery(view: FeatureQueryView.bykcChosenCourses),

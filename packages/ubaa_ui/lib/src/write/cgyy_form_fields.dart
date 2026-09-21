@@ -23,6 +23,9 @@ extension _CgyyFormFields on _CgyyReservationFormState {
                   '选择活动类型',
       ),
     ),
+    if (purposeEvidence?.origin == DataOrigin.persisted)
+      Text('活动类型上次保存 ${_savedScheduleTime(purposeEvidence!.fetchedAt)}'),
+    if (purposeEvidence?.complete == false) const Text('活动类型尚未核对完整'),
     if (options.any((p) => p.isStaticFallback))
       Text('活动类型来自本地冻结回退列表。', style: Theme.of(context).textTheme.bodySmall),
     const SizedBox(height: 12),

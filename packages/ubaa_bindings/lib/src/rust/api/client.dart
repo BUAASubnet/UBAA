@@ -9,6 +9,7 @@ import 'judge_scan.dart';
 import 'offline.dart';
 import 'offline_academic.dart';
 import 'offline_bykc.dart';
+import 'offline_cgyy.dart';
 import 'offline_home.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
@@ -159,9 +160,28 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeOfflineCache cache,
   });
 
+  /// 原查询与只读保存；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误及账号/退出栅栏。
+  Future<BridgeCgyyDayRefresh> cgyyDayCached({
+    required BridgeOfflineCache cache,
+    required int siteId,
+    required String date,
+  });
+
   Future<BridgeRoutedCgyyDayInfo> cgyyDayInfo({
     required int siteId,
     required String date,
+  });
+
+  /// 原查询与只读保存；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误及账号/退出栅栏。
+  Future<BridgeCgyyDetailRefresh> cgyyDetailCached({
+    required BridgeOfflineCache cache,
+    required int orderId,
   });
 
   Future<BridgeRoutedCgyyLockCode> cgyyLockCode();
@@ -179,6 +199,16 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required int size,
   });
 
+  /// 原查询与只读保存；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误及账号/退出栅栏。
+  Future<BridgeCgyyOrdersRefresh> cgyyOrdersCached({
+    required BridgeOfflineCache cache,
+    required int page,
+    required int size,
+  });
+
   /// 在调用方指定的已认证路线读取场馆订单，不执行 Auto 探测或回退。
   Future<BridgeCallerPinnedCgyyOrders> cgyyOrdersOnRoute({
     required BridgeConnectionMode route,
@@ -188,7 +218,23 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeRoutedCgyyPurposeTypes> cgyyPurposeTypes();
 
+  /// 原查询与只读保存；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误及账号/退出栅栏。
+  Future<BridgeCgyyPurposesRefresh> cgyyPurposesCached({
+    required BridgeOfflineCache cache,
+  });
+
   Future<BridgeRoutedCgyySites> cgyySites();
+
+  /// 原查询与只读保存；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误及账号/退出栅栏。
+  Future<BridgeCgyySitesRefresh> cgyySitesCached({
+    required BridgeOfflineCache cache,
+  });
 
   Future<BridgeRoutedClassroomQuery> classroomSearch({
     required int campus,

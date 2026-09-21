@@ -6,6 +6,25 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'startup_test.dart' as support;
 
 void main() {
+  test('首帧恢复之前研讨室用途选项可从缓存返回', () async {
+    final backend = _Backend();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: await support.savedAccounts(),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    FeatureResult? result;
+    unawaited(controller.loadCgyyPurposes().then((value) => result = value));
+    for (var i = 0; i < 100 && result == null; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(result, isNotNull);
+    expect(result!.details.single.title, '已保存用途');
+    expect(result!.evidence!.origin, DataOrigin.persisted);
+    expect(backend.authCalls, 0);
+  });
+
   test('首帧恢复之前学期和教学周选项可离线使用，明确刷新仍等待在线结果', () async {
     final backend = _Backend();
     final controller = AppController(
@@ -63,7 +82,11 @@ class _Backend
       complete: true,
       details: [
         FeatureDetail(
-          title: query.view == FeatureQueryView.scheduleTerms ? '已保存学期' : '第3周',
+          title: query.view == FeatureQueryView.cgyyPurposeTypes
+              ? '已保存用途'
+              : query.view == FeatureQueryView.scheduleTerms
+              ? '已保存学期'
+              : '第3周',
         ),
       ],
     ),

@@ -1,11 +1,12 @@
 part of '../../app_controller.dart';
 
-extension _AppControllerLocalAcademicOptions on AppController {
-  Future<FeatureResult> _localFirstAcademicOptions(
+extension _AppControllerLocalReadOptions on AppController {
+  Future<FeatureResult> _localFirstOptions(
     FeatureQuery query,
     bool forceRefresh,
-    Future<FeatureResult> Function() read,
-  ) {
+    Future<FeatureResult> Function() read, {
+    FeatureId feature = FeatureId.schedule,
+  }) {
     final online = read();
     if (forceRefresh ||
         _backend is! OfflineQueryBackend ||
@@ -29,7 +30,7 @@ extension _AppControllerLocalAcademicOptions on AppController {
         await _offlineOpenFuture;
         if (!current()) return null;
         final read = await (backend as OfflineQueryBackend).readCachedQuery(
-          FeatureId.schedule,
+          feature,
           query,
           policy,
         );
@@ -38,12 +39,12 @@ extension _AppControllerLocalAcademicOptions on AppController {
           _localCacheError = _recordFailure(
             read.error!,
             DiagnosticOperation.read,
-            feature: FeatureId.schedule,
+            feature: feature,
           );
         final value = read.projection;
         if (value == null ||
             value.accountId != account.id ||
-            value.feature != FeatureId.schedule ||
+            value.feature != feature ||
             !value.readContext.hasSameQuery(query) ||
             (policy == RoutePolicy.direct &&
                 value.route != ConnectionMode.direct) ||
@@ -66,7 +67,7 @@ extension _AppControllerLocalAcademicOptions on AppController {
           _localCacheError = _recordFailure(
             error,
             DiagnosticOperation.read,
-            feature: FeatureId.schedule,
+            feature: feature,
             stackTrace: stackTrace,
           );
         return null;
