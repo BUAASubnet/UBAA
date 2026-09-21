@@ -250,3 +250,19 @@ LocalBykcApi.getCourses（66起）将 currentPage/pageSize 取自请求，raw.nu
 App 缓存分支对 Cgyy 日期/站点/订单详情和订单页核对归属：有旧值只读保留，无旧值显示未完整而不放入异范围内容。Bykc 错详情保留同查询旧缓存，否则返回稳定 UpstreamChanged，不能把保存失败当作可继续显示的完整成功。学业 grades 的 term_code 与逐行 term_code 由请求构造；SPOC detail 在 parser/detail 明确拒绝raw.id错配；这两处已有来源保护，不添加无证据新字段。
 
 P4-L 分页展示补充：博雅 App 的 currentPage/pageSize 改为使用本次规范化请求，与 LocalBykcApi 明确输出一致；不将响应number猜作一基或零基，不修改Core/Bridge原DTO和CLI。总量与总页数仍沿响应字段，本次页内容仍按请求范围入缓存。
+
+
+## P4-M：评教 Core 持久范围（实施前）
+
+冻结 old@1f4b8f8412272b6a423d4ad92b396e3db721e6f3：EvaluationService接口、LocalEvaluationService、EvaluationModel及LocalEvaluationServiceBackendTest的直接读取/最小过滤/ypjcs测试；另一源 buaa-api@a63712fa2ae0a6c8066197063ddee98e3a6b5b81：tes/auth、opt、data。两源都支持同一pjxt读取链，但另一源只提取首task、并行取问卷课程且直接传播失败，不能替代old/current的全已取任务聚合和部分容错。
+
+| 操作 | bootstrap/重定向与Cookie | 方法/精确参数 | 头/编码/加密 | DTO与范围 | 缓存/并发/错误 |
+|---|---|---|---|---|---|
+| 激活 | old GET https://spoc.buaa.edu.cn/pjxt/cas；tes 显式SSO service同地址；当前沿原重定向，最终必须spoc/pjxt根或子路径 | GET，无业务body | 沿现有Session Cookie/路线重包/default headers，不新增头或签名 | 无业务载荷 | old激活mutex/布尔；当前原runtime串行，不复制Cookie；非认证失败原空返回只记Partial，认证错误继续传播 |
+| 任务 | 同一已激活路线Cookie，业务GET终点原严格校验 | GET personnelEvaluation/listObtainPersonnelEvaluationTasks，yhdm当前账号/pageNum=1/pageSize=10 | URL query，无读加密或ETag | 原result/content信封；task.rwid；仅本次固定页，不推断学期或历史列表 | 显式合法空集合可完整；缺字段/畸形/取满10项无更多页证据时Partial；不新增游标或翻页 |
+| 问卷 | 同任务 | GET evaluationMethodSix/getQuestionnaireListToTask，rwid | 同任务 | wjid/msid，原课程上下文，不暴露内部authority | 每已取任务依次读取；old子错误空回退保留，新增观察不把失败当完整空 |
+| 课程与进度 | 同任务 | GET evaluationMethodSix/getRequiredReviewsData，wjid | 同任务 | 当前公开id/kcmc/bpmc/is_evaluated与列表计算进度；剥离submit_eligibility/target、msid/评价人/学年学期/问卷题目等内部字段 | 当前原聚合排序/去重资格保护保持；缺身份/状态或丢行Partial，成功完整才替换旧完整快照 |
+
+EvaluationCurrent 固定范围是当前任务第1页/每页10，账号和实际路线独立；不是全部学期历史评教。只读payload不得含提交目标和资格；旧在线DTO及strict fresh写authority流程不变，缓存不调用reviseQuestionnairePattern、getQuestionnaireTopic、submit或其他写验证。两源写字段/常量不得因缓存便利引入持久类型。大聚合的分段让位仍需独立实现，当前阶段不声称解决评教长读抢占。
+
+P4-M实施复核：get_all和strict读取经共享观察实现后仍返回原DTO，只有新缓存facade使用complete。课程id沿既有公开不透明组合键，不额外落盘结构化submit_target。Bridge现有Evaluation映射核对的公开字段为id/kcmc/bpmc/is_evaluated，新增缓存只取这四项；msid/评价人/题目内部字段均排除。部分成功、激活失败、课程503、状态缺失、任务页满、认证401分别用合成backend覆盖。

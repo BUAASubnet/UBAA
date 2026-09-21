@@ -1,8 +1,8 @@
 //! 缓存持久合同只包含可再次阅读的数据，不包含写入资格。
 use super::{
     CachedBykcChosen, CachedBykcCourse, CachedBykcCoursePage, CachedCgyyDayInfo, CachedCgyyOrder,
-    CachedCgyyOrdersPage, CachedLibBookBookingsPage, CachedLibBookSeat, CachedSigninClass,
-    CachedYgdkOverview,
+    CachedCgyyOrdersPage, CachedEvaluationCourses, CachedLibBookBookingsPage, CachedLibBookSeat,
+    CachedSigninClass, CachedYgdkOverview,
 };
 use crate::domain::{
     Assignment, CgyyPurposeTypes, CgyyVenueSite, ClassroomQuery, ConnectionMode, Course,
@@ -18,6 +18,8 @@ pub const CACHE_SCHEMA_VERSION: u32 = 1;
 /// 精确业务查询；日期使用既有校园日期，不在读取时替换成今天。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum CacheQuery {
+    /// 当前评教任务固定第1页/每页10；不代表历史或全部学期。
+    EvaluationCurrent,
     LibBookLibraries {
         day: String,
     },
@@ -118,6 +120,7 @@ pub struct CacheScope {
 /// 仅白名单领域值可写入，禁止任意 JSON、原始响应或 action 投影。
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum CachePayload {
+    EvaluationCurrent(CachedEvaluationCourses),
     LibBookLibraries(Vec<LibBookLibrary>),
     LibBookAreas(Vec<LibBookArea>),
     LibBookAreaDetail(LibBookAreaDetail),
@@ -326,7 +329,8 @@ impl CachePayload {
             (Self::BykcChosen(v), CacheQuery::BykcChosen) => {
                 !v.semester_start.trim().is_empty() && !v.semester_end.trim().is_empty()
             }
-            (Self::LibBookLibraries(_), CacheQuery::LibBookLibraries { .. })
+            (Self::EvaluationCurrent(_), CacheQuery::EvaluationCurrent)
+            | (Self::LibBookLibraries(_), CacheQuery::LibBookLibraries { .. })
             | (Self::LibBookAreas(_), CacheQuery::LibBookAreas { .. })
             | (Self::LibBookSeats(_), CacheQuery::LibBookSeats { .. })
             | (Self::CgyySites(_), CacheQuery::CgyySites)

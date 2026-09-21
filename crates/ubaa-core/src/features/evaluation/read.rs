@@ -24,10 +24,28 @@ pub(super) async fn read_authority(
     runtime: &mut ClientRuntime,
     strict: bool,
 ) -> Result<EvaluationAuthoritySnapshot> {
+    read_authority_observed(runtime, strict)
+        .await
+        .map(|(snapshot, _)| snapshot)
+}
+
+pub(crate) async fn get_all_observed(
+    runtime: &mut ClientRuntime,
+) -> Result<(EvaluationCoursesResponse, bool)> {
+    read_authority_observed(runtime, false)
+        .await
+        .map(|(snapshot, complete)| (snapshot.into_response(), complete))
+}
+
+async fn read_authority_observed(
+    runtime: &mut ClientRuntime,
+    strict: bool,
+) -> Result<(EvaluationAuthoritySnapshot, bool)> {
+    let mut complete = true;
     super::super::require_session(runtime)?;
     if let Err(error) = activate(runtime).await {
         if !strict && !is_authentication_error(&error) {
-            return Ok(EvaluationAuthoritySnapshot::default());
+            return Ok((EvaluationAuthoritySnapshot::default(), false));
         }
         return Err(error);
     }
@@ -38,49 +56,59 @@ pub(super) async fn read_authority(
         .append_pair("yhdm", runtime.account_name().unwrap_or_default())
         .append_pair("pageNum", "1")
         .append_pair("pageSize", "10");
-    let tasks = fetch_result(runtime, tasks_url, strict).await?;
+    let tasks = fetch_result(runtime, tasks_url, strict, &mut complete).await?;
     let task_rows = rows_from_page_or_array(&tasks, "评教任务列表结构无效", strict)?;
+    complete &= (tasks.is_array() || tasks.get("list").is_some_and(Value::is_array))
+        && task_rows.len() < 10;
     let mut entries = Vec::new();
 
     for task in task_rows {
         let Some(task) = task.as_object() else {
+            complete = false;
             continue;
         };
         let Some(rwid) = canonical_string(task, "rwid") else {
+            complete = false;
             continue;
         };
         let mut questionnaire_url = parsed_runtime_url(runtime, QUESTIONNAIRES_URL)?;
         questionnaire_url
             .query_pairs_mut()
             .append_pair("rwid", &rwid);
-        let forms = fetch_result(runtime, questionnaire_url, strict).await?;
+        let forms = fetch_result(runtime, questionnaire_url, strict, &mut complete).await?;
+        complete &= forms.is_array();
         let form_rows = rows_from_array(&forms, "评教问卷列表结构无效", strict)?;
         for form in form_rows {
             let Some(form) = form.as_object() else {
+                complete = false;
                 continue;
             };
             let Some(wjid) = canonical_string(form, "wjid") else {
+                complete = false;
                 continue;
             };
             let msid = canonical_string(form, "msid").unwrap_or_default();
             let mut courses_url = parsed_runtime_url(runtime, COURSES_URL)?;
             courses_url.query_pairs_mut().append_pair("wjid", &wjid);
-            let courses = fetch_result(runtime, courses_url, strict).await?;
-            match parse_course_rows(
-                &courses,
-                &CourseContext {
-                    rwid: rwid.clone(),
-                    wjid,
-                    msid,
-                },
-            ) {
+            let courses = fetch_result(runtime, courses_url, strict, &mut complete).await?;
+            let context = CourseContext {
+                rwid: rwid.clone(),
+                wjid,
+                msid,
+            };
+            complete &= course_rows_complete(&courses, &context);
+            match parse_course_rows(&courses, &context) {
                 Ok(parsed) => entries.extend(parsed),
-                Err(error) if !strict && !is_authentication_error(&error) => {}
+                Err(error) if !strict && !is_authentication_error(&error) => complete = false,
                 Err(error) => return Err(error),
             }
         }
     }
-    Ok(EvaluationAuthoritySnapshot::finalize(entries))
+    let mut identities = std::collections::HashSet::new();
+    complete &= entries
+        .iter()
+        .all(|entry| !entry.course.id.is_empty() && identities.insert(entry.course.id.clone()));
+    Ok((EvaluationAuthoritySnapshot::finalize(entries), complete))
 }
 
 async fn activate(runtime: &mut ClientRuntime) -> Result<()> {
@@ -102,7 +130,12 @@ pub(super) fn ensure_activation_terminal(response: &HttpResponse) -> Result<()> 
     Ok(())
 }
 
-async fn fetch_result(runtime: &mut ClientRuntime, url: url::Url, strict: bool) -> Result<Value> {
+async fn fetch_result(
+    runtime: &mut ClientRuntime,
+    url: url::Url,
+    strict: bool,
+    complete: &mut bool,
+) -> Result<Value> {
     let expected = url.to_string();
     let result = async {
         let response = runtime.request(HttpRequest::get(expected.clone())).await?;
@@ -115,7 +148,10 @@ async fn fetch_result(runtime: &mut ClientRuntime, url: url::Url, strict: bool) 
     .await;
     match result {
         Ok(value) => Ok(value),
-        Err(error) if !strict && !is_authentication_error(&error) => Ok(Value::Array(Vec::new())),
+        Err(error) if !strict && !is_authentication_error(&error) => {
+            *complete = false;
+            Ok(Value::Array(Vec::new()))
+        }
         Err(error) => Err(error),
     }
 }
@@ -156,4 +192,31 @@ fn rows_from_array<'a>(
     } else {
         Ok(&[])
     }
+}
+
+/// 显示完整度只核对可读身份/名称/状态和父上下文，不替代 fresh 写资格。
+fn course_rows_complete(value: &Value, context: &CourseContext) -> bool {
+    value.as_array().is_some_and(|rows| {
+        rows.iter().all(|row| {
+            row.as_object().is_some_and(|row| {
+                ["kcdm", "kcmc", "bpmc"]
+                    .iter()
+                    .all(|key| canonical_string(row, key).is_some())
+                    && row
+                        .get("ypjcs")
+                        .and_then(Value::as_i64)
+                        .is_some_and(|v| v >= 0)
+                    && [
+                        ("rwid", &context.rwid),
+                        ("wjid", &context.wjid),
+                        ("msid", &context.msid),
+                    ]
+                    .iter()
+                    .all(|(key, expected)| {
+                        !row.contains_key(*key)
+                            || canonical_string(row, key).as_ref() == Some(*expected)
+                    })
+            })
+        })
+    })
 }

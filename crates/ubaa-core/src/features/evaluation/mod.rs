@@ -10,7 +10,7 @@ use crate::error::{ErrorCode, ErrorKind, UbaaError};
 
 #[cfg(test)]
 pub use parser::parse_courses;
-pub(crate) use read::get_all;
+pub(crate) use read::{get_all, get_all_observed};
 pub(crate) use write::{preflight_submit_courses, submit_courses, validate_submit_courses_request};
 
 pub(super) const CAS_URL: &str = "https://spoc.buaa.edu.cn/pjxt/cas";

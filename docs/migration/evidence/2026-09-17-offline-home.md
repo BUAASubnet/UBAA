@@ -365,3 +365,14 @@ RED：/tmp/ubaa-p4l-core-red.log 复现明确错页仍完整；app-red.log 复�
 本阶段Bridge合同仍v21且没有生成结构变化；不新增原生渲染、Core-live、真实App或性能证据。其余资料/评教/阳光分页、跨范围写后失效、长读取与最终15场景/多端/双路线只读验收保持待办。
 
 最终just check退出0：Core两配置各253、facade54、Bridge122通过/2既有忽略、CLI二进制端到端16，fmt/clippy/Shell/build/doc与layout零baseline违例通过（/tmp/ubaa-p4l-check.log）。完整Flutter 57/66/375/264/18/32/54，共866项通过（flutter.log）；博雅页码收尾后App全套375及analyze再次通过（app-final.log、app-analyze.log），针对两个领域/既有展示合同54项通过（page-green.log）。refs固定SHA、敏感扫描5270文件通过，暂存diff无空白错误；源工作区仍干净。日志上述短名均位于/tmp/ubaa-p4l-前缀。整个P0–P5未关闭，下一项继续评教与资料/阳光分页接入。
+
+
+## P4-M 评教 Core 当前任务范围（2026-09-22）
+
+基线04f6268c。按两冻结实现核对评教激活/任务/问卷/课程链、查询参数、DTO和错误边界后，新增只读持久类型与当前任务范围facade。现有Bridge公开四展示字段作为上限，进度与完整性分别携带，不持久化提交资格和目标。任务固定1/10且达到页上限时不宣称全覆盖。
+
+RED：/tmp/ubaa-p4m-red.log为新facade缺失；partial-red.log在接入旧读取后复现课程请求失败被标完整（模式1）。GREEN：green-final.log验证合成正常保存/路线隔离/字段禁曝，课程503、任务身份缺失、10项任务、激活503、ypjcs缺失、两问卷部分成功全部保留旧完整载荷；合法空任务替换，认证401不降级，退出本地读取拒绝。clippy-final.log通过。中途match缺逗号的编译错误修正不计行为RED。以上短名均为/tmp/ubaa-p4m-前缀。
+
+此阶段不访问真实学校服务、没有真实写入或媒体，没有Flutter/原生/真实性能新增证据。Bridge/App评教接线、长聚合分段、剩余领域/生命周期及双路线真实只读验收继续待办。
+
+最终just check退出0（/tmp/ubaa-p4m-check.log）：Core两配置各253、facade55、Bridge122通过/2既有忽略、CLI二进制端到端16；fmt/clippy/Shell/build/doc和layout零baseline违例通过。refs固定SHA校验、暂存敏感扫描5273文件通过，diff无空白错误。Core-only无Dart/Bridge结构变化，本阶段未重复Flutter或原生测试，不能继承旧原生证据为本轮通过。原始源工作区干净；隔离阶段继续下一项评教Bridge/App。

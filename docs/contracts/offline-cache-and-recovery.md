@@ -241,3 +241,12 @@ Bridge v21 暴露五项本地查询与缓存刷新，座位/预约记录各有�
 App 在显示研讨室缓存刷新前核对日期/站点、订单ID和页信息；错范围有旧数据则只读保留，无旧数据只显示未完整状态。博雅缓存详情响应ID不符时读取同账号/路线/课程的旧只读快照；缺旧值则返回带原路线的稳定UpstreamChanged，不生成另一课程的操作。保存InvalidInput不是可以显示异范围数据的许可。
 
 博雅列表当前页/页大小按规范化请求显示，符合冻结LocalBykcApi的currentPage/pageSize约定；总数/总页仍来自原响应。不把响应number当作未经证明的换算规则，Core/Bridge/CLI原DTO不改。此项修正P4-G投影对number的直接使用。成绩term和SPOC详情已有请求构造/ID拒绝证据，本阶段没有增加新协议判断。
+
+
+## P4-M 评教 Core 当前任务缓存
+
+新增 EvaluationCurrent 查询/载荷、CachedEvaluationCourse/Courses、read_evaluation(route) 和 refresh_cached_evaluation(cache)。固定范围沿原任务pageNum=1/pageSize=10，账号/实际路线隔离，既不推断学期过滤，也不把当前任务集合称为历史评教。schema1追加命名变体，原条目不改。持久课程仅id/kcmc/bpmc/is_evaluated，进度由已取得课程计算；无资格、submit_target或内部问卷/评价人数据。
+
+独立complete观察贯穿激活、任务、问卷与课程请求。原非认证失败空回退、丢弃畸形行等在线兼容输出保留，但其缓存发布为Partial。缺身份/名称/ypjcs状态、重复课程身份或父上下文冲突亦为Partial；遇到10项任务达到原固定页上限且没有覆盖证据，不宣称全部完成。合法成功空任务可以替换当前范围；任一子失败保留旧完整记录，首次Partial可存储但不能显示全部完成。Stored/Preserved和原取得时间明确返回；认证失败仍传播、账号/退出/修订屏障不可降级。
+
+原 get_all、CLI以及strict fresh写authority沿原语义，观察完整度不授予或撤销写资格；缓存不调用问卷修订、题目读取或提交。当前仍是原runtime串行聚合，安全分段让位另待实现。本阶段Core-only，Bridge/App不得宣称已接入，进度展示必须结合complete与固定任务范围。

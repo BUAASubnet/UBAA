@@ -31,3 +31,6 @@ mod libbook_tests;
 
 mod libbook;
 pub use libbook::{CachedLibBookBooking, CachedLibBookBookingsPage, CachedLibBookSeat};
+
+mod evaluation;
+pub use evaluation::{CachedEvaluationCourse, CachedEvaluationCourses};
