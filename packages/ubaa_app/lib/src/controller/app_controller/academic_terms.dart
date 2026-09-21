@@ -2,10 +2,7 @@ part of '../app_controller.dart';
 
 extension _AppControllerAcademicTerms on AppController {
   Future<FeatureResult> _loadAcademicTerms({required bool forceRefresh}) {
-    if (_disposed ||
-        _writeTransitions != 0 ||
-        (_usesLocalRecovery &&
-            _sessionRecoveryStatus != SessionRecoveryStatus.ready)) {
+    if (_disposed || _readTransitionBlocked || _legacyReadSessionBlocked) {
       return Future.value(_academicTermsConflict());
     }
     if (_phase != AppPhase.home) {
@@ -61,7 +58,6 @@ extension _AppControllerAcademicTerms on AppController {
   }) async {
     bool current() =>
         !_disposed &&
-        _writeTransitions == 0 &&
         _phase == AppPhase.home &&
         identical(_backend, backend) &&
         _lifecycleEpoch == lifecycle &&
@@ -71,6 +67,7 @@ extension _AppControllerAcademicTerms on AppController {
       // 即使 backend 在返回 Future 前同步抛错，也先建立在途句柄再清理。
       final result = await _scheduleAuxiliaryRead(
         backend,
+        FeatureId.schedule,
         ReadPriority.interactive,
         current,
         () => queryBackend.loadFeatureQuery(

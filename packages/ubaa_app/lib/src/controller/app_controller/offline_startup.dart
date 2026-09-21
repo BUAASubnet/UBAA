@@ -108,6 +108,7 @@ extension _AppControllerOfflineStartup on AppController {
       _user = profile;
       _error = null;
       _sessionRecoveryStatus = SessionRecoveryStatus.ready;
+      _invalidateReadPlansAfterLogin(request);
       _notify();
       if (request.refreshHomeAfter) _pendingHomeRecoveryEpoch = epoch;
     } on Object catch (error, stackTrace) {

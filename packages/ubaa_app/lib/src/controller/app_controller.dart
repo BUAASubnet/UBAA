@@ -24,6 +24,7 @@ part 'app_controller/cgyy_readback.dart';
 part 'app_controller/evaluation_readback.dart';
 part 'app_controller/refresh.dart';
 part 'app_controller/read_tasks/progressive.dart';
+part 'app_controller/read_tasks/session.dart';
 part 'app_controller/read_tasks/readback.dart';
 part 'app_controller/academic_terms.dart';
 part 'app_controller/academic_weeks.dart';

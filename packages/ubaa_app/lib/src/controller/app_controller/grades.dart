@@ -124,10 +124,7 @@ extension _AppControllerGrades on AppController {
   }
 
   UiError? _gradesReadGuard() {
-    if (_disposed ||
-        _writeTransitions != 0 ||
-        (_usesLocalRecovery &&
-            _sessionRecoveryStatus != SessionRecoveryStatus.ready)) {
+    if (_disposed || _readTransitionBlocked || _legacyReadSessionBlocked) {
       return UbaaErrorMapper.fromCode(UbaaErrorCode.operationConflict);
     }
     if (_phase != AppPhase.home) {
@@ -234,6 +231,7 @@ extension _AppControllerGrades on AppController {
           reusable ??
           await _scheduleAuxiliaryRead(
             cache.backend,
+            FeatureId.grades,
             ReadPriority.interactive,
             () => _gradesCurrent(cache),
             () => (cache.backend as FeatureQueryBackend).loadFeatureQuery(

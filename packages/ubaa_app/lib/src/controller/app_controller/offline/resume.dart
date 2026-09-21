@@ -7,6 +7,8 @@ final class _RecoveryRequest {
   final int epoch;
   bool refreshHomeAfter;
   bool interactive;
+  ConnectionMode? replacedRoute;
+  bool replacedAllRoutes = false;
   final completion = Completer<void>();
 }
 

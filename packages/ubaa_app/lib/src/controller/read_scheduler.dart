@@ -8,8 +8,15 @@ final class ReadCancelled implements Exception {
 }
 
 final class _ReadJob {
-  _ReadJob(this.priority, this.current, this.execute, this.cancel);
+  _ReadJob(
+    this.priority,
+    this.current,
+    this.execute,
+    this.cancel,
+    this.continuation,
+  );
   final ReadPriority priority;
+  final bool continuation;
   final bool Function() current;
   final Future<void> Function() execute;
   final void Function() cancel;
@@ -29,26 +36,33 @@ final class ReadScheduler {
     bool Function() current,
     Future<T> Function() operation, {
     void Function(T)? discard,
+    bool continuation = false,
   }) {
     final completion = Completer<T>();
     if (_closed) return Future.error(const ReadCancelled());
     _pending.add(
-      _ReadJob(priority, current, () async {
-        try {
-          if (_closed || !current()) throw const ReadCancelled();
-          final value = await operation();
-          if (_closed || !current()) {
-            discard?.call(value);
-            throw const ReadCancelled();
+      _ReadJob(
+        priority,
+        current,
+        () async {
+          try {
+            if (_closed || !current()) throw const ReadCancelled();
+            final value = await operation();
+            if (_closed || !current()) {
+              discard?.call(value);
+              throw const ReadCancelled();
+            }
+            completion.complete(value);
+          } on Object catch (error, stack) {
+            completion.completeError(
+              _closed || !current() ? const ReadCancelled() : error,
+              stack,
+            );
           }
-          completion.complete(value);
-        } on Object catch (error, stack) {
-          completion.completeError(
-            _closed || !current() ? const ReadCancelled() : error,
-            stack,
-          );
-        }
-      }, () => completion.completeError(const ReadCancelled())),
+        },
+        () => completion.completeError(const ReadCancelled()),
+        continuation,
+      ),
     );
     pump();
     return completion.future;
@@ -69,7 +83,11 @@ final class ReadScheduler {
       _ReadJob? selected;
       for (final job in _pending) {
         if (canRun(job.priority) &&
-            (selected == null || job.priority.index < selected.priority.index))
+            (selected == null ||
+                job.priority.index < selected.priority.index ||
+                (job.priority == selected.priority &&
+                    job.continuation &&
+                    !selected.continuation)))
           selected = job;
       }
       if (selected == null) return;

@@ -11,7 +11,6 @@ final class _CgyyPurposeCache {
 extension _AppControllerCgyyPurposes on AppController {
   bool _purposesCurrent(_CgyyPurposeCache cache) =>
       !_disposed &&
-      _writeTransitions == 0 &&
       _phase == AppPhase.home &&
       identical(_cgyyPurposeCache, cache) &&
       identical(cache.backend, _backend) &&
@@ -20,10 +19,7 @@ extension _AppControllerCgyyPurposes on AppController {
 
   Future<FeatureResult> _loadCgyyPurposes({required bool forceRefresh}) {
     final UbaaErrorCode? error =
-        _disposed ||
-            _writeTransitions != 0 ||
-            (_usesLocalRecovery &&
-                _sessionRecoveryStatus != SessionRecoveryStatus.ready)
+        _disposed || _readTransitionBlocked || _legacyReadSessionBlocked
         ? UbaaErrorCode.operationConflict
         : _phase != AppPhase.home
         ? UbaaErrorCode.authenticationRequired
@@ -51,6 +47,7 @@ extension _AppControllerCgyyPurposes on AppController {
     try {
       result = await _scheduleAuxiliaryRead(
         cache.backend,
+        FeatureId.cgyy,
         ReadPriority.interactive,
         () => _purposesCurrent(cache),
         () => (cache.backend as FeatureQueryBackend).loadFeatureQuery(

@@ -14,10 +14,7 @@ final class _AcademicWeekEntry {
 
 extension _AppControllerAcademicWeeks on AppController {
   UiError? _weeksGuard() {
-    if (_disposed ||
-        _writeTransitions != 0 ||
-        (_usesLocalRecovery &&
-            _sessionRecoveryStatus != SessionRecoveryStatus.ready)) {
+    if (_disposed || _readTransitionBlocked || _legacyReadSessionBlocked) {
       return UbaaErrorMapper.fromCode(UbaaErrorCode.operationConflict);
     }
     if (_phase != AppPhase.home) {
@@ -76,6 +73,7 @@ extension _AppControllerAcademicWeeks on AppController {
       // 先登记entry再调用backend，同步抛错也不会留下悬空在途状态。
       result = await _scheduleAuxiliaryRead(
         cache.backend,
+        FeatureId.schedule,
         ReadPriority.interactive,
         () => _weeksCurrent(cache),
         () => (cache.backend as FeatureQueryBackend).loadFeatureQuery(

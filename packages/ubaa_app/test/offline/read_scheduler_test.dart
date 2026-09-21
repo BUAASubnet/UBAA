@@ -3,6 +3,31 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/src/controller/read_scheduler.dart';
 
 void main() {
+  test('恢复后的读取先于同级认证，但仍让位紧急任务', () async {
+    final events = <String>[];
+    final scheduler = ReadScheduler(canRun: (_) => true);
+    final jobs = [
+      scheduler.run(
+        ReadPriority.home,
+        () => true,
+        () async => events.add('其他认证'),
+      ),
+      scheduler.run(
+        ReadPriority.home,
+        () => true,
+        () async => events.add('已恢复读取'),
+        continuation: true,
+      ),
+      scheduler.run(
+        ReadPriority.urgent,
+        () => true,
+        () async => events.add('紧急读取'),
+      ),
+    ];
+    await Future.wait(jobs);
+    expect(events, ['紧急读取', '已恢复读取', '其他认证']);
+    scheduler.close();
+  });
   test('已发送批次收尾后，当前任务先于后续后台批次执行', () async {
     final events = <String>[];
     final gate = Completer<void>();

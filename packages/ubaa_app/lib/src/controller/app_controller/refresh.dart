@@ -189,7 +189,9 @@ extension _AppControllerRefresh on AppController {
             previous.summary?.trim().isNotEmpty == true ||
             previous.evidence != null);
     try {
-      if (_usesLocalRecovery && !writeReadback) {
+      if (_usesLocalRecovery &&
+          !writeReadback &&
+          _backend is! ProgressiveReadBackend) {
         if (query != null && _backend is RequiredSessionBackend) {
           await _recoverSession(feature: feature, refreshHomeAfter: false);
           if (_disposed || lifecycleEpoch != _lifecycleEpoch) return;

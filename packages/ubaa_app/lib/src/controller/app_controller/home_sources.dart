@@ -17,10 +17,7 @@ extension _AppControllerHomeSources on AppController {
     HomeSupplement source, {
     required bool forceRefresh,
   }) {
-    if (_disposed ||
-        _writeTransitions != 0 ||
-        (_usesLocalRecovery &&
-            _sessionRecoveryStatus != SessionRecoveryStatus.ready)) {
+    if (_disposed || _readTransitionBlocked || _legacyReadSessionBlocked) {
       return Future.value(_academicTermsConflict());
     }
     if (_phase != AppPhase.home) {
@@ -74,7 +71,6 @@ extension _AppControllerHomeSources on AppController {
     bool current() =>
         !_disposed &&
         _phase == AppPhase.home &&
-        _writeTransitions == 0 &&
         identical(_backend, cache.backend) &&
         identical(_homeSupplementCache, cache) &&
         cache.lifecycle == _lifecycleEpoch &&
@@ -111,6 +107,7 @@ extension _AppControllerHomeSources on AppController {
         final term = selected.single.code;
         result = await _scheduleAuxiliaryRead(
           cache.backend,
+          feature,
           ReadPriority.home,
           current,
           () => backend.loadFeatureQuery(
@@ -137,6 +134,7 @@ extension _AppControllerHomeSources on AppController {
       } else {
         result = await _scheduleAuxiliaryRead(
           cache.backend,
+          feature,
           ReadPriority.home,
           current,
           () => backend.loadFeatureQuery(

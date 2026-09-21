@@ -44,6 +44,7 @@ extension _AppControllerRequiredRecovery on AppController {
       recovered = await backend.loginRequiredRoute(error.resolvedRoute!, input);
       if (recovered.route != error.resolvedRoute)
         throw const BackendException(UbaaErrorCode.upstreamChanged);
+      _activeRecovery?.replacedRoute = recovered.route;
     }
     if (!_recoveryIsCurrent(epoch)) return null;
     _recoveredRoute = recovered.route;
@@ -58,6 +59,7 @@ extension _AppControllerRequiredRecovery on AppController {
       if (!_recoveryIsCurrent(epoch) || input == null) return null;
       await _backend.login(input);
       if (!_recoveryIsCurrent(epoch)) return null;
+      _activeRecovery?.replacedAllRoutes = true;
     }
     return _backend.userInfo();
   }
