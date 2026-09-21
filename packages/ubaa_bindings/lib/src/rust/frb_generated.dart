@@ -11,6 +11,7 @@ import 'api/offline_academic.dart';
 import 'api/offline_bykc.dart';
 import 'api/offline_cgyy.dart';
 import 'api/offline_home.dart';
+import 'api/offline_libbook.dart';
 import 'api/read.dart';
 import 'api/recovery.dart';
 import 'api/simple.dart';
@@ -77,7 +78,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 1813328664;
+  int get rustContentHash => 79420668;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -370,8 +371,24 @@ abstract class RustLibApi extends BaseApi {
     required String areaId,
   });
 
+  Future<BridgeLibBookAreaDetailRefresh>
+  crateApiClientBridgeClientLibbookAreaDetailCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required String areaId,
+  });
+
   Future<BridgeRoutedLibBookAreas> crateApiClientBridgeClientLibbookAreas({
     required BridgeClient that,
+    required String premisesId,
+    String? storeyId,
+    required String day,
+  });
+
+  Future<BridgeLibBookAreasRefresh>
+  crateApiClientBridgeClientLibbookAreasCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
     required String premisesId,
     String? storeyId,
     required String day,
@@ -384,14 +401,39 @@ abstract class RustLibApi extends BaseApi {
     required int limit,
   });
 
+  Future<BridgeLibBookBookingsRefresh>
+  crateApiClientBridgeClientLibbookBookingsCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required int page,
+    required int limit,
+  });
+
   Future<BridgeRoutedLibBookLibraries>
   crateApiClientBridgeClientLibbookLibraries({
     required BridgeClient that,
     required String day,
   });
 
+  Future<BridgeLibBookLibrariesRefresh>
+  crateApiClientBridgeClientLibbookLibrariesCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required String day,
+  });
+
   Future<BridgeRoutedLibBookSeats> crateApiClientBridgeClientLibbookSeats({
     required BridgeClient that,
+    required String areaId,
+    required String day,
+    required String startTime,
+    required String endTime,
+  });
+
+  Future<BridgeLibBookSeatsRefresh>
+  crateApiClientBridgeClientLibbookSeatsCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
     required String areaId,
     required String day,
     required String startTime,
@@ -739,6 +781,47 @@ abstract class RustLibApi extends BaseApi {
     required BridgeConnectionMode route,
     required String courseId,
     required String assignmentId,
+  });
+
+  Future<BridgeCachedLibBookAreaDetailRecord?>
+  crateApiOfflineBridgeOfflineCacheReadLibbookAreaDetail({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String areaId,
+  });
+
+  Future<BridgeCachedLibBookAreasRecord?>
+  crateApiOfflineBridgeOfflineCacheReadLibbookAreas({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String premisesId,
+    String? storeyId,
+    required String day,
+  });
+
+  Future<BridgeCachedLibBookBookingsRecord?>
+  crateApiOfflineBridgeOfflineCacheReadLibbookBookings({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required int page,
+    required int limit,
+  });
+
+  Future<BridgeCachedLibBookLibrariesRecord?>
+  crateApiOfflineBridgeOfflineCacheReadLibbookLibraries({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String day,
+  });
+
+  Future<BridgeCachedLibBookSeatsRecord?>
+  crateApiOfflineBridgeOfflineCacheReadLibbookSeats({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String areaId,
+    required String day,
+    required String startTime,
+    required String endTime,
   });
 
   Future<BridgeCachedToday?> crateApiOfflineBridgeOfflineCacheReadToday({
@@ -2822,6 +2905,51 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeLibBookAreaDetailRefresh>
+  crateApiClientBridgeClientLibbookAreaDetailCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required String areaId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          sse_encode_String(areaId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 51,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_lib_book_area_detail_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientLibbookAreaDetailCachedConstMeta,
+        argValues: [that, cache, areaId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiClientBridgeClientLibbookAreaDetailCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_libbook_area_detail_cached",
+        argNames: ["that", "cache", "areaId"],
+      );
+
+  @override
   Future<BridgeRoutedLibBookAreas> crateApiClientBridgeClientLibbookAreas({
     required BridgeClient that,
     required String premisesId,
@@ -2842,7 +2970,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 51,
+            funcId: 52,
             port: port_,
           );
         },
@@ -2861,6 +2989,54 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(
         debugName: "BridgeClient_libbook_areas",
         argNames: ["that", "premisesId", "storeyId", "day"],
+      );
+
+  @override
+  Future<BridgeLibBookAreasRefresh>
+  crateApiClientBridgeClientLibbookAreasCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required String premisesId,
+    String? storeyId,
+    required String day,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          sse_encode_String(premisesId, serializer);
+          sse_encode_opt_String(storeyId, serializer);
+          sse_encode_String(day, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 53,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_lib_book_areas_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientLibbookAreasCachedConstMeta,
+        argValues: [that, cache, premisesId, storeyId, day],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientLibbookAreasCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_libbook_areas_cached",
+        argNames: ["that", "cache", "premisesId", "storeyId", "day"],
       );
 
   @override
@@ -2883,7 +3059,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 52,
+            funcId: 54,
             port: port_,
           );
         },
@@ -2905,6 +3081,52 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeLibBookBookingsRefresh>
+  crateApiClientBridgeClientLibbookBookingsCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required int page,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          sse_encode_i_32(page, serializer);
+          sse_encode_i_32(limit, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 55,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_lib_book_bookings_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientLibbookBookingsCachedConstMeta,
+        argValues: [that, cache, page, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientLibbookBookingsCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_libbook_bookings_cached",
+        argNames: ["that", "cache", "page", "limit"],
+      );
+
+  @override
   Future<BridgeRoutedLibBookLibraries>
   crateApiClientBridgeClientLibbookLibraries({
     required BridgeClient that,
@@ -2922,7 +3144,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 53,
+            funcId: 56,
             port: port_,
           );
         },
@@ -2941,6 +3163,51 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       const TaskConstMeta(
         debugName: "BridgeClient_libbook_libraries",
         argNames: ["that", "day"],
+      );
+
+  @override
+  Future<BridgeLibBookLibrariesRefresh>
+  crateApiClientBridgeClientLibbookLibrariesCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required String day,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          sse_encode_String(day, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 57,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_lib_book_libraries_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientLibbookLibrariesCachedConstMeta,
+        argValues: [that, cache, day],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiClientBridgeClientLibbookLibrariesCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_libbook_libraries_cached",
+        argNames: ["that", "cache", "day"],
       );
 
   @override
@@ -2966,7 +3233,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 54,
+            funcId: 58,
             port: port_,
           );
         },
@@ -2988,6 +3255,56 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeLibBookSeatsRefresh>
+  crateApiClientBridgeClientLibbookSeatsCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required String areaId,
+    required String day,
+    required String startTime,
+    required String endTime,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          sse_encode_String(areaId, serializer);
+          sse_encode_String(day, serializer);
+          sse_encode_String(startTime, serializer);
+          sse_encode_String(endTime, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 59,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_lib_book_seats_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientLibbookSeatsCachedConstMeta,
+        argValues: [that, cache, areaId, day, startTime, endTime],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientLibbookSeatsCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_libbook_seats_cached",
+        argNames: ["that", "cache", "areaId", "day", "startTime", "endTime"],
+      );
+
+  @override
   Future<BridgeLoginOutcome> crateApiClientBridgeClientLogin({
     required BridgeClient that,
     required String username,
@@ -3006,7 +3323,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 55,
+            funcId: 60,
             port: port_,
           );
         },
@@ -3048,7 +3365,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 56,
+            funcId: 61,
             port: port_,
           );
         },
@@ -3082,7 +3399,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 57,
+            funcId: 62,
             port: port_,
           );
         },
@@ -3120,7 +3437,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 58,
+            funcId: 63,
             port: port_,
           );
         },
@@ -3161,7 +3478,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 59,
+            funcId: 64,
             port: port_,
           );
         },
@@ -3189,7 +3506,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(configDir, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 60)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 65)!;
         },
         codec: SseCodec(
           decodeSuccessData:
@@ -3230,7 +3547,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 61,
+            funcId: 66,
             port: port_,
           );
         },
@@ -3273,7 +3590,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 62,
+            funcId: 67,
             port: port_,
           );
         },
@@ -3315,7 +3632,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 63,
+            funcId: 68,
             port: port_,
           );
         },
@@ -3356,7 +3673,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 64,
+            funcId: 69,
             port: port_,
           );
         },
@@ -3399,7 +3716,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 65,
+            funcId: 70,
             port: port_,
           );
         },
@@ -3443,7 +3760,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 66,
+            funcId: 71,
             port: port_,
           );
         },
@@ -3487,7 +3804,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 67,
+            funcId: 72,
             port: port_,
           );
         },
@@ -3530,7 +3847,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 68,
+            funcId: 73,
             port: port_,
           );
         },
@@ -3566,7 +3883,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 69,
+            funcId: 74,
             port: port_,
           );
         },
@@ -3607,7 +3924,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 70,
+            funcId: 75,
             port: port_,
           );
         },
@@ -3648,7 +3965,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 71,
+            funcId: 76,
             port: port_,
           );
         },
@@ -3687,7 +4004,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 72,
+            funcId: 77,
             port: port_,
           );
         },
@@ -3724,7 +4041,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 73,
+            funcId: 78,
             port: port_,
           );
         },
@@ -3760,7 +4077,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 74,
+            funcId: 79,
             port: port_,
           );
         },
@@ -3796,7 +4113,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 75,
+            funcId: 80,
             port: port_,
           );
         },
@@ -3837,7 +4154,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 76,
+            funcId: 81,
             port: port_,
           );
         },
@@ -3877,7 +4194,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 77,
+            funcId: 82,
             port: port_,
           );
         },
@@ -3915,7 +4232,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 78,
+            funcId: 83,
             port: port_,
           );
         },
@@ -3953,7 +4270,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 79,
+            funcId: 84,
             port: port_,
           );
         },
@@ -3989,7 +4306,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 80,
+            funcId: 85,
             port: port_,
           );
         },
@@ -4028,7 +4345,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 81,
+            funcId: 86,
             port: port_,
           );
         },
@@ -4063,7 +4380,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 82,
+            funcId: 87,
             port: port_,
           );
         },
@@ -4099,7 +4416,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 83,
+            funcId: 88,
             port: port_,
           );
         },
@@ -4135,7 +4452,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 84,
+            funcId: 89,
             port: port_,
           );
         },
@@ -4174,7 +4491,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 85,
+            funcId: 90,
             port: port_,
           );
         },
@@ -4214,7 +4531,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 86,
+            funcId: 91,
             port: port_,
           );
         },
@@ -4257,7 +4574,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 87,
+            funcId: 92,
             port: port_,
           );
         },
@@ -4290,7 +4607,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 88)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 93)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -4320,7 +4637,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 89)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 94)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -4354,7 +4671,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 90,
+            funcId: 95,
             port: port_,
           );
         },
@@ -4390,7 +4707,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 91,
+            funcId: 96,
             port: port_,
           );
         },
@@ -4426,7 +4743,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 92,
+            funcId: 97,
             port: port_,
           );
         },
@@ -4462,7 +4779,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 93,
+            funcId: 98,
             port: port_,
           );
         },
@@ -4501,7 +4818,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 94,
+            funcId: 99,
             port: port_,
           );
         },
@@ -4545,7 +4862,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 95,
+            funcId: 100,
             port: port_,
           );
         },
@@ -4589,7 +4906,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 96,
+            funcId: 101,
             port: port_,
           );
         },
@@ -4632,7 +4949,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 97,
+            funcId: 102,
             port: port_,
           );
         },
@@ -4674,7 +4991,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 98,
+            funcId: 103,
             port: port_,
           );
         },
@@ -4719,7 +5036,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 99,
+            funcId: 104,
             port: port_,
           );
         },
@@ -4762,7 +5079,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 100,
+            funcId: 105,
             port: port_,
           );
         },
@@ -4803,7 +5120,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 101,
+            funcId: 106,
             port: port_,
           );
         },
@@ -4849,7 +5166,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 102,
+            funcId: 107,
             port: port_,
           );
         },
@@ -4892,7 +5209,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 103,
+            funcId: 108,
             port: port_,
           );
         },
@@ -4932,7 +5249,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 104,
+            funcId: 109,
             port: port_,
           );
         },
@@ -4973,7 +5290,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 105,
+            funcId: 110,
             port: port_,
           );
         },
@@ -5019,7 +5336,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 106,
+            funcId: 111,
             port: port_,
           );
         },
@@ -5061,7 +5378,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 107,
+            funcId: 112,
             port: port_,
           );
         },
@@ -5105,7 +5422,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 108,
+            funcId: 113,
             port: port_,
           );
         },
@@ -5145,7 +5462,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 109,
+            funcId: 114,
             port: port_,
           );
         },
@@ -5186,7 +5503,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 110,
+            funcId: 115,
             port: port_,
           );
         },
@@ -5226,7 +5543,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 111,
+            funcId: 116,
             port: port_,
           );
         },
@@ -5265,7 +5582,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 112,
+            funcId: 117,
             port: port_,
           );
         },
@@ -5306,7 +5623,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 113,
+            funcId: 118,
             port: port_,
           );
         },
@@ -5347,7 +5664,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 114,
+            funcId: 119,
             port: port_,
           );
         },
@@ -5387,7 +5704,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 115,
+            funcId: 120,
             port: port_,
           );
         },
@@ -5430,7 +5747,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 116,
+            funcId: 121,
             port: port_,
           );
         },
@@ -5454,6 +5771,236 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeCachedLibBookAreaDetailRecord?>
+  crateApiOfflineBridgeOfflineCacheReadLibbookAreaDetail({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String areaId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_String(areaId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 122,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_lib_book_area_detail_record,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta:
+            kCrateApiOfflineBridgeOfflineCacheReadLibbookAreaDetailConstMeta,
+        argValues: [that, route, areaId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOfflineBridgeOfflineCacheReadLibbookAreaDetailConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_libbook_area_detail",
+        argNames: ["that", "route", "areaId"],
+      );
+
+  @override
+  Future<BridgeCachedLibBookAreasRecord?>
+  crateApiOfflineBridgeOfflineCacheReadLibbookAreas({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String premisesId,
+    String? storeyId,
+    required String day,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_String(premisesId, serializer);
+          sse_encode_opt_String(storeyId, serializer);
+          sse_encode_String(day, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 123,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_lib_book_areas_record,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiOfflineBridgeOfflineCacheReadLibbookAreasConstMeta,
+        argValues: [that, route, premisesId, storeyId, day],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOfflineBridgeOfflineCacheReadLibbookAreasConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_libbook_areas",
+        argNames: ["that", "route", "premisesId", "storeyId", "day"],
+      );
+
+  @override
+  Future<BridgeCachedLibBookBookingsRecord?>
+  crateApiOfflineBridgeOfflineCacheReadLibbookBookings({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required int page,
+    required int limit,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_i_32(page, serializer);
+          sse_encode_i_32(limit, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 124,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_lib_book_bookings_record,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta:
+            kCrateApiOfflineBridgeOfflineCacheReadLibbookBookingsConstMeta,
+        argValues: [that, route, page, limit],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOfflineBridgeOfflineCacheReadLibbookBookingsConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_libbook_bookings",
+        argNames: ["that", "route", "page", "limit"],
+      );
+
+  @override
+  Future<BridgeCachedLibBookLibrariesRecord?>
+  crateApiOfflineBridgeOfflineCacheReadLibbookLibraries({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String day,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_String(day, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 125,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_lib_book_libraries_record,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta:
+            kCrateApiOfflineBridgeOfflineCacheReadLibbookLibrariesConstMeta,
+        argValues: [that, route, day],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOfflineBridgeOfflineCacheReadLibbookLibrariesConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_libbook_libraries",
+        argNames: ["that", "route", "day"],
+      );
+
+  @override
+  Future<BridgeCachedLibBookSeatsRecord?>
+  crateApiOfflineBridgeOfflineCacheReadLibbookSeats({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String areaId,
+    required String day,
+    required String startTime,
+    required String endTime,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_String(areaId, serializer);
+          sse_encode_String(day, serializer);
+          sse_encode_String(startTime, serializer);
+          sse_encode_String(endTime, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 126,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_lib_book_seats_record,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiOfflineBridgeOfflineCacheReadLibbookSeatsConstMeta,
+        argValues: [that, route, areaId, day, startTime, endTime],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOfflineBridgeOfflineCacheReadLibbookSeatsConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_libbook_seats",
+        argNames: ["that", "route", "areaId", "day", "startTime", "endTime"],
+      );
+
+  @override
   Future<BridgeCachedToday?> crateApiOfflineBridgeOfflineCacheReadToday({
     required BridgeOfflineCache that,
     required BridgeConnectionMode route,
@@ -5470,7 +6017,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 117,
+            funcId: 127,
             port: port_,
           );
         },
@@ -5500,7 +6047,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 118,
+            funcId: 128,
           )!;
         },
         codec: SseCodec(
@@ -5527,7 +6074,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 119,
+            funcId: 129,
             port: port_,
           );
         },
@@ -5559,7 +6106,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 120,
+            funcId: 130,
             port: port_,
           );
         },
@@ -5951,6 +6498,43 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_bridge_cached_judge_detail(raw);
+  }
+
+  @protected
+  BridgeCachedLibBookAreaDetailRecord
+  dco_decode_box_autoadd_bridge_cached_lib_book_area_detail_record(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_lib_book_area_detail_record(raw);
+  }
+
+  @protected
+  BridgeCachedLibBookAreasRecord
+  dco_decode_box_autoadd_bridge_cached_lib_book_areas_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_lib_book_areas_record(raw);
+  }
+
+  @protected
+  BridgeCachedLibBookBookingsRecord
+  dco_decode_box_autoadd_bridge_cached_lib_book_bookings_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_lib_book_bookings_record(raw);
+  }
+
+  @protected
+  BridgeCachedLibBookLibrariesRecord
+  dco_decode_box_autoadd_bridge_cached_lib_book_libraries_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_lib_book_libraries_record(raw);
+  }
+
+  @protected
+  BridgeCachedLibBookSeatsRecord
+  dco_decode_box_autoadd_bridge_cached_lib_book_seats_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_lib_book_seats_record(raw);
   }
 
   @protected
@@ -7036,6 +7620,134 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedLibBookAreaDetailRecord
+  dco_decode_bridge_cached_lib_book_area_detail_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedLibBookAreaDetailRecord(
+      data: dco_decode_bridge_lib_book_area_detail(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedLibBookAreasRecord dco_decode_bridge_cached_lib_book_areas_record(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedLibBookAreasRecord(
+      data: dco_decode_list_bridge_lib_book_area(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedLibBookBooking dco_decode_bridge_cached_lib_book_booking(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return BridgeCachedLibBookBooking(
+      id: dco_decode_String(arr[0]),
+      nameMerge: dco_decode_String(arr[1]),
+      areaName: dco_decode_String(arr[2]),
+      seatNo: dco_decode_String(arr[3]),
+      day: dco_decode_String(arr[4]),
+      beginTime: dco_decode_String(arr[5]),
+      endTime: dco_decode_String(arr[6]),
+      status: dco_decode_opt_box_autoadd_i_32(arr[7]),
+      statusName: dco_decode_String(arr[8]),
+    );
+  }
+
+  @protected
+  BridgeCachedLibBookBookingsPage
+  dco_decode_bridge_cached_lib_book_bookings_page(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedLibBookBookingsPage(
+      bookings: dco_decode_list_bridge_cached_lib_book_booking(arr[0]),
+      page: dco_decode_i_32(arr[1]),
+      limit: dco_decode_i_32(arr[2]),
+      total: dco_decode_i_32(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedLibBookBookingsRecord
+  dco_decode_bridge_cached_lib_book_bookings_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedLibBookBookingsRecord(
+      data: dco_decode_bridge_cached_lib_book_bookings_page(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedLibBookLibrariesRecord
+  dco_decode_bridge_cached_lib_book_libraries_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedLibBookLibrariesRecord(
+      data: dco_decode_list_bridge_lib_book_library(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedLibBookSeat dco_decode_bridge_cached_lib_book_seat(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeCachedLibBookSeat(
+      id: dco_decode_String(arr[0]),
+      name: dco_decode_String(arr[1]),
+      no: dco_decode_String(arr[2]),
+      status: dco_decode_opt_box_autoadd_i_32(arr[3]),
+      statusName: dco_decode_String(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeCachedLibBookSeatsRecord dco_decode_bridge_cached_lib_book_seats_record(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedLibBookSeatsRecord(
+      data: dco_decode_list_bridge_cached_lib_book_seat(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
   BridgeCachedSigninClass dco_decode_bridge_cached_signin_class(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -8064,6 +8776,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeLibBookAreaDetailRefresh dco_decode_bridge_lib_book_area_detail_refresh(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeLibBookAreaDetailRefresh(
+      data: dco_decode_bridge_lib_book_area_detail(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+      state: dco_decode_bridge_lib_book_refresh_state(arr[2]),
+    );
+  }
+
+  @protected
+  BridgeLibBookAreasRefresh dco_decode_bridge_lib_book_areas_refresh(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeLibBookAreasRefresh(
+      data: dco_decode_list_bridge_lib_book_area(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+      state: dco_decode_bridge_lib_book_refresh_state(arr[2]),
+    );
+  }
+
+  @protected
   BridgeLibBookBooking dco_decode_bridge_lib_book_booking(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -8101,6 +8843,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeLibBookBookingsRefresh dco_decode_bridge_lib_book_bookings_refresh(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeLibBookBookingsRefresh(
+      data: dco_decode_bridge_lib_book_bookings_page(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+      state: dco_decode_bridge_lib_book_refresh_state(arr[2]),
+    );
+  }
+
+  @protected
+  BridgeLibBookLibrariesRefresh dco_decode_bridge_lib_book_libraries_refresh(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeLibBookLibrariesRefresh(
+      data: dco_decode_list_bridge_lib_book_library(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+      state: dco_decode_bridge_lib_book_refresh_state(arr[2]),
+    );
+  }
+
+  @protected
   BridgeLibBookLibrary dco_decode_bridge_lib_book_library(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -8112,6 +8884,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       freeNum: dco_decode_i_32(arr[2]),
       totalNum: dco_decode_i_32(arr[3]),
       storeys: dco_decode_list_bridge_lib_book_storey(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeLibBookRefreshState dco_decode_bridge_lib_book_refresh_state(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeLibBookRefreshState(
+      fetchedAt: dco_decode_i_64(arr[0]),
+      complete: dco_decode_bool(arr[1]),
+      savedForOffline: dco_decode_bool(arr[2]),
+      preservedPrevious: dco_decode_bool(arr[3]),
+      saveError: dco_decode_opt_box_autoadd_bridge_cache_failure(arr[4]),
     );
   }
 
@@ -8129,6 +8918,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       statusName: dco_decode_String(arr[4]),
       reserveEligibility: dco_decode_bridge_action_eligibility(arr[5]),
       reserveTarget: dco_decode_opt_String(arr[6]),
+    );
+  }
+
+  @protected
+  BridgeLibBookSeatsRefresh dco_decode_bridge_lib_book_seats_refresh(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeLibBookSeatsRefresh(
+      data: dco_decode_list_bridge_lib_book_seat(arr[0]),
+      route: dco_decode_bridge_route_decision(arr[1]),
+      state: dco_decode_bridge_lib_book_refresh_state(arr[2]),
     );
   }
 
@@ -9215,6 +10019,25 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<BridgeCachedLibBookBooking>
+  dco_decode_list_bridge_cached_lib_book_booking(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_cached_lib_book_booking)
+        .toList();
+  }
+
+  @protected
+  List<BridgeCachedLibBookSeat> dco_decode_list_bridge_cached_lib_book_seat(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_cached_lib_book_seat)
+        .toList();
+  }
+
+  @protected
   List<BridgeCachedSigninClass> dco_decode_list_bridge_cached_signin_class(
     dynamic raw,
   ) {
@@ -9798,6 +10621,57 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedLibBookAreaDetailRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_lib_book_area_detail_record(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_lib_book_area_detail_record(raw);
+  }
+
+  @protected
+  BridgeCachedLibBookAreasRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_lib_book_areas_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_lib_book_areas_record(raw);
+  }
+
+  @protected
+  BridgeCachedLibBookBookingsRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_lib_book_bookings_record(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_lib_book_bookings_record(raw);
+  }
+
+  @protected
+  BridgeCachedLibBookLibrariesRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_lib_book_libraries_record(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_lib_book_libraries_record(raw);
+  }
+
+  @protected
+  BridgeCachedLibBookSeatsRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_lib_book_seats_record(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_lib_book_seats_record(raw);
+  }
+
+  @protected
   BridgeCachedToday? dco_decode_opt_box_autoadd_bridge_cached_today(
     dynamic raw,
   ) {
@@ -10368,6 +11242,51 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_bridge_cached_judge_detail(deserializer));
+  }
+
+  @protected
+  BridgeCachedLibBookAreaDetailRecord
+  sse_decode_box_autoadd_bridge_cached_lib_book_area_detail_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_lib_book_area_detail_record(deserializer));
+  }
+
+  @protected
+  BridgeCachedLibBookAreasRecord
+  sse_decode_box_autoadd_bridge_cached_lib_book_areas_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_lib_book_areas_record(deserializer));
+  }
+
+  @protected
+  BridgeCachedLibBookBookingsRecord
+  sse_decode_box_autoadd_bridge_cached_lib_book_bookings_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_lib_book_bookings_record(deserializer));
+  }
+
+  @protected
+  BridgeCachedLibBookLibrariesRecord
+  sse_decode_box_autoadd_bridge_cached_lib_book_libraries_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_lib_book_libraries_record(deserializer));
+  }
+
+  @protected
+  BridgeCachedLibBookSeatsRecord
+  sse_decode_box_autoadd_bridge_cached_lib_book_seats_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_lib_book_seats_record(deserializer));
   }
 
   @protected
@@ -11695,6 +12614,162 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedLibBookAreaDetailRecord
+  sse_decode_bridge_cached_lib_book_area_detail_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_lib_book_area_detail(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedLibBookAreaDetailRecord(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedLibBookAreasRecord sse_decode_bridge_cached_lib_book_areas_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_lib_book_area(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedLibBookAreasRecord(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedLibBookBooking sse_decode_bridge_cached_lib_book_booking(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_nameMerge = sse_decode_String(deserializer);
+    var var_areaName = sse_decode_String(deserializer);
+    var var_seatNo = sse_decode_String(deserializer);
+    var var_day = sse_decode_String(deserializer);
+    var var_beginTime = sse_decode_String(deserializer);
+    var var_endTime = sse_decode_String(deserializer);
+    var var_status = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_statusName = sse_decode_String(deserializer);
+    return BridgeCachedLibBookBooking(
+      id: var_id,
+      nameMerge: var_nameMerge,
+      areaName: var_areaName,
+      seatNo: var_seatNo,
+      day: var_day,
+      beginTime: var_beginTime,
+      endTime: var_endTime,
+      status: var_status,
+      statusName: var_statusName,
+    );
+  }
+
+  @protected
+  BridgeCachedLibBookBookingsPage
+  sse_decode_bridge_cached_lib_book_bookings_page(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_bookings = sse_decode_list_bridge_cached_lib_book_booking(
+      deserializer,
+    );
+    var var_page = sse_decode_i_32(deserializer);
+    var var_limit = sse_decode_i_32(deserializer);
+    var var_total = sse_decode_i_32(deserializer);
+    return BridgeCachedLibBookBookingsPage(
+      bookings: var_bookings,
+      page: var_page,
+      limit: var_limit,
+      total: var_total,
+    );
+  }
+
+  @protected
+  BridgeCachedLibBookBookingsRecord
+  sse_decode_bridge_cached_lib_book_bookings_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_cached_lib_book_bookings_page(
+      deserializer,
+    );
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedLibBookBookingsRecord(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedLibBookLibrariesRecord
+  sse_decode_bridge_cached_lib_book_libraries_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_lib_book_library(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedLibBookLibrariesRecord(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedLibBookSeat sse_decode_bridge_cached_lib_book_seat(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_name = sse_decode_String(deserializer);
+    var var_no = sse_decode_String(deserializer);
+    var var_status = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_statusName = sse_decode_String(deserializer);
+    return BridgeCachedLibBookSeat(
+      id: var_id,
+      name: var_name,
+      no: var_no,
+      status: var_status,
+      statusName: var_statusName,
+    );
+  }
+
+  @protected
+  BridgeCachedLibBookSeatsRecord sse_decode_bridge_cached_lib_book_seats_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_cached_lib_book_seat(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedLibBookSeatsRecord(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
   BridgeCachedSigninClass sse_decode_bridge_cached_signin_class(
     SseDeserializer deserializer,
   ) {
@@ -12931,6 +14006,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeLibBookAreaDetailRefresh sse_decode_bridge_lib_book_area_detail_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_lib_book_area_detail(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    var var_state = sse_decode_bridge_lib_book_refresh_state(deserializer);
+    return BridgeLibBookAreaDetailRefresh(
+      data: var_data,
+      route: var_route,
+      state: var_state,
+    );
+  }
+
+  @protected
+  BridgeLibBookAreasRefresh sse_decode_bridge_lib_book_areas_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_lib_book_area(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    var var_state = sse_decode_bridge_lib_book_refresh_state(deserializer);
+    return BridgeLibBookAreasRefresh(
+      data: var_data,
+      route: var_route,
+      state: var_state,
+    );
+  }
+
+  @protected
   BridgeLibBookBooking sse_decode_bridge_lib_book_booking(
     SseDeserializer deserializer,
   ) {
@@ -12981,6 +14086,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeLibBookBookingsRefresh sse_decode_bridge_lib_book_bookings_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_lib_book_bookings_page(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    var var_state = sse_decode_bridge_lib_book_refresh_state(deserializer);
+    return BridgeLibBookBookingsRefresh(
+      data: var_data,
+      route: var_route,
+      state: var_state,
+    );
+  }
+
+  @protected
+  BridgeLibBookLibrariesRefresh sse_decode_bridge_lib_book_libraries_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_lib_book_library(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    var var_state = sse_decode_bridge_lib_book_refresh_state(deserializer);
+    return BridgeLibBookLibrariesRefresh(
+      data: var_data,
+      route: var_route,
+      state: var_state,
+    );
+  }
+
+  @protected
   BridgeLibBookLibrary sse_decode_bridge_lib_book_library(
     SseDeserializer deserializer,
   ) {
@@ -12996,6 +14131,27 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       freeNum: var_freeNum,
       totalNum: var_totalNum,
       storeys: var_storeys,
+    );
+  }
+
+  @protected
+  BridgeLibBookRefreshState sse_decode_bridge_lib_book_refresh_state(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    var var_savedForOffline = sse_decode_bool(deserializer);
+    var var_preservedPrevious = sse_decode_bool(deserializer);
+    var var_saveError = sse_decode_opt_box_autoadd_bridge_cache_failure(
+      deserializer,
+    );
+    return BridgeLibBookRefreshState(
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+      savedForOffline: var_savedForOffline,
+      preservedPrevious: var_preservedPrevious,
+      saveError: var_saveError,
     );
   }
 
@@ -13021,6 +14177,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       statusName: var_statusName,
       reserveEligibility: var_reserveEligibility,
       reserveTarget: var_reserveTarget,
+    );
+  }
+
+  @protected
+  BridgeLibBookSeatsRefresh sse_decode_bridge_lib_book_seats_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_lib_book_seat(deserializer);
+    var var_route = sse_decode_bridge_route_decision(deserializer);
+    var var_state = sse_decode_bridge_lib_book_refresh_state(deserializer);
+    return BridgeLibBookSeatsRefresh(
+      data: var_data,
+      route: var_route,
+      state: var_state,
     );
   }
 
@@ -14205,6 +15376,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<BridgeCachedLibBookBooking>
+  sse_decode_list_bridge_cached_lib_book_booking(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeCachedLibBookBooking>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_cached_lib_book_booking(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeCachedLibBookSeat> sse_decode_list_bridge_cached_lib_book_seat(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeCachedLibBookSeat>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_cached_lib_book_seat(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<BridgeCachedSigninClass> sse_decode_list_bridge_cached_signin_class(
     SseDeserializer deserializer,
   ) {
@@ -15173,6 +16371,86 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedLibBookAreaDetailRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_lib_book_area_detail_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_lib_book_area_detail_record(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeCachedLibBookAreasRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_lib_book_areas_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_lib_book_areas_record(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeCachedLibBookBookingsRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_lib_book_bookings_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_lib_book_bookings_record(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeCachedLibBookLibrariesRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_lib_book_libraries_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_lib_book_libraries_record(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeCachedLibBookSeatsRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_lib_book_seats_record(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_lib_book_seats_record(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   BridgeCachedToday? sse_decode_opt_box_autoadd_bridge_cached_today(
     SseDeserializer deserializer,
   ) {
@@ -15863,6 +17141,51 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_bridge_cached_judge_detail(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_lib_book_area_detail_record(
+    BridgeCachedLibBookAreaDetailRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_lib_book_area_detail_record(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_lib_book_areas_record(
+    BridgeCachedLibBookAreasRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_lib_book_areas_record(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_lib_book_bookings_record(
+    BridgeCachedLibBookBookingsRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_lib_book_bookings_record(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_lib_book_libraries_record(
+    BridgeCachedLibBookLibrariesRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_lib_book_libraries_record(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_lib_book_seats_record(
+    BridgeCachedLibBookSeatsRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_lib_book_seats_record(self, serializer);
   }
 
   @protected
@@ -16857,6 +18180,108 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bridge_cached_lib_book_area_detail_record(
+    BridgeCachedLibBookAreaDetailRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_lib_book_area_detail(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_lib_book_areas_record(
+    BridgeCachedLibBookAreasRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_lib_book_area(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_lib_book_booking(
+    BridgeCachedLibBookBooking self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.nameMerge, serializer);
+    sse_encode_String(self.areaName, serializer);
+    sse_encode_String(self.seatNo, serializer);
+    sse_encode_String(self.day, serializer);
+    sse_encode_String(self.beginTime, serializer);
+    sse_encode_String(self.endTime, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.status, serializer);
+    sse_encode_String(self.statusName, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_lib_book_bookings_page(
+    BridgeCachedLibBookBookingsPage self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_cached_lib_book_booking(self.bookings, serializer);
+    sse_encode_i_32(self.page, serializer);
+    sse_encode_i_32(self.limit, serializer);
+    sse_encode_i_32(self.total, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_lib_book_bookings_record(
+    BridgeCachedLibBookBookingsRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_lib_book_bookings_page(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_lib_book_libraries_record(
+    BridgeCachedLibBookLibrariesRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_lib_book_library(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_lib_book_seat(
+    BridgeCachedLibBookSeat self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_String(self.name, serializer);
+    sse_encode_String(self.no, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.status, serializer);
+    sse_encode_String(self.statusName, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_lib_book_seats_record(
+    BridgeCachedLibBookSeatsRecord self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_cached_lib_book_seat(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
   void sse_encode_bridge_cached_signin_class(
     BridgeCachedSigninClass self,
     SseSerializer serializer,
@@ -17752,6 +19177,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bridge_lib_book_area_detail_refresh(
+    BridgeLibBookAreaDetailRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_lib_book_area_detail(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+    sse_encode_bridge_lib_book_refresh_state(self.state, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_lib_book_areas_refresh(
+    BridgeLibBookAreasRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_lib_book_area(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+    sse_encode_bridge_lib_book_refresh_state(self.state, serializer);
+  }
+
+  @protected
   void sse_encode_bridge_lib_book_booking(
     BridgeLibBookBooking self,
     SseSerializer serializer,
@@ -17783,6 +19230,28 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bridge_lib_book_bookings_refresh(
+    BridgeLibBookBookingsRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_lib_book_bookings_page(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+    sse_encode_bridge_lib_book_refresh_state(self.state, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_lib_book_libraries_refresh(
+    BridgeLibBookLibrariesRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_lib_book_library(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+    sse_encode_bridge_lib_book_refresh_state(self.state, serializer);
+  }
+
+  @protected
   void sse_encode_bridge_lib_book_library(
     BridgeLibBookLibrary self,
     SseSerializer serializer,
@@ -17793,6 +19262,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.freeNum, serializer);
     sse_encode_i_32(self.totalNum, serializer);
     sse_encode_list_bridge_lib_book_storey(self.storeys, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_lib_book_refresh_state(
+    BridgeLibBookRefreshState self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+    sse_encode_bool(self.savedForOffline, serializer);
+    sse_encode_bool(self.preservedPrevious, serializer);
+    sse_encode_opt_box_autoadd_bridge_cache_failure(self.saveError, serializer);
   }
 
   @protected
@@ -17808,6 +19290,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.statusName, serializer);
     sse_encode_bridge_action_eligibility(self.reserveEligibility, serializer);
     sse_encode_opt_String(self.reserveTarget, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_lib_book_seats_refresh(
+    BridgeLibBookSeatsRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_lib_book_seat(self.data, serializer);
+    sse_encode_bridge_route_decision(self.route, serializer);
+    sse_encode_bridge_lib_book_refresh_state(self.state, serializer);
   }
 
   @protected
@@ -18777,6 +20270,30 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_bridge_cached_lib_book_booking(
+    List<BridgeCachedLibBookBooking> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_cached_lib_book_booking(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_cached_lib_book_seat(
+    List<BridgeCachedLibBookSeat> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_cached_lib_book_seat(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_bridge_cached_signin_class(
     List<BridgeCachedSigninClass> self,
     SseSerializer serializer,
@@ -19641,6 +21158,86 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_lib_book_area_detail_record(
+    BridgeCachedLibBookAreaDetailRecord? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_lib_book_area_detail_record(
+        self,
+        serializer,
+      );
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_lib_book_areas_record(
+    BridgeCachedLibBookAreasRecord? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_lib_book_areas_record(
+        self,
+        serializer,
+      );
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_lib_book_bookings_record(
+    BridgeCachedLibBookBookingsRecord? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_lib_book_bookings_record(
+        self,
+        serializer,
+      );
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_lib_book_libraries_record(
+    BridgeCachedLibBookLibrariesRecord? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_lib_book_libraries_record(
+        self,
+        serializer,
+      );
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_lib_book_seats_record(
+    BridgeCachedLibBookSeatsRecord? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_lib_book_seats_record(
+        self,
+        serializer,
+      );
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_bridge_cached_today(
     BridgeCachedToday? self,
     SseSerializer serializer,
@@ -20374,12 +21971,42 @@ class BridgeClientImpl extends RustOpaque implements BridgeClient {
     areaId: areaId,
   );
 
+  /// 沿原协议读取并保存只读投影，待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 原业务分类、账号与退出屏障保持。
+  Future<BridgeLibBookAreaDetailRefresh> libbookAreaDetailCached({
+    required BridgeOfflineCache cache,
+    required String areaId,
+  }) => RustLib.instance.api.crateApiClientBridgeClientLibbookAreaDetailCached(
+    that: this,
+    cache: cache,
+    areaId: areaId,
+  );
+
   Future<BridgeRoutedLibBookAreas> libbookAreas({
     required String premisesId,
     String? storeyId,
     required String day,
   }) => RustLib.instance.api.crateApiClientBridgeClientLibbookAreas(
     that: this,
+    premisesId: premisesId,
+    storeyId: storeyId,
+    day: day,
+  );
+
+  /// 沿原协议读取并保存只读投影，待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 原业务分类、账号与退出屏障保持。
+  Future<BridgeLibBookAreasRefresh> libbookAreasCached({
+    required BridgeOfflineCache cache,
+    required String premisesId,
+    String? storeyId,
+    required String day,
+  }) => RustLib.instance.api.crateApiClientBridgeClientLibbookAreasCached(
+    that: this,
+    cache: cache,
     premisesId: premisesId,
     storeyId: storeyId,
     day: day,
@@ -20394,10 +22021,38 @@ class BridgeClientImpl extends RustOpaque implements BridgeClient {
     limit: limit,
   );
 
+  /// 沿原协议读取并保存只读投影，待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 原业务分类、账号与退出屏障保持。
+  Future<BridgeLibBookBookingsRefresh> libbookBookingsCached({
+    required BridgeOfflineCache cache,
+    required int page,
+    required int limit,
+  }) => RustLib.instance.api.crateApiClientBridgeClientLibbookBookingsCached(
+    that: this,
+    cache: cache,
+    page: page,
+    limit: limit,
+  );
+
   Future<BridgeRoutedLibBookLibraries> libbookLibraries({
     required String day,
   }) => RustLib.instance.api.crateApiClientBridgeClientLibbookLibraries(
     that: this,
+    day: day,
+  );
+
+  /// 沿原协议读取并保存只读投影，待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 原业务分类、账号与退出屏障保持。
+  Future<BridgeLibBookLibrariesRefresh> libbookLibrariesCached({
+    required BridgeOfflineCache cache,
+    required String day,
+  }) => RustLib.instance.api.crateApiClientBridgeClientLibbookLibrariesCached(
+    that: this,
+    cache: cache,
     day: day,
   );
 
@@ -20408,6 +22063,25 @@ class BridgeClientImpl extends RustOpaque implements BridgeClient {
     required String endTime,
   }) => RustLib.instance.api.crateApiClientBridgeClientLibbookSeats(
     that: this,
+    areaId: areaId,
+    day: day,
+    startTime: startTime,
+    endTime: endTime,
+  );
+
+  /// 沿原协议读取并保存只读投影，待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 原业务分类、账号与退出屏障保持。
+  Future<BridgeLibBookSeatsRefresh> libbookSeatsCached({
+    required BridgeOfflineCache cache,
+    required String areaId,
+    required String day,
+    required String startTime,
+    required String endTime,
+  }) => RustLib.instance.api.crateApiClientBridgeClientLibbookSeatsCached(
+    that: this,
+    cache: cache,
     areaId: areaId,
     day: day,
     startTime: startTime,
@@ -21059,6 +22733,86 @@ class BridgeOfflineCacheImpl extends RustOpaque implements BridgeOfflineCache {
     route: route,
     courseId: courseId,
     assignmentId: assignmentId,
+  );
+
+  /// 本地读取不获取网络锁，也不授予学校操作资格。
+  ///
+  /// # Errors
+  /// 账号关闭、损坏或参数无效返回稳定错误，缺记录返回 None。
+  Future<BridgeCachedLibBookAreaDetailRecord?> readLibbookAreaDetail({
+    required BridgeConnectionMode route,
+    required String areaId,
+  }) => RustLib.instance.api
+      .crateApiOfflineBridgeOfflineCacheReadLibbookAreaDetail(
+        that: this,
+        route: route,
+        areaId: areaId,
+      );
+
+  /// 本地读取不获取网络锁，也不授予学校操作资格。
+  ///
+  /// # Errors
+  /// 账号关闭、损坏或参数无效返回稳定错误，缺记录返回 None。
+  Future<BridgeCachedLibBookAreasRecord?> readLibbookAreas({
+    required BridgeConnectionMode route,
+    required String premisesId,
+    String? storeyId,
+    required String day,
+  }) => RustLib.instance.api.crateApiOfflineBridgeOfflineCacheReadLibbookAreas(
+    that: this,
+    route: route,
+    premisesId: premisesId,
+    storeyId: storeyId,
+    day: day,
+  );
+
+  /// 本地读取不获取网络锁，也不授予学校操作资格。
+  ///
+  /// # Errors
+  /// 账号关闭、损坏或参数无效返回稳定错误，缺记录返回 None。
+  Future<BridgeCachedLibBookBookingsRecord?> readLibbookBookings({
+    required BridgeConnectionMode route,
+    required int page,
+    required int limit,
+  }) =>
+      RustLib.instance.api.crateApiOfflineBridgeOfflineCacheReadLibbookBookings(
+        that: this,
+        route: route,
+        page: page,
+        limit: limit,
+      );
+
+  /// 本地读取不获取网络锁，也不授予学校操作资格。
+  ///
+  /// # Errors
+  /// 账号关闭、损坏或参数无效返回稳定错误，缺记录返回 None。
+  Future<BridgeCachedLibBookLibrariesRecord?> readLibbookLibraries({
+    required BridgeConnectionMode route,
+    required String day,
+  }) => RustLib.instance.api
+      .crateApiOfflineBridgeOfflineCacheReadLibbookLibraries(
+        that: this,
+        route: route,
+        day: day,
+      );
+
+  /// 本地读取不获取网络锁，也不授予学校操作资格。
+  ///
+  /// # Errors
+  /// 账号关闭、损坏或参数无效返回稳定错误，缺记录返回 None。
+  Future<BridgeCachedLibBookSeatsRecord?> readLibbookSeats({
+    required BridgeConnectionMode route,
+    required String areaId,
+    required String day,
+    required String startTime,
+    required String endTime,
+  }) => RustLib.instance.api.crateApiOfflineBridgeOfflineCacheReadLibbookSeats(
+    that: this,
+    route: route,
+    areaId: areaId,
+    day: day,
+    startTime: startTime,
+    endTime: endTime,
   );
 
   /// 仅按指定来源读取校园今日缓存，不获取网络客户端锁。

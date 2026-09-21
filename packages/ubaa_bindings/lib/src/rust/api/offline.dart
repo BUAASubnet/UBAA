@@ -9,6 +9,7 @@ import 'offline_academic.dart';
 import 'offline_bykc.dart';
 import 'offline_cgyy.dart';
 import 'offline_home.dart';
+import 'offline_libbook.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 
@@ -245,6 +246,57 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
     required BridgeConnectionMode route,
     required String courseId,
     required String assignmentId,
+  });
+
+  /// 本地读取不获取网络锁，也不授予学校操作资格。
+  ///
+  /// # Errors
+  /// 账号关闭、损坏或参数无效返回稳定错误，缺记录返回 None。
+  Future<BridgeCachedLibBookAreaDetailRecord?> readLibbookAreaDetail({
+    required BridgeConnectionMode route,
+    required String areaId,
+  });
+
+  /// 本地读取不获取网络锁，也不授予学校操作资格。
+  ///
+  /// # Errors
+  /// 账号关闭、损坏或参数无效返回稳定错误，缺记录返回 None。
+  Future<BridgeCachedLibBookAreasRecord?> readLibbookAreas({
+    required BridgeConnectionMode route,
+    required String premisesId,
+    String? storeyId,
+    required String day,
+  });
+
+  /// 本地读取不获取网络锁，也不授予学校操作资格。
+  ///
+  /// # Errors
+  /// 账号关闭、损坏或参数无效返回稳定错误，缺记录返回 None。
+  Future<BridgeCachedLibBookBookingsRecord?> readLibbookBookings({
+    required BridgeConnectionMode route,
+    required int page,
+    required int limit,
+  });
+
+  /// 本地读取不获取网络锁，也不授予学校操作资格。
+  ///
+  /// # Errors
+  /// 账号关闭、损坏或参数无效返回稳定错误，缺记录返回 None。
+  Future<BridgeCachedLibBookLibrariesRecord?> readLibbookLibraries({
+    required BridgeConnectionMode route,
+    required String day,
+  });
+
+  /// 本地读取不获取网络锁，也不授予学校操作资格。
+  ///
+  /// # Errors
+  /// 账号关闭、损坏或参数无效返回稳定错误，缺记录返回 None。
+  Future<BridgeCachedLibBookSeatsRecord?> readLibbookSeats({
+    required BridgeConnectionMode route,
+    required String areaId,
+    required String day,
+    required String startTime,
+    required String endTime,
   });
 
   /// 仅按指定来源读取校园今日缓存，不获取网络客户端锁。

@@ -11,6 +11,7 @@ import 'offline_academic.dart';
 import 'offline_bykc.dart';
 import 'offline_cgyy.dart';
 import 'offline_home.dart';
+import 'offline_libbook.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 import 'recovery.dart';
@@ -329,7 +330,27 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String areaId,
   });
 
+  /// 沿原协议读取并保存只读投影，待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 原业务分类、账号与退出屏障保持。
+  Future<BridgeLibBookAreaDetailRefresh> libbookAreaDetailCached({
+    required BridgeOfflineCache cache,
+    required String areaId,
+  });
+
   Future<BridgeRoutedLibBookAreas> libbookAreas({
+    required String premisesId,
+    String? storeyId,
+    required String day,
+  });
+
+  /// 沿原协议读取并保存只读投影，待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 原业务分类、账号与退出屏障保持。
+  Future<BridgeLibBookAreasRefresh> libbookAreasCached({
+    required BridgeOfflineCache cache,
     required String premisesId,
     String? storeyId,
     required String day,
@@ -340,9 +361,40 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required int limit,
   });
 
+  /// 沿原协议读取并保存只读投影，待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 原业务分类、账号与退出屏障保持。
+  Future<BridgeLibBookBookingsRefresh> libbookBookingsCached({
+    required BridgeOfflineCache cache,
+    required int page,
+    required int limit,
+  });
+
   Future<BridgeRoutedLibBookLibraries> libbookLibraries({required String day});
 
+  /// 沿原协议读取并保存只读投影，待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 原业务分类、账号与退出屏障保持。
+  Future<BridgeLibBookLibrariesRefresh> libbookLibrariesCached({
+    required BridgeOfflineCache cache,
+    required String day,
+  });
+
   Future<BridgeRoutedLibBookSeats> libbookSeats({
+    required String areaId,
+    required String day,
+    required String startTime,
+    required String endTime,
+  });
+
+  /// 沿原协议读取并保存只读投影，待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 原业务分类、账号与退出屏障保持。
+  Future<BridgeLibBookSeatsRefresh> libbookSeatsCached({
+    required BridgeOfflineCache cache,
     required String areaId,
     required String day,
     required String startTime,

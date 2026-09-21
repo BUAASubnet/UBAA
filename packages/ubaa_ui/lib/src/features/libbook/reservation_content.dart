@@ -137,7 +137,10 @@ extension _LibbookReservationContent on _LibbookReservationFlowState {
                     .length ==
                 1;
             final canSelect =
-                unique && widget.onReserve != null && _canReserveSeat(target);
+                !_busy &&
+                unique &&
+                widget.onReserve != null &&
+                _canReserveSeat(target);
             final status =
                 target == null ||
                     target.eligibility == ActionEligibility.unknown

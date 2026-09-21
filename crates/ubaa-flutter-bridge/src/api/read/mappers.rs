@@ -403,7 +403,7 @@ fn map_libbook_storey(v: domain::LibBookStorey) -> BridgeLibBookStorey {
         total_num: v.total_num,
     }
 }
-pub(super) fn map_libbook_libraries(v: Vec<domain::LibBookLibrary>) -> Vec<BridgeLibBookLibrary> {
+pub(crate) fn map_libbook_libraries(v: Vec<domain::LibBookLibrary>) -> Vec<BridgeLibBookLibrary> {
     v.into_iter()
         .map(|l| BridgeLibBookLibrary {
             id: l.id,
@@ -414,7 +414,7 @@ pub(super) fn map_libbook_libraries(v: Vec<domain::LibBookLibrary>) -> Vec<Bridg
         })
         .collect()
 }
-pub(super) fn map_libbook_areas(v: Vec<domain::LibBookArea>) -> Vec<BridgeLibBookArea> {
+pub(crate) fn map_libbook_areas(v: Vec<domain::LibBookArea>) -> Vec<BridgeLibBookArea> {
     v.into_iter()
         .map(|a| BridgeLibBookArea {
             id: a.id,
@@ -427,7 +427,7 @@ pub(super) fn map_libbook_areas(v: Vec<domain::LibBookArea>) -> Vec<BridgeLibBoo
         })
         .collect()
 }
-pub(super) fn map_libbook_area_detail(v: domain::LibBookAreaDetail) -> BridgeLibBookAreaDetail {
+pub(crate) fn map_libbook_area_detail(v: domain::LibBookAreaDetail) -> BridgeLibBookAreaDetail {
     BridgeLibBookAreaDetail {
         id: v.id,
         name: v.name,
@@ -444,7 +444,7 @@ pub(super) fn map_libbook_area_detail(v: domain::LibBookAreaDetail) -> BridgeLib
             .collect(),
     }
 }
-pub(super) fn map_libbook_seats(v: Vec<domain::LibBookSeat>) -> Vec<BridgeLibBookSeat> {
+pub(crate) fn map_libbook_seats(v: Vec<domain::LibBookSeat>) -> Vec<BridgeLibBookSeat> {
     v.into_iter()
         .map(|s| BridgeLibBookSeat {
             id: s.id,
@@ -472,7 +472,7 @@ fn map_libbook_booking(v: domain::LibBookBooking) -> BridgeLibBookBooking {
         cancel_target: v.cancel_target,
     }
 }
-pub(super) fn map_libbook_bookings(v: domain::LibBookBookingsPage) -> BridgeLibBookBookingsPage {
+pub(crate) fn map_libbook_bookings(v: domain::LibBookBookingsPage) -> BridgeLibBookBookingsPage {
     BridgeLibBookBookingsPage {
         bookings: v.bookings.into_iter().map(map_libbook_booking).collect(),
         page: v.page,

@@ -93,10 +93,12 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
     final snapshot = widget.snapshot;
     if (identical(_consumed, snapshot) ||
         !const {
-          FeatureLoadStatus.success,
-          FeatureLoadStatus.stale,
-          FeatureLoadStatus.empty,
-        }.contains(snapshot.status))
+              FeatureLoadStatus.success,
+              FeatureLoadStatus.stale,
+              FeatureLoadStatus.empty,
+            }.contains(snapshot.status) &&
+            !(snapshot.status == FeatureLoadStatus.loading &&
+                snapshot.evidence?.origin == DataOrigin.persisted))
       return;
     if (_afterRevision != null &&
         (snapshot.readContext?.requestRevision ?? -1) <= _afterRevision!)
@@ -342,6 +344,12 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
             areaId: mapAreas.keys.single,
             areaName: mapAreas.values.single,
           ),
+        if (widget.snapshot.evidence?.origin == DataOrigin.persisted)
+          Text(
+            '上次保存 ${_savedScheduleTime(widget.snapshot.evidence!.fetchedAt)}，连接后核对更新',
+          ),
+        if (widget.snapshot.evidence?.complete == false)
+          const Text('当前查询范围尚未更新完整。'),
         if (_busy)
           const Padding(
             padding: EdgeInsets.all(24),
@@ -362,7 +370,8 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Text('从右上角选择日期和时段，查询当前分区座位。'),
           ),
-        if (!_busy &&
+        if ((!_busy ||
+                widget.snapshot.evidence?.origin == DataOrigin.persisted) &&
             details.any((d) => d.presentation is LibbookSeatPresentation))
           _seatGrid(context, details),
       ],

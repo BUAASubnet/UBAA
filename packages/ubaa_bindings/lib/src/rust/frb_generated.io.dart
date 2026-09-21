@@ -11,6 +11,7 @@ import 'api/offline_academic.dart';
 import 'api/offline_bykc.dart';
 import 'api/offline_cgyy.dart';
 import 'api/offline_home.dart';
+import 'api/offline_libbook.dart';
 import 'api/read.dart';
 import 'api/recovery.dart';
 import 'api/simple.dart';
@@ -250,6 +251,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeCachedJudgeDetail dco_decode_box_autoadd_bridge_cached_judge_detail(
     dynamic raw,
   );
+
+  @protected
+  BridgeCachedLibBookAreaDetailRecord
+  dco_decode_box_autoadd_bridge_cached_lib_book_area_detail_record(dynamic raw);
+
+  @protected
+  BridgeCachedLibBookAreasRecord
+  dco_decode_box_autoadd_bridge_cached_lib_book_areas_record(dynamic raw);
+
+  @protected
+  BridgeCachedLibBookBookingsRecord
+  dco_decode_box_autoadd_bridge_cached_lib_book_bookings_record(dynamic raw);
+
+  @protected
+  BridgeCachedLibBookLibrariesRecord
+  dco_decode_box_autoadd_bridge_cached_lib_book_libraries_record(dynamic raw);
+
+  @protected
+  BridgeCachedLibBookSeatsRecord
+  dco_decode_box_autoadd_bridge_cached_lib_book_seats_record(dynamic raw);
 
   @protected
   BridgeCachedToday dco_decode_box_autoadd_bridge_cached_today(dynamic raw);
@@ -588,6 +609,40 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeCachedJudgeDetail dco_decode_bridge_cached_judge_detail(dynamic raw);
 
   @protected
+  BridgeCachedLibBookAreaDetailRecord
+  dco_decode_bridge_cached_lib_book_area_detail_record(dynamic raw);
+
+  @protected
+  BridgeCachedLibBookAreasRecord dco_decode_bridge_cached_lib_book_areas_record(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedLibBookBooking dco_decode_bridge_cached_lib_book_booking(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedLibBookBookingsPage
+  dco_decode_bridge_cached_lib_book_bookings_page(dynamic raw);
+
+  @protected
+  BridgeCachedLibBookBookingsRecord
+  dco_decode_bridge_cached_lib_book_bookings_record(dynamic raw);
+
+  @protected
+  BridgeCachedLibBookLibrariesRecord
+  dco_decode_bridge_cached_lib_book_libraries_record(dynamic raw);
+
+  @protected
+  BridgeCachedLibBookSeat dco_decode_bridge_cached_lib_book_seat(dynamic raw);
+
+  @protected
+  BridgeCachedLibBookSeatsRecord dco_decode_bridge_cached_lib_book_seats_record(
+    dynamic raw,
+  );
+
+  @protected
   BridgeCachedSigninClass dco_decode_bridge_cached_signin_class(dynamic raw);
 
   @protected
@@ -849,6 +904,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeLibBookAreaDetail dco_decode_bridge_lib_book_area_detail(dynamic raw);
 
   @protected
+  BridgeLibBookAreaDetailRefresh dco_decode_bridge_lib_book_area_detail_refresh(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeLibBookAreasRefresh dco_decode_bridge_lib_book_areas_refresh(
+    dynamic raw,
+  );
+
+  @protected
   BridgeLibBookBooking dco_decode_bridge_lib_book_booking(dynamic raw);
 
   @protected
@@ -857,10 +922,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeLibBookBookingsRefresh dco_decode_bridge_lib_book_bookings_refresh(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeLibBookLibrariesRefresh dco_decode_bridge_lib_book_libraries_refresh(
+    dynamic raw,
+  );
+
+  @protected
   BridgeLibBookLibrary dco_decode_bridge_lib_book_library(dynamic raw);
 
   @protected
+  BridgeLibBookRefreshState dco_decode_bridge_lib_book_refresh_state(
+    dynamic raw,
+  );
+
+  @protected
   BridgeLibBookSeat dco_decode_bridge_lib_book_seat(dynamic raw);
+
+  @protected
+  BridgeLibBookSeatsRefresh dco_decode_bridge_lib_book_seats_refresh(
+    dynamic raw,
+  );
 
   @protected
   BridgeLibBookStorey dco_decode_bridge_lib_book_storey(dynamic raw);
@@ -1168,6 +1253,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_list_bridge_cached_cgyy_space_availability(dynamic raw);
 
   @protected
+  List<BridgeCachedLibBookBooking>
+  dco_decode_list_bridge_cached_lib_book_booking(dynamic raw);
+
+  @protected
+  List<BridgeCachedLibBookSeat> dco_decode_list_bridge_cached_lib_book_seat(
+    dynamic raw,
+  );
+
+  @protected
   List<BridgeCachedSigninClass> dco_decode_list_bridge_cached_signin_class(
     dynamic raw,
   );
@@ -1438,6 +1532,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedJudgeDetail?
   dco_decode_opt_box_autoadd_bridge_cached_judge_detail(dynamic raw);
+
+  @protected
+  BridgeCachedLibBookAreaDetailRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_lib_book_area_detail_record(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedLibBookAreasRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_lib_book_areas_record(dynamic raw);
+
+  @protected
+  BridgeCachedLibBookBookingsRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_lib_book_bookings_record(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedLibBookLibrariesRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_lib_book_libraries_record(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedLibBookSeatsRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_lib_book_seats_record(dynamic raw);
 
   @protected
   BridgeCachedToday? dco_decode_opt_box_autoadd_bridge_cached_today(
@@ -1757,6 +1877,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCachedJudgeDetail sse_decode_box_autoadd_bridge_cached_judge_detail(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookAreaDetailRecord
+  sse_decode_box_autoadd_bridge_cached_lib_book_area_detail_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookAreasRecord
+  sse_decode_box_autoadd_bridge_cached_lib_book_areas_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookBookingsRecord
+  sse_decode_box_autoadd_bridge_cached_lib_book_bookings_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookLibrariesRecord
+  sse_decode_box_autoadd_bridge_cached_lib_book_libraries_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookSeatsRecord
+  sse_decode_box_autoadd_bridge_cached_lib_book_seats_record(
     SseDeserializer deserializer,
   );
 
@@ -2183,6 +2333,48 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedLibBookAreaDetailRecord
+  sse_decode_bridge_cached_lib_book_area_detail_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookAreasRecord sse_decode_bridge_cached_lib_book_areas_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookBooking sse_decode_bridge_cached_lib_book_booking(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookBookingsPage
+  sse_decode_bridge_cached_lib_book_bookings_page(SseDeserializer deserializer);
+
+  @protected
+  BridgeCachedLibBookBookingsRecord
+  sse_decode_bridge_cached_lib_book_bookings_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookLibrariesRecord
+  sse_decode_bridge_cached_lib_book_libraries_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookSeat sse_decode_bridge_cached_lib_book_seat(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookSeatsRecord sse_decode_bridge_cached_lib_book_seats_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedSigninClass sse_decode_bridge_cached_signin_class(
     SseDeserializer deserializer,
   );
@@ -2526,6 +2718,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeLibBookAreaDetailRefresh sse_decode_bridge_lib_book_area_detail_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibBookAreasRefresh sse_decode_bridge_lib_book_areas_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeLibBookBooking sse_decode_bridge_lib_book_booking(
     SseDeserializer deserializer,
   );
@@ -2536,12 +2738,32 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeLibBookBookingsRefresh sse_decode_bridge_lib_book_bookings_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibBookLibrariesRefresh sse_decode_bridge_lib_book_libraries_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeLibBookLibrary sse_decode_bridge_lib_book_library(
     SseDeserializer deserializer,
   );
 
   @protected
+  BridgeLibBookRefreshState sse_decode_bridge_lib_book_refresh_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeLibBookSeat sse_decode_bridge_lib_book_seat(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeLibBookSeatsRefresh sse_decode_bridge_lib_book_seats_refresh(
     SseDeserializer deserializer,
   );
 
@@ -2959,6 +3181,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeCachedLibBookBooking>
+  sse_decode_list_bridge_cached_lib_book_booking(SseDeserializer deserializer);
+
+  @protected
+  List<BridgeCachedLibBookSeat> sse_decode_list_bridge_cached_lib_book_seat(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BridgeCachedSigninClass> sse_decode_list_bridge_cached_signin_class(
     SseDeserializer deserializer,
   );
@@ -3299,6 +3530,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedJudgeDetail?
   sse_decode_opt_box_autoadd_bridge_cached_judge_detail(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookAreaDetailRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_lib_book_area_detail_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookAreasRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_lib_book_areas_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookBookingsRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_lib_book_bookings_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookLibrariesRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_lib_book_libraries_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedLibBookSeatsRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_lib_book_seats_record(
     SseDeserializer deserializer,
   );
 
@@ -3665,6 +3926,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_cached_judge_detail(
     BridgeCachedJudgeDetail self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_lib_book_area_detail_record(
+    BridgeCachedLibBookAreaDetailRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_lib_book_areas_record(
+    BridgeCachedLibBookAreasRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_lib_book_bookings_record(
+    BridgeCachedLibBookBookingsRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_lib_book_libraries_record(
+    BridgeCachedLibBookLibrariesRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_lib_book_seats_record(
+    BridgeCachedLibBookSeatsRecord self,
     SseSerializer serializer,
   );
 
@@ -4167,6 +4458,54 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_cached_lib_book_area_detail_record(
+    BridgeCachedLibBookAreaDetailRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_lib_book_areas_record(
+    BridgeCachedLibBookAreasRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_lib_book_booking(
+    BridgeCachedLibBookBooking self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_lib_book_bookings_page(
+    BridgeCachedLibBookBookingsPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_lib_book_bookings_record(
+    BridgeCachedLibBookBookingsRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_lib_book_libraries_record(
+    BridgeCachedLibBookLibrariesRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_lib_book_seat(
+    BridgeCachedLibBookSeat self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_lib_book_seats_record(
+    BridgeCachedLibBookSeatsRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_cached_signin_class(
     BridgeCachedSigninClass self,
     SseSerializer serializer,
@@ -4584,6 +4923,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_lib_book_area_detail_refresh(
+    BridgeLibBookAreaDetailRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_lib_book_areas_refresh(
+    BridgeLibBookAreasRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_lib_book_booking(
     BridgeLibBookBooking self,
     SseSerializer serializer,
@@ -4596,14 +4947,38 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_lib_book_bookings_refresh(
+    BridgeLibBookBookingsRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_lib_book_libraries_refresh(
+    BridgeLibBookLibrariesRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_lib_book_library(
     BridgeLibBookLibrary self,
     SseSerializer serializer,
   );
 
   @protected
+  void sse_encode_bridge_lib_book_refresh_state(
+    BridgeLibBookRefreshState self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_lib_book_seat(
     BridgeLibBookSeat self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_lib_book_seats_refresh(
+    BridgeLibBookSeatsRefresh self,
     SseSerializer serializer,
   );
 
@@ -5106,6 +5481,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_cached_lib_book_booking(
+    List<BridgeCachedLibBookBooking> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_cached_lib_book_seat(
+    List<BridgeCachedLibBookSeat> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_cached_signin_class(
     List<BridgeCachedSigninClass> self,
     SseSerializer serializer,
@@ -5507,6 +5894,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_cached_judge_detail(
     BridgeCachedJudgeDetail? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_lib_book_area_detail_record(
+    BridgeCachedLibBookAreaDetailRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_lib_book_areas_record(
+    BridgeCachedLibBookAreasRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_lib_book_bookings_record(
+    BridgeCachedLibBookBookingsRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_lib_book_libraries_record(
+    BridgeCachedLibBookLibrariesRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_lib_book_seats_record(
+    BridgeCachedLibBookSeatsRecord? self,
     SseSerializer serializer,
   );
 

@@ -11,6 +11,7 @@ bool _readableCachedContent(FeatureSnapshot snapshot) =>
       FeatureId.ygdk,
       FeatureId.bykc,
       FeatureId.cgyy,
+      FeatureId.libbook,
     }.contains(snapshot.feature) &&
     snapshot.evidence?.origin == DataOrigin.persisted;
 

@@ -20,10 +20,18 @@ Future<OfflineQueryRead> _readCachedQuery(
   final detail =
       feature == FeatureId.judge && query.view == FeatureQueryView.judgeDetail;
   final academic = _isAcademicCacheQuery(feature, query);
+  final libbook = _isLibbookCacheQuery(feature, query);
   final cgyy = _isCgyyCacheQuery(feature, query);
   final bykc = _isBykcCacheQuery(feature, query);
   final home = _isHomeCacheQuery(feature, query);
-  if (!today && !summary && !detail && !academic && !home && !bykc && !cgyy)
+  if (!today &&
+      !summary &&
+      !detail &&
+      !academic &&
+      !home &&
+      !bykc &&
+      !cgyy &&
+      !libbook)
     return const OfflineQueryRead(null);
   final queryDate = _dateOnly(query.date ?? DateTime.now());
   final routes = switch (policy) {
@@ -39,7 +47,15 @@ Future<OfflineQueryRead> _readCachedQuery(
   for (final route in routes) {
     try {
       CachedFeatureProjection? value;
-      if (cgyy) {
+      if (libbook) {
+        value = await _cachedLibbookProjection(
+          cache,
+          account,
+          query,
+          route,
+          queryDate,
+        );
+      } else if (cgyy) {
         value = await _cachedCgyyProjection(
           cache,
           account,

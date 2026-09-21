@@ -696,3 +696,8 @@ routed!(BridgeRoutedEvaluation, BridgeEvaluationCoursesResponse);
 
 #[cfg(test)]
 mod tests;
+
+pub(super) use mappers::{
+    map_libbook_area_detail, map_libbook_areas, map_libbook_bookings, map_libbook_libraries,
+    map_libbook_seats,
+};

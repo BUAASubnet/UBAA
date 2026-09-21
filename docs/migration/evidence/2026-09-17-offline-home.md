@@ -339,3 +339,18 @@ RED：/tmp/ubaa-p4j-red.log 为缺少持久类型和查询；/tmp/ubaa-p4j-facad
 初次 just check 在审查追加测试后遭遇格式化检查失败，未记通过；随后 clippy 指出同返回值分支和过长测试，已合并分支/拆出 helper 并修正多余借用，重新运行完整门禁。Core-only 阶段，Bridge 仍 v20，尚未接 App；无新增原生渲染、Core-live、真实 App 或性能证据。
 
 最终确定性门禁：just check 退出0（/tmp/ubaa-p4j-check-final.log），Core 两配置各253、facade53、Bridge121通过/2既有忽略、CLI二进制端到端16，fmt/clippy/Shell/build/doc 通过。refs固定引用校验、layout零baseline违例、暂存后 sensitive5263文件通过，diff无空白错误。本阶段无 Dart/Bridge 合同修改，未重复 Flutter 或原生渲染。原始源工作区保持干净；全部 P0–P5仍未完成，下一阶段为图书馆 Bridge/App 接线。
+
+
+## P4-K 图书馆 Bridge/App 五查询（2026-09-22）
+
+基线 b138b3ee。Bridge v21 本地/刷新五入口、只读 DTO、App 共用投影与分页/日期恢复已接通；LibbookReadbackBackend 保持原预约/取消既定读取，不走新增恢复。UI 保留缓存 loading 网格，显示保存时间与未完整提示，不生成预约操作。
+
+RED：/tmp/ubaa-p4k-bridge-red.log（本地/刷新入口缺失）；schema-red.log（生成缓存类型缺失）；app-red.log（明确回读能力缺失）；ui-red.log（loading 后座位消失）；input-red.log（缺segment却调用一次网络）；scope-red.log（无旧记录时错误页仍有分页投影）。前缀均 /tmp/ubaa-p4k-。测试准备中的错误路径、缺activate、readContext误用参数和假查询回调未发布结果所致timeout已修正，不计行为RED。Bridge mapper可见性修正后完成生成；初轮整体验证发现五处版本文档及一个合同测试仍v20，修正为v21后重跑。
+
+GREEN：本地读取独立网络锁、页/路线/退出隔离及pending写阻止恢复；公开DTO禁曝；五种精确范围恢复、原分页和保存时间、部分失败旧记录保护；离线无动作、预约/取消回读不增加缓存恢复；缺时段网络前拒绝、错页无旧记录不显示异范围；loading网格及静态地图原回归通过。
+
+确定性门禁：最终 just check 退出0，Core两配置各253、facade53、Bridge122通过/2既有忽略、CLI二进制端到端16，fmt/clippy/Shell/build/doc通过（/tmp/ubaa-p4k-check-final.log）。单次完整Flutter 57/66/372/264/18/32/54，共863项；错页收尾后App全套373和analyze通过，其余未变套件合计864项，不称为单次864。日志 /tmp/ubaa-p4k-flutter-final.log、app-final.log、app-final-analyze.log。FRB v21最终零漂移（codegen-final.log），敏感扫描暂存5270文件通过；原始源工作区无改动。
+
+macOS合成集成1项通过：五新增本地读取、缺会话在线缓存入口经真实FRB调用，断言合同v21。应用仍报 Failed to foreground app; open returned 1，只记绑定执行，不作为独立实窗/真实业务证据。没有新增真实学校请求、真实写入、验收媒体或性能测量。资料/评教和阳光分页、跨范围失效、剩余长读/生命周期/多端及双路线真实只读仍待后续；还需统一审查其他领域的“错范围且无旧缓存”投影边界，不能仅凭保存拒绝推定页面安全。
+
+最终refs固定SHA校验与layout零baseline违例通过，暂存敏感扫描5270文件通过。macOS最后复验日志 /tmp/ubaa-p4k-native-final.log 同样1项通过/仍无法置前；非视觉验收。最终暂存diff无空白错误。

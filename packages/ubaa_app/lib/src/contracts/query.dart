@@ -82,3 +82,8 @@ abstract interface class BykcReadbackBackend {
 abstract interface class CgyyReservationReadbackBackend {
   Future<FeatureResult> readCgyyAfterWrite(FeatureQuery query);
 }
+
+/// 图书馆预约与取消后的既定读取绕过新增缓存认证恢复。
+abstract interface class LibbookReadbackBackend {
+  Future<FeatureResult> readLibbookAfterWrite(FeatureQuery query);
+}

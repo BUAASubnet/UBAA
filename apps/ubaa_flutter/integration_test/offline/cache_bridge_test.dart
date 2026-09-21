@@ -7,7 +7,7 @@ import 'package:ubaa_bindings/ubaa_bindings.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  testWidgets('原生 Bridge v20 缓存句柄可重开且退出栅栏跨句柄生效', (tester) async {
+  testWidgets('原生 Bridge 缓存句柄可重开且退出栅栏跨句柄生效', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: Text('本地缓存合成验证'))),
     );
@@ -21,7 +21,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 20);
+      expect(client.contractVersion(), 21);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -83,6 +83,7 @@ void main() {
           ),
         ),
       );
+      await _checkLibbookCache(client, first);
       expect(
         await first.readCgyySites(route: BridgeConnectionMode.direct),
         isNull,
@@ -349,4 +350,49 @@ void main() {
       await directory.delete(recursive: true);
     }
   });
+}
+
+Future<void> _checkLibbookCache(
+  BridgeClient client,
+  BridgeOfflineCache cache,
+) async {
+  const route = BridgeConnectionMode.direct;
+  expect(
+    await cache.readLibbookLibraries(route: route, day: '2026-09-22'),
+    isNull,
+  );
+  expect(
+    await cache.readLibbookAreas(
+      route: route,
+      premisesId: 'p1',
+      storeyId: 'f1',
+      day: '2026-09-22',
+    ),
+    isNull,
+  );
+  expect(await cache.readLibbookAreaDetail(route: route, areaId: 'a1'), isNull);
+  expect(
+    await cache.readLibbookSeats(
+      route: route,
+      areaId: 'a1',
+      day: '2026-09-22',
+      startTime: '08:00',
+      endTime: '09:00',
+    ),
+    isNull,
+  );
+  expect(
+    await cache.readLibbookBookings(route: route, page: 1, limit: 20),
+    isNull,
+  );
+  await expectLater(
+    client.libbookBookingsCached(cache: cache, page: 1, limit: 20),
+    throwsA(
+      isA<BridgeError>().having(
+        (error) => error.code,
+        '合成配置缺少会话',
+        BridgeErrorCode.authenticationRequired,
+      ),
+    ),
+  );
 }
