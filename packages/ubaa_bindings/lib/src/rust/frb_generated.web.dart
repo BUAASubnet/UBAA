@@ -104,6 +104,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeCacheFailure dco_decode_box_autoadd_bridge_cache_failure(dynamic raw);
 
   @protected
+  BridgeCachedJudge dco_decode_box_autoadd_bridge_cached_judge(dynamic raw);
+
+  @protected
   BridgeCachedToday dco_decode_box_autoadd_bridge_cached_today(dynamic raw);
 
   @protected
@@ -230,6 +233,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCacheFailure dco_decode_bridge_cache_failure(dynamic raw);
+
+  @protected
+  BridgeCachedJudge dco_decode_bridge_cached_judge(dynamic raw);
 
   @protected
   BridgeCachedToday dco_decode_bridge_cached_today(dynamic raw);
@@ -409,6 +415,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeJudgeProblem dco_decode_bridge_judge_problem(dynamic raw);
+
+  @protected
+  BridgeJudgeRefresh dco_decode_bridge_judge_refresh(dynamic raw);
 
   @protected
   BridgeJudgeSubmissionStatus dco_decode_bridge_judge_submission_status(
@@ -872,6 +881,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedJudge? dco_decode_opt_box_autoadd_bridge_cached_judge(
+    dynamic raw,
+  );
+
+  @protected
   BridgeCachedToday? dco_decode_opt_box_autoadd_bridge_cached_today(
     dynamic raw,
   );
@@ -1010,6 +1024,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCacheFailure sse_decode_box_autoadd_bridge_cache_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedJudge sse_decode_box_autoadd_bridge_cached_judge(
     SseDeserializer deserializer,
   );
 
@@ -1190,6 +1209,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCacheFailure sse_decode_bridge_cache_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedJudge sse_decode_bridge_cached_judge(
     SseDeserializer deserializer,
   );
 
@@ -1413,6 +1437,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeJudgeProblem sse_decode_bridge_judge_problem(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeJudgeRefresh sse_decode_bridge_judge_refresh(
     SseDeserializer deserializer,
   );
 
@@ -2020,6 +2049,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedJudge? sse_decode_opt_box_autoadd_bridge_cached_judge(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedToday? sse_decode_opt_box_autoadd_bridge_cached_today(
     SseDeserializer deserializer,
   );
@@ -2182,6 +2216,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_cache_failure(
     BridgeCacheFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_judge(
+    BridgeCachedJudge self,
     SseSerializer serializer,
   );
 
@@ -2386,6 +2426,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_cache_failure(
     BridgeCacheFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_judge(
+    BridgeCachedJudge self,
     SseSerializer serializer,
   );
 
@@ -2659,6 +2705,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_judge_problem(
     BridgeJudgeProblem self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_judge_refresh(
+    BridgeJudgeRefresh self,
     SseSerializer serializer,
   );
 
@@ -3400,6 +3452,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_cache_failure(
     BridgeCacheFailure? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_judge(
+    BridgeCachedJudge? self,
     SseSerializer serializer,
   );
 

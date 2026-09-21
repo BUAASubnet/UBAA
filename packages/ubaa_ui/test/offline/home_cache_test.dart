@@ -12,6 +12,15 @@ void main() {
     expect(find.text('今天没有课程安排'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
+  testWidgets('已保存待办标明保存依据，不误称刚发生刷新失败', (tester) async {
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await mount(tester, date: '2026-09-21', empty: true);
+    expect(find.textContaining('希冀：上次保存'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('跨校园午夜后不把昨日缓存课程放在今日下', (tester) async {
     await mount(tester, date: '2026-09-20');
     expect(find.text('昨日合成课程'), findsNothing);
@@ -32,6 +41,13 @@ Future<void> mount(
           user: const UserSummary(username: 'synthetic'),
           snapshots: {
             for (final id in FeatureId.values) id: FeatureSnapshot(feature: id),
+            FeatureId.judge: CachedFeatureProjection(
+              feature: FeatureId.judge,
+              accountId: 'synthetic',
+              route: ConnectionMode.direct,
+              fetchedAt: DateTime.utc(2026, 9, 20, 15),
+              complete: true,
+            ).toSnapshot(),
             FeatureId.schedule: CachedFeatureProjection(
               feature: FeatureId.schedule,
               accountId: 'synthetic',

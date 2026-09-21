@@ -64,6 +64,23 @@ impl OfflineCache {
             chrono::Utc::now().timestamp(),
         )
     }
+    /// 精确读取希冀摘要范围，不获取网络客户端锁。
+    ///
+    /// # Errors
+    /// 账号关闭、记录损坏或存储不可用时返回稳定错误。
+    pub fn read_judge(
+        &self,
+        route: ConnectionMode,
+        include_expired: bool,
+    ) -> CacheResult<Option<CacheRecord>> {
+        self.read(
+            &CacheScope {
+                route,
+                query: CacheQuery::JudgeSummaries { include_expired },
+            },
+            chrono::Utc::now().timestamp(),
+        )
+    }
     /// 先关闭缓存，再执行学校注销；阻止已发送读取回写。
     ///
     /// # Errors
@@ -147,6 +164,71 @@ pub enum OfflineReadError {
 }
 
 impl UbaaClient {
+    /// 保存希冀聚合摘要；包含过期项与默认筛选使用不同的持久范围。
+    ///
+    /// # Errors
+    /// 原聚合错误、身份不符或已关闭的本机账号会阻止本次替换。
+    pub async fn refresh_cached_judge(
+        &mut self,
+        cache: &OfflineCache,
+        include_expired: bool,
+    ) -> Result<OfflineRefresh<Vec<crate::domain::JudgeAssignmentSummary>>, OfflineReadError> {
+        let authenticated = self
+            .recover_required_session(ReadonlyFeature::Judge)
+            .await
+            .map_err(OfflineReadError::Read)?;
+        let resolution = authenticated.resolution;
+        if !cache.matches(&authenticated.data.user) {
+            return Err(OfflineReadError::IdentityMismatch {
+                resolution,
+                cache_error: cache.deactivate().err(),
+            });
+        }
+        let scope = CacheScope {
+            route: resolution.mode,
+            query: CacheQuery::JudgeSummaries { include_expired },
+        };
+        let (ticket, mut save_error) = match cache.begin(scope.clone()) {
+            Ok(ticket) => (Some(ticket), None),
+            Err(error @ (CacheError::Inactive | CacheError::Superseded)) => {
+                return Err(OfflineReadError::Cache(error));
+            }
+            Err(error) => (None, Some(error)),
+        };
+        let read = crate::features::judge::get_assignments(
+            self.runtime_for(resolution.mode),
+            include_expired,
+        )
+        .await;
+        let fetched_at = chrono::Utc::now().timestamp();
+        match self.finish_routed(resolution, read) {
+            Ok(result) => {
+                if let Some(ticket) = &ticket {
+                    save_error = cache
+                        .publish(
+                            ticket,
+                            CachePayload::JudgeSummaries(result.data.clone()),
+                            fetched_at,
+                        )
+                        .err();
+                }
+                Ok(OfflineRefresh {
+                    data: result.data,
+                    resolution,
+                    scope,
+                    fetched_at,
+                    save_error,
+                })
+            }
+            Err(error) => {
+                if let Some(ticket) = &ticket {
+                    cache.failure(ticket, fetched_at);
+                }
+                Err(OfflineReadError::Read(error))
+            }
+        }
+    }
+
     /// 保存今日课表；同一次捕获的日期同时用于精确请求和缓存键。
     ///
     /// # Errors

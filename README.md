@@ -92,7 +92,7 @@ cargo run --locked -p ubaa-cli -- auth logout
 默认 Session 位于操作系统的用户私有配置目录；隔离测试可使用 `--config-dir <path>`。CLI 每次 JSON 成功或
 失败只输出一个 schema-v10 信封，合同见[认证与用户合同](docs/contracts/auth-and-user.md)和
 [CLI JSON Schema](docs/contracts/cli-json.schema.json)。该输出版本独立于磁盘存储合同；`session.json` 仍为
-schema v2，`config.toml` 仍为版本 1。当前 Flutter bridge contract 为 v10；图书馆预约记录的 `status` 为
+schema v2，`config.toml` 仍为版本 1。当前 Flutter bridge contract 为 v11；图书馆预约记录的 `status` 为
 nullable int，并由 Core 提供 typed `cancelEligibility/cancelTarget`。取消 action 在本地携带
 `id/page/limit` 以便 prepare、commit 和写后读取核对使用同一页，但最终上游取消正文仍只有 `id`。
 场馆时段的 `reservationStatus` 同样为 nullable int，只有 Core 明确给出 `allowed` 和完整

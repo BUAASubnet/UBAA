@@ -215,9 +215,7 @@ class _CachedBackend extends support.FakeRecoveryBackend
   }
 
   @override
-  Future<List<CachedFeatureProjection>> readCachedHome(
-    RoutePolicy policy,
-  ) async {
+  Future<OfflineHomeRead> readCachedHome(RoutePolicy policy) async {
     final result = [
       CachedFeatureProjection(
         feature: FeatureId.schedule,
@@ -230,7 +228,7 @@ class _CachedBackend extends support.FakeRecoveryBackend
     ];
     if (!cacheRead.isCompleted) cacheRead.complete();
     await diskGate?.future;
-    return result;
+    return OfflineHomeRead(result);
   }
 
   @override

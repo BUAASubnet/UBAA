@@ -409,14 +409,17 @@ String _homeLabel(FeatureId feature) => switch (feature) {
   FeatureId.ygdk => '阳光打卡',
   _ => feature.title,
 };
-String _homeSummary(FeatureSnapshot snapshot) => switch (snapshot.status) {
-  FeatureLoadStatus.idle => '尚未查询',
-  FeatureLoadStatus.loading => '正在加载…',
-  FeatureLoadStatus.success => snapshot.summary ?? '已加载',
-  FeatureLoadStatus.empty => '当前条件暂无结果',
-  FeatureLoadStatus.stale => '刷新失败，显示上次结果',
-  FeatureLoadStatus.failure => '加载失败',
-};
+String _homeSummary(FeatureSnapshot snapshot) =>
+    snapshot.evidence?.origin == DataOrigin.persisted
+    ? '上次保存 ${_savedScheduleTime(snapshot.evidence!.fetchedAt)}，待核实更新'
+    : switch (snapshot.status) {
+        FeatureLoadStatus.idle => '尚未查询',
+        FeatureLoadStatus.loading => '正在加载…',
+        FeatureLoadStatus.success => snapshot.summary ?? '已加载',
+        FeatureLoadStatus.empty => '当前条件暂无结果',
+        FeatureLoadStatus.stale => '刷新失败，显示上次结果',
+        FeatureLoadStatus.failure => '加载失败',
+      };
 
 class _HomeTodoCard extends StatelessWidget {
   const _HomeTodoCard({required this.item, required this.onTap, this.onSignin});

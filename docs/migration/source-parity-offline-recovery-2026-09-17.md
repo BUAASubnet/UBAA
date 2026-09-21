@@ -62,3 +62,13 @@ P1 可以暂用旧双路线聚合 backend 的 authStatus/login（设计 4.2 已�
 | 操作 | CAS/bootstrap/service | 重定向/最终 URL | Cookie/会话 | HTTP/参数 | 头/编码 | 加密/签名 | DTO | 缓存/并发 | 错误/退出 |
 |---|---|---|---|---|---|---|---|---|---|
 | 带缓存的今日课表 | 旧 LocalScheduleApi 的 currentUser.do、AAS 专用 CAS（主矩阵课表条目）；buaa-api aas/core.rs 同服务 | 继承原门户判别、SSO 与研究生不支持分类 | 原 UbaaClient 的目标路线，前置 UC 验证与安全本机身份一致；不复制 Cookie | 原 GET teachingSchedule/detail.do，rq=一次捕获的上海日期，lxdm=student；新出口让请求和缓存键共享同一日期，旧出口保持原调用时机 | 原 Accept/X-Requested-With/Referer，无正文；不借用示例 campusCode | 学校端无新增加密；本地按已有 AES-GCM 仓库 | 仅 TodayClass 字段，带 scope/fetchedAt/save_error；无学校写资格 | mint ticket 后不持仓库锁等待网络；完整在线成功替换，失败只记尝试，保存失败与在线成功分开 | 身份不符在业务请求前停止；注销使 ticket 失效；保留原 RoutedError，不改 CLI 退出码；单独 typed 缓存错误不冒充学校错误 |
+
+## P1-C 待办缓存与 P2/P3 希冀分段边界核对（实现前）
+
+本轮直接核对当前冻结旧版 `1f4b8f84` 的 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/JudgeApi.kt`、`model/dto/Judge.kt`、`api/local/LocalJudgeApi.kt` 与 `shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalJudgeApiBackendTest.kt`。冻结示例 `a63712fa` 的 `src/api.rs` 无 Judge 模块，不能借用其 SPOC 请求、Cookie 或令牌；主矩阵中更早提交号的记录仅为历史记录。本轮下述出口先复用既有聚合读取及错误收尾，不把聚合缓存保存说成分段/选择性刷新已完成。
+
+| 操作 | CAS/bootstrap/service | 重定向/最终 URL | Cookie/会话 | HTTP/参数 | 头/编码 | 加密/签名 | DTO | 缓存/并发 | 错误/退出 |
+|---|---|---|---|---|---|---|---|---|---|
+| 保存/恢复希冀摘要 | 旧 `judgeServiceLoginUrl` 为 SSO service=`http://judge.buaa.edu.cn/`；业务 HTTPS Judge；示例无对应模块 | 旧 `followJudgeActivationRedirectIfNeeded`、`resolveJudgeRedirectUrl`；当前 Core 保留既有安全重定向与实际路线规则，不从缓存推断最终 URL | 旧按 mode+username 的主会话和隔离课程 worker；本轮使用原客户端，UC 身份核实后执行既有聚合；不增加持久会话客户端 | 原 GET `courselist.jsp?courseID=0`，课程选择 GET 同路径 `courseID=<id>`，列表 GET `assignment/index.jsp`，详情 GET 同路径 `assignID=<id>`；`includeExpired` 仅客户端筛选，不新增 HTTP 参数 | 保留旧 browser Accept、zh-CN Accept-Language、固定 User-Agent，GET 无正文 | Judge 无新加密/签名；仅业务缓存沿 AES-GCM | 课程/作业索引仍为 courseId/courseName/assignmentId/title；摘要含起止时间、分数、题数、提交计数及枚举/文字状态，不持久写资格或原始 HTML | 旧列表 5 分钟、详情 2 分钟和四 worker 已存在；本步骤只增加按账号/实际路线/includeExpired 隔离的摘要持久化；聚合有任一必需失败不替换旧集合 | 原有最多三次业务重新激活及主 UC 仲裁保留；结束全部 worker/处理会话冲突后才返回；退出栅栏拒绝迟到发布；CLI 语义不改 |
+
+边界事实：旧 `getAssignmentSummaries` 确实在读到六个月前开始项时 break，并记录整个课程为历史；Core `summarize_course` 继承该行为。测试证明的是该优化已经存在，不证明上游按开始时间单调排列。后续 P3 将按已接受设计修正客户端筛选与历史复查，不能称为新加六个月早停。当前聚合 worker 在完成/失败后会等待所有子任务收尾并执行 `resolve_required_judge_result`，这是新批次返回候选安全边界；尚未证明单个详情请求内部可释放锁，不在其内部让位，不复制 Cookie 绕过共享锁。

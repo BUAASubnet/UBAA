@@ -252,7 +252,7 @@ pub(super) fn map_judge_detail(v: domain::JudgeAssignmentDetail) -> BridgeJudgeA
         content_plain_text: v.content_plain_text,
     }
 }
-pub(super) fn map_judge_summaries(
+pub(crate) fn map_judge_summaries(
     v: Vec<domain::JudgeAssignmentSummary>,
 ) -> Vec<BridgeJudgeAssignmentSummary> {
     v.into_iter().map(map_judge_summary).collect()

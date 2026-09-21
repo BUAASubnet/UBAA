@@ -106,18 +106,98 @@ fn mismatched_account_never_reads_or_caches_school_business_data() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[test]
+fn judge_summary_cache_keeps_expired_scope_and_persists_across_reopen() {
+    let root = test_root("offline-judge");
+    let requests = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let mut client = cached_client(&root, requests.clone());
+    let cache = OfflineCache::open(
+        &root,
+        "0123456789abcdef0123456789abcdef",
+        "fixture-user",
+        CacheKey::new([9; 32]),
+        CacheLimits::default(),
+    )
+    .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let result = runtime
+        .block_on(client.refresh_cached_judge(&cache, true))
+        .unwrap();
+    assert_eq!(result.data.len(), 1);
+    assert!(result.save_error.is_none());
+    assert_eq!(
+        result.scope.query,
+        ubaa_core::facade::CacheQuery::JudgeSummaries {
+            include_expired: true
+        }
+    );
+    drop(cache);
+    let cache = OfflineCache::open(
+        &root,
+        "0123456789abcdef0123456789abcdef",
+        "fixture-user",
+        CacheKey::new([9; 32]),
+        CacheLimits::default(),
+    )
+    .unwrap();
+    assert_eq!(
+        cache
+            .read(&result.scope, result.fetched_at)
+            .unwrap()
+            .unwrap()
+            .payload,
+        CachePayload::JudgeSummaries(result.data)
+    );
+    let other_scope = ubaa_core::facade::CacheScope {
+        route: ConnectionMode::Direct,
+        query: ubaa_core::facade::CacheQuery::JudgeSummaries {
+            include_expired: false,
+        },
+    };
+    assert!(
+        cache
+            .read(&other_scope, result.fetched_at)
+            .unwrap()
+            .is_none()
+    );
+    drop(cache);
+    let _ = std::fs::remove_dir_all(root);
+}
+
 #[derive(Clone)]
 struct OfflineTransport(Arc<std::sync::Mutex<Vec<HttpRequest>>>);
 #[async_trait]
 impl HttpTransport for OfflineTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         self.0.lock().unwrap().push(request.clone());
+        if request.url.starts_with("https://sso.buaa.edu.cn/login?") {
+            let mut response = HttpResponse::new(302, request.url, Vec::new());
+            response
+                .headers
+                .insert("Location".into(), vec!["https://judge.buaa.edu.cn/".into()]);
+            return Ok(response);
+        }
         let body = if request.url.ends_with("/api/uc/status") {
             include_bytes!("../../../../fixtures/auth/userinfo-success.json").to_vec()
         } else if request.url.contains("currentUser.do") {
             b"{}".to_vec()
         } else if request.url.contains("teachingSchedule/detail.do") {
             include_bytes!("../../../../fixtures/readonly/schedule-today.json").to_vec()
+        } else if request.url.starts_with("https://sso.buaa.edu.cn/login?")
+            || request.url == "https://judge.buaa.edu.cn/"
+        {
+            b"<html><body>ready</body></html>".to_vec()
+        } else if request.url.contains("courselist.jsp?courseID=0") {
+            br"<a href='courselist.jsp?courseID=12'>Fixture Course</a>".to_vec()
+        } else if request.url.contains("courselist.jsp?courseID=12") {
+            b"<html>selected</html>".to_vec()
+        } else if request.url.ends_with("assignment/index.jsp") {
+            include_bytes!("../../../../fixtures/readonly/judge-assignments.html").to_vec()
+        } else if request.url.contains("assignment/index.jsp?assignID=101") {
+            include_bytes!("../../../../fixtures/readonly/judge-detail.html").to_vec()
         } else {
             panic!("未预期的合成请求");
         };

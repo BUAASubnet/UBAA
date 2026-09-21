@@ -46,7 +46,12 @@ extension _AppControllerOfflineCache on AppController {
           );
         }
       }
-      _localCacheError = null;
+      _localCacheError = projections.error == null
+          ? null
+          : _recordFailure(
+              projections.error!,
+              DiagnosticOperation.initialization,
+            );
       _notify();
     } on Object catch (error, stackTrace) {
       if (!current()) return;

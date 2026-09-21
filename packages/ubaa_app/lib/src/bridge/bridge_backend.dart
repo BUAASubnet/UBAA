@@ -24,7 +24,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 10;
+const _supportedBridgeContractVersion = 11;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -72,7 +72,7 @@ class BridgeBackend
   Future<void> openOfflineAccount(LocalAccount account, List<int> key) =>
       _openOfflineAccount(this, account, key);
   @override
-  Future<List<CachedFeatureProjection>> readCachedHome(RoutePolicy policy) =>
+  Future<OfflineHomeRead> readCachedHome(RoutePolicy policy) =>
       _readCachedHome(this, policy);
   @override
   Future<void> deactivateOfflineAccount() => _offlineSerial(this, () async {

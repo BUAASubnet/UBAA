@@ -113,6 +113,15 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required bool includeExpired,
   });
 
+  /// 沿既有聚合接口读取并保存希冀摘要；尚不表示可分段抢占。
+  ///
+  /// # Errors
+  /// 学校读取、身份、缓存栅栏或客户端状态失败时返回稳定错误。
+  Future<BridgeJudgeRefresh> judgeAssignmentsCached({
+    required BridgeOfflineCache cache,
+    required bool includeExpired,
+  });
+
   Future<BridgeRoutedLibBookAreaDetail> libbookAreaDetail({
     required String areaId,
   });

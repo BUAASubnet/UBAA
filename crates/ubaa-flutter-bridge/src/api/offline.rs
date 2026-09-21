@@ -3,7 +3,10 @@ use super::client::{
     BridgeClient, BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeErrorKind, catch_panic,
     disposed_error, map_route,
 };
-use super::read::{BridgeRoutedTodayClasses, BridgeTodayClass};
+use super::read::{
+    BridgeJudgeAssignmentSummary, BridgeRoutedJudgeSummaries, BridgeRoutedTodayClasses,
+    BridgeTodayClass, map_judge_summaries,
+};
 use std::path::Path;
 use ubaa_core::facade::{self as core, CachePayload, CacheQuery};
 
@@ -39,6 +42,25 @@ pub struct BridgeCachedToday {
 pub struct BridgeTodayRefresh {
     pub result: BridgeRoutedTodayClasses,
     pub date: String,
+    pub fetched_at: i64,
+    pub save_error: Option<BridgeCacheFailure>,
+}
+
+/// 已保存的希冀待办摘要，筛选范围与取得时间均保留。
+#[derive(Clone, Debug)]
+pub struct BridgeCachedJudge {
+    pub data: Vec<BridgeJudgeAssignmentSummary>,
+    pub source_route: BridgeConnectionMode,
+    pub include_expired: bool,
+    pub fetched_at: i64,
+    pub complete: bool,
+}
+
+/// 在线希冀读取和本地保存分别记录。
+#[derive(Clone, Debug)]
+pub struct BridgeJudgeRefresh {
+    pub result: BridgeRoutedJudgeSummaries,
+    pub include_expired: bool,
     pub fetched_at: i64,
     pub save_error: Option<BridgeCacheFailure>,
 }
@@ -101,6 +123,38 @@ impl BridgeOfflineCache {
         })
         .await
     }
+    /// 读取精确路线与过期筛选范围内的希冀缓存。
+    ///
+    /// # Errors
+    /// 账号关闭、载荷损坏或存储不可用时返回稳定错误。
+    pub async fn read_judge(
+        &self,
+        route: BridgeConnectionMode,
+        include_expired: bool,
+    ) -> Result<Option<BridgeCachedJudge>, BridgeError> {
+        let cache = self.cache.clone();
+        local_task(move || {
+            let record = cache
+                .read_judge(route.into(), include_expired)
+                .map_err(cache_error)?;
+            record
+                .map(|record| {
+                    let CachePayload::JudgeSummaries(data) = record.payload else {
+                        return Err(cache_error(core::CacheError::Corrupt));
+                    };
+                    Ok(BridgeCachedJudge {
+                        data: map_judge_summaries(data),
+                        source_route: record.scope.route.into(),
+                        include_expired,
+                        fetched_at: record.fetched_at,
+                        complete: record.completeness == core::CacheCompleteness::Complete,
+                    })
+                })
+                .transpose()
+        })
+        .await
+    }
+
     /// 关闭本地账号的在途回写资格。
     ///
     /// # Errors
@@ -128,6 +182,43 @@ impl BridgeOfflineCache {
 }
 
 impl BridgeClient {
+    /// 沿既有聚合接口读取并保存希冀摘要；尚不表示可分段抢占。
+    ///
+    /// # Errors
+    /// 学校读取、身份、缓存栅栏或客户端状态失败时返回稳定错误。
+    pub async fn judge_assignments_cached(
+        &self,
+        cache: &BridgeOfflineCache,
+        include_expired: bool,
+    ) -> Result<BridgeJudgeRefresh, BridgeError> {
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            if !self.write_intents.lock().await.is_empty() {
+                return Err(BridgeError::local(
+                    BridgeErrorCode::OperationConflict,
+                    BridgeErrorKind::Input,
+                    true,
+                    "请先完成当前操作",
+                ));
+            }
+            let value = client
+                .refresh_cached_judge(&cache.cache, include_expired)
+                .await
+                .map_err(offline_read_error)?;
+            Ok(BridgeJudgeRefresh {
+                result: BridgeRoutedJudgeSummaries {
+                    data: map_judge_summaries(value.data),
+                    route: map_route(value.resolution),
+                },
+                include_expired,
+                fetched_at: value.fetched_at,
+                save_error: value.save_error.map(Into::into),
+            })
+        })
+        .await
+    }
+
     /// 受网络锁保护的在线读取；已有待确认学校写意图时禁止隐式会话校验。
     ///
     /// # Errors
@@ -147,23 +238,10 @@ impl BridgeClient {
                     "请先完成当前操作",
                 ));
             }
-            let value =
-                client
-                    .refresh_cached_today(&cache.cache)
-                    .await
-                    .map_err(|error| match error {
-                        core::OfflineReadError::Read(error) => BridgeError::from_routed(error),
-                        core::OfflineReadError::Cache(error) => cache_error(error),
-                        core::OfflineReadError::IdentityMismatch { resolution, .. } => {
-                            BridgeError {
-                                code: BridgeErrorCode::CacheIdentityMismatch,
-                                kind: BridgeErrorKind::Authentication,
-                                retryable: false,
-                                message: "当前账号与本机内容不一致，请重新登录".into(),
-                                resolved_route: Some(resolution.mode.into()),
-                            }
-                        }
-                    })?;
+            let value = client
+                .refresh_cached_today(&cache.cache)
+                .await
+                .map_err(offline_read_error)?;
             let CacheQuery::ScheduleToday { date } = value.scope.query else {
                 return Err(cache_error(core::CacheError::Corrupt));
             };
@@ -178,6 +256,20 @@ impl BridgeClient {
             })
         })
         .await
+    }
+}
+
+fn offline_read_error(error: core::OfflineReadError) -> BridgeError {
+    match error {
+        core::OfflineReadError::Read(error) => BridgeError::from_routed(error),
+        core::OfflineReadError::Cache(error) => cache_error(error),
+        core::OfflineReadError::IdentityMismatch { resolution, .. } => BridgeError {
+            code: BridgeErrorCode::CacheIdentityMismatch,
+            kind: BridgeErrorKind::Authentication,
+            retryable: false,
+            message: "当前账号与本机内容不一致，请重新登录".into(),
+            resolved_route: Some(resolution.mode.into()),
+        },
     }
 }
 
@@ -274,6 +366,75 @@ mod tests {
         drop(guard);
         drop(cache);
         drop(client);
+        let _ = std::fs::remove_dir_all(root);
+    }
+}
+
+#[cfg(test)]
+mod judge_tests {
+    use super::*;
+    #[tokio::test]
+    async fn saved_judge_summary_projects_original_fields_without_network() {
+        let root =
+            std::env::temp_dir().join(format!("ubaa-bridge-judge-cache-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        let account = "0123456789abcdef0123456789abcdef";
+        let mut repository = core::OfflineRepository::open(
+            &root,
+            account,
+            core::CacheKey::new([6; 32]),
+            core::CacheLimits::default(),
+        )
+        .unwrap();
+        let scope = core::CacheScope {
+            route: core::ConnectionMode::Direct,
+            query: core::CacheQuery::JudgeSummaries {
+                include_expired: false,
+            },
+        };
+        let ticket = repository.begin_read(scope).unwrap();
+        repository
+            .publish(
+                &ticket,
+                core::CachePayload::JudgeSummaries(vec![core::JudgeAssignmentSummary {
+                    course_id: "12".into(),
+                    assignment_id: "101".into(),
+                    title: "合成作业".into(),
+                    submitted_count: 2,
+                    total_problems: 3,
+                    submission_status: core::JudgeSubmissionStatus::Partial,
+                    ..Default::default()
+                }]),
+                100,
+                core::CacheCompleteness::Complete,
+            )
+            .unwrap();
+        drop(repository);
+        let cache = BridgeOfflineCache::open(
+            root.to_string_lossy().into(),
+            account.into(),
+            "synthetic".into(),
+            vec![6; 32],
+        )
+        .await
+        .unwrap();
+        let record = cache
+            .read_judge(BridgeConnectionMode::Direct, false)
+            .await
+            .unwrap()
+            .unwrap();
+        assert_eq!(record.fetched_at, 100);
+        assert_eq!(record.data[0].submitted_count, 2);
+        assert_eq!(record.data[0].title, "合成作业");
+        assert!(
+            cache
+                .read_judge(BridgeConnectionMode::Direct, true)
+                .await
+                .unwrap()
+                .is_none()
+        );
+        drop(cache);
         let _ = std::fs::remove_dir_all(root);
     }
 }

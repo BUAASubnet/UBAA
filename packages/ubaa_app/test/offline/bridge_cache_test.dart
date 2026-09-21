@@ -19,10 +19,30 @@ void main() {
     );
     final records = await backend.readCachedHome(RoutePolicy.webvpn);
     expect(cache.reads, [BridgeConnectionMode.webVpn]);
-    expect(records.single.route, ConnectionMode.webvpn);
-    expect(records.single.fetchedAt.millisecondsSinceEpoch, 1700000000000);
-    expect(records.single.toSnapshot().details.single.actions, isEmpty);
-    expect(records.single.scopeDate, '2026-09-21');
+    final schedule = records.singleWhere(
+      (record) => record.feature == FeatureId.schedule,
+    );
+    final judge = records.singleWhere(
+      (record) => record.feature == FeatureId.judge,
+    );
+    expect(judge.details.single.title, '已保存的合成作业');
+    expect(judge.details.single.readNavigation?.query.includeExpired, isFalse);
+    expect(judge.details.single.actions, isEmpty);
+    expect(schedule.route, ConnectionMode.webvpn);
+    expect(schedule.fetchedAt.millisecondsSinceEpoch, 1700000000000);
+    expect(schedule.toSnapshot().details.single.actions, isEmpty);
+    expect(schedule.scopeDate, '2026-09-21');
+  });
+  test('一个领域的缓存损坏不能遮蔽其他领域已保存的待办', () async {
+    api.cache = _Cache()..damagedToday = true;
+    final backend = BridgeBackend(_Client(), configDirectory: '/synthetic');
+    await backend.openOfflineAccount(
+      const LocalAccount(id: 'synthetic', username: 'synthetic'),
+      List.filled(32, 1),
+    );
+    final batch = await backend.readCachedHome(RoutePolicy.direct);
+    expect(batch.single.feature, FeatureId.judge);
+    expect(batch.error, isNotNull);
   });
   test('打开缓存被挂起时随后退出，启用不能越过停用重新开放账号', () async {
     final cache = _Cache()..activateGate = Completer<void>();
@@ -56,13 +76,14 @@ class _Api implements RustLibApi {
 
 class _Client implements BridgeClient {
   @override
-  int contractVersion() => 10;
+  int contractVersion() => 11;
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _Cache implements BridgeOfflineCache {
   final reads = <BridgeConnectionMode>[];
+  bool damagedToday = false;
   final events = <String>[];
   Completer<void>? activateGate;
   @override
@@ -81,6 +102,13 @@ class _Cache implements BridgeOfflineCache {
     required BridgeConnectionMode route,
   }) async {
     reads.add(route);
+    if (damagedToday)
+      throw const BridgeError(
+        code: BridgeErrorCode.internalError,
+        kind: BridgeErrorKind.internal,
+        retryable: false,
+        message: '合成缓存损坏',
+      );
     return BridgeCachedToday(
       data: const [BridgeTodayClass(bizName: '合成课表', time: '08:00')],
       sourceRoute: route,
@@ -90,6 +118,28 @@ class _Cache implements BridgeOfflineCache {
     );
   }
 
+  @override
+  Future<BridgeCachedJudge?> readJudge({
+    required BridgeConnectionMode route,
+    required bool includeExpired,
+  }) async => BridgeCachedJudge(
+    data: const [
+      BridgeJudgeAssignmentSummary(
+        courseId: '12',
+        courseName: '合成课程',
+        assignmentId: '101',
+        title: '已保存的合成作业',
+        totalProblems: 3,
+        submittedCount: 2,
+        submissionStatus: BridgeJudgeSubmissionStatus.partial,
+        submissionStatusText: '进行中',
+      ),
+    ],
+    sourceRoute: route,
+    includeExpired: includeExpired,
+    fetchedAt: 1700000000,
+    complete: true,
+  );
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
