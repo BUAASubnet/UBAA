@@ -28,8 +28,10 @@ extension _AppControllerOfflineStartup on AppController {
       _loginForm = _loginForm.copyWith(username: index.account!.username);
       _usesLocalRecovery = true;
       _sessionRecoveryStatus = SessionRecoveryStatus.idle;
-      _setPhase(AppPhase.home);
+      // 先登记本地打开任务，状态通知中的详情读取也能等待同一账号句柄。
+      // 不等待磁盘，首页首帧仍只依赖轻量账号索引。
       unawaited(_restoreCachedHome(index.account!, epoch));
+      _setPhase(AppPhase.home);
       return true;
     } on Object catch (error, stackTrace) {
       if (_disposed || epoch != _lifecycleEpoch) return true;

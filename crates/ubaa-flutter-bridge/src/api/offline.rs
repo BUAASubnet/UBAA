@@ -4,8 +4,8 @@ use super::client::{
     disposed_error, map_route,
 };
 use super::read::{
-    BridgeJudgeAssignmentSummary, BridgeRoutedJudgeSummaries, BridgeRoutedTodayClasses,
-    BridgeTodayClass, map_judge_summaries,
+    BridgeJudgeAssignmentDetail, BridgeJudgeAssignmentSummary, BridgeRoutedJudgeSummaries,
+    BridgeRoutedTodayClasses, BridgeTodayClass, map_judge_detail, map_judge_summaries,
 };
 use std::path::Path;
 use ubaa_core::facade::{self as core, CachePayload, CacheQuery};
@@ -52,6 +52,15 @@ pub struct BridgeCachedJudge {
     pub data: Vec<BridgeJudgeAssignmentSummary>,
     pub source_route: BridgeConnectionMode,
     pub include_expired: bool,
+    pub fetched_at: i64,
+    pub complete: bool,
+}
+
+/// 精确目标的离线详情，不带在线操作资格。
+#[derive(Clone, Debug)]
+pub struct BridgeCachedJudgeDetail {
+    pub data: BridgeJudgeAssignmentDetail,
+    pub source_route: BridgeConnectionMode,
     pub fetched_at: i64,
     pub complete: bool,
 }
@@ -146,6 +155,37 @@ impl BridgeOfflineCache {
                         data: map_judge_summaries(data),
                         source_route: record.scope.route.into(),
                         include_expired,
+                        fetched_at: record.fetched_at,
+                        complete: record.completeness == core::CacheCompleteness::Complete,
+                    })
+                })
+                .transpose()
+        })
+        .await
+    }
+
+    /// 只读取明确课程和作业的已保存详情，不获取网络锁。
+    ///
+    /// # Errors
+    /// 账号关闭、范围无效或损坏时返回稳定本地错误。
+    pub async fn read_judge_detail(
+        &self,
+        route: BridgeConnectionMode,
+        course_id: String,
+        assignment_id: String,
+    ) -> Result<Option<BridgeCachedJudgeDetail>, BridgeError> {
+        let cache = self.cache.clone();
+        local_task(move || {
+            cache
+                .read_judge_detail(route.into(), course_id, assignment_id)
+                .map_err(cache_error)?
+                .map(|record| {
+                    let CachePayload::JudgeDetail(data) = record.payload else {
+                        return Err(cache_error(core::CacheError::Corrupt));
+                    };
+                    Ok(BridgeCachedJudgeDetail {
+                        data: map_judge_detail(*data),
+                        source_route: record.scope.route.into(),
                         fetched_at: record.fetched_at,
                         complete: record.completeness == core::CacheCompleteness::Complete,
                     })
@@ -373,6 +413,88 @@ mod tests {
 #[cfg(test)]
 mod judge_tests {
     use super::*;
+    #[tokio::test]
+    async fn 详情缓存同时隔离路线课程作业且不等待网络锁() {
+        let root = std::env::temp_dir().join(format!("ubaa-detail-cache-{}", std::process::id()));
+        let _ = std::fs::remove_dir_all(&root);
+        std::fs::create_dir_all(&root).unwrap();
+        let account = "0123456789abcdef0123456789abcdef";
+        let mut repository = core::OfflineRepository::open(
+            &root,
+            account,
+            core::CacheKey::new([6; 32]),
+            core::CacheLimits::default(),
+        )
+        .unwrap();
+        let ticket = repository
+            .begin_read(core::CacheScope {
+                route: core::ConnectionMode::Direct,
+                query: CacheQuery::JudgeDetail {
+                    course_id: "12".into(),
+                    assignment_id: "101".into(),
+                },
+            })
+            .unwrap();
+        repository
+            .publish(
+                &ticket,
+                CachePayload::JudgeDetail(Box::new(core::JudgeAssignmentDetail {
+                    course_id: "12".into(),
+                    assignment_id: "101".into(),
+                    title: "合成详情".into(),
+                    ..Default::default()
+                })),
+                100,
+                core::CacheCompleteness::Complete,
+            )
+            .unwrap();
+        drop(repository);
+        let client = BridgeClient::open(root.to_string_lossy().into()).unwrap();
+        let cache = BridgeOfflineCache::open(
+            root.to_string_lossy().into(),
+            account.into(),
+            "synthetic".into(),
+            vec![6; 32],
+        )
+        .await
+        .unwrap();
+        let _guard = client.inner.lock().await;
+        let record = tokio::time::timeout(
+            std::time::Duration::from_secs(1),
+            cache.read_judge_detail(BridgeConnectionMode::Direct, "12".into(), "101".into()),
+        )
+        .await
+        .unwrap()
+        .unwrap()
+        .unwrap();
+        assert_eq!(record.data.title, "合成详情");
+        assert_eq!(record.fetched_at, 100);
+        for (route, course, assignment) in [
+            (BridgeConnectionMode::WebVpn, "12", "101"),
+            (BridgeConnectionMode::Direct, "13", "101"),
+            (BridgeConnectionMode::Direct, "12", "102"),
+        ] {
+            assert!(
+                cache
+                    .read_judge_detail(route, course.into(), assignment.into())
+                    .await
+                    .unwrap()
+                    .is_none()
+            );
+        }
+        cache.deactivate().await.unwrap();
+        assert_eq!(
+            cache
+                .read_judge_detail(BridgeConnectionMode::Direct, "12".into(), "101".into())
+                .await
+                .unwrap_err()
+                .code,
+            BridgeErrorCode::AuthenticationRequired
+        );
+        drop(cache);
+        let _ = std::fs::remove_dir_all(root);
+    }
+
     #[tokio::test]
     async fn saved_judge_summary_projects_original_fields_without_network() {
         let root =

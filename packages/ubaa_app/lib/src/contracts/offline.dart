@@ -19,3 +19,18 @@ final class OfflineHomeRead extends Iterable<CachedFeatureProjection> {
   @override
   Iterator<CachedFeatureProjection> get iterator => _values.iterator;
 }
+
+/// 精确查询的独立本地通道，不受认证或网络队列阻塞。
+abstract interface class OfflineQueryBackend {
+  Future<OfflineQueryRead> readCachedQuery(
+    FeatureId feature,
+    FeatureQuery query,
+    RoutePolicy policy,
+  );
+}
+
+final class OfflineQueryRead {
+  const OfflineQueryRead(this.projection, {this.error});
+  final CachedFeatureProjection? projection;
+  final BackendException? error;
+}

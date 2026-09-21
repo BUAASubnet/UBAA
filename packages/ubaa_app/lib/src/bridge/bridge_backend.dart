@@ -17,6 +17,7 @@ part 'recovery.dart';
 part 'read/academic.dart';
 part 'read/assignments.dart';
 part 'read/judge_progressive.dart';
+part 'read/offline_query.dart';
 part 'read/bykc.dart';
 part 'read/cgyy.dart';
 part 'read/cgyy_day.dart';
@@ -27,7 +28,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 14;
+const _supportedBridgeContractVersion = 15;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -51,6 +52,7 @@ class BridgeBackend
         RouteSettingsBackend,
         RequiredSessionBackend,
         OfflineCacheBackend,
+        OfflineQueryBackend,
         ProgressiveReadBackend,
         BackendLifecycle {
   BridgeBackend(this.client, {this.configDirectory}) {
@@ -79,6 +81,12 @@ class BridgeBackend
   @override
   Future<OfflineHomeRead> readCachedHome(RoutePolicy policy) =>
       _readCachedHome(this, policy);
+  @override
+  Future<OfflineQueryRead> readCachedQuery(
+    FeatureId feature,
+    FeatureQuery query,
+    RoutePolicy policy,
+  ) => _readCachedQuery(this, feature, query, policy);
   @override
   Future<void> deactivateOfflineAccount() => _offlineSerial(this, () async {
     await _offlineCache?.deactivate();

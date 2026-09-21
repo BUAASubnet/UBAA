@@ -1,4 +1,5 @@
 import 'catalog.dart';
+import 'query.dart';
 import 'data_evidence.dart';
 import 'result.dart';
 import 'read_context.dart';
@@ -13,8 +14,10 @@ final class CachedFeatureProjection {
     required this.fetchedAt,
     required this.complete,
     this.scopeDate,
+    FeatureQuery? query,
     Iterable<FeatureDetail> details = const [],
-  }) : details = List.unmodifiable(
+  }) : readContext = FeatureReadContext(query: query, requestRevision: 0),
+       details = List.unmodifiable(
          details.map(
            (detail) => FeatureDetail(
              title: detail.title,
@@ -25,6 +28,7 @@ final class CachedFeatureProjection {
            ),
          ),
        );
+  final FeatureReadContext readContext;
   final FeatureId feature;
   final String accountId;
   final ConnectionMode route;
@@ -36,7 +40,7 @@ final class CachedFeatureProjection {
   FeatureSnapshot toSnapshot() => FeatureSnapshot(
     feature: feature,
     status: FeatureLoadStatus.stale,
-    readContext: FeatureReadContext(requestRevision: 0),
+    readContext: readContext,
     details: details,
     resolvedRoute: route,
     updatedAt: fetchedAt,

@@ -152,6 +152,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeCachedJudge dco_decode_box_autoadd_bridge_cached_judge(dynamic raw);
 
   @protected
+  BridgeCachedJudgeDetail dco_decode_box_autoadd_bridge_cached_judge_detail(
+    dynamic raw,
+  );
+
+  @protected
   BridgeCachedToday dco_decode_box_autoadd_bridge_cached_today(dynamic raw);
 
   @protected
@@ -301,6 +306,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCachedJudge dco_decode_bridge_cached_judge(dynamic raw);
+
+  @protected
+  BridgeCachedJudgeDetail dco_decode_bridge_cached_judge_detail(dynamic raw);
 
   @protected
   BridgeCachedToday dco_decode_bridge_cached_today(dynamic raw);
@@ -986,6 +994,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedJudgeDetail?
+  dco_decode_opt_box_autoadd_bridge_cached_judge_detail(dynamic raw);
+
+  @protected
   BridgeCachedToday? dco_decode_opt_box_autoadd_bridge_cached_today(
     dynamic raw,
   );
@@ -1179,6 +1191,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCachedJudge sse_decode_box_autoadd_bridge_cached_judge(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedJudgeDetail sse_decode_box_autoadd_bridge_cached_judge_detail(
     SseDeserializer deserializer,
   );
 
@@ -1386,6 +1403,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCachedJudge sse_decode_bridge_cached_judge(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedJudgeDetail sse_decode_bridge_cached_judge_detail(
     SseDeserializer deserializer,
   );
 
@@ -2275,6 +2297,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedJudgeDetail?
+  sse_decode_opt_box_autoadd_bridge_cached_judge_detail(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedToday? sse_decode_opt_box_autoadd_bridge_cached_today(
     SseDeserializer deserializer,
   );
@@ -2505,6 +2533,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_cached_judge(
     BridgeCachedJudge self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_judge_detail(
+    BridgeCachedJudgeDetail self,
     SseSerializer serializer,
   );
 
@@ -2745,6 +2779,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_cached_judge(
     BridgeCachedJudge self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_judge_detail(
+    BridgeCachedJudgeDetail self,
     SseSerializer serializer,
   );
 
@@ -3831,6 +3871,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_cached_judge(
     BridgeCachedJudge? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_judge_detail(
+    BridgeCachedJudgeDetail? self,
     SseSerializer serializer,
   );
 

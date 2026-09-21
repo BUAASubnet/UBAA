@@ -81,6 +81,27 @@ impl OfflineCache {
             chrono::Utc::now().timestamp(),
         )
     }
+    /// 精确读取课程内的作业详情，不依赖在线会话。
+    ///
+    /// # Errors
+    /// 账号关闭、范围无效、记录损坏或存储不可用时返回稳定错误。
+    pub fn read_judge_detail(
+        &self,
+        route: ConnectionMode,
+        course_id: String,
+        assignment_id: String,
+    ) -> CacheResult<Option<CacheRecord>> {
+        self.read(
+            &CacheScope {
+                route,
+                query: CacheQuery::JudgeDetail {
+                    course_id,
+                    assignment_id,
+                },
+            },
+            chrono::Utc::now().timestamp(),
+        )
+    }
     /// 先关闭缓存，再执行学校注销；阻止已发送读取回写。
     ///
     /// # Errors

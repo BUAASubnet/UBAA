@@ -5,6 +5,8 @@ extension _AppControllerOfflineCache on AppController {
     final backend = _backend;
     if (backend is! OfflineCacheBackend) return;
     final offline = backend as OfflineCacheBackend;
+    final opened = Completer<void>();
+    _offlineOpenFuture = opened.future;
     bool current() =>
         !_disposed &&
         epoch == _lifecycleEpoch &&
@@ -16,6 +18,7 @@ extension _AppControllerOfflineCache on AppController {
       try {
         if (!current()) return;
         await offline.openOfflineAccount(account, key);
+        opened.complete();
       } finally {
         key.fillRange(0, key.length, 0);
       }
@@ -63,6 +66,8 @@ extension _AppControllerOfflineCache on AppController {
         stackTrace: stackTrace,
       );
       _notify();
+    } finally {
+      if (!opened.isCompleted) opened.complete();
     }
   }
 

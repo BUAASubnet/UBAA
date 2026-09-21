@@ -36,6 +36,7 @@ part 'app_controller/ygdk_readback.dart';
 part 'app_controller/diagnostics.dart';
 part 'app_controller/offline_startup.dart';
 part 'app_controller/offline/cache.dart';
+part 'app_controller/offline/query.dart';
 part 'app_controller/offline/resume.dart';
 part 'app_controller/offline/required.dart';
 part 'app_controller/authentication.dart';
@@ -130,6 +131,7 @@ class AppController extends ChangeNotifier {
   ConnectionMode? get recoveredRoute => _recoveredRoute;
   bool _deferredRecoveryScheduled = false;
   int? _pendingHomeRecoveryEpoch;
+  Future<void> _offlineOpenFuture = Future<void>.value();
   UiError? _localCacheError;
   UiError? get localCacheError => _localCacheError;
   bool _usesLocalRecovery = false;

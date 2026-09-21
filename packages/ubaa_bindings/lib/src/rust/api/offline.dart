@@ -9,7 +9,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 
 // These functions are ignored because they are not marked as `pub`: `cache_error`, `local_task`, `map_today`, `offline_read_error`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeOfflineCache>>
 abstract class BridgeOfflineCache implements RustOpaqueInterface {
@@ -54,6 +54,16 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   Future<BridgeCachedJudge?> readJudge({
     required BridgeConnectionMode route,
     required bool includeExpired,
+  });
+
+  /// 只读取明确课程和作业的已保存详情，不获取网络锁。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或损坏时返回稳定本地错误。
+  Future<BridgeCachedJudgeDetail?> readJudgeDetail({
+    required BridgeConnectionMode route,
+    required String courseId,
+    required String assignmentId,
   });
 
   /// 仅按指定来源读取校园今日缓存，不获取网络客户端锁。
@@ -106,6 +116,38 @@ class BridgeCachedJudge {
           data == other.data &&
           sourceRoute == other.sourceRoute &&
           includeExpired == other.includeExpired &&
+          fetchedAt == other.fetchedAt &&
+          complete == other.complete;
+}
+
+/// 精确目标的离线详情，不带在线操作资格。
+class BridgeCachedJudgeDetail {
+  final BridgeJudgeAssignmentDetail data;
+  final BridgeConnectionMode sourceRoute;
+  final PlatformInt64 fetchedAt;
+  final bool complete;
+
+  const BridgeCachedJudgeDetail({
+    required this.data,
+    required this.sourceRoute,
+    required this.fetchedAt,
+    required this.complete,
+  });
+
+  @override
+  int get hashCode =>
+      data.hashCode ^
+      sourceRoute.hashCode ^
+      fetchedAt.hashCode ^
+      complete.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCachedJudgeDetail &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          sourceRoute == other.sourceRoute &&
           fetchedAt == other.fetchedAt &&
           complete == other.complete;
 }

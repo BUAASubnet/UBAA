@@ -180,6 +180,17 @@ extension _AppControllerRefresh on AppController {
               _isHomeDefaultCurrent(feature, generation, lifecycleEpoch)),
     );
     _readScopes.add(scope);
+    if (query != null && !writeReadback) {
+      unawaited(
+        _restoreCachedQuery(
+          feature,
+          query,
+          generation,
+          lifecycleEpoch,
+          ygdkGeneration,
+        ),
+      );
+    }
     final started = DateTime.now();
     final previous = _snapshots[feature]!;
     final hadPreviousData =

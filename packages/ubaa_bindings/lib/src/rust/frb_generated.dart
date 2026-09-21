@@ -73,7 +73,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -1969402456;
+  int get rustContentHash => -1588222844;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -466,6 +466,14 @@ abstract class RustLibApi extends BaseApi {
     required BridgeOfflineCache that,
     required BridgeConnectionMode route,
     required bool includeExpired,
+  });
+
+  Future<BridgeCachedJudgeDetail?>
+  crateApiOfflineBridgeOfflineCacheReadJudgeDetail({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String courseId,
+    required String assignmentId,
   });
 
   Future<BridgeCachedToday?> crateApiOfflineBridgeOfflineCacheReadToday({
@@ -3427,6 +3435,51 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeCachedJudgeDetail?>
+  crateApiOfflineBridgeOfflineCacheReadJudgeDetail({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String courseId,
+    required String assignmentId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_String(courseId, serializer);
+          sse_encode_String(assignmentId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 76,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_judge_detail,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiOfflineBridgeOfflineCacheReadJudgeDetailConstMeta,
+        argValues: [that, route, courseId, assignmentId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOfflineBridgeOfflineCacheReadJudgeDetailConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_judge_detail",
+        argNames: ["that", "route", "courseId", "assignmentId"],
+      );
+
+  @override
   Future<BridgeCachedToday?> crateApiOfflineBridgeOfflineCacheReadToday({
     required BridgeOfflineCache that,
     required BridgeConnectionMode route,
@@ -3443,7 +3496,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 76,
+            funcId: 77,
             port: port_,
           );
         },
@@ -3470,7 +3523,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 77)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 78)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -3496,7 +3549,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 78,
+            funcId: 79,
             port: port_,
           );
         },
@@ -3528,7 +3581,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 79,
+            funcId: 80,
             port: port_,
           );
         },
@@ -3758,6 +3811,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeCachedJudge dco_decode_box_autoadd_bridge_cached_judge(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_bridge_cached_judge(raw);
+  }
+
+  @protected
+  BridgeCachedJudgeDetail dco_decode_box_autoadd_bridge_cached_judge_detail(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_judge_detail(raw);
   }
 
   @protected
@@ -4144,6 +4205,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       includeExpired: dco_decode_bool(arr[2]),
       fetchedAt: dco_decode_i_64(arr[3]),
       complete: dco_decode_bool(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeCachedJudgeDetail dco_decode_bridge_cached_judge_detail(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedJudgeDetail(
+      data: dco_decode_bridge_judge_assignment_detail(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
     );
   }
 
@@ -6449,6 +6524,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedJudgeDetail?
+  dco_decode_opt_box_autoadd_bridge_cached_judge_detail(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_judge_detail(raw);
+  }
+
+  @protected
   BridgeCachedToday? dco_decode_opt_box_autoadd_bridge_cached_today(
     dynamic raw,
   ) {
@@ -6829,6 +6913,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_bridge_cached_judge(deserializer));
+  }
+
+  @protected
+  BridgeCachedJudgeDetail sse_decode_box_autoadd_bridge_cached_judge_detail(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_judge_detail(deserializer));
   }
 
   @protected
@@ -7325,6 +7417,23 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       data: var_data,
       sourceRoute: var_sourceRoute,
       includeExpired: var_includeExpired,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedJudgeDetail sse_decode_bridge_cached_judge_detail(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_judge_assignment_detail(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedJudgeDetail(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
       fetchedAt: var_fetchedAt,
       complete: var_complete,
     );
@@ -10153,6 +10262,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedJudgeDetail?
+  sse_decode_opt_box_autoadd_bridge_cached_judge_detail(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_judge_detail(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   BridgeCachedToday? sse_decode_opt_box_autoadd_bridge_cached_today(
     SseDeserializer deserializer,
   ) {
@@ -10648,6 +10771,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_bridge_cached_judge_detail(
+    BridgeCachedJudgeDetail self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_judge_detail(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_bridge_cached_today(
     BridgeCachedToday self,
     SseSerializer serializer,
@@ -11073,6 +11205,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_list_bridge_judge_assignment_summary(self.data, serializer);
     sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
     sse_encode_bool(self.includeExpired, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_judge_detail(
+    BridgeCachedJudgeDetail self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_judge_assignment_detail(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
     sse_encode_i_64(self.fetchedAt, serializer);
     sse_encode_bool(self.complete, serializer);
   }
@@ -13316,6 +13460,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_judge_detail(
+    BridgeCachedJudgeDetail? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_judge_detail(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_bridge_cached_today(
     BridgeCachedToday? self,
     SseSerializer serializer,
@@ -14207,6 +14364,21 @@ class BridgeOfflineCacheImpl extends RustOpaque implements BridgeOfflineCache {
     that: this,
     route: route,
     includeExpired: includeExpired,
+  );
+
+  /// 只读取明确课程和作业的已保存详情，不获取网络锁。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或损坏时返回稳定本地错误。
+  Future<BridgeCachedJudgeDetail?> readJudgeDetail({
+    required BridgeConnectionMode route,
+    required String courseId,
+    required String assignmentId,
+  }) => RustLib.instance.api.crateApiOfflineBridgeOfflineCacheReadJudgeDetail(
+    that: this,
+    route: route,
+    courseId: courseId,
+    assignmentId: assignmentId,
   );
 
   /// 仅按指定来源读取校园今日缓存，不获取网络客户端锁。

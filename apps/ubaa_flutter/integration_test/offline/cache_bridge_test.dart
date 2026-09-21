@@ -7,7 +7,7 @@ import 'package:ubaa_bindings/ubaa_bindings.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  testWidgets('原生 Bridge v14 缓存句柄可重开且退出栅栏跨句柄生效', (tester) async {
+  testWidgets('原生 Bridge v15 缓存句柄可重开且退出栅栏跨句柄生效', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: Text('本地缓存合成验证'))),
     );
@@ -21,7 +21,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 14);
+      expect(client.contractVersion(), 15);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -50,6 +50,14 @@ void main() {
         await first.readJudge(
           route: BridgeConnectionMode.direct,
           includeExpired: false,
+        ),
+        isNull,
+      );
+      expect(
+        await first.readJudgeDetail(
+          route: BridgeConnectionMode.direct,
+          courseId: '12',
+          assignmentId: '101',
         ),
         isNull,
       );
