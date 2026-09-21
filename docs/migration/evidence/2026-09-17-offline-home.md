@@ -328,3 +328,14 @@ GREEN：本地读取不等待网络锁、路线/分页隔离、pending 写意图
 日志为 `/tmp/ubaa-p4i-check-final.log`、`/tmp/ubaa-p4i-flutter-final.log`、`/tmp/ubaa-p4i-app-{analyze,final}.log`、`/tmp/ubaa-p4i-ui-{analyze,final}.log`、`/tmp/ubaa-p4i-codegen-final.log`、`/tmp/ubaa-p4i-layout.log`、`/tmp/ubaa-p4i-sensitive-final.log`。macOS v20 原生合成缓存集成 1 项通过（`/tmp/ubaa-p4i-native.log`），五个新增本地入口及缺会话在线入口经真实 FRB；仍无法置前（open returned 1），不算独立实窗验收。未访问真实学校服务、未做真实写入、未生成验收媒体或性能数据。
 
 其余图书馆/评教/资料与阳光分页、跨范围失效、长读取余项、完整生命周期/多端/双路线真实只读与性能仍需继续；不关闭整个 P4/P5。源工作区保持干净。
+
+
+## P4-J 图书馆 Core 五范围（2026-09-22）
+
+基线 e40cbfd5。逐操作对照冻结 old LibBook 接口/本地请求/DTO/BackendTest，以及 buaa-api 无对应协议事实后，新增五范围持久化和独立只读类型。原学校请求参数/登录/单次恢复、CLI 和写链保持，无真实学校请求或写入。
+
+RED：/tmp/ubaa-p4j-red.log 为缺少持久类型和查询；/tmp/ubaa-p4j-facade-red.log 为缺少 facade；/tmp/ubaa-p4j-partial-red.log 复现缺集合仍被标完整；/tmp/ubaa-p4j-observed-red.log 复现日期观察与 parser 别名优先级不一致。GREEN：只读资格剥离、精确键、五请求参数、路线隔离、失败和部分保护、错页拒绝、合法空页替换、认证前参数拒绝、原解析/加密 golden 保持。日志 /tmp/ubaa-p4j-green.log、facade-green.log、partial-green.log、observed-green.log（均同前缀）。类型解构编译修正不计业务 RED。
+
+初次 just check 在审查追加测试后遭遇格式化检查失败，未记通过；随后 clippy 指出同返回值分支和过长测试，已合并分支/拆出 helper 并修正多余借用，重新运行完整门禁。Core-only 阶段，Bridge 仍 v20，尚未接 App；无新增原生渲染、Core-live、真实 App 或性能证据。
+
+最终确定性门禁：just check 退出0（/tmp/ubaa-p4j-check-final.log），Core 两配置各253、facade53、Bridge121通过/2既有忽略、CLI二进制端到端16，fmt/clippy/Shell/build/doc 通过。refs固定引用校验、layout零baseline违例、暂存后 sensitive5263文件通过，diff无空白错误。本阶段无 Dart/Bridge 合同修改，未重复 Flutter 或原生渲染。原始源工作区保持干净；全部 P0–P5仍未完成，下一阶段为图书馆 Bridge/App 接线。

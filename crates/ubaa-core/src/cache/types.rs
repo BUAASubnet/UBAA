@@ -1,12 +1,13 @@
 //! 缓存持久合同只包含可再次阅读的数据，不包含写入资格。
 use super::{
     CachedBykcChosen, CachedBykcCourse, CachedBykcCoursePage, CachedCgyyDayInfo, CachedCgyyOrder,
-    CachedCgyyOrdersPage, CachedSigninClass, CachedYgdkOverview,
+    CachedCgyyOrdersPage, CachedLibBookBookingsPage, CachedLibBookSeat, CachedSigninClass,
+    CachedYgdkOverview,
 };
 use crate::domain::{
     Assignment, CgyyPurposeTypes, CgyyVenueSite, ClassroomQuery, ConnectionMode, Course,
-    ExamArrangement, GradeData, JudgeAssignmentDetail, JudgeAssignmentSummary, Term, TodayClass,
-    Week, WeeklySchedule,
+    ExamArrangement, GradeData, JudgeAssignmentDetail, JudgeAssignmentSummary, LibBookArea,
+    LibBookAreaDetail, LibBookLibrary, Term, TodayClass, Week, WeeklySchedule,
 };
 use crate::domain::{BykcStatistics, BykcUserProfile, SpocAssignmentDetail, SpocAssignments};
 use serde::{Deserialize, Serialize};
@@ -17,6 +18,27 @@ pub const CACHE_SCHEMA_VERSION: u32 = 1;
 /// 精确业务查询；日期使用既有校园日期，不在读取时替换成今天。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum CacheQuery {
+    LibBookLibraries {
+        day: String,
+    },
+    LibBookAreas {
+        premises_id: String,
+        storey_id: Option<String>,
+        day: String,
+    },
+    LibBookAreaDetail {
+        area_id: String,
+    },
+    LibBookSeats {
+        area_id: String,
+        day: String,
+        start_time: String,
+        end_time: String,
+    },
+    LibBookBookings {
+        page: i32,
+        limit: i32,
+    },
     ScheduleToday {
         date: String,
     },
@@ -96,6 +118,11 @@ pub struct CacheScope {
 /// 仅白名单领域值可写入，禁止任意 JSON、原始响应或 action 投影。
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum CachePayload {
+    LibBookLibraries(Vec<LibBookLibrary>),
+    LibBookAreas(Vec<LibBookArea>),
+    LibBookAreaDetail(LibBookAreaDetail),
+    LibBookSeats(Vec<CachedLibBookSeat>),
+    LibBookBookings(CachedLibBookBookingsPage),
     CgyySites(Vec<CgyyVenueSite>),
     CgyyPurposes(CgyyPurposeTypes),
     CgyyDay(CachedCgyyDayInfo),
@@ -218,7 +245,25 @@ pub struct CacheReadTicket {
 impl CacheScope {
     pub(crate) fn validate(&self) -> CacheResult<()> {
         let id = |s: &str| !s.trim().is_empty() && s.len() <= 1024;
+        let date = |s: &str| {
+            chrono::NaiveDate::parse_from_str(s, "%Y-%m-%d")
+                .is_ok_and(|v| v.format("%Y-%m-%d").to_string() == s)
+        };
         let valid = match &self.query {
+            CacheQuery::LibBookLibraries { day } => date(day),
+            CacheQuery::LibBookAreas {
+                premises_id,
+                storey_id,
+                day,
+            } => id(premises_id) && storey_id.as_deref().is_none_or(id) && date(day),
+            CacheQuery::LibBookAreaDetail { area_id } => id(area_id),
+            CacheQuery::LibBookSeats {
+                area_id,
+                day,
+                start_time,
+                end_time,
+            } => id(area_id) && date(day) && start_time.len() <= 1024 && end_time.len() <= 1024,
+            CacheQuery::LibBookBookings { page, limit } => *page > 0 && *limit > 0,
             CacheQuery::CgyyDay { site_id, date } => {
                 *site_id > 0
                     && chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d")
@@ -264,6 +309,12 @@ impl CacheScope {
 impl CachePayload {
     pub(super) fn matches(&self, query: &CacheQuery) -> bool {
         match (self, query) {
+            (Self::LibBookAreaDetail(v), CacheQuery::LibBookAreaDetail { area_id }) => {
+                &v.id == area_id
+            }
+            (Self::LibBookBookings(v), CacheQuery::LibBookBookings { page, limit }) => {
+                v.page == *page && v.limit == *limit
+            }
             (Self::CgyyDay(v), CacheQuery::CgyyDay { site_id, date }) => {
                 v.venue_site_id == *site_id && v.reservation_date == *date
             }
@@ -272,7 +323,10 @@ impl CachePayload {
             (Self::BykcChosen(v), CacheQuery::BykcChosen) => {
                 !v.semester_start.trim().is_empty() && !v.semester_end.trim().is_empty()
             }
-            (Self::CgyySites(_), CacheQuery::CgyySites)
+            (Self::LibBookLibraries(_), CacheQuery::LibBookLibraries { .. })
+            | (Self::LibBookAreas(_), CacheQuery::LibBookAreas { .. })
+            | (Self::LibBookSeats(_), CacheQuery::LibBookSeats { .. })
+            | (Self::CgyySites(_), CacheQuery::CgyySites)
             | (Self::CgyyPurposes(_), CacheQuery::CgyyPurposes)
             | (Self::CgyyOrders(_), CacheQuery::CgyyOrders { .. })
             | (Self::BykcProfile(_), CacheQuery::BykcProfile)

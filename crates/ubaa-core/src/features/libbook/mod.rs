@@ -16,3 +16,9 @@ pub(crate) use service::{
     cancel_booking, get_area_detail, get_areas, get_bookings, get_libraries, get_seats,
     preflight_cancel, preflight_reserve, reserve,
 };
+
+mod observed;
+pub(crate) use service::{
+    get_area_detail_observed, get_areas_observed, get_bookings_observed, get_libraries_observed,
+    get_seats_observed,
+};

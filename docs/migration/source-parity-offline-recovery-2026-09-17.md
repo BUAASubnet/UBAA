@@ -213,3 +213,22 @@ P4-H 实施复核：新增类型仅显式复制既有 Bridge 公开字段（再�
 复用 P4-H 已逐操作核对的五范围，学校请求仍使用原 Core 方法。新缓存 DTO 不含 reservation/cancel eligibility、target 或内部订单材料；站点/用途沿原公开映射。App 保留零基订单请求、原页信息、明确日期与站点；本地日期在一次查询开始时捕获，不能每个路线重新换日。用途静态回退、错日期/默认空详情的 complete=false 不当作新完整成功，已有同范围只读内容优先保留。取消 caller-pinned 双回读保持原方法；预约提交后的既定回读使用明确 backend 能力绕过新增缓存恢复。门锁不接长期缓存。
 
 P4-I 实施复核：五查询共用原公开投影，日期/页码参数沿原 App 规范化。Cache DTO 和生成 schema 均排除内部材料及资格。取消固定路线两读函数未改；预约后显式能力调用原普通订单读取，不走新增 required-session 恢复。用途选项保留证据时间和完整度，首次本地静态 Partial 不混作保留旧动态数据；无真实学校写入。
+
+
+## P4-J：图书馆 Core 持久范围（实施前）
+
+核对 old@1f4b8f8412272b6a423d4ad92b396e3db721e6f3 的 LibBookApi、LocalLibBookApi、model/dto/LibBook.kt 与 commonTest/api/LocalLibBookApiBackendTest。buaa-api@a63712fa2ae0a6c8066197063ddee98e3a6b5b81 的 api.rs 无此协议；最近的 srs/core.rs 是 byxk/xsxk 选课，不能借用它的 URL、模型、token、加密或错误。两者公共请求/凭据/Cookie 对照沿前述 P4-F；本次不修改业务认证或解析器。
+
+以下每项共用原 CAS service=https://booking.lib.buaa.edu.cn/v4/login/cas、最多8跳及 query/fragment/location/final URL 提取；POST login/user 的 cas 换 member.token。保持每路线原 Cookie 与内存 token、串行 runtime，不复制会话。请求均为 /v4 下 POST JSON，原 Accept、Chrome147 UA、X-Requested-With、路线 Origin/Referer、Authorization bearer<token>（无空格）不变；读取无加密签名。保留 TLS 验证，不采用冻结 JVM/Android 的宽松 TLS。原过期单次恢复及错误分类不变；无 ETag/增量游标依据。
+
+| 操作 | 精确路径/参数 | DTO/解析及持久白名单 | 缓存/并发/错误退出 |
+|---|---|---|---|
+| 楼馆 | space/pcTopFor，day | id/name/free_num/total_num/storeys，沿原 list/children 解析 | 账号/路线/原样日期；成功替换单日，失败保留；原 runtime 串行 |
+| 分区 | space/pick，premisesIds/categoryIds=[]/storeyIds/boutiqueIds=[]/date | 原 id/name/area_name/premises_id/storey_id/free_num/total_num | 完整楼馆、可选楼层、日期入键；None 与非空楼层不折叠；空白 Some 原实现与 old 不同，新缓存入口拒绝，原在线方法不改 |
+| 分区详情 | Space/map，id | 原 id/name/available_dates/time_slots；无日期请求参数，不捏造日期范围 | 精确 area_id，返回 id 不匹配不保存；保留旧集合 |
+| 座位 | Space/seat，id/day/label_id=[]/start_time/end_time/begdate=""/enddate="" | id/name/no/status/status_name；剥离 reserve_eligibility/target，不从旧状态恢复资格 | 分区、日期、起止时间原样入键（空时间合法）；不添加不存在的 segment 参数 |
+| 预约记录 | member/seat，type="1"/page/limit | 原 bookings/page/limit/total；剥离 cancel_eligibility/target | 正页码/大小隔离；原普通读取可按请求补缺失分页，响应明确错页不缓存；合法空页仅替换本页，无独立详情接口 |
+
+缓存发布仍使用账号/世代/请求修订栅栏。原在线 DTO、CLI 与 caller-pinned 写后回读保持；缓存不产生 prepare 或 commit。本阶段仅 Core，Bridge/App、实际路线与性能另行记账。
+
+P4-J 实施前补充：冻结 LocalLibBookApi 的 dataList、当前 parser 的 list_value/array/filter_map 允许空回退或丢弃非对象项。新增观察入口只判断原响应集合与解析集合是否完整，不修改原解析容错/请求、也不把缺字段当新协议事实；缺失列表、丢项、详情日期缺失记 Partial，保留旧完整记录。合法显式空数组仍可替换。

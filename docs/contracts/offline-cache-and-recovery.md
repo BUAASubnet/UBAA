@@ -214,3 +214,12 @@ App 的 `read/cgyy_cache/` 分为共用展示、在线保存和本地恢复三�
 此阶段不修改学校协议或提交链、不新增后台全领域预取。图书馆/评教等余项、阳光记录分页、跨范围失效、剩余大读取与最终生命周期/多端/双路线真实性能仍未完成。
 
 P4-I 表单收尾：明确刷新活动类型失败时，错误单独显示，已有选项、来源依据和草稿选择保持；初次没有选项时仍显示原空/失败状态，不猜用途编号。账号/路线失效仍由原草稿代次屏障关闭表单，不能因保留选项绕过写入准备。
+
+
+## P4-J 图书馆 Core 缓存
+
+新增 LibBookCacheQuery/read_libbook/refresh_cached_libbook，五范围为 Libraries(day)、Areas(premises_id/storey_id/day)、AreaDetail(area_id)、Seats(area_id/day/start_time/end_time)、Bookings(page/limit)。完整参数原样入键；日期严格 YYYY-MM-DD、页码与大小为正，空起止时间保持旧接口允许语义。请求参数校验先于认证；缓存账号、实际路线、世代和修订屏障沿统一仓库。
+
+楼馆、楼层、分区、日期/时段沿既有公开字段。CachedLibBookSeat/Booking/BookingsPage 显式剥离 reserve/cancel eligibility 与 target；状态仅是过去观察，不能生成写资格。旧在线 DTO、CLI 与固定路线写后回读语义不变，不增加预约详情端点。schema1 追加命名载荷，Bridge 仍为 v20，本阶段尚未接宿主缓存读取。
+
+结构观察只标识替换完整度，不重写原解析容错：缺失列表、非对象丢项、缺身份项/畸形楼层、缺日期集合或时段丢项为 Partial，保留旧完整记录；显式合法空集合允许替换精确范围。观察沿原日期别名优先级，不能改用解析器未选择的字段证明完整。分区返回 ID 或记录返回 page/limit 与请求不符时 complete=false 且保存 InvalidInput。缺省记录分页继续原请求值回退，不能用于取消权威。保存失败只降级本地能力，退出/身份/替代仍硬拒绝。

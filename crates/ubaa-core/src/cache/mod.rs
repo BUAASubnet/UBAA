@@ -25,3 +25,9 @@ mod tests;
 
 #[cfg(test)]
 mod cgyy_tests;
+
+#[cfg(test)]
+mod libbook_tests;
+
+mod libbook;
+pub use libbook::{CachedLibBookBooking, CachedLibBookBookingsPage, CachedLibBookSeat};

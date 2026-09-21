@@ -29,7 +29,20 @@ pub(crate) async fn get_libraries(
     runtime: &mut crate::runtime::ClientRuntime,
     day: &str,
 ) -> Result<Vec<LibBookLibrary>> {
-    parse_libraries(&request_json(runtime, "space/pcTopFor", json!({"day": day}), true).await?)
+    get_libraries_observed(runtime, day)
+        .await
+        .map(|(data, _)| data)
+}
+
+pub(crate) async fn get_libraries_observed(
+    runtime: &mut crate::runtime::ClientRuntime,
+    day: &str,
+) -> Result<(Vec<LibBookLibrary>, bool)> {
+    let body = request_json(runtime, "space/pcTopFor", json!({"day": day}), true).await?;
+    Ok((
+        parse_libraries(&body)?,
+        super::observed::list_complete(&body, &["list", "libraries"]),
+    ))
 }
 
 /// 查询图书馆分区列表。
@@ -39,8 +52,23 @@ pub(crate) async fn get_areas(
     storey_id: Option<&str>,
     day: &str,
 ) -> Result<Vec<LibBookArea>> {
+    get_areas_observed(runtime, premises_id, storey_id, day)
+        .await
+        .map(|(data, _)| data)
+}
+
+pub(crate) async fn get_areas_observed(
+    runtime: &mut crate::runtime::ClientRuntime,
+    premises_id: &str,
+    storey_id: Option<&str>,
+    day: &str,
+) -> Result<(Vec<LibBookArea>, bool)> {
     let body = json!({"premisesIds": premises_id, "categoryIds": [], "storeyIds": storey_id.map_or_else(Vec::new, |id| vec![id]), "boutiqueIds": [], "date": day});
-    parse_areas(&request_json(runtime, "space/pick", body, true).await?)
+    let body = request_json(runtime, "space/pick", body, true).await?;
+    Ok((
+        parse_areas(&body)?,
+        super::observed::list_complete(&body, &["area", "areas", "list"]),
+    ))
 }
 
 /// 查询分区详情。
@@ -48,10 +76,20 @@ pub(crate) async fn get_area_detail(
     runtime: &mut crate::runtime::ClientRuntime,
     area_id: &str,
 ) -> Result<LibBookAreaDetail> {
-    parse_area_detail_for(
-        area_id,
-        &request_json(runtime, "Space/map", json!({"id": area_id}), true).await?,
-    )
+    get_area_detail_observed(runtime, area_id)
+        .await
+        .map(|(data, _)| data)
+}
+
+pub(crate) async fn get_area_detail_observed(
+    runtime: &mut crate::runtime::ClientRuntime,
+    area_id: &str,
+) -> Result<(LibBookAreaDetail, bool)> {
+    let body = request_json(runtime, "Space/map", json!({"id": area_id}), true).await?;
+    Ok((
+        parse_area_detail_for(area_id, &body)?,
+        super::observed::detail_complete(&body),
+    ))
 }
 
 /// 查询指定日期和时段的座位。
@@ -62,8 +100,24 @@ pub(crate) async fn get_seats(
     start_time: &str,
     end_time: &str,
 ) -> Result<Vec<LibBookSeat>> {
+    get_seats_observed(runtime, area_id, day, start_time, end_time)
+        .await
+        .map(|(data, _)| data)
+}
+
+pub(crate) async fn get_seats_observed(
+    runtime: &mut crate::runtime::ClientRuntime,
+    area_id: &str,
+    day: &str,
+    start_time: &str,
+    end_time: &str,
+) -> Result<(Vec<LibBookSeat>, bool)> {
     let body = json!({"id": area_id, "day": day, "label_id": [], "start_time": start_time, "end_time": end_time, "begdate": "", "enddate": ""});
-    parse_seats(&request_json(runtime, "Space/seat", body, true).await?)
+    let body = request_json(runtime, "Space/seat", body, true).await?;
+    Ok((
+        parse_seats(&body)?,
+        super::observed::list_complete(&body, &["list", "seats"]),
+    ))
 }
 
 /// 查询当前用户的预约记录。
@@ -72,9 +126,22 @@ pub(crate) async fn get_bookings(
     page: i32,
     limit: i32,
 ) -> Result<LibBookBookingsPage> {
+    get_bookings_observed(runtime, page, limit)
+        .await
+        .map(|(data, _)| data)
+}
+
+pub(crate) async fn get_bookings_observed(
+    runtime: &mut crate::runtime::ClientRuntime,
+    page: i32,
+    limit: i32,
+) -> Result<(LibBookBookingsPage, bool)> {
     validate_bookings_page(page, limit)?;
     let body = request_bookings(runtime, page, limit).await?;
-    parse_bookings_for_request(&body, page, limit)
+    Ok((
+        parse_bookings_for_request(&body, page, limit)?,
+        super::observed::list_complete(&body, &["data", "bookings", "list"]),
+    ))
 }
 
 fn validate_bookings_page(page: i32, limit: i32) -> Result<()> {

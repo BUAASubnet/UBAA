@@ -202,3 +202,6 @@ fn valid_ygdk_submit_request() -> YgdkClockinSubmitRequest {
         },
     }
 }
+
+#[path = "facade/libbook_cache.rs"]
+mod libbook_cache;
