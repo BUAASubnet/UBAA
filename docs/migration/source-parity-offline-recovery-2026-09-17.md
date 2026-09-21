@@ -72,3 +72,7 @@ P1 可以暂用旧双路线聚合 backend 的 authStatus/login（设计 4.2 已�
 | 保存/恢复希冀摘要 | 旧 `judgeServiceLoginUrl` 为 SSO service=`http://judge.buaa.edu.cn/`；业务 HTTPS Judge；示例无对应模块 | 旧 `followJudgeActivationRedirectIfNeeded`、`resolveJudgeRedirectUrl`；当前 Core 保留既有安全重定向与实际路线规则，不从缓存推断最终 URL | 旧按 mode+username 的主会话和隔离课程 worker；本轮使用原客户端，UC 身份核实后执行既有聚合；不增加持久会话客户端 | 原 GET `courselist.jsp?courseID=0`，课程选择 GET 同路径 `courseID=<id>`，列表 GET `assignment/index.jsp`，详情 GET 同路径 `assignID=<id>`；`includeExpired` 仅客户端筛选，不新增 HTTP 参数 | 保留旧 browser Accept、zh-CN Accept-Language、固定 User-Agent，GET 无正文 | Judge 无新加密/签名；仅业务缓存沿 AES-GCM | 课程/作业索引仍为 courseId/courseName/assignmentId/title；摘要含起止时间、分数、题数、提交计数及枚举/文字状态，不持久写资格或原始 HTML | 旧列表 5 分钟、详情 2 分钟和四 worker 已存在；本步骤只增加按账号/实际路线/includeExpired 隔离的摘要持久化；聚合有任一必需失败不替换旧集合 | 原有最多三次业务重新激活及主 UC 仲裁保留；结束全部 worker/处理会话冲突后才返回；退出栅栏拒绝迟到发布；CLI 语义不改 |
 
 边界事实：旧 `getAssignmentSummaries` 确实在读到六个月前开始项时 break，并记录整个课程为历史；Core `summarize_course` 继承该行为。测试证明的是该优化已经存在，不证明上游按开始时间单调排列。后续 P3 将按已接受设计修正客户端筛选与历史复查，不能称为新加六个月早停。当前聚合 worker 在完成/失败后会等待所有子任务收尾并执行 `resolve_required_judge_result`，这是新批次返回候选安全边界；尚未证明单个详情请求内部可释放锁，不在其内部让位，不复制 Cookie 绕过共享锁。
+
+## P2-A 生命周期恢复与写流程收尾（实现前）
+
+此步仅调整前台恢复触发及排队，不修改上文认证九列合同或学校请求。既有会话/密码校验仍沿原 backend、原路线与错误分类；不因 resumed 新建持久会话客户端。写准备、待确认、提交及回读都由唯一 WriteCoordinator 拥有，期间恢复请求合并等待；只有活动完全收尾才能开始认证。退出/销毁取消等待，不自动确认或重发。这里只解决生命周期触发与安全等待，所需路线优先及网络长批次让位仍需后续明确合同。

@@ -61,22 +61,29 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
     if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
       _wasBackgrounded = true;
+      _controller.setAppForeground(false);
       return;
     }
     if (state == AppLifecycleState.resumed && _wasBackgrounded) {
       _wasBackgrounded = false;
-      if (widget.backend != null) return;
+      _controller.setAppForeground(true);
+      if (_recoveryInFlight) return;
       _resumeRecoveryPending = true;
       _retryPendingRecovery();
     }
   }
 
   void _retryPendingRecovery() {
-    if (_disposed || !_resumeRecoveryPending || _recoveryInFlight) return;
+    if (_disposed ||
+        _wasBackgrounded ||
+        !_resumeRecoveryPending ||
+        _recoveryInFlight)
+      return;
     if (_controller.isRebuildingBackend ||
-        _controller.phase == AppPhase.loggingIn ||
+        _controller.isLoggingIn ||
         _controller.phase == AppPhase.checkingSession) {
       return;
     }
@@ -87,7 +94,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
 
   Future<void> _recoverBackend() async {
     try {
-      await _controller.rebuildBackend();
+      await _controller.resumeSession();
     } finally {
       _recoveryInFlight = false;
       if (!_disposed) _retryPendingRecovery();

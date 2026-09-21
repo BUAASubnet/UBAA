@@ -47,14 +47,17 @@ extension _AppControllerOfflineStartup on AppController {
   }
 
   Future<void> _recoverSession() {
-    if (_disposed || !_usesLocalRecovery || _phase != AppPhase.home)
+    if (_disposed ||
+        _isSigningOut ||
+        !_usesLocalRecovery ||
+        _phase != AppPhase.home)
       return Future<void>.value();
-    if (isLoggingIn) return Future<void>.value();
     final existing = _sessionRecoveryFuture;
     if (existing != null) return existing;
     // 已准备/提交的操作使用自己的路线和资格；认证不能破坏它的生命周期。
-    if (_writeCoordinator.state.phase != WritePhase.idle)
-      return Future<void>.value();
+    if (_recoveryMustWait) return _deferRecovery();
+    final deferred = _deferredRecovery;
+    _deferredRecovery = null;
     final completer = Completer<void>();
     _sessionRecoveryFuture = completer.future;
     final epoch = _lifecycleEpoch;
@@ -68,6 +71,7 @@ extension _AppControllerOfflineStartup on AppController {
         _sessionRecoveryFuture = null;
         if (!_disposed) _notify();
         completer.complete();
+        if (deferred != null && !deferred.isCompleted) deferred.complete();
       }),
     );
     return completer.future;
@@ -93,7 +97,11 @@ extension _AppControllerOfflineStartup on AppController {
             !saved.autoLogin ||
             !_credentialVault.isAvailable ||
             (_localAccount != null &&
-                saved.username != _localAccount!.username)) {
+                saved.username != _localAccount!.username) ||
+            (_localAccount == null &&
+                _user != null &&
+                saved.username != _user!.username &&
+                saved.username != _user!.schoolId)) {
           _sessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
           return;
         }
@@ -114,7 +122,7 @@ extension _AppControllerOfflineStartup on AppController {
         _sessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
         return;
       }
-      final expected = _localAccount?.username;
+      final expected = _localAccount?.username ?? _user?.username;
       if (expected != null &&
           profile.username != expected &&
           profile.schoolId != expected) {
@@ -128,7 +136,7 @@ extension _AppControllerOfflineStartup on AppController {
       _error = null;
       _sessionRecoveryStatus = SessionRecoveryStatus.ready;
       _notify();
-      unawaited(refreshHome());
+      if (_appForeground) unawaited(refreshHome());
     } on Object catch (error, stackTrace) {
       if (!_recoveryIsCurrent(epoch)) return;
       if (error is BackendException &&

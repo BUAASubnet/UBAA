@@ -30,6 +30,7 @@ part 'app_controller/ygdk_readback.dart';
 part 'app_controller/diagnostics.dart';
 part 'app_controller/offline_startup.dart';
 part 'app_controller/offline/cache.dart';
+part 'app_controller/offline/resume.dart';
 part 'app_controller/authentication.dart';
 
 enum AppPhase { splash, checkingSession, login, loggingIn, home }
@@ -108,6 +109,9 @@ class AppController extends ChangeNotifier {
   final LocalAccountStore? _localAccountStore;
   LocalAccount? _localAccount;
   bool _isSigningOut = false;
+  bool _appForeground = true;
+  Completer<void>? _deferredRecovery;
+  bool _deferredRecoveryScheduled = false;
   UiError? _localCacheError;
   UiError? get localCacheError => _localCacheError;
   bool _usesLocalRecovery = false;
@@ -130,6 +134,23 @@ class AppController extends ChangeNotifier {
   }
 
   Future<void> recoverSession() => _recoverSession();
+
+  /// 生命周期只更新可见状态；后台不开始未发送的恢复或首页同步。
+  void setAppForeground(bool foreground) {
+    _appForeground = foreground;
+    if (foreground) _drainDeferredRecovery();
+  }
+
+  /// 返回前台复用当前实例；旧宿主已认证首页也转入同一恢复协调路径。
+  Future<void> resumeSession() {
+    if (_disposed || _phase != AppPhase.home || _isSigningOut)
+      return Future<void>.value();
+    if (!_usesLocalRecovery) {
+      _usesLocalRecovery = true;
+      _sessionRecoveryStatus = SessionRecoveryStatus.ready;
+    }
+    return _recoverSession();
+  }
 
   final TelemetryClient _telemetry;
   final LocalDiagnostics _diagnostics;
@@ -213,7 +234,14 @@ class AppController extends ChangeNotifier {
   ///不伪造恢复成功。
   Future<bool> rebuildBackend() async {
     final factory = _backendFactory;
-    if (factory == null || _disposed || _rebuildingBackend) return false;
+    if (factory == null ||
+        _disposed ||
+        _rebuildingBackend ||
+        isLoggingIn ||
+        _sessionRecoveryFuture != null ||
+        _writeTransitions != 0 ||
+        _writeCoordinator.hasPendingOperation)
+      return false;
     // 初始化正在读取旧 backend 的认证/路线状态时，生命周期重建会与旧
     // handle 竞争并可能把结果写入新实例；等待初始化完成后再由下一次
     // resumed 事件触发重建。
@@ -706,6 +734,7 @@ class AppController extends ChangeNotifier {
   Future<void> logout({bool clearSavedCredential = false}) async {
     if (_disposed || _isSigningOut) return;
     _isSigningOut = true;
+    _cancelDeferredRecovery();
     _beginWriteTransition();
     _sessionRecoveryStatus = SessionRecoveryStatus.signedOut;
     _user = null;
@@ -835,6 +864,7 @@ class AppController extends ChangeNotifier {
   }
 
   void _notify() {
+    _drainDeferredRecovery();
     if (!_disposed) notifyListeners();
   }
 
@@ -863,6 +893,7 @@ class AppController extends ChangeNotifier {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
+    _cancelDeferredRecovery();
     _lifecycleEpoch++;
     _ygdkGeneration++;
     _writeCoordinator.removeListener(_notify);

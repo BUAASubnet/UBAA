@@ -1,5 +1,4 @@
 import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
@@ -8,269 +7,156 @@ import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 void main() {
-  testWidgets('显式 backend 不调用工厂且恢复时不替换', (tester) async {
-    final backend = _LifecycleBackend();
-    var factoryCalls = 0;
-
-    await tester.pumpWidget(
-      UbaaAppHost(
-        backend: backend,
-        backendFactory: () {
-          factoryCalls++;
-          return _LifecycleBackend();
-        },
-      ),
-    );
-    await tester.pumpAndSettle();
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-    await tester.pump();
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-    await tester.pump();
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    await tester.pump();
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.pump();
-    await tester.pumpAndSettle();
-
-    expect(factoryCalls, 0);
-    expect(backend.disposeCalls, 0);
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-    expect(backend.disposeCalls, 1);
-  });
-
-  for (final backgroundState in <AppLifecycleState>[
+  for (final background in [
     AppLifecycleState.paused,
+    AppLifecycleState.hidden,
     AppLifecycleState.detached,
   ]) {
-    testWidgets('${backgroundState.name} 后首次 resumed 只重建一次并单次释放', (
+    testWidgets('${background.name} 返回前台复用 backend 和当前入口，仅做一次恢复', (
       tester,
     ) async {
-      final backends = <_LifecycleBackend>[];
-      var factoryCalls = 0;
-
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final backend = _Backend();
+      var created = 0;
       await tester.pumpWidget(
         UbaaAppHost(
           backendFactory: () {
-            factoryCalls++;
-            final backend = _LifecycleBackend();
-            backends.add(backend);
+            created++;
             return backend;
           },
         ),
       );
       await tester.pumpAndSettle();
-      expect(factoryCalls, 1);
-
-      tester.binding.handleAppLifecycleStateChanged(backgroundState);
-      await tester.pump();
-      if (backgroundState == AppLifecycleState.paused) {
-        tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-        await tester.pump();
-        tester.binding.handleAppLifecycleStateChanged(
-          AppLifecycleState.inactive,
-        );
-        await tester.pump();
-      }
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await tester.pump();
+      await tester.tap(find.byKey(const ValueKey<String>('tab-普通功能')));
       await tester.pumpAndSettle();
-      expect(factoryCalls, 2);
-      expect(backends[0].disposeCalls, 1);
-      expect(backends[1].disposeCalls, 0);
-
-      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-      await tester.pump();
+      await cycle(tester, background);
       await tester.pumpAndSettle();
-      expect(factoryCalls, 2);
-
-      await tester.pumpWidget(const SizedBox.shrink());
+      expect(created, 1);
+      expect(backend.disposed, 0);
+      expect(backend.authCalls, 2);
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        1,
+      );
+      tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await tester.pumpAndSettle();
+      expect(backend.authCalls, 2);
+      await tester.pumpWidget(const SizedBox());
       await tester.pump();
-      expect(backends.map((backend) => backend.disposeCalls), <int>[1, 1]);
+      expect(backend.disposed, 1);
     });
   }
-
-  testWidgets('初始化繁忙期间的 resumed 请求会在初始化完成后重建', (tester) async {
-    final first = _DelayedLifecycleBackend();
-    final replacement = _LifecycleBackend();
-    var factoryCalls = 0;
-
+  testWidgets('进行中的恢复合并多次前后台切换，不结束后再重建或重复检查', (tester) async {
+    final backend = _Backend();
+    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpAndSettle();
+    backend.authGate = Completer<void>();
+    await cycle(tester, AppLifecycleState.paused);
+    expect(backend.authCalls, 2);
+    await cycle(tester, AppLifecycleState.paused);
+    expect(backend.authCalls, 2);
+    backend.authGate!.complete();
+    await tester.pumpAndSettle();
+    expect(backend.authCalls, 2);
+    expect(backend.disposed, 0);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('初始化挂起期间返回前台，初始化完成后复用原实例恢复', (tester) async {
+    final backend = _Backend()..authGate = Completer<void>();
+    var created = 0;
     await tester.pumpWidget(
       UbaaAppHost(
         backendFactory: () {
-          factoryCalls++;
-          return factoryCalls == 1 ? first : replacement;
+          created++;
+          return backend;
         },
       ),
     );
-    await first.authStarted.future;
-    expect(factoryCalls, 1);
-
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     await tester.pump();
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-    await tester.pump();
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-    await tester.pump();
-    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.pump();
-    expect(factoryCalls, 1);
-
-    first.releaseAuth.complete();
+    await cycle(tester, AppLifecycleState.paused);
+    expect(backend.authCalls, 1);
+    backend.authGate!.complete();
     await tester.pumpAndSettle();
-
-    expect(factoryCalls, 2);
-    expect(first.disposeCalls, 1);
-    expect(replacement.disposeCalls, 0);
-
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-    expect(replacement.disposeCalls, 1);
+    expect(created, 1);
+    expect(backend.authCalls, 2);
+    expect(backend.disposed, 0);
+    await tester.pumpWidget(const SizedBox());
   });
-
-  testWidgets('登录繁忙期间的 resumed 请求会在登录完成后重建', (tester) async {
-    final first = _DelayedLoginLifecycleBackend();
-    final replacement = _LifecycleBackend();
-    var factoryCalls = 0;
-
-    await tester.pumpWidget(
-      UbaaAppHost(
-        backendFactory: () {
-          factoryCalls++;
-          return factoryCalls == 1 ? first : replacement;
-        },
-      ),
-    );
+  testWidgets('登录挂起期间返回前台，完成后恢复但不丢当前实例', (tester) async {
+    final backend = _Backend()
+      ..signedIn = false
+      ..loginGate = Completer<void>();
+    await tester.pumpWidget(UbaaAppHost(backend: backend));
     await tester.pumpAndSettle();
-
-    final login = tester.widget<UbaaLoginView>(find.byType(UbaaLoginView));
-    login.onUsernameChanged('student-fixture');
-    login.onPasswordChanged('fixture-password');
-    login.onSubmit();
-    await first.loginStarted.future;
-
-    await _backgroundAndResume(tester);
-    expect(factoryCalls, 1);
-
-    first.releaseLogin.complete();
-    await tester.pumpAndSettle();
-
-    expect(factoryCalls, 2);
-    expect(first.disposeCalls, 1);
-    expect(replacement.disposeCalls, 0);
-
-    await tester.pumpWidget(const SizedBox.shrink());
+    final view = tester.widget<UbaaLoginView>(find.byType(UbaaLoginView));
+    view.onUsernameChanged('fixture-user');
+    view.onPasswordChanged('synthetic-password');
+    view.onSubmit();
     await tester.pump();
-    expect(replacement.disposeCalls, 1);
-  });
-
-  testWidgets('重建过程中发生的新后台周期会在前次完成后再次重建', (tester) async {
-    final first = _BlockingDisposeBackend();
-    final second = _LifecycleBackend();
-    final third = _LifecycleBackend();
-    final backends = <_LifecycleBackend>[first, second, third];
-    var factoryCalls = 0;
-
-    await tester.pumpWidget(
-      UbaaAppHost(backendFactory: () => backends[factoryCalls++]),
-    );
+    await cycle(tester, AppLifecycleState.paused);
+    expect(backend.authCalls, 1);
+    backend.loginGate!.complete();
     await tester.pumpAndSettle();
-
-    await _backgroundAndResume(tester);
-    await first.disposeStarted.future;
-    expect(factoryCalls, 2);
-
-    await _backgroundAndResume(tester);
-    expect(factoryCalls, 2);
-
-    first.releaseDispose.complete();
-    await tester.pumpAndSettle();
-
-    expect(factoryCalls, 3);
-    expect(first.disposeCalls, 1);
-    expect(second.disposeCalls, 1);
-    expect(third.disposeCalls, 0);
-
-    await tester.pumpWidget(const SizedBox.shrink());
-    await tester.pump();
-    expect(third.disposeCalls, 1);
+    expect(backend.authCalls, 2);
+    expect(find.byType(UbaaMainShell), findsOneWidget);
+    expect(backend.disposed, 0);
+    await tester.pumpWidget(const SizedBox());
   });
 }
 
-Future<void> _backgroundAndResume(WidgetTester tester) async {
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
-  await tester.pump();
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
-  await tester.pump();
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
-  await tester.pump();
-  tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-  await tester.pump();
-}
-
-class _LifecycleBackend implements UbaaBackend, BackendLifecycle {
-  int disposeCalls = 0;
-
-  @override
-  Future<AuthStatus> authStatus() async => AuthStatus.signedOut;
-
-  @override
-  Future<UserSummary?> userInfo() async => null;
-
-  @override
-  Future<void> prepareLogin(RoutePolicy policy) async {}
-
-  @override
-  Future<void> login(LoginInput input) async {}
-
-  @override
-  Future<void> logout() async {}
-
-  @override
-  Future<FeatureResult> loadFeature(FeatureId feature) async =>
-      const FeatureResult.empty();
-
-  @override
-  Future<void> dispose() async {
-    disposeCalls++;
+Future<void> cycle(WidgetTester tester, AppLifecycleState background) async {
+  final states = <AppLifecycleState>[
+    AppLifecycleState.inactive,
+    AppLifecycleState.hidden,
+    if (background != AppLifecycleState.hidden) AppLifecycleState.paused,
+    if (background == AppLifecycleState.detached) AppLifecycleState.detached,
+    if (background != AppLifecycleState.detached) ...[
+      if (background == AppLifecycleState.paused) AppLifecycleState.hidden,
+      AppLifecycleState.inactive,
+    ],
+    AppLifecycleState.resumed,
+  ];
+  for (final state in states) {
+    tester.binding.handleAppLifecycleStateChanged(state);
+    await tester.pump();
   }
 }
 
-final class _DelayedLifecycleBackend extends _LifecycleBackend {
-  final Completer<void> authStarted = Completer<void>();
-  final Completer<void> releaseAuth = Completer<void>();
-
+class _Backend implements UbaaBackend, BackendLifecycle {
+  int disposed = 0, authCalls = 0;
+  bool signedIn = true;
+  Completer<void>? authGate, loginGate;
   @override
   Future<AuthStatus> authStatus() async {
-    authStarted.complete();
-    await releaseAuth.future;
-    return AuthStatus.signedOut;
-  }
-}
-
-final class _BlockingDisposeBackend extends _LifecycleBackend {
-  final Completer<void> disposeStarted = Completer<void>();
-  final Completer<void> releaseDispose = Completer<void>();
-
-  @override
-  Future<void> dispose() async {
-    disposeCalls++;
-    disposeStarted.complete();
-    await releaseDispose.future;
-  }
-}
-
-final class _DelayedLoginLifecycleBackend extends _LifecycleBackend {
-  final Completer<void> loginStarted = Completer<void>();
-  final Completer<void> releaseLogin = Completer<void>();
-
-  @override
-  Future<void> login(LoginInput input) async {
-    loginStarted.complete();
-    await releaseLogin.future;
+    authCalls++;
+    await authGate?.future;
+    return signedIn ? AuthStatus.signedIn : AuthStatus.signedOut;
   }
 
   @override
   Future<UserSummary?> userInfo() async =>
-      const UserSummary(username: 'student-fixture');
+      const UserSummary(username: 'fixture-user');
+  @override
+  Future<void> prepareLogin(RoutePolicy policy) async {}
+  @override
+  Future<void> login(LoginInput input) async {
+    await loginGate?.future;
+    signedIn = true;
+  }
+
+  @override
+  Future<void> logout() async {
+    signedIn = false;
+  }
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      const FeatureResult.empty();
+  @override
+  Future<void> dispose() async {
+    disposed++;
+  }
 }

@@ -164,7 +164,7 @@ void main() {
         controller.setUsername('测试账号');
         controller.setPassword('仅用于确定性测试');
         final coordinator = controller.writeCoordinator;
-        coordinator.setIntent(_intent('转换之前'));
+        if (transition != '重建') coordinator.setIntent(_intent('转换之前'));
         var reentered = false;
         var prepareCalls = 0;
         Future<Object?>? attempted;
@@ -245,7 +245,7 @@ void main() {
     );
   });
 
-  test('重建期间晚到 prepare 只向原 backend 释放，新协调器使用新 backend', () async {
+  test('准备期间不重建，取消收尾后新协调器才使用新 backend', () async {
     final first = _LifecycleBackend()..prepareGate = Completer<WriteIntent>();
     final replacement = _LifecycleBackend();
     final controller = AppController(
@@ -259,33 +259,30 @@ void main() {
       () => controller.prepareBykcWrite(WriteOperation.bykcSelectCourse, 1),
       expectedOperation: WriteOperation.bykcSelectCourse,
     );
-
+    expect(await controller.rebuildBackend(), isFalse);
+    expect(identical(previous, controller.writeCoordinator), isTrue);
+    expect(first.disposeCalls, 0);
+    first.prepareGate!.complete(_intent('原准备结果'));
+    expect(await preparing, isNotNull);
+    expect(await controller.rebuildBackend(), isFalse);
+    await previous.cancelForUi();
+    expect(first.discarded, ['原准备结果']);
     expect(await controller.rebuildBackend(), isTrue);
+    expect(first.disposeCalls, 1);
     final current = controller.writeCoordinator;
     expect(identical(previous, current), isFalse);
-    var notifications = 0;
-    controller.addListener(() => notifications++);
-    first.prepareGate!.complete(_intent('旧准备结果'));
-
-    expect(await preparing, isNull);
-    expect(first.discarded, <String>['旧准备结果']);
-    expect(replacement.discarded, isEmpty);
-    expect(notifications, 0);
     previous.setIntent(_intent('旧实例不可复用'));
     expect(previous.intent, isNull);
-    expect(notifications, 0);
     current.setIntent(_intent('新实例确认'));
-    expect(notifications, 1);
-    final result = await current.confirmForUi();
-    expect(result?.result?.success, isTrue);
+    expect((await current.confirmForUi())?.result?.success, isTrue);
     expect(first.committed, isEmpty);
-    expect(replacement.committed, <String>['新实例确认']);
-    expect(first.disposeCalls, 1);
+    expect(replacement.committed, ['新实例确认']);
   });
 
-  test('旧提交在 backend 重建后完成时不向新会话回读或交付结果', () async {
+  test('提交与既定回读完成前不重建，也不向新 backend 重发', () async {
     final first = _LifecycleBackend()
-      ..commitGate = Completer<WriteCommitResult>();
+      ..commitGate = Completer<WriteCommitResult>()
+      ..readGate = Completer<FeatureResult>();
     final replacement = _LifecycleBackend();
     final controller = AppController(
       backend: first,
@@ -293,16 +290,17 @@ void main() {
     );
     addTearDown(controller.dispose);
     await controller.initialize();
-    final previous = controller.writeCoordinator;
-    previous.setIntent(_intent('在途提交'));
-    final confirming = previous.confirmForUi();
-    expect(first.committed, <String>['在途提交']);
-
-    expect(await controller.rebuildBackend(), isTrue);
+    controller.writeCoordinator.setIntent(_intent('在途提交'));
+    final confirming = controller.writeCoordinator.confirmForUi();
+    expect(first.committed, ['在途提交']);
+    expect(await controller.rebuildBackend(), isFalse);
     first.commitGate!.complete(_success());
-
-    expect(await confirming, isNull);
-    expect(first.loaded, isEmpty);
+    await first.readStarted.future;
+    expect(await controller.rebuildBackend(), isFalse);
+    first.readGate!.complete(const FeatureResult.empty());
+    expect((await confirming)?.result?.success, isTrue);
+    expect(first.loaded, [FeatureId.bykc]);
+    expect(await controller.rebuildBackend(), isTrue);
     expect(replacement.loaded, isEmpty);
     expect(replacement.committed, isEmpty);
   });
@@ -382,11 +380,12 @@ void main() {
       expectedOperation: WriteOperation.bykcSelectCourse,
     );
     final rebuilding = controller.rebuildBackend();
-    await first.disposeStarted.future;
+    expect(await rebuilding, isFalse);
     var notifications = 0;
     controller.addListener(() => notifications++);
     controller.dispose();
     controller.dispose();
+    await first.disposeStarted.future;
     first.prepareGate!.complete(_intent('销毁后准备结果'));
 
     expect(await preparing, isNull);
@@ -396,7 +395,7 @@ void main() {
     first.disposeGate!.complete();
     expect(await rebuilding, isFalse);
     expect(first.disposeCalls, 1);
-    expect(replacement.disposeCalls, 1);
+    expect(replacement.disposeCalls, 0);
     expect(notifications, 0);
   });
 }

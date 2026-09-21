@@ -44,6 +44,9 @@ class WriteCoordinator extends ChangeNotifier {
   UiError? get error => _state.error;
   bool get isSubmitting => _state.isSubmitting;
 
+  /// 包括已发布 idle 但尚未完成 finally 的活动，避免认证抢先越过收尾。
+  bool get hasPendingOperation => _activity != null || _state.intent != null;
+
   bool get _mayStart => !_disposed && (_canStart?.call() ?? true);
 
   void setIntent(WriteIntent intent) {
@@ -236,8 +239,12 @@ class WriteCoordinator extends ChangeNotifier {
   void _finish(Object activity) {
     if (!identical(_activity, activity)) return;
     _activity = null;
-    if (!_disposed && _state.isSubmitting) {
-      _publish(const WriteState.idle());
+    if (!_disposed) {
+      if (_state.isSubmitting) {
+        _publish(const WriteState.idle());
+      } else {
+        notifyListeners();
+      }
     }
   }
 
