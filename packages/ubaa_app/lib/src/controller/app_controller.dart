@@ -6,6 +6,7 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 
 import '../contracts/backend.dart';
 import '../contracts/lifecycle.dart';
+import '../contracts/offline.dart';
 import '../contracts/query.dart';
 import '../contracts/routing.dart';
 import '../contracts/write.dart';
@@ -28,6 +29,7 @@ part 'app_controller/write_lifecycle.dart';
 part 'app_controller/ygdk_readback.dart';
 part 'app_controller/diagnostics.dart';
 part 'app_controller/offline_startup.dart';
+part 'app_controller/offline/cache.dart';
 part 'app_controller/authentication.dart';
 
 enum AppPhase { splash, checkingSession, login, loggingIn, home }
@@ -105,6 +107,9 @@ class AppController extends ChangeNotifier {
   final CredentialVault _credentialVault;
   final LocalAccountStore? _localAccountStore;
   LocalAccount? _localAccount;
+  bool _isSigningOut = false;
+  UiError? _localCacheError;
+  UiError? get localCacheError => _localCacheError;
   bool _usesLocalRecovery = false;
   SessionRecoveryStatus _sessionRecoveryStatus = SessionRecoveryStatus.idle;
   Future<void>? _sessionRecoveryFuture;
@@ -699,12 +704,27 @@ class AppController extends ChangeNotifier {
   }) => _refreshEvaluationAfterWrite(this, expectedRoute: expectedRoute);
 
   Future<void> logout({bool clearSavedCredential = false}) async {
-    if (_disposed) return;
+    if (_disposed || _isSigningOut) return;
+    _isSigningOut = true;
     _beginWriteTransition();
     _sessionRecoveryStatus = SessionRecoveryStatus.signedOut;
+    _user = null;
+    _activeRoutes = const <ConnectionMode>[];
+    _loginForm = _loginForm.copyWith(password: '', captcha: '');
+    _resetFeatureSnapshots();
+    _setPhase(AppPhase.login);
     try {
       try {
         await _localAccountStore?.signOut();
+      } on Object catch (error, stackTrace) {
+        _error = _recordFailure(
+          error,
+          DiagnosticOperation.logout,
+          stackTrace: stackTrace,
+        );
+      }
+      try {
+        await _closeOfflineAccount(remove: clearSavedCredential);
       } on Object catch (error, stackTrace) {
         _error = _recordFailure(
           error,
@@ -730,6 +750,7 @@ class AppController extends ChangeNotifier {
       _resetFeatureSnapshots();
       _setPhase(AppPhase.login);
     } finally {
+      _isSigningOut = false;
       _endWriteTransition();
     }
   }
@@ -765,9 +786,9 @@ class AppController extends ChangeNotifier {
     RoutePolicy.webvpn => activeRoutes.contains(ConnectionMode.webvpn),
   };
 
-  void _resetFeatureSnapshots() {
+  void _resetFeatureSnapshots({bool advanceLifecycle = true}) {
     _readCacheEpoch++;
-    _lifecycleEpoch++;
+    if (advanceLifecycle) _lifecycleEpoch++;
     _ygdkGeneration++;
     _writeCoordinator.invalidate();
     _ygdkReadbackState = const YgdkReadbackState.empty();

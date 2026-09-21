@@ -75,7 +75,9 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       SessionRecoveryStatus.restoring => '正在连接，稍后更新内容',
       SessionRecoveryStatus.needsLogin => '需要登录，当前页面会保留',
       SessionRecoveryStatus.unavailable => '暂时无法更新，请稍后重试',
-      SessionRecoveryStatus.ready || SessionRecoveryStatus.signedOut => null,
+      SessionRecoveryStatus.ready =>
+        _controller.localCacheError == null ? null : '当前内容可在线查看，本机保存暂不可用',
+      SessionRecoveryStatus.signedOut => null,
     };
   }
 

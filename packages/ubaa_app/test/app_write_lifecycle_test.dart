@@ -97,7 +97,7 @@ void main() {
   });
 
   for (final transition in <String>['注销', '切换路线']) {
-    test('${transition}尚未完成且仍显示首页时拒绝新的准备和确认', () async {
+    test('${transition}尚未完成时拒绝新的准备和确认', () async {
       final gate = Completer<void>();
       final backend = _LifecycleBackend()..signedIn = true;
       final controller = AppController(backend: backend);
@@ -116,7 +116,10 @@ void main() {
         backend.routeGate = gate;
         changing = controller.setRoutePolicy(RoutePolicy.webvpn);
       }
-      expect(controller.phase, AppPhase.home);
+      expect(
+        controller.phase,
+        transition == '注销' ? AppPhase.login : AppPhase.home,
+      );
       var prepareCalls = 0;
 
       final prepared = await coordinator.prepareForUi(() async {

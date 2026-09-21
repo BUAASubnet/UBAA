@@ -92,11 +92,15 @@ void _registerRaceTests() {
 
     final loggingOut = controller.logout();
     await backend.logoutStarted.future;
+    expect(controller.phase, AppPhase.login);
+    var lateNotifications = 0;
+    controller.addListener(() => lateNotifications++);
     controller.dispose();
     backend.releaseLogout.complete();
     await loggingOut;
 
-    expect(controller.phase, AppPhase.splash);
+    expect(controller.phase, AppPhase.login);
+    expect(lateNotifications, 0);
   });
 
   test('controller 销毁后延迟的功能读取不会回写快照', () async {

@@ -29,29 +29,7 @@ Future<FeatureResult> _loadAcademicFeature(
               resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
             );
           }
-          final result = await client.scheduleToday();
-          final details = result.data
-              .map(
-                (item) => FeatureDetail(
-                  title: item.bizName,
-                  subtitle: item.shortName,
-                  presentation: TodayCoursePresentation(
-                    time: item.time,
-                    place: item.place,
-                  ),
-                  fields: _compactFields(<FeatureField?>[
-                    _field('时间', item.time),
-                    _field('地点', item.place),
-                  ]),
-                ),
-              )
-              .toList(growable: false);
-          return _countResult(
-            result.data.length,
-            '今日课程',
-            details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
-          );
+          return _loadTodayWithCache(backend);
         case FeatureQueryView.scheduleTerms:
           final result = await client.scheduleTerms();
           final details = result.data

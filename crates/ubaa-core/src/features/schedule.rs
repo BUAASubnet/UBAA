@@ -175,9 +175,24 @@ pub(crate) async fn get_today(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> Result<Vec<TodayClass>> {
     ensure_undergraduate_portal(runtime).await?;
+    get_today_after_portal(runtime, &shanghai_date()).await
+}
+
+pub(crate) async fn get_today_for_date(
+    runtime: &mut crate::runtime::ClientRuntime,
+    date: &str,
+) -> Result<Vec<TodayClass>> {
+    ensure_undergraduate_portal(runtime).await?;
+    get_today_after_portal(runtime, date).await
+}
+
+async fn get_today_after_portal(
+    runtime: &mut crate::runtime::ClientRuntime,
+    date: &str,
+) -> Result<Vec<TodayClass>> {
     let mut url = url::Url::parse(&runtime.url(TODAY_URL)?).map_err(|_| invalid_url())?;
     url.query_pairs_mut()
-        .append_pair("rq", &shanghai_date())
+        .append_pair("rq", date)
         .append_pair("lxdm", "student");
     let referer = runtime.url(SCHEDULE_REFERER_URL)?;
     let response = super::get_with_redirects(
@@ -315,7 +330,7 @@ fn invalid_url() -> crate::error::UbaaError {
     )
 }
 
-fn shanghai_date() -> String {
+pub(crate) fn shanghai_date() -> String {
     let seconds = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |value| value.as_secs())

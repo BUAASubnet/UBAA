@@ -278,6 +278,7 @@ String? _nonBlank(String? value) {
 
 BackendException _mapError(BridgeError error) => BackendException(
   _typedErrorCode(error.code),
+  accountMismatch: error.code == BridgeErrorCode.cacheIdentityMismatch,
   kind: _typedErrorKind(error.kind),
   retryable: error.retryable,
   resolvedRoute: error.resolvedRoute == null
@@ -287,6 +288,7 @@ BackendException _mapError(BridgeError error) => BackendException(
 
 UbaaErrorCode _typedErrorCode(BridgeErrorCode code) => switch (code) {
   BridgeErrorCode.invalidInput => UbaaErrorCode.invalidInput,
+  BridgeErrorCode.cacheIdentityMismatch ||
   BridgeErrorCode.authenticationRequired =>
     UbaaErrorCode.authenticationRequired,
   BridgeErrorCode.invalidCredentials => UbaaErrorCode.invalidCredentials,

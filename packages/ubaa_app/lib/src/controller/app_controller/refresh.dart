@@ -132,7 +132,8 @@ extension _AppControllerRefresh on AppController {
         previous.updatedAt != null &&
         (previous.overview != null ||
             previous.details.isNotEmpty ||
-            previous.summary?.trim().isNotEmpty == true);
+            previous.summary?.trim().isNotEmpty == true ||
+            previous.evidence != null);
     try {
       if (_usesLocalRecovery) {
         await _requireReadSession();
@@ -185,6 +186,10 @@ extension _AppControllerRefresh on AppController {
           query == null &&
           _isHomeDefaultCurrent(feature, generation, lifecycleEpoch);
       if (!featureCurrent && !homeCurrent) return;
+      if (error is BackendException && error.accountMismatch) {
+        await _rejectMismatchedAccount();
+        return;
+      }
       final uiError = _recordFailure(
         error,
         DiagnosticOperation.read,
@@ -200,11 +205,10 @@ extension _AppControllerRefresh on AppController {
         );
       if (featureCurrent)
         _snapshots[feature] = _snapshots[feature]!.copyWith(
-          status: hadPreviousData
+          status: (hadPreviousData || _snapshots[feature]!.evidence != null)
               ? FeatureLoadStatus.stale
               : FeatureLoadStatus.failure,
           error: uiError,
-          updatedAt: DateTime.now(),
         );
       if (featureCurrent && feature == FeatureId.grades) {
         _rememberGradeResult(FeatureResult.failure(uiError), query);
@@ -235,11 +239,14 @@ extension _AppControllerRefresh on AppController {
     )) {
       return false;
     }
-    // 普通同查询的瞬时失败保留数据；鉴权/权限及专用回读保持失败清空。
-    if (preservePreviousOnFailure &&
-        (result.error?.code == UbaaErrorCode.networkError ||
-            result.error?.code == UbaaErrorCode.timeout ||
-            result.error?.code == UbaaErrorCode.upstreamUnavailable)) {
+    // 已保存的只读内容不因读取失败消失；身份不符由独立边界清空。
+    if (result.error != null &&
+        ((_snapshots[feature]!.evidence != null) ||
+            (preservePreviousOnFailure &&
+                (result.error?.code == UbaaErrorCode.networkError ||
+                    result.error?.code == UbaaErrorCode.timeout ||
+                    result.error?.code ==
+                        UbaaErrorCode.upstreamUnavailable)))) {
       _snapshots[feature] = _snapshots[feature]!.copyWith(
         status: FeatureLoadStatus.stale,
         error: _recordFailure(
@@ -247,7 +254,6 @@ extension _AppControllerRefresh on AppController {
           DiagnosticOperation.read,
           feature: feature,
         ),
-        updatedAt: DateTime.now(),
       );
       return true;
     }
@@ -275,7 +281,9 @@ extension _AppControllerRefresh on AppController {
             ),
       resolvedRoute: result.resolvedRoute,
       pagination: result.pagination,
-      updatedAt: DateTime.now(),
+      updatedAt: result.evidence?.fetchedAt ?? DateTime.now(),
+      evidence: result.evidence,
+      clearEvidence: result.evidence == null,
       clearError: result.error == null,
       clearSummary: result.summary == null,
       clearDetails: result.details.isEmpty,

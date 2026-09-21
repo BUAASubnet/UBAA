@@ -212,13 +212,14 @@ extension _AppControllerHomeSources on AppController {
         error?.code == UbaaErrorCode.networkError ||
         error?.code == UbaaErrorCode.timeout ||
         error?.code == UbaaErrorCode.upstreamUnavailable;
-    if (transient &&
-        previous.updatedAt != null &&
-        (previous.details.isNotEmpty || previous.overview != null)) {
+    if (error != null &&
+        ((previous.evidence != null) ||
+            (transient &&
+                previous.updatedAt != null &&
+                (previous.details.isNotEmpty || previous.overview != null)))) {
       _homeDefaults[feature] = previous.copyWith(
         status: FeatureLoadStatus.stale,
         error: error,
-        updatedAt: DateTime.now(),
         readContext: context,
       );
       return;
@@ -236,7 +237,8 @@ extension _AppControllerHomeSources on AppController {
       error: error,
       resolvedRoute: result.resolvedRoute,
       pagination: result.pagination,
-      updatedAt: DateTime.now(),
+      updatedAt: result.evidence?.fetchedAt ?? DateTime.now(),
+      evidence: result.evidence,
       readContext: context,
     );
   }

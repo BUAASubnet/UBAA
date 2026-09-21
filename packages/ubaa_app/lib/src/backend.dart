@@ -5,3 +5,4 @@ export 'contracts/lifecycle.dart';
 export 'contracts/query.dart';
 export 'contracts/routing.dart';
 export 'contracts/write.dart';
+export 'contracts/offline.dart';

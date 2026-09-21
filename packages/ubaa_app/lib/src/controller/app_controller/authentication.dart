@@ -62,7 +62,11 @@ extension _AppControllerAuthentication on AppController {
   }
 
   Future<void> _submitLoginController({bool preserveHome = false}) async {
-    if (_disposed || isLoggingIn || _sessionRecoveryFuture != null) return;
+    if (_disposed ||
+        _isSigningOut ||
+        isLoggingIn ||
+        _sessionRecoveryFuture != null)
+      return;
     final username = _loginForm.username.trim();
     if (username.isEmpty || _loginForm.password.isEmpty) {
       _error = UbaaErrorMapper.fromCode(UbaaErrorCode.invalidInput);
@@ -129,6 +133,17 @@ extension _AppControllerAuthentication on AppController {
           );
         }
         return;
+      }
+      if (_localAccount != null && _localAccount!.username != username) {
+        // 原位换账号不能让旧账号的内容继续挂在新身份下面。
+        _user = null;
+        _resetFeatureSnapshots(advanceLifecycle: false);
+        _notify();
+        await _localAccountStore?.signOut();
+        if (!current()) return;
+        await _closeOfflineAccount();
+        if (!current()) return;
+        _localAccount = null;
       }
       _user = profile ?? UserSummary(username: username);
       try {

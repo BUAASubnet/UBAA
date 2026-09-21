@@ -11,6 +11,7 @@ import '../write/cgyy_validation.dart';
 import '../write/ygdk_validation.dart';
 
 part 'common.dart';
+part 'offline.dart';
 part 'read/academic.dart';
 part 'read/assignments.dart';
 part 'read/bykc.dart';
@@ -23,7 +24,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 9;
+const _supportedBridgeContractVersion = 10;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -45,8 +46,9 @@ class BridgeBackend
         CgyyWriteBackend,
         EvaluationWriteBackend,
         RouteSettingsBackend,
+        OfflineCacheBackend,
         BackendLifecycle {
-  BridgeBackend(this.client) {
+  BridgeBackend(this.client, {this.configDirectory}) {
     final contractVersion = client.contractVersion();
     if (contractVersion != _supportedBridgeContractVersion) {
       _disposeIncompatibleBridgeClient(client);
@@ -55,10 +57,33 @@ class BridgeBackend
   }
 
   /// 从平台已经解析好的应用私有目录打开 Core。
-  factory BridgeBackend.open(String configDirectory) =>
-      BridgeBackend(BridgeClient.open(configDir: configDirectory));
+  factory BridgeBackend.open(String configDirectory) => BridgeBackend(
+    BridgeClient.open(configDir: configDirectory),
+    configDirectory: configDirectory,
+  );
 
   final BridgeClient client;
+  final String? configDirectory;
+  BridgeOfflineCache? _offlineCache;
+  LocalAccount? _offlineAccount;
+  Future<void> _offlineTail = Future<void>.value();
+
+  @override
+  Future<void> openOfflineAccount(LocalAccount account, List<int> key) =>
+      _openOfflineAccount(this, account, key);
+  @override
+  Future<List<CachedFeatureProjection>> readCachedHome(RoutePolicy policy) =>
+      _readCachedHome(this, policy);
+  @override
+  Future<void> deactivateOfflineAccount() => _offlineSerial(this, () async {
+    await _offlineCache?.deactivate();
+  });
+  @override
+  Future<void> clearOfflineAccount() => _offlineSerial(this, () async {
+    await _offlineCache?.clear();
+    _offlineCache = null;
+    _offlineAccount = null;
+  });
 
   @override
   Future<AuthStatus> authStatus() => _authStatus(this);

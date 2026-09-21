@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `9`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `10`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -38,7 +38,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=9` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=10` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -520,3 +520,9 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
   backend 绑定与会话失效归 `AppController`，宿主装配及 UI 状态/命令接线归 `ubaa_host`；安全结果消息与
   只读核对由应用层 `WriteReceiptVerifier` 统一编排。该阶段保持 CLI schema v10、bridge v9 和生成绑定，
   不改变上游协议；结构治理的最终候选与发布证据继续单独记录。
+
+## 版本 10：独立本地缓存通道（实施中）
+
+新增 opaque `BridgeOfflineCache`，使用安全材料打开账号的 Core 仓库；只含本地内容，不持有 Cookie 或第二个网络客户端。`readToday` 按 Core 上海日期读取，返回实际来源、日期、取得时刻与完整度，不获取 BridgeClient 网络锁；`deactivate/activate/clear` 承接持久栅栏。密钥参数仅在有限调用内使用，不进入诊断、日志或生成类型的展示。
+
+`BridgeClient.scheduleTodayCached` 仍使用唯一网络客户端，经 Core 身份验证后读取并保存；返回学校结果与 saveError，不能把磁盘失败改写成学校失败。已有学校写意图时拒绝隐式认证检查。`cacheIdentityMismatch` 是新增 Bridge 安全错误，App 必须停止旧账号投影，不能把另一身份内容绑定到旧账号。现有双路线/CLI schema-v10、Session v2 和配置 v1 不改语义。当前只接今日课表，不能宣称十二领域或 P1 已完成。

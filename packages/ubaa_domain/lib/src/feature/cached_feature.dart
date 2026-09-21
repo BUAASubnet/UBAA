@@ -1,0 +1,52 @@
+import 'catalog.dart';
+import 'data_evidence.dart';
+import 'result.dart';
+import 'read_context.dart';
+import '../common/route.dart';
+
+/// 缓存到界面的单向只读投影；绝不恢复线上快照中的写动作。
+final class CachedFeatureProjection {
+  CachedFeatureProjection({
+    required this.feature,
+    required this.accountId,
+    required this.route,
+    required this.fetchedAt,
+    required this.complete,
+    this.scopeDate,
+    Iterable<FeatureDetail> details = const [],
+  }) : details = List.unmodifiable(
+         details.map(
+           (detail) => FeatureDetail(
+             title: detail.title,
+             subtitle: detail.subtitle,
+             fields: List.unmodifiable(detail.fields),
+             presentation: detail.presentation,
+             readNavigation: detail.readNavigation,
+           ),
+         ),
+       );
+  final FeatureId feature;
+  final String accountId;
+  final ConnectionMode route;
+  final DateTime fetchedAt;
+  final String? scopeDate;
+  final bool complete;
+  final List<FeatureDetail> details;
+
+  FeatureSnapshot toSnapshot() => FeatureSnapshot(
+    feature: feature,
+    status: FeatureLoadStatus.stale,
+    readContext: FeatureReadContext(requestRevision: 0),
+    details: details,
+    resolvedRoute: route,
+    updatedAt: fetchedAt,
+    evidence: DataEvidence(
+      accountId: accountId,
+      origin: DataOrigin.persisted,
+      fetchedAt: fetchedAt,
+      complete: complete,
+      savedForOffline: true,
+      scopeDate: scopeDate,
+    ),
+  );
+}

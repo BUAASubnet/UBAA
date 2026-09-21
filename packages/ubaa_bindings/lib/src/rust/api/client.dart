@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'offline.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 import 'write.dart';
@@ -215,6 +216,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeRoutedTodayClasses> scheduleToday();
 
+  /// 受网络锁保护的在线读取；已有待确认学校写意图时禁止隐式会话校验。
+  ///
+  /// # Errors
+  /// 返回原学校读取错误、身份冲突、持久栅栏或客户端生命周期错误。
+  Future<BridgeTodayRefresh> scheduleTodayCached({
+    required BridgeOfflineCache cache,
+  });
+
   Future<BridgeRoutedWeeklySchedule> scheduleWeek({
     required String term,
     required int week,
@@ -307,6 +316,7 @@ class BridgeError implements FrbException {
 
 /// Core 与 bridge 共用的机器错误码。
 enum BridgeErrorCode {
+  cacheIdentityMismatch,
   invalidInput,
   authenticationRequired,
   invalidCredentials,

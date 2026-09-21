@@ -15,3 +15,5 @@ export 'feature/overview.dart';
 export 'feature/home.dart';
 export 'feature/grades.dart';
 export 'feature/grade_watch.dart';
+export 'feature/data_evidence.dart';
+export 'feature/cached_feature.dart';

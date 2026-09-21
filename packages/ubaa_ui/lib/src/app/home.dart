@@ -169,8 +169,14 @@ class _HomeViewState extends State<_HomeView> {
       });
     }
     final schedule = widget.snapshots[FeatureId.schedule]!;
+    final campusNow = _now.toUtc().add(const Duration(hours: 8));
+    final campusDate =
+        '${campusNow.year}-${campusNow.month.toString().padLeft(2, '0')}-${campusNow.day.toString().padLeft(2, '0')}';
+    final differentDate =
+        schedule.evidence?.scopeDate != null &&
+        schedule.evidence!.scopeDate != campusDate;
     final today =
-        schedule.details
+        (differentDate ? <FeatureDetail>[] : schedule.details)
             .where((d) => d.presentation is TodayCoursePresentation)
             .toList()
           ..sort((a, b) => _courseStart(a).compareTo(_courseStart(b)));
@@ -262,7 +268,7 @@ class _HomeViewState extends State<_HomeView> {
             ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 4),
-          Text('${_now.month}月${_now.day}日'),
+          Text('${campusNow.month}月${campusNow.day}日'),
           const SizedBox(height: 12),
           if (widget.gradeScoreNotice case final notice?) ...[
             _GradeScoreBanner(
@@ -283,7 +289,12 @@ class _HomeViewState extends State<_HomeView> {
               child: ListTile(
                 leading: const Icon(Icons.calendar_today),
                 title: Text(
-                  schedule.status == FeatureLoadStatus.empty
+                  differentDate
+                      ? '尚无今天保存的课表'
+                      : schedule.evidence?.origin == DataOrigin.persisted &&
+                            schedule.evidence!.complete
+                      ? '上次保存时没有课程安排'
+                      : schedule.status == FeatureLoadStatus.empty
                       ? '今天没有课程安排'
                       : _homeSummary(schedule),
                 ),
@@ -292,8 +303,16 @@ class _HomeViewState extends State<_HomeView> {
                 onTap: () => widget.onFeatureTap(FeatureId.schedule),
               ),
             ),
-          if (today.isNotEmpty && schedule.status == FeatureLoadStatus.stale)
+          if (!differentDate &&
+              schedule.evidence?.origin == DataOrigin.persisted)
+            Text(
+              '上次保存：${_savedScheduleTime(schedule.evidence!.fetchedAt)}，连接后核对更新。',
+            )
+          else if (today.isNotEmpty &&
+              schedule.status == FeatureLoadStatus.stale)
             const Text('课表刷新失败，以上为上次成功加载的数据。'),
+          if (schedule.evidence?.savedForOffline == false)
+            const Text('本次课表已更新，但尚未保存到本机。'),
           const SizedBox(height: 16),
           Text(
             '待办区',
@@ -738,3 +757,8 @@ IconData _featureIcon(FeatureId feature) => switch (feature) {
   FeatureId.ygdk => Icons.wb_sunny,
   FeatureId.evaluation => Icons.assignment_turned_in,
 };
+
+String _savedScheduleTime(DateTime value) {
+  final campus = value.toUtc().add(const Duration(hours: 8));
+  return '${campus.month}月${campus.day}日 ${campus.hour.toString().padLeft(2, '0')}:${campus.minute.toString().padLeft(2, '0')}';
+}

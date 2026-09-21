@@ -289,6 +289,8 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
     );
 
     const expectedCodes = <BridgeErrorCode, UbaaErrorCode>{
+      BridgeErrorCode.cacheIdentityMismatch:
+          UbaaErrorCode.authenticationRequired,
       BridgeErrorCode.invalidInput: UbaaErrorCode.invalidInput,
       BridgeErrorCode.authenticationRequired:
           UbaaErrorCode.authenticationRequired,
@@ -317,6 +319,10 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
         message: '安全诊断',
       );
       expect(exception.code, entry.value, reason: entry.key.name);
+      expect(
+        exception.accountMismatch,
+        entry.key == BridgeErrorCode.cacheIdentityMismatch,
+      );
       expect(exception.detail, isNull);
     }
 

@@ -29,6 +29,7 @@ extension _AppControllerOfflineStartup on AppController {
       _usesLocalRecovery = true;
       _sessionRecoveryStatus = SessionRecoveryStatus.idle;
       _setPhase(AppPhase.home);
+      unawaited(_restoreCachedHome(index.account!, epoch));
       return true;
     } on Object catch (error, stackTrace) {
       if (_disposed || epoch != _lifecycleEpoch) return true;
@@ -118,11 +119,7 @@ extension _AppControllerOfflineStartup on AppController {
           profile.username != expected &&
           profile.schoolId != expected) {
         // 禁止把另一账号的在线结果绑定到旧账号的本地内容。
-        _user = null;
-        _resetFeatureSnapshots();
-        _sessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
-        _setPhase(AppPhase.login);
-        await _localAccountStore?.signOut();
+        await _rejectMismatchedAccount();
         return;
       }
       await _refreshRouteSettings();
@@ -181,11 +178,14 @@ extension _AppControllerOfflineStartup on AppController {
   }) async {
     final store = _localAccountStore;
     if (store == null || _user == null) return;
+    final epoch = _lifecycleEpoch;
     try {
       final index = await store.retain(username, retainSession: retainSession);
-      if (_disposed) return;
+      if (_disposed || epoch != _lifecycleEpoch) return;
       _localAccount = index.account;
       _usesLocalRecovery = true;
+      if (index.account != null)
+        await _restoreCachedHome(index.account!, epoch);
     } on Object catch (error, stackTrace) {
       // 在线登录成功与能否保留本机材料是两件事，保存失败不得假装未登录。
       _error = _recordFailure(

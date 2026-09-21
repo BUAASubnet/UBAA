@@ -4,6 +4,7 @@ import '../common/error.dart';
 import '../common/route.dart';
 import '../write/actions.dart';
 import 'catalog.dart';
+import 'data_evidence.dart';
 import 'presentation.dart';
 import 'overview.dart';
 import 'read_navigation.dart';
@@ -24,6 +25,7 @@ class FeatureSnapshot {
     this.pagination,
     this.updatedAt,
     this.readContext,
+    this.evidence,
   });
 
   final FeatureId feature;
@@ -40,6 +42,7 @@ class FeatureSnapshot {
   final FeaturePagination? pagination;
   final DateTime? updatedAt;
   final FeatureReadContext? readContext;
+  final DataEvidence? evidence;
 
   FeatureSnapshot copyWith({
     FeatureLoadStatus? status,
@@ -52,6 +55,8 @@ class FeatureSnapshot {
     FeaturePagination? pagination,
     DateTime? updatedAt,
     FeatureReadContext? readContext,
+    DataEvidence? evidence,
+    bool clearEvidence = false,
     bool clearError = false,
     bool clearSummary = false,
     bool clearDetails = false,
@@ -70,6 +75,7 @@ class FeatureSnapshot {
     pagination: clearPagination ? null : (pagination ?? this.pagination),
     updatedAt: updatedAt ?? this.updatedAt,
     readContext: readContext ?? this.readContext,
+    evidence: clearEvidence ? null : (evidence ?? this.evidence),
   );
 }
 
@@ -103,6 +109,7 @@ class FeatureResult {
   const FeatureResult.success({
     this.summary,
     this.overview,
+    this.evidence,
     this.details = const <FeatureDetail>[],
     this.resolvedRoute,
     this.pagination,
@@ -113,19 +120,22 @@ class FeatureResult {
     this.resolvedRoute,
     this.pagination,
     this.overview,
+    this.evidence,
   }) : summary = null,
        details = const <FeatureDetail>[],
        isEmpty = true,
        error = null;
 
   const FeatureResult.failure(this.error)
-    : overview = null,
+    : evidence = null,
+      overview = null,
       summary = null,
       details = const <FeatureDetail>[],
       resolvedRoute = null,
       pagination = null,
       isEmpty = false;
 
+  final DataEvidence? evidence;
   final String? summary;
   final FeatureOverview? overview;
   final List<FeatureDetail> details;

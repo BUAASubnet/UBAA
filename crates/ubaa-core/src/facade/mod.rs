@@ -2,6 +2,8 @@
 mod auth;
 mod client;
 mod diagnostic;
+mod offline;
+pub use offline::{OfflineCache, OfflineReadError, OfflineRefresh};
 mod read;
 mod routing;
 #[cfg(feature = "test-contract")]
