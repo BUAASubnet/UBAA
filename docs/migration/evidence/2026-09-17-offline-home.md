@@ -278,3 +278,18 @@ P4-E 收尾审查：首页来源说明对无错误码部分结果曾误称“刷
 RED：`/tmp/ubaa-p4f-red.log` 为新持久类型/分页键不存在；`/tmp/ubaa-p4f-facade-red.log` 为新 facade/本地读取入口不存在。GREEN：`/tmp/ubaa-p4f-cache-green.log`、`/tmp/ubaa-p4f-facade-{green,final}.log`，覆盖 page/size/all/路线隔离、非法参数不发请求、在线与不可写持久投影分离、五项业务失败保留旧值、实际学期范围、空成功替换、详情 ID 不符只影响保存及退出后拒绝读取。测试 transport 只允许五个原只读端点和 getAllConfig，不解密/记录随机加密正文，不调用真实学校写入。
 
 首轮 `just check` 因重复 match 分支与超长测试函数失败；按职责合并分支、拆出测试准备/替换断言和独立位置剥离测试，未降低 lint 标准。最终 `just check` 退出 0：Core 默认与 test-contract 各 246 项、facade 50 项、Bridge 119 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。refs 两个固定 SHA、layout 零 baseline 违例、sensitive 5243 文件和 diff 检查通过。收尾日志为 `/tmp/ubaa-p4f-check-final.log`、`/tmp/ubaa-p4f-layout.log`、`/tmp/ubaa-p4f-sensitive-final.log`。本阶段不改 Bridge/Dart 合同，未运行 App、原生或真实双路线验收，也未测性能，不能把 Core 缓存完成当作博雅离线首页已接线。
+
+
+## P4-G：博雅 Bridge/App 五查询与首页已选接线（2026-09-22）
+
+实施基线 `79c4c49b`。Bridge v18 新增五项 typed 本地读取及在线缓存入口，不把资格、坐标或任意正文放入缓存 DTO。App 共用原展示映射，恢复课程页 pagination 与已选学期范围；首页已选按补充查询身份恢复，不能覆盖普通博雅列表。BykcReadbackBackend 将既定回读送往原在线方法，待确认写意图时不进入缓存认证。
+
+RED：`/tmp/ubaa-p4g-bridge-red.log` 为缺少本地博雅入口；`/tmp/ubaa-p4g-app-red.log` 为缺少明确既定回读能力；`/tmp/ubaa-p4g-home-red.log` 为首页排除了博雅补充缓存。UI 测试最初在新概要类型未穷尽匹配时编译失败（`/tmp/ubaa-p4g-ui-red.log`），该记录仅为编译 RED；修复后首页保留缓存/来源说明及失败保护有组件断言。另修正测试目录误用、合成缓存临时目录未建立、重复导入、测试错误映射器不可见、版本文档同步、wildcard import 与测试长度问题，没有放宽门禁。
+
+GREEN：Bridge 本地读取在 Core 网络锁被持有时仍可返回；页/路线隔离、pending 写意图保护、退出屏障通过。App 五类缓存均只读，课程分页/详情导航和已选真实范围保留；待确认写意图下控制器只派发专用博雅回读、不增加恢复调用。首页本地已选不会污染普通列表，补充来源失败仍可显示缓存；补充结果携带原 evidence，不把旧数据称为新成功。
+
+最终确定性证据：`just check` 退出 0，Core 两配置各 246 项、facade 50 项、Bridge 120 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。`just flutter-check` 单次全套 57/66/359/259/15/32/54，共 842 项通过；收尾追加回读与失败测试后 App 全套 361 项、UI 全套 260 项及各自 analyze 通过，与其余未变套件合计 845 项。FRB v18 零漂移，refs 原固定 SHA、layout 零 baseline 违例、sensitive 5248 文件、diff 检查通过。
+
+日志：`/tmp/ubaa-p4g-check-final.log`、`/tmp/ubaa-p4g-flutter-final.log`、`/tmp/ubaa-p4g-app-{analyze,final}.log`、`/tmp/ubaa-p4g-ui-{analyze,final}.log`、`/tmp/ubaa-p4g-focused.log`、`/tmp/ubaa-p4g-codegen-check.log`、`/tmp/ubaa-p4g-layout.log`、`/tmp/ubaa-p4g-sensitive-final.log`，仅脱敏内容。
+
+macOS 原生合成：v18 缓存集成 1 项通过，新增五个博雅空库读取及缺会话在线入口经真实 FRB；仍有 `Failed to foreground app; open returned 1`，不算独立实窗验收。日志 `/tmp/ubaa-p4g-native.log`；未生成媒体、未使用真实会话、真实学校写入为零。没有本阶段双路线 Core-live、真实 App 或性能测量。研讨室/图书馆/评教等剩余缓存、阳光分页、写后跨范围失效、大读取余项、生命周期全矩阵及多端/真实性能继续，P0–P5 不整体勾选完成。

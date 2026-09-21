@@ -262,7 +262,7 @@ pub(super) fn map_judge_details(
 ) -> Vec<BridgeJudgeAssignmentDetail> {
     v.into_iter().map(map_judge_detail).collect()
 }
-fn map_bykc_status(v: domain::BykcCourseStatus) -> BridgeBykcCourseStatus {
+pub(crate) fn map_bykc_status(v: domain::BykcCourseStatus) -> BridgeBykcCourseStatus {
     match v {
         domain::BykcCourseStatus::Expired => BridgeBykcCourseStatus::Expired,
         domain::BykcCourseStatus::Selected => BridgeBykcCourseStatus::Selected,
@@ -279,7 +279,7 @@ fn map_action_eligibility(v: domain::ActionEligibility) -> BridgeActionEligibili
         domain::ActionEligibility::Unknown => BridgeActionEligibility::Unknown,
     }
 }
-pub(super) fn map_bykc_course(v: domain::BykcCourse) -> BridgeBykcCourse {
+pub(crate) fn map_bykc_course(v: domain::BykcCourse) -> BridgeBykcCourse {
     BridgeBykcCourse {
         id: v.id,
         course_name: v.course_name,
@@ -298,7 +298,7 @@ pub(super) fn map_bykc_course(v: domain::BykcCourse) -> BridgeBykcCourse {
         deselect_eligibility: map_action_eligibility(v.deselect_eligibility),
     }
 }
-pub(super) fn map_bykc_profile(v: domain::BykcUserProfile) -> BridgeBykcUserProfile {
+pub(crate) fn map_bykc_profile(v: domain::BykcUserProfile) -> BridgeBykcUserProfile {
     BridgeBykcUserProfile {
         id: v.id,
         employee_id: v.employee_id,
@@ -307,7 +307,7 @@ pub(super) fn map_bykc_profile(v: domain::BykcUserProfile) -> BridgeBykcUserProf
         college_name: v.college_name,
     }
 }
-pub(super) fn map_bykc_course_page(v: domain::BykcCoursePage) -> BridgeBykcCoursePage {
+pub(crate) fn map_bykc_course_page(v: domain::BykcCoursePage) -> BridgeBykcCoursePage {
     BridgeBykcCoursePage {
         content: v.content.into_iter().map(map_bykc_course).collect(),
         total_elements: v.total_elements,
@@ -316,13 +316,15 @@ pub(super) fn map_bykc_course_page(v: domain::BykcCoursePage) -> BridgeBykcCours
         number: v.number,
     }
 }
-fn map_bykc_category(v: domain::BykcCourseCategory) -> BridgeBykcCourseCategory {
+pub(crate) fn map_bykc_category(v: domain::BykcCourseCategory) -> BridgeBykcCourseCategory {
     match v {
         domain::BykcCourseCategory::Boya => BridgeBykcCourseCategory::Boya,
         domain::BykcCourseCategory::Unknown => BridgeBykcCourseCategory::Unknown,
     }
 }
-fn map_bykc_subcategory(v: domain::BykcCourseSubCategory) -> BridgeBykcCourseSubCategory {
+pub(crate) fn map_bykc_subcategory(
+    v: domain::BykcCourseSubCategory,
+) -> BridgeBykcCourseSubCategory {
     match v {
         domain::BykcCourseSubCategory::Moral => BridgeBykcCourseSubCategory::Moral,
         domain::BykcCourseSubCategory::Aesthetic => BridgeBykcCourseSubCategory::Aesthetic,
@@ -372,12 +374,12 @@ fn map_bykc_chosen(v: domain::BykcChosenCourse) -> BridgeBykcChosenCourse {
         course_sign_type: v.course_sign_type,
     }
 }
-pub(super) fn map_bykc_chosen_courses(
+pub(crate) fn map_bykc_chosen_courses(
     v: Vec<domain::BykcChosenCourse>,
 ) -> Vec<BridgeBykcChosenCourse> {
     v.into_iter().map(map_bykc_chosen).collect()
 }
-pub(super) fn map_bykc_statistics(v: domain::BykcStatistics) -> BridgeBykcStatistics {
+pub(crate) fn map_bykc_statistics(v: domain::BykcStatistics) -> BridgeBykcStatistics {
     BridgeBykcStatistics {
         total_valid_count: v.total_valid_count,
         categories: v

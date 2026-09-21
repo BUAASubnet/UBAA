@@ -22,6 +22,8 @@ part 'read/home_cache.dart';
 part 'read/judge_progressive.dart';
 part 'read/offline_query.dart';
 part 'read/bykc.dart';
+part 'read/bykc_projection.dart';
+part 'read/bykc_cache.dart';
 part 'read/cgyy.dart';
 part 'read/cgyy_day.dart';
 part 'read/evaluation.dart';
@@ -31,7 +33,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 17;
+const _supportedBridgeContractVersion = 18;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -43,6 +45,7 @@ class BridgeBackend
         UbaaBackend,
         FeatureQueryBackend,
         SigninReadbackBackend,
+        BykcReadbackBackend,
         CgyyCancellationReadbackBackend,
         YgdkSubmissionReadbackBackend,
         EvaluationSubmissionReadbackBackend,
@@ -101,6 +104,10 @@ class BridgeBackend
     _offlineCache = null;
     _offlineAccount = null;
   });
+
+  @override
+  Future<FeatureResult> readBykcAfterWrite(FeatureQuery query) =>
+      _loadBykcFeature(this, FeatureId.bykc, query, useCache: false);
 
   @override
   Future<FeatureResult> readSigninAfterWrite() =>

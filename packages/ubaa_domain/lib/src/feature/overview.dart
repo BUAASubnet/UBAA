@@ -78,3 +78,12 @@ final class GradesTermOverview extends FeatureOverview {
   final String requestTerm, termCode;
   final List<GradePresentation> grades;
 }
+
+/// 已选博雅查询实际使用的学校学期范围，不推断当前学期。
+final class BykcChosenOverview extends FeatureOverview {
+  const BykcChosenOverview({
+    required this.semesterStart,
+    required this.semesterEnd,
+  });
+  final String semesterStart, semesterEnd;
+}

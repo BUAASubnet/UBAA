@@ -72,3 +72,8 @@ abstract interface class EvaluationSubmissionReadbackBackend {
 abstract interface class SigninReadbackBackend {
   Future<FeatureResult> readSigninAfterWrite();
 }
+
+/// 学校写后的既定博雅回读不进入新增缓存认证流程。
+abstract interface class BykcReadbackBackend {
+  Future<FeatureResult> readBykcAfterWrite(FeatureQuery query);
+}

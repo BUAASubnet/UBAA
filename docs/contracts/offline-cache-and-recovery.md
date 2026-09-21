@@ -173,3 +173,16 @@ App 首页恢复新增签到、SPOC 与阳光三类来源，SPOC 单详情按作
 已选接口本来没有学期参数：沿原 getAllConfig 选择后发 startDate/endDate，新内部 observed 返回将这两个实际值连同课程列表带回。缓存是“当前已选”视图的整份快照，保存实际范围，不跨学期拼接；没有提供任意历史学期查询或宣称历史已覆盖。未来 Bridge/App 必须继续展示取得时间和该范围，不能从缓存猜当前学校学期。
 
 本阶段仅 Core；Bridge/App 尚未调用这些新入口，博雅首页离线接线仍待后续。未新增网络并发或大读取分段，不改变上游协议、Cookie、加密常量或 TLS。
+
+
+## P4-G 博雅 Bridge/App 接线
+
+Bridge v18 新增五个 `read_bykc_*` 与五个 `bykc_*_cached` 入口。缓存课程和已选 DTO 独立于在线 DTO，不带资格/坐标；资料与统计仍采用既有明确字段投影。只读记录携带实际来源、取得时间、complete；在线返回独立保存错误，已选同时携带 Core 实际 semester_start/semester_end。没有任意 JSON 或 upstream 内部对象穿过 Bridge。
+
+App 将原博雅五个展示映射抽到 `read/bykc_projection.dart` 共用，`bykc_cache.dart` 管理只读转换。缓存课程状态仅供阅读，不据此计算资格；缓存已选不显示“可签到/可签退/获取当前位置”的实时操作提示，也不把 has_points 推断成地点个数。时间窗和已选学期范围可阅读。`CachedFeatureProjection` 增加只读 pagination，以原响应的页信息展示；缓存键仍由请求 page/size/all 决定。
+
+首页恢复中，博雅已选是独立补充查询，保留 bykcChosenCourses 上下文，不写入普通博雅默认列表页。UI 在补充读取未返回或失败时继续显示匹配的本地待办，真正成功的在线结果可以替换它；来源时间/完整度贯穿补充结果，不伪称在线新鲜。已选查询范围概要采用保存的原起止日期，不猜学期代码。
+
+`BykcReadbackBackend` 显式区分写后既定回读。调度器的 writeReadback 走原在线读取路径，不经过新增恢复/持久化入口；普通读取仍进入独立缓存流程。待确认写意图期间 Bridge 新入口返回 operation_conflict。既有选退课、签到签退均仍经 WriteCoordinator，缓存不产生动作，不新增自动提交或未知重试。
+
+本批不新增未访问课程预取或大读取抢占，也未完成研讨室/图书馆/评教等剩余领域、阳光分页和最终多端验收。写后跨持久范围的精确失效仍需随剩余领域统一验证，不能用当前页回读通过替代该项。

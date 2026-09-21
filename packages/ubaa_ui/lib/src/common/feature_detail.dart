@@ -9,6 +9,7 @@ bool _readableCachedContent(FeatureSnapshot snapshot) =>
       FeatureId.signin,
       FeatureId.spoc,
       FeatureId.ygdk,
+      FeatureId.bykc,
     }.contains(snapshot.feature) &&
     snapshot.evidence?.origin == DataOrigin.persisted;
 
@@ -190,7 +191,10 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                   when overview is! GradesTermOverview &&
                       (widget.snapshot.status == FeatureLoadStatus.success ||
                           widget.snapshot.status == FeatureLoadStatus.empty ||
-                          widget.snapshot.status == FeatureLoadStatus.stale))
+                          widget.snapshot.status == FeatureLoadStatus.stale ||
+                          (widget.snapshot.status ==
+                                  FeatureLoadStatus.loading &&
+                              _readableCachedContent(widget.snapshot))))
                 _CourseworkOverview(overview: overview),
               Expanded(
                 key: const ValueKey<String>('stable-detail-list'),

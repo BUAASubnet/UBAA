@@ -21,6 +21,10 @@ void main() {
     expect(cached.details.single.title, '已保存的合成课程');
     expect(cached.evidence?.origin, DataOrigin.persisted);
     expect(cached.updatedAt, backend.fetched);
+    final chosen = controller.homeSnapshots[FeatureId.bykc]!;
+    expect(chosen.details.single.title, '已保存博雅');
+    expect(chosen.readContext?.query?.view, FeatureQueryView.bykcChosenCourses);
+    expect(controller.snapshots[FeatureId.bykc]!.details, isEmpty);
     backend.gate!.completeError(
       const BackendException(UbaaErrorCode.networkError),
     );
@@ -241,6 +245,15 @@ class _CachedBackend extends support.FakeRecoveryBackend
   @override
   Future<OfflineHomeRead> readCachedHome(RoutePolicy policy) async {
     final result = [
+      CachedFeatureProjection(
+        feature: FeatureId.bykc,
+        query: const FeatureQuery(view: FeatureQueryView.bykcChosenCourses),
+        accountId: account!.id,
+        route: ConnectionMode.direct,
+        fetchedAt: fetched,
+        complete: true,
+        details: const [FeatureDetail(title: '已保存博雅')],
+      ),
       CachedFeatureProjection(
         feature: FeatureId.schedule,
         accountId: account!.id,

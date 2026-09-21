@@ -6,6 +6,7 @@
 import '../frb_generated.dart';
 import 'client.dart';
 import 'offline_academic.dart';
+import 'offline_bykc.dart';
 import 'offline_home.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
@@ -102,6 +103,50 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   Future<BridgeCachedAcademicWeeks?> readAcademicWeeks({
     required BridgeConnectionMode route,
     required String term,
+  });
+
+  /// 无网络本地读取，空范围返回 None。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或记录损坏返回稳定错误。
+  Future<BridgeCachedBykcChosenRecord?> readBykcChosen({
+    required BridgeConnectionMode route,
+  });
+
+  /// 无网络本地读取，空范围返回 None。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或记录损坏返回稳定错误。
+  Future<BridgeCachedBykcCoursesRecord?> readBykcCourses({
+    required BridgeConnectionMode route,
+    required int page,
+    required int size,
+    required bool all,
+  });
+
+  /// 无网络本地读取，空范围返回 None。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或记录损坏返回稳定错误。
+  Future<BridgeCachedBykcDetailRecord?> readBykcDetail({
+    required BridgeConnectionMode route,
+    required PlatformInt64 courseId,
+  });
+
+  /// 无网络本地读取，空范围返回 None。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或记录损坏返回稳定错误。
+  Future<BridgeCachedBykcProfileRecord?> readBykcProfile({
+    required BridgeConnectionMode route,
+  });
+
+  /// 无网络本地读取，空范围返回 None。
+  ///
+  /// # Errors
+  /// 账号关闭、范围无效或记录损坏返回稳定错误。
+  Future<BridgeCachedBykcStatisticsRecord?> readBykcStatistics({
+    required BridgeConnectionMode route,
   });
 
   /// 独立本地读取不等待网络锁，不进行认证。

@@ -15,6 +15,7 @@ final class CachedFeatureProjection {
     required this.fetchedAt,
     required this.complete,
     this.scopeDate,
+    this.pagination,
     FeatureQuery? query,
     FeatureOverview? overview,
     Iterable<FeatureDetail> details = const [],
@@ -31,6 +32,7 @@ final class CachedFeatureProjection {
            ),
          ),
        );
+  final FeaturePagination? pagination;
   final FeatureOverview? overview;
   final FeatureReadContext readContext;
   final FeatureId feature;
@@ -47,6 +49,7 @@ final class CachedFeatureProjection {
     readContext: readContext,
     details: details,
     overview: overview,
+    pagination: pagination,
     resolvedRoute: route,
     updatedAt: fetchedAt,
     evidence: DataEvidence(
@@ -62,6 +65,10 @@ final class CachedFeatureProjection {
 
 FeatureOverview? _readonlyOverview(FeatureOverview? overview) =>
     switch (overview) {
+      BykcChosenOverview value => BykcChosenOverview(
+        semesterStart: value.semesterStart,
+        semesterEnd: value.semesterEnd,
+      ),
       GradesTermOverview value => GradesTermOverview(
         requestTerm: value.requestTerm,
         termCode: value.termCode,

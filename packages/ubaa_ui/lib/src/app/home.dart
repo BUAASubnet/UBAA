@@ -113,7 +113,23 @@ class _HomeViewState extends State<_HomeView> {
     if (!mounted || generation != _generation) return;
     setState(() {
       _loading.remove(source);
-      _supplements[source] = result;
+      final previous = _supplements[source];
+      _supplements[source] =
+          result.error != null &&
+              result.details.isEmpty &&
+              previous != null &&
+              (previous.details.isNotEmpty ||
+                  previous.overview != null ||
+                  previous.evidence != null)
+          ? FeatureResult.partial(
+              error: result.error!,
+              details: previous.details,
+              overview: previous.overview,
+              pagination: previous.pagination,
+              resolvedRoute: previous.resolvedRoute,
+              evidence: previous.evidence,
+            )
+          : result;
     });
   }
 
@@ -128,6 +144,22 @@ class _HomeViewState extends State<_HomeView> {
       (HomeSupplement.cgyyOrders, FeatureId.cgyy, FeatureQueryView.cgyyOrders),
     ]) {
       final result = _supplements[source];
+      final saved = sources[feature];
+      if (saved?.evidence != null &&
+          saved?.readContext?.query?.view == view &&
+          (result == null ||
+              (result.error != null &&
+                  result.details.isEmpty &&
+                  result.overview == null))) {
+        sources[feature] = saved!.copyWith(
+          status: _loading.contains(source)
+              ? FeatureLoadStatus.loading
+              : FeatureLoadStatus.stale,
+          error: result?.error,
+          clearError: result?.error == null,
+        );
+        continue;
+      }
       sources[feature] = FeatureSnapshot(
         feature: feature,
         status: _loading.contains(source)
@@ -135,11 +167,21 @@ class _HomeViewState extends State<_HomeView> {
             : result == null
             ? FeatureLoadStatus.idle
             : result.error != null
-            ? FeatureLoadStatus.failure
+            ? (result.details.isNotEmpty || result.overview != null
+                  ? FeatureLoadStatus.stale
+                  : FeatureLoadStatus.failure)
+            : result.evidence?.complete == false ||
+                  result.evidence?.origin == DataOrigin.persisted
+            ? FeatureLoadStatus.stale
             : result.isEmpty
             ? FeatureLoadStatus.empty
             : FeatureLoadStatus.success,
         details: result?.details ?? const [],
+        overview: result?.overview,
+        evidence: result?.evidence,
+        updatedAt:
+            result?.evidence?.fetchedAt ??
+            (result != null && result.error == null ? _now : null),
         error: result?.error,
         resolvedRoute: result?.resolvedRoute,
         pagination: result?.pagination,

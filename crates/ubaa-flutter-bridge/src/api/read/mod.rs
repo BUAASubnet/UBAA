@@ -11,6 +11,10 @@
 mod evaluation;
 mod mappers;
 pub(super) use mappers::{
+    map_bykc_category, map_bykc_chosen_courses, map_bykc_course, map_bykc_course_page,
+    map_bykc_profile, map_bykc_statistics, map_bykc_status, map_bykc_subcategory,
+};
+pub(super) use mappers::{
     map_classroom_query, map_exam_arrangement, map_grade_data, map_terms, map_weekly_schedule,
     map_weeks,
 };

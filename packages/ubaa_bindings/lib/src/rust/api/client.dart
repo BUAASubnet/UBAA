@@ -8,6 +8,7 @@ import 'judge_refresh.dart';
 import 'judge_scan.dart';
 import 'offline.dart';
 import 'offline_academic.dart';
+import 'offline_bykc.dart';
 import 'offline_home.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
@@ -100,6 +101,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
     String? preferredCourse,
   });
 
+  /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误与账号退出屏障。
+  Future<BridgeBykcChosenRefresh> bykcChosenCached({
+    required BridgeOfflineCache cache,
+  });
+
   Future<BridgeRoutedBykcChosenCourses> bykcChosenCourses();
 
   Future<BridgeRoutedBykcCourse> bykcCourseDetail({required PlatformInt64 id});
@@ -110,9 +119,45 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required bool all,
   });
 
+  /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误与账号退出屏障。
+  Future<BridgeBykcCoursesRefresh> bykcCoursesCached({
+    required BridgeOfflineCache cache,
+    required int page,
+    required int size,
+    required bool all,
+  });
+
+  /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误与账号退出屏障。
+  Future<BridgeBykcDetailRefresh> bykcDetailCached({
+    required BridgeOfflineCache cache,
+    required PlatformInt64 courseId,
+  });
+
   Future<BridgeRoutedBykcProfile> bykcProfile();
 
+  /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误与账号退出屏障。
+  Future<BridgeBykcProfileRefresh> bykcProfileCached({
+    required BridgeOfflineCache cache,
+  });
+
   Future<BridgeRoutedBykcStatistics> bykcStatistics();
+
+  /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误与账号退出屏障。
+  Future<BridgeBykcStatisticsRefresh> bykcStatisticsCached({
+    required BridgeOfflineCache cache,
+  });
 
   Future<BridgeRoutedCgyyDayInfo> cgyyDayInfo({
     required int siteId,

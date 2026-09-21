@@ -12,6 +12,42 @@ Future<void> until(bool Function() ready) async {
 }
 
 void main() {
+  test('博雅写意图存在时既定回读只调用专用在线入口', () async {
+    final backend = _ReadbackBackend();
+    final controller = AppController(backend: backend);
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await until(() => backend.task.calls == 1);
+    controller.writeCoordinator.setIntent(
+      WriteIntent(
+        intentId: 'synthetic',
+        operation: WriteOperation.bykcSelectCourse,
+        targetSummary: '合成目标',
+        resolvedRoute: ConnectionMode.direct,
+        warnings: const [],
+        expiresAt: DateTime.now().add(const Duration(minutes: 1)),
+        requestDigest: 'synthetic',
+      ),
+    );
+    final calls = backend.authCalls;
+    final future = controller.refreshAfterWrite(
+      WriteOperation.bykcSelectCourse,
+    );
+    backend.task.first.complete(
+      const FeatureReadBatch(
+        FeatureResult.empty(),
+        finished: false,
+        publish: false,
+      ),
+    );
+    await future;
+    expect(backend.bykcReadbacks, 1);
+    expect(backend.authCalls, calls);
+    expect(controller.writeCoordinator.intent, isNotNull);
+    controller.writeCoordinator.invalidate();
+    await until(() => backend.task.calls == 2);
+  });
+
   test('部分成功且无错误码的结果保持未完成状态', () async {
     final backend = _Backend();
     backend.task.second = FeatureReadBatch(
@@ -306,7 +342,16 @@ class _Task implements FeatureReadTask {
   }
 }
 
-class _ReadbackBackend extends _Backend implements SigninReadbackBackend {
+class _ReadbackBackend extends _Backend
+    implements SigninReadbackBackend, BykcReadbackBackend {
+  int bykcReadbacks = 0;
+  @override
+  Future<FeatureResult> readBykcAfterWrite(FeatureQuery query) async {
+    bykcReadbacks++;
+    expect(query.view, FeatureQueryView.summary);
+    return const FeatureResult.empty();
+  }
+
   int readbacks = 0;
   @override
   Future<FeatureResult> readSigninAfterWrite() async {

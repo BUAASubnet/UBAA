@@ -11,6 +11,7 @@ import 'api/judge_refresh.dart';
 import 'api/judge_scan.dart';
 import 'api/offline.dart';
 import 'api/offline_academic.dart';
+import 'api/offline_bykc.dart';
 import 'api/offline_home.dart';
 import 'api/read.dart';
 import 'api/recovery.dart';
@@ -181,6 +182,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedBykcChosenRecord
+  dco_decode_box_autoadd_bridge_cached_bykc_chosen_record(dynamic raw);
+
+  @protected
+  BridgeCachedBykcCoursesRecord
+  dco_decode_box_autoadd_bridge_cached_bykc_courses_record(dynamic raw);
+
+  @protected
+  BridgeCachedBykcDetailRecord
+  dco_decode_box_autoadd_bridge_cached_bykc_detail_record(dynamic raw);
+
+  @protected
+  BridgeCachedBykcProfileRecord
+  dco_decode_box_autoadd_bridge_cached_bykc_profile_record(dynamic raw);
+
+  @protected
+  BridgeCachedBykcSignWindow
+  dco_decode_box_autoadd_bridge_cached_bykc_sign_window(dynamic raw);
+
+  @protected
+  BridgeCachedBykcStatisticsRecord
+  dco_decode_box_autoadd_bridge_cached_bykc_statistics_record(dynamic raw);
+
+  @protected
   BridgeCachedHomeSignin dco_decode_box_autoadd_bridge_cached_home_signin(
     dynamic raw,
   );
@@ -343,6 +368,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeBykcChosenCourse dco_decode_bridge_bykc_chosen_course(dynamic raw);
 
   @protected
+  BridgeBykcChosenRefresh dco_decode_bridge_bykc_chosen_refresh(dynamic raw);
+
+  @protected
   BridgeBykcCourse dco_decode_bridge_bykc_course(dynamic raw);
 
   @protected
@@ -363,6 +391,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeBykcCoursesRefresh dco_decode_bridge_bykc_courses_refresh(dynamic raw);
+
+  @protected
+  BridgeBykcDetailRefresh dco_decode_bridge_bykc_detail_refresh(dynamic raw);
+
+  @protected
+  BridgeBykcProfileRefresh dco_decode_bridge_bykc_profile_refresh(dynamic raw);
+
+  @protected
+  BridgeBykcRefreshState dco_decode_bridge_bykc_refresh_state(dynamic raw);
+
+  @protected
   BridgeBykcSignConfig dco_decode_bridge_bykc_sign_config(dynamic raw);
 
   @protected
@@ -378,6 +418,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeBykcStatistics dco_decode_bridge_bykc_statistics(dynamic raw);
+
+  @protected
+  BridgeBykcStatisticsRefresh dco_decode_bridge_bykc_statistics_refresh(
+    dynamic raw,
+  );
 
   @protected
   BridgeBykcUserProfile dco_decode_bridge_bykc_user_profile(dynamic raw);
@@ -412,6 +457,51 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeCachedAcademicWeeks dco_decode_bridge_cached_academic_weeks(
     dynamic raw,
   );
+
+  @protected
+  BridgeCachedBykcChosen dco_decode_bridge_cached_bykc_chosen(dynamic raw);
+
+  @protected
+  BridgeCachedBykcChosenCourse dco_decode_bridge_cached_bykc_chosen_course(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedBykcChosenRecord dco_decode_bridge_cached_bykc_chosen_record(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedBykcCourse dco_decode_bridge_cached_bykc_course(dynamic raw);
+
+  @protected
+  BridgeCachedBykcCoursePage dco_decode_bridge_cached_bykc_course_page(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedBykcCoursesRecord dco_decode_bridge_cached_bykc_courses_record(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedBykcDetailRecord dco_decode_bridge_cached_bykc_detail_record(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedBykcProfileRecord dco_decode_bridge_cached_bykc_profile_record(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedBykcSignWindow dco_decode_bridge_cached_bykc_sign_window(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedBykcStatisticsRecord
+  dco_decode_bridge_cached_bykc_statistics_record(dynamic raw);
 
   @protected
   BridgeCachedHomeSignin dco_decode_bridge_cached_home_signin(dynamic raw);
@@ -972,6 +1062,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BridgeBykcStatistic> dco_decode_list_bridge_bykc_statistic(dynamic raw);
 
   @protected
+  List<BridgeCachedBykcChosenCourse>
+  dco_decode_list_bridge_cached_bykc_chosen_course(dynamic raw);
+
+  @protected
+  List<BridgeCachedBykcCourse> dco_decode_list_bridge_cached_bykc_course(
+    dynamic raw,
+  );
+
+  @protected
   List<BridgeCachedSigninClass> dco_decode_list_bridge_cached_signin_class(
     dynamic raw,
   );
@@ -1170,6 +1269,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedAcademicWeeks?
   dco_decode_opt_box_autoadd_bridge_cached_academic_weeks(dynamic raw);
+
+  @protected
+  BridgeCachedBykcChosenRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_bykc_chosen_record(dynamic raw);
+
+  @protected
+  BridgeCachedBykcCoursesRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_bykc_courses_record(dynamic raw);
+
+  @protected
+  BridgeCachedBykcDetailRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_bykc_detail_record(dynamic raw);
+
+  @protected
+  BridgeCachedBykcProfileRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_bykc_profile_record(dynamic raw);
+
+  @protected
+  BridgeCachedBykcSignWindow?
+  dco_decode_opt_box_autoadd_bridge_cached_bykc_sign_window(dynamic raw);
+
+  @protected
+  BridgeCachedBykcStatisticsRecord?
+  dco_decode_opt_box_autoadd_bridge_cached_bykc_statistics_record(dynamic raw);
 
   @protected
   BridgeCachedHomeSignin? dco_decode_opt_box_autoadd_bridge_cached_home_signin(
@@ -1424,6 +1547,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedBykcChosenRecord
+  sse_decode_box_autoadd_bridge_cached_bykc_chosen_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcCoursesRecord
+  sse_decode_box_autoadd_bridge_cached_bykc_courses_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcDetailRecord
+  sse_decode_box_autoadd_bridge_cached_bykc_detail_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcProfileRecord
+  sse_decode_box_autoadd_bridge_cached_bykc_profile_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcSignWindow
+  sse_decode_box_autoadd_bridge_cached_bykc_sign_window(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcStatisticsRecord
+  sse_decode_box_autoadd_bridge_cached_bykc_statistics_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedHomeSignin sse_decode_box_autoadd_bridge_cached_home_signin(
     SseDeserializer deserializer,
   );
@@ -1624,6 +1783,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeBykcChosenRefresh sse_decode_bridge_bykc_chosen_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeBykcCourse sse_decode_bridge_bykc_course(SseDeserializer deserializer);
 
   @protected
@@ -1652,6 +1816,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeBykcCoursesRefresh sse_decode_bridge_bykc_courses_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcDetailRefresh sse_decode_bridge_bykc_detail_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcProfileRefresh sse_decode_bridge_bykc_profile_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcRefreshState sse_decode_bridge_bykc_refresh_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeBykcSignConfig sse_decode_bridge_bykc_sign_config(
     SseDeserializer deserializer,
   );
@@ -1673,6 +1857,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeBykcStatistics sse_decode_bridge_bykc_statistics(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBykcStatisticsRefresh sse_decode_bridge_bykc_statistics_refresh(
     SseDeserializer deserializer,
   );
 
@@ -1715,6 +1904,55 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeCachedAcademicWeeks sse_decode_bridge_cached_academic_weeks(
     SseDeserializer deserializer,
   );
+
+  @protected
+  BridgeCachedBykcChosen sse_decode_bridge_cached_bykc_chosen(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcChosenCourse sse_decode_bridge_cached_bykc_chosen_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcChosenRecord sse_decode_bridge_cached_bykc_chosen_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcCourse sse_decode_bridge_cached_bykc_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcCoursePage sse_decode_bridge_cached_bykc_course_page(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcCoursesRecord sse_decode_bridge_cached_bykc_courses_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcDetailRecord sse_decode_bridge_cached_bykc_detail_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcProfileRecord sse_decode_bridge_cached_bykc_profile_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcSignWindow sse_decode_bridge_cached_bykc_sign_window(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcStatisticsRecord
+  sse_decode_bridge_cached_bykc_statistics_record(SseDeserializer deserializer);
 
   @protected
   BridgeCachedHomeSignin sse_decode_bridge_cached_home_signin(
@@ -2467,6 +2705,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeCachedBykcChosenCourse>
+  sse_decode_list_bridge_cached_bykc_chosen_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeCachedBykcCourse> sse_decode_list_bridge_cached_bykc_course(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BridgeCachedSigninClass> sse_decode_list_bridge_cached_signin_class(
     SseDeserializer deserializer,
   );
@@ -2709,6 +2958,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedAcademicWeeks?
   sse_decode_opt_box_autoadd_bridge_cached_academic_weeks(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcChosenRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_bykc_chosen_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcCoursesRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_bykc_courses_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcDetailRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_bykc_detail_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcProfileRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_bykc_profile_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcSignWindow?
+  sse_decode_opt_box_autoadd_bridge_cached_bykc_sign_window(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedBykcStatisticsRecord?
+  sse_decode_opt_box_autoadd_bridge_cached_bykc_statistics_record(
     SseDeserializer deserializer,
   );
 
@@ -3009,6 +3294,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bridge_cached_bykc_chosen_record(
+    BridgeCachedBykcChosenRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_bykc_courses_record(
+    BridgeCachedBykcCoursesRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_bykc_detail_record(
+    BridgeCachedBykcDetailRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_bykc_profile_record(
+    BridgeCachedBykcProfileRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_bykc_sign_window(
+    BridgeCachedBykcSignWindow self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_bykc_statistics_record(
+    BridgeCachedBykcStatisticsRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bridge_cached_home_signin(
     BridgeCachedHomeSignin self,
     SseSerializer serializer,
@@ -3237,6 +3558,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_bykc_chosen_refresh(
+    BridgeBykcChosenRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_bykc_course(
     BridgeBykcCourse self,
     SseSerializer serializer,
@@ -3273,6 +3600,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_bykc_courses_refresh(
+    BridgeBykcCoursesRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_detail_refresh(
+    BridgeBykcDetailRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_profile_refresh(
+    BridgeBykcProfileRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_refresh_state(
+    BridgeBykcRefreshState self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_bykc_sign_config(
     BridgeBykcSignConfig self,
     SseSerializer serializer,
@@ -3299,6 +3650,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_bykc_statistics(
     BridgeBykcStatistics self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bykc_statistics_refresh(
+    BridgeBykcStatisticsRefresh self,
     SseSerializer serializer,
   );
 
@@ -3347,6 +3704,66 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_cached_academic_weeks(
     BridgeCachedAcademicWeeks self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_bykc_chosen(
+    BridgeCachedBykcChosen self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_bykc_chosen_course(
+    BridgeCachedBykcChosenCourse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_bykc_chosen_record(
+    BridgeCachedBykcChosenRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_bykc_course(
+    BridgeCachedBykcCourse self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_bykc_course_page(
+    BridgeCachedBykcCoursePage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_bykc_courses_record(
+    BridgeCachedBykcCoursesRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_bykc_detail_record(
+    BridgeCachedBykcDetailRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_bykc_profile_record(
+    BridgeCachedBykcProfileRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_bykc_sign_window(
+    BridgeCachedBykcSignWindow self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_bykc_statistics_record(
+    BridgeCachedBykcStatisticsRecord self,
     SseSerializer serializer,
   );
 
@@ -4260,6 +4677,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_cached_bykc_chosen_course(
+    List<BridgeCachedBykcChosenCourse> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_cached_bykc_course(
+    List<BridgeCachedBykcCourse> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_cached_signin_class(
     List<BridgeCachedSigninClass> self,
     SseSerializer serializer,
@@ -4559,6 +4988,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_cached_academic_weeks(
     BridgeCachedAcademicWeeks? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_bykc_chosen_record(
+    BridgeCachedBykcChosenRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_bykc_courses_record(
+    BridgeCachedBykcCoursesRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_bykc_detail_record(
+    BridgeCachedBykcDetailRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_bykc_profile_record(
+    BridgeCachedBykcProfileRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_bykc_sign_window(
+    BridgeCachedBykcSignWindow? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_bykc_statistics_record(
+    BridgeCachedBykcStatisticsRecord? self,
     SseSerializer serializer,
   );
 

@@ -26,8 +26,12 @@ extension _AppControllerOfflineCache on AppController {
       final projections = await offline.readCachedHome(_loginForm.routePolicy);
       if (!current()) return;
       for (final projection in projections) {
+        final supplement =
+            projection.feature == FeatureId.bykc &&
+            projection.readContext.query?.view ==
+                FeatureQueryView.bykcChosenCourses;
         if (projection.accountId != account.id ||
-            !_homeDefaultFeatures.contains(projection.feature))
+            (!_homeDefaultFeatures.contains(projection.feature) && !supplement))
           continue;
         final previous = _homeDefaults[projection.feature]!;
         // 磁盘慢于网络时不能倒退；当前查询面板不接收首页默认查询的数据。
@@ -37,9 +41,12 @@ extension _AppControllerOfflineCache on AppController {
             previous.status == FeatureLoadStatus.empty)
           continue;
         final snapshot = projection.toSnapshot().copyWith(
-          readContext: previous.readContext,
+          readContext: supplement
+              ? projection.readContext
+              : previous.readContext,
         );
         _homeDefaults[projection.feature] = snapshot;
+        if (supplement) continue;
         final visible = _snapshots[projection.feature]!;
         if (visible.readContext?.query == null &&
             (visible.evidence == null ||

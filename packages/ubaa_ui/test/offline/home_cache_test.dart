@@ -5,6 +5,28 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 void main() {
+  testWidgets('博雅补充读取失败仍显示已保存待办', (tester) async {
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await mount(tester, date: '2026-09-21', empty: true, failSupplement: true);
+    expect(find.text('缓存博雅待办'), findsOneWidget);
+    expect(find.textContaining('博雅：上次保存'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('首页已选博雅缓存不被尚未返回的补充来源清空', (tester) async {
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await mount(tester, date: '2026-09-21', empty: true);
+    expect(find.text('缓存博雅待办'), findsOneWidget);
+    expect(find.textContaining('博雅：上次保存'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('首页部分在线来源不能标成刷新失败和上次结果', (tester) async {
     tester.view.physicalSize = const Size(900, 1800);
     tester.view.devicePixelRatio = 1;
@@ -45,6 +67,7 @@ Future<void> mount(
   required String date,
   bool empty = false,
   bool partial = false,
+  bool failSupplement = false,
 }) async {
   await withClock(Clock.fixed(DateTime.utc(2026, 9, 20, 16, 5)), () async {
     await tester.pumpWidget(
@@ -53,6 +76,28 @@ Future<void> mount(
           user: const UserSummary(username: 'synthetic'),
           snapshots: {
             for (final id in FeatureId.values) id: FeatureSnapshot(feature: id),
+            FeatureId.bykc: CachedFeatureProjection(
+              feature: FeatureId.bykc,
+              query: const FeatureQuery(
+                view: FeatureQueryView.bykcChosenCourses,
+              ),
+              accountId: 'synthetic',
+              route: ConnectionMode.direct,
+              fetchedAt: DateTime.utc(2026, 9, 20, 15),
+              complete: true,
+              details: const [
+                FeatureDetail(
+                  title: '缓存博雅待办',
+                  presentation: BykcChosenPresentation(
+                    recordId: 1,
+                    courseId: 42,
+                    courseName: '缓存博雅待办',
+                    courseStartDate: '2026-09-21 08:00:00',
+                    courseEndDate: '2026-09-21 10:00:00',
+                  ),
+                ),
+              ],
+            ).toSnapshot(),
             FeatureId.judge: partial
                 ? FeatureSnapshot(
                     feature: FeatureId.judge,
@@ -95,6 +140,15 @@ Future<void> mount(
           routePolicy: RoutePolicy.auto,
           telemetryEnabled: false,
           activeRoutes: const [],
+          onLoadHomeSupplement: failSupplement
+              ? (_, __) async => FeatureResult.failure(
+                  const UiError(
+                    code: UbaaErrorCode.networkError,
+                    title: '网络不可用',
+                    message: '合成失败',
+                  ),
+                )
+              : null,
           onRefresh: () async {},
           onRetryFeature: (_) async {},
           onLogout: () async {},

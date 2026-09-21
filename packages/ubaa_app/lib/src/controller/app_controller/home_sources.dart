@@ -164,10 +164,12 @@ extension _AppControllerHomeSources on AppController {
                   resolvedRoute: result.resolvedRoute,
                   pagination: result.pagination,
                   overview: result.overview,
+                  evidence: result.evidence,
                 )
               : FeatureResult.success(
                   summary: result.summary,
                   overview: result.overview,
+                  evidence: result.evidence,
                   details: List.unmodifiable(result.details),
                   resolvedRoute: result.resolvedRoute,
                   pagination: result.pagination,

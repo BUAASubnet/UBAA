@@ -102,7 +102,15 @@ Future<OfflineHomeRead> _readCachedHome(
         ),
       );
   }
+  final bykc = await _readCachedQuery(
+    backend,
+    FeatureId.bykc,
+    const FeatureQuery(view: FeatureQueryView.bykcChosenCourses),
+    policy,
+  );
+  failure ??= bykc.error;
   return OfflineHomeRead([
+    if (bykc.projection != null) bykc.projection!,
     ...additional,
     if (newest != null)
       CachedFeatureProjection(

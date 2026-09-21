@@ -1377,3 +1377,8 @@ Bridge v16 保持六类具体 DTO，不把 Core 任意载荷或 raw JSON 交给�
 ## 离线首页 P4-F：博雅安全持久投影（2026-09-22）
 
 五项只读复用现有 feature 实现。分页按 page/size/all，详情按 course_id；当前已选保留原 getAllConfig 实际选择的起止日期而不推断学期代码。保留在线资格供既有 WriteCoordinator 校验，但独立 CachedBykc 类型不允许 eligibility 落盘。另一源 boya SignInfo 明确含 lng/lat/inSignArea，原 string 不能当普通文字持久；缓存也不保存签到点坐标和附件路径。课程位置名称和学校公布时间窗仍可阅读。Core-only 阶段不升级 Bridge 合同或宣称 App 离线首页已接通博雅。
+
+
+## 离线首页 P4-G：博雅补充来源与写后回读分流（2026-09-22）
+
+新增 Bridge v18 五项接线，在线和不可写 DTO 分离。首页博雅缓存必须带 bykcChosenCourses 查询身份，不能覆盖普通列表；UI 等待/失败时保留补充缓存，分页元数据和取得证据贯穿查询。BykcReadbackBackend 仅复用原在线回读，避免 pending 写意图与新增恢复入口冲突。实际操作仍由原 WriteCoordinator 管理，未发真实学校写入。

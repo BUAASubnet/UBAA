@@ -7,7 +7,7 @@ import 'package:ubaa_bindings/ubaa_bindings.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  testWidgets('原生 Bridge v17 缓存句柄可重开且退出栅栏跨句柄生效', (tester) async {
+  testWidgets('原生 Bridge v18 缓存句柄可重开且退出栅栏跨句柄生效', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: Text('本地缓存合成验证'))),
     );
@@ -21,7 +21,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 17);
+      expect(client.contractVersion(), 18);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -44,6 +44,44 @@ void main() {
         accountId: '0123456789abcdef0123456789abcdef',
         expectedIdentity: 'synthetic',
         key: key,
+      );
+      expect(
+        await first.readBykcProfile(route: BridgeConnectionMode.direct),
+        isNull,
+      );
+      expect(
+        await first.readBykcCourses(
+          route: BridgeConnectionMode.direct,
+          page: 1,
+          size: 20,
+          all: true,
+        ),
+        isNull,
+      );
+      expect(
+        await first.readBykcDetail(
+          route: BridgeConnectionMode.direct,
+          courseId: 42,
+        ),
+        isNull,
+      );
+      expect(
+        await first.readBykcChosen(route: BridgeConnectionMode.direct),
+        isNull,
+      );
+      expect(
+        await first.readBykcStatistics(route: BridgeConnectionMode.direct),
+        isNull,
+      );
+      await expectLater(
+        client.bykcCoursesCached(cache: first, page: 1, size: 20, all: true),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.code,
+            '缺少会话',
+            BridgeErrorCode.authenticationRequired,
+          ),
+        ),
       );
       expect(await first.readToday(route: BridgeConnectionMode.direct), isNull);
       expect(
@@ -181,6 +219,44 @@ void main() {
         ),
       );
       await second.activate();
+      expect(
+        await first.readBykcProfile(route: BridgeConnectionMode.direct),
+        isNull,
+      );
+      expect(
+        await first.readBykcCourses(
+          route: BridgeConnectionMode.direct,
+          page: 1,
+          size: 20,
+          all: true,
+        ),
+        isNull,
+      );
+      expect(
+        await first.readBykcDetail(
+          route: BridgeConnectionMode.direct,
+          courseId: 42,
+        ),
+        isNull,
+      );
+      expect(
+        await first.readBykcChosen(route: BridgeConnectionMode.direct),
+        isNull,
+      );
+      expect(
+        await first.readBykcStatistics(route: BridgeConnectionMode.direct),
+        isNull,
+      );
+      await expectLater(
+        client.bykcCoursesCached(cache: first, page: 1, size: 20, all: true),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.code,
+            '缺少会话',
+            BridgeErrorCode.authenticationRequired,
+          ),
+        ),
+      );
       expect(await first.readToday(route: BridgeConnectionMode.webVpn), isNull);
       await second.clear();
     } finally {

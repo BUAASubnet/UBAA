@@ -13,6 +13,9 @@ class _CourseworkOverview extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: switch (overview) {
+            BykcChosenOverview p => Text(
+              '已选查询范围 ${p.semesterStart} 至 ${p.semesterEnd}',
+            ),
             YgdkOverview p => _YgdkSummary(p),
             // 成绩概要由成绩页随列表滚动，不进入常驻概要卡。
             GradesTermOverview _ => const SizedBox.shrink(),
