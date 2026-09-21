@@ -160,6 +160,17 @@ pub(crate) async fn get_records(
         ));
     }
     let context = get_overview_context(runtime).await?;
+    get_records_in_context(runtime, &context, page, size)
+        .await
+        .map(|(data, _)| data)
+}
+
+pub(crate) async fn get_records_in_context(
+    runtime: &mut ClientRuntime,
+    context: &YgdkOverviewContext,
+    page: i32,
+    size: i32,
+) -> Result<(YgdkRecordsPage, bool)> {
     ensure_active_credential(runtime, context.generation, &context.credential)?;
     let params = [
         ("page", page.to_string()),
@@ -176,7 +187,9 @@ pub(crate) async fn get_records(
     )
     .await?;
     ensure_active_credential(runtime, context.generation, &context.credential)?;
-    parse_records(&body, &context.overview.items, page, size)
+    let data = parse_records(&body, &context.overview.items, page, size)?;
+    let complete = super::parser::records_complete(&body, &data);
+    Ok((data, complete))
 }
 
 #[cfg(test)]

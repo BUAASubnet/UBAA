@@ -67,7 +67,8 @@ pub use crate::cache::{
     CachedBykcSignWindow, CachedCgyyDayInfo, CachedCgyyOrder, CachedCgyyOrdersPage,
     CachedCgyySlotStatus, CachedCgyySpaceAvailability, CachedEvaluationCourse,
     CachedEvaluationCourses, CachedLibBookBooking, CachedLibBookBookingsPage, CachedLibBookSeat,
-    CachedSigninClass, CachedYgdkItem, CachedYgdkOverview, JudgeCourseReview, OfflineRepository,
+    CachedSigninClass, CachedYgdkItem, CachedYgdkOverview, CachedYgdkRecord, CachedYgdkRecordsPage,
+    CachedYgdkRecordsSelection, JudgeCourseReview, OfflineRepository,
 };
 
 mod libbook_cache;
@@ -75,3 +76,6 @@ pub use libbook_cache::{LibBookCacheQuery, LibBookReadData, LibBookRefresh};
 
 mod evaluation_cache;
 pub use evaluation_cache::EvaluationRefresh;
+
+mod ygdk_cache;
+pub use ygdk_cache::YgdkRecordsRefresh;

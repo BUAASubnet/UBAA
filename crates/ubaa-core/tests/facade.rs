@@ -208,3 +208,6 @@ mod libbook_cache;
 
 #[path = "facade/evaluation_cache.rs"]
 mod evaluation_cache;
+
+#[path = "facade/ygdk_cache.rs"]
+mod ygdk_cache;

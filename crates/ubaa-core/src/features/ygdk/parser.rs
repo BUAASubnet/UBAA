@@ -329,3 +329,26 @@ pub(super) fn observed_term_count(count: &Map<String, Value>) -> Option<i32> {
         .or_else(|| integer(count, "term_count_show"))
         .or_else(|| integer(count, "term_count"))
 }
+
+/// 原解析的空回退与丢行不能证明记录页完整；不推断响应未提供的分页游标。
+pub(super) fn records_complete(body: &str, parsed: &YgdkRecordsPage) -> bool {
+    let Ok(value) = parse_envelope(body) else {
+        return false;
+    };
+    let Some(object) = value.as_object() else {
+        return false;
+    };
+    let Some(rows) = object.get("list").and_then(Value::as_array) else {
+        return false;
+    };
+    let Some(total) = integer(object, "total").filter(|v| *v >= 0) else {
+        return false;
+    };
+    let mut ids = std::collections::HashSet::new();
+    rows.len() == parsed.content.len()
+        && i32::try_from(rows.len()).is_ok_and(|count| count <= parsed.size && count <= total)
+        && parsed
+            .content
+            .iter()
+            .all(|record| record.record_id > 0 && ids.insert(record.record_id))
+}

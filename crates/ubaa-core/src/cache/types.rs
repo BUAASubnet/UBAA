@@ -2,7 +2,7 @@
 use super::{
     CachedBykcChosen, CachedBykcCourse, CachedBykcCoursePage, CachedCgyyDayInfo, CachedCgyyOrder,
     CachedCgyyOrdersPage, CachedEvaluationCourses, CachedLibBookBookingsPage, CachedLibBookSeat,
-    CachedSigninClass, CachedYgdkOverview,
+    CachedSigninClass, CachedYgdkOverview, CachedYgdkRecordsPage, CachedYgdkRecordsSelection,
 };
 use crate::domain::{
     Assignment, CgyyPurposeTypes, CgyyVenueSite, ClassroomQuery, ConnectionMode, Course,
@@ -18,6 +18,12 @@ pub const CACHE_SCHEMA_VERSION: u32 = 1;
 /// 精确业务查询；日期使用既有校园日期，不在读取时替换成今天。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum CacheQuery {
+    YgdkRecordsSelection,
+    YgdkRecords {
+        classify_id: i32,
+        page: i32,
+        size: i32,
+    },
     /// 当前评教任务固定第1页/每页10；不代表历史或全部学期。
     EvaluationCurrent,
     LibBookLibraries {
@@ -120,6 +126,8 @@ pub struct CacheScope {
 /// 仅白名单领域值可写入，禁止任意 JSON、原始响应或 action 投影。
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum CachePayload {
+    YgdkRecordsSelection(CachedYgdkRecordsSelection),
+    YgdkRecords(CachedYgdkRecordsPage),
     EvaluationCurrent(CachedEvaluationCourses),
     LibBookLibraries(Vec<LibBookLibrary>),
     LibBookAreas(Vec<LibBookArea>),
@@ -253,6 +261,11 @@ impl CacheScope {
                 .is_ok_and(|v| v.format("%Y-%m-%d").to_string() == s)
         };
         let valid = match &self.query {
+            CacheQuery::YgdkRecords {
+                classify_id,
+                page,
+                size,
+            } => *classify_id > 0 && *page > 0 && *size > 0,
             CacheQuery::LibBookLibraries { day } => date(day),
             CacheQuery::LibBookAreas {
                 premises_id,
@@ -312,6 +325,15 @@ impl CacheScope {
 impl CachePayload {
     pub(super) fn matches(&self, query: &CacheQuery) -> bool {
         match (self, query) {
+            (Self::YgdkRecordsSelection(v), CacheQuery::YgdkRecordsSelection) => v.classify_id > 0,
+            (
+                Self::YgdkRecords(v),
+                CacheQuery::YgdkRecords {
+                    classify_id,
+                    page,
+                    size,
+                },
+            ) => v.classify_id == *classify_id && v.page == *page && v.size == *size,
             (Self::LibBookAreaDetail(v), CacheQuery::LibBookAreaDetail { area_id }) => {
                 &v.id == area_id
             }

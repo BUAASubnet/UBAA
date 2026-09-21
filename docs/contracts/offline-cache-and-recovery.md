@@ -259,3 +259,16 @@ Bridge v22新增read_evaluation/evaluation_cached。前者在独立本地句柄�
 App摘要和待评视图共享实际当前任务快照，筛选只在投影进行，各视图保持FeatureQuery身份。CachedFeatureProjection明确白名单复制EvaluationProgressOverview并剥离全部动作。部分刷新有同路线旧记录时保留其课程、进度及原时间，首次Stored Partial不冒称旧数据；无完整刷新不展示写动作。真正完整在线结果继续原资格映射和WriteCoordinator。
 
 页面缓存loading时内容仍可读，显示原保存时间；complete=false时显示“评教任务尚未核对完整，进度暂不汇总”，不展示零待评结论或比例。原EvaluationSubmissionReadbackBackend仍使用固定路线evaluationAllOnRoute，未进入新增缓存恢复。其余长读取分段、跨范围写后失效、资料/阳光分页和最终多端性能仍需继续。
+
+
+## P4-O 阳光记录分类分页缓存
+
+新增 YgdkRecords{classify_id,page,size} 精确范围和 YgdkRecordsSelection 本地索引。前者保存既有Bridge公开记录字段及image_count，绝不保存images URL、上传字节、文件路径、uid/token或提交资格；后者只有上次实际观察的分类id/name。页码/大小为正，分类必须为正；不新增学校未证实的term/date参数，原API与固定路线回读保持。
+
+refresh_cached_ygdk_records先验证分页和恢复所需路线、核对缓存账号，再沿原上下文读取分类和项目；确定实际分类后建立数据页票据，再请求记录。发布数据页时在同一事务验证分类父票据与页票据，失败观察也采用父票据保护；分类索引被替代后迟到响应不得修改内容或成功/失败元数据。数据页先于索引发布，任一步失败不把错误分类内容标成当前；崩溃窗口最多留下未被旧索引指向的有效页。publication和selection_saved分别报告数据与索引发布，索引缺失不能冒称入口可离线恢复。
+
+read_ygdk_records_selection(route)不访问网络；宿主必须取其明确classify_id，再调用read_ygdk_records(route,classify_id,page,size)，不得用概览中的另一分类或默认1替换。展示取得时间来自数据页，不能用更新过的索引时间冒充新鲜记录。分类切换不清除另一分类的历史缓存。
+
+完整度要求显式list/total、无丢行、记录ID有效且不重复、集合长度不超过本页大小或总量。合法空页只替换当前键；缺集合/总量或请求失败保留原完整页。冻结第2页/5条/total=1用例存在，因此不添加(total必须大于页偏移)推断；has_more仍沿原page*size<total。当前概览可选统计失败不自动判记录页失败，二者范围不同。
+
+本阶段Core-only，Bridge/App接线待继续；宿主后续须保留原阳光提交后的caller-pinned概览/记录回读。概览按学期/周范围的补全、长上下文读取分段与性能验收仍未完成。

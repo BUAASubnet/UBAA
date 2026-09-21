@@ -389,3 +389,14 @@ RED：/tmp/ubaa-p4n-bridge-red.log（本地方法不存在）；schema-red.log�
 最终门禁：just check退出0（/tmp/ubaa-p4n-check.log），Core两配置各253、facade55、Bridge123通过/2既有忽略、CLI二进制端到端16，fmt/clippy/Shell/build/doc与layout零baseline违例通过。完整Flutter 57/66/378/265/19/32/54，共871项及静态分析通过（flutter.log）；FRB v22零漂移（codegen-final.log）；refs固定SHA校验、暂存敏感扫描5278文件通过，diff无空白错误。上述短日志名均/tmp/ubaa-p4n-前缀。
 
 macOS合成集成1项通过（native.log），实际v22绑定执行了新增评教空本地读取与缺会话缓存刷新错误路径，以及原多句柄退出屏障。仍有Failed to foreground app; open returned 1，不能记作实窗、真实业务或非空评教DTO原生展示。未做真实学校写入、未生成验收媒体或性能数据。源工作区干净，整个目标继续，下一项为阳光记录分页和资料/缓存管理等余项。
+
+
+## P4-O 阳光记录 Core 分类分页（2026-09-22）
+
+基线136e0c2a。按冻结Ygdk接口/本地实现/DTO/第2页5条测试，以及另一源无此协议事实核对后，增加按分类/页/大小的持久键、只读分类索引和facade。记录只保留公开字段与图片数量，账号、实际路线与本地修订分开管理。
+
+RED：/tmp/ubaa-p4o-red.log为新facade不存在；partial-red.log复现缺集合被标完整并清空旧页；parent-red.log复现索引被新任务替代后旧请求仍先写数据页（revision4而非2）；failure-fence-red.log复现迟到失败仍把旧页成功标记改false。GREEN：green-final.log两项合成集成覆盖分类切换、页/路线隔离、query/form双写、图片地址不落盘、失败/部分保旧、合法空页替换、非法分页网络前拒绝、父票据替代同时阻止数据与失败元数据修改。结构检查指出主方法过长，抽取范围构造和发布辅助函数后clippy-final.log通过。
+
+日志短名均/tmp/ubaa-p4o-前缀。本阶段无真实学校请求/写入，没有Flutter/原生/真实性能新增证据，Bridge/App与余项继续待办。
+
+最终just check退出0（/tmp/ubaa-p4o-check.log）：Core两配置各253、facade57、Bridge123通过/2既有忽略、CLI二进制端到端16；fmt/clippy/Shell/build/doc与layout零baseline违例通过。refs固定SHA校验、暂存敏感扫描5281文件通过，diff无空白错误。Core-only未改Dart/Bridge结构，本阶段没有重复Flutter或原生测试，旧证据不充当当前通过。原始源工作区干净，下一阶段继续阳光记录Bridge/App接线及既定固定路线回读保护。

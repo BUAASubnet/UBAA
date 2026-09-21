@@ -34,3 +34,6 @@ pub use libbook::{CachedLibBookBooking, CachedLibBookBookingsPage, CachedLibBook
 
 mod evaluation;
 pub use evaluation::{CachedEvaluationCourse, CachedEvaluationCourses};
+
+mod ygdk_records;
+pub use ygdk_records::{CachedYgdkRecord, CachedYgdkRecordsPage, CachedYgdkRecordsSelection};

@@ -273,3 +273,18 @@ P4-M实施复核：get_all和strict读取经共享观察实现后仍返回原DTO
 复用P4-M当前任务固定1/10读取链和完整度观察，不新增学校请求。Bridge缓存DTO仅四展示字段和进度，无资格/target/问卷内部参数；App摘要/待评筛选复用同一当前任务快照，保留视图查询身份和取得时间。Partial保留同账号/路线旧内容，进度不得冒称本次全部核对，缓存无动作。原EvaluationSubmissionReadbackBackend仍用evaluationAllOnRoute固定路线回读，不进入新增恢复入口，不改唯一WriteCoordinator。
 
 P4-N实施复核：Bridge缓存DTO仅id/kcmc/bpmc/is_evaluated及三项进度，schema禁曝覆盖资格、target和内部材料。App没有新增学校参数，evaluationPending只筛选同一响应。固定路线回读经脱敏backend验证调用原入口且不增加缓存恢复；Partial投影无动作，部分进度不输出全部完成结论。
+
+
+## P4-O：阳光记录 Core 精确分类分页（实施前）
+
+冻结old@1f4b8f8412272b6a423d4ad92b396e3db721e6f3的YgdkApi、LocalYgdkApi.getRecords/fetchRecords/postForm/session、DTO及LocalYgdkApiBackendTest第2页5条查询用例已复核。buaa-api@a63712fa2ae0a6c8066197063ddee98e3a6b5b81无ygdk/Clockin/appid200230221144501510实现，api/app是其他校园读取，不能借用其会话或字段。
+
+| 操作 | bootstrap/会话/重定向 | 方法和精确参数 | 头/编码/签名 | DTO/解析 | 缓存/并发/失败 |
+|---|---|---|---|---|---|
+| 业务认证 | 原app OAuth index，redirect=https://ygdk.buaa.edu.cn/#/home，appid=200230221144501510/state=STATE/qrcode=1；最多10跳，query/fragment取code；GET campusAppLogin?code，终点严格相等 | 沿原GET与路线内uid/token及generation | 原Cookie，token URL decode；不复制会话，不改TLS | uid/token仅认证内存 | 原登录锁、发送入口及响应后代次核对保持，不写缓存 |
+| 分类/项目上下文 | 同一凭据代次 | POST Classify/getList；Item/getList query+form page=1/limit=1000/classify_id；form追加uid/token | form-urlencoded;charset=UTF-8与X-Requested-With；无新增加密或ETag | 含体育名称优先、原fallback分类；项目item_id/name等原映射 | 新记录缓存沿当前Core get_overview_context（已有可选count/term），不扩大请求；可选统计失败不当作记录失败 |
+| 本人记录 | 同一上下文uid与classify_id | POST Clockin/getList，query及form双写page/limit/classify_id/user_id；仅form追加uid/token | 同上；不存在已证实的term/date过滤参数 | 原record_id、item_id/name、起止时间、place、isopen/state/create_time_fmt；图片只存image_count，绝不存URL/bytes/上传材料 | 正分类/页码/大小精确键；丢行、缺list/total或矛盾计数记Partial保旧；合法空页只替换该范围 |
+
+新增“上次观察分类”只读索引，用于离线解析当前记录入口到明确分类键，不作为新的业务会话/资格。数据页先发布、索引后发布；任一步账号/世代/修订失效均拒绝，崩溃最多留下不可由旧索引选中的新页，不把旧分类正文放进新分类。原始取得时间以数据页为准。学校查询不加入termId，学期/周统计范围仍需单独处理；本阶段不把当前概览key当作学期隔离已完成。
+
+P4-O实施复核：原get_records共享同一上下文内的getList请求函数，旧DTO解析和网络参数不变；新缓存仅增加完整度观察。图片数量采用原Bridge相同的长度转i32规则。冻结测试第2页5条而total=1仍合法，未引入页偏移/总量推断。父索引票据用现有仓库guarded发布及失败观察核对，不通过复制会话并发访问学校。Bridge/App接线尚待下一阶段。
