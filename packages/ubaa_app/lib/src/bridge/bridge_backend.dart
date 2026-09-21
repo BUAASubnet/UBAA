@@ -6,6 +6,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 import '../backend.dart';
+import '../controller/error_mapper.dart';
 import '../presentation/grades.dart';
 import '../write/cgyy_validation.dart';
 import '../write/ygdk_validation.dart';
@@ -15,6 +16,7 @@ part 'offline.dart';
 part 'recovery.dart';
 part 'read/academic.dart';
 part 'read/assignments.dart';
+part 'read/judge_progressive.dart';
 part 'read/bykc.dart';
 part 'read/cgyy.dart';
 part 'read/cgyy_day.dart';
@@ -25,7 +27,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 13;
+const _supportedBridgeContractVersion = 14;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -49,6 +51,7 @@ class BridgeBackend
         RouteSettingsBackend,
         RequiredSessionBackend,
         OfflineCacheBackend,
+        ProgressiveReadBackend,
         BackendLifecycle {
   BridgeBackend(this.client, {this.configDirectory}) {
     final contractVersion = client.contractVersion();
@@ -116,6 +119,12 @@ class BridgeBackend
 
   @override
   Future<void> logout() => _logout(this);
+
+  @override
+  Future<FeatureReadTask?> beginFeatureRead(
+    FeatureId feature,
+    FeatureQuery? query,
+  ) => _beginJudgeRead(this, feature, query);
 
   @override
   Future<FeatureResult> loadFeature(FeatureId feature) => _loadFeatureQuery(

@@ -109,9 +109,14 @@ extension _AppControllerHomeSources on AppController {
           return;
         }
         final term = selected.single.code;
-        result = await backend.loadFeatureQuery(
-          FeatureId.schedule,
-          FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: term),
+        result = await _scheduleAuxiliaryRead(
+          cache.backend,
+          ReadPriority.home,
+          current,
+          () => backend.loadFeatureQuery(
+            FeatureId.schedule,
+            FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: term),
+          ),
         );
         if (result.error == null) {
           final weeks = result.details.where((d) {
@@ -130,12 +135,17 @@ extension _AppControllerHomeSources on AppController {
               : FeatureResult.empty(resolvedRoute: result.resolvedRoute);
         }
       } else {
-        result = await backend.loadFeatureQuery(
-          feature,
-          FeatureQuery(
-            view: source == HomeSupplement.bykcChosen
-                ? FeatureQueryView.bykcChosenCourses
-                : FeatureQueryView.cgyyOrders,
+        result = await _scheduleAuxiliaryRead(
+          cache.backend,
+          ReadPriority.home,
+          current,
+          () => backend.loadFeatureQuery(
+            feature,
+            FeatureQuery(
+              view: source == HomeSupplement.bykcChosen
+                  ? FeatureQueryView.bykcChosenCourses
+                  : FeatureQueryView.cgyyOrders,
+            ),
           ),
         );
       }
@@ -213,6 +223,9 @@ extension _AppControllerHomeSources on AppController {
         error?.code == UbaaErrorCode.timeout ||
         error?.code == UbaaErrorCode.upstreamUnavailable;
     if (error != null &&
+        result.evidence == null &&
+        result.details.isEmpty &&
+        result.overview == null &&
         ((previous.evidence != null) ||
             (transient &&
                 previous.updatedAt != null &&
@@ -227,7 +240,11 @@ extension _AppControllerHomeSources on AppController {
     _homeDefaults[feature] = FeatureSnapshot(
       feature: feature,
       status: error != null
-          ? FeatureLoadStatus.failure
+          ? (result.evidence != null ||
+                    result.details.isNotEmpty ||
+                    result.overview != null
+                ? FeatureLoadStatus.stale
+                : FeatureLoadStatus.failure)
           : result.isEmpty
           ? FeatureLoadStatus.empty
           : FeatureLoadStatus.success,

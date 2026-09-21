@@ -127,3 +127,93 @@ async fn batches_release_client_lock_and_protect_pending_writes() {
     drop(cache);
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[tokio::test]
+async fn persistent_refresh_delivers_index_then_saved_summary_through_bridge() {
+    use crate::api::judge_refresh::BridgeJudgeRefreshOptions;
+    let root =
+        std::env::temp_dir().join(format!("ubaa-judge-bridge-refresh-{}", std::process::id()));
+    let bridge = BridgeClient::open(root.to_string_lossy().into()).unwrap();
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save(&SessionSnapshot {
+            mode: core::ConnectionMode::Direct,
+            cookies: Vec::new(),
+            authenticated_at: 1000,
+            last_activity: 1001,
+        })
+        .unwrap();
+    let transport = MockTransport::new([
+        status(),
+        activation(),
+        get("https://judge.buaa.edu.cn/", b"<html>ready</html>".to_vec()),
+        get(
+            "https://judge.buaa.edu.cn/courselist.jsp?courseID=0",
+            b"<a href='courselist.jsp?courseID=12'>Course A</a>".to_vec(),
+        ),
+        activation(),
+        get("https://judge.buaa.edu.cn/", b"<html>ready</html>".to_vec()),
+        get(
+            "https://judge.buaa.edu.cn/courselist.jsp?courseID=12",
+            b"ready".to_vec(),
+        ),
+        get(
+            "https://judge.buaa.edu.cn/assignment/index.jsp",
+            b"<a href='assignment/index.jsp?assignID=101'>Task A</a>".to_vec(),
+        ),
+        activation(),
+        get("https://judge.buaa.edu.cn/", b"<html>ready</html>".to_vec()),
+        get(
+            "https://judge.buaa.edu.cn/courselist.jsp?courseID=12",
+            b"ready".to_vec(),
+        ),
+        get(
+            "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=101",
+            include_bytes!("../../../../../fixtures/readonly/judge-detail.html").to_vec(),
+        ),
+    ]);
+    *bridge.inner.lock().await = Some(
+        core::UbaaClient::with_routing(
+            transport,
+            MockTransport::new([]),
+            store,
+            RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
+            NoProbe,
+        )
+        .unwrap(),
+    );
+    let cache = BridgeOfflineCache::open(
+        root.to_string_lossy().into(),
+        "0123456789abcdef0123456789abcdef".into(),
+        "fixture-user".into(),
+        vec![9; 32],
+    )
+    .await
+    .unwrap();
+    let task = bridge
+        .begin_judge_refresh(&cache, BridgeJudgeRefreshOptions::default())
+        .await
+        .unwrap();
+    let index = bridge.next_judge_refresh(&task).await.unwrap();
+    assert_eq!(index.batch.kind, BridgeJudgeScanKind::Assignments);
+    assert!(!index.batch.finished);
+    assert!(index.summaries.is_empty());
+    let detail = bridge.next_judge_refresh(&task).await.unwrap();
+    assert!(detail.batch.finished && detail.batch.complete);
+    assert_eq!(detail.summaries.len(), 1);
+    assert!(detail.save_error.is_none());
+    let saved = cache
+        .read_judge(BridgeConnectionMode::Direct, false)
+        .await
+        .unwrap()
+        .unwrap();
+    assert_eq!(
+        saved.data[0].assignment_id,
+        detail.summaries[0].assignment_id
+    );
+    assert_eq!(saved.fetched_at, detail.summary_fetched_at);
+    task.cancel();
+    bridge.dispose().await.unwrap();
+    drop(cache);
+    let _ = std::fs::remove_dir_all(root);
+}

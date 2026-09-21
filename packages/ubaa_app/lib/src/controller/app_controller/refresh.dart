@@ -12,11 +12,27 @@ const _homeDefaultFeatures = <FeatureId>[
 ];
 
 extension _AppControllerRefresh on AppController {
-  Future<void> _refreshHome({Iterable<FeatureId>? only}) async {
+  Future<void> _refreshHome({
+    Iterable<FeatureId>? only,
+    bool writeReadback = false,
+  }) async {
     if (_disposed) return;
+    final joining = <Future<void>>[];
+    final features = <FeatureId>[];
+    for (final feature in (only ?? _homeDefaultFeatures).toSet()) {
+      final pending = writeReadback ? null : _pendingFeatureRead(feature, null);
+      if (pending != null) {
+        joining.add(pending);
+      } else {
+        features.add(feature);
+      }
+    }
+    if (features.isEmpty) {
+      await Future.wait(joining);
+      return;
+    }
     _readCacheEpoch++;
     final lifecycleEpoch = _lifecycleEpoch;
-    final features = (only ?? _homeDefaultFeatures).toList(growable: false);
     final generations = <FeatureId, int>{
       for (final feature in features) feature: ++_readRequestRevision,
     };
@@ -38,16 +54,18 @@ extension _AppControllerRefresh on AppController {
       }
     }
     _notify();
-    await Future.wait(
-      features.map(
+    await Future.wait([
+      ...joining,
+      ...features.map(
         (feature) => _loadFeature(
           feature,
           generations[feature]!,
           lifecycleEpoch,
+          writeReadback: writeReadback,
           ygdkGeneration: feature == FeatureId.ygdk ? ygdkGeneration : null,
         ),
       ),
-    );
+    ]);
   }
 
   /// 对支持 [FeatureQueryBackend] 的生产实现执行单领域筛选读取。
@@ -55,9 +73,18 @@ extension _AppControllerRefresh on AppController {
   /// 不支持查询的 fake backend 明确报 unsupported，不会在 Dart 端拼接请求。
   Future<void> _refreshFeatureQuery(
     FeatureId feature,
-    FeatureQuery query,
-  ) async {
+    FeatureQuery query, {
+    bool writeReadback = false,
+  }) async {
     if (_disposed) return;
+    if (!writeReadback) {
+      final pending = _pendingFeatureRead(feature, query);
+      if (pending != null) {
+        await pending;
+        return;
+      }
+    }
+    _cancelJudgeReadScopes(feature);
     // 换学期/视图可复用完整集合；同查询表示明确刷新，继续执行原读取。
     final cachedGrades =
         feature == FeatureId.grades &&
@@ -82,6 +109,7 @@ extension _AppControllerRefresh on AppController {
       generation,
       lifecycleEpoch,
       query: context.query,
+      writeReadback: writeReadback,
       cachedResult: cachedGrades,
       ygdkGeneration: ygdkGeneration,
     );
@@ -125,6 +153,7 @@ extension _AppControllerRefresh on AppController {
     FeatureQuery? query,
     int? ygdkGeneration,
     FeatureResult? cachedResult,
+    bool writeReadback = false,
   }) async {
     // loading 通知可能同步触发注销或切换路线，发请求前再次核对归属。
     if (!_isFeatureLoadCurrent(
@@ -137,6 +166,20 @@ extension _AppControllerRefresh on AppController {
             _isHomeDefaultCurrent(feature, generation, lifecycleEpoch))) {
       return;
     }
+    final scope = _ProgressiveScope(
+      feature,
+      query,
+      () =>
+          _isFeatureLoadCurrent(
+            feature,
+            generation,
+            lifecycleEpoch,
+            ygdkGeneration,
+          ) ||
+          (query == null &&
+              _isHomeDefaultCurrent(feature, generation, lifecycleEpoch)),
+    );
+    _readScopes.add(scope);
     final started = DateTime.now();
     final previous = _snapshots[feature]!;
     final hadPreviousData =
@@ -146,7 +189,7 @@ extension _AppControllerRefresh on AppController {
             previous.summary?.trim().isNotEmpty == true ||
             previous.evidence != null);
     try {
-      if (_usesLocalRecovery) {
+      if (_usesLocalRecovery && !writeReadback) {
         if (query != null && _backend is RequiredSessionBackend) {
           await _recoverSession(feature: feature, refreshHomeAfter: false);
           if (_disposed || lifecycleEpoch != _lifecycleEpoch) return;
@@ -167,11 +210,39 @@ extension _AppControllerRefresh on AppController {
       }
       final result =
           cachedResult ??
-          switch ((_backend, query)) {
-            (FeatureQueryBackend queryBackend, final FeatureQuery value) =>
-              await queryBackend.loadFeatureQuery(feature, value),
-            _ => await _backend.loadFeature(feature),
-          };
+          await _readScheduledFeature(
+            feature,
+            query,
+            scope,
+            writeReadback: writeReadback,
+            onBatch: (batch) {
+              if (!scope.valid) return;
+              if (query == null &&
+                  _isHomeDefaultCurrent(feature, generation, lifecycleEpoch)) {
+                _acceptHomeDefault(
+                  feature,
+                  batch.result,
+                  FeatureReadContext(requestRevision: generation),
+                );
+                _homeDefaults[feature] = _homeDefaults[feature]!.copyWith(
+                  status: FeatureLoadStatus.loading,
+                );
+              }
+              if (_applyFeatureResultIfCurrent(
+                feature,
+                batch.result,
+                generation,
+                lifecycleEpoch,
+                ygdkGeneration: ygdkGeneration,
+                preservePreviousOnFailure: hadPreviousData,
+              )) {
+                _snapshots[feature] = _snapshots[feature]!.copyWith(
+                  status: FeatureLoadStatus.loading,
+                );
+              }
+              _notify();
+            },
+          );
       if (query == null &&
           _isHomeDefaultCurrent(feature, generation, lifecycleEpoch)) {
         _acceptHomeDefault(
@@ -202,6 +273,7 @@ extension _AppControllerRefresh on AppController {
         latency: DateTime.now().difference(started),
       );
     } on Object catch (error, stackTrace) {
+      if (error is ReadCancelled) return;
       final featureCurrent = _isFeatureLoadCurrent(
         feature,
         generation,
@@ -244,6 +316,10 @@ extension _AppControllerRefresh on AppController {
         error: uiError,
         latency: DateTime.now().difference(started),
       );
+    } finally {
+      scope.cancel();
+      _readScopes.remove(scope);
+      if (!scope.completion.isCompleted) scope.completion.complete();
     }
     _notify();
   }
@@ -267,6 +343,9 @@ extension _AppControllerRefresh on AppController {
     }
     // 已保存的只读内容不因读取失败消失；身份不符由独立边界清空。
     if (result.error != null &&
+        result.evidence == null &&
+        result.details.isEmpty &&
+        result.overview == null &&
         ((_snapshots[feature]!.evidence != null) ||
             (preservePreviousOnFailure &&
                 (result.error?.code == UbaaErrorCode.networkError ||
@@ -284,7 +363,11 @@ extension _AppControllerRefresh on AppController {
       return true;
     }
     final status = result.error != null
-        ? FeatureLoadStatus.failure
+        ? (result.evidence != null ||
+                  result.details.isNotEmpty ||
+                  result.overview != null
+              ? FeatureLoadStatus.stale
+              : FeatureLoadStatus.failure)
         : result.isEmpty
         ? FeatureLoadStatus.empty
         : FeatureLoadStatus.success;

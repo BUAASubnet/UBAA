@@ -801,3 +801,74 @@ fn persistent_refresh_authentication_failure_marks_attempt_without_erasing_saved
     drop(cache);
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn progressive_summary_time_tracks_remaining_old_items_instead_of_latest_batch_time() {
+    use ubaa_core::facade::{
+        CacheCompleteness, CachePayload, CacheQuery, CacheScope, JudgeAssignmentSummary,
+        JudgeRefreshOptions, OfflineRepository,
+    };
+    let (root, mut client, cache, _) = setup("judge-summary-source-time");
+    let mut repository = OfflineRepository::open(
+        &root,
+        "0123456789abcdef0123456789abcdef",
+        CacheKey::new([9; 32]),
+        CacheLimits::default(),
+    )
+    .unwrap();
+    let ticket = repository
+        .begin_read(CacheScope {
+            route: ConnectionMode::Direct,
+            query: CacheQuery::JudgeSummaries {
+                include_expired: false,
+            },
+        })
+        .unwrap();
+    repository
+        .publish(
+            &ticket,
+            CachePayload::JudgeSummaries(vec![
+                JudgeAssignmentSummary {
+                    course_id: "12".into(),
+                    course_name: "Course A".into(),
+                    assignment_id: "101".into(),
+                    title: "Task A1".into(),
+                    ..Default::default()
+                },
+                JudgeAssignmentSummary {
+                    course_id: "12".into(),
+                    course_name: "Course A".into(),
+                    assignment_id: "102".into(),
+                    title: "Task A2".into(),
+                    ..Default::default()
+                },
+            ]),
+            100,
+            CacheCompleteness::Complete,
+        )
+        .unwrap();
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            let mut refresh = client
+                .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+                .await
+                .unwrap();
+            let index = client.next_judge_refresh(&mut refresh).await.unwrap();
+            assert_eq!(index.summary_fetched_at, 100);
+            assert!(index.summary_has_cached);
+            let first = client.next_judge_refresh(&mut refresh).await.unwrap();
+            assert_eq!(
+                first.summary_fetched_at, 100,
+                "仍有旧项目，不能使用新详情的时间"
+            );
+            assert!(first.summary_has_cached);
+            let second = client.next_judge_refresh(&mut refresh).await.unwrap();
+            assert!(second.summary_fetched_at > 100);
+            assert!(!second.summary_has_cached);
+        });
+    drop((repository, cache));
+    let _ = std::fs::remove_dir_all(root);
+}

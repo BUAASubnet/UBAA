@@ -28,7 +28,8 @@ extension _AppControllerOfflineCache on AppController {
           continue;
         final previous = _homeDefaults[projection.feature]!;
         // 磁盘慢于网络时不能倒退；当前查询面板不接收首页默认查询的数据。
-        if (previous.evidence?.origin == DataOrigin.online ||
+        if ((previous.evidence != null &&
+                previous.evidence!.origin != DataOrigin.persisted) ||
             previous.status == FeatureLoadStatus.success ||
             previous.status == FeatureLoadStatus.empty)
           continue;
@@ -38,7 +39,8 @@ extension _AppControllerOfflineCache on AppController {
         _homeDefaults[projection.feature] = snapshot;
         final visible = _snapshots[projection.feature]!;
         if (visible.readContext?.query == null &&
-            visible.evidence?.origin != DataOrigin.online &&
+            (visible.evidence == null ||
+                visible.evidence!.origin == DataOrigin.persisted) &&
             visible.status != FeatureLoadStatus.success &&
             visible.status != FeatureLoadStatus.empty) {
           _snapshots[projection.feature] = snapshot.copyWith(

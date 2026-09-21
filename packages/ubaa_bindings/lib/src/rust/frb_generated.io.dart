@@ -4,6 +4,7 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/client.dart';
+import 'api/judge_refresh.dart';
 import 'api/judge_scan.dart';
 import 'api/offline.dart';
 import 'api/read.dart';
@@ -29,6 +30,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClientPtr;
 
   CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_BridgeJudgeRefreshTaskPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTaskPtr;
+
+  CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_BridgeJudgeScanPtr => wire
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeScanPtr;
 
@@ -39,6 +44,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeClient
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeJudgeRefreshTask
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask(
     dynamic raw,
   );
 
@@ -61,6 +72,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeJudgeRefreshTask
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask(
+    dynamic raw,
+  );
+
+  @protected
   BridgeJudgeScan
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeScan(
     dynamic raw,
@@ -75,6 +92,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeClient
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeJudgeRefreshTask
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask(
     dynamic raw,
   );
 
@@ -176,6 +199,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_box_autoadd_bridge_judge_assignment_detail(dynamic raw);
 
   @protected
+  BridgeJudgeAssignmentKey dco_decode_box_autoadd_bridge_judge_assignment_key(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeJudgeRefreshOptions dco_decode_box_autoadd_bridge_judge_refresh_options(
+    dynamic raw,
+  );
+
+  @protected
   BridgeLibbookCancelBookingRequest
   dco_decode_box_autoadd_bridge_libbook_cancel_booking_request(dynamic raw);
 
@@ -213,6 +246,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int dco_decode_box_autoadd_i_32(dynamic raw);
+
+  @protected
+  PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
 
   @protected
   BridgeActionEligibility dco_decode_bridge_action_eligibility(dynamic raw);
@@ -454,7 +490,15 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeJudgeProblem dco_decode_bridge_judge_problem(dynamic raw);
 
   @protected
+  BridgeJudgeProgress dco_decode_bridge_judge_progress(dynamic raw);
+
+  @protected
   BridgeJudgeRefresh dco_decode_bridge_judge_refresh(dynamic raw);
+
+  @protected
+  BridgeJudgeRefreshOptions dco_decode_bridge_judge_refresh_options(
+    dynamic raw,
+  );
 
   @protected
   BridgeJudgeScanBatch dco_decode_bridge_judge_scan_batch(dynamic raw);
@@ -979,6 +1023,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_opt_box_autoadd_bridge_judge_assignment_detail(dynamic raw);
 
   @protected
+  BridgeJudgeAssignmentKey?
+  dco_decode_opt_box_autoadd_bridge_judge_assignment_key(dynamic raw);
+
+  @protected
   BridgeSafeError? dco_decode_opt_box_autoadd_bridge_safe_error(dynamic raw);
 
   @protected
@@ -1002,6 +1050,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int? dco_decode_opt_box_autoadd_i_32(dynamic raw);
 
   @protected
+  PlatformInt64? dco_decode_opt_box_autoadd_i_64(dynamic raw);
+
+  @protected
   int dco_decode_u_32(dynamic raw);
 
   @protected
@@ -1016,6 +1067,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeClient
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeJudgeRefreshTask
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask(
     SseDeserializer deserializer,
   );
 
@@ -1038,6 +1095,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeJudgeRefreshTask
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeJudgeScan
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeScan(
     SseDeserializer deserializer,
@@ -1052,6 +1115,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeClient
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeJudgeRefreshTask
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask(
     SseDeserializer deserializer,
   );
 
@@ -1181,6 +1250,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeJudgeAssignmentKey sse_decode_box_autoadd_bridge_judge_assignment_key(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeJudgeRefreshOptions sse_decode_box_autoadd_bridge_judge_refresh_options(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeLibbookCancelBookingRequest
   sse_decode_box_autoadd_bridge_libbook_cancel_booking_request(
     SseDeserializer deserializer,
@@ -1228,6 +1307,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   int sse_decode_box_autoadd_i_32(SseDeserializer deserializer);
+
+  @protected
+  PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
 
   @protected
   BridgeActionEligibility sse_decode_bridge_action_eligibility(
@@ -1541,7 +1623,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeJudgeProgress sse_decode_bridge_judge_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeJudgeRefresh sse_decode_bridge_judge_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeJudgeRefreshOptions sse_decode_bridge_judge_refresh_options(
     SseDeserializer deserializer,
   );
 
@@ -2234,6 +2326,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeJudgeAssignmentKey?
+  sse_decode_opt_box_autoadd_bridge_judge_assignment_key(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeSafeError? sse_decode_opt_box_autoadd_bridge_safe_error(
     SseDeserializer deserializer,
   );
@@ -2261,6 +2359,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int? sse_decode_opt_box_autoadd_i_32(SseDeserializer deserializer);
 
   @protected
+  PlatformInt64? sse_decode_opt_box_autoadd_i_64(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
@@ -2276,6 +2377,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
     BridgeClient self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask(
+    BridgeJudgeRefreshTask self,
     SseSerializer serializer,
   );
 
@@ -2302,6 +2410,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask(
+    BridgeJudgeRefreshTask self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeScan(
     BridgeJudgeScan self,
     SseSerializer serializer,
@@ -2318,6 +2433,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
     BridgeClient self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask(
+    BridgeJudgeRefreshTask self,
     SseSerializer serializer,
   );
 
@@ -2459,6 +2581,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bridge_judge_assignment_key(
+    BridgeJudgeAssignmentKey self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_judge_refresh_options(
+    BridgeJudgeRefreshOptions self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bridge_libbook_cancel_booking_request(
     BridgeLibbookCancelBookingRequest self,
     SseSerializer serializer,
@@ -2511,6 +2645,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_i_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_i_64(
+    PlatformInt64 self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_bridge_action_eligibility(
@@ -2894,8 +3034,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_judge_progress(
+    BridgeJudgeProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_judge_refresh(
     BridgeJudgeRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_judge_refresh_options(
+    BridgeJudgeRefreshOptions self,
     SseSerializer serializer,
   );
 
@@ -3737,6 +3889,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_bridge_judge_assignment_key(
+    BridgeJudgeAssignmentKey? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_bridge_safe_error(
     BridgeSafeError? self,
     SseSerializer serializer,
@@ -3765,6 +3923,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_opt_box_autoadd_i_32(int? self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_opt_box_autoadd_i_64(
+    PlatformInt64? self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_u_32(int self, SseSerializer serializer);
@@ -3825,6 +3989,40 @@ class RustLibWire implements BaseWire {
       );
   late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient =
       _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClientPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTaskPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTaskPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTaskPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTask =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeRefreshTaskPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void

@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `13`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `14`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -38,7 +38,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=13` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=14` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -543,3 +543,9 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
 扫描绑定创建客户端、路线配置代次、会话功能代次及本机缓存请求票据。退出、清理、同范围新请求、换路线再换回或取消都不能恢复旧计划。`cancel()` 只设置原子标记，不获取网络锁；已经发送的 HTTP 会正常收尾，迟到内容被丢弃，不声明在途请求立即中断。存在学校写意图时 begin/next 均返回 `operation_conflict` 且保留原意图。
 
 `BridgeJudgeScanBatch` 包含 Assignments/Detail/CourseFailure/Finished、实际路线、课程、逐项内容、原错误、finished、complete 和 failedCourses。单课程普通故障跳过该课程余项并继续其他课程；认证或会话内部冲突停止整个计划。finished 只表示遍历结束，complete 还要求无失败课程。该接口暂复用原内存 TTL，不将返回时间冒充网络取得时间；也不表示已完成持久索引/详情发布。includeExpired 目前隔离扫描请求票据，原始索引/详情均返回，由后续选择性刷新层执行明确筛选。App 业务调度接线尚未完成，不能以新增接口代替端到端抢占验收。
+
+### v14 希冀持久渐进刷新
+
+`beginJudgeRefresh(cache, options)` 创建 P3-A 刷新计划；`nextJudgeRefresh(task)` 只推进一批并释放共享锁；`task.cancel()` 仅设置原子取消标记。options 的 includeExpired/fullRefresh/preferredCourse/currentAssignment 均为客户端筛选、复查和优先级输入，不新增学校参数。详情目标课程不在已验证索引中时立即报告 invalid_input，不遍历其他课程冒充目标。
+
+`BridgeJudgeProgress` 返回原分批内容、渐进摘要、汇总最早来源时间 summaryFetchedAt、是否含缓存 summaryHasCached、本批来源时间 sourceFetchedAt、复用标记和独立保存错误。数据时间不表示整次同步结束；finished/complete/failedCourses 分别表达遍历终态、完整覆盖和失败范围。begin/next 保留原写意图保护、账号/路线/票据栅栏和错误路线信息。旧 CLI、双路线及聚合接口保持原义。

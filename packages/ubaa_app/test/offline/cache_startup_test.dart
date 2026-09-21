@@ -190,6 +190,30 @@ void main() {
     expect(backend.deactivated, 1);
     expect(controller.homeSnapshots[FeatureId.schedule]!.details, isEmpty);
   });
+  test('仍在更新的混合来源内容不能被迟到磁盘投影覆盖', () async {
+    final backend = _MixedBackend()..diskGate = Completer<void>();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: await support.savedAccounts(),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await backend.cacheRead.future;
+    await controller.recoverSession();
+    for (var i = 0; i < 100 && backend.task.calls < 2; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(backend.task.calls, 2);
+    backend.diskGate!.complete();
+    await Future<void>.delayed(Duration.zero);
+    final snapshot = controller.homeSnapshots[FeatureId.schedule]!;
+    expect(snapshot.status, FeatureLoadStatus.loading);
+    expect(snapshot.evidence?.origin, DataOrigin.mixed);
+    expect(snapshot.details.single.title, '新旧混合课程');
+    backend.task.finish.complete(
+      FeatureReadBatch(backend.mixedResult(), finished: true),
+    );
+  });
 }
 
 class _CachedBackend extends support.FakeRecoveryBackend
@@ -250,4 +274,36 @@ class _CachedBackend extends support.FakeRecoveryBackend
           retryable: true,
         ),
       );
+}
+
+class _MixedBackend extends _CachedBackend implements ProgressiveReadBackend {
+  late final task = _MixedTask(mixedResult);
+  FeatureResult mixedResult() => FeatureResult.success(
+    details: const [FeatureDetail(title: '新旧混合课程')],
+    evidence: DataEvidence(
+      accountId: account!.id,
+      origin: DataOrigin.mixed,
+      fetchedAt: DateTime.fromMillisecondsSinceEpoch(100000),
+      complete: false,
+      savedForOffline: false,
+    ),
+  );
+  @override
+  Future<FeatureReadTask?> beginFeatureRead(
+    FeatureId feature,
+    FeatureQuery? query,
+  ) async => feature == FeatureId.schedule ? task : null;
+}
+
+class _MixedTask implements FeatureReadTask {
+  _MixedTask(this.result);
+  final FeatureResult Function() result;
+  final finish = Completer<FeatureReadBatch>();
+  int calls = 0;
+  @override
+  Future<FeatureReadBatch> next() async => ++calls == 1
+      ? FeatureReadBatch(result(), finished: false)
+      : finish.future;
+  @override
+  void cancel() {}
 }

@@ -85,6 +85,7 @@ class FeatureQuery {
     this.courseId,
     this.judgeKeys = const <JudgeAssignmentQueryKey>[],
     this.includeExpired = false,
+    this.fullRefresh = false,
   });
 
   final String? term;
@@ -120,6 +121,9 @@ class FeatureQuery {
   final List<JudgeAssignmentQueryKey> judgeKeys;
   final bool includeExpired;
 
+  /// 仅控制客户端缓存复用，不添加学校请求参数。
+  final bool fullRefresh;
+
   /// 比较完整读取参数；不序列化文本，也不忽略批量键的顺序。
   bool hasSameParameters(FeatureQuery other) {
     if (term != other.term ||
@@ -142,6 +146,7 @@ class FeatureQuery {
         assignmentId != other.assignmentId ||
         courseId != other.courseId ||
         includeExpired != other.includeExpired ||
+        fullRefresh != other.fullRefresh ||
         date?.isUtc != other.date?.isUtc ||
         judgeKeys.length != other.judgeKeys.length) {
       return false;
@@ -174,6 +179,7 @@ class FeatureQuery {
     String? courseId,
     List<JudgeAssignmentQueryKey>? judgeKeys,
     bool? includeExpired,
+    bool? fullRefresh,
   }) => FeatureQuery(
     term: term ?? this.term,
     date: date ?? this.date,
@@ -196,5 +202,6 @@ class FeatureQuery {
     courseId: courseId ?? this.courseId,
     judgeKeys: judgeKeys ?? this.judgeKeys,
     includeExpired: includeExpired ?? this.includeExpired,
+    fullRefresh: fullRefresh ?? this.fullRefresh,
   );
 }

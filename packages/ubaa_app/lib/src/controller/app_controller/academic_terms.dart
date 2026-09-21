@@ -69,7 +69,10 @@ extension _AppControllerAcademicTerms on AppController {
         _academicTermsSerial == serial;
     try {
       // 即使 backend 在返回 Future 前同步抛错，也先建立在途句柄再清理。
-      final result = await Future<FeatureResult>.sync(
+      final result = await _scheduleAuxiliaryRead(
+        backend,
+        ReadPriority.interactive,
+        current,
         () => queryBackend.loadFeatureQuery(
           FeatureId.schedule,
           const FeatureQuery(view: FeatureQueryView.scheduleTerms),

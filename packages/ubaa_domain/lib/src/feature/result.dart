@@ -126,6 +126,18 @@ class FeatureResult {
        isEmpty = true,
        error = null;
 
+  /// 部分范围失败时交付仍合法的新旧内容，错误与数据同时保留。
+  const FeatureResult.partial({
+    required UiError error,
+    this.summary,
+    this.overview,
+    this.evidence,
+    this.details = const <FeatureDetail>[],
+    this.resolvedRoute,
+    this.pagination,
+  }) : isEmpty = false,
+       error = error;
+
   const FeatureResult.failure(this.error)
     : evidence = null,
       overview = null,

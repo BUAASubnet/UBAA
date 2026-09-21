@@ -72,6 +72,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
   FeatureQueryView _judgeView = FeatureQueryView.summary;
   FeatureQueryView _signinView = FeatureQueryView.summary;
   bool _includeExpired = false;
+  bool _fullRefresh = false;
   bool _submitting = false;
   bool _libraryNeedsExplicitDate = false;
   bool _libraryDateError = false;
@@ -173,6 +174,7 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
         .map((key) => '${key.courseId}/${key.assignmentId}')
         .join('\n');
     _includeExpired = query.includeExpired;
+    _fullRefresh = query.fullRefresh;
     switch (widget.feature) {
       case FeatureId.schedule:
         _scheduleView = query.view;
@@ -526,6 +528,10 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
               ? _optionalText(_bykcCourseController)
               : null,
           judgeKeys: judgeKeys,
+          fullRefresh:
+              widget.feature == FeatureId.judge &&
+              _judgeView == FeatureQueryView.summary &&
+              _fullRefresh,
           includeExpired:
               widget.feature == FeatureId.judge &&
                   _judgeView == FeatureQueryView.summary

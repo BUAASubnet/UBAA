@@ -799,7 +799,7 @@ void _registerQueryTests() {
     expect(received?.includeExpired, isFalse);
   });
 
-  testWidgets('希冀查询控件可包含已过期作业', (tester) async {
+  testWidgets('希冀查询控件保留包含历史并可显式完整刷新', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -838,9 +838,12 @@ void _registerQueryTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('包含已过期作业'));
     await tester.pumpAndSettle();
+    await tester.tap(find.text('完整刷新'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();
     expect(received?.includeExpired, isTrue);
+    expect(received?.fullRefresh, isTrue);
   });
 
   testWidgets('希冀查询控件提交批量作业详情 typed 键', (tester) async {

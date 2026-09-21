@@ -49,9 +49,14 @@ extension _AppControllerCgyyPurposes on AppController {
   Future<void> _fetchCgyyPurposes(_CgyyPurposeCache cache) async {
     FeatureResult result;
     try {
-      result = await (cache.backend as FeatureQueryBackend).loadFeatureQuery(
-        FeatureId.cgyy,
-        const FeatureQuery(view: FeatureQueryView.cgyyPurposeTypes),
+      result = await _scheduleAuxiliaryRead(
+        cache.backend,
+        ReadPriority.interactive,
+        () => _purposesCurrent(cache),
+        () => (cache.backend as FeatureQueryBackend).loadFeatureQuery(
+          FeatureId.cgyy,
+          const FeatureQuery(view: FeatureQueryView.cgyyPurposeTypes),
+        ),
       );
       if (!_purposesCurrent(cache)) {
         result = FeatureResult.failure(

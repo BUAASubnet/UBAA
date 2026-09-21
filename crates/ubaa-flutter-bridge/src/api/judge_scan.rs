@@ -107,34 +107,7 @@ impl BridgeClient {
                 .next_judge_scan(&mut plan)
                 .await
                 .map_err(offline_read_error)?;
-            let data = result.data;
-            Ok(BridgeJudgeScanBatch {
-                kind: match data.kind {
-                    core::JudgeScanKind::Assignments => BridgeJudgeScanKind::Assignments,
-                    core::JudgeScanKind::Detail => BridgeJudgeScanKind::Detail,
-                    core::JudgeScanKind::CourseFailure => BridgeJudgeScanKind::CourseFailure,
-                    core::JudgeScanKind::Finished => BridgeJudgeScanKind::Finished,
-                },
-                route: map_route(result.resolution),
-                course_id: data.course_id,
-                assignments: data
-                    .assignments
-                    .into_iter()
-                    .map(|item| BridgeJudgeAssignmentIndex {
-                        assignment_id: item.assignment_id,
-                        course_id: item.course_id,
-                        course_name: item.course_name,
-                        title: item.title,
-                    })
-                    .collect(),
-                detail: data.detail.map(map_judge_detail),
-                error: data.error.map(|error| {
-                    BridgeError::from_core(error, Some(result.resolution.mode.into()))
-                }),
-                finished: data.finished,
-                complete: data.complete,
-                failed_courses: u32::try_from(data.failed_courses).unwrap_or(u32::MAX),
-            })
+            Ok(map_scan_batch(result))
         })
         .await
     }
@@ -143,3 +116,34 @@ impl BridgeClient {
 #[cfg(test)]
 #[path = "judge_scan/tests.rs"]
 mod tests;
+
+pub(super) fn map_scan_batch(result: core::Routed<core::JudgeScanBatch>) -> BridgeJudgeScanBatch {
+    let data = result.data;
+    BridgeJudgeScanBatch {
+        kind: match data.kind {
+            core::JudgeScanKind::Assignments => BridgeJudgeScanKind::Assignments,
+            core::JudgeScanKind::Detail => BridgeJudgeScanKind::Detail,
+            core::JudgeScanKind::CourseFailure => BridgeJudgeScanKind::CourseFailure,
+            core::JudgeScanKind::Finished => BridgeJudgeScanKind::Finished,
+        },
+        route: map_route(result.resolution),
+        course_id: data.course_id,
+        assignments: data
+            .assignments
+            .into_iter()
+            .map(|item| BridgeJudgeAssignmentIndex {
+                assignment_id: item.assignment_id,
+                course_id: item.course_id,
+                course_name: item.course_name,
+                title: item.title,
+            })
+            .collect(),
+        detail: data.detail.map(map_judge_detail),
+        error: data
+            .error
+            .map(|error| BridgeError::from_core(error, Some(result.resolution.mode.into()))),
+        finished: data.finished,
+        complete: data.complete,
+        failed_courses: u32::try_from(data.failed_courses).unwrap_or(u32::MAX),
+    }
+}

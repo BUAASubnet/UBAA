@@ -74,9 +74,14 @@ extension _AppControllerAcademicWeeks on AppController {
     FeatureResult result;
     try {
       // 先登记entry再调用backend，同步抛错也不会留下悬空在途状态。
-      result = await (cache.backend as FeatureQueryBackend).loadFeatureQuery(
-        FeatureId.schedule,
-        FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: term),
+      result = await _scheduleAuxiliaryRead(
+        cache.backend,
+        ReadPriority.interactive,
+        () => _weeksCurrent(cache),
+        () => (cache.backend as FeatureQueryBackend).loadFeatureQuery(
+          FeatureId.schedule,
+          FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: term),
+        ),
       );
       if (!_weeksCurrent(cache)) {
         result = _academicTermsConflict();

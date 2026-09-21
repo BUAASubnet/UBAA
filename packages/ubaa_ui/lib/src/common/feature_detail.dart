@@ -129,7 +129,9 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
   Widget build(BuildContext context) {
     final showDetails =
         (widget.snapshot.status == FeatureLoadStatus.success ||
-            widget.snapshot.status == FeatureLoadStatus.stale) &&
+            widget.snapshot.status == FeatureLoadStatus.stale ||
+            (widget.feature == FeatureId.judge &&
+                widget.snapshot.status == FeatureLoadStatus.loading)) &&
         widget.snapshot.details.isNotEmpty;
     final defaultContent = widget.isLanding
         ? _FeatureLandingMenu(

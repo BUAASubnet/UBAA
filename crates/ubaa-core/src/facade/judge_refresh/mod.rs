@@ -8,7 +8,7 @@ use super::{
     JudgeAssignmentKey, JudgeAssignmentSummary, JudgeScan, JudgeScanBatch, JudgeScanCancellation,
     JudgeScanKind, OfflineCache, OfflineReadError, UbaaClient,
 };
-use std::collections::BTreeMap;
+use std::collections::{BTreeMap, HashSet};
 
 #[derive(Clone, Default)]
 pub struct JudgeRefreshOptions {
@@ -23,11 +23,18 @@ pub struct JudgeRefresh {
     options: JudgeRefreshOptions,
     summaries: BTreeMap<(String, String), JudgeAssignmentSummary>,
     original: Vec<JudgeAssignmentSummary>,
+    original_source_at: i64,
+    source_times: BTreeMap<(String, String), i64>,
+    cached_keys: HashSet<(String, String)>,
     oldest_source_at: i64,
     save_error: Option<CacheError>,
     history: Option<history::CourseProgress>,
 }
 impl JudgeRefresh {
+    #[must_use]
+    pub const fn resolution(&self) -> super::RouteResolution {
+        self.scan.resolution
+    }
     #[must_use]
     pub fn courses(&self) -> &[super::Course] {
         self.scan.courses()
@@ -41,6 +48,8 @@ pub struct JudgeRefreshBatch {
     pub resolution: super::RouteResolution,
     pub batch: JudgeScanBatch,
     pub summaries: Vec<JudgeAssignmentSummary>,
+    pub summary_fetched_at: i64,
+    pub summary_has_cached: bool,
     pub reused: bool,
     pub fetched_at: Option<i64>,
     pub save_error: Option<CacheError>,
@@ -83,9 +92,13 @@ impl UbaaClient {
                 }),
             )?;
         }
+        let mut original_source_at = now;
         let original = match cache.read_judge(scan.resolution.mode, options.include_expired) {
             Ok(Some(record)) => match record.payload {
-                CachePayload::JudgeSummaries(items) => items,
+                CachePayload::JudgeSummaries(items) => {
+                    original_source_at = record.fetched_at;
+                    items
+                }
                 _ => Vec::new(),
             },
             Ok(None) => Vec::new(),
@@ -94,12 +107,21 @@ impl UbaaClient {
                 Vec::new()
             }
         };
-        let summaries = original
+        let summaries: BTreeMap<_, _> = original
             .iter()
             .cloned()
             .map(|item| ((item.course_id.clone(), item.assignment_id.clone()), item))
             .collect();
+        let source_times = summaries
+            .keys()
+            .cloned()
+            .map(|key| (key, original_source_at))
+            .collect();
+        let cached_keys = summaries.keys().cloned().collect();
         Ok(JudgeRefresh {
+            original_source_at,
+            source_times,
+            cached_keys,
             history: None,
             scan,
             options,

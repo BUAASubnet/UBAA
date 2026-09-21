@@ -1,7 +1,7 @@
 import 'package:meta/meta.dart';
 
 /// 数据取得来源与当前认证状态无关。
-enum DataOrigin { persisted, online }
+enum DataOrigin { persisted, mixed, online }
 
 /// 展示所依据的账号、时间与覆盖范围，不授予任何学校写资格。
 @immutable

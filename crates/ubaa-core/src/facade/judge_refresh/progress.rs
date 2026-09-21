@@ -33,6 +33,21 @@ pub(super) fn finish(
             .then_with(|| a.course_id.cmp(&b.course_id))
             .then_with(|| a.assignment_id.cmp(&b.assignment_id))
     });
+    let summary_fetched_at = summaries
+        .iter()
+        .filter_map(|item| {
+            refresh
+                .source_times
+                .get(&(item.course_id.clone(), item.assignment_id.clone()))
+        })
+        .copied()
+        .min()
+        .unwrap_or(refresh.oldest_source_at);
+    let summary_has_cached = summaries.iter().any(|item| {
+        refresh
+            .cached_keys
+            .contains(&(item.course_id.clone(), item.assignment_id.clone()))
+    });
     refresh
         .scan
         .cache
@@ -51,7 +66,7 @@ pub(super) fn finish(
                     &refresh.scan.ticket,
                     CachePayload::JudgeSummaries(summaries.clone()),
                     crate::cache::CacheObservation {
-                        source_at: refresh.oldest_source_at,
+                        source_at: summary_fetched_at,
                         attempted_at: now,
                     },
                     completeness,
@@ -63,6 +78,8 @@ pub(super) fn finish(
         resolution: refresh.scan.resolution,
         batch: step.batch,
         summaries,
+        summary_fetched_at,
+        summary_has_cached,
         reused: step.reused,
         fetched_at: Some(step.source_at),
         save_error: refresh.save_error,
@@ -96,6 +113,13 @@ fn apply_content(
         }
         JudgeScanKind::Detail => {
             if let Some(detail) = &batch.detail {
+                let key = (detail.course_id.clone(), detail.assignment_id.clone());
+                refresh.source_times.insert(key.clone(), step.source_at);
+                if step.reused {
+                    refresh.cached_keys.insert(key);
+                } else {
+                    refresh.cached_keys.remove(&key);
+                }
                 refresh.summaries.insert(
                     (detail.course_id.clone(), detail.assignment_id.clone()),
                     crate::features::judge::to_summary(detail),
@@ -120,6 +144,11 @@ fn apply_content(
                     .iter()
                     .filter(|item| &item.course_id == course_id)
                 {
+                    let key = (item.course_id.clone(), item.assignment_id.clone());
+                    refresh
+                        .source_times
+                        .insert(key.clone(), refresh.original_source_at);
+                    refresh.cached_keys.insert(key);
                     refresh.summaries.insert(
                         (item.course_id.clone(), item.assignment_id.clone()),
                         item.clone(),

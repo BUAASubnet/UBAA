@@ -5,6 +5,22 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'support/navigation.dart';
 
 void main() {
+  testWidgets('希冀首批在继续加载时可见可打开，返回后继续未完成列表', (tester) async {
+    final state = await showHarness(tester);
+    state.progressive();
+    await tester.pump();
+    expect(find.text('A 作业'), findsOneWidget);
+    final target = find.byTooltip('查看作业详情').first;
+    await tester.ensureVisible(target);
+    await tester.tap(target);
+    await tester.pumpAndSettle();
+    expect(state.queries.single.view, FeatureQueryView.judgeDetail);
+    expect(state.queries.single.courseId, 'A');
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    expect(state.queries, hasLength(2));
+    expect(state.queries.last.view, FeatureQueryView.summary);
+  });
   testWidgets('手机单项返回后更换搜索仍能选择另一课程作业', (tester) async {
     await showHarness(tester, size: const Size(402, 874));
     Future<void> search(String value) async {
@@ -197,6 +213,12 @@ class _HarnessState extends State<_Harness> {
                 ),
               ),
       );
+  void progressive() => setState(() {
+    snapshot = snapshot.copyWith(
+      status: FeatureLoadStatus.loading,
+      updatedAt: DateTime.utc(2026, 9, 22),
+    );
+  });
   void invalidate() => setState(() {
     epoch++;
   });

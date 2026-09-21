@@ -232,9 +232,14 @@ extension _AppControllerGrades on AppController {
       }
       result =
           reusable ??
-          await (cache.backend as FeatureQueryBackend).loadFeatureQuery(
-            FeatureId.grades,
-            FeatureQuery(term: term),
+          await _scheduleAuxiliaryRead(
+            cache.backend,
+            ReadPriority.interactive,
+            () => _gradesCurrent(cache),
+            () => (cache.backend as FeatureQueryBackend).loadFeatureQuery(
+              FeatureId.grades,
+              FeatureQuery(term: term),
+            ),
           );
       if (result.error == null) {
         final overview = result.overview;

@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'judge_refresh.dart';
 import 'judge_scan.dart';
 import 'offline.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
@@ -22,6 +23,15 @@ abstract class BridgeClient implements RustOpaqueInterface {
   ///
   /// 客户端已销毁或 Core 无法读取认证状态时返回安全错误。
   Future<BridgeLoginOutcome> authStatus();
+
+  /// 创建持久刷新计划；仅执行身份核实与课程索引步骤。
+  ///
+  /// # Errors
+  /// 学校读取、账号栅栏、待确认写意图或客户端失效时返回稳定错误。
+  Future<BridgeJudgeRefreshTask> beginJudgeRefresh({
+    required BridgeOfflineCache cache,
+    required BridgeJudgeRefreshOptions options,
+  });
 
   /// 开始有界扫描。索引成功返回后释放客户端共享锁。
   ///
@@ -184,6 +194,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
   ///
   /// 客户端已销毁或 Core 注销失败时返回安全错误。
   Future<void> logout();
+
+  /// 返回一批渐进结果后归还共享锁；缓存来源时间与同步完整度独立传递。
+  ///
+  /// # Errors
+  /// 取消、账号/路线变化、写活动冲突或认证仲裁失败时停止旧计划。
+  Future<BridgeJudgeProgress> nextJudgeRefresh({
+    required BridgeJudgeRefreshTask task,
+  });
 
   /// 完成一次完整选课及索引或详情读取，然后归还共享锁。
   ///

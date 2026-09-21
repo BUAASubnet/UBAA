@@ -129,6 +129,14 @@ extension _AssignmentsQueryControls on _FeatureQueryControlsState {
         ),
       if (_judgeView == FeatureQueryView.summary)
         FilterChip(
+          label: const Text('完整刷新'),
+          selected: _fullRefresh,
+          onSelected: _submitting
+              ? null
+              : (selected) => setState(() => _fullRefresh = selected),
+        ),
+      if (_judgeView == FeatureQueryView.summary)
+        FilterChip(
           label: const Text('包含已过期作业'),
           selected: _includeExpired,
           onSelected: _submitting

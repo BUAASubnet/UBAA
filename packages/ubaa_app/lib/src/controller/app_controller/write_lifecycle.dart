@@ -34,6 +34,7 @@ extension _AppControllerWriteLifecycle on AppController {
   void _endWriteTransition() {
     _writeTransitions--;
     _drainDeferredRecovery();
+    _pumpReadTasks();
   }
 
   void _replaceWriteCoordinator(UbaaBackend backend) {

@@ -412,6 +412,12 @@ String _homeLabel(FeatureId feature) => switch (feature) {
 String _homeSummary(FeatureSnapshot snapshot) =>
     snapshot.evidence?.origin == DataOrigin.persisted
     ? '上次保存 ${_savedScheduleTime(snapshot.evidence!.fetchedAt)}，待核实更新'
+    : snapshot.evidence?.origin == DataOrigin.mixed
+    ? '含已保存内容 ${_savedScheduleTime(snapshot.evidence!.fetchedAt)}，${snapshot.status == FeatureLoadStatus.loading
+          ? '继续更新'
+          : snapshot.evidence!.complete
+          ? '本轮检查完成'
+          : '部分范围待更新'}'
     : switch (snapshot.status) {
         FeatureLoadStatus.idle => '尚未查询',
         FeatureLoadStatus.loading => '正在加载…',

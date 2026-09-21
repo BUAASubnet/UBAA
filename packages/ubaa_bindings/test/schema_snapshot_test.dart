@@ -53,6 +53,8 @@ void main() {
       'spocAssignment',
       'judgeAssignments',
       'beginJudgeScan',
+      'beginJudgeRefresh',
+      'nextJudgeRefresh',
       'nextJudgeScan',
       'judgeAssignment',
       'judgeAssignmentDetails',

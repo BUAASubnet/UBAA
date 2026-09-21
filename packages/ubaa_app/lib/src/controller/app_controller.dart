@@ -5,6 +5,8 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 import '../contracts/backend.dart';
+import '../contracts/progressive.dart';
+import 'read_scheduler.dart';
 import '../contracts/lifecycle.dart';
 import '../contracts/offline.dart';
 import '../contracts/query.dart';
@@ -21,6 +23,8 @@ import 'error_mapper.dart';
 part 'app_controller/cgyy_readback.dart';
 part 'app_controller/evaluation_readback.dart';
 part 'app_controller/refresh.dart';
+part 'app_controller/read_tasks/progressive.dart';
+part 'app_controller/read_tasks/readback.dart';
 part 'app_controller/academic_terms.dart';
 part 'app_controller/academic_weeks.dart';
 part 'app_controller/cgyy_purposes.dart';
@@ -102,6 +106,7 @@ class AppController extends ChangeNotifier {
            feature: FeatureSnapshot(feature: feature),
        } {
     _writeCoordinator = _createWriteCoordinator(backend);
+    _readScheduler = ReadScheduler(canRun: _canRunScheduledRead);
     _writeCoordinator.addListener(_notify);
   }
 
@@ -154,6 +159,7 @@ class AppController extends ChangeNotifier {
   void setAppForeground(bool foreground) {
     _appForeground = foreground;
     if (foreground) _drainDeferredRecovery();
+    _pumpReadTasks();
   }
 
   /// 返回前台复用当前实例；旧宿主已认证首页也转入同一恢复协调路径。
@@ -171,6 +177,8 @@ class AppController extends ChangeNotifier {
   final LocalDiagnostics _diagnostics;
   final Map<FeatureId, FeatureSnapshot> _snapshots;
   late WriteCoordinator _writeCoordinator;
+  late final ReadScheduler _readScheduler;
+  final _readScopes = <_ProgressiveScope>{};
   int _writeTransitions = 0;
 
   AppPhase _phase = AppPhase.splash;
@@ -654,59 +662,7 @@ class AppController extends ChangeNotifier {
   Future<void> refreshAfterWrite(
     WriteOperation operation, [
     FeatureQuery? readbackQuery,
-  ]) {
-    if (operation == WriteOperation.libbookReserve ||
-        operation == WriteOperation.libbookCancelBooking) {
-      if (_backend is FeatureQueryBackend) {
-        _readCacheEpoch++;
-        return refreshFeatureQuery(
-          FeatureId.libbook,
-          readbackQuery ??
-              const FeatureQuery(view: FeatureQueryView.libbookBookings),
-        );
-      }
-    }
-    if (operation == WriteOperation.cgyySubmitReservation) {
-      // 订单列表是场馆写入的唯一稳定核对入口；若后端不支持筛选查询，
-      // 保留旧的领域刷新兼容路径，不伪造核对成功。
-      if (_backend is FeatureQueryBackend) {
-        _readCacheEpoch++;
-        return refreshFeatureQuery(
-          FeatureId.cgyy,
-          const FeatureQuery(view: FeatureQueryView.cgyyOrders),
-        );
-      }
-    }
-    if (operation == WriteOperation.cgyyCancelOrder) {
-      // 场馆取消必须由 verifyCgyyCancellation 独占执行列表+详情双回读；
-      // 此通用入口不做单列表降级，也不会触发写入重试。
-      return Future<void>.value();
-    }
-    if (operation == WriteOperation.ygdkSubmit) {
-      // 阳光打卡必须由 refreshYgdkAfterWrite 使用 intent 的原路线读取
-      // 概览和首页记录；通用刷新不得降级为 Auto 路线。
-      return Future<void>.value();
-    }
-    if (operation == WriteOperation.evaluationSubmitCourses) {
-      // 评教必须使用 intent 原路线回读；通用刷新不得重新执行 Auto。
-      return Future<void>.value();
-    }
-    final feature = switch (operation) {
-      WriteOperation.bykcSelectCourse ||
-      WriteOperation.bykcDeselectCourse ||
-      WriteOperation.bykcSignCourse => FeatureId.bykc,
-      WriteOperation.signinPerform => FeatureId.signin,
-      WriteOperation.libbookReserve ||
-      WriteOperation.libbookCancelBooking => FeatureId.libbook,
-      WriteOperation.ygdkSubmit => FeatureId.ygdk,
-      WriteOperation.cgyySubmitReservation ||
-      WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
-      WriteOperation.evaluationSubmitCourses => throw StateError(
-        '评教使用调用方固定路线回读',
-      ),
-    };
-    return refreshHome(only: <FeatureId>[feature]);
-  }
+  ]) => _refreshAfterWrite(operation, readbackQuery);
 
   /// 在场馆订单刷新完成后，仅按公开订单编号匹配提交收据。
   ///
@@ -887,6 +843,7 @@ class AppController extends ChangeNotifier {
 
   void _notify() {
     _drainDeferredRecovery();
+    _pumpReadTasks();
     if (!_disposed) notifyListeners();
   }
 
@@ -915,6 +872,10 @@ class AppController extends ChangeNotifier {
   void dispose() {
     if (_disposed) return;
     _disposed = true;
+    for (final scope in _readScopes.toList()) {
+      scope.cancel();
+    }
+    _readScheduler.close();
     _cancelDeferredRecovery();
     _lifecycleEpoch++;
     _ygdkGeneration++;
