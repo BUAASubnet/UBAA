@@ -63,6 +63,9 @@ Future<CachedFeatureProjection?> _cachedCgyyProjection(
       route = _toConnectionMode(value.sourceRoute);
       fetchedAt = value.fetchedAt.toInt();
       complete = value.complete;
+      if (value.data.number != (query.page < 0 ? 0 : query.page) ||
+          value.data.size != query.size.clamp(1, 100))
+        throw const BackendException(UbaaErrorCode.internalError);
       result = _mapCgyyOrdersResult(_cachedCgyyOrdersPage(value.data), route);
     case FeatureQueryView.cgyyOrderDetail:
       final value = await cache.readCgyyDetail(

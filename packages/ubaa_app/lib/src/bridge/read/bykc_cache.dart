@@ -32,6 +32,8 @@ Future<CachedFeatureProjection?> _cachedBykcProjection(
       result = _projectBykcCourses(
         _cachedBykcPage(value.data),
         _toConnectionMode(value.sourceRoute),
+        requestedPage: query.page <= 0 ? 1 : query.page,
+        requestedSize: query.size.clamp(1, 100),
       );
       fetchedAt = value.fetchedAt.toInt();
       complete = value.complete;
@@ -42,6 +44,8 @@ Future<CachedFeatureProjection?> _cachedBykcProjection(
         courseId: _requiredPositiveQueryInt(query.courseId, '课程 ID'),
       );
       if (value == null) return null;
+      if (value.data.id != _requiredPositiveQueryInt(query.courseId, '课程 ID'))
+        throw const BackendException(UbaaErrorCode.internalError);
       result = _projectBykcDetail(
         _cachedBykcCourse(value.data),
         _toConnectionMode(value.sourceRoute),
@@ -156,3 +160,40 @@ BridgeBykcCoursePage _cachedBykcPage(BridgeCachedBykcCoursePage v) =>
       totalElements: v.totalElements,
       totalPages: v.totalPages,
     );
+
+/// 错详情不得生成动作；只能继续显示同账号、路线和查询的旧只读内容。
+Future<FeatureResult> _preserveBykcDetail(
+  BridgeBackend backend,
+  BridgeOfflineCache cache,
+  LocalAccount account,
+  FeatureQuery query,
+  ConnectionMode route,
+) async {
+  final old = await _cachedBykcProjection(
+    cache,
+    account,
+    query,
+    _toBridgeConnectionMode(route),
+  );
+  if (backend._offlineAccount?.id != account.id)
+    throw const BackendException(UbaaErrorCode.operationConflict);
+  if (old == null)
+    throw BackendException(
+      UbaaErrorCode.upstreamChanged,
+      kind: UbaaErrorKind.upstream,
+      retryable: false,
+      resolvedRoute: route,
+    );
+  return FeatureResult.success(
+    summary: '课程详情尚未核对完整',
+    details: old.details,
+    resolvedRoute: old.route,
+    evidence: DataEvidence(
+      accountId: account.id,
+      origin: DataOrigin.persisted,
+      fetchedAt: old.fetchedAt,
+      complete: false,
+      savedForOffline: false,
+    ),
+  );
+}

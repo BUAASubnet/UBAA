@@ -2,8 +2,10 @@ part of '../bridge_backend.dart';
 
 FeatureResult _projectBykcCourses(
   BridgeBykcCoursePage data,
-  ConnectionMode route,
-) {
+  ConnectionMode route, {
+  required int requestedPage,
+  required int requestedSize,
+}) {
   final details = data.content
       .map(
         (item) => FeatureDetail(
@@ -50,8 +52,8 @@ FeatureResult _projectBykcCourses(
     '门博雅课程',
     details: details,
     pagination: _pagination(
-      page: data.number,
-      size: data.size,
+      page: requestedPage,
+      size: requestedSize,
       total: data.totalElements,
       totalPages: data.totalPages,
     ),

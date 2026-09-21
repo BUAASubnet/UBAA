@@ -354,3 +354,14 @@ GREEN：本地读取独立网络锁、页/路线/退出隔离及pending写阻止
 macOS合成集成1项通过：五新增本地读取、缺会话在线缓存入口经真实FRB调用，断言合同v21。应用仍报 Failed to foreground app; open returned 1，只记绑定执行，不作为独立实窗/真实业务证据。没有新增真实学校请求、真实写入、验收媒体或性能测量。资料/评教和阳光分页、跨范围失效、剩余长读/生命周期/多端及双路线真实只读仍待后续；还需统一审查其他领域的“错范围且无旧缓存”投影边界，不能仅凭保存拒绝推定页面安全。
 
 最终refs固定SHA校验与layout零baseline违例通过，暂存敏感扫描5270文件通过。macOS最后复验日志 /tmp/ubaa-p4k-native-final.log 同样1项通过/仍无法置前；非视觉验收。最终暂存diff无空白错误。
+
+
+## P4-L 跨范围响应防护审查（2026-09-22）
+
+基线e70b56e9。重新查阅冻结LocalCgyyApi.getMyOrders和LocalBykcApi.getCourses及另一源boya/opt：研讨室分页缺省沿请求；博雅公共currentPage/pageSize取请求，另一源只返回课程集合，不能借用页号换算。App对错日期/详情/页码增加展示保护，博雅缓存详情无法取得同范围旧值时拒绝。学校请求、签名/会话、CLI和原写回读不改。
+
+RED：/tmp/ubaa-p4l-core-red.log 复现明确错页仍完整；app-red.log 复现博雅错详情仍展示另一课程；cgyy-red.log 复现无旧缓存时显示别日；page-red.log 复现请求第2页却显示响应number=1。Cgyy测试初次漏填cancelEligibility导致编译失败，仅算准备错误，补全后才记录行为RED。GREEN：Core研讨室缓存3项、App两领域及原展示/写合同回归54项通过。缺集合保旧、data=null非首页及非默认大小按请求归档；错范围不产生新页面动作；本地缓存查询/退出屏障保留。
+
+本阶段Bridge合同仍v21且没有生成结构变化；不新增原生渲染、Core-live、真实App或性能证据。其余资料/评教/阳光分页、跨范围写后失效、长读取与最终15场景/多端/双路线只读验收保持待办。
+
+最终just check退出0：Core两配置各253、facade54、Bridge122通过/2既有忽略、CLI二进制端到端16，fmt/clippy/Shell/build/doc与layout零baseline违例通过（/tmp/ubaa-p4l-check.log）。完整Flutter 57/66/375/264/18/32/54，共866项通过（flutter.log）；博雅页码收尾后App全套375及analyze再次通过（app-final.log、app-analyze.log），针对两个领域/既有展示合同54项通过（page-green.log）。refs固定SHA、敏感扫描5270文件通过，暂存diff无空白错误；源工作区仍干净。日志上述短名均位于/tmp/ubaa-p4l-前缀。整个P0–P5未关闭，下一项继续评教与资料/阳光分页接入。

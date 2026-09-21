@@ -47,7 +47,11 @@ impl HttpTransport for CacheTransport {
                 include_str!("../../../../fixtures/readonly/cgyy-day.json")
             }
             "/venue-zhjs-server/api/orders/mine" => {
-                if mode == 3 {
+                if mode == 5 {
+                    r#"{"code":200,"data":{"content":[],"number":9,"size":20}}"#
+                } else if mode == 6 {
+                    r#"{"code":200,"data":{"number":0,"size":20}}"#
+                } else if mode == 3 {
                     r#"{"code":200,"data":null}"#
                 } else {
                     include_str!("../../../../fixtures/readonly/cgyy-orders.json")
@@ -288,4 +292,57 @@ fn check_replacement(
         panic!("必须为详情")
     };
     assert_eq!(old.id, 9);
+}
+
+#[test]
+fn 订单缓存不接收错页和缺集合且非首页空页沿请求回退() {
+    let root = test_root("cgyy-cache-page-scope");
+    let (mut client, cache, transport) = setup(&root);
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let query = CgyyCacheQuery::Orders { page: 0, size: 20 };
+    runtime
+        .block_on(client.refresh_cached_cgyy(&cache, query.clone()))
+        .unwrap();
+    let old = cache
+        .read_cgyy(ConnectionMode::Direct, &query)
+        .unwrap()
+        .unwrap();
+    for mode in [5, 6] {
+        transport.mode.store(mode, Ordering::SeqCst);
+        let result = runtime
+            .block_on(client.refresh_cached_cgyy(&cache, query.clone()))
+            .unwrap();
+        assert!(!result.complete);
+        assert_eq!(
+            cache
+                .read_cgyy(ConnectionMode::Direct, &query)
+                .unwrap()
+                .unwrap()
+                .payload,
+            old.payload
+        );
+    }
+    transport.mode.store(3, Ordering::SeqCst);
+    let query = CgyyCacheQuery::Orders { page: 3, size: 10 };
+    let result = runtime
+        .block_on(client.refresh_cached_cgyy(&cache, query.clone()))
+        .unwrap();
+    assert!(result.complete);
+    assert!(result.result.save_error.is_none());
+    let CachePayload::CgyyOrders(page) = cache
+        .read_cgyy(ConnectionMode::Direct, &query)
+        .unwrap()
+        .unwrap()
+        .payload
+    else {
+        panic!("必须为订单页")
+    };
+    assert_eq!((page.number, page.size), (3, 10));
+    assert!(page.content.is_empty());
+    drop(cache);
+    drop(client);
+    std::fs::remove_dir_all(root).unwrap();
 }

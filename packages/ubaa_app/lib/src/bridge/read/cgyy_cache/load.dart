@@ -46,7 +46,10 @@ Future<FeatureResult?> _loadCachedCgyyFeature(
         account,
         query,
         today,
-        _mapCgyyDayInfo(value.data, route),
+        value.data.venueSiteId == query.siteId &&
+                value.data.reservationDate == today
+            ? _mapCgyyDayInfo(value.data, route)
+            : FeatureResult.success(resolvedRoute: route),
         value.state,
       );
     case FeatureQueryView.cgyyOrders:
@@ -62,7 +65,10 @@ Future<FeatureResult?> _loadCachedCgyyFeature(
         account,
         query,
         today,
-        _mapCgyyOrdersResult(value.data, route),
+        value.data.number == (query.page < 0 ? 0 : query.page) &&
+                value.data.size == query.size.clamp(1, 100)
+            ? _mapCgyyOrdersResult(value.data, route)
+            : FeatureResult.success(resolvedRoute: route),
         value.state,
       );
     case FeatureQueryView.cgyyOrderDetail:
@@ -77,7 +83,9 @@ Future<FeatureResult?> _loadCachedCgyyFeature(
         account,
         query,
         today,
-        _mapCgyyOrderDetailResult(value.data, route),
+        value.data.id == query.orderId
+            ? _mapCgyyOrderDetailResult(value.data, route)
+            : FeatureResult.success(resolvedRoute: route),
         value.state,
       );
     default:

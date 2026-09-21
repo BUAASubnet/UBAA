@@ -199,9 +199,9 @@ impl CgyyCacheQuery {
                     })
             }
             CgyyCacheQuery::Orders { page, size } => {
-                crate::features::cgyy::get_orders(runtime, page, size)
+                crate::features::cgyy::get_orders_observed(runtime, page, size)
                     .await
-                    .map(|data| (CgyyReadData::Orders(data), true))
+                    .map(|(data, complete)| (CgyyReadData::Orders(data), complete))
             }
             CgyyCacheQuery::Detail { order_id } => {
                 crate::features::cgyy::get_order_detail(runtime, order_id)

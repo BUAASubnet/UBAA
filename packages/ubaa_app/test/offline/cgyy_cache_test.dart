@@ -6,6 +6,31 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  test('研讨室异范围响应无旧缓存时只报告未完整而不展示别日别单别页', () async {
+    _Cache.hasScopedCache = false;
+    final backend = BridgeBackend(
+      _Client()..wrongOrders = true,
+      configDirectory: '/synthetic',
+    );
+    await backend.openOfflineAccount(
+      const LocalAccount(id: 'synthetic', username: 'synthetic'),
+      List.filled(32, 1),
+    );
+    for (final query in [
+      FeatureQuery(
+        view: FeatureQueryView.cgyyDayInfo,
+        siteId: 4,
+        date: DateTime(2026, 9, 22),
+      ),
+      const FeatureQuery(view: FeatureQueryView.cgyyOrderDetail, orderId: 9),
+      const FeatureQuery(view: FeatureQueryView.cgyyOrders, page: 1, size: 20),
+    ]) {
+      final result = await backend.loadFeatureQuery(FeatureId.cgyy, query);
+      expect(result.evidence!.complete, isFalse);
+      expect(result.details, isEmpty, reason: query.view.name);
+      expect(result.pagination, isNull);
+    }
+  });
   test('站点导航保留查询日期，详情和首页订单均只读', () async {
     final backend = BridgeBackend(_Client(), configDirectory: '/synthetic');
     await backend.openOfflineAccount(
@@ -30,7 +55,10 @@ void main() {
     expect(home.single.details.single.actions, isEmpty);
   });
 
-  setUp(() => _Cache.firstFallback = false);
+  setUp(() {
+    _Cache.firstFallback = false;
+    _Cache.hasScopedCache = true;
+  });
   test('首次保存的静态回退仍标为本次部分结果，不冒称保留旧动态数据', () async {
     _Cache.firstFallback = true;
     final backend = BridgeBackend(_Client(), configDirectory: '/synthetic');
@@ -158,6 +186,7 @@ class _Api implements RustLibApi {
 
 class _Cache implements BridgeOfflineCache {
   static int? page;
+  static bool hasScopedCache = true;
   @override
   Future<BridgeCachedCgyySitesRecord?> readCgyySites({
     required BridgeConnectionMode route,
@@ -178,12 +207,14 @@ class _Cache implements BridgeOfflineCache {
   Future<BridgeCachedCgyyDetailRecord?> readCgyyDetail({
     required BridgeConnectionMode route,
     required int orderId,
-  }) async => BridgeCachedCgyyDetailRecord(
-    data: BridgeCachedCgyyOrder(id: orderId, theme: '合成预约'),
-    sourceRoute: route,
-    fetchedAt: 100,
-    complete: true,
-  );
+  }) async => !hasScopedCache
+      ? null
+      : BridgeCachedCgyyDetailRecord(
+          data: BridgeCachedCgyyOrder(id: orderId, theme: '合成预约'),
+          sourceRoute: route,
+          fetchedAt: 100,
+          complete: true,
+        );
   @override
   Future<BridgeCachedToday?> readToday({
     required BridgeConnectionMode route,
@@ -230,32 +261,36 @@ class _Cache implements BridgeOfflineCache {
     required BridgeConnectionMode route,
     required int siteId,
     required String date,
-  }) async => BridgeCachedCgyyDayRecord(
-    data: BridgeCachedCgyyDayInfo(
-      venueSiteId: siteId,
-      reservationDate: date,
-      availableDates: [date],
-      timeSlots: const [
-        BridgeCgyyTimeSlot(
-          id: 1,
-          beginTime: '08:00',
-          endTime: '09:00',
-          label: '08:00–09:00',
-        ),
-      ],
-      spaces: const [
-        BridgeCachedCgyySpaceAvailability(
-          spaceId: 6,
-          spaceName: '合成研讨室',
-          venueSiteId: 4,
-          slots: [BridgeCachedCgyySlotStatus(timeId: 1, reservationStatus: 1)],
-        ),
-      ],
-    ),
-    sourceRoute: route,
-    fetchedAt: 100,
-    complete: true,
-  );
+  }) async => !hasScopedCache
+      ? null
+      : BridgeCachedCgyyDayRecord(
+          data: BridgeCachedCgyyDayInfo(
+            venueSiteId: siteId,
+            reservationDate: date,
+            availableDates: [date],
+            timeSlots: const [
+              BridgeCgyyTimeSlot(
+                id: 1,
+                beginTime: '08:00',
+                endTime: '09:00',
+                label: '08:00–09:00',
+              ),
+            ],
+            spaces: const [
+              BridgeCachedCgyySpaceAvailability(
+                spaceId: 6,
+                spaceName: '合成研讨室',
+                venueSiteId: 4,
+                slots: [
+                  BridgeCachedCgyySlotStatus(timeId: 1, reservationStatus: 1),
+                ],
+              ),
+            ],
+          ),
+          sourceRoute: route,
+          fetchedAt: 100,
+          complete: true,
+        );
 
   @override
   Future<void> activate() async {}
@@ -266,13 +301,14 @@ class _Cache implements BridgeOfflineCache {
     required int size,
   }) async {
     _Cache.page = page;
+    if (!hasScopedCache) return null;
     return BridgeCachedCgyyOrdersRecord(
-      data: const BridgeCachedCgyyOrdersPage(
+      data: BridgeCachedCgyyOrdersPage(
         content: [BridgeCachedCgyyOrder(id: 9, theme: '合成预约')],
         totalElements: 21,
         totalPages: 2,
         size: 20,
-        number: 1,
+        number: page,
       ),
       sourceRoute: route,
       fetchedAt: 100,
@@ -286,6 +322,28 @@ class _Cache implements BridgeOfflineCache {
 
 class _Client implements BridgeClient {
   int cachedCalls = 0, plainCalls = 0;
+  bool wrongOrders = false;
+  @override
+  Future<BridgeCgyyDetailRefresh> cgyyDetailCached({
+    required BridgeOfflineCache cache,
+    required int orderId,
+  }) async => const BridgeCgyyDetailRefresh(
+    data: BridgeCgyyOrder(
+      id: 88,
+      theme: '别的订单',
+      cancelEligibility: BridgeActionEligibility.allowed,
+      cancelTarget: BridgeCgyyCancelOrderTarget(orderId: 88),
+    ),
+    route: route,
+    state: BridgeCgyyRefreshState(
+      fetchedAt: 200,
+      complete: false,
+      savedForOffline: false,
+      preservedPrevious: false,
+      saveError: BridgeCacheFailure.invalidInput,
+    ),
+  );
+
   @override
   Future<BridgeCgyyPurposesRefresh> cgyyPurposesCached({
     required BridgeOfflineCache cache,
@@ -331,6 +389,24 @@ class _Client implements BridgeClient {
     required int size,
   }) async {
     cachedCalls++;
+    if (wrongOrders)
+      return const BridgeCgyyOrdersRefresh(
+        data: BridgeCgyyOrdersPage(
+          content: [order],
+          totalElements: 21,
+          totalPages: 2,
+          size: 20,
+          number: 9,
+        ),
+        route: route,
+        state: BridgeCgyyRefreshState(
+          fetchedAt: 200,
+          complete: false,
+          savedForOffline: false,
+          preservedPrevious: false,
+          saveError: BridgeCacheFailure.invalidInput,
+        ),
+      );
     return const BridgeCgyyOrdersRefresh(
       data: orders,
       route: route,

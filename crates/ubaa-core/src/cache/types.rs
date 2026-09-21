@@ -318,6 +318,9 @@ impl CachePayload {
             (Self::CgyyDay(v), CacheQuery::CgyyDay { site_id, date }) => {
                 v.venue_site_id == *site_id && v.reservation_date == *date
             }
+            (Self::CgyyOrders(v), CacheQuery::CgyyOrders { page, size }) => {
+                v.number == *page && v.size == *size
+            }
             (Self::CgyyDetail(v), CacheQuery::CgyyDetail { order_id }) => v.id == *order_id,
             (Self::BykcDetail(v), CacheQuery::BykcDetail { course_id }) => v.id == *course_id,
             (Self::BykcChosen(v), CacheQuery::BykcChosen) => {
@@ -328,7 +331,6 @@ impl CachePayload {
             | (Self::LibBookSeats(_), CacheQuery::LibBookSeats { .. })
             | (Self::CgyySites(_), CacheQuery::CgyySites)
             | (Self::CgyyPurposes(_), CacheQuery::CgyyPurposes)
-            | (Self::CgyyOrders(_), CacheQuery::CgyyOrders { .. })
             | (Self::BykcProfile(_), CacheQuery::BykcProfile)
             | (Self::BykcStatistics(_), CacheQuery::BykcStatistics)
             | (Self::BykcCourses(_), CacheQuery::BykcCourses { .. })

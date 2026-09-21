@@ -26,6 +26,8 @@ Future<FeatureResult> _loadBykcFeature(
           _projectBykcCourses(
             value.data,
             _toConnectionMode(value.route.resolvedRoute),
+            requestedPage: query.page <= 0 ? 1 : query.page,
+            requestedSize: query.size.clamp(1, 100),
           ),
           value.state,
         );
@@ -38,6 +40,8 @@ Future<FeatureResult> _loadBykcFeature(
       return _projectBykcCourses(
         value.data,
         _toConnectionMode(value.route.resolvedRoute),
+        requestedPage: query.page <= 0 ? 1 : query.page,
+        requestedSize: query.size.clamp(1, 100),
       );
     case FeatureQueryView.bykcDetail:
       if (cache != null && account != null) {
@@ -45,6 +49,16 @@ Future<FeatureResult> _loadBykcFeature(
           cache: cache,
           courseId: _requiredPositiveQueryInt(query.courseId, '课程 ID'),
         );
+        if (value.data.id !=
+            _requiredPositiveQueryInt(query.courseId, '课程 ID')) {
+          return _preserveBykcDetail(
+            backend,
+            cache,
+            account,
+            query,
+            _toConnectionMode(value.route.resolvedRoute),
+          );
+        }
         return _finishBykcRefresh(
           backend,
           account,

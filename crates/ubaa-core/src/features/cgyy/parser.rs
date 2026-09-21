@@ -547,6 +547,44 @@ pub(super) fn parse_orders_at(body: &str, now: NaiveDateTime) -> Result<CgyyOrde
     })
 }
 
+/// 缓存专用分页归属观察；原普通读取的缺省字段保持不变。
+pub(super) fn parse_orders_for_cache(
+    body: &str,
+    now: NaiveDateTime,
+    page: i32,
+    size: i32,
+) -> Result<(CgyyOrdersPage, bool)> {
+    let root = success_root(body)?;
+    let raw = root.get("data");
+    let mut orders = parse_orders_at(body, now)?;
+    let object = raw.and_then(Value::as_object);
+    let number = object.and_then(|v| int(v, "number"));
+    let response_size = object.and_then(|v| int(v, "size"));
+    orders.number = number.unwrap_or(page);
+    orders.size = response_size.unwrap_or(size);
+    let collection_complete =
+        match raw {
+            Some(Value::Null) => true,
+            Some(Value::Object(value)) => value
+                .get("content")
+                .and_then(Value::as_array)
+                .is_some_and(|items| {
+                    items.iter().all(|item| {
+                        item.as_object()
+                            .is_some_and(|v| int(v, "id").is_some_and(|id| id > 0))
+                    })
+                }),
+            _ => false,
+        };
+    let metadata_complete = object.is_none_or(|v| {
+        (!v.contains_key("number") || number.is_some())
+            && (!v.contains_key("size") || response_size.is_some())
+    });
+    let complete =
+        collection_complete && metadata_complete && orders.number == page && orders.size == size;
+    Ok((orders, complete))
+}
+
 pub(super) fn parse_order_detail_at(body: &str, now: NaiveDateTime) -> Result<CgyyOrder> {
     let value = data(body)?;
     value

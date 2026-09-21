@@ -12,8 +12,8 @@ use crate::runtime::ClientRuntime;
 use super::auth::get;
 use super::parser::{
     CgyyDayContext, fallback_purpose_types, parse_day_context, parse_lock_code,
-    parse_order_detail_at, parse_orders_at, parse_purpose_types_with_source, parse_sites,
-    shanghai_datetime,
+    parse_order_detail_at, parse_orders_at, parse_orders_for_cache,
+    parse_purpose_types_with_source, parse_sites, shanghai_datetime,
 };
 
 pub(crate) async fn get_sites(runtime: &mut ClientRuntime) -> Result<Vec<CgyyVenueSite>> {
@@ -74,14 +74,27 @@ pub(crate) async fn get_orders(
     page: i32,
     size: i32,
 ) -> Result<CgyyOrdersPage> {
+    let body = orders_body(runtime, page, size).await?;
+    parse_orders_at(&body, shanghai_datetime(runtime.now()))
+}
+
+pub(crate) async fn get_orders_observed(
+    runtime: &mut ClientRuntime,
+    page: i32,
+    size: i32,
+) -> Result<(CgyyOrdersPage, bool)> {
+    let body = orders_body(runtime, page, size).await?;
+    parse_orders_for_cache(&body, shanghai_datetime(runtime.now()), page, size)
+}
+
+async fn orders_body(runtime: &mut ClientRuntime, page: i32, size: i32) -> Result<String> {
     let params = [
         ("page".into(), page.to_string()),
         ("size".into(), size.to_string()),
     ]
     .into_iter()
     .collect();
-    let body = get(runtime, "/api/orders/mine", params).await?;
-    parse_orders_at(&body, shanghai_datetime(runtime.now()))
+    get(runtime, "/api/orders/mine", params).await
 }
 
 pub(crate) async fn get_order_detail(runtime: &mut ClientRuntime, id: i32) -> Result<CgyyOrder> {

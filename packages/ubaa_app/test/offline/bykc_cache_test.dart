@@ -6,6 +6,34 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  setUp(() => _Cache.hasDetail = true);
+  test('博雅详情错ID保留同查询旧缓存且没有旧值时拒绝', () async {
+    final backend = BridgeBackend(_Client(), configDirectory: '/synthetic');
+    await backend.openOfflineAccount(
+      const LocalAccount(id: 'synthetic', username: 'synthetic'),
+      List.filled(32, 1),
+    );
+    const query = FeatureQuery(
+      view: FeatureQueryView.bykcDetail,
+      courseId: '42',
+    );
+    final result = await backend.loadFeatureQuery(FeatureId.bykc, query);
+    expect(result.details.single.title, '合成详情');
+    expect(result.details.single.actions, isEmpty);
+    expect(result.evidence!.origin, DataOrigin.persisted);
+    expect(result.evidence!.complete, isFalse);
+    _Cache.hasDetail = false;
+    await expectLater(
+      backend.loadFeatureQuery(FeatureId.bykc, query),
+      throwsA(
+        isA<BackendException>().having(
+          (e) => e.code,
+          '错归属',
+          UbaaErrorCode.upstreamChanged,
+        ),
+      ),
+    );
+  });
   test('其余博雅查询与首页已选保留范围并剥离学校动作', () async {
     final backend = BridgeBackend(_Client(), configDirectory: '/synthetic');
     await backend.openOfflineAccount(
@@ -61,7 +89,7 @@ void main() {
     );
     expect(cached.projection, isNotNull);
     final snapshot = cached.projection!.toSnapshot();
-    expect(snapshot.pagination?.page, 1);
+    expect(snapshot.pagination?.page, 2);
     expect(snapshot.pagination?.total, 21);
     expect(snapshot.details.single.actions, isEmpty);
     expect(snapshot.details.single.readNavigation?.query.courseId, '42');
@@ -77,6 +105,7 @@ void main() {
           .eligibility,
       ActionEligibility.allowed,
     );
+    expect(fresh.pagination?.page, 2);
     expect(fresh.evidence!.origin, DataOrigin.online);
     expect(client.cachedReads, 1);
     await (backend as BykcReadbackBackend).readBykcAfterWrite(
@@ -130,20 +159,23 @@ class _Cache implements BridgeOfflineCache {
   }) async => null;
 
   static int? requestPage;
+  static bool hasDetail = true;
   @override
   Future<BridgeCachedBykcDetailRecord?> readBykcDetail({
     required BridgeConnectionMode route,
     required int courseId,
-  }) async => BridgeCachedBykcDetailRecord(
-    data: BridgeCachedBykcCourse(
-      id: courseId,
-      courseName: '合成详情',
-      status: BridgeBykcCourseStatus.available,
-    ),
-    sourceRoute: route,
-    fetchedAt: 100,
-    complete: true,
-  );
+  }) async => !hasDetail
+      ? null
+      : BridgeCachedBykcDetailRecord(
+          data: BridgeCachedBykcCourse(
+            id: courseId,
+            courseName: '合成详情',
+            status: BridgeBykcCourseStatus.available,
+          ),
+          sourceRoute: route,
+          fetchedAt: 100,
+          complete: true,
+        );
   @override
   Future<BridgeCachedBykcProfileRecord?> readBykcProfile({
     required BridgeConnectionMode route,
@@ -243,6 +275,25 @@ class _Cache implements BridgeOfflineCache {
 
 class _Client implements BridgeClient {
   int cachedReads = 0, plainReads = 0;
+  @override
+  Future<BridgeBykcDetailRefresh> bykcDetailCached({
+    required BridgeOfflineCache cache,
+    required int courseId,
+  }) async => const BridgeBykcDetailRefresh(
+    data: BridgeBykcCourse(
+      id: 88,
+      courseName: '别的课程',
+      status: BridgeBykcCourseStatus.available,
+      selectEligibility: BridgeActionEligibility.allowed,
+      deselectEligibility: BridgeActionEligibility.denied,
+    ),
+    route: route,
+    state: BridgeBykcRefreshState(
+      fetchedAt: 200,
+      saveError: BridgeCacheFailure.invalidInput,
+    ),
+  );
+
   @override
   int contractVersion() => 21;
   @override

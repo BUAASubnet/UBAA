@@ -239,3 +239,14 @@ P4-J 实施前补充：冻结 LocalLibBookApi 的 dataList、当前 parser 的 l
 复用 P4-J 五操作冻结矩阵和观察完整度，不新增上游协议。Bridge 只读座位/预约 DTO 与在线资格 DTO 分离，楼馆/分区/日期时段只复用既有公开映射。App 精确保留查询日期、楼馆/楼层、分区、起止时间和 page/limit；segment 是当前 UI 选中时段的上下文，不冒充学校座位请求参数。离线和 Partial 内容不得显示实时可预约/可取消字段，不生成动作。预约与取消的普通写后回读显式绕过新恢复/缓存入口，保留原 WriteCoordinator 调用与一次提交语义。先加本地锁/隔离、公开白名单与宿主只读投影测试再实现。
 
 P4-K 实施复核：五操作没有新学校参数；原页规范化、DTO字段和写路径保持。缓存与Partial投影明确不显示实时可写字段。网络前 segment 校验与原入口一致；响应错页/错分区无旧快照时不展示错误范围。Bridge v21 公开缓存 schema 有资格禁曝断言，原生合成仅验证绑定执行，不作为学校协议或真实 App 验收。
+
+
+## P4-L：跨范围响应保护复核（实施前）
+
+延续 P4-F/H/J 的逐操作来源矩阵与固定SHA。重新读取 LocalCgyyApi.getMyOrders（182起）：size/number 缺省分别回退请求 size/page；实际 GET orders/mine page/size 与原签名、认证、Cookie、错误不变。当前 Core 通用 parser 默认20/0不能用于判断非首请求页；新增缓存专用观察沿冻结请求回退，不改 CLI/原 caller-pinned 输出。显式错 number/size 或畸形/缺失 content 不得覆盖旧完整页；合法 data=null 沿旧实现允许空页，归属于请求页。账号/路线/发布世代屏障保持。
+
+LocalBykcApi.getCourses（66起）将 currentPage/pageSize 取自请求，raw.number 原样读取但不用于推断请求页映射；不凭猜测加入 number==page 或 number==page-1 校验。缓存仍由请求 page/size/all 隔离。课程详情按明确请求 id 核对，错ID不能生成学校动作。buaa-api 无 Cgyy 协议，boya API不提供可借用的页号换算；不改学校请求或原在线接口。
+
+App 缓存分支对 Cgyy 日期/站点/订单详情和订单页核对归属：有旧值只读保留，无旧值显示未完整而不放入异范围内容。Bykc 错详情保留同查询旧缓存，否则返回稳定 UpstreamChanged，不能把保存失败当作可继续显示的完整成功。学业 grades 的 term_code 与逐行 term_code 由请求构造；SPOC detail 在 parser/detail 明确拒绝raw.id错配；这两处已有来源保护，不添加无证据新字段。
+
+P4-L 分页展示补充：博雅 App 的 currentPage/pageSize 改为使用本次规范化请求，与 LocalBykcApi 明确输出一致；不将响应number猜作一基或零基，不修改Core/Bridge原DTO和CLI。总量与总页数仍沿响应字段，本次页内容仍按请求范围入缓存。
