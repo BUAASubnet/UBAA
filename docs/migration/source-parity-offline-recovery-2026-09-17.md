@@ -120,3 +120,18 @@ P1 可以暂用旧双路线聚合 backend 的 authStatus/login（设计 4.2 已�
 ## P4-A：精确查询的本地只读投影（实施前）
 
 沿 P3-A/P3-B 已核对的希冀详情 DTO、课程/作业标识和映射，开放已持久保存的详情；沿 P1-B/P1-C 已核对的今日课表与希冀摘要支持显式查询读取。此操作只读 Core 加密仓库，不调用学校、CAS、重定向、Cookie、请求头或加密签名流程，两份冻结来源均无同构加密离线仓库，不能从它们推断新上游字段。缓存键严格使用实际路线与 typed query；详情必须同时匹配课程和作业标识，摘要保留 include_expired，今日仍限定上海当前日期。页面投影只带内容、原时间和来源，不复原学校写动作或资格。App 的本地查询与网络队列独立，当前查询/账号/生命周期变化即丢弃迟到投影，在线结果优先于迟到磁盘。
+
+## P4-B：学业与空教室持久读取（实施前）
+
+本轮核对固定旧版 `api/feature/{ScheduleApi,GradeApi,ClassroomApi}.kt`、`api/local/{LocalScheduleApi,LocalGradeApi,LocalClassroomApi}.kt`、`model/dto/{Schedule,Grade,Classroom}.kt` 及 `LocalScheduleApiBackendTest.kt`、`LocalClassroomApiBackendTest.kt`；另一冻结来源为 `api/aas/{core,opt,data}.rs`、`request.rs`、`store/{cookies,cred}.rs`。提交仍为本文开头两个固定 SHA。以下只增加现有 Core typed 结果的本地持久化，使用已验证读取实现，不改变 CLI 或学校协议。
+
+| 操作 | CAS/bootstrap、service | 重定向与终点 | Cookie/会话 | 方法与精确参数 | 头与编码 | 加密/签名 | DTO/解析 | 缓存/并发 | 错误/退出 |
+|---|---|---|---|---|---|---|---|---|---|
+| 学期 | 旧版 currentUser 能力探测；另一来源 AAS CAS 专用 service，沿既有 Core 激活 | 原 AAS 最终 URL 前缀检查及本科能力判断 | 当前实际路线单会话 | GET schoolCalendars.do，无业务参数 | 原 AJAX Accept/X-Requested-With、schedule Referer，无正文 | 无新增 | Term itemCode/itemName/selected/itemIndex 原类型 | 新增账号/路线完整列表；无全学期预取 | 原认证/本科不支持/解析错误，失败不替换 |
+| 教学周 | 同上 | 同上 | 同上 | GET getTermWeeks.do，termCode | 同上 | 无新增 | Week 日期、term、serialNumber、curWeek；响应 term 不强制等于请求 | 请求学期精确键，完整集合替换 | 同上 |
+| 周课表 | 同上 | 同上 | 同上 | 旧版 POST getMyScheduleDetail.do 表单 termCode/type=week/week；另一来源使用 query 且有 campusCode，不借用差异 | 原 schedule 头与表单编码 | 无新增 | WeeklySchedule arrangedList/code/name；code 不要求等于请求学期 | 请求学期/正周次键，完整周保存；不声称整个学期覆盖 | 同上；非法周次请求前拒绝 |
+| 考试 | 同 AAS 激活；旧版考试明确本科接口，另一来源无同构考试操作 | 原激活/最终 URL 与本科判断 | 当前考试实际路线 | GET exams.do，termCode | 原 AJAX 头、exam Referer | 无新增 | ExamArrangement 的 arranged/not_arranged，原 nullable 字段 | 完整学期原集合保存，已安排/未安排仅本地筛选 | 原错误，不以失败冒充空考试 |
+| 成绩 | 旧版 GET buaascore/wap/default/index 激活；另一来源 AAS 不是同协议，不借用 | 原跟随跳转；SSO/401/登录 HTML 认证仲裁 | 当前成绩实际路线 | 同 URL POST，xq 与 year 来自原 yyyy-yyyy-semester 解析 | 页面 HTML Accept；查询 AJAX Accept、X-Requested-With、Referer；表单 | 无新增 | e/m/d→GradeData，termCode 源于请求，score/credit 等沿原映射 | 请求学期完整集合，有限 credit 才可无损 JSON 保存；持久投影不触发出分通知 | 原上游/解析/认证分类；非有限 credit 仅令保存失败，不改在线解析 |
+| 空教室 | 旧版精确 classroomSyncUrl，另一来源 class 为 iClass、不等价 | 同步跟随跳转接受 200..399；业务查询不跟随 | 当前路线及既有同步状态 | GET search1，xqid/floorid 空串/date | 原长 UA、AJAX Accept/X-Requested-With/Referer，无正文 | 无新增 | e/m/d.list，楼栋→id/floorid/name/kxsds | 校区/严格日期保存完整集合；楼栋/节次只本地筛选 | 原认证/解析分类；非零 code 未有完整可用证据，不保存为完整缓存；在线返回保留旧合同 |
+
+共用保存边界：认证返回身份与本机账号匹配后绑定已解析路线，发业务读取前领取精确范围票据；完整成功才替换，失败保留旧内容并更新尝试；本地磁盘不可用可继续返回在线内容与保存错误，但退出/被替代栅栏不可降级。两个参考均未提供本方案统一加密仓库，新增本地语义以已接受设计为依据，不推断 ETag、增量游标或分页。

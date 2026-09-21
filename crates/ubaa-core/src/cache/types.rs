@@ -1,7 +1,7 @@
 //! 缓存持久合同只包含可再次阅读的数据，不包含写入资格。
 use crate::domain::{
-    Assignment, ConnectionMode, Course, JudgeAssignmentDetail, JudgeAssignmentSummary, TodayClass,
-    WeeklySchedule,
+    Assignment, ClassroomQuery, ConnectionMode, Course, ExamArrangement, GradeData,
+    JudgeAssignmentDetail, JudgeAssignmentSummary, Term, TodayClass, Week, WeeklySchedule,
 };
 use serde::{Deserialize, Serialize};
 
@@ -17,6 +17,20 @@ pub enum CacheQuery {
     ScheduleWeek {
         term: String,
         week: i32,
+    },
+    ScheduleTerms,
+    ScheduleWeeks {
+        term: String,
+    },
+    Exams {
+        term: String,
+    },
+    Grades {
+        term: String,
+    },
+    Classrooms {
+        campus: i32,
+        date: String,
     },
     JudgeCourses,
     JudgeCourseReview {
@@ -42,10 +56,15 @@ pub struct CacheScope {
 }
 
 /// 仅白名单领域值可写入，禁止任意 JSON、原始响应或 action 投影。
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum CachePayload {
     Today(Vec<TodayClass>),
     Week(WeeklySchedule),
+    Terms(Vec<Term>),
+    Weeks(Vec<Week>),
+    Exams(ExamArrangement),
+    Grades(GradeData),
+    Classrooms(ClassroomQuery),
     JudgeCourses(Vec<Course>),
     JudgeCourseReview(JudgeCourseReview),
     JudgeAssignments(Vec<Assignment>),
@@ -61,7 +80,7 @@ pub enum CacheCompleteness {
 }
 
 /// 一个缓存范围的不可写读取记录。
-#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub struct CacheRecord {
     pub scope: CacheScope,
     pub payload: CachePayload,
@@ -145,12 +164,16 @@ pub struct CacheReadTicket {
 }
 
 impl CacheScope {
-    pub(super) fn validate(&self) -> CacheResult<()> {
+    pub(crate) fn validate(&self) -> CacheResult<()> {
         let id = |s: &str| !s.trim().is_empty() && s.len() <= 1024;
         let valid = match &self.query {
-            CacheQuery::ScheduleToday { date } => {
+            CacheQuery::ScheduleToday { date } | CacheQuery::Classrooms { date, .. } => {
                 chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d")
                     .is_ok_and(|value| value.format("%Y-%m-%d").to_string() == *date)
+            }
+            CacheQuery::ScheduleWeeks { term } | CacheQuery::Exams { term } => id(term),
+            CacheQuery::Grades { term } => {
+                id(term) && crate::features::grades::parse_term_code(term).is_ok()
             }
             CacheQuery::ScheduleWeek { term, week } => id(term) && *week > 0,
             CacheQuery::JudgeAssignments { course_id }
@@ -177,10 +200,21 @@ impl CacheScope {
 impl CachePayload {
     pub(super) fn matches(&self, query: &CacheQuery) -> bool {
         match (self, query) {
-            (Self::Today(_), CacheQuery::ScheduleToday { .. })
+            (Self::Terms(_), CacheQuery::ScheduleTerms)
+            | (Self::Weeks(_), CacheQuery::ScheduleWeeks { .. })
+            | (Self::Exams(_), CacheQuery::Exams { .. })
+            | (Self::Today(_), CacheQuery::ScheduleToday { .. })
             | (Self::Week(_), CacheQuery::ScheduleWeek { .. })
             | (Self::JudgeCourses(_), CacheQuery::JudgeCourses)
             | (Self::JudgeSummaries(_), CacheQuery::JudgeSummaries { .. }) => true,
+            (Self::Grades(data), CacheQuery::Grades { term }) => {
+                &data.term_code == term
+                    && data.grades.iter().all(|grade| {
+                        grade.credit.is_none_or(f64::is_finite)
+                            && grade.term_code.as_ref().is_none_or(|value| value == term)
+                    })
+            }
+            (Self::Classrooms(data), CacheQuery::Classrooms { .. }) => data.code == 0,
             (Self::JudgeCourseReview(review), CacheQuery::JudgeCourseReview { course_id }) => {
                 review
                     .summaries

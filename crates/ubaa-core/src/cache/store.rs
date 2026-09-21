@@ -294,9 +294,6 @@ impl OfflineRepository {
         completeness: CacheCompleteness,
     ) -> CacheResult<CachePublication> {
         let now = observation.attempted_at;
-        if !payload.matches(&ticket.scope.query) {
-            return Err(CacheError::InvalidInput);
-        }
         let key = self.crypto.index(&(&self.account, &ticket.scope))?;
         let tx = self
             .db
@@ -306,6 +303,10 @@ impl OfflineRepository {
         if let Some(parent) = parent {
             let parent_key = self.crypto.index(&(&self.account, &parent.scope))?;
             validate_ticket(&tx, &self.crypto, &self.account, parent, &parent_key)?;
+        }
+        // 先在同一事务核对退出/替代栅栏，不能让无效载荷掩盖账号失效。
+        if !payload.matches(&ticket.scope.query) {
+            return Err(CacheError::InvalidInput);
         }
         let previous = load_body(&tx, &key)?
             .and_then(|body| self.crypto.open::<CacheRecord>(&body, &key).ok());

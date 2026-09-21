@@ -169,7 +169,7 @@ impl OfflineCache {
             .map_err(|_| CacheError::Unavailable)?
             .begin_read(scope)
     }
-    fn publish(
+    pub(super) fn publish(
         &self,
         ticket: &CacheReadTicket,
         payload: CachePayload,
@@ -181,7 +181,7 @@ impl OfflineCache {
             .publish(ticket, payload, now, CacheCompleteness::Complete)
             .map(|_| ())
     }
-    fn failure(&self, ticket: &CacheReadTicket, now: i64) {
+    pub(super) fn failure(&self, ticket: &CacheReadTicket, now: i64) {
         if let Ok(mut repository) = self.repository.lock() {
             let _ = repository.record_failure(ticket, now);
         }

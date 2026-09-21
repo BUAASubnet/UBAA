@@ -568,3 +568,153 @@ fn reused_payload_keeps_its_original_source_time_and_new_attempt_time() {
     assert!(!record.is_fresh(200, 1000));
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn 学业范围不串学期周次校区日期() {
+    use crate::domain::GradeData;
+    let root = root();
+    let mut repo = open(&root);
+    let queries = [
+        CacheQuery::ScheduleWeeks {
+            term: "2025-2026-1".into(),
+        },
+        CacheQuery::ScheduleWeek {
+            term: "2025-2026-1".into(),
+            week: 1,
+        },
+        CacheQuery::Exams {
+            term: "2025-2026-1".into(),
+        },
+        CacheQuery::Grades {
+            term: "2025-2026-1".into(),
+        },
+        CacheQuery::Classrooms {
+            campus: 1,
+            date: "2026-09-22".into(),
+        },
+    ];
+    let payloads = [
+        CachePayload::Weeks(vec![]),
+        CachePayload::Week(crate::domain::WeeklySchedule::default()),
+        CachePayload::Exams(crate::domain::ExamArrangement::default()),
+        CachePayload::Grades(GradeData {
+            term_code: "2025-2026-1".into(),
+            grades: vec![],
+        }),
+        CachePayload::Classrooms(crate::domain::ClassroomQuery::default()),
+    ];
+    for (query, payload) in queries.into_iter().zip(payloads) {
+        let scope = CacheScope {
+            route: ConnectionMode::Direct,
+            query,
+        };
+        let ticket = repo.begin_read(scope.clone()).unwrap();
+        repo.publish(&ticket, payload, 100, CacheCompleteness::Complete)
+            .unwrap();
+    }
+    for query in [
+        CacheQuery::ScheduleWeeks {
+            term: "2025-2026-2".into(),
+        },
+        CacheQuery::ScheduleWeek {
+            term: "2025-2026-1".into(),
+            week: 2,
+        },
+        CacheQuery::Exams {
+            term: "2025-2026-2".into(),
+        },
+        CacheQuery::Grades {
+            term: "2025-2026-2".into(),
+        },
+        CacheQuery::Classrooms {
+            campus: 2,
+            date: "2026-09-22".into(),
+        },
+        CacheQuery::Classrooms {
+            campus: 1,
+            date: "2026-09-23".into(),
+        },
+    ] {
+        assert!(
+            repo.read(
+                &CacheScope {
+                    route: ConnectionMode::Direct,
+                    query
+                },
+                101
+            )
+            .unwrap()
+            .is_none()
+        );
+    }
+    drop(repo);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn 成绩不能无损保存时保留旧内容() {
+    use crate::domain::{Grade, GradeData};
+    let root = root();
+    let mut repo = open(&root);
+    let scope = CacheScope {
+        route: ConnectionMode::Direct,
+        query: CacheQuery::Grades {
+            term: "2025-2026-1".into(),
+        },
+    };
+    let original = repo.begin_read(scope.clone()).unwrap();
+    repo.publish(
+        &original,
+        CachePayload::Grades(GradeData {
+            term_code: "2025-2026-1".into(),
+            grades: vec![],
+        }),
+        100,
+        CacheCompleteness::Complete,
+    )
+    .unwrap();
+    let ticket = repo.begin_read(scope.clone()).unwrap();
+    for (term, credit) in [
+        ("2025-2026-2", 2.0),
+        ("2025-2026-1", f64::NAN),
+        ("2025-2026-1", f64::INFINITY),
+    ] {
+        assert_eq!(
+            repo.publish(
+                &ticket,
+                CachePayload::Grades(GradeData {
+                    term_code: term.into(),
+                    grades: vec![Grade {
+                        credit: Some(credit),
+                        ..Default::default()
+                    }]
+                }),
+                200,
+                CacheCompleteness::Complete
+            ),
+            Err(CacheError::InvalidInput)
+        );
+    }
+    assert_eq!(repo.read(&scope, 201).unwrap().unwrap().fetched_at, 100);
+    drop(repo);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn 退出栅栏优先于无法保存的载荷且不能被当成普通保存失败() {
+    let root = root();
+    let mut repo = open(&root);
+    let ticket = repo.begin_read(scope()).unwrap();
+    repo.deactivate().unwrap();
+    assert_eq!(
+        repo.publish(
+            &ticket,
+            CachePayload::Terms(vec![]),
+            200,
+            CacheCompleteness::Complete
+        ),
+        Err(CacheError::Inactive)
+    );
+    drop(repo);
+    std::fs::remove_dir_all(root).unwrap();
+}
