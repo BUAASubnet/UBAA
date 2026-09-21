@@ -1,8 +1,10 @@
 //! 缓存持久合同只包含可再次阅读的数据，不包含写入资格。
+use super::{CachedSigninClass, CachedYgdkOverview};
 use crate::domain::{
     Assignment, ClassroomQuery, ConnectionMode, Course, ExamArrangement, GradeData,
     JudgeAssignmentDetail, JudgeAssignmentSummary, Term, TodayClass, Week, WeeklySchedule,
 };
+use crate::domain::{SpocAssignmentDetail, SpocAssignments};
 use serde::{Deserialize, Serialize};
 
 /// 独立于 Session 和 Bridge 的业务缓存版本。
@@ -32,6 +34,14 @@ pub enum CacheQuery {
         campus: i32,
         date: String,
     },
+    SigninToday {
+        date: String,
+    },
+    SpocAssignments,
+    SpocDetail {
+        assignment_id: String,
+    },
+    YgdkOverview,
     JudgeCourses,
     JudgeCourseReview {
         course_id: String,
@@ -59,6 +69,10 @@ pub struct CacheScope {
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum CachePayload {
     Today(Vec<TodayClass>),
+    SigninToday(Vec<CachedSigninClass>),
+    SpocAssignments(SpocAssignments),
+    SpocDetail(Box<SpocAssignmentDetail>),
+    YgdkOverview(CachedYgdkOverview),
     Week(WeeklySchedule),
     Terms(Vec<Term>),
     Weeks(Vec<Week>),
@@ -167,6 +181,9 @@ impl CacheScope {
     pub(crate) fn validate(&self) -> CacheResult<()> {
         let id = |s: &str| !s.trim().is_empty() && s.len() <= 1024;
         let valid = match &self.query {
+            CacheQuery::SigninToday { date } => chrono::NaiveDate::parse_from_str(date, "%Y%m%d")
+                .is_ok_and(|value| value.format("%Y%m%d").to_string() == *date),
+            CacheQuery::SpocDetail { assignment_id } => id(assignment_id),
             CacheQuery::ScheduleToday { date } | CacheQuery::Classrooms { date, .. } => {
                 chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d")
                     .is_ok_and(|value| value.format("%Y-%m-%d").to_string() == *date)
@@ -200,13 +217,19 @@ impl CacheScope {
 impl CachePayload {
     pub(super) fn matches(&self, query: &CacheQuery) -> bool {
         match (self, query) {
-            (Self::Terms(_), CacheQuery::ScheduleTerms)
+            (Self::SigninToday(_), CacheQuery::SigninToday { .. })
+            | (Self::SpocAssignments(_), CacheQuery::SpocAssignments)
+            | (Self::YgdkOverview(_), CacheQuery::YgdkOverview)
+            | (Self::Terms(_), CacheQuery::ScheduleTerms)
             | (Self::Weeks(_), CacheQuery::ScheduleWeeks { .. })
             | (Self::Exams(_), CacheQuery::Exams { .. })
             | (Self::Today(_), CacheQuery::ScheduleToday { .. })
             | (Self::Week(_), CacheQuery::ScheduleWeek { .. })
             | (Self::JudgeCourses(_), CacheQuery::JudgeCourses)
             | (Self::JudgeSummaries(_), CacheQuery::JudgeSummaries { .. }) => true,
+            (Self::SpocDetail(data), CacheQuery::SpocDetail { assignment_id }) => {
+                &data.assignment_id == assignment_id
+            }
             (Self::Grades(data), CacheQuery::Grades { term }) => {
                 &data.term_code == term
                     && data.grades.iter().all(|grade| {

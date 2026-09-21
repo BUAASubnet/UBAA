@@ -15,6 +15,7 @@ const EMPTY_SUCCESS_ENVELOPE: &str = r#"{"code":1,"result":{}}"#;
 
 pub(crate) struct YgdkOverviewContext {
     pub(crate) overview: YgdkOverview,
+    pub(crate) complete: bool,
     pub(crate) generation: u64,
     pub(crate) credential: super::YgdkCredential,
 }
@@ -24,6 +25,14 @@ pub(crate) async fn get_overview(runtime: &mut ClientRuntime) -> Result<YgdkOver
     get_overview_context(runtime)
         .await
         .map(|context| context.overview)
+}
+
+pub(crate) async fn get_overview_observed(
+    runtime: &mut ClientRuntime,
+) -> Result<(YgdkOverview, bool)> {
+    get_overview_context(runtime)
+        .await
+        .map(|context| (context.overview, context.complete))
 }
 
 pub(crate) async fn get_overview_context(
@@ -81,7 +90,7 @@ pub(crate) async fn get_overview_context_once(
     .await?;
     ensure_active_credential(runtime, generation, &credential)?;
     parse_envelope(&items)?;
-    let count = optional_success_response(
+    let (count, count_complete) = optional_success_response(
         post(
             runtime,
             "/api/Front/Clockin/Clockin/getCount",
@@ -95,7 +104,7 @@ pub(crate) async fn get_overview_context_once(
         .await,
     )?;
     ensure_active_credential(runtime, generation, &credential)?;
-    let term = optional_success_response(
+    let (term, term_complete) = optional_success_response(
         post(
             runtime,
             "/api/Front/Clockin/Term/get",
@@ -106,20 +115,25 @@ pub(crate) async fn get_overview_context_once(
         .await,
     )?;
     ensure_active_credential(runtime, generation, &credential)?;
+    let observed_count = parse_envelope(&count)?
+        .as_object()
+        .and_then(super::parser::observed_term_count)
+        .is_some();
     let overview = parse_overview(&classify, &items, &count, &term)?;
     Ok(YgdkOverviewContext {
         overview,
+        complete: count_complete && term_complete && observed_count,
         generation,
         credential,
     })
 }
 
-fn optional_success_response(response: Result<String>) -> Result<String> {
+fn optional_success_response(response: Result<String>) -> Result<(String, bool)> {
     match response {
         Ok(body) => match parse_envelope(&body) {
-            Ok(_) => Ok(body),
+            Ok(_) => Ok((body, true)),
             Err(error) if error.code == ErrorCode::AuthenticationRequired => Err(error),
-            Err(_) => Ok(EMPTY_SUCCESS_ENVELOPE.to_owned()),
+            Err(_) => Ok((EMPTY_SUCCESS_ENVELOPE.to_owned(), false)),
         },
         Err(error)
             if error.code == ErrorCode::AuthenticationRequired
@@ -127,7 +141,7 @@ fn optional_success_response(response: Result<String>) -> Result<String> {
         {
             Err(error)
         }
-        Err(_) => Ok(EMPTY_SUCCESS_ENVELOPE.to_owned()),
+        Err(_) => Ok((EMPTY_SUCCESS_ENVELOPE.to_owned(), false)),
     }
 }
 

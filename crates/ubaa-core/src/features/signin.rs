@@ -72,7 +72,14 @@ pub fn parse_today(body: &str) -> Result<Vec<SigninClass>> {
 pub(crate) async fn get_today(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> Result<Vec<SigninClass>> {
-    get_today_once(runtime, true).await
+    get_today_once(runtime, true, None).await
+}
+
+pub(crate) async fn get_today_for_date(
+    runtime: &mut crate::runtime::ClientRuntime,
+    date: &str,
+) -> Result<Vec<SigninClass>> {
+    get_today_once(runtime, true, Some(date)).await
 }
 
 /// 只读复核唯一课程安排及其当前签到资格。
@@ -272,14 +279,17 @@ fn build_today_request(
 async fn get_today_once(
     runtime: &mut crate::runtime::ClientRuntime,
     allow_retry: bool,
+    date: Option<&str>,
 ) -> Result<Vec<SigninClass>> {
     super::require_session(runtime)?;
     let credential = current_credential(runtime).await?;
+    // 旧入口仍在每次认证后取当天日期；缓存入口固定同一次捕获的日期。
+    let request_date = date.map_or_else(shanghai_date, str::to_owned);
     let request = build_today_request(
         &runtime.url(SIGNIN_TODAY_URL)?,
         &credential.user_id,
         &credential.session_id,
-        &shanghai_date(),
+        &request_date,
     )?;
     let response = runtime.request(request).await?;
     if response.status != 200 {
@@ -289,7 +299,7 @@ async fn get_today_once(
         Ok(classes) => Ok(classes),
         Err(error) if allow_retry && error.code == ErrorCode::UpstreamChanged => {
             runtime.feature_state().signin.clear_credential();
-            Box::pin(get_today_once(runtime, false)).await
+            Box::pin(get_today_once(runtime, false, date)).await
         }
         Err(error) => Err(error),
     }
@@ -413,7 +423,7 @@ fn header<'a>(response: &'a crate::ports::HttpResponse, name: &str) -> Option<&'
         .map(String::as_str)
 }
 
-fn shanghai_date() -> String {
+pub(crate) fn shanghai_date() -> String {
     let seconds = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .map_or(0, |value| value.as_secs())

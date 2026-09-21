@@ -139,3 +139,19 @@ P1 可以暂用旧双路线聚合 backend 的 authStatus/login（设计 4.2 已�
 ## P4-C：学业缓存 Bridge/App 接线（实施前）
 
 复用 P4-B 已逐操作核对的六个 Core 范围及全部原投影字段；不新增学校 URL、参数、认证方式或分页。Bridge 使用分别 typed 的本地记录与在线刷新返回值，避免宿主接触任意 CachePayload 或 raw JSON。在线入口仍在原客户端锁内，待确认学校写意图期间禁止隐式认证；本地读取沿独立仓库句柄，不取得网络锁。App 保存与展示分离，成绩磁盘投影不是在线出分观察，课表默认学期仅来自实际保存的学期索引，不能把缓存中的任意学期猜成当前学期。
+
+## P4-D：首页待办持久范围与部分失败（实施前）
+
+重新核对当前冻结 `ubaa_old@1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 feature 接口、`LocalSpocApi/LocalSpocSupport`、`LocalSigninApi`、`LocalYgdkApi`、对应 DTO 及 BackendTest；另一来源为当前 `buaa-api@a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/spoc`、`api/class`、request/credential/cookie。签到按 2026-09-17 修正后的旧版入口，不采用主矩阵中过时的 8346 登录裁决，也不把旧记录中的 efb7976 当作本次冻结 SHA。
+
+| 操作 | bootstrap/service | 重定向与最终 URL | Cookie/会话 | 方法/参数 | 头/正文 | 加密/签名 | DTO/解析 | 缓存/并发 | 错误/退出 |
+|---|---|---|---|---|---|---|---|---|---|
+| SPOC 当前列表 | 旧 CAS→sys/casLogin 角色，另一来源缺角色不等价 | 原手动8跳、精确token落点 | 当前路线内token/role；不持久化 | 固定当前学期param，课程kcmc空/xnxq；全局作业逐页原pageNum/pageSize | 原 JSON、XHR/Token/RoleCode | 原 DES、密钥和固定 SQL ID 不变 | 原 SpocAssignments、term、摘要；不缓存 raw 信封 | 缓存当前视图完整集合；新学期成功替换旧当前快照，不合并跨学期项目 | 课程补充 runCatching 原可选失败保留在线行为；新缓存记部分，必需页失败不替换 |
+| SPOC 详情 | 同上；另一来源无同构双步骤 | 原业务认证重试/SSO仲裁 | 同路线 | 必需 GET queryKczyInfoByid 的 id；可选 GET queryXsSubmitKczyInfo 的 kczyid | 原 XHR/Token/RoleCode，无新增正文 | 无新增 | 原 id 校验、纯文本详情和 submittedAt；请求只有作业ID，不臆造课程/学期参数 | 精确作业ID，来源保留课程字段；可选步骤失败不覆盖旧完整详情 | 可选失败与合法空补充区分；旧公开返回语义保持 |
+| 今日签到 | 旧8346 jumpMyCenter，业务登录8347 login.action；另一来源 login_buaa.do 不借用 | 原8跳 loginName，固定路线 | 原独立id/sessionId，不写缓存 | 原 GET id/dateStr=YYYYMMDD；日期捕获一次并复用于重试与缓存键 | sessionId 头；原登录精确字段，无业务新参数 | 无新增 | 只保存courseId/name/begin/end/signStatus，不保存 eligibility/target | 按上海日期隔离；午夜不把昨天当今天 | 原 STATUS/一次业务重试及主会话仲裁；不把失败当空 |
+| 阳光概览 | 原 OAuth code 交换，另一来源无等价模块 | 原10跳/query/fragment提code；不猜主机集 | 原路线内uid/token与generation | 原分类、项目、getCount、Term/get顺序；项目page=1/limit=1000 | 原表单、query双传及XHR；不保存令牌 | 无新增 | 保留原统计、项目显示字段；独立缓存DTO没有submitEligibility/submitTarget | 可选统计/学期失败记部分；旧完整内容保留；不把部分回退零当新完整值 | -98与发送前guard仍失败/原一次重试；旧公开概览的可选容错保持 |
+
+本轮不增加学校写入、密码提交或隐式预取。在线返回仍保留实时资格供既有 WriteCoordinator 复核链使用；持久载荷从类型层面剥离资格/写目标。当前列表/默认概览无显式学期或分类输入，缓存保存完整当前快照及其真实term/classify字段，不凭空新增上游参数。阳光记录分页与其分类归属将在后续独立接入，不以概览缓存冒充记录已覆盖。
+
+
+P4-D 审查补充：阳光仅沿原 term_good_count_show/term_good_count/term_count_show/term_count 四字段顺序判断是否真的观察到次数；无字段时旧公开接口仍回退零，但新持久完整度为部分。SPOC 继续原空页/总页数停止边界，若停止时 hasNextPage 仍为真，新缓存不得标完整；不因此发明新的翻页请求或改变原 CLI 输出。

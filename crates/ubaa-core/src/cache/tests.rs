@@ -718,3 +718,34 @@ fn 退出栅栏优先于无法保存的载荷且不能被当成普通保存失�
     drop(repo);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn 首页持久投影从类型层面剥离学校写资格与目标() {
+    use crate::domain::{ActionEligibility, SigninClass, YgdkItem, YgdkOverview, YgdkSubmitTarget};
+    let signin = CachedSigninClass::from(SigninClass {
+        course_id: "synthetic-course".into(),
+        signin_eligibility: ActionEligibility::Allowed,
+        signin_target: Some("synthetic-target".into()),
+        ..Default::default()
+    });
+    let ygdk = CachedYgdkOverview::from(YgdkOverview {
+        items: vec![YgdkItem {
+            item_id: 7,
+            submit_eligibility: ActionEligibility::Allowed,
+            submit_target: Some(YgdkSubmitTarget {
+                classify_id: 1,
+                item_id: 7,
+            }),
+            ..Default::default()
+        }],
+        ..Default::default()
+    });
+    for value in [
+        serde_json::to_value(signin).unwrap(),
+        serde_json::to_value(ygdk).unwrap(),
+    ] {
+        let text = value.to_string();
+        assert!(!text.contains("eligibility") && !text.contains("Eligibility"));
+        assert!(!text.contains("signinTarget") && !text.contains("submitTarget"));
+    }
+}

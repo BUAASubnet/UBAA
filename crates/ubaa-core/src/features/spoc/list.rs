@@ -30,6 +30,12 @@ pub(crate) async fn get_assignments(
 pub(crate) async fn get_assignments_diagnostics(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> crate::error::Result<crate::domain::SpocAssignmentsDiagnostics> {
+    Ok(get_assignments_observed(runtime).await?.0)
+}
+
+pub(crate) async fn get_assignments_observed(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> crate::error::Result<(crate::domain::SpocAssignmentsDiagnostics, bool)> {
     let term_result = with_spoc_auth_retry(runtime, |runtime, credential| {
         Box::pin(fetch_current_term(runtime, credential))
     })
@@ -57,12 +63,14 @@ pub(crate) async fn get_assignments_diagnostics(
         .append_pair("kcmc", "")
         .append_pair("xnxq", &term_code);
     let courses_url = courses_url.to_string();
-    let courses: Vec<CourseRaw> = with_spoc_auth_retry(runtime, move |runtime, credential| {
-        Box::pin(fetch_courses(runtime, courses_url.clone(), credential))
-    })
-    .await
-    .unwrap_or_default();
-    let courses = courses
+    let courses_result: crate::error::Result<Vec<CourseRaw>> =
+        with_spoc_auth_retry(runtime, move |runtime, credential| {
+            Box::pin(fetch_courses(runtime, courses_url.clone(), credential))
+        })
+        .await;
+    let mut complete = courses_result.is_ok();
+    let courses = courses_result
+        .unwrap_or_default()
         .into_iter()
         .map(|course| (course.kcid.clone(), course))
         .collect::<std::collections::HashMap<_, _>>();
@@ -102,6 +110,8 @@ pub(crate) async fn get_assignments_diagnostics(
             assignments.push(item_summary);
         }
         if !page.has_next_page || page_num >= page.pages || page_empty {
+            // 旧读取仍在原边界结束；若服务器还宣告下一页，不能保存为完整集合。
+            complete &= !page.has_next_page;
             break;
         }
         page_num += 1;
@@ -114,14 +124,17 @@ pub(crate) async fn get_assignments_diagnostics(
             .then_with(|| left.course_name.cmp(&right.course_name))
             .then_with(|| left.title.cmp(&right.title))
     });
-    Ok(crate::domain::SpocAssignmentsDiagnostics {
-        global_page_count,
-        result: crate::domain::SpocAssignments {
-            term_code,
-            term_name: term.dqxq,
-            assignments,
+    Ok((
+        crate::domain::SpocAssignmentsDiagnostics {
+            global_page_count,
+            result: crate::domain::SpocAssignments {
+                term_code,
+                term_name: term.dqxq,
+                assignments,
+            },
         },
-    })
+        complete,
+    ))
 }
 
 async fn fetch_current_term(

@@ -171,11 +171,7 @@ pub fn parse_overview(
         summary: YgdkTermSummary {
             term_id: integer(&term, "term_id").or_else(|| integer(&term, "id")),
             term_name: string(&term, "name"),
-            term_count: integer(&count, "term_good_count_show")
-                .or_else(|| integer(&count, "term_good_count"))
-                .or_else(|| integer(&count, "term_count_show"))
-                .or_else(|| integer(&count, "term_count"))
-                .unwrap_or(0),
+            term_count: observed_term_count(&count).unwrap_or(0),
             term_target: integer(&count, "term_num").or_else(|| integer(&selected, "term_num")),
             week_count: integer(&count, "week_count"),
             week_target: integer(&count, "week_num").or_else(|| integer(&selected, "week_num")),
@@ -324,4 +320,12 @@ pub fn parse_records(
         size,
         has_more: page.saturating_mul(size) < total,
     })
+}
+
+/// 原计数字段的同一优先级；None 与实际零值分别用于持久完整度判断。
+pub(super) fn observed_term_count(count: &Map<String, Value>) -> Option<i32> {
+    integer(count, "term_good_count_show")
+        .or_else(|| integer(count, "term_good_count"))
+        .or_else(|| integer(count, "term_count_show"))
+        .or_else(|| integer(count, "term_count"))
 }

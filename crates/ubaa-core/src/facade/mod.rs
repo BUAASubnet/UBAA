@@ -6,8 +6,10 @@ mod judge_refresh;
 mod judge_scan;
 pub use judge_refresh::{JudgeRefresh, JudgeRefreshBatch, JudgeRefreshOptions};
 mod academic_cache;
+mod home_cache;
 mod offline;
 pub use academic_cache::AcademicQuery;
+pub use home_cache::{HomeQuery, HomeReadData, HomeRefresh};
 pub use judge_scan::{JudgeScan, JudgeScanBatch, JudgeScanCancellation, JudgeScanKind};
 pub use offline::{OfflineCache, OfflineReadError, OfflineRefresh};
 mod read;
@@ -57,5 +59,6 @@ pub use crate::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 pub use crate::cache::{
     CACHE_SCHEMA_VERSION, CacheCompleteness, CacheError, CacheKey, CacheLimits, CacheObservation,
     CachePayload, CachePublication, CacheQuery, CacheReadTicket, CacheRecord, CacheResult,
-    CacheScope, JudgeCourseReview, OfflineRepository,
+    CacheScope, CachedSigninClass, CachedYgdkItem, CachedYgdkOverview, JudgeCourseReview,
+    OfflineRepository,
 };
