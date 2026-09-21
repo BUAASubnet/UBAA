@@ -68,6 +68,10 @@ class _AcademicTermDialogState extends State<_AcademicTermDialog> {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (result.evidence?.origin == DataOrigin.persisted)
+                    Text(
+                      '上次保存 ${_savedScheduleTime(result.evidence!.fetchedAt)}，连接后核对更新',
+                    ),
                   for (final entry in terms.entries)
                     ListTile(
                       title: Text(entry.value.title),

@@ -15,6 +15,7 @@ part 'common.dart';
 part 'offline.dart';
 part 'recovery.dart';
 part 'read/academic.dart';
+part 'read/academic_cache.dart';
 part 'read/assignments.dart';
 part 'read/judge_progressive.dart';
 part 'read/offline_query.dart';
@@ -28,7 +29,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 15;
+const _supportedBridgeContractVersion = 16;
 
 /// 基于 FRB opaque client 的生产后端。
 ///

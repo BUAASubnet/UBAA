@@ -1,5 +1,6 @@
 import 'catalog.dart';
 import 'query.dart';
+import 'overview.dart';
 import 'data_evidence.dart';
 import 'result.dart';
 import 'read_context.dart';
@@ -15,8 +16,16 @@ final class CachedFeatureProjection {
     required this.complete,
     this.scopeDate,
     FeatureQuery? query,
+    GradesTermOverview? overview,
     Iterable<FeatureDetail> details = const [],
-  }) : readContext = FeatureReadContext(query: query, requestRevision: 0),
+  }) : overview = overview == null
+           ? null
+           : GradesTermOverview(
+               requestTerm: overview.requestTerm,
+               termCode: overview.termCode,
+               grades: List.unmodifiable(overview.grades),
+             ),
+       readContext = FeatureReadContext(query: query, requestRevision: 0),
        details = List.unmodifiable(
          details.map(
            (detail) => FeatureDetail(
@@ -28,6 +37,7 @@ final class CachedFeatureProjection {
            ),
          ),
        );
+  final GradesTermOverview? overview;
   final FeatureReadContext readContext;
   final FeatureId feature;
   final String accountId;
@@ -42,6 +52,7 @@ final class CachedFeatureProjection {
     status: FeatureLoadStatus.stale,
     readContext: readContext,
     details: details,
+    overview: overview,
     resolvedRoute: route,
     updatedAt: fetchedAt,
     evidence: DataEvidence(

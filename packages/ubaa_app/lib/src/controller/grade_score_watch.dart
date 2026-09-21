@@ -95,6 +95,10 @@ final class GradeScoreWatch extends ChangeNotifier {
     try {
       final read = await controller.loadCurrentGrades(forceRefresh: force);
       if (!_current(account, generation, epoch) || read == null) return;
+      // 只有完整在线观察能建立出分基线，磁盘旧内容不是一次成绩更新。
+      if (read.result.evidence?.origin == DataOrigin.persisted ||
+          read.result.evidence?.complete == false)
+        return;
       _checkedRoute = read.resolvedRoute ?? read.result.error?.resolvedRoute;
       if (read.result.error case final error?) throw error;
       if (read.overview == null)

@@ -124,7 +124,8 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
       widget.onExit();
     } else {
       setState(() => _frames.removeLast());
-      if (widget.snapshot.feature == FeatureId.judge &&
+      if ((widget.snapshot.feature == FeatureId.judge ||
+              _readableAcademicCache(_current.snapshot)) &&
           _current.snapshot.status == FeatureLoadStatus.loading &&
           widget.onQuery != null) {
         unawaited(_query(_current, _current.query ?? const FeatureQuery()));
@@ -165,7 +166,8 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
         target.feature != widget.snapshot.feature ||
         (_current.snapshot.status == FeatureLoadStatus.loading &&
             !_current.isLanding &&
-            widget.snapshot.feature != FeatureId.judge))
+            widget.snapshot.feature != FeatureId.judge &&
+            !_readableAcademicCache(_current.snapshot)))
       return;
     final cached = _current.snapshot;
     final reuseDefault =

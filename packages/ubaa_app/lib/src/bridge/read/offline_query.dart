@@ -19,7 +19,10 @@ Future<OfflineQueryRead> _readCachedQuery(
       feature == FeatureId.judge && query.view == FeatureQueryView.summary;
   final detail =
       feature == FeatureId.judge && query.view == FeatureQueryView.judgeDetail;
-  if (!today && !summary && !detail) return const OfflineQueryRead(null);
+  final academic = _isAcademicCacheQuery(feature, query);
+  if (!today && !summary && !detail && !academic)
+    return const OfflineQueryRead(null);
+  final queryDate = _dateOnly(query.date ?? DateTime.now());
   final routes = switch (policy) {
     RoutePolicy.direct => [BridgeConnectionMode.direct],
     RoutePolicy.webvpn => [BridgeConnectionMode.webVpn],
@@ -33,7 +36,16 @@ Future<OfflineQueryRead> _readCachedQuery(
   for (final route in routes) {
     try {
       CachedFeatureProjection? value;
-      if (today) {
+      if (academic) {
+        value = await _cachedAcademicProjection(
+          backend,
+          feature,
+          query,
+          route,
+          account,
+          queryDate,
+        );
+      } else if (today) {
         final record = await cache.readToday(route: route);
         if (record != null)
           value = CachedFeatureProjection(

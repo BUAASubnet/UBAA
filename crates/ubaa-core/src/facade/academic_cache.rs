@@ -137,3 +137,23 @@ impl UbaaClient {
         }
     }
 }
+
+impl OfflineCache {
+    /// 精确读取已保存学业范围，不校验网络会话。
+    ///
+    /// # Errors
+    /// 参数无效、账号关闭或本地记录损坏时返回稳定缓存错误。
+    pub fn read_academic(
+        &self,
+        route: ConnectionMode,
+        query: &AcademicQuery,
+    ) -> super::CacheResult<Option<super::CacheRecord>> {
+        self.read(
+            &CacheScope {
+                route,
+                query: query.cache_query(),
+            },
+            chrono::Utc::now().timestamp(),
+        )
+    }
+}

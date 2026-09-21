@@ -7,6 +7,7 @@ import 'api/client.dart';
 import 'api/judge_refresh.dart';
 import 'api/judge_scan.dart';
 import 'api/offline.dart';
+import 'api/offline_academic.dart';
 import 'api/read.dart';
 import 'api/recovery.dart';
 import 'api/simple.dart';
@@ -73,7 +74,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -1588222844;
+  int get rustContentHash => 259449515;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -85,6 +86,49 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
+  Future<BridgeAcademicClassroomsRefresh>
+  crateApiClientBridgeClientAcademicClassroomsCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required int campus,
+    required String date,
+  });
+
+  Future<BridgeAcademicExamsRefresh>
+  crateApiClientBridgeClientAcademicExamsCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required String term,
+  });
+
+  Future<BridgeAcademicGradesRefresh>
+  crateApiClientBridgeClientAcademicGradesCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required String term,
+  });
+
+  Future<BridgeAcademicTermsRefresh>
+  crateApiClientBridgeClientAcademicTermsCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+  });
+
+  Future<BridgeAcademicWeekRefresh>
+  crateApiClientBridgeClientAcademicWeekCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required String term,
+    required int week,
+  });
+
+  Future<BridgeAcademicWeeksRefresh>
+  crateApiClientBridgeClientAcademicWeeksCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required String term,
+  });
+
   Future<BridgeLoginOutcome> crateApiClientBridgeClientAuthStatus({
     required BridgeClient that,
   });
@@ -462,6 +506,49 @@ abstract class RustLibApi extends BaseApi {
     required List<int> key,
   });
 
+  Future<BridgeCachedAcademicClassrooms?>
+  crateApiOfflineBridgeOfflineCacheReadAcademicClassrooms({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required int campus,
+    required String date,
+  });
+
+  Future<BridgeCachedAcademicExams?>
+  crateApiOfflineBridgeOfflineCacheReadAcademicExams({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String term,
+  });
+
+  Future<BridgeCachedAcademicGrades?>
+  crateApiOfflineBridgeOfflineCacheReadAcademicGrades({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String term,
+  });
+
+  Future<BridgeCachedAcademicTerms?>
+  crateApiOfflineBridgeOfflineCacheReadAcademicTerms({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+  });
+
+  Future<BridgeCachedAcademicWeek?>
+  crateApiOfflineBridgeOfflineCacheReadAcademicWeek({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String term,
+    required int week,
+  });
+
+  Future<BridgeCachedAcademicWeeks?>
+  crateApiOfflineBridgeOfflineCacheReadAcademicWeeks({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String term,
+  });
+
   Future<BridgeCachedJudge?> crateApiOfflineBridgeOfflineCacheReadJudge({
     required BridgeOfflineCache that,
     required BridgeConnectionMode route,
@@ -533,6 +620,273 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
+  Future<BridgeAcademicClassroomsRefresh>
+  crateApiClientBridgeClientAcademicClassroomsCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required int campus,
+    required String date,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          sse_encode_i_32(campus, serializer);
+          sse_encode_String(date, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 1,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_academic_classrooms_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientAcademicClassroomsCachedConstMeta,
+        argValues: [that, cache, campus, date],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiClientBridgeClientAcademicClassroomsCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_academic_classrooms_cached",
+        argNames: ["that", "cache", "campus", "date"],
+      );
+
+  @override
+  Future<BridgeAcademicExamsRefresh>
+  crateApiClientBridgeClientAcademicExamsCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required String term,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          sse_encode_String(term, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_academic_exams_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientAcademicExamsCachedConstMeta,
+        argValues: [that, cache, term],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientAcademicExamsCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_academic_exams_cached",
+        argNames: ["that", "cache", "term"],
+      );
+
+  @override
+  Future<BridgeAcademicGradesRefresh>
+  crateApiClientBridgeClientAcademicGradesCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required String term,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          sse_encode_String(term, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 3,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_academic_grades_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientAcademicGradesCachedConstMeta,
+        argValues: [that, cache, term],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientAcademicGradesCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_academic_grades_cached",
+        argNames: ["that", "cache", "term"],
+      );
+
+  @override
+  Future<BridgeAcademicTermsRefresh>
+  crateApiClientBridgeClientAcademicTermsCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 4,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_academic_terms_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientAcademicTermsCachedConstMeta,
+        argValues: [that, cache],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientAcademicTermsCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_academic_terms_cached",
+        argNames: ["that", "cache"],
+      );
+
+  @override
+  Future<BridgeAcademicWeekRefresh>
+  crateApiClientBridgeClientAcademicWeekCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required String term,
+    required int week,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          sse_encode_String(term, serializer);
+          sse_encode_i_32(week, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 5,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_academic_week_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientAcademicWeekCachedConstMeta,
+        argValues: [that, cache, term, week],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientAcademicWeekCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_academic_week_cached",
+        argNames: ["that", "cache", "term", "week"],
+      );
+
+  @override
+  Future<BridgeAcademicWeeksRefresh>
+  crateApiClientBridgeClientAcademicWeeksCached({
+    required BridgeClient that,
+    required BridgeOfflineCache cache,
+    required String term,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          sse_encode_String(term, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 6,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_academic_weeks_refresh,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiClientBridgeClientAcademicWeeksCachedConstMeta,
+        argValues: [that, cache, term],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiClientBridgeClientAcademicWeeksCachedConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeClient_academic_weeks_cached",
+        argNames: ["that", "cache", "term"],
+      );
+
+  @override
   Future<BridgeLoginOutcome> crateApiClientBridgeClientAuthStatus({
     required BridgeClient that,
   }) {
@@ -547,7 +901,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 1,
+            funcId: 7,
             port: port_,
           );
         },
@@ -593,7 +947,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 2,
+            funcId: 8,
             port: port_,
           );
         },
@@ -639,7 +993,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 9,
             port: port_,
           );
         },
@@ -675,7 +1029,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 10,
             port: port_,
           );
         },
@@ -713,7 +1067,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 11,
             port: port_,
           );
         },
@@ -755,7 +1109,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 12,
             port: port_,
           );
         },
@@ -791,7 +1145,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 13,
             port: port_,
           );
         },
@@ -827,7 +1181,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 14,
             port: port_,
           );
         },
@@ -867,7 +1221,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 15,
             port: port_,
           );
         },
@@ -903,7 +1257,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 16,
             port: port_,
           );
         },
@@ -941,7 +1295,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 17,
             port: port_,
           );
         },
@@ -982,7 +1336,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 12,
+            funcId: 18,
             port: port_,
           );
         },
@@ -1023,7 +1377,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 19,
             port: port_,
           );
         },
@@ -1066,7 +1420,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 20,
             port: port_,
           );
         },
@@ -1101,7 +1455,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 21,
             port: port_,
           );
         },
@@ -1137,7 +1491,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 22,
             port: port_,
           );
         },
@@ -1177,7 +1531,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 23,
             port: port_,
           );
         },
@@ -1215,7 +1569,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 24,
             port: port_,
           );
         },
@@ -1246,7 +1600,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 19)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 25)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_32,
@@ -1282,7 +1636,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 26,
             port: port_,
           );
         },
@@ -1316,7 +1670,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 27,
             port: port_,
           );
         },
@@ -1352,7 +1706,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 28,
             port: port_,
           );
         },
@@ -1391,7 +1745,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 29,
             port: port_,
           );
         },
@@ -1430,7 +1784,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 24,
+            funcId: 30,
             port: port_,
           );
         },
@@ -1468,7 +1822,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 31,
             port: port_,
           );
         },
@@ -1509,7 +1863,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 26,
+            funcId: 32,
             port: port_,
           );
         },
@@ -1548,7 +1902,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 27,
+            funcId: 33,
             port: port_,
           );
         },
@@ -1588,7 +1942,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 34,
             port: port_,
           );
         },
@@ -1631,7 +1985,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 29,
+            funcId: 35,
             port: port_,
           );
         },
@@ -1671,7 +2025,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 30,
+            funcId: 36,
             port: port_,
           );
         },
@@ -1713,7 +2067,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 31,
+            funcId: 37,
             port: port_,
           );
         },
@@ -1754,7 +2108,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 32,
+            funcId: 38,
             port: port_,
           );
         },
@@ -1793,7 +2147,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 33,
+            funcId: 39,
             port: port_,
           );
         },
@@ -1837,7 +2191,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 34,
+            funcId: 40,
             port: port_,
           );
         },
@@ -1877,7 +2231,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 35,
+            funcId: 41,
             port: port_,
           );
         },
@@ -1919,7 +2273,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 36,
+            funcId: 42,
             port: port_,
           );
         },
@@ -1953,7 +2307,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 43,
             port: port_,
           );
         },
@@ -1991,7 +2345,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 38,
+            funcId: 44,
             port: port_,
           );
         },
@@ -2032,7 +2386,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 39,
+            funcId: 45,
             port: port_,
           );
         },
@@ -2060,7 +2414,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
           sse_encode_String(configDir, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 40)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 46)!;
         },
         codec: SseCodec(
           decodeSuccessData:
@@ -2101,7 +2455,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 41,
+            funcId: 47,
             port: port_,
           );
         },
@@ -2144,7 +2498,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 48,
             port: port_,
           );
         },
@@ -2186,7 +2540,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 43,
+            funcId: 49,
             port: port_,
           );
         },
@@ -2227,7 +2581,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 44,
+            funcId: 50,
             port: port_,
           );
         },
@@ -2270,7 +2624,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 45,
+            funcId: 51,
             port: port_,
           );
         },
@@ -2314,7 +2668,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 46,
+            funcId: 52,
             port: port_,
           );
         },
@@ -2358,7 +2712,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 47,
+            funcId: 53,
             port: port_,
           );
         },
@@ -2401,7 +2755,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 48,
+            funcId: 54,
             port: port_,
           );
         },
@@ -2437,7 +2791,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 49,
+            funcId: 55,
             port: port_,
           );
         },
@@ -2478,7 +2832,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 50,
+            funcId: 56,
             port: port_,
           );
         },
@@ -2519,7 +2873,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 51,
+            funcId: 57,
             port: port_,
           );
         },
@@ -2558,7 +2912,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 52,
+            funcId: 58,
             port: port_,
           );
         },
@@ -2595,7 +2949,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 53,
+            funcId: 59,
             port: port_,
           );
         },
@@ -2631,7 +2985,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 54,
+            funcId: 60,
             port: port_,
           );
         },
@@ -2667,7 +3021,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 55,
+            funcId: 61,
             port: port_,
           );
         },
@@ -2708,7 +3062,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 56,
+            funcId: 62,
             port: port_,
           );
         },
@@ -2748,7 +3102,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 57,
+            funcId: 63,
             port: port_,
           );
         },
@@ -2786,7 +3140,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 58,
+            funcId: 64,
             port: port_,
           );
         },
@@ -2824,7 +3178,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 59,
+            funcId: 65,
             port: port_,
           );
         },
@@ -2860,7 +3214,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 60,
+            funcId: 66,
             port: port_,
           );
         },
@@ -2899,7 +3253,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 61,
+            funcId: 67,
             port: port_,
           );
         },
@@ -2934,7 +3288,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 62,
+            funcId: 68,
             port: port_,
           );
         },
@@ -2970,7 +3324,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 63,
+            funcId: 69,
             port: port_,
           );
         },
@@ -3006,7 +3360,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 64,
+            funcId: 70,
             port: port_,
           );
         },
@@ -3045,7 +3399,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 65,
+            funcId: 71,
             port: port_,
           );
         },
@@ -3085,7 +3439,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 66,
+            funcId: 72,
             port: port_,
           );
         },
@@ -3128,7 +3482,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 67,
+            funcId: 73,
             port: port_,
           );
         },
@@ -3161,7 +3515,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 68)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 74)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -3191,7 +3545,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 69)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 75)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -3225,7 +3579,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 70,
+            funcId: 76,
             port: port_,
           );
         },
@@ -3261,7 +3615,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 71,
+            funcId: 77,
             port: port_,
           );
         },
@@ -3297,7 +3651,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 72,
+            funcId: 78,
             port: port_,
           );
         },
@@ -3333,7 +3687,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 73,
+            funcId: 79,
             port: port_,
           );
         },
@@ -3372,7 +3726,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 74,
+            funcId: 80,
             port: port_,
           );
         },
@@ -3395,6 +3749,268 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeCachedAcademicClassrooms?>
+  crateApiOfflineBridgeOfflineCacheReadAcademicClassrooms({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required int campus,
+    required String date,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_i_32(campus, serializer);
+          sse_encode_String(date, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 81,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_academic_classrooms,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta:
+            kCrateApiOfflineBridgeOfflineCacheReadAcademicClassroomsConstMeta,
+        argValues: [that, route, campus, date],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOfflineBridgeOfflineCacheReadAcademicClassroomsConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_academic_classrooms",
+        argNames: ["that", "route", "campus", "date"],
+      );
+
+  @override
+  Future<BridgeCachedAcademicExams?>
+  crateApiOfflineBridgeOfflineCacheReadAcademicExams({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String term,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_String(term, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 82,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_academic_exams,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiOfflineBridgeOfflineCacheReadAcademicExamsConstMeta,
+        argValues: [that, route, term],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOfflineBridgeOfflineCacheReadAcademicExamsConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_academic_exams",
+        argNames: ["that", "route", "term"],
+      );
+
+  @override
+  Future<BridgeCachedAcademicGrades?>
+  crateApiOfflineBridgeOfflineCacheReadAcademicGrades({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String term,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_String(term, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 83,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_academic_grades,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta:
+            kCrateApiOfflineBridgeOfflineCacheReadAcademicGradesConstMeta,
+        argValues: [that, route, term],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOfflineBridgeOfflineCacheReadAcademicGradesConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_academic_grades",
+        argNames: ["that", "route", "term"],
+      );
+
+  @override
+  Future<BridgeCachedAcademicTerms?>
+  crateApiOfflineBridgeOfflineCacheReadAcademicTerms({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 84,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_academic_terms,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiOfflineBridgeOfflineCacheReadAcademicTermsConstMeta,
+        argValues: [that, route],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOfflineBridgeOfflineCacheReadAcademicTermsConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_academic_terms",
+        argNames: ["that", "route"],
+      );
+
+  @override
+  Future<BridgeCachedAcademicWeek?>
+  crateApiOfflineBridgeOfflineCacheReadAcademicWeek({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String term,
+    required int week,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_String(term, serializer);
+          sse_encode_i_32(week, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 85,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_academic_week,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiOfflineBridgeOfflineCacheReadAcademicWeekConstMeta,
+        argValues: [that, route, term, week],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOfflineBridgeOfflineCacheReadAcademicWeekConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_academic_week",
+        argNames: ["that", "route", "term", "week"],
+      );
+
+  @override
+  Future<BridgeCachedAcademicWeeks?>
+  crateApiOfflineBridgeOfflineCacheReadAcademicWeeks({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String term,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_String(term, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 86,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_cached_academic_weeks,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta: kCrateApiOfflineBridgeOfflineCacheReadAcademicWeeksConstMeta,
+        argValues: [that, route, term],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOfflineBridgeOfflineCacheReadAcademicWeeksConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_academic_weeks",
+        argNames: ["that", "route", "term"],
+      );
+
+  @override
   Future<BridgeCachedJudge?> crateApiOfflineBridgeOfflineCacheReadJudge({
     required BridgeOfflineCache that,
     required BridgeConnectionMode route,
@@ -3413,7 +4029,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 75,
+            funcId: 87,
             port: port_,
           );
         },
@@ -3456,7 +4072,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 76,
+            funcId: 88,
             port: port_,
           );
         },
@@ -3496,7 +4112,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 77,
+            funcId: 89,
             port: port_,
           );
         },
@@ -3523,7 +4139,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       SyncTask(
         callFfi: () {
           final serializer = SseSerializer(generalizedFrbRustBinding);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 78)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 90)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_String,
@@ -3549,7 +4165,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 79,
+            funcId: 91,
             port: port_,
           );
         },
@@ -3581,7 +4197,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 80,
+            funcId: 92,
             port: port_,
           );
         },
@@ -3808,6 +4424,52 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedAcademicClassrooms
+  dco_decode_box_autoadd_bridge_cached_academic_classrooms(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_academic_classrooms(raw);
+  }
+
+  @protected
+  BridgeCachedAcademicExams dco_decode_box_autoadd_bridge_cached_academic_exams(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_academic_exams(raw);
+  }
+
+  @protected
+  BridgeCachedAcademicGrades
+  dco_decode_box_autoadd_bridge_cached_academic_grades(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_academic_grades(raw);
+  }
+
+  @protected
+  BridgeCachedAcademicTerms dco_decode_box_autoadd_bridge_cached_academic_terms(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_academic_terms(raw);
+  }
+
+  @protected
+  BridgeCachedAcademicWeek dco_decode_box_autoadd_bridge_cached_academic_week(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_academic_week(raw);
+  }
+
+  @protected
+  BridgeCachedAcademicWeeks dco_decode_box_autoadd_bridge_cached_academic_weeks(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_cached_academic_weeks(raw);
+  }
+
+  @protected
   BridgeCachedJudge dco_decode_box_autoadd_bridge_cached_judge(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_bridge_cached_judge(raw);
@@ -3993,6 +4655,102 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_i_64(raw);
+  }
+
+  @protected
+  BridgeAcademicClassroomsRefresh dco_decode_bridge_academic_classrooms_refresh(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeAcademicClassroomsRefresh(
+      result: dco_decode_bridge_routed_classroom_query(arr[0]),
+      fetchedAt: dco_decode_i_64(arr[1]),
+      complete: dco_decode_bool(arr[2]),
+      saveError: dco_decode_opt_box_autoadd_bridge_cache_failure(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeAcademicExamsRefresh dco_decode_bridge_academic_exams_refresh(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeAcademicExamsRefresh(
+      result: dco_decode_bridge_routed_exam_arrangement(arr[0]),
+      fetchedAt: dco_decode_i_64(arr[1]),
+      complete: dco_decode_bool(arr[2]),
+      saveError: dco_decode_opt_box_autoadd_bridge_cache_failure(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeAcademicGradesRefresh dco_decode_bridge_academic_grades_refresh(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeAcademicGradesRefresh(
+      result: dco_decode_bridge_routed_grades(arr[0]),
+      fetchedAt: dco_decode_i_64(arr[1]),
+      complete: dco_decode_bool(arr[2]),
+      saveError: dco_decode_opt_box_autoadd_bridge_cache_failure(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeAcademicTermsRefresh dco_decode_bridge_academic_terms_refresh(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeAcademicTermsRefresh(
+      result: dco_decode_bridge_routed_terms(arr[0]),
+      fetchedAt: dco_decode_i_64(arr[1]),
+      complete: dco_decode_bool(arr[2]),
+      saveError: dco_decode_opt_box_autoadd_bridge_cache_failure(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeAcademicWeekRefresh dco_decode_bridge_academic_week_refresh(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeAcademicWeekRefresh(
+      result: dco_decode_bridge_routed_weekly_schedule(arr[0]),
+      fetchedAt: dco_decode_i_64(arr[1]),
+      complete: dco_decode_bool(arr[2]),
+      saveError: dco_decode_opt_box_autoadd_bridge_cache_failure(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeAcademicWeeksRefresh dco_decode_bridge_academic_weeks_refresh(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeAcademicWeeksRefresh(
+      result: dco_decode_bridge_routed_weeks(arr[0]),
+      fetchedAt: dco_decode_i_64(arr[1]),
+      complete: dco_decode_bool(arr[2]),
+      saveError: dco_decode_opt_box_autoadd_bridge_cache_failure(arr[3]),
+    );
   }
 
   @protected
@@ -4191,6 +4949,100 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeCacheFailure dco_decode_bridge_cache_failure(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return BridgeCacheFailure.values[raw as int];
+  }
+
+  @protected
+  BridgeCachedAcademicClassrooms dco_decode_bridge_cached_academic_classrooms(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedAcademicClassrooms(
+      data: dco_decode_bridge_classroom_query(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedAcademicExams dco_decode_bridge_cached_academic_exams(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedAcademicExams(
+      data: dco_decode_bridge_exam_arrangement(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedAcademicGrades dco_decode_bridge_cached_academic_grades(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedAcademicGrades(
+      data: dco_decode_bridge_grade_data(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedAcademicTerms dco_decode_bridge_cached_academic_terms(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedAcademicTerms(
+      data: dco_decode_list_bridge_term(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedAcademicWeek dco_decode_bridge_cached_academic_week(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedAcademicWeek(
+      data: dco_decode_bridge_weekly_schedule(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeCachedAcademicWeeks dco_decode_bridge_cached_academic_weeks(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeCachedAcademicWeeks(
+      data: dco_decode_list_bridge_week(arr[0]),
+      sourceRoute: dco_decode_bridge_connection_mode(arr[1]),
+      fetchedAt: dco_decode_i_64(arr[2]),
+      complete: dco_decode_bool(arr[3]),
+    );
   }
 
   @protected
@@ -6516,6 +7368,60 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedAcademicClassrooms?
+  dco_decode_opt_box_autoadd_bridge_cached_academic_classrooms(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_academic_classrooms(raw);
+  }
+
+  @protected
+  BridgeCachedAcademicExams?
+  dco_decode_opt_box_autoadd_bridge_cached_academic_exams(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_academic_exams(raw);
+  }
+
+  @protected
+  BridgeCachedAcademicGrades?
+  dco_decode_opt_box_autoadd_bridge_cached_academic_grades(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_academic_grades(raw);
+  }
+
+  @protected
+  BridgeCachedAcademicTerms?
+  dco_decode_opt_box_autoadd_bridge_cached_academic_terms(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_academic_terms(raw);
+  }
+
+  @protected
+  BridgeCachedAcademicWeek?
+  dco_decode_opt_box_autoadd_bridge_cached_academic_week(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_academic_week(raw);
+  }
+
+  @protected
+  BridgeCachedAcademicWeeks?
+  dco_decode_opt_box_autoadd_bridge_cached_academic_weeks(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_cached_academic_weeks(raw);
+  }
+
+  @protected
   BridgeCachedJudge? dco_decode_opt_box_autoadd_bridge_cached_judge(
     dynamic raw,
   ) {
@@ -6908,6 +7814,56 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedAcademicClassrooms
+  sse_decode_box_autoadd_bridge_cached_academic_classrooms(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_academic_classrooms(deserializer));
+  }
+
+  @protected
+  BridgeCachedAcademicExams sse_decode_box_autoadd_bridge_cached_academic_exams(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_academic_exams(deserializer));
+  }
+
+  @protected
+  BridgeCachedAcademicGrades
+  sse_decode_box_autoadd_bridge_cached_academic_grades(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_academic_grades(deserializer));
+  }
+
+  @protected
+  BridgeCachedAcademicTerms sse_decode_box_autoadd_bridge_cached_academic_terms(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_academic_terms(deserializer));
+  }
+
+  @protected
+  BridgeCachedAcademicWeek sse_decode_box_autoadd_bridge_cached_academic_week(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_academic_week(deserializer));
+  }
+
+  @protected
+  BridgeCachedAcademicWeeks sse_decode_box_autoadd_bridge_cached_academic_weeks(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_cached_academic_weeks(deserializer));
+  }
+
+  @protected
   BridgeCachedJudge sse_decode_box_autoadd_bridge_cached_judge(
     SseDeserializer deserializer,
   ) {
@@ -7127,6 +8083,120 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_i_64(deserializer));
+  }
+
+  @protected
+  BridgeAcademicClassroomsRefresh sse_decode_bridge_academic_classrooms_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_result = sse_decode_bridge_routed_classroom_query(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    var var_saveError = sse_decode_opt_box_autoadd_bridge_cache_failure(
+      deserializer,
+    );
+    return BridgeAcademicClassroomsRefresh(
+      result: var_result,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+      saveError: var_saveError,
+    );
+  }
+
+  @protected
+  BridgeAcademicExamsRefresh sse_decode_bridge_academic_exams_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_result = sse_decode_bridge_routed_exam_arrangement(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    var var_saveError = sse_decode_opt_box_autoadd_bridge_cache_failure(
+      deserializer,
+    );
+    return BridgeAcademicExamsRefresh(
+      result: var_result,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+      saveError: var_saveError,
+    );
+  }
+
+  @protected
+  BridgeAcademicGradesRefresh sse_decode_bridge_academic_grades_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_result = sse_decode_bridge_routed_grades(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    var var_saveError = sse_decode_opt_box_autoadd_bridge_cache_failure(
+      deserializer,
+    );
+    return BridgeAcademicGradesRefresh(
+      result: var_result,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+      saveError: var_saveError,
+    );
+  }
+
+  @protected
+  BridgeAcademicTermsRefresh sse_decode_bridge_academic_terms_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_result = sse_decode_bridge_routed_terms(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    var var_saveError = sse_decode_opt_box_autoadd_bridge_cache_failure(
+      deserializer,
+    );
+    return BridgeAcademicTermsRefresh(
+      result: var_result,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+      saveError: var_saveError,
+    );
+  }
+
+  @protected
+  BridgeAcademicWeekRefresh sse_decode_bridge_academic_week_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_result = sse_decode_bridge_routed_weekly_schedule(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    var var_saveError = sse_decode_opt_box_autoadd_bridge_cache_failure(
+      deserializer,
+    );
+    return BridgeAcademicWeekRefresh(
+      result: var_result,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+      saveError: var_saveError,
+    );
+  }
+
+  @protected
+  BridgeAcademicWeeksRefresh sse_decode_bridge_academic_weeks_refresh(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_result = sse_decode_bridge_routed_weeks(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    var var_saveError = sse_decode_opt_box_autoadd_bridge_cache_failure(
+      deserializer,
+    );
+    return BridgeAcademicWeeksRefresh(
+      result: var_result,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+      saveError: var_saveError,
+    );
   }
 
   @protected
@@ -7399,6 +8469,108 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
     return BridgeCacheFailure.values[inner];
+  }
+
+  @protected
+  BridgeCachedAcademicClassrooms sse_decode_bridge_cached_academic_classrooms(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_classroom_query(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedAcademicClassrooms(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedAcademicExams sse_decode_bridge_cached_academic_exams(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_exam_arrangement(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedAcademicExams(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedAcademicGrades sse_decode_bridge_cached_academic_grades(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_grade_data(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedAcademicGrades(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedAcademicTerms sse_decode_bridge_cached_academic_terms(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_term(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedAcademicTerms(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedAcademicWeek sse_decode_bridge_cached_academic_week(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_bridge_weekly_schedule(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedAcademicWeek(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
+  }
+
+  @protected
+  BridgeCachedAcademicWeeks sse_decode_bridge_cached_academic_weeks(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_data = sse_decode_list_bridge_week(deserializer);
+    var var_sourceRoute = sse_decode_bridge_connection_mode(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_complete = sse_decode_bool(deserializer);
+    return BridgeCachedAcademicWeeks(
+      data: var_data,
+      sourceRoute: var_sourceRoute,
+      fetchedAt: var_fetchedAt,
+      complete: var_complete,
+    );
   }
 
   @protected
@@ -10249,6 +11421,100 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeCachedAcademicClassrooms?
+  sse_decode_opt_box_autoadd_bridge_cached_academic_classrooms(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_academic_classrooms(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeCachedAcademicExams?
+  sse_decode_opt_box_autoadd_bridge_cached_academic_exams(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_academic_exams(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeCachedAcademicGrades?
+  sse_decode_opt_box_autoadd_bridge_cached_academic_grades(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_academic_grades(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeCachedAcademicTerms?
+  sse_decode_opt_box_autoadd_bridge_cached_academic_terms(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_academic_terms(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeCachedAcademicWeek?
+  sse_decode_opt_box_autoadd_bridge_cached_academic_week(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_academic_week(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeCachedAcademicWeeks?
+  sse_decode_opt_box_autoadd_bridge_cached_academic_weeks(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_cached_academic_weeks(
+        deserializer,
+      ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   BridgeCachedJudge? sse_decode_opt_box_autoadd_bridge_cached_judge(
     SseDeserializer deserializer,
   ) {
@@ -10762,6 +12028,60 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_bridge_cached_academic_classrooms(
+    BridgeCachedAcademicClassrooms self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_academic_classrooms(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_academic_exams(
+    BridgeCachedAcademicExams self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_academic_exams(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_academic_grades(
+    BridgeCachedAcademicGrades self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_academic_grades(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_academic_terms(
+    BridgeCachedAcademicTerms self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_academic_terms(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_academic_week(
+    BridgeCachedAcademicWeek self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_academic_week(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_academic_weeks(
+    BridgeCachedAcademicWeeks self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_cached_academic_weeks(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_bridge_cached_judge(
     BridgeCachedJudge self,
     SseSerializer serializer,
@@ -10999,6 +12319,78 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bridge_academic_classrooms_refresh(
+    BridgeAcademicClassroomsRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_routed_classroom_query(self.result, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+    sse_encode_opt_box_autoadd_bridge_cache_failure(self.saveError, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_academic_exams_refresh(
+    BridgeAcademicExamsRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_routed_exam_arrangement(self.result, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+    sse_encode_opt_box_autoadd_bridge_cache_failure(self.saveError, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_academic_grades_refresh(
+    BridgeAcademicGradesRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_routed_grades(self.result, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+    sse_encode_opt_box_autoadd_bridge_cache_failure(self.saveError, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_academic_terms_refresh(
+    BridgeAcademicTermsRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_routed_terms(self.result, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+    sse_encode_opt_box_autoadd_bridge_cache_failure(self.saveError, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_academic_week_refresh(
+    BridgeAcademicWeekRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_routed_weekly_schedule(self.result, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+    sse_encode_opt_box_autoadd_bridge_cache_failure(self.saveError, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_academic_weeks_refresh(
+    BridgeAcademicWeeksRefresh self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_routed_weeks(self.result, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+    sse_encode_opt_box_autoadd_bridge_cache_failure(self.saveError, serializer);
+  }
+
+  @protected
   void sse_encode_bridge_action_eligibility(
     BridgeActionEligibility self,
     SseSerializer serializer,
@@ -11194,6 +12586,78 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_academic_classrooms(
+    BridgeCachedAcademicClassrooms self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_classroom_query(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_academic_exams(
+    BridgeCachedAcademicExams self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_exam_arrangement(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_academic_grades(
+    BridgeCachedAcademicGrades self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_grade_data(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_academic_terms(
+    BridgeCachedAcademicTerms self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_term(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_academic_week(
+    BridgeCachedAcademicWeek self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_weekly_schedule(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_cached_academic_weeks(
+    BridgeCachedAcademicWeeks self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_week(self.data, serializer);
+    sse_encode_bridge_connection_mode(self.sourceRoute, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_bool(self.complete, serializer);
   }
 
   @protected
@@ -13447,6 +14911,87 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_academic_classrooms(
+    BridgeCachedAcademicClassrooms? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_academic_classrooms(
+        self,
+        serializer,
+      );
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_academic_exams(
+    BridgeCachedAcademicExams? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_academic_exams(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_academic_grades(
+    BridgeCachedAcademicGrades? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_academic_grades(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_academic_terms(
+    BridgeCachedAcademicTerms? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_academic_terms(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_academic_week(
+    BridgeCachedAcademicWeek? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_academic_week(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_academic_weeks(
+    BridgeCachedAcademicWeeks? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_cached_academic_weeks(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_bridge_cached_judge(
     BridgeCachedJudge? self,
     SseSerializer serializer,
@@ -13728,6 +15273,86 @@ class BridgeClientImpl extends RustOpaque implements BridgeClient {
         RustLib.instance.api.rust_arc_decrement_strong_count_BridgeClient,
     rustArcDecrementStrongCountPtr:
         RustLib.instance.api.rust_arc_decrement_strong_count_BridgeClientPtr,
+  );
+
+  /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+  ///
+  /// # Errors
+  /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+  Future<BridgeAcademicClassroomsRefresh> academicClassroomsCached({
+    required BridgeOfflineCache cache,
+    required int campus,
+    required String date,
+  }) => RustLib.instance.api.crateApiClientBridgeClientAcademicClassroomsCached(
+    that: this,
+    cache: cache,
+    campus: campus,
+    date: date,
+  );
+
+  /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+  ///
+  /// # Errors
+  /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+  Future<BridgeAcademicExamsRefresh> academicExamsCached({
+    required BridgeOfflineCache cache,
+    required String term,
+  }) => RustLib.instance.api.crateApiClientBridgeClientAcademicExamsCached(
+    that: this,
+    cache: cache,
+    term: term,
+  );
+
+  /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+  ///
+  /// # Errors
+  /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+  Future<BridgeAcademicGradesRefresh> academicGradesCached({
+    required BridgeOfflineCache cache,
+    required String term,
+  }) => RustLib.instance.api.crateApiClientBridgeClientAcademicGradesCached(
+    that: this,
+    cache: cache,
+    term: term,
+  );
+
+  /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+  ///
+  /// # Errors
+  /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+  Future<BridgeAcademicTermsRefresh> academicTermsCached({
+    required BridgeOfflineCache cache,
+  }) => RustLib.instance.api.crateApiClientBridgeClientAcademicTermsCached(
+    that: this,
+    cache: cache,
+  );
+
+  /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+  ///
+  /// # Errors
+  /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+  Future<BridgeAcademicWeekRefresh> academicWeekCached({
+    required BridgeOfflineCache cache,
+    required String term,
+    required int week,
+  }) => RustLib.instance.api.crateApiClientBridgeClientAcademicWeekCached(
+    that: this,
+    cache: cache,
+    term: term,
+    week: week,
+  );
+
+  /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+  ///
+  /// # Errors
+  /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+  Future<BridgeAcademicWeeksRefresh> academicWeeksCached({
+    required BridgeOfflineCache cache,
+    required String term,
+  }) => RustLib.instance.api.crateApiClientBridgeClientAcademicWeeksCached(
+    that: this,
+    cache: cache,
+    term: term,
   );
 
   /// 校验持久化认证状态。
@@ -14352,6 +15977,88 @@ class BridgeOfflineCacheImpl extends RustOpaque implements BridgeOfflineCache {
   /// 无法持久化退出栅栏时返回稳定错误。
   Future<void> deactivate() => RustLib.instance.api
       .crateApiOfflineBridgeOfflineCacheDeactivate(that: this);
+
+  /// 只访问独立本地仓库，不获取网络客户端锁。
+  ///
+  /// # Errors
+  /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+  Future<BridgeCachedAcademicClassrooms?> readAcademicClassrooms({
+    required BridgeConnectionMode route,
+    required int campus,
+    required String date,
+  }) => RustLib.instance.api
+      .crateApiOfflineBridgeOfflineCacheReadAcademicClassrooms(
+        that: this,
+        route: route,
+        campus: campus,
+        date: date,
+      );
+
+  /// 只访问独立本地仓库，不获取网络客户端锁。
+  ///
+  /// # Errors
+  /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+  Future<BridgeCachedAcademicExams?> readAcademicExams({
+    required BridgeConnectionMode route,
+    required String term,
+  }) => RustLib.instance.api.crateApiOfflineBridgeOfflineCacheReadAcademicExams(
+    that: this,
+    route: route,
+    term: term,
+  );
+
+  /// 只访问独立本地仓库，不获取网络客户端锁。
+  ///
+  /// # Errors
+  /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+  Future<BridgeCachedAcademicGrades?> readAcademicGrades({
+    required BridgeConnectionMode route,
+    required String term,
+  }) =>
+      RustLib.instance.api.crateApiOfflineBridgeOfflineCacheReadAcademicGrades(
+        that: this,
+        route: route,
+        term: term,
+      );
+
+  /// 只访问独立本地仓库，不获取网络客户端锁。
+  ///
+  /// # Errors
+  /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+  Future<BridgeCachedAcademicTerms?> readAcademicTerms({
+    required BridgeConnectionMode route,
+  }) => RustLib.instance.api.crateApiOfflineBridgeOfflineCacheReadAcademicTerms(
+    that: this,
+    route: route,
+  );
+
+  /// 只访问独立本地仓库，不获取网络客户端锁。
+  ///
+  /// # Errors
+  /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+  Future<BridgeCachedAcademicWeek?> readAcademicWeek({
+    required BridgeConnectionMode route,
+    required String term,
+    required int week,
+  }) => RustLib.instance.api.crateApiOfflineBridgeOfflineCacheReadAcademicWeek(
+    that: this,
+    route: route,
+    term: term,
+    week: week,
+  );
+
+  /// 只访问独立本地仓库，不获取网络客户端锁。
+  ///
+  /// # Errors
+  /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+  Future<BridgeCachedAcademicWeeks?> readAcademicWeeks({
+    required BridgeConnectionMode route,
+    required String term,
+  }) => RustLib.instance.api.crateApiOfflineBridgeOfflineCacheReadAcademicWeeks(
+    that: this,
+    route: route,
+    term: term,
+  );
 
   /// 读取精确路线与过期筛选范围内的希冀缓存。
   ///

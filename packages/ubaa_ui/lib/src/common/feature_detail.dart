@@ -1,5 +1,14 @@
 part of '../widgets.dart';
 
+bool _readableAcademicCache(FeatureSnapshot snapshot) =>
+    {
+      FeatureId.schedule,
+      FeatureId.exam,
+      FeatureId.grades,
+      FeatureId.classroom,
+    }.contains(snapshot.feature) &&
+    snapshot.evidence?.origin == DataOrigin.persisted;
+
 class _FeatureDetailView extends StatefulWidget {
   const _FeatureDetailView({
     required this.feature,
@@ -130,7 +139,8 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
     final showDetails =
         (widget.snapshot.status == FeatureLoadStatus.success ||
             widget.snapshot.status == FeatureLoadStatus.stale ||
-            (widget.feature == FeatureId.judge &&
+            ((widget.feature == FeatureId.judge ||
+                    _readableAcademicCache(widget.snapshot)) &&
                 widget.snapshot.status == FeatureLoadStatus.loading)) &&
         widget.snapshot.details.isNotEmpty;
     final defaultContent = widget.isLanding
@@ -140,7 +150,22 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
           )
         : Column(
             children: [
-              if (widget.snapshot.status == FeatureLoadStatus.stale)
+              if (widget.snapshot.evidence?.complete == false &&
+                  widget.snapshot.details.isNotEmpty)
+                const Padding(
+                  padding: EdgeInsets.all(12),
+                  child: Text('当前内容尚不完整，连接后继续核对。'),
+                ),
+              if (_readableAcademicCache(widget.snapshot))
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(
+                    '上次保存 ${_savedScheduleTime(widget.snapshot.evidence!.fetchedAt)}，连接后核对更新',
+                  ),
+                ),
+              if (widget.snapshot.status == FeatureLoadStatus.stale &&
+                  (widget.snapshot.error != null ||
+                      !_readableAcademicCache(widget.snapshot)))
                 MaterialBanner(
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -182,6 +207,9 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                     ),
                     if (!showDetails)
                       switch (widget.snapshot.status) {
+                        FeatureLoadStatus.loading
+                            when _readableAcademicCache(widget.snapshot) =>
+                          _empty(context),
                         FeatureLoadStatus.loading => const Center(
                           child: CircularProgressIndicator(),
                         ),
@@ -513,7 +541,9 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                 ),
                 const SizedBox(height: 16),
                 Text(
-                  widget.isBykcChosenDetail
+                  widget.snapshot.evidence?.complete == false
+                      ? '当前数据尚不完整，连接后继续核对。'
+                      : widget.isBykcChosenDetail
                       ? '当前无法显示此选课记录，请返回列表核对。'
                       : '暂无${widget.feature.title}数据',
                 ),

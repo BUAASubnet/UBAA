@@ -5,6 +5,49 @@ import '../coursework_content_test.dart' show showFeature;
 import '../support/navigation.dart';
 
 void main() {
+  testWidgets('不完整的空缓存不能显示成确定的暂无数据', (tester) async {
+    await showFeature(
+      tester,
+      FeatureId.exam,
+      [],
+      [],
+      status: FeatureLoadStatus.success,
+      evidence: DataEvidence(
+        accountId: 'synthetic',
+        origin: DataOrigin.persisted,
+        fetchedAt: DateTime(2026, 9, 1),
+        complete: false,
+        savedForOffline: true,
+      ),
+    );
+    expect(find.textContaining('不完整'), findsOneWidget);
+    expect(find.textContaining('暂无'), findsNothing);
+  });
+
+  testWidgets('后台恢复中仍显示已保存考试内容和原时间', (tester) async {
+    await showFeature(
+      tester,
+      FeatureId.exam,
+      const [
+        FeatureDetail(
+          title: '已保存考试',
+          presentation: ExamPresentation(arranged: true, date: '2026-12-01'),
+        ),
+      ],
+      [],
+      status: FeatureLoadStatus.loading,
+      evidence: DataEvidence(
+        accountId: 'synthetic',
+        origin: DataOrigin.persisted,
+        fetchedAt: DateTime(2026, 9, 1),
+        complete: true,
+        savedForOffline: true,
+      ),
+    );
+    expect(find.text('已保存考试'), findsWidgets);
+    expect(find.textContaining('上次保存'), findsOneWidget);
+  });
+
   testWidgets('考试跨本地20条分组，结束默认收起且未来先于待定', (tester) async {
     final queries = <FeatureQuery>[];
     await showFeature(tester, FeatureId.exam, [

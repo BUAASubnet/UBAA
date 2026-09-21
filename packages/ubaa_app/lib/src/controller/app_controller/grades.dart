@@ -72,7 +72,8 @@ extension _AppControllerGrades on AppController {
     final term = overview.requestTerm;
     final entry = _GradeReadEntry()
       ..pending = false
-      ..freshForAggregate = fresh;
+      ..freshForAggregate =
+          fresh && result.evidence?.origin != DataOrigin.persisted;
     final stable = projectGrades(
       GradesTermOverview(
         requestTerm: term,
@@ -81,6 +82,7 @@ extension _AppControllerGrades on AppController {
       ),
       FeatureQueryView.summary,
       result.resolvedRoute,
+      evidence: result.evidence,
     );
     entry.result = stable;
     entry.completer.complete(stable);
@@ -120,7 +122,12 @@ extension _AppControllerGrades on AppController {
         overview.requestTerm != term ||
         overview.termCode != term)
       return null;
-    return projectGrades(overview, query.view, result!.resolvedRoute);
+    return projectGrades(
+      overview,
+      query.view,
+      result!.resolvedRoute,
+      evidence: result.evidence,
+    );
   }
 
   UiError? _gradesReadGuard() {
@@ -221,6 +228,7 @@ extension _AppControllerGrades on AppController {
             reusable = FeatureResult.success(
               overview: overview,
               details: snapshot.details,
+              evidence: snapshot.evidence,
               resolvedRoute: snapshot.resolvedRoute,
             );
             break;
@@ -256,10 +264,12 @@ extension _AppControllerGrades on AppController {
           result = result.isEmpty
               ? FeatureResult.empty(
                   overview: stable,
+                  evidence: result.evidence,
                   resolvedRoute: result.resolvedRoute,
                 )
               : FeatureResult.success(
                   overview: stable,
+                  evidence: result.evidence,
                   summary: result.summary,
                   details: List.unmodifiable(result.details),
                   resolvedRoute: result.resolvedRoute,

@@ -288,6 +288,8 @@ Future<void> showFeature(
   List<FeatureQuery> queries, {
   FeatureQuery query = const FeatureQuery(),
   FeatureOverview? overview,
+  FeatureLoadStatus? status,
+  DataEvidence? evidence,
   Future<GradesAggregate> Function(bool)? onLoadAllGrades,
   Size size = const Size(800, 1200),
   double textScale = 1,
@@ -312,9 +314,12 @@ Future<void> showFeature(
             id: id == feature
                 ? FeatureSnapshot(
                     feature: id,
-                    status: details.isEmpty
-                        ? FeatureLoadStatus.empty
-                        : FeatureLoadStatus.success,
+                    status:
+                        status ??
+                        (details.isEmpty
+                            ? FeatureLoadStatus.empty
+                            : FeatureLoadStatus.success),
+                    evidence: evidence,
                     details: details,
                     overview: overview,
                     readContext: FeatureReadContext(

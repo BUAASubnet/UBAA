@@ -10,6 +10,7 @@ import 'api/client.dart';
 import 'api/judge_refresh.dart';
 import 'api/judge_scan.dart';
 import 'api/offline.dart';
+import 'api/offline_academic.dart';
 import 'api/read.dart';
 import 'api/recovery.dart';
 import 'api/simple.dart';
@@ -151,6 +152,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeCacheFailure dco_decode_box_autoadd_bridge_cache_failure(dynamic raw);
 
   @protected
+  BridgeCachedAcademicClassrooms
+  dco_decode_box_autoadd_bridge_cached_academic_classrooms(dynamic raw);
+
+  @protected
+  BridgeCachedAcademicExams dco_decode_box_autoadd_bridge_cached_academic_exams(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedAcademicGrades
+  dco_decode_box_autoadd_bridge_cached_academic_grades(dynamic raw);
+
+  @protected
+  BridgeCachedAcademicTerms dco_decode_box_autoadd_bridge_cached_academic_terms(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedAcademicWeek dco_decode_box_autoadd_bridge_cached_academic_week(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedAcademicWeeks dco_decode_box_autoadd_bridge_cached_academic_weeks(
+    dynamic raw,
+  );
+
+  @protected
   BridgeCachedJudge dco_decode_box_autoadd_bridge_cached_judge(dynamic raw);
 
   @protected
@@ -258,6 +287,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 dco_decode_box_autoadd_i_64(dynamic raw);
 
   @protected
+  BridgeAcademicClassroomsRefresh dco_decode_bridge_academic_classrooms_refresh(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAcademicExamsRefresh dco_decode_bridge_academic_exams_refresh(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAcademicGradesRefresh dco_decode_bridge_academic_grades_refresh(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAcademicTermsRefresh dco_decode_bridge_academic_terms_refresh(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAcademicWeekRefresh dco_decode_bridge_academic_week_refresh(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAcademicWeeksRefresh dco_decode_bridge_academic_weeks_refresh(
+    dynamic raw,
+  );
+
+  @protected
   BridgeActionEligibility dco_decode_bridge_action_eligibility(dynamic raw);
 
   @protected
@@ -305,6 +364,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCacheFailure dco_decode_bridge_cache_failure(dynamic raw);
+
+  @protected
+  BridgeCachedAcademicClassrooms dco_decode_bridge_cached_academic_classrooms(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedAcademicExams dco_decode_bridge_cached_academic_exams(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedAcademicGrades dco_decode_bridge_cached_academic_grades(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedAcademicTerms dco_decode_bridge_cached_academic_terms(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedAcademicWeek dco_decode_bridge_cached_academic_week(dynamic raw);
+
+  @protected
+  BridgeCachedAcademicWeeks dco_decode_bridge_cached_academic_weeks(
+    dynamic raw,
+  );
 
   @protected
   BridgeCachedJudge dco_decode_bridge_cached_judge(dynamic raw);
@@ -991,6 +1078,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedAcademicClassrooms?
+  dco_decode_opt_box_autoadd_bridge_cached_academic_classrooms(dynamic raw);
+
+  @protected
+  BridgeCachedAcademicExams?
+  dco_decode_opt_box_autoadd_bridge_cached_academic_exams(dynamic raw);
+
+  @protected
+  BridgeCachedAcademicGrades?
+  dco_decode_opt_box_autoadd_bridge_cached_academic_grades(dynamic raw);
+
+  @protected
+  BridgeCachedAcademicTerms?
+  dco_decode_opt_box_autoadd_bridge_cached_academic_terms(dynamic raw);
+
+  @protected
+  BridgeCachedAcademicWeek?
+  dco_decode_opt_box_autoadd_bridge_cached_academic_week(dynamic raw);
+
+  @protected
+  BridgeCachedAcademicWeeks?
+  dco_decode_opt_box_autoadd_bridge_cached_academic_weeks(dynamic raw);
+
+  @protected
   BridgeCachedJudge? dco_decode_opt_box_autoadd_bridge_cached_judge(
     dynamic raw,
   );
@@ -1192,6 +1303,38 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedAcademicClassrooms
+  sse_decode_box_autoadd_bridge_cached_academic_classrooms(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicExams sse_decode_box_autoadd_bridge_cached_academic_exams(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicGrades
+  sse_decode_box_autoadd_bridge_cached_academic_grades(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicTerms sse_decode_box_autoadd_bridge_cached_academic_terms(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicWeek sse_decode_box_autoadd_bridge_cached_academic_week(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicWeeks sse_decode_box_autoadd_bridge_cached_academic_weeks(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedJudge sse_decode_box_autoadd_bridge_cached_judge(
     SseDeserializer deserializer,
   );
@@ -1331,6 +1474,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   PlatformInt64 sse_decode_box_autoadd_i_64(SseDeserializer deserializer);
 
   @protected
+  BridgeAcademicClassroomsRefresh sse_decode_bridge_academic_classrooms_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAcademicExamsRefresh sse_decode_bridge_academic_exams_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAcademicGradesRefresh sse_decode_bridge_academic_grades_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAcademicTermsRefresh sse_decode_bridge_academic_terms_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAcademicWeekRefresh sse_decode_bridge_academic_week_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAcademicWeeksRefresh sse_decode_bridge_academic_weeks_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeActionEligibility sse_decode_bridge_action_eligibility(
     SseDeserializer deserializer,
   );
@@ -1400,6 +1573,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCacheFailure sse_decode_bridge_cache_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicClassrooms sse_decode_bridge_cached_academic_classrooms(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicExams sse_decode_bridge_cached_academic_exams(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicGrades sse_decode_bridge_cached_academic_grades(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicTerms sse_decode_bridge_cached_academic_terms(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicWeek sse_decode_bridge_cached_academic_week(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicWeeks sse_decode_bridge_cached_academic_weeks(
     SseDeserializer deserializer,
   );
 
@@ -2294,6 +2497,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedAcademicClassrooms?
+  sse_decode_opt_box_autoadd_bridge_cached_academic_classrooms(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicExams?
+  sse_decode_opt_box_autoadd_bridge_cached_academic_exams(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicGrades?
+  sse_decode_opt_box_autoadd_bridge_cached_academic_grades(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicTerms?
+  sse_decode_opt_box_autoadd_bridge_cached_academic_terms(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicWeek?
+  sse_decode_opt_box_autoadd_bridge_cached_academic_week(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedAcademicWeeks?
+  sse_decode_opt_box_autoadd_bridge_cached_academic_weeks(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedJudge? sse_decode_opt_box_autoadd_bridge_cached_judge(
     SseDeserializer deserializer,
   );
@@ -2533,6 +2772,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bridge_cached_academic_classrooms(
+    BridgeCachedAcademicClassrooms self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_academic_exams(
+    BridgeCachedAcademicExams self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_academic_grades(
+    BridgeCachedAcademicGrades self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_academic_terms(
+    BridgeCachedAcademicTerms self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_academic_week(
+    BridgeCachedAcademicWeek self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_academic_weeks(
+    BridgeCachedAcademicWeeks self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bridge_cached_judge(
     BridgeCachedJudge self,
     SseSerializer serializer,
@@ -2689,6 +2964,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_academic_classrooms_refresh(
+    BridgeAcademicClassroomsRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_academic_exams_refresh(
+    BridgeAcademicExamsRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_academic_grades_refresh(
+    BridgeAcademicGradesRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_academic_terms_refresh(
+    BridgeAcademicTermsRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_academic_week_refresh(
+    BridgeAcademicWeekRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_academic_weeks_refresh(
+    BridgeAcademicWeeksRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_action_eligibility(
     BridgeActionEligibility self,
     SseSerializer serializer,
@@ -2775,6 +3086,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_cache_failure(
     BridgeCacheFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_academic_classrooms(
+    BridgeCachedAcademicClassrooms self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_academic_exams(
+    BridgeCachedAcademicExams self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_academic_grades(
+    BridgeCachedAcademicGrades self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_academic_terms(
+    BridgeCachedAcademicTerms self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_academic_week(
+    BridgeCachedAcademicWeek self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_academic_weeks(
+    BridgeCachedAcademicWeeks self,
     SseSerializer serializer,
   );
 
@@ -3867,6 +4214,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_cache_failure(
     BridgeCacheFailure? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_academic_classrooms(
+    BridgeCachedAcademicClassrooms? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_academic_exams(
+    BridgeCachedAcademicExams? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_academic_grades(
+    BridgeCachedAcademicGrades? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_academic_terms(
+    BridgeCachedAcademicTerms? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_academic_week(
+    BridgeCachedAcademicWeek? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_academic_weeks(
+    BridgeCachedAcademicWeeks? self,
     SseSerializer serializer,
   );
 

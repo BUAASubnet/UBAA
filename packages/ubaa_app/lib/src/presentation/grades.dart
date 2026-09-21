@@ -4,8 +4,9 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 FeatureResult projectGrades(
   GradesTermOverview overview,
   FeatureQueryView view,
-  ConnectionMode? route,
-) {
+  ConnectionMode? route, {
+  DataEvidence? evidence,
+}) {
   final grades = overview.grades
       .where(
         (item) => switch (view) {
@@ -23,10 +24,15 @@ FeatureResult projectGrades(
     _ => '门课程成绩',
   };
   return grades.isEmpty
-      ? FeatureResult.empty(overview: overview, resolvedRoute: route)
+      ? FeatureResult.empty(
+          overview: overview,
+          resolvedRoute: route,
+          evidence: evidence,
+        )
       : FeatureResult.success(
           summary: '${grades.length}$label',
           overview: overview,
+          evidence: evidence,
           resolvedRoute: route,
           details: List.unmodifiable(
             grades.map(

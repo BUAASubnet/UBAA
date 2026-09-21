@@ -1,6 +1,32 @@
 part of '../app_controller_test.dart';
 
 void _registerGradeWatchTests() {
+  test('持久成绩投影不成为出分基线也不触发变化提醒', () async {
+    final backend = _GradesBackend()
+      ..read = (term) async => FeatureResult.success(
+        overview: _watchGrades(term, '90').overview,
+        resolvedRoute: ConnectionMode.direct,
+        evidence: DataEvidence(
+          accountId: 'fixture-student',
+          origin: DataOrigin.persisted,
+          fetchedAt: DateTime.utc(2026, 9, 1),
+          complete: true,
+          savedForOffline: true,
+        ),
+      );
+    final controller = AppController(backend: backend);
+    final store = MemoryGradeScoreStore();
+    final watch = GradeScoreWatch(controller: controller, store: store);
+    addTearDown(() {
+      watch.dispose();
+      controller.dispose();
+    });
+    await controller.initialize();
+    await watch.check();
+    expect(await store.read('fixture-student', ConnectionMode.direct), isNull);
+    expect(watch.notice, isNull);
+  });
+
   test('首页成绩检查首次建基线，变化提醒保留至查看或忽略', () async {
     var score = '80';
     final backend = _GradesBackend()

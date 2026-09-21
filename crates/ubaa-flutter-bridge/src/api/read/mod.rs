@@ -10,6 +10,10 @@
 
 mod evaluation;
 mod mappers;
+pub(super) use mappers::{
+    map_classroom_query, map_exam_arrangement, map_grade_data, map_terms, map_weekly_schedule,
+    map_weeks,
+};
 pub(super) use mappers::{map_judge_detail, map_judge_summaries};
 mod methods;
 

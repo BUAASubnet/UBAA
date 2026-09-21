@@ -2,6 +2,7 @@ pub mod client;
 pub mod judge_refresh;
 pub mod judge_scan;
 pub mod offline;
+pub mod offline_academic;
 pub mod read;
 pub mod recovery;
 pub mod simple;

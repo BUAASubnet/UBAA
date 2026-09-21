@@ -148,6 +148,10 @@ class _AcademicWeekDialogState extends State<_AcademicWeekDialog> {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
+                  if (snapshot.data!.evidence?.origin == DataOrigin.persisted)
+                    Text(
+                      '上次保存 ${_savedScheduleTime(snapshot.data!.evidence!.fetchedAt)}，连接后核对更新',
+                    ),
                   for (final detail in options)
                     ListTile(
                       title: Text(detail.title),

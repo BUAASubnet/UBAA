@@ -5,6 +5,41 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'support/navigation.dart';
 
 void main() {
+  testWidgets('缓存学期选项标明保存时间且仍能选择', (tester) async {
+    await _show(
+      tester,
+      FeatureId.grades,
+      [],
+      (_) async => FeatureResult.success(
+        evidence: DataEvidence(
+          accountId: 'synthetic',
+          origin: DataOrigin.persisted,
+          fetchedAt: DateTime(2026, 9, 1, 8, 30),
+          complete: true,
+          savedForOffline: true,
+        ),
+        details: const [
+          FeatureDetail(
+            title: '合成旧学期',
+            presentation: TermPresentation(code: 'a', selected: true, index: 1),
+          ),
+        ],
+      ),
+    );
+    await tester.tap(find.text('选择学期'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('上次保存'), findsOneWidget);
+    await tester.tap(find.text('合成旧学期'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextField>(find.widgetWithText(TextField, '学期编码'))
+          .controller!
+          .text,
+      'a',
+    );
+  });
+
   testWidgets('少量学期的选择面板按内容收缩，不固定占半页', (tester) async {
     await _show(
       tester,

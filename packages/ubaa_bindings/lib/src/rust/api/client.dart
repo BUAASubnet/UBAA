@@ -7,6 +7,7 @@ import '../frb_generated.dart';
 import 'judge_refresh.dart';
 import 'judge_scan.dart';
 import 'offline.dart';
+import 'offline_academic.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 import 'recovery.dart';
@@ -17,6 +18,61 @@ import 'write.dart';
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeClient>>
 abstract class BridgeClient implements RustOpaqueInterface {
+  /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+  ///
+  /// # Errors
+  /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+  Future<BridgeAcademicClassroomsRefresh> academicClassroomsCached({
+    required BridgeOfflineCache cache,
+    required int campus,
+    required String date,
+  });
+
+  /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+  ///
+  /// # Errors
+  /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+  Future<BridgeAcademicExamsRefresh> academicExamsCached({
+    required BridgeOfflineCache cache,
+    required String term,
+  });
+
+  /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+  ///
+  /// # Errors
+  /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+  Future<BridgeAcademicGradesRefresh> academicGradesCached({
+    required BridgeOfflineCache cache,
+    required String term,
+  });
+
+  /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+  ///
+  /// # Errors
+  /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+  Future<BridgeAcademicTermsRefresh> academicTermsCached({
+    required BridgeOfflineCache cache,
+  });
+
+  /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+  ///
+  /// # Errors
+  /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+  Future<BridgeAcademicWeekRefresh> academicWeekCached({
+    required BridgeOfflineCache cache,
+    required String term,
+    required int week,
+  });
+
+  /// 在原客户端执行已核对的业务读取，保存错误不冒充学校失败。
+  ///
+  /// # Errors
+  /// 身份、认证、业务或退出栅栏错误保持原分类，待确认写操作阻止隐式恢复。
+  Future<BridgeAcademicWeeksRefresh> academicWeeksCached({
+    required BridgeOfflineCache cache,
+    required String term,
+  });
+
   /// 校验持久化认证状态。
   ///
   /// # Errors

@@ -6,7 +6,24 @@ Future<FeatureResult> _loadAcademicFeature(
   FeatureQuery query,
   String today,
 ) async {
-  final client = backend.client;
+  final reader = _AcademicReader(backend);
+  final result = await _projectAcademicFeature(
+    backend,
+    reader,
+    feature,
+    query,
+    today,
+  );
+  return _academicEvidence(result, reader.evidence);
+}
+
+Future<FeatureResult> _projectAcademicFeature(
+  BridgeBackend backend,
+  _AcademicReader client,
+  FeatureId feature,
+  FeatureQuery query,
+  String today,
+) async {
   switch (feature) {
     case FeatureId.schedule:
       switch (query.view) {
@@ -26,7 +43,7 @@ Future<FeatureResult> _loadAcademicFeature(
               details.length,
               '第 ${query.week} 周课表',
               details: details,
-              resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+              resolvedRoute: result.route,
             );
           }
           return _loadTodayWithCache(backend);
@@ -64,7 +81,7 @@ Future<FeatureResult> _loadAcademicFeature(
             details.length,
             '个学期',
             details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+            resolvedRoute: result.route,
           );
         case FeatureQueryView.scheduleWeeks:
           final term = _requiredQueryValue(query.term, '学期编码');
@@ -103,7 +120,7 @@ Future<FeatureResult> _loadAcademicFeature(
             details.length,
             '个周次',
             details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+            resolvedRoute: result.route,
           );
         case FeatureQueryView.scheduleWeek:
           final term = _requiredQueryValue(query.term, '学期编码');
@@ -119,7 +136,7 @@ Future<FeatureResult> _loadAcademicFeature(
             details.length,
             '第 $week 周课表',
             details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+            resolvedRoute: result.route,
           );
         default:
           throw const BackendException(UbaaErrorCode.invalidInput);
@@ -129,7 +146,7 @@ Future<FeatureResult> _loadAcademicFeature(
         case FeatureQueryView.summary:
         case FeatureQueryView.examArranged:
         case FeatureQueryView.examNotArranged:
-          final term = query.term ?? await _selectedTerm(backend);
+          final term = query.term ?? await _selectedTerm(client);
           if (term == null) return const FeatureResult.empty();
           final result = await client.examArrangement(term: term);
           final exams = <({BridgeExam item, bool arranged})>[
@@ -154,7 +171,7 @@ Future<FeatureResult> _loadAcademicFeature(
             exams.length,
             label,
             details: details,
-            resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+            resolvedRoute: result.route,
           );
         default:
           throw const BackendException(UbaaErrorCode.invalidInput);
@@ -164,7 +181,7 @@ Future<FeatureResult> _loadAcademicFeature(
         case FeatureQueryView.summary:
         case FeatureQueryView.gradesScored:
         case FeatureQueryView.gradesMissing:
-          final term = query.term ?? await _selectedTerm(backend);
+          final term = query.term ?? await _selectedTerm(client);
           if (term == null) return const FeatureResult.empty();
           final result = await client.grades(term: term);
           final allGrades = result.data.grades
@@ -177,7 +194,7 @@ Future<FeatureResult> _loadAcademicFeature(
               grades: List.unmodifiable(allGrades),
             ),
             query.view,
-            _toConnectionMode(result.route.resolvedRoute),
+            result.route,
           );
         default:
           throw const BackendException(UbaaErrorCode.invalidInput);
@@ -216,15 +233,22 @@ Future<FeatureResult> _loadAcademicFeature(
         details.length,
         '间可用教室',
         details: details,
-        resolvedRoute: _toConnectionMode(result.route.resolvedRoute),
+        resolvedRoute: result.route,
       );
     default:
       throw StateError('unexpected feature: $feature');
   }
 }
 
-Future<String?> _selectedTerm(BridgeBackend backend) async {
-  final result = await backend.client.scheduleTerms();
+Future<String?> _selectedTerm(_AcademicReader client) async {
+  final result = await client.scheduleTerms();
+  if (client.localRoute != null) {
+    final selected = result.data
+        .where((term) => term.selected && term.itemCode.trim().isNotEmpty)
+        .toList();
+    if (selected.length != 1) throw const _AcademicCacheMiss();
+    return selected.single.itemCode;
+  }
   for (final term in result.data) {
     if (term.selected && term.itemCode.trim().isNotEmpty) return term.itemCode;
   }

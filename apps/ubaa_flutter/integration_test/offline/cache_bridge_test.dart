@@ -7,7 +7,7 @@ import 'package:ubaa_bindings/ubaa_bindings.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  testWidgets('原生 Bridge v15 缓存句柄可重开且退出栅栏跨句柄生效', (tester) async {
+  testWidgets('原生 Bridge v16 缓存句柄可重开且退出栅栏跨句柄生效', (tester) async {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: Text('本地缓存合成验证'))),
     );
@@ -21,7 +21,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 15);
+      expect(client.contractVersion(), 16);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -60,6 +60,57 @@ void main() {
           assignmentId: '101',
         ),
         isNull,
+      );
+      expect(
+        await first.readAcademicTerms(route: BridgeConnectionMode.direct),
+        isNull,
+      );
+      expect(
+        await first.readAcademicWeeks(
+          route: BridgeConnectionMode.direct,
+          term: '2025-2026-1',
+        ),
+        isNull,
+      );
+      expect(
+        await first.readAcademicWeek(
+          route: BridgeConnectionMode.direct,
+          term: '2025-2026-1',
+          week: 3,
+        ),
+        isNull,
+      );
+      expect(
+        await first.readAcademicExams(
+          route: BridgeConnectionMode.direct,
+          term: '2025-2026-1',
+        ),
+        isNull,
+      );
+      expect(
+        await first.readAcademicGrades(
+          route: BridgeConnectionMode.direct,
+          term: '2025-2026-1',
+        ),
+        isNull,
+      );
+      expect(
+        await first.readAcademicClassrooms(
+          route: BridgeConnectionMode.direct,
+          campus: 1,
+          date: '2026-09-22',
+        ),
+        isNull,
+      );
+      await expectLater(
+        client.academicGradesCached(cache: first, term: '2025-2026-1'),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.code,
+            '缺少会话',
+            BridgeErrorCode.authenticationRequired,
+          ),
+        ),
       );
       await expectLater(
         client.beginJudgeRefresh(

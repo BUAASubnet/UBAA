@@ -314,7 +314,7 @@ pub(super) fn offline_read_error(error: core::OfflineReadError) -> BridgeError {
 }
 
 // SQLite 工作交给阻塞池，避免文件系统延迟占用网络运行时工作线程。
-async fn local_task<T: Send + 'static>(
+pub(super) async fn local_task<T: Send + 'static>(
     operation: impl FnOnce() -> Result<T, BridgeError> + Send + 'static,
 ) -> Result<T, BridgeError> {
     tokio::task::spawn_blocking(operation)
@@ -332,7 +332,7 @@ fn map_today(data: Vec<core::TodayClass>) -> Vec<BridgeTodayClass> {
         })
         .collect()
 }
-fn cache_error(error: core::CacheError) -> BridgeError {
+pub(super) fn cache_error(error: core::CacheError) -> BridgeError {
     let code = match error {
         core::CacheError::InvalidInput => BridgeErrorCode::InvalidInput,
         core::CacheError::Inactive => BridgeErrorCode::AuthenticationRequired,

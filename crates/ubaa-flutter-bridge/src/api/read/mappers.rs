@@ -22,7 +22,7 @@ use super::{
 };
 
 // 转换函数保持显式字段清单；禁止使用 serde/json 反射把 Core DTO 整体透传。
-pub(super) fn map_terms(values: Vec<domain::Term>) -> Vec<BridgeTerm> {
+pub(crate) fn map_terms(values: Vec<domain::Term>) -> Vec<BridgeTerm> {
     values
         .into_iter()
         .map(|v| BridgeTerm {
@@ -33,7 +33,7 @@ pub(super) fn map_terms(values: Vec<domain::Term>) -> Vec<BridgeTerm> {
         })
         .collect()
 }
-pub(super) fn map_weeks(values: Vec<domain::Week>) -> Vec<BridgeWeek> {
+pub(crate) fn map_weeks(values: Vec<domain::Week>) -> Vec<BridgeWeek> {
     values
         .into_iter()
         .map(|v| BridgeWeek {
@@ -63,7 +63,7 @@ fn map_course(v: domain::CourseClass) -> BridgeCourseClass {
         day_of_week: v.day_of_week,
     }
 }
-pub(super) fn map_weekly_schedule(v: domain::WeeklySchedule) -> BridgeWeeklySchedule {
+pub(crate) fn map_weekly_schedule(v: domain::WeeklySchedule) -> BridgeWeeklySchedule {
     BridgeWeeklySchedule {
         arranged_list: v.arranged_list.into_iter().map(map_course).collect(),
         code: v.code,
@@ -97,7 +97,7 @@ fn map_exam(v: domain::Exam) -> BridgeExam {
         task_id: v.task_id,
     }
 }
-pub(super) fn map_exam_arrangement(v: domain::ExamArrangement) -> BridgeExamArrangement {
+pub(crate) fn map_exam_arrangement(v: domain::ExamArrangement) -> BridgeExamArrangement {
     BridgeExamArrangement {
         arranged: v.arranged.into_iter().map(map_exam).collect(),
         not_arranged: v.not_arranged.into_iter().map(map_exam).collect(),
@@ -115,13 +115,13 @@ fn map_grade(v: domain::Grade) -> BridgeGrade {
         term_code: v.term_code,
     }
 }
-pub(super) fn map_grade_data(v: domain::GradeData) -> BridgeGradeData {
+pub(crate) fn map_grade_data(v: domain::GradeData) -> BridgeGradeData {
     BridgeGradeData {
         term_code: v.term_code,
         grades: v.grades.into_iter().map(map_grade).collect(),
     }
 }
-pub(super) fn map_classroom_query(v: domain::ClassroomQuery) -> BridgeClassroomQuery {
+pub(crate) fn map_classroom_query(v: domain::ClassroomQuery) -> BridgeClassroomQuery {
     BridgeClassroomQuery {
         code: v.code,
         message: v.message,

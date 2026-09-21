@@ -5,6 +5,7 @@
 
 import '../frb_generated.dart';
 import 'client.dart';
+import 'offline_academic.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 
@@ -46,6 +47,61 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
     expectedIdentity: expectedIdentity,
     key: key,
   );
+
+  /// 只访问独立本地仓库，不获取网络客户端锁。
+  ///
+  /// # Errors
+  /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+  Future<BridgeCachedAcademicClassrooms?> readAcademicClassrooms({
+    required BridgeConnectionMode route,
+    required int campus,
+    required String date,
+  });
+
+  /// 只访问独立本地仓库，不获取网络客户端锁。
+  ///
+  /// # Errors
+  /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+  Future<BridgeCachedAcademicExams?> readAcademicExams({
+    required BridgeConnectionMode route,
+    required String term,
+  });
+
+  /// 只访问独立本地仓库，不获取网络客户端锁。
+  ///
+  /// # Errors
+  /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+  Future<BridgeCachedAcademicGrades?> readAcademicGrades({
+    required BridgeConnectionMode route,
+    required String term,
+  });
+
+  /// 只访问独立本地仓库，不获取网络客户端锁。
+  ///
+  /// # Errors
+  /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+  Future<BridgeCachedAcademicTerms?> readAcademicTerms({
+    required BridgeConnectionMode route,
+  });
+
+  /// 只访问独立本地仓库，不获取网络客户端锁。
+  ///
+  /// # Errors
+  /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+  Future<BridgeCachedAcademicWeek?> readAcademicWeek({
+    required BridgeConnectionMode route,
+    required String term,
+    required int week,
+  });
+
+  /// 只访问独立本地仓库，不获取网络客户端锁。
+  ///
+  /// # Errors
+  /// 范围无效、账号关闭或存储损坏时返回稳定错误。
+  Future<BridgeCachedAcademicWeeks?> readAcademicWeeks({
+    required BridgeConnectionMode route,
+    required String term,
+  });
 
   /// 读取精确路线与过期筛选范围内的希冀缓存。
   ///
