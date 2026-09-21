@@ -252,3 +252,20 @@ RED→GREEN：持久投影测试先因缺少专用只读类型失败；facade �
 
 
 P4-D 最终门禁：`just check` 退出 0，Core 默认/测试注入配置各 244 项通过，新首页 facade 两项场景组覆盖上述完整/部分/必需失败边界；Bridge 118 项通过/2 项既有忽略、CLI 二进制端到端 16 项、fmt/clippy/build/doc/Shell 通过。refs/layout/sensitive（5235 个文件，结构零 baseline 违例）与 diff 检查通过。Dart/FRB API 未改变，本阶段不重复原生/Flutter，也不继承旧验收为新首页接线证明。源工作区保持干净。
+
+
+## P4-E：首页待办 Bridge/App 接线（2026-09-22）
+
+实施基线为 `6351f9e7`，仅在 `codex/offline-home-20260917` 隔离区修改；源工作区仍为 `ubaa2@d7c37f73`，干净、ahead 7。沿 P4-D 已核对的四个 Core 操作，新增 Bridge v17 typed 本地与在线入口，SPOC、签到、阳光恢复到本地首页；SPOC 单详情进入精确查询缓存。签到缓存没有资格或 target，跨日不生成当天待办，同日只读导航。在线部分结果与旧完整内容分别管理，阳光本次记录页不会被旧统计覆盖。
+
+RED：`/tmp/ubaa-p4e-bridge-red.log` 记录尚无本地首页 Bridge 入口；`/tmp/ubaa-p4e-app-red.log` 记录缺少明确签到既定回读能力；`/tmp/ubaa-p4e-domain-red.log` 中跨日签到仍生成待办及部分统计仍生成未达标提醒两项失败；`/tmp/ubaa-p4e-state-red.log` 中 complete=false/error=null 被标为 success；`/tmp/ubaa-p4e-ui-red.log` 中未出现“统计尚未确认”。编译过程中两次工作目录错误、一次诊断布尔表达式编辑错误已修正，不作为行为 RED。
+
+GREEN：Bridge 本地读不等待网络锁、路线隔离、退出屏障及 pending 写意图拒绝；App 首页三来源、无缓存写动作、签到既定回读独立派发、部分 SPOC 保留旧集合、阳光旧完整统计/旧 Partial 区分、本次记录页保留；Domain 跨日/只读导航/未知统计；UI 部分统计与真实记录错误区分，全部通过。首轮完整 Flutter 的宿主导航测试点击落在 800×600 屏幕外，修正测试为先居中并断言 hitTestable；保留首轮失败日志，不削弱业务断言。
+
+最终确定性门禁：`just check` 退出 0，Core 两配置各 244 项，Bridge 119 项通过/2 项既有忽略，CLI 二进制端到端 16 项，fmt/clippy/build/doc/Shell 均通过。完整 `just flutter-check` 退出 0，各套件 57/66/357/257/15/32/54，共 838 项通过，format/analyze 无问题；FRB v17 `just flutter-codegen-check` 零漂移。refs 校验两个原固定 SHA；layout 零 baseline 违例；sensitive 扫描 5240 文件通过。日志为 `/tmp/ubaa-p4e-check.log`、`/tmp/ubaa-p4e-flutter-final.log`、`/tmp/ubaa-p4e-codegen-check.log`、`/tmp/ubaa-p4e-sensitive.log`，仅脱敏测试内容。
+
+原生合成证据：macOS `integration_test/offline/cache_bridge_test.dart` 1 项通过，v17 四个本地入口空库返回、缺会话在线入口、句柄重开/退出跨句柄栅栏均经真实 FRB 运行。启动器 `Failed to foreground app; open returned 1`，所以不记为独立实窗视觉验收；未生成验收媒体、未使用真实会话。日志 `/tmp/ubaa-p4e-native.log`。真实学校写入为零；本阶段没有 Direct/WebVPN Core-live 或真实 App 新验收，未测真实性能，不据此声称缓存首屏或全部更新达到目标。
+
+余项仍包括十二领域其他持久范围、阳光记录分页、SPOC/无缓存希冀等大读取安全分段、剩余生命周期/异常场景及多端和双路线真实只读/性能测量。P0–P5 整体不勾选完成；活动合同继续。
+
+P4-E 收尾审查：首页来源说明对无错误码部分结果曾误称“刷新失败”，新增 `/tmp/ubaa-p4e-home-caption-red.log` 后修复；UI 全套追加验证 258 项通过、analyze 无问题。阳光同分类但已观察学期改变曾拼入旧统计，`/tmp/ubaa-p4e-term-red.log` 复现后按 termId 共同约束，App 全套追加验证 358 项通过、analyze 无问题。收尾日志为 `/tmp/ubaa-p4e-ui-final-{analyze,test}.log` 与 `/tmp/ubaa-p4e-app-final-{analyze,test}.log`；与其余未变套件合计 840 项，之前单次完整门禁为 838 项，二者不混记。最终 layout/sensitive 再验通过，仍为 5240 文件；源码差异和暂存内容复核未含凭据、会话、冻结材料或验收媒体。

@@ -1,7 +1,8 @@
 part of '../../widgets.dart';
 
 class _YgdkSummary extends StatelessWidget {
-  const _YgdkSummary(this.overview);
+  const _YgdkSummary(this.overview, {this.statisticsKnown = true});
+  final bool statisticsKnown;
   final YgdkOverview overview;
   @override
   Widget build(BuildContext context) {
@@ -11,14 +12,16 @@ class _YgdkSummary extends StatelessWidget {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          (p.termTarget ?? 0) > 0
+          !statisticsKnown
+              ? '统计尚未确认'
+              : (p.termTarget ?? 0) > 0
               ? '本学期认定次数 ${p.termCount} / ${p.termTarget}'
               : '本学期认定次数 ${p.termCount} 次',
           style: theme.textTheme.headlineSmall?.copyWith(
             fontWeight: FontWeight.bold,
           ),
         ),
-        if (p.weekCount != null) ...[
+        if (statisticsKnown && p.weekCount != null) ...[
           const SizedBox(height: 8),
           Text(
             p.weekTarget == null

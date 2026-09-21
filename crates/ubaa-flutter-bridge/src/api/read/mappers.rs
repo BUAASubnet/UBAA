@@ -143,7 +143,7 @@ pub(crate) fn map_classroom_query(v: domain::ClassroomQuery) -> BridgeClassroomQ
             .collect(),
     }
 }
-pub(super) fn map_signin_classes(values: Vec<domain::SigninClass>) -> Vec<BridgeSigninClass> {
+pub(crate) fn map_signin_classes(values: Vec<domain::SigninClass>) -> Vec<BridgeSigninClass> {
     values
         .into_iter()
         .map(|v| BridgeSigninClass {
@@ -178,14 +178,14 @@ fn map_spoc_summary(v: domain::SpocAssignmentSummary) -> BridgeSpocAssignmentSum
         submission_status_text: v.submission_status_text,
     }
 }
-pub(super) fn map_spoc_assignments(v: domain::SpocAssignments) -> BridgeSpocAssignments {
+pub(crate) fn map_spoc_assignments(v: domain::SpocAssignments) -> BridgeSpocAssignments {
     BridgeSpocAssignments {
         term_code: v.term_code,
         term_name: v.term_name,
         assignments: v.assignments.into_iter().map(map_spoc_summary).collect(),
     }
 }
-pub(super) fn map_spoc_detail(v: domain::SpocAssignmentDetail) -> BridgeSpocAssignmentDetail {
+pub(crate) fn map_spoc_detail(v: domain::SpocAssignmentDetail) -> BridgeSpocAssignmentDetail {
     BridgeSpocAssignmentDetail {
         assignment_id: v.assignment_id,
         course_id: v.course_id,
@@ -478,7 +478,7 @@ pub(super) fn map_libbook_bookings(v: domain::LibBookBookingsPage) -> BridgeLibB
         total: v.total,
     }
 }
-fn map_ygdk_summary(v: domain::YgdkTermSummary) -> BridgeYgdkTermSummary {
+pub(crate) fn map_ygdk_summary(v: domain::YgdkTermSummary) -> BridgeYgdkTermSummary {
     BridgeYgdkTermSummary {
         term_id: v.term_id,
         term_name: v.term_name,
@@ -492,7 +492,7 @@ fn map_ygdk_summary(v: domain::YgdkTermSummary) -> BridgeYgdkTermSummary {
         good_count: v.good_count,
     }
 }
-pub(super) fn map_ygdk_overview(v: domain::YgdkOverview) -> BridgeYgdkOverview {
+pub(crate) fn map_ygdk_overview(v: domain::YgdkOverview) -> BridgeYgdkOverview {
     let classify_id = v.classify_id;
     let classify_is_canonical = classify_id > 0 && !v.classify_name.trim().is_empty();
     let mut item_id_counts = std::collections::BTreeMap::<i32, usize>::new();

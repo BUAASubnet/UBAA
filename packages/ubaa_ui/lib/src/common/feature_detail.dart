@@ -1,11 +1,14 @@
 part of '../widgets.dart';
 
-bool _readableAcademicCache(FeatureSnapshot snapshot) =>
+bool _readableCachedContent(FeatureSnapshot snapshot) =>
     {
       FeatureId.schedule,
       FeatureId.exam,
       FeatureId.grades,
       FeatureId.classroom,
+      FeatureId.signin,
+      FeatureId.spoc,
+      FeatureId.ygdk,
     }.contains(snapshot.feature) &&
     snapshot.evidence?.origin == DataOrigin.persisted;
 
@@ -140,7 +143,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
         (widget.snapshot.status == FeatureLoadStatus.success ||
             widget.snapshot.status == FeatureLoadStatus.stale ||
             ((widget.feature == FeatureId.judge ||
-                    _readableAcademicCache(widget.snapshot)) &&
+                    _readableCachedContent(widget.snapshot)) &&
                 widget.snapshot.status == FeatureLoadStatus.loading)) &&
         widget.snapshot.details.isNotEmpty;
     final defaultContent = widget.isLanding
@@ -156,7 +159,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                   padding: EdgeInsets.all(12),
                   child: Text('当前内容尚不完整，连接后继续核对。'),
                 ),
-              if (_readableAcademicCache(widget.snapshot))
+              if (_readableCachedContent(widget.snapshot))
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(
@@ -165,7 +168,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                 ),
               if (widget.snapshot.status == FeatureLoadStatus.stale &&
                   (widget.snapshot.error != null ||
-                      !_readableAcademicCache(widget.snapshot)))
+                      widget.snapshot.evidence == null))
                 MaterialBanner(
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
@@ -208,7 +211,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                     if (!showDetails)
                       switch (widget.snapshot.status) {
                         FeatureLoadStatus.loading
-                            when _readableAcademicCache(widget.snapshot) =>
+                            when _readableCachedContent(widget.snapshot) =>
                           _empty(context),
                         FeatureLoadStatus.loading => const Center(
                           child: CircularProgressIndicator(),

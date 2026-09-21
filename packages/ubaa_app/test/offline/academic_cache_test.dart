@@ -86,7 +86,10 @@ void main() {
       const FeatureQuery(),
       RoutePolicy.direct,
     );
-    expect((read.projection!.overview!).requestTerm, '2025-2026-1');
+    expect(
+      (read.projection!.overview! as GradesTermOverview).requestTerm,
+      '2025-2026-1',
+    );
     cache.selected = false;
     final absent = await value.readCachedQuery(
       FeatureId.grades,
@@ -281,7 +284,7 @@ class _Cache implements BridgeOfflineCache {
 
 class _Client implements BridgeClient {
   @override
-  int contractVersion() => 16;
+  int contractVersion() => 17;
   @override
   Future<BridgeAcademicGradesRefresh> academicGradesCached({
     required BridgeOfflineCache cache,

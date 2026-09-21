@@ -81,6 +81,13 @@ void main() {
       180,
       scrollable: find.byType(Scrollable).hitTestable().last,
     );
+    // ensureVisible 的默认顶端对齐可能仍落在滚动裁剪区外；点击前居中验证可命中。
+    await Scrollable.ensureVisible(
+      tester.element(find.text('合成SPOC待办')),
+      alignment: 0.5,
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('合成SPOC待办').hitTestable(), findsOneWidget);
     await tester.tap(find.text('合成SPOC待办'));
     await tester.pumpAndSettle();
     expect(backend.homeQueries.last.$2.view, FeatureQueryView.spocDetail);

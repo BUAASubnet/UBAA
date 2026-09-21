@@ -75,7 +75,9 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
     if (!TickerMode.valuesOf(context).enabled) return;
     final snapshot = widget.snapshot;
     if (snapshot.status != FeatureLoadStatus.success &&
-        snapshot.status != FeatureLoadStatus.stale)
+        snapshot.status != FeatureLoadStatus.stale &&
+        !(snapshot.status == FeatureLoadStatus.loading &&
+            snapshot.evidence?.origin == DataOrigin.persisted))
       return;
     if (_afterRevision != null &&
         (snapshot.readContext?.requestRevision ?? -1) <= _afterRevision!)
@@ -211,7 +213,25 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Padding(
                 padding: const EdgeInsets.all(16),
-                child: _YgdkSummary(overview),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _YgdkSummary(
+                      overview,
+                      statisticsKnown:
+                          widget.snapshot.evidence?.complete != false ||
+                          widget.snapshot.evidence?.origin == DataOrigin.mixed,
+                    ),
+                    if (widget.snapshot.evidence?.origin ==
+                            DataOrigin.persisted ||
+                        widget.snapshot.evidence?.origin == DataOrigin.mixed)
+                      Text(
+                        '上次保存 ${_savedScheduleTime(widget.snapshot.evidence!.fetchedAt)}，连接后核对更新',
+                      ),
+                    if (widget.snapshot.evidence?.complete == false)
+                      const Text('部分内容尚未更新完成'),
+                  ],
+                ),
               ),
             ),
             const SizedBox(height: 12),
@@ -234,8 +254,7 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
             ),
             const SizedBox(height: 12),
             if (loading) const LinearProgressIndicator(),
-            if (_page?.errorCode != null ||
-                widget.snapshot.status == FeatureLoadStatus.stale) ...[
+            if (_page?.errorCode != null || widget.snapshot.error != null) ...[
               const Text('打卡记录加载失败，请重试。'),
               TextButton(
                 onPressed: loading ? null : () => _load(widget.query),
@@ -275,7 +294,18 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
             child: FloatingActionButton(
               tooltip: '新增打卡',
               onPressed:
-                  loading || widget.snapshot.status != FeatureLoadStatus.success
+                  loading ||
+                      !_items.any(
+                        (item) =>
+                            item.action<YgdkSubmitAction>()?.eligibility ==
+                            ActionEligibility.allowed,
+                      ) ||
+                      (widget.snapshot.status != FeatureLoadStatus.success &&
+                          !(widget.snapshot.status == FeatureLoadStatus.stale &&
+                              widget.snapshot.evidence != null &&
+                              widget.snapshot.evidence?.origin !=
+                                  DataOrigin.persisted &&
+                              widget.snapshot.error == null))
                   ? null
                   : _add,
               child: const Icon(Icons.add),

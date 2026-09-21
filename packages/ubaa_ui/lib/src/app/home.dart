@@ -423,7 +423,10 @@ String _homeSummary(FeatureSnapshot snapshot) =>
         FeatureLoadStatus.loading => '正在加载…',
         FeatureLoadStatus.success => snapshot.summary ?? '已加载',
         FeatureLoadStatus.empty => '当前条件暂无结果',
-        FeatureLoadStatus.stale => '刷新失败，显示上次结果',
+        FeatureLoadStatus.stale =>
+          snapshot.evidence?.complete == false && snapshot.error == null
+              ? '部分内容尚未更新完成'
+              : '刷新失败，显示上次结果',
         FeatureLoadStatus.failure => '加载失败',
       };
 

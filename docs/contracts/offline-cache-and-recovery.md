@@ -149,3 +149,14 @@ HomeRefresh 把本次 complete、在线内容/时间/save_error，以及 Stored/
 签到缓存入口捕获一次上海 YYYYMMDD 日期，用于请求、业务重试与缓存键；旧 CLI/readback 入口仍在原认证后按次取当天日期。当前 SPOC 列表保存真实 term 的完整当前视图，不跨学期拼接；详情按原请求唯一作业 ID，未推断新的课程/学期参数。阳光概览保留实际分类和学期字段，不等价于记录分页已缓存。
 
 实现所有权：`cache/home.rs` 管理不可写持久 DTO，`facade/home_cache.rs` 管理账号/日期/票据和发布结果，SPOC list/detail 与 Ygdk read 的内部 observed 返回只补充完成标记。没有新增 Cookie 客户端、并发会话写、学校业务写入或任意原始响应存储。Bridge/App 接线、阳光记录分页及其他领域待后续；SPOC 仍沿原聚合读取，不能把增加缓存称为已实现分段抢占。
+
+
+## P4-E 首页待办 Bridge/App 产品接线
+
+Bridge 合同提升至 v17，新增 read_home_signin/read_home_spoc/read_home_spoc_detail/read_home_ygdk 本地入口与对应 home_*_cached 在线入口。在线返回原 routed 内容及独立 BridgeHomeRefreshState；complete、saved_for_offline（本次 Stored）、preserved_previous、save_error 与 scope_date 不混为认证或写资格。本地记录不取得 Core 网络锁，缓存签到/阳光类型不含 eligibility/target。在线入口沿同一客户端串行锁并拒绝待确认写意图期间隐式恢复；原 CLI、双路线接口和 caller-pinned 阳光回读不变。
+
+App 首页恢复新增签到、SPOC 与阳光三类来源，SPOC 单详情按作业 ID 本地恢复。只读投影保留上次状态/统计/学期，剥离全部学校写动作与尚未缓存的阳光记录。签到缓存按上次 signStatus 筛选，首页再检查 scopeDate，跨日不沿用钟点生成当天签到待办；同日缓存只能导航至只读查询，不能恢复签到资格。
+
+部分 SPOC 刷新保留旧集合；仅同学期摘要允许追加本轮新 ID，不用部分列表删除旧项目。阳光只有同分类且已观察学期一致的旧完整记录可供上次统计展示，动作/项目及记录页分别取本次在线读取，旧 Partial 不冒充完整统计。无旧完整统计时显示“统计尚未确认”，不把解析回退零当观察事实。完整性为 false 的结果保持 stale，不伪造上游错误码、不记为全部成功；缓存内容在 loading 期间继续可读，真实错误才显示刷新失败提示。
+
+签到既定回读使用独立 SigninReadbackBackend 能力，调度器以 writeReadback 显式派发，复用原 signinToday 而不进入新增缓存认证入口。没有新增 prepare/commit 或自动写入链；实时返回的动作仍需唯一 WriteCoordinator 后续复核和用户确认。SPOC 聚合读取、阳光记录分页缓存及其他领域持久范围仍待后续，不能把本阶段称为十二领域或抢占全部完成。

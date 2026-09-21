@@ -16,15 +16,9 @@ final class CachedFeatureProjection {
     required this.complete,
     this.scopeDate,
     FeatureQuery? query,
-    GradesTermOverview? overview,
+    FeatureOverview? overview,
     Iterable<FeatureDetail> details = const [],
-  }) : overview = overview == null
-           ? null
-           : GradesTermOverview(
-               requestTerm: overview.requestTerm,
-               termCode: overview.termCode,
-               grades: List.unmodifiable(overview.grades),
-             ),
+  }) : overview = _readonlyOverview(overview),
        readContext = FeatureReadContext(query: query, requestRevision: 0),
        details = List.unmodifiable(
          details.map(
@@ -37,7 +31,7 @@ final class CachedFeatureProjection {
            ),
          ),
        );
-  final GradesTermOverview? overview;
+  final FeatureOverview? overview;
   final FeatureReadContext readContext;
   final FeatureId feature;
   final String accountId;
@@ -65,3 +59,33 @@ final class CachedFeatureProjection {
     ),
   );
 }
+
+FeatureOverview? _readonlyOverview(FeatureOverview? overview) =>
+    switch (overview) {
+      GradesTermOverview value => GradesTermOverview(
+        requestTerm: value.requestTerm,
+        termCode: value.termCode,
+        grades: List.unmodifiable(value.grades),
+      ),
+      SpocTermOverview value => SpocTermOverview(
+        termCode: value.termCode,
+        termName: value.termName,
+      ),
+      YgdkOverview value => YgdkOverview(
+        termCount: value.termCount,
+        classifyId: value.classifyId,
+        classifyName: value.classifyName,
+        defaultItemId: value.defaultItemId,
+        defaultItemName: value.defaultItemName,
+        termId: value.termId,
+        termName: value.termName,
+        termTarget: value.termTarget,
+        weekCount: value.weekCount,
+        weekTarget: value.weekTarget,
+        monthCount: value.monthCount,
+        monthTarget: value.monthTarget,
+        dayCount: value.dayCount,
+        goodCount: value.goodCount,
+      ),
+      _ => null,
+    };

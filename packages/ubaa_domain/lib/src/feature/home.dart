@@ -1,5 +1,6 @@
 import '../write/actions.dart';
 import 'catalog.dart';
+import 'data_evidence.dart';
 import 'presentation.dart';
 import 'result.dart';
 import 'overview.dart';
@@ -47,12 +48,22 @@ List<HomeTodo> buildHomeTodos({
   ]) {
     final snapshot = snapshots[feature];
     if (!_isHomeSource(snapshot)) continue;
+    if (feature == FeatureId.signin && snapshot!.evidence != null) {
+      final date =
+          '${now.year.toString().padLeft(4, '0')}-'
+          '${now.month.toString().padLeft(2, '0')}-'
+          '${now.day.toString().padLeft(2, '0')}';
+      if (snapshot.evidence!.scopeDate != date) continue;
+    }
     for (final detail in snapshot!.details) {
       final item = _homeDetail(
         feature,
         detail,
         now,
-        fresh: snapshot.status == FeatureLoadStatus.success,
+        fresh:
+            snapshot.status == FeatureLoadStatus.success &&
+            snapshot.evidence?.origin != DataOrigin.persisted &&
+            snapshot.evidence?.complete != false,
       );
       if (item != null) result.add(item);
     }
@@ -61,6 +72,8 @@ List<HomeTodo> buildHomeTodos({
   final overview = sunlight?.overview;
   final week = currentWeek;
   if (_isHomeSource(sunlight) &&
+      (sunlight!.evidence?.complete != false ||
+          sunlight.evidence?.origin == DataOrigin.mixed) &&
       overview is YgdkOverview &&
       week != null &&
       week.current &&
@@ -258,9 +271,17 @@ HomeTodo? _homeDetail(
       feature: feature,
       title: detail.title,
       subtitle: '课程签到',
-      statusLabel: now.isBefore(start) ? '即将签到' : '签到中',
+      statusLabel: !fresh
+          ? '上次未签到'
+          : now.isBefore(start)
+          ? '即将签到'
+          : '签到中',
       timeLabel: '${_clockHome(start)}–${_clockHome(end)}',
       sortTime: start,
+      navigation: const FeatureReadNavigation(
+        feature: FeatureId.signin,
+        query: FeatureQuery(view: FeatureQueryView.signinPending),
+      ),
       signinAction:
           fresh &&
               action?.eligibility == ActionEligibility.allowed &&

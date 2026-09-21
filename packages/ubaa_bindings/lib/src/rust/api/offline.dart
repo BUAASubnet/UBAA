@@ -6,6 +6,7 @@
 import '../frb_generated.dart';
 import 'client.dart';
 import 'offline_academic.dart';
+import 'offline_home.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 
@@ -101,6 +102,39 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   Future<BridgeCachedAcademicWeeks?> readAcademicWeeks({
     required BridgeConnectionMode route,
     required String term,
+  });
+
+  /// 独立本地读取不等待网络锁，不进行认证。
+  ///
+  /// # Errors
+  /// 缺少记录返回 None，账号关闭/损坏/非法范围返回稳定错误。
+  Future<BridgeCachedHomeSignin?> readHomeSignin({
+    required BridgeConnectionMode route,
+  });
+
+  /// 独立本地读取不等待网络锁，不进行认证。
+  ///
+  /// # Errors
+  /// 缺少记录返回 None，账号关闭/损坏/非法范围返回稳定错误。
+  Future<BridgeCachedHomeSpoc?> readHomeSpoc({
+    required BridgeConnectionMode route,
+  });
+
+  /// 独立本地读取不等待网络锁，不进行认证。
+  ///
+  /// # Errors
+  /// 缺少记录返回 None，账号关闭/损坏/非法范围返回稳定错误。
+  Future<BridgeCachedHomeSpocDetail?> readHomeSpocDetail({
+    required BridgeConnectionMode route,
+    required String assignmentId,
+  });
+
+  /// 独立本地读取不等待网络锁，不进行认证。
+  ///
+  /// # Errors
+  /// 缺少记录返回 None，账号关闭/损坏/非法范围返回稳定错误。
+  Future<BridgeCachedHomeYgdk?> readHomeYgdk({
+    required BridgeConnectionMode route,
   });
 
   /// 读取精确路线与过期筛选范围内的希冀缓存。

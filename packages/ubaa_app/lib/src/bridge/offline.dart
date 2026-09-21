@@ -78,7 +78,32 @@ Future<OfflineHomeRead> _readCachedHome(
             judge.fetchedAt.toInt() > newestJudge.fetchedAt.toInt()))
       newestJudge = judge;
   }
+  final additional = <CachedFeatureProjection>[];
+  for (final feature in [FeatureId.signin, FeatureId.spoc, FeatureId.ygdk]) {
+    final read = await _readCachedQuery(
+      backend,
+      feature,
+      const FeatureQuery(),
+      policy,
+    );
+    failure ??= read.error;
+    final value = read.projection;
+    if (value != null)
+      additional.add(
+        CachedFeatureProjection(
+          feature: feature,
+          accountId: value.accountId,
+          route: value.route,
+          fetchedAt: value.fetchedAt,
+          complete: value.complete,
+          scopeDate: value.scopeDate,
+          details: value.details,
+          overview: value.overview,
+        ),
+      );
+  }
   return OfflineHomeRead([
+    ...additional,
     if (newest != null)
       CachedFeatureProjection(
         feature: FeatureId.schedule,

@@ -17,6 +17,8 @@ part 'recovery.dart';
 part 'read/academic.dart';
 part 'read/academic_cache.dart';
 part 'read/assignments.dart';
+part 'read/home_projection.dart';
+part 'read/home_cache.dart';
 part 'read/judge_progressive.dart';
 part 'read/offline_query.dart';
 part 'read/bykc.dart';
@@ -29,7 +31,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 16;
+const _supportedBridgeContractVersion = 17;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -40,6 +42,7 @@ class BridgeBackend
     implements
         UbaaBackend,
         FeatureQueryBackend,
+        SigninReadbackBackend,
         CgyyCancellationReadbackBackend,
         YgdkSubmissionReadbackBackend,
         EvaluationSubmissionReadbackBackend,
@@ -98,6 +101,10 @@ class BridgeBackend
     _offlineCache = null;
     _offlineAccount = null;
   });
+
+  @override
+  Future<FeatureResult> readSigninAfterWrite() =>
+      _loadSigninHome(this, const FeatureQuery(), useCache: false);
 
   @override
   Future<RecoveredRouteSession> recoverRequiredSession(FeatureId feature) =>

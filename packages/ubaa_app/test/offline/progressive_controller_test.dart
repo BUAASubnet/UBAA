@@ -12,6 +12,45 @@ Future<void> until(bool Function() ready) async {
 }
 
 void main() {
+  test('部分成功且无错误码的结果保持未完成状态', () async {
+    final backend = _Backend();
+    backend.task.second = FeatureReadBatch(
+      FeatureResult.success(
+        details: const [FeatureDetail(title: '合法部分')],
+        evidence: DataEvidence(
+          accountId: 'synthetic',
+          origin: DataOrigin.online,
+          fetchedAt: DateTime(2026, 9, 22),
+          complete: false,
+          savedForOffline: true,
+        ),
+      ),
+      finished: true,
+    );
+    final controller = AppController(backend: backend);
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await until(() => backend.task.calls == 1);
+    backend.task.first.complete(
+      const FeatureReadBatch(
+        FeatureResult.empty(),
+        finished: false,
+        publish: false,
+      ),
+    );
+    await until(
+      () => controller.homeSnapshots[FeatureId.judge]!.details.isNotEmpty,
+    );
+    expect(
+      controller.homeSnapshots[FeatureId.judge]!.status,
+      FeatureLoadStatus.stale,
+    );
+    expect(
+      controller.snapshots[FeatureId.judge]!.status,
+      FeatureLoadStatus.stale,
+    );
+  });
+
   test('首批立即呈现，通知中进入签到时先读当前任务再发后台下一批', () async {
     final backend = _Backend();
     final controller = AppController(backend: backend);
@@ -78,7 +117,7 @@ void main() {
     expect(backend.events.where((event) => event == '签到').length, 1);
   });
   test('写意图存在时既定回读不触发恢复，也不被后台批次阻塞', () async {
-    final backend = _Backend();
+    final backend = _ReadbackBackend();
     final controller = AppController(
       backend: backend,
       localAccountStore: await support.savedAccounts(),
@@ -108,7 +147,8 @@ void main() {
       ),
     );
     await readback;
-    expect(backend.signinReads, signinReads + 1);
+    expect(backend.signinReads, signinReads);
+    expect(backend.readbacks, 1);
     expect(backend.authCalls, authCalls);
     expect(controller.writeCoordinator.intent, isNotNull);
     expect(backend.task.calls, 1);
@@ -263,5 +303,14 @@ class _Task implements FeatureReadTask {
   @override
   void cancel() {
     cancelled = true;
+  }
+}
+
+class _ReadbackBackend extends _Backend implements SigninReadbackBackend {
+  int readbacks = 0;
+  @override
+  Future<FeatureResult> readSigninAfterWrite() async {
+    readbacks++;
+    return const FeatureResult.empty();
   }
 }

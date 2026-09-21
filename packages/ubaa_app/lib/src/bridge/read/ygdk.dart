@@ -52,18 +52,18 @@ Future<FeatureResult> _loadYgdkFeature(
     case FeatureId.ygdk:
       switch (query.view) {
         case FeatureQueryView.summary:
-          final result = await client.ygdkOverview();
+          final result = await _readYgdkHome(backend);
           YgdkHomeRecords? records;
           if (includeRecords) {
             final page = query.page <= 0 ? 1 : query.page;
             final size = query.size.clamp(1, 100);
             try {
               final response = await client.ygdkRecordsOnRoute(
-                route: result.route.resolvedRoute,
+                route: result.route,
                 page: page,
                 size: size,
               );
-              if (response.pinnedRoute != result.route.resolvedRoute) {
+              if (response.pinnedRoute != result.route) {
                 throw const BackendException(UbaaErrorCode.internalError);
               }
               records = YgdkHomeRecords(
@@ -85,10 +85,19 @@ Future<FeatureResult> _loadYgdkFeature(
               );
             }
           }
-          return _mapYgdkOverviewResult(
+          final projection = _mapYgdkOverviewResult(
             result.data,
-            _toConnectionMode(result.route.resolvedRoute),
+            _toConnectionMode(result.route),
             records: records,
+          );
+          return _finishHomeRefresh(
+            backend,
+            result.cache,
+            result.account,
+            feature,
+            query,
+            projection,
+            result.state,
           );
         case FeatureQueryView.ygdkRecords:
           final page = query.page <= 0 ? 1 : query.page;

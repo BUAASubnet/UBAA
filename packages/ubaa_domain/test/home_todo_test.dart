@@ -90,6 +90,52 @@ WeekPresentation week(int n) => WeekPresentation(
   endDate: '2026-03-29',
 );
 void main() {
+  test('已保存签到跨日失效，同日仅导航且不能恢复写资格', () {
+    FeatureSnapshot cached(String date) =>
+        source(FeatureId.signin, [signin('cache', '12:05', '13:00')]).copyWith(
+          evidence: DataEvidence(
+            accountId: 'synthetic',
+            origin: DataOrigin.persisted,
+            fetchedAt: now,
+            complete: true,
+            savedForOffline: true,
+            scopeDate: date,
+          ),
+        );
+    expect(
+      buildHomeTodos(
+        now: now,
+        snapshots: {FeatureId.signin: cached('2026-03-23')},
+      ),
+      isEmpty,
+    );
+    final today = buildHomeTodos(
+      now: now,
+      snapshots: {FeatureId.signin: cached('2026-03-24')},
+    ).single;
+    expect(today.signinAction, isNull);
+    expect(today.navigation?.query.view, FeatureQueryView.signinPending);
+  });
+  test('首次阳光部分统计不能把默认零当作未达标依据', () {
+    final partial = sunlight().copyWith(
+      evidence: DataEvidence(
+        accountId: 'synthetic',
+        origin: DataOrigin.online,
+        fetchedAt: now,
+        complete: false,
+        savedForOffline: true,
+      ),
+    );
+    expect(
+      buildHomeTodos(
+        now: now,
+        currentWeek: week(11),
+        snapshots: {FeatureId.ygdk: partial},
+      ),
+      isEmpty,
+    );
+  });
+
   test('后台刷新保留已显示待办但暂停原签到动作', () {
     final loading = source(
       FeatureId.signin,

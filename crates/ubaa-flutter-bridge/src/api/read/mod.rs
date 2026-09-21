@@ -15,6 +15,9 @@ pub(super) use mappers::{
     map_weeks,
 };
 pub(super) use mappers::{map_judge_detail, map_judge_summaries};
+pub(super) use mappers::{
+    map_signin_classes, map_spoc_assignments, map_spoc_detail, map_ygdk_overview, map_ygdk_summary,
+};
 mod methods;
 
 use super::client::BridgeRouteDecision;

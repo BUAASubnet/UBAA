@@ -8,6 +8,7 @@ import 'judge_refresh.dart';
 import 'judge_scan.dart';
 import 'offline.dart';
 import 'offline_academic.dart';
+import 'offline_home.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 import 'recovery.dart';
@@ -177,6 +178,39 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeRoutedExamArrangement> examArrangement({required String term});
 
   Future<BridgeRoutedGrades> grades({required String term});
+
+  /// 读取在线内容并持久化只读投影；既有学校写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 原业务错误与账号/退出栅栏不降级为缓存保存错误。
+  Future<BridgeHomeSigninRefresh> homeSigninCached({
+    required BridgeOfflineCache cache,
+  });
+
+  /// 读取在线内容并持久化只读投影；既有学校写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 原业务错误与账号/退出栅栏不降级为缓存保存错误。
+  Future<BridgeHomeSpocRefresh> homeSpocCached({
+    required BridgeOfflineCache cache,
+  });
+
+  /// 读取在线内容并持久化只读投影；既有学校写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 原业务错误与账号/退出栅栏不降级为缓存保存错误。
+  Future<BridgeHomeSpocDetailRefresh> homeSpocDetailCached({
+    required BridgeOfflineCache cache,
+    required String assignmentId,
+  });
+
+  /// 读取在线内容并持久化只读投影；既有学校写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 原业务错误与账号/退出栅栏不降级为缓存保存错误。
+  Future<BridgeHomeYgdkRefresh> homeYgdkCached({
+    required BridgeOfflineCache cache,
+  });
 
   Future<BridgeRoutedJudgeAssignmentDetail> judgeAssignment({
     required String courseId,

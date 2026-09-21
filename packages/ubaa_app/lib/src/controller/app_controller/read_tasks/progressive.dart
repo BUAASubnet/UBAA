@@ -100,11 +100,19 @@ extension _AppControllerProgressive on AppController {
     required void Function(FeatureReadBatch) onBatch,
   }) async {
     final backend = _backend;
-    Future<FeatureResult> ordinary() => switch ((backend, query)) {
-      (FeatureQueryBackend queries, final FeatureQuery value) =>
-        queries.loadFeatureQuery(feature, value),
-      _ => backend.loadFeature(feature),
-    };
+    Future<FeatureResult> ordinary() {
+      if (writeReadback &&
+          feature == FeatureId.signin &&
+          backend is SigninReadbackBackend) {
+        return (backend as SigninReadbackBackend).readSigninAfterWrite();
+      }
+      return switch ((backend, query)) {
+        (FeatureQueryBackend queries, final FeatureQuery value) =>
+          queries.loadFeatureQuery(feature, value),
+        _ => backend.loadFeature(feature),
+      };
+    }
+
     if (backend is! ProgressiveReadBackend) return ordinary();
     final priority = writeReadback
         ? ReadPriority.writeReadback

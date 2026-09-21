@@ -8,6 +8,7 @@ import 'api/judge_refresh.dart';
 import 'api/judge_scan.dart';
 import 'api/offline.dart';
 import 'api/offline_academic.dart';
+import 'api/offline_home.dart';
 import 'api/read.dart';
 import 'api/recovery.dart';
 import 'api/simple.dart';
@@ -174,6 +175,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCachedAcademicWeeks dco_decode_box_autoadd_bridge_cached_academic_weeks(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedHomeSignin dco_decode_box_autoadd_bridge_cached_home_signin(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedHomeSpoc dco_decode_box_autoadd_bridge_cached_home_spoc(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedHomeSpocDetail
+  dco_decode_box_autoadd_bridge_cached_home_spoc_detail(dynamic raw);
+
+  @protected
+  BridgeCachedHomeYgdk dco_decode_box_autoadd_bridge_cached_home_ygdk(
     dynamic raw,
   );
 
@@ -392,13 +412,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedHomeSignin dco_decode_bridge_cached_home_signin(dynamic raw);
+
+  @protected
+  BridgeCachedHomeSpoc dco_decode_bridge_cached_home_spoc(dynamic raw);
+
+  @protected
+  BridgeCachedHomeSpocDetail dco_decode_bridge_cached_home_spoc_detail(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedHomeYgdk dco_decode_bridge_cached_home_ygdk(dynamic raw);
+
+  @protected
   BridgeCachedJudge dco_decode_bridge_cached_judge(dynamic raw);
 
   @protected
   BridgeCachedJudgeDetail dco_decode_bridge_cached_judge_detail(dynamic raw);
 
   @protected
+  BridgeCachedSigninClass dco_decode_bridge_cached_signin_class(dynamic raw);
+
+  @protected
   BridgeCachedToday dco_decode_bridge_cached_today(dynamic raw);
+
+  @protected
+  BridgeCachedYgdkItem dco_decode_bridge_cached_ygdk_item(dynamic raw);
+
+  @protected
+  BridgeCachedYgdkOverview dco_decode_bridge_cached_ygdk_overview(dynamic raw);
 
   @protected
   BridgeCallerPinnedCgyyOrder dco_decode_bridge_caller_pinned_cgyy_order(
@@ -559,6 +602,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeGradeData dco_decode_bridge_grade_data(dynamic raw);
+
+  @protected
+  BridgeHomeRefreshState dco_decode_bridge_home_refresh_state(dynamic raw);
+
+  @protected
+  BridgeHomeSigninRefresh dco_decode_bridge_home_signin_refresh(dynamic raw);
+
+  @protected
+  BridgeHomeSpocDetailRefresh dco_decode_bridge_home_spoc_detail_refresh(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeHomeSpocRefresh dco_decode_bridge_home_spoc_refresh(dynamic raw);
+
+  @protected
+  BridgeHomeYgdkRefresh dco_decode_bridge_home_ygdk_refresh(dynamic raw);
 
   @protected
   BridgeJudgeAssignmentDetail dco_decode_bridge_judge_assignment_detail(
@@ -910,6 +970,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BridgeBykcStatistic> dco_decode_list_bridge_bykc_statistic(dynamic raw);
 
   @protected
+  List<BridgeCachedSigninClass> dco_decode_list_bridge_cached_signin_class(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeCachedYgdkItem> dco_decode_list_bridge_cached_ygdk_item(
+    dynamic raw,
+  );
+
+  @protected
   List<BridgeCgyyOrder> dco_decode_list_bridge_cgyy_order(dynamic raw);
 
   @protected
@@ -1098,6 +1168,25 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedAcademicWeeks?
   dco_decode_opt_box_autoadd_bridge_cached_academic_weeks(dynamic raw);
+
+  @protected
+  BridgeCachedHomeSignin? dco_decode_opt_box_autoadd_bridge_cached_home_signin(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedHomeSpoc? dco_decode_opt_box_autoadd_bridge_cached_home_spoc(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedHomeSpocDetail?
+  dco_decode_opt_box_autoadd_bridge_cached_home_spoc_detail(dynamic raw);
+
+  @protected
+  BridgeCachedHomeYgdk? dco_decode_opt_box_autoadd_bridge_cached_home_ygdk(
+    dynamic raw,
+  );
 
   @protected
   BridgeCachedJudge? dco_decode_opt_box_autoadd_bridge_cached_judge(
@@ -1329,6 +1418,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCachedAcademicWeeks sse_decode_box_autoadd_bridge_cached_academic_weeks(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedHomeSignin sse_decode_box_autoadd_bridge_cached_home_signin(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedHomeSpoc sse_decode_box_autoadd_bridge_cached_home_spoc(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedHomeSpocDetail
+  sse_decode_box_autoadd_bridge_cached_home_spoc_detail(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedHomeYgdk sse_decode_box_autoadd_bridge_cached_home_ygdk(
     SseDeserializer deserializer,
   );
 
@@ -1605,6 +1715,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedHomeSignin sse_decode_bridge_cached_home_signin(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedHomeSpoc sse_decode_bridge_cached_home_spoc(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedHomeSpocDetail sse_decode_bridge_cached_home_spoc_detail(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedHomeYgdk sse_decode_bridge_cached_home_ygdk(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedJudge sse_decode_bridge_cached_judge(
     SseDeserializer deserializer,
   );
@@ -1615,7 +1745,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedSigninClass sse_decode_bridge_cached_signin_class(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedToday sse_decode_bridge_cached_today(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedYgdkItem sse_decode_bridge_cached_ygdk_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedYgdkOverview sse_decode_bridge_cached_ygdk_overview(
     SseDeserializer deserializer,
   );
 
@@ -1816,6 +1961,31 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeGradeData sse_decode_bridge_grade_data(SseDeserializer deserializer);
+
+  @protected
+  BridgeHomeRefreshState sse_decode_bridge_home_refresh_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeHomeSigninRefresh sse_decode_bridge_home_signin_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeHomeSpocDetailRefresh sse_decode_bridge_home_spoc_detail_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeHomeSpocRefresh sse_decode_bridge_home_spoc_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeHomeYgdkRefresh sse_decode_bridge_home_ygdk_refresh(
+    SseDeserializer deserializer,
+  );
 
   @protected
   BridgeJudgeAssignmentDetail sse_decode_bridge_judge_assignment_detail(
@@ -2295,6 +2465,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeCachedSigninClass> sse_decode_list_bridge_cached_signin_class(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeCachedYgdkItem> sse_decode_list_bridge_cached_ygdk_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BridgeCgyyOrder> sse_decode_list_bridge_cgyy_order(
     SseDeserializer deserializer,
   );
@@ -2527,6 +2707,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedAcademicWeeks?
   sse_decode_opt_box_autoadd_bridge_cached_academic_weeks(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedHomeSignin? sse_decode_opt_box_autoadd_bridge_cached_home_signin(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedHomeSpoc? sse_decode_opt_box_autoadd_bridge_cached_home_spoc(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedHomeSpocDetail?
+  sse_decode_opt_box_autoadd_bridge_cached_home_spoc_detail(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedHomeYgdk? sse_decode_opt_box_autoadd_bridge_cached_home_ygdk(
     SseDeserializer deserializer,
   );
 
@@ -2802,6 +3003,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_cached_academic_weeks(
     BridgeCachedAcademicWeeks self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_home_signin(
+    BridgeCachedHomeSignin self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_home_spoc(
+    BridgeCachedHomeSpoc self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_home_spoc_detail(
+    BridgeCachedHomeSpocDetail self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_home_ygdk(
+    BridgeCachedHomeYgdk self,
     SseSerializer serializer,
   );
 
@@ -3124,6 +3349,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_cached_home_signin(
+    BridgeCachedHomeSignin self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_home_spoc(
+    BridgeCachedHomeSpoc self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_home_spoc_detail(
+    BridgeCachedHomeSpocDetail self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_home_ygdk(
+    BridgeCachedHomeYgdk self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_cached_judge(
     BridgeCachedJudge self,
     SseSerializer serializer,
@@ -3136,8 +3385,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_cached_signin_class(
+    BridgeCachedSigninClass self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_cached_today(
     BridgeCachedToday self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_ygdk_item(
+    BridgeCachedYgdkItem self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_ygdk_overview(
+    BridgeCachedYgdkOverview self,
     SseSerializer serializer,
   );
 
@@ -3381,6 +3648,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_grade_data(
     BridgeGradeData self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_home_refresh_state(
+    BridgeHomeRefreshState self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_home_signin_refresh(
+    BridgeHomeSigninRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_home_spoc_detail_refresh(
+    BridgeHomeSpocDetailRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_home_spoc_refresh(
+    BridgeHomeSpocRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_home_ygdk_refresh(
+    BridgeHomeYgdkRefresh self,
     SseSerializer serializer,
   );
 
@@ -3961,6 +4258,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_cached_signin_class(
+    List<BridgeCachedSigninClass> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_cached_ygdk_item(
+    List<BridgeCachedYgdkItem> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_cgyy_order(
     List<BridgeCgyyOrder> self,
     SseSerializer serializer,
@@ -4248,6 +4557,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_cached_academic_weeks(
     BridgeCachedAcademicWeeks? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_home_signin(
+    BridgeCachedHomeSignin? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_home_spoc(
+    BridgeCachedHomeSpoc? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_home_spoc_detail(
+    BridgeCachedHomeSpocDetail? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_home_ygdk(
+    BridgeCachedHomeYgdk? self,
     SseSerializer serializer,
   );
 

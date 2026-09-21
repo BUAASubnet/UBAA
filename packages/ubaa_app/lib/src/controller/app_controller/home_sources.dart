@@ -243,6 +243,8 @@ extension _AppControllerHomeSources on AppController {
                     result.overview != null
                 ? FeatureLoadStatus.stale
                 : FeatureLoadStatus.failure)
+          : result.evidence?.complete == false
+          ? FeatureLoadStatus.stale
           : result.isEmpty
           ? FeatureLoadStatus.empty
           : FeatureLoadStatus.success,

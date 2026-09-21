@@ -280,8 +280,11 @@ extension _AppControllerRefresh on AppController {
       }
       await _recordFeature(
         feature,
-        success: result.error == null && !result.isEmpty,
-        empty: result.isEmpty,
+        success:
+            result.error == null &&
+            !result.isEmpty &&
+            result.evidence?.complete != false,
+        empty: result.isEmpty && result.evidence?.complete != false,
         error: _snapshots[feature]!.error,
         latency: DateTime.now().difference(started),
       );
@@ -381,6 +384,8 @@ extension _AppControllerRefresh on AppController {
                   result.overview != null
               ? FeatureLoadStatus.stale
               : FeatureLoadStatus.failure)
+        : result.evidence?.complete == false
+        ? FeatureLoadStatus.stale
         : result.isEmpty
         ? FeatureLoadStatus.empty
         : FeatureLoadStatus.success;

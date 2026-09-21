@@ -5,6 +5,14 @@ import '../support/navigation.dart';
 import '../support/write_harness.dart';
 
 void main() {
+  testWidgets('部分统计不显示默认零且不冒称记录加载失败', (tester) async {
+    await _open(tester, partial: true);
+    expect(find.text('统计尚未确认'), findsOneWidget);
+    expect(find.text('本学期认定次数 0 次'), findsNothing);
+    expect(find.text('打卡记录加载失败，请重试。'), findsNothing);
+    expect(find.text('合成历史运动'), findsOneWidget);
+  });
+
   testWidgets('阳光首页搜索保留原记录编号和图片数量等低频字段能力', (tester) async {
     await _open(tester);
     await openQueryPanel(tester);
@@ -89,6 +97,7 @@ const _records = YgdkHomeRecords(
 Future<void> _open(
   WidgetTester tester, {
   YgdkHomeRecords records = _records,
+  bool partial = false,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(402, 874);
@@ -103,7 +112,18 @@ Future<void> _open(
           for (final id in FeatureId.values)
             id: FeatureSnapshot(
               feature: id,
-              status: FeatureLoadStatus.success,
+              status: partial && id == FeatureId.ygdk
+                  ? FeatureLoadStatus.stale
+                  : FeatureLoadStatus.success,
+              evidence: partial && id == FeatureId.ygdk
+                  ? DataEvidence(
+                      accountId: 'synthetic',
+                      origin: DataOrigin.online,
+                      fetchedAt: DateTime(2026, 9, 22),
+                      complete: false,
+                      savedForOffline: true,
+                    )
+                  : null,
               overview: id == FeatureId.ygdk
                   ? YgdkOverview(
                       termCount: 0,

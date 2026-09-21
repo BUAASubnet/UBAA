@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `16`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `17`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -38,7 +38,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=16` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=17` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -559,3 +559,8 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
 ### v16 学业与空教室缓存通道
 
 新增分别 typed 的 `BridgeCachedAcademic*` 与 `BridgeAcademic*Refresh`，覆盖 Terms/Weeks/Week/Exams/Grades/Classrooms。`BridgeOfflineCache.readAcademic*` 按明确路线及原请求参数读取，不取得网络锁；`BridgeClient.academic*Cached` 调用 Core 身份与范围绑定的刷新，保存错误、完整度和原取得时间独立于业务内容。待确认写意图不被刷新清除或绕过。没有引入任意 CachePayload/JSON 穿过 Bridge，CLI v10 和既有在线接口保持原义。
+
+
+## 合同 v17：首页待办持久接线
+
+`api/offline_home.rs` 所有权为今日签到、SPOC 当前列表/单详情、阳光概览的 typed 本地与在线返回。`BridgeOfflineCache.read_home_*` 无网络锁；`BridgeClient.home_*_cached` 返回原 routed DTO 和 `BridgeHomeRefreshState`，写意图存在时拒绝新增恢复。只读签到/阳光 DTO 不携带学校资格或写目标，在线 DTO 沿原映射。`saved_for_offline` 仅指本次 Stored，Preserved 独立表达，不能误称本次部分内容已经替换旧完整缓存。签到 `scope_date` 为上海 YYYYMMDD，App 转 ISO 日期作跨日检查。公开详情见 [离线合同](offline-cache-and-recovery.md#p4-e-首页待办-bridgeapp-产品接线)。

@@ -67,3 +67,8 @@ abstract interface class YgdkSubmissionReadbackBackend {
 abstract interface class EvaluationSubmissionReadbackBackend {
   Future<FeatureResult> loadEvaluationOnRoute({required ConnectionMode route});
 }
+
+/// 签到后的既定只读回读，不进入后台缓存认证恢复通道。
+abstract interface class SigninReadbackBackend {
+  Future<FeatureResult> readSigninAfterWrite();
+}

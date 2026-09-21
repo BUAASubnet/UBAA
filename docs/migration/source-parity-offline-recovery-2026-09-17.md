@@ -155,3 +155,9 @@ P1 可以暂用旧双路线聚合 backend 的 authStatus/login（设计 4.2 已�
 
 
 P4-D 审查补充：阳光仅沿原 term_good_count_show/term_good_count/term_count_show/term_count 四字段顺序判断是否真的观察到次数；无字段时旧公开接口仍回退零，但新持久完整度为部分。SPOC 继续原空页/总页数停止边界，若停止时 hasNextPage 仍为真，新缓存不得标完整；不因此发明新的翻页请求或改变原 CLI 输出。
+
+## P4-E：首页待办 Bridge/App 接线（实施前）
+
+复用 P4-D 四个已对照操作，Bridge 只显式映射公开字段，不新增学校请求协议。缓存签到/阳光 DTO 不包含资格或写目标；仅本次在线返回保留原实时资格，仍交唯一 WriteCoordinator 的实时复核/prepare/确认/commit。新增签到既定回读的明确 backend 能力，继续调用原不带缓存恢复的读取入口，避免 pending 写流程被新增身份检查阻塞。SPOC/阳光不完整刷新以 complete 与 Stored/Preserved 分别展示；不得以保存成功或旧 signStatus 推断可提交。缓存签到筛选按上次状态展示，不称作实时“可签到”。
+
+P4-E 实施复核：学校协议仍仅为 P4-D 原操作，未新增 URL/参数、Cookie 客户端、ETag 或增量游标。原 SPOC/签到呈现抽取至 home_projection 共用；缓存签到按旧状态分组而在线仍按本次 eligibility 分组。阳光概览只保存显示统计，本次同路线记录页不因旧统计合并丢失。首页跨日签到、部分成功无错误码、未知统计与待确认写回读均纳入脱敏测试。
