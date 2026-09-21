@@ -204,8 +204,6 @@ class BridgeCachedBykcChosenCourse {
   final int? score;
   final int? pass;
   final int? courseSignType;
-  final String? homework;
-  final String? homeworkAttachmentName;
   final BridgeCachedBykcSignWindow? signWindow;
 
   const BridgeCachedBykcChosenCourse({
@@ -224,8 +222,6 @@ class BridgeCachedBykcChosenCourse {
     this.score,
     this.pass,
     this.courseSignType,
-    this.homework,
-    this.homeworkAttachmentName,
     this.signWindow,
   });
 
@@ -246,8 +242,6 @@ class BridgeCachedBykcChosenCourse {
       score.hashCode ^
       pass.hashCode ^
       courseSignType.hashCode ^
-      homework.hashCode ^
-      homeworkAttachmentName.hashCode ^
       signWindow.hashCode;
 
   @override
@@ -270,8 +264,6 @@ class BridgeCachedBykcChosenCourse {
           score == other.score &&
           pass == other.pass &&
           courseSignType == other.courseSignType &&
-          homework == other.homework &&
-          homeworkAttachmentName == other.homeworkAttachmentName &&
           signWindow == other.signWindow;
 }
 

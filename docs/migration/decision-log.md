@@ -1382,3 +1382,8 @@ Bridge v16 保持六类具体 DTO，不把 Core 任意载荷或 raw JSON 交给�
 ## 离线首页 P4-G：博雅补充来源与写后回读分流（2026-09-22）
 
 新增 Bridge v18 五项接线，在线和不可写 DTO 分离。首页博雅缓存必须带 bykcChosenCourses 查询身份，不能覆盖普通列表；UI 等待/失败时保留补充缓存，分页元数据和取得证据贯穿查询。BykcReadbackBackend 仅复用原在线回读，避免 pending 写意图与新增恢复入口冲突。实际操作仍由原 WriteCoordinator 管理，未发真实学校写入。
+
+
+## 离线首页审查修正：禁止缓存 DTO 绕过 Bridge 白名单（2026-09-22）
+
+研讨室接入前复核 2026-09-02 边界时发现，P4-G 新缓存已选 DTO 误带出 homework/homeworkAttachmentName。新增生成 schema 禁曝断言先失败，再删除两字段、重生 FRB 并升级 v19；不因页面未消费就将额外公开字段视为可接受。研讨室后续缓存 DTO 必须以公开产品字段为边界，不能按 Core 内部字段整批复制。

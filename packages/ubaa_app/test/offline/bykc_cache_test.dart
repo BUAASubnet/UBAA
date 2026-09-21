@@ -237,7 +237,7 @@ class _Cache implements BridgeOfflineCache {
 class _Client implements BridgeClient {
   int cachedReads = 0, plainReads = 0;
   @override
-  int contractVersion() => 18;
+  int contractVersion() => 19;
   @override
   Future<BridgeBykcCoursesRefresh> bykcCoursesCached({
     required BridgeOfflineCache cache,

@@ -6086,8 +6086,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 18)
-      throw Exception('unexpected arr length: expect 18 but see ${arr.length}');
+    if (arr.length != 16)
+      throw Exception('unexpected arr length: expect 16 but see ${arr.length}');
     return BridgeCachedBykcChosenCourse(
       id: dco_decode_i_64(arr[0]),
       courseId: dco_decode_i_64(arr[1]),
@@ -6106,10 +6106,8 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       score: dco_decode_opt_box_autoadd_i_32(arr[12]),
       pass: dco_decode_opt_box_autoadd_i_32(arr[13]),
       courseSignType: dco_decode_opt_box_autoadd_i_32(arr[14]),
-      homework: dco_decode_opt_String(arr[15]),
-      homeworkAttachmentName: dco_decode_opt_String(arr[16]),
       signWindow: dco_decode_opt_box_autoadd_bridge_cached_bykc_sign_window(
-        arr[17],
+        arr[15],
       ),
     );
   }
@@ -10303,8 +10301,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_score = sse_decode_opt_box_autoadd_i_32(deserializer);
     var var_pass = sse_decode_opt_box_autoadd_i_32(deserializer);
     var var_courseSignType = sse_decode_opt_box_autoadd_i_32(deserializer);
-    var var_homework = sse_decode_opt_String(deserializer);
-    var var_homeworkAttachmentName = sse_decode_opt_String(deserializer);
     var var_signWindow =
         sse_decode_opt_box_autoadd_bridge_cached_bykc_sign_window(deserializer);
     return BridgeCachedBykcChosenCourse(
@@ -10323,8 +10319,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       score: var_score,
       pass: var_pass,
       courseSignType: var_courseSignType,
-      homework: var_homework,
-      homeworkAttachmentName: var_homeworkAttachmentName,
       signWindow: var_signWindow,
     );
   }
@@ -15170,8 +15164,6 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_opt_box_autoadd_i_32(self.score, serializer);
     sse_encode_opt_box_autoadd_i_32(self.pass, serializer);
     sse_encode_opt_box_autoadd_i_32(self.courseSignType, serializer);
-    sse_encode_opt_String(self.homework, serializer);
-    sse_encode_opt_String(self.homeworkAttachmentName, serializer);
     sse_encode_opt_box_autoadd_bridge_cached_bykc_sign_window(
       self.signWindow,
       serializer,

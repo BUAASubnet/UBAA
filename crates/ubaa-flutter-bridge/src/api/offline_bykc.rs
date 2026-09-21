@@ -66,8 +66,6 @@ pub struct BridgeCachedBykcChosenCourse {
     pub score: Option<i32>,
     pub pass: Option<i32>,
     pub course_sign_type: Option<i32>,
-    pub homework: Option<String>,
-    pub homework_attachment_name: Option<String>,
     pub sign_window: Option<BridgeCachedBykcSignWindow>,
 }
 fn map_cached_bykc_chosen_course(v: core::CachedBykcChosenCourse) -> BridgeCachedBykcChosenCourse {
@@ -87,8 +85,6 @@ fn map_cached_bykc_chosen_course(v: core::CachedBykcChosenCourse) -> BridgeCache
         score: v.score,
         pass: v.pass,
         course_sign_type: v.course_sign_type,
-        homework: v.homework,
-        homework_attachment_name: v.homework_attachment_name,
         sign_window: v.sign_window.map(map_cached_bykc_sign_window),
     }
 }

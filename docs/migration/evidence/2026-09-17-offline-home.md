@@ -293,3 +293,12 @@ GREEN：Bridge 本地读取在 Core 网络锁被持有时仍可返回；页/路�
 日志：`/tmp/ubaa-p4g-check-final.log`、`/tmp/ubaa-p4g-flutter-final.log`、`/tmp/ubaa-p4g-app-{analyze,final}.log`、`/tmp/ubaa-p4g-ui-{analyze,final}.log`、`/tmp/ubaa-p4g-focused.log`、`/tmp/ubaa-p4g-codegen-check.log`、`/tmp/ubaa-p4g-layout.log`、`/tmp/ubaa-p4g-sensitive-final.log`，仅脱敏内容。
 
 macOS 原生合成：v18 缓存集成 1 项通过，新增五个博雅空库读取及缺会话在线入口经真实 FRB；仍有 `Failed to foreground app; open returned 1`，不算独立实窗验收。日志 `/tmp/ubaa-p4g-native.log`；未生成媒体、未使用真实会话、真实学校写入为零。没有本阶段双路线 Core-live、真实 App 或性能测量。研讨室/图书馆/评教等剩余缓存、阳光分页、写后跨范围失效、大读取余项、生命周期全矩阵及多端/真实性能继续，P0–P5 不整体勾选完成。
+
+
+## P4-G 审查修正：缓存 Bridge 字段白名单（2026-09-22）
+
+基线 `cdfa41bd`。研讨室接入前核对既有来源与公开字段边界，发现新的 BridgeCachedBykcChosenCourse 误带出作业正文/附件名称，虽然页面不消费，仍违反 2026-09-02 明确禁曝决定。新增 schema_snapshot_test 对缓存 DTO 的断言，`/tmp/ubaa-p4g-boundary-red.log` 确认 homework 出现在生成类型；随后删除两个 Rust 字段及映射，重生 FRB 并将 Rust/Dart 合同同时提升至 v19。原 Core 加密存储、学校协议、页面功能和写路径不变。
+
+完整 Flutter `just flutter-check` 退出 0，57/66/361/260/16/32/54，共 846 项通过，format/analyze 无问题。FRB v19 零漂移，refs 固定 SHA、layout 零 baseline 违例、sensitive 5248 文件通过。macOS 原生合成缓存测试 1 项通过，版本19与全部本地入口/缺会话入口/句柄栅栏经真实绑定运行；依然无法置前（open returned 1），不算独立实窗验收。没有本轮真实学校调用、验收媒体或性能数据。
+
+日志为 `/tmp/ubaa-p4g-boundary-{red,codegen,drift,flutter,native,layout,sensitive}.log`。`/tmp/ubaa-p4g-boundary-check.log` 中 `just check` 退出 0：Core 两配置各 246 项、facade 50 项、Bridge 120 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。源工作区仍干净，阶段暂存内容复核未含凭据、会话、冻结材料或验收媒体。此次修正独立提交；研讨室已开始源码核对，但尚无该领域新增缓存实现，不将此修正冒充研讨室交付。完整 Goal 继续活动。

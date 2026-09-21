@@ -7,6 +7,33 @@ import 'package:flutter_test/flutter_test.dart';
 /// 该测试不读取真实数据，只固定公开方法、DTO 和枚举的最小集合；完整字节漂移仍由
 /// `just flutter-codegen-check` 负责。这样生成器意外删除一个业务入口时，Dart 门禁会先失败。
 void main() {
+  test('博雅持久只读 DTO 同样遵守内部材料禁曝边界', () {
+    final cached = File(
+      'lib/src/rust/api/offline_bykc.dart',
+    ).readAsStringSync();
+    final matched = RegExp(
+      r'class BridgeCachedBykcChosenCourse \{(?<body>.*?)\n\}',
+      dotAll: true,
+    ).firstMatch(cached);
+    expect(matched, isNotNull);
+    final body = matched!.namedGroup('body')!;
+    expect(body, contains('final int? checkin;'));
+    for (final field in [
+      'homework',
+      'homeworkAttachmentName',
+      'homeworkAttachmentPath',
+      'signInfo',
+      'Eligibility',
+      'signPoints',
+    ]) {
+      expect(
+        body,
+        isNot(contains(field)),
+        reason: '缓存 Bridge DTO 不得绕过既有禁曝边界：$field',
+      );
+    }
+  });
+
   final client = File('lib/src/rust/api/client.dart').readAsStringSync();
   final read = File('lib/src/rust/api/read.dart').readAsStringSync();
   final write = File('lib/src/rust/api/write.dart').readAsStringSync();

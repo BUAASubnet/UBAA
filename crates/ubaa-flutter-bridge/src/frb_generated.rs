@@ -7593,8 +7593,6 @@ impl SseDecode for crate::api::offline_bykc::BridgeCachedBykcChosenCourse {
         let mut var_score = <Option<i32>>::sse_decode(deserializer);
         let mut var_pass = <Option<i32>>::sse_decode(deserializer);
         let mut var_courseSignType = <Option<i32>>::sse_decode(deserializer);
-        let mut var_homework = <Option<String>>::sse_decode(deserializer);
-        let mut var_homeworkAttachmentName = <Option<String>>::sse_decode(deserializer);
         let mut var_signWindow =
             <Option<crate::api::offline_bykc::BridgeCachedBykcSignWindow>>::sse_decode(
                 deserializer,
@@ -7615,8 +7613,6 @@ impl SseDecode for crate::api::offline_bykc::BridgeCachedBykcChosenCourse {
             score: var_score,
             pass: var_pass,
             course_sign_type: var_courseSignType,
-            homework: var_homework,
-            homework_attachment_name: var_homeworkAttachmentName,
             sign_window: var_signWindow,
         };
     }
@@ -13004,8 +13000,6 @@ impl flutter_rust_bridge::IntoDart for crate::api::offline_bykc::BridgeCachedByk
             self.score.into_into_dart().into_dart(),
             self.pass.into_into_dart().into_dart(),
             self.course_sign_type.into_into_dart().into_dart(),
-            self.homework.into_into_dart().into_dart(),
-            self.homework_attachment_name.into_into_dart().into_dart(),
             self.sign_window.into_into_dart().into_dart(),
         ]
         .into_dart()
@@ -17165,8 +17159,6 @@ impl SseEncode for crate::api::offline_bykc::BridgeCachedBykcChosenCourse {
         <Option<i32>>::sse_encode(self.score, serializer);
         <Option<i32>>::sse_encode(self.pass, serializer);
         <Option<i32>>::sse_encode(self.course_sign_type, serializer);
-        <Option<String>>::sse_encode(self.homework, serializer);
-        <Option<String>>::sse_encode(self.homework_attachment_name, serializer);
         <Option<crate::api::offline_bykc::BridgeCachedBykcSignWindow>>::sse_encode(
             self.sign_window,
             serializer,
