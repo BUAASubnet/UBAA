@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `12`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `13`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -38,7 +38,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=12` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=13` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -534,3 +534,12 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
 ### v12 所需路线恢复
 
 新增 typed 功能选择、`recover_required_session` 与 `login_required_route`，成功只陈述所需路线和已核实用户；错误保留原 code/kind/retryable/目标路线。新入口不会清除待确认学校写意图，存在意图则拒绝认证；旧双路线接口继续保留。宿主仅在明确 authentication_required 且 Core 返回目标路线后使用获准安全材料，不因网络失败提交密码。
+
+
+### v13 希冀分段读取
+
+`beginJudgeScan(cache, includeExpired, preferredCourse)` 核实所需路线身份后返回不含会话的扫描句柄；`courses()` 取得已读课程索引。`nextJudgeScan(scan)` 每次最多完成一个课程作业索引或一个详情，选课与其业务读取不可分开。每批完成主运行时会话仲裁并归还客户端共享锁，宿主可以在下一批之前安排其他任务。原 `judgeAssignments`、CLI 和批量详情接口语义不变。
+
+扫描绑定创建客户端、路线配置代次、会话功能代次及本机缓存请求票据。退出、清理、同范围新请求、换路线再换回或取消都不能恢复旧计划。`cancel()` 只设置原子标记，不获取网络锁；已经发送的 HTTP 会正常收尾，迟到内容被丢弃，不声明在途请求立即中断。存在学校写意图时 begin/next 均返回 `operation_conflict` 且保留原意图。
+
+`BridgeJudgeScanBatch` 包含 Assignments/Detail/CourseFailure/Finished、实际路线、课程、逐项内容、原错误、finished、complete 和 failedCourses。单课程普通故障跳过该课程余项并继续其他课程；认证或会话内部冲突停止整个计划。finished 只表示遍历结束，complete 还要求无失败课程。该接口暂复用原内存 TTL，不将返回时间冒充网络取得时间；也不表示已完成持久索引/详情发布。includeExpired 目前隔离扫描请求票据，原始索引/详情均返回，由后续选择性刷新层执行明确筛选。App 业务调度接线尚未完成，不能以新增接口代替端到端抢占验收。

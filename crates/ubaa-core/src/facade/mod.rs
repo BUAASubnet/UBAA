@@ -2,7 +2,9 @@
 mod auth;
 mod client;
 mod diagnostic;
+mod judge_scan;
 mod offline;
+pub use judge_scan::{JudgeScan, JudgeScanBatch, JudgeScanCancellation, JudgeScanKind};
 pub use offline::{OfflineCache, OfflineReadError, OfflineRefresh};
 mod read;
 mod routing;

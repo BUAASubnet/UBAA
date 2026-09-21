@@ -16,6 +16,7 @@ use crate::session::{DualSessionCoordinator, FileSessionStore};
 pub struct UbaaClient {
     pub(super) config_dir: Option<PathBuf>,
     pub(super) config: RouteConfig,
+    pub(super) route_generation: u64,
     pub(super) probe: Box<dyn GatewayProbe>,
     pub(super) direct_runtime: ClientRuntime,
     pub(super) webvpn_runtime: ClientRuntime,
@@ -157,6 +158,7 @@ impl UbaaClient {
         let webvpn_store = sessions.route_store(ConnectionMode::WebVpn);
         Ok(Self {
             config_dir: None,
+            route_generation: 0,
             config,
             probe,
             direct_runtime: ClientRuntime::new(
@@ -203,7 +205,16 @@ impl UbaaClient {
         };
         let mut replacement = self.config.clone();
         replacement.replace_default_policy(policy);
+        let generation = self.route_generation.checked_add(1).ok_or_else(|| {
+            UbaaError::new(
+                ErrorCode::InternalError,
+                ErrorKind::Internal,
+                false,
+                "路线代次已耗尽",
+            )
+        })?;
         replacement.save(config_dir)?;
+        self.route_generation = generation;
         self.config = replacement;
         Ok(())
     }

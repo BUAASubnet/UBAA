@@ -12,7 +12,7 @@ use ubaa_core::facade::{self as core, CachePayload, CacheQuery};
 
 /// 不携带 Cookie、学校写意图或网络客户端的本地句柄。
 pub struct BridgeOfflineCache {
-    cache: core::OfflineCache,
+    pub(super) cache: core::OfflineCache,
 }
 
 /// 本地缓存故障不表示学校读取失败。
@@ -259,7 +259,7 @@ impl BridgeClient {
     }
 }
 
-fn offline_read_error(error: core::OfflineReadError) -> BridgeError {
+pub(super) fn offline_read_error(error: core::OfflineReadError) -> BridgeError {
     match error {
         core::OfflineReadError::Read(error) => BridgeError::from_routed(error),
         core::OfflineReadError::Cache(error) => cache_error(error),

@@ -8,6 +8,7 @@
 mod batch;
 mod calendar;
 mod parser;
+pub(crate) mod scan;
 mod service;
 
 #[cfg(test)]

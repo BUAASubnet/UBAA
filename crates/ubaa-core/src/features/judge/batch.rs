@@ -289,7 +289,7 @@ struct CourseSummary {
     historical: bool,
 }
 
-async fn resolve_required_judge_result<T>(
+pub(super) async fn resolve_required_judge_result<T>(
     runtime: &mut crate::runtime::ClientRuntime,
     result: crate::error::Result<T>,
 ) -> crate::error::Result<T> {

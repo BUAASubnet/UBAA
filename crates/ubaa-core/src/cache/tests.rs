@@ -464,3 +464,20 @@ fn soft_limit_evicts_old_detail_before_a_saved_schedule() {
     drop(repo);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn read_ticket_validation_detects_newer_request_and_cross_handle_logout() {
+    let root = root();
+    let mut first = open(&root);
+    let old = first.begin_read(scope()).unwrap();
+    first.validate_read(&old).unwrap();
+    let mut second = open(&root);
+    let latest = second.begin_read(scope()).unwrap();
+    assert_eq!(first.validate_read(&old), Err(CacheError::Superseded));
+    first.validate_read(&latest).unwrap();
+    second.deactivate().unwrap();
+    assert_eq!(first.validate_read(&latest), Err(CacheError::Inactive));
+    drop(first);
+    drop(second);
+    let _ = std::fs::remove_dir_all(root);
+}

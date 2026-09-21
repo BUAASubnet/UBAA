@@ -10,7 +10,7 @@
 
 mod evaluation;
 mod mappers;
-pub(super) use mappers::map_judge_summaries;
+pub(super) use mappers::{map_judge_detail, map_judge_summaries};
 mod methods;
 
 use super::client::BridgeRouteDecision;

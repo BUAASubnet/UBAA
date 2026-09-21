@@ -16,6 +16,8 @@ use ubaa_core::facade::{
 mod bootstrap;
 #[path = "facade/cgyy.rs"]
 mod cgyy;
+#[path = "facade/judge_scan.rs"]
+mod judge_scan;
 #[path = "facade/offline.rs"]
 mod offline;
 #[path = "facade/recovery.rs"]

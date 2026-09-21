@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'judge_scan.dart';
 import 'offline.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
@@ -21,6 +22,16 @@ abstract class BridgeClient implements RustOpaqueInterface {
   ///
   /// 客户端已销毁或 Core 无法读取认证状态时返回安全错误。
   Future<BridgeLoginOutcome> authStatus();
+
+  /// 开始有界扫描。索引成功返回后释放客户端共享锁。
+  ///
+  /// # Errors
+  /// 身份、会话、存储或学校索引失败时保留稳定错误。
+  Future<BridgeJudgeScan> beginJudgeScan({
+    required BridgeOfflineCache cache,
+    required bool includeExpired,
+    String? preferredCourse,
+  });
 
   Future<BridgeRoutedBykcChosenCourses> bykcChosenCourses();
 
@@ -173,6 +184,12 @@ abstract class BridgeClient implements RustOpaqueInterface {
   ///
   /// 客户端已销毁或 Core 注销失败时返回安全错误。
   Future<void> logout();
+
+  /// 完成一次完整选课及索引或详情读取，然后归还共享锁。
+  ///
+  /// # Errors
+  /// 取消、较新请求、账号/路线失效或写操作冲突时拒绝旧批次。
+  Future<BridgeJudgeScanBatch> nextJudgeScan({required BridgeJudgeScan scan});
 
   /// 打开应用私有目录中的 Core client。
   static BridgeClient open({required String configDir}) =>

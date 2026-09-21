@@ -111,13 +111,19 @@ impl OfflineCache {
             .map_err(|_| CacheError::Unavailable)?
             .clear()
     }
-    fn matches(&self, profile: &UserProfile) -> bool {
+    pub(super) fn matches(&self, profile: &UserProfile) -> bool {
         [profile.username.as_deref(), profile.school_id.as_deref()]
             .into_iter()
             .flatten()
             .any(|value| value.trim() == self.expected_identity.as_ref())
     }
-    fn begin(&self, scope: CacheScope) -> CacheResult<CacheReadTicket> {
+    pub(super) fn validate_read(&self, ticket: &CacheReadTicket) -> CacheResult<()> {
+        self.repository
+            .lock()
+            .map_err(|_| CacheError::Unavailable)?
+            .validate_read(ticket)
+    }
+    pub(super) fn begin(&self, scope: CacheScope) -> CacheResult<CacheReadTicket> {
         self.repository
             .lock()
             .map_err(|_| CacheError::Unavailable)?

@@ -43,7 +43,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 12;
+  int contractVersion() => 13;
 
   @override
   dynamic noSuchMethod(Invocation invocation) {

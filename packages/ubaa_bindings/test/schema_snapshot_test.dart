@@ -52,6 +52,8 @@ void main() {
       'spocAssignments',
       'spocAssignment',
       'judgeAssignments',
+      'beginJudgeScan',
+      'nextJudgeScan',
       'judgeAssignment',
       'judgeAssignmentDetails',
       'bykcProfile',

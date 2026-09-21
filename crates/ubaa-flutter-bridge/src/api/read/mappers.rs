@@ -234,7 +234,7 @@ fn map_judge_problem(v: domain::JudgeProblem) -> BridgeJudgeProblem {
         status_text: v.status_text,
     }
 }
-pub(super) fn map_judge_detail(v: domain::JudgeAssignmentDetail) -> BridgeJudgeAssignmentDetail {
+pub(crate) fn map_judge_detail(v: domain::JudgeAssignmentDetail) -> BridgeJudgeAssignmentDetail {
     BridgeJudgeAssignmentDetail {
         course_id: v.course_id,
         course_name: v.course_name,

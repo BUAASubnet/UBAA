@@ -113,6 +113,17 @@ impl OfflineRepository {
         &self.path
     }
 
+    /// 在短只读事务中核对在途读取资格，不发布或消费该请求。
+    ///
+    /// # Errors
+    /// 账号关闭、较新请求取代或存储故障时返回稳定错误。
+    pub fn validate_read(&mut self, ticket: &CacheReadTicket) -> CacheResult<()> {
+        let key = self.crypto.index(&(&self.account, &ticket.scope))?;
+        let tx = self.db.transaction().map_err(CacheError::from)?;
+        validate_ticket(&tx, &self.crypto, &self.account, ticket, &key)?;
+        tx.commit().map_err(CacheError::from)
+    }
+
     /// 为一次精确范围的在线读取分配持久修订；它不授予学校写资格。
     ///
     /// # Errors

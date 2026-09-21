@@ -113,7 +113,7 @@ impl BridgeClient {
         .await
     }
 
-    async fn ensure_recovery_allowed(&self) -> Result<(), BridgeError> {
+    pub(super) async fn ensure_recovery_allowed(&self) -> Result<(), BridgeError> {
         if self.write_intents.lock().await.is_empty() {
             Ok(())
         } else {
