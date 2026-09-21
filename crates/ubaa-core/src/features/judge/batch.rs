@@ -39,7 +39,7 @@ async fn get_assignments_diagnostics_inner(
 ) -> crate::error::Result<crate::domain::JudgeAssignmentsDiagnostics> {
     let state = runtime.feature_state();
     let generation = state.judge.generation();
-    let courses = get_courses_cached(runtime, &state, generation).await?;
+    let courses = get_courses_cached(runtime, &state, generation, false).await?;
     let course_count = courses.len();
     let skipped = if include_expired {
         HashSet::new()
@@ -182,7 +182,7 @@ async fn get_assignment_details_inner(
 
     let state = runtime.feature_state();
     let generation = state.judge.generation();
-    let courses = get_courses_cached(runtime, &state, generation).await?;
+    let courses = get_courses_cached(runtime, &state, generation, false).await?;
     let courses_by_id = courses
         .into_iter()
         .map(|course| (course.course_id.clone(), course))
@@ -261,7 +261,7 @@ async fn fetch_course_details(
     let first_index = keys[0].0;
     let mut activated = false;
     let assignments =
-        get_course_assignments_cached(runtime, state, generation, course, &mut activated)
+        get_course_assignments_cached(runtime, state, generation, course, &mut activated, false)
             .await
             .map_err(|error| (first_index, error))?
             .assignments
@@ -273,9 +273,16 @@ async fn fetch_course_details(
         let assignment = assignments
             .get(&key.assignment_id)
             .ok_or_else(|| (index, not_found()))?;
-        let detail = get_detail_cached(runtime, state, generation, assignment, &mut activated)
-            .await
-            .map_err(|error| (index, error))?;
+        let detail = get_detail_cached(
+            runtime,
+            state,
+            generation,
+            assignment,
+            &mut activated,
+            false,
+        )
+        .await
+        .map_err(|error| (index, error))?;
         details.push((index, detail));
     }
     Ok(details)
@@ -322,14 +329,22 @@ async fn summarize_course(
 ) -> crate::error::Result<CourseSummary> {
     let mut activated = false;
     let assignment_list =
-        get_course_assignments_cached(runtime, state, generation, &course, &mut activated).await?;
+        get_course_assignments_cached(runtime, state, generation, &course, &mut activated, false)
+            .await?;
     let raw_anchor_count = assignment_list.raw_anchor_count;
     let filtered_unique_count = assignment_list.filtered_unique_count();
     let mut summaries = Vec::new();
     let mut historical = false;
     for assignment in assignment_list.assignments {
-        let detail =
-            get_detail_cached(runtime, state, generation, &assignment, &mut activated).await?;
+        let detail = get_detail_cached(
+            runtime,
+            state,
+            generation,
+            &assignment,
+            &mut activated,
+            false,
+        )
+        .await?;
         if detail
             .start_time
             .as_deref()

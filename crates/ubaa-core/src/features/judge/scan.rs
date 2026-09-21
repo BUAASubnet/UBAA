@@ -25,15 +25,20 @@ async fn finish<T>(runtime: &mut ClientRuntime, result: Result<T>) -> ScanRead<T
         result,
     }
 }
-pub(crate) async fn courses(runtime: &mut ClientRuntime) -> ScanRead<Vec<Course>> {
+pub(crate) async fn courses(
+    runtime: &mut ClientRuntime,
+    force_fresh: bool,
+) -> ScanRead<Vec<Course>> {
     let state = runtime.feature_state();
     let result =
-        super::service::get_courses_cached(runtime, &state, state.judge.generation()).await;
+        super::service::get_courses_cached(runtime, &state, state.judge.generation(), force_fresh)
+            .await;
     finish(runtime, result).await
 }
 pub(crate) async fn assignments(
     runtime: &mut ClientRuntime,
     course: &Course,
+    force_fresh: bool,
 ) -> ScanRead<Vec<Assignment>> {
     let state = runtime.feature_state();
     let result = super::service::get_course_assignments_cached(
@@ -42,6 +47,7 @@ pub(crate) async fn assignments(
         state.judge.generation(),
         course,
         &mut false,
+        force_fresh,
     )
     .await
     .map(|list| list.assignments);
@@ -50,6 +56,7 @@ pub(crate) async fn assignments(
 pub(crate) async fn detail(
     runtime: &mut ClientRuntime,
     assignment: &Assignment,
+    force_fresh: bool,
 ) -> ScanRead<JudgeAssignmentDetail> {
     let state = runtime.feature_state();
     let result = super::service::get_detail_cached(
@@ -58,6 +65,7 @@ pub(crate) async fn detail(
         state.judge.generation(),
         assignment,
         &mut false,
+        force_fresh,
     )
     .await;
     finish(runtime, result).await

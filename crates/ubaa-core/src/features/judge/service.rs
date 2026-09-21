@@ -32,8 +32,10 @@ pub(super) async fn get_courses_cached(
     runtime: &mut crate::runtime::ClientRuntime,
     state: &crate::features::state::RouteFeatureState,
     generation: u64,
+    force_fresh: bool,
 ) -> crate::error::Result<Vec<Course>> {
-    if let Some(courses) = state.judge.courses(generation, Instant::now(), LIST_TTL) {
+    if !force_fresh && let Some(courses) = state.judge.courses(generation, Instant::now(), LIST_TTL)
+    {
         return Ok(courses);
     }
     activate(runtime).await?;
@@ -54,11 +56,13 @@ pub(super) async fn get_course_assignments_cached(
     generation: u64,
     course: &Course,
     activated: &mut bool,
+    force_fresh: bool,
 ) -> crate::error::Result<AssignmentList> {
-    if let Some(assignments) =
-        state
-            .judge
-            .assignments(generation, &course.course_id, Instant::now(), LIST_TTL)
+    if !force_fresh
+        && let Some(assignments) =
+            state
+                .judge
+                .assignments(generation, &course.course_id, Instant::now(), LIST_TTL)
     {
         return Ok(assignments);
     }
@@ -87,14 +91,17 @@ pub(super) async fn get_detail_cached(
     generation: u64,
     assignment: &Assignment,
     activated: &mut bool,
+    force_fresh: bool,
 ) -> crate::error::Result<JudgeAssignmentDetail> {
-    if let Some(detail) = state.judge.detail(
-        generation,
-        &assignment.course_id,
-        &assignment.assignment_id,
-        Instant::now(),
-        DETAIL_TTL,
-    ) {
+    if !force_fresh
+        && let Some(detail) = state.judge.detail(
+            generation,
+            &assignment.course_id,
+            &assignment.assignment_id,
+            Instant::now(),
+            DETAIL_TTL,
+        )
+    {
         return Ok(detail);
     }
     ensure_worker_activated(runtime, activated).await?;

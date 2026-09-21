@@ -481,3 +481,90 @@ fn read_ticket_validation_detects_newer_request_and_cross_handle_logout() {
     drop(second);
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn scan_lease_renewal_preserves_long_progress_but_cannot_reclaim_superseded_scope() {
+    let root = root();
+    let mut repository = open(&root);
+    let mut parent = repository.begin_read(scope()).unwrap();
+    let mut course_review = repository
+        .begin_read(CacheScope {
+            route: ConnectionMode::Direct,
+            query: CacheQuery::JudgeCourseReview {
+                course_id: "long-course".into(),
+            },
+        })
+        .unwrap();
+    for index in 0..4100 {
+        repository.renew_read(&mut parent).unwrap();
+        repository.renew_read(&mut course_review).unwrap();
+        let child = repository
+            .begin_read(CacheScope {
+                route: ConnectionMode::Direct,
+                query: CacheQuery::JudgeAssignments {
+                    course_id: format!("{index}"),
+                },
+            })
+            .unwrap();
+        repository
+            .publish_guarded(
+                &child,
+                &parent,
+                CachePayload::JudgeAssignments(Vec::new()),
+                100,
+                CacheCompleteness::Complete,
+            )
+            .unwrap();
+    }
+    repository.validate_read(&parent).unwrap();
+    repository.validate_read(&course_review).unwrap();
+    let replacement = repository.begin_read(scope()).unwrap();
+    assert_eq!(
+        repository.renew_read(&mut parent),
+        Err(CacheError::Superseded)
+    );
+    repository.validate_read(&replacement).unwrap();
+    let child_scope = CacheScope {
+        route: ConnectionMode::Direct,
+        query: CacheQuery::JudgeAssignments {
+            course_id: "late".into(),
+        },
+    };
+    let child = repository.begin_read(child_scope.clone()).unwrap();
+    assert_eq!(
+        repository.publish_guarded(
+            &child,
+            &parent,
+            CachePayload::JudgeAssignments(Vec::new()),
+            200,
+            CacheCompleteness::Complete
+        ),
+        Err(CacheError::Superseded)
+    );
+    assert!(repository.read(&child_scope, 200).unwrap().is_none());
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn reused_payload_keeps_its_original_source_time_and_new_attempt_time() {
+    let root = root();
+    let mut repository = open(&root);
+    let ticket = repository.begin_read(scope()).unwrap();
+    repository
+        .publish_observed(
+            &ticket,
+            payload("合成复用"),
+            CacheObservation {
+                source_at: 100,
+                attempted_at: 200,
+            },
+            CacheCompleteness::Complete,
+        )
+        .unwrap();
+    let record = repository.read(&scope(), 200).unwrap().unwrap();
+    assert_eq!(record.fetched_at, 100);
+    assert_eq!(record.last_verified_at, 100);
+    assert_eq!(record.last_attempt_at, 200);
+    assert!(!record.is_fresh(200, 1000));
+    let _ = std::fs::remove_dir_all(root);
+}

@@ -9,6 +9,9 @@ struct ScanTransport {
     cancel_on_detail: Arc<Mutex<Option<ubaa_core::facade::JudgeScanCancellation>>>,
     reject_detail: Arc<std::sync::atomic::AtomicBool>,
     expire_primary: Arc<std::sync::atomic::AtomicBool>,
+    historical_details: Arc<std::sync::atomic::AtomicBool>,
+    add_assignment: Arc<std::sync::atomic::AtomicBool>,
+    rename_assignment: Arc<std::sync::atomic::AtomicBool>,
 }
 #[async_trait]
 impl HttpTransport for ScanTransport {
@@ -18,7 +21,7 @@ impl HttpTransport for ScanTransport {
         let query = parsed
             .query_pairs()
             .collect::<std::collections::HashMap<_, _>>();
-        let mut response = if request.url.ends_with("/api/uc/status") {
+        let response = if request.url.ends_with("/api/uc/status") {
             if self.expire_primary.load(Ordering::SeqCst)
                 && self.reject_detail.load(Ordering::SeqCst)
             {
@@ -71,16 +74,28 @@ impl HttpTransport for ScanTransport {
                     "selected=13"
                 };
                 assert!(cookie.contains(expected), "详情前必须显式选择本课程");
+                if self.historical_details.load(Ordering::SeqCst) && id.as_ref() != "103" {
+                    return Ok(HttpResponse::new(200, request.url.clone(), "<html><body>作业满分：1，共 1 道题，得分：1。作业时间：2000-01-01 00:00 至 2000-02-01 00:00</body></html>".as_bytes().to_vec()));
+                }
                 HttpResponse::new(
                     200,
                     request.url.clone(),
                     include_bytes!("../../../../fixtures/readonly/judge-detail.html").to_vec(),
                 )
             } else {
-                let body = if cookie.contains("selected=13") {
+                let body = if self.add_assignment.load(Ordering::SeqCst)
+                    && cookie.contains("selected=12")
+                {
+                    "<a href='assignment/index.jsp?assignID=101'>Task A1</a><a href='assignment/index.jsp?assignID=102'>Task A2</a><a href='assignment/index.jsp?assignID=103'>New task</a>"
+                } else if cookie.contains("selected=13") {
                     "<a href='assignment/index.jsp?assignID=201'>Task B</a>"
                 } else {
                     "<a href='assignment/index.jsp?assignID=101'>Task A1</a><a href='assignment/index.jsp?assignID=102'>Task A2</a>"
+                };
+                let body = if self.rename_assignment.load(Ordering::SeqCst) {
+                    body.replace("Task A1", "Task A1 updated")
+                } else {
+                    body.to_owned()
                 };
                 HttpResponse::new(200, request.url.clone(), body.as_bytes().to_vec())
             }
@@ -95,22 +110,29 @@ impl HttpTransport for ScanTransport {
         } else {
             panic!("未预期的合成操作");
         };
-        if parsed.host_str() == Some("judge.buaa.edu.cn") {
-            let selected = if parsed.path() == "/" {
-                Some("0")
-            } else {
-                query.get("courseID").map(std::convert::AsRef::as_ref)
-            };
-            if let Some(selected) = selected {
-                response.headers.insert(
-                    "Set-Cookie".into(),
-                    vec![format!("selected={selected}; Path=/; Secure")],
-                );
-            }
-        }
-        Ok(response)
+        Ok(with_selection(response, &parsed))
     }
 }
+fn with_selection(mut response: HttpResponse, parsed: &url::Url) -> HttpResponse {
+    if parsed.host_str() == Some("judge.buaa.edu.cn") {
+        let selected = if parsed.path() == "/" {
+            Some("0".to_owned())
+        } else {
+            parsed
+                .query_pairs()
+                .find(|(key, _)| key == "courseID")
+                .map(|(_, value)| value.into_owned())
+        };
+        if let Some(selected) = selected {
+            response.headers.insert(
+                "Set-Cookie".into(),
+                vec![format!("selected={selected}; Path=/; Secure")],
+            );
+        }
+    }
+    response
+}
+
 fn setup(label: &str) -> (std::path::PathBuf, UbaaClient, OfflineCache, ScanTransport) {
     let root = test_root(label);
     let store = FileSessionStore::new(&root).unwrap();
@@ -181,16 +203,7 @@ fn scan_returns_between_index_and_each_detail_and_reselects_after_other_work() {
         assert_eq!(detail.data.kind, JudgeScanKind::Detail);
         assert_eq!(detail.data.detail.unwrap().assignment_id, "101");
         assert!(!detail.data.finished);
-        assert_eq!(
-            transport
-                .requests
-                .lock()
-                .unwrap()
-                .iter()
-                .filter(|r| r.url.contains("assignID="))
-                .count(),
-            1
-        );
+        assert_eq!(detail_request_count(&transport), 1);
         let cancel = scan.cancellation();
         cancel.cancel();
         let before = transport.requests.lock().unwrap().len();
@@ -358,6 +371,433 @@ fn primary_authentication_failure_keeps_its_original_error_classification() {
             );
             assert_eq!(error.resolution.unwrap().mode, ConnectionMode::Direct);
         });
+    drop(cache);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn persistent_refresh_reuses_details_after_restart_and_full_refresh_bypasses_memory_ttl() {
+    use ubaa_core::facade::{CachePayload, CacheQuery, CacheScope, JudgeRefreshOptions};
+    let (root, mut client, cache, transport) = setup("judge-persistent-refresh");
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            let mut refresh = client
+                .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+                .await
+                .unwrap();
+            loop {
+                let batch = client.next_judge_refresh(&mut refresh).await.unwrap();
+                if batch.batch.finished {
+                    assert!(batch.batch.complete);
+                    assert_eq!(batch.summaries.len(), 3);
+                    break;
+                }
+            }
+            assert_eq!(detail_request_count(&transport), 3);
+            assert!(matches!(
+                cache
+                    .read(
+                        &CacheScope {
+                            route: ConnectionMode::Direct,
+                            query: CacheQuery::JudgeCourses
+                        },
+                        chrono::Utc::now().timestamp()
+                    )
+                    .unwrap()
+                    .unwrap()
+                    .payload,
+                CachePayload::JudgeCourses(_)
+            ));
+            // 新客户端没有原运行时内存缓存，仍应使用同一个账号库的合法详情。
+            drop(client);
+            let reopened = OfflineCache::open(
+                &root,
+                "0123456789abcdef0123456789abcdef",
+                "fixture-user",
+                CacheKey::new([9; 32]),
+                CacheLimits::default(),
+            )
+            .unwrap();
+            let mut client = UbaaClient::with_routing(
+                transport.clone(),
+                CountingTransport(Arc::new(AtomicUsize::new(0))),
+                FileSessionStore::new(&root).unwrap(),
+                RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
+                NeverProbe,
+            )
+            .unwrap();
+            let mut refresh = client
+                .begin_judge_refresh(&reopened, JudgeRefreshOptions::default())
+                .await
+                .unwrap();
+            let mut reused = 0;
+            loop {
+                let batch = client.next_judge_refresh(&mut refresh).await.unwrap();
+                if batch.reused && batch.batch.kind == JudgeScanKind::Detail {
+                    reused += 1;
+                }
+                if batch.batch.finished {
+                    break;
+                }
+            }
+            assert_eq!(reused, 3);
+            assert_eq!(detail_request_count(&transport), 3);
+            let mut refresh = client
+                .begin_judge_refresh(
+                    &reopened,
+                    JudgeRefreshOptions {
+                        full_refresh: true,
+                        ..Default::default()
+                    },
+                )
+                .await
+                .unwrap();
+            loop {
+                if client
+                    .next_judge_refresh(&mut refresh)
+                    .await
+                    .unwrap()
+                    .batch
+                    .finished
+                {
+                    break;
+                }
+            }
+            assert_eq!(detail_request_count(&transport), 6);
+        });
+    drop(cache);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn historical_course_is_rechecked_after_deadline_and_new_work_after_old_items_is_not_skipped() {
+    use ubaa_core::facade::{
+        CacheCompleteness, CachePayload, CacheQuery, CacheScope, JudgeRefreshOptions,
+        OfflineRepository,
+    };
+    let (root, mut client, cache, transport) = setup("judge-history-review");
+    transport.historical_details.store(true, Ordering::SeqCst);
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            let mut refresh = client
+                .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+                .await
+                .unwrap();
+            loop {
+                if client
+                    .next_judge_refresh(&mut refresh)
+                    .await
+                    .unwrap()
+                    .batch
+                    .finished
+                {
+                    break;
+                }
+            }
+            let before = transport.requests.lock().unwrap().len();
+            transport.add_assignment.store(true, Ordering::SeqCst);
+            let mut refresh = client
+                .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+                .await
+                .unwrap();
+            let mut reused_indexes = 0;
+            loop {
+                let batch = client.next_judge_refresh(&mut refresh).await.unwrap();
+                if batch.reused && batch.batch.kind == JudgeScanKind::Assignments {
+                    reused_indexes += 1;
+                }
+                if batch.batch.finished {
+                    break;
+                }
+            }
+            assert_eq!(reused_indexes, 2, "有效历史索引在一天期限内可复用");
+            assert!(
+                !transport.requests.lock().unwrap()[before..]
+                    .iter()
+                    .any(|r| r.url.contains("assignment/index.jsp"))
+            );
+            let now = chrono::Utc::now().timestamp();
+            let review_scope = CacheScope {
+                route: ConnectionMode::Direct,
+                query: CacheQuery::JudgeCourseReview {
+                    course_id: "12".into(),
+                },
+            };
+            let mut review = cache.read(&review_scope, now).unwrap().unwrap();
+            let CachePayload::JudgeCourseReview(metadata) = &mut review.payload else {
+                panic!("必须保存历史复查依据");
+            };
+            metadata.next_index_check_at = now - 1;
+            let mut repo = OfflineRepository::open(
+                &root,
+                "0123456789abcdef0123456789abcdef",
+                CacheKey::new([9; 32]),
+                CacheLimits::default(),
+            )
+            .unwrap();
+            let ticket = repo.begin_read(review_scope).unwrap();
+            repo.publish(&ticket, review.payload, now, CacheCompleteness::Complete)
+                .unwrap();
+            let mut refresh = client
+                .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+                .await
+                .unwrap();
+            let mut found = false;
+            loop {
+                let batch = client.next_judge_refresh(&mut refresh).await.unwrap();
+                if batch
+                    .batch
+                    .detail
+                    .as_ref()
+                    .is_some_and(|item| item.assignment_id == "103")
+                {
+                    found = true;
+                    assert!(!batch.reused);
+                }
+                if batch.batch.finished {
+                    assert!(batch.batch.complete);
+                    break;
+                }
+            }
+            assert!(found, "旧项目之后的新作业必须被发现，不能永久排除课程");
+        });
+    drop(cache);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn current_detail_is_first_and_changed_title_is_not_hidden_by_a_fresh_detail_cache() {
+    use ubaa_core::facade::{JudgeAssignmentKey, JudgeRefreshOptions};
+    let (root, mut client, cache, transport) = setup("judge-current-and-changed");
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            let mut warm = client
+                .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+                .await
+                .unwrap();
+            loop {
+                if client
+                    .next_judge_refresh(&mut warm)
+                    .await
+                    .unwrap()
+                    .batch
+                    .finished
+                {
+                    break;
+                }
+            }
+            let mut focus = client
+                .begin_judge_refresh(
+                    &cache,
+                    JudgeRefreshOptions {
+                        current_assignment: Some(JudgeAssignmentKey {
+                            course_id: "12".into(),
+                            assignment_id: "102".into(),
+                        }),
+                        ..Default::default()
+                    },
+                )
+                .await
+                .unwrap();
+            client.next_judge_refresh(&mut focus).await.unwrap();
+            let detail = client.next_judge_refresh(&mut focus).await.unwrap();
+            assert_eq!(detail.batch.detail.unwrap().assignment_id, "102");
+            assert!(!detail.reused, "当前详情必须提升并做真实校验");
+            transport.rename_assignment.store(true, Ordering::SeqCst);
+            let mut changed = client
+                .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+                .await
+                .unwrap();
+            client.next_judge_refresh(&mut changed).await.unwrap();
+            let detail = client.next_judge_refresh(&mut changed).await.unwrap();
+            assert_eq!(detail.batch.detail.unwrap().title, "Task A1 updated");
+            assert!(!detail.reused, "同 ID 索引变化不能被旧详情 TTL 遮蔽");
+        });
+    drop(cache);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn historical_detail_is_checked_after_seven_days_even_when_course_index_is_reused() {
+    use ubaa_core::facade::{
+        CacheCompleteness, CacheQuery, CacheScope, JudgeRefreshOptions, OfflineRepository,
+    };
+    let (root, mut client, cache, transport) = setup("judge-history-detail-deadline");
+    transport.historical_details.store(true, Ordering::SeqCst);
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            let mut refresh = client
+                .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+                .await
+                .unwrap();
+            loop {
+                if client
+                    .next_judge_refresh(&mut refresh)
+                    .await
+                    .unwrap()
+                    .batch
+                    .finished
+                {
+                    break;
+                }
+            }
+            let now = chrono::Utc::now().timestamp();
+            let detail_scope = CacheScope {
+                route: ConnectionMode::Direct,
+                query: CacheQuery::JudgeDetail {
+                    course_id: "12".into(),
+                    assignment_id: "101".into(),
+                },
+            };
+            let old_detail = cache.read(&detail_scope, now).unwrap().unwrap();
+            let mut repo = OfflineRepository::open(
+                &root,
+                "0123456789abcdef0123456789abcdef",
+                CacheKey::new([9; 32]),
+                CacheLimits::default(),
+            )
+            .unwrap();
+            let ticket = repo.begin_read(detail_scope).unwrap();
+            repo.publish(
+                &ticket,
+                old_detail.payload,
+                now - 8 * 86400,
+                CacheCompleteness::Complete,
+            )
+            .unwrap();
+            let before = transport.requests.lock().unwrap().len();
+            let mut refresh = client
+                .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+                .await
+                .unwrap();
+            let mut expired_rechecked = false;
+            loop {
+                let batch = client.next_judge_refresh(&mut refresh).await.unwrap();
+                if batch
+                    .batch
+                    .detail
+                    .as_ref()
+                    .is_some_and(|detail| detail.assignment_id == "101")
+                {
+                    expired_rechecked = true;
+                    assert!(!batch.reused);
+                }
+                if batch.batch.finished {
+                    break;
+                }
+            }
+            assert!(expired_rechecked);
+            let requests = transport.requests.lock().unwrap();
+            assert_eq!(
+                requests[before..]
+                    .iter()
+                    .filter(|request| request.url.contains("assignID="))
+                    .count(),
+                1
+            );
+        });
+    drop(cache);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn persistent_partial_refresh_keeps_the_previous_complete_summary() {
+    use ubaa_core::facade::JudgeRefreshOptions;
+    let (root, mut client, cache, transport) = setup("judge-partial-persistence");
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            let mut warm = client
+                .begin_judge_refresh(&cache, JudgeRefreshOptions::default())
+                .await
+                .unwrap();
+            loop {
+                if client
+                    .next_judge_refresh(&mut warm)
+                    .await
+                    .unwrap()
+                    .batch
+                    .finished
+                {
+                    break;
+                }
+            }
+            let prior = cache
+                .read_judge(ConnectionMode::Direct, false)
+                .unwrap()
+                .unwrap();
+            transport.fail_detail.store(true, Ordering::SeqCst);
+            let mut refresh = client
+                .begin_judge_refresh(
+                    &cache,
+                    JudgeRefreshOptions {
+                        full_refresh: true,
+                        ..Default::default()
+                    },
+                )
+                .await
+                .unwrap();
+            loop {
+                let batch = client.next_judge_refresh(&mut refresh).await.unwrap();
+                if batch.batch.finished {
+                    assert!(!batch.batch.complete);
+                    break;
+                }
+            }
+            let after = cache
+                .read_judge(ConnectionMode::Direct, false)
+                .unwrap()
+                .unwrap();
+            assert_eq!(after.payload, prior.payload);
+            assert_eq!(after.fetched_at, prior.fetched_at);
+            assert!(!after.last_attempt_succeeded);
+        });
+    drop(cache);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+fn detail_request_count(transport: &ScanTransport) -> usize {
+    transport
+        .requests
+        .lock()
+        .unwrap()
+        .iter()
+        .filter(|request| request.url.contains("assignID="))
+        .count()
+}
+
+#[test]
+fn persistent_refresh_authentication_failure_marks_attempt_without_erasing_saved_content() {
+    use ubaa_core::facade::{JudgeRefreshOptions, OfflineReadError};
+    let (root, mut client, cache, transport) = setup("judge-persistent-auth-failure");
+    tokio::runtime::Builder::new_current_thread().enable_all().build().unwrap().block_on(async {
+        let mut warm = client.begin_judge_refresh(&cache, JudgeRefreshOptions::default()).await.unwrap();
+        loop { if client.next_judge_refresh(&mut warm).await.unwrap().batch.finished { break; } }
+        let prior = cache.read_judge(ConnectionMode::Direct, false).unwrap().unwrap();
+        let mut refresh = client.begin_judge_refresh(&cache, JudgeRefreshOptions { full_refresh: true, ..Default::default() }).await.unwrap();
+        client.next_judge_refresh(&mut refresh).await.unwrap();
+        transport.expire_primary.store(true, Ordering::SeqCst);
+        transport.reject_detail.store(true, Ordering::SeqCst);
+        let error = client.next_judge_refresh(&mut refresh).await.err().unwrap();
+        assert!(matches!(error, OfflineReadError::Read(error) if error.error.code == ErrorCode::AuthenticationRequired));
+        let saved = cache.read_judge(ConnectionMode::Direct, false).unwrap().unwrap();
+        assert_eq!(saved.payload, prior.payload);
+        assert!(!saved.last_attempt_succeeded);
+    });
     drop(cache);
     let _ = std::fs::remove_dir_all(root);
 }

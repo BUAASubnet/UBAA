@@ -111,6 +111,25 @@ impl OfflineCache {
             .map_err(|_| CacheError::Unavailable)?
             .clear()
     }
+    pub(super) fn repository<T>(
+        &self,
+        operation: impl FnOnce(&mut OfflineRepository) -> CacheResult<T>,
+    ) -> CacheResult<T> {
+        let mut repository = self
+            .repository
+            .lock()
+            .map_err(|_| CacheError::Unavailable)?;
+        operation(&mut repository)
+    }
+    pub(super) fn fail_scan(&self, parent: &CacheReadTicket, child: Option<&CacheReadTicket>) {
+        let now = chrono::Utc::now().timestamp();
+        let _ = self.repository(|repository| {
+            if let Some(child) = child {
+                let _ = repository.record_failure_guarded(child, parent, now);
+            }
+            repository.record_failure(parent, now)
+        });
+    }
     pub(super) fn matches(&self, profile: &UserProfile) -> bool {
         [profile.username.as_deref(), profile.school_id.as_deref()]
             .into_iter()

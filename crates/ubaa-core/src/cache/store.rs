@@ -1,7 +1,8 @@
 //! `SQLite` 短事务与持久代次；不持有或等待学校网络客户端。
 use super::{
-    CACHE_SCHEMA_VERSION, CacheCompleteness, CacheError, CacheKey, CacheLimits, CachePayload,
-    CachePublication, CacheReadTicket, CacheRecord, CacheResult, CacheScope, crypto::Crypto, files,
+    CACHE_SCHEMA_VERSION, CacheCompleteness, CacheError, CacheKey, CacheLimits, CacheObservation,
+    CachePayload, CachePublication, CacheReadTicket, CacheRecord, CacheResult, CacheScope,
+    crypto::Crypto, files,
 };
 use rusqlite::{Connection, OpenFlags, OptionalExtension, TransactionBehavior, params};
 use serde::{Deserialize, Serialize};
@@ -124,6 +125,33 @@ impl OfflineRepository {
         tx.commit().map_err(CacheError::from)
     }
 
+    /// 原子续租仍有效的长扫描；不能重新取得已被替代的请求资格。
+    ///
+    /// # Errors
+    /// 原票据失效、账号关闭或事务失败时保持原票据不变。
+    pub fn renew_read(&mut self, ticket: &mut CacheReadTicket) -> CacheResult<()> {
+        let key = self.crypto.index(&(&self.account, &ticket.scope))?;
+        let tx = self
+            .db
+            .transaction_with_behavior(TransactionBehavior::Immediate)
+            .map_err(CacheError::from)?;
+        validate_ticket(&tx, &self.crypto, &self.account, ticket, &key)?;
+        let mut control = load_control(&tx, &self.crypto, &self.account)?;
+        control.revision = control
+            .revision
+            .checked_add(1)
+            .ok_or(CacheError::Capacity)?;
+        save_control(&tx, &self.crypto, &self.account, &control)?;
+        tx.execute(
+            "UPDATE requests SET revision=?1 WHERE key=?2",
+            params![control.revision, key],
+        )
+        .map_err(CacheError::from)?;
+        tx.commit().map_err(CacheError::from)?;
+        ticket.revision = control.revision;
+        Ok(())
+    }
+
     /// 为一次精确范围的在线读取分配持久修订；它不授予学校写资格。
     ///
     /// # Errors
@@ -208,6 +236,64 @@ impl OfflineRepository {
         now: i64,
         completeness: CacheCompleteness,
     ) -> CacheResult<CachePublication> {
+        self.publish_inner(
+            ticket,
+            None,
+            payload,
+            CacheObservation {
+                source_at: now,
+                attempted_at: now,
+            },
+            completeness,
+        )
+    }
+
+    /// 子条目与扫描父资格在同一事务内验证，防止退出或较新扫描后迟到落盘。
+    ///
+    /// # Errors
+    /// 任一票据失效或发布失败时不修改原内容。
+    pub fn publish_guarded(
+        &mut self,
+        ticket: &CacheReadTicket,
+        parent: &CacheReadTicket,
+        payload: CachePayload,
+        now: i64,
+        completeness: CacheCompleteness,
+    ) -> CacheResult<CachePublication> {
+        self.publish_inner(
+            ticket,
+            Some(parent),
+            payload,
+            CacheObservation {
+                source_at: now,
+                attempted_at: now,
+            },
+            completeness,
+        )
+    }
+
+    /// 复用内容保留原取得/校验时间，本次尝试单独计时。
+    ///
+    /// # Errors
+    /// 与普通发布相同；原票据失效时不能发布。
+    pub fn publish_observed(
+        &mut self,
+        ticket: &CacheReadTicket,
+        payload: CachePayload,
+        observation: CacheObservation,
+        completeness: CacheCompleteness,
+    ) -> CacheResult<CachePublication> {
+        self.publish_inner(ticket, None, payload, observation, completeness)
+    }
+    fn publish_inner(
+        &mut self,
+        ticket: &CacheReadTicket,
+        parent: Option<&CacheReadTicket>,
+        payload: CachePayload,
+        observation: CacheObservation,
+        completeness: CacheCompleteness,
+    ) -> CacheResult<CachePublication> {
+        let now = observation.attempted_at;
         if !payload.matches(&ticket.scope.query) {
             return Err(CacheError::InvalidInput);
         }
@@ -217,6 +303,10 @@ impl OfflineRepository {
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(CacheError::from)?;
         validate_ticket(&tx, &self.crypto, &self.account, ticket, &key)?;
+        if let Some(parent) = parent {
+            let parent_key = self.crypto.index(&(&self.account, &parent.scope))?;
+            validate_ticket(&tx, &self.crypto, &self.account, parent, &parent_key)?;
+        }
         let previous = load_body(&tx, &key)?
             .and_then(|body| self.crypto.open::<CacheRecord>(&body, &key).ok());
         let preserve = completeness == CacheCompleteness::Partial && previous.is_some();
@@ -229,9 +319,9 @@ impl OfflineRepository {
             CacheRecord {
                 scope: ticket.scope.clone(),
                 payload,
-                fetched_at: now,
+                fetched_at: observation.source_at,
                 last_attempt_at: now,
-                last_verified_at: now,
+                last_verified_at: observation.source_at,
                 last_attempt_succeeded: completeness == CacheCompleteness::Complete,
                 revision: ticket.revision,
                 completeness,
@@ -258,12 +348,36 @@ impl OfflineRepository {
     /// # Errors
     /// 任务失效、账号已退出或存储故障时返回错误。
     pub fn record_failure(&mut self, ticket: &CacheReadTicket, now: i64) -> CacheResult<()> {
+        self.record_failure_inner(ticket, None, now)
+    }
+    /// 失败元数据同样受扫描父资格保护，不能污染新任务的缓存状态。
+    ///
+    /// # Errors
+    /// 任一票据失效或本地事务失败时不修改原记录。
+    pub fn record_failure_guarded(
+        &mut self,
+        ticket: &CacheReadTicket,
+        parent: &CacheReadTicket,
+        now: i64,
+    ) -> CacheResult<()> {
+        self.record_failure_inner(ticket, Some(parent), now)
+    }
+    fn record_failure_inner(
+        &mut self,
+        ticket: &CacheReadTicket,
+        parent: Option<&CacheReadTicket>,
+        now: i64,
+    ) -> CacheResult<()> {
         let key = self.crypto.index(&(&self.account, &ticket.scope))?;
         let tx = self
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(CacheError::from)?;
         validate_ticket(&tx, &self.crypto, &self.account, ticket, &key)?;
+        if let Some(parent) = parent {
+            let parent_key = self.crypto.index(&(&self.account, &parent.scope))?;
+            validate_ticket(&tx, &self.crypto, &self.account, parent, &parent_key)?;
+        }
         if let Some(body) = load_body(&tx, &key)? {
             let mut record: CacheRecord = self.crypto.open(&body, &key)?;
             record.last_attempt_at = now;

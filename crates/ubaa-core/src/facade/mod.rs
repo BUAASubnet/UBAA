@@ -2,7 +2,9 @@
 mod auth;
 mod client;
 mod diagnostic;
+mod judge_refresh;
 mod judge_scan;
+pub use judge_refresh::{JudgeRefresh, JudgeRefreshBatch, JudgeRefreshOptions};
 mod offline;
 pub use judge_scan::{JudgeScan, JudgeScanBatch, JudgeScanCancellation, JudgeScanKind};
 pub use offline::{OfflineCache, OfflineReadError, OfflineRefresh};
@@ -51,7 +53,7 @@ pub use crate::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 
 // 独立本地仓库不获取 UbaaClient 网络锁；载荷白名单不包含学校写入资格。
 pub use crate::cache::{
-    CACHE_SCHEMA_VERSION, CacheCompleteness, CacheError, CacheKey, CacheLimits, CachePayload,
-    CachePublication, CacheQuery, CacheReadTicket, CacheRecord, CacheResult, CacheScope,
-    OfflineRepository,
+    CACHE_SCHEMA_VERSION, CacheCompleteness, CacheError, CacheKey, CacheLimits, CacheObservation,
+    CachePayload, CachePublication, CacheQuery, CacheReadTicket, CacheRecord, CacheResult,
+    CacheScope, JudgeCourseReview, OfflineRepository,
 };

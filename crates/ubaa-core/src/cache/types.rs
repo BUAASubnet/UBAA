@@ -19,6 +19,9 @@ pub enum CacheQuery {
         week: i32,
     },
     JudgeCourses,
+    JudgeCourseReview {
+        course_id: String,
+    },
     JudgeAssignments {
         course_id: String,
     },
@@ -44,6 +47,7 @@ pub enum CachePayload {
     Today(Vec<TodayClass>),
     Week(WeeklySchedule),
     JudgeCourses(Vec<Course>),
+    JudgeCourseReview(JudgeCourseReview),
     JudgeAssignments(Vec<Assignment>),
     JudgeSummaries(Vec<JudgeAssignmentSummary>),
     JudgeDetail(Box<JudgeAssignmentDetail>),
@@ -149,7 +153,8 @@ impl CacheScope {
                     .is_ok_and(|value| value.format("%Y-%m-%d").to_string() == *date)
             }
             CacheQuery::ScheduleWeek { term, week } => id(term) && *week > 0,
-            CacheQuery::JudgeAssignments { course_id } => id(course_id),
+            CacheQuery::JudgeAssignments { course_id }
+            | CacheQuery::JudgeCourseReview { course_id } => id(course_id),
             CacheQuery::JudgeDetail {
                 course_id,
                 assignment_id,
@@ -176,6 +181,12 @@ impl CachePayload {
             | (Self::Week(_), CacheQuery::ScheduleWeek { .. })
             | (Self::JudgeCourses(_), CacheQuery::JudgeCourses)
             | (Self::JudgeSummaries(_), CacheQuery::JudgeSummaries { .. }) => true,
+            (Self::JudgeCourseReview(review), CacheQuery::JudgeCourseReview { course_id }) => {
+                review
+                    .summaries
+                    .iter()
+                    .all(|item| &item.course_id == course_id)
+            }
             (Self::JudgeAssignments(items), CacheQuery::JudgeAssignments { course_id }) => {
                 items.iter().all(|v| &v.course_id == course_id)
             }
@@ -188,5 +199,29 @@ impl CachePayload {
             ) => &item.course_id == course_id && &item.assignment_id == assignment_id,
             _ => false,
         }
+    }
+}
+
+/// 本次尝试时间与数据原始来源时间分别保存，复用缓存不伪装网络新鲜度。
+#[derive(Clone, Copy)]
+pub struct CacheObservation {
+    pub source_at: i64,
+    pub attempted_at: i64,
+}
+
+/// 历史低频判断与对应索引修订绑定，不是永久课程黑名单。
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct JudgeCourseReview {
+    pub index_revision: i64,
+    pub index_checked_at: i64,
+    pub next_index_check_at: i64,
+    pub all_items_historical: bool,
+    /// 紧凑课程摘要只用于排序和复查依据，不替代逐项详情的新鲜度判断。
+    #[serde(default)]
+    pub summaries: Vec<JudgeAssignmentSummary>,
+}
+impl CacheReadTicket {
+    pub(crate) const fn revision(&self) -> i64 {
+        self.revision
     }
 }
