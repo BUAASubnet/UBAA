@@ -30,6 +30,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       backend: backend ?? backendFactory(),
       backendFactory: backend == null ? backendFactory : null,
       credentialVault: widget.credentialVault,
+      localAccountStore: widget.localAccountStore,
       telemetry: widget.telemetry,
     );
     _gradeScoreStore =

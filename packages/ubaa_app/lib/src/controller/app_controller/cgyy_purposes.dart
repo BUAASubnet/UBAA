@@ -19,7 +19,11 @@ extension _AppControllerCgyyPurposes on AppController {
       cache.epoch == _readCacheEpoch;
 
   Future<FeatureResult> _loadCgyyPurposes({required bool forceRefresh}) {
-    final UbaaErrorCode? error = _disposed || _writeTransitions != 0
+    final UbaaErrorCode? error =
+        _disposed ||
+            _writeTransitions != 0 ||
+            (_usesLocalRecovery &&
+                _sessionRecoveryStatus != SessionRecoveryStatus.ready)
         ? UbaaErrorCode.operationConflict
         : _phase != AppPhase.home
         ? UbaaErrorCode.authenticationRequired

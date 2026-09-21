@@ -265,36 +265,26 @@ class _LoginOptions extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: <Widget>[
-      Wrap(
-        alignment: WrapAlignment.spaceBetween,
-        spacing: 8,
-        children: <Widget>[
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Checkbox(
-                value: rememberPassword,
-                onChanged: enabled && persistenceAvailable
-                    ? (value) => onRememberPasswordChanged(value ?? false)
-                    : null,
-              ),
-              const Text('记住密码'),
-            ],
+      Row(
+        children: [
+          Checkbox(
+            value: rememberPassword,
+            onChanged: enabled && persistenceAvailable
+                ? (value) {
+                    final retained = value ?? false;
+                    onRememberPasswordChanged(retained);
+                    onAutoLoginChanged(retained);
+                  }
+                : null,
           ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: <Widget>[
-              Checkbox(
-                value: autoLogin,
-                onChanged: enabled && persistenceAvailable
-                    ? (value) => onAutoLoginChanged(value ?? false)
-                    : null,
-              ),
-              const Text('自动登录'),
-            ],
-          ),
+          const Expanded(child: Text('在此设备保留登录')),
         ],
       ),
+      if (persistenceAvailable)
+        Text(
+          '在系统安全存储中保留登录材料，下次打开时自动恢复。',
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
       if (!persistenceAvailable)
         Text(
           '当前平台暂未启用安全存储，密码只在本次运行中使用。',

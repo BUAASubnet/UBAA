@@ -27,8 +27,19 @@ part 'app_controller/grades.dart';
 part 'app_controller/write_lifecycle.dart';
 part 'app_controller/ygdk_readback.dart';
 part 'app_controller/diagnostics.dart';
+part 'app_controller/offline_startup.dart';
+part 'app_controller/authentication.dart';
 
 enum AppPhase { splash, checkingSession, login, loggingIn, home }
+
+enum SessionRecoveryStatus {
+  idle,
+  restoring,
+  ready,
+  unavailable,
+  needsLogin,
+  signedOut,
+}
 
 @immutable
 class LoginFormState {
@@ -71,11 +82,13 @@ class AppController extends ChangeNotifier {
     required UbaaBackend backend,
     BackendFactory? backendFactory,
     CredentialVault? credentialVault,
+    LocalAccountStore? localAccountStore,
     TelemetryClient? telemetry,
     LocalDiagnostics? diagnostics,
   }) : _backend = backend,
        _backendFactory = backendFactory,
        _credentialVault = credentialVault ?? const NoopCredentialVault(),
+       _localAccountStore = localAccountStore,
        _telemetry = telemetry ?? const NoopTelemetryClient(),
        _diagnostics = diagnostics ?? LocalDiagnostics(),
        _telemetryEnabled = (telemetry ?? const NoopTelemetryClient()).enabled,
@@ -90,6 +103,29 @@ class AppController extends ChangeNotifier {
   UbaaBackend _backend;
   final BackendFactory? _backendFactory;
   final CredentialVault _credentialVault;
+  final LocalAccountStore? _localAccountStore;
+  LocalAccount? _localAccount;
+  bool _usesLocalRecovery = false;
+  SessionRecoveryStatus _sessionRecoveryStatus = SessionRecoveryStatus.idle;
+  Future<void>? _sessionRecoveryFuture;
+  bool _homeFrameReported = false;
+  bool _inPlaceLogin = false;
+  bool get isLoggingIn => _inPlaceLogin || _phase == AppPhase.loggingIn;
+  SessionRecoveryStatus get sessionRecoveryStatus => _sessionRecoveryStatus;
+  bool get usesLocalRecovery => _usesLocalRecovery;
+
+  /// 宿主在首页首帧之后调用；旧自动登录选项不参与是否开始检查的判断。
+  void onHomeFirstFrame() {
+    if (_homeFrameReported || !_usesLocalRecovery || _phase != AppPhase.home)
+      return;
+    _homeFrameReported = true;
+    if (_sessionRecoveryStatus == SessionRecoveryStatus.idle) {
+      unawaited(recoverSession());
+    }
+  }
+
+  Future<void> recoverSession() => _recoverSession();
+
   final TelemetryClient _telemetry;
   final LocalDiagnostics _diagnostics;
   final Map<FeatureId, FeatureSnapshot> _snapshots;
@@ -163,64 +199,7 @@ class AppController extends ChangeNotifier {
       _backend is EvaluationWriteBackend &&
       _backend is EvaluationSubmissionReadbackBackend;
 
-  Future<void> initialize() async {
-    if (_initialized) return;
-    _initialized = true;
-    _beginWriteTransition();
-    _setPhase(AppPhase.checkingSession);
-    try {
-      if (_backend case final RouteSettingsBackend routeBackend) {
-        final settings = await routeBackend.routeSettings();
-        if (_disposed) return;
-        _applyRouteSettings(settings);
-      }
-      final status = await _backend.authStatus();
-      if (_disposed) return;
-      if (status == AuthStatus.signedIn) {
-        _user = await _backend.userInfo();
-        if (_disposed) return;
-        if (_user != null) {
-          _setPhase(AppPhase.home);
-          await _recordAppOpen();
-          unawaited(refreshHome());
-          return;
-        }
-      }
-      final saved = await _credentialVault.read();
-      if (_disposed) return;
-      if (saved != null && saved.isUsable) {
-        _loginForm = _loginForm.copyWith(
-          username: saved.username,
-          autoLogin: saved.autoLogin,
-          rememberPassword: _credentialVault.isAvailable,
-        );
-        if (saved.autoLogin && _credentialVault.isAvailable) {
-          // 密码只在当前登录调用的短生命周期内放入 controller；submitLogin 成功
-          // 或失败都会清空密码字段，且失败凭据会被清理。
-          _loginForm = _loginForm.copyWith(password: saved.password);
-          await submitLogin();
-          return;
-        }
-      }
-      _setPhase(AppPhase.login);
-    } on BackendException catch (exception, stackTrace) {
-      _error = _recordFailure(
-        exception,
-        DiagnosticOperation.initialization,
-        stackTrace: stackTrace,
-      );
-      _setPhase(AppPhase.login);
-    } catch (error, stackTrace) {
-      _error = _recordFailure(
-        error,
-        DiagnosticOperation.initialization,
-        stackTrace: stackTrace,
-      );
-      _setPhase(AppPhase.login);
-    } finally {
-      _endWriteTransition();
-    }
-  }
+  Future<void> initialize() => _initializeController();
 
   /// 在 Dart isolate 或宿主生命周期重建后替换 opaque backend。
   ///
@@ -377,75 +356,8 @@ class AppController extends ChangeNotifier {
     _notify();
   }
 
-  Future<void> submitLogin() async {
-    if (_disposed || _phase == AppPhase.loggingIn) return;
-    final username = _loginForm.username.trim();
-    if (username.isEmpty || _loginForm.password.isEmpty) {
-      _error = UbaaErrorMapper.fromCode(UbaaErrorCode.invalidInput);
-      _notify();
-      return;
-    }
-    _beginWriteTransition();
-    _error = null;
-    _activeRoutes = const <ConnectionMode>[];
-    _setPhase(AppPhase.loggingIn);
-    try {
-      await _backend.login(
-        LoginInput(
-          username: username,
-          password: _loginForm.password,
-          captcha: _loginForm.captcha.trim().isEmpty
-              ? null
-              : _loginForm.captcha.trim(),
-          rememberPassword: _loginForm.rememberPassword,
-          autoLogin: _loginForm.autoLogin,
-          routePolicy: _loginForm.routePolicy,
-        ),
-      );
-      if (_disposed) return;
-      await _refreshRouteSettings();
-      if (_disposed) return;
-      _user = await _backend.userInfo() ?? UserSummary(username: username);
-      if (_disposed) return;
-      if (_loginForm.rememberPassword && _credentialVault.isAvailable) {
-        await _credentialVault.write(
-          Credential(
-            username: username,
-            password: _loginForm.password,
-            autoLogin: _loginForm.autoLogin,
-          ),
-        );
-      } else if (!_loginForm.rememberPassword) {
-        await _credentialVault.clear();
-      }
-      _loginForm = _loginForm.copyWith(password: '', captcha: '');
-      if (_disposed) return;
-      _setPhase(AppPhase.home);
-      await _recordAppOpen();
-      unawaited(refreshHome());
-    } on BackendException catch (exception, stackTrace) {
-      if (exception.code == UbaaErrorCode.invalidCredentials) {
-        await _credentialVault.clear();
-      }
-      if (_disposed) return;
-      _error = _recordFailure(
-        exception,
-        DiagnosticOperation.login,
-        stackTrace: stackTrace,
-      );
-      _setPhase(AppPhase.login);
-    } catch (error, stackTrace) {
-      if (_disposed) return;
-      _error = _recordFailure(
-        error,
-        DiagnosticOperation.login,
-        stackTrace: stackTrace,
-      );
-      _setPhase(AppPhase.login);
-    } finally {
-      _endWriteTransition();
-    }
-  }
+  Future<void> submitLogin({bool preserveHome = false}) =>
+      _submitLoginController(preserveHome: preserveHome);
 
   /// 用户明确请求学期选项，不占用全局课表快照。
   Future<FeatureResult> loadAcademicTerms({bool forceRefresh = false}) =>
@@ -789,7 +701,17 @@ class AppController extends ChangeNotifier {
   Future<void> logout({bool clearSavedCredential = false}) async {
     if (_disposed) return;
     _beginWriteTransition();
+    _sessionRecoveryStatus = SessionRecoveryStatus.signedOut;
     try {
+      try {
+        await _localAccountStore?.signOut();
+      } on Object catch (error, stackTrace) {
+        _error = _recordFailure(
+          error,
+          DiagnosticOperation.logout,
+          stackTrace: stackTrace,
+        );
+      }
       try {
         await _backend.logout();
       } on Object catch (error, stackTrace) {

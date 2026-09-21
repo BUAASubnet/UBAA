@@ -2,7 +2,10 @@ part of '../app_controller.dart';
 
 extension _AppControllerAcademicTerms on AppController {
   Future<FeatureResult> _loadAcademicTerms({required bool forceRefresh}) {
-    if (_disposed || _writeTransitions != 0) {
+    if (_disposed ||
+        _writeTransitions != 0 ||
+        (_usesLocalRecovery &&
+            _sessionRecoveryStatus != SessionRecoveryStatus.ready)) {
       return Future.value(_academicTermsConflict());
     }
     if (_phase != AppPhase.home) {

@@ -4,7 +4,11 @@ extension _AppControllerWriteLifecycle on AppController {
   WriteCoordinator _createWriteCoordinator(UbaaBackend backend) =>
       WriteCoordinator(
         diagnostics: _diagnostics,
-        canStart: () => !_disposed && _writeTransitions == 0,
+        canStart: () =>
+            !_disposed &&
+            _writeTransitions == 0 &&
+            (!_usesLocalRecovery ||
+                _sessionRecoveryStatus == SessionRecoveryStatus.ready),
         // 闭包固定创建时的 backend，晚到 prepare 只能在原实例释放意图。
         commit: (intentId) => _commitWriteWithBackend(backend, intentId),
         discard: (intentId) => _discardWriteWithBackend(backend, intentId),

@@ -64,32 +64,25 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
 
   Widget _buildHome() => switch (_controller.phase) {
     AppPhase.splash || AppPhase.checkingSession => const UbaaSplashView(),
-    AppPhase.login || AppPhase.loggingIn => UbaaLoginView(
-      username: _controller.loginForm.username,
-      password: _controller.loginForm.password,
-      captcha: _controller.loginForm.captcha,
-      rememberPassword: _controller.loginForm.rememberPassword,
-      autoLogin: _controller.loginForm.autoLogin,
-      routePolicy: _controller.loginForm.routePolicy,
-      error: _controller.error,
-      onReadDiagnostics: _controller.exportDiagnostics,
-      isLoading: _controller.phase == AppPhase.loggingIn,
-      credentialPersistenceAvailable:
-          _controller.credentialPersistenceAvailable,
-      onUsernameChanged: _controller.setUsername,
-      onPasswordChanged: _controller.setPassword,
-      onCaptchaChanged: _controller.setCaptcha,
-      onRememberPasswordChanged: _controller.setRememberPassword,
-      onAutoLoginChanged: _controller.setAutoLogin,
-      onRoutePolicyChanged: (value) {
-        unawaited(_controller.setRoutePolicy(value));
-      },
-      onSubmit: () => unawaited(_controller.submitLogin()),
-    ),
+    AppPhase.login || AppPhase.loggingIn => _buildLoginView(),
     AppPhase.home => _buildMainShell(),
   };
 
+  String? get _connectionStatus {
+    if (!_controller.usesLocalRecovery) return null;
+    return switch (_controller.sessionRecoveryStatus) {
+      SessionRecoveryStatus.idle ||
+      SessionRecoveryStatus.restoring => '正在连接，稍后更新内容',
+      SessionRecoveryStatus.needsLogin => '需要登录，当前页面会保留',
+      SessionRecoveryStatus.unavailable => '暂时无法更新，请稍后重试',
+      SessionRecoveryStatus.ready || SessionRecoveryStatus.signedOut => null,
+    };
+  }
+
   Widget _buildMainShell() {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!_disposed) _controller.onHomeFirstFrame();
+    });
     final photoPicker = _photoPicker;
     final hasYgdkSubmissionCapabilities =
         _controller.hasYgdkSubmissionBackendCapabilities && photoPicker != null;
@@ -97,9 +90,15 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
         _controller.hasEvaluationSubmissionBackendCapabilities;
     final accountKey = _controller.user?.schoolId?.trim().isNotEmpty == true
         ? _controller.user!.schoolId!
-        : _controller.user!.username;
+        : (_controller.user?.username ?? '');
     final appInformation = widget.appInformation ?? SystemAppInformation();
     return UbaaMainShell(
+      connectionStatus: _connectionStatus,
+      onReconnect: () => unawaited(_controller.recoverSession()),
+      onCompleteLogin:
+          _controller.sessionRecoveryStatus == SessionRecoveryStatus.needsLogin
+          ? _showInPlaceLogin
+          : null,
       onLoadAppVersion: appInformation.version,
       onOpenAppLink: appInformation.open,
       readCacheEpoch: _controller.readCacheEpoch,
@@ -122,8 +121,12 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       homeSnapshots: _controller.homeSnapshots,
       onLoadHomeSupplement: (source, force) =>
           _controller.loadHomeSupplement(source, forceRefresh: force),
-      onLoadYgdkReminder: () => _reminderStore.read(accountKey),
-      onSaveYgdkReminder: (value) => _reminderStore.write(accountKey, value),
+      onLoadYgdkReminder: accountKey.isEmpty
+          ? null
+          : () => _reminderStore.read(accountKey),
+      onSaveYgdkReminder: accountKey.isEmpty
+          ? null
+          : (value) => _reminderStore.write(accountKey, value),
       ygdkRecordsReadback: _controller.ygdkReadbackState.records,
       routePolicy: _controller.loginForm.routePolicy,
       activeRoutes: _controller.activeRoutes,

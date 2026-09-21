@@ -14,6 +14,9 @@ class UbaaMainShell extends StatefulWidget {
     required this.onRoutePolicyChanged,
     required this.onTelemetryChanged,
     this.initialTab = 0,
+    this.connectionStatus,
+    this.onReconnect,
+    this.onCompleteLogin,
     this.themeMode = ThemeMode.system,
     this.onThemeModeChanged,
     this.readCacheEpoch = 0,
@@ -81,6 +84,9 @@ class UbaaMainShell extends StatefulWidget {
 
   /// 供宿主恢复上次导航位置或集成测试从指定功能分组启动。
   final int initialTab;
+  final String? connectionStatus;
+  final VoidCallback? onReconnect;
+  final ValueChanged<BuildContext>? onCompleteLogin;
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
 
@@ -459,17 +465,54 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         ),
         drawer: pendingWrite == null ? _buildDrawer(context) : null,
         // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
-        body: Row(
-          children: <Widget>[
-            if (wide) _buildRail(context),
-            if (wide) const VerticalDivider(width: 1),
-            Expanded(
-              key: const ValueKey<String>('feature-pages'),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: body,
+        body: Column(
+          children: [
+            // 保持占位与内容索引固定，连接提示消失时不销毁页面和草稿。
+            if (widget.connectionStatus == null)
+              const SizedBox.shrink()
+            else
+              Material(
+                color: Theme.of(context).colorScheme.surfaceContainerLow,
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 16,
+                    vertical: 6,
+                  ),
+                  child: Row(
+                    children: [
+                      Expanded(
+                        child: Text(
+                          widget.connectionStatus!,
+                          style: Theme.of(context).textTheme.bodySmall,
+                        ),
+                      ),
+                      TextButton(
+                        onPressed: widget.onCompleteLogin == null
+                            ? widget.onReconnect
+                            : () => widget.onCompleteLogin!(context),
+                        child: Text(
+                          widget.onCompleteLogin == null ? '重试' : '完成登录',
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
+              ),
+            Expanded(
+              child: Row(
+                children: <Widget>[
+                  if (wide) _buildRail(context),
+                  if (wide) const VerticalDivider(width: 1),
+                  Expanded(
+                    key: const ValueKey<String>('feature-pages'),
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1200),
+                        child: body,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

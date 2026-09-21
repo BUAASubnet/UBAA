@@ -134,6 +134,10 @@ extension _AppControllerRefresh on AppController {
             previous.details.isNotEmpty ||
             previous.summary?.trim().isNotEmpty == true);
     try {
+      if (_usesLocalRecovery) {
+        await _requireReadSession();
+        if (_disposed || lifecycleEpoch != _lifecycleEpoch) return;
+      }
       final result =
           cachedResult ??
           switch ((_backend, query)) {

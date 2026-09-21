@@ -3,9 +3,24 @@ part of 'bridge_backend.dart';
 Future<AuthStatus> _authStatus(BridgeBackend backend) async {
   try {
     final outcome = await backend.client.authStatus();
-    return outcome.readiness == BridgeLoginReadiness.noneReady
-        ? AuthStatus.signedOut
-        : AuthStatus.signedIn;
+    if (outcome.readiness != BridgeLoginReadiness.noneReady)
+      return AuthStatus.signedIn;
+    for (final route in outcome.routes) {
+      final failed = route.error;
+      if (failed == null)
+        throw const BackendException(UbaaErrorCode.internalError);
+      if (failed.code != 'authentication_required') {
+        throw BackendException(
+          _errorCode(failed.code),
+          kind: _safeErrorKind(failed.kind),
+          retryable: failed.retryable,
+          resolvedRoute: _toConnectionMode(route.route),
+        );
+      }
+    }
+    if (outcome.routes.length != 2)
+      throw const BackendException(UbaaErrorCode.internalError);
+    return AuthStatus.signedOut;
   } on BridgeError catch (error) {
     throw _mapError(error);
   }

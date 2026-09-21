@@ -44,3 +44,13 @@
 平台依据：[固定安全存储插件](https://pub.dev/packages/flutter_secure_storage/versions/10.0.0)；[OpenHarmony HUKS 官方加解密流程](https://github.com/openharmony/docs/blob/master/en/application-dev/security/UniversalKeystoreKit/huks-encryption-decryption-arkts.md) 和本机 API26 声明。HUKS 使用随机 12 字节 nonce、材料键为 AAD、16 字节认证标签；包装密钥不导出，Preferences 只保存密文。未引用示例代码中的日志或固定 nonce。五端插件和 HUKS 不替代学校协议来源。
 
 macOS 实测发现 darwin 0.2.0 原生解析 `useDataProtectionKeyChain`，Dart 默认输出 `usesDataProtectionKeychain`；未适配会得到 -34018。适配后实际调用系统登录钥匙串，保留沙箱，未关闭 TLS、未降低到明文、未要求更改用户证书。
+
+## P1-A 本地首页与恢复时序（生产改动前）
+
+本阶段调整宿主调用时序，不修改学校请求参数。会话校验、凭据登录、资料与注销逐项继承上文及主矩阵“准备/登录”“用户资料”“双路线加载/保存/退出”的九列合同。旧版 Settings 的记住密码/自动登录分离，当前安全 Credential 保留 autoLogin；新账号索引允许先展示无写资格的本地首页。首帧后必须检查会话；旧 autoLogin=false 仅禁止旧密码自动提交。暂时网络错误不得触发密码登录，身份不符停止旧账号投影；退出先写本机禁止恢复状态，迟到回调按生命周期代次丢弃。
+
+P1 可以暂用旧双路线聚合 backend 的 authStatus/login（设计 4.2 已明确允许），此时不声称所需路线提前就绪；P2 再以新 facade/Bridge 合同接线。没有本机索引的旧宿主测试继续保持旧接口兼容，生产组合根随后显式注入索引。认证中页面不切回 splash，写操作仍由唯一 WriteCoordinator 管理，本地展示不使 canStart 为真。
+
+### P1 聚合认证错误投影修正
+
+当前 Dart `_authStatus` 将所有 `none_ready` 投影成 signedOut，丢失每条路线已有 code/kind/retryable；这会使恢复流程把网络故障误当作允许提交密码的明确失效。冻结 `getAuthStatus` 和 Core `validate_status` 均区分临时故障与缺会话；新投影只有所有路线均为 authentication_required 才返回 signedOut，其余沿原安全路线错误抛出。无 HTTP/URL/参数/加密/存储/并发变化，不改变 CLI 双路线结果或错误码，修复仅在 Bridge→App 的认证分类。

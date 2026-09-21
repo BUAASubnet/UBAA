@@ -9,6 +9,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 
 part 'callbacks.dart';
 part 'lifecycle.dart';
+part 'session.dart';
 
 const _expectedBridgeHello = 'UBAA FRB 2.13.0 ready';
 
@@ -30,6 +31,9 @@ Future<void> bootstrapUbaaHost({
   runApplication(
     UbaaAppHost(
       credentialVault: capabilities.credentialVault,
+      localAccountStore: capabilities.secureMaterials == null
+          ? null
+          : SecureLocalAccountStore(capabilities.secureMaterials!),
       photoPicker: capabilities.photoPicker,
       permissionGateway: capabilities.permissionGateway,
       locationProvider: capabilities.locationProvider,
@@ -46,6 +50,7 @@ class UbaaAppHost extends StatefulWidget {
     this.backend,
     this.backendFactory,
     this.credentialVault,
+    this.localAccountStore,
     this.photoPicker,
     this.permissionGateway,
     this.locationProvider,
@@ -64,6 +69,7 @@ class UbaaAppHost extends StatefulWidget {
   final BackendFactory? backendFactory;
 
   final CredentialVault? credentialVault;
+  final LocalAccountStore? localAccountStore;
   final PlatformPhotoPicker? photoPicker;
   final PlatformPermissionGateway? permissionGateway;
   final PlatformLocationProvider? locationProvider;

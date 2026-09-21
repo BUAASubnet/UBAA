@@ -17,7 +17,10 @@ extension _AppControllerHomeSources on AppController {
     HomeSupplement source, {
     required bool forceRefresh,
   }) {
-    if (_disposed || _writeTransitions != 0) {
+    if (_disposed ||
+        _writeTransitions != 0 ||
+        (_usesLocalRecovery &&
+            _sessionRecoveryStatus != SessionRecoveryStatus.ready)) {
       return Future.value(_academicTermsConflict());
     }
     if (_phase != AppPhase.home) {

@@ -124,7 +124,10 @@ extension _AppControllerGrades on AppController {
   }
 
   UiError? _gradesReadGuard() {
-    if (_disposed || _writeTransitions != 0) {
+    if (_disposed ||
+        _writeTransitions != 0 ||
+        (_usesLocalRecovery &&
+            _sessionRecoveryStatus != SessionRecoveryStatus.ready)) {
       return UbaaErrorMapper.fromCode(UbaaErrorCode.operationConflict);
     }
     if (_phase != AppPhase.home) {
