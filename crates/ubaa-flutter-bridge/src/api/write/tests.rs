@@ -267,3 +267,5 @@ fn test_root(label: &str) -> PathBuf {
         NEXT_TEST_ROOT.fetch_add(1, Ordering::Relaxed)
     ))
 }
+
+mod cached_commit;

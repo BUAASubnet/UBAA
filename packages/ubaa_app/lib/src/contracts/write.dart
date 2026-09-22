@@ -16,6 +16,14 @@ abstract interface class WriteCommitBackend
   Future<WriteCommitResult> commitWrite(String intentId);
 }
 
+/// 在原单次提交结束后处理原本机账号的关联缓存；仍只由WriteCoordinator调用。
+abstract interface class CacheWriteBackend implements WriteCommitBackend {
+  Future<WriteCommitResult> commitWriteWithCache(
+    String intentId, {
+    required String accountId,
+  });
+}
+
 /// 已接入 typed 写意图的博雅课程能力。
 ///
 /// 该接口只暴露公开课程 ID 和一次性意图；确认提交仍需单独调用

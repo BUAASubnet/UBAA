@@ -20,6 +20,7 @@ import 'read.dart';
 import 'recovery.dart';
 import 'schedule_import.dart';
 import 'write.dart';
+import 'write/cache.dart';
 
 // These functions are ignored because they are not marked as `pub`: `catch_panic`, `disposed_error`, `from_core`, `from_routed`, `local`, `map_login_outcome`, `map_preparation`, `map_profile`, `map_route_login`, `map_route`, `map_safe_error`, `panic_error`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`, `from`, `from`, `from`, `from`, `from`, `from`
@@ -256,6 +257,15 @@ abstract class BridgeClient implements RustOpaqueInterface {
   });
 
   Future<BridgeWriteCommitResult> commitWrite({required String intentId});
+
+  /// 复用原意图消费、实时资格与单次发送；释放原客户端锁前完成关联本地失效。
+  ///
+  /// # Errors
+  /// 发送前意图、路线、客户端或资格验证错误保持原错误；提交结果与本地故障分列。
+  Future<BridgeCachedWriteCommit> commitWriteCached({
+    required BridgeOfflineCache cache,
+    required String intentId,
+  });
 
   /// 返回 bridge 合同版本。
   int contractVersion();

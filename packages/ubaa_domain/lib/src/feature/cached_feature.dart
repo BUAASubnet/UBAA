@@ -19,19 +19,9 @@ final class CachedFeatureProjection {
     FeatureQuery? query,
     FeatureOverview? overview,
     Iterable<FeatureDetail> details = const [],
-  }) : overview = _readonlyOverview(overview),
+  }) : overview = readonlyFeatureOverview(overview),
        readContext = FeatureReadContext(query: query, requestRevision: 0),
-       details = List.unmodifiable(
-         details.map(
-           (detail) => FeatureDetail(
-             title: detail.title,
-             subtitle: detail.subtitle,
-             fields: List.unmodifiable(detail.fields),
-             presentation: detail.presentation,
-             readNavigation: detail.readNavigation,
-           ),
-         ),
-       );
+       details = readonlyFeatureDetails(details);
   final FeaturePagination? pagination;
   final FeatureOverview? overview;
   final FeatureReadContext readContext;
@@ -63,7 +53,21 @@ final class CachedFeatureProjection {
   );
 }
 
-FeatureOverview? _readonlyOverview(FeatureOverview? overview) =>
+/// 共用不可写字段投影，不改变调用方原来源或取得时间。
+List<FeatureDetail> readonlyFeatureDetails(Iterable<FeatureDetail> details) =>
+    List.unmodifiable(
+      details.map(
+        (detail) => FeatureDetail(
+          title: detail.title,
+          subtitle: detail.subtitle,
+          fields: List.unmodifiable(detail.fields),
+          presentation: detail.presentation,
+          readNavigation: detail.readNavigation,
+        ),
+      ),
+    );
+
+FeatureOverview? readonlyFeatureOverview(FeatureOverview? overview) =>
     switch (overview) {
       EvaluationProgressOverview value => EvaluationProgressOverview(
         totalCourses: value.totalCourses,

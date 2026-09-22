@@ -82,6 +82,7 @@ extension _AppControllerProgressive on AppController {
       if (!scope.current()) scope.cancel();
     }
     _readScheduler.pump();
+    _drainWriteRefreshes();
   }
 
   void _cancelJudgeReadScopes(FeatureId feature) {

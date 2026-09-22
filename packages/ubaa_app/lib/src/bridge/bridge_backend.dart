@@ -46,7 +46,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 27;
+const _supportedBridgeContractVersion = 28;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -77,6 +77,7 @@ class BridgeBackend
         ProfileCacheBackend,
         CacheManagementBackend,
         CacheRecoveryBackend,
+        CacheWriteBackend,
         OfflineQueryBackend,
         ProgressiveReadBackend,
         ScheduleImportBackend,
@@ -345,6 +346,12 @@ class BridgeBackend
   Future<WriteIntent> prepareEvaluationSubmitCourses(
     List<EvaluationSubmitTarget> targets,
   ) => _prepareEvaluationSubmitCourses(this, targets);
+
+  @override
+  Future<WriteCommitResult> commitWriteWithCache(
+    String intentId, {
+    required String accountId,
+  }) => _commitWrite(this, intentId, cacheAccountId: accountId);
 
   @override
   Future<WriteCommitResult> commitWrite(String intentId) =>

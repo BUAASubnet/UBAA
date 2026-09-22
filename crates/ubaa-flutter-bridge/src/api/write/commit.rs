@@ -1,5 +1,6 @@
 //! 一次性写入意图的消费、提交前复核与 Core 写分派。
 
+use super::cache::{BridgeCachedWriteCommit, finish_cached_commit};
 use super::support::{
     ensure_bykc_course_target, ensure_bykc_deselect_allowed, ensure_bykc_preflight_route,
     ensure_bykc_select_allowed, invalid_input, map_cgyy_receipt, map_cgyy_request,
@@ -11,6 +12,7 @@ use crate::api::client::{
     BridgeClient, BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeErrorKind, catch_panic,
     disposed_error,
 };
+use crate::api::offline::BridgeOfflineCache;
 use ubaa_core::facade as domain;
 
 impl BridgeClient {
@@ -18,6 +20,17 @@ impl BridgeClient {
         &self,
         intent_id: String,
     ) -> Result<BridgeWriteCommitResult, BridgeError> {
+        self.commit_write_scoped(None, intent_id)
+            .await?
+            .into_legacy()
+    }
+
+    #[flutter_rust_bridge::frb(ignore)]
+    pub(super) async fn commit_write_scoped(
+        &self,
+        cache: Option<&BridgeOfflineCache>,
+        intent_id: String,
+    ) -> Result<BridgeCachedWriteCommit, BridgeError> {
         catch_panic(async {
             if intent_id.trim().is_empty() {
                 return Err(invalid_input("intent id is required"));
@@ -46,6 +59,7 @@ impl BridgeClient {
             }
             let pending = entry.request;
             let operation = pending.operation();
+            let impact = pending.cache_impact();
             let expected_route = entry.resolved_route;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             // 场馆取消、阳光打卡与教学评教把路线匹配及最终发送绑定在 Core 的同一个调用中；
@@ -248,7 +262,7 @@ impl BridgeClient {
                         )
                     }),
             };
-            match result {
+            let result = match result {
                 Ok((
                     resolution,
                     success,
@@ -266,7 +280,10 @@ impl BridgeClient {
                     evaluation_result,
                 ),
                 Err(error) => Err(map_dispatch_error(operation, expected_route, error)),
-            }
+            };
+            let result = finish_cached_commit(cache, impact, expected_route, result).await;
+            drop(guard);
+            Ok(result)
         })
         .await
     }

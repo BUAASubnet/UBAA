@@ -24,3 +24,5 @@ export 'src/rust/api/offline_profile.dart';
 export 'src/rust/api/cache_management.dart';
 
 export 'src/rust/api/schedule_import.dart';
+
+export 'src/rust/api/write/cache.dart';

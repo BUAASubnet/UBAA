@@ -273,7 +273,7 @@ class _Client implements BridgeClient {
   int cachedSignin = 0, plainSignin = 0;
   int? termId;
   @override
-  int contractVersion() => 27;
+  int contractVersion() => 28;
   @override
   Future<BridgeHomeSigninRefresh> homeSigninCached({
     required BridgeOfflineCache cache,

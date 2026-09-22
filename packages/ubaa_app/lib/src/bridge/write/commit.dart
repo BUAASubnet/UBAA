@@ -2,10 +2,36 @@ part of '../bridge_backend.dart';
 
 Future<WriteCommitResult> _commitWrite(
   BridgeBackend backend,
-  String intentId,
-) async {
+  String intentId, {
+  String? cacheAccountId,
+}) async {
+  // 写入结果不能由返回时的本地代次覆盖；仓库仅使用调用开始时的原账号句柄。
+  final cache =
+      cacheAccountId != null &&
+          backend._offlineAccount?.id == cacheAccountId &&
+          backend._offlineTargetAccountId == cacheAccountId
+      ? backend._offlineCache
+      : null;
+  CacheMaintenanceFailure? cacheFailure =
+      cacheAccountId != null && cache == null
+      ? CacheMaintenanceFailure.unavailable
+      : null;
   try {
-    final result = await backend.client.commitWrite(intentId: intentId);
+    final BridgeWriteCommitResult result;
+    if (cache != null) {
+      final value = await backend.client.commitWriteCached(
+        cache: cache,
+        intentId: intentId,
+      );
+      cacheFailure = _cacheMaintenanceFailure(value.cacheError);
+      if ((value.result == null) == (value.error == null)) {
+        throw const BackendException(UbaaErrorCode.outcomeUnknown);
+      }
+      if (value.error case final error?) throw _mapError(error);
+      result = value.result!;
+    } else {
+      result = await backend.client.commitWrite(intentId: intentId);
+    }
     final operation = _toWriteOperation(result.operation);
     final evaluationResult = operation == WriteOperation.evaluationSubmitCourses
         ? _mapEvaluationBatchResult(result.evaluationResult)
@@ -40,11 +66,28 @@ Future<WriteCommitResult> _commitWrite(
           ? _mapYgdkReceipt(result.ygdkReceipt)
           : null,
       evaluationResult: evaluationResult,
+      cacheFailure: cacheFailure,
     );
   } on BridgeError catch (error) {
-    throw _mapError(error);
+    throw _writeCacheError(_mapError(error), cacheFailure);
+  } on BackendException catch (error) {
+    throw _writeCacheError(error, cacheFailure);
   }
 }
+
+BackendException _writeCacheError(
+  BackendException error,
+  CacheMaintenanceFailure? failure,
+) => BackendException(
+  error.code,
+  detail: error.detail,
+  kind: error.kind,
+  retryable: error.retryable,
+  resolvedRoute: error.resolvedRoute,
+  issueId: error.issueId,
+  accountMismatch: error.accountMismatch,
+  cacheFailure: failure ?? error.cacheFailure,
+);
 
 EvaluationBatchResult _mapEvaluationBatchResult(
   BridgeEvaluationBatchResult? batch,

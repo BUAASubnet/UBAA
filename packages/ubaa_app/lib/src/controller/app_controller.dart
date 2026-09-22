@@ -36,6 +36,7 @@ part 'app_controller/cgyy_purposes.dart';
 part 'app_controller/home_sources.dart';
 part 'app_controller/grades.dart';
 part 'app_controller/write_lifecycle.dart';
+part 'app_controller/write_cache/memory.dart';
 part 'app_controller/ygdk_readback.dart';
 part 'app_controller/diagnostics.dart';
 part 'app_controller/offline_startup.dart';
@@ -229,6 +230,8 @@ class AppController extends ChangeNotifier {
   Future<void> saveScheduleSemester(String term) => _saveScheduleSemester(term);
   void cancelScheduleImport(String term) => _cancelScheduleImport(term);
   int _writeTransitions = 0;
+  final _writeRefreshes = <FeatureId, _WriteRefreshRequest>{};
+  bool _writeRefreshScheduled = false;
 
   AppPhase _phase = AppPhase.splash;
   LoginFormState _loginForm = const LoginFormState();
@@ -962,6 +965,7 @@ class AppController extends ChangeNotifier {
       scope.cancel();
     }
     _pruneScheduleImports();
+    _writeRefreshes.clear();
     _readScheduler.close();
     _cancelDeferredRecovery();
     _lifecycleEpoch++;

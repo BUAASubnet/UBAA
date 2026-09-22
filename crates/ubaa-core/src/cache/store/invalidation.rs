@@ -35,6 +35,14 @@ pub struct CacheInvalidationReport {
     pub cancelled_reads: u64,
 }
 impl CacheInvalidation {
+    /// 沿原课堂读取的校园日期确定关联范围，不从宿主时区或展示名称推断。
+    #[must_use]
+    pub fn signin_today() -> Self {
+        Self::Signin {
+            date: crate::features::signin::shanghai_date(),
+        }
+    }
+
     fn validate(&self) -> CacheResult<()> {
         let day = |value: &str, format: &str| {
             chrono::NaiveDate::parse_from_str(value, format)

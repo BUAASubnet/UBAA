@@ -21,6 +21,7 @@ import 'api/recovery.dart';
 import 'api/schedule_import.dart';
 import 'api/simple.dart';
 import 'api/write.dart';
+import 'api/write/cache.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'dart:ffi' as ffi;
@@ -401,6 +402,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeUserProfile dco_decode_box_autoadd_bridge_user_profile(dynamic raw);
 
   @protected
+  BridgeWriteCommitResult dco_decode_box_autoadd_bridge_write_commit_result(
+    dynamic raw,
+  );
+
+  @protected
   BridgeYgdkSubmitReceipt dco_decode_box_autoadd_bridge_ygdk_submit_receipt(
     dynamic raw,
   );
@@ -733,6 +739,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCachedToday dco_decode_bridge_cached_today(dynamic raw);
+
+  @protected
+  BridgeCachedWriteCommit dco_decode_bridge_cached_write_commit(dynamic raw);
 
   @protected
   BridgeCachedYgdkItem dco_decode_bridge_cached_ygdk_item(dynamic raw);
@@ -1755,6 +1764,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeWriteCommitResult?
+  dco_decode_opt_box_autoadd_bridge_write_commit_result(dynamic raw);
+
+  @protected
   BridgeYgdkSubmitReceipt?
   dco_decode_opt_box_autoadd_bridge_ygdk_submit_receipt(dynamic raw);
 
@@ -2218,6 +2231,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeWriteCommitResult sse_decode_box_autoadd_bridge_write_commit_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeYgdkSubmitReceipt sse_decode_box_autoadd_bridge_ygdk_submit_receipt(
     SseDeserializer deserializer,
   );
@@ -2622,6 +2640,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCachedToday sse_decode_bridge_cached_today(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedWriteCommit sse_decode_bridge_cached_write_commit(
     SseDeserializer deserializer,
   );
 
@@ -3950,6 +3973,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeWriteCommitResult?
+  sse_decode_opt_box_autoadd_bridge_write_commit_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeYgdkSubmitReceipt?
   sse_decode_opt_box_autoadd_bridge_ygdk_submit_receipt(
     SseDeserializer deserializer,
@@ -4457,6 +4486,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bridge_write_commit_result(
+    BridgeWriteCommitResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bridge_ygdk_submit_receipt(
     BridgeYgdkSubmitReceipt self,
     SseSerializer serializer,
@@ -4948,6 +4983,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_cached_today(
     BridgeCachedToday self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_write_commit(
+    BridgeCachedWriteCommit self,
     SseSerializer serializer,
   );
 
@@ -6521,6 +6562,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_user_profile(
     BridgeUserProfile? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_write_commit_result(
+    BridgeWriteCommitResult? self,
     SseSerializer serializer,
   );
 

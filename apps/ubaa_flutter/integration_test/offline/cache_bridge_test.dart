@@ -21,7 +21,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 27);
+      expect(client.contractVersion(), 28);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -44,6 +44,16 @@ void main() {
         accountId: '0123456789abcdef0123456789abcdef',
         expectedIdentity: 'synthetic',
         key: key,
+      );
+      await expectLater(
+        client.commitWriteCached(cache: first, intentId: 'synthetic-missing'),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.code,
+            '新提交 RPC 拒绝不存在的意图且不触发学校请求',
+            BridgeErrorCode.intentExpired,
+          ),
+        ),
       );
       await expectLater(
         client.beginScheduleImport(cache: first, term: 'synthetic-term'),

@@ -56,6 +56,14 @@ extension _AppControllerWriteLifecycle on AppController {
     if (intentId.trim().isEmpty) {
       throw const BackendException(UbaaErrorCode.invalidInput);
     }
+    final account = _localAccount;
+    if (backend is CacheWriteBackend && account != null) {
+      return _commitWithAccountCache(
+        backend as CacheWriteBackend,
+        intentId,
+        account.id,
+      );
+    }
     return (backend as WriteCommitBackend).commitWrite(intentId);
   }
 

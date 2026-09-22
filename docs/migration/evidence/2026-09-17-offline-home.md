@@ -619,3 +619,11 @@ Core业务缓存升schema v5，Bridge v27/CLI v10不变；学校提交接线尚�
 check.log首轮clippy要求合并相同match分支，并将103行测试表拆成数据与执行段，未增加allow。随后corrupt-red.log复现两个审查缺口：新增范围密文损坏仍可验证票据，以及无关坏条目阻断合法目标失效。验证/续租/发布统一核对范围，失效扫描只解析已认证scope、坏条目留给原单条隔离后corrupt-green.log八项通过。native.log此前一项macOS真实FFI/SQLite合成用例通过，前台窗口警告仍在；最终根门禁及新guard候选原生复验继续。
 
 最终check-final.log退出0：Core两配置各296、facade77、Bridge128通过/2既有忽略、CLI端到端16及fmt/clippy/Shell/build/doc/layout零baseline违例通过。native-final.log再次验证新请求范围guard候选，macOS真实FFI/SQLite合成一项通过，仍不计可见实窗。暂存敏感扫描和diff通过。Core-only阶段未改变Bridge形状或Flutter生产代码，不将P4-AB的962项扩记为本阶段新增Flutter证据；生产commit和跨入口内存失效继续。
+
+## P4-AD 写提交关联失效与只读补刷新（2026-09-22）
+
+基线2715377a。Bridge RED见/tmp/ubaa-p4ad-bridge-red.log（缺新提交合同）；实际路线测试route-red.log复现准备Direct、结果WebVPN却失效Direct的缺口，修正后bridge-reviewed.log五项通过，覆盖同意图不可重用、发送前资格拒绝不清缓存、未知结果不重发、部分评教及本地失败不覆盖学校成功。App RED见app-red.log及controller-red.log；focused.log共39项通过，覆盖原账号句柄、后台暂停补刷新、注销迟到结果、回读失败和未知结果。
+
+宿主真实点击准备/确认、单次脱敏提交、回读及后续同步失败：host-verified.log一项通过。此前host测试失败来自fixture初始列表未提供、通知后尚未pump以及把保留的禁用备用按钮误当旧资格；修正fixture和断言，未为此隐藏原版界面。原生FFI/合成宿主与最终门禁结果另记。上述均不是真实学校写入、真实App账号或性能证据。
+
+最终check-final.log退出0：Core两配置各296、facade77、Bridge133通过/2既有忽略、CLI端到端16，fmt/clippy/引用/Shell/构建/doc/layout零baseline违例通过。flutter-final.log退出0：七包分别57/66/453/284/22/36/54，共972项；格式和analyze通过。生成合同v28及严格codegen-check通过。native.log退出0：macOS真实FFI与脱敏宿主两项通过，仍有Failed to foreground app警告，不计可见实窗。sensitive.log扫描5351个文件通过；暂存审查未含冻结输入、真实业务正文或验收媒体。本阶段未重跑Core-live或测量冷启动，最近双路线事实仍限定P4-AB候选。

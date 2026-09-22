@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import '../common/route.dart';
+import '../common/cache_management.dart';
 import '../feature/query.dart';
 
 /// 与 bridge 一一对应的封闭写操作枚举。
@@ -190,6 +191,7 @@ class WriteCommitResult {
     this.cgyyReceipt,
     this.ygdkReceipt,
     this.evaluationResult,
+    this.cacheFailure,
   });
 
   final WriteOperation operation;
@@ -200,4 +202,7 @@ class WriteCommitResult {
   final CgyyReservationReceipt? cgyyReceipt;
   final YgdkSubmitReceipt? ygdkReceipt;
   final EvaluationBatchResult? evaluationResult;
+
+  /// 本地关联内容处理失败不改变学校提交的确定性和结果。
+  final CacheMaintenanceFailure? cacheFailure;
 }

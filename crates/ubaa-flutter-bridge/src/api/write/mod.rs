@@ -6,6 +6,7 @@
     clippy::too_many_lines
 )]
 
+pub mod cache;
 mod commit;
 mod lifecycle;
 mod prepare;

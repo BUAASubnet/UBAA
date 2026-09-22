@@ -13,6 +13,7 @@ class BackendException implements Exception {
     this.resolvedRoute,
     this.issueId,
     this.accountMismatch = false,
+    this.cacheFailure,
   });
 
   /// 跨协调器兼容入口重新抛出时，不再把完整错误压缩成单个代码。
@@ -33,6 +34,9 @@ class BackendException implements Exception {
 
   /// 缓存身份不一致必须关闭账号投影，不能只作为局部查询错误。
   final bool accountMismatch;
+
+  /// 与学校错误分列的本地缓存处理故障。
+  final CacheMaintenanceFailure? cacheFailure;
 
   @override
   String toString() => 'BackendException(${code.wireName})';
