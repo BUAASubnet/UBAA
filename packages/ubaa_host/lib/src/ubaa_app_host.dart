@@ -6,6 +6,7 @@ import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'network_monitor.dart';
 
 part 'callbacks.dart';
 part 'lifecycle.dart';
@@ -49,6 +50,7 @@ class UbaaAppHost extends StatefulWidget {
   const UbaaAppHost({
     this.backend,
     this.backendFactory,
+    this.networkChanges,
     this.credentialVault,
     this.localAccountStore,
     this.photoPicker,
@@ -63,6 +65,9 @@ class UbaaAppHost extends StatefulWidget {
   });
 
   final UbaaBackend? backend;
+
+  /// 可注入的本地网络变化提示；显式脱敏backend默认不观察真实系统接口。
+  final Stream<void>? networkChanges;
 
   /// 仅在没有显式 [backend] 时使用；同一工厂也负责宿主恢复后的 backend
   /// 重建。为空时使用 [createProductionBackend]。

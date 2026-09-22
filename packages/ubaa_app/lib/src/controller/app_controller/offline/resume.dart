@@ -7,6 +7,7 @@ final class _RecoveryRequest {
   final int epoch;
   bool refreshHomeAfter;
   bool interactive;
+  bool transientFailure = false;
   ConnectionMode? replacedRoute;
   bool replacedAllRoutes = false;
   final completion = Completer<void>();
@@ -20,6 +21,7 @@ extension _AppControllerDeferredRecovery on AppController {
       _writeCoordinator.hasPendingOperation;
 
   void _cancelDeferredRecovery() {
+    _clearRecoveryRetries();
     final requests = _queuedRecoveries.values.toList();
     _queuedRecoveries.clear();
     _pendingHomeRecoveryEpoch = null;
@@ -93,6 +95,7 @@ extension _AppControllerDeferredRecovery on AppController {
         _writeTransitions--;
         _activeRecovery = null;
         _sessionRecoveryFuture = null;
+        _finishRecoveryRetry(request);
         request.completion.complete();
         if (!_disposed) _notify();
       }),

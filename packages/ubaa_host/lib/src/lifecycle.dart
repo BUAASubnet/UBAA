@@ -12,6 +12,21 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   bool _resumeRecoveryPending = false;
   bool _recoveryInFlight = false;
   bool _disposed = false;
+  Stream<void>? _networkChanges;
+  StreamSubscription<void>? _networkSubscription;
+
+  void _listenNetworkChanges() {
+    _networkSubscription ??= _networkChanges?.listen(
+      (_) => _controller.onNetworkChanged(),
+      onError: (Object _) {},
+    );
+  }
+
+  void _stopNetworkChanges() {
+    final subscription = _networkSubscription;
+    _networkSubscription = null;
+    if (subscription != null) unawaited(subscription.cancel());
+  }
 
   @override
   void initState() {
@@ -45,12 +60,19 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       store: _gradeScoreStore,
     );
     _controller.addListener(_retryPendingRecovery);
+    _networkChanges =
+        widget.networkChanges ??
+        (widget.backend == null && widget.backendFactory == null
+            ? LocalNetworkMonitor().changes
+            : null);
+    _listenNetworkChanges();
     unawaited(_controller.initialize());
   }
 
   @override
   void dispose() {
     _disposed = true;
+    _stopNetworkChanges();
     WidgetsBinding.instance.removeObserver(this);
     _controller.removeListener(_retryPendingRecovery);
     _gradeWatch.dispose();
@@ -64,11 +86,13 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
       _wasBackgrounded = true;
+      _stopNetworkChanges();
       _controller.setAppForeground(false);
       return;
     }
     if (state == AppLifecycleState.resumed && _wasBackgrounded) {
       _wasBackgrounded = false;
+      _listenNetworkChanges();
       _controller.setAppForeground(true);
       if (_recoveryInFlight) return;
       _resumeRecoveryPending = true;

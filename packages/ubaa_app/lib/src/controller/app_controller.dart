@@ -47,6 +47,7 @@ part 'app_controller/offline/query.dart';
 part 'app_controller/offline/read_options.dart';
 part 'app_controller/offline/grades.dart';
 part 'app_controller/offline/resume.dart';
+part 'app_controller/offline/retry.dart';
 part 'app_controller/offline/required.dart';
 part 'app_controller/authentication.dart';
 
@@ -152,6 +153,8 @@ class AppController extends ChangeNotifier {
       _clearControllerCache(accountId);
   bool _automaticCredentialBlocked = false;
   bool _appForeground = true;
+  final _recoveryRetries = <FeatureId, _RecoveryRetry>{};
+  Timer? _networkWakeCooldown;
   final _queuedRecoveries = <FeatureId, _RecoveryRequest>{};
   _RecoveryRequest? _activeRecovery;
   ConnectionMode? _recoveredRoute;
@@ -195,8 +198,12 @@ class AppController extends ChangeNotifier {
   void setAppForeground(bool foreground) {
     _appForeground = foreground;
     if (foreground) _drainDeferredRecovery();
+    _syncRecoveryRetries();
     _pumpReadTasks();
   }
+
+  /// 本地网络变化只是唤醒提示，成功与否仍由原会话检查判断。
+  void onNetworkChanged() => _wakeNetworkRecovery();
 
   /// 返回前台复用当前实例；旧宿主已认证首页也转入同一恢复协调路径。
   Future<void> resumeSession() {
@@ -931,6 +938,7 @@ class AppController extends ChangeNotifier {
   }
 
   void _notify() {
+    _syncRecoveryRetries();
     _drainDeferredRecovery();
     _pumpReadTasks();
     if (!_disposed) notifyListeners();

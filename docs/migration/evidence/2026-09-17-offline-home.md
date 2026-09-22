@@ -635,3 +635,15 @@ check.log首轮clippy要求合并相同match分支，并将103行测试表拆成
 facade-final.log两项Mock协议接线通过；学期接口失败的新未知范围Stored与旧已知范围Preserved分开断言，旧已知正文/时间和首页索引保持。没有新增学校请求或真实写入。首轮check.log由单函数116行触发clippy，抽出持久发布职责后重跑完整门禁；最终结果另记。
 
 最终check-final.log退出0：Core两配置各301、facade77、Bridge133通过/2既有忽略、CLI端到端16及fmt/clippy/Shell/build/doc/layout零baseline违例通过。refs通过，sensitive.log扫描5353个文件通过。native-final.log在发布职责拆分后的候选重跑：macOS真实FFI/SQLite合成一项通过，前台化警告仍在，不计可见实窗。此Core-only阶段未改变Flutter生产形状，不将P4-AD的972项重记为本阶段新增Flutter测试；Core-live、真实App、启动性能均未新增。
+
+## P2-H 前台退避与网络变化恢复（2026-09-22）
+
+基线1af52ba7。/tmp/ubaa-p2h-red.log为缺onNetworkChanged；monitor-red.log为缺只读接口观察器；host-red.log为缺宿主stream接线。retry.log初八项通过，app-verified.log含新写保护及原恢复回归44项通过；query-verified.log十项退避/网络专项通过，包含失败学期查询原位更新和重复提示合并。写保护fixture先恢复合法会话才允许准备意图；首次fixture在未认证时setIntent被正确拒绝，不将该测试失败记作产品绕过保护。
+
+监视器原widget计时测试在长pump收尾挂起，终止本任务测试进程后改用直接fake_async时钟，不改生产网络判定；host-verified.log两项监视器及一项宿主生命周期测试通过。首轮flutter.log因FeatureQuery使用对象身份相等的错误断言失败；修正为既有hasSameQuery语义后flutter-final.log退出0：57/66/463/284/22/39/54，共985项，格式/analyze通过。所有测试数据均合成，没有真实学校写入或真实登录材料。
+
+native.log退出0：macOS系统NetworkInterface只读枚举调用与脱敏宿主网络提示恢复一项通过，未输出地址。仍有窗口前台化警告，只算原生合成功能；没有断开设备网络或验证真实学校恢复。check.log退出0：Core两配置各301、facade77、Bridge133通过/2既有忽略、CLI端到端16及完整根门禁通过，refs和敏感扫描通过。OHOS无签名构建结果另记。
+
+空间维护只删除隔离区target/debug/deps中六小时前的本任务Core/Bridge可重建旧产物，84,819个文件，文件长度合计21.32 GiB；源工作区仍干净/ahead7，未删除冻结材料、运行会话或当前候选产物。
+
+OHOS：/tmp/ubaa-p2h-ohos.log退出0，锁定fork analyze、两项入口测试、API26工具链、无签名debug HAP与arm64 ELF门禁通过。构建删除的buildinfo及生成的本机SDK相对锁路径经diff核对后恢复HEAD原值；其余生成产物保持忽略。未在OHOS设备运行网络枚举/HUKS，不作为签名或发布证据。暂存diff和敏感扫描通过，原工作区仍未修改。

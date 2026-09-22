@@ -117,6 +117,7 @@ extension _AppControllerOfflineStartup on AppController {
       if (request.refreshHomeAfter) _pendingHomeRecoveryEpoch = epoch;
     } on Object catch (error, stackTrace) {
       if (!_recoveryIsCurrent(epoch)) return;
+      request.transientFailure = _temporaryRecoveryFailure(error);
       if (error is BackendException &&
           (error.code == UbaaErrorCode.invalidCredentials ||
               error.code == UbaaErrorCode.upstreamChanged)) {
