@@ -18,6 +18,7 @@ pub(crate) use credentials::{
 /// 仅由一条路线/一个客户端的运行时和读取工作线程共享的状态。
 #[derive(Debug, Default)]
 pub(crate) struct RouteFeatureState {
+    lifecycle_generation: std::sync::atomic::AtomicU64,
     pub(crate) bykc: BykcState,
     pub(crate) cgyy: CgyyState,
     pub(crate) libbook: LibBookState,
@@ -29,7 +30,13 @@ pub(crate) struct RouteFeatureState {
 }
 
 impl RouteFeatureState {
+    pub(crate) fn lifecycle_generation(&self) -> u64 {
+        self.lifecycle_generation
+            .load(std::sync::atomic::Ordering::Acquire)
+    }
     pub(crate) fn clear(&self) {
+        self.lifecycle_generation
+            .fetch_add(1, std::sync::atomic::Ordering::AcqRel);
         self.bykc.clear();
         self.cgyy.clear();
         self.libbook.clear();

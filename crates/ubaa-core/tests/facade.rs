@@ -217,3 +217,6 @@ mod profile_cache;
 
 #[path = "facade/cache/management.rs"]
 mod cache_management;
+
+#[path = "facade/cache/schedule_import.rs"]
+mod schedule_import;

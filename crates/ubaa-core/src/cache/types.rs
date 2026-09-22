@@ -20,6 +20,10 @@ pub const CACHE_SCHEMA_VERSION: u32 = 4;
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum CacheQuery {
     ImportedSchedules,
+    /// 仅作为逐学期导入的读取租约，不存业务载荷。
+    ScheduleImport {
+        term: String,
+    },
     MaskedProfile,
     YgdkRecordsSelection,
     YgdkRecords {
@@ -259,6 +263,12 @@ pub struct CacheReadTicket {
     pub(super) revision: i64,
 }
 
+impl CacheReadTicket {
+    pub(crate) const fn request_revision(&self) -> i64 {
+        self.revision
+    }
+}
+
 impl CacheScope {
     pub(crate) fn validate(&self) -> CacheResult<()> {
         let id = |s: &str| !s.trim().is_empty() && s.len() <= 1024;
@@ -302,7 +312,9 @@ impl CacheScope {
                 chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d")
                     .is_ok_and(|value| value.format("%Y-%m-%d").to_string() == *date)
             }
-            CacheQuery::ScheduleWeeks { term } | CacheQuery::Exams { term } => id(term),
+            CacheQuery::ScheduleImport { term }
+            | CacheQuery::ScheduleWeeks { term }
+            | CacheQuery::Exams { term } => id(term),
             CacheQuery::Grades { term } => {
                 id(term) && crate::features::grades::parse_term_code(term).is_ok()
             }

@@ -17,6 +17,14 @@ pub struct CachedSemesterSchedule {
     pub weeks: Vec<Week>,
     pub schedules: BTreeMap<i32, WeeklySchedule>,
     pub fetched_at: i64,
+    #[serde(default)]
+    observations: Option<ScheduleObservations>,
+}
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+struct ScheduleObservations {
+    // 每项分别为实际取得时间和同一数据库内的请求修订，不能用墙钟推断先后。
+    weeks: (i64, i64),
+    weekly: BTreeMap<i32, (i64, i64)>,
 }
 impl CachedSemesterSchedule {
     /// 沿冻结导入规则规范化日期并核对所有周次，不检查本科课表code等于学期。
@@ -30,16 +38,14 @@ impl CachedSemesterSchedule {
         schedules: BTreeMap<i32, WeeklySchedule>,
         fetched_at: i64,
     ) -> CacheResult<Self> {
-        for week in &mut weeks {
-            week.start_date = normalize_date(&week.start_date)?;
-            week.end_date = normalize_date(&week.end_date)?;
-        }
+        weeks = Self::normalized_weeks(&term_code, weeks)?;
         let value = Self {
             term_code,
             terms,
             weeks,
             schedules,
             fetched_at,
+            observations: None,
         };
         if !value.is_valid() {
             return Err(CacheError::InvalidInput);
@@ -58,24 +64,57 @@ impl CachedSemesterSchedule {
         {
             return false;
         }
-        let mut numbers = BTreeSet::new();
-        let mut ranges = Vec::new();
-        for week in &self.weeks {
-            let (Some(start), Some(end)) = (date(&week.start_date), date(&week.end_date)) else {
-                return false;
-            };
-            if week.term != self.term_code
-                || week.serial_number <= 0
-                || !numbers.insert(week.serial_number)
-                || !(0..=6).contains(&(end - start).num_days())
-            {
-                return false;
-            }
-            ranges.push((start, end));
+        self.observations.as_ref().is_none_or(|observations| {
+            observations.weeks.0 >= 0
+                && observations.weeks.1 >= 0
+                && observations.weekly.keys().eq(self.schedules.keys())
+                && observations
+                    .weekly
+                    .values()
+                    .all(|(time, revision)| *time >= 0 && *revision >= 0)
+        }) && valid_weeks(&self.term_code, &self.weeks)
+            && self
+                .weeks
+                .iter()
+                .map(|week| week.serial_number)
+                .collect::<BTreeSet<_>>()
+                == self.schedules.keys().copied().collect()
+    }
+    pub(crate) fn with_observations(
+        mut self,
+        weeks: (i64, i64),
+        weekly: BTreeMap<i32, (i64, i64)>,
+    ) -> CacheResult<Self> {
+        self.observations = Some(ScheduleObservations { weeks, weekly });
+        if !self.is_valid() {
+            return Err(CacheError::InvalidInput);
         }
-        ranges.sort_unstable();
-        numbers == self.schedules.keys().copied().collect()
-            && ranges.windows(2).all(|pair| pair[0].1 < pair[1].0)
+        Ok(self)
+    }
+    fn observation(&self, query: &CacheQuery) -> (i64, i64) {
+        let Some(observations) = &self.observations else {
+            return (self.fetched_at, 0);
+        };
+        let week = match query {
+            CacheQuery::ScheduleWeeks { .. } => return observations.weeks,
+            CacheQuery::ScheduleWeek { week, .. } => Some(*week),
+            CacheQuery::ScheduleToday { date: requested } => date(requested)
+                .and_then(|day| self.covering_week(day))
+                .map(|week| week.serial_number),
+            _ => None,
+        };
+        week.and_then(|number| observations.weekly.get(&number).copied())
+            .unwrap_or((self.fetched_at, 0))
+    }
+    pub(crate) fn normalized_weeks(term: &str, mut weeks: Vec<Week>) -> CacheResult<Vec<Week>> {
+        for week in &mut weeks {
+            week.start_date = normalize_date(&week.start_date)?;
+            week.end_date = normalize_date(&week.end_date)?;
+        }
+        if !valid_weeks(term, &weeks) {
+            return Err(CacheError::InvalidInput);
+        }
+        Ok(weeks)
     }
     fn covering_week(&self, requested: NaiveDate) -> Option<&Week> {
         self.weeks.iter().find(|week| {
@@ -160,6 +199,28 @@ impl CachedSemesterSchedule {
         ))
     }
 }
+fn valid_weeks(term: &str, weeks: &[Week]) -> bool {
+    if weeks.is_empty() {
+        return false;
+    }
+    let mut numbers = BTreeSet::new();
+    let mut ranges = Vec::new();
+    for week in weeks {
+        let (Some(start), Some(end)) = (date(&week.start_date), date(&week.end_date)) else {
+            return false;
+        };
+        if week.term != term
+            || week.serial_number <= 0
+            || !numbers.insert(week.serial_number)
+            || !(0..=6).contains(&(end - start).num_days())
+        {
+            return false;
+        }
+        ranges.push((start, end));
+    }
+    ranges.sort_unstable();
+    ranges.windows(2).all(|pair| pair[0].1 < pair[1].0)
+}
 fn date(raw: &str) -> Option<NaiveDate> {
     let value = NaiveDate::parse_from_str(raw, "%Y-%m-%d").ok()?;
     (value.format("%Y-%m-%d").to_string() == raw).then_some(value)
@@ -201,10 +262,23 @@ impl OfflineRepository {
         value: CachedSemesterSchedule,
     ) -> CacheResult<CachePublication> {
         self.validate_read(ticket)?;
-        if ticket.scope.query != CacheQuery::ImportedSchedules || !value.is_valid() {
+        let matches = match &ticket.scope.query {
+            CacheQuery::ImportedSchedules => true,
+            CacheQuery::ScheduleImport { term } => *term == value.term_code,
+            _ => false,
+        };
+        if !matches || !value.is_valid() {
             return Err(CacheError::InvalidInput);
         }
-        let mut values = match self.read(&ticket.scope, value.fetched_at)? {
+        let target = if ticket.scope.query == CacheQuery::ImportedSchedules {
+            ticket.clone()
+        } else {
+            self.begin_read(CacheScope {
+                route: ticket.scope.route,
+                query: CacheQuery::ImportedSchedules,
+            })?
+        };
+        let mut values = match self.read(&target.scope, value.fetched_at)? {
             Some(CacheRecord {
                 payload: CachePayload::ImportedSchedules(values),
                 ..
@@ -216,7 +290,8 @@ impl OfflineRepository {
         let fetched_at = value.fetched_at;
         values.push(value);
         // publish事务再验证票据，跨连接竞争不能覆盖更新的集合。
-        self.publish(
+        self.publish_guarded(
+            &target,
             ticket,
             CachePayload::ImportedSchedules(values),
             fetched_at,
@@ -283,9 +358,11 @@ impl OfflineRepository {
         let Some(payload) = payload else {
             return Ok(None);
         };
-        record.fetched_at = value.fetched_at;
-        record.last_attempt_at = value.fetched_at;
-        record.last_verified_at = value.fetched_at;
+        let (source_at, revision) = value.observation(&scope.query);
+        record.fetched_at = source_at;
+        record.last_attempt_at = source_at;
+        record.last_verified_at = source_at;
+        record.revision = revision;
         record.last_attempt_succeeded = true;
         record.scope = scope;
         record.payload = payload;

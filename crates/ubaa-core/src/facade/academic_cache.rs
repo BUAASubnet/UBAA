@@ -151,12 +151,27 @@ impl OfflineCache {
         route: ConnectionMode,
         query: &AcademicQuery,
     ) -> super::CacheResult<Option<super::CacheRecord>> {
-        self.read(
+        let current = self.read(
             &CacheScope {
                 route,
                 query: query.cache_query(),
             },
             chrono::Utc::now().timestamp(),
-        )
+        )?;
+        if !matches!(
+            query,
+            AcademicQuery::Week { .. } | AcademicQuery::Weeks { .. }
+        ) {
+            return Ok(current);
+        }
+        let imported = self.read_imported_schedule(route, query.cache_query())?;
+        Ok(match (current, imported) {
+            (Some(current), Some(imported)) => Some(if imported.revision > current.revision {
+                imported
+            } else {
+                current
+            }),
+            (current, imported) => current.or(imported),
+        })
     }
 }

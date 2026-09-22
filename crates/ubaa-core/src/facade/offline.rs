@@ -69,20 +69,25 @@ impl OfflineCache {
     pub fn read(&self, scope: &CacheScope, now: i64) -> CacheResult<Option<CacheRecord>> {
         self.repository(|repository| repository.read(scope, now))
     }
-    /// 只读取当前上海日历日期的已保存课表。
+    /// 读取当前上海日期；精确日快照缺失时仅从已覆盖的完整导入投影。
     ///
     /// # Errors
     /// 继承本地仓库的稳定错误，不回退到昨日内容。
     pub fn read_today(&self, route: ConnectionMode) -> CacheResult<Option<CacheRecord>> {
-        self.read(
+        let query = CacheQuery::ScheduleToday {
+            date: crate::features::schedule::shanghai_date(),
+        };
+        let current = self.read(
             &CacheScope {
                 route,
-                query: CacheQuery::ScheduleToday {
-                    date: crate::features::schedule::shanghai_date(),
-                },
+                query: query.clone(),
             },
             chrono::Utc::now().timestamp(),
-        )
+        )?;
+        if current.is_some() {
+            return Ok(current);
+        }
+        self.read_imported_schedule(route, query)
     }
     /// 精确读取希冀摘要范围，不获取网络客户端锁。
     ///

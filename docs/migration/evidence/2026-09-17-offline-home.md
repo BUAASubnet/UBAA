@@ -561,3 +561,14 @@ final-focused.log57项通过，包括六项新生命周期及既有清理、首�
 cache-green.log此前8项模型加现有缓存57项通过；最终全量根门禁另记。check.log首次clippy拒绝文档InvalidInput缺反引号，已修正，不增allow或baseline。实现替换脚本一次因格式化后文本不匹配中止，未写入计划的代码修改；之后按实际内容完成。Schema升v4，控制AAD仍v3；新版本额外轮换仓库generation/epoch。没有学校请求或写入，没有本阶段Flutter/原生/真实App/性能证据。
 
 最终check-final.log退出0：Core两配置各284、facade66、Bridge127通过/2既有忽略、CLI端到端16；fmt/clippy/Shell/build/doc和layout零baseline违例通过。暂存敏感扫描5323文件及diff通过。新生产代码仅Core本地模型，Bridge v26形状未改，未重复Flutter/生成/原生检查；最新941项Flutter是P2-F证据，不能当成本阶段新原生证据。完整学期生产导入和全部P0–P5继续。
+
+
+## P4-Z 完整学期分段读取 facade（2026-09-22）
+
+基线af4c03a8，refs通过。/tmp/ubaa-p4z-red.log为缺begin/next；green.log首3项通过。observation-red.log复现未知包装code仍被完整导入接纳，增加导入专用完整度检查并保持普通API容错后5项通过。local-red.log缺facade本地投影出口；term-red.log复现不同学期租约相互取消；week-red.log复现导入收尾时间压过后来完成的精确周结果（包含时钟回退）；time-red.log缺逐查询取得依据；today-red.log复现今日缺精确快照时未使用完整导入覆盖。
+
+final-focused.log：新的facade确定性9项通过，包括Direct/WebVPN注入运输的逐批边界、完整发布/部分失败、不自动重发、在途取消、较新同学期/清理保护、不同学期交错保留、普通包装容错与严格导入区分、精确周/日期/路线本地恢复、较新单周优先及今日覆盖回退。另1项Core私有生命周期测试确认原运行时清理/路线往返均使旧计划失效、弱引用不延长原客户端寿命；初轮该测试FeatureRouteConfig导入路径错误已修正，不计产品RED。cache-green.log12项模型测试通过，包含加密保存后每周与周次索引的原时间。
+
+check.log首轮clippy只拒绝测试中可合并if，合并后check-final.log退出0：Core两配置各286、facade75、Bridge127通过/2既有忽略、CLI端到端16及fmt/clippy/Shell/build/doc/layout零baseline违例。没有新增Bridge形状、真实学校调用或写入，没有本阶段原生/性能证据；学校普通接口和CLI保持，导入Bridge/App入口尚未完成。
+
+P4-Z最终暂存敏感扫描5327文件及diff通过，源工作区ubaa2保持干净。Core阶段独立提交；并行发现的App辅助读取账号冲突处于单独P2-G修复，未纳入本次Core代码提交。

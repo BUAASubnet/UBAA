@@ -115,6 +115,17 @@ pub(crate) async fn get_weeks(
     runtime: &mut crate::runtime::ClientRuntime,
     term: &str,
 ) -> Result<Vec<Week>> {
+    parse_weeks(&weeks_body(runtime, term).await?)
+}
+pub(crate) async fn get_weeks_for_import(
+    runtime: &mut crate::runtime::ClientRuntime,
+    term: &str,
+) -> Result<Vec<Week>> {
+    let body = weeks_body(runtime, term).await?;
+    require_complete_import(&body)?;
+    parse_weeks(&body)
+}
+async fn weeks_body(runtime: &mut crate::runtime::ClientRuntime, term: &str) -> Result<String> {
     if term.trim().is_empty() {
         return Err(UbaaError::new(
             ErrorCode::InvalidInput,
@@ -139,7 +150,7 @@ pub(crate) async fn get_weeks(
     )
     .await?;
     super::check_response(&response, "schedule")?;
-    parse_weeks(&super::body(&response))
+    Ok(super::body(&response))
 }
 
 /// 获取指定编号的教学周。
@@ -148,6 +159,22 @@ pub(crate) async fn get_week(
     term: &str,
     week: i32,
 ) -> Result<WeeklySchedule> {
+    parse_weekly_schedule(&week_body(runtime, term, week).await?)
+}
+pub(crate) async fn get_week_for_import(
+    runtime: &mut crate::runtime::ClientRuntime,
+    term: &str,
+    week: i32,
+) -> Result<WeeklySchedule> {
+    let body = week_body(runtime, term, week).await?;
+    require_complete_import(&body)?;
+    parse_weekly_schedule(&body)
+}
+async fn week_body(
+    runtime: &mut crate::runtime::ClientRuntime,
+    term: &str,
+    week: i32,
+) -> Result<String> {
     ensure_undergraduate_portal(runtime).await?;
     let url = runtime.url(WEEK_URL)?;
     let referer = runtime.url(SCHEDULE_REFERER_URL)?;
@@ -167,7 +194,25 @@ pub(crate) async fn get_week(
     )
     .await?;
     super::check_response(&response, "schedule")?;
-    parse_weekly_schedule(&super::body(&response))
+    Ok(super::body(&response))
+}
+
+// 普通读取沿冻结容错；完整导入只能保存已观察到的成功包装。
+fn require_complete_import(body: &str) -> Result<()> {
+    #[derive(Deserialize)]
+    struct Envelope {
+        code: String,
+    }
+    let value: Envelope = parse_json(body)?;
+    if value.code == "0" {
+        return Ok(());
+    }
+    Err(UbaaError::new(
+        ErrorCode::UpstreamChanged,
+        ErrorKind::Upstream,
+        false,
+        "返回结果尚不能确认为完整课表",
+    ))
 }
 
 /// 使用上海日历日期获取今日课程。

@@ -442,3 +442,46 @@ fn 教学周当前标记按覆盖日期计算但不刷新取得时间() {
     drop(repo);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn 导入投影保留单周和周次索引的实际取得时间() {
+    let root = root();
+    let mut repo = OfflineRepository::open(
+        &root,
+        ACCOUNT,
+        CacheKey::new([7; 32]),
+        CacheLimits::default(),
+    )
+    .unwrap();
+    let value = semester("a", "2026-09-22", "合成", 200)
+        .with_observations((110, 10), [(1, (120, 11))].into())
+        .unwrap();
+    let ticket = repo.begin_read(scope()).unwrap();
+    repo.publish_imported_semester(&ticket, value).unwrap();
+    for (query, time) in [
+        (
+            CacheQuery::ScheduleWeek {
+                term: "a".into(),
+                week: 1,
+            },
+            120,
+        ),
+        (CacheQuery::ScheduleWeeks { term: "a".into() }, 110),
+        (
+            CacheQuery::ScheduleToday {
+                date: "2026-09-22".into(),
+            },
+            120,
+        ),
+    ] {
+        assert_eq!(
+            repo.read_imported_schedule(ConnectionMode::Direct, query, 300)
+                .unwrap()
+                .unwrap()
+                .fetched_at,
+            time
+        );
+    }
+    drop(repo);
+    std::fs::remove_dir_all(root).unwrap();
+}
