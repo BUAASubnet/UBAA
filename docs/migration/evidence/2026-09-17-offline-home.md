@@ -449,3 +449,16 @@ CARGO_INCREMENTAL=0的check-final.log退出0：Core两配置各253、facade63、
 最终Flutter候选flutter-final-reviewed.log退出0，57/66/397/270/21/32/54共897项及静态分析通过；手动登录保护后的layout-final零baseline违例、敏感扫描5296文件、暂存diff空白检查通过。macOS合成集成1项通过（native.log），v24实际执行新增本地空资料与缺会话缓存读取，并保持原跨句柄退出测试；仍有Failed to foreground app; open returned 1，不算实窗视觉、非空资料DTO原生渲染或真实账号业务。
 
 本阶段未进行真实学校请求/业务写入，没有新增验收媒体、启动耗时或发布证据。P4-P的WebVPN40项通过、Direct希冀HTTP502仅保留其原候选证据，不扩大为本阶段新增链路通过。源工作区ubaa2仍干净。资料本地/后台接线已完成本阶段，缓存管理、精确范围补全、剩余生命周期/安全分段及多端性能继续，整体目标不标完成。
+
+
+## P4-S Core 缓存管理与代次轮换（2026-09-22）
+
+基线92c028a3，refs通过。先补本地管理来源对照，无学校协议变更。新增数值用量、原子清理/返回新句柄、跨连接generation及v1到v2控制记录迁移；原CLI、Bridge v24形状与学校写流程不变。
+
+日志前缀/tmp/ubaa-p4s-：red.log为usage/clear_for_reopen缺失；facade-red.log为clear_and_reopen/usage缺失；judge-red.log复现旧句柄启动Judge仍发1次认证请求，补公共扫描入口的代次保护后归零；storage-red.log复现新预检把Corrupt阻断为读取错误，调整后保留完整在线资料且save_error=Corrupt。
+
+management-final.log六项通过：用量不解密业务行、实际文件回收、独立连接/旧票据拒绝、清除事务回滚、v1迁移保原条目时间、旧AAD无法解密v2、错误密钥不改v1、迁移保留退出状态、提交后维护失败分列。维护Capacity通过私有维护回调注入，不冒称真实磁盘满；清除失败通过SQLite触发器事务中止验证。facade-final.log三项通过：旧clone/独立句柄拒绝、认证未返回时清理不允许旧链取新票据、新句柄继续使用原会话、普通缓存损坏仍允许在线读取。
+
+初次用u64直接从SQLite取数编译失败，改为i64加检查转换；clippy指出首页方法101行和冗余闭包，提取原查询校验并使用方法引用后通过，未增加allow或扩大baseline。完整门禁待收尾。本阶段Core-only，未新增Flutter/原生/学校live/性能证据，设置接线与其余P0–P5继续。
+
+最终CARGO_INCREMENTAL=0 just check退出0（check.log）：Core两配置各259、facade66、Bridge125通过/2既有忽略、CLI端到端16；fmt/clippy/Shell/build/doc及layout零baseline违例通过。refs固定SHA已校验，暂存敏感扫描5299文件通过，diff无空白错误。Core-only未改Bridge形状/Dart，未重复Flutter或原生测试，旧897项Flutter与原生结果不充当本阶段新增证据。当前没有真实学校请求/写入或性能数据；Core管理能力可独立提交，Bridge/App设置、宿主清理代次、保留优先级和损坏文件重建仍继续。

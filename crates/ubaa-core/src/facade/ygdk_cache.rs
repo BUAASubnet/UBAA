@@ -114,6 +114,9 @@ impl UbaaClient {
         size: i32,
         expected: Option<(ConnectionMode, i32)>,
     ) -> Result<YgdkRecordsRefresh, OfflineReadError> {
+        cache
+            .check_read_generation()
+            .map_err(OfflineReadError::Cache)?;
         if page <= 0 || size <= 0 {
             return Err(OfflineReadError::Cache(CacheError::InvalidInput));
         }

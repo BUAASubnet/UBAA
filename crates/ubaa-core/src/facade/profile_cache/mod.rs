@@ -30,6 +30,9 @@ impl UbaaClient {
         &mut self,
         cache: &OfflineCache,
     ) -> Result<OfflineRefresh<UserProfile>, OfflineReadError> {
+        cache
+            .check_read_generation()
+            .map_err(OfflineReadError::Cache)?;
         let resolution = self
             .resolve_operation(super::types::Operation::User)
             .map_err(OfflineReadError::Read)?;

@@ -14,7 +14,7 @@ use std::{
 /// 与网络客户端锁独立的账号缓存句柄。格式化不会泄露账号或材料。
 #[derive(Clone)]
 pub struct OfflineCache {
-    repository: Arc<Mutex<OfflineRepository>>,
+    repository: Arc<Mutex<Option<OfflineRepository>>>,
     expected_identity: Arc<str>,
 }
 impl OfflineCache {
@@ -33,9 +33,9 @@ impl OfflineCache {
             return Err(CacheError::InvalidInput);
         }
         Ok(Self {
-            repository: Arc::new(Mutex::new(OfflineRepository::open(
+            repository: Arc::new(Mutex::new(Some(OfflineRepository::open(
                 root, account_id, key, limits,
-            )?)),
+            )?))),
             expected_identity: Arc::from(expected_identity.trim()),
         })
     }
@@ -44,10 +44,7 @@ impl OfflineCache {
     /// # Errors
     /// 账号已关闭、记录损坏或存储不可用时返回错误。
     pub fn read(&self, scope: &CacheScope, now: i64) -> CacheResult<Option<CacheRecord>> {
-        self.repository
-            .lock()
-            .map_err(|_| CacheError::Unavailable)?
-            .read(scope, now)
+        self.repository(|repository| repository.read(scope, now))
     }
     /// 只读取当前上海日历日期的已保存课表。
     ///
@@ -107,30 +104,57 @@ impl OfflineCache {
     /// # Errors
     /// 持久栅栏失败时不能宣称退出成功。
     pub fn deactivate(&self) -> CacheResult<()> {
-        self.repository
-            .lock()
-            .map_err(|_| CacheError::Unavailable)?
-            .deactivate()
+        self.repository(OfflineRepository::deactivate)
     }
     /// 显式重新登录且确认身份后重新开放内容，不恢复旧 ticket。
     ///
     /// # Errors
     /// 存储不可用时返回错误。
     pub fn activate(&self) -> CacheResult<()> {
-        self.repository
-            .lock()
-            .map_err(|_| CacheError::Unavailable)?
-            .activate()
+        self.repository(OfflineRepository::activate)
     }
     /// 清理内容与在途 ticket，保持账号是否已关闭的状态。
     ///
     /// # Errors
     /// 存储失败时返回错误，原事务回滚。
     pub fn clear(&self) -> CacheResult<()> {
-        self.repository
+        self.repository(OfflineRepository::clear)
+    }
+    /// 返回当前账号的数值用量，不读取业务正文。
+    ///
+    /// # Errors
+    /// 旧句柄、账号关闭和存储失败按缓存类别返回。
+    pub fn usage(&self) -> CacheResult<super::CacheUsage> {
+        self.repository(OfflineRepository::usage)
+    }
+    /// 清理后交付新句柄；当前句柄及其所有clone永久失效。
+    ///
+    /// # Errors
+    /// 清除事务失败时保留原句柄；提交后维护结果独立报告。
+    pub fn clear_and_reopen(&self) -> CacheResult<(Self, super::CacheClearReport)> {
+        let mut slot = self
+            .repository
             .lock()
-            .map_err(|_| CacheError::Unavailable)?
-            .clear()
+            .map_err(|_| CacheError::Unavailable)?;
+        let report = slot
+            .as_mut()
+            .ok_or(CacheError::Superseded)?
+            .clear_for_reopen()?;
+        let repository = slot.take().ok_or(CacheError::Unavailable)?;
+        Ok((
+            Self {
+                repository: Arc::new(Mutex::new(Some(repository))),
+                expected_identity: Arc::clone(&self.expected_identity),
+            },
+            report,
+        ))
+    }
+    pub(super) fn check_read_generation(&self) -> CacheResult<()> {
+        // 只阻断已确认的退出/代次冲突；其他本地故障由begin报告，不剥夺在线读取。
+        match self.repository(OfflineRepository::validate_handle) {
+            Err(error @ (CacheError::Inactive | CacheError::Superseded)) => Err(error),
+            _ => Ok(()),
+        }
     }
     pub(super) fn repository<T>(
         &self,
@@ -140,7 +164,7 @@ impl OfflineCache {
             .repository
             .lock()
             .map_err(|_| CacheError::Unavailable)?;
-        operation(&mut repository)
+        operation(repository.as_mut().ok_or(CacheError::Superseded)?)
     }
     pub(super) fn fail_scan(&self, parent: &CacheReadTicket, child: Option<&CacheReadTicket>) {
         let now = chrono::Utc::now().timestamp();
@@ -158,16 +182,10 @@ impl OfflineCache {
             .any(|value| value.trim() == self.expected_identity.as_ref())
     }
     pub(super) fn validate_read(&self, ticket: &CacheReadTicket) -> CacheResult<()> {
-        self.repository
-            .lock()
-            .map_err(|_| CacheError::Unavailable)?
-            .validate_read(ticket)
+        self.repository(|repository| repository.validate_read(ticket))
     }
     pub(super) fn begin(&self, scope: CacheScope) -> CacheResult<CacheReadTicket> {
-        self.repository
-            .lock()
-            .map_err(|_| CacheError::Unavailable)?
-            .begin_read(scope)
+        self.repository(|repository| repository.begin_read(scope))
     }
     pub(super) fn publish(
         &self,
@@ -175,16 +193,14 @@ impl OfflineCache {
         payload: CachePayload,
         now: i64,
     ) -> CacheResult<()> {
-        self.repository
-            .lock()
-            .map_err(|_| CacheError::Unavailable)?
-            .publish(ticket, payload, now, CacheCompleteness::Complete)
-            .map(|_| ())
+        self.repository(|repository| {
+            repository
+                .publish(ticket, payload, now, CacheCompleteness::Complete)
+                .map(|_| ())
+        })
     }
     pub(super) fn failure(&self, ticket: &CacheReadTicket, now: i64) {
-        if let Ok(mut repository) = self.repository.lock() {
-            let _ = repository.record_failure(ticket, now);
-        }
+        let _ = self.repository(|repository| repository.record_failure(ticket, now));
     }
 }
 
@@ -219,6 +235,9 @@ impl UbaaClient {
         cache: &OfflineCache,
         include_expired: bool,
     ) -> Result<OfflineRefresh<Vec<crate::domain::JudgeAssignmentSummary>>, OfflineReadError> {
+        cache
+            .check_read_generation()
+            .map_err(OfflineReadError::Cache)?;
         let authenticated = self
             .recover_required_session(ReadonlyFeature::Judge)
             .await
@@ -283,6 +302,9 @@ impl UbaaClient {
         &mut self,
         cache: &OfflineCache,
     ) -> Result<OfflineRefresh<Vec<TodayClass>>, OfflineReadError> {
+        cache
+            .check_read_generation()
+            .map_err(OfflineReadError::Cache)?;
         let authenticated = self
             .recover_required_session(ReadonlyFeature::Schedule)
             .await

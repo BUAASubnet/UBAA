@@ -38,6 +38,9 @@ impl UbaaClient {
         &mut self,
         cache: &OfflineCache,
     ) -> Result<EvaluationRefresh, OfflineReadError> {
+        cache
+            .check_read_generation()
+            .map_err(OfflineReadError::Cache)?;
         let cache_query = CacheQuery::EvaluationCurrent;
         CacheScope {
             route: ConnectionMode::Direct,

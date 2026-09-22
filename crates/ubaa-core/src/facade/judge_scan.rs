@@ -91,6 +91,9 @@ impl UbaaClient {
         preferred_course: Option<&str>,
         force_fresh: bool,
     ) -> Result<JudgeScan, OfflineReadError> {
+        cache
+            .check_read_generation()
+            .map_err(OfflineReadError::Cache)?;
         let authenticated = self
             .recover_required_session(ReadonlyFeature::Judge)
             .await

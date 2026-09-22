@@ -89,13 +89,10 @@ impl UbaaClient {
         cache: &OfflineCache,
         query: HomeQuery,
     ) -> Result<HomeRefresh, OfflineReadError> {
-        let cache_query = query.cache_query();
-        CacheScope {
-            route: ConnectionMode::Direct,
-            query: cache_query.clone(),
-        }
-        .validate()
-        .map_err(OfflineReadError::Cache)?;
+        cache
+            .check_read_generation()
+            .map_err(OfflineReadError::Cache)?;
+        let cache_query = validated_home_query(&query)?;
         let authenticated = self
             .recover_required_session(query.feature())
             .await
@@ -188,4 +185,15 @@ impl UbaaClient {
             publication,
         })
     }
+}
+
+fn validated_home_query(query: &HomeQuery) -> Result<CacheQuery, OfflineReadError> {
+    let cached = query.cache_query();
+    CacheScope {
+        route: ConnectionMode::Direct,
+        query: cached.clone(),
+    }
+    .validate()
+    .map_err(OfflineReadError::Cache)?;
+    Ok(cached)
 }

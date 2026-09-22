@@ -214,3 +214,6 @@ mod ygdk_cache;
 
 #[path = "facade/profile/cache.rs"]
 mod profile_cache;
+
+#[path = "facade/cache/management.rs"]
+mod cache_management;

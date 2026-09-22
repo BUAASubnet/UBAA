@@ -16,6 +16,7 @@ struct Control {
     epoch: u64,
     revision: i64,
     active: bool,
+    generation: u64,
 }
 
 /// 每个随机账号别名对应一个私有数据库；调用方串行使用实例，多个实例由事务协调。
@@ -25,6 +26,7 @@ pub struct OfflineRepository {
     account: String,
     path: PathBuf,
     limits: CacheLimits,
+    generation: u64,
 }
 
 impl OfflineRepository {
@@ -57,7 +59,7 @@ impl OfflineRepository {
         let version: u32 = db
             .pragma_query_value(None, "user_version", |r| r.get(0))
             .map_err(CacheError::from)?;
-        if version != 0 && version != CACHE_SCHEMA_VERSION {
+        if version != 0 && version != 1 && version != CACHE_SCHEMA_VERSION {
             return Err(CacheError::UnsupportedVersion);
         }
         db.execute_batch("PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA secure_delete=ON; PRAGMA temp_store=MEMORY; PRAGMA trusted_schema=OFF;").map_err(CacheError::from)?;
@@ -75,27 +77,7 @@ impl OfflineRepository {
         tx.execute_batch("CREATE TABLE IF NOT EXISTS control(id INTEGER PRIMARY KEY CHECK(id=1), body BLOB NOT NULL);
             CREATE TABLE IF NOT EXISTS entries(key BLOB PRIMARY KEY, body BLOB NOT NULL, accessed INTEGER NOT NULL, priority INTEGER NOT NULL);
             CREATE TABLE IF NOT EXISTS requests(key BLOB PRIMARY KEY, revision INTEGER NOT NULL);").map_err(CacheError::from)?;
-        let existing: Option<Vec<u8>> = tx
-            .query_row("SELECT body FROM control WHERE id=1", [], |r| r.get(0))
-            .optional()
-            .map_err(CacheError::from)?;
-        if let Some(body) = existing {
-            let _: Control = crypto.open(&body, account.as_bytes())?;
-        } else {
-            if version != 0 {
-                return Err(CacheError::Corrupt);
-            }
-            let body = crypto.seal(
-                &Control {
-                    epoch: 0,
-                    revision: 0,
-                    active: true,
-                },
-                account.as_bytes(),
-            )?;
-            tx.execute("INSERT INTO control VALUES(1,?1)", [body])
-                .map_err(CacheError::from)?;
-        }
+        let generation = management::prepare_control(&tx, &crypto, &account, version)?;
         tx.pragma_update(None, "user_version", CACHE_SCHEMA_VERSION)
             .map_err(CacheError::from)?;
         tx.commit().map_err(CacheError::from)?;
@@ -105,6 +87,7 @@ impl OfflineRepository {
             account,
             path,
             limits,
+            generation,
         })
     }
 
@@ -121,7 +104,14 @@ impl OfflineRepository {
     pub fn validate_read(&mut self, ticket: &CacheReadTicket) -> CacheResult<()> {
         let key = self.crypto.index(&(&self.account, &ticket.scope))?;
         let tx = self.db.transaction().map_err(CacheError::from)?;
-        validate_ticket(&tx, &self.crypto, &self.account, ticket, &key)?;
+        validate_ticket(
+            &tx,
+            &self.crypto,
+            &self.account,
+            ticket,
+            &key,
+            self.generation,
+        )?;
         tx.commit().map_err(CacheError::from)
     }
 
@@ -135,8 +125,15 @@ impl OfflineRepository {
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(CacheError::from)?;
-        validate_ticket(&tx, &self.crypto, &self.account, ticket, &key)?;
-        let mut control = load_control(&tx, &self.crypto, &self.account)?;
+        validate_ticket(
+            &tx,
+            &self.crypto,
+            &self.account,
+            ticket,
+            &key,
+            self.generation,
+        )?;
+        let mut control = load_current_control(&tx, &self.crypto, &self.account, self.generation)?;
         control.revision = control
             .revision
             .checked_add(1)
@@ -163,7 +160,7 @@ impl OfflineRepository {
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(CacheError::from)?;
-        let mut control = load_control(&tx, &self.crypto, &self.account)?;
+        let mut control = load_current_control(&tx, &self.crypto, &self.account, self.generation)?;
         require_active(&control)?;
         control.revision = control
             .revision
@@ -197,7 +194,12 @@ impl OfflineRepository {
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(CacheError::from)?;
-        require_active(&load_control(&tx, &self.crypto, &self.account)?)?;
+        require_active(&load_current_control(
+            &tx,
+            &self.crypto,
+            &self.account,
+            self.generation,
+        )?)?;
         let Some(body) = load_body(&tx, &key)? else {
             return Ok(None);
         };
@@ -299,10 +301,24 @@ impl OfflineRepository {
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(CacheError::from)?;
-        validate_ticket(&tx, &self.crypto, &self.account, ticket, &key)?;
+        validate_ticket(
+            &tx,
+            &self.crypto,
+            &self.account,
+            ticket,
+            &key,
+            self.generation,
+        )?;
         if let Some(parent) = parent {
             let parent_key = self.crypto.index(&(&self.account, &parent.scope))?;
-            validate_ticket(&tx, &self.crypto, &self.account, parent, &parent_key)?;
+            validate_ticket(
+                &tx,
+                &self.crypto,
+                &self.account,
+                parent,
+                &parent_key,
+                self.generation,
+            )?;
         }
         // 先在同一事务核对退出/替代栅栏，不能让无效载荷掩盖账号失效。
         if !payload.matches(&ticket.scope.query) {
@@ -374,10 +390,24 @@ impl OfflineRepository {
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(CacheError::from)?;
-        validate_ticket(&tx, &self.crypto, &self.account, ticket, &key)?;
+        validate_ticket(
+            &tx,
+            &self.crypto,
+            &self.account,
+            ticket,
+            &key,
+            self.generation,
+        )?;
         if let Some(parent) = parent {
             let parent_key = self.crypto.index(&(&self.account, &parent.scope))?;
-            validate_ticket(&tx, &self.crypto, &self.account, parent, &parent_key)?;
+            validate_ticket(
+                &tx,
+                &self.crypto,
+                &self.account,
+                parent,
+                &parent_key,
+                self.generation,
+            )?;
         }
         if let Some(body) = load_body(&tx, &key)? {
             let mut record: CacheRecord = self.crypto.open(&body, &key)?;
@@ -422,7 +452,7 @@ impl OfflineRepository {
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)
             .map_err(CacheError::from)?;
-        let mut control = load_control(&tx, &self.crypto, &self.account)?;
+        let mut control = load_current_control(&tx, &self.crypto, &self.account, self.generation)?;
         control.epoch = control.epoch.checked_add(1).ok_or(CacheError::Capacity)?;
         if let Some(active) = active {
             control.active = active;
@@ -442,7 +472,7 @@ fn load_control(db: &Connection, crypto: &Crypto, account: &str) -> CacheResult<
     let body: Vec<u8> = db
         .query_row("SELECT body FROM control WHERE id=1", [], |r| r.get(0))
         .map_err(CacheError::from)?;
-    crypto.open(&body, account.as_bytes())
+    crypto.open(&body, &control_aad(account))
 }
 fn save_control(
     db: &Connection,
@@ -450,7 +480,7 @@ fn save_control(
     account: &str,
     control: &Control,
 ) -> CacheResult<()> {
-    let body = crypto.seal(control, account.as_bytes())?;
+    let body = crypto.seal(control, &control_aad(account))?;
     db.execute("UPDATE control SET body=?1 WHERE id=1", [body])
         .map_err(CacheError::from)?;
     Ok(())
@@ -473,8 +503,9 @@ fn validate_ticket(
     account: &str,
     ticket: &CacheReadTicket,
     key: &[u8],
+    generation: u64,
 ) -> CacheResult<()> {
-    let control = load_control(db, crypto, account)?;
+    let control = load_current_control(db, crypto, account, generation)?;
     require_active(&control)?;
     let revision: Option<i64> = db
         .query_row("SELECT revision FROM requests WHERE key=?1", [key], |r| {
@@ -542,4 +573,25 @@ impl From<rusqlite::Error> for CacheError {
             _ => Self::Unavailable,
         }
     }
+}
+
+#[cfg(test)]
+mod management_tests;
+
+mod management;
+pub use management::{CacheClearReport, CacheUsage};
+fn control_aad(account: &str) -> Vec<u8> {
+    [b"ubaa.cache.control.v2\0".as_slice(), account.as_bytes()].concat()
+}
+fn load_current_control(
+    db: &Connection,
+    crypto: &Crypto,
+    account: &str,
+    generation: u64,
+) -> CacheResult<Control> {
+    let control = load_control(db, crypto, account)?;
+    if control.generation != generation {
+        return Err(CacheError::Superseded);
+    }
+    Ok(control)
 }

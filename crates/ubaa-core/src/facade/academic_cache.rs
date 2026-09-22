@@ -52,6 +52,9 @@ impl UbaaClient {
         cache: &OfflineCache,
         query: AcademicQuery,
     ) -> Result<OfflineRefresh<CachePayload>, OfflineReadError> {
+        cache
+            .check_read_generation()
+            .map_err(OfflineReadError::Cache)?;
         let cache_query = query.cache_query();
         CacheScope {
             route: ConnectionMode::Direct,
