@@ -25,6 +25,11 @@ impl Default for Pages {
 #[async_trait]
 impl HttpTransport for Pages {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if request.url.contains("/queryKczyInfoByid?")
+            && let Some(cancel) = self.cancel.lock().unwrap().take()
+        {
+            cancel.cancel();
+        }
         let flags = self.flags.load(Ordering::SeqCst);
         let term = if flags & 8 != 0 {
             "synthetic-new-term"
@@ -295,3 +300,6 @@ fn spoc_请求期间取消拒绝回写_无缓存仍核对身份并按页返回()
     drop(client);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[path = "spoc_detail.rs"]
+mod detail;

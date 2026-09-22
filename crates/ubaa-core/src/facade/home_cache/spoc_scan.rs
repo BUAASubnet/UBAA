@@ -263,15 +263,21 @@ impl UbaaClient {
         }
         Ok(plan)
     }
-    fn validate_spoc_scan(&mut self, plan: &mut SpocScan) -> Result<(), OfflineReadError> {
+    fn validate_spoc_owner(&mut self, plan: &SpocScan) -> Result<(), OfflineReadError> {
         self.guard_latest_routed().map_err(OfflineReadError::Read)?;
         let owner = self.runtime_for(plan.resolution.mode).feature_state();
-        if plan.finished
-            || plan.cancellation.0.load(Ordering::Acquire)
+        if plan.cancellation.0.load(Ordering::Acquire)
             || !Weak::ptr_eq(&Arc::downgrade(&owner), &plan.owner)
             || owner.lifecycle_generation() != plan.generation
             || self.route_generation != plan.route_generation
         {
+            return Err(OfflineReadError::Cache(CacheError::Superseded));
+        }
+        Ok(())
+    }
+    fn validate_spoc_scan(&mut self, plan: &mut SpocScan) -> Result<(), OfflineReadError> {
+        self.validate_spoc_owner(plan)?;
+        if plan.finished {
             return Err(OfflineReadError::Cache(CacheError::Superseded));
         }
         if let Some(cache) = &plan.cache {
@@ -361,3 +367,6 @@ impl UbaaClient {
         Ok(plan.batch(publication))
     }
 }
+
+mod detail;
+pub use detail::{SpocDetailScan, SpocDetailScanBatch};

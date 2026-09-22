@@ -110,3 +110,5 @@ impl BridgeClient {
 
 #[cfg(test)]
 mod tests;
+
+pub mod detail;

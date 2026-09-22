@@ -20,13 +20,18 @@ Future<FeatureReadTask?> _beginSpocRead(
   LocalAccount? expectedAccount,
 }) async {
   final selected = query ?? const FeatureQuery();
-  if (selected.view != FeatureQueryView.summary) return null;
+  if (selected.view != FeatureQueryView.summary &&
+      selected.view != FeatureQueryView.spocDetail)
+    return null;
   await _awaitOfflineScope(backend);
   final generation = backend._offlineGeneration;
   final account = expectedAccount ?? backend._offlineAccount;
   final cache = account != null && account.id == backend._offlineAccount?.id
       ? backend._offlineCache
       : null;
+  if (selected.view == FeatureQueryView.spocDetail) {
+    return _beginSpocDetailRead(backend, cache, account, selected, generation);
+  }
   try {
     final task = cache == null
         ? await backend.client.beginSpocOnline(
@@ -99,45 +104,61 @@ final class _SpocFeatureTask implements FeatureReadTask {
         batch.result.data,
         _toConnectionMode(batch.result.route.resolvedRoute),
       );
-      FeatureResult result;
-      if (cache != null && account != null) {
-        result = await _finishHomeRefresh(
-          backend,
-          cache,
-          account,
-          FeatureId.spoc,
-          query,
-          online,
-          batch.state,
-        );
-      } else {
-        final evidence = account == null
-            ? null
-            : DataEvidence(
-                accountId: account!.id,
-                origin: DataOrigin.online,
-                fetchedAt: _cacheTime(batch.state.fetchedAt.toInt()),
-                complete: batch.state.complete,
-                savedForOffline: false,
-              );
-        result = online.isEmpty && batch.state.complete
-            ? FeatureResult.empty(
-                overview: online.overview,
-                resolvedRoute: online.resolvedRoute,
-                evidence: evidence,
-              )
-            : FeatureResult.success(
-                summary: batch.state.complete ? online.summary : '部分内容尚未更新完成',
-                details: online.details,
-                overview: online.overview,
-                resolvedRoute: online.resolvedRoute,
-                evidence: evidence,
-              );
-      }
+      final result = await _finishSpocBatch(
+        backend,
+        cache,
+        account,
+        query,
+        online,
+        batch.state,
+      );
       _validate();
       return FeatureReadBatch(result, finished: batch.finished);
     } on BridgeError catch (error) {
       throw _mapError(error);
     }
   }
+}
+
+Future<FeatureResult> _finishSpocBatch(
+  BridgeBackend backend,
+  BridgeOfflineCache? cache,
+  LocalAccount? account,
+  FeatureQuery query,
+  FeatureResult online,
+  BridgeHomeRefreshState state,
+) async {
+  if (cache != null && account != null) {
+    return _finishHomeRefresh(
+      backend,
+      cache,
+      account,
+      FeatureId.spoc,
+      query,
+      online,
+      state,
+    );
+  }
+  final evidence = account == null
+      ? null
+      : DataEvidence(
+          accountId: account.id,
+          origin: DataOrigin.online,
+          fetchedAt: _cacheTime(state.fetchedAt.toInt()),
+          complete: state.complete,
+          savedForOffline: false,
+        );
+  return online.isEmpty && state.complete
+      ? FeatureResult.empty(
+          overview: online.overview,
+          resolvedRoute: online.resolvedRoute,
+          evidence: evidence,
+        )
+      : FeatureResult.success(
+          summary: state.complete ? online.summary : '部分内容尚未更新完成',
+          details: online.details,
+          overview: online.overview,
+          resolvedRoute: online.resolvedRoute,
+          evidence: evidence,
+        );
 }

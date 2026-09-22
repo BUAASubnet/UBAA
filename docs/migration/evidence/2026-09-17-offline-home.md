@@ -11,17 +11,17 @@
 | 类别 | 当前结论 |
 |---|---|
 | 合同 | 已归档旧暂停合同，建立新 P0–P5 合同 |
-| 实现/确定性 | Core统一加密缓存schema v5、Bridge v30；本地首页、立即恢复、前台退避、写后失效、希冀与SPOC首页分段已接线。最近完整Flutter 999项；P2-L根门禁通过 |
+| 实现/确定性 | Core统一加密缓存schema v5、Bridge v31；本地首页、立即恢复、前台退避、写后失效、希冀及SPOC首页/单详情分段已接线。最近完整Flutter 1002项；P2-M根门禁通过 |
 | 原生合成 | macOS新FFI/投影/调度通过；P4-U有三场景可见合成媒体。多数集成运行有前台化警告，不能计作独立可见窗口 |
 | 多端构建 | P2-H候选OHOS无签名debug HAP/arm64门禁通过；六端设备运行仍不完整 |
-| Core-live | P2-L候选Direct/WebVPN各40PASS，两路线退出0；本次WebVPN有作业详情目标。旧聚合与App新分段分别记账 |
-| 真实App只读 | P2-L候选：独立会话/原生安全材料/真实Bridge/共享宿主，两路线缓存先显示且恢复后五来源完整成功，含新SPOC分段接线，业务写入0；历史P5-A保留 |
+| Core-live | P2-L全领域Direct/WebVPN各40PASS；P2-M针对SPOC与认证两路线各6PASS，分别1.006s/1.551s。旧聚合与App新分段分别记账 |
+| 真实App只读 | P2-L候选：独立会话/原生安全材料/真实Bridge/共享宿主，两路线缓存先显示且恢复后五来源完整成功，含新SPOC分段接线，业务写入0；P2-M另有原生生产Adapter/FFI单详情双路线只读与缓存重开证据，不冒充完整页面交互；历史P5-A保留 |
 | 性能 | P2-L仅单次debug宿主装配观察：缓存Direct595ms/WebVPN598ms，全部更新85.082s/95.802s；不含进程启动，不是30次冷启动统计，不声明目标达成 |
 | 发布 | 不在本轮授权范围，无发布证明 |
 
 ## 当前步骤
 
-P2-L真实App新SPOC首页分段只读证据收尾；继续实施SPOC单详情与评教长读取边界，并审查剩余精确查询/批量持久覆盖、其他长聚合的安全分段及客户端失效恢复，再完成15场景矩阵与手机/平板/macOS至少30次进程冷启动测量。各阶段细节按下文时间顺序保存，早期“未接线”仅表示当时状态。
+P2-M的SPOC首页/单详情分段已通过阶段门禁及双路线只读；继续实施评教长读取边界，并审查剩余精确查询/批量持久覆盖、其他长聚合的安全分段及客户端失效恢复，再完成15场景矩阵与手机/平板/macOS至少30次进程冷启动测量。各阶段细节按下文时间顺序保存，早期“未接线”仅表示当时状态。
 
 ## P0-A：所需路线恢复与存储可行性
 
@@ -712,3 +712,14 @@ Core 协议沿 P2-K 三操作，新 Bridge beginSpocScan/beginSpocOnline/nextSpo
 真实App宿主装配计时：Direct shell 591 ms、缓存 595 ms、恢复 RPC 602 ms、希冀首批 5682 ms、全部完成 85082 ms；WebVPN 对应 593/598/606/6690/95802 ms。五来源成功完整，课表2/签到2/SPOC6/希冀73/阳光11条，其他7领域未触发，缓存119条/内容466780字节。数量相同不证明正文一致。两路线真实提交均0；当前真实 SPOC 集合只有6项，不将此样本说成多页学校数据覆盖，分页边界由脱敏两页测试证明。
 
 仓库外私有归档 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2l` 包含8份安全日志与变更源码摘要，目录0700/文件0600；index.json SHA256 `c8fb9d34df475c44019dab5957a71c4b848dd9abad0a2e2818c5ebf80d53235c`。不含截图、凭据、会话副本或真实正文。新会话及上下文元数据保持仓库外私有，测试清理了其独立 Keychain 前缀。正常 macOS main 已重新构建，构建/产物权限日志另为 `/tmp/ubaa-p2l-main-build.log` 与 `/tmp/ubaa-p2l-artifact.log`。未启动正常入口连接原配置。
+
+
+## P2-M：SPOC 单详情前置分段（2026-09-22）
+
+基点 605b1917。来源核对沿原当前列表三操作及单详情双步骤，不借另一冻结来源省略全局目标核实。Core RED `/tmp/ubaa-p2m-red.log` 为新 facade 尚不存在；App RED `/tmp/ubaa-p2m-app-red.log` 为详情 beginFeatureRead 仍返回 null。最小实现复用 P2-K 列表前置，最后有界正文/可选补充批次不再扫全列表；旧 CLI 全量语义不变。独立详情票据、原客户端弱标识/会话/路线代次、取消和退出/清理在前置完成后仍校验。部分失败保留旧完整详情与原时间，无缓存不宣称持久保存。
+
+Core 聚焦 `/tmp/ubaa-p2m-green-final.log` 11 项通过，其中新增4项覆盖前置2页和一次正文、必需目标核实、部分补充保旧、无缓存、前置结束后失效及正文在途取消。App `/tmp/ubaa-p2m-app-green.log` 10 项通过，包括新增3项详情等待/精确目标/部分保旧/迟到拒绝及原首页调度回归。Bridge v31 新 opaque 详情任务与生成绑定已接线，codegen 零漂移；`/tmp/ubaa-p2m-check.log` 退出0，Core两配置各302、facade92、Bridge136通过/2既有忽略、CLI端到端16项通过，fmt/clippy、Shell/构建/文档及layout门禁通过。`/tmp/ubaa-p2m-flutter-final.log` 1002项（57/66/480/284/22/39/54）与静态分析通过；初轮新增验收测试一处 if 缺花括号被分析器拒绝，补齐后完整复跑。`/tmp/ubaa-p2m-native.log` macOS真实FFI缺会话/缓存生命周期与脱敏生产Adapter调度共3项通过；foreground仍提示1，非独立可见窗口验收。
+
+新私有会话下 SPOC Core-live 两路线各6 PASS（认证3、列表/诊断/详情3），Direct累计1.006s、WebVPN1.551s，实际集合6项/1页；不是再次全领域门禁。新增原生生产 Bridge/Adapter 实时详情测试两路线各1项通过：前置3批后同一真实目标详情取得347ms/698ms，重新打开backend和数据库后读到同目标完整副本且无资格/动作，第二backend缓存读取不恢复认证。该计时从详情任务开始，不含进程启动，也非整个UI导航。随机缓存密钥仅本次进程内持有并清零，不作为Keychain跨进程测试；持久Keychain证据仍沿P5-A/P2-L。
+
+日志与变更源码摘要归档于仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2m`（0700/0600），index.json SHA256 `6d5a1c37a6759540fb9d226e0107e257a8cc0cae38926c5cfb614512256a0feb`；不含正文、账号、密钥或会话副本，真实业务写入0。普通main已重建，产物权限检查另见 `/tmp/ubaa-p2m-main-build.log` 与 `/tmp/ubaa-p2m-artifact.log`，未启动正常入口连接源配置。

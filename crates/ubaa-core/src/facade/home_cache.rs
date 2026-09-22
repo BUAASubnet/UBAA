@@ -15,7 +15,9 @@ pub enum HomeQuery {
 mod spoc;
 mod spoc_scan;
 mod ygdk;
-pub use spoc_scan::{SpocScan, SpocScanBatch, SpocScanCancellation};
+pub use spoc_scan::{
+    SpocDetailScan, SpocDetailScanBatch, SpocScan, SpocScanBatch, SpocScanCancellation,
+};
 
 impl HomeQuery {
     fn cache_query(&self, now: i64) -> super::CacheResult<CacheQuery> {
@@ -103,6 +105,9 @@ impl UbaaClient {
     ) -> Result<HomeRefresh, OfflineReadError> {
         if matches!(query, HomeQuery::SpocAssignments) {
             return self.refresh_spoc_scan(cache).await;
+        }
+        if let HomeQuery::SpocDetail { assignment_id } = &query {
+            return self.refresh_spoc_detail_scan(cache, assignment_id).await;
         }
         cache
             .check_read_generation()

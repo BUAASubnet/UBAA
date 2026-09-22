@@ -14,6 +14,7 @@ import 'offline_cgyy.dart';
 import 'offline_evaluation.dart';
 import 'offline_home.dart';
 import 'offline_home/spoc_scan.dart';
+import 'offline_home/spoc_scan/detail.dart';
 import 'offline_libbook.dart';
 import 'offline_profile.dart';
 import 'offline_ygdk.dart';
@@ -125,6 +126,24 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeScheduleImportTask> beginScheduleImport({
     required BridgeOfflineCache cache,
     required String term,
+  });
+
+  /// 本地密钥不可用时仍核对本机身份，不退回长时间占锁的聚合入口。
+  ///
+  /// # Errors
+  /// 无效目标、身份、所需会话或写意图冲突拒绝创建计划。
+  Future<BridgeSpocDetailScan> beginSpocDetailOnline({
+    String? expectedIdentity,
+    required String assignmentId,
+  });
+
+  /// 建立精确作业的持久详情计划，前置读取分段推进。
+  ///
+  /// # Errors
+  /// 目标、身份、已退出仓库与待确认写意图失败保持稳定分类。
+  Future<BridgeSpocDetailScan> beginSpocDetailScan({
+    required BridgeOfflineCache cache,
+    required String assignmentId,
   });
 
   /// 缺缓存密钥也能按本机账号核对并逐页读取，不复制认证材料。
@@ -509,6 +528,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 取消、退出、路线/会话变化、学校读取或当前写活动冲突时返回稳定错误。
   Future<BridgeScheduleImportProgress> nextScheduleImport({
     required BridgeScheduleImportTask task,
+  });
+
+  /// 一次完成单个前置或最终正文/提交状态补充；返回后释放原客户端锁。
+  ///
+  /// # Errors
+  /// 取消、身份/路线失效、学校异常或写意图冲突拒绝继续。
+  Future<BridgeSpocDetailScanBatch> nextSpocDetailScan({
+    required BridgeSpocDetailScan task,
   });
 
   /// 一次完成当前学期、课程补充或单页读取，返回后不持原客户端锁。

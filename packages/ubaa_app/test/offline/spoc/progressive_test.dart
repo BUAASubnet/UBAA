@@ -8,9 +8,9 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 
 const account = LocalAccount(id: 'synthetic', username: 'fixture-user');
 void main() {
-  final api = _Api();
+  final api = SpocCacheApi();
   setUpAll(() => RustLib.initMock(api: api));
-  setUp(() => api.cache = _Cache());
+  setUp(() => api.cache = SpocCache());
   test('SPOC 首页无缓存也创建逐页任务，不落回旧长聚合', () async {
     final client = SpocClient();
     final backend = BridgeBackend(client);
@@ -93,19 +93,9 @@ void main() {
       ),
     );
   });
-  test('开始任务时账号变化也取消迟到句柄，详情继续独立精确入口', () async {
+  test('开始任务时账号变化也取消迟到句柄', () async {
     final client = SpocClient()..beginGate = Completer<BridgeSpocScan>();
     final backend = BridgeBackend(client);
-    expect(
-      await backend.beginFeatureRead(
-        FeatureId.spoc,
-        const FeatureQuery(
-          view: FeatureQueryView.spocDetail,
-          assignmentId: 'a1',
-        ),
-      ),
-      isNull,
-    );
     final pending = backend.beginFeatureRead(FeatureId.spoc, null);
     await Future<void>.delayed(Duration.zero);
     await backend.deactivateOfflineAccount();
@@ -137,8 +127,8 @@ BridgeCachedHomeSpoc saved(String term) => BridgeCachedHomeSpoc(
   complete: true,
 );
 
-class _Api implements RustLibApi {
-  _Cache cache = _Cache();
+class SpocCacheApi implements RustLibApi {
+  SpocCache cache = SpocCache();
   @override
   Future<BridgeOfflineCache> crateApiOfflineBridgeOfflineCacheOpen({
     required String configDir,
@@ -150,8 +140,14 @@ class _Api implements RustLibApi {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _Cache implements BridgeOfflineCache {
+class SpocCache implements BridgeOfflineCache {
   BridgeCachedHomeSpoc? value;
+  BridgeCachedHomeSpocDetail? detailValue;
+  @override
+  Future<BridgeCachedHomeSpocDetail?> readHomeSpocDetail({
+    required BridgeConnectionMode route,
+    required String assignmentId,
+  }) async => detailValue;
   @override
   Future<void> activate() async {}
   @override
@@ -174,6 +170,52 @@ class _Task implements BridgeSpocScan {
 }
 
 class SpocClient implements BridgeClient {
+  final detailTask = SpocDetailTask();
+  int detailCalls = 0;
+  bool wrongDetail = false;
+  String? requestedAssignment;
+  Completer<BridgeSpocDetailScanBatch>? detailGate;
+  @override
+  Future<BridgeSpocDetailScan> beginSpocDetailOnline({
+    String? expectedIdentity,
+    required String assignmentId,
+  }) async {
+    this.expectedIdentity = expectedIdentity;
+    requestedAssignment = assignmentId;
+    return detailTask;
+  }
+
+  @override
+  Future<BridgeSpocDetailScan> beginSpocDetailScan({
+    required BridgeOfflineCache cache,
+    required String assignmentId,
+  }) async {
+    persistent = true;
+    requestedAssignment = assignmentId;
+    return detailTask;
+  }
+
+  @override
+  Future<BridgeSpocDetailScanBatch> nextSpocDetailScan({
+    required BridgeSpocDetailScan task,
+  }) async => detailGate?.future ?? detailBatch(detailCalls++ > 0);
+  BridgeSpocDetailScanBatch detailBatch(bool finished) =>
+      BridgeSpocDetailScanBatch(
+        result: finished
+            ? BridgeRoutedSpocAssignmentDetail(
+                data: detailData(wrongDetail ? 'wrong' : 'a1', '新详情'),
+                route: batch(3).result.route,
+              )
+            : null,
+        state: BridgeHomeRefreshState(
+          fetchedAt: 100,
+          complete: finished && !partial,
+          savedForOffline: finished && !partial && persistent,
+          preservedPrevious: partial,
+        ),
+        completedPages: finished ? 2 : 1,
+        finished: finished,
+      );
   final task = _Task();
   int calls = 0;
   bool persistent = false, partial = false, empty = false;
@@ -181,7 +223,7 @@ class SpocClient implements BridgeClient {
   Completer<BridgeSpocScan>? beginGate;
   Completer<BridgeSpocScanBatch>? gate;
   @override
-  int contractVersion() => 30;
+  int contractVersion() => 31;
   @override
   Future<BridgeSpocScan> beginSpocOnline({String? expectedIdentity}) async {
     this.expectedIdentity = expectedIdentity;
@@ -230,3 +272,25 @@ class SpocClient implements BridgeClient {
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+class SpocDetailTask implements BridgeSpocDetailScan {
+  bool cancelled = false;
+  @override
+  void cancel() {
+    cancelled = true;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+BridgeSpocAssignmentDetail detailData(String id, String title) =>
+    BridgeSpocAssignmentDetail(
+      assignmentId: id,
+      courseId: 'c1',
+      courseName: '合成课程',
+      title: title,
+      submissionStatus: BridgeSpocSubmissionStatus.unsubmitted,
+      submissionStatusText: '未提交',
+      contentPlainText: '合成正文',
+    );

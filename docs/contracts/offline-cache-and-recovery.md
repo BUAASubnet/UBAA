@@ -418,3 +418,5 @@ P4-AD已经接入学校单次提交后的关联失效：结果与本地缓存故
 缓存查询新增 `SpocSelection`、`SpocTerm { term }`、`SpocPage { term, page, size:15 }`，沿 schema v5 的加密范围与数据库结构，无明文降级。旧无学期 `SpocAssignments` 记录不推断为当前选择；保留文件内容供原精确查询兼容。首页通过最后有效选择指针读取学期聚合，展示时保留来源学期和原取得时间。新学期部分失败不把旧集合改名成新学期；完整成功才切换完整指针。页缓存独立保存，不从历史残页拼出完整集合。
 
 新观察路径检查明确回显的 pageNum/pageSize 及行 xnxq，错配为 UpstreamChanged；缺分页元数据记部分，不借 DTO 默认值判定完整。保留原 hasNextPage/pages/空页停止边界；自相矛盾、重复作业 ID 或后续空页不能清空旧完整集合。学校失败终止当前计划，不跳页。取得时间从当前学期成功观察开始，不能在最后一页将旧首批数据刷新成新时间。`finished`、`complete`、`publication` 与 `save_error` 分别说明遍历结束、覆盖完整、本次保存与本地故障；前两步 completed_pages=0，宿主应保留原内容而非发布空集合。无缓存扫描 publication 为空，不宣称可离线。
+
+单详情新增 `begin_spoc_detail_scan(cache?, expected_identity?, assignment_id)` / `next_spoc_detail_scan`：前置复用上述分段列表，详情自身有从开始登记的独立 `SpocDetail { assignment_id }` 票据。前置结束时仍返回无详情批次；下一批只读取该已核实目标的必需正文和可选提交状态。列表不完整或可选补充失败时保留旧完整详情；缺目标不请求正文。取消、同目标较新请求、退出/清理在列表完成后仍有效，迟到正文不能入库。没有新学期/课程查询参数；详情 ID 合同沿已冻结上游。取得时间保留列表前置最早观察，不能把较早的课程/状态补充标成最终请求时间。宿主前置阶段保持原详情页面，直到合法同 ID 结果返回。

@@ -71,6 +71,14 @@ class _Client extends fixtures.SpocClient {
   _Client(this.events);
   final List<String> events;
   @override
+  Future<BridgeSpocDetailScanBatch> nextSpocDetailScan({
+    required BridgeSpocDetailScan task,
+  }) async {
+    if (detailCalls > 0) events.add('详情');
+    return super.nextSpocDetailScan(task: task);
+  }
+
+  @override
   Future<BridgeSpocScanBatch> nextSpocScan({
     required BridgeSpocScan task,
   }) async {

@@ -22,7 +22,9 @@ pub use parser::{
 };
 
 pub(super) use crate::internal::route_state::SpocCredential;
-pub(crate) use detail::{get_assignment_detail, get_assignment_detail_observed};
+pub(crate) use detail::{
+    get_assignment_detail, get_assignment_detail_for_base, get_assignment_detail_observed,
+};
 pub(crate) use list::{get_assignments, get_assignments_diagnostics, get_assignments_observed};
 
 #[cfg(test)]

@@ -48,7 +48,10 @@ fn page(number: u32) -> ExpectedRequest {
         },
     )
 }
-async fn setup(root: &std::path::Path) -> (BridgeClient, BridgeOfflineCache, MockTransport) {
+async fn setup(
+    root: &std::path::Path,
+    detail: bool,
+) -> (BridgeClient, BridgeOfflineCache, MockTransport) {
     let bridge = BridgeClient::open(root.to_string_lossy().into()).unwrap();
     let store = FileSessionStore::new(root).unwrap();
     store
@@ -59,7 +62,7 @@ async fn setup(root: &std::path::Path) -> (BridgeClient, BridgeOfflineCache, Moc
             last_activity: 1001,
         })
         .unwrap();
-    let transport = MockTransport::new([
+    let mut expected = vec![
         status(),
         bootstrap(),
         response(
@@ -80,7 +83,22 @@ async fn setup(root: &std::path::Path) -> (BridgeClient, BridgeOfflineCache, Moc
         page(1),
         status(),
         page(2),
-    ]);
+    ];
+    if detail {
+        expected.extend([
+            response(
+                HttpMethod::Get,
+                "https://spoc.buaa.edu.cn/spocnewht/kczy/queryKczyInfoByid?id=a1",
+                include_str!("../../../../../../fixtures/readonly/spoc-detail.json"),
+            ),
+            response(
+                HttpMethod::Get,
+                "https://spoc.buaa.edu.cn/spocnewht/kczy/queryXsSubmitKczyInfo?kczyid=a1",
+                r#"{"code":200,"content":null}"#,
+            ),
+        ]);
+    }
+    let transport = MockTransport::new(expected);
     *bridge.inner.lock().await = Some(
         core::UbaaClient::with_routing(
             transport.clone(),
@@ -109,7 +127,7 @@ async fn spoc_生产共享锁在页间可用_确认写意图阻止推进_缓存�
             std::process::id()
         ));
         let _ = std::fs::remove_dir_all(&root);
-        let (bridge, cache, transport) = setup(&root).await;
+        let (bridge, cache, transport) = setup(&root, false).await;
         let task = if persistent {
             bridge.begin_spoc_scan(&cache).await.unwrap()
         } else {
@@ -171,6 +189,76 @@ async fn spoc_生产共享锁在页间可用_确认写意图阻止推进_缓存�
             bridge.next_spoc_scan(&task).await.unwrap_err().code,
             BridgeErrorCode::ClientDisposed
         );
+        drop(cache);
+        let _ = std::fs::remove_dir_all(root);
+    }
+}
+
+#[tokio::test]
+async fn spoc_详情前置释放共享锁_写意图期间不读取正文_完成后按目标保存() {
+    for persistent in [true, false] {
+        let root = std::env::temp_dir().join(format!(
+            "ubaa-spoc-detail-bridge-{}-{persistent}",
+            std::process::id()
+        ));
+        let _ = std::fs::remove_dir_all(&root);
+        let (bridge, cache, transport) = setup(&root, true).await;
+        let task = if persistent {
+            bridge
+                .begin_spoc_detail_scan(&cache, "a1".into())
+                .await
+                .unwrap()
+        } else {
+            bridge
+                .begin_spoc_detail_online(Some("fixture-user".into()), "a1".into())
+                .await
+                .unwrap()
+        };
+        for _ in 0..3 {
+            let batch = bridge.next_spoc_detail_scan(&task).await.unwrap();
+            assert!(batch.result.is_none());
+            assert!(!batch.finished);
+        }
+        tokio::time::timeout(
+            std::time::Duration::from_secs(1),
+            bridge.recover_required_session(BridgeRecoveryFeature::Schedule),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        let indexed = bridge.next_spoc_detail_scan(&task).await.unwrap();
+        assert_eq!(indexed.completed_pages, 2);
+        assert!(indexed.result.is_none());
+        bridge.write_intents.lock().await.insert(
+            "synthetic".into(),
+            PendingEntry {
+                request: PendingWrite::BykcSelect(BridgeBykcCourseRequest { course_id: 1 }),
+                expires_at: i64::MAX,
+                resolved_route: BridgeConnectionMode::Direct,
+                conflict_key: "synthetic".into(),
+            },
+        );
+        let before = transport.requests().unwrap().len();
+        assert_eq!(
+            bridge.next_spoc_detail_scan(&task).await.unwrap_err().code,
+            BridgeErrorCode::OperationConflict
+        );
+        assert_eq!(transport.requests().unwrap().len(), before);
+        bridge.write_intents.lock().await.clear();
+        let last = bridge.next_spoc_detail_scan(&task).await.unwrap();
+        assert!(last.finished && last.state.complete);
+        assert_eq!(last.result.unwrap().data.assignment_id, "a1");
+        assert_eq!(last.state.saved_for_offline, persistent);
+        assert_eq!(
+            cache
+                .read_home_spoc_detail(BridgeConnectionMode::Direct, "a1".into())
+                .await
+                .unwrap()
+                .is_some(),
+            persistent
+        );
+        transport.assert_exhausted().unwrap();
+        bridge.dispose().await.unwrap();
         drop(cache);
         let _ = std::fs::remove_dir_all(root);
     }
