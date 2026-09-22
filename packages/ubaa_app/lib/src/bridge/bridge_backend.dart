@@ -12,6 +12,7 @@ import '../write/cgyy_validation.dart';
 import '../write/ygdk_validation.dart';
 
 part 'common.dart';
+part 'profile/cache.dart';
 part 'offline.dart';
 part 'recovery.dart';
 part 'read/academic.dart';
@@ -42,7 +43,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 23;
+const _supportedBridgeContractVersion = 24;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -70,6 +71,7 @@ class BridgeBackend
         RouteSettingsBackend,
         RequiredSessionBackend,
         OfflineCacheBackend,
+        ProfileCacheBackend,
         OfflineQueryBackend,
         ProgressiveReadBackend,
         BackendLifecycle {
@@ -158,6 +160,12 @@ class BridgeBackend
 
   @override
   Future<UserSummary?> userInfo() => _userInfo(this);
+  @override
+  Future<OfflineProfileRead> readCachedProfile(RoutePolicy policy) =>
+      _readCachedProfile(this, policy);
+  @override
+  Future<ProfileRefresh> refreshProfile({required LocalAccount account}) =>
+      _refreshProfile(this, account);
 
   @override
   Future<void> prepareLogin(RoutePolicy policy) => _prepareLogin(this, policy);

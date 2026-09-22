@@ -1,6 +1,7 @@
 import 'package:meta/meta.dart';
 
 import 'route.dart';
+import '../feature/data_evidence.dart';
 
 @immutable
 class LoginInput {
@@ -31,6 +32,10 @@ class UserSummary {
     this.email,
     this.phone,
     this.idCardTypeName,
+    this.accountScope,
+    this.profileEvidence,
+    this.profileRoute,
+    this.profileNotice,
   });
 
   final String username;
@@ -40,6 +45,13 @@ class UserSummary {
   final String? email;
   final String? phone;
   final String? idCardTypeName;
+
+  /// 仅资料展示的来源；不改变认证资格或账号归属。
+  /// 本机展示归属的opaque别名，不是学校账号或认证依据。
+  final String? accountScope;
+  final DataEvidence? profileEvidence;
+  final ConnectionMode? profileRoute;
+  final String? profileNotice;
 
   String get preferredName => displayName == null || displayName!.trim().isEmpty
       ? username

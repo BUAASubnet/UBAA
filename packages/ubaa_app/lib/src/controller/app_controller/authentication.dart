@@ -175,6 +175,7 @@ extension _AppControllerAuthentication on AppController {
       if (_error == null) _automaticCredentialBlocked = false;
       _sessionRecoveryStatus = SessionRecoveryStatus.ready;
       _setPhase(AppPhase.home);
+      unawaited(_queueProfileRefresh(force: true));
       await _recordAppOpen();
       if (current()) unawaited(refreshHome());
     } on Object catch (error, stackTrace) {

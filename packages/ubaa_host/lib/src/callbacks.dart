@@ -118,7 +118,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onConsumeGradeNotice: _gradeWatch.consumeNotice,
       themeMode: _themeMode,
       onThemeModeChanged: _setThemeMode,
-      user: _controller.user,
+      user: _controller.displayUser,
       snapshots: _controller.snapshots,
       homeSnapshots: _controller.homeSnapshots,
       onLoadHomeSupplement: (source, force) =>

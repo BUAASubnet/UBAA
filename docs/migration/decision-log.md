@@ -1441,3 +1441,10 @@ P4-P当前live边界：WebVPN旧RouteClient只读40项通过；Direct希冀聚�
 接受设计要求资料最小化且遮罩。选择仅存账号、姓名、学校标识的遮罩，联系方式与证件信息仍限在线原资料接口；完整资料不因缓存接线扩散到磁盘。UC状态和userinfo响应分别核对真实身份，遮罩值不参与匹配。普通认证失效可以继续看旧缓存，响应身份不符必须关闭该账号缓存，二者不混同。独立源仅有status，无userinfo DTO，不能类推新增字段或selfTimestamp查询。原User路由与CLI保持。
 
 P4-Q审查补充：userinfo八字段原本可空，code0/data{}不是另一账号的证据。新增RED确认缺身份被误判IdentityMismatch，现区分缺失和明确不匹配：前者UpstreamChanged保留缓存，后者关闭缓存；状态与资料两个位置均覆盖，旧在线parser不改变。
+
+
+## 离线首页 P4-R：展示副本不替代身份，页面归属不使用遮罩文本（2026-09-22）
+
+直接把缓存UserSummary交给原壳层会因masked username变化被误判换账号；RED复现自动离开个人页。增加本机opaque accountScope仅控制展示生命周期，认证user及提醒/写流程继续原身份。资料从独立本地通道恢复，完整在线资料只更新displayUser。后台任务使用已有调度器并合并；Core明确身份冲突错误按accountMismatch标志处理，不伪装普通资料失败。
+
+资料缓存不能成为在线读取的必要条件：密钥/存储缺失的RED原返回unsupported，现通过既有userInfo读并显式核对安全索引身份，明确未保存，不降级明文。迟到磁盘错误不得覆盖已成功在线资料；退出第一条同步通知隐藏展示，均有单独行为RED。

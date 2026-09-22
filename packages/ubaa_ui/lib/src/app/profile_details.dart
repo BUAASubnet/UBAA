@@ -21,6 +21,11 @@ class _ProfileIdentityCardState extends State<_ProfileIdentityCard> {
   Widget build(BuildContext context) {
     final user = widget.user;
     final name = _nonBlank(user?.preferredName) ?? '未登录';
+    final source = switch (user?.profileRoute) {
+      ConnectionMode.direct => 'Direct',
+      ConnectionMode.webvpn => 'WebVPN',
+      null => '来源未定',
+    };
     return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -34,6 +39,17 @@ class _ProfileIdentityCardState extends State<_ProfileIdentityCard> {
             title: Text(name),
             subtitle: Text(user?.username ?? ''),
           ),
+          if (user?.profileEvidence case final evidence?)
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Text(
+                evidence.origin == DataOrigin.persisted
+                    ? '资料上次保存 ${_savedScheduleTime(evidence.fetchedAt)} · $source，连接后核对更新'
+                    : '资料更新于 ${_savedScheduleTime(evidence.fetchedAt)} · $source',
+              ),
+            ),
+          if (user?.profileNotice case final notice?)
+            Padding(padding: const EdgeInsets.all(16), child: Text(notice)),
           if (user != null) ...[
             Align(
               alignment: Alignment.centerLeft,

@@ -16,6 +16,7 @@ import 'api/offline_cgyy.dart';
 import 'api/offline_evaluation.dart';
 import 'api/offline_home.dart';
 import 'api/offline_libbook.dart';
+import 'api/offline_profile.dart';
 import 'api/offline_ygdk.dart';
 import 'api/read.dart';
 import 'api/recovery.dart';
@@ -279,6 +280,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedLibBookSeatsRecord
   dco_decode_box_autoadd_bridge_cached_lib_book_seats_record(dynamic raw);
+
+  @protected
+  BridgeCachedProfile dco_decode_box_autoadd_bridge_cached_profile(dynamic raw);
 
   @protected
   BridgeCachedToday dco_decode_box_autoadd_bridge_cached_today(dynamic raw);
@@ -676,6 +680,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedProfile dco_decode_bridge_cached_profile(dynamic raw);
+
+  @protected
   BridgeCachedSigninClass dco_decode_bridge_cached_signin_class(dynamic raw);
 
   @protected
@@ -1016,10 +1023,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeLoginReadiness dco_decode_bridge_login_readiness(dynamic raw);
 
   @protected
+  BridgeMaskedProfile dco_decode_bridge_masked_profile(dynamic raw);
+
+  @protected
   BridgeNetworkState dco_decode_bridge_network_state(dynamic raw);
 
   @protected
   BridgePhotoUpload dco_decode_bridge_photo_upload(dynamic raw);
+
+  @protected
+  BridgeProfileRefresh dco_decode_bridge_profile_refresh(dynamic raw);
 
   @protected
   BridgeRecoveryFeature dco_decode_bridge_recovery_feature(dynamic raw);
@@ -1620,6 +1633,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_opt_box_autoadd_bridge_cached_lib_book_seats_record(dynamic raw);
 
   @protected
+  BridgeCachedProfile? dco_decode_opt_box_autoadd_bridge_cached_profile(
+    dynamic raw,
+  );
+
+  @protected
   BridgeCachedToday? dco_decode_opt_box_autoadd_bridge_cached_today(
     dynamic raw,
   );
@@ -1981,6 +1999,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCachedLibBookSeatsRecord
   sse_decode_box_autoadd_bridge_cached_lib_book_seats_record(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedProfile sse_decode_box_autoadd_bridge_cached_profile(
     SseDeserializer deserializer,
   );
 
@@ -2474,6 +2497,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedProfile sse_decode_bridge_cached_profile(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedSigninClass sse_decode_bridge_cached_signin_class(
     SseDeserializer deserializer,
   );
@@ -2918,12 +2946,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeMaskedProfile sse_decode_bridge_masked_profile(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeNetworkState sse_decode_bridge_network_state(
     SseDeserializer deserializer,
   );
 
   @protected
   BridgePhotoUpload sse_decode_bridge_photo_upload(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeProfileRefresh sse_decode_bridge_profile_refresh(
     SseDeserializer deserializer,
   );
 
@@ -3698,6 +3736,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedProfile? sse_decode_opt_box_autoadd_bridge_cached_profile(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedToday? sse_decode_opt_box_autoadd_bridge_cached_today(
     SseDeserializer deserializer,
   );
@@ -4108,6 +4151,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_cached_lib_book_seats_record(
     BridgeCachedLibBookSeatsRecord self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_profile(
+    BridgeCachedProfile self,
     SseSerializer serializer,
   );
 
@@ -4688,6 +4737,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_cached_profile(
+    BridgeCachedProfile self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_cached_signin_class(
     BridgeCachedSigninClass self,
     SseSerializer serializer,
@@ -5225,6 +5280,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_masked_profile(
+    BridgeMaskedProfile self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_network_state(
     BridgeNetworkState self,
     SseSerializer serializer,
@@ -5233,6 +5294,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_photo_upload(
     BridgePhotoUpload self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_profile_refresh(
+    BridgeProfileRefresh self,
     SseSerializer serializer,
   );
 
@@ -6148,6 +6215,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_cached_lib_book_seats_record(
     BridgeCachedLibBookSeatsRecord? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_profile(
+    BridgeCachedProfile? self,
     SseSerializer serializer,
   );
 

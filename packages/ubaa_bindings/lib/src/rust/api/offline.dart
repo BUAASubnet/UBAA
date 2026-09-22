@@ -11,6 +11,7 @@ import 'offline_cgyy.dart';
 import 'offline_evaluation.dart';
 import 'offline_home.dart';
 import 'offline_libbook.dart';
+import 'offline_profile.dart';
 import 'offline_ygdk.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
@@ -307,6 +308,14 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
     required String day,
     required String startTime,
     required String endTime,
+  });
+
+  /// 仅本地遮罩资料，不等待网络锁。
+  ///
+  /// # Errors
+  /// 损坏、退出或本地存储失败保持稳定错误。
+  Future<BridgeCachedProfile?> readProfile({
+    required BridgeConnectionMode route,
   });
 
   /// 仅按指定来源读取校园今日缓存，不获取网络客户端锁。

@@ -292,3 +292,14 @@ MaskedProfile按账号库及实际Direct/WebVPN路线保存，不保留完整用
 refresh_cached_profile沿原User路线矩阵解析一次，复用该resolution核对UC状态身份，建立读取票据后沿原userinfo接口获取资料，再次核对实际响应身份。只存遮罩投影，在线返回仍为原完整UserProfile；保存失败单独报告。可选字段缺失是原DTO允许的成功结果，清除对应旧遮罩；请求失败不清空旧快照。401沿原会话失效语义但保留离线内容；身份全缺失返回UpstreamChanged并保留缓存，明确身份不符才关闭缓存，退出/替代票据拒绝迟到发布。read_profile独立于网络锁，仅返回明确来源和保存时间。
 
 旧get_user_info、CLI和双路线认证未改；没有新HTTP字段、参数、加密常量、路由回退或会话复制。新增具名CachePayload不改变既有schema1的编码。此阶段Core-only，离线侧栏/个人页与认证成功后的资料刷新接线仍待Bridge/App阶段，不能把遮罩资料当完整资料展示。
+
+
+## P4-R 资料 Bridge/App 与个人页
+
+Bridge v24增加read_profile和user_info_cached。磁盘DTO只有maskedUsername/Name/SchoolId、实际来源、取得时间和完整度，不能携带原身份/联系人/证件。新增缓存恢复受pending写意图保护；原userInfo不改为恢复入口。App ProfileCacheBackend分别返回CachedProfile和ProfileRefresh，后者显式接收安全索引中的LocalAccount用于归属核对。缓存/密钥不可用时沿原userInfo在线读取并核对返回身份，savedForOffline=false，不建立明文副本。
+
+Controller的user保持认证来源；displayUser是宿主只用于呈现的副本。遮罩值不写入user、凭据、账号索引、提醒归属或WriteCoordinator。磁盘恢复与首页来源独立，不等待认证或首帧；同代次已获得在线资料后，迟到磁盘内容和错误都不得覆盖；手动登录原userInfo的已核实结果亦受保护，原接口未给路线时不补造来源。认证成功后以现有ReadScheduler.background补全资料，同账号/实例/生命期/策略的在途任务合并；成功后5分钟内重复恢复不重复资料请求，失败不推进成功时间。前后台、待确认/提交写状态沿调度器暂停规则。
+
+个人页显示实际资料来源、保存/更新时间和固定安全失败提示；无缓存时仍可显示在线资料，保存失败明确说明。缓存不含联系人，不能显示邮箱/手机原文按钮；完整在线资料沿原本地展开和联系人默认隐藏。UserSummary.accountScope仅为本机opaque展示归属，使遮罩账号切换到同账号在线姓名时不清空导航；不是学校身份。真实换账号、退出与Core明确CacheIdentityMismatch仍关闭旧展示；退出首个同步通知即隐藏资料。
+
+Controller、账号、路线和实例代次阻止迟到更新；资料缺身份/普通网络/本地损坏只保留页面，明确身份冲突按既有拒绝账号流程处理。此接线不改变学校写前读取、prepare/确认/commit/回读，也没有把用户资料任务当作长业务读取的抢占实现。

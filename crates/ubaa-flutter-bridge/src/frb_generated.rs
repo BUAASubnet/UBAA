@@ -43,7 +43,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1705914378;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -181321460;
 
 // Section: executor
 
@@ -5839,6 +5839,79 @@ fn wire__crate__api__client__BridgeClient_user_info_impl(
         },
     )
 }
+fn wire__crate__api__client__BridgeClient_user_info_cached_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeClient_user_info_cached",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeClient>,
+            >>::sse_decode(&mut deserializer);
+            let api_cache = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeOfflineCache>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::client::BridgeError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let mut api_cache_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![
+                                    flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                        &api_that, 0, false,
+                                    ),
+                                    flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                        &api_cache, 1, false,
+                                    ),
+                                ],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                1 => {
+                                    api_cache_guard =
+                                        Some(api_cache.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let api_cache_guard = api_cache_guard.unwrap();
+                        let output_ok = crate::api::client::BridgeClient::user_info_cached(
+                            &*api_that_guard,
+                            &*api_cache_guard,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__client__BridgeClient_ygdk_overview_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -8398,6 +8471,67 @@ fn wire__crate__api__offline__BridgeOfflineCache_read_libbook_seats_impl(
         },
     )
 }
+fn wire__crate__api__offline__BridgeOfflineCache_read_profile_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeOfflineCache_read_profile",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeOfflineCache>,
+            >>::sse_decode(&mut deserializer);
+            let api_route =
+                <crate::api::client::BridgeConnectionMode>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::client::BridgeError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::offline::BridgeOfflineCache::read_profile(
+                            &*api_that_guard,
+                            api_route,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__offline__BridgeOfflineCache_read_today_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -10129,6 +10263,24 @@ impl SseDecode for crate::api::offline_libbook::BridgeCachedLibBookSeatsRecord {
     }
 }
 
+impl SseDecode for crate::api::offline_profile::BridgeCachedProfile {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_data =
+            <crate::api::offline_profile::BridgeMaskedProfile>::sse_decode(deserializer);
+        let mut var_sourceRoute =
+            <crate::api::client::BridgeConnectionMode>::sse_decode(deserializer);
+        let mut var_fetchedAt = <i64>::sse_decode(deserializer);
+        let mut var_complete = <bool>::sse_decode(deserializer);
+        return crate::api::offline_profile::BridgeCachedProfile {
+            data: var_data,
+            source_route: var_sourceRoute,
+            fetched_at: var_fetchedAt,
+            complete: var_complete,
+        };
+    }
+}
+
 impl SseDecode for crate::api::offline_home::BridgeCachedSigninClass {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -11745,6 +11897,20 @@ impl SseDecode for crate::api::client::BridgeLoginReadiness {
     }
 }
 
+impl SseDecode for crate::api::offline_profile::BridgeMaskedProfile {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_maskedUsername = <Option<String>>::sse_decode(deserializer);
+        let mut var_maskedName = <Option<String>>::sse_decode(deserializer);
+        let mut var_maskedSchoolId = <Option<String>>::sse_decode(deserializer);
+        return crate::api::offline_profile::BridgeMaskedProfile {
+            masked_username: var_maskedUsername,
+            masked_name: var_maskedName,
+            masked_school_id: var_maskedSchoolId,
+        };
+    }
+}
+
 impl SseDecode for crate::api::client::BridgeNetworkState {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -11768,6 +11934,25 @@ impl SseDecode for crate::api::write::BridgePhotoUpload {
             bytes: var_bytes,
             file_name: var_fileName,
             mime_type: var_mimeType,
+        };
+    }
+}
+
+impl SseDecode for crate::api::offline_profile::BridgeProfileRefresh {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_data = <crate::api::client::BridgeUserProfile>::sse_decode(deserializer);
+        let mut var_route = <crate::api::client::BridgeRouteDecision>::sse_decode(deserializer);
+        let mut var_fetchedAt = <i64>::sse_decode(deserializer);
+        let mut var_savedForOffline = <bool>::sse_decode(deserializer);
+        let mut var_saveError =
+            <Option<crate::api::offline::BridgeCacheFailure>>::sse_decode(deserializer);
+        return crate::api::offline_profile::BridgeProfileRefresh {
+            data: var_data,
+            route: var_route,
+            fetched_at: var_fetchedAt,
+            saved_for_offline: var_savedForOffline,
+            save_error: var_saveError,
         };
     }
 }
@@ -13990,6 +14175,19 @@ impl SseDecode for Option<crate::api::offline_libbook::BridgeCachedLibBookSeatsR
     }
 }
 
+impl SseDecode for Option<crate::api::offline_profile::BridgeCachedProfile> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::api::offline_profile::BridgeCachedProfile>::sse_decode(deserializer),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::api::offline::BridgeCachedToday> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -14765,265 +14963,277 @@ fn pde_ffi_dispatcher_primary_impl(
         89 => {
             wire__crate__api__client__BridgeClient_user_info_impl(port, ptr, rust_vec_len, data_len)
         }
-        90 => wire__crate__api__client__BridgeClient_ygdk_overview_impl(
+        90 => wire__crate__api__client__BridgeClient_user_info_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        91 => wire__crate__api__client__BridgeClient_ygdk_overview_on_route_impl(
+        91 => wire__crate__api__client__BridgeClient_ygdk_overview_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        92 => wire__crate__api__client__BridgeClient_ygdk_records_impl(
+        92 => wire__crate__api__client__BridgeClient_ygdk_overview_on_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        93 => wire__crate__api__client__BridgeClient_ygdk_records_cached_impl(
+        93 => wire__crate__api__client__BridgeClient_ygdk_records_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        94 => wire__crate__api__client__BridgeClient_ygdk_records_for_overview_cached_impl(
+        94 => wire__crate__api__client__BridgeClient_ygdk_records_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        95 => wire__crate__api__client__BridgeClient_ygdk_records_on_route_impl(
+        95 => wire__crate__api__client__BridgeClient_ygdk_records_for_overview_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        98 => wire__crate__api__judge_scan__BridgeJudgeScan_courses_impl(
+        96 => wire__crate__api__client__BridgeClient_ygdk_records_on_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        99 => wire__crate__api__offline__BridgeOfflineCache_activate_impl(
+        99 => wire__crate__api__judge_scan__BridgeJudgeScan_courses_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        100 => wire__crate__api__offline__BridgeOfflineCache_clear_impl(
+        100 => wire__crate__api__offline__BridgeOfflineCache_activate_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        101 => wire__crate__api__offline__BridgeOfflineCache_deactivate_impl(
+        101 => wire__crate__api__offline__BridgeOfflineCache_clear_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        102 => wire__crate__api__offline__BridgeOfflineCache_open_impl(
+        102 => wire__crate__api__offline__BridgeOfflineCache_deactivate_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        103 => wire__crate__api__offline__BridgeOfflineCache_read_academic_classrooms_impl(
+        103 => wire__crate__api__offline__BridgeOfflineCache_open_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        104 => wire__crate__api__offline__BridgeOfflineCache_read_academic_exams_impl(
+        104 => wire__crate__api__offline__BridgeOfflineCache_read_academic_classrooms_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        105 => wire__crate__api__offline__BridgeOfflineCache_read_academic_grades_impl(
+        105 => wire__crate__api__offline__BridgeOfflineCache_read_academic_exams_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        106 => wire__crate__api__offline__BridgeOfflineCache_read_academic_terms_impl(
+        106 => wire__crate__api__offline__BridgeOfflineCache_read_academic_grades_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        107 => wire__crate__api__offline__BridgeOfflineCache_read_academic_week_impl(
+        107 => wire__crate__api__offline__BridgeOfflineCache_read_academic_terms_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        108 => wire__crate__api__offline__BridgeOfflineCache_read_academic_weeks_impl(
+        108 => wire__crate__api__offline__BridgeOfflineCache_read_academic_week_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        109 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_chosen_impl(
+        109 => wire__crate__api__offline__BridgeOfflineCache_read_academic_weeks_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        110 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_courses_impl(
+        110 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_chosen_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        111 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_detail_impl(
+        111 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_courses_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        112 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_profile_impl(
+        112 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        113 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_statistics_impl(
+        113 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_profile_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        114 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_day_impl(
+        114 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_statistics_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        115 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_detail_impl(
+        115 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_day_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        116 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_orders_impl(
+        116 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        117 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_purposes_impl(
+        117 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_orders_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        118 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_sites_impl(
+        118 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_purposes_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        119 => wire__crate__api__offline__BridgeOfflineCache_read_evaluation_impl(
+        119 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_sites_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        120 => wire__crate__api__offline__BridgeOfflineCache_read_home_signin_impl(
+        120 => wire__crate__api__offline__BridgeOfflineCache_read_evaluation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        121 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_impl(
+        121 => wire__crate__api__offline__BridgeOfflineCache_read_home_signin_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        122 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_detail_impl(
+        122 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        123 => wire__crate__api__offline__BridgeOfflineCache_read_home_ygdk_impl(
+        123 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        124 => wire__crate__api__offline__BridgeOfflineCache_read_judge_impl(
+        124 => wire__crate__api__offline__BridgeOfflineCache_read_home_ygdk_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        125 => wire__crate__api__offline__BridgeOfflineCache_read_judge_detail_impl(
+        125 => wire__crate__api__offline__BridgeOfflineCache_read_judge_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        126 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_area_detail_impl(
+        126 => wire__crate__api__offline__BridgeOfflineCache_read_judge_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        127 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_areas_impl(
+        127 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_area_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        128 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_bookings_impl(
+        128 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_areas_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        129 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_libraries_impl(
+        129 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_bookings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        130 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_seats_impl(
+        130 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_libraries_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        131 => wire__crate__api__offline__BridgeOfflineCache_read_today_impl(
+        131 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_seats_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        132 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_impl(
+        132 => wire__crate__api__offline__BridgeOfflineCache_read_profile_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        133 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_selection_impl(
+        133 => wire__crate__api__offline__BridgeOfflineCache_read_today_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        135 => wire__crate__api__judge_refresh__bridge_judge_refresh_options_default_impl(
+        134 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        136 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        135 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_selection_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        137 => wire__crate__api__judge_refresh__bridge_judge_refresh_options_default_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        138 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -15042,15 +15252,15 @@ fn pde_ffi_dispatcher_sync_impl(
             data_len,
         ),
         66 => wire__crate__api__client__BridgeClient_open_impl(ptr, rust_vec_len, data_len),
-        96 => wire__crate__api__judge_refresh__BridgeJudgeRefreshTask_cancel_impl(
+        97 => wire__crate__api__judge_refresh__BridgeJudgeRefreshTask_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        97 => {
+        98 => {
             wire__crate__api__judge_scan__BridgeJudgeScan_cancel_impl(ptr, rust_vec_len, data_len)
         }
-        134 => wire__crate__api__simple__bridge_hello_impl(ptr, rust_vec_len, data_len),
+        136 => wire__crate__api__simple__bridge_hello_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -16821,6 +17031,29 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::offline_libbook::BridgeCached
     for crate::api::offline_libbook::BridgeCachedLibBookSeatsRecord
 {
     fn into_into_dart(self) -> crate::api::offline_libbook::BridgeCachedLibBookSeatsRecord {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::offline_profile::BridgeCachedProfile {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.data.into_into_dart().into_dart(),
+            self.source_route.into_into_dart().into_dart(),
+            self.fetched_at.into_into_dart().into_dart(),
+            self.complete.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::offline_profile::BridgeCachedProfile
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::offline_profile::BridgeCachedProfile>
+    for crate::api::offline_profile::BridgeCachedProfile
+{
+    fn into_into_dart(self) -> crate::api::offline_profile::BridgeCachedProfile {
         self
     }
 }
@@ -18955,6 +19188,28 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::client::BridgeLoginReadiness>
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::offline_profile::BridgeMaskedProfile {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.masked_username.into_into_dart().into_dart(),
+            self.masked_name.into_into_dart().into_dart(),
+            self.masked_school_id.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::offline_profile::BridgeMaskedProfile
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::offline_profile::BridgeMaskedProfile>
+    for crate::api::offline_profile::BridgeMaskedProfile
+{
+    fn into_into_dart(self) -> crate::api::offline_profile::BridgeMaskedProfile {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::client::BridgeNetworkState {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         match self {
@@ -18995,6 +19250,30 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::write::BridgePhotoUpload>
     for crate::api::write::BridgePhotoUpload
 {
     fn into_into_dart(self) -> crate::api::write::BridgePhotoUpload {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::offline_profile::BridgeProfileRefresh {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.data.into_into_dart().into_dart(),
+            self.route.into_into_dart().into_dart(),
+            self.fetched_at.into_into_dart().into_dart(),
+            self.saved_for_offline.into_into_dart().into_dart(),
+            self.save_error.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::offline_profile::BridgeProfileRefresh
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::offline_profile::BridgeProfileRefresh>
+    for crate::api::offline_profile::BridgeProfileRefresh
+{
+    fn into_into_dart(self) -> crate::api::offline_profile::BridgeProfileRefresh {
         self
     }
 }
@@ -21431,6 +21710,16 @@ impl SseEncode for crate::api::offline_libbook::BridgeCachedLibBookSeatsRecord {
     }
 }
 
+impl SseEncode for crate::api::offline_profile::BridgeCachedProfile {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::offline_profile::BridgeMaskedProfile>::sse_encode(self.data, serializer);
+        <crate::api::client::BridgeConnectionMode>::sse_encode(self.source_route, serializer);
+        <i64>::sse_encode(self.fetched_at, serializer);
+        <bool>::sse_encode(self.complete, serializer);
+    }
+}
+
 impl SseEncode for crate::api::offline_home::BridgeCachedSigninClass {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -22522,6 +22811,15 @@ impl SseEncode for crate::api::client::BridgeLoginReadiness {
     }
 }
 
+impl SseEncode for crate::api::offline_profile::BridgeMaskedProfile {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<String>>::sse_encode(self.masked_username, serializer);
+        <Option<String>>::sse_encode(self.masked_name, serializer);
+        <Option<String>>::sse_encode(self.masked_school_id, serializer);
+    }
+}
+
 impl SseEncode for crate::api::client::BridgeNetworkState {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -22545,6 +22843,17 @@ impl SseEncode for crate::api::write::BridgePhotoUpload {
         <Vec<u8>>::sse_encode(self.bytes, serializer);
         <String>::sse_encode(self.file_name, serializer);
         <String>::sse_encode(self.mime_type, serializer);
+    }
+}
+
+impl SseEncode for crate::api::offline_profile::BridgeProfileRefresh {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::client::BridgeUserProfile>::sse_encode(self.data, serializer);
+        <crate::api::client::BridgeRouteDecision>::sse_encode(self.route, serializer);
+        <i64>::sse_encode(self.fetched_at, serializer);
+        <bool>::sse_encode(self.saved_for_offline, serializer);
+        <Option<crate::api::offline::BridgeCacheFailure>>::sse_encode(self.save_error, serializer);
     }
 }
 
@@ -24182,6 +24491,16 @@ impl SseEncode for Option<crate::api::offline_libbook::BridgeCachedLibBookSeatsR
             <crate::api::offline_libbook::BridgeCachedLibBookSeatsRecord>::sse_encode(
                 value, serializer,
             );
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::offline_profile::BridgeCachedProfile> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::offline_profile::BridgeCachedProfile>::sse_encode(value, serializer);
         }
     }
 }

@@ -9,6 +9,7 @@ import '../contracts/progressive.dart';
 import 'read_scheduler.dart';
 import '../contracts/lifecycle.dart';
 import '../contracts/offline.dart';
+import '../contracts/profile.dart';
 import '../contracts/query.dart';
 import '../contracts/routing.dart';
 import '../contracts/recovery.dart';
@@ -36,6 +37,7 @@ part 'app_controller/ygdk_readback.dart';
 part 'app_controller/diagnostics.dart';
 part 'app_controller/offline_startup.dart';
 part 'app_controller/offline/cache.dart';
+part 'app_controller/offline/profile.dart';
 part 'app_controller/offline/query.dart';
 part 'app_controller/offline/read_options.dart';
 part 'app_controller/offline/resume.dart';
@@ -188,6 +190,13 @@ class AppController extends ChangeNotifier {
   AppPhase _phase = AppPhase.splash;
   LoginFormState _loginForm = const LoginFormState();
   UserSummary? _user;
+  UserSummary? _profileDisplay;
+  int _profileDisplayEpoch = -1,
+      _profileRefreshedEpoch = -1,
+      _profileFailureEpoch = -1;
+  DateTime? _profileRefreshedAt;
+  RoutePolicy? _profileRefreshedPolicy;
+  _ProfileRequest? _profileRequest;
   UiError? _error;
   bool _disposed = false;
   bool _initialized = false;
@@ -226,6 +235,17 @@ class AppController extends ChangeNotifier {
   AppPhase get phase => _phase;
   LoginFormState get loginForm => _loginForm;
   UserSummary? get user => _user;
+
+  /// 宿主仅用于展示；认证、提醒归属和写入仍使用user。
+  UserSummary? get displayUser {
+    if (_isSigningOut) return null;
+    if (_phase != AppPhase.home || _user == null) return _user;
+    final account = _localAccount;
+    if (account == null) return _user;
+    if (_profileDisplay?.accountScope == account.id) return _profileDisplay;
+    return profileDisplay(_user!, null, null, accountScope: account.id);
+  }
+
   UiError? get error => _error;
   bool get telemetryEnabled => _telemetryEnabled;
   bool get credentialPersistenceAvailable => _credentialVault.isAvailable;
@@ -414,6 +434,7 @@ class AppController extends ChangeNotifier {
       _endWriteTransition();
     }
     _notify();
+    unawaited(_queueProfileRefresh(force: true));
   }
 
   Future<void> submitLogin({bool preserveHome = false}) =>
@@ -808,6 +829,8 @@ class AppController extends ChangeNotifier {
   };
 
   void _resetFeatureSnapshots({bool advanceLifecycle = true}) {
+    _profileDisplay = null;
+    _profileFailureEpoch = -1;
     _featureRecoveryStates.clear();
     _featureRecoveryErrors.clear();
     _recoveredRoute = null;

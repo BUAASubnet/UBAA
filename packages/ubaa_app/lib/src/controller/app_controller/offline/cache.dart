@@ -23,6 +23,7 @@ extension _AppControllerOfflineCache on AppController {
         key.fillRange(0, key.length, 0);
       }
       if (!current()) return;
+      unawaited(_restoreCachedProfile(backend, account, epoch));
       final projections = await offline.readCachedHome(_loginForm.routePolicy);
       if (!current()) return;
       for (final projection in projections) {

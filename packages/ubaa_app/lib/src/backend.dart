@@ -8,3 +8,5 @@ export 'contracts/write.dart';
 export 'contracts/offline.dart';
 export 'contracts/recovery.dart';
 export 'contracts/progressive.dart';
+
+export 'contracts/profile.dart';

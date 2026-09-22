@@ -180,7 +180,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   @override
   void didUpdateWidget(covariant UbaaMainShell oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.user?.username != widget.user?.username) {
+    if ((oldWidget.user?.accountScope ?? oldWidget.user?.username) !=
+        (widget.user?.accountScope ?? widget.user?.username)) {
       _accountGeneration++;
       _homeReadRoutes = {};
       _gradesReadRoutes = {};

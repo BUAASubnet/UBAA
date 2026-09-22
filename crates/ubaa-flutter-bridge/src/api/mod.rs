@@ -13,3 +13,5 @@ pub mod read;
 pub mod recovery;
 pub mod simple;
 pub mod write;
+
+pub mod offline_profile;

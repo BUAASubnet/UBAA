@@ -110,6 +110,7 @@ extension _AppControllerOfflineStartup on AppController {
       _user = profile;
       _error = null;
       _sessionRecoveryStatus = SessionRecoveryStatus.ready;
+      unawaited(_queueProfileRefresh());
       _invalidateReadPlansAfterLogin(request);
       _notify();
       if (request.refreshHomeAfter) _pendingHomeRecoveryEpoch = epoch;
@@ -177,8 +178,17 @@ extension _AppControllerOfflineStartup on AppController {
       if (_disposed || epoch != _lifecycleEpoch) return;
       _localAccount = index.account;
       _usesLocalRecovery = true;
-      if (index.account != null)
+      if (index.account != null) {
+        // 手动登录已沿原userInfo读取完整资料；不让随后开启的磁盘读取倒退展示。
+        _profileDisplay = profileDisplay(
+          _user!,
+          null,
+          null,
+          accountScope: index.account!.id,
+        );
+        _profileDisplayEpoch = epoch;
         await _restoreCachedHome(index.account!, epoch);
+      }
     } on Object catch (error, stackTrace) {
       // 在线登录成功与能否保留本机材料是两件事，保存失败不得假装未登录。
       _error = _recordFailure(

@@ -14,6 +14,56 @@ const _profile = UserSummary(
 );
 
 void main() {
+  testWidgets('相同本机归属从遮罩变为在线姓名不会重置资料路由', (tester) async {
+    final profile = ValueNotifier<UserSummary?>(
+      const UserSummary(username: 'f***r', accountScope: 'same'),
+    );
+    addTearDown(profile.dispose);
+    await _mount(tester, profile, []);
+    profile.value = const UserSummary(
+      username: 'fixture-user',
+      accountScope: 'same',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('查看账号资料'), findsOneWidget);
+  });
+
+  testWidgets('遮罩资料标注时间与路线且在线更新不退出个人页', (tester) async {
+    final profile = ValueNotifier<UserSummary?>(
+      UserSummary(
+        username: 'f***r',
+        displayName: '合***名',
+        schoolId: 'T***1',
+        accountScope: 'local-account',
+        profileRoute: ConnectionMode.webvpn,
+        profileEvidence: DataEvidence(
+          accountId: 'local-account',
+          origin: DataOrigin.persisted,
+          fetchedAt: DateTime(2026, 9, 22, 8),
+          complete: true,
+          savedForOffline: true,
+        ),
+        profileNotice: '资料暂未更新，保留上次内容',
+      ),
+    );
+    addTearDown(profile.dispose);
+    await _mount(tester, profile, []);
+    expect(find.textContaining('资料上次保存'), findsOneWidget);
+    expect(find.textContaining('WebVPN'), findsWidgets);
+    expect(find.text('资料暂未更新，保留上次内容'), findsOneWidget);
+    await _tap(tester, '查看账号资料');
+    expect(find.text('显示手机'), findsNothing);
+    expect(find.text('显示邮箱'), findsNothing);
+    profile.value = const UserSummary(
+      username: 'fixture-user',
+      accountScope: 'local-account',
+      displayName: '线上合成姓名',
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('查看账号资料'), findsOneWidget);
+    expect(find.textContaining('资料上次保存'), findsNothing);
+  });
+
   testWidgets('清除确认期间换账号，旧确认不能清除新账号', (tester) async {
     final profile = ValueNotifier<UserSummary?>(_profile);
     addTearDown(profile.dispose);

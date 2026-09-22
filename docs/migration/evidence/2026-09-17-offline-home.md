@@ -430,3 +430,22 @@ clippy指出三个私有字段同前缀；内部字段简化命名，serde/gette
 审查追加missing-red.log：空身份响应原被误认另一账号并关闭缓存。增加显式身份可用性判定后，状态或资料缺身份均返回UpstreamChanged且保留旧内容和时间，userinfo已建票据时记录失败观察。green-final.log五项通过。初轮完整check已退出0，但此语义修正后的完整门禁另行复跑，不能沿用初轮结果。
 
 最终check-final.log退出0：Core两配置各253、facade63、Bridge124通过/2既有忽略、CLI端到端16；fmt/clippy、Shell合同、layout零baseline违例、build/doc全部通过。refs固定两SHA校验通过，敏感扫描5289文件通过，diff无空白错误。原工作区ubaa2保持干净，冻结源未改。Core-only未改Bridge/Dart，未重复Flutter/原生测试；上一阶段证据不计为本阶段新测。本阶段可独立提交，下一项继续资料Bridge/App接线及既定P0–P5余项，目标未完成。
+
+
+## P4-R 资料 Bridge/App 与个人页（2026-09-22）
+
+基线6796c7de。来源补录在实现前，Bridge v24新增三字段遮罩DTO、本地读取与缓存刷新；App独立展示副本/后台调度/失败保留，个人页来源时间与稳定本机归属接线。原userinfo、认证user、提醒账号与所有学校写流程保持。
+
+RED日志前缀/tmp/ubaa-p4r-：bridge-red为新入口缺失；schema-red为生成只读DTO缺失；app-red为App接口缺失；controller-behavior-red为本地资料未展示；late-red为迟到缓存错误误标成功在线资料失败；ui-red为缺保存提示；navigation-red为遮罩变在线文本导致退出个人页；identity-red为Core明确accountMismatch被当普通错误保留展示；nocache-behavior-red为缓存不可用阻断在线资料；logout-red为退出首条同步通知仍返回旧资料。错误目录下执行Flutter的未加载结果不作为行为RED，已从实际package目录重跑。
+
+聚焦GREEN覆盖独立网络锁/路线/退出及pending写意图、Bridge schema白名单、资料实际路线/时间、原接口分流、控制器独立身份与首帧恢复后自动刷新、晚到/失败/退出/前后台/待确认操作保护、同次去重、个人页路线位置与联系人默认隐藏。完整门禁和原生结果待收尾记录，不将此确定性结果冒充真实App或性能。
+
+初轮just check在生成libubaa_flutter_bridge.a时因磁盘不足退出101；当时仅约248MiB空闲。确认没有运行中的cargo/rustc后，只删除本隔离区Git忽略的target/debug/incremental，未动源工作区、会话、冻结材料或验收媒体，恢复约8.5GiB空闲。最终复跑使用CARGO_INCREMENTAL=0限制该可重建缓存增长；这不是修改产品存储或放宽门禁。
+
+收尾审查追加manual-red.log：手动登录的原userInfo已取得新资料，随后开启的缓存却把展示倒退为旧遮罩。修正为保留该次已核实的在线展示，缺少原路线元数据时不补造来源；app-final.log共13项通过，包含3项Bridge适配和10项控制器场景。该修正未改Core/Bridge/学校协议，Flutter最终候选完整复验另记。
+
+CARGO_INCREMENTAL=0的check-final.log退出0：Core两配置各253、facade63、Bridge125通过/2既有忽略、CLI端到端16；fmt/clippy/Shell/build/doc与layout通过。FRB v24生成零漂移（codegen-final.log）。初轮完整Flutter892项、之后895和896项分别是当时候选的通过记录，不能替代最终手动登录保护修正后的候选。
+
+最终Flutter候选flutter-final-reviewed.log退出0，57/66/397/270/21/32/54共897项及静态分析通过；手动登录保护后的layout-final零baseline违例、敏感扫描5296文件、暂存diff空白检查通过。macOS合成集成1项通过（native.log），v24实际执行新增本地空资料与缺会话缓存读取，并保持原跨句柄退出测试；仍有Failed to foreground app; open returned 1，不算实窗视觉、非空资料DTO原生渲染或真实账号业务。
+
+本阶段未进行真实学校请求/业务写入，没有新增验收媒体、启动耗时或发布证据。P4-P的WebVPN40项通过、Direct希冀HTTP502仅保留其原候选证据，不扩大为本阶段新增链路通过。源工作区ubaa2仍干净。资料本地/后台接线已完成本阶段，缓存管理、精确范围补全、剩余生命周期/安全分段及多端性能继续，整体目标不标完成。

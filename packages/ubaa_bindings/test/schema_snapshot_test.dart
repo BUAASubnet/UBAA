@@ -7,6 +7,30 @@ import 'package:flutter_test/flutter_test.dart';
 /// 该测试不读取真实数据，只固定公开方法、DTO 和枚举的最小集合；完整字节漂移仍由
 /// `just flutter-codegen-check` 负责。这样生成器意外删除一个业务入口时，Dart 门禁会先失败。
 void main() {
+  test('离线资料类型不能承载完整身份或联系方式', () {
+    final source = File(
+      'lib/src/rust/api/offline_profile.dart',
+    ).readAsStringSync();
+    final body = RegExp(
+      r'class BridgeMaskedProfile \{(?<body>.*?)\n\}',
+      dotAll: true,
+    ).firstMatch(source)!.namedGroup('body')!;
+    for (final field in [
+      'username',
+      'name',
+      'schoolId',
+      'email',
+      'phone',
+      'idCardNumber',
+      'idCardTypeName',
+    ]) {
+      expect(body, isNot(contains('final String? $field;')));
+    }
+    expect(body, contains('maskedUsername'));
+    expect(body, contains('maskedName'));
+    expect(body, contains('maskedSchoolId'));
+  });
+
   test('阳光记录页使用独立时间且分类索引不冒充数据新鲜度', () {
     final source = File(
       'lib/src/rust/api/offline_ygdk.dart',
