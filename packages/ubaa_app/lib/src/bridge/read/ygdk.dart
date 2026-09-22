@@ -55,35 +55,7 @@ Future<FeatureResult> _loadYgdkFeature(
           final result = await _readYgdkHome(backend);
           YgdkHomeRecords? records;
           if (includeRecords) {
-            final page = query.page <= 0 ? 1 : query.page;
-            final size = query.size.clamp(1, 100);
-            try {
-              final response = await client.ygdkRecordsOnRoute(
-                route: result.route,
-                page: page,
-                size: size,
-              );
-              if (response.pinnedRoute != result.route) {
-                throw const BackendException(UbaaErrorCode.internalError);
-              }
-              records = YgdkHomeRecords(
-                page: response.data.page,
-                size: response.data.size,
-                total: response.data.total,
-                hasMore: response.data.hasMore,
-                content: List.unmodifiable(
-                  response.data.content.map(_ygdkRecordPresentation),
-                ),
-              );
-            } on BridgeError catch (error) {
-              // 认证失效交给原控制器；其他局部失败保留概要，不伪造空记录。
-              if (error.kind == BridgeErrorKind.authentication) rethrow;
-              records = YgdkHomeRecords(
-                page: page,
-                size: size,
-                errorCode: _typedErrorCode(error.code),
-              );
-            }
+            records = await _readYgdkHomeRecords(backend, result, query);
           }
           final projection = _mapYgdkOverviewResult(
             result.data,
@@ -100,6 +72,8 @@ Future<FeatureResult> _loadYgdkFeature(
             result.state,
           );
         case FeatureQueryView.ygdkRecords:
+          final cached = await _loadCachedYgdkRecords(backend, query);
+          if (cached != null) return cached;
           final page = query.page <= 0 ? 1 : query.page;
           final size = query.size.clamp(1, 100);
           final result = await client.ygdkRecords(page: page, size: size);

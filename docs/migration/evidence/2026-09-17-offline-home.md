@@ -400,3 +400,20 @@ RED：/tmp/ubaa-p4o-red.log为新facade不存在；partial-red.log复现缺集�
 日志短名均/tmp/ubaa-p4o-前缀。本阶段无真实学校请求/写入，没有Flutter/原生/真实性能新增证据，Bridge/App与余项继续待办。
 
 最终just check退出0（/tmp/ubaa-p4o-check.log）：Core两配置各253、facade57、Bridge123通过/2既有忽略、CLI二进制端到端16；fmt/clippy/Shell/build/doc与layout零baseline违例通过。refs固定SHA校验、暂存敏感扫描5281文件通过，diff无空白错误。Core-only未改Dart/Bridge结构，本阶段没有重复Flutter或原生测试，旧证据不充当当前通过。原始源工作区干净，下一阶段继续阳光记录Bridge/App接线及既定固定路线回读保护。
+
+
+## P4-P 阳光记录 Bridge/App 接线（2026-09-22）
+
+基线 a0aff147。实施前补来源对照，Bridge v23 复用只含图片数量的既有记录白名单；增加普通缓存读取与概览路线/分类匹配合同。原学校参数与固定路线写后双回读保持。
+
+RED：/tmp/ubaa-p4p-route-red.log 为 Core 匹配方法缺失；bridge-red.log 为本地方法缺失；schema-red.log 为新增只读类型尚未生成；app-red.log 为本地查询空投影及普通刷新仍调用旧接口；home-behavior-red.log 为首页未按概览分类读页且未调用匹配合同；ui-red.log 三项失败分别证明部分空页误报无记录、分类变化留下旧记录、首次失败未展示持久内容。初次测试夹具缺 message 和误用 const 已修正，不作为行为 RED。
+
+GREEN：Core 阳光缓存三项、Bridge 独立锁/范围/退出/pending 写保护一项；App 六项覆盖精确页、时间、部分回退、首次 Partial、概览匹配、局部失败保旧、缓存损坏保概览与固定回读分流；UI 八项包含三项新增及原内容/详情回归。短日志名均使用 /tmp/ubaa-p4p- 前缀。完整门禁及原生合成结果待本阶段收尾填写，不声称真实业务或性能通过。
+
+审查追加 local-failure-red.log：记录缓存错误原使整个概览投影为null，改为记录独立错误并保留合法统计；app-final.log六项通过。初轮完整check被Bridge测试函数139行结构限制拒绝，抽取合成播种辅助函数后clippy通过；Flutter初轮在原生测试夹具的可空client闭包静态检查失败，修正后完整复跑通过881项（57/66/384/268/20/32/54）及静态分析。FRB v23重生成零漂移（codegen-final.log）。
+
+最终 just check 退出0（check-final.log）：Core两配置各253、facade58、Bridge124通过/2既有忽略、CLI端到端16；fmt/clippy/Shell/build/doc和结构门禁通过。refs固定SHA通过，暂存敏感检查5286文件，源工作区ubaa2仍干净。macOS合成集成1项通过（native.log），实际v23绑定调用了阳光空索引/空页和两个缺会话入口；仍出现Failed to foreground app; open returned 1，不计可视实窗、非空记录渲染或真实App业务。
+
+当前候选 Core-live：用原工作区只读凭据经stdin注入独立临时会话，学校业务写入0。Direct全量24.389秒：35 PASS、2 FAIL、3 BLOCKED，失败为同一次Judge include_expired及其复用diagnostics的upstream_unavailable，current/detail/details_batch因此BLOCKED；WebVPN全量24.514秒40 PASS。有限Direct Judge复核7.079秒再次失败，安全传输元数据证明一个GET在约5.007秒返回HTTP 502、body_bytes=0（live-direct-judge.log），不推断具体学校故障位置，不改冻结URL、TLS或CLI路线。其余两路线阳光overview/records均PASS。Direct完整门禁仍受阻，不能把WebVPN成功替代Direct通过。
+
+上述时间为顺序Core-live累计完成时间，不是缓存首屏、首批、真实App或性能目标测量；验证使用既有RouteClient只读链，也不等于新增持久缓存的真实App验收。日志前缀/tmp/ubaa-p4p-，live-direct.log/live-webvpn.log仅安全摘要，复核日志仅白名单状态/字节数/耗时，无URL、正文或凭据。没有验收媒体或发布证据。本阶段接线完成，P0–P5整体仍有资料持久化、缓存管理、跨范围失效、剩余安全分段/生命周期和多端性能待办，继续执行。

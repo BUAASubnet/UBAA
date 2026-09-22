@@ -22,6 +22,13 @@ impl UbaaClient {
         feature: crate::domain::ReadonlyFeature,
     ) -> RoutedResult<AuthStatus> {
         let resolution = self.resolve_operation(Operation::Feature(feature))?;
+        self.recover_resolved_session(resolution).await
+    }
+
+    pub(super) async fn recover_resolved_session(
+        &mut self,
+        resolution: super::RouteResolution,
+    ) -> RoutedResult<AuthStatus> {
         let result = self.auth_status_route(resolution.mode).await;
         self.finish_routed(resolution, result)
     }

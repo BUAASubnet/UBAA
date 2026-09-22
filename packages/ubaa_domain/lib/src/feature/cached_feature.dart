@@ -98,6 +98,18 @@ FeatureOverview? _readonlyOverview(FeatureOverview? overview) =>
         monthTarget: value.monthTarget,
         dayCount: value.dayCount,
         goodCount: value.goodCount,
+        records: value.records == null
+            ? null
+            : YgdkHomeRecords(
+                page: value.records!.page,
+                size: value.records!.size,
+                classifyId: value.records!.classifyId,
+                evidence: value.records!.evidence,
+                content: List.unmodifiable(value.records!.content),
+                total: value.records!.total,
+                hasMore: value.records!.hasMore,
+                errorCode: value.records!.errorCode,
+              ),
       ),
       _ => null,
     };

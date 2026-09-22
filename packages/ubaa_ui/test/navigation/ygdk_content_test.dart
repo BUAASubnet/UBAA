@@ -5,6 +5,65 @@ import '../support/navigation.dart';
 import '../support/write_harness.dart';
 
 void main() {
+  testWidgets('记录部分空页不冒称没有记录并展示独立缓存时间', (tester) async {
+    await _open(
+      tester,
+      records: YgdkHomeRecords(
+        page: 1,
+        size: 20,
+        classifyId: 31,
+        evidence: DataEvidence(
+          accountId: 'synthetic',
+          origin: DataOrigin.persisted,
+          fetchedAt: DateTime(2026, 9, 20, 9, 30),
+          complete: false,
+          savedForOffline: true,
+        ),
+      ),
+    );
+    expect(find.text('暂时还没有打卡记录'), findsNothing);
+    expect(find.text('打卡记录尚未核对完整'), findsOneWidget);
+    expect(find.textContaining('记录上次保存'), findsOneWidget);
+  });
+  testWidgets('分类变化且新记录失败时清除旧分类记录', (tester) async {
+    await _open(tester);
+    expect(find.text('合成历史运动'), findsOneWidget);
+    await _open(
+      tester,
+      classifyId: 32,
+      navigate: false,
+      records: const YgdkHomeRecords(
+        page: 1,
+        size: 20,
+        classifyId: 32,
+        errorCode: UbaaErrorCode.networkError,
+      ),
+    );
+    expect(find.text('合成历史运动'), findsNothing);
+    expect(find.text('打卡记录加载失败，请重试。'), findsOneWidget);
+  });
+  testWidgets('首次记录刷新失败仍展示持久缓存中的同分类内容', (tester) async {
+    await _open(
+      tester,
+      records: YgdkHomeRecords(
+        page: 1,
+        size: 20,
+        classifyId: 31,
+        content: _records.content,
+        errorCode: UbaaErrorCode.networkError,
+        evidence: DataEvidence(
+          accountId: 'synthetic',
+          origin: DataOrigin.persisted,
+          fetchedAt: DateTime(2026, 9, 20),
+          complete: true,
+          savedForOffline: true,
+        ),
+      ),
+    );
+    expect(find.text('合成历史运动'), findsOneWidget);
+    expect(find.text('打卡记录加载失败，请重试。'), findsOneWidget);
+  });
+
   testWidgets('部分统计不显示默认零且不冒称记录加载失败', (tester) async {
     await _open(tester, partial: true);
     expect(find.text('统计尚未确认'), findsOneWidget);
@@ -98,6 +157,8 @@ Future<void> _open(
   WidgetTester tester, {
   YgdkHomeRecords records = _records,
   bool partial = false,
+  int classifyId = 31,
+  bool navigate = true,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(402, 874);
@@ -129,7 +190,7 @@ Future<void> _open(
                       termCount: 0,
                       weekCount: 0,
                       weekTarget: 3,
-                      classifyId: 31,
+                      classifyId: classifyId,
                       classifyName: '合成体育',
                       defaultItemId: 7,
                       defaultItemName: '合成运动项目',
@@ -137,7 +198,7 @@ Future<void> _open(
                     )
                   : null,
               details: id == FeatureId.ygdk
-                  ? const [
+                  ? [
                       FeatureDetail(
                         title: '合成运动项目',
                         presentation: YgdkItemPresentation(
@@ -146,7 +207,7 @@ Future<void> _open(
                         ),
                         actions: [
                           YgdkSubmitAction(
-                            classifyId: 31,
+                            classifyId: classifyId,
                             itemId: 7,
                             eligibility: ActionEligibility.allowed,
                           ),
@@ -180,5 +241,5 @@ Future<void> _open(
     ),
   );
   await tester.pumpAndSettle();
-  await openFeature(tester, FeatureId.ygdk);
+  if (navigate) await openFeature(tester, FeatureId.ygdk);
 }

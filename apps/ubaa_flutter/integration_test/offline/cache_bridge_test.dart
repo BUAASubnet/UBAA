@@ -21,7 +21,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 22);
+      expect(client.contractVersion(), 23);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -83,6 +83,42 @@ void main() {
           ),
         ),
       );
+      expect(
+        await first.readYgdkRecordsSelection(
+          route: BridgeConnectionMode.direct,
+        ),
+        isNull,
+      );
+      expect(
+        await first.readYgdkRecords(
+          route: BridgeConnectionMode.direct,
+          classifyId: 1,
+          page: 1,
+          size: 20,
+        ),
+        isNull,
+      );
+      for (final read in <Future<dynamic> Function()>[
+        () => client!.ygdkRecordsCached(cache: first!, page: 1, size: 20),
+        () => client!.ygdkRecordsForOverviewCached(
+          cache: first!,
+          route: BridgeConnectionMode.direct,
+          classifyId: 1,
+          page: 1,
+          size: 20,
+        ),
+      ]) {
+        await expectLater(
+          read(),
+          throwsA(
+            isA<BridgeError>().having(
+              (error) => error.code,
+              '合成阳光缺会话',
+              BridgeErrorCode.authenticationRequired,
+            ),
+          ),
+        );
+      }
       await _checkLibbookCache(client, first);
       expect(
         await first.readEvaluation(route: BridgeConnectionMode.direct),

@@ -11,6 +11,7 @@ import 'offline_cgyy.dart';
 import 'offline_evaluation.dart';
 import 'offline_home.dart';
 import 'offline_libbook.dart';
+import 'offline_ygdk.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 
@@ -313,6 +314,25 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   /// # Errors
   /// 已退出、损坏或存储不可用时返回稳定错误。
   Future<BridgeCachedToday?> readToday({required BridgeConnectionMode route});
+
+  /// 独立本地读取精确分类页，不请求学校服务或授予写资格。
+  ///
+  /// # Errors
+  /// 无效范围、退出或损坏返回稳定错误。
+  Future<BridgeCachedYgdkRecords?> readYgdkRecords({
+    required BridgeConnectionMode route,
+    required int classifyId,
+    required int page,
+    required int size,
+  });
+
+  /// 上次分类索引不代表数据页取得时间，宿主须另外读取精确页。
+  ///
+  /// # Errors
+  /// 缺值返回 None，退出或损坏保持稳定错误。
+  Future<BridgeCachedYgdkSelection?> readYgdkRecordsSelection({
+    required BridgeConnectionMode route,
+  });
 }
 
 /// 本地缓存故障不表示学校读取失败。

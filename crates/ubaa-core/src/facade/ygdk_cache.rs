@@ -69,13 +69,57 @@ impl UbaaClient {
         page: i32,
         size: i32,
     ) -> Result<YgdkRecordsRefresh, OfflineReadError> {
+        self.refresh_ygdk_records_scoped(cache, page, size, None)
+            .await
+    }
+
+    /// 组合概览与记录时要求本次所需路线、实际分类均与已显示概览一致。
+    ///
+    /// # Errors
+    /// 不匹配在对应业务读取前返回 Superseded；不改路由配置或旧固定路线接口。
+    pub async fn refresh_cached_ygdk_records_for_overview(
+        &mut self,
+        cache: &OfflineCache,
+        route: ConnectionMode,
+        classify_id: i32,
+        page: i32,
+        size: i32,
+    ) -> Result<YgdkRecordsRefresh, OfflineReadError> {
+        if classify_id <= 0 {
+            return Err(OfflineReadError::Cache(CacheError::InvalidInput));
+        }
+        self.refresh_ygdk_records_scoped(cache, page, size, Some((route, classify_id)))
+            .await
+    }
+
+    async fn ygdk_records_session(
+        &mut self,
+        expected: Option<ConnectionMode>,
+    ) -> Result<super::Routed<super::AuthStatus>, OfflineReadError> {
+        let resolution = self
+            .resolve_operation(super::types::Operation::Feature(ReadonlyFeature::Ygdk))
+            .map_err(OfflineReadError::Read)?;
+        if expected.is_some_and(|route| route != resolution.mode) {
+            return Err(OfflineReadError::Cache(CacheError::Superseded));
+        }
+        self.recover_resolved_session(resolution)
+            .await
+            .map_err(OfflineReadError::Read)
+    }
+
+    async fn refresh_ygdk_records_scoped(
+        &mut self,
+        cache: &OfflineCache,
+        page: i32,
+        size: i32,
+        expected: Option<(ConnectionMode, i32)>,
+    ) -> Result<YgdkRecordsRefresh, OfflineReadError> {
         if page <= 0 || size <= 0 {
             return Err(OfflineReadError::Cache(CacheError::InvalidInput));
         }
         let authenticated = self
-            .recover_required_session(ReadonlyFeature::Ygdk)
-            .await
-            .map_err(OfflineReadError::Read)?;
+            .ygdk_records_session(expected.map(|value| value.0))
+            .await?;
         let resolution = authenticated.resolution;
         if !cache.matches(&authenticated.data.user) {
             return Err(OfflineReadError::IdentityMismatch {
@@ -105,6 +149,9 @@ impl UbaaClient {
             classify_id: context.overview.classify_id,
             classify_name: context.overview.classify_name.clone(),
         };
+        if expected.is_some_and(|(_, classify_id)| classify_id != selection.classify_id) {
+            return Err(OfflineReadError::Cache(CacheError::Superseded));
+        }
         let scope = records_scope(resolution.mode, selection.classify_id, page, size);
         scope.validate().map_err(OfflineReadError::Cache)?;
         let (ticket, page_error) = begin(cache, scope.clone())?;

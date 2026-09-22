@@ -106,6 +106,13 @@ Future<CachedFeatureProjection?> _cachedHomeProjection(
               .toList(),
         ),
         _toConnectionMode(value.sourceRoute),
+        records: await _localYgdkHomeRecords(
+          cache,
+          account,
+          query,
+          value.sourceRoute,
+          data.classifyId,
+        ),
       );
       fetchedAt = value.fetchedAt.toInt();
       complete = value.complete;

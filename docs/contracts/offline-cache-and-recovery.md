@@ -272,3 +272,14 @@ read_ygdk_records_selection(route)不访问网络；宿主必须取其明确clas
 完整度要求显式list/total、无丢行、记录ID有效且不重复、集合长度不超过本页大小或总量。合法空页只替换当前键；缺集合/总量或请求失败保留原完整页。冻结第2页/5条/total=1用例存在，因此不添加(total必须大于页偏移)推断；has_more仍沿原page*size<total。当前概览可选统计失败不自动判记录页失败，二者范围不同。
 
 本阶段Core-only，Bridge/App接线待继续；宿主后续须保留原阳光提交后的caller-pinned概览/记录回读。概览按学期/周范围的补全、长上下文读取分段与性能验收仍未完成。
+
+
+## P4-P 阳光记录 Bridge/App 与概览匹配
+
+Bridge v23 增加独立本地分类索引/记录页读取和普通缓存刷新；保存成功同时要求数据页 Stored 与分类索引发布。分类索引不公开 fetchedAt，取得时间只来自记录页。两种新增恢复入口都受 pending 写意图保护，原 ygdkRecords/ygdkRecordsOnRoute、CLI 和写后固定路线双回读不变。
+
+组合概览读取使用新的 refresh_cached_ygdk_records_for_overview / ygdkRecordsForOverviewCached 合同：先解析当前所需路线，若与概览路线不符，在认证请求前返回 Superseded；复用同一解析结果恢复，再核对实际分类，不符在 getList 前拒绝。它是匹配条件，不设置 route policy，也不把旧 caller-pinned 合同改成自动恢复。没有新增学校请求参数、Cookie 或会话复制。
+
+App 单独记录查询从本地分类索引取实际分类，再读取精确页；部分刷新只保留本次实际返回分类/页/大小的旧记录及原时间，首次 Stored Partial 保持线上来源。概览组合本地读取直接使用该概览分类，不能用另一次查询的分类索引替换。YgdkHomeRecords 携带独立 classifyId 与 DataEvidence，统计和记录的时间/完整度分别展示；持久投影只复制不可写记录。
+
+UI 分类或路线切换清除旧累计记录，追加页要求范围一致；网络失败可显示同分类持久记录和失败提示，部分空页不声称没有记录，未读完整时先重新核对而不跳到下一页。记录时间提示明确第几页。唯一 WriteCoordinator 及其既定回读仍不进入新增恢复入口。

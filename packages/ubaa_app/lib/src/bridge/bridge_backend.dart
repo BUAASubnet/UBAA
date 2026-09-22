@@ -36,11 +36,13 @@ part 'read/libbook_cache/projection.dart';
 part 'read/libbook_cache/load.dart';
 part 'read/libbook_cache/local.dart';
 part 'read/ygdk.dart';
+part 'read/ygdk_cache/records.dart';
+part 'read/ygdk_cache/home.dart';
 part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 22;
+const _supportedBridgeContractVersion = 23;
 
 /// 基于 FRB opaque client 的生产后端。
 ///

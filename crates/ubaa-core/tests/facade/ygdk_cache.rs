@@ -4,6 +4,7 @@ use ubaa_core::facade::{CacheKey, CacheLimits, CachePayload, CachePublication, O
 struct CacheTransport {
     mode: Arc<AtomicUsize>,
     calls: Arc<AtomicUsize>,
+    records_calls: Arc<AtomicUsize>,
     cache_root: Arc<std::path::PathBuf>,
 }
 #[async_trait]
@@ -29,6 +30,7 @@ impl HttpTransport for CacheTransport {
             "/api/Front/Clockin/Clockin/getCount" => r#"{"code":1,"result":{"term_count":3}}"#.into(),
             "/api/Front/Clockin/Term/get" => r#"{"code":1,"result":{"term_id":7,"name":"合成学期"}}"#.into(),
             "/api/Front/Clockin/Clockin/getList" => {
+                self.records_calls.fetch_add(1, Ordering::SeqCst);
                 if mode == 6 || mode == 7 {
                     let mut repo = ubaa_core::facade::OfflineRepository::open(&self.cache_root,
                         "0123456789abcdef0123456789abcdef", CacheKey::new([4; 32]), CacheLimits::default()).unwrap();
@@ -64,6 +66,7 @@ fn setup(root: &std::path::Path) -> (UbaaClient, OfflineCache, CacheTransport) {
     let transport = CacheTransport {
         mode: Arc::new(AtomicUsize::new(0)),
         calls: Arc::new(AtomicUsize::new(0)),
+        records_calls: Arc::new(AtomicUsize::new(0)),
         cache_root: Arc::new(root.to_owned()),
     };
     let client = UbaaClient::with_routing(
@@ -223,6 +226,61 @@ fn 阳光分类索引被替代后旧请求不能发布数据页() {
         assert_eq!(current.revision, old.revision);
         assert_eq!(current.last_attempt_succeeded, old.last_attempt_succeeded);
     }
+    drop(cache);
+    drop(client);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn 阳光概览记录匹配入口在路线或分类变化时拒绝业务记录请求() {
+    let root = test_root("ygdk-overview-matching");
+    let (mut client, cache, transport) = setup(&root);
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let calls = transport.calls.load(Ordering::SeqCst);
+    assert!(
+        runtime
+            .block_on(client.refresh_cached_ygdk_records_for_overview(
+                &cache,
+                ConnectionMode::WebVpn,
+                1,
+                1,
+                20
+            ))
+            .is_err()
+    );
+    assert_eq!(transport.calls.load(Ordering::SeqCst), calls);
+    transport.mode.store(3, Ordering::SeqCst);
+    assert!(
+        runtime
+            .block_on(client.refresh_cached_ygdk_records_for_overview(
+                &cache,
+                ConnectionMode::Direct,
+                1,
+                1,
+                20
+            ))
+            .is_err()
+    );
+    assert!(
+        cache
+            .read_ygdk_records_selection(ConnectionMode::Direct)
+            .unwrap()
+            .is_none()
+    );
+    assert_eq!(transport.records_calls.load(Ordering::SeqCst), 0);
+    let result = runtime
+        .block_on(client.refresh_cached_ygdk_records_for_overview(
+            &cache,
+            ConnectionMode::Direct,
+            2,
+            1,
+            20,
+        ))
+        .unwrap();
+    assert_eq!(result.selection.classify_id, 2);
     drop(cache);
     drop(client);
     std::fs::remove_dir_all(root).unwrap();

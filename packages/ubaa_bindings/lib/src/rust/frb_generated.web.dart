@@ -16,6 +16,7 @@ import 'api/offline_cgyy.dart';
 import 'api/offline_evaluation.dart';
 import 'api/offline_home.dart';
 import 'api/offline_libbook.dart';
+import 'api/offline_ygdk.dart';
 import 'api/read.dart';
 import 'api/recovery.dart';
 import 'api/simple.dart';
@@ -281,6 +282,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCachedToday dco_decode_box_autoadd_bridge_cached_today(dynamic raw);
+
+  @protected
+  BridgeCachedYgdkRecords dco_decode_box_autoadd_bridge_cached_ygdk_records(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCachedYgdkSelection dco_decode_box_autoadd_bridge_cached_ygdk_selection(
+    dynamic raw,
+  );
 
   @protected
   BridgeCgyyCancelOrderRequest
@@ -675,6 +686,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCachedYgdkOverview dco_decode_bridge_cached_ygdk_overview(dynamic raw);
+
+  @protected
+  BridgeCachedYgdkRecords dco_decode_bridge_cached_ygdk_records(dynamic raw);
+
+  @protected
+  BridgeCachedYgdkSelection dco_decode_bridge_cached_ygdk_selection(
+    dynamic raw,
+  );
 
   @protected
   BridgeCallerPinnedCgyyOrder dco_decode_bridge_caller_pinned_cgyy_order(
@@ -1218,6 +1237,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeYgdkRecordsPage dco_decode_bridge_ygdk_records_page(dynamic raw);
 
   @protected
+  BridgeYgdkRecordsRefresh dco_decode_bridge_ygdk_records_refresh(dynamic raw);
+
+  @protected
+  BridgeYgdkRecordsSelection dco_decode_bridge_ygdk_records_selection(
+    dynamic raw,
+  );
+
+  @protected
   BridgeYgdkSubmitReceipt dco_decode_bridge_ygdk_submit_receipt(dynamic raw);
 
   @protected
@@ -1598,6 +1625,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedYgdkRecords?
+  dco_decode_opt_box_autoadd_bridge_cached_ygdk_records(dynamic raw);
+
+  @protected
+  BridgeCachedYgdkSelection?
+  dco_decode_opt_box_autoadd_bridge_cached_ygdk_selection(dynamic raw);
+
+  @protected
   BridgeCgyyCancelOrderTarget?
   dco_decode_opt_box_autoadd_bridge_cgyy_cancel_order_target(dynamic raw);
 
@@ -1951,6 +1986,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCachedToday sse_decode_box_autoadd_bridge_cached_today(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedYgdkRecords sse_decode_box_autoadd_bridge_cached_ygdk_records(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedYgdkSelection sse_decode_box_autoadd_bridge_cached_ygdk_selection(
     SseDeserializer deserializer,
   );
 
@@ -2445,6 +2490,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCachedYgdkOverview sse_decode_bridge_cached_ygdk_overview(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedYgdkRecords sse_decode_bridge_cached_ygdk_records(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedYgdkSelection sse_decode_bridge_cached_ygdk_selection(
     SseDeserializer deserializer,
   );
 
@@ -3162,6 +3217,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeYgdkRecordsRefresh sse_decode_bridge_ygdk_records_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeYgdkRecordsSelection sse_decode_bridge_ygdk_records_selection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeYgdkSubmitReceipt sse_decode_bridge_ygdk_submit_receipt(
     SseDeserializer deserializer,
   );
@@ -3638,6 +3703,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedYgdkRecords?
+  sse_decode_opt_box_autoadd_bridge_cached_ygdk_records(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCachedYgdkSelection?
+  sse_decode_opt_box_autoadd_bridge_cached_ygdk_selection(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCgyyCancelOrderTarget?
   sse_decode_opt_box_autoadd_bridge_cgyy_cancel_order_target(
     SseDeserializer deserializer,
@@ -4037,6 +4114,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_cached_today(
     BridgeCachedToday self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_ygdk_records(
+    BridgeCachedYgdkRecords self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cached_ygdk_selection(
+    BridgeCachedYgdkSelection self,
     SseSerializer serializer,
   );
 
@@ -4619,6 +4708,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_cached_ygdk_overview(
     BridgeCachedYgdkOverview self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_ygdk_records(
+    BridgeCachedYgdkRecords self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cached_ygdk_selection(
+    BridgeCachedYgdkSelection self,
     SseSerializer serializer,
   );
 
@@ -5490,6 +5591,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_ygdk_records_refresh(
+    BridgeYgdkRecordsRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ygdk_records_selection(
+    BridgeYgdkRecordsSelection self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_ygdk_submit_receipt(
     BridgeYgdkSubmitReceipt self,
     SseSerializer serializer,
@@ -6041,6 +6154,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_cached_today(
     BridgeCachedToday? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_ygdk_records(
+    BridgeCachedYgdkRecords? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_ygdk_selection(
+    BridgeCachedYgdkSelection? self,
     SseSerializer serializer,
   );
 

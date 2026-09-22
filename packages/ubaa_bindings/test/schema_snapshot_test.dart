@@ -7,6 +7,28 @@ import 'package:flutter_test/flutter_test.dart';
 /// 该测试不读取真实数据，只固定公开方法、DTO 和枚举的最小集合；完整字节漂移仍由
 /// `just flutter-codegen-check` 负责。这样生成器意外删除一个业务入口时，Dart 门禁会先失败。
 void main() {
+  test('阳光记录页使用独立时间且分类索引不冒充数据新鲜度', () {
+    final source = File(
+      'lib/src/rust/api/offline_ygdk.dart',
+    ).readAsStringSync();
+    final selector = RegExp(
+      r'class BridgeCachedYgdkSelection \{(?<body>.*?)\n\}',
+      dotAll: true,
+    ).firstMatch(source)!;
+    expect(selector.namedGroup('body'), isNot(contains('fetchedAt')));
+    expect(source, contains('class BridgeCachedYgdkRecords'));
+    expect(source, contains('classifyId'));
+    for (final forbidden in [
+      'submitTarget',
+      'submitEligibility',
+      'images',
+      'token',
+      'cookie',
+    ]) {
+      expect(source, isNot(contains(forbidden)));
+    }
+  });
+
   test('评教缓存类型仅展示课程而不公开提交材料', () {
     final source = File(
       'lib/src/rust/api/offline_evaluation.dart',

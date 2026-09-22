@@ -13,6 +13,7 @@ import 'offline_cgyy.dart';
 import 'offline_evaluation.dart';
 import 'offline_home.dart';
 import 'offline_libbook.dart';
+import 'offline_ygdk.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 import 'recovery.dart';
@@ -568,6 +569,28 @@ abstract class BridgeClient implements RustOpaqueInterface {
   });
 
   Future<BridgeRoutedYgdkRecords> ygdkRecords({
+    required int page,
+    required int size,
+  });
+
+  /// 普通记录查询按实际分类保存；待确认写意图禁止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务及账号/代次错误。
+  Future<BridgeYgdkRecordsRefresh> ygdkRecordsCached({
+    required BridgeOfflineCache cache,
+    required int page,
+    required int size,
+  });
+
+  /// 概览组合读取要求路线和分类仍匹配，不替代原caller-pinned写后回读。
+  ///
+  /// # Errors
+  /// 上下文变化返回冲突，其他错误沿原读取分类。
+  Future<BridgeYgdkRecordsRefresh> ygdkRecordsForOverviewCached({
+    required BridgeOfflineCache cache,
+    required BridgeConnectionMode route,
+    required int classifyId,
     required int page,
     required int size,
   });

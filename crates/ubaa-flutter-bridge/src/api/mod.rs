@@ -8,6 +8,7 @@ pub mod offline_cgyy;
 pub mod offline_evaluation;
 pub mod offline_home;
 pub mod offline_libbook;
+pub mod offline_ygdk;
 pub mod read;
 pub mod recovery;
 pub mod simple;

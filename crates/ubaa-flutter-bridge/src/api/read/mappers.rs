@@ -552,7 +552,7 @@ pub(crate) fn map_ygdk_overview(v: domain::YgdkOverview) -> BridgeYgdkOverview {
             .collect(),
     }
 }
-pub(super) fn map_ygdk_records(v: domain::YgdkRecordsPage) -> BridgeYgdkRecordsPage {
+pub(crate) fn map_ygdk_records(v: domain::YgdkRecordsPage) -> BridgeYgdkRecordsPage {
     BridgeYgdkRecordsPage {
         content: v
             .content

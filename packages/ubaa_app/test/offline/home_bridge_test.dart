@@ -63,7 +63,7 @@ void main() {
     expect(result.evidence!.origin, DataOrigin.online);
     expect(result.evidence!.complete, isFalse);
   });
-  test('合并旧阳光统计时仍保留本次固定路线读取的记录页', () async {
+  test('合并旧阳光统计时仍保留本次匹配合同读取的记录页', () async {
     final backend = await open(_Client());
     final result = await backend.loadFeatureQuery(
       FeatureId.ygdk,
@@ -143,6 +143,14 @@ class _Api implements RustLibApi {
 
 class _Cache implements BridgeOfflineCache {
   @override
+  Future<BridgeCachedYgdkRecords?> readYgdkRecords({
+    required BridgeConnectionMode route,
+    required int classifyId,
+    required int page,
+    required int size,
+  }) async => null;
+
+  @override
   Future<BridgeCachedCgyyOrdersRecord?> readCgyyOrders({
     required BridgeConnectionMode route,
     required int page,
@@ -215,6 +223,38 @@ class _Cache implements BridgeOfflineCache {
 
 class _Client implements BridgeClient {
   @override
+  Future<BridgeYgdkRecordsRefresh> ygdkRecordsForOverviewCached({
+    required BridgeOfflineCache cache,
+    required BridgeConnectionMode route,
+    required int classifyId,
+    required int page,
+    required int size,
+  }) async => BridgeYgdkRecordsRefresh(
+    data: BridgeYgdkRecordsPage(
+      content: [],
+      total: 0,
+      page: page,
+      size: size,
+      hasMore: false,
+    ),
+    selection: BridgeYgdkRecordsSelection(
+      classifyId: classifyId,
+      classifyName: '体育',
+    ),
+    route: const BridgeRouteDecision(
+      policy: BridgeRoutePolicy.direct,
+      resolvedRoute: BridgeConnectionMode.direct,
+      network: BridgeNetworkState.unknown,
+      initialRoute: BridgeConnectionMode.direct,
+      usedFallback: false,
+    ),
+    fetchedAt: 200,
+    complete: true,
+    savedForOffline: true,
+    preservedPrevious: false,
+  );
+
+  @override
   Future<BridgeCallerPinnedYgdkRecords> ygdkRecordsOnRoute({
     required BridgeConnectionMode route,
     required int page,
@@ -233,7 +273,7 @@ class _Client implements BridgeClient {
   int cachedSignin = 0, plainSignin = 0;
   int? termId;
   @override
-  int contractVersion() => 22;
+  int contractVersion() => 23;
   @override
   Future<BridgeHomeSigninRefresh> homeSigninCached({
     required BridgeOfflineCache cache,

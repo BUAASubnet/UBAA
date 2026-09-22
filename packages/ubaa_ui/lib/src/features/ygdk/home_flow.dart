@@ -117,12 +117,28 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
           );
         }
       }
-      if (next != null && next.errorCode == null) {
+      final sameScope =
+          _route == snapshot.resolvedRoute &&
+          _overview?.classifyId == overview.classifyId;
+      if (!sameScope) _records = [];
+      if (next?.classifyId != null && next!.classifyId != overview.classifyId) {
+        next = YgdkHomeRecords(
+          page: next.page,
+          size: next.size,
+          classifyId: overview.classifyId,
+          errorCode: UbaaErrorCode.operationConflict,
+        );
+        _records = [];
+      }
+      if (next != null &&
+          (next.errorCode == null ||
+              next.evidence?.origin == DataOrigin.persisted)) {
         final append =
             _appendPage == next.page &&
             _page?.page == next.page - 1 &&
             _page?.size == next.size &&
-            _route == snapshot.resolvedRoute;
+            sameScope &&
+            next.errorCode == null;
         _records = append ? [..._records, ...next.content] : [...next.content];
       } else if (_route != snapshot.resolvedRoute || next == null) {
         _records = [];
@@ -254,6 +270,17 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
             ),
             const SizedBox(height: 12),
             if (loading) const LinearProgressIndicator(),
+            if (_page?.evidence?.origin == DataOrigin.persisted)
+              Text(
+                '第${_page!.page}页记录上次保存 ${_savedScheduleTime(_page!.evidence!.fetchedAt)}，连接后核对更新',
+              ),
+            if (_page?.evidence?.complete == false) ...[
+              const Text('打卡记录尚未核对完整'),
+              TextButton(
+                onPressed: loading ? null : () => _load(widget.query),
+                child: const Text('重新核对记录'),
+              ),
+            ],
             if (_page?.errorCode != null || widget.snapshot.error != null) ...[
               const Text('打卡记录加载失败，请重试。'),
               TextButton(
@@ -268,6 +295,7 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
               ),
             if (_page != null &&
                 _page!.errorCode == null &&
+                _page!.evidence?.complete != false &&
                 !loading &&
                 visible.isEmpty)
               Text(filter.isEmpty ? '暂时还没有打卡记录' : '没有匹配的打卡记录'),
@@ -275,7 +303,9 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
               _YgdkRecordCard(record),
               const SizedBox(height: 12),
             ],
-            if (_page?.hasMore == true && _page?.errorCode == null)
+            if (_page?.hasMore == true &&
+                _page?.errorCode == null &&
+                _page?.evidence?.complete != false)
               OutlinedButton(
                 onPressed: loading
                     ? null

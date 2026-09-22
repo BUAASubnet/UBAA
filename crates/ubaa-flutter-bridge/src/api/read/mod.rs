@@ -703,3 +703,5 @@ pub(super) use mappers::{
 };
 
 pub(super) use evaluation::map_evaluation;
+
+pub(super) use mappers::map_ygdk_records;

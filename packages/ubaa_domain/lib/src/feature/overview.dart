@@ -1,5 +1,6 @@
 import '../common/error.dart';
 import 'presentation.dart';
+import 'data_evidence.dart';
 
 /// 只读结果的集合级统计，不从局部搜索或分页重新计算。
 sealed class FeatureOverview {
@@ -60,12 +61,18 @@ final class YgdkHomeRecords {
     this.total,
     this.hasMore,
     this.errorCode,
+    this.classifyId,
+    this.evidence,
   });
   final int page, size;
   final List<YgdkRecordPresentation> content;
   final int? total;
   final bool? hasMore;
   final UbaaErrorCode? errorCode;
+
+  /// 记录页独立于概览统计的分类与来源时间。
+  final int? classifyId;
+  final DataEvidence? evidence;
 }
 
 /// 单学期完整成绩集合，独立于已出/待出视图与本地搜索。
