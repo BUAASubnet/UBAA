@@ -1,4 +1,6 @@
 import 'package:integration_test/integration_test.dart';
+import '../../../../packages/ubaa_ui/test/academic/schedule_offline_test.dart'
+    as offline_ui;
 import '../../../../packages/ubaa_host/test/offline/schedule_import_test.dart'
     as host;
 import '../../../../packages/ubaa_ui/test/academic/schedule_import_test.dart'
@@ -9,4 +11,5 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   host.main();
   ui.main();
+  offline_ui.main();
 }

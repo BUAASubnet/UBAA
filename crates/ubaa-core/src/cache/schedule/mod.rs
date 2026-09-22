@@ -22,6 +22,8 @@ pub struct CachedSemesterSchedule {
 }
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 struct ScheduleObservations {
+    #[serde(default)]
+    terms: Option<(i64, i64)>,
     // 每项分别为实际取得时间和同一数据库内的请求修订，不能用墙钟推断先后。
     weeks: (i64, i64),
     weekly: BTreeMap<i32, (i64, i64)>,
@@ -65,7 +67,10 @@ impl CachedSemesterSchedule {
             return false;
         }
         self.observations.as_ref().is_none_or(|observations| {
-            observations.weeks.0 >= 0
+            observations
+                .terms
+                .is_none_or(|(time, revision)| time >= 0 && revision >= 0)
+                && observations.weeks.0 >= 0
                 && observations.weeks.1 >= 0
                 && observations.weekly.keys().eq(self.schedules.keys())
                 && observations
@@ -85,7 +90,21 @@ impl CachedSemesterSchedule {
         weeks: (i64, i64),
         weekly: BTreeMap<i32, (i64, i64)>,
     ) -> CacheResult<Self> {
-        self.observations = Some(ScheduleObservations { weeks, weekly });
+        self.observations = Some(ScheduleObservations {
+            terms: None,
+            weeks,
+            weekly,
+        });
+        if !self.is_valid() {
+            return Err(CacheError::InvalidInput);
+        }
+        Ok(self)
+    }
+    pub(crate) fn with_terms_observation(mut self, terms: (i64, i64)) -> CacheResult<Self> {
+        self.observations
+            .as_mut()
+            .ok_or(CacheError::InvalidInput)?
+            .terms = Some(terms);
         if !self.is_valid() {
             return Err(CacheError::InvalidInput);
         }
@@ -96,6 +115,7 @@ impl CachedSemesterSchedule {
             return (self.fetched_at, 0);
         };
         let week = match query {
+            CacheQuery::ScheduleTerms => return observations.terms.unwrap_or((self.fetched_at, 0)),
             CacheQuery::ScheduleWeeks { .. } => return observations.weeks,
             CacheQuery::ScheduleWeek { week, .. } => Some(*week),
             CacheQuery::ScheduleToday { date: requested } => date(requested)
@@ -123,23 +143,27 @@ impl CachedSemesterSchedule {
         })
     }
     fn weeks_at(&self, now: i64) -> CacheResult<Vec<Week>> {
+        let mut weeks = self.weeks.clone();
+        Self::project_week_dates(&self.term_code, &mut weeks, now)?;
+        Ok(weeks)
+    }
+    pub(crate) fn project_week_dates(term: &str, weeks: &mut [Week], now: i64) -> CacheResult<()> {
         let day = chrono::DateTime::<chrono::Utc>::from_timestamp(now, 0)
             .ok_or(CacheError::InvalidInput)?
             .with_timezone(
                 &chrono::FixedOffset::east_opt(8 * 3600).ok_or(CacheError::InvalidInput)?,
             )
             .date_naive();
-        Ok(self
-            .weeks
-            .iter()
-            .cloned()
-            .map(|mut week| {
-                week.cur_week = date(&week.start_date)
-                    .zip(date(&week.end_date))
-                    .is_some_and(|(start, end)| start <= day && day <= end);
-                week
-            })
-            .collect())
+        for week in weeks {
+            let start = normalize_date(&week.start_date).ok().and_then(|s| date(&s));
+            let end = normalize_date(&week.end_date).ok().and_then(|s| date(&s));
+            week.cur_week = week.term == term
+                && week.serial_number > 0
+                && start.zip(end).is_some_and(|(start, end)| {
+                    (0..=6).contains(&(end - start).num_days()) && start <= day && day <= end
+                });
+        }
+        Ok(())
     }
     fn first_day(&self) -> Option<NaiveDate> {
         self.weeks
@@ -312,7 +336,8 @@ impl OfflineRepository {
         scope.validate()?;
         if !matches!(
             &scope.query,
-            CacheQuery::ScheduleToday { .. }
+            CacheQuery::ScheduleTerms
+                | CacheQuery::ScheduleToday { .. }
                 | CacheQuery::ScheduleWeek { .. }
                 | CacheQuery::ScheduleWeeks { .. }
         ) {
@@ -332,6 +357,10 @@ impl OfflineRepository {
             return Err(CacheError::Corrupt);
         };
         let value = match &scope.query {
+            CacheQuery::ScheduleTerms => values.iter().max_by_key(|value| {
+                let (time, revision) = value.observation(&scope.query);
+                (revision, time)
+            }),
             CacheQuery::ScheduleWeek { term, .. } | CacheQuery::ScheduleWeeks { term } => {
                 values.iter().find(|value| value.term_code == *term)
             }
@@ -348,6 +377,7 @@ impl OfflineRepository {
             return Ok(None);
         };
         let payload = match &scope.query {
+            CacheQuery::ScheduleTerms => Some(CachePayload::Terms(value.terms.clone())),
             CacheQuery::ScheduleWeek { week, .. } => {
                 value.schedules.get(week).cloned().map(CachePayload::Week)
             }

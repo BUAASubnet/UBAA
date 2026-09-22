@@ -503,3 +503,127 @@ fn 今日精确快照缺失时仅从已覆盖的完整导入恢复() {
     drop((client, cache));
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn 完整导入可恢复学期索引_保留原取得修订且较新普通索引优先() {
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let root = test_root("import-term-index");
+    let (mut client, cache) = setup(&root, ConnectionMode::Direct, ImportTransport::default());
+    let mut repo = ubaa_core::facade::OfflineRepository::open(
+        &root,
+        "0123456789abcdef0123456789abcdef",
+        CacheKey::new([9; 32]),
+        CacheLimits::default(),
+    )
+    .unwrap();
+    runtime.block_on(async {
+        let mut plan = client.begin_schedule_import(&cache, "2025-2026-1").await.unwrap();
+        client.next_schedule_import(&mut plan).await.unwrap();
+        assert!(cache.read_academic(ConnectionMode::Direct, &ubaa_core::facade::AcademicQuery::Terms).unwrap().is_none());
+        for _ in 0..3 { client.next_schedule_import(&mut plan).await.unwrap(); }
+        let terms = cache.read_academic(ConnectionMode::Direct, &ubaa_core::facade::AcademicQuery::Terms).unwrap().expect("完整导入需提供索引退路");
+        assert!(matches!(&terms.payload, CachePayload::Terms(items) if items.iter().any(|term| term.item_code == "2025-2026-1")));
+        let mut later = client.begin_schedule_import(&cache, "2025-2026-1").await.unwrap();
+        client.next_schedule_import(&mut later).await.unwrap();
+        let ordinary = repo.begin_read(CacheScope { route: ConnectionMode::Direct, query: CacheQuery::ScheduleTerms }).unwrap();
+        repo.publish(&ordinary, CachePayload::Terms(vec![ubaa_core::facade::Term { item_code: "newer".into(), ..Default::default() }]), 1, ubaa_core::facade::CacheCompleteness::Complete).unwrap();
+        for _ in 0..3 { client.next_schedule_import(&mut later).await.unwrap(); }
+        let newer = cache.read_academic(ConnectionMode::Direct, &ubaa_core::facade::AcademicQuery::Terms).unwrap().unwrap();
+        assert_eq!(newer.fetched_at, 1);
+        assert!(matches!(newer.payload, CachePayload::Terms(items) if items[0].item_code == "newer"));
+    });
+    drop((client, cache, repo));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn 普通教学周缓存跨周重算当前周_未知日期和错学期不沿用旧标记() {
+    use ubaa_core::facade::{AcademicQuery, CacheCompleteness, OfflineRepository, Week};
+    let root = test_root("ordinary-week-current");
+    let (_, cache) = setup(&root, ConnectionMode::Direct, ImportTransport::default());
+    let mut repo = OfflineRepository::open(
+        &root,
+        "0123456789abcdef0123456789abcdef",
+        CacheKey::new([9; 32]),
+        CacheLimits::default(),
+    )
+    .unwrap();
+    let today = chrono::Utc::now()
+        .with_timezone(&chrono::FixedOffset::east_opt(8 * 3600).unwrap())
+        .date_naive();
+    let past = today - chrono::Days::new(7);
+    let weeks = vec![
+        Week {
+            term: "term".into(),
+            serial_number: 1,
+            start_date: past.to_string(),
+            end_date: past.to_string(),
+            cur_week: true,
+            ..Default::default()
+        },
+        Week {
+            term: "term".into(),
+            serial_number: 2,
+            start_date: format!("{today} 00:00:00"),
+            end_date: today.to_string(),
+            cur_week: false,
+            ..Default::default()
+        },
+        Week {
+            term: "term".into(),
+            serial_number: 3,
+            start_date: "unknown".into(),
+            cur_week: true,
+            ..Default::default()
+        },
+        Week {
+            term: "other".into(),
+            serial_number: 4,
+            start_date: today.to_string(),
+            end_date: today.to_string(),
+            cur_week: true,
+            ..Default::default()
+        },
+    ];
+    let ticket = repo
+        .begin_read(CacheScope {
+            route: ConnectionMode::Direct,
+            query: CacheQuery::ScheduleWeeks {
+                term: "term".into(),
+            },
+        })
+        .unwrap();
+    repo.publish(
+        &ticket,
+        CachePayload::Weeks(weeks),
+        100,
+        CacheCompleteness::Complete,
+    )
+    .unwrap();
+    let value = cache
+        .read_academic(
+            ConnectionMode::Direct,
+            &AcademicQuery::Weeks {
+                term: "term".into(),
+            },
+        )
+        .unwrap()
+        .unwrap();
+    assert_eq!(value.fetched_at, 100);
+    let CachePayload::Weeks(weeks) = value.payload else {
+        panic!("需要周次")
+    };
+    assert_eq!(
+        weeks
+            .iter()
+            .filter(|week| week.cur_week)
+            .map(|week| week.serial_number)
+            .collect::<Vec<_>>(),
+        [2]
+    );
+    drop((repo, cache));
+    std::fs::remove_dir_all(root).unwrap();
+}

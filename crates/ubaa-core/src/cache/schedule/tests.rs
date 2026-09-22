@@ -485,3 +485,67 @@ fn 导入投影保留单周和周次索引的实际取得时间() {
     drop(repo);
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn 导入学期索引保留原取得时间和修订_不冒充最终周完成时间() {
+    let root = root();
+    let mut repo = OfflineRepository::open(
+        &root,
+        ACCOUNT,
+        CacheKey::new([7; 32]),
+        CacheLimits::default(),
+    )
+    .unwrap();
+    let value = semester("term", "2026-09-22", "合成课程", 999)
+        .with_observations((110, 10), [(1, (120, 11))].into())
+        .unwrap()
+        .with_terms_observation((100, 9))
+        .unwrap();
+    let ticket = repo.begin_read(scope()).unwrap();
+    repo.publish_imported_semester(&ticket, value).unwrap();
+    let index = repo
+        .read_imported_schedule(ConnectionMode::Direct, CacheQuery::ScheduleTerms, 1000)
+        .unwrap()
+        .unwrap();
+    assert_eq!(index.fetched_at, 100);
+    assert_eq!(index.revision, 9);
+    assert!(matches!(index.payload, CachePayload::Terms(values) if values[0].item_code == "term"));
+    drop(repo);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn 本地当前周按校园跨日边界计算_不使用终端时区或旧布尔值() {
+    let mut weeks = vec![
+        Week {
+            term: "term".into(),
+            serial_number: 1,
+            start_date: "2026-09-07".into(),
+            end_date: "2026-09-13".into(),
+            cur_week: true,
+            ..Default::default()
+        },
+        Week {
+            term: "term".into(),
+            serial_number: 2,
+            start_date: "2026-09-14".into(),
+            end_date: "2026-09-20".into(),
+            ..Default::default()
+        },
+    ];
+    let before = chrono::DateTime::parse_from_rfc3339("2026-09-13T15:59:59Z")
+        .unwrap()
+        .timestamp();
+    CachedSemesterSchedule::project_week_dates("term", &mut weeks, before).unwrap();
+    assert_eq!(
+        weeks.iter().map(|week| week.cur_week).collect::<Vec<_>>(),
+        [true, false]
+    );
+    CachedSemesterSchedule::project_week_dates("term", &mut weeks, before + 1).unwrap();
+    assert_eq!(
+        weeks.iter().map(|week| week.cur_week).collect::<Vec<_>>(),
+        [false, true]
+    );
+    CachedSemesterSchedule::project_week_dates("term", &mut weeks, before + 8 * 86400).unwrap();
+    assert!(weeks.iter().all(|week| !week.cur_week));
+}

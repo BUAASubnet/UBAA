@@ -47,6 +47,7 @@ pub struct ScheduleImport {
     terms: Vec<Term>,
     weeks: Vec<Week>,
     schedules: BTreeMap<i32, WeeklySchedule>,
+    terms_observation: Option<(i64, i64)>,
     weeks_observation: Option<(i64, i64)>,
     observations: BTreeMap<i32, (i64, i64)>,
     stage: Stage,
@@ -54,6 +55,15 @@ pub struct ScheduleImport {
     cancellation: ScheduleImportCancellation,
 }
 impl ScheduleImport {
+    fn begin_query(&self, query: CacheQuery) -> Result<CacheReadTicket, OfflineReadError> {
+        self.cache
+            .begin(CacheScope {
+                route: self.resolution.mode,
+                query,
+            })
+            .map_err(OfflineReadError::Cache)
+    }
+
     #[must_use]
     pub fn cancellation(&self) -> ScheduleImportCancellation {
         self.cancellation.clone()
@@ -71,6 +81,9 @@ impl ScheduleImport {
                 self.weeks_observation.ok_or(CacheError::InvalidInput)?,
                 self.observations.clone(),
             )
+        })
+        .and_then(|value| {
+            value.with_terms_observation(self.terms_observation.ok_or(CacheError::InvalidInput)?)
         })
         .map_err(OfflineReadError::Cache)?;
         let saved = self
@@ -142,6 +155,7 @@ impl UbaaClient {
             terms: Vec::new(),
             weeks: Vec::new(),
             schedules: BTreeMap::new(),
+            terms_observation: None,
             weeks_observation: None,
             observations: BTreeMap::new(),
             stage: Stage::Terms,
@@ -190,6 +204,7 @@ impl UbaaClient {
             .map_err(OfflineReadError::Cache)?;
         match plan.stage {
             Stage::Terms => {
+                let ticket = plan.begin_query(CacheQuery::ScheduleTerms)?;
                 let result =
                     crate::features::schedule::get_terms(self.runtime_for(plan.resolution.mode))
                         .await;
@@ -206,19 +221,15 @@ impl UbaaClient {
                 {
                     return Err(OfflineReadError::Cache(CacheError::InvalidInput));
                 }
+                plan.terms_observation =
+                    Some((chrono::Utc::now().timestamp(), ticket.request_revision()));
                 plan.terms = result.data;
                 plan.stage = Stage::Weeks;
             }
             Stage::Weeks => {
-                let ticket = plan
-                    .cache
-                    .begin(CacheScope {
-                        route: plan.resolution.mode,
-                        query: CacheQuery::ScheduleWeeks {
-                            term: plan.term.clone(),
-                        },
-                    })
-                    .map_err(OfflineReadError::Cache)?;
+                let ticket = plan.begin_query(CacheQuery::ScheduleWeeks {
+                    term: plan.term.clone(),
+                })?;
                 let result = crate::features::schedule::get_weeks_for_import(
                     self.runtime_for(plan.resolution.mode),
                     &plan.term,
@@ -240,16 +251,10 @@ impl UbaaClient {
                     .get(plan.schedules.len())
                     .ok_or(OfflineReadError::Cache(CacheError::InvalidInput))?
                     .serial_number;
-                let ticket = plan
-                    .cache
-                    .begin(CacheScope {
-                        route: plan.resolution.mode,
-                        query: CacheQuery::ScheduleWeek {
-                            term: plan.term.clone(),
-                            week,
-                        },
-                    })
-                    .map_err(OfflineReadError::Cache)?;
+                let ticket = plan.begin_query(CacheQuery::ScheduleWeek {
+                    term: plan.term.clone(),
+                    week,
+                })?;
                 let result = crate::features::schedule::get_week_for_import(
                     self.runtime_for(plan.resolution.mode),
                     &plan.term,

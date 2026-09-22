@@ -151,27 +151,36 @@ impl OfflineCache {
         route: ConnectionMode,
         query: &AcademicQuery,
     ) -> super::CacheResult<Option<super::CacheRecord>> {
+        let now = chrono::Utc::now().timestamp();
         let current = self.read(
             &CacheScope {
                 route,
                 query: query.cache_query(),
             },
-            chrono::Utc::now().timestamp(),
+            now,
         )?;
-        if !matches!(
+        let mut selected = if matches!(
             query,
-            AcademicQuery::Week { .. } | AcademicQuery::Weeks { .. }
+            AcademicQuery::Terms | AcademicQuery::Week { .. } | AcademicQuery::Weeks { .. }
         ) {
-            return Ok(current);
+            let imported = self
+                .repository(|repo| repo.read_imported_schedule(route, query.cache_query(), now))?;
+            match (current, imported) {
+                (Some(current), Some(imported)) => Some(if imported.revision > current.revision {
+                    imported
+                } else {
+                    current
+                }),
+                (current, imported) => current.or(imported),
+            }
+        } else {
+            current
+        };
+        if let (AcademicQuery::Weeks { term }, Some(record)) = (query, &mut selected)
+            && let CachePayload::Weeks(weeks) = &mut record.payload
+        {
+            super::CachedSemesterSchedule::project_week_dates(term, weeks, now)?;
         }
-        let imported = self.read_imported_schedule(route, query.cache_query())?;
-        Ok(match (current, imported) {
-            (Some(current), Some(imported)) => Some(if imported.revision > current.revision {
-                imported
-            } else {
-                current
-            }),
-            (current, imported) => current.or(imported),
-        })
+        Ok(selected)
     }
 }

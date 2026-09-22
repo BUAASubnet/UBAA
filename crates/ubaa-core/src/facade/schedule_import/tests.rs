@@ -50,6 +50,7 @@ fn 会话清理和路线往返不能复活旧计划_计划不延长运行时寿�
             terms: Vec::new(),
             weeks: Vec::new(),
             schedules: BTreeMap::new(),
+            terms_observation: None,
             weeks_observation: None,
             observations: BTreeMap::new(),
             stage: Stage::Terms,

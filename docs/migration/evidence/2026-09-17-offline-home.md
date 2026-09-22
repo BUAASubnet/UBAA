@@ -597,3 +597,15 @@ codegen-check.log退出0，Bridge v27 FRB严格生成零漂移；layout零baseli
 完整flutter.log首次因一个ContractVersionClient仍传26失败；修正测试候选为27，flutter-final.log退出0：57/66/444/281/22/35/54共959项及分析通过。check.log首次停在五份当前版本文档未升27，已同步并重跑check-final.log。native.log首个真实FFI用例通过，第二个runner启动时调试连接失败；确认无遗留App进程后单独重跑native-retry.log，四项合成宿主/三宽度场景通过。两次原生均有Failed to foreground app，记录为原生功能测试，不能算可见实窗或真实账号App验收。没有新增媒体、学校写入或性能测量。
 
 最终check-final.log退出0：Core两配置各286、facade75、Bridge128通过/2既有忽略、CLI端到端16，fmt/clippy/Shell/build/doc和layout零baseline违例通过。暂存敏感扫描及diff通过，源工作区ubaa2仍干净。完整P0–P5继续，离线周次自动导航与日期、跨范围写后刷新、其他安全分段及多端性能尚未关闭。
+
+## P4-AB 离线课表自动导航与日期投影（2026-09-22）
+
+基线438390d8，refs通过。/tmp/ubaa-p4ab-ui-red.log两项真实失败：loading/stale中已有完整离线索引只发scheduleTerms，未继续教学周和周课表；部分索引保护先通过。修复后第一轮green仅因顶栏与周导航均显示同一周名而断言数量不符，明确验证两个既有位置，ui-final.log13项通过，含原父子返回和保存进度回归。
+
+core-red.log复现完整导入无学期索引退路及普通周缓存仍标记旧周/未知日期/错学期（[1,3,4]而非[2]）。最初测试命令误用不存在的test-support特性，修正为test-contract后保留实际RED。time-red.log缺索引独立观察方法；添加后模型测试证明索引取得时间100、逐周120和导入收尾999不混淆。固定UTC边界单测另覆盖校园午夜跨周和无覆盖日期，不依赖设备时区。Core、Flutter及原生最终门禁随后记录。
+
+cache-green.log最终14项通过（初轮私有计划测试构造缺新增可选字段，补齐后重跑）；core-final.log11项通过，含导入中途完成的较新普通学期索引优先。flutter.log完整57/66/444/284/22/35/54共962项及分析通过。native.log七项合成宿主/界面测试通过，仍有前台窗口警告，不计可见实窗、真实账号或性能。check.log因advance_schedule_import达到104/100行被clippy拒绝，抽取三处完全相同的精确查询票据申请，保持返回边界后重跑根门禁，不增allow或baseline。
+
+最终check-final.log退出0：Core两配置各288、facade77、Bridge128通过/2既有忽略、CLI端到端16，fmt/clippy/Shell/build/doc/layout通过。敏感扫描5341文件及暂存diff通过。
+
+P4-AB候选重新执行双路线Core-live，原工作区只读凭据经stdin进入新临时会话，未复制旧运行会话、未执行学校业务写入。Direct累计23.784秒：35 PASS、2 FAIL、3 BLOCKED；希冀include_expired及复用diagnostics为upstream_unavailable，current/detail/details_batch受阻。该轮未额外取得HTTP状态，不将P4-P的502当作本次直接观察。WebVPN累计25.384秒40 PASS。此标准门禁验证既有只读协议，不验证新加密导入或真实App/启动性能；Direct完整门禁仍未通过。

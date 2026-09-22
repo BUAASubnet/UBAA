@@ -97,11 +97,20 @@ class _ScheduleFlowState extends State<_ScheduleFlow> {
     if (mounted) _sync();
   });
 
+  bool get _hasSavedRead =>
+      widget.snapshot.evidence?.origin == DataOrigin.persisted &&
+      widget.snapshot.evidence?.complete == true;
+
   bool get _settled =>
-      {
-        FeatureLoadStatus.success,
-        FeatureLoadStatus.empty,
-      }.contains(widget.snapshot.status) &&
+      ({
+            FeatureLoadStatus.success,
+            FeatureLoadStatus.empty,
+          }.contains(widget.snapshot.status) ||
+          (_hasSavedRead &&
+              {
+                FeatureLoadStatus.loading,
+                FeatureLoadStatus.stale,
+              }.contains(widget.snapshot.status))) &&
       _sameQuery(widget.snapshot.readContext?.query, widget.query);
 
   void _sync() {
@@ -117,6 +126,7 @@ class _ScheduleFlowState extends State<_ScheduleFlow> {
       _weeks = FeatureResult.success(
         details: widget.snapshot.details,
         resolvedRoute: widget.snapshot.resolvedRoute,
+        evidence: widget.snapshot.evidence,
       );
     }
     if (_automatic != null && _sameQuery(_expected, widget.query) && _settled) {
@@ -218,6 +228,7 @@ class _ScheduleFlowState extends State<_ScheduleFlow> {
           FeatureLoadStatus.success,
           FeatureLoadStatus.empty,
           FeatureLoadStatus.stale,
+          if (_hasSavedRead) FeatureLoadStatus.loading,
         }.contains(widget.snapshot.status) ||
         !_sameQuery(widget.snapshot.readContext?.query, q) ||
         _weeks?.resolvedRoute == null ||
