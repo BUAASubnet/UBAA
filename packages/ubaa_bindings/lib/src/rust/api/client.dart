@@ -13,6 +13,7 @@ import 'offline_bykc.dart';
 import 'offline_cgyy.dart';
 import 'offline_evaluation.dart';
 import 'offline_home.dart';
+import 'offline_home/spoc_scan.dart';
 import 'offline_libbook.dart';
 import 'offline_profile.dart';
 import 'offline_ygdk.dart';
@@ -125,6 +126,18 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeOfflineCache cache,
     required String term,
   });
+
+  /// 缺缓存密钥也能按本机账号核对并逐页读取，不复制认证材料。
+  ///
+  /// # Errors
+  /// 原身份、会话与写意图保护仍有效。
+  Future<BridgeSpocScan> beginSpocOnline({String? expectedIdentity});
+
+  /// 缓存身份与当前会话核对后建立按页读取，不自动推进学校查询。
+  ///
+  /// # Errors
+  /// 原身份、会话、已退出仓库与待确认写意图失败保持稳定分类。
+  Future<BridgeSpocScan> beginSpocScan({required BridgeOfflineCache cache});
 
   /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
   ///
@@ -497,6 +510,12 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeScheduleImportProgress> nextScheduleImport({
     required BridgeScheduleImportTask task,
   });
+
+  /// 一次完成当前学期、课程补充或单页读取，返回后不持原客户端锁。
+  ///
+  /// # Errors
+  /// 取消、账号/路线失效、学校异常或写意图冲突拒绝继续。
+  Future<BridgeSpocScanBatch> nextSpocScan({required BridgeSpocScan task});
 
   /// 打开应用私有目录中的 Core client。
   static BridgeClient open({required String configDir}) =>

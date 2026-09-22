@@ -118,7 +118,7 @@ class _Client implements BridgeClient {
   Completer<BridgeScheduleImportProgress>? pending;
   BridgeScheduleImportProgress result = _progress();
   @override
-  int contractVersion() => 29;
+  int contractVersion() => 30;
   @override
   Future<BridgeScheduleImportTask> beginScheduleImport({
     required BridgeOfflineCache cache,

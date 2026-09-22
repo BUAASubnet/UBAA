@@ -25,6 +25,7 @@ part 'read/home_projection.dart';
 part 'read/home_cache.dart';
 part 'read/judge_progressive.dart';
 part 'read/judge/online.dart';
+part 'read/spoc/progressive.dart';
 part 'read/offline_query.dart';
 part 'read/bykc.dart';
 part 'read/bykc_projection.dart';
@@ -47,7 +48,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 29;
+const _supportedBridgeContractVersion = 30;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -229,14 +230,15 @@ class BridgeBackend
     LocalAccount account,
   ) => _withOfflineRead(
     this,
-    () => _beginJudgeRead(this, feature, query, expectedAccount: account),
+    () => _beginProgressiveRead(this, feature, query, expectedAccount: account),
   );
 
   @override
   Future<FeatureReadTask?> beginFeatureRead(
     FeatureId feature,
     FeatureQuery? query,
-  ) => _withOfflineRead(this, () => _beginJudgeRead(this, feature, query));
+  ) =>
+      _withOfflineRead(this, () => _beginProgressiveRead(this, feature, query));
 
   @override
   Future<FeatureResult> loadFeature(FeatureId feature) => _withOfflineRead(

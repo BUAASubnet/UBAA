@@ -14,6 +14,7 @@ import 'api/offline_bykc.dart';
 import 'api/offline_cgyy.dart';
 import 'api/offline_evaluation.dart';
 import 'api/offline_home.dart';
+import 'api/offline_home/spoc_scan.dart';
 import 'api/offline_libbook.dart';
 import 'api/offline_profile.dart';
 import 'api/offline_ygdk.dart';
@@ -61,6 +62,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   get rust_arc_decrement_strong_count_BridgeScheduleImportTaskPtr => wire
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeScheduleImportTaskPtr;
 
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_BridgeSpocScanPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScanPtr;
+
   @protected
   BridgeClient
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
@@ -94,6 +99,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeScheduleImportTask
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeScheduleImportTask(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeSpocScan
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
     dynamic raw,
   );
 
@@ -134,6 +145,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeSpocScan
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
+    dynamic raw,
+  );
+
+  @protected
   BridgeClient
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
     dynamic raw,
@@ -166,6 +183,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeScheduleImportTask
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeScheduleImportTask(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeSpocScan
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
     dynamic raw,
   );
 
@@ -1302,6 +1325,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeSpocAssignments dco_decode_bridge_spoc_assignments(dynamic raw);
 
   @protected
+  BridgeSpocScanBatch dco_decode_bridge_spoc_scan_batch(dynamic raw);
+
+  @protected
   BridgeSpocSubmissionStatus dco_decode_bridge_spoc_submission_status(
     dynamic raw,
   );
@@ -1880,6 +1906,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeSpocScan
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeClient
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
     SseDeserializer deserializer,
@@ -1916,6 +1948,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeSpocScan
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeClient
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
     SseDeserializer deserializer,
@@ -1948,6 +1986,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeScheduleImportTask
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeScheduleImportTask(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSpocScan
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
     SseDeserializer deserializer,
   );
 
@@ -3410,6 +3454,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeSpocScanBatch sse_decode_bridge_spoc_scan_batch(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeSpocSubmissionStatus sse_decode_bridge_spoc_submission_status(
     SseDeserializer deserializer,
   );
@@ -4137,6 +4186,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
+    BridgeSpocScan self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
     BridgeClient self,
     SseSerializer serializer,
@@ -4179,6 +4235,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
+    BridgeSpocScan self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
     BridgeClient self,
     SseSerializer serializer,
@@ -4216,6 +4279,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeScheduleImportTask(
     BridgeScheduleImportTask self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
+    BridgeSpocScan self,
     SseSerializer serializer,
   );
 
@@ -5940,6 +6010,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_spoc_scan_batch(
+    BridgeSpocScanBatch self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_spoc_submission_status(
     BridgeSpocSubmissionStatus self,
     SseSerializer serializer,
@@ -6952,5 +7028,39 @@ class RustLibWire implements BaseWire {
       );
   late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeScheduleImportTask =
       _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeScheduleImportTaskPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScanPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScanPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScanPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScanPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 }

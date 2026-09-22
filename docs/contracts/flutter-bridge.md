@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `29`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `30`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -38,7 +38,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=29` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=30` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -621,3 +621,8 @@ clearOrRebuild只供设置确认后调用，参数为私有配置目录、已核
 ## 合同 v29：无持久缓存希冀分段读取
 
 beginJudgeOnline(options)接收可选期望账号与明确目标，nextJudgeOnline(task)每次只完成一批原子选课+索引/详情后释放共享锁，仍拒绝越过待确认写意图。task.cancel仅设置取消标志，迟到返回由Core原客户端/路线/会话代次检查拒绝。BridgeJudgeOnlineProgress分列batch、渐进summaries和最早取得时间，不包含保存成功声明；旧聚合、CLI、持久刷新和双路线入口保持。
+
+
+## 合同 v30：SPOC 首页分页任务
+
+新增 beginSpocScan(cache)、beginSpocOnline(expectedIdentity?) 与 nextSpocScan(task)，两种起点共享可取消 opaque 计划。每次最多完成当前学期、课程补充或单页及原认证仲裁，完成后释放原客户端共享锁。completedPages=0 的元数据阶段不发布空集合；页批次带当前聚合投影、原取得时间、完整/结束/保存分列。缺密钥走账号约束在线计划，不宣称持久保存；待确认写意图仍拒绝开始/推进。旧聚合接口、CLI v10、业务缓存 schema v5 保持兼容。当前只接摘要，详情大读取另行完成。

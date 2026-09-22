@@ -21,7 +21,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 29);
+      expect(client.contractVersion(), 30);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -50,6 +50,16 @@ void main() {
           isA<BridgeError>().having(
             (error) => error.code,
             '无缓存新RPC保留缺会话错误',
+            BridgeErrorCode.authenticationRequired,
+          ),
+        ),
+      );
+      await expectLater(
+        client.beginSpocOnline(expectedIdentity: 'synthetic'),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.code,
+            'SPOC 分段 RPC 缺会话',
             BridgeErrorCode.authenticationRequired,
           ),
         ),

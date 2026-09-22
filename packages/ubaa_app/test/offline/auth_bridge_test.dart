@@ -49,7 +49,7 @@ class _Client implements BridgeClient {
   _Client(this.code);
   final String code;
   @override
-  int contractVersion() => 29;
+  int contractVersion() => 30;
   @override
   Future<BridgeLoginOutcome> authStatus() async => BridgeLoginOutcome(
     readiness: BridgeLoginReadiness.noneReady,

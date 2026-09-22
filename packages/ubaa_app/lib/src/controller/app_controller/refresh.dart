@@ -84,7 +84,7 @@ extension _AppControllerRefresh on AppController {
         return;
       }
     }
-    _cancelJudgeReadScopes(feature);
+    _cancelSegmentedReadScopes(feature);
     // 换学期/视图可复用完整集合；同查询表示明确刷新，继续执行原读取。
     final cachedGrades =
         feature == FeatureId.grades &&
