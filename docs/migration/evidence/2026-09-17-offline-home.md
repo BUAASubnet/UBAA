@@ -11,14 +11,17 @@
 | 类别 | 当前结论 |
 |---|---|
 | 合同 | 已归档旧暂停合同，建立新 P0–P5 合同 |
-| 实现/确定性 | 已有 Core 加密仓库、安全材料/索引和 P1-A 首页恢复；业务缓存接线仍未完成 |
-| 原生/性能 | macOS 合成安全材料原生通过、OHOS 无签名构建通过；缓存首屏指标未测 |
-| Core-live / 真实 App | 尚未运行 |
+| 实现/确定性 | Core统一加密缓存schema v5、Bridge v29；本地首页、立即恢复、前台退避、写后失效、持久/无缓存希冀分段已接线。最近完整Flutter 992项；P2-J根门禁通过 |
+| 原生合成 | macOS新FFI/投影/调度通过；P4-U有三场景可见合成媒体。多数集成运行有前台化警告，不能计作独立可见窗口 |
+| 多端构建 | P2-H候选OHOS无签名debug HAP/arm64门禁通过；六端设备运行仍不完整 |
+| Core-live | P2-J候选Direct 40PASS；WebVPN 38PASS/2不适用，两路线退出0。旧聚合的WebVPN当前作业为空，不等于新分段的真实结果为空 |
+| 真实App只读 | P5-A候选5f77d053：独立会话/原生安全材料/真实Bridge/共享宿主，两路线缓存先显示且恢复后五来源完整成功，业务写入0；详见末尾P5-A |
+| 性能 | P5-A仅单次debug宿主装配观察：缓存Direct594ms/WebVPN604ms，全部更新78.406s/105.427s；不含进程启动，不是30次冷启动统计，不声明目标达成 |
 | 发布 | 不在本轮授权范围，无发布证明 |
 
 ## 当前步骤
 
-P0：核对逐操作来源、加密存储及平台密钥能力、独立本地读取与分段认证/读取边界。已发现当前启动等待 authStatus/userInfo，前台恢复固定 rebuildBackend，安全平台通道目前仅提供凭据结构，均需明确改造而非仅隐藏加载动画。
+P5-A真实App只读功能证据收尾；继续审查剩余精确查询/批量持久覆盖、其他长聚合的安全分段及客户端失效恢复，再完成15场景矩阵与手机/平板/macOS至少30次进程冷启动测量。各阶段细节按下文时间顺序保存，早期“未接线”仅表示当时状态。
 
 ## P0-A：所需路线恢复与存储可行性
 
@@ -667,3 +670,19 @@ Bridgev29生成codegen-final.log零漂移；首轮仅FRB生成后rustfmt导入�
 最终check-final.log退出0：Core两配置各302、facade83、Bridge134通过/2既有忽略、CLI端到端16及fmt/clippy/Shell/build/doc/layout通过。首轮check.log测试函数108行，抽出请求表后修复。flutter.log退出0：57/66/470/284/22/39/54，共992项及格式/analyze通过。native.log五项macOS原生FFI/合成投影/调度通过，仍有前台化警告，不计可见实窗。refs及5369文件敏感扫描通过。
 
 双路线标准Core-live：live-direct.log退出0，40PASS，累计26.569秒；live-webvpn.log退出0，38PASS/2NOT_APPLICABLE，累计29.215秒。WebVPN旧聚合include_expired208项、current0，故单详情/批量详情没有可用当前ID而不适用；Direct对应92/9且详情/批量通过。这个差异仅为本轮白名单观察，不推断两路线业务数据本应相同或新计划已经验证。均通过原.env.local→stdin及新临时会话，无复制运行会话、无真实写入；日志无正文/凭据。新分段与加密缓存真实App、冷启动和全部更新性能仍待独立验收。
+
+## P5-A 真实App离线首页与恢复验收启动（2026-09-22）
+
+候选5f77d053。新增严格只读集成入口offline/live/startup_test.dart，真实Bridge、原生安全存储与共享宿主组合；只读backend显式拒绝任意commit。通过本轮新700目录、600路线配置及已有.env.local→stdin启动器建立独立运行会话，不复制原会话。原生安全材料使用随机本轮前缀包装真实平台传输，避免读取/改写原账号索引或凭据；结束只删除本轮写入的命名空间键。密码不传入App，NoopCredentialVault禁止测试自动提交密码。
+
+先沿真实只读入口保存课表和SPOC，再重建Bridge及宿主，人工挂起第一轮恢复以验证缓存不依赖网络；放行后观察五首页来源与分段首批，记录允许的状态/计数/路线/耗时。计时从宿主装配开始，不包含进程启动，也不是30次冷启动统计；该入口不能作为完整性能验收。静态分析通过，真实运行结果待记录。
+
+Direct真实App：seed-direct.log独立会话3认证+4课表只读PASS，1.807秒累计。app-direct.log首轮在已出现本地内容时过早断言backend恢复RPC已进入（0对1）失败；任务创建与路线设置前置读取、RPC进入是不同观察点。r2是测试闭包可空分析错误，未运行。修正验收边界并通过analyze后，app-direct-r3.log退出0：宿主装配起589ms首页、594ms课表/SPOC持久内容、601ms进入并挂起恢复RPC；挂起期间真实点击普通功能再返回主页成功。放行后五来源均success/实际Direct/complete=true：课表2、签到2、SPOC6、希冀73、阳光11；希冀首批6555ms，全部完成78406ms，117条缓存/contentBytes463931，七个未访问领域idle，业务写入0。
+
+上述为真实生产Bridge/学校只读/原生密钥/共享宿主的单次debug功能样本，测试只在恢复入口加入可控等待并禁止commit；不是纯正常main入口、独立可见窗口、进程冷启动或30次统计。窗口前台化警告仍保留。该指标不应与标准Core-live累计时间直接当同规模性能比较，标准旧聚合与新持久扫描覆盖及调度方式不同。WebVPN继续。
+
+WebVPN：seed-webvpn.log独立会话3认证+4课表只读PASS，累计1.731秒；app-webvpn.log退出0。宿主装配起首页600ms、缓存604ms、进入恢复RPC611ms；恢复挂起时入口切换成功。五来源success/实际WebVPN/complete=true，数量与本轮Direct同为2/2/6/73/11；希冀首批7059ms，全部完成105427ms，117条/contentBytes463931，业务写入0。不能仅凭数量相同断言两路线正文完全一致。
+
+私有安全日志与失败尝试索引归档到/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p5a，目录700、文件600；index.json SHA256为7f0fe70aa4f1b572cda5505ae6615bd9904aa2dc6a4f6c7fcb8c96ae56b26ca0。没有截图或会话/凭据副本。当前生产入口macOS debug已重新构建，未留集成测试runner作交付；最终门禁收尾。
+
+收尾：analyze-verified.log无问题，check.log退出0（Core两配置各302、facade83、Bridge134通过/2既有忽略、CLI端到端16及根门禁）。main-build.log正常macOS debug入口构建通过，artifact.log结构/实际签名沙箱与联网权限检查通过；refs、layout零baseline违例、5370文件敏感扫描通过。本阶段只新增验收入口及文档，Flutter生产行为未改，不重复累计P2-J的992项为新增测试。P1功能出口勾选，P0/P2/P3/P4/P5和整体目标仍未全量完成。
