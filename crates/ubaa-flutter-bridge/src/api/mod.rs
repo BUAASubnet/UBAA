@@ -15,3 +15,5 @@ pub mod simple;
 pub mod write;
 
 pub mod offline_profile;
+
+pub mod cache_management;

@@ -462,3 +462,19 @@ management-final.log六项通过：用量不解密业务行、实际文件回收
 初次用u64直接从SQLite取数编译失败，改为i64加检查转换；clippy指出首页方法101行和冗余闭包，提取原查询校验并使用方法引用后通过，未增加allow或扩大baseline。完整门禁待收尾。本阶段Core-only，未新增Flutter/原生/学校live/性能证据，设置接线与其余P0–P5继续。
 
 最终CARGO_INCREMENTAL=0 just check退出0（check.log）：Core两配置各259、facade66、Bridge125通过/2既有忽略、CLI端到端16；fmt/clippy/Shell/build/doc及layout零baseline违例通过。refs固定SHA已校验，暂存敏感扫描5299文件通过，diff无空白错误。Core-only未改Bridge形状/Dart，未重复Flutter或原生测试，旧897项Flutter与原生结果不充当本阶段新增证据。当前没有真实学校请求/写入或性能数据；Core管理能力可独立提交，Bridge/App设置、宿主清理代次、保留优先级和损坏文件重建仍继续。
+
+
+## P4-T Bridge 管理合同与 App 后端代际（2026-09-22）
+
+基线21bd104f。先记录来源边界。日志前缀/tmp/ubaa-p4t-：bridge-red.log缺usage/clearAndReopen，schema-red.log缺生成文件，schema-shape-red.log复现结果被生成为可变opaque而不是明确DTO；non_opaque修正后生成不可变新句柄与报告。app-red.log为缺失管理合同/方法，初轮测试自身枚举与错误构造笔误已先修正，最终RED仅保留待实现缺口。
+
+bridge-final.log本地清理在网络锁占用下完成1项通过；app-focused.log共12项，包括维护失败移交、事务失败保旧、排队读取失效、迟到结果拒绝、退出继任句柄、待切换账号拒绝旧确认、多步阳光概览不能用新句柄请求记录及原固定路线回读。schema与完整Flutter/原生/根门禁正在收尾。初次layout发现Bridge api目录新增第17个平铺文件，改为cache_management/mod.rs，未新增baseline。
+
+当前仅完成Bridge与backend管理边界，不冒称设置页、控制器内存清理、原生可见界面或性能验收。无学校live调用、写入或验收媒体。
+
+
+完整flutter-final.log退出0：57/66/403/270/22/32/54，共904项及静态分析通过；初轮仅因新增schema测试格式未整理而退出，格式修正后全量复验。check.log退出0：Core两配置各259、facade66、Bridge126通过/2既有忽略、CLI端到端16，以及fmt/clippy/Shell/build/doc、layout零baseline违例通过。暂存敏感扫描5304文件通过，原工作区ubaa2仍干净。
+
+native.log原生合成1项通过，实际序列化v25新句柄、读取数值报告并拒绝旧句柄；仍出现Failed to foreground app; open returned 1，因此不计为实窗渲染/真实App验收。生成复核初轮发现Rust注释新增空格造成生成注释/内容hash漂移，更新生成产物后再次执行严格一致性检查。此变动仅为注释，非业务行为。
+
+最终codegen-reviewed.log退出0，FRB v25严格生成零漂移。本阶段独立提交范围为本地管理Bridge与App backend代际保护；下一阶段接控制器及设置入口，整体P0–P5仍未完成。

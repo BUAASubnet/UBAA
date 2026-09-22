@@ -12,6 +12,7 @@ import '../write/cgyy_validation.dart';
 import '../write/ygdk_validation.dart';
 
 part 'common.dart';
+part 'cache_management/lifecycle.dart';
 part 'profile/cache.dart';
 part 'offline.dart';
 part 'recovery.dart';
@@ -43,7 +44,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 24;
+const _supportedBridgeContractVersion = 25;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -72,6 +73,7 @@ class BridgeBackend
         RequiredSessionBackend,
         OfflineCacheBackend,
         ProfileCacheBackend,
+        CacheManagementBackend,
         OfflineQueryBackend,
         ProgressiveReadBackend,
         BackendLifecycle {
@@ -94,29 +96,50 @@ class BridgeBackend
   BridgeOfflineCache? _offlineCache;
   LocalAccount? _offlineAccount;
   Future<void> _offlineTail = Future<void>.value();
+  final Object _offlineScopeKey = Object();
+  int _offlineGeneration = 0;
+  String? _offlineTargetAccountId;
+
+  @override
+  Future<CacheUsageSummary> cacheUsage({required String accountId}) =>
+      _cacheUsage(this, accountId);
+  @override
+  Future<CacheClearOutcome> clearBusinessCache({required String accountId}) =>
+      _clearBusinessCache(this, accountId);
 
   @override
   Future<void> openOfflineAccount(LocalAccount account, List<int> key) =>
       _openOfflineAccount(this, account, key);
   @override
   Future<OfflineHomeRead> readCachedHome(RoutePolicy policy) =>
-      _readCachedHome(this, policy);
+      _withOfflineRead(this, () => _readCachedHome(this, policy));
   @override
   Future<OfflineQueryRead> readCachedQuery(
     FeatureId feature,
     FeatureQuery query,
     RoutePolicy policy,
-  ) => _readCachedQuery(this, feature, query, policy);
+  ) => _withOfflineRead(
+    this,
+    () => _readCachedQuery(this, feature, query, policy),
+  );
   @override
-  Future<void> deactivateOfflineAccount() => _offlineSerial(this, () async {
-    await _offlineCache?.deactivate();
-  });
+  Future<void> deactivateOfflineAccount() {
+    _offlineGeneration++;
+    return _offlineSerial(this, () async {
+      await _offlineCache?.deactivate();
+    });
+  }
+
   @override
-  Future<void> clearOfflineAccount() => _offlineSerial(this, () async {
-    await _offlineCache?.clear();
-    _offlineCache = null;
-    _offlineAccount = null;
-  });
+  Future<void> clearOfflineAccount() {
+    _offlineGeneration++;
+    _offlineTargetAccountId = null;
+    return _offlineSerial(this, () async {
+      await _offlineCache?.clear();
+      _offlineCache = null;
+      _offlineAccount = null;
+    });
+  }
 
   @override
   Future<FeatureResult> readLibbookAfterWrite(FeatureQuery query) =>
@@ -162,10 +185,10 @@ class BridgeBackend
   Future<UserSummary?> userInfo() => _userInfo(this);
   @override
   Future<OfflineProfileRead> readCachedProfile(RoutePolicy policy) =>
-      _readCachedProfile(this, policy);
+      _withOfflineRead(this, () => _readCachedProfile(this, policy));
   @override
   Future<ProfileRefresh> refreshProfile({required LocalAccount account}) =>
-      _refreshProfile(this, account);
+      _withOfflineRead(this, () => _refreshProfile(this, account));
 
   @override
   Future<void> prepareLogin(RoutePolicy policy) => _prepareLogin(this, policy);
@@ -186,21 +209,24 @@ class BridgeBackend
   Future<FeatureReadTask?> beginFeatureRead(
     FeatureId feature,
     FeatureQuery? query,
-  ) => _beginJudgeRead(this, feature, query);
+  ) => _withOfflineRead(this, () => _beginJudgeRead(this, feature, query));
 
   @override
-  Future<FeatureResult> loadFeature(FeatureId feature) => _loadFeatureQuery(
+  Future<FeatureResult> loadFeature(FeatureId feature) => _withOfflineRead(
     this,
-    feature,
-    const FeatureQuery(),
-    loadYgdkRecords: false,
+    () => _loadFeatureQuery(
+      this,
+      feature,
+      const FeatureQuery(),
+      loadYgdkRecords: false,
+    ),
   );
 
   @override
   Future<FeatureResult> loadFeatureQuery(
     FeatureId feature,
     FeatureQuery query,
-  ) => _loadFeatureQuery(this, feature, query);
+  ) => _withOfflineRead(this, () => _loadFeatureQuery(this, feature, query));
 
   @override
   Future<FeatureResult> loadCgyyOrdersOnRoute({

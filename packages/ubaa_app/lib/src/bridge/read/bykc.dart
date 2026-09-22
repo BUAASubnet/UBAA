@@ -8,7 +8,7 @@ Future<FeatureResult> _loadBykcFeature(
 }) async {
   if (feature != FeatureId.bykc)
     throw const BackendException(UbaaErrorCode.invalidInput);
-  if (useCache) await backend._offlineTail;
+  if (useCache) await _awaitOfflineScope(backend);
   final cache = useCache ? backend._offlineCache : null;
   final account = useCache ? backend._offlineAccount : null;
   switch (query.view) {

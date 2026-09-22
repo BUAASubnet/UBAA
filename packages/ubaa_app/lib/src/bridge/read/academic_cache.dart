@@ -34,7 +34,7 @@ final class _AcademicReader {
   }
 
   Future<_AcademicValue<List<BridgeTerm>>> scheduleTerms() async {
-    await backend._offlineTail;
+    await _awaitOfflineScope(backend);
     final cache = backend._offlineCache;
     final account = backend._offlineAccount;
     final route = localRoute;
@@ -76,7 +76,7 @@ final class _AcademicReader {
   Future<_AcademicValue<List<BridgeWeek>>> scheduleWeeks({
     required String term,
   }) async {
-    await backend._offlineTail;
+    await _awaitOfflineScope(backend);
     final cache = backend._offlineCache;
     final account = backend._offlineAccount;
     final route = localRoute;
@@ -122,7 +122,7 @@ final class _AcademicReader {
     required String term,
     required int week,
   }) async {
-    await backend._offlineTail;
+    await _awaitOfflineScope(backend);
     final cache = backend._offlineCache;
     final account = backend._offlineAccount;
     final route = localRoute;
@@ -172,7 +172,7 @@ final class _AcademicReader {
   Future<_AcademicValue<BridgeExamArrangement>> examArrangement({
     required String term,
   }) async {
-    await backend._offlineTail;
+    await _awaitOfflineScope(backend);
     final cache = backend._offlineCache;
     final account = backend._offlineAccount;
     final route = localRoute;
@@ -215,7 +215,7 @@ final class _AcademicReader {
   }
 
   Future<_AcademicValue<BridgeGradeData>> grades({required String term}) async {
-    await backend._offlineTail;
+    await _awaitOfflineScope(backend);
     final cache = backend._offlineCache;
     final account = backend._offlineAccount;
     final route = localRoute;
@@ -261,7 +261,7 @@ final class _AcademicReader {
     required int campus,
     required String date,
   }) async {
-    await backend._offlineTail;
+    await _awaitOfflineScope(backend);
     final cache = backend._offlineCache;
     final account = backend._offlineAccount;
     final route = localRoute;

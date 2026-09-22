@@ -48,7 +48,7 @@ Future<FeatureResult?> _loadCachedYgdkRecords(
   BridgeConnectionMode? expectedRoute,
   int? expectedClassifyId,
 }) async {
-  await backend._offlineTail;
+  await _awaitOfflineScope(backend);
   final cache = backend._offlineCache, account = backend._offlineAccount;
   if (cache == null || account == null) return null;
   final page = query.page <= 0 ? 1 : query.page;

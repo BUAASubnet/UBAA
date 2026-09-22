@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
@@ -10,6 +11,30 @@ void main() {
   setUp(() {
     local.calls.clear();
     local.failRead = false;
+  });
+  test('清理前概览的迟到返回不能用新句柄请求下一步记录', () async {
+    final client = _Client()..homeGate = Completer<void>();
+    final backend = await _backend(client);
+    final pending = backend.loadFeatureQuery(
+      FeatureId.ygdk,
+      const FeatureQuery(),
+    );
+    final check = expectLater(
+      pending,
+      throwsA(
+        isA<BackendException>().having(
+          (e) => e.code,
+          '旧调用链',
+          UbaaErrorCode.operationConflict,
+        ),
+      ),
+    );
+    await client.homeStarted.future;
+    await backend.clearBusinessCache(accountId: 'synthetic');
+    client.homeGate!.complete();
+    await check;
+    expect(client.matched, isEmpty);
+    expect(client.cachedCalls, 0);
   });
   test('记录视图按分类索引读取精确页并使用页的保存时间', () async {
     final backend = await _backend(_Client());
@@ -165,6 +190,11 @@ const overview = BridgeYgdkOverview(
 class _Cache implements BridgeOfflineCache {
   bool failRead = false;
   @override
+  Future<BridgeCacheReset> clearAndReopen() async => BridgeCacheReset(
+    cache: _Cache(),
+    report: const BridgeCacheClearReport(compacted: true),
+  );
+  @override
   Future<BridgeCachedHomeYgdk?> readHomeYgdk({
     required BridgeConnectionMode route,
   }) async => BridgeCachedHomeYgdk(
@@ -220,19 +250,26 @@ class _Cache implements BridgeOfflineCache {
 
 class _Client implements BridgeClient {
   bool failRecords = false;
+  Completer<void>? homeGate;
+  final homeStarted = Completer<void>();
   final matched = <String>[];
   @override
   Future<BridgeHomeYgdkRefresh> homeYgdkCached({
     required BridgeOfflineCache cache,
-  }) async => const BridgeHomeYgdkRefresh(
-    result: BridgeRoutedYgdkOverview(data: overview, route: decision),
-    state: BridgeHomeRefreshState(
-      fetchedAt: 400,
-      complete: true,
-      savedForOffline: true,
-      preservedPrevious: false,
-    ),
-  );
+  }) async {
+    if (!homeStarted.isCompleted) homeStarted.complete();
+    await homeGate?.future;
+    return const BridgeHomeYgdkRefresh(
+      result: BridgeRoutedYgdkOverview(data: overview, route: decision),
+      state: BridgeHomeRefreshState(
+        fetchedAt: 400,
+        complete: true,
+        savedForOffline: true,
+        preservedPrevious: false,
+      ),
+    );
+  }
+
   @override
   Future<BridgeYgdkRecordsRefresh> ygdkRecordsForOverviewCached({
     required BridgeOfflineCache cache,
@@ -256,7 +293,7 @@ class _Client implements BridgeClient {
   int cachedCalls = 0;
   final pinned = <BridgeConnectionMode>[];
   @override
-  int contractVersion() => 24;
+  int contractVersion() => 25;
   @override
   Future<BridgeYgdkRecordsRefresh> ygdkRecordsCached({
     required BridgeOfflineCache cache,

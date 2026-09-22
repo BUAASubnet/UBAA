@@ -4,7 +4,7 @@ Future<OfflineProfileRead> _readCachedProfile(
   BridgeBackend backend,
   RoutePolicy policy,
 ) async {
-  await backend._offlineTail;
+  await _awaitOfflineScope(backend);
   final cache = backend._offlineCache, account = backend._offlineAccount;
   if (cache == null || account == null) return const OfflineProfileRead(null);
   final routes = switch (policy) {
@@ -49,7 +49,7 @@ Future<ProfileRefresh> _refreshProfile(
   BridgeBackend backend,
   LocalAccount expectedAccount,
 ) async {
-  await backend._offlineTail;
+  await _awaitOfflineScope(backend);
   final cache = backend._offlineCache, account = backend._offlineAccount;
   void checkOwner() {
     final owner = backend._offlineAccount;

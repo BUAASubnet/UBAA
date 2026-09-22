@@ -10,3 +10,4 @@ export 'contracts/recovery.dart';
 export 'contracts/progressive.dart';
 
 export 'contracts/profile.dart';
+export 'contracts/cache_management.dart';

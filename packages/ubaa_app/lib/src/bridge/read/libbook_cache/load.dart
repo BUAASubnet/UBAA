@@ -5,7 +5,7 @@ Future<FeatureResult?> _loadCachedLibbookFeature(
   FeatureQuery query,
   String today,
 ) async {
-  await backend._offlineTail;
+  await _awaitOfflineScope(backend);
   final cache = backend._offlineCache, account = backend._offlineAccount;
   if (cache == null || account == null) return null;
   switch (query.view) {

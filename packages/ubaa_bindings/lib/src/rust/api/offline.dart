@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'cache_management.dart';
 import 'client.dart';
 import 'offline_academic.dart';
 import 'offline_bykc.dart';
@@ -32,6 +33,12 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   /// # Errors
   /// 无法完成清理事务时返回稳定错误。
   Future<void> clear();
+
+  /// 清除事务成功后移交新句柄；旧句柄永久失效。
+  ///
+  /// # Errors
+  /// 事务失败返回错误；提交后空间维护失败在 report 中单独报告。
+  Future<BridgeCacheReset> clearAndReopen();
 
   /// 关闭本地账号的在途回写资格。
   ///
@@ -342,6 +349,12 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   Future<BridgeCachedYgdkSelection?> readYgdkRecordsSelection({
     required BridgeConnectionMode route,
   });
+
+  /// 仅返回当前账号的数值用量。
+  ///
+  /// # Errors
+  /// 已退出、旧句柄和存储故障保持稳定错误。
+  Future<BridgeCacheUsage> usage();
 }
 
 /// 本地缓存故障不表示学校读取失败。

@@ -6,7 +6,7 @@ Future<OfflineQueryRead> _readCachedQuery(
   FeatureQuery query,
   RoutePolicy policy,
 ) async {
-  await backend._offlineTail;
+  await _awaitOfflineScope(backend);
   final cache = backend._offlineCache;
   final account = backend._offlineAccount;
   if (cache == null || account == null) return const OfflineQueryRead(null);

@@ -139,7 +139,7 @@ Future<FeatureResult> _loadSigninHome(
   bool useCache = true,
 }) async {
   try {
-    if (useCache) await backend._offlineTail;
+    if (useCache) await _awaitOfflineScope(backend);
     final cache = useCache ? backend._offlineCache : null;
     final account = useCache ? backend._offlineAccount : null;
     if (cache != null && account != null) {
@@ -175,7 +175,7 @@ Future<FeatureResult> _loadSpocHome(
 ) async {
   if (!_isHomeCacheQuery(FeatureId.spoc, query))
     throw const BackendException(UbaaErrorCode.invalidInput);
-  await backend._offlineTail;
+  await _awaitOfflineScope(backend);
   final cache = backend._offlineCache, account = backend._offlineAccount;
   if (query.view == FeatureQueryView.spocDetail) {
     final id = _requiredQueryValue(query.assignmentId, '作业编号');
@@ -238,7 +238,7 @@ final class _HomeYgdkRead {
 }
 
 Future<_HomeYgdkRead> _readYgdkHome(BridgeBackend backend) async {
-  await backend._offlineTail;
+  await _awaitOfflineScope(backend);
   final cache = backend._offlineCache, account = backend._offlineAccount;
   if (cache != null && account != null) {
     final value = await backend.client.homeYgdkCached(cache: cache);

@@ -21,7 +21,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 24);
+      expect(client.contractVersion(), 25);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -406,6 +406,24 @@ void main() {
       );
       expect(await first.readToday(route: BridgeConnectionMode.webVpn), isNull);
       await second.clear();
+      final old = second;
+      final reset = await old.clearAndReopen();
+      second = reset.cache;
+      expect(reset.report.compacted, isTrue);
+      expect(reset.report.maintenanceError, isNull);
+      expect(reset.report.usage!.entryCount.toInt(), 0);
+      expect((await second.usage()).softLimitBytes.toInt(), 50 * 1024 * 1024);
+      await expectLater(
+        old.usage(),
+        throwsA(
+          isA<BridgeError>().having(
+            (e) => e.code,
+            '清理前句柄失效',
+            BridgeErrorCode.operationConflict,
+          ),
+        ),
+      );
+      old.dispose();
     } finally {
       key.fillRange(0, key.length, 0);
       await client?.dispose();

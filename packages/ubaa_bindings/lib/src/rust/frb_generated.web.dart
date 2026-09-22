@@ -6,6 +6,7 @@
 // Static analysis wrongly picks the IO variant, thus ignore this
 // ignore_for_file: argument_type_not_assignable
 
+import 'api/cache_management.dart';
 import 'api/client.dart';
 import 'api/judge_refresh.dart';
 import 'api/judge_scan.dart';
@@ -157,6 +158,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCacheFailure dco_decode_box_autoadd_bridge_cache_failure(dynamic raw);
+
+  @protected
+  BridgeCacheUsage dco_decode_box_autoadd_bridge_cache_usage(dynamic raw);
 
   @protected
   BridgeCachedAcademicClassrooms
@@ -490,7 +494,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeBykcUserProfile dco_decode_bridge_bykc_user_profile(dynamic raw);
 
   @protected
+  BridgeCacheClearReport dco_decode_bridge_cache_clear_report(dynamic raw);
+
+  @protected
   BridgeCacheFailure dco_decode_bridge_cache_failure(dynamic raw);
+
+  @protected
+  BridgeCacheReset dco_decode_bridge_cache_reset(dynamic raw);
+
+  @protected
+  BridgeCacheUsage dco_decode_bridge_cache_usage(dynamic raw);
 
   @protected
   BridgeCachedAcademicClassrooms dco_decode_bridge_cached_academic_classrooms(
@@ -1507,6 +1520,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCacheUsage? dco_decode_opt_box_autoadd_bridge_cache_usage(dynamic raw);
+
+  @protected
   BridgeCachedAcademicClassrooms?
   dco_decode_opt_box_autoadd_bridge_cached_academic_classrooms(dynamic raw);
 
@@ -1716,6 +1732,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int dco_decode_u_32(dynamic raw);
 
   @protected
+  BigInt dco_decode_u_64(dynamic raw);
+
+  @protected
   int dco_decode_u_8(dynamic raw);
 
   @protected
@@ -1834,6 +1853,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCacheFailure sse_decode_box_autoadd_bridge_cache_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCacheUsage sse_decode_box_autoadd_bridge_cache_usage(
     SseDeserializer deserializer,
   );
 
@@ -2275,9 +2299,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCacheClearReport sse_decode_bridge_cache_clear_report(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCacheFailure sse_decode_bridge_cache_failure(
     SseDeserializer deserializer,
   );
+
+  @protected
+  BridgeCacheReset sse_decode_bridge_cache_reset(SseDeserializer deserializer);
+
+  @protected
+  BridgeCacheUsage sse_decode_bridge_cache_usage(SseDeserializer deserializer);
 
   @protected
   BridgeCachedAcademicClassrooms sse_decode_bridge_cached_academic_classrooms(
@@ -3566,6 +3601,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCacheUsage? sse_decode_opt_box_autoadd_bridge_cache_usage(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedAcademicClassrooms?
   sse_decode_opt_box_autoadd_bridge_cached_academic_classrooms(
     SseDeserializer deserializer,
@@ -3843,6 +3883,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int sse_decode_u_32(SseDeserializer deserializer);
 
   @protected
+  BigInt sse_decode_u_64(SseDeserializer deserializer);
+
+  @protected
   int sse_decode_u_8(SseDeserializer deserializer);
 
   @protected
@@ -3977,6 +4020,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_cache_failure(
     BridgeCacheFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_cache_usage(
+    BridgeCacheUsage self,
     SseSerializer serializer,
   );
 
@@ -4473,8 +4522,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_cache_clear_report(
+    BridgeCacheClearReport self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_cache_failure(
     BridgeCacheFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cache_reset(
+    BridgeCacheReset self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cache_usage(
+    BridgeCacheUsage self,
     SseSerializer serializer,
   );
 
@@ -6045,6 +6112,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_bridge_cache_usage(
+    BridgeCacheUsage? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_bridge_cached_academic_classrooms(
     BridgeCachedAcademicClassrooms? self,
     SseSerializer serializer,
@@ -6334,6 +6407,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_u_32(int self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_u_64(BigInt self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_8(int self, SseSerializer serializer);

@@ -1,8 +1,8 @@
 part of 'bridge_backend.dart';
 
-Future<void> _offlineSerial(
+Future<T> _offlineSerial<T>(
   BridgeBackend backend,
-  Future<void> Function() action,
+  Future<T> Function() action,
 ) {
   final next = backend._offlineTail.then((_) => action());
   backend._offlineTail = next.then<void>((_) {}, onError: (Object _) {});
@@ -13,35 +13,41 @@ Future<void> _openOfflineAccount(
   BridgeBackend backend,
   LocalAccount account,
   List<int> key,
-) => _offlineSerial(backend, () async {
-  final directory = backend.configDirectory;
-  if (directory == null)
-    throw const BackendException(UbaaErrorCode.unsupported);
-  try {
-    if (backend._offlineAccount?.id != account.id) {
-      await backend._offlineCache?.deactivate();
-      backend._offlineCache = null;
-      backend._offlineAccount = null;
+) {
+  final previous =
+      backend._offlineTargetAccountId ?? backend._offlineAccount?.id;
+  if (previous != null && previous != account.id) backend._offlineGeneration++;
+  backend._offlineTargetAccountId = account.id;
+  return _offlineSerial(backend, () async {
+    final directory = backend.configDirectory;
+    if (directory == null)
+      throw const BackendException(UbaaErrorCode.unsupported);
+    try {
+      if (backend._offlineAccount?.id != account.id) {
+        await backend._offlineCache?.deactivate();
+        backend._offlineCache = null;
+        backend._offlineAccount = null;
+      }
+      final cache = await BridgeOfflineCache.open(
+        configDir: directory,
+        accountId: account.id,
+        expectedIdentity: account.username,
+        key: key,
+      );
+      await cache.activate();
+      backend._offlineCache = cache;
+      backend._offlineAccount = account;
+    } on BridgeError catch (error) {
+      throw _mapError(error);
     }
-    final cache = await BridgeOfflineCache.open(
-      configDir: directory,
-      accountId: account.id,
-      expectedIdentity: account.username,
-      key: key,
-    );
-    await cache.activate();
-    backend._offlineCache = cache;
-    backend._offlineAccount = account;
-  } on BridgeError catch (error) {
-    throw _mapError(error);
-  }
-});
+  });
+}
 
 Future<OfflineHomeRead> _readCachedHome(
   BridgeBackend backend,
   RoutePolicy policy,
 ) async {
-  await backend._offlineTail;
+  await _awaitOfflineScope(backend);
   final cache = backend._offlineCache;
   final account = backend._offlineAccount;
   if (cache == null || account == null) return OfflineHomeRead(const []);
@@ -156,7 +162,7 @@ FeatureDetail _todayDetail(BridgeTodayClass item) => FeatureDetail(
 );
 
 Future<FeatureResult> _loadTodayWithCache(BridgeBackend backend) async {
-  await backend._offlineTail;
+  await _awaitOfflineScope(backend);
   final cache = backend._offlineCache;
   final account = backend._offlineAccount;
   final BridgeRoutedTodayClasses result;
@@ -190,7 +196,7 @@ Future<FeatureResult> _loadJudgeWithCache(
   BridgeBackend backend, {
   required bool includeExpired,
 }) async {
-  await backend._offlineTail;
+  await _awaitOfflineScope(backend);
   final cache = backend._offlineCache;
   final account = backend._offlineAccount;
   final BridgeRoutedJudgeSummaries result;

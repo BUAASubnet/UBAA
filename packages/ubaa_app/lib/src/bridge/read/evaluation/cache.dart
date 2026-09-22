@@ -51,7 +51,7 @@ Future<FeatureResult?> _loadCachedEvaluationFeature(
   BridgeBackend backend,
   FeatureQuery query,
 ) async {
-  await backend._offlineTail;
+  await _awaitOfflineScope(backend);
   final cache = backend._offlineCache, account = backend._offlineAccount;
   if (cache == null || account == null) return null;
   final value = await backend.client.evaluationCached(cache: cache);

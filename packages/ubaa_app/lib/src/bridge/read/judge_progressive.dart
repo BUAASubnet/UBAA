@@ -10,7 +10,7 @@ Future<FeatureReadTask?> _beginJudgeRead(
   if (selected.view != FeatureQueryView.summary &&
       selected.view != FeatureQueryView.judgeDetail)
     return null;
-  await backend._offlineTail;
+  await _awaitOfflineScope(backend);
   final cache = backend._offlineCache;
   final account = backend._offlineAccount;
   if (cache == null || account == null) return null;
