@@ -106,7 +106,16 @@ pub enum CacheQuery {
     SpocDetail {
         assignment_id: String,
     },
+    /// 旧无周期记录只供兼容读取，不再用于当前首页。
     YgdkOverview,
+    YgdkOverviewSelection {
+        week_start: String,
+    },
+    YgdkOverviewPeriod {
+        classify_id: i32,
+        term_id: Option<i32>,
+        week_start: String,
+    },
     JudgeCourses,
     JudgeCourseReview {
         course_id: String,
@@ -158,6 +167,10 @@ pub enum CachePayload {
     SpocAssignments(SpocAssignments),
     SpocDetail(Box<SpocAssignmentDetail>),
     YgdkOverview(CachedYgdkOverview),
+    YgdkOverviewSelection {
+        classify_id: i32,
+        term_id: Option<i32>,
+    },
     Week(WeeklySchedule),
     Terms(Vec<Term>),
     Weeks(Vec<Week>),
@@ -264,6 +277,10 @@ pub struct CacheReadTicket {
 }
 
 impl CacheReadTicket {
+    pub(crate) fn scope(&self) -> &CacheScope {
+        &self.scope
+    }
+
     pub(crate) const fn request_revision(&self) -> i64 {
         self.revision
     }
@@ -277,6 +294,16 @@ impl CacheScope {
                 .is_ok_and(|v| v.format("%Y-%m-%d").to_string() == s)
         };
         let valid = match &self.query {
+            CacheQuery::YgdkOverviewSelection { week_start } => valid_observation_week(week_start),
+            CacheQuery::YgdkOverviewPeriod {
+                classify_id,
+                term_id,
+                week_start,
+            } => {
+                *classify_id > 0
+                    && term_id.is_none_or(|id| id > 0)
+                    && valid_observation_week(week_start)
+            }
             CacheQuery::YgdkRecords {
                 classify_id,
                 page,
@@ -344,6 +371,22 @@ impl CacheScope {
 impl CachePayload {
     pub(super) fn matches(&self, query: &CacheQuery) -> bool {
         match (self, query) {
+            (
+                Self::YgdkOverviewSelection {
+                    classify_id,
+                    term_id,
+                },
+                CacheQuery::YgdkOverviewSelection { .. },
+            ) => *classify_id > 0 && term_id.is_none_or(|id| id > 0),
+            (
+                Self::YgdkOverview(data),
+                CacheQuery::YgdkOverviewPeriod {
+                    classify_id,
+                    term_id,
+                    ..
+                },
+            ) => data.classify_id == *classify_id && data.summary.term_id == *term_id,
+
             (Self::ImportedSchedules(values), CacheQuery::ImportedSchedules) => {
                 super::schedule::valid_collection(values)
             }
@@ -447,4 +490,11 @@ impl CacheReadTicket {
     pub(crate) const fn revision(&self) -> i64 {
         self.revision
     }
+}
+
+fn valid_observation_week(raw: &str) -> bool {
+    use chrono::Datelike;
+    chrono::NaiveDate::parse_from_str(raw, "%Y-%m-%d").is_ok_and(|day| {
+        day.format("%Y-%m-%d").to_string() == raw && day.weekday() == chrono::Weekday::Mon
+    })
 }

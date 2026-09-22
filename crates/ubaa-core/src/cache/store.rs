@@ -133,6 +133,26 @@ impl OfflineRepository {
     /// # Errors
     /// 账号已退出、查询非法或本地事务失败时返回错误。
     pub fn begin_read(&mut self, scope: CacheScope) -> CacheResult<CacheReadTicket> {
+        self.begin_read_inner(scope, None)
+    }
+
+    /// 同事务核对父请求后才分配子范围修订，迟到父任务不能撤销新子读取。
+    ///
+    /// # Errors
+    /// 父请求失效、范围非法或本地存储错误保持原分类。
+    pub fn begin_read_guarded(
+        &mut self,
+        scope: CacheScope,
+        parent: &CacheReadTicket,
+    ) -> CacheResult<CacheReadTicket> {
+        self.begin_read_inner(scope, Some(parent))
+    }
+
+    fn begin_read_inner(
+        &mut self,
+        scope: CacheScope,
+        parent: Option<&CacheReadTicket>,
+    ) -> CacheResult<CacheReadTicket> {
         scope.validate()?;
         let key = self.crypto.index(&(&self.account, &scope))?;
         let tx = self
@@ -141,6 +161,17 @@ impl OfflineRepository {
             .map_err(CacheError::from)?;
         let mut control = load_current_control(&tx, &self.crypto, &self.account, self.generation)?;
         require_active(&control)?;
+        if let Some(parent) = parent {
+            let parent_key = self.crypto.index(&(&self.account, &parent.scope))?;
+            validate_ticket(
+                &tx,
+                &self.crypto,
+                &self.account,
+                parent,
+                &parent_key,
+                self.generation,
+            )?;
+        }
         control.revision = control
             .revision
             .checked_add(1)

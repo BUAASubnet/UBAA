@@ -222,7 +222,12 @@ fn 首页可选步骤失败不能覆盖原完整缓存() {
         assert!(!partial.complete);
         assert_eq!(
             partial.publication,
-            Some(ubaa_core::facade::CachePublication::Preserved)
+            Some(if failure == 8 {
+                // 学期读取失败只保存未知学期部分，不能覆盖或标记旧已知学期。
+                ubaa_core::facade::CachePublication::Stored
+            } else {
+                ubaa_core::facade::CachePublication::Preserved
+            })
         );
         let preserved = cache
             .read(&full.result.scope, full.result.fetched_at)
@@ -231,7 +236,16 @@ fn 首页可选步骤失败不能覆盖原完整缓存() {
         assert_eq!(preserved.payload, old.payload);
         assert_eq!(preserved.fetched_at, old.fetched_at);
         assert_eq!(preserved.completeness, CacheCompleteness::Complete);
-        assert!(!preserved.last_attempt_succeeded);
+        assert_eq!(preserved.last_attempt_succeeded, failure == 8);
+        if failure == 8 {
+            assert_ne!(partial.result.scope, full.result.scope);
+            let home = cache
+                .read_home(ConnectionMode::Direct, &HomeQuery::YgdkOverview)
+                .unwrap()
+                .unwrap();
+            assert_eq!(home.scope, full.result.scope);
+            assert_eq!(home.payload, old.payload);
+        }
     }
     mode.store(16, Ordering::SeqCst);
     assert!(

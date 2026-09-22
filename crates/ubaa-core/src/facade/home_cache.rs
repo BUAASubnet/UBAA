@@ -12,9 +12,11 @@ pub enum HomeQuery {
     SpocDetail { assignment_id: String },
     YgdkOverview,
 }
+mod ygdk;
+
 impl HomeQuery {
-    fn cache_query(&self) -> CacheQuery {
-        match self {
+    fn cache_query(&self, now: i64) -> super::CacheResult<CacheQuery> {
+        Ok(match self {
             Self::SigninToday => CacheQuery::SigninToday {
                 date: crate::features::signin::shanghai_date(),
             },
@@ -22,8 +24,8 @@ impl HomeQuery {
             Self::SpocDetail { assignment_id } => CacheQuery::SpocDetail {
                 assignment_id: assignment_id.clone(),
             },
-            Self::YgdkOverview => CacheQuery::YgdkOverview,
-        }
+            Self::YgdkOverview => ygdk::selection_scope(ConnectionMode::Direct, now)?.query,
+        })
     }
     const fn feature(&self) -> ReadonlyFeature {
         match self {
@@ -70,12 +72,16 @@ impl OfflineCache {
         route: ConnectionMode,
         query: &HomeQuery,
     ) -> super::CacheResult<Option<super::CacheRecord>> {
+        let now = chrono::Utc::now().timestamp();
+        if matches!(query, HomeQuery::YgdkOverview) {
+            return ygdk::read(self, route, now);
+        }
         self.read(
             &CacheScope {
                 route,
-                query: query.cache_query(),
+                query: query.cache_query(now)?,
             },
-            chrono::Utc::now().timestamp(),
+            now,
         )
     }
 }
@@ -92,7 +98,8 @@ impl UbaaClient {
         cache
             .check_read_generation()
             .map_err(OfflineReadError::Cache)?;
-        let cache_query = validated_home_query(&query)?;
+        let began_at = chrono::Utc::now().timestamp();
+        let cache_query = validated_home_query(&query, began_at)?;
         let authenticated = self
             .recover_required_session(query.feature())
             .await
@@ -104,7 +111,7 @@ impl UbaaClient {
                 cache_error: cache.deactivate().err(),
             });
         }
-        let scope = CacheScope {
+        let mut scope = CacheScope {
             route: resolution.mode,
             query: cache_query,
         };
@@ -147,23 +154,18 @@ impl UbaaClient {
                 return Err(OfflineReadError::Read(error));
             }
         };
-        let (data, complete) = read.data;
+        let (data, mut complete) = read.data;
+        if let HomeReadData::YgdkOverview(value) = &data {
+            complete &= value.summary.term_id.is_some_and(|id| id > 0);
+        }
         let mut publication = None;
         if let Some(ticket) = &ticket {
-            let saved = cache.repository(|repository| {
-                repository.publish(
-                    ticket,
-                    data.readonly_payload(),
-                    fetched_at,
-                    if complete {
-                        CacheCompleteness::Complete
-                    } else {
-                        CacheCompleteness::Partial
-                    },
-                )
-            });
+            let saved = publish_home(cache, ticket, &data, began_at, fetched_at, complete);
             match saved {
-                Ok(value) => publication = Some(value),
+                Ok((exact, value)) => {
+                    scope = exact;
+                    publication = Some(value);
+                }
                 Err(error @ (CacheError::Inactive | CacheError::Superseded)) => {
                     return Err(OfflineReadError::Cache(error));
                 }
@@ -187,8 +189,8 @@ impl UbaaClient {
     }
 }
 
-fn validated_home_query(query: &HomeQuery) -> Result<CacheQuery, OfflineReadError> {
-    let cached = query.cache_query();
+fn validated_home_query(query: &HomeQuery, now: i64) -> Result<CacheQuery, OfflineReadError> {
+    let cached = query.cache_query(now).map_err(OfflineReadError::Cache)?;
     CacheScope {
         route: ConnectionMode::Direct,
         query: cached.clone(),
@@ -196,4 +198,41 @@ fn validated_home_query(query: &HomeQuery) -> Result<CacheQuery, OfflineReadErro
     .validate()
     .map_err(OfflineReadError::Cache)?;
     Ok(cached)
+}
+
+#[cfg(test)]
+mod tests;
+
+fn publish_home(
+    cache: &OfflineCache,
+    ticket: &super::CacheReadTicket,
+    data: &HomeReadData,
+    began_at: i64,
+    fetched_at: i64,
+    complete: bool,
+) -> super::CacheResult<(CacheScope, CachePublication)> {
+    if let HomeReadData::YgdkOverview(value) = data {
+        return ygdk::publish(
+            cache,
+            ticket,
+            &value.clone().into(),
+            began_at,
+            fetched_at,
+            complete,
+        );
+    }
+    cache.repository(|repository| {
+        repository
+            .publish(
+                ticket,
+                data.readonly_payload(),
+                fetched_at,
+                if complete {
+                    CacheCompleteness::Complete
+                } else {
+                    CacheCompleteness::Partial
+                },
+            )
+            .map(|publication| (ticket.scope().clone(), publication))
+    })
 }

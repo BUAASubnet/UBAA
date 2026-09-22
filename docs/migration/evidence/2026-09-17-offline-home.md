@@ -627,3 +627,11 @@ check.log首轮clippy要求合并相同match分支，并将103行测试表拆成
 宿主真实点击准备/确认、单次脱敏提交、回读及后续同步失败：host-verified.log一项通过。此前host测试失败来自fixture初始列表未提供、通知后尚未pump以及把保留的禁用备用按钮误当旧资格；修正fixture和断言，未为此隐藏原版界面。原生FFI/合成宿主与最终门禁结果另记。上述均不是真实学校写入、真实App账号或性能证据。
 
 最终check-final.log退出0：Core两配置各296、facade77、Bridge133通过/2既有忽略、CLI端到端16，fmt/clippy/引用/Shell/构建/doc/layout零baseline违例通过。flutter-final.log退出0：七包分别57/66/453/284/22/36/54，共972项；格式和analyze通过。生成合同v28及严格codegen-check通过。native.log退出0：macOS真实FFI与脱敏宿主两项通过，仍有Failed to foreground app警告，不计可见实窗。sensitive.log扫描5351个文件通过；暂存审查未含冻结输入、真实业务正文或验收媒体。本阶段未重跑Core-live或测量冷启动，最近双路线事实仍限定P4-AB候选。
+
+## P4-AE 阳光概览学期与周期范围（2026-09-22）
+
+基线2bbe3a12。RED见/tmp/ubaa-p4ae-red.log（缺周期读取/发布模块）。green.log的Unavailable来自新fixture未建立根目录；修正fixture后green-final.log暴露子票据发布即消费、索引不能再用已消费子票据校验的实现错误，改为原父票据发布后green-verified.log四项通过。focused.log扩为五项通过，覆盖学期/分类/路线/周、日月投影不改正文、未知学期/部分失败、迟到父票据不撤销新子读、写后失效、旧单例不猜归属、非法范围/载荷与重开。
+
+facade-final.log两项Mock协议接线通过；学期接口失败的新未知范围Stored与旧已知范围Preserved分开断言，旧已知正文/时间和首页索引保持。没有新增学校请求或真实写入。首轮check.log由单函数116行触发clippy，抽出持久发布职责后重跑完整门禁；最终结果另记。
+
+最终check-final.log退出0：Core两配置各301、facade77、Bridge133通过/2既有忽略、CLI端到端16及fmt/clippy/Shell/build/doc/layout零baseline违例通过。refs通过，sensitive.log扫描5353个文件通过。native-final.log在发布职责拆分后的候选重跑：macOS真实FFI/SQLite合成一项通过，前台化警告仍在，不计可见实窗。此Core-only阶段未改变Flutter生产形状，不将P4-AD的972项重记为本阶段新增Flutter测试；Core-live、真实App、启动性能均未新增。
