@@ -211,3 +211,6 @@ mod evaluation_cache;
 
 #[path = "facade/ygdk_cache.rs"]
 mod ygdk_cache;
+
+#[path = "facade/profile/cache.rs"]
+mod profile_cache;

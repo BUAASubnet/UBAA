@@ -295,3 +295,21 @@ P4-O实施复核：原get_records共享同一上下文内的getList请求函数�
 复用P4-O逐操作矩阵，不新增学校参数。普通记录可按实际分类/分页缓存；概览组合读取须使用新的明确facade合同，先校验所需路线与概览一致再校验会话，取得分类上下文后校验classify_id一致，任一变化不得继续getList或拼接内容。不改旧ygdk_records_on_route/overview_on_route及写后双回读。
 
 Bridge公开索引与精确页分开读取；索引不含时间，只有数据页报告取得时间，记录DTO只含原公开image_count等展示字段。App普通记录先用索引选定分类再读该分类页；离线概览记录直接按概览自己的分类读页，不能借用另一个最新索引。记录证据与概览证据分开，部分/失败保留同分类同页旧数据，首次部分不标成旧完整。UI分页累计除路线/大小/相邻页外还核对分类，分类变化清掉旧累计记录，避免失败时残留旧分类。
+
+
+## P4-Q：资料最小化持久范围（实施前）
+
+冻结旧版1f4b8f8：AuthApi.kt的UserServiceBackend/getUserInfo、LocalConnectionAuth.kt的LocalUserServiceBackend与共享Cookie客户端、UserInfo.kt DTO已逐项读取；ApiFactoryDispatchTest只证明本地后端分派，没有发现对应userinfo响应解析专用测试。独立源a63712fa的api/user/{auth,opt,mod}.rs、request.rs、store/{cookies,cred}.rs仅实现status原文读取和UC激活，没有userinfo或同等完整资料DTO。当前Core-live两路线user/info已通过，只证明既有在线链，不证明新缓存。
+
+| 操作/边界 | 冻结事实与本轮合同 |
+|---|---|
+| CAS/bootstrap与service | 沿既有UC认证；旧激活/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin，资料读取自身不新增CAS请求；独立源相似UC激活但不借其未转义target写法改当前协议 |
+| 方法与参数 | 旧GET https://uc.buaa.edu.cn/api/uc/userinfo，无新增query/body；另一源GET status?selfTimestamp=...仅为状态接口，不借时间参数给userinfo |
+| 重定向/最终URL | 旧共享客户端跟随；userinfo检测401、SSO最终地址、HTML或登录表单文本为失效；当前Core保留既有有界重定向及user模块错误分类 |
+| Cookie/会话 | 旧按ConnectionMode本地会话及Cookie共享客户端，失效清除；独立源共享Cookie与CredentialStore，不能用于替代本地归属；新读取仍在同一Core锁与runtime中执行 |
+| headers/encoding/加密 | 旧资料GET无单独header或body；共享JSON插件/Cookie不变，无业务签名/加密常量；本轮不改变Core请求构造、TLS或传输默认头；持久内容继续AES-GCM |
+| DTO/parser | 旧code/data包装和八个可空字符串；Core沿原parse_user_info，code!=0/无data失败；在线完整UserProfile不变。缓存仅遮罩username/name/schoolid，phone/email/idCardNumber/idCardType/idCardTypeName均不保存 |
+| 缓存/并发 | 新MaskedProfile按账号库+实际路线保存；解析一次User路线、状态身份核对、建立票据再取userinfo；返回身份再次核对，退出/旧票据不可回写；不复制Cookie、不并发更新session |
+| 错误/退出 | 既有认证/业务错误原样返回；请求失败保留旧快照。身份字段全缺失返回UpstreamChanged且保留缓存，明确不匹配才关闭该缓存并返回IdentityMismatch；磁盘保存失败与合法在线结果分开，旧CLI/userInfo及双路线认证语义不变 |
+
+遮罩是本地展示规则而非上游字段推断：Unicode首尾各最多一字符，中间固定***；长度不足三字符全部***，空白变None。遮罩内容永不作为认证身份或资料完整性的证明，不恢复写资格。初步缓存仅供识别本机账号，完整资料仍需在线既有读取。后续Bridge/App需另接此只读类型并显示保存时间，不把当前Core阶段计为完成。

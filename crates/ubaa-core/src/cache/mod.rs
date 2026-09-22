@@ -37,3 +37,6 @@ pub use evaluation::{CachedEvaluationCourse, CachedEvaluationCourses};
 
 mod ygdk_records;
 pub use ygdk_records::{CachedYgdkRecord, CachedYgdkRecordsPage, CachedYgdkRecordsSelection};
+
+mod profile;
+pub use profile::CachedMaskedProfile;

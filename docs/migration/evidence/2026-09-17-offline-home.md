@@ -417,3 +417,16 @@ GREEN：Core 阳光缓存三项、Bridge 独立锁/范围/退出/pending 写保�
 当前候选 Core-live：用原工作区只读凭据经stdin注入独立临时会话，学校业务写入0。Direct全量24.389秒：35 PASS、2 FAIL、3 BLOCKED，失败为同一次Judge include_expired及其复用diagnostics的upstream_unavailable，current/detail/details_batch因此BLOCKED；WebVPN全量24.514秒40 PASS。有限Direct Judge复核7.079秒再次失败，安全传输元数据证明一个GET在约5.007秒返回HTTP 502、body_bytes=0（live-direct-judge.log），不推断具体学校故障位置，不改冻结URL、TLS或CLI路线。其余两路线阳光overview/records均PASS。Direct完整门禁仍受阻，不能把WebVPN成功替代Direct通过。
 
 上述时间为顺序Core-live累计完成时间，不是缓存首屏、首批、真实App或性能目标测量；验证使用既有RouteClient只读链，也不等于新增持久缓存的真实App验收。日志前缀/tmp/ubaa-p4p-，live-direct.log/live-webvpn.log仅安全摘要，复核日志仅白名单状态/字节数/耗时，无URL、正文或凭据。没有验收媒体或发布证据。本阶段接线完成，P0–P5整体仍有资料持久化、缓存管理、跨范围失效、剩余安全分段/生命周期和多端性能待办，继续执行。
+
+
+## P4-Q 最小遮罩资料 Core（2026-09-22）
+
+基线c4c71bed。已重新核对冻结旧版userinfo接口/本地实现/DTO/分派测试及另一源user状态接口、request、Cookie和凭据存储，来源对照先于生产改动。新增三字段遮罩载荷、独立本地出口与在线身份双核对；不改学校协议、旧完整资料返回、Bridge v23或CLI合同。
+
+RED：/tmp/ubaa-p4q-red.log为新类型、范围和facade方法不存在；首个测试版本误用未启用的tokio::test已改为既有显式runtime形式后再记录RED。GREEN：green-final.log四项通过，覆盖在线完整返回而持久仅遮罩、路线隔离、503失败保旧时间、合法可选字段缺失替换、401保留离线数据、状态身份与资料身份分别不符、退出迟到拒绝、Unicode短值、额外字段/未遮罩载荷拒绝、票据替代、重开范围及原取得时间。新持久测试起初未创建私有父目录导致Unavailable，补夹具后通过，不归因为产品缺陷。
+
+clippy指出三个私有字段同前缀；内部字段简化命名，serde/getter仍明确masked语义，未增加allow例外。clippy-final.log通过；完整阶段门禁待收尾。短日志名前缀均/tmp/ubaa-p4q-。本阶段Core-only，无新增Flutter/原生/真实学校请求；P4-P的双路线事实仍只属于当时旧RouteClient只读验证，Direct希冀HTTP502阻塞不被本阶段覆盖为通过。Bridge/App和完整P0–P5继续。
+
+审查追加missing-red.log：空身份响应原被误认另一账号并关闭缓存。增加显式身份可用性判定后，状态或资料缺身份均返回UpstreamChanged且保留旧内容和时间，userinfo已建票据时记录失败观察。green-final.log五项通过。初轮完整check已退出0，但此语义修正后的完整门禁另行复跑，不能沿用初轮结果。
+
+最终check-final.log退出0：Core两配置各253、facade63、Bridge124通过/2既有忽略、CLI端到端16；fmt/clippy、Shell合同、layout零baseline违例、build/doc全部通过。refs固定两SHA校验通过，敏感扫描5289文件通过，diff无空白错误。原工作区ubaa2保持干净，冻结源未改。Core-only未改Bridge/Dart，未重复Flutter/原生测试；上一阶段证据不计为本阶段新测。本阶段可独立提交，下一项继续资料Bridge/App接线及既定P0–P5余项，目标未完成。
