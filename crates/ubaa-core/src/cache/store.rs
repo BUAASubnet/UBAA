@@ -348,8 +348,15 @@ impl OfflineRepository {
         if u64::try_from(body.len()).map_err(|_| CacheError::Capacity)? > self.limits.hard_bytes {
             return Err(CacheError::Capacity);
         }
-        tx.execute("INSERT INTO entries VALUES(?1,?2,?3,?4) ON CONFLICT(key) DO UPDATE SET body=excluded.body, accessed=excluded.accessed, priority=excluded.priority", params![key, body, now, ticket.scope.priority()]).map_err(CacheError::from)?;
-        evict(&tx, &key, self.limits)?;
+        retention::Admission {
+            db: &tx,
+            crypto: &self.crypto,
+            account: &self.account,
+            limits: self.limits,
+            now,
+        }
+        .reserve(&key, &record, body.len())?;
+        tx.execute("INSERT INTO entries VALUES(?1,?2,?3,?4) ON CONFLICT(key) DO UPDATE SET body=excluded.body, accessed=excluded.accessed, priority=excluded.priority", params![key, body, now, ticket.scope.legacy_priority()]).map_err(CacheError::from)?;
         tx.execute("DELETE FROM requests WHERE key=?1", [&key])
             .map_err(CacheError::from)?;
         tx.commit().map_err(CacheError::from)?;
@@ -521,48 +528,6 @@ fn validate_ticket(
     }
     Ok(())
 }
-fn evict(db: &Connection, protected: &[u8], limits: CacheLimits) -> CacheResult<()> {
-    let total: i64 = db
-        .query_row(
-            "SELECT COALESCE(SUM(length(body)),0) FROM entries",
-            [],
-            |r| r.get(0),
-        )
-        .map_err(CacheError::from)?;
-    let mut total = u64::try_from(total).map_err(|_| CacheError::Corrupt)?;
-    if total <= limits.soft_bytes {
-        return Ok(());
-    }
-    let mut statement = db.prepare("SELECT key, length(body), priority FROM entries WHERE key != ?1 ORDER BY priority, accessed").map_err(CacheError::from)?;
-    let candidates = statement
-        .query_map([protected], |r| {
-            Ok((
-                r.get::<_, Vec<u8>>(0)?,
-                r.get::<_, i64>(1)?,
-                r.get::<_, i64>(2)?,
-            ))
-        })
-        .map_err(CacheError::from)?
-        .collect::<Result<Vec<_>, _>>()
-        .map_err(CacheError::from)?;
-    drop(statement);
-    for (key, bytes, priority) in candidates {
-        if total <= limits.soft_bytes {
-            break;
-        }
-        if priority > 0 && total <= limits.hard_bytes {
-            break;
-        }
-        db.execute("DELETE FROM entries WHERE key=?1", [key])
-            .map_err(CacheError::from)?;
-        total = total.saturating_sub(u64::try_from(bytes).map_err(|_| CacheError::Corrupt)?);
-    }
-    if total > limits.hard_bytes {
-        Err(CacheError::Capacity)
-    } else {
-        Ok(())
-    }
-}
 impl From<rusqlite::Error> for CacheError {
     fn from(error: rusqlite::Error) -> Self {
         match error.sqlite_error_code() {
@@ -595,3 +560,8 @@ fn load_current_control(
     }
     Ok(control)
 }
+
+#[cfg(test)]
+mod retention_tests;
+
+mod retention;

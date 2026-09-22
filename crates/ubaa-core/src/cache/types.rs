@@ -318,7 +318,8 @@ impl CacheScope {
             Err(CacheError::InvalidInput)
         }
     }
-    pub(super) fn priority(&self) -> i64 {
+    // 仅维持旧持久格式；实际保留策略集中在store::retention。
+    pub(super) fn legacy_priority(&self) -> i64 {
         match self.query {
             CacheQuery::ScheduleToday { .. } | CacheQuery::ScheduleWeek { .. } => 1,
             _ => 0,

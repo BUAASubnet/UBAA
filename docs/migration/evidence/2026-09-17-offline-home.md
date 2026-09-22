@@ -498,3 +498,14 @@ ui-focused.log十一项通过：四项设置确认/失败/防重复/账号切换
 check.log退出0：Core两配置各259、facade66、Bridge126通过/2既有忽略、CLI端到端16，fmt/clippy/Shell/build/doc通过。无Rust/Bridge形状变化，未重复codegen，版本仍v25。用量条件修正后native-reviewed.log原生合成宿主1项通过；最终可见界面证据由上述CUA实窗补验提供。最后完整Flutter及暂存结构/敏感门禁另记。
 
 最终flutter-final-result.log退出0：57/66/409/276/22/33/54共917项及静态分析通过。layout-final.log零baseline违例，sensitive-final.log扫描5311文件通过，暂存diff无空白错误。源工作区ubaa2保持干净。此阶段仅清理设置流程可独立提交；保留优先级/90天历史规则、无法打开的损坏数据库重建、学期覆盖、其他领域UI细节与最终15场景/多端性能仍按完整目标推进。
+
+
+## P4-V Core 容量保留策略（2026-09-22）
+
+基线5f1318d0，refs固定SHA通过。先核对双来源边界和规范化日期，来源记录见P4-V。日志前缀/tmp/ubaa-p4v-：red.log为缺retention模块，初轮测试ConnectionMode导入位置已先修正；首个GREEN尝试因测试未创建根目录返回Unavailable，修正测试环境后cache.log原35项加初4项共39项通过。环境错误不当作行为RED。
+
+context-red.log复现两项真实缺口：没有学期索引的未来考试仍为Stable、当前学期切换被旧索引锁住容量而返回Capacity。加入未来日期保护与即将提交索引上下文后8项通过；final-focused.log包括多selected（含空项）不可信、路线隔离、24小时新鲜度、90天精确边界、未知/非法日期、跨年活跃任务、混合订单旧项后新项、旧课程复查索引保留、容量失败不丢活跃内容、插入前回收与插入失败回滚。SQLite触发器是确定性顺序/故障注入，不是实际满盘测量。
+
+check.log初轮clippy拒绝wildcard import及可折叠if，已显式导入和合并判断，不加allow；check-final.log正在运行。本阶段只改Core本地保存策略，不新增学校请求/写入、Flutter/原生媒体、Core-live或启动性能证据，旧阶段通过不扩大为本阶段新证据。
+
+最终check-final.log退出0：Core两配置各267、facade66、Bridge126通过/2既有忽略、CLI端到端16，fmt/clippy/Shell/build/doc和layout零baseline违例通过。敏感扫描5313文件、暂存diff空白检查通过。Schema v2、Bridge v25、CLI v10未变；本次Core-only未重复Flutter或原生测试，不把旧917项/原生截图扩大为新增证据。源工作区ubaa2仍干净。完整目标继续，损坏文件重建、学期完整覆盖、剩余安全分段/生命周期及多端容量/性能验收未完成。
