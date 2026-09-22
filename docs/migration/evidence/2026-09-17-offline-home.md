@@ -572,3 +572,16 @@ final-focused.log：新的facade确定性9项通过，包括Direct/WebVPN注入�
 check.log首轮clippy只拒绝测试中可合并if，合并后check-final.log退出0：Core两配置各286、facade75、Bridge127通过/2既有忽略、CLI端到端16及fmt/clippy/Shell/build/doc/layout零baseline违例。没有新增Bridge形状、真实学校调用或写入，没有本阶段原生/性能证据；学校普通接口和CLI保持，导入Bridge/App入口尚未完成。
 
 P4-Z最终暂存敏感扫描5327文件及diff通过，源工作区ubaa2保持干净。Core阶段独立提交；并行发现的App辅助读取账号冲突处于单独P2-G修复，未纳入本次Core代码提交。
+
+
+## P2-G 辅助读身份冲突与写入口保护（2026-09-22）
+
+已在P4-Z收尾期间先做来源核对及RED；生产改动单独提交。/tmp/ubaa-p2g-red.log复现学期和成绩辅助读收到明确accountMismatch后仍停留home；旧路线迟到错误隔离先通过。green.log120项通过，初轮flutter.log944项与分析通过。随后审查write-guard-red.log确认未保留本机账号的宿主关闭身份后仍调用准备回调（预期0，实际1）；首次write-red.log回调抛错已复现执行，捕获合成异常后重新保留次数断言RED。
+
+增加home/当前身份的统一准备条件，write-green.log138项通过，包含四项身份/准备保护、原控制器和WriteCoordinator回归。所有prepare使用脱敏回调，真实学校写入0。最终完整Flutter与根门禁进行中；此阶段无Bridge版本或协议变化，无新增原生/真实App/性能证据。
+
+完整flutter-final.log在新的身份/home守卫下暴露19项旧测试前置不成立：未初始化/未登录即注入意图，或期待注销后立即恢复写入；其中4项因此等待未发生的回读而超时。保留生产保护，写生命周期/回读重入测试先建立合成已认证会话；无认证不接受意图、注销后必须重新登录另有断言。lifecycle-green.log34项通过，原提交次数、回读和重入断言均保留。正在重新执行全部Flutter。根check.log已退出0（同Core候选286×2、facade75、Bridge127/2忽略、CLI16及其余门禁）。
+
+最终flutter-reviewed.log退出0：57/66/434/278/22/34/54共945项及分析通过；旧测试按真实认证前提重跑，实际学校写入仍为0。后续整学期导入Bridge/App、跨范围写后刷新、其他长读取与最终多端性能继续。
+
+P2-G最终暂存敏感扫描5327文件与diff检查通过；源工作区保持干净。本阶段单独提交，不含随后新增的整学期Bridge测试。

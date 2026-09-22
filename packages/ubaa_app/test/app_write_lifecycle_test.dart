@@ -9,6 +9,7 @@ void main() {
     final backend = _LifecycleBackend();
     final controller = AppController(backend: backend);
     addTearDown(controller.dispose);
+    await _ready(controller, backend);
     final coordinator = controller.writeCoordinator;
     expect(identical(coordinator, controller.writeCoordinator), isTrue);
     var notifications = 0;
@@ -26,6 +27,7 @@ void main() {
     final backend = _LifecycleBackend()..logoutGate = Completer<void>();
     final controller = AppController(backend: backend);
     addTearDown(controller.dispose);
+    await _ready(controller, backend);
     final coordinator = controller.writeCoordinator;
     coordinator.setIntent(_intent('注销前'));
 
@@ -43,6 +45,7 @@ void main() {
     final backend = _LifecycleBackend()..routeGate = Completer<void>();
     final controller = AppController(backend: backend);
     addTearDown(controller.dispose);
+    await _ready(controller, backend);
     final coordinator = controller.writeCoordinator;
     coordinator.setIntent(_intent('切换路线前'));
 
@@ -63,6 +66,7 @@ void main() {
     final backend = _LifecycleBackend()..loginGate = Completer<void>();
     final controller = AppController(backend: backend);
     addTearDown(controller.dispose);
+    await _ready(controller, backend);
     final coordinator = controller.writeCoordinator;
     coordinator.setIntent(_intent('登录前'));
 
@@ -80,7 +84,7 @@ void main() {
     expect(backend.discarded, <String>['登录前']);
   });
 
-  test('初始化确认会话失效并进入登录页时清除待确认意图', () async {
+  test('未检查会话时不接纳意图，初始化失效后继续拒绝', () async {
     final backend = _LifecycleBackend();
     final controller = AppController(backend: backend);
     addTearDown(controller.dispose);
@@ -93,7 +97,7 @@ void main() {
     expect(coordinator.intent, isNull);
     expect(await coordinator.confirmForUi(), isNull);
     expect(backend.committed, isEmpty);
-    expect(backend.discarded, <String>['会话检查前']);
+    expect(backend.discarded, isEmpty);
   });
 
   for (final transition in <String>['注销', '切换路线']) {
@@ -105,8 +109,7 @@ void main() {
         if (!gate.isCompleted) gate.complete();
         controller.dispose();
       });
-      await controller.initialize();
-      await Future<void>.delayed(Duration.zero);
+      await _ready(controller, backend);
       final coordinator = controller.writeCoordinator;
       final Future<void> changing;
       if (transition == '注销') {
@@ -140,7 +143,7 @@ void main() {
           () async => _intent('转换结束准备'),
           expectedOperation: WriteOperation.bykcSelectCourse,
         ),
-        isNotNull,
+        transition == '注销' ? isNull : isNotNull,
       );
     });
   }
@@ -159,8 +162,7 @@ void main() {
           if (!gate.isCompleted) gate.complete();
           controller.dispose();
         });
-        await controller.initialize();
-        await Future<void>.delayed(Duration.zero);
+        await _ready(controller, backend);
         controller.setUsername('测试账号');
         controller.setPassword('仅用于确定性测试');
         final coordinator = controller.writeCoordinator;
@@ -209,7 +211,7 @@ void main() {
     }
   }
 
-  test('路线切换与注销重叠时等待全部转换结束才恢复写入口', () async {
+  test('路线切换与注销重叠时待转换结束且重新登录后才恢复写入口', () async {
     final routeGate = Completer<void>();
     final logoutGate = Completer<void>();
     final backend = _LifecycleBackend()
@@ -221,6 +223,7 @@ void main() {
       if (!logoutGate.isCompleted) logoutGate.complete();
       controller.dispose();
     });
+    await _ready(controller, backend);
     final changingRoute = controller.setRoutePolicy(RoutePolicy.webvpn);
     final loggingOut = controller.logout();
     routeGate.complete();
@@ -238,6 +241,16 @@ void main() {
     await loggingOut;
     expect(
       await controller.writeCoordinator.prepareForUi(
+        () async => _intent('注销后仍未登录'),
+        expectedOperation: WriteOperation.bykcSelectCourse,
+      ),
+      isNull,
+    );
+    controller.setUsername('测试账号');
+    controller.setPassword('仅用于确定性测试');
+    await controller.submitLogin();
+    expect(
+      await controller.writeCoordinator.prepareForUi(
         () async => _intent('全部转换结束'),
         expectedOperation: WriteOperation.bykcSelectCourse,
       ),
@@ -247,13 +260,13 @@ void main() {
 
   test('准备期间不重建，取消收尾后新协调器才使用新 backend', () async {
     final first = _LifecycleBackend()..prepareGate = Completer<WriteIntent>();
-    final replacement = _LifecycleBackend();
+    final replacement = _LifecycleBackend()..signedIn = true;
     final controller = AppController(
       backend: first,
       backendFactory: () => replacement,
     );
     addTearDown(controller.dispose);
-    await controller.initialize();
+    await _ready(controller, first);
     final previous = controller.writeCoordinator;
     final preparing = previous.prepareForUi(
       () => controller.prepareBykcWrite(WriteOperation.bykcSelectCourse, 1),
@@ -289,7 +302,7 @@ void main() {
       backendFactory: () => replacement,
     );
     addTearDown(controller.dispose);
-    await controller.initialize();
+    await _ready(controller, first);
     controller.writeCoordinator.setIntent(_intent('在途提交'));
     final confirming = controller.writeCoordinator.confirmForUi();
     expect(first.committed, ['在途提交']);
@@ -311,6 +324,7 @@ void main() {
         ..readGate = Completer<FeatureResult>();
       final controller = AppController(backend: backend);
       addTearDown(controller.dispose);
+      await _ready(controller, backend);
       final coordinator = controller.writeCoordinator;
       coordinator.setIntent(_intent('回读中'));
       final confirming = coordinator.confirmForUi();
@@ -373,7 +387,7 @@ void main() {
       backend: first,
       backendFactory: () => replacement,
     );
-    await controller.initialize();
+    await _ready(controller, first);
     final coordinator = controller.writeCoordinator;
     final preparing = coordinator.prepareForUi(
       () => controller.prepareBykcWrite(WriteOperation.bykcSelectCourse, 1),
@@ -398,6 +412,13 @@ void main() {
     expect(replacement.disposeCalls, 0);
     expect(notifications, 0);
   });
+}
+
+Future<void> _ready(AppController controller, _LifecycleBackend backend) async {
+  backend.signedIn = true;
+  await controller.initialize();
+  await Future<void>.delayed(Duration.zero);
+  backend.loaded.clear();
 }
 
 WriteIntent _intent(String id) => WriteIntent(
@@ -450,10 +471,16 @@ class _LifecycleBackend
   }
 
   @override
-  Future<void> login(LoginInput input) async => await loginGate?.future;
+  Future<void> login(LoginInput input) async {
+    await loginGate?.future;
+    signedIn = true;
+  }
 
   @override
-  Future<void> logout() async => await logoutGate?.future;
+  Future<void> logout() async {
+    await logoutGate?.future;
+    signedIn = false;
+  }
 
   @override
   Future<FeatureResult> loadFeature(FeatureId feature) async {

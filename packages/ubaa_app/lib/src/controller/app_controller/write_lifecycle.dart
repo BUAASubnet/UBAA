@@ -6,6 +6,8 @@ extension _AppControllerWriteLifecycle on AppController {
         diagnostics: _diagnostics,
         canStart: () =>
             !_disposed &&
+            _phase == AppPhase.home &&
+            _user != null &&
             _writeTransitions == 0 &&
             (!_usesLocalRecovery ||
                 _sessionRecoveryStatus == SessionRecoveryStatus.ready),

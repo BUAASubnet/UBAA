@@ -45,9 +45,17 @@ extension _AppControllerProgressive on AppController {
     ReadPriority priority,
     bool Function() current,
     Future<FeatureResult> Function() operation,
-  ) => backend is ProgressiveReadBackend
-      ? _scheduledRead(feature, priority, current, operation)
-      : Future<FeatureResult>.sync(operation);
+  ) async {
+    try {
+      return await (backend is ProgressiveReadBackend
+          ? _scheduledRead(feature, priority, current, operation)
+          : Future<FeatureResult>.sync(operation));
+    } on BackendException catch (error) {
+      // 辅助读取同样绑定账号；普通认证失败可以保旧，明确串号必须关闭。
+      if (error.accountMismatch && current()) await _rejectMismatchedAccount();
+      rethrow;
+    }
+  }
 
   bool _canRunScheduledRead(ReadPriority priority) {
     if (_disposed ||

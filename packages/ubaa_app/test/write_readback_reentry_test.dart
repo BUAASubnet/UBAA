@@ -13,6 +13,9 @@ void main() {
         final backend = _ReadbackBackend(operation);
         final controller = AppController(backend: backend);
         addTearDown(controller.dispose);
+        await controller.initialize();
+        await Future<void>.delayed(Duration.zero);
+        backend.reads = 0;
         final coordinator = controller.writeCoordinator;
         coordinator.setIntent(_intent(operation));
         var transitioned = false;
@@ -65,10 +68,10 @@ class _ReadbackBackend
   var reads = 0;
 
   @override
-  Future<AuthStatus> authStatus() async => AuthStatus.signedOut;
+  Future<AuthStatus> authStatus() async => AuthStatus.signedIn;
 
   @override
-  Future<UserSummary?> userInfo() async => null;
+  Future<UserSummary?> userInfo() async => const UserSummary(username: '合成账号');
 
   @override
   Future<void> prepareLogin(RoutePolicy policy) async {}
