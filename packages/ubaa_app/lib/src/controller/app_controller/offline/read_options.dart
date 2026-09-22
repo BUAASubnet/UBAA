@@ -7,6 +7,7 @@ extension _AppControllerLocalReadOptions on AppController {
     Future<FeatureResult> Function() read, {
     FeatureId feature = FeatureId.schedule,
   }) {
+    if (_clearingBusinessCache) return Future.value(_academicTermsConflict());
     final online = read();
     if (forceRefresh ||
         _backend is! OfflineQueryBackend ||

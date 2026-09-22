@@ -10,6 +10,7 @@ import 'read_scheduler.dart';
 import '../contracts/lifecycle.dart';
 import '../contracts/offline.dart';
 import '../contracts/profile.dart';
+import '../contracts/cache_management.dart';
 import '../contracts/query.dart';
 import '../contracts/routing.dart';
 import '../contracts/recovery.dart';
@@ -37,6 +38,7 @@ part 'app_controller/ygdk_readback.dart';
 part 'app_controller/diagnostics.dart';
 part 'app_controller/offline_startup.dart';
 part 'app_controller/offline/cache.dart';
+part 'app_controller/cache_management/controller.dart';
 part 'app_controller/offline/profile.dart';
 part 'app_controller/offline/query.dart';
 part 'app_controller/offline/read_options.dart';
@@ -121,6 +123,29 @@ class AppController extends ChangeNotifier {
   final LocalAccountStore? _localAccountStore;
   LocalAccount? _localAccount;
   bool _isSigningOut = false;
+  bool _clearingBusinessCache = false;
+  int _businessCacheEpoch = 0;
+  bool get isClearingBusinessCache => _clearingBusinessCache;
+  bool get canClearBusinessCache =>
+      cacheAccountId != null &&
+      !_disposed &&
+      !_clearingBusinessCache &&
+      !isLoggingIn &&
+      !_rebuildingBackend &&
+      _writeTransitions == 0 &&
+      _activeRecovery == null &&
+      !_writeCoordinator.hasPendingOperation;
+  int get businessCacheEpoch => _businessCacheEpoch;
+  String? get cacheAccountId =>
+      _phase == AppPhase.home &&
+          !_isSigningOut &&
+          _backend is CacheManagementBackend
+      ? _localAccount?.id
+      : null;
+  Future<CacheUsageSummary> cacheUsage({required String accountId}) =>
+      _readCacheUsage(accountId);
+  Future<CacheClearOutcome> clearBusinessCache({required String accountId}) =>
+      _clearControllerCache(accountId);
   bool _automaticCredentialBlocked = false;
   bool _appForeground = true;
   final _queuedRecoveries = <FeatureId, _RecoveryRequest>{};

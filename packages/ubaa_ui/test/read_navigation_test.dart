@@ -6,6 +6,26 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'support/navigation.dart';
 
 void main() {
+  testWidgets('清理业务缓存保留当前查询和父草稿，返回不复活已清内容', (tester) async {
+    final harness = await _show(tester);
+    await _edit(tester, '学期编码', '父页草稿');
+    await tester.tap(find.text('查看周次'));
+    await tester.pumpAndSettle();
+    harness.clearBusiness();
+    await tester.pumpAndSettle();
+    expect(find.text('第 7 周'), findsNothing);
+    expect(await _fieldText(tester, '学期编码'), 'term-real');
+    expect(harness.queries, hasLength(1));
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    expect(find.text('秋季学期'), findsNothing);
+    expect(await _fieldText(tester, '学期编码'), '父页草稿');
+    expect(harness.queries, hasLength(1));
+    await tester.tap(find.byTooltip('刷新当前查询'));
+    await tester.pumpAndSettle();
+    expect(harness.queries.last.view, FeatureQueryView.scheduleTerms);
+    expect(harness.queries.last.term, isNull);
+  });
   testWidgets('刷新当前查询使用已应用参数而不采用未应用草稿', (tester) async {
     final harness = await _show(tester);
     await _edit(tester, '学期编码', '未应用');
@@ -136,7 +156,14 @@ class _Harness extends StatefulWidget {
 class _HarnessState extends State<_Harness> {
   final queries = <FeatureQuery>[];
   Completer<void>? pending;
-  int epoch = 0;
+  int epoch = 0, businessEpoch = 0;
+  void clearBusiness() => setState(() {
+    businessEpoch++;
+    snapshot = FeatureSnapshot(
+      feature: snapshot.feature,
+      readContext: snapshot.readContext,
+    );
+  });
   FeatureSnapshot snapshot = FeatureSnapshot(
     feature: FeatureId.schedule,
     resolvedRoute: ConnectionMode.direct,
@@ -227,6 +254,7 @@ class _HarnessState extends State<_Harness> {
             : FeatureSnapshot(feature: feature),
     },
     readCacheEpoch: epoch,
+    businessCacheEpoch: businessEpoch,
     routePolicy: RoutePolicy.auto,
     telemetryEnabled: false,
     onRefresh: () async {},

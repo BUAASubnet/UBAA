@@ -9,6 +9,7 @@ class _HomeView extends StatefulWidget {
     required this.onRefresh,
     required this.visible,
     required this.cacheEpoch,
+    this.businessCacheEpoch = 0,
     required this.onTodoTap,
     this.onLoadSupplement,
     this.onSignin,
@@ -33,6 +34,7 @@ class _HomeView extends StatefulWidget {
   final Future<void> Function() onRefresh;
   final bool visible;
   final int cacheEpoch;
+  final int businessCacheEpoch;
   final ValueChanged<HomeTodo> onTodoTap;
   final Future<void> Function(SigninPerformAction)? onSignin;
   final Future<FeatureResult> Function(HomeSupplement, bool)? onLoadSupplement;
@@ -61,7 +63,8 @@ class _HomeViewState extends State<_HomeView> {
   @override
   void didUpdateWidget(covariant _HomeView old) {
     super.didUpdateWidget(old);
-    if (old.cacheEpoch != widget.cacheEpoch) {
+    if (old.cacheEpoch != widget.cacheEpoch ||
+        old.businessCacheEpoch != widget.businessCacheEpoch) {
       _generation++;
       _supplements.clear();
       _loading.clear();

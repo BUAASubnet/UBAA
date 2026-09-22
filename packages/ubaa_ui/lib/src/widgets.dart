@@ -12,6 +12,7 @@ import 'write_callbacks.dart';
 part 'app/home.dart';
 part 'app/login.dart';
 part 'app/profile.dart';
+part 'app/cache_settings.dart';
 part 'app/about.dart';
 part 'app/profile_details.dart';
 part 'app/shell.dart';

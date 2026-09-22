@@ -20,6 +20,11 @@ class UbaaMainShell extends StatefulWidget {
     this.themeMode = ThemeMode.system,
     this.onThemeModeChanged,
     this.readCacheEpoch = 0,
+    this.businessCacheEpoch = 0,
+    this.cacheAccountId,
+    this.canClearBusinessCache = true,
+    this.onReadCacheUsage,
+    this.onClearBusinessCache,
     this.onLoadAcademicTerms,
     this.onLoadAcademicWeeks,
     this.onLoadCgyyPurposes,
@@ -92,6 +97,11 @@ class UbaaMainShell extends StatefulWidget {
 
   /// 应用读取生命周期改变时使父返回缓存失效，当前页面草稿仍由页面持有。
   final int readCacheEpoch;
+  final int businessCacheEpoch;
+  final String? cacheAccountId;
+  final bool canClearBusinessCache;
+  final Future<CacheUsageSummary> Function(String)? onReadCacheUsage;
+  final Future<CacheClearOutcome> Function(String)? onClearBusinessCache;
 
   /// 用户打开学期选择器后读取独立选项，不改写课表结果页。
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
@@ -555,6 +565,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     },
     snapshot: widget.snapshots[feature]!,
     cacheEpoch: widget.readCacheEpoch,
+    businessCacheEpoch: widget.businessCacheEpoch,
     onExit: () => setState(() => _openedFeature = null),
     onRetry: () => widget.onRetryFeature(feature),
     onQuery: widget.onFeatureQuery == null
@@ -600,7 +611,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         homeRoutes: routes,
       ),
       onScheduleTitle: page.onScheduleTitle,
-      readCacheEpoch: widget.readCacheEpoch,
+      readCacheEpoch: widget.readCacheEpoch + widget.businessCacheEpoch,
       onBykcWrite: !_hasWriteCommands || widget.onPrepareBykcWrite == null
           ? null
           : _startBykcWrite,
@@ -656,6 +667,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             snapshots: widget.homeSnapshots ?? widget.snapshots,
             visible: _openedFeature == null && widget.writeState.intent == null,
             cacheEpoch: widget.readCacheEpoch,
+            businessCacheEpoch: widget.businessCacheEpoch,
             onLoadSupplement: widget.onLoadHomeSupplement,
             onTodoTap: _openHomeTodo,
             gradeScoreNotice: widget.gradeScoreNotice,
@@ -694,6 +706,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         };
 
   Widget _buildProfile() => _ProfileView(
+    cacheAccountId: widget.cacheAccountId,
+    canClearBusinessCache: widget.canClearBusinessCache,
+    onReadCacheUsage: widget.onReadCacheUsage,
+    onClearBusinessCache: widget.onClearBusinessCache,
     settingsOnly: _utilityPage == '设置',
     user: widget.user,
     routePolicy: widget.routePolicy,

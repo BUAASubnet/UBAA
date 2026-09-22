@@ -5,6 +5,7 @@ class _FeatureReadNavigator extends StatefulWidget {
   const _FeatureReadNavigator({
     required this.snapshot,
     required this.cacheEpoch,
+    this.businessCacheEpoch = 0,
     required this.onExit,
     required this.onRetry,
     required this.pageBuilder,
@@ -15,6 +16,7 @@ class _FeatureReadNavigator extends StatefulWidget {
   final void Function(FeatureSnapshot, String) onVisibleSnapshot;
   final FeatureSnapshot snapshot;
   final int cacheEpoch;
+  final int businessCacheEpoch;
   final VoidCallback onExit;
   final Future<void> Function() onRetry;
   final Future<void> Function(FeatureQuery)? onQuery;
@@ -59,6 +61,16 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
     super.didUpdateWidget(oldWidget);
     final incoming = widget.snapshot;
     final context = incoming.readContext;
+    if (oldWidget.businessCacheEpoch != widget.businessCacheEpoch) {
+      // 清理内容但保留返回路径、查询参数和当前页面key。
+      for (final frame in _frames) {
+        frame.snapshot = FeatureSnapshot(
+          feature: frame.snapshot.feature,
+          readContext: frame.snapshot.readContext,
+        );
+      }
+      _externalAfterRevision = null;
+    }
     if (oldWidget.cacheEpoch != widget.cacheEpoch) {
       final current = _current;
       _frames

@@ -478,3 +478,23 @@ bridge-final.log本地清理在网络锁占用下完成1项通过；app-focused.
 native.log原生合成1项通过，实际序列化v25新句柄、读取数值报告并拒绝旧句柄；仍出现Failed to foreground app; open returned 1，因此不计为实窗渲染/真实App验收。生成复核初轮发现Rust注释新增空格造成生成注释/内容hash漂移，更新生成产物后再次执行严格一致性检查。此变动仅为注释，非业务行为。
 
 最终codegen-reviewed.log退出0，FRB v25严格生成零漂移。本阶段独立提交范围为本地管理Bridge与App backend代际保护；下一阶段接控制器及设置入口，整体P0–P5仍未完成。
+
+
+## P4-U 控制器与设置缓存清理（2026-09-22）
+
+基线f7f554f5，refs固定SHA通过。controller-red.log为缺失控制器合同；初轮测试误用了不存在的查询枚举，改用实际FeatureQuery后重新获取缺失合同RED。ui-red.log为Shell缺失cacheAccountId接线。usage-red.log复现恢复期间用量读取错误返回operation_conflict，拆分条件后controller-reviewed.log六项通过。
+
+ui-focused.log十一项通过：四项设置确认/失败/防重复/账号切换，七项导航回归含清理后父子页查询与未应用草稿保留且旧数据不复活。host.log一项通过，生产宿主回调确实进入控制器并保留安全账号与登录；初轮误把retain返回的LocalAccountState当作LocalAccount，修正测试取account字段后运行，不算产品RED。
+
+首次完整Flutter为914项，新增写意图保护和宿主接线后为916项；用量读取条件审查修正后的最终候选再次复验。layout.log零baseline违例。native.log初始候选原生合成宿主1项通过，仍有Failed to foreground app; open returned 1；不算可见界面或真实账号数据。最终候选原生与完整门禁正在收尾。没有真实学校请求/写入、验收媒体或启动指标。
+
+
+原生可见补验：CUA最初选中了上轮测试结束留下的空白实例；通过菜单退出旧实例后，持续检查模式成功显示首页和设置。没有绕过锁屏或操作真实账号。最终使用明确合成backend与内存安全材料，实际完成设置用量、清理确认及清理结果三个场景，三入口、顶栏和设置位置保持。截图逐张复核，中文与控件完整、无布局溢出。截图来自macOS实际窗口，不是phone/tablet验收，也不是生产数据/性能证据。
+
+视觉反馈触发两项修正：units-red.log复现小用量显示0.0 MB，改为B/KB/MB自适应；result-red.log复现用量尚未返回时清理失败仍显示内容已清除，改为独立“用量暂无统计”，result-green.log五项通过。最终结果文案通过原生hot reload再次可见复核，不把reload耗时算启动性能。
+
+媒体仅在仓库外私有目录 /Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p4u/，目录0700、图片和manifest.json为0600。共3场景、6个捕获文件（同场景辅助窗口副本不算新场景），均1824×1488。设置主图settings-w399.png SHA256 512b2a7eee7db42bc241f90c6197730489da80133ef22d870eeb44839a0b237d；确认confirm-w399.png为66c0863390f8b63e0a9cffda7961e39cca653fc877de1222422aa10dfe39fb84；结果result-w399.png为7dd6f8c00d8d0b9da871f7c64b951070333034b6a333a4d2ab0b4aad4df81fa3。单个辅助window-id捕获失败后使用按应用捕获成功，没有把失败文件计作证据。合成检查应用已经退出。
+
+check.log退出0：Core两配置各259、facade66、Bridge126通过/2既有忽略、CLI端到端16，fmt/clippy/Shell/build/doc通过。无Rust/Bridge形状变化，未重复codegen，版本仍v25。用量条件修正后native-reviewed.log原生合成宿主1项通过；最终可见界面证据由上述CUA实窗补验提供。最后完整Flutter及暂存结构/敏感门禁另记。
+
+最终flutter-final-result.log退出0：57/66/409/276/22/33/54共917项及静态分析通过。layout-final.log零baseline违例，sensitive-final.log扫描5311文件通过，暂存diff无空白错误。源工作区ubaa2保持干净。此阶段仅清理设置流程可独立提交；保留优先级/90天历史规则、无法打开的损坏数据库重建、学期覆盖、其他领域UI细节与最终15场景/多端性能仍按完整目标推进。

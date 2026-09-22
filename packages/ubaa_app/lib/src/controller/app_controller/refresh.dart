@@ -16,7 +16,7 @@ extension _AppControllerRefresh on AppController {
     Iterable<FeatureId>? only,
     bool writeReadback = false,
   }) async {
-    if (_disposed) return;
+    if (_disposed || _clearingBusinessCache) return;
     final joining = <Future<void>>[];
     final features = <FeatureId>[];
     for (final feature in (only ?? _homeDefaultFeatures).toSet()) {
@@ -76,7 +76,7 @@ extension _AppControllerRefresh on AppController {
     FeatureQuery query, {
     bool writeReadback = false,
   }) async {
-    if (_disposed) return;
+    if (_disposed || _clearingBusinessCache) return;
     if (!writeReadback) {
       final pending = _pendingFeatureRead(feature, query);
       if (pending != null) {

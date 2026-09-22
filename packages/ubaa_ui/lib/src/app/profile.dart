@@ -12,11 +12,19 @@ class _ProfileView extends StatelessWidget {
     required this.activeRoutes,
     this.onReadDiagnostics,
     this.settingsOnly = false,
+    this.cacheAccountId,
+    this.canClearBusinessCache = true,
+    this.onReadCacheUsage,
+    this.onClearBusinessCache,
     this.themeMode = ThemeMode.system,
     this.onThemeModeChanged,
   });
 
   final bool settingsOnly;
+  final String? cacheAccountId;
+  final bool canClearBusinessCache;
+  final Future<CacheUsageSummary> Function(String)? onReadCacheUsage;
+  final Future<CacheClearOutcome> Function(String)? onClearBusinessCache;
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
   final UserSummary? user;
@@ -40,6 +48,15 @@ class _ProfileView extends StatelessWidget {
         children: <Widget>[
           if (!settingsOnly) _ProfileIdentityCard(user: user),
           if (settingsOnly) ...[
+            if (cacheAccountId != null &&
+                onReadCacheUsage != null &&
+                onClearBusinessCache != null)
+              _CacheSettings(
+                accountId: cacheAccountId!,
+                read: onReadCacheUsage!,
+                clear: onClearBusinessCache!,
+                enabled: canClearBusinessCache,
+              ),
             const SizedBox(height: 16),
             Card(
               child: ListTile(

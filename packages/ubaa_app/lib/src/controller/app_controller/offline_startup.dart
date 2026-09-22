@@ -54,6 +54,7 @@ extension _AppControllerOfflineStartup on AppController {
   }) {
     if (_disposed ||
         _isSigningOut ||
+        _clearingBusinessCache ||
         !_usesLocalRecovery ||
         _phase != AppPhase.home)
       return Future<void>.value();

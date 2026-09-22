@@ -104,6 +104,12 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onLoadAppVersion: appInformation.version,
       onOpenAppLink: appInformation.open,
       readCacheEpoch: _controller.readCacheEpoch,
+      businessCacheEpoch: _controller.businessCacheEpoch,
+      cacheAccountId: _controller.cacheAccountId,
+      canClearBusinessCache: _controller.canClearBusinessCache,
+      onReadCacheUsage: (id) => _controller.cacheUsage(accountId: id),
+      onClearBusinessCache: (id) =>
+          _controller.clearBusinessCache(accountId: id),
       onLoadAcademicTerms: (forceRefresh) =>
           _controller.loadAcademicTerms(forceRefresh: forceRefresh),
       onLoadAcademicWeeks: (term, forceRefresh) =>
