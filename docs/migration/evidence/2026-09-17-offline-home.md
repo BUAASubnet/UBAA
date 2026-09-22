@@ -539,3 +539,14 @@ flutter.log最终934项（57/66/423/278/22/34/54）和静态分析通过。根�
 check.log退出0：Core两配置各273、facade66、Bridge127通过/2既有忽略、CLI端到端16及fmt/clippy/Shell/build/doc通过。native.log原生合成6项通过，仍有Failed to foreground app，不计可见实窗验收。Bridge与生成文件未改变，保持v26，不重复codegen。
 
 最终敏感扫描5320文件、暂存diff通过，根门禁layout零baseline违例。源工作区ubaa2干净。当前只完成本阶段跨学期本地统计；整学期课表、其余生命周期/写后跨范围刷新及P5最终验收继续。
+
+
+## P2-F 启动缓存打开与路线生命周期（2026-09-22）
+
+基线8a22e0f7，冻结refs通过。/tmp/ubaa-p2f-red.log两项真实失败：密钥返回前切路线不再打开账号库、首页磁盘读取途中换路线后没有新范围重读；旧退出保护先通过。加入独立仓库所有权代次后，延迟密钥、延迟投影、退出及同账号重登保护通过。clear-red.log复现清理后旧读取重试复活内容，清理在打开后轮换本地所有权后修复。
+
+final-focused.log57项通过，包括六项新生命周期及既有清理、首页、查询、资料、成绩隔离。profile-red.log另复现本轮抽取流程将遮罩资料错误地排到首页磁盘之后；恢复其独立启动、投影前再次核对页面代次后profile-green.log17项通过。删除了P4-X路线隔离测试中等待初次打开的临时前置，现在同一路径无需等待也能通过。没有学校协议/Bridge/CLI合同变更。
+
+根check.log退出0，Core两配置各273、facade66、Bridge127通过/2既有忽略、CLI端到端16及fmt/clippy/Shell/build/doc/layout通过。Flutter初轮通过后因资料独立性修正再次全量复验，最终结果另记。没有本阶段新增原生/真实App/Core-live/性能或发布证据。
+
+最终flutter-final.log退出0：57/66/430/278/22/34/54共941项与静态分析通过。敏感扫描5321文件、暂存diff通过；Bridge v26未变，未重复生成。P2-F可独立提交，整学期课表与完整P0–P5继续。

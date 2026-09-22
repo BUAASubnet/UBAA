@@ -62,6 +62,8 @@ extension _AppControllerCacheManagement on AppController {
         throw const BackendException(UbaaErrorCode.operationConflict);
       }
       epoch = ++_lifecycleEpoch;
+      // 清理移交了仓库所有权，旧首页读取不能按路线切换重试。
+      _offlineAccountEpoch++;
       _ygdkGeneration++;
       for (final scope in _readScopes.toList()) {
         scope.cancel();

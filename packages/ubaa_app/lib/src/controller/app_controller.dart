@@ -161,6 +161,7 @@ class AppController extends ChangeNotifier {
   bool _deferredRecoveryScheduled = false;
   int? _pendingHomeRecoveryEpoch;
   Future<void> _offlineOpenFuture = Future<void>.value();
+  int _offlineAccountEpoch = 0;
   UiError? _localCacheError;
   UiError? get localCacheError => _localCacheError;
   bool _usesLocalRecovery = false;

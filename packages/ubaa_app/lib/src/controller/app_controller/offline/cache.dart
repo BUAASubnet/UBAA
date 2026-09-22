@@ -1,15 +1,18 @@
 part of '../../app_controller.dart';
 
 extension _AppControllerOfflineCache on AppController {
-  Future<void> _restoreCachedHome(LocalAccount account, int epoch) async {
+  Future<void> _restoreCachedHome(LocalAccount account) async {
     final backend = _backend;
     if (backend is! OfflineCacheBackend) return;
     final offline = backend as OfflineCacheBackend;
+    final accountEpoch = ++_offlineAccountEpoch;
     final opened = Completer<void>();
     _offlineOpenFuture = opened.future;
     bool current() =>
         !_disposed &&
-        epoch == _lifecycleEpoch &&
+        !_isSigningOut &&
+        !_rebuildingBackend &&
+        accountEpoch == _offlineAccountEpoch &&
         identical(backend, _backend) &&
         _localAccount?.id == account.id &&
         (_phase == AppPhase.home || _phase == AppPhase.loggingIn);
@@ -23,9 +26,15 @@ extension _AppControllerOfflineCache on AppController {
         key.fillRange(0, key.length, 0);
       }
       if (!current()) return;
-      unawaited(_restoreCachedProfile(backend, account, epoch));
-      final projections = await offline.readCachedHome(_loginForm.routePolicy);
-      if (!current()) return;
+      final profileEpoch = _lifecycleEpoch;
+      unawaited(_restoreCachedProfile(backend, account, profileEpoch));
+      final read = await _readCurrentCachedHome(offline, current);
+      if (read == null || !current()) return;
+      final (projections, policy, readEpoch) = read;
+      if (readEpoch != _lifecycleEpoch || policy != _loginForm.routePolicy)
+        return;
+      if (readEpoch != profileEpoch)
+        unawaited(_restoreCachedProfile(backend, account, readEpoch));
       for (final projection in projections) {
         final supplement =
             (projection.feature == FeatureId.bykc &&
@@ -35,6 +44,10 @@ extension _AppControllerOfflineCache on AppController {
                 projection.readContext.query?.view ==
                     FeatureQueryView.cgyyOrders);
         if (projection.accountId != account.id ||
+            (policy == RoutePolicy.direct &&
+                projection.route != ConnectionMode.direct) ||
+            (policy == RoutePolicy.webvpn &&
+                projection.route != ConnectionMode.webvpn) ||
             (!_homeDefaultFeatures.contains(projection.feature) && !supplement))
           continue;
         final previous = _homeDefaults[projection.feature]!;
@@ -82,7 +95,31 @@ extension _AppControllerOfflineCache on AppController {
     }
   }
 
+  Future<(OfflineHomeRead, RoutePolicy, int)?> _readCurrentCachedHome(
+    OfflineCacheBackend offline,
+    bool Function() ownsAccount,
+  ) async {
+    // 账号库的打开不从属于某条路线；投影则每次固定路线和页面代次。
+    while (ownsAccount()) {
+      final epoch = _lifecycleEpoch, policy = _loginForm.routePolicy;
+      try {
+        final result = await offline.readCachedHome(policy);
+        if (!ownsAccount()) return null;
+        if (epoch != _lifecycleEpoch || policy != _loginForm.routePolicy)
+          continue;
+        return (result, policy, epoch);
+      } on Object {
+        if (!ownsAccount()) return null;
+        if (epoch != _lifecycleEpoch || policy != _loginForm.routePolicy)
+          continue;
+        rethrow;
+      }
+    }
+    return null;
+  }
+
   Future<void> _closeOfflineAccount({bool remove = false}) async {
+    _offlineAccountEpoch++;
     final backend = _backend;
     if (backend is OfflineCacheBackend) {
       final offline = backend as OfflineCacheBackend;

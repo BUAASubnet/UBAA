@@ -30,7 +30,7 @@ extension _AppControllerOfflineStartup on AppController {
       _sessionRecoveryStatus = SessionRecoveryStatus.idle;
       // 先登记本地打开任务，状态通知中的详情读取也能等待同一账号句柄。
       // 不等待磁盘，首页首帧仍只依赖轻量账号索引。
-      unawaited(_restoreCachedHome(index.account!, epoch));
+      unawaited(_restoreCachedHome(index.account!));
       _setPhase(AppPhase.home);
       return true;
     } on Object catch (error, stackTrace) {
@@ -188,7 +188,7 @@ extension _AppControllerOfflineStartup on AppController {
           accountScope: index.account!.id,
         );
         _profileDisplayEpoch = epoch;
-        await _restoreCachedHome(index.account!, epoch);
+        await _restoreCachedHome(index.account!);
       }
     } on Object catch (error, stackTrace) {
       // 在线登录成功与能否保留本机材料是两件事，保存失败不得假装未登录。

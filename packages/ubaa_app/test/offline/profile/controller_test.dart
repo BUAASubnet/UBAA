@@ -6,6 +6,18 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import '../startup_test.dart' as support;
 
 void main() {
+  test('首页磁盘读取挂起不阻塞独立遮罩资料', () async {
+    final backend = _Backend()..homeGate = Completer<void>();
+    final controller = await setup(backend);
+    try {
+      await until(() => controller.displayUser?.profileEvidence != null);
+      expect(controller.displayUser!.displayName, '已***名');
+      expect(backend.authCalls, 0);
+    } finally {
+      backend.homeGate!.complete();
+    }
+  });
+
   test('手动登录已取得的新资料不能被随后打开的缓存倒退', () async {
     final backend = _Backend()
       ..signedIn = false
@@ -210,7 +222,7 @@ class _Backend extends support.FakeRecoveryBackend
   Future<UserSummary?> userInfo() async =>
       UserSummary(username: username, displayName: manualName);
   LocalAccount? account;
-  Completer<void>? diskGate;
+  Completer<void>? diskGate, homeGate;
   Completer<ProfileRefresh>? freshGate;
   final refreshStarted = Completer<void>();
   int refreshCalls = 0, closed = 0;
@@ -221,8 +233,11 @@ class _Backend extends support.FakeRecoveryBackend
   }
 
   @override
-  Future<OfflineHomeRead> readCachedHome(RoutePolicy policy) async =>
-      OfflineHomeRead([]);
+  Future<OfflineHomeRead> readCachedHome(RoutePolicy policy) async {
+    await homeGate?.future;
+    return OfflineHomeRead([]);
+  }
+
   @override
   Future<void> deactivateOfflineAccount() async {
     closed++;

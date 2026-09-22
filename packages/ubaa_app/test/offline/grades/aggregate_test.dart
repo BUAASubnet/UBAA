@@ -55,10 +55,7 @@ void main() {
       );
       addTearDown(controller.dispose);
       await controller.initialize();
-      if (mismatch == '路线') {
-        await until(() => backend.account != null);
-        await controller.setRoutePolicy(RoutePolicy.direct);
-      }
+      if (mismatch == '路线') await controller.setRoutePolicy(RoutePolicy.direct);
       GradesAggregate? local;
       final pending = controller.loadAllGrades(
         onProgress: (value) => local = value,
