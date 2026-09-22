@@ -372,3 +372,16 @@ buaa-api的api.rs/aas/data.rs为近似教务来源，schedule Date/Time类型不
 本轮只调整App持有本地加密仓库的生命周期，不改任何学校读取/认证操作。双来源依据仍为P0-C账号归属、P1-B及P4-X的本地读取对照；旧ScheduleRepository在返回前核对账号，另一来源没有同构本地首页。CAS/bootstrap、service、重定向/终点、Cookie、方法/参数、头/编码、加密常量及学校DTO均不适用此次本地打开操作且不变。缓存加密与密钥读取沿现有合同，不能复制Cookie或建立并行会话。
 
 同账号路线改变可以继续打开账号库；读取投影仍按最新实际路线重新获取。退出、删除账号、换账号、backend替换和dispose必须终止旧打开所有权。密钥迟到仍须清零，不能在同账号重新登录后复活旧打开。
+
+
+## P4-Y：完整学期快照与日期投影（实施前，2026-09-22）
+
+复核两份固定SHA：旧版api/feature/ScheduleApi.kt、api/local/LocalScheduleApi.kt、repository/ScheduleRepository.kt、ScheduleSnapshotStorage.kt及ScheduleRepositoryTest/ScheduleSnapshotStorageTest；另一来源api/aas/{core,opt,data}.rs。旧版本科importSemester逐学期列表→教学周→各周读取，全成功才发布账号名下学期集合，保留其他学期；WeeklySchedule.code本科实际是学号，不能误校验为学期。研究生旧版有专用适配，本阶段不新增Core未实现的研究生协议。另一来源type=term请求有campusCode/query差异，不代替旧版逐周表单。
+
+本地完整导入为独立的账号/实际路线集合，其中每个学期显式携带termCode、学期元数据、完整周次及周课表映射和该学期取得时间。每次成功导入合并同一集合并原子发布，保留其他已导入学期及其原时间；不把普通逐周缓存拼成完整导入。该集合沿旧版单账号快照结构，仍经统一加密仓库、修订票据与容量限制；容量不足拒绝新保存，不由普通缓存压力淘汰已明确导入集合。
+
+完整度校验沿旧版：学期存在、Week.term匹配、正且唯一周次、周次集合完全一致、合法规范化日期。用于按日期投影时额外拒绝同学期重叠周/超过七天的周范围，未知weekday不能推断当天无课；无覆盖日期返回未保存。跨学期重叠按旧版选开学更晚的覆盖学期，时间按对应学期保留。归属来自请求term和Week.term，不来自WeeklySchedule.code。
+
+本阶段本地操作不涉及CAS/bootstrap/service、重定向/终点、Cookie、HTTP方法/参数、头/编码、加密签名或上游错误变更；以后分段导入的学校读取继续P4-B学期/教学周/周课表逐行合同，每周请求及会话维护完成后才能释放共享锁。原普通读取/CLI语义保持，不推断一次批量上游接口、增量游标或ETag。
+
+P4-Y保守覆盖边界补充：旧普通教学周parser允许缺datas回退为空，无法据此证明一个已存在学期确实没有教学周。因此新完整导入拒绝空周索引，保留旧导入；原普通空查询返回不变。每个有效周内显式空课表仍可保存为真实无课，二者分开。

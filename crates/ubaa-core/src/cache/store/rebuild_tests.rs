@@ -130,7 +130,7 @@ fn 普通打开未知版本不修改而显式重建可以重新使用() {
         repo.db
             .pragma_query_value(None, "user_version", |r| r.get::<_, u32>(0))
             .unwrap(),
-        3
+        crate::cache::CACHE_SCHEMA_VERSION
     );
     assert_eq!(repo.usage().unwrap().entry_count, 0);
     drop(repo);

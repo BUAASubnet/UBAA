@@ -111,7 +111,7 @@ fn v1控制记录事务升级且旧格式不能重新写回() {
             .db
             .pragma_query_value(None, "user_version", |r| r.get::<_, u32>(0))
             .unwrap(),
-        3
+        crate::cache::CACHE_SCHEMA_VERSION
     );
     assert_eq!(reopened.read(&scope, 120).unwrap().unwrap().fetched_at, 100);
     let body: Vec<u8> = reopened

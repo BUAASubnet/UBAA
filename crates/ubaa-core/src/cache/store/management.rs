@@ -58,7 +58,18 @@ pub(super) fn prepare_control(
             save_control(db, crypto, account, &control)?;
             control
         } else {
-            crypto.open::<Control>(&body, &control_aad(account))?
+            let mut control = crypto.open::<Control>(&body, &control_aad(account))?;
+            if version == 3 {
+                control.epoch = control.epoch.checked_add(1).ok_or(CacheError::Capacity)?;
+                control.generation = control
+                    .generation
+                    .checked_add(1)
+                    .ok_or(CacheError::Capacity)?;
+                save_control(db, crypto, account, &control)?;
+                db.execute("DELETE FROM requests", [])
+                    .map_err(CacheError::from)?;
+            }
+            control
         };
         return Ok(control.handle_generation());
     }

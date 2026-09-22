@@ -67,8 +67,8 @@ pub use crate::cache::{
     CachedBykcCourse, CachedBykcCoursePage, CachedBykcSignWindow, CachedCgyyDayInfo,
     CachedCgyyOrder, CachedCgyyOrdersPage, CachedCgyySlotStatus, CachedCgyySpaceAvailability,
     CachedEvaluationCourse, CachedEvaluationCourses, CachedLibBookBooking,
-    CachedLibBookBookingsPage, CachedLibBookSeat, CachedMaskedProfile, CachedSigninClass,
-    CachedYgdkItem, CachedYgdkOverview, CachedYgdkRecord, CachedYgdkRecordsPage,
+    CachedLibBookBookingsPage, CachedLibBookSeat, CachedMaskedProfile, CachedSemesterSchedule,
+    CachedSigninClass, CachedYgdkItem, CachedYgdkOverview, CachedYgdkRecord, CachedYgdkRecordsPage,
     CachedYgdkRecordsSelection, JudgeCourseReview, OfflineRepository,
 };
 

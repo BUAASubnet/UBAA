@@ -16,6 +16,7 @@ pub(super) enum Priority {
     Recent,
     Stable,
     Active,
+    Imported,
 }
 #[derive(Default)]
 pub(super) struct Context {
@@ -107,6 +108,9 @@ fn best(values: impl Iterator<Item = Priority>) -> Priority {
     values.max().unwrap_or(Priority::Ordinary)
 }
 pub(super) fn classify(record: &CacheRecord, context: &Context, now: i64) -> Priority {
+    if matches!(&record.payload, CachePayload::ImportedSchedules(_)) {
+        return Priority::Imported;
+    }
     let Some(utc) = DateTime::<Utc>::from_timestamp(now, 0) else {
         return Priority::Recent;
     };
@@ -285,7 +289,7 @@ impl Admission<'_> {
                 break;
             }
             // 当前保存请求不能强行挤掉更有价值的现存条目；失败由外层事务回滚。
-            if priority > incoming {
+            if priority == Priority::Imported || priority > incoming {
                 break;
             }
             self.db

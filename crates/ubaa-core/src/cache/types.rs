@@ -2,8 +2,8 @@
 use super::{
     CachedBykcChosen, CachedBykcCourse, CachedBykcCoursePage, CachedCgyyDayInfo, CachedCgyyOrder,
     CachedCgyyOrdersPage, CachedEvaluationCourses, CachedLibBookBookingsPage, CachedLibBookSeat,
-    CachedMaskedProfile, CachedSigninClass, CachedYgdkOverview, CachedYgdkRecordsPage,
-    CachedYgdkRecordsSelection,
+    CachedMaskedProfile, CachedSemesterSchedule, CachedSigninClass, CachedYgdkOverview,
+    CachedYgdkRecordsPage, CachedYgdkRecordsSelection,
 };
 use crate::domain::{
     Assignment, CgyyPurposeTypes, CgyyVenueSite, ClassroomQuery, ConnectionMode, Course,
@@ -14,11 +14,12 @@ use crate::domain::{BykcStatistics, BykcUserProfile, SpocAssignmentDetail, SpocA
 use serde::{Deserialize, Serialize};
 
 /// 独立于 Session 和 Bridge 的业务缓存版本。
-pub const CACHE_SCHEMA_VERSION: u32 = 3;
+pub const CACHE_SCHEMA_VERSION: u32 = 4;
 
 /// 精确业务查询；日期使用既有校园日期，不在读取时替换成今天。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub enum CacheQuery {
+    ImportedSchedules,
     MaskedProfile,
     YgdkRecordsSelection,
     YgdkRecords {
@@ -128,6 +129,7 @@ pub struct CacheScope {
 /// 仅白名单领域值可写入，禁止任意 JSON、原始响应或 action 投影。
 #[derive(Clone, Debug, Deserialize, PartialEq, Serialize)]
 pub enum CachePayload {
+    ImportedSchedules(Vec<CachedSemesterSchedule>),
     MaskedProfile(CachedMaskedProfile),
     YgdkRecordsSelection(CachedYgdkRecordsSelection),
     YgdkRecords(CachedYgdkRecordsPage),
@@ -330,6 +332,9 @@ impl CacheScope {
 impl CachePayload {
     pub(super) fn matches(&self, query: &CacheQuery) -> bool {
         match (self, query) {
+            (Self::ImportedSchedules(values), CacheQuery::ImportedSchedules) => {
+                super::schedule::valid_collection(values)
+            }
             (Self::MaskedProfile(value), CacheQuery::MaskedProfile) => value.valid(),
             (Self::YgdkRecordsSelection(v), CacheQuery::YgdkRecordsSelection) => v.classify_id > 0,
             (

@@ -40,3 +40,6 @@ pub use ygdk_records::{CachedYgdkRecord, CachedYgdkRecordsPage, CachedYgdkRecord
 
 mod profile;
 pub use profile::CachedMaskedProfile;
+
+mod schedule;
+pub use schedule::CachedSemesterSchedule;

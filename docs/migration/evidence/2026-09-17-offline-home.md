@@ -550,3 +550,14 @@ final-focused.log57项通过，包括六项新生命周期及既有清理、首�
 根check.log退出0，Core两配置各273、facade66、Bridge127通过/2既有忽略、CLI端到端16及fmt/clippy/Shell/build/doc/layout通过。Flutter初轮通过后因资料独立性修正再次全量复验，最终结果另记。没有本阶段新增原生/真实App/Core-live/性能或发布证据。
 
 最终flutter-final.log退出0：57/66/430/278/22/34/54共941项与静态分析通过。敏感扫描5321文件、暂存diff通过；Bridge v26未变，未重复生成。P2-F可独立提交，整学期课表与完整P0–P5继续。
+
+
+## P4-Y 完整学期快照与离线日期覆盖（2026-09-22）
+
+基线f8326600，refs通过。本阶段只实现Core本地基础，生产分段导入/Bridge/App入口尚未接通。red-contract.log为缺完整学期类型、独立范围及发布/投影合同；初版测试缺既有类型导入的编译噪声已单独修正后保留合同RED。首批4项通过后，protection-red.log复现普通缓存压力淘汰导入集合，以及日期规范化接受带加号年份；migration-red.log复现仅升版本不能阻止旧已打开连接继续操作；exit-red.log复现错误载荷先于退出栅栏；empty-red.log复现空周索引被称为完整；weeks-red.log复现当前周标记未按日期更新。
+
+最终final-focused.log11项通过：完整学期跨重开/路线/周次隔离及原时间、缺周/重复周/错学期/非法日期拒绝、未知星期/未覆盖日期不冒充无课、有效空周、部分失败和迟到保护、导入集合容量保留、严格日期形状、跨学期覆盖选择、v3迁移保留内容/退出且拒绝旧连接、退出错误优先、空周索引保护、当前周标记按校园日期计算。模型保留本科WeeklySchedule.code，未错误要求等于学期。
+
+cache-green.log此前8项模型加现有缓存57项通过；最终全量根门禁另记。check.log首次clippy拒绝文档InvalidInput缺反引号，已修正，不增allow或baseline。实现替换脚本一次因格式化后文本不匹配中止，未写入计划的代码修改；之后按实际内容完成。Schema升v4，控制AAD仍v3；新版本额外轮换仓库generation/epoch。没有学校请求或写入，没有本阶段Flutter/原生/真实App/性能证据。
+
+最终check-final.log退出0：Core两配置各284、facade66、Bridge127通过/2既有忽略、CLI端到端16；fmt/clippy/Shell/build/doc和layout零baseline违例通过。暂存敏感扫描5323文件及diff通过。新生产代码仅Core本地模型，Bridge v26形状未改，未重复Flutter/生成/原生检查；最新941项Flutter是P2-F证据，不能当成本阶段新原生证据。完整学期生产导入和全部P0–P5继续。
