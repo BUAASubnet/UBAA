@@ -455,3 +455,18 @@ P2-I身份补充：有本机账号但缓存密钥不可用时，新在线计划�
 逐操作协议继续P2-I完整对照，新的Bridge入口只公开现有facade begin/next，不新增URL、请求参数、DTO解析或Cookie生命周期。每次begin/next均在原Bridge客户端锁内完成Core收尾，并检查待确认写意图；返回后释放锁，由原任务调度器决定下一批。取消只改原子标记，既有CLI、双路线及聚合接口保持。
 
 App新增可选的账号范围分段读取合同：即便安全密钥不可用，也把当前本机账号期望身份送到新Core核对，不把失败的数据库打开当作没有账号。无缓存摘要/单详情及显式批量可逐批返回，来源与保存能力分列，不冒充持久保存。旧有持久选择性刷新继续使用原入口；所有新批次仍经后台/写活动/账号和查询代次调度保护。
+
+
+## P2-K / P4-AF：SPOC 按完整请求让位及观察学期分页（实施前，2026-09-22）
+
+冻结来源仍为 old 1f4b8f8412272b6a423d4ad92b396e3db721e6f3 与 buaa-api a63712fa2ae0a6c8066197063ddee98e3a6b5b81；只读复核 LocalSpocApi.kt、LocalSpocSupport.kt、Spoc DTO、LocalSpocApiBackendTest/LocalSpocSupportTest/SpocApiTest，以及另一来源 api/spoc/{core,opt,data}.rs 与既有 request/credential 路径。以下继承 P4-D 的认证逐操作证据，纠正该表“原 DES”的笔误：现实现与两冻结来源均为 AES-128-CBC，零填充与 Base64，固定 KEY inco12345678ocni、IV ocni12345678inco；它们是公开协议常量，并非用户凭据。
+
+| 操作 | CAS/service、跳转和落点 | Cookie/会话 | 方法、精确参数 | 头、编码及加密 | DTO 与解析 | 缓存/并发 | 错误与退出 |
+|---|---|---|---|---|---|---|---|
+| 当前学期 | 沿 P4-D 原 /spocnewht/cas 手动跳转和 token 精确落点，再 sys/casLogin 角色；不在步骤间释放认证重试内部锁 | 原实际路线同一 runtime，token/role 不进计划/业务缓存 | POST inco/ht/queryOne，原固定 CURRENT_TERM_PARAM | JSON param；XHR、Token、RoleCode；固定密文不改 | mrxq 必须非空，dqxq 可空 | 独立请求完成并经主会话仲裁后让位，观察值决定学期键 | 必需失败终止，不猜默认学期 |
+| 当前学期课程 | 同上原业务重试 | 同一 runtime，计划只持课程 DTO | GET jxkj/queryKclb，kcmc 为空、xnxq 为已观察 mrxq | 原 XHR/Token/RoleCode，无新增正文 | kcid/kcmc/skjs | 完整请求之间让位，课程失败使聚合部分 | 保留旧可选补充语义；主认证失效仍经既有仲裁 |
+| 全局作业单页 | 同上原认证重试及完整收尾 | 同一 runtime，不复制 Cookie 或另建并行客户端 | POST inco/ht/queryListByPage；原 sqlid 1713252980496efac7d5d9985e81693116d3e8a52ebf2b、pageSize 15、pageNum 从 1、xnxq 观察值、kcid/yzwz 空 | 原 JSON 加密 param 和三头；复用原 AES，不改常量 | pageNum/pageSize/pages/hasNextPage/list 与摘要字段；显式页码/大小或行 xnxq 错配拒绝；缺失观察字段不能用 DTO 默认值宣称完整 | 页键包含实际路线/学期/页码/大小；每次只推进完整一页，完整同学期聚合才替换旧值，部分不清空；选择指针与子票据受账号/路线/退出代次保护 | 沿旧 hasNext/page.pages/空页停止边界；宣告下一页却在边界停止记部分；网络失败不跳页、不自动续游标 |
+
+另一来源 get_week 使用不同 SQL ID，不是旧版当前学期查询；query_courses 只有 xnxq，没有 kcmc；query_homeworks 是课程级 GET kczy/queryXsZyList(flag=1,sflx=2,sskcid)，不是全局分页 SQL。其 token 登录没有同构角色交换，不能借用替换本项目认证。此轮不增加上游字段、ETag、增量游标或时间排序早停。pageNum/pageSize 缺失不等同于观察到默认 1/15；不根据 total 与 pageSize 推断总页数算式。
+
+新增 facade begin/next 合同保留旧 CLI 全量返回语义，供随后 Bridge 在批次之间释放同一客户端锁。新计划不包含会话凭据；取消、路线/主会话代次、账号仓库与较新请求拒绝迟到结果。离线页只供阅读，不用于写资格。先观察错页/缺元数据的 RED，再实施。

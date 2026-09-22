@@ -20,6 +20,16 @@ impl HttpTransport for HomeTransport {
             || (mode & 4 != 0 && path.ends_with("getCount"))
             || (mode & 8 != 0 && path.ends_with("Term/get"))
             || (mode & 16 != 0 && path.ends_with("queryListByPage"));
+        if mode & 128 != 0 && path.ends_with("queryListByPage") {
+            return Ok(HttpResponse::new(200, request.url, br#"{"code":200,"content":{"pageNum":2,"pageSize":15,"pages":2,"hasNextPage":false,"list":[]}}"#.to_vec()));
+        }
+        if mode & 256 != 0 && path.ends_with("queryListByPage") {
+            return Ok(HttpResponse::new(
+                200,
+                request.url,
+                br#"{"code":200,"content":{}}"#.to_vec(),
+            ));
+        }
         if mode & 32 != 0 && path.ends_with("queryListByPage") {
             return Ok(HttpResponse::new(200, request.url, br#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":2,"hasNextPage":true,"list":[]}}"#.to_vec()));
         }
@@ -101,7 +111,10 @@ impl HttpTransport for HomeTransport {
         ))
     }
 }
-fn setup(root: &std::path::Path, transport: HomeTransport) -> (UbaaClient, OfflineCache) {
+fn setup(
+    root: &std::path::Path,
+    transport: impl HttpTransport + 'static,
+) -> (UbaaClient, OfflineCache) {
     let store = FileSessionStore::new(root).unwrap();
     store
         .save(&SessionSnapshot {
@@ -278,3 +291,51 @@ fn 首页可选步骤失败不能覆盖原完整缓存() {
     drop(client);
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn spoc_错页必须拒绝且缺少分页观察不能清空完整快照() {
+    let root = test_root("spoc-observed-scope");
+    let mode = Arc::new(AtomicUsize::new(0));
+    let (mut client, cache) = setup(
+        &root,
+        HomeTransport {
+            mode: mode.clone(),
+            requests: Arc::new(std::sync::Mutex::new(Vec::new())),
+        },
+    );
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let full = runtime
+        .block_on(client.refresh_cached_home(&cache, HomeQuery::SpocAssignments))
+        .unwrap();
+    let old = cache
+        .read(&full.result.scope, full.result.fetched_at)
+        .unwrap()
+        .unwrap();
+    mode.store(128, Ordering::SeqCst);
+    assert!(
+        runtime
+            .block_on(client.refresh_cached_home(&cache, HomeQuery::SpocAssignments))
+            .is_err(),
+        "不能接受请求第1页却返回第2页"
+    );
+    mode.store(256, Ordering::SeqCst);
+    let partial = runtime
+        .block_on(client.refresh_cached_home(&cache, HomeQuery::SpocAssignments))
+        .unwrap();
+    assert!(!partial.complete, "缺字段不等于完整空页");
+    let preserved = cache
+        .read_home(ConnectionMode::Direct, &HomeQuery::SpocAssignments)
+        .unwrap()
+        .unwrap();
+    assert_eq!(preserved.payload, old.payload);
+    assert_eq!(preserved.fetched_at, old.fetched_at);
+    drop(cache);
+    drop(client);
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[path = "home_cache/spoc_scan.rs"]
+mod spoc_scan;

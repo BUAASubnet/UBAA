@@ -102,7 +102,17 @@ pub enum CacheQuery {
     SigninToday {
         date: String,
     },
+    /// 旧无学期集合仅用于兼容，不再作为首页当前选择。
     SpocAssignments,
+    SpocSelection,
+    SpocTerm {
+        term: String,
+    },
+    SpocPage {
+        term: String,
+        page: u32,
+        size: u32,
+    },
     SpocDetail {
         assignment_id: String,
     },
@@ -165,6 +175,16 @@ pub enum CachePayload {
     Today(Vec<TodayClass>),
     SigninToday(Vec<CachedSigninClass>),
     SpocAssignments(SpocAssignments),
+    SpocSelection {
+        term: String,
+    },
+    SpocPage {
+        data: SpocAssignments,
+        page: u32,
+        size: u32,
+        has_next: Option<bool>,
+        pages: Option<u32>,
+    },
     SpocDetail(Box<SpocAssignmentDetail>),
     YgdkOverview(CachedYgdkOverview),
     YgdkOverviewSelection {
@@ -335,11 +355,13 @@ impl CacheScope {
             CacheQuery::SigninToday { date } => chrono::NaiveDate::parse_from_str(date, "%Y%m%d")
                 .is_ok_and(|value| value.format("%Y%m%d").to_string() == *date),
             CacheQuery::SpocDetail { assignment_id } => id(assignment_id),
+            CacheQuery::SpocPage { term, page, size } => id(term) && *page > 0 && *size == 15,
             CacheQuery::ScheduleToday { date } | CacheQuery::Classrooms { date, .. } => {
                 chrono::NaiveDate::parse_from_str(date, "%Y-%m-%d")
                     .is_ok_and(|value| value.format("%Y-%m-%d").to_string() == *date)
             }
-            CacheQuery::ScheduleImport { term }
+            CacheQuery::SpocTerm { term }
+            | CacheQuery::ScheduleImport { term }
             | CacheQuery::ScheduleWeeks { term }
             | CacheQuery::Exams { term } => id(term),
             CacheQuery::Grades { term } => {
@@ -369,7 +391,29 @@ impl CacheScope {
     }
 }
 impl CachePayload {
+    fn spoc_matches(&self, query: &CacheQuery) -> Option<bool> {
+        Some(match (self, query) {
+            (Self::SpocSelection { term }, CacheQuery::SpocSelection) => {
+                !term.trim().is_empty() && term.len() <= 1024
+            }
+            (Self::SpocAssignments(data), CacheQuery::SpocTerm { term }) => &data.term_code == term,
+            (
+                Self::SpocPage {
+                    data, page, size, ..
+                },
+                CacheQuery::SpocPage {
+                    term,
+                    page: requested_page,
+                    size: requested_size,
+                },
+            ) => &data.term_code == term && page == requested_page && size == requested_size,
+            _ => return None,
+        })
+    }
     pub(super) fn matches(&self, query: &CacheQuery) -> bool {
+        if let Some(matches) = self.spoc_matches(query) {
+            return matches;
+        }
         match (self, query) {
             (
                 Self::YgdkOverviewSelection {

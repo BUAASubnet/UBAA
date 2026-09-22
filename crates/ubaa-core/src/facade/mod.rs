@@ -13,7 +13,9 @@ pub use cgyy_cache::{CgyyCacheQuery, CgyyReadData, CgyyRefresh};
 mod home_cache;
 mod offline;
 pub use academic_cache::AcademicQuery;
-pub use home_cache::{HomeQuery, HomeReadData, HomeRefresh};
+pub use home_cache::{
+    HomeQuery, HomeReadData, HomeRefresh, SpocScan, SpocScanBatch, SpocScanCancellation,
+};
 pub use judge_scan::{
     JudgeOnlineOptions, JudgeOnlineProgress, JudgeOnlineScan, JudgeScan, JudgeScanBatch,
     JudgeScanCancellation, JudgeScanKind,

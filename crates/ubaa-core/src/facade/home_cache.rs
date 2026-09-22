@@ -12,7 +12,10 @@ pub enum HomeQuery {
     SpocDetail { assignment_id: String },
     YgdkOverview,
 }
+mod spoc;
+mod spoc_scan;
 mod ygdk;
+pub use spoc_scan::{SpocScan, SpocScanBatch, SpocScanCancellation};
 
 impl HomeQuery {
     fn cache_query(&self, now: i64) -> super::CacheResult<CacheQuery> {
@@ -20,7 +23,7 @@ impl HomeQuery {
             Self::SigninToday => CacheQuery::SigninToday {
                 date: crate::features::signin::shanghai_date(),
             },
-            Self::SpocAssignments => CacheQuery::SpocAssignments,
+            Self::SpocAssignments => CacheQuery::SpocSelection,
             Self::SpocDetail { assignment_id } => CacheQuery::SpocDetail {
                 assignment_id: assignment_id.clone(),
             },
@@ -73,6 +76,9 @@ impl OfflineCache {
         query: &HomeQuery,
     ) -> super::CacheResult<Option<super::CacheRecord>> {
         let now = chrono::Utc::now().timestamp();
+        if matches!(query, HomeQuery::SpocAssignments) {
+            return spoc::read(self, route, now);
+        }
         if matches!(query, HomeQuery::YgdkOverview) {
             return ygdk::read(self, route, now);
         }
@@ -95,6 +101,9 @@ impl UbaaClient {
         cache: &OfflineCache,
         query: HomeQuery,
     ) -> Result<HomeRefresh, OfflineReadError> {
+        if matches!(query, HomeQuery::SpocAssignments) {
+            return self.refresh_spoc_scan(cache).await;
+        }
         cache
             .check_read_generation()
             .map_err(OfflineReadError::Cache)?;

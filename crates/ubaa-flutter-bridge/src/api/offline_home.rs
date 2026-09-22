@@ -401,6 +401,24 @@ mod tests {
     use super::super::{client::*, offline::BridgeOfflineCache};
     use crate::api::write::{BridgeBykcCourseRequest, PendingEntry, PendingWrite};
     use ubaa_core::facade as core;
+    fn store_spoc_selection(repository: &mut core::OfflineRepository) {
+        let selection = repository
+            .begin_read(core::CacheScope {
+                route: core::ConnectionMode::Direct,
+                query: core::CacheQuery::SpocSelection,
+            })
+            .unwrap();
+        repository
+            .publish(
+                &selection,
+                core::CachePayload::SpocSelection {
+                    term: "synthetic-term".into(),
+                },
+                123,
+                core::CacheCompleteness::Complete,
+            )
+            .unwrap();
+    }
     #[tokio::test]
     async fn 首页缓存读取保留旧状态但不恢复操作资格() {
         let root = std::env::temp_dir().join(format!("ubaa-home-bridge-{}", std::process::id()));
@@ -417,7 +435,9 @@ mod tests {
         let ticket = repository
             .begin_read(core::CacheScope {
                 route: core::ConnectionMode::Direct,
-                query: core::CacheQuery::SpocAssignments,
+                query: core::CacheQuery::SpocTerm {
+                    term: "synthetic-term".into(),
+                },
             })
             .unwrap();
         repository
@@ -431,6 +451,7 @@ mod tests {
                 core::CacheCompleteness::Complete,
             )
             .unwrap();
+        store_spoc_selection(&mut repository);
         drop(repository);
         let client = BridgeClient::open(root.to_string_lossy().into()).unwrap();
         let cache = BridgeOfflineCache::open(

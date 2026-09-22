@@ -686,3 +686,14 @@ WebVPN：seed-webvpn.log独立会话3认证+4课表只读PASS，累计1.731秒�
 私有安全日志与失败尝试索引归档到/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p5a，目录700、文件600；index.json SHA256为7f0fe70aa4f1b572cda5505ae6615bd9904aa2dc6a4f6c7fcb8c96ae56b26ca0。没有截图或会话/凭据副本。当前生产入口macOS debug已重新构建，未留集成测试runner作交付；最终门禁收尾。
 
 收尾：analyze-verified.log无问题，check.log退出0（Core两配置各302、facade83、Bridge134通过/2既有忽略、CLI端到端16及根门禁）。main-build.log正常macOS debug入口构建通过，artifact.log结构/实际签名沙箱与联网权限检查通过；refs、layout零baseline违例、5370文件敏感扫描通过。本阶段只新增验收入口及文档，Flutter生产行为未改，不重复累计P2-J的992项为新增测试。P1功能出口勾选，P0/P2/P3/P4/P5和整体目标仍未全量完成。
+
+
+## P2-K / P4-AF：SPOC 观察学期、精确分页与 Core 分段（2026-09-22）
+
+基点 dfea949e。实施前九列来源核对已追加于 source-parity-offline-recovery-2026-09-17.md，原 P4-D 的 DES 文字笔误纠正为实际沿用的 AES-128-CBC；协议实现没有换算法或常量。旧 CLI 聚合不变，新缓存刷新内部使用新的 begin/next facade；独立 Bridge/App 的生产批次接线尚待后续，不把 Core 能在批次间让位记为 App 抢占完成。
+
+RED：`/tmp/ubaa-p2k-red.log` 明确观察请求第一页却返回第二页仍被接受的失败；`/tmp/ubaa-p2k-scan-red.log` 又观察到 hasNextPage=false 与 pages=2 的第一页被误称完整。另一个测试夹具尝试对无 config_dir 的注入客户端改路线失败，随后用独立客户端替换检验弱归属；不把夹具错误算产品 RED。
+
+实现按观察学期和页码/固定大小隔离；旧完整集合、原取得时间、新学期部分结果与选择指针分开。页码/大小或行学期错配拒绝；缺字段、重复项、矛盾结束和异常空页只算部分。缺本地缓存仍按同一客户端分段、核对可选账号；取消、退出、清理、新请求、客户端替换拒绝旧计划。测试中真实调用另一个 facade 签到只读操作插入两页之间，全部为脱敏 transport，无真实学校写入。
+
+聚焦 `/tmp/ubaa-p2k-green-final.log` 7 项通过；`/tmp/ubaa-p2k-check-final.log` 根门禁退出 0，Core 两配置各 302、facade 88、Bridge 134 通过/2 既有子进程入口忽略、CLI 端到端 16 项通过，fmt/clippy、Shell 合同、构建与文档通过。refs、layout 0 baseline、敏感扫描 5374 文件及暂存 diff 检查通过。Bridge v29、CLI v10、schema v5 不变；本批 Bridge 只更新测试种子以匹配新学期缓存，未新增公开接口或 codegen。未运行新 Bridge 原生、真实 App 或冷启动测量，P5-A 旧候选证据不继承为此候选通过。SPOC 单详情仍在旧内部聚合路径，后续分段须另外完成，不能据此宣布整个 SPOC 结束。

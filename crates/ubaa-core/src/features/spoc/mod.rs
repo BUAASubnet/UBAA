@@ -7,6 +7,7 @@ mod crypto;
 mod detail;
 mod list;
 mod parser;
+pub(crate) mod scan;
 
 #[allow(unused_imports)]
 pub use auth::{CAS_LOGIN_URL, CAS_URL};

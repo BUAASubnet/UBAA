@@ -137,7 +137,7 @@ pub(crate) async fn get_assignments_observed(
     ))
 }
 
-async fn fetch_current_term(
+pub(super) async fn fetch_current_term(
     runtime: &mut crate::runtime::ClientRuntime,
     credential: &SpocCredential,
 ) -> crate::error::Result<CurrentTerm> {
@@ -160,7 +160,7 @@ async fn fetch_current_term(
     parse_envelope(&crate::features::body(&response))
 }
 
-async fn fetch_courses(
+pub(super) async fn fetch_courses(
     runtime: &mut crate::runtime::ClientRuntime,
     url: String,
     credential: &SpocCredential,
@@ -186,6 +186,15 @@ async fn fetch_assignment_page(
     page_num: u32,
     credential: &SpocCredential,
 ) -> crate::error::Result<AssignmentPage> {
+    fetch_assignment_page_as(runtime, term_code, page_num, credential).await
+}
+
+pub(super) async fn fetch_assignment_page_as<T: serde::de::DeserializeOwned>(
+    runtime: &mut crate::runtime::ClientRuntime,
+    term_code: String,
+    page_num: u32,
+    credential: &SpocCredential,
+) -> crate::error::Result<T> {
     let request = AssignmentPageRequest::new(&term_code, page_num);
     let plain = serde_json::to_string(&request).map_err(|_| {
         crate::error::UbaaError::new(
