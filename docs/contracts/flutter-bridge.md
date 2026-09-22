@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `26`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `27`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -38,7 +38,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=26` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=27` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -609,3 +609,7 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
 ## 合同 v26：显式缓存重建
 
 clearOrRebuild只供设置确认后调用，参数为私有配置目录、已核实本机账号/预期身份及临时缓存密钥；不获取网络客户端锁。返回BridgeCacheRecovery：可空新cache及clear report。返回成功说明内容已清除；cache为空表示后续初始化不可用，不能继续使用旧句柄或声称已可离线保存。清空前的错误保持原错误合同。普通open不自动重建。App/控制器区分cacheReady与compacted，密钥用后清零，旧任务与退出队列沿既有代际保护。
+
+## 合同 v27：完整学期分段导入
+
+`beginScheduleImport(cache, term)` 只核实原会话及账号并创建固定学期计划；`nextScheduleImport(task)` 每次完成学期索引、教学周索引或一周读取后释放共享锁。`task.cancel()` 为同步原子取消，不声明中止在途 HTTP。进度分别提供 termCode、completedWeeks、totalWeeks、finished、saveError 和实际 route；只有 finished 且 saveError 为空才证明完整保存。待确认写意图禁止 next，且保留意图。账号、路线、客户端、清理和较新同学期计划栅栏保持 Core 合同；原 CLI 和普通双路线查询未改变。

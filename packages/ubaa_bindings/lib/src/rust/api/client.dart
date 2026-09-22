@@ -18,6 +18,7 @@ import 'offline_ygdk.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 import 'recovery.dart';
+import 'schedule_import.dart';
 import 'write.dart';
 
 // These functions are ignored because they are not marked as `pub`: `catch_panic`, `disposed_error`, `from_core`, `from_routed`, `local`, `map_login_outcome`, `map_preparation`, `map_profile`, `map_route_login`, `map_route`, `map_safe_error`, `panic_error`
@@ -104,6 +105,15 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeOfflineCache cache,
     required bool includeExpired,
     String? preferredCourse,
+  });
+
+  /// 核实原会话身份并登记指定学期导入，不自动开始逐周读取。
+  ///
+  /// # Errors
+  /// 账号、仓库、学校认证或待确认写意图冲突时拒绝创建计划。
+  Future<BridgeScheduleImportTask> beginScheduleImport({
+    required BridgeOfflineCache cache,
+    required String term,
   });
 
   /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
@@ -452,6 +462,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// # Errors
   /// 取消、较新请求、账号/路线失效或写操作冲突时拒绝旧批次。
   Future<BridgeJudgeScanBatch> nextJudgeScan({required BridgeJudgeScan scan});
+
+  /// 返回学期索引、周次索引或单周进度后释放共享锁。
+  ///
+  /// # Errors
+  /// 取消、退出、路线/会话变化、学校读取或当前写活动冲突时返回稳定错误。
+  Future<BridgeScheduleImportProgress> nextScheduleImport({
+    required BridgeScheduleImportTask task,
+  });
 
   /// 打开应用私有目录中的 Core client。
   static BridgeClient open({required String configDir}) =>

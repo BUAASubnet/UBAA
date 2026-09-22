@@ -21,7 +21,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 26);
+      expect(client.contractVersion(), 27);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -44,6 +44,16 @@ void main() {
         accountId: '0123456789abcdef0123456789abcdef',
         expectedIdentity: 'synthetic',
         key: key,
+      );
+      await expectLater(
+        client.beginScheduleImport(cache: first, term: 'synthetic-term'),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.code,
+            '新导入RPC保留缺会话错误',
+            BridgeErrorCode.authenticationRequired,
+          ),
+        ),
       );
       expect(
         await first.readBykcProfile(route: BridgeConnectionMode.direct),

@@ -77,6 +77,7 @@ extension _AppControllerProgressive on AppController {
   }
 
   void _pumpReadTasks() {
+    _pruneScheduleImports();
     for (final scope in _readScopes.toList()) {
       if (!scope.current()) scope.cancel();
     }

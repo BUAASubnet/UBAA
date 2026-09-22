@@ -21,6 +21,9 @@ class _ScheduleFlow extends StatefulWidget {
     required this.child,
     this.onQuery,
     this.onTitle,
+    this.imports = const {},
+    this.onSave,
+    this.onCancelImport,
   });
   final FeatureSnapshot snapshot;
   final FeatureQuery? query;
@@ -31,6 +34,9 @@ class _ScheduleFlow extends StatefulWidget {
   final ValueChanged<FeatureQuery> adoptDraft;
   final ValueChanged<String?>? onTitle;
   final Widget child;
+  final Map<String, ScheduleImportState> imports;
+  final Future<void> Function(String)? onSave;
+  final ValueChanged<String>? onCancelImport;
   @override
   State<_ScheduleFlow> createState() => _ScheduleFlowState();
 }
@@ -387,6 +393,13 @@ class _ScheduleFlowState extends State<_ScheduleFlow> {
       child: Column(
         children: [
           weekHeader,
+          if (term != null && widget.onSave != null)
+            _ScheduleImportBar(
+              term: term,
+              state: widget.imports[term],
+              onSave: widget.onSave!,
+              onCancel: widget.onCancelImport,
+            ),
           Expanded(child: content),
         ],
       ),

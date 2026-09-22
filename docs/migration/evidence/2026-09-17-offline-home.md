@@ -585,3 +585,15 @@ P4-Z最终暂存敏感扫描5327文件及diff通过，源工作区ubaa2保持干
 最终flutter-reviewed.log退出0：57/66/434/278/22/34/54共945项及分析通过；旧测试按真实认证前提重跑，实际学校写入仍为0。后续整学期导入Bridge/App、跨范围写后刷新、其他长读取与最终多端性能继续。
 
 P2-G最终暂存敏感扫描5327文件与diff检查通过；源工作区保持干净。本阶段单独提交，不含随后新增的整学期Bridge测试。
+
+## P4-AA 整学期导入 Bridge/App/课表页（2026-09-22）
+
+基线41bf5f4e，refs通过。/tmp/ubaa-p4aa-bridge-red.log缺begin/next；初版MockTransport断言方法名错误先修正后重新记录。bridge-green.log一项通过，实际在两批之间取得同一客户端锁执行所需路线恢复，并确认写意图、取消、dispose阻止下一批。App-red.log缺backend导入合同；初轮错误工作目录及枚举名噪声已修正，正式RED后app-green.log四项通过。
+
+controller-red.log缺任务入口、进度状态和取消合同；最终final-focused.log十项通过，包括后台/写意图暂停、逐批让位签到、同学期合并、当前查询保持、取消/路线/退出/清理迟到保护、首页刷新不取消、失败不重发和明确身份冲突。ui-red.log缺shell参数（初次非const构造噪声先移除），ui-green.log三项覆盖390/834/1280宽度与1.3倍文字、进度/取消/容量失败/重试/已保存状态。host-red.log真实断言保存回调为null，接线后host-green.log一项通过。全部合成，无真实学校写入。
+
+codegen-check.log退出0，Bridge v27 FRB严格生成零漂移；layout零baseline违例。完整Flutter、根门禁和原生测试分别进行中，尚无本阶段真实App、Core-live或启动性能证据。
+
+完整flutter.log首次因一个ContractVersionClient仍传26失败；修正测试候选为27，flutter-final.log退出0：57/66/444/281/22/35/54共959项及分析通过。check.log首次停在五份当前版本文档未升27，已同步并重跑check-final.log。native.log首个真实FFI用例通过，第二个runner启动时调试连接失败；确认无遗留App进程后单独重跑native-retry.log，四项合成宿主/三宽度场景通过。两次原生均有Failed to foreground app，记录为原生功能测试，不能算可见实窗或真实账号App验收。没有新增媒体、学校写入或性能测量。
+
+最终check-final.log退出0：Core两配置各286、facade75、Bridge128通过/2既有忽略、CLI端到端16，fmt/clippy/Shell/build/doc和layout零baseline违例通过。暂存敏感扫描及diff通过，源工作区ubaa2仍干净。完整P0–P5继续，离线周次自动导航与日期、跨范围写后刷新、其他安全分段及多端性能尚未关闭。

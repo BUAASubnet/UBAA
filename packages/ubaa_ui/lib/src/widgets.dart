@@ -39,6 +39,7 @@ part 'features/classroom_content.dart';
 part 'features/schedule_content.dart';
 part 'features/academic/schedule_detail.dart';
 part 'features/academic/schedule_flow.dart';
+part 'features/academic/schedule_import.dart';
 part 'features/academic/week_picker.dart';
 part 'features/assignments.dart';
 part 'features/coursework/assignment_content.dart';

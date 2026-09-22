@@ -295,7 +295,7 @@ class _Client implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 26;
+  int contractVersion() => 27;
   @override
   Future<BridgeBykcCoursesRefresh> bykcCoursesCached({
     required BridgeOfflineCache cache,

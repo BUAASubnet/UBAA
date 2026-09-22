@@ -112,6 +112,11 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           _controller.clearBusinessCache(accountId: id),
       onLoadAcademicTerms: (forceRefresh) =>
           _controller.loadAcademicTerms(forceRefresh: forceRefresh),
+      scheduleImports: _controller.scheduleImports,
+      onSaveScheduleSemester: _controller.canSaveScheduleSemester
+          ? _controller.saveScheduleSemester
+          : null,
+      onCancelScheduleImport: _controller.cancelScheduleImport,
       onLoadAcademicWeeks: (term, forceRefresh) =>
           _controller.loadAcademicWeeks(term, forceRefresh: forceRefresh),
       onLoadCgyyPurposes: (force) =>

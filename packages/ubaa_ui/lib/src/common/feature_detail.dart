@@ -49,6 +49,9 @@ class _FeatureDetailView extends StatefulWidget {
     this.backLabel = '返回功能列表',
     this.onLoadAcademicTerms,
     this.onLoadAcademicWeeks,
+    this.scheduleImports = const {},
+    this.onSaveScheduleSemester,
+    this.onCancelScheduleImport,
     this.onLoadCgyyPurposes,
     this.onFormRouteOptions,
     this.onScheduleTitle,
@@ -89,6 +92,9 @@ class _FeatureDetailView extends StatefulWidget {
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
   final Future<FeatureResult> Function(String term, bool forceRefresh)?
   onLoadAcademicWeeks;
+  final Map<String, ScheduleImportState> scheduleImports;
+  final Future<void> Function(String)? onSaveScheduleSemester;
+  final ValueChanged<String>? onCancelScheduleImport;
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadCgyyPurposes;
   final Future<void> Function(Map<String, ConnectionMode>)? onFormRouteOptions;
   final int readCacheEpoch;
@@ -326,6 +332,9 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
             visible: widget.visible,
             epoch: widget.readCacheEpoch,
             loadWeeks: widget.onLoadAcademicWeeks!,
+            imports: widget.scheduleImports,
+            onSave: widget.onSaveScheduleSemester,
+            onCancelImport: widget.onCancelScheduleImport,
             onTitle: widget.onScheduleTitle,
             onQuery: widget.onQuery == null
                 ? null

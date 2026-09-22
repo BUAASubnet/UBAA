@@ -27,6 +27,9 @@ class UbaaMainShell extends StatefulWidget {
     this.onClearBusinessCache,
     this.onLoadAcademicTerms,
     this.onLoadAcademicWeeks,
+    this.scheduleImports = const {},
+    this.onSaveScheduleSemester,
+    this.onCancelScheduleImport,
     this.onLoadCgyyPurposes,
     this.onLoadAppVersion,
     this.onOpenAppLink,
@@ -107,6 +110,9 @@ class UbaaMainShell extends StatefulWidget {
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
   final Future<FeatureResult> Function(String term, bool forceRefresh)?
   onLoadAcademicWeeks;
+  final Map<String, ScheduleImportState> scheduleImports;
+  final Future<void> Function(String)? onSaveScheduleSemester;
+  final ValueChanged<String>? onCancelScheduleImport;
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadCgyyPurposes;
   final Future<String?> Function()? onLoadAppVersion;
   final Future<bool> Function(AppLink)? onOpenAppLink;
@@ -604,6 +610,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onNavigate: page.onNavigate,
       onLoadAcademicTerms: widget.onLoadAcademicTerms,
       onLoadAcademicWeeks: widget.onLoadAcademicWeeks,
+      scheduleImports: widget.scheduleImports,
+      onSaveScheduleSemester: widget.onSaveScheduleSemester,
+      onCancelScheduleImport: widget.onCancelScheduleImport,
       onLoadCgyyPurposes: widget.onLoadCgyyPurposes,
       onFormRouteOptions: (routes) => _showRouteOptions(
         context,

@@ -6,6 +6,7 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 
 import '../contracts/backend.dart';
 import '../contracts/progressive.dart';
+import '../contracts/schedule_import.dart';
 import 'read_scheduler.dart';
 import '../contracts/lifecycle.dart';
 import '../contracts/offline.dart';
@@ -26,6 +27,7 @@ part 'app_controller/cgyy_readback.dart';
 part 'app_controller/evaluation_readback.dart';
 part 'app_controller/refresh.dart';
 part 'app_controller/read_tasks/progressive.dart';
+part 'app_controller/schedule/import.dart';
 part 'app_controller/read_tasks/session.dart';
 part 'app_controller/read_tasks/readback.dart';
 part 'app_controller/academic_terms.dart';
@@ -212,6 +214,20 @@ class AppController extends ChangeNotifier {
   late WriteCoordinator _writeCoordinator;
   late final ReadScheduler _readScheduler;
   final _readScopes = <_ProgressiveScope>{};
+  final _scheduleImportScopes = <String, _ScheduleImportScope>{};
+  final _scheduleImports = <String, ScheduleImportState>{};
+  int _scheduleImportEpoch = -1;
+  Map<String, ScheduleImportState> get scheduleImports =>
+      Map.unmodifiable(_scheduleImports);
+  bool get canSaveScheduleSemester =>
+      !_disposed &&
+      !_isSigningOut &&
+      !_clearingBusinessCache &&
+      _phase == AppPhase.home &&
+      _localAccount != null &&
+      _backend is ScheduleImportBackend;
+  Future<void> saveScheduleSemester(String term) => _saveScheduleSemester(term);
+  void cancelScheduleImport(String term) => _cancelScheduleImport(term);
   int _writeTransitions = 0;
 
   AppPhase _phase = AppPhase.splash;
@@ -945,6 +961,7 @@ class AppController extends ChangeNotifier {
     for (final scope in _readScopes.toList()) {
       scope.cancel();
     }
+    _pruneScheduleImports();
     _readScheduler.close();
     _cancelDeferredRecovery();
     _lifecycleEpoch++;

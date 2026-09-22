@@ -17,3 +17,5 @@ pub mod write;
 pub mod offline_profile;
 
 pub mod cache_management;
+
+pub mod schedule_import;

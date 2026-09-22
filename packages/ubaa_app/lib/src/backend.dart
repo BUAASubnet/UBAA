@@ -11,3 +11,5 @@ export 'contracts/progressive.dart';
 
 export 'contracts/profile.dart';
 export 'contracts/cache_management.dart';
+
+export 'contracts/schedule_import.dart';

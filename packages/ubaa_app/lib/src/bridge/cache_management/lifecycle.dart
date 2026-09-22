@@ -99,7 +99,12 @@ CacheClearOutcome _cacheClearOutcome(
         ? null
         : _cacheUsageSummary(report.usage!, accountId),
     compacted: report.compacted,
-    maintenanceError: switch (report.maintenanceError) {
+    maintenanceError: _cacheMaintenanceFailure(report.maintenanceError),
+  );
+}
+
+CacheMaintenanceFailure? _cacheMaintenanceFailure(BridgeCacheFailure? error) =>
+    switch (error) {
       null => null,
       BridgeCacheFailure.unavailable => CacheMaintenanceFailure.unavailable,
       BridgeCacheFailure.invalidInput => CacheMaintenanceFailure.invalidInput,
@@ -109,6 +114,4 @@ CacheClearOutcome _cacheClearOutcome(
       BridgeCacheFailure.inactive => CacheMaintenanceFailure.inactive,
       BridgeCacheFailure.superseded => CacheMaintenanceFailure.superseded,
       BridgeCacheFailure.capacity => CacheMaintenanceFailure.capacity,
-    },
-  );
-}
+    };

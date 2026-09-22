@@ -18,6 +18,7 @@ part 'profile/cache.dart';
 part 'offline.dart';
 part 'recovery.dart';
 part 'read/academic.dart';
+part 'read/schedule/import.dart';
 part 'read/academic_cache.dart';
 part 'read/assignments.dart';
 part 'read/home_projection.dart';
@@ -45,7 +46,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 26;
+const _supportedBridgeContractVersion = 27;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -78,6 +79,7 @@ class BridgeBackend
         CacheRecoveryBackend,
         OfflineQueryBackend,
         ProgressiveReadBackend,
+        ScheduleImportBackend,
         BackendLifecycle {
   BridgeBackend(this.client, {this.configDirectory}) {
     final contractVersion = client.contractVersion();
@@ -212,6 +214,10 @@ class BridgeBackend
 
   @override
   Future<void> logout() => _logout(this);
+
+  @override
+  Future<ScheduleImportTask> beginScheduleImport(String term) =>
+      _withOfflineRead(this, () => _beginScheduleImport(this, term));
 
   @override
   Future<FeatureReadTask?> beginFeatureRead(
