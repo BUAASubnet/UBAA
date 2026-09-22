@@ -147,3 +147,5 @@ pub(super) fn map_scan_batch(result: core::Routed<core::JudgeScanBatch>) -> Brid
         failed_courses: u32::try_from(data.failed_courses).unwrap_or(u32::MAX),
     }
 }
+
+pub mod online;

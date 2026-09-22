@@ -655,3 +655,15 @@ OHOS：/tmp/ubaa-p2h-ohos.log退出0，锁定fork analyze、两项入口测试�
 六项Mock覆盖旧项后新项、两次扫描都复查旧课程、逐批返回、显式目标/去重/课内顺序/空及缺失目标、取消迟到结果、普通课程失败与整体认证失败。请求仍由原runtime执行并在每次详情前重选课程；不创建OfflineCache或复制Cookie。尚无生产Bridge/App接线、真实账户、原生或性能证据。完整门禁结果另记。
 
 check.log首轮因可避免的err().expect触发clippy的panic文档和err_expect规则，改为直接match传播错误，不新增allow或panic合同。最终check-final.log退出0：Core两配置各302、facade83、Bridge133通过/2既有忽略、CLI端到端16，fmt/clippy/Shell/构建/doc/layout零baseline违例通过。refs及5361文件敏感扫描通过。本阶段不把P2-H的985项Flutter、macOS原生/OHOS构建或P4-AB的Core-live结果继承为新在线计划端到端证明；生产接线继续。
+
+## P2-J 无缓存希冀 Bridge/App 接线（2026-09-22）
+
+基线e53024dd。/tmp/ubaa-p2j-bridge-red.log缺begin/next/options，bridge-green.log一项Mock通过：真实共享锁在索引后可供另一Bridge检查使用；待确认意图存在时begin/next无新增请求且意图不丢，取消后不继续，dispose保持原错误。app-red.log三项行为失败均为旧beginFeatureRead返回null；app-green.log五项通过，含原持久投影回归。
+
+app-final-focused.log七项通过：无缓存摘要/单详情/批量渐进、原输入顺序投影、迟到代次拒绝、预期身份与非持久来源、缺密钥控制器仍传账号，以及生产Bridge投影经原调度器在首批后按索引→签到只读→详情执行。账户fixture首轮遗漏FeatureQueryBackend，导致查询按原合同unsupported，补齐fixture后通过。app-verified.log含既有恢复回归16项通过。
+
+Bridgev29生成codegen-final.log零漂移；首轮仅FRB生成后rustfmt导入顺序未暂存，重新暂存规范格式后验证通过。原生与全量门禁结果另记；无真实学校写入、无真实账号及性能结论。
+
+最终check-final.log退出0：Core两配置各302、facade83、Bridge134通过/2既有忽略、CLI端到端16及fmt/clippy/Shell/build/doc/layout通过。首轮check.log测试函数108行，抽出请求表后修复。flutter.log退出0：57/66/470/284/22/39/54，共992项及格式/analyze通过。native.log五项macOS原生FFI/合成投影/调度通过，仍有前台化警告，不计可见实窗。refs及5369文件敏感扫描通过。
+
+双路线标准Core-live：live-direct.log退出0，40PASS，累计26.569秒；live-webvpn.log退出0，38PASS/2NOT_APPLICABLE，累计29.215秒。WebVPN旧聚合include_expired208项、current0，故单详情/批量详情没有可用当前ID而不适用；Direct对应92/9且详情/批量通过。这个差异仅为本轮白名单观察，不推断两路线业务数据本应相同或新计划已经验证。均通过原.env.local→stdin及新临时会话，无复制运行会话、无真实写入；日志无正文/凭据。新分段与加密缓存真实App、冷启动和全部更新性能仍待独立验收。

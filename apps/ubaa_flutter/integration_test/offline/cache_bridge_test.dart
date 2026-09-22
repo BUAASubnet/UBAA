@@ -21,7 +21,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 28);
+      expect(client.contractVersion(), 29);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -37,6 +37,21 @@ void main() {
                 'Core 目标路线',
                 BridgeConnectionMode.direct,
               ),
+        ),
+      );
+      await expectLater(
+        client.beginJudgeOnline(
+          options: const BridgeJudgeOnlineOptions(
+            includeExpired: false,
+            expectedIdentity: 'synthetic',
+          ),
+        ),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.code,
+            '无缓存新RPC保留缺会话错误',
+            BridgeErrorCode.authenticationRequired,
+          ),
         ),
       );
       first = await BridgeOfflineCache.open(

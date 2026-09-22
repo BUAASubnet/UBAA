@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `28`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `29`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -38,7 +38,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=28` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=29` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -617,3 +617,7 @@ clearOrRebuild只供设置确认后调用，参数为私有配置目录、已核
 ## 合同 v28：写提交与关联缓存失效分列
 
 `commitWriteCached(cache, intentId)`复用原一次性意图消费、实时资格读取和单次发送，在原客户端锁释放前完成关联本地失效。返回`BridgeCachedWriteCommit`的result/error恰有一项，cacheError只表示本地处理失败，不能替代学校结果；发送前意图/客户端/资格等错误也可沿原外层Result返回。确定成功、部分评教成功和未知提交结果失效相关缓存，明确失败不视为已改变学校状态。旧commitWrite仍返回原结果/错误，不新增学校请求；所有写操作仍仅由WriteCoordinator驱动。
+
+## 合同 v29：无持久缓存希冀分段读取
+
+beginJudgeOnline(options)接收可选期望账号与明确目标，nextJudgeOnline(task)每次只完成一批原子选课+索引/详情后释放共享锁，仍拒绝越过待确认写意图。task.cancel仅设置取消标志，迟到返回由Core原客户端/路线/会话代次检查拒绝。BridgeJudgeOnlineProgress分列batch、渐进summaries和最早取得时间，不包含保存成功声明；旧聚合、CLI、持久刷新和双路线入口保持。

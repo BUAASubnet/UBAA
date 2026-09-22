@@ -3,17 +3,24 @@ part of '../bridge_backend.dart';
 Future<FeatureReadTask?> _beginJudgeRead(
   BridgeBackend backend,
   FeatureId feature,
-  FeatureQuery? query,
-) async {
+  FeatureQuery? query, {
+  LocalAccount? expectedAccount,
+}) async {
   if (feature != FeatureId.judge) return null;
   final selected = query ?? const FeatureQuery();
   if (selected.view != FeatureQueryView.summary &&
-      selected.view != FeatureQueryView.judgeDetail)
+      selected.view != FeatureQueryView.judgeDetail &&
+      selected.view != FeatureQueryView.judgeBatchDetails)
     return null;
   await _awaitOfflineScope(backend);
   final cache = backend._offlineCache;
-  final account = backend._offlineAccount;
-  if (cache == null || account == null) return null;
+  final account = expectedAccount ?? backend._offlineAccount;
+  if (cache == null ||
+      account == null ||
+      account.id != backend._offlineAccount?.id ||
+      selected.view == FeatureQueryView.judgeBatchDetails) {
+    return _beginOnlineJudgeRead(backend, account, selected);
+  }
   final detail = selected.view == FeatureQueryView.judgeDetail;
   try {
     final task = await backend.client.beginJudgeRefresh(
@@ -33,19 +40,37 @@ Future<FeatureReadTask?> _beginJudgeRead(
         preferredCourse: selected.courseId,
       ),
     );
-    return _JudgeFeatureTask(backend.client, task, account, selected);
+    return _JudgeFeatureTask(
+      backend,
+      account,
+      selected,
+      nextProgress: () => backend.client.nextJudgeRefresh(task: task),
+      cancelTask: task.cancel,
+      persistent: true,
+    );
   } on BridgeError catch (error) {
     throw _mapError(error);
   }
 }
 
 final class _JudgeFeatureTask implements FeatureReadTask {
-  _JudgeFeatureTask(this.client, this.task, this.account, this.query);
-  final BridgeClient client;
-  final BridgeJudgeRefreshTask task;
-  final LocalAccount account;
+  _JudgeFeatureTask(
+    this.backend,
+    this.account,
+    this.query, {
+    required this.nextProgress,
+    required this.cancelTask,
+    required this.persistent,
+  }) : generation = backend._offlineGeneration;
+  final BridgeBackend backend;
+  final int generation;
+  final Future<BridgeJudgeProgress> Function() nextProgress;
+  final void Function() cancelTask;
+  final bool persistent;
+  final LocalAccount? account;
   final FeatureQuery query;
   final _pending = <(String, String), BridgeJudgeAssignmentIndex>{};
+  final _details = <(String, String), BridgeJudgeAssignmentDetail>{};
   UiError? _warning;
   bool _cancelled = false;
 
@@ -53,7 +78,7 @@ final class _JudgeFeatureTask implements FeatureReadTask {
   void cancel() {
     if (_cancelled) return;
     _cancelled = true;
-    task.cancel();
+    cancelTask();
   }
 
   @override
@@ -61,12 +86,16 @@ final class _JudgeFeatureTask implements FeatureReadTask {
     if (_cancelled)
       throw const BackendException(UbaaErrorCode.operationConflict);
     try {
-      final progress = await client.nextJudgeRefresh(task: task);
+      _checkOfflineGeneration(backend, generation);
+      final progress = await nextProgress();
+      _checkOfflineGeneration(backend, generation);
       if (_cancelled)
         throw const BackendException(UbaaErrorCode.operationConflict);
       if (progress.batch.error case final error?)
         _warning ??= UbaaErrorMapper.fromObject(_mapError(error));
       if (query.view == FeatureQueryView.judgeDetail) return _detail(progress);
+      if (query.view == FeatureQueryView.judgeBatchDetails)
+        return _batchDetails(progress);
       if (progress.batch.kind == BridgeJudgeScanKind.assignments) {
         _pending.removeWhere((key, _) => key.$1 == progress.batch.courseId);
         for (final item in progress.batch.assignments) {
@@ -100,15 +129,20 @@ final class _JudgeFeatureTask implements FeatureReadTask {
             ),
           ),
       ];
-      final evidence = DataEvidence(
-        accountId: account.id,
-        origin: progress.summaryHasCached
-            ? DataOrigin.mixed
-            : DataOrigin.online,
-        fetchedAt: _cacheTime(progress.summaryFetchedAt.toInt()),
-        complete: progress.batch.complete,
-        savedForOffline: progress.batch.complete && progress.saveError == null,
-      );
+      final evidence = account == null
+          ? null
+          : DataEvidence(
+              accountId: account!.id,
+              origin: progress.summaryHasCached
+                  ? DataOrigin.mixed
+                  : DataOrigin.online,
+              fetchedAt: _cacheTime(progress.summaryFetchedAt.toInt()),
+              complete: progress.batch.complete,
+              savedForOffline:
+                  persistent &&
+                  progress.batch.complete &&
+                  progress.saveError == null,
+            );
       final route = _toConnectionMode(progress.batch.route.resolvedRoute);
       final warning = _warning;
       final result = warning != null && details.isEmpty
@@ -146,15 +180,20 @@ final class _JudgeFeatureTask implements FeatureReadTask {
           summary: '希冀作业详情',
           details: [_judgeDetailPresentation(item)],
           resolvedRoute: _toConnectionMode(progress.batch.route.resolvedRoute),
-          evidence: DataEvidence(
-            accountId: account.id,
-            origin: progress.reused ? DataOrigin.persisted : DataOrigin.online,
-            fetchedAt: _cacheTime(
-              (progress.sourceFetchedAt ?? progress.summaryFetchedAt).toInt(),
-            ),
-            complete: true,
-            savedForOffline: progress.saveError == null,
-          ),
+          evidence: account == null
+              ? null
+              : DataEvidence(
+                  accountId: account!.id,
+                  origin: progress.reused
+                      ? DataOrigin.persisted
+                      : DataOrigin.online,
+                  fetchedAt: _cacheTime(
+                    (progress.sourceFetchedAt ?? progress.summaryFetchedAt)
+                        .toInt(),
+                  ),
+                  complete: true,
+                  savedForOffline: persistent && progress.saveError == null,
+                ),
         ),
         finished: true,
       );

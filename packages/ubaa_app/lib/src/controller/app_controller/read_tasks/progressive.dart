@@ -168,8 +168,15 @@ extension _AppControllerProgressive on AppController {
         priority,
         () => scope.valid,
         () async {
-          final task = await (backend as ProgressiveReadBackend)
-              .beginFeatureRead(feature, query);
+          final account = _localAccount;
+          final task =
+              backend is AccountScopedProgressiveReadBackend && account != null
+              ? await (backend as AccountScopedProgressiveReadBackend)
+                    .beginAccountFeatureRead(feature, query, account)
+              : await (backend as ProgressiveReadBackend).beginFeatureRead(
+                  feature,
+                  query,
+                );
           return task == null
               ? _FeatureReadStart(result: await ordinary())
               : _FeatureReadStart(task: task);

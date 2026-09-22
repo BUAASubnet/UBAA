@@ -24,6 +24,7 @@ part 'read/assignments.dart';
 part 'read/home_projection.dart';
 part 'read/home_cache.dart';
 part 'read/judge_progressive.dart';
+part 'read/judge/online.dart';
 part 'read/offline_query.dart';
 part 'read/bykc.dart';
 part 'read/bykc_projection.dart';
@@ -46,7 +47,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 28;
+const _supportedBridgeContractVersion = 29;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -80,6 +81,7 @@ class BridgeBackend
         CacheWriteBackend,
         OfflineQueryBackend,
         ProgressiveReadBackend,
+        AccountScopedProgressiveReadBackend,
         ScheduleImportBackend,
         BackendLifecycle {
   BridgeBackend(this.client, {this.configDirectory}) {
@@ -219,6 +221,16 @@ class BridgeBackend
   @override
   Future<ScheduleImportTask> beginScheduleImport(String term) =>
       _withOfflineRead(this, () => _beginScheduleImport(this, term));
+
+  @override
+  Future<FeatureReadTask?> beginAccountFeatureRead(
+    FeatureId feature,
+    FeatureQuery? query,
+    LocalAccount account,
+  ) => _withOfflineRead(
+    this,
+    () => _beginJudgeRead(this, feature, query, expectedAccount: account),
+  );
 
   @override
   Future<FeatureReadTask?> beginFeatureRead(

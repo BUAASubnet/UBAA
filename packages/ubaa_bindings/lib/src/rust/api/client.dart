@@ -6,6 +6,7 @@
 import '../frb_generated.dart';
 import 'judge_refresh.dart';
 import 'judge_scan.dart';
+import 'judge_scan/online.dart';
 import 'offline.dart';
 import 'offline_academic.dart';
 import 'offline_bykc.dart';
@@ -88,6 +89,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
   ///
   /// 客户端已销毁或 Core 无法读取认证状态时返回安全错误。
   Future<BridgeLoginOutcome> authStatus();
+
+  /// 新计划不依赖数据库；可选本机身份仍由Core核对。
+  ///
+  /// # Errors
+  /// 目标、身份、学校读取、待确认写意图与失效客户端返回既有稳定错误。
+  Future<BridgeJudgeOnlineTask> beginJudgeOnline({
+    required BridgeJudgeOnlineOptions options,
+  });
 
   /// 创建持久刷新计划；仅执行身份核实与课程索引步骤。
   ///
@@ -458,6 +467,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
   ///
   /// 客户端已销毁或 Core 注销失败时返回安全错误。
   Future<void> logout();
+
+  /// 完整索引或详情步骤结束后释放原共享锁，不自动推进剩余请求。
+  ///
+  /// # Errors
+  /// 原客户端/路线/会话代次失效、取消和写意图冲突时拒绝继续。
+  Future<BridgeJudgeOnlineProgress> nextJudgeOnline({
+    required BridgeJudgeOnlineTask task,
+  });
 
   /// 返回一批渐进结果后归还共享锁；缓存来源时间与同步完整度独立传递。
   ///
