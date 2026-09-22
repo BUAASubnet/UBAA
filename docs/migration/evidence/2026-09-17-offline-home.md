@@ -647,3 +647,11 @@ native.log退出0：macOS系统NetworkInterface只读枚举调用与脱敏宿主
 空间维护只删除隔离区target/debug/deps中六小时前的本任务Core/Bridge可重建旧产物，84,819个文件，文件长度合计21.32 GiB；源工作区仍干净/ahead7，未删除冻结材料、运行会话或当前候选产物。
 
 OHOS：/tmp/ubaa-p2h-ohos.log退出0，锁定fork analyze、两项入口测试、API26工具链、无签名debug HAP与arm64 ELF门禁通过。构建删除的buildinfo及生成的本机SDK相对锁路径经diff核对后恢复HEAD原值；其余生成产物保持忽略。未在OHOS设备运行网络枚举/HUKS，不作为签名或发布证据。暂存diff和敏感扫描通过，原工作区仍未修改。
+
+## P2-I 无持久缓存希冀分段 facade（2026-09-22）
+
+基线f8ac79d8。/tmp/ubaa-p2i-red.log为缺新选项与begin/next合同；green.log首两项通过，路线测试因注入客户端没有可写配置目录失败，随后把路线往返/清理/弱引用用例放入可控制真实配置目录的Core单测，未修改生产路由权限。guard.log一项通过。facade-green.log三项、focused.log五项通过。身份审查新增identity-red.log（缺expected_identity），最小校验后identity-green.log六项通过，冲突只发UC状态请求、不继续课程读取。
+
+六项Mock覆盖旧项后新项、两次扫描都复查旧课程、逐批返回、显式目标/去重/课内顺序/空及缺失目标、取消迟到结果、普通课程失败与整体认证失败。请求仍由原runtime执行并在每次详情前重选课程；不创建OfflineCache或复制Cookie。尚无生产Bridge/App接线、真实账户、原生或性能证据。完整门禁结果另记。
+
+check.log首轮因可避免的err().expect触发clippy的panic文档和err_expect规则，改为直接match传播错误，不新增allow或panic合同。最终check-final.log退出0：Core两配置各302、facade83、Bridge133通过/2既有忽略、CLI端到端16，fmt/clippy/Shell/构建/doc/layout零baseline违例通过。refs及5361文件敏感扫描通过。本阶段不把P2-H的985项Flutter、macOS原生/OHOS构建或P4-AB的Core-live结果继承为新在线计划端到端证明；生产接线继续。

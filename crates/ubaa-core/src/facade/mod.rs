@@ -14,7 +14,10 @@ mod home_cache;
 mod offline;
 pub use academic_cache::AcademicQuery;
 pub use home_cache::{HomeQuery, HomeReadData, HomeRefresh};
-pub use judge_scan::{JudgeScan, JudgeScanBatch, JudgeScanCancellation, JudgeScanKind};
+pub use judge_scan::{
+    JudgeOnlineOptions, JudgeOnlineProgress, JudgeOnlineScan, JudgeScan, JudgeScanBatch,
+    JudgeScanCancellation, JudgeScanKind,
+};
 pub use offline::{OfflineCache, OfflineReadError, OfflineRefresh};
 mod read;
 mod routing;

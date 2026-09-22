@@ -872,3 +872,6 @@ fn progressive_summary_time_tracks_remaining_old_items_instead_of_latest_batch_t
     drop((repository, cache));
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[path = "judge_scan/online.rs"]
+mod online;

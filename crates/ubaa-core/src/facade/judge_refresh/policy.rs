@@ -27,7 +27,7 @@ pub(super) fn historical(detail: &JudgeAssignmentDetail, now: i64) -> bool {
         && timestamp(detail.due_time.as_deref())
             .is_some_and(|value| value < now.saturating_sub(14 * 86400))
 }
-pub(super) fn historical_summary(
+pub(in crate::facade) fn historical_summary(
     summary: &crate::domain::JudgeAssignmentSummary,
     now: i64,
 ) -> bool {

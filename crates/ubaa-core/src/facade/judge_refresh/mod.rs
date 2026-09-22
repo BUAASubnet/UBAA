@@ -1,6 +1,6 @@
 //! 持久索引和详情的渐进刷新；复用数据保留原时间，部分失败保护旧摘要。
 mod history;
-mod policy;
+pub(super) mod policy;
 mod progress;
 mod read;
 use super::{

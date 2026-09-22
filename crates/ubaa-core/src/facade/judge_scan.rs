@@ -355,3 +355,6 @@ mod tests {
         let _ = std::fs::remove_dir_all(root);
     }
 }
+
+mod online;
+pub use online::{JudgeOnlineOptions, JudgeOnlineProgress, JudgeOnlineScan};
