@@ -87,7 +87,9 @@ extension _AppControllerProgressive on AppController {
 
   void _cancelSegmentedReadScopes(FeatureId feature) {
     if (_backend is! ProgressiveReadBackend ||
-        (feature != FeatureId.judge && feature != FeatureId.spoc))
+        (feature != FeatureId.judge &&
+            feature != FeatureId.spoc &&
+            feature != FeatureId.evaluation))
       return;
     for (final scope
         in _readScopes.where((value) => value.feature == feature).toList()) {

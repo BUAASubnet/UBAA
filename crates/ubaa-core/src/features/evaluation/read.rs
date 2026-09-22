@@ -29,14 +29,6 @@ pub(super) async fn read_authority(
         .map(|(snapshot, _)| snapshot)
 }
 
-pub(crate) async fn get_all_observed(
-    runtime: &mut ClientRuntime,
-) -> Result<(EvaluationCoursesResponse, bool)> {
-    read_authority_observed(runtime, false)
-        .await
-        .map(|(snapshot, complete)| (snapshot.into_response(), complete))
-}
-
 async fn read_authority_observed(
     runtime: &mut ClientRuntime,
     strict: bool,
@@ -111,7 +103,7 @@ async fn read_authority_observed(
     Ok((EvaluationAuthoritySnapshot::finalize(entries), complete))
 }
 
-async fn activate(runtime: &mut ClientRuntime) -> Result<()> {
+pub(super) async fn activate(runtime: &mut ClientRuntime) -> Result<()> {
     let response =
         super::super::get_with_redirects(runtime, runtime.url(CAS_URL)?, &[], "评教").await?;
     super::super::check_response(&response, "评教")?;
@@ -130,7 +122,7 @@ pub(super) fn ensure_activation_terminal(response: &HttpResponse) -> Result<()> 
     Ok(())
 }
 
-async fn fetch_result(
+pub(super) async fn fetch_result(
     runtime: &mut ClientRuntime,
     url: url::Url,
     strict: bool,
@@ -156,11 +148,11 @@ async fn fetch_result(
     }
 }
 
-fn parsed_runtime_url(runtime: &ClientRuntime, direct: &str) -> Result<url::Url> {
+pub(super) fn parsed_runtime_url(runtime: &ClientRuntime, direct: &str) -> Result<url::Url> {
     url::Url::parse(&runtime.url(direct)?).map_err(|_| upstream_error("评教地址无效"))
 }
 
-fn rows_from_page_or_array<'a>(
+pub(super) fn rows_from_page_or_array<'a>(
     value: &'a Value,
     message: &'static str,
     strict: bool,
@@ -179,7 +171,7 @@ fn rows_from_page_or_array<'a>(
     }
 }
 
-fn rows_from_array<'a>(
+pub(super) fn rows_from_array<'a>(
     value: &'a Value,
     message: &'static str,
     strict: bool,
@@ -195,7 +187,7 @@ fn rows_from_array<'a>(
 }
 
 /// 显示完整度只核对可读身份/名称/状态和父上下文，不替代 fresh 写资格。
-fn course_rows_complete(value: &Value, context: &CourseContext) -> bool {
+pub(super) fn course_rows_complete(value: &Value, context: &CourseContext) -> bool {
     value.as_array().is_some_and(|rows| {
         rows.iter().all(|row| {
             row.as_object().is_some_and(|row| {

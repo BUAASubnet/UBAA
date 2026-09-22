@@ -11,7 +11,7 @@
 | 类别 | 当前结论 |
 |---|---|
 | 合同 | 已归档旧暂停合同，建立新 P0–P5 合同 |
-| 实现/确定性 | Core统一加密缓存schema v5、Bridge v31；本地首页、立即恢复、前台退避、写后失效、希冀及SPOC首页/单详情分段已接线。最近完整Flutter 1002项；P2-M根门禁通过 |
+| 实现/确定性 | Core统一加密缓存schema v5、Bridge v32；本地首页、立即恢复、认证前台退避、写后失效、希冀/SPOC/评教分段已接线。最近完整Flutter 1008项；P2-N根门禁结果见末尾 |
 | 原生合成 | macOS新FFI/投影/调度通过；P4-U有三场景可见合成媒体。多数集成运行有前台化警告，不能计作独立可见窗口 |
 | 多端构建 | P2-H候选OHOS无签名debug HAP/arm64门禁通过；六端设备运行仍不完整 |
 | Core-live | P2-L全领域Direct/WebVPN各40PASS；P2-M针对SPOC与认证两路线各6PASS，分别1.006s/1.551s。旧聚合与App新分段分别记账 |
@@ -21,7 +21,7 @@
 
 ## 当前步骤
 
-P2-M的SPOC首页/单详情分段已通过阶段门禁及双路线只读；继续实施评教长读取边界，并审查剩余精确查询/批量持久覆盖、其他长聚合的安全分段及客户端失效恢复，再完成15场景矩阵与手机/平板/macOS至少30次进程冷启动测量。各阶段细节按下文时间顺序保存，早期“未接线”仅表示当时状态。
+P2-N评教分段确定性与WebVPN原生只读通过，Direct激活网络失败仍未验收；继续P2-O业务失败定时退避，并审查剩余精确查询/批量持久覆盖、其他长聚合的安全分段及客户端失效恢复，再完成15场景矩阵与手机/平板/macOS至少30次进程冷启动测量。各阶段细节按下文时间顺序保存，早期“未接线”仅表示当时状态。
 
 ## P0-A：所需路线恢复与存储可行性
 
@@ -723,3 +723,23 @@ Core 聚焦 `/tmp/ubaa-p2m-green-final.log` 11 项通过，其中新增4项覆�
 新私有会话下 SPOC Core-live 两路线各6 PASS（认证3、列表/诊断/详情3），Direct累计1.006s、WebVPN1.551s，实际集合6项/1页；不是再次全领域门禁。新增原生生产 Bridge/Adapter 实时详情测试两路线各1项通过：前置3批后同一真实目标详情取得347ms/698ms，重新打开backend和数据库后读到同目标完整副本且无资格/动作，第二backend缓存读取不恢复认证。该计时从详情任务开始，不含进程启动，也非整个UI导航。随机缓存密钥仅本次进程内持有并清零，不作为Keychain跨进程测试；持久Keychain证据仍沿P5-A/P2-L。
 
 日志与变更源码摘要归档于仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2m`（0700/0600），index.json SHA256 `6d5a1c37a6759540fb9d226e0107e257a8cc0cae38926c5cfb614512256a0feb`；不含正文、账号、密钥或会话副本，真实业务写入0。普通main已重建，产物权限检查另见 `/tmp/ubaa-p2m-main-build.log` 与 `/tmp/ubaa-p2m-artifact.log`，未启动正常入口连接源配置。
+
+
+## P2-N：评教只读分段与恢复账号上下文（2026-09-22）
+
+基点 f17af8cd。四操作来源对照先于实现，保留当前任务1/10范围及旧读取容错，不动strict写前/提交整体事务。Core/Bridge v32增加激活/任务/问卷/课程批次，持久和无密钥路径核对身份并绑定原客户端/会话/路线/账号票据；取消、退出/清理、新请求和迟到课程受保护。完整前无有效提交目标，重复ID使结果部分；内部authority不留在计划或缓存，最终typed资格仍仅供唯一写协调器重新实时核实。
+
+RED：`/tmp/ubaa-p2n-red.log` 新facade不存在，`/tmp/ubaa-p2n-app-red.log` 原App评教不创建分段任务；`/tmp/ubaa-p2n-identity-red.log` 明确观察恢复后task.yhdm为空而非已核实学校标识。修复限新计划在身份核实后补齐原易失上下文，缺学校标识退用户名，两者均缺不请求。最初Bridge夹具误以为应取username，改按冻结old和现登录路径取schoolid后才暴露该真实遗漏；没有靠接受空参数凑通过。
+
+另加 `/tmp/ubaa-p2n-partial-error-red.log` 锁定新批次必须保留子请求网络错误；新错误只走稳定分类，不入库正文。完整前/部分行无动作，有账号时明确完整度，无账号部分不显示总进度；旧集合可追加新ID并保持原时间，完整后替换。现有网络变化能识别该临时失败；定时退避目前只覆盖认证失败，业务读取定时退避由后续阶段补齐，不将两者混记。
+
+Core聚焦 `/tmp/ubaa-p2n-core-green-final.log` 7项通过；Bridge真实同锁脱敏测试通过。`/tmp/ubaa-p2n-check.log` 根门禁退出0，`/tmp/ubaa-p2n-flutter.log` 1008项（57/66/486/284/22/39/54）及静态分析通过，codegen零漂移。`/tmp/ubaa-p2n-native.log` macOS 2项通过（实际FFI/缓存生命周期、脱敏生产Adapter课程批次让位）；仍有foreground=1提示，不计独立可见窗口。
+
+新私有会话Core-live评教两路线各5PASS：认证3与all/pending2，Direct累计1.545s、WebVPN1.280s，旧接口均返回0，但其非认证失败降为空集合，不能据此证明激活或真实空集合；也非本次再次全领域门禁。
+
+
+原生生产Adapter/FFI：WebVPN r2退出0，2批、完整空集合、721ms、数据库重开成功、缓存无动作、业务写入0。Direct r1/r2在激活第一批即Partial且成功断言失败；r3保留错误后明确networkError/retryable=true、业务写入0，成功验收未通过。未记录上游正文、URL查询或凭据，不修改原激活守卫。旧Core-live的5PASS只证明旧接口容错返回，不提升为Direct业务成功。该外部失败不妨碍继续本地重试/生命周期实现。
+
+激活分支漏传稳定错误由 `/tmp/ubaa-p2n-activation-red.log` 复现；最小修复后 `/tmp/ubaa-p2n-activation-green.log` 8项通过（含旧完整缓存/时间保留）。测试第一轮误要求初次Partial完全不存记录，按既有Partial仓库合同改为先种完整缓存再验证保留；不改变存储合同以迎合测试。最终根门禁及正常main重建继续。
+
+最终 `/tmp/ubaa-p2n-check-final.log` 退出0：Core两配置各302、facade99、Bridge137通过/2既有忽略、CLI端到端16及Shell/fmt/clippy/build/doc；refs/layout零baseline/敏感扫描5399通过。普通main重建及签名沙箱/联网权限通过。私有归档 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2n` 目录0700/文件0600，index.json SHA256 `1494dd2542a87bc656beb10cd6030f4dc33a5393d2930cd58aecf0a147afc3dc`。Flutter1008及原生合成2项为本阶段先前候选，随后仅补Core激活稳定错误与一项回归；Direct r3运行了该修复，WebVPN r2仍是修复前成功分支证据。

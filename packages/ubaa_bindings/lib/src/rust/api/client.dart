@@ -12,6 +12,7 @@ import 'offline_academic.dart';
 import 'offline_bykc.dart';
 import 'offline_cgyy.dart';
 import 'offline_evaluation.dart';
+import 'offline_evaluation/scan.dart';
 import 'offline_home.dart';
 import 'offline_home/spoc_scan.dart';
 import 'offline_home/spoc_scan/detail.dart';
@@ -91,6 +92,22 @@ abstract class BridgeClient implements RustOpaqueInterface {
   ///
   /// 客户端已销毁或 Core 无法读取认证状态时返回安全错误。
   Future<BridgeLoginOutcome> authStatus();
+
+  /// 无缓存时也按已知本机账号核对身份，并在每个业务请求后让位。
+  ///
+  /// # Errors
+  /// 账号、会话或待确认写意图失败不创建计划。
+  Future<BridgeEvaluationScan> beginEvaluationOnline({
+    String? expectedIdentity,
+  });
+
+  /// 核实账号后登记当前任务固定页的只读缓存计划。
+  ///
+  /// # Errors
+  /// 身份、会话、已退出缓存与待确认写意图保持原稳定错误。
+  Future<BridgeEvaluationScan> beginEvaluationScan({
+    required BridgeOfflineCache cache,
+  });
 
   /// 新计划不依赖数据库；可选本机身份仍由Core核对。
   ///
@@ -499,6 +516,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
   ///
   /// 客户端已销毁或 Core 注销失败时返回安全错误。
   Future<void> logout();
+
+  /// 仅推进激活或一个任务/问卷/课程请求，完成后释放同一客户端共享锁。
+  ///
+  /// # Errors
+  /// 取消、会话/路线/客户端失效或写意图冲突时拒绝继续。
+  Future<BridgeEvaluationScanBatch> nextEvaluationScan({
+    required BridgeEvaluationScan task,
+  });
 
   /// 完整索引或详情步骤结束后释放原共享锁，不自动推进剩余请求。
   ///

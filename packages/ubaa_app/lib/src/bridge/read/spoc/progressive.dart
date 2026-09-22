@@ -5,7 +5,9 @@ Future<FeatureReadTask?> _beginProgressiveRead(
   FeatureId feature,
   FeatureQuery? query, {
   LocalAccount? expectedAccount,
-}) => feature == FeatureId.spoc
+}) => feature == FeatureId.evaluation
+    ? _beginEvaluationRead(backend, query, expectedAccount: expectedAccount)
+    : feature == FeatureId.spoc
     ? _beginSpocRead(backend, query, expectedAccount: expectedAccount)
     : _beginJudgeRead(
         backend,

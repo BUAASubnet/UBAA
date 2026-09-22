@@ -480,3 +480,22 @@ App新增可选的账号范围分段读取合同：即便安全密钥不可用�
 再次核对冻结 LocalSpocApi.kt 的 getAssignmentDetailResponse：先完成当前学期全局列表、按 zyid 确认目标，再必需 GET kczy/queryKczyInfoByid?id 与可选 GET kczy/queryXsSubmitKczyInfo?kczyid，复用角色/token 和原重试/仲裁；ID 不符拒绝。另一来源 opt.rs 只有同名必需详情查询，没有同构“全局列表+提交状态补充”合同，不能借它省略前置或更换参数。认证/bootstrap/service、最终落点、Cookie范围、XHR/Token/RoleCode 和原DTO/纯文本投影沿 P4-D 详情行及 P2-K 三个前置操作；无新签名或加密常量。
 
 新详情计划复用严格观察的学期/课程/页批次，每个前置批次都释放原客户端锁；目标仍只取已读取列表中的同 ID。详情正文+可选提交状态是最后一个有界批次（两个既有只读操作及各自完整认证收尾），不再暗中重新扫描全列表。独立详情票据在前置开始时登记，取消、同目标新请求、账号/路线/主会话代次与清理失效；列表或补充部分失败不覆盖旧完整详情。新计划无缓存也核对本机身份，在线返回不依赖磁盘成功。旧公开全量详情与 CLI 语义保持。
+
+## P2-N：评教只读任务/问卷/课程分段（实施前，2026-09-22）
+
+冻结 old 1f4b8f84 的 EvaluationService.kt、LocalEvaluationService.kt、EvaluationModel.kt、LocalEvaluationServiceBackendTest 与 buaa-api a63712fa 的 tes/{auth,opt,data}.rs 已重新核对。以下逐操作继承 P4-M 的精确 URL/参数/头/编码/会话及错误裁决：
+
+| 操作 | bootstrap/service、重定向终点 | 会话/方法/参数/编码 | DTO、缓存与安全让位 | 错误与退出 |
+|---|---|---|---|---|
+| 激活 | 原 GET https://spoc.buaa.edu.cn/pjxt/cas 与完整重定向；终点必须 pjxt 根/子路径；tes 显式 SSO service 同地址，不借它只判断 URL 改变的弱校验 | 同一实际路线 runtime/Cookie，原默认头，无新 body/签名/加密 | 完整激活收尾后返回一批；不复制会话，不保存响应正文 | 非认证失败沿既有只读 Partial 回退并保留稳定错误，认证失败传播 |
+| 当前任务 | 原激活上下文，业务最终 URL 精确一致 | GET listObtainPersonnelEvaluationTasks；yhdm 当前账号、pageNum=1、pageSize=10；URL query | 原信封 result/content 与 task.rwid；只登记已观察任务 ID，固定当前页缓存范围；整次 GET 后让位 | 缺字段/取满10行仍 Partial；不推断更多页或新增学期参数 |
+| 问卷 | 同一上下文，原最终 URL 校验 | GET getQuestionnaireListToTask；仅 rwid，无新头或加密 | wjid/msid 与父 rwid；每任务一次完整 GET 后让位；不借 tes 的仅首任务/并行策略 | 非认证子失败保留部分，认证中断；继续既有 msid 缺失不授予写资格的 Core 裁决，不把 old 的显示默认值1用于新写授权 |
+| 课程/进度 | 同一上下文，原最终 URL 校验 | GET getRequiredReviewsData；仅 wjid，无新 body | 原公开四展示字段及全局进度；逐问卷 GET 后渐进。计划不保留内部题目/评价人 authority；完整聚合前不发布 allowed/target，结束沿原重复目标裁决；缓存仍白名单四字段 | 结构/状态/父上下文异常、重复 ID 只算 Partial；旧完整集合保留；退出/清理/路线和主会话代次拒绝旧计划 |
+
+strict fresh authority 的写前读取、prepare、用户确认、单次 commit 与既定固定路线回读完全保留原整体事务；新只读扫描不调用 reviseQuestionnairePattern、getQuestionnaireTopic、submit 或任何学校写入口。持久/无密钥路径都使用明确 facade/Bridge 计划，账号与本地缓存失效单独处理。只读分段不是对写事务中途解锁。
+
+P2-N 展示补充：中间课程批次只追加已观察且公开不透明 ID 非空的新行；旧同 ID 内容与原时间保留到完整成功，不拆解 ID 推断学期。中间/部分阶段一律去除动作，持久旧值加新行标 mixed；有账号时沿既有完整度证据禁止汇总，未保留本机账号的在线部分隐藏总进度，避免把部分已读课程的比率当作全部完成。完整成功仍沿原 typed 目标映射；实际资格仍由唯一写协调器实时读取。
+
+P2-N 恢复会话边界发现：Bridge 精确请求测试要求 task.yhdm=脱敏 UC 资料的 schoolid，恢复有效会话后却提前变成 Partial 空列表。进一步代码核对确认 ClientRuntime.account_name 只在 AuthWorkflow.finish_successful_login 设置，auth status 恢复不设置；新计划此前取到空 yhdm。old LocalEvaluationService.fetchTasks 明确 schoolid.ifBlank{username}；另一源用 credential.username，不能用它替换本项目旧版优先顺序。既有先登录 Core-live 路径也由 finish_successful_login 按 schoolid/username 设置该值。新增请求断言先观察 RED；修复将在新只读计划核实身份后按本次 UC 资料补齐易失账号上下文，缺标识则拒绝，不发送空 yhdm。Cookie、认证协议、CLI 格式和 strict 写事务顺序不变；该上下文也供同一客户端后续原写前读取使用。
+
+P2-N 局部错误合同：新批次另外保留首个非认证子请求错误的稳定分类，以区分网络失败与范围/结构不完整，并让既有网络变化唤醒识别失败查询；业务失败定时退避另行接线；不会记录响应正文或改变旧 CLI/聚合返回语义。完整性仍独立，已成功课程可显示，认证/生命周期失败仍直接终止，存储故障仍走 save_error，不混入学校错误。

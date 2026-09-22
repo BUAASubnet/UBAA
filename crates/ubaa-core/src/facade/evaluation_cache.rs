@@ -1,8 +1,7 @@
 //! 评教当前任务范围的只读快照；部分容错不覆盖旧完整结果。
 use super::{
-    CacheCompleteness, CacheError, CachePayload, CachePublication, CacheQuery, CacheScope,
-    ConnectionMode, EvaluationCoursesResponse, OfflineCache, OfflineReadError, OfflineRefresh,
-    ReadonlyFeature, UbaaClient,
+    CachePublication, CacheQuery, CacheScope, ConnectionMode, EvaluationCoursesResponse,
+    OfflineCache, OfflineReadError, OfflineRefresh, UbaaClient,
 };
 #[derive(Debug)]
 pub struct EvaluationRefresh {
@@ -38,86 +37,27 @@ impl UbaaClient {
         &mut self,
         cache: &OfflineCache,
     ) -> Result<EvaluationRefresh, OfflineReadError> {
-        cache
-            .check_read_generation()
-            .map_err(OfflineReadError::Cache)?;
-        let cache_query = CacheQuery::EvaluationCurrent;
-        CacheScope {
-            route: ConnectionMode::Direct,
-            query: cache_query.clone(),
-        }
-        .validate()
-        .map_err(OfflineReadError::Cache)?;
-        let authenticated = self
-            .recover_required_session(ReadonlyFeature::Evaluation)
-            .await
-            .map_err(OfflineReadError::Read)?;
-        let resolution = authenticated.resolution;
-        if !cache.matches(&authenticated.data.user) {
-            return Err(OfflineReadError::IdentityMismatch {
-                resolution,
-                cache_error: cache.deactivate().err(),
-            });
-        }
-        let scope = CacheScope {
-            route: resolution.mode,
-            query: cache_query,
-        };
-        let (ticket, mut save_error) = match cache.begin(scope.clone()) {
-            Ok(ticket) => (Some(ticket), None),
-            Err(error @ (CacheError::Inactive | CacheError::Superseded)) => {
-                return Err(OfflineReadError::Cache(error));
-            }
-            Err(error) => (None, Some(error)),
-        };
-        let runtime = self.runtime_for(resolution.mode);
-        let read = crate::features::evaluation::get_all_observed(runtime).await;
-        let fetched_at = chrono::Utc::now().timestamp();
-        let read = match self.finish_routed(resolution, read) {
-            Ok(read) => read,
-            Err(error) => {
-                if let Some(ticket) = &ticket {
-                    cache.failure(ticket, fetched_at);
-                }
-                return Err(OfflineReadError::Read(error));
-            }
-        };
-        let (data, complete) = read.data;
-        let mut publication = None;
-        if let Some(ticket) = &ticket {
-            let saved = cache.repository(|repository| {
-                repository.publish(
-                    ticket,
-                    CachePayload::EvaluationCurrent(data.clone().into()),
-                    fetched_at,
-                    if complete {
-                        CacheCompleteness::Complete
-                    } else {
-                        CacheCompleteness::Partial
+        let mut plan = self.begin_evaluation_scan(Some(cache), None).await?;
+        loop {
+            let batch = self.next_evaluation_scan(&mut plan).await?;
+            if batch.finished {
+                return Ok(EvaluationRefresh {
+                    result: OfflineRefresh {
+                        data: batch.data,
+                        resolution: batch.resolution,
+                        scope: CacheScope {
+                            route: batch.resolution.mode,
+                            query: CacheQuery::EvaluationCurrent,
+                        },
+                        fetched_at: batch.fetched_at,
+                        save_error: batch.save_error,
                     },
-                )
-            });
-            match saved {
-                Ok(value) => publication = Some(value),
-                Err(error @ (CacheError::Inactive | CacheError::Superseded)) => {
-                    return Err(OfflineReadError::Cache(error));
-                }
-                Err(error) => {
-                    save_error = Some(error);
-                    cache.failure(ticket, fetched_at);
-                }
+                    complete: batch.complete,
+                    publication: batch.publication,
+                });
             }
         }
-        Ok(EvaluationRefresh {
-            result: OfflineRefresh {
-                data,
-                resolution,
-                scope,
-                fetched_at,
-                save_error,
-            },
-            complete,
-            publication,
-        })
     }
 }
+mod scan;
+pub use scan::{EvaluationScan, EvaluationScanBatch, EvaluationScanCancellation};

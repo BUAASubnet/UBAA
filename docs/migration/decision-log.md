@@ -1584,3 +1584,8 @@ Bridge v29公开beginJudgeOnline/nextJudgeOnline与opaque取消句柄，固定�
 采用新建只读会话目录与原生安全材料的随机前缀，组合真实Bridge、账户仓库和共享宿主；不读取原账号索引、不复制会话，不把密码交给App。只读验收backend仅为第一轮恢复设置可控等待及禁止commit，其余缓存与学校调用为生产实现。两路线均证明课表/SPOC缓存先可见且挂起期间可切换入口，放行后五来源完整更新。P1功能出口据此与既有失败/退出/身份确定性测试闭合；其他阶段和整体验收保持未完成。
 
 计时起点是已初始化引擎内的宿主装配，Direct/WebVPN缓存594/604ms，首个希冀批次6.555/7.059s，全部更新78.406/105.427s。样本包含受控等待、调度和真实网络，不是进程冷启动，不作中位数/P95或500ms/1s目标达成声明。30次/设备的冷启动、发布模式候选、容量和生命周期综合验收仍需执行。窗口前台化警告也不能用功能测试成功替代可见渲染证明。
+
+
+## 2026-09-22 P2-N 评教真实只读失败分类
+
+冻结 old 1f4b8f84 LocalEvaluationService.kt 与 buaa-api a63712fa tes/{auth,opt}.rs 的激活差异仍按来源对照执行。新原生分段在 Direct 激活首批返回 networkError/retryable=true、complete=false；WebVPN 两批完整空集合及缓存重开成功。Direct 尚无协议冲突或终点变化证据，不放宽 Core read::ensure_activation_terminal，不改学校参数。旧 CLI get_all 非认证错误空回退的 PASS 不证明业务成功。保留首个稳定错误供原位提示与后续前台退避；真实业务写入0。

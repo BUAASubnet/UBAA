@@ -83,7 +83,9 @@ mod libbook_cache;
 pub use libbook_cache::{LibBookCacheQuery, LibBookReadData, LibBookRefresh};
 
 mod evaluation_cache;
-pub use evaluation_cache::EvaluationRefresh;
+pub use evaluation_cache::{
+    EvaluationRefresh, EvaluationScan, EvaluationScanBatch, EvaluationScanCancellation,
+};
 
 mod ygdk_cache;
 pub use ygdk_cache::YgdkRecordsRefresh;
