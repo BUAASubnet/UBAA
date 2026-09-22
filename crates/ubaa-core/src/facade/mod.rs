@@ -61,11 +61,12 @@ pub use crate::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 
 // 独立本地仓库不获取 UbaaClient 网络锁；载荷白名单不包含学校写入资格。
 pub use crate::cache::{
-    CACHE_SCHEMA_VERSION, CacheClearReport, CacheCompleteness, CacheError, CacheKey, CacheLimits,
-    CacheObservation, CachePayload, CachePublication, CacheQuery, CacheReadTicket, CacheRecord,
-    CacheRecovery, CacheResult, CacheScope, CacheUsage, CachedBykcChosen, CachedBykcChosenCourse,
-    CachedBykcCourse, CachedBykcCoursePage, CachedBykcSignWindow, CachedCgyyDayInfo,
-    CachedCgyyOrder, CachedCgyyOrdersPage, CachedCgyySlotStatus, CachedCgyySpaceAvailability,
+    CACHE_SCHEMA_VERSION, CacheClearReport, CacheCompleteness, CacheError, CacheInvalidation,
+    CacheInvalidationReport, CacheKey, CacheLimits, CacheObservation, CachePayload,
+    CachePublication, CacheQuery, CacheReadTicket, CacheRecord, CacheRecovery, CacheResult,
+    CacheScope, CacheUsage, CachedBykcChosen, CachedBykcChosenCourse, CachedBykcCourse,
+    CachedBykcCoursePage, CachedBykcSignWindow, CachedCgyyDayInfo, CachedCgyyOrder,
+    CachedCgyyOrdersPage, CachedCgyySlotStatus, CachedCgyySpaceAvailability,
     CachedEvaluationCourse, CachedEvaluationCourses, CachedLibBookBooking,
     CachedLibBookBookingsPage, CachedLibBookSeat, CachedMaskedProfile, CachedSemesterSchedule,
     CachedSigninClass, CachedYgdkItem, CachedYgdkOverview, CachedYgdkRecord, CachedYgdkRecordsPage,

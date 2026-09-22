@@ -59,7 +59,7 @@ pub(super) fn prepare_control(
             control
         } else {
             let mut control = crypto.open::<Control>(&body, &control_aad(account))?;
-            if version == 3 {
+            if version == 3 || version == 4 {
                 control.epoch = control.epoch.checked_add(1).ok_or(CacheError::Capacity)?;
                 control.generation = control
                     .generation

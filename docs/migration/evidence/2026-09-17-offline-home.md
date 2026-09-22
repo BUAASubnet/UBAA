@@ -609,3 +609,13 @@ cache-green.log最终14项通过（初轮私有计划测试构造缺新增可选
 最终check-final.log退出0：Core两配置各288、facade77、Bridge128通过/2既有忽略、CLI端到端16，fmt/clippy/Shell/build/doc/layout通过。敏感扫描5341文件及暂存diff通过。
 
 P4-AB候选重新执行双路线Core-live，原工作区只读凭据经stdin进入新临时会话，未复制旧运行会话、未执行学校业务写入。Direct累计23.784秒：35 PASS、2 FAIL、3 BLOCKED；希冀include_expired及复用diagnostics为upstream_unavailable，current/detail/details_batch受阻。该轮未额外取得HTTP状态，不将P4-P的502当作本次直接观察。WebVPN累计25.384秒40 PASS。此标准门禁验证既有只读协议，不验证新加密导入或真实App/启动性能；Direct完整门禁仍未通过。
+
+## P4-AC 关联缓存与在途读取失效 Core（2026-09-22）
+
+基线771f7a04，refs通过。/tmp/ubaa-p4ac-red.log为缺typed失效合同和仓库方法，包含六领域已知/未知范围用例；green.log首三项通过，final-focused.log扩为六项，验证无旧条目的迟到请求被撤销、其他目标/账号/路线保留、新读可继续、所有相关资源分页、事务注入失败回滚、损坏请求范围不部分清除和v4迁移业务密文不变/退出状态保留/旧连接拒绝。所有操作为本地脱敏数据库，不调用学校写入或真实账号。
+
+Core业务缓存升schema v5，Bridge v27/CLI v10不变；学校提交接线尚未完成。该阶段未新增真实App、Core-live或启动性能事实，P4-AB双路线结论保留原候选边界。完整门禁随后记录。
+
+check.log首轮clippy要求合并相同match分支，并将103行测试表拆成数据与执行段，未增加allow。随后corrupt-red.log复现两个审查缺口：新增范围密文损坏仍可验证票据，以及无关坏条目阻断合法目标失效。验证/续租/发布统一核对范围，失效扫描只解析已认证scope、坏条目留给原单条隔离后corrupt-green.log八项通过。native.log此前一项macOS真实FFI/SQLite合成用例通过，前台窗口警告仍在；最终根门禁及新guard候选原生复验继续。
+
+最终check-final.log退出0：Core两配置各296、facade77、Bridge128通过/2既有忽略、CLI端到端16及fmt/clippy/Shell/build/doc/layout零baseline违例通过。native-final.log再次验证新请求范围guard候选，macOS真实FFI/SQLite合成一项通过，仍不计可见实窗。暂存敏感扫描和diff通过。Core-only阶段未改变Bridge形状或Flutter生产代码，不将P4-AB的962项扩记为本阶段新增Flutter证据；生产commit和跨入口内存失效继续。

@@ -146,7 +146,8 @@ impl OfflineRepository {
             .checked_add(1)
             .ok_or(CacheError::Capacity)?;
         save_control(&tx, &self.crypto, &self.account, &control)?;
-        tx.execute("INSERT INTO requests VALUES(?1,?2) ON CONFLICT(key) DO UPDATE SET revision=excluded.revision", params![key, control.revision]).map_err(CacheError::from)?;
+        let body = self.crypto.seal(&scope, &invalidation::scope_aad(&key))?;
+        tx.execute("INSERT INTO requests(key,revision,scope) VALUES(?1,?2,?3) ON CONFLICT(key) DO UPDATE SET revision=excluded.revision,scope=excluded.scope", params![key, control.revision, body]).map_err(CacheError::from)?;
         // 崩溃遗留的请求不无限增长；被回收的旧 ticket 会校验失败。
         tx.execute(
             "DELETE FROM requests WHERE revision < ?1",
@@ -494,18 +495,25 @@ fn validate_ticket(
 ) -> CacheResult<()> {
     let control = load_current_control(db, crypto, account, generation)?;
     require_active(&control)?;
-    let revision: Option<i64> = db
-        .query_row("SELECT revision FROM requests WHERE key=?1", [key], |r| {
-            r.get(0)
-        })
+    let request: Option<(i64, Vec<u8>)> = db
+        .query_row(
+            "SELECT revision,scope FROM requests WHERE key=?1",
+            [key],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
         .optional()
         .map_err(CacheError::from)?;
     if ticket.account != account
         || control.database_id != ticket.database_id
         || control.epoch != ticket.epoch
-        || revision != Some(ticket.revision)
+        || request.as_ref().map(|value| value.0) != Some(ticket.revision)
     {
         return Err(CacheError::Superseded);
+    }
+    let (_, body) = request.ok_or(CacheError::Superseded)?;
+    let scope: CacheScope = crypto.open(&body, &invalidation::scope_aad(key))?;
+    if scope != ticket.scope {
+        return Err(CacheError::Corrupt);
     }
     Ok(())
 }
@@ -603,8 +611,12 @@ fn initialize_database(
     }
     tx.execute_batch("CREATE TABLE IF NOT EXISTS control(id INTEGER PRIMARY KEY CHECK(id=1), body BLOB NOT NULL);
         CREATE TABLE IF NOT EXISTS entries(key BLOB PRIMARY KEY, body BLOB NOT NULL, accessed INTEGER NOT NULL, priority INTEGER NOT NULL);
-        CREATE TABLE IF NOT EXISTS requests(key BLOB PRIMARY KEY, revision INTEGER NOT NULL);").map_err(CacheError::from)?;
+        CREATE TABLE IF NOT EXISTS requests(key BLOB PRIMARY KEY, revision INTEGER NOT NULL, scope BLOB NOT NULL);").map_err(CacheError::from)?;
     let generation = management::prepare_control(&tx, crypto, account, current_version)?;
+    if current_version > 0 && current_version < 5 {
+        // 旧在途票据不迁移，业务条目的密文和取得时间保持原样。
+        tx.execute_batch("DROP TABLE requests; CREATE TABLE requests(key BLOB PRIMARY KEY, revision INTEGER NOT NULL, scope BLOB NOT NULL);").map_err(CacheError::from)?;
+    }
     tx.pragma_update(None, "user_version", CACHE_SCHEMA_VERSION)
         .map_err(CacheError::from)?;
     tx.commit().map_err(CacheError::from)?;
@@ -612,3 +624,7 @@ fn initialize_database(
 }
 mod rebuild;
 pub use rebuild::CacheRecovery;
+
+mod invalidation;
+
+pub use invalidation::{CacheInvalidation, CacheInvalidationReport};

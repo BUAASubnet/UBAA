@@ -148,6 +148,17 @@ impl OfflineCache {
     pub fn clear(&self) -> CacheResult<()> {
         self.repository(OfflineRepository::clear)
     }
+    /// 仅使当前账号指定路线的关联缓存失效，不获取网络锁或触发学校写入。
+    ///
+    /// # Errors
+    /// 仓库、影响范围或事务无效时返回缓存错误；不能据此更改学校提交结果。
+    pub fn invalidate(
+        &self,
+        route: ConnectionMode,
+        impact: &super::CacheInvalidation,
+    ) -> CacheResult<super::CacheInvalidationReport> {
+        self.repository(|repository| repository.invalidate(route, impact))
+    }
     /// 返回当前账号的数值用量，不读取业务正文。
     ///
     /// # Errors

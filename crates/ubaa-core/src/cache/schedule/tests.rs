@@ -368,7 +368,7 @@ fn v3升级保留内容和退出状态_旧连接不能参与新格式回收() {
         assert_eq!(
             db.pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
                 .unwrap(),
-            4
+            crate::cache::CACHE_SCHEMA_VERSION
         );
         drop(db);
         drop(current);

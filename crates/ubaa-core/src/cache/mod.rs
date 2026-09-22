@@ -17,7 +17,10 @@ mod store;
 mod types;
 
 pub use crypto::CacheKey;
-pub use store::{CacheClearReport, CacheRecovery, CacheUsage, OfflineRepository};
+pub use store::{
+    CacheClearReport, CacheInvalidation, CacheInvalidationReport, CacheRecovery, CacheUsage,
+    OfflineRepository,
+};
 pub use types::*;
 
 #[cfg(test)]
