@@ -89,7 +89,9 @@ class _CacheSettingsState extends State<_CacheSettings> {
       setState(() {
         _usage = result.usage;
         _failed = false;
-        _notice = result.maintenanceError == null && result.compacted
+        _notice = !result.cacheReady
+            ? '内容已清除，本机保存暂不可用，请稍后重试。'
+            : result.maintenanceError == null && result.compacted
             ? '缓存已清除。'
             : '内容已清除，空间回收暂未完成。';
       });

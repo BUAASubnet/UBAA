@@ -22,6 +22,18 @@ pub struct BridgeCacheReset {
     pub cache: BridgeOfflineCache,
     pub report: BridgeCacheClearReport,
 }
+#[flutter_rust_bridge::frb(non_opaque)]
+pub struct BridgeCacheRecovery {
+    pub cache: Option<BridgeOfflineCache>,
+    pub report: BridgeCacheClearReport,
+}
+fn map_report(report: &core::CacheClearReport) -> BridgeCacheClearReport {
+    BridgeCacheClearReport {
+        usage: report.usage.map(map_usage),
+        compacted: report.compacted,
+        maintenance_error: report.maintenance_error.map(Into::into),
+    }
+}
 fn map_usage(value: core::CacheUsage) -> BridgeCacheUsage {
     BridgeCacheUsage {
         entry_count: value.entry_count,
@@ -33,6 +45,35 @@ fn map_usage(value: core::CacheUsage) -> BridgeCacheUsage {
     }
 }
 impl BridgeOfflineCache {
+    /// 仅供设置确认后的本机业务缓存清理，不自动调用、不获取网络锁。
+    ///
+    /// # Errors
+    /// 清空前返回稳定错误；清空后的失败由空cache和report表达。
+    pub async fn clear_or_rebuild(
+        config_dir: String,
+        account_id: String,
+        expected_identity: String,
+        mut key: Vec<u8>,
+    ) -> Result<BridgeCacheRecovery, BridgeError> {
+        local_task(move || {
+            let bytes = <[u8; 32]>::try_from(key.as_slice());
+            key.fill(0);
+            let bytes = bytes.map_err(|_| cache_error(core::CacheError::InvalidInput))?;
+            let (cache, report) = core::OfflineCache::clear_or_rebuild(
+                std::path::Path::new(&config_dir),
+                &account_id,
+                &expected_identity,
+                core::CacheKey::new(bytes),
+                core::CacheLimits::default(),
+            )
+            .map_err(cache_error)?;
+            Ok(BridgeCacheRecovery {
+                cache: cache.map(|cache| BridgeOfflineCache { cache }),
+                report: map_report(&report),
+            })
+        })
+        .await
+    }
     /// 仅返回当前账号的数值用量。
     ///
     /// # Errors
@@ -51,11 +92,7 @@ impl BridgeOfflineCache {
             let (cache, report) = cache.clear_and_reopen().map_err(cache_error)?;
             Ok(BridgeCacheReset {
                 cache: BridgeOfflineCache { cache },
-                report: BridgeCacheClearReport {
-                    usage: report.usage.map(map_usage),
-                    compacted: report.compacted,
-                    maintenance_error: report.maintenance_error.map(Into::into),
-                },
+                report: map_report(&report),
             })
         })
         .await
@@ -64,6 +101,56 @@ impl BridgeOfflineCache {
 #[cfg(test)]
 mod tests {
     use crate::api::{client::*, offline::BridgeOfflineCache};
+    #[tokio::test]
+    async fn 显式重建使用本地通道且坏密钥长度不能触碰文件() {
+        let root = std::env::temp_dir().join(format!("ubaa-cache-rebuild-{}", std::process::id()));
+        std::fs::create_dir_all(&root).unwrap();
+        let client = BridgeClient::open(root.to_string_lossy().into()).unwrap();
+        let account = "0123456789abcdef0123456789abcdef";
+        let old = BridgeOfflineCache::open(
+            root.to_string_lossy().into(),
+            account.into(),
+            "synthetic".into(),
+            vec![8; 32],
+        )
+        .await
+        .unwrap();
+        let path = root
+            .join("business-cache")
+            .join(format!("{account}.sqlite"));
+        std::fs::write(&path, b"synthetic-corrupt").unwrap();
+        assert!(
+            BridgeOfflineCache::clear_or_rebuild(
+                root.to_string_lossy().into(),
+                account.into(),
+                "synthetic".into(),
+                vec![8; 31]
+            )
+            .await
+            .is_err()
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), b"synthetic-corrupt");
+        let guard = client.inner.lock().await;
+        let value = tokio::time::timeout(
+            std::time::Duration::from_secs(1),
+            BridgeOfflineCache::clear_or_rebuild(
+                root.to_string_lossy().into(),
+                account.into(),
+                "synthetic".into(),
+                vec![8; 32],
+            ),
+        )
+        .await
+        .unwrap()
+        .unwrap();
+        let recovered = value.cache.unwrap();
+        assert!(value.report.maintenance_error.is_none());
+        assert_eq!(recovered.usage().await.unwrap().entry_count, 0);
+        assert!(old.usage().await.is_err());
+        drop(guard);
+        drop((client, old, recovered));
+        std::fs::remove_dir_all(root).unwrap();
+    }
     #[tokio::test]
     async fn 本地清理独立于网络锁并交付新句柄() {
         let root = std::env::temp_dir().join(format!("ubaa-cache-admin-{}", std::process::id()));

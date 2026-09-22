@@ -68,25 +68,7 @@ Future<CacheClearOutcome> _clearBusinessCache(
       final old = _managementCache(backend, accountId);
       final reset = await old.clearAndReopen();
       backend._offlineCache = reset.cache;
-      final report = reset.report;
-      return CacheClearOutcome(
-        usage: report.usage == null
-            ? null
-            : _cacheUsageSummary(report.usage!, accountId),
-        compacted: report.compacted,
-        maintenanceError: switch (report.maintenanceError) {
-          null => null,
-          BridgeCacheFailure.unavailable => CacheMaintenanceFailure.unavailable,
-          BridgeCacheFailure.invalidInput =>
-            CacheMaintenanceFailure.invalidInput,
-          BridgeCacheFailure.corrupt => CacheMaintenanceFailure.corrupt,
-          BridgeCacheFailure.unsupportedVersion =>
-            CacheMaintenanceFailure.unsupportedVersion,
-          BridgeCacheFailure.inactive => CacheMaintenanceFailure.inactive,
-          BridgeCacheFailure.superseded => CacheMaintenanceFailure.superseded,
-          BridgeCacheFailure.capacity => CacheMaintenanceFailure.capacity,
-        },
-      );
+      return _cacheClearOutcome(reset.report, accountId);
     } on BridgeError catch (error) {
       throw _mapError(error);
     }
@@ -105,3 +87,28 @@ CacheUsageSummary _cacheUsageSummary(
   softLimitBytes: value.softLimitBytes.toInt(),
   hardLimitBytes: value.hardLimitBytes.toInt(),
 );
+
+CacheClearOutcome _cacheClearOutcome(
+  BridgeCacheClearReport report,
+  String accountId, {
+  bool cacheReady = true,
+}) {
+  return CacheClearOutcome(
+    cacheReady: cacheReady,
+    usage: report.usage == null
+        ? null
+        : _cacheUsageSummary(report.usage!, accountId),
+    compacted: report.compacted,
+    maintenanceError: switch (report.maintenanceError) {
+      null => null,
+      BridgeCacheFailure.unavailable => CacheMaintenanceFailure.unavailable,
+      BridgeCacheFailure.invalidInput => CacheMaintenanceFailure.invalidInput,
+      BridgeCacheFailure.corrupt => CacheMaintenanceFailure.corrupt,
+      BridgeCacheFailure.unsupportedVersion =>
+        CacheMaintenanceFailure.unsupportedVersion,
+      BridgeCacheFailure.inactive => CacheMaintenanceFailure.inactive,
+      BridgeCacheFailure.superseded => CacheMaintenanceFailure.superseded,
+      BridgeCacheFailure.capacity => CacheMaintenanceFailure.capacity,
+    },
+  );
+}

@@ -1,4 +1,5 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_platform/ubaa_platform.dart';
 export 'package:ubaa_domain/ubaa_domain.dart'
     show CacheUsageSummary, CacheClearOutcome, CacheMaintenanceFailure;
 
@@ -6,4 +7,13 @@ export 'package:ubaa_domain/ubaa_domain.dart'
 abstract interface class CacheManagementBackend {
   Future<CacheUsageSummary> cacheUsage({required String accountId});
   Future<CacheClearOutcome> clearBusinessCache({required String accountId});
+}
+
+/// 只在显式确认后从保险箱重新取得密钥，不能作为open失败的自动回退。
+abstract interface class CacheRecoveryBackend
+    implements CacheManagementBackend {
+  Future<CacheClearOutcome> clearOrRebuildBusinessCache({
+    required LocalAccount account,
+    required List<int> key,
+  });
 }

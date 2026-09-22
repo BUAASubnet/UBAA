@@ -39,6 +39,29 @@ impl OfflineCache {
             expected_identity: Arc::from(expected_identity.trim()),
         })
     }
+    /// 用户确认后清理或重建当前账号业务副本；不处理认证材料。
+    ///
+    /// # Errors
+    /// 清空前失败返回错误；清空后不可用返回空句柄及维护报告。
+    pub fn clear_or_rebuild(
+        root: &Path,
+        account_id: &str,
+        expected_identity: &str,
+        key: CacheKey,
+        limits: CacheLimits,
+    ) -> CacheResult<(Option<Self>, super::CacheClearReport)> {
+        if expected_identity.trim().is_empty() || expected_identity.len() > 128 {
+            return Err(CacheError::InvalidInput);
+        }
+        let recovery = OfflineRepository::clear_or_rebuild(root, account_id, key, limits)?;
+        Ok((
+            recovery.repository.map(|repository| Self {
+                repository: Arc::new(Mutex::new(Some(repository))),
+                expected_identity: Arc::from(expected_identity.trim()),
+            }),
+            recovery.report,
+        ))
+    }
     /// 本地精确范围读取，不校验网络认证也不获取客户端锁。
     ///
     /// # Errors

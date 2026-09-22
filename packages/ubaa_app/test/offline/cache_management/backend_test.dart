@@ -17,6 +17,12 @@ final conflict = throwsA(
 void main() {
   final api = _Api();
   setUpAll(() => RustLib.initMock(api: api));
+  setUp(() {
+    api.failOpen = false;
+    api.ready = true;
+    api.rebuilds = 0;
+    api.rebuildGate = null;
+  });
   Future<BridgeBackend> open() async {
     api.cache = _Cache();
     final backend = BridgeBackend(_Client(), configDirectory: '/synthetic');
@@ -24,6 +30,61 @@ void main() {
     return backend;
   }
 
+  test('普通打开失败不自动重建，显式重建仍核对目标账号', () async {
+    api.cache = _Cache();
+    api.failOpen = true;
+    final backend = BridgeBackend(_Client(), configDirectory: '/synthetic');
+    await expectLater(
+      backend.openOfflineAccount(account, List.filled(32, 1)),
+      throwsA(isA<BackendException>()),
+    );
+    expect(api.rebuilds, 0);
+    await expectLater(
+      backend.clearOrRebuildBusinessCache(
+        account: const LocalAccount(id: 'other', username: 'other'),
+        key: List.filled(32, 1),
+      ),
+      conflict,
+    );
+    final value = await backend.clearOrRebuildBusinessCache(
+      account: account,
+      key: List.filled(32, 1),
+    );
+    expect(value.cacheReady, isTrue);
+    expect(api.rebuilds, 1);
+    expect((await backend.cacheUsage(accountId: account.id)).entryCount, 0);
+  });
+  test('重建后初始化失败不继续使用旧句柄', () async {
+    final backend = await open();
+    api.ready = false;
+    final result = await backend.clearOrRebuildBusinessCache(
+      account: account,
+      key: List.filled(32, 1),
+    );
+    expect(result.cacheReady, isFalse);
+    expect(result.maintenanceError, CacheMaintenanceFailure.capacity);
+    await expectLater(backend.cacheUsage(accountId: account.id), conflict);
+  });
+  test('重建拒绝旧读取交付并把排队退出应用到继任句柄', () async {
+    final backend = await open();
+    final old = api.cache;
+    old.profileGate = Completer<void>();
+    final pending = backend.readCachedProfile(RoutePolicy.direct);
+    final checked = expectLater(pending, conflict);
+    await old.profileStarted.future;
+    api.rebuildGate = Completer<void>();
+    final clearing = backend.clearOrRebuildBusinessCache(
+      account: account,
+      key: List.filled(32, 1),
+    );
+    final logout = backend.deactivateOfflineAccount();
+    api.rebuildGate!.complete();
+    await clearing;
+    await logout;
+    old.profileGate!.complete();
+    await checked;
+    expect(api.recovered!.deactivateCalls, 1);
+  });
   test('数值用量与清理均核对账号，维护失败仍交付新句柄', () async {
     final backend = await open();
     final old = api.cache;
@@ -103,20 +164,54 @@ void main() {
 
 class _Api implements RustLibApi {
   late _Cache cache;
+  bool failOpen = false, ready = true;
+  int rebuilds = 0;
+  Completer<void>? rebuildGate;
+  _Cache? recovered;
+  @override
+  Future<BridgeCacheRecovery> crateApiOfflineBridgeOfflineCacheClearOrRebuild({
+    required String configDir,
+    required String accountId,
+    required String expectedIdentity,
+    required List<int> key,
+  }) async {
+    rebuilds++;
+    expect(expectedIdentity, 'synthetic');
+    await rebuildGate?.future;
+    recovered = ready ? _Cache(count: 0) : null;
+    return BridgeCacheRecovery(
+      cache: recovered,
+      report: BridgeCacheClearReport(
+        compacted: true,
+        maintenanceError: ready ? null : BridgeCacheFailure.capacity,
+      ),
+    );
+  }
+
   @override
   Future<BridgeOfflineCache> crateApiOfflineBridgeOfflineCacheOpen({
     required String configDir,
     required String accountId,
     required String expectedIdentity,
     required List<int> key,
-  }) async => cache;
+  }) async {
+    if (failOpen)
+      throw const BridgeError(
+        code: BridgeErrorCode.internalError,
+        kind: BridgeErrorKind.internal,
+        retryable: false,
+        message: '合成损坏',
+      );
+    return cache;
+  }
+
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _Client implements BridgeClient {
   @override
-  int contractVersion() => 25;
+  int contractVersion() => 26;
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

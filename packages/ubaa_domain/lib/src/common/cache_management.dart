@@ -29,8 +29,10 @@ final class CacheClearOutcome {
     this.usage,
     required this.compacted,
     this.maintenanceError,
+    this.cacheReady = true,
   });
   final CacheUsageSummary? usage;
   final bool compacted;
+  final bool cacheReady;
   final CacheMaintenanceFailure? maintenanceError;
 }

@@ -7,7 +7,7 @@ import '../frb_generated.dart';
 import 'offline.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `map_usage`
+// These functions are ignored because they are not marked as `pub`: `map_report`, `map_usage`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `fmt`, `fmt`
 
 class BridgeCacheClearReport {
@@ -33,6 +33,24 @@ class BridgeCacheClearReport {
           usage == other.usage &&
           compacted == other.compacted &&
           maintenanceError == other.maintenanceError;
+}
+
+class BridgeCacheRecovery {
+  final BridgeOfflineCache? cache;
+  final BridgeCacheClearReport report;
+
+  const BridgeCacheRecovery({this.cache, required this.report});
+
+  @override
+  int get hashCode => cache.hashCode ^ report.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeCacheRecovery &&
+          runtimeType == other.runtimeType &&
+          cache == other.cache &&
+          report == other.report;
 }
 
 class BridgeCacheReset {

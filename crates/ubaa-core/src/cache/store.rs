@@ -17,6 +17,20 @@ struct Control {
     revision: i64,
     active: bool,
     generation: u64,
+    database_id: [u8; 16],
+}
+#[derive(Clone, Copy, Eq, PartialEq)]
+struct Generation {
+    database_id: [u8; 16],
+    counter: u64,
+}
+impl Control {
+    fn handle_generation(&self) -> Generation {
+        Generation {
+            database_id: self.database_id,
+            counter: self.generation,
+        }
+    }
 }
 
 /// 每个随机账号别名对应一个私有数据库；调用方串行使用实例，多个实例由事务协调。
@@ -26,7 +40,7 @@ pub struct OfflineRepository {
     account: String,
     path: PathBuf,
     limits: CacheLimits,
-    generation: u64,
+    generation: Generation,
 }
 
 impl OfflineRepository {
@@ -40,47 +54,12 @@ impl OfflineRepository {
         key: CacheKey,
         limits: CacheLimits,
     ) -> CacheResult<Self> {
-        if limits.soft_bytes == 0
-            || limits.soft_bytes > limits.hard_bytes
-            || limits.hard_bytes > 100 * 1024 * 1024
-        {
-            return Err(CacheError::InvalidInput);
-        }
+        validate_limits(limits)?;
         let path = files::database_path(root, account)?;
-        let mut db = Connection::open_with_flags(
-            &path,
-            OpenFlags::SQLITE_OPEN_READ_WRITE
-                | OpenFlags::SQLITE_OPEN_NO_MUTEX
-                | OpenFlags::SQLITE_OPEN_NOFOLLOW,
-        )
-        .map_err(CacheError::from)?;
-        db.busy_timeout(Duration::from_millis(250))
-            .map_err(CacheError::from)?;
-        let version: u32 = db
-            .pragma_query_value(None, "user_version", |r| r.get(0))
-            .map_err(CacheError::from)?;
-        if version != 0 && version != 1 && version != CACHE_SCHEMA_VERSION {
-            return Err(CacheError::UnsupportedVersion);
-        }
-        db.execute_batch("PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA secure_delete=ON; PRAGMA temp_store=MEMORY; PRAGMA trusted_schema=OFF;").map_err(CacheError::from)?;
-        db.pragma_update(
-            None,
-            "max_page_count",
-            i64::try_from(limits.hard_bytes / 4096 + 32).map_err(|_| CacheError::Capacity)?,
-        )
-        .map_err(CacheError::from)?;
+        let mut db = open_connection(&path)?;
         let crypto = Crypto::new(key);
         let account = account.to_ascii_lowercase();
-        let tx = db
-            .transaction_with_behavior(TransactionBehavior::Immediate)
-            .map_err(CacheError::from)?;
-        tx.execute_batch("CREATE TABLE IF NOT EXISTS control(id INTEGER PRIMARY KEY CHECK(id=1), body BLOB NOT NULL);
-            CREATE TABLE IF NOT EXISTS entries(key BLOB PRIMARY KEY, body BLOB NOT NULL, accessed INTEGER NOT NULL, priority INTEGER NOT NULL);
-            CREATE TABLE IF NOT EXISTS requests(key BLOB PRIMARY KEY, revision INTEGER NOT NULL);").map_err(CacheError::from)?;
-        let generation = management::prepare_control(&tx, &crypto, &account, version)?;
-        tx.pragma_update(None, "user_version", CACHE_SCHEMA_VERSION)
-            .map_err(CacheError::from)?;
-        tx.commit().map_err(CacheError::from)?;
+        let generation = initialize_database(&mut db, &crypto, &account, limits)?;
         Ok(Self {
             db,
             crypto,
@@ -179,6 +158,7 @@ impl OfflineRepository {
             account: self.account.clone(),
             scope,
             epoch: control.epoch,
+            database_id: control.database_id,
             revision: control.revision,
         })
     }
@@ -510,7 +490,7 @@ fn validate_ticket(
     account: &str,
     ticket: &CacheReadTicket,
     key: &[u8],
-    generation: u64,
+    generation: Generation,
 ) -> CacheResult<()> {
     let control = load_current_control(db, crypto, account, generation)?;
     require_active(&control)?;
@@ -521,6 +501,7 @@ fn validate_ticket(
         .optional()
         .map_err(CacheError::from)?;
     if ticket.account != account
+        || control.database_id != ticket.database_id
         || control.epoch != ticket.epoch
         || revision != Some(ticket.revision)
     {
@@ -546,16 +527,16 @@ mod management_tests;
 mod management;
 pub use management::{CacheClearReport, CacheUsage};
 fn control_aad(account: &str) -> Vec<u8> {
-    [b"ubaa.cache.control.v2\0".as_slice(), account.as_bytes()].concat()
+    [b"ubaa.cache.control.v3\0".as_slice(), account.as_bytes()].concat()
 }
 fn load_current_control(
     db: &Connection,
     crypto: &Crypto,
     account: &str,
-    generation: u64,
+    generation: Generation,
 ) -> CacheResult<Control> {
     let control = load_control(db, crypto, account)?;
-    if control.generation != generation {
+    if control.handle_generation() != generation {
         return Err(CacheError::Superseded);
     }
     Ok(control)
@@ -565,3 +546,69 @@ fn load_current_control(
 mod retention_tests;
 
 mod retention;
+
+#[cfg(test)]
+mod rebuild_tests;
+
+fn validate_limits(limits: CacheLimits) -> CacheResult<()> {
+    if limits.soft_bytes == 0
+        || limits.soft_bytes > limits.hard_bytes
+        || limits.hard_bytes > 100 * 1024 * 1024
+    {
+        Err(CacheError::InvalidInput)
+    } else {
+        Ok(())
+    }
+}
+fn open_connection(path: &Path) -> CacheResult<Connection> {
+    let db = Connection::open_with_flags(
+        path,
+        OpenFlags::SQLITE_OPEN_READ_WRITE
+            | OpenFlags::SQLITE_OPEN_NO_MUTEX
+            | OpenFlags::SQLITE_OPEN_NOFOLLOW,
+    )
+    .map_err(CacheError::from)?;
+    db.busy_timeout(Duration::from_millis(250))
+        .map_err(CacheError::from)?;
+    Ok(db)
+}
+fn initialize_database(
+    db: &mut Connection,
+    crypto: &Crypto,
+    account: &str,
+    limits: CacheLimits,
+) -> CacheResult<Generation> {
+    let version: u32 = db
+        .pragma_query_value(None, "user_version", |r| r.get(0))
+        .map_err(CacheError::from)?;
+    if version > CACHE_SCHEMA_VERSION {
+        return Err(CacheError::UnsupportedVersion);
+    }
+    db.execute_batch("PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA secure_delete=ON; PRAGMA temp_store=MEMORY; PRAGMA trusted_schema=OFF;").map_err(CacheError::from)?;
+    db.pragma_update(
+        None,
+        "max_page_count",
+        i64::try_from(limits.hard_bytes / 4096 + 32).map_err(|_| CacheError::Capacity)?,
+    )
+    .map_err(CacheError::from)?;
+    let tx = db
+        .transaction_with_behavior(TransactionBehavior::Immediate)
+        .map_err(CacheError::from)?;
+    // 取得写锁后重新读取，避免并发打开时使用迁移前的版本快照。
+    let current_version: u32 = tx
+        .pragma_query_value(None, "user_version", |r| r.get(0))
+        .map_err(CacheError::from)?;
+    if current_version > CACHE_SCHEMA_VERSION {
+        return Err(CacheError::UnsupportedVersion);
+    }
+    tx.execute_batch("CREATE TABLE IF NOT EXISTS control(id INTEGER PRIMARY KEY CHECK(id=1), body BLOB NOT NULL);
+        CREATE TABLE IF NOT EXISTS entries(key BLOB PRIMARY KEY, body BLOB NOT NULL, accessed INTEGER NOT NULL, priority INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS requests(key BLOB PRIMARY KEY, revision INTEGER NOT NULL);").map_err(CacheError::from)?;
+    let generation = management::prepare_control(&tx, crypto, account, current_version)?;
+    tx.pragma_update(None, "user_version", CACHE_SCHEMA_VERSION)
+        .map_err(CacheError::from)?;
+    tx.commit().map_err(CacheError::from)?;
+    Ok(generation)
+}
+mod rebuild;
+pub use rebuild::CacheRecovery;

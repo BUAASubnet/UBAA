@@ -14,7 +14,7 @@ use crate::domain::{BykcStatistics, BykcUserProfile, SpocAssignmentDetail, SpocA
 use serde::{Deserialize, Serialize};
 
 /// 独立于 Session 和 Bridge 的业务缓存版本。
-pub const CACHE_SCHEMA_VERSION: u32 = 2;
+pub const CACHE_SCHEMA_VERSION: u32 = 3;
 
 /// 精确业务查询；日期使用既有校园日期，不在读取时替换成今天。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -253,6 +253,7 @@ pub struct CacheReadTicket {
     pub(super) account: String,
     pub(super) scope: CacheScope,
     pub(super) epoch: u64,
+    pub(super) database_id: [u8; 16],
     pub(super) revision: i64,
 }
 

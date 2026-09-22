@@ -284,7 +284,7 @@ class _Cache implements BridgeOfflineCache {
 
 class _Client implements BridgeClient {
   @override
-  int contractVersion() => 25;
+  int contractVersion() => 26;
   @override
   Future<BridgeAcademicGradesRefresh> academicGradesCached({
     required BridgeOfflineCache cache,

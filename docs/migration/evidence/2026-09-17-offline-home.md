@@ -509,3 +509,18 @@ context-red.log复现两项真实缺口：没有学期索引的未来考试仍�
 check.log初轮clippy拒绝wildcard import及可折叠if，已显式导入和合并判断，不加allow；check-final.log正在运行。本阶段只改Core本地保存策略，不新增学校请求/写入、Flutter/原生媒体、Core-live或启动性能证据，旧阶段通过不扩大为本阶段新证据。
 
 最终check-final.log退出0：Core两配置各267、facade66、Bridge126通过/2既有忽略、CLI端到端16，fmt/clippy/Shell/build/doc和layout零baseline违例通过。敏感扫描5313文件、暂存diff空白检查通过。Schema v2、Bridge v25、CLI v10未变；本次Core-only未重复Flutter或原生测试，不把旧917项/原生截图扩大为新增证据。源工作区ubaa2仍干净。完整目标继续，损坏文件重建、学期完整覆盖、剩余安全分段/生命周期及多端容量/性能验收未完成。
+
+
+## P4-W 损坏缓存显式重建（2026-09-22）
+
+基线ad3ce9c1，冻结引用纯校验通过。日志前缀/tmp/ubaa-p4w-：red.log缺Core重建合同；post-red.log缺清除后初始化故障注入；bridge-red.log缺新静态RPC；controller-red.log缺恢复backend与cacheReady字段。均先观察缺口，再最小实现。无学校协议更改，来源及SQLite原生合同已先记录。
+
+rebuild-green.log六项通过：独立数据库身份拒绝旧票据、损坏头重建且其他账号/会话字节不变、未知版本仅显式清理、独立读事务阻塞且失败保原文件、v2条目和退出状态迁移及旧AAD拒绝、清除提交后初始化失败准确分列。故障注入不等于设备磁盘满。bridge-green.log一项证明网络锁占用时本地重建仍完成、坏密钥长度不触碰原文件。app-focused.log十六项覆盖失败打开后恢复、临时密钥使用及归零、空继任句柄、旧读取/排队退出和账号归属；ui.log六项通过。
+
+flutter.log完整923项（57/66/414/277/22/33/54）及静态分析通过。native.log一项macOS原生合成验证Bridge v26可空句柄与损坏文件重建；仍有Failed to foreground app，不能计作可见渲染或真实App。没有新增验收媒体。check.log首轮clippy指出报告按值传递，改借用；check-final.log最终退出0：Core两配置各273、facade66、Bridge127通过/2既有忽略、CLI端到端16及fmt/clippy/Shell/build/doc通过。
+
+当前未执行真实学校请求或写入，未测启动/容量性能。生成一致性、最终暂存结构和敏感扫描收尾后独立提交，完整P0–P5继续。
+
+最终codegen-check.log退出0，FRB v26严格生成零漂移。原生绑定可用与完整App验收保持分列；本阶段不关闭性能和多端余项。
+
+最终layout零baseline违例，敏感扫描5316文件、暂存diff检查通过。源工作区ubaa2干净，所有新增文件限实施隔离区。

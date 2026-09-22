@@ -13,6 +13,7 @@ import '../write/ygdk_validation.dart';
 
 part 'common.dart';
 part 'cache_management/lifecycle.dart';
+part 'cache_management/rebuild.dart';
 part 'profile/cache.dart';
 part 'offline.dart';
 part 'recovery.dart';
@@ -44,7 +45,7 @@ part 'write/commit.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 25;
+const _supportedBridgeContractVersion = 26;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -74,6 +75,7 @@ class BridgeBackend
         OfflineCacheBackend,
         ProfileCacheBackend,
         CacheManagementBackend,
+        CacheRecoveryBackend,
         OfflineQueryBackend,
         ProgressiveReadBackend,
         BackendLifecycle {
@@ -106,6 +108,12 @@ class BridgeBackend
   @override
   Future<CacheClearOutcome> clearBusinessCache({required String accountId}) =>
       _clearBusinessCache(this, accountId);
+
+  @override
+  Future<CacheClearOutcome> clearOrRebuildBusinessCache({
+    required LocalAccount account,
+    required List<int> key,
+  }) => _clearOrRebuildBusinessCache(this, account, key);
 
   @override
   Future<void> openOfflineAccount(LocalAccount account, List<int> key) =>

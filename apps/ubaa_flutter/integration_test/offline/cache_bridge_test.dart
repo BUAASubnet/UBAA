@@ -21,7 +21,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 25);
+      expect(client.contractVersion(), 26);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -424,6 +424,22 @@ void main() {
         ),
       );
       old.dispose();
+      final beforeRecovery = second;
+      await File(
+        '${directory.path}/business-cache/0123456789abcdef0123456789abcdef.sqlite',
+      ).writeAsString('synthetic-corrupt');
+      final recovery = await BridgeOfflineCache.clearOrRebuild(
+        configDir: directory.path,
+        accountId: '0123456789abcdef0123456789abcdef',
+        expectedIdentity: 'synthetic',
+        key: key,
+      );
+      second = recovery.cache;
+      expect(second, isNotNull);
+      expect(recovery.report.maintenanceError, isNull);
+      expect((await second!.usage()).entryCount.toInt(), 0);
+      await expectLater(beforeRecovery.usage(), throwsA(isA<BridgeError>()));
+      beforeRecovery.dispose();
     } finally {
       key.fillRange(0, key.length, 0);
       await client?.dispose();

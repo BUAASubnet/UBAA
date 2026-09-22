@@ -1,7 +1,8 @@
 //! 只统计密文长度和数据库页，清理不接触会话或凭据。
 use super::{
-    CacheError, CacheResult, Connection, Control, Crypto, OfflineRepository, OptionalExtension,
-    TransactionBehavior, control_aad, load_current_control, require_active, save_control,
+    CacheError, CacheResult, Connection, Control, Crypto, Generation, OfflineRepository,
+    OptionalExtension, TransactionBehavior, control_aad, load_current_control, require_active,
+    save_control,
 };
 use serde::Deserialize;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -26,48 +27,63 @@ struct LegacyControl {
     epoch: u64,
     revision: i64,
     active: bool,
+    #[serde(default)]
+    generation: u64,
 }
 pub(super) fn prepare_control(
     db: &Connection,
     crypto: &Crypto,
     account: &str,
     version: u32,
-) -> CacheResult<u64> {
+) -> CacheResult<Generation> {
     let body: Option<Vec<u8>> = db
         .query_row("SELECT body FROM control WHERE id=1", [], |r| r.get(0))
         .optional()
         .map_err(CacheError::from)?;
     if let Some(body) = body {
-        let control = if version == 1 {
-            let old: LegacyControl = crypto.open(&body, account.as_bytes())?;
+        let control = if version == 1 || version == 2 {
+            let aad = if version == 1 {
+                account.as_bytes().to_vec()
+            } else {
+                [b"ubaa.cache.control.v2\0".as_slice(), account.as_bytes()].concat()
+            };
+            let old: LegacyControl = crypto.open(&body, &aad)?;
             let control = Control {
                 epoch: old.epoch.checked_add(1).ok_or(CacheError::Capacity)?,
                 revision: old.revision,
                 active: old.active,
-                generation: 0,
+                generation: old.generation,
+                database_id: database_id()?,
             };
             save_control(db, crypto, account, &control)?;
             control
         } else {
             crypto.open::<Control>(&body, &control_aad(account))?
         };
-        return Ok(control.generation);
+        return Ok(control.handle_generation());
     }
     if version != 0 {
         return Err(CacheError::Corrupt);
     }
-    let body = crypto.seal(
-        &Control {
-            epoch: 0,
-            revision: 0,
-            active: true,
-            generation: 0,
-        },
-        &control_aad(account),
-    )?;
+    let control = Control {
+        epoch: 0,
+        revision: 0,
+        active: true,
+        generation: 0,
+        database_id: database_id()?,
+    };
+    let body = crypto.seal(&control, &control_aad(account))?;
     db.execute("INSERT INTO control VALUES(1,?1)", [body])
         .map_err(CacheError::from)?;
-    Ok(0)
+    Ok(control.handle_generation())
+}
+fn database_id() -> CacheResult<[u8; 16]> {
+    use rand::RngCore as _;
+    let mut id = [0; 16];
+    rand::rngs::OsRng
+        .try_fill_bytes(&mut id)
+        .map_err(|_| CacheError::Unavailable)?;
+    Ok(id)
 }
 impl OfflineRepository {
     /// 不读取业务正文，仅返回当前账号的数值用量与限额。
@@ -148,7 +164,7 @@ impl OfflineRepository {
         tx.execute("DELETE FROM requests", [])
             .map_err(CacheError::from)?;
         tx.commit().map_err(CacheError::from)?;
-        self.generation = control.generation;
+        self.generation = control.handle_generation();
         let maintenance_error = compact(&self.db).err();
         let compacted = maintenance_error.is_none();
         let usage = self.usage();

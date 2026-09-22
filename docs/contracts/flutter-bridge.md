@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `25`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `26`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -38,7 +38,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=25` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=26` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -604,3 +604,8 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
 ## 合同 v25：本地缓存管理
 
 新增usage数值用量和clear_and_reopen。清除事务成功返回新opaque缓存句柄，旧句柄不能复用；报告分列内容清理、压缩和用量。原clear/deactivate/activate、CLI及学校读取/写入合同不变，App/Rust同步v25。
+
+
+## 合同 v26：显式缓存重建
+
+clearOrRebuild只供设置确认后调用，参数为私有配置目录、已核实本机账号/预期身份及临时缓存密钥；不获取网络客户端锁。返回BridgeCacheRecovery：可空新cache及clear report。返回成功说明内容已清除；cache为空表示后续初始化不可用，不能继续使用旧句柄或声称已可离线保存。清空前的错误保持原错误合同。普通open不自动重建。App/控制器区分cacheReady与compacted，密钥用后清零，旧任务与退出队列沿既有代际保护。

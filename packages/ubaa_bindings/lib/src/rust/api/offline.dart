@@ -40,6 +40,22 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   /// 事务失败返回错误；提交后空间维护失败在 report 中单独报告。
   Future<BridgeCacheReset> clearAndReopen();
 
+  /// 仅供设置确认后的本机业务缓存清理，不自动调用、不获取网络锁。
+  ///
+  /// # Errors
+  /// 清空前返回稳定错误；清空后的失败由空cache和report表达。
+  static Future<BridgeCacheRecovery> clearOrRebuild({
+    required String configDir,
+    required String accountId,
+    required String expectedIdentity,
+    required List<int> key,
+  }) => RustLib.instance.api.crateApiOfflineBridgeOfflineCacheClearOrRebuild(
+    configDir: configDir,
+    accountId: accountId,
+    expectedIdentity: expectedIdentity,
+    key: key,
+  );
+
   /// 关闭本地账号的在途回写资格。
   ///
   /// # Errors

@@ -67,14 +67,15 @@ extension _AppControllerCacheManagement on AppController {
         scope.cancel();
       }
       _pumpReadTasks();
-      final result = await (backend as CacheManagementBackend)
-          .clearBusinessCache(accountId: accountId);
+      final result = await _clearBackendCache(backend, accountId, epoch);
       if (!_cacheOwnerCurrent(accountId, backend, epoch)) {
         throw const BackendException(UbaaErrorCode.operationConflict);
       }
       _clearBusinessProjections();
       _businessCacheEpoch++;
-      _localCacheError = null;
+      _localCacheError = result.cacheReady
+          ? null
+          : UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
       return result;
     } finally {
       if (_cacheOwnerCurrent(accountId, backend, epoch))
@@ -82,6 +83,32 @@ extension _AppControllerCacheManagement on AppController {
       _clearingBusinessCache = false;
       _writeTransitions--;
       _notify();
+    }
+  }
+
+  Future<CacheClearOutcome> _clearBackendCache(
+    UbaaBackend backend,
+    String accountId,
+    int epoch,
+  ) async {
+    if (backend is! CacheRecoveryBackend) {
+      return (backend as CacheManagementBackend).clearBusinessCache(
+        accountId: accountId,
+      );
+    }
+    final store = _localAccountStore, account = _localAccount;
+    if (store == null || account == null || account.id != accountId) {
+      throw const BackendException(UbaaErrorCode.operationConflict);
+    }
+    final key = await store.cacheKey(account);
+    try {
+      if (!_cacheOwnerCurrent(accountId, backend, epoch)) {
+        throw const BackendException(UbaaErrorCode.operationConflict);
+      }
+      return await (backend as CacheRecoveryBackend)
+          .clearOrRebuildBusinessCache(account: account, key: key);
+    } finally {
+      key.fillRange(0, key.length, 0);
     }
   }
 

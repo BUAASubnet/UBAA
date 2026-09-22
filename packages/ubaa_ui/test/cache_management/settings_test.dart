@@ -6,6 +6,20 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../support/navigation.dart';
 
 void main() {
+  testWidgets('已清空但初始化失败不宣称可保存或仅压缩失败', (tester) async {
+    await mount(
+      tester,
+      onClear: (_) async => const CacheClearOutcome(
+        compacted: true,
+        cacheReady: false,
+        maintenanceError: CacheMaintenanceFailure.capacity,
+      ),
+    );
+    await tap(tester, '清理缓存');
+    await tap(tester, '确认清理');
+    expect(find.text('内容已清除，本机保存暂不可用，请稍后重试。'), findsOneWidget);
+    expect(find.text('缓存已清除。'), findsNothing);
+  });
   testWidgets('用量尚未返回时清理失败不能显示内容已清除', (tester) async {
     final usage = Completer<CacheUsageSummary>();
     await mount(

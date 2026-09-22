@@ -63,7 +63,7 @@ pub use crate::connection::{NetworkState, RouteDiagnostic, RouteResolution};
 pub use crate::cache::{
     CACHE_SCHEMA_VERSION, CacheClearReport, CacheCompleteness, CacheError, CacheKey, CacheLimits,
     CacheObservation, CachePayload, CachePublication, CacheQuery, CacheReadTicket, CacheRecord,
-    CacheResult, CacheScope, CacheUsage, CachedBykcChosen, CachedBykcChosenCourse,
+    CacheRecovery, CacheResult, CacheScope, CacheUsage, CachedBykcChosen, CachedBykcChosenCourse,
     CachedBykcCourse, CachedBykcCoursePage, CachedBykcSignWindow, CachedCgyyDayInfo,
     CachedCgyyOrder, CachedCgyyOrdersPage, CachedCgyySlotStatus, CachedCgyySpaceAvailability,
     CachedEvaluationCourse, CachedEvaluationCourses, CachedLibBookBooking,
