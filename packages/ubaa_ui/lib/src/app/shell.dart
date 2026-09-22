@@ -110,7 +110,7 @@ class UbaaMainShell extends StatefulWidget {
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadCgyyPurposes;
   final Future<String?> Function()? onLoadAppVersion;
   final Future<bool> Function(AppLink)? onOpenAppLink;
-  final Future<GradesAggregate> Function(bool forceRefresh)? onLoadAllGrades;
+  final GradesAggregateLoader? onLoadAllGrades;
   final GradeScoreNotice? gradeScoreNotice;
   final ConnectionMode? gradeCheckRoute;
   final Future<void> Function()? onCheckGradeUpdates;

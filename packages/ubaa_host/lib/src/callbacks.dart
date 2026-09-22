@@ -116,8 +116,10 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           _controller.loadAcademicWeeks(term, forceRefresh: forceRefresh),
       onLoadCgyyPurposes: (force) =>
           _controller.loadCgyyPurposes(forceRefresh: force),
-      onLoadAllGrades: (forceRefresh) =>
-          _controller.loadAllGrades(forceRefresh: forceRefresh),
+      onLoadAllGrades: (forceRefresh, onProgress) => _controller.loadAllGrades(
+        forceRefresh: forceRefresh,
+        onProgress: onProgress,
+      ),
       gradeScoreNotice: _gradeWatch.notice,
       gradeCheckRoute: _gradeWatch.checkedRoute,
       onCheckGradeUpdates: _gradeWatch.check,

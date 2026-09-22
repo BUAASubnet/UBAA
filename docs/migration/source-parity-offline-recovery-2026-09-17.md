@@ -358,3 +358,10 @@ buaa-api的api.rs/aas/data.rs为近似教务来源，schedule Date/Time类型不
 已核对锁定rusqlite 0.38.0的src/config.rs及SQLite官方SQLITE_DBCONFIG_RESET_DATABASE说明（https://www.sqlite.org/c3ref/c_dbconfig_defensive.html）：RESET_DATABASE配合VACUUM可重建严重损坏库；此机制不可逆，只用于设置确认后的业务缓存副本。实现前测试要覆盖独立连接、旧票据、未知版本、失败与会话文件不变；不能用删除文件后归零计数冒充代次安全。
 
 控制记录增加随机数据库身份，持久格式升v3，v1/v2在正确密钥下事务迁移，业务条目/查询索引仍沿原编码。旧票据同时绑定数据库身份，防止重建后epoch/revision重合；旧格式AAD不能打开新控制记录。重建在SQLite独占连接内完成清空和新控制初始化，发布新句柄前释放独占连接。清空前错误与清空后初始化错误分别表达，不把不可用的空库当作已可离线保存。Bridge/App接线必须随后与新明确合同配套，不将Core能力算设置恢复闭环。
+
+
+## P4-X：跨学期统计本地渐进读取（实施前，2026-09-22）
+
+冻结SHA不变。复核旧版GradeApi/LocalGradeApi/Grade DTO、GradeViewModel及GradeViewModelTest：逐学期读取完整集合，旧内容在刷新期间保持，学期列表来自TermRepository；另一来源aas/opt.rs只有配置及周/学期课表，没有同构buaascore成绩操作。认证/bootstrap、service、重定向/终点、Cookie范围、POST xq/year、请求头/表单编码、e/m/d解析及原错误分类全部沿本文P4-B成绩行，不新增或修改学校请求，不从AAS借用成绩协议。
+
+新增操作仅聚合既有精确账号/路线/学期的本地只读投影，不使用学校Cookie或认证锁。学期索引和每学期各保留原时间/完整度，缺项不能充当空学期，缓存不能触发成绩变化提醒。生产在线队列继续原逐请求调度；渐进回调先交付本地集合，最终完整成功优先，失败可保留同范围历史且明确未更新。退出、切换账号/路线、清理代次变化后不交付迟到缓存。两份冻结来源均无同构加密聚合仓库，不新增上游能力假定。

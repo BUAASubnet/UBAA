@@ -59,7 +59,7 @@ class _FeatureDetailView extends StatefulWidget {
   final ValueChanged<String?>? onScheduleTitle;
   final bool isLanding, isBykcChosenDetail;
   final bool visible;
-  final Future<GradesAggregate> Function(bool forceRefresh)? onLoadAllGrades;
+  final GradesAggregateLoader? onLoadAllGrades;
   final ValueChanged<Map<String, ConnectionMode>>? onGradeRoutes;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final FeatureSnapshot? ygdkRecordsReadback;

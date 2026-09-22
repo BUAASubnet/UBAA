@@ -524,3 +524,18 @@ flutter.log完整923项（57/66/414/277/22/33/54）及静态分析通过。nativ
 最终codegen-check.log退出0，FRB v26严格生成零漂移。原生绑定可用与完整App验收保持分列；本阶段不关闭性能和多端余项。
 
 最终layout零baseline违例，敏感扫描5316文件、暂存diff检查通过。源工作区ubaa2干净，所有新增文件限实施隔离区。
+
+
+## P4-X 跨学期成绩本地统计（2026-09-22）
+
+基线c7365355，refs通过。red.log为App缺onProgress；ui-red.log为UI回调合同缺渐进参数；isolation-red.log复现单学期磁盘异常丢掉整个本地集合，逐项捕获后保留其他学期。index-red.log复现在线学期索引完整度丢失、部分列表被当成完整统计；透传evidence并纳入GradesAggregate判定后通过。首轮脚本工作目录错误未写入文件，不计产品RED。首个在线测试因自动首页refreshHome代次改变而返回operation_conflict，改为明确独立恢复观测，不改变生产代次规则。
+
+final-focused.log117项通过，包含9项新增聚合、学期选项和原控制器回归；ui-reviewed.log5项通过，含刷新中已保存数值/时间可见和原路线/筛选行为；host.log1项通过，真实宿主回调接控制器，在挂起恢复时收到本地统计、失败后保留。测试账号与成绩全部合成，不读取真实凭据或学校网络。
+
+flutter.log最终934项（57/66/423/278/22/34/54）和静态分析通过。根门禁与macOS原生合成场景收尾中；没有本阶段真实App、Core-live、性能或发布证据。学期日期显示特意保留年份，未复用首页省略年份的显示方式。
+
+额外生命周期待办：初始化密钥读取尚未完成时立即切路线，会使原缓存打开被代次栅栏取消；路线隔离测试先等待打开以独立测隔离，不能据此宣称该启动竞态已修复，后续单独RED和修复。
+
+check.log退出0：Core两配置各273、facade66、Bridge127通过/2既有忽略、CLI端到端16及fmt/clippy/Shell/build/doc通过。native.log原生合成6项通过，仍有Failed to foreground app，不计可见实窗验收。Bridge与生成文件未改变，保持v26，不重复codegen。
+
+最终敏感扫描5320文件、暂存diff通过，根门禁layout零baseline违例。源工作区ubaa2干净。当前只完成本阶段跨学期本地统计；整学期课表、其余生命周期/写后跨范围刷新及P5最终验收继续。

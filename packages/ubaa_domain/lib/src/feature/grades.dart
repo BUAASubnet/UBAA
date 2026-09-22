@@ -3,6 +3,7 @@ import '../common/route.dart';
 import 'overview.dart';
 import 'presentation.dart';
 import 'result.dart';
+import 'data_evidence.dart';
 
 /// 旧GradeScreen的本地统计；不替代公开的逐门gradePoint或学校判定。
 final class GradeStatistics {
@@ -103,12 +104,31 @@ final class GradeTermRead {
 }
 
 final class GradesAggregate {
-  const GradesAggregate({this.terms = const [], this.error});
+  const GradesAggregate({
+    this.terms = const [],
+    this.error,
+    this.termsEvidence,
+  });
+  final DataEvidence? termsEvidence;
   final List<GradeTermRead> terms;
   final UiError? error;
   int get loadedTerms => terms.where((t) => t.overview != null).length;
-  bool get isComplete => error == null && loadedTerms == terms.length;
+  bool get isComplete =>
+      error == null &&
+      termsEvidence?.complete != false &&
+      loadedTerms == terms.length &&
+      terms.every((term) => term.result.evidence?.complete != false);
+  bool get hasSavedData =>
+      termsEvidence?.origin == DataOrigin.persisted ||
+      terms.any((term) => term.result.evidence?.origin == DataOrigin.persisted);
   GradeStatistics get statistics => GradeStatistics.calculate(
     terms.expand((t) => t.overview?.grades ?? const <GradePresentation>[]),
   );
 }
+
+/// 本地集合先经回调交付；Future报告本次在线更新结束，二者都不授予写资格。
+typedef GradesAggregateLoader =
+    Future<GradesAggregate> Function(
+      bool forceRefresh,
+      void Function(GradesAggregate) onProgress,
+    );

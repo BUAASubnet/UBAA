@@ -377,6 +377,9 @@ extension _AppControllerGrades on AppController {
       return GradesAggregate(error: _academicTermsConflict().error);
     if (cache.authenticationError case final error?)
       return GradesAggregate(error: error);
-    return GradesAggregate(terms: List.unmodifiable(reads));
+    return GradesAggregate(
+      terms: List.unmodifiable(reads),
+      termsEvidence: options.evidence,
+    );
   }
 }

@@ -88,11 +88,13 @@ extension _AppControllerAcademicTerms on AppController {
       final stable = result.isEmpty
           ? FeatureResult.empty(
               resolvedRoute: result.resolvedRoute,
+              evidence: result.evidence,
               pagination: result.pagination,
             )
           : FeatureResult.success(
               summary: result.summary,
               resolvedRoute: result.resolvedRoute,
+              evidence: result.evidence,
               pagination: result.pagination,
               details: List<FeatureDetail>.unmodifiable(
                 result.details.map((detail) {

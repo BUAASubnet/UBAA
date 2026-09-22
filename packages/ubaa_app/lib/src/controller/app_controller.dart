@@ -42,6 +42,7 @@ part 'app_controller/cache_management/controller.dart';
 part 'app_controller/offline/profile.dart';
 part 'app_controller/offline/query.dart';
 part 'app_controller/offline/read_options.dart';
+part 'app_controller/offline/grades.dart';
 part 'app_controller/offline/resume.dart';
 part 'app_controller/offline/required.dart';
 part 'app_controller/authentication.dart';
@@ -498,8 +499,11 @@ class AppController extends ChangeNotifier {
     bool forceRefresh = false,
   }) => _loadGradeTerm(term, forceRefresh: forceRefresh);
 
-  Future<GradesAggregate> loadAllGrades({bool forceRefresh = false}) =>
-      _loadAllGrades(forceRefresh: forceRefresh);
+  Future<GradesAggregate> loadAllGrades({
+    bool forceRefresh = false,
+    void Function(GradesAggregate)? onProgress,
+  }) =>
+      _loadGradesWithCache(forceRefresh: forceRefresh, onProgress: onProgress);
 
   /// 首页变化检查只读取唯一标为当前的学期；缺失时不猜第一项。
   Future<GradeTermRead?> loadCurrentGrades({bool forceRefresh = false}) =>

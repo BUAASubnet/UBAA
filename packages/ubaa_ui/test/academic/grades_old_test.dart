@@ -6,6 +6,64 @@ import '../coursework_content_test.dart' show showFeature;
 import '../support/navigation.dart';
 
 void main() {
+  testWidgets('本地统计渐进返回后刷新中仍显示分数与保存时间', (tester) async {
+    final pending = Completer<GradesAggregate>();
+    void Function(GradesAggregate)? publish;
+    const overview = GradesTermOverview(
+      requestTerm: 'a',
+      termCode: 'a',
+      grades: [GradePresentation(courseName: '合成课程', score: '80', credit: 2)],
+    );
+    await showFeature(
+      tester,
+      FeatureId.grades,
+      [],
+      [],
+      overview: overview,
+      onLoadAllGrades: (force, onProgress) {
+        publish = onProgress;
+        return pending.future;
+      },
+    );
+    publish!(
+      GradesAggregate(
+        terms: [
+          GradeTermRead(
+            code: 'a',
+            name: '合成学期',
+            result: FeatureResult.success(
+              overview: overview,
+              evidence: DataEvidence(
+                accountId: 'synthetic',
+                origin: DataOrigin.persisted,
+                fetchedAt: DateTime.utc(2026, 9, 1),
+                complete: true,
+                savedForOffline: true,
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+    await tester.pump();
+    expect(find.text('统计中'), findsNothing);
+    expect(find.textContaining('已保存统计'), findsOneWidget);
+    expect(find.textContaining('2026年9月1日'), findsWidgets);
+    pending.complete(
+      const GradesAggregate(
+        terms: [
+          GradeTermRead(
+            code: 'a',
+            name: '合成学期',
+            result: FeatureResult.success(overview: overview),
+          ),
+        ],
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.textContaining('已保存统计'), findsNothing);
+  });
+
   testWidgets('全部学期异步完成后同一顶栏图标更新为混合路线', (tester) async {
     final pending = Completer<GradesAggregate>();
     const overview = GradesTermOverview(
@@ -19,7 +77,7 @@ void main() {
       [],
       [],
       overview: overview,
-      onLoadAllGrades: (_) => pending.future,
+      onLoadAllGrades: (_, _) => pending.future,
     );
     expect(find.text('统计中'), findsNWidgets(3));
     pending.complete(
@@ -148,7 +206,7 @@ void main() {
       [],
       overview: overview1,
       size: const Size(1200, 1200),
-      onLoadAllGrades: (_) async => GradesAggregate(
+      onLoadAllGrades: (_, _) async => GradesAggregate(
         terms: [
           GradeTermRead(
             code: 'term1',

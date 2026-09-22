@@ -77,7 +77,7 @@ void main() {
     await loaded(FeatureQueryView.summary);
     GradesAggregate? aggregate;
     Object? aggregateFailure;
-    final pending = shell().onLoadAllGrades!(false).then<void>(
+    final pending = shell().onLoadAllGrades!(false, (_) {}).then<void>(
       (value) {
         aggregate = value;
       },

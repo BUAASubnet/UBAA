@@ -290,7 +290,7 @@ Future<void> showFeature(
   FeatureOverview? overview,
   FeatureLoadStatus? status,
   DataEvidence? evidence,
-  Future<GradesAggregate> Function(bool)? onLoadAllGrades,
+  GradesAggregateLoader? onLoadAllGrades,
   Size size = const Size(800, 1200),
   double textScale = 1,
 }) async {

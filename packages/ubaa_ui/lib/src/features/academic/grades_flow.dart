@@ -16,7 +16,7 @@ class _GradesFlow extends StatefulWidget {
   final int cacheEpoch;
   final String filter;
   final Widget fallback;
-  final Future<GradesAggregate> Function(bool)? loader;
+  final GradesAggregateLoader? loader;
   final ValueChanged<Map<String, ConnectionMode>>? onRoutes;
   @override
   State<_GradesFlow> createState() => _GradesFlowState();
@@ -88,7 +88,10 @@ class _GradesFlowState extends State<_GradesFlow> {
     });
     GradesAggregate result;
     try {
-      result = await loader(force);
+      result = await loader(force, (value) {
+        if (!mounted || serial != _serial) return;
+        setState(() => _aggregate = value);
+      });
     } on Object {
       result = const GradesAggregate(
         error: UiError(
@@ -114,7 +117,7 @@ class _GradesFlowState extends State<_GradesFlow> {
     final routes = <String, ConnectionMode>{
       if (_ready && snapshot.resolvedRoute != null)
         '本学期': snapshot.resolvedRoute!,
-      if (_ready && aggregate?.error == null)
+      if (_ready)
         for (final term in aggregate?.terms ?? const <GradeTermRead>[])
           if (term.overview != null && term.resolvedRoute != null)
             '全部成绩 · ${term.name}': term.resolvedRoute!,
@@ -288,11 +291,9 @@ class _GradesFlowState extends State<_GradesFlow> {
         _GradeSummaryCard(
           title: '全部成绩',
           statistics: aggregate?.statistics,
-          loading: _loading || (widget.loader != null && aggregate == null),
-          notice: aggregate?.error != null
-              ? aggregate!.error!.message
-              : aggregate != null && !aggregate.isComplete
-              ? '部分统计 · 已读取 ${aggregate.loadedTerms}/${aggregate.terms.length} 个学期'
+          loading: (_loading || widget.loader != null) && aggregate == null,
+          notice: aggregate != null
+              ? _gradesAggregateNotice(aggregate, _loading)
               : widget.loader == null
               ? '全部学期统计暂不可用'
               : null,
@@ -305,6 +306,9 @@ class _GradesFlowState extends State<_GradesFlow> {
               : null,
         ),
         const SizedBox(height: 12),
+        if ((isCurrentTerm ? snapshot.evidence : activeTerm.result.evidence)
+            case final evidence? when evidence.origin == DataOrigin.persisted)
+          Text('此学期上次保存 ${_savedGradeTime(evidence.fetchedAt)}'),
         _GradeSummaryCard(
           title: isCurrentTerm ? '本学期' : activeTerm.name,
           statistics: activeOverview != null
@@ -327,4 +331,30 @@ class _GradesFlowState extends State<_GradesFlow> {
       ],
     );
   }
+}
+
+String? _gradesAggregateNotice(GradesAggregate aggregate, bool loading) {
+  final lines = <String>[];
+  if (aggregate.hasSavedData) {
+    final times = [
+      if (aggregate.termsEvidence case final evidence?) evidence.fetchedAt,
+      for (final term in aggregate.terms)
+        if (term.result.evidence case final evidence?) evidence.fetchedAt,
+    ]..sort();
+    lines.add(
+      '已保存统计${times.isEmpty ? '' : ' · 最早保存 ${_savedGradeTime(times.first)}'}',
+    );
+    if (loading) lines.add('正在核对更新，仍可查看已保存成绩');
+  }
+  if (aggregate.error case final error?) lines.add(error.message);
+  if (!aggregate.isComplete)
+    lines.add(
+      '部分统计 · 已读取 ${aggregate.loadedTerms}/${aggregate.terms.length} 个学期',
+    );
+  return lines.isEmpty ? null : lines.join('\n');
+}
+
+String _savedGradeTime(DateTime value) {
+  final campus = value.toUtc().add(const Duration(hours: 8));
+  return '${campus.year}年${_savedScheduleTime(value)}';
 }
