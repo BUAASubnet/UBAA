@@ -29,12 +29,12 @@
 | 11 缓存不恢复写资格 | App `offline/startup_test.dart`、`write_cache/`；Bridge write tests | 仅脱敏测试，真实业务写入禁止 |
 | 12 写后失败/未知/重启 | App `write_cache/`、唯一WriteCoordinator；Bridge write tests | 已确认最小核对线索尚未持久化，继续实现 |
 | 13 路线来源与固定写路线 | App `offline/judge_fallback/stability_test.dart`、`scheduled_recovery_test.dart`；Core route/authority tests | 最终双路线App待验 |
-| 14 损坏/版本/容量/密钥 | Core `cache/store/`；App `cache_management/`、P2-P；原生`cache_bridge_test.dart` | macOS合成通过；iOS/Android/其他平台运行待验 |
+| 14 损坏/版本/容量/密钥 | Core `cache/store/`；App `cache_management/`、P2-P；原生`cache_bridge_test.dart` | macOS及iPhone模拟器原生FFI合成通过；安全材料与其他平台继续单列 |
 | 15 尺寸/主题/文字/草稿/返回 | UI与Flutter宿主导航/golden测试 | 手机/平板/macOS最终交互矩阵待验 |
 
 ## 设备与性能
 
-2026-09-23通过Xcode设备清单与adb核对：macOS 26.6.2可用，iOS26.5的iPhone/iPad模拟器可用；无连接的实体手机/平板。尚无本轮30次进程冷启动样本。模拟器结果将明确标注，不能冒充实体设备发布模式性能。
+2026-09-23通过Xcode设备清单与adb核对：macOS 26.6.2可用，iOS26.5的iPhone/iPad模拟器可用；无连接的实体手机/平板。[iPhone模拟器原生FFI已通过](offline-ios-native-2026-09-23.md)，尚无本轮30次进程冷启动样本。模拟器结果将明确标注，不能冒充实体设备发布模式性能。
 
 每次分别记录内核进程启动、首页首帧、缓存内容可见、恢复任务启动、首批数据、全部刷新完成；进程启动不从Dart初始化或宿主装配计时替代。按固定构建/数据规模/磁盘条件统计中位数与P95，异常样本保留。500ms中位数、1s P95及首帧后200ms恢复仍是待验证目标。后台刷新需另列认证、上游、缓存命中、重复请求、调度等待。
 
