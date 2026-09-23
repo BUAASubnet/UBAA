@@ -154,6 +154,37 @@ void _registerGradeWatchTests() {
     await watch.check(forceRefresh: true);
     expect(completed, [true, false]);
   });
+
+  test('生命周期竞争取消基线保存时不报告本机保存故障', () async {
+    final backend = _GradesBackend()
+      ..read = (term) async => _watchGrades(term, '80');
+    final controller = AppController(backend: backend);
+    final watch = GradeScoreWatch(
+      controller: controller,
+      store: _OperationConflictGradeStore(),
+    );
+    addTearDown(() {
+      watch.dispose();
+      controller.dispose();
+    });
+    await controller.initialize();
+    await watch.check();
+    expect(watch.cacheError, isNull);
+    expect(watch.error, isNull);
+    expect(watch.notice, isNull);
+  });
+}
+
+final class _OperationConflictGradeStore implements GradeScoreStore {
+  @override
+  Future<GradeScoreBaseline?> update(
+    String account,
+    ConnectionMode route,
+    GradeScoreBaseline value,
+  ) async => throw const BackendException(UbaaErrorCode.operationConflict);
+
+  @override
+  Future<void> clearAccount(String account) async {}
 }
 
 FeatureResult _watchGrades(

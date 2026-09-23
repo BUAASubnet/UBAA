@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+import '../contracts/backend.dart';
 import 'app_controller.dart';
 import 'error_mapper.dart';
 
@@ -143,6 +144,12 @@ final class GradeScoreWatch extends ChangeNotifier {
       if (nextNotice != null) _notice = nextNotice;
     } on Object catch (error) {
       if (_current(account, generation, epoch)) {
+        // 退出、重建或清理在保存边界撤销了本次观察；这只是迟到结果，
+        // 不能把生命周期竞争误报为本机加密保存故障。
+        if (error is BackendException &&
+            error.code == UbaaErrorCode.operationConflict) {
+          return;
+        }
         if (savingBaseline) {
           _cacheError = UbaaErrorMapper.fromObject(error);
         } else {

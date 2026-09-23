@@ -70,6 +70,12 @@ void main() {
     expect(transport.values, isEmpty);
   });
 
+  test('只能读取但不能写入时不报告安全材料可用', () async {
+    final store = SecureMaterialStore(transport: _ReadOnlyTransport());
+    await store.probe();
+    expect(store.isAvailable, isFalse);
+  });
+
   test('损坏凭据不悄悄变成没有保存的密码', () async {
     final transport = _Transport();
     final store = SecureMaterialStore(transport: transport);
@@ -106,4 +112,17 @@ class _Transport implements SecureMaterialTransport {
     check();
     values.remove(key);
   }
+}
+
+final class _ReadOnlyTransport implements SecureMaterialTransport {
+  @override
+  Future<String?> read(String key) async => null;
+
+  @override
+  Future<void> write(String key, String value) async {
+    throw StateError('write unavailable');
+  }
+
+  @override
+  Future<void> delete(String key) async {}
 }

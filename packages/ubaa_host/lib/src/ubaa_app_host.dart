@@ -33,9 +33,9 @@ Future<void> bootstrapUbaaHost({
   runApplication(
     UbaaAppHost(
       credentialVault: capabilities.credentialVault,
-      localAccountStore: capabilities.secureMaterials == null
-          ? null
-          : SecureLocalAccountStore(capabilities.secureMaterials!),
+      localAccountStore: capabilities.secureMaterials?.isAvailable == true
+          ? SecureLocalAccountStore(capabilities.secureMaterials!)
+          : null,
       photoPicker: capabilities.photoPicker,
       permissionGateway: capabilities.permissionGateway,
       locationProvider: capabilities.locationProvider,

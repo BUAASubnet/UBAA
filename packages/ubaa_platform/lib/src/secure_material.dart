@@ -54,14 +54,28 @@ final class SecureMaterialStore {
   bool _available = false;
   bool get isAvailable => _available;
   static const _prefix = 'ubaa.material.v1.';
+  static const _capabilityKey = '${_prefix}capability';
+  static const _capabilityValue = 'probe-ok';
 
-  /// 只读取保留的空探测键，不枚举或读取用户凭据，不写入探测秘密。
+  /// 用专用非敏感键闭环验证写入、读回和删除，不枚举或读取用户凭据。
   Future<void> probe() async {
     try {
-      await _transport.read('${_prefix}capability');
+      await _transport.write(_capabilityKey, _capabilityValue);
+      if (await _transport.read(_capabilityKey) != _capabilityValue) {
+        throw const SecureMaterialException();
+      }
+      await _transport.delete(_capabilityKey);
+      if (await _transport.read(_capabilityKey) != null) {
+        throw const SecureMaterialException();
+      }
       _available = true;
     } on Object {
       _available = false;
+      try {
+        await _transport.delete(_capabilityKey);
+      } on Object {
+        // 探测清理失败仍只归类为不可用，不暴露原生错误。
+      }
     }
   }
 

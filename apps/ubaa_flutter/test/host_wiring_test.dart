@@ -48,4 +48,41 @@ void main() {
     expect(host.permissionGateway, same(capabilities.permissionGateway));
     expect(host.locationProvider, same(capabilities.locationProvider));
   });
+
+  test('安全材料不可用时不把本地账号仓库接入宿主', () async {
+    final materials = SecureMaterialStore(transport: _UnavailableTransport());
+    await materials.probe();
+    expect(materials.isAvailable, isFalse);
+    final capabilities = PlatformCapabilities(
+      credentialVault: MemoryCredentialVault(),
+      secureMaterials: materials,
+      photoPicker: MemoryPhotoPicker(),
+      permissionGateway: MemoryPermissionGateway(),
+      locationProvider: const UnavailableLocationProvider(),
+    );
+    Widget? launchedApp;
+
+    await bootstrapUbaaFlutterApp(
+      ensureInitialized: () {},
+      initializeRust: () async {},
+      debugHello: () => 'UBAA FRB 2.13.0 ready',
+      createCapabilities: () async => capabilities,
+      runApplication: (app) => launchedApp = app,
+    );
+
+    expect((launchedApp! as UbaaFlutterApp).localAccountStore, isNull);
+  });
+}
+
+final class _UnavailableTransport implements SecureMaterialTransport {
+  Never _fail() => throw const SecureMaterialException();
+
+  @override
+  Future<String?> read(String key) async => _fail();
+
+  @override
+  Future<void> write(String key, String value) async => _fail();
+
+  @override
+  Future<void> delete(String key) async => _fail();
 }
