@@ -30,11 +30,11 @@
 
 ## 当前候选与未闭合条件（2026-09-24）
 
-接续核对起点为`c7e55171`，29项原未提交变更全部保留并完成，其他相关任务空闲，冻结引用保持原SHA。后续独立提交为P2-P `e09e63f4`、P2-Q `a80bbf33`、P3-B `c729e6b9`、P2-R `950c8192`及iPhone原生证据 `55fe5dad`。主工作区未修改。
+接续核对起点为`c7e55171`，29项原未提交变更全部保留并完成，其他相关任务空闲，冻结引用保持原SHA。后续独立提交为P2-P `e09e63f4`、P2-Q `a80bbf33`、P3-B `c729e6b9`、P2-R `950c8192`、本轮P2-R接续 `8003681c`及iPhone原生证据 `55fe5dad`。主工作区未修改。
 
 P4-AG已提交`3ca371fc`，补齐未知结果的重启核对提示，业务缓存schema v6、Flutter bridge contract v35及生成绑定已接通；Core加密最小线索、单次提交收尾、控制器迟到读取保护、首页查看/本地移除及清理确认均已实现，该阶段完整just check、CLI端到端16项、Flutter1066项/7包静态分析、FRB零漂移与macOS/iPad模拟器原生合成通过；历史1057项Flutter不代替本轮检查。当前核对索引见[最终验收索引](docs/migration/evidence/offline-home-acceptance-2026-09-23.md)。
 
-十二领域已具备所列范围缓存、完整学期导入、关联写后失效与管理；P3-B补齐明确批量详情，P2-R按明确clientDisposed原位替换并接管查询。剩余精确范围、长读取、生命周期仍按实际代码审查，不能用阶段数量代替覆盖。
+十二领域已具备所列范围缓存、完整学期导入、关联写后失效与管理；P3-B补齐明确批量详情，P2-R按明确clientDisposed原位替换并接管查询。本轮继续补齐已展示本地首页显式重建后的继任会话核对，避免缓存重开后因没有新首帧而漏排恢复；剩余精确范围、长读取、生命周期仍按实际代码审查，不能用阶段数量代替覆盖。
 
 P1有历史双路线真实App功能证据；本轮新App macOS/iPhone/iPad WebVPN分段只读准备及30次启动测量均完成，Direct两次独立准备均在SPOC真实上游`unexpected_eof`处停止，旧CLI Direct同轮也因SPOC `network_error`退出5，不能以空集合回退宣称成功。macOS Release缓存可见中位数/P95为342.145/410.584ms，iPhone Debug模拟器为1989.248/2601.328ms，iPad Debug模拟器为2112.204/2765.966ms；首帧后恢复启动三端均低于200ms。完整数据和阶段成本见[测量证据](docs/migration/evidence/offline-startup-measurement-2026-09-24.md)。
 
@@ -46,4 +46,4 @@ P2-T已提交`7afd433d`；P2-U自动成绩让位及同学期主动合并已通�
 
 P4-AH已将成绩变化基线接入统一加密库，补齐旧文件迁移、精确学期隔离、本机失败提示和清理后提醒撤销。当前Bridge v36/schema v6，完整Flutter1099项/7包分析、just check、CLI16、FRB零漂移及三端各100项原生矩阵通过，见[证据](docs/migration/evidence/offline-grade-baseline-2026-09-23.md)。提醒偏好清理审查缺口已由P4-AI修复；P5-B2已补充真实App测量和成本证据，仍不把合成矩阵替代 Direct 上游、实体设备或发布模式。
 
-P4-AI已修复退出清理偏好遗漏、迟到回调与清理期间登录竞态，11项行为RED→GREEN，见[证据](docs/migration/evidence/offline-local-clear-2026-09-23.md)。P5-B2已补齐五个主领域、四个补充来源和成绩检查收尾的完整首页测量，并接入调度等待/运行和认证、上游、缓存、重复操作成本分类；分析器先按实际输出取得RED后GREEN。当前全量Flutter1112项/7包分析、refs/layout/sensitive/FRB零漂移及`just check`通过，三端各30次正式测量和新App WebVPN分段只读已完成；新App Direct的SPOC网络错误、iOS模拟器发布模式不可用、实体设备及其他平台证据仍未闭合，整体未完成。
+P4-AI已修复退出清理偏好遗漏、迟到回调与清理期间登录竞态，11项行为RED→GREEN，见[证据](docs/migration/evidence/offline-local-clear-2026-09-23.md)。P5-B2已补齐五个主领域、四个补充来源和成绩检查收尾的完整首页测量，并接入调度等待/运行和认证、上游、缓存、重复操作成本分类；分析器先按实际输出取得RED后GREEN。当前全量Flutter1113项/7包分析、refs/layout/sensitive/FRB零漂移及`just check`通过，三端各30次正式测量和新App WebVPN分段只读已完成；新App Direct的SPOC网络错误、iOS模拟器发布模式不可用、实体设备及其他平台证据仍未闭合，整体未完成。

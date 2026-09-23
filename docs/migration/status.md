@@ -2,7 +2,7 @@
 
 更新日期：2026-09-24，Asia/Shanghai。活动合同为[离线首页与后台恢复](../../goal.md)，P0–P5仍执行中。实施区`.worktrees/offline-home-20260917`、分支`codex/offline-home-20260917`；主工作区保持原样，不推送、不发布。旧UI/UX状态已归档到[接续前状态](history/status-2026-09-23-before-offline-resume.md)。
 
-接续起点`c7e55171`的29项未提交工作已保留并完成。现有独立提交P2-P `e09e63f4`、P2-Q `a80bbf33`、P3-B `c729e6b9`、P2-R `950c8192`、iPhone原生证据`55fe5dad`、P4-AG `3ca371fc`、P5-B1 `1a8f7ded`、P2-S `94ff3a5c`。Bridge当前为 **Flutter bridge contract v36**，业务缓存schema v6、CLI JSON schema v10、Session v2、配置v1；FRB零漂移通过。
+接续起点`c7e55171`的29项未提交工作已保留并完成。现有独立提交P2-P `e09e63f4`、P2-Q `a80bbf33`、P3-B `c729e6b9`、P2-R `950c8192`、iPhone原生证据`55fe5dad`、P4-AG `3ca371fc`、P5-B1 `1a8f7ded`、P2-S `94ff3a5c`。本轮P2-R生命周期接续已提交`8003681c`：显式替换已展示首页的backend后，继任实例会沿既有恢复任务重新核对会话与身份；7项聚焦行为测试、全量Flutter1113项和`just check`均通过。Bridge当前为 **Flutter bridge contract v36**，业务缓存schema v6、CLI JSON schema v10、Session v2、配置v1；FRB零漂移通过。
 
 已实现缓存首页与首帧恢复、所需路线认证、独立学校/缓存错误、希冀持久索引与逐批在线退路/完整详情、明确失效句柄原位重建、十二领域精确范围缓存、完整学期导入、关联写后失效和加密最小未知结果核对提示。写资格仍只来自实时验证，恢复不自动提交。
 
@@ -28,4 +28,4 @@ P4-AH已实现成绩变化基线统一加密及安全迁移，生产不再新增
 
 P4-AI接续修复提醒清理、清除错误传播和旧回调保护，11项行为RED→GREEN，学校协议不变。提交`75faa85c`前后的合成证据见[本轮证据](evidence/offline-local-clear-2026-09-23.md)。三端111项原生矩阵和P5-B2性能轮次均已在后续提交复验；Direct上游可达性和实体/发布设备仍未闭合。
 
-P5-B2已补齐完整首页测量范围和阶段成本观测：五个主领域加四个补充来源，成绩检查另有本地基线收尾信号；调度器记录排队、执行、完成和取消的等待/运行耗时，读取操作分列认证、上游、缓存命中、来源和重复调用。分析器的真实字段校验先RED后GREEN，当前全量Flutter为1112项（57/75/562/287/23/53/55），7包分析无问题；`just refs`、`just layout-check`、`just check-sensitive`、`just flutter-codegen-check`、`just check`均已通过。三端30次结果、新App双路线状态和外部阻碍已记录在[测量证据](evidence/offline-startup-measurement-2026-09-24.md)；设计15类场景的确定性/原生矩阵已通过，实体设备、发布模式 iOS、Windows/Linux/OHOS 和 Direct 上游可达性仍未闭合。
+P5-B2已补齐完整首页测量范围和阶段成本观测：五个主领域加四个补充来源，成绩检查另有本地基线收尾信号；调度器记录排队、执行、完成和取消的等待/运行耗时，读取操作分列认证、上游、缓存命中、来源和重复调用。分析器的真实字段校验先RED后GREEN，当前全量Flutter为1113项（57/75/563/287/23/53/55），7包分析无问题；`just refs`、`just layout-check`、`just check-sensitive`、`just flutter-codegen-check`、`just check`均已通过。三端30次结果、新App双路线状态和外部阻碍已记录在[测量证据](evidence/offline-startup-measurement-2026-09-24.md)；设计15类场景的确定性/原生矩阵已通过，实体设备、发布模式 iOS、Windows/Linux/OHOS 和 Direct 上游可达性仍未闭合。
