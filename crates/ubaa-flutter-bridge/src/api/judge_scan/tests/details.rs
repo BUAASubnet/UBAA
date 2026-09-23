@@ -73,6 +73,7 @@ async fn 批量持久详情逐批让位且写意图不被清除_结果可离线�
     let last = bridge.next_judge_details(&task).await.unwrap();
     assert!(last.batch.finished && last.batch.complete);
     assert!(last.save_error.is_none());
+    transport.assert_exhausted().unwrap();
     assert!(
         cache
             .read_judge_detail(BridgeConnectionMode::Direct, "12".into(), "101".into())

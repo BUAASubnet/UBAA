@@ -32,13 +32,14 @@ pub(super) async fn get_courses_cached(
     runtime: &mut crate::runtime::ClientRuntime,
     state: &crate::features::state::RouteFeatureState,
     generation: u64,
+    activated: &mut bool,
     force_fresh: bool,
 ) -> crate::error::Result<Vec<Course>> {
     if !force_fresh && let Some(courses) = state.judge.courses(generation, Instant::now(), LIST_TTL)
     {
         return Ok(courses);
     }
-    activate(runtime).await?;
+    ensure_worker_activated(runtime, activated).await?;
     let mut url =
         url::Url::parse(&format!("{BASE_URL}/courselist.jsp")).map_err(|_| invalid_url())?;
     url.query_pairs_mut().append_pair("courseID", "0");

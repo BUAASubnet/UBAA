@@ -877,6 +877,8 @@ fn progressive_summary_time_tracks_remaining_old_items_instead_of_latest_batch_t
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[path = "judge_scan/activation.rs"]
+mod activation;
 #[path = "judge_scan/details.rs"]
 mod details;
 #[path = "judge_scan/online.rs"]

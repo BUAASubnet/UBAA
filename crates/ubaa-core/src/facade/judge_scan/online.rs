@@ -34,6 +34,7 @@ pub struct JudgeOnlineScan {
     failed_courses: usize,
     summaries: BTreeMap<(String, String), JudgeAssignmentSummary>,
     fetched_at: i64,
+    activated: bool,
 }
 pub struct JudgeOnlineProgress {
     pub resolution: RouteResolution,
@@ -133,7 +134,8 @@ impl UbaaClient {
         options: JudgeOnlineOptions,
         resolution: RouteResolution,
     ) -> Result<JudgeOnlineScan, OfflineReadError> {
-        let read = scan::courses(self.runtime_for(resolution.mode), true).await;
+        let mut activated = false;
+        let read = scan::courses(self.runtime_for(resolution.mode), &mut activated, true).await;
         let courses = self
             .finish_routed(resolution, read.result)
             .map_err(OfflineReadError::Read)?
@@ -142,6 +144,7 @@ impl UbaaClient {
         let owner = self.runtime_for(resolution.mode).feature_state();
         Ok(JudgeOnlineScan {
             resolution,
+            activated,
             generation: owner.judge.generation(),
             owner: Arc::downgrade(&owner),
             route_generation: self.route_generation,
@@ -195,6 +198,7 @@ impl UbaaClient {
             let read = scan::detail(
                 self.runtime_for(plan.resolution.mode),
                 &assignments[plan.detail_index],
+                &mut plan.activated,
                 true,
             )
             .await;
@@ -206,8 +210,13 @@ impl UbaaClient {
                 read.fatal,
             )
         } else {
-            let read =
-                scan::assignments(self.runtime_for(plan.resolution.mode), &course, true).await;
+            let read = scan::assignments(
+                self.runtime_for(plan.resolution.mode),
+                &course,
+                &mut plan.activated,
+                true,
+            )
+            .await;
             (
                 read.result.map(|assignments| {
                     batch.kind = JudgeScanKind::Assignments;
@@ -352,6 +361,7 @@ mod tests {
                 .unwrap();
             let owner = client.direct_runtime.feature_state();
             let plan = JudgeOnlineScan {
+                activated: false,
                 resolution: resolve_route(
                     RoutePolicy::Direct,
                     FeatureRouteConfig::SAFE_DEFAULT,

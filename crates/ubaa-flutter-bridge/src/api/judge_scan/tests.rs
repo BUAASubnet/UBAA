@@ -54,8 +54,6 @@ async fn batches_release_client_lock_and_protect_pending_writes() {
             b"<a href='courselist.jsp?courseID=12'>Course A</a>".to_vec(),
         ),
         status(),
-        activation(),
-        get("https://judge.buaa.edu.cn/", b"<html>ready</html>".to_vec()),
         get(
             "https://judge.buaa.edu.cn/courselist.jsp?courseID=12",
             b"ready".to_vec(),
@@ -97,6 +95,7 @@ async fn batches_release_client_lock_and_protect_pending_writes() {
     assert_eq!(batch.kind, BridgeJudgeScanKind::Assignments);
     assert_eq!(batch.assignments.len(), 1);
     assert!(!batch.finished);
+    transport.assert_exhausted().unwrap();
     bridge.write_intents.lock().await.insert(
         "synthetic".into(),
         PendingEntry {
@@ -151,8 +150,6 @@ async fn persistent_refresh_delivers_index_then_saved_summary_through_bridge() {
             "https://judge.buaa.edu.cn/courselist.jsp?courseID=0",
             b"<a href='courselist.jsp?courseID=12'>Course A</a>".to_vec(),
         ),
-        activation(),
-        get("https://judge.buaa.edu.cn/", b"<html>ready</html>".to_vec()),
         get(
             "https://judge.buaa.edu.cn/courselist.jsp?courseID=12",
             b"ready".to_vec(),
@@ -161,8 +158,6 @@ async fn persistent_refresh_delivers_index_then_saved_summary_through_bridge() {
             "https://judge.buaa.edu.cn/assignment/index.jsp",
             b"<a href='assignment/index.jsp?assignID=101'>Task A</a>".to_vec(),
         ),
-        activation(),
-        get("https://judge.buaa.edu.cn/", b"<html>ready</html>".to_vec()),
         get(
             "https://judge.buaa.edu.cn/courselist.jsp?courseID=12",
             b"ready".to_vec(),
@@ -174,7 +169,7 @@ async fn persistent_refresh_delivers_index_then_saved_summary_through_bridge() {
     ]);
     *bridge.inner.lock().await = Some(
         core::UbaaClient::with_routing(
-            transport,
+            transport.clone(),
             MockTransport::new([]),
             store,
             RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
@@ -202,6 +197,7 @@ async fn persistent_refresh_delivers_index_then_saved_summary_through_bridge() {
     assert!(detail.batch.finished && detail.batch.complete);
     assert_eq!(detail.summaries.len(), 1);
     assert!(detail.save_error.is_none());
+    transport.assert_exhausted().unwrap();
     let saved = cache
         .read_judge(BridgeConnectionMode::Direct, false)
         .await

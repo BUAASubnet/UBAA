@@ -53,6 +53,8 @@ pub struct JudgeScan {
     pub(super) failed_courses: usize,
     cancellation: JudgeScanCancellation,
     force_fresh: bool,
+    // 仅复用本计划的业务激活；选课仍在每个网络批次内重新执行。
+    activated: bool,
     pub(super) course_ticket: Option<CacheReadTicket>,
 }
 impl JudgeScan {
@@ -123,7 +125,13 @@ impl UbaaClient {
         } else {
             None
         };
-        let read = scan::courses(self.runtime_for(resolution.mode), force_fresh).await;
+        let mut activated = false;
+        let read = scan::courses(
+            self.runtime_for(resolution.mode),
+            &mut activated,
+            force_fresh,
+        )
+        .await;
         let mut courses = match self.finish_routed(resolution, read.result) {
             Ok(result) => result.data,
             Err(error) => {
@@ -147,6 +155,7 @@ impl UbaaClient {
         Ok(JudgeScan {
             resolution,
             force_fresh,
+            activated,
             course_ticket,
             generation: owner.judge.generation(),
             owner: Arc::downgrade(&owner),
@@ -200,6 +209,7 @@ impl UbaaClient {
                 let read = scan::detail(
                     self.runtime_for(plan.resolution.mode),
                     &assignments[plan.detail_index],
+                    &mut plan.activated,
                     plan.force_fresh,
                 )
                 .await;
@@ -214,6 +224,7 @@ impl UbaaClient {
                 let read = scan::assignments(
                     self.runtime_for(plan.resolution.mode),
                     &course,
+                    &mut plan.activated,
                     plan.force_fresh,
                 )
                 .await;
@@ -316,6 +327,7 @@ mod tests {
         let owner = client.direct_runtime.feature_state();
         let plan = JudgeScan {
             force_fresh: false,
+            activated: false,
             course_ticket: None,
             resolution: resolve_route(
                 RoutePolicy::Direct,

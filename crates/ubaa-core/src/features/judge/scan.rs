@@ -27,17 +27,24 @@ async fn finish<T>(runtime: &mut ClientRuntime, result: Result<T>) -> ScanRead<T
 }
 pub(crate) async fn courses(
     runtime: &mut ClientRuntime,
+    activated: &mut bool,
     force_fresh: bool,
 ) -> ScanRead<Vec<Course>> {
     let state = runtime.feature_state();
-    let result =
-        super::service::get_courses_cached(runtime, &state, state.judge.generation(), force_fresh)
-            .await;
+    let result = super::service::get_courses_cached(
+        runtime,
+        &state,
+        state.judge.generation(),
+        activated,
+        force_fresh,
+    )
+    .await;
     finish(runtime, result).await
 }
 pub(crate) async fn assignments(
     runtime: &mut ClientRuntime,
     course: &Course,
+    activated: &mut bool,
     force_fresh: bool,
 ) -> ScanRead<Vec<Assignment>> {
     let state = runtime.feature_state();
@@ -46,7 +53,7 @@ pub(crate) async fn assignments(
         &state,
         state.judge.generation(),
         course,
-        &mut false,
+        activated,
         force_fresh,
     )
     .await
@@ -56,6 +63,7 @@ pub(crate) async fn assignments(
 pub(crate) async fn detail(
     runtime: &mut ClientRuntime,
     assignment: &Assignment,
+    activated: &mut bool,
     force_fresh: bool,
 ) -> ScanRead<JudgeAssignmentDetail> {
     let state = runtime.feature_state();
@@ -64,7 +72,7 @@ pub(crate) async fn detail(
         &state,
         state.judge.generation(),
         assignment,
-        &mut false,
+        activated,
         force_fresh,
     )
     .await;

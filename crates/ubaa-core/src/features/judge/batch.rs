@@ -39,7 +39,7 @@ async fn get_assignments_diagnostics_inner(
 ) -> crate::error::Result<crate::domain::JudgeAssignmentsDiagnostics> {
     let state = runtime.feature_state();
     let generation = state.judge.generation();
-    let courses = get_courses_cached(runtime, &state, generation, false).await?;
+    let courses = get_courses_cached(runtime, &state, generation, &mut false, false).await?;
     let course_count = courses.len();
     let skipped = if include_expired {
         HashSet::new()
@@ -182,7 +182,7 @@ async fn get_assignment_details_inner(
 
     let state = runtime.feature_state();
     let generation = state.judge.generation();
-    let courses = get_courses_cached(runtime, &state, generation, false).await?;
+    let courses = get_courses_cached(runtime, &state, generation, &mut false, false).await?;
     let courses_by_id = courses
         .into_iter()
         .map(|course| (course.course_id.clone(), course))

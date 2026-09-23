@@ -68,6 +68,7 @@ async fn 无缓存逐批共享锁可让位_意图保护及取消不发出后续�
     let last = bridge.next_judge_online(&task).await.unwrap();
     assert!(last.batch.finished && last.batch.complete);
     assert_eq!(last.summaries.len(), 1);
+    transport.assert_exhausted().unwrap();
     let count = transport.requests().unwrap().len();
     task.cancel();
     assert_eq!(
@@ -93,8 +94,6 @@ pub(super) fn scripted_transport() -> MockTransport {
             b"<a href='courselist.jsp?courseID=12'>Course A</a>".to_vec(),
         ),
         status(),
-        activation(),
-        get("https://judge.buaa.edu.cn/", b"<html>ready</html>".to_vec()),
         get(
             "https://judge.buaa.edu.cn/courselist.jsp?courseID=12",
             b"ready".to_vec(),
@@ -103,8 +102,6 @@ pub(super) fn scripted_transport() -> MockTransport {
             "https://judge.buaa.edu.cn/assignment/index.jsp",
             b"<a href='assignment/index.jsp?assignID=101'>Task A</a>".to_vec(),
         ),
-        activation(),
-        get("https://judge.buaa.edu.cn/", b"<html>ready</html>".to_vec()),
         get(
             "https://judge.buaa.edu.cn/courselist.jsp?courseID=12",
             b"ready".to_vec(),
