@@ -34,6 +34,7 @@ bool _temporaryRecoveryFailure(Object? error) {
 
 extension _AppControllerRecoveryRetry on AppController {
   void _clearRecoveryRetries() {
+    _clearBusinessRetries();
     for (final retry in _recoveryRetries.values) {
       retry.timer?.cancel();
     }
@@ -69,6 +70,7 @@ extension _AppControllerRecoveryRetry on AppController {
       _clearRecoveryRetries();
       return;
     }
+    _syncBusinessRetries();
     _recoveryRetries.removeWhere((_, retry) {
       if (retry.epoch == _lifecycleEpoch) return false;
       retry.timer?.cancel();
@@ -123,7 +125,8 @@ extension _AppControllerRecoveryRetry on AppController {
       return;
     // 接口变化不代表认证成功；只唤醒临时失败的恢复和读取。
     for (final snapshot in [..._homeDefaults.values, ..._snapshots.values]) {
-      if (_temporaryRecoveryFailure(snapshot.error)) {
+      if (_temporaryRecoveryFailure(snapshot.error) &&
+          !_businessRetries.keys.any((key) => key.$1 == snapshot.feature)) {
         _recoveryRetries.putIfAbsent(
           snapshot.feature,
           () => _RecoveryRetry(
@@ -134,7 +137,12 @@ extension _AppControllerRecoveryRetry on AppController {
         );
       }
     }
-    if (_recoveryRetries.isEmpty) return;
+    if (_recoveryRetries.isEmpty && _businessRetries.isEmpty) return;
+    for (final retry in _businessRetries.values) {
+      retry.timer?.cancel();
+      retry.timer = null;
+      if (!retry.running) retry.due = true;
+    }
     _networkWakeCooldown = Timer(const Duration(seconds: 30), () {
       _networkWakeCooldown = null;
     });

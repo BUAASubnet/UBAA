@@ -43,6 +43,7 @@ extension _AppControllerRefresh on AppController {
         : null;
     for (final feature in features) {
       final generation = generations[feature]!;
+      _beginBusinessAttempt(feature, null, generation);
       if (_snapshots[feature]?.readContext?.query != null) {
         _beginHomeDefault(
           feature,
@@ -92,6 +93,7 @@ extension _AppControllerRefresh on AppController {
         ? _cachedGradeQuery(query)
         : null;
     final generation = _nextFeatureGeneration(feature);
+    _beginBusinessAttempt(feature, query, generation);
     final context = _beginFeatureRead(feature, generation, query);
     if (_backend is! FeatureQueryBackend) {
       _snapshots[feature] = _snapshots[feature]!.copyWith(
@@ -192,6 +194,8 @@ extension _AppControllerRefresh on AppController {
       );
     }
     final started = DateTime.now();
+    var completed = false;
+    UiError? outcome;
     final previous = _snapshots[feature]!;
     final hadPreviousData =
         previous.updatedAt != null &&
@@ -256,6 +260,8 @@ extension _AppControllerRefresh on AppController {
               _notify();
             },
           );
+      completed = true;
+      outcome = result.error;
       if (query == null &&
           _isHomeDefaultCurrent(feature, generation, lifecycleEpoch)) {
         _acceptHomeDefault(
@@ -311,6 +317,8 @@ extension _AppControllerRefresh on AppController {
         feature: feature,
         latency: DateTime.now().difference(started),
       );
+      completed = true;
+      outcome = uiError;
       if (homeCurrent)
         _acceptHomeDefault(
           feature,
@@ -333,9 +341,19 @@ extension _AppControllerRefresh on AppController {
         latency: DateTime.now().difference(started),
       );
     } finally {
+      if (completed && scope.valid && !writeReadback) {
+        _finishBusinessAttempt(
+          feature,
+          query,
+          generation,
+          lifecycleEpoch,
+          outcome,
+        );
+      }
       scope.cancel();
       _readScopes.remove(scope);
       if (!scope.completion.isCompleted) scope.completion.complete();
+      _syncRecoveryRetries();
     }
     _notify();
   }

@@ -499,3 +499,10 @@ P2-N 展示补充：中间课程批次只追加已观察且公开不透明 ID �
 P2-N 恢复会话边界发现：Bridge 精确请求测试要求 task.yhdm=脱敏 UC 资料的 schoolid，恢复有效会话后却提前变成 Partial 空列表。进一步代码核对确认 ClientRuntime.account_name 只在 AuthWorkflow.finish_successful_login 设置，auth status 恢复不设置；新计划此前取到空 yhdm。old LocalEvaluationService.fetchTasks 明确 schoolid.ifBlank{username}；另一源用 credential.username，不能用它替换本项目旧版优先顺序。既有先登录 Core-live 路径也由 finish_successful_login 按 schoolid/username 设置该值。新增请求断言先观察 RED；修复将在新只读计划核实身份后按本次 UC 资料补齐易失账号上下文，缺标识则拒绝，不发送空 yhdm。Cookie、认证协议、CLI 格式和 strict 写事务顺序不变；该上下文也供同一客户端后续原写前读取使用。
 
 P2-N 局部错误合同：新批次另外保留首个非认证子请求错误的稳定分类，以区分网络失败与范围/结构不完整，并让既有网络变化唤醒识别失败查询；业务失败定时退避另行接线；不会记录响应正文或改变旧 CLI/聚合返回语义。完整性仍独立，已成功课程可显示，认证/生命周期失败仍直接终止，存储故障仍走 save_error，不混入学校错误。
+
+
+## P2-O：业务只读失败前台退避（实施前，2026-09-22）
+
+重新核对 frozen old 1f4b8f84 App.kt 的ON_STOP/ON_RESUME会话验证和 LocalEvaluationService 的局部容错，以及 buaa-api a63712fa error.rs 的Auth/Network/Parse/Server分类；两源没有同等宿主业务退避队列。逐领域的CAS/bootstrap/service、跳转/终点、Cookie范围、HTTP方法/精确参数、头/编码、加密常量和DTO继续沿本文件P4各操作行及P2-K/N，不增加任何学校请求种类。差异仅在一次完整读取结束后按已接受设计4.4重调同一精确查询，Core内部重试不变。
+
+仅网络/超时/暂不可用且稳定retryable允许时按30秒、60秒、5分钟封顶；不是密码或学校写入重试。首页默认范围与显式查询独立，以账号生命周期、当前查询和请求修订撤销迟到任务。成功/不可重试错误停止；后台、写协调器、认证、清理和backend重建等待；新查询/退出撤销。查询先经过原调度与路线认证出口，不自行复制Cookie或新开持久会话。RED已观察认证健康的业务失败30秒后没有第二次读取。

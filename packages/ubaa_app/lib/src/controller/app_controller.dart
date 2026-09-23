@@ -48,6 +48,7 @@ part 'app_controller/offline/read_options.dart';
 part 'app_controller/offline/grades.dart';
 part 'app_controller/offline/resume.dart';
 part 'app_controller/offline/retry.dart';
+part 'app_controller/offline/business_retry.dart';
 part 'app_controller/offline/required.dart';
 part 'app_controller/authentication.dart';
 
@@ -154,6 +155,7 @@ class AppController extends ChangeNotifier {
   bool _automaticCredentialBlocked = false;
   bool _appForeground = true;
   final _recoveryRetries = <FeatureId, _RecoveryRetry>{};
+  final _businessRetries = <(FeatureId, bool), _BusinessRetry>{};
   Timer? _networkWakeCooldown;
   final _queuedRecoveries = <FeatureId, _RecoveryRequest>{};
   _RecoveryRequest? _activeRecovery;

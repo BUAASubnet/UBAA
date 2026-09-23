@@ -743,3 +743,15 @@ Core聚焦 `/tmp/ubaa-p2n-core-green-final.log` 7项通过；Bridge真实同锁�
 激活分支漏传稳定错误由 `/tmp/ubaa-p2n-activation-red.log` 复现；最小修复后 `/tmp/ubaa-p2n-activation-green.log` 8项通过（含旧完整缓存/时间保留）。测试第一轮误要求初次Partial完全不存记录，按既有Partial仓库合同改为先种完整缓存再验证保留；不改变存储合同以迎合测试。最终根门禁及正常main重建继续。
 
 最终 `/tmp/ubaa-p2n-check-final.log` 退出0：Core两配置各302、facade99、Bridge137通过/2既有忽略、CLI端到端16及Shell/fmt/clippy/build/doc；refs/layout零baseline/敏感扫描5399通过。普通main重建及签名沙箱/联网权限通过。私有归档 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2n` 目录0700/文件0600，index.json SHA256 `1494dd2542a87bc656beb10cd6030f4dc33a5393d2930cd58aecf0a147afc3dc`。Flutter1008及原生合成2项为本阶段先前候选，随后仅补Core激活稳定错误与一项回归；Direct r3运行了该修复，WebVPN r2仍是修复前成功分支证据。
+
+
+## P2-O：业务读取前台退避（2026-09-22）
+
+基点bf5e95b6。`/tmp/ubaa-p2o-red.log` 观察认证健康时30秒后仍仅1次查询；新增独立业务退避状态，复用原调度与认证入口。`/tmp/ubaa-p2o-route-red.log` 在所有首页启动任务收尾后，明确另一领域unavailable仍阻断当前ready目标，改为所需领域检查后通过；此前未等待首页收尾的夹具误通过，未当作缺陷修复证据。`/tmp/ubaa-p2o-green-final.log` 18项通过，包含8项新增业务行为。初次查询列表测试误用对象同一性，已改为精确term值验证。
+
+覆盖30/60/300秒、成功停止、后台/待确认写操作阻挡、新查询替换、网络提示与在途合并、退出后迟到拒绝、不可重试错误及首页/显式查询隔离。无学校写入或协议参数变化；Bridge32/schema5/CLI10不变。完整根与Flutter门禁进行中。
+
+
+提交前审查补充 `/tmp/ubaa-p2o-home-red.log`：显式页保持打开时首次首页失败的提前返回绕过末尾通知，30秒后请求数仍2而非3；将重试同步放在请求finally收尾后，`green-final.log` 19项通过。第一次完整门禁的1016项记录不删除；修复后再次跑最终完整门禁。
+
+P2-O最终候选：Flutter完整1017项（57/66/495/284/22/39/54）及静态分析通过；根门禁日志完成至doc与git diff --check，含Core302两配置/facade99/Bridge137+2既有忽略/CLI16，进程句柄在中断恢复后已不存在，未保留额外退出码文件。恢复后refs、敏感扫描5401和git diff --check再次通过。正常macOS main已构建且产物签名权限通过，不把构建当作原生交互或实时学校重试验证。本批仅App调度改变，无新Bridge/codegen；双路线最新学校证据仍按P2-N分列。安全日志私有归档 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2o`，index SHA256 `f1d79e718bb0c7ea1ac0be8cfb007408d02c62767dbfd06f5b07121892a726bd`。
