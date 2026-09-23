@@ -9,6 +9,7 @@
 import 'api/cache_management.dart';
 import 'api/client.dart';
 import 'api/judge_refresh.dart';
+import 'api/judge_refresh/details.dart';
 import 'api/judge_scan.dart';
 import 'api/judge_scan/online.dart';
 import 'api/offline.dart';
@@ -51,6 +52,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeEvaluationScan;
 
   CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_BridgeJudgeDetailsTaskPtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask;
+
+  CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_BridgeJudgeOnlineTaskPtr => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeOnlineTask;
 
@@ -87,6 +92,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeEvaluationScan
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeEvaluationScan(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeJudgeDetailsTask
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask(
     dynamic raw,
   );
 
@@ -145,6 +156,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeJudgeDetailsTask
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask(
+    dynamic raw,
+  );
+
+  @protected
   BridgeJudgeOnlineTask
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeOnlineTask(
     dynamic raw,
@@ -195,6 +212,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeEvaluationScan
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeEvaluationScan(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeJudgeDetailsTask
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask(
     dynamic raw,
   );
 
@@ -1948,6 +1971,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeJudgeDetailsTask
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeJudgeOnlineTask
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeOnlineTask(
     SseDeserializer deserializer,
@@ -2002,6 +2031,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeJudgeDetailsTask
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeJudgeOnlineTask
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeOnlineTask(
     SseDeserializer deserializer,
@@ -2052,6 +2087,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeEvaluationScan
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeEvaluationScan(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeJudgeDetailsTask
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask(
     SseDeserializer deserializer,
   );
 
@@ -4282,6 +4323,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask(
+    BridgeJudgeDetailsTask self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeOnlineTask(
     BridgeJudgeOnlineTask self,
     SseSerializer serializer,
@@ -4345,6 +4393,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask(
+    BridgeJudgeDetailsTask self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeOnlineTask(
     BridgeJudgeOnlineTask self,
     SseSerializer serializer,
@@ -4403,6 +4458,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeEvaluationScan(
     BridgeEvaluationScan self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask(
+    BridgeJudgeDetailsTask self,
     SseSerializer serializer,
   );
 
@@ -7040,6 +7102,22 @@ class RustLibWire implements BaseWire {
       );
 
   void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask(
+        ptr,
+      );
+
+  void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeOnlineTask(
     int ptr,
   ) => wasmModule
@@ -7175,6 +7253,16 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
 
   external void
   rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeEvaluationScan(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeJudgeDetailsTask(
     int ptr,
   );
 

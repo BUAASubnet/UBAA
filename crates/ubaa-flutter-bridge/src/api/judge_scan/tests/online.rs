@@ -83,7 +83,7 @@ async fn 无缓存逐批共享锁可让位_意图保护及取消不发出后续�
     std::fs::remove_dir_all(root).unwrap();
 }
 
-fn scripted_transport() -> MockTransport {
+pub(super) fn scripted_transport() -> MockTransport {
     MockTransport::new([
         status(),
         activation(),

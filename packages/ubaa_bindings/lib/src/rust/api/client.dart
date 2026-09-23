@@ -5,6 +5,7 @@
 
 import '../frb_generated.dart';
 import 'judge_refresh.dart';
+import 'judge_refresh/details.dart';
 import 'judge_scan.dart';
 import 'judge_scan/online.dart';
 import 'offline.dart';
@@ -107,6 +108,15 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 身份、会话、已退出缓存与待确认写意图保持原稳定错误。
   Future<BridgeEvaluationScan> beginEvaluationScan({
     required BridgeOfflineCache cache,
+  });
+
+  /// 对明确批量目标创建独立缓存详情计划，不覆盖全量摘要。
+  ///
+  /// # Errors
+  /// 目标、身份、存储或学校错误保持既有分类，待确认写意图禁止开始。
+  Future<BridgeJudgeDetailsTask> beginJudgeDetails({
+    required BridgeOfflineCache cache,
+    required List<BridgeJudgeAssignmentKey> keys,
   });
 
   /// 新计划不依赖数据库；可选本机身份仍由Core核对。
@@ -523,6 +533,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 取消、会话/路线/客户端失效或写意图冲突时拒绝继续。
   Future<BridgeEvaluationScanBatch> nextEvaluationScan({
     required BridgeEvaluationScan task,
+  });
+
+  /// 仅处理一批学校只读，在线完整度与本地保存分别返回。
+  ///
+  /// # Errors
+  /// 清理、退出、取消、较新同目标读取和学校认证失败停止旧计划。
+  Future<BridgeJudgeProgress> nextJudgeDetails({
+    required BridgeJudgeDetailsTask task,
   });
 
   /// 完整索引或详情步骤结束后释放原共享锁，不自动推进剩余请求。

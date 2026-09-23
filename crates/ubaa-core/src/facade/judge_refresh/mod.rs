@@ -1,5 +1,7 @@
 //! 持久索引和详情的渐进刷新；复用数据保留原时间，部分失败保护旧摘要。
+mod details;
 mod history;
+pub use details::{JudgeDetailsRead, JudgeDetailsReadBatch};
 pub(super) mod policy;
 mod progress;
 mod read;

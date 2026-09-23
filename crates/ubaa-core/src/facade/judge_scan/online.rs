@@ -125,6 +125,14 @@ impl UbaaClient {
                 cache_error: None,
             });
         }
+        self.begin_judge_online_on_route(options, resolution).await
+    }
+    // 只供已经完成同账号路线恢复的缓存计划复用，避免重复认证。
+    pub(in crate::facade) async fn begin_judge_online_on_route(
+        &mut self,
+        options: JudgeOnlineOptions,
+        resolution: RouteResolution,
+    ) -> Result<JudgeOnlineScan, OfflineReadError> {
         let read = scan::courses(self.runtime_for(resolution.mode), true).await;
         let courses = self
             .finish_routed(resolution, read.result)

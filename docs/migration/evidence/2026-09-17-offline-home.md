@@ -797,3 +797,25 @@ P2-O最终候选：Flutter完整1017项（57/66/495/284/22/39/54）及静态分�
 | ubaa-p2q-analyze.log | `ef5453473f96eed6f2f2f29f8c1045f97178aa15ed57012ee07a3baceea038d8` |
 | ubaa-p2q-check.log | `c9433abb0bd77baaadd6147d7f12845ed04c68fa2983ade8dab471692feba78a` |
 | ubaa-p2q-flutter-check.log | `9393fc133ddb5e4f5d4a4aaa1ce3c3393423066d827117298d8908db240cb922` |
+
+
+## P3-B：希冀明确批量详情持久化（2026-09-23）
+
+Core行为RED证明原在线计划不会保存完整详情；App行为RED证明未调用持久批量入口且无离线批量投影。新入口复用原单项缓存与选课安全批次，在读取前为每个明确目标建立票据，完整详情独立保存，失败保留旧完整记录。批量不发布首页摘要；不改学校参数或业务缓存schema。超过2048唯一目标返回本地容量错误，App可沿原在线计划继续完整读取，不截断目标。Bridge v34及生成绑定同步。
+
+新增5项Core行为测试覆盖重开、路线隔离、取消/清理/退出/被替代、请求中清理、失败保留与容量错误；扫描回归25项通过。Bridge测试证明批次间可让位、写意图阻止下一批及取消；App7项新增测试覆盖批量缓存、损坏项隔离、离线完整度与目标顺序，连同回退共35项聚焦通过。完整Flutter1044项（57+66+521+285+22+39+54）和7包静态分析通过。完整just check、CLI端到端16项、FRB零漂移通过；macOS原生cache_bridge_test一项通过，包含新批量RPC参数/缺会话分类。仍有“Failed to foreground app; open returned 1”，仅记为原生FFI合成证据，不当作可见App、学校live或性能验收。
+
+日志在仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p3b-judge-batch-20260923/`。
+
+| 日志 | SHA-256 |
+|---|---|
+| ubaa-p3b-core-red.log | `554be62d7daa01f271afbba453d01b192003b506dd68cb24f72a35f99062615c` |
+| ubaa-p3b-core-green.log | `43cdb9d7e27c7c9ea6b737ba594e9521b4cd6297252cd7763ee302064152ec64` |
+| ubaa-p3b-bridge-green.log | `91c606e126be38d9739a9f05c142364a5e4378fcffec2fb55e54d82c51a5b536` |
+| ubaa-p3b-app-red.log | `acee022b7800b656081da466e431a2ed7a667d6557ed89c505472843cb5f06d8` |
+| ubaa-p3b-app-green.log | `5fbd45540aa0e5b88c081806d853d4f7c3139080fe7d06449fb0c1c7b68b1abd` |
+| ubaa-p3b-analyze.log | `6eb4fdc54ef81c47bcaa1e69bbc9fcef47f399270c0917af7711606ed5fb3090` |
+| ubaa-p3b-check.log | `c4c7358364b442530b9f5ce58ba87f481e817748cb41de67fa0d7f0abfbbf2c9` |
+| ubaa-p3b-flutter-check.log | `9f51fcbdd8c515c656c5783f8abd9384de16c013c7cda18be8dd9ad61795ae68` |
+| ubaa-p3b-codegen-check.log | `29063bdcf4962eb7dbf36303bd3c806720ae2c385578437c6f7eec590155f91f` |
+| ubaa-p3b-native.log | `fc32fa6ba08d8f66c7c675f027b960db317b667d519b32711a213a7dbc25c51e` |

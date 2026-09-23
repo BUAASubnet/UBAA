@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `33`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `34`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -38,7 +38,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=33` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=34` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -645,3 +645,10 @@ beginJudgeOnline(options)接收可选期望账号与明确目标，nextJudgeOnli
 `BridgeError.cache_failure/cacheFailure` 为可选 `BridgeCacheFailure`，只由本地缓存错误映射产生；学校错误和客户端已释放错误保持空值，原 code/kind/retryable/resolvedRoute 不变。App 只对 Corrupt、Unavailable、UnsupportedVersion、Capacity 取消旧希冀持久计划，在下一安全批次沿同账号、同客户端创建在线分段计划。Inactive、Superseded、InvalidInput、身份冲突及未分类错误不能绕过栅栏。
 
 每个异步边界继续检查取消与缓存代次，退出后迟到句柄立即取消，迟到学校错误不能覆盖本地取消。在线结果的 `DataEvidence.cacheFailure` 与学校错误分别显示，`savedForOffline=false`；本地故障不将已取得的学校内容标为读取失败，也不允许写操作。保存失败已附带完整在线内容时只提示未保存，不额外重读。
+
+
+## 合同 v34：批量详情持久分段
+
+`beginJudgeDetails(cache, keys)`/`nextJudgeDetails(task)`沿原课程与目标核对、原子选课+单项详情读取，每批返回后归还同一个客户端共享锁。各目标在请求前取得独立缓存修订，仅该项完整结果可保存；不把子集覆盖到摘要范围。取消、账号/路线/会话、退出/清理及较新同目标读取仍阻止迟到发布。待确认写意图拒绝开始/推进且不会被清除。
+
+`BridgeJudgeProgress`复用原批次与saveError分列合同。App的批量详情使用本入口，有明确可降级本地错误时仍经P2-P下一安全批次在线回退。离线批量逐键读取同路线合法缓存，缺项/损坏保留其余并标部分，依据取最早取得时间；Auto优先完整路线，不能混拼两条路线。独立票据一次最多2048项，超出报告本地Capacity并允许原无缓存路径读取全部目标，不截断范围。业务缓存schema v5、Session v2和CLI v10不变。

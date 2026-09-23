@@ -18,33 +18,45 @@ Future<FeatureReadTask?> _beginJudgeRead(
   final account = expectedAccount ?? backend._offlineAccount;
   if (cache == null ||
       account == null ||
-      account.id != backend._offlineAccount?.id ||
-      selected.view == FeatureQueryView.judgeBatchDetails) {
+      account.id != backend._offlineAccount?.id) {
     return _beginOnlineJudgeRead(backend, account, selected);
   }
   final detail = selected.view == FeatureQueryView.judgeDetail;
   try {
-    final task = await backend.client.beginJudgeRefresh(
-      cache: cache,
-      options: BridgeJudgeRefreshOptions(
-        includeExpired: selected.includeExpired,
-        fullRefresh: selected.fullRefresh,
-        currentAssignment: detail
-            ? BridgeJudgeAssignmentKey(
-                courseId: _requiredQueryValue(selected.courseId, '课程编号'),
-                assignmentId: _requiredQueryValue(
-                  selected.assignmentId,
-                  '作业编号',
-                ),
-              )
-            : null,
-        preferredCourse: selected.courseId,
-      ),
-    );
+    final void Function() cancelTask;
+    final Future<BridgeJudgeProgress> Function() nextProgress;
+    if (selected.view == FeatureQueryView.judgeBatchDetails) {
+      final task = await backend.client.beginJudgeDetails(
+        cache: cache,
+        keys: _onlineJudgeKeys(selected),
+      );
+      cancelTask = task.cancel;
+      nextProgress = () => backend.client.nextJudgeDetails(task: task);
+    } else {
+      final task = await backend.client.beginJudgeRefresh(
+        cache: cache,
+        options: BridgeJudgeRefreshOptions(
+          includeExpired: selected.includeExpired,
+          fullRefresh: selected.fullRefresh,
+          currentAssignment: detail
+              ? BridgeJudgeAssignmentKey(
+                  courseId: _requiredQueryValue(selected.courseId, '课程编号'),
+                  assignmentId: _requiredQueryValue(
+                    selected.assignmentId,
+                    '作业编号',
+                  ),
+                )
+              : null,
+          preferredCourse: selected.courseId,
+        ),
+      );
+      cancelTask = task.cancel;
+      nextProgress = () => backend.client.nextJudgeRefresh(task: task);
+    }
     try {
       _checkOfflineGeneration(backend, generation);
     } catch (_) {
-      task.cancel();
+      cancelTask();
       rethrow;
     }
     return _JudgeFallbackTask(
@@ -56,8 +68,8 @@ Future<FeatureReadTask?> _beginJudgeRead(
         backend,
         account,
         selected,
-        nextProgress: () => backend.client.nextJudgeRefresh(task: task),
-        cancelTask: task.cancel,
+        nextProgress: nextProgress,
+        cancelTask: cancelTask,
         persistent: true,
       ),
     );

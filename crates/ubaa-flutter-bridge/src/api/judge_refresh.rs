@@ -1,4 +1,5 @@
 //! 持久刷新计划逐批穿过 FFI；不在 Bridge 内自动启动下一批。
+pub mod details;
 use super::client::{BridgeClient, BridgeError, catch_panic, disposed_error};
 use super::judge_scan::{BridgeJudgeScanBatch, map_scan_batch};
 use super::offline::{BridgeCacheFailure, BridgeOfflineCache, offline_read_error};

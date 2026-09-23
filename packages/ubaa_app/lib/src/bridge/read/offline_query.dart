@@ -19,6 +19,9 @@ Future<OfflineQueryRead> _readCachedQuery(
       feature == FeatureId.judge && query.view == FeatureQueryView.summary;
   final detail =
       feature == FeatureId.judge && query.view == FeatureQueryView.judgeDetail;
+  final batch =
+      feature == FeatureId.judge &&
+      query.view == FeatureQueryView.judgeBatchDetails;
   final academic = _isAcademicCacheQuery(feature, query);
   final ygdkRecords =
       feature == FeatureId.ygdk && query.view == FeatureQueryView.ygdkRecords;
@@ -30,6 +33,7 @@ Future<OfflineQueryRead> _readCachedQuery(
   if (!today &&
       !summary &&
       !detail &&
+      !batch &&
       !academic &&
       !home &&
       !bykc &&
@@ -52,7 +56,11 @@ Future<OfflineQueryRead> _readCachedQuery(
   for (final route in routes) {
     try {
       CachedFeatureProjection? value;
-      if (ygdkRecords) {
+      if (batch) {
+        final read = await _readCachedJudgeBatch(cache, account, query, route);
+        value = read.projection;
+        failure ??= read.error;
+      } else if (ygdkRecords) {
         value = await _cachedYgdkRecordsProjection(
           cache,
           account,
@@ -152,7 +160,10 @@ Future<OfflineQueryRead> _readCachedQuery(
         }
       }
       if (value != null &&
-          (newest == null || value.fetchedAt.isAfter(newest.fetchedAt)))
+          (newest == null ||
+              (batch && value.complete != newest.complete
+                  ? value.complete
+                  : value.fetchedAt.isAfter(newest.fetchedAt))))
         newest = value;
     } on BridgeError catch (error) {
       failure ??= _mapError(error);

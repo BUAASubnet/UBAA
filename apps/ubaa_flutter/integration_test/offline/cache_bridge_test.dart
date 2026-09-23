@@ -21,7 +21,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 33);
+      expect(client.contractVersion(), 34);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -108,6 +108,33 @@ void main() {
         accountId: '0123456789abcdef0123456789abcdef',
         expectedIdentity: 'synthetic',
         key: key,
+      );
+      await expectLater(
+        client.beginJudgeDetails(
+          cache: first,
+          keys: const [
+            BridgeJudgeAssignmentKey(courseId: '12', assignmentId: '101'),
+          ],
+        ),
+        throwsA(
+          isA<BridgeError>()
+              .having(
+                (error) => error.code,
+                '新批量缓存RPC保持缺会话错误',
+                BridgeErrorCode.authenticationRequired,
+              )
+              .having((error) => error.cacheFailure, '不是本地存储错误', isNull),
+        ),
+      );
+      await expectLater(
+        client.beginJudgeDetails(cache: first, keys: const []),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.cacheFailure,
+            '无效批量参数不允许在线回退',
+            BridgeCacheFailure.invalidInput,
+          ),
+        ),
       );
       await expectLater(
         client.commitWriteCached(cache: first, intentId: 'synthetic-missing'),

@@ -4,7 +4,9 @@ mod client;
 mod diagnostic;
 mod judge_refresh;
 mod judge_scan;
-pub use judge_refresh::{JudgeRefresh, JudgeRefreshBatch, JudgeRefreshOptions};
+pub use judge_refresh::{
+    JudgeDetailsRead, JudgeDetailsReadBatch, JudgeRefresh, JudgeRefreshBatch, JudgeRefreshOptions,
+};
 mod academic_cache;
 mod bykc_cache;
 mod cgyy_cache;

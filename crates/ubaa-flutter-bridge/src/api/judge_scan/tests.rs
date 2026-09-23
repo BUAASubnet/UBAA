@@ -218,5 +218,7 @@ async fn persistent_refresh_delivers_index_then_saved_summary_through_bridge() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[path = "tests/details.rs"]
+mod details;
 #[path = "tests/online.rs"]
 mod online;

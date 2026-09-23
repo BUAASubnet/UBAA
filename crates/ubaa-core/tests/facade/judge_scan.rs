@@ -7,6 +7,7 @@ struct ScanTransport {
     requests: Arc<Mutex<Vec<HttpRequest>>>,
     fail_detail: Arc<std::sync::atomic::AtomicBool>,
     cancel_on_detail: Arc<Mutex<Option<ubaa_core::facade::JudgeScanCancellation>>>,
+    clear_on_detail: Arc<Mutex<Option<OfflineCache>>>,
     reject_detail: Arc<std::sync::atomic::AtomicBool>,
     expire_primary: Arc<std::sync::atomic::AtomicBool>,
     historical_details: Arc<std::sync::atomic::AtomicBool>,
@@ -49,6 +50,9 @@ impl HttpTransport for ScanTransport {
                 .find(|(key, _)| key.eq_ignore_ascii_case("cookie"))
                 .map_or("", |(_, value)| value.as_str());
             if let Some(id) = query.get("assignID") {
+                if let Some(cache) = self.clear_on_detail.lock().unwrap().take() {
+                    cache.clear().unwrap();
+                }
                 if let Some(cancel) = self.cancel_on_detail.lock().unwrap().take() {
                     cancel.cancel();
                 }
@@ -873,5 +877,7 @@ fn progressive_summary_time_tracks_remaining_old_items_instead_of_latest_batch_t
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[path = "judge_scan/details.rs"]
+mod details;
 #[path = "judge_scan/online.rs"]
 mod online;

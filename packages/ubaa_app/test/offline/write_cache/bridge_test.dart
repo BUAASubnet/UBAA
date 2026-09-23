@@ -137,7 +137,7 @@ class _Client implements BridgeClient {
   BridgeCachedWriteCommit value = BridgeCachedWriteCommit(result: _success());
   Completer<BridgeCachedWriteCommit>? pending;
   @override
-  int contractVersion() => 33;
+  int contractVersion() => 34;
   @override
   Future<BridgeCachedWriteCommit> commitWriteCached({
     required BridgeOfflineCache cache,

@@ -102,8 +102,13 @@ extension _JudgeOnlineBatchDetails on _JudgeFeatureTask {
             origin: DataOrigin.online,
             fetchedAt: _cacheTime(progress.summaryFetchedAt.toInt()),
             complete: progress.batch.complete && warning == null,
-            savedForOffline: false,
-            cacheFailure: cacheFailure,
+            savedForOffline:
+                persistent &&
+                progress.batch.complete &&
+                warning == null &&
+                progress.saveError == null,
+            cacheFailure:
+                cacheFailure ?? _cacheMaintenanceFailure(progress.saveError),
           );
     final route = _toConnectionMode(progress.batch.route.resolvedRoute);
     final result = warning != null && details.isEmpty
