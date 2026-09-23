@@ -42,6 +42,8 @@ P1有历史双路线真实App功能证据；最近评教新分段WebVPN成功、
 
 当前P5-B1已修复iOS空环境导致私有目录不可用，3项行为测试RED→GREEN、完整Flutter1069项/7包分析、just check/refs/layout/sensitive及iPhone原生目录/安全材料2项通过。P5-B首次macOS基线在第21次因重复刷新停滞转入诊断，保留19份完整刷新、1份600秒超时与1份中断记录，30次未达成；不能以成功子集P95宣称整体达标。P5-B1已提交1a8f7ded、P2-S已提交94ff3a5c，后者Core29项、Bridge4项及完整just check/CLI16通过，FRB零漂移。macOS/iPhone/iPad各80项原生合成通过，整体仍不以阶段通过代替最终验收。Debug新App已复现hidden→inactive窗口可见后调度未解暂停，P2-T来源核对与3项RED→GREEN已完成，当前完整just check、Flutter1072项/7包分析、三端各83项原生矩阵及WebVPN真实App可见恢复回归通过，详见[本轮证据](docs/migration/evidence/offline-visible-resume-2026-09-23.md)。三端最终30次、全部刷新成本分解及最终双路线仍未闭合，整体保持执行中。
 
-P2-T已提交`7afd433d`；P2-U自动成绩让位及同学期主动合并已通过完整Flutter1081项/7包分析、just check和三端各92项原生矩阵。自审发现成绩提醒旧JSON基线仍保存个人正文，需迁入Core加密仓库；完整首页计时还需纳入三个补充来源及成绩检查。上述必需实现未闭合，正式30次等待最终候选。
+P2-T已提交`7afd433d`；P2-U自动成绩让位及同学期主动合并已通过完整Flutter1081项/7包分析、just check和三端各92项原生矩阵。自审发现的成绩提醒旧JSON明文基线已由P4-AH迁入Core加密仓库；完整首页计时仍需纳入三个补充来源及成绩检查，正式30次等待最终候选。
 
-P4-AH已将成绩变化基线接入统一加密库，补齐旧文件迁移、精确学期隔离、本机失败提示和清理后提醒撤销。当前Bridge v36/schema v6，完整Flutter1099项/7包分析、just check、CLI16、FRB零漂移及三端各100项原生矩阵通过，见[证据](docs/migration/evidence/offline-grade-baseline-2026-09-23.md)。提醒偏好清理仍有审查缺口，接续修复；最终双路线、新App与三端30次性能均不由上述合成证据替代。
+P4-AH已将成绩变化基线接入统一加密库，补齐旧文件迁移、精确学期隔离、本机失败提示和清理后提醒撤销。当前Bridge v36/schema v6，完整Flutter1099项/7包分析、just check、CLI16、FRB零漂移及三端各100项原生矩阵通过，见[证据](docs/migration/evidence/offline-grade-baseline-2026-09-23.md)。提醒偏好清理审查缺口已由P4-AI修复；最终双路线、新App与三端30次性能均不由上述合成证据替代。
+
+P4-AI已修复退出清理偏好遗漏、迟到回调与清理期间登录竞态，11项行为RED→GREEN、完整Flutter1110项/7包分析、just check/CLI16、FRB零漂移及三端各111项原生矩阵通过，见[证据](docs/migration/evidence/offline-local-clear-2026-09-23.md)。正式性能等待完整首页统计覆盖和成本观测补齐，整体未完成。

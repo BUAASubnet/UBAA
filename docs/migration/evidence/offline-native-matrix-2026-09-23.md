@@ -24,6 +24,11 @@ macOS、iPhone 17 Pro/iOS26.5模拟器、iPad Pro 13 M5/iOS26.5模拟器各80项
 新增可见无焦点恢复3项后，macOS、iPhone/iPad模拟器各83项通过，完整Flutter1072项/7包分析通过。首次macOS隐藏期间等待帧导致测试驱动停滞，修正等待方式后全量重跑，断言未弱化；本轮日志hash与真实App证据见[P2-T](offline-visible-resume-2026-09-23.md)。上面的80项是先前同阶段记录，不冒充包含新增行为。
 
 
-## P4-AH当前候选
+## P4-AH阶段候选
 
 P2-U新增9项成绩调度、P4-AH新增8项基线与清理边界后，三端最终各100项通过。已有单项FFI内另覆盖v36成绩基线保存、密文重开、路线/学期隔离、跨句柄退出拒绝；macOS成绩旧交互另12项通过。日志和hash见[P4-AH证据](offline-grade-baseline-2026-09-23.md)。
+
+
+## P4-AI当前候选
+
+新增11项宿主清理/错误传播/旧回调/清理期间登录保护后，macOS、iPhone/iPad模拟器各111项通过。学校协议不变，日志与hash见[P4-AI证据](offline-local-clear-2026-09-23.md)。

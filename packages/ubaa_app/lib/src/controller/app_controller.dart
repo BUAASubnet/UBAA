@@ -45,6 +45,7 @@ part 'app_controller/ygdk_readback.dart';
 part 'app_controller/diagnostics.dart';
 part 'app_controller/offline_startup.dart';
 part 'app_controller/offline/cache.dart';
+part 'app_controller/offline/logout.dart';
 part 'app_controller/cache_management/controller.dart';
 part 'app_controller/offline/profile.dart';
 part 'app_controller/offline/query.dart';
@@ -827,58 +828,13 @@ class AppController extends ChangeNotifier {
     required ConnectionMode expectedRoute,
   }) => _refreshEvaluationAfterWrite(this, expectedRoute: expectedRoute);
 
-  Future<void> logout({bool clearSavedCredential = false}) async {
-    if (_disposed || _isSigningOut) return;
-    _isSigningOut = true;
-    _cancelDeferredRecovery();
-    _beginWriteTransition();
-    _sessionRecoveryStatus = SessionRecoveryStatus.signedOut;
-    _user = null;
-    _activeRoutes = const <ConnectionMode>[];
-    _loginForm = _loginForm.copyWith(password: '', captcha: '');
-    _resetFeatureSnapshots();
-    _setPhase(AppPhase.login);
-    try {
-      try {
-        await _localAccountStore?.signOut();
-      } on Object catch (error, stackTrace) {
-        _error = _recordFailure(
-          error,
-          DiagnosticOperation.logout,
-          stackTrace: stackTrace,
-        );
-      }
-      try {
-        await _closeOfflineAccount(remove: clearSavedCredential);
-      } on Object catch (error, stackTrace) {
-        _error = _recordFailure(
-          error,
-          DiagnosticOperation.logout,
-          stackTrace: stackTrace,
-        );
-      }
-      try {
-        await _backend.logout();
-      } on Object catch (error, stackTrace) {
-        // 注销失败也回到登录页，避免继续展示可能过期的隐私数据。
-        _recordFailure(
-          error,
-          DiagnosticOperation.logout,
-          stackTrace: stackTrace,
-        );
-      }
-      if (clearSavedCredential) await _credentialVault.clear();
-      if (_disposed) return;
-      _user = null;
-      _activeRoutes = const <ConnectionMode>[];
-      _loginForm = _loginForm.copyWith(password: '');
-      _resetFeatureSnapshots();
-      _setPhase(AppPhase.login);
-    } finally {
-      _isSigningOut = false;
-      _endWriteTransition();
-    }
-  }
+  Future<void> logout({
+    bool clearSavedCredential = false,
+    Future<void> Function()? clearLocalData,
+  }) => _logoutController(
+    clearSavedCredential: clearSavedCredential,
+    clearLocalData: clearLocalData,
+  );
 
   Future<void> setTelemetryEnabled(bool value) async {
     // 真实宿主会替换对应的启用/关闭 client；协调器同时在调用边界抑制

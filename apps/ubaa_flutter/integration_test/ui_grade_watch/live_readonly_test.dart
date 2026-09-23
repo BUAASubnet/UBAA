@@ -81,31 +81,35 @@ void main() {
       } finally {
         key.fillRange(0, key.length, 0);
       }
-      final source = route == ConnectionMode.direct
-          ? BridgeConnectionMode.direct
-          : BridgeConnectionMode.webVpn;
-      final terms = await cache.readAcademicTerms(route: source);
-      final current = terms!.data.singleWhere((term) => term.selected);
-      final value = await cache.readGradeScoreBaseline(
-        route: source,
-        term: current.itemCode,
-      );
-      return value == null
-          ? null
-          : GradeScoreBaseline(
-              termCode: value.termCode,
-              termName: value.termName,
-              scores: value.scores
-                  .map(
-                    (v) => GradeScoreEntry(
-                      key: v.key,
-                      courseName: v.courseName,
-                      courseCode: v.courseCode,
-                      score: v.score,
-                    ),
-                  )
-                  .toList(),
-            );
+      try {
+        final source = route == ConnectionMode.direct
+            ? BridgeConnectionMode.direct
+            : BridgeConnectionMode.webVpn;
+        final terms = await cache.readAcademicTerms(route: source);
+        final current = terms!.data.singleWhere((term) => term.selected);
+        final value = await cache.readGradeScoreBaseline(
+          route: source,
+          term: current.itemCode,
+        );
+        return value == null
+            ? null
+            : GradeScoreBaseline(
+                termCode: value.termCode,
+                termName: value.termName,
+                scores: value.scores
+                    .map(
+                      (v) => GradeScoreEntry(
+                        key: v.key,
+                        courseName: v.courseName,
+                        courseCode: v.courseCode,
+                        score: v.score,
+                      ),
+                    )
+                    .toList(),
+              );
+      } finally {
+        cache.dispose();
+      }
     }
 
     final first = await readBaseline();

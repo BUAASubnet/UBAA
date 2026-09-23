@@ -69,7 +69,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
   };
 
   String? get _connectionStatus {
-    if (_gradeWatch.cacheError != null) return '成绩可在线查看，变化记录未能保存到本机';
+    if (_gradeWatch.cacheError != null) return '成绩可在线查看，本机变化记录暂不可用';
     if (!_controller.usesLocalRecovery) return null;
     return switch (_controller.sessionRecoveryStatus) {
       SessionRecoveryStatus.idle ||
@@ -91,9 +91,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
         _controller.hasYgdkSubmissionBackendCapabilities && photoPicker != null;
     final hasEvaluationSubmissionCapabilities =
         _controller.hasEvaluationSubmissionBackendCapabilities;
-    final accountKey = _controller.user?.schoolId?.trim().isNotEmpty == true
-        ? _controller.user!.schoolId!
-        : (_controller.user?.username ?? '');
+    final localOwner = _controller.localDataOwnerScope;
     final appInformation = widget.appInformation ?? SystemAppInformation();
     return UbaaMainShell(
       connectionStatus: _connectionStatus,
@@ -143,12 +141,12 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       homeSnapshots: _controller.homeSnapshots,
       onLoadHomeSupplement: (source, force) =>
           _controller.loadHomeSupplement(source, forceRefresh: force),
-      onLoadYgdkReminder: accountKey.isEmpty
+      onLoadYgdkReminder: localOwner.accountKey.isEmpty
           ? null
-          : () => _reminderStore.read(accountKey),
-      onSaveYgdkReminder: accountKey.isEmpty
+          : () => _readReminder(localOwner),
+      onSaveYgdkReminder: localOwner.accountKey.isEmpty
           ? null
-          : (value) => _reminderStore.write(accountKey, value),
+          : (value) => _saveReminder(localOwner, value),
       ygdkRecordsReadback: _controller.ygdkReadbackState.records,
       routePolicy: _controller.loginForm.routePolicy,
       activeRoutes: _controller.activeRoutes,
@@ -197,11 +195,8 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onRefreshYgdkAfterWrite: hasYgdkSubmissionCapabilities
           ? _controller.refreshYgdkAfterWrite
           : null,
-      onLogout: _controller.logout,
-      onLogoutAndClearAccount: () async {
-        await _controller.logout(clearSavedCredential: true);
-        await _gradeScoreStore.clearAccount(accountKey);
-      },
+      onLogout: () => _logoutLocalOwner(localOwner),
+      onLogoutAndClearAccount: () => _logoutAndClearLocalData(localOwner),
       onRoutePolicyChanged: (value) {
         unawaited(_controller.setRoutePolicy(value));
       },

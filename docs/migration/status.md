@@ -20,4 +20,6 @@ P5-B第一轮macOS进程基线启动21次，19次完整刷新、1次600秒超时
 
 P2-T已独立提交`7afd433d`。P2-U已补齐首页自动成绩检查的后台优先级和主动同学期查询合并，5项RED、9项专项GREEN、完整Flutter1081项/7包分析、just check及三端各92项原生矩阵通过，见[证据](evidence/offline-grade-priority-2026-09-23.md)。该阶段发现的旧成绩提醒JSON明文问题已由下述P4-AH接入Core仓库；正式性能等待最终候选。
 
-P4-AH已实现成绩变化基线统一加密及安全迁移，生产不再新增明文成绩；清理后提醒随业务缓存代次撤销，缓存失败与在线结果分列。3项行为RED、完整Flutter1099项/7包分析、just check（CLI16、Bridge140）、FRB零漂移和敏感扫描通过；macOS/iPhone/iPad各100项原生矩阵，macOS成绩旧交互12项通过，详见[证据](evidence/offline-grade-baseline-2026-09-23.md)。下一项审查缺口为“退出并清除”遗漏提醒偏好清理；完整性能成本和最终真实双路线仍待。
+P4-AH已实现成绩变化基线统一加密及安全迁移，生产不再新增明文成绩；清理后提醒随业务缓存代次撤销，缓存失败与在线结果分列。3项行为RED、完整Flutter1099项/7包分析、just check（CLI16、Bridge140）、FRB零漂移和敏感扫描通过；macOS/iPhone/iPad各100项原生矩阵，macOS成绩旧交互12项通过，详见[证据](evidence/offline-grade-baseline-2026-09-23.md)。“退出并清除”的提醒遗漏随后由P4-AI闭合；完整性能成本和最终真实双路线仍待。
+
+P4-AI接续修复提醒清理、清除错误传播和旧回调保护，11项行为RED→GREEN，学校协议不变。当前完整Flutter1110项/7包分析、just check/CLI16、FRB零漂移、敏感扫描与三端各111项原生矩阵已通过，见[本轮证据](evidence/offline-local-clear-2026-09-23.md)。正式成本、性能和最终学校双路线仍未闭合。

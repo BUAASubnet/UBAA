@@ -432,6 +432,17 @@ void _registerCallbackTests() {
     expect(vault.hasValue, isTrue);
     await shell.onLogout();
     expect(vault.hasValue, isTrue);
+    // 已退出页面的回调不能继续清理；重新显式登录后由当前页面执行。
+    await expectLater(
+      shell.onLogoutAndClearAccount(),
+      throwsA(isA<BackendException>()),
+    );
+    await tester.pumpAndSettle();
+    final relogin = tester.widget<UbaaLoginView>(find.byType(UbaaLoginView));
+    relogin.onPasswordChanged('fixture-password');
+    relogin.onSubmit();
+    await tester.pumpAndSettle();
+    shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
     await shell.onLogoutAndClearAccount();
     expect(vault.hasValue, isFalse);
     expect(vault.clearCount, 1);

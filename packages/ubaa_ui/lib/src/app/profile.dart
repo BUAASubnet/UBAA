@@ -164,7 +164,9 @@ class _ProfileView extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('清除本机账号？'),
-        content: const Text('这会退出登录，并删除你主动保存的账号密码；学校服务器上的数据不会被删除。'),
+        content: const Text(
+          '这会退出登录，清除本机账号、保存的密码、缓存、成绩变化记录及提醒设置；学校服务器上的数据不会被删除。',
+        ),
         actions: <Widget>[
           TextButton(
             onPressed: () => Navigator.of(context).pop(false),

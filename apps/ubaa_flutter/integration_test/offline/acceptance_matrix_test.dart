@@ -23,6 +23,8 @@ import '../../../../packages/ubaa_host/test/offline/startup_test.dart'
     as startup;
 import '../../../../packages/ubaa_host/test/offline/visible_resume_test.dart'
     as visible_resume;
+import '../../../../packages/ubaa_host/test/offline/local_clear_test.dart'
+    as local_clear;
 import '../../../../packages/ubaa_host/test/offline/write_cache_test.dart'
     as write;
 import '../../../../packages/ubaa_ui/test/offline/home_cache_test.dart'
@@ -61,6 +63,7 @@ void main() {
   group('清理与写后核对', () {
     management.main();
     grade_baseline.main();
+    local_clear.main();
     write.main();
     readback.main();
     hints.main();

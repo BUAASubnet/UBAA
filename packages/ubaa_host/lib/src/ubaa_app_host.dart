@@ -11,6 +11,7 @@ import 'network_monitor.dart';
 part 'callbacks.dart';
 part 'lifecycle.dart';
 part 'session.dart';
+part 'local_data.dart';
 
 const _expectedBridgeHello = 'UBAA FRB 2.13.0 ready';
 

@@ -17,7 +17,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('成绩可在线查看，变化记录未能保存到本机'), findsOneWidget);
+    expect(find.text('成绩可在线查看，本机变化记录暂不可用'), findsOneWidget);
     expect(find.text('合成今日课程'), findsOneWidget);
     expect(find.byKey(const ValueKey('home-grade-update')), findsNothing);
   });
