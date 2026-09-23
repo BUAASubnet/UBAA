@@ -564,7 +564,7 @@ old 1f4b8f84 `LocalJudgeApi.getAssignmentDetailsResponse`先去重明确目标�
 | 成绩检查收尾 | 只有旧版本地提醒实现，无本批回调合同 | 无同构成绩提醒/缓存合同 | 由既有 `GradeScoreWatch` 在当前代次完成后报告是否写入加密基线；不改变基线更新条件，迟到结果仍被丢弃 |
 | 调度成本 | 无同构安全批次抢占器 | 无本项目调度器 | 只记录既有 App 调度器的 queued/started/completed/cancelled、等待和运行时长；Core 安全批次让位边界不变 |
 
-两份冻结来源均没有上述验收观测协议，不能从其缺失内容推断学校接口或性能。Python 校验将完整首页拆为五个主领域和四个补充来源；补充来源使用 `finished`，成绩检查另要求 `check_complete`，不再把五来源完成误报为完整首页完成。统计保留计划30次分母、缺失样本和异常样本，P95使用nearest-rank。设备运行和真实学校只读结果仍需单独记录，当前接线通过不等于性能目标达成。
+两份冻结来源均没有上述验收观测协议，不能从其缺失内容推断学校接口或性能。Python 校验将完整首页拆为五个主领域和四个补充来源；补充来源使用 `finished`，成绩检查另要求 `check_complete`，不再把五来源完成误报为完整首页完成。统计保留计划30次分母、缺失样本和异常样本，P95使用nearest-rank。接线后的三端30次结果、阶段成本和 Direct/WebVPN 只读边界已记录在[正式测量证据](evidence/offline-startup-measurement-2026-09-24.md)；macOS Release 达到缓存目标，iOS Simulator 因工具链只支持Debug而单列，当前接线仍不等于实体发布性能达成。
 
 ### P5-B1：iOS 无环境变量时的私有目录（2026-09-23）
 

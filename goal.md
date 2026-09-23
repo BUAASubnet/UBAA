@@ -36,14 +36,14 @@ P4-AG已提交`3ca371fc`，补齐未知结果的重启核对提示，业务缓�
 
 十二领域已具备所列范围缓存、完整学期导入、关联写后失效与管理；P3-B补齐明确批量详情，P2-R按明确clientDisposed原位替换并接管查询。剩余精确范围、长读取、生命周期仍按实际代码审查，不能用阶段数量代替覆盖。
 
-P1有历史双路线真实App功能证据；最近评教新分段WebVPN成功、Direct激活networkError未通过，旧CLI空回退不能证明成功。约0.6秒缓存、85–96秒全部更新是历史单次debug宿主装配，不包含进程启动。15类场景最终矩阵、手机/平板/macOS每设备至少30次缓存进程启动、分阶段请求成本优化、当前候选双路线与真实App验收仍未闭合。
+P1有历史双路线真实App功能证据；本轮新App macOS/iPhone/iPad WebVPN分段只读准备及30次启动测量均完成，Direct在SPOC真实上游`unexpected_eof`处停止，旧CLI Direct同轮也因SPOC `network_error`退出5，不能以空集合回退宣称成功。macOS Release缓存可见中位数/P95为342.145/410.584ms，iPhone Debug模拟器为1989.248/2601.328ms，iPad Debug模拟器为2112.204/2765.966ms；首帧后恢复启动三端均低于200ms。完整数据和阶段成本见[测量证据](docs/migration/evidence/offline-startup-measurement-2026-09-24.md)。
 
-六平台安全材料原生运行未全覆盖；macOS和iPhone模拟器已有合成FFI，iPhone模拟器安全材料单项通过，iPad模拟器FFI及安全材料两项通过。这些均不证明实体设备或学校业务成功。500ms中位数、1s P95、首帧后200ms恢复启动仍为待验证目标；确定性、原生合成、Core-live、真实App、设备性能和发布证据分列。未经要求不推送、不发布；整体执行中。
+六平台安全材料原生运行未全覆盖；macOS和iPhone模拟器已有合成FFI，iPhone模拟器安全材料单项通过，iPad模拟器FFI及安全材料两项通过。三端30次轮次均为模拟器或macOS宿主，其中macOS Release达到缓存可见500ms中位数/1s P95目标，iOS Simulator无法构建Release/Profile且Debug未达目标；这些数据不证明实体设备或发布性能。确定性、原生合成、Core-live、真实App、设备性能和发布证据分列。未经要求不推送、不发布；整体执行中。
 
-当前P5-B1已修复iOS空环境导致私有目录不可用，3项行为测试RED→GREEN、完整Flutter1069项/7包分析、just check/refs/layout/sensitive及iPhone原生目录/安全材料2项通过。P5-B首次macOS基线在第21次因重复刷新停滞转入诊断，保留19份完整刷新、1份600秒超时与1份中断记录，30次未达成；不能以成功子集P95宣称整体达标。P5-B1已提交1a8f7ded、P2-S已提交94ff3a5c，后者Core29项、Bridge4项及完整just check/CLI16通过，FRB零漂移。macOS/iPhone/iPad各80项原生合成通过，整体仍不以阶段通过代替最终验收。Debug新App已复现hidden→inactive窗口可见后调度未解暂停，P2-T来源核对与3项RED→GREEN已完成，当前完整just check、Flutter1072项/7包分析、三端各83项原生矩阵及WebVPN真实App可见恢复回归通过，详见[本轮证据](docs/migration/evidence/offline-visible-resume-2026-09-23.md)。三端最终30次、全部刷新成本分解及最终双路线仍未闭合，整体保持执行中。
+当前P5-B1已修复iOS空环境导致私有目录不可用，3项行为测试RED→GREEN、完整Flutter1069项/7包分析、just check/refs/layout/sensitive及iPhone原生目录/安全材料2项通过。P5-B首次macOS基线的停滞记录继续保留作历史诊断，不能与本轮独立30次样本混合。P5-B1已提交1a8f7ded、P2-S已提交94ff3a5c，后者Core29项、Bridge4项及完整just check/CLI16通过，FRB零漂移。macOS/iPhone/iPad各80项原生合成通过，P4-AI后当前三端各111项原生矩阵也通过；Debug新App可见窗口恢复已按双来源完成P2-T修复，当前WebVPN真实App可见恢复和三端30次测量已记录，Direct上游阻碍与实体/发布设备边界仍保持未闭合。
 
-P2-T已提交`7afd433d`；P2-U自动成绩让位及同学期主动合并已通过完整Flutter1081项/7包分析、just check和三端各92项原生矩阵。自审发现的成绩提醒旧JSON明文基线已由P4-AH迁入Core加密仓库；完整首页计时仍需纳入三个补充来源及成绩检查，正式30次等待最终候选。
+P2-T已提交`7afd433d`；P2-U自动成绩让位及同学期主动合并已通过完整Flutter1081项/7包分析、just check和三端各92项原生矩阵。自审发现的成绩提醒旧JSON明文基线已由P4-AH迁入Core加密仓库；P5-B2正式计时已纳入四个补充来源和成绩检查收尾信号，成本按认证、上游、缓存、来源和重复操作分开保存。
 
-P4-AH已将成绩变化基线接入统一加密库，补齐旧文件迁移、精确学期隔离、本机失败提示和清理后提醒撤销。当前Bridge v36/schema v6，完整Flutter1099项/7包分析、just check、CLI16、FRB零漂移及三端各100项原生矩阵通过，见[证据](docs/migration/evidence/offline-grade-baseline-2026-09-23.md)。提醒偏好清理审查缺口已由P4-AI修复；最终双路线、新App与三端30次性能均不由上述合成证据替代。
+P4-AH已将成绩变化基线接入统一加密库，补齐旧文件迁移、精确学期隔离、本机失败提示和清理后提醒撤销。当前Bridge v36/schema v6，完整Flutter1099项/7包分析、just check、CLI16、FRB零漂移及三端各100项原生矩阵通过，见[证据](docs/migration/evidence/offline-grade-baseline-2026-09-23.md)。提醒偏好清理审查缺口已由P4-AI修复；P5-B2已补充真实App测量和成本证据，仍不把合成矩阵替代 Direct 上游、实体设备或发布模式。
 
-P4-AI已修复退出清理偏好遗漏、迟到回调与清理期间登录竞态，11项行为RED→GREEN，见[证据](docs/migration/evidence/offline-local-clear-2026-09-23.md)。P5-B2已补齐五个主领域、四个补充来源和成绩检查收尾的完整首页测量，并接入调度等待/运行和认证、上游、缓存、重复操作成本分类；分析器先按实际输出取得RED后GREEN。当前全量Flutter1112项/7包分析、refs/layout/sensitive/FRB零漂移通过，见[测量证据](docs/migration/evidence/offline-startup-measurement-2026-09-24.md)。三端各30次正式测量、新App Direct/WebVPN分段只读、成本优化和最终验收仍未闭合，整体未完成。
+P4-AI已修复退出清理偏好遗漏、迟到回调与清理期间登录竞态，11项行为RED→GREEN，见[证据](docs/migration/evidence/offline-local-clear-2026-09-23.md)。P5-B2已补齐五个主领域、四个补充来源和成绩检查收尾的完整首页测量，并接入调度等待/运行和认证、上游、缓存、重复操作成本分类；分析器先按实际输出取得RED后GREEN。当前全量Flutter1112项/7包分析、refs/layout/sensitive/FRB零漂移及`just check`通过，三端各30次正式测量和新App WebVPN分段只读已完成；新App Direct的SPOC网络错误、iOS模拟器发布模式不可用、实体设备及其他平台证据仍未闭合，整体未完成。

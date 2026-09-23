@@ -14,14 +14,16 @@ P5-B第一轮macOS进程基线启动21次，19次完整刷新、1次600秒超时
 
 随后Debug新App复现hidden→inactive可见窗口仍被当作后台：控制器前台标记false，调度器空闲且4项读取等待。P2-T已经过双来源/锁定Flutter SDK状态核对及3项行为RED→GREEN，最小修复按可见性恢复，不因普通焦点变化重复认证。其完整just check、Flutter1072项/7包分析、三端各83项原生合成矩阵及WebVPN真实App可见恢复回归已通过，见[本轮证据](evidence/offline-visible-resume-2026-09-23.md)；不能据此宣布所有旧超时均已解决。
 
-剩余必需工作：当前候选新App Direct/WebVPN只读、刷新停滞回归、认证/上游/缓存命中/重复请求/调度等待成本分解和继续优化、手机/平板/macOS各30次进程缓存启动及设计15类场景最终核对。P5-A有历史双路线功能证据；最近聚合WebVPN成功，Direct因SPOC network_error退出5；评教新分段Direct激活networkError尚未通过，禁止借旧CLI空集合容错替代新链路。
+P5-B2正式轮次已完成：macOS Release、iPhone 17 Pro Debug 模拟器、iPad Pro 13 M5 Debug 模拟器各30次 WebVPN 只读启动，三轮均30/30有效且完整刷新；缓存可见分别为342.145/410.584、1989.248/2601.328、2112.204/2765.966 ms（中位数/P95），首帧后恢复启动均低于200 ms。成本和口径见[测量证据](evidence/offline-startup-measurement-2026-09-24.md)。macOS Release 达到500 ms中位数/1 s P95目标，iOS Debug 模拟器未达标；工具链不支持Simulator Release/Profile，不能把模拟器数据当发布模式或实体设备数据。
+
+当前候选新App WebVPN分段只读已在三端准备并完成；新App macOS Direct在SPOC `unexpected_eof`/`network_error`处停止，旧CLI Direct同轮也因SPOC `network_error`退出5。旧CLI WebVPN只读退出0，新App与旧CLI证据保持分开，不能用空集合或聚合回退替代 Direct 成功。成本分解后没有发现可安全删除的必要读取；刷新耗时的主要成本来自上游响应、调试模拟器宿主和完整领域覆盖，继续优化需以实体/发布模式条件为前提。
 
 设备边界：macOS与iOS模拟器可用，无连接实体手机/平板。Android SDK和emulator存在，但本机无系统镜像、AVD及sdkmanager；Windows/Linux/OHOS当前原生运行证据仍不足。不得以构建或模拟器冒充实体/发布证据。安全输入和媒体留仓库外私有目录，真实学校业务写入禁止；继续所有不受外部条件阻挡的实现和验证。最终索引见[验收表](evidence/offline-home-acceptance-2026-09-23.md)。
 
-P2-T已独立提交`7afd433d`。P2-U已补齐首页自动成绩检查的后台优先级和主动同学期查询合并，5项RED、9项专项GREEN、完整Flutter1081项/7包分析、just check及三端各92项原生矩阵通过，见[证据](evidence/offline-grade-priority-2026-09-23.md)。该阶段发现的旧成绩提醒JSON明文问题已由下述P4-AH接入Core仓库；正式性能等待最终候选。
+P2-T已独立提交`7afd433d`。P2-U已补齐首页自动成绩检查的后台优先级和主动同学期查询合并，5项RED、9项专项GREEN、完整Flutter1081项/7包分析、just check及三端各92项原生矩阵通过，见[证据](evidence/offline-grade-priority-2026-09-23.md)。该阶段发现的旧成绩提醒JSON明文问题已由下述P4-AH接入Core仓库；最终性能已由P5-B2独立轮次测量，结果和限制见测量证据。
 
-P4-AH已实现成绩变化基线统一加密及安全迁移，生产不再新增明文成绩；清理后提醒随业务缓存代次撤销，缓存失败与在线结果分列。3项行为RED、完整Flutter1099项/7包分析、just check（CLI16、Bridge140）、FRB零漂移和敏感扫描通过；macOS/iPhone/iPad各100项原生矩阵，macOS成绩旧交互12项通过，详见[证据](evidence/offline-grade-baseline-2026-09-23.md)。“退出并清除”的提醒遗漏随后由P4-AI闭合；完整性能成本和最终真实双路线仍待。
+P4-AH已实现成绩变化基线统一加密及安全迁移，生产不再新增明文成绩；清理后提醒随业务缓存代次撤销，缓存失败与在线结果分列。3项行为RED、完整Flutter1099项/7包分析、just check（CLI16、Bridge140）、FRB零漂移和敏感扫描通过；macOS/iPhone/iPad各100项原生矩阵，macOS成绩旧交互12项通过，详见[证据](evidence/offline-grade-baseline-2026-09-23.md)。“退出并清除”的提醒遗漏随后由P4-AI闭合；本轮完整性能成本已测量，Direct 上游和设备边界仍待。
 
-P4-AI接续修复提醒清理、清除错误传播和旧回调保护，11项行为RED→GREEN，学校协议不变。提交`75faa85c`前后的合成证据见[本轮证据](evidence/offline-local-clear-2026-09-23.md)。正式成本、性能和最终学校双路线仍未闭合。
+P4-AI接续修复提醒清理、清除错误传播和旧回调保护，11项行为RED→GREEN，学校协议不变。提交`75faa85c`前后的合成证据见[本轮证据](evidence/offline-local-clear-2026-09-23.md)。三端111项原生矩阵和P5-B2性能轮次均已在后续提交复验；Direct上游可达性和实体/发布设备仍未闭合。
 
-P5-B2已补齐完整首页测量范围和阶段成本观测：五个主领域加四个补充来源，成绩检查另有本地基线收尾信号；调度器记录排队、执行、完成和取消的等待/运行耗时，读取操作分列认证、上游、缓存命中、来源和重复调用。分析器的真实字段校验先RED后GREEN，当前全量Flutter为1112项（57/75/562/287/23/53/55），7包分析无问题；`just refs`、`just layout-check`、`just check-sensitive`、`just flutter-codegen-check`已通过。实现与当前待测边界见[测量证据](evidence/offline-startup-measurement-2026-09-24.md)。三端各30次正式测量、成本优化和新App双路线只读仍未闭合。
+P5-B2已补齐完整首页测量范围和阶段成本观测：五个主领域加四个补充来源，成绩检查另有本地基线收尾信号；调度器记录排队、执行、完成和取消的等待/运行耗时，读取操作分列认证、上游、缓存命中、来源和重复调用。分析器的真实字段校验先RED后GREEN，当前全量Flutter为1112项（57/75/562/287/23/53/55），7包分析无问题；`just refs`、`just layout-check`、`just check-sensitive`、`just flutter-codegen-check`、`just check`均已通过。三端30次结果、新App双路线状态和外部阻碍已记录在[测量证据](evidence/offline-startup-measurement-2026-09-24.md)；设计15类场景的确定性/原生矩阵已通过，实体设备、发布模式 iOS、Windows/Linux/OHOS 和 Direct 上游可达性仍未闭合。
