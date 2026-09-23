@@ -1,6 +1,6 @@
 # 当前迁移与交付状态
 
-更新日期：2026-09-23，Asia/Shanghai。活动合同为[离线首页与后台恢复](../../goal.md)，P0–P5仍执行中。实施区`.worktrees/offline-home-20260917`、分支`codex/offline-home-20260917`；主工作区保持原样，不推送、不发布。旧UI/UX状态已归档到[接续前状态](history/status-2026-09-23-before-offline-resume.md)。
+更新日期：2026-09-24，Asia/Shanghai。活动合同为[离线首页与后台恢复](../../goal.md)，P0–P5仍执行中。实施区`.worktrees/offline-home-20260917`、分支`codex/offline-home-20260917`；主工作区保持原样，不推送、不发布。旧UI/UX状态已归档到[接续前状态](history/status-2026-09-23-before-offline-resume.md)。
 
 接续起点`c7e55171`的29项未提交工作已保留并完成。现有独立提交P2-P `e09e63f4`、P2-Q `a80bbf33`、P3-B `c729e6b9`、P2-R `950c8192`、iPhone原生证据`55fe5dad`、P4-AG `3ca371fc`、P5-B1 `1a8f7ded`、P2-S `94ff3a5c`。Bridge当前为 **Flutter bridge contract v36**，业务缓存schema v6、CLI JSON schema v10、Session v2、配置v1；FRB零漂移通过。
 
@@ -22,4 +22,6 @@ P2-T已独立提交`7afd433d`。P2-U已补齐首页自动成绩检查的后台�
 
 P4-AH已实现成绩变化基线统一加密及安全迁移，生产不再新增明文成绩；清理后提醒随业务缓存代次撤销，缓存失败与在线结果分列。3项行为RED、完整Flutter1099项/7包分析、just check（CLI16、Bridge140）、FRB零漂移和敏感扫描通过；macOS/iPhone/iPad各100项原生矩阵，macOS成绩旧交互12项通过，详见[证据](evidence/offline-grade-baseline-2026-09-23.md)。“退出并清除”的提醒遗漏随后由P4-AI闭合；完整性能成本和最终真实双路线仍待。
 
-P4-AI接续修复提醒清理、清除错误传播和旧回调保护，11项行为RED→GREEN，学校协议不变。当前完整Flutter1110项/7包分析、just check/CLI16、FRB零漂移、敏感扫描与三端各111项原生矩阵已通过，见[本轮证据](evidence/offline-local-clear-2026-09-23.md)。正式成本、性能和最终学校双路线仍未闭合。
+P4-AI接续修复提醒清理、清除错误传播和旧回调保护，11项行为RED→GREEN，学校协议不变。提交`75faa85c`前后的合成证据见[本轮证据](evidence/offline-local-clear-2026-09-23.md)。正式成本、性能和最终学校双路线仍未闭合。
+
+P5-B2已补齐完整首页测量范围和阶段成本观测：五个主领域加四个补充来源，成绩检查另有本地基线收尾信号；调度器记录排队、执行、完成和取消的等待/运行耗时，读取操作分列认证、上游、缓存命中、来源和重复调用。分析器的真实字段校验先RED后GREEN，当前全量Flutter为1112项（57/75/562/287/23/53/55），7包分析无问题；`just refs`、`just layout-check`、`just check-sensitive`、`just flutter-codegen-check`已通过。实现与当前待测边界见[测量证据](evidence/offline-startup-measurement-2026-09-24.md)。三端各30次正式测量、成本优化和新App双路线只读仍未闭合。

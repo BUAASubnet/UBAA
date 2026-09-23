@@ -54,6 +54,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
                 )
               : null),
       telemetry: widget.telemetry,
+      onReadSchedulerTrace: widget.onReadSchedulerTrace,
     );
     _gradeScoreStore =
         widget.gradeScoreStore ??
@@ -63,6 +64,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _gradeWatch = GradeScoreWatch(
       controller: _controller,
       store: _gradeScoreStore,
+      onCheckComplete: widget.onGradeCheckComplete,
     );
     _controller.addListener(_retryPendingRecovery);
     _networkChanges =

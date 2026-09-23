@@ -101,4 +101,17 @@ void main() {
     await Future.wait([activeRejected, queuedRejected]);
     scheduler.close();
   });
+  test('可选调度诊断分别记录排队、执行等待和运行耗时', () async {
+    final traces = <ReadSchedulerTrace>[];
+    final scheduler = ReadScheduler(canRun: (_) => true, onTrace: traces.add);
+    await scheduler.run(ReadPriority.home, () => true, () async {});
+    expect(traces.map((trace) => trace.kind), [
+      ReadSchedulerTraceKind.queued,
+      ReadSchedulerTraceKind.started,
+      ReadSchedulerTraceKind.completed,
+    ]);
+    expect(traces.last.waitUs, greaterThanOrEqualTo(0));
+    expect(traces.last.runUs, greaterThanOrEqualTo(0));
+    scheduler.close();
+  });
 }

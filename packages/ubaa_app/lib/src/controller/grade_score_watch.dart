@@ -7,12 +7,19 @@ import 'error_mapper.dart';
 
 /// 首页按需检查；不后台轮询，不把通知或本地基线作为业务写资格。
 final class GradeScoreWatch extends ChangeNotifier {
-  GradeScoreWatch({required this.controller, required this.store}) {
+  GradeScoreWatch({
+    required this.controller,
+    required this.store,
+    this.onCheckComplete,
+  }) {
     controller.addListener(_syncScope);
     _syncScope();
   }
   final AppController controller;
   final GradeScoreStore store;
+
+  /// 仅报告本次检查已经结束；不改变成绩检查或缓存错误的语义。
+  final void Function(bool persisted)? onCheckComplete;
   GradeScoreNotice? _notice;
   UiError? _error;
   UiError? _cacheError;
@@ -102,6 +109,7 @@ final class GradeScoreWatch extends ChangeNotifier {
     bool force,
   ) async {
     var savingBaseline = false;
+    var persisted = false;
     try {
       final read = await controller.loadCurrentGrades(
         forceRefresh: force,
@@ -129,6 +137,7 @@ final class GradeScoreWatch extends ChangeNotifier {
       savingBaseline = true;
       final previous = await store.update(account, route, latest);
       if (!_current(account, generation, epoch)) return;
+      persisted = true;
       final nextNotice = latest.compareWith(previous, route);
       // 没有新变化时，原通知保持到用户查看/忽略。
       if (nextNotice != null) _notice = nextNotice;
@@ -142,6 +151,11 @@ final class GradeScoreWatch extends ChangeNotifier {
       }
     } finally {
       if (_current(account, generation, epoch)) {
+        try {
+          onCheckComplete?.call(persisted);
+        } on Object {
+          // 测量观察器不可改变成绩检查的业务结果。
+        }
         _pending = null;
         _checking = false;
         notifyListeners();

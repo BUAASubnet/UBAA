@@ -553,6 +553,19 @@ old 1f4b8f84 `LocalJudgeApi.getAssignmentDetailsResponse`先去重明确目标�
 
 每设备使用独立命名空间及新只读会话，不复制已有Cookie；每次启动前从本轮私有加密快照恢复相同业务内容，之前的样本库改名保留，不改会话文件。内核进程创建时间由Darwin proc_pidinfo取得；可见事件用引擎frameNumber关联同帧Flutter rasterFinishWallTime（初版vsync相等配对漏帧，仅保留为失败预跑）。Dart入口、逻辑首页帧结束、恢复RPC开始另列，不能将其中任一替换为进程起点。统计保留缺失和失败样本，P95使用nearest-rank，30个样本分母不变。原生显示和真实网络性能仍需实际测量才成立。
 
+### P5-B2：完整首页范围与阶段成本测量接线（2026-09-24）
+
+本批只增加验收观测，不改变任何认证或只读业务行为。新增的观测边界是进程出生时间、引擎首帧、缓存可见、恢复入口、首批数据、全部刷新完成，以及认证、上游读取、缓存读取、重复调用和调度等待的耗时分类。Flutter 测量入口继续调用既有 `UbaaAppHost`、`AppController`、`GradeScoreWatch` 和分段 `MeasuredBackend`；它不新增 CAS/bootstrap/service、跳转、HTTP 方法或参数、Cookie、DTO、加密常量，也不调用 commit。
+
+| 观测操作 | old `1f4b8f84` | buaa-api `a63712fa` | 本批边界 |
+|---|---|---|---|
+| 进程与渲染计时 | 无 Flutter 进程测量入口 | 无同构宿主或渲染入口 | 使用 Darwin `proc_pidinfo` 与 `frameNumber`/raster wall time；不以 Dart 或宿主装配替代进程起点 |
+| 首页分段读取 | 无本项目离线首页测量器 | 无同构离线首页测量器 | 只观察既有 `schedule/signin/spoc/judge/ygdk` 及 `bykcChosen/cgyyOrders/currentWeek/gradeCheck` 的结果和来源，不改变请求 |
+| 成绩检查收尾 | 只有旧版本地提醒实现，无本批回调合同 | 无同构成绩提醒/缓存合同 | 由既有 `GradeScoreWatch` 在当前代次完成后报告是否写入加密基线；不改变基线更新条件，迟到结果仍被丢弃 |
+| 调度成本 | 无同构安全批次抢占器 | 无本项目调度器 | 只记录既有 App 调度器的 queued/started/completed/cancelled、等待和运行时长；Core 安全批次让位边界不变 |
+
+两份冻结来源均没有上述验收观测协议，不能从其缺失内容推断学校接口或性能。Python 校验将完整首页拆为五个主领域和四个补充来源；补充来源使用 `finished`，成绩检查另要求 `check_complete`，不再把五来源完成误报为完整首页完成。统计保留计划30次分母、缺失样本和异常样本，P95使用nearest-rank。设备运行和真实学校只读结果仍需单独记录，当前接线通过不等于性能目标达成。
+
 ### P5-B1：iOS 无环境变量时的私有目录（2026-09-23）
 
 原生 iPhone 17 Pro/iOS26.5 预跑中，Dart `_Platform._environmentCache` 是长度0的Map；默认目录仅依赖 HOME，因而无法定位配置库。该观察是本机宿主证据，不是学校协议证据。old固定1f4b8f84的 `shared/.../storage/CredentialStore.kt`、`repository/ScheduleSnapshotStorage.kt` 使用平台 Settings，未定义 Flutter/iOS 文件目录合同；buaa-api固定a63712fa的 `src/store/cred.rs:93/103`、`cookies.rs:157/168` 接收调用者 Path，也未实现 iOS 默认目录。不能借用其明文凭据存储作为降级。

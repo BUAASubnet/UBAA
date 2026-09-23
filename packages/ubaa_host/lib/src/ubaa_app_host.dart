@@ -63,6 +63,8 @@ class UbaaAppHost extends StatefulWidget {
     this.gradeScoreStore,
     this.legacyGradeScoreStore,
     this.appInformation,
+    this.onReadSchedulerTrace,
+    this.onGradeCheckComplete,
     super.key,
   });
 
@@ -86,6 +88,8 @@ class UbaaAppHost extends StatefulWidget {
   final GradeScoreStore? gradeScoreStore;
   final FileGradeScoreStore? legacyGradeScoreStore;
   final PlatformAppInformation? appInformation;
+  final void Function(ReadSchedulerTrace trace)? onReadSchedulerTrace;
+  final void Function(bool persisted)? onGradeCheckComplete;
 
   @override
   State<UbaaAppHost> createState() => _UbaaAppHostState();

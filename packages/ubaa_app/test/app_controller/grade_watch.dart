@@ -122,6 +122,38 @@ void _registerGradeWatchTests() {
     expect(watch.notice, isNull);
     expect(await store.read('fixture-student', ConnectionMode.direct), isNull);
   });
+
+  test('成绩检查完成回调区分完整基线保存与仅缓存结果', () async {
+    final backend = _GradesBackend()
+      ..read = (term) async => _watchGrades(term, '80');
+    final completed = <bool>[];
+    final controller = AppController(backend: backend);
+    final watch = GradeScoreWatch(
+      controller: controller,
+      store: MemoryGradeScoreStore(),
+      onCheckComplete: completed.add,
+    );
+    addTearDown(() {
+      watch.dispose();
+      controller.dispose();
+    });
+    await controller.initialize();
+    await watch.check();
+    expect(completed, [true]);
+    backend.read = (term) async => FeatureResult.success(
+      overview: _watchGrades(term, '80').overview,
+      resolvedRoute: ConnectionMode.direct,
+      evidence: DataEvidence(
+        accountId: 'fixture-student',
+        origin: DataOrigin.persisted,
+        fetchedAt: DateTime.utc(2026, 9, 1),
+        complete: true,
+        savedForOffline: true,
+      ),
+    );
+    await watch.check(forceRefresh: true);
+    expect(completed, [true, false]);
+  });
 }
 
 FeatureResult _watchGrades(

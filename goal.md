@@ -28,7 +28,7 @@
 
 行为修改逐项 RED→最小实现→GREEN；来源核对先于生产改动。每阶段更新状态、决策和证据，经适用 refs/layout/sensitive/check、Flutter/Bridge/CLI 检查后独立提交。全部目标未达成不得勾选全部完成。
 
-## 当前候选与未闭合条件（2026-09-23）
+## 当前候选与未闭合条件（2026-09-24）
 
 接续核对起点为`c7e55171`，29项原未提交变更全部保留并完成，其他相关任务空闲，冻结引用保持原SHA。后续独立提交为P2-P `e09e63f4`、P2-Q `a80bbf33`、P3-B `c729e6b9`、P2-R `950c8192`及iPhone原生证据 `55fe5dad`。主工作区未修改。
 
@@ -46,4 +46,4 @@ P2-T已提交`7afd433d`；P2-U自动成绩让位及同学期主动合并已通�
 
 P4-AH已将成绩变化基线接入统一加密库，补齐旧文件迁移、精确学期隔离、本机失败提示和清理后提醒撤销。当前Bridge v36/schema v6，完整Flutter1099项/7包分析、just check、CLI16、FRB零漂移及三端各100项原生矩阵通过，见[证据](docs/migration/evidence/offline-grade-baseline-2026-09-23.md)。提醒偏好清理审查缺口已由P4-AI修复；最终双路线、新App与三端30次性能均不由上述合成证据替代。
 
-P4-AI已修复退出清理偏好遗漏、迟到回调与清理期间登录竞态，11项行为RED→GREEN、完整Flutter1110项/7包分析、just check/CLI16、FRB零漂移及三端各111项原生矩阵通过，见[证据](docs/migration/evidence/offline-local-clear-2026-09-23.md)。正式性能等待完整首页统计覆盖和成本观测补齐，整体未完成。
+P4-AI已修复退出清理偏好遗漏、迟到回调与清理期间登录竞态，11项行为RED→GREEN，见[证据](docs/migration/evidence/offline-local-clear-2026-09-23.md)。P5-B2已补齐五个主领域、四个补充来源和成绩检查收尾的完整首页测量，并接入调度等待/运行和认证、上游、缓存、重复操作成本分类；分析器先按实际输出取得RED后GREEN。当前全量Flutter1112项/7包分析、refs/layout/sensitive/FRB零漂移通过，见[测量证据](docs/migration/evidence/offline-startup-measurement-2026-09-24.md)。三端各30次正式测量、新App Direct/WebVPN分段只读、成本优化和最终验收仍未闭合，整体未完成。

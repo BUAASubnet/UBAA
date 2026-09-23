@@ -115,6 +115,7 @@ class AppController extends ChangeNotifier {
     FileGradeScoreStore? legacyGradeScores,
     TelemetryClient? telemetry,
     LocalDiagnostics? diagnostics,
+    void Function(ReadSchedulerTrace trace)? onReadSchedulerTrace,
   }) : _backend = backend,
        _backendFactory = backendFactory,
        _credentialVault = credentialVault ?? const NoopCredentialVault(),
@@ -128,7 +129,10 @@ class AppController extends ChangeNotifier {
            feature: FeatureSnapshot(feature: feature),
        } {
     _writeCoordinator = _createWriteCoordinator(backend);
-    _readScheduler = ReadScheduler(canRun: _canRunScheduledRead);
+    _readScheduler = ReadScheduler(
+      canRun: _canRunScheduledRead,
+      onTrace: onReadSchedulerTrace,
+    );
     _writeCoordinator.addListener(_notify);
   }
 

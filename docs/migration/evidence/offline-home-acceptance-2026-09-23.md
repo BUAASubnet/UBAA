@@ -1,6 +1,6 @@
 # 离线首页最终验收索引
 
-更新：2026-09-23。活动实施区为 `codex/offline-home-20260917`；目标仍执行中。此表按产品行为核对，历史阶段编号不代表最终通过。旧记录见[实施证据](2026-09-17-offline-home.md)。
+更新：2026-09-24。活动实施区为 `codex/offline-home-20260917`；目标仍执行中。此表按产品行为核对，历史阶段编号不代表最终通过。旧记录见[实施证据](2026-09-17-offline-home.md)。
 
 ## 当前代码审查
 
@@ -12,7 +12,7 @@
 
 - P5-B1 iOS私有目录与P2-S激活复用已提交；P2-T可见无焦点恢复已完成3项RED→GREEN、当前完整Flutter1072项/7包分析、just check及三端各83项原生合成，见[本轮证据](offline-visible-resume-2026-09-23.md)。
 
-P2-U自动成绩优先级/同学期合并及P4-AH成绩基线加密均已落实。P4-AH完整Flutter1099项、7包分析、just check/CLI16/Bridge140和FRB零漂移通过，三端各100项原生矩阵、macOS原成绩交互12项通过，见[基线证据](offline-grade-baseline-2026-09-23.md)。P4-AI已进一步补齐提醒清理和本地迟到回调，11项RED→GREEN、Flutter1110项/7包分析、just check、FRB和三端各111项原生矩阵通过，见[清理证据](offline-local-clear-2026-09-23.md)。当前合成门禁不替代最终学校或设备性能。
+P2-U自动成绩优先级/同学期合并及P4-AH成绩基线加密均已落实。P4-AH完整Flutter1099项、7包分析、just check/CLI16/Bridge140和FRB零漂移通过，三端各100项原生矩阵、macOS原成绩交互12项通过，见[基线证据](offline-grade-baseline-2026-09-23.md)。P4-AI已进一步补齐提醒清理和本地迟到回调，见[清理证据](offline-local-clear-2026-09-23.md)。P5-B2现已将完整首页计时扩大为五个主领域加四个补充来源，并把成绩检查本地收尾、调度等待/运行和阶段成本写入独立入口；全量Flutter1112项、7包分析和生成/敏感门禁通过，见[测量证据](offline-startup-measurement-2026-09-24.md)。当前合成门禁不替代最终学校或设备性能。
 
 ## 十五类场景
 
