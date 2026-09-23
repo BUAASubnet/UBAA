@@ -780,3 +780,20 @@ P2-O最终候选：Flutter完整1017项（57/66/495/284/22/39/54）及静态分�
 | ubaa-p2p-codegen-check.log | `29063bdcf4962eb7dbf36303bd3c806720ae2c385578437c6f7eec590155f91f` |
 | ubaa-p2p-native.log | `fc32fa6ba08d8f66c7c675f027b960db317b667d519b32711a213a7dbc25c51e` |
 | ubaa-p2p-check.log | `fa5e81952ee7042ab9be27d47f771da8094e997b6a8d3c6a1733ea62cddeae19` |
+
+
+## P2-Q：希冀部分在线批次保留已有内容（2026-09-23）
+
+控制器行为RED复现：旧两项被替换为“占位、新项”，未返回的旧范围消失，已有详情降级。最小修复在同账号、同路线、同精确查询内按稳定课程/作业ID保留并追加；索引占位不覆盖完整展示，最终成功完整集合才允许移除旧项。合并不保留动作，混合数据保留最早取得时间，不宣称完整或离线保存。不同账号/路线/查询均不混合。
+
+5项新测试覆盖部分与完整结束、路线、账号和查询隔离；连同回退/调度共28项聚焦通过。完整Flutter共1037项（57+66+514+285+22+39+54）及7包静态分析通过；完整just check通过，CLI端到端16、Core默认与test-contract、Bridge138等保持。修正状态文档遗漏的版本声明后已重新执行完整门禁。未改变FRB、原生或学校协议，此阶段不新增真实App/设备性能证据。
+
+日志在仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2q-judge-content-20260923/`。
+
+| 日志 | SHA-256 |
+|---|---|
+| ubaa-p2q-red.log | `d666c96578d4dc664575a1c890dc96830a19315f561a6c273c52e51563dc1cab` |
+| ubaa-p2q-green.log | `eddf349923041c68df5512f3982e48b902eff55d30bd31425c961811eece3e95` |
+| ubaa-p2q-analyze.log | `ef5453473f96eed6f2f2f29f8c1045f97178aa15ed57012ee07a3baceea038d8` |
+| ubaa-p2q-check.log | `c9433abb0bd77baaadd6147d7f12845ed04c68fa2983ade8dab471692feba78a` |
+| ubaa-p2q-flutter-check.log | `9393fc133ddb5e4f5d4a4aaa1ce3c3393423066d827117298d8908db240cb922` |

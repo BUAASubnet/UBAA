@@ -513,3 +513,10 @@ P2-N 局部错误合同：新批次另外保留首个非认证子请求错误的
 重新读取old 1f4b8f84 LocalJudgeApi.kt的客户端scope/索引/详情缓存与LocalJudgeApiBackendTest的批量复用和会话reset；buaa-api a63712fa api.rs无Judge模块，不从SPOC推断协议。沿P2-C/P3-A既有逐操作九列：Judge CAS/bootstrap/service、最终落点、选课GET后索引/详情GET、精确ID/query、头/编码、Cookie与worker仲裁及解析DTO均不变；六个月策略沿已接受持久策略，不复活旧永久排除。
 
 本批新增Bridge错误的可选缓存故障枚举，既有code/kind/retryable保持；只在Corrupt/Unavailable/UnsupportedVersion/Capacity这些本地存储故障时，取消旧计划并经现有beginJudgeOnline/nextJudgeOnline在同客户端/同账号下重新逐批只读。Inactive/Superseded/InvalidInput、账号冲突、网络/认证和未分类InternalError禁止触发该回退。回退步骤本身让出调度边界，缓存代次和取消在每个await后核对；不复制Cookie或创建另一持久会话，不授予写资格，不宣称保存成功。中途回退只重读，无自动学校写操作；更完整批量持久接线另行实施。
+
+
+## P2-Q：希冀部分批次保留已展示内容（实施前，2026-09-23）
+
+重新核对old 1f4b8f84 `JudgeViewModel.loadAssignments`：开始刷新只更新加载标志，失败保留assignmentsResponse，成功后替换；详情补全按courseId/assignmentId配对。`LocalJudgeApi`选课与索引/详情仍是原子锁边界。buaa-api a63712fa `src/api.rs`没有Judge实现，不能借SPOC字段或排序。九列协议继续沿P2-C/P3-A逐操作对照，本次不修改bootstrap/service、跳转、Cookie、方法/参数/头/编码、加密或DTO，不增加学校请求。
+
+已接受设计要求不完整结果不清空旧集合；综合在线回退没有可读仓库时仍须保留当前同账号/路线/精确查询内的内存投影。仅部分批次合并稳定课程/作业ID，已有完整展示不得被“详情待更新”占位降级，完整成功才允许删除未返回的旧项；账号或路线不一致不合并，换查询遵循原查询代次隔离。混合持久来源保留最早取得时间、未完成及未保存标记，缓存故障和学校错误继续分列。先通过控制器复现列表被首个索引批次替换，再实施最小投影修复。

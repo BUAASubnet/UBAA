@@ -225,7 +225,7 @@ extension _AppControllerRefresh on AppController {
         }
         if (_disposed || lifecycleEpoch != _lifecycleEpoch) return;
       }
-      final result =
+      final rawResult =
           cachedResult ??
           await _readScheduledFeature(
             feature,
@@ -234,11 +234,17 @@ extension _AppControllerRefresh on AppController {
             writeReadback: writeReadback,
             onBatch: (batch) {
               if (!scope.valid) return;
+              final result = _retainJudgePartial(
+                feature,
+                query == null ? _homeDefaults[feature]! : _snapshots[feature]!,
+                batch.result,
+                pending: true,
+              );
               if (query == null &&
                   _isHomeDefaultCurrent(feature, generation, lifecycleEpoch)) {
                 _acceptHomeDefault(
                   feature,
-                  batch.result,
+                  result,
                   FeatureReadContext(requestRevision: generation),
                 );
                 _homeDefaults[feature] = _homeDefaults[feature]!.copyWith(
@@ -247,7 +253,7 @@ extension _AppControllerRefresh on AppController {
               }
               if (_applyFeatureResultIfCurrent(
                 feature,
-                batch.result,
+                result,
                 generation,
                 lifecycleEpoch,
                 ygdkGeneration: ygdkGeneration,
@@ -260,6 +266,11 @@ extension _AppControllerRefresh on AppController {
               _notify();
             },
           );
+      final result = _retainJudgePartial(
+        feature,
+        query == null ? _homeDefaults[feature]! : _snapshots[feature]!,
+        rawResult,
+      );
       completed = true;
       outcome = result.error;
       if (query == null &&

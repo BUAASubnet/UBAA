@@ -4,10 +4,12 @@
 
 实施区为 `.worktrees/offline-home-20260917`，分支 `codex/offline-home-20260917`；主工作区保持原样。接续核对 HEAD `c7e55171`、29项未提交变更，其他相关任务空闲且无遗留构建/写入进程。冻结引用纯校验通过。
 
-当前 P2-P 已实现希冀存储故障与在线读取分离，Bridge v33错误增加可选缓存分类，生成绑定与宿主已同步。回退/取消23项及首页7项聚焦测试通过，完整Rust/CLI门禁、Flutter1032项、FRB零漂移、macOS合成FFI及敏感检查通过，继续部分批次内容保留审查；CLI JSON schema v10、Session v2、配置v1、业务缓存schema v5不变。旧1017项Flutter是P2-O证据，不验证当前改动。
+当前 P2-P 已实现希冀存储故障与在线读取分离，Flutter bridge contract v33错误增加可选缓存分类，生成绑定与宿主已同步。回退/取消23项及首页7项聚焦测试通过，完整Rust/CLI门禁、Flutter1032项、FRB零漂移、macOS合成FFI及敏感检查通过，P2-Q已修复部分批次内容保留，完整Flutter1037项及Rust/CLI门禁通过；CLI JSON schema v10、Session v2、配置v1、业务缓存schema v5不变。旧1017项Flutter是P2-O证据，不验证当前改动。
 
 十二领域已接入阶段记录中的精确范围，完整学期导入、缓存管理和写后失效已有实现；逐项最终审查、剩余批量持久化/安全分段及生命周期边界继续。P1已有双路线真实App功能证据。评教新分段最近WebVPN成功、Direct激活networkError未通过，禁止借旧CLI空回退PASS替代。
 
 最近缓存约0.6秒、首页全部更新85–96秒仅为debug宿主装配单样本，不含进程冷启动。完整15类场景和手机/平板/macOS各30次启动测量、性能定位优化、最终候选全门禁和新App双路线只读均未闭合。六平台密钥原生运行缺口另列，构建不能代替设备运行。
 
 逐阶段实现、测试、路线及设备证据见[执行记录](evidence/2026-09-17-offline-home.md)，协议依据见[双冻结来源对照](source-parity-offline-recovery-2026-09-17.md)。真实学校业务写入禁止；允许安全只读、本地构建/模拟器与独立阶段提交；不推送、不发布。目标不得提前标记完成。
+
+最终15类场景、设备条件和产品缺口按[验收索引](evidence/offline-home-acceptance-2026-09-23.md)逐项核对。
