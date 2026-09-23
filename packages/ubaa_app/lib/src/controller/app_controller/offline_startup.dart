@@ -32,6 +32,11 @@ extension _AppControllerOfflineStartup on AppController {
       // 不等待磁盘，首页首帧仍只依赖轻量账号索引。
       unawaited(_restoreCachedHome(index.account!));
       _setPhase(AppPhase.home);
+      if (_homeFrameReported) {
+        // backend 在已展示首页后被显式替换时不会再产生新的首帧；仍须
+        // 沿既有恢复任务重新核对继任实例的会话和身份。
+        unawaited(recoverSession());
+      }
       return true;
     } on Object catch (error, stackTrace) {
       if (_disposed || epoch != _lifecycleEpoch) return true;

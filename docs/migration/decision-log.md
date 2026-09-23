@@ -1673,3 +1673,11 @@ Bridge升级v36；schema v6新增载荷变体而不改SQL结构、密文封装�
 当前提交 `436f4a86` 的 macOS Release、iPhone 17 Pro Debug 模拟器、iPad Pro 13 M5 Debug 模拟器各完成30次 WebVPN 只读启动；三轮均 `valid=30`、完整刷新30次、写入0。macOS缓存可见中位数/P95为342.145/410.584 ms，达到500 ms/1 s目标；iPhone为1989.248/2601.328 ms、iPad为2112.204/2765.966 ms，均为Debug模拟器，不能据此否定或替代实体发布模式。三端首帧后恢复启动中位数/P95为0.384/0.733、12.820/16.993、20.451/39.855 ms，均满足200 ms目标。Flutter工具链不支持iOS Simulator Release/Profile，保留失败输出并不伪造发布数据。
 
 新App WebVPN分段准备与测量已在三端完成；新App macOS Direct两次独立准备均在SPOC批次收到真实上游`unexpected_eof`并分类为`network_error`，旧CLI Direct同轮同样在SPOC失败并退出5。旧CLI WebVPN只读退出0。该结果把学校可达性阻碍和实现/测量证据分开，不能以旧聚合接口的空集合回退替代新分段成功。阶段成本已按认证、缓存、上游、调度等待/运行和重复操作保存；没有为达成数字目标删除必要领域或放宽安全批次。
+
+## 2026-09-24：P2-R显式重建本地首页恢复核对（实施前）
+
+复读冻结 old `1f4b8f84` 的 `composeApp/.../App.kt` 前后台会话检查、`AuthApi.kt` 的共享会话/资料入口和 `ResettableSharedInstance.kt` 的实例释放；buaa-api `a63712fa` 的 `context.rs`、`store/{cookies,cred}.rs` 只定义单一 Context 与调用方提供的 Cookie/凭据存储。两份来源均没有本项目 Flutter opaque backend 重建或首帧标记，因此不从来源借用新的字段、URL、参数、Cookie、错误或自动登录语义。现有 P2-R 合同继续沿既有 `auth_status`/所需路线恢复与身份核对，替换只改变客户端生命周期。
+
+新增行为 RED 先复现：本机已有可恢复首页在显式替换 backend 后，继任 backend 的 `authStatus` 调用次数为0，说明缓存重新打开但会话恢复没有自动排队；失败日志为`/tmp/ubaa-p2r-explicit-rebuild-red.log`，SHA-256=`51f4fc5dd1dfaacd6bf5e08cf039e032f87e62e992f27ca8939aa375a10feb54`。最小修复只在已消费首帧标记的本地首页重新初始化后排队一次现有 `recoverSession`，仍受写事务、前后台、退出和账号代次栅栏约束；不复制会话、不自动提交业务写入，也不修改学校请求。
+
+实施后聚焦 GREEN 通过：`packages/ubaa_app/test/offline/backend_rebuild/boundary_test.dart` 共7项通过，日志为`/tmp/ubaa-p2r-explicit-rebuild-green.log`，SHA-256=`1966a1ca67c8f8f533cbecc60f986f82a09c07b34f47f75569ea81f580b2bc34`。随后完整 `just flutter-check` 的7个包共1113项测试和分析、以及 `just check` 均通过，分别见`/tmp/ubaa-p2r-flutter-check-20260924.log`（SHA-256=`cb2abd1802a6dcd551044442290f92e28c6ebf837f35110fea022ae00c2a9fd0`）和`/tmp/ubaa-p2r-just-check-20260924.log`（SHA-256=`0c9168ad7f5b3f324405b51681ef47b39e05c66e8290f9ab848b599ba3359c7c`）。

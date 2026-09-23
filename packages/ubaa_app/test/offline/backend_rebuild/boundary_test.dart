@@ -85,6 +85,34 @@ void main() {
     });
   }
 
+  test('显式重建本地首页后自动重新检查继任会话', () async {
+    final first = Backend();
+    final next = Backend()..gate = Completer<AuthStatus>();
+    final controller = AppController(
+      backend: first,
+      backendFactory: () => next,
+      localAccountStore: await support.savedAccounts(),
+    );
+    addTearDown(controller.dispose);
+    await cachedHome(controller, first);
+    controller.onHomeFirstFrame();
+    await controller.recoverSession(refreshHomeAfter: false);
+
+    expect(await controller.rebuildBackend(), isTrue);
+    await Future<void>.delayed(Duration.zero);
+    expect(next.authCalls, 1);
+    next.gate!.complete(AuthStatus.signedIn);
+    for (
+      var i = 0;
+      i < 20 && controller.sessionRecoveryStatus != SessionRecoveryStatus.ready;
+      i++
+    ) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(controller.sessionRecoveryStatus, SessionRecoveryStatus.ready);
+    expect(controller.phase, AppPhase.home);
+  });
+
   test('继任会话属于另一账号时关闭旧缓存入口，不接纳新身份', () async {
     final first = Backend()..dead = true;
     final next = Backend()..username = 'another-fixture';
