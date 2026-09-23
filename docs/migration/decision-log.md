@@ -1672,4 +1672,4 @@ Bridge升级v36；schema v6新增载荷变体而不改SQL结构、密文封装�
 
 当前提交 `436f4a86` 的 macOS Release、iPhone 17 Pro Debug 模拟器、iPad Pro 13 M5 Debug 模拟器各完成30次 WebVPN 只读启动；三轮均 `valid=30`、完整刷新30次、写入0。macOS缓存可见中位数/P95为342.145/410.584 ms，达到500 ms/1 s目标；iPhone为1989.248/2601.328 ms、iPad为2112.204/2765.966 ms，均为Debug模拟器，不能据此否定或替代实体发布模式。三端首帧后恢复启动中位数/P95为0.384/0.733、12.820/16.993、20.451/39.855 ms，均满足200 ms目标。Flutter工具链不支持iOS Simulator Release/Profile，保留失败输出并不伪造发布数据。
 
-新App WebVPN分段准备与测量已在三端完成；新App macOS Direct在SPOC批次收到真实上游`unexpected_eof`并分类为`network_error`，旧CLI Direct同轮同样在SPOC失败并退出5。旧CLI WebVPN只读退出0。该结果把学校可达性阻碍和实现/测量证据分开，不能以旧聚合接口的空集合回退替代新分段成功。阶段成本已按认证、缓存、上游、调度等待/运行和重复操作保存；没有为达成数字目标删除必要领域或放宽安全批次。
+新App WebVPN分段准备与测量已在三端完成；新App macOS Direct两次独立准备均在SPOC批次收到真实上游`unexpected_eof`并分类为`network_error`，旧CLI Direct同轮同样在SPOC失败并退出5。旧CLI WebVPN只读退出0。该结果把学校可达性阻碍和实现/测量证据分开，不能以旧聚合接口的空集合回退替代新分段成功。阶段成本已按认证、缓存、上游、调度等待/运行和重复操作保存；没有为达成数字目标删除必要领域或放宽安全批次。
