@@ -7,7 +7,8 @@
 - P2-P已提交为`e09e63f4`：Bridge v33、本地缓存错误分列、同客户端分段在线回退和取消保护。该阶段完整Flutter1032项、Rust/CLI、FRB和macOS合成FFI通过。
 - P2-Q已通过确定性门禁：实测部分希冀批次把旧范围清空且用占位覆盖旧详情，已按同账号/路线/查询和稳定ID修复，5项新增控制器测试通过；完整Flutter1037项与Rust/CLI门禁通过。接续修改状态文档时缺少版本门禁要求的完整名称，已补回 `Flutter bridge contract v33` 并重新运行完整门禁。
 - P3-B补齐明确批量详情的持久保存与离线投影，完整Flutter1044项、Rust/CLI、FRB零漂移和macOS原生合成FFI通过，Bridge v34。
-- 尚待落实：客户端失效自动恢复边界逐项审查；长读取/重复认证与缓存命中的实际耗时；最终候选的新App双路线与多端测量。
+- P2-R明确失效句柄已原位重建，13项新增行为测试、完整Flutter1057项/Rust/CLI及macOS原生FFI通过；等待写意图、后台与迟到结果有确定性覆盖。
+- 尚待落实：未知写结果重启最小核对线索；长读取/重复认证与缓存命中的实际耗时；最终候选的新App双路线与多端测量。
 
 ## 十五类场景
 
@@ -26,7 +27,7 @@
 | 9 去重与前后台 | App `offline/resume_test.dart`、`read_scheduler_test.dart`、`retry/business_test.dart`；Host `offline/network/host_test.dart` | 最终多端生命周期待执行 |
 | 10 账号/退出/清理/迟到结果 | App `offline/cache_management/`、`judge_fallback/lifecycle_test.dart`；Core `cache/store/rebuild_tests.rs` | P2-P原生合成退出/清理/重建通过；多端待验 |
 | 11 缓存不恢复写资格 | App `offline/startup_test.dart`、`write_cache/`；Bridge write tests | 仅脱敏测试，真实业务写入禁止 |
-| 12 写后失败/未知/重启 | App `write_cache/`、唯一WriteCoordinator；Bridge write tests | 完整未知结果重启矩阵待核对 |
+| 12 写后失败/未知/重启 | App `write_cache/`、唯一WriteCoordinator；Bridge write tests | 已确认最小核对线索尚未持久化，继续实现 |
 | 13 路线来源与固定写路线 | App `offline/judge_fallback/stability_test.dart`、`scheduled_recovery_test.dart`；Core route/authority tests | 最终双路线App待验 |
 | 14 损坏/版本/容量/密钥 | Core `cache/store/`；App `cache_management/`、P2-P；原生`cache_bridge_test.dart` | macOS合成通过；iOS/Android/其他平台运行待验 |
 | 15 尺寸/主题/文字/草稿/返回 | UI与Flutter宿主导航/golden测试 | 手机/平板/macOS最终交互矩阵待验 |

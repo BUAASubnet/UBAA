@@ -48,6 +48,7 @@ part 'app_controller/offline/query.dart';
 part 'app_controller/offline/read_options.dart';
 part 'app_controller/offline/grades.dart';
 part 'app_controller/offline/resume.dart';
+part 'app_controller/offline/backend_rebuild.dart';
 part 'app_controller/offline/retry.dart';
 part 'app_controller/offline/business_retry.dart';
 part 'app_controller/offline/required.dart';

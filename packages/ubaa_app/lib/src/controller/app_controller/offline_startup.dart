@@ -77,7 +77,10 @@ extension _AppControllerOfflineStartup on AppController {
   bool _recoveryIsCurrent(int epoch) =>
       !_disposed && epoch == _lifecycleEpoch && _phase == AppPhase.home;
 
-  Future<void> _performSessionRecovery(_RecoveryRequest request) async {
+  Future<void> _performSessionRecovery(
+    _RecoveryRequest request, {
+    bool allowRebuild = true,
+  }) async {
     final epoch = request.epoch;
     try {
       if (_backend case final RouteSettingsBackend settings) {
@@ -114,9 +117,30 @@ extension _AppControllerOfflineStartup on AppController {
       unawaited(_queueProfileRefresh());
       _invalidateReadPlansAfterLogin(request);
       _notify();
+      for (final entry in request.queriesAfterRebuild.entries) {
+        if (!_recoveryIsCurrent(epoch)) return;
+        if (_snapshots[entry.key]!.readContext?.hasSameQuery(entry.value) ==
+            true)
+          unawaited(refreshFeatureQuery(entry.key, entry.value));
+      }
+      request.queriesAfterRebuild.clear();
       if (request.refreshHomeAfter) _pendingHomeRecoveryEpoch = epoch;
-    } on Object catch (error, stackTrace) {
+    } on Object catch (caughtError, caughtStackTrace) {
+      Object error = caughtError;
+      StackTrace stackTrace = caughtStackTrace;
       if (!_recoveryIsCurrent(epoch)) return;
+      if (allowRebuild && error is BackendException && error.clientDisposed) {
+        try {
+          if (await _rebuildDuringRecovery(request)) {
+            await _performSessionRecovery(request, allowRebuild: false);
+            return;
+          }
+        } on Object catch (replacementError, replacementTrace) {
+          error = replacementError;
+          stackTrace = replacementTrace;
+        }
+        if (!_recoveryIsCurrent(request.epoch)) return;
+      }
       request.transientFailure = _temporaryRecoveryFailure(error);
       if (error is BackendException &&
           (error.code == UbaaErrorCode.invalidCredentials ||
@@ -130,7 +154,7 @@ extension _AppControllerOfflineStartup on AppController {
         } on Object {
           /* 原错误仍然保留。 */
         }
-        if (!_recoveryIsCurrent(epoch)) return;
+        if (!_recoveryIsCurrent(request.epoch)) return;
       }
       _error = _recordFailure(
         error,

@@ -288,6 +288,7 @@ BackendException _mapError(BridgeError error) => BackendException(
   _typedErrorCode(error.code),
   cacheFailure: _cacheMaintenanceFailure(error.cacheFailure),
   accountMismatch: error.code == BridgeErrorCode.cacheIdentityMismatch,
+  clientDisposed: error.code == BridgeErrorCode.clientDisposed,
   kind: _typedErrorKind(error.kind),
   retryable: error.retryable,
   resolvedRoute: error.resolvedRoute == null

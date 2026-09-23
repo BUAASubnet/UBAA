@@ -819,3 +819,21 @@ Core行为RED证明原在线计划不会保存完整详情；App行为RED证明�
 | ubaa-p3b-flutter-check.log | `9f51fcbdd8c515c656c5783f8abd9384de16c013c7cda18be8dd9ad61795ae68` |
 | ubaa-p3b-codegen-check.log | `29063bdcf4962eb7dbf36303bd3c806720ae2c385578437c6f7eec590155f91f` |
 | ubaa-p3b-native.log | `fc32fa6ba08d8f66c7c675f027b960db317b667d519b32711a213a7dbc25c51e` |
+
+
+## P2-R：明确失效客户端原位恢复（2026-09-23）
+
+有效行为RED：typed clientDisposed被压缩成普通internalError，5项重建/退出/写保护测试失败；补充RED复现释放期间新查询仍排向旧实例。App保留明确分类，一轮恢复最多替换一次；释放前和接管前分别撤销旧读取，保存页面/时间并去除旧动作。新实例只重排仍匹配当前查询的读取，核对原账号；工厂失败、再次失效、后台、写意图、退出和销毁均按合同处理。
+
+新增13项行为测试，连同缓存与恢复47项聚焦通过。完整Flutter1057项（57+66+534+285+22+39+54）及7包静态分析、just check/Rust/CLI16项、refs/layout/敏感扫描通过；Bridge仍v34，Rust和生成绑定未变。macOS原生FFI一项通过，包括dispose后的明确clientDisposed与cacheFailure=null；前台化仍报告open返回1，只计原生合成，不计可见App或性能。iPhone 17 Pro/iOS26.5模拟器已启动，原生同一测试正在首次CocoaPods准备，尚无运行通过证据。
+
+日志在仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2r-backend-recovery-20260923/`。
+
+| 日志 | SHA-256 |
+|---|---|
+| ubaa-p2r-red.log | `ec274d3bd4951e7b3bc7762b93fdb3d421d9943addfbbe3c5c30be106f79ff03` |
+| ubaa-p2r-boundary-red.log | `3463135f799b5b18d48c5122a34a8c9ed56d6ad9767e04a7b8ba9406795cb568` |
+| ubaa-p2r-green.log | `3420be4fcb10fa7936d137bb787eeea7c0d78ed8f72678208db9164e1467c365` |
+| ubaa-p2r-check.log | `bbdd1dffaa1f3a45beb2512c57519a31ba0de2a5bd7a5031bb8ec42d0695d5ac` |
+| ubaa-p2r-flutter-check.log | `e51254abb688e46f12c172e193d2c255b5cd5ef7768d7eadc9d19f10743df666` |
+| ubaa-p2r-native-macos.log | `fc32fa6ba08d8f66c7c675f027b960db317b667d519b32711a213a7dbc25c51e` |

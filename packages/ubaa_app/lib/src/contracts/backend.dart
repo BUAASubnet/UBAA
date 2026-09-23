@@ -13,6 +13,7 @@ class BackendException implements Exception {
     this.resolvedRoute,
     this.issueId,
     this.accountMismatch = false,
+    this.clientDisposed = false,
     this.cacheFailure,
   });
 
@@ -34,6 +35,9 @@ class BackendException implements Exception {
 
   /// 缓存身份不一致必须关闭账号投影，不能只作为局部查询错误。
   final bool accountMismatch;
+
+  /// 仅对应 Bridge 明确已释放的客户端，不从通用错误或消息推断。
+  final bool clientDisposed;
 
   /// 与学校错误分列的本地缓存处理故障。
   final CacheMaintenanceFailure? cacheFailure;

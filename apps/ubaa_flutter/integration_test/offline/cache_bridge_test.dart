@@ -3,7 +3,9 @@ import 'dart:typed_data';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
+import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -557,6 +559,16 @@ void main() {
       expect((await second!.usage()).entryCount.toInt(), 0);
       await expectLater(beforeRecovery.usage(), throwsA(isA<BridgeError>()));
       beforeRecovery.dispose();
+      final backend = BridgeBackend(client);
+      await backend.dispose();
+      await expectLater(
+        backend.recoverRequiredSession(FeatureId.schedule),
+        throwsA(
+          isA<BackendException>()
+              .having((error) => error.clientDisposed, '原生失效分类', isTrue)
+              .having((error) => error.cacheFailure, '客户端失效不是缓存故障', isNull),
+        ),
+      );
     } finally {
       key.fillRange(0, key.length, 0);
       await client?.dispose();

@@ -4,12 +4,13 @@ final class _RecoveryRequest {
   _RecoveryRequest(this.feature, this.epoch, this.refreshHomeAfter)
     : interactive = !refreshHomeAfter;
   final FeatureId feature;
-  final int epoch;
+  int epoch;
   bool refreshHomeAfter;
   bool interactive;
   bool transientFailure = false;
   ConnectionMode? replacedRoute;
   bool replacedAllRoutes = false;
+  final queriesAfterRebuild = <FeatureId, FeatureQuery>{};
   final completion = Completer<void>();
 }
 

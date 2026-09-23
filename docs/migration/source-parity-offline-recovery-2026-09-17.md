@@ -529,3 +529,10 @@ old 1f4b8f84 `LocalJudgeApi.getAssignmentDetailsResponse`先去重明确目标�
 逐操作协议九列完全沿P2-C/P3-A：同一CAS/bootstrap/service、跳转/落点、Cookie范围，GET课程/原子选课+索引/原子选课+精确assignID详情，头/编码、无新增签名、原DTO与错误分类均不变。复用现有在线计划的目标筛选和逐批边界，只增加缓存范围票据及已成功详情发布，不制造增量接口、第二个Cookie客户端或并行会话改写。
 
 持久化按每个明确详情分别分配开始读取的修订并检查清理/退出/较新请求；只发布该项完整结果，部分失败不得覆盖旧详情或聚合摘要。每批释放共享客户端锁；保存失败与学校结果分列。离线批量仅聚合同路线、精确键的已有详情，缺项标为部分、保留最早取得时间，不授予动作；数量不等于新鲜或完整的学校集合。Bridge新入口同步升级v34，缓存载荷格式/schema v5、CLI v10和Session v2不变。
+
+
+## P2-R：明确失效客户端的原位重建（实施前，2026-09-23）
+
+重新核对 old `1f4b8f84` 的 `composeApp/.../App.kt:104`（ON_STOP后ON_RESUME验证会话）、`shared/.../api/auth/AuthApi.kt`（AuthServiceBackend会话/资料接口及共享实例provider）、`ResettableSharedInstance.kt`（reset释放旧实例）；buaa-api `a63712fa` 的 `context.rs`（唯一Context及Cookie/credential store、with_auth/load_auth）、`store/{cookies,cred}.rs`与既有认证错误分类。两份来源都没有FRB opaque handle或本项目离线首页原位重建合同，不从另一协议推断clientDisposed、业务参数或新会话格式。
+
+逐操作的会话检查、所需路线登录、资料、退出仍分别沿本文件P0-A/P1-A/P2-A/B九列：CAS/bootstrap/service、跳转/终点、Cookie范围、HTTP方法及精确参数、头/编码、加密常量、DTO均不改。重建仅由现有BridgeErrorCode.clientDisposed精确分类触发；网络/普通internalError、缓存故障均不触发。原客户端释放收尾后才启用继任实例，不复制Cookie、不并行持久会话写入。一次恢复最多替换一次；保持页面只读投影和查询，撤销旧计划及动作，重新读取既有会话并核对身份；认证与写保护、前后台和退出代次继续生效。本机工厂/磁盘失败原位提示，不清空缓存或循环重建。

@@ -41,3 +41,5 @@ P1已有双路线真实App功能证据。最近评教新分段WebVPN成功，Dir
 当前代码的确定性、原生合成、Core-live、真实App、设备性能与发布证据分别记录于[执行记录](docs/migration/evidence/2026-09-17-offline-home.md)。500 ms中位数、1 s P95及首帧后200 ms恢复启动仍为待验证目标。未经明确要求不推送、不发布；整体目标保持执行中。
 
 P3-B已接通明确批量详情的Core/Bridge/App持久路径和离线投影，v34绑定已生成；Core25项扫描回归、Bridge批量让位及App35项聚焦通过，完整Flutter1044项、Rust/CLI、FRB零漂移和macOS合成FFI通过。继续客户端失效、未知结果重启、最终多端场景及性能验收。
+
+P2-R当前候选修复明确clientDisposed的原位重建及释放期间新查询的接管；47项聚焦、完整Flutter1057项/Rust/CLI及macOS原生合成通过。未知写结果重启最小核对线索尚未实现，不能用当前内存WriteOutcome替代此边界。
