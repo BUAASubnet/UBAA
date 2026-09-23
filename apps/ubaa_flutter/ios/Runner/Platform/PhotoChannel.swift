@@ -18,6 +18,12 @@ final class PhotoChannel: NSObject, PHPickerViewControllerDelegate, UIAdaptivePr
 
   private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
+    case "paths.config":
+      guard let directory = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first else {
+        result(FlutterError(code: "private_directory_unavailable", message: "应用私有目录暂不可用", details: nil))
+        return
+      }
+      result(directory.appendingPathComponent("UBAA", isDirectory: true).path)
     case "photo.capability": result(true)
     case "permission.request":
       // 允许请求系统选择器不等于拥有相册访问权；取消不会交付任何数据。

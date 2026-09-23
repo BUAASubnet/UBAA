@@ -2,6 +2,7 @@ import 'credentials.dart';
 import 'secure_material.dart';
 import 'location.dart';
 import 'media.dart';
+import 'paths.dart';
 
 /// 生产宿主的默认平台能力组合。
 ///
@@ -24,6 +25,7 @@ final class PlatformCapabilities {
 }
 
 Future<PlatformCapabilities> createDefaultPlatformCapabilities() async {
+  await initializePrivateDirectory();
   final legacyStore = MethodChannelSecureCredentialStore();
   await legacyStore.probe();
   final materials = SecureMaterialStore();
