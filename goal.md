@@ -36,7 +36,7 @@ P4-AG已提交`3ca371fc`，补齐未知结果的重启核对提示，业务缓�
 
 十二领域已具备所列范围缓存、完整学期导入、关联写后失效与管理；P3-B补齐明确批量详情，P2-R按明确clientDisposed原位替换并接管查询。剩余精确范围、长读取、生命周期仍按实际代码审查，不能用阶段数量代替覆盖。
 
-P1有历史双路线真实App功能证据；本轮新App macOS/iPhone/iPad WebVPN分段只读准备及30次启动测量均完成，Direct在SPOC真实上游`unexpected_eof`处停止，旧CLI Direct同轮也因SPOC `network_error`退出5，不能以空集合回退宣称成功。macOS Release缓存可见中位数/P95为342.145/410.584ms，iPhone Debug模拟器为1989.248/2601.328ms，iPad Debug模拟器为2112.204/2765.966ms；首帧后恢复启动三端均低于200ms。完整数据和阶段成本见[测量证据](docs/migration/evidence/offline-startup-measurement-2026-09-24.md)。
+P1有历史双路线真实App功能证据；本轮新App macOS/iPhone/iPad WebVPN分段只读准备及30次启动测量均完成，Direct两次独立准备均在SPOC真实上游`unexpected_eof`处停止，旧CLI Direct同轮也因SPOC `network_error`退出5，不能以空集合回退宣称成功。macOS Release缓存可见中位数/P95为342.145/410.584ms，iPhone Debug模拟器为1989.248/2601.328ms，iPad Debug模拟器为2112.204/2765.966ms；首帧后恢复启动三端均低于200ms。完整数据和阶段成本见[测量证据](docs/migration/evidence/offline-startup-measurement-2026-09-24.md)。
 
 六平台安全材料原生运行未全覆盖；macOS和iPhone模拟器已有合成FFI，iPhone模拟器安全材料单项通过，iPad模拟器FFI及安全材料两项通过。三端30次轮次均为模拟器或macOS宿主，其中macOS Release达到缓存可见500ms中位数/1s P95目标，iOS Simulator无法构建Release/Profile且Debug未达目标；这些数据不证明实体设备或发布性能。确定性、原生合成、Core-live、真实App、设备性能和发布证据分列。未经要求不推送、不发布；整体执行中。
 

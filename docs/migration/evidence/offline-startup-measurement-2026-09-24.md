@@ -47,7 +47,7 @@ macOS Release 的缓存可见目标（中位数 500 ms、P95 1 s）通过；两�
 
 - 新 App macOS WebVPN 预备和三轮测量均完成，五个主要领域的准备结果完整，SPOC 6、评教 71、希冀 11 条等摘要只记录计数，不保存正文；准备摘要 SHA-256 为 `4cededcaad76febe89d16bc941a01b8e5336b2b3e4a6190b72ea9ab7ad2985a8`。
 - 新 App iPhone/iPad WebVPN 预备和三轮测量均完成，准备摘要 SHA-256 分别为 `9fe594d08014322d173928b516912778f809c63467a99ac6747715a48ec0e2c8`、`3f59f41c05323c2580e1f0578843a6fd5bf009bdd980d7c1ce843a4ebccb6327`。
-- 新 App macOS Direct 在准备阶段完成课表、签到，SPOC `batch.spoc` 因真实上游 `unexpected_eof`（约 5 s）返回 `BackendException(network_error)`，未开始统计；`business_writes=0`，准备摘要 SHA-256 为 `aab0a72a3b75d3d042bf36328cfcc0bc00d26247684c13e13323bb04103dd9c8`。该失败与旧 CLI Direct 同轮的 SPOC `network_error` 一致，仍属于外部可达性阻碍，不能用空集合或聚合回退宣称成功。
+- 新 App macOS Direct 在两次独立准备中均完成课表、签到后，于 SPOC `batch.spoc` 因真实上游 `unexpected_eof`（约 5 s）返回 `BackendException(network_error)`，均未开始统计；两次 `business_writes=0`，准备摘要 SHA-256 为 `aab0a72a3b75d3d042bf36328cfcc0bc00d26247684c13e13323bb04103dd9c8`、`6c22f777e31db1395d2782ef6bbdac36e94b0e1194f01235f9ad8bb3ad7447b6`。该失败与旧 CLI Direct 同轮的 SPOC `network_error` 一致，仍属于外部可达性阻碍，不能用空集合或聚合回退宣称成功。
 - 旧 CLI `verify-live mode=direct`：认证、用户、课表、考试、成绩、课堂、评教、签到、希冀、图书馆、博雅和充电等只读步骤通过，SPOC assignments/diagnostics 为 `network_error`，命令退出 5；日志 SHA-256 `2ad617f87af0e115f1c861db130df06309a6666a828d588ddc7380a8efbddb2f`。
 - 旧 CLI `verify-live mode=webvpn`：认证至评教的只读步骤全部 PASS（评教计数 0 是当前账号状态，不是错误容错），命令退出 0；日志 SHA-256 `0ae847fb6178d2b870f0d4168dec129a8cd02f586efcec41a52cd6b889cddd11`。旧 CLI 证据与新 App 分段证据分开保存。
 

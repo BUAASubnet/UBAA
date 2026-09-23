@@ -16,7 +16,7 @@ P5-B第一轮macOS进程基线启动21次，19次完整刷新、1次600秒超时
 
 P5-B2正式轮次已完成：macOS Release、iPhone 17 Pro Debug 模拟器、iPad Pro 13 M5 Debug 模拟器各30次 WebVPN 只读启动，三轮均30/30有效且完整刷新；缓存可见分别为342.145/410.584、1989.248/2601.328、2112.204/2765.966 ms（中位数/P95），首帧后恢复启动均低于200 ms。成本和口径见[测量证据](evidence/offline-startup-measurement-2026-09-24.md)。macOS Release 达到500 ms中位数/1 s P95目标，iOS Debug 模拟器未达标；工具链不支持Simulator Release/Profile，不能把模拟器数据当发布模式或实体设备数据。
 
-当前候选新App WebVPN分段只读已在三端准备并完成；新App macOS Direct在SPOC `unexpected_eof`/`network_error`处停止，旧CLI Direct同轮也因SPOC `network_error`退出5。旧CLI WebVPN只读退出0，新App与旧CLI证据保持分开，不能用空集合或聚合回退替代 Direct 成功。成本分解后没有发现可安全删除的必要读取；刷新耗时的主要成本来自上游响应、调试模拟器宿主和完整领域覆盖，继续优化需以实体/发布模式条件为前提。
+当前候选新App WebVPN分段只读已在三端准备并完成；新App macOS Direct两次独立准备均在SPOC `unexpected_eof`/`network_error`处停止，旧CLI Direct同轮也因SPOC `network_error`退出5。旧CLI WebVPN只读退出0，新App与旧CLI证据保持分开，不能用空集合或聚合回退替代 Direct 成功。成本分解后没有发现可安全删除的必要读取；刷新耗时的主要成本来自上游响应、调试模拟器宿主和完整领域覆盖，继续优化需以实体/发布模式条件为前提。
 
 当前提交原生 111 项矩阵已在 macOS、iPhone 17 Pro 模拟器、iPad Pro 13 M5 模拟器各重跑通过，日志摘要见[正式测量证据](evidence/offline-startup-measurement-2026-09-24.md)。
 
