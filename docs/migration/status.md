@@ -18,6 +18,8 @@ P5-B2正式轮次已完成：macOS Release、iPhone 17 Pro Debug 模拟器、iPa
 
 当前候选新App WebVPN分段只读已在三端准备并完成；新App macOS Direct在SPOC `unexpected_eof`/`network_error`处停止，旧CLI Direct同轮也因SPOC `network_error`退出5。旧CLI WebVPN只读退出0，新App与旧CLI证据保持分开，不能用空集合或聚合回退替代 Direct 成功。成本分解后没有发现可安全删除的必要读取；刷新耗时的主要成本来自上游响应、调试模拟器宿主和完整领域覆盖，继续优化需以实体/发布模式条件为前提。
 
+当前提交原生 111 项矩阵已在 macOS、iPhone 17 Pro 模拟器、iPad Pro 13 M5 模拟器各重跑通过，日志摘要见[正式测量证据](evidence/offline-startup-measurement-2026-09-24.md)。
+
 设备边界：macOS与iOS模拟器可用，无连接实体手机/平板。Android SDK和emulator存在，但本机无系统镜像、AVD及sdkmanager；Windows/Linux/OHOS当前原生运行证据仍不足。不得以构建或模拟器冒充实体/发布证据。安全输入和媒体留仓库外私有目录，真实学校业务写入禁止；继续所有不受外部条件阻挡的实现和验证。最终索引见[验收表](evidence/offline-home-acceptance-2026-09-23.md)。
 
 P2-T已独立提交`7afd433d`。P2-U已补齐首页自动成绩检查的后台优先级和主动同学期查询合并，5项RED、9项专项GREEN、完整Flutter1081项/7包分析、just check及三端各92项原生矩阵通过，见[证据](evidence/offline-grade-priority-2026-09-23.md)。该阶段发现的旧成绩提醒JSON明文问题已由下述P4-AH接入Core仓库；最终性能已由P5-B2独立轮次测量，结果和限制见测量证据。

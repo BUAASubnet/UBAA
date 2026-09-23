@@ -31,6 +31,8 @@ macOS Release 的缓存可见目标（中位数 500 ms、P95 1 s）通过；两�
 
 三轮摘要文件 SHA-256 依次为：macOS `9d156f1f1be7c8600dbb64762656551225fbb8a6fc2836d4e7cfaa5bc0570116`，iPhone `a24b4aa9967d837b6b4b7f738d340f8c78c7b618788d7675f44385df66a9b1cf`，iPad `e535c9fe3f383ea3ed3161c4b29dda08c705fc40570f49328989df608dd14c93`。对应私有轮次分别为 `p5b2-macos-webvpn-20260924`、`p5b2-iphone-webvpn-20260924`、`p5b2-ipad-webvpn-20260924`；准备摘要和运行清单仍在同目录，未复制进仓库。
 
+当前提交的 15 类异常/生命周期原生矩阵也在 macOS、iPhone 17 Pro 模拟器、iPad Pro 13 M5 模拟器各通过 111 项；日志仍在私有目录 `p5b2-native-current-20260924`，SHA-256 依次为 macOS `0515b246bcc2b556dc3379ebd5b6fa23722d2e8e1aaaa25db97c4bba27ffddac`、iPhone `0b4e2a16c5316890cbb7262e8033d104a9190e849169bf40b5948e709b4be4e2`、iPad `c1d3741216216de65f3caca8f7600699ad228ab278ee6ee63ba50f1f29e6f958`。矩阵使用脱敏后端、独立合成缓存和系统材料，业务写入仍为 0。
+
 ### 后台成本拆分
 
 | 设备 | 阶段（次数）认证中位数/P95 (ms) | 缓存中位数/P95 (ms) | 上游中位数/P95 (ms) | 调度等待中位数/P95 (ms) | 调度运行中位数/P95 (ms) | 取消数 | 重复操作数 |
