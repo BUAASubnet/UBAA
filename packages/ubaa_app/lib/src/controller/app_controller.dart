@@ -282,6 +282,7 @@ class AppController extends ChangeNotifier {
   _CgyyPurposeCache? _cgyyPurposeCache;
   FeatureResult? _academicTermsResult;
   Future<FeatureResult>? _academicTermsPending;
+  ReadDemand? _academicTermsDemand;
   UbaaBackend? _academicTermsBackend;
   int _academicTermsEpoch = -1;
   int _academicTermsLifecycle = -1;
@@ -549,8 +550,13 @@ class AppController extends ChangeNotifier {
       _loadGradesWithCache(forceRefresh: forceRefresh, onProgress: onProgress);
 
   /// 首页变化检查只读取唯一标为当前的学期；缺失时不猜第一项。
-  Future<GradeTermRead?> loadCurrentGrades({bool forceRefresh = false}) =>
-      _loadCurrentGrades(forceRefresh: forceRefresh);
+  Future<GradeTermRead?> loadCurrentGrades({
+    bool forceRefresh = false,
+    bool background = false,
+  }) => _loadCurrentGrades(
+    forceRefresh: forceRefresh,
+    priority: background ? ReadPriority.background : ReadPriority.interactive,
+  );
 
   /// 首页默认来源与领域当前查询隔离；不授予额外写资格。
   Map<FeatureId, FeatureSnapshot> get homeSnapshots =>

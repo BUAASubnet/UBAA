@@ -1,7 +1,10 @@
 part of '../app_controller.dart';
 
 extension _AppControllerAcademicTerms on AppController {
-  Future<FeatureResult> _loadAcademicTerms({required bool forceRefresh}) {
+  Future<FeatureResult> _loadAcademicTerms({
+    required bool forceRefresh,
+    ReadPriority priority = ReadPriority.interactive,
+  }) {
     if (_disposed || _readTransitionBlocked || _legacyReadSessionBlocked) {
       return Future.value(_academicTermsConflict());
     }
@@ -32,18 +35,24 @@ extension _AppControllerAcademicTerms on AppController {
       _academicTermsBackend = backend;
     }
     // force 绕过已完成缓存；同代正在进行的请求已是一次新读取，仍合并。
-    if (_academicTermsPending case final pending?) return pending;
+    if (_academicTermsPending case final pending?) {
+      if (_academicTermsDemand?.promote(priority) == true)
+        _readScheduler.pump();
+      return pending;
+    }
     if (!forceRefresh) {
       if (_academicTermsResult case final cached?) return Future.value(cached);
     }
     _academicTermsResult = null;
     final serial = ++_academicTermsSerial;
+    final demand = _academicTermsDemand = ReadDemand(priority);
     final request = _fetchAcademicTerms(
       backend: backend,
       queryBackend: backend as FeatureQueryBackend,
       lifecycle: lifecycle,
       epoch: epoch,
       serial: serial,
+      demand: demand,
     );
     _academicTermsPending = request;
     return request;
@@ -55,6 +64,7 @@ extension _AppControllerAcademicTerms on AppController {
     required int lifecycle,
     required int epoch,
     required int serial,
+    required ReadDemand demand,
   }) async {
     bool current() =>
         !_disposed &&
@@ -74,6 +84,7 @@ extension _AppControllerAcademicTerms on AppController {
           FeatureId.schedule,
           const FeatureQuery(view: FeatureQueryView.scheduleTerms),
         ),
+        demand: demand,
       );
       if (!current()) return _academicTermsConflict();
       if (result.error case final error?) {

@@ -13,6 +13,8 @@ import '../../../../packages/ubaa_app/test/offline/judge_fallback/stability_test
     as partial;
 import '../../../../packages/ubaa_app/test/offline/judge_online/scheduler_test.dart'
     as priority;
+import '../../../../packages/ubaa_app/test/offline/grades/priority_test.dart'
+    as grade_priority;
 import '../../../../packages/ubaa_app/test/offline/write_cache/readback_test.dart'
     as readback;
 import '../../../../packages/ubaa_host/test/offline/startup_test.dart'
@@ -45,6 +47,7 @@ void main() {
   });
   group('让位与部分结果', () {
     priority.main();
+    grade_priority.main();
     partial.main();
   });
   group('生命周期与网络', () {

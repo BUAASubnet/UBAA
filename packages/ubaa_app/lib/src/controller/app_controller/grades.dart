@@ -10,6 +10,9 @@ final class _GradesReadCache {
 }
 
 final class _GradeReadEntry {
+  _GradeReadEntry([ReadPriority priority = ReadPriority.interactive])
+    : demand = ReadDemand(priority);
+  final ReadDemand demand;
   final completer = Completer<FeatureResult>();
   bool pending = true;
   bool freshForAggregate = false;
@@ -17,12 +20,38 @@ final class _GradeReadEntry {
 }
 
 extension _AppControllerGrades on AppController {
+  Future<FeatureResult>? _readSharedGradeQuery(FeatureQuery query) {
+    if (query.term == null ||
+        !{
+          FeatureQueryView.summary,
+          FeatureQueryView.gradesScored,
+          FeatureQueryView.gradesMissing,
+        }.contains(query.view))
+      return null;
+    // 主动查询绕过已完成缓存，但与同学期在途读取共用一次完整观察。
+    return _loadGradeTerm(query.term!, forceRefresh: true).then((result) {
+      final overview = result.overview;
+      if (result.error != null || overview is! GradesTermOverview)
+        return result;
+      return projectGrades(
+        overview,
+        query.view,
+        result.resolvedRoute,
+        evidence: result.evidence,
+      );
+    });
+  }
+
   Future<GradeTermRead?> _loadCurrentGrades({
     required bool forceRefresh,
+    required ReadPriority priority,
   }) async {
     if (_gradesReadGuard() case final error?) throw error;
     final cache = _gradesCache();
-    final options = await _loadAcademicTerms(forceRefresh: forceRefresh);
+    final options = await _loadAcademicTerms(
+      forceRefresh: forceRefresh,
+      priority: priority,
+    );
     if (!_gradesCurrent(cache)) throw _academicTermsConflict().error!;
     if (options.error case final error?) throw error;
     final selected = options.details.where((detail) {
@@ -38,6 +67,7 @@ extension _AppControllerGrades on AppController {
       cache,
       code,
       forceRefresh: forceRefresh,
+      priority: priority,
     );
     if (!_gradesCurrent(cache)) throw _academicTermsConflict().error!;
     return GradeTermRead(code: code, name: detail.title, result: result);
@@ -184,6 +214,7 @@ extension _AppControllerGrades on AppController {
     _GradesReadCache cache,
     String term, {
     required bool forceRefresh,
+    ReadPriority priority = ReadPriority.interactive,
   }) {
     if (!_gradesCurrent(cache)) return Future.value(_academicTermsConflict());
     if (cache.authenticationError case final error?) {
@@ -191,9 +222,12 @@ extension _AppControllerGrades on AppController {
     }
     final previous = cache.entries[term];
     if (previous != null && (previous.pending || !forceRefresh)) {
+      if (previous.pending && previous.demand.promote(priority)) {
+        _readScheduler.pump();
+      }
       return previous.completer.future;
     }
-    final entry = _GradeReadEntry();
+    final entry = _GradeReadEntry(priority);
     cache.entries[term] = entry;
     unawaited(_fetchGradeTerm(cache, entry, term, forceRefresh: forceRefresh));
     return entry.completer.future;
@@ -246,6 +280,7 @@ extension _AppControllerGrades on AppController {
               FeatureId.grades,
               FeatureQuery(term: term),
             ),
+            demand: entry.demand,
           );
       if (result.error == null) {
         final overview = result.overview;

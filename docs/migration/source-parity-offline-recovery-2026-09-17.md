@@ -589,3 +589,18 @@ macOS新App诊断观察到hidden→inactive，控制器_appForeground仍false，
 先以hidden/paused→inactive及随后resumed的宿主行为测试观察RED，修复只改变可见性映射；不将模拟生命周期、原生合成或学校读取证据混称。
 
 P2-T已完成上述3项RED→GREEN、完整just check、Flutter1072项/7包分析及三端各83项原生矩阵，当前真实App回归与边界见[专项证据](evidence/offline-visible-resume-2026-09-23.md)。
+
+
+## P2-U：首页自动成绩检查让位与主动查询合并（2026-09-23，实施前）
+
+本轮复读固定old 1f4b8f84的GradeApi/LocalGradeApi/Grade DTO、LocalScheduleApi的getTerms/头/解析、TermRepository、GradeScoreWatchViewModel及5项测试、LocalScheduleApiBackendTest的成绩GET/POST Mock。它只检查当前学期、共享学期内存缓存、按账号隔离基线；没有Flutter统一安全批次优先级，不能由协程并发推断可并发改写持久会话。固定buaa-api a63712fa的aas/{core,opt,data}.rs只实现配置/周/学期课表，app/{core,opt,data}.rs为小程序激活和考试页面，没有buaascore成绩或首页变化检查；request、credential/cookie store沿已核对矩阵，无宿主优先级能力可借用。
+
+| 操作 | CAS/bootstrap/service及跳转/最终URL | Cookie/session范围 | 方法/精确参数 | 头及正文编码 | 加密/签名 | DTO/解析 | 缓存/并发 | 错误/退出 |
+|---|---|---|---|---|---|---|---|---|
+| 自动检查所需学期与首页教学周所需学期 | 沿P4-B课表的本科/研究生原激活及最终URL规则；不修改分支和service | 原账号实际路线运行时，不复制Cookie | 本科学期GET schoolCalendars.do，无新参数；研究生沿原适用实现，不借AAS字段 | 原Accept JSON、XHR、byxt index.html Referer；无新body | 无新增 | 原Term code/name/selected/index；仍要求唯一selected，不猜首项 | 同代学期读取合并；自动成绩需求为background、首页周次为home，用户选学期为interactive；合并时只能提升未发送任务 | 原学校分类及账号/生命周期/清理保护，失败不伪空 |
+| 当前学期成绩自动检查 | GET https://app.buaa.edu.cn/buaascore/wap/default/index激活；原Core认证跳转/401/登录页仲裁，无新CAS URL | 同原主会话与成绩实际路线 | 同URL POST xq=semester、year=year，沿已验证term解析 | 激活HTML Accept；查询JSON Accept/X-Requested-With/同页Referer；表单编码 | 无新增 | e/m/d及BuaaScoreCourse映射沿P4-B，不改score/credit/types/term归属 | background；同学期在途合并，保留完整集合，持久投影不建变化基线 | 原错误/局部保留；退出/切号后不交付或写基线 |
+| 用户单学期查询/当前学期提醒进入/统计读取 | 同上一行，不新增激活语义 | 同上一行 | 同上一行，指定学期与自动当前学期只有精确一致才共享 | 同上一行 | 无新增 | summary/scored/missing仅投影同一完整集合，保留请求学期校验 | 用户可将同代排队请求提升为interactive；已发送批次收尾后才调度，不取消重发，不通过Dart队列冒充HTTP抢占 | 失败不隐藏；另一学期独立，较新页面修订拒绝迟到发布 |
+
+当前实现把所有学期与成绩辅助读取硬编码interactive，自动检查可能排到首页来源之前；显式成绩FeatureQuery也可绕过已有辅助在途读取而重复请求。先用真实AppController/GradeScoreWatch及脱敏ProgressiveReadBackend验证请求顺序和次数RED；最小修复共享需求优先级并在原Core批次边界调度。数据覆盖、强制刷新绕过已完成缓存、同代在途合并及写保护保持原合同。
+
+P2-U上述5项行为RED已记录，9项专项、完整Flutter1081项/7包分析、just check和三端各92项原生矩阵通过。macOS另有一次未稳定复现的图书馆弹层测试失败，原样保留，详见[证据](evidence/offline-grade-priority-2026-09-23.md)。

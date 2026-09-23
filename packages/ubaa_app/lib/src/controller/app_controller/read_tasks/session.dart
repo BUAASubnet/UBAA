@@ -50,12 +50,14 @@ extension _AppControllerScheduledSession on AppController {
     ReadPriority priority,
     bool Function() current, {
     bool force = false,
+    ReadDemand? demand,
   }) {
     if (!force && !_readTargetNeedsRecovery(feature)) return Future.value();
     return _readScheduler.run(
       priority,
       current,
       () => _ensureReadTarget(feature, force: force),
+      demand: demand,
     );
   }
 
@@ -66,6 +68,7 @@ extension _AppControllerScheduledSession on AppController {
     Future<T> Function() operation, {
     void Function(T)? discard,
     bool writeReadback = false,
+    ReadDemand? demand,
   }) async {
     if (writeReadback)
       return _readScheduler.run(
@@ -77,7 +80,12 @@ extension _AppControllerScheduledSession on AppController {
       );
     final recovered = _readTargetNeedsRecovery(feature);
     if (recovered)
-      await _scheduleReadAuthentication(feature, priority, current);
+      await _scheduleReadAuthentication(
+        feature,
+        priority,
+        current,
+        demand: demand,
+      );
     try {
       return await _readScheduler.run(
         priority,
@@ -85,6 +93,7 @@ extension _AppControllerScheduledSession on AppController {
         operation,
         discard: discard,
         continuation: recovered,
+        demand: demand,
       );
     } on BackendException catch (error) {
       if (error.code != UbaaErrorCode.authenticationRequired ||
@@ -98,6 +107,7 @@ extension _AppControllerScheduledSession on AppController {
         priority,
         current,
         force: true,
+        demand: demand,
       );
       return _readScheduler.run(
         priority,
@@ -105,6 +115,7 @@ extension _AppControllerScheduledSession on AppController {
         operation,
         discard: discard,
         continuation: true,
+        demand: demand,
       );
     }
   }

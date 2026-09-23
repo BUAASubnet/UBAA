@@ -84,7 +84,10 @@ extension _AppControllerHomeSources on AppController {
     try {
       FeatureResult result;
       if (source == HomeSupplement.currentWeek) {
-        final terms = await _loadAcademicTerms(forceRefresh: forceRefresh);
+        final terms = await _loadAcademicTerms(
+          forceRefresh: forceRefresh,
+          priority: ReadPriority.home,
+        );
         if (!current()) {
           entry.completer.complete(_academicTermsConflict());
           return;

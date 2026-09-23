@@ -17,3 +17,5 @@ P5-B第一轮macOS进程基线启动21次，19次完整刷新、1次600秒超时
 剩余必需工作：当前候选新App Direct/WebVPN只读、刷新停滞回归、认证/上游/缓存命中/重复请求/调度等待成本分解和继续优化、手机/平板/macOS各30次进程缓存启动及设计15类场景最终核对。P5-A有历史双路线功能证据；最近聚合WebVPN成功，Direct因SPOC network_error退出5；评教新分段Direct激活networkError尚未通过，禁止借旧CLI空集合容错替代新链路。
 
 设备边界：macOS与iOS模拟器可用，无连接实体手机/平板。Android SDK和emulator存在，但本机无系统镜像、AVD及sdkmanager；Windows/Linux/OHOS当前原生运行证据仍不足。不得以构建或模拟器冒充实体/发布证据。安全输入和媒体留仓库外私有目录，真实学校业务写入禁止；继续所有不受外部条件阻挡的实现和验证。最终索引见[验收表](evidence/offline-home-acceptance-2026-09-23.md)。
+
+P2-T已独立提交`7afd433d`。P2-U已补齐首页自动成绩检查的后台优先级和主动同学期查询合并，5项RED、9项专项GREEN、完整Flutter1081项/7包分析、just check及三端各92项原生矩阵通过，见[证据](evidence/offline-grade-priority-2026-09-23.md)。进一步审查发现旧成绩提醒JSON基线尚未加密，继续接入Core仓库；正式性能暂不开始，以免用未完成候选验收。

@@ -3,19 +3,34 @@ import 'dart:async';
 /// 只调度尚未发送的工作；既定写回读不会被普通读取暂停条件阻塞。
 enum ReadPriority { writeReadback, urgent, interactive, home, background }
 
+/// 合并的同一读取共享需求；只能提高尚未发送批次的优先级。
+final class ReadDemand {
+  ReadDemand(this._priority);
+  ReadPriority _priority;
+  ReadPriority get priority => _priority;
+  bool promote(ReadPriority value) {
+    if (value.index >= _priority.index) return false;
+    _priority = value;
+    return true;
+  }
+}
+
 final class ReadCancelled implements Exception {
   const ReadCancelled();
 }
 
 final class _ReadJob {
   _ReadJob(
-    this.priority,
+    this.initialPriority,
     this.current,
     this.execute,
     this.cancel,
     this.continuation,
+    this.demand,
   );
-  final ReadPriority priority;
+  final ReadPriority initialPriority;
+  final ReadDemand? demand;
+  ReadPriority get priority => demand?.priority ?? initialPriority;
   final bool continuation;
   final bool Function() current;
   final Future<void> Function() execute;
@@ -37,6 +52,7 @@ final class ReadScheduler {
     Future<T> Function() operation, {
     void Function(T)? discard,
     bool continuation = false,
+    ReadDemand? demand,
   }) {
     final completion = Completer<T>();
     if (_closed) return Future.error(const ReadCancelled());
@@ -62,6 +78,7 @@ final class ReadScheduler {
         },
         () => completion.completeError(const ReadCancelled()),
         continuation,
+        demand,
       ),
     );
     pump();

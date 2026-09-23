@@ -44,11 +44,18 @@ extension _AppControllerProgressive on AppController {
     FeatureId feature,
     ReadPriority priority,
     bool Function() current,
-    Future<FeatureResult> Function() operation,
-  ) async {
+    Future<FeatureResult> Function() operation, {
+    ReadDemand? demand,
+  }) async {
     try {
       return await (backend is ProgressiveReadBackend
-          ? _scheduledRead(feature, priority, current, operation)
+          ? _scheduledRead(
+              feature,
+              priority,
+              current,
+              operation,
+              demand: demand,
+            )
           : Future<FeatureResult>.sync(operation));
     } on BackendException catch (error) {
       // 辅助读取同样绑定账号；普通认证失败可以保旧，明确串号必须关闭。
@@ -113,6 +120,13 @@ extension _AppControllerProgressive on AppController {
     required void Function(FeatureReadBatch) onBatch,
   }) async {
     final backend = _backend;
+    if (!writeReadback &&
+        backend is ProgressiveReadBackend &&
+        feature == FeatureId.grades &&
+        query != null) {
+      final shared = _readSharedGradeQuery(query);
+      if (shared != null) return shared;
+    }
     Future<FeatureResult> ordinary() {
       if (writeReadback &&
           feature == FeatureId.libbook &&

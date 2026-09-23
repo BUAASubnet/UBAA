@@ -41,3 +41,5 @@ P1有历史双路线真实App功能证据；最近评教新分段WebVPN成功、
 六平台安全材料原生运行未全覆盖；macOS和iPhone模拟器已有合成FFI，iPhone模拟器安全材料单项通过，iPad模拟器FFI及安全材料两项通过。这些均不证明实体设备或学校业务成功。500ms中位数、1s P95、首帧后200ms恢复启动仍为待验证目标；确定性、原生合成、Core-live、真实App、设备性能和发布证据分列。未经要求不推送、不发布；整体执行中。
 
 当前P5-B1已修复iOS空环境导致私有目录不可用，3项行为测试RED→GREEN、完整Flutter1069项/7包分析、just check/refs/layout/sensitive及iPhone原生目录/安全材料2项通过。P5-B首次macOS基线在第21次因重复刷新停滞转入诊断，保留19份完整刷新、1份600秒超时与1份中断记录，30次未达成；不能以成功子集P95宣称整体达标。P5-B1已提交1a8f7ded、P2-S已提交94ff3a5c，后者Core29项、Bridge4项及完整just check/CLI16通过，FRB零漂移。macOS/iPhone/iPad各80项原生合成通过，整体仍不以阶段通过代替最终验收。Debug新App已复现hidden→inactive窗口可见后调度未解暂停，P2-T来源核对与3项RED→GREEN已完成，当前完整just check、Flutter1072项/7包分析、三端各83项原生矩阵及WebVPN真实App可见恢复回归通过，详见[本轮证据](docs/migration/evidence/offline-visible-resume-2026-09-23.md)。三端最终30次、全部刷新成本分解及最终双路线仍未闭合，整体保持执行中。
+
+P2-T已提交`7afd433d`；P2-U自动成绩让位及同学期主动合并已通过完整Flutter1081项/7包分析、just check和三端各92项原生矩阵。自审发现成绩提醒旧JSON基线仍保存个人正文，需迁入Core加密仓库；完整首页计时还需纳入三个补充来源及成绩检查。上述必需实现未闭合，正式30次等待最终候选。
