@@ -1,4 +1,5 @@
 //! 学业缓存的 typed 绑定，不把任意载荷交给宿主。
+pub mod baseline;
 use super::client::{
     BridgeClient, BridgeConnectionMode, BridgeError, catch_panic, disposed_error, map_route,
 };

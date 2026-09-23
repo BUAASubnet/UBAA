@@ -872,3 +872,8 @@ macOS原生FFI一项通过（仍报告前台化open返回1，不计可见App）�
 iOS无环境私有目录修复已独立提交`1a8f7ded`，见[来源、RED/GREEN和原生证据](offline-ios-private-directory-2026-09-23.md)。希冀分段计划复用业务激活已独立提交`94ff3a5c`，见[逐操作来源及完整门禁](offline-judge-activation-2026-09-23.md)。Bridge v35/schema v6不变。
 
 macOS/iPhone/iPad各80项[原生合成矩阵](offline-native-matrix-2026-09-23.md)通过，完整Flutter1069项通过。第一轮[进程基线](offline-startup-2026-09-23.md)21次因重复停滞转入诊断，保留异常，不宣称30次或全方案完成。当前P2-T可见无焦点窗口恢复缺口已经3项RED→GREEN，完整just check、Flutter1072项/7包分析、三端各83项原生矩阵及WebVPN真实App可见恢复回归通过，见[专项证据](offline-visible-resume-2026-09-23.md)。最终三端性能和双路线只读继续。
+
+
+## P4-AH：成绩变化基线统一加密（2026-09-23）
+
+成绩基线现已进入Core统一加密仓库，旧文件不再接收新成绩；账号/路线/学期隔离、迁移失败保留、在线结果与缓存故障分列及清理后提醒撤销均已覆盖。完整Flutter1099项/7包分析、just check/CLI16/Bridge140、FRB零漂移、三端100项原生矩阵和macOS成绩交互12项通过。完整证据及RED/失败门禁记录见[本轮证据](offline-grade-baseline-2026-09-23.md)。这些不替代最终双路线、新App进程性能和实体设备验收。

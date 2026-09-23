@@ -60,6 +60,7 @@ class UbaaAppHost extends StatefulWidget {
     this.telemetry,
     this.reminderStore,
     this.gradeScoreStore,
+    this.legacyGradeScoreStore,
     this.appInformation,
     super.key,
   });
@@ -82,6 +83,7 @@ class UbaaAppHost extends StatefulWidget {
   final TelemetryClient? telemetry;
   final YgdkReminderStore? reminderStore;
   final GradeScoreStore? gradeScoreStore;
+  final FileGradeScoreStore? legacyGradeScoreStore;
   final PlatformAppInformation? appInformation;
 
   @override

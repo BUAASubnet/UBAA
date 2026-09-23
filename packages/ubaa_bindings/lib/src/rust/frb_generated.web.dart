@@ -14,6 +14,7 @@ import 'api/judge_scan.dart';
 import 'api/judge_scan/online.dart';
 import 'api/offline.dart';
 import 'api/offline_academic.dart';
+import 'api/offline_academic/baseline.dart';
 import 'api/offline_bykc.dart';
 import 'api/offline_cgyy.dart';
 import 'api/offline_evaluation.dart';
@@ -486,6 +487,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeEvaluationSubmitTarget
   dco_decode_box_autoadd_bridge_evaluation_submit_target(dynamic raw);
+
+  @protected
+  BridgeGradeScoreBaseline dco_decode_box_autoadd_bridge_grade_score_baseline(
+    dynamic raw,
+  );
 
   @protected
   BridgeJudgeAssignmentDetail
@@ -1073,6 +1079,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeGradeData dco_decode_bridge_grade_data(dynamic raw);
 
   @protected
+  BridgeGradeScoreBaseline dco_decode_bridge_grade_score_baseline(dynamic raw);
+
+  @protected
+  BridgeGradeScoreEntry dco_decode_bridge_grade_score_entry(dynamic raw);
+
+  @protected
   BridgeHomeRefreshState dco_decode_bridge_home_refresh_state(dynamic raw);
 
   @protected
@@ -1614,6 +1626,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BridgeGrade> dco_decode_list_bridge_grade(dynamic raw);
 
   @protected
+  List<BridgeGradeScoreEntry> dco_decode_list_bridge_grade_score_entry(
+    dynamic raw,
+  );
+
+  @protected
   List<BridgeJudgeAssignmentDetail>
   dco_decode_list_bridge_judge_assignment_detail(dynamic raw);
 
@@ -1902,6 +1919,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeEvaluationSubmitTarget?
   dco_decode_opt_box_autoadd_bridge_evaluation_submit_target(dynamic raw);
+
+  @protected
+  BridgeGradeScoreBaseline?
+  dco_decode_opt_box_autoadd_bridge_grade_score_baseline(dynamic raw);
 
   @protected
   BridgeJudgeAssignmentDetail?
@@ -2437,6 +2458,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeEvaluationSubmitTarget
   sse_decode_box_autoadd_bridge_evaluation_submit_target(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeGradeScoreBaseline sse_decode_box_autoadd_bridge_grade_score_baseline(
     SseDeserializer deserializer,
   );
 
@@ -3172,6 +3198,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeGradeData sse_decode_bridge_grade_data(SseDeserializer deserializer);
 
   @protected
+  BridgeGradeScoreBaseline sse_decode_bridge_grade_score_baseline(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeGradeScoreEntry sse_decode_bridge_grade_score_entry(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeHomeRefreshState sse_decode_bridge_home_refresh_state(
     SseDeserializer deserializer,
   );
@@ -3877,6 +3913,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BridgeGrade> sse_decode_list_bridge_grade(SseDeserializer deserializer);
 
   @protected
+  List<BridgeGradeScoreEntry> sse_decode_list_bridge_grade_score_entry(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BridgeJudgeAssignmentDetail>
   sse_decode_list_bridge_judge_assignment_detail(SseDeserializer deserializer);
 
@@ -4247,6 +4288,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeEvaluationSubmitTarget?
   sse_decode_opt_box_autoadd_bridge_evaluation_submit_target(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeGradeScoreBaseline?
+  sse_decode_opt_box_autoadd_bridge_grade_score_baseline(
     SseDeserializer deserializer,
   );
 
@@ -4849,6 +4896,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_evaluation_submit_target(
     BridgeEvaluationSubmitTarget self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_grade_score_baseline(
+    BridgeGradeScoreBaseline self,
     SseSerializer serializer,
   );
 
@@ -5735,6 +5788,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_grade_score_baseline(
+    BridgeGradeScoreBaseline self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_grade_score_entry(
+    BridgeGradeScoreEntry self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_home_refresh_state(
     BridgeHomeRefreshState self,
     SseSerializer serializer,
@@ -6593,6 +6658,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_grade_score_entry(
+    List<BridgeGradeScoreEntry> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_judge_assignment_detail(
     List<BridgeJudgeAssignmentDetail> self,
     SseSerializer serializer,
@@ -7007,6 +7078,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_evaluation_submit_target(
     BridgeEvaluationSubmitTarget? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_grade_score_baseline(
+    BridgeGradeScoreBaseline? self,
     SseSerializer serializer,
   );
 

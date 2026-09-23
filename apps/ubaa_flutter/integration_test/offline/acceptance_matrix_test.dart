@@ -15,6 +15,8 @@ import '../../../../packages/ubaa_app/test/offline/judge_online/scheduler_test.d
     as priority;
 import '../../../../packages/ubaa_app/test/offline/grades/priority_test.dart'
     as grade_priority;
+import '../../../../packages/ubaa_app/test/offline/grades/baseline_test.dart'
+    as grade_baseline;
 import '../../../../packages/ubaa_app/test/offline/write_cache/readback_test.dart'
     as readback;
 import '../../../../packages/ubaa_host/test/offline/startup_test.dart'
@@ -58,6 +60,7 @@ void main() {
   });
   group('清理与写后核对', () {
     management.main();
+    grade_baseline.main();
     write.main();
     readback.main();
     hints.main();

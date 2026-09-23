@@ -15,15 +15,18 @@ final class GradeScoreWatch extends ChangeNotifier {
   final GradeScoreStore store;
   GradeScoreNotice? _notice;
   UiError? _error;
+  UiError? _cacheError;
   ConnectionMode? _checkedRoute;
   String? _account;
   RoutePolicy? _policy;
   int _epoch = -1, _generation = 0;
+  int _businessCacheEpoch = -1;
   int? _checkedEpoch;
   Future<void>? _pending;
   bool _disposed = false, _checking = false;
   GradeScoreNotice? get notice => _notice;
   UiError? get error => _error;
+  UiError? get cacheError => _cacheError;
   ConnectionMode? get checkedRoute => _checkedRoute;
   bool get isChecking => _checking;
 
@@ -39,16 +42,21 @@ final class GradeScoreWatch extends ChangeNotifier {
   void _syncScope() {
     if (_disposed) return;
     final account = _currentAccount, policy = controller.loginForm.routePolicy;
-    final changed = account != _account || policy != _policy;
+    final changed =
+        account != _account ||
+        policy != _policy ||
+        _businessCacheEpoch != controller.businessCacheEpoch;
     if (!changed && _epoch == controller.readCacheEpoch) return;
     _generation++;
     _account = account;
     _policy = policy;
+    _businessCacheEpoch = controller.businessCacheEpoch;
     _epoch = controller.readCacheEpoch;
     _checkedEpoch = null;
     _pending = null;
     _checking = false;
     _error = null;
+    _cacheError = null;
     _checkedRoute = null;
     if (changed) _notice = null;
     notifyListeners();
@@ -65,6 +73,7 @@ final class GradeScoreWatch extends ChangeNotifier {
     _checkedEpoch = _epoch;
     _checking = true;
     _error = null;
+    _cacheError = null;
     _checkedRoute = null;
     final generation = _generation, epoch = _epoch;
     notifyListeners();
@@ -92,6 +101,7 @@ final class GradeScoreWatch extends ChangeNotifier {
     int epoch,
     bool force,
   ) async {
+    var savingBaseline = false;
     try {
       final read = await controller.loadCurrentGrades(
         forceRefresh: force,
@@ -116,16 +126,20 @@ final class GradeScoreWatch extends ChangeNotifier {
       final latest = GradeScoreBaseline.fromRead(read);
       // 首次空集合或暂时缺少身份时不覆盖已知基线。
       if (latest.scores.isEmpty) return;
-      final previous = await store.read(account, route);
+      savingBaseline = true;
+      final previous = await store.update(account, route, latest);
       if (!_current(account, generation, epoch)) return;
       final nextNotice = latest.compareWith(previous, route);
-      await store.write(account, route, latest);
-      if (!_current(account, generation, epoch)) return;
       // 没有新变化时，原通知保持到用户查看/忽略。
       if (nextNotice != null) _notice = nextNotice;
     } on Object catch (error) {
-      if (_current(account, generation, epoch))
-        _error = UbaaErrorMapper.fromObject(error);
+      if (_current(account, generation, epoch)) {
+        if (savingBaseline) {
+          _cacheError = UbaaErrorMapper.fromObject(error);
+        } else {
+          _error = UbaaErrorMapper.fromObject(error);
+        }
+      }
     } finally {
       if (_current(account, generation, epoch)) {
         _pending = null;

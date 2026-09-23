@@ -49,7 +49,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1945421891;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 952302683;
 
 // Section: executor
 
@@ -9212,6 +9212,70 @@ fn wire__crate__api__offline__BridgeOfflineCache_read_evaluation_impl(
         },
     )
 }
+fn wire__crate__api__offline__BridgeOfflineCache_read_grade_score_baseline_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeOfflineCache_read_grade_score_baseline",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeOfflineCache>,
+            >>::sse_decode(&mut deserializer);
+            let api_route =
+                <crate::api::client::BridgeConnectionMode>::sse_decode(&mut deserializer);
+            let api_term = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::client::BridgeError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok =
+                            crate::api::offline::BridgeOfflineCache::read_grade_score_baseline(
+                                &*api_that_guard,
+                                api_route,
+                                api_term,
+                            )
+                            .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__offline__BridgeOfflineCache_read_home_signin_impl(
     port_: flutter_rust_bridge::for_generated::MessagePort,
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
@@ -10160,6 +10224,77 @@ fn wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_selection_imp
                             crate::api::offline::BridgeOfflineCache::read_ygdk_records_selection(
                                 &*api_that_guard,
                                 api_route,
+                            )
+                            .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__offline__BridgeOfflineCache_update_grade_score_baseline_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeOfflineCache_update_grade_score_baseline",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeOfflineCache>,
+            >>::sse_decode(&mut deserializer);
+            let api_route =
+                <crate::api::client::BridgeConnectionMode>::sse_decode(&mut deserializer);
+            let api_latest =
+                <crate::api::offline_academic::baseline::BridgeGradeScoreBaseline>::sse_decode(
+                    &mut deserializer,
+                );
+            let api_legacy = <Option<
+                crate::api::offline_academic::baseline::BridgeGradeScoreBaseline,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::client::BridgeError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok =
+                            crate::api::offline::BridgeOfflineCache::update_grade_score_baseline(
+                                &*api_that_guard,
+                                api_route,
+                                api_latest,
+                                api_legacy,
                             )
                             .await?;
                         std::result::Result::Ok(output_ok)
@@ -13233,6 +13368,39 @@ impl SseDecode for crate::api::read::BridgeGradeData {
     }
 }
 
+impl SseDecode for crate::api::offline_academic::baseline::BridgeGradeScoreBaseline {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_termCode = <String>::sse_decode(deserializer);
+        let mut var_termName = <String>::sse_decode(deserializer);
+        let mut var_scores =
+            <Vec<crate::api::offline_academic::baseline::BridgeGradeScoreEntry>>::sse_decode(
+                deserializer,
+            );
+        return crate::api::offline_academic::baseline::BridgeGradeScoreBaseline {
+            term_code: var_termCode,
+            term_name: var_termName,
+            scores: var_scores,
+        };
+    }
+}
+
+impl SseDecode for crate::api::offline_academic::baseline::BridgeGradeScoreEntry {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_key = <String>::sse_decode(deserializer);
+        let mut var_courseName = <Option<String>>::sse_decode(deserializer);
+        let mut var_courseCode = <Option<String>>::sse_decode(deserializer);
+        let mut var_score = <Option<String>>::sse_decode(deserializer);
+        return crate::api::offline_academic::baseline::BridgeGradeScoreEntry {
+            key: var_key,
+            course_name: var_courseName,
+            course_code: var_courseCode,
+            score: var_score,
+        };
+    }
+}
+
 impl SseDecode for crate::api::offline_home::BridgeHomeRefreshState {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -15512,6 +15680,22 @@ impl SseDecode for Vec<crate::api::read::BridgeGrade> {
     }
 }
 
+impl SseDecode for Vec<crate::api::offline_academic::baseline::BridgeGradeScoreEntry> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::api::offline_academic::baseline::BridgeGradeScoreEntry>::sse_decode(
+                    deserializer,
+                ),
+            );
+        }
+        return ans_;
+    }
+}
+
 impl SseDecode for Vec<crate::api::read::BridgeJudgeAssignmentDetail> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -16439,6 +16623,21 @@ impl SseDecode for Option<crate::api::read::BridgeEvaluationSubmitTarget> {
         if (<bool>::sse_decode(deserializer)) {
             return Some(
                 <crate::api::read::BridgeEvaluationSubmitTarget>::sse_decode(deserializer),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::offline_academic::baseline::BridgeGradeScoreBaseline> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::api::offline_academic::baseline::BridgeGradeScoreBaseline>::sse_decode(
+                    deserializer,
+                ),
             );
         } else {
             return None;
@@ -17438,121 +17637,133 @@ fn pde_ffi_dispatcher_primary_impl(
             rust_vec_len,
             data_len,
         ),
-        143 => wire__crate__api__offline__BridgeOfflineCache_read_home_signin_impl(
+        143 => wire__crate__api__offline__BridgeOfflineCache_read_grade_score_baseline_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        144 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_impl(
+        144 => wire__crate__api__offline__BridgeOfflineCache_read_home_signin_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        145 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_detail_impl(
+        145 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        146 => wire__crate__api__offline__BridgeOfflineCache_read_home_ygdk_impl(
+        146 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        147 => wire__crate__api__offline__BridgeOfflineCache_read_judge_impl(
+        147 => wire__crate__api__offline__BridgeOfflineCache_read_home_ygdk_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        148 => wire__crate__api__offline__BridgeOfflineCache_read_judge_detail_impl(
+        148 => wire__crate__api__offline__BridgeOfflineCache_read_judge_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        149 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_area_detail_impl(
+        149 => wire__crate__api__offline__BridgeOfflineCache_read_judge_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        150 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_areas_impl(
+        150 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_area_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        151 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_bookings_impl(
+        151 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_areas_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        152 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_libraries_impl(
+        152 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_bookings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        153 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_seats_impl(
+        153 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_libraries_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        154 => wire__crate__api__offline__BridgeOfflineCache_read_profile_impl(
+        154 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_seats_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        155 => wire__crate__api__offline__BridgeOfflineCache_read_today_impl(
+        155 => wire__crate__api__offline__BridgeOfflineCache_read_profile_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        156 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_impl(
+        156 => wire__crate__api__offline__BridgeOfflineCache_read_today_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        157 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_selection_impl(
+        157 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        158 => wire__crate__api__offline__BridgeOfflineCache_usage_impl(
+        158 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_selection_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        159 => wire__crate__api__offline__BridgeOfflineCache_write_readback_hints_impl(
+        159 => wire__crate__api__offline__BridgeOfflineCache_update_grade_score_baseline_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        164 => wire__crate__api__judge_scan__online__bridge_judge_online_options_default_impl(
+        160 => wire__crate__api__offline__BridgeOfflineCache_usage_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        165 => wire__crate__api__judge_refresh__bridge_judge_refresh_options_default_impl(
+        161 => wire__crate__api__offline__BridgeOfflineCache_write_readback_hints_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        166 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        166 => wire__crate__api__judge_scan__online__bridge_judge_online_options_default_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        167 => wire__crate__api__judge_refresh__bridge_judge_refresh_options_default_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        168 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -17594,22 +17805,22 @@ fn pde_ffi_dispatcher_sync_impl(
         117 => {
             wire__crate__api__judge_scan__BridgeJudgeScan_cancel_impl(ptr, rust_vec_len, data_len)
         }
-        160 => wire__crate__api__schedule_import__BridgeScheduleImportTask_cancel_impl(
+        162 => wire__crate__api__schedule_import__BridgeScheduleImportTask_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        161 => wire__crate__api__offline_home__spoc_scan__detail__BridgeSpocDetailScan_cancel_impl(
+        163 => wire__crate__api__offline_home__spoc_scan__detail__BridgeSpocDetailScan_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        162 => wire__crate__api__offline_home__spoc_scan__BridgeSpocScan_cancel_impl(
+        164 => wire__crate__api__offline_home__spoc_scan__BridgeSpocScan_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        163 => wire__crate__api__simple__bridge_hello_impl(ptr, rust_vec_len, data_len),
+        165 => wire__crate__api__simple__bridge_hello_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -20935,6 +21146,58 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeGradeData>
     for crate::api::read::BridgeGradeData
 {
     fn into_into_dart(self) -> crate::api::read::BridgeGradeData {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::api::offline_academic::baseline::BridgeGradeScoreBaseline
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.term_code.into_into_dart().into_dart(),
+            self.term_name.into_into_dart().into_dart(),
+            self.scores.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::offline_academic::baseline::BridgeGradeScoreBaseline
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<
+        crate::api::offline_academic::baseline::BridgeGradeScoreBaseline,
+    > for crate::api::offline_academic::baseline::BridgeGradeScoreBaseline
+{
+    fn into_into_dart(self) -> crate::api::offline_academic::baseline::BridgeGradeScoreBaseline {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart
+    for crate::api::offline_academic::baseline::BridgeGradeScoreEntry
+{
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.key.into_into_dart().into_dart(),
+            self.course_name.into_into_dart().into_dart(),
+            self.course_code.into_into_dart().into_dart(),
+            self.score.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::offline_academic::baseline::BridgeGradeScoreEntry
+{
+}
+impl
+    flutter_rust_bridge::IntoIntoDart<crate::api::offline_academic::baseline::BridgeGradeScoreEntry>
+    for crate::api::offline_academic::baseline::BridgeGradeScoreEntry
+{
+    fn into_into_dart(self) -> crate::api::offline_academic::baseline::BridgeGradeScoreEntry {
         self
     }
 }
@@ -25321,6 +25584,28 @@ impl SseEncode for crate::api::read::BridgeGradeData {
     }
 }
 
+impl SseEncode for crate::api::offline_academic::baseline::BridgeGradeScoreBaseline {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.term_code, serializer);
+        <String>::sse_encode(self.term_name, serializer);
+        <Vec<crate::api::offline_academic::baseline::BridgeGradeScoreEntry>>::sse_encode(
+            self.scores,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::offline_academic::baseline::BridgeGradeScoreEntry {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.key, serializer);
+        <Option<String>>::sse_encode(self.course_name, serializer);
+        <Option<String>>::sse_encode(self.course_code, serializer);
+        <Option<String>>::sse_encode(self.score, serializer);
+    }
+}
+
 impl SseEncode for crate::api::offline_home::BridgeHomeRefreshState {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -26925,6 +27210,18 @@ impl SseEncode for Vec<crate::api::read::BridgeGrade> {
     }
 }
 
+impl SseEncode for Vec<crate::api::offline_academic::baseline::BridgeGradeScoreEntry> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::offline_academic::baseline::BridgeGradeScoreEntry>::sse_encode(
+                item, serializer,
+            );
+        }
+    }
+}
+
 impl SseEncode for Vec<crate::api::read::BridgeJudgeAssignmentDetail> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -27651,6 +27948,18 @@ impl SseEncode for Option<crate::api::read::BridgeEvaluationSubmitTarget> {
         <bool>::sse_encode(self.is_some(), serializer);
         if let Some(value) = self {
             <crate::api::read::BridgeEvaluationSubmitTarget>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::offline_academic::baseline::BridgeGradeScoreBaseline> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::offline_academic::baseline::BridgeGradeScoreBaseline>::sse_encode(
+                value, serializer,
+            );
         }
     }
 }

@@ -8,6 +8,8 @@ import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'backend.dart';
+import 'store.dart';
+import 'package:ubaa_bindings/ubaa_bindings.dart';
 part 'support.dart';
 
 const _bannerKey = ValueKey('home-grade-update');
@@ -44,6 +46,7 @@ void main() {
     return;
   }
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
+  setUpAll(RustLib.init);
   WidgetController.hitTestWarningShouldBeFatal = true;
   for (final brightness in Brightness.values) {
     testWidgets('原生成绩基线损坏清理反馈 ${brightness.name}', (tester) async {
@@ -56,7 +59,7 @@ void main() {
         tester,
         GradeWatchBackend(),
         brightness,
-        store: FileGradeScoreStore(file),
+        store: LegacyClearGradeStore(file),
       );
       await file.writeAsString('合成损坏文件');
       await tap(tester, find.byTooltip('打开导航菜单'));
@@ -176,13 +179,17 @@ void main() {
         'ubaa-grade-watch-native-',
       );
       addTearDown(() => directory.delete(recursive: true));
-      final file = File('${directory.path}/scores.json');
       final first = GradeWatchBackend();
-      await mount(tester, first, brightness, store: FileGradeScoreStore(file));
+      await mount(
+        tester,
+        first,
+        brightness,
+        store: NativeGradeScoreStore(directory),
+      );
       await tester.pumpWidget(const SizedBox.shrink());
       await tester.pumpAndSettle();
       final second = GradeWatchBackend()..score = '90';
-      final store = FileGradeScoreStore(file);
+      final store = NativeGradeScoreStore(directory);
       await mount(tester, second, brightness, store: store);
       expect(find.byKey(_bannerKey), findsOneWidget);
       await capture(

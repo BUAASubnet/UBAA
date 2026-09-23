@@ -20,6 +20,8 @@ mod bykc_cache;
 mod cgyy;
 #[path = "facade/cgyy_cache.rs"]
 mod cgyy_cache;
+#[path = "facade/cache/grade_baseline.rs"]
+mod grade_baseline;
 #[path = "facade/home_cache.rs"]
 mod home_cache;
 #[path = "facade/judge_scan.rs"]

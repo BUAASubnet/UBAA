@@ -13,6 +13,9 @@ use std::{
     sync::{Arc, Mutex},
 };
 
+#[path = "offline/grade_baseline.rs"]
+mod grade_baseline;
+
 /// 与网络客户端锁独立的账号缓存句柄。格式化不会泄露账号或材料。
 #[derive(Clone)]
 pub struct OfflineCache {

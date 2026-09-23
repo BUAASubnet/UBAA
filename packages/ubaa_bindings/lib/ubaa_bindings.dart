@@ -12,6 +12,7 @@ export 'src/rust/api/judge_scan/online.dart';
 export 'src/rust/api/judge_refresh.dart';
 export 'src/rust/api/judge_refresh/details.dart';
 export 'src/rust/api/offline_academic.dart';
+export 'src/rust/api/offline_academic/baseline.dart';
 export 'src/rust/api/offline_home.dart';
 
 export 'src/rust/api/offline_bykc.dart';

@@ -46,3 +46,7 @@ pub use profile::CachedMaskedProfile;
 
 mod schedule;
 pub use schedule::CachedSemesterSchedule;
+
+#[path = "academic/baseline.rs"]
+mod grade_baseline;
+pub use grade_baseline::{CachedGradeScoreBaseline, CachedGradeScoreEntry};

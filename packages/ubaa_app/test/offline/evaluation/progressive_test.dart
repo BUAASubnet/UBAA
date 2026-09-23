@@ -177,7 +177,7 @@ class EvaluationClient implements BridgeClient {
   String? expectedIdentity;
   Completer<BridgeEvaluationScanBatch>? gate;
   @override
-  int contractVersion() => 35;
+  int contractVersion() => 36;
   @override
   Future<BridgeEvaluationScan> beginEvaluationOnline({
     String? expectedIdentity,

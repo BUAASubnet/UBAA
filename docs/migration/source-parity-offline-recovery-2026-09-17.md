@@ -604,3 +604,15 @@ P2-T已完成上述3项RED→GREEN、完整just check、Flutter1072项/7包分�
 当前实现把所有学期与成绩辅助读取硬编码interactive，自动检查可能排到首页来源之前；显式成绩FeatureQuery也可绕过已有辅助在途读取而重复请求。先用真实AppController/GradeScoreWatch及脱敏ProgressiveReadBackend验证请求顺序和次数RED；最小修复共享需求优先级并在原Core批次边界调度。数据覆盖、强制刷新绕过已完成缓存、同代在途合并及写保护保持原合同。
 
 P2-U上述5项行为RED已记录，9项专项、完整Flutter1081项/7包分析、just check和三端各92项原生矩阵通过。macOS另有一次未稳定复现的图书馆弹层测试失败，原样保留，详见[证据](evidence/offline-grade-priority-2026-09-23.md)。
+
+## P4-AH：成绩变化基线统一加密（2026-09-23，实施前）
+
+审查发现生产 Host 仍将课程号、名称和分数写入 ui-grade-scores.json；它属于业务内容，违反活动合同的统一加密要求。重新读取 old 固定1f4b8f84的 `api/storage/GradeScoreCacheStore.kt`、GradeScoreWatchViewModel及其测试：Settings按用户与ConnectionMode保存termCode/termName/scores，首次仅建基线、空结果不覆盖、切学期不误报、清除账号覆盖各路线。其明文JSON是待迁移实现，不作为安全降级依据。buaa-api固定a63712fa的 `store/cred.rs`、`store/cookies.rs`只实现认证材料文件；aas/app无同构成绩变化基线，不能借用认证JSON路径或字段。学校成绩读取仍逐列继承P4-B/P2-U，不改变任何上游操作。
+
+| 本地操作 | CAS/bootstrap/service、跳转及最终URL | Cookie/session | HTTP方法/精确参数/头/编码 | 加密/签名 | DTO及隔离 | 并发、错误/退出 |
+|---|---|---|---|---|---|---|
+| 读取并替换比较基线 | 不适用，无网络请求 | 不读写认证会话，不授予学校写资格 | 不适用；在线成绩沿P2-U | 复用Core AES-GCM及账号/范围AAD和HMAC索引，禁止明文降级 | 仅termCode/termName及key/courseName/courseCode/score；按本机账号、实际路线、精确学期隔离，空集合不覆盖 | 同本地仓库锁内读取原值、保存完整新值；失败不伪首次成功，本机错误与学校读取分别显示 |
+| 迁移现有基线 | 不适用 | 不复制Cookie或凭据 | 无新增学校请求 | 先确认加密保存成功，再清除对应旧文件范围 | 只迁移当前账号/路线，保留旧学期为独立范围，不覆盖已有加密基线；其他账号/路线保留 | 旧文件串行、损坏保留并报告；加密/容量/生命周期失败保留原数据；旧文件不再接收新成绩 |
+| 清理、重建、退出及迟到结果 | 不适用 | 沿现有账号和客户端代次，不自动登录或重发业务写入 | 无新增请求 | 沿现有加密库清理和密钥生命周期 | 显式清理业务缓存或本机账号同时清理该账号旧基线，避免重新导入 | 清理先阻断新观察，旧句柄和代次拒绝迟到保存；清理失败不能宣称完成 |
+
+先以旧文件拒绝新增明文及Core新增白名单载荷的行为测试观察RED，再加入typed本地通道和宿主装配；基线只能由完整在线观察更新，持久内容不能自证一次成绩变化。Bridge公开签名升级v36；缓存增加可选载荷变体，不改变SQLite表或既有密文编码，schema保持v6。迁移文件保存仅移除已迁移/显式清理的原条目，不写入新的业务正文。

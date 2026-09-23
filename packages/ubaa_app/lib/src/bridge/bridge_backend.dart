@@ -20,6 +20,7 @@ part 'recovery.dart';
 part 'read/academic.dart';
 part 'read/schedule/import.dart';
 part 'read/academic_cache.dart';
+part 'read/grades/baseline.dart';
 part 'read/assignments.dart';
 part 'read/home_projection.dart';
 part 'read/home_cache.dart';
@@ -53,7 +54,7 @@ part 'write/readback.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 35;
+const _supportedBridgeContractVersion = 36;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -86,6 +87,7 @@ class BridgeBackend
         CacheRecoveryBackend,
         CacheWriteBackend,
         WriteReadbackBackend,
+        GradeScoreBaselineBackend,
         OfflineQueryBackend,
         ProgressiveReadBackend,
         AccountScopedProgressiveReadBackend,
@@ -295,6 +297,14 @@ class BridgeBackend
 
   @override
   Future<void> dispose() => _dispose(this);
+
+  @override
+  Future<GradeScoreBaseline?> updateGradeScoreBaseline({
+    required String accountId,
+    required ConnectionMode route,
+    required GradeScoreBaseline latest,
+    GradeScoreBaseline? legacy,
+  }) => _updateGradeScoreBaseline(this, accountId, route, latest, legacy);
 
   @override
   Future<List<WriteReadbackHint>> readWriteReadbackHints({

@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
-import 'package:ubaa_platform/ubaa_platform.dart';
+import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 /// 生产当前学期只读与独立本地基线；不截图、不输出课程身份或分数。
@@ -40,6 +40,7 @@ void main() {
             find.byType(UbaaLoginView).evaluate().isNotEmpty,
       );
       expect(find.byType(UbaaMainShell).evaluate().isNotEmpty, isTrue);
+      await shell().onRetryFeature(FeatureId.grades);
       await waitFor(
         () => {
           FeatureLoadStatus.success,
@@ -65,12 +66,49 @@ void main() {
     await tester.pumpWidget(app!);
     await loaded();
     final route = ConnectionMode.values.singleWhere((r) => r.name == expected);
-    final user = shell().user!;
-    final account = user.schoolId?.trim().isNotEmpty == true
-        ? user.schoolId!
-        : user.username;
-    final store = FileGradeScoreStore(file);
-    final first = await store.read(account, route);
+    final accounts = (app! as UbaaFlutterApp).localAccountStore!;
+    Future<GradeScoreBaseline?> readBaseline() async {
+      final local = (await accounts.read())!.account!;
+      final key = await accounts.cacheKey(local);
+      late BridgeOfflineCache cache;
+      try {
+        cache = await BridgeOfflineCache.open(
+          configDir: config,
+          accountId: local.id,
+          expectedIdentity: local.username,
+          key: key,
+        );
+      } finally {
+        key.fillRange(0, key.length, 0);
+      }
+      final source = route == ConnectionMode.direct
+          ? BridgeConnectionMode.direct
+          : BridgeConnectionMode.webVpn;
+      final terms = await cache.readAcademicTerms(route: source);
+      final current = terms!.data.singleWhere((term) => term.selected);
+      final value = await cache.readGradeScoreBaseline(
+        route: source,
+        term: current.itemCode,
+      );
+      return value == null
+          ? null
+          : GradeScoreBaseline(
+              termCode: value.termCode,
+              termName: value.termName,
+              scores: value.scores
+                  .map(
+                    (v) => GradeScoreEntry(
+                      key: v.key,
+                      courseName: v.courseName,
+                      courseCode: v.courseCode,
+                      score: v.score,
+                    ),
+                  )
+                  .toList(),
+            );
+    }
+
+    final first = await readBaseline();
     expect(
       first != null && first.scores.isNotEmpty,
       isTrue,
@@ -78,21 +116,22 @@ void main() {
     );
     expect(shell().gradeScoreNotice == null, isTrue);
     expect(shell().gradeCheckRoute?.name, expected);
-    expect((await file.stat()).mode & 0x1ff, 0x180);
+    expect(await file.exists(), isFalse, reason: '新的真实成绩不创建明文基线');
     debugPrint(
-      '成绩提醒只读 firstBaseline=true firstNotice=false privateMode=600 entries=${first!.scores.length}',
+      '成绩提醒只读 firstBaseline=true firstNotice=false encrypted=true entries=${first!.scores.length}',
     );
     // 仅重读当前成绩，不操作任何学校业务写入。
     await shell().onRetryFeature(FeatureId.grades);
     await loaded();
-    final beforeRestart = await store.read(account, route);
+    final beforeRestart = await readBaseline();
     expect(beforeRestart != null, isTrue);
     await tester.pumpWidget(const SizedBox.shrink());
     await tester.pump(const Duration(milliseconds: 250));
     await tester.pumpWidget(app!);
     await loaded();
-    final afterRestart = await FileGradeScoreStore(file).read(account, route);
+    final afterRestart = await readBaseline();
     expect(afterRestart != null, isTrue);
+    expect(await file.exists(), isFalse);
     final observed =
         afterRestart!.compareWith(beforeRestart, route)?.changes.length ?? 0;
     expect(shell().gradeScoreNotice?.changes.length ?? 0, observed);

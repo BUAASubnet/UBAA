@@ -86,7 +86,7 @@ class OnlineClient implements BridgeClient {
   BridgeJudgeOnlineOptions? options;
   Completer<BridgeJudgeOnlineProgress>? gate;
   @override
-  int contractVersion() => 35;
+  int contractVersion() => 36;
   @override
   Future<BridgeJudgeOnlineTask> beginJudgeOnline({
     required BridgeJudgeOnlineOptions options,

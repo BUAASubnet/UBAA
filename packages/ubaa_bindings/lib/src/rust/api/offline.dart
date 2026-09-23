@@ -7,6 +7,7 @@ import '../frb_generated.dart';
 import 'cache_management.dart';
 import 'client.dart';
 import 'offline_academic.dart';
+import 'offline_academic/baseline.dart';
 import 'offline_bykc.dart';
 import 'offline_cgyy.dart';
 import 'offline_evaluation.dart';
@@ -235,6 +236,15 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
     required BridgeConnectionMode route,
   });
 
+  /// 本地精确学期读取，不获取学校客户端锁。
+  ///
+  /// # Errors
+  /// 返回本地缓存类别，未保存不伪装成学校查询失败。
+  Future<BridgeGradeScoreBaseline?> readGradeScoreBaseline({
+    required BridgeConnectionMode route,
+    required String term,
+  });
+
   /// 独立本地读取不等待网络锁，不进行认证。
   ///
   /// # Errors
@@ -369,6 +379,16 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   /// 缺值返回 None，退出或损坏保持稳定错误。
   Future<BridgeCachedYgdkSelection?> readYgdkRecordsSelection({
     required BridgeConnectionMode route,
+  });
+
+  /// 原基线读取与新观察保存共享本地锁；旧文件基线仅在缺失时迁入。
+  ///
+  /// # Errors
+  /// 空集合、容量、密钥、清理或退出错误不回退明文。
+  Future<BridgeGradeScoreBaseline?> updateGradeScoreBaseline({
+    required BridgeConnectionMode route,
+    required BridgeGradeScoreBaseline latest,
+    BridgeGradeScoreBaseline? legacy,
   });
 
   /// 仅返回当前账号的数值用量。

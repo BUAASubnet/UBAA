@@ -11,6 +11,7 @@ import 'api/judge_scan.dart';
 import 'api/judge_scan/online.dart';
 import 'api/offline.dart';
 import 'api/offline_academic.dart';
+import 'api/offline_academic/baseline.dart';
 import 'api/offline_bykc.dart';
 import 'api/offline_cgyy.dart';
 import 'api/offline_evaluation.dart';
@@ -90,7 +91,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => 1945421891;
+  int get rustContentHash => 952302683;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -908,6 +909,13 @@ abstract class RustLibApi extends BaseApi {
     required BridgeConnectionMode route,
   });
 
+  Future<BridgeGradeScoreBaseline?>
+  crateApiOfflineBridgeOfflineCacheReadGradeScoreBaseline({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String term,
+  });
+
   Future<BridgeCachedHomeSignin?>
   crateApiOfflineBridgeOfflineCacheReadHomeSignin({
     required BridgeOfflineCache that,
@@ -1009,6 +1017,14 @@ abstract class RustLibApi extends BaseApi {
   crateApiOfflineBridgeOfflineCacheReadYgdkRecordsSelection({
     required BridgeOfflineCache that,
     required BridgeConnectionMode route,
+  });
+
+  Future<BridgeGradeScoreBaseline?>
+  crateApiOfflineBridgeOfflineCacheUpdateGradeScoreBaseline({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required BridgeGradeScoreBaseline latest,
+    BridgeGradeScoreBaseline? legacy,
   });
 
   Future<BridgeCacheUsage> crateApiOfflineBridgeOfflineCacheUsage({
@@ -6908,6 +6924,50 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeGradeScoreBaseline?>
+  crateApiOfflineBridgeOfflineCacheReadGradeScoreBaseline({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required String term,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_String(term, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 143,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_grade_score_baseline,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta:
+            kCrateApiOfflineBridgeOfflineCacheReadGradeScoreBaselineConstMeta,
+        argValues: [that, route, term],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOfflineBridgeOfflineCacheReadGradeScoreBaselineConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_read_grade_score_baseline",
+        argNames: ["that", "route", "term"],
+      );
+
+  @override
   Future<BridgeCachedHomeSignin?>
   crateApiOfflineBridgeOfflineCacheReadHomeSignin({
     required BridgeOfflineCache that,
@@ -6925,7 +6985,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 143,
+            funcId: 144,
             port: port_,
           );
         },
@@ -6964,7 +7024,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 144,
+            funcId: 145,
             port: port_,
           );
         },
@@ -7005,7 +7065,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 145,
+            funcId: 146,
             port: port_,
           );
         },
@@ -7046,7 +7106,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 146,
+            funcId: 147,
             port: port_,
           );
         },
@@ -7086,7 +7146,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 147,
+            funcId: 148,
             port: port_,
           );
         },
@@ -7129,7 +7189,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 148,
+            funcId: 149,
             port: port_,
           );
         },
@@ -7172,7 +7232,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 149,
+            funcId: 150,
             port: port_,
           );
         },
@@ -7220,7 +7280,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 150,
+            funcId: 151,
             port: port_,
           );
         },
@@ -7265,7 +7325,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 151,
+            funcId: 152,
             port: port_,
           );
         },
@@ -7309,7 +7369,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 152,
+            funcId: 153,
             port: port_,
           );
         },
@@ -7359,7 +7419,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 153,
+            funcId: 154,
             port: port_,
           );
         },
@@ -7399,7 +7459,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 154,
+            funcId: 155,
             port: port_,
           );
         },
@@ -7437,7 +7497,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 155,
+            funcId: 156,
             port: port_,
           );
         },
@@ -7482,7 +7542,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 156,
+            funcId: 157,
             port: port_,
           );
         },
@@ -7523,7 +7583,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 157,
+            funcId: 158,
             port: port_,
           );
         },
@@ -7548,6 +7608,58 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeGradeScoreBaseline?>
+  crateApiOfflineBridgeOfflineCacheUpdateGradeScoreBaseline({
+    required BridgeOfflineCache that,
+    required BridgeConnectionMode route,
+    required BridgeGradeScoreBaseline latest,
+    BridgeGradeScoreBaseline? legacy,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            that,
+            serializer,
+          );
+          sse_encode_bridge_connection_mode(route, serializer);
+          sse_encode_box_autoadd_bridge_grade_score_baseline(
+            latest,
+            serializer,
+          );
+          sse_encode_opt_box_autoadd_bridge_grade_score_baseline(
+            legacy,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 159,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_opt_box_autoadd_bridge_grade_score_baseline,
+          decodeErrorData: sse_decode_bridge_error,
+        ),
+        constMeta:
+            kCrateApiOfflineBridgeOfflineCacheUpdateGradeScoreBaselineConstMeta,
+        argValues: [that, route, latest, legacy],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta
+  get kCrateApiOfflineBridgeOfflineCacheUpdateGradeScoreBaselineConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeOfflineCache_update_grade_score_baseline",
+        argNames: ["that", "route", "latest", "legacy"],
+      );
+
+  @override
   Future<BridgeCacheUsage> crateApiOfflineBridgeOfflineCacheUsage({
     required BridgeOfflineCache that,
   }) {
@@ -7562,7 +7674,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 158,
+            funcId: 160,
             port: port_,
           );
         },
@@ -7599,7 +7711,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 159,
+            funcId: 161,
             port: port_,
           );
         },
@@ -7637,7 +7749,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 160,
+            funcId: 162,
           )!;
         },
         codec: SseCodec(
@@ -7674,7 +7786,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 161,
+            funcId: 163,
           )!;
         },
         codec: SseCodec(
@@ -7711,7 +7823,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 162,
+            funcId: 164,
           )!;
         },
         codec: SseCodec(
@@ -7740,7 +7852,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 163,
+            funcId: 165,
           )!;
         },
         codec: SseCodec(
@@ -7767,7 +7879,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 164,
+            funcId: 166,
             port: port_,
           );
         },
@@ -7800,7 +7912,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 165,
+            funcId: 167,
             port: port_,
           );
         },
@@ -7832,7 +7944,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 166,
+            funcId: 168,
             port: port_,
           );
         },
@@ -8607,6 +8719,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   dco_decode_box_autoadd_bridge_evaluation_submit_target(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_bridge_evaluation_submit_target(raw);
+  }
+
+  @protected
+  BridgeGradeScoreBaseline dco_decode_box_autoadd_bridge_grade_score_baseline(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_grade_score_baseline(raw);
   }
 
   @protected
@@ -10712,6 +10832,33 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeGradeScoreBaseline dco_decode_bridge_grade_score_baseline(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeGradeScoreBaseline(
+      termCode: dco_decode_String(arr[0]),
+      termName: dco_decode_String(arr[1]),
+      scores: dco_decode_list_bridge_grade_score_entry(arr[2]),
+    );
+  }
+
+  @protected
+  BridgeGradeScoreEntry dco_decode_bridge_grade_score_entry(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeGradeScoreEntry(
+      key: dco_decode_String(arr[0]),
+      courseName: dco_decode_opt_String(arr[1]),
+      courseCode: dco_decode_opt_String(arr[2]),
+      score: dco_decode_opt_String(arr[3]),
+    );
+  }
+
+  @protected
   BridgeHomeRefreshState dco_decode_bridge_home_refresh_state(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -12576,6 +12723,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<BridgeGradeScoreEntry> dco_decode_list_bridge_grade_score_entry(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_grade_score_entry)
+        .toList();
+  }
+
+  @protected
   List<BridgeJudgeAssignmentDetail>
   dco_decode_list_bridge_judge_assignment_detail(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
@@ -13186,6 +13343,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return raw == null
         ? null
         : dco_decode_box_autoadd_bridge_evaluation_submit_target(raw);
+  }
+
+  @protected
+  BridgeGradeScoreBaseline?
+  dco_decode_opt_box_autoadd_bridge_grade_score_baseline(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_grade_score_baseline(raw);
   }
 
   @protected
@@ -14138,6 +14304,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_bridge_evaluation_submit_target(deserializer));
+  }
+
+  @protected
+  BridgeGradeScoreBaseline sse_decode_box_autoadd_bridge_grade_score_baseline(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_grade_score_baseline(deserializer));
   }
 
   @protected
@@ -16661,6 +16835,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeGradeScoreBaseline sse_decode_bridge_grade_score_baseline(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_termCode = sse_decode_String(deserializer);
+    var var_termName = sse_decode_String(deserializer);
+    var var_scores = sse_decode_list_bridge_grade_score_entry(deserializer);
+    return BridgeGradeScoreBaseline(
+      termCode: var_termCode,
+      termName: var_termName,
+      scores: var_scores,
+    );
+  }
+
+  @protected
+  BridgeGradeScoreEntry sse_decode_bridge_grade_score_entry(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_key = sse_decode_String(deserializer);
+    var var_courseName = sse_decode_opt_String(deserializer);
+    var var_courseCode = sse_decode_opt_String(deserializer);
+    var var_score = sse_decode_opt_String(deserializer);
+    return BridgeGradeScoreEntry(
+      key: var_key,
+      courseName: var_courseName,
+      courseCode: var_courseCode,
+      score: var_score,
+    );
+  }
+
+  @protected
   BridgeHomeRefreshState sse_decode_bridge_home_refresh_state(
     SseDeserializer deserializer,
   ) {
@@ -18866,6 +19072,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  List<BridgeGradeScoreEntry> sse_decode_list_bridge_grade_score_entry(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeGradeScoreEntry>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_grade_score_entry(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
   List<BridgeJudgeAssignmentDetail>
   sse_decode_list_bridge_judge_assignment_detail(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
@@ -19879,6 +20099,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       return (sse_decode_box_autoadd_bridge_evaluation_submit_target(
         deserializer,
       ));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeGradeScoreBaseline?
+  sse_decode_opt_box_autoadd_bridge_grade_score_baseline(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_grade_score_baseline(deserializer));
     } else {
       return null;
     }
@@ -20953,6 +21187,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_bridge_evaluation_submit_target(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_grade_score_baseline(
+    BridgeGradeScoreBaseline self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_grade_score_baseline(self, serializer);
   }
 
   @protected
@@ -22795,6 +23038,29 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bridge_grade_score_baseline(
+    BridgeGradeScoreBaseline self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.termCode, serializer);
+    sse_encode_String(self.termName, serializer);
+    sse_encode_list_bridge_grade_score_entry(self.scores, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_grade_score_entry(
+    BridgeGradeScoreEntry self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.key, serializer);
+    sse_encode_opt_String(self.courseName, serializer);
+    sse_encode_opt_String(self.courseCode, serializer);
+    sse_encode_opt_String(self.score, serializer);
+  }
+
+  @protected
   void sse_encode_bridge_home_refresh_state(
     BridgeHomeRefreshState self,
     SseSerializer serializer,
@@ -24520,6 +24786,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_list_bridge_grade_score_entry(
+    List<BridgeGradeScoreEntry> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_grade_score_entry(item, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_list_bridge_judge_assignment_detail(
     List<BridgeJudgeAssignmentDetail> self,
     SseSerializer serializer,
@@ -25442,6 +25720,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_bool(self != null, serializer);
     if (self != null) {
       sse_encode_box_autoadd_bridge_evaluation_submit_target(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_grade_score_baseline(
+    BridgeGradeScoreBaseline? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_grade_score_baseline(self, serializer);
     }
   }
 
@@ -27188,6 +27479,20 @@ class BridgeOfflineCacheImpl extends RustOpaque implements BridgeOfflineCache {
     route: route,
   );
 
+  /// 本地精确学期读取，不获取学校客户端锁。
+  ///
+  /// # Errors
+  /// 返回本地缓存类别，未保存不伪装成学校查询失败。
+  Future<BridgeGradeScoreBaseline?> readGradeScoreBaseline({
+    required BridgeConnectionMode route,
+    required String term,
+  }) => RustLib.instance.api
+      .crateApiOfflineBridgeOfflineCacheReadGradeScoreBaseline(
+        that: this,
+        route: route,
+        term: term,
+      );
+
   /// 独立本地读取不等待网络锁，不进行认证。
   ///
   /// # Errors
@@ -27391,6 +27696,22 @@ class BridgeOfflineCacheImpl extends RustOpaque implements BridgeOfflineCache {
       .crateApiOfflineBridgeOfflineCacheReadYgdkRecordsSelection(
         that: this,
         route: route,
+      );
+
+  /// 原基线读取与新观察保存共享本地锁；旧文件基线仅在缺失时迁入。
+  ///
+  /// # Errors
+  /// 空集合、容量、密钥、清理或退出错误不回退明文。
+  Future<BridgeGradeScoreBaseline?> updateGradeScoreBaseline({
+    required BridgeConnectionMode route,
+    required BridgeGradeScoreBaseline latest,
+    BridgeGradeScoreBaseline? legacy,
+  }) => RustLib.instance.api
+      .crateApiOfflineBridgeOfflineCacheUpdateGradeScoreBaseline(
+        that: this,
+        route: route,
+        latest: latest,
+        legacy: legacy,
       );
 
   /// 仅返回当前账号的数值用量。

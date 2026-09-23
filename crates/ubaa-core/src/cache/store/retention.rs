@@ -166,6 +166,7 @@ pub(super) fn classify(record: &CacheRecord, context: &Context, now: i64) -> Pri
                 .map(|v| ended(day_end(&v.day), now, Priority::Recent)),
         ),
         CachePayload::Grades(_)
+        | CachePayload::GradeScoreBaseline(_)
         | CachePayload::Terms(_)
         | CachePayload::Weeks(_)
         | CachePayload::JudgeCourses(_)

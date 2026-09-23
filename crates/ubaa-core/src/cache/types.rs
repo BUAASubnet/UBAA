@@ -1,9 +1,9 @@
 //! 缓存持久合同只包含可再次阅读的数据，不包含写入资格。
 use super::{
     CachedBykcChosen, CachedBykcCourse, CachedBykcCoursePage, CachedCgyyDayInfo, CachedCgyyOrder,
-    CachedCgyyOrdersPage, CachedEvaluationCourses, CachedLibBookBookingsPage, CachedLibBookSeat,
-    CachedMaskedProfile, CachedSemesterSchedule, CachedSigninClass, CachedYgdkOverview,
-    CachedYgdkRecordsPage, CachedYgdkRecordsSelection,
+    CachedCgyyOrdersPage, CachedEvaluationCourses, CachedGradeScoreBaseline,
+    CachedLibBookBookingsPage, CachedLibBookSeat, CachedMaskedProfile, CachedSemesterSchedule,
+    CachedSigninClass, CachedYgdkOverview, CachedYgdkRecordsPage, CachedYgdkRecordsSelection,
 };
 use crate::domain::{
     Assignment, CgyyPurposeTypes, CgyyVenueSite, ClassroomQuery, ConnectionMode, Course,
@@ -93,6 +93,9 @@ pub enum CacheQuery {
         term: String,
     },
     Grades {
+        term: String,
+    },
+    GradeScoreBaseline {
         term: String,
     },
     Classrooms {
@@ -196,6 +199,7 @@ pub enum CachePayload {
     Weeks(Vec<Week>),
     Exams(ExamArrangement),
     Grades(GradeData),
+    GradeScoreBaseline(CachedGradeScoreBaseline),
     Classrooms(ClassroomQuery),
     JudgeCourses(Vec<Course>),
     JudgeCourseReview(JudgeCourseReview),
@@ -364,7 +368,7 @@ impl CacheScope {
             | CacheQuery::ScheduleImport { term }
             | CacheQuery::ScheduleWeeks { term }
             | CacheQuery::Exams { term } => id(term),
-            CacheQuery::Grades { term } => {
+            CacheQuery::Grades { term } | CacheQuery::GradeScoreBaseline { term } => {
                 id(term) && crate::features::grades::parse_term_code(term).is_ok()
             }
             CacheQuery::ScheduleWeek { term, week } => id(term) && *week > 0,
@@ -482,6 +486,9 @@ impl CachePayload {
             | (Self::JudgeSummaries(_), CacheQuery::JudgeSummaries { .. }) => true,
             (Self::SpocDetail(data), CacheQuery::SpocDetail { assignment_id }) => {
                 &data.assignment_id == assignment_id
+            }
+            (Self::GradeScoreBaseline(data), CacheQuery::GradeScoreBaseline { term }) => {
+                &data.term_code == term && data.valid()
             }
             (Self::Grades(data), CacheQuery::Grades { term }) => {
                 &data.term_code == term

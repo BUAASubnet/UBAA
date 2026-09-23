@@ -46,15 +46,20 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       backendFactory: backend == null ? backendFactory : null,
       credentialVault: widget.credentialVault,
       localAccountStore: widget.localAccountStore,
+      legacyGradeScores:
+          widget.legacyGradeScoreStore ??
+          (backend == null && widget.backendFactory == null
+              ? FileGradeScoreStore(
+                  File('${defaultConfigDirectory()}/ui-grade-scores.json'),
+                )
+              : null),
       telemetry: widget.telemetry,
     );
     _gradeScoreStore =
         widget.gradeScoreStore ??
         (backend != null
             ? MemoryGradeScoreStore()
-            : FileGradeScoreStore(
-                File('${defaultConfigDirectory()}/ui-grade-scores.json'),
-              ));
+            : ControllerGradeScoreStore(_controller));
     _gradeWatch = GradeScoreWatch(
       controller: _controller,
       store: _gradeScoreStore,

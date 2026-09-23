@@ -23,7 +23,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 35);
+      expect(client.contractVersion(), 36);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -580,6 +580,7 @@ void main() {
       expect((await second!.usage()).entryCount.toInt(), 0);
       await expectLater(beforeRecovery.usage(), throwsA(isA<BridgeError>()));
       beforeRecovery.dispose();
+      await _checkGradeBaseline(second, directory.path, key);
       final backend = BridgeBackend(client);
       await backend.dispose();
       await expectLater(
@@ -598,6 +599,68 @@ void main() {
       await directory.delete(recursive: true);
     }
   });
+}
+
+Future<void> _checkGradeBaseline(
+  BridgeOfflineCache cache,
+  String directory,
+  Uint8List key,
+) async {
+  const route = BridgeConnectionMode.direct;
+  const term = '2026-2027-1';
+  const value = BridgeGradeScoreBaseline(
+    termCode: term,
+    termName: '合成学期',
+    scores: [
+      BridgeGradeScoreEntry(
+        key: 'code:synthetic',
+        courseName: '合成成绩课程',
+        score: '89',
+      ),
+    ],
+  );
+  expect(
+    await cache.updateGradeScoreBaseline(route: route, latest: value),
+    isNull,
+  );
+  final reopened = await BridgeOfflineCache.open(
+    configDir: directory,
+    accountId: '0123456789abcdef0123456789abcdef',
+    expectedIdentity: 'synthetic',
+    key: key,
+  );
+  try {
+    final saved = await reopened.readGradeScoreBaseline(
+      route: route,
+      term: term,
+    );
+    expect(saved!.scores.single.score, '89');
+    expect(saved.scores.single.courseName, '合成成绩课程');
+    expect(
+      await reopened.readGradeScoreBaseline(
+        route: BridgeConnectionMode.webVpn,
+        term: term,
+      ),
+      isNull,
+    );
+    expect(
+      await reopened.readGradeScoreBaseline(route: route, term: '2026-2027-2'),
+      isNull,
+    );
+    await reopened.deactivate();
+    await expectLater(
+      cache.updateGradeScoreBaseline(route: route, latest: value),
+      throwsA(
+        isA<BridgeError>().having(
+          (e) => e.cacheFailure,
+          '原生退出栅栏',
+          BridgeCacheFailure.inactive,
+        ),
+      ),
+    );
+  } finally {
+    reopened.dispose();
+  }
 }
 
 Future<void> _checkLibbookCache(

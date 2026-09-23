@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
@@ -7,6 +8,19 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../integration_test/ui_grade_watch/backend.dart';
 
 void main() {
+  testWidgets('成绩基线保存失败明确显示本机故障，在线课表仍可查看', (tester) async {
+    await tester.pumpWidget(
+      UbaaFlutterApp(
+        backend: GradeWatchBackend(),
+        credentialVault: MemoryCredentialVault(),
+        gradeScoreStore: _FailingBaselineStore(),
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('成绩可在线查看，变化记录未能保存到本机'), findsOneWidget);
+    expect(find.text('合成今日课程'), findsOneWidget);
+    expect(find.byKey(const ValueKey('home-grade-update')), findsNothing);
+  });
   testWidgets('清除账号时成绩文件损坏也能退出，并明确提示本机未完全清除', (tester) async {
     await tester.pumpWidget(
       UbaaFlutterApp(
@@ -130,17 +144,25 @@ void main() {
   });
 }
 
-class _FailingClearStore implements GradeScoreStore {
-  final delegate = MemoryGradeScoreStore();
+class _FailingBaselineStore implements GradeScoreStore {
   @override
-  Future<GradeScoreBaseline?> read(String account, ConnectionMode route) =>
-      delegate.read(account, route);
-  @override
-  Future<void> write(
+  Future<GradeScoreBaseline?> update(
     String account,
     ConnectionMode route,
     GradeScoreBaseline value,
-  ) => delegate.write(account, route, value);
+  ) async => throw const FileSystemException('合成缓存不可用');
+  @override
+  Future<void> clearAccount(String account) async {}
+}
+
+class _FailingClearStore implements GradeScoreStore {
+  final delegate = MemoryGradeScoreStore();
+  @override
+  Future<GradeScoreBaseline?> update(
+    String account,
+    ConnectionMode route,
+    GradeScoreBaseline value,
+  ) => delegate.update(account, route, value);
   @override
   Future<void> clearAccount(String account) async {
     throw const FormatException('合成基线损坏');

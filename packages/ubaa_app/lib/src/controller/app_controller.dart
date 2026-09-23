@@ -17,6 +17,7 @@ import '../contracts/routing.dart';
 import '../contracts/recovery.dart';
 import '../contracts/write.dart';
 import '../contracts/write_readback.dart';
+import '../contracts/grade_baseline.dart';
 import '../presentation/grades.dart';
 import '../write/cgyy_validation.dart';
 import '../write/coordinator.dart';
@@ -49,6 +50,7 @@ part 'app_controller/offline/profile.dart';
 part 'app_controller/offline/query.dart';
 part 'app_controller/offline/read_options.dart';
 part 'app_controller/offline/grades.dart';
+part 'app_controller/grades/baseline_store.dart';
 part 'app_controller/offline/resume.dart';
 part 'app_controller/offline/backend_rebuild.dart';
 part 'app_controller/offline/retry.dart';
@@ -109,12 +111,14 @@ class AppController extends ChangeNotifier {
     BackendFactory? backendFactory,
     CredentialVault? credentialVault,
     LocalAccountStore? localAccountStore,
+    FileGradeScoreStore? legacyGradeScores,
     TelemetryClient? telemetry,
     LocalDiagnostics? diagnostics,
   }) : _backend = backend,
        _backendFactory = backendFactory,
        _credentialVault = credentialVault ?? const NoopCredentialVault(),
        _localAccountStore = localAccountStore,
+       _legacyGradeScores = legacyGradeScores,
        _telemetry = telemetry ?? const NoopTelemetryClient(),
        _diagnostics = diagnostics ?? LocalDiagnostics(),
        _telemetryEnabled = (telemetry ?? const NoopTelemetryClient()).enabled,
@@ -131,6 +135,7 @@ class AppController extends ChangeNotifier {
   final BackendFactory? _backendFactory;
   final CredentialVault _credentialVault;
   final LocalAccountStore? _localAccountStore;
+  final FileGradeScoreStore? _legacyGradeScores;
   LocalAccount? _localAccount;
   bool _isSigningOut = false;
   bool _clearingBusinessCache = false;

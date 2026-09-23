@@ -75,11 +75,12 @@ pub use crate::cache::{
     CacheScope, CacheUsage, CachedBykcChosen, CachedBykcChosenCourse, CachedBykcCourse,
     CachedBykcCoursePage, CachedBykcSignWindow, CachedCgyyDayInfo, CachedCgyyOrder,
     CachedCgyyOrdersPage, CachedCgyySlotStatus, CachedCgyySpaceAvailability,
-    CachedEvaluationCourse, CachedEvaluationCourses, CachedLibBookBooking,
-    CachedLibBookBookingsPage, CachedLibBookSeat, CachedMaskedProfile, CachedSemesterSchedule,
-    CachedSigninClass, CachedYgdkItem, CachedYgdkOverview, CachedYgdkRecord, CachedYgdkRecordsPage,
-    CachedYgdkRecordsSelection, JudgeCourseReview, OfflineRepository, WriteReadbackHint,
-    WriteReadbackOperation, WriteReadbackTicket,
+    CachedEvaluationCourse, CachedEvaluationCourses, CachedGradeScoreBaseline,
+    CachedGradeScoreEntry, CachedLibBookBooking, CachedLibBookBookingsPage, CachedLibBookSeat,
+    CachedMaskedProfile, CachedSemesterSchedule, CachedSigninClass, CachedYgdkItem,
+    CachedYgdkOverview, CachedYgdkRecord, CachedYgdkRecordsPage, CachedYgdkRecordsSelection,
+    JudgeCourseReview, OfflineRepository, WriteReadbackHint, WriteReadbackOperation,
+    WriteReadbackTicket,
 };
 
 mod libbook_cache;

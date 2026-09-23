@@ -3,8 +3,8 @@ import 'dart:io';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 abstract interface class GradeScoreStore {
-  Future<GradeScoreBaseline?> read(String account, ConnectionMode route);
-  Future<void> write(
+  /// 保存本次完整观察，返回同账号、路线、学期的原基线。
+  Future<GradeScoreBaseline?> update(
     String account,
     ConnectionMode route,
     GradeScoreBaseline value,
@@ -13,19 +13,36 @@ abstract interface class GradeScoreStore {
 }
 
 final class MemoryGradeScoreStore implements GradeScoreStore {
-  final _values = <(String, ConnectionMode), GradeScoreBaseline>{};
-  @override
+  final _values = <(String, ConnectionMode, String), GradeScoreBaseline>{};
   Future<GradeScoreBaseline?> read(
     String account,
-    ConnectionMode route,
-  ) async => _values[(account, route)];
-  @override
+    ConnectionMode route, {
+    String? term,
+  }) async => term == null
+      ? _values.entries
+            .where((entry) => entry.key.$1 == account && entry.key.$2 == route)
+            .lastOrNull
+            ?.value
+      : _values[(account, route, term)];
   Future<void> write(
     String account,
     ConnectionMode route,
     GradeScoreBaseline value,
   ) async {
-    _values[(account, route)] = _freeze(value);
+    if (value.scores.isNotEmpty)
+      _values[(account, route, value.termCode)] = _freeze(value);
+  }
+
+  @override
+  Future<GradeScoreBaseline?> update(
+    String account,
+    ConnectionMode route,
+    GradeScoreBaseline value,
+  ) async {
+    final key = (account, route, value.termCode),
+        previous = _values[(account, route, value.termCode)];
+    if (value.scores.isNotEmpty) _values[key] = _freeze(value);
+    return previous;
   }
 
   @override
@@ -40,8 +57,8 @@ GradeScoreBaseline _freeze(GradeScoreBaseline value) => GradeScoreBaseline(
   scores: List.unmodifiable(value.scores),
 );
 
-/// 只保存变化检查所需的派生成绩基线；独立于Core配置、会话及原始响应。
-final class FileGradeScoreStore implements GradeScoreStore {
+/// 仅用于迁移和显式清理旧明文；新观察必须交给Core加密仓库。
+final class FileGradeScoreStore {
   FileGradeScoreStore(this.file);
   final File file;
   Future<void> _tail = Future.value();
@@ -55,9 +72,11 @@ final class FileGradeScoreStore implements GradeScoreStore {
     if (account.trim().isEmpty) throw ArgumentError('成绩基线账号标识不能为空');
   }
 
-  Future<Map<String, Map<String, GradeScoreBaseline>>> _readAll() async {
-    if (!await file.exists()) return {};
-    final Object? data = jsonDecode(await file.readAsString());
+  Future<String?> _raw() async =>
+      await file.exists() ? await file.readAsString() : null;
+  Map<String, Map<String, GradeScoreBaseline>> _decode(String? raw) {
+    if (raw == null) return {};
+    final Object? data = jsonDecode(raw);
     if (data is! Map<String, dynamic> ||
         data['schema'] != 1 ||
         data['accounts'] is! Map<String, dynamic>) {
@@ -152,32 +171,51 @@ final class FileGradeScoreStore implements GradeScoreStore {
     }
   }
 
-  @override
   Future<GradeScoreBaseline?> read(String account, ConnectionMode route) =>
       _serial(() async {
         _checkAccount(account);
-        return (await _readAll())[account]?[route.name];
+        return _decode(await _raw())[account]?[route.name];
       });
-  @override
   Future<void> write(
     String account,
     ConnectionMode route,
     GradeScoreBaseline value,
-  ) {
-    final stable = _freeze(value);
-    return _serial(() async {
-      _checkAccount(account);
-      final data = await _readAll();
-      (data[account] ??= {})[route.name] = stable;
-      await _save(data);
-    });
-  }
+  ) async => throw UnsupportedError('新的成绩基线必须加密保存');
 
-  @override
   Future<void> clearAccount(String account) => _serial(() async {
     _checkAccount(account);
-    final data = await _readAll();
-    data.remove(account);
-    await _save(data);
+    final data = _decode(await _raw());
+    if (data.remove(account) != null) await _saveRemaining(data);
   });
+
+  /// 本地串行迁移；保存失败时原文件原样保留，成功只移除迁入的范围。
+  Future<T> migrate<T>(
+    String account,
+    ConnectionMode route,
+    Future<T> Function(GradeScoreBaseline? legacy) saveEncrypted,
+  ) => _serial(() async {
+    _checkAccount(account);
+    final original = await _raw();
+    final data = _decode(original);
+    final legacy = data[account]?[route.name];
+    final result = await saveEncrypted(legacy);
+    if (legacy != null) {
+      if (await _raw() != original)
+        throw const FileSystemException('旧成绩基线已变化，保留文件等待重试');
+      data[account]!.remove(route.name);
+      if (data[account]!.isEmpty) data.remove(account);
+      await _saveRemaining(data);
+    }
+    return result;
+  });
+
+  Future<void> _saveRemaining(
+    Map<String, Map<String, GradeScoreBaseline>> data,
+  ) async {
+    if (data.isEmpty) {
+      if (await file.exists()) await file.delete();
+    } else {
+      await _save(data);
+    }
+  }
 }
