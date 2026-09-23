@@ -8,7 +8,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../integration_test/ui_grade_watch/backend.dart';
 
 void main() {
-  testWidgets('成绩基线保存失败明确显示本机故障，在线课表仍可查看', (tester) async {
+  testWidgets('成绩基线保存失败不打断在线首页，也不显示内部缓存故障', (tester) async {
     await tester.pumpWidget(
       UbaaFlutterApp(
         backend: GradeWatchBackend(),
@@ -17,7 +17,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('成绩可在线查看，本机变化记录暂不可用'), findsOneWidget);
+    expect(find.text('成绩可在线查看，本机变化记录暂不可用'), findsNothing);
     expect(find.text('合成今日课程'), findsOneWidget);
     expect(find.byKey(const ValueKey('home-grade-update')), findsNothing);
   });

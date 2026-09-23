@@ -81,7 +81,7 @@ final class _JudgeFallbackTask implements FeatureReadTask {
 
 // 交回调度器保留现有内容，认证/写入/用户主动查询可先行。
 const _judgeStorageTransition = FeatureReadBatch(
-  FeatureResult.success(summary: '本机缓存暂不可用，继续在线读取'),
+  FeatureResult.success(summary: '在线读取中，离线保存稍后重试'),
   finished: false,
   publish: false,
 );

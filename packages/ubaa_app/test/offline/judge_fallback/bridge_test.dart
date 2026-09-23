@@ -38,6 +38,7 @@ void main() {
     final task = (await backend.beginFeatureRead(FeatureId.judge, null))!;
     final transition = await task.next();
     expect(transition.publish, isFalse);
+    expect(transition.result.summary, '在线读取中，离线保存稍后重试');
     expect(client.old.cancelled, isTrue);
     expect(client.options, isNull);
     final begin = await task.next();

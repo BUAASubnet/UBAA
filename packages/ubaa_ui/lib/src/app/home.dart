@@ -476,8 +476,8 @@ String _homeLabel(FeatureId feature) => switch (feature) {
 };
 String _cacheReadFailureText(CacheMaintenanceFailure failure) =>
     failure == CacheMaintenanceFailure.capacity
-    ? '本机空间不足，当前内容未保存，可继续在线查看。'
-    : '本机缓存暂不可用，当前内容未保存，可继续在线查看。';
+    ? '本机空间不足，在线内容已显示，暂未保存到本机。'
+    : '在线内容已显示，暂未保存到本机。';
 
 String _homeSummary(FeatureSnapshot snapshot) {
   final summary = _homeReadSummary(snapshot);

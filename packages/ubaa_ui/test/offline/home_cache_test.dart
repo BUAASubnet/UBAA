@@ -12,10 +12,10 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await mount(tester, date: '2026-09-21', cacheFailure: true);
-    expect(find.textContaining('本机缓存暂不可用'), findsOneWidget);
+    expect(find.textContaining('在线内容已显示，暂未保存到本机'), findsOneWidget);
     expect(find.textContaining('希冀：刷新失败'), findsNothing);
     await openFeature(tester, FeatureId.judge);
-    expect(find.textContaining('本机缓存暂不可用'), findsOneWidget);
+    expect(find.textContaining('在线内容已显示，暂未保存到本机'), findsOneWidget);
     expect(find.text('合成在线作业'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());

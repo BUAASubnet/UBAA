@@ -69,7 +69,6 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
   };
 
   String? get _connectionStatus {
-    if (_gradeWatch.cacheError != null) return '成绩可在线查看，本机变化记录暂不可用';
     if (!_controller.usesLocalRecovery) return null;
     return switch (_controller.sessionRecoveryStatus) {
       SessionRecoveryStatus.idle ||
