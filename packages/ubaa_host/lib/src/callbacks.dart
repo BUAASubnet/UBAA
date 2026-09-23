@@ -96,6 +96,12 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     final appInformation = widget.appInformation ?? SystemAppInformation();
     return UbaaMainShell(
       connectionStatus: _connectionStatus,
+      writeReadbacks: _controller.writeReadbacks,
+      writeReadbackError: _controller.writeReadbackError,
+      onRefreshWriteReadbacks: _controller.refreshWriteReadbacks,
+      onDismissWriteReadback: _controller.canClearBusinessCache
+          ? _controller.dismissWriteReadback
+          : null,
       onReconnect: () => unawaited(_controller.recoverSession()),
       onCompleteLogin:
           _controller.sessionRecoveryStatus == SessionRecoveryStatus.needsLogin

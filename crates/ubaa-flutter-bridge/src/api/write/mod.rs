@@ -10,6 +10,7 @@ pub mod cache;
 mod commit;
 mod lifecycle;
 mod prepare;
+pub mod readback;
 mod support;
 
 use std::fmt;

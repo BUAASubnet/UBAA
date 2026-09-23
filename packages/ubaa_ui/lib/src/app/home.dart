@@ -21,8 +21,10 @@ class _HomeView extends StatefulWidget {
     this.onCheckGradeUpdates,
     this.onOpenGradeNotice,
     this.onDismissGradeNotice,
+    this.writeReadbackNotice,
   });
   final ValueChanged<Map<String, ConnectionMode>>? onRoutes;
+  final Widget? writeReadbackNotice;
   final GradeScoreNotice? gradeScoreNotice;
   final ConnectionMode? gradeCheckRoute;
   final Future<void> Function()? onCheckGradeUpdates;
@@ -315,6 +317,10 @@ class _HomeViewState extends State<_HomeView> {
           const SizedBox(height: 4),
           Text('${campusNow.month}月${campusNow.day}日'),
           const SizedBox(height: 12),
+          if (widget.writeReadbackNotice case final notice?) ...[
+            notice,
+            const SizedBox(height: 12),
+          ],
           if (widget.gradeScoreNotice case final notice?) ...[
             _GradeScoreBanner(
               notice: notice,

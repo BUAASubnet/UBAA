@@ -1,5 +1,7 @@
 //! 独立本地缓存出口与明确绑定账号的在线读取，不持本地事务等待网络。
-use super::{RoutedError, UbaaClient};
+use super::{
+    RoutedError, UbaaClient, WriteReadbackHint, WriteReadbackOperation, WriteReadbackTicket,
+};
 use crate::cache::{
     CacheCompleteness, CacheError, CacheKey, CacheLimits, CachePayload, CacheQuery,
     CacheReadTicket, CacheRecord, CacheResult, CacheScope, OfflineRepository,
@@ -394,5 +396,41 @@ impl UbaaClient {
                 Err(OfflineReadError::Read(error))
             }
         }
+    }
+}
+
+impl OfflineCache {
+    /// 为显式提交保存可供重启核对的线索。
+    ///
+    /// # Errors
+    /// 不可用的账号/仓库、容量和生命周期错误分别返回。
+    pub fn begin_write_readback(
+        &self,
+        operation: WriteReadbackOperation,
+        route: ConnectionMode,
+        started_at: i64,
+    ) -> CacheResult<WriteReadbackTicket> {
+        self.repository(|repo| repo.begin_write_readback(operation, route, started_at))
+    }
+    /// 已得到确定结果时，只移除本轮提示，不更改学校结果。
+    ///
+    /// # Errors
+    /// 旧票据或本地故障保留原提示，不能自动再次提交。
+    pub fn finish_write_readback(&self, ticket: &WriteReadbackTicket) -> CacheResult<()> {
+        self.repository(|repo| repo.finish_write_readback(ticket))
+    }
+    /// 仅读取当前本地账号的核对线索，不取得网络客户端锁。
+    ///
+    /// # Errors
+    /// 账号关闭、损坏或不可用返回稳定缓存错误。
+    pub fn write_readback_hints(&self) -> CacheResult<Vec<WriteReadbackHint>> {
+        self.repository(super::OfflineRepository::write_readback_hints)
+    }
+    /// 用户核对后移除一条本地提示，不推断业务是否成功。
+    ///
+    /// # Errors
+    /// 标识、生命周期或本地事务失败不能显示已移除。
+    pub fn dismiss_write_readback(&self, id: &str) -> CacheResult<()> {
+        self.repository(|repo| repo.dismiss_write_readback(id))
     }
 }

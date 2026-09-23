@@ -7,6 +7,16 @@ import 'package:flutter_test/flutter_test.dart';
 /// 该测试不读取真实数据，只固定公开方法、DTO 和枚举的最小集合；完整字节漂移仍由
 /// `just flutter-codegen-check` 负责。这样生成器意外删除一个业务入口时，Dart 门禁会先失败。
 void main() {
+  test('重启核对提示只公开本地标识、操作、路线和时间', () {
+    final source = File(
+      'lib/src/rust/api/write/readback.dart',
+    ).readAsStringSync();
+    final fields = RegExp(
+      r'final\s+\w+\s+(\w+);',
+    ).allMatches(source).map((match) => match.group(1)).toList();
+    expect(fields, ['id', 'operation', 'route', 'startedAt']);
+  });
+
   test('缓存用量只公开数值且清理结果交付新句柄', () {
     final source = File(
       'lib/src/rust/api/cache_management.dart',

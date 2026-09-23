@@ -49,10 +49,11 @@ part 'read/ygdk.dart';
 part 'read/ygdk_cache/records.dart';
 part 'read/ygdk_cache/home.dart';
 part 'write/commit.dart';
+part 'write/readback.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 34;
+const _supportedBridgeContractVersion = 35;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -84,6 +85,7 @@ class BridgeBackend
         CacheManagementBackend,
         CacheRecoveryBackend,
         CacheWriteBackend,
+        WriteReadbackBackend,
         OfflineQueryBackend,
         ProgressiveReadBackend,
         AccountScopedProgressiveReadBackend,
@@ -293,6 +295,16 @@ class BridgeBackend
 
   @override
   Future<void> dispose() => _dispose(this);
+
+  @override
+  Future<List<WriteReadbackHint>> readWriteReadbackHints({
+    required String accountId,
+  }) => _readWriteReadbackHints(this, accountId);
+  @override
+  Future<void> dismissWriteReadbackHint(
+    String id, {
+    required String accountId,
+  }) => _dismissWriteReadbackHint(this, accountId, id);
 
   @override
   Future<WriteIntent> prepareBykcSelectCourse({required int courseId}) async =>

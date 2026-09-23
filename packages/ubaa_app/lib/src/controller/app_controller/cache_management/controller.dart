@@ -115,6 +115,7 @@ extension _AppControllerCacheManagement on AppController {
   }
 
   void _clearBusinessProjections() {
+    _clearWriteReadbacks();
     for (final feature in FeatureId.values) {
       _snapshots[feature] = FeatureSnapshot(
         feature: feature,

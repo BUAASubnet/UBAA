@@ -115,6 +115,7 @@ extension _AppControllerOfflineStartup on AppController {
       _error = null;
       _sessionRecoveryStatus = SessionRecoveryStatus.ready;
       unawaited(_queueProfileRefresh());
+      unawaited(_loadWriteReadbacks());
       _invalidateReadPlansAfterLogin(request);
       _notify();
       for (final entry in request.queriesAfterRebuild.entries) {

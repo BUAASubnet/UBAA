@@ -12,3 +12,6 @@
 |---|---|
 | ubaa-p2r-native-iphone.log | `83db6a6ff88dc15d98f426529494f2135d8a5feac94dcd22c172d6ff09f17255` |
 | ubaa-p2r-native-iphone-proxy.log | `1158fb0dea7b723aff47559f0889a9f3d6ede6f50206512b95a5992afcbc715d` |
+
+
+P4-AG后续：iPhone 17 Pro的系统安全材料保存/重开/删除单项通过。Bridge v35候选在iPad Pro 13-inch (M5)/iOS26.5模拟器通过同一缓存FFI及安全材料两项，包含提示读取/无效ID/退出分类。日志、SHA-256见[执行记录P4-AG](2026-09-17-offline-home.md#p4-ag未知结果最小重启核对提示2026-09-23)。这些不是实体设备和冷启动性能证据。

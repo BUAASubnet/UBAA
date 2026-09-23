@@ -15,6 +15,10 @@ class UbaaMainShell extends StatefulWidget {
     required this.onTelemetryChanged,
     this.initialTab = 0,
     this.connectionStatus,
+    this.writeReadbacks = const [],
+    this.writeReadbackError,
+    this.onDismissWriteReadback,
+    this.onRefreshWriteReadbacks,
     this.onReconnect,
     this.onCompleteLogin,
     this.themeMode = ThemeMode.system,
@@ -93,6 +97,10 @@ class UbaaMainShell extends StatefulWidget {
   /// 供宿主恢复上次导航位置或集成测试从指定功能分组启动。
   final int initialTab;
   final String? connectionStatus;
+  final List<WriteReadbackHint> writeReadbacks;
+  final UiError? writeReadbackError;
+  final Future<void> Function(String)? onDismissWriteReadback;
+  final Future<void> Function()? onRefreshWriteReadbacks;
   final VoidCallback? onReconnect;
   final ValueChanged<BuildContext>? onCompleteLogin;
   final ThemeMode themeMode;
@@ -679,6 +687,21 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             businessCacheEpoch: widget.businessCacheEpoch,
             onLoadSupplement: widget.onLoadHomeSupplement,
             onTodoTap: _openHomeTodo,
+            writeReadbackNotice:
+                widget.writeReadbacks.isEmpty &&
+                    widget.writeReadbackError == null
+                ? null
+                : _WriteReadbackNotice(
+                    key: ValueKey(
+                      '${widget.cacheAccountId}:${widget.readCacheEpoch}',
+                    ),
+                    hints: widget.writeReadbacks,
+                    error: widget.writeReadbackError,
+                    onDismiss: widget.onDismissWriteReadback,
+                    onRefresh: widget.onRefreshWriteReadbacks,
+                    onOpenFeature: (feature) =>
+                        setState(() => _openedFeature = feature),
+                  ),
             gradeScoreNotice: widget.gradeScoreNotice,
             gradeCheckRoute: widget.gradeCheckRoute,
             onCheckGradeUpdates: widget.onCheckGradeUpdates,

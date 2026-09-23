@@ -246,7 +246,7 @@ impl Admission<'_> {
         let existing: i64 = self
             .db
             .query_row(
-                "SELECT COALESCE(SUM(length(body)),0) FROM entries WHERE key != ?1",
+                "SELECT COALESCE(SUM(length(body)),0) FROM (SELECT body FROM entries WHERE key != ?1 UNION ALL SELECT body FROM readback_hints)",
                 [key],
                 |r| r.get(0),
             )

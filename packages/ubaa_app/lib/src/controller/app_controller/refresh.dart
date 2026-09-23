@@ -459,4 +459,22 @@ extension _AppControllerRefresh on AppController {
       lifecycleEpoch == _lifecycleEpoch &&
       generation == _featureRefreshGenerations[feature] &&
       (feature != FeatureId.ygdk || ygdkGeneration == _ygdkGeneration);
+
+  void _resetFeatureSnapshots({bool advanceLifecycle = true}) {
+    _clearWriteReadbacks();
+    _profileDisplay = null;
+    _profileFailureEpoch = -1;
+    _featureRecoveryStates.clear();
+    _featureRecoveryErrors.clear();
+    _recoveredRoute = null;
+    _readCacheEpoch++;
+    if (advanceLifecycle) _lifecycleEpoch++;
+    _ygdkGeneration++;
+    _writeCoordinator.invalidate();
+    _ygdkReadbackState = const YgdkReadbackState.empty();
+    for (final feature in FeatureId.values) {
+      _snapshots[feature] = FeatureSnapshot(feature: feature);
+      _homeDefaults[feature] = FeatureSnapshot(feature: feature);
+    }
+  }
 }

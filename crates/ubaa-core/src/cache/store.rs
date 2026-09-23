@@ -482,6 +482,8 @@ impl OfflineRepository {
         if clear {
             tx.execute("DELETE FROM entries", [])
                 .map_err(CacheError::from)?;
+            tx.execute("DELETE FROM readback_hints", [])
+                .map_err(CacheError::from)?;
         }
         tx.commit().map_err(CacheError::from)
     }
@@ -642,7 +644,8 @@ fn initialize_database(
     }
     tx.execute_batch("CREATE TABLE IF NOT EXISTS control(id INTEGER PRIMARY KEY CHECK(id=1), body BLOB NOT NULL);
         CREATE TABLE IF NOT EXISTS entries(key BLOB PRIMARY KEY, body BLOB NOT NULL, accessed INTEGER NOT NULL, priority INTEGER NOT NULL);
-        CREATE TABLE IF NOT EXISTS requests(key BLOB PRIMARY KEY, revision INTEGER NOT NULL, scope BLOB NOT NULL);").map_err(CacheError::from)?;
+        CREATE TABLE IF NOT EXISTS requests(key BLOB PRIMARY KEY, revision INTEGER NOT NULL, scope BLOB NOT NULL);
+        CREATE TABLE IF NOT EXISTS readback_hints(id TEXT PRIMARY KEY, body BLOB NOT NULL);").map_err(CacheError::from)?;
     let generation = management::prepare_control(&tx, crypto, account, current_version)?;
     if current_version > 0 && current_version < 5 {
         // 旧在途票据不迁移，业务条目的密文和取得时间保持原样。
@@ -659,3 +662,8 @@ pub use rebuild::CacheRecovery;
 mod invalidation;
 
 pub use invalidation::{CacheInvalidation, CacheInvalidationReport};
+
+mod readback;
+pub use readback::{WriteReadbackHint, WriteReadbackOperation, WriteReadbackTicket};
+#[cfg(test)]
+mod readback_tests;

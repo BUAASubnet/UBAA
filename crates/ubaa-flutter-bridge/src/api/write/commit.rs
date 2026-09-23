@@ -108,6 +108,8 @@ impl BridgeClient {
                 }
                 _ => {}
             }
+            let (hint, hint_start_error) =
+                super::readback::begin_hint(cache, operation, expected_route).await;
             let result = match pending {
                 PendingWrite::BykcSelect(request) => {
                     client.bykc_select_course(request.course_id).await.map(|r| {
@@ -281,7 +283,12 @@ impl BridgeClient {
                 ),
                 Err(error) => Err(map_dispatch_error(operation, expected_route, error)),
             };
-            let result = finish_cached_commit(cache, impact, expected_route, result).await;
+            let hint_finish_error = super::readback::finish_hint(cache, hint, &result).await;
+            let mut result = finish_cached_commit(cache, impact, expected_route, result).await;
+            result.cache_error = result
+                .cache_error
+                .or(hint_start_error)
+                .or(hint_finish_error);
             drop(guard);
             Ok(result)
         })

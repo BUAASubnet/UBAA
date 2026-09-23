@@ -62,6 +62,8 @@ extension _AppControllerWriteCache on AppController {
         );
       }
       rethrow;
+    } finally {
+      if (current()) unawaited(_loadWriteReadbacks(force: true));
     }
   }
 

@@ -59,7 +59,9 @@ class _CacheSettingsState extends State<_CacheSettings> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('清理本机缓存？'),
-        content: const Text('将清除本机保存的课表、待办和查询内容，保留登录状态与账号。之后可按需重新获取。'),
+        content: const Text(
+          '将清除本机保存的课表、待办、查询内容和待核实提示，保留登录状态与账号。查询内容之后可重新获取，待核实提示无法恢复。',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),

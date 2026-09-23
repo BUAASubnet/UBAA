@@ -4,9 +4,11 @@
 
 实施区为 `.worktrees/offline-home-20260917`，分支 `codex/offline-home-20260917`；主工作区保持原样。接续核对 HEAD `c7e55171`、29项未提交变更，其他相关任务空闲且无遗留构建/写入进程。冻结引用纯校验通过。
 
-P3-B已补齐希冀批量详情持久化及离线投影，Flutter bridge contract v34已生成并同步宿主；完整Flutter1044项、Rust/CLI、FRB零漂移与macOS合成FFI通过。已提交P2-P完成缓存错误分列与在线回退。回退/取消23项及首页7项聚焦测试通过，完整Rust/CLI门禁、Flutter1032项、FRB零漂移、macOS合成FFI及敏感检查通过，P2-Q已修复部分批次内容保留，完整Flutter1037项及Rust/CLI门禁通过；CLI JSON schema v10、Session v2、配置v1、业务缓存schema v5不变。旧1017项Flutter是P2-O证据，不验证当前改动。
+当前P4-AG已接通未知结果最小核对线索，业务缓存schema v6、Flutter bridge contract v35及生成绑定同步。完整Flutter1066项与7包静态分析、FRB零漂移、macOS原生FFI、iPad模拟器FFI及安全材料通过；完整just check通过，含CLI端到端16及Bridge139项通过（2项原有ignored）。
 
-十二领域已接入阶段记录中的精确范围，完整学期导入、缓存管理和写后失效已有实现；逐项最终审查、剩余安全分段及生命周期边界继续，P2-R已实现明确失效句柄的原位重建，47项聚焦、完整Flutter1057项/Rust/CLI和macOS原生合成通过；未知写结果重启核对线索继续实施。P1已有双路线真实App功能证据。评教新分段最近WebVPN成功、Direct激活networkError未通过，禁止借旧CLI空回退PASS替代。
+P3-B已补齐希冀批量详情持久化及离线投影，Flutter bridge contract v34已生成并同步宿主；完整Flutter1044项、Rust/CLI、FRB零漂移与macOS合成FFI通过。已提交P2-P完成缓存错误分列与在线回退。回退/取消23项及首页7项聚焦测试通过，完整Rust/CLI门禁、Flutter1032项、FRB零漂移、macOS合成FFI及敏感检查通过，P2-Q已修复部分批次内容保留，完整Flutter1037项及Rust/CLI门禁通过；这些历史阶段使用业务缓存schema v5，当前schema为v6。CLI JSON schema v10、Session v2、配置v1保持。旧1017项Flutter是P2-O证据，不验证当前改动。
+
+十二领域已接入阶段记录中的精确范围，完整学期导入、缓存管理和写后失效已有实现；逐项最终审查、剩余安全分段及生命周期边界继续，P2-R已实现明确失效句柄的原位重建，47项聚焦、完整Flutter1057项/Rust/CLI和macOS原生合成通过；未知写结果重启最小核对线索已在P4-AG接通。P1已有双路线真实App功能证据。评教新分段最近WebVPN成功、Direct激活networkError未通过，禁止借旧CLI空回退PASS替代。
 
 最近缓存约0.6秒、首页全部更新85–96秒仅为debug宿主装配单样本，不含进程冷启动。完整15类场景和手机/平板/macOS各30次启动测量、性能定位优化、最终候选全门禁和新App双路线只读均未闭合。六平台密钥原生运行缺口另列，构建不能代替设备运行。
 

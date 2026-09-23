@@ -23,7 +23,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 34);
+      expect(client.contractVersion(), 35);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -110,6 +110,17 @@ void main() {
         accountId: '0123456789abcdef0123456789abcdef',
         expectedIdentity: 'synthetic',
         key: key,
+      );
+      expect(await first.writeReadbackHints(), isEmpty);
+      await expectLater(
+        first.dismissWriteReadback(id: 'invalid'),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.cacheFailure,
+            '本机提示RPC保留无效输入分类',
+            BridgeCacheFailure.invalidInput,
+          ),
+        ),
       );
       await expectLater(
         client.beginJudgeDetails(
@@ -427,6 +438,16 @@ void main() {
         key: key,
       );
       await first.deactivate();
+      await expectLater(
+        second.writeReadbackHints(),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.cacheFailure,
+            '退出不能读取旧账号核对提示',
+            BridgeCacheFailure.inactive,
+          ),
+        ),
+      );
       await expectLater(
         second.readToday(route: BridgeConnectionMode.direct),
         throwsA(

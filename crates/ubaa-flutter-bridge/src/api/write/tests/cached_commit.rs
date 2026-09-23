@@ -98,6 +98,23 @@ async fn 单次提交成功或未知时失效原路线关联内容_不自动重�
             assert!(result.error.is_none());
             assert!(result.result.unwrap().success);
         }
+        assert_eq!(
+            repo.write_readback_hints().unwrap().len(),
+            usize::from(unknown),
+            "未知结果必须留有重启后的核对线索，确定成功不留待核实提示"
+        );
+        let hints = cache.write_readback_hints().await.unwrap();
+        if unknown {
+            assert_eq!(hints.len(), 1);
+            assert!(matches!(
+                hints[0].operation,
+                BridgeWriteOperation::BykcSignCourse
+            ));
+            assert!(matches!(hints[0].route, BridgeConnectionMode::Direct));
+            assert!(hints[0].started_at > 0);
+        } else {
+            assert!(hints.is_empty());
+        }
         assert!(
             repo.read(&scope(ConnectionMode::Direct, 42), 200)
                 .unwrap()
@@ -125,6 +142,17 @@ async fn 单次提交成功或未知时失效原路线关联内容_不自动重�
         direct.assert_exhausted().unwrap();
         assert_eq!(direct.requests().unwrap().len(), 6);
         client.dispose().await.unwrap();
+        if unknown {
+            let restarted = BridgeClient::open(root.to_string_lossy().into()).unwrap();
+            assert!(restarted.write_intents.lock().await.is_empty());
+            assert_eq!(cache.write_readback_hints().await.unwrap().len(), 1);
+            cache
+                .dismiss_write_readback(hints[0].id.clone())
+                .await
+                .unwrap();
+            assert!(cache.write_readback_hints().await.unwrap().is_empty());
+            restarted.dispose().await.unwrap();
+        }
         drop((client, cache, repo));
         std::fs::remove_dir_all(root).unwrap();
     }
@@ -197,6 +225,7 @@ async fn 缓存失效采用提交结果实际路线_不以意图路线改写来�
     )
     .await;
     assert!(result.cache_error.is_none());
+    assert!(cache.write_readback_hints().await.unwrap().is_empty());
     assert!(
         repo.read(&scope(ConnectionMode::Direct, 42), 200)
             .unwrap()
@@ -307,20 +336,38 @@ async fn 评教部分成功或未知撤销旧集合_全部明确失败保留() {
                 })
                 .collect(),
         };
+        let result = Ok(BridgeWriteCommitResult {
+            operation: BridgeWriteOperation::EvaluationSubmitCourses,
+            success: false,
+            message: "合成结果".into(),
+            // 即使外层标志未覆盖子项，也必须保留任何未知项的核对线索。
+            outcome_unknown: false,
+            resolved_route: Some(BridgeConnectionMode::Direct),
+            cgyy_receipt: None,
+            ygdk_receipt: None,
+            evaluation_result: Some(batch),
+        });
+        let (hint, error) = super::super::readback::begin_hint(
+            Some(&cache),
+            BridgeWriteOperation::EvaluationSubmitCourses,
+            BridgeConnectionMode::Direct,
+        )
+        .await;
+        assert!(error.is_none());
+        assert!(
+            super::super::readback::finish_hint(Some(&cache), hint, &result)
+                .await
+                .is_none()
+        );
+        assert_eq!(
+            repo.write_readback_hints().unwrap().len(),
+            usize::from(unknown)
+        );
         let result = super::super::cache::finish_cached_commit(
             Some(&cache),
             ubaa_core::facade::CacheInvalidation::Evaluation,
             BridgeConnectionMode::Direct,
-            Ok(BridgeWriteCommitResult {
-                operation: BridgeWriteOperation::EvaluationSubmitCourses,
-                success: false,
-                message: "合成结果".into(),
-                outcome_unknown: unknown,
-                resolved_route: Some(BridgeConnectionMode::Direct),
-                cgyy_receipt: None,
-                ygdk_receipt: None,
-                evaluation_result: Some(batch),
-            }),
+            result,
         )
         .await;
         assert!(result.cache_error.is_none());

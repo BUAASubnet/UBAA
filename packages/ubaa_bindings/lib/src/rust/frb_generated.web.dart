@@ -30,6 +30,7 @@ import 'api/schedule_import.dart';
 import 'api/simple.dart';
 import 'api/write.dart';
 import 'api/write/cache.dart';
+import 'api/write/readback.dart';
 import 'dart:async';
 import 'dart:convert';
 import 'frb_generated.dart';
@@ -1445,6 +1446,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeWriteOperation dco_decode_bridge_write_operation(dynamic raw);
 
   @protected
+  BridgeWriteReadbackHint dco_decode_bridge_write_readback_hint(dynamic raw);
+
+  @protected
   BridgeYgdkItem dco_decode_bridge_ygdk_item(dynamic raw);
 
   @protected
@@ -1676,6 +1680,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<BridgeWeek> dco_decode_list_bridge_week(dynamic raw);
+
+  @protected
+  List<BridgeWriteReadbackHint> dco_decode_list_bridge_write_readback_hint(
+    dynamic raw,
+  );
 
   @protected
   List<BridgeYgdkItem> dco_decode_list_bridge_ygdk_item(dynamic raw);
@@ -3662,6 +3671,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeWriteReadbackHint sse_decode_bridge_write_readback_hint(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeYgdkItem sse_decode_bridge_ygdk_item(SseDeserializer deserializer);
 
   @protected
@@ -3943,6 +3957,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<BridgeWeek> sse_decode_list_bridge_week(SseDeserializer deserializer);
+
+  @protected
+  List<BridgeWriteReadbackHint> sse_decode_list_bridge_write_readback_hint(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<BridgeYgdkItem> sse_decode_list_bridge_ygdk_item(
@@ -6316,6 +6335,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_write_readback_hint(
+    BridgeWriteReadbackHint self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_ygdk_item(
     BridgeYgdkItem self,
     SseSerializer serializer,
@@ -6672,6 +6697,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_bridge_week(
     List<BridgeWeek> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_write_readback_hint(
+    List<BridgeWriteReadbackHint> self,
     SseSerializer serializer,
   );
 

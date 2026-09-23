@@ -825,7 +825,7 @@ Core行为RED证明原在线计划不会保存完整详情；App行为RED证明�
 
 有效行为RED：typed clientDisposed被压缩成普通internalError，5项重建/退出/写保护测试失败；补充RED复现释放期间新查询仍排向旧实例。App保留明确分类，一轮恢复最多替换一次；释放前和接管前分别撤销旧读取，保存页面/时间并去除旧动作。新实例只重排仍匹配当前查询的读取，核对原账号；工厂失败、再次失效、后台、写意图、退出和销毁均按合同处理。
 
-新增13项行为测试，连同缓存与恢复47项聚焦通过。完整Flutter1057项（57+66+534+285+22+39+54）及7包静态分析、just check/Rust/CLI16项、refs/layout/敏感扫描通过；Bridge仍v34，Rust和生成绑定未变。macOS原生FFI一项通过，包括dispose后的明确clientDisposed与cacheFailure=null；前台化仍报告open返回1，只计原生合成，不计可见App或性能。iPhone 17 Pro/iOS26.5模拟器已启动，原生同一测试正在首次CocoaPods准备，尚无运行通过证据。
+新增13项行为测试，连同缓存与恢复47项聚焦通过。完整Flutter1057项（57+66+534+285+22+39+54）及7包静态分析、just check/Rust/CLI16项、refs/layout/敏感扫描通过；Bridge仍v34，Rust和生成绑定未变。macOS原生FFI一项通过，包括dispose后的明确clientDisposed与cacheFailure=null；前台化仍报告open返回1，只计原生合成，不计可见App或性能。随后iPhone 17 Pro/iOS26.5模拟器已通过同一FFI，见[iOS原生记录](offline-ios-native-2026-09-23.md)；安全材料后续结果另见P4-AG。
 
 日志在仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2r-backend-recovery-20260923/`。
 
@@ -837,3 +837,31 @@ Core行为RED证明原在线计划不会保存完整详情；App行为RED证明�
 | ubaa-p2r-check.log | `bbdd1dffaa1f3a45beb2512c57519a31ba0de2a5bd7a5031bb8ec42d0695d5ac` |
 | ubaa-p2r-flutter-check.log | `e51254abb688e46f12c172e193d2c255b5cd5ef7768d7eadc9d19f10743df666` |
 | ubaa-p2r-native-macos.log | `fc32fa6ba08d8f66c7c675f027b960db317b667d519b32711a213a7dbc25c51e` |
+
+
+## P4-AG：未知结果最小重启核对提示（2026-09-23）
+
+Core行为RED为8项提示不持久；Bridge实际Mock单次未知提交后缺少提示；App恢复与提交后迟到空读取分别复现缺提示；UI RED复现没有核对入口。已完成加密最小白名单、schema v6迁移、代次/退出/清理、容量上限与不淘汰提示，Bridge v35及单次提交前后接线，App独立读取与强制刷新修订、首页只读查看和本机移除。窄屏放大字体、移除失败保留和完整年份有测试覆盖；生成schema只允许四个字段。
+
+完整just check通过（含Core默认/test-contract、Clippy、CLI端到端16、Bridge139项通过/2项原有ignored）；完整Flutter1066项（57+66+540+287+23+39+54）及7包静态分析通过，FRB零漂移、refs/layout/敏感扫描通过。结构门禁首次失败后将纯本地方法归入既有offline模块，未添加baseline豁免，重新执行完整门禁。
+
+macOS原生FFI一项通过（仍报告前台化open返回1，不计可见App）；iPad Pro 13-inch (M5)/iOS26.5模拟器原生缓存与安全材料两项通过。iPhone 17 Pro模拟器安全材料单项也通过，属于P2-R后续独立平台证据。均为原生合成，不发送真实学校业务写入，不证明进程性能或真实App双路线。
+
+日志位于仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p4ag-write-readback-20260923/`。早期日志沿用P4AF文件前缀，最终阶段定为P4-AG以避免与旧SPOC阶段编号冲突。
+
+| 日志 | SHA-256 |
+|---|---|
+| ubaa-p4af-core-red.log | `ca585bda3986ce5b8ee20eba738aeb02d5fef9616d7f5f4e92adc1cd7a7ec4fb` |
+| ubaa-p4af-core-green.log | `a5e0129a7c8dddfedd76da09b8497e23057059e79327a0855da92c9ead8c1818` |
+| ubaa-p4af-bridge-red.log | `7c4f7bce6b59b5f682693a61b72a05d3cb833f7b4bc0ac10cd5af9d7ebc5a057` |
+| ubaa-p4af-bridge-green.log | `d70328407a9352bf50d404b347f375660c839b2f9bbe9ad12e0fbeb3675c096d` |
+| ubaa-p4af-app-red.log | `bb23fb6d1fb1a21111552ab357c10069daea9ff6aa06c2965fef5dc4d3a495b2` |
+| ubaa-p4af-readback-race-red.log | `f93fa6bac05452fed55c652de045c02c097d1679173bc6a3c6b66c672f012aac` |
+| ubaa-p4af-app-green.log | `888954832c2a8018ea7538a5d633e74080da984e37db54e6923e2f51c746dc1e` |
+| ubaa-p4af-ui-red.log | `7ad786c64bf1883550042dc7e1603c533fb59d8dd726cfd52e599fcdc99403cb` |
+| ubaa-p4ag-root.log | `8666a15e7f2b5c38361bec6bc09acfd1c520783ef2325f09a0275d9ef80f5fb4` |
+| ubaa-p4ag-flutter.log | `7acd99bfd12498e0bfbec4db7905247766684fa3b37cabb95ee91f4b0ffa356e` |
+| ubaa-p4ag-codegen-check.log | `29063bdcf4962eb7dbf36303bd3c806720ae2c385578437c6f7eec590155f91f` |
+| ubaa-p4ag-native-macos.log | `fc32fa6ba08d8f66c7c675f027b960db317b667d519b32711a213a7dbc25c51e` |
+| ubaa-p4ag-native-ipad.log | `9d85175fb7a3e2ef8f9c1d6af75adbf9b524162f83ceba8169013376f833d61b` |
+| ubaa-p5-iphone-material.log | `5f23a07fa8534e6b0eafcb339ab6c78f2590d4133ae33f86671659484916abda` |

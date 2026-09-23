@@ -59,7 +59,7 @@ pub(super) fn prepare_control(
             control
         } else {
             let mut control = crypto.open::<Control>(&body, &control_aad(account))?;
-            if version == 3 || version == 4 {
+            if (3..=5).contains(&version) {
                 control.epoch = control.epoch.checked_add(1).ok_or(CacheError::Capacity)?;
                 control.generation = control
                     .generation
@@ -111,7 +111,7 @@ impl OfflineRepository {
         )?)?;
         let (entry_count, content_bytes): (i64, i64) = tx
             .query_row(
-                "SELECT COUNT(*), COALESCE(SUM(length(body)),0) FROM entries",
+                "SELECT COUNT(*), COALESCE(SUM(length(body)),0) FROM (SELECT body FROM entries UNION ALL SELECT body FROM readback_hints)",
                 [],
                 |r| Ok((r.get(0)?, r.get(1)?)),
             )
@@ -173,6 +173,8 @@ impl OfflineRepository {
         tx.execute("DELETE FROM entries", [])
             .map_err(CacheError::from)?;
         tx.execute("DELETE FROM requests", [])
+            .map_err(CacheError::from)?;
+        tx.execute("DELETE FROM readback_hints", [])
             .map_err(CacheError::from)?;
         tx.commit().map_err(CacheError::from)?;
         self.generation = control.handle_generation();

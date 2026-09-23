@@ -6,10 +6,10 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 
 ## 当前状态
 
-当前已完成“无签名执行目标”，但**没有完成正式发布**：
+当前活动任务为[离线首页与后台恢复](goal.md)，设计落实与验收持续进行，整体未完成。此前“无签名执行目标”已有阶段证据，正式发布尚未完成。
 
 2026-09-07 已完成本地可维护性治理：统一错误语义、增加安全诊断与严格门禁，并整理可共享交接证据。
-当前结果见[验收记录](docs/migration/evidence/2026-09-07-maintainability.md)；真实 App/Core-live 按要求保持暂停。
+该历史阶段见[验收记录](docs/migration/evidence/2026-09-07-maintainability.md)。本次已授权 Direct/WebVPN 只读、真实 App 与模拟器验证，历史暂停不适用于本次范围。
 
 - Rust Core 与 CLI 已实现认证、Direct/WebVPN/Auto 路由、双路线会话、用户中心、十二项业务读取和十项写入协议；
 - Windows、macOS、Linux、Android、iOS 使用官方 Flutter 共享 Dart/UI，HarmonyOS 使用锁定的 OHOS fork；
@@ -17,10 +17,10 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
   integration 阶段证据；Evaluation typed 批量提交已在阶段 11J `4b0dcb0` 落地，阶段 11K `b6ff2c7`
   已统一 Dart 写入协调，结构治理的最终候选验证仍单独记录；
 - Direct 与 WebVPN 的历史真实证据只覆盖对应提交的 Core-live 只读矩阵，不代表本轮真实 App 账号链路或真实写入；
-- 正式签名、证书、公证、商店上传、实体设备、原生安全存储 handler 和真实写入核对仍是后置条件。
+- 系统安全材料与统一加密缓存已接入，原生运行按平台分别验收；实体设备、签名、公证、商店上传和真实业务写入均不由模拟器或只读结果证明。
 
-当前公开合同版本为 CLI JSON schema v10 与 Flutter bridge contract v34；这两个版本都与磁盘
-`session.json` schema v2、`config.toml` 版本 1 相互独立。
+当前公开合同版本为 CLI JSON schema v10 与 Flutter bridge contract v35；这两个版本都与磁盘
+`session.json` schema v2、`config.toml` 版本 1、业务缓存 schema v6 相互独立。
 
 当前状态及证据边界见[迁移与交付状态](docs/migration/status.md)。代码组织治理的当前权威是
 [代码与目录组织设计](docs/architecture/code-organization.md)和
@@ -92,7 +92,7 @@ cargo run --locked -p ubaa-cli -- auth logout
 默认 Session 位于操作系统的用户私有配置目录；隔离测试可使用 `--config-dir <path>`。CLI 每次 JSON 成功或
 失败只输出一个 schema-v10 信封，合同见[认证与用户合同](docs/contracts/auth-and-user.md)和
 [CLI JSON Schema](docs/contracts/cli-json.schema.json)。该输出版本独立于磁盘存储合同；`session.json` 仍为
-schema v2，`config.toml` 仍为版本 1。当前 Flutter bridge contract 为 v34；图书馆预约记录的 `status` 为
+schema v2，`config.toml` 仍为版本 1。当前 Flutter bridge contract 为 v35；图书馆预约记录的 `status` 为
 nullable int，并由 Core 提供 typed `cancelEligibility/cancelTarget`。取消 action 在本地携带
 `id/page/limit` 以便 prepare、commit 和写后读取核对使用同一页，但最终上游取消正文仍只有 `id`。
 场馆时段的 `reservationStatus` 同样为 nullable int，只有 Core 明确给出 `allowed` 和完整

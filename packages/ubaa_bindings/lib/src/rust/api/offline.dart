@@ -16,6 +16,8 @@ import 'offline_profile.dart';
 import 'offline_ygdk.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
+import 'write.dart';
+import 'write/readback.dart';
 
 // These functions are ignored because they are not marked as `pub`: `cache_error`, `local_task`, `map_today`, `offline_read_error`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `assert_fields_are_eq`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `eq`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `from`
@@ -61,6 +63,9 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   /// # Errors
   /// 无法持久化退出栅栏时返回稳定错误。
   Future<void> deactivate();
+
+  /// 用户核对后移除本地提示，不将学校结果升级为成功。
+  Future<void> dismissWriteReadback({required String id});
 
   /// 从安全材料打开独立本地仓库，不创建第二个持久会话客户端。
   ///
@@ -371,6 +376,9 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   /// # Errors
   /// 已退出、旧句柄和存储故障保持稳定错误。
   Future<BridgeCacheUsage> usage();
+
+  /// 本地核对提示不检查学校会话，也不产生写意图。
+  Future<List<BridgeWriteReadbackHint>> writeReadbackHints();
 }
 
 /// 本地缓存故障不表示学校读取失败。

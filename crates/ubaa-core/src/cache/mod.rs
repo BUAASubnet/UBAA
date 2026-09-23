@@ -19,7 +19,7 @@ mod types;
 pub use crypto::CacheKey;
 pub use store::{
     CacheClearReport, CacheInvalidation, CacheInvalidationReport, CacheRecovery, CacheUsage,
-    OfflineRepository,
+    OfflineRepository, WriteReadbackHint, WriteReadbackOperation, WriteReadbackTicket,
 };
 pub use types::*;
 

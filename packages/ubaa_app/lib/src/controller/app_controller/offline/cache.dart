@@ -26,6 +26,7 @@ extension _AppControllerOfflineCache on AppController {
         key.fillRange(0, key.length, 0);
       }
       if (!current()) return;
+      unawaited(_loadWriteReadbacks());
       final profileEpoch = _lifecycleEpoch;
       unawaited(_restoreCachedProfile(backend, account, profileEpoch));
       final read = await _readCurrentCachedHome(offline, current);

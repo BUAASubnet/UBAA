@@ -16,6 +16,7 @@ import '../contracts/query.dart';
 import '../contracts/routing.dart';
 import '../contracts/recovery.dart';
 import '../contracts/write.dart';
+import '../contracts/write_readback.dart';
 import '../presentation/grades.dart';
 import '../write/cgyy_validation.dart';
 import '../write/coordinator.dart';
@@ -38,6 +39,7 @@ part 'app_controller/home_sources.dart';
 part 'app_controller/grades.dart';
 part 'app_controller/write_lifecycle.dart';
 part 'app_controller/write_cache/memory.dart';
+part 'app_controller/write_cache/readback.dart';
 part 'app_controller/ygdk_readback.dart';
 part 'app_controller/diagnostics.dart';
 part 'app_controller/offline_startup.dart';
@@ -174,6 +176,16 @@ class AppController extends ChangeNotifier {
   int _offlineAccountEpoch = 0;
   UiError? _localCacheError;
   UiError? get localCacheError => _localCacheError;
+  List<WriteReadbackHint> _writeReadbacks = const [];
+  List<WriteReadbackHint> get writeReadbacks =>
+      List.unmodifiable(_writeReadbacks);
+  UiError? _writeReadbackError;
+  UiError? get writeReadbackError => _writeReadbackError;
+  int _writeReadbackRevision = 0, _writeReadbackLoadedEpoch = -1;
+  _WriteReadbackRead? _writeReadbackRead;
+  Future<void> refreshWriteReadbacks() => _loadWriteReadbacks(force: true);
+  Future<void> dismissWriteReadback(String id) =>
+      _dismissControllerReadback(id);
   bool _usesLocalRecovery = false;
   SessionRecoveryStatus _sessionRecoveryStatus = SessionRecoveryStatus.idle;
   Future<void>? _sessionRecoveryFuture;
@@ -887,23 +899,6 @@ class AppController extends ChangeNotifier {
     RoutePolicy.direct => activeRoutes.contains(ConnectionMode.direct),
     RoutePolicy.webvpn => activeRoutes.contains(ConnectionMode.webvpn),
   };
-
-  void _resetFeatureSnapshots({bool advanceLifecycle = true}) {
-    _profileDisplay = null;
-    _profileFailureEpoch = -1;
-    _featureRecoveryStates.clear();
-    _featureRecoveryErrors.clear();
-    _recoveredRoute = null;
-    _readCacheEpoch++;
-    if (advanceLifecycle) _lifecycleEpoch++;
-    _ygdkGeneration++;
-    _writeCoordinator.invalidate();
-    _ygdkReadbackState = const YgdkReadbackState.empty();
-    for (final feature in FeatureId.values) {
-      _snapshots[feature] = FeatureSnapshot(feature: feature);
-      _homeDefaults[feature] = FeatureSnapshot(feature: feature);
-    }
-  }
 
   void _applyRouteSettings(BackendRouteSettings settings) {
     _activeRoutes = List<ConnectionMode>.unmodifiable(settings.activeRoutes);

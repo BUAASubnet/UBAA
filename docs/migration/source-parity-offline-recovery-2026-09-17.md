@@ -536,3 +536,12 @@ old 1f4b8f84 `LocalJudgeApi.getAssignmentDetailsResponse`先去重明确目标�
 重新核对 old `1f4b8f84` 的 `composeApp/.../App.kt:104`（ON_STOP后ON_RESUME验证会话）、`shared/.../api/auth/AuthApi.kt`（AuthServiceBackend会话/资料接口及共享实例provider）、`ResettableSharedInstance.kt`（reset释放旧实例）；buaa-api `a63712fa` 的 `context.rs`（唯一Context及Cookie/credential store、with_auth/load_auth）、`store/{cookies,cred}.rs`与既有认证错误分类。两份来源都没有FRB opaque handle或本项目离线首页原位重建合同，不从另一协议推断clientDisposed、业务参数或新会话格式。
 
 逐操作的会话检查、所需路线登录、资料、退出仍分别沿本文件P0-A/P1-A/P2-A/B九列：CAS/bootstrap/service、跳转/终点、Cookie范围、HTTP方法及精确参数、头/编码、加密常量、DTO均不改。重建仅由现有BridgeErrorCode.clientDisposed精确分类触发；网络/普通internalError、缓存故障均不触发。原客户端释放收尾后才启用继任实例，不复制Cookie、不并行持久会话写入。一次恢复最多替换一次；保持页面只读投影和查询，撤销旧计划及动作，重新读取既有会话并核对身份；认证与写保护、前后台和退出代次继续生效。本机工厂/磁盘失败原位提示，不清空缓存或循环重建。
+
+
+## P4-AG：未知写结果的最小重启核对线索（实施前，2026-09-23）
+
+再次核对old `1f4b8f84` 的LocalBykcApi选退/签到、LocalSigninApi.performSignin、LocalLibBookApi预约/取消、LocalCgyyApi提交/取消、LocalYgdkApi.submitClockin、LocalEvaluationService.submitEvaluations，以及对应接口/DTO和既有写测试。buaa-api `a63712fa` 的boya/opt.rs有同类选退/签到、tes/opt.rs有提交；其srs是选课系统，不当作研讨室或图书馆协议。另一来源没有课堂签到、图书馆预约、研讨室及阳光的同构协议。双方均没有本项目一次性意图及未知结果重启核对仓库。
+
+每个学校操作分别继承主source-parity.md现有写合同与本文件P4-AC/AD影响范围：CAS/bootstrap/service、跳转/最终URL、Cookie/session、方法/精确参数、头/正文编码、签名/加密常量、业务DTO及错误/退出规则均不改变。P4-AG只在已经消费且通过既有Bridge前置验证的显式commit周围保存本地提示，不增加或重发学校请求；确定成功/失败可移除本轮提示，outcome_unknown或崩溃遗留保留，部分评教任一未知仍保留。
+
+持久白名单仅随机本地提示ID、封闭操作枚举、固定实际路线、尝试开始时间；不存intent ID、requestDigest、目标/查询材料、个人正文或学校权限。提示独立于可淘汰业务条目，密文与AAD仍绑定账号；本机清理/重建撤销它，退出只关闭可见性。重启只能展示“结果待核实”，查看相关领域只触发原只读入口；用户确认移除只修改本地提示，不将学校结果升为成功。存储失败必须独立显示，不降级明文或偷偷重发。

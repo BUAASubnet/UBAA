@@ -1,8 +1,6 @@
 # Flutter Bridge 合同
 
-状态：合同 v9 的 Phase 11J typed 实现已在 `4b0dcb0` 完成本地确定性门禁、FRB 零漂移与脱敏宿主
-integration；Phase 11K `b6ff2c7` 完成 Dart 单一写入协调器与共享宿主接线，保持合同 v9。
-此前 P1 证据只作历史基线，实体设备上的原生 isolate/内存观测仍是后置发布证据。
+状态：当前合同v35，离线首页与后台恢复任务仍在实施及验收。v9的Phase 11J/11K是typed写入和单一协调器的历史基线；当前版本、生成一致性及原生/真实App证据以实施区goal.md和迁移状态为准。实体设备与正式发布单独记录。
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
@@ -11,7 +9,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `34`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `35`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -38,7 +36,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=34` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=35` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -652,3 +650,10 @@ beginJudgeOnline(options)接收可选期望账号与明确目标，nextJudgeOnli
 `beginJudgeDetails(cache, keys)`/`nextJudgeDetails(task)`沿原课程与目标核对、原子选课+单项详情读取，每批返回后归还同一个客户端共享锁。各目标在请求前取得独立缓存修订，仅该项完整结果可保存；不把子集覆盖到摘要范围。取消、账号/路线/会话、退出/清理及较新同目标读取仍阻止迟到发布。待确认写意图拒绝开始/推进且不会被清除。
 
 `BridgeJudgeProgress`复用原批次与saveError分列合同。App的批量详情使用本入口，有明确可降级本地错误时仍经P2-P下一安全批次在线回退。离线批量逐键读取同路线合法缓存，缺项/损坏保留其余并标部分，依据取最早取得时间；Auto优先完整路线，不能混拼两条路线。独立票据一次最多2048项，超出报告本地Capacity并允许原无缓存路径读取全部目标，不截断范围。业务缓存schema v5、Session v2和CLI v10不变。
+
+
+## 合同 v35：未知结果的最小核对提示
+
+`BridgeOfflineCache.writeReadbackHints` 和 `dismissWriteReadback` 仅访问当前账号的加密本地仓库，不取得学校网络锁。提示 DTO 只含随机本地 id、封闭 operation、原 route 和 startedAt，不携带意图、请求摘要、目标或提交材料。`commitWriteCached` 在原一次性消费与前置核验后、实际提交前保存提示；确定结果移除本轮，未知结果（包括评教任一未知子项）和崩溃遗留保留。保存或删除失败通过原 cacheError 分列，不改写学校结果、不重发、不降级明文。
+
+数据库 schema v6 对 v5 增加独立加密提示表；上限64条且不会被普通内容淘汰，达到上限明确报告本地容量错误。退出使提示不可读，重新核实账号后可读；显式清理或重建会删除本账号提示并在确认文案中说明不可恢复。App 首页只提供相关功能查看与用户确认后的本机移除，均不产生写意图或宣称学校成功。

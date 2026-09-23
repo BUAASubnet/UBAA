@@ -13,6 +13,7 @@ part 'app/home.dart';
 part 'app/login.dart';
 part 'app/profile.dart';
 part 'app/cache_settings.dart';
+part 'app/write_readback_notice.dart';
 part 'app/about.dart';
 part 'app/profile_details.dart';
 part 'app/shell.dart';
