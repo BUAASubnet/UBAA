@@ -6,6 +6,7 @@
 import '../../frb_generated.dart';
 import '../client.dart';
 import '../judge_scan.dart';
+import '../offline.dart';
 import '../read.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 

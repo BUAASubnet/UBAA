@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `32`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `33`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -38,7 +38,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=32` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=33` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -637,4 +637,11 @@ beginJudgeOnline(options)接收可选期望账号与明确目标，nextJudgeOnli
 
 新增 beginEvaluationScan(cache)、beginEvaluationOnline(expectedIdentity?)、nextEvaluationScan(task)。每次完成原激活或一个任务/问卷/课程 GET 后归还原共享锁，completedCourseLists=0 且未结束的阶段不发布空集合。完整前或部分失败时不返回有效提交目标，最后仍执行全局重复目标裁决；持久载荷沿原四显示字段和进度，不保存内部 authority。新计划不接写前模式/题目/提交操作；原唯一写流程、固定路线回读与 CLI 全量语义不变。
 
-评教新批次的可选 error 只传首个非认证子请求稳定错误；已有课程与完整度同时返回，暂时网络错误可由既有网络变化唤醒识别；业务失败的定时退避另行接线。结构/覆盖不完整不伪装网络失败；saveError仍只代表本地存储。旧聚合 DTO 不增加错误字段。
+评教新批次的可选 error 只传首个非认证子请求稳定错误；已有课程与完整度同时返回，暂时网络错误可由既有网络变化唤醒识别；业务失败的定时退避由P2-O宿主调度。结构/覆盖不完整不伪装网络失败；saveError仍只代表本地存储。旧聚合 DTO 不增加错误字段。
+
+
+## 合同 v33：本地缓存错误与学校错误分列
+
+`BridgeError.cache_failure/cacheFailure` 为可选 `BridgeCacheFailure`，只由本地缓存错误映射产生；学校错误和客户端已释放错误保持空值，原 code/kind/retryable/resolvedRoute 不变。App 只对 Corrupt、Unavailable、UnsupportedVersion、Capacity 取消旧希冀持久计划，在下一安全批次沿同账号、同客户端创建在线分段计划。Inactive、Superseded、InvalidInput、身份冲突及未分类错误不能绕过栅栏。
+
+每个异步边界继续检查取消与缓存代次，退出后迟到句柄立即取消，迟到学校错误不能覆盖本地取消。在线结果的 `DataEvidence.cacheFailure` 与学校错误分别显示，`savedForOffline=false`；本地故障不将已取得的学校内容标为读取失败，也不允许写操作。保存失败已附带完整在线内容时只提示未保存，不额外重读。

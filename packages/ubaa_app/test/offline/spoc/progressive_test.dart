@@ -223,7 +223,7 @@ class SpocClient implements BridgeClient {
   Completer<BridgeSpocScan>? beginGate;
   Completer<BridgeSpocScanBatch>? gate;
   @override
-  int contractVersion() => 32;
+  int contractVersion() => 33;
   @override
   Future<BridgeSpocScan> beginSpocOnline({String? expectedIdentity}) async {
     this.expectedIdentity = expectedIdentity;

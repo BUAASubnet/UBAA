@@ -6,12 +6,12 @@
 
 隔离区 `.worktrees/offline-home-20260917`、分支 `codex/offline-home-20260917`，只读复用源目录冻结引用。源和实施区 `just refs` 均退出 0，SHA 与 references.md 一致。无凭据复制、无运行会话修改、无真实学校写入。
 
-## 当前证据
+## 接续前已提交候选证据（截至P2-O）
 
 | 类别 | 当前结论 |
 |---|---|
 | 合同 | 已归档旧暂停合同，建立新 P0–P5 合同 |
-| 实现/确定性 | Core统一加密缓存schema v5、Bridge v32；本地首页、立即恢复、认证前台退避、写后失效、希冀/SPOC/评教分段已接线。最近完整Flutter 1008项；P2-N根门禁结果见末尾 |
+| 实现/确定性 | Core统一加密缓存schema v5、Bridge v32；本地首页、立即恢复、认证前台退避、写后失效、希冀/SPOC/评教分段已接线。最近完整Flutter 1017项；P2-O根门禁与退出码记录限制见末尾 |
 | 原生合成 | macOS新FFI/投影/调度通过；P4-U有三场景可见合成媒体。多数集成运行有前台化警告，不能计作独立可见窗口 |
 | 多端构建 | P2-H候选OHOS无签名debug HAP/arm64门禁通过；六端设备运行仍不完整 |
 | Core-live | P2-L全领域Direct/WebVPN各40PASS；P2-M针对SPOC与认证两路线各6PASS，分别1.006s/1.551s。旧聚合与App新分段分别记账 |
@@ -21,7 +21,7 @@
 
 ## 当前步骤
 
-P2-N评教分段确定性与WebVPN原生只读通过，Direct激活网络失败仍未验收；继续P2-O业务失败定时退避，并审查剩余精确查询/批量持久覆盖、其他长聚合的安全分段及客户端失效恢复，再完成15场景矩阵与手机/平板/macOS至少30次进程冷启动测量。各阶段细节按下文时间顺序保存，早期“未接线”仅表示当时状态。
+2026-09-23接续：P2-O业务失败定时退避已提交c7e55171。先完成现存P2-P未提交缓存故障分类、FRB生成与App回退；当前候选不能继承上表通过结论。P2-N Direct评教激活失败仍未验收，并继续审查剩余精确查询/批量持久覆盖、其他长聚合的安全分段及客户端失效恢复，再完成15场景矩阵与手机/平板/macOS至少30次进程冷启动测量。各阶段细节按下文时间顺序保存，早期“未接线”仅表示当时状态。
 
 ## P0-A：所需路线恢复与存储可行性
 
@@ -755,3 +755,28 @@ Core聚焦 `/tmp/ubaa-p2n-core-green-final.log` 7项通过；Bridge真实同锁�
 提交前审查补充 `/tmp/ubaa-p2o-home-red.log`：显式页保持打开时首次首页失败的提前返回绕过末尾通知，30秒后请求数仍2而非3；将重试同步放在请求finally收尾后，`green-final.log` 19项通过。第一次完整门禁的1016项记录不删除；修复后再次跑最终完整门禁。
 
 P2-O最终候选：Flutter完整1017项（57/66/495/284/22/39/54）及静态分析通过；根门禁日志完成至doc与git diff --check，含Core302两配置/facade99/Bridge137+2既有忽略/CLI16，进程句柄在中断恢复后已不存在，未保留额外退出码文件。恢复后refs、敏感扫描5401和git diff --check再次通过。正常macOS main已构建且产物签名权限通过，不把构建当作原生交互或实时学校重试验证。本批仅App调度改变，无新Bridge/codegen；双路线最新学校证据仍按P2-N分列。安全日志私有归档 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2o`，index SHA256 `f1d79e718bb0c7ea1ac0be8cfb007408d02c62767dbfd06f5b07121892a726bd`。
+
+
+## P2-P：本地缓存故障与希冀在线读取分离（2026-09-23）
+
+接续原29项改动，修复FRB配置目录错误与缺少字段的Rust构造器；保留上轮编译RED，另外观察5项行为RED（本地故障阻断在线读取）及后续取消/错误分类RED。Bridge v33错误只携带稳定缓存枚举，不解析错误文本。4种本地存储故障让出安全批次后启用原在线计划；退出、被替代、无效输入、串号和学校错误不回退。补齐迟到句柄取消和取消结果优先。首页/作业页分别提示缓存失败，在线内容保留、未保存，不授予写资格。
+
+当前候选聚焦回退/取消/在线/渐进23项、首页7项通过；完整Flutter 7包共1032项及静态分析通过（57+66+509+285+22+39+54），FRB重生成零漂移。macOS真实FFI合成测试1项通过，覆盖v33、学校错误无cacheFailure、本地无效输入/退出分类以及已有加密缓存重开/清理/重建。原生测试的 `Failed to foreground app; open returned 1` 仍存在，本项只证明FFI与合成运行，不算用户可见App验收或设备性能。
+
+本候选完整 `just check`、refs、layout、敏感扫描通过，包含CLI端到端16项、Bridge138项（另2项由父测试启动的隔离子进程）、clippy、默认/测试注入Core合同、构建及文档。双路线与设备性能留在后续最终候选验收。新增审查点：人工计划部分批次在失去缓存后是否保留已有列表，需要独立行为复现和修复；本批不据此宣称所有内容稳定性已验收。
+
+日志位于仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2p-cache-fallback-20260923/`，无真实学校业务写入。
+
+| 日志 | SHA-256 |
+|---|---|
+| ubaa-p2p-app-behavior-red.log | `2f43bf1f00693b546ec9b01ca5c8782812d75774fcb5a8d22b998d6610f05224` |
+| ubaa-p2p-bridge-green.log | `242250bad810f4092fd21da6bc33531b5bd62aa7e18fd0a5677af6b3aa347ec6` |
+| ubaa-p2p-lifecycle-red.log | `44e1003a2b6a5884bfa472e6cfb181b519d6c0d7a4a0507a53da2698cb1000b2` |
+| ubaa-p2p-evidence-red.log | `6d81d18ecdc895ff66fcae157f99185b068e918a845899de003df0674b6cb021` |
+| ubaa-p2p-app-final-focused.log | `c16d934f6d28f74305ce2c16ee3d1fdfe54b42b17bfddafaed7e862146f6eda0` |
+| ubaa-p2p-ui-red.log | `60600e16ba763ba70eff25ee87aa0f4e0a3c6d4df1f0b0dbc7183eba42c9ff76` |
+| ubaa-p2p-ui-green.log | `dc0349eb0fd61e9e2232d0d6cbd147760a84cdc5dedf9474e98d6aec26eae2f1` |
+| ubaa-p2p-flutter-check.log | `73db7213aeee8fa9448dc6709f7e4c04ba1ef18ad0602a19a47e83dfcf6f2022` |
+| ubaa-p2p-codegen-check.log | `29063bdcf4962eb7dbf36303bd3c806720ae2c385578437c6f7eec590155f91f` |
+| ubaa-p2p-native.log | `fc32fa6ba08d8f66c7c675f027b960db317b667d519b32711a213a7dbc25c51e` |
+| ubaa-p2p-check.log | `fa5e81952ee7042ab9be27d47f771da8094e997b6a8d3c6a1733ea62cddeae19` |

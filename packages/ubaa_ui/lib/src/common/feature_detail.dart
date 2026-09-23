@@ -163,6 +163,11 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
           )
         : Column(
             children: [
+              if (widget.snapshot.evidence?.cacheFailure case final failure?)
+                Padding(
+                  padding: const EdgeInsets.all(12),
+                  child: Text(_cacheReadFailureText(failure)),
+                ),
               if (widget.snapshot.evidence?.complete == false &&
                   widget.snapshot.details.isNotEmpty)
                 const Padding(

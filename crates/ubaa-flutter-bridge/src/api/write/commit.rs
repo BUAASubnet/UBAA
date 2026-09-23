@@ -312,6 +312,7 @@ pub(super) fn finish_commit_success(
 ) -> Result<BridgeWriteCommitResult, BridgeError> {
     if matches!(operation, super::BridgeWriteOperation::CgyyCancelOrder) && !success {
         return Err(BridgeError {
+            cache_failure: None,
             code: BridgeErrorCode::UpstreamChanged,
             kind: BridgeErrorKind::Upstream,
             retryable: false,
@@ -321,6 +322,7 @@ pub(super) fn finish_commit_success(
     }
     if matches!(operation, super::BridgeWriteOperation::YgdkSubmit) && !success {
         return Err(BridgeError {
+            cache_failure: None,
             code: BridgeErrorCode::UpstreamChanged,
             kind: BridgeErrorKind::Upstream,
             retryable: false,
@@ -358,6 +360,7 @@ fn map_dispatch_error(
             .is_some_and(|resolution| resolution.mode != expected_route.into())
     {
         return BridgeError {
+            cache_failure: None,
             code: BridgeErrorCode::OperationConflict,
             kind: BridgeErrorKind::Input,
             retryable: true,

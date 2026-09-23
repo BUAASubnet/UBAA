@@ -3,8 +3,10 @@ part of '../../bridge_backend.dart';
 Future<FeatureReadTask> _beginOnlineJudgeRead(
   BridgeBackend backend,
   LocalAccount? account,
-  FeatureQuery query,
-) async {
+  FeatureQuery query, {
+  CacheMaintenanceFailure? cacheFailure,
+}) async {
+  final generation = backend._offlineGeneration;
   final keys = switch (query.view) {
     FeatureQueryView.judgeDetail => [
       BridgeJudgeAssignmentKey(
@@ -24,11 +26,18 @@ Future<FeatureReadTask> _beginOnlineJudgeRead(
         keys: keys,
       ),
     );
+    try {
+      _checkOfflineGeneration(backend, generation);
+    } catch (_) {
+      task.cancel();
+      rethrow;
+    }
     return _JudgeFeatureTask(
       backend,
       account,
       query,
       persistent: false,
+      cacheFailure: cacheFailure,
       cancelTask: task.cancel,
       nextProgress: () async {
         final progress = await backend.client.nextJudgeOnline(task: task);
@@ -45,6 +54,7 @@ Future<FeatureReadTask> _beginOnlineJudgeRead(
       },
     );
   } on BridgeError catch (error) {
+    _checkOfflineGeneration(backend, generation);
     throw _mapError(error);
   }
 }
@@ -93,6 +103,7 @@ extension _JudgeOnlineBatchDetails on _JudgeFeatureTask {
             fetchedAt: _cacheTime(progress.summaryFetchedAt.toInt()),
             complete: progress.batch.complete && warning == null,
             savedForOffline: false,
+            cacheFailure: cacheFailure,
           );
     final route = _toConnectionMode(progress.batch.route.resolvedRoute);
     final result = warning != null && details.isEmpty

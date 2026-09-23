@@ -286,6 +286,7 @@ String? _nonBlank(String? value) {
 
 BackendException _mapError(BridgeError error) => BackendException(
   _typedErrorCode(error.code),
+  cacheFailure: _cacheMaintenanceFailure(error.cacheFailure),
   accountMismatch: error.code == BridgeErrorCode.cacheIdentityMismatch,
   kind: _typedErrorKind(error.kind),
   retryable: error.retryable,

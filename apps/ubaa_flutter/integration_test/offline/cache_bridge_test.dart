@@ -21,7 +21,7 @@ void main() {
     BridgeClient? client;
     try {
       client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 32);
+      expect(client.contractVersion(), 33);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
@@ -36,7 +36,8 @@ void main() {
                 (error) => error.resolvedRoute,
                 'Core 目标路线',
                 BridgeConnectionMode.direct,
-              ),
+              )
+              .having((error) => error.cacheFailure, '学校认证错误不是本地存储错误', isNull),
         ),
       );
       await expectLater(
@@ -84,6 +85,21 @@ void main() {
             (error) => error.code,
             '评教分段 RPC 缺会话',
             BridgeErrorCode.authenticationRequired,
+          ),
+        ),
+      );
+      await expectLater(
+        BridgeOfflineCache.open(
+          configDir: directory.path,
+          accountId: '0123456789abcdef0123456789abcdef',
+          expectedIdentity: 'synthetic',
+          key: Uint8List(1),
+        ),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.cacheFailure,
+            '原生缓存错误分类穿过FFI',
+            BridgeCacheFailure.invalidInput,
           ),
         ),
       );
@@ -385,11 +401,17 @@ void main() {
       await expectLater(
         second.readToday(route: BridgeConnectionMode.direct),
         throwsA(
-          isA<BridgeError>().having(
-            (error) => error.code,
-            '退出栅栏',
-            BridgeErrorCode.authenticationRequired,
-          ),
+          isA<BridgeError>()
+              .having(
+                (error) => error.code,
+                '退出栅栏',
+                BridgeErrorCode.authenticationRequired,
+              )
+              .having(
+                (error) => error.cacheFailure,
+                '缓存退出不可转为在线回退',
+                BridgeCacheFailure.inactive,
+              ),
         ),
       );
       await second.activate();

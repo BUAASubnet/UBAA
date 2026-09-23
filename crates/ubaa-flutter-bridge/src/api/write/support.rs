@@ -376,6 +376,7 @@ fn routed_local_error(
     message: &str,
 ) -> BridgeError {
     BridgeError {
+        cache_failure: None,
         code,
         kind,
         retryable,

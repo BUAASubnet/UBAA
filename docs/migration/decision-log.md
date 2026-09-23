@@ -1589,3 +1589,8 @@ Bridge v29公开beginJudgeOnline/nextJudgeOnline与opaque取消句柄，固定�
 ## 2026-09-22 P2-N 评教真实只读失败分类
 
 冻结 old 1f4b8f84 LocalEvaluationService.kt 与 buaa-api a63712fa tes/{auth,opt}.rs 的激活差异仍按来源对照执行。新原生分段在 Direct 激活首批返回 networkError/retryable=true、complete=false；WebVPN 两批完整空集合及缓存重开成功。Direct 尚无协议冲突或终点变化证据，不放宽 Core read::ensure_activation_terminal，不改学校参数。旧 CLI get_all 非认证错误空回退的 PASS 不证明业务成功。保留首个稳定错误供原位提示与后续前台退避；真实业务写入0。
+
+
+## 2026-09-23：接续离线首页P2-P与当前候选证据
+
+在原实施区接续c7e55171与29项未提交变更，已确认其他相关任务空闲、未发现实施区遗留写入/构建进程；refs纯校验通过。保留旧RED日志，FRB从packages/ubaa_bindings配置目录生成，再取得可执行行为RED。P2-P仅允许明确可降级的本地故障转同账号、同客户端在线计划，退出/被替代/账号冲突和学校错误不进入回退。历史通过不替代本次候选；活动合同和状态已消除旧“退避尚待接线”等矛盾描述，旧状态原样归档。

@@ -10200,14 +10200,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeError dco_decode_bridge_error(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return BridgeError(
       code: dco_decode_bridge_error_code(arr[0]),
       kind: dco_decode_bridge_error_kind(arr[1]),
       retryable: dco_decode_bool(arr[2]),
       message: dco_decode_String(arr[3]),
       resolvedRoute: dco_decode_opt_box_autoadd_bridge_connection_mode(arr[4]),
+      cacheFailure: dco_decode_opt_box_autoadd_bridge_cache_failure(arr[5]),
     );
   }
 
@@ -16051,12 +16052,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_resolvedRoute = sse_decode_opt_box_autoadd_bridge_connection_mode(
       deserializer,
     );
+    var var_cacheFailure = sse_decode_opt_box_autoadd_bridge_cache_failure(
+      deserializer,
+    );
     return BridgeError(
       code: var_code,
       kind: var_kind,
       retryable: var_retryable,
       message: var_message,
       resolvedRoute: var_resolvedRoute,
+      cacheFailure: var_cacheFailure,
     );
   }
 
@@ -22187,6 +22192,10 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.message, serializer);
     sse_encode_opt_box_autoadd_bridge_connection_mode(
       self.resolvedRoute,
+      serializer,
+    );
+    sse_encode_opt_box_autoadd_bridge_cache_failure(
+      self.cacheFailure,
       serializer,
     );
   }

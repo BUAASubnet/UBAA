@@ -379,6 +379,15 @@ class _HomeViewState extends State<_HomeView> {
                 '部分内容加载失败：${failed.map(_homeLabel).join('、')}，已显示其余待办。',
               ),
             ),
+          for (final feature in features)
+            if (sources[feature]?.evidence?.cacheFailure case final failure?
+                when !failed.contains(feature))
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(
+                  '${_homeLabel(feature)}：${_cacheReadFailureText(failure)}',
+                ),
+              ),
           if (_supplements[HomeSupplement.currentWeek] case final result?
               when result.error != null || result.isEmpty)
             Row(
@@ -454,7 +463,20 @@ String _homeLabel(FeatureId feature) => switch (feature) {
   FeatureId.ygdk => '阳光打卡',
   _ => feature.title,
 };
-String _homeSummary(FeatureSnapshot snapshot) =>
+String _cacheReadFailureText(CacheMaintenanceFailure failure) =>
+    failure == CacheMaintenanceFailure.capacity
+    ? '本机空间不足，当前内容未保存，可继续在线查看。'
+    : '本机缓存暂不可用，当前内容未保存，可继续在线查看。';
+
+String _homeSummary(FeatureSnapshot snapshot) {
+  final summary = _homeReadSummary(snapshot);
+  final failure = snapshot.evidence?.cacheFailure;
+  return failure == null
+      ? summary
+      : '$summary · ${_cacheReadFailureText(failure)}';
+}
+
+String _homeReadSummary(FeatureSnapshot snapshot) =>
     snapshot.evidence?.origin == DataOrigin.persisted
     ? '上次保存 ${_savedScheduleTime(snapshot.evidence!.fetchedAt)}，待核实更新'
     : snapshot.evidence?.origin == DataOrigin.mixed

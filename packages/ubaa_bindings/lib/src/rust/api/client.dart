@@ -739,12 +739,16 @@ class BridgeError implements FrbException {
   final String message;
   final BridgeConnectionMode? resolvedRoute;
 
+  /// 与学校错误分列，不从message推断本地故障。
+  final BridgeCacheFailure? cacheFailure;
+
   const BridgeError({
     required this.code,
     required this.kind,
     required this.retryable,
     required this.message,
     this.resolvedRoute,
+    this.cacheFailure,
   });
 
   @override
@@ -753,7 +757,8 @@ class BridgeError implements FrbException {
       kind.hashCode ^
       retryable.hashCode ^
       message.hashCode ^
-      resolvedRoute.hashCode;
+      resolvedRoute.hashCode ^
+      cacheFailure.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -764,7 +769,8 @@ class BridgeError implements FrbException {
           kind == other.kind &&
           retryable == other.retryable &&
           message == other.message &&
-          resolvedRoute == other.resolvedRoute;
+          resolvedRoute == other.resolvedRoute &&
+          cacheFailure == other.cacheFailure;
 }
 
 /// Core 与 bridge 共用的机器错误码。

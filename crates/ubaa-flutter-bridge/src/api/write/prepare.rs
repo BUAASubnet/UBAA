@@ -499,6 +499,7 @@ impl BridgeClient {
                     });
             if !courses_match {
                 return Err(BridgeError {
+                    cache_failure: None,
                     code: crate::api::client::BridgeErrorCode::UpstreamChanged,
                     kind: crate::api::client::BridgeErrorKind::Upstream,
                     retryable: false,

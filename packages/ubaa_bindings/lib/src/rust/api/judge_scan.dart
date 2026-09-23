@@ -5,6 +5,7 @@
 
 import '../frb_generated.dart';
 import 'client.dart';
+import 'offline.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 

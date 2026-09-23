@@ -13,6 +13,7 @@ Future<FeatureReadTask?> _beginJudgeRead(
       selected.view != FeatureQueryView.judgeBatchDetails)
     return null;
   await _awaitOfflineScope(backend);
+  final generation = backend._offlineGeneration;
   final cache = backend._offlineCache;
   final account = expectedAccount ?? backend._offlineAccount;
   if (cache == null ||
@@ -40,16 +41,37 @@ Future<FeatureReadTask?> _beginJudgeRead(
         preferredCourse: selected.courseId,
       ),
     );
-    return _JudgeFeatureTask(
+    try {
+      _checkOfflineGeneration(backend, generation);
+    } catch (_) {
+      task.cancel();
+      rethrow;
+    }
+    return _JudgeFallbackTask(
       backend,
       account,
       selected,
-      nextProgress: () => backend.client.nextJudgeRefresh(task: task),
-      cancelTask: task.cancel,
-      persistent: true,
+      generation,
+      delegate: _JudgeFeatureTask(
+        backend,
+        account,
+        selected,
+        nextProgress: () => backend.client.nextJudgeRefresh(task: task),
+        cancelTask: task.cancel,
+        persistent: true,
+      ),
     );
   } on BridgeError catch (error) {
-    throw _mapError(error);
+    _checkOfflineGeneration(backend, generation);
+    final failure = _mapError(error);
+    if (!_canReadJudgeWithoutStorage(failure)) throw failure;
+    return _JudgeFallbackTask(
+      backend,
+      account,
+      selected,
+      generation,
+      cacheFailure: failure.cacheFailure,
+    );
   }
 }
 
@@ -61,12 +83,14 @@ final class _JudgeFeatureTask implements FeatureReadTask {
     required this.nextProgress,
     required this.cancelTask,
     required this.persistent,
+    this.cacheFailure,
   }) : generation = backend._offlineGeneration;
   final BridgeBackend backend;
   final int generation;
   final Future<BridgeJudgeProgress> Function() nextProgress;
   final void Function() cancelTask;
   final bool persistent;
+  final CacheMaintenanceFailure? cacheFailure;
   final LocalAccount? account;
   final FeatureQuery query;
   final _pending = <(String, String), BridgeJudgeAssignmentIndex>{};
@@ -138,6 +162,8 @@ final class _JudgeFeatureTask implements FeatureReadTask {
                   : DataOrigin.online,
               fetchedAt: _cacheTime(progress.summaryFetchedAt.toInt()),
               complete: progress.batch.complete,
+              cacheFailure:
+                  cacheFailure ?? _cacheMaintenanceFailure(progress.saveError),
               savedForOffline:
                   persistent &&
                   progress.batch.complete &&
@@ -192,6 +218,9 @@ final class _JudgeFeatureTask implements FeatureReadTask {
                         .toInt(),
                   ),
                   complete: true,
+                  cacheFailure:
+                      cacheFailure ??
+                      _cacheMaintenanceFailure(progress.saveError),
                   savedForOffline: persistent && progress.saveError == null,
                 ),
         ),

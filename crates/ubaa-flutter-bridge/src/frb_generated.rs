@@ -12584,12 +12584,15 @@ impl SseDecode for crate::api::client::BridgeError {
         let mut var_message = <String>::sse_decode(deserializer);
         let mut var_resolvedRoute =
             <Option<crate::api::client::BridgeConnectionMode>>::sse_decode(deserializer);
+        let mut var_cacheFailure =
+            <Option<crate::api::offline::BridgeCacheFailure>>::sse_decode(deserializer);
         return crate::api::client::BridgeError {
             code: var_code,
             kind: var_kind,
             retryable: var_retryable,
             message: var_message,
             resolved_route: var_resolvedRoute,
+            cache_failure: var_cacheFailure,
         };
     }
 }
@@ -20111,6 +20114,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::client::BridgeError {
             self.retryable.into_into_dart().into_dart(),
             self.message.into_into_dart().into_dart(),
             self.resolved_route.into_into_dart().into_dart(),
+            self.cache_failure.into_into_dart().into_dart(),
         ]
         .into_dart()
     }
@@ -24622,6 +24626,10 @@ impl SseEncode for crate::api::client::BridgeError {
         <String>::sse_encode(self.message, serializer);
         <Option<crate::api::client::BridgeConnectionMode>>::sse_encode(
             self.resolved_route,
+            serializer,
+        );
+        <Option<crate::api::offline::BridgeCacheFailure>>::sse_encode(
+            self.cache_failure,
             serializer,
         );
     }

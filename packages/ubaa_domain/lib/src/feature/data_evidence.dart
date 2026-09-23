@@ -1,4 +1,5 @@
 import 'package:meta/meta.dart';
+import '../common/cache_management.dart';
 
 /// 数据取得来源与当前认证状态无关。
 enum DataOrigin { persisted, mixed, online }
@@ -13,6 +14,7 @@ class DataEvidence {
     required this.complete,
     required this.savedForOffline,
     this.scopeDate,
+    this.cacheFailure,
   });
   final String accountId;
   final DataOrigin origin;
@@ -20,4 +22,7 @@ class DataEvidence {
   final bool complete;
   final bool savedForOffline;
   final String? scopeDate;
+
+  /// 本地保存失败与学校读取、覆盖完整度独立。
+  final CacheMaintenanceFailure? cacheFailure;
 }

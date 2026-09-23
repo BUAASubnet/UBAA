@@ -304,6 +304,7 @@ pub(super) fn offline_read_error(error: core::OfflineReadError) -> BridgeError {
         core::OfflineReadError::Read(error) => BridgeError::from_routed(error),
         core::OfflineReadError::Cache(error) => cache_error(error),
         core::OfflineReadError::IdentityMismatch { resolution, .. } => BridgeError {
+            cache_failure: None,
             code: BridgeErrorCode::CacheIdentityMismatch,
             kind: BridgeErrorKind::Authentication,
             retryable: false,
@@ -344,7 +345,9 @@ pub(super) fn cache_error(error: core::CacheError) -> BridgeError {
         core::CacheError::Inactive => BridgeErrorKind::Authentication,
         _ => BridgeErrorKind::Internal,
     };
-    BridgeError::local(code, kind, false, error.to_string())
+    let mut mapped = BridgeError::local(code, kind, false, error.to_string());
+    mapped.cache_failure = Some(error.into());
+    mapped
 }
 impl From<core::CacheError> for BridgeCacheFailure {
     fn from(error: core::CacheError) -> Self {
@@ -364,6 +367,32 @@ impl From<core::CacheError> for BridgeCacheFailure {
 mod tests {
     use super::*;
     use std::sync::atomic::{AtomicU64, Ordering};
+    #[test]
+    fn 缓存错误保留独立分类而学校错误不冒充存储失败() {
+        for failure in [
+            core::CacheError::Corrupt,
+            core::CacheError::Unavailable,
+            core::CacheError::UnsupportedVersion,
+            core::CacheError::Capacity,
+            core::CacheError::InvalidInput,
+            core::CacheError::Inactive,
+            core::CacheError::Superseded,
+        ] {
+            assert_eq!(cache_error(failure).cache_failure, Some(failure.into()));
+        }
+        assert_eq!(super::super::client::disposed_error().cache_failure, None);
+        let school = BridgeError::from_core(
+            core::UbaaError::new(
+                core::ErrorCode::NetworkError,
+                core::ErrorKind::Network,
+                true,
+                "合成学校网络故障",
+            ),
+            Some(BridgeConnectionMode::Direct),
+        );
+        assert_eq!(school.cache_failure, None);
+        assert_eq!(school.resolved_route, Some(BridgeConnectionMode::Direct));
+    }
     static NEXT: AtomicU64 = AtomicU64::new(0);
 
     #[tokio::test]

@@ -3,8 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import '../support/navigation.dart';
 
 void main() {
+  testWidgets('本地缓存故障在首页及作业页独立提示且保留在线内容', (tester) async {
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await mount(tester, date: '2026-09-21', cacheFailure: true);
+    expect(find.textContaining('本机缓存暂不可用'), findsOneWidget);
+    expect(find.textContaining('希冀：刷新失败'), findsNothing);
+    await openFeature(tester, FeatureId.judge);
+    expect(find.textContaining('本机缓存暂不可用'), findsOneWidget);
+    expect(find.text('合成在线作业'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('博雅补充读取失败仍显示已保存待办', (tester) async {
     tester.view.physicalSize = const Size(900, 1800);
     tester.view.devicePixelRatio = 1;
@@ -70,6 +85,7 @@ Future<void> mount(
   bool empty = false,
   bool partial = false,
   bool failSupplement = false,
+  bool cacheFailure = false,
 }) async {
   await withClock(Clock.fixed(DateTime.utc(2026, 9, 20, 16, 5)), () async {
     await tester.pumpWidget(
@@ -122,16 +138,24 @@ Future<void> mount(
                 ),
               ],
             ).toSnapshot(),
-            FeatureId.judge: partial
+            FeatureId.judge: partial || cacheFailure
                 ? FeatureSnapshot(
                     feature: FeatureId.judge,
-                    status: FeatureLoadStatus.stale,
+                    status: cacheFailure
+                        ? FeatureLoadStatus.success
+                        : FeatureLoadStatus.stale,
+                    details: cacheFailure
+                        ? const [FeatureDetail(title: '合成在线作业')]
+                        : const [],
                     evidence: DataEvidence(
                       accountId: 'synthetic',
                       origin: DataOrigin.online,
                       fetchedAt: DateTime.utc(2026, 9, 20, 15),
-                      complete: false,
-                      savedForOffline: true,
+                      complete: cacheFailure,
+                      savedForOffline: !cacheFailure,
+                      cacheFailure: cacheFailure
+                          ? CacheMaintenanceFailure.corrupt
+                          : null,
                     ),
                   )
                 : CachedFeatureProjection(

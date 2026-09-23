@@ -14,7 +14,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 32;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 33;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -57,6 +57,8 @@ pub struct BridgeError {
     pub retryable: bool,
     pub message: String,
     pub resolved_route: Option<BridgeConnectionMode>,
+    /// 与学校错误分列，不从message推断本地故障。
+    pub cache_failure: Option<super::offline::BridgeCacheFailure>,
 }
 
 impl fmt::Display for BridgeError {
@@ -80,6 +82,7 @@ impl BridgeError {
             retryable,
             message: message.into(),
             resolved_route: None,
+            cache_failure: None,
         }
     }
 
@@ -93,6 +96,7 @@ impl BridgeError {
             retryable: error.retryable,
             message: error.message,
             resolved_route,
+            cache_failure: None,
         }
     }
 
@@ -628,7 +632,7 @@ mod tests {
         let path = std::env::temp_dir().join(format!("ubaa-bridge-client-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&path);
         let client = BridgeClient::open(path.to_string_lossy().into_owned()).expect("open client");
-        assert_eq!(client.contract_version(), 32);
+        assert_eq!(client.contract_version(), 33);
         client.dispose().await.expect("dispose client");
         client.dispose().await.expect("dispose client twice");
         let error = client.auth_status().await.expect_err("disposed client");
@@ -649,7 +653,7 @@ mod tests {
         old.dispose().await.expect("dispose old client");
 
         let rebuilt = BridgeClient::open(config_dir).expect("reopen after isolate rebuild");
-        assert_eq!(rebuilt.contract_version(), 32);
+        assert_eq!(rebuilt.contract_version(), 33);
         assert_eq!(
             old.route_settings()
                 .await

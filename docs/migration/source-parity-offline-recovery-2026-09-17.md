@@ -506,3 +506,10 @@ P2-N 局部错误合同：新批次另外保留首个非认证子请求错误的
 重新核对 frozen old 1f4b8f84 App.kt 的ON_STOP/ON_RESUME会话验证和 LocalEvaluationService 的局部容错，以及 buaa-api a63712fa error.rs 的Auth/Network/Parse/Server分类；两源没有同等宿主业务退避队列。逐领域的CAS/bootstrap/service、跳转/终点、Cookie范围、HTTP方法/精确参数、头/编码、加密常量和DTO继续沿本文件P4各操作行及P2-K/N，不增加任何学校请求种类。差异仅在一次完整读取结束后按已接受设计4.4重调同一精确查询，Core内部重试不变。
 
 仅网络/超时/暂不可用且稳定retryable允许时按30秒、60秒、5分钟封顶；不是密码或学校写入重试。首页默认范围与显式查询独立，以账号生命周期、当前查询和请求修订撤销迟到任务。成功/不可重试错误停止；后台、写协调器、认证、清理和backend重建等待；新查询/退出撤销。查询先经过原调度与路线认证出口，不自行复制Cookie或新开持久会话。RED已观察认证健康的业务失败30秒后没有第二次读取。
+
+
+## P2-P：希冀本地故障与在线读取分离（实施前，2026-09-23）
+
+重新读取old 1f4b8f84 LocalJudgeApi.kt的客户端scope/索引/详情缓存与LocalJudgeApiBackendTest的批量复用和会话reset；buaa-api a63712fa api.rs无Judge模块，不从SPOC推断协议。沿P2-C/P3-A既有逐操作九列：Judge CAS/bootstrap/service、最终落点、选课GET后索引/详情GET、精确ID/query、头/编码、Cookie与worker仲裁及解析DTO均不变；六个月策略沿已接受持久策略，不复活旧永久排除。
+
+本批新增Bridge错误的可选缓存故障枚举，既有code/kind/retryable保持；只在Corrupt/Unavailable/UnsupportedVersion/Capacity这些本地存储故障时，取消旧计划并经现有beginJudgeOnline/nextJudgeOnline在同客户端/同账号下重新逐批只读。Inactive/Superseded/InvalidInput、账号冲突、网络/认证和未分类InternalError禁止触发该回退。回退步骤本身让出调度边界，缓存代次和取消在每个await后核对；不复制Cookie或创建另一持久会话，不授予写资格，不宣称保存成功。中途回退只重读，无自动学校写操作；更完整批量持久接线另行实施。
