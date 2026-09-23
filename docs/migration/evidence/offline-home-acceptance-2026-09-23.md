@@ -8,7 +8,9 @@
 - P2-Q已通过确定性门禁：实测部分希冀批次把旧范围清空且用占位覆盖旧详情，已按同账号/路线/查询和稳定ID修复，5项新增控制器测试通过；完整Flutter1037项与Rust/CLI门禁通过。接续修改状态文档时缺少版本门禁要求的完整名称，已补回 `Flutter bridge contract v33` 并重新运行完整门禁。
 - P3-B补齐明确批量详情的持久保存与离线投影，完整Flutter1044项、Rust/CLI、FRB零漂移和macOS原生合成FFI通过，Bridge v34。
 - P2-R明确失效句柄已原位重建，13项新增行为测试、完整Flutter1057项/Rust/CLI及macOS原生FFI通过；等待写意图、后台与迟到结果有确定性覆盖。
-- P4-AG已接通未知写结果重启最小核对线索，完整Flutter1066项、Rust/CLI、FRB及macOS/iPad原生合成通过。尚待落实：长读取/重复认证与缓存命中的实际耗时；最终候选的新App双路线与多端测量。
+- P4-AG已接通未知写结果重启最小核对线索，完整Flutter1066项、Rust/CLI、FRB及macOS/iPad原生合成通过。后续P2-S已复用希冀任务内激活，仍需实际分阶段成本与最终候选双路线及多端测量。
+
+- P5-B1 iOS私有目录与P2-S激活复用已提交；P2-T可见无焦点恢复已完成3项RED→GREEN、当前完整Flutter1072项/7包分析、just check及三端各83项原生合成，见[本轮证据](offline-visible-resume-2026-09-23.md)。
 
 ## 十五类场景
 
@@ -19,18 +21,18 @@
 | 1 无网缓存与原位恢复 | App `offline/cache_startup_test.dart`、`query_cache_test.dart`；Host `offline/startup_test.dart` | 历史双路线有功能证据，最终候选待复验 |
 | 2 恢复挂起/失败且页面可操作 | App `offline/startup_test.dart`、`retry/recovery_test.dart` | 同上 |
 | 3 首帧后恢复与autoLogin边界 | App/Host `offline/startup_test.dart`、`required_recovery_test.dart` | 首帧后200ms需要进程测量 |
-| 4 长读取让位与零自动写入 | Core `facade/judge_scan.rs`、`judge_scan/online.rs`；App `offline/progressive_controller_test.dart` | 最终原生调度矩阵待执行；真实写入禁止 |
-| 5 跨日/周/学期/假期 | Core `cache/schedule/tests.rs`；App `offline/academic_options_test.dart`、UI `offline/home_cache_test.dart` | 多端时间场景待核对 |
-| 6 同ID更新与旧课新增 | Core `facade/judge_scan.rs`、持久刷新策略测试 | 最终合成原生覆盖待执行 |
+| 4 长读取让位与零自动写入 | Core `facade/judge_scan.rs`、`judge_scan/online.rs`；App `offline/progressive_controller_test.dart` | 三端83项原生合成含安全批次/写保护；真实写入禁止 |
+| 5 跨日/周/学期/假期 | Core `cache/schedule/tests.rs`；App `offline/academic_options_test.dart`、UI `offline/home_cache_test.dart` | 三端原生矩阵包含跨校园午夜；周/学期范围由Core确定性门禁补充 |
+| 6 同ID更新与旧课新增 | Core `facade/judge_scan.rs`、持久刷新策略测试 | 本项为当前Core29项专项覆盖，不声称实际学校出现该异常 |
 | 7 无序/长周期/未知日期 | 同上及`facade/judge_scan/online.rs` | 不假定上游有序 |
-| 8 空集合/部分分页/失败/移除 | Core `facade/home_cache/spoc_scan.rs`、`evaluation_cache/scan.rs`；App P2-Q | 最终原生覆盖待执行 |
-| 9 去重与前后台 | App `offline/resume_test.dart`、`read_scheduler_test.dart`、`retry/business_test.dart`；Host `offline/network/host_test.dart` | 最终多端生命周期待执行 |
-| 10 账号/退出/清理/迟到结果 | App `offline/cache_management/`、`judge_fallback/lifecycle_test.dart`；Core `cache/store/rebuild_tests.rs` | P2-P原生合成退出/清理/重建通过；多端待验 |
+| 8 空集合/部分分页/失败/移除 | Core `facade/home_cache/spoc_scan.rs`、`evaluation_cache/scan.rs`；App P2-Q | 三端原生部分结果/旧内容保留通过，分页算法由Core门禁补充 |
+| 9 去重与前后台 | App `offline/resume_test.dart`、`read_scheduler_test.dart`、`retry/business_test.dart`；Host `offline/network/host_test.dart` | 三端83项包含可见恢复/合并/网络触发；真实App窗口恢复已复验 |
+| 10 账号/退出/清理/迟到结果 | App `offline/cache_management/`、`judge_fallback/lifecycle_test.dart`；Core `cache/store/rebuild_tests.rs` | 三端83项原生矩阵包含退出/清理/重建/迟到结果 |
 | 11 缓存不恢复写资格 | App `offline/startup_test.dart`、`write_cache/`；Bridge write tests | 仅脱敏测试，真实业务写入禁止 |
 | 12 写后失败/未知/重启 | App `write_cache/`、唯一WriteCoordinator；Bridge write tests | P4-AG加密最小线索与本机查看/移除已实现，完整确定性门禁通过，原生缓存RPC在macOS/iPad通过；真实写入仍禁止 |
 | 13 路线来源与固定写路线 | App `offline/judge_fallback/stability_test.dart`、`scheduled_recovery_test.dart`；Core route/authority tests | 最终双路线App待验 |
 | 14 损坏/版本/容量/密钥 | Core `cache/store/`；App `cache_management/`、P2-P；原生`cache_bridge_test.dart` | macOS/iPhone/iPad模拟器原生FFI合成通过，iPhone/iPad安全材料通过；其他平台继续单列 |
-| 15 尺寸/主题/文字/草稿/返回 | UI与Flutter宿主导航/golden测试 | 手机/平板/macOS最终交互矩阵待验 |
+| 15 尺寸/主题/文字/草稿/返回 | UI与Flutter宿主导航/golden测试 | 三端83项包含尺寸/放大文字/查询草稿与返回；主题由现有UI门禁补充 |
 
 ## 设备与性能
 

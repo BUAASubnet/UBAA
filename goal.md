@@ -32,10 +32,12 @@
 
 接续核对起点为`c7e55171`，29项原未提交变更全部保留并完成，其他相关任务空闲，冻结引用保持原SHA。后续独立提交为P2-P `e09e63f4`、P2-Q `a80bbf33`、P3-B `c729e6b9`、P2-R `950c8192`及iPhone原生证据 `55fe5dad`。主工作区未修改。
 
-当前P4-AG补齐未知结果的重启核对提示，业务缓存schema v6、Flutter bridge contract v35及生成绑定已接通；Core加密最小线索、单次提交收尾、控制器迟到读取保护、首页查看/本地移除及清理确认均已实现，当前完整just check、CLI端到端16项、Flutter1066项/7包静态分析、FRB零漂移与macOS/iPad模拟器原生合成通过；历史1057项Flutter不代替本轮检查。当前核对索引见[最终验收索引](docs/migration/evidence/offline-home-acceptance-2026-09-23.md)。
+P4-AG已提交`3ca371fc`，补齐未知结果的重启核对提示，业务缓存schema v6、Flutter bridge contract v35及生成绑定已接通；Core加密最小线索、单次提交收尾、控制器迟到读取保护、首页查看/本地移除及清理确认均已实现，当前完整just check、CLI端到端16项、Flutter1066项/7包静态分析、FRB零漂移与macOS/iPad模拟器原生合成通过；历史1057项Flutter不代替本轮检查。当前核对索引见[最终验收索引](docs/migration/evidence/offline-home-acceptance-2026-09-23.md)。
 
 十二领域已具备所列范围缓存、完整学期导入、关联写后失效与管理；P3-B补齐明确批量详情，P2-R按明确clientDisposed原位替换并接管查询。剩余精确范围、长读取、生命周期仍按实际代码审查，不能用阶段数量代替覆盖。
 
 P1有历史双路线真实App功能证据；最近评教新分段WebVPN成功、Direct激活networkError未通过，旧CLI空回退不能证明成功。约0.6秒缓存、85–96秒全部更新是历史单次debug宿主装配，不包含进程启动。15类场景最终矩阵、手机/平板/macOS每设备至少30次缓存进程启动、分阶段请求成本优化、当前候选双路线与真实App验收仍未闭合。
 
 六平台安全材料原生运行未全覆盖；macOS和iPhone模拟器已有合成FFI，iPhone模拟器安全材料单项通过，iPad模拟器FFI及安全材料两项通过。这些均不证明实体设备或学校业务成功。500ms中位数、1s P95、首帧后200ms恢复启动仍为待验证目标；确定性、原生合成、Core-live、真实App、设备性能和发布证据分列。未经要求不推送、不发布；整体执行中。
+
+当前P5-B1已修复iOS空环境导致私有目录不可用，3项行为测试RED→GREEN、完整Flutter1069项/7包分析、just check/refs/layout/sensitive及iPhone原生目录/安全材料2项通过。P5-B首次macOS基线在第21次因重复刷新停滞转入诊断，保留19份完整刷新、1份600秒超时与1份中断记录，30次未达成；不能以成功子集P95宣称整体达标。P5-B1已提交1a8f7ded、P2-S已提交94ff3a5c，后者Core29项、Bridge4项及完整just check/CLI16通过，FRB零漂移。macOS/iPhone/iPad各80项原生合成通过，整体仍不以阶段通过代替最终验收。Debug新App已复现hidden→inactive窗口可见后调度未解暂停，P2-T来源核对与3项RED→GREEN已完成，当前完整just check、Flutter1072项/7包分析、三端各83项原生矩阵及WebVPN真实App可见恢复回归通过，详见[本轮证据](docs/migration/evidence/offline-visible-resume-2026-09-23.md)。三端最终30次、全部刷新成本分解及最终双路线仍未闭合，整体保持执行中。

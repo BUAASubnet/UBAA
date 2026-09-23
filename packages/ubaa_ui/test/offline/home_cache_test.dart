@@ -91,6 +91,7 @@ Future<void> mount(
     await tester.pumpWidget(
       MaterialApp(
         home: UbaaMainShell(
+          homeClock: clock,
           user: const UserSummary(username: 'synthetic'),
           snapshots: {
             for (final id in FeatureId.values) id: FeatureSnapshot(feature: id),

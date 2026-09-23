@@ -545,3 +545,47 @@ old 1f4b8f84 `LocalJudgeApi.getAssignmentDetailsResponse`先去重明确目标�
 每个学校操作分别继承主source-parity.md现有写合同与本文件P4-AC/AD影响范围：CAS/bootstrap/service、跳转/最终URL、Cookie/session、方法/精确参数、头/正文编码、签名/加密常量、业务DTO及错误/退出规则均不改变。P4-AG只在已经消费且通过既有Bridge前置验证的显式commit周围保存本地提示，不增加或重发学校请求；确定成功/失败可移除本轮提示，outcome_unknown或崩溃遗留保留，部分评教任一未知仍保留。
 
 持久白名单仅随机本地提示ID、封闭操作枚举、固定实际路线、尝试开始时间；不存intent ID、requestDigest、目标/查询材料、个人正文或学校权限。提示独立于可淘汰业务条目，密文与AAD仍绑定账号；本机清理/重建撤销它，退出只关闭可见性。重启只能展示“结果待核实”，查看相关领域只触发原只读入口；用户确认移除只修改本地提示，不将学校结果升为成功。存储失败必须独立显示，不降级明文或偷偷重发。
+
+
+## P5-B：只读进程测量入口（2026-09-23）
+
+此阶段沿P1/P2/P4已核对的逐操作合同，只记录启动、系统材料、Core/Bridge分段调用和渲染帧时间，不改CAS、service、跳转、HTTP参数、DTO、Cookie或学校错误。两份冻结来源均无本次进程测量入口，不能从中推测新的学校接口。专用入口使用既有安全材料实现及生产后台恢复/首页，显式拒绝全部commit；准备缓存也通过新分段链路，不能用旧聚合替代。
+
+每设备使用独立命名空间及新只读会话，不复制已有Cookie；每次启动前从本轮私有加密快照恢复相同业务内容，之前的样本库改名保留，不改会话文件。内核进程创建时间由Darwin proc_pidinfo取得；可见事件用引擎frameNumber关联同帧Flutter rasterFinishWallTime（初版vsync相等配对漏帧，仅保留为失败预跑）。Dart入口、逻辑首页帧结束、恢复RPC开始另列，不能将其中任一替换为进程起点。统计保留缺失和失败样本，P95使用nearest-rank，30个样本分母不变。原生显示和真实网络性能仍需实际测量才成立。
+
+### P5-B1：iOS 无环境变量时的私有目录（2026-09-23）
+
+原生 iPhone 17 Pro/iOS26.5 预跑中，Dart `_Platform._environmentCache` 是长度0的Map；默认目录仅依赖 HOME，因而无法定位配置库。该观察是本机宿主证据，不是学校协议证据。old固定1f4b8f84的 `shared/.../storage/CredentialStore.kt`、`repository/ScheduleSnapshotStorage.kt` 使用平台 Settings，未定义 Flutter/iOS 文件目录合同；buaa-api固定a63712fa的 `src/store/cred.rs:93/103`、`cookies.rs:157/168` 接收调用者 Path，也未实现 iOS 默认目录。不能借用其明文凭据存储作为降级。
+
+逐操作范围为“取得本 App 私有配置目录”和“初始化宿主平台能力”。两者均不发送学校请求：CAS/bootstrap/service、redirect/final URL、Cookie/session scope、HTTP method/参数/头/body、签名常量与上游DTO均不适用且不改变。仅由 iOS FileManager.applicationSupportDirectory 提供本 App 容器内的 UBAA 路径；Dart 仍校验绝对路径，不猜 HOME、公共 tmp 或工作目录。已显式配置的绝对目录继续优先，原生返回缺失/相对路径保留明确失败，不改加密和账号隔离；两份来源没有对应接口。先以空环境+原生目录的脱敏平台测试复现，再接生产初始化与原生方法，最终在模拟器实际验证。
+
+
+## P2-S：希冀分段任务复用业务激活（2026-09-23）
+
+macOS进程测量发现详情新鲜期过后完整读取显著变慢。代码核对：`features/judge/scan.rs` 对每次索引/详情都传入新的 `&mut false`，导致每个安全批次重复 CAS 业务激活。old固定1f4b8f84 `LocalJudgeApi.kt:245-368` 的 LocalJudgeClient 持有 `judgeSessionActivated`，成功后跨索引/详情复用；每次仍在courseSelectionMutex内显式选课，只有认证失效时清标记并有界重新激活。old最近等价测试为 `LocalJudgeApiBackendTest.kt` 和 `JudgeApiTest.kt`。buaa-api固定a63712fa的`src/api`模块清单没有Judge协议，不能借用spoc/cloud的URL、参数、DTO或错误。
+
+| 操作 | CAS/跳转/会话 | HTTP/精确参数/头/编码/加密 | DTO/缓存/并发/错误 |
+|---|---|---|---|
+| 课程列表 | 首次激活沿`https://sso.buaa.edu.cn/login?service=http%3A%2F%2Fjudge.buaa.edu.cn%2F`，跳转/最终URL仍沿当前受校验get_with_redirects；同一路线原client Cookie | GET `https://judge.buaa.edu.cn/courselist.jsp?courseID=0`；沿`judge_headers`的Accept/Accept-Language/User-Agent；无正文和业务加密/签名 | parse_courses/字段不变；LIST_TTL不变；同Core client串行；现有认证/业务错误不变 |
+| 课程作业索引 | 同任务已激活时复用，计划失效仍先拒绝；不复制Cookie | GET courselist.jsp?courseID=课程ID，然后GET assignment/index.jsp；头/编码/签名与上一行相同 | parse_assignment_list/字段不变；每批仍含完整选课+读取+会话收尾；完整/部分发布与历史复查不变 |
+| 作业详情 | 同上；另一任务切课程不借用其选课上下文 | GET courselist.jsp?courseID=课程ID，然后GET assignment/index.jsp?assignID=作业ID；头/编码/签名不变 | parse_detail/ID字符串/字段不变；DETAIL_TTL、账号/路线/查询隔离不变；每批仍重新选课，允许在收尾后让位 |
+| 业务认证失效 | 当前get_html继续原最多3次业务重新激活与主会话仲裁；不把原计划跨代次复活 | 原GET有界重试，无新端点/参数/加密 | 保留authentication_required/network_error等原分类；取消、clear、logout、路线及client代次验证仍在前后执行 |
+
+拟通过任务内激活状态复用去除重复CAS；必须先以同账号同路线同计划多批读取的精确请求次数RED确认，同时证明所有索引/详情仍取全、每批仍显式选课，认证失效仍按原规则重新激活。该状态只属于当前Core任务和原client，不授予认证资格，也不并发改写会话。
+
+P2-S已观察3项请求次数RED：缓存/无缓存完整扫描均多发为6次激活、认证失效前额外多发1次；全部索引/详情的覆盖断言先于次数断言通过。最小实现将激活标记保存在原Core计划，课程真实网络激活成功后传入；课程仅命中内存时标记仍为false，由首次网络批次激活。旧聚合入口仍传入独立false，不修改其隔离策略。增加缓存课程不授予新计划激活的回归，分段专项29项GREEN；原跨课程插队、取消、路线/客户端代次、部分失败及历史新增测试保留。完整门禁继续，尚未据此声明真实App耗时或停滞修复成功。
+
+
+## P2-T：可见但未获焦点窗口恢复（2026-09-23，来源记录先于实施）
+
+macOS新App诊断观察到hidden→inactive，控制器_appForeground仍false，ReadScheduler空闲但4项未发任务等待；Core线程等待工作，未见活跃RPC。冻结old 1f4b8f84 `composeApp/.../App.kt:103-124`在ON_STOP之后ON_RESUME核实会话；它使用AndroidX/Compose生命周期，没有Flutter inactive/hidden同名合同。buaa-api a63712fa `context.rs`与store/{cookies,cred}.rs没有宿主窗口生命周期，不能借状态名类推。官方本机锁定Flutter3.41.9 `sky_engine/lib/ui/platform_dispatcher.dart:2324-2401`明确inactive至少一个视图可见、没有焦点，hidden则所有视图不可见。这一原生观察与SDK定义支持按可见性解除暂停，不能等待可选的焦点事件。
+
+| 操作 | CAS/bootstrap/service、跳转、Cookie/session | HTTP精确参数、头/编码、加密、DTO | 并发、缓存、错误/退出 |
+|---|---|---|---|
+| hidden/paused/detached后进入inactive或resumed | 分别沿P2-A/B的所需路线恢复、原会话与账号核对；不复制Cookie，不改CAS地址或service | 原recover_required_session及获准材料合同均不变，无新业务HTTP字段 | 首次重新可见恢复网络订阅、放开下一安全批次并合并一次恢复；随后inactive→resumed不能额外发第二轮 |
+| 已可见窗口仅失去/获得焦点 | 不新增认证、不改会话 | 不新增HTTP或写入 | 不因普通焦点变化重复刷新；再次hidden继续暂停未发送任务 |
+| 在途认证或待确认/提交/回读时恢复可见 | 保留唯一协调器和原身份/代次验证 | 只读恢复不消费或提交业务意图，原错误分类不变 | 继续合并或等待安全终态；退出/销毁仍取消迟到恢复 |
+
+先以hidden/paused→inactive及随后resumed的宿主行为测试观察RED，修复只改变可见性映射；不将模拟生命周期、原生合成或学校读取证据混称。
+
+P2-T已完成上述3项RED→GREEN、完整just check、Flutter1072项/7包分析及三端各83项原生矩阵，当前真实App回归与边界见[专项证据](evidence/offline-visible-resume-2026-09-23.md)。

@@ -865,3 +865,10 @@ macOS原生FFI一项通过（仍报告前台化open返回1，不计可见App）�
 | ubaa-p4ag-native-macos.log | `fc32fa6ba08d8f66c7c675f027b960db317b667d519b32711a213a7dbc25c51e` |
 | ubaa-p4ag-native-ipad.log | `9d85175fb7a3e2ef8f9c1d6af75adbf9b524162f83ceba8169013376f833d61b` |
 | ubaa-p5-iphone-material.log | `5f23a07fa8534e6b0eafcb339ab6c78f2590d4133ae33f86671659484916abda` |
+
+
+## P5-B1 / P2-S / 原生矩阵接续（2026-09-23）
+
+iOS无环境私有目录修复已独立提交`1a8f7ded`，见[来源、RED/GREEN和原生证据](offline-ios-private-directory-2026-09-23.md)。希冀分段计划复用业务激活已独立提交`94ff3a5c`，见[逐操作来源及完整门禁](offline-judge-activation-2026-09-23.md)。Bridge v35/schema v6不变。
+
+macOS/iPhone/iPad各80项[原生合成矩阵](offline-native-matrix-2026-09-23.md)通过，完整Flutter1069项通过。第一轮[进程基线](offline-startup-2026-09-23.md)21次因重复停滞转入诊断，保留异常，不宣称30次或全方案完成。当前P2-T可见无焦点窗口恢复缺口已经3项RED→GREEN，完整just check、Flutter1072项/7包分析、三端各83项原生矩阵及WebVPN真实App可见恢复回归通过，见[专项证据](offline-visible-resume-2026-09-23.md)。最终三端性能和双路线只读继续。

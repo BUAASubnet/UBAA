@@ -14,6 +14,7 @@ class UbaaMainShell extends StatefulWidget {
     required this.onRoutePolicyChanged,
     required this.onTelemetryChanged,
     this.initialTab = 0,
+    this.homeClock,
     this.connectionStatus,
     this.writeReadbacks = const [],
     this.writeReadbackError,
@@ -76,6 +77,9 @@ class UbaaMainShell extends StatefulWidget {
   });
 
   final UserSummary? user;
+
+  /// 原生合成日期场景可显式传入时钟，避免引擎帧跨 Zone 丢失测试时间。
+  final Clock? homeClock;
   final Map<FeatureId, FeatureSnapshot> snapshots;
 
   /// 仅用于呈现原协调器已完成的固定路线记录回读，不触发新读取。
@@ -680,6 +684,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             : _buildProfile()
       : switch (_selectedIndex) {
           0 => _HomeView(
+            homeClock: widget.homeClock,
             user: widget.user,
             snapshots: widget.homeSnapshots ?? widget.snapshots,
             visible: _openedFeature == null && widget.writeState.intent == null,

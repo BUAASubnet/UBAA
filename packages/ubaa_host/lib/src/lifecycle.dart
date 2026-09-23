@@ -90,7 +90,11 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       _controller.setAppForeground(false);
       return;
     }
-    if (state == AppLifecycleState.resumed && _wasBackgrounded) {
+    // inactive 已有可见窗口；桌面可能一直没有焦点，不能等待 resumed 才解暂停。
+    final visible =
+        state == AppLifecycleState.resumed ||
+        state == AppLifecycleState.inactive;
+    if (visible && _wasBackgrounded) {
       _wasBackgrounded = false;
       _listenNetworkChanges();
       _controller.setAppForeground(true);
