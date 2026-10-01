@@ -5,6 +5,7 @@ class _ProfileView extends StatelessWidget {
     required this.user,
     required this.routePolicy,
     required this.telemetryEnabled,
+    this.telemetryAvailable = true,
     required this.onRoutePolicyChanged,
     required this.onTelemetryChanged,
     required this.onLogout,
@@ -30,6 +31,7 @@ class _ProfileView extends StatelessWidget {
   final UserSummary? user;
   final RoutePolicy routePolicy;
   final bool telemetryEnabled;
+  final bool telemetryAvailable;
   final ValueChanged<RoutePolicy> onRoutePolicyChanged;
   final ValueChanged<bool> onTelemetryChanged;
   final Future<void> Function() onLogout;
@@ -118,9 +120,13 @@ class _ProfileView extends StatelessWidget {
                   SwitchListTile(
                     secondary: const Icon(Icons.insights_outlined),
                     title: const Text('匿名产品改进统计'),
-                    subtitle: const Text('仅统计功能使用次数，不收集账号、成绩或请求内容'),
+                    subtitle: Text(
+                      telemetryAvailable
+                          ? '仅统计功能使用次数，不收集账号、成绩或请求内容'
+                          : '此版本未启用统计功能',
+                    ),
                     value: telemetryEnabled,
-                    onChanged: onTelemetryChanged,
+                    onChanged: telemetryAvailable ? onTelemetryChanged : null,
                   ),
                   if (onReadDiagnostics != null) ...[
                     const Divider(height: 1),

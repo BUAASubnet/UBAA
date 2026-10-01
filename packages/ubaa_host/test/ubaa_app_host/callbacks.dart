@@ -421,7 +421,8 @@ void _registerCallbackTests() {
     await tester.pumpAndSettle();
     shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
     expect(shell.routePolicy, RoutePolicy.webvpn);
-    expect(shell.telemetryEnabled, isTrue);
+    expect(shell.telemetryEnabled, isFalse);
+    expect(shell.telemetryAvailable, isFalse);
     await shell.onRefreshEvaluationAfterWrite!(
       expectedRoute: evaluationIntent.resolvedRoute,
     );

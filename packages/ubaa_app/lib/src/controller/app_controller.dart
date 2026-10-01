@@ -58,6 +58,7 @@ part 'app_controller/offline/retry.dart';
 part 'app_controller/offline/business_retry.dart';
 part 'app_controller/offline/required.dart';
 part 'app_controller/authentication.dart';
+part 'app_controller/settings.dart';
 
 enum AppPhase { splash, checkingSession, login, loggingIn, home }
 
@@ -146,6 +147,9 @@ class AppController extends ChangeNotifier {
   bool _credentialRestoreAllowed = true;
   bool _manualAuthenticationRequired = false;
   int _loginFormRevision = 0;
+  int _loginCredentialRevision = 0;
+  int _routePolicyGeneration = 0;
+  bool _routePolicyInFlight = false;
   Completer<void>? _backendRebuildCompletion;
   Future<void>? _credentialMutation;
   bool _clearingBusinessCache = false;
@@ -333,6 +337,9 @@ class AppController extends ChangeNotifier {
 
   UiError? get error => _error;
   bool get telemetryEnabled => _telemetryEnabled;
+
+  /// 实际客户端能力与本地开关分离；关闭本地开关不销毁已配置的客户端。
+  bool get telemetryAvailable => _telemetry.enabled;
   bool get credentialPersistenceAvailable => _credentialVault.isAvailable;
   List<ConnectionMode> get activeRoutes =>
       List<ConnectionMode>.unmodifiable(_activeRoutes);
@@ -456,6 +463,7 @@ class AppController extends ChangeNotifier {
     final accountChanged = value.trim() != _loginForm.username.trim();
     if (accountChanged) _manualAuthenticationRequired = true;
     _loginFormRevision++;
+    _loginCredentialRevision++;
     _loginForm = _loginForm.copyWith(
       username: value,
       password: accountChanged ? '' : null,
@@ -468,6 +476,7 @@ class AppController extends ChangeNotifier {
   void setPassword(String value) {
     if (_disposed || _phase == AppPhase.loggingIn || _isSigningOut) return;
     _loginFormRevision++;
+    _loginCredentialRevision++;
     _loginForm = _loginForm.copyWith(password: value);
     _error = null;
     _notify();
@@ -476,6 +485,7 @@ class AppController extends ChangeNotifier {
   void setCaptcha(String value) {
     if (_disposed || _phase == AppPhase.loggingIn || _isSigningOut) return;
     _loginFormRevision++;
+    _loginCredentialRevision++;
     _loginForm = _loginForm.copyWith(captcha: value);
     _error = null;
     _notify();
@@ -501,56 +511,8 @@ class AppController extends ChangeNotifier {
     _notify();
   }
 
-  Future<void> setRoutePolicy(RoutePolicy value) async {
-    if (_disposed || _phase == AppPhase.loggingIn) return;
-    final previousPolicy = _loginForm.routePolicy;
-    if (previousPolicy == value) return;
-    _beginWriteTransition();
-    _clearError();
-    try {
-      await _backend.prepareLogin(value);
-      if (_disposed) return;
-      BackendRouteSettings? settings;
-      if (_backend case final RouteSettingsBackend routeBackend) {
-        settings = await routeBackend.routeSettings();
-        if (_disposed) return;
-      }
-      if (settings case final routeSettings?) {
-        _applyRouteSettings(routeSettings);
-      } else {
-        _loginForm = _loginForm.copyWith(routePolicy: value);
-      }
-      if (_phase == AppPhase.home &&
-          settings != null &&
-          !_routePolicyHasSession(value, settings.activeRoutes)) {
-        // 切换到尚未认证的固定路线时，不能继续展示旧用户数据；保留用户名和
-        // 用户主动保存的凭据，回到登录页完成目标路线认证。
-        _user = null;
-        _resetFeatureSnapshots();
-        _setPhase(AppPhase.login);
-      }
-    } on BackendException catch (exception, stackTrace) {
-      if (_disposed) return;
-      _loginForm = _loginForm.copyWith(routePolicy: previousPolicy);
-      _error = _recordFailure(
-        exception,
-        DiagnosticOperation.routeChange,
-        stackTrace: stackTrace,
-      );
-    } catch (error, stackTrace) {
-      if (_disposed) return;
-      _loginForm = _loginForm.copyWith(routePolicy: previousPolicy);
-      _error = _recordFailure(
-        error,
-        DiagnosticOperation.routeChange,
-        stackTrace: stackTrace,
-      );
-    } finally {
-      _endWriteTransition();
-    }
-    _notify();
-    unawaited(_queueProfileRefresh(force: true));
-  }
+  Future<void> setRoutePolicy(RoutePolicy value) =>
+      _setRoutePolicyController(value);
 
   Future<void> submitLogin({bool preserveHome = false}) =>
       _submitLoginController(preserveHome: preserveHome);
@@ -875,13 +837,8 @@ class AppController extends ChangeNotifier {
     clearLocalData: clearLocalData,
   );
 
-  Future<void> setTelemetryEnabled(bool value) async {
-    // 真实宿主会替换对应的启用/关闭 client；协调器同时在调用边界抑制
-    // 事件，保证关闭后不会再产生新记录。
-    _telemetryEnabled = value;
-    if (!value) await _flushTelemetry();
-    _notify();
-  }
+  Future<void> setTelemetryEnabled(bool value) =>
+      _setTelemetryEnabledController(value);
 
   Future<void> clearTelemetryQueue() async {
     await _flushTelemetry();

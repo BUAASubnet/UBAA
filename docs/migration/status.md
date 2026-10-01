@@ -18,3 +18,10 @@
 本轮Rust/CLI完整门禁、1258项Flutter与分析、FRB零漂移、引用/结构/敏感检查及macOS Debug构建通过，见[整合证据](evidence/project-consolidation-2026-10-02.md)。WebVPN Core-live执行中；已启动隔离App，但Computer Use被真实锁屏阻塞，按钮验收待解锁。整体不宣称完成。Direct 按用户网络条件本轮不运行。历史性能与三端测试保留在[接续前状态](history/status-2026-10-01-before-consolidation.md)，不能代替本轮证据。
 
 后续次序：项目整理 → 分支整合 → 剩余行为修复 → 当前门禁与多端适配 → WebVPN 真实读取 → macOS Computer Use 全流程 → 修复复验与交付。
+
+
+## 2026-10-02设置修复与实时验证
+
+整合提交为`7d1e5cee`。该候选WebVPN Core-live 40 PASS、退出0，真实学校写入0；研讨室用途结果的`static_fallback`仍保留为来源标记，不宣称来自上游。生产App已独立启动，但Computer Use返回Mac锁屏，已请求手动解锁，真实按键未通过。
+
+本阶段继续修复统计开关误报与路线迟到回写，1269项Flutter/分析、Rust/CLI完整门禁及聚焦回归通过，见[设置证据](evidence/project-settings-2026-10-02.md)。原worktree中交互验证码Core 19项当前专项通过，但尚未整合到本候选；门锁显示及当前冻结课表差异仍待补齐。

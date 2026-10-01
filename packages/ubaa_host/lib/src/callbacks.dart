@@ -163,6 +163,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onConfirmWrite: _controller.writeCoordinator.confirmForUi,
       initialTab: widget.initialTab,
       telemetryEnabled: _controller.telemetryEnabled,
+      telemetryAvailable: _controller.telemetryAvailable,
       onRefresh: _controller.refreshHome,
       onRetryFeature: _controller.retryFeature,
       onFeatureQuery: (feature, query) {

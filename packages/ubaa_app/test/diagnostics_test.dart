@@ -6,6 +6,30 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  test('无统计客户端时不能把开关显示为启用', () async {
+    final controller = AppController(backend: _SuccessfulReadBackend());
+    addTearDown(controller.dispose);
+    await controller.setTelemetryEnabled(true);
+    expect(controller.telemetryEnabled, isFalse);
+  });
+  test('可用统计客户端关闭后不记录，再开启仍记录白名单事件', () async {
+    final telemetry = MockTelemetryClient();
+    final controller = AppController(
+      backend: _SuccessfulReadBackend(),
+      telemetry: telemetry,
+    );
+    addTearDown(controller.dispose);
+    await controller.refreshHome(only: [FeatureId.schedule]);
+    expect(telemetry.records, isNotEmpty);
+    telemetry.reset();
+    await controller.setTelemetryEnabled(false);
+    await controller.refreshHome(only: [FeatureId.schedule]);
+    expect(telemetry.records, isEmpty);
+    await controller.setTelemetryEnabled(true);
+    await controller.refreshHome(only: [FeatureId.schedule]);
+    expect(telemetry.records.single.name, TelemetryEvents.featureLoaded);
+  });
+
   test('可选遥测清理晚到失败不进入新会话诊断', () async {
     final telemetry = _DelayedFlushTelemetry();
     final controller = AppController(
