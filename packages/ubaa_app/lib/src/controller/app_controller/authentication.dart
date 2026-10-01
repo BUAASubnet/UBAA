@@ -73,7 +73,7 @@ extension _AppControllerAuthentication on AppController {
           // 手动恢复仅供遮罩表单使用；自动登录只尝试一次，成功或失败
           // 都释放表单中的密码，账号变化和销毁也会使本次恢复失效。
           if (saved.autoLogin) {
-            await submitLogin();
+            await _submitLoginController();
             return;
           }
         }
@@ -158,85 +158,7 @@ extension _AppControllerAuthentication on AppController {
       if (!current()) return;
       final profile = await _backend.userInfo();
       if (!current()) return;
-      if (_localAccountStore != null && profile == null) {
-        throw const BackendException(UbaaErrorCode.authenticationRequired);
-      }
-      if (_localAccountStore != null &&
-          profile != null &&
-          profile.username != username &&
-          profile.schoolId != username) {
-        _user = null;
-        _resetFeatureSnapshots();
-        _sessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
-        _error = UbaaErrorMapper.fromCode(UbaaErrorCode.authenticationRequired);
-        _notify();
-        try {
-          await _localAccountStore.signOut();
-        } on Object catch (error, stackTrace) {
-          _error = _recordFailure(
-            error,
-            DiagnosticOperation.login,
-            stackTrace: stackTrace,
-          );
-        }
-        return;
-      }
-      if (_localAccount != null && _localAccount!.username != username) {
-        // 原位换账号不能让旧账号的内容继续挂在新身份下面。
-        _user = null;
-        _resetFeatureSnapshots(advanceLifecycle: false);
-        _notify();
-        await _localAccountStore?.signOut();
-        if (!current()) return;
-        await _closeOfflineAccount();
-        if (!current()) return;
-        _localAccount = null;
-      }
-      _user = profile ?? UserSummary(username: username);
-      try {
-        if (input.rememberPassword && _credentialVault.isAvailable) {
-          await _mutateCredential(
-            epoch,
-            () => _credentialVault.write(
-              Credential(
-                username: username,
-                password: input.password,
-                autoLogin: input.autoLogin,
-              ),
-            ),
-          );
-        } else if (!input.rememberPassword) {
-          await _mutateCredential(epoch, _credentialVault.clear);
-        }
-      } on Object catch (error, stackTrace) {
-        if (!current()) return;
-        _recordFailure(
-          error,
-          DiagnosticOperation.login,
-          stackTrace: stackTrace,
-        );
-        _error = UiError(
-          code: UbaaErrorCode.internalError,
-          kind: UbaaErrorKind.internal,
-          title: '本机登录材料未保存',
-          message: input.rememberPassword
-              ? '已登录，但账号密码未能保存，下次需要重新输入。'
-              : '已登录，但之前保存的账号密码未能清除，请稍后重试。',
-        );
-      }
-      if (!current()) return;
-      await _retainCurrentAccount(
-        username: username,
-        retainSession: input.rememberPassword,
-      );
-      if (!current()) return;
-      if (_error == null) _automaticCredentialBlocked = false;
-      _manualAuthenticationRequired = false;
-      _sessionRecoveryStatus = SessionRecoveryStatus.ready;
-      _setPhase(AppPhase.home);
-      unawaited(_queueProfileRefresh(force: true));
-      await _recordAppOpen();
-      if (current()) unawaited(refreshHome());
+      await _completeAuthenticatedLogin(input, profile, epoch);
     } on Object catch (error, stackTrace) {
       if (!current()) return;
       if (error is BackendException &&
@@ -265,6 +187,90 @@ extension _AppControllerAuthentication on AppController {
       _endWriteTransition();
       _notify();
     }
+  }
+
+  Future<void> _completeAuthenticatedLogin(
+    LoginInput input,
+    UserSummary? profile,
+    int epoch,
+  ) async {
+    final username = input.username.trim();
+    bool current() => !_disposed && epoch == _lifecycleEpoch;
+    if (_localAccountStore != null && profile == null) {
+      throw const BackendException(UbaaErrorCode.authenticationRequired);
+    }
+    if (_localAccountStore != null &&
+        profile != null &&
+        profile.username != username &&
+        profile.schoolId != username) {
+      _user = null;
+      _resetFeatureSnapshots();
+      _sessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
+      _error = UbaaErrorMapper.fromCode(UbaaErrorCode.authenticationRequired);
+      _notify();
+      try {
+        await _localAccountStore.signOut();
+      } on Object catch (error, stackTrace) {
+        _error = _recordFailure(
+          error,
+          DiagnosticOperation.login,
+          stackTrace: stackTrace,
+        );
+      }
+      return;
+    }
+    if (_localAccount != null && _localAccount!.username != username) {
+      // 原位换账号不能让旧账号的内容继续挂在新身份下面。
+      _user = null;
+      _resetFeatureSnapshots(advanceLifecycle: false);
+      _notify();
+      await _localAccountStore?.signOut();
+      if (!current()) return;
+      await _closeOfflineAccount();
+      if (!current()) return;
+      _localAccount = null;
+    }
+    _user = profile ?? UserSummary(username: username);
+    try {
+      if (input.rememberPassword && _credentialVault.isAvailable) {
+        await _mutateCredential(
+          epoch,
+          () => _credentialVault.write(
+            Credential(
+              username: username,
+              password: input.password,
+              autoLogin: input.autoLogin,
+            ),
+          ),
+        );
+      } else if (!input.rememberPassword) {
+        await _mutateCredential(epoch, _credentialVault.clear);
+      }
+    } on Object catch (error, stackTrace) {
+      if (!current()) return;
+      _recordFailure(error, DiagnosticOperation.login, stackTrace: stackTrace);
+      _error = UiError(
+        code: UbaaErrorCode.internalError,
+        kind: UbaaErrorKind.internal,
+        title: '本机登录材料未保存',
+        message: input.rememberPassword
+            ? '已登录，但账号密码未能保存，下次需要重新输入。'
+            : '已登录，但之前保存的账号密码未能清除，请稍后重试。',
+      );
+    }
+    if (!current()) return;
+    await _retainCurrentAccount(
+      username: username,
+      retainSession: input.rememberPassword,
+    );
+    if (!current()) return;
+    if (_error == null) _automaticCredentialBlocked = false;
+    _manualAuthenticationRequired = false;
+    _sessionRecoveryStatus = SessionRecoveryStatus.ready;
+    _setPhase(AppPhase.home);
+    unawaited(_queueProfileRefresh(force: true));
+    await _recordAppOpen();
+    if (current()) unawaited(refreshHome());
   }
 
   Future<void> _mutateCredential(

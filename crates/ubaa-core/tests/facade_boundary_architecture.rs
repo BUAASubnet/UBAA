@@ -26,7 +26,7 @@ const TEST_CONSTRUCTORS: [(&str, &str); 5] = [
     ("src/facade/client.rs", "with_routing_and_probe_ttl"),
 ];
 
-const FEATURE_TEST_TARGETS: [(&str, &str); 13] = [
+const FEATURE_TEST_TARGETS: [(&str, &str); 14] = [
     ("bykc", "tests/bykc.rs"),
     ("cgyy", "tests/cgyy.rs"),
     ("config_security", "tests/config_security.rs"),
@@ -34,6 +34,7 @@ const FEATURE_TEST_TARGETS: [(&str, &str); 13] = [
     ("contracts", "tests/contracts.rs"),
     ("evaluation", "tests/evaluation.rs"),
     ("facade", "tests/facade.rs"),
+    ("interactive_auth", "tests/interactive_auth.rs"),
     ("libbook", "tests/libbook.rs"),
     ("route_matrix", "tests/route_matrix.rs"),
     ("route_policy", "tests/route_policy.rs"),

@@ -3,6 +3,10 @@ use std::fmt;
 use std::future::Future;
 use std::panic::AssertUnwindSafe;
 use std::path::{Path, PathBuf};
+use std::sync::{
+    RwLock,
+    atomic::{AtomicBool, Ordering},
+};
 
 use futures_util::FutureExt;
 use ubaa_core::facade::{
@@ -14,7 +18,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 37;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 38;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -247,6 +251,8 @@ pub struct BridgeClient {
     config_dir: PathBuf,
     pub(crate) inner: tokio::sync::Mutex<Option<UbaaClient>>,
     pub(crate) write_intents: tokio::sync::Mutex<HashMap<String, super::write::PendingEntry>>,
+    pub(crate) auth_control: RwLock<ubaa_core::facade::InteractiveLoginCancellation>,
+    pub(crate) is_disposed: AtomicBool,
 }
 
 impl BridgeClient {
@@ -267,6 +273,8 @@ impl BridgeClient {
             .map_err(|error| BridgeError::from_core(error, None))?;
         Ok(Self {
             config_dir: path.to_path_buf(),
+            auth_control: RwLock::new(client.interactive_login_cancellation()),
+            is_disposed: AtomicBool::new(false),
             inner: tokio::sync::Mutex::new(Some(client)),
             write_intents: tokio::sync::Mutex::new(HashMap::new()),
         })
@@ -285,6 +293,8 @@ impl BridgeClient {
     ///
     /// 当前实现不会返回错误；保留 `Result` 以便未来生命周期清理失败时维持稳定 ABI。
     pub async fn dispose(&self) -> Result<(), BridgeError> {
+        self.is_disposed.store(true, Ordering::SeqCst);
+        self.cancel_interactive_login();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
             *guard = None;
@@ -300,6 +310,7 @@ impl BridgeClient {
     ///
     /// 客户端已销毁或 Core 无法准备路线时返回安全错误。
     pub async fn prepare_login(&self) -> Result<BridgeLoginPreparation, BridgeError> {
+        self.cancel_interactive_login();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
@@ -318,6 +329,7 @@ impl BridgeClient {
         username: String,
         password: String,
     ) -> Result<BridgeLoginOutcome, BridgeError> {
+        self.cancel_interactive_login();
         if username.trim().is_empty() || password.is_empty() {
             return Err(BridgeError::local(
                 BridgeErrorCode::InvalidInput,
@@ -352,6 +364,7 @@ impl BridgeClient {
     ///
     /// 客户端已销毁或 Core 无法读取认证状态时返回安全错误。
     pub async fn auth_status(&self) -> Result<BridgeLoginOutcome, BridgeError> {
+        self.cancel_interactive_login();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
@@ -395,6 +408,7 @@ impl BridgeClient {
     ///
     /// 客户端已销毁或 Core 注销失败时返回安全错误。
     pub async fn logout(&self) -> Result<(), BridgeError> {
+        self.cancel_interactive_login();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
@@ -435,6 +449,7 @@ impl BridgeClient {
         &self,
         policy: BridgeRoutePolicy,
     ) -> Result<BridgeRouteSettings, BridgeError> {
+        self.cancel_interactive_login();
         catch_panic(async {
             let mut guard = self.inner.try_lock().map_err(|_| {
                 BridgeError::local(
@@ -452,6 +467,11 @@ impl BridgeClient {
                 std::panic::catch_unwind(AssertUnwindSafe(|| UbaaClient::open(&self.config_dir)))
                     .map_err(|_| panic_error())?
                     .map_err(|error| BridgeError::from_core(error, None))?;
+            *self
+                .auth_control
+                .write()
+                .unwrap_or_else(std::sync::PoisonError::into_inner) =
+                reopened.interactive_login_cancellation();
             *guard = Some(reopened);
             self.write_intents.lock().await.clear();
             let client = guard.as_ref().ok_or_else(disposed_error)?;
@@ -503,7 +523,7 @@ fn map_preparation(preparation: DualLoginPreparation) -> BridgeLoginPreparation 
     }
 }
 
-fn map_login_outcome(outcome: LoginOutcome) -> BridgeLoginOutcome {
+pub(crate) fn map_login_outcome(outcome: LoginOutcome) -> BridgeLoginOutcome {
     BridgeLoginOutcome {
         readiness: match outcome.readiness {
             ubaa_core::facade::LoginReadiness::AllReady => BridgeLoginReadiness::AllReady,
@@ -526,7 +546,7 @@ fn map_route_login(result: RouteLoginResult) -> BridgeRouteLoginResult {
     }
 }
 
-fn map_safe_error(error: SafeError) -> BridgeSafeError {
+pub(crate) fn map_safe_error(error: SafeError) -> BridgeSafeError {
     BridgeSafeError {
         code: error.code,
         kind: error.kind,
@@ -535,7 +555,7 @@ fn map_safe_error(error: SafeError) -> BridgeSafeError {
     }
 }
 
-pub(super) fn map_profile(profile: UserProfile) -> BridgeUserProfile {
+pub(crate) fn map_profile(profile: UserProfile) -> BridgeUserProfile {
     BridgeUserProfile {
         username: profile.username,
         name: profile.name,
@@ -632,7 +652,7 @@ mod tests {
         let path = std::env::temp_dir().join(format!("ubaa-bridge-client-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&path);
         let client = BridgeClient::open(path.to_string_lossy().into_owned()).expect("open client");
-        assert_eq!(client.contract_version(), 37);
+        assert_eq!(client.contract_version(), 38);
         client.dispose().await.expect("dispose client");
         client.dispose().await.expect("dispose client twice");
         let error = client.auth_status().await.expect_err("disposed client");
@@ -653,7 +673,7 @@ mod tests {
         old.dispose().await.expect("dispose old client");
 
         let rebuilt = BridgeClient::open(config_dir).expect("reopen after isolate rebuild");
-        assert_eq!(rebuilt.contract_version(), 37);
+        assert_eq!(rebuilt.contract_version(), 38);
         assert_eq!(
             old.route_settings()
                 .await

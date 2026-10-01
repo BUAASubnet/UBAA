@@ -72,6 +72,7 @@ extension _AppControllerProgressive on AppController {
         isLoggingIn ||
         _rebuildingBackend ||
         _writeTransitions != 0 ||
+        _interactiveEngaged ||
         (_usesLocalRecovery &&
             !_homeFrameReported &&
             _sessionRecoveryStatus == SessionRecoveryStatus.idle))
@@ -161,7 +162,16 @@ extension _AppControllerProgressive on AppController {
       };
     }
 
-    if (backend is! ProgressiveReadBackend) return ordinary();
+    if (backend is! ProgressiveReadBackend) {
+      if (_interactiveEngaged) {
+        return _readScheduler.run(
+          ReadPriority.interactive,
+          () => scope.valid,
+          ordinary,
+        );
+      }
+      return ordinary();
+    }
     final priority = writeReadback
         ? ReadPriority.writeReadback
         : query == null

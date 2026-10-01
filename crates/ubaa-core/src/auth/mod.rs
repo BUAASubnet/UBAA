@@ -16,6 +16,8 @@ use crate::upstream::{
 
 const MAX_REDIRECTS: usize = 10;
 
+pub(crate) mod interactive;
+
 /// 绑定到单个客户端实例的待处理登录页面。
 #[derive(Clone, Default)]
 pub(crate) struct LoginState {

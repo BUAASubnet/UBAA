@@ -83,6 +83,11 @@ path = "tests/libbook.rs"
 required-features = ["test-contract"]
 
 [[test]]
+name = "interactive_auth"
+path = "tests/interactive_auth.rs"
+required-features = ["test-contract"]
+
+[[test]]
 name = "route_matrix"
 path = "tests/route_matrix.rs"
 required-features = ["test-contract"]

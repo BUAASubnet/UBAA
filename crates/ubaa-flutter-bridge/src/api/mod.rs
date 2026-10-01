@@ -1,4 +1,5 @@
 pub mod client;
+pub mod interactive_auth;
 pub mod judge_refresh;
 pub mod judge_scan;
 pub mod offline;

@@ -8,7 +8,7 @@
 入口。聚合登录按 Direct、WebVPN 顺序准备并提交，两条路线各自维护 Cookie 和 CAS 状态，
 返回 `all_ready`、`partial` 或 `none_ready`，不会丢弃已成功的会话槽位。`all_ready` 与
 `partial` 始终携带就绪路线返回的资料；`none_ready` 不携带资料。失败路线携带一个稳定的
-安全错误，就绪路线不携带错误。若上游登录页要求 `config.captcha` 等交互式验证，Core 返回
+安全错误，就绪路线不携带错误。若上游登录页要求 `config.captcha` 等交互式验证，普通非交互 Core 接口返回
 `upstream_changed`，绝不下载、提示或提交验证材料。Core 会拒绝破坏这些关系的聚合 envelope。
 
 稳定 DTO 和错误码由 `goal.md` 第 6 节定义。每个 CLI 成功、失败、参数错误、聚合认证结果和
@@ -43,3 +43,9 @@ version 保留普通文本行为。无效参数文本会归约为安全的 `inva
 成功。
 
 稳定退出类别为：0 表示调用成功完成，2 表示输入无效，3 表示认证失败（包括拒绝密码风险继续），5 表示网络/可用性错误，6 表示上游合同或解析变化，7 表示内部失败。课堂签到的确定业务拒绝以外层 `ok=true`、退出码 0 和内层 `data.success=false` 表达；调用方不得只凭退出码认定签到成功。发送后不确定性使用 `outcome_unknown` 和退出码 5。`docs/contracts/cli-json.schema.json` 已通过实际 dispatcher 序列化的签到 true/false/unknown、其它成功和失败 envelope 验证。
+
+## 手动交互验证码
+
+Flutter手动登录可使用Bridge v38专用交互facade，提供受限像素图、当前路线答案提交、刷新、取消与就绪路线继续。服务器challenge id、execution、URL、Cookie及token仍只留Core。句柄绑定实例、账号、路线、会话修订和单调期限；提交前保留冻结旧版GET复核，轮换时零POST并返回新挑战。普通CLI、自动恢复和旧认证方法不获得验证码图像或答案接口。
+
+原位登录保留离线页面，挑战等待不产生写资格；隐藏、返回、账号变化、退出与销毁撤销上下文，迟到结果不再发布。固定路线就绪后复用该结果进入；Auto继续保留既有解析规则，需要切换固定路线时由用户明确选择。细节与证据见[整合来源](../migration/source-parity-interactive-integration-2026-10-02.md)与[阶段验证](../migration/evidence/project-interactive-auth-2026-10-02.md)。

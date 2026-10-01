@@ -1,4 +1,5 @@
 export 'common/auth.dart';
+export 'common/interactive_auth.dart';
 export 'common/error.dart';
 export 'common/route.dart';
 export 'feature/catalog.dart';

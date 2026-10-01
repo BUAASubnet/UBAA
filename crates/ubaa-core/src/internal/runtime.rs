@@ -4,7 +4,7 @@ use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::connection::to_webvpn_url;
-use crate::domain::ConnectionMode;
+use crate::domain::{ConnectionMode, InteractiveLoginHandle};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::internal::route_state::RouteFeatureState;
 use crate::ports::{HttpRequest, HttpResponse, HttpTransport};
@@ -22,6 +22,7 @@ pub(crate) struct ClientRuntime {
     feature_state: Arc<RouteFeatureState>,
     non_idempotent_boundary_crossed: bool,
     clock: Arc<dyn Fn() -> SystemTime + Send + Sync>,
+    interactive_login_scope: Option<InteractiveLoginHandle>,
 }
 
 impl ClientRuntime {
@@ -88,6 +89,7 @@ impl ClientRuntime {
             feature_state: Arc::new(RouteFeatureState::default()),
             non_idempotent_boundary_crossed: false,
             clock,
+            interactive_login_scope: None,
         })
     }
 
@@ -124,6 +126,7 @@ impl ClientRuntime {
             feature_state: Arc::clone(&self.feature_state),
             non_idempotent_boundary_crossed: false,
             clock: Arc::clone(&self.clock),
+            interactive_login_scope: None,
         }
     }
 
@@ -143,6 +146,18 @@ impl ClientRuntime {
 
     pub(crate) fn now(&self) -> SystemTime {
         (self.clock)()
+    }
+
+    pub(crate) fn set_interactive_login_scope(&mut self, scope: Option<InteractiveLoginHandle>) {
+        self.interactive_login_scope = scope;
+    }
+
+    fn check_interactive_login_scope(&self) -> Result<()> {
+        if let Some(scope) = &self.interactive_login_scope {
+            scope.ensure_active()?;
+            self.ensure_session_revision()?;
+        }
+        Ok(())
     }
 
     pub(crate) fn cookie_value(&mut self, name: &str, request_url: &str) -> Result<Option<String>> {
@@ -214,8 +229,10 @@ impl ClientRuntime {
             request.headers.insert("Cookie".into(), cookie);
         }
         pre_send_check(self)?;
+        self.check_interactive_login_scope()?;
         let request_url = request.url.clone();
         let response = self.transport.execute(request).await?;
+        self.check_interactive_login_scope()?;
         self.jar.store_response(&response, &request_url, now)?;
         Ok(response)
     }
@@ -269,6 +286,7 @@ impl ClientRuntime {
         &mut self,
         clear_workflow: &mut (dyn FnMut() + Send),
     ) -> Result<(i64, i64)> {
+        self.check_interactive_login_scope()?;
         let now = now_seconds_at(self.now())?;
         let authenticated_at = self.authenticated_at.unwrap_or(now);
         self.authenticated_at = Some(authenticated_at);
@@ -319,6 +337,7 @@ impl ClientRuntime {
         self.jar = CookieJar::default();
         self.authenticated_at = None;
         self.last_activity = None;
+        self.account_name = None;
         self.feature_state.clear();
     }
 

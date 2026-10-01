@@ -4,6 +4,8 @@ mod action;
 pub use action::*;
 mod auth;
 pub use auth::*;
+mod interactive_auth;
+pub use interactive_auth::*;
 mod route;
 pub use route::*;
 mod bykc;

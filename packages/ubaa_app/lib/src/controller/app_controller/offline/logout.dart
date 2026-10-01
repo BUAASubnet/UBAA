@@ -46,6 +46,7 @@ extension _AppControllerLogout on AppController {
       }
       return;
     }
+    _cancelLoginVerification(notify: false);
     _isSigningOut = true;
     _credentialRestoreAllowed = false;
     _manualAuthenticationRequired = true;

@@ -56,6 +56,7 @@ impl UbaaClient {
         if let Err(error) = self.guard_latest_session_ownership() {
             return failed_preparation(&error);
         }
+        self.clear_interactive_context();
         let mut routes = Vec::with_capacity(2);
         for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
             let preparation = self.prepare_route(route).await;
@@ -82,6 +83,7 @@ impl UbaaClient {
     /// 双路线会话所有权或协调状态发生冲突时返回错误；单路线认证失败保留在返回结果中。
     pub async fn login(&mut self, input: DualLoginInput) -> Result<LoginOutcome> {
         self.guard_latest_session_ownership()?;
+        self.clear_interactive_context();
         let mut routes = Vec::with_capacity(2);
         let mut profile = None;
         for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
@@ -127,6 +129,7 @@ impl UbaaClient {
     /// 会话所有权已失效或无法原子清理持久化槽位时返回错误。
     pub async fn logout(&mut self) -> Result<()> {
         self.guard_latest_session_ownership()?;
+        self.clear_interactive_context();
         self.direct_auth
             .remote_logout(&mut self.direct_runtime)
             .await;
@@ -150,6 +153,11 @@ impl UbaaClient {
     /// 双路线协调器已进入冲突终态时返回错误；单路线校验失败保留在返回结果中。
     pub async fn auth_status(&mut self) -> Result<LoginOutcome> {
         self.clear_on_session_conflict()?;
+        // 仅清交互准备状态前增加所有权预检，普通 status 保留既有首路线校验顺序。
+        if self.interactive.current_login.is_some() {
+            self.guard_latest_session_ownership()?;
+        }
+        self.clear_interactive_context();
         let mut routes = Vec::with_capacity(2);
         let mut profile = None;
         for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
@@ -269,7 +277,7 @@ fn failed_route(route: ConnectionMode, error: &UbaaError) -> RouteLoginResult {
     }
 }
 
-fn safe_error(error: &UbaaError) -> SafeError {
+pub(super) fn safe_error(error: &UbaaError) -> SafeError {
     let code = serde_json::to_string(&error.code)
         .unwrap_or_else(|_| "\"internal_error\"".into())
         .trim_matches('"')

@@ -1,6 +1,7 @@
 //! 已验证的 SSO 与用户中心地址、表单解析和响应映射。
 
 use scraper::{Html, Selector};
+pub(crate) mod interactive_auth;
 use std::collections::BTreeMap;
 
 use crate::domain::{LoginInput, UserInfoResponse, UserProfile};
@@ -32,6 +33,10 @@ pub fn extract_execution(html: &str) -> Option<String> {
 /// 校验界面，不擅自猜测其字段。
 #[must_use]
 pub(crate) fn has_unsupported_login_step(html: &str) -> bool {
+    has_unsupported_login_controls(html, false)
+}
+
+fn has_unsupported_login_controls(html: &str, image_captcha: bool) -> bool {
     let lower = html.to_ascii_lowercase();
     if [
         "captcha",
@@ -48,7 +53,12 @@ pub(crate) fn has_unsupported_login_step(html: &str) -> bool {
     }
 
     let document = Html::parse_document(html);
-    let Some(form) = document.select(&selector("form#fm1, form[action]")).next() else {
+    let form = if image_captcha {
+        // 新交互入口检查整页，不能让另一张表单中的额外验证控件绕过边界。
+        document.root_element()
+    } else if let Some(form) = document.select(&selector("form#fm1, form[action]")).next() {
+        form
+    } else {
         return false;
     };
     if form.select(&selector("textarea, select")).next().is_some() {
@@ -77,9 +87,20 @@ pub(crate) fn has_unsupported_login_step(html: &str) -> bool {
             );
         }
         if name == "captcha" || name == "captcharesponse" {
+            return !image_captcha || !matches!(input_type.as_str(), "" | "text" | "hidden");
+        }
+        if image_captcha
+            && matches!(
+                name.as_str(),
+                "mfa" | "otp" | "verification" | "verify" | "challenge"
+            )
+        {
             return true;
         }
-        if input_type.is_empty() && value.attr("value").is_some_and(|field| !field.is_empty()) {
+        if !image_captcha
+            && input_type.is_empty()
+            && value.attr("value").is_some_and(|field| !field.is_empty())
+        {
             return false;
         }
         match input_type.as_str() {

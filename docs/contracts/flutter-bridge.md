@@ -1,6 +1,6 @@
 # Flutter Bridge 合同
 
-状态：当前合同v37，离线首页与后台恢复任务仍在实施及验收。v9的Phase 11J/11K是typed写入和单一协调器的历史基线；当前版本、生成一致性及原生/真实App证据以实施区goal.md和迁移状态为准。实体设备与正式发布单独记录。
+状态：当前合同v38，离线首页与后台恢复任务仍在实施及验收。v9的Phase 11J/11K是typed写入和单一协调器的历史基线；当前版本、生成一致性及原生/真实App证据以实施区goal.md和迁移状态为准。实体设备与正式发布单独记录。
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
@@ -9,7 +9,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `37`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `38`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -20,9 +20,8 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
   `submitEligibility/submitTarget`，将提交请求收紧为完整 typed target、canonical 时间和必需照片，并新增
   caller-pinned 的概览/记录回读与安全提交收据。版本 9 为 Evaluation 增加 typed
   `submitEligibility/submitTarget`、只含 targets 的批量请求、四态逐项结果与 caller-pinned 原路线回读。
-  版本 10 新增 `libbookAreaSchedule`，保留每个原始日期自己的时段；旧 `libbookAreaDetail` 的展平形状不变。
-  同一候选版本新增 `bykcCourseCatalog` 与 `bykcCourseFullDetail`，旧博雅列表和详情的形状、请求次数不变。
-  版本 10 不与版本 9 或更早的生成绑定混用；CLI schema10、Session2、配置1和既有写入权威不变。
+  旧macOS专项曾以独立候选v10开发逐日日程和博雅完整目录；与离线分支整合后统一为v37。
+  当前v38另增加专用交互验证码通路；不能混用任一历史候选的生成绑定。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -38,7 +37,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=37` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=38` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -681,7 +680,7 @@ beginJudgeOnline(options)接收可选期望账号与明确目标，nextJudgeOnli
 数据库 schema v6 对 v5 增加独立加密提示表；上限64条且不会被普通内容淘汰，达到上限明确报告本地容量错误。退出使提示不可读，重新核实账号后可读；显式清理或重建会删除本账号提示并在确认文案中说明不可恢复。App 首页只提供相关功能查看与用户确认后的本机移除，均不产生写意图或宣称学校成功。
 
 
-## 成绩变化基线本地加密通道（v37）
+## 成绩变化基线本地加密通道（v36）
 
 `BridgeOfflineCache.readGradeScoreBaseline(route, term)` 仅读取精确范围；`updateGradeScoreBaseline(route, latest, legacy?)` 在同一本地仓库锁内返回原基线并保存新完整观察。typed字段仅学期、课程稳定比较键、课程名/号和分数，不包含动作、认证或任意JSON。旧文件基线仅迁入尚无加密记录的同学期范围；旧学期单独保留。空集合、非法字段、容量或密钥失败不替换原值，沿cacheFailure返回本机错误。
 
@@ -690,4 +689,13 @@ beginJudgeOnline(options)接收可选期望账号与明确目标，nextJudgeOnli
 
 ## v37：旧版目录、逐日日程与缓存整合
 
-新增博雅完整目录/详情、图书馆逐日日程的typed只读接口，旧CLI与普通读取序列化不变。博雅目录/完整详情通过同客户端身份/缓存票据链读取；缓存只增加类别、校区和点存在性，不保存联系人、电话、原始配置、坐标或写资格。完整详情的联系人和补查仅在线显示。图书馆缓存详情可带同次响应的逐日日程，旧公开分区详情仍保持展平接口与旧JSON形状；没有逐日关联的旧缓存不猜对应关系。Bridge v37与生成绑定必须同批使用，schema v6通过可选字段兼容旧缓存。
+新增博雅完整目录/详情、图书馆逐日日程的typed只读接口，旧CLI与普通读取序列化不变。博雅目录/完整详情通过同客户端身份/缓存票据链读取；缓存只增加类别、校区和点存在性，不保存联系人、电话、原始配置、坐标或写资格。完整详情的联系人和补查仅在线显示。图书馆缓存详情可带同次响应的逐日日程，旧公开分区详情仍保持展平接口与旧JSON形状；没有逐日关联的旧缓存不猜对应关系。该阶段Bridge v37与生成绑定同批使用，schema v6通过可选字段兼容旧缓存。
+
+
+## v38：当前页面交互验证码
+
+`beginInteractiveLogin`同步登记账号意图并返回opaque句柄；`prepareInteractiveLogin`、`submitInteractiveLogin`、`refreshInteractiveCaptcha`和`continueInteractiveLogin`复用当前Core锁及已证双路线。挑战绑定同实例、账号、路线、准备代次与120秒单调期限，仅返回受限RGBA像素；id/execution/URL/Cookie不出Core，不进入业务缓存、诊断或CLI。答案只用一次，验证码失败不能猜成密码错误而删除凭据。
+
+提交前按冻结旧版再次GET，id/execution轮换时零POST并返回新挑战；刷新先作废旧答案，未知交互保持关闭。取消/账号或密码改填/后台/销毁同步撤销，迟到帧释放。当前路线未就绪时保留可恢复交互，只有明确选择才改变默认策略以继续已就绪路线。普通非交互CLI和自动恢复保持原合同。
+
+原位登录保留本地首页与导航，验证码等待期间暂停新的后台读取和写准备；现有待确认或进行中的写流程阻止发起新的交互手动认证；旧非交互接口的主动登录失效意图规则保持兼容。成功后复用当前身份核对、系统凭据保存、加密本机账号绑定及恢复收尾。所有这些是界面认证能力，不自动解答真实验证码，也不执行学校业务写入。

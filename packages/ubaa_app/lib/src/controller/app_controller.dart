@@ -5,6 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 import '../contracts/backend.dart';
+import '../contracts/interactive_auth.dart';
 import '../contracts/progressive.dart';
 import '../contracts/schedule_import.dart';
 import 'read_scheduler.dart';
@@ -59,6 +60,7 @@ part 'app_controller/offline/business_retry.dart';
 part 'app_controller/offline/required.dart';
 part 'app_controller/authentication.dart';
 part 'app_controller/settings.dart';
+part 'app_controller/interactive_auth.dart';
 
 enum AppPhase { splash, checkingSession, login, loggingIn, home }
 
@@ -148,6 +150,11 @@ class AppController extends ChangeNotifier {
   bool _manualAuthenticationRequired = false;
   int _loginFormRevision = 0;
   int _loginCredentialRevision = 0;
+  int _interactiveGeneration = 0;
+  bool _interactiveInPlace = false;
+  bool _interactiveEngaged = false;
+  LoginVerificationState? _loginVerification;
+  final Map<ConnectionMode, Timer> _captchaTimers = {};
   int _routePolicyGeneration = 0;
   bool _routePolicyInFlight = false;
   Completer<void>? _backendRebuildCompletion;
@@ -159,6 +166,7 @@ class AppController extends ChangeNotifier {
       cacheAccountId != null &&
       !_disposed &&
       !_clearingBusinessCache &&
+      !_interactiveEngaged &&
       !isLoggingIn &&
       !_rebuildingBackend &&
       _writeTransitions == 0 &&
@@ -232,6 +240,7 @@ class AppController extends ChangeNotifier {
   /// 生命周期只更新可见状态；后台不开始未发送的恢复或首页同步。
   void setAppForeground(bool foreground) {
     _appForeground = foreground;
+    if (!foreground) _cancelLoginVerification();
     if (foreground) _drainDeferredRecovery();
     _syncRecoveryRetries();
     _pumpReadTasks();
@@ -323,6 +332,15 @@ class AppController extends ChangeNotifier {
 
   AppPhase get phase => _phase;
   LoginFormState get loginForm => _loginForm;
+  LoginVerificationState? get loginVerification => _loginVerification;
+  void setCaptchaAnswer(ConnectionMode route, String answer) =>
+      _setCaptchaAnswer(route, answer);
+  Future<void> refreshCaptcha(ConnectionMode route) => _refreshCaptcha(route);
+  Future<void> continueReadyLogin(ConnectionMode route) =>
+      _continueReadyLogin(route);
+  Future<void> continueWithFixedReadyRoute(ConnectionMode route) =>
+      _continueReadyLogin(route, pinRoute: true);
+  void cancelLoginVerification() => _cancelLoginVerification();
   UserSummary? get user => _user;
 
   /// 宿主仅用于展示；认证、提醒归属和写入仍使用user。
@@ -391,6 +409,7 @@ class AppController extends ChangeNotifier {
     final errorRevision = _loginFormRevision;
     final completion = Completer<void>();
     _backendRebuildCompletion = completion;
+    _cancelLoginVerification(notify: false);
     _releaseLoginSecret();
     _rebuildingBackend = true;
     _beginWriteTransition();
@@ -459,8 +478,10 @@ class AppController extends ChangeNotifier {
   }
 
   void setUsername(String value) {
-    if (_disposed || _phase == AppPhase.loggingIn || _isSigningOut) return;
+    if (_disposed || isLoggingIn || _isSigningOut) return;
     final accountChanged = value.trim() != _loginForm.username.trim();
+    if (accountChanged)
+      _cancelLoginVerification(releasePassword: false, notify: false);
     if (accountChanged) _manualAuthenticationRequired = true;
     _loginFormRevision++;
     _loginCredentialRevision++;
@@ -474,7 +495,9 @@ class AppController extends ChangeNotifier {
   }
 
   void setPassword(String value) {
-    if (_disposed || _phase == AppPhase.loggingIn || _isSigningOut) return;
+    if (_disposed || isLoggingIn || _isSigningOut) return;
+    if (value != _loginForm.password)
+      _cancelLoginVerification(releasePassword: false, notify: false);
     _loginFormRevision++;
     _loginCredentialRevision++;
     _loginForm = _loginForm.copyWith(password: value);
@@ -483,7 +506,7 @@ class AppController extends ChangeNotifier {
   }
 
   void setCaptcha(String value) {
-    if (_disposed || _phase == AppPhase.loggingIn || _isSigningOut) return;
+    if (_disposed || isLoggingIn || _isSigningOut) return;
     _loginFormRevision++;
     _loginCredentialRevision++;
     _loginForm = _loginForm.copyWith(captcha: value);
@@ -514,8 +537,21 @@ class AppController extends ChangeNotifier {
   Future<void> setRoutePolicy(RoutePolicy value) =>
       _setRoutePolicyController(value);
 
-  Future<void> submitLogin({bool preserveHome = false}) =>
-      _submitLoginController(preserveHome: preserveHome);
+  Future<void> submitLogin({bool preserveHome = false}) {
+    if (_backend case final InteractiveLoginBackend backend) {
+      if (_disposed ||
+          _isSigningOut ||
+          _rebuildingBackend ||
+          _sessionRecoveryFuture != null ||
+          _writeCoordinator.hasPendingOperation ||
+          _writeTransitions != 0)
+        return Future.value();
+      if (!_interactiveEngaged)
+        _interactiveInPlace = preserveHome && _phase == AppPhase.home;
+      return _submitInteractiveLogin(backend);
+    }
+    return _submitLoginController(preserveHome: preserveHome);
+  }
 
   /// 用户明确请求学期选项，不占用全局课表快照。
   Future<FeatureResult> loadAcademicTerms({bool forceRefresh = false}) =>
@@ -930,6 +966,7 @@ class AppController extends ChangeNotifier {
   @override
   void dispose() {
     if (_disposed) return;
+    _cancelLoginVerification(notify: false);
     _disposed = true;
     for (final scope in _readScopes.toList()) {
       scope.cancel();

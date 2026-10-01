@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:math' as math;
 import 'dart:typed_data';
+import 'dart:ui' as ui;
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
@@ -11,6 +12,7 @@ import 'write_callbacks.dart';
 
 part 'app/home.dart';
 part 'app/login.dart';
+part 'app/login_captcha.dart';
 part 'app/profile.dart';
 part 'app/cache_settings.dart';
 part 'app/write_readback_notice.dart';

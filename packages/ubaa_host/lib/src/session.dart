@@ -8,6 +8,22 @@ extension _UbaaAppHostSession on _UbaaAppHostState {
     username: _controller.loginForm.username,
     password: _controller.loginForm.password,
     captcha: _controller.loginForm.captcha,
+    verification: _controller.loginVerification,
+    onCaptchaAnswerChanged: _controller.setCaptchaAnswer,
+    onRefreshCaptcha: (route) => unawaited(_controller.refreshCaptcha(route)),
+    onContinueReady: (route) => unawaited(
+      _completeLoginInteraction(
+        _controller.continueReadyLogin(route),
+        onAuthenticated,
+      ),
+    ),
+    onContinueFixedReady: (route) => unawaited(
+      _completeLoginInteraction(
+        _controller.continueWithFixedReadyRoute(route),
+        onAuthenticated,
+      ),
+    ),
+    onCancelVerification: _controller.cancelLoginVerification,
     rememberPassword: _controller.loginForm.rememberPassword,
     autoLogin: _controller.loginForm.autoLogin,
     routePolicy: _controller.loginForm.routePolicy,
@@ -32,6 +48,16 @@ extension _UbaaAppHostSession on _UbaaAppHostState {
     }()),
   );
 
+  Future<void> _completeLoginInteraction(
+    Future<void> task,
+    VoidCallback? onAuthenticated,
+  ) async {
+    await task;
+    if (!_disposed &&
+        _controller.sessionRecoveryStatus == SessionRecoveryStatus.ready)
+      onAuthenticated?.call();
+  }
+
   void _showInPlaceLogin(BuildContext context) {
     unawaited(
       showModalBottomSheet<void>(
@@ -51,7 +77,7 @@ extension _UbaaAppHostSession on _UbaaAppHostState {
             ),
           ),
         ),
-      ),
+      ).whenComplete(_controller.cancelLoginVerification),
     );
   }
 }

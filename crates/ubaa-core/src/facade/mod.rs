@@ -24,6 +24,7 @@ pub use judge_scan::{
     JudgeScanCancellation, JudgeScanKind,
 };
 pub use offline::{OfflineCache, OfflineReadError, OfflineRefresh};
+mod interactive_auth;
 mod read;
 mod routing;
 #[cfg(feature = "test-contract")]
@@ -32,6 +33,10 @@ pub mod testing;
 mod types;
 mod write;
 
+pub use crate::domain::{
+    CaptchaAnswer, CaptchaChallenge, CaptchaFrame, InteractiveLoginCancellation,
+    InteractiveLoginHandle, InteractiveLoginOutcome, InteractiveRouteResult, InteractiveRouteState,
+};
 pub use client::UbaaClient;
 pub use diagnostic::RouteClient;
 pub use types::{CallerPinned, Routed, RoutedError, RoutedResult};

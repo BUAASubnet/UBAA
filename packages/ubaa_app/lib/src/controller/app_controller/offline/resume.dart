@@ -18,6 +18,7 @@ extension _AppControllerDeferredRecovery on AppController {
   bool get _recoveryMustWait =>
       !_appForeground ||
       isLoggingIn ||
+      _interactiveEngaged ||
       _writeTransitions != 0 ||
       _writeCoordinator.hasPendingOperation;
 

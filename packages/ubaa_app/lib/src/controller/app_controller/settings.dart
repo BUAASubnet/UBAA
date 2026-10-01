@@ -5,6 +5,7 @@ extension _AppControllerSettings on AppController {
     if (_disposed || isLoggingIn || _isSigningOut) return;
     final previousPolicy = _loginForm.routePolicy;
     if (previousPolicy == value && !_routePolicyInFlight) return;
+    _cancelLoginVerification(releasePassword: false, notify: false);
     final backend = _backend;
     final credentials = _loginCredentialRevision;
     final request = ++_routePolicyGeneration;

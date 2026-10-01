@@ -1,6 +1,7 @@
 part of 'bridge_backend.dart';
 
 Future<AuthStatus> _authStatus(BridgeBackend backend) async {
+  _interruptInteractiveLogin(backend);
   try {
     final outcome = await backend.client.authStatus();
     if (outcome.readiness != BridgeLoginReadiness.noneReady)
@@ -54,6 +55,7 @@ UserSummary? _profileSummary(
 }
 
 Future<void> _prepareLogin(BridgeBackend backend, RoutePolicy policy) async {
+  _interruptInteractiveLogin(backend);
   try {
     await backend.setDefaultRoutePolicy(policy);
     await backend.client.prepareLogin();
@@ -66,6 +68,7 @@ Future<BackendRouteSettings> _setDefaultRoutePolicy(
   BridgeBackend backend,
   RoutePolicy policy,
 ) async {
+  _interruptInteractiveLogin(backend);
   try {
     final settings = await backend.client.setDefaultRoutePolicy(
       policy: _toBridgePolicy(policy),
@@ -96,6 +99,7 @@ Future<BackendRouteSettings> _routeSettings(BridgeBackend backend) async {
 }
 
 Future<void> _login(BridgeBackend backend, LoginInput input) async {
+  _interruptInteractiveLogin(backend);
   try {
     await backend.client.setDefaultRoutePolicy(
       policy: _toBridgePolicy(input.routePolicy),
@@ -124,6 +128,7 @@ Future<void> _login(BridgeBackend backend, LoginInput input) async {
 }
 
 Future<void> _logout(BridgeBackend backend) async {
+  _interruptInteractiveLogin(backend);
   try {
     await backend.client.logout();
   } on BridgeError catch (error) {
@@ -131,7 +136,10 @@ Future<void> _logout(BridgeBackend backend) async {
   }
 }
 
-Future<void> _dispose(BridgeBackend backend) => backend.client.dispose();
+Future<void> _dispose(BridgeBackend backend) {
+  _interruptInteractiveLogin(backend);
+  return backend.client.dispose();
+}
 
 Future<FeatureResult> _loadFeatureQuery(
   BridgeBackend backend,

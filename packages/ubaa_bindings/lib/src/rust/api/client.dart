@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'interactive_auth.dart';
 import 'judge_refresh.dart';
 import 'judge_refresh/details.dart';
 import 'judge_scan.dart';
@@ -109,6 +110,13 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeEvaluationScan> beginEvaluationScan({
     required BridgeOfflineCache cache,
   });
+
+  /// 同步登记用户的新手动登录，取消动作可在异步准备排队期间撤销它。
+  ///
+  /// # Errors
+  ///
+  /// 已销毁或账号为空时返回安全错误。
+  BridgeInteractiveLogin beginInteractiveLogin({required String username});
 
   /// 对明确批量目标创建独立缓存详情计划，不覆盖全量摘要。
   ///
@@ -273,6 +281,9 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeOfflineCache cache,
   });
 
+  /// 立即撤销当前交互，永不排队等待 Core 网络锁。
+  void cancelInteractiveLogin();
+
   /// 原查询与只读保存；待确认写意图阻止隐式恢复。
   ///
   /// # Errors
@@ -363,6 +374,17 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeCachedWriteCommit> commitWriteCached({
     required BridgeOfflineCache cache,
     required String intentId,
+  });
+
+  /// 明确进入已就绪路线；Core 原子保存所需策略，保留真实认证槽位。
+  ///
+  /// # Errors
+  ///
+  /// 未就绪、失效、配置保存失败时不销毁可恢复交互。
+  Future<BridgeInteractiveLoginCompletion> continueInteractiveLogin({
+    required BridgeInteractiveLogin login,
+    required BridgeConnectionMode selectedRoute,
+    required bool pinReadyRoute,
   });
 
   /// 返回 bridge 合同版本。
@@ -649,6 +671,15 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeEvaluationSubmitCoursesRequest request,
   });
 
+  /// 准备同步登记的两路验证状态。
+  ///
+  /// # Errors
+  ///
+  /// 失效句柄、会话冲突、已销毁或准备失败时返回安全错误。
+  Future<BridgeInteractiveLoginOutcome> prepareInteractiveLogin({
+    required BridgeInteractiveLogin login,
+  });
+
   Future<BridgeWriteIntent> prepareLibbookCancelBooking({
     required BridgeLibbookCancelBookingRequest request,
   });
@@ -678,6 +709,16 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 原路线校验失败、已有学校写意图或客户端失效时返回稳定错误。
   Future<BridgeRequiredSession> recoverRequiredSession({
     required BridgeRecoveryFeature feature,
+  });
+
+  /// 只刷新所选路线的当前挑战，不使用密码。
+  ///
+  /// # Errors
+  ///
+  /// 失效句柄、已完成路线或会话冲突在网络前拒绝。
+  Future<BridgeInteractiveLoginOutcome> refreshInteractiveCaptcha({
+    required BridgeInteractiveLogin login,
+    required BridgeConnectionMode route,
   });
 
   /// 读取全局路线策略与已认证槽位。
@@ -722,6 +763,18 @@ abstract class BridgeClient implements RustOpaqueInterface {
   });
 
   Future<BridgeRoutedSpocAssignments> spocAssignments();
+
+  /// 按各路线独立句柄提交答案；成功路线不会再次收到凭据。
+  ///
+  /// # Errors
+  ///
+  /// 无效或已消费句柄在网络前拒绝，认证错误保持安全分类。
+  Future<BridgeInteractiveLoginOutcome> submitInteractiveLogin({
+    required BridgeInteractiveLogin login,
+    required String username,
+    required String password,
+    required List<BridgeCaptchaAnswer> answers,
+  });
 
   /// 获取必要的用户资料。
   ///

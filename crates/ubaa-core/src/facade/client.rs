@@ -23,6 +23,7 @@ pub struct UbaaClient {
     pub(super) direct_auth: AuthWorkflow,
     pub(super) webvpn_auth: AuthWorkflow,
     pub(super) sessions: DualSessionCoordinator,
+    pub(super) interactive: super::interactive_auth::state::InteractiveAuthState,
 }
 
 impl UbaaClient {
@@ -174,6 +175,7 @@ impl UbaaClient {
             direct_auth: AuthWorkflow::default(),
             webvpn_auth: AuthWorkflow::default(),
             sessions,
+            interactive: super::interactive_auth::state::InteractiveAuthState::default(),
         })
     }
 
@@ -216,6 +218,7 @@ impl UbaaClient {
         replacement.save(config_dir)?;
         self.route_generation = generation;
         self.config = replacement;
+        self.clear_interactive_context();
         Ok(())
     }
 }

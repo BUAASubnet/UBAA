@@ -17,6 +17,7 @@ part 'cache_management/rebuild.dart';
 part 'profile/cache.dart';
 part 'offline.dart';
 part 'recovery.dart';
+part 'interactive_auth.dart';
 part 'read/academic.dart';
 part 'read/schedule/import.dart';
 part 'read/academic_cache.dart';
@@ -54,7 +55,7 @@ part 'write/readback.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 37;
+const _supportedBridgeContractVersion = 38;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -64,6 +65,7 @@ const _supportedBridgeContractVersion = 37;
 class BridgeBackend
     implements
         UbaaBackend,
+        InteractiveLoginBackend,
         FeatureQueryBackend,
         SigninReadbackBackend,
         BykcReadbackBackend,
@@ -199,6 +201,34 @@ class BridgeBackend
     ConnectionMode route,
     LoginInput input,
   ) => _loginRequiredRoute(this, route, input);
+  int _interactiveGeneration = 0;
+  BridgeInteractiveLogin? _interactiveLogin;
+  LoginVerificationState? _interactiveState;
+  final Map<ConnectionMode, BridgeCaptchaChallenge> _interactiveChallenges =
+      <ConnectionMode, BridgeCaptchaChallenge>{};
+
+  @override
+  Future<LoginVerificationState> beginInteractiveLogin(LoginInput input) =>
+      _beginInteractiveLogin(this, input);
+  @override
+  Future<LoginVerificationState> submitInteractiveLogin(
+    LoginInput input,
+    Map<ConnectionMode, String> answers,
+  ) => _submitInteractiveLogin(this, input, answers);
+  @override
+  Future<LoginVerificationState> refreshInteractiveCaptcha(
+    ConnectionMode route,
+  ) => _refreshInteractiveCaptcha(this, route);
+  @override
+  Future<InteractiveLoginCompletion> continueInteractiveLogin(
+    ConnectionMode route, {
+    bool pinRoute = false,
+  }) => _continueInteractiveLogin(this, route, pinRoute: pinRoute);
+  @override
+  void discardInteractiveCaptcha(ConnectionMode route) =>
+      _discardInteractiveCaptcha(this, route);
+  @override
+  void cancelInteractiveLogin() => _cancelInteractiveLogin(this);
 
   @override
   Future<AuthStatus> authStatus() => _authStatus(this);
