@@ -3,6 +3,7 @@
 ## 首先阅读
 
 - [项目概览与当前范围](../README.md)
+- [项目全量梳理与开发收尾索引](migration/project-audit-2026-10-01.md)
 - [当前迁移与交付状态](migration/status.md)
 - [当前执行合同](../goal.md)
 - [可维护性治理设计](superpowers/specs/2026-09-07-maintainability-design.md)

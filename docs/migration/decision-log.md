@@ -1681,3 +1681,8 @@ Bridge升级v36；schema v6新增载荷变体而不改SQL结构、密文封装�
 新增行为 RED 先复现：本机已有可恢复首页在显式替换 backend 后，继任 backend 的 `authStatus` 调用次数为0，说明缓存重新打开但会话恢复没有自动排队；失败日志为`/tmp/ubaa-p2r-explicit-rebuild-red.log`，SHA-256=`51f4fc5dd1dfaacd6bf5e08cf039e032f87e62e992f27ca8939aa375a10feb54`。最小修复只在已消费首帧标记的本地首页重新初始化后排队一次现有 `recoverSession`，仍受写事务、前后台、退出和账号代次栅栏约束；不复制会话、不自动提交业务写入，也不修改学校请求。
 
 实施后聚焦 GREEN 通过：`packages/ubaa_app/test/offline/backend_rebuild/boundary_test.dart` 共7项通过，日志为`/tmp/ubaa-p2r-explicit-rebuild-green.log`，SHA-256=`1966a1ca67c8f8f533cbecc60f986f82a09c07b34f47f75569ea81f580b2bc34`。随后完整 `just flutter-check` 的7个包共1113项测试和分析、以及 `just check` 均通过，分别见`/tmp/ubaa-p2r-flutter-check-20260924.log`（SHA-256=`cb2abd1802a6dcd551044442290f92e28c6ebf837f35110fea022ae00c2a9fd0`）和`/tmp/ubaa-p2r-just-check-20260924.log`（SHA-256=`0c9168ad7f5b3f324405b51681ef47b39e05c66e8290f9ab848b599ba3359c7c`）。
+
+
+## 2026-10-01：整合现有成果并恢复旧版功能验收
+
+用户明确要求全面梳理、清理、完成当前开发并以 Computer Use 验收 macOS；UI仅在旧版基础适配多端。新活动合同替代历史暂停和单独分支范围，当前校外只验证WebVPN。主目录无未提交工作，从`d7c37f73`创建整合分支并快进纳入离线分支`e1af4360`；原worktree和未提交内容保持原样。按钮分支合并前已比较新旧冻结引用，适用字段/请求和需额外复核差异见[整合来源](source-parity-consolidation-2026-10-01.md)。不以历史阶段通过替代当前最终门禁；生成冲突通过锁定FRB重新生成解决。
