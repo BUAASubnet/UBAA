@@ -9,12 +9,13 @@ use crate::domain::{
     AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
     BykcStatistics, BykcUserProfile, ClassroomQuery, ConnectionMode, ExamArrangement,
     FeatureResult, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey, JudgeAssignmentSummary,
-    JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookBookingsPage,
-    LibBookCancelPreflight, LibBookCancelRequest, LibBookCancelResult, LibBookLibrary,
-    LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LoginInput,
-    SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignments,
-    SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week, WeeklySchedule,
-    YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
+    JudgeAssignmentsDiagnostics, LibBookArea, LibBookAreaDetail, LibBookAreaSchedule,
+    LibBookBookingsPage, LibBookCancelPreflight, LibBookCancelRequest, LibBookCancelResult,
+    LibBookLibrary, LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult,
+    LibBookSeat, LoginInput, SigninActionResult, SigninClass, SpocAssignmentDetail,
+    SpocAssignments, SpocAssignmentsDiagnostics, Term, TodayClass, UserProfile, Week,
+    WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview,
+    YgdkRecordsPage,
 };
 use crate::error::{ErrorCode, Result};
 use crate::features::user;
@@ -487,6 +488,21 @@ impl RouteClient {
     ) -> Result<FeatureResult<LibBookAreaDetail>> {
         self.guard_session_ownership()?;
         let result = crate::features::libbook::get_area_detail(&mut self.runtime, area_id).await;
+        let data = self.finish_readonly_operation(result)?;
+        Ok(crate::features::feature_result(&self.runtime, data))
+    }
+
+    /// 查询图书馆分区逐日日程。
+    ///
+    /// # Errors
+    ///
+    /// 会话校验或清理、网络请求或上游响应处理失败时返回错误。
+    pub async fn libbook_area_schedule(
+        &mut self,
+        area_id: &str,
+    ) -> Result<FeatureResult<LibBookAreaSchedule>> {
+        self.guard_session_ownership()?;
+        let result = crate::features::libbook::get_area_schedule(&mut self.runtime, area_id).await;
         let data = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, data))
     }

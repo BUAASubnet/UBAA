@@ -189,13 +189,34 @@ abstract class BridgeClient implements RustOpaqueInterface {
   ///
   /// # Errors
   /// 保留原业务错误与账号退出屏障。
+  Future<BridgeBykcCatalogRefresh> bykcCatalogCached({
+    required BridgeOfflineCache cache,
+    required int page,
+    required int size,
+    required bool all,
+  });
+
+  /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误与账号退出屏障。
   Future<BridgeBykcChosenRefresh> bykcChosenCached({
     required BridgeOfflineCache cache,
   });
 
   Future<BridgeRoutedBykcChosenCourses> bykcChosenCourses();
 
+  Future<BridgeRoutedBykcCourseCatalog> bykcCourseCatalog({
+    required int page,
+    required int size,
+    required bool all,
+  });
+
   Future<BridgeRoutedBykcCourse> bykcCourseDetail({required PlatformInt64 id});
+
+  Future<BridgeRoutedBykcCourseFullDetail> bykcCourseFullDetail({
+    required PlatformInt64 id,
+  });
 
   Future<BridgeRoutedBykcCourses> bykcCourses({
     required int page,
@@ -219,6 +240,15 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// # Errors
   /// 保留原业务错误与账号退出屏障。
   Future<BridgeBykcDetailRefresh> bykcDetailCached({
+    required BridgeOfflineCache cache,
+    required PlatformInt64 courseId,
+  });
+
+  /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
+  ///
+  /// # Errors
+  /// 保留原业务错误与账号退出屏障。
+  Future<BridgeBykcFullDetailRefresh> bykcFullDetailCached({
     required BridgeOfflineCache cache,
     required PlatformInt64 courseId,
   });
@@ -435,6 +465,10 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 原业务分类、账号与退出屏障保持。
   Future<BridgeLibBookAreaDetailRefresh> libbookAreaDetailCached({
     required BridgeOfflineCache cache,
+    required String areaId,
+  });
+
+  Future<BridgeRoutedLibBookAreaSchedule> libbookAreaSchedule({
     required String areaId,
   });
 

@@ -58,14 +58,14 @@
 
 起始同卷剩余77 GiB；`.git`约74 MiB，主`target`约11 GiB，主Flutter build约3.8 GiB，三个 worktree 合计约61 GiB。大项为Rust/Flutter可再生产物，不是源代码异常增长。冻结引用、`.env.local`、会话、图片和旧工作区均保留。现有 ignore 已隔离运行材料，静态图标、地图和 golden 属于工程资源。
 
-主状态已从过期流水整理为当前摘要；旧离线合同/状态原样归档至 `history/*2026-10-01-before-consolidation.md`。README、文档索引和路线图更新当前入口，删除不存在的冻结 Tag 描述；历史证据不删改为本轮PASS。后续产物清理只在确认不被构建占用且可再生后实施。
+主状态已从过期流水整理为当前摘要；旧离线合同/状态原样归档至 `history/*2026-10-01-before-consolidation.md`。README、文档索引和路线图更新当前入口，删除不存在的冻结 Tag 描述；历史证据不删改为本轮PASS。按结构门禁将两个平台凭据测试归入 `packages/ubaa_platform/test/credentials/`，保留全部用例，消除根测试目录18项拥挤。后续产物清理只在确认不被构建占用且可再生后实施。
 
 ## 验证台账
 
 | 类别 | 本轮状态 |
 |---|---|
 | 冻结引用 | 主目录两来源只读校验通过 |
-| Rust/CLI 基线 | 执行中，日志 `/tmp/ubaa-consolidation-baseline-check-20261001.log` |
+| Rust/CLI 基线 | 全部门禁与CLI端到端通过，日志 `/tmp/ubaa-consolidation-baseline-check-20261001.log` |
 | Flutter 基线 | 7包静态分析与1116项测试通过，日志 `/tmp/ubaa-consolidation-baseline-flutter-20261001.log` |
 | 整合后门禁/FRB | 待执行 |
 | WebVPN Core-live/生产 App | 待执行 |

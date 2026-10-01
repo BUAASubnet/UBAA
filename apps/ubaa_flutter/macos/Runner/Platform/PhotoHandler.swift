@@ -4,19 +4,16 @@ import UniformTypeIdentifiers
 
 /// 系统选择器只授权用户选定文件，不请求整库访问，也不写入原文件。
 @available(macOS 11.0, *)
-final class PhotoChannel: NSObject {
-  private let channel: FlutterMethodChannel
+final class PhotoHandler: NSObject, PlatformMethodHandler {
   private weak var window: NSWindow?
   private var pending: FlutterResult?
 
-  init(messenger: FlutterBinaryMessenger, window: NSWindow) {
-    self.channel = FlutterMethodChannel(name: "cn.edu.buaa.ubaa/platform", binaryMessenger: messenger)
+  init(window: NSWindow) {
     self.window = window
     super.init()
-    channel.setMethodCallHandler { [weak self] call, result in self?.handle(call, result: result) }
   }
 
-  private func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+  func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
     switch call.method {
     case "photo.capability": result(true)
     case "permission.request":

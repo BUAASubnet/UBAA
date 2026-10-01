@@ -32,9 +32,11 @@ impl HttpTransport for BykcCacheTransport {
         let data = match path.as_str() {
             "/sscv/getUserProfile" => r#"{"id":1,"realName":"合成姓名"}"#,
             "/sscv/queryStudentSemesterCourseByPage" => {
-                r#"{"content":[{"id":42,"courseName":"合成课程"}],"size":20,"number":0,"totalElements":21,"totalPages":2}"#
+                r#"{"content":[{"id":42,"courseName":"合成课程","courseNewKind1":{"kindName":"博雅课程"},"courseNewKind2":{"kindName":"美育"},"courseCampusList":["沙河校区"],"courseContact":"合成联系人"}],"size":20,"number":0,"totalElements":21,"totalPages":2}"#
             }
-            "/sscv/queryCourseById" => r#"{"id":42,"courseName":"合成课程"}"#,
+            "/sscv/queryCourseById" => {
+                r#"{"id":42,"courseName":"合成课程","courseNewKind1":{"kindName":"博雅课程"},"courseNewKind2":{"kindName":"美育"},"courseCampusList":["沙河校区"],"courseContact":"合成联系人"}"#
+            }
             "/sscv/getAllConfig" => {
                 r#"{"semester":[{"semesterStartDate":"2026-09-01 00:00:00","semesterEndDate":"2027-01-31 23:59:59"}]}"#
             }
@@ -228,4 +230,53 @@ fn check_replacement(
         panic!("必须为详情")
     };
     assert_eq!(old.id, 42);
+}
+
+#[test]
+fn 完整博雅读取与缓存筛选一致且不落盘联系人或资格() {
+    let root = test_root("bykc-catalog-cache");
+    let (mut client, cache, transport) = setup(&root);
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    for query in [
+        BykcCacheQuery::Catalog {
+            page: 1,
+            size: 20,
+            all: true,
+        },
+        BykcCacheQuery::FullDetail { course_id: 42 },
+    ] {
+        let fresh = runtime
+            .block_on(client.refresh_cached_bykc(&cache, query.clone()))
+            .unwrap();
+        assert!(fresh.save_error.is_none());
+        let calls = transport.calls.load(Ordering::SeqCst);
+        let saved = cache
+            .read_bykc(ConnectionMode::Direct, &query)
+            .unwrap()
+            .unwrap();
+        assert_eq!(calls, transport.calls.load(Ordering::SeqCst));
+        let serialized = serde_json::to_string(&saved.payload).unwrap();
+        assert!(!serialized.contains("合成联系人"));
+        assert!(!serialized.contains("eligibility"));
+        let course = match saved.payload {
+            CachePayload::BykcCourses(page) => page.content.into_iter().next().unwrap(),
+            CachePayload::BykcDetail(course) => course,
+            _ => panic!("必须保存同范围博雅只读投影"),
+        };
+        assert_eq!(
+            course.category,
+            Some(ubaa_core::facade::BykcCourseCategory::Boya)
+        );
+        assert_eq!(
+            course.sub_category,
+            Some(ubaa_core::facade::BykcCourseSubCategory::Aesthetic)
+        );
+        assert_eq!(course.audience_campuses, Some(vec!["沙河校区".into()]));
+    }
+    drop(cache);
+    drop(client);
+    std::fs::remove_dir_all(root).unwrap();
 }

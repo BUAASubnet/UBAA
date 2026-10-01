@@ -68,13 +68,15 @@ Future<CachedFeatureProjection?> _cachedLibbookProjection(
       complete = value.complete;
       if (value.data.id != query.areaId)
         throw const BackendException(UbaaErrorCode.internalError);
-      result = _projectLibbookAreaDetail(
-        value.data,
-        route,
-        today,
-        query,
-        persisted: true,
-      );
+      result = value.schedule != null
+          ? _projectLibbookSchedule(value.schedule!, route)
+          : _projectLibbookAreaDetail(
+              value.data,
+              route,
+              today,
+              query,
+              persisted: true,
+            );
     case FeatureQueryView.libbookSeats:
       final value = await cache.readLibbookSeats(
         route: sourceRoute,

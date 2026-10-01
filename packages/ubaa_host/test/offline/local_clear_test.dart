@@ -67,7 +67,7 @@ void main() {
   testWidgets('基线清理失败仍尝试提醒清理，错误传回调用方', (tester) async {
     final shell = await mount(tester);
     grades.fail = true;
-    await expectLater(shell.onLogoutAndClearAccount(), throwsStateError);
+    await expectLater(shell.onLogoutAndClearAccount(), throwsA(isA<UiError>()));
     expect((await reminders.read('fixture-school')).enabled, isTrue);
     expect((await reminders.read('fixture-user')).enabled, isTrue);
     expect(vault.clears, 1);
@@ -77,7 +77,7 @@ void main() {
   testWidgets('提醒清理失败不能完成，其他本机清理仍执行', (tester) async {
     final shell = await mount(tester);
     reminders.failClear = true;
-    await expectLater(shell.onLogoutAndClearAccount(), throwsStateError);
+    await expectLater(shell.onLogoutAndClearAccount(), throwsA(isA<UiError>()));
     expect(grades.cleared, containsAll(['fixture-user', 'fixture-school']));
     expect(backend.logouts, 1);
     expect(vault.clears, 1);
@@ -148,6 +148,7 @@ void main() {
     await clearing;
     await tester.pumpAndSettle();
     final next = tester.widget<UbaaLoginView>(find.byType(UbaaLoginView));
+    next.onUsernameChanged('fixture-user');
     next.onPasswordChanged('synthetic');
     next.onSubmit();
     await tester.pumpAndSettle();

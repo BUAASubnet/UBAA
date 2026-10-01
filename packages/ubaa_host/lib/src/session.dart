@@ -12,6 +12,7 @@ extension _UbaaAppHostSession on _UbaaAppHostState {
     autoLogin: _controller.loginForm.autoLogin,
     routePolicy: _controller.loginForm.routePolicy,
     error: _controller.error,
+    onOpenAppLink: (widget.appInformation ?? SystemAppInformation()).open,
     onReadDiagnostics: _controller.exportDiagnostics,
     isLoading: _controller.isLoggingIn,
     credentialPersistenceAvailable: _controller.credentialPersistenceAvailable,

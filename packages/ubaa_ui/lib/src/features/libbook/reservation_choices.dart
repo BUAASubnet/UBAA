@@ -15,6 +15,7 @@ extension _LibbookReservationChoices on _LibbookReservationFlowState {
     final areas = _areas
         .map((d) => d.presentation)
         .whereType<LibbookAreaPresentation>()
+        .where(_validArea)
         .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -60,6 +61,8 @@ extension _LibbookReservationChoices on _LibbookReservationFlowState {
           ),
         if (_areaOptions case final area? when !_busy)
           _areaDetail(context, area),
+        if (_areaSchedule case final area? when !_busy)
+          _scheduleDetail(context, area),
       ],
     );
   }

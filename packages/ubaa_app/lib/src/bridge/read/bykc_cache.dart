@@ -34,6 +34,10 @@ Future<CachedFeatureProjection?> _cachedBykcProjection(
         _toConnectionMode(value.sourceRoute),
         requestedPage: query.page <= 0 ? 1 : query.page,
         requestedSize: query.size.clamp(1, 100),
+        catalog: {
+          for (final item in value.data.content)
+            item.id: _cachedBykcCatalog(item),
+        },
       );
       fetchedAt = value.fetchedAt.toInt();
       complete = value.complete;
@@ -49,6 +53,7 @@ Future<CachedFeatureProjection?> _cachedBykcProjection(
       result = _projectBykcDetail(
         _cachedBykcCourse(value.data),
         _toConnectionMode(value.sourceRoute),
+        catalog: _cachedBykcCatalog(value.data),
       );
       fetchedAt = value.fetchedAt.toInt();
       complete = value.complete;
@@ -197,3 +202,12 @@ Future<FeatureResult> _preserveBykcDetail(
     ),
   );
 }
+
+BridgeBykcCourseCatalogItem _cachedBykcCatalog(BridgeCachedBykcCourse value) =>
+    BridgeBykcCourseCatalogItem(
+      course: _cachedBykcCourse(value),
+      category: value.category,
+      subCategory: value.subCategory,
+      audienceCampuses: value.audienceCampuses ?? const [],
+      hasSignPoints: value.hasSignPoints ?? false,
+    );

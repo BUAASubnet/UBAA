@@ -143,6 +143,11 @@ class AppController extends ChangeNotifier {
   final FileGradeScoreStore? _legacyGradeScores;
   LocalAccount? _localAccount;
   bool _isSigningOut = false;
+  bool _credentialRestoreAllowed = true;
+  bool _manualAuthenticationRequired = false;
+  int _loginFormRevision = 0;
+  Completer<void>? _backendRebuildCompletion;
+  Future<void>? _credentialMutation;
   bool _clearingBusinessCache = false;
   int _businessCacheEpoch = 0;
   bool get isClearingBusinessCache => _clearingBusinessCache;
@@ -375,6 +380,11 @@ class AppController extends ChangeNotifier {
     if (_phase == AppPhase.loggingIn || _phase == AppPhase.checkingSession) {
       return false;
     }
+    final previousLoginError = _phase == AppPhase.login ? _error : null;
+    final errorRevision = _loginFormRevision;
+    final completion = Completer<void>();
+    _backendRebuildCompletion = completion;
+    _releaseLoginSecret();
     _rebuildingBackend = true;
     _beginWriteTransition();
     _setPhase(AppPhase.checkingSession);
@@ -410,7 +420,11 @@ class AppController extends ChangeNotifier {
       _user = null;
       _activeRoutes = const <ConnectionMode>[];
       _resetFeatureSnapshots();
-      await initialize();
+      await _initializeController(
+        previousLoginError: _loginFormRevision == errorRevision
+            ? previousLoginError
+            : null,
+      );
       return true;
     } on BackendException catch (exception, stackTrace) {
       _error = _recordFailure(
@@ -430,35 +444,56 @@ class AppController extends ChangeNotifier {
       return false;
     } finally {
       _endWriteTransition();
+      _backendRebuildCompletion = null;
+      completion.complete();
       _rebuildingBackend = false;
       _notify();
     }
   }
 
   void setUsername(String value) {
-    _loginForm = _loginForm.copyWith(username: value);
+    if (_disposed || _phase == AppPhase.loggingIn || _isSigningOut) return;
+    final accountChanged = value.trim() != _loginForm.username.trim();
+    if (accountChanged) _manualAuthenticationRequired = true;
+    _loginFormRevision++;
+    _loginForm = _loginForm.copyWith(
+      username: value,
+      password: accountChanged ? '' : null,
+      captcha: accountChanged ? '' : null,
+    );
     _error = null;
     _notify();
   }
 
   void setPassword(String value) {
+    if (_disposed || _phase == AppPhase.loggingIn || _isSigningOut) return;
+    _loginFormRevision++;
     _loginForm = _loginForm.copyWith(password: value);
     _error = null;
     _notify();
   }
 
   void setCaptcha(String value) {
+    if (_disposed || _phase == AppPhase.loggingIn || _isSigningOut) return;
+    _loginFormRevision++;
     _loginForm = _loginForm.copyWith(captcha: value);
     _error = null;
     _notify();
   }
 
   void setRememberPassword(bool value) {
-    _loginForm = _loginForm.copyWith(rememberPassword: value);
+    if (!_canEditLoginOptions) return;
+    _loginFormRevision++;
+    _loginForm = _loginForm.copyWith(
+      rememberPassword: value,
+      autoLogin: value ? _loginForm.autoLogin : false,
+    );
     _notify();
   }
 
   void setAutoLogin(bool value) {
+    if (!_canEditLoginOptions) return;
+    _loginFormRevision++;
     _loginForm = _loginForm.copyWith(
       autoLogin: value,
       rememberPassword: value ? true : _loginForm.rememberPassword,

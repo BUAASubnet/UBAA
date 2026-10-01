@@ -9,6 +9,44 @@ const START_TIME: &str = "08:00";
 const END_TIME: &str = "10:00";
 
 #[tokio::test]
+async fn 图书馆日程通过_bridge_只读_facade_且不生成写意图() {
+    let root = test_root("read-libbook-schedule");
+    let store = seed_sessions(&root, true, false);
+    let url = "https://booking.lib.buaa.edu.cn/v4/Space/map";
+    let direct = MockTransport::new([
+        libbook_cas_request(),
+        libbook_login_request(),
+        ExpectedRequest::new(HttpMethod::Post, url, HttpResponse::new(200, url,
+            br#"{"code":1,"data":{"area":{"id":"area-safe"},"date":{"list":[{"day":"2026-09-04","times":[]},{"day":"2026-09-05","times":[{"id":"second-slot","start":"14:00","end":"16:00"}]}]}}}"#.to_vec())),
+    ]);
+    let client = BridgeClient::open(root.to_string_lossy().into_owned()).unwrap();
+    install_core(
+        &client,
+        store,
+        "[route]\ndefault = \"direct\"\n",
+        direct.clone(),
+        MockTransport::new([]),
+    )
+    .await;
+    let result = client
+        .libbook_area_schedule(AREA_ID.to_owned())
+        .await
+        .unwrap();
+    assert_eq!(result.route.resolved_route, BridgeConnectionMode::Direct);
+    assert_eq!(result.data.days.len(), 2);
+    assert!(result.data.days[0].time_slots.is_empty());
+    assert_eq!(result.data.days[1].day, "2026-09-05");
+    assert_eq!(result.data.days[1].time_slots[0].id, "second-slot");
+    direct.assert_exhausted().unwrap();
+    let requests = direct.requests().unwrap();
+    assert_eq!(requests.len(), 3);
+    let body = request_body(&requests, "/v4/Space/map");
+    assert_eq!(body, r#"{"id":"area-safe"}"#);
+    client.dispose().await.unwrap();
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[tokio::test]
 async fn 图书馆预约准备读取新鲜权威并生成安全目标摘要() {
     let root = test_root("prepare-libbook-reserve");
     let _ = std::fs::remove_dir_all(&root);

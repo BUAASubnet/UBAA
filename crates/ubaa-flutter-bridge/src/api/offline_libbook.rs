@@ -272,6 +272,7 @@ impl BridgeClient {
 
 #[derive(Clone, Debug)]
 pub struct BridgeCachedLibBookAreaDetailRecord {
+    pub schedule: Option<super::read::BridgeLibBookAreaSchedule>,
     pub data: BridgeLibBookAreaDetail,
     pub source_route: BridgeConnectionMode,
     pub fetched_at: i64,
@@ -279,6 +280,7 @@ pub struct BridgeCachedLibBookAreaDetailRecord {
 }
 #[derive(Clone, Debug)]
 pub struct BridgeLibBookAreaDetailRefresh {
+    pub schedule: Option<super::read::BridgeLibBookAreaSchedule>,
     pub data: BridgeLibBookAreaDetail,
     pub route: BridgeRouteDecision,
     pub state: BridgeLibBookRefreshState,
@@ -306,6 +308,10 @@ impl BridgeOfflineCache {
                         return Err(cache_error(core::CacheError::Corrupt));
                     };
                     Ok(BridgeCachedLibBookAreaDetailRecord {
+                        schedule: data
+                            .schedule
+                            .clone()
+                            .map(super::read::map_libbook_area_schedule),
                         data: map_libbook_area_detail(data),
                         source_route: record.scope.route.into(),
                         fetched_at: record.fetched_at,
@@ -335,6 +341,10 @@ impl BridgeClient {
             return Err(cache_error(core::CacheError::Corrupt));
         };
         Ok(BridgeLibBookAreaDetailRefresh {
+            schedule: data
+                .schedule
+                .clone()
+                .map(super::read::map_libbook_area_schedule),
             data: map_libbook_area_detail(data),
             route: map_route(value.result.resolution),
             state,

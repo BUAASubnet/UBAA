@@ -43,7 +43,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 36;
+  int contractVersion() => 37;
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
@@ -154,6 +154,9 @@ class _CharacterizationBridgeClient implements BridgeClient {
             route: _webVpnRoute,
           ),
         );
+      case #bykcCourseFullDetail:
+      case #bykcCourseCatalog:
+        return _bykcCatalogRead(invocation, emptyReads: emptyReads);
       case #bykcCourseDetail:
         return Future<BridgeRoutedBykcCourse>.value(
           const BridgeRoutedBykcCourse(
@@ -473,6 +476,31 @@ class _CharacterizationBridgeClient implements BridgeClient {
             route: _webVpnRoute,
           ),
         );
+      case #libbookAreaSchedule:
+        return Future<BridgeRoutedLibBookAreaSchedule>.value(
+          BridgeRoutedLibBookAreaSchedule(
+            data: BridgeLibBookAreaSchedule(
+              id: named[#areaId] as String,
+              name: '分区详情',
+              days: emptyReads
+                  ? const []
+                  : const [
+                      BridgeLibBookDaySchedule(
+                        day: '2026-09-04',
+                        timeSlots: [
+                          BridgeLibBookTimeSlot(
+                            id: 'slot-read-1',
+                            start: '08:00',
+                            end: '10:00',
+                            label: '上午',
+                          ),
+                        ],
+                      ),
+                    ],
+            ),
+            route: _webVpnRoute,
+          ),
+        );
       case #libbookAreaDetail:
         return Future<BridgeRoutedLibBookAreaDetail>.value(
           BridgeRoutedLibBookAreaDetail(
@@ -754,6 +782,8 @@ const _readyLoginOutcome = BridgeLoginOutcome(
 const _readMembers = <Symbol>{
   #bykcChosenCourses,
   #bykcCourseDetail,
+  #bykcCourseFullDetail,
+  #bykcCourseCatalog,
   #bykcCourses,
   #bykcProfile,
   #bykcStatistics,
@@ -772,6 +802,7 @@ const _readMembers = <Symbol>{
   #judgeAssignmentDetails,
   #judgeAssignments,
   #libbookAreaDetail,
+  #libbookAreaSchedule,
   #libbookAreas,
   #libbookBookings,
   #libbookLibraries,
@@ -900,6 +931,9 @@ BridgeJudgeAssignmentDetail _judgeDetail(
 String _describeReadCall(Invocation invocation) {
   final named = invocation.namedArguments;
   return switch (invocation.memberName) {
+    #bykcCourseFullDetail => 'bykcCourseFullDetail:id=${named[#id]}',
+    #bykcCourseCatalog =>
+      'bykcCourseCatalog:page=${named[#page]},size=${named[#size]},all=${named[#all]}',
     #bykcCourseDetail => 'bykcCourseDetail:id=${named[#id]}',
     #bykcCourses =>
       'bykcCourses:page=${named[#page]},size=${named[#size]},all=${named[#all]}',
@@ -919,6 +953,7 @@ String _describeReadCall(Invocation invocation) {
     #judgeAssignments =>
       'judgeAssignments:includeExpired=${named[#includeExpired]}',
     #libbookAreaDetail => 'libbookAreaDetail:areaId=${named[#areaId]}',
+    #libbookAreaSchedule => 'libbookAreaSchedule:areaId=${named[#areaId]}',
     #libbookAreas =>
       'libbookAreas:premisesId=${named[#premisesId]},storeyId=${named[#storeyId]},day=${named[#day]}',
     #libbookBookings =>

@@ -51,6 +51,9 @@ impl HttpTransport for CacheTransport {
                 assert_eq!(input["storeyIds"], serde_json::json!(["f1"]));
                 r#"{"code":1,"data":{"area":[{"id":"a1","name":"合成分区"}]}}"#
             }
+            "/v4/Space/map" if mode == 5 => {
+                r#"{"code":1,"data":{"area":{"id":"a1"},"date":{"list":[{"day":"2026-10-02","times":[{"id":"m1","start":"08:00","end":"09:00"}]},{"day":"2026-10-03","times":[{"id":"m2","start":"14:00","end":"15:00"}]}]}}}"#
+            }
             "/v4/Space/map" => r#"{"code":1,"data":{"area":{"id":"a1"},"date":{"list":[]}}}"#,
             "/v4/Space/seat" => {
                 assert_eq!(input["id"], "a1");
@@ -235,4 +238,45 @@ fn check_bookings(
             .is_err()
     );
     assert_eq!(transport.calls.load(Ordering::SeqCst), calls);
+}
+
+#[test]
+fn 图书馆缓存重读保留逐日时段且旧详情不扩张序列化() {
+    let root = test_root("libbook-schedule-cache");
+    let (mut client, cache, transport) = setup(&root);
+    transport.mode.store(5, Ordering::SeqCst);
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let query = LibBookCacheQuery::AreaDetail {
+        area_id: "a1".into(),
+    };
+    let fresh = runtime
+        .block_on(client.refresh_cached_libbook(&cache, query.clone()))
+        .unwrap();
+    assert!(fresh.result.save_error.is_none());
+    let CachePayload::LibBookAreaDetail(detail) = cache
+        .read_libbook(ConnectionMode::Direct, &query)
+        .unwrap()
+        .unwrap()
+        .payload
+    else {
+        panic!("应是同分区日程");
+    };
+    let schedule = detail.schedule.unwrap();
+    assert_eq!(schedule.days.len(), 2);
+    assert_eq!(schedule.days[0].day, "2026-10-02");
+    assert_eq!(schedule.days[0].time_slots[0].start, "08:00");
+    assert_eq!(schedule.days[1].day, "2026-10-03");
+    assert_eq!(schedule.days[1].time_slots[0].start, "14:00");
+    let legacy = runtime.block_on(client.libbook_area_detail("a1")).unwrap();
+    assert!(
+        !serde_json::to_string(&legacy.data)
+            .unwrap()
+            .contains("schedule")
+    );
+    drop(cache);
+    drop(client);
+    std::fs::remove_dir_all(root).unwrap();
 }

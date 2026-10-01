@@ -3,8 +3,8 @@
 use crate::domain::{
     BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile, CgyyDayInfo,
     CgyyLockCode, CgyyOrder, CgyyOrdersPage, CgyyPurposeType, CgyyPurposeTypes, CgyyVenueSite,
-    ConnectionMode, LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookLibrary,
-    LibBookSeat, ReadonlyFeature, UserProfile, YgdkOverview, YgdkRecordsPage,
+    ConnectionMode, LibBookArea, LibBookAreaDetail, LibBookAreaSchedule, LibBookBookingsPage,
+    LibBookLibrary, LibBookSeat, ReadonlyFeature, UserProfile, YgdkOverview, YgdkRecordsPage,
 };
 use crate::features::user;
 
@@ -294,6 +294,22 @@ impl UbaaClient {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
         let result =
             crate::features::libbook::get_area_detail(self.runtime_for(resolution.mode), area_id)
+                .await;
+        self.finish_routed(resolution, result)
+    }
+
+    /// 查询图书馆分区逐日日程。
+    ///
+    /// # Errors
+    ///
+    /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
+    pub async fn libbook_area_schedule(
+        &mut self,
+        area_id: &str,
+    ) -> RoutedResult<LibBookAreaSchedule> {
+        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let result =
+            crate::features::libbook::get_area_schedule(self.runtime_for(resolution.mode), area_id)
                 .await;
         self.finish_routed(resolution, result)
     }

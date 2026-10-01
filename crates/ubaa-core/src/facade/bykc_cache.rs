@@ -8,6 +8,8 @@ use super::{
 pub enum BykcCacheQuery {
     Profile,
     Courses { page: i32, size: i32, all: bool },
+    Catalog { page: i32, size: i32, all: bool },
+    FullDetail { course_id: i64 },
     Detail { course_id: i64 },
     Chosen,
     Statistics,
@@ -18,8 +20,12 @@ impl BykcCacheQuery {
     pub fn cache_query(&self) -> CacheQuery {
         match *self {
             Self::Profile => CacheQuery::BykcProfile,
-            Self::Courses { page, size, all } => CacheQuery::BykcCourses { page, size, all },
-            Self::Detail { course_id } => CacheQuery::BykcDetail { course_id },
+            Self::Courses { page, size, all } | Self::Catalog { page, size, all } => {
+                CacheQuery::BykcCourses { page, size, all }
+            }
+            Self::Detail { course_id } | Self::FullDetail { course_id } => {
+                CacheQuery::BykcDetail { course_id }
+            }
             Self::Chosen => CacheQuery::BykcChosen,
             Self::Statistics => CacheQuery::BykcStatistics,
         }
@@ -30,6 +36,8 @@ impl BykcCacheQuery {
 pub enum BykcReadData {
     Profile(BykcUserProfile),
     Courses(BykcCoursePage),
+    Catalog(super::BykcCourseCatalogPage),
+    FullDetail(Box<super::BykcCourseFullDetail>),
     Detail(BykcCourse),
     Chosen {
         semester_start: String,
@@ -42,6 +50,8 @@ impl BykcReadData {
     fn readonly_payload(&self) -> CachePayload {
         match self {
             Self::Profile(v) => CachePayload::BykcProfile(v.clone()),
+            Self::Catalog(v) => CachePayload::BykcCourses(v.clone().into()),
+            Self::FullDetail(v) => CachePayload::BykcDetail(v.course.clone().into()),
             Self::Courses(v) => CachePayload::BykcCourses(v.clone().into()),
             Self::Detail(v) => CachePayload::BykcDetail(v.clone().into()),
             Self::Chosen {
@@ -100,33 +110,7 @@ impl UbaaClient {
             Err(error) => (None, Some(error)),
         };
         let runtime = self.runtime_for(resolution.mode);
-        let result = match query {
-            BykcCacheQuery::Profile => crate::features::bykc::get_profile(runtime)
-                .await
-                .map(BykcReadData::Profile),
-            BykcCacheQuery::Courses { page, size, all } => {
-                crate::features::bykc::get_courses(runtime, page, size, all)
-                    .await
-                    .map(BykcReadData::Courses)
-            }
-            BykcCacheQuery::Detail { course_id } => {
-                crate::features::bykc::get_course_detail(runtime, course_id)
-                    .await
-                    .map(BykcReadData::Detail)
-            }
-            BykcCacheQuery::Chosen => crate::features::bykc::get_chosen_courses_observed(runtime)
-                .await
-                .map(
-                    |(semester_start, semester_end, courses)| BykcReadData::Chosen {
-                        semester_start,
-                        semester_end,
-                        courses,
-                    },
-                ),
-            BykcCacheQuery::Statistics => crate::features::bykc::get_statistics(runtime)
-                .await
-                .map(BykcReadData::Statistics),
-        };
+        let result = query.read(runtime).await;
         let fetched_at = chrono::Utc::now().timestamp();
         match self.finish_routed(resolution, result) {
             Ok(result) => {
@@ -177,5 +161,50 @@ impl OfflineCache {
             },
             chrono::Utc::now().timestamp(),
         )
+    }
+}
+
+impl BykcCacheQuery {
+    async fn read(
+        self,
+        runtime: &mut crate::runtime::ClientRuntime,
+    ) -> crate::error::Result<BykcReadData> {
+        match self {
+            BykcCacheQuery::Catalog { page, size, all } => {
+                crate::features::bykc::get_course_catalog(runtime, page, size, all)
+                    .await
+                    .map(BykcReadData::Catalog)
+            }
+            BykcCacheQuery::FullDetail { course_id } => {
+                crate::features::bykc::get_course_full_detail(runtime, course_id)
+                    .await
+                    .map(|value| BykcReadData::FullDetail(Box::new(value)))
+            }
+            BykcCacheQuery::Profile => crate::features::bykc::get_profile(runtime)
+                .await
+                .map(BykcReadData::Profile),
+            BykcCacheQuery::Courses { page, size, all } => {
+                crate::features::bykc::get_courses(runtime, page, size, all)
+                    .await
+                    .map(BykcReadData::Courses)
+            }
+            BykcCacheQuery::Detail { course_id } => {
+                crate::features::bykc::get_course_detail(runtime, course_id)
+                    .await
+                    .map(BykcReadData::Detail)
+            }
+            BykcCacheQuery::Chosen => crate::features::bykc::get_chosen_courses_observed(runtime)
+                .await
+                .map(
+                    |(semester_start, semester_end, courses)| BykcReadData::Chosen {
+                        semester_start,
+                        semester_end,
+                        courses,
+                    },
+                ),
+            BykcCacheQuery::Statistics => crate::features::bykc::get_statistics(runtime)
+                .await
+                .map(BykcReadData::Statistics),
+        }
     }
 }

@@ -39,7 +39,8 @@ pub use types::{CallerPinned, Routed, RoutedError, RoutedResult};
 // 逐项列出宿主稳定合同，避免新增领域实现时被通配重导出意外纳入公共 API。
 pub use crate::domain::{
     ActionEligibility, Assignment, AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse,
-    BykcCourseCategory, BykcCoursePage, BykcCourseStatus, BykcCourseSubCategory, BykcSignConfig,
+    BykcCourseAttendanceDisplay, BykcCourseCatalogItem, BykcCourseCatalogPage, BykcCourseCategory,
+    BykcCourseFullDetail, BykcCoursePage, BykcCourseStatus, BykcCourseSubCategory, BykcSignConfig,
     BykcSignLocationRequirement, BykcSignPoint, BykcSignPreflight, BykcSignRequest, BykcStatistic,
     BykcStatistics, BykcUserProfile, CgyyCancelOrderPreflight, CgyyCancelOrderRequest,
     CgyyCancelOrderResult, CgyyCancelOrderTarget, CgyyDayInfo, CgyyLockCode, CgyyOrder,
@@ -52,15 +53,16 @@ pub use crate::domain::{
     EvaluationSubmitCoursesRequest, EvaluationSubmitPreflight, EvaluationSubmitTarget, Exam,
     ExamArrangement, FeatureResult, Grade, GradeData, JudgeAssignmentDetail, JudgeAssignmentKey,
     JudgeAssignmentSummary, JudgeAssignmentsDiagnostics, JudgeProblem, JudgeSubmissionStatus,
-    LibBookArea, LibBookAreaDetail, LibBookBooking, LibBookBookingsPage, LibBookCancelPreflight,
-    LibBookCancelRequest, LibBookCancelResult, LibBookLibrary, LibBookReservePreflight,
-    LibBookReserveRequest, LibBookReserveResult, LibBookSeat, LibBookStorey, LibBookTimeSlot,
-    LoginInput, LoginOutcome, LoginReadiness, ReadonlyFeature, RouteLoginResult, RouteLoginState,
-    RoutePolicy, SafeError, SecretValue, SigninActionResult, SigninClass, SpocAssignmentDetail,
-    SpocAssignmentSummary, SpocAssignments, SpocAssignmentsDiagnostics, SpocSubmissionStatus, Term,
-    TodayClass, UserInfoResponse, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
-    YgdkClockinSubmitResult, YgdkItem, YgdkOverview, YgdkPhotoUpload, YgdkRecord, YgdkRecordsPage,
-    YgdkSubmitPreflight, YgdkSubmitTarget, YgdkTermSummary,
+    LibBookArea, LibBookAreaDetail, LibBookAreaSchedule, LibBookBooking, LibBookBookingsPage,
+    LibBookCancelPreflight, LibBookCancelRequest, LibBookCancelResult, LibBookDaySchedule,
+    LibBookLibrary, LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult,
+    LibBookSeat, LibBookStorey, LibBookTimeSlot, LoginInput, LoginOutcome, LoginReadiness,
+    ReadonlyFeature, RouteLoginResult, RouteLoginState, RoutePolicy, SafeError, SecretValue,
+    SigninActionResult, SigninClass, SpocAssignmentDetail, SpocAssignmentSummary, SpocAssignments,
+    SpocAssignmentsDiagnostics, SpocSubmissionStatus, Term, TodayClass, UserInfoResponse,
+    UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkItem,
+    YgdkOverview, YgdkPhotoUpload, YgdkRecord, YgdkRecordsPage, YgdkSubmitPreflight,
+    YgdkSubmitTarget, YgdkTermSummary,
 };
 pub use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 

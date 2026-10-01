@@ -71,6 +71,8 @@ extension _BykcDetails on _FeatureDetailListState {
           _BykcInfoLine('课程编号', '${course.id}'),
           _BykcInfoLine('已报名', course.courseCurrentCount?.toString()),
           _BykcInfoLine('人数上限', course.courseMaxCount?.toString()),
+          _BykcInfoLine('类别', course.categoryDisplayName),
+          ..._bykcContactFields(course.supplement),
         ]),
         const SizedBox(height: 12),
         _BykcSection('时间安排', [
@@ -92,6 +94,33 @@ extension _BykcDetails on _FeatureDetailListState {
                 : _bykcDate(course.courseCancelEndDate!),
           ),
         ]),
+        ..._bykcSupplementSections(course),
+        if (course.supplement case final supplement?) ...[
+          const SizedBox(height: 12),
+          _BykcSection('签到信息', [
+            _BykcInfoLine(
+              '考勤',
+              _bykcCheckinLabel(supplement.attendance?.checkin),
+            ),
+            _BykcInfoLine(
+              '考核',
+              supplement.attendance?.pass == null
+                  ? '考核未知'
+                  : _bykcPassLabel(supplement.attendance!.pass),
+            ),
+            ..._bykcDisplaySignFields(supplement.signConfig),
+          ]),
+        ],
+        if (course.selected == true &&
+            detail.readNavigation != null &&
+            widget.onNavigate != null) ...[
+          const SizedBox(height: 12),
+          OutlinedButton.icon(
+            onPressed: () => widget.onNavigate!(detail.readNavigation!),
+            icon: const Icon(Icons.fact_check_outlined),
+            label: const Text('查看签到与签退'),
+          ),
+        ],
         if (widget.onBykcWrite != null) ...[
           const SizedBox(height: 12),
           Wrap(
@@ -173,6 +202,7 @@ extension _BykcDetails on _FeatureDetailListState {
           ),
           _BykcInfoLine('课程编号', '${course.courseId}'),
           _BykcInfoLine('选课记录', '${course.recordId}'),
+          ..._bykcContactFields(course.fullDetail?.supplement),
         ]),
         const SizedBox(height: 12),
         _BykcSection('时间安排', [
@@ -192,6 +222,8 @@ extension _BykcDetails on _FeatureDetailListState {
           ),
         ]),
         const SizedBox(height: 12),
+        if (course.fullDetail case final fullDetail?)
+          ..._bykcSupplementSections(fullDetail),
         _BykcSection('签到信息', [
           _BykcInfoLine('考勤', _bykcCheckinLabel(course.checkin)),
           _BykcInfoLine('考核', _bykcPassLabel(course.pass)),
@@ -199,20 +231,7 @@ extension _BykcDetails on _FeatureDetailListState {
             '成绩',
             course.score == null ? null : '${course.score} 分',
           ),
-          _BykcInfoLine(
-            '签到',
-            _bykcRange(course.signStartDate, course.signEndDate),
-          ),
-          _BykcInfoLine(
-            '签退',
-            _bykcRange(course.signOutStartDate, course.signOutEndDate),
-          ),
-          _BykcInfoLine(
-            '签到地点',
-            course.signPointCount == null
-                ? '未提供'
-                : '${course.signPointCount} 处',
-          ),
+          ..._bykcDisplaySignFields(course.fullDetail?.supplement?.signConfig),
           _BykcInfoLine('签到类型', course.courseSignType?.toString()),
         ]),
         const SizedBox(height: 12),

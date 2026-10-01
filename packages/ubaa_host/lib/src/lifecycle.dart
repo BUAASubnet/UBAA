@@ -4,7 +4,10 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   late final AppController _controller;
   late final YgdkReminderStore _reminderStore;
   late final GradeScoreStore _gradeScoreStore;
+  late final BykcCourseFilterStore _bykcFilterStore;
   late final GradeScoreWatch _gradeWatch;
+  final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  UiError? _scheduledHomeFeedback;
   ThemeMode _themeMode = ThemeMode.system;
 
   void _setThemeMode(ThemeMode value) => setState(() => _themeMode = value);
@@ -66,7 +69,15 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       store: _gradeScoreStore,
       onCheckComplete: widget.onGradeCheckComplete,
     );
+    _bykcFilterStore =
+        widget.bykcFilterStore ??
+        (backend != null || widget.backendFactory != null
+            ? MemoryBykcCourseFilterStore()
+            : FileBykcCourseFilterStore(
+                File('${defaultConfigDirectory()}/ui-bykc-filters.json'),
+              ));
     _controller.addListener(_retryPendingRecovery);
+    _controller.addListener(_showHomeFeedback);
     _networkChanges =
         widget.networkChanges ??
         (widget.backend == null && widget.backendFactory == null
@@ -82,6 +93,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _stopNetworkChanges();
     WidgetsBinding.instance.removeObserver(this);
     _controller.removeListener(_retryPendingRecovery);
+    _controller.removeListener(_showHomeFeedback);
     _gradeWatch.dispose();
     _controller.dispose();
     super.dispose();
@@ -122,6 +134,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
         _controller.phase == AppPhase.checkingSession) {
       return;
     }
+    if (_controller.phase == AppPhase.home && _controller.error != null) return;
     _resumeRecoveryPending = false;
     _recoveryInFlight = true;
     unawaited(_recoverBackend());
@@ -134,6 +147,27 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       _recoveryInFlight = false;
       if (!_disposed) _retryPendingRecovery();
     }
+  }
+
+  void _showHomeFeedback() {
+    if (_disposed || _controller.phase != AppPhase.home) return;
+    final error = _controller.error;
+    if (error == null || identical(error, _scheduledHomeFeedback)) return;
+    _scheduledHomeFeedback = error;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (identical(_scheduledHomeFeedback, error)) {
+        _scheduledHomeFeedback = null;
+      }
+      if (_disposed ||
+          _controller.phase != AppPhase.home ||
+          !identical(_controller.error, error))
+        return;
+      final messenger = _messengerKey.currentState;
+      if (messenger == null) return;
+      // 首页绘制完成后消费一次，避免各只读来源的刷新反复显示同一提示。
+      _controller.clearError();
+      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+    });
   }
 
   @override

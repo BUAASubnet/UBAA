@@ -30,6 +30,10 @@ pub struct BridgeCachedBykcCourse {
     pub course_current_count: Option<i32>,
     pub status: BridgeBykcCourseStatus,
     pub selected: Option<bool>,
+    pub category: Option<BridgeBykcCourseCategory>,
+    pub sub_category: Option<BridgeBykcCourseSubCategory>,
+    pub audience_campuses: Option<Vec<String>>,
+    pub has_sign_points: Option<bool>,
 }
 fn map_cached_bykc_course(v: core::CachedBykcCourse) -> BridgeCachedBykcCourse {
     BridgeCachedBykcCourse {
@@ -46,6 +50,10 @@ fn map_cached_bykc_course(v: core::CachedBykcCourse) -> BridgeCachedBykcCourse {
         course_current_count: v.course_current_count,
         status: map_bykc_status(v.status),
         selected: v.selected,
+        category: v.category.map(map_bykc_category),
+        sub_category: v.sub_category.map(map_bykc_subcategory),
+        audience_campuses: v.audience_campuses,
+        has_sign_points: v.has_sign_points,
     }
 }
 
@@ -654,5 +662,77 @@ mod tests {
             BridgeErrorCode::OperationConflict
         );
         assert_eq!(client.write_intents.lock().await.len(), 1);
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct BridgeBykcCatalogRefresh {
+    pub data: super::read::BridgeBykcCourseCatalogPage,
+    pub route: BridgeRouteDecision,
+    pub state: BridgeBykcRefreshState,
+}
+impl BridgeClient {
+    /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
+    ///
+    /// # Errors
+    /// 保留原业务错误与账号退出屏障。
+    pub async fn bykc_catalog_cached(
+        &self,
+        cache: &BridgeOfflineCache,
+        page: i32,
+        size: i32,
+        all: bool,
+    ) -> Result<BridgeBykcCatalogRefresh, BridgeError> {
+        let result = self
+            .refresh_bykc_record(cache, core::BykcCacheQuery::Catalog { page, size, all })
+            .await?;
+        let core::BykcReadData::Catalog(data) = result.data else {
+            return Err(cache_error(core::CacheError::Corrupt));
+        };
+        Ok(BridgeBykcCatalogRefresh {
+            data: super::read::map_bykc_catalog(data),
+            route: map_route(result.resolution),
+            state: BridgeBykcRefreshState {
+                fetched_at: result.fetched_at,
+                save_error: result.save_error.map(Into::into),
+                semester_start: None,
+                semester_end: None,
+            },
+        })
+    }
+}
+
+#[derive(Clone, Debug)]
+pub struct BridgeBykcFullDetailRefresh {
+    pub data: super::read::BridgeBykcCourseFullDetail,
+    pub route: BridgeRouteDecision,
+    pub state: BridgeBykcRefreshState,
+}
+impl BridgeClient {
+    /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
+    ///
+    /// # Errors
+    /// 保留原业务错误与账号退出屏障。
+    pub async fn bykc_full_detail_cached(
+        &self,
+        cache: &BridgeOfflineCache,
+        course_id: i64,
+    ) -> Result<BridgeBykcFullDetailRefresh, BridgeError> {
+        let result = self
+            .refresh_bykc_record(cache, core::BykcCacheQuery::FullDetail { course_id })
+            .await?;
+        let core::BykcReadData::FullDetail(data) = result.data else {
+            return Err(cache_error(core::CacheError::Corrupt));
+        };
+        Ok(BridgeBykcFullDetailRefresh {
+            data: super::read::map_bykc_full_detail(*data),
+            route: map_route(result.resolution),
+            state: BridgeBykcRefreshState {
+                fetched_at: result.fetched_at,
+                save_error: result.save_error.map(Into::into),
+                semester_start: None,
+                semester_end: None,
+            },
+        })
     }
 }

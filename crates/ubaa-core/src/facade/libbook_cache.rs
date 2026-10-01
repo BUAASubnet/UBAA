@@ -223,12 +223,14 @@ impl LibBookCacheQuery {
             } => libbook::get_areas_observed(runtime, &premises_id, storey_id.as_deref(), &day)
                 .await
                 .map(|(v, complete)| (LibBookReadData::Areas(v), complete)),
-            Self::AreaDetail { area_id } => libbook::get_area_detail_observed(runtime, &area_id)
-                .await
-                .map(|(v, observed)| {
-                    let complete = observed && v.id == area_id;
-                    (LibBookReadData::AreaDetail(v), complete)
-                }),
+            Self::AreaDetail { area_id } => {
+                libbook::get_area_detail_with_schedule_observed(runtime, &area_id)
+                    .await
+                    .map(|(v, observed)| {
+                        let complete = observed && v.id == area_id;
+                        (LibBookReadData::AreaDetail(v), complete)
+                    })
+            }
             Self::Seats {
                 area_id,
                 day,

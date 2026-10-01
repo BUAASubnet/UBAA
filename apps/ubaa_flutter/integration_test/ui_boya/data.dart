@@ -69,6 +69,10 @@ FeatureResult boyaData(FeatureQuery query, String state, {bool empty = false}) {
                 signOutEndDate: '2026-09-09 10:10:00',
                 signPointCount: i == 2 ? null : 1,
                 courseSignType: 3,
+                fullDetail: query.courseId == '${101 + i}'
+                    ? _course(i, suffix, isDetail: true).presentation!
+                          as BykcCoursePresentation
+                    : null,
               ),
               fields: const [FeatureField(label: '课程 ID', value: '999')],
               actions: [
@@ -180,10 +184,37 @@ FeatureDetail _course(int index, String suffix, {bool isDetail = false}) {
           : 1,
       courseMaxCount: 3,
       isDetail: isDetail,
+      category: BykcCourseCategory.boya,
+      subCategory: BykcCourseSubCategory.aesthetic,
+      audienceCampuses: const ['沙河校区'],
+      hasSignPoints: true,
+      supplement: isDetail
+          ? const BykcCourseSupplement(
+              courseContact: '合成课程联系人',
+              courseContactMobile: '000-TEST-02',
+              organizerCollegeName: '合成开课单位',
+              descriptionPlainText: '合成课程简介',
+              audienceColleges: ['合成学院'],
+              audienceTerms: ['合成年级'],
+              audienceGroups: ['合成人群'],
+              signConfig: BykcSignDisplayConfig(
+                signStartDate: '2026-09-09T07:50:00',
+                signEndDate: '2026-09-09T08:10:00',
+                signOutStartDate: '2026-09-09T09:50:00',
+                signOutEndDate: '2026-09-09T10:10:00',
+                signPointCount: 1,
+              ),
+            )
+          : null,
     ),
     fields: const [FeatureField(label: '课程 ID', value: '999')],
     readNavigation: isDetail
-        ? null
+        ? status == BykcCourseStatus.selected
+              ? const FeatureReadNavigation(
+                  feature: FeatureId.bykc,
+                  query: FeatureQuery(view: FeatureQueryView.bykcChosenCourses),
+                )
+              : null
         : FeatureReadNavigation(
             feature: FeatureId.bykc,
             query: FeatureQuery(

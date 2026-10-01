@@ -1,64 +1,110 @@
 part of '../app_controller.dart';
 
 extension _AppControllerAuthentication on AppController {
-  Future<void> _initializeController() async {
-    if (_initialized) return;
+  bool get _canEditLoginOptions =>
+      !_disposed &&
+      !_isSigningOut &&
+      _phase != AppPhase.loggingIn &&
+      _phase != AppPhase.checkingSession &&
+      _credentialVault.isAvailable;
+
+  bool _isCurrentAuthentication(int generation) =>
+      !_disposed && generation == _lifecycleEpoch;
+
+  void _releaseLoginSecret() {
+    _loginForm = _loginForm.copyWith(password: '', captcha: '');
+  }
+
+  Future<void> _initializeController({UiError? previousLoginError}) async {
+    if (_initialized || _disposed || _isSigningOut) return;
     _initialized = true;
-    if (_localAccountStore != null && await _initializeLocalHome()) return;
+    if (_localAccountStore != null &&
+        !_manualAuthenticationRequired &&
+        await _initializeLocalHome())
+      return;
+    final formRevision = _loginFormRevision;
     _beginWriteTransition();
+    final generation = _lifecycleEpoch;
+    _error = previousLoginError;
     _setPhase(AppPhase.checkingSession);
     try {
+      if (_needsManualLogin(formRevision)) return;
       if (_backend case final RouteSettingsBackend routeBackend) {
         final settings = await routeBackend.routeSettings();
-        if (_disposed) return;
+        if (!_isCurrentAuthentication(generation)) return;
         _applyRouteSettings(settings);
+        if (_needsManualLogin(formRevision)) return;
       }
       final status = await _backend.authStatus();
-      if (_disposed) return;
+      if (!_isCurrentAuthentication(generation)) return;
+      if (_needsManualLogin(formRevision)) return;
       if (status == AuthStatus.signedIn) {
-        _user = await _backend.userInfo();
-        if (_disposed) return;
-        if (_user != null) {
+        final user = await _backend.userInfo();
+        if (!_isCurrentAuthentication(generation)) return;
+        if (_needsManualLogin(formRevision)) return;
+        if (user != null) {
+          _error = null;
+          _user = user;
+          _releaseLoginSecret();
           _setPhase(AppPhase.home);
           await _recordAppOpen();
-          unawaited(refreshHome());
+          if (_isCurrentAuthentication(generation)) unawaited(refreshHome());
           return;
         }
       }
-      final saved = await _credentialVault.read();
-      if (_disposed) return;
-      if (saved != null && saved.isUsable) {
-        _loginForm = _loginForm.copyWith(
-          username: saved.username,
-          autoLogin: saved.autoLogin,
-          rememberPassword: _credentialVault.isAvailable,
-        );
-        if (saved.autoLogin && _credentialVault.isAvailable) {
-          // 密码只在当前登录调用的短生命周期内放入 controller；submitLogin 成功
-          // 或失败都会清空密码字段，且失败凭据会被清理。
-          _loginForm = _loginForm.copyWith(password: saved.password);
-          await submitLogin();
-          return;
+      // 修订号在 controller 生命周期内保留：重建只能恢复尚未被用户
+      // 改填、提交或退出的表单，不能重新授权已消费的自动登录尝试。
+      if (_credentialRestoreAllowed &&
+          _loginFormRevision == 0 &&
+          _credentialVault.isAvailable) {
+        final saved = await _credentialVault.read();
+        if (!_isCurrentAuthentication(generation)) return;
+        if (_needsManualLogin(formRevision)) return;
+        if (_loginFormRevision == formRevision &&
+            _credentialVault.isAvailable &&
+            saved != null &&
+            saved.isUsable) {
+          _loginForm = _loginForm.copyWith(
+            username: saved.username,
+            password: saved.password,
+            autoLogin: saved.autoLogin,
+            rememberPassword: true,
+          );
+          // 手动恢复仅供遮罩表单使用；自动登录只尝试一次，成功或失败
+          // 都释放表单中的密码，账号变化和销毁也会使本次恢复失效。
+          if (saved.autoLogin) {
+            await submitLogin();
+            return;
+          }
         }
       }
       _setPhase(AppPhase.login);
-    } on BackendException catch (exception, stackTrace) {
-      _error = _recordFailure(
-        exception,
-        DiagnosticOperation.initialization,
-        stackTrace: stackTrace,
-      );
-      _setPhase(AppPhase.login);
-    } catch (error, stackTrace) {
-      _error = _recordFailure(
+    } on Object catch (error, stackTrace) {
+      if (!_isCurrentAuthentication(generation)) return;
+      final failure = _recordFailure(
         error,
         DiagnosticOperation.initialization,
         stackTrace: stackTrace,
       );
+      _error = _loginFormRevision == formRevision
+          ? previousLoginError ?? failure
+          : failure;
       _setPhase(AppPhase.login);
     } finally {
       _endWriteTransition();
     }
+  }
+
+  bool _needsManualLogin(int formRevision) {
+    if (!_manualAuthenticationRequired && _loginFormRevision == formRevision) {
+      return false;
+    }
+    // 明确退出或改填账号后，后台不能接受残留旧会话；手动认证成功才
+    // 重新允许会话恢复。恢复在途出现新输入也必须交还给当前登录表单。
+    _user = null;
+    _activeRoutes = const <ConnectionMode>[];
+    _setPhase(AppPhase.login);
+    return true;
   }
 
   Future<void> _submitLoginController({bool preserveHome = false}) async {
@@ -73,6 +119,7 @@ extension _AppControllerAuthentication on AppController {
       _notify();
       return;
     }
+    _credentialRestoreAllowed = false;
     final input = LoginInput(
       username: username,
       password: _loginForm.password,
@@ -148,22 +195,33 @@ extension _AppControllerAuthentication on AppController {
       _user = profile ?? UserSummary(username: username);
       try {
         if (input.rememberPassword && _credentialVault.isAvailable) {
-          await _credentialVault.write(
-            Credential(
-              username: username,
-              password: input.password,
-              autoLogin: input.autoLogin,
+          await _mutateCredential(
+            epoch,
+            () => _credentialVault.write(
+              Credential(
+                username: username,
+                password: input.password,
+                autoLogin: input.autoLogin,
+              ),
             ),
           );
         } else if (!input.rememberPassword) {
-          await _credentialVault.clear();
+          await _mutateCredential(epoch, _credentialVault.clear);
         }
       } on Object catch (error, stackTrace) {
         if (!current()) return;
-        _error = _recordFailure(
+        _recordFailure(
           error,
           DiagnosticOperation.login,
           stackTrace: stackTrace,
+        );
+        _error = UiError(
+          code: UbaaErrorCode.internalError,
+          kind: UbaaErrorKind.internal,
+          title: '本机登录材料未保存',
+          message: input.rememberPassword
+              ? '已登录，但账号密码未能保存，下次需要重新输入。'
+              : '已登录，但之前保存的账号密码未能清除，请稍后重试。',
         );
       }
       if (!current()) return;
@@ -173,6 +231,7 @@ extension _AppControllerAuthentication on AppController {
       );
       if (!current()) return;
       if (_error == null) _automaticCredentialBlocked = false;
+      _manualAuthenticationRequired = false;
       _sessionRecoveryStatus = SessionRecoveryStatus.ready;
       _setPhase(AppPhase.home);
       unawaited(_queueProfileRefresh(force: true));
@@ -183,9 +242,13 @@ extension _AppControllerAuthentication on AppController {
       if (error is BackendException &&
           error.code == UbaaErrorCode.invalidCredentials) {
         try {
-          await _credentialVault.clear();
-        } on Object {
-          /* 保留原认证错误。 */
+          await _mutateCredential(epoch, _credentialVault.clear);
+        } on Object catch (clearError, clearStack) {
+          _recordFailure(
+            clearError,
+            DiagnosticOperation.logout,
+            stackTrace: clearStack,
+          );
         }
         if (!current()) return;
       }
@@ -201,6 +264,29 @@ extension _AppControllerAuthentication on AppController {
       _loginForm = _loginForm.copyWith(password: '', captcha: '');
       _endWriteTransition();
       _notify();
+    }
+  }
+
+  Future<void> _mutateCredential(
+    int epoch,
+    Future<void> Function() action,
+  ) async {
+    final previous = _credentialMutation;
+    final pending = () async {
+      if (previous != null) {
+        try {
+          await previous;
+        } on Object {
+          /* 后续清除仍继续。 */
+        }
+      }
+      if (!_disposed && epoch == _lifecycleEpoch) await action();
+    }();
+    _credentialMutation = pending;
+    try {
+      await pending;
+    } finally {
+      if (identical(_credentialMutation, pending)) _credentialMutation = null;
     }
   }
 }

@@ -128,9 +128,7 @@ void main() {
     await loaded(FeatureQueryView.libbookAreaDetail);
     final area =
         snapshot().details.single.presentation!
-            as LibbookAreaDetailPresentation;
-    final queryDay = snapshot().readContext!.query!.date;
-    expect(queryDay != null, isTrue);
+            as LibbookAreaSchedulePresentation;
     expect(find.byType(TextField), findsNothing);
     expect(find.byType(FilterChip), findsNothing);
     expect(find.byType(ActionChip), findsNothing);
@@ -147,24 +145,19 @@ void main() {
     await tap(find.widgetWithText(TextButton, '完成'));
     expect(identical(snapshot(), beforePanel), isTrue);
     debugPrint(
-      '图书馆只读 areaDetail=true slots=${area.timeSlots.length} dates=${area.availableDates.length}',
+      '图书馆只读 areaDetail=true slots=${area.days.fold<int>(0, (sum, day) => sum + day.timeSlots.length)} dates=${area.days.length}',
     );
-    if (area.timeSlots.isNotEmpty) {
-      final slot = area.timeSlots.first;
+    final availableDays = area.days.where((day) => day.timeSlots.isNotEmpty);
+    if (availableDays.isNotEmpty) {
+      final day = availableDays.first;
+      final slot = day.timeSlots.first;
       await tap(find.byTooltip('搜索与筛选'));
-      await tap(
-        find.widgetWithText(
-          ActionChip,
-          '${slot.label} ${slot.start}–${slot.end}',
-        ),
-      );
-      final dateField = find.widgetWithText(TextField, '日期');
-      await tap(dateField);
-      final date =
-          '${queryDay!.year}-${queryDay.month.toString().padLeft(2, '0')}-${queryDay.day.toString().padLeft(2, '0')}';
-      // 明确查询原日期与所选时段，不声称两个独立公开列表有关联或可预约。
-      await tester.enterText(dateField, date);
-      await tap(find.text('应用筛选'));
+      await tap(find.byKey(const ValueKey('libbook-choice-日期')));
+      await tap(find.text(day.day).last);
+      await tap(find.byKey(const ValueKey('libbook-choice-时段')));
+      await tap(find.text('${slot.label} ${slot.start}–${slot.end}').last);
+      // 只使用同一已接受日程条目的日期与时段，明确查询且不选座。
+      await tap(find.byKey(const ValueKey('libbook-query-seats')));
       await loaded(FeatureQueryView.libbookSeats);
       FocusManager.instance.primaryFocus?.unfocus();
       await tap(find.widgetWithText(TextButton, '完成'));

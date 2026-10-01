@@ -271,3 +271,60 @@ FeatureResult _projectLibbookBookings(
     resolvedRoute: route,
   );
 }
+
+FeatureResult _projectLibbookSchedule(
+  BridgeLibBookAreaSchedule data,
+  ConnectionMode route,
+) {
+  final detail = data;
+  return FeatureResult.success(
+    summary: '可用日期 ${detail.days.length} 天',
+    details: <FeatureDetail>[
+      FeatureDetail(
+        title: detail.name,
+        presentation: LibbookAreaSchedulePresentation(
+          id: detail.id,
+          name: detail.name,
+          days: List.unmodifiable(
+            detail.days.map(
+              (day) => LibbookDaySchedulePresentation(
+                day: day.day,
+                timeSlots: List.unmodifiable(
+                  day.timeSlots.map(
+                    (slot) => LibbookTimeSlotPresentation(
+                      id: slot.id,
+                      start: slot.start,
+                      end: slot.end,
+                      label: slot.label,
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+        fields: _compactFields(<FeatureField?>[
+          _field('分区 ID', detail.id),
+          _field(
+            '可用日期',
+            detail.days.isEmpty
+                ? null
+                : detail.days.map((day) => day.day).join('、'),
+          ),
+          _field(
+            '时段',
+            detail.days.isEmpty
+                ? null
+                : detail.days
+                      .map(
+                        (day) =>
+                            '${day.day}：${day.timeSlots.map((slot) => slot.label).join('、')}',
+                      )
+                      .join('；'),
+          ),
+        ]),
+      ),
+    ],
+    resolvedRoute: route,
+  );
+}

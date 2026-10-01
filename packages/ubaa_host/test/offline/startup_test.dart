@@ -35,8 +35,9 @@ void main() {
     expect(find.text('需要登录，当前页面会保留'), findsOneWidget);
     await tester.tap(find.text('完成登录'));
     await tester.pumpAndSettle();
-    expect(find.text('在此设备保留登录'), findsOneWidget);
-    expect(find.byType(Checkbox), findsOneWidget);
+    expect(find.text('记住密码'), findsOneWidget);
+    expect(find.text('自动登录'), findsOneWidget);
+    expect(find.byType(Checkbox), findsNWidgets(2));
     await tester.enterText(find.byType(TextField).at(1), 'fixture-secret');
     await tester.pump();
     final login = find.widgetWithText(FilledButton, '登录');

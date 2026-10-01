@@ -1,6 +1,6 @@
 # Flutter Bridge 合同
 
-状态：当前合同v36，离线首页与后台恢复任务仍在实施及验收。v9的Phase 11J/11K是typed写入和单一协调器的历史基线；当前版本、生成一致性及原生/真实App证据以实施区goal.md和迁移状态为准。实体设备与正式发布单独记录。
+状态：当前合同v37，离线首页与后台恢复任务仍在实施及验收。v9的Phase 11J/11K是typed写入和单一协调器的历史基线；当前版本、生成一致性及原生/真实App证据以实施区goal.md和迁移状态为准。实体设备与正式发布单独记录。
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
@@ -9,7 +9,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `36`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `37`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -20,7 +20,9 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
   `submitEligibility/submitTarget`，将提交请求收紧为完整 typed target、canonical 时间和必需照片，并新增
   caller-pinned 的概览/记录回读与安全提交收据。版本 9 为 Evaluation 增加 typed
   `submitEligibility/submitTarget`、只含 targets 的批量请求、四态逐项结果与 caller-pinned 原路线回读。
-  版本 9 不与版本 8 或更早的生成绑定混用。
+  版本 10 新增 `libbookAreaSchedule`，保留每个原始日期自己的时段；旧 `libbookAreaDetail` 的展平形状不变。
+  同一候选版本新增 `bykcCourseCatalog` 与 `bykcCourseFullDetail`，旧博雅列表和详情的形状、请求次数不变。
+  版本 10 不与版本 9 或更早的生成绑定混用；CLI schema10、Session2、配置1和既有写入权威不变。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -36,7 +38,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=36` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=37` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -144,11 +146,14 @@ final 发送后无法确定结果才进入不可重试的 `outcome_unknown`。�
 | `bykcProfile` | 无 | `BykcUserProfile` |
 | `bykcCourses` | `page: i32, size: i32, all: bool` | `BykcCoursePage` |
 | `bykcCourseDetail` | `id: i64` | `BykcCourse` |
+| `bykcCourseCatalog` | `page: i32, size: i32, all: bool` | `BykcCourseCatalogPage` |
+| `bykcCourseFullDetail` | `id: i64` | `BykcCourseFullDetail` |
 | `bykcChosenCourses` | 无 | `List<BykcChosenCourse>` |
 | `bykcStatistics` | 无 | `BykcStatistics` |
 | `libbookLibraries` | `day: String` | `List<LibBookLibrary>` |
 | `libbookAreas` | `premisesId: String, storeyId: String?, day: String` | `List<LibBookArea>` |
 | `libbookAreaDetail` | `areaId: String` | `LibBookAreaDetail` |
+| `libbookAreaSchedule` | `areaId: String` | `LibBookAreaSchedule` |
 | `libbookSeats` | `areaId: String, day: String, startTime: String, endTime: String` | `List<LibBookSeat>` |
 | `libbookBookings` | `page: i32, limit: i32` | `LibBookBookingsPage` |
 | `ygdkOverview` | 无 | `YgdkOverview` |
@@ -192,6 +197,13 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
   `BykcCourse {id,courseName,coursePosition?,courseTeacher?,courseStartDate?,courseEndDate?,courseSelectStartDate?,courseSelectEndDate?,courseCancelEndDate?,courseMaxCount?,courseCurrentCount?,status,selected?,selectEligibility,deselectEligibility}`；
   两项 eligibility 都是 `allowed/denied/unknown` 的封闭枚举，缺失 action 或 `unknown` 均必须按拒绝处理；
   `BykcCoursePage {content,totalElements,totalPages,size,number}`。
+- `BykcCourseCatalogItem {course,category?,subCategory?,audienceCampuses,hasSignPoints}` 组合旧课程结构，
+  `BykcCourseCatalogPage {content,totalElements,totalPages,size,number}` 保留服务器分页；类别/校区只在当前页筛选。
+  `BykcCourseFullDetail {course,courseContact?,courseContactMobile?,organizerCollegeName?,descriptionPlainText?,audienceColleges,audienceTerms,audienceGroups,signConfig?,attendance?}`。
+  其中 `BykcSignDisplayConfig {signStartDate?,signEndDate?,signOutStartDate?,signOutEndDate?,signPointCount}`
+  只传可空显示窗口和完整点数；`BykcCourseAttendanceDisplay {recordId,courseId,checkin?,pass?}` 仅供显示，
+  不含位置坐标、原始配置或写资格。新完整详情校验课程身份；严格已选时在同一 Core runtime 顺序补查当前学期及已选记录，
+  补查失败整次失败，合法无匹配才为空。主详情配置优先，独立写前的已选配置优先级不变。
 - `BykcChosenCourse` 仅保留课程/签到所需的公开字段
   `{id,courseId,courseName,coursePosition?,courseTeacher?,courseStartDate?,courseEndDate?,selectDate?,courseCancelEndDate?,category?,subCategory?,checkin?,score?,pass?,signEligibility,signOutEligibility,deselectEligibility,signConfig?,courseSignType?}`；
   三项 eligibility 均为 `allowed/denied/unknown` 的封闭枚举，`checkin` 缺失时保持 `null`；`signConfig` 仅含四个时间字段与
@@ -201,6 +213,10 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
 - `LibBookLibrary {id,name,freeNum,totalNum,storeys}`；`LibBookStorey` 同名计数字段；
   `LibBookArea {id,name,areaName,premisesId,storeyId,freeNum,totalNum}`；
   `LibBookAreaDetail {id,name,availableDates,timeSlots}`；时段 `{id,start,end,label}`；
+  新增 `LibBookAreaSchedule {id,name,days}`，其中 `days` 为原顺序的 `{day,timeSlots}`。
+  日程读取沿用同一次 `Space/map` 请求，只含原 `id` 参数，不新增日期参数。
+  空日期条目不转移时段，空日期列表与日期下无时段如实为空；重复日期、畸形时段列表或缺少 id/start/end
+  返回 `upstream_changed`，不伪装空结果。旧顶层 `availableDates/timeSlots` 不用于推断逐日关联。
   座位 `{id,name,no,status?,statusName,reserveEligibility,reserveTarget?}`；`status` 只允许可空整数，
   eligibility 为 `allowed|denied|unknown`，仅明确状态与非空稳定目标产生 target；预约
   `{id,nameMerge,areaName,seatNo,day,beginTime,endTime,status?,statusName,cancelEligibility,cancelTarget?}`；
@@ -264,9 +280,10 @@ ID/分页字段：
 | `examNotArranged` | `term?` | `examArrangement(term)` 后取 `notArranged` |
 | `gradesScored` | `term?` | `grades(term)` 后按 `score` 非空本地派生 |
 | `gradesMissing` | `term?` | `grades(term)` 后按 `score` 空值本地派生 |
-| `bykcDetail` | `courseId`（正整数） | `bykcCourseDetail(courseId)` |
+| 博雅 `summary` | `page`、`size` | `bykcCourseCatalog(page,size,all=true)` |
+| `bykcDetail` | `courseId`（正整数） | `bykcCourseFullDetail(courseId)` |
 | `bykcProfile` | 无 | `bykcProfile` |
-| `bykcChosenCourses` | 无 | `bykcChosenCourses` |
+| `bykcChosenCourses` | `courseId?`（正整数） | 不含 `courseId` 时只调用 `bykcChosenCourses`；已选详情带 `courseId` 时先独立读取已选记录，再读取完整详情 |
 | `bykcStatistics` | 无 | `bykcStatistics` |
 | `libbookAreas` | `premisesId`，`storeyId?`，`date?` | `libbookAreas(premisesId, storeyId?, day)` |
 | `libbookAreaDetail` | `areaId` | `libbookAreaDetail(areaId)` |
@@ -283,6 +300,11 @@ ID/分页字段：
 | `judgeBatchDetails` | `judgeKeys: List<{courseId,assignmentId}>`，至少一项 | `judgeAssignmentDetails(keys)` |
 | `signinPending` | 无 | `signinToday` 后按 `signinEligibility == allowed` 本地派生 |
 | `signinCompleted` | 无 | `signinToday` 后按 `signinEligibility == denied` 本地派生 |
+
+博雅课程列表与首页待办沿 `bykcDetail` 读取完整详情。已选详情的 `courseId` 只在 App 组合读取中使用，
+不增加上游筛选参数；两次读取路线不同或任何读取失败均不返回完整成功。UI 仍按父已选帧的
+`(recordId,courseId)` 唯一定位，补查考勤不能覆盖另一条记录或生成动作；普通详情的签到路径先进入独立已选读取。
+当前帧三维筛选在面板开关、详情返回和当前查询刷新时保留，账号切换清除；跨重启存储由 Task3D2 实施。
 
 缺少必填 ID、时段或批量键时由 bridge 返回 `invalid_input`；Dart 不拼接 URL、JSON 或 Cookie。Judge
 批量键在 UI 中使用每行 `课程编号/作业编号` 的公开编号格式解析为 typed 列表，不把该文本作为 raw
@@ -659,8 +681,13 @@ beginJudgeOnline(options)接收可选期望账号与明确目标，nextJudgeOnli
 数据库 schema v6 对 v5 增加独立加密提示表；上限64条且不会被普通内容淘汰，达到上限明确报告本地容量错误。退出使提示不可读，重新核实账号后可读；显式清理或重建会删除本账号提示并在确认文案中说明不可恢复。App 首页只提供相关功能查看与用户确认后的本机移除，均不产生写意图或宣称学校成功。
 
 
-## 成绩变化基线本地加密通道（v36）
+## 成绩变化基线本地加密通道（v37）
 
 `BridgeOfflineCache.readGradeScoreBaseline(route, term)` 仅读取精确范围；`updateGradeScoreBaseline(route, latest, legacy?)` 在同一本地仓库锁内返回原基线并保存新完整观察。typed字段仅学期、课程稳定比较键、课程名/号和分数，不包含动作、认证或任意JSON。旧文件基线仅迁入尚无加密记录的同学期范围；旧学期单独保留。空集合、非法字段、容量或密钥失败不替换原值，沿cacheFailure返回本机错误。
 
 两项操作不取得学校网络锁；账号、路线、学期及清理/退出代次仍由原仓库验证。Host仅在完整在线成绩观察后调用更新，保存失败保留在线内容并单独提示。旧文件禁止写新成绩，迁入确认后只移除对应旧账号/路线；旧文件损坏或在迁移期间变化时保留并报告。schema v6的SQL结构和既有载荷编码不变，新增独立白名单变体；CLI和Session版本不变。
+
+
+## v37：旧版目录、逐日日程与缓存整合
+
+新增博雅完整目录/详情、图书馆逐日日程的typed只读接口，旧CLI与普通读取序列化不变。博雅目录/完整详情通过同客户端身份/缓存票据链读取；缓存只增加类别、校区和点存在性，不保存联系人、电话、原始配置、坐标或写资格。完整详情的联系人和补查仅在线显示。图书馆缓存详情可带同次响应的逐日日程，旧公开分区详情仍保持展平接口与旧JSON形状；没有逐日关联的旧缓存不猜对应关系。Bridge v37与生成绑定必须同批使用，schema v6通过可选字段兼容旧缓存。

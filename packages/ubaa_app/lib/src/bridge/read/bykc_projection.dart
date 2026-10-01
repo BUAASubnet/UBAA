@@ -5,13 +5,17 @@ FeatureResult _projectBykcCourses(
   ConnectionMode route, {
   required int requestedPage,
   required int requestedSize,
+  Map<int, BridgeBykcCourseCatalogItem> catalog = const {},
 }) {
   final details = data.content
       .map(
         (item) => FeatureDetail(
           title: item.courseName,
           subtitle: item.courseTeacher,
-          presentation: _bykcCoursePresentation(item),
+          presentation: _bykcCoursePresentation(
+            item,
+            catalog: catalog[item.id],
+          ),
           readNavigation: item.id <= 0
               ? null
               : FeatureReadNavigation(
@@ -61,7 +65,12 @@ FeatureResult _projectBykcCourses(
   );
 }
 
-FeatureResult _projectBykcDetail(BridgeBykcCourse data, ConnectionMode route) {
+FeatureResult _projectBykcDetail(
+  BridgeBykcCourse data,
+  ConnectionMode route, {
+  BridgeBykcCourseCatalogItem? catalog,
+  BykcCourseSupplement? supplement,
+}) {
   final item = data;
   return FeatureResult.success(
     summary: '博雅课程详情',
@@ -69,7 +78,18 @@ FeatureResult _projectBykcDetail(BridgeBykcCourse data, ConnectionMode route) {
       FeatureDetail(
         title: item.courseName,
         subtitle: item.courseTeacher,
-        presentation: _bykcCoursePresentation(item, isDetail: true),
+        presentation: _bykcCoursePresentation(
+          item,
+          isDetail: true,
+          catalog: catalog,
+          supplement: supplement,
+        ),
+        readNavigation: item.selected == true
+            ? const FeatureReadNavigation(
+                feature: FeatureId.bykc,
+                query: FeatureQuery(view: FeatureQueryView.bykcChosenCourses),
+              )
+            : null,
         actions: <FeatureAction>[
           BykcSelectAction(
             courseId: item.id,
@@ -142,6 +162,7 @@ FeatureResult _projectBykcChosen(
   List<BridgeBykcChosenCourse> data,
   ConnectionMode route, {
   bool persisted = false,
+  BykcCoursePresentation? fullDetail,
 }) {
   final details = data
       .map((item) {
@@ -153,7 +174,11 @@ FeatureResult _projectBykcChosen(
         return FeatureDetail(
           title: item.courseName,
           subtitle: item.courseTeacher,
-          presentation: _bykcChosenPresentation(item, persisted: persisted),
+          presentation: _bykcChosenPresentation(
+            item,
+            persisted: persisted,
+            fullDetail: fullDetail?.id == item.courseId ? fullDetail : null,
+          ),
           actions: <FeatureAction>[
             BykcDeselectAction(
               courseId: item.courseId,
@@ -314,6 +339,8 @@ bool _requiresBykcCoordinates(BridgeBykcSignConfig? config) {
 BykcCoursePresentation _bykcCoursePresentation(
   BridgeBykcCourse item, {
   bool isDetail = false,
+  BridgeBykcCourseCatalogItem? catalog,
+  BykcCourseSupplement? supplement,
 }) => BykcCoursePresentation(
   id: item.id,
   courseName: item.courseName,
@@ -336,10 +363,59 @@ BykcCoursePresentation _bykcCoursePresentation(
   },
   selected: item.selected,
   isDetail: isDetail,
+  category: switch (catalog?.category) {
+    BridgeBykcCourseCategory.boya => BykcCourseCategory.boya,
+    BridgeBykcCourseCategory.unknown => BykcCourseCategory.unknown,
+    null => null,
+  },
+  subCategory: switch (catalog?.subCategory) {
+    BridgeBykcCourseSubCategory.moral => BykcCourseSubCategory.moral,
+    BridgeBykcCourseSubCategory.aesthetic => BykcCourseSubCategory.aesthetic,
+    BridgeBykcCourseSubCategory.labor => BykcCourseSubCategory.labor,
+    BridgeBykcCourseSubCategory.safetyHealth =>
+      BykcCourseSubCategory.safetyHealth,
+    BridgeBykcCourseSubCategory.other => BykcCourseSubCategory.other,
+    BridgeBykcCourseSubCategory.unknown => BykcCourseSubCategory.unknown,
+    null => null,
+  },
+  audienceCampuses: List.unmodifiable(
+    catalog?.audienceCampuses ?? const <String>[],
+  ),
+  hasSignPoints: catalog?.hasSignPoints ?? false,
+  supplement: supplement,
 );
+
+BykcCourseSupplement _bykcSupplement(BridgeBykcCourseFullDetail detail) =>
+    BykcCourseSupplement(
+      courseContact: detail.courseContact,
+      courseContactMobile: detail.courseContactMobile,
+      organizerCollegeName: detail.organizerCollegeName,
+      descriptionPlainText: detail.descriptionPlainText,
+      audienceColleges: List.unmodifiable(detail.audienceColleges),
+      audienceTerms: List.unmodifiable(detail.audienceTerms),
+      audienceGroups: List.unmodifiable(detail.audienceGroups),
+      signConfig: detail.signConfig == null
+          ? null
+          : BykcSignDisplayConfig(
+              signStartDate: detail.signConfig!.signStartDate,
+              signEndDate: detail.signConfig!.signEndDate,
+              signOutStartDate: detail.signConfig!.signOutStartDate,
+              signOutEndDate: detail.signConfig!.signOutEndDate,
+              signPointCount: detail.signConfig!.signPointCount,
+            ),
+      attendance: detail.attendance == null
+          ? null
+          : BykcAttendanceDisplay(
+              recordId: detail.attendance!.recordId,
+              courseId: detail.attendance!.courseId,
+              checkin: detail.attendance!.checkin,
+              pass: detail.attendance!.pass,
+            ),
+    );
 
 BykcChosenPresentation _bykcChosenPresentation(
   BridgeBykcChosenCourse item, {
+  BykcCoursePresentation? fullDetail,
   bool persisted = false,
 }) => BykcChosenPresentation(
   recordId: item.id,
@@ -374,4 +450,34 @@ BykcChosenPresentation _bykcChosenPresentation(
   signOutEndDate: item.signConfig?.signOutEndDate,
   signPointCount: persisted ? null : item.signConfig?.signPoints.length,
   courseSignType: item.courseSignType,
+  fullDetail: fullDetail,
+);
+
+FeatureResult _projectBykcCatalog(
+  BridgeBykcCourseCatalogPage data,
+  ConnectionMode route, {
+  required int requestedPage,
+  required int requestedSize,
+}) => _projectBykcCourses(
+  BridgeBykcCoursePage(
+    content: data.content.map((item) => item.course).toList(growable: false),
+    totalElements: data.totalElements,
+    totalPages: data.totalPages,
+    size: data.size,
+    number: data.number,
+  ),
+  route,
+  requestedPage: requestedPage,
+  requestedSize: requestedSize,
+  catalog: {for (final item in data.content) item.course.id: item},
+);
+
+FeatureResult _projectBykcFullDetail(
+  BridgeBykcCourseFullDetail data,
+  ConnectionMode route,
+) => _projectBykcDetail(
+  data.course.course,
+  route,
+  catalog: data.course,
+  supplement: _bykcSupplement(data),
 );

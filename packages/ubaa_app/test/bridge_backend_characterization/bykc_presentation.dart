@@ -23,7 +23,7 @@ void registerBykcPresentationTests() {
       detail.action<BykcSelectAction>()?.eligibility,
       ActionEligibility.unknown,
     );
-    expect(client.calls, ['bykcCourses:page=2,size=5,all=true']);
+    expect(client.calls, ['bykcCourseCatalog:page=2,size=5,all=true']);
     expect(result.pagination?.page, 2);
   });
   test('博雅详情使用公开课程结构，未选和未知资格不补签到动作', () async {
@@ -106,24 +106,28 @@ void registerBykcPresentationTests() {
 class _BoyaPresentationClient extends _CharacterizationBridgeClient {
   @override
   dynamic noSuchMethod(Invocation invocation) {
-    if (invocation.memberName == #bykcCourses) {
+    if (invocation.memberName == #bykcCourseCatalog) {
       calls.add(_describeReadCall(invocation));
       return Future.value(
-        BridgeRoutedBykcCourses(
+        BridgeRoutedBykcCourseCatalog(
           route: _webVpnRoute,
-          data: BridgeBykcCoursePage(
+          data: BridgeBykcCourseCatalogPage(
             content: const [
-              BridgeBykcCourse(
-                id: 101,
-                courseName: '合成课程',
-                courseStartDate: '2026-09-09 08:00:00',
-                courseEndDate: '2026-09-09 10:00:00',
-                courseSelectStartDate: '2026-09-01 08:00:00',
-                courseCurrentCount: 3,
-                courseMaxCount: 3,
-                status: BridgeBykcCourseStatus.available,
-                selectEligibility: BridgeActionEligibility.unknown,
-                deselectEligibility: BridgeActionEligibility.denied,
+              BridgeBykcCourseCatalogItem(
+                audienceCampuses: [],
+                hasSignPoints: false,
+                course: BridgeBykcCourse(
+                  id: 101,
+                  courseName: '合成课程',
+                  courseStartDate: '2026-09-09 08:00:00',
+                  courseEndDate: '2026-09-09 10:00:00',
+                  courseSelectStartDate: '2026-09-01 08:00:00',
+                  courseCurrentCount: 3,
+                  courseMaxCount: 3,
+                  status: BridgeBykcCourseStatus.available,
+                  selectEligibility: BridgeActionEligibility.unknown,
+                  deselectEligibility: BridgeActionEligibility.denied,
+                ),
               ),
             ],
             number: invocation.namedArguments[#page] as int,

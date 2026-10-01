@@ -1,5 +1,9 @@
 //! Core 读取 DTO 到稳定 FRB 投影的显式字段映射。
 
+use super::{
+    BridgeBykcCourseAttendanceDisplay, BridgeBykcCourseCatalogItem, BridgeBykcCourseCatalogPage,
+    BridgeBykcCourseFullDetail, BridgeBykcSignDisplayConfig,
+};
 use ubaa_core::facade as domain;
 
 use super::{
@@ -13,12 +17,12 @@ use super::{
     BridgeClassroomInfo, BridgeClassroomQuery, BridgeCourseClass, BridgeExam,
     BridgeExamArrangement, BridgeGrade, BridgeGradeData, BridgeJudgeAssignmentDetail,
     BridgeJudgeAssignmentSummary, BridgeJudgeProblem, BridgeJudgeSubmissionStatus,
-    BridgeLibBookArea, BridgeLibBookAreaDetail, BridgeLibBookBooking, BridgeLibBookBookingsPage,
-    BridgeLibBookLibrary, BridgeLibBookSeat, BridgeLibBookStorey, BridgeLibBookTimeSlot,
-    BridgeSigninClass, BridgeSpocAssignmentDetail, BridgeSpocAssignmentSummary,
-    BridgeSpocAssignments, BridgeSpocSubmissionStatus, BridgeTerm, BridgeTodayClass, BridgeWeek,
-    BridgeWeeklySchedule, BridgeYgdkItem, BridgeYgdkOverview, BridgeYgdkRecord,
-    BridgeYgdkRecordsPage, BridgeYgdkSubmitTarget, BridgeYgdkTermSummary,
+    BridgeLibBookArea, BridgeLibBookAreaDetail, BridgeLibBookAreaSchedule, BridgeLibBookBooking,
+    BridgeLibBookBookingsPage, BridgeLibBookDaySchedule, BridgeLibBookLibrary, BridgeLibBookSeat,
+    BridgeLibBookStorey, BridgeLibBookTimeSlot, BridgeSigninClass, BridgeSpocAssignmentDetail,
+    BridgeSpocAssignmentSummary, BridgeSpocAssignments, BridgeSpocSubmissionStatus, BridgeTerm,
+    BridgeTodayClass, BridgeWeek, BridgeWeeklySchedule, BridgeYgdkItem, BridgeYgdkOverview,
+    BridgeYgdkRecord, BridgeYgdkRecordsPage, BridgeYgdkSubmitTarget, BridgeYgdkTermSummary,
 };
 
 // 转换函数保持显式字段清单；禁止使用 serde/json 反射把 Core DTO 整体透传。
@@ -316,6 +320,54 @@ pub(crate) fn map_bykc_course_page(v: domain::BykcCoursePage) -> BridgeBykcCours
         number: v.number,
     }
 }
+
+pub(super) fn map_bykc_catalog_item(
+    v: domain::BykcCourseCatalogItem,
+) -> BridgeBykcCourseCatalogItem {
+    BridgeBykcCourseCatalogItem {
+        course: map_bykc_course(v.course),
+        category: v.category.map(map_bykc_category),
+        sub_category: v.sub_category.map(map_bykc_subcategory),
+        audience_campuses: v.audience_campuses,
+        has_sign_points: v.has_sign_points,
+    }
+}
+pub(crate) fn map_bykc_catalog(v: domain::BykcCourseCatalogPage) -> BridgeBykcCourseCatalogPage {
+    BridgeBykcCourseCatalogPage {
+        content: v.content.into_iter().map(map_bykc_catalog_item).collect(),
+        total_elements: v.total_elements,
+        total_pages: v.total_pages,
+        size: v.size,
+        number: v.number,
+    }
+}
+pub(crate) fn map_bykc_full_detail(v: domain::BykcCourseFullDetail) -> BridgeBykcCourseFullDetail {
+    BridgeBykcCourseFullDetail {
+        course: map_bykc_catalog_item(v.course),
+        course_contact: v.course_contact,
+        course_contact_mobile: v.course_contact_mobile,
+        organizer_college_name: v.organizer_college_name,
+        description_plain_text: v.description_plain_text,
+        audience_colleges: v.audience_colleges,
+        audience_terms: v.audience_terms,
+        audience_groups: v.audience_groups,
+        sign_config: v.sign_config.map(|config| BridgeBykcSignDisplayConfig {
+            sign_start_date: config.sign_start_date,
+            sign_end_date: config.sign_end_date,
+            sign_out_start_date: config.sign_out_start_date,
+            sign_out_end_date: config.sign_out_end_date,
+            sign_point_count: i32::try_from(config.sign_points.len()).unwrap_or(i32::MAX),
+        }),
+        attendance: v
+            .attendance
+            .map(|attendance| BridgeBykcCourseAttendanceDisplay {
+                record_id: attendance.record_id,
+                course_id: attendance.course_id,
+                checkin: attendance.checkin,
+                pass: attendance.pass,
+            }),
+    }
+}
 pub(crate) fn map_bykc_category(v: domain::BykcCourseCategory) -> BridgeBykcCourseCategory {
     match v {
         domain::BykcCourseCategory::Boya => BridgeBykcCourseCategory::Boya,
@@ -440,6 +492,31 @@ pub(crate) fn map_libbook_area_detail(v: domain::LibBookAreaDetail) -> BridgeLib
                 start: s.start,
                 end: s.end,
                 label: s.label,
+            })
+            .collect(),
+    }
+}
+pub(crate) fn map_libbook_area_schedule(
+    v: domain::LibBookAreaSchedule,
+) -> BridgeLibBookAreaSchedule {
+    BridgeLibBookAreaSchedule {
+        id: v.id,
+        name: v.name,
+        days: v
+            .days
+            .into_iter()
+            .map(|day| BridgeLibBookDaySchedule {
+                day: day.day,
+                time_slots: day
+                    .time_slots
+                    .into_iter()
+                    .map(|slot| BridgeLibBookTimeSlot {
+                        id: slot.id,
+                        start: slot.start,
+                        end: slot.end,
+                        label: slot.label,
+                    })
+                    .collect(),
             })
             .collect(),
     }

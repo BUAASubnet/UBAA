@@ -47,6 +47,8 @@ extension _AppControllerLogout on AppController {
       return;
     }
     _isSigningOut = true;
+    _credentialRestoreAllowed = false;
+    _manualAuthenticationRequired = true;
     _cancelDeferredRecovery();
     _beginWriteTransition();
     _sessionRecoveryStatus = SessionRecoveryStatus.signedOut;
@@ -70,18 +72,38 @@ extension _AppControllerLogout on AppController {
     }
 
     try {
+      await _backendRebuildCompletion?.future;
+      if (_disposed) {
+        if (clearSavedCredential)
+          throw const CredentialVaultException(
+            CredentialVaultErrorCode.storageFailure,
+          );
+        return;
+      }
       await attempt(() async => _localAccountStore?.signOut());
       // 必须保持Core清除成功后才移除账号密钥的原有顺序。
       await attempt(() => _closeOfflineAccount(remove: clearSavedCredential));
       await attempt(_backend.logout);
       if (clearSavedCredential) {
-        await attempt(_credentialVault.clear);
+        if (_disposed)
+          throw const CredentialVaultException(
+            CredentialVaultErrorCode.storageFailure,
+          );
+        await attempt(
+          () => _mutateCredential(_lifecycleEpoch, _credentialVault.clear),
+        );
+        if (_disposed)
+          throw const CredentialVaultException(
+            CredentialVaultErrorCode.storageFailure,
+          );
         if (clearLocalData != null) await attempt(clearLocalData);
       }
       if (!_disposed) {
         _user = null;
         _activeRoutes = const <ConnectionMode>[];
-        _loginForm = _loginForm.copyWith(password: '');
+        _loginForm = clearSavedCredential && failure == null
+            ? LoginFormState(routePolicy: _loginForm.routePolicy)
+            : _loginForm.copyWith(password: '', captcha: '');
         _resetFeatureSnapshots();
         _setPhase(AppPhase.login);
       }

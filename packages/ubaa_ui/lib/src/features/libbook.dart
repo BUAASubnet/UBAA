@@ -8,6 +8,7 @@ extension _LibbookQueryControls on _FeatureQueryControlsState {
           p is LibbookLibraryPresentation ||
           p is LibbookAreaPresentation ||
           p is LibbookAreaDetailPresentation ||
+          p is LibbookAreaSchedulePresentation ||
           p is LibbookSeatPresentation ||
           p is LibbookBookingPresentation,
     );
@@ -25,6 +26,9 @@ extension _LibbookQueryControls on _FeatureQueryControlsState {
               id,
             ],
             LibbookAreaDetailPresentation(:final id)
+                when id.trim().isNotEmpty =>
+              [id],
+            LibbookAreaSchedulePresentation(:final id)
                 when id.trim().isNotEmpty =>
               [id],
             LibbookSeatPresentation(:final areaId)

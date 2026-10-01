@@ -4,9 +4,9 @@ use serde_json::{Value, json};
 use tracing::debug;
 
 use crate::domain::{
-    ActionEligibility, LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookCancelPreflight,
-    LibBookCancelRequest, LibBookCancelResult, LibBookLibrary, LibBookReservePreflight,
-    LibBookReserveRequest, LibBookReserveResult, LibBookSeat,
+    ActionEligibility, LibBookArea, LibBookAreaDetail, LibBookAreaSchedule, LibBookBookingsPage,
+    LibBookCancelPreflight, LibBookCancelRequest, LibBookCancelResult, LibBookLibrary,
+    LibBookReservePreflight, LibBookReserveRequest, LibBookReserveResult, LibBookSeat,
 };
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
@@ -17,6 +17,7 @@ use super::parser::{
     error, is_expired_body, parse_area_detail_for, parse_area_detail_for_day, parse_areas,
     parse_bookings_for_request, parse_bookings_with_strict_metadata, parse_libraries, parse_seats,
 };
+use super::schedule::parse_area_schedule_for;
 
 const BASE_URL: &str = "https://booking.lib.buaa.edu.cn";
 const CAS_URL: &str = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbooking.lib.buaa.edu.cn%2Fv4%2Flogin%2Fcas";
@@ -90,6 +91,28 @@ pub(crate) async fn get_area_detail_observed(
         parse_area_detail_for(area_id, &body)?,
         super::observed::detail_complete(&body),
     ))
+}
+
+/// 缓存专用逐日日程，复用同一次原始响应，不增加学校请求。
+pub(crate) async fn get_area_detail_with_schedule_observed(
+    runtime: &mut crate::runtime::ClientRuntime,
+    area_id: &str,
+) -> Result<(LibBookAreaDetail, bool)> {
+    let body = request_json(runtime, "Space/map", json!({"id": area_id}), true).await?;
+    let mut detail = parse_area_detail_for(area_id, &body)?;
+    detail.schedule = Some(parse_area_schedule_for(area_id, &body)?);
+    Ok((detail, super::observed::detail_complete(&body)))
+}
+
+/// 一次读取分区全部逐日日程，沿用原请求器、认证与参数。
+pub(crate) async fn get_area_schedule(
+    runtime: &mut crate::runtime::ClientRuntime,
+    area_id: &str,
+) -> Result<LibBookAreaSchedule> {
+    parse_area_schedule_for(
+        area_id,
+        &request_json(runtime, "Space/map", json!({"id": area_id}), true).await?,
+    )
 }
 
 /// 查询指定日期和时段的座位。

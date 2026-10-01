@@ -38,12 +38,10 @@ Future<FeatureResult> _loadLibbookFeature(
           );
         case FeatureQueryView.libbookAreaDetail:
           final areaId = _requiredQueryValue(query.areaId, '分区 ID');
-          final result = await client.libbookAreaDetail(areaId: areaId);
-          return _projectLibbookAreaDetail(
+          final result = await client.libbookAreaSchedule(areaId: areaId);
+          return _projectLibbookSchedule(
             result.data,
             _toConnectionMode(result.route.resolvedRoute),
-            today,
-            query,
           );
         case FeatureQueryView.libbookSeats:
           final areaId = _requiredQueryValue(query.areaId, '分区 ID');

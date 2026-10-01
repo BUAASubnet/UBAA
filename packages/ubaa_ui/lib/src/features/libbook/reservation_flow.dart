@@ -1,6 +1,6 @@
 part of '../../widgets.dart';
 
-/// 单页保留旧版楼馆→楼层→分区→座位的顺序，缓存仅用于只读选择。
+/// 单页保留楼馆→楼层→分区顺序，并从原始日程选择日期与时段。
 class _LibbookReservationFlow extends StatefulWidget {
   const _LibbookReservationFlow({
     required this.snapshot,
@@ -10,6 +10,7 @@ class _LibbookReservationFlow extends StatefulWidget {
     required this.fallback,
     required this.onQuery,
     required this.onSeatQuery,
+    required this.onDraftChanged,
     this.onReserve,
     required this.onChoicesChanged,
     super.key,
@@ -21,6 +22,7 @@ class _LibbookReservationFlow extends StatefulWidget {
   final Widget fallback;
   final Future<void> Function(FeatureQuery)? onQuery;
   final void Function(FeatureQuery) onSeatQuery;
+  final ValueChanged<FeatureQuery> onDraftChanged;
   final LibbookReserveStarter? onReserve;
   final VoidCallback onChoicesChanged;
   @override
@@ -32,10 +34,15 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
   List<LibbookLibraryPresentation> _libraries = [];
   List<FeatureDetail> _areas = [];
   LibbookAreaDetailPresentation? _areaOptions;
+  LibbookAreaSchedulePresentation? _areaSchedule;
   String? _libraryId;
   String? _storeyId;
   String? _areaId;
   String? _day;
+  String? _reservationDay;
+  String? _slotId;
+  bool _hideSeats = false;
+  FeatureQuery? _manualSeatQuery;
   String? _selectedSeat;
   FeatureSnapshot? _consumed;
   int? _afterRevision;
@@ -64,7 +71,14 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
     }
     final query = widget.query;
     final incomingDay = query.date == null ? null : _date(query.date!);
-    if (_day != null && incomingDay != null && _day != incomingDay) _clear();
+    if ({
+          FeatureQueryView.summary,
+          FeatureQueryView.libbookAreas,
+        }.contains(query.view) &&
+        _day != null &&
+        incomingDay != null &&
+        _day != incomingDay)
+      _clear();
     if (!query.hasSameParameters(oldWidget.query)) _selectedSeat = null;
     _consume();
     _publishChoices();
@@ -84,6 +98,10 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
     _libraries = [];
     _areas = [];
     _areaOptions = null;
+    _areaSchedule = null;
+    _reservationDay = _slotId = null;
+    _hideSeats = true;
+    _manualSeatQuery = null;
     _libraryId = _storeyId = _areaId = _day = _selectedSeat = null;
     _consumed = null;
     _pending = false;
@@ -103,15 +121,19 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
     if (_afterRevision != null &&
         (snapshot.readContext?.requestRevision ?? -1) <= _afterRevision!)
       return;
+    final contextQuery = snapshot.readContext?.query;
+    if (contextQuery != null && !contextQuery.hasSameParameters(widget.query))
+      return;
     _afterRevision = null;
     _consumed = snapshot;
     final details = snapshot.details;
     if (widget.query.view == FeatureQueryView.libbookAreaDetail) {
-      final areas = details
-          .map((d) => d.presentation)
-          .whereType<LibbookAreaDetailPresentation>()
-          .toList();
-      _areaOptions = areas.length == 1 ? areas.single : null;
+      _consumeAreaSchedule(details);
+    } else if (widget.query.view == FeatureQueryView.libbookSeats) {
+      _hideSeats =
+          _areaSchedule != null &&
+          !_matchesScheduleQuery(widget.query) &&
+          !(_manualSeatQuery?.hasSameParameters(widget.query) ?? false);
     }
     if (snapshot.status == FeatureLoadStatus.empty ||
         (widget.query.view == FeatureQueryView.libbookSeats &&
@@ -148,22 +170,7 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
       if (widget.query.date case final date?) _day = _date(date);
       final candidates = details.where((d) {
         final p = d.presentation;
-        return p is LibbookAreaPresentation &&
-            p.id.trim().isNotEmpty &&
-            // 旧DTO允许省略父标识；仍使用本次查询返回的原唯一分区ID。
-            (p.premisesId.trim().isEmpty || p.premisesId == _libraryId) &&
-            (_storeyId == null ||
-                p.storeyId.trim().isEmpty ||
-                p.storeyId == _storeyId) &&
-            details
-                    .where(
-                      (other) =>
-                          other.presentation is LibbookAreaPresentation &&
-                          (other.presentation! as LibbookAreaPresentation).id ==
-                              p.id,
-                    )
-                    .length ==
-                1;
+        return p is LibbookAreaPresentation && _validArea(p);
       });
       if (candidates.isNotEmpty) {
         final previous = candidates.where(
@@ -204,6 +211,11 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
     _change(() {
       _pending = true;
       _selectedSeat = null;
+      _hideSeats = true;
+      // 正文重试沿用同一显式高级查询，新参数不能沿用旧上下文。
+      if (_manualSeatQuery?.hasSameParameters(query) != true) {
+        _manualSeatQuery = null;
+      }
     });
     try {
       await widget.onQuery!(query);
@@ -231,7 +243,7 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
     _libraryId = library.id;
     _storeyId = floor;
     _areaId = null;
-    _areaOptions = null;
+    _clearAreaSelection();
     _areas = [];
     _day = library.queryDate;
     return _read(
@@ -249,7 +261,7 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
     if (date == null || _libraryId == null) return;
     _storeyId = floor.id;
     _areaId = null;
-    _areaOptions = null;
+    _clearAreaSelection();
     _areas = [];
     return _read(
       FeatureQuery(
@@ -263,9 +275,9 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
 
   Future<void> _chooseArea(LibbookAreaPresentation area) async {
     final date = _parsedDay(area.queryDate);
-    if (date == null) return;
+    if (date == null || !_validArea(area)) return;
     _areaId = area.id;
-    _areaOptions = null;
+    _clearAreaSelection();
     return _read(
       FeatureQuery(
         view: FeatureQueryView.libbookAreaDetail,
@@ -309,6 +321,7 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
             LibbookLibraryPresentation() ||
             LibbookAreaPresentation() ||
             LibbookAreaDetailPresentation() ||
+            LibbookAreaSchedulePresentation() ||
             LibbookSeatPresentation() => true,
             _ => false,
           },
@@ -327,6 +340,9 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
         if (detail.presentation case LibbookAreaDetailPresentation p)
           p.id: p.name,
       for (final detail in details)
+        if (detail.presentation case LibbookAreaSchedulePresentation p)
+          p.id: p.name,
+      for (final detail in details)
         if (detail.presentation case LibbookSeatPresentation p)
           p.areaId: '座位分布',
     };
@@ -336,8 +352,9 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
         if (library != null)
           Text(library.name, style: Theme.of(context).textTheme.titleMedium),
         if (_areaOptions case final area?) Text(area.name),
-        if (_day != null)
-          Text(_day!, style: Theme.of(context).textTheme.bodySmall),
+        if (_areaSchedule case final area?) Text(area.name),
+        if ((_reservationDay ?? _day) case final day?)
+          Text(day, style: Theme.of(context).textTheme.bodySmall),
         if (MediaQuery.sizeOf(context).width >= 600) buildInlineChips(context),
         if (!_busy && mapAreas.length == 1)
           _LibraryMapControl(
@@ -364,14 +381,16 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
             widget.snapshot.status == FeatureLoadStatus.empty)
           const Padding(padding: EdgeInsets.all(16), child: Text('暂无可显示的结果')),
         if (!_busy &&
-            _areaOptions != null &&
-            !details.any((d) => d.presentation is LibbookSeatPresentation))
+            (_areaOptions != null || _areaSchedule != null) &&
+            (_hideSeats ||
+                !details.any((d) => d.presentation is LibbookSeatPresentation)))
           const Padding(
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Text('从右上角选择日期和时段，查询当前分区座位。'),
           ),
         if ((!_busy ||
                 widget.snapshot.evidence?.origin == DataOrigin.persisted) &&
+            !_hideSeats &&
             details.any((d) => d.presentation is LibbookSeatPresentation))
           _seatGrid(context, details),
       ],

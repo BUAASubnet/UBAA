@@ -10,7 +10,31 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 
 // These functions are ignored because they are not marked as `pub`: `map_cached_bykc_chosen_course`, `map_cached_bykc_chosen`, `map_cached_bykc_course_page`, `map_cached_bykc_course`, `map_cached_bykc_sign_window`, `refresh_bykc_record`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
+
+class BridgeBykcCatalogRefresh {
+  final BridgeBykcCourseCatalogPage data;
+  final BridgeRouteDecision route;
+  final BridgeBykcRefreshState state;
+
+  const BridgeBykcCatalogRefresh({
+    required this.data,
+    required this.route,
+    required this.state,
+  });
+
+  @override
+  int get hashCode => data.hashCode ^ route.hashCode ^ state.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeBykcCatalogRefresh &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          route == other.route &&
+          state == other.state;
+}
 
 class BridgeBykcChosenRefresh {
   final List<BridgeBykcChosenCourse> data;
@@ -78,6 +102,30 @@ class BridgeBykcDetailRefresh {
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BridgeBykcDetailRefresh &&
+          runtimeType == other.runtimeType &&
+          data == other.data &&
+          route == other.route &&
+          state == other.state;
+}
+
+class BridgeBykcFullDetailRefresh {
+  final BridgeBykcCourseFullDetail data;
+  final BridgeRouteDecision route;
+  final BridgeBykcRefreshState state;
+
+  const BridgeBykcFullDetailRefresh({
+    required this.data,
+    required this.route,
+    required this.state,
+  });
+
+  @override
+  int get hashCode => data.hashCode ^ route.hashCode ^ state.hashCode;
+
+  @override
+  bool operator ==(Object other) =>
+      identical(this, other) ||
+      other is BridgeBykcFullDetailRefresh &&
           runtimeType == other.runtimeType &&
           data == other.data &&
           route == other.route &&
@@ -312,6 +360,10 @@ class BridgeCachedBykcCourse {
   final int? courseCurrentCount;
   final BridgeBykcCourseStatus status;
   final bool? selected;
+  final BridgeBykcCourseCategory? category;
+  final BridgeBykcCourseSubCategory? subCategory;
+  final List<String>? audienceCampuses;
+  final bool? hasSignPoints;
 
   const BridgeCachedBykcCourse({
     required this.id,
@@ -327,6 +379,10 @@ class BridgeCachedBykcCourse {
     this.courseCurrentCount,
     required this.status,
     this.selected,
+    this.category,
+    this.subCategory,
+    this.audienceCampuses,
+    this.hasSignPoints,
   });
 
   @override
@@ -343,7 +399,11 @@ class BridgeCachedBykcCourse {
       courseMaxCount.hashCode ^
       courseCurrentCount.hashCode ^
       status.hashCode ^
-      selected.hashCode;
+      selected.hashCode ^
+      category.hashCode ^
+      subCategory.hashCode ^
+      audienceCampuses.hashCode ^
+      hasSignPoints.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -362,7 +422,11 @@ class BridgeCachedBykcCourse {
           courseMaxCount == other.courseMaxCount &&
           courseCurrentCount == other.courseCurrentCount &&
           status == other.status &&
-          selected == other.selected;
+          selected == other.selected &&
+          category == other.category &&
+          subCategory == other.subCategory &&
+          audienceCampuses == other.audienceCampuses &&
+          hasSignPoints == other.hasSignPoints;
 }
 
 class BridgeCachedBykcCoursePage {

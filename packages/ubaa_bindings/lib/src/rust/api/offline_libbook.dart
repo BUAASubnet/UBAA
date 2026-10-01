@@ -13,12 +13,14 @@ import 'read.dart';
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `clone`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`, `fmt`
 
 class BridgeCachedLibBookAreaDetailRecord {
+  final BridgeLibBookAreaSchedule? schedule;
   final BridgeLibBookAreaDetail data;
   final BridgeConnectionMode sourceRoute;
   final PlatformInt64 fetchedAt;
   final bool complete;
 
   const BridgeCachedLibBookAreaDetailRecord({
+    this.schedule,
     required this.data,
     required this.sourceRoute,
     required this.fetchedAt,
@@ -27,6 +29,7 @@ class BridgeCachedLibBookAreaDetailRecord {
 
   @override
   int get hashCode =>
+      schedule.hashCode ^
       data.hashCode ^
       sourceRoute.hashCode ^
       fetchedAt.hashCode ^
@@ -37,6 +40,7 @@ class BridgeCachedLibBookAreaDetailRecord {
       identical(this, other) ||
       other is BridgeCachedLibBookAreaDetailRecord &&
           runtimeType == other.runtimeType &&
+          schedule == other.schedule &&
           data == other.data &&
           sourceRoute == other.sourceRoute &&
           fetchedAt == other.fetchedAt &&
@@ -282,24 +286,28 @@ class BridgeCachedLibBookSeatsRecord {
 }
 
 class BridgeLibBookAreaDetailRefresh {
+  final BridgeLibBookAreaSchedule? schedule;
   final BridgeLibBookAreaDetail data;
   final BridgeRouteDecision route;
   final BridgeLibBookRefreshState state;
 
   const BridgeLibBookAreaDetailRefresh({
+    this.schedule,
     required this.data,
     required this.route,
     required this.state,
   });
 
   @override
-  int get hashCode => data.hashCode ^ route.hashCode ^ state.hashCode;
+  int get hashCode =>
+      schedule.hashCode ^ data.hashCode ^ route.hashCode ^ state.hashCode;
 
   @override
   bool operator ==(Object other) =>
       identical(this, other) ||
       other is BridgeLibBookAreaDetailRefresh &&
           runtimeType == other.runtimeType &&
+          schedule == other.schedule &&
           data == other.data &&
           route == other.route &&
           state == other.state;

@@ -229,7 +229,13 @@ iOS simulator、Android APK 全部成功，macOS 另通过宿主 integration smo
 决定写资格，场馆选择另受一至两个相邻时段约束，现行规则见 [UI 规格](../design/flutter-ui-spec.md)。
 
 
-照片原生适配定位（P5-E）：iOS与macOS的Runner/Platform/PhotoChannel.swift由对应AppDelegate/MainFlutterWindow注册，共用packages/ubaa_platform/native/apple/PhotoPayload.swift；Android的MainActivity委托platform/PhotoChannel.kt；OHOS EntryAbility委托platform/PhotoChannel.ets。每个宿主只有这一个handler拥有cn.edu.buaa.ubaa/platform统一通道，其他平台能力应在该路由中组合，不能重复注册同名通道覆盖照片。业务资格、typed输入及写入状态机仍由App/Core持有。
+照片原生适配定位（P5-E）：iOS 的 `Runner/Platform/PhotoChannel.swift` 由 AppDelegate 注册；
+macOS 的 MainFlutterWindow 注册 `Runner/Platform/PlatformChannel.swift`，组合
+`PhotoHandler.swift` 与 `CredentialHandler.swift`。两端图片解码共用
+`packages/ubaa_platform/native/apple/PhotoPayload.swift`；Android 的 MainActivity 委托
+`platform/PhotoChannel.kt`，OHOS EntryAbility 委托 `platform/PhotoChannel.ets`。每个宿主只允许
+一个拥有者注册 `cn.edu.buaa.ubaa/platform`，其他能力必须在该路由中组合。业务资格、typed 输入
+及写入状态机仍由 App/Core 持有。
 
 
 P5-F可选拍照接口PlatformPhotoCapture与相册接口分开：MethodChannelPhotoPicker独立探测photo.captureCapability；不存在该方法不影响原相册能力。PermissionedPhotoPicker只为拍照请求camera委托状态，宿主仍要求原阳光写入/回读/照片资格。Android PhotoChannel统一处理photo.capture并按captureCode区别选图结果；CameraPhoto仅内存压缩JPEG92，输出流有10MiB边界。Manifest只声明IMAGE_CAPTURE包可见性查询，没有新增CAMERA或存储权限。共享UI在原照片区并列显示拍照，iOS/macOS/OHOS没有因此获得相机能力。

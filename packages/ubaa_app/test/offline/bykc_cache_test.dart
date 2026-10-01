@@ -276,16 +276,25 @@ class _Cache implements BridgeOfflineCache {
 class _Client implements BridgeClient {
   int cachedReads = 0, plainReads = 0;
   @override
-  Future<BridgeBykcDetailRefresh> bykcDetailCached({
+  Future<BridgeBykcFullDetailRefresh> bykcFullDetailCached({
     required BridgeOfflineCache cache,
     required int courseId,
-  }) async => const BridgeBykcDetailRefresh(
-    data: BridgeBykcCourse(
-      id: 88,
-      courseName: '别的课程',
-      status: BridgeBykcCourseStatus.available,
-      selectEligibility: BridgeActionEligibility.allowed,
-      deselectEligibility: BridgeActionEligibility.denied,
+  }) async => const BridgeBykcFullDetailRefresh(
+    data: BridgeBykcCourseFullDetail(
+      course: BridgeBykcCourseCatalogItem(
+        course: BridgeBykcCourse(
+          id: 88,
+          courseName: '别的课程',
+          status: BridgeBykcCourseStatus.available,
+          selectEligibility: BridgeActionEligibility.allowed,
+          deselectEligibility: BridgeActionEligibility.denied,
+        ),
+        audienceCampuses: [],
+        hasSignPoints: false,
+      ),
+      audienceColleges: [],
+      audienceTerms: [],
+      audienceGroups: [],
     ),
     route: route,
     state: BridgeBykcRefreshState(
@@ -295,32 +304,50 @@ class _Client implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 36;
+  int contractVersion() => 37;
   @override
-  Future<BridgeBykcCoursesRefresh> bykcCoursesCached({
+  Future<BridgeBykcCatalogRefresh> bykcCatalogCached({
     required BridgeOfflineCache cache,
     required int page,
     required int size,
     required bool all,
   }) async {
     cachedReads++;
-    return const BridgeBykcCoursesRefresh(
-      data: coursePage,
+    return BridgeBykcCatalogRefresh(
+      data: _catalogPage(),
       route: route,
       state: BridgeBykcRefreshState(fetchedAt: 200),
     );
   }
 
   @override
-  Future<BridgeRoutedBykcCourses> bykcCourses({
+  Future<BridgeRoutedBykcCourseCatalog> bykcCourseCatalog({
     required int page,
     required int size,
     required bool all,
   }) async {
     plainReads++;
-    return const BridgeRoutedBykcCourses(data: coursePage, route: route);
+    return BridgeRoutedBykcCourseCatalog(data: _catalogPage(), route: route);
   }
 
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
+
+BridgeBykcCourseCatalogPage _catalogPage() => BridgeBykcCourseCatalogPage(
+  content: coursePage.content
+      .map(
+        (course) => BridgeBykcCourseCatalogItem(
+          course: course,
+          category: BridgeBykcCourseCategory.boya,
+          subCategory: BridgeBykcCourseSubCategory.aesthetic,
+          audienceCampuses: const ['沙河校区'],
+          hasSignPoints: false,
+        ),
+      )
+      .toList(),
+  number: coursePage.number,
+  size: coursePage.size,
+  totalElements: coursePage.totalElements,
+  totalPages: coursePage.totalPages,
+);

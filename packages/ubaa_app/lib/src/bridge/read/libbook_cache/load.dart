@@ -66,13 +66,15 @@ Future<FeatureResult?> _loadCachedLibbookFeature(
         query,
         today,
         value.data.id == query.areaId
-            ? _projectLibbookAreaDetail(
-                value.data,
-                route,
-                today,
-                query,
-                persisted: !value.state.complete,
-              )
+            ? (value.schedule != null
+                  ? _projectLibbookSchedule(value.schedule!, route)
+                  : _projectLibbookAreaDetail(
+                      value.data,
+                      route,
+                      today,
+                      query,
+                      persisted: !value.state.complete,
+                    ))
             : FeatureResult.success(resolvedRoute: route),
         value.state,
       );

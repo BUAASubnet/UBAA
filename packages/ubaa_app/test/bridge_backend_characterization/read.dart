@@ -582,8 +582,8 @@ void registerBridgeBackendReadCharacterization() {
 
     expect(client.calls, <String>[
       'bykcChosenCourses',
-      'bykcCourseDetail:id=42',
-      'bykcCourses:page=1,size=100,all=true',
+      'bykcCourseFullDetail:id=42',
+      'bykcCourseCatalog:page=1,size=100,all=true',
       'bykcProfile',
       'bykcStatistics',
       'cgyyDayInfo:siteId=7,date=2026-09-04',
@@ -599,7 +599,7 @@ void registerBridgeBackendReadCharacterization() {
       'judgeAssignment:courseId=course-1,assignmentId=assignment-1',
       'judgeAssignmentDetails:keys=course-2/assignment-2,course-3/assignment-3',
       'judgeAssignments:includeExpired=true',
-      'libbookAreaDetail:areaId=area-1',
+      'libbookAreaSchedule:areaId=area-1',
       'libbookAreas:premisesId=premises-1,storeyId=storey-1,day=2026-09-04',
       'libbookBookings:page=2,limit=1',
       'libbookLibraries:day=2026-09-04',

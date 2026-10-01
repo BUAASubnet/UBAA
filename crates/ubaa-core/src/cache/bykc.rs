@@ -20,6 +20,14 @@ pub struct CachedBykcCourse {
     pub course_current_count: Option<i32>,
     pub status: BykcCourseStatus,
     pub selected: Option<bool>,
+    #[serde(default)]
+    pub category: Option<BykcCourseCategory>,
+    #[serde(default)]
+    pub sub_category: Option<BykcCourseSubCategory>,
+    #[serde(default)]
+    pub audience_campuses: Option<Vec<String>>,
+    #[serde(default)]
+    pub has_sign_points: Option<bool>,
 }
 impl From<BykcCourse> for CachedBykcCourse {
     fn from(value: BykcCourse) -> Self {
@@ -37,6 +45,10 @@ impl From<BykcCourse> for CachedBykcCourse {
             course_current_count: value.course_current_count,
             status: value.status,
             selected: value.selected,
+            category: None,
+            sub_category: None,
+            audience_campuses: None,
+            has_sign_points: None,
         }
     }
 }
@@ -132,4 +144,26 @@ pub struct CachedBykcChosen {
     pub semester_start: String,
     pub semester_end: String,
     pub courses: Vec<CachedBykcChosenCourse>,
+}
+
+impl From<crate::domain::BykcCourseCatalogItem> for CachedBykcCourse {
+    fn from(value: crate::domain::BykcCourseCatalogItem) -> Self {
+        let mut course = Self::from(value.course);
+        course.category = value.category;
+        course.sub_category = value.sub_category;
+        course.audience_campuses = Some(value.audience_campuses);
+        course.has_sign_points = Some(value.has_sign_points);
+        course
+    }
+}
+impl From<crate::domain::BykcCourseCatalogPage> for CachedBykcCoursePage {
+    fn from(value: crate::domain::BykcCourseCatalogPage) -> Self {
+        Self {
+            content: value.content.into_iter().map(Into::into).collect(),
+            total_elements: value.total_elements,
+            total_pages: value.total_pages,
+            size: value.size,
+            number: value.number,
+        }
+    }
 }

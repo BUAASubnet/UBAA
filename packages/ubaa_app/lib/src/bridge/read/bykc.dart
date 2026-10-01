@@ -14,7 +14,7 @@ Future<FeatureResult> _loadBykcFeature(
   switch (query.view) {
     case FeatureQueryView.summary:
       if (cache != null && account != null) {
-        final value = await backend.client.bykcCoursesCached(
+        final value = await backend.client.bykcCatalogCached(
           cache: cache,
           page: query.page <= 0 ? 1 : query.page,
           size: query.size.clamp(1, 100),
@@ -23,7 +23,7 @@ Future<FeatureResult> _loadBykcFeature(
         return _finishBykcRefresh(
           backend,
           account,
-          _projectBykcCourses(
+          _projectBykcCatalog(
             value.data,
             _toConnectionMode(value.route.resolvedRoute),
             requestedPage: query.page <= 0 ? 1 : query.page,
@@ -32,12 +32,12 @@ Future<FeatureResult> _loadBykcFeature(
           value.state,
         );
       }
-      final value = await backend.client.bykcCourses(
+      final value = await backend.client.bykcCourseCatalog(
         page: query.page <= 0 ? 1 : query.page,
         size: query.size.clamp(1, 100),
         all: true,
       );
-      return _projectBykcCourses(
+      return _projectBykcCatalog(
         value.data,
         _toConnectionMode(value.route.resolvedRoute),
         requestedPage: query.page <= 0 ? 1 : query.page,
@@ -45,11 +45,11 @@ Future<FeatureResult> _loadBykcFeature(
       );
     case FeatureQueryView.bykcDetail:
       if (cache != null && account != null) {
-        final value = await backend.client.bykcDetailCached(
+        final value = await backend.client.bykcFullDetailCached(
           cache: cache,
           courseId: _requiredPositiveQueryInt(query.courseId, '课程 ID'),
         );
-        if (value.data.id !=
+        if (value.data.course.course.id !=
             _requiredPositiveQueryInt(query.courseId, '课程 ID')) {
           return _preserveBykcDetail(
             backend,
@@ -62,17 +62,17 @@ Future<FeatureResult> _loadBykcFeature(
         return _finishBykcRefresh(
           backend,
           account,
-          _projectBykcDetail(
+          _projectBykcFullDetail(
             value.data,
             _toConnectionMode(value.route.resolvedRoute),
           ),
           value.state,
         );
       }
-      final value = await backend.client.bykcCourseDetail(
+      final value = await backend.client.bykcCourseFullDetail(
         id: _requiredPositiveQueryInt(query.courseId, '课程 ID'),
       );
-      return _projectBykcDetail(
+      return _projectBykcFullDetail(
         value.data,
         _toConnectionMode(value.route.resolvedRoute),
       );
@@ -95,6 +95,23 @@ Future<FeatureResult> _loadBykcFeature(
         _toConnectionMode(value.route.resolvedRoute),
       );
     case FeatureQueryView.bykcChosenCourses:
+      final detailId = query.courseId == null
+          ? null
+          : _requiredPositiveQueryInt(query.courseId, '课程 ID');
+      Future<BykcCoursePresentation?> fullDetail(ConnectionMode route) async {
+        if (detailId == null) return null;
+        final full = await backend.client.bykcCourseFullDetail(id: detailId);
+        if (full.data.course.course.id != detailId ||
+            _toConnectionMode(full.route.resolvedRoute) != route) {
+          throw const BackendException(UbaaErrorCode.operationConflict);
+        }
+        return _bykcCoursePresentation(
+          full.data.course.course,
+          isDetail: true,
+          catalog: full.data.course,
+          supplement: _bykcSupplement(full.data),
+        );
+      }
       if (cache != null && account != null) {
         final value = await backend.client.bykcChosenCached(cache: cache);
         return _finishBykcRefresh(
@@ -103,6 +120,9 @@ Future<FeatureResult> _loadBykcFeature(
           _projectBykcChosen(
             value.data,
             _toConnectionMode(value.route.resolvedRoute),
+            fullDetail: await fullDetail(
+              _toConnectionMode(value.route.resolvedRoute),
+            ),
           ),
           value.state,
         );
@@ -111,6 +131,9 @@ Future<FeatureResult> _loadBykcFeature(
       return _projectBykcChosen(
         value.data,
         _toConnectionMode(value.route.resolvedRoute),
+        fullDetail: await fullDetail(
+          _toConnectionMode(value.route.resolvedRoute),
+        ),
       );
     case FeatureQueryView.bykcStatistics:
       if (cache != null && account != null) {

@@ -25,6 +25,9 @@ class _FeatureDetailView extends StatefulWidget {
     this.onGradeRoutes,
     this.isBykcChosenDetail = false,
     this.onOpenBykcChosen,
+    required this.bykcFilters,
+    required this.onBykcFiltersChanged,
+    this.bykcFilterError,
     this.ygdkRecordsReadback,
     this.reminderSettings,
     this.reminderError,
@@ -65,6 +68,9 @@ class _FeatureDetailView extends StatefulWidget {
   final GradesAggregateLoader? onLoadAllGrades;
   final ValueChanged<Map<String, ConnectionMode>>? onGradeRoutes;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
+  final BykcCourseFilters bykcFilters;
+  final ValueChanged<BykcCourseFilters> onBykcFiltersChanged;
+  final String? bykcFilterError;
   final FeatureSnapshot? ygdkRecordsReadback;
   final YgdkReminderSettings? reminderSettings;
   final String? reminderError;
@@ -115,7 +121,9 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
   final _scheduleKey = GlobalKey<_ScheduleFlowState>();
   final _searchController = TextEditingController();
   bool _panelOpen = false;
-  Set<BykcCourseStatus> _bykcStatuses = {..._defaultBykcStatuses};
+  Set<BykcCourseStatus> get _bykcStatuses => widget.bykcFilters.statuses;
+  Set<String> get _bykcCategories => widget.bykcFilters.categories;
+  Set<String> get _bykcCampuses => widget.bykcFilters.campuses;
 
   void togglePanel() {
     if (!_panelOpen)
@@ -163,6 +171,15 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
           )
         : Column(
             children: [
+              if (widget.bykcFilterError case final message?
+                  when widget.feature == FeatureId.bykc)
+                Semantics(
+                  liveRegion: true,
+                  child: Padding(
+                    padding: const EdgeInsets.all(12),
+                    child: Text(message),
+                  ),
+                ),
               if (widget.snapshot.evidence?.cacheFailure case final failure?)
                 Padding(
                   padding: const EdgeInsets.all(12),
@@ -272,6 +289,8 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
               _libraryQueryExpansion.expand();
               setState(() => _panelOpen = true);
             },
+            onDraftChanged: (query) => _queryKey.currentState
+                ?.adoptLibraryQuery(query, clearDate: query.date == null),
           )
         : !widget.isLanding &&
               widget.feature == FeatureId.cgyy &&
@@ -481,11 +500,23 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
     readCacheEpoch: widget.readCacheEpoch,
     onApply: (query) {
       _scheduleKey.currentState?.stopAutomatic();
+      _libraryKey.currentState?.adoptManualQuery(query);
       return widget.onQuery!(query);
     },
     bykcStatuses: _bykcStatuses,
-    onBykcStatusesChanged: (value) =>
-        setState(() => _bykcStatuses = {...value}),
+    bykcCategories: _bykcCategories,
+    bykcCampuses: _bykcCampuses,
+    onBykcCategoriesChanged: (values) => widget.onBykcFiltersChanged(
+      widget.bykcFilters.copyWith(categories: values),
+    ),
+    onBykcCampusesChanged: (values) => widget.onBykcFiltersChanged(
+      widget.bykcFilters.copyWith(campuses: values),
+    ),
+    onBykcReset: () =>
+        widget.onBykcFiltersChanged(const BykcCourseFilters.defaults()),
+    onBykcStatusesChanged: (values) => widget.onBykcFiltersChanged(
+      widget.bykcFilters.copyWith(statuses: values),
+    ),
   );
 
   bool get _supportsQuery => switch (widget.feature) {
@@ -522,9 +553,12 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
       details: widget.snapshot.details,
       filter: _searchController.text,
       bykcStatuses: _bykcStatuses,
-      onBykcStatusesChanged: (statuses) =>
-          setState(() => _bykcStatuses = statuses),
+      onBykcStatusesChanged: (statuses) => widget.onBykcFiltersChanged(
+        widget.bykcFilters.copyWith(statuses: statuses),
+      ),
       onOpenFilterPanel: togglePanel,
+      bykcCategories: _bykcCategories,
+      bykcCampuses: _bykcCampuses,
       isBykcChosenDetail: widget.isBykcChosenDetail,
       onOpenBykcChosen: widget.onOpenBykcChosen,
       pagination: widget.snapshot.pagination,
