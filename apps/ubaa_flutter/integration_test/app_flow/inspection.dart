@@ -1,13 +1,18 @@
 part of '../app_flow_test.dart';
 
 // 仅供显式人工巡检入口使用；全部业务数据为合成数据，不创建真实客户端。
-final class _InspectionBackend extends _AllWritesIntegrationBackend {
+final class _InspectionBackend extends _AllWritesIntegrationBackend
+    implements CgyyLockDisplayBackend {
   _InspectionBackend({
     String state = const String.fromEnvironment(
       'UBAA_UI_STATE',
       defaultValue: 'normal',
     ),
   }) : _state = state;
+
+  @override
+  Future<CgyyLockDisplaySession> openLockDisplay() async =>
+      _InspectionLockSession();
 
   final String _state;
   final Map<String, int> _inspectionLoads = <String, int>{};

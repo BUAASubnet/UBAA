@@ -235,8 +235,31 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
           ),
         ],
       ),
+      bottomNavigationBar: _FormActionBar(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Row(
+            children: [
+              Expanded(
+                child: OutlinedButton(
+                  onPressed: () => Navigator.of(context).pop(),
+                  child: const Text('返回修改时段'),
+                ),
+              ),
+              const SizedBox(width: 12),
+              Expanded(
+                child: FilledButton(
+                  onPressed: _continue,
+                  child: const Text('继续确认'),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
       body: SafeArea(
         top: false,
+        bottom: false,
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 840),
@@ -313,26 +336,6 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
                       ),
                     ),
                   ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: OutlinedButton(
-                          onPressed: () => Navigator.of(context).pop(),
-                          child: const Text('返回修改时段'),
-                        ),
-                      ),
-                      const SizedBox(width: 12),
-                      Expanded(
-                        child: FilledButton(
-                          onPressed: _continue,
-                          child: const Text('继续确认'),
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
               ],
             ),
           ),

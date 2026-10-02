@@ -20,13 +20,19 @@ void _registerQueryFlowTests() {
     expect(find.byType(Scaffold), findsOneWidget);
     expect(find.byType(CustomScrollView), findsOneWidget);
 
-    for (final feature in learningFeatureIds) {
+    for (final feature in ordinaryFeatureIds) {
       final target = await _scrollToQueryFeature(tester, feature);
       await tester.tap(target);
       await tester.pumpAndSettle();
-      expect(find.text('返回功能列表'), findsOneWidget);
-      expect(find.text(feature.title), findsAtLeastNWidgets(1));
-      await tester.tap(find.text('返回功能列表'));
+      expect(find.byTooltip('返回'), findsOneWidget);
+      expect(
+        find.widgetWithText(
+          AppBar,
+          feature == FeatureId.schedule ? '第3周' : feature.title,
+        ),
+        findsOneWidget,
+      );
+      await _returnToFeatureRoot(tester);
       await tester.pumpAndSettle();
     }
 
@@ -45,13 +51,19 @@ void _registerQueryFlowTests() {
     await tester.tap(find.widgetWithText(FilledButton, '登录'));
     await tester.pumpAndSettle();
     expect(find.byType(UbaaMainShell), findsOneWidget);
-    for (final feature in campusFeatureIds) {
+    for (final feature in advancedFeatureIds) {
       final target = await _scrollToQueryFeature(tester, feature);
       await tester.tap(target);
       await tester.pumpAndSettle();
-      expect(find.text('返回功能列表'), findsOneWidget);
-      expect(find.text(feature.title), findsAtLeastNWidgets(1));
-      await tester.tap(find.text('返回功能列表'));
+      expect(find.byTooltip('返回'), findsOneWidget);
+      expect(
+        find.widgetWithText(
+          AppBar,
+          feature == FeatureId.schedule ? '第3周' : feature.title,
+        ),
+        findsOneWidget,
+      );
+      await _returnToFeatureRoot(tester);
       await tester.pumpAndSettle();
     }
   });
@@ -75,22 +87,8 @@ void _registerQueryFlowTests() {
     expect(find.byType(UbaaMainShell), findsOneWidget);
 
     Future<void> openFeature(FeatureId feature) async {
-      final selectedIcon = learningFeatureIds.contains(feature)
-          ? Icons.apps
-          : Icons.auto_awesome;
-      final unselectedIcon = learningFeatureIds.contains(feature)
-          ? Icons.apps_outlined
-          : Icons.auto_awesome_outlined;
-      final selectedFinder = find.byIcon(selectedIcon);
-      final tabFinder = selectedFinder.evaluate().isNotEmpty
-          ? selectedFinder
-          : find.byIcon(unselectedIcon);
-      await tester.tap(tabFinder.first);
-      await tester.pumpAndSettle();
-      final target = await _scrollToQueryFeature(tester, feature);
-      await tester.tap(target);
-      await tester.pumpAndSettle();
-      expect(find.text('返回功能列表'), findsOneWidget);
+      await _openIntegrationFeature(tester, feature, enterLanding: false);
+      await _openIntegrationPanel(tester);
     }
 
     Future<void> chooseView(String label) async {
@@ -98,6 +96,11 @@ void _registerQueryFlowTests() {
       expect(menu, findsOneWidget);
       await tester.tap(menu);
       await tester.pumpAndSettle();
+      expect(
+        find.text(label),
+        findsAtLeastNWidgets(1),
+        reason: '必须存在查询选项：$label',
+      );
       await tester.tap(find.text(label).last);
       await tester.pumpAndSettle();
     }
@@ -106,6 +109,7 @@ void _registerQueryFlowTests() {
       await tester.tap(find.text('应用筛选'));
       await tester.pumpAndSettle();
       expect(backend.lastQuery, isNotNull);
+      await _closeIntegrationPanel(tester);
     }
 
     await openFeature(FeatureId.schedule);
@@ -117,7 +121,7 @@ void _registerQueryFlowTests() {
     await tester.enterText(find.widgetWithText(TextField, '周次'), '3');
     await apply();
     expect(backend.lastQuery?.view, FeatureQueryView.scheduleWeek);
-    await tester.tap(find.text('返回功能列表'));
+    await _returnToFeatureRoot(tester);
     await tester.pumpAndSettle();
 
     final queryCases =
@@ -149,7 +153,7 @@ void _registerQueryFlowTests() {
             FeatureQueryView.libbookBookings,
             const {},
           ),
-          (FeatureId.signin, '未签到', FeatureQueryView.signinPending, const {}),
+          (FeatureId.signin, '可签到', FeatureQueryView.signinPending, const {}),
           (
             FeatureId.cgyy,
             '日期空间',
@@ -172,7 +176,7 @@ void _registerQueryFlowTests() {
       }
       await apply();
       expect(backend.lastQuery?.view, expectedView);
-      await tester.tap(find.text('返回功能列表'));
+      await _returnToFeatureRoot(tester);
       await tester.pumpAndSettle();
     }
   });
@@ -190,9 +194,9 @@ Future<Finder> _scrollToQueryFeature(
     matching: find.byType(Scrollable),
   );
   expect(scrollable, findsOneWidget);
-  final features = learningFeatureIds.contains(feature)
-      ? learningFeatureIds
-      : campusFeatureIds;
+  final features = ordinaryFeatureIds.contains(feature)
+      ? ordinaryFeatureIds
+      : advancedFeatureIds;
   // 合成摘要可能与标题同名；定位共同的唯一 Card，不对 Text 任取 first。
   Finder featureCard(FeatureId id) =>
       find.descendant(of: grid, matching: find.widgetWithText(Card, id.title));

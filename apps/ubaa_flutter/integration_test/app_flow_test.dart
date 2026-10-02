@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 
 import 'package:flutter/material.dart';
@@ -10,7 +11,9 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_flutter/main.dart';
 
 part 'app_flow/auth.dart';
+part 'app_flow/navigation.dart';
 part 'app_flow/inspection.dart';
+part 'app_flow/inspection_lock.dart';
 part 'app_flow/inspection_academic.dart';
 part 'app_flow/inspection_contract.dart';
 part 'app_flow/query.dart';
@@ -32,6 +35,7 @@ void main() {
     );
     return;
   }
+  WidgetController.hitTestWarningShouldBeFatal = true;
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   _registerAuthFlowTests();

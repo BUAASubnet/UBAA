@@ -25,7 +25,7 @@ void _registerPrimaryWriteFlowTests() {
 
     await tester.tap(find.text('准备签到'));
     await tester.pumpAndSettle();
-    expect(find.text('确认课堂签到'), findsNWidgets(2));
+    expect(find.widgetWithText(AppBar, '确认课堂签到'), findsOneWidget);
     expect(backend.commitCalls, 0);
 
     final confirm = find.widgetWithText(FilledButton, '确认提交');
@@ -109,8 +109,6 @@ void _registerPrimaryWriteFlowTests() {
 
 void _registerWriteMatrixFlowTest() {
   testWidgets('宿主集成流程覆盖十项写操作并验证签到签退分支', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(1000, 1600));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
     final backend = _AllWritesIntegrationBackend();
     final permissionGateway = MemoryPermissionGateway(
       initial: <PlatformPermission, PlatformPermissionStatus>{
@@ -123,10 +121,12 @@ void _registerWriteMatrixFlowTest() {
         backend: backend,
         credentialVault: MemoryCredentialVault(),
         photoPicker: MemoryPhotoPicker(
-          photo: const YgdkPhotoInput(
-            bytes: <int>[1, 2, 3],
-            fileName: 'integration.jpg',
-            mimeType: 'image/jpeg',
+          photo: YgdkPhotoInput(
+            bytes: base64Decode(
+              'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aD1sAAAAASUVORK5CYII=',
+            ),
+            fileName: 'integration.png',
+            mimeType: 'image/png',
           ),
         ),
         permissionGateway: permissionGateway,
@@ -142,28 +142,17 @@ void _registerWriteMatrixFlowTest() {
     await tester.pump(const Duration(seconds: 1));
     expect(find.byType(UbaaMainShell), findsOneWidget);
 
-    Future<void> openFeature(FeatureId feature) async {
-      final selectedIcon = learningFeatureIds.contains(feature)
-          ? Icons.apps
-          : Icons.auto_awesome;
-      final unselectedIcon = learningFeatureIds.contains(feature)
-          ? Icons.apps_outlined
-          : Icons.auto_awesome_outlined;
-      final tab = find.byIcon(selectedIcon).evaluate().isNotEmpty
-          ? find.byIcon(selectedIcon)
-          : find.byIcon(unselectedIcon);
-      await tester.tap(tab.first);
-      await tester.pumpAndSettle();
-      final target = find.text(feature.title).first;
-      await tester.ensureVisible(target);
-      await tester.tap(target);
-      await tester.pumpAndSettle();
-      expect(find.text('返回功能列表'), findsOneWidget);
-    }
+    Future<void> openFeature(FeatureId feature) =>
+        _openIntegrationFeature(tester, feature);
+    Future<void> leaveFeature() => _returnToFeatureRoot(tester);
 
-    Future<void> leaveFeature() async {
-      await tester.tap(find.byTooltip('返回'));
+    Future<void> finishFeedback() async {
+      // 逐项核验反馈的完整展示与退出，避免上一操作的提示队列影响下一项点击。
+      final feedback = find.byType(SnackBar);
+      expect(feedback, findsOneWidget);
+      await tester.pump(tester.widget<SnackBar>(feedback).duration);
       await tester.pumpAndSettle();
+      expect(feedback, findsNothing);
     }
 
     Future<void> confirm(
@@ -195,6 +184,7 @@ void _registerWriteMatrixFlowTest() {
           reason: '${operation.title}提交后必须刷新${readbackFeature.title}核对',
         );
       }
+      await finishFeedback();
     }
 
     await openFeature(FeatureId.bykc);
@@ -235,10 +225,19 @@ void _registerWriteMatrixFlowTest() {
       '010-00000000',
     );
     await tester.enterText(find.widgetWithText(TextField, '预约主题'), '集成测试');
+    await tester.tap(find.text('选择活动类型'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('手动填写'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, '用途编号'), '2');
+    await tester.tap(find.text('使用编号'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, '参与人数'), '2');
     await tester.enterText(find.widgetWithText(TextField, '活动内容'), '脱敏集成验证');
     await tester.enterText(find.widgetWithText(TextField, '参与人说明'), '脱敏参与人');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('继续确认'));
     await tester.tap(find.text('继续确认'));
     // 场馆表单在退出动画后延迟释放输入控制器；普通 Timer 不会让
     // pumpAndSettle 主动继续推进时间，因此这里显式越过该安全窗口。
@@ -260,6 +259,7 @@ void _registerWriteMatrixFlowTest() {
       greaterThan(beforeCgyyReadback),
       reason: '研讨室预约提交后必须刷新场馆订单核对',
     );
+    await finishFeedback();
     await leaveFeature();
 
     await openFeature(FeatureId.cgyy);
@@ -277,8 +277,13 @@ void _registerWriteMatrixFlowTest() {
       find.widgetWithText(TextField, '结束时间'),
       '2026-09-02 09:00',
     );
+    await tester.ensureVisible(find.text('选择照片'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('选择照片'));
     await tester.pumpAndSettle();
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('继续确认'));
     await tester.tap(find.text('继续确认'));
     await tester.pumpAndSettle();
     expect(find.text('确认阳光打卡'), findsAtLeastNWidgets(1));
@@ -293,6 +298,7 @@ void _registerWriteMatrixFlowTest() {
       greaterThan(beforeYgdkReadback),
       reason: '阳光打卡提交后必须按原路线刷新概览与记录',
     );
+    await finishFeedback();
     await leaveFeature();
 
     await openFeature(FeatureId.evaluation);

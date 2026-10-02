@@ -78,6 +78,41 @@ final class _IntegrationBackend
     FeatureQuery query,
   ) async {
     lastQuery = query;
+    if (feature == FeatureId.schedule &&
+        query.view == FeatureQueryView.scheduleTerms) {
+      return const FeatureResult.success(
+        details: [
+          FeatureDetail(
+            title: '合成学期',
+            presentation: TermPresentation(
+              code: '2026-2027-1',
+              selected: true,
+              index: 0,
+            ),
+          ),
+        ],
+        resolvedRoute: ConnectionMode.direct,
+      );
+    }
+    if (feature == FeatureId.schedule &&
+        query.view == FeatureQueryView.scheduleWeeks) {
+      return FeatureResult.success(
+        details: [
+          FeatureDetail(
+            title: '第3周',
+            presentation: WeekPresentation(
+              requestTerm: query.term!,
+              responseTerm: query.term!,
+              number: 3,
+              current: true,
+              startDate: '2026-09-21',
+              endDate: '2026-09-27',
+            ),
+          ),
+        ],
+        resolvedRoute: ConnectionMode.direct,
+      );
+    }
     return const FeatureResult.success(
       summary: '指定周课表',
       details: <FeatureDetail>[

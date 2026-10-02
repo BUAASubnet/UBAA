@@ -149,6 +149,14 @@ class _FeatureQueryControlsState extends State<_FeatureQueryControls> {
     setState(() => _restoreQuery(query));
   }
 
+  void adoptClassroomQuery(FeatureQuery query) {
+    if (widget.feature != FeatureId.classroom) return;
+    setState(() {
+      _clearClassroomOptions();
+      _restoreQuery(query);
+    });
+  }
+
   // 只在新页面初始化；后续读取通知不覆盖用户尚未应用的草稿。
   void _restoreQuery(FeatureQuery? query) {
     if (query == null) return;

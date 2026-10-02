@@ -6,10 +6,15 @@ part 'data.dart';
 
 /// 研讨室原生验收只使用显式合成数据；基础commit方法一律拒绝。
 class RoomBackend extends CourseworkBackend
-    implements CgyyWriteBackend, CancellationWriteBackend {
+    implements
+        CgyyWriteBackend,
+        CancellationWriteBackend,
+        CgyyLockDisplayBackend {
   RoomBackend({super.state}) {
     signedIn = true;
   }
+  @override
+  Future<CgyyLockDisplaySession> openLockDisplay() async => _RoomLockSession();
   final roomReads = <FeatureQuery>[];
   final preparedRooms = <CgyySubmitInput>[];
   final preparedOrders = <int>[];
@@ -71,4 +76,28 @@ class RoomBackend extends CourseworkBackend
     expiresAt: DateTime.now().add(const Duration(minutes: 2)),
     requestDigest: 'synthetic-digest',
   );
+}
+
+class _RoomLockSession implements CgyyLockDisplaySession {
+  final _events = StreamController<void>.broadcast(sync: true);
+  bool _closed = false;
+  @override
+  Stream<void> get cancelled => _events.stream;
+  @override
+  Future<CgyyLockDisplay> read() async {
+    if (_closed) throw const BackendException(UbaaErrorCode.invalidInput);
+    return CgyyLockDisplay(
+      code: '001234',
+      reservationReference: 'synthetic-reference',
+      orderName: '合成预约人',
+    );
+  }
+
+  @override
+  void cancel() {
+    if (_closed) return;
+    _closed = true;
+    _events.add(null);
+    unawaited(_events.close());
+  }
 }

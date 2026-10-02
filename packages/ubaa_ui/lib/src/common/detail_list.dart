@@ -206,6 +206,18 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                         .single,
                     details: details,
                   )
+                : details.isEmpty &&
+                      widget.feature == FeatureId.schedule &&
+                      widget.details.isNotEmpty &&
+                      widget.details.every(
+                        (d) => d.presentation is ScheduleCoursePresentation,
+                      )
+                ? _ScheduleContent(
+                    details: const [],
+                    timeline: widget.timeline,
+                    timeSource: widget.details,
+                    emptyMessage: '没有匹配的课程',
+                  )
                 : details.isEmpty
                 ? Center(
                     child: Text(

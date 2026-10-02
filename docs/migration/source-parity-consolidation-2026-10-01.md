@@ -25,3 +25,10 @@
 `AuthViewModel`新增 `ScheduleStore.useAccount/forgetAccount`，登录页新增可选“查看已保存的离线课表”；`MainAppScreen`新增跨日更新、账号变化重置与课表周缓存/更新/整学期导入接线。离线分支已有相应缓存首页/账号隔离/整学期导入，但仍需逐项验收，不能从同名推断完全一致。`LocalScheduleApi`和研究生协议变化留待专项核对；课堂签到继续保留主目录已经按当前冻结源完成的 `acd49c27`，绝不从旧按钮分支回退。
 
 交互验证码和门锁专用显示尚未纳入已提交按钮分支；其方案另行按当前源码、来源冲突和失败测试核实，不能以本次合并关闭该缺口。
+
+
+## 2026-10-02 平台范围复核
+
+当前冻结旧版 `composeApp/src/androidMain/kotlin/cn/edu/ubaa/widget/` 的 `ScheduleWidgetProvider.kt`、`ScheduleWidgetRenderer.kt`、`ScheduleWidgetActivity.kt` 实现周课表、今日和未来三天三个 Android 启动器 widget。它们读取按账号保存的 ScheduleStore，通过 owner/anchor/term/week 保存选择；切账号不沿用旧目标，点击进入同一周的离线课表。`buaa-api` 没有 Android UI 或等价 widget；不能借其协议补这项宿主功能。当前 Flutter Android Manifest/原生宿主没有对应 receiver、RemoteViews 或跳转接线。这是明确的旧功能差异，尚未实现或设备验收，不能把 Android APK 构建成功写为全功能对齐。后续需复用已加密的账号课表投影与失效机制，不能另存明文课程副本来绕过安全材料。
+
+研究生协议差异已经按 [GSMIS 专项](source-parity-gsmis-2026-10-02.md) 完成实现和确定性门禁；上述初始段落中的“待专项核对”保留为历史记录。交互验证码与门锁显示的当前状态同理以各自 10 月阶段证据为准。

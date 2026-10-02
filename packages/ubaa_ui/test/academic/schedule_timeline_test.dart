@@ -2,9 +2,54 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../coursework_content_test.dart' show showFeature;
+import '../support/navigation.dart' show openQueryPanel, closeQueryPanel;
 
 void main() {
   for (final width in [390.0, 834.0, 1280.0]) {
+    testWidgets('筛选无匹配课程在$width宽度保留周结构和时间轴，清空可恢复', (tester) async {
+      final queries = <FeatureQuery>[];
+      await showFeature(
+        tester,
+        FeatureId.schedule,
+        const [
+          FeatureDetail(
+            title: '合成课程',
+            presentation: ScheduleCoursePresentation(
+              courseCode: 'demo',
+              dayOfWeek: 1,
+              beginSection: 1,
+              endSection: 2,
+              beginTime: '08:00',
+              endTime: '09:35',
+            ),
+          ),
+        ],
+        queries,
+        size: Size(width, 900),
+        query: const FeatureQuery(
+          view: FeatureQueryView.scheduleWeek,
+          term: 'term',
+          week: 1,
+        ),
+      );
+      await openQueryPanel(tester);
+      await tester.enterText(
+        find.widgetWithText(TextField, '筛选详情'),
+        'zz-no-match',
+      );
+      await closeQueryPanel(tester);
+      expect(find.text('合成课程'), findsNothing);
+      expect(find.text('周一'), findsOneWidget);
+      expect(find.text('周日'), findsOneWidget);
+      expect(find.text('08:00'), findsOneWidget);
+      expect(find.text('没有匹配的课程'), findsOneWidget);
+      expect(find.text('本周暂无课程'), findsNothing);
+      await openQueryPanel(tester);
+      await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '');
+      await closeQueryPanel(tester);
+      expect(find.text('合成课程'), findsOneWidget);
+      expect(queries, isEmpty);
+    });
     testWidgets('空周完整时间轴在$width宽度保持可见且无需额外查询', (tester) async {
       final queries = <FeatureQuery>[];
       await showFeature(

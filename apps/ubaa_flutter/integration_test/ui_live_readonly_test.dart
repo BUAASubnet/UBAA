@@ -10,6 +10,7 @@ import 'package:ubaa_flutter/main.dart';
 /// 显式生产只读入口：Core安全登录先在私有隔离目录建立会话。
 /// 不读取凭据、不截取个人数据、不调用任何业务写入回调。
 void main() {
+  WidgetController.hitTestWarningShouldBeFatal = true;
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets('生产App恢复真实会话并巡检十二领域只读页面', (tester) async {
     if (!const bool.fromEnvironment('UBAA_LIVE_READONLY')) {
@@ -40,12 +41,6 @@ void main() {
     await tester.pumpAndSettle();
     final records = <Map<String, Object?>>[];
     for (final feature in FeatureId.values) {
-      final loaded = await waitFor(() {
-        final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
-        final status = shell.snapshots[feature]?.status;
-        return status != FeatureLoadStatus.loading &&
-            status != FeatureLoadStatus.idle;
-      });
       final index = ordinaryFeatureIds.contains(feature) ? 1 : 2;
       final rail = find.byType(NavigationRail);
       if (rail.evaluate().isNotEmpty) {
@@ -79,6 +74,30 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(card);
       await tester.pumpAndSettle();
+      // 首页现在按需加载；进入领域和默认子页后再等待，不能等待尚未触发的读取。
+      final landing = find.byKey(ValueKey(('feature-landing', feature)));
+      final hasLanding = landing.evaluate().isNotEmpty;
+      if (hasLanding) {
+        final title = switch (feature) {
+          FeatureId.bykc => '选择课程',
+          FeatureId.libbook => '预约座位',
+          FeatureId.cgyy => '预约研讨室',
+          _ => throw StateError('意外子菜单'),
+        };
+        await tester.tap(
+          find.descendant(
+            of: landing,
+            matching: find.widgetWithText(Card, title),
+          ),
+        );
+        await tester.pumpAndSettle();
+      }
+      final loaded = await waitFor(() {
+        final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
+        final status = shell.snapshots[feature]?.status;
+        return status != FeatureLoadStatus.loading &&
+            status != FeatureLoadStatus.idle;
+      });
       var snapshot = tester
           .widget<UbaaMainShell>(find.byType(UbaaMainShell))
           .snapshots[feature]!;
@@ -103,8 +122,11 @@ void main() {
             .snapshots[feature]!;
       }
       final visible =
-          find.widgetWithText(AppBar, feature.title).evaluate().length == 1;
-      final noQueryBlock = find.byType(TextField).evaluate().isEmpty;
+          find.byType(AppBar).evaluate().length == 1 &&
+          find.byTooltip('返回').evaluate().length == 1;
+      final noQueryBlock =
+          find.widgetWithText(TextField, '筛选详情').evaluate().isEmpty &&
+          find.widgetWithText(TextButton, '完成').evaluate().isEmpty;
       records.add({
         'feature': feature.wireName,
         'initialStatus': initialStatus,
@@ -121,6 +143,10 @@ void main() {
       expect(visible && noQueryBlock, isTrue, reason: '领域页标题或查询收纳未符合要求');
       await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
+      if (hasLanding) {
+        await tester.tap(find.byTooltip('返回'));
+        await tester.pumpAndSettle();
+      }
     }
     binding.reportData = {
       'backend': 'production-frb',
@@ -159,5 +185,5 @@ void main() {
       isTrue,
       reason: '存在未通过的生产只读页面，见安全状态记录',
     );
-  });
+  }, timeout: const Timeout(Duration(minutes: 15)));
 }

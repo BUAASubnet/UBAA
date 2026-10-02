@@ -583,7 +583,14 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
       onOpenBykcChosen: widget.onOpenBykcChosen,
       pagination: widget.snapshot.pagination,
       query: widget.query ?? const FeatureQuery(),
-      onQuery: widget.onQuery,
+      onQuery: widget.onQuery == null
+          ? null
+          : (query) {
+              if (widget.feature == FeatureId.classroom) {
+                _queryKey.currentState?.adoptClassroomQuery(query);
+              }
+              return widget.onQuery!(query);
+            },
       onNavigate: widget.onNavigate,
       onBykcWrite: widget.onBykcWrite,
       onBykcSignWrite: widget.onBykcSignWrite,

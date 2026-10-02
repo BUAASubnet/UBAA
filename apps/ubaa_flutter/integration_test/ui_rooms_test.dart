@@ -140,9 +140,11 @@ void main() {
       );
       await _closePanel(tester);
       await _tap(tester, find.byTooltip('返回'));
-      await _tap(tester, find.widgetWithText(Card, '门锁状态'));
-      await shot('lock', '仅显示公开available，不输出锁码或原始内容');
-      expect(find.text('当前无可用门锁信息'), findsOneWidget);
+      await _tap(tester, find.widgetWithText(Card, '查看密码'));
+      await shot('lock', '专用页面显示合成密码，不输出真实材料');
+      expect(find.text('001234'), findsOneWidget);
+      expect(find.byTooltip('搜索与筛选'), findsNothing);
+      await _tap(tester, find.byTooltip('返回'));
       await _panel(tester);
       await _tap(tester, find.byType(DropdownButton<FeatureQueryView>));
       await _tap(tester, find.text('用途类型').last);

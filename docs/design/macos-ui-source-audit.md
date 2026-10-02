@@ -1,5 +1,9 @@
 # 当前 App 与旧版逐按钮源码对照
 
+> 2026-10-02 接续说明：下方主表保留 9 月专项的审查时点，不是当前缺口清单。当前整合候选已实现交互验证码、门锁专用短期显示、博雅按账号跨启动筛选、GSMIS 与完整时间轴、Windows/Linux 选图；见 [当前项目状态](../migration/status.md) 及各阶段证据。门锁入口现在为“查看密码”，并隐藏无效搜索按钮。表单继续按钮由 Scaffold 底栏占位，避免被结果提示遮挡。原生自动化与实际桌面操作分别记账，不能据此把下方全部控件记为通过。
+
+> 仍存在的旧版差异：Android 启动器三种课表 widget 尚无 Flutter 宿主接线；旧阳光表单的随机时间/自动项目/透明图默认仍与当前明确填写及 typed 确认合同不同。两者都保留为对齐欠项，不以本次 App 十二领域门禁、APK 构建或 macOS 审查消除。
+
 2026-09-15。冻结旧版6e75e120a26b0eefb3ab4a6f8251d1230db4a62e，示例efb7976bf513f38364b88aeb83d704586cff9b2a。两个引用已现场校验。本文记录首轮源码对照，后续实测发现继续补记；不能替代computer use结果，真实测试见[实测记录](macos-ui-button-results.md)。
 
 旧页面路径统一位于 `ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/`；当前UI路径统一位于 `packages/ubaa_ui/lib/src/`。下列每组控制仍需展开执行成功、取消、返回及错误恢复；已有测试路径只提供定位，不自动记作本轮通过。

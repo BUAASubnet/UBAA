@@ -158,8 +158,39 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
           ),
         ],
       ),
+      bottomNavigationBar: _FormActionBar(
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              if (_error case final message?)
+                Text(
+                  message,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              Row(
+                children: [
+                  TextButton(onPressed: _cancel, child: const Text('取消')),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: SizedBox(
+                      height: 52,
+                      child: FilledButton(
+                        onPressed: _picking ? null : _continue,
+                        child: const Text('继续确认'),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
       body: SafeArea(
         top: false,
+        bottom: false,
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 840),
@@ -309,38 +340,6 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
                         ),
                       ],
                     ),
-                  ),
-                ),
-                Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    children: [
-                      if (_error case final message?)
-                        Text(
-                          message,
-                          style: TextStyle(
-                            color: Theme.of(context).colorScheme.error,
-                          ),
-                        ),
-                      Row(
-                        children: [
-                          TextButton(
-                            onPressed: _cancel,
-                            child: const Text('取消'),
-                          ),
-                          const SizedBox(width: 12),
-                          Expanded(
-                            child: SizedBox(
-                              height: 52,
-                              child: FilledButton(
-                                onPressed: _picking ? null : _continue,
-                                child: const Text('继续确认'),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
                   ),
                 ),
               ],

@@ -105,7 +105,7 @@ void main() {
       const menus = <FeatureId, List<String>>{
         FeatureId.bykc: ['选择课程', '我的课程', '课程统计'],
         FeatureId.libbook: ['预约座位', '我的预约'],
-        FeatureId.cgyy: ['预约研讨室', '我的预约', '门锁状态'],
+        FeatureId.cgyy: ['预约研讨室', '我的预约', '查看密码'],
       };
       final features = const bool.fromEnvironment('UBAA_UI_LANDING_ONLY')
           ? menus.keys
@@ -113,13 +113,24 @@ void main() {
       for (final feature in features) {
         await tab(ordinaryFeatureIds.contains(feature) ? 1 : 2);
         final card = find.widgetWithText(Card, feature.title);
+        if (card.evaluate().isEmpty) {
+          await tester.scrollUntilVisible(card, 240);
+        }
         await tester.ensureVisible(card);
         await tester.pumpAndSettle();
         await tester.tap(card);
         await tester.pumpAndSettle();
-        expect(find.widgetWithText(AppBar, feature.title), findsOneWidget);
+        expect(
+          find.widgetWithText(
+            AppBar,
+            feature == FeatureId.schedule ? '第 2 周' : feature.title,
+          ),
+          findsOneWidget,
+        );
         expect(find.text('返回功能列表'), findsNothing);
-        expect(find.byType(TextField), findsNothing);
+        // 宽屏空教室保留旧版正文快速搜索；完整查询仍按需收纳。
+        expect(find.widgetWithText(TextField, '筛选详情'), findsNothing);
+        expect(find.widgetWithText(TextButton, '完成'), findsNothing);
         expect(find.text('已选择 0 门待评课程'), findsNothing);
         if (tester.view.physicalSize.width / tester.view.devicePixelRatio <
             600) {
@@ -181,7 +192,15 @@ void main() {
                 ? '我的座位预约'
                 : label;
             expect(find.widgetWithText(AppBar, pageTitle), findsOneWidget);
-            expect(find.byTooltip('实际路线：直连'), findsOneWidget);
+            final lockPage = feature == FeatureId.cgyy && index == 2;
+            expect(
+              find.byTooltip(lockPage ? '实际路线：未确定' : '实际路线：直连'),
+              findsOneWidget,
+            );
+            if (lockPage) {
+              expect(find.text('001234'), findsOneWidget);
+              expect(find.byTooltip('搜索与筛选'), findsNothing);
+            }
             expect(find.byType(TextField), findsNothing);
             await capture(
               'child-${feature.name}-$index',
@@ -219,8 +238,7 @@ void main() {
         await tester.pumpAndSettle();
       }
       await tab(0);
-      final scaffold = tester.state<ScaffoldState>(find.byType(Scaffold).first);
-      scaffold.openDrawer();
+      await tester.tap(find.byType(DrawerButton));
       await tester.pumpAndSettle();
       await capture('sidebar', '打开侧栏，资料和设置不占主导航');
       await tester.tap(find.text('设置'));

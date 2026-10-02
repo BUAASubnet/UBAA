@@ -2,9 +2,16 @@ part of '../widgets.dart';
 
 /// 冻结旧版的七日节次网格；时间缺失或冲突不造成课程丢失。
 class _ScheduleContent extends StatefulWidget {
-  const _ScheduleContent({required this.details, this.timeline});
+  const _ScheduleContent({
+    required this.details,
+    this.timeline,
+    this.timeSource,
+    this.emptyMessage = '本周暂无课程',
+  });
   final ScheduleWeekOverview? timeline;
   final List<FeatureDetail> details;
+  final List<FeatureDetail>? timeSource;
+  final String emptyMessage;
   @override
   State<_ScheduleContent> createState() => _ScheduleContentState();
 }
@@ -27,7 +34,7 @@ class _ScheduleContentState extends State<_ScheduleContent> {
       final times =
           widget.timeline?.sectionTimes ??
           scheduleSectionTimes(
-            courses: widget.details
+            courses: (widget.timeSource ?? widget.details)
                 .map((d) => d.presentation)
                 .whereType<ScheduleCoursePresentation>(),
           );
@@ -135,9 +142,9 @@ class _ScheduleContentState extends State<_ScheduleContent> {
                       padding: const EdgeInsets.only(bottom: 16),
                       children: [
                         if (widget.details.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.symmetric(vertical: 12),
-                            child: Center(child: Text('本周暂无课程')),
+                          Padding(
+                            padding: const EdgeInsets.symmetric(vertical: 12),
+                            child: Center(child: Text(widget.emptyMessage)),
                           ),
                         SizedBox(
                           height: periodHeight * periods,

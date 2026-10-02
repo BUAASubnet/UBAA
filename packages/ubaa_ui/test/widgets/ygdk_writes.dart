@@ -1,6 +1,29 @@
 part of '../widgets_test.dart';
 
 void _registerYgdkWriteResultTests() {
+  testWidgets('阳光表单底部按钮不被上一操作的SnackBar遮挡', (tester) async {
+    await _pumpYgdkShell(
+      tester,
+      key: const ValueKey('snackbar-footer'),
+      prepare: (_) async => _validYgdkIntent(),
+      picker: _validYgdkPhoto,
+      commit: (_) async => throw StateError('不应提交'),
+      discard: (_) async {},
+      refresh: ({required ConnectionMode expectedRoute}) async {},
+    );
+    await tester.pumpAndSettle();
+    await _openYgdkDetails(tester);
+    await tester.tap(find.text('准备阳光打卡'));
+    await tester.pumpAndSettle();
+    final button = find.widgetWithText(FilledButton, '继续确认');
+    ScaffoldMessenger.of(tester.element(button)).showSnackBar(
+      const SnackBar(content: Text('上一操作结果'), duration: Duration(minutes: 1)),
+    );
+    await tester.pumpAndSettle();
+    expect(button.hitTestable(), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets(
     '''阳光打卡缺少 prepare picker readback commit 或 discard
 任一能力时隐藏入口''',

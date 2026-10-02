@@ -497,11 +497,20 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               },
             ),
             if (_openedFeature != null && pendingWrite == null)
-              IconButton(
-                tooltip: '搜索与筛选',
-                onPressed: () =>
-                    _readPageKeys[_openedFeature]?.currentState?.openPanel(),
-                icon: const Icon(Icons.search),
+              ValueListenableBuilder<(FeatureSnapshot, String)?>(
+                valueListenable: _visiblePage,
+                builder: (context, _, _) {
+                  final page = _readPageKeys[_openedFeature]?.currentState;
+                  if (_openedFeature == FeatureId.cgyy &&
+                      page?._current.query?.view ==
+                          FeatureQueryView.cgyyLockCode)
+                    return const SizedBox.shrink();
+                  return IconButton(
+                    tooltip: '搜索与筛选',
+                    onPressed: () => page?.openPanel(),
+                    icon: const Icon(Icons.search),
+                  );
+                },
               ),
             if (_openedFeature != null && pendingWrite == null)
               IconButton(

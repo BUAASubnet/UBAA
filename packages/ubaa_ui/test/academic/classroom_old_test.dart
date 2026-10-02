@@ -22,6 +22,47 @@ FeatureDetail room(
   ),
 );
 void main() {
+  testWidgets('正文切换校区同步查询草稿并清除旧校区楼层节次', (tester) async {
+    final queries = <FeatureQuery>[];
+    await showFeature(
+      tester,
+      FeatureId.classroom,
+      [room('合成教室')],
+      queries,
+      size: const Size(1280, 900),
+      query: FeatureQuery(date: DateTime(2026, 9, 9), campus: 2),
+    );
+    await openQueryPanel(tester);
+    await tester.enterText(find.widgetWithText(TextField, '楼层'), 'old-floor');
+    await tester.enterText(find.widgetWithText(TextField, '节次'), '3');
+    await closeQueryPanel(tester);
+    await tester.tap(find.text('杭州'));
+    await tester.pumpAndSettle();
+    expect(queries.single.campus, 3);
+    await openQueryPanel(tester);
+    expect(
+      tester
+          .widget<DropdownButton<int>>(find.byType(DropdownButton<int>))
+          .value,
+      3,
+    );
+    for (final label in ['楼层', '节次']) {
+      expect(
+        tester
+            .widget<TextField>(find.widgetWithText(TextField, label))
+            .controller!
+            .text,
+        isEmpty,
+      );
+    }
+    expect(
+      tester
+          .widget<TextField>(find.widgetWithText(TextField, '日期'))
+          .controller!
+          .text,
+      '2026-09-09',
+    );
+  });
   testWidgets('大字横滚表格时长楼栋标题保持在可视宽度内', (tester) async {
     final name = List.filled(4, '合成较长教学楼名称').join();
     await showFeature(

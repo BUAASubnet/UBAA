@@ -80,6 +80,7 @@ part 'features/libbook/booking_row.dart';
 part 'features/libbook/area_map.dart';
 part 'features/ygdk.dart';
 part 'write/cgyy_form.dart';
+part 'write/forms/action_bar.dart';
 part 'write/cgyy_draft.dart';
 part 'write/cgyy_form_fields.dart';
 part 'write/confirmation.dart';

@@ -31,6 +31,25 @@ const _cgyyUiThirdAction = CgyyReserveAction(
 );
 
 void _registerCgyyReservationWriteTests() {
+  testWidgets('研讨室表单底部按钮不被上一操作的SnackBar遮挡', (tester) async {
+    await _pumpCgyyShell(
+      tester,
+      details: const [
+        FeatureDetail(title: '合成时段', actions: [_cgyyUiFirstAction]),
+      ],
+      onPrepare: (_) async => _cgyyIntent(),
+    );
+    await tester.tap(_cgyyButtonFor('合成时段'));
+    await tester.pumpAndSettle();
+    final button = find.widgetWithText(FilledButton, '继续确认');
+    ScaffoldMessenger.of(tester.element(button)).showSnackBar(
+      const SnackBar(content: Text('上一操作结果'), duration: Duration(minutes: 1)),
+    );
+    await tester.pumpAndSettle();
+    expect(button.hitTestable(), findsOneWidget);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('研讨室预约在 action 缺失、denied 或 unknown 时默认拒绝', (tester) async {
     var prepareCalls = 0;
     await _pumpCgyyShell(
