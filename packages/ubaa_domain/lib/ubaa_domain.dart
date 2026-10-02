@@ -4,3 +4,4 @@ library;
 export 'src/models.dart';
 
 export 'src/app_link.dart';
+export 'src/feature/schedule/widget_snapshot.dart';

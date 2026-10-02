@@ -41,7 +41,7 @@
 | 阳光 | 概览/记录、项目/时间/照片表单 | 项目与时间默认、选图/清除/取消，多端能力边界 |
 | 评教 | 全部/待评、详情、单项/批量 typed 提交 | 勾选/全选/清除、部分结果与取消，合成写入 |
 
-路线图中的 MCP Server、公告和 Node.js SDK 尚未实现，属于未来产品路线，不混入现有十二领域开发收尾。旧版 Android 桌面 widget、研究生课表等新增能力需显式核对与裁决，不能笼统宣称所有旧版功能已对齐。
+路线图中的 MCP Server、公告和 Node.js SDK 尚未实现，属于未来产品路线，不混入现有十二领域开发收尾。旧版Android桌面widget和GSMIS研究生课表已补实现并各自记录来源及验证边界，不能将缺少真实数据的分支笼统标为旧版全对齐。
 
 ## 分支和工作区
 
@@ -69,14 +69,14 @@
 | Flutter 基线 | 7包静态分析与1116项测试通过，日志 `/tmp/ubaa-consolidation-baseline-flutter-20261001.log` |
 | 整合后门禁/FRB | 整合、设置、验证码、门锁分阶段重跑；最新见status与阶段证据 |
 | WebVPN Core-live/生产 App | 12域默认读取通过；图书馆分区详情code500阻塞；订单详情经实时包装解析修复后专项通过，桌面复验进行中 |
-| macOS Computer Use | 桌面已解锁，生产WebVPN正在逐按钮操作；实际截图/输入记录私有保存；本轮无CUA MCP，使用系统截图与鼠标键盘 |
+| macOS Computer Use | 生产WebVPN已完成D01—275操作记录，逐行结果见按钮清单；随后再次锁屏，最终修复鼠标复验待解锁。本轮无CUA MCP，实际使用系统截图与鼠标键盘 |
 | 多端适配 | 本轮iPhone/iPad原生明暗各78截图、阳光42场景138截图已视觉复核；Android APK/iOS模拟器/macOS构建通过，Win/Linux/OHOS运行仍未验 |
 | Direct | 用户明确校外环境，本轮不运行 |
 
 ## 下一步
 
 1. 已完成基线、冻结版本差异复核及按钮分支整合，原worktree保持。
-2. 验证码、门锁专用显示、GSMIS课表与完整时间轴均完成阶段门禁；Windows/Linux选图接线已补齐；继续原生验收并明确旧版Android系统widget的宿主范围。
+2. 验证码、门锁专用显示、GSMIS课表与完整时间轴均完成阶段门禁；Windows/Linux选图接线已补齐；Android系统widget、原生目录、会话锁与TLS宿主接线已补并取得模拟器证据，剩余验收按平台与真实数据条件分列。
 3. 最终候选执行 refs/layout/sensitive/check、CLI E2E、Flutter、FRB、macOS 构建及可用模拟器适配。
 4. WebVPN 真实只读与 macOS Computer Use 逐按钮验收；无真实数据分支明确切换合成环境。
 5. 修复并复验，提交当前阶段，报告完成项与具体外部条件，不以历史通过关闭当前欠验。

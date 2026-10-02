@@ -2,6 +2,8 @@
 library;
 
 export 'src/backend.dart';
+export 'src/presentation/schedule_widget.dart';
+export 'src/controller/schedule_widget_publisher.dart';
 export 'src/bridge_backend.dart';
 export 'src/app_controller.dart';
 export 'src/write_controller.dart';

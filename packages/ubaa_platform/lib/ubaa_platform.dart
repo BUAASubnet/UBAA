@@ -16,3 +16,4 @@ export 'src/bykc_filters.dart';
 export 'src/app_information.dart';
 export 'src/secure_material.dart';
 export 'src/local_accounts.dart';
+export 'src/schedule_widgets.dart';

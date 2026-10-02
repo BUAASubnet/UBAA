@@ -290,8 +290,12 @@ impl FileSessionStore {
             .ok_or_else(|| session_error("session path has no parent directory"))?;
         validate_directory(parent)?;
         let file = self.open_lock_file()?;
-        file.lock()
-            .map_err(|_| session_error("could not lock session"))?;
+        // Rust 1.95的标准库文件锁尚未覆盖Android；该平台仍必须取得内核排他锁。
+        #[cfg(target_os = "android")]
+        let acquired = fs2::FileExt::lock_exclusive(&file);
+        #[cfg(not(target_os = "android"))]
+        let acquired = file.lock();
+        acquired.map_err(|_| session_error("could not lock session"))?;
         Ok(SessionFileLock {
             _process_guard: process_guard,
             file,

@@ -22,6 +22,16 @@ class PhotoChannel(private val activity: Activity, messenger: BinaryMessenger) {
     init {
         channel.setMethodCallHandler { call, result ->
             when (call.method) {
+                "paths.config" -> {
+                    try {
+                        check(!disposed)
+                        val directory = java.io.File(activity.noBackupFilesDir, "UBAA")
+                        check(directory.isDirectory || directory.mkdirs())
+                        result.success(directory.absolutePath)
+                    } catch (_: Exception) {
+                        result.error("path_unavailable", "应用私有目录暂不可用", null)
+                    }
+                }
                 "photo.capability" -> result.success(!disposed)
                 "photo.captureCapability" -> result.success(canCapture())
                 // 只确认能请求系统选择；读取授权在用户选择后由系统授予。

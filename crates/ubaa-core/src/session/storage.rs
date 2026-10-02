@@ -11,6 +11,9 @@ pub(super) struct SessionFileLock<'a> {
 
 impl Drop for SessionFileLock<'_> {
     fn drop(&mut self) {
+        #[cfg(target_os = "android")]
+        let _ = fs2::FileExt::unlock(&self.file);
+        #[cfg(not(target_os = "android"))]
         let _ = self.file.unlock();
     }
 }

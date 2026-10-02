@@ -31,7 +31,7 @@ final class PrivateConfigDirectory {
       resolve();
       return;
     }
-    if (operatingSystem != 'ios') return;
+    if (operatingSystem != 'ios' && operatingSystem != 'android') return;
     String? path;
     try {
       path = await channel.invokeMethod<String>('paths.config');

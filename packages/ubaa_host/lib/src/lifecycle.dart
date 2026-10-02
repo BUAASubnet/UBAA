@@ -15,6 +15,8 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   bool _resumeRecoveryPending = false;
   bool _recoveryInFlight = false;
   bool _disposed = false;
+  ScheduleWidgetPublisher? _scheduleWidgetPublisher;
+  (String?, Object)? _scheduleWidgetStamp;
   Stream<void>? _networkChanges;
   StreamSubscription<void>? _networkSubscription;
 
@@ -78,6 +80,17 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
               ));
     _controller.addListener(_retryPendingRecovery);
     _controller.addListener(_showHomeFeedback);
+    final widgetGateway =
+        widget.scheduleWidgetGateway ??
+        (Platform.isAndroid &&
+                widget.backend == null &&
+                widget.backendFactory == null
+            ? const AndroidScheduleWidgetGateway()
+            : null);
+    if (widgetGateway != null) {
+      _scheduleWidgetPublisher = ScheduleWidgetPublisher(widgetGateway);
+      _controller.addListener(_syncScheduleWidgets);
+    }
     _networkChanges =
         widget.networkChanges ??
         (widget.backend == null && widget.backendFactory == null
@@ -94,6 +107,8 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     WidgetsBinding.instance.removeObserver(this);
     _controller.removeListener(_retryPendingRecovery);
     _controller.removeListener(_showHomeFeedback);
+    _controller.removeListener(_syncScheduleWidgets);
+    _scheduleWidgetPublisher?.dispose();
     _gradeWatch.dispose();
     _controller.dispose();
     super.dispose();

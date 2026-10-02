@@ -3,7 +3,7 @@ part of 'ubaa_app_host.dart';
 extension _UbaaAppHostLocalData on _UbaaAppHostState {
   Future<void> _logoutLocalOwner(LocalDataOwnerScope owner) async {
     owner.checkCurrent();
-    await _controller.logout();
+    await Future.wait([_controller.logout(), _revokeScheduleWidgets()]);
   }
 
   Future<YgdkReminderSettings> _readReminder(LocalDataOwnerScope owner) async {
@@ -52,6 +52,14 @@ extension _UbaaAppHostLocalData on _UbaaAppHostState {
   }
 
   Future<void> _logoutAndClearLocalData(LocalDataOwnerScope owner) async {
+    owner.checkCurrent();
+    await Future.wait([
+      _clearAccountLocalData(owner),
+      _revokeScheduleWidgets(),
+    ]);
+  }
+
+  Future<void> _clearAccountLocalData(LocalDataOwnerScope owner) async {
     owner.checkCurrent();
     try {
       await _controller.logout(

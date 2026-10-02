@@ -12,6 +12,7 @@ part 'callbacks.dart';
 part 'lifecycle.dart';
 part 'session.dart';
 part 'local_data.dart';
+part 'schedule_widgets.dart';
 
 const _expectedBridgeHello = 'UBAA FRB 2.13.0 ready';
 
@@ -66,6 +67,7 @@ class UbaaAppHost extends StatefulWidget {
     this.appInformation,
     this.onReadSchedulerTrace,
     this.onGradeCheckComplete,
+    this.scheduleWidgetGateway,
     super.key,
   });
 
@@ -92,6 +94,7 @@ class UbaaAppHost extends StatefulWidget {
   final PlatformAppInformation? appInformation;
   final void Function(ReadSchedulerTrace trace)? onReadSchedulerTrace;
   final void Function(bool persisted)? onGradeCheckComplete;
+  final ScheduleWidgetGateway? scheduleWidgetGateway;
 
   @override
   State<UbaaAppHost> createState() => _UbaaAppHostState();

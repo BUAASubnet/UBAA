@@ -10,6 +10,19 @@ void main() {
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   tearDown(() => messenger.setMockMethodCallHandler(channel, null));
 
+  test('Android 空环境从原生私有目录启动，不依赖 HOME', () async {
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      expect(call.method, 'paths.config');
+      return '/data/user/0/synthetic.app/no_backup/UBAA';
+    });
+    final directory = PrivateConfigDirectory(
+      environment: {},
+      operatingSystem: 'android',
+    );
+    await directory.initialize();
+    expect(directory.resolve(), '/data/user/0/synthetic.app/no_backup/UBAA');
+  });
+
   test('iOS 空环境从原生私有目录启动，不需要 HOME', () async {
     var calls = 0;
     messenger.setMockMethodCallHandler(channel, (call) async {
