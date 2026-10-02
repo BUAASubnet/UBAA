@@ -94,3 +94,10 @@ final class BykcChosenOverview extends FeatureOverview {
   });
   final String semesterStart, semesterEnd;
 }
+
+/// 完整周课表的节次元数据，空周和本地筛选仍保留完整时间轴。
+final class ScheduleWeekOverview extends FeatureOverview {
+  const ScheduleWeekOverview({required this.code, required this.sectionTimes});
+  final String code;
+  final List<ScheduleSectionTime> sectionTimes;
+}

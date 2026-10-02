@@ -109,7 +109,7 @@ fn resolve_feature_redirect(
     let Some(host) = target.host_str() else {
         return Err(feature_redirect_error(feature));
     };
-    if !matches!(
+    if !(matches!(
         host.to_ascii_lowercase().as_str(),
         "sso.buaa.edu.cn"
             | "uc.buaa.edu.cn"
@@ -119,7 +119,8 @@ fn resolve_feature_redirect(
             | "judge.buaa.edu.cn"
             | "cgyy.buaa.edu.cn"
             | "d.buaa.edu.cn"
-    ) {
+    ) || (feature == "研究生课表" && host.eq_ignore_ascii_case("gsmis.buaa.edu.cn")))
+    {
         return Err(feature_redirect_error(feature));
     }
     if mode == crate::domain::ConnectionMode::WebVpn && host != "d.buaa.edu.cn" {

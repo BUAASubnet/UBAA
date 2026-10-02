@@ -58,7 +58,7 @@ SPOC HTML 不进入公共 DTO。Fixture/Mock 只证明请求形状；真实证�
 
 隐藏的 `spoc diagnostics` 和 `judge diagnostics` CLI 命令调用独立 facade 方法，仅供确定性
 测试和实时验证使用。它们不增加业务请求、不接受 URL、不暴露上游内部信息，也不改变稳定用户
-命令面。输出与普通读取相同的 schema-v10 路由 envelope，并且一次完整功能运行必须保持同一
+命令面。输出与普通读取相同的 schema-v11 路由 envelope，并且一次完整功能运行必须保持同一
 条已解析路线。
 
 SPOC 诊断恰好返回 `globalPageCount` 和普通 `result`。该计数为正 `u32`，证明权威加密全局
@@ -82,3 +82,7 @@ Cgyy 目的类型诊断返回 `items` 与 `source`。`source=upstream` 表示本
 `source=static_fallback` 表示请求失败或上游返回空集合而使用冻结静态列表；两者都不得把
 原始响应投影到宿主。Cgyy 锁码仍只公开 `available`，真实验证永远不调用预约、取消或锁码
 写入口。
+
+## GSMIS研究生课表
+
+课表在本科门户或读取失败后沿冻结旧版访问GSMIS我的课表；不通过学号猜类型，不借本科campusCode或其它服务的URL。学期完整性、选定学期、排课班号、唯一校历周一及节次时间均核对后返回。完整规范化节次通过可选sectionTimes进入CLI schema-v11及缓存，旧缓存缺字段默认空。考试仍仅本科协议。来源与已证边界见[GSMIS逐操作对照](../migration/source-parity-gsmis-2026-10-02.md)。

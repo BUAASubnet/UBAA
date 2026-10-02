@@ -19,6 +19,9 @@ struct ImportTransport {
 impl HttpTransport for ImportTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         self.requests.lock().unwrap().push(request.clone());
+        if request.url.contains("/gsapp/sys/wdkbapp/") {
+            return Ok(HttpResponse::new(503, request.url, Vec::new()));
+        }
         let mut body = if request.url.ends_with("/api/uc/status") {
             include_bytes!("../../../../../fixtures/auth/userinfo-success.json").to_vec()
         } else if request.url.contains("currentUser.do") {

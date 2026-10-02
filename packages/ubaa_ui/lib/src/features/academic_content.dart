@@ -20,12 +20,14 @@ class _AcademicResultContent extends StatelessWidget {
   const _AcademicResultContent({
     required this.feature,
     required this.details,
+    this.timeline,
     this.query,
     this.onQuery,
     this.onNavigate,
   });
   final FeatureId feature;
   final List<FeatureDetail> details;
+  final ScheduleWeekOverview? timeline;
   final FeatureQuery? query;
   final Future<void> Function(FeatureQuery)? onQuery;
   final Future<void> Function(FeatureReadNavigation)? onNavigate;
@@ -45,7 +47,7 @@ class _AcademicResultContent extends StatelessWidget {
           details.every(
             (detail) => detail.presentation is ScheduleCoursePresentation,
           );
-      if (weekly) return _ScheduleContent(details: details);
+      if (weekly) return _ScheduleContent(details: details, timeline: timeline);
       return ListView(
         padding: const EdgeInsets.all(16),
         children: [

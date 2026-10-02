@@ -568,6 +568,7 @@ void main() {
       'BridgeRoutedWeeks',
       'BridgeRoutedYgdkOverview',
       'BridgeRoutedYgdkRecords',
+      'BridgeSectionTime',
       'BridgeSigninClass',
       'BridgeSpocAssignmentDetail',
       'BridgeSpocAssignmentSummary',
@@ -585,6 +586,17 @@ void main() {
     for (final name in allDtoNames) {
       expect(read, contains('class $name'), reason: '生成 DTO 缺少 $name');
     }
+  });
+
+  test('周课表保留完整节次时间轴，空周不丢失元数据', () {
+    expect(read, contains('final List<BridgeSectionTime> sectionTimes;'));
+    final body = RegExp(
+      r'class BridgeSectionTime \{(.*?)\n\}',
+      dotAll: true,
+    ).firstMatch(read)!.group(1)!;
+    expect(body, contains('final int section;'));
+    expect(body, contains('final String? start;'));
+    expect(body, contains('final String? end;'));
   });
 
   test('生成 DTO 快照固定全部公开读取枚举', () {

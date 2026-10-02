@@ -5,6 +5,7 @@ class _FeatureDetailList extends StatefulWidget {
   const _FeatureDetailList({
     required this.feature,
     required this.details,
+    this.timeline,
     this.filter = '',
     this.bykcStatuses = _defaultBykcStatuses,
     this.onBykcStatusesChanged,
@@ -41,6 +42,7 @@ class _FeatureDetailList extends StatefulWidget {
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final FeatureId feature;
   final List<FeatureDetail> details;
+  final ScheduleWeekOverview? timeline;
   final FeaturePagination? pagination;
   final FeatureQuery? query;
   final Future<void> Function(FeatureQuery query)? onQuery;
@@ -231,6 +233,7 @@ class _FeatureDetailListState extends State<_FeatureDetailList> {
                 ? _AcademicResultContent(
                     feature: widget.feature,
                     details: visible,
+                    timeline: widget.timeline,
                     query: widget.query,
                     onQuery: widget.onQuery,
                     onNavigate: widget.onNavigate,

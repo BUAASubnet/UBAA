@@ -75,6 +75,11 @@ fn routed_primary_success_representatives() -> Vec<(CliFeature, serde_json::Valu
         (
             CliFeature::Schedule,
             serde_json::to_value(WeeklySchedule {
+                section_times: vec![ubaa_core::facade::SectionTime {
+                    section: 1,
+                    start: Some("08:00".into()),
+                    end: Some("08:45".into()),
+                }],
                 arranged_list: vec![CourseClass::default()],
                 code: "2025-2026-1".into(),
                 name: "Term".into(),

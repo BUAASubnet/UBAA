@@ -1565,6 +1565,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeSectionTime dco_decode_bridge_section_time(dynamic raw);
+
+  @protected
   BridgeSigninClass dco_decode_bridge_signin_class(dynamic raw);
 
   @protected
@@ -1865,6 +1868,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BridgeRouteLoginResult> dco_decode_list_bridge_route_login_result(
     dynamic raw,
   );
+
+  @protected
+  List<BridgeSectionTime> dco_decode_list_bridge_section_time(dynamic raw);
 
   @protected
   List<BridgeSigninClass> dco_decode_list_bridge_signin_class(dynamic raw);
@@ -4016,6 +4022,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeSectionTime sse_decode_bridge_section_time(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeSigninClass sse_decode_bridge_signin_class(
     SseDeserializer deserializer,
   );
@@ -4382,6 +4393,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<BridgeRouteLoginResult> sse_decode_list_bridge_route_login_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeSectionTime> sse_decode_list_bridge_section_time(
     SseDeserializer deserializer,
   );
 
@@ -6950,6 +6966,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_section_time(
+    BridgeSectionTime self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_signin_class(
     BridgeSigninClass self,
     SseSerializer serializer,
@@ -7408,6 +7430,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_list_bridge_route_login_result(
     List<BridgeRouteLoginResult> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_section_time(
+    List<BridgeSectionTime> self,
     SseSerializer serializer,
   );
 

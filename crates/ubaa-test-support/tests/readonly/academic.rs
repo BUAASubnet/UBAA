@@ -117,6 +117,15 @@ async fn route_client_readonly_authentication_required_clears_the_selected_sessi
     let transport = MockTransport::new([
         expected_get(current_user, r#"{"user":"ok"}"#),
         ExpectedRequest::new(HttpMethod::Get, terms, response(401, terms, "")),
+        ExpectedRequest::new(
+            HttpMethod::Get,
+            "https://gsmis.buaa.edu.cn/gsapp/sys/wdkbapp/*default/index.do",
+            response(
+                401,
+                "https://gsmis.buaa.edu.cn/gsapp/sys/wdkbapp/*default/index.do",
+                "",
+            ),
+        ),
     ]);
     let observed = transport.clone();
     let store = session_store();

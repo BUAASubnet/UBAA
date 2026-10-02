@@ -48,6 +48,16 @@ void main() {
       RoutePolicy.direct,
     );
     expect(week.projection!.details.single.title, '合成课程');
+    final timeline = week.projection!.overview! as ScheduleWeekOverview;
+    expect(timeline.sectionTimes.length, 14);
+    expect(timeline.sectionTimes.last.end, '22:15');
+    expect(
+      (week.projection!.toSnapshot().overview! as ScheduleWeekOverview)
+          .sectionTimes
+          .first
+          .start,
+      '08:00',
+    );
     final exams = await value.readCachedQuery(
       FeatureId.exam,
       const FeatureQuery(
@@ -202,6 +212,10 @@ class _Cache implements BridgeOfflineCache {
     scopes.add('week:$term:$week');
     return BridgeCachedAcademicWeek(
       data: const BridgeWeeklySchedule(
+        sectionTimes: [
+          BridgeSectionTime(section: 1, start: "08:00", end: "08:45"),
+          BridgeSectionTime(section: 14, start: "21:30", end: "22:15"),
+        ],
         arrangedList: [BridgeCourseClass(courseCode: 'C', courseName: '合成课程')],
         code: 'response-code',
         name: '周表',
@@ -284,7 +298,7 @@ class _Cache implements BridgeOfflineCache {
 
 class _Client implements BridgeClient {
   @override
-  int contractVersion() => 39;
+  int contractVersion() => 40;
   @override
   Future<BridgeAcademicGradesRefresh> academicGradesCached({
     required BridgeOfflineCache cache,

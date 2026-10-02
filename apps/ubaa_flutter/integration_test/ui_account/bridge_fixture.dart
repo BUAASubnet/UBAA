@@ -33,7 +33,7 @@ final class AccountPartialBridgeClient implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 39;
+  int contractVersion() => 40;
 
   @override
   dynamic noSuchMethod(Invocation invocation) {

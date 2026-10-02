@@ -44,7 +44,7 @@ async fn 课堂签到今日与写结果都符合_schema_v10() {
     assert_eq!(code, 0);
     let today: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
     assert_cli_schema(&today);
-    assert_eq!(today["schemaVersion"], 10);
+    assert_eq!(today["schemaVersion"], 11);
     assert_eq!(today["data"][0]["signStatus"], 0);
     assert_eq!(today["data"][0]["signinEligibility"], "allowed");
     assert_eq!(today["data"][1]["signinEligibility"], "denied");
@@ -103,7 +103,7 @@ async fn 课堂签到确定成功与业务_false_保持内外层语义() {
 
         assert_eq!(exit, 0, "确定业务 false 仍表示调用完成");
         assert_cli_schema(&value);
-        assert_eq!(value["schemaVersion"], 10);
+        assert_eq!(value["schemaVersion"], 11);
         assert_eq!(value["ok"], true);
         assert_eq!(value["data"]["success"], expected_success);
         assert_eq!(value["data"]["code"], expected_code);
@@ -243,7 +243,7 @@ async fn 图书馆座位原始状态资格与稳定目标符合_schema_v10() {
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["schemaVersion"], 10);
+    assert_eq!(value["schemaVersion"], 11);
     assert_eq!(value["data"][0]["status"], 1);
     assert_eq!(value["data"][0]["reserveEligibility"], "allowed");
     assert_eq!(value["data"][0]["reserveTarget"], "seat-allowed");
@@ -293,7 +293,7 @@ async fn 图书馆预约确定成功与业务_false_保持内外层语义并符�
 
         assert_eq!(exit, 0, "确定的业务 false 仍表示请求结果已知");
         assert_cli_schema(&value);
-        assert_eq!(value["schemaVersion"], 10);
+        assert_eq!(value["schemaVersion"], 11);
         assert_eq!(value["ok"], true);
         assert_eq!(value["data"]["success"], expected_success);
         assert_eq!(value["data"]["message"], expected_message);
@@ -342,7 +342,7 @@ async fn 图书馆预约发送前超时与发送后未知保持不同错误分�
 
         assert_eq!(exit, 5);
         assert_cli_schema(&value);
-        assert_eq!(value["schemaVersion"], 10);
+        assert_eq!(value["schemaVersion"], 11);
         assert_eq!(value["ok"], false);
         assert_eq!(value["error"]["code"], expected_error);
         assert_eq!(backend.libbook_reserve_calls, 1);
@@ -507,7 +507,7 @@ async fn 博雅三类写操作确认后输出均符合_schema_v10() {
         assert_eq!(code, 0);
         let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
         assert_cli_schema(&value);
-        assert_eq!(value["schemaVersion"], 10);
+        assert_eq!(value["schemaVersion"], 11);
         assert_eq!(value["ok"], true);
         assert_eq!(value["data"]["message"], expected_message);
         assert_eq!(value["meta"]["feature"], "bykc");

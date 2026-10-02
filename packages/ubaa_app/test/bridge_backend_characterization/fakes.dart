@@ -43,7 +43,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 39;
+  int contractVersion() => 40;
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
@@ -644,6 +644,7 @@ class _CharacterizationBridgeClient implements BridgeClient {
         return Future<BridgeRoutedWeeklySchedule>.value(
           BridgeRoutedWeeklySchedule(
             data: BridgeWeeklySchedule(
+              sectionTimes: [],
               arrangedList: emptyReads
                   ? const <BridgeCourseClass>[]
                   : const <BridgeCourseClass>[

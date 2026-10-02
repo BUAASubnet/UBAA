@@ -37,3 +37,14 @@ fn schedule_week_and_today_wrappers_preserve_frozen_nonzero_code_tolerance() {
     .expect("frozen today parser does not gate on code");
     assert_eq!(today.len(), 1);
 }
+
+#[test]
+fn gsmis学期列表完整性与默认学期() {
+    let body = r#"{"code":"0","datas":{"kfdxnxqcx":{"totalSize":3,"rows":[{"XNXQDM":"20253","XNXQDM_DISPLAY":"旧学期"},{"XNXQDM":"20261","XNXQDM_DISPLAY":"新学期"},{"XNXQDM":"20261","XNXQDM_DISPLAY":"重复"}]}}}"#;
+    let terms = super::graduate::parse_terms(body).expect("GSMIS学期应可解析");
+    assert_eq!(terms.len(), 2);
+    assert_eq!(terms[0].item_code, "20261");
+    assert!(terms[0].selected);
+    assert!(!terms[1].selected);
+    assert!(super::graduate::parse_terms(&body.replace("totalSize\":3", "totalSize\":4")).is_err());
+}

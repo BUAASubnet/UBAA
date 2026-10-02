@@ -16085,6 +16085,20 @@ impl SseDecode for crate::api::schedule_import::BridgeScheduleImportProgress {
     }
 }
 
+impl SseDecode for crate::api::read::BridgeSectionTime {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_section = <i32>::sse_decode(deserializer);
+        let mut var_start = <Option<String>>::sse_decode(deserializer);
+        let mut var_end = <Option<String>>::sse_decode(deserializer);
+        return crate::api::read::BridgeSectionTime {
+            section: var_section,
+            start: var_start,
+            end: var_end,
+        };
+    }
+}
+
 impl SseDecode for crate::api::read::BridgeSigninClass {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -16338,10 +16352,13 @@ impl SseDecode for crate::api::read::BridgeWeeklySchedule {
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
         let mut var_arrangedList =
             <Vec<crate::api::read::BridgeCourseClass>>::sse_decode(deserializer);
+        let mut var_sectionTimes =
+            <Vec<crate::api::read::BridgeSectionTime>>::sse_decode(deserializer);
         let mut var_code = <String>::sse_decode(deserializer);
         let mut var_name = <String>::sse_decode(deserializer);
         return crate::api::read::BridgeWeeklySchedule {
             arranged_list: var_arrangedList,
+            section_times: var_sectionTimes,
             code: var_code,
             name: var_name,
         };
@@ -17323,6 +17340,20 @@ impl SseDecode for Vec<crate::api::client::BridgeRouteLoginResult> {
         let mut ans_ = Vec::with_capacity(len_ as usize);
         for idx_ in 0..len_ {
             ans_.push(<crate::api::client::BridgeRouteLoginResult>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::read::BridgeSectionTime> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::read::BridgeSectionTime>::sse_decode(
                 deserializer,
             ));
         }
@@ -25213,6 +25244,28 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::schedule_import::BridgeSchedu
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeSectionTime {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.section.into_into_dart().into_dart(),
+            self.start.into_into_dart().into_dart(),
+            self.end.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::read::BridgeSectionTime
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeSectionTime>
+    for crate::api::read::BridgeSectionTime
+{
+    fn into_into_dart(self) -> crate::api::read::BridgeSectionTime {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeSigninClass {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -25529,6 +25582,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeWeeklySchedule {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
             self.arranged_list.into_into_dart().into_dart(),
+            self.section_times.into_into_dart().into_dart(),
             self.code.into_into_dart().into_dart(),
             self.name.into_into_dart().into_dart(),
         ]
@@ -28931,6 +28985,15 @@ impl SseEncode for crate::api::schedule_import::BridgeScheduleImportProgress {
     }
 }
 
+impl SseEncode for crate::api::read::BridgeSectionTime {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.section, serializer);
+        <Option<String>>::sse_encode(self.start, serializer);
+        <Option<String>>::sse_encode(self.end, serializer);
+    }
+}
+
 impl SseEncode for crate::api::read::BridgeSigninClass {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -29104,6 +29167,7 @@ impl SseEncode for crate::api::read::BridgeWeeklySchedule {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <Vec<crate::api::read::BridgeCourseClass>>::sse_encode(self.arranged_list, serializer);
+        <Vec<crate::api::read::BridgeSectionTime>>::sse_encode(self.section_times, serializer);
         <String>::sse_encode(self.code, serializer);
         <String>::sse_encode(self.name, serializer);
     }
@@ -29823,6 +29887,16 @@ impl SseEncode for Vec<crate::api::client::BridgeRouteLoginResult> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <crate::api::client::BridgeRouteLoginResult>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::read::BridgeSectionTime> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::read::BridgeSectionTime>::sse_encode(item, serializer);
         }
     }
 }

@@ -388,8 +388,10 @@ Future<CachedFeatureProjection?> _cachedAcademicProjection(
       complete: evidence.complete,
       scopeDate: evidence.scopeDate,
       details: result.details,
-      overview: result.overview is GradesTermOverview
-          ? result.overview as GradesTermOverview
+      overview:
+          result.overview is GradesTermOverview ||
+              result.overview is ScheduleWeekOverview
+          ? result.overview
           : null,
     );
   } on _AcademicCacheMiss {

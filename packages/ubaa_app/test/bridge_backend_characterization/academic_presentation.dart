@@ -260,6 +260,7 @@ class _AcademicPresentationClient extends _CharacterizationBridgeClient {
     calls.add('week:$term/$week');
     return const BridgeRoutedWeeklySchedule(
       data: BridgeWeeklySchedule(
+        sectionTimes: [],
         code: 'response-code',
         name: '周表',
         arrangedList: [

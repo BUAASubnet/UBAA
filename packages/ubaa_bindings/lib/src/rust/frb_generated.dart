@@ -13202,6 +13202,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeSectionTime dco_decode_bridge_section_time(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeSectionTime(
+      section: dco_decode_i_32(arr[0]),
+      start: dco_decode_opt_String(arr[1]),
+      end: dco_decode_opt_String(arr[2]),
+    );
+  }
+
+  @protected
   BridgeSigninClass dco_decode_bridge_signin_class(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -13406,12 +13419,13 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeWeeklySchedule dco_decode_bridge_weekly_schedule(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 3)
-      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
     return BridgeWeeklySchedule(
       arrangedList: dco_decode_list_bridge_course_class(arr[0]),
-      code: dco_decode_String(arr[1]),
-      name: dco_decode_String(arr[2]),
+      sectionTimes: dco_decode_list_bridge_section_time(arr[1]),
+      code: dco_decode_String(arr[2]),
+      name: dco_decode_String(arr[3]),
     );
   }
 
@@ -14078,6 +14092,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     return (raw as List<dynamic>)
         .map(dco_decode_bridge_route_login_result)
         .toList();
+  }
+
+  @protected
+  List<BridgeSectionTime> dco_decode_list_bridge_section_time(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_section_time).toList();
   }
 
   @protected
@@ -19878,6 +19898,21 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeSectionTime sse_decode_bridge_section_time(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_section = sse_decode_i_32(deserializer);
+    var var_start = sse_decode_opt_String(deserializer);
+    var var_end = sse_decode_opt_String(deserializer);
+    return BridgeSectionTime(
+      section: var_section,
+      start: var_start,
+      end: var_end,
+    );
+  }
+
+  @protected
   BridgeSigninClass sse_decode_bridge_signin_class(
     SseDeserializer deserializer,
   ) {
@@ -20135,10 +20170,12 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var var_arrangedList = sse_decode_list_bridge_course_class(deserializer);
+    var var_sectionTimes = sse_decode_list_bridge_section_time(deserializer);
     var var_code = sse_decode_String(deserializer);
     var var_name = sse_decode_String(deserializer);
     return BridgeWeeklySchedule(
       arrangedList: var_arrangedList,
+      sectionTimes: var_sectionTimes,
       code: var_code,
       name: var_name,
     );
@@ -21128,6 +21165,20 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <BridgeRouteLoginResult>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_bridge_route_login_result(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeSectionTime> sse_decode_list_bridge_section_time(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeSectionTime>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_section_time(deserializer));
     }
     return ans_;
   }
@@ -26404,6 +26455,17 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bridge_section_time(
+    BridgeSectionTime self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.section, serializer);
+    sse_encode_opt_String(self.start, serializer);
+    sse_encode_opt_String(self.end, serializer);
+  }
+
+  @protected
   void sse_encode_bridge_signin_class(
     BridgeSigninClass self,
     SseSerializer serializer,
@@ -26580,6 +26642,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_list_bridge_course_class(self.arrangedList, serializer);
+    sse_encode_list_bridge_section_time(self.sectionTimes, serializer);
     sse_encode_String(self.code, serializer);
     sse_encode_String(self.name, serializer);
   }
@@ -27388,6 +27451,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_bridge_route_login_result(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_section_time(
+    List<BridgeSectionTime> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_section_time(item, serializer);
     }
   }
 

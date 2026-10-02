@@ -9,7 +9,7 @@
 - macOS 按钮分支11个已提交成果已合并，交互验证码未提交代码已复制整合并补齐当前生命周期，原worktree保持原样。
 - 另一 `ui-button-parity` worktree 只有计划/状态改动，保持原样。
 - 两冻结来源校验通过：ubaa_old `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`；buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。
-- 公开合同当前为 CLI JSON schema v10、Flutter bridge contract v39、Session v2、配置 v1、业务缓存 schema v6；后续整合变更须同步检查。
+- 公开合同当前为 CLI JSON schema v11、Flutter bridge contract v40、Session v2、配置 v1、业务缓存 schema v6；后续整合变更须同步检查。
 
 ## 当前实现与验证边界
 
@@ -35,3 +35,7 @@
 恢复旧版“查看密码”入口，专用Core页面句柄固定路线并绑定客户端/会话/路线代次；Bridge v39传递白名单，材料不入普通DTO、缓存、日志或JSON。页面30秒刷新前清旧码，手动/定时单飞，隐藏、返回、账号变化或后台立即撤销。手机390和桌面1024宽度Host流程通过，完整1307项Flutter与分析通过。新私有会话WebVPN登录、资料及门锁读取通过，当前真实密码与预约均为空，不宣称有码验收。详细证据见[门锁阶段](evidence/project-lock-display-2026-10-02.md)。
 
 中断后/tmp旧日志已消失；当前阶段门禁重跑并保存在仓库外私有证据目录，保留源码与原worktree。继续开发GSMIS课表，之后再做最新macOS构建与真实按钮核对。旧版Android系统widget及Windows/Linux选图需单独核对，不以macOS测试代替。
+
+## 2026-10-02 GSMIS与时间轴
+
+GSMIS研究生课表与旧版完整节次时间轴已实现，覆盖同会话来源、精确请求、日历核验、相邻课节、空周、离线持久化和三宽度UI。完整1312项Flutter、Rust/CLI门禁、敏感与FRB零漂移通过；当前WebVPN矩阵38 PASS/0 FAIL/退出0，真实账号仅本科来源，GSMIS live仍未取得。详见[阶段证据](evidence/project-gsmis-2026-10-02.md)。下一步补Windows/Linux系统选图接线，再执行最终构建、多端原生验证与Computer Use；整体目标仍在执行。

@@ -33,6 +33,11 @@ fn semester(term: &str, date: &str, name: &str, fetched_at: i64) -> CachedSemest
             1,
             WeeklySchedule {
                 code: "synthetic-student-code".into(),
+                section_times: vec![crate::domain::SectionTime {
+                    section: 14,
+                    start: Some("21:30".into()),
+                    end: Some("22:15".into()),
+                }],
                 arranged_list: vec![CourseClass {
                     course_name: name.into(),
                     day_of_week: Some(2),
@@ -87,7 +92,11 @@ fn 完整导入重开保留各学期与原时间_普通周查询不能成为整�
         .unwrap()
         .unwrap();
     assert_eq!(value.fetched_at, 100);
-    assert!(matches!(value.payload, CachePayload::Week(_)));
+    let CachePayload::Week(week) = &value.payload else {
+        panic!("必须返回周课表");
+    };
+    assert_eq!(week.section_times[0].section, 14);
+    assert_eq!(week.section_times[0].end.as_deref(), Some("22:15"));
     assert!(
         repo.read_imported_schedule(
             ConnectionMode::WebVpn,

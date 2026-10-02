@@ -2,7 +2,8 @@ part of '../widgets.dart';
 
 /// 冻结旧版的七日节次网格；时间缺失或冲突不造成课程丢失。
 class _ScheduleContent extends StatefulWidget {
-  const _ScheduleContent({required this.details});
+  const _ScheduleContent({required this.details, this.timeline});
+  final ScheduleWeekOverview? timeline;
   final List<FeatureDetail> details;
   @override
   State<_ScheduleContent> createState() => _ScheduleContentState();
@@ -23,11 +24,18 @@ class _ScheduleContentState extends State<_ScheduleContent> {
       final dates = _ScheduleWeekScope.of(context)?.headerDateLabels;
       final width = math.max(constraints.maxWidth - 16, 330 * scale);
       final periodHeight = 64 * scale;
-      final axisWidth = 36 * scale;
+      final times =
+          widget.timeline?.sectionTimes ??
+          scheduleSectionTimes(
+            courses: widget.details
+                .map((d) => d.presentation)
+                .whereType<ScheduleCoursePresentation>(),
+          );
+      final axisWidth = 52 * scale;
       final columnWidth = (width - axisWidth) / 7;
       final groups = <_ScheduleBlock>[];
       final unknown = <FeatureDetail>[];
-      var periods = 12;
+      var periods = math.max(12, times.length);
       for (final detail in widget.details) {
         final p = detail.presentation! as ScheduleCoursePresentation;
         if (!_scheduled(p)) {
@@ -165,6 +173,7 @@ class _ScheduleContentState extends State<_ScheduleContent> {
                                 width: axisWidth,
                                 rowHeight: periodHeight,
                                 periods: periods,
+                                times: times,
                               ),
                             ],
                           ),
@@ -240,8 +249,10 @@ class _SchedulePinnedAxis extends AnimatedWidget {
     required this.width,
     required this.rowHeight,
     required this.periods,
+    required this.times,
   }) : super(listenable: controller);
   final ScrollController controller;
+  final List<ScheduleSectionTime> times;
   final double width, rowHeight;
   final int periods;
   @override
@@ -258,12 +269,37 @@ class _SchedulePinnedAxis extends AnimatedWidget {
             SizedBox(
               height: rowHeight,
               child: Center(
-                child: Text(
-                  '$section',
-                  style: TextStyle(
-                    fontSize: 12,
-                    color: Theme.of(context).colorScheme.onSurfaceVariant,
-                  ),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    Text(
+                      '$section',
+                      style: const TextStyle(
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    Text(
+                      section <= times.length
+                          ? times[section - 1].start ?? '--:--'
+                          : '--:--',
+                      style: TextStyle(
+                        fontSize: 10,
+                        height: 1.3,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                    Text(
+                      section <= times.length
+                          ? times[section - 1].end ?? '--:--'
+                          : '--:--',
+                      style: TextStyle(
+                        fontSize: 10,
+                        height: 1.3,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),

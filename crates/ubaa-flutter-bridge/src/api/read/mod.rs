@@ -74,8 +74,15 @@ pub struct BridgeCourseClass {
     pub day_of_week: Option<i32>,
 }
 #[derive(Clone, Debug)]
+pub struct BridgeSectionTime {
+    pub section: i32,
+    pub start: Option<String>,
+    pub end: Option<String>,
+}
+#[derive(Clone, Debug)]
 pub struct BridgeWeeklySchedule {
     pub arranged_list: Vec<BridgeCourseClass>,
+    pub section_times: Vec<BridgeSectionTime>,
     pub code: String,
     pub name: String,
 }

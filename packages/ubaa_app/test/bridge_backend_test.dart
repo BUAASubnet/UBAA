@@ -17,7 +17,7 @@ void main() {
   _registerAssignmentsBridgeBackendTests();
 
   test('BridgeBackend 接受当前合同版本', () {
-    final client = _ContractVersionClient(39);
+    final client = _ContractVersionClient(40);
 
     final backend = BridgeBackend(client);
 
@@ -643,7 +643,7 @@ class _ContractVersionClient implements BridgeClient {
 
 abstract class _CompatibleBridgeClient implements BridgeClient {
   @override
-  int contractVersion() => 39;
+  int contractVersion() => 40;
 }
 
 class _FakeClassroomClient extends _CompatibleBridgeClient {

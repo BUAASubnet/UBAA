@@ -69,6 +69,10 @@ List<FeatureDetail> readonlyFeatureDetails(Iterable<FeatureDetail> details) =>
 
 FeatureOverview? readonlyFeatureOverview(FeatureOverview? overview) =>
     switch (overview) {
+      ScheduleWeekOverview value => ScheduleWeekOverview(
+        code: value.code,
+        sectionTimes: List.unmodifiable(value.sectionTimes),
+      ),
       EvaluationProgressOverview value => EvaluationProgressOverview(
         totalCourses: value.totalCourses,
         evaluatedCourses: value.evaluatedCourses,

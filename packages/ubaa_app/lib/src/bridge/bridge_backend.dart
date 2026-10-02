@@ -20,6 +20,7 @@ part 'recovery.dart';
 part 'interactive_auth.dart';
 part 'read/academic.dart';
 part 'read/schedule/import.dart';
+part 'read/schedule/timeline.dart';
 part 'read/academic_cache.dart';
 part 'read/grades/baseline.dart';
 part 'read/assignments.dart';
@@ -56,7 +57,7 @@ part 'write/readback.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 39;
+const _supportedBridgeContractVersion = 40;
 
 /// 基于 FRB opaque client 的生产后端。
 ///

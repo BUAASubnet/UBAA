@@ -42,6 +42,7 @@ Future<FeatureResult> _projectAcademicFeature(
             return _countResult(
               details.length,
               '第 ${query.week} 周课表',
+              overview: _scheduleOverview(result.data, details),
               details: details,
               resolvedRoute: result.route,
             );
@@ -135,6 +136,7 @@ Future<FeatureResult> _projectAcademicFeature(
           return _countResult(
             details.length,
             '第 $week 周课表',
+            overview: _scheduleOverview(result.data, details),
             details: details,
             resolvedRoute: result.route,
           );

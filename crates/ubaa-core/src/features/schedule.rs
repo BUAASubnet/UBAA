@@ -7,6 +7,13 @@
 
 use serde::Deserialize;
 
+mod access;
+mod graduate;
+pub(crate) use access::{
+    get_terms, get_today, get_today_for_date, get_week, get_week_for_import, get_weeks,
+    get_weeks_for_import,
+};
+
 use crate::domain::{Exam, ExamArrangement, Term, TodayClass, Week, WeeklySchedule};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
@@ -91,7 +98,7 @@ pub fn parse_exam(body: &str) -> Result<ExamArrangement> {
 }
 
 /// 通过当前认证路线获取学期。
-pub(crate) async fn get_terms(runtime: &mut crate::runtime::ClientRuntime) -> Result<Vec<Term>> {
+async fn get_terms_undergraduate(runtime: &mut crate::runtime::ClientRuntime) -> Result<Vec<Term>> {
     ensure_undergraduate_portal(runtime).await?;
     let url = runtime.url(TERMS_URL)?;
     let referer = runtime.url(SCHEDULE_REFERER_URL)?;
@@ -111,13 +118,13 @@ pub(crate) async fn get_terms(runtime: &mut crate::runtime::ClientRuntime) -> Re
 }
 
 /// 获取一个学期的教学周。
-pub(crate) async fn get_weeks(
+async fn get_weeks_undergraduate(
     runtime: &mut crate::runtime::ClientRuntime,
     term: &str,
 ) -> Result<Vec<Week>> {
     parse_weeks(&weeks_body(runtime, term).await?)
 }
-pub(crate) async fn get_weeks_for_import(
+async fn get_weeks_for_import_undergraduate(
     runtime: &mut crate::runtime::ClientRuntime,
     term: &str,
 ) -> Result<Vec<Week>> {
@@ -154,14 +161,14 @@ async fn weeks_body(runtime: &mut crate::runtime::ClientRuntime, term: &str) -> 
 }
 
 /// 获取指定编号的教学周。
-pub(crate) async fn get_week(
+async fn get_week_undergraduate(
     runtime: &mut crate::runtime::ClientRuntime,
     term: &str,
     week: i32,
 ) -> Result<WeeklySchedule> {
     parse_weekly_schedule(&week_body(runtime, term, week).await?)
 }
-pub(crate) async fn get_week_for_import(
+async fn get_week_for_import_undergraduate(
     runtime: &mut crate::runtime::ClientRuntime,
     term: &str,
     week: i32,
@@ -215,15 +222,7 @@ fn require_complete_import(body: &str) -> Result<()> {
     ))
 }
 
-/// 使用上海日历日期获取今日课程。
-pub(crate) async fn get_today(
-    runtime: &mut crate::runtime::ClientRuntime,
-) -> Result<Vec<TodayClass>> {
-    ensure_undergraduate_portal(runtime).await?;
-    get_today_after_portal(runtime, &shanghai_date()).await
-}
-
-pub(crate) async fn get_today_for_date(
+async fn get_today_for_date_undergraduate(
     runtime: &mut crate::runtime::ClientRuntime,
     date: &str,
 ) -> Result<Vec<TodayClass>> {

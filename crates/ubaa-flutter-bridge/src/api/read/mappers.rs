@@ -69,6 +69,15 @@ fn map_course(v: domain::CourseClass) -> BridgeCourseClass {
 }
 pub(crate) fn map_weekly_schedule(v: domain::WeeklySchedule) -> BridgeWeeklySchedule {
     BridgeWeeklySchedule {
+        section_times: v
+            .section_times
+            .into_iter()
+            .map(|value| super::BridgeSectionTime {
+                section: value.section,
+                start: value.start,
+                end: value.end,
+            })
+            .collect(),
         arranged_list: v.arranged_list.into_iter().map(map_course).collect(),
         code: v.code,
         name: v.name,

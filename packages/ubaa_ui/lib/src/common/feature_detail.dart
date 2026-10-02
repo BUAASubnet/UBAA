@@ -233,6 +233,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                 ),
               if (widget.snapshot.overview case final overview?
                   when overview is! GradesTermOverview &&
+                      overview is! ScheduleWeekOverview &&
                       (widget.snapshot.status == FeatureLoadStatus.success ||
                           widget.snapshot.status == FeatureLoadStatus.empty ||
                           widget.snapshot.status == FeatureLoadStatus.stale ||
@@ -560,10 +561,16 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
     onRouteOptions: widget.onFormRouteOptions,
   );
 
+  ScheduleWeekOverview? get _scheduleTimeline =>
+      widget.snapshot.overview is ScheduleWeekOverview
+      ? widget.snapshot.overview as ScheduleWeekOverview
+      : null;
+
   Widget _details(BuildContext context) {
     return _FeatureDetailList(
       feature: widget.feature,
       details: widget.snapshot.details,
+      timeline: _scheduleTimeline,
       filter: _searchController.text,
       bykcStatuses: _bykcStatuses,
       onBykcStatusesChanged: (statuses) => widget.onBykcFiltersChanged(
@@ -601,7 +608,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
               (widget.query?.view == FeatureQueryView.summary &&
                   widget.query?.term != null &&
                   widget.query?.week != null))
-      ? const _ScheduleContent(details: [])
+      ? _ScheduleContent(details: const [], timeline: _scheduleTimeline)
       : Center(
           child: Padding(
             padding: const EdgeInsets.all(24),

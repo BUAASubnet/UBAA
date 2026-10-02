@@ -1738,3 +1738,7 @@ Bridge升级v36；schema v6新增载荷变体而不改SQL结构、密文封装�
 按敏感显示专项九列复核当前两冻结提交。只读取已证qrCode/dueDate及旧页预约摘要，不借password别名、不猜有效期时区。普通available接口与CLI10不变；独立敏感模块承载两阶段页面句柄与fresh读取，Bridge升级39。首次打开解析路线，后续固定路线并在请求前后检查取消/会话/代次；新增独立架构断言覆盖此两阶段语义，保留普通读取单一canonical文件及原路线计数门禁。
 
 新行为RED观察到字段缺失、门锁日志含body_sha1以及UI未调用专用读取；修复后Core、Bridge合同、App生命周期与两宽度Host通过。原门锁根菜单golden仅更新“查看密码”说明文本，合成失败图片移到仓库外。真实WebVPN空结果与无实际密码的限制见[阶段证据](evidence/project-lock-display-2026-10-02.md)。
+
+## 2026-10-02：GSMIS数据源与时间轴合同
+
+按当前冻结旧版withScheduleAccess执行本科优先、失败后实际核验GSMIS，不猜学生类型。示例无同协议实现，不借campusCode或AAS service。只增加研究生引导操作的gsmis重定向主机；未知POST重定向不自动重发。规范化输出保留完整SectionTime，旧缓存反序列化为空兼容；新可选公开字段使CLI升11、Bridge升40。来源、RED/GREEN、缓存重开、三宽度UI与当前WebVPN限制见[阶段证据](evidence/project-gsmis-2026-10-02.md)。目前实际账号没有GSMIS来源，不能将本科成功解释成研究生实时成功。

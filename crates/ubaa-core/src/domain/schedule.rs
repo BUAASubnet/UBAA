@@ -41,6 +41,15 @@ pub struct WeeklySchedule {
     pub arranged_list: Vec<CourseClass>,
     pub code: String,
     pub name: String,
+    #[serde(default, skip_serializing_if = "Vec::is_empty")]
+    pub section_times: Vec<SectionTime>,
+}
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct SectionTime {
+    pub section: i32,
+    pub start: Option<String>,
+    pub end: Option<String>,
 }
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]

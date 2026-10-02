@@ -7,8 +7,8 @@
 | 层 | 目录 | 当前职责与检查重点 |
 |---|---|---|
 | Core | `crates/ubaa-core` | 认证、双路线、会话、十二领域协议、资格和加密缓存；`facade` 是生产出口 |
-| Bridge | `crates/ubaa-flutter-bridge` | 公开 typed 接口、异步客户端锁、渐进读取和缓存；当前 v39，已重新生成并验证 |
-| CLI | `apps/ubaa-cli` | schema v10、命令和退出码、只读 live 矩阵、二进制端到端 |
+| Bridge | `crates/ubaa-flutter-bridge` | 公开 typed 接口、异步客户端锁、渐进读取和缓存；当前 v40，已重新生成并验证 |
+| CLI | `apps/ubaa-cli` | schema v11、命令和退出码、只读 live 矩阵、二进制端到端 |
 | 测试支持 | `crates/ubaa-test-support`、`fixtures` | 脱敏响应、Mock 请求和协议合同 |
 | Domain | `packages/ubaa_domain` | 十二领域、查询、结果、缓存依据和写操作模型 |
 | App | `packages/ubaa_app` | Core 投影、调度/会话/缓存生命周期、唯一 WriteCoordinator |
@@ -76,7 +76,7 @@
 ## 下一步
 
 1. 已完成基线、冻结版本差异复核及按钮分支整合，原worktree保持。
-2. 验证码已提交，门锁专用显示完成验证；下一专项补齐当前冻结GSMIS课表与完整时间轴，并审查Windows/Linux选图接线及旧版Android widget的范围。
+2. 验证码、门锁专用显示、GSMIS课表与完整时间轴均完成阶段门禁；下一专项补Windows/Linux选图接线，并明确旧版Android系统widget的宿主范围。
 3. 最终候选执行 refs/layout/sensitive/check、CLI E2E、Flutter、FRB、macOS 构建及可用模拟器适配。
 4. WebVPN 真实只读与 macOS Computer Use 逐按钮验收；无真实数据分支明确切换合成环境。
 5. 修复并复验，提交当前阶段，报告完成项与具体外部条件，不以历史通过关闭当前欠验。

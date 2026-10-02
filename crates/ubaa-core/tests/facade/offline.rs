@@ -259,6 +259,9 @@ impl HttpTransport for OfflineTransport {
                 .insert("Location".into(), vec!["https://judge.buaa.edu.cn/".into()]);
             return Ok(response);
         }
+        if request.url.contains("/gsapp/sys/wdkbapp/") {
+            return Ok(HttpResponse::new(503, request.url, Vec::new()));
+        }
         let body = if request.url.ends_with("/api/uc/status") {
             include_bytes!("../../../../fixtures/auth/userinfo-success.json").to_vec()
         } else if request.url.contains("currentUser.do") {

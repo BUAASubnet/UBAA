@@ -19,6 +19,7 @@ pub(crate) use credentials::{
 #[derive(Debug, Default)]
 pub(crate) struct RouteFeatureState {
     lifecycle_generation: std::sync::atomic::AtomicU64,
+    pub(crate) graduate_schedule: std::sync::atomic::AtomicU64,
     pub(crate) bykc: BykcState,
     pub(crate) cgyy: CgyyState,
     pub(crate) libbook: LibBookState,
@@ -37,6 +38,8 @@ impl RouteFeatureState {
     pub(crate) fn clear(&self) {
         self.lifecycle_generation
             .fetch_add(1, std::sync::atomic::Ordering::AcqRel);
+        self.graduate_schedule
+            .store(0, std::sync::atomic::Ordering::Release);
         self.bykc.clear();
         self.cgyy.clear();
         self.libbook.clear();
