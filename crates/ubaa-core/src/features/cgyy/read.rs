@@ -99,7 +99,63 @@ async fn orders_body(runtime: &mut ClientRuntime, page: i32, size: i32) -> Resul
 
 pub(crate) async fn get_order_detail(runtime: &mut ClientRuntime, id: i32) -> Result<CgyyOrder> {
     let body = get(runtime, &format!("/api/orders/{id}"), BTreeMap::new()).await?;
-    parse_order_detail_at(&body, shanghai_datetime(runtime.now()))
+    let data = super::parser::data(&body)?;
+    if data.get("orderInfo").is_some() {
+        return wrapped_order_detail(&data, id, shanghai_datetime(runtime.now()));
+    }
+    let order = parse_order_detail_at(&body, shanghai_datetime(runtime.now()))?;
+    // 空信封兼容仍留在 parser；具体订单读取不能成功返回编号0或其他订单。
+    if order.id <= 0 || order.id != id {
+        tracing::debug!(target: "ubaa::cgyy", operation = "orders.detail",
+            response_identity_present = order.id > 0, identity_matches = false,
+            "订单详情响应缺少匹配的目标身份");
+        return Err(super::parser::error("场馆订单详情缺失或与请求目标不符"));
+    }
+    Ok(order)
+}
+
+/// 实时详情使用独立包装且不回传列表数字编号；该编号只绑定请求上下文。
+fn wrapped_order_detail(
+    data: &serde_json::Value,
+    requested_id: i32,
+    now: chrono::NaiveDateTime,
+) -> Result<CgyyOrder> {
+    let raw = data
+        .get("orderInfo")
+        .and_then(serde_json::Value::as_object)
+        .ok_or_else(|| super::parser::error("场馆订单详情包装结构无效"))?;
+    let mut order = super::parser::parse_order_at(raw, now);
+    if requested_id <= 0
+        || (raw.contains_key("id") && order.id != requested_id)
+        || order
+            .trade_no
+            .as_deref()
+            .is_none_or(|value| value.trim().is_empty())
+        || order.venue_site_id.is_none_or(|value| value <= 0)
+        || order.order_status.is_none()
+    {
+        return Err(super::parser::error("场馆订单详情缺少订单依据或身份不符"));
+    }
+    order.id = requested_id;
+    if let Some(venue) = data
+        .get("venueInfoBean")
+        .and_then(serde_json::Value::as_object)
+    {
+        order.venue_name = order
+            .venue_name
+            .or_else(|| super::parser::string(venue, "venueName"));
+        order.site_name = order
+            .site_name
+            .or_else(|| super::parser::string(venue, "siteName"));
+        order.campus_name = order
+            .campus_name
+            .or_else(|| super::parser::string(venue, "campusName"));
+    }
+    // 新包装的展示证据不扩展旧取消协议的 fresh authority。
+    order.cancel_eligibility = crate::domain::ActionEligibility::Unknown;
+    order.cancel_target = None;
+    order.cancelled_target = None;
+    Ok(order)
 }
 
 /// 查询当前用户可用的门锁码，保留上游结构为不透明 JSON。

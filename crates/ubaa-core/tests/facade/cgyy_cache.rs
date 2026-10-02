@@ -274,12 +274,12 @@ fn check_replacement(
     transport.mode.store(4, Ordering::SeqCst);
     let empty_detail = runtime
         .block_on(client.refresh_cached_cgyy(cache, CgyyCacheQuery::Detail { order_id: 9 }))
-        .unwrap();
-    assert!(!empty_detail.complete);
-    assert_eq!(
-        empty_detail.result.save_error,
-        Some(CacheError::InvalidInput)
-    );
+        .expect_err("缺失目标身份必须作为读取错误，不能返回编号0的成功详情");
+    assert!(matches!(
+        empty_detail,
+        ubaa_core::facade::OfflineReadError::Read(error)
+            if error.error.code == ErrorCode::UpstreamChanged
+    ));
     let CachePayload::CgyyDetail(old) = cache
         .read_cgyy(
             ConnectionMode::Direct,

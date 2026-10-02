@@ -12,6 +12,8 @@ use ubaa_core::facade::{
 mod cancel_authority;
 #[path = "cgyy/cancel_support.rs"]
 mod cancel_support;
+#[path = "cgyy/detail_identity.rs"]
+mod detail_identity;
 #[path = "cgyy/reservation_authority.rs"]
 mod reservation_authority;
 #[path = "cgyy/reservation_support.rs"]
