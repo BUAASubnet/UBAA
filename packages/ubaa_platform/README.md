@@ -80,7 +80,13 @@ typed 方法，并只读取有限且位于合法范围内的 `lat`、`lng`。插
 分别用于安全拒绝与脱敏测试。
 
 生产宿主的默认组合由 `createDefaultPlatformCapabilities()` 创建：权限请求使用
-`MethodChannelPermissionGateway`，照片使用 `MethodChannelPhotoPicker`，位置使用
+按平台选择原生权限Gateway或系统单文件选择授权，照片在Windows/Linux使用`DesktopFilePhotoPicker`、其它平台使用`MethodChannelPhotoPicker`，位置使用
 `MethodChannelLocationProvider`；它们在插件缺失或返回值不符合合同时安全拒绝。
 MethodChannel 定义 Dart/原生的稳定边界；各能力是否完成以对应平台实现及验收证据为准，不能
 仅凭共享适配器推定设备权限、安全存储或定位已经可用。
+
+## Windows/Linux系统选图
+
+生产能力组合通过已注册的file_selector 1.1.0打开单文件系统对话框，仅在用户选择后读取。长度检查与流式读取均限制10MiB，取消返回空，异常归约为稳定PlatformCapabilityException；Host只接收字节、canonical文件名和image MIME，不接收路径。照片/文件权限表示可进入这一系统选择流程，其它权限仍委托既有原生Gateway；不声称桌面相机或定位已接入。其它平台保持现有MethodChannel选图实现。
+
+来源和验证边界见[桌面选图对照](../../docs/migration/source-parity-desktop-photo-2026-10-02.md)。本机测试不能替代Windows/Linux原生窗口验收。

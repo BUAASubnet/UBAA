@@ -9,6 +9,8 @@ environment:
 dependencies:
   flutter:
     sdk: flutter
+  file_selector: 1.1.0
+  mime: 2.0.0
   flutter_secure_storage: 10.0.0
   meta: ^1.16.0
   package_info_plus: ^8.3.1

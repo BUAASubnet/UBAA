@@ -39,3 +39,9 @@
 ## 2026-10-02 GSMIS与时间轴
 
 GSMIS研究生课表与旧版完整节次时间轴已实现，覆盖同会话来源、精确请求、日历核验、相邻课节、空周、离线持久化和三宽度UI。完整1312项Flutter、Rust/CLI门禁、敏感与FRB零漂移通过；当前WebVPN矩阵38 PASS/0 FAIL/退出0，真实账号仅本科来源，GSMIS live仍未取得。详见[阶段证据](evidence/project-gsmis-2026-10-02.md)。下一步补Windows/Linux系统选图接线，再执行最终构建、多端原生验证与Computer Use；整体目标仍在执行。
+
+## 2026-10-02桌面选图与清理
+
+Windows/Linux系统选图已接线，有限读取、取消/重入及文件增长测试通过；官方/OHOS各自锁文件和原生注册已更新。完整1318项Flutter、Rust/CLI门禁、敏感检查与macOS生产构建通过，Win/Linux原生运行未验。两个旧worktree仅清理约47.27GiB可再生构建产物，源码、未提交工作与证据保留。见[阶段证据](evidence/project-desktop-photo-2026-10-02.md)。
+
+继续最终原生矩阵与按钮审查。当前继续会话工具列表未提供Computer Use；上一阶段该工具实际调用被锁屏阻断，225项真实按钮仍不标PASS。将完成可独立进行的原生合成验证、最新版App启动与剩余实现复核，并如实保留外部验收限制。

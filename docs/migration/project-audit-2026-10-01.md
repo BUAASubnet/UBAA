@@ -76,7 +76,9 @@
 ## 下一步
 
 1. 已完成基线、冻结版本差异复核及按钮分支整合，原worktree保持。
-2. 验证码、门锁专用显示、GSMIS课表与完整时间轴均完成阶段门禁；下一专项补Windows/Linux选图接线，并明确旧版Android系统widget的宿主范围。
+2. 验证码、门锁专用显示、GSMIS课表与完整时间轴均完成阶段门禁；Windows/Linux选图接线已补齐；继续原生验收并明确旧版Android系统widget的宿主范围。
 3. 最终候选执行 refs/layout/sensitive/check、CLI E2E、Flutter、FRB、macOS 构建及可用模拟器适配。
 4. WebVPN 真实只读与 macOS Computer Use 逐按钮验收；无真实数据分支明确切换合成环境。
 5. 修复并复验，提交当前阶段，报告完成项与具体外部条件，不以历史通过关闭当前欠验。
+
+2026-10-02追加清理：确认不被进程占用后移除两个旧worktree的Rust target/Flutter build，合计约47.27GiB；源码和未提交状态不改。原始核实与结果见桌面选图阶段证据及私有cleanup.json。

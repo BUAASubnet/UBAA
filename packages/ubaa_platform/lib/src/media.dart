@@ -1,5 +1,10 @@
+import 'dart:typed_data' as typed;
+import 'package:file_selector/file_selector.dart' as selector;
+import 'package:mime/mime.dart' as mime;
 import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+
+part 'media/desktop_photo.dart';
 
 /// 宿主可能需要向系统申请的能力；具体平台插件不得把令牌或原始路径
 /// 暴露给应用层。
