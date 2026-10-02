@@ -68,9 +68,9 @@
 | Rust/CLI 基线 | 全部门禁与CLI端到端通过，日志 `/tmp/ubaa-consolidation-baseline-check-20261001.log` |
 | Flutter 基线 | 7包静态分析与1116项测试通过，日志 `/tmp/ubaa-consolidation-baseline-flutter-20261001.log` |
 | 整合后门禁/FRB | 整合、设置、验证码、门锁分阶段重跑；最新见status与阶段证据 |
-| WebVPN Core-live/生产 App | 整合40项与新交互/门锁专项通过；生产App逐按钮仍未完成 |
-| macOS Computer Use | 已启动过隔离App；上一阶段实际调用被锁屏阻断，最新候选仍需构建并实际操作 |
-| 多端适配 | 历史三端矩阵单独保留；本轮待验证 |
+| WebVPN Core-live/生产 App | 12域默认读取通过；图书馆分区详情code500阻塞；订单详情经实时包装解析修复后专项通过，桌面复验进行中 |
+| macOS Computer Use | 桌面已解锁，生产WebVPN正在逐按钮操作；实际截图/输入记录私有保存；本轮无CUA MCP，使用系统截图与鼠标键盘 |
+| 多端适配 | 本轮iPhone/iPad原生明暗各78截图、阳光42场景138截图已视觉复核；Android APK/iOS模拟器/macOS构建通过，Win/Linux/OHOS运行仍未验 |
 | Direct | 用户明确校外环境，本轮不运行 |
 
 ## 下一步

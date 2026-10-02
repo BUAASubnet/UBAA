@@ -37,10 +37,8 @@ class _ClassroomContentState extends State<_ClassroomContent> {
       confirmText: '确定',
     );
     if (selected == null || !mounted) return;
-    final nextQuery = (widget.query ?? const FeatureQuery()).copyWith(
-      campus: campus,
-      date: selected,
-    );
+    setState(() => _selectedBuilding = null);
+    final nextQuery = FeatureQuery(campus: campus, date: selected);
     widget.onQuery?.call(nextQuery);
   }
 
@@ -118,10 +116,7 @@ class _ClassroomContentState extends State<_ClassroomContent> {
                       if (newCampus != campus) {
                         setState(() => _selectedBuilding = null);
                         widget.onQuery?.call(
-                          (widget.query ?? const FeatureQuery()).copyWith(
-                            campus: newCampus,
-                            date: dateObj,
-                          ),
+                          FeatureQuery(campus: newCampus, date: dateObj),
                         );
                       }
                     },

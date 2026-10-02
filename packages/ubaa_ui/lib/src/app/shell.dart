@@ -391,7 +391,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           TickerMode(
             key: ValueKey<FeatureId>(feature),
             enabled: pendingWrite == null && _openedFeature == feature,
-            child: _buildFeaturePage(feature),
+            // 页面状态继续保留，但提示浮层不能随停用的 ticker 冻结在其他页面。
+            child: TooltipVisibility(
+              visible: pendingWrite == null && _openedFeature == feature,
+              child: _buildFeaturePage(feature),
+            ),
           ),
         if (pendingWrite != null)
           WriteConfirmationView(

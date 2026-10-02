@@ -39,9 +39,10 @@ void main() {
       ]);
       expect(backend.roomReads.last.siteId, 7);
       expect(find.byType(TextField), findsNothing);
-      expect(find.byType(FilterChip), findsNothing);
+      expect(find.widgetWithText(FilterChip, '2026-09-04'), findsOneWidget);
+      expect(find.widgetWithText(FilterChip, '2026-09-05'), findsOneWidget);
       expect(find.text('下一步'), findsNothing);
-      await shot('table', '自动选择首站点，只显示地点日期和时段矩阵；筛选仅在右上按需面板');
+      await shot('table', '自动选择首站点，保留旧版校区/日期/站点选择与时段矩阵；手输筛选在右上按需面板');
       await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
       await _tap(tester, find.byTooltip('合成研讨室 1 09:00–10:00'));
       expect(find.text('已选'), findsNWidgets(2));

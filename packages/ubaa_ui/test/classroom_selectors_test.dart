@@ -5,6 +5,27 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'support/navigation.dart';
 
 void main() {
+  for (final changeDate in [false, true]) {
+    testWidgets('查询面板切换${changeDate ? '日期' : '校区'}清除旧楼层节次', (tester) async {
+      final h = await _open(tester);
+      await _pick(tester, '选择楼层', '二层 · F02');
+      await _pick(tester, '选择节次', '第 3 节');
+      if (changeDate) {
+        await tester.enterText(
+          find.widgetWithText(TextField, '日期'),
+          '2026-09-09',
+        );
+      } else {
+        await _campus(tester, '沙河');
+      }
+      await tester.pumpAndSettle();
+      expect(_text(tester, '楼层'), isEmpty);
+      expect(_text(tester, '节次'), isEmpty);
+      await _apply(tester);
+      expect(h.queries.single.floorId, isNull);
+      expect(h.queries.single.section, isNull);
+    });
+  }
   testWidgets('楼层选择只回填typed ID，应用不发送展示假值', (tester) async {
     final h = await _open(tester);
     await _pick(tester, '选择楼层', '二层 · F02');

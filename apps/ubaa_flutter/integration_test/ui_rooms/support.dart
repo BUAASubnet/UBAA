@@ -51,6 +51,8 @@ Future<void> _panel(WidgetTester tester) async {
 }
 
 Future<void> _closePanel(WidgetTester tester) async {
+  // 从菜单应用新子页查询时，生产导航会自动收起面板。
+  if (find.widgetWithText(TextButton, '完成').evaluate().isEmpty) return;
   FocusManager.instance.primaryFocus?.unfocus();
   await tester.pumpAndSettle();
   await _tap(tester, find.widgetWithText(TextButton, '完成'));

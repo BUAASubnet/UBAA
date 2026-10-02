@@ -22,6 +22,61 @@ FeatureDetail room(
   ),
 );
 void main() {
+  testWidgets('切换主导航后隐藏页面的提示浮层立即移除', (tester) async {
+    await showFeature(tester, FeatureId.classroom, [room('合成教室')], []);
+    final tip = find.byWidgetPredicate(
+      (w) => w is Tooltip && w.message == '第1节空闲',
+    );
+    tester.state<TooltipState>(tip).ensureTooltipVisible();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 200));
+    expect(find.text('第1节空闲'), findsOneWidget);
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    expect(find.text('第1节空闲', skipOffstage: false), findsNothing);
+    expect(find.text('高级功能'), findsWidgets);
+  });
+  for (final changeDate in [false, true]) {
+    testWidgets('正文切换${changeDate ? '日期' : '校区'}清除已应用的旧楼层节次', (tester) async {
+      final queries = <FeatureQuery>[];
+      await showFeature(
+        tester,
+        FeatureId.classroom,
+        [room('合成教室')],
+        queries,
+        size: const Size(1280, 900),
+        query: FeatureQuery(
+          date: DateTime(2026, 9, 9),
+          campus: 2,
+          floorId: 'F',
+          section: '3',
+        ),
+      );
+      if (changeDate) {
+        await tester.tap(find.text('2026-09-09'));
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('10').last);
+        await tester.tap(find.text('确定'));
+      } else {
+        await tester.tap(find.text('杭州'));
+      }
+      await tester.pumpAndSettle();
+      expect(queries.single.campus, changeDate ? 2 : 3);
+      expect(queries.single.date, DateTime(2026, 9, changeDate ? 10 : 9));
+      expect(queries.single.floorId, isNull);
+      expect(queries.single.section, isNull);
+      await openQueryPanel(tester);
+      for (final label in ['楼层', '节次']) {
+        expect(
+          tester
+              .widget<TextField>(find.widgetWithText(TextField, label))
+              .controller!
+              .text,
+          isEmpty,
+        );
+      }
+    });
+  }
   testWidgets('正文切换校区同步查询草稿并清除旧校区楼层节次', (tester) async {
     final queries = <FeatureQuery>[];
     await showFeature(

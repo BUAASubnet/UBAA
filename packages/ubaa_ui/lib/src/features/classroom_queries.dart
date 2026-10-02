@@ -64,6 +64,8 @@ extension _ClassroomQueryControls on _FeatureQueryControlsState {
                 if (next != _campus) {
                   _campus = next;
                   _clearClassroomOptions();
+                  _floorController.clear();
+                  _sectionController.clear();
                 }
               }),
         items: const <DropdownMenuItem<int>>[
@@ -113,7 +115,11 @@ extension _ClassroomQueryControls on _FeatureQueryControlsState {
     if (date == _classroomDraftDate) return;
     _classroomDraftDate = date;
     if (widget.feature == FeatureId.classroom) {
-      _updateQueryDraft(_clearClassroomOptions);
+      _updateQueryDraft(() {
+        _clearClassroomOptions();
+        _floorController.clear();
+        _sectionController.clear();
+      });
     }
   }
 
