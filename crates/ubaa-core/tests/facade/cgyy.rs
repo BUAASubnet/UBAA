@@ -254,3 +254,127 @@ fn cgyy_caller_pinned_readback_ignores_current_auto_route_without_fallback() {
     assert_eq!(webvpn_calls.load(Ordering::SeqCst), 0);
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[derive(Clone)]
+struct LockDisplayTransport {
+    requests: Arc<std::sync::Mutex<Vec<HttpRequest>>>,
+    cancel: Arc<std::sync::Mutex<Option<ubaa_core::facade::CgyyLockDisplayLease>>>,
+}
+#[async_trait]
+impl HttpTransport for LockDisplayTransport {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if request.url.contains("/api/orders/lock/code") {
+            self.requests.lock().unwrap().push(request.clone());
+            assert_eq!(request.method, ubaa_core::facade::testing::HttpMethod::Get);
+            let url = url::Url::parse(&request.url).unwrap();
+            assert_eq!(
+                url.query_pairs()
+                    .map(|(k, _)| k.to_string())
+                    .collect::<Vec<_>>(),
+                vec!["nocache"]
+            );
+            assert!(request.body.is_empty());
+            assert!(request.headers.contains_key("cgAuthorization"));
+            if let Some(lease) = self.cancel.lock().unwrap().take() {
+                lease.cancel();
+            }
+            return Ok(HttpResponse::new(200,request.url,br#"{"code":200,"data":{"qrCode":"001234","orderView":{"tradeNo":"synthetic-reference"}}}"#.to_vec()));
+        }
+        CgyyWebVpnTransport {
+            requests: self.requests.clone(),
+        }
+        .execute(request)
+        .await
+    }
+}
+#[test]
+fn 门锁页面固定webvpn并拒绝取消路线变更异实例和迟到结果() {
+    let root = test_root("lock-display");
+    let store = FileSessionStore::new(&root).unwrap();
+    store
+        .save_dual(&DualSessionSnapshot::new(
+            None,
+            Some(RouteSessionSnapshot {
+                cookies: Vec::new(),
+                authenticated_at: 1_000,
+                last_activity: 1_001,
+            }),
+        ))
+        .unwrap();
+    let direct = Arc::new(AtomicUsize::new(0));
+    let requests = Arc::new(std::sync::Mutex::new(Vec::new()));
+    let cancel = Arc::new(std::sync::Mutex::new(None));
+    RouteConfig::parse("[route]\ndefault = \"webvpn\"\n")
+        .unwrap()
+        .save(&root)
+        .unwrap();
+    let mut client = ubaa_core::facade::testing::with_routing_in_config_directory(
+        CountingTransport(direct.clone()),
+        LockDisplayTransport {
+            requests: requests.clone(),
+            cancel: cancel.clone(),
+        },
+        &root,
+        NeverProbe,
+    )
+    .unwrap();
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let lease = client.open_cgyy_lock_display().unwrap();
+    let value = runtime
+        .block_on(client.read_cgyy_lock_display(&lease))
+        .unwrap();
+    assert_eq!(value.code.as_deref(), Some("001234"));
+    assert_eq!(
+        value.reservation_reference.as_deref(),
+        Some("synthetic-reference")
+    );
+    assert_eq!(direct.load(Ordering::SeqCst), 0);
+    assert!(
+        requests
+            .lock()
+            .unwrap()
+            .iter()
+            .all(|r| url::Url::parse(&r.url).unwrap().host_str() == Some("d.buaa.edu.cn"))
+    );
+    lease.cancel();
+    let count = requests.lock().unwrap().len();
+    assert!(
+        runtime
+            .block_on(client.read_cgyy_lock_display(&lease))
+            .is_err()
+    );
+    assert_eq!(requests.lock().unwrap().len(), count);
+    let changed = client.open_cgyy_lock_display().unwrap();
+    client
+        .set_default_route_policy(RoutePolicy::Direct)
+        .unwrap();
+    assert!(
+        runtime
+            .block_on(client.read_cgyy_lock_display(&changed))
+            .is_err()
+    );
+    assert_eq!(requests.lock().unwrap().len(), count);
+    client
+        .set_default_route_policy(RoutePolicy::WebVpn)
+        .unwrap();
+    let late = client.open_cgyy_lock_display().unwrap();
+    *cancel.lock().unwrap() = Some(late.clone());
+    assert!(
+        runtime
+            .block_on(client.read_cgyy_lock_display(&late))
+            .is_err()
+    );
+    assert!(!late.is_active());
+    let other_root = test_root("lock-display-other");
+    let mut other = UbaaClient::open(&other_root).unwrap();
+    assert!(
+        runtime
+            .block_on(other.read_cgyy_lock_display(&changed))
+            .is_err()
+    );
+    let _ = std::fs::remove_dir_all(root);
+    let _ = std::fs::remove_dir_all(other_root);
+}

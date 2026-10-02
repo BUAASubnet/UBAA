@@ -37,3 +37,5 @@ export 'src/rust/api/offline_home/spoc_scan.dart';
 export 'src/rust/api/offline_home/spoc_scan/detail.dart';
 
 export 'src/rust/api/offline_evaluation/scan.dart';
+
+export 'src/rust/api/sensitive.dart';

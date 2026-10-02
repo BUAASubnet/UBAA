@@ -10,7 +10,7 @@ void main() {
   ).readAsStringSync();
   final client = File('lib/src/rust/api/client.dart').readAsStringSync();
 
-  test('Bridge10 专用交互结果可构造且 Debug 不展开材料', () {
+  test('专用交互结果可构造且 Debug 不展开材料', () {
     final challenge = _Challenge();
     final answer = BridgeCaptchaAnswer(
       challenge: challenge,

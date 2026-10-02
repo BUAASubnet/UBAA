@@ -1,6 +1,6 @@
 # Flutter Bridge 合同
 
-状态：当前合同v38，离线首页与后台恢复任务仍在实施及验收。v9的Phase 11J/11K是typed写入和单一协调器的历史基线；当前版本、生成一致性及原生/真实App证据以实施区goal.md和迁移状态为准。实体设备与正式发布单独记录。
+状态：当前合同v39，离线首页与后台恢复任务仍在实施及验收。v9的Phase 11J/11K是typed写入和单一协调器的历史基线；当前版本、生成一致性及原生/真实App证据以实施区goal.md和迁移状态为准。实体设备与正式发布单独记录。
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
@@ -9,7 +9,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `38`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `39`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -21,7 +21,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
   caller-pinned 的概览/记录回读与安全提交收据。版本 9 为 Evaluation 增加 typed
   `submitEligibility/submitTarget`、只含 targets 的批量请求、四态逐项结果与 caller-pinned 原路线回读。
   旧macOS专项曾以独立候选v10开发逐日日程和博雅完整目录；与离线分支整合后统一为v37。
-  当前v38另增加专用交互验证码通路；不能混用任一历史候选的生成绑定。
+  v38增加专用交互验证码通路，当前v39增加专用门锁显示；不能混用任一历史候选的生成绑定。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -37,7 +37,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=38` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=39` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
@@ -699,3 +699,9 @@ beginJudgeOnline(options)接收可选期望账号与明确目标，nextJudgeOnli
 提交前按冻结旧版再次GET，id/execution轮换时零POST并返回新挑战；刷新先作废旧答案，未知交互保持关闭。取消/账号或密码改填/后台/销毁同步撤销，迟到帧释放。当前路线未就绪时保留可恢复交互，只有明确选择才改变默认策略以继续已就绪路线。普通非交互CLI和自动恢复保持原合同。
 
 原位登录保留本地首页与导航，验证码等待期间暂停新的后台读取和写准备；现有待确认或进行中的写流程阻止发起新的交互手动认证；旧非交互接口的主动登录失效意图规则保持兼容。成功后复用当前身份核对、系统凭据保存、加密本机账号绑定及恢复收尾。所有这些是界面认证能力，不自动解答真实验证码，也不执行学校业务写入。
+
+## v39：门锁密码与预约摘要短期显示
+
+新增`open_cgyy_lock_display/read_cgyy_lock_display`及可同步cancel的opaque页面句柄。句柄绑定客户端、首次解析路线、会话生命周期与路线代次；读取前后都检查有效性，取消后的迟到结果不发布。返回白名单qrCode文本（保留前导零）、dueDate原文及旧页预约摘要，不实现serde/JSON，不进入FeatureField、普通DTO、离线缓存或诊断。普通cgyy_lock_code仍仅available，CLI10/Session2/配置1不变。
+
+UI入口恢复“查看密码”，首次fresh读取、手动与30秒刷新single-flight；刷新开始先移除旧码，失败不保留旧值。dueDate只显示，不猜时区或上游TTL。隐藏、后台、返回、销毁、账号/会话/路线变更同步撤销并释放材料。门锁响应不再记录整包body摘要。当前仅合成材料验证，真实有码与预约摘要显示需具备有效预约的独立验收。

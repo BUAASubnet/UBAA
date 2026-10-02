@@ -34,7 +34,7 @@ void main() {
   for (final entry in <FeatureId, List<String>>{
     FeatureId.bykc: ['选择课程', '我的课程', '课程统计'],
     FeatureId.libbook: ['预约座位', '我的预约'],
-    FeatureId.cgyy: ['预约研讨室', '我的预约', '门锁状态'],
+    FeatureId.cgyy: ['预约研讨室', '我的预约', '查看密码'],
   }.entries) {
     testWidgets('${entry.key.title}沿旧版先显示子菜单', (tester) async {
       final state = await _open(tester, entry.key);

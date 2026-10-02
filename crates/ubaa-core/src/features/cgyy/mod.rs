@@ -5,6 +5,7 @@ mod auth;
 mod captcha;
 mod crypto;
 mod http;
+pub(crate) mod lock_display;
 mod parser;
 mod read;
 mod sign;
@@ -28,3 +29,6 @@ pub(crate) use write::{
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod lock_log_tests;

@@ -197,7 +197,7 @@ fn web_vpn模式下场馆签名请求使用_webvpn地址() {
     let _ = std::fs::remove_dir_all(root);
 }
 
-struct NoNetworkTransport;
+pub(super) struct NoNetworkTransport;
 
 #[async_trait]
 impl HttpTransport for NoNetworkTransport {

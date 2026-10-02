@@ -310,3 +310,6 @@ impl fmt::Debug for CgyyReservationSubmitRequest {
             .finish()
     }
 }
+
+mod sensitive;
+pub use sensitive::CgyyLockDisplay;

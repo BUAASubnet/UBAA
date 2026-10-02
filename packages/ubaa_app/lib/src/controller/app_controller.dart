@@ -5,6 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 import '../contracts/backend.dart';
+import '../contracts/cgyy/lock_display.dart';
 import '../contracts/interactive_auth.dart';
 import '../contracts/progressive.dart';
 import '../contracts/schedule_import.dart';
@@ -27,6 +28,7 @@ import '../write/ygdk_validation.dart';
 import 'error_mapper.dart';
 
 part 'app_controller/cgyy_readback.dart';
+part 'app_controller/cgyy/lock_display.dart';
 part 'app_controller/evaluation_readback.dart';
 part 'app_controller/refresh.dart';
 part 'app_controller/read_tasks/progressive.dart';
@@ -184,6 +186,8 @@ class AppController extends ChangeNotifier {
   Future<CacheClearOutcome> clearBusinessCache({required String accountId}) =>
       _clearControllerCache(accountId);
   bool _automaticCredentialBlocked = false;
+  _GuardedLockDisplaySession? _lockDisplay;
+  int _lockDisplayGeneration = 0;
   bool _appForeground = true;
   final _recoveryRetries = <FeatureId, _RecoveryRetry>{};
   final _businessRetries = <(FeatureId, bool), _BusinessRetry>{};
@@ -240,7 +244,10 @@ class AppController extends ChangeNotifier {
   /// 生命周期只更新可见状态；后台不开始未发送的恢复或首页同步。
   void setAppForeground(bool foreground) {
     _appForeground = foreground;
-    if (!foreground) _cancelLoginVerification();
+    if (!foreground) {
+      _cancelLoginVerification();
+      _lockDisplay?.cancel();
+    }
     if (foreground) _drainDeferredRecovery();
     _syncRecoveryRetries();
     _pumpReadTasks();
@@ -936,6 +943,7 @@ class AppController extends ChangeNotifier {
   }
 
   void _notify() {
+    _lockDisplay?.validate();
     _syncRecoveryRetries();
     _drainDeferredRecovery();
     _pumpReadTasks();
@@ -967,6 +975,7 @@ class AppController extends ChangeNotifier {
   void dispose() {
     if (_disposed) return;
     _cancelLoginVerification(notify: false);
+    _lockDisplay?.cancel();
     _disposed = true;
     for (final scope in _readScopes.toList()) {
       scope.cancel();

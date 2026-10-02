@@ -36,6 +36,7 @@ part 'read/bykc.dart';
 part 'read/bykc_projection.dart';
 part 'read/bykc_cache.dart';
 part 'read/cgyy.dart';
+part 'read/cgyy_sensitive.dart';
 part 'read/cgyy_cache/projection.dart';
 part 'read/cgyy_cache/load.dart';
 part 'read/cgyy_cache/local.dart';
@@ -55,7 +56,7 @@ part 'write/readback.dart';
 part 'write/lifecycle.dart';
 part 'write/prepare.dart';
 
-const _supportedBridgeContractVersion = 38;
+const _supportedBridgeContractVersion = 39;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -66,6 +67,7 @@ class BridgeBackend
     implements
         UbaaBackend,
         InteractiveLoginBackend,
+        CgyyLockDisplayBackend,
         FeatureQueryBackend,
         SigninReadbackBackend,
         BykcReadbackBackend,
@@ -102,6 +104,10 @@ class BridgeBackend
       throw StateError('Bridge 合同版本不兼容。');
     }
   }
+
+  @override
+  Future<CgyyLockDisplaySession> openLockDisplay() async =>
+      _BridgeLockDisplaySession(client, await client.openCgyyLockDisplay());
 
   /// 从平台已经解析好的应用私有目录打开 Core。
   factory BridgeBackend.open(String configDirectory) => BridgeBackend(

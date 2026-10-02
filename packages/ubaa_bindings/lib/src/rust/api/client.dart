@@ -25,6 +25,7 @@ import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 import 'recovery.dart';
 import 'schedule_import.dart';
+import 'sensitive.dart';
 import 'write.dart';
 import 'write/cache.dart';
 
@@ -647,6 +648,11 @@ abstract class BridgeClient implements RustOpaqueInterface {
   static BridgeClient open({required String configDir}) =>
       RustLib.instance.api.crateApiClientBridgeClientOpen(configDir: configDir);
 
+  /// 打开专用页面，后续读取使用Core已固定的路线。
+  /// # Errors
+  /// 已销毁、路线或会话无效时返回安全错误。
+  Future<BridgeCgyyLockDisplayLease> openCgyyLockDisplay();
+
   Future<BridgeWriteIntent> prepareBykcDeselectCourse({
     required BridgeBykcCourseRequest request,
   });
@@ -701,6 +707,13 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeWriteIntent> prepareYgdkSubmit({
     required BridgeYgdkSubmitRequest request,
+  });
+
+  /// fresh读取密码/预约白名单，最长显示30秒；取消不会等待本方法。
+  /// # Errors
+  /// 已取消、会话或上游错误时不返回材料。
+  Future<BridgeCgyyLockDisplay> readCgyyLockDisplay({
+    required BridgeCgyyLockDisplayLease lease,
   });
 
   /// 校验所需路线并在完成后归还客户端锁。

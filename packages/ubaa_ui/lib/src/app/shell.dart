@@ -58,6 +58,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onCancelWrite,
     this.onConfirmWrite,
     this.onFeatureQuery,
+    this.onOpenLockDisplay,
     this.onPrepareBykcWrite,
     this.onPrepareBykcSignWrite,
     this.onPrepareSigninWrite,
@@ -143,6 +144,7 @@ class UbaaMainShell extends StatefulWidget {
 
   /// 宿主提供本轮允许字段的脱敏报告，不读取账号或业务数据。
   final String Function()? onReadDiagnostics;
+  final Future<CgyyLockDisplaySession> Function()? onOpenLockDisplay;
   final WriteState writeState;
   final WritePreparationRunner? onRunWritePrepare;
   final WriteCancellationRunner? onCancelWrite;
@@ -198,6 +200,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   final _visiblePage = ValueNotifier<(FeatureSnapshot, String)?>(null);
   final Set<FeatureId> _visitedFeatures = <FeatureId>{};
   int _accountGeneration = 0;
+  int _lockRefreshRevision = 0;
   final Map<FeatureId, GlobalKey<_FeatureReadNavigatorState>> _readPageKeys =
       {};
 
@@ -503,8 +506,16 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             if (_openedFeature != null && pendingWrite == null)
               IconButton(
                 tooltip: '刷新当前查询',
-                onPressed: () => _readPageKeys[_openedFeature]?.currentState
-                    ?.refreshCurrent(),
+                onPressed: () {
+                  final page = _readPageKeys[_openedFeature]?.currentState;
+                  if (_openedFeature == FeatureId.cgyy &&
+                      page?._current.query?.view ==
+                          FeatureQueryView.cgyyLockCode) {
+                    setState(() => _lockRefreshRevision++);
+                  } else {
+                    page?.refreshCurrent();
+                  }
+                },
                 icon: const Icon(Icons.refresh),
               ),
             if (_openedFeature == null &&
@@ -614,10 +625,16 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     onRetry: () => widget.onRetryFeature(feature),
     onQuery: widget.onFeatureQuery == null
         ? null
-        : (query) => widget.onFeatureQuery!(feature, query),
+        : (query) =>
+              feature == FeatureId.cgyy &&
+                  query.view == FeatureQueryView.cgyyLockCode
+              ? Future<void>.value()
+              : widget.onFeatureQuery!(feature, query),
     pageBuilder: (page) => _FeatureDetailView(
       key: page.pageKey,
       isLanding: page.isLanding,
+      onOpenLockDisplay: widget.onOpenLockDisplay,
+      lockRefreshRevision: _lockRefreshRevision,
       visible: _openedFeature == feature && page.isCurrent,
       onLoadAllGrades: widget.onLoadAllGrades,
       onGradeRoutes: (routes) {

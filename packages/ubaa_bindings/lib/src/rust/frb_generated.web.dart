@@ -29,6 +29,7 @@ import 'api/offline_ygdk.dart';
 import 'api/read.dart';
 import 'api/recovery.dart';
 import 'api/schedule_import.dart';
+import 'api/sensitive.dart';
 import 'api/simple.dart';
 import 'api/write.dart';
 import 'api/write/cache.dart';
@@ -49,6 +50,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_BridgeCaptchaChallengePtr => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_BridgeCgyyLockDisplayLeasePtr => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease;
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_BridgeClientPtr => wire
@@ -97,6 +102,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCaptchaChallenge
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCgyyLockDisplayLease
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease(
     dynamic raw,
   );
 
@@ -173,6 +184,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCgyyLockDisplayLease
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease(
+    dynamic raw,
+  );
+
+  @protected
   BridgeClient
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
     dynamic raw,
@@ -241,6 +258,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCaptchaChallenge
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCgyyLockDisplayLease
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease(
     dynamic raw,
   );
 
@@ -1040,6 +1063,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCgyyLockCode dco_decode_bridge_cgyy_lock_code(dynamic raw);
+
+  @protected
+  BridgeCgyyLockDisplay dco_decode_bridge_cgyy_lock_display(dynamic raw);
 
   @protected
   BridgeCgyyOrder dco_decode_bridge_cgyy_order(dynamic raw);
@@ -2181,6 +2207,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCgyyLockDisplayLease
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeClient
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
     SseDeserializer deserializer,
@@ -2253,6 +2285,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCgyyLockDisplayLease
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeClient
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
     SseDeserializer deserializer,
@@ -2321,6 +2359,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeCaptchaChallenge
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyLockDisplayLease
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease(
     SseDeserializer deserializer,
   );
 
@@ -3308,6 +3352,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCgyyLockCode sse_decode_bridge_cgyy_lock_code(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCgyyLockDisplay sse_decode_bridge_cgyy_lock_display(
     SseDeserializer deserializer,
   );
 
@@ -4773,6 +4822,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease(
+    BridgeCgyyLockDisplayLease self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
     BridgeClient self,
     SseSerializer serializer,
@@ -4857,6 +4913,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease(
+    BridgeCgyyLockDisplayLease self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
     BridgeClient self,
     SseSerializer serializer,
@@ -4936,6 +4999,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(
     BridgeCaptchaChallenge self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease(
+    BridgeCgyyLockDisplayLease self,
     SseSerializer serializer,
   );
 
@@ -6077,6 +6147,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_cgyy_lock_code(
     BridgeCgyyLockCode self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_cgyy_lock_display(
+    BridgeCgyyLockDisplay self,
     SseSerializer serializer,
   );
 
@@ -7824,6 +7900,22 @@ class RustLibWire implements BaseWire {
       );
 
   void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease(
+        ptr,
+      );
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease(
+    int ptr,
+  ) => wasmModule
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease(
+        ptr,
+      );
+
+  void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeClient(
     int ptr,
   ) => wasmModule
@@ -8013,6 +8105,16 @@ extension type RustLibWasmModule._(JSObject _) implements JSObject {
 
   external void
   rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(
+    int ptr,
+  );
+
+  external void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease(
+    int ptr,
+  );
+
+  external void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCgyyLockDisplayLease(
     int ptr,
   );
 

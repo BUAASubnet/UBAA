@@ -20,6 +20,8 @@ class _FeatureDetailView extends StatefulWidget {
   const _FeatureDetailView({
     required this.feature,
     this.isLanding = false,
+    this.onOpenLockDisplay,
+    this.lockRefreshRevision = 0,
     this.visible = true,
     this.onLoadAllGrades,
     this.onGradeRoutes,
@@ -65,6 +67,8 @@ class _FeatureDetailView extends StatefulWidget {
   final ValueChanged<String?>? onScheduleTitle;
   final bool isLanding, isBykcChosenDetail;
   final bool visible;
+  final Future<CgyyLockDisplaySession> Function()? onOpenLockDisplay;
+  final int lockRefreshRevision;
   final GradesAggregateLoader? onLoadAllGrades;
   final ValueChanged<Map<String, ConnectionMode>>? onGradeRoutes;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
@@ -157,6 +161,15 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
 
   @override
   Widget build(BuildContext context) {
+    if (!widget.isLanding &&
+        widget.feature == FeatureId.cgyy &&
+        widget.query?.view == FeatureQueryView.cgyyLockCode) {
+      return UbaaCgyyLockDisplayView(
+        open: widget.onOpenLockDisplay,
+        visible: widget.visible,
+        refreshRevision: widget.lockRefreshRevision,
+      );
+    }
     final showDetails =
         (widget.snapshot.status == FeatureLoadStatus.success ||
             widget.snapshot.status == FeatureLoadStatus.stale ||

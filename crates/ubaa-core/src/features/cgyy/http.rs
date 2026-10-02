@@ -168,6 +168,11 @@ pub(super) fn safe_parameter_summary(
 }
 
 pub(super) fn log_response(runtime: &ClientRuntime, operation: &str, response: &HttpResponse) {
+    if operation == "orders.lock_code" {
+        debug!(target: "ubaa::cgyy", feature = "cgyy", route = ?runtime.mode(), operation,
+            status = response.status, "收到门锁响应");
+        return;
+    }
     let body = &response.body;
     debug!(
         target: "ubaa::cgyy",

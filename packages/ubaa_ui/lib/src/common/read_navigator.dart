@@ -234,7 +234,9 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
       _nextId++,
       FeatureSnapshot(
         feature: target.feature,
-        status: FeatureLoadStatus.loading,
+        status: target.query.view == FeatureQueryView.cgyyLockCode
+            ? FeatureLoadStatus.idle
+            : FeatureLoadStatus.loading,
       ),
       target.query,
     );

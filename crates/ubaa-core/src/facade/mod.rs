@@ -33,12 +33,15 @@ pub mod testing;
 mod types;
 mod write;
 
+pub use crate::domain::CgyyLockDisplay;
 pub use crate::domain::{
     CaptchaAnswer, CaptchaChallenge, CaptchaFrame, InteractiveLoginCancellation,
     InteractiveLoginHandle, InteractiveLoginOutcome, InteractiveRouteResult, InteractiveRouteState,
 };
 pub use client::UbaaClient;
 pub use diagnostic::RouteClient;
+mod sensitive;
+pub use sensitive::CgyyLockDisplayLease;
 pub use types::{CallerPinned, Routed, RoutedError, RoutedResult};
 
 // 逐项列出宿主稳定合同，避免新增领域实现时被通配重导出意外纳入公共 API。

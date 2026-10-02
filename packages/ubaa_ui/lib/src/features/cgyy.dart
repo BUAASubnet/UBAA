@@ -32,7 +32,7 @@ extension _CgyyQueryControls on _FeatureQueryControlsState {
           ),
           DropdownMenuItem(
             value: FeatureQueryView.cgyyLockCode,
-            child: Text('门锁状态'),
+            child: Text('查看密码'),
           ),
         ],
       ),

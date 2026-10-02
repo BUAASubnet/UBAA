@@ -938,3 +938,30 @@ fn test_root(label: &str) -> std::path::PathBuf {
         NEXT_TEST_ROOT.fetch_add(1, Ordering::Relaxed)
     ))
 }
+
+#[test]
+fn 门锁专用页面仅打开时解析路线并在读取前后检查租约() {
+    let path = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("src/facade/sensitive/lock_display.rs");
+    let tokens = rust_tokens(&source(&path));
+    let open = function_body(&tokens, "open_cgyy_lock_display").unwrap();
+    assert_eq!(count_sequence(open, &["resolve_operation", "("]), 1);
+    let read = function_body(&tokens, "read_cgyy_lock_display").unwrap();
+    assert_eq!(count_sequence(read, &["resolve_operation", "("]), 0);
+    assert_eq!(count_sequence(read, &["validate_lock_display", "("]), 2);
+    assert_eq!(count_sequence(read, &["runtime_for", "("]), 1);
+    assert_eq!(count_sequence(read, &["finish_caller_pinned", "("]), 1);
+    let validate = function_body(&tokens, "validate_lock_display").unwrap();
+    assert_eq!(
+        count_sequence(validate, &["guard_caller_pinned_route", "("]),
+        1
+    );
+    for field in [
+        "direct_runtime",
+        "direct_auth",
+        "webvpn_runtime",
+        "webvpn_auth",
+    ] {
+        assert_eq!(count_sequence(&tokens, &[field]), 0);
+    }
+}

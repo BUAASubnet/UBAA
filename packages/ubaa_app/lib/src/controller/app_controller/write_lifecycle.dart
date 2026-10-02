@@ -27,6 +27,7 @@ extension _AppControllerWriteLifecycle on AppController {
       );
 
   void _beginWriteTransition() {
+    _lockDisplay?.cancel();
     // 必须先禁止入口，再发出 invalidate 通知，覆盖监听器同步重入。
     _writeTransitions++;
     _lifecycleEpoch++;

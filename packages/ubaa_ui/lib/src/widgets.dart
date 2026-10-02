@@ -69,6 +69,7 @@ part 'features/cgyy/reservation_flow.dart';
 part 'features/cgyy/reservation_table.dart';
 part 'features/cgyy/reservation_choices.dart';
 part 'features/cgyy/order_row.dart';
+part 'features/cgyy/lock_display.dart';
 part 'features/evaluation.dart';
 part 'features/libbook.dart';
 part 'features/libbook/reservation_flow.dart';

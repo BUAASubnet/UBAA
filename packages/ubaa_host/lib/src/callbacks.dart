@@ -166,6 +166,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       telemetryAvailable: _controller.telemetryAvailable,
       onRefresh: _controller.refreshHome,
       onRetryFeature: _controller.retryFeature,
+      onOpenLockDisplay: _controller.openLockDisplay,
       onFeatureQuery: (feature, query) {
         return _controller.refreshFeatureQuery(feature, query);
       },
