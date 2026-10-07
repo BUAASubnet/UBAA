@@ -2,6 +2,8 @@
 
 日期：2026-10-07（Asia/Shanghai）。源码基线：`1e6935fe3dfd7315f7723afc6a3a3cce76a25516`，分支 `ubaa2`，开始时主工作区干净。本报告为审查与建议，尚未实施生产重构或删除测试。
 
+本文保留审查时的结论与原路径；后续修复、当前入口和验证结果见[实施记录](maintainability-implementation-2026-10-07.md)，现行组织以[架构规范](../architecture/code-organization.md)为准。
+
 ## 结论
 
 顶层 `apps / crates / packages / fixtures / scripts / docs` 有清晰分工，Rust Core、facade、FRB、Dart 应用层、UI 和宿主的总体分层值得保留。主要维护成本来自：

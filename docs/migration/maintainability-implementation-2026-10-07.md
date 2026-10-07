@@ -42,4 +42,35 @@
 - 现行架构/测试指南重写，旧正文、状态与决策流水归档；版本门禁改为验证现行声明，不再要求开发指南复述旧升级过程，7 项版本合同先 RED 后 GREEN。
 - 历史 UI 材料增加 34 批次索引与默认检索隔离；4,021 个原文件及其字节均保留，不删除媒体归档或改写历史哈希。
 
-最终严格门禁、生成零漂移、原生与可用平台复验正在进行；平台结果与真实只读结果分别记录。
+## 审查项闭环
+
+| 审查项 | 已落地结果 | 持续检查 |
+|---|---|---|
+| F1：大型隐式 library | UI 显式输入/回调、BridgeContext、ControllerState 与局部操作合同 | module-check、类型分析、账号/通知/并发行为测试 |
+| F2：筛选绕过用户入口 | 删除 State 旁路，缺失/隐藏入口明确失败；修复独立运行的屏外点击 | UI support 与 query 行为用例 |
+| F3：原生入口遗漏 | 73 项完整清单、独立人工 driver、默认 3 组原生回归与 CI 接线 | integration-check、8 项清单合同 |
+| F4：低价值断言 | 移除名字计数与历史路径锁定，收敛重复签名，保留独有兼容行为 | 编译合同、write/compatibility、Core 依赖边界 |
+| F5：目录主轴混杂 | 生产代码按包职责/领域组织，54 个聚合行为文件改为独立测试入口 | 按领域 flutter-test、现行代码地图 |
+| F6：规范与流水混合 | 现行架构/测试/状态重写，旧正文进入 history，新决策进入 ADR | 文档索引、合同版本检查 |
+| F7：历史证据搜索噪声 | 34 批次摘要索引、默认检索隔离、源码限定命令 | 原 4,021 文件保留，敏感扫描仍覆盖 Git 跟踪内容 |
+
+## 最终验证
+
+生产与测试整理候选为 `d2e3d53f`，最后补齐集成执行器的固定 SDK 校验、纠正迁移后的注释并记录验收；没有新增业务行为。所有日志保存在仓库外私有目录 `/Users/moorefoss/Library/Application Support/UBAA-private-evidence/maintainability-20261007`，不纳入 Git。
+
+| 验证 | 当前结果 | 日志 |
+|---|---|---|
+| just check-strict | 通过；Rust、CLI 二进制 E2E、Shell/Python、布局、模块、清单、schema、Clippy 与文档门禁 | final-check-strict.log |
+| just flutter-check | 通过；七包共 1,327 项：Domain 57、Platform 83、App 636、UI 353、Bindings 31、Host 92、官方宿主 75 | final-flutter-check.log |
+| just flutter-codegen-check | 通过；FRB 生成零漂移 | final-codegen.log |
+| just integration-test | 通过；迁移后的网络 1、应用流程 7、FFI 缓存 1，共 9 项原生合成/本地测试 | final-integration.log |
+| UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug | 通过；分析、2 项宿主测试、安全存储/网络插件合成合同、无签名 HAP 与 arm64 Rust 动态库检查 | final-ohos.log |
+| just flutter-build platform=android-apk mode=debug | 通过；APK 及所需 ABI Rust bridge 产物结构检查通过 | final-android.log、final-android-artifact.log |
+| just flutter-build platform=ios-simulator mode=debug | 通过；无签名模拟器 App 构建与产物结构检查 | final-ios.log、final-ios-artifact.log |
+| just verify-live mode=webvpn | 40 行 PASS；其中 5 行 count=0，1 行 source=static_fallback | final-webvpn.log |
+
+原生测试报告无法前置 macOS 窗口，因此只计入原生合成回归。WebVPN 空结果和 Cgyy 用途静态回退不证明真实业务按钮已验收。OHOS 无签名 HAP 与合成 HUKS 错误传播不替代实体设备 HUKS 成功证据。Direct、真实学校写入、Windows/Linux 运行、实体设备与正式发布未执行，原 B2/C2/C3/D 欠验继续保留。
+
+OHOS 构建产生的本地 HAR 锁文件差异和 buildinfo 删除已恢复；不把 SDK 工作路径或构建副作用提交为源码。最终阶段保留 golden 字节、冻结引用和三个既有独立工作树。
+
+补丁收尾再次通过 20 项 Python 合同、module-check、integration-check、refs、layout-check、check-sensitive 和 git diff --check。现行文档相对链接及执行入口已复查。P1—P5 与 F1—F7 均完成；变更按合同、可信测试、UI、Bridge、Controller、测试/规范、最终验收分为七个本地提交，未推送或发布。

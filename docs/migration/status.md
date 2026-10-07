@@ -1,6 +1,6 @@
 # 当前实现与验证状态
 
-更新日期：2026-10-07（Asia/Shanghai）。当前任务为[可持续开发性整理与修复](../../goal.md)，实施分支 `ubaa2`，本地阶段提交、不推送发布。历史流水已移至[整理前快照](history/status-before-maintainability-2026-10-07.md)。
+更新日期：2026-10-07（Asia/Shanghai）。[可持续开发性整理与修复](../../goal.md)已完成，实施分支 `ubaa2`，本地阶段提交、不推送发布。历史流水已移至[整理前快照](history/status-before-maintainability-2026-10-07.md)。
 
 ## 当前事实
 
@@ -13,7 +13,7 @@
 
 ## 本轮验证
 
-生产模块拆分后，Rust/CLI/Shell 与官方七包 Flutter 门禁已逐阶段通过。测试拆分后的全量 Flutter 通过，golden 字节未改动；独立运行发现的博雅分页屏外点击已通过真实滚动/命中操作修复。最终严格门禁、原生及可用平台复验正在收尾，具体日志与结果见[实施记录](maintainability-implementation-2026-10-07.md)。
+最终严格 Rust/CLI/Shell 门禁、官方七包 1,327 项 Flutter 测试、FRB 生成零漂移、迁移后的 9 项 macOS 原生合成/本地回归均通过；Android Debug APK、iOS 模拟器 App、OHOS 无签名 Debug HAP 构建通过。golden 字节未改动，博雅分页屏外点击已通过真实滚动/命中操作修复。WebVPN 只读矩阵 40 行 PASS，其中 5 行为空结果、1 行为明确标注的静态回退；不能据此关闭完整真实 UI 验收。各层命令、产物检查和日志见[实施记录](maintainability-implementation-2026-10-07.md)。
 
 ## 继续保留的产品验收边界
 

@@ -21,9 +21,7 @@ part 'flow/support.dart';
 part 'flow/write.dart';
 
 void main() {
-  // 显式测试入口供原生设备人工巡检，复用全部写入的脱敏 backend。
-  // 生产 main.dart 不读取此开关，也不会在失败时切换为演示数据。
-
+  // 自动流程使用脱敏 backend；人工巡检由独立 driver 调用 runInspection。
   WidgetController.hitTestWarningShouldBeFatal = true;
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 

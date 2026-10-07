@@ -1,6 +1,6 @@
 # ADR 0006：以显式 Dart 模块替代跨领域 part 聚合
 
-日期：2026-10-07。状态：实施中。依据为[可持续开发性审查](../migration/maintainability-audit-2026-10-07.md)。
+日期：2026-10-07。状态：已实施。依据为[可持续开发性审查](../migration/maintainability-audit-2026-10-07.md)，闭环与验证见[实施记录](../migration/maintainability-implementation-2026-10-07.md)。
 
 ## 决定
 

@@ -108,6 +108,9 @@ def main():
     for name in ("UBAA_CONFIG_DIR", "UBAA_LIVE_MATERIAL_SCOPE", "UBAA_TEST_USERNAME",
                  "UBAA_TEST_PASSWORD", "UBAA_USERNAME", "UBAA_PASSWORD"):
         environment.pop(name, None)
+    if not args.dry_run:
+        subprocess.run(["bash", str(ROOT / "scripts/check/flutter-toolchains.sh"), "official"],
+                       cwd=ROOT, env=environment, check=True)
     for entry in selected:
         command = [str(flutter), "test", f'integration_test/{entry["path"]}',
                    "-d", args.device or args.platform]
