@@ -1766,3 +1766,16 @@ Bridge升级v36；schema v6新增载荷变体而不改SQL结构、密文封装�
 冻结 `ubaa_old` `1f4b8f84` 的 `ClassroomViewModel.kt:93`、`:100` 在校区/日期切换时清楼栋，再调用仅带校区/日期的读取；接口/DTO/本地实现与测试沿用 source-parity 空教室九列表。冻结示例 `a63712fa` 的 `api/app/core.rs` 是微应用认证、`api/class` 是 iClass，不实现同一空教室筛选，不借用其参数。CAS/service、重定向/final URL、Cookie、HTTP方法/参数、headers/body、签名、DTO、Core缓存/并发及错误均不改；仅正文父条件改变时建立不携带旧楼层/节次的 FeatureQuery，并清本地楼栋选择。搜索文字按旧版保持。增加已应用条件的校区和日期两项行为RED，修复后GREEN并重跑Flutter门禁；不能将未应用草稿用例当已应用条件证明。
 
 同轮额外验证：查询面板自身切换校区/日期也需清理此前楼层/节次，新增两项RED。真实窗口还发现课表“下一周”提示在切到教室和研讨室后滞留；定位为已访问页保留在IndexedStack，TickerMode关闭冻结了Tooltip退场动画，而提示浮层仍在全局Overlay。按页面可见性同步TooltipVisibility，使隐藏页销毁提示浮层，保持页面查询/滚动状态。此改动仅界面提示生命周期，不更改旧版按钮、业务请求或数据。
+
+
+## 2026-10-07：本地分支统一到ubaa2
+
+用户要求把多余分支整合进 `ubaa2` 并删除多余分支。核对Git祖先关系后，`ubaa2` 从 `d7c37f73` 快进到 `283aa74c`，原 `codex/project-completion-20261001`、`codex/offline-home-20260917`、`codex/macos-ui-20260915`、`codex/ui-button-parity` 的全部提交均已包含。删除仅限这4个已合并本地分支；远端旧版Kotlin/Compose产品线保持原样，不推送或发布。
+
+三个旧工作树分别停在 `31a7d750`、`e1af4360`、`ea288d4e`，改为游离检出以保留全部未提交内容。删除分支前，68个修改或未跟踪文件已保存补丁、未跟踪文件副本与SHA-256清单至仓库外私有目录 `~/Library/Application Support/UBAA-private-evidence/branch-consolidation-20261007/`；结束时对原文件、Git状态及HEAD逐一复核。未移动或删除源工作树、忽略文件、冻结引用及运行材料。
+
+未提交材料按现状处理：安全材料写入/读回/删除能力条款补入[离线合同](../contracts/offline-cache-and-recovery.md)；两分支的原始决策收入[历史决策](history/uncommitted-decisions-before-consolidation-2026-10-07.md)，早期按钮计划收入[历史计划](history/ui-button-parity-plan-2026-09-15.md)。旧状态和goal进度说明不覆盖当前合同。交互认证Core原文件已移至目录mod且内容相同，Bridge只更新版本注释，App认证接线重构到authentication.dart并补充离线/写保护；沿用 `2848434c` 和[整合证据](evidence/project-interactive-auth-2026-10-02.md)，不回退旧草稿。
+
+本批仅变更分支引用和文档，不改变生产代码、冻结来源或学校协议，因此不新增行为测试或实时学校请求。已有功能欠验继续保留，分支整理完成不等于项目验收完成。
+
+本次验证：`just refs`、`just layout-check`、`just check-sensitive`、完整 `just check`（含Core、Bridge、CLI端到端、构建及文档门禁）均通过；生产代码与原整合候选一致，仅提交6份文档。日志保存于上述私有备份目录的 `check.log`。Flutter和真实网络/桌面验收未重跑，不继承为本次通过。
