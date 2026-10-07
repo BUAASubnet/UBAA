@@ -287,4 +287,7 @@ fn historical_start_requires_a_valid_datetime_and_full_time_ordering() {
     assert!(!started_before_cutoff("2026-02-24 24:00:00", cutoff));
     assert!(started_before_cutoff("2026-02-24 12:34:55", cutoff));
     assert!(!started_before_cutoff("2026-02-24 12:34:56", cutoff));
+    assert!(!started_before_cutoff("2026-2-24 12:34:55", cutoff));
+    assert!(!started_before_cutoff("2026-02-23 23:59:60", cutoff));
+    assert!(!started_before_cutoff("2026-02-24T12:34:55", cutoff));
 }

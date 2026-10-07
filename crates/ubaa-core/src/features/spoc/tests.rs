@@ -11,6 +11,64 @@ use super::parser::{
 use crate::domain::SpocSubmissionStatus;
 
 #[test]
+fn 非法时区前缀按冻结失败回退而非解释为有效时间() {
+    assert_eq!(
+        normalize_datetime(Some("2026-03-31T15:59:59junkZ")).as_deref(),
+        Some("2026-03-31 15:59:59junkZ")
+    );
+}
+
+#[test]
+fn 标准时区转换跨年闰日与兼容文本保持冻结语义() {
+    for (input, expected) in [
+        ("2025-12-31T20:00:00Z", "2026-01-01 04:00:00"),
+        ("2024-02-29T20:00:00-04:00", "2024-03-01 08:00:00"),
+        ("2026-03-31T15:59:59.123+08:00", "2026-03-31 15:59:59"),
+        (
+            "2026-03-31T15:59:59.123garbage+08:00",
+            "2026-03-31 15:59:59",
+        ),
+        ("2026-02-30T15:59:59Z", "2026-02-30 15:59:59Z"),
+        ("2026-03-31T23:59:60Z", "2026-03-31 23:59:60Z"),
+        ("2026-03-31 15:59:59Z", "2026-03-31 15:59:59Z"),
+        ("  upstream-fixture  ", "upstream-fixture"),
+    ] {
+        assert_eq!(normalize_datetime(Some(input)).as_deref(), Some(expected));
+    }
+    assert_eq!(normalize_datetime(None), None);
+    assert_eq!(normalize_datetime(Some("  ")), None);
+}
+
+#[test]
+fn 带符号前导零的十位年份仍按普通年份规范化() {
+    assert_eq!(
+        normalize_datetime(Some("+0000002026-03-31T00:00:00Z")).as_deref(),
+        Some("2026-03-31 08:00:00")
+    );
+    for raw in [
+        "+00000002026-03-31T00:00:00Z",
+        "+2000002026-03-31T00:00:00Z",
+        "+2026-03-31T00:00:00Z",
+        "+1000000000-03-31T00:00:00Z",
+    ] {
+        assert_eq!(normalize_datetime(Some(raw)), Some(raw.replace('T', " ")));
+    }
+}
+
+#[test]
+fn 冻结_instant支持短偏移秒偏移小写分隔并拒绝超界偏移() {
+    for (input, expected) in [
+        ("2026-03-31t15:59:59z", "2026-03-31 23:59:59"),
+        ("2026-03-31T15:59:59+01", "2026-03-31 22:59:59"),
+        ("2026-03-31T15:59:59+03:30:20", "2026-03-31 20:29:39"),
+        ("2026-03-31T15:59:59+18:01", "2026-03-31 15:59:59+18:01"),
+        ("1990-07-01T00:00:00Z", "1990-07-01 09:00:00"),
+    ] {
+        assert_eq!(normalize_datetime(Some(input)).as_deref(), Some(expected));
+    }
+}
+
+#[test]
 fn frozen_crypto_and_mapping_vectors_are_preserved() {
     let plain = r#"{"pageSize":15,"pageNum":1,"sqlid":"1713252980496efac7d5d9985e81693116d3e8a52ebf2b","xnxq":"2025-20262","kcid":"","yzwz":""}"#;
     let encrypted = "hkJ9jAFVEMFUgJEjbOLv4eRZqXHIsmF+WbYaG1ipT1L1N+BbxRXtBj6Gcjri4Mo+y6q22/FkNm/isiC2+B+/hNejBx2cQJfNp9zoxorVJBa86sID0ROtPQ/2V07JCmVC3qsgIWBokL7EYyiPfilw+0ryJ6e61jRnLn90sQFosew=";
