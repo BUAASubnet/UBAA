@@ -1,6 +1,6 @@
 # 独立工程审查后的完整整理修复
 
-日期：2026-10-07（Asia/Shanghai）。状态：执行中。基线 `06e4dfdb`。用户明确要求根据[独立审查](docs/migration/engineering-quality-independent-review-2026-10-07.md)完成整理修复。
+日期：2026-10-07（Asia/Shanghai）。状态：已完成。基线 `06e4dfdb`。用户明确要求根据[独立审查](docs/migration/engineering-quality-independent-review-2026-10-07.md)完成整理修复。
 
 ## 目标与边界
 
@@ -16,10 +16,12 @@
 - [x] P2：I01/I03/I04/I05 运行边界修复及逐操作回归。
 - [x] P3：I06/I09 状态与错误权威收窄、日期依赖复用。
 - [x] P4：I07/I08 源码闭包/交付材料和插件通道验证。
-- [ ] P5：现行文档、完整门禁、独立复核、分阶段提交与最终证据。
+- [x] P5：现行文档、完整门禁、独立复核、分阶段提交与最终证据。
 
 ## 完成判定
 
 I01—I09逐项映射实现、RED/GREEN和剩余限制；执行 refs、layout、check-sensitive、check-strict（含Rust/CLI/Shell）、七包Flutter、FRB零漂移，以及受影响原生/平台合成入口。原生构建及设备按实际执行单独记账。阶段提交前检查暂存内容，无推送发布。最终报告为 docs/migration/engineering-quality-implementation-2026-10-07.md。
 
 上一轮F1—F7合同原文归档于 docs/migration/history/goal-before-engineering-repair-2026-10-07.md；其通过结果不替代本轮候选验证。
+
+本轮 I01—I09 及相关整理均完成；当前候选门禁、原生/构建、材料预检和阶段提交见[实施记录](docs/migration/engineering-quality-implementation-2026-10-07.md)。真实业务、实体设备和许可材料缺口继续独立跟踪，不代表正式发布完成。

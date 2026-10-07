@@ -1,6 +1,6 @@
 # 当前实现与验证状态
 
-更新日期：2026-10-07（Asia/Shanghai）。[独立工程审查整改](../../goal.md)的I01—I09已实施，当前完成阶段提交及干净候选材料预检收尾。实施分支为ubaa2，仅本地提交，不推送发布。
+更新日期：2026-10-07（Asia/Shanghai）。[独立工程审查整改](../../goal.md)的I01—I09已完成，实现、阶段提交及干净候选材料预检均已落地。实施分支为ubaa2，仅本地提交，不推送发布。
 
 ## 当前事实
 
@@ -20,4 +20,4 @@
 
 本轮未发起Direct/WebVPN、真实App账号读取或学校写入。原生runner无法前置macOS窗口，合成流程和真实插件handler通过不代表逐按钮Computer Use。OHOS实体HUKS、Windows/Linux运行、移动实体设备、签名及正式发布未验收。
 
-原B2/C2/C3/D沿[旧收尾合同](history/goal-2026-10-07-before-maintainability.md)与[按钮记录](../design/macos-ui-button-results.md)继续跟踪。许可材料当前仍有自有包正文/原生分发材料缺口，不能凭schema通过声称正式交付批准。
+原B2/C2/C3/D沿[旧收尾合同](history/goal-2026-10-07-before-maintainability.md)与[按钮记录](../design/macos-ui-button-results.md)继续跟踪。干净候选bbbbca52的preflight成功生成材料，411个Cargo组件通过schema；Dart/OHOS材料仍有27/848条自有包正文/原生分发缺口，不能凭schema通过声称正式交付批准。

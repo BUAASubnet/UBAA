@@ -4,7 +4,7 @@
 
 ## 范围与行为边界
 
-I01—I09 已实现且相关确定性/原生/构建门禁已完成；阶段提交和干净候选材料预检收尾。保留唯一 WriteCoordinator、单个 ChangeNotifier、在线资格/离线数据分离、固定来源、现有独有测试和 golden。没有升级产品依赖、改变 CLI v11/Bridge v40/Session v2/配置v1/缓存v6；网络插件只是把现有6.1.5加入官方宿主dev依赖，锁文件版本/摘要不变。
+I01—I09 已实现且相关确定性/原生/构建门禁、阶段提交和干净候选材料预检均完成。保留唯一 WriteCoordinator、单个 ChangeNotifier、在线资格/离线数据分离、固定来源、现有独有测试和 golden。没有升级产品依赖、改变 CLI v11/Bridge v40/Session v2/配置v1/缓存v6；网络插件只是把现有6.1.5加入官方宿主dev依赖，锁文件版本/摘要不变。
 
 冻结引用均通过纯 `just refs`。三个独立工作树的起始 HEAD、status、diff 和未跟踪文件内容摘要已保存在仓库外，收尾逐项比较。无真实账号读取、Direct/WebVPN 请求、学校写入、推送、签名或发布；原 B2/C2/C3/D 欠验继续保留。
 
@@ -64,7 +64,7 @@ Rust `UbaaError` 新私有cause不进入JSON/FRB/磁盘。`UbaaError::new`和四
 | 原生FFI cache | 1项通过，46.58秒；四入口合计11项通过 | integration-cache-final.log |
 | OHOS无签名debug | 分析、2项宿主测试、HUKS/网络源码合成合同、HAP及arm64动态库检查通过，86.32秒 | ohos-check.log |
 | Android APK / iOS simulator | 构建与产物结构检查通过；分别212.00秒/90.59秒 | build-android-apk.log、build-ios-simulator.log |
-| release-preflight | 等待干净阶段提交后执行；直接离线材料生成已通过schema | 待补最终日志 |
+| release-preflight | 干净候选bbbbca52退出0，4.10秒；411组件schema通过，许可材料27/848条缺口如实标记 | release-preflight.log |
 
 原生runner报告无法前置macOS窗口，因此鼠标逐按钮/真实App交互仍未验收；这不影响已实际调用的原生插件通道证据，但不能用其关闭原B2/C2/C3/D。OHOS无签名HAP不等于实体HUKS成功。Windows/Linux运行、实体设备、真实学校读取/写入及正式发布未执行。
 
@@ -72,7 +72,7 @@ Rust `UbaaError` 新私有cause不进入JSON/FRB/磁盘。`UbaaError::new`和四
 
 ## 提交与收尾
 
-三个独立工作树 HEAD、status、diff、未跟踪文件内容摘要均与开工一致；golden字节无变化。OHOS构建仅产生的buildinfo删除与本地HAR锁文件路径差异已核对并恢复，未提交构建副作用。阶段提交与干净候选预检收尾后补齐下方记录；不推送或发布。
+三个独立工作树 HEAD、status、diff、未跟踪文件内容摘要均与开工一致；golden字节无变化。OHOS构建仅产生的buildinfo删除与本地HAR锁文件路径差异已核对并恢复，未提交构建副作用。阶段提交与干净候选预检已完成；不推送或发布。
 
 
 ### 已完成阶段提交
@@ -88,3 +88,10 @@ Rust `UbaaError` 新私有cause不进入JSON/FRB/磁盘。`UbaaError::new`和四
 | cac32010 | 真实原生插件通道、查询矩阵证据和默认CI入口 |
 
 全部源码/测试/生成改动的候选为 `cac32010`；后续提交仅收敛文档及记录证据，不将先前日志改称后续文档HEAD的全套运行。当前模块检查为UI63/Bridge45/Controller50个受管library，完整自有闭包无导入环；这仍不代表动态状态依赖已经消失。
+
+
+文档与验收提交 `bbbbca52` 上执行 `just release-preflight`，目录为上述私有日志目录的 `preflight-bbbbca52/`。其输出无原始Cargo metadata，标准schema校验通过，许可缺口保持可见。后续收尾提交仅更新goal/status/本页记录，不改变源码候选。最后复核公开合同、文档命令锁定、敏感扫描、差异和工作区；本轮共九个本地阶段提交，未推送。
+
+### 验收范围与后续工作
+
+已完成工程修复与可执行回归入口，不要求以真实学校写入证明不变量。后续真正交付仍需处理许可材料27条记录、原B2/C2/C3/D对应真实按钮/数据、OHOS实体HUKS及目标设备、Windows/Linux运行和签名发布。未测量的队列规模/吞吐风险继续按审查指标观测，未因为存在理论风险而替换状态框架或缓存引擎。
