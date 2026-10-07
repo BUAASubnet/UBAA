@@ -1,10 +1,13 @@
 import 'dart:async';
+import 'dart:convert';
 import 'package:file_selector/file_selector.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/foundation.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
-final _png = Uint8List.fromList([137, 80, 78, 71, 13, 10, 26, 10, 0, 0, 0, 0]);
+final _png = base64Decode(
+  'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=',
+);
 void main() {
   test('文件在长度检查后增长仍不能超过10MiB', () async {
     final picker = DesktopFilePhotoPicker(
@@ -61,10 +64,7 @@ void main() {
   });
   test('超限或读取失败只给安全错误且不暴露路径', () async {
     for (final file in [
-      _MemoryFile(
-        Uint8List(MethodChannelPhotoPicker.maxPhotoBytes + 1),
-        name: 'large.png',
-      ),
+      _MemoryFile(Uint8List(maxPhotoBytes + 1), name: 'large.png'),
       _BrokenFile(),
     ]) {
       final picker = DesktopFilePhotoPicker(selectFile: () async => file);
@@ -104,11 +104,7 @@ class _MemoryFile extends XFile {
 }
 
 class _GrowingFile extends _MemoryFile {
-  _GrowingFile()
-    : super(
-        Uint8List(MethodChannelPhotoPicker.maxPhotoBytes + 1),
-        name: 'growing.png',
-      );
+  _GrowingFile() : super(Uint8List(maxPhotoBytes + 1), name: 'growing.png');
   @override
   Future<int> length() async => 1;
 }

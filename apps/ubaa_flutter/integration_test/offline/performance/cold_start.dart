@@ -97,10 +97,8 @@ Future<void> main() async {
         photoPicker: capabilities.photoPicker,
         permissionGateway: capabilities.permissionGateway,
         locationProvider: capabilities.locationProvider,
-        reminderStore: FileYgdkReminderStore(File('$config/ui-reminders.json')),
-        legacyGradeScoreStore: FileGradeScoreStore(
-          File('$config/ui-grade-scores.json'),
-        ),
+        reminderStore: PreferencesYgdkReminderStore(scope: config),
+
         onReadSchedulerTrace: measurement.recordScheduler,
         onGradeCheckComplete: measurement.markGradeCheckComplete,
       ),

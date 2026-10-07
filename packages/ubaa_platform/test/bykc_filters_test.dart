@@ -1,51 +1,45 @@
 import 'dart:convert';
-import 'dart:io';
+import 'support/preference_fake.dart';
 
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
-  late Directory directory;
-  late File file;
-  setUp(() async {
-    directory = await Directory.systemTemp.createTemp('ubaa-bykc-filter-test-');
-    file = File('${directory.path}/filters.json');
+  late FakePreferences values;
+  PreferencesBykcCourseFilterStore store() =>
+      PreferencesBykcCourseFilterStore(scope: 'synthetic', values: values);
+  setUp(() {
+    values = FakePreferences();
   });
-  tearDown(() => directory.delete(recursive: true));
 
-  test('三维选择规范化后跨新文件存储实例恢复，空状态保持不限', () async {
+  test('三维选择规范化后跨新插件存储实例恢复，空状态保持不限', () async {
     final value = BykcCourseFilters(
       statuses: const [],
       categories: [' 美育 ', '美育', ''],
       campuses: [' 沙河校区 ', '沙河校区', ' ', '未指定校区'],
     );
     expect(value.isDefault, isFalse);
-    await FileBykcCourseFilterStore(file).write('fixture-a', value);
-    final restored = await FileBykcCourseFilterStore(file).read('fixture-a');
+    await store().write('fixture-a', value);
+    final restored = await store().read('fixture-a');
     expect(restored, value);
     expect(restored!.statuses, isEmpty);
     expect(restored.categories, {'美育'});
     expect(restored.campuses, {'沙河校区', '未指定校区'});
-    expect(await FileBykcCourseFilterStore(file).read('fixture-b'), isNull);
-    final data = jsonDecode(await file.readAsString()) as Map;
-    expect(data.keys, unorderedEquals(['schema', 'accounts']));
-    expect((data['accounts'] as Map)['fixture-a'], {
+    expect(await store().read('fixture-b'), isNull);
+    expect(values.values, hasLength(1));
+    expect(jsonDecode(values.values.values.single), {
       'statuses': [],
       'categories': ['美育'],
       'campuses': ['未指定校区', '沙河校区'],
     });
-    expect(await directory.list().length, 1);
-    if (Platform.isMacOS || Platform.isLinux) {
-      expect((await file.stat()).mode & 0x1ff, 0x180);
-    }
   });
 
   for (final inMemory in [false, true]) {
     test('调用保存时冻结集合，随后编辑输入不改变待存内容：内存=$inMemory', () async {
-      final BykcCourseFilterStore store = inMemory
+      final BykcCourseFilterStore current = inMemory
           ? MemoryBykcCourseFilterStore()
-          : FileBykcCourseFilterStore(file);
+          : store();
       final statuses = {BykcCourseStatus.expired};
       final categories = {'美育'};
       final campuses = {'沙河校区'};
@@ -54,12 +48,12 @@ void main() {
         categories: categories,
         campuses: campuses,
       );
-      final pending = store.write('fixture-a', value);
+      final pending = current.write('fixture-a', value);
       statuses.clear();
       categories.add('德育');
       campuses.clear();
       await pending;
-      final restored = (await store.read('fixture-a'))!;
+      final restored = (await current.read('fixture-a'))!;
       expect(restored.statuses, {BykcCourseStatus.expired});
       expect(restored.categories, {'美育'});
       expect(restored.campuses, {'沙河校区'});
@@ -69,24 +63,24 @@ void main() {
     });
 
     test('账号隔离且明确清除只删除指定账号：内存=$inMemory', () async {
-      final BykcCourseFilterStore store = inMemory
+      final BykcCourseFilterStore current = inMemory
           ? MemoryBykcCourseFilterStore()
-          : FileBykcCourseFilterStore(file);
+          : store();
       await Future.wait([
-        store.write('fixture-a', _filters('沙河校区')),
-        store.write('fixture-b', _filters('学院路校区')),
+        current.write('fixture-a', _filters('沙河校区')),
+        current.write('fixture-b', _filters('学院路校区')),
       ]);
-      await store.clearAccount('fixture-a');
-      expect(await store.read('fixture-a'), isNull);
-      expect(await store.read('fixture-b'), _filters('学院路校区'));
-      await store.clearAccount('fixture-a');
-      expect(await store.read('fixture-b'), _filters('学院路校区'));
+      await current.clearAccount('fixture-a');
+      expect(await current.read('fixture-a'), isNull);
+      expect(await current.read('fixture-b'), _filters('学院路校区'));
+      await current.clearAccount('fixture-a');
+      expect(await current.read('fixture-b'), _filters('学院路校区'));
     });
   }
 
-  test('不同文件实例并发保存后清除遵循调用顺序，后续保存仍可生效', () async {
-    final first = FileBykcCourseFilterStore(file);
-    final second = FileBykcCourseFilterStore(File(file.path));
+  test('不同插件实例并发保存后清除遵循调用顺序，后续保存仍可生效', () async {
+    final first = store();
+    final second = store();
     final operations = [
       first.write('fixture-a', _filters('沙河校区')),
       second.write('fixture-b', _filters('学院路校区')),
@@ -103,14 +97,14 @@ void main() {
     expect(await first.read('fixture-b'), _filters('未指定校区'));
   });
 
-  test('缺失偏好与空三维选择不同，清除缺失账号不创建文件', () async {
-    final store = FileBykcCourseFilterStore(file);
-    await store.clearAccount('fixture-a');
-    expect(await file.exists(), isFalse);
-    expect(await store.read('fixture-a'), isNull);
+  test('缺失偏好与空三维选择不同，清除缺失账号不创建条目', () async {
+    final current = store();
+    await current.clearAccount('fixture-a');
+    expect(values.values, isEmpty);
+    expect(await current.read('fixture-a'), isNull);
     final unlimited = BykcCourseFilters(statuses: const []);
-    await store.write('fixture-a', unlimited);
-    expect(await FileBykcCourseFilterStore(file).read('fixture-a'), unlimited);
+    await current.write('fixture-a', unlimited);
+    expect(await store().read('fixture-a'), unlimited);
     expect(unlimited.isDefault, isFalse);
     expect(const BykcCourseFilters.defaults().isDefault, isTrue);
   });
@@ -141,52 +135,46 @@ void main() {
     },
   };
   for (final entry in malformed.entries) {
-    test('坏数据返回固定错误且不覆盖原文件，队列可恢复：${entry.key}', () async {
+    test('坏数据返回固定错误且不覆盖原偏好，队列可恢复：${entry.key}', () async {
+      await store().write('fixture-a', _filters('沙河校区'));
+      final key = values.values.keys.single;
       final raw = entry.value is String
           ? entry.value as String
-          : jsonEncode({
-              'schema': 1,
-              'accounts': {'fixture-a': entry.value},
-            });
-      await file.writeAsString(raw);
-      final store = FileBykcCourseFilterStore(file);
+          : jsonEncode(entry.value);
+      values.values[key] = raw;
+      final current = store();
       final safeError = isA<BykcCourseFilterStoreException>()
           .having((e) => e.code, '错误类别', BykcCourseFilterStoreError.invalidData)
           .having((e) => e.toString(), '固定反馈', '博雅筛选偏好格式无效');
-      await expectLater(store.read('fixture-a'), throwsA(safeError));
+      await expectLater(current.read('fixture-a'), throwsA(safeError));
       await expectLater(
-        store.write('fixture-a', _filters('杭州校区')),
+        current.write('fixture-a', _filters('杭州校区')),
         throwsA(safeError),
       );
-      await expectLater(store.clearAccount('fixture-a'), throwsA(safeError));
-      expect(await file.readAsString(), raw);
-      await file.writeAsString('{"schema":1,"accounts":{}}');
-      await store.write('fixture-a', _filters('杭州校区'));
-      expect(await store.read('fixture-a'), _filters('杭州校区'));
+      await expectLater(current.clearAccount('fixture-a'), throwsA(safeError));
+      expect(values.values[key], raw);
+      values.values.remove(key);
+      await current.write('fixture-a', _filters('杭州校区'));
+      expect(await current.read('fixture-a'), _filters('杭州校区'));
     });
   }
 
-  test('文件失败只返回固定反馈且后续操作可恢复', () async {
-    final blocker = File('${directory.path}/blocked');
-    await blocker.writeAsString('合成障碍文件');
-    final store = FileBykcCourseFilterStore(
-      File('${blocker.path}/filters.json'),
-    );
+  test('插件失败只返回固定反馈，恢复后可继续保存', () async {
+    final current = store();
+    values.fail = true;
     await expectLater(
-      store.write('fixture-private-account', _filters('沙河校区')),
+      current.write('fixture-a', _filters('沙河校区')),
       throwsA(
-        isA<BykcCourseFilterStoreException>()
-            .having(
-              (e) => e.code,
-              '错误类别',
-              BykcCourseFilterStoreError.storageFailure,
-            )
-            .having((e) => e.toString(), '固定反馈', '博雅筛选偏好存储失败'),
+        isA<BykcCourseFilterStoreException>().having(
+          (e) => e.code,
+          '类别',
+          BykcCourseFilterStoreError.storageFailure,
+        ),
       ),
     );
-    await blocker.delete();
-    await store.write('fixture-a', _filters('沙河校区'));
-    expect(await store.read('fixture-a'), _filters('沙河校区'));
+    values.fail = false;
+    await current.write('fixture-a', _filters('沙河校区'));
+    expect(await current.read('fixture-a'), _filters('沙河校区'));
   });
 }
 

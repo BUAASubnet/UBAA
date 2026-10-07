@@ -1,0 +1,20 @@
+{
+  "repository": "https://gitcode.com/CPF-Flutter/flutter_plus_plugins.git",
+  "commit": "9571de239933ab2893dbd49037e128135b050a7c",
+  "path": "packages/connectivity_plus/connectivity_plus",
+  "files": {
+    "ohos/hvigorfile.ts": "770025c3a08bcc8c66da80e24b63a4ad93fca4cd012ffd2a211e5530c2fbbb2c",
+    "ohos/oh-package.json5": "b6f608045982fe41688d8f4d785e8a82f492fffd9ba4e863bab42d20faed83d2",
+    "ohos/index.ets": "6c43e3e2da9c9d5299aab2a27d3a23bf41562b601f7cacc4cf5516e2088e9508",
+    "ohos/.gitignore": "0d60d2a19451b925373fbbb0a5792a9a0ac3b54ab983cbb66236548e14fd2f40",
+    "ohos/build-profile.json5": "b7c54a2497800df6d2a5447ef7ce18d2a07382020ad36cb514007375cb8424d2",
+    "ohos/src/main/module.json5": "cb53fec0d825dfff5360d3a44ce5c7c076076a32a2aed7d75c7bc91bf7af4858",
+    "ohos/src/main/ets/dev/fluttercommunity/plus/connectivity/ConnectivityPlugin.ets": "0b5f256305775877f0f7a57dd11e50dc9c2ece80638aeba77c5a9d2dcede8456",
+    "ohos/src/main/ets/dev/fluttercommunity/plus/connectivity/Connectivity.ets": "0cc7f4b46c2370091c8500d8b8d70702e621ee3877b7b27b3d1137fe3d62b148",
+    "ohos/src/main/ets/dev/fluttercommunity/plus/connectivity/ConnectivityBroadcastReceiver.ets": "113e32cade892d1d248807d6348825c2fc651ada7f97490a9d43b73d7bb0218a",
+    "ohos/src/main/ets/dev/fluttercommunity/plus/connectivity/ConnectivityMethodChannelHandler.ets": "dd255897d7c773b6d39cf2ff941a7237a436e931b638a7fdabc83ac44f2a1a0a",
+    "ohos/src/main/resources/base/element/string.json": "aa2a53c175bf94004b4081b6a3e65851869d7a912f2c59eeb994ce6e075e1be6",
+    "ohos/src/main/resources/zh_CN/element/string.json": "aa2a53c175bf94004b4081b6a3e65851869d7a912f2c59eeb994ce6e075e1be6",
+    "ohos/src/main/resources/en_US/element/string.json": "aa2a53c175bf94004b4081b6a3e65851869d7a912f2c59eeb994ce6e075e1be6"
+  }
+}

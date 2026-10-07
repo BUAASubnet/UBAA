@@ -19,6 +19,31 @@ dependencies:
   ubaa_platform:
     path: ../../packages/ubaa_platform
 
+  path_provider_ohos:
+    git:
+      url: https://gitcode.com/CPF-Flutter/flutter_packages.git
+      ref: 2f21e26e09efb92b8429c840ae7ca0cb024f036c
+      path: packages/path_provider/path_provider_ohos
+  shared_preferences_ohos:
+    git:
+      url: https://gitcode.com/CPF-Flutter/flutter_packages.git
+      ref: 2f21e26e09efb92b8429c840ae7ca0cb024f036c
+      path: packages/shared_preferences/shared_preferences_ohos
+  image_picker_ohos:
+    git:
+      url: https://gitcode.com/CPF-Flutter/flutter_packages.git
+      ref: 2f21e26e09efb92b8429c840ae7ca0cb024f036c
+      path: packages/image_picker/image_picker_ohos
+  url_launcher_ohos:
+    git:
+      url: https://gitcode.com/CPF-Flutter/flutter_packages.git
+      ref: 2f21e26e09efb92b8429c840ae7ca0cb024f036c
+      path: packages/url_launcher/url_launcher_ohos
+  connectivity_plus_ohos:
+    path: ../../packages/connectivity_plus_ohos
+  package_info_plus_ohos:
+    path: ../../packages/package_info_plus_ohos
+
 dev_dependencies:
   flutter_test:
     sdk: flutter

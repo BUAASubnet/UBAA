@@ -1,0 +1,10 @@
+{
+  "name": "package_info_plus_ohos",
+  "version": "1.0.0",
+  "description": "社区 OHOS 原生插件适配",
+  "main": "index.ets",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "@ohos/flutter_ohos": "file:./har/flutter.har"
+  }
+}

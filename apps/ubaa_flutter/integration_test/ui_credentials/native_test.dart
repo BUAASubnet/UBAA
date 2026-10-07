@@ -67,10 +67,11 @@ void main() {
     final systemVersion = await readMacOSProductVersion();
     debugPrint('照片回归独立系统版本：$systemVersion');
     final expectation = photoExpectationForMacOS(systemVersion);
-    final picker = MethodChannelPhotoPicker();
-    expect(await picker.probe(), expectation.available);
+    final capabilities = await createDefaultPhotoCapabilities();
+    final picker = capabilities.picker;
+    expect(picker.isAvailable, expectation.available);
     expect(
-      await MethodChannelPermissionGateway().request(PlatformPermission.photos),
+      await capabilities.permissions.request(PlatformPermission.photos),
       expectation.permission,
     );
     // 不打开系统选择器，不读取照片或触发业务请求。

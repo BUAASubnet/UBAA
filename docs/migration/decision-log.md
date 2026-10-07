@@ -1833,3 +1833,5 @@ Cookie 实际代码的合成回归证明 Expires 错误覆盖正 Max-Age，旧�
 用户已授权按审计建议实施，顺序为Core Cookie/加密、平台插件接线、清理历史迁移。实施前双来源与标准冲突裁决见[source-parity-dependency-reuse.md](source-parity-dependency-reuse.md)。不扩大真实业务写入授权，不迁移或删除旧真实材料。
 
 Core 阶段结果：使用 cookie_store 的 Cookie/Domain/Path 类型；保留 StoredCookie 快照、调用方时钟和小型过期时间适配，未开启 Reqwest 全局 CookieStore 或新增 PSL 策略。RustCrypto cbc 0.1.2 / cfb-mode 0.8.2 / ecb 0.1.2 兼容 cipher 0.4；复用 hex 处理编码。RED 两项、GREEN 333 项及 just check 通过，编译夹具锁文件同步。
+
+平台阶段按[实施记录](dependency-reuse-implementation-2026-10-07.md)收敛：必要 noBackup 策略保留薄通道；OHOS仅依赖标准注册实现，旧门面不拖低官方依赖。偏好候选源码复核后改用已修复同步写入/初始化的CPF固定提交。保留能力端口/安全错误/账号代次，移除旧成绩文件运行链，公共Bridge可选legacy字段本轮不改。

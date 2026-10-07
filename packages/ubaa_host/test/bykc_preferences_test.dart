@@ -37,15 +37,18 @@ void main() {
     expect(_selected(tester, '人数已满'), isFalse);
   });
 
-  testWidgets('新宿主及新文件存储恢复三维，恢复默认后再次重建保持默认', (tester) async {
+  testWidgets('新宿主及新插件存储恢复三维，恢复默认后再次重建保持默认', (tester) async {
     _largeView(tester);
     await tester.runAsync(() async {
       final directory = await Directory.systemTemp.createTemp(
         'ubaa-bykc-host-test-',
       );
       try {
-        final file = File('${directory.path}/filters.json');
-        var store = FileBykcCourseFilterStore(file);
+        final preferences = _PreferenceValues();
+        var store = PreferencesBykcCourseFilterStore(
+          scope: directory.path,
+          values: preferences,
+        );
         await tester.pumpWidget(_host(_BykcBackend(), store: store));
         await tester.pumpAndSettle();
         await store.read('fixture-a');
@@ -61,7 +64,10 @@ void main() {
         expect(stored.campuses, {'沙河校区'});
 
         await tester.pumpWidget(const SizedBox());
-        store = FileBykcCourseFilterStore(File(file.path));
+        store = PreferencesBykcCourseFilterStore(
+          scope: directory.path,
+          values: preferences,
+        );
         await tester.pumpWidget(_host(_BykcBackend(), store: store));
         await tester.pumpAndSettle();
         await store.read('fixture-a');
@@ -75,7 +81,10 @@ void main() {
         expect(await store.read('fixture-a'), isNull);
 
         await tester.pumpWidget(const SizedBox());
-        store = FileBykcCourseFilterStore(File(file.path));
+        store = PreferencesBykcCourseFilterStore(
+          scope: directory.path,
+          values: preferences,
+        );
         await tester.pumpWidget(_host(_BykcBackend(), store: store));
         await tester.pumpAndSettle();
         await store.read('fixture-a');
@@ -476,4 +485,19 @@ Future<void> _backgroundAndResume(WidgetTester tester) async {
     await tester.pump();
   }
   await tester.pumpAndSettle();
+}
+
+class _PreferenceValues implements PreferenceValues {
+  final values = <String, String>{};
+  @override
+  Future<String?> read(String key) async => values[key];
+  @override
+  Future<void> write(String key, String value) async {
+    values[key] = value;
+  }
+
+  @override
+  Future<void> remove(String key) async {
+    values.remove(key);
+  }
 }

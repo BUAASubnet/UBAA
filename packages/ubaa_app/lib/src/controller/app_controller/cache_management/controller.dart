@@ -69,12 +69,6 @@ extension _AppControllerCacheManagement on AppController {
         scope.cancel();
       }
       _pumpReadTasks();
-      if (_legacyGradeScores != null) {
-        await _clearLegacyGradeScores();
-        if (!_cacheOwnerCurrent(accountId, backend, epoch)) {
-          throw const BackendException(UbaaErrorCode.operationConflict);
-        }
-      }
       final result = await _clearBackendCache(backend, accountId, epoch);
       if (!_cacheOwnerCurrent(accountId, backend, epoch)) {
         throw const BackendException(UbaaErrorCode.operationConflict);

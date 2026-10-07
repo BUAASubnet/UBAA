@@ -119,7 +119,6 @@ class AppController extends ChangeNotifier {
     BackendFactory? backendFactory,
     CredentialVault? credentialVault,
     LocalAccountStore? localAccountStore,
-    FileGradeScoreStore? legacyGradeScores,
     TelemetryClient? telemetry,
     LocalDiagnostics? diagnostics,
     void Function(ReadSchedulerTrace trace)? onReadSchedulerTrace,
@@ -127,7 +126,6 @@ class AppController extends ChangeNotifier {
        _backendFactory = backendFactory,
        _credentialVault = credentialVault ?? const NoopCredentialVault(),
        _localAccountStore = localAccountStore,
-       _legacyGradeScores = legacyGradeScores,
        _telemetry = telemetry ?? const NoopTelemetryClient(),
        _diagnostics = diagnostics ?? LocalDiagnostics(),
        _telemetryEnabled = (telemetry ?? const NoopTelemetryClient()).enabled,
@@ -147,7 +145,6 @@ class AppController extends ChangeNotifier {
   final BackendFactory? _backendFactory;
   final CredentialVault _credentialVault;
   final LocalAccountStore? _localAccountStore;
-  final FileGradeScoreStore? _legacyGradeScores;
   LocalAccount? _localAccount;
   bool _isSigningOut = false;
   bool _credentialRestoreAllowed = true;

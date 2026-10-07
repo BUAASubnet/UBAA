@@ -14,6 +14,12 @@ void main() {
     );
     final messenger =
         TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    const paths = MethodChannel('plugins.flutter.io/path_provider');
+    messenger.setMockMethodCallHandler(
+      paths,
+      (_) async => '/synthetic/app-support',
+    );
+    addTearDown(() => messenger.setMockMethodCallHandler(paths, null));
     final values = <String, String>{};
     final legacyCalls = <String>[];
     messenger.setMockMethodCallHandler(legacy, (call) async {

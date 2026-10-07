@@ -4,76 +4,62 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_host/src/network_monitor.dart';
 
 void main() {
-  test('本机接口首次观察与离线不唤醒，连接变化才提示，取消后无轮询', () {
+  test('系统事件去重，离线不唤醒，恢复唤醒且没有周期轮询', () {
     fakeAsync((time) {
-      var interfaces = <String>{};
-      var calls = 0;
-      var hints = 0;
+      final events = StreamController<Set<String>>.broadcast();
+      var reads = 0, hints = 0;
       final monitor = LocalNetworkMonitor(
-        readInterfaces: () async {
-          calls++;
-          return interfaces;
+        readState: () async {
+          reads++;
+          return {};
         },
+        events: events.stream,
       );
       final subscription = monitor.changes.listen((_) => hints++);
       time.flushMicrotasks();
-      expect(hints, 0);
-      interfaces = {'synthetic-a'};
-      time.elapse(const Duration(seconds: 5));
-      time.flushMicrotasks();
-      time.flushMicrotasks();
-      expect(hints, 1);
-      time.elapse(const Duration(seconds: 5));
-      time.flushMicrotasks();
-      expect(hints, 1);
-      interfaces = {};
-      time.elapse(const Duration(seconds: 5));
-      time.flushMicrotasks();
-      expect(hints, 1);
-      interfaces = {'synthetic-b'};
-      time.elapse(const Duration(seconds: 5));
-      time.flushMicrotasks();
-      time.flushMicrotasks();
+      for (final state in [
+        <String>{'wifi'},
+        {'wifi'},
+        <String>{},
+        {'mobile'},
+      ]) {
+        events.add(state);
+        time.flushMicrotasks();
+      }
       expect(hints, 2);
-      unawaited(subscription.cancel());
-      time.flushMicrotasks();
-      final stopped = calls;
       time.elapse(const Duration(minutes: 1));
       time.flushMicrotasks();
-      expect(calls, stopped);
+      expect(reads, 1);
       expect(time.periodicTimerCount, 0);
+      unawaited(subscription.cancel());
+      time.flushMicrotasks();
+      expect(events.hasListener, isFalse);
     });
   });
-  test('枚举失败不宣称联网，取消订阅后的迟到枚举不能改变新订阅基线', () {
+  test('迟到查询不能覆盖新事件或重新订阅后的状态', () {
     fakeAsync((time) {
-      var calls = 0;
+      final events = StreamController<Set<String>>.broadcast();
       final gate = Completer<Set<String>>();
+      var calls = 0, hints = 0;
       final monitor = LocalNetworkMonitor(
-        readInterfaces: () async {
-          calls++;
-          if (calls == 1) throw StateError('合成枚举不可用');
-          if (calls == 2) return gate.future;
-          return {'synthetic-new'};
-        },
+        readState: () => ++calls == 1 ? gate.future : Future.value({'mobile'}),
+        events: events.stream,
       );
-      var hints = 0;
       final first = monitor.changes.listen((_) => hints++);
-      time.flushMicrotasks();
-      expect(hints, 0);
-      time.elapse(const Duration(seconds: 5));
+      events.add({'wifi'});
       time.flushMicrotasks();
       unawaited(first.cancel());
       time.flushMicrotasks();
       final second = monitor.changes.listen((_) => hints++);
-      gate.complete({'synthetic-old'});
       time.flushMicrotasks();
-      time.elapse(const Duration(seconds: 5));
+      expect(hints, 1);
+      gate.complete({'ethernet'});
       time.flushMicrotasks();
+      events.add({'mobile'});
       time.flushMicrotasks();
-      expect(hints, 0);
+      expect(hints, 1);
       unawaited(second.cancel());
       time.flushMicrotasks();
-      expect(time.periodicTimerCount, 0);
     });
   });
 }

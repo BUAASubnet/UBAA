@@ -41,45 +41,17 @@ final class ControllerGradeScoreStore implements GradeScoreStore {
         cacheFailure: CacheMaintenanceFailure.unavailable,
       );
     }
-    Future<GradeScoreBaseline?> save(GradeScoreBaseline? legacy) async {
-      check();
-      final previous = await (backend as GradeScoreBaselineBackend)
-          .updateGradeScoreBaseline(
-            accountId: local.id,
-            route: route,
-            latest: latest,
-            legacy: legacy,
-          );
-      check();
-      return previous;
-    }
-
-    final legacyStore = c._legacyGradeScores;
-    final previous = legacyStore == null
-        ? await save(null)
-        : await legacyStore.migrate(account, route, save);
+    final previous = await (backend as GradeScoreBaselineBackend)
+        .updateGradeScoreBaseline(
+          accountId: local.id,
+          route: route,
+          latest: latest,
+        );
     check();
     return previous;
   }
 
-  // 加密库由控制器清理；退出后的这里只移除该账号尚未迁入的旧文件范围。
+  // 加密成绩由控制器的缓存清理/账号退出统一管理，没有第二套文件仓库。
   @override
-  Future<void> clearAccount(String account) async {
-    await controller._legacyGradeScores?.clearAccount(account);
-  }
-}
-
-extension _AppControllerLegacyGradeScores on AppController {
-  Future<void> _clearLegacyGradeScores() async {
-    final identities = {
-      _localAccount?.username,
-      _user?.username,
-      _user?.schoolId,
-    };
-    for (final identity in identities) {
-      if (identity != null && identity.trim().isNotEmpty) {
-        await _legacyGradeScores?.clearAccount(identity);
-      }
-    }
-  }
+  Future<void> clearAccount(String account) async {}
 }

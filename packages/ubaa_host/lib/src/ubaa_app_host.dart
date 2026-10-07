@@ -6,7 +6,6 @@ import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
-import 'network_monitor.dart';
 
 part 'callbacks.dart';
 part 'lifecycle.dart';
@@ -62,7 +61,6 @@ class UbaaAppHost extends StatefulWidget {
     this.telemetry,
     this.reminderStore,
     this.gradeScoreStore,
-    this.legacyGradeScoreStore,
     this.bykcFilterStore,
     this.appInformation,
     this.onReadSchedulerTrace,
@@ -89,7 +87,6 @@ class UbaaAppHost extends StatefulWidget {
   final TelemetryClient? telemetry;
   final YgdkReminderStore? reminderStore;
   final GradeScoreStore? gradeScoreStore;
-  final FileGradeScoreStore? legacyGradeScoreStore;
   final BykcCourseFilterStore? bykcFilterStore;
   final PlatformAppInformation? appInformation;
   final void Function(ReadSchedulerTrace trace)? onReadSchedulerTrace;

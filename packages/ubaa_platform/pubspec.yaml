@@ -11,6 +11,13 @@ dependencies:
     sdk: flutter
   file_selector: 1.1.0
   mime: 2.0.0
+  crypto: ^3.0.7
+  image_picker: 1.2.4
+  path_provider: 2.1.6
+  path: ^1.9.1
+  shared_preferences: 2.5.6
+  shared_preferences_platform_interface: ^2.4.0
+  connectivity_plus: 6.1.5
   flutter_secure_storage: 10.0.0
   flutter_secure_storage_platform_interface: 2.1.1
   meta: ^1.16.0

@@ -40,24 +40,15 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     final backend = widget.backend;
     _reminderStore =
         widget.reminderStore ??
-        (backend != null
+        (backend != null || widget.backendFactory != null
             ? MemoryYgdkReminderStore()
-            : FileYgdkReminderStore(
-                File('${defaultConfigDirectory()}/ui-reminders.json'),
-              ));
+            : PreferencesYgdkReminderStore(scope: defaultConfigDirectory()));
     final backendFactory = widget.backendFactory ?? createProductionBackend;
     _controller = AppController(
       backend: backend ?? backendFactory(),
       backendFactory: backend == null ? backendFactory : null,
       credentialVault: widget.credentialVault,
       localAccountStore: widget.localAccountStore,
-      legacyGradeScores:
-          widget.legacyGradeScoreStore ??
-          (backend == null && widget.backendFactory == null
-              ? FileGradeScoreStore(
-                  File('${defaultConfigDirectory()}/ui-grade-scores.json'),
-                )
-              : null),
       telemetry: widget.telemetry,
       onReadSchedulerTrace: widget.onReadSchedulerTrace,
     );
@@ -75,8 +66,8 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
         widget.bykcFilterStore ??
         (backend != null || widget.backendFactory != null
             ? MemoryBykcCourseFilterStore()
-            : FileBykcCourseFilterStore(
-                File('${defaultConfigDirectory()}/ui-bykc-filters.json'),
+            : PreferencesBykcCourseFilterStore(
+                scope: defaultConfigDirectory(),
               ));
     _controller.addListener(_retryPendingRecovery);
     _controller.addListener(_showHomeFeedback);

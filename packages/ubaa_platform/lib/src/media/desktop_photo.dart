@@ -1,6 +1,6 @@
 part of '../media.dart';
 
-/// Windows/Linux系统单文件选择；只将受限内存照片交给Host。
+/// 桌面系统单文件选择；只将受限内存照片交给Host。
 final class DesktopFilePhotoPicker implements PlatformPhotoPicker {
   DesktopFilePhotoPicker({Future<selector.XFile?> Function()? selectFile})
     : _selectFile = selectFile ?? _openDesktopImage;
@@ -15,25 +15,7 @@ final class DesktopFilePhotoPicker implements PlatformPhotoPicker {
     try {
       final file = await _selectFile();
       if (file == null) return null;
-      final size = await file.length();
-      if (size <= 0 || size > MethodChannelPhotoPicker.maxPhotoBytes)
-        throw const FormatException();
-      final builder = typed.BytesBuilder(copy: false);
-      await for (final chunk in file.openRead()) {
-        // 文件在长度检查后增长也不能无界分配；提前退出会取消流。
-        if (builder.length + chunk.length >
-            MethodChannelPhotoPicker.maxPhotoBytes)
-          throw const FormatException();
-        builder.add(chunk);
-      }
-      final bytes = builder.takeBytes();
-      final result = _copyCanonicalPhotoInput(
-        bytes: bytes,
-        fileName: file.name,
-        mimeType: mime.lookupMimeType(file.name, headerBytes: bytes),
-      );
-      if (result == null) throw const FormatException();
-      return result;
+      return await _readSelectedPhoto(file);
     } on Object {
       throw const PlatformCapabilityException(
         PlatformPermission.photos,
@@ -65,15 +47,3 @@ Future<selector.XFile?> _openDesktopImage() => selector.openFile(
   ],
   confirmButtonText: '选择图片',
 );
-
-/// 文件对话框由用户授权单个文件，无移动端相册库权限请求。
-final class DesktopFilePermissionGateway implements PlatformPermissionGateway {
-  const DesktopFilePermissionGateway(this.fallback);
-  final PlatformPermissionGateway fallback;
-  @override
-  Future<PlatformPermissionStatus> request(PlatformPermission permission) =>
-      permission == PlatformPermission.photos ||
-          permission == PlatformPermission.files
-      ? Future.value(PlatformPermissionStatus.granted)
-      : fallback.request(permission);
-}

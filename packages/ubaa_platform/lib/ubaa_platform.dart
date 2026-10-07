@@ -17,3 +17,5 @@ export 'src/app_information.dart';
 export 'src/secure_material.dart';
 export 'src/local_accounts.dart';
 export 'src/schedule_widgets.dart';
+export 'src/infrastructure/preferences.dart';
+export 'src/infrastructure/network_monitor.dart';

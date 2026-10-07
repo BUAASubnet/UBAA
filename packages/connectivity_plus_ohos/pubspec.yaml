@@ -1,0 +1,16 @@
+name: connectivity_plus_ohos
+description: CPF 社区插件的 OHOS 原生分发适配。
+publish_to: none
+version: 1.0.0+ubaa.1
+environment:
+  sdk: ^3.11.5
+dependencies:
+  flutter:
+    sdk: flutter
+flutter:
+  plugin:
+    implements: connectivity_plus
+    platforms:
+      ohos:
+        package: dev.fluttercommunity.plus.connectivity
+        pluginClass: ConnectivityPlugin

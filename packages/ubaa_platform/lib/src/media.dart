@@ -1,10 +1,18 @@
 import 'dart:typed_data' as typed;
 import 'package:file_selector/file_selector.dart' as selector;
 import 'package:mime/mime.dart' as mime;
+import 'dart:io';
+import 'dart:ui' as ui;
 import 'package:flutter/services.dart';
+import 'package:image_picker/image_picker.dart' as picker_plugin;
+import 'package:path/path.dart' as paths;
+import 'package:path_provider/path_provider.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 part 'media/desktop_photo.dart';
+part 'media/plugin_photo.dart';
+
+const maxPhotoBytes = 10 * 1024 * 1024;
 
 /// 宿主可能需要向系统申请的能力；具体平台插件不得把令牌或原始路径
 /// 暴露给应用层。
@@ -47,38 +55,6 @@ final class CallbackPermissionGateway implements PlatformPermissionGateway {
     try {
       final status = await _request(permission);
       return status;
-    } on Object {
-      return PlatformPermissionStatus.unavailable;
-    }
-  }
-}
-
-/// 生产宿主使用的 MethodChannel 权限适配器。
-///
-/// 原生侧只返回固定状态字符串；缺少插件、方法或返回值异常时一律视为
-/// `unavailable`，不会把平台异常正文带入 Dart。
-final class MethodChannelPermissionGateway
-    implements PlatformPermissionGateway {
-  MethodChannelPermissionGateway({MethodChannel? channel})
-    : _channel = channel ?? const MethodChannel('cn.edu.buaa.ubaa/platform');
-
-  final MethodChannel _channel;
-
-  @override
-  Future<PlatformPermissionStatus> request(
-    PlatformPermission permission,
-  ) async {
-    try {
-      final result = await _channel.invokeMethod<Object?>(
-        'permission.request',
-        permission.name,
-      );
-      return switch (result) {
-        'granted' => PlatformPermissionStatus.granted,
-        'denied' => PlatformPermissionStatus.denied,
-        'restricted' => PlatformPermissionStatus.restricted,
-        _ => PlatformPermissionStatus.unavailable,
-      };
     } on Object {
       return PlatformPermissionStatus.unavailable;
     }
@@ -170,85 +146,6 @@ final class CallbackPhotoPicker implements PlatformPhotoPicker {
   }
 }
 
-/// 生产宿主使用的 MethodChannel 照片适配器。
-///
-/// 原生侧返回受限的字节、展示名和 MIME 类型；不会把文件路径或 URL 交给
-/// Dart。必须先成功探测能力，且单张照片最多 10 MiB。
-final class MethodChannelPhotoPicker
-    implements PlatformPhotoPicker, PlatformPhotoCapture {
-  MethodChannelPhotoPicker({MethodChannel? channel})
-    : _channel = channel ?? const MethodChannel('cn.edu.buaa.ubaa/platform');
-
-  static const maxPhotoBytes = 10 * 1024 * 1024;
-
-  final MethodChannel _channel;
-  bool _available = false;
-  bool _canCapture = false;
-
-  @override
-  bool get canCapturePhoto => _canCapture;
-
-  @override
-  bool get isAvailable => _available;
-
-  Future<bool> probe() async {
-    try {
-      _available =
-          await _channel.invokeMethod<bool>('photo.capability') ?? false;
-    } on Object {
-      _available = false;
-    }
-    try {
-      _canCapture =
-          await _channel.invokeMethod<bool>('photo.captureCapability') ?? false;
-    } on Object {
-      _canCapture = false;
-    }
-    return _available;
-  }
-
-  @override
-  Future<YgdkPhotoInput?> capturePhoto() async {
-    if (!_canCapture) return null;
-    try {
-      final result = await _channel.invokeMethod<Object?>('photo.capture');
-      if (result == null) return null;
-      if (result is! Map) throw const FormatException();
-      final photo = _copyCanonicalPhotoInput(
-        bytes: result['bytes'],
-        fileName: result['fileName'],
-        mimeType: result['mimeType'],
-      );
-      if (photo == null) throw const FormatException();
-      return photo;
-    } on Object {
-      throw const PlatformCapabilityException(
-        PlatformPermission.camera,
-        PlatformPermissionStatus.unavailable,
-      );
-    }
-  }
-
-  @override
-  Future<YgdkPhotoInput?> pickPhoto() async {
-    if (!_available) return null;
-    try {
-      final result = await _channel.invokeMethod<Object?>('photo.pick');
-      if (result is! Map) return null;
-      return _copyCanonicalPhotoInput(
-        bytes: result['bytes'],
-        fileName: result['fileName'],
-        mimeType: result['mimeType'],
-      );
-    } on Object {
-      throw const PlatformCapabilityException(
-        PlatformPermission.photos,
-        PlatformPermissionStatus.unavailable,
-      );
-    }
-  }
-}
-
 YgdkPhotoInput? _copyCanonicalPhotoInput({
   required Object? bytes,
   required Object? fileName,
@@ -258,7 +155,7 @@ YgdkPhotoInput? _copyCanonicalPhotoInput({
       fileName is! String ||
       mimeType is! String ||
       bytes.isEmpty ||
-      bytes.length > MethodChannelPhotoPicker.maxPhotoBytes ||
+      bytes.length > maxPhotoBytes ||
       !_isCanonicalPhotoFileName(fileName) ||
       !_isCanonicalPhotoMimeType(mimeType)) {
     return null;

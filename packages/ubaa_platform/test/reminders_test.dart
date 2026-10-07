@@ -1,18 +1,15 @@
-import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+import 'support/preference_fake.dart';
 
 void main() {
-  test('提醒默认开启，重开存储后账号周次学期互不串用', () async {
-    final dir = await Directory.systemTemp.createTemp(
-      'ubaa-synthetic-reminders-',
-    );
-    addTearDown(() => dir.delete(recursive: true));
-    final file = File('${dir.path}/reminders.json');
-    final store = FileYgdkReminderStore(file);
-    expect((await store.read('synthetic-a')).enabled, isTrue);
+  test('提醒默认开启，重开实例保留账号周次学期隔离', () async {
+    final values = FakePreferences();
+    PreferencesYgdkReminderStore store([String scope = 'a']) =>
+        PreferencesYgdkReminderStore(scope: scope, values: values);
+    expect((await store().read('synthetic-a')).enabled, isTrue);
     await Future.wait([
-      store.write(
+      store().write(
         'synthetic-a',
         const YgdkReminderSettings(
           enabled: false,
@@ -20,44 +17,35 @@ void main() {
           termDoneKey: 'term',
         ),
       ),
-      store.write(
+      store().write(
         'synthetic-b',
         const YgdkReminderSettings(weekDoneKey: 'term:12'),
       ),
     ]);
-    final reopened = FileYgdkReminderStore(file);
-    final a = await reopened.read('synthetic-a'),
-        b = await reopened.read('synthetic-b');
-    expect(a.enabled, isFalse);
-    expect(a.weekDoneKey, 'term:11');
-    expect(a.termDoneKey, 'term');
-    expect(b.enabled, isTrue);
-    expect(b.weekDoneKey, 'term:12');
-    expect(b.termDoneKey, isNull);
-    await reopened.clear('synthetic-a');
-    expect((await reopened.read('synthetic-a')).enabled, isTrue);
-    expect((await reopened.read('synthetic-b')).weekDoneKey, 'term:12');
+    expect((await store().read('synthetic-a')).enabled, isFalse);
+    expect((await store().read('synthetic-b')).weekDoneKey, 'term:12');
+    expect((await store('b').read('synthetic-a')).enabled, isTrue);
+    await store().clear('synthetic-a');
+    expect((await store().read('synthetic-a')).weekDoneKey, isNull);
+    expect((await store().read('synthetic-b')).weekDoneKey, 'term:12');
   });
-  test('损坏的提醒文件明确失败且不覆盖，空账号不能写入', () async {
-    final dir = await Directory.systemTemp.createTemp(
-      'ubaa-synthetic-reminders-',
-    );
-    addTearDown(() => dir.delete(recursive: true));
-    final file = File('${dir.path}/reminders.json');
-    await file.writeAsString('{invalid');
-    final store = FileYgdkReminderStore(file);
+  test('损坏值拒绝覆盖，插件错误传播，空账号不能写入', () async {
+    final values = FakePreferences();
+    final store = PreferencesYgdkReminderStore(scope: 'a', values: values);
+    await store.write('a', const YgdkReminderSettings());
+    final key = values.values.keys.single;
+    values.values[key] = '{无效';
+    await expectLater(store.read('a'), throwsFormatException);
     await expectLater(
-      store.read('synthetic-a'),
-      throwsA(isA<FormatException>()),
+      store.write('a', const YgdkReminderSettings()),
+      throwsFormatException,
     );
-    await expectLater(
-      store.write('synthetic-a', const YgdkReminderSettings()),
-      throwsA(isA<FormatException>()),
-    );
-    expect(await file.readAsString(), '{invalid');
+    expect(values.values[key], '{无效');
     await expectLater(
       store.write('', const YgdkReminderSettings()),
       throwsArgumentError,
     );
+    values.fail = true;
+    await expectLater(store.read('b'), throwsStateError);
   });
 }

@@ -49,31 +49,24 @@ void main() {
   setUpAll(RustLib.init);
   WidgetController.hitTestWarningShouldBeFatal = true;
   for (final brightness in Brightness.values) {
-    testWidgets('原生成绩基线损坏清理反馈 ${brightness.name}', (tester) async {
-      final directory = await Directory.systemTemp.createTemp(
-        'ubaa-grade-watch-clear-',
-      );
-      addTearDown(() => directory.delete(recursive: true));
-      final file = File('${directory.path}/scores.json');
+    testWidgets('原生成绩基线清理失败反馈 ${brightness.name}', (tester) async {
       await mount(
         tester,
         GradeWatchBackend(),
         brightness,
-        store: LegacyClearGradeStore(file),
+        store: FailingGradeStore(),
       );
-      await file.writeAsString('合成损坏文件');
       await tap(tester, find.byTooltip('打开导航菜单'));
       await tap(tester, find.text('设置'));
       await tap(tester, find.text('退出并清除本机账号'));
       await tap(tester, find.widgetWithText(FilledButton, '退出并清除'));
       expect(find.byType(UbaaLoginView), findsOneWidget);
       expect(find.text('本机数据未能完全清除，请稍后重试。'), findsOneWidget);
-      expect(await file.readAsString(), '合成损坏文件');
       await capture(
         binding,
         tester,
         '${brightness.name}-grade-watch-clear-error',
-        '损坏的本地合成成绩文件不被覆盖；退出完成后明确说明未完全清除',
+        '显式合成缓存清理失败；退出后明确说明未完全清除',
       );
     });
     testWidgets('首页成绩变化旧横幅与查看忽略 ${brightness.name}', (tester) async {

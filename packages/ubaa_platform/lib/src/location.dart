@@ -1,5 +1,3 @@
-import 'package:flutter/services.dart';
-
 import 'media.dart';
 
 /// 单次前台定位结果。
@@ -31,46 +29,6 @@ abstract interface class PlatformLocationProvider {
   bool get isAvailable;
 
   Future<PlatformLocation?> currentLocation();
-}
-
-/// 生产宿主使用的 MethodChannel 位置适配器。
-///
-/// 原生侧只返回 `lat`、`lng`；插件异常、畸形返回和越界坐标一律安全归约
-/// 为空值，不向 Dart/UI 传播原始路径、令牌或异常正文。
-final class MethodChannelLocationProvider implements PlatformLocationProvider {
-  MethodChannelLocationProvider({MethodChannel? channel})
-    : _channel = channel ?? const MethodChannel('cn.edu.buaa.ubaa/platform');
-
-  final MethodChannel _channel;
-  bool _available = false;
-
-  @override
-  bool get isAvailable => _available;
-
-  Future<bool> probe() async {
-    try {
-      _available =
-          await _channel.invokeMethod<bool>('location.capability') ?? false;
-    } on Object {
-      _available = false;
-    }
-    return _available;
-  }
-
-  @override
-  Future<PlatformLocation?> currentLocation() async {
-    if (!_available) return null;
-    try {
-      final result = await _channel.invokeMethod<Object?>('location.current');
-      if (result is! Map) return null;
-      final lat = result['lat'];
-      final lng = result['lng'];
-      if (lat is! num || lng is! num) return null;
-      return PlatformLocation(lat: lat.toDouble(), lng: lng.toDouble());
-    } on Object {
-      return null;
-    }
-  }
 }
 
 /// 没有原生定位实现时的安全默认值。

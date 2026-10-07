@@ -98,3 +98,7 @@ Android三种桌面课表、加密发布/撤销及同周离线页已完成；独
 2026-10-07依赖收敛进入实施：按审计七类候选逐阶段补测试、替换及验证，记录见[实施对照](source-parity-dependency-reuse.md)。
 
 依赖收敛 Core 阶段：Cookie 标准解析/域/path 复用 cookie_store，修复 Max-Age 优先及空 Domain；CBC/CFB/ECB/填充和 hex 交给库。两项回归先失败后通过，333 项 Core 单元测试及完整 just check（含 CLI E2E/Bridge）通过。平台阶段继续验证，尚不表示真实上游/全端验收完成。
+
+2026-10-07平台依赖收敛：官方平台统一图片/目录/偏好/网络/关于插件，OHOS固定社区实现并隔离必要兼容；删除宿主重复原生通道及旧成绩文件迁移。1323项Flutter测试、macOS/Android真实插件读写、iOS构建和WebVPN 40项只读通过；最终CPF依赖下OHOS无签名HAP、分析及2项宿主测试通过，记录见[实施记录](dependency-reuse-implementation-2026-10-07.md)。
+
+本次通用能力收敛实现完成：七类基础能力已按平台接口接线，旧成绩文件迁移链删除；最终Core完整门禁、官方七包门禁、OHOS分析/宿主测试/原生合成/HAP、macOS与Android插件读写、iOS构建、WebVPN只读均有当前证据。OHOS实体设备、Windows/Linux运行及既有全面UI验收仍未覆盖，不推送或发布。

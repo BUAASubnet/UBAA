@@ -1,0 +1,10 @@
+.dart_tool/
+build/
+.flutter-plugins*
+pubspec.lock
+ohos/oh_modules/
+ohos/build/
+ohos/har/
+ohos/libs/
+ohos/oh-package-lock.json5
+ohos/BuildProfile.ets

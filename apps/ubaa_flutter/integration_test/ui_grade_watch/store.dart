@@ -78,10 +78,8 @@ class NativeGradeScoreStore implements GradeScoreStore {
       (await cache(account)).clear();
 }
 
-/// 损坏旧文件清理失败仍由真实解析器证明，不伪造成功结果。
-class LegacyClearGradeStore implements GradeScoreStore {
-  LegacyClearGradeStore(this.file);
-  final File file;
+/// UI 失败提示使用显式合成故障，不再引入旧明文成绩解析器。
+class FailingGradeStore implements GradeScoreStore {
   final memory = MemoryGradeScoreStore();
   @override
   Future<GradeScoreBaseline?> update(
@@ -90,6 +88,6 @@ class LegacyClearGradeStore implements GradeScoreStore {
     GradeScoreBaseline latest,
   ) => memory.update(account, route, latest);
   @override
-  Future<void> clearAccount(String account) =>
-      FileGradeScoreStore(file).clearAccount(account);
+  Future<void> clearAccount(String account) async =>
+      throw const FileSystemException('合成缓存清理失败');
 }

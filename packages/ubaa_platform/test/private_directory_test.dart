@@ -5,14 +5,14 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
-  const channel = MethodChannel('cn.edu.buaa.ubaa/platform');
+  const channel = MethodChannel('cn.edu.buaa.ubaa/private-paths');
   final messenger =
       TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
   tearDown(() => messenger.setMockMethodCallHandler(channel, null));
 
   test('Android 空环境从原生私有目录启动，不依赖 HOME', () async {
     messenger.setMockMethodCallHandler(channel, (call) async {
-      expect(call.method, 'paths.config');
+      expect(call.method, 'configDirectory');
       return '/data/user/0/synthetic.app/no_backup/UBAA';
     });
     final directory = PrivateConfigDirectory(
@@ -23,33 +23,32 @@ void main() {
     expect(directory.resolve(), '/data/user/0/synthetic.app/no_backup/UBAA');
   });
 
-  test('iOS 空环境从原生私有目录启动，不需要 HOME', () async {
-    var calls = 0;
-    messenger.setMockMethodCallHandler(channel, (call) async {
-      expect(call.method, 'paths.config');
-      expect(call.arguments, isNull);
-      calls++;
-      return '/private/fixture-container/Library/Application Support/UBAA';
-    });
-    final directory = PrivateConfigDirectory(
-      environment: {},
-      operatingSystem: 'ios',
-    );
-    await directory.initialize();
-    expect(
-      directory.resolve(),
-      '/private/fixture-container/Library/Application Support/UBAA',
-    );
-    await directory.initialize();
-    expect(calls, 1);
+  test('五端和OHOS目录由插件取得，不依赖 HOME，重复初始化只读取一次', () async {
+    for (final os in ['ios', 'macos', 'linux', 'windows', 'ohos']) {
+      var calls = 0;
+      final directory = PrivateConfigDirectory(
+        environment: {},
+        operatingSystem: os,
+        supportDirectory: () async {
+          calls++;
+          return Directory('/synthetic/app-support');
+        },
+      );
+      await directory.initialize();
+      await directory.initialize();
+      expect(directory.resolve(), '/synthetic/app-support/UBAA');
+      expect(calls, 1);
+    }
   });
-
-  test('原生路径缺失或相对时不能改用公共目录', () async {
-    for (final value in [null, '', 'relative/UBAA']) {
-      messenger.setMockMethodCallHandler(channel, (_) async => value);
+  test('插件失败或相对目录不退回公共目录', () async {
+    for (final fail in [false, true]) {
       final directory = PrivateConfigDirectory(
         environment: {},
         operatingSystem: 'ios',
+        supportDirectory: () async {
+          if (fail) throw StateError('合成失败');
+          return Directory('relative');
+        },
       );
       await expectLater(
         directory.initialize(),

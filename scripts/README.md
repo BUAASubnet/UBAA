@@ -29,3 +29,5 @@
 冷启动下载进度，并拒绝缺失或错误版本行、版本前缀碰撞、错误 commit 和命令失败；不启动真实 SDK 或下载依赖。
 
 OHOS安全存储合同：`bash scripts/tests/secure-storage-ohos.sh` 读取 `UBAA_DEVECO_HOME` 下的Node与TypeScript，执行插件实际源码的合成系统边界测试；不访问设备、钥匙串或真实账号。`just ohos-check`已包含此检查。
+
+OHOS网络插件合同：`bash scripts/tests/platform-plugins-ohos.sh` 编译实际社区适配源码并模拟系统边界，验证标准列表、失败传播与订阅生命周期；已纳入 `just ohos-check`。

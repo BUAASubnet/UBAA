@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import 'credentials.dart';
@@ -8,8 +9,8 @@ import 'paths.dart';
 
 /// 生产宿主的默认平台能力组合。
 ///
-/// 移动端/macOS能力通过现有MethodChannel探测；Windows/Linux选图使用
-/// 已注册的系统文件选择插件。缺失能力不以回调、内存或明文文件冒充。
+/// 图片、安全材料和目录均交给注册插件；平台策略只在此组合。
+/// 尚未接通的位置能力明确不可用，不向业务层泄露插件细节。
 final class PlatformCapabilities {
   const PlatformCapabilities({
     required this.credentialVault,
@@ -32,8 +33,7 @@ Future<PlatformCapabilities> createDefaultPlatformCapabilities() async {
   await materials.probe();
   final credentialStore = MaterialCredentialStore(materials);
   final photos = await createDefaultPhotoCapabilities();
-  final locationProvider = MethodChannelLocationProvider();
-  await locationProvider.probe();
+  const locationProvider = UnavailableLocationProvider();
   return PlatformCapabilities(
     credentialVault: PlatformCredentialVault(store: credentialStore),
     // 探测失败时不把不可用的句柄交给宿主，避免宿主把它误当成可用
@@ -56,14 +56,23 @@ Future<PhotoCapabilities> createDefaultPhotoCapabilities({
   TargetPlatform? targetPlatform,
 }) async {
   final target = targetPlatform ?? defaultTargetPlatform;
-  final permissions = MethodChannelPermissionGateway();
-  if (target == TargetPlatform.windows || target == TargetPlatform.linux) {
+  if (target == TargetPlatform.windows ||
+      target == TargetPlatform.linux ||
+      target == TargetPlatform.macOS) {
     return PhotoCapabilities(
       DesktopFilePhotoPicker(),
-      DesktopFilePermissionGateway(permissions),
+      const PickerPermissionGateway(),
     );
   }
-  final picker = MethodChannelPhotoPicker();
-  await picker.probe();
-  return PhotoCapabilities(picker, permissions);
+  final camera =
+      Platform.operatingSystem != 'ohos' && target == TargetPlatform.android;
+  final picker = PluginPhotoPicker(canCapturePhoto: camera);
+  if (camera) {
+    try {
+      await picker.discardLostPhotos();
+    } on Object {
+      /* 旧结果不附回新表单。 */
+    }
+  }
+  return PhotoCapabilities(picker, PickerPermissionGateway(camera: camera));
 }
