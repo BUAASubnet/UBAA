@@ -1,12 +1,12 @@
-part of '../bridge_backend.dart';
+part of 'operations.dart';
 
-Future<List<WriteReadbackHint>> _readWriteReadbackHints(
-  BridgeBackend backend,
+Future<List<WriteReadbackHint>> bridgeReadWriteReadbackHints(
+  BridgeContext backend,
   String accountId,
-) => _withOfflineRead(backend, () async {
-  await _awaitOfflineScope(backend);
+) => bridgeWithOfflineRead(backend, () async {
+  await bridgeAwaitOfflineScope(backend);
   try {
-    final values = await _managementCache(
+    final values = await bridgeManagementCache(
       backend,
       accountId,
     ).writeReadbackHints();
@@ -22,26 +22,29 @@ Future<List<WriteReadbackHint>> _readWriteReadbackHints(
           );
         return WriteReadbackHint(
           id: value.id,
-          operation: _toWriteOperation(value.operation),
-          route: _toConnectionMode(value.route),
-          startedAt: _cacheTime(value.startedAt.toInt()),
+          operation: bridgeToWriteOperation(value.operation),
+          route: bridgeToConnectionMode(value.route),
+          startedAt: bridgeCacheTime(value.startedAt.toInt()),
         );
       }),
     );
   } on BridgeError catch (error) {
-    throw _mapError(error);
+    throw bridgeMapError(error);
   }
 });
 
-Future<void> _dismissWriteReadbackHint(
-  BridgeBackend backend,
+Future<void> bridgeDismissWriteReadbackHint(
+  BridgeContext backend,
   String accountId,
   String id,
-) => _withOfflineRead(backend, () async {
-  await _awaitOfflineScope(backend);
+) => bridgeWithOfflineRead(backend, () async {
+  await bridgeAwaitOfflineScope(backend);
   try {
-    await _managementCache(backend, accountId).dismissWriteReadback(id: id);
+    await bridgeManagementCache(
+      backend,
+      accountId,
+    ).dismissWriteReadback(id: id);
   } on BridgeError catch (error) {
-    throw _mapError(error);
+    throw bridgeMapError(error);
   }
 });

@@ -1,7 +1,7 @@
-part of '../bridge_backend.dart';
+part of 'operations.dart';
 
-Future<WriteIntent> _prepareBykcSelectCourse(
-  BridgeBackend backend, {
+Future<WriteIntent> bridgePrepareBykcSelectCourse(
+  BridgeContext backend, {
   required int courseId,
 }) => _prepareIntent(
   backend,
@@ -10,8 +10,8 @@ Future<WriteIntent> _prepareBykcSelectCourse(
   ),
 );
 
-Future<WriteIntent> _prepareBykcDeselectCourse(
-  BridgeBackend backend, {
+Future<WriteIntent> bridgePrepareBykcDeselectCourse(
+  BridgeContext backend, {
   required int courseId,
 }) => _prepareIntent(
   backend,
@@ -20,8 +20,8 @@ Future<WriteIntent> _prepareBykcDeselectCourse(
   ),
 );
 
-Future<WriteIntent> _prepareBykcSignCourse(
-  BridgeBackend backend, {
+Future<WriteIntent> bridgePrepareBykcSignCourse(
+  BridgeContext backend, {
   required int courseId,
   double? lat,
   double? lng,
@@ -38,8 +38,8 @@ Future<WriteIntent> _prepareBykcSignCourse(
   ),
 );
 
-Future<WriteIntent> _prepareSigninPerform(
-  BridgeBackend backend, {
+Future<WriteIntent> bridgePrepareSigninPerform(
+  BridgeContext backend, {
   required String courseId,
 }) => _prepareIntent(
   backend,
@@ -48,8 +48,8 @@ Future<WriteIntent> _prepareSigninPerform(
   ),
 );
 
-Future<WriteIntent> _prepareLibbookReserve(
-  BridgeBackend backend, {
+Future<WriteIntent> bridgePrepareLibbookReserve(
+  BridgeContext backend, {
   required String areaId,
   required String seatId,
   required String day,
@@ -70,8 +70,8 @@ Future<WriteIntent> _prepareLibbookReserve(
   ),
 );
 
-Future<WriteIntent> _prepareLibbookCancelBooking(
-  BridgeBackend backend, {
+Future<WriteIntent> bridgePrepareLibbookCancelBooking(
+  BridgeContext backend, {
   required String id,
   required int page,
   required int limit,
@@ -95,8 +95,8 @@ Future<WriteIntent> _prepareLibbookCancelBooking(
   );
 }
 
-Future<WriteIntent> _prepareYgdkSubmit(
-  BridgeBackend backend,
+Future<WriteIntent> bridgePrepareYgdkSubmit(
+  BridgeContext backend,
   YgdkSubmitInput input,
 ) async {
   final canonicalInput = validateYgdkSubmitInput(input);
@@ -122,8 +122,8 @@ Future<WriteIntent> _prepareYgdkSubmit(
   );
 }
 
-Future<WriteIntent> _prepareCgyySubmitReservation(
-  BridgeBackend backend,
+Future<WriteIntent> bridgePrepareCgyySubmitReservation(
+  BridgeContext backend,
   CgyySubmitInput input,
 ) async {
   final validated = validateCgyySubmitInput(input);
@@ -158,8 +158,8 @@ Future<WriteIntent> _prepareCgyySubmitReservation(
   );
 }
 
-Future<WriteIntent> _prepareCgyyCancelOrder(
-  BridgeBackend backend, {
+Future<WriteIntent> bridgePrepareCgyyCancelOrder(
+  BridgeContext backend, {
   required int id,
 }) async {
   if (id <= 0) throw const BackendException(UbaaErrorCode.invalidInput);
@@ -174,8 +174,8 @@ Future<WriteIntent> _prepareCgyyCancelOrder(
   );
 }
 
-Future<WriteIntent> _prepareEvaluationSubmitCourses(
-  BridgeBackend backend,
+Future<WriteIntent> bridgePrepareEvaluationSubmitCourses(
+  BridgeContext backend,
   List<EvaluationSubmitTarget> targets,
 ) => _prepareIntent(
   backend,
@@ -196,12 +196,12 @@ Future<WriteIntent> _prepareEvaluationSubmitCourses(
 );
 
 Future<WriteIntent> _prepareIntent(
-  BridgeBackend backend,
+  BridgeContext backend,
   Future<BridgeWriteIntent> pending,
 ) async {
   try {
-    return _mapIntent(await pending);
+    return bridgeMapIntent(await pending);
   } on BridgeError catch (error) {
-    throw _mapError(error);
+    throw bridgeMapError(error);
   }
 }

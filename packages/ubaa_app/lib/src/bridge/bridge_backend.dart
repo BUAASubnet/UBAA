@@ -1,61 +1,72 @@
 import 'dart:async';
-import 'dart:typed_data';
-
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
-
-import '../backend.dart';
-import '../controller/error_mapper.dart';
-import '../presentation/grades.dart';
-import '../write/cgyy_validation.dart';
-import '../write/ygdk_validation.dart';
-
-part 'common.dart';
-part 'cache_management/lifecycle.dart';
-part 'cache_management/rebuild.dart';
-part 'profile/cache.dart';
-part 'offline.dart';
-part 'recovery.dart';
-part 'interactive_auth.dart';
-part 'read/academic.dart';
-part 'read/schedule/import.dart';
-part 'read/schedule/timeline.dart';
-part 'read/academic_cache.dart';
-part 'read/grades/baseline.dart';
-part 'read/assignments.dart';
-part 'read/home_projection.dart';
-part 'read/home_cache.dart';
-part 'read/judge_progressive.dart';
-part 'read/judge/online.dart';
-part 'read/judge/fallback.dart';
-part 'read/judge/cached_batch.dart';
-part 'read/spoc/progressive.dart';
-part 'read/spoc/detail.dart';
-part 'read/offline_query.dart';
-part 'read/bykc.dart';
-part 'read/bykc_projection.dart';
-part 'read/bykc_cache.dart';
-part 'read/cgyy.dart';
-part 'read/cgyy_sensitive.dart';
-part 'read/cgyy_cache/projection.dart';
-part 'read/cgyy_cache/load.dart';
-part 'read/cgyy_cache/local.dart';
-part 'read/cgyy_day.dart';
-part 'read/evaluation.dart';
-part 'read/evaluation/cache.dart';
-part 'read/evaluation/progressive.dart';
-part 'read/libbook.dart';
-part 'read/libbook_cache/projection.dart';
-part 'read/libbook_cache/load.dart';
-part 'read/libbook_cache/local.dart';
-part 'read/ygdk.dart';
-part 'read/ygdk_cache/records.dart';
-part 'read/ygdk_cache/home.dart';
-part 'write/commit.dart';
-part 'write/readback.dart';
-part 'write/lifecycle.dart';
-part 'write/prepare.dart';
+import 'package:ubaa_app/src/backend.dart';
+import 'package:ubaa_app/src/bridge/context.dart';
+import 'auth/session.dart'
+    show
+        bridgeAuthStatus,
+        bridgeBeginInteractiveLogin,
+        bridgeCancelInteractiveLogin,
+        bridgeContinueInteractiveLogin,
+        bridgeDiscardInteractiveCaptcha,
+        bridgeDispose,
+        bridgeLogin,
+        bridgeLoginRequiredRoute,
+        bridgeLogout,
+        bridgePrepareLogin,
+        bridgeRecoverRequiredSession,
+        bridgeRefreshInteractiveCaptcha,
+        bridgeRouteSettings,
+        bridgeSetDefaultRoutePolicy,
+        bridgeSubmitInteractiveLogin,
+        bridgeUserInfo;
+import 'cache/lifecycle.dart'
+    show
+        bridgeCacheUsage,
+        bridgeClearBusinessCache,
+        bridgeClearOrRebuildBusinessCache,
+        bridgeOfflineSerial,
+        bridgeOpenOfflineAccount,
+        bridgeWithOfflineRead;
+import 'features/bykc/reader.dart' show bridgeLoadBykcFeature;
+import 'features/cgyy/lock_display.dart' show BridgeLockDisplaySession;
+import 'features/cgyy/reader.dart'
+    show
+        bridgeLoadCgyyFeature,
+        bridgeLoadCgyyOrderDetailOnRoute,
+        bridgeLoadCgyyOrdersOnRoute;
+import 'features/evaluation/reader.dart' show bridgeLoadEvaluationOnRoute;
+import 'features/grades/reader.dart' show bridgeUpdateGradeScoreBaseline;
+import 'features/libbook/reader.dart' show bridgeLoadLibbookFeature;
+import 'features/profile/reader.dart'
+    show bridgeReadCachedProfile, bridgeRefreshProfile;
+import 'features/schedule/reader.dart' show bridgeBeginScheduleImport;
+import 'features/signin/reader.dart' show bridgeLoadSigninHome;
+import 'read/progressive.dart' show bridgeBeginProgressiveRead;
+import 'features/ygdk/reader.dart'
+    show bridgeLoadYgdkOverviewOnRoute, bridgeLoadYgdkRecordsOnRoute;
+import 'home/reader.dart' show bridgeReadCachedHome;
+import 'read/cache_query.dart' show bridgeReadCachedQuery;
+import 'read/dispatch.dart' show bridgeLoadFeatureQuery;
+import 'support/mapping.dart' show bridgeDateOnly;
+import 'write/operations.dart'
+    show
+        bridgeCommitWrite,
+        bridgeDiscardWriteIntent,
+        bridgeDismissWriteReadbackHint,
+        bridgePrepareBykcDeselectCourse,
+        bridgePrepareBykcSelectCourse,
+        bridgePrepareBykcSignCourse,
+        bridgePrepareCgyyCancelOrder,
+        bridgePrepareCgyySubmitReservation,
+        bridgePrepareEvaluationSubmitCourses,
+        bridgePrepareLibbookCancelBooking,
+        bridgePrepareLibbookReserve,
+        bridgePrepareSigninPerform,
+        bridgePrepareYgdkSubmit,
+        bridgeReadWriteReadbackHints;
 
 const _supportedBridgeContractVersion = 40;
 
@@ -98,7 +109,8 @@ class BridgeBackend
         AccountScopedProgressiveReadBackend,
         ScheduleImportBackend,
         BackendLifecycle {
-  BridgeBackend(this.client, {this.configDirectory}) {
+  BridgeBackend(BridgeClient client, {String? configDirectory})
+    : _context = BridgeContext(client, configDirectory: configDirectory) {
     final contractVersion = client.contractVersion();
     if (contractVersion != _supportedBridgeContractVersion) {
       _disposeIncompatibleBridgeClient(client);
@@ -108,7 +120,7 @@ class BridgeBackend
 
   @override
   Future<CgyyLockDisplaySession> openLockDisplay() async =>
-      _BridgeLockDisplaySession(client, await client.openCgyyLockDisplay());
+      BridgeLockDisplaySession(client, await client.openCgyyLockDisplay());
 
   /// 从平台已经解析好的应用私有目录打开 Core。
   factory BridgeBackend.open(String configDirectory) => BridgeBackend(
@@ -116,180 +128,189 @@ class BridgeBackend
     configDirectory: configDirectory,
   );
 
-  final BridgeClient client;
-  final String? configDirectory;
-  BridgeOfflineCache? _offlineCache;
-  LocalAccount? _offlineAccount;
-  Future<void> _offlineTail = Future<void>.value();
-  final Object _offlineScopeKey = Object();
-  int _offlineGeneration = 0;
-  String? _offlineTargetAccountId;
+  final BridgeContext _context;
+  BridgeClient get client => _context.client;
+  String? get configDirectory => _context.configDirectory;
 
   @override
   Future<CacheUsageSummary> cacheUsage({required String accountId}) =>
-      _cacheUsage(this, accountId);
+      bridgeCacheUsage(_context, accountId);
   @override
   Future<CacheClearOutcome> clearBusinessCache({required String accountId}) =>
-      _clearBusinessCache(this, accountId);
+      bridgeClearBusinessCache(_context, accountId);
 
   @override
   Future<CacheClearOutcome> clearOrRebuildBusinessCache({
     required LocalAccount account,
     required List<int> key,
-  }) => _clearOrRebuildBusinessCache(this, account, key);
+  }) => bridgeClearOrRebuildBusinessCache(_context, account, key);
 
   @override
   Future<void> openOfflineAccount(LocalAccount account, List<int> key) =>
-      _openOfflineAccount(this, account, key);
+      bridgeOpenOfflineAccount(_context, account, key);
   @override
   Future<OfflineHomeRead> readCachedHome(RoutePolicy policy) =>
-      _withOfflineRead(this, () => _readCachedHome(this, policy));
+      bridgeWithOfflineRead(
+        _context,
+        () => bridgeReadCachedHome(_context, policy),
+      );
   @override
   Future<OfflineQueryRead> readCachedQuery(
     FeatureId feature,
     FeatureQuery query,
     RoutePolicy policy,
-  ) => _withOfflineRead(
-    this,
-    () => _readCachedQuery(this, feature, query, policy),
+  ) => bridgeWithOfflineRead(
+    _context,
+    () => bridgeReadCachedQuery(_context, feature, query, policy),
   );
   @override
   Future<void> deactivateOfflineAccount() {
-    _offlineGeneration++;
-    return _offlineSerial(this, () async {
-      await _offlineCache?.deactivate();
+    _context.cache.generation++;
+    return bridgeOfflineSerial(_context, () async {
+      await _context.cache.handle?.deactivate();
     });
   }
 
   @override
   Future<void> clearOfflineAccount() {
-    _offlineGeneration++;
-    _offlineTargetAccountId = null;
-    return _offlineSerial(this, () async {
-      await _offlineCache?.clear();
-      _offlineCache = null;
-      _offlineAccount = null;
+    _context.cache.generation++;
+    _context.cache.targetAccountId = null;
+    return bridgeOfflineSerial(_context, () async {
+      await _context.cache.handle?.clear();
+      _context.cache.handle = null;
+      _context.cache.account = null;
     });
   }
 
   @override
   Future<FeatureResult> readLibbookAfterWrite(FeatureQuery query) =>
-      _loadLibbookFeature(
-        this,
+      bridgeLoadLibbookFeature(
+        _context,
         FeatureId.libbook,
         query,
-        _dateOnly(query.date ?? DateTime.now()),
+        bridgeDateOnly(query.date ?? DateTime.now()),
         useCache: false,
       );
 
   @override
   Future<FeatureResult> readCgyyAfterWrite(FeatureQuery query) =>
-      _loadCgyyFeature(
-        this,
+      bridgeLoadCgyyFeature(
+        _context,
         FeatureId.cgyy,
         query,
-        _dateOnly(query.date ?? DateTime.now()),
+        bridgeDateOnly(query.date ?? DateTime.now()),
         useCache: false,
       );
 
   @override
   Future<FeatureResult> readBykcAfterWrite(FeatureQuery query) =>
-      _loadBykcFeature(this, FeatureId.bykc, query, useCache: false);
+      bridgeLoadBykcFeature(_context, FeatureId.bykc, query, useCache: false);
 
   @override
   Future<FeatureResult> readSigninAfterWrite() =>
-      _loadSigninHome(this, const FeatureQuery(), useCache: false);
+      bridgeLoadSigninHome(_context, const FeatureQuery(), useCache: false);
 
   @override
   Future<RecoveredRouteSession> recoverRequiredSession(FeatureId feature) =>
-      _recoverRequiredSession(this, feature);
+      bridgeRecoverRequiredSession(_context, feature);
   @override
   Future<RecoveredRouteSession> loginRequiredRoute(
     ConnectionMode route,
     LoginInput input,
-  ) => _loginRequiredRoute(this, route, input);
-  int _interactiveGeneration = 0;
-  BridgeInteractiveLogin? _interactiveLogin;
-  LoginVerificationState? _interactiveState;
-  final Map<ConnectionMode, BridgeCaptchaChallenge> _interactiveChallenges =
-      <ConnectionMode, BridgeCaptchaChallenge>{};
-
+  ) => bridgeLoginRequiredRoute(_context, route, input);
   @override
   Future<LoginVerificationState> beginInteractiveLogin(LoginInput input) =>
-      _beginInteractiveLogin(this, input);
+      bridgeBeginInteractiveLogin(_context, input);
   @override
   Future<LoginVerificationState> submitInteractiveLogin(
     LoginInput input,
     Map<ConnectionMode, String> answers,
-  ) => _submitInteractiveLogin(this, input, answers);
+  ) => bridgeSubmitInteractiveLogin(_context, input, answers);
   @override
   Future<LoginVerificationState> refreshInteractiveCaptcha(
     ConnectionMode route,
-  ) => _refreshInteractiveCaptcha(this, route);
+  ) => bridgeRefreshInteractiveCaptcha(_context, route);
   @override
   Future<InteractiveLoginCompletion> continueInteractiveLogin(
     ConnectionMode route, {
     bool pinRoute = false,
-  }) => _continueInteractiveLogin(this, route, pinRoute: pinRoute);
+  }) => bridgeContinueInteractiveLogin(_context, route, pinRoute: pinRoute);
   @override
   void discardInteractiveCaptcha(ConnectionMode route) =>
-      _discardInteractiveCaptcha(this, route);
+      bridgeDiscardInteractiveCaptcha(_context, route);
   @override
-  void cancelInteractiveLogin() => _cancelInteractiveLogin(this);
+  void cancelInteractiveLogin() => bridgeCancelInteractiveLogin(_context);
 
   @override
-  Future<AuthStatus> authStatus() => _authStatus(this);
+  Future<AuthStatus> authStatus() => bridgeAuthStatus(_context);
 
   @override
-  Future<UserSummary?> userInfo() => _userInfo(this);
+  Future<UserSummary?> userInfo() => bridgeUserInfo(_context);
   @override
   Future<OfflineProfileRead> readCachedProfile(RoutePolicy policy) =>
-      _withOfflineRead(this, () => _readCachedProfile(this, policy));
+      bridgeWithOfflineRead(
+        _context,
+        () => bridgeReadCachedProfile(_context, policy),
+      );
   @override
   Future<ProfileRefresh> refreshProfile({required LocalAccount account}) =>
-      _withOfflineRead(this, () => _refreshProfile(this, account));
+      bridgeWithOfflineRead(
+        _context,
+        () => bridgeRefreshProfile(_context, account),
+      );
 
   @override
-  Future<void> prepareLogin(RoutePolicy policy) => _prepareLogin(this, policy);
+  Future<void> prepareLogin(RoutePolicy policy) =>
+      bridgePrepareLogin(_context, policy, setDefaultRoutePolicy);
 
   Future<BackendRouteSettings> setDefaultRoutePolicy(RoutePolicy policy) =>
-      _setDefaultRoutePolicy(this, policy);
+      bridgeSetDefaultRoutePolicy(_context, policy);
 
   @override
-  Future<BackendRouteSettings> routeSettings() => _routeSettings(this);
+  Future<BackendRouteSettings> routeSettings() => bridgeRouteSettings(_context);
 
   @override
-  Future<void> login(LoginInput input) => _login(this, input);
+  Future<void> login(LoginInput input) => bridgeLogin(_context, input);
 
   @override
-  Future<void> logout() => _logout(this);
+  Future<void> logout() => bridgeLogout(_context);
 
   @override
   Future<ScheduleImportTask> beginScheduleImport(String term) =>
-      _withOfflineRead(this, () => _beginScheduleImport(this, term));
+      bridgeWithOfflineRead(
+        _context,
+        () => bridgeBeginScheduleImport(_context, term),
+      );
 
   @override
   Future<FeatureReadTask?> beginAccountFeatureRead(
     FeatureId feature,
     FeatureQuery? query,
     LocalAccount account,
-  ) => _withOfflineRead(
-    this,
-    () => _beginProgressiveRead(this, feature, query, expectedAccount: account),
+  ) => bridgeWithOfflineRead(
+    _context,
+    () => bridgeBeginProgressiveRead(
+      _context,
+      feature,
+      query,
+      expectedAccount: account,
+    ),
   );
 
   @override
   Future<FeatureReadTask?> beginFeatureRead(
     FeatureId feature,
     FeatureQuery? query,
-  ) =>
-      _withOfflineRead(this, () => _beginProgressiveRead(this, feature, query));
+  ) => bridgeWithOfflineRead(
+    _context,
+    () => bridgeBeginProgressiveRead(_context, feature, query),
+  );
 
   @override
-  Future<FeatureResult> loadFeature(FeatureId feature) => _withOfflineRead(
-    this,
-    () => _loadFeatureQuery(
-      this,
+  Future<FeatureResult> loadFeature(FeatureId feature) => bridgeWithOfflineRead(
+    _context,
+    () => bridgeLoadFeatureQuery(
+      _context,
       feature,
       const FeatureQuery(),
       loadYgdkRecords: false,
@@ -300,40 +321,57 @@ class BridgeBackend
   Future<FeatureResult> loadFeatureQuery(
     FeatureId feature,
     FeatureQuery query,
-  ) => _withOfflineRead(this, () => _loadFeatureQuery(this, feature, query));
+  ) => bridgeWithOfflineRead(
+    _context,
+    () => bridgeLoadFeatureQuery(_context, feature, query),
+  );
 
   @override
   Future<FeatureResult> loadCgyyOrdersOnRoute({
     required ConnectionMode route,
     required int page,
     required int size,
-  }) => _loadCgyyOrdersOnRoute(this, route: route, page: page, size: size);
+  }) => bridgeLoadCgyyOrdersOnRoute(
+    _context,
+    route: route,
+    page: page,
+    size: size,
+  );
 
   @override
   Future<FeatureResult> loadCgyyOrderDetailOnRoute({
     required ConnectionMode route,
     required int orderId,
-  }) => _loadCgyyOrderDetailOnRoute(this, route: route, orderId: orderId);
+  }) => bridgeLoadCgyyOrderDetailOnRoute(
+    _context,
+    route: route,
+    orderId: orderId,
+  );
 
   @override
   Future<FeatureResult> loadYgdkOverviewOnRoute({
     required ConnectionMode route,
-  }) => _loadYgdkOverviewOnRoute(this, route: route);
+  }) => bridgeLoadYgdkOverviewOnRoute(_context, route: route);
 
   @override
   Future<FeatureResult> loadYgdkRecordsOnRoute({
     required ConnectionMode route,
     required int page,
     required int size,
-  }) => _loadYgdkRecordsOnRoute(this, route: route, page: page, size: size);
+  }) => bridgeLoadYgdkRecordsOnRoute(
+    _context,
+    route: route,
+    page: page,
+    size: size,
+  );
 
   @override
   Future<FeatureResult> loadEvaluationOnRoute({
     required ConnectionMode route,
-  }) => _loadEvaluationOnRoute(this, route: route);
+  }) => bridgeLoadEvaluationOnRoute(_context, route: route);
 
   @override
-  Future<void> dispose() => _dispose(this);
+  Future<void> dispose() => bridgeDispose(_context);
 
   @override
   Future<GradeScoreBaseline?> updateGradeScoreBaseline({
@@ -341,25 +379,31 @@ class BridgeBackend
     required ConnectionMode route,
     required GradeScoreBaseline latest,
     GradeScoreBaseline? legacy,
-  }) => _updateGradeScoreBaseline(this, accountId, route, latest, legacy);
+  }) => bridgeUpdateGradeScoreBaseline(
+    _context,
+    accountId,
+    route,
+    latest,
+    legacy,
+  );
 
   @override
   Future<List<WriteReadbackHint>> readWriteReadbackHints({
     required String accountId,
-  }) => _readWriteReadbackHints(this, accountId);
+  }) => bridgeReadWriteReadbackHints(_context, accountId);
   @override
   Future<void> dismissWriteReadbackHint(
     String id, {
     required String accountId,
-  }) => _dismissWriteReadbackHint(this, accountId, id);
+  }) => bridgeDismissWriteReadbackHint(_context, accountId, id);
 
   @override
   Future<WriteIntent> prepareBykcSelectCourse({required int courseId}) async =>
-      _prepareBykcSelectCourse(this, courseId: courseId);
+      bridgePrepareBykcSelectCourse(_context, courseId: courseId);
 
   @override
   Future<WriteIntent> prepareBykcDeselectCourse({required int courseId}) =>
-      _prepareBykcDeselectCourse(this, courseId: courseId);
+      bridgePrepareBykcDeselectCourse(_context, courseId: courseId);
 
   @override
   Future<WriteIntent> prepareBykcSignCourse({
@@ -367,8 +411,8 @@ class BridgeBackend
     double? lat,
     double? lng,
     required int signType,
-  }) => _prepareBykcSignCourse(
-    this,
+  }) => bridgePrepareBykcSignCourse(
+    _context,
     courseId: courseId,
     lat: lat,
     lng: lng,
@@ -377,7 +421,7 @@ class BridgeBackend
 
   @override
   Future<WriteIntent> prepareSigninPerform({required String courseId}) =>
-      _prepareSigninPerform(this, courseId: courseId);
+      bridgePrepareSigninPerform(_context, courseId: courseId);
 
   @override
   Future<WriteIntent> prepareLibbookReserve({
@@ -387,8 +431,8 @@ class BridgeBackend
     required String segment,
     required String startTime,
     required String endTime,
-  }) => _prepareLibbookReserve(
-    this,
+  }) => bridgePrepareLibbookReserve(
+    _context,
     areaId: areaId,
     seatId: seatId,
     day: day,
@@ -402,41 +446,46 @@ class BridgeBackend
     required String id,
     required int page,
     required int limit,
-  }) => _prepareLibbookCancelBooking(this, id: id, page: page, limit: limit);
+  }) => bridgePrepareLibbookCancelBooking(
+    _context,
+    id: id,
+    page: page,
+    limit: limit,
+  );
 
   /// 准备阳光打卡。照片字节只在本次调用构造 typed DTO，不写入配置或日志。
   @override
   Future<WriteIntent> prepareYgdkSubmit(YgdkSubmitInput input) =>
-      _prepareYgdkSubmit(this, input);
+      bridgePrepareYgdkSubmit(_context, input);
 
   /// 准备研讨室预约；selection 只包含经过 UI 选择的 ID，不接受 raw JSON。
   @override
   Future<WriteIntent> prepareCgyySubmitReservation(CgyySubmitInput input) =>
-      _prepareCgyySubmitReservation(this, input);
+      bridgePrepareCgyySubmitReservation(_context, input);
 
   @override
   Future<WriteIntent> prepareCgyyCancelOrder({required int id}) =>
-      _prepareCgyyCancelOrder(this, id: id);
+      bridgePrepareCgyyCancelOrder(_context, id: id);
 
   /// 评教只回传 Core 签发的稳定目标，并在 commit 后按原路线读取核对。
   @override
   Future<WriteIntent> prepareEvaluationSubmitCourses(
     List<EvaluationSubmitTarget> targets,
-  ) => _prepareEvaluationSubmitCourses(this, targets);
+  ) => bridgePrepareEvaluationSubmitCourses(_context, targets);
 
   @override
   Future<WriteCommitResult> commitWriteWithCache(
     String intentId, {
     required String accountId,
-  }) => _commitWrite(this, intentId, cacheAccountId: accountId);
+  }) => bridgeCommitWrite(_context, intentId, cacheAccountId: accountId);
 
   @override
   Future<WriteCommitResult> commitWrite(String intentId) =>
-      _commitWrite(this, intentId);
+      bridgeCommitWrite(_context, intentId);
 
   @override
   Future<void> discardWriteIntent(String intentId) =>
-      _discardWriteIntent(this, intentId);
+      bridgeDiscardWriteIntent(_context, intentId);
 }
 
 void _disposeIncompatibleBridgeClient(BridgeClient client) {
