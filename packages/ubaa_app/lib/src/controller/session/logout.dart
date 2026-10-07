@@ -28,6 +28,8 @@ mixin ControllerLogout on ControllerState {
     }
     internalCancelLoginVerification(notify: false);
     internalIsSigningOut = true;
+    internalInPlaceLogin = false;
+    internalInteractiveInPlace = false;
     internalCredentialRestoreAllowed = false;
     internalManualAuthenticationRequired = true;
     internalCancelDeferredRecovery();

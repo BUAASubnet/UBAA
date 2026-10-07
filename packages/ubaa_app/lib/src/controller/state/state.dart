@@ -14,12 +14,8 @@ import 'package:ubaa_app/src/contracts/write.dart';
 import 'package:ubaa_app/src/write/coordinator.dart';
 import 'models.dart'
     show
-        AcademicWeeksCache,
         BusinessRetry,
-        CgyyPurposeCache,
-        GradesReadCache,
         GuardedLockDisplaySession,
-        HomeSupplementCache,
         ProfileRequest,
         ProgressiveScope,
         RecoveryRequest,
@@ -27,6 +23,9 @@ import 'models.dart'
         ScheduleImportScope,
         WriteReadbackRead,
         WriteRefreshRequest;
+import 'read_scope.dart';
+import 'read_caches.dart';
+import 'academic_terms.dart' show CurrentTermsReader;
 import 'operations.dart' show ControllerOperations;
 import 'types.dart' show AppPhase, LoginFormState, SessionRecoveryStatus;
 
@@ -57,6 +56,27 @@ abstract class ControllerState extends ControllerOperations {
       onTrace: onReadSchedulerTrace,
     );
     internalWriteCoordinator.addListener(internalNotify);
+  }
+
+  @internal
+  SessionScope internalCaptureSessionScope() {
+    final backend = internalBackend, lifecycle = internalLifecycleEpoch;
+    return SessionScope(
+      backend,
+      lifecycle,
+      () =>
+          !internalDisposed &&
+          !internalIsSigningOut &&
+          identical(backend, internalBackend) &&
+          lifecycle == internalLifecycleEpoch,
+    );
+  }
+
+  @internal
+  ReadScope internalCaptureReadScope() {
+    final session = internalCaptureSessionScope(),
+        epoch = internalReadCacheEpoch;
+    return ReadScope(session, epoch, () => epoch == internalReadCacheEpoch);
   }
 
   @internal
@@ -336,37 +356,10 @@ abstract class ControllerState extends ControllerOperations {
   };
 
   @internal
-  HomeSupplementCache? internalHomeSupplementCache;
+  final internalReadCaches = ControllerReadCaches();
 
   @internal
-  GradesReadCache? internalGradesReadCache;
-
-  @internal
-  AcademicWeeksCache? internalAcademicWeeksCache;
-
-  @internal
-  CgyyPurposeCache? internalCgyyPurposeCache;
-
-  @internal
-  FeatureResult? internalAcademicTermsResult;
-
-  @internal
-  Future<FeatureResult>? internalAcademicTermsPending;
-
-  @internal
-  ReadDemand? internalAcademicTermsDemand;
-
-  @internal
-  UbaaBackend? internalAcademicTermsBackend;
-
-  @internal
-  int internalAcademicTermsEpoch = -1;
-
-  @internal
-  int internalAcademicTermsLifecycle = -1;
-
-  @internal
-  int internalAcademicTermsSerial = 0;
+  CurrentTermsReader get internalCurrentTermsReader => internalReadCaches.terms;
 
   @internal
   int internalLifecycleEpoch = 0;

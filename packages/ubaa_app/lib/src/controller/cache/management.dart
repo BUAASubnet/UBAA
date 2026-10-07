@@ -154,13 +154,7 @@ mixin ControllerCacheManagement on ControllerState {
     internalProfileRefreshedEpoch = -1;
     internalProfileFailureEpoch = -1;
     internalProfileRequest = null;
-    internalHomeSupplementCache = null;
-    internalGradesReadCache = null;
-    internalAcademicWeeksCache = null;
-    internalCgyyPurposeCache = null;
-    internalAcademicTermsResult = null;
-    internalAcademicTermsPending = null;
-    internalAcademicTermsSerial++;
+    internalReadCaches.invalidate();
     internalYgdkReadbackState = const YgdkReadbackState.empty();
   }
 

@@ -201,105 +201,17 @@ mixin ControllerAuthentication on ControllerState {
         stackTrace: stackTrace,
       );
       internalSessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
+      internalInPlaceLogin = false;
+      internalReleaseLoginSecret();
       internalSetPhase(inPlace ? AppPhase.home : AppPhase.login);
     } finally {
-      internalInPlaceLogin = false;
-      internalLoginForm = internalLoginForm.copyWith(password: '', captcha: '');
+      if (current()) {
+        internalInPlaceLogin = false;
+        internalReleaseLoginSecret();
+      }
       internalEndWriteTransition();
       internalNotify();
     }
-  }
-
-  @internal
-  Future<void> internalCompleteAuthenticatedLogin(
-    LoginInput input,
-    UserSummary? profile,
-    int epoch,
-  ) async {
-    final username = input.username.trim();
-    bool current() => !internalDisposed && epoch == internalLifecycleEpoch;
-    if (internalLocalAccountStore != null && profile == null) {
-      throw const BackendException(UbaaErrorCode.authenticationRequired);
-    }
-    if (internalLocalAccountStore != null &&
-        profile != null &&
-        profile.username != username &&
-        profile.schoolId != username) {
-      internalUser = null;
-      internalResetFeatureSnapshots();
-      internalSessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
-      internalError = UbaaErrorMapper.fromCode(
-        UbaaErrorCode.authenticationRequired,
-      );
-      internalNotify();
-      try {
-        await internalLocalAccountStore!.signOut();
-      } on Object catch (error, stackTrace) {
-        internalError = internalRecordFailure(
-          error,
-          DiagnosticOperation.login,
-          stackTrace: stackTrace,
-        );
-      }
-      return;
-    }
-    if (internalLocalAccount != null &&
-        internalLocalAccount!.username != username) {
-      // 原位换账号不能让旧账号的内容继续挂在新身份下面。
-      internalUser = null;
-      internalResetFeatureSnapshots(advanceLifecycle: false);
-      internalNotify();
-      await internalLocalAccountStore?.signOut();
-      if (!current()) return;
-      await internalCloseOfflineAccount();
-      if (!current()) return;
-      internalLocalAccount = null;
-    }
-    internalUser = profile ?? UserSummary(username: username);
-    try {
-      if (input.rememberPassword && internalCredentialVault.isAvailable) {
-        await internalMutateCredential(
-          epoch,
-          () => internalCredentialVault.write(
-            Credential(
-              username: username,
-              password: input.password,
-              autoLogin: input.autoLogin,
-            ),
-          ),
-        );
-      } else if (!input.rememberPassword) {
-        await internalMutateCredential(epoch, internalCredentialVault.clear);
-      }
-    } on Object catch (error, stackTrace) {
-      if (!current()) return;
-      internalRecordFailure(
-        error,
-        DiagnosticOperation.login,
-        stackTrace: stackTrace,
-      );
-      internalError = UiError(
-        code: UbaaErrorCode.internalError,
-        kind: UbaaErrorKind.internal,
-        title: '本机登录材料未保存',
-        message: input.rememberPassword
-            ? '已登录，但账号密码未能保存，下次需要重新输入。'
-            : '已登录，但之前保存的账号密码未能清除，请稍后重试。',
-      );
-    }
-    if (!current()) return;
-    await internalRetainCurrentAccount(
-      username: username,
-      retainSession: input.rememberPassword,
-    );
-    if (!current()) return;
-    if (internalError == null) internalAutomaticCredentialBlocked = false;
-    internalManualAuthenticationRequired = false;
-    internalSessionRecoveryStatus = SessionRecoveryStatus.ready;
-    internalSetPhase(AppPhase.home);
-    unawaited(internalQueueProfileRefresh(force: true));
-    await internalRecordAppOpen();
-    if (current()) unawaited(refreshHome());
   }
 
   @internal

@@ -77,7 +77,7 @@ mixin ControllerGrades on ControllerState {
     FeatureQuery? query, {
     bool fresh = true,
   }) {
-    final cache = internalGradesReadCache;
+    final cache = internalReadCaches.grades;
     if (cache == null || !internalGradesCurrent(cache)) return;
     if (result.error case final error?) {
       if (error.kind == UbaaErrorKind.authentication) {
@@ -126,23 +126,13 @@ mixin ControllerGrades on ControllerState {
       FeatureQueryView.gradesMissing,
     }.contains(query.view))
       return null;
-    final cache = internalGradesReadCache;
+    final cache = internalReadCaches.grades;
     if (cache == null ||
         !internalGradesCurrent(cache) ||
         cache.authenticationError != null)
       return null;
-    var term = query.term;
-    if (term == null &&
-        internalAcademicTermsEpoch == internalReadCacheEpoch &&
-        internalAcademicTermsLifecycle == internalLifecycleEpoch &&
-        identical(internalAcademicTermsBackend, internalBackend)) {
-      final selected = internalAcademicTermsResult?.details
-          .map((d) => d.presentation)
-          .whereType<TermPresentation>()
-          .where((t) => t.selected)
-          .toList();
-      if (selected?.length == 1) term = selected!.single.code;
-    }
+    final term =
+        query.term ?? internalCurrentTermsReader.currentTermCode(cache.scope);
     final entry = cache.entries[term];
     final result = entry?.result;
     final overview = result?.overview;
@@ -178,25 +168,21 @@ mixin ControllerGrades on ControllerState {
 
   @internal
   GradesReadCache internalGradesCache() {
-    final existing = internalGradesReadCache;
+    final existing = internalReadCaches.grades;
     if (existing != null &&
         internalGradesCurrent(existing) &&
         existing.authenticationError == null)
       return existing;
-    return internalGradesReadCache = GradesReadCache(
-      internalBackend,
-      internalLifecycleEpoch,
-      internalReadCacheEpoch,
+    return internalReadCaches.grades = GradesReadCache(
+      internalCaptureReadScope(),
     );
   }
 
   @internal
   bool internalGradesCurrent(GradesReadCache cache) =>
       internalGradesReadGuard() == null &&
-      identical(internalBackend, cache.backend) &&
-      identical(internalGradesReadCache, cache) &&
-      cache.lifecycle == internalLifecycleEpoch &&
-      cache.epoch == internalReadCacheEpoch;
+      identical(internalReadCaches.grades, cache) &&
+      cache.scope.isCurrent;
 
   @internal
   Future<FeatureResult> internalLoadGradeTerm(
@@ -287,11 +273,11 @@ mixin ControllerGrades on ControllerState {
       result =
           reusable ??
           await internalScheduleAuxiliaryRead(
-            cache.backend,
+            cache.scope.backend,
             FeatureId.grades,
             ReadPriority.interactive,
             () => internalGradesCurrent(cache),
-            () => (cache.backend as FeatureQueryBackend).loadFeatureQuery(
+            () => (cache.scope.backend as FeatureQueryBackend).loadFeatureQuery(
               FeatureId.grades,
               FeatureQuery(term: term),
             ),

@@ -282,6 +282,7 @@ void main() {
     final loggingIn = controller.submitLogin();
     await backend.started.future;
     controller.dispose();
+    expect(controller.loginForm.password, isEmpty);
     backend.release.completeError(
       const BackendException(UbaaErrorCode.invalidCredentials),
     );
@@ -305,6 +306,7 @@ void main() {
     final loggingIn = controller.submitLogin();
     await backend.started.future;
     controller.dispose();
+    expect(controller.loginForm.password, isEmpty);
     backend.release.complete(const UserSummary(username: 'fixture-student'));
 
     await loggingIn;

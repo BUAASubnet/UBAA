@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'read_scope.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/progressive.dart';
@@ -124,9 +125,8 @@ final class HomeSupplementEntry {
 }
 
 final class GradesReadCache {
-  GradesReadCache(this.backend, this.lifecycle, this.epoch);
-  final UbaaBackend backend;
-  final int lifecycle, epoch;
+  GradesReadCache(this.scope);
+  final ReadScope scope;
   final entries = <String, GradeReadEntry>{};
   Future<GradesAggregate>? aggregatePending;
   UiError? authenticationError;

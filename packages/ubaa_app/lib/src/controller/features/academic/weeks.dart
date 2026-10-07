@@ -30,7 +30,7 @@ mixin ControllerAcademicWeeks on ControllerState {
   @internal
   bool internalWeeksCurrent(AcademicWeeksCache cache) =>
       internalWeeksGuard() == null &&
-      identical(internalAcademicWeeksCache, cache) &&
+      identical(internalReadCaches.weeks, cache) &&
       identical(cache.backend, internalBackend) &&
       cache.lifecycle == internalLifecycleEpoch &&
       cache.epoch == internalReadCacheEpoch;
@@ -49,10 +49,10 @@ mixin ControllerAcademicWeeks on ControllerState {
         ),
       );
     }
-    final previous = internalAcademicWeeksCache;
+    final previous = internalReadCaches.weeks;
     final cache = previous != null && internalWeeksCurrent(previous)
         ? previous
-        : internalAcademicWeeksCache = AcademicWeeksCache(
+        : internalReadCaches.weeks = AcademicWeeksCache(
             internalBackend,
             internalLifecycleEpoch,
             internalReadCacheEpoch,

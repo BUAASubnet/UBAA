@@ -15,7 +15,7 @@ mixin ControllerCgyyPurposes on ControllerState {
   bool internalPurposesCurrent(CgyyPurposeCache cache) =>
       !internalDisposed &&
       internalPhase == AppPhase.home &&
-      identical(internalCgyyPurposeCache, cache) &&
+      identical(internalReadCaches.purposes, cache) &&
       identical(cache.backend, internalBackend) &&
       cache.lifecycle == internalLifecycleEpoch &&
       cache.epoch == internalReadCacheEpoch;
@@ -36,7 +36,7 @@ mixin ControllerCgyyPurposes on ControllerState {
       return Future.value(
         FeatureResult.failure(UbaaErrorMapper.fromCode(error)),
       );
-    final previous = internalCgyyPurposeCache;
+    final previous = internalReadCaches.purposes;
     if (previous != null &&
         internalPurposesCurrent(previous) &&
         (previous.pending || !forceRefresh)) {
@@ -47,7 +47,7 @@ mixin ControllerCgyyPurposes on ControllerState {
       internalLifecycleEpoch,
       internalReadCacheEpoch,
     );
-    internalCgyyPurposeCache = cache;
+    internalReadCaches.purposes = cache;
     unawaited(internalFetchCgyyPurposes(cache));
     return cache.completer.future;
   }
@@ -113,8 +113,8 @@ mixin ControllerCgyyPurposes on ControllerState {
       );
     }
     cache.pending = false;
-    if (result.error != null && identical(internalCgyyPurposeCache, cache))
-      internalCgyyPurposeCache = null;
+    if (result.error != null && identical(internalReadCaches.purposes, cache))
+      internalReadCaches.purposes = null;
     cache.completer.complete(result);
   }
 }

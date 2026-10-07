@@ -153,9 +153,12 @@ mixin ControllerOfflineCache on ControllerState {
     internalLifecycleEpoch++;
     internalReadCacheEpoch++;
     internalUser = null;
+    internalActiveRoutes = const [];
     internalResetFeatureSnapshots();
     internalSessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
     internalSetPhase(AppPhase.login);
+    final scope = internalCaptureSessionScope();
+    final formRevision = internalLoginCredentialRevision;
     try {
       // 同步入队两个关闭动作，不能在等待安全索引时让新登录先启用缓存。
       await Future.wait<void>([
@@ -163,11 +166,14 @@ mixin ControllerOfflineCache on ControllerState {
         internalCloseOfflineAccount(),
       ]);
     } on Object catch (error, stackTrace) {
+      if (!scope.isCurrent || formRevision != internalLoginCredentialRevision)
+        return;
       internalError = internalRecordFailure(
         error,
         DiagnosticOperation.logout,
         stackTrace: stackTrace,
       );
+      internalNotify();
     }
   }
 }

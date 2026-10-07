@@ -36,7 +36,7 @@ mixin ControllerHomeSources on ControllerState {
         ),
       );
     }
-    var cache = internalHomeSupplementCache;
+    var cache = internalReadCaches.home;
     if (cache == null ||
         !identical(cache.backend, backend) ||
         cache.lifecycle != internalLifecycleEpoch ||
@@ -46,7 +46,7 @@ mixin ControllerHomeSources on ControllerState {
         internalLifecycleEpoch,
         internalReadCacheEpoch,
       );
-      internalHomeSupplementCache = cache;
+      internalReadCaches.home = cache;
     }
     final previous = cache.entries[source];
     if (previous != null && (previous.pending || !forceRefresh)) {
@@ -78,7 +78,7 @@ mixin ControllerHomeSources on ControllerState {
         !internalDisposed &&
         internalPhase == AppPhase.home &&
         identical(internalBackend, cache.backend) &&
-        identical(internalHomeSupplementCache, cache) &&
+        identical(internalReadCaches.home, cache) &&
         cache.lifecycle == internalLifecycleEpoch &&
         cache.epoch == internalReadCacheEpoch &&
         identical(cache.entries[source], entry);

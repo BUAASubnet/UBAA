@@ -382,8 +382,6 @@ mixin ControllerInteractiveAuthentication on ControllerState {
       completion.user,
       internalLifecycleEpoch,
     );
-    internalInteractiveInPlace = false;
-    internalInPlaceLogin = false;
   }
 
   @internal

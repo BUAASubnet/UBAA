@@ -99,13 +99,7 @@ mixin ControllerBackendRecovery on ControllerState {
         );
       }
     }
-    internalHomeSupplementCache = null;
-    internalGradesReadCache = null;
-    internalAcademicWeeksCache = null;
-    internalCgyyPurposeCache = null;
-    internalAcademicTermsResult = null;
-    internalAcademicTermsPending = null;
-    internalAcademicTermsSerial++;
+    internalReadCaches.invalidate();
     internalYgdkReadbackState = const YgdkReadbackState.empty();
   }
 }

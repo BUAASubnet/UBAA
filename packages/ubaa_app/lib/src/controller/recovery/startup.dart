@@ -231,10 +231,11 @@ mixin ControllerOfflineStartup on ControllerState {
   }) async {
     final store = internalLocalAccountStore;
     if (store == null || internalUser == null) return;
-    final epoch = internalLifecycleEpoch;
+    final scope = internalCaptureSessionScope();
+    final epoch = scope.lifecycle;
     try {
       final index = await store.retain(username, retainSession: retainSession);
-      if (internalDisposed || epoch != internalLifecycleEpoch) return;
+      if (!scope.isCurrent) return;
       internalLocalAccount = index.account;
       internalUsesLocalRecovery = true;
       if (index.account != null) {
@@ -249,6 +250,7 @@ mixin ControllerOfflineStartup on ControllerState {
         await internalRestoreCachedHome(index.account!);
       }
     } on Object catch (error, stackTrace) {
+      if (!scope.isCurrent) return;
       // 在线登录成功与能否保留本机材料是两件事，保存失败不得假装未登录。
       internalError = internalRecordFailure(
         error,

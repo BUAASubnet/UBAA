@@ -642,13 +642,14 @@ mixin ControllerActions on ControllerState {
 
   @internal
   Future<void> internalRefreshRouteSettings() async {
-    if (internalBackend case final RouteSettingsBackend routeBackend) {
+    final scope = internalCaptureSessionScope();
+    if (scope.backend case final RouteSettingsBackend routeBackend) {
       try {
         final settings = await routeBackend.routeSettings();
-        if (internalDisposed) return;
+        if (!scope.isCurrent) return;
         internalApplyRouteSettings(settings);
       } on Object catch (error, stackTrace) {
-        if (internalDisposed) return;
+        if (!scope.isCurrent) return;
         // 登录已经成功时，路线状态读取失败不能把账号重新置为失败；清空
         // 不确定的活动槽位，后续读取仍由 Core 返回实际错误。
         internalActiveRoutes = const <ConnectionMode>[];
@@ -708,6 +709,10 @@ mixin ControllerActions on ControllerState {
   void dispose() {
     if (internalDisposed) return;
     internalCancelLoginVerification(notify: false);
+    // 密码释放属于销毁操作，不能等待已撤销的登录任务迟到收尾。
+    internalReleaseLoginSecret();
+    internalInPlaceLogin = false;
+    internalInteractiveInPlace = false;
     internalLockDisplay?.cancel();
     internalDisposed = true;
     for (final scope in internalReadScopes.toList()) {

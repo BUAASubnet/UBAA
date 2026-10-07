@@ -36,58 +36,29 @@ mixin ControllerAcademicTerms on ControllerState {
         ),
       );
     }
-    final lifecycle = internalLifecycleEpoch;
-    final epoch = internalReadCacheEpoch;
-    if (internalAcademicTermsLifecycle != lifecycle ||
-        internalAcademicTermsEpoch != epoch ||
-        !identical(internalAcademicTermsBackend, backend)) {
-      internalAcademicTermsResult = null;
-      internalAcademicTermsPending = null;
-      internalAcademicTermsLifecycle = lifecycle;
-      internalAcademicTermsEpoch = epoch;
-      internalAcademicTermsBackend = backend;
-    }
-    // force 绕过已完成缓存；同代正在进行的请求已是一次新读取，仍合并。
-    if (internalAcademicTermsPending case final pending?) {
-      if (internalAcademicTermsDemand?.promote(priority) == true)
-        internalReadScheduler.pump();
-      return pending;
-    }
-    if (!forceRefresh) {
-      if (internalAcademicTermsResult case final cached?)
-        return Future.value(cached);
-    }
-    internalAcademicTermsResult = null;
-    final serial = ++internalAcademicTermsSerial;
-    final demand = internalAcademicTermsDemand = ReadDemand(priority);
-    final request = internalFetchAcademicTerms(
-      backend: backend,
-      queryBackend: backend as FeatureQueryBackend,
-      lifecycle: lifecycle,
-      epoch: epoch,
-      serial: serial,
-      demand: demand,
+    return internalReadCaches.terms.load(
+      scope: internalCaptureReadScope(),
+      forceRefresh: forceRefresh,
+      priority: priority,
+      fetch: (current, demand) => internalFetchAcademicTerms(
+        backend: backend,
+        queryBackend: backend as FeatureQueryBackend,
+        ownerCurrent: current,
+        demand: demand,
+      ),
+      conflict: internalAcademicTermsConflict,
+      pump: internalReadScheduler.pump,
     );
-    internalAcademicTermsPending = request;
-    return request;
   }
 
   @internal
   Future<FeatureResult> internalFetchAcademicTerms({
     required UbaaBackend backend,
     required FeatureQueryBackend queryBackend,
-    required int lifecycle,
-    required int epoch,
-    required int serial,
+    required bool Function() ownerCurrent,
     required ReadDemand demand,
   }) async {
-    bool current() =>
-        !internalDisposed &&
-        internalPhase == AppPhase.home &&
-        identical(internalBackend, backend) &&
-        internalLifecycleEpoch == lifecycle &&
-        internalReadCacheEpoch == epoch &&
-        internalAcademicTermsSerial == serial;
+    bool current() => internalPhase == AppPhase.home && ownerCurrent();
     try {
       // 即使 backend 在返回 Future 前同步抛错，也先建立在途句柄再清理。
       final result = await internalScheduleAuxiliaryRead(
@@ -146,7 +117,6 @@ mixin ControllerAcademicTerms on ControllerState {
                 }),
               ),
             );
-      internalAcademicTermsResult = stable;
       return stable;
     } on Object catch (error, stackTrace) {
       if (!current()) return internalAcademicTermsConflict();
@@ -158,9 +128,6 @@ mixin ControllerAcademicTerms on ControllerState {
           feature: FeatureId.schedule,
         ),
       );
-    } finally {
-      if (internalAcademicTermsSerial == serial)
-        internalAcademicTermsPending = null;
     }
   }
 
