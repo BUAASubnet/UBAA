@@ -1,0 +1,10 @@
+{
+  "module": {
+    "name": "flutter_secure_storage_ohos",
+    "type": "har",
+    "deviceTypes": [
+      "default",
+      "tablet"
+    ]
+  }
+}

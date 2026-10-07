@@ -1,5 +1,4 @@
 import 'package:meta/meta.dart';
-import 'package:flutter/services.dart';
 
 /// 一次登录操作使用的账号和密码。
 ///
@@ -227,70 +226,6 @@ abstract interface class PlatformSecureCredentialStore {
   Future<void> clear(String namespace);
 }
 
-/// 生产宿主使用的 MethodChannel 安全存储适配器。
-///
-/// 原生实现必须使用系统 Keychain、Keystore、Credential Manager、Secret
-/// Service 或 HUKS；Dart 侧只接收 typed 凭据，不提供文件或明文回退。
-final class MethodChannelSecureCredentialStore
-    implements PlatformSecureCredentialStore {
-  MethodChannelSecureCredentialStore({MethodChannel? channel})
-    : _channel = channel ?? const MethodChannel('cn.edu.buaa.ubaa/platform');
-
-  final MethodChannel _channel;
-  bool _available = false;
-
-  @override
-  bool get isAvailable => _available;
-
-  /// 在构造后显式探测原生安全存储能力；缺少插件时安全返回 false。
-  Future<bool> probe() async {
-    try {
-      _available =
-          await _channel.invokeMethod<bool>('credentials.capability') ?? false;
-    } on Object {
-      _available = false;
-    }
-    return _available;
-  }
-
-  @override
-  Future<Credential?> read(String namespace) async {
-    final result = await _channel.invokeMethod<Object?>(
-      'credentials.read',
-      namespace,
-    );
-    if (result == null) return null;
-    if (result is! Map) throw const FormatException();
-    final username = result['username'];
-    final password = result['password'];
-    final autoLogin = result['autoLogin'];
-    if (username is! String || password is! String || autoLogin is! bool) {
-      throw const FormatException();
-    }
-    return Credential(
-      username: username,
-      password: password,
-      autoLogin: autoLogin,
-    );
-  }
-
-  @override
-  Future<void> write(String namespace, Credential credential) async {
-    CredentialVault.validate(credential);
-    await _channel.invokeMethod<void>('credentials.write', <String, Object?>{
-      'namespace': namespace,
-      'username': credential.username,
-      'password': credential.password,
-      'autoLogin': credential.autoLogin,
-    });
-  }
-
-  @override
-  Future<void> clear(String namespace) async {
-    await _channel.invokeMethod<void>('credentials.clear', namespace);
-  }
-}
-
 /// 版本化命名空间的原生安全存储适配器。
 ///
 /// 该类只负责能力检查、输入校验和稳定错误归约；具体平台实现通过
@@ -315,6 +250,8 @@ class PlatformCredentialVault extends CredentialVault {
       if (credential == null) return null;
       CredentialVault.validate(credential);
       return credential.copyWith();
+    } on CredentialVaultException {
+      rethrow;
     } catch (_) {
       throw const CredentialVaultException(
         CredentialVaultErrorCode.storageFailure,
@@ -332,6 +269,8 @@ class PlatformCredentialVault extends CredentialVault {
     }
     try {
       await _store.write(namespace, credential.copyWith());
+    } on CredentialVaultException {
+      rethrow;
     } catch (_) {
       throw const CredentialVaultException(
         CredentialVaultErrorCode.storageFailure,
@@ -344,6 +283,8 @@ class PlatformCredentialVault extends CredentialVault {
     if (!isAvailable) return;
     try {
       await _store.clear(namespace);
+    } on CredentialVaultException {
+      rethrow;
     } catch (_) {
       throw const CredentialVaultException(
         CredentialVaultErrorCode.storageFailure,
@@ -380,6 +321,8 @@ class CallbackCredentialVault extends CredentialVault {
     if (!_available) return null;
     try {
       return await _loader();
+    } on CredentialVaultException {
+      rethrow;
     } catch (_) {
       throw const CredentialVaultException(
         CredentialVaultErrorCode.storageFailure,
@@ -397,6 +340,8 @@ class CallbackCredentialVault extends CredentialVault {
     }
     try {
       await _saver(credential);
+    } on CredentialVaultException {
+      rethrow;
     } catch (_) {
       throw const CredentialVaultException(
         CredentialVaultErrorCode.storageFailure,
@@ -409,6 +354,8 @@ class CallbackCredentialVault extends CredentialVault {
     if (!_available) return;
     try {
       await _clearer();
+    } on CredentialVaultException {
+      rethrow;
     } catch (_) {
       throw const CredentialVaultException(
         CredentialVaultErrorCode.storageFailure,

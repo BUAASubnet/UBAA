@@ -2,6 +2,8 @@ import 'dart:async';
 
 import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'credentials.dart';
+import 'secure_material.dart';
 
 /// Core 错误载荷的安全解析投影。
 ///
@@ -124,6 +126,25 @@ class UiErrorMapper {
 
   /// 把平台异常转换为稳定 UI 错误；不保留异常正文。
   UiError fromException(Object error, {String? feature}) {
+    if (error is CredentialVaultException) {
+      if (error.code == CredentialVaultErrorCode.invalidCredential) {
+        return fromCore(const CoreErrorPayload(code: 'invalid_input'));
+      }
+      return const UiError(
+        code: UbaaErrorCode.internalError,
+        kind: UiErrorKind.internal,
+        title: '本机安全存储不可用',
+        message: '无法访问本机保存的登录信息，请手动登录。',
+      );
+    }
+    if (error is SecureMaterialException) {
+      return const UiError(
+        code: UbaaErrorCode.internalError,
+        kind: UiErrorKind.internal,
+        title: '本机安全存储不可用',
+        message: '无法访问本机安全存储，离线数据暂不可用，请手动登录。',
+      );
+    }
     final typeName = error.runtimeType.toString().toLowerCase();
     final code = error is TimeoutException || typeName.contains('timeout')
         ? 'timeout'

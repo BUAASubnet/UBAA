@@ -19,3 +19,5 @@ UBAA 2 使用采用 MIT 许可证的 `buaa-api` 项目作为冻结协议参考�
 Android桌面课表的 `widgets/WidgetRenderer.kt` 及 `schedule_widget` 布局、背景和组件元数据，移植自上述冻结旧版，保留其绘制结构并适配当前只读模型和日期类型。版权为 Copyright (c) 2026 BUAASubnet，MIT许可证全文随仓库保存在 [ubaa-old-MIT.txt](docs/licenses/ubaa-old-MIT.txt)。
 
 Rust 依赖的许可证元数据以各依赖公开发布的许可证为准；最终 lockfile 是权威依赖清单。
+
+OHOS安全存储插件位于 `packages/flutter_secure_storage_ohos/`，基于Csy_Gitee HUKS fork `f1a8ada0a000f3c3d0e2ad51eed3b86b57969652` 和CPF-Flutter工具代码 `67c7b82e85b08a649dfd4f2bb0c455011a9384fa` 修订，使用Apache-2.0并保留上游BSD声明。原版权头、许可证全文、来源指纹及修改说明均保存在插件目录。

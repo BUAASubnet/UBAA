@@ -211,6 +211,13 @@ packages:
       url: "https://pub.dev"
     source: hosted
     version: "3.0.3"
+  flutter_secure_storage_ohos:
+    dependency: "direct main"
+    description:
+      path: "../../packages/flutter_secure_storage_ohos"
+      relative: true
+    source: path
+    version: "1.2.2+ubaa.1"
   flutter_secure_storage_platform_interface:
     dependency: transitive
     description:

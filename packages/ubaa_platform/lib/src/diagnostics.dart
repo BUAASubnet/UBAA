@@ -3,6 +3,8 @@ import 'dart:collection';
 import 'dart:convert';
 
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'credentials.dart';
+import 'secure_material.dart';
 
 /// 本地排障阶段。记录的是程序操作，不接收用户输入或业务目标。
 enum DiagnosticOperation {
@@ -28,6 +30,8 @@ enum DiagnosticCause {
   argument,
   assertion,
   type,
+  credentialStorage,
+  secureMaterial,
   unknown,
 }
 
@@ -131,6 +135,8 @@ final class LocalDiagnostics {
 
 DiagnosticCause _classify(Object? cause) => switch (cause) {
   null => DiagnosticCause.none,
+  CredentialVaultException() => DiagnosticCause.credentialStorage,
+  SecureMaterialException() => DiagnosticCause.secureMaterial,
   TimeoutException() => DiagnosticCause.timeout,
   FormatException() => DiagnosticCause.format,
   StateError() => DiagnosticCause.state,

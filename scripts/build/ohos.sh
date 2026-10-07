@@ -44,6 +44,7 @@ fi
 )
 
 (cd "$app_root" && ./scripts/check-toolchain.sh)
+bash "$repo_root/scripts/tests/secure-storage-ohos.sh"
 if [[ ! -d "$app_root/ohos" ]]; then
   printf 'error: 缺少由锁定 fork 生成的 OHOS runner\n' >&2
   exit 1

@@ -1,0 +1,8 @@
+{
+  "name": "flutter_secure_storage_ohos",
+  "version": "1.2.2",
+  "description": "HUKS安全存储插件",
+  "main": "index.ets",
+  "license": "Apache-2.0",
+  "dependencies": { "@ohos/flutter_ohos": "file:./har/flutter.har" }
+}

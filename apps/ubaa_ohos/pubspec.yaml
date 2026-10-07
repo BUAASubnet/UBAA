@@ -14,6 +14,8 @@ dependencies:
     path: ../../packages/ubaa_bindings
   ubaa_host:
     path: ../../packages/ubaa_host
+  flutter_secure_storage_ohos:
+    path: ../../packages/flutter_secure_storage_ohos
   ubaa_platform:
     path: ../../packages/ubaa_platform
 

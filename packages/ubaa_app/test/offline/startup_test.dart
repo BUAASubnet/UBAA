@@ -53,7 +53,7 @@ void main() {
     await materials.probe();
     final accounts = SecureLocalAccountStore(materials);
     await accounts.retain('fixture-user', retainSession: true);
-    transport.values['ubaa.material.v1.account-index.v1'] = '{';
+    transport.values['ubaa.material.v2.account-index.v1'] = '{';
     final backend = FakeRecoveryBackend();
     final controller = AppController(
       backend: backend,
@@ -69,7 +69,7 @@ void main() {
     expect(backend.authCalls, 0);
     expect(backend.loginCalls, 0);
     expect(backend.readCalls, 0);
-    expect(transport.values['ubaa.material.v1.account-index.v1'], '{');
+    expect(transport.values['ubaa.material.v2.account-index.v1'], '{');
   });
 
   test('本机账号先进入首页，首帧前不等待认证，首帧后立即合并恢复', () async {

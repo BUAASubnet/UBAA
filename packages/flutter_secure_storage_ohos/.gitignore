@@ -1,0 +1,10 @@
+/.dart_tool/
+/pubspec.lock
+/build/
+/ohos/build/
+/ohos/BuildProfile.ets
+/ohos/oh_modules/
+/ohos/node_modules/
+/ohos/.hvigor/
+/ohos/har/
+/ohos/oh-package-lock.json5

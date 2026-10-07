@@ -1,8 +1,8 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter/services.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 
 import 'credentials.dart';
 
@@ -13,29 +13,49 @@ abstract interface class SecureMaterialTransport {
   Future<void> delete(String key);
 }
 
-/// 官方五端使用系统安全存储插件；OHOS 使用独立 HUKS 通道。
+/// 全平台均使用flutter_secure_storage插件合同；OHOS由宿主注册对应插件。
 final class PlatformSecureMaterialTransport implements SecureMaterialTransport {
-  const PlatformSecureMaterialTransport();
+  const PlatformSecureMaterialTransport({this.operatingSystem});
+  final String? operatingSystem;
   static const _storage = FlutterSecureStorage(
+    aOptions: AndroidOptions(
+      resetOnError: false,
+      migrateOnAlgorithmChange: false,
+    ),
     iOptions: IOSOptions(
       accessibility: KeychainAccessibility.first_unlock_this_device,
     ),
     mOptions: _MacLoginKeychainOptions(),
   );
-  static const _ohos = MethodChannel('cn.edu.buaa.ubaa/secure-material');
-  bool get _usesHuks => Platform.operatingSystem == 'ohos';
+  // 官方门面尚未识别OHOS；沿其公开平台接口调用同一插件通道，不自建通道。
+  static const _ohosOptions = <String, String>{
+    'resetOnError': 'false',
+    'ohosKeyCipherAlgorithm': 'RSA_ECB_OAEPwithSHA_256andMGF1Padding',
+    'ohosStorageCipherAlgorithm': 'AES_GCM_NoPadding',
+  };
+  bool get _isOhos => (operatingSystem ?? Platform.operatingSystem) == 'ohos';
 
   @override
-  Future<String?> read(String key) => _usesHuks
-      ? _ohos.invokeMethod<String>('read', key)
+  Future<String?> read(String key) => _isOhos
+      ? FlutterSecureStoragePlatform.instance.read(
+          key: key,
+          options: _ohosOptions,
+        )
       : _storage.read(key: key);
   @override
-  Future<void> write(String key, String value) => _usesHuks
-      ? _ohos.invokeMethod<void>('write', {'key': key, 'value': value})
+  Future<void> write(String key, String value) => _isOhos
+      ? FlutterSecureStoragePlatform.instance.write(
+          key: key,
+          value: value,
+          options: _ohosOptions,
+        )
       : _storage.write(key: key, value: value);
   @override
-  Future<void> delete(String key) => _usesHuks
-      ? _ohos.invokeMethod<void>('delete', key)
+  Future<void> delete(String key) => _isOhos
+      ? FlutterSecureStoragePlatform.instance.delete(
+          key: key,
+          options: _ohosOptions,
+        )
       : _storage.delete(key: key);
 }
 
@@ -53,7 +73,7 @@ final class SecureMaterialStore {
   final SecureMaterialTransport _transport;
   bool _available = false;
   bool get isAvailable => _available;
-  static const _prefix = 'ubaa.material.v1.';
+  static const _prefix = 'ubaa.material.v2.';
   static const _capabilityKey = '${_prefix}capability';
   static const _capabilityValue = 'probe-ok';
 

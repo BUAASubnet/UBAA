@@ -3,39 +3,15 @@
 `ubaa_platform` 是 Flutter 宿主与 UBAA Core 之间的平台能力边界。它不拼接
 上游 URL、不读取 Core 的 Cookie/session 文件，也不把密码或响应正文写入日志。
 
-## 凭据保险箱
+## 凭据与安全材料
 
-`CredentialVault` 只定义 `load`、`save`、`clear` 三个异步操作。生产应用应通过
-`MethodChannelSecureCredentialStore` 或 `CallbackCredentialVault` 注入系统安全存储；
-`MemoryCredentialVault` 仅用于测试，`CredentialVault.sessionOnly()` 只在当前进程内
-暂存，`CredentialVault.noop()` 是完全不保存的安全默认值。凭据对象的 `toString`
-始终遮盖账号和密码。
+生产接线统一为 `PlatformCredentialVault → MaterialCredentialStore → SecureMaterialStore → flutter_secure_storage`，不再探测或调用 `credentials.*` 自定义通道。`MemoryCredentialVault`、session-only和Noop仅供显式测试或无持久能力场景；凭据对象的文本表示始终遮盖账号与密码。
 
-生产宿主可使用 `MethodChannelSecureCredentialStore`；它只通过
-`cn.edu.buaa.ubaa/platform` 的 typed 方法探测和访问原生安全存储，写入前校验凭据，
-不会提供文件或明文回退。原生 handler 缺失时 `probe()` 返回不可用，应用继续使用安全的
-session-only/Noop 语义。macOS 已接入 `native/macos/KeychainCredentialStore.swift`，使用系统
-登录 Keychain，在固定私有服务与明确 namespace 下保存单个 generic-password 条目，禁用同步，
-所有错误均归约为稳定类别。iOS Keychain、Android Keystore、Secret Service、Credential Manager
-和 HUKS handler 仍需在后置设备阶段实现与验证。
+官方五端使用固定插件10.0.0；macOS使用插件的登录Keychain配置，iOS使用首次解锁后仅本机可用配置，Android明确禁用错误自动重置。OHOS宿主注册本仓库社区HUKS插件适配，通过相同的插件2.x平台接口读写，不自建宿主加密通道。插件来源、修订与设备验证限制见[OHOS插件说明](../flutter_secure_storage_ohos/README.md)。
 
-macOS 显式设置 `kSecUseDataProtectionKeychain=false`，后端限定为登录 Keychain。
-`native/macos/LegacyKeychainAPI.swift` 集中管理 legacy 的进程交互策略：全实例共享锁，保存原值、
-临时禁止交互、执行操作后恢复；策略失败不会继续存储或虚报成功。恢复失败仅做一次补偿，仍失败
-则保存待恢复原值并阻止后续操作，避免把临时 false 当作默认策略。这里使用 deprecated 系统接口
-是保留现有 Debug 签名条件的明确兼容决策，不能用 LAContext 标记代替 legacy 交互控制。
+开发阶段按用户要求使用材料前缀 `ubaa.material.v2.`，不迁移或删除旧v1材料及旧macOS通道条目。密码、账号索引、缓存密钥各自使用独立键；业务正文仍由Core加密缓存拥有。能力探测必须写入、读回、删除并确认；不可用时不构造本机账号仓库、不降级明文。存储错误采用安全中文提示与类型化诊断，不输出原始平台错误正文。
 
-macOS 的 `PlatformChannel` 是唯一 MethodChannel 拥有者，`CredentialHandler` 在串行队列调用
-Keychain，`PhotoHandler` 继续处理照片。能力探测不读保存值，只表示实现已接入；锁定或访问拒绝
-仍可能使后续存储操作失败。`autoLogin` 必须为布尔类型，数值 `0/1` 不能代替它；无记录读取为
-`null`，无记录删除幂等。上层 App 的记住/自动联动、登录与注销生命周期不归该适配器控制。
-
-在本包运行 `flutter test test/credentials/macos_keychain_store_test.dart` 会编译原生确定性测试并注入全部
-Security 调用，不访问系统 Keychain。真实验证在 `apps/ubaa_flutter` 下运行
-`flutter test -d macos integration_test/ui_credentials/native_test.dart`：仅访问当次唯一合成
-namespace，finally 精确清除，覆盖保存、新适配器读取、更新、删除、输入拒绝与照片探测。
-两种证据不能替代真实 App 的记住密码/自动登录验收；来源与边界见
-[macOS 凭据对照](../../docs/migration/source-parity-ui-macos-credentials.md)。
+聚焦测试为 `flutter test test/credentials`。真实macOS验证运行官方宿主的 `integration_test/ui_credentials/native_test.dart` 与 `integration_test/offline/secure_material_test.dart`，仅访问本轮唯一合成键并在结束时清理。原生、确定性与真实账号登录证据分别记录。
 
 ## 遥测
 

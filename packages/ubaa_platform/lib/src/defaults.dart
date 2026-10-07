@@ -28,14 +28,9 @@ final class PlatformCapabilities {
 
 Future<PlatformCapabilities> createDefaultPlatformCapabilities() async {
   await initializePrivateDirectory();
-  final legacyStore = MethodChannelSecureCredentialStore();
-  await legacyStore.probe();
   final materials = SecureMaterialStore();
   await materials.probe();
-  // 已存在的原生凭据接线优先，避免升级后隐式迁移密码授权。
-  final PlatformSecureCredentialStore credentialStore = legacyStore.isAvailable
-      ? legacyStore
-      : MaterialCredentialStore(materials);
+  final credentialStore = MaterialCredentialStore(materials);
   final photos = await createDefaultPhotoCapabilities();
   final locationProvider = MethodChannelLocationProvider();
   await locationProvider.probe();

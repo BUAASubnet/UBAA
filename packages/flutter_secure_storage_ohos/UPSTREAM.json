@@ -1,0 +1,54 @@
+{
+  "ohos/build-profile.json5": {
+    "sha256": "2fce80329ac6b6f805f8fd9640031fb67739de2e4e7362c0816e870cdfe189d3",
+    "upstream": "Csy_Gitee@f1a8ada0"
+  },
+  "ohos/hvigorfile.ts": {
+    "sha256": "4328a41b27c35b93a2b61c94ca686be51757db7aac44f3bb6cf6e4d7610cfc6e",
+    "upstream": "Csy_Gitee@f1a8ada0"
+  },
+  "ohos/index.ets": {
+    "sha256": "bb5fc58401aca905b2fd34c4f168106f5fd7c6013762258e30257410684ea956",
+    "upstream": "Csy_Gitee@f1a8ada0"
+  },
+  "ohos/src/main/module.json5": {
+    "sha256": "f1dce11c4fecd1189428ac72919fcf28806663ec7c8514ad7e84d72c0343d796",
+    "upstream": "Csy_Gitee@f1a8ada0"
+  },
+  "ohos/src/main/ets/components/plugin/ciphers/KeyCipher.ets": {
+    "sha256": "df9c91924a355345442bd2c850dd1c3fd2af26494a2986b3b07ae05c664aee28",
+    "upstream": "Csy_Gitee@f1a8ada0"
+  },
+  "ohos/src/main/ets/components/plugin/ciphers/StorageCipher.ets": {
+    "sha256": "ab8c674819a60cdcfcab8d2bd3bfabd849b33873c108e18a6ecc2a95dcc5dbef",
+    "upstream": "Csy_Gitee@f1a8ada0"
+  },
+  "ohos/src/main/ets/components/plugin/ciphers/RSACipher18Implementation.ets": {
+    "sha256": "f73ec63eabcb202077e8a31a34024eebeb2fc45558315a057e696d438009b812",
+    "upstream": "Csy_Gitee@f1a8ada0"
+  },
+  "ohos/src/main/ets/components/plugin/ciphers/RSACipherOAEPImplementation.ets": {
+    "sha256": "e5970607601cd8e33bb304270ae9faf33988faff27c48658626a2994ffcaaf0d",
+    "upstream": "Csy_Gitee@f1a8ada0"
+  },
+  "ohos/src/main/ets/components/plugin/ciphers/StorageCipher18Implementation.ets": {
+    "sha256": "f04839f7a05468c5db3d8607af76dea9174a85e4af243460eb9ccdd9f8ef4bcc",
+    "upstream": "Csy_Gitee@f1a8ada0"
+  },
+  "ohos/src/main/ets/components/plugin/ciphers/StorageCipherGCMImplementation.ets": {
+    "sha256": "7bbb0df4232a3f886cced5569780aa8d9224d42f5cc6c988f90350918ce402bb",
+    "upstream": "Csy_Gitee@f1a8ada0"
+  },
+  "ohos/src/main/ets/components/plugin/utils/index.ts": {
+    "sha256": "2fa410a84ef60b4523f65446b1088c0786197ab10106c7b8ec7e4b2a62abf99c",
+    "upstream": "Csy_Gitee@f1a8ada0"
+  },
+  "ohos/src/main/ets/components/plugin/FlutterSecureStorage.ets": {
+    "sha256": "918c87d1e3449abeefa85327fb48deebb3d0818b664ff928fd909324008960b7",
+    "upstream": "Csy_Gitee@f1a8ada0"
+  },
+  "ohos/src/main/ets/components/plugin/FlutterSecureStorageOhosPlugin.ets": {
+    "sha256": "46f0f693aac868e63e955784d2d22542c719f041e1b777e390fe51f373147f5b",
+    "upstream": "Csy_Gitee@f1a8ada0"
+  }
+}

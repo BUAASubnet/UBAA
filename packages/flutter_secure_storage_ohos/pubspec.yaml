@@ -1,0 +1,18 @@
+name: flutter_secure_storage_ohos
+description: 基于社区HUKS实现的flutter_secure_storage原生OHOS插件适配。
+version: 1.2.2+ubaa.1
+publish_to: none
+
+environment:
+  sdk: ^3.11.5
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_secure_storage_platform_interface: 2.1.1
+
+flutter:
+  plugin:
+    platforms:
+      ohos:
+        pluginClass: FlutterSecureStorageOhosPlugin

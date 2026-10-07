@@ -1801,3 +1801,21 @@ Bridge升级v36；schema v6新增载荷变体而不改SQL结构、密文封装�
 现场复验：重建同一生产Release入口并沿原独立文件目录启动后，Computer Use确认当前显示UBAA登录页，不再显示首页。脱敏诊断的调用点为 `PlatformCredentialVault.load`（credentials.dart:319）→`_initializeLocalHome`（offline_startup.dart:13）：本机索引为空后的旧凭据读取抛出storageFailure，实际触发了上述错误兜底。另补精确凭据故障回归，证明错误时零自动认证/首页读取，用户手动认证成功后才进入首页。原安全存储读取故障仍保留可见提示，未清除或更改真实钥匙串条目；学校真实登录未在本轮执行。
 
 验证：控制器/宿主两处预期RED已保留；启动、缓存、恢复聚焦30项GREEN；完整7包分析与1339项Flutter测试、`just check`（含CLI端到端）、macOS Release构建均通过。现场诊断之后新增的精确旧凭据故障用例随启动文件13项再通过，生产代码未再变化。全部日志位于仓库外私有 `~/Library/Application Support/UBAA-private-evidence/startup-login-20261007/`，包含app-red/host-red、app-green/host-green、credential-migration-green、flutter-check、check、macos-build。
+
+
+## 2026-10-07：开发阶段统一安全存储插件
+
+用户明确无需已有数据兼容，授权按通用插件方案实施。官方五端保留固定flutter_secure_storage 10.0.0和平台interface 2.1.1；密码、本机账号、缓存密钥统一从SecureMaterialStore进入插件，删除macOS credentials.*原生handler与重复Swift实现。采用新材料键前缀v2，不读取、迁移或删除旧v1及legacy钥匙串条目。无记录为null；不可用明确返回能力失败；读取损坏/写入失败不能伪装空值或成功。
+
+冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的CredentialStore.kt:19–52、AuthViewModel.kt:43–57/175–178定义记住密码及成功后保存；两来源详细认证请求及本地存储比较沿[macOS凭据对照](source-parity-ui-macos-credentials.md)和[离线恢复对照](source-parity-offline-recovery-2026-09-17.md)。固定示例 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的store/cred.rs保存普通JSON，无插件/系统密钥或UI开关实现，不借用其明文文件形式。
+
+| 操作 | CAS/bootstrap/service | redirect/finalURL | Cookie/session | HTTP/参数 | headers/body | crypto | DTO/parser | cache/concurrency | error/exit |
+|---|---|---|---|---|---|---|---|---|---|
+| 凭据/材料保存及读回 | 不适用，本地操作 | 不适用 | 不访问Core会话，不迁移旧条目 | 不发学校请求；沿固定插件read/write/delete | 插件键值合同；凭据JSON限username/password/autoLogin | 官方端沿插件系统实现；OHOS HUKS保护包装密钥，AES-GCM保护值 | 公共Core/Bridge DTO不变，安全材料独立v2前缀 | 探测执行写/读/删；OHOS串行等待初始化和加解密；账号代次继续由原App控制 | 存储失败保留类型与安全中文提示，不吞错、不自动reset，CLI语义不变 |
+| 退出与删除 | 不适用 | 不适用 | 不额外注销或触碰旧命名空间 | 仅删除明确材料键，不调用deleteAll清用户数据 | 不适用 | 不降级明文或重建丢失密钥去覆盖密文 | 同上 | 读回确认删除，沿退出代次拒绝迟到回写 | 原错误继续可见，不宣称假成功 |
+
+OHOS来源评估：CPF-Flutter fork `67c7b82e85b08a649dfd4f2bb0c455011a9384fa` 尚将RSA私钥放Preferences；Csy_Gitee HUKS fork `f1a8ada0a000f3c3d0e2ad51eed3b86b57969652` 已改用UniversalKeystoreKit，但Dart约束<3、interface 1.x和吞错/异步初始化不适配当前工程。采用其原生插件及HUKS/AES实现作有来源的本地插件修订，接标准2.x MethodChannel合同；不复制过时的跨平台Dart门面。修订集中于插件包，宿主移除自定义SecureMaterialChannel。所有新增/修改资源标注来源、许可证和差异；官方端仍直接依赖发布插件。
+
+实施先补“legacy通道即使声明可用也不能被选择”“插件写入读回失败不能报告成功”和类型化中文错误的RED，再改生产接线。原生合成验证仅使用唯一测试键，不触碰真实凭据；OHOS无签名构建与原生运行分开记录。
+
+本阶段已完成，验证与限制见[统一安全存储记录](evidence/unified-secure-storage-2026-10-07.md)。macOS真实合成凭据生命周期和生产登录页正常；OHOS原生源码合成合同、代次回归及无签名HAP通过，未连接设备。原学校协议未变化，未运行真实学校请求；不把新插件接线及构建视为全部设备验收。

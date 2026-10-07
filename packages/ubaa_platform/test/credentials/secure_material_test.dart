@@ -24,7 +24,7 @@ void main() {
       return null;
     });
     await const PlatformSecureMaterialTransport().read(
-      'ubaa.material.v1.capability',
+      'ubaa.material.v2.capability',
     );
   });
 

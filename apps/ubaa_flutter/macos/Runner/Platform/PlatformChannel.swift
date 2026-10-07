@@ -9,11 +9,10 @@ protocol PlatformMethodHandler: AnyObject {
 final class PlatformChannel: NSObject {
   private let channel: FlutterMethodChannel
   private let photos: PlatformMethodHandler?
-  private let credentials = CredentialHandler()
 
   init(messenger: FlutterBinaryMessenger, window: NSWindow) {
     channel = FlutterMethodChannel(name: "cn.edu.buaa.ubaa/platform", binaryMessenger: messenger)
-    // 照片的系统版本要求不能限制独立的 Keychain 能力。
+    // 照片能力由宿主版本决定，安全存储交给独立插件注册。
     if #available(macOS 11.0, *) {
       photos = PhotoHandler(window: window)
     } else {
@@ -25,9 +24,7 @@ final class PlatformChannel: NSObject {
         result(FlutterMethodNotImplemented)
         return
       }
-      if call.method.hasPrefix("credentials.") {
-        self.credentials.handle(call, result: result)
-      } else if let photos = self.photos {
+      if let photos = self.photos {
         photos.handle(call, result: result)
       } else {
         result(FlutterMethodNotImplemented)
