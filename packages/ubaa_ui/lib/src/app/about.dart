@@ -1,14 +1,17 @@
-part of '../widgets.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import '../common/app_links.dart' show uiShowAppLinkFailure;
 
-class _AboutView extends StatefulWidget {
-  const _AboutView({this.loadVersion, this.openLink});
+class AboutView extends StatefulWidget {
+  const AboutView({this.loadVersion, this.openLink});
   final Future<String?> Function()? loadVersion;
   final Future<bool> Function(AppLink)? openLink;
   @override
-  State<_AboutView> createState() => _AboutViewState();
+  State<AboutView> createState() => _AboutViewState();
 }
 
-class _AboutViewState extends State<_AboutView> {
+class _AboutViewState extends State<AboutView> {
   String? version;
   bool loading = true, opening = false;
   @override
@@ -44,7 +47,7 @@ class _AboutViewState extends State<_AboutView> {
     if (!mounted) return;
     setState(() => opening = false);
     if (opened) return;
-    await _showAppLinkFailure(context, link);
+    await uiShowAppLinkFailure(context, link);
   }
 
   @override

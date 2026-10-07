@@ -1,6 +1,6 @@
-part of '../widgets.dart';
+part of 'shell.dart';
 
-extension _UbaaShellWriteActions on _UbaaMainShellState {
+extension UbaaShellWriteActions on _UbaaMainShellState {
   Future<void> _startBykcWrite(WriteOperation operation, int courseId) async {
     final prepare = widget.onPrepareBykcWrite;
     if (prepare == null) return;

@@ -1,7 +1,18 @@
-part of '../../widgets.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/write_callbacks.dart';
+import '../../common/error_card.dart' show FriendlyErrorCard;
+import 'reservation_table.dart' show CgyyTableHeader;
+import '../../shared/schedule_values.dart' show uiSavedScheduleTime;
+import '../../write/cgyy/draft.dart' show CgyyFormContext;
+import '../../write/cgyy/form.dart'
+    show uiCgyyActionKey, uiCollectCgyyReservation, uiSelectCgyyAction;
+part 'table.dart';
+part 'choices.dart';
 
-class _CgyyReservationFlow extends StatefulWidget {
-  const _CgyyReservationFlow({
+class CgyyReservationFlow extends StatefulWidget {
+  const CgyyReservationFlow({
     required this.snapshot,
     required this.query,
     required this.cacheEpoch,
@@ -21,14 +32,14 @@ class _CgyyReservationFlow extends StatefulWidget {
   final Widget fallback;
   final Future<void> Function(FeatureQuery)? onQuery;
   final CgyyReservationStarter? onSubmit;
-  final _CgyyFormContext formContext;
+  final CgyyFormContext formContext;
   final VoidCallback onChoicesChanged;
   final Future<void> Function() onRetry;
   @override
-  State<_CgyyReservationFlow> createState() => _CgyyReservationFlowState();
+  State<CgyyReservationFlow> createState() => CgyyReservationFlowState();
 }
 
-class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
+class CgyyReservationFlowState extends State<CgyyReservationFlow> {
   List<CgyySitePresentation> _sites = [];
   String _campus = '全部';
   int? _site;
@@ -85,7 +96,7 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
   }
 
   @override
-  void didUpdateWidget(covariant _CgyyReservationFlow oldWidget) {
+  void didUpdateWidget(covariant CgyyReservationFlow oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.cacheEpoch != widget.cacheEpoch) {
       _sites = [];
@@ -244,7 +255,7 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
                             (a, b) => a.timeOrdinal.compareTo(b.timeOrdinal),
                           );
                       final original = widget.snapshot;
-                      final input = await _collectCgyyReservation(
+                      final input = await uiCollectCgyyReservation(
                         context,
                         selected.first,
                         selected,
@@ -294,7 +305,7 @@ class _CgyyReservationFlowState extends State<_CgyyReservationFlow> {
           _selected.remove(key);
           return;
         }
-        _selectCgyyAction(_selected, actions, key);
+        uiSelectCgyyAction(_selected, actions, key);
       });
 
   String _siteLabel(CgyySitePresentation site) =>

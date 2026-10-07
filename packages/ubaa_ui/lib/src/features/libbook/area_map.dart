@@ -1,4 +1,4 @@
-part of '../../widgets.dart';
+import 'package:flutter/material.dart';
 
 // 冻结LibBookReserveScreen的资源白名单；不以相似编号推断另一张地图。
 const _libraryMapIds = {
@@ -33,8 +33,8 @@ const _libraryMapIds = {
   '117',
 };
 
-class _LibraryMapControl extends StatelessWidget {
-  const _LibraryMapControl({required this.areaId, required this.areaName});
+class LibraryMapControl extends StatelessWidget {
+  const LibraryMapControl({required this.areaId, required this.areaName});
   final String areaId;
   final String areaName;
   @override

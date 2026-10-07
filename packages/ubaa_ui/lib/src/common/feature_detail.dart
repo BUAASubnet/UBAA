@@ -1,6 +1,34 @@
-part of '../widgets.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/write_callbacks.dart';
+import '../app/home.dart' show uiCacheReadFailureText;
+import 'details/detail_list.dart' show FeatureDetailList;
+import 'error_card.dart' show FriendlyErrorCard;
+import 'landing_menu.dart' show FeatureLandingMenu;
+import 'query/query_controls.dart'
+    show FeatureQueryControls, FeatureQueryControlsState;
+import '../features/cgyy/lock_display.dart' show UbaaCgyyLockDisplayView;
+import '../features/cgyy/reservation_flow.dart'
+    show CgyyReservationChoices, CgyyReservationFlow, CgyyReservationFlowState;
+import '../features/coursework/coursework_overview.dart'
+    show CourseworkOverview;
+import '../features/grades/flow.dart' show GradesFlow;
+import '../features/libbook/reservation_flow.dart'
+    show
+        LibbookReservationChoices,
+        LibbookReservationFlow,
+        LibbookReservationFlowState,
+        LibbookReservationSchedule;
+import '../features/schedule/content.dart' show ScheduleContent;
+import '../features/schedule/flow.dart' show ScheduleFlow, ScheduleFlowState;
+import '../features/ygdk/home_flow.dart' show YgdkHomeFlow;
+import '../shared/feature_icons.dart' show uiFeatureIcon;
+import '../shared/schedule_values.dart' show uiSavedScheduleTime;
+import '../write/cgyy/draft.dart' show CgyyFormContext, CgyyFormDraft;
+import '../write/ygdk/draft.dart' show YgdkFormContext, YgdkFormDraft;
 
-bool _readableCachedContent(FeatureSnapshot snapshot) =>
+bool uiReadableCachedContent(FeatureSnapshot snapshot) =>
     {
       FeatureId.schedule,
       FeatureId.exam,
@@ -16,8 +44,8 @@ bool _readableCachedContent(FeatureSnapshot snapshot) =>
     }.contains(snapshot.feature) &&
     snapshot.evidence?.origin == DataOrigin.persisted;
 
-class _FeatureDetailView extends StatefulWidget {
-  const _FeatureDetailView({
+class FeatureDetailView extends StatefulWidget {
+  const FeatureDetailView({
     required this.feature,
     this.isLanding = false,
     this.onOpenLockDisplay,
@@ -110,19 +138,19 @@ class _FeatureDetailView extends StatefulWidget {
   final int readCacheEpoch;
 
   @override
-  State<_FeatureDetailView> createState() => _FeatureDetailViewState();
+  State<FeatureDetailView> createState() => FeatureDetailViewState();
 }
 
-class _FeatureDetailViewState extends State<_FeatureDetailView> {
-  final _libraryKey = GlobalKey<_LibbookReservationFlowState>();
+class FeatureDetailViewState extends State<FeatureDetailView> {
+  final _libraryKey = GlobalKey<LibbookReservationFlowState>();
   final _libraryChoicesRevision = ValueNotifier(0);
   final _libraryQueryExpansion = ExpansibleController();
-  final _cgyyKey = GlobalKey<_CgyyReservationFlowState>();
+  final _cgyyKey = GlobalKey<CgyyReservationFlowState>();
   final _cgyyChoicesRevision = ValueNotifier(0);
-  final _cgyyDraft = _CgyyFormDraft();
-  final _ygdkDraft = _YgdkFormDraft();
-  final _queryKey = GlobalKey<_FeatureQueryControlsState>();
-  final _scheduleKey = GlobalKey<_ScheduleFlowState>();
+  final _cgyyDraft = CgyyFormDraft();
+  final _ygdkDraft = YgdkFormDraft();
+  final _queryKey = GlobalKey<FeatureQueryControlsState>();
+  final _scheduleKey = GlobalKey<ScheduleFlowState>();
   final _searchController = TextEditingController();
   bool _panelOpen = false;
   Set<BykcCourseStatus> get _bykcStatuses => widget.bykcFilters.statuses;
@@ -137,7 +165,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
   }
 
   @override
-  void didUpdateWidget(covariant _FeatureDetailView oldWidget) {
+  void didUpdateWidget(covariant FeatureDetailView oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.readCacheEpoch != widget.readCacheEpoch) {
       _cgyyDraft.clear();
@@ -174,11 +202,11 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
         (widget.snapshot.status == FeatureLoadStatus.success ||
             widget.snapshot.status == FeatureLoadStatus.stale ||
             ((widget.feature == FeatureId.judge ||
-                    _readableCachedContent(widget.snapshot)) &&
+                    uiReadableCachedContent(widget.snapshot)) &&
                 widget.snapshot.status == FeatureLoadStatus.loading)) &&
         widget.snapshot.details.isNotEmpty;
     final defaultContent = widget.isLanding
-        ? _FeatureLandingMenu(
+        ? FeatureLandingMenu(
             feature: widget.feature,
             onOpen: widget.onNavigate!,
           )
@@ -196,7 +224,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
               if (widget.snapshot.evidence?.cacheFailure case final failure?)
                 Padding(
                   padding: const EdgeInsets.all(12),
-                  child: Text(_cacheReadFailureText(failure)),
+                  child: Text(uiCacheReadFailureText(failure)),
                 ),
               if (widget.snapshot.evidence?.complete == false &&
                   widget.snapshot.details.isNotEmpty)
@@ -204,11 +232,11 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                   padding: EdgeInsets.all(12),
                   child: Text('当前内容尚不完整，连接后继续核对。'),
                 ),
-              if (_readableCachedContent(widget.snapshot))
+              if (uiReadableCachedContent(widget.snapshot))
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(
-                    '上次保存 ${_savedScheduleTime(widget.snapshot.evidence!.fetchedAt)}，连接后核对更新',
+                    '上次保存 ${uiSavedScheduleTime(widget.snapshot.evidence!.fetchedAt)}，连接后核对更新',
                   ),
                 ),
               if (widget.snapshot.status == FeatureLoadStatus.stale &&
@@ -239,8 +267,8 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                           widget.snapshot.status == FeatureLoadStatus.stale ||
                           (widget.snapshot.status ==
                                   FeatureLoadStatus.loading &&
-                              _readableCachedContent(widget.snapshot))))
-                _CourseworkOverview(
+                              uiReadableCachedContent(widget.snapshot))))
+                CourseworkOverview(
                   overview: overview,
                   complete: widget.snapshot.evidence?.complete ?? true,
                 ),
@@ -263,7 +291,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                     if (!showDetails)
                       switch (widget.snapshot.status) {
                         FeatureLoadStatus.loading
-                            when _readableCachedContent(widget.snapshot) =>
+                            when uiReadableCachedContent(widget.snapshot) =>
                           _empty(context),
                         FeatureLoadStatus.loading => const Center(
                           child: CircularProgressIndicator(),
@@ -281,7 +309,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
             widget.feature == FeatureId.libbook &&
             (widget.query?.view ?? FeatureQueryView.summary) !=
                 FeatureQueryView.libbookBookings
-        ? _LibbookReservationFlow(
+        ? LibbookReservationFlow(
             key: _libraryKey,
             onChoicesChanged: () {
               if (mounted) _libraryChoicesRevision.value++;
@@ -312,7 +340,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
                 FeatureQueryView.summary,
                 FeatureQueryView.cgyyDayInfo,
               }.contains(widget.query?.view ?? FeatureQueryView.summary)
-        ? _CgyyReservationFlow(
+        ? CgyyReservationFlow(
             key: _cgyyKey,
             onChoicesChanged: () {
               if (mounted) _cgyyChoicesRevision.value++;
@@ -335,7 +363,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
         : widget.feature == FeatureId.ygdk &&
               (widget.query?.view ?? FeatureQueryView.summary) ==
                   FeatureQueryView.summary
-        ? _YgdkHomeFlow(
+        ? YgdkHomeFlow(
             formContext: _ygdkFormContext,
             snapshot: widget.snapshot,
             recordsReadback: widget.ygdkRecordsReadback,
@@ -352,7 +380,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
             onCapturePhoto: widget.onCaptureYgdkPhoto,
           )
         : !widget.isLanding && widget.feature == FeatureId.grades
-        ? _GradesFlow(
+        ? GradesFlow(
             snapshot: widget.snapshot,
             visible: widget.visible,
             cacheEpoch: widget.readCacheEpoch,
@@ -363,7 +391,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
           )
         : widget.feature == FeatureId.schedule &&
               widget.onLoadAcademicWeeks != null
-        ? _ScheduleFlow(
+        ? ScheduleFlow(
             key: _scheduleKey,
             snapshot: widget.snapshot,
             query: widget.query,
@@ -503,7 +531,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
         FeatureQueryView.cgyyDayInfo,
       }.contains(widget.query?.view ?? FeatureQueryView.summary);
 
-  Widget _queryControls() => _FeatureQueryControls(
+  Widget _queryControls() => FeatureQueryControls(
     key: _queryKey,
     feature: widget.feature,
     details: widget.snapshot.details,
@@ -548,13 +576,13 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
     FeatureId.evaluation => true,
   };
 
-  _YgdkFormContext get _ygdkFormContext => _YgdkFormContext(
+  YgdkFormContext get _ygdkFormContext => YgdkFormContext(
     draft: _ygdkDraft,
     route: widget.snapshot.resolvedRoute,
     onRouteOptions: widget.onFormRouteOptions,
   );
 
-  _CgyyFormContext get _cgyyFormContext => _CgyyFormContext(
+  CgyyFormContext get _cgyyFormContext => CgyyFormContext(
     draft: _cgyyDraft,
     loadPurposes: widget.onLoadCgyyPurposes,
     route: widget.snapshot.resolvedRoute,
@@ -567,7 +595,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
       : null;
 
   Widget _details(BuildContext context) {
-    return _FeatureDetailList(
+    return FeatureDetailList(
       feature: widget.feature,
       details: widget.snapshot.details,
       timeline: _scheduleTimeline,
@@ -615,7 +643,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
               (widget.query?.view == FeatureQueryView.summary &&
                   widget.query?.term != null &&
                   widget.query?.week != null))
-      ? _ScheduleContent(details: const [], timeline: _scheduleTimeline)
+      ? ScheduleContent(details: const [], timeline: _scheduleTimeline)
       : Center(
           child: Padding(
             padding: const EdgeInsets.all(24),
@@ -623,7 +651,7 @@ class _FeatureDetailViewState extends State<_FeatureDetailView> {
               mainAxisSize: MainAxisSize.min,
               children: <Widget>[
                 Icon(
-                  _featureIcon(widget.feature),
+                  uiFeatureIcon(widget.feature),
                   size: 56,
                   color: Theme.of(context).colorScheme.primary,
                 ),

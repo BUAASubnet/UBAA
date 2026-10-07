@@ -1,6 +1,6 @@
-part of '../widgets.dart';
+part of 'shell.dart';
 
-extension _BykcPreferences on _UbaaMainShellState {
+extension BykcPreferences on _UbaaMainShellState {
   Future<void> _loadBykcFilters() async {
     final load = widget.onLoadBykcFilters;
     if (load == null) return;

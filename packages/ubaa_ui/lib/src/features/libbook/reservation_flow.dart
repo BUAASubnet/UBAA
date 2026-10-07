@@ -1,8 +1,18 @@
-part of '../../widgets.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/write_callbacks.dart';
+import '../../common/error_card.dart' show FriendlyErrorCard;
+import 'area_map.dart' show LibraryMapControl;
+import 'reservation_content.dart' show uiCanReserveSeat;
+import '../../shared/schedule_values.dart' show uiSavedScheduleTime;
+part 'schedule.dart';
+part 'choices.dart';
+part 'content.dart';
 
 /// 单页保留楼馆→楼层→分区顺序，并从原始日程选择日期与时段。
-class _LibbookReservationFlow extends StatefulWidget {
-  const _LibbookReservationFlow({
+class LibbookReservationFlow extends StatefulWidget {
+  const LibbookReservationFlow({
     required this.snapshot,
     required this.query,
     required this.cacheEpoch,
@@ -26,11 +36,10 @@ class _LibbookReservationFlow extends StatefulWidget {
   final LibbookReserveStarter? onReserve;
   final VoidCallback onChoicesChanged;
   @override
-  State<_LibbookReservationFlow> createState() =>
-      _LibbookReservationFlowState();
+  State<LibbookReservationFlow> createState() => LibbookReservationFlowState();
 }
 
-class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
+class LibbookReservationFlowState extends State<LibbookReservationFlow> {
   List<LibbookLibraryPresentation> _libraries = [];
   List<FeatureDetail> _areas = [];
   LibbookAreaDetailPresentation? _areaOptions;
@@ -63,7 +72,7 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
   }
 
   @override
-  void didUpdateWidget(covariant _LibbookReservationFlow oldWidget) {
+  void didUpdateWidget(covariant LibbookReservationFlow oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.cacheEpoch != widget.cacheEpoch) {
       _clear();
@@ -357,13 +366,13 @@ class _LibbookReservationFlowState extends State<_LibbookReservationFlow> {
           Text(day, style: Theme.of(context).textTheme.bodySmall),
         if (MediaQuery.sizeOf(context).width >= 600) buildInlineChips(context),
         if (!_busy && mapAreas.length == 1)
-          _LibraryMapControl(
+          LibraryMapControl(
             areaId: mapAreas.keys.single,
             areaName: mapAreas.values.single,
           ),
         if (widget.snapshot.evidence?.origin == DataOrigin.persisted)
           Text(
-            '上次保存 ${_savedScheduleTime(widget.snapshot.evidence!.fetchedAt)}，连接后核对更新',
+            '上次保存 ${uiSavedScheduleTime(widget.snapshot.evidence!.fetchedAt)}，连接后核对更新',
           ),
         if (widget.snapshot.evidence?.complete == false)
           const Text('当前查询范围尚未更新完整。'),

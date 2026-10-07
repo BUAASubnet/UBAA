@@ -1,6 +1,7 @@
-part of '../../widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
 
-bool _isBykcStatistics(FeatureId feature, List<FeatureDetail> details) =>
+bool uiIsBykcStatistics(FeatureId feature, List<FeatureDetail> details) =>
     feature == FeatureId.bykc &&
     details.where((d) => d.presentation is BykcStatisticsPresentation).length ==
         1 &&
@@ -10,8 +11,8 @@ bool _isBykcStatistics(FeatureId feature, List<FeatureDetail> details) =>
           d.presentation is BykcCategoryPresentation,
     );
 
-class _BykcStatisticsContent extends StatelessWidget {
-  const _BykcStatisticsContent({required this.total, required this.details});
+class BykcStatisticsContent extends StatelessWidget {
+  const BykcStatisticsContent({required this.total, required this.details});
   final BykcStatisticsPresentation total;
   final List<FeatureDetail> details;
   @override

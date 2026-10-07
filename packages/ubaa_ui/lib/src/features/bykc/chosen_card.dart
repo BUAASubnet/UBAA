@@ -1,7 +1,10 @@
-part of '../../widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'display.dart'
+    show BykcInfoLine, uiBykcCheckinLabel, uiBykcPassLabel, uiBykcRange;
 
-class _BykcChosenCard extends StatelessWidget {
-  const _BykcChosenCard({required this.course, required this.onTap});
+class BykcChosenCard extends StatelessWidget {
+  const BykcChosenCard({required this.course, required this.onTap});
   final BykcChosenPresentation course;
   final VoidCallback? onTap;
   @override
@@ -27,11 +30,11 @@ class _BykcChosenCard extends StatelessWidget {
                 ),
               ),
               const SizedBox(height: 4),
-              _BykcInfoLine('教师', course.courseTeacher, maxLines: 1),
-              _BykcInfoLine('地点', course.coursePosition, maxLines: 1),
-              _BykcInfoLine(
+              BykcInfoLine('教师', course.courseTeacher, maxLines: 1),
+              BykcInfoLine('地点', course.coursePosition, maxLines: 1),
+              BykcInfoLine(
                 '时间',
-                _bykcRange(course.courseStartDate, course.courseEndDate),
+                uiBykcRange(course.courseStartDate, course.courseEndDate),
               ),
               if (course.subCategory != null ||
                   (course.signPointCount ?? 0) > 0)
@@ -60,11 +63,11 @@ class _BykcChosenCard extends StatelessWidget {
                 runSpacing: 8,
                 children: [
                   Text(
-                    _bykcCheckinLabel(course.checkin),
+                    uiBykcCheckinLabel(course.checkin),
                     style: theme.textTheme.bodySmall,
                   ),
                   Text(
-                    _bykcPassLabel(course.pass),
+                    uiBykcPassLabel(course.pass),
                     style: theme.textTheme.bodySmall,
                   ),
                   if (course.score != null)

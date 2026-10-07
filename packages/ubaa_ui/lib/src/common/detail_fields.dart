@@ -1,7 +1,7 @@
-part of '../widgets.dart';
+import 'package:flutter/material.dart';
 
-class _DetailField extends StatelessWidget {
-  const _DetailField({required this.label, required this.value});
+class DetailField extends StatelessWidget {
+  const DetailField({required this.label, required this.value});
 
   final String label;
   final String value;

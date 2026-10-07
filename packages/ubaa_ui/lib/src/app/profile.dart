@@ -1,7 +1,13 @@
-part of '../widgets.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/theme.dart';
+import 'cache_settings.dart' show CacheSettings;
+import 'profile_details.dart' show ProfileIdentityCard;
+import '../common/error_card.dart' show uiShowDiagnosticsDialog;
 
-class _ProfileView extends StatelessWidget {
-  const _ProfileView({
+class ProfileView extends StatelessWidget {
+  const ProfileView({
     required this.user,
     required this.routePolicy,
     required this.telemetryEnabled,
@@ -48,12 +54,12 @@ class _ProfileView extends StatelessWidget {
           UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
         ),
         children: <Widget>[
-          if (!settingsOnly) _ProfileIdentityCard(user: user),
+          if (!settingsOnly) ProfileIdentityCard(user: user),
           if (settingsOnly) ...[
             if (cacheAccountId != null &&
                 onReadCacheUsage != null &&
                 onClearBusinessCache != null)
-              _CacheSettings(
+              CacheSettings(
                 accountId: cacheAccountId!,
                 read: onReadCacheUsage!,
                 clear: onClearBusinessCache!,
@@ -135,7 +141,7 @@ class _ProfileView extends StatelessWidget {
                       title: const Text('本次运行诊断'),
                       subtitle: const Text('查看或复制错误信息，不会自动上传'),
                       onTap: () =>
-                          _showDiagnosticsDialog(context, onReadDiagnostics!),
+                          uiShowDiagnosticsDialog(context, onReadDiagnostics!),
                     ),
                   ],
                 ],

@@ -1,6 +1,9 @@
-part of '../widgets.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:ubaa_domain/ubaa_domain.dart';
 
-Future<void> _showAppLinkFailure(BuildContext context, AppLink link) =>
+Future<void> uiShowAppLinkFailure(BuildContext context, AppLink link) =>
     showDialog<void>(
       context: context,
       builder: (context) => AlertDialog(

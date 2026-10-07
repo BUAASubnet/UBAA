@@ -1,4 +1,7 @@
-part of '../widgets.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter/services.dart' show Clipboard, ClipboardData;
+import 'package:ubaa_domain/ubaa_domain.dart';
 
 /// 统一错误卡片，避免将上游正文、URL 或堆栈直接展示给用户。
 class FriendlyErrorCard extends StatelessWidget {
@@ -95,7 +98,7 @@ Future<void> _copyDiagnosticText(BuildContext context, String text) async {
   }
 }
 
-Future<void> _showDiagnosticsDialog(
+Future<void> uiShowDiagnosticsDialog(
   BuildContext context,
   String Function() readDiagnostics,
 ) async {

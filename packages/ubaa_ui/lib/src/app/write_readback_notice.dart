@@ -1,8 +1,11 @@
-part of '../widgets.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import '../shared/schedule_values.dart' show uiSavedScheduleTime;
 
 /// 仅展示本机线索；查看记录或移除提示均不产生提交意图。
-class _WriteReadbackNotice extends StatefulWidget {
-  const _WriteReadbackNotice({
+class WriteReadbackNotice extends StatefulWidget {
+  const WriteReadbackNotice({
     required this.hints,
     required this.error,
     required this.onOpenFeature,
@@ -17,10 +20,10 @@ class _WriteReadbackNotice extends StatefulWidget {
   final Future<void> Function()? onRefresh;
 
   @override
-  State<_WriteReadbackNotice> createState() => _WriteReadbackNoticeState();
+  State<WriteReadbackNotice> createState() => _WriteReadbackNoticeState();
 }
 
-class _WriteReadbackNoticeState extends State<_WriteReadbackNotice> {
+class _WriteReadbackNoticeState extends State<WriteReadbackNotice> {
   final _removing = <String>{};
   final _failed = <String>{};
 
@@ -62,7 +65,7 @@ class _WriteReadbackNoticeState extends State<_WriteReadbackNotice> {
           Text(hint.operation.title),
           Text(
             '${hint.startedAt.toUtc().add(const Duration(hours: 8)).year}年'
-            '${_savedScheduleTime(hint.startedAt)} · ${hint.route.label}',
+            '${uiSavedScheduleTime(hint.startedAt)} · ${hint.route.label}',
           ),
           Wrap(
             spacing: 8,

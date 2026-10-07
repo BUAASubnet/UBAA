@@ -1,9 +1,11 @@
-part of '../widgets.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
 
-bool _hasLandingMenu(FeatureId feature) =>
+bool uiHasLandingMenu(FeatureId feature) =>
     const {FeatureId.bykc, FeatureId.libbook, FeatureId.cgyy}.contains(feature);
 
-String _readPageTitle(FeatureId feature, FeatureQuery? query, bool landing) {
+String uiReadPageTitle(FeatureId feature, FeatureQuery? query, bool landing) {
   if (landing || query == null) return feature.title;
   return switch ((feature, query.view)) {
     (FeatureId.schedule, FeatureQueryView.scheduleWeek) =>
@@ -30,8 +32,8 @@ String _readPageTitle(FeatureId feature, FeatureQuery? query, bool landing) {
   };
 }
 
-class _FeatureLandingMenu extends StatelessWidget {
-  const _FeatureLandingMenu({required this.feature, required this.onOpen});
+class FeatureLandingMenu extends StatelessWidget {
+  const FeatureLandingMenu({required this.feature, required this.onOpen});
   final FeatureId feature;
   final Future<void> Function(FeatureReadNavigation) onOpen;
 

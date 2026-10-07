@@ -1,7 +1,10 @@
-part of '../../widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import '../ygdk/summary.dart' show YgdkSummary;
+import '../../shared/text.dart' show uiNonBlank;
 
-class _CourseworkOverview extends StatelessWidget {
-  const _CourseworkOverview({required this.overview, this.complete = true});
+class CourseworkOverview extends StatelessWidget {
+  const CourseworkOverview({required this.overview, this.complete = true});
   final bool complete;
   final FeatureOverview overview;
   @override
@@ -17,7 +20,7 @@ class _CourseworkOverview extends StatelessWidget {
             BykcChosenOverview p => Text(
               '已选查询范围 ${p.semesterStart} 至 ${p.semesterEnd}',
             ),
-            YgdkOverview p => _YgdkSummary(p),
+            YgdkOverview p => YgdkSummary(p),
             // 成绩概要由成绩页随列表滚动，不进入常驻概要卡。
             ScheduleWeekOverview _ => const SizedBox.shrink(),
             GradesTermOverview _ => const SizedBox.shrink(),
@@ -50,7 +53,7 @@ class _CourseworkOverview extends StatelessWidget {
               ],
             ),
             SpocTermOverview p => Text(
-              '学期：${_nonBlank(p.termName) ?? _nonBlank(p.termCode) ?? '未提供'}${_nonBlank(p.termName) != null && _nonBlank(p.termCode) != null ? '（${p.termCode}）' : ''}',
+              '学期：${uiNonBlank(p.termName) ?? uiNonBlank(p.termCode) ?? '未提供'}${uiNonBlank(p.termName) != null && uiNonBlank(p.termCode) != null ? '（${p.termCode}）' : ''}',
             ),
           },
         ),

@@ -1,7 +1,7 @@
-part of '../widgets.dart';
+part of 'shell.dart';
 
 /// 当前页面路线说明与默认策略选择；读取结果的来源不随选择改写。
-extension _UbaaShellRoute on _UbaaMainShellState {
+extension UbaaShellRoute on _UbaaMainShellState {
   Future<void> _showRouteOptions(
     BuildContext context,
     ConnectionMode? route, {

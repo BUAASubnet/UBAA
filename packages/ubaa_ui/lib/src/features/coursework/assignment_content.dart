@@ -1,6 +1,10 @@
-part of '../../widgets.dart';
+import '../../shared/academic_fields.dart' show AcademicMore;
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../shared/text.dart' show uiNonBlank;
 
-bool _supportsAssignmentContent(
+bool uiSupportsAssignmentContent(
   FeatureId feature,
   List<FeatureDetail> details,
 ) => details.every(
@@ -11,7 +15,7 @@ bool _supportsAssignmentContent(
   },
 );
 
-List<String> _assignmentSearchValues(FeaturePresentation? presentation) =>
+List<String> uiAssignmentSearchValues(FeaturePresentation? presentation) =>
     switch (presentation) {
       SpocAssignmentPresentation p => [
         p.courseName,
@@ -36,8 +40,8 @@ List<String> _assignmentSearchValues(FeaturePresentation? presentation) =>
       _ => [],
     };
 
-class _AssignmentContent extends StatelessWidget {
-  const _AssignmentContent({
+class AssignmentContent extends StatelessWidget {
+  const AssignmentContent({
     required this.details,
     required this.selection,
     this.onNavigate,
@@ -78,14 +82,14 @@ class _AssignmentContent extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
-                  _nonBlank(entry.key.$2) ?? '课程名称未提供',
+                  uiNonBlank(entry.key.$2) ?? '课程名称未提供',
                   style: Theme.of(context).textTheme.titleMedium,
                 ),
               ),
             for (final detail in entry.value)
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
-                child: _AssignmentCard(
+                child: AssignmentCard(
                   detail: detail,
                   wide: constraints.maxWidth >= 740,
                   selection: selection(detail),
@@ -99,8 +103,8 @@ class _AssignmentContent extends StatelessWidget {
   );
 }
 
-class _AssignmentCard extends StatelessWidget {
-  const _AssignmentCard({
+class AssignmentCard extends StatelessWidget {
+  const AssignmentCard({
     required this.detail,
     required this.wide,
     this.selection,
@@ -173,7 +177,7 @@ class _AssignmentCard extends StatelessWidget {
                         borderRadius: BorderRadius.circular(8),
                       ),
                       child: Text(
-                        _nonBlank(status) ?? '提交状态未知',
+                        uiNonBlank(status) ?? '提交状态未知',
                         style: Theme.of(context).textTheme.labelMedium,
                       ),
                     ),
@@ -182,34 +186,34 @@ class _AssignmentCard extends StatelessWidget {
               ),
               if (!summary) ...[
                 const SizedBox(height: 4),
-                Text(_nonBlank(course) ?? '课程名称未提供'),
+                Text(uiNonBlank(course) ?? '课程名称未提供'),
               ],
               const SizedBox(height: 8),
               if (p is SpocAssignmentPresentation) ...[
-                if (_nonBlank(p.teacherName) case final teacher?)
+                if (uiNonBlank(p.teacherName) case final teacher?)
                   _assignmentLine(context, '教师：$teacher'),
-                if (_nonBlank(p.startTime) case final start?)
+                if (uiNonBlank(p.startTime) case final start?)
                   _assignmentLine(context, '开始：$start'),
-                _assignmentLine(context, '截止：${_nonBlank(due) ?? '未提供'}'),
-                if (_nonBlank(p.score) case final score?)
+                _assignmentLine(context, '截止：${uiNonBlank(due) ?? '未提供'}'),
+                if (uiNonBlank(p.score) case final score?)
                   _assignmentLine(context, '分值：$score'),
-                if (!summary && _nonBlank(p.submittedAt) != null)
+                if (!summary && uiNonBlank(p.submittedAt) != null)
                   _assignmentLine(context, '提交时间：${p.submittedAt}'),
               ],
               if (p is JudgeAssignmentPresentation) ...[
-                if (_nonBlank(p.startTime) case final start?)
+                if (uiNonBlank(p.startTime) case final start?)
                   _assignmentLine(context, '开始：$start'),
-                _assignmentLine(context, '截止：${_nonBlank(due) ?? '未提供'}'),
+                _assignmentLine(context, '截止：${uiNonBlank(due) ?? '未提供'}'),
                 _assignmentLine(
                   context,
                   '已提交 ${p.submittedCount} / ${p.totalProblems} 题',
                 ),
-                if (_nonBlank(p.myScore) case final score?)
+                if (uiNonBlank(p.myScore) case final score?)
                   _assignmentLine(context, '我的得分：$score'),
-                if (_nonBlank(p.maxScore) case final score?)
+                if (uiNonBlank(p.maxScore) case final score?)
                   _assignmentLine(context, '满分：$score'),
               ],
-              if (_nonBlank(body) case final text?) ...[
+              if (uiNonBlank(body) case final text?) ...[
                 const SizedBox(height: 16),
                 Text('作业内容', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
@@ -224,7 +228,7 @@ class _AssignmentCard extends StatelessWidget {
                   _JudgeProblems(problems: p.problems, wide: wide),
               ],
               if (!summary || !canOpen)
-                _AcademicMore(
+                AcademicMore(
                   fields: [
                     for (final field in detail.fields)
                       (field.label, field.value),
@@ -284,7 +288,7 @@ class _JudgeProblems extends StatelessWidget {
                       SizedBox(
                         width: constraints.maxWidth * .22,
                         child: Text(
-                          '${_nonBlank(problem.score) ?? '未提供'} / ${_nonBlank(problem.maxScore) ?? '未提供'}',
+                          '${uiNonBlank(problem.score) ?? '未提供'} / ${uiNonBlank(problem.maxScore) ?? '未提供'}',
                         ),
                       ),
                     ),
@@ -314,7 +318,7 @@ class _JudgeProblems extends StatelessWidget {
                     const SizedBox(height: 4),
                     Text(problem.statusText),
                     Text(
-                      '得分 ${_nonBlank(problem.score) ?? '未提供'} / 满分 ${_nonBlank(problem.maxScore) ?? '未提供'}',
+                      '得分 ${uiNonBlank(problem.score) ?? '未提供'} / 满分 ${uiNonBlank(problem.maxScore) ?? '未提供'}',
                     ),
                   ],
                 ),

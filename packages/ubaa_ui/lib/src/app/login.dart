@@ -1,4 +1,11 @@
-part of '../widgets.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'login_captcha.dart' show CaptchaPixels;
+import '../common/app_links.dart' show uiShowAppLinkFailure;
+import '../common/error_card.dart'
+    show FriendlyErrorCard, uiShowDiagnosticsDialog;
+part 'login_verification.dart';
 
 /// 登录表单。状态由应用协调器持有，组件本身不保存密码。
 class UbaaLoginView extends StatefulWidget {
@@ -172,7 +179,7 @@ class _UbaaLoginViewState extends State<UbaaLoginView>
     }
     if (!mounted) return;
     if (!opened && !widget.isLoading) {
-      await _showAppLinkFailure(context, AppLink.project);
+      await uiShowAppLinkFailure(context, AppLink.project);
     }
     if (mounted) setState(() => _openingProject = false);
   }
@@ -301,7 +308,7 @@ class _UbaaLoginViewState extends State<UbaaLoginView>
                             FriendlyErrorCard(error: error),
                             if (widget.onReadDiagnostics != null)
                               TextButton(
-                                onPressed: () => _showDiagnosticsDialog(
+                                onPressed: () => uiShowDiagnosticsDialog(
                                   context,
                                   widget.onReadDiagnostics!,
                                 ),

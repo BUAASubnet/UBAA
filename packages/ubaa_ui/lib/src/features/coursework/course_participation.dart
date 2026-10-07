@@ -1,6 +1,12 @@
-part of '../../widgets.dart';
+import '../../shared/academic_fields.dart' show AcademicInfo;
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/write_callbacks.dart';
+import '../../common/detail_fields.dart' show DetailField;
+import '../../shared/text.dart' show uiTimeRange;
 
-bool _supportsParticipationContent(
+bool uiSupportsParticipationContent(
   FeatureId feature,
   List<FeatureDetail> details,
 ) => details.every(
@@ -11,8 +17,8 @@ bool _supportsParticipationContent(
   },
 );
 
-class _CourseParticipationContent extends StatelessWidget {
-  const _CourseParticipationContent({
+class CourseParticipationContent extends StatelessWidget {
+  const CourseParticipationContent({
     required this.feature,
     required this.details,
     required this.evaluationRow,
@@ -97,10 +103,10 @@ class _SigninCourseCard extends StatelessWidget {
                             ),
                           ),
                           const SizedBox(height: 8),
-                          _AcademicInfo(
+                          AcademicInfo(
                             icon: Icons.schedule,
                             text:
-                                _timeRange(p.classBeginTime, p.classEndTime) ??
+                                uiTimeRange(p.classBeginTime, p.classEndTime) ??
                                 '时间未提供',
                           ),
                           if (p.signStatus != 0 && p.signStatus != 1)
@@ -144,7 +150,7 @@ class _SigninCourseCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(_timeRange(p.classBeginTime, p.classEndTime) ?? '时间未提供'),
+              Text(uiTimeRange(p.classBeginTime, p.classEndTime) ?? '时间未提供'),
               Text(switch (p.signStatus) {
                 0 => '未签到',
                 1 => '已签到',
@@ -157,11 +163,11 @@ class _SigninCourseCard extends StatelessWidget {
                 const Text('该课程已签到，不能重复提交。'),
               if (_notice case final notice?) Text(notice),
               const SizedBox(height: 12),
-              _DetailField(label: '课程编号', value: p.courseId),
+              DetailField(label: '课程编号', value: p.courseId),
               for (final field in detail.fields)
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
-                  child: _DetailField(label: field.label, value: field.value),
+                  child: DetailField(label: field.label, value: field.value),
                 ),
             ],
           ),

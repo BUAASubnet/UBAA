@@ -1,4 +1,6 @@
-part of '../../widgets.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
 
 /// 旧版查看密码页；敏感材料不加入导航快照或通用字段。
 class UbaaCgyyLockDisplayView extends StatefulWidget {

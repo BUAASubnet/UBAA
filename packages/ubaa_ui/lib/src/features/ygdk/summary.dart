@@ -1,7 +1,8 @@
-part of '../../widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
 
-class _YgdkSummary extends StatelessWidget {
-  const _YgdkSummary(this.overview, {this.statisticsKnown = true});
+class YgdkSummary extends StatelessWidget {
+  const YgdkSummary(this.overview, {this.statisticsKnown = true});
   final bool statisticsKnown;
   final YgdkOverview overview;
   @override

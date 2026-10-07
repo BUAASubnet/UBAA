@@ -1,8 +1,13 @@
-part of '../widgets.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'feature_detail.dart'
+    show FeatureDetailViewState, uiReadableCachedContent;
+import 'landing_menu.dart' show uiHasLandingMenu, uiReadPageTitle;
 
 /// 父页只保存展示快照，不回写 AppController 或作为写入核对依据。
-class _FeatureReadNavigator extends StatefulWidget {
-  const _FeatureReadNavigator({
+class FeatureReadNavigator extends StatefulWidget {
+  const FeatureReadNavigator({
     required this.snapshot,
     required this.cacheEpoch,
     this.businessCacheEpoch = 0,
@@ -22,13 +27,14 @@ class _FeatureReadNavigator extends StatefulWidget {
   final Future<void> Function(FeatureQuery)? onQuery;
   final Widget Function(_ReadPage) pageBuilder;
   @override
-  State<_FeatureReadNavigator> createState() => _FeatureReadNavigatorState();
+  State<FeatureReadNavigator> createState() => FeatureReadNavigatorState();
 }
 
-class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
+class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
   final List<_ReadFrame> _frames = [];
   int _nextId = 0;
   int? _externalAfterRevision;
+  _ReadFrame get currentFrame => _current;
   _ReadFrame get _current => _frames.last;
   @override
   void initState() {
@@ -39,7 +45,7 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
         widget.snapshot,
         widget.snapshot.readContext?.query,
         isLanding:
-            widget.onQuery != null && _hasLandingMenu(widget.snapshot.feature),
+            widget.onQuery != null && uiHasLandingMenu(widget.snapshot.feature),
       ),
     );
     if (widget.snapshot.status == FeatureLoadStatus.idle) {
@@ -57,7 +63,7 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
   }
 
   @override
-  void didUpdateWidget(covariant _FeatureReadNavigator oldWidget) {
+  void didUpdateWidget(covariant FeatureReadNavigator oldWidget) {
     super.didUpdateWidget(oldWidget);
     final incoming = widget.snapshot;
     final context = incoming.readContext;
@@ -164,7 +170,7 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
     } else {
       setState(() => _frames.removeLast());
       if ((widget.snapshot.feature == FeatureId.judge ||
-              _readableCachedContent(_current.snapshot)) &&
+              uiReadableCachedContent(_current.snapshot)) &&
           _current.snapshot.status == FeatureLoadStatus.loading &&
           widget.onQuery != null) {
         unawaited(_query(_current, _current.query ?? const FeatureQuery()));
@@ -206,7 +212,7 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
         (_current.snapshot.status == FeatureLoadStatus.loading &&
             !_current.isLanding &&
             widget.snapshot.feature != FeatureId.judge &&
-            !_readableCachedContent(_current.snapshot)))
+            !uiReadableCachedContent(_current.snapshot)))
       return;
     final cached = _current.snapshot;
     final reuseDefault =
@@ -285,7 +291,7 @@ class _FeatureReadNavigatorState extends State<_FeatureReadNavigator> {
     final title = _current.bykcChosenKey != null
         ? '课程详情'
         : _current.scheduleTitle ??
-              _readPageTitle(
+              uiReadPageTitle(
                 visible.feature,
                 _current.query ?? _current.navigationQuery,
                 _current.isLanding,
@@ -406,7 +412,7 @@ class _ReadFrame {
     return _chosenSnapshot!;
   }
 
-  final pageKey = GlobalKey<_FeatureDetailViewState>();
+  final pageKey = GlobalKey<FeatureDetailViewState>();
   final int id;
   FeatureSnapshot snapshot;
   FeatureQuery? query;
@@ -431,7 +437,7 @@ class _ReadPage {
   final ValueChanged<String?>? onScheduleTitle;
   final bool isBykcChosenDetail;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
-  final GlobalKey<_FeatureDetailViewState> pageKey;
+  final GlobalKey<FeatureDetailViewState> pageKey;
   final bool isLanding;
   final bool isCurrent;
   final FeatureSnapshot snapshot;

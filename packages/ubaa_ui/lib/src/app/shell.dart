@@ -1,4 +1,19 @@
-part of '../widgets.dart';
+import 'dart:async';
+import 'package:clock/clock.dart';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/write_callbacks.dart';
+import 'about.dart' show AboutView;
+import 'home.dart' show AdvancedFeaturesView, FeatureGridView, HomeView;
+import 'profile.dart' show ProfileView;
+import 'write_readback_notice.dart' show WriteReadbackNotice;
+import '../common/feature_detail.dart' show FeatureDetailView;
+import '../common/read_navigator.dart'
+    show FeatureReadNavigator, FeatureReadNavigatorState;
+import '../write/confirmation.dart' show WriteConfirmationView;
+part 'shell_write.dart';
+part 'shell_route.dart';
+part 'bykc_preferences.dart';
 
 /// 主界面容器：窄屏使用底部导航，桌面宽屏使用侧边导航。
 class UbaaMainShell extends StatefulWidget {
@@ -201,8 +216,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   final Set<FeatureId> _visitedFeatures = <FeatureId>{};
   int _accountGeneration = 0;
   int _lockRefreshRevision = 0;
-  final Map<FeatureId, GlobalKey<_FeatureReadNavigatorState>> _readPageKeys =
-      {};
+  final Map<FeatureId, GlobalKey<FeatureReadNavigatorState>> _readPageKeys = {};
 
   bool get _hasWriteCommands =>
       widget.onRunWritePrepare != null &&
@@ -506,7 +520,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                 builder: (context, _, _) {
                   final page = _readPageKeys[_openedFeature]?.currentState;
                   if (_openedFeature == FeatureId.cgyy &&
-                      page?._current.query?.view ==
+                      page?.currentFrame.query?.view ==
                           FeatureQueryView.cgyyLockCode)
                     return const SizedBox.shrink();
                   return IconButton(
@@ -522,7 +536,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                 onPressed: () {
                   final page = _readPageKeys[_openedFeature]?.currentState;
                   if (_openedFeature == FeatureId.cgyy &&
-                      page?._current.query?.view ==
+                      page?.currentFrame.query?.view ==
                           FeatureQueryView.cgyyLockCode) {
                     setState(() => _lockRefreshRevision++);
                   } else {
@@ -620,10 +634,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     );
   }
 
-  Widget _buildFeaturePage(FeatureId feature) => _FeatureReadNavigator(
+  Widget _buildFeaturePage(FeatureId feature) => FeatureReadNavigator(
     key: _readPageKeys.putIfAbsent(
       feature,
-      () => GlobalKey<_FeatureReadNavigatorState>(),
+      () => GlobalKey<FeatureReadNavigatorState>(),
     ),
     onVisibleSnapshot: (snapshot, title) {
       if (_openedFeature == feature &&
@@ -643,7 +657,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                   query.view == FeatureQueryView.cgyyLockCode
               ? Future<void>.value()
               : widget.onFeatureQuery!(feature, query),
-    pageBuilder: (page) => _FeatureDetailView(
+    pageBuilder: (page) => FeatureDetailView(
       key: page.pageKey,
       isLanding: page.isLanding,
       onOpenLockDisplay: widget.onOpenLockDisplay,
@@ -736,13 +750,13 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
 
   Widget _buildTab(BuildContext context) => _utilityPage != null
       ? _utilityPage == '关于'
-            ? _AboutView(
+            ? AboutView(
                 loadVersion: widget.onLoadAppVersion,
                 openLink: widget.onOpenAppLink,
               )
             : _buildProfile()
       : switch (_selectedIndex) {
-          0 => _HomeView(
+          0 => HomeView(
             homeClock: widget.homeClock,
             user: widget.user,
             snapshots: widget.homeSnapshots ?? widget.snapshots,
@@ -755,7 +769,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                 widget.writeReadbacks.isEmpty &&
                     widget.writeReadbackError == null
                 ? null
-                : _WriteReadbackNotice(
+                : WriteReadbackNotice(
                     key: ValueKey(
                       '${widget.cacheAccountId}:${widget.readCacheEpoch}',
                     ),
@@ -788,12 +802,12 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             onRetryFeature: widget.onRetryFeature,
             onRefresh: widget.onRefresh,
           ),
-          1 => _FeatureGridView(
+          1 => FeatureGridView(
             snapshots: widget.snapshots,
             onFeatureTap: (feature) => setState(() => _openedFeature = feature),
             onRetryFeature: widget.onRetryFeature,
           ),
-          2 => _AdvancedFeaturesView(
+          2 => AdvancedFeaturesView(
             snapshots: widget.snapshots,
             onFeatureTap: (feature) => setState(() => _openedFeature = feature),
             onRetryFeature: widget.onRetryFeature,
@@ -801,7 +815,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           _ => const SizedBox.shrink(),
         };
 
-  Widget _buildProfile() => _ProfileView(
+  Widget _buildProfile() => ProfileView(
     cacheAccountId: widget.cacheAccountId,
     canClearBusinessCache: widget.canClearBusinessCache,
     onReadCacheUsage: widget.onReadCacheUsage,

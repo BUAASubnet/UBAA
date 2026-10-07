@@ -1,7 +1,9 @@
-part of '../widgets.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
 
-class _CacheSettings extends StatefulWidget {
-  const _CacheSettings({
+class CacheSettings extends StatefulWidget {
+  const CacheSettings({
     required this.accountId,
     required this.read,
     required this.clear,
@@ -12,10 +14,10 @@ class _CacheSettings extends StatefulWidget {
   final Future<CacheClearOutcome> Function(String) clear;
   final bool enabled;
   @override
-  State<_CacheSettings> createState() => _CacheSettingsState();
+  State<CacheSettings> createState() => _CacheSettingsState();
 }
 
-class _CacheSettingsState extends State<_CacheSettings> {
+class _CacheSettingsState extends State<CacheSettings> {
   CacheUsageSummary? _usage;
   String? _notice;
   bool _busy = false, _failed = false;
@@ -27,7 +29,7 @@ class _CacheSettingsState extends State<_CacheSettings> {
   }
 
   @override
-  void didUpdateWidget(covariant _CacheSettings old) {
+  void didUpdateWidget(covariant CacheSettings old) {
     super.didUpdateWidget(old);
     if (old.accountId != widget.accountId) {
       _generation++;

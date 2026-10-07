@@ -1,6 +1,8 @@
-part of '../../widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import '../bykc/display.dart' show BykcInfoLine;
 
-List<String> _ygdkRecordSearchValues(YgdkRecordPresentation p) => [
+List<String> uiYgdkRecordSearchValues(YgdkRecordPresentation p) => [
   '记录编号',
   '${p.recordId}',
   '图片数量',
@@ -34,8 +36,8 @@ String _ygdkRecordTime(YgdkRecordPresentation record) {
   return '$start–${sameDay ? end.substring(11) : end}';
 }
 
-class _YgdkRecordCard extends StatelessWidget {
-  const _YgdkRecordCard(this.record);
+class YgdkRecordCard extends StatelessWidget {
+  const YgdkRecordCard(this.record);
   final YgdkRecordPresentation record;
   @override
   Widget build(BuildContext context) {
@@ -53,16 +55,16 @@ class _YgdkRecordCard extends StatelessWidget {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  _BykcInfoLine('项目', p.itemName),
-                  _BykcInfoLine('记录编号', '${p.recordId}'),
-                  _BykcInfoLine('项目编号', p.itemId?.toString()),
-                  _BykcInfoLine('开始时间', p.startTime),
-                  _BykcInfoLine('结束时间', p.endTime),
-                  _BykcInfoLine('地点', p.place),
-                  _BykcInfoLine('图片数量', '${p.imageCount}'),
-                  _BykcInfoLine('分享状态', p.isOpen ? '已分享' : '未分享'),
-                  _BykcInfoLine('记录状态编号', p.state?.toString() ?? '未提供'),
-                  _BykcInfoLine('提交时间', p.createdAtLabel ?? p.createdAt),
+                  BykcInfoLine('项目', p.itemName),
+                  BykcInfoLine('记录编号', '${p.recordId}'),
+                  BykcInfoLine('项目编号', p.itemId?.toString()),
+                  BykcInfoLine('开始时间', p.startTime),
+                  BykcInfoLine('结束时间', p.endTime),
+                  BykcInfoLine('地点', p.place),
+                  BykcInfoLine('图片数量', '${p.imageCount}'),
+                  BykcInfoLine('分享状态', p.isOpen ? '已分享' : '未分享'),
+                  BykcInfoLine('记录状态编号', p.state?.toString() ?? '未提供'),
+                  BykcInfoLine('提交时间', p.createdAtLabel ?? p.createdAt),
                 ],
               ),
             ),

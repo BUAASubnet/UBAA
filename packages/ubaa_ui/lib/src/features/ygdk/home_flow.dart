@@ -1,8 +1,16 @@
-part of '../../widgets.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/write_callbacks.dart';
+import 'record_card.dart' show YgdkRecordCard, uiYgdkRecordSearchValues;
+import 'summary.dart' show YgdkSummary;
+import '../../shared/schedule_values.dart' show uiSavedScheduleTime;
+import '../../write/ygdk/draft.dart' show YgdkFormContext;
+import '../../write/ygdk/form.dart' show uiCollectYgdkForm;
 
 /// 旧版阳光首页：概要在前、记录在后，运动项目收在新增流程。
-class _YgdkHomeFlow extends StatefulWidget {
-  const _YgdkHomeFlow({
+class YgdkHomeFlow extends StatefulWidget {
+  const YgdkHomeFlow({
     required this.snapshot,
     required this.formContext,
     required this.query,
@@ -19,7 +27,7 @@ class _YgdkHomeFlow extends StatefulWidget {
     this.onReminderChanged,
   });
   final FeatureSnapshot snapshot;
-  final _YgdkFormContext formContext;
+  final YgdkFormContext formContext;
   final FeatureSnapshot? recordsReadback;
   final YgdkReminderSettings? reminderSettings;
   final String? reminderError;
@@ -33,10 +41,10 @@ class _YgdkHomeFlow extends StatefulWidget {
   final YgdkPhotoPicker? onPickPhoto;
   final YgdkPhotoPicker? onCapturePhoto;
   @override
-  State<_YgdkHomeFlow> createState() => _YgdkHomeFlowState();
+  State<YgdkHomeFlow> createState() => _YgdkHomeFlowState();
 }
 
-class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
+class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
   FeatureSnapshot? _consumed;
   FeatureSnapshot? _consumedReadback;
   YgdkOverview? _overview;
@@ -55,7 +63,7 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
   }
 
   @override
-  void didUpdateWidget(covariant _YgdkHomeFlow oldWidget) {
+  void didUpdateWidget(covariant YgdkHomeFlow oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.cacheEpoch != widget.cacheEpoch) {
       _generation++;
@@ -186,12 +194,12 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
     final items = _items
         .where((d) => d.presentation is YgdkItemPresentation)
         .toList();
-    final input = await _collectYgdkForm(
+    final input = await uiCollectYgdkForm(
       context,
       items: items,
       onPickPhoto: widget.onPickPhoto,
       onCapturePhoto: widget.onCapturePhoto,
-      formContext: _YgdkFormContext(
+      formContext: YgdkFormContext(
         draft: widget.formContext.draft,
         route: _route,
         onRouteOptions: widget.formContext.onRouteOptions,
@@ -215,7 +223,7 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
     final filter = widget.filter.trim().toLowerCase();
     final visible = _records
         .where(
-          (p) => _ygdkRecordSearchValues(
+          (p) => uiYgdkRecordSearchValues(
             p,
           ).any((v) => v.toLowerCase().contains(filter)),
         )
@@ -232,7 +240,7 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    _YgdkSummary(
+                    YgdkSummary(
                       overview,
                       statisticsKnown:
                           widget.snapshot.evidence?.complete != false ||
@@ -242,7 +250,7 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
                             DataOrigin.persisted ||
                         widget.snapshot.evidence?.origin == DataOrigin.mixed)
                       Text(
-                        '上次保存 ${_savedScheduleTime(widget.snapshot.evidence!.fetchedAt)}，连接后核对更新',
+                        '上次保存 ${uiSavedScheduleTime(widget.snapshot.evidence!.fetchedAt)}，连接后核对更新',
                       ),
                     if (widget.snapshot.evidence?.complete == false)
                       const Text('部分内容尚未更新完成'),
@@ -272,7 +280,7 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
             if (loading) const LinearProgressIndicator(),
             if (_page?.evidence?.origin == DataOrigin.persisted)
               Text(
-                '第${_page!.page}页记录上次保存 ${_savedScheduleTime(_page!.evidence!.fetchedAt)}，连接后核对更新',
+                '第${_page!.page}页记录上次保存 ${uiSavedScheduleTime(_page!.evidence!.fetchedAt)}，连接后核对更新',
               ),
             if (_page?.evidence?.complete == false) ...[
               const Text('打卡记录尚未核对完整'),
@@ -300,7 +308,7 @@ class _YgdkHomeFlowState extends State<_YgdkHomeFlow> {
                 visible.isEmpty)
               Text(filter.isEmpty ? '暂时还没有打卡记录' : '没有匹配的打卡记录'),
             for (final record in visible) ...[
-              _YgdkRecordCard(record),
+              YgdkRecordCard(record),
               const SizedBox(height: 12),
             ],
             if (_page?.hasMore == true &&

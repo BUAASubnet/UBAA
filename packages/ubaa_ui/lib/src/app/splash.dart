@@ -1,4 +1,4 @@
-part of '../widgets.dart';
+import 'package:flutter/material.dart';
 
 /// 启动页：保留旧版 UBAA 标题和标语。
 class UbaaSplashView extends StatelessWidget {

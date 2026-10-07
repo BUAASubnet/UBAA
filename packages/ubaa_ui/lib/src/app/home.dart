@@ -1,7 +1,15 @@
-part of '../widgets.dart';
+import 'dart:async';
+import 'package:clock/clock.dart';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/theme.dart';
+import '../features/grades/notice.dart' show GradeScoreBanner;
+import '../shared/feature_icons.dart' show uiFeatureIcon;
+import '../shared/schedule_values.dart' show uiCourseStart, uiSavedScheduleTime;
+import '../shared/text.dart' show uiNonBlank;
 
-class _HomeView extends StatefulWidget {
-  const _HomeView({
+class HomeView extends StatefulWidget {
+  const HomeView({
     required this.user,
     required this.snapshots,
     required this.onFeatureTap,
@@ -45,14 +53,14 @@ class _HomeView extends StatefulWidget {
   final YgdkReminderSettings? reminderSettings;
   final void Function(WeekPresentation, YgdkOverview)? onObserveProgress;
   @override
-  State<_HomeView> createState() => _HomeViewState();
+  State<HomeView> createState() => _HomeViewState();
 }
 
-class _HomeViewState extends State<_HomeView> {
+class _HomeViewState extends State<HomeView> {
   final _supplements = <HomeSupplement, FeatureResult>{};
   final _loading = <HomeSupplement>{};
   int _generation = 0;
-  bool _scheduled = false;
+  bool uiScheduled = false;
   int? _gradeCheckEpoch;
   late final Timer _clock;
   late DateTime _now = (widget.homeClock ?? clock).now();
@@ -67,7 +75,7 @@ class _HomeViewState extends State<_HomeView> {
   }
 
   @override
-  void didUpdateWidget(covariant _HomeView old) {
+  void didUpdateWidget(covariant HomeView old) {
     super.didUpdateWidget(old);
     if (old.cacheEpoch != widget.cacheEpoch ||
         old.businessCacheEpoch != widget.businessCacheEpoch) {
@@ -86,15 +94,15 @@ class _HomeViewState extends State<_HomeView> {
   }
 
   void _scheduleLoads() {
-    if (_scheduled || !widget.visible || widget.onLoadSupplement == null)
+    if (uiScheduled || !widget.visible || widget.onLoadSupplement == null)
       return;
     final needed = HomeSupplement.values
         .where((s) => !_supplements.containsKey(s) && !_loading.contains(s))
         .toList();
     if (needed.isEmpty) return;
-    _scheduled = true;
+    uiScheduled = true;
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      _scheduled = false;
+      uiScheduled = false;
       if (mounted && widget.visible) {
         for (final source in needed) {
           unawaited(_load(source));
@@ -231,7 +239,7 @@ class _HomeViewState extends State<_HomeView> {
         (differentDate ? <FeatureDetail>[] : schedule.details)
             .where((d) => d.presentation is TodayCoursePresentation)
             .toList()
-          ..sort((a, b) => _courseStart(a).compareTo(_courseStart(b)));
+          ..sort((a, b) => uiCourseStart(a).compareTo(uiCourseStart(b)));
     final sources = _sources();
     if (widget.visible) {
       final routes = <String, ConnectionMode>{
@@ -327,7 +335,7 @@ class _HomeViewState extends State<_HomeView> {
             const SizedBox(height: 12),
           ],
           if (widget.gradeScoreNotice case final notice?) ...[
-            _GradeScoreBanner(
+            GradeScoreBanner(
               notice: notice,
               onOpen: widget.onOpenGradeNotice,
               onDismiss: widget.onDismissGradeNotice,
@@ -362,7 +370,7 @@ class _HomeViewState extends State<_HomeView> {
           if (!differentDate &&
               schedule.evidence?.origin == DataOrigin.persisted)
             Text(
-              '上次保存：${_savedScheduleTime(schedule.evidence!.fetchedAt)}，连接后核对更新。',
+              '上次保存：${uiSavedScheduleTime(schedule.evidence!.fetchedAt)}，连接后核对更新。',
             )
           else if (today.isNotEmpty &&
               schedule.status == FeatureLoadStatus.stale)
@@ -396,7 +404,7 @@ class _HomeViewState extends State<_HomeView> {
               Padding(
                 padding: const EdgeInsets.only(top: 8),
                 child: Text(
-                  '${_homeLabel(feature)}：${_cacheReadFailureText(failure)}',
+                  '${_homeLabel(feature)}：${uiCacheReadFailureText(failure)}',
                 ),
               ),
           if (_supplements[HomeSupplement.currentWeek] case final result?
@@ -457,14 +465,6 @@ class _HomeViewState extends State<_HomeView> {
   }
 }
 
-int _courseStart(FeatureDetail detail) {
-  final value = (detail.presentation as TodayCoursePresentation).time ?? '';
-  final match = RegExp(r'^(\d{1,2}):(\d{2})').firstMatch(value);
-  if (match == null) return 9999;
-  final hour = int.parse(match[1]!), minute = int.parse(match[2]!);
-  return hour < 24 && minute < 60 ? hour * 60 + minute : 9999;
-}
-
 String _homeLabel(FeatureId feature) => switch (feature) {
   FeatureId.bykc => '博雅',
   FeatureId.spoc => 'SPOC',
@@ -474,7 +474,8 @@ String _homeLabel(FeatureId feature) => switch (feature) {
   FeatureId.ygdk => '阳光打卡',
   _ => feature.title,
 };
-String _cacheReadFailureText(CacheMaintenanceFailure failure) =>
+
+String uiCacheReadFailureText(CacheMaintenanceFailure failure) =>
     failure == CacheMaintenanceFailure.capacity
     ? '本机空间不足，在线内容已显示，暂未保存到本机。'
     : '在线内容已显示，暂未保存到本机。';
@@ -484,14 +485,14 @@ String _homeSummary(FeatureSnapshot snapshot) {
   final failure = snapshot.evidence?.cacheFailure;
   return failure == null
       ? summary
-      : '$summary · ${_cacheReadFailureText(failure)}';
+      : '$summary · ${uiCacheReadFailureText(failure)}';
 }
 
 String _homeReadSummary(FeatureSnapshot snapshot) =>
     snapshot.evidence?.origin == DataOrigin.persisted
-    ? '上次保存 ${_savedScheduleTime(snapshot.evidence!.fetchedAt)}，待核实更新'
+    ? '上次保存 ${uiSavedScheduleTime(snapshot.evidence!.fetchedAt)}，待核实更新'
     : snapshot.evidence?.origin == DataOrigin.mixed
-    ? '含已保存内容 ${_savedScheduleTime(snapshot.evidence!.fetchedAt)}，${snapshot.status == FeatureLoadStatus.loading
+    ? '含已保存内容 ${uiSavedScheduleTime(snapshot.evidence!.fetchedAt)}，${snapshot.status == FeatureLoadStatus.loading
           ? '继续更新'
           : snapshot.evidence!.complete
           ? '本轮检查完成'
@@ -527,7 +528,7 @@ class _HomeTodoCard extends StatelessWidget {
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               Icon(
-                _featureIcon(item.feature),
+                uiFeatureIcon(item.feature),
                 color: theme.colorScheme.primary,
               ),
               const SizedBox(width: 12),
@@ -623,14 +624,14 @@ class _HomeCourseCard extends StatelessWidget {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      if (_nonBlank(course.time) case final time?)
+                      if (uiNonBlank(course.time) case final time?)
                         Text(
                           '时间：$time',
                           style: theme.textTheme.bodyMedium?.copyWith(
                             color: theme.colorScheme.onSurfaceVariant,
                           ),
                         ),
-                      if (_nonBlank(course.place) case final place?)
+                      if (uiNonBlank(course.place) case final place?)
                         Text(
                           '地点：$place',
                           style: theme.textTheme.bodyMedium?.copyWith(
@@ -640,7 +641,7 @@ class _HomeCourseCard extends StatelessWidget {
                     ],
                   ),
                 ),
-                if (_nonBlank(detail.subtitle) case final shortName?) ...[
+                if (uiNonBlank(detail.subtitle) case final shortName?) ...[
                   const SizedBox(width: 8),
                   ConstrainedBox(
                     constraints: const BoxConstraints(maxWidth: 100),
@@ -673,8 +674,8 @@ class _HomeCourseCard extends StatelessWidget {
   }
 }
 
-class _FeatureGridView extends StatelessWidget {
-  const _FeatureGridView({
+class FeatureGridView extends StatelessWidget {
+  const FeatureGridView({
     required this.snapshots,
     required this.onFeatureTap,
     required this.onRetryFeature,
@@ -777,7 +778,7 @@ class _FeatureCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.center,
               children: [
                 Icon(
-                  _featureIcon(feature),
+                  uiFeatureIcon(feature),
                   size: 40,
                   color: colorScheme.primary,
                 ),
@@ -806,8 +807,8 @@ class _FeatureCard extends StatelessWidget {
   }
 }
 
-class _AdvancedFeaturesView extends StatelessWidget {
-  const _AdvancedFeaturesView({
+class AdvancedFeaturesView extends StatelessWidget {
+  const AdvancedFeaturesView({
     required this.snapshots,
     required this.onFeatureTap,
     required this.onRetryFeature,
@@ -833,24 +834,4 @@ class _AdvancedFeaturesView extends StatelessWidget {
       ),
     ],
   );
-}
-
-IconData _featureIcon(FeatureId feature) => switch (feature) {
-  FeatureId.schedule => Icons.calendar_today,
-  FeatureId.exam => Icons.assignment_outlined,
-  FeatureId.grades => Icons.grade,
-  FeatureId.bykc => Icons.school,
-  FeatureId.classroom => Icons.meeting_room,
-  FeatureId.spoc => Icons.assignment_turned_in,
-  FeatureId.judge => Icons.code,
-  FeatureId.libbook => Icons.event_seat,
-  FeatureId.signin => Icons.how_to_reg,
-  FeatureId.cgyy => Icons.date_range,
-  FeatureId.ygdk => Icons.wb_sunny,
-  FeatureId.evaluation => Icons.assignment_turned_in,
-};
-
-String _savedScheduleTime(DateTime value) {
-  final campus = value.toUtc().add(const Duration(hours: 8));
-  return '${campus.month}月${campus.day}日 ${campus.hour.toString().padLeft(2, '0')}:${campus.minute.toString().padLeft(2, '0')}';
 }

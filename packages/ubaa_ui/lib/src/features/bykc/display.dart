@@ -1,6 +1,7 @@
-part of '../../widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
 
-String _bykcStatusLabel(BykcCourseStatus status) => switch (status) {
+String uiBykcStatusLabel(BykcCourseStatus status) => switch (status) {
   BykcCourseStatus.preview => '预告',
   BykcCourseStatus.available => '可选',
   BykcCourseStatus.full => '人数已满',
@@ -17,14 +18,14 @@ bool _bykcDisplayedFull(BykcCoursePresentation course) =>
         (course.courseMaxCount ?? 0) > 0 &&
         course.courseCurrentCount! >= course.courseMaxCount!);
 
-BykcCourseStatus _bykcDisplayStatus(BykcCoursePresentation course) =>
+BykcCourseStatus uiBykcDisplayStatus(BykcCoursePresentation course) =>
     course.selected == true
     ? BykcCourseStatus.selected
     : _bykcDisplayedFull(course)
     ? BykcCourseStatus.full
     : course.status;
 
-String _bykcCheckinLabel(int? value) => switch (value) {
+String uiBykcCheckinLabel(int? value) => switch (value) {
   null => '考勤未知',
   0 => '待考勤',
   1 => '考勤通过',
@@ -41,14 +42,14 @@ String _bykcCheckinLabel(int? value) => switch (value) {
   final code => '考勤状态 $code',
 };
 
-String _bykcPassLabel(int? value) => switch (value) {
+String uiBykcPassLabel(int? value) => switch (value) {
   null => '待考核',
   0 => '考核未通过',
   1 => '考核通过',
   final code => '考核状态 $code',
 };
 
-String _bykcDate(String value) {
+String uiBykcDate(String value) {
   final date = DateTime.tryParse(value.trim());
   if (date == null || date.isUtc) return value.trim();
   String two(int value) => value.toString().padLeft(2, '0');
@@ -56,13 +57,13 @@ String _bykcDate(String value) {
       '${two(date.hour)}:${two(date.minute)}';
 }
 
-String? _bykcRange(String? start, String? end) {
+String? uiBykcRange(String? start, String? end) {
   final begin = start?.trim(), finish = end?.trim();
   if (begin == null || begin.isEmpty) {
-    return finish == null || finish.isEmpty ? null : '截至 ${_bykcDate(finish)}';
+    return finish == null || finish.isEmpty ? null : '截至 ${uiBykcDate(finish)}';
   }
-  if (finish == null || finish.isEmpty) return _bykcDate(begin);
-  final a = _bykcDate(begin), b = _bykcDate(finish);
+  if (finish == null || finish.isEmpty) return uiBykcDate(begin);
+  final a = uiBykcDate(begin), b = uiBykcDate(finish);
   if (a.length == 16 &&
       b.length == 16 &&
       a.substring(0, 10) == b.substring(0, 10)) {
@@ -72,24 +73,26 @@ String? _bykcRange(String? start, String? end) {
 }
 
 // 沿冻结 resolveSelectTimeDisplay；只决定列表文案，不参与写入资格。
-({String label, String value})? _bykcSelectTime(BykcCoursePresentation course) {
+({String label, String value})? uiBykcSelectTime(
+  BykcCoursePresentation course,
+) {
   final start = course.courseSelectStartDate?.trim();
   final end = course.courseSelectEndDate?.trim();
   final startDate = start == null ? null : DateTime.tryParse(start);
   if (startDate != null && DateTime.now().isBefore(startDate)) {
-    return (label: '开始选课', value: _bykcDate(start!));
+    return (label: '开始选课', value: uiBykcDate(start!));
   }
   if (end != null && end.isNotEmpty) {
-    return (label: '截止选课', value: _bykcDate(end));
+    return (label: '截止选课', value: uiBykcDate(end));
   }
   if (start != null && start.isNotEmpty) {
-    return (label: '开始选课', value: _bykcDate(start));
+    return (label: '开始选课', value: uiBykcDate(start));
   }
   return null;
 }
 
-class _BykcInfoLine extends StatelessWidget {
-  const _BykcInfoLine(this.label, this.value, {this.maxLines});
+class BykcInfoLine extends StatelessWidget {
+  const BykcInfoLine(this.label, this.value, {this.maxLines});
   final String label;
   final String? value;
   final int? maxLines;
@@ -122,8 +125,8 @@ class _BykcInfoLine extends StatelessWidget {
   }
 }
 
-class _BykcStatusChip extends StatelessWidget {
-  const _BykcStatusChip(this.status);
+class BykcStatusChip extends StatelessWidget {
+  const BykcStatusChip(this.status);
   final BykcCourseStatus status;
   @override
   Widget build(BuildContext context) {
@@ -136,7 +139,7 @@ class _BykcStatusChip extends StatelessWidget {
         borderRadius: BorderRadius.circular(16),
       ),
       child: Text(
-        _bykcStatusLabel(status),
+        uiBykcStatusLabel(status),
         style: theme.textTheme.labelMedium?.copyWith(
           color: theme.colorScheme.onSecondaryContainer,
         ),
@@ -145,10 +148,10 @@ class _BykcStatusChip extends StatelessWidget {
   }
 }
 
-List<String> _bykcSearchValues(FeaturePresentation? value) => switch (value) {
+List<String> uiBykcSearchValues(FeaturePresentation? value) => switch (value) {
   BykcCoursePresentation p => [
     p.courseName,
-    _bykcStatusLabel(_bykcDisplayStatus(p)),
+    uiBykcStatusLabel(uiBykcDisplayStatus(p)),
     ...[
       p.courseTeacher,
       p.coursePosition,
@@ -161,8 +164,8 @@ List<String> _bykcSearchValues(FeaturePresentation? value) => switch (value) {
   ],
   BykcChosenPresentation p => [
     p.courseName,
-    _bykcCheckinLabel(p.checkin),
-    _bykcPassLabel(p.pass),
+    uiBykcCheckinLabel(p.checkin),
+    uiBykcPassLabel(p.pass),
     ...[
       p.courseTeacher,
       p.coursePosition,
@@ -183,7 +186,7 @@ List<String> _bykcSearchValues(FeaturePresentation? value) => switch (value) {
   _ => const [],
 };
 
-const _defaultBykcStatuses = BykcCourseFilters.defaultStatuses;
+const uiDefaultBykcStatuses = BykcCourseFilters.defaultStatuses;
 
 bool _matchesBykcStatuses(
   BykcCoursePresentation course,
@@ -201,7 +204,7 @@ bool _matchesBykcStatuses(
       },
     );
 
-bool _matchesBykcFilters(
+bool uiMatchesBykcFilters(
   BykcCoursePresentation course,
   Set<BykcCourseStatus> statuses,
   Set<String> categories,
@@ -211,7 +214,7 @@ bool _matchesBykcFilters(
     (categories.isEmpty || categories.contains(course.categoryDisplayName)) &&
     (campuses.isEmpty || course.audienceCampuses.any(campuses.contains));
 
-List<String> _bykcCampusOptions(
+List<String> uiBykcCampusOptions(
   List<FeatureDetail> details,
   Set<String> selected,
 ) {

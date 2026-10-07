@@ -1,18 +1,22 @@
-part of '../widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import '../common/detail_fields.dart' show DetailField;
+import '../shared/schedule_values.dart' show uiSavedScheduleTime;
+import '../shared/text.dart' show uiNonBlank;
 
 /// 资料在个人页本地展开，离开或更新身份即销毁联系人显示状态。
-class _ProfileIdentityCard extends StatefulWidget {
-  const _ProfileIdentityCard({required this.user});
+class ProfileIdentityCard extends StatefulWidget {
+  const ProfileIdentityCard({required this.user});
   final UserSummary? user;
   @override
-  State<_ProfileIdentityCard> createState() => _ProfileIdentityCardState();
+  State<ProfileIdentityCard> createState() => _ProfileIdentityCardState();
 }
 
-class _ProfileIdentityCardState extends State<_ProfileIdentityCard> {
+class _ProfileIdentityCardState extends State<ProfileIdentityCard> {
   bool _expanded = false;
 
   @override
-  void didUpdateWidget(covariant _ProfileIdentityCard oldWidget) {
+  void didUpdateWidget(covariant ProfileIdentityCard oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.user, widget.user)) _expanded = false;
   }
@@ -20,7 +24,7 @@ class _ProfileIdentityCardState extends State<_ProfileIdentityCard> {
   @override
   Widget build(BuildContext context) {
     final user = widget.user;
-    final name = _nonBlank(user?.preferredName) ?? '未登录';
+    final name = uiNonBlank(user?.preferredName) ?? '未登录';
     final source = switch (user?.profileRoute) {
       ConnectionMode.direct => 'Direct',
       ConnectionMode.webvpn => 'WebVPN',
@@ -44,8 +48,8 @@ class _ProfileIdentityCardState extends State<_ProfileIdentityCard> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: Text(
                 evidence.origin == DataOrigin.persisted
-                    ? '资料上次保存 ${_savedScheduleTime(evidence.fetchedAt)} · $source，连接后核对更新'
-                    : '资料更新于 ${_savedScheduleTime(evidence.fetchedAt)} · $source',
+                    ? '资料上次保存 ${uiSavedScheduleTime(evidence.fetchedAt)} · $source，连接后核对更新'
+                    : '资料更新于 ${uiSavedScheduleTime(evidence.fetchedAt)} · $source',
               ),
             ),
           if (user?.profileNotice case final notice?)
@@ -81,17 +85,17 @@ class _AccountProfileDetails extends StatelessWidget {
   Widget build(BuildContext context) => Column(
     crossAxisAlignment: CrossAxisAlignment.stretch,
     children: [
-      if (_nonBlank(user.schoolId) case final schoolId?)
-        _DetailField(label: '学校标识', value: schoolId),
-      if (_nonBlank(user.idCardTypeName) case final kind?)
-        _DetailField(label: '证件类型', value: kind),
-      if (_nonBlank(user.email) case final email?)
+      if (uiNonBlank(user.schoolId) case final schoolId?)
+        DetailField(label: '学校标识', value: schoolId),
+      if (uiNonBlank(user.idCardTypeName) case final kind?)
+        DetailField(label: '证件类型', value: kind),
+      if (uiNonBlank(user.email) case final email?)
         _ProfileContact(
           key: const ValueKey('profile-email'),
           label: '邮箱',
           value: email,
         ),
-      if (_nonBlank(user.phone) case final phone?)
+      if (uiNonBlank(user.phone) case final phone?)
         _ProfileContact(
           key: const ValueKey('profile-phone'),
           label: '手机',
@@ -102,7 +106,7 @@ class _AccountProfileDetails extends StatelessWidget {
         user.idCardTypeName,
         user.email,
         user.phone,
-      ].every((value) => _nonBlank(value) == null))
+      ].every((value) => uiNonBlank(value) == null))
         const Text('当前未提供其他资料。'),
     ],
   );

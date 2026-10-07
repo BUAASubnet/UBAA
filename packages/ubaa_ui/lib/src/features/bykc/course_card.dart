@@ -1,14 +1,22 @@
-part of '../../widgets.dart';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'display.dart'
+    show
+        BykcInfoLine,
+        BykcStatusChip,
+        uiBykcDisplayStatus,
+        uiBykcRange,
+        uiBykcSelectTime;
 
-class _BykcCourseCard extends StatelessWidget {
-  const _BykcCourseCard({required this.course, this.onTap});
+class BykcCourseCard extends StatelessWidget {
+  const BykcCourseCard({required this.course, this.onTap});
   final BykcCoursePresentation course;
   final VoidCallback? onTap;
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     final count = course.courseCurrentCount, capacity = course.courseMaxCount;
-    final selectTime = _bykcSelectTime(course);
+    final selectTime = uiBykcSelectTime(course);
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -34,25 +42,25 @@ class _BykcCourseCard extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(width: 8),
-                  _BykcStatusChip(_bykcDisplayStatus(course)),
+                  BykcStatusChip(uiBykcDisplayStatus(course)),
                 ],
               ),
               const SizedBox(height: 4),
-              _BykcInfoLine('教师', course.courseTeacher, maxLines: 1),
-              _BykcInfoLine('地点', course.coursePosition, maxLines: 1),
-              _BykcInfoLine('类别', course.categoryDisplayName, maxLines: 1),
-              _BykcInfoLine(
+              BykcInfoLine('教师', course.courseTeacher, maxLines: 1),
+              BykcInfoLine('地点', course.coursePosition, maxLines: 1),
+              BykcInfoLine('类别', course.categoryDisplayName, maxLines: 1),
+              BykcInfoLine(
                 '适用校区',
                 course.audienceCampuses.join('、'),
                 maxLines: 1,
               ),
               if (course.hasSignPoints) const Text('含地点签到配置'),
-              _BykcInfoLine(
+              BykcInfoLine(
                 '时间',
-                _bykcRange(course.courseStartDate, course.courseEndDate),
+                uiBykcRange(course.courseStartDate, course.courseEndDate),
               ),
               if (selectTime != null)
-                _BykcInfoLine(selectTime.label, selectTime.value),
+                BykcInfoLine(selectTime.label, selectTime.value),
               if (count != null || capacity != null) ...[
                 const SizedBox(height: 12),
                 if (count != null &&

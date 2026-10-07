@@ -1,4 +1,8 @@
-part of '../widgets.dart';
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import '../common/detail_fields.dart' show DetailField;
+import '../common/error_card.dart' show FriendlyErrorCard;
 
 /// 所有写操作共用的二次确认组件。
 ///
@@ -91,16 +95,13 @@ class _WriteConfirmationViewState extends State<WriteConfirmationView> {
                     style: Theme.of(context).textTheme.headlineSmall,
                   ),
                 if (showTitle) const SizedBox(height: 16),
-                _DetailField(label: '目标', value: intent.targetSummary),
+                DetailField(label: '目标', value: intent.targetSummary),
                 if (widget.showRoute) ...[
                   const SizedBox(height: 8),
-                  _DetailField(
-                    label: '实际路线',
-                    value: intent.resolvedRoute.label,
-                  ),
+                  DetailField(label: '实际路线', value: intent.resolvedRoute.label),
                 ],
                 const SizedBox(height: 8),
-                _DetailField(
+                DetailField(
                   label: '有效期至',
                   value: _formatDateTime(intent.expiresAt),
                 ),
