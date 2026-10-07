@@ -1,5 +1,7 @@
 # macOS 逐按钮实测记录
 
+> 本页保留原任务的计划/操作编号与证据。当前分支和待验边界见[状态页](../migration/status.md)；重构后的自动、原生及人工入口见[测试策略](../development/testing.md)，不再沿用旧工作树或旧路径启动。
+
 日期：2026-09-15。当前为进行中的事实记录，未完成条目不算通过。源码审计见[审计报告](macos-ui-source-audit.md)，执行范围见[专项计划](macos-ui-button-plan.md)，最终候选的逐操作状态见[按钮检查点](macos-ui-button-checklist.md)。
 
 ## 环境与证据

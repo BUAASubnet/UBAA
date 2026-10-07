@@ -8,6 +8,11 @@
 | bootstrap | `just refs-bootstrap` | `bootstrap/references.sh` | 唯一允许联网并创建缺失冻结引用的入口；已有路径只校验，不覆盖、不拉取 |
 | check | `just refs` | `check/references.sh` | 纯只读校验 remote、HEAD 和干净工作树；缺失时失败并提示 bootstrap |
 | check | `just layout-check` | `check/layout.sh` | 检查手写文件行数、目录拥挤度和 baseline；不访问网络或凭据 |
+| check | `just module-check` | `check/module_graph.py` | 聚合 library 尺寸、part 归属和依赖环；纯源码检查 |
+| check | `just integration-check/list` | `check/integration_catalog.py` | 入口与登记双向检查、展示分类；不运行学校请求 |
+| tests | `just integration-test` | `check/integration_catalog.py` | 只选择已登记的普通原生集合；默认 CI 排除账号和人工入口 |
+| tests | `just flutter-test` | `tests/flutter-package.sh` | 固定官方 SDK 的按包/领域普通测试，不访问设备或账号 |
+| tests | `just script-test` | Python 门禁与离线统计合同 | 临时目录及合成样本，不创建真实学校客户端 |
 | check | `just contract-version-check` | `check/contract-versions.sh` | 纯静态交叉校验 CLI/Bridge 源码常量、JSON Schema、Dart 接受版本与当前文档声明 |
 | check | `just check-sensitive` | `check/sensitive.sh` | 只读取待提交/未忽略文件，不读取 `.env.local` 或运行会话 |
 | check | `just shell-check` / `just shell-check-strict` | `check/shell.sh` | 均运行 Bash 语法检查；宽松入口缺 ShellCheck 时报告 SKIP，严格入口固定要求 0.11.0 |

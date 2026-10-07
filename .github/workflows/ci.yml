@@ -112,7 +112,7 @@ jobs:
         uses: actions/upload-artifact@v6
         with:
           name: ubaa-flutter-golden-diffs-${{ github.run_id }}
-          path: packages/ubaa_ui/test/failures/*.png
+          path: packages/ubaa_ui/test/**/failures/*.png
           if-no-files-found: ignore
           retention-days: 14
 

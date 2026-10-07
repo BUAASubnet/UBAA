@@ -1,106 +1,141 @@
 {
-  "schema": 1,
+  "schema": 2,
   "tests": [
     {
-      "path": "app_flow_test.dart",
-      "kind": "synthetic",
-      "domain": "app_flow",
+      "path": "live/academic/parity_test.dart",
+      "kind": "live",
+      "domain": "academic",
       "platforms": [
         "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
-      ],
-      "ci": true,
-      "inspection": true
-    },
-    {
-      "path": "offline/acceptance_matrix_test.dart",
-      "kind": "platform",
-      "domain": "acceptance_matrix",
-      "platforms": [
-        "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
+        "ios"
       ],
       "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "offline/cache_bridge_test.dart",
-      "kind": "synthetic",
-      "domain": "cache_bridge",
-      "platforms": [
-        "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
       ],
-      "ci": true,
-      "inspection": false
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
     },
     {
-      "path": "offline/cache_settings_host_test.dart",
-      "kind": "synthetic",
-      "domain": "cache_settings_host",
+      "path": "live/account/readonly_test.dart",
+      "kind": "live",
+      "domain": "account",
       "platforms": [
         "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
+        "ios"
       ],
       "ci": false,
-      "inspection": true
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
     },
     {
-      "path": "offline/evaluation_scan_test.dart",
-      "kind": "synthetic",
-      "domain": "evaluation_scan",
+      "path": "live/app/readonly_test.dart",
+      "kind": "live",
+      "domain": "app",
       "platforms": [
         "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
+        "ios"
       ],
       "ci": false,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
     },
     {
-      "path": "offline/grades_cache_test.dart",
-      "kind": "synthetic",
-      "domain": "grades_cache",
+      "path": "live/bykc/readonly_test.dart",
+      "kind": "live",
+      "domain": "bykc",
       "platforms": [
         "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
+        "ios"
       ],
       "ci": false,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
     },
     {
-      "path": "offline/judge_online_test.dart",
-      "kind": "synthetic",
-      "domain": "judge_online",
+      "path": "live/cgyy/form_test.dart",
+      "kind": "live",
+      "domain": "cgyy",
       "platforms": [
         "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
+        "ios"
       ],
       "ci": false,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
     },
     {
-      "path": "offline/live/evaluation_test.dart",
+      "path": "live/cgyy/readonly_test.dart",
+      "kind": "live",
+      "domain": "cgyy",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
+    },
+    {
+      "path": "live/classroom/parity_test.dart",
+      "kind": "live",
+      "domain": "classroom",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
+    },
+    {
+      "path": "live/evaluation/cache_test.dart",
       "kind": "live",
       "domain": "evaluation",
       "platforms": [
@@ -111,12 +146,117 @@
         "windows"
       ],
       "ci": false,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
     },
     {
-      "path": "offline/live/spoc_detail_test.dart",
+      "path": "live/grades/parity_test.dart",
       "kind": "live",
-      "domain": "spoc_detail",
+      "domain": "grades",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
+    },
+    {
+      "path": "live/grades/watch_test.dart",
+      "kind": "live",
+      "domain": "grades",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
+    },
+    {
+      "path": "live/home/readonly_test.dart",
+      "kind": "live",
+      "domain": "home",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
+    },
+    {
+      "path": "live/libbook/readonly_test.dart",
+      "kind": "live",
+      "domain": "libbook",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
+    },
+    {
+      "path": "live/performance/cold_start_driver.dart",
+      "kind": "live",
+      "domain": "performance",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "run",
+      "environment": [
+        "UBAA_CONFIG_DIR",
+        "UBAA_LIVE_MATERIAL_SCOPE",
+        "UBAA_STARTUP_OUTPUT",
+        "UBAA_STARTUP_MODE",
+        "UBAA_EXPECTED_ROUTE",
+        "UBAA_STARTUP_SCENARIO"
+      ],
+      "defines": []
+    },
+    {
+      "path": "live/recovery/startup_test.dart",
+      "kind": "live",
+      "domain": "recovery",
       "platforms": [
         "macos",
         "ios",
@@ -125,12 +265,59 @@
         "windows"
       ],
       "ci": false,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR",
+        "UBAA_LIVE_MATERIAL_SCOPE"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
     },
     {
-      "path": "offline/live/startup_test.dart",
+      "path": "live/schedule/navigation_test.dart",
       "kind": "live",
-      "domain": "startup",
+      "domain": "schedule",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
+    },
+    {
+      "path": "live/schedule/parity_test.dart",
+      "kind": "live",
+      "domain": "schedule",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
+    },
+    {
+      "path": "live/schedule/widget_channel_test.dart",
+      "kind": "live",
+      "domain": "schedule",
       "platforms": [
         "macos",
         "ios",
@@ -139,12 +326,365 @@
         "windows"
       ],
       "ci": false,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_VERIFY_WEBVPN=true"
+      ]
     },
     {
-      "path": "offline/network_recovery_test.dart",
+      "path": "live/spoc/detail_test.dart",
+      "kind": "live",
+      "domain": "spoc",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
+    },
+    {
+      "path": "live/ygdk/readonly_test.dart",
+      "kind": "live",
+      "domain": "ygdk",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "UBAA_CONFIG_DIR"
+      ],
+      "defines": [
+        "UBAA_LIVE_READONLY=true",
+        "UBAA_EXPECTED_ROUTE=webvpn"
+      ]
+    },
+    {
+      "path": "manual/about/information_driver.dart",
+      "kind": "manual",
+      "domain": "about",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/academic/parity_driver.dart",
+      "kind": "manual",
+      "domain": "academic",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/account/profile_driver.dart",
+      "kind": "manual",
+      "domain": "account",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/app/flow_driver.dart",
+      "kind": "manual",
+      "domain": "app",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/bykc/selection_driver.dart",
+      "kind": "manual",
+      "domain": "bykc",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/cache/settings_driver.dart",
+      "kind": "manual",
+      "domain": "cache",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/cgyy/reservation_driver.dart",
+      "kind": "manual",
+      "domain": "cgyy",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/classroom/parity_driver.dart",
+      "kind": "manual",
+      "domain": "classroom",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/assignments/overview_driver.dart",
+      "kind": "manual",
+      "domain": "assignments",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/grades/watch_driver.dart",
+      "kind": "manual",
+      "domain": "grades",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/grades/parity_driver.dart",
+      "kind": "manual",
+      "domain": "grades",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/home/home_driver.dart",
+      "kind": "manual",
+      "domain": "home",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/libbook/reservation_driver.dart",
+      "kind": "manual",
+      "domain": "libbook",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/photos/selector_driver.dart",
+      "kind": "manual",
+      "domain": "photos",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/schedule/navigation_driver.dart",
+      "kind": "manual",
+      "domain": "schedule",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/schedule/parity_driver.dart",
+      "kind": "manual",
+      "domain": "schedule",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "manual/ygdk/submission_driver.dart",
+      "kind": "manual",
+      "domain": "ygdk",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "platform/about/information_test.dart",
       "kind": "platform",
-      "domain": "network_recovery",
+      "domain": "about",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "platform/cache/acceptance_matrix_test.dart",
+      "kind": "platform",
+      "domain": "cache",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "platform/credentials/material_test.dart",
+      "kind": "platform",
+      "domain": "credentials",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "platform/credentials/plugin_test.dart",
+      "kind": "platform",
+      "domain": "credentials",
+      "platforms": [
+        "macos"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "platform/network/recovery_test.dart",
+      "kind": "platform",
+      "domain": "network",
       "platforms": [
         "macos",
         "ios",
@@ -153,82 +693,42 @@
         "windows"
       ],
       "ci": true,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "offline/schedule_import_test.dart",
-      "kind": "synthetic",
-      "domain": "schedule_import",
-      "platforms": [
-        "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "offline/schedule_widget_channel_test.dart",
-      "kind": "live",
-      "domain": "schedule_widget_channel",
-      "platforms": [
-        "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "offline/secure_material_test.dart",
+      "path": "platform/orientation/rotation_test.dart",
       "kind": "platform",
-      "domain": "secure_material",
+      "domain": "orientation",
       "platforms": [
-        "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
+        "ios"
       ],
       "ci": false,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "offline/spoc_scan_test.dart",
-      "kind": "synthetic",
-      "domain": "spoc_scan",
-      "platforms": [
-        "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "offline/write_cache_test.dart",
-      "kind": "synthetic",
-      "domain": "write_cache",
-      "platforms": [
-        "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "platform_plugins/native_test.dart",
+      "path": "platform/photos/capabilities_test.dart",
       "kind": "platform",
-      "domain": "platform_plugins",
+      "domain": "photos",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "platform/plugins_test.dart",
+      "kind": "platform",
+      "domain": "plugins_test.dart",
       "platforms": [
         "macos",
         "ios",
@@ -237,32 +737,13 @@
         "windows"
       ],
       "ci": false,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "ui_about/about_test.dart",
-      "kind": "platform",
-      "domain": "about",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": true
-    },
-    {
-      "path": "ui_academic_old/live_readonly_test.dart",
-      "kind": "live",
-      "domain": "academic",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_academic_old/native_test.dart",
+      "path": "synthetic/academic/flow_test.dart",
       "kind": "synthetic",
       "domain": "academic",
       "platforms": [
@@ -270,10 +751,13 @@
         "ios"
       ],
       "ci": false,
-      "inspection": true
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "ui_academic_old/signin_queries_test.dart",
+      "path": "synthetic/academic/parity/signin_queries_test.dart",
       "kind": "synthetic",
       "domain": "academic",
       "platforms": [
@@ -281,10 +765,13 @@
         "ios"
       ],
       "ci": false,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "ui_academic_test.dart",
+      "path": "synthetic/academic/parity_test.dart",
       "kind": "synthetic",
       "domain": "academic",
       "platforms": [
@@ -292,21 +779,13 @@
         "ios"
       ],
       "ci": false,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "ui_account/live_readonly_test.dart",
-      "kind": "live",
-      "domain": "account",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_account_test.dart",
+      "path": "synthetic/account/flow_test.dart",
       "kind": "synthetic",
       "domain": "account",
       "platforms": [
@@ -314,21 +793,71 @@
         "ios"
       ],
       "ci": false,
-      "inspection": true
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "ui_boya_live_readonly_test.dart",
-      "kind": "live",
-      "domain": "bykc_live_readonly",
+      "path": "synthetic/app/flow_test.dart",
+      "kind": "synthetic",
+      "domain": "app",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": true,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/app/parity_test.dart",
+      "kind": "synthetic",
+      "domain": "app",
       "platforms": [
         "macos",
         "ios"
       ],
       "ci": false,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "ui_boya_test.dart",
+      "path": "synthetic/app/render_test.dart",
+      "kind": "synthetic",
+      "domain": "app",
+      "platforms": [
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/assignments/flow_test.dart",
+      "kind": "synthetic",
+      "domain": "assignments",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/bykc/flow_test.dart",
       "kind": "synthetic",
       "domain": "bykc",
       "platforms": [
@@ -336,229 +865,47 @@
         "ios"
       ],
       "ci": false,
-      "inspection": true
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "ui_classroom_old/live_readonly_test.dart",
-      "kind": "live",
-      "domain": "classroom",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_classroom_old/native_test.dart",
+      "path": "synthetic/cache/bridge_test.dart",
       "kind": "synthetic",
-      "domain": "classroom",
+      "domain": "cache",
       "platforms": [
         "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": true
-    },
-    {
-      "path": "ui_coursework_test.dart",
-      "kind": "synthetic",
-      "domain": "coursework",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": true
-    },
-    {
-      "path": "ui_credentials/native_test.dart",
-      "kind": "platform",
-      "domain": "credentials",
-      "platforms": [
-        "macos"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_grade_watch/live_readonly_test.dart",
-      "kind": "live",
-      "domain": "grade_watch",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_grade_watch/native_test.dart",
-      "kind": "synthetic",
-      "domain": "grade_watch",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": true
-    },
-    {
-      "path": "ui_grades_old/live_readonly_test.dart",
-      "kind": "live",
-      "domain": "grades",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_grades_old/native_test.dart",
-      "kind": "synthetic",
-      "domain": "grades",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": true
-    },
-    {
-      "path": "ui_home/live_readonly_test.dart",
-      "kind": "live",
-      "domain": "home",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_home/native_test.dart",
-      "kind": "synthetic",
-      "domain": "home",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": true
-    },
-    {
-      "path": "ui_library/live_readonly_test.dart",
-      "kind": "live",
-      "domain": "libbook",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_library_test.dart",
-      "kind": "synthetic",
-      "domain": "libbook",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": true
-    },
-    {
-      "path": "ui_live_readonly_test.dart",
-      "kind": "live",
-      "domain": "live_readonly",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_old_baseline_test.dart",
-      "kind": "synthetic",
-      "domain": "old_baseline",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_photos/camera_test.dart",
-      "kind": "manual",
-      "domain": "photos",
-      "platforms": [
         "ios",
-        "android"
+        "android",
+        "linux",
+        "windows"
       ],
-      "ci": false,
-      "inspection": false
+      "ci": true,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "ui_photos/native_test.dart",
+      "path": "synthetic/cache/settings_test.dart",
       "kind": "synthetic",
-      "domain": "photos",
+      "domain": "cache",
       "platforms": [
         "macos",
-        "ios"
+        "ios",
+        "android",
+        "linux",
+        "windows"
       ],
       "ci": false,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "ui_query_keyboard_test.dart",
-      "kind": "synthetic",
-      "domain": "query_keyboard",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_render_test.dart",
-      "kind": "synthetic",
-      "domain": "render",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_rooms/form_live_readonly_test.dart",
-      "kind": "live",
-      "domain": "cgyy",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_rooms_live_readonly_test.dart",
-      "kind": "live",
-      "domain": "cgyy_live_readonly",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_rooms_test.dart",
+      "path": "synthetic/cgyy/flow_test.dart",
       "kind": "synthetic",
       "domain": "cgyy",
       "platforms": [
@@ -566,53 +913,192 @@
         "ios"
       ],
       "ci": false,
-      "inspection": true
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "ui_rotation_test.dart",
-      "kind": "manual",
-      "domain": "rotation",
-      "platforms": [
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_schedule_navigation/live_readonly_test.dart",
-      "kind": "live",
-      "domain": "schedule_navigation",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
-    },
-    {
-      "path": "ui_schedule_navigation/native_test.dart",
+      "path": "synthetic/classroom/parity_test.dart",
       "kind": "synthetic",
-      "domain": "schedule_navigation",
+      "domain": "classroom",
       "platforms": [
         "macos",
         "ios"
       ],
       "ci": false,
-      "inspection": true
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "ui_schedule_old/live_readonly_test.dart",
-      "kind": "live",
+      "path": "synthetic/evaluation/progressive_test.dart",
+      "kind": "synthetic",
+      "domain": "evaluation",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/grades/cache_test.dart",
+      "kind": "synthetic",
+      "domain": "grades",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/grades/parity_test.dart",
+      "kind": "synthetic",
+      "domain": "grades",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/grades/watch_test.dart",
+      "kind": "synthetic",
+      "domain": "grades",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/home/flow_test.dart",
+      "kind": "synthetic",
+      "domain": "home",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/judge/online_test.dart",
+      "kind": "synthetic",
+      "domain": "judge",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/libbook/flow_test.dart",
+      "kind": "synthetic",
+      "domain": "libbook",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/media/camera_test.dart",
+      "kind": "synthetic",
+      "domain": "media",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/query/keyboard_test.dart",
+      "kind": "synthetic",
+      "domain": "query",
+      "platforms": [
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/schedule/import_test.dart",
+      "kind": "synthetic",
+      "domain": "schedule",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/schedule/navigation_test.dart",
+      "kind": "synthetic",
       "domain": "schedule",
       "platforms": [
         "macos",
         "ios"
       ],
       "ci": false,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "ui_schedule_old/native_test.dart",
+      "path": "synthetic/schedule/parity_test.dart",
       "kind": "synthetic",
       "domain": "schedule",
       "platforms": [
@@ -620,21 +1106,61 @@
         "ios"
       ],
       "ci": false,
-      "inspection": true
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "ui_sports_live_readonly_test.dart",
-      "kind": "live",
-      "domain": "ygdk_live_readonly",
+      "path": "synthetic/spoc/progressive_test.dart",
+      "kind": "synthetic",
+      "domain": "spoc",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/write/cache_test.dart",
+      "kind": "synthetic",
+      "domain": "write",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/write/confirmation_test.dart",
+      "kind": "synthetic",
+      "domain": "write",
       "platforms": [
         "macos",
         "ios"
       ],
       "ci": false,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     },
     {
-      "path": "ui_sports_test.dart",
+      "path": "synthetic/ygdk/flow_test.dart",
       "kind": "synthetic",
       "domain": "ygdk",
       "platforms": [
@@ -642,18 +1168,10 @@
         "ios"
       ],
       "ci": false,
-      "inspection": true
-    },
-    {
-      "path": "ui_write_confirmation/native_test.dart",
-      "kind": "synthetic",
-      "domain": "write_confirmation",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     }
   ]
 }

@@ -1,0 +1,896 @@
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/ubaa_ui.dart';
+import '../support/write_harness.dart';
+import '../support/navigation.dart';
+import '../support/ui/writes.dart' show fixturePumpBykcCommitError;
+
+void _registerBykcStateTests() {
+  testWidgets('博雅选课只使用 typed action 且不依赖展示字段名称和值', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '展示字段已改名的课程',
+                    fields: <FeatureField>[
+                      FeatureField(label: '任意展示编号', value: '不是操作参数'),
+                      FeatureField(label: '任意展示状态', value: '看起来不可选'),
+                    ],
+                    actions: <FeatureAction>[
+                      BykcSelectAction(
+                        courseId: 73,
+                        eligibility: ActionEligibility.allowed,
+                      ),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareBykcWrite: (operation, courseId) async {
+            prepareCalls++;
+            expect(operation, WriteOperation.bykcSelectCourse);
+            expect(courseId, 73);
+            return WriteIntent(
+              intentId: 'typed-select-73',
+              operation: operation,
+              targetSummary: '选择课程 73',
+              resolvedRoute: ConnectionMode.direct,
+              warnings: const <String>[],
+              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+              requestDigest: 'digest',
+            );
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.bykc);
+    await tester.pumpAndSettle();
+
+    final select = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备选课'),
+    );
+    expect(select.onPressed, isNotNull);
+    await tester.tap(find.text('准备选课'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 1);
+    expect(find.text('选择课程 73'), findsOneWidget);
+  });
+
+  testWidgets('博雅选退课 action 缺失或资格非 allowed 时统一禁用', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1400));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '缺失 action',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: '41'),
+                      FeatureField(label: '状态', value: 'selected'),
+                      FeatureField(label: '已选', value: '是'),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '资格未知',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: '42'),
+                      FeatureField(label: '状态', value: 'selected'),
+                      FeatureField(label: '已选', value: '是'),
+                    ],
+                    actions: <FeatureAction>[
+                      BykcSelectAction(
+                        courseId: 42,
+                        eligibility: ActionEligibility.unknown,
+                      ),
+                      BykcDeselectAction(
+                        courseId: 42,
+                        eligibility: ActionEligibility.unknown,
+                      ),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '明确拒绝',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: '43'),
+                      FeatureField(label: '状态', value: '已选'),
+                      FeatureField(label: '已选', value: '是'),
+                    ],
+                    actions: <FeatureAction>[
+                      BykcSelectAction(
+                        courseId: 43,
+                        eligibility: ActionEligibility.denied,
+                      ),
+                      BykcDeselectAction(
+                        courseId: 43,
+                        eligibility: ActionEligibility.denied,
+                      ),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareBykcWrite: (_, __) async {
+            prepareCalls++;
+            throw StateError('不可选课程不应触发准备回调');
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.bykc);
+    await tester.pumpAndSettle();
+
+    final selects = tester.widgetList<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备选课'),
+    );
+    expect(selects, hasLength(3));
+    expect(selects.every((button) => button.onPressed == null), isTrue);
+    final deselects = tester.widgetList<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备退选'),
+    );
+    expect(deselects, hasLength(3));
+    expect(deselects.every((button) => button.onPressed == null), isTrue);
+    expect(prepareCalls, 0);
+  });
+
+  testWidgets('博雅签到只使用 typed action 且展示字段改名不影响目标与协议类型', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '展示字段已改名的已选课程',
+                    fields: <FeatureField>[
+                      FeatureField(label: '任意展示编号', value: '不是操作参数'),
+                      FeatureField(label: '任意展示资格', value: '看起来不可用'),
+                    ],
+                    actions: <FeatureAction>[
+                      BykcSignAction(
+                        courseId: 73,
+                        kind: BykcSignKind.signIn,
+                        eligibility: ActionEligibility.allowed,
+                        requiresCoordinates: false,
+                      ),
+                      BykcSignAction(
+                        courseId: 73,
+                        kind: BykcSignKind.signOut,
+                        eligibility: ActionEligibility.allowed,
+                        requiresCoordinates: true,
+                      ),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    final calls = <(int, int, bool)>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareBykcSignWrite: (action) async {
+            calls.add((
+              action.courseId,
+              action.signType,
+              action.requiresCoordinates,
+            ));
+            return WriteIntent(
+              intentId: 'typed-sign-${action.courseId}-${action.signType}',
+              operation: WriteOperation.bykcSignCourse,
+              targetSummary: '博雅课程 ${action.courseId} 签到类型 ${action.signType}',
+              resolvedRoute: ConnectionMode.direct,
+              warnings: const <String>[],
+              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+              requestDigest: 'digest',
+            );
+          },
+          onDiscardWriteIntent: (_) async {},
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.bykc);
+    await tester.pumpAndSettle();
+
+    final signIn = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备博雅签到'),
+    );
+    final signOut = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备博雅签退'),
+    );
+    expect(signIn.onPressed, isNotNull);
+    expect(signOut.onPressed, isNotNull);
+    await tester.tap(find.text('准备博雅签到'));
+    await tester.pumpAndSettle();
+    expect(calls, <(int, int, bool)>[(73, 1, false)]);
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备博雅签退'));
+    await tester.pumpAndSettle();
+    expect(calls, <(int, int, bool)>[(73, 1, false), (73, 2, true)]);
+  });
+
+  testWidgets('博雅签到 action 资格 unknown 或 denied 时统一禁用', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '资格未知',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: '41'),
+                      FeatureField(label: '可签到', value: '是'),
+                      FeatureField(label: '可签退', value: '是'),
+                    ],
+                    actions: <FeatureAction>[
+                      BykcSignAction(
+                        courseId: 74,
+                        kind: BykcSignKind.signIn,
+                        eligibility: ActionEligibility.unknown,
+                        requiresCoordinates: true,
+                      ),
+                      BykcSignAction(
+                        courseId: 74,
+                        kind: BykcSignKind.signOut,
+                        eligibility: ActionEligibility.unknown,
+                        requiresCoordinates: true,
+                      ),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '明确拒绝',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: '42'),
+                      FeatureField(label: '可签到', value: '是'),
+                      FeatureField(label: '可签退', value: '是'),
+                    ],
+                    actions: <FeatureAction>[
+                      BykcSignAction(
+                        courseId: 75,
+                        kind: BykcSignKind.signIn,
+                        eligibility: ActionEligibility.denied,
+                        requiresCoordinates: true,
+                      ),
+                      BykcSignAction(
+                        courseId: 75,
+                        kind: BykcSignKind.signOut,
+                        eligibility: ActionEligibility.denied,
+                        requiresCoordinates: true,
+                      ),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareBykcSignWrite: (_) async {
+            prepareCalls++;
+            throw StateError('不可签到课程不应触发准备回调');
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.bykc);
+    await tester.pumpAndSettle();
+
+    final signIns = tester.widgetList<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备博雅签到'),
+    );
+    final signOuts = tester.widgetList<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备博雅签退'),
+    );
+    expect(signIns, hasLength(2));
+    expect(signIns.every((button) => button.onPressed == null), isTrue);
+    expect(signOuts, hasLength(2));
+    expect(signOuts.every((button) => button.onPressed == null), isTrue);
+    expect(prepareCalls, 0);
+  });
+
+  testWidgets('普通博雅摘要详情缺失签到 action 时不显示签到入口', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '普通博雅课程详情',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: '42'),
+                      FeatureField(label: '可签到', value: '是'),
+                      FeatureField(label: '可签退', value: '是'),
+                    ],
+                    actions: <FeatureAction>[
+                      BykcSelectAction(
+                        courseId: 42,
+                        eligibility: ActionEligibility.allowed,
+                      ),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareBykcSignWrite: (_) async =>
+              throw StateError('普通博雅摘要详情不应提供签到入口'),
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.bykc);
+    await tester.pumpAndSettle();
+
+    expect(find.text('准备博雅签到'), findsNothing);
+    expect(find.text('准备博雅签退'), findsNothing);
+  });
+
+  testWidgets('博雅课程写入口只服从 typed 资格且退选目标不依赖展示字段', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '已选课程',
+                    fields: <FeatureField>[
+                      FeatureField(label: '展示记录', value: '9001'),
+                      FeatureField(label: '已选', value: '否'),
+                    ],
+                    actions: <FeatureAction>[
+                      BykcSelectAction(
+                        courseId: 42,
+                        eligibility: ActionEligibility.denied,
+                      ),
+                      BykcDeselectAction(
+                        courseId: 9527,
+                        eligibility: ActionEligibility.allowed,
+                      ),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var selectCalls = 0;
+    var deselectCalls = 0;
+    final deselectCourseIds = <int>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareBykcWrite: (operation, courseId) async {
+            if (operation == WriteOperation.bykcSelectCourse) {
+              selectCalls++;
+            } else if (operation == WriteOperation.bykcDeselectCourse) {
+              deselectCalls++;
+              deselectCourseIds.add(courseId);
+            }
+            return WriteIntent(
+              intentId: 'status-${operation.name}',
+              operation: operation,
+              targetSummary: '课程 $courseId',
+              resolvedRoute: ConnectionMode.direct,
+              warnings: const <String>[],
+              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+              requestDigest: 'digest',
+            );
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.bykc);
+    await tester.pumpAndSettle();
+
+    final select = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备选课'),
+    );
+    final deselect = tester.widget<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '准备退选'),
+    );
+    expect(select.onPressed, isNull);
+    expect(deselect.onPressed, isNotNull);
+    expect(find.text('当前课程状态不支持该操作；最终资格和时间窗仍由 Core 校验。'), findsOneWidget);
+    await tester.tap(find.text('准备退选'));
+    await tester.pumpAndSettle();
+    expect(deselectCalls, 1);
+    expect(deselectCourseIds, <int>[9527]);
+    expect(selectCalls, 0);
+  });
+}
+
+void _registerCgyyStateTest() {
+  testWidgets('场馆取消入口只遵守 Core typed 资格和目标一致性', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.cgyy
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '已取消订单',
+                    actions: <FeatureAction>[
+                      CgyyCancelAction(
+                        orderId: 18,
+                        orderStatus: 2,
+                        checkStatus: 1,
+                        targetOrderId: null,
+                        eligibility: ActionEligibility.denied,
+                      ),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '审批驳回订单',
+                    actions: <FeatureAction>[
+                      CgyyCancelAction(
+                        orderId: 19,
+                        orderStatus: 1,
+                        checkStatus: -2,
+                        targetOrderId: null,
+                        eligibility: ActionEligibility.denied,
+                      ),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '待审核订单',
+                    actions: <FeatureAction>[
+                      CgyyCancelAction(
+                        orderId: 20,
+                        orderStatus: 1,
+                        checkStatus: 2,
+                        targetOrderId: 20,
+                        eligibility: ActionEligibility.allowed,
+                      ),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '截止时间已过',
+                    actions: <FeatureAction>[
+                      CgyyCancelAction(
+                        orderId: 21,
+                        orderStatus: 1,
+                        checkStatus: 1,
+                        targetOrderId: null,
+                        eligibility: ActionEligibility.denied,
+                      ),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '未知状态订单',
+                    actions: <FeatureAction>[
+                      CgyyCancelAction(
+                        orderId: 22,
+                        orderStatus: 9,
+                        checkStatus: 1,
+                        targetOrderId: null,
+                        eligibility: ActionEligibility.unknown,
+                      ),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '目标不一致订单',
+                    actions: <FeatureAction>[
+                      CgyyCancelAction(
+                        orderId: 23,
+                        orderStatus: 1,
+                        checkStatus: 2,
+                        targetOrderId: 24,
+                        eligibility: ActionEligibility.allowed,
+                      ),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareCgyyCancelWrite: (_) async {
+            fail('状态不可取消的订单不应触发准备回调');
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await openFeature(tester, FeatureId.cgyy);
+    await tester.pumpAndSettle();
+
+    expect(find.text('准备取消订单'), findsOneWidget);
+  });
+}
+
+void _registerSharedStateTests() {
+  testWidgets('已有摘要但详情为空的 stale 状态保留摘要并提供重试', (tester) async {
+    var retryCalls = 0;
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: feature == FeatureId.schedule
+              ? FeatureLoadStatus.stale
+              : FeatureLoadStatus.idle,
+          summary: feature == FeatureId.schedule ? '旧摘要仍可查看' : null,
+          error: feature == FeatureId.schedule
+              ? const UiError(
+                  code: UbaaErrorCode.networkError,
+                  title: '网络暂时不可用',
+                  message: '刷新失败，请重试。',
+                  retryable: true,
+                )
+              : null,
+          resolvedRoute: feature == FeatureId.schedule
+              ? ConnectionMode.direct
+              : null,
+          details: const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          activeRoutes: const <ConnectionMode>[ConnectionMode.direct],
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {
+            retryCalls++;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.schedule);
+    await tester.pumpAndSettle();
+
+    expect(find.text('刷新失败，请重试。'), findsOneWidget);
+    expect(find.text('旧摘要仍可查看'), findsOneWidget);
+    expect(find.text('重试'), findsWidgets);
+    await tester.tap(find.text('重试').last);
+    await tester.pumpAndSettle();
+    expect(retryCalls, 1);
+  });
+
+  testWidgets('十二项功能共享 loading、empty、failure、stale 状态矩阵', (tester) async {
+    var retryCalls = 0;
+    final statuses = <FeatureLoadStatus>[
+      FeatureLoadStatus.loading,
+      FeatureLoadStatus.empty,
+      FeatureLoadStatus.failure,
+      FeatureLoadStatus.stale,
+    ];
+
+    Future<void> openFeature(FeatureId feature) async {
+      final ordinary = ordinaryFeatureIds.contains(feature);
+      final selectedIcon = ordinary ? Icons.apps : Icons.auto_awesome;
+      final unselectedIcon = ordinary
+          ? Icons.apps_outlined
+          : Icons.auto_awesome_outlined;
+      final selectedFinder = find.byIcon(selectedIcon);
+      final tabFinder = selectedFinder.evaluate().isNotEmpty
+          ? selectedFinder
+          : find.byIcon(unselectedIcon);
+      await tester.tap(tabFinder.first);
+      await tester.pump();
+      final target = find.text(feature.title).first;
+      await tester.scrollUntilVisible(
+        target,
+        240,
+        scrollable: find.byType(Scrollable).first,
+      );
+      await tester.pump();
+      await tester.tap(target);
+      await tester.pump();
+      expect(find.byTooltip('返回'), findsOneWidget);
+    }
+
+    for (final status in statuses) {
+      final snapshots = <FeatureId, FeatureSnapshot>{
+        for (final feature in FeatureId.values)
+          feature: FeatureSnapshot(
+            feature: feature,
+            status: status,
+            summary: status == FeatureLoadStatus.stale ? '上次成功摘要' : null,
+            details: status == FeatureLoadStatus.stale
+                ? const <FeatureDetail>[FeatureDetail(title: '上次成功详情')]
+                : const <FeatureDetail>[],
+            error:
+                status == FeatureLoadStatus.failure ||
+                    status == FeatureLoadStatus.stale
+                ? const UiError(
+                    code: UbaaErrorCode.networkError,
+                    title: '读取失败',
+                    message: '测试读取失败',
+                    retryable: true,
+                  )
+                : null,
+          ),
+      };
+      await tester.pumpWidget(
+        MaterialApp(
+          theme: UbaaTheme.light(),
+          home: coordinatedShell(
+            user: const UserSummary(username: 'student'),
+            snapshots: snapshots,
+            routePolicy: RoutePolicy.auto,
+            telemetryEnabled: false,
+            onRefresh: () async {},
+            onRetryFeature: (_) async => retryCalls++,
+            onLogout: () async {},
+            onLogoutAndClearAccount: () async {},
+            onRoutePolicyChanged: (_) {},
+            onTelemetryChanged: (_) {},
+          ),
+        ),
+      );
+      await tester.pump();
+
+      for (final feature in FeatureId.values) {
+        await openFeature(feature);
+        switch (status) {
+          case FeatureLoadStatus.loading:
+            expect(find.byType(CircularProgressIndicator), findsOneWidget);
+          case FeatureLoadStatus.empty:
+            expect(find.text('暂无${feature.title}数据'), findsOneWidget);
+          case FeatureLoadStatus.failure:
+            expect(find.text('测试读取失败'), findsOneWidget);
+            await tester.tap(find.text('重试').last);
+            await tester.pump();
+          case FeatureLoadStatus.stale:
+            expect(find.text('测试读取失败'), findsOneWidget);
+            expect(find.text('上次成功详情'), findsOneWidget);
+            await tester.tap(find.text('重试').last);
+            await tester.pump();
+          case FeatureLoadStatus.idle || FeatureLoadStatus.success:
+            fail('状态矩阵不应包含 ${status.name}');
+        }
+        await tester.tap(find.byTooltip('返回'));
+        await tester.pump();
+      }
+    }
+    expect(retryCalls, 24);
+  });
+
+  testWidgets('Core 返回未知结果时固定提示并触发只读核对', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '课程',
+                    fields: <FeatureField>[
+                      FeatureField(label: '课程 ID', value: '42'),
+                    ],
+                    actions: <FeatureAction>[
+                      BykcSelectAction(
+                        courseId: 42,
+                        eligibility: ActionEligibility.allowed,
+                      ),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var refreshCalls = 0;
+    final intent = WriteIntent(
+      intentId: 'unknown-intent',
+      operation: WriteOperation.bykcSelectCourse,
+      targetSummary: '选择课程 42',
+      resolvedRoute: ConnectionMode.direct,
+      warnings: const <String>[],
+      expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+      requestDigest: 'digest',
+    );
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareBykcWrite: (_, __) async => intent,
+          onCommitWrite: (_) async => const WriteCommitResult(
+            operation: WriteOperation.bykcSelectCourse,
+            success: false,
+            message: '上游响应超时',
+            outcomeUnknown: true,
+            resolvedRoute: ConnectionMode.direct,
+          ),
+          onWriteSuccess: (_, __) async => refreshCalls++,
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.bykc);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备选课'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
+
+    expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsOneWidget);
+    expect(find.text('上游响应超时'), findsNothing);
+    expect(refreshCalls, 1);
+  });
+
+  testWidgets('确定性 typed 提交错误显示安全普通提示而不误报结果不确定', (tester) async {
+    final refreshCalls = await fixturePumpBykcCommitError(
+      tester,
+      const UiError(
+        code: UbaaErrorCode.operationConflict,
+        title: '操作状态已变化',
+        message: '路线或会话已变化，请重新准备操作。',
+      ),
+    );
+
+    expect(find.text('路线或会话已变化，请重新准备操作。'), findsOneWidget);
+    expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsNothing);
+    expect(refreshCalls, 0);
+  });
+
+  testWidgets('typed outcomeUnknown 提交错误只显示固定禁止重试提示', (tester) async {
+    final refreshCalls = await fixturePumpBykcCommitError(
+      tester,
+      const UiError(
+        code: UbaaErrorCode.outcomeUnknown,
+        title: '结果待核对',
+        message: '不应直接展示的自定义文案',
+      ),
+    );
+
+    expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsOneWidget);
+    expect(find.text('不应直接展示的自定义文案'), findsNothing);
+    expect(refreshCalls, 1);
+  });
+
+  testWidgets('未知提交异常只显示内部错误安全提示', (tester) async {
+    final refreshCalls = await fixturePumpBykcCommitError(
+      tester,
+      Exception('/private/session?token=secret'),
+    );
+
+    expect(find.text('应用内部错误，请返回后刷新相关状态。'), findsOneWidget);
+    expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsNothing);
+    expect(find.textContaining('secret'), findsNothing);
+    expect(refreshCalls, 0);
+  });
+}
+
+void main() {
+  _registerBykcStateTests();
+  _registerCgyyStateTest();
+  _registerSharedStateTests();
+}

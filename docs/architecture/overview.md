@@ -1,66 +1,31 @@
 # 架构概览
 
-当前产品边界是与平台无关的 Rust Core、Rust CLI 宿主和 Flutter/FRB 六平台客户端。`UbaaClient` 是普通聚合 facade，
-负责经过校验的路由配置、带缓存的网关可达性探测、独立的 Direct/WebVPN runtime 以及一个
-原子双路线会话协调器。`UbaaClient::open` 从一个带 revision 的 schema-v2 快照加载两个槽位，
-不会向宿主暴露会话存储。`RouteClient` 是锁定路线的诊断/测试入口，不是普通宿主 API。每次
-上游请求前都会应用 Direct 或 WebVPN URL 策略；原始传输既不自动跟随重定向，也不拥有全局
-Cookie 存储。
+Rust Core 负责协议、认证、路线、Cookie、会话、加密、解析、缓存与业务资格。CLI 和 FRB 生产调用只经 facade；Dart 与平台宿主不读取 upstream 内部状态，不拼接学校 URL 或处理原始响应。
 
-```text
-CLI                  Flutter/OHOS
- |                       |
- |                 Dart domain/app/UI
- |                       |
- |                    FRB bridge
- +----------+------------+
-            |
-       稳定 facade
-            |
-      认证 + 功能/用户
-            |
-     私有运行时 + 会话
-            |
-   上游解析器和已验证 URL
-            |
-   连接与端口（HTTP、持久化）
+```mermaid
+flowchart TD
+  CLI[CLI 参数与输出] --> F[Core facade]
+  Host[Flutter 与 OHOS 薄宿主] --> H[共享 Host 接线]
+  H --> A[AppController 单一状态实例]
+  H --> U[独立 UI 领域组件]
+  H --> P[平台 typed 能力]
+  A --> W[唯一 WriteCoordinator]
+  A --> B[BridgeBackend 与领域适配]
+  B --> C[BridgeContext 客户端及账号状态]
+  B --> R[typed FRB]
+  R --> F
+  F --> Core[认证 业务 缓存 路线与会话]
+  Core --> T[私有 transport 与上游解析]
 ```
 
-CLI 与 Rust bridge 的生产业务调用只经 facade；CLI 在自身 `command/backend/execute/io` 边界拥有参数解析、
-JSON/human 渲染和退出策略。Dart 与平台宿主只经 bridge 使用 Core，不处理 URL、Cookie、Session、加密或
-上游正文；`upstream` 解析/URL 模块为 crate-private。当前公开版本为 CLI JSON schema v11 与
-Flutter bridge contract v40；实际 envelope 的 JSON Schema 校验、schema-v11 聚合
-登录输出、参数错误 envelope、不支持交互式登录步骤的显式
-拒绝、脱敏展示、带 revision 的原子双路线会话、Core 所有的 TCP 路由诊断和非交互式本地验证器
-均已实现。Flutter 侧 typed bridge、共享 domain/app/UI、十二项读取页面、十项写入确认和无签名六平台宿主
-已有分阶段确定性证据。Phase 11J 的 Evaluation typed 批量提交已在 `4b0dcb0` 完成，本地确定性门禁、
-FRB 零漂移与 macOS 脱敏宿主 integration 证据见[当前状态](../migration/status.md)。Direct/WebVPN 的真实 Core-live 只读验证、无签名平台构建、
-实体设备、签名发布和真实写入是彼此独立的证据层级；当前不包含服务器中继，真实写入仍须逐操作授权。
+UbaaClient 是普通聚合 facade。Direct/WebVPN runtime、配置 revision、网关探测和双路线协调在 Core 内；RouteClient 仅用于明确固定路线的诊断/测试。原始 HTTP transport 不自动跟随重定向，不拥有全局 Cookie，跳转规则由已验证业务协议决定。
 
-Phase 11K 提交 `b6ff2c7` 将 Dart 生产写状态统一到 `ubaa_app` 的 `WriteCoordinator`，由
-`AppController` 绑定当前 backend 并在会话、路线与宿主生命周期变化时使旧状态失效。
-`WriteState`/`WriteOutcome` 属于 `ubaa_domain`；`ubaa_host` 统一拥有共享宿主生命周期、平台能力注入和
-UI callback 接线，向 UI 提供状态及 prepare/cancel/confirm 命令。UI 只保留页面交互状态，不拥有第二份
-待确认意图或提交状态机；Rust bridge 继续负责 opaque intent 的一次性消费与失效。
+CLI JSON schema v11 独立于磁盘 Session v2、配置 v1、缓存 schema v6。CLI envelope 的 schema v11 由序列化和 JSON Schema 合同共同验证，schema-v11 聚合输出覆盖成功、业务失败与参数错误。Flutter bridge contract v40 由 Rust 常量、Dart 接受版本与 codegen 零漂移检查共同约束。
 
-CLI envelope 的 schema v11 与磁盘 Session 版本相互独立：前者描述 stdout 的封闭公开合同，后者仍是
-`session.json` schema v2 双路线快照，`config.toml` 仍为版本 1；本次 CLI 升级不迁移或改写本地持久化。
-Flutter bridge contract v40 在 v8 的 Ygdk typed 提交合同之上，新增 Evaluation typed
-`submitEligibility/submitTarget`、仅含 targets 的批量请求、四态逐项结果和 caller-pinned 回读；同时继续承载
-Ygdk 的完整 typed 请求、安全结果和 caller-pinned 概览/记录回读，并承载
-LibBook seat 与 booking 的可空整数状态，以及 typed
-`reserveEligibility/reserveTarget` 和 `cancelEligibility/cancelTarget`。取消 action 在本地携带
-`id/page/limit` 以固定 prepare、commit 与 readback 的同一页 authority，最终 wire 仍只有 `{id}`；bridge
-不读取或改写磁盘 Session 合同。Cgyy 时段的 `reservationStatus` 也为可空整数，只有 Core 明确签发的
-`allowed`/`reservationTarget` 才能形成 Flutter action；App、Bridge 与 Core 逐层失败关闭。预约 prepare 与
-commit 都 fresh 读取目标资格，最终请求只越过一次 non-idempotent 发送边界；成功结果至多附带安全收据，
-发送后无法判定时返回不可重试的 `outcome_unknown`，两者都不携带验证码、完整订单或个人信息。
-Cgyy 订单另携带 typed `cancelEligibility/cancelTarget/cancelledTarget`；取消 prepare/commit 均 fresh 复核
-同 ID 订单，commit 在 Core 内以单次路线解析绑定同一 runtime 和一次最终发送。成功或结果未知后
-只在 intent 原路线读取 0-based 首页列表与同 ID 详情，并仅用本次两个局部 `cancelledTarget` 证明标记已核对。
-Evaluation 的完整问卷 authority、题目和答案只存在 Core；Host 只传非空、有序、无重复的 typed targets。
-确定结果、unknown 或 commit 异常都至多执行一次原路线回读，回读不改变提交 outcome，也不触发自动重发。
-Ygdk prepare 只保存 fresh overview 签发的 typed target，不上传；commit 由 Core expected-route 原子入口把
-单次路线解析、活跃 Session/credential generation、fresh authority、一次 upload 与一次 final 固定在同一
-runtime。upload/final 均不自动重试；确定成功和结果未知后只执行 caller-pinned 概览与 records 首页读取，
-安全收据仅允许可选正 `recordId`，回读结果不能把 unknown 升级为 success。
+AppController 的局部实现通过显式状态/操作合同协作，保持同一 ChangeNotifier 实例、账号代次和快照。BridgeContext 持有同一客户端，账号缓存与交互认证各有唯一状态对象。UI 消费不可变模型与回调；公开组件由显式 barrel 导出，局部 State 不越过组件边界供测试直接修改。详细路径见[现行代码组织](code-organization.md)。
+
+写入资格与目标由 Core 的新鲜读取签发。App 的 WriteCoordinator 唯一拥有意图、准备、确认、取消、提交、失效与回读状态；宿主只注入能力，UI 不从中文文案或展示字段推断资格。非幂等最终提交至多一次，unknown 禁止自动重试；回读固定原路线且不能把未知结果升级为成功。完整问卷、Cookie、Token、验证码等材料不越过各自专属边界。
+
+系统安全材料与加密缓存保留明确错误，不降级明文。业务协议与本地平台插件分别治理，本地 fork 的来源和退出条件见[适配清单](platform-adapters.md)。
+
+实现、确定性测试、原生合成、Core-live、真实 App、设备和正式发布是独立证据。当前范围见 [goal.md](../../goal.md)，实际结果见[状态页](../migration/status.md)；历史说明见[归档](../migration/history/architecture-before-maintainability-2026-10-07.md)。

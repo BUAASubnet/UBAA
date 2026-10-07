@@ -38,7 +38,7 @@ report_error() {
 
 is_source_path() {
   case $1 in
-    *.rs | *.dart | *.kt | *.kts | *.ets | *.ts | *.tsx | *.js | *.java | *.swift | *.m | *.mm | *.c | *.cc | *.cpp | *.h | *.hpp | *.sh)
+    *.rs | *.dart | *.kt | *.kts | *.ets | *.ts | *.tsx | *.js | *.cjs | *.py | *.java | *.swift | *.m | *.mm | *.c | *.cc | *.cpp | *.h | *.hpp | *.sh)
       return 0
       ;;
     *)

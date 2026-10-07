@@ -5,6 +5,7 @@ import argparse
 import json
 import os
 from pathlib import Path
+import re
 import shlex
 import subprocess
 
@@ -15,12 +16,28 @@ TEST_ROOT = APP / "integration_test"
 MANIFEST = ROOT / "scripts" / "integration-tests.json"
 KINDS = {"synthetic", "platform", "live", "manual"}
 PLATFORMS = {"macos", "ios", "android", "linux", "windows"}
-LIVE_MARKERS = ("UBAA_LIVE_READONLY", "UBAA_VERIFY_WEBVPN")
+LIVE_MARKERS = ("UBAA_LIVE_READONLY", "UBAA_VERIFY_WEBVPN", "UBAA_LIVE_MATERIAL_SCOPE")
+
+
+def source_closure(path, root, seen=None):
+    """同时检查本地辅助文件，防止把真实入口隐藏在 import 或 part 后。"""
+    seen = set() if seen is None else seen
+    path, root = path.resolve(), root.resolve()
+    if path in seen or not path.is_relative_to(root) or not path.is_file():
+        return ""
+    seen.add(path)
+    source = path.read_text()
+    dependencies = re.findall(r"^(?:import|export|part)\s+['\"]([^'\"]+)['\"]", source, re.M)
+    return source + "\n" + "\n".join(
+        source_closure(path.parent / uri, root, seen)
+        for uri in dependencies if ":" not in uri)
 
 
 def validate(entries, root=TEST_ROOT):
     """实际入口与清单双向一致，失效路径和未知条件均拒绝。"""
-    actual = {p.relative_to(root).as_posix() for p in root.rglob("*_test.dart")}
+    actual = {p.relative_to(root).as_posix() for p in root.rglob("*.dart")
+              if p.name.endswith(("_test.dart", "_driver.dart"))
+              or re.search(r"^(?:Future<void>|void) main\(", p.read_text(), re.M)}
     paths = [entry["path"] for entry in entries]
     if len(paths) != len(set(paths)):
         raise ValueError("集成清单存在重复入口")
@@ -29,14 +46,20 @@ def validate(entries, root=TEST_ROOT):
         raise ValueError(f"未登记入口：{sorted(missing)}；失效入口：{sorted(stale)}")
     for entry in entries:
         path = entry["path"]
+        section = Path(path).parts[0]
+        if section in KINDS and section != entry["kind"]:
+            raise ValueError(f"目录与证据分类不符：{path}")
         if entry["kind"] not in KINDS or not entry["domain"]:
             raise ValueError(f"无效分类：{path}")
         if not entry["platforms"] or not set(entry["platforms"]) <= PLATFORMS:
             raise ValueError(f"无效平台：{path}")
         if entry["ci"] and entry["kind"] in {"live", "manual"}:
             raise ValueError(f"真实或人工入口不得进入 CI：{path}")
-        source = (root / path).read_text()
-        if any(marker in source for marker in LIVE_MARKERS) and entry["kind"] != "live":
+        runner = entry.get("runner", "test")
+        if runner not in {"test", "run"} or (runner == "run" and entry["ci"]):
+            raise ValueError(f"入口执行方式或 CI 归属不符：{path}")
+        source = source_closure(root / path, root)
+        if any(marker in source for marker in LIVE_MARKERS) and entry["kind"] not in {"live", "manual"}:
             raise ValueError(f"真实账号标记与分类不符：{path}")
         if not isinstance(entry["inspection"], bool):
             raise ValueError(f"缺少人工巡检模式说明：{path}")
@@ -82,7 +105,8 @@ def main():
     flutter = Path(os.environ.get("UBAA_FLUTTER_HOME", "/Users/moorefoss/Dev/flutter-3.41.9")) / "bin" / "flutter"
     environment = os.environ.copy()
     # 即使从带账号的终端发起，常规回归也不会继承真实配置入口。
-    for name in ("UBAA_CONFIG_DIR", "UBAA_LIVE_MATERIAL_SCOPE", "UBAA_TEST_USERNAME", "UBAA_TEST_PASSWORD"):
+    for name in ("UBAA_CONFIG_DIR", "UBAA_LIVE_MATERIAL_SCOPE", "UBAA_TEST_USERNAME",
+                 "UBAA_TEST_PASSWORD", "UBAA_USERNAME", "UBAA_PASSWORD"):
         environment.pop(name, None)
     for entry in selected:
         command = [str(flutter), "test", f'integration_test/{entry["path"]}',

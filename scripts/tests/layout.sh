@@ -133,6 +133,13 @@ write_source_lines "$repo/src/tracked.rs" 1001
 commit_all "$repo"
 expect_rejected '已提交超长文件会失败' "$repo" 'src/tracked.rs'
 
+for extension in py cjs; do
+  repo=$(new_repo "script-too-long-$extension")
+  write_source_lines "$repo/src/contract.$extension" 1001
+  commit_all "$repo"
+  expect_rejected "超长 $extension 脚本不能绕过结构门禁" "$repo" "src/contract.$extension"
+done
+
 repo=$(new_repo crowded-directory)
 for number in {01..17}; do
   write_source_lines "$repo/src/crowded/file_${number}.rs" 1

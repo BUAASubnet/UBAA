@@ -1,0 +1,939 @@
+import 'dart:convert';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/ubaa_ui.dart';
+import '../support/write_harness.dart';
+import '../support/navigation.dart';
+import '../support/ui/cgyy_writes.dart' show fixtureFillCgyyForm;
+import '../support/ui/ygdk_writes.dart' show fixtureValidYgdkPhoto;
+
+void _registerFeatureRenderingTests() {
+  testWidgets('功能卡片打开真实详情字段而不是占位页', (tester) async {
+    var clearedAccount = false;
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          resolvedRoute: feature == FeatureId.schedule
+              ? ConnectionMode.direct
+              : null,
+          details: feature == FeatureId.schedule
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '高等数学',
+                    subtitle: '周一 08:00',
+                    fields: <FeatureField>[
+                      FeatureField(label: '地点', value: '主楼 101'),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          activeRoutes: const <ConnectionMode>[ConnectionMode.direct],
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async => clearedAccount = true,
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.schedule);
+    await tester.pumpAndSettle();
+    expect(find.text('高等数学'), findsOneWidget);
+    expect(find.text('主楼 101'), findsOneWidget);
+    expect(find.byTooltip('实际路线：直连'), findsOneWidget);
+    expect(find.textContaining('只读详情页面将在'), findsNothing);
+
+    await tester.ensureVisible(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    expect(find.byTooltip('返回'), findsNothing);
+    await openUtility(tester, '设置');
+    await tester.pumpAndSettle();
+    expect(find.text('直连'), findsOneWidget);
+    await tester.scrollUntilVisible(
+      find.text('退出并清除本机账号'),
+      200,
+      scrollable: find.descendant(
+        of: find.byType(ListView),
+        matching: find.byType(Scrollable),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('退出并清除本机账号'));
+    await tester.pumpAndSettle();
+    expect(find.text('清除本机账号？'), findsOneWidget);
+    await tester.tap(find.text('取消'));
+    await tester.pumpAndSettle();
+    expect(clearedAccount, isFalse);
+    await tester.ensureVisible(find.text('退出并清除本机账号'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('退出并清除本机账号'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('退出并清除'));
+    await tester.pumpAndSettle();
+    expect(clearedAccount, isTrue);
+  });
+}
+
+void _registerFeatureInputTests() {
+  testWidgets('场馆可预约时段先填写 typed 信息再进入确认页', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.cgyy
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '讨论室 上午',
+                    fields: <FeatureField>[
+                      FeatureField(label: '展示站点', value: '300'),
+                      FeatureField(label: '展示日期', value: '1900-01-01'),
+                      FeatureField(label: '展示空间', value: '400'),
+                      FeatureField(label: '展示时段', value: '500'),
+                      FeatureField(label: '可预约', value: '否'),
+                    ],
+                    actions: <FeatureAction>[
+                      CgyyReserveAction(
+                        venueSiteId: 3,
+                        reservationDate: '2026-09-03',
+                        spaceId: 4,
+                        timeId: 5,
+                        venueSpaceGroupId: 9,
+                        timeOrdinal: 0,
+                        eligibility: ActionEligibility.allowed,
+                      ),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '讨论室 下午',
+                    fields: <FeatureField>[
+                      FeatureField(label: '任意标签', value: '任意展示值'),
+                    ],
+                    actions: <FeatureAction>[
+                      CgyyReserveAction(
+                        venueSiteId: 3,
+                        reservationDate: '2026-09-03',
+                        spaceId: 4,
+                        timeId: 6,
+                        venueSpaceGroupId: 9,
+                        timeOrdinal: 1,
+                        eligibility: ActionEligibility.allowed,
+                      ),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '另一空间',
+                    fields: <FeatureField>[
+                      FeatureField(label: '可预约', value: '是'),
+                    ],
+                    actions: <FeatureAction>[
+                      CgyyReserveAction(
+                        venueSiteId: 3,
+                        reservationDate: '2026-09-03',
+                        spaceId: 5,
+                        timeId: 7,
+                        venueSpaceGroupId: 9,
+                        timeOrdinal: 2,
+                        eligibility: ActionEligibility.allowed,
+                      ),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    var commitCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareCgyySubmitWrite: (input) async {
+            prepareCalls++;
+            expect(input.actions.first.venueSiteId, 3);
+            expect(input.actions.first.reservationDate, '2026-09-03');
+            expect(input.actions.map((action) => action.spaceId), <int>[4, 4]);
+            expect(input.actions.map((action) => action.timeId), <int>[5, 6]);
+            expect(input.phone, 'phone-placeholder');
+            expect(input.purposeType, 2);
+            return WriteIntent(
+              intentId: 'cgyy-reserve-1',
+              operation: WriteOperation.cgyySubmitReservation,
+              targetSummary: '提交研讨室预约',
+              resolvedRoute: ConnectionMode.direct,
+              warnings: const <String>['如需验证码，材料只在本次操作内使用'],
+              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+              requestDigest: 'digest',
+            );
+          },
+          onCommitWrite: (intentId) async {
+            commitCalls++;
+            expect(intentId, 'cgyy-reserve-1');
+            return const WriteCommitResult(
+              operation: WriteOperation.cgyySubmitReservation,
+              success: true,
+              message: '研讨室预约结果已提交，请刷新订单确认',
+              outcomeUnknown: false,
+              cgyyReceipt: CgyyReservationReceipt(
+                orderId: 42,
+                venueSiteId: 3,
+                reservationDate: '2026-09-03',
+                orderStatus: 1,
+              ),
+            );
+          },
+          onVerifyCgyyReceipt: (receipt) async {
+            expect(receipt.orderId, 42);
+            return true;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await openFeature(tester, FeatureId.cgyy);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备研讨室预约').first);
+    await tester.pumpAndSettle();
+    expect(find.text('选择预约时段（已选 1 个）'), findsOneWidget);
+    expect(find.widgetWithText(FilterChip, '空间 5 · 时段 7'), findsNothing);
+    await tester.tap(find.widgetWithText(FilterChip, '空间 4 · 时段 6'));
+    await tester.pumpAndSettle();
+    await fixtureFillCgyyForm(tester, joiners: '合成参与人');
+    await tester.tap(find.text('继续确认'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 1);
+    expect(commitCalls, 0);
+    expect(find.text('确认研讨室预约'), findsOneWidget);
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
+    expect(commitCalls, 1);
+    expect(find.text('研讨室预约结果已提交，请刷新订单确认（订单编号 42，订单列表已核对）'), findsOneWidget);
+  });
+
+  testWidgets('阳光打卡填写时间并选择内存照片后才进入确认页', (tester) async {
+    const expectedAction = YgdkSubmitAction(
+      classifyId: 31,
+      itemId: 7,
+      eligibility: ActionEligibility.allowed,
+    );
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.ygdk
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '跑步项目',
+                    fields: <FeatureField>[
+                      FeatureField(label: '展示编号已改名', value: '9999'),
+                    ],
+                    actions: <FeatureAction>[expectedAction],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    var commitCalls = 0;
+    var ygdkRefreshCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareYgdkSubmitWrite: (input) async {
+            prepareCalls++;
+            expect(identical(input.action, expectedAction), isTrue);
+            expect(input.action.classifyId, 31);
+            expect(input.action.itemId, 7);
+            expect(input.startTime, '2026-09-01 08:00');
+            expect(input.endTime, '2026-09-01 09:00');
+            expect(input.photo.fileName, 'photo-placeholder.png');
+            return WriteIntent(
+              intentId: 'ygdk-1',
+              operation: WriteOperation.ygdkSubmit,
+              targetSummary: '提交阳光打卡',
+              resolvedRoute: ConnectionMode.direct,
+              warnings: const <String>['提交后请刷新记录确认'],
+              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+              requestDigest: 'ygdk-digest',
+            );
+          },
+          onPickYgdkPhoto: () async => YgdkPhotoInput(
+            bytes: base64Decode(
+              'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJ'
+              'AAAADUlEQVQIHWP4z8DwHwAFgAI/ScLZYQAAAABJRU5ErkJggg==',
+            ),
+            fileName: 'photo-placeholder.png',
+            mimeType: 'image/png',
+          ),
+          onCommitWrite: (intentId) async {
+            commitCalls++;
+            expect(intentId, 'ygdk-1');
+            return const WriteCommitResult(
+              operation: WriteOperation.ygdkSubmit,
+              success: true,
+              message: '阳光打卡结果已提交，请刷新记录确认',
+              outcomeUnknown: false,
+              resolvedRoute: ConnectionMode.direct,
+              ygdkReceipt: YgdkSubmitReceipt(recordId: 41),
+            );
+          },
+          onDiscardWriteIntent: (_) async {},
+          onRefreshYgdkAfterWrite: ({required expectedRoute}) async {
+            ygdkRefreshCalls++;
+            expect(expectedRoute, ConnectionMode.direct);
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await openFeature(tester, FeatureId.ygdk);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备阳光打卡'));
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, '开始时间'),
+      '2026-09-01 08:00',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, '结束时间'),
+      '2026-09-01 09:00',
+    );
+    await tester.ensureVisible(find.text('选择照片'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('选择照片'));
+    await tester.pumpAndSettle();
+    expect(find.text('已选择照片：photo-placeholder.png'), findsOneWidget);
+    expect(
+      find.byWidgetPredicate((w) => w is Image && w.image is! AssetImage),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('继续确认'));
+    await tester.pumpAndSettle();
+    expect(
+      find.byWidgetPredicate((w) => w is Image && w.image is! AssetImage),
+      findsNothing,
+    );
+    expect(prepareCalls, 1);
+    expect(commitCalls, 0);
+    expect(find.text('确认阳光打卡'), findsOneWidget);
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
+    expect(commitCalls, 1);
+    expect(ygdkRefreshCalls, 1);
+    expect(
+      find.text(
+        '阳光打卡结果已提交，请刷新记录确认'
+        '（记录编号 41；已尝试按原路线刷新概览与记录）',
+      ),
+      findsOneWidget,
+    );
+  });
+
+  testWidgets('阳光打卡不从展示标签推测目标且 unknown 资格 fail-closed', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.ygdk
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '展示值不能授权',
+                    fields: <FeatureField>[
+                      FeatureField(label: '项目编号', value: '7'),
+                      FeatureField(label: '可提交', value: '是'),
+                    ],
+                  ),
+                  FeatureDetail(
+                    title: '未知资格',
+                    actions: <FeatureAction>[
+                      YgdkSubmitAction(
+                        classifyId: 31,
+                        itemId: 7,
+                        eligibility: ActionEligibility.unknown,
+                      ),
+                    ],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareYgdkSubmitWrite: (_) async {
+            prepareCalls++;
+            throw StateError('不应进入 prepare');
+          },
+          onPickYgdkPhoto: fixtureValidYgdkPhoto,
+          onCommitWrite: (_) async => throw StateError('不应进入 commit'),
+          onRefreshYgdkAfterWrite: ({required expectedRoute}) async {},
+          onDiscardWriteIntent: (_) async {},
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await openFeature(tester, FeatureId.ygdk);
+    await tester.pumpAndSettle();
+
+    expect(find.text('准备阳光打卡'), findsNothing);
+    expect(prepareCalls, 0);
+  });
+
+  testWidgets('图书馆预约只透传 typed action 而不解析误导展示字段', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(800, 1000));
+    const expectedAction = LibbookReserveAction(
+      areaId: 'area-authority',
+      seatId: 'seat-authority',
+      day: '2026-09-02',
+      segment: 'segment-authority',
+      startTime: '10:00',
+      endTime: '12:00',
+      eligibility: ActionEligibility.allowed,
+    );
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.libbook
+              ? const <FeatureDetail>[
+                  FeatureDetail(
+                    title: '座位 A-01',
+                    fields: <FeatureField>[
+                      FeatureField(label: '分区 ID', value: 'display-area-wrong'),
+                      FeatureField(label: '座位 ID', value: 'display-seat-wrong'),
+                      FeatureField(label: '日期', value: '1900-01-01'),
+                      FeatureField(label: '时段', value: 'display-segment-wrong'),
+                      FeatureField(label: '开始时间', value: '00:00'),
+                      FeatureField(label: '结束时间', value: '00:01'),
+                      FeatureField(label: '可预约', value: '否'),
+                    ],
+                    actions: <FeatureAction>[expectedAction],
+                  ),
+                ]
+              : const <FeatureDetail>[],
+        ),
+    };
+    var prepareCalls = 0;
+    var commitCalls = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onPrepareLibbookReserveWrite: (action) async {
+            prepareCalls++;
+            expect(identical(action, expectedAction), isTrue);
+            expect(action.areaId, 'area-authority');
+            expect(action.seatId, 'seat-authority');
+            expect(action.day, '2026-09-02');
+            expect(action.segment, 'segment-authority');
+            expect(action.startTime, '10:00');
+            expect(action.endTime, '12:00');
+            expect(action.eligibility, ActionEligibility.allowed);
+            return WriteIntent(
+              intentId: 'reserve-seat-authority',
+              operation: WriteOperation.libbookReserve,
+              targetSummary:
+                  'area-authority / seat-authority / 2026-09-02 '
+                  'segment-authority',
+              resolvedRoute: ConnectionMode.direct,
+              warnings: const <String>['请确认座位、日期和时段'],
+              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+              requestDigest: 'digest',
+            );
+          },
+          onCommitWrite: (intentId) async {
+            commitCalls++;
+            expect(intentId, 'reserve-seat-authority');
+            return const WriteCommitResult(
+              operation: WriteOperation.libbookReserve,
+              success: true,
+              message: '预约结果已提交，请刷新预约记录确认',
+              outcomeUnknown: false,
+            );
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.pumpAndSettle();
+    await openFeature(tester, FeatureId.libbook);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('准备预约此座位'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 1);
+    expect(commitCalls, 0);
+    expect(find.text('确认图书馆预约'), findsOneWidget);
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
+    expect(commitCalls, 1);
+    expect(find.text('预约结果已提交，请刷新预约记录确认'), findsOneWidget);
+  });
+}
+
+void _registerFeatureCollectionTests() {
+  testWidgets('长详情列表分页且筛选会回到第一页', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.schedule
+              ? List<FeatureDetail>.generate(
+                  21,
+                  (index) => FeatureDetail(title: '课程 ${index + 1}'),
+                )
+              : const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.schedule);
+    await tester.pumpAndSettle();
+    expect(find.text('1 / 2'), findsOneWidget);
+    expect(find.text('课程 21'), findsNothing);
+    await tester.tap(find.byTooltip('下一页'));
+    await tester.pumpAndSettle();
+    expect(find.text('课程 21'), findsOneWidget);
+    await openQueryPanel(tester);
+    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '课程 1');
+    await closeQueryPanel(tester);
+    await tester.pumpAndSettle();
+    expect(find.text('1 / 2'), findsNothing);
+    expect(find.text('课程 1'), findsOneWidget);
+    expect(find.byType(TextField), findsNothing);
+  });
+
+  testWidgets('超长详情列表只保留当前分页避免页面节点累积', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.schedule
+              ? List<FeatureDetail>.generate(
+                  1000,
+                  (index) => FeatureDetail(title: '长列表课程 ${index + 1}'),
+                )
+              : const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.schedule);
+    await tester.pumpAndSettle();
+    expect(find.text('1 / 50'), findsOneWidget);
+    expect(find.text('长列表课程 1'), findsOneWidget);
+    expect(find.text('长列表课程 21'), findsNothing);
+    for (var page = 2; page <= 6; page++) {
+      await tester.tap(find.byTooltip('下一页'));
+      await tester.pumpAndSettle();
+      expect(find.text('$page / 50'), findsOneWidget);
+      expect(find.text('长列表课程 ${(page - 1) * 20 + 1}'), findsOneWidget);
+      expect(find.text('长列表课程 ${(page - 2) * 20 + 1}'), findsNothing);
+      expect(tester.takeException(), isNull);
+    }
+  });
+
+  testWidgets('服务端分页使用 Core 元数据并通过 typed 查询翻页', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.bykc
+              ? const <FeatureDetail>[FeatureDetail(title: '第一页课程')]
+              : const <FeatureDetail>[],
+          pagination: feature == FeatureId.bykc
+              ? const FeaturePagination(
+                  page: 1,
+                  size: 20,
+                  total: 41,
+                  totalPages: 3,
+                  hasMore: true,
+                )
+              : null,
+        ),
+    };
+    FeatureQuery? received;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onFeatureQuery: (feature, query) async {
+            expect(feature, FeatureId.bykc);
+            received = query;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.bykc);
+    await openQueryPanel(tester);
+    await tester.pumpAndSettle();
+    await closeQueryPanel(tester);
+    expect(find.text('第 1 / 3 页（共 41 条）'), findsOneWidget);
+    await tester.tap(find.byTooltip('下一页').last);
+    await tester.pumpAndSettle();
+    expect(received?.page, 2);
+  });
+
+  testWidgets('领域查询控件提交日期和校区 typed 参数', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.classroom
+              ? const <FeatureDetail>[FeatureDetail(title: '主楼 101')]
+              : const <FeatureDetail>[],
+        ),
+    };
+    FeatureQuery? received;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onFeatureQuery: (feature, query) async {
+            expect(feature, FeatureId.classroom);
+            received = query;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.classroom);
+    await openQueryPanel(tester);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '日期'), '2026-09-02');
+    await tester.tap(find.text('学院路'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('沙河'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('应用筛选'));
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+    expect(received?.date, DateTime(2026, 9, 2));
+    expect(received?.campus, 2);
+  });
+
+  testWidgets('日期控件拒绝非日期字符串和不存在的日历日期', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.classroom
+              ? const <FeatureDetail>[FeatureDetail(title: '主楼 101')]
+              : const <FeatureDetail>[],
+        ),
+    };
+    FeatureQuery? received;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onFeatureQuery: (feature, query) async {
+            expect(feature, FeatureId.classroom);
+            received = query;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.classroom);
+    await openQueryPanel(tester);
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, '日期'),
+      '2026-09-02T12:00:00+08:00',
+    );
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+
+    expect(received, isNull);
+    expect(find.text('日期格式无效，请使用 YYYY-MM-DD。'), findsOneWidget);
+
+    await tester.enterText(find.widgetWithText(TextField, '日期'), '2026-02-30');
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+    expect(received, isNull);
+  });
+
+  testWidgets('空教室查询控件提交楼层和节次本地筛选参数', (tester) async {
+    final snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.classroom
+              ? const <FeatureDetail>[FeatureDetail(title: '主楼 101')]
+              : const <FeatureDetail>[],
+        ),
+    };
+    FeatureQuery? received;
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onFeatureQuery: (feature, query) async {
+            expect(feature, FeatureId.classroom);
+            received = query;
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.classroom);
+    await openQueryPanel(tester);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '楼层'), 'F2');
+    await tester.enterText(find.widgetWithText(TextField, '节次'), '3');
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+    expect(received?.floorId, 'F2');
+    expect(received?.section, '3');
+  });
+
+  testWidgets('查询失败重试会复用当前 typed 查询而不是退回摘要', (tester) async {
+    var snapshots = <FeatureId, FeatureSnapshot>{
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.success,
+          summary: '已加载',
+          details: feature == FeatureId.classroom
+              ? const <FeatureDetail>[FeatureDetail(title: '主楼 101')]
+              : const <FeatureDetail>[],
+        ),
+    };
+    FeatureQuery? applied;
+    var retryCalls = 0;
+    var queryCalls = 0;
+    Future<void> onQuery(FeatureId feature, FeatureQuery query) async {
+      expect(feature, FeatureId.classroom);
+      applied = query;
+      queryCalls++;
+    }
+
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async => retryCalls++,
+          onFeatureQuery: onQuery,
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await openFeature(tester, FeatureId.classroom);
+    await openQueryPanel(tester);
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '楼层'), 'F2');
+    await tester.tap(find.text('应用筛选'));
+    await tester.pumpAndSettle();
+    expect(applied?.floorId, 'F2');
+
+    snapshots = {
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: feature == FeatureId.classroom
+              ? FeatureLoadStatus.failure
+              : FeatureLoadStatus.success,
+          summary: '已加载',
+          error: feature == FeatureId.classroom
+              ? const UiError(
+                  code: UbaaErrorCode.networkError,
+                  title: '网络错误',
+                  message: '请稍后重试',
+                  retryable: true,
+                )
+              : null,
+          details: const <FeatureDetail>[],
+        ),
+    };
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: UbaaTheme.light(),
+        home: coordinatedShell(
+          user: const UserSummary(username: 'student'),
+          snapshots: snapshots,
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          onRefresh: () async {},
+          onRetryFeature: (_) async => retryCalls++,
+          onFeatureQuery: onQuery,
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    await closeQueryPanel(tester);
+    await tester.ensureVisible(find.text('重试'));
+    await tester.tap(find.text('重试'));
+    await tester.pumpAndSettle();
+    expect(retryCalls, 0);
+    expect(queryCalls, 2);
+    expect(applied?.floorId, 'F2');
+  });
+}
+
+void main() {
+  _registerFeatureRenderingTests();
+  _registerFeatureInputTests();
+  _registerFeatureCollectionTests();
+}

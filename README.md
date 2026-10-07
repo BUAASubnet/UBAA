@@ -6,7 +6,7 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 
 ## 当前状态
 
-当前活动任务为[项目整理、旧版功能对齐与开发收尾](goal.md)，正在整合离线首页与按钮修复，整体未完成。项目结构、分支和待办见[全量梳理索引](docs/migration/project-audit-2026-10-01.md)。此前“无签名执行目标”已有阶段证据，正式发布尚未完成。
+当前活动任务为[可持续开发性整理与修复](goal.md)。现行模块与目录见[代码组织](docs/architecture/code-organization.md)，结果与剩余验收边界见[当前状态](docs/migration/status.md)。结构治理与此前整体 UI/设备/发布验收分别记账。
 
 2026-09-07 已完成本地可维护性治理：统一错误语义、增加安全诊断与严格门禁，并整理可共享交接证据。
 该历史阶段见[验收记录](docs/migration/evidence/2026-09-07-maintainability.md)。本次按校外环境使用 WebVPN 只读、真实 App 与模拟器验证，历史暂停不适用于本次范围。
@@ -24,7 +24,7 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 
 当前状态及证据边界见[迁移与交付状态](docs/migration/status.md)。代码组织治理的当前权威是
 [代码与目录组织设计](docs/architecture/code-organization.md)和
-[实施计划](docs/superpowers/plans/2026-09-03-code-organization.md)。
+[现行模块决策](docs/adr/0006-explicit-dart-modules.md)。
 
 ## 能力范围
 
@@ -59,15 +59,14 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 
 完整文档入口见[文档索引](docs/index.md)。
 
-修改协议先定位 Core 的对应领域；修改展示投影定位 `ubaa_app` 的 `bridge/read`；修改写入生命周期定位
+修改协议先定位 Core 的对应领域；修改展示投影定位 `ubaa_app` 的 `bridge/features`；修改写入生命周期定位
 `ubaa_app` 的 `write` 与 `controller`；修改界面定位 `ubaa_ui`。共享 `WriteState`/`WriteOutcome` 位于
 `ubaa_domain`，`WriteCoordinator` 是应用层唯一生产写状态机；宿主向 UI 注入状态及 prepare/cancel/confirm
 命令，UI 不保存另一份待确认意图，也不从展示文本推断写资格。
 
-UI 的[应用页面](packages/ubaa_ui/lib/src/app/)、[公共查询与详情](packages/ubaa_ui/lib/src/common/)、
-[领域控件](packages/ubaa_ui/lib/src/features/)和[表单与确认页](packages/ubaa_ui/lib/src/write/)由
-`widgets.dart` 统一组成 library。课表、考试、成绩和空教室归 `features/academic.dart`，
-SPOC、Judge 和 Signin 归 `features/assignments.dart`；对应实现与测试入口见[文档索引](docs/index.md#按修改内容定位)。
+UI 的[应用页面](packages/ubaa_ui/lib/src/app/)、[领域组件](packages/ubaa_ui/lib/src/features/)、[查询](packages/ubaa_ui/lib/src/common/query/)和[详情接线](packages/ubaa_ui/lib/src/common/details/)通过独立 library 组织；widgets.dart 只显式导出公共组件。应用协调见 [controller](packages/ubaa_app/lib/src/controller/)，Bridge 领域适配见 [bridge/features](packages/ubaa_app/lib/src/bridge/features/)。
+
+常用入口：`just source-files` 定位源码；`just flutter-test ubaa_app test/features/grades` 执行领域回归；`just integration-list` 查询原生、真实与人工入口。完整验证见[测试策略](docs/development/testing.md)。
 
 ## CLI 快速开始
 

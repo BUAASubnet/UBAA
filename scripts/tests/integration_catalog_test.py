@@ -23,6 +23,20 @@ class CatalogTest(unittest.TestCase):
             (root / "sample_test.dart").write_text("void main() {}")
             self.assertRaisesRegex(ValueError, "未登记", catalog.validate, [], root)
 
+    def test_人工驱动入口也必须登记(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "inspection_driver.dart").write_text("void main() {}")
+            self.assertRaisesRegex(ValueError, "未登记", catalog.validate, [], root)
+
+    def test_不能通过辅助文件藏入真实账号入口(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "sample_test.dart").write_text("import 'support.dart';")
+            (root / "support.dart").write_text("UBAA_LIVE_READONLY")
+            self.assertRaisesRegex(ValueError, "真实", catalog.validate,
+                                   [self.entry()], root)
+
     def test_真实账号入口不能登记到CI(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

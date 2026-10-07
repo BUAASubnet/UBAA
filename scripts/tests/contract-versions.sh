@@ -76,7 +76,7 @@ new_fixture() {
     >"$fixture/docs/contracts/readonly-features.md"
   printf '%s\n' \
     'human/JSON schema v10' \
-    '当前 CLI envelope 显式升为 schema v10、Flutter bridge contract 升为 v9' \
+    'CLI JSON schema v10；Flutter bridge contract v9' \
     >"$fixture/docs/development/testing.md"
   printf '%s\n' \
     'human/JSON schema v10' \

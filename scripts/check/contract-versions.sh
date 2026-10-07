@@ -100,7 +100,7 @@ if [[ -n $cli_version ]]; then
   require_literal 'docs/architecture/overview.md' "CLI envelope 的 schema v${cli_version}"
   require_literal 'docs/migration/status.md' "CLI JSON schema v${cli_version}"
   require_literal 'docs/development/testing.md' "human/JSON schema v${cli_version}"
-  require_literal 'docs/development/testing.md' "当前 CLI envelope 显式升为 schema v${cli_version}"
+  require_literal 'docs/development/testing.md' "CLI JSON schema v${cli_version}"
   require_literal 'docs/development/engineering-standards.md' "human/JSON schema v${cli_version}"
   require_literal 'docs/development/engineering-standards.md' "当前 CLI envelope 为 schema v${cli_version}"
   require_literal 'docs/runbooks/live-auth-verification.md' "schema-v${cli_version} envelope"
@@ -114,7 +114,7 @@ if [[ -n $bridge_version ]]; then
   require_literal 'docs/contracts/flutter-bridge.md' "\`u32=${bridge_version}\`"
   require_literal 'docs/architecture/overview.md' "Flutter bridge contract v${bridge_version}"
   require_literal 'docs/migration/status.md' "Flutter bridge contract v${bridge_version}"
-  require_literal 'docs/development/testing.md' "Flutter bridge contract 升为 v${bridge_version}"
+  require_literal 'docs/development/testing.md' "Flutter bridge contract v${bridge_version}"
   require_literal 'docs/development/engineering-standards.md' "Flutter bridge 当前 contract 为 v${bridge_version}"
 fi
 

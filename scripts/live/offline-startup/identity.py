@@ -23,7 +23,7 @@ def file_set_digest(root, names):
 def identity(repo, app, kind, device):
     # 只对构建输入求摘要；输出不含源码、路径内的个人数据或环境变量。
     roots = ["crates", "packages", "apps/ubaa_flutter/lib",
-             "apps/ubaa_flutter/integration_test/offline/performance",
+             "apps/ubaa_flutter/integration_test/live/performance",
              "apps/ubaa_flutter/macos", "apps/ubaa_flutter/ios",
              "scripts/live/offline-startup", "Cargo.toml", "Cargo.lock"]
     tracked = run(["git", "ls-files", "-z", "--cached", "--others",

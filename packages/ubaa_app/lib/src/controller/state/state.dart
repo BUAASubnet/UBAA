@@ -463,6 +463,7 @@ abstract class ControllerState extends ControllerOperations {
 
 /// 宿主本地偏好的拥有者及其生命期，不包含凭据或写资格。
 final class LocalDataOwnerScope {
+  @internal
   LocalDataOwnerScope.capture(this._controller)
     : _epoch = _controller.internalLifecycleEpoch,
       accountKey = _controller.internalUser?.schoolId?.trim().isNotEmpty == true

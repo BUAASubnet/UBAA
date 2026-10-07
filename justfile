@@ -36,6 +36,7 @@ check-strict:
 _rust-shell-contracts:
     just script-test
     just integration-check
+    just module-check
     bash ./scripts/tests/layout.sh
     bash ./scripts/tests/contract-versions.sh
     bash ./scripts/tests/references.sh
@@ -90,9 +91,18 @@ flutter-codegen-check:
 flutter-check:
     bash ./scripts/check/flutter-workspace.sh
 
+# 普通测试快速入口，例如 just flutter-test ubaa_app test/features/grades。
+flutter-test package path="test":
+    bash ./scripts/tests/flutter-package.sh "{{package}}" "{{path}}"
+
+# 默认定位手写源码；历史验收元数据不混入结果。
+source-files:
+    rg --files apps crates packages scripts -g '!**/cargokit/**' -g '!**/frb_generated.rs' -g '!**/lib/src/rust/**'
+
 # 不访问学校或设备的 Python 行为合同。
 script-test:
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/integration_catalog_test.py
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/module_graph_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/live/offline-startup/analyze_test.py
 
 # 集成入口必须全部分类，真实只读和人工巡检不进入普通回归。
@@ -101,6 +111,9 @@ integration-check:
 
 integration-list:
     python3 scripts/check/integration_catalog.py list
+
+module-check:
+    python3 scripts/check/module_graph.py
 
 integration-test suite="ci" platform="macos" device="macos":
     python3 scripts/check/integration_catalog.py run --suite "{{suite}}" --platform "{{platform}}" --device "{{device}}"

@@ -40,6 +40,22 @@ just core-test-contract
 单元/集成与 Rustdoc、启用 `test-contract` 的全目标测试，以及测试注入关闭时的预期编译失败合同；修改
 Core 可见性、测试构造器或宿主依赖边界时使用该完整入口。
 
+## 领域回归与原生入口
+
+```bash
+just source-files
+just flutter-test ubaa_app test/features/grades
+just flutter-test ubaa_ui test/query
+just module-check
+just script-test
+just integration-check
+just integration-list
+just integration-test
+just integration-test synthetic/cache/bridge_test.dart macos macos
+```
+
+`flutter-test` 只运行包内普通 test 路径。集成清单的 `kind/platforms/runner/environment/defines` 区分合成、平台、真实只读和人工入口；默认 CI 集合不包含真实账号或人工 driver。人工启动示例：在 apps/ubaa_flutter 下运行 `flutter run -d macos -t integration_test/manual/app/flow_driver.dart`。完整说明见[测试策略](testing.md)。
+
 ## Flutter 与无签名平台构建
 
 ```bash

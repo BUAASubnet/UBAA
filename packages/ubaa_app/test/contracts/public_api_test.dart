@@ -1,0 +1,353 @@
+// 下面的具名函数仅承担编译期公共 API 合同；不以手写名字或函数数量代替导出验证。
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ubaa_app/ubaa_app.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_platform/ubaa_platform.dart';
+
+void main() {
+  test('唯一写协调器和回读器可从公共入口导入', () {
+    final coordinator = WriteCoordinator(
+      commit: (_) async => throw StateError('公共入口编译合同不提交'),
+      receiptVerifier: const WriteReceiptVerifier(),
+    );
+    final WriteFlowController legacy = coordinator;
+    expect(identical(legacy, coordinator), isTrue);
+    expect(coordinator.state, isA<WriteState>());
+    coordinator.dispose();
+  });
+}
+
+List<Object?> verifyBackendInterfaceSignatures(
+  UbaaBackend backend,
+  RouteSettingsBackend routeSettingsBackend,
+  FeatureQueryBackend featureQueryBackend,
+  CgyyCancellationReadbackBackend cgyyCancellationReadbackBackend,
+  YgdkSubmissionReadbackBackend ygdkSubmissionReadbackBackend,
+  EvaluationSubmissionReadbackBackend evaluationSubmissionReadbackBackend,
+  WriteCommitBackend writeCommitBackend,
+  WriteIntentDiscardBackend writeIntentDiscardBackend,
+  BykcWriteBackend bykcWriteBackend,
+  SigninWriteBackend signinWriteBackend,
+  CancellationWriteBackend cancellationWriteBackend,
+  LibbookWriteBackend libbookWriteBackend,
+  YgdkWriteBackend ygdkWriteBackend,
+  CgyyWriteBackend cgyyWriteBackend,
+  EvaluationWriteBackend evaluationWriteBackend,
+  BackendLifecycle backendLifecycle,
+) {
+  final Future<AuthStatus> Function() authStatus = backend.authStatus;
+  final Future<UserSummary?> Function() userInfo = backend.userInfo;
+  final Future<void> Function(RoutePolicy) prepareLogin = backend.prepareLogin;
+  final Future<void> Function(LoginInput) login = backend.login;
+  final Future<void> Function() logout = backend.logout;
+  final Future<FeatureResult> Function(FeatureId) loadFeature =
+      backend.loadFeature;
+  final Future<BackendRouteSettings> Function() routeSettings =
+      routeSettingsBackend.routeSettings;
+  final Future<FeatureResult> Function(FeatureId, FeatureQuery)
+  loadFeatureQuery = featureQueryBackend.loadFeatureQuery;
+  final Future<FeatureResult> Function({
+    required ConnectionMode route,
+    required int page,
+    required int size,
+  })
+  loadCgyyOrdersOnRoute = cgyyCancellationReadbackBackend.loadCgyyOrdersOnRoute;
+  final Future<FeatureResult> Function({
+    required ConnectionMode route,
+    required int orderId,
+  })
+  loadCgyyOrderDetailOnRoute =
+      cgyyCancellationReadbackBackend.loadCgyyOrderDetailOnRoute;
+  final Future<FeatureResult> Function({required ConnectionMode route})
+  loadYgdkOverviewOnRoute =
+      ygdkSubmissionReadbackBackend.loadYgdkOverviewOnRoute;
+  final Future<FeatureResult> Function({
+    required ConnectionMode route,
+    required int page,
+    required int size,
+  })
+  loadYgdkRecordsOnRoute = ygdkSubmissionReadbackBackend.loadYgdkRecordsOnRoute;
+  final Future<FeatureResult> Function({required ConnectionMode route})
+  loadEvaluationOnRoute =
+      evaluationSubmissionReadbackBackend.loadEvaluationOnRoute;
+  final Future<WriteCommitResult> Function(String) commitWrite =
+      writeCommitBackend.commitWrite;
+  final Future<void> Function(String) discardWriteIntent =
+      writeIntentDiscardBackend.discardWriteIntent;
+  final WriteIntentDiscardBackend commitDiscardBackend = writeCommitBackend;
+  final WriteIntentDiscardBackend bykcDiscardBackend = bykcWriteBackend;
+  final WriteIntentDiscardBackend signinDiscardBackend = signinWriteBackend;
+  final WriteIntentDiscardBackend cancellationDiscardBackend =
+      cancellationWriteBackend;
+  final WriteIntentDiscardBackend libbookDiscardBackend = libbookWriteBackend;
+  final WriteIntentDiscardBackend ygdkDiscardBackend = ygdkWriteBackend;
+  final WriteIntentDiscardBackend cgyyDiscardBackend = cgyyWriteBackend;
+  final WriteIntentDiscardBackend evaluationDiscardBackend =
+      evaluationWriteBackend;
+  final Future<WriteIntent> Function({required int courseId})
+  prepareBykcSelectCourse = bykcWriteBackend.prepareBykcSelectCourse;
+  final Future<WriteIntent> Function({required int courseId})
+  prepareBykcDeselectCourse = bykcWriteBackend.prepareBykcDeselectCourse;
+  final Future<WriteIntent> Function({
+    required int courseId,
+    double? lat,
+    double? lng,
+    required int signType,
+  })
+  prepareBykcSignCourse = bykcWriteBackend.prepareBykcSignCourse;
+  final Future<WriteIntent> Function({required String courseId})
+  prepareSigninPerform = signinWriteBackend.prepareSigninPerform;
+  final Future<WriteIntent> Function({
+    required String id,
+    required int page,
+    required int limit,
+  })
+  prepareLibbookCancelBooking =
+      cancellationWriteBackend.prepareLibbookCancelBooking;
+  final Future<WriteIntent> Function({required int id}) prepareCgyyCancelOrder =
+      cancellationWriteBackend.prepareCgyyCancelOrder;
+  final Future<WriteIntent> Function({
+    required String areaId,
+    required String seatId,
+    required String day,
+    required String segment,
+    required String startTime,
+    required String endTime,
+  })
+  prepareLibbookReserve = libbookWriteBackend.prepareLibbookReserve;
+  final Future<WriteIntent> Function(YgdkSubmitInput) prepareYgdkSubmit =
+      ygdkWriteBackend.prepareYgdkSubmit;
+  final Future<WriteIntent> Function(CgyySubmitInput)
+  prepareCgyySubmitReservation = cgyyWriteBackend.prepareCgyySubmitReservation;
+  final Future<WriteIntent> Function(List<EvaluationSubmitTarget>)
+  prepareEvaluationSubmitCourses =
+      evaluationWriteBackend.prepareEvaluationSubmitCourses;
+  final Future<void> Function() dispose = backendLifecycle.dispose;
+
+  return <Object?>[
+    authStatus,
+    userInfo,
+    prepareLogin,
+    login,
+    logout,
+    loadFeature,
+    routeSettings,
+    loadFeatureQuery,
+    loadCgyyOrdersOnRoute,
+    loadCgyyOrderDetailOnRoute,
+    loadYgdkOverviewOnRoute,
+    loadYgdkRecordsOnRoute,
+    loadEvaluationOnRoute,
+    commitWrite,
+    discardWriteIntent,
+    commitDiscardBackend,
+    bykcDiscardBackend,
+    signinDiscardBackend,
+    cancellationDiscardBackend,
+    libbookDiscardBackend,
+    ygdkDiscardBackend,
+    cgyyDiscardBackend,
+    evaluationDiscardBackend,
+    prepareBykcSelectCourse,
+    prepareBykcDeselectCourse,
+    prepareBykcSignCourse,
+    prepareSigninPerform,
+    prepareLibbookCancelBooking,
+    prepareCgyyCancelOrder,
+    prepareLibbookReserve,
+    prepareYgdkSubmit,
+    prepareCgyySubmitReservation,
+    prepareEvaluationSubmitCourses,
+    dispose,
+  ];
+}
+
+List<Object?> verifyBackendValueSignatures(
+  UnavailableBackend unavailableBackend,
+  DemoBackend demoBackend,
+) {
+  const AuthStatus status = AuthStatus.signedOut;
+  final BackendException Function(UbaaErrorCode, {String? detail})
+  exceptionConstructor = BackendException.new;
+  final BackendRouteSettings Function({
+    required RoutePolicy defaultPolicy,
+    required List<ConnectionMode> activeRoutes,
+  })
+  routeSettingsConstructor = BackendRouteSettings.new;
+  final BackendFactory backendFactory = createProductionBackend;
+  final UbaaBackend Function() productionFactory = createProductionBackend;
+  final UnavailableBackend Function() unavailableConstructor =
+      UnavailableBackend.new;
+  final DemoBackend Function({Duration loginDelay}) demoConstructor =
+      DemoBackend.new;
+  final UbaaBackend unavailableAsBackend = unavailableBackend;
+  final BackendLifecycle unavailableAsLifecycle = unavailableBackend;
+  final UbaaBackend demoAsBackend = demoBackend;
+
+  return <Object?>[
+    status,
+    exceptionConstructor,
+    routeSettingsConstructor,
+    backendFactory,
+    productionFactory,
+    unavailableConstructor,
+    demoConstructor,
+    unavailableAsBackend,
+    unavailableAsLifecycle,
+    demoAsBackend,
+  ];
+}
+
+List<Object?> verifyControllerSignatures(
+  LoginFormState loginForm,
+  AppController appController,
+) {
+  const AppPhase phase = AppPhase.splash;
+  final LoginFormState Function({
+    String username,
+    String password,
+    String captcha,
+    bool rememberPassword,
+    bool autoLogin,
+    RoutePolicy routePolicy,
+  })
+  loginFormConstructor = LoginFormState.new;
+  final LoginFormState Function({
+    String? username,
+    String? password,
+    String? captcha,
+    bool? rememberPassword,
+    bool? autoLogin,
+    RoutePolicy? routePolicy,
+  })
+  copyLoginForm = loginForm.copyWith;
+  final AppController Function({
+    required UbaaBackend backend,
+    BackendFactory? backendFactory,
+    CredentialVault? credentialVault,
+    TelemetryClient? telemetry,
+  })
+  appControllerConstructor = AppController.new;
+  final AppPhase Function(AppController) readPhase = (controller) =>
+      controller.phase;
+  final YgdkReadbackState Function(AppController) readYgdkReadback =
+      (controller) => controller.ygdkReadbackState;
+  final bool Function(AppController) readYgdkSubmissionCapabilities =
+      (controller) => controller.hasYgdkSubmissionBackendCapabilities;
+  final bool Function(AppController) readEvaluationSubmissionCapabilities =
+      (controller) => controller.hasEvaluationSubmissionBackendCapabilities;
+  final UiError Function(UbaaErrorCode) mapError = UbaaErrorMapper.fromCode;
+  final Future<WriteIntent> Function(LibbookReserveAction)
+  prepareLibbookReserveWrite = appController.prepareLibbookReserveWrite;
+  final Future<WriteIntent> Function(LibbookCancelAction)
+  prepareLibbookCancelWrite = appController.prepareLibbookCancelWrite;
+  final Future<void> Function({required ConnectionMode expectedRoute})
+  refreshYgdkAfterWrite = appController.refreshYgdkAfterWrite;
+  final Future<void> Function({required ConnectionMode expectedRoute})
+  refreshEvaluationAfterWrite = appController.refreshEvaluationAfterWrite;
+
+  return <Object?>[
+    phase,
+    loginFormConstructor,
+    copyLoginForm,
+    appControllerConstructor,
+    readPhase,
+    readYgdkReadback,
+    readYgdkSubmissionCapabilities,
+    readEvaluationSubmissionCapabilities,
+    mapError,
+    prepareLibbookReserveWrite,
+    prepareLibbookCancelWrite,
+    refreshYgdkAfterWrite,
+    refreshEvaluationAfterWrite,
+    appController,
+  ];
+}
+
+List<Object?> verifyWriteControllerSignatures(
+  WriteCommitter writeCommitter,
+  WritePreparer writePreparer,
+  WriteDiscarder writeDiscarder,
+  WriteFlowController writeFlowController,
+) {
+  final Future<WriteCommitResult> Function(String) commit = writeCommitter;
+  final Future<WriteIntent> Function() prepareIntent = writePreparer;
+  final Future<void> Function(String) discard = writeDiscarder;
+  final WriteFlowController Function({
+    required WriteCommitter commit,
+    WriteDiscarder? discard,
+  })
+  controllerConstructor = WriteFlowController.new;
+  final void Function(WriteIntent) setIntent = writeFlowController.setIntent;
+  final Future<WriteIntent?> Function(WritePreparer) prepare =
+      writeFlowController.prepare;
+  final Future<void> Function() cancel = writeFlowController.cancel;
+  final Future<WriteCommitResult?> Function() confirm =
+      writeFlowController.confirm;
+
+  return <Object?>[
+    commit,
+    prepareIntent,
+    discard,
+    controllerConstructor,
+    setIntent,
+    prepare,
+    cancel,
+    confirm,
+  ];
+}
+
+List<Object?> verifyBridgeSignatures(BridgeBackend bridgeBackend) {
+  verifyBridgeClientShape(BridgeBackend.new, (backend) => backend.client);
+  final BridgeBackend Function(String) open = BridgeBackend.open;
+  final Future<BackendRouteSettings> Function(RoutePolicy)
+  setDefaultRoutePolicy = bridgeBackend.setDefaultRoutePolicy;
+  final Future<BackendRouteSettings> Function() routeSettings =
+      bridgeBackend.routeSettings;
+  final UbaaBackend Function() productionFactory = createProductionBackend;
+  final UbaaBackend backend = bridgeBackend;
+  final RouteSettingsBackend routeBackend = bridgeBackend;
+  final FeatureQueryBackend queryBackend = bridgeBackend;
+  final CgyyCancellationReadbackBackend cgyyReadbackBackend = bridgeBackend;
+  final YgdkSubmissionReadbackBackend ygdkReadbackBackend = bridgeBackend;
+  final EvaluationSubmissionReadbackBackend evaluationReadbackBackend =
+      bridgeBackend;
+  final WriteCommitBackend commitBackend = bridgeBackend;
+  final WriteIntentDiscardBackend discardBackend = bridgeBackend;
+  final BykcWriteBackend bykcBackend = bridgeBackend;
+  final SigninWriteBackend signinBackend = bridgeBackend;
+  final CancellationWriteBackend cancellationBackend = bridgeBackend;
+  final LibbookWriteBackend libbookBackend = bridgeBackend;
+  final YgdkWriteBackend ygdkBackend = bridgeBackend;
+  final CgyyWriteBackend cgyyBackend = bridgeBackend;
+  final EvaluationWriteBackend evaluationBackend = bridgeBackend;
+  final BackendLifecycle lifecycle = bridgeBackend;
+
+  return <Object?>[
+    open,
+    setDefaultRoutePolicy,
+    routeSettings,
+    productionFactory,
+    backend,
+    routeBackend,
+    queryBackend,
+    cgyyReadbackBackend,
+    ygdkReadbackBackend,
+    evaluationReadbackBackend,
+    commitBackend,
+    discardBackend,
+    bykcBackend,
+    signinBackend,
+    cancellationBackend,
+    libbookBackend,
+    ygdkBackend,
+    cgyyBackend,
+    evaluationBackend,
+    lifecycle,
+  ];
+}
+
+void verifyBridgeClientShape<TClient>(
+  BridgeBackend Function(TClient) constructor,
+  TClient Function(BridgeBackend) client,
+) {}

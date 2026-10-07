@@ -1,8 +1,6 @@
 # UBAA2 工程规范
 
-本文适用于 Rust Core/CLI/Test Support、Flutter/FRB/OHOS、测试、脚本、文档与 CI。当前产品范围是已完成的
-Flutter 六平台无签名执行目标；正式签名、实体设备、原生安全存储和商店发布仍是后置条件。当前结构治理
-必须保持现有协议、公开合同、用户行为和安全边界不变。
+本文适用于 Rust Core/CLI、Flutter/FRB/OHOS、测试、脚本、文档与 CI。实现状态及各平台验收分别由[当前状态](../migration/status.md)记录；本规范不声明整体项目或发布已完成。结构治理保持既有协议、公开合同、用户行为与安全边界。
 
 ## 权威与来源
 
@@ -23,13 +21,14 @@ Cookie/Session/Token 作用域、HTTP 方法和精确参数、Header/正文、�
 - 受版本控制的手写代码文件不得超过 1000 行，一个目录直属手写源码不得超过 16 个；临时例外只由
   结构棘轮 baseline 管理，不得新增。
 
-详细目标树、迁移顺序与例外见[代码与目录组织设计](../architecture/code-organization.md)和
-[实施计划](../superpowers/plans/2026-09-03-code-organization.md)。
+现行目标树与组织约束见[代码与目录组织设计](../architecture/code-organization.md)和
+[现行模块决策](../adr/0006-explicit-dart-modules.md)。
+
+`just module-check` 补充 library 聚合规模、part 归属与依赖环检查；内部 Controller 操作使用 `@internal`，宿主不得绕过公共 API。独立测试不依赖聚合入口注册；原生入口必须登记到可执行清单。
 
 ## 跨宿主边界
 
-下表是已经落实的所有权约束。阶段 04 已将输出/退出策略迁入 CLI，阶段 06C 已收窄 Core 私有实现与测试
-注入面；不得重新引入跨 facade 的生产依赖。Core 根部的稳定 `domain/error` 旧路径只用于类型兼容，不是宿主入口。
+下表是当前所有权约束。输出/退出策略属于 CLI；Core 私有实现与测试注入面不能成为跨 facade 的生产依赖。Core 根部的稳定 `domain/error` 旧路径只用于类型兼容，不是宿主入口。
 
 | 层/宿主 | 允许依赖 | 禁止依赖 | 输出与错误要求 |
 |---|---|---|---|

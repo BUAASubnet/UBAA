@@ -43,6 +43,8 @@ import 'write/readback.dart' show ControllerWriteReadbacks;
 export 'state/types.dart' show AppPhase, SessionRecoveryStatus, LoginFormState;
 export 'state/state.dart' show LocalDataOwnerScope;
 
+/// 应用唯一的状态与通知实例；宿主仅使用公共查询、命令和扩展。
+/// 局部实现共享同一账号代次、快照与写协调器，不建立独立通知代理。
 class AppController extends ControllerState
     with
         ControllerLockDisplay,

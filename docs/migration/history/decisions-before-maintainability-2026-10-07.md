@@ -1,0 +1,1843 @@
+> 历史快照：原位置 `docs/migration/decision-log.md`。内容保留为来源与阶段证据，不作为当前执行合同或目录规范。
+
+## 2026-10-07：可持续开发性审查
+
+按用户要求审查目录、模块组织和测试维护成本，基线为 `1e6935fe`。具体证据及分阶段建议见[审查报告](../maintainability-audit-2026-10-07.md)。本轮仅记录审查，不修改生产逻辑或删除测试。建议保留顶层与语言生态命名，优先修复测试交互旁路、登记集成入口，再按领域解除大型 Dart library 的隐式耦合。现有结构门禁通过不能证明模块边界合理；测试删减需逐项核对独有行为，不能按数量或名字裁撤。
+
+## 2026-09-17 安全材料和缓存密钥接线
+
+独立账号索引、密码和随机缓存密钥使用系统安全存储；业务内容只归 Core 加密仓库。官方五端采用固定 flutter_secure_storage 10.0.0，OHOS 通过专属 HUKS 通道，不复用照片通道。macOS 插件参数拼写差异已由真实 -34018 失败定位并兼容为登录钥匙串，未改变沙箱或采用明文。来源和运行边界见 [离线对照](../source-parity-offline-recovery-2026-09-17.md)；该阶段尚未接入首页启动，不声称已实现离线首页。
+
+## 2026-09-17 所需路线恢复边界
+
+新增单路线会话校验出口，使用现有 Core 功能路由矩阵并返回实际路线及 AuthStatus；旧聚合接口保持不变。不在会话校验中提交密码，不因业务缓存或本地账号索引授予认证状态。逐项证据见 [来源对照](../source-parity-offline-recovery-2026-09-17.md)。安全凭据原生 handler 当前未接入，需本任务补齐，不能依赖现有 Dart Mock 宣称具备安全业务缓存。
+
+# 决策记录
+
+## 2026-09-17：围绕用户任务设计本地首页与立即恢复登录
+
+用户明确将启动流程调整为“进入离线首页后直接开始恢复登录”。设计采用独立的展示、认证、同步状态；
+可恢复账号的首页首帧后必启动或合并恢复任务，用户当前任务决定后续读取优先级。
+复用有效会话，失效后使用获准自动使用的安全凭据；缺少材料时原位提示，不假称登录成功。
+缓存仅提供展示依据，不恢复写资格或自动提交；长查询需在 Core 安全边界分段让位。
+完整场景、十二领域策略、希冀早停边界和 P0–P5 实施／验收见[设计提案](../../design/offline-home-and-background-sync.md)。
+本次仅产出文档，尚未修改认证、缓存、协议或生产实现；完整 UI/UX 计划保持暂停。
+
+## 2026-09-17：首页按展示来源加载
+
+默认十二领域请求在 Bridge 同一客户端锁内排队，无关查询阻塞待办。
+按冻结旧版首页职责，仅预载今日课表、签到、SPOC、希冀、阳光概览；博雅已选、订单、周次和成绩检查
+保留专用链路，其他默认页首次访问时加载。不拆分会话或删除锁，不改协议。
+来源、RED 与验收见[首页性能记录](../source-parity-home-loading-2026-09-17.md)。完整 UI/UX 目标继续暂停。
+
+## 2026-09-17：冻结 buaa-api 引用更新至最新上游
+
+用户要求将 `buaa-api` 引用更新至最新版。
+
+- 冻结引用从 `efb7976bf513f38364b88aeb83d704586cff9b2a` 更新至上游 `main` 分支最新提交 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`（“refactor(class): Refresh token early in `ClassAPI` when VPN mode”）。
+- `scripts/check/references.sh` 与 `scripts/bootstrap/references.sh` 同步更新目标预期提交。
+- `docs/migration/references.md`、`docs/migration/status.md` 及 `THIRD_PARTY_NOTICES.md` 同步更新声明。
+- 纯只读校验门禁 `just refs` 与引用合同测试 `scripts/tests/references.sh` 已完成 RED-GREEN 验证并全量通过。
+
+## 2026-09-17 课堂签到追加修复
+
+以用户指定的当前冻结旧版为协议权威；此前“全面对齐两份来源”及 sessionId/loginName 可混用的描述由[逐操作修正记录](../source-parity-signin-2026-09-17.md)取代。本轮修复旧版登录入口、严格业务会话和数字时间戳，完整 UI 目标保持暂停。
+
+## 2026-09-17：整理时校正签到历史描述
+
+待提交的早期说明仍描述 `sessionId` 缺失时回退 `login_name`，与已经提交的签到修正冲突。
+本次统一引用[逐操作修正记录](../source-parity-signin-2026-09-17.md)：采用旧版业务登录和严格会话，
+保留 Direct/WebVPN 端口与路径差异，不将两份来源的不同协议拼接，也不扩大既有实时验证结论。
+
+## 2026-09-17：冻结旧版引用更新至最新上游并收纳至 examples/
+
+用户明确要求将冻结旧版代码库 `ubaa_old` 更新至 GitHub 上游最新并移至 `examples/` 目录下。
+
+- 目标路径由根目录 `ubaa_old/` 调整为 `examples/ubaa_old/`，根目录下重复的 `ubaa_old/` 予以清理。
+- 冻结引用从 `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 更新至上游 `main` 分支最新提交 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`（标签 `v1.8.0`，“修复课表在线加载与本地化并重新发布 1.8.0”）。
+- `scripts/check/references.sh` 与 `scripts/bootstrap/references.sh` 同步更新目标检查与 bootstrap 路径及预期提交。
+- 纯只读校验门禁 `just refs` 与引用合同测试 `scripts/tests/references.sh` 已完成 RED-GREEN 验证并全量通过。
+
+## 2026-09-07：贯通安全错误诊断并保持既有业务权威
+
+本轮按用户授权完成可维护性治理，采用现有架构内的渐进修复。app 错误映射委托 platform，
+保留 Bridge 原有的 code/kind/retryable/resolved_route；parse_error 不再丢失身份，结果未知
+禁止通用重试。外部 message 不再通过关键词过滤冒充安全详情，新增诊断只允许枚举、编号、
+时间、耗时及筛选后的项目源码位置，默认本机有界内存且由用户主动复制。
+
+Core 安全传输事件与 Bridge 的默认接收器使用精确 DEBUG 四字段过滤。曾使用 WARN，
+完整 CLI E2E 实际发现默认 JSON stderr 被污染，因此以原断言为回归改成 DEBUG；不修改
+CLI 公共输出、HTTP 请求或写入次数。失效意图清理与过期遥测 flush 不进入当前代次诊断。
+
+严格验收必须实际执行 ShellCheck 0.11.0。macOS 权限从产物读取且必须是布尔 true，正式
+入口固定系统工具；测试注入仅位于函数夹具。真实 APK 检查还暴露 Bash 3 空数组清理错误，
+已通过真实 ZIP 回归修复。版本门禁保留权威版本检查，解除对历史状态表格排版的依赖。
+
+来源见[前置对照](../source-parity-maintainability.md)与[传输来源记录](../source-parity-maintainability-transport.md)，
+设计见[治理设计](../../superpowers/specs/2026-09-07-maintainability-design.md)，实现与验收见
+[本轮记录](../evidence/2026-09-07-maintainability.md)。真实 App/Core-live 仍暂停，本轮本地构建、
+Fixture/Mock 和宿主 integration 不替代真实系统或正式发布。
+
+## 2026-09-07：修复 macOS 沙箱主动联网权限
+
+用户明确授权修复 MACOS-001 并重新打开 App，由用户登录。真实 App 进程 81365 的系统记录为
+`deny(1) network-outbound`；实际签名启用 App Sandbox，却缺少 `com.apple.security.network.client`。
+按 Apple 的客户端网络 entitlement 定义，仅在 DebugProfile 与 Release 配置补齐该布尔权限，保留沙箱及其它权限。
+
+冻结 `ubaa_old` 在固定提交的 `composeApp/build.gradle.kts` 使用 Compose Desktop/JVM 分发，未提供
+等价 Flutter macOS entitlement；固定 `examples/buaa-api/Cargo.toml` 是 Rust API 库，同样没有等价宿主配置。
+本次不改变任何 CAS/service URL、跳转、Cookie/Session 范围、方法/参数、Header/正文、加密、DTO、缓存并发或错误协议，
+继续沿用既有来源矩阵；不得从平台权限修复类推上游协议。
+
+新增的 macOS 权限回归以 `plutil` 解析两份真实配置，同时要求沙箱和主动连接为 true。
+修复前已观察到 DebugProfile 的客户端权限为 null 而失败；修复后官方 App 3 项测试、静态分析与完整
+`just check` 通过，macOS Debug 正常构建，实际签名中沙箱和 network.client 均为 true。
+新产物相同相对路径 checker SHA-256 为 `37eed9dad817349c5125872ad7970bfb2bf2b7b42bbd6a03032cfd005312eb9f`。
+用户随后确认 App 可以登录，并因校园网负载较高要求暂停实测、整理提交推送。该登录为用户确认的基础成功，
+不是逐路线或十二领域矩阵通过；本轮未构建 Release 包，没有正式签名发布或业务写入。
+
+## 2026-09-05：将既有视觉基线的宿主条件显式纳入 CI
+
+候选 `06333190081f20b5eee0a8b20986b46aad9265b7` 的本地 19 项、五平台原生 CI
+[33970695279](https://github.com/BUAASubnet/UBAA/actions/runs/33970695279) 和 Windows/macOS Rust job
+均通过。合同 CI [33970695247](https://github.com/BUAASubnet/UBAA/actions/runs/33970695247) 已通过完整
+Rust/Shell，但 Linux UI 92 项通过、3 组 golden 测试失败；实际比较失败 15 张，差异为 0.38%–2.19%，
+另 11 张响应式图片因测试提前结束而没有本次 Linux 比较结论。26 张原图与锁定整理基线逐字节相同。
+
+锁定 Flutter `00b0c91f06209d9e4a41f71b7a512d6eb3b9c694` 的
+`packages/flutter/lib/src/foundation/_platform_io.dart` 在 `FLUTTER_TEST` 下将默认平台设为 Android，
+故不能归因于两端默认 TargetPlatform 不同。SDK 的 `matchesGoldenFile` 文档明确指出跨操作系统字体渲染
+可能不同；engine 的测试字体仍经 macOS CoreText 与 Linux FreeType 各自加载。现有证据支持宿主环境差异，
+尚未取得 Linux failure 图来确定具体像素来源，不推断缺少中文字体或改变生产主题。
+
+阶段 14D 仅调整 CI：完整 `just flutter-check` 独立运行于 `macos-15`，使用同一固定 Flutter SDK，
+保留全部测试、golden 原图和严格像素比较。Linux 继续执行 refs、结构、敏感、完整 Rust/Shell、FRB 及
+发布预检；FRB 前显式安装 bindings 锁定依赖，消除对先前 Flutter 全工作区检查的隐式初始化依赖。
+新 job 失败时只保存脱敏测试生成的 `test/failures/*.png`。完整 workflow 的四个 job 均须终态成功，
+本机通过不能提前证明新的 macOS CI 图像完全一致。
+
+CI 修复提交为 `503f15bd`；本机完整 `just check`、374 项 Flutter 检查、YAML 结构解析、808 文件
+敏感扫描与独立复审通过。新候选仍需同 SHA 的全套本地与远端终态证据。
+
+本次还按锁定基线逐行复核 UI 历史大小，将设计页的初始审查 4030 行更正为实际 4046 行；行为收敛后的
+3883 行、当前 27 行入口、21 个实现 part、最大 484 行及 15/2/17 项违例清零均不变。
+
+## 2026-09-05：Just dry-run 输出通道的版本兼容性
+
+候选 `a19cc7f2f60fd82dec86e9d606e1fde564956118` 完整通过本地 19 项验收，Direct/WebVPN 各为
+39 PASS、1 NOT_APPLICABLE、0 FAIL；Windows 与 macOS Rust CI 均通过。合同 CI
+[run 33968790247](https://github.com/BUAASubnet/UBAA/actions/runs/33968790247) 仍在引用 Shell 合同失败：
+CI 安装 Just 1.58.0，本机此前为 1.51.0，`--dry-run` 的输出通道差异使只捕获 stdout 的断言为空。
+
+本机 Bash 3.2 还会漏报旧脚本裸 `[[ ]]` 断言的失败，原脚本退出 0 不能证明这些条件成立。因此先将六个
+原条件改为显式 `if` 失败诊断与 `exit 1`，在 Just 1.58.0 下取得真实 RED，再让五处捕获完整读取
+dry-run 的 stdout/stderr。两个 Just 版本随后均为 GREEN，失败命令的退出码仍原样传播，三种 cwd 的
+副作用边界条件保持不变。后续最终本地门禁显式采用与本次 CI
+相同的 Just 1.58.0 和 ShellCheck 0.11.0。没有修改真实 refs/bootstrap 或放宽冻结引用校验。
+
+修复提交 `fbcbbdb9`；ShellCheck 0.11.0、语法、完整 `just check` 与独立复审均通过。
+五平台原生 CI [run 33968790269](https://github.com/BUAASubnet/UBAA/actions/runs/33968790269) 也已终态成功，
+但这只属于旧候选；包含修复与本记录的新候选仍必须完整重新验收。
+
+## 2026-09-05：固定 Flutter 冷启动下载进度的输出合同
+
+候选 `bef16ee53b065df350ba9b8681422ea3e47444b2` 的合同 CI
+[run 33966609776](https://github.com/BUAASubnet/UBAA/actions/runs/33966609776) 在官方 SDK 冷启动阶段失败：
+捕获到的首行是 curl 进度表，版本检查因此拒绝。锁定 Flutter
+`00b0c91f06209d9e4a41f71b7a512d6eb3b9c694` 的 `bin/internal/update_dart_sdk.sh` 第 146、160 行将
+curl 的 stderr 合入 stdout；此前只检查 `shared.sh` 的 bootstrap/pub stderr 不足以证明整个冷启动输出。
+
+先用下载进度、空行和真实版本行的隔离假 SDK 复现失败，再完整消费命令输出并识别首条独立的
+`Flutter <version>` 版本行，精确比较版本 token。下载进度可以位于版本行前；普通诊断中包含 Flutter
+文字不能代替版本行，错误版本后出现正确版本也不能掩盖首条错误，版本前缀相同但更长的字符串必须拒绝。
+命令非零退出和 Git commit 检查继续保留。此修复只影响工具链检查，不修改业务协议或扩大运行副作用。
+
+同一候选的 Windows Rust 已通过编译与 Clippy，但 CLI 合同夹具因尝试创建引号等 Win32 不允许的文件名
+而报 `InvalidFilename`，未到达被测 CLI。修复只调整测试：Windows 传递隔离目录中的原始无文件路径，
+其它平台继续创建真实危险名称文件；所有平台共同运行直接覆盖引号、换行、路径分隔符、控制字符和首尾
+空白的文件名校验单元测试。保留 CLI 路由前失败、后端调用为零及安全 JSON 错误断言，不修改生产输入策略。
+
+测试修复提交为 `f0daed09`，冷启动修复为 `38ef75cf`。本地 CLI 全目标 128 项、工具链八项、完整
+`just check`、ShellCheck 0.11.0 及独立复审通过；隔离无缓存的固定官方 SDK 实际完成 Dart 下载和
+Flutter 工具编译后通过版本检查。原开发 SDK 未修改，该专项按补丁哈希留档，不冒充最终候选完整验收。
+
+`bef16ee5` 的两轮本地尝试均通过第 01–16 项，但 Cgyy 实时只读出现上游登录错误、超时及 HTTP 502。
+同提交的定向读取曾恢复通过，随后 Direct 与 WebVPN 均复现业务超时；安全日志只保留状态、路径、长度与摘要。
+这些失败不被局部成功或 CI 覆盖，也不用于猜改协议。代码修复提交后形成新候选，仍须完整本地与同 SHA CI 验收。
+
+## 2026-09-05：最终候选 CI 的工具链输出与 Windows 文件身份问题
+
+候选 `d43c177284e4be4beb63643b3cc79ec2ce8ff820` 的 19 项本地门禁全部通过，原生五平台
+[run 33962021922](https://github.com/BUAASubnet/UBAA/actions/runs/33962021922) 全部成功；合同
+[run 33962021960](https://github.com/BUAASubnet/UBAA/actions/runs/33962021960) 未通过，因此该候选不能作为完成证据。
+
+合同 job 首次启动 Flutter 时，`flutter --version | head -n 1` 提前关闭管道，使 Dart 报 Broken pipe
+并退出 255。修复须完整消费版本命令输出，仍拒绝错误 commit、版本与命令失败；先用隔离假 SDK 的长输出
+测试复现，不屏蔽 pipefail 或命令退出状态。
+
+Windows Rust job 在锁定 stable 1.95 上因 `MetadataExt::volume_serial_number/file_index` 的
+`windows_by_handle` 不稳定 API 编译失败。修复仅限 CLI 本地照片输入：采用锁文件已有的 `same-file 1.0.6`
+[公开 Handle API](https://docs.rs/same-file/1.0.6/same_file/struct.Handle.html)，从打开的文件取得身份并在整个
+比较期间持有句柄，保留普通文件、符号链接拒绝、1 字节至 10 MiB、读取上限和安全错误。追加同尺寸不同文件
+替换回归，禁止以大小、路径或时间戳冒充身份，不启用 nightly、不增加业务源码 unsafe。
+
+Unix 继续比较原有两次 `lstat` 的设备与 inode；Windows 以初检打开后持续持有的文件句柄作为身份锚点，
+再要求读取句柄和当前路径句柄都指向该文件。新增同尺寸替换用例在旧 Unix 实现上也通过；Windows 的原始
+失败证据是远端 stable 编译报 `E0658`，不把本地 Unix 回归宣称为 Windows 编译验证。
+
+这是宿主本地文件与工具链运行合同，不涉及两份冻结实现中的认证、读取或写入协议；现有逐操作来源矩阵、
+HTTP、DTO、Core/FRB、CLI schema v10、bridge v9、会话及真实写入边界均不改变。修复与记录提交后产生新的
+最终候选，必须重新执行 19 项本地门禁与两条同 SHA 的 CI；旧成功只保留为旧候选证据。
+
+CLI 修复提交为 `4017edd7`，工具链修复提交为 `7b8eed3a`。本地完整 `just check`、CLI 全 target 127 项、
+工具链六项隔离回归及修改脚本的 ShellCheck 0.11.0 均通过；这些阶段结果不能代替新候选的完整验收。
+
+同版本 ShellCheck 扩展到全部手写脚本后，发现 OHOS 命令路径未引用、共享 source 的检查器路径设置缺失、
+根目录定位未处理 `cd` 失败，以及两处裸 `! grep` 未形成可靠失败断言。OHOS 引用修复独立提交为
+`23066064`；脚本门禁修复提交为 `c21a12dd`，启用 `-x -P SCRIPTDIR`，对字面反引号与 trap 间接调用
+只作有注释的定点抑制，
+根目录定位失败立即返回，测试以显式分支拒绝错误。全量 ShellCheck 0.11.0 与完整 `just check` 已通过，
+最终候选仍从头执行含该版本 ShellCheck 的完整验收。
+
+## 2026-09-05：Phase 12 UI 机械拆分与 Core 入口归属
+
+以 `b6ff2c7` 的稳定单一写入状态为前提，UI 只按 `app/common/features/write` 提取同一 Dart library 的
+21 个 part；`widgets.dart` 从 3883 行缩为 27 行。公共导出、23 个原类及 295 个原成员保持，21 个提取
+helper 在原位置调用；两个大 build 的列表片段以原位 spread 展开，StateSetter 仍传入原 `setState`。
+AST 等价比较只忽略格式及无语义尾逗号，保留表达式、参数、求值位置、回调次序、文案、key 和 semantics。
+不增加 Widget 包装，26 张原 golden 的名称、长度与 SHA-256 均不变。
+
+领域目录沿 Core/bridge 已建立的归属：Signin 与 SPOC/Judge 一同放在 `assignments`；通用查询、详情列表、
+错误与分页归 `common`，写入表单和确认归 `write`。Flutter 完整 374 项及 macOS integration 复跑 7 项通过，
+FRB 零漂移。集成首轮在应用前台激活失败后发生一次页面切换 `pumpAndSettle` 超时；未改源码的完整复跑全绿，
+保留首轮失败记录，不以普通 widget 测试代替宿主集成证据。
+
+独立检查同时发现两个 Core 入口仍可更准确地表达所有权：`features/mod.rs` 仅组合领域与内部导出，
+通用 HTTP 实现原样移入 `features/http.rs`；`ports/mod.rs` 保留 DTO 与 trait，具体 Reqwest adapter
+原样移入 `ports/reqwest_transport.rs`。此项独立提交，7 组原源码/测试块逐字相同，协议适用边界与定向
+测试见 [入口来源对照](../source-parity-entry-modules.md)，不借机械整理变更协议。
+
+结构门禁的精确历史例外已清空。独立扫描确认 493 个手写文件均不超过 1000 行，135 个直属源码目录均不超过
+16 个文件。保留职责完整的 DTO、状态组合和横切测试文件，不为追求较小数字制造空模块或跨目录反向依赖。
+最终候选的完整门禁、两条实时只读路线和远端 CI 仍须依实施计划绑定同一提交。
+
+## 2026-09-05：Phase 11K 单一写入状态与会话生命周期所有权
+
+评教阶段已由 `4b0dcb0` 完成跨层实现与本地门禁。其后将原 `WriteFlowController` 演进为
+`ubaa_app/write/coordinator.dart`，旧名称保留为同一类型的兼容别名；`WriteState` 与一次性安全
+`WriteOutcome` 属于 `ubaa_domain/write/state.dart`，不在 UI 或 Host 复制 pending、提交、取消、错误状态。
+精确接口、回读矩阵和验证范围见 [协调器实施计划](../../superpowers/plans/2026-09-05-write-coordinator.md)。
+
+AppController 持有当前唯一 coordinator，并在初始化、登录、路线切换、注销和 backend 重建开始前关闭新写
+操作、同步失效旧意图。转换计数覆盖嵌套与重叠转换；commit/discard 捕获创建时的具体 backend，晚到准备结果
+只能交给原 backend 清理。同步通知重入和每个异步完成点都复核代次，旧结果不能交付到新会话，也不能发起
+后续领域回读。Core/Bridge 的最终资格、一次性消费与网络发送边界保持原所有权。
+
+Host 注入 immutable state 与 prepare/cancel/confirm 三个安全命令；UI 同时检查三项能力，只收集 typed 输入、
+显示确认状态和安全完成消息。照片、位置与表单输入仍由平台/界面负责；位置等待返回后须检查原准备流程是否
+仍有效。旧 Shell callback 名称保留为兼容接线面，生产 UI 不再直接调度 commit/discard 或领域回读。
+
+`WriteReceiptVerifier` 只执行原领域只读核对并投影安全提示，不保存待确认状态、不重试提交，也不把未知结果
+提升为成功。旧 `BackendException` 代码与方法返回类型保持兼容；UI 使用独立安全入口，避免展示映射反向改变
+旧接口错误码。UI 测试以 dev dependency 使用真实 coordinator，生产依赖仍只面向 domain；测试接线不实现
+另一套状态机。CLI schema v10、bridge v9、生成绑定和 golden 均不因本阶段改变。
+
+## 2026-09-05：Phase 11J 评教 fresh typed 批量提交与逐课程结果边界（来源合同已固定）
+
+本条先固定来源和待实施合同；生产代码必须在本条提交后才可修改。适用本地来源为
+`ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的 `EvaluationService.kt`、
+`LocalEvaluationService.kt`、`EvaluationModel.kt`、`LocalEvaluationServiceBackendTest.kt`、旧 server
+`EvaluationClient.kt`、`EvaluationService.kt` 及其测试。交叉来源为
+`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的 `api/tes/{auth,data,opt}.rs`。
+完整逐操作九列见
+[source-parity.md 的 Phase 11J 表](../source-parity.md#phase-11j-evaluation-提交逐操作九列2026-09-05)。
+
+两份来源共同证明评教业务位于 `https://spoc.buaa.edu.cn/pjxt`，任务、问卷、课程、题目与最终提交端点一致；
+本地产品先访问无显式 `service` 参数的 `/pjxt/cas`，任务请求固定
+`yhdm=<schoolid，空时回退 username>&pageNum=1&pageSize=10`。示例自行从
+`https://sso.buaa.edu.cn/login?service=.../pjxt/cas` 登录并使用 credential username；这里采用被迁移本地产品
+的身份与激活顺序，不把示例登录 URL 拼接进 Core。所有 Cookie 只属于当前用户和已解析 Direct/WebVPN runtime，
+不得跨路线、落盘到公开 DTO 或由 Host 读取。
+
+读取 authority 的顺序固定为任务 GET → 每任务问卷 GET `{rwid}` → 每问卷课程 GET `{wjid}`。当前生产实现把
+课程行重新拼成只含少数字段的 JSON，丢失 `msid` 与题目查询所需字段；Host 又可以回传伪造的整份课程对象。
+Phase 11J 将完整上游课程仅保留在 Core 内部，公开课程只给安全展示、三态 `submitEligibility` 和可空
+`EvaluationSubmitTarget {rwid,wjid,kcdm,bpdm}`。冻结模型注释把 ID 末段写成 `bpmc`，但两份实际 merge 实现及
+冻结测试都使用 `bpdm.orEmpty()`；采用可执行实现与测试的 `bpdm`，并保留本冲突记录。只有 fresh 行明确
+`ypjcs=0`、必需身份/名称/模式完整且同一 typed target 在本批 authority 中唯一时为 `allowed`；`ypjcs>0` 为
+`denied`，缺失、畸形、负数、重复或字段冲突为 `unknown`。展示文字、`isEvaluated` 布尔值、合成 ID 和默认值
+都不能兑换写权限。
+
+prepare 与 commit 都必须重新执行整批 authority，并要求调用方 targets 非空、顺序保持、无重复且每项与 fresh
+唯一 allowed target 完全一致。pending batch 之间任一 target 交集都冲突，不允许以列表顺序或不同批次 ID
+绕过。公开请求只保存 typed targets；Core 内部从 commit 本次 fresh authority 取得完整课程字段。对每门课程按
+冻结本地实现串行执行：尽力 JSON POST `reviseQuestionnairePattern {rwid,wjid,msid}`，再以完整 21 个 query 字段
+GET `getQuestionnaireTopic`，最后 JSON POST `submitSaveEvaluation`，信封精确为
+`{pjidlist:[],pjjglist:[...],pjzt:"1"}`。两份来源均未设置 `X-Requested-With`，因此当前生产中该无来源 Header
+必须删除；没有加密、签名或 challenge。
+
+答案策略采用被迁移本地实现：展平 `wjzblist[].tklist[]`，从全部题目中随机选择一个索引；若该索引对应有至少
+两个选项的选择题，则取第二项，其余选择题取第一项，主观题只在 `wjstctid` 使用第一选项 ID 且
+`xxdalist=[]`；课程结果固定 `pjdf=93` 并保持冻结字段/null。示例的“第一道选择题取第二项”、动态评分、满分/
+不及格理由约束与提交后的 `checkWhetherTheTaskIsEvaluable`、`system/property` 探测都只作冲突证据，不拼接进
+本地产品协议，也不得作为写后成功证明。
+
+最终 POST 必须通过不可自动重放边界恰好发送一次。明确 primitive `code` 为 `0`、`200` 或 `success`
+才是该课程确定成功；明确其它 primitive code 为确定失败。发送后的 transport/timeout/Cookie 错误、HTTP
+非 2xx、跳转、认证页、非 JSON、非 object、缺失或畸形 code 均为该课程不可重试 `outcome_unknown`。发生首个
+unknown 后立即停止：该课程标为 unknown，后续课程全部标为 `unattempted`；发送前题目/资格等确定失败则记录
+固定安全 failure 并继续下一课程。任何结果都不得透传 raw message/body、学生身份、题目、答案或内部课程字段。
+
+公开结果固定为按输入顺序的 `EvaluationCourseSubmitResult {target,courseName,outcome,message}`，outcome 只允许
+`success/failure/outcomeUnknown/unattempted`；batch 只有全部 success 才整体 success，含 unknown 时整体
+`outcome_unknown=true`。CLI 原始 JSON payload 入口必须删除，CLI 只从 fresh pending 读取产生 typed targets；
+公开 CLI JSON schema 计划由 v9 升 v10，Flutter Bridge contract 由 v8 升 v9。Bridge 不得丢弃逐课程结果或
+硬编码整体成功，UI 不得从中文字段反向拼装课程。确定结果和 unknown 都只在 intent 原路线执行一次
+caller-pinned `evaluationAll` 回读；该回读仅刷新状态，绝不把 unknown 升级为 success，也不触发自动重发。
+
+本条未联网、未发送评教、未读取真实课程或个人数据；它不授权任何真实账号写入，也不构成签名、实体设备或
+正式发布证据。
+
+## 2026-09-05：Phase 11I 阳光打卡 typed 资格与单次最终提交边界（本地确定性门禁完成）
+
+本条固定本阶段的来源、安全合同与当前实施边界；完整逐操作九列见
+[source-parity.md 的 Phase 11I 表](../source-parity.md#phase-11i-ygdk-提交逐操作九列2026-09-05)。适用来源为
+`ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的 `YgdkApi.kt`、
+`LocalYgdkApi.kt`、`Ygdk.kt`、API/backend 测试、Ygdk ViewModel 与旧 server client/service/tests。
+`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的固定模块清单没有 Ygdk、Clockin、
+`campusAppLogin` 或照片上传等价协议，URL、跳转、Cookie/会话、请求参数、Header/编码、加密、DTO、并发和
+错误九列全部 N/A 且不等价；不得从示例的通用 SSO、credential、上传或其它业务错误类比补值。
+
+OAuth 入口固定为 GET
+`https://app.buaa.edu.cn/uc/api/oauth/index?redirect=https%3A%2F%2Fygdk.buaa.edu.cn%2F%23%2Fhome&appid=200230221144501510&state=STATE&qrcode=1`；
+关闭自动跳转后最多处理 10 次，每跳依次检查实际请求 URL 和解析后的 `Location`，只从普通 query 或 fragment
+内 query 提取并 URL-decode 非空 `code`。业务交换固定 GET
+`https://ygdk.buaa.edu.cn/api/Front/Clockin/User/campusAppLogin?code=...`，`code=1` 时从
+`result.data` object 或 `result` object 取得 `uid/token`，token 再 URL-decode。冻结实现没有逐跳 host
+allowlist，仓库也没有完整允许集合的适用实时证据；这个边界继续标为 parity gap，绝不凭 BUAA 域名、当前实现或
+记忆猜测白名单。旧 relay `/api/v1/ygdk/*` 不是上游地址。
+
+业务 `{uid,token}` 必须绑定当前用户、intent 路线与活跃 Session generation，只驻留对应 Core runtime 内存，
+不落盘、不跨用户、路线或失效代次。commit 开始时可以在 final 写边界前建立当前 generation 的 credential；
+一旦 fresh authority 已用某一 credential generation 完成并进入 upload 链，就不得中途刷新、替换或用旧异步任务
+回填 credential。任何请求前发现 owner/session/credential generation 已变化都失败关闭。旧本地 session 创建在
+最终 mutex 外、旧 server 60 秒 context cache 及 `withFreshClientRetry` 重放 upload/final 的行为都不复制。
+
+写资格不再由可空 primitive `itemId`、默认项目、名称、UI label 或缓存 overview 推断。Core 在 `YgdkItem` 上
+公开三态 `submitEligibility` 和可空 `YgdkSubmitTarget(classifyId,itemId)`：冻结分类仍按首个名称含“体育”、
+否则首个 ID 1、否则首项选择，但被选 classify ID 与 item ID 都必须是 canonical 正整数并各自在原 fresh 响应
+唯一，分类/项目名称必须非空；只有 target 与父 DTO 严格一致时 allowed/Some，其余缺失、畸形、零、负数、重复、
+冲突均 unknown/None。prepare 与 commit 分别 POST fresh classify 和 item；item 请求的
+`page=1/limit=1000/classify_id` 同时进入 query 与 form，form 另有本次 credential 的 `uid/token`。commit 的
+`item_name` 只取本次 fresh item，调用方不得提供。
+
+时间输入改为完整必填且只接受精确 `yyyy-MM-dd HH:mm`，按命名时区 `Asia/Shanghai` 有检查地解析；start/end
+须在同一上海自然日且 end 严格晚于 start。wire 的 `start_time/end_time` 是十进制 Unix epoch 秒；固定向量
+`2026-04-01 08:00`/`09:00` 对应 `1775001600`/`1775005200`，`form_time_fmt` 精确为
+`2026-04-01 08:00-09:00`。冻结错误文字虽含“一小时”，实现没有一小时长度判断，故不臆加时长限制。ISO `T`、
+秒、offset、跨日、缺一端、歧义/溢出在路线解析和任何 HTTP 前返回固定 `invalid_input`。地点 trim 后为空时采用
+冻结默认“操场”，公开开关默认 false；照片必须由用户提供，不能复制冻结透明 PNG fallback。
+
+照片字节只能在一次 opaque intent 的内存中存在，大小固定为 1..10 MiB。filename 必须已经是 trim 后的单一
+basename、1..128 字符，并拒绝正反斜杠、引号及任意 Unicode 控制字符（含 CR/LF/NUL/DEL）；MIME 必须是 `image/` 加
+非空 ASCII HTTP token，不接受参数、空白、控制字符、多层斜杠或 `application/octet-stream`。这是防止
+`Content-Disposition`/`Content-Type` header injection 的本地安全收紧，不等同于猜测上游图片 subtype
+allowlist。multipart 固定 parts 为 `uid/token/file`，file disposition name 固定 `file`；只有 `code=1`
+object 的非空 `file_name` 能以 JSON 数组进入 final `images`，`file_url` 不公开。照片 `Debug` 仅允许 byte
+count 与规范化 MIME，filename 固定脱敏，绝不输出 bytes、路径或 URL；公开 intent/digest 同样不得保存或哈希
+filename、照片 bytes、地点正文或 credential。
+
+prepare 只做本地输入与 fresh target authority，不上传；用户确认后 commit 单次消费 intent。Core 必须提供一个
+expected-route 原子 facade 入口，在同一调用中按顺序完成“全部 pre-route 校验、恰好一次路线解析、与 intent
+expected route 比较、取得 active credential、fresh classify/item、单次 upload、单次 final”。Bridge 不得先
+解析一次路线再调用会重新解析的普通 facade。路线不匹配、过时 owner/session generation、fresh target 冲突或
+上传失败都不得发送 final；upload 自身也不自动重传。final 固定 URL encoded 十二字段：上海 epoch
+`start_time/end_time`、`place_type=1`、place、`isopen=1/0`、精确 `form_time_fmt`、单元素 `images`、fresh
+`classify_id/item_id/item_name` 及 route-local `uid/token`，并带
+`X-Requested-With: XMLHttpRequest`。没有 Ygdk 业务加密/签名，WebVPN 转换只属于路线层。
+
+最终 POST 只通过 non-idempotent transport 恰好发送一次，不跟随跳转、不认证重放、不切换路线。只有 final
+`code=1` 且 `result` 为 object 才是确定成功；公开结果固定为
+`{success:true,message:"阳光打卡已提交",recordId?}`，recordId 仅 canonical 正整数时出现，summary、raw
+message/body、文件信息、时间、地点与 credential 全部排除。一旦 final 开始发送，HTTP、401、`-98`、其它
+code、认证/业务跳转、final URL 异常、transport/timeout、Cookie、非 JSON、非 object 或 envelope 结构歧义
+都固定为不可重试 `outcome_unknown`；CLI exit 5，任何宿主都不能按 raw message 推断成功或自动再提交。
+
+确定成功和 `outcome_unknown` 都必须使用 commit 返回的原路线，分别 best-effort 刷新一次 overview 与 records
+首页；records 固定 1-based `page=1,size=20`，wire 使用 `limit=20`。两次读取 caller-pinned、彼此独立，不重新
+Auto 探测、不 fallback、不复用旧 snapshot，任何读取失败都不得触发写重放。冻结本地 records 把分页、分类、
+用户字段同时放 query+form，而旧 server 只放 form；按被迁移的本地产品实现采用 query+form 并保留该差异记录。
+冻结来源没有足以把某条记录与本次 target、时间、照片唯一关联的严格证明，因此 count 增长、首条、文案、近似
+时间、空结果或旧 snapshot 都不能把 unknown 升级为 success；未来“已核对”状态必须先取得新的来源或脱敏实时证据。
+
+`YgdkItem` eligibility/target、typed prepare request 和固定安全结果改变公开读取与写入形状，因此当前工作树已把
+CLI JSON schema 升为 **v9**、Flutter Bridge contract 升为 **v8**，并保留旧 v8/v7 的显式拒绝边界。OAuth/
+business-login 的 owner/session generation guard、fresh classify/item 派生的 typed authority、完整 typed
+target/request、单次 expected-route 原子提交入口和 caller-pinned overview/records 回读均已实现。安全收据已严格
+收窄为可选正 `{recordId}`，upload/final 不自动重试，CLI/Bridge 公开字段禁曝；完整 Rust/CLI/Bridge/Dart/Flutter
+回归、FRB 零漂移、macOS 脱敏宿主 integration 与独立终审均已通过。本条状态是“本地确定性门禁完成”；阶段提交与
+最终候选绑定仍待后续阶段。本轮没有上传照片或执行真实账号写入，也不构成真实写后核对、签名、实体设备或正式
+发布证据。
+
+## 2026-09-04：Phase 11H 场馆取消双 fresh authority 与最终单次发送边界（当前有效）
+
+本条先固定 Phase 11H 的来源与实施合同；来源提交 `c2e07ae` 与实现提交 `f4e3137` 已使当前生产实现和
+确定性测试满足本条，但不表示真实账号写入已经验证。重新核对冻结
+`ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的 `CgyyApi.kt`、`LocalCgyyApi.kt`、
+`LocalCgyySigner.kt`、`Cgyy.kt`、Cgyy 订单取消状态/时间测试以及旧 server 实现。固定
+`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的模块清单没有 Cgyy、
+`venue-zhjs`、`cgAuthorization` 或场馆订单协议，九列均为“不适用且不等价”；不得从 Boya 课程取消、
+通用 SSO/VPN、credential、Cookie 或错误类型类比补字段。
+
+冻结引导为无显式 `service` 参数的 GET
+`https://cgyy.buaa.edu.cn/venue-zhjs-server/sso/manageLogin`，再以 `Sso-Token` 空表单 POST
+`/api/login`；`data.token.access_token` 只作为当前路线业务请求的 `cgAuthorization`。订单详情唯一有
+证据的端点为 GET `/api/orders/{id}`，最终取消为 URL 编码空表单 POST
+`/api/orders/new/cancel/{id}`；旧 relay `/api/v1/cgyy/orders/{id}/cancel` 不是上游。请求保持冻结
+`Accept`、mobileReservation Referer、`app-key/timestamp/sign/cgAuthorization` 与小写 MD5 签名，GET
+`nocache` 参与签名；取消没有 captcha/challenge、AES 或其它加密。Cookie/token 只在当前用户和路线内存使用，
+不落盘、不跨路线，也不与预约 token 混用。
+
+冻结客户端自动跳转、固定 Direct 且没有 hop/host/terminal 白名单，与当前路线隔离及 WebVPN Cookie 同步
+决策冲突，明确不倒退复制。prepare 与 commit 必须分别在解析出的同一路线上 fresh GET
+`/api/orders/{id}`；请求 ID 网络前必须为正，响应只接受唯一 JSON object 中 canonical 正整数 `id` 严格等于
+请求 ID。`data=null`、数组、缺失、畸形、非正或不匹配 ID 一律 unknown 并在发送前拒绝；不得信任 UI
+label/value、缓存列表或调用方提交的状态，也不得发明冻结来源中不存在的分页扫描消歧协议。
+
+资格矩阵固定为：canonical `orderStatus in {1,3}` 且 `checkStatus in {1,2,3,4,5,6}` 才能
+allowed；`orderStatus=2` 或任一负 `checkStatus` 为 denied；状态缺失、畸形、0 或其它值均为 unknown。
+冻结 `displayStatus` 会放行部分缺失、0 或未知正审核状态，本阶段为遵守 typed unknown 失败关闭而有意收紧，
+不得把旧 UI 宽松行为伪称为当前允许。取消时限固定按 `Asia/Shanghai`：start 有效时只允许严格
+`now < start - 4h`，恰好 deadline 即拒绝；start 缺失或无效才回退有效 end 并要求 `now < end`；start/end
+都缺失或无效时不增加时间限制，但严格 ID 与状态门禁仍照常执行。Core 必须使用可注入时钟，不依赖设备时区。
+
+冻结 client 会在认证失效后重放业务请求，旧 server 对认证错误或泛 Cgyy 错误还可能重建 client 后再次取消；
+冻结 UI 则从缓存订单直接写且没有 fresh authority。上述行为违反当前一次性 intent 与结果未知不自动重试合同，
+明确不复制：认证准备和两次详情复核都在发送边界前完成，final POST 只经 `request_non_idempotent` 恰好调用
+一次，401、认证/业务跳转或任何其它结果都不得刷新认证后重放。只有冻结支持的 `code=200` 产生固定安全成功
+结果；一旦 POST 已发送，非 200、final URL 异常、transport/timeout、Cookie、非 JSON、非 object、code
+缺失或畸形统一返回不可重试 `outcome_unknown`。取消结果、取消错误、日志与验证证据均不得
+带出 raw message/body、Cookie、token、签名或订单敏感字段。这不在本阶段静默改变已有
+`orders/detail` 读取 DTO 或 CLI schema；它们仍由各自公开合同管理。
+
+确定成功或 `outcome_unknown` 后都只在 intent 原路线读取 0-based 首页订单列表与同 ID 详情，
+绝不重新 Auto 探测或再次提交。只有两个本次局部结果都唯一匹配同 ID，并各自携带 Core 从
+strict canonical `orderStatus=2` 派生的 `cancelledTarget`，才能标记已核对；旧 snapshot、空详情、
+读取失败、ID 不匹配或列表/详情冲突保持未核对。历史独立授权探针
+曾出现取消信封成功后列表仍为状态 1、稍后列表才变为状态 2，详情则先失败再返回空 data，因此取消响应不能
+自行升级为最终业务状态，读回失败也不能触发自动重发。本条没有授权或执行真实取消。`f4e3137` 已以脱敏
+fixture/Mock 完成严格 ID、状态、上海时间边界、双 fresh、单 POST、`outcome_unknown`、安全结果、原子路线
+与 caller-pinned 列表/详情回读门禁；Core 333 项、Bridge 81 项、CLI contract 66 项、完整 Rust/Flutter
+工作区与 macOS 宿主 integration 7 项终态通过。
+
+## 2026-09-04：Phase 11G 场馆预约 typed 资格与最终单次发送边界（当前有效）
+
+本阶段重新核对冻结 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的
+`LocalCgyyApi.kt`、`LocalCgyySigner.kt`、`LocalCgyyCaptchaSupport.kt`、`Cgyy.kt`、
+`CgyyViewModel.kt` 及其测试。固定
+`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的 `src/api.rs` 与 `src/lib.rs`
+没有 Cgyy、`venue-zhjs`、`cgAuthorization` 或场馆验证码协议；其通用 SSO/VPN、可落盘 credential 与 raw
+response 错误只属于其它 API，九列均为“不适用且不等价”，不得类比补 service、Cookie、字段、加密或错误。
+
+冻结引导为无显式 `service` 参数的 GET
+`https://cgyy.buaa.edu.cn/venue-zhjs-server/sso/manageLogin`，再以 `Sso-Token` 空表单 POST `/api/login`；
+`data.token.access_token` 只作为后续 `cgAuthorization`，day-info 返回的预约 `token` 只进入上下文与最终表单。
+冻结客户端会自动跟随跳转、固定走 Direct 且没有 hop、host 或 terminal URL 白名单；这与当前路线隔离和已记录的
+WebVPN 网关 Cookie 同步证据冲突。本阶段不倒退复制该行为：继续使用当前有界 SSO/WebVPN 路线适配，不跨路线
+复用 Cookie/token，也不从固定示例借用 VPN service。该既有路线决策不等同于两份冻结来源一致。
+
+预约写链固定为 fresh GET `/api/reservation/day/info`，URL 编码表单 POST `/api/reservation/order/info`，
+GET `/api/captcha/get`、表单 POST `/api/captcha/check`，最后表单 POST `/api/reservation/order/submit`。
+上下文严格携带五字段 `venueSiteId/reservationDate/weekStartDate/reservationOrderJson/token`；最终提交严格携带
+十四字段：前四项加 `phone/theme/purposeType/joinerNum/activityContent/joiners`、两个映射为 `0/1` 的布尔项、
+`captchaVerification` 与预约 `token`。请求继续使用冻结 Accept、Referer、`app-key/timestamp/sign` 及
+`cgAuthorization`；MD5 签名、GET `nocache`、captcha AES-ECB/PKCS5Padding、标准 Base64、固定
+`{"x":offset,"y":5}` 与 `challenge-token---point-json` 明文形状均不改变。
+
+typed 资格只在请求日期键精确存在、站点/空间/时段身份完整且唯一时产生；冻结 parser 在请求日期缺失时回退
+`reservationDateSpaceInfo` 首键的兼容行为只供只读展示，绝不授权写。槽位只有
+`reservationStatus=1`、`tradeNo=null`、`orderId=null` 且 `takeUp!=true` 时为 `allowed`；状态或占用字段
+缺失/畸形造成无法判定时为 `unknown`，明确其它状态为 `denied`。稳定 action 携带 typed 站点、日期、空间、
+空间组及时段目标，不从中文 label/value 反向解析。prepare 与 commit 都 fresh 复核同一路线目标；选择必须无
+重复、同一空间、数量为一至两个，两个时段按 fresh `timeSlots` 列表索引相邻而不是按 `timeId` 数值相邻，
+`venueSpaceGroupId` 必须与 fresh 空间值一致。
+
+冻结提交合同只证明 `phone/theme/activityContent/joiners` trim 后非空、`joinerNum>0`；当前产品继续要求
+`purposeType>0`，不臆造手机号格式、文本长度、参与人数量相等或 `reservationTotalNum` 容量规则。冻结 UI 会
+持久化电话、主题、活动正文和参与人等表单明文，本阶段明确不复制；Bridge pending intent 只在内存保存一次，
+opaque 摘要不得包含这些值，取消、过期、提交或 dispose 后立即删除。
+
+冻结 `repeat(3)` 实际把 captcha 获取、求解、校验和最终 submit 全部包在同一个宽泛 `catch` 中；底层
+`requestJson` 还会在认证失效时重放包括最终 POST 在内的业务请求。该行为与一次性 intent 和结果未知不自动
+重试的当前安全合同冲突，明确不复制：最多三轮只覆盖最终发送前的 captcha 挑战/校验；最终 submit 只通过
+`request_non_idempotent` 发送一次，绝不认证重放或再次进入 captcha 循环。发送后 transport、Cookie、
+认证/业务跳转、非 JSON 或结构不足造成的歧义返回不可重试 `outcome_unknown`；明确 `code=200` 按冻结产品
+语义确认提交，订单可选并只以正订单编号形成安全收据，后续列表核对不重放写请求。非成功信封和公开结果使用
+固定安全文案，不透传可能包含 token、个人数据、控制字符或上游原始正文的 message。本阶段只使用脱敏
+fixture/Mock，不执行真实场馆预约，也不授权其它真实写操作。
+
+## 2026-09-04：Phase 11F 图书馆取消 typed 资格与单次发送边界（当前有效）
+
+本阶段重新核对冻结 `ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的
+`shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalLibBookApi.kt`、
+`shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/LibBook.kt`、
+`shared/src/commonTest/kotlin/cn/edu/ubaa/model/dto/LibBookBookingStatusTest.kt` 和
+`shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalLibBookApiBackendTest.kt`。固定
+`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的
+`src/api.rs` 模块清单没有 LibBook、图书馆座位或 `booking.lib.buaa.edu.cn` 协议，因此 URL、重定向、
+Cookie/会话、方法/参数、Header/编码、加密、DTO、并发/重试和错误语义九列均为“不适用且不等价”，不得从
+其通用 SSO 或其它模块类比补值。
+
+冻结本地产品的取消请求为 JSON POST `/v4/space/cancel`，wire 正文只有 `{id}`；它没有按 ID 查询详情、全量
+扫描或 arbitrary ID 校验端点。Phase 11F 因此把产生 action 时的正数 `page/limit` 保存在本地 authority
+上下文中，prepare 与 commit 都只能 POST `/v4/member/seat` 的同一页，并要求目标 booking ID 在 fresh 页中
+唯一匹配；取消 authority 还要求响应显式携带 canonical 正数分页元数据，别名同时存在时必须一致，不能把
+缺失、畸形、非正或冲突值回退成 action 的页。`page/limit` 绝不进入最终取消正文。只有非空 ID 且 canonical
+整数状态 `1` 为 `allowed`，状态
+`6/8` 为 `denied`；状态缺失、null、畸形、非 canonical 整数或其它值均为 `unknown` 并安全拒绝。
+`statusName` 仅供展示，不能产生或改变 typed 资格。该 fail-closed 规则是当前安全合同的明确收紧：冻结产品
+会让中文 `statusName` 参与判断，并默认允许部分缺失或未知状态，本阶段不复制这一行为，也不虚构详情协议。
+
+冻结 `LocalLibBookApi.kt` 会让共享业务客户端自动跟随跳转，并在识别认证失效后刷新 bearer、重放原请求；
+旧 server relay 还可能在重建 client 后再次调用。Phase 11F 不复制业务跳转和认证失效重放：CAS 登录及只读
+fresh 复核必须在越过发送边界前完成，最终 cancel 只调用一次 `request_non_idempotent`，不接受认证跳转且
+绝不自动重放。请求一旦已经发送，timeout、transport、HTTP/认证跳转、非 JSON 或结构不足而无法判定时返回
+不可重试的 `outcome_unknown`，随后只允许刷新预约列表供用户核对。冻结 JVM/Android LibBook engine 的
+trust-all certificate/hostname verifier 违反当前 TLS 安全边界，明确不采用。
+
+冻结成功 fixture 只证明上游 raw `code=1` 与精确 `message=取消成功`；冻结本地实现允许 canonical
+`code=0/1`，本阶段只在二者与精确成功文案组合时确认成功。确定的已取消、已结束、不存在或失效消息
+只用于映射固定安全业务错误，已知负面文案可映射固定 `success=false`；其它新成功文案一律为
+`outcome_unknown`。最终取消与 authority `/v4/member/seat` 的非成功 envelope 都不得把 raw message 带入
+公开结果或错误；Core 在取消专用解析边界固定归约 `upstream_changed` 文案，CLI 与 Bridge 再按操作做同样的
+防御性投影，避免夹带预约标识、个人数据、控制字符或 token。
+这些证据不证明 raw `success` 或 `status` 字段参与上游成败。产品
+`LibBookCancelResponse { success, message }` 是冻结 backend 映射后的 DTO，Core、CLI 与 Bridge 不得据此
+猜测不存在的 raw 字段，也不得在无法判定时默认成功。本阶段只使用脱敏 fixture/Mock，不执行真实取消，且不
+授权其它真实写操作。
+
+## 2026-09-04：Phase 11E 图书馆预约 typed 资格与发送边界（当前有效）
+
+固定 `examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 没有 LibBook、座位或预约
+协议，九列均为“不适用且不等价”；不得类比其 URL、字段、会话、加密或错误。Phase 11E 只采用冻结
+`ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 的适用本地产品实现：先以
+`Space/map` 当前详情核对日期、唯一时段 ID 与起止时间，再以 `Space/seat` 当前结果核对唯一座位。座位
+`status=1` 为 `allowed`，`2/3` 为 `denied`；状态缺失、null、畸形、其它值、空目标、目标缺失或重复均为
+`unknown` 并安全拒绝。prepare 与最终提交都必须 fresh 复核，不信任宿主回传的展示字段或旧布尔值。
+
+稳定产品目标为 `(area_id, seat_id, day, segment)`；`start_time/end_time` 必须与 fresh 时段严格一致并只作
+确认、座位查询和读后核对元数据。冻结预约密文明文严格为
+`{seat_id,segment,day,start_time:"",end_time:""}`：`area_id` 不进入密文，调用方提供的起止时间也不得
+进入密文。AES-128-CBC、PKCS#7、日期八位数字加逆序组成的 key、固定 IV
+`ZZWBKJ_ZHIHUAWEI` 和标准 Base64 均保持现有 golden，不因 typed 化改变。
+
+冻结本地 `LocalLibBookApiBackend.reserve` 对 `code=0/1` 下的明确业务拒绝返回正常
+`LibBookReserveResponse(success=false)`，而冻结 server relay 会把同类结果抛错；本阶段采用适用的本地产品
+语义，Core、CLI 与 Bridge 均不得把确定的 `success=false` 覆盖为成功。冻结低层客户端还会在认证失效文本后
+重放包括预约在内的请求；该行为与当前一次性 intent 合同冲突，明确不复制。登录和只读复核可在发送前刷新
+业务 bearer，最终 `/v4/space/confirm` 必须通过 non-idempotent 边界只发送一次；发送后的 transport、timeout、
+HTTP/认证歧义、非 JSON 或无法确定业务结果的响应统一为不可重试的 `outcome_unknown`。
+
+`LibBookSeat.status` 从任意字符串改为可空整数，并以 `reserveEligibility/reserveTarget` 取代
+`isAvailable`，会破坏严格的 FFI 与 CLI JSON 消费者。因此 Flutter bridge contract 从 v3 显式升为 v4，CLI
+envelope/schema 从 v4 显式升为 v5；磁盘 `session.json` 继续使用 schema v2。Flutter 的完整
+`LibbookReserveAction` 只由 typed 座位目标、typed 资格和 typed 查询上下文组成，中文 label/value 仅用于展示。
+这一确定性阶段不执行真实预约，也不授权其它写操作。
+
+## 2026-09-04：Phase 11D 课堂签到 typed 资格与发送边界（当前有效）
+
+课堂签到的生产修复只采用两份冻结来源一致的事实和适用冻结本地实现：今日课程使用 `signStatus`，值 `0`
+表示可签到、`1` 表示已签到，缺失、畸形或其它值为 `unknown` 并安全拒绝；写目标是今日列表中唯一匹配的
+课程安排 ID。prepare 与最终提交均须重新读取今日课程，不能信任宿主回传的展示字段或旧状态。
+
+最终请求按冻结本地实现使用 `courseSchedId=<课程安排 ID>`、form `id=<业务登录返回的用户 ID>` 和
+`sessionId` 请求头；三个值使用不同脱敏向量测试，防止再次混淆。响应同时解析顶层 `STATUS/ERRMSG` 与嵌套
+`result.stuSignStatus`；明确的业务 false 保持 `SigninActionResult.success=false`，Bridge 不得无条件改成成功。
+最终 POST 通过 `request_non_idempotent` 且只发送一次，发送后的 transport、Cookie、认证跳转、非 JSON 或
+结构不完整响应归为 `outcome_unknown`、禁止自动重放；发送前读取失败保持原错误分类。
+
+`signStatus` 从必填整数改为可空并新增 eligibility/target，会破坏严格的 FFI 与 CLI JSON 消费者；本阶段
+因此显式把 Flutter bridge contract 从 v2 升为 v3、CLI envelope/schema 从 v3 升为 v4，并让 CLI schema
+新增 `SigninActionResult` 成功数据分支。不得在旧版本号下静默改变字段。明确的业务拒绝仍是成功解码出的
+`SigninActionResult { success: false }`：CLI 外层 `ok=true`、退出码 0 表示调用完成且结果确定，脚本必须读取
+内层 `success` 判断签到是否完成；Bridge 同样保留 `success=false`，UI 不显示成功、不触发成功后的刷新。
+这一选择复刻冻结 API 的 `Result.success(SigninActionResponse(... success=false))`，不发明新的错误码。
+
+冻结本地与固定示例在登录 URL、端口、时间戳方法、参数载体及会话头身份上仍有冲突。本阶段保持当前已有、
+由 Direct/WebVPN 只读证据支持的登录/读取路径，不借结构治理改写这些未决项；也不执行真实签到。UI 只消费
+Core→Bridge→Domain 的 typed action，中文状态文案只用于展示。
+
+## 2026-09-04：CLI JSON envelope 显式升级为 schema v3（Phase 11C 历史决策；已由 v4 取代）
+
+Phase 11C 将 Bykc 已选课程的 `checkin` 从必填整数改为可空，把 `canSign`/`canSignOut` 两个布尔字段替换为
+含 `unknown` 的 `signEligibility`/`signOutEligibility`，并把写请求越过发送边界后的不确定结果公开为
+`outcome_unknown`。字段删除、类型放宽、三态资格和封闭错误集合扩展都会破坏严格的 schema v2 消费者，
+因此不得继续标记为 v2：CLI 的全部成功、失败、参数错误、聚合认证/注销和隐藏诊断 envelope 统一显式升级
+为 schema v3，JSON Schema 与真实序列化合同只接受版本 3，并明确拒绝旧 v2 envelope。
+
+这个版本只属于 CLI stdout 公开合同。`session.json` 继续使用 schema v2 双路线快照，`config.toml` 继续使用
+版本 1；本决策不迁移、不重写会话存储，也不改变 revision CAS。Phase 11C 之前绑定 schema v2 的历史提交、
+测试结果与验证记录保持原样，不回写为 v3；Phase 11C 的实现证据仍按 v3 解释。Phase 11D 起当前
+CLI/Core-live/实时验证器一律按上方已登记的 v4 合同校验。
+
+## 2026-09-03：Phase 11 typed 写资格的来源边界（当前有效）
+
+本轮在把 Flutter 写入口从中文展示字段迁移到 typed action eligibility 前，重新逐操作核对了
+`ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 与
+`examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a`。审查发现既有
+`source-parity.md` 把固定示例中的 Bykc、Class/Signin 和 Evaluation 等价实现误记为不适用，并有若干
+合成测试固定了错误字段。处理原则如下：
+
+- 对两份冻结来源一致的事实先补脱敏 RED，再修正生产实现：Signin 今日课程字段为 `signStatus`、签到结果为
+  `result.stuSignStatus`；Bykc 签到正文坐标键为 `signLat/signLng`；Ygdk 提交时间为上海时区 Unix 秒；
+  LibBook AES 明文不包含 `areaId`，且 `start_time/end_time` 固定为空字符串。
+- Signin 的业务登录端点、业务会话头身份、时间戳请求方法、`id` 参数位置以及 Direct/WebVPN 端口在两份
+  冻结来源之间冲突。当前周期没有逐目标真实签到授权，既有只读成功也不能证明写协议。因此该冲突边界保持
+  未决，不以结构整理改动登录、会话头、方法或端口；只修复两份来源一致的 DTO/结果层级，并以适用的冻结
+  本地实现修正当前明确错误的用户 ID 值。任何进一步改动必须先取得脱敏实时写链证据或新的逐操作授权。
+- Bykc 签到位置算法采用被迁移产品的冻结本地实现：每次提交前重读已选课程和签到配置；从完整签到点列表随机
+  取点，仅在被选中点半径为正数时在圆内生成坐标，否则要求调用方提供完整坐标。固定示例的 `±1e-5` 偏移只
+  记录为冲突证据，不混入实现。
+- Bykc 签到与签退时间边界采用冻结本地产品实现的闭区间；固定示例只有被忽略的真实账号样例使用严格开区间，
+  且没有已选、考勤、考核或负例证明，不能覆盖产品规则。旧实现将缺失的 `checkin/pass` 当作未签到/未通过，
+  typed 资格层为避免把不完整上游状态推成可写，改为 `unknown` 并安全拒绝。`courseSignType` 仅在冻结 DTO 中
+  透传且 UI 未消费，实际 action 封闭映射 `signType=1/2`。
+- 冻结旧版会对任意 Bykc 请求异常强制登录并重放一次，其中包含非幂等签到；该行为与一次性 intent、结果未知
+  不自动重试的当前安全合同冲突，故不复制。请求头差异采用被迁移产品的 Origin/Referer 与双 token 形状；
+  固定示例的单 `Authtoken` 只作端点和加密交叉证据。
+- Cgyy 一次预约采用冻结 ViewModel 的产品限制：只能选择同一空间、最多两个且相邻的可预约时段；
+  `joiners` 与冻结提交合同一致，作为必填输入。固定示例没有等价 Cgyy 协议，不能覆盖该规则。
+- Cgyy 取消资格由 Core 使用 `Asia/Shanghai` 解释上游无时区时间，并在 prepare 与 commit 前复核；开始时间
+  存在时严格要求当前时刻早于“开始前四小时”，否则回退结束时间。状态未知时拒绝；仅在冻结规则允许且
+  两个时间都不可解析时不额外增加时间限制。
+- Evaluation 的答案选择和请求顺序采用适用的冻结本地实现；固定示例的首题策略及提交后的额外探测请求仅作
+  冲突记录，不拼接为新协议。读取结果必须保留提交所需的完整课程 DTO，逐课程失败不得被 bridge 投影成整体成功。
+- UI action 缺失或 eligibility 未知时一律拒绝。中文 label/value 只用于展示；Core prepare/commit 的重新读取
+  与资格复核仍是最终权威。以上确定性开发不授权真实选课、退选、签到、预约、取消、上传或评教提交。
+
+## 2026-09-02：MethodChannel 平台能力合同（当前有效）
+
+- 生产宿主统一使用 `cn.edu.buaa.ubaa/platform` 的 typed MethodChannel：权限通过
+  `permission.request` 返回固定状态，安全凭据通过 `credentials.capability/read/write/clear`
+  使用版本化 namespace，照片通过 `photo.capability/pick` 传递有界字节、文件名和 MIME。
+- Dart 适配器在能力探测失败、原生异常或返回值不符合合同（无效凭据、非图片、文件名越界、照片
+  超过 10 MiB）时安全拒绝；不把原始路径、URL、Cookie、令牌或平台异常正文带入 UI、日志或 Core。
+- `createDefaultPlatformCapabilities()` 已接入官方 Flutter 与 OHOS 薄宿主；无原生 handler 时保持
+  `isAvailable=false`，不能把内存/Noop 实现描述为系统安全存储。Android/iOS/macOS/Linux/Windows
+  的原生安全存储和 HarmonyOS HUKS handler、设备权限/生命周期 smoke 仍是后置 `BLOCKED`。
+- 该决策只确定 Dart/原生边界，不引入任何上游协议字段或真实账号副作用；行为由
+  `packages/ubaa_platform/test/method_channel_adapters_test.dart` 的 Mock 合同测试覆盖。
+
+## 2026-09-02：无签名平台能力边界与宿主全功能 smoke（当前有效）
+
+- 采用 `PlatformPermissionGateway` 和 `PlatformPhotoPicker` 作为相机、相册、文件、前台位置及照片输入的唯一宿主边界；不可用实现安全拒绝，内存实现仅用于脱敏测试。照片不以路径或原始文件元数据跨入业务层。
+- 官方 Flutter/OHOS 宿主只接收可选 picker 注入；无设备、证书或原生插件时不伪造照片上传成功。设备权限、硬件安全存储和真实照片上传继续记录为后置 `BLOCKED`。
+- 宿主集成测试扩展为普通 8 项和高级 4 项详情入口逐项打开/返回，证明共享导航和 typed 状态链路；该 fake 证据不替代 FRB/Core-live 或实体设备证据。
+- 无签名 `release-preflight` 增加 Cargo SBOM、Dart/Flutter 锁文件版本和许可证审计，并在合同 CI 上传短期 artifact；报告不含账号、令牌、原始响应或签名材料。
+- `a7d4ac0` 将该报告的锁文件枚举固定为 Git 跟踪路径，避免把构建目录临时锁文件带入可复核结果；复跑确认 8 个锁文件且工作树保持干净。
+- `9dfe078` 将 `just release-preflight` 的 CI/Runbook 调用统一为绝对报告目录的位置参数；合同 CI
+  `33573554458` 已验证 `just check`、无签名报告生成和 artifact 上传成功。后续只有该位置参数形式
+  作为发布前置报告的合同调用，错误的 `report_dir=...` 形式不再接受。
+- 当前提交 `2ceda40` 复核确认宿主 picker 必须经 `PlatformPermissionGateway` 包装：未注入权限实现时
+  默认安全拒绝，只有明确注入并获得 `granted` 才能调用 picker。该提交的干净工作树
+  `release-preflight` 与 OHOS API26 无签名 HAP/arm64 包检查均通过；构建输出不进入版本库。
+
+## 2026-09-02：无签名执行目标取代正式发布门禁（当前有效）
+
+用户明确要求在没有签名证书、签名账号和实体设备的条件下继续完成代码、确定性测试、无签名构建、静态检查、来源对照和发布文档。`goal.md` 因此新增“无签名执行合同”：P1–P4 的功能与安全闭环、P5 的平台代码/权限/生命周期/安全存储边界、P6 的无签名 RC/产物审计/SBOM/runbook 仍是本轮必需门禁。
+
+正式签名 HAP/Release、公证、商店上传、实体设备安装/hello、HUKS/硬件安全存储和设备权限验证不再阻塞本轮目标，统一记录为后置 `BLOCKED`。无签名产物只能标记为开发或 RC 证据，不能宣告正式发布；真实写入依旧要求每次具体操作、目标、路线和时间的独立授权，本次范围变更不授权任何真实副作用。
+
+## 当前有效性说明（2026-08-31）
+
+本文件按日期保留协议证据和历史冲突。2026-08-29 的真实写探针属于周期外、一次性授权的
+历史记录，不是当前验收例外；本周期仍禁止真实签到、选课、预约、取消、上传和评教提交。
+旧版聚合验证、`route=auto` 真实示例、jq/摘要盐及曾经的 Cgyy Direct 兼容分支均已被后续
+决策取代，当前入口只有 Core-live 的显式 Direct/WebVPN 逐操作只读矩阵。
+
+本周期新增的 `auth/prepare` 证据映射到登录内部保存的准备状态，Core-live 不再重复发起
+准备请求；SPOC/ Judge 诊断逐项输出 `global_page_count`、`course_count`、`raw_anchor_count`
+和 `filtered_unique_count` 等安全计数。认证准备或登录失败会为所选矩阵补齐所有后续
+`BLOCKED` 项，依赖 ID 缺失才使用带原因的 `NOT_APPLICABLE`。Cgyy 用途若采用冻结静态
+回退，会显式输出 `source=static_fallback`，不伪装为上游成功。所有 facade 写入口在请求
+前重新校验外部会话 CAS 修订；stale writer 的 Mock 证明不会发出写请求。`core-live.sh`
+已取消 `exec`，并用统一 EXIT/信号陷阱清理自动临时目录，显式目录仍由调用方管理。
+
+本次复核补充四项边界：Core-live 的 SPOC/Judge 诊断行与普通结果共享同一次响应并明确
+`reuse_from`；课表没有正数周序号时输出 `NOT_APPLICABLE`，禁止猜测周次；Cgyy 业务 3xx
+跳转到 SSO 时分类为认证失效，其它 3xx 分类为上游变化；Cgyy 日期上下文令牌和验证码
+材料均留在 Core 内部，Cookie 单值读取也必须按请求 URL 过滤域名、路径、Secure 和过期时间。
+聚合 facade 的普通读操作同样在发起请求前校验外部会话 revision，防止过期读客户端产生网络
+副作用。
+
+## 2026-08-31：Cgyy WebVPN 网关 Cookie 同步证据
+
+用户提供的 `examples/BUAA-CGYY/d.buaa.edu.cn.cgyy.har`（仅读）记录了完整的 WebVPN 浏览器流程。脱敏审阅确认：Cgyy `manageLogin` 在 WebVPN 包装地址上经两次 302 到 `/venue-zhjs`，没有 HTTP `Set-Cookie`；浏览器随后调用 `d.buaa.edu.cn/wengine-vpn/cookie` 的 `method=get` 接口，按 `host=cgyy.buaa.edu.cn`、`scheme=https`、`path=/venue-zhjs` 和当前时间戳读取纯文本 Cookie 快照，其中包含 `sso_buaa_zhjs_token` 名称。前端把该值作为 `Sso-Token` 头发送到包装后的 `POST /venue-zhjs-server/api/login`，成功信封仍为 `code/data/message`，再以 `cgAuthorization` 继续业务读取。
+
+此前 Core 只等待 Cgyy 响应的 `Set-Cookie`，因此 WebVPN 实时矩阵安全返回 `authentication_required`。先添加 `webvpn_从网关_cookie接口取得_cgyy_sso令牌` 脱敏 Mock 并观察到预期失败，再实现网关 Cookie 同步；同步响应只在当前请求内存中解析，令牌不进入 Session、日志或文件。该证据不改变冻结 `ubaa_old` 的 Direct Cgyy URL、参数、签名、DTO 或错误语义，`examples/buaa-api` 仍无等价 Cgyy 模块；本地 Core WebVPN-only 回归和敏感扫描需在真实重跑前通过。
+
+## 2026-08-31：HAR 修复后的 Cgyy 双路线重跑（历史快照）
+
+重新执行 `just verify-live mode=direct` 与 `just verify-live mode=webvpn`，两条路线均退出码 0。两条路线的 Cgyy 站点、用途、日期、订单、订单详情和锁码逐项均为 `PASS`（站点 7、用途 10、订单 15、锁码摘要数量 0），Evaluation 的全部与待评教读取也逐项 `PASS`；其他已接入只读领域同样通过。WebVPN Judge 本次瞬时数量为 `include_expired/current/details_batch=49/17/17`，此前同日快照曾有 `80/48/48` 或更早的 `40/0/0`，但列表、详情和批量详情均按当前依赖 ID 语义门禁记录。SPOC/Bykc 详情因无上游标识按 `NOT_APPLICABLE`，auto 仍只做确定性路由测试。真实账号未执行任何写操作。
+
+## 2026-08-31：最新 Core-live 实时复核处于图书馆非营业时间
+
+随后再次串行执行 `just verify-live mode=direct` 和 `just verify-live mode=webvpn`。两条路线的
+认证、用户、课表、考试、成绩、教室、SPOC、Judge、Signin、Ygdk、Bykc、Cgyy 和 Evaluation
+逐项结果与前述快照一致，Cgyy 六项均通过且 WebVPN 没有回退 Direct。唯一异常是
+`libbook/area_detail`：HTTP 状态为 200，但业务信封为 `code=500` 且缺少 `data`，Core 按冻结
+合同返回 `upstream_changed`，两条路线均以退出码 5 结束。该轮运行时间处于图书馆开放时间之外；
+已知开放时间为每日 08:30–23:00（`Asia/Shanghai`），因此该样本不能作为协议不兼容或实现错误
+的结论。安全调试摘要只记录操作、路线、状态、脱敏路径、正文长度和 JSON 结构，不记录响应正文
+或消息值；必须在开放窗口内重新运行后再判定。
+
+## 2026-08-31：Cgyy 路线与 Core-live 真实验证边界校正
+
+本周期先对照冻结 `ubaa_old`、固定版本 `examples/buaa-api` 和现有脱敏 Mock。原有 WebVPN Cgyy 测试复现了业务请求误走 Direct 的失败：WebVPN-only 会话无法完成站点读取，且写入口也固定访问 Direct。新增失败测试后，Core facade 将每个 Cgyy 公共操作分别绑定到解析出的路线 runtime；WebVPN 现在只使用 WebVPN URL，Direct 会话缺失不会触发偷偷回退。相同批次内业务令牌仍只在当前客户端内存复用，认证失效最多清理、重登并重放一次。
+
+冻结旧版 `LocalWebVpnSupport.localCgyyUpstreamUrl` 曾返回直连地址，`examples/buaa-api` 没有等价实现；该冻结行为与本周期明确的 WebVPN-only 路线合同冲突。冲突边界以脱敏 WebVPN-only 失败/修复测试和当前路线安全要求为依据，未从示例协议借用任何 URL、字段或令牌；后续真实 WebVPN 结果必须逐操作记录，若上游不支持该路线则记录失败而不回退 Direct。
+
+锁码解析另以脱敏失败测试复现了 CLI 序列化原始 `data` 的泄漏，现已收敛为 Core/CLI 公共结果 `{available: boolean}`；锁码正文不会进入 Session、日志或文件。以上修复均通过 focused Cgyy 测试、敏感扫描和确定性检查；协议 URL、参数、签名常量仍只取冻结实现，`examples/buaa-api` 无对应 Cgyy 实现，未作类比推断。
+
+真实验证入口已拆为单批次 `core-live` 与薄 `verify-live`：Core-live 一次创建固定路线 `RouteClient`，从 stdin 读取凭据并串行执行只读 facade 操作，逐项输出路线、操作、`PASS/FAIL/BLOCKED/NOT_APPLICABLE` 和稳定错误码；不调用任何写方法。`verify-live` 仅校验参数、临时读取 `.env.local`、锁定构建并转发，拒绝 `auto`；`auto` 只保留 Mock/确定性路由证据。Direct/WebVPN 的真实结果必须在本周期重新逐项记录，不能沿用旧脚本聚合摘要。
+
+新入口真实结果：Direct 全量逐项退出码 0，仅 SPOC 详情与 Bykc 课程详情因空列表为 `NOT_APPLICABLE`；课表、考试、成绩、教室、SPOC、Judge（含批量详情）、Signin、Ygdk、LibBook、Bykc、Cgyy、Evaluation 均有安全 `PASS`。WebVPN 的认证、用户、课表、考试、成绩、教室、SPOC、Judge、Signin、Ygdk、LibBook、Bykc 逐项通过，SPOC/Bykc 详情因无标识为 `NOT_APPLICABLE`；Cgyy 站点/用途/订单/锁码和 Evaluation 全部得到 `authentication_required`，依赖日期/订单详情为 `NOT_APPLICABLE`，Evaluation pending 为 `BLOCKED`，退出码 5。该失败保持 WebVPN 路线，不以 Direct 结果替代。
+
+## 2026-08-29：用户授权 Cgyy Rust CLI 读写探针及提交落库时序
+
+用户明确授权使用 `.env.local` 中的真实测试账号执行一次 Cgyy Rust CLI 预约并立即清理订单；该授权仅覆盖本次单笔 Direct 探针，不改变 `verify-live` 永远只读的全局规则。实时读操作中，Direct 登录、站点、用途、日期和订单读取均成功；日期返回 84 个时段，其中存在可预约时段。请求 JSON 省略验证码材料，由 Core 自动获取挑战、求解图片、校验并提交。
+
+首次提交返回成功后立即调用取消，取消接口和 CLI 均返回成功，但订单列表仍暂时为 `orderStatus=1`。对照冻结 Python 脚本的 `sleep(5)`，等待 5 秒后对同一订单再次取消，订单列表最终变为 `orderStatus=2`；因此记录“提交完成到取消之间需要等待旧版落库窗口”，不能仅以取消接口的成功信封作为最终状态证据。没有保留或记录订单号、手机号、令牌、Cookie、验证码或原始响应。
+
+取消后的详情请求第一次返回 `upstream_unavailable`，随后成功信封的 `data` 为空，Rust 按冻结旧版映射为空详情；订单列表状态 2 是本次取消的最终实时证据。另发现日期 DTO 曾将预约上下文 `reservationToken` 序列化到 CLI，导致安全合同拒绝成功响应；已通过脱敏失败测试先复现，再对 `CgyyDayInfo.reservation_token` 增加仅 Core 内部可用的序列化屏蔽。
+
+## 2026-08-29：继续对齐 Cgyy 业务会话、信封和 Direct 路由
+
+冻结 `ubaa_old` 的 `requestJson` 对场馆 GET/POST 请求都使用同一业务访问令牌，并在业务认证失效时清理业务令牌、强制登录后只重放一次；预约上下文返回的 `token` 只作为后续预约表单的业务字段，不能替代 `access_token` 放入 `cgAuthorization`。Rust 原实现在上下文、验证码校验和最终提交中误用了该预约 `token`，且业务认证失败没有按旧版重试；`WebVPN` facade 的 Cgyy 写操作也错误地使用了主路线 transport。
+
+历史记录：本轮先以脱敏 Mock 固定上述失败行为，再完成最小修复：所有 Cgyy 业务 GET/POST 统一经过一次认证重试，写请求头恢复使用业务 `access_token`。当时的 WebVPN Direct 兼容分支已被本周期路线校正 supersede；当前 facade 读写均使用解析出的路线 runtime。日期接口严格要求 `code=200` 且 `data` 存在并为 JSON 对象（允许空对象）；锁码接口严格要求成功代码，缺失 `data` 映射为空值，保持旧版可空语义。
+
+确定性证据为 Core Cgyy 集成测试 12/12、CLI 合同测试 23/23，以及 Cgyy facade 路由回归测试通过。实时只读证据仅确认两条路线的站点列表各返回 7 个；日期、订单和锁码在不同日期/路线出现 `upstream_unavailable` 或 `invalid_semantics`，部分日期结构探针曾返回正常对象，因此需把上游窗口/限流不稳定与本地协议错误分开处理。本轮没有调用预约、验证码校验、提交或取消写接口。`examples/buaa-api` 在冻结提交中没有等价 Cgyy 协议，未借用其 URL、字段或错误语义。
+
+## 2026-08-17 至 2026-08-29：已归档历史决策摘要
+
+以下条目是已被当前中文合同、来源对照和后续决策吸收的历史摘要；完整旧正文仍可从 Git
+历史追溯，不再在当前文档重复维护。
+
+- 认证与连接只接受主机白名单内的 HTTP/HTTPS 跳转，TLS 校验保持开启；非 HTTP 协议即使主机匹配也拒绝。公共宿主只使用具体的 facade，运行时、上游解析和存储实现保持私有。
+- 响应正文、会话文件和内存缓冲均有上限；Session 文件使用防符号链接、仅所有者权限、侧车锁、唯一临时文件和单调 CAS 修订，防止陈旧进程覆盖、重建或删除新会话。
+- 交互式验证码分支已被 2026-08-25 的非交互决策取代。遇到未支持的验证控件时，Core 在请求验证码图片或提交凭据前返回 `upstream_changed`；CLI、JSON 合同和真实验证器不暴露挑战、答案或图片。
+- 课表周视图的响应 `code` 只按冻结 DTO 作为非空展示字段解析，不能强行要求它等于请求学期；课表和成绩表单保持 `application/x-www-form-urlencoded`。AAS 读取前执行有证据支持的服务激活并校验最终 URL。
+- 注销保持“远端尽力请求后清理本地”的冻结顺序；持久化清理由 CAS 修订保护。确定性 Cargo 门禁统一锁定依赖解析；格式检查工具不解析依赖，因此不需要锁定参数。
+- Judge 的历史 `auto -> WebVPN` 覆盖已在校园网 Direct 复核后撤销；现在所有功能使用统一路线表。网关探测固定为 `gw.buaa.edu.cn:80` 的一次 500 毫秒总预算 TCP 探测，并在进程内缓存 60 秒。
+- 普通路线选择已从宿主迁入聚合 `UbaaClient`。双路线协调器拥有完整快照和修订；外部 CAS 冲突是当前实例的终止状态，清理双路线内存并停止后续网络 I/O，恢复必须重新打开 facade。
+- 仅接收 SSO 准备页 Cookie 不代表已认证；只有持久化的认证时间或用户中心状态成功后才允许业务读取。CLI 对所有命令只输出 schema v2；路线解析前的错误只包含功能名，不虚构路线元数据。
+- SPOC 以冻结本地实现为准：课程元数据可选，作业列表必须调用加密的全局分页请求；加密正文恰好按 16 字节对齐时不额外补零块。详情公共 DTO 只保留规范化纯文本，不暴露原始 HTML。
+- SPOC 令牌必须绑定 HTTPS `spoc.buaa.edu.cn/spocnew/cas` 和当前路线；业务认证重试只重放失败的单项请求，解析错误和权限错误不伪装成认证失效。业务认证耗尽后仅在用户中心明确失效时清主会话。
+- Judge 与 SPOC 的隐藏诊断仅输出安全计数并复用普通 facade 响应；它们不增加 URL、参数、Header 或重试。历史摘要盐、jq 聚合与真实 `auto` 验证器已停用，当前 Core-live 直接输出逐操作安全证据。
+- Cgyy、Signin、Ygdk、LibBook、Evaluation 的历史单项修复均已纳入 `source-parity.md`：Signin 使用冻结 GET/`sessionId` 形状；Ygdk 和 Evaluation 保留有证据的可选读取回退；LibBook 双路线读取已验证；Cgyy 签名、业务令牌与每项真实结果独立判定。
+- 2026-08-29 的 Direct/WebVPN/auto 聚合结果和瞬时 Judge 数量只保留为上游波动背景，不再作为当前验收。当前门禁只接受 Core-live 的显式 Direct/WebVPN 只读矩阵，且绝不调用真实写操作。
+
+## 2026-08-28：场馆预约的 WebVPN 策略必须保留直连业务域（已被 2026-08-31 决策取代）
+
+本轮真实验证中，WebVPN 主认证成功，但场馆预约返回
+`authentication_required`；同一账号的 Direct 场馆查询成功并返回 4 个站点。
+冻结 `LocalWebVpnSupport.localCgyyUpstreamUrl` 明确规定
+`cgyy.buaa.edu.cn` 公网可达，任何连接模式下都使用直连 URL；冻结
+`LocalCgyyApi.ensureBusinessLogin` 进一步固定使用 Direct Cookie 存储和直连客户端
+完成 SSO 跳转，再从场馆域 Cookie 取得 `sso_buaa_zhjs_token`。
+`examples/buaa-api` 没有等价协议，不能提供替代路线。
+
+当前 Rust 实现将场馆登录、业务登录和查询统一交给所选路线的
+`ClientRuntime`。当路线为 WebVPN 时，`runtime.url` 会包装场馆 URL，且 Cookie
+仍属于 WebVPN 路线；这与冻结实现的“主认证路线可为 WebVPN，但场馆业务交换固定
+直连”并不等价。禁止通过放宽认证错误、跨域复制 Cookie 或把缺少令牌解释为空结果
+来规避该差异。后续修复必须先用脱敏 Mock 固定以下合同：WebVPN 主会话保持隔离；
+场馆入口和业务请求使用直连 URL；Direct SSO/场馆 Cookie 仅在场馆业务交换范围内
+使用；最终业务令牌仍按调用客户端隔离且不持久化。该调整需要明确的双运行时 facade
+接口，不能仅在 `features/cgyy.rs` 中替换 URL。
+# 2026-08-28 Cgyy 门锁码实时证据
+
+- 命令：`UBAA_VERIFY_DIGEST_SALT=<临时值> just verify-live mode=direct feature=all`。
+- 结果：schedule、exam、grades、classroom、spoc、judge、signin、ygdk、libbook、bykc、evaluation 均通过；`cgyy` 站点查询通过。
+- 失败：`cgyy_lock_code` 返回稳定错误 `upstream_unavailable`（退出码 5），因此 `feature=all` 聚合失败。
+- 处理：不把上游失败改写为空数据，不调用任何写操作；继续执行 WebVPN 同项验证，并核对门锁码冻结接口/错误语义。
+
+# 2026-08-28 WebVPN 全量只读证据
+
+- 命令：`UBAA_VERIFY_DIGEST_SALT=<临时值> just verify-live mode=webvpn feature=all`。
+- 结果：schedule、exam、grades、classroom、spoc、judge、signin、ygdk、libbook、bykc 均通过；Judge 仅记录脱敏计数和盐化摘要。
+- 失败：Cgyy 与 Evaluation 在业务阶段均返回 `authentication_required`（退出码 3），聚合以 `one_or_more_features_failed` 结束。
+- 处理：保留逐项失败，不用 all 聚合结果掩盖；不调用写操作。下一步核对 WebVPN 下 Cgyy 登录跳转与 Evaluation CAS 激活的路线 Cookie/最终 URL 证据。
+
+# 2026-08-29 全量只读复测
+
+- Direct 全量：Judge 为 `upstream_unavailable`、Cgyy 为 `timeout`，其余已执行只读功能通过；聚合以 `one_or_more_features_failed` 结束。
+- WebVPN 全量：Cgyy 与 Evaluation 为 `authentication_required`，其余已执行只读功能通过；聚合以 `one_or_more_features_failed` 结束。
+- 以上仅记录脱敏错误类别和功能结果；未记录摘要盐、Cookie、令牌、原始响应，也未调用任何写接口。
+
+# 2026-08-29 Cgyy 单项复测
+
+- Direct：站点查询成功，门锁码返回 `upstream_unavailable`（退出码 5）。
+- WebVPN：Cgyy 业务入口返回 `authentication_required`（退出码 3）。
+- 结论：失败可复现；不放宽错误分类，不跨路线复制 Cookie/令牌，不执行任何写操作。
+
+# 2026-08-28 Cgyy WebVPN 路线冲突
+
+- 冻结依据：`ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalWebVpnSupport.kt` 的 `localCgyyUpstreamUrl` 明确返回原始直连 URL；注释说明 Cgyy 在校外公开可访问，不通过 WebVPN 包装。
+- 当前 Rust：`features/cgyy.rs` 通过所选 `ClientRuntime::url` 包装全部场馆地址；显式 WebVPN 验收的 Cgyy 业务阶段返回 `authentication_required`。
+- 决策：不能复制 Direct Cookie/令牌到 WebVPN，也不能只改 URL 而让 WebVPN 传输承载直连 Cookie。需要后续设计“主路线诊断与 Cgyy 直连业务 runtime”边界，并补充隔离 Mock；在此边界明确前不猜测修复。
+
+## 2026-08-28 Cgyy 直连 URL 复测
+
+- Rust 已按冻结 `localCgyyUpstreamUrl` 将 Cgyy 地址改为原始直连 URL，同时保留当前路线的 Cookie 容器和传输对象。
+- WebVPN 单项复测仍为 `authentication_required`；因此问题不只是 URL 包装，不能据此宣称 WebVPN 通过。
+- Direct 单项站点查询继续通过，门锁码仍返回 `upstream_unavailable`。后续必须设计独立直连业务 runtime，并用 Mock 证明 Cookie 不跨主认证路线复制。
+
+# 2026-08-28 只读矩阵复测
+
+- Direct：schedule、exam、grades、classroom、spoc、judge、signin、ygdk、libbook、bykc、cgyy 站点及 evaluation 均通过；`cgyy_lock_code` 仍为 `upstream_unavailable`（退出码 5）。
+- WebVPN：schedule、exam、classroom、spoc、signin、ygdk、libbook、bykc 通过；grades 返回 `upstream_changed`（退出码 6），judge 返回 `invalid_semantics`（截止阶段退出码 1），cgyy 与 evaluation 返回 `authentication_required`（退出码 3）。
+- 处理：保留逐操作失败证据，聚合命令以 `one_or_more_features_failed` 结束；本轮只读验证未调用任何写操作，以上摘要不含原始响应或个人数据。
+
+## 2026-08-28 WebVPN 逐项复测
+
+- `feature=grades`、`feature=judge`、`feature=evaluation` 单项重跑均成功；Judge 脱敏计数为课程 5、原始锚点 49、过滤后 49、当前 17、截止跳过 32，并取得语义详情。
+- `feature=cgyy` 单项重跑仍为 `authentication_required`（退出码 3）。该失败与此前结果一致，不能由其他场馆或主认证成功替代。
+- 本次复测全部为只读操作，未调用任何提交、取消、预约、签到、上传或选课接口。
+
+## 2026-08-29 逐操作验证器扩展与三路线复测
+
+- 提交 `c35c9ca` 将 `verify-live` 的扩展领域从代表性查询扩展为逐操作链：Ygdk
+  概览/记录，LibBook 楼馆/区域/详情/座位/预约记录，Bykc 资料/课程/详情/已选/统计，
+  Cgyy 站点/用途/日期/订单/详情/锁码，以及 Evaluation 全部/待评教。详情请求只有在
+  上游返回脱敏标识时才继续，空集合不会伪造详情成功；脚本 stub 覆盖调用顺序且不输出
+  原始响应。
+- 提交 `406177b` 将 User 的 `user show` 纳入独立验证和 `all` 聚合，并校验完整脱敏
+  profile 字段集合、类型与掩码规则。
+- Direct 三路线复测命令为
+  `UBAA_VERIFY_DIGEST_SALT=<临时值> just verify-live mode=direct feature=all`：课表、
+  考试、成绩、教室、SPOC、User、Signin、Ygdk、LibBook、Cgyy 站点/用途/日期/订单、
+  Evaluation 成功；Judge 返回 `upstream_unavailable`，Bykc 已选返回 `upstream_changed`，
+  Cgyy 锁码响应未通过当前安全结构校验，聚合退出 5。
+- WebVPN 同命令：课表、考试、成绩、教室、SPOC、Judge、User、Signin、Ygdk、LibBook
+  成功；Bykc 已选返回 `upstream_changed`，Cgyy 与 Evaluation 返回
+  `authentication_required`，聚合退出 6。
+- auto 同命令解析到 Direct：课表、考试、成绩、教室、SPOC、User、Signin、Ygdk、
+  LibBook、Evaluation 成功；Judge 返回 `upstream_unavailable`，Bykc 已选返回
+  `upstream_changed`，Cgyy 在用途查询阶段返回 `upstream_unavailable`，聚合退出 5。
+- 以上运行只执行读操作；未记录凭据、Cookie、令牌、摘要盐、原始响应或个人数据，
+  未调用任何选课、退选、签到、预约、取消、提交或上传接口。整体迁移继续保持未完成。
+
+## 2026-08-29 用户独立只读验收
+
+- `feature=user route=direct`、`feature=user route=webvpn` 和
+  `feature=user route=auto` 均退出 0；auto 实际解析到 Direct。
+- 三次运行均通过完整脱敏 profile 结构校验；没有记录姓名、联系方式、身份信息、Cookie、
+  令牌或原始响应，也没有调用任何写操作。
+
+## 2026-08-29 Bykc 已选课程包装修复
+
+- 冻结 `ubaa_old/shared/.../LocalBykcApi.kt` 的 `queryChosenCourse` DTO 是
+  `data.courseList`，Rust 原实现把解密后的业务数据直接当数组解析，导致 Direct、WebVPN
+  和 auto 均在 `bykc_chosen` 返回 `upstream_changed`。
+- 按 TDD 先加入 `courseList` 对象包装 fixture，旧实现失败；随后让解析器从对象读取
+  `courseList`，并保留已有数组兼容路径。聚焦测试通过后，三路线单项命令均退出 0，
+  返回脱敏课程计数摘要；未记录课程标识、令牌、密文或原始响应。
+
+## 2026-08-29 Bykc 修复后全量实时矩阵
+
+- Direct 全量：User、课表、考试、成绩、教室、SPOC、Signin、Ygdk、LibBook、Bykc、Cgyy 站点和 Evaluation 通过；Judge 在 `judge_all` 返回 `upstream_unavailable`，Cgyy 在 `cgyy_day` 返回 `upstream_unavailable`，聚合退出 5。
+- WebVPN 全量：User、课表、考试、成绩、教室、SPOC、Judge、Signin、Ygdk、LibBook、Bykc 通过；Cgyy 与 Evaluation 在业务阶段返回 `authentication_required`，聚合退出 3。
+- auto 全量解析到 Direct：User、课表、考试、成绩、教室、SPOC、Signin、Ygdk、LibBook、Bykc、Cgyy 站点和 Evaluation 通过；Judge 在 `judge_all`、Cgyy 在 `cgyy_purposes` 返回 `upstream_unavailable`，聚合退出 5。
+- 本轮使用临时摘要盐，仅保留退出码、阶段和脱敏计数；没有输出或持久化凭据、Cookie、令牌、原始响应、课程/个人标识，也没有调用真实写操作。失败项继续作为硬门禁，不以 `all` 聚合掩盖。
+
+## 2026-08-29 Direct Judge/Cgyy 单项复测
+
+- `feature=cgyy` 站点查询成功（4 个站点），日期阶段仍为 `upstream_unavailable`，退出 5。
+- `feature=judge` 在列表阶段仍为 `upstream_unavailable`，退出 5。
+- 两次复测均未改变请求、解析或错误策略；没有跨路线复制 Cookie/令牌，也没有调用真实写操作。该结果确认失败位于实时上游可用性边界，不能由其他功能成功替代。
+
+## 2026-08-29 WebVPN Cgyy 直连业务 transport 复测
+
+- 按冻结 `LocalCgyyApi.ensureBusinessLogin` 的 Direct 客户端语义，聚合 facade 在 WebVPN
+  路线解析和会话预检后改用 Direct 业务 transport；Cookie 仍由 Direct 路线槽位独立提供，
+  未从 WebVPN 槽位复制材料。
+- `feature=cgyy route=webvpn` 的站点查询通过（4 个站点），用途查询阶段返回
+  `upstream_unavailable`（退出 5），不再返回此前的 `authentication_required`。
+- 该结果证明 transport 分派方向正确，但尚不足以宣告 WebVPN Cgyy 全部读操作通过；
+  日期、订单、锁码等后续操作仍需逐项实时证据。
+
+## 2026-08-29 Judge 路线复测更新
+
+- auto（实际解析到 Direct）的 Judge 单项复测通过，返回课程 5、当前任务 65，并完成
+  详情语义校验；摘要仅保留脱敏计数和临时盐摘要。
+- Direct Judge 同轮仍在 `judge_all` 返回 `upstream_unavailable`。这与历史列表快照
+  波动一致，不能用 auto 成功替代 Direct 路线证据；继续保留逐路线硬门禁。
+- WebVPN 全量同轮除 Cgyy 用途查询 `upstream_unavailable` 外，其余已执行只读操作通过，
+  包括 Judge 和 Evaluation。所有运行均未调用真实写接口。
+
+## 2026-08-29 Direct Judge/Cgyy 复测收敛
+
+- Direct Judge 随后单项复测通过：课程 5、当前任务 65，详情语义校验通过；结合本轮
+  WebVPN 与 auto 成功结果，Judge 三路线证据已齐备。
+- Direct Cgyy 站点查询通过（4 个站点），日期阶段仍返回 `upstream_unavailable`，退出 5。
+  该失败不被站点成功掩盖，也未改变冻结请求和错误分类。
+
+## 2026-08-29 Cgyy 验证器逐操作不中断
+
+- 旧验证器在 Cgyy 用途或日期失败时提前返回，无法证明订单、详情和锁码是否被独立
+  尝试。现按操作分别记录脱敏失败，继续执行不依赖失败响应的后续查询；订单详情仅在
+  订单列表提供标识时调用，日期详情仅在站点列表提供标识时调用。
+- `scripts/test-verify-live.sh` 已补齐站点、日期、订单、订单详情和锁码的合成响应与调用
+  顺序断言；真实验证仍不执行写操作，聚合返回首个失败退出码。
+
+## 2026-08-29 Cgyy 三路线逐操作复测
+
+- WebVPN：站点与用途通过，日期和锁码为 `upstream_unavailable`；订单查询通过但没有
+  可用详情标识，因此未伪造详情请求。
+- auto（解析到 Direct）：站点通过；用途、日期、订单和锁码均为
+  `upstream_unavailable`。
+- Direct：站点请求本轮为 `upstream_unavailable`，用途和锁码同样失败；验证器不再从
+  失败信封提取站点标识或打印成功摘要。上述运行均未执行真实写操作。
+
+## 2026-08-29 Cgyy 日期窗口排除复测
+
+- Direct Cgyy 使用验证器允许的只读日期覆盖 `2026-09-01` 重跑：站点仍通过（4 个），
+  用途、日期、订单返回 `upstream_unavailable`，锁码为 `invalid_semantics`。
+- 改变日期未改变失败类别，因此当前证据不足以把问题归因于当天没有可预约数据；不据此
+  修改日期格式、响应字段或错误映射，也未执行任何真实写操作。
+
+## 2026-08-29 锁码 CLI 脱敏边界
+
+- 冻结旧版允许 `getLockCode()` 返回可空不透明 `data`，但 CLI 安全合同禁止输出原始
+  锁码或 `rawData` 字段。提交 `8ef875a` 保留 Core facade 的原始 `Value`，将单路线与
+  聚合 CLI 投影为仅含 `{available: boolean}`，并同步 schema、验证器与脱敏单测。
+- Direct Cgyy 随后复测中锁码阶段返回 `upstream_unavailable`；验证器不再因旧的
+  `rawData` 结构要求产生误报。真实写操作仍未调用。
+
+## 2026-08-29 Cgyy 最新三路线波动
+
+- Direct 单项：站点、用途、订单、锁码均为 `upstream_unavailable`。
+- WebVPN 单项：站点查询通过，随后用途、日期、订单、锁码均为
+  `upstream_unavailable`。
+- auto 单项：站点、用途、订单均为 `upstream_unavailable`，在没有订单标识时按规则
+  跳过详情。
+- 本轮没有出现新的可验证 URL/字段冲突；不据此增加网络重试、改写参数或放宽错误分类，
+  继续保留失败证据并禁止真实写操作。
+
+## 2026-08-29 锁码投影后三路线复测
+
+- WebVPN：站点成功，用途、日期、订单、锁码均为 `upstream_unavailable`。
+- auto：站点、用途、订单、锁码均为 `upstream_unavailable`；站点失败后未构造依赖详情。
+- 两路线均未出现旧 `rawData` 结构误报，说明 CLI 安全投影与验证器合同已生效；Cgyy
+  实时硬门禁仍未满足，未执行任何写操作。
+
+## 2026-08-29 三路线全量复测更新
+
+- Direct 全量：除 Cgyy 外所有 User、课表、考试、成绩、教室、SPOC、Judge、Signin、
+  Ygdk、LibBook、Bykc、Evaluation 通过；Cgyy 用途/订单为 `upstream_unavailable`、
+  日期为 `upstream_changed`、锁码为 `invalid_semantics`。
+- WebVPN 全量：除 Cgyy 日期和锁码 `upstream_unavailable` 外，其余只读操作通过，Cgyy
+  站点、用途、订单已通过。
+- auto 全量（解析到 Direct）：除 Cgyy 日期和锁码 `upstream_unavailable` 外，其余只读
+  操作通过。Judge 三路线均完成课程/任务/详情语义校验；所有命令仍未调用真实写接口。
+
+## 2026-08-29 当前轮三路线全量验收
+
+- Direct 全量逐操作运行成功完成 User、课表、考试、成绩、教室、SPOC、Judge、Signin、Ygdk、LibBook、Bykc、Evaluation；Judge 课程/任务/详情语义校验通过。Cgyy 站点查询通过（4 个站点），用途和订单返回 `upstream_unavailable`，日期返回 `upstream_changed`，聚合退出码 5。
+- WebVPN 全量逐操作运行成功完成除 Cgyy 外的全部只读操作，Judge 详情语义校验通过。Cgyy 站点查询通过（4 个站点），用途和订单返回 `upstream_unavailable`，日期返回 `upstream_changed`，聚合退出码 5。
+- auto 全量解析为 Direct，除 Cgyy 外的全部只读操作通过；Cgyy 站点通过，用途和订单为 `upstream_unavailable`，日期为 `upstream_changed`，锁码为 `upstream_unavailable`，聚合退出码 5。
+- 三次运行均使用未持久化的进程内摘要盐，仅记录路由、阶段、计数和错误类别；没有输出凭据、Cookie、令牌、原始响应或个人标识，也没有调用真实写接口。Cgyy 仍未满足实时硬门禁，不修改协议实现或错误策略。
+
+## 2026-08-29 Cgyy 用途类型回退修复
+
+- 冻结 `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyyApi.kt` 的 `getPurposeTypes` 在已有主会话后对动态请求和解析使用 `runCatching`，失败即采用静态十项列表。Rust 原实现传播 `/api/codes` 的上游错误，与冻结行为不符。
+- 新增 `crates/ubaa-core/tests/cgyy.rs` Mock：`/api/codes` 返回合成 502 时，单路线 facade 仍返回十项静态用途；测试先观察到 `UpstreamUnavailable` 失败，再实现回退并通过。`RouteClient` 同步补齐用途类型入口。
+- Direct、WebVPN、auto 复测中用途阶段均成功，失败边界后移到日期/订单（及依赖详情）的实时上游错误；未改变 URL、签名、重试或错误映射，也未调用真实写接口。
+
+## 2026-08-29 Cgyy 回退后 Direct 全量复测
+
+- Direct `feature=all` 在用途回退修复后继续完成所有独立操作：非 Cgyy 功能及 Judge 详情语义通过，Cgyy 站点成功（4 个），日期返回 `upstream_changed`，锁码返回 `upstream_unavailable`，聚合退出 6。
+- 该结果确认用途回退减少了一个实时失败点，但日期和锁码仍缺乏新的协议证据；不猜测参数或增加重试，未执行真实写操作。
+
+## 2026-08-29 Cgyy 回退后 WebVPN/auto 全量复测
+
+- WebVPN 全量中用途阶段通过静态回退，站点成功（4 个），非 Cgyy 操作与 Judge 详情语义通过；日期和依赖详情返回 `upstream_unavailable`，聚合退出 5。
+- auto 全量解析到 Direct，用途阶段通过静态回退，站点成功（4 个），非 Cgyy 操作与 Judge 详情语义通过；日期和订单返回 `upstream_unavailable`，聚合退出 5。
+- 两次运行只进行了只读请求，未改变日期/订单协议、未增加重试或放宽错误分类，也未执行真实写操作。
+
+## 2026-08-29 用途回退后 WebVPN/auto 全量复测
+
+- WebVPN 全量中用途静态回退成功，站点成功（4 个），非 Cgyy 操作与 Judge 详情语义通过；日期和依赖详情返回 `upstream_unavailable`，聚合退出 5。
+- auto 全量解析到 Direct，用途静态回退成功，站点成功（4 个），非 Cgyy 操作与 Judge 详情语义通过；日期和订单返回 `upstream_unavailable`，聚合退出 5。
+- 本轮无新的 URL、字段或重定向证据；不猜测协议、不增加重试，未执行真实写操作。
+
+## 2026-08-29 Cgyy 成功信封代码严格校验
+
+- 冻结 `LocalCgyyApi.requestJson` 在 JSON 解析后明确要求 `code == 200`；缺失代码或其他数值均抛出业务错误。
+- Rust `features/cgyy.rs::data` 原先允许缺失代码及 `code=0`，新增脱敏解析测试先复现错误再收紧为仅接受 `Some(200)`；非 JSON、数组或标量结构仍按原错误分类处理。
+- 未改变 URL、请求、重定向、签名、缓存或实时错误边界；未执行真实写操作。
+
+## 2026-08-29 Cgyy 日期槽位排序
+
+- 冻结 `LocalCgyyApi.mapDayInfo` 会过滤无效槽位并按 `timeId` 升序整理每个空间的槽位；Rust 原实现保留上游顺序。
+- 新增逆序 `spaceTimeInfo` 脱敏测试先失败后通过，当前输出与冻结排序一致；未改变请求协议或实时错误策略。
+
+## 2026-08-29 Cgyy 三路线逐操作复测（二）
+
+- 使用未持久化进程内摘要盐执行 `feature=cgyy` 的 Direct、WebVPN、auto 只读验证；三次站点查询均成功并返回 4 个站点。
+- Direct 日期和锁码为 `upstream_unavailable`；WebVPN 日期为 `upstream_changed`、订单和锁码为 `upstream_unavailable`；auto 解析为 Direct，日期为 `upstream_changed`、订单为 `upstream_unavailable`。
+- 脚本逐项继续执行并返回首个失败码；本轮未改变 URL、参数、解析或错误策略，未执行任何真实写操作。Cgyy 实时硬门禁仍未满足。
+
+## 2026-08-29 三路线全量只读复测
+
+- Direct：User、Schedule、Exam、Grades、Classroom、SPOC、Judge（课程/任务/详情）、Signin、Ygdk、LibBook、Bykc、Evaluation 均成功；Cgyy 站点成功（4 个），日期和订单为 `upstream_unavailable`，聚合退出 5。
+- WebVPN：上述非 Cgyy 能力均成功，Judge 详情语义通过；Cgyy 站点成功（4 个），日期和订单为 `upstream_unavailable`，聚合退出 5。
+- auto：解析为 Direct，上述非 Cgyy 能力均成功；Cgyy 站点成功（4 个），日期为 `upstream_changed`、订单为 `upstream_unavailable`，聚合退出 6。
+- 结果与冻结实现的请求和解析行为一致但实时上游不可用的项仅作记录，不修改协议或错误策略；仅执行读操作，未执行真实写接口。
+
+## 2026-08-29 Cgyy 场馆包装展开
+
+- 冻结 `LocalCgyyClient.getVenueSites` 调用 `asVenueSiteArray`，将场馆对象的 `siteList` 展开并继承场馆名称与校区；当前解析器原先把场馆对象误当作站点。
+- 新增旧版包装的脱敏测试，先复现站点 ID 被误读为场馆 ID，再实现展开并通过；同时保留扁平数组和 `content` 包装。
+- 未改变请求、签名、路由、会话或实时错误策略，未执行真实写操作。
+
+## 2026-08-29 LibBook 座位排序
+
+- 冻结 `LocalLibBookApi.getSeats` 在 DTO 映射后执行 `sortedBy { it.no }`；Rust `parse_seats` 原先保留响应顺序。
+- 新增逆序座位号脱敏测试先失败后通过，并在 Core 中按字符串座位号升序排序；未改变请求协议或实时路由行为。
+
+## 2026-08-29 LibBook 预约总数回退
+
+- 冻结 `LocalLibBookApi.getBookings` 在响应缺少 `total` 时使用当前预约列表条数；Rust 原解析固定回退为 0。
+- 新增缺少 `total` 的脱敏分页测试先失败后通过，Core 现按冻结语义回退；未改变请求协议或实时路由行为。
+
+## 2026-08-29 LibBook 分区编号回退
+
+- 冻结 `LocalLibBookApi.mapAreaDetail(areaId, raw)` 在上游区域对象缺少 ID 时回退请求参数 `areaId`；原 Core 解析器没有请求上下文并返回空 ID。
+- 新增缺少区域 ID 的脱敏测试先失败后通过，增加带请求 ID 的解析入口并由查询调用；未改变请求协议或实时路由行为。
+
+## 2026-08-29 Bykc 签到配置严格解析
+
+- 冻结证据：`ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalBykcApi.kt` 的 `parseSignConfig` 通过序列化器解析 `LocalBykcSignConfig`；签到点 `lat/lng` 为必填，单点解码异常会使 `runCatching` 返回空配置。
+- 原 Core 使用 `filter_map` 丢弃坏点并保留配置，与冻结错误语义不一致。新增无效坐标脱敏测试先失败，再改为列表与点字段整体严格校验。
+- `examples/buaa-api` 无等价 Bykc 签到配置协议，不参与字段或错误推断；未执行真实写操作。
+
+## 2026-08-29 Ygdk 记录时间戳
+
+- 冻结证据：`ubaa_old/.../LocalYgdkApi.kt` 的记录字段 `startTime/endTime` 为 `Long?`，映射时调用 `timestampToDateTimeText`，使用固定 `LOCAL_YGDK_TIME_ZONE`（东八区）输出分钟精度文本。
+- 原 Core 仅读取字符串，数值时间会变为空。新增数值时间脱敏测试先失败，再增加固定东八区转换；未从 `examples/buaa-api` 借用协议。
+
+## 2026-08-29 Ygdk 记录图片字段
+
+- 冻结证据：`LocalYgdkApi.kt` 的 `extractRecordImages` 对 `images_fmt` 的 `JsonPrimitive` 非空内容直接返回单元素列表；只有数组字符串才尝试 JSON 数组解析。
+- 原 Core 将所有字符串当作数组 JSON，合法单地址会变为空列表。新增单字符串脱敏测试先失败，再保留非空字符串作为单地址；未执行真实写操作。
+
+## 2026-08-29 Ygdk 数字字符串时间戳
+
+- 冻结证据：`LocalYgdkApi.kt` 的 `JsonObject.long` 对 JSON primitive 的文本执行 `toLongOrNull`，数字字符串会进入时间戳格式化。
+- 原 Core 遇到任意字符串即原样返回。新增数字字符串时间戳测试先失败，再仅对可解析整数执行东八区转换；未改变非数字文本路径。
+
+## 2026-08-29 LibBook 原语字段兼容
+
+- 冻结证据：`LocalLibBookApi.kt` 的 `JsonObject.string` 读取 `jsonPrimitive.contentOrNull`，其语义覆盖字符串、数字和布尔原语。
+- 原 Core `text` 仅接受 JSON 字符串，数字座位标识/状态会清空。新增数字字段脱敏测试先失败，再扩展原语文本化；未执行真实写操作。
+
+## 2026-08-29 三路线全量只读复测（二）
+
+- Direct 全量首个失败为 Cgyy 业务阶段 `upstream_unavailable`（退出 5）；其余功能及 Judge 详情语义通过。
+- WebVPN 记录 Grades `parse_error`、Judge `invalid_semantics`，以及 Cgyy 日期/订单/锁码 `upstream_unavailable`（退出 6）；站点和其他可用功能仍按逐操作结果记录。
+- auto 解析为 Direct，Grades 为 `upstream_changed`，Cgyy 后续业务阶段为 `upstream_unavailable`（退出 6）；Judge 详情通过。
+- 本轮没有新的 URL、参数、重定向或字段证据；按用户约定，对与冻结旧版一致但实时上游不可用的项只记录并继续推进，未执行真实写操作。
+
+## 2026-08-29 Cgyy 原语字段兼容
+
+- 冻结证据：`LocalCgyyApi.kt` 的 `JsonObject.string` 返回 `jsonPrimitive.contentOrNull`，不限定 JSON 字符串类型。
+- 原 Core `string` 仅接受 `as_str`，数字场馆名称等合法原语会清空。新增脱敏站点测试先失败，再统一支持字符串、数字和布尔原语；未执行真实写操作。
+
+## 2026-08-29 Signin 写响应状态兼容
+
+- 冻结证据：`LocalSigninApi.kt` 的 `jsonStringValue` 读取 primitive 文本，`int` 随后执行 `toIntOrNull`；签到写响应的 `STATUS`/`stuSignStatus` 因此接受数字或数字字符串。
+- 原 Core 写响应仅使用 `Value::as_i64`，数字字符串会回退为零/未完成。新增脱敏状态测试先失败，再增加整数兼容辅助；未执行真实写操作。
+
+## 2026-08-29 Evaluation 任务 `yhdm` 身份来源
+
+- 证据：冻结 `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalEvaluationService.kt` 的 `fetchTasks` 明确发送 `authSession.user.schoolid.ifBlank { authSession.username }`。
+- 原差异：Rust `features/evaluation.rs::get_all` 曾固定发送空 `yhdm`，无法保持同一请求构造。
+- 决策：登录成功后仅在运行时内存记录 `UserProfile.school_id`，缺失时记录 `username`；评教任务请求使用该值，既有无资料会话保持空值。未从 Cookie、实时响应或示例项目猜测身份字段，也未执行真实写操作。
+
+## 2026-08-29 Ygdk 文本原语
+
+- 证据：冻结 `LocalYgdkApi.kt` 的 `JsonObject.string` 读取 `jsonPrimitive.contentOrNull`，因此数字和布尔原语也会得到文本内容。
+- 原差异：Rust Ygdk `string` 只调用 `Value::as_str`，合法原语字段会被当作缺失。
+- 决策：统一将字符串、数字、布尔映射为文本并保留空文本过滤；未借用非等价示例协议，未执行真实写操作。
+
+## 2026-08-29 Evaluation 文本原语
+
+- 证据：冻结评教 DTO 映射使用 `JsonPrimitive.contentOrNull`，其文本读取不限定 JSON 字符串类型。
+- 原差异：Rust Evaluation `string` 只接受字符串和整数，布尔/浮点字段会被当作缺失；新增布尔字段测试先失败。
+- 决策：扩展为字符串、整数、浮点、布尔的文本化并保留空值语义；未从示例项目类比协议，未执行真实写操作。
+
+## 2026-08-29 三路线逐操作实时证据
+
+- Direct 全量：非 Cgyy 功能全部通过；Cgyy 站点通过，日期 `upstream_unavailable`。
+- WebVPN 全量：非 Cgyy 功能全部通过；Cgyy 日期 `invalid_semantics`、锁码 `upstream_unavailable`。
+- auto 全量：解析到 Direct；非 Cgyy 功能全部通过；Cgyy 日期/详情 `upstream_unavailable`。
+- 这些实时失败没有提供足以证明新 URL、参数或字段的证据；与冻结实现一致的项不改协议，仅保留稳定错误分类并继续其它迁移。所有命令均未调用真实业务写操作，输出未包含凭据、Cookie、令牌、原始响应或完整个人数据。
+
+## 2026-08-29 认证资料持久化冲突
+
+- 冻结证据：`ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt` 的 `LocalAuthSession` 包含 `username` 和 `user.schoolid`，并由 `LocalAuthSessionStore` 持久化。
+- 当前约束：`docs/contracts/connection-and-session.md` 与合同安全边界要求 `session.json` 不保存 username、密码或用户资料。
+- 决策：不为追求表面 parity 写入个人身份资料；登录成功后仅在 Core 运行时内存使用 `school_id/username`，跨进程加载会话时身份参数缺失按安全契约处理。该边界可能使部分旧版依赖身份查询的上游在重启后不可用，若未来要改变必须另立安全与存储决策，不能从实时失败猜测协议。
+## 2026-08-29 三路线逐操作实时复测（认证领域拆分后）
+
+- Direct：User、Schedule、Exam、Grades、Classroom、SPOC、Judge（课程/任务/详情）、Signin、Ygdk、LibBook、Bykc、Evaluation 均成功；Cgyy 站点成功（7 个），日期与锁码均返回 `upstream_unavailable`，聚合退出码 5。
+- WebVPN：上述非 Cgyy 功能均成功；Cgyy 站点成功（7 个），日期返回 `invalid_semantics`、锁码返回 `upstream_unavailable`，聚合退出码 1。
+- auto：解析为 Direct；上述非 Cgyy 功能均成功；Cgyy 站点成功（7 个），日期返回 `invalid_semantics`、订单返回 `upstream_unavailable`，聚合退出码 1。
+- 本轮只执行认证和读操作，未调用任何选课、退选、签到、预约、取消、提交或上传接口。失败项没有提供新的 URL、参数、重定向、字段或加密证据；其本地逻辑与冻结实现一致但实时上游不可用/返回不满足语义，按约定只记录并继续，不猜测修改协议。
+## 2026-08-29 认证领域拆分后实时只读矩阵
+
+- Direct：User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin、Ygdk、LibBook、Bykc、Evaluation 逐项成功；Cgyy 站点返回 7 个站点，日期和锁码均为 `upstream_unavailable`，聚合退出 5。
+- WebVPN：非 Cgyy 功能逐项成功；Cgyy 站点返回 7 个站点，日期为 `invalid_semantics`、锁码为 `upstream_unavailable`，聚合退出 1。
+- auto：路由解析为 Direct；非 Cgyy 功能逐项成功；Cgyy 站点返回 7 个站点，日期为 `invalid_semantics`、订单为 `upstream_unavailable`，聚合退出 1。
+- 本轮只读验证未调用任何选课、退选、签到、预约、取消、提交或上传接口。失败项未提供新协议证据，按冻结逻辑与实时上游状态分别记录，不猜测修改 URL、参数、字段或错误语义。
+
+## 2026-08-29 Direct 全量验证的聚合登录边界
+
+- `feature=auth route=direct` 单独验证成功，输出为 `auth_status` 成功。
+- `feature=all route=direct` 在业务操作前的聚合登录语义校验失败，返回 `login`/`invalid_semantics`；未执行任何业务读请求。
+- 该差异来自 `all` 验证路径要求双路线聚合登录，不足以证明 Direct 单路线认证或任一业务协议缺失；保持冻结认证逻辑和验证器边界，不猜测修改实现。所有真实业务写操作仍未调用。
+
+## 2026-08-29 WebVPN/auto 全量实时复测
+
+- WebVPN 全量逐操作：User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin、Ygdk、LibBook、Bykc 与 Cgyy 站点成功；Cgyy 日期阶段返回 `invalid_semantics`，依赖订单/锁码未调用。
+- auto 全量解析到 Direct：User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin 成功；Ygdk 阶段返回 `timeout`，后续功能未调用。
+- 失败项没有提供新的 URL、参数、字段或加密证据；按冻结实现保留现状并记录实时上游不稳定性。全程未调用真实业务写接口。
+
+## 2026-09-03 Ygdk 路线状态失效代数
+
+- 冻结证据：`ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalYgdkApi.kt` 以独立 `sessionCache` 保存业务会话，并用同一个 `sessionMutex` 保护缓存读取、认证失效删除和 `currentSession` 的最终 `getOrPut`；但会话创建发生在最终锁外，`clearCache` 也没有加锁，因此冻结实现本身不能证明失效代数语义。
+- 固定提交的 `examples/buaa-api` 没有 Ygdk 等价实现，不能据此类比 URL、字段、令牌流程或错误语义。
+- 当前 `source-parity.md` 已明确决定使用路线内单飞登录与失效代数，使清理前启动的旧登录不能在清理后重新填充凭据；这是 Core 进程内缓存的本地并发合同，不是从冻结实现补出的上游协议字段，也不改变请求 URL、参数、请求头、正文编码、DTO 或错误分类。
+- 当前 Rust 状态的无条件 `set` 可与 `clear` 交错，使清理前启动的旧登录在清理后回写凭据。本轮先增加确定性竞态测试与仅测试暂停点，要求失效后旧结果不得重新填充；生产修复必须沿用既有路线隔离与脱敏边界。
+
+## 2026-09-03 Ygdk OAuth 跳转主机约束冲突
+
+- 冻结 `LocalYgdkApi.kt` 的 `fetchOauthCode` 最多跟随十次 `Location`，会从 query 或 fragment query 提取 code，但没有逐跳 host 校验；固定 `examples/buaa-api` 没有 Ygdk 等价实现。
+- 当前 Core `features/ygdk.rs::oauth_code` 与 `code_from_url` 同样接受任意 host 的绝对/相对跳转。原 `source-parity.md` 曾写“仅允许已记录的 BUAA 主机”，但没有给出完整允许集合对应的冻结实现、测试或安全实时观察，因此该表述不能作为已实现事实。
+- 决策：把主机限制明确标为既有未决 parity gap。2026-09-03 的目录整理只原样移动当前跳转逻辑，不借结构提交增加猜测白名单；后续必须先取得适用冻结实现或脱敏实时跳转链证据，记录具体 host 集合并增加未知 host 的 RED 测试，才能单独收紧生产行为。
+
+## 2026-09-03 Bykc 认证失效重试差异
+
+- 冻结 `LocalBykcApi.kt` 的 `doCallApiRaw` 会识别登录重定向，以及解密正文中的“会话已失效”或“未登录”；后者先清空业务令牌，再由 `callApiRaw` 强制刷新登录并最多重试一次。固定 `examples/buaa-api/src/api/boya` 只能作为同一业务端点的交叉证据，不能替代该冻结错误与重试语义。
+- 当前 Core `features/bykc.rs::request_api` 只处理非 200 状态与响应 envelope，没有识别上述确定性认证失效，也不会清理路线凭据并重试，与主来源矩阵中“CAS/令牌失效清理业务状态并最多刷新一次”的既有要求不一致。
+- 决策：2026-09-03 的目录化提交仍只移动现有行为；该差异另立脱敏 Mock RED 测试与行为提交。修复只允许对有冻结证据的认证失效信号清理并重试一次，不得把网络异常、任意非 200 或不明确业务失败纳入重试，尤其不得冒险重复真实写操作。
+
+## 2026-09-08 全功能 UI/UX 重设计执行合同
+
+- 用户要求先制定计划、替换 `goal.md`，并提供供 Codex Goal 执行的 prompt；本次只修改合同与关联文档，不提前执行界面审查或代码开发。
+- 已读取现有功能矩阵、UI 规格、共享主题/首页和测试接线。新合同按功能清单、现状审查、整体设计、公共框架、全部领域、写入 UI、多设备实测和最终验收闭环组织；P2 才根据完整审查形成具体新设计，不将主题源码阅读当作视觉结论。
+- 以大学生的校园工具使用场景为目标，参考现有 Material 3 与蓝色风格；完整无障碍合规不设新增门槛，保留基础可读性、可操作性和既有能力。
+- 优先在共享 `ubaa_ui` 实施，保留 Core/Bridge typed authority、唯一 `WriteCoordinator`、单次提交和既有核对语义。页面风格调整不能改变协议、资格或错误语义。
+- 将此前维护合同和状态原样归档到 `history/goal-2026-09-08-before-ui-ux.md` 与 `history/status-2026-09-08-before-ui-ux.md`。新合同在执行阶段允许本地代码修改、实际 App 与模拟器运行及安全认证/业务只读验收；真实学校写入仍不执行，写入 UI 使用显式脱敏注入。
+- 手机、平板和电脑的尺寸适配与原生运行分别记录。手机/平板至少使用各一个原生模拟器或设备，电脑使用 macOS 实际应用；仅缩放桌面窗口、golden 或构建成功不满足三设备运行验收。
+- 当前只记录计划和静态定位，全部执行阶段保持未开始；历史测试、CI、Core-live 和真实 App 结果不能回填为本轮证据。
+
+
+## 2026-09-08 UI/UX 执行阶段的设计与证据裁决
+
+- 本轮 `/goal` 已明确启动此前制定的合同：常规设计、实现、原生模拟器和安全只读按合同自主执行。纯文档制定阶段的“未开始”属于历史事实，不限制当前实现。
+- 选用今日/学习/校园/我的四类任务导航，旧 ordinary/advanced 公开列表保持兼容，新增学习7/校园5；改变的是入口分组，没有改变FeatureId或上游参数。今日使用当前snapshot摘要，无新增预取、不把楼馆数量当成预约数量。
+- 主题只在Host内存保存，本次运行生效，重启跟随系统。此轮不改变Core配置v1，不引入第二个持久化设置源。
+- 已访问功能页通过IndexedStack保留真实State，重建读取当前snapshot和当前回调，不缓存Widget/旧响应；账户变化销毁旧页面上下文。状态连续性5项失败→通过及手机/平板原生返回操作已完成，macOS当前人工复验仍受锁屏阻塞。
+- 原生截图入口仅integration_test显式构造合成backend，生产main不新增Demo fallback。截图元数据记录原生view尺寸、DPR、主题来源和源码标签；测试亮度覆盖与应用内主题选择分开记录，不伪称OS主题切换。未经实际原生旋转不宣称横屏通过。
+- App公开图书馆DTO仅有首日/顶层时段，无法证明每日期与时段关联。仅接入可证的首日选项，保留其他日期原显式输入能力；不为完成界面而捏造时段、绕过typed资格或变更Bridge v9。
+- 学业展示使用既有Bridge typed字段投影；时间/分数原为字符串时原样保留，不猜时区、平均绩点或排序。SPOC/Judge详情点击必须传typed身份；写actions继续唯一权威。具体字段和新展示接口草案已补入实施清单。
+
+## 2026-09-08：P3B 原生方向与系统键盘证据
+
+iPad仅请求SystemChrome方向未实际旋转，保留失败，不关闭分屏配置。独立XCTest目标使用原生设备方向事件，Dart只在真实metrics和连续性断言通过后确认；测试端loopback限定本机与唯一runId。手机键盘早期60/70占位不够作为完整键盘验收，最终等待335稳定占位并用simctl保存包含系统键盘的整机原图。所有数据来自显式inspection backend；生产入口/Core/Bridge/真实学校写入均不改变。
+
+## 2026-09-08：B1 读取归属与学业信息层级
+
+学业布局消费公开typed字段，时间/成绩字符串不反解析排序或绩点。FeatureReadContext区分默认读取与显式query，完整冻结批量键；不同查询失败不显示父数据，同查询失败仍保留stale。全局readCacheEpoch只失效UI父缓存，当前快照与写后proof保持App权威；UI按新requestRevision接收异步回读，防止旧子页复活或新结果被忽略。共462项确定性与手机/平板各14原生场景通过，本段独立提交为B1，选择器及剩余宽布局由B2连续补齐。
+
+
+## 2026-09-08：B2 查询选项隔离与主要信息同时可见
+
+学期选择显式触发独立scheduleTerms读取，不修改全局课表快照；缓存只在同backend、生命周期和readCacheEpoch内复用，在途请求合并，失败可重试。选定只回填草稿，原应用按钮提交。今日课程改用已有scheduleToday，旧summary+term/week保留为“按输入查询”，不将周表误称今日。
+
+教室选项来自同日期/校区已读typed结果，保留完整令牌，日期/校区/epoch变化即清；刷新开始不能把新loading误记为已消费，审查回归已RED后修复。中文日期picker采用锁定SDK的flutter_localizations及其intl0.20.2约束，无既有依赖升级。
+
+考试/成绩按已有状态分组且保持组内原顺序，宽表主要列与课程同时显示，其他字段本地详情；教室本地楼层导航明确仅当前页。课程卡重复星期以保留滚动上下文。492项Flutter门禁通过，原生手机/平板复验正在运行；本记录不代表最终三端或真实App通过。
+
+
+## 2026-09-08：统一账号资料保真与默认遮罩设计（待P4-A实施）
+
+USR-02清单与初版设计存在冲突：清单承诺资料核对，设计却排除联系资料。冻结`UserInfoScreen.kt:52–55`展示邮箱、手机和证件类型；现`BridgeUserProfile`已公开schoolId/email/phone/idCardTypeName，当前App只保留username/name。依据用户完整保真目标，裁决使用同次白名单补本地账号资料详情，邮箱/手机默认遮罩、明确查看后展开，关闭或换账号清旧状态。不会增加学校业务写入、网络请求或联系操作。证件号码未进入Bridge，明确不接、不借冻结旧UI扩张合同；department无来源不推断。该段只完成设计纠错，尚未实施或验收。
+
+
+## 2026-09-08：P4-A 资料本地状态与清除确认生命周期
+
+四个可空资料字段仅同次投影，联系人默认全遮罩且不构建原文本/语义；个人页内联展开，关页或新资料对象销毁显示状态。手机查询折叠仅改变可见性，保留草稿/搜索与已应用query，焦点关闭后不新读取。另以RED确认本机清除对话跨账号的旧回调缺陷，加入原页面context.mounted防护；不改Core注销或学校业务参数。500项Flutter、两设备完整矩阵及独立资料/恢复补充通过，79张原图已检查归档。生产假后端边界、聚合partial的mockclient适配器、真实App/Core-live分别计账，交互验证码缺公开挑战链仍明确不伪造。
+
+
+## 2026-09-08：P4-C 课程归属、全局进度与选择状态
+
+Judge 以父作业为分页与搜索条目，题目作为嵌套明细，避免搜索后失去课程归属；不新增题目ID或查询。批量多选保存显式二元键的勾选顺序，配对选择器原子回填，保留手填兼容与includeExpired。SPOC/评教集合元数据独立于details，待评空集合仍呈现同次全局统计，不以本地可见条目数重算。签到、评教展示层继续消费原 action 资格及唯一写状态机，真实学校写入仍不执行。
+
+审查确认混合未知模型时不能连带移除合法条目的入口，已失败测试后按单条保留。对同query显式瞬时读取失败允许陈旧数据的调整仅限三类网络错误，鉴权/权限和专用评教回读继续清空；既有抛异常分支未泛改。此处记录实现决策，原生验收仍待后续证据。
+
+
+SIG-02文案落实：原下拉“未签到”实际上仅包含allowed资格，不能代表所有signStatus=0记录。依已审设计改“可签到”及对应计数摘要，不改筛选条件或提交权限。原始记录状态保持独立显示；两层RED/GREEN用于验证新文案与旧typed过滤兼容。
+
+
+## 2026-09-08：按用户要求以旧版UI为优化基准
+
+用户明确指出首版校园UI过于冗杂，要求仅以ubaa_old旧版实现为基础优化并适配多端。优先规格改为ui-ux-old-baseline.md，恢复旧版三主入口、侧栏个人入口、功能页隐藏手机底栏和单顶部返回；领域操作布局按旧版逐页核对。保留当前typed数据投影、业务资格和统一确认；不删除84项功能，不将当前候选历史测试当作新设计已通过。C原生诊断只保存当前终态，暂停追加旧布局验收。
+
+
+## 2026-09-08 O1/O2 旧版导航与按需查询
+
+逐行核对冻结 `BottomNavigation.kt`、`AppTopBar.kt`、`Sidebar.kt`、`RegularFeaturesScreen.kt`、`AdvancedFeaturesScreen.kt`、`HomeScreen.kt` 与 `HomeTodo.kt`。继承三主入口、56高居中标题、普通八项顺序、图标居中卡片和今日课表→待办；高级入口保留当前已接入课堂签到。查询面板只搬移现有控件，保留各字段控制器及父帧生命周期；实际路线取当前可见读取帧，未知不回退默认策略。此批不改变请求、编码、字段、缓存权威、错误或资格，对照沿既有 source-parity 各领域记录。首页待办需要额外逐操作核对，未证明的数据不得推算。
+
+## 2026-09-09 O3-E1考试时间线与签到横卡
+
+以eafa01f6为基点，source-parity-ui-academic-old.md先记录旧屏幕/API/DTO/测试与examples差异。取消考试无服务端分页时的本地20条截断，以完整已加载结果按日期分组，避免过去考试遮住待考；真实服务端分页仍保留。严格晚于结束时刻、非法日期不隐藏，缺结束按旧23:59。签到仅调整横卡及本地详情，原typed资格/target/协调器不变。Material全局中文委托解决系统控件英文；未升级SDK或改变公开合同。三端与真实两路线证据见本轮主证据，E1不包含成绩或P5完整写入。
+
+### 2026-09-09：O3-E2a成绩继承与缓存边界
+
+依据source-parity-ui-grades.md逐页冻结对照，恢复旧全学期/本学期统计和描边课程卡，取消首版宽表格及重新分组；公开原始逐门绩点仍在详情，不以本地统计替代。新聚合仅组合现有grades与学期只读API，保留完整未筛选集合、准确覆盖和逐学期实际route，同代请求合并与账号/路线/生命周期失效独立于当前查询快照。旧评分公式与中点取偶由纯领域测试锁定。
+
+真实学校账号仅经已授权stdin路径认证，Direct/WebVPN均实际读9学期82条，当前14条待出及已出空视图保留真实状态，业务写入0。新增UI不改协议、公开合同或写入资格。macOS少量学期弹窗528高的问题经实际观察→高度RED→按内容收缩→原窗口与原生复验修复；新增控件不应固定占半页。CUA Key A事件不匹配继续单列工具输入限制，不能当完整键盘通过。E2b及P5–P7继续，不据此宣告全目标完成。
+
+
+### 2026-09-09 O3-E2b：成绩变化派生基线与旧首页横幅
+
+依据source-parity-ui-grades.md与冻结GradeScoreWatch/CacheStore/HomeScoreUpdateBanner，独立派生基线按账号+actualroute隔离；不移植旧ConnectionRuntime的全认证resetSession。当前学期必须唯一selected，歧义code/name不误报。损坏文件保留且清理失败明确告知；仅读取成绩，不给任何业务写入资格。通知保留到查看/忽略；检查路线独立于是否产生通知。655项、三端各12、66合成原图及生产双route本地恢复通过。P4后续继续恢复课表网格/教室表格，不沿用B2重设计卡片证据。
+
+
+### 2026-09-09 O3-D1c：不将可空父字段当只读导航资格
+
+D1c修复缺省父标识使图书馆分区详情不自动读取的问题：仅使用当前查询返回的原唯一area.id，不回填DTO父字段；非空父标识冲突仍阻止自动进入。10项聚焦、657项Flutter门禁、三端各6场景通过，28张两端原图和macOS独立3图共31张已复核。生产Direct/WebVPN均自动完成楼馆/分区/详情、明确查询175座位和2条预约记录，真实业务写入0；先前超时不标通过。协议与资格不变，跨日期时段关联仍不猜。详见source-parity-ui-reservations.md及本批证据。
+
+
+### 2026-09-09 O3-E3a：恢复旧空教室表格和查询能力
+
+E3a空教室已恢复旧楼栋分组与1–14节紧凑表格，绿色只表示原空闲令牌；无服务端分页时完整连续滚动，真实分页保留。日期/校区/楼栋/节次和搜索仅右上按需面板，学院路/沙河/杭州沿旧源码命名；原字段本地详情及检索保留。1.3倍文字必要横滚时固定教室列和楼栋标题，纵滚保持表头。661项Flutter门禁、三端最终r3各14场景通过；两端各30及macOS独立4图，共64合成原图已检查。生产两路线均158条学院路、144条沙河、楼栋节次过滤27条，详情无额外读取、草稿保留、业务写入0。macOS独立CUA操作到查询面板后持续AXError.failure，未完成该独立鼠标路径的楼栋选择，不以原生测试代称；整体P6工具输入复验继续。来源和必要优化见source-parity-ui-classroom-old.md；Core/Bridge与认证协议未改变。
+
+
+### E3b课表布局决定（2026-09-09，实施前）
+
+以冻结ScheduleScreen的7日×节次网格恢复周视图，不保留七个240宽大列。Bridge已公开color，补齐纯展示投影；重叠/未知时间课程保持可达，详情不受credit是否为空影响。学期/周选择、真实日期下一步单独接线，读取协议不变。对照见source-parity-ui-schedule-old.md。
+
+
+### O3-E3b局部终态（2026-09-09）
+
+课表旧七日节次网格、公开原色、无服务端分页完整集合、重叠课程/未知时间保全、本地详情和空周结构已完成。667项Flutter门禁、16学业聚焦通过；三端r4各14业务，空周提示位置截图发现后RED→GREEN并仅对受影响空周r5各2原生复验。非空UI不受r5调整影响，证据分r4/r5源摘要，不冒称同次全跑。两端各38原图和Mac4独立操作图共80张通过图已复核，另1张Key A输入限制图不标通过。生产Direct32秒/WebVPN31秒，今日1、学期9、周19、周课10，本地详情无额外读取，草稿/实际路线保留，业务写入0。
+
+macOS独立CUA已完成根页→查询面板→选学期→数字4输入→应用/收起→课程详情→底部滚动；此前AXError此次未阻止这条鼠标路径，但完整字母输入仍失败：请求COURSE-SAFE-2仅输入COURSE-SA，Key A keyUp逻辑码0x1400070004与已按下0x61不一致。未取消Flutter断言、未修改认证/资格，也不把tester.enterText视为物理键盘通过。E3c自然周选择与日期、P4其余及P5–P7继续。
+
+### E3c自然周次入口决定（2026-09-09，实施前）
+
+旧版terms→weeks→week次序保留，但用户已要求查询集中右上，因此周选择与前后周只在按需面板出现，不增加第二个常驻工具条或标题入口。当前学期/周只自动采用唯一标记，失败/歧义待用户在同一面板选择。新增周选项缓存独立于全局课表快照，原公开查询和认证协议不变；完整逐操作依据见source-parity-ui-schedule-old.md的E3c段。
+
+### E3c 验收裁决（2026-09-09）
+
+旧版自然周流与真实日期已按实施前对照接入；保留HTTP/参数/协议/资格，独立缓存不污染可见快照。日期和原周名仅在元数据实际路线与课程一致时采用；不以默认策略代替实际路线。用户要求优先，旧前后周控件移入右上按需查询，不新增正文工具栏。129合成原图及三端原生、生产双路线只读通过；Mac系统截窗检查点明确区别于受工具限制的独立鼠标，完整键盘不降级为tester输入。
+
+
+### E4 登录与账号复核（2026-09-09）
+
+E4仅恢复旧登录视觉/交互保护，协议与公开资料字段未修改。三项行为RED后改为安全区单图标、旧边距、busy禁用；原生完整测试与独立CUA证据分开。旧关于/外链入口尚缺，P4-A不关闭；真实资料首轮恢复未成功，重新按路线串行认证后Direct生产只读已通过，不能将首轮失败归为确定协议故障。
+
+### P5-A 统一确认的交互裁决（2026-09-09）
+
+UX-O8按旧单顶栏和用户要求收敛：有intent时drawer不可构建，主页刷新隐藏，顶栏“取消并返回”及系统返回都调用原cancelForUi；WriteState.isSubmitting各阶段拒绝取消，路线面板不允许修改策略。正文不重复实际路线，唯一顶栏采用intent.resolvedRoute，独立WriteConfirmationView默认仍展示路线。UI期限计时只禁用尚未提交的按钮，不消费或延长intent；已提交/取消/回读的忙碌状态跨期限时不误标过期。全部逻辑继续依赖原Coordinator与Core的单次/过期/资格权威，没有真实学校写入。
+
+
+### P5-B 研讨室表单裁决
+
+沿旧CgyyReserveFormScreen卡片顺序和字段间距，不保留窄弹窗；用途通过现有cgyyPurposeTypes只读投影选择原key，不修改公开合同。草稿仅当前页面内存并随原读取代次清除，目的选项独立读取不挤掉日时段快照；详情兼容入口同用此表单。返回修改不丢字段，继续确认仍交唯一协调器。
+
+
+P5-B2开始于dcc16ded：按用户查询按需要求移除研讨室时段页三行常驻筛选；右上按旧顺序选择，原始查询保留但不与自然选择常驻重复。固定长表头并保持房间列，业务参数和资格不改，先RED后实施。
+
+P5-B2验收裁决：r1错误提示隔开固定表头/数据不采纳，改sliver并重跑三端r2。Direct只读r2/r3严格命中失败保留为测试定位失败；最终定位菜单文字、保命中检查后Direct-r4及WebVPN通过，不放宽断言或改业务协议。完整702及两端132合成图是本批局部证据，不替代Mac独立窗口、OS键盘或全产品写入/最终验收。
+
+P5-C开始于7dea21e3：图书馆楼馆/楼层/分区和时段查询统一收右上，按旧顺序保业务能力与显式日期边界。来源核对已追加，先行为RED再实施；全领域写入范围不缩减。
+
+P5-C验收裁决：原生脚本按新入口定位分区，父场景截图增加parents前缀避免覆盖；Mac失败地图独立复验，手机/平板整套r2重跑通过，未放宽driver保护。真实只读启动曾误用系统临时目录（unsupported），改应用沙箱内新私有目录后Direct通过；WebVPN仅本批配置缺默认webvpn导致资料读取authenticationRequired，补合同配置后43秒通过。会话未移动/直接改写，协议、合同与资格均未迁就UI。
+
+
+## P5-D 阳光独立表单实施前核对（2026-09-10）
+
+基点3c43370f。旧YgdkClockinFormScreen的独立Scaffold、16横向/12卡片间距、项目→时间→地点→照片→分享及底部操作为本批依据；项目选择在表单内部，不保留当前先选项目再弹窄表单的顺序。旧ViewModel同日/先后校验及LocalYgdkApi上传→提交已核对。examples无阳光等价协议，复用本文件引用的source-parity概览、记录、提交九列；本批不改CAS/跳转、uid-token作用域、HTTP方法参数、编码签名、DTO、原路线回读或错误语义。
+
+必要优化：明确日期和真实选择照片，保留当前严格输入及canonical action资格，不恢复旧版随机时间、透明图或无目标默认提交。项目只选原读取的有效action；时间/地点/分享草稿限当前读取代次内存，照片取消更换保原图、退出释放引用；换账号/路线代次使表单和迟到选择失效。实际路线沿snapshot，协议及公开合同不动。下一步先以独立页面、草稿保留、取消更换照片的行为测试观察RED，再实现和三端脱敏复验，尚无本批通过证据。
+
+
+P5-D阶段结果（2026-09-10）：独立阳光表单按旧卡片顺序实现，文字草稿/双确认日期时间/照片取消更换保留和退出释放通过；原输入校验、canonical资格、一次prepare→commit→原路线回读未变。21阳光聚焦、注销宿主1项与完整709（54/52/270/241/15/23/54）通过；分享卡片重复标题经实际图发现后修复，最终UI241与原生受影响16场景两端复验通过。check、refs、layout和敏感检查均通过。每端42业务完整r1（手机423秒/平板422秒）+16受影响业务r2（两端均310秒）；归档每端138图，共276，全部逐图核对，见old-p5d-native/验收说明.md与source-files.json。
+
+真实只读：新App容器内私有P5D配置，通过既有verify-live安全stdin使用授权.env.local，Direct/WebVPN各3认证+2阳光读PASS（概览11项目/记录20条），真实写入0。生产App入口已增加独立表单与项目弹窗只读浏览并启用严格命中，但本批尚未执行；Mac-r1测试定位失败后停止，r2无法置前且CUA确认锁屏后停止，无最终Mac原生或独立鼠标通过证据。不能拿两端、构建、Core-live替代。P4余项、P5其余完整流程及P6/P7继续，Goal未完成。
+
+
+## P4-E5 关于入口实施前核对（2026-09-10）
+
+逐页读取冻结Sidebar.kt与menu/OtherScreens.kt：侧栏资料→设置→关于；AboutScreen单卡16内边距，应用名/实际AppInfo版本→简介→主要功能→项目与反馈两个外链，没有正文重复“关于”标题。链接准确为https://github.com/BUAASubnet/UBAA及其/issues，仅浏览不自动发送反馈。当前侧栏只有资料设置，个人页底部口号不等于关于页。
+
+必要优化：旧主要功能信息保留，以当前实际应用版本替代旧版本；技术栈旧Kotlin说明不照抄为当前事实，不增加开发仪表盘。小屏可滚动、长字体换行，保留单顶栏与旧三导航；无读取结果的本地说明页不冒称实际学校路线。外链通过系统浏览器，打不开明确提示并可复制地址。官方Flutter可用url_launcher的五平台实现（官方来源https://pub.dev/packages/url_launcher），OHOS须核对其原生适配，不能以不可用占位宣称链接完成。Core/Bridge公开合同、认证、学校读取与写入协议不变。
+
+本批先验证侧栏缺失入口的RED，再实现共享页面和实际平台能力；原生/外链操作、版本真实性与失败分支须分开验收。P5-D已提交b6ba2eef；Mac锁屏欠验继续保留。
+
+
+P4-E5局部结果（2026-09-10）：关于侧栏入口、旧版单卡顺序、实际包版本和固定公开外链已实现；图片发现的半屏留白有RED→GREEN及两端r2复验。完整Flutter715、just check、layout通过，手机11场景+teardown/45秒、平板11场景+teardown/47秒，各29原图共58全数查看归档old-e5-native。两端独立CUA已从页面打开Safari并逐个核对项目与/issues完整地址，返回保留原关于；未登录或发送反馈。OHOS ArkTS/HAP仅无签名构建通过，不算设备外链验收。Mac-r2仍停首场景，6分钟无检查点且CUA显示Test starting，准确停止自有18431进程；INT退出0非PASS。独立Mac仅普通功能页可见，AX系统菜单响应而Flutter正文操作未生效，console=Yes，原因未定，不笼统归因锁屏。关于Mac、P5-D Mac与P4余项/P5全矩阵/P6/P7仍待完成，84编号不减。
+
+
+E6最终局部验收（2026-09-10）：三显式签到查询原有生产投影保持，修复显式内存fixture后，手机31秒/平板31秒各2主题完整流程通过，Mac27秒2主题通过；两端各12原图共24全数检查归档old-e6-native。三端覆盖未应用草稿关闭往返、已应用视图返回保留、本地详情无请求、刷新沿原query、unknown/缺目标不误归类及0 prepare/commit。Core Direct/WebVPN各3认证+today2条通过；生产AppDirect65秒/WebVPN107秒，考试三视图均空（真实详情未执行），签到全部2→可签到1→已签到1→全部2，actualroute严格一致，本地签到详情无额外读取，学校写入0。两条全新App容器隔离配置经既有安全stdin使用授权.env.local，未输出或归档账号、session及真实正文。App54/analyze、just check、refs与敏感检查通过；完整715为E5最近门禁，E6无生产实现变更。独立Mac仍受已记录交互条件限制，P4余项、P5全领域/P6/P7未完成。
+
+
+P5-D生产表单补验发现CAP-01实际缺口：Direct-r3在38秒失败，ui_sports_live_readonly_test.dart:104未找到“新增打卡”；此前生产概览11项目与首页20条记录已成功。已核对PlatformCapabilities默认MethodChannelPhotoPicker.probe及宿主_photoPicker/hasYgdkSubmissionCapabilities；官方iOS/macOS/Android与OHOS源码没有photo.capability、photo.pick、permission.request原生处理。故照片探测不可用，onPrepareYgdkSubmitWrite=null，UI按既有安全门禁隐藏入口。内存MemoryPhotoPicker使脱敏表单可达，不证明生产能力已接通。没有将失败改成跳过/成功，没有替换生产backend或放宽资格。WebVPN表单不重复运行同一已知平台缺口；下一批P5-E必须按旧版照片来源补真实原生选择器，再复验生产只读进入表单/项目/返回（仍不上传或提交）。Core双路线阳光读取和本批Mac42内存场景保持各自证据范围。
+
+
+P5-E开始于f9115633：照片平台来源与权限边界见[source-parity-ui-photos.md](../source-parity-ui-photos.md)。旧版Android图片/拍照、JVM文件选择和iOS未接线事实分别核对；先补真实默认能力与错误语义RED，再接原生通道，不放宽业务资格。
+
+
+P5-E进展（2026-09-10）：保留cn.edu.buaa.ubaa/platform通道，iOS14+ PHPicker、macOS11+ NSOpenPanel、Android GetContent、OHOS PhotoViewPicker已接线。原路径只在原生层短暂读取，不复制到持久目录；共享Apple PhotoPayload/Android有界流/OHOS只读fd均限制10MiB并验证实际图片MIME。macOS仅补user-selected.read-only entitlement；其他权限、位置与安全存储未被照片接线冒称可用。
+
+原生默认能力RED→iPhone/Mac探测GREEN；Dart平台异常原返回null的RED已修为固定PlatformCapabilityException，11项MethodChannel测试通过。原生Swift合成文件验证实际MIME、合法/非法展示名、原文件未改、10MiB边界及空/非图/超大拒绝通过；初轮测试把throw放入precondition自动闭包导致编译失败，移出后真正执行通过。Android Debug APK、OHOS无签名HAP与动态库通过，均不算实际系统选图。完整Flutter初轮716通过，随后图片大小说明与失败提示改善正在复验。
+
+生产Direct46秒通过独立表单、项目选择、取消返回、原路线记录翻页；WebVPN旧E6隔离配置未恢复登录，首秒首页断言失败，没有进入业务。新建本批App容器私有配置安全认证，Core WebVPN3认证+概览11/记录20通过，App WebVPN-r2 62秒同流程通过，0 prepare/0学校写入。不推测为协议变更，不覆盖旧会话。两端真实平台能力+明确内存业务的入口/表单/项目/照片按钮三场景通过，初轮各8图；系统选择、取消、重选尚未操作。CUA持续返回Mac锁屏，已一次请求解锁，继续独立工作，不将入口/构建当选图验收。Android旧拍照、Windows/Linux照片与实际系统窗口选择仍待后续补齐。
+
+
+P5-E最终审查补强：原生展示名不得修剪或替换掉非法原始值以绕过Dart canonical约束。Apple/Android对已提供的首尾空白、路径、引号、控制字符及超128码点展示名明确拒绝；仅Android provider未提供名称时使用明确的“所选图片”默认展示名，OHOS不从不透明URI猜文件名。Swift合成文件拒绝分支、Android构建与三端原生接线重新验证；原始文件保持只读。此补强不改变业务字段或资格。
+
+
+P5-E系统选图实操补验（2026-09-12）：当前20项源码SHA与r3记录完全一致。macOS真实App使用原生PhotoChannel/NSOpenPanel与明确SportsWriteBackend(success)内存业务，CUA实际选择蓝色PNG（116字节）、Cancel保留原图、重选橙色PNG（137字节）、选择12589062字节PNG被拒绝且保橙图、清除照片共5项通过；五张合成原生实窗逐张查看归档[系统选图补验](../../design/evidence/ui-ux/old-p5e-native/system-picker/验收说明.md)。仅浅色局部通过，失败后成功重试/带图退出重入未验，清除后原失败提示仍保留。本轮Mac正文坐标与滚动已生效，旧交互阻塞不作当前结论；随后iPhone原生inspection启动成功，但点击阳光入口时CUA报告Mac锁屏，因此手机/平板系统选图仍待。原r3的systemPickerSelectionVerified=false保持其测试范围，不覆盖为真。0 prepare/0学校业务写入；Android旧拍照、Windows/Linux照片、OHOS设备及P4余项/P5全领域/P6/P7不因此完成。
+
+
+## P5-F Android旧版拍照恢复前核对（2026-09-12）
+
+基点5d988362。再次逐行读取冻结PlatformImagePicker.kt、Android PlatformImagePicker.android.kt及YgdkClockinFormScreen.kt照片区：图片与“拍摄照片”同一行，仅canCapturePhoto=true显示后者；Android使用TakePicturePreview返回Bitmap，在内存压缩JPEG质量92，以camera_时间戳.jpg和image/jpeg回传。JVM/iOS/OHOS不由此类推新增相机能力。examples无此UI或阳光拍照实现；学校上传/提交九列继续沿source-parity-ui-campus，不改变CAS、Cookie、参数、DTO、资格、缓存/并发、实际路线或错误合同。
+
+AndroidX官方源码[TakePicturePreview](https://android.googlesource.com/platform/frameworks/support/+/dd97834aa54671ee1f56d65fa46668b4ffeb57e8/activity/activity/src/main/java/androidx/activity/result/contract/ActivityResultContracts.kt)核实其Intent为MediaStore.ACTION_IMAGE_CAPTURE、成功结果Bitmap来自data extra。当前AndroidManifest没有CAMERA权限；恢复系统相机委托，不新增直接相机/存储权限或持久照片文件，能力探测需核对可处理Intent。必要优化为原生及Dart均受10MiB约束、固定错误、取消保原图、选择/拍照单pending及代次失效保护。拍照作为可选本地平台接口穿过宿主/共享UI，不能放宽学校业务写入资格。先记录缺少拍照能力行为RED，再实现、构建、脱敏原生渲染；真实设备相机操作仍独立验收。
+
+P5-F阶段保存（2026-09-14）：本次仅提交已有实现，不新增功能或补造历史RED证据。当前17个源码摘要与r2一致，723项Flutter、just check（含CLI端到端16项）、冻结引用与敏感检查、Android Debug APK构建均通过。20张既有原生截图保留其合成相机/合成业务分类，真实相机及最终P5/P6/P7验收不因此完成；详细范围见[阶段说明](../../design/evidence/ui-ux/old-p5f-native/阶段说明.md)。
+
+## 暂停目标并保存工作区（2026-09-14）
+
+用户明确要求“先暂停目标，整理工作区，将未提交文件提交，然后报告目标完成进度，还有哪些没完成”。本任务查询未发现运行中的Codex Goal；仓库goal.md及本页状态记录改为暂停，须用户明确恢复后再续跑。已有66个改动文件与新增阶段说明合计67个文件提交为 `b5fa7dfebf360b5029033bfc628caaa39e68e5cc`，暂停和进度文档独立提交。未改变生产实现、冻结引用、凭据或会话，没有推送、学校业务写入或实时读取。当前通过结果与缺项集中在[暂停交接记录](../evidence/2026-09-14-ui-ux-pause.md)，不根据局部勾选数量宣告全目标完成。
+
+## UI验收媒体改为仓库外保存（2026-09-14）
+
+用户在后续合并推送时明确提出截图不应提交Git。已中断推送并确认远端仍为原基点，先将3,981张截图及全部配套记录归档到仓库外并校验，再备份和清理40个未发布提交。逐提交比较确认变化仅限验收媒体；原代码、测试、文字及既有验收分类保持一致。此后仅版本化原型源文件、元数据和摘要，工程图标、静态地图与golden基准继续保留；忽略规则与活动合同同步更新。历史SHA通过[提交映射](../evidence/2026-09-14-ui-ux-commit-map.txt)定位，完整范围见[截图迁移记录](../evidence/2026-09-14-ui-ux-evidence-storage.md)。目标仍暂停，不将版本管理操作解释为继续功能实施。
+
+## 2026-09-21：离线首页缓存分阶段接入与 Bridge v10/v11
+
+- 已接受设计要求业务持久化由 Core 拥有，因此不把整个 Flutter FeatureSnapshot 序列化，也不恢复其中的写动作。独立本地句柄不获取网络客户端锁，SQLite 放入阻塞任务池。
+- v10 接入今日课表；v11 增加希冀摘要及 includeExpired 精确范围。分别升级合同常量和生成绑定，旧动态库不能通过新宿主版本检查；CLI schema v10 及旧双路线/聚合调用行为保持。
+- 当前每次缓存在线读取仍先 UC 核实身份，这是防止另一账号数据写入旧库的安全边界，不是性能优化结论。P2 后续以明确路线恢复合同合并核验；不得删掉身份检查或从缓存路线推断认证。
+- 逐操作依据及限制见 `source-parity-offline-recovery-2026-09-17.md`；v11 仅最小摘要持久接线，不将既有六个月早停计为新成果，也不将聚合持久缓存计为选择性刷新或抢占完成。
+
+
+## 2026-09-22：持久渐进读取与共享锁调度边界
+
+- 依据：[已接受设计](../../design/offline-home-and-background-sync.md)、[逐操作来源对照](../source-parity-offline-recovery-2026-09-17.md) 和 [阶段证据](../evidence/2026-09-17-offline-home.md)。
+- 决定：Core 主运行时完整执行选课/读取/仲裁后归还 Bridge 锁，App 才调度下一批；不用 Cookie 复制、第二持久会话或单纯排序声称抢占。v14 持久计划承载独立逐批与汇总时间，混合缓存来源不伪装全部刚更新。
+- 写协调器既定回读使用内部独立路径，普通任务在写活动和认证恢复期间暂停；回读不触发后台重认证，不自动 commit 或重发未知结果。新阶段只改变只读调度和投影。
+- 状态：生产希冀摘要/单详情及调度接线已通过本地阶段门禁；后台目标认证的完整调度、失效重启、无缓存/显式批量分段、十二领域与真实多端性能仍未闭合。完整 Goal 保持活动。
+
+
+## 2026-09-22：按目标调度恢复与一次性只读计划重建
+
+生产读取仅在自身执行边界恢复所需路线，避免首页认证扇出先占用共享锁。实际登录替换会话后，只取消同路线/路线未知的旧只读计划；保留页面和请求归属，最多重新开始一次。账号错配、第二次失效直接失败，学校写入及既定回读不使用该重试。此选择复用已冻结对照过的 P2-B 认证合同，不引入密码授权迁移、跨重启重试策略或推测的上游增量能力。
+
+
+## 2026-09-22：精确查询缓存不等待认证
+
+本地查询走独立缓存句柄，不进入业务认证队列；保留完整查询上下文并按账号/backend/生命周期/代次防止迟到覆盖。启动必须先登记缓存打开任务再通知首页状态，但不等待打开完成。当前读取已有 typed 今日/希冀内容，不使用任意序列化 UI 或恢复写资格；后续十二领域仍须逐操作补齐 typed 存储和投影。Bridge 升为 v15，旧 CLI、学校接口和缓存 schema 保持原合同。
+
+
+## 2026-09-22：学业持久范围与发布错误优先级
+
+保留学校返回的完整 typed 集合，学期/周次/校区/日期仅使用真实请求值，不以展示筛选替代完整范围。成绩浮点数不提供 Eq，非有限 credit 只阻止持久保存，不修改学校解析。发布事务中账号退出/请求被替代优先于载荷无效，避免硬栅栏被宿主误当普通缓存故障降级。旧 CLI、Bridge v15 和上游协议不变；本批 Core 接线完成后继续 Bridge/App。
+
+
+## 2026-09-22：学业缓存展示与出分观察分离
+
+Bridge v16 保持六类具体 DTO，不把 Core 任意载荷或 raw JSON 交给宿主。在线和离线共用纯展示映射，缓存成绩保留完整学期概览和原时间；出分观察拒绝 persisted/不完整来源。公开学期/周次选择器可先用缓存，成绩变化检查继续内部在线调用。loading 期间仅开放已保存学业内容的只读显示/导航，不扩大学校写资格；全学期离线统计尚待后续接入。
+
+
+## 2026-09-22：首页待办持久 DTO 与可选读取完成信息
+
+在线签到/阳光读取继续返回原实时资格，而持久模型独立剥离学校写目标和资格，避免以后反序列化恢复授权。可选步骤容错保持原在线行为，但缓存发布使用独立 complete 与 Stored/Preserved；无实际计数的零回退和仍有下一页的提前停止不成为完整快照。日期固定仅用于新签到缓存入口，旧 CLI/readback 仍取原时间点。新模块只解决 Core 持久边界，未替代后续 Bridge/App 或分段读取工作。
+
+
+## 离线首页 P4-E：展示证据与实时操作分离（2026-09-22）
+
+采用 Bridge v17 typed 首页缓存返回，保持在线 DTO 与不可写持久 DTO 两条映射。部分 SPOC 保留旧内容，同学期仅追加新 ID；阳光同分类且已观察学期一致的旧完整统计与当前动作/记录分别取源。完整性为 false 不再因 error=null 被控制器标为 success。签到既定回读走显式 backend 能力，避免新增缓存认证与 pending 写意图冲突；不修改原学校提交路径。新增缓存签到只读导航与跨日屏障，未知统计不作为首页未达标依据。原聚合读取尚无新增安全分段，不宣称抢占完成；真实学校写入为零。
+
+
+## 离线首页 P4-F：博雅安全持久投影（2026-09-22）
+
+五项只读复用现有 feature 实现。分页按 page/size/all，详情按 course_id；当前已选保留原 getAllConfig 实际选择的起止日期而不推断学期代码。保留在线资格供既有 WriteCoordinator 校验，但独立 CachedBykc 类型不允许 eligibility 落盘。另一源 boya SignInfo 明确含 lng/lat/inSignArea，原 string 不能当普通文字持久；缓存也不保存签到点坐标和附件路径。课程位置名称和学校公布时间窗仍可阅读。Core-only 阶段不升级 Bridge 合同或宣称 App 离线首页已接通博雅。
+
+
+## 离线首页 P4-G：博雅补充来源与写后回读分流（2026-09-22）
+
+新增 Bridge v18 五项接线，在线和不可写 DTO 分离。首页博雅缓存必须带 bykcChosenCourses 查询身份，不能覆盖普通列表；UI 等待/失败时保留补充缓存，分页元数据和取得证据贯穿查询。BykcReadbackBackend 仅复用原在线回读，避免 pending 写意图与新增恢复入口冲突。实际操作仍由原 WriteCoordinator 管理，未发真实学校写入。
+
+
+## 离线首页审查修正：禁止缓存 DTO 绕过 Bridge 白名单（2026-09-22）
+
+研讨室接入前复核 2026-09-02 边界时发现，P4-G 新缓存已选 DTO 误带出 homework/homeworkAttachmentName。新增生成 schema 禁曝断言先失败，再删除两字段、重生 FRB 并升级 v19；不因页面未消费就将额外公开字段视为可接受。研讨室后续缓存 DTO 必须以公开产品字段为边界，不能按 Core 内部字段整批复制。
+
+
+## 离线首页 P4-H：研讨室兼容回退不是完整更新（2026-09-22）
+
+缓存用途将 StaticFallback 记为部分，完整动态记录不因静态回退被覆盖。日期 parser 的旧回退可继续作为在线兼容返回，但与请求日期不一致时不得归档到该日期，complete=false；成功信封空订单详情的默认id=0也不能覆盖已知详情。可写资格、取消证明target与内部订单材料从持久类型定义中排除。门锁仍只按需在线，未新增学校写入或重放。
+
+
+## 离线首页 P4-I：研讨室部分结果、缓存页面与回读边界（2026-09-22）
+
+新增 Bridge v20 五查询接线并沿既有公开白名单。用途独立加载入口使用与学期/教学周相同的本地优先屏障，统一所有权移到 offline/read_options.dart。预约后订单回读显式绕过新缓存恢复，取消仍调用原固定路线双回读。组件 RED 发现时段表将 stale 等同于 error 非空导致缓存崩溃，修复为分别处理旧内容和真实错误。另区分本次 Stored Partial 与 Preserved 旧数据，避免来源标记失真。
+
+
+## 离线首页 P4-J：图书馆兼容空值不等于完整刷新（2026-09-22）
+
+图书馆五种查询分别持久，时段与日期、楼馆与楼层、分页不可折叠。旧解析器允许缺失集合降级为空，本次保留旧在线 DTO 与容错，但新增 observed 结果供缓存区分完整/部分；显式空数组与缺字段不等价。日期观察必须遵循原解析器优先级。返回错页或错分区拒绝写入当前范围，旧内容保留。座位与预约记录使用只读白名单，任何历史状态均不能恢复资格，学校写链不新增入口。
+
+
+## 离线首页 P4-K：图书馆持久展示与实时资格分流（2026-09-22）
+
+五查询 Bridge/App 使用与 Core 相同的精确范围和部分保护。旧展示映射抽取共享，缓存不新增字段，也不将状态码重建为资格。新增写后回读能力绕过缓存认证。审查分别以失败测试确认 loading 隐藏旧网格、缺 segment 仍发请求、无旧记录时显示错页三个缺口；分别保留网格、提前输入验证、抑制错范围载荷。错误范围响应不能充作当前查询成功，即使协议容错仍保留在线 DTO。
+
+
+## 离线首页 P4-L：保存拒绝与展示拒绝必须分别成立（2026-09-22）
+
+P4-K复核发现：正确阻止异范围落盘，并不自动阻止其在线DTO生成页面或动作。研讨室现于投影前核对日期/站点/订单ID/页信息；博雅错详情有旧值保留，无旧值明确失败。研讨室新增缓存分页观察，仅缺省按冻结请求回退，明确矛盾仍拒绝；原普通接口不被悄悄更改。博雅分页不猜响应number的基数，而按冻结接口明确的请求page/size显示。所有修改通过脱敏响应验证，不涉及真实学校写入。
+
+
+## 离线首页 P4-M：评教容错结果与完整快照分开（2026-09-22）
+
+沿冻结读取链新增完整度观察，保持旧普通读取和strict写authority结果。激活或子请求的非认证失败可以保留原在线空/部分返回，但不能清空旧完整课程；任务身份、课程状态/上下文缺失同样不当作完整。原接口只请求第1页10项，达到上限时不猜后续为空。独立持久类型仅保留现有公开展示字段，不能从is_evaluated反推提交资格。更长的逐任务/问卷分段计划仍在活动合同待办中。
+
+
+## 离线首页 P4-N：评教进度与提交资格分别恢复（2026-09-22）
+
+缓存课程和集合进度可恢复，但课程没有提交目标或资格。摘要/待评只是同一只读快照的两个筛选视图，不能因筛选为空认定已完成。UI失败测试复现Partial仍显示待评0，改为未核对提示并隐藏比例；完整历史或在线快照仍按原集合进度展示。评教固定路线写后回读保持，新增缓存恢复只用于普通读取。
+
+
+## 离线首页 P4-O：阳光分类与分页必须同时归属（2026-09-22）
+
+记录请求除page/limit外还包含当次解析的classify_id/user_id；账号隔离不等于分类隔离。引入精确分类页与不含凭据的本地分类索引，索引只指向已发布或保留的数据页。审查RED证明先写页再校验索引会让被替代任务迟到落盘，改用已有publish_guarded在事务内验证父票据；迟到失败元数据也经record_failure_guarded保护。原记录请求参数、generation检查和普通输出保持；缓存图片只有数量。
+
+
+## 离线首页 P4-P：概览统计与记录页分开取证（2026-09-22）
+
+阳光概览与记录请求之间存在锁释放边界，不能只在 Dart 侧比较路线后拼接。新增 facade 匹配合同在认证前固定一次路线解析，并在业务记录请求前检查实际分类；保留旧双路线/固定路线语义。分类索引更新时间不能冒充记录页时间，因此 Bridge 索引 DTO 不带 fetchedAt。App 部分回退和 UI 累计列表均以实际分类为界，记录另有证据时间，缓存没有任何提交资格。长上下文请求的进一步分段仍待后续安全边界工作，当前不宣称所有阳光读取可抢占。
+
+P4-P当前live边界：WebVPN旧RouteClient只读40项通过；Direct希冀聚合两次失败，有限安全元数据复核GET返回HTTP502且无正文，其后3项受阻。保留Direct失败而不透明改用WebVPN、不猜测URL或关闭TLS。该外部现象不阻止独立缓存/生命周期工作，也不使整个目标标完成。
+
+
+## 离线首页 P4-Q：资料展示缓存不等于认证身份（2026-09-22）
+
+接受设计要求资料最小化且遮罩。选择仅存账号、姓名、学校标识的遮罩，联系方式与证件信息仍限在线原资料接口；完整资料不因缓存接线扩散到磁盘。UC状态和userinfo响应分别核对真实身份，遮罩值不参与匹配。普通认证失效可以继续看旧缓存，响应身份不符必须关闭该账号缓存，二者不混同。独立源仅有status，无userinfo DTO，不能类推新增字段或selfTimestamp查询。原User路由与CLI保持。
+
+P4-Q审查补充：userinfo八字段原本可空，code0/data{}不是另一账号的证据。新增RED确认缺身份被误判IdentityMismatch，现区分缺失和明确不匹配：前者UpstreamChanged保留缓存，后者关闭缓存；状态与资料两个位置均覆盖，旧在线parser不改变。
+
+
+## 离线首页 P4-R：展示副本不替代身份，页面归属不使用遮罩文本（2026-09-22）
+
+直接把缓存UserSummary交给原壳层会因masked username变化被误判换账号；RED复现自动离开个人页。增加本机opaque accountScope仅控制展示生命周期，认证user及提醒/写流程继续原身份。资料从独立本地通道恢复，完整在线资料只更新displayUser。后台任务使用已有调度器并合并；Core明确身份冲突错误按accountMismatch标志处理，不伪装普通资料失败。
+
+资料缓存不能成为在线读取的必要条件：密钥/存储缺失的RED原返回unsupported，现通过既有userInfo读并显式核对安全索引身份，明确未保存，不降级明文。迟到磁盘错误不得覆盖已成功在线资料；退出第一条同步通知隐藏展示，均有单独行为RED。
+
+
+## 离线首页 P4-S：清理必须终止旧读取链的重新取票（2026-09-22）
+
+旧clear只使已分配ticket失效，清理发生在认证完成前时，旧读取链仍可能在清理后begin新ticket。新增持久generation与清理后交付新句柄；旧Arc槽关闭，独立连接事务核对代次。此本地仓库移交不获取Core网络锁，不复制Cookie或持久会话。仅在App排序或取消等待不能构成该保护。
+
+缓存控制记录升v2并单独绑定AAD，避免旧二进制忽略generation后写回旧结构；v1条目原样迁移、退出状态保留。内容清除与VACUUM分开报告，失败阶段不可混同。审查RED复现新增预检错误地阻断普通缓存损坏时的在线读取，现只阻断已确认退出/代次冲突，原磁盘失败与在线结果分离合同保持。
+
+
+## 2026-09-22 P4-T：管理句柄移交与宿主调用链代际
+
+基线21bd104f。Core已阻止持有旧句柄的写回，但App多步读取会重新从backend获取句柄，因此仅替换字段仍可能让旧任务写入刚清空的缓存。选择在缓存根调用保留宿主代际，在取得句柄和最终交付处核对，实际持久化仍依赖Core事务generation。Zone只携带值，不建立错误Zone、不复制会话，不修改原固定路线写后回读。管理确认携带账号，切换账号在入队时发布目标，以拒绝旧确认。清理失败不丢句柄；提交后维护失败仍交付新句柄。
+
+Bridge升级v25。FRB初次把包含opaque字段的结果自动生成为可变opaque类，schema测试复现不符合不可变结果合同；以显式non_opaque注解生成含final cache/report的DTO，并用原生合成测试验证嵌套句柄。此阶段不修改学校协议，不执行真实学校写入。控制器/设置和完整清理交互尚未完成。
+
+
+## 2026-09-22 P4-U：仅清理缓存不复用退出流程
+
+基线f7f554f5。原_resetFeatureSnapshots会使写协调器、认证展示与导航缓存一起失效，不能直接拿来实现设置清理。增加独立业务内容代次；控制器失效旧读取但保留身份/登录/查询，UI保留导航帧并清除各帧内容，设置仍在原入口。事务失败恢复取消后的加载状态，维护失败使用已提交结果而不声称未清理。
+
+统计与清理使用不同前置条件：审查测试证明最初共用排他条件会在恢复登录期间拒绝纯本地用量读取，已分开；管理写操作仍避让登录、写准备/确认/提交/回读。安全账号和凭据不因仅清理业务数据而删除。Domain只承载数值报告，backend合同保持App所有权；无上游协议、Bridge版本或学校写合同变化。
+
+
+## 2026-09-22 P4-V：压力时动态保留，而非永久发布优先级
+
+基线5f1318d0。旧策略只有今日/周课表priority=1，其余全按访问时间，无法保护近期待办或及时降低过期资源等级。新策略不新增明文业务元数据，在容量压力时依据已加密保存的白名单日期/索引重新判断；不碰六个月历史扫描规则，不因旧详情淘汰而删除课程发现路径。未知日期不作历史推断，提交状态/取消状态不被借作学校写资格。
+
+回收移到INSERT前并保留同事务回滚；测试用SQLite触发器验证顺序和故障回滚，不冒称真实磁盘满。硬限额竞争时宁可返回可区分的Capacity，也不让历史详情挤走当前任务。当前学期来自实际路线新鲜元数据，并把本次即将提交的元数据纳入判断；否则旧索引会在满额时阻止学期切换。未扩大持久格式或版本。
+
+
+## 2026-09-22 P4-W：显式重建与数据库身份隔离
+
+基线ad3ce9c1。无法打开的业务缓存不能依赖已有句柄来清理，也不能在启动失败时自动删除。新增仅由设置确认触发的清理或重建合同，Corrupt/UnsupportedVersion才进入SQLite正式RESET_DATABASE与VACUUM路径；其他故障原样返回，使用独占锁保护活动连接。凭据、会话及其他账号文件不参与。
+
+重建会重置计数器，因此schema v3增加随机数据库身份，控制记录AAD升v3，旧票据即使计数相同也不能跨重建使用。v1/v2迁移保留条目、时间和退出状态。清除已提交而初始化失败以空句柄和维护错误返回，不能冒称清除失败或仍可保存。Bridge v26明确可空继任句柄，App清理内存并保留账号/页面；临时密钥在调用结束清零。普通打开损坏文件仍保留文件并提示，不自动触发重建。
+
+
+## 2026-09-22 P4-X：统计集合先交付本地，更新结果另行完成
+
+基线c7365355。现有统计Future等待学校学期和成绩队列，不能单靠单学期持久化实现离线汇总。新增可选渐进回调；UI立即显示本地完整或部分集合，Future仍报告本次在线读取结束。其学校调用继续原调度和接口；不复制会话、不把Dart并行当作Core抢占。完整在线成功优先，失败仅以同账号/查询/路线的旧项补缺，并保留更新错误；缺学期不是空成绩。
+
+学期索引的完整度必须参与汇总，不能只核对已返回学期数。RED发现原辅助学期读取丢失evidence，现完整透传。逐项磁盘异常保留其他学期，时间含年份，持久成绩不交给出分提醒。首次恢复之后自动refreshHome会改变readCacheEpoch并取消旧统计，属于既有代次合同，测试将独立恢复与首页重刷分别观察；全部生命周期后续继续核对。
+
+
+## 2026-09-22 P2-F：账号库打开不使用页面读取代次
+
+基线8a22e0f7。页面/路线切换会递增lifecycleEpoch，但本机库属于账号。原实现用页面代次保护密钥读取，切路线后把唯一打开任务取消，后续缓存永远无句柄。新增本地仓库所有权代次；同账号可继续打开，首页投影若期间路线/页面代次变化则重读最新范围。退出、再次打开、账号替换、dispose仍隔离旧任务，临时密钥始终清零。
+
+审查RED复现清理后旧首页读取会重试并恢复已清内容；清理在等待初次打开后立即递增仓库所有权代次，旧链终止。此代次仅管宿主本地任务，持久写回仍由已有Core数据库身份/generation和Bridge/App读取代际共同保护，不把Dart标志当成数据库隔离。
+
+
+## 2026-09-22 P4-Y：完整导入独立保留与schema v4
+
+完整学期集合采用旧版已验证的按账号集合原子发布，并在统一仓库内再按实际路线分离。集合内逐学期有独立取得时间，替换一个学期不刷新其他学期时间。普通后台周缓存不会进入该集合。容量不足拒绝新请求，导入集合不作为普通回收候选；显式清理仍清除它。
+
+新增载荷若沿用schema v3，旧二进制可能把不认识的完整导入当损坏条目淘汰。故升为v4；v3迁移不改业务密文和AAD，事务轮换generation/epoch并清除在途请求，旧已打开连接也必须失效。v1/v2沿已有迁移升到当前版本。RED明确覆盖旧连接继续读的缺口，不仅检查user_version数字。Bridge/CLI未新增接口的本地模型阶段不改其版本。
+
+
+## 2026-09-22 P4-Z：逐学期租约与单周读取修订
+
+基线af4c03a8。学期/周次/单周各自沿完整学校函数及finish_routed收尾后返回，计划仅持原运行时弱引用和清理代次，不复制会话。普通周次与周课表仍兼容旧包装code；完整导入额外要求已知成功包装，未证实完整时保旧。Core facade的Direct/WebVPN注入测试是确定性合同证据，不能计作真实路线通过。
+
+RED发现集合租约会使不同学期互相取消；改为逐学期租约，最终以集合票据加学期父票据原子合并。另一RED证明按fetchedAt选择会在时钟回退时用导入收尾盖过后来单周结果；每周/周次索引在请求前取得精确范围修订并保存实际取得时间，导入投影以该修订仲裁。旧完整导入没有细粒度观察时修订为0，仅作已有精确结果之后的退路，不将新导入其他学期的集合修订借给旧学期。
+
+今日已有精确日快照优先，缺失时仅从完整导入的已验证覆盖投影；不能拿其他日期或未知weekday充作无课。Bridge及App尚未接入导入入口，现有只读缓存接口已可消费有效导入投影。
+
+
+## 2026-09-22 P2-G：辅助读同样承担账号冲突关闭责任
+
+常规页面读取已有CacheIdentityMismatch处理，但辅助学期/跨学期统计只将错误压成UiError，导致缓存回退后仍保留旧账号可恢复状态。将明确冲突的关闭动作放在统一辅助读取完成边界，仅当前生命周期可以关闭；普通认证失败及旧路线迟到错误不改变该规则。
+
+额外RED确认没有保留本机账号的宿主，回到登录页后WriteCoordinator仍允许调用prepare，因为旧guard仅在usesLocalRecovery分支检查认证状态。统一要求处于home且有当前身份，随后仍需实时资格、prepare/确认/单次commit，未新增任何学校写调用或自动重试。
+
+## 2026-09-22：P4-AA 整学期导入接入 Bridge 与课表页
+
+Bridge 升 v27，原客户端锁内逐次调用 Core begin/next，sync cancel 不获取网络锁；不得将 Dart 优先级本身作为抢占证据。共享锁实际让位由脱敏运输测试证明，待确认写意图下不发送下一批、不清除意图。普通 CLI/双路线和 schema v4 保持。
+
+App 固定学期任务独立于可见查询与首页刷新代次；同学期合并，每批按后台优先级入已有队列，紧急读取先行，后台/待确认写暂停。账号、路线、清理和退出失效取消任务及进度；清理后的迟到成功不能显示已保存。普通失败保留页面且不自动重发已有计划，明确身份冲突关闭旧账号。全部读取但容量等保存失败独立显示；用户显式重新保存才创建新计划。课表页保留现有周次、查询和顶栏路线展示，增加整学期保存/取消/重试入口，未增加学校写入。
+
+## 2026-09-22：P4-AB 本地课表索引与日期导航
+
+已有完整persisted索引在loading/stale状态也可推进原学期→教学周→周课表只读导航，不等待网络恢复；部分索引仍不得自动选中。教学周的缓存投影根据校园UTC+8日期重算curWeek，错误学期/非法日期/非教学周范围不沿用历史布尔值，原取得时间不更新。
+
+完整导入增加可选学期索引观察（取得时间、请求修订），与周次及逐周观察分别保存。只有完整导入发布后才提供索引退路；普通学期索引与导入按精确修订仲裁，不按导入收尾或墙钟比较。与旧版terms合并不同，此处优先保留最近一次有依据的完整索引，避免把较旧快照中的已移除元数据重新混入；历史导入仍独立保存。schema v4的可选字段向后兼容，旧记录保持原时间且修订0，Bridge v27/CLI v10未改变。
+
+## 2026-09-22：P4-AC Core关联范围失效与schema v5
+
+缓存失效必须同时撤销相关在途请求，不能只删除已有条目。由于原requests只有HMAC键和修订、无法识别从未保存的范围，增加独立AAD保护的加密CacheScope；不保存上游正文或写意图。schema v5丢弃旧请求票据并使旧连接失效，业务密文/取得时间/退出状态保留；普通请求、租约续期和成功发布保持原单调修订。
+
+影响范围是封闭typed本地合同，账号由仓库所有权决定、路线显式传入。资源参数缺少可信材料时只在对应领域保守扩大，不能用名称猜上游ID；同事务删除条目和匹配请求，异常回滚所有修改。当前只交付Core本地能力，生产commit接线及内存跨入口处理随后完成；所有学校写入仍禁止真实执行。扫描成本须纳入P5容量实测，当前六个合成单测不是性能通过证据。
+
+## 2026-09-22：P4-AD 写提交结果与本地失效分列
+
+新增Bridge v28 commitWriteCached，复用原Core锁、单次意图消费、实时目标/资格和单次发送；旧commitWrite不新增学校请求、返回合同保持。实际结果路线优先于准备路线。确定成功、部分评教已成功或结果未知时撤销关联持久范围与请求票据，本地SQLite错误只由cacheError报告，不能把学校成功改成失败或触发重发。锁在本地失效后才释放，避免新读取先于失效发布；阻塞数据库操作在阻塞池执行，不复制Cookie或并发持久会话。
+
+App只传递调用开始时匹配本机账号的缓存句柄，缺句柄仍保持单次提交并单列本地不可用；迟到学校结果保持原义，退出后不能给新账号恢复提示或刷新。控制器撤销同路线关联内存动作、保留原内容和来源时间，既定回读收尾后通过原调度器刷新当前查询及关联首页补充，后台时等待前台。旧版详情备用表单仍可显示禁用按钮，但不含可提交资格。
+
+本轮全部写入由脱敏backend/Mock验证，不执行真实选课、签到、预约、取消、阳光或评教。缓存扫描成本与设备性能仍待P5实测，不能将确定性用例或原生FFI通过计作真实App写验收。
+
+## 2026-09-22：P4-AE 阳光已观察学期与周期隔离
+
+固定路线的概览先取得本地观察周父票据，学校返回后按classify_id、可选term_id与同一校园UTC+8日历周发布业务内容，再更新该周选择索引。学校没有教学周编号，周一只定义本地分桶，不解释week_count或week_num为周次。缺学期结果标为部分并独立保存，不能替换已知学期完整内容；组合请求跨校园日期时不发布，返回被替代，由后续当前日期任务重新读取。旧无周期单例仍保留，但不猜归属、不作为新首页索引。
+
+读取跨日隐藏day_count、跨月隐藏month_count，原取得时间和持久正文保持。父索引缺失或对应页被清理时返回明确缓存缺失，不借用别周/别路线。失效覆盖同分类所有已保存周期与索引。begin_read_guarded在同一SQLite事务内核对父请求后分配子请求，旧父任务不能先撤销新子读取再被发布屏障拒绝。
+
+新增枚举键/载荷向后兼容现存schema v5，未修改旧密文或数据库结构；Bridge v28与CLI v10形状和学校协议均不变。索引单独发布不能冒充业务新鲜度；历史term缺失故障只更新未知范围和索引尝试，已知学期旧记录的取得时间/尝试元数据不被误归因。
+
+## 2026-09-22：P2-H 前台恢复退避与网络变化提示
+
+恢复失败后按30秒、60秒、5分钟封顶安排下一轮完整检查，成功或非临时故障撤销该目标计时器。仅networkError/timeout/upstreamUnavailable且未明确retryable=false适用；错误凭据、需交互、解析、账号冲突或内部句柄故障不据此重试密码。后台、原写活动、缓存清理和backend重建暂停未发送检查；同目标继续复用原恢复队列，写结果未知不重发。主动退出/销毁/账号代次变化取消计时器与迟到唤醒。
+
+宿主前台每5秒只读枚举本机非回环/非链路本地接口，集合变化且存在接口时发出提示；首次观察、空集合和枚举异常不宣称联网。地址仅在内存比较，未进入日志或持久存储。网络提示以30秒窗口合并，只唤醒临时失败恢复及当前失败查询；新查询已替换时不重新打开旧查询。后台取消订阅和周期计时器，迟到枚举不能覆盖重新订阅后的基线。系统不支持枚举时仍保留恢复退避、前台恢复与手动重试，不能声称已获得学校可达或认证证据。
+
+默认生产宿主启用本地观察；显式注入backend/factory的测试宿主只在提供networkChanges时订阅，避免合成测试触碰真实系统网络状态。网络可达性不改变Core路由判定、会话协议或WriteCoordinator唯一写入口。监视器纯计时测试直接使用已由Flutter依赖锁定的fake_async 1.3.3，提升为宿主直接dev依赖，生产依赖版本不变。
+
+## 2026-09-22：P2-I 无持久缓存希冀在线计划
+
+新增facade begin_judge_online/next_judge_online，保留原持久选择性刷新与CLI/聚合接口。在线计划完全不接收数据库句柄，复用原scan::courses/assignments/detail与业务认证仲裁；每次返回一个完整选课+索引或详情。为避免把内存TTL复用时间冒充在线取得时间，此退路强制各步骤新读取；无持久缓存时不承诺请求数下降。计划只持索引、已观察摘要、游标、原客户端弱标识、路线/功能代次及原子取消标记。
+
+显式目标先核对课程，再核对课程作业索引；空标识/空集合拒绝、重复目标去重，课内顺序保持输入。普通单课程故障返回CourseFailure后继续其他课程，finished不等于complete；认证/内部仲裁失败终止。全部扫描不使用永久历史排除，也不按首个旧项早停；展示复用P3既有历史条件，长周期、未完成和未知日期继续保留。
+
+期望本机身份可选但一旦提供必须匹配原UC用户名/学号白名单，错误在课程请求前返回IdentityMismatch；期望值检查后不保留在计划中。Core路线往返、清会话、取消及原客户端销毁均不能恢复旧计划。这一阶段仅完成facade与确定性证据，尚未接到生产Bridge/App，不计作当前无缓存界面已经具备抢占。
+
+## 2026-09-22：P2-J 无缓存分段生产接线与Bridge v29
+
+Bridge v29公开beginJudgeOnline/nextJudgeOnline与opaque取消句柄，固定先计划锁再原客户端锁；begin/next均检查待确认意图并保留它。原入口不变。App摘要和单详情在无缓存句柄时采用在线计划，显式批量详情也采用有界在线计划；数据顺序在最终投影按原输入恢复，普通局部故障保留已到合法内容并标为部分，不冒充完整或空列表。
+
+控制器通过可选AccountScopedProgressiveReadBackend把本机账号直接传给分段读取，覆盖密钥失败而从未openOfflineAccount的情况；业务当前账号与缓存能力分开。BridgeBackend所有计划的每次next同时检查原离线代次，退出/清理后的成功或错误不能回填。持久刷新继续原选择性复用，在线计划证据的savedForOffline固定false；没有本机账号时不编造随机账号证据。唯一WriteCoordinator与既定回读不变。
+
+当前批量在线计划逐项返回但不发布持久详情，返回原详情顺序并保留来源；这一点不能算全批量持久覆盖已完成。持久路径打开失败也不允许静默转明文数据库或复制Cookie绕过锁。其他领域长聚合的分段和P5设备验收继续。
+
+## 2026-09-22：P5-A 真实App功能证据与性能口径
+
+采用新建只读会话目录与原生安全材料的随机前缀，组合真实Bridge、账户仓库和共享宿主；不读取原账号索引、不复制会话，不把密码交给App。只读验收backend仅为第一轮恢复设置可控等待及禁止commit，其余缓存与学校调用为生产实现。两路线均证明课表/SPOC缓存先可见且挂起期间可切换入口，放行后五来源完整更新。P1功能出口据此与既有失败/退出/身份确定性测试闭合；其他阶段和整体验收保持未完成。
+
+计时起点是已初始化引擎内的宿主装配，Direct/WebVPN缓存594/604ms，首个希冀批次6.555/7.059s，全部更新78.406/105.427s。样本包含受控等待、调度和真实网络，不是进程冷启动，不作中位数/P95或500ms/1s目标达成声明。30次/设备的冷启动、发布模式候选、容量和生命周期综合验收仍需执行。窗口前台化警告也不能用功能测试成功替代可见渲染证明。
+
+
+## 2026-09-22 P2-N 评教真实只读失败分类
+
+冻结 old 1f4b8f84 LocalEvaluationService.kt 与 buaa-api a63712fa tes/{auth,opt}.rs 的激活差异仍按来源对照执行。新原生分段在 Direct 激活首批返回 networkError/retryable=true、complete=false；WebVPN 两批完整空集合及缓存重开成功。Direct 尚无协议冲突或终点变化证据，不放宽 Core read::ensure_activation_terminal，不改学校参数。旧 CLI get_all 非认证错误空回退的 PASS 不证明业务成功。保留首个稳定错误供原位提示与后续前台退避；真实业务写入0。
+
+
+## 2026-09-23：接续离线首页P2-P与当前候选证据
+
+在原实施区接续c7e55171与29项未提交变更，已确认其他相关任务空闲、未发现实施区遗留写入/构建进程；refs纯校验通过。保留旧RED日志，FRB从packages/ubaa_bindings配置目录生成，再取得可执行行为RED。P2-P仅允许明确可降级的本地故障转同账号、同客户端在线计划，退出/被替代/账号冲突和学校错误不进入回退。历史通过不替代本次候选；活动合同和状态已消除旧“退避尚待接线”等矛盾描述，旧状态原样归档。
+
+
+## 2026-09-23：部分在线计划的内容稳定性
+
+P2-Q控制器测试复现P2-P回退后旧范围被首批替换。采用查询内投影合并，不改变学校读取、缓存schema或Bridge合同；仅完整成功替换集合。同账号/实际路线/精确查询和稳定ID为必需前提，占位不得覆盖已取得字段，混合依据不升级时间和完整度。5项新增行为测试及完整门禁通过，后续继续批量详情持久化和最终验收。
+
+
+## 2026-09-23：明确批量详情复用独立持久范围
+
+P3-B采用已有账号/路线/课程/作业单项记录与独立请求票据，不新增批量聚合记录，防止子集替换首页全集。开始前统一分配目标票据，所有批次前后验证生命周期；容量或保存故障与在线内容分列，未成功项保留原内容及时间。App离线投影仅合并同路线的明确目标，Auto先选完整路线再比较时间，不能跨路线拼接。来源对照和RED→GREEN及完整门禁见执行证据；Bridge为v34，缓存schema保持v5。
+
+
+## 2026-09-23：只在客户端明确失效时原位替换
+
+P2-R区分Bridge clientDisposed与普通internalError。前台恢复最多一次重建，继续既有写流程保护和身份核对；旧会话由Core自行加载，禁止复制Cookie。页面在释放期间仍可操作，因此开始替换和实际接管均撤销读取代次，并将仍匹配页面的查询交给新实例。保留原数据时间，旧动作和内存读取复用撤销。新增13项行为用例与完整门禁、macOS原生分类验证通过；设备性能和未知结果的重启线索仍未闭合。
+
+
+## 2026-09-23：未知结果仅保存最小核对提示
+
+P4-AG在已消费意图及通过Bridge前置验证后、显式单次发送前保存独立加密提示。只记录随机本地ID、封闭操作、原路线及开始时间，不能恢复意图、目标或提交材料；确定结果只删本轮，任一未知或进程中断保留。64条上限与硬容量失败显式分列，不能淘汰未核实提示来制造成功。App独立读取，提交后的强制读取撤销旧读取修订，避免刚持久保存的提示被迟到空结果隐藏。
+
+用户通过原相关功能核对，不自动升级成功；显式移除和缓存清理只影响本机。退出/清理/账号代次继续隔离，提示故障不改学校结果也不降级明文。schema v6与Bridge v35配套迁移。新生产源码触及既有facade目录上限时，将本地出口归入原offline模块，没有增加baseline豁免。最终验收仍按各证据类别独立闭合。
+
+
+## 离线首页 P5-B1：原生 iOS 空环境目录修复（2026-09-23）
+
+进程预跑发现 iPhone17Pro/iOS26.5 的 Dart 环境表为空；依赖 HOME 的默认私有目录因此不可用。已先核对两份冻结来源：二者没有 Flutter/iOS 目录规则，不能从其文件或 Settings 存储借出明文降级。三项脱敏平台行为测试先失败：空环境不能使用已返回的原生目录，缺失/相对路径未失败，显式相对配置未失败。最小修复通过既有原生平台通道提供 FileManager.applicationSupportDirectory/UBAA，生产 createDefaultPlatformCapabilities 先初始化，再创建宿主；缓存和学校协议不变。聚焦四项（含原路径测试）已通过，iPhone真实只读新分段入口已成功准备五来源缓存并完成一次进程启动。完整30次及多端性能仍待测，不以此单次结果宣布验收。
+
+测量入口改用引擎 frameNumber 配对 rasterFinishWallTime。之前用 vsync 原始时间严格相等配对会漏帧，不能把已有的五来源成功伪报为全部完成计时。失败预跑原样留在私有目录，修正后的候选重新统计。iOS模拟器Debug与macOS Release分列，不推算实体设备结果。
+
+
+## 2026-09-23：P2-S 分段计划复用希冀激活，P5-B 保留失败样本
+
+冻结old的同一LocalJudgeClient复用judgeSessionActivated，并在每批显式选课；buaa-api无Judge协议。本项目分段调用每次传入false导致重复CAS，四项回归覆盖完整数据、计划隔离、内存课程未激活及认证有界重试。只将激活状态留在原计划，学校GET/选课、Cookie归属、会话收尾及安全让位边界不变。
+
+第一轮macOS进程基线21次中出现一次600秒超时和一次停滞后诊断中断，保留全量证据，30次目标未达到。先补充只读调用开始及生命周期记录定位停滞，不能把重复认证优化等同于已证明解决停滞；最终三端性能须使用最终候选重新测量。
+
+
+## 2026-09-23：原生日期矩阵的显式时钟装配
+
+macOS原生合成矩阵77项通过、3项日期断言失败。失败都依赖mount局部withClock；引擎帧回调在绑定的Zone执行，未继承该局部测试时钟，固定2026-09-21缓存被实际日期判为历史。这不是学校请求差异。保留全部断言，通过首页可选Clock依赖把合成时钟显式传到原生帧；生产未传参仍使用原clock.now及每分钟/重入更新规则。该装配不改任何认证或只读HTTP协议，不能将日期测试失败描述为学校错误。
+
+
+## 2026-09-23：P2-T按可见性恢复及严格区分验收范围
+
+真实macOS诊断与锁定Flutter SDK均支持hidden后的inactive为可见，不能继续暂停调度等待焦点。最小修复在首次inactive/resumed复用原恢复与写保护，3项RED→GREEN，三端各83项原生矩阵通过；普通焦点变化不额外认证。真实只读窗口最小化后重新显示已完成刷新，具体生命周期类型未单独记录，不据此补造映射证据。
+
+测量审查发现既有all_refresh_done仅覆盖五主要来源，尚未包括三个补充来源和成绩变化检查；保留原指标作为五来源统计，最终测量另补完整首页范围。锁屏运行的3次Release只读成功仅归链路诊断，不计可见性能。
+
+
+## 2026-09-23：P2-U自动读取按需让位，主动查询共享完整观察
+
+自动成绩检查不属于用户主动查询。通过共享ReadDemand保留既有同代学期/成绩合并并允许提升排队需求，实际Core/Bridge仍单批串行。主动成绩视图复用同学期在途完整集合后投影，避免为了提优先级取消再发。不同学期、强制新观察、写保护和退出迟到结果保持原义。进一步发现旧成绩提醒文件含个人成绩正文，需独立接入Core加密仓库，不能以“派生偏好”作为明文例外。
+
+
+## 2026-09-23：P4-AH将成绩变化基线纳入加密仓库
+
+成绩基线包含个人业务正文，不能作为平台偏好明文保存。新增Core精确账号/实际路线/学期载荷，读取原基线与新观察保存共享本地锁；失败不冒充首次成功。只在完整在线观察后更新，旧文件基线有对应加密值时不覆盖，跨学期独立迁入；确认保存后移除该旧范围，其他账号/路线保留。显式清理先阻断新观察并清理该账号遗留基线，清理失败明确报告；清理成功同时撤销旧变化提醒。
+
+Bridge升级v36；schema v6新增载荷变体而不改SQL结构、密文封装或既有字段，旧v6数据仍可读取。冻结来源仅支持比较语义，不支持沿用其明文存储。旧原生及真实成绩验收入口一并改为加密基线读取，不保留测试工具新增真实成绩明文的旁路。
+
+
+## 2026-09-23：P4-AI 退出保护覆盖本地偏好清理
+
+发现Host只清成绩基线，遗漏提醒；Controller吞掉部分删除失败；本地清理尚未结束时已允许重新登录。先完成双来源核对和11项宿主行为RED，再将本地收尾纳入Controller原退出栅栏，固定当前已核实账号范围，逐项尝试、保留首个错误；旧回调按账号生命期拒绝。原共享宿主测试曾在退出后复用旧页面继续清理，现增加必须拒绝的断言，再显式重登取得当前页面完成原清理断言；不恢复不安全入口来满足旧测试。学校协议、Bridge v36/schema v6均不改。验证结果见专项证据。
+
+## 2026-09-24：P5-B2完整首页与阶段成本测量边界
+
+测量审查确认旧入口只记录五个主要来源，不能代表今天首页的全部待办来源；成绩检查还可能在在线读取结束后完成加密基线写入。新增四个补充来源（已选博雅、研讨室订单、当前周、成绩检查）及 `GradeScoreWatch` 收尾回调，完整首页完成事件必须同时满足五个主领域、四个补充来源和成绩检查收尾。回调只报告当前账号、路线和读取代次仍有效的检查，迟到或退出结果不调用新会话；不改变成绩基线的在线完整性门槛，也不把缓存展示变成写资格。
+
+为定位后台耗时，`ReadScheduler` 增加可选的 queued/started/completed/cancelled 诊断，记录排队等待和实际运行时间；`MeasuredBackend` 将认证、上游、缓存和在线分段操作分别标记，统计重复调用和来源命中。诊断为空时完全不改变生产调度，Core/Bridge 安全批次让位边界不变。Python 分析器先以真实输出字段取得失败，再按主领域 `complete`、补充来源 `finished` 和成绩 `check_complete` 分别校验；计划30次的未启动分母、异常样本和 nearest-rank P95 均保留。
+
+本批没有从 old `1f4b8f84` 或 buaa-api `a63712fa` 借用学校端点、参数、DTO、Cookie 或错误；两份来源均没有同构进程性能入口。实现与待测范围见[测量证据](../evidence/offline-startup-measurement-2026-09-24.md)，设备和真实路线结果未因此提前宣称通过。
+
+## 2026-09-24：P5-B2正式轮次裁决
+
+当前提交 `436f4a86` 的 macOS Release、iPhone 17 Pro Debug 模拟器、iPad Pro 13 M5 Debug 模拟器各完成30次 WebVPN 只读启动；三轮均 `valid=30`、完整刷新30次、写入0。macOS缓存可见中位数/P95为342.145/410.584 ms，达到500 ms/1 s目标；iPhone为1989.248/2601.328 ms、iPad为2112.204/2765.966 ms，均为Debug模拟器，不能据此否定或替代实体发布模式。三端首帧后恢复启动中位数/P95为0.384/0.733、12.820/16.993、20.451/39.855 ms，均满足200 ms目标。Flutter工具链不支持iOS Simulator Release/Profile，保留失败输出并不伪造发布数据。
+
+新App WebVPN分段准备与测量已在三端完成；新App macOS Direct两次独立准备均在SPOC批次收到真实上游`unexpected_eof`并分类为`network_error`，旧CLI Direct同轮同样在SPOC失败并退出5。旧CLI WebVPN只读退出0。该结果把学校可达性阻碍和实现/测量证据分开，不能以旧聚合接口的空集合回退替代新分段成功。阶段成本已按认证、缓存、上游、调度等待/运行和重复操作保存；没有为达成数字目标删除必要领域或放宽安全批次。
+
+## 2026-09-24：P2-R显式重建本地首页恢复核对（实施前）
+
+复读冻结 old `1f4b8f84` 的 `composeApp/.../App.kt` 前后台会话检查、`AuthApi.kt` 的共享会话/资料入口和 `ResettableSharedInstance.kt` 的实例释放；buaa-api `a63712fa` 的 `context.rs`、`store/{cookies,cred}.rs` 只定义单一 Context 与调用方提供的 Cookie/凭据存储。两份来源均没有本项目 Flutter opaque backend 重建或首帧标记，因此不从来源借用新的字段、URL、参数、Cookie、错误或自动登录语义。现有 P2-R 合同继续沿既有 `auth_status`/所需路线恢复与身份核对，替换只改变客户端生命周期。
+
+新增行为 RED 先复现：本机已有可恢复首页在显式替换 backend 后，继任 backend 的 `authStatus` 调用次数为0，说明缓存重新打开但会话恢复没有自动排队；失败日志为`/tmp/ubaa-p2r-explicit-rebuild-red.log`，SHA-256=`51f4fc5dd1dfaacd6bf5e08cf039e032f87e62e992f27ca8939aa375a10feb54`。最小修复只在已消费首帧标记的本地首页重新初始化后排队一次现有 `recoverSession`，仍受写事务、前后台、退出和账号代次栅栏约束；不复制会话、不自动提交业务写入，也不修改学校请求。
+
+实施后聚焦 GREEN 通过：`packages/ubaa_app/test/offline/backend_rebuild/boundary_test.dart` 共7项通过，日志为`/tmp/ubaa-p2r-explicit-rebuild-green.log`，SHA-256=`1966a1ca67c8f8f533cbecc60f986f82a09c07b34f47f75569ea81f580b2bc34`。随后完整 `just flutter-check` 的7个包共1113项测试和分析、以及 `just check` 均通过，分别见`/tmp/ubaa-p2r-flutter-check-20260924.log`（SHA-256=`cb2abd1802a6dcd551044442290f92e28c6ebf837f35110fea022ae00c2a9fd0`）和`/tmp/ubaa-p2r-just-check-20260924.log`（SHA-256=`0c9168ad7f5b3f324405b51681ef47b39e05c66e8290f9ab848b599ba3359c7c`）。
+
+
+## 2026-10-01：整合现有成果并恢复旧版功能验收
+
+用户明确要求全面梳理、清理、完成当前开发并以 Computer Use 验收 macOS；UI仅在旧版基础适配多端。新活动合同替代历史暂停和单独分支范围，当前校外只验证WebVPN。主目录无未提交工作，从`d7c37f73`创建整合分支并快进纳入离线分支`e1af4360`；原worktree和未提交内容保持原样。按钮分支合并前已比较新旧冻结引用，适用字段/请求和需额外复核差异见[整合来源](../source-parity-consolidation-2026-10-01.md)。不以历史阶段通过替代当前最终门禁；生成冲突通过锁定FRB重新生成解决。
+
+## 2026-09-15：恢复macOS逐按钮核对与安全凭据接线
+
+用户明确要求当前App与旧版逐按钮对照、修复并使用.env.local真实登录，以computer use操作macOS App。恢复对应开发/真实只读验收，既有暂停记录保留为历史；其他工作区和用户SECURITY.md删除不改写。真实学校写入继续按现有合同使用合成backend验证，实际写入不由全功能审查代替目标授权。
+
+首次实际登录与首页读取已经成功，后续锁屏只阻塞真实窗口操作。Keychain是macOS记住密码/自动登录的缺失接线，不能用Noop或内存假装持久化；已用系统Keychain、唯一合成namespace和严格失败分类实现并通过native RED/GREEN。没有更改学校认证协议或暴露upstream。来源见[macOS凭据对照](../source-parity-ui-macos-credentials.md)，阶段证据见[逐按钮实测](../evidence/2026-09-15-macos-ui-buttons.md)。
+
+登录选项联动、密码恢复和存储失败状态另有七项RED，继续修复，不把原生Keychain能力通过解释成全部登录按钮通过。剩余领域与旧版刻意省略字段的差异保持在专项范围中，不因未完成而删减清单。
+
+补充：登录清除成功应清空表单的第八项RED已取得。Keychain独立审查要求补足legacy后端真正的禁止交互与策略恢复，已用共享进程锁和真实Security兼容接口完成，照片测试改为独立系统版本期望；修复轮1规范与质量复审均通过。保留legacy/Debug签名条件，不以更换后端或放宽权限掩盖问题。废弃API兼容成本及无法保证系统接受恢复请求的边界见来源决策。
+
+## 2026-09-15：完整旧版功能需要的只读接口补齐
+
+本次用户要求完整功能和逐按钮可用性，范围超过此前只调整视觉的P4-D/P5-C批次。博雅类别/适用校区与完整详情、图书馆日期时段关系都在冻结源中有具体证据，现有公开DTO却没有承载，不能靠空按钮、名称推断或手填参数冒充完整实现。裁决是允许新增typed只读facade/Bridge能力，未发布候选Bridge统一升级为10，并同步代码生成与合同验证；保留CLI schema10、Session2、配置1和写入权威。优先新增独立读取DTO/方法保持旧CLI输出，具体九列与RED要求见[图书馆日期来源](../source-parity-ui-libbook-dates.md)。本裁决不扩大敏感材料或真实学校写入范围，也不表示缺口已经修复。
+
+## 2026-09-15：验证码与门锁信息的独立短期显示
+
+逐按钮来源审计确认旧版确有验证码图像/刷新/答案提交，以及qrCode文本、有效期文字和预约摘要；当前公开接口主动截断了这些能力。根据用户当前完整功能目标，另行裁决允许专用facade/typed Bridge短期显示通路，禁止把材料塞入普通FeatureField、Snapshot、配置、Session、日志或JSON；上游URL、Cookie/token/sign、服务器挑战id/execution和完整订单继续留Core。tradeNo与orderName有明确旧UI展示来源，仅允许在同一专用视图分别标为预约单号和预约人，不作为通用订单ID或写入目标。
+
+验证码保留提交前GET，id/execution变化时零POST并重新准备；只实现已证image配置与精确表单。未知图片主机、验证码类型、错误分类、password别名和dueDate时区均不得猜测。本地验证码120秒/512KiB/JPEG或PNG/1024×1024上限、门锁30秒刷新和显示期限属于本地产品约束，不解释成学校TTL。隐藏、返回、账号/路线变化及销毁同步撤销，迟到结果丢弃；取消不等网络大锁，门锁整包摘要也不再记录。
+
+该决定与非敏感日期/博雅扩展分别说明，但仍合入尚未发布的Bridge10候选；CLI10、Session2、配置1、普通锁码available和写入权威不变。若显示接口设计错误，成本是在未发布候选内回退或收窄专用通路；不能将协议未知分支或真实无挑战/预约解释为已验收。双来源九列、字段范围与RED要求见[专用显示来源](../source-parity-ui-sensitive-displays.md)。本决定不授权真实学校写入、绕过验证码或复制真实敏感测试素材。
+
+## 2026-09-15：博雅完整详情和筛选生命周期
+
+两个冻结来源都有博雅同协议实现，旧版对类别/校区、详情字段及selected后的补查更完整。新增独立目录/完整详情方法，保持旧CLI请求和形状；新详情额外校验响应课程ID。只读补查保持旧内层课程ID首项匹配及主详情配置优先，但不据此产生写资格；当前UI具体记录唯一匹配、Unknown和写前已选配置优先继续保留。课程列表、已选列表、首页待办三种入口全部接完整读取，普通详情签到/签退接既有可验证已选动作路径。
+
+旧BykcCourseFilterStore明确按账号跨重启恢复/保存，故该差异也必须关闭：后续Task3D2使用独立UI偏好存储，仅保存状态/类别/校区，放在宿主已隔离配置目录，不改Core配置v1或Session2，不混存业务详情。默认重置清该账号偏好、异账号/迟到读取不覆盖当前编辑、保存失败保留本次选择并提示，明确清除账号时继续清理偏好。上述新约束若不合适，成本为未发布接口/本地偏好格式内返工；不能通过扩大旧CLI或放宽写入权威规避。精确来源、九列与RED见[博雅完整对照](../source-parity-ui-bykc-details.md)。
+
+
+### 整合行为裁决与失败回归
+
+合并先运行两侧原有行为回归，32项登录/博雅详情中21项失败（`/tmp/ubaa-consolidation-behavior-red-20261001.log`）。其中新目录与完整详情仍走旧接口、凭据迟到覆盖新输入、后台替换/退出竞争均为实际接线缺口，后续32项聚焦已通过（`/tmp/ubaa-consolidation-focused2-20261001.log`），不能据此代替完整门禁。
+
+旧macOS分支与离线分支的两条本地合同互相冲突：旧分支每次回前台重建backend且允许偏好清理期间登录；新离线合同要求复用现有客户端、等待整个清理结束后再登录。选择新离线合同，保留原位恢复、迟到回调保护与账号清理栅栏；旧宿主测试改为验证客户端复用、清理期间零登录和清理后新账号偏好不被旧回调影响，保留错误/单次认证/旧密码不回填断言。明确清除还应如实传播会话清理失败；普通退出可清空显示但不伪称已清除持久材料。宿主将底层本机清除异常统一成固定中文UiError，不暴露原始错误正文。
+
+博雅目录新增分类/校区持久白名单，完整详情仅将目录摘要入缓存，联系人/电话/签到坐标不落盘；图书馆同次响应逐日日程放在缓存专用返回值，旧Bridge分区详情保持原字段。新增Core真实Mock链验证在线→持久读取的筛选字段和逐日时段，不产生额外学校请求；缓存相关44项通过。旧Bridge DTO扩张曾被schema测试拒绝，已保留失败记录并收回该扩张，不修改断言掩盖旧接口兼容问题。
+
+
+## 2026-10-02：设置真实能力与最新路线选择
+
+统计Noop不能显示启用；已有客户端能力与开关分列，关闭不破坏以后重新开启。路线回调须同时属于当前backend/生命周期/凭据修订/最新请求，用户再次选择原策略也使旧在途请求失效。6项路线RED与2项统计RED后修复，完整1269项Flutter与just check通过，见[本阶段证据](../evidence/project-settings-2026-10-02.md)。当前屏幕锁定不影响独立实现，但阻断Computer Use，不记录任何按钮为已验。
+
+## 2026-10-02：交互验证码接入当前离线生命周期
+
+沿当前冻结源复核原候选，保留提交前GET与图片边界，不改变学校协议。原位手动认证保持首页；以独立交互代次阻断迟到结果，自动恢复不进入挑战。手动交互期间禁止旧读取和写准备，取消后仍需恢复会话才能写。固定路线已经就绪时按用户所选路线继续，不被另一条路线的验证码阻断；Auto保持既有解析与明确切换规则。所有认证成功使用统一账号、凭据与缓存绑定收尾。Bridge升级v38，CLI10/Session2/配置1不变。当前1299项Flutter、Rust/CLI、FRB及新通路WebVPN只读接续证据见[验证记录](../evidence/project-interactive-auth-2026-10-02.md)，没有真实验证码提交或macOS按钮验收证据。
+
+## 2026-10-02：门锁短期页面与独立接口
+
+按敏感显示专项九列复核当前两冻结提交。只读取已证qrCode/dueDate及旧页预约摘要，不借password别名、不猜有效期时区。普通available接口与CLI10不变；独立敏感模块承载两阶段页面句柄与fresh读取，Bridge升级39。首次打开解析路线，后续固定路线并在请求前后检查取消/会话/代次；新增独立架构断言覆盖此两阶段语义，保留普通读取单一canonical文件及原路线计数门禁。
+
+新行为RED观察到字段缺失、门锁日志含body_sha1以及UI未调用专用读取；修复后Core、Bridge合同、App生命周期与两宽度Host通过。原门锁根菜单golden仅更新“查看密码”说明文本，合成失败图片移到仓库外。真实WebVPN空结果与无实际密码的限制见[阶段证据](../evidence/project-lock-display-2026-10-02.md)。
+
+## 2026-10-02：GSMIS数据源与时间轴合同
+
+按当前冻结旧版withScheduleAccess执行本科优先、失败后实际核验GSMIS，不猜学生类型。示例无同协议实现，不借campusCode或AAS service。只增加研究生引导操作的gsmis重定向主机；未知POST重定向不自动重发。规范化输出保留完整SectionTime，旧缓存反序列化为空兼容；新可选公开字段使CLI升11、Bridge升40。来源、RED/GREEN、缓存重开、三宽度UI与当前WebVPN限制见[阶段证据](../evidence/project-gsmis-2026-10-02.md)。目前实际账号没有GSMIS来源，不能将本科成功解释成研究生实时成功。
+
+## 2026-10-02：原生按键命中与表单提示避让
+
+当前旧版Cgyy/Ygdk表单均保留继续确认和返回动作；示例无UI，无学校协议变化。macOS原生合成连续写操作暴露旧Snackbar遮住下一表单底部继续按钮，两项共享组件hitTestable测试均RED。仅调整Scaffold操作栏占位，使Snackbar避开按钮，不丢弃结果提示，不修改准备/确认/单次提交权威或表单字段。门锁页旧版仅刷新，没有筛选，当前无效搜索图标应隐藏；返回常规查询页仍恢复。旧原生集成脚本则按已实施的三入口、子菜单和按需查询面板更新，保留全部领域及写入回读断言。
+
+
+### 2026-10-02 可见窗口筛选空结果
+
+生产 macOS 的固定 WebVPN 周课表中输入无匹配关键词，当前共享空结果分支会移除整个七日网格。冻结旧版 `ScheduleScreen.kt:455` 的 WeeklyScheduleView 始终保留 HeaderRow/TimeColumn/WeeklyScheduleGrid；示例只有数据 API，无筛选 UI。当前本地搜索是既有 UI 功能，不改变 CAS/redirect/Cookie/方法/参数/headers/crypto/DTO/缓存和错误协议。修复仅应保留已加载周的结构和时间轴，提示“没有匹配的课程”，不能把过滤为空描述为学校返回无课，也不能用过滤结果重推时间轴。先记录三宽度行为失败再实施。
+
+同次审查中的本科未知节次时间与冻结旧版 `Schedule.kt:93` 完全一致：只有实际课程的起止边界可用，研究生标准旧缓存补全不得扩张到本科代码；这项不修改、不猜补时间。
+
+
+### 2026-10-02 空教室正文校区与查询草稿同步
+
+固定WebVPN真实窗口中，正文从学院路切到沙河并读到沙河教室后，查询面板仍显示学院路。冻结旧版 `ClassroomViewModel.kt:94–120` 使用同一 xqid/date 状态，切换后清楼栋并重新查询；示例仅实现 class 数据请求，无两套UI状态。学校CAS/跳转/会话/方法参数/编码/密码学/DTO/缓存/错误语义均不变。仅对用户明确从正文发起的新查询采用新校区与日期并清旧目标过滤；普通后台刷新不能覆盖未应用草稿。先添加该交互行为RED，再沿课表/图书馆既有adopt模式接线。
+
+## 2026-10-03 空教室已应用条件跨校区复验
+
+实际桌面 `desktop-262`—`269` 先选择楼层/节次并应用，再从正文切换校区；查询面板虽同步校区，已应用的旧 `floorId/section` 仍随 `copyWith` 保留，新校区被错误过滤为空。前一测试仅覆盖未应用草稿，因此未覆盖此路径。
+
+冻结 `ubaa_old` `1f4b8f84` 的 `ClassroomViewModel.kt:93`、`:100` 在校区/日期切换时清楼栋，再调用仅带校区/日期的读取；接口/DTO/本地实现与测试沿用 source-parity 空教室九列表。冻结示例 `a63712fa` 的 `api/app/core.rs` 是微应用认证、`api/class` 是 iClass，不实现同一空教室筛选，不借用其参数。CAS/service、重定向/final URL、Cookie、HTTP方法/参数、headers/body、签名、DTO、Core缓存/并发及错误均不改；仅正文父条件改变时建立不携带旧楼层/节次的 FeatureQuery，并清本地楼栋选择。搜索文字按旧版保持。增加已应用条件的校区和日期两项行为RED，修复后GREEN并重跑Flutter门禁；不能将未应用草稿用例当已应用条件证明。
+
+同轮额外验证：查询面板自身切换校区/日期也需清理此前楼层/节次，新增两项RED。真实窗口还发现课表“下一周”提示在切到教室和研讨室后滞留；定位为已访问页保留在IndexedStack，TickerMode关闭冻结了Tooltip退场动画，而提示浮层仍在全局Overlay。按页面可见性同步TooltipVisibility，使隐藏页销毁提示浮层，保持页面查询/滚动状态。此改动仅界面提示生命周期，不更改旧版按钮、业务请求或数据。
+
+
+## 2026-10-07：本地分支统一到ubaa2
+
+用户要求把多余分支整合进 `ubaa2` 并删除多余分支。核对Git祖先关系后，`ubaa2` 从 `d7c37f73` 快进到 `283aa74c`，原 `codex/project-completion-20261001`、`codex/offline-home-20260917`、`codex/macos-ui-20260915`、`codex/ui-button-parity` 的全部提交均已包含。删除仅限这4个已合并本地分支；远端旧版Kotlin/Compose产品线保持原样，不推送或发布。
+
+三个旧工作树分别停在 `31a7d750`、`e1af4360`、`ea288d4e`，改为游离检出以保留全部未提交内容。删除分支前，68个修改或未跟踪文件已保存补丁、未跟踪文件副本与SHA-256清单至仓库外私有目录 `~/Library/Application Support/UBAA-private-evidence/branch-consolidation-20261007/`；结束时对原文件、Git状态及HEAD逐一复核。未移动或删除源工作树、忽略文件、冻结引用及运行材料。
+
+未提交材料按现状处理：安全材料写入/读回/删除能力条款补入[离线合同](../../contracts/offline-cache-and-recovery.md)；两分支的原始决策收入[历史决策](uncommitted-decisions-before-consolidation-2026-10-07.md)，早期按钮计划收入[历史计划](ui-button-parity-plan-2026-09-15.md)。旧状态和goal进度说明不覆盖当前合同。交互认证Core原文件已移至目录mod且内容相同，Bridge只更新版本注释，App认证接线重构到authentication.dart并补充离线/写保护；沿用 `2848434c` 和[整合证据](../evidence/project-interactive-auth-2026-10-02.md)，不回退旧草稿。
+
+本批仅变更分支引用和文档，不改变生产代码、冻结来源或学校协议，因此不新增行为测试或实时学校请求。已有功能欠验继续保留，分支整理完成不等于项目验收完成。
+
+本次验证：`just refs`、`just layout-check`、`just check-sensitive`、完整 `just check`（含Core、Bridge、CLI端到端、构建及文档门禁）均通过；生产代码与原整合候选一致，仅提交6份文档。日志保存于上述私有备份目录的 `check.log`。Flutter和真实网络/桌面验收未重跑，不继承为本次通过。
+
+
+## 2026-10-07：应用图标沿用冻结旧版资源
+
+用户要求同步旧版应用图标并打开macOS供人工检查。当前macOS、移动端和应用内仍有Flutter模板标识。以冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 中各平台成品资源为来源，优先逐字节复制；macOS仅缺少16px槽位，使用旧32px图缩小。iOS复用旧版完整Contents.json以保留深色与着色变体，Android保留旧版自适应图层和圆形资源。应用图标为工程静态资源，纳入Git；运行日志与窗口截图放仓库外。此批不改变认证、读取或写入协议，不新增行为测试。
+
+
+## 2026-10-07：未确认本机账号时启动必须进入登录页
+
+用户指出未登录直接进入首页不符合预期。现场新实例首页提示需要登录且存在读取失败；源码确认 `_initializeLocalHome` 的异常分支在账号索引读取失败、尚无可恢复身份时仍设置home。该分支与已接受离线设计S10及首次启动判据不符；存储不可读不能当作有本机账号的证据。独立配置目录只隔离文件，系统安全存储仍由应用namespace管理，因此也不能仅凭使用新目录宣称系统账号索引为空。
+
+冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`：`composeApp/src/commonMain/kotlin/cn/edu/ubaa/App.kt:226–244` 只有isLoggedIn且userData非空才展示主应用，否则登录；`ui/screens/auth/AuthViewModel.kt:90–121` 预加载失败仅记录错误，不授权已登录。旧API/DTO/本地认证及用例仍沿[交互整合来源](../source-parity-interactive-integration-2026-10-02.md)，此处不改协议。示例 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `src/context.rs`、`src/store/cookies.rs`、`src/store/cred.rs` 仅管理Cookie/凭据与显式认证，没有App页面或本机首页索引，不从其存储容错推导首页资格。
+
+| 操作 | CAS/bootstrap/service | redirect/finalURL | Cookie/session | HTTP/精确参数 | headers/body | crypto | DTO/parser | cache/concurrency | error/exit |
+|---|---|---|---|---|---|---|---|---|---|
+| 读取本机账号失败后的启动路由 | 无新地址或认证请求 | 无变化 | 不读写或删除真实会话/凭据 | 零自动登录、零首页业务读取；手动登录沿原路径 | 无变化 | 保持安全存储及AES-GCM，不降级明文 | 公共DTO及索引格式不变，不把读取异常当账号存在 | 无有效账号不启用离线恢复，不开放首页；已确认账号的缓存正文/网络失败仍可留在离线首页，迟到结果受原代次限制 | 在登录页保留安全错误，可手动登录；CLI退出码不变 |
+
+先补异常账号索引、首次空账号及宿主页面回归，观察RED后仅修正启动异常分支；已有账号的离线/网络故障恢复用例必须继续通过。
+
+现场复验：重建同一生产Release入口并沿原独立文件目录启动后，Computer Use确认当前显示UBAA登录页，不再显示首页。脱敏诊断的调用点为 `PlatformCredentialVault.load`（credentials.dart:319）→`_initializeLocalHome`（offline_startup.dart:13）：本机索引为空后的旧凭据读取抛出storageFailure，实际触发了上述错误兜底。另补精确凭据故障回归，证明错误时零自动认证/首页读取，用户手动认证成功后才进入首页。原安全存储读取故障仍保留可见提示，未清除或更改真实钥匙串条目；学校真实登录未在本轮执行。
+
+验证：控制器/宿主两处预期RED已保留；启动、缓存、恢复聚焦30项GREEN；完整7包分析与1339项Flutter测试、`just check`（含CLI端到端）、macOS Release构建均通过。现场诊断之后新增的精确旧凭据故障用例随启动文件13项再通过，生产代码未再变化。全部日志位于仓库外私有 `~/Library/Application Support/UBAA-private-evidence/startup-login-20261007/`，包含app-red/host-red、app-green/host-green、credential-migration-green、flutter-check、check、macos-build。
+
+
+## 2026-10-07：开发阶段统一安全存储插件
+
+用户明确无需已有数据兼容，授权按通用插件方案实施。官方五端保留固定flutter_secure_storage 10.0.0和平台interface 2.1.1；密码、本机账号、缓存密钥统一从SecureMaterialStore进入插件，删除macOS credentials.*原生handler与重复Swift实现。采用新材料键前缀v2，不读取、迁移或删除旧v1及legacy钥匙串条目。无记录为null；不可用明确返回能力失败；读取损坏/写入失败不能伪装空值或成功。
+
+冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的CredentialStore.kt:19–52、AuthViewModel.kt:43–57/175–178定义记住密码及成功后保存；两来源详细认证请求及本地存储比较沿[macOS凭据对照](../source-parity-ui-macos-credentials.md)和[离线恢复对照](../source-parity-offline-recovery-2026-09-17.md)。固定示例 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的store/cred.rs保存普通JSON，无插件/系统密钥或UI开关实现，不借用其明文文件形式。
+
+| 操作 | CAS/bootstrap/service | redirect/finalURL | Cookie/session | HTTP/参数 | headers/body | crypto | DTO/parser | cache/concurrency | error/exit |
+|---|---|---|---|---|---|---|---|---|---|
+| 凭据/材料保存及读回 | 不适用，本地操作 | 不适用 | 不访问Core会话，不迁移旧条目 | 不发学校请求；沿固定插件read/write/delete | 插件键值合同；凭据JSON限username/password/autoLogin | 官方端沿插件系统实现；OHOS HUKS保护包装密钥，AES-GCM保护值 | 公共Core/Bridge DTO不变，安全材料独立v2前缀 | 探测执行写/读/删；OHOS串行等待初始化和加解密；账号代次继续由原App控制 | 存储失败保留类型与安全中文提示，不吞错、不自动reset，CLI语义不变 |
+| 退出与删除 | 不适用 | 不适用 | 不额外注销或触碰旧命名空间 | 仅删除明确材料键，不调用deleteAll清用户数据 | 不适用 | 不降级明文或重建丢失密钥去覆盖密文 | 同上 | 读回确认删除，沿退出代次拒绝迟到回写 | 原错误继续可见，不宣称假成功 |
+
+OHOS来源评估：CPF-Flutter fork `67c7b82e85b08a649dfd4f2bb0c455011a9384fa` 尚将RSA私钥放Preferences；Csy_Gitee HUKS fork `f1a8ada0a000f3c3d0e2ad51eed3b86b57969652` 已改用UniversalKeystoreKit，但Dart约束<3、interface 1.x和吞错/异步初始化不适配当前工程。采用其原生插件及HUKS/AES实现作有来源的本地插件修订，接标准2.x MethodChannel合同；不复制过时的跨平台Dart门面。修订集中于插件包，宿主移除自定义SecureMaterialChannel。所有新增/修改资源标注来源、许可证和差异；官方端仍直接依赖发布插件。
+
+实施先补“legacy通道即使声明可用也不能被选择”“插件写入读回失败不能报告成功”和类型化中文错误的RED，再改生产接线。原生合成验证仅使用唯一测试键，不触碰真实凭据；OHOS无签名构建与原生运行分开记录。
+
+本阶段已完成，验证与限制见[统一安全存储记录](../evidence/unified-secure-storage-2026-10-07.md)。macOS真实合成凭据生命周期和生产登录页正常；OHOS原生源码合成合同、代次回归及无签名HAP通过，未连接设备。原学校协议未变化，未运行真实学校请求；不把新插件接线及构建视为全部设备验收。
+
+## 2026-10-07：通用依赖复用审计
+
+按用户全面检查重复实现的要求，核对 Rust/Flutter 依赖、原生通道和通用基础能力，结果见[审计报告](../dependency-reuse-audit-2026-10-07.md)。本轮只记录七类替换候选、有条件候选及必要业务封装，不进行大范围生产重构。
+
+Cookie 实际代码的合成回归证明 Expires 错误覆盖正 Max-Age，旧版自定义 Ktor 存储有同类判断，buaa-api 明确忽略过期属性；RFC 6265 规定 Max-Age 优先。该标准与冻结行为差异记录为后续裁决边界，没有真实学校响应证明实际触发。临时测试逐字节恢复，既有四项 Cookie 测试通过，不把原测试通过当成缺陷关闭。
+
+后续优先评估 cookie_store 和 RustCrypto 模式库，再统一图片、目录、偏好、网络和 OHOS 关于页。账号/路线隔离、无备份目录、媒体上限、一次性写入、缓存加密与冻结协议字节行为须保留。OHOS 有 fork 不等于当前 SDK/interface 已兼容，既有安全存储本地 fork 也继续计入维护面。
+
+## 2026-10-07：实施通用依赖收敛
+
+用户已授权按审计建议实施，顺序为Core Cookie/加密、平台插件接线、清理历史迁移。实施前双来源与标准冲突裁决见[source-parity-dependency-reuse.md](../source-parity-dependency-reuse.md)。不扩大真实业务写入授权，不迁移或删除旧真实材料。
+
+Core 阶段结果：使用 cookie_store 的 Cookie/Domain/Path 类型；保留 StoredCookie 快照、调用方时钟和小型过期时间适配，未开启 Reqwest 全局 CookieStore 或新增 PSL 策略。RustCrypto cbc 0.1.2 / cfb-mode 0.8.2 / ecb 0.1.2 兼容 cipher 0.4；复用 hex 处理编码。RED 两项、GREEN 333 项及 just check 通过，编译夹具锁文件同步。
+
+平台阶段按[实施记录](../dependency-reuse-implementation-2026-10-07.md)收敛：必要 noBackup 策略保留薄通道；OHOS仅依赖标准注册实现，旧门面不拖低官方依赖。偏好候选源码复核后改用已修复同步写入/初始化的CPF固定提交。保留能力端口/安全错误/账号代次，移除旧成绩文件运行链，公共Bridge可选legacy字段本轮不改。
