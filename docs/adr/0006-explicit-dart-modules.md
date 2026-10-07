@@ -1,5 +1,7 @@
 # ADR 0006：以显式 Dart 模块替代跨领域 part 聚合
 
+后续状态提交、缓存所有权和验证闭包的细化见 [ADR 0007](0007-operation-scopes-and-verification.md)；本决定保留显式 library 和公共出口规则。
+
 日期：2026-10-07。状态：已实施。依据为[可持续开发性审查](../migration/maintainability-audit-2026-10-07.md)，闭环与验证见[实施记录](../migration/maintainability-implementation-2026-10-07.md)。
 
 ## 决定

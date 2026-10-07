@@ -6,10 +6,10 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 
 ## 当前状态
 
-当前活动任务为[可持续开发性整理与修复](goal.md)。现行模块与目录见[代码组织](docs/architecture/code-organization.md)，结果与剩余验收边界见[当前状态](docs/migration/status.md)。结构治理与此前整体 UI/设备/发布验收分别记账。
+当前活动任务为[独立工程审查后的完整整理修复](goal.md)。现行模块与目录见[代码组织](docs/architecture/code-organization.md)，结果与剩余验收边界见[当前状态](docs/migration/status.md)。结构治理与此前整体 UI/设备/发布验收分别记账。
 
 2026-09-07 已完成本地可维护性治理：统一错误语义、增加安全诊断与严格门禁，并整理可共享交接证据。
-该历史阶段见[验收记录](docs/migration/evidence/2026-09-07-maintainability.md)。本次按校外环境使用 WebVPN 只读、真实 App 与模拟器验证，历史暂停不适用于本次范围。
+该历史阶段见[验收记录](docs/migration/evidence/2026-09-07-maintainability.md)。真实账号与设备验证按当前 goal.md 的授权范围执行；当前整改不主动发起真实账号请求。
 
 - Rust Core 与 CLI 已实现认证、Direct/WebVPN/Auto 路由、双路线会话、用户中心、十二项业务读取和十项写入协议；
 - Windows、macOS、Linux、Android、iOS 使用官方 Flutter 共享 Dart/UI，HarmonyOS 使用锁定的 OHOS fork；
@@ -72,6 +72,7 @@ UI 的[应用页面](packages/ubaa_ui/lib/src/app/)、[领域组件](packages/ub
 
 ```bash
 just refs-bootstrap # 仅首次缺少冻结引用时运行；允许联网创建
+just quality-tools-bootstrap # 显式准备固定的开发质量工具依赖
 just refs
 cargo build --locked --workspace
 cargo run --locked -p ubaa-cli -- --help

@@ -7,6 +7,7 @@
 
 ```bash
 just refs-bootstrap                                         # 仅首次缺失时联网建立固定引用；验证阶段不调用
+just quality-tools-bootstrap                                # 显式准备锁定的开发质量工具依赖
 just refs                                                   # 纯只读校验 remote、HEAD 与干净工作树
 just layout-check                                           # 1000 行/16 文件结构棘轮与当前 baseline
 just contract-version-check                                 # CLI/Bridge 常量、schema、Dart 与当前文档纯静态一致性
@@ -17,6 +18,7 @@ just check                                                  # 宽松 Rust/Cargo/
 just shell-check-strict                                      # 同一扫描范围；要求 ShellCheck 0.11.0 且报错即失败
 just check-strict                                            # 维护验收与 CI 的严格 Rust/Shell 入口；不含 Flutter
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
+just flutter-dependencies                                   # 仅准备同一七包列表的锁定依赖
 just flutter-check                                          # 七个 package/app 执行 pub get、format、analyze、test
 git diff --check
 ```

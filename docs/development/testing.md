@@ -39,7 +39,7 @@ just integration-test
 just integration-test synthetic/cache/bridge_test.dart macos macos
 ```
 
-默认集合只包含已登记的应用流程、合成 FFI 缓存与本地网络恢复；macOS CI 使用同一集合。其余原生用例按清单路径显式运行。platforms 表示入口适用条件，不表示本轮已验证全部平台。
+默认集合包含已登记的应用流程、合成 FFI 缓存、本地网络恢复与真实插件通道；macOS CI 使用同一集合。其余原生用例按清单路径显式运行。platforms 表示入口适用条件，不表示本轮已验证全部平台。
 
 人工巡检在 apps/ubaa_flutter 下单独启动，例如：
 
@@ -63,4 +63,4 @@ git diff --check
 
 check-strict 要求 ShellCheck 0.11.0；普通 check 缺少它时明确 SKIP。两者均包含 Rust/CLI、Shell/Python、结构、模块与入口清单检查。普通 Flutter 七包测试不能替代原生测试；golden 固定官方 SDK 与 macOS 渲染环境。构建、设备、Core-live、真实 App 和发布分别记账。
 
-真实只读遵循 goal.md 路线边界，本轮校外仅 WebVPN，Direct 不执行。Fixture、Mock、空数据和 unavailable 不等于当前候选真实成功。实际结果见[当前状态](../migration/status.md)。
+真实只读遵循 goal.md 路线与授权边界；当前整改不主动发起真实账号验证。Fixture、Mock、空数据和 unavailable 不等于当前候选真实成功。实际结果见[当前状态](../migration/status.md)。

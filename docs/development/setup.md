@@ -9,6 +9,9 @@
 
 ```bash
 just refs-bootstrap
+just quality-tools-bootstrap
+cargo fetch --locked
+just flutter-dependencies
 just refs
 just layout-check
 cargo metadata --locked --no-deps --format-version 1
@@ -26,3 +29,7 @@ Linux CI 固定安装 ShellCheck 0.11.0，并通过 `just check-strict` 强制�
 随后所有合同和 release preflight 只运行 `just refs`。macOS 和 Windows 任务使用相同的固定 Rust 工具链，并
 运行带锁定依赖的 Clippy、测试、构建、文档和格式化命令，使平台相关的会话替换、revision
 锁和 no-follow 打开逻辑得到覆盖；Windows 不需要 Bash Fixture。
+
+质量工具环境使用固定版本及哈希的 Python 开发依赖，用于 JSON Schema 与锁文件解析。首次准备或依赖锁变更后显式运行 `just quality-tools-bootstrap`；日常 checker/preflight 不联网安装，缺少环境时明确失败。它不是产品运行时依赖，不改变 Flutter/Rust 包版本。
+
+离线发布材料需要完整依赖源：首次显式执行 `cargo fetch --locked` 预取所有目标，`just flutter-dependencies` 按完整七包列表准备锁定 Dart 依赖而不跑测试。OHOS fork 原生材料仍须对应工具链/产物核对；缺失项如实列入发布材料缺口。

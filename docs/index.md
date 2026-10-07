@@ -41,6 +41,7 @@
 - [ADR 0004：HTTP/HTML 依赖](adr/0004-verified-http-and-html-parser.md)
 - [ADR 0005：六平台宿主](adr/0005-flutter-frb-six-platforms.md)
 - [ADR 0006：显式 Dart 模块](adr/0006-explicit-dart-modules.md)
+- [ADR 0007：操作作用域与验证闭包](adr/0007-operation-scopes-and-verification.md)
 - [历史决策索引](migration/decision-log.md)
 
 ## 验证与运行
@@ -50,6 +51,8 @@
 - [UI 证据规则](design/evidence/README.md)、[历史采集批次](design/evidence/batches.md)
 
 ## 历史与本轮记录
+
+- [独立工程审查](migration/engineering-quality-independent-review-2026-10-07.md)、[完整整改实施](migration/engineering-quality-implementation-2026-10-07.md)
 
 - [本轮可持续开发性审查](migration/maintainability-audit-2026-10-07.md)、[实施与验证](migration/maintainability-implementation-2026-10-07.md)
 - [2026-10-01 项目整合快照](migration/project-audit-2026-10-01.md)

@@ -52,6 +52,8 @@ ubaa_ui/lib/src/
 
 AppController 仍是一个 ChangeNotifier 实例。ControllerState 拥有共享生命周期与快照，具名 mixin 通过明确的状态/操作合同协作。内部成员以 `@internal` 限制在应用包内，宿主只使用公共方法和扩展；局部方法不重复登记进共享合同。
 
+操作与状态提交进一步按 [ADR 0007](../adr/0007-operation-scopes-and-verification.md) 收窄：认证完成 token 不依赖验证码状态；SessionScope/ReadScope 集中后端与代次有效性；AcademicTermsOwner 独占学期缓存与在途合并，成绩借 CurrentTermsReader；ControllerReadCaches 提供统一失效入口。`@internal` 只约束包外访问，不能替代同包内所有权。
+
 Bridge 领域函数借用 BridgeContext，不能反向导入 BridgeBackend。缓存句柄、账号、串行尾链和失效代次归 BridgeCacheState；交互挑战归 BridgeAuthenticationState。不得为单个领域另建账号会话或写状态机。
 
 UI 模型与 callback 经构造参数传递。`part` 只用于同一局部 State 的紧密实现，不再聚合整个应用。公共 barrel 显式导出原组件，不批量公开内部实现。照片、锁码等专属生命周期独立管理。
@@ -66,7 +68,7 @@ UI 模型与 callback 经构造参数传递。`part` 只用于同一局部 State
 
 - `just layout-check`：受管手写源码每文件至多 1,000 行、每目录直属源码至多 16 个，包含 Python/CJS；FRB 与 Cargokit 排除规则保持。
 - `just module-check`：library 聚合规模、part 唯一归属和管理范围内导入/导出环。UI 上限 2,000 行，Bridge/Controller 上限 1,000 行，不允许靠增加部件绕过。
-- 当前基线：UI 63 个 library、最大 1,960 行；Bridge 45 个、最大 653 行；Controller（含既有辅助组件）46 个、最大 731 行，均无环。
+- 当前规模以命令实时结果为准；旧整理计数见实施记录。依赖环必须按完整自有源码闭包验证，局部目录无环不等于整个包无环。
 - `just integration-check`：实际入口与清单双向一致，递归检查辅助文件中的真实账号标记；真实和人工入口不得进入默认 CI。
 - `just flutter-check`：公开 API 编译、类型、内部成员边界、行为与 golden；FRB 零漂移由 `just flutter-codegen-check` 独立验证。
 
