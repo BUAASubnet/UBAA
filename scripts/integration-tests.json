@@ -1,0 +1,659 @@
+{
+  "schema": 1,
+  "tests": [
+    {
+      "path": "app_flow_test.dart",
+      "kind": "synthetic",
+      "domain": "app_flow",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": true,
+      "inspection": true
+    },
+    {
+      "path": "offline/acceptance_matrix_test.dart",
+      "kind": "platform",
+      "domain": "acceptance_matrix",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "offline/cache_bridge_test.dart",
+      "kind": "synthetic",
+      "domain": "cache_bridge",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": true,
+      "inspection": false
+    },
+    {
+      "path": "offline/cache_settings_host_test.dart",
+      "kind": "synthetic",
+      "domain": "cache_settings_host",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": true
+    },
+    {
+      "path": "offline/evaluation_scan_test.dart",
+      "kind": "synthetic",
+      "domain": "evaluation_scan",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "offline/grades_cache_test.dart",
+      "kind": "synthetic",
+      "domain": "grades_cache",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "offline/judge_online_test.dart",
+      "kind": "synthetic",
+      "domain": "judge_online",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "offline/live/evaluation_test.dart",
+      "kind": "live",
+      "domain": "evaluation",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "offline/live/spoc_detail_test.dart",
+      "kind": "live",
+      "domain": "spoc_detail",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "offline/live/startup_test.dart",
+      "kind": "live",
+      "domain": "startup",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "offline/network_recovery_test.dart",
+      "kind": "platform",
+      "domain": "network_recovery",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": true,
+      "inspection": false
+    },
+    {
+      "path": "offline/schedule_import_test.dart",
+      "kind": "synthetic",
+      "domain": "schedule_import",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "offline/schedule_widget_channel_test.dart",
+      "kind": "live",
+      "domain": "schedule_widget_channel",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "offline/secure_material_test.dart",
+      "kind": "platform",
+      "domain": "secure_material",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "offline/spoc_scan_test.dart",
+      "kind": "synthetic",
+      "domain": "spoc_scan",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "offline/write_cache_test.dart",
+      "kind": "synthetic",
+      "domain": "write_cache",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "platform_plugins/native_test.dart",
+      "kind": "platform",
+      "domain": "platform_plugins",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_about/about_test.dart",
+      "kind": "platform",
+      "domain": "about",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true
+    },
+    {
+      "path": "ui_academic_old/live_readonly_test.dart",
+      "kind": "live",
+      "domain": "academic",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_academic_old/native_test.dart",
+      "kind": "synthetic",
+      "domain": "academic",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true
+    },
+    {
+      "path": "ui_academic_old/signin_queries_test.dart",
+      "kind": "synthetic",
+      "domain": "academic",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_academic_test.dart",
+      "kind": "synthetic",
+      "domain": "academic",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_account/live_readonly_test.dart",
+      "kind": "live",
+      "domain": "account",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_account_test.dart",
+      "kind": "synthetic",
+      "domain": "account",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true
+    },
+    {
+      "path": "ui_boya_live_readonly_test.dart",
+      "kind": "live",
+      "domain": "bykc_live_readonly",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_boya_test.dart",
+      "kind": "synthetic",
+      "domain": "bykc",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true
+    },
+    {
+      "path": "ui_classroom_old/live_readonly_test.dart",
+      "kind": "live",
+      "domain": "classroom",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_classroom_old/native_test.dart",
+      "kind": "synthetic",
+      "domain": "classroom",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true
+    },
+    {
+      "path": "ui_coursework_test.dart",
+      "kind": "synthetic",
+      "domain": "coursework",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true
+    },
+    {
+      "path": "ui_credentials/native_test.dart",
+      "kind": "platform",
+      "domain": "credentials",
+      "platforms": [
+        "macos"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_grade_watch/live_readonly_test.dart",
+      "kind": "live",
+      "domain": "grade_watch",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_grade_watch/native_test.dart",
+      "kind": "synthetic",
+      "domain": "grade_watch",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true
+    },
+    {
+      "path": "ui_grades_old/live_readonly_test.dart",
+      "kind": "live",
+      "domain": "grades",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_grades_old/native_test.dart",
+      "kind": "synthetic",
+      "domain": "grades",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true
+    },
+    {
+      "path": "ui_home/live_readonly_test.dart",
+      "kind": "live",
+      "domain": "home",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_home/native_test.dart",
+      "kind": "synthetic",
+      "domain": "home",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true
+    },
+    {
+      "path": "ui_library/live_readonly_test.dart",
+      "kind": "live",
+      "domain": "libbook",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_library_test.dart",
+      "kind": "synthetic",
+      "domain": "libbook",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true
+    },
+    {
+      "path": "ui_live_readonly_test.dart",
+      "kind": "live",
+      "domain": "live_readonly",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_old_baseline_test.dart",
+      "kind": "synthetic",
+      "domain": "old_baseline",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_photos/camera_test.dart",
+      "kind": "manual",
+      "domain": "photos",
+      "platforms": [
+        "ios",
+        "android"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_photos/native_test.dart",
+      "kind": "synthetic",
+      "domain": "photos",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_query_keyboard_test.dart",
+      "kind": "synthetic",
+      "domain": "query_keyboard",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_render_test.dart",
+      "kind": "synthetic",
+      "domain": "render",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_rooms/form_live_readonly_test.dart",
+      "kind": "live",
+      "domain": "cgyy",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_rooms_live_readonly_test.dart",
+      "kind": "live",
+      "domain": "cgyy_live_readonly",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_rooms_test.dart",
+      "kind": "synthetic",
+      "domain": "cgyy",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true
+    },
+    {
+      "path": "ui_rotation_test.dart",
+      "kind": "manual",
+      "domain": "rotation",
+      "platforms": [
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_schedule_navigation/live_readonly_test.dart",
+      "kind": "live",
+      "domain": "schedule_navigation",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_schedule_navigation/native_test.dart",
+      "kind": "synthetic",
+      "domain": "schedule_navigation",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true
+    },
+    {
+      "path": "ui_schedule_old/live_readonly_test.dart",
+      "kind": "live",
+      "domain": "schedule",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_schedule_old/native_test.dart",
+      "kind": "synthetic",
+      "domain": "schedule",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true
+    },
+    {
+      "path": "ui_sports_live_readonly_test.dart",
+      "kind": "live",
+      "domain": "ygdk_live_readonly",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    },
+    {
+      "path": "ui_sports_test.dart",
+      "kind": "synthetic",
+      "domain": "ygdk",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": true
+    },
+    {
+      "path": "ui_write_confirmation/native_test.dart",
+      "kind": "synthetic",
+      "domain": "write_confirmation",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false
+    }
+  ]
+}

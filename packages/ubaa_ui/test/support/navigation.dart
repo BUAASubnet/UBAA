@@ -59,44 +59,30 @@ Future<void> openFeature(WidgetTester tester, FeatureId feature) async {
   }
 }
 
+/// 只沿用户可操作入口打开面板；入口缺失必须使调用测试失败。
 Future<void> openQueryPanel(WidgetTester tester) async {
-  if (find.widgetWithText(TextButton, '完成').evaluate().isEmpty) {
-    final search = find.byTooltip('搜索与筛选');
-    if (search.evaluate().isNotEmpty) {
-      await tester.tap(search);
-      await tester.pumpAndSettle();
-      return;
-    }
-    final sort = find.byTooltip('排序与筛选');
-    if (sort.evaluate().isNotEmpty) {
-      await tester.tap(sort);
-      await tester.pumpAndSettle();
-      return;
-    }
-    final filterBtn = find.widgetWithText(FilledButton, '筛选');
-    if (filterBtn.evaluate().isNotEmpty) {
-      await tester.tap(filterBtn);
-      await tester.pumpAndSettle();
-      return;
-    }
-    final adjustBtn = find.widgetWithText(FilledButton, '调整');
-    if (adjustBtn.evaluate().isNotEmpty) {
-      await tester.tap(adjustBtn);
-      await tester.pumpAndSettle();
-      return;
-    }
-    for (final element
-        in find
-            .byWidgetPredicate(
-              (w) => w.runtimeType.toString() == '_FeatureDetailView',
-            )
-            .evaluate()) {
-      final state = (element as StatefulElement).state;
-      (state as dynamic).togglePanel();
-      await tester.pumpAndSettle();
-      return;
-    }
+  if (find
+      .widgetWithText(TextButton, '完成')
+      .hitTestable()
+      .evaluate()
+      .isNotEmpty) {
+    return;
   }
+  final candidates = <Finder>[
+    find.byTooltip('搜索与筛选'),
+    find.byTooltip('排序与筛选'),
+    find.widgetWithText(FilledButton, '筛选'),
+    find.widgetWithText(FilledButton, '调整'),
+  ];
+  for (final candidate in candidates) {
+    final visible = candidate.hitTestable();
+    if (visible.evaluate().isEmpty) continue;
+    expect(visible, findsOneWidget, reason: '筛选入口必须唯一且可点击');
+    await tester.tap(visible);
+    await tester.pumpAndSettle();
+    return;
+  }
+  fail('找不到可点击的筛选入口；测试不得直接修改页面内部状态');
 }
 
 Future<void> closeQueryPanel(WidgetTester tester) async {

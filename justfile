@@ -34,6 +34,8 @@ check-strict:
     just _rust-shell-contracts
 
 _rust-shell-contracts:
+    just script-test
+    just integration-check
     bash ./scripts/tests/layout.sh
     bash ./scripts/tests/contract-versions.sh
     bash ./scripts/tests/references.sh
@@ -87,6 +89,21 @@ flutter-codegen-check:
 # 固定官方 Flutter SDK 下逐 package 执行依赖、静态分析和测试。
 flutter-check:
     bash ./scripts/check/flutter-workspace.sh
+
+# 不访问学校或设备的 Python 行为合同。
+script-test:
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/integration_catalog_test.py
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/live/offline-startup/analyze_test.py
+
+# 集成入口必须全部分类，真实只读和人工巡检不进入普通回归。
+integration-check:
+    python3 scripts/check/integration_catalog.py check
+
+integration-list:
+    python3 scripts/check/integration_catalog.py list
+
+integration-test suite="ci" platform="macos" device="macos":
+    python3 scripts/check/integration_catalog.py run --suite "{{suite}}" --platform "{{platform}}" --device "{{device}}"
 
 # 在当前原生 runner 构建指定平台；例如 platform=macos、android-apk、ios-simulator。
 flutter-build platform="host" mode="debug":
