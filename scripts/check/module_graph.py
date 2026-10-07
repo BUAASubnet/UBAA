@@ -2,30 +2,33 @@
 """检查手写 Dart library 的聚合规模、part 归属和模块依赖环。"""
 
 from pathlib import Path
-import re
+import sys
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dart_sources import SourceClosure, workspace_for
 
 
 ROOT = Path(__file__).resolve().parents[2]
-DIRECTIVE = re.compile(r"^(import|export|part(?: of)?)\s+['\"]([^'\"]+)['\"]", re.M)
 
 
 def inspect(root, limit, package_name=None, package_lib=None):
     root = root.resolve()
-    sources = {p.resolve(): p.read_text() for p in root.rglob("*.dart")}
-    directives = {p: DIRECTIVE.findall(s) for p, s in sources.items()}
+    scan_root = (package_lib or root).resolve()
+    closure = SourceClosure(workspace_for(scan_root),
+                            {package_name: scan_root} if package_name else None)
+    for path in sorted(scan_root.rglob("*.dart")):
+        closure.add(path)
+    sources, directives, resolve = closure.sources, closure.directives, closure.resolve
 
-    def resolve(parent, uri):
-        if uri.startswith(f"package:{package_name}/") and package_lib:
-            return (package_lib / uri.split("/", 1)[1]).resolve()
-        if ":" in uri:
-            return None
-        return (parent.parent / uri).resolve()
+    def label(path):
+        return str(path.relative_to(closure.workspace))
 
     owners = {}
     for p, items in directives.items():
         declared = [resolve(p, uri) for kind, uri in items if kind == "part of"]
         if len(declared) > 1:
-            raise ValueError(f"part 归属不唯一：{p.relative_to(root)}")
+            raise ValueError(f"part 归属不唯一：{label(p)}")
         if declared:
             owners[p] = declared[0]
     members = {}
@@ -38,18 +41,18 @@ def inspect(root, limit, package_name=None, package_lib=None):
                 continue
             child = resolve(p, uri)
             if child not in sources or owners.get(child) != p:
-                raise ValueError(f"part 归属不符：{p.relative_to(root)} → {uri}")
+                raise ValueError(f"part 归属不符：{label(p)} → {uri}")
             if child in members[p]:
                 raise ValueError(f"part 重复归属：{uri}")
             members[p].append(child)
     for child, owner in owners.items():
         if child not in members.get(owner, []):
-            raise ValueError(f"part 没有有效归属：{child.relative_to(root)}")
+            raise ValueError(f"part 没有有效归属：{label(child)}")
 
     sizes = {p: sum(len(sources[c].splitlines()) for c in children)
              for p, children in members.items()}
     for p, lines in sizes.items():
-        if lines > limit:
+        if p.is_relative_to(root) and lines > limit:
             raise ValueError(f"library 规模超限：{p.relative_to(root)} {lines} > {limit}")
     graph = {p: set() for p in members}
     for p, children in members.items():
@@ -69,7 +72,7 @@ def inspect(root, limit, package_name=None, package_lib=None):
         if p in active:
             cycle = active[active.index(p):] + [p]
             raise ValueError("library 循环依赖：" + " → ".join(
-                str(item.relative_to(root)) for item in cycle))
+                label(item) for item in cycle))
         if p in complete:
             return
         active.append(p)
@@ -80,8 +83,9 @@ def inspect(root, limit, package_name=None, package_lib=None):
 
     for p in graph:
         visit(p)
-    largest = max(sizes, key=sizes.get) if sizes else None
-    return {"libraries": len(members), "maximum_lines": sizes.get(largest, 0),
+    local_sizes = {p: size for p, size in sizes.items() if p.is_relative_to(root)}
+    largest = max(local_sizes, key=local_sizes.get) if local_sizes else None
+    return {"libraries": len(local_sizes), "maximum_lines": sizes.get(largest, 0),
             "largest": str(largest.relative_to(root)) if largest else ""}
 
 

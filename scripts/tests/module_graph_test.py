@@ -34,6 +34,65 @@ class ModuleGraphTest(unittest.TestCase):
             "second.dart": "import 'first.dart';\n",
         })
 
+    def test_条件导入不能隐藏循环(self):
+        self.assertRaisesRegex(ValueError, "循环", self.scan, {
+            "first.dart": "import 'stub.dart' if (dart.library.io) 'second.dart';\n",
+            "stub.dart": "class Stub {}\n",
+            "second.dart": "import 'first.dart';\n",
+        })
+
+    def test_条件导出和具名包导入参与同一个图(self):
+        with tempfile.TemporaryDirectory() as directory:
+            package = Path(directory)
+            (package / "first.dart").write_text(
+                "export 'stub.dart' if (dart.library.io == 'true') 'second.dart' show Thing;")
+            (package / "stub.dart").write_text("class Thing {}")
+            (package / "second.dart").write_text("import 'package:sample/first.dart';")
+            self.assertRaisesRegex(ValueError, "循环", module_graph.inspect,
+                                   package, 100, "sample", package)
+
+    def test_不支持的指令不能静默忽略(self):
+        self.assertRaisesRegex(ValueError, "不支持", self.scan, {
+            "entry.dart": "augment import 'target.dart';\n",
+            "target.dart": "class Target {}",
+        })
+
+    def test_脚本首行不能隐藏依赖(self):
+        self.assertRaisesRegex(ValueError, "循环", self.scan, {
+            "entry.dart": "#!/usr/bin/env dart\nimport 'other.dart';\n",
+            "other.dart": "import 'entry.dart';\n",
+        })
+
+    def test_URI查询片段反斜线明确拒绝(self):
+        for suffix in ('?value', '#fragment', '\\other'):
+            with self.subTest(suffix=suffix):
+                self.assertRaisesRegex(ValueError, "URI|指令", self.scan, {
+                    "entry.dart": f"import r'other.dart{suffix}';\n",
+                    "other.dart": "class Other {}\n",
+                })
+
+    def test_跨扫描域仍拒绝循环(self):
+        with tempfile.TemporaryDirectory() as directory:
+            package = Path(directory)
+            (package / "bridge").mkdir()
+            (package / "controller").mkdir()
+            (package / "bridge/a.dart").write_text("import '../controller/b.dart';\n")
+            (package / "controller/b.dart").write_text("import '../bridge/a.dart';\n")
+            self.assertRaisesRegex(ValueError, "循环", module_graph.inspect,
+                                   package / "bridge", 100, "sample", package)
+
+    def test_注释换行和同行指令仍参与图(self):
+        self.assertRaisesRegex(ValueError, "循环", self.scan, {
+            "first.dart": "/* 前导 */ import /* 说明 */ 'second.dart';\n",
+            "second.dart": "export 'stub.dart'; import 'first.dart';\n",
+            "stub.dart": "class Stub {}\n",
+        })
+
+    def test_失效本地导入必须失败(self):
+        self.assertRaisesRegex(ValueError, "不存在", self.scan, {
+            "entry.dart": "import 'missing.dart';\n",
+        })
+
     def test_拒绝未注册的part(self):
         self.assertRaisesRegex(ValueError, "归属", self.scan, {
             "entry.dart": "class Entry {}\n",

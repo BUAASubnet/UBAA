@@ -6,6 +6,11 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../lib/repo.sh
 source "$script_dir/../lib/repo.sh"
 repo_root=$(ubaa_repo_root)
+check_mode=${1:-check}
+if [[ "$check_mode" != check && "$check_mode" != dependencies ]]; then
+  printf '%s\n' 'error: 只接受 check 或 dependencies 模式' >&2
+  exit 2
+fi
 flutter_root=${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}
 flutter_bin=$flutter_root/bin/flutter
 dart_bin=$flutter_root/bin/dart
@@ -27,6 +32,9 @@ for package_dir in "${packages[@]}"; do
   (
     cd "$repo_root/$package_dir"
     "$flutter_bin" pub get --enforce-lockfile
+    if [[ "$check_mode" == dependencies ]]; then
+      exit 0
+    fi
     format_targets=()
     for candidate in lib test integration_test; do
       if [[ -d "$candidate" ]]; then

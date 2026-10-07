@@ -9,6 +9,10 @@
 # Rust output
 /target/
 
+# Python 开发工具运行缓存
+__pycache__/
+*.pyc
+
 # Flutter/OpenHarmony local build metadata
 /.hvigor/
 /packages/*/.dart_tool/

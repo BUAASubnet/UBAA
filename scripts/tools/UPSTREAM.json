@@ -1,0 +1,60 @@
+{
+  "dependencies": [
+    {
+      "package": "jsonschema",
+      "version": "4.26.0",
+      "metadata": "https://pypi.org/pypi/jsonschema/4.26.0/json",
+      "license": "MIT",
+      "purpose": "仅离线校验与发布材料生成的开发工具"
+    },
+    {
+      "package": "PyYAML",
+      "version": "6.0.3",
+      "metadata": "https://pypi.org/pypi/PyYAML/6.0.3/json",
+      "license": "MIT",
+      "purpose": "仅离线校验与发布材料生成的开发工具"
+    },
+    {
+      "package": "attrs",
+      "version": "26.1.0",
+      "metadata": "https://pypi.org/pypi/attrs/26.1.0/json",
+      "license": "MIT",
+      "purpose": "仅离线校验与发布材料生成的开发工具"
+    },
+    {
+      "package": "jsonschema-specifications",
+      "version": "2025.9.1",
+      "metadata": "https://pypi.org/pypi/jsonschema-specifications/2025.9.1/json",
+      "license": "MIT",
+      "purpose": "仅离线校验与发布材料生成的开发工具"
+    },
+    {
+      "package": "referencing",
+      "version": "0.37.0",
+      "metadata": "https://pypi.org/pypi/referencing/0.37.0/json",
+      "license": "MIT",
+      "purpose": "仅离线校验与发布材料生成的开发工具"
+    },
+    {
+      "package": "rpds-py",
+      "version": "2026.9.1",
+      "metadata": "https://pypi.org/pypi/rpds-py/2026.9.1/json",
+      "license": "MIT",
+      "purpose": "仅离线校验与发布材料生成的开发工具"
+    },
+    {
+      "package": "typing-extensions",
+      "version": "4.15.0",
+      "metadata": "https://pypi.org/pypi/typing-extensions/4.15.0/json",
+      "license": "PSF-2.0",
+      "purpose": "仅离线校验与发布材料生成的开发工具"
+    },
+    {
+      "package": "json5",
+      "version": "0.14.0",
+      "metadata": "https://pypi.org/pypi/json5/0.14.0/json",
+      "license": "Apache-2.0；基准数据另含 MIT，完整声明见固定版本 PyPI 元数据",
+      "purpose": "仅离线校验与发布材料生成的开发工具"
+    }
+  ]
+}

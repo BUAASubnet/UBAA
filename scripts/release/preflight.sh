@@ -8,6 +8,7 @@ source "$script_dir/../lib/repo.sh"
 repo_root=$(ubaa_repo_root)
 output_dir=${1:-${UBAA_RELEASE_REPORT_DIR:-}}
 keep_output=1
+metadata_file=''
 if [[ -z "$output_dir" ]]; then
   output_dir=$(mktemp -d "${TMPDIR:-/tmp}/ubaa-release-preflight.XXXXXX")
   keep_output=0
@@ -17,8 +18,17 @@ if [[ "$output_dir" != /* ]]; then
   exit 2
 fi
 mkdir -p "$output_dir"
+python3 - "$output_dir" <<'PY'
+from pathlib import Path
+import sys
+if any(Path(sys.argv[1]).iterdir()):
+    raise SystemExit('error: 发布报告目录必须为空；请使用新的目录，避免混入历史材料')
+PY
 
 cleanup() {
+  if [[ -n "$metadata_file" ]]; then
+    rm -f "$metadata_file"
+  fi
   if [[ "$keep_output" == 0 ]]; then
     rm -rf "$output_dir"
   fi
@@ -34,39 +44,12 @@ fi
 
 bash ./scripts/check/references.sh
 bash ./scripts/check/sensitive.sh
-cargo metadata --locked --format-version 1 >"$output_dir/cargo-metadata.json"
+metadata_file=$(mktemp "${TMPDIR:-/tmp}/ubaa-cargo-metadata.XXXXXX")
+cargo metadata --offline --locked --format-version 1 >"$metadata_file"
 
-# 将 Cargo 解析后的依赖投影为不含路径/凭据的 CycloneDX 风格 SBOM。
-python3 - "$output_dir/cargo-metadata.json" "$output_dir/sbom.cdx.json" <<'PY'
-import json
-import sys
-
-source, target = sys.argv[1:]
-metadata = json.load(open(source, encoding="utf-8"))
-components = []
-for package in metadata.get("packages", []):
-    component = {
-        "type": "library",
-        "bom-ref": f"cargo:{package['name']}@{package['version']}",
-        "name": package["name"],
-        "version": package["version"],
-        "scope": "required",
-    }
-    license_name = package.get("license")
-    if license_name:
-        component["licenses"] = [{"license": {"id": license_name}}]
-    components.append(component)
-document = {
-    "bomFormat": "CycloneDX",
-    "specVersion": "1.5",
-    "version": 1,
-    "metadata": {"tools": [{"vendor": "UBAA", "name": "release-preflight"}]},
-    "components": components,
-}
-with open(target, "w", encoding="utf-8") as handle:
-    json.dump(document, handle, ensure_ascii=False, indent=2, sort_keys=True)
-    handle.write("\n")
-PY
+# 固定工具和 schema 均离线使用；依赖准备由显式 bootstrap 完成。
+bash "$repo_root/scripts/tools/python.sh" "$script_dir/dependency_report.py" \
+  --metadata "$metadata_file" --output "$output_dir"
 
 lock_manifest="$output_dir/pubspec-locks.txt"
 : >"$lock_manifest"
@@ -75,23 +58,6 @@ while IFS= read -r -d '' lockfile; do
   printf '%s\n' "$lockfile" >>"$lock_manifest"
   sha256sum "$lockfile" >>"$output_dir/pubspec-locks.sha256"
 done < <(git ls-files -z -- 'apps/**/pubspec.lock' 'packages/**/pubspec.lock' | sort -z)
-
-dependency_audit="$output_dir/dependency-audit.txt"
-{
-  printf 'UBAA 无签名 RC 依赖/许可证审计\n'
-  printf 'Cargo SBOM：sbom.cdx.json（许可证取自 Cargo 包元数据）\n'
-  printf 'Dart/Flutter 锁文件及包版本：\n'
-  while IFS= read -r -d '' lockfile; do
-    printf '\n[%s]\n' "$lockfile"
-    awk '
-      /^packages:/ { in_packages=1; next }
-      /^sdks:/ { in_packages=0 }
-      in_packages && /^  [A-Za-z0-9_+.-]+:/ { name=$1; sub(/:$/, "", name); printf "  %s", name }
-      in_packages && /^    version:/ { print " " $2 }
-    ' "$lockfile"
-  done < <(git ls-files -z -- 'apps/**/pubspec.lock' 'packages/**/pubspec.lock' | sort -z)
-  printf '\n审计边界：只读取锁定依赖和许可证元数据；不联网、不上传、不读取账号或运行时响应。\n'
-} >"$dependency_audit"
 
 git ls-files -z \
   'apps/ubaa_flutter/**' \
@@ -105,13 +71,13 @@ cat >"$output_dir/summary.txt" <<EOF
 UBAA 无签名 RC 前置报告
 提交：$(git rev-parse HEAD)
 分支：$(git branch --show-current)
-Cargo 依赖元数据：cargo-metadata.json
-SBOM：sbom.cdx.json
+Cargo 依赖清单与离线 schema 校验后的 SBOM：sbom.cdx.json
+原始 Cargo metadata：仅临时转换输入，不保存到发布材料
 Dart/Flutter 锁文件清单：pubspec-locks.txt
-Dart/Flutter 依赖许可证审计：dependency-audit.txt
+Dart/OHOS 许可证材料与缺口：license-evidence.json、dependency-audit.txt、licenses/
 源码校验清单：source-manifest.sha256
 签名、证书、实体设备和真实写入：本报告不执行
 EOF
 
-printf '无签名 RC 前置检查通过：%s\n' "$output_dir"
+printf '无签名 RC 前置报告已生成；许可缺口见材料清单：%s\n' "$output_dir"
 printf '报告仅包含依赖元数据、锁文件列表、校验摘要和安全状态，不包含凭据或原始响应。\n'

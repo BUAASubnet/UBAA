@@ -91,6 +91,10 @@ flutter-codegen-check:
 flutter-check:
     bash ./scripts/check/flutter-workspace.sh
 
+# 显式准备同一七包列表的锁定依赖，供离线材料收集使用；不运行测试。
+flutter-dependencies:
+    bash ./scripts/check/flutter-workspace.sh dependencies
+
 # 普通测试快速入口，例如 just flutter-test ubaa_app test/features/grades。
 flutter-test package path="test":
     bash ./scripts/tests/flutter-package.sh "{{package}}" "{{path}}"
@@ -103,7 +107,13 @@ source-files:
 script-test:
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/integration_catalog_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/module_graph_test.py
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/sensitive_test.py
+    bash scripts/tools/python.sh scripts/tests/release_metadata_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/live/offline-startup/analyze_test.py
+
+# 显式联网准备固定开发依赖；检查入口本身不安装依赖。
+quality-tools-bootstrap:
+    bash scripts/bootstrap/quality-tools.sh
 
 # 集成入口必须全部分类，真实只读和人工巡检不进入普通回归。
 integration-check:

@@ -37,6 +37,53 @@ class CatalogTest(unittest.TestCase):
             self.assertRaisesRegex(ValueError, "真实", catalog.validate,
                                    [self.entry()], root)
 
+    def test_不能通过根外共享辅助隐藏账号入口(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            root = workspace / "integration_test"
+            root.mkdir()
+            (root / "sample_test.dart").write_text("import '../support.dart';")
+            (workspace / "support.dart").write_text("const mode = 'UBAA_LIVE_READONLY';")
+            self.assertRaisesRegex(ValueError, "真实", catalog.validate,
+                                   [self.entry()], root)
+
+    def test_条件导入也必须检查真实标记(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "sample_test.dart").write_text(
+                "import 'stub.dart' if (dart.library.io) 'support.dart';")
+            (root / "stub.dart").write_text("")
+            (root / "support.dart").write_text("const mode = 'UBAA_LIVE_READONLY';")
+            self.assertRaisesRegex(ValueError, "真实", catalog.validate,
+                                   [self.entry()], root)
+
+    def test_本地辅助缺失不能宣称分类完整(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "sample_test.dart").write_text("import 'missing.dart';")
+            self.assertRaisesRegex(ValueError, "不存在", catalog.validate,
+                                   [self.entry()], root)
+
+    def test_自有package辅助不能隐藏账号入口(self):
+        with tempfile.TemporaryDirectory() as directory:
+            workspace = Path(directory)
+            root = workspace / "integration_test"
+            root.mkdir()
+            package = workspace / "packages/shared"
+            (package / "lib").mkdir(parents=True)
+            (package / "pubspec.yaml").write_text("name: shared\n")
+            (package / "lib/support.dart").write_text("const mode = 'UBAA_LIVE_READONLY';")
+            (root / "sample_test.dart").write_text("export 'package:shared/support.dart';")
+            self.assertRaisesRegex(ValueError, "真实", catalog.validate, [self.entry()], root)
+
+    def test_URI编码不能选择不同于Dart的字面路径(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "sample_test.dart").write_text("import 'h%65lper.dart';")
+            (root / "h%65lper.dart").write_text("const ordinary = true;")
+            (root / "helper.dart").write_text("const mode = 'UBAA_LIVE_READONLY';")
+            self.assertRaisesRegex(ValueError, "URI", catalog.validate, [self.entry()], root)
+
     def test_真实账号入口不能登记到CI(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)

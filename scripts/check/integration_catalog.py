@@ -8,6 +8,11 @@ from pathlib import Path
 import re
 import shlex
 import subprocess
+import sys
+
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from dart_sources import SourceClosure, workspace_for
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -20,17 +25,10 @@ LIVE_MARKERS = ("UBAA_LIVE_READONLY", "UBAA_VERIFY_WEBVPN", "UBAA_LIVE_MATERIAL_
 
 
 def source_closure(path, root, seen=None):
-    """同时检查本地辅助文件，防止把真实入口隐藏在 import 或 part 后。"""
-    seen = set() if seen is None else seen
-    path, root = path.resolve(), root.resolve()
-    if path in seen or not path.is_relative_to(root) or not path.is_file():
-        return ""
-    seen.add(path)
-    source = path.read_text()
-    dependencies = re.findall(r"^(?:import|export|part)\s+['\"]([^'\"]+)['\"]", source, re.M)
-    return source + "\n" + "\n".join(
-        source_closure(path.parent / uri, root, seen)
-        for uri in dependencies if ":" not in uri)
+    """包含跨根 helper、自有 package 和条件分支，不访问外部依赖正文。"""
+    closure = SourceClosure(workspace_for(root))
+    closure.add(path)
+    return "\n".join(closure.sources.values())
 
 
 def validate(entries, root=TEST_ROOT):
