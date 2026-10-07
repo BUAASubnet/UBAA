@@ -795,3 +795,9 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 2026-10-07统一安全存储插件及开发阶段无迁移范围见[实施前九列裁决](decision-log.md#2026-10-07开发阶段统一安全存储插件)与[验证记录](evidence/unified-secure-storage-2026-10-07.md)。
 
 2026-10-07通用依赖收敛实施前对照见[九列裁决](source-parity-dependency-reuse.md)。
+
+## 2026-10-07 独立工程审查整改
+
+- [Rust路线/错误/日期逐操作矩阵](source-parity-engineering-rust-2026-10-07.md)
+- [Dart认证/恢复/学期状态矩阵](source-parity-engineering-dart-2026-10-07.md)
+- [本地普通偏好/平台验证矩阵](source-parity-engineering-platform-2026-10-07.md)

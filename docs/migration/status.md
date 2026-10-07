@@ -1,6 +1,10 @@
 # 当前实现与验证状态
 
-更新日期：2026-10-07（Asia/Shanghai）。[可持续开发性整理与修复](../../goal.md)已完成，实施分支 `ubaa2`，本地阶段提交、不推送发布。历史流水已移至[整理前快照](history/status-before-maintainability-2026-10-07.md)。
+更新日期：2026-10-07（Asia/Shanghai）。[独立工程审查后的整理修复](../../goal.md)执行中，基线 `06e4dfdb`、实施分支 `ubaa2`，本地阶段提交、不推送发布。历史流水已移至[整理前快照](history/status-before-maintainability-2026-10-07.md)。
+
+## 当前修复任务
+
+以[独立审查](engineering-quality-independent-review-2026-10-07.md)的 I01—I09 为范围。正式反例、来源对照、实现与当前验证由本轮实施记录逐项更新；未执行的真实读取、设备与发布继续保留缺口，不继承下方上一轮通过。
 
 ## 当前事实
 
@@ -11,7 +15,7 @@
 - 原生目录按 synthetic/platform/live/manual 分类，登记 73 个入口；16 个常驻巡检模式已拆出 driver，并补录照片巡检与真实启动测量。
 - library、part、依赖环、入口清单和 Python/CJS 规模进入门禁；历史 UI 元数据只增加批次索引和默认检索隔离，原内容与归档均保留。
 
-## 本轮验证
+## 上一轮整理验证（历史候选）
 
 最终严格 Rust/CLI/Shell 门禁、官方七包 1,327 项 Flutter 测试、FRB 生成零漂移、迁移后的 9 项 macOS 原生合成/本地回归均通过；Android Debug APK、iOS 模拟器 App、OHOS 无签名 Debug HAP 构建通过。golden 字节未改动，博雅分页屏外点击已通过真实滚动/命中操作修复。WebVPN 只读矩阵 40 行 PASS，其中 5 行为空结果、1 行为明确标注的静态回退；不能据此关闭完整真实 UI 验收。各层命令、产物检查和日志见[实施记录](maintainability-implementation-2026-10-07.md)。
 
