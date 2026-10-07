@@ -2,7 +2,7 @@
 
 use aes::Aes128;
 use base64::{Engine as _, engine::general_purpose::STANDARD};
-use cipher::{BlockEncrypt, KeyInit, generic_array::GenericArray};
+use cipher::{BlockEncryptMut, KeyIvInit, block_padding::Pkcs7};
 
 use crate::domain::LibBookReserveRequest;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
@@ -46,27 +46,15 @@ pub(super) fn encrypt_reserve_request(request: &LibBookReserveRequest) -> Result
             "图书馆预约参数无效",
         )
     })?;
-    let cipher = Aes128::new_from_slice(key).map_err(|_| {
-        UbaaError::new(
-            ErrorCode::InternalError,
-            ErrorKind::Internal,
-            false,
-            "图书馆 AES 密钥无效",
-        )
-    })?;
-    let pad = 16 - (plain.len() % 16);
-    let mut padded = plain;
-    padded.extend(std::iter::repeat_n(u8::try_from(pad).unwrap_or(16), pad));
-    let mut previous = *b"ZZWBKJ_ZHIHUAWEI";
-    let mut encrypted = Vec::with_capacity(padded.len());
-    for chunk in padded.chunks_exact(16) {
-        let mut block = [0_u8; 16];
-        for (index, byte) in chunk.iter().enumerate() {
-            block[index] = *byte ^ previous[index];
-        }
-        cipher.encrypt_block(GenericArray::from_mut_slice(&mut block));
-        encrypted.extend_from_slice(&block);
-        previous = block;
-    }
+    let cipher =
+        cbc::Encryptor::<Aes128>::new_from_slices(key, b"ZZWBKJ_ZHIHUAWEI").map_err(|_| {
+            UbaaError::new(
+                ErrorCode::InternalError,
+                ErrorKind::Internal,
+                false,
+                "图书馆 AES 密钥无效",
+            )
+        })?;
+    let encrypted = cipher.encrypt_padded_vec_mut::<Pkcs7>(&plain);
     Ok(STANDARD.encode(encrypted))
 }

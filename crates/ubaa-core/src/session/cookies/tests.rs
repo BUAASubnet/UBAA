@@ -170,3 +170,56 @@ fn cookie_value_lookup_respects_domain_path_and_expiry() {
         Some("wrong-domain".into())
     );
 }
+
+#[test]
+fn max_age_overrides_expires_and_survives_reopen() {
+    let now = SystemTime::UNIX_EPOCH + Duration::from_secs(2_000_000_000);
+    let mut jar = CookieJar::default();
+    jar.store_response(
+        &response("AUDIT=synthetic; Path=/; Max-Age=3600; Expires=Thu, 01 Jan 1970 00:00:00 GMT"),
+        "https://sso.buaa.edu.cn/",
+        now,
+    )
+    .unwrap();
+    let mut reopened = CookieJar::default();
+    reopened.replace(jar.cookies().to_vec());
+    assert_eq!(
+        reopened
+            .cookie_header("https://sso.buaa.edu.cn/", now + Duration::from_secs(3599))
+            .unwrap(),
+        "AUDIT=synthetic"
+    );
+    assert_eq!(
+        reopened
+            .cookie_header("https://sso.buaa.edu.cn/", now + Duration::from_hours(1))
+            .unwrap(),
+        ""
+    );
+}
+
+#[test]
+fn empty_domain_is_host_only_and_path_boundary_is_strict() {
+    let now = SystemTime::UNIX_EPOCH + Duration::from_secs(1_000);
+    let mut jar = CookieJar::default();
+    jar.store_response(
+        &response("AUDIT=synthetic; Domain=; Path=/cas"),
+        "https://sso.buaa.edu.cn/cas/login",
+        now,
+    )
+    .unwrap();
+    assert_eq!(
+        jar.cookie_header("https://sso.buaa.edu.cn/cas/step", now)
+            .unwrap(),
+        "AUDIT=synthetic"
+    );
+    assert_eq!(
+        jar.cookie_header("https://sso.buaa.edu.cn/cascade", now)
+            .unwrap(),
+        ""
+    );
+    assert_eq!(
+        jar.cookie_header("https://sub.sso.buaa.edu.cn/cas/step", now)
+            .unwrap(),
+        ""
+    );
+}

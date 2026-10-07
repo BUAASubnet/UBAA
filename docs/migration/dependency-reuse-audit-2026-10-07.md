@@ -110,7 +110,7 @@
 ## 本轮验证
 
 - 初始工作树干净，just refs 确认 old `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`、buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。
-- 临时追加完全合成的 Cookie 测试，执行 `cargo test -p ubaa-core --lib audit_max_age_must_override_past_expires`：1 项按预期失败、退出 101，实际空字符串、预期 AUDIT=synthetic。随后逐字节恢复测试文件，未留下失败测试或生产修改。
-- 恢复后运行 `cargo test -p ubaa-core --lib session::cookies::tests`：既有 4 项通过。这说明当前测试未覆盖该标准边界，不证明缺陷消失。
+- 临时追加完全合成的 Cookie 测试，执行 `cargo test -p ubaa-core --lib audit_max_age_must_override_past_expires`（后续复现加 --locked）：1 项按预期失败、退出 101，实际空字符串、预期 AUDIT=synthetic。随后逐字节恢复测试文件，未留下失败测试或生产修改。
+- 恢复后运行 `cargo test -p ubaa-core --lib session::cookies::tests`（后续复现加 --locked）：既有 4 项通过。这说明当前测试未覆盖该标准边界，不证明缺陷消失。
 - 仓库外证据：`~/Library/Application Support/UBAA-private-evidence/dependency-audit-20261007/` 的 cookie-regression.rs、cookie-red.log。上文保留输入及命令供后续 TDD 接续。
 - 文档门禁通过：just refs、just layout-check（0 个 baseline 违例）、just check-sensitive（5645 个仓库文件）、git diff --check。未重跑全量构建或真实学校接口，本轮不构成新插件兼容性验收。

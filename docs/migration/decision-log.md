@@ -1827,3 +1827,9 @@ OHOS来源评估：CPF-Flutter fork `67c7b82e85b08a649dfd4f2bb0c455011a9384fa` �
 Cookie 实际代码的合成回归证明 Expires 错误覆盖正 Max-Age，旧版自定义 Ktor 存储有同类判断，buaa-api 明确忽略过期属性；RFC 6265 规定 Max-Age 优先。该标准与冻结行为差异记录为后续裁决边界，没有真实学校响应证明实际触发。临时测试逐字节恢复，既有四项 Cookie 测试通过，不把原测试通过当成缺陷关闭。
 
 后续优先评估 cookie_store 和 RustCrypto 模式库，再统一图片、目录、偏好、网络和 OHOS 关于页。账号/路线隔离、无备份目录、媒体上限、一次性写入、缓存加密与冻结协议字节行为须保留。OHOS 有 fork 不等于当前 SDK/interface 已兼容，既有安全存储本地 fork 也继续计入维护面。
+
+## 2026-10-07：实施通用依赖收敛
+
+用户已授权按审计建议实施，顺序为Core Cookie/加密、平台插件接线、清理历史迁移。实施前双来源与标准冲突裁决见[source-parity-dependency-reuse.md](source-parity-dependency-reuse.md)。不扩大真实业务写入授权，不迁移或删除旧真实材料。
+
+Core 阶段结果：使用 cookie_store 的 Cookie/Domain/Path 类型；保留 StoredCookie 快照、调用方时钟和小型过期时间适配，未开启 Reqwest 全局 CookieStore 或新增 PSL 策略。RustCrypto cbc 0.1.2 / cfb-mode 0.8.2 / ecb 0.1.2 兼容 cipher 0.4；复用 hex 处理编码。RED 两项、GREEN 333 项及 just check 通过，编译夹具锁文件同步。

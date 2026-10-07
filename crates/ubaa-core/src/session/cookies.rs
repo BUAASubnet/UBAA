@@ -2,15 +2,14 @@
 
 use std::time::SystemTime;
 
+use cookie_store::{Cookie, CookieDomain, CookieError, CookiePath};
 use serde::{Deserialize, Serialize};
 use url::Url;
 
 use crate::error::Result;
 use crate::ports::HttpResponse;
 
-use super::file_safety::{
-    domain_matches, header_values, path_matches, session_error, unix_seconds,
-};
+use super::file_safety::{header_values, session_error, unix_seconds};
 
 /// 为安全请求过滤和持久化保留的 Cookie 属性。
 #[derive(Clone, Deserialize, Eq, PartialEq, Serialize)]
@@ -35,92 +34,48 @@ pub struct StoredCookie {
     pub max_age: Option<i64>,
 }
 
+// 保持 time 为 Cookie 库的内部依赖，不因类型投影重复声明版本约束。
+#[allow(clippy::redundant_closure_for_method_calls)]
 fn parse_cookie(raw: &str, url: &Url, created_at: i64) -> Result<Option<StoredCookie>> {
-    let mut parts = raw.split(';');
-    let Some((name, value)) = parts.next().and_then(|part| part.trim().split_once('=')) else {
-        return Err(session_error("upstream Set-Cookie has no name/value"));
+    let cookie = match Cookie::parse(raw, url) {
+        Ok(cookie) => cookie,
+        Err(CookieError::DomainMismatch) => return Ok(None),
+        Err(_) => return Err(session_error("上游 Cookie 格式无效")),
     };
-    let host = url
-        .host_str()
-        .ok_or_else(|| session_error("Cookie URL has no host"))?
-        .to_ascii_lowercase();
-    let mut cookie = StoredCookie {
-        name: name.trim().to_string(),
-        value: value.trim().to_string(),
-        domain: host.clone(),
-        host_only: true,
-        path: default_cookie_path(url.path()),
-        secure: false,
-        expires_at: None,
+    if cookie.name().is_empty() {
+        return Err(session_error("上游 Cookie 名称为空"));
+    }
+    Ok(Some(StoredCookie {
+        name: cookie.name().to_owned(),
+        value: cookie.value().to_owned(),
+        domain: String::from(&cookie.domain),
+        host_only: matches!(cookie.domain, CookieDomain::HostOnly(_)),
+        path: String::from(&cookie.path),
+        secure: cookie.secure().unwrap_or(false),
+        expires_at: cookie.expires_datetime().map(|time| time.unix_timestamp()),
         created_at,
-        max_age: None,
-    };
-    if cookie.name.is_empty() {
-        return Err(session_error("upstream Set-Cookie has an empty name"));
-    }
-    for attribute in parts {
-        let attribute = attribute.trim();
-        if attribute.eq_ignore_ascii_case("secure") {
-            cookie.secure = true;
-        } else if let Some((key, value)) = attribute.split_once('=') {
-            match key.trim().to_ascii_lowercase().as_str() {
-                "domain" => {
-                    let domain = value.trim().trim_start_matches('.').to_ascii_lowercase();
-                    if !domain_matches(&host, &domain) {
-                        return Ok(None);
-                    }
-                    cookie.domain = domain;
-                    cookie.host_only = false;
-                }
-                "path" if value.trim().starts_with('/') => cookie.path = value.trim().to_string(),
-                "max-age" => cookie.max_age = value.trim().parse().ok(),
-                "expires" => {
-                    cookie.expires_at = httpdate::parse_http_date(value.trim())
-                        .ok()
-                        .and_then(|time| unix_seconds(time).ok());
-                }
-                _ => {}
-            }
-        }
-    }
-    Ok(Some(cookie))
+        max_age: cookie.max_age().map(|age| age.whole_seconds()),
+    }))
 }
 
 fn cookie_matches(cookie: &StoredCookie, url: &Url, now: i64) -> bool {
-    let Some(host) = url.host_str() else {
-        return false;
-    };
-    let domain_match = if cookie.host_only {
-        host.eq_ignore_ascii_case(&cookie.domain)
+    let domain = if cookie.host_only {
+        CookieDomain::HostOnly(cookie.domain.clone())
     } else {
-        domain_matches(host, &cookie.domain)
+        CookieDomain::Suffix(cookie.domain.clone())
     };
-    let path_match = path_matches(url.path(), &cookie.path);
-    let secure_match = !cookie.secure || url.scheme().eq_ignore_ascii_case("https");
-    domain_match && path_match && secure_match && !is_expired(cookie, now)
+    domain.matches(url)
+        && CookiePath::parse(&cookie.path).is_some_and(|path| path.matches(url))
+        && (!cookie.secure || url.scheme().eq_ignore_ascii_case("https"))
+        && !is_expired(cookie, now)
 }
 
+// 库的相对过期默认使用系统时钟；会话合同使用调用方时钟，并在重开后保持接收时间。
 fn is_expired(cookie: &StoredCookie, now: i64) -> bool {
-    cookie.expires_at.is_some_and(|expires| expires <= now)
-        || cookie
-            .max_age
-            .is_some_and(|age| age <= 0 || now >= cookie.created_at.saturating_add(age))
-}
-
-fn default_cookie_path(path: &str) -> String {
-    if path.is_empty() || !path.starts_with('/') || path == "/" {
-        return "/".into();
+    match cookie.max_age {
+        Some(age) => age <= 0 || now >= cookie.created_at.saturating_add(age),
+        None => cookie.expires_at.is_some_and(|expires| expires <= now),
     }
-    path.rsplit_once('/').map_or_else(
-        || "/".into(),
-        |(prefix, _)| {
-            if prefix.is_empty() {
-                "/".into()
-            } else {
-                prefix.into()
-            }
-        },
-    )
 }
 
 impl std::fmt::Debug for StoredCookie {
@@ -189,11 +144,7 @@ impl CookieJar {
                     && existing.domain == cookie.domain
                     && existing.path == cookie.path)
             });
-            if cookie.max_age.is_none_or(|age| age > 0)
-                && cookie
-                    .expires_at
-                    .is_none_or(|expires| expires > now_seconds)
-            {
+            if !is_expired(&cookie, now_seconds) {
                 self.cookies.push(cookie);
             }
         }

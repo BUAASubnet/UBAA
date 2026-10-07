@@ -119,19 +119,6 @@ pub(super) fn sync_directory(path: &Path) -> Result<()> {
     Ok(())
 }
 
-pub(super) fn path_matches(request: &str, cookie: &str) -> bool {
-    if request == cookie {
-        return true;
-    }
-    request
-        .strip_prefix(cookie)
-        .is_some_and(|rest| cookie.ends_with('/') || rest.starts_with('/'))
-}
-
-pub(super) fn domain_matches(host: &str, domain: &str) -> bool {
-    host.eq_ignore_ascii_case(domain) || host.to_ascii_lowercase().ends_with(&format!(".{domain}"))
-}
-
 pub(super) fn header_values<'a>(
     headers: &'a std::collections::BTreeMap<String, Vec<String>>,
     name: &str,

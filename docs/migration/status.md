@@ -94,3 +94,7 @@ Android三种桌面课表、加密发布/撤销及同周离线页已完成；独
 ## 2026-10-07 安全存储统一完成
 
 官方五端统一flutter_secure_storage，macOS旧自写密码通路已移除；OHOS改用有来源记录的社区HUKS插件适配，宿主不再自建安全材料通道。按用户开发阶段要求启用v2材料空间，无旧数据迁移。当前macOS生产登录页已实际打开，旧“应用内部错误”不再出现。7包分析/1339项Flutter、完整Rust/CLI门禁、macOS真实合成凭据读写清理、Release构建和OHOS无签名HAP均通过；OHOS无连接设备，设备HUKS验收保持未验证。见[本轮完整记录](evidence/unified-secure-storage-2026-10-07.md)。
+
+2026-10-07依赖收敛进入实施：按审计七类候选逐阶段补测试、替换及验证，记录见[实施对照](source-parity-dependency-reuse.md)。
+
+依赖收敛 Core 阶段：Cookie 标准解析/域/path 复用 cookie_store，修复 Max-Age 优先及空 Domain；CBC/CFB/ECB/填充和 hex 交给库。两项回归先失败后通过，333 项 Core 单元测试及完整 just check（含 CLI E2E/Bridge）通过。平台阶段继续验证，尚不表示真实上游/全端验收完成。

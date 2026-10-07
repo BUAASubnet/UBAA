@@ -18,7 +18,11 @@ base64 = "0.22.1"
 cipher = { version = "0.4.4", features = ["block-padding"] }
 chrono = { version = "0.4.42", default-features = false, features = ["clock"] }
 chrono-tz = "0.10.4"
-httpdate = "1.0.3"
+cookie_store = { version = "0.22.1", default-features = false }
+cbc = { version = "0.1.2", features = ["alloc"] }
+cfb-mode = "0.8.2"
+ecb = { version = "0.1.2", features = ["alloc"] }
+hex = "0.4.3"
 image = { version = "0.25.8", default-features = false, features = ["jpeg", "png"] }
 md-5 = "0.10.6"
 regex = "1.12.2"
