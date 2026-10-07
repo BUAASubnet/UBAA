@@ -52,7 +52,7 @@ void main() {
     expect(find.byType(UbaaMainShell), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
   });
-  testWidgets('安全材料不可用只显示非敏感外壳，不因缺少用户资料崩溃', (tester) async {
+  testWidgets('未确认本机账号时安全材料不可用必须显示登录页', (tester) async {
     final accounts = SecureLocalAccountStore(
       SecureMaterialStore(transport: _Materials()),
     );
@@ -61,8 +61,9 @@ void main() {
       UbaaAppHost(backend: backend, localAccountStore: accounts),
     );
     await tester.pumpAndSettle();
-    expect(find.byType(UbaaMainShell), findsOneWidget);
-    expect(find.text('需要登录，当前页面会保留'), findsOneWidget);
+    expect(find.byType(UbaaLoginView), findsOneWidget);
+    expect(find.byType(UbaaMainShell), findsNothing);
+    expect(backend.authCalls, 0);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });

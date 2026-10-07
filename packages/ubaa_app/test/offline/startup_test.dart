@@ -6,6 +6,72 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
+  test('无本机账号且旧凭据读取失败时先登录，手动认证成功后才能进入首页', () async {
+    final materials = SecureMaterialStore(transport: MemoryMaterials());
+    await materials.probe();
+    final backend = FakeRecoveryBackend()..signedIn = false;
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: SecureLocalAccountStore(materials),
+      credentialVault: _UnreadableCredentialVault(),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    expect(controller.phase, AppPhase.login);
+    expect(controller.user, isNull);
+    expect(controller.error, isNotNull);
+    expect(backend.authCalls, 0);
+    expect(backend.loginCalls, 0);
+    expect(backend.readCalls, 0);
+    controller.setUsername('fixture-user');
+    controller.setPassword('fixture-secret');
+    await controller.submitLogin();
+    expect(backend.loginCalls, 1);
+    expect(controller.phase, AppPhase.home);
+    expect(controller.user?.username, 'fixture-user');
+  });
+
+  test('首次无本机账号且无有效会话时进入登录页，不读取首页', () async {
+    final materials = SecureMaterialStore(transport: MemoryMaterials());
+    await materials.probe();
+    final backend = FakeRecoveryBackend()..signedIn = false;
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: SecureLocalAccountStore(materials),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    expect(controller.phase, AppPhase.login);
+    expect(controller.user, isNull);
+    expect(backend.loginCalls, 0);
+    expect(backend.readCalls, 0);
+  });
+
+  test('本机账号索引损坏时停在登录页，不恢复未知账号或启动首页读取', () async {
+    final transport = MemoryMaterials();
+    final materials = SecureMaterialStore(transport: transport);
+    await materials.probe();
+    final accounts = SecureLocalAccountStore(materials);
+    await accounts.retain('fixture-user', retainSession: true);
+    transport.values['ubaa.material.v1.account-index.v1'] = '{';
+    final backend = FakeRecoveryBackend();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: accounts,
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    expect(controller.phase, AppPhase.login);
+    expect(controller.user, isNull);
+    expect(controller.error, isNotNull);
+    controller.onHomeFirstFrame();
+    await controller.recoverSession();
+    expect(backend.authCalls, 0);
+    expect(backend.loginCalls, 0);
+    expect(backend.readCalls, 0);
+    expect(transport.values['ubaa.material.v1.account-index.v1'], '{');
+  });
+
   test('本机账号先进入首页，首帧前不等待认证，首帧后立即合并恢复', () async {
     final accounts = await savedAccounts();
     final backend = FakeRecoveryBackend()..gate = Completer<AuthStatus>();
@@ -228,6 +294,13 @@ Future<LocalAccountStore> savedAccounts() async {
   final accounts = SecureLocalAccountStore(materials);
   await accounts.retain('fixture-user', retainSession: true);
   return accounts;
+}
+
+class _UnreadableCredentialVault extends MemoryCredentialVault {
+  @override
+  Future<Credential?> load() async => throw const CredentialVaultException(
+    CredentialVaultErrorCode.storageFailure,
+  );
 }
 
 class MemoryMaterials implements SecureMaterialTransport {

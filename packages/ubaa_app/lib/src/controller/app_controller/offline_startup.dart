@@ -40,15 +40,18 @@ extension _AppControllerOfflineStartup on AppController {
       return true;
     } on Object catch (error, stackTrace) {
       if (_disposed || epoch != _lifecycleEpoch) return true;
-      // 密钥不可读时只展示非敏感外壳，允许首帧后尝试原会话，不读取密文正文。
-      _usesLocalRecovery = true;
+      // 无法确认本机账号时不能授予离线首页入口；保留材料供手动登录恢复。
+      // 已确认账号后的缓存正文故障由独立恢复任务处理，不受此分支影响。
+      _usesLocalRecovery = false;
+      _localAccount = null;
       _user = null;
+      _sessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
       _error = _recordFailure(
         error,
         DiagnosticOperation.initialization,
         stackTrace: stackTrace,
       );
-      _setPhase(AppPhase.home);
+      _setPhase(AppPhase.login);
       return true;
     }
   }

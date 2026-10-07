@@ -788,3 +788,6 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 博雅目录/完整详情、图书馆逐日日程、登录选项/Keychain和导航的旧专项来源先按两个当前固定SHA复核，再纳入离线首页，见[整合前逐操作对照](source-parity-consolidation-2026-10-01.md)。新旧缓存链不复制Cookie、联系人或写资格；当前Bridge v37和组合验证见[整合证据](evidence/project-consolidation-2026-10-02.md)。
 
 当前GSMIS研究生课表与节次时间轴的逐操作九列见[source-parity-gsmis-2026-10-02.md](source-parity-gsmis-2026-10-02.md)。
+
+
+2026-10-07本机账号初始化异常的页面边界见[分支裁决](decision-log.md#2026-10-07未确认本机账号时启动必须进入登录页)：对照冻结旧版App状态机及示例Context/存储；不修改学校认证协议，未知本机身份回登录页，不开放离线首页。

@@ -1784,3 +1784,20 @@ Bridge升级v36；schema v6新增载荷变体而不改SQL结构、密文封装�
 ## 2026-10-07：应用图标沿用冻结旧版资源
 
 用户要求同步旧版应用图标并打开macOS供人工检查。当前macOS、移动端和应用内仍有Flutter模板标识。以冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 中各平台成品资源为来源，优先逐字节复制；macOS仅缺少16px槽位，使用旧32px图缩小。iOS复用旧版完整Contents.json以保留深色与着色变体，Android保留旧版自适应图层和圆形资源。应用图标为工程静态资源，纳入Git；运行日志与窗口截图放仓库外。此批不改变认证、读取或写入协议，不新增行为测试。
+
+
+## 2026-10-07：未确认本机账号时启动必须进入登录页
+
+用户指出未登录直接进入首页不符合预期。现场新实例首页提示需要登录且存在读取失败；源码确认 `_initializeLocalHome` 的异常分支在账号索引读取失败、尚无可恢复身份时仍设置home。该分支与已接受离线设计S10及首次启动判据不符；存储不可读不能当作有本机账号的证据。独立配置目录只隔离文件，系统安全存储仍由应用namespace管理，因此也不能仅凭使用新目录宣称系统账号索引为空。
+
+冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`：`composeApp/src/commonMain/kotlin/cn/edu/ubaa/App.kt:226–244` 只有isLoggedIn且userData非空才展示主应用，否则登录；`ui/screens/auth/AuthViewModel.kt:90–121` 预加载失败仅记录错误，不授权已登录。旧API/DTO/本地认证及用例仍沿[交互整合来源](source-parity-interactive-integration-2026-10-02.md)，此处不改协议。示例 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `src/context.rs`、`src/store/cookies.rs`、`src/store/cred.rs` 仅管理Cookie/凭据与显式认证，没有App页面或本机首页索引，不从其存储容错推导首页资格。
+
+| 操作 | CAS/bootstrap/service | redirect/finalURL | Cookie/session | HTTP/精确参数 | headers/body | crypto | DTO/parser | cache/concurrency | error/exit |
+|---|---|---|---|---|---|---|---|---|---|
+| 读取本机账号失败后的启动路由 | 无新地址或认证请求 | 无变化 | 不读写或删除真实会话/凭据 | 零自动登录、零首页业务读取；手动登录沿原路径 | 无变化 | 保持安全存储及AES-GCM，不降级明文 | 公共DTO及索引格式不变，不把读取异常当账号存在 | 无有效账号不启用离线恢复，不开放首页；已确认账号的缓存正文/网络失败仍可留在离线首页，迟到结果受原代次限制 | 在登录页保留安全错误，可手动登录；CLI退出码不变 |
+
+先补异常账号索引、首次空账号及宿主页面回归，观察RED后仅修正启动异常分支；已有账号的离线/网络故障恢复用例必须继续通过。
+
+现场复验：重建同一生产Release入口并沿原独立文件目录启动后，Computer Use确认当前显示UBAA登录页，不再显示首页。脱敏诊断的调用点为 `PlatformCredentialVault.load`（credentials.dart:319）→`_initializeLocalHome`（offline_startup.dart:13）：本机索引为空后的旧凭据读取抛出storageFailure，实际触发了上述错误兜底。另补精确凭据故障回归，证明错误时零自动认证/首页读取，用户手动认证成功后才进入首页。原安全存储读取故障仍保留可见提示，未清除或更改真实钥匙串条目；学校真实登录未在本轮执行。
+
+验证：控制器/宿主两处预期RED已保留；启动、缓存、恢复聚焦30项GREEN；完整7包分析与1339项Flutter测试、`just check`（含CLI端到端）、macOS Release构建均通过。现场诊断之后新增的精确旧凭据故障用例随启动文件13项再通过，生产代码未再变化。全部日志位于仓库外私有 `~/Library/Application Support/UBAA-private-evidence/startup-login-20261007/`，包含app-red/host-red、app-green/host-green、credential-migration-green、flutter-check、check、macos-build。
