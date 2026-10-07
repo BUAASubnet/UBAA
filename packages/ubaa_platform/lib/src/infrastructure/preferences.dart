@@ -93,6 +93,8 @@ final class AccountPreferences<T> {
     await values.write(key, jsonEncode(encode(value)));
   });
   Future<void> clear(String account) => _serial(account, (key) async {
-    if (await _read(key) != null) await values.remove(key);
+    // 明确删除只依赖账号键；损坏的普通偏好也必须能够恢复。
+    // 保留普通保存的严格解码，插件删除错误仍交由调用方处理。
+    await values.remove(key);
   });
 }

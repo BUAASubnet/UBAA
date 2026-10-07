@@ -135,7 +135,7 @@ void main() {
     },
   };
   for (final entry in malformed.entries) {
-    test('坏数据返回固定错误且不覆盖原偏好，队列可恢复：${entry.key}', () async {
+    test('坏数据拒绝普通覆盖，明确清除后可恢复：${entry.key}', () async {
       await store().write('fixture-a', _filters('沙河校区'));
       final key = values.values.keys.single;
       final raw = entry.value is String
@@ -151,9 +151,11 @@ void main() {
         current.write('fixture-a', _filters('杭州校区')),
         throwsA(safeError),
       );
-      await expectLater(current.clearAccount('fixture-a'), throwsA(safeError));
       expect(values.values[key], raw);
-      values.values.remove(key);
+      await current.write('fixture-b', _filters('学院路校区'));
+      await current.clearAccount('fixture-a');
+      expect(values.values.containsKey(key), isFalse);
+      expect(await current.read('fixture-b'), _filters('学院路校区'));
       await current.write('fixture-a', _filters('杭州校区'));
       expect(await current.read('fixture-a'), _filters('杭州校区'));
     });
@@ -174,6 +176,19 @@ void main() {
     );
     values.fail = false;
     await current.write('fixture-a', _filters('沙河校区'));
+    expect(await current.read('fixture-a'), _filters('沙河校区'));
+    values.fail = true;
+    await expectLater(
+      current.clearAccount('fixture-a'),
+      throwsA(
+        isA<BykcCourseFilterStoreException>().having(
+          (error) => error.code,
+          '删除失败仍可见',
+          BykcCourseFilterStoreError.storageFailure,
+        ),
+      ),
+    );
+    values.fail = false;
     expect(await current.read('fixture-a'), _filters('沙河校区'));
   });
 }

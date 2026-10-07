@@ -10,6 +10,41 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 void main() {
+  for (final clearAccount in [false, true]) {
+    testWidgets('损坏筛选可经宿主明确清除且保留其他账号：退出=$clearAccount', (tester) async {
+      _largeView(tester);
+      await tester.runAsync(() async {
+        final values = _PreferenceValues();
+        final store = PreferencesBykcCourseFilterStore(
+          scope: 'synthetic-corrupt-recovery',
+          values: values,
+        );
+        await store.write('fixture-a', BykcCourseFilters(categories: ['美育']));
+        final damagedKey = values.values.keys.single;
+        await store.write('fixture-b', BykcCourseFilters(categories: ['德育']));
+        values.values[damagedKey] = '{';
+        await tester.pumpWidget(_host(_BykcBackend(), store: store));
+        await tester.pumpAndSettle();
+        if (clearAccount) {
+          await tester
+              .widget<UbaaMainShell>(find.byType(UbaaMainShell))
+              .onLogoutAndClearAccount();
+          await tester.pumpAndSettle();
+          expect(find.byType(UbaaLoginView), findsOneWidget);
+        } else {
+          await _openBykc(tester);
+          await _openFilters(tester);
+          await _chip(tester, '美育');
+          await _tapTextButton(tester, '恢复默认');
+        }
+        expect(await store.read('fixture-a'), isNull);
+        expect((await store.read('fixture-b'))!.categories, {'德育'});
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+      });
+    });
+  }
+
   testWidgets('普通退出后重新登录同一账号恢复三维选择及状态不限', (tester) async {
     _largeView(tester);
     await tester.pumpWidget(_host(_BykcBackend()));

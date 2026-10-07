@@ -41,11 +41,17 @@ void main() {
       throwsFormatException,
     );
     expect(values.values[key], '{无效');
+    await store.write('b', const YgdkReminderSettings(enabled: false));
+    await store.clear('a');
+    expect(values.values.containsKey(key), isFalse);
+    expect((await store.read('a')).enabled, isTrue);
+    expect((await store.read('b')).enabled, isFalse);
     await expectLater(
       store.write('', const YgdkReminderSettings()),
       throwsArgumentError,
     );
     values.fail = true;
     await expectLater(store.read('b'), throwsStateError);
+    await expectLater(store.clear('b'), throwsStateError);
   });
 }
