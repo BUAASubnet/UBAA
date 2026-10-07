@@ -5,8 +5,8 @@ use std::task::{Context, Poll};
 use std::time::Duration;
 
 use super::support::{
-    bykc_sign_canonical, cgyy_canonical, digest, map_commit_error, map_resolution_error, random_id,
-    safe_summary_label, validate_ygdk_request, ygdk_canonical,
+    bykc_sign_canonical, cgyy_canonical, digest, map_commit_error, random_id, safe_summary_label,
+    validate_ygdk_request, ygdk_canonical,
 };
 use super::{
     BridgeBykcCourseRequest, BridgeBykcSignCourseRequest, BridgeCgyyReservationSelection,
@@ -29,6 +29,7 @@ mod evaluation;
 mod libbook;
 mod libbook_cancel;
 mod lifecycle;
+mod route_contract;
 mod signin;
 mod validation;
 mod ygdk;

@@ -453,8 +453,7 @@ async fn 有效准备先复核资格且提交只命中已解析路线() {
     let direct = MockTransport::new([
         bykc_login_request(),
         eligible_bykc_detail_request(),
-        eligible_bykc_detail_request(),
-        // Bridge 提交复核后，Core 写边界仍必须独立执行最终权威复核。
+        // 提交前的唯一 fresh 资格复核由 Core 原子路线入口执行。
         eligible_bykc_detail_request(),
         ExpectedRequest::new(
             HttpMethod::Post,
@@ -501,7 +500,7 @@ async fn 有效准备先复核资格且提交只命中已解析路线() {
     ));
     assert_eq!(result.resolved_route, Some(BridgeConnectionMode::Direct));
     direct.assert_exhausted().expect("Direct 脚本必须全部消费");
-    assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 5);
+    assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 4);
     assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
 
     let reused = client
@@ -509,7 +508,7 @@ async fn 有效准备先复核资格且提交只命中已解析路线() {
         .await
         .expect_err("同一 intent 不得重复提交");
     assert_eq!(reused.code, BridgeErrorCode::IntentExpired);
-    assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 5);
+    assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 4);
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);
 }
@@ -738,8 +737,7 @@ async fn 有效退选在准备和提交时复核且只命中已解析路线() {
     let direct = MockTransport::new([
         bykc_login_request(),
         deselectable_bykc_detail_request(),
-        deselectable_bykc_detail_request(),
-        // Bridge 提交复核后，Core 写边界仍必须独立执行最终权威复核。
+        // 提交前的唯一 fresh 资格复核由 Core 原子路线入口执行。
         deselectable_bykc_detail_request(),
         ExpectedRequest::new(
             HttpMethod::Post,
@@ -780,7 +778,7 @@ async fn 有效退选在准备和提交时复核且只命中已解析路线() {
     ));
     assert_eq!(result.resolved_route, Some(BridgeConnectionMode::Direct));
     direct.assert_exhausted().expect("Direct 脚本必须全部消费");
-    assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 5);
+    assert_eq!(direct.requests().expect("读取 Direct 请求").len(), 4);
     assert!(webvpn.requests().expect("读取 WebVPN 请求").is_empty());
     client.dispose().await.expect("销毁 bridge");
     let _ = std::fs::remove_dir_all(root);

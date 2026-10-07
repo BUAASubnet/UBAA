@@ -92,14 +92,37 @@ fn 确认摘要移除双向控制零宽与行分隔字符() {
 }
 
 #[test]
-fn session_revision_conflict_maps_to_operation_conflict_at_write_boundary() {
+fn 普通错误即使文案相同也不能伪造会话冲突() {
     let error = UbaaError::new(
         ErrorCode::InternalError,
         ErrorKind::Internal,
-        false,
+        true,
         "local session changed in another process",
     );
-    let mapped = map_resolution_error(error);
+    assert_eq!(
+        map_commit_error(
+            BridgeWriteOperation::BykcSelectCourse,
+            RoutedError {
+                error,
+                resolution: None
+            }
+        )
+        .code,
+        BridgeErrorCode::InternalError
+    );
+}
+
+#[test]
+fn session_revision_conflict_maps_to_operation_conflict_at_write_boundary() {
+    let mut error = session_conflict_error();
+    error.message = "会话修订已改变，重新确认".into();
+    let mapped = map_commit_error(
+        BridgeWriteOperation::BykcSelectCourse,
+        RoutedError {
+            error,
+            resolution: None,
+        },
+    );
     assert_eq!(mapped.code, BridgeErrorCode::OperationConflict);
 }
 
@@ -154,12 +177,7 @@ fn 博雅签到提交错误按写请求是否已发送区分() {
     let session_changed = map_commit_error(
         BridgeWriteOperation::BykcSignCourse,
         RoutedError {
-            error: UbaaError::new(
-                ErrorCode::InternalError,
-                ErrorKind::Internal,
-                false,
-                "local session changed in another process",
-            ),
+            error: session_conflict_error(),
             resolution: None,
         },
     );
@@ -247,4 +265,26 @@ fn 图书馆预约提交只信任_core_的显式发送边界分类() {
     assert_eq!(post_send.kind, BridgeErrorKind::Upstream);
     assert!(!post_send.retryable);
     assert_eq!(post_send.message, "fixture libbook outcome unknown");
+}
+
+// 通过真实双槽 Session 修订冲突取得原因，禁止测试用错误文案伪造内部状态。
+fn session_conflict_error() -> UbaaError {
+    let root = test_root("typed-session-conflict");
+    let store = seed_sessions(&root, true, true);
+    let mut core = UbaaClient::with_routing(
+        MockTransport::new([]),
+        MockTransport::new([]),
+        store.clone(),
+        RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
+        NeverProbe,
+    )
+    .unwrap();
+    store
+        .save_dual(&DualSessionSnapshot::new(None, None))
+        .unwrap();
+    let error = core
+        .resolve_route_for_feature(ubaa_core::facade::ReadonlyFeature::Bykc)
+        .unwrap_err();
+    std::fs::remove_dir_all(root).unwrap();
+    error
 }

@@ -13,25 +13,11 @@ use super::{
     BridgeEvaluationSubmitCoursesRequest, BridgeWriteOperation, BridgeYgdkSubmitReceipt,
     BridgeYgdkSubmitRequest,
 };
-use crate::api::client::{BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeErrorKind};
+use crate::api::client::{BridgeError, BridgeErrorCode, BridgeErrorKind};
 use crate::api::read::BridgeEvaluationSubmitTarget;
 
-pub(super) fn map_resolution_error(error: ubaa_core::facade::UbaaError) -> BridgeError {
-    // Core 将跨进程会话修订冲突归约为 internal_error；在写 intent 的路线复核边界
-    // 将这个已冻结的稳定消息投影为可行动的 operation_conflict，禁止继续提交旧请求。
-    if error.message == "local session changed in another process" {
-        return BridgeError::local(
-            BridgeErrorCode::OperationConflict,
-            BridgeErrorKind::Input,
-            true,
-            "session changed; prepare the write again",
-        );
-    }
-    BridgeError::from_core(error, None)
-}
-
 pub(super) fn map_bykc_sign_preflight_error(error: domain::RoutedError) -> BridgeError {
-    if error.error.message == "local session changed in another process" {
+    if error.error.is_session_conflict() {
         return routed_local_error(
             &error,
             BridgeErrorCode::OperationConflict,
@@ -53,7 +39,7 @@ pub(super) fn map_bykc_sign_preflight_error(error: domain::RoutedError) -> Bridg
 }
 
 pub(super) fn map_libbook_preflight_error(error: domain::RoutedError) -> BridgeError {
-    if error.error.message == "local session changed in another process" {
+    if error.error.is_session_conflict() {
         return routed_local_error(
             &error,
             BridgeErrorCode::OperationConflict,
@@ -75,7 +61,7 @@ pub(super) fn map_libbook_preflight_error(error: domain::RoutedError) -> BridgeE
 }
 
 pub(super) fn map_libbook_cancel_preflight_error(error: domain::RoutedError) -> BridgeError {
-    if error.error.message == "local session changed in another process" {
+    if error.error.is_session_conflict() {
         return routed_local_error(
             &error,
             BridgeErrorCode::OperationConflict,
@@ -106,7 +92,7 @@ pub(super) fn map_libbook_cancel_preflight_error(error: domain::RoutedError) -> 
 }
 
 pub(super) fn map_cgyy_preflight_error(error: domain::RoutedError) -> BridgeError {
-    if error.error.message == "local session changed in another process" {
+    if error.error.is_session_conflict() {
         return routed_local_error(
             &error,
             BridgeErrorCode::OperationConflict,
@@ -137,7 +123,7 @@ pub(super) fn map_cgyy_preflight_error(error: domain::RoutedError) -> BridgeErro
 }
 
 pub(super) fn map_cgyy_cancel_preflight_error(error: domain::RoutedError) -> BridgeError {
-    if error.error.message == "local session changed in another process" {
+    if error.error.is_session_conflict() {
         return routed_local_error(
             &error,
             BridgeErrorCode::OperationConflict,
@@ -168,7 +154,7 @@ pub(super) fn map_cgyy_cancel_preflight_error(error: domain::RoutedError) -> Bri
 }
 
 pub(super) fn map_ygdk_preflight_error(error: domain::RoutedError) -> BridgeError {
-    if error.error.message == "local session changed in another process" {
+    if error.error.is_session_conflict() {
         return routed_local_error(
             &error,
             BridgeErrorCode::OperationConflict,
@@ -190,7 +176,7 @@ pub(super) fn map_ygdk_preflight_error(error: domain::RoutedError) -> BridgeErro
 }
 
 pub(super) fn map_evaluation_preflight_error(error: &domain::RoutedError) -> BridgeError {
-    if error.error.message == "local session changed in another process" {
+    if error.error.is_session_conflict() {
         return routed_local_error(
             error,
             BridgeErrorCode::OperationConflict,
@@ -221,7 +207,7 @@ pub(super) fn map_commit_error(
     operation: BridgeWriteOperation,
     error: domain::RoutedError,
 ) -> BridgeError {
-    if error.error.message == "local session changed in another process" {
+    if error.error.is_session_conflict() {
         return routed_local_error(
             &error,
             BridgeErrorCode::OperationConflict,
@@ -230,20 +216,10 @@ pub(super) fn map_commit_error(
             "session changed; prepare the write again",
         );
     }
-    if matches!(
-        operation,
-        BridgeWriteOperation::BykcSignCourse
-            | BridgeWriteOperation::SigninPerform
-            | BridgeWriteOperation::LibbookReserve
-            | BridgeWriteOperation::LibbookCancelBooking
-            | BridgeWriteOperation::YgdkSubmit
-            | BridgeWriteOperation::CgyySubmitReservation
-            | BridgeWriteOperation::CgyyCancelOrder
-            | BridgeWriteOperation::EvaluationSubmitCourses
-    ) && error.error.code == domain::ErrorCode::InvalidInput
-        && error.error.retryable
-    {
+    if error.error.code == domain::ErrorCode::InvalidInput && error.error.retryable {
         let message = match operation {
+            BridgeWriteOperation::BykcSelectCourse => "课程当前不可选，请刷新课程详情后重试",
+            BridgeWriteOperation::BykcDeselectCourse => "课程当前不可退选，请刷新课程详情后重试",
             BridgeWriteOperation::SigninPerform => "课堂签到资格已变化，请刷新后重新准备",
             BridgeWriteOperation::LibbookReserve => "图书馆预约资格已变化，请刷新后重新准备",
             BridgeWriteOperation::LibbookCancelBooking => {
@@ -255,7 +231,7 @@ pub(super) fn map_commit_error(
             BridgeWriteOperation::EvaluationSubmitCourses => {
                 "教学评教资格已变化，请刷新课程后重新准备"
             }
-            _ => "课程签到资格已变化，请刷新后重新准备",
+            BridgeWriteOperation::BykcSignCourse => "课程签到资格已变化，请刷新后重新准备",
         };
         return routed_local_error(
             &error,
@@ -437,21 +413,6 @@ pub(super) fn ensure_bykc_course_target(
         BridgeErrorKind::Upstream,
         false,
         "课程详情标识与请求不一致",
-    ))
-}
-
-pub(super) fn ensure_bykc_preflight_route(
-    expected: BridgeConnectionMode,
-    actual: BridgeConnectionMode,
-) -> Result<(), BridgeError> {
-    if expected == actual {
-        return Ok(());
-    }
-    Err(BridgeError::local(
-        BridgeErrorCode::OperationConflict,
-        BridgeErrorKind::Input,
-        true,
-        "route changed during preflight; prepare the write again",
     ))
 }
 

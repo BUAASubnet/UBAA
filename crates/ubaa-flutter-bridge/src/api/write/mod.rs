@@ -17,7 +17,6 @@ use std::fmt;
 
 use super::client::BridgeConnectionMode;
 use super::read::{BridgeEvaluationSubmitTarget, BridgeYgdkSubmitTarget};
-use ubaa_core::facade::ReadonlyFeature;
 
 #[derive(Clone, Copy, Debug)]
 pub enum BridgeWriteOperation {
@@ -226,19 +225,6 @@ impl PendingWrite {
             Self::CgyyReserve(_) => BridgeWriteOperation::CgyySubmitReservation,
             Self::CgyyCancel(_) => BridgeWriteOperation::CgyyCancelOrder,
             Self::Evaluation(_) => BridgeWriteOperation::EvaluationSubmitCourses,
-        }
-    }
-
-    fn feature(&self) -> ReadonlyFeature {
-        match self {
-            Self::BykcSelect(_) | Self::BykcDeselect(_) | Self::BykcSign(_) => {
-                ReadonlyFeature::Bykc
-            }
-            Self::Signin(_) => ReadonlyFeature::Signin,
-            Self::LibbookReserve(_) | Self::LibbookCancel(_) => ReadonlyFeature::LibBook,
-            Self::Ygdk(_) => ReadonlyFeature::Ygdk,
-            Self::CgyyReserve(_) | Self::CgyyCancel(_) => ReadonlyFeature::Cgyy,
-            Self::Evaluation(_) => ReadonlyFeature::Evaluation,
         }
     }
 

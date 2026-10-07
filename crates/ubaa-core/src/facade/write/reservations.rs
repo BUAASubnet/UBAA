@@ -115,8 +115,30 @@ impl UbaaClient {
         &mut self,
         request: CgyyReservationSubmitRequest,
     ) -> RoutedResult<CgyyReservationResult> {
-        self.guard_latest_routed()?;
-        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
+        let resolution = self.resolve_write_route(ReadonlyFeature::Cgyy, None)?;
+        self.cgyy_submit_reservation_resolved(request, resolution)
+            .await
+    }
+
+    /// 仅在本次权威解析仍匹配确认路线时执行 fresh 资格复核及单次提交。
+    ///
+    /// # Errors
+    /// 会话、路线或资格变化时拒绝；路线冲突在任何业务 HTTP 之前返回。
+    pub async fn cgyy_submit_reservation_if_route_matches(
+        &mut self,
+        request: CgyyReservationSubmitRequest,
+        expected_route: ConnectionMode,
+    ) -> RoutedResult<CgyyReservationResult> {
+        let resolution = self.resolve_write_route(ReadonlyFeature::Cgyy, Some(expected_route))?;
+        self.cgyy_submit_reservation_resolved(request, resolution)
+            .await
+    }
+
+    async fn cgyy_submit_reservation_resolved(
+        &mut self,
+        request: CgyyReservationSubmitRequest,
+        resolution: RouteResolution,
+    ) -> RoutedResult<CgyyReservationResult> {
         self.log_cgyy_route(resolution, "reservation.submit");
         let result = {
             let runtime = self.runtime_for(resolution.mode);
@@ -152,8 +174,29 @@ impl UbaaClient {
         &mut self,
         request: LibBookReserveRequest,
     ) -> RoutedResult<LibBookReserveResult> {
-        self.guard_latest_routed()?;
-        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let resolution = self.resolve_write_route(ReadonlyFeature::LibBook, None)?;
+        self.libbook_reserve_resolved(request, resolution).await
+    }
+
+    /// 仅在本次权威解析仍匹配确认路线时执行 fresh 资格复核及单次提交。
+    ///
+    /// # Errors
+    /// 会话、路线或资格变化时拒绝；路线冲突在任何业务 HTTP 之前返回。
+    pub async fn libbook_reserve_if_route_matches(
+        &mut self,
+        request: LibBookReserveRequest,
+        expected_route: ConnectionMode,
+    ) -> RoutedResult<LibBookReserveResult> {
+        let resolution =
+            self.resolve_write_route(ReadonlyFeature::LibBook, Some(expected_route))?;
+        self.libbook_reserve_resolved(request, resolution).await
+    }
+
+    async fn libbook_reserve_resolved(
+        &mut self,
+        request: LibBookReserveRequest,
+        resolution: RouteResolution,
+    ) -> RoutedResult<LibBookReserveResult> {
         let result = {
             let runtime = self.runtime_for(resolution.mode);
             runtime.begin_non_idempotent_operation();
@@ -188,8 +231,31 @@ impl UbaaClient {
         &mut self,
         request: LibBookCancelRequest,
     ) -> RoutedResult<LibBookCancelResult> {
-        self.guard_latest_routed()?;
-        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
+        let resolution = self.resolve_write_route(ReadonlyFeature::LibBook, None)?;
+        self.libbook_cancel_booking_resolved(request, resolution)
+            .await
+    }
+
+    /// 仅在本次权威解析仍匹配确认路线时执行 fresh 资格复核及单次提交。
+    ///
+    /// # Errors
+    /// 会话、路线或资格变化时拒绝；路线冲突在任何业务 HTTP 之前返回。
+    pub async fn libbook_cancel_booking_if_route_matches(
+        &mut self,
+        request: LibBookCancelRequest,
+        expected_route: ConnectionMode,
+    ) -> RoutedResult<LibBookCancelResult> {
+        let resolution =
+            self.resolve_write_route(ReadonlyFeature::LibBook, Some(expected_route))?;
+        self.libbook_cancel_booking_resolved(request, resolution)
+            .await
+    }
+
+    async fn libbook_cancel_booking_resolved(
+        &mut self,
+        request: LibBookCancelRequest,
+        resolution: RouteResolution,
+    ) -> RoutedResult<LibBookCancelResult> {
         let result = {
             let runtime = self.runtime_for(resolution.mode);
             runtime.begin_non_idempotent_operation();

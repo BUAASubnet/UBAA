@@ -223,3 +223,18 @@ fn assert_debug_redacts(formatted: &str, sentinels: &[&str]) {
         );
     }
 }
+
+#[test]
+fn 公开构造函数与四字段序列化兼容() {
+    let error = UbaaError::new(ErrorCode::Timeout, ErrorKind::Network, true, "请求超时");
+    let json = serde_json::to_value(&error).unwrap();
+    assert_eq!(
+        json,
+        serde_json::json!({
+            "code": "timeout", "kind": "network", "retryable": true, "message": "请求超时",
+        })
+    );
+    let restored: UbaaError = serde_json::from_value(json).unwrap();
+    assert_eq!(restored, error);
+    assert!(!restored.is_session_conflict());
+}

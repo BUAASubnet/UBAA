@@ -360,12 +360,7 @@ fn now_seconds_at(now: SystemTime) -> Result<i64> {
 }
 
 fn session_conflict() -> UbaaError {
-    UbaaError::new(
-        ErrorCode::InternalError,
-        ErrorKind::Internal,
-        true,
-        "local session changed in another process",
-    )
+    UbaaError::session_conflict()
 }
 
 fn write_outcome_unknown() -> UbaaError {

@@ -17,8 +17,30 @@ impl UbaaClient {
     ///
     /// 会话所有权失效、博雅路线不可用或选课失败时返回带路线信息的错误。
     pub async fn bykc_select_course(&mut self, course_id: i64) -> RoutedResult<BykcActionResult> {
-        self.guard_latest_routed()?;
-        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        let resolution = self.resolve_write_route(ReadonlyFeature::Bykc, None)?;
+        self.bykc_select_course_resolved(course_id, resolution)
+            .await
+    }
+
+    /// 仅在本次权威解析仍匹配确认路线时执行 fresh 资格复核及单次提交。
+    ///
+    /// # Errors
+    /// 会话、路线或资格变化时拒绝；路线冲突在任何业务 HTTP 之前返回。
+    pub async fn bykc_select_course_if_route_matches(
+        &mut self,
+        course_id: i64,
+        expected_route: ConnectionMode,
+    ) -> RoutedResult<BykcActionResult> {
+        let resolution = self.resolve_write_route(ReadonlyFeature::Bykc, Some(expected_route))?;
+        self.bykc_select_course_resolved(course_id, resolution)
+            .await
+    }
+
+    async fn bykc_select_course_resolved(
+        &mut self,
+        course_id: i64,
+        resolution: RouteResolution,
+    ) -> RoutedResult<BykcActionResult> {
         let result = {
             let runtime = self.runtime_for(resolution.mode);
             runtime.begin_non_idempotent_operation();
@@ -33,8 +55,30 @@ impl UbaaClient {
     ///
     /// 会话所有权失效、博雅路线不可用或退选失败时返回带路线信息的错误。
     pub async fn bykc_deselect_course(&mut self, course_id: i64) -> RoutedResult<BykcActionResult> {
-        self.guard_latest_routed()?;
-        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        let resolution = self.resolve_write_route(ReadonlyFeature::Bykc, None)?;
+        self.bykc_deselect_course_resolved(course_id, resolution)
+            .await
+    }
+
+    /// 仅在本次权威解析仍匹配确认路线时执行 fresh 资格复核及单次提交。
+    ///
+    /// # Errors
+    /// 会话、路线或资格变化时拒绝；路线冲突在任何业务 HTTP 之前返回。
+    pub async fn bykc_deselect_course_if_route_matches(
+        &mut self,
+        course_id: i64,
+        expected_route: ConnectionMode,
+    ) -> RoutedResult<BykcActionResult> {
+        let resolution = self.resolve_write_route(ReadonlyFeature::Bykc, Some(expected_route))?;
+        self.bykc_deselect_course_resolved(course_id, resolution)
+            .await
+    }
+
+    async fn bykc_deselect_course_resolved(
+        &mut self,
+        course_id: i64,
+        resolution: RouteResolution,
+    ) -> RoutedResult<BykcActionResult> {
         let result = {
             let runtime = self.runtime_for(resolution.mode);
             runtime.begin_non_idempotent_operation();
@@ -52,8 +96,28 @@ impl UbaaClient {
         &mut self,
         request: BykcSignRequest,
     ) -> RoutedResult<BykcActionResult> {
-        self.guard_latest_routed()?;
-        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
+        let resolution = self.resolve_write_route(ReadonlyFeature::Bykc, None)?;
+        self.bykc_sign_course_resolved(request, resolution).await
+    }
+
+    /// 仅在本次权威解析仍匹配确认路线时执行 fresh 资格复核及单次提交。
+    ///
+    /// # Errors
+    /// 会话、路线或资格变化时拒绝；路线冲突在任何业务 HTTP 之前返回。
+    pub async fn bykc_sign_course_if_route_matches(
+        &mut self,
+        request: BykcSignRequest,
+        expected_route: ConnectionMode,
+    ) -> RoutedResult<BykcActionResult> {
+        let resolution = self.resolve_write_route(ReadonlyFeature::Bykc, Some(expected_route))?;
+        self.bykc_sign_course_resolved(request, resolution).await
+    }
+
+    async fn bykc_sign_course_resolved(
+        &mut self,
+        request: BykcSignRequest,
+        resolution: RouteResolution,
+    ) -> RoutedResult<BykcActionResult> {
         let result = {
             let runtime = self.runtime_for(resolution.mode);
             runtime.begin_non_idempotent_operation();
@@ -88,8 +152,28 @@ impl UbaaClient {
     ///
     /// 会话所有权失效、课堂签到路线不可用或签到失败时返回带路线信息的错误。
     pub async fn signin_perform(&mut self, course_id: &str) -> RoutedResult<SigninActionResult> {
-        self.guard_latest_routed()?;
-        let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Signin))?;
+        let resolution = self.resolve_write_route(ReadonlyFeature::Signin, None)?;
+        self.signin_perform_resolved(course_id, resolution).await
+    }
+
+    /// 仅在本次权威解析仍匹配确认路线时执行 fresh 资格复核及单次提交。
+    ///
+    /// # Errors
+    /// 会话、路线或资格变化时拒绝；路线冲突在任何业务 HTTP 之前返回。
+    pub async fn signin_perform_if_route_matches(
+        &mut self,
+        course_id: &str,
+        expected_route: ConnectionMode,
+    ) -> RoutedResult<SigninActionResult> {
+        let resolution = self.resolve_write_route(ReadonlyFeature::Signin, Some(expected_route))?;
+        self.signin_perform_resolved(course_id, resolution).await
+    }
+
+    async fn signin_perform_resolved(
+        &mut self,
+        course_id: &str,
+        resolution: RouteResolution,
+    ) -> RoutedResult<SigninActionResult> {
         let result = {
             let runtime = self.runtime_for(resolution.mode);
             runtime.begin_non_idempotent_operation();

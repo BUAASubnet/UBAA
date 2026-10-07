@@ -2,10 +2,8 @@
 
 use super::cache::{BridgeCachedWriteCommit, finish_cached_commit};
 use super::support::{
-    ensure_bykc_course_target, ensure_bykc_deselect_allowed, ensure_bykc_preflight_route,
-    ensure_bykc_select_allowed, invalid_input, map_cgyy_receipt, map_cgyy_request,
-    map_commit_error, map_evaluation_batch, map_resolution_error, map_ygdk_receipt, now_seconds,
-    safe_message,
+    invalid_input, map_cgyy_receipt, map_cgyy_request, map_commit_error, map_evaluation_batch,
+    map_ygdk_receipt, now_seconds, safe_message,
 };
 use super::{BridgeWriteCommitResult, PendingWrite};
 use crate::api::client::{
@@ -62,57 +60,15 @@ impl BridgeClient {
             let impact = pending.cache_impact();
             let expected_route = entry.resolved_route;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
-            // 场馆取消、阳光打卡与教学评教把路线匹配及最终发送绑定在 Core 的同一个调用中；
-            // 若先在 Bridge 解析再调用普通写入口，Auto 探测缓存跨界时会形成 TOCTOU。
-            if !matches!(
-                &pending,
-                PendingWrite::CgyyCancel(_) | PendingWrite::Ygdk(_) | PendingWrite::Evaluation(_)
-            ) {
-                let current_resolution = client
-                    .resolve_route_for_feature(pending.feature())
-                    .map_err(map_resolution_error)?;
-                let current_route: BridgeConnectionMode = current_resolution.mode.into();
-                if current_route != expected_route {
-                    return Err(BridgeError::local(
-                        BridgeErrorCode::OperationConflict,
-                        BridgeErrorKind::Input,
-                        true,
-                        "route changed; prepare the write again",
-                    ));
-                }
-            }
-            match &pending {
-                PendingWrite::BykcSelect(request) => {
-                    let current = client
-                        .bykc_course_detail(request.course_id)
-                        .await
-                        .map_err(BridgeError::from_routed)?;
-                    ensure_bykc_course_target(request.course_id, current.data.id)?;
-                    ensure_bykc_preflight_route(
-                        entry.resolved_route,
-                        current.resolution.mode.into(),
-                    )?;
-                    ensure_bykc_select_allowed(current.data.select_eligibility)?;
-                }
-                PendingWrite::BykcDeselect(request) => {
-                    let current = client
-                        .bykc_course_detail(request.course_id)
-                        .await
-                        .map_err(BridgeError::from_routed)?;
-                    ensure_bykc_course_target(request.course_id, current.data.id)?;
-                    ensure_bykc_preflight_route(
-                        entry.resolved_route,
-                        current.resolution.mode.into(),
-                    )?;
-                    ensure_bykc_deselect_allowed(current.data.deselect_eligibility)?;
-                }
-                _ => {}
-            }
+            // 所有提交都在 Core 一次解析中绑定确认路线、fresh authority 和最终发送。
+            // 博雅详情的唯一提交前复核也在 Core；Bridge 不再重复读取另一份 authority。
             let (hint, hint_start_error) =
                 super::readback::begin_hint(cache, operation, expected_route).await;
             let result = match pending {
-                PendingWrite::BykcSelect(request) => {
-                    client.bykc_select_course(request.course_id).await.map(|r| {
+                PendingWrite::BykcSelect(request) => client
+                    .bykc_select_course_if_route_matches(request.course_id, expected_route.into())
+                    .await
+                    .map(|r| {
                         (
                             r.resolution,
                             true,
@@ -121,10 +77,9 @@ impl BridgeClient {
                             None,
                             None,
                         )
-                    })
-                }
+                    }),
                 PendingWrite::BykcDeselect(request) => client
-                    .bykc_deselect_course(request.course_id)
+                    .bykc_deselect_course_if_route_matches(request.course_id, expected_route.into())
                     .await
                     .map(|r| {
                         (
@@ -143,17 +98,22 @@ impl BridgeClient {
                         "博雅签退已提交"
                     };
                     client
-                        .bykc_sign_course(domain::BykcSignRequest {
-                            course_id: request.course_id,
-                            lat: request.lat,
-                            lng: request.lng,
-                            sign_type: request.sign_type,
-                        })
+                        .bykc_sign_course_if_route_matches(
+                            domain::BykcSignRequest {
+                                course_id: request.course_id,
+                                lat: request.lat,
+                                lng: request.lng,
+                                sign_type: request.sign_type,
+                            },
+                            expected_route.into(),
+                        )
                         .await
                         .map(|r| (r.resolution, true, safe_message(message), None, None, None))
                 }
-                PendingWrite::Signin(request) => {
-                    client.signin_perform(&request.course_id).await.map(|r| {
+                PendingWrite::Signin(request) => client
+                    .signin_perform_if_route_matches(&request.course_id, expected_route.into())
+                    .await
+                    .map(|r| {
                         let success = r.data.success;
                         let message = if success {
                             safe_message("签到成功")
@@ -161,17 +121,19 @@ impl BridgeClient {
                             safe_message("签到未完成")
                         };
                         (r.resolution, success, message, None, None, None)
-                    })
-                }
+                    }),
                 PendingWrite::LibbookReserve(request) => client
-                    .libbook_reserve(domain::LibBookReserveRequest {
-                        area_id: request.area_id,
-                        seat_id: request.seat_id,
-                        day: request.day,
-                        segment: request.segment,
-                        start_time: request.start_time,
-                        end_time: request.end_time,
-                    })
+                    .libbook_reserve_if_route_matches(
+                        domain::LibBookReserveRequest {
+                            area_id: request.area_id,
+                            seat_id: request.seat_id,
+                            day: request.day,
+                            segment: request.segment,
+                            start_time: request.start_time,
+                            end_time: request.end_time,
+                        },
+                        expected_route.into(),
+                    )
                     .await
                     .map(|r| {
                         let success = r.data.success;
@@ -183,11 +145,14 @@ impl BridgeClient {
                         (r.resolution, success, message, None, None, None)
                     }),
                 PendingWrite::LibbookCancel(request) => client
-                    .libbook_cancel_booking(domain::LibBookCancelRequest {
-                        booking_id: request.id,
-                        page: request.page,
-                        limit: request.limit,
-                    })
+                    .libbook_cancel_booking_if_route_matches(
+                        domain::LibBookCancelRequest {
+                            booking_id: request.id,
+                            page: request.page,
+                            limit: request.limit,
+                        },
+                        expected_route.into(),
+                    )
                     .await
                     .map(|r| {
                         let success = r.data.success;
@@ -214,7 +179,10 @@ impl BridgeClient {
                         )
                     }),
                 PendingWrite::CgyyReserve(request) => client
-                    .cgyy_submit_reservation(map_cgyy_request(request))
+                    .cgyy_submit_reservation_if_route_matches(
+                        map_cgyy_request(request),
+                        expected_route.into(),
+                    )
                     .await
                     .map(|r| {
                         let success = r.data.success;
@@ -356,12 +324,7 @@ fn map_dispatch_error(
     expected_route: BridgeConnectionMode,
     error: domain::RoutedError,
 ) -> BridgeError {
-    if matches!(
-        operation,
-        super::BridgeWriteOperation::CgyyCancelOrder
-            | super::BridgeWriteOperation::YgdkSubmit
-            | super::BridgeWriteOperation::EvaluationSubmitCourses
-    ) && error.error.code == domain::ErrorCode::InvalidInput
+    if error.error.code == domain::ErrorCode::InvalidInput
         && error
             .resolution()
             .is_some_and(|resolution| resolution.mode != expected_route.into())

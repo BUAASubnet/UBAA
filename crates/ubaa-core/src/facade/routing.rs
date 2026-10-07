@@ -85,6 +85,22 @@ impl UbaaClient {
         Ok(resolution)
     }
 
+    /// 写入的确认路线与运行时选择共享同一次解析，不能在校验后再次探测。
+    pub(super) fn resolve_write_route(
+        &mut self,
+        feature: ReadonlyFeature,
+        expected_route: Option<ConnectionMode>,
+    ) -> std::result::Result<RouteResolution, RoutedError> {
+        let resolution = self.resolve_operation(Operation::Feature(feature))?;
+        if expected_route.is_some_and(|expected| expected != resolution.mode) {
+            return Err(routed_error(
+                invalid_input("写入路线已变化，请重新确认"),
+                resolution,
+            ));
+        }
+        Ok(resolution)
+    }
+
     pub(super) fn guard_latest_session_ownership(&mut self) -> Result<()> {
         self.clear_on_session_conflict()?;
         if !self.direct_runtime.has_local_session() && !self.direct_auth.has_pending_login() {

@@ -1,6 +1,12 @@
 //! 聚合门面的路线选择、诊断和禁止跨路线回退合同。
 
+#[path = "route_matrix/atomic_write.rs"]
+mod atomic_write;
 mod support;
+use atomic_write::{
+    assert_cgyy_cancel_atomic_route_boundary, assert_evaluation_submit_atomic_route_boundary,
+    assert_shared_write_route_boundary, assert_ygdk_submit_atomic_route_boundary,
+};
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::{Arc, Mutex};
@@ -505,7 +511,8 @@ fn 聚合门面只保留唯一运行时选择器和路线算法() {
     let observed = audited_route_usage(&facade_dir);
     let shared_route_execution_reuse = assert_cgyy_cancel_atomic_route_boundary(&facade_dir)
         + assert_ygdk_submit_atomic_route_boundary(&facade_dir)
-        + assert_evaluation_submit_atomic_route_boundary(&facade_dir);
+        + assert_evaluation_submit_atomic_route_boundary(&facade_dir)
+        + assert_shared_write_route_boundary(&facade_dir);
     assert!(observed.entry_points > 0, "必须发现 facade 业务入口");
     assert_eq!(
         observed.entry_points,
@@ -530,131 +537,6 @@ fn 聚合门面只保留唯一运行时选择器和路线算法() {
     assert_caller_pinned_route_boundaries(&facade_dir);
     assert_route_slot_boundaries(&facade_dir);
     assert_route_algorithm_is_unique(manifest_dir);
-}
-
-fn assert_cgyy_cancel_atomic_route_boundary(facade_dir: &std::path::Path) -> usize {
-    let tokens = rust_tokens(&source(&facade_dir.join("write/reservations.rs")));
-    let entry_points = ["cgyy_cancel_order", "cgyy_cancel_order_if_route_matches"];
-    for entry_point in entry_points {
-        let body = function_body(&tokens, entry_point)
-            .unwrap_or_else(|| panic!("定位场馆取消入口：{entry_point}"));
-        assert_eq!(
-            count_sequence(body, &["resolve_operation", "("]),
-            1,
-            "{entry_point} 必须只做一次权威路线解析"
-        );
-        assert_eq!(
-            count_sequence(body, &["cgyy_cancel_order_resolved", "("]),
-            1,
-            "{entry_point} 必须复用同一个已解析路线执行器"
-        );
-    }
-    let executor =
-        function_body(&tokens, "cgyy_cancel_order_resolved").expect("定位场馆取消已解析路线执行器");
-    assert_eq!(
-        count_sequence(executor, &["resolve_operation", "("]),
-        0,
-        "最终发送执行器不得再次解析路线"
-    );
-    assert_eq!(count_sequence(executor, &["runtime_for", "("]), 1);
-    assert_eq!(count_sequence(executor, &["finish_routed_write", "("]), 1);
-    // 两个公开入口共用一个执行器，源码静态计数会比调用语义少一个
-    // runtime/finish；这里显式登记并由上方逐函数约束防止抵消漏检。
-    entry_points.len() - 1
-}
-
-fn assert_ygdk_submit_atomic_route_boundary(facade_dir: &std::path::Path) -> usize {
-    let tokens = rust_tokens(&source(&facade_dir.join("write/campus.rs")));
-    let entry_points = ["ygdk_submit", "ygdk_submit_if_route_matches"];
-    for entry_point in entry_points {
-        let body = function_body(&tokens, entry_point)
-            .unwrap_or_else(|| panic!("定位阳光打卡提交入口：{entry_point}"));
-        assert_eq!(
-            count_sequence(body, &["validate_ygdk_submit_pre_route", "("]),
-            1,
-            "{entry_point} 必须在路线解析前完整校验本地输入"
-        );
-        assert_eq!(
-            count_sequence(body, &["resolve_operation", "("]),
-            1,
-            "{entry_point} 必须只做一次权威路线解析"
-        );
-        assert_eq!(
-            count_sequence(body, &["ygdk_submit_resolved", "("]),
-            1,
-            "{entry_point} 必须复用同一个已解析路线执行器"
-        );
-    }
-    let atomic = function_body(&tokens, "ygdk_submit_if_route_matches")
-        .expect("定位阳光打卡 expected-route 原子入口");
-    assert_eq!(
-        count_sequence(
-            atomic,
-            &["resolution", ".", "mode", "!", "=", "expected_route"]
-        ),
-        1,
-        "阳光打卡原子入口必须在执行器前比较唯一解析路线"
-    );
-    let executor =
-        function_body(&tokens, "ygdk_submit_resolved").expect("定位阳光打卡已解析路线执行器");
-    assert_eq!(
-        count_sequence(executor, &["resolve_operation", "("]),
-        0,
-        "阳光打卡最终发送执行器不得再次解析路线"
-    );
-    assert_eq!(count_sequence(executor, &["runtime_for", "("]), 1);
-    assert_eq!(
-        count_sequence(executor, &["begin_non_idempotent_operation", "("]),
-        1
-    );
-    assert_eq!(count_sequence(executor, &["finish_routed_write", "("]), 1);
-    entry_points.len() - 1
-}
-
-fn assert_evaluation_submit_atomic_route_boundary(facade_dir: &std::path::Path) -> usize {
-    let tokens = rust_tokens(&source(&facade_dir.join("write/evaluation.rs")));
-    let entry_points = [
-        "evaluation_submit_courses",
-        "evaluation_submit_courses_if_route_matches",
-    ];
-    for entry_point in entry_points {
-        let body = function_body(&tokens, entry_point)
-            .unwrap_or_else(|| panic!("定位评教提交入口：{entry_point}"));
-        assert_eq!(
-            count_sequence(body, &["resolve_operation", "("]),
-            1,
-            "{entry_point} 必须只做一次权威路线解析"
-        );
-        assert_eq!(
-            count_sequence(body, &["evaluation_submit_courses_resolved", "("]),
-            1,
-            "{entry_point} 必须复用同一个已解析路线执行器"
-        );
-    }
-    let atomic = function_body(&tokens, "evaluation_submit_courses_if_route_matches")
-        .expect("定位评教 expected-route 原子入口");
-    assert_eq!(
-        count_sequence(
-            atomic,
-            &["resolution", ".", "mode", "!", "=", "expected_route"]
-        ),
-        1,
-        "评教原子入口必须在 authority 前比较唯一解析路线"
-    );
-    let executor = function_body(&tokens, "evaluation_submit_courses_resolved")
-        .expect("定位评教已解析路线执行器");
-    assert_eq!(
-        count_sequence(executor, &["resolve_operation", "("]),
-        0,
-        "评教最终发送执行器不得再次解析路线"
-    );
-    assert_eq!(count_sequence(executor, &["runtime_for", "("]), 1);
-    assert_eq!(
-        count_sequence(executor, &["begin_non_idempotent_operation", "("]),
-        1
-    );
-    assert_eq!(count_sequence(executor, &["finish_routed_write", "("]), 1);
-    entry_points.len() - 1
 }
 
 fn assert_caller_pinned_route_boundaries(facade_dir: &std::path::Path) {
@@ -828,7 +710,8 @@ impl RouteUsage {
 fn route_usage(tokens: &[String]) -> RouteUsage {
     RouteUsage {
         entry_points: count_sequence(tokens, &["pub", "async", "fn"]),
-        resolve_operation: count_sequence(tokens, &["resolve_operation", "("]),
+        resolve_operation: count_sequence(tokens, &["resolve_operation", "("])
+            + count_sequence(tokens, &["resolve_write_route", "("]),
         caller_pinned: count_sequence(tokens, &["guard_caller_pinned_route", "("]),
         runtime_for: count_sequence(tokens, &["runtime_for", "("]),
         route_parts_for: count_sequence(tokens, &["route_parts_for", "("]),

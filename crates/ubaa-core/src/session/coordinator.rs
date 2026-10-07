@@ -3,7 +3,7 @@
 use std::sync::{Arc, Mutex};
 
 use crate::domain::ConnectionMode;
-use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use crate::error::{Result, UbaaError};
 
 use super::file_safety::session_error;
 use super::file_store::FileSessionStore;
@@ -276,12 +276,7 @@ impl SessionStore for CoordinatedRouteSessionStore {
 }
 
 fn dual_session_conflict() -> UbaaError {
-    UbaaError::new(
-        ErrorCode::InternalError,
-        ErrorKind::Internal,
-        true,
-        "local session changed in another process",
-    )
+    UbaaError::session_conflict()
 }
 
 #[cfg(test)]
