@@ -105,10 +105,25 @@ void _registerQueryFlowTests() {
       await tester.pumpAndSettle();
     }
 
-    Future<void> apply() async {
-      await tester.tap(find.text('应用筛选'));
+    Future<void> apply(FeatureId feature, FeatureQueryView view) async {
+      final before = backend.queries.length;
+      final applyButton = find.widgetWithText(FilledButton, '应用筛选');
+      await tester.ensureVisible(applyButton);
       await tester.pumpAndSettle();
-      expect(backend.lastQuery, isNotNull);
+      expect(applyButton.hitTestable(), findsOneWidget);
+      expect(tester.widget<FilledButton>(applyButton).onPressed, isNotNull);
+      await tester.tap(applyButton);
+      await tester.pumpAndSettle();
+      final emitted = backend.queries.skip(before).toList();
+      final targeted = emitted.where((entry) => entry.$1 == feature).toList();
+      expect(
+        targeted,
+        isNotEmpty,
+        reason:
+            '${feature.name} 点击应用后必须发出新查询；实际新增 '
+            '${emitted.map((entry) => '${entry.$1.name}/${entry.$2.view.name}').toList()}',
+      );
+      expect(targeted.last.$2.view, view);
       await _closeIntegrationPanel(tester);
     }
 
@@ -119,8 +134,7 @@ void _registerQueryFlowTests() {
       '2026-2027-1',
     );
     await tester.enterText(find.widgetWithText(TextField, '周次'), '3');
-    await apply();
-    expect(backend.lastQuery?.view, FeatureQueryView.scheduleWeek);
+    await apply(FeatureId.schedule, FeatureQueryView.scheduleWeek);
     await _returnToFeatureRoot(tester);
     await tester.pumpAndSettle();
 
@@ -172,10 +186,11 @@ void _registerQueryFlowTests() {
       await openFeature(feature);
       if (option.isNotEmpty) await chooseView(option);
       for (final MapEntry(key: label, value: value) in fields.entries) {
-        await tester.enterText(find.widgetWithText(TextField, label), value);
+        final field = find.widgetWithText(TextField, label);
+        await tester.enterText(field, value);
+        expect(tester.widget<TextField>(field).controller!.text, value);
       }
-      await apply();
-      expect(backend.lastQuery?.view, expectedView);
+      await apply(feature, expectedView);
       await _returnToFeatureRoot(tester);
       await tester.pumpAndSettle();
     }

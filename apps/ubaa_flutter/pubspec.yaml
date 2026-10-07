@@ -17,6 +17,7 @@ dependencies:
     path: ../../packages/ubaa_platform
 
 dev_dependencies:
+  connectivity_plus: 6.1.5
   flutter_test:
     sdk: flutter
   integration_test:

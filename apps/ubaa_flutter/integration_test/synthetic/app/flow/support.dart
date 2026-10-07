@@ -5,7 +5,8 @@ final class _IntegrationBackend
     implements UbaaBackend, FeatureQueryBackend, RouteSettingsBackend {
   bool _signedIn = false;
   bool get signedIn => _signedIn;
-  FeatureQuery? lastQuery;
+  final queries = <(FeatureId, FeatureQuery)>[];
+  FeatureQuery? get lastQuery => queries.lastOrNull?.$2;
 
   @override
   Future<AuthStatus> authStatus() async =>
@@ -77,7 +78,7 @@ final class _IntegrationBackend
     FeatureId feature,
     FeatureQuery query,
   ) async {
-    lastQuery = query;
+    queries.add((feature, query));
     if (feature == FeatureId.schedule &&
         query.view == FeatureQueryView.scheduleTerms) {
       return const FeatureResult.success(

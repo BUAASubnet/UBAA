@@ -728,7 +728,7 @@
     {
       "path": "platform/plugins_test.dart",
       "kind": "platform",
-      "domain": "plugins_test.dart",
+      "domain": "platform-plugins",
       "platforms": [
         "macos",
         "ios",
@@ -736,7 +736,7 @@
         "linux",
         "windows"
       ],
-      "ci": false,
+      "ci": true,
       "inspection": false,
       "runner": "test",
       "environment": [],
