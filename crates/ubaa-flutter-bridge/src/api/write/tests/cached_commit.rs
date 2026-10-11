@@ -11,7 +11,7 @@ fn scope(route: ConnectionMode, id: i64) -> CacheScope {
         query: CacheQuery::BykcDetail { course_id: id },
     }
 }
-async fn cache(root: &Path) -> (BridgeOfflineCache, OfflineRepository) {
+pub(super) async fn cache(root: &Path) -> (BridgeOfflineCache, OfflineRepository) {
     let mut repo = OfflineRepository::open(
         root,
         ACCOUNT,
@@ -96,12 +96,12 @@ async fn 单次提交成功或未知时失效原路线关联内容_不自动重�
             assert_eq!(result.error.unwrap().code, BridgeErrorCode::OutcomeUnknown);
         } else {
             assert!(result.error.is_none());
-            assert!(result.result.unwrap().success);
+            assert!(result.result.as_ref().unwrap().success);
         }
         assert_eq!(
             repo.write_readback_hints().unwrap().len(),
-            usize::from(unknown),
-            "未知结果必须留有重启后的核对线索，确定成功不留待核实提示"
+            1,
+            "Dart 尚未接收结果前，成功和未知结果均保留重启线索"
         );
         let hints = cache.write_readback_hints().await.unwrap();
         if unknown {
@@ -113,7 +113,12 @@ async fn 单次提交成功或未知时失效原路线关联内容_不自动重�
             assert!(matches!(hints[0].route, BridgeConnectionMode::Direct));
             assert!(hints[0].started_at > 0);
         } else {
-            assert!(hints.is_empty());
+            assert_eq!(hints.len(), 1);
+            cache
+                .dismiss_write_readback(result.readback_hint_id.unwrap())
+                .await
+                .unwrap();
+            assert!(cache.write_readback_hints().await.unwrap().is_empty());
         }
         assert!(
             repo.read(&scope(ConnectionMode::Direct, 42), 200)
@@ -193,7 +198,7 @@ async fn 本地缓存失效失败不改变学校提交成功且仍只消费一�
         .commit_write_cached(&cache, intent.intent_id)
         .await
         .unwrap();
-    assert!(result.result.unwrap().success);
+    assert!(result.result.as_ref().unwrap().success);
     assert!(result.error.is_none());
     assert_eq!(result.cache_error, Some(BridgeCacheFailure::Inactive));
     direct.assert_exhausted().unwrap();
@@ -372,7 +377,7 @@ async fn 评教部分成功或未知撤销旧集合_全部明确失败保留() {
         .await;
         assert!(result.cache_error.is_none());
         assert_eq!(repo.read(&query, 200).unwrap().is_none(), changed);
-        assert!(!result.result.unwrap().success);
+        assert!(!result.result.as_ref().unwrap().success);
         drop((cache, repo));
         std::fs::remove_dir_all(root).unwrap();
     }

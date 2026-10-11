@@ -7,7 +7,56 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
-  setUpAll(() => RustLib.initMock(api: _Api()));
+  final api = _Api();
+  setUpAll(() => RustLib.initMock(api: api));
+  test('结果成功投影后才确认持久提示，投影异常保留提示', () async {
+    for (final broken in [false, true]) {
+      final client = _Client()
+        ..value = BridgeCachedWriteCommit(
+          result: broken ? _BrokenResult() : _success(),
+          readbackHintId: 'synthetic-hint',
+        );
+      final backend = await _backend(client);
+      final pending = backend.commitWriteWithCache(
+        'intent',
+        accountId: 'synthetic',
+      );
+      if (broken) {
+        await expectLater(
+          pending,
+          throwsA(
+            isA<BackendException>().having(
+              (e) => e.code,
+              '不确定结果',
+              UbaaErrorCode.outcomeUnknown,
+            ),
+          ),
+        );
+        expect(api.cache.acknowledged, isEmpty);
+      } else {
+        expect((await pending).success, isTrue);
+        expect(api.cache.acknowledged, ['synthetic-hint']);
+      }
+      expect(client.cached, 1);
+    }
+  });
+  test('提示确认失败不覆盖已经确定的学校成功', () async {
+    final client = _Client()
+      ..value = BridgeCachedWriteCommit(
+        result: _success(),
+        readbackHintId: 'synthetic-hint',
+      );
+    final backend = await _backend(client);
+    api.cache.failAcknowledgement = true;
+    final result = await backend.commitWriteWithCache(
+      'intent',
+      accountId: 'synthetic',
+    );
+    expect(result.success, isTrue);
+    expect(result.outcomeUnknown, isFalse);
+    expect(result.cacheFailure, CacheMaintenanceFailure.unavailable);
+    expect(api.cache.acknowledged, isEmpty);
+  });
   test('学校成功与本地失败分列，同一缓存入口只调用一次', () async {
     final client = _Client()
       ..value = BridgeCachedWriteCommit(
@@ -112,22 +161,38 @@ Future<BridgeBackend> _backend(_Client client) async {
 }
 
 class _Api implements RustLibApi {
+  late _Cache cache;
   @override
   Future<BridgeOfflineCache> crateApiOfflineBridgeOfflineCacheOpen({
     required String configDir,
     required String accountId,
     required String expectedIdentity,
     required List<int> key,
-  }) async => _Cache();
+  }) async => cache = _Cache();
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _Cache implements BridgeOfflineCache {
+  final acknowledged = <String>[];
+  bool failAcknowledgement = false;
+  @override
+  Future<void> dismissWriteReadback({required String id}) async {
+    if (failAcknowledgement) throw StateError('合成本地确认失败');
+    acknowledged.add(id);
+  }
+
   @override
   Future<void> activate() async {}
   @override
   Future<void> deactivate() async {}
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _BrokenResult implements BridgeWriteCommitResult {
+  @override
+  BridgeWriteOperation get operation => throw StateError('/private/synthetic');
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
@@ -137,7 +202,7 @@ class _Client implements BridgeClient {
   BridgeCachedWriteCommit value = BridgeCachedWriteCommit(result: _success());
   Completer<BridgeCachedWriteCommit>? pending;
   @override
-  int contractVersion() => 40;
+  int contractVersion() => 41;
   @override
   Future<BridgeCachedWriteCommit> commitWriteCached({
     required BridgeOfflineCache cache,

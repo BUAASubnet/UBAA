@@ -24,6 +24,7 @@ import 'models.dart'
         WriteReadbackRead,
         WriteRefreshRequest;
 import 'read_scope.dart';
+import 'lifecycle_owners.dart';
 import 'read_caches.dart';
 import 'academic_terms.dart' show CurrentTermsReader;
 import 'operations.dart' show ControllerOperations;
@@ -38,7 +39,7 @@ abstract class ControllerState extends ControllerOperations {
     TelemetryClient? telemetry,
     LocalDiagnostics? diagnostics,
     void Function(ReadSchedulerTrace trace)? onReadSchedulerTrace,
-  }) : internalBackend = backend,
+  }) : internalSessionLifecycle = SessionLifecycleOwner(backend),
        internalBackendFactory = backendFactory,
        internalCredentialVault = credentialVault ?? const NoopCredentialVault(),
        internalLocalAccountStore = localAccountStore,
@@ -59,28 +60,31 @@ abstract class ControllerState extends ControllerOperations {
   }
 
   @internal
-  SessionScope internalCaptureSessionScope() {
-    final backend = internalBackend, lifecycle = internalLifecycleEpoch;
-    return SessionScope(
-      backend,
-      lifecycle,
-      () =>
-          !internalDisposed &&
-          !internalIsSigningOut &&
-          identical(backend, internalBackend) &&
-          lifecycle == internalLifecycleEpoch,
+  final SessionLifecycleOwner internalSessionLifecycle;
+  @internal
+  final CacheLifecycleOwner internalCacheLifecycle = CacheLifecycleOwner();
+  @internal
+  SessionScope internalCaptureSessionScope() =>
+      internalSessionLifecycle.capture();
+  @internal
+  ReadScope internalCaptureReadScope() =>
+      internalCacheLifecycle.captureRead(internalCaptureSessionScope());
+  @internal
+  OfflineAccountScope internalCaptureOfflineScope(String account) {
+    final local = internalLocalAccount;
+    return internalCacheLifecycle.captureOffline(
+      session: internalCaptureSessionScope(),
+      accountId: local?.id,
+      opened: internalOfflineOpenFuture,
+      accountCurrent: () =>
+          internalPhase == AppPhase.home &&
+          internalLocalAccount?.id == local?.id &&
+          [internalUser?.schoolId, internalUser?.username].contains(account),
     );
   }
 
   @internal
-  ReadScope internalCaptureReadScope() {
-    final session = internalCaptureSessionScope(),
-        epoch = internalReadCacheEpoch;
-    return ReadScope(session, epoch, () => epoch == internalReadCacheEpoch);
-  }
-
-  @internal
-  UbaaBackend internalBackend;
+  UbaaBackend get internalBackend => internalSessionLifecycle.backend;
 
   @internal
   final BackendFactory? internalBackendFactory;
@@ -95,7 +99,7 @@ abstract class ControllerState extends ControllerOperations {
   LocalAccount? internalLocalAccount;
 
   @internal
-  bool internalIsSigningOut = false;
+  bool get internalIsSigningOut => internalSessionLifecycle.signingOut;
 
   @internal
   bool internalCredentialRestoreAllowed = true;
@@ -137,7 +141,7 @@ abstract class ControllerState extends ControllerOperations {
   Future<void>? internalCredentialMutation;
 
   @internal
-  bool internalClearingBusinessCache = false;
+  bool get internalClearingBusinessCache => internalCacheLifecycle.clearing;
 
   @internal
   int internalBusinessCacheEpoch = 0;
@@ -215,7 +219,7 @@ abstract class ControllerState extends ControllerOperations {
   Future<void> internalOfflineOpenFuture = Future<void>.value();
 
   @internal
-  int internalOfflineAccountEpoch = 0;
+  int get internalOfflineAccountEpoch => internalCacheLifecycle.offlineEpoch;
 
   @internal
   UiError? internalLocalCacheError;
@@ -340,7 +344,7 @@ abstract class ControllerState extends ControllerOperations {
   UiError? internalError;
 
   @internal
-  bool internalDisposed = false;
+  bool get internalDisposed => internalSessionLifecycle.disposed;
 
   @internal
   bool internalInitialized = false;
@@ -362,10 +366,10 @@ abstract class ControllerState extends ControllerOperations {
   CurrentTermsReader get internalCurrentTermsReader => internalReadCaches.terms;
 
   @internal
-  int internalLifecycleEpoch = 0;
+  int get internalLifecycleEpoch => internalSessionLifecycle.epoch;
 
   @internal
-  int internalReadCacheEpoch = 0;
+  int get internalReadCacheEpoch => internalCacheLifecycle.readEpoch;
 
   /// UI 返回帧缓存的失效代次；不改变当前可见旧快照的 stale 语义。
   int get readCacheEpoch => internalReadCacheEpoch;
@@ -383,7 +387,7 @@ abstract class ControllerState extends ControllerOperations {
   List<ConnectionMode> internalActiveRoutes = const <ConnectionMode>[];
 
   @internal
-  bool internalRebuildingBackend = false;
+  bool get internalRebuildingBackend => internalSessionLifecycle.rebuilding;
 
   @internal
   /// Expando 按实例身份关联释放 Future，且不会因去重表阻止已释放

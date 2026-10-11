@@ -15,7 +15,7 @@ import '../support/bridge/fixtures.dart'
 
 void main() {
   test('BridgeBackend 接受当前合同版本', () {
-    final client = FixtureContractVersionClient(40);
+    final client = FixtureContractVersionClient(41);
 
     final backend = BridgeBackend(client);
 
@@ -25,13 +25,31 @@ void main() {
   test('BridgeBackend 在 release 可执行路径明确拒绝旧 v8 合同', () {
     final client = FixtureContractVersionClient(8);
 
-    expect(() => BridgeBackend(client), throwsA(isA<StateError>()));
+    expect(
+      () => BridgeBackend(client),
+      throwsA(
+        isA<InitializationException>().having(
+          (e) => e.failure,
+          '分类',
+          InitializationFailure.bridgeIncompatible,
+        ),
+      ),
+    );
     expect(client.disposeCalls, 1);
   });
 
   test('BridgeBackend 拒绝缺少逐日日程的旧 v9 合同', () {
     final client = FixtureContractVersionClient(9);
-    expect(() => BridgeBackend(client), throwsA(isA<StateError>()));
+    expect(
+      () => BridgeBackend(client),
+      throwsA(
+        isA<InitializationException>().having(
+          (e) => e.failure,
+          '分类',
+          InitializationFailure.bridgeIncompatible,
+        ),
+      ),
+    );
     expect(client.disposeCalls, 1);
   });
 

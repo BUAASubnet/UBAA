@@ -4,7 +4,6 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/controller/read_scheduler.dart';
 import 'package:ubaa_app/src/contracts/lifecycle.dart';
-import 'package:ubaa_app/src/contracts/grade_baseline.dart';
 import 'cache/home.dart' show ControllerOfflineCache;
 import 'cache/management.dart' show ControllerCacheManagement;
 import 'features/academic/terms.dart' show ControllerAcademicTerms;
@@ -36,8 +35,8 @@ import 'session/authentication.dart' show ControllerAuthentication;
 import 'session/interactive.dart' show ControllerInteractiveAuthentication;
 import 'session/logout.dart' show ControllerLocalData, ControllerLogout;
 import 'session/settings.dart' show ControllerSettings;
+import 'state/grade_baseline.dart';
 import 'state/state.dart' show ControllerState, LocalDataOwnerScope;
-import 'state/types.dart' show AppPhase;
 import 'write/lifecycle.dart' show ControllerWriteLifecycle;
 import 'write/memory.dart' show ControllerWriteCache;
 import 'write/readback.dart' show ControllerWriteReadbacks;
@@ -120,57 +119,15 @@ extension AppControllerLocalData on AppController {
 
 /// 跟随控制器账号与缓存代次的加密基线，不另开学校客户端。
 final class ControllerGradeScoreStore implements GradeScoreStore {
-  ControllerGradeScoreStore(this.controller);
-  final AppController controller;
-
+  ControllerGradeScoreStore(AppController controller)
+    : _owner = GradeBaselineOwner(controller.internalCaptureOfflineScope);
+  final GradeBaselineOwner _owner;
   @override
   Future<GradeScoreBaseline?> update(
     String account,
     ConnectionMode route,
     GradeScoreBaseline latest,
-  ) async {
-    final c = controller, backend = controller.internalBackend;
-    final local = c.internalLocalAccount;
-    final lifecycle = c.internalLifecycleEpoch,
-        epoch = c.internalReadCacheEpoch;
-    final cacheEpoch = c.internalOfflineAccountEpoch;
-    bool current() =>
-        !c.internalDisposed &&
-        !c.internalIsSigningOut &&
-        !c.internalRebuildingBackend &&
-        !c.internalClearingBusinessCache &&
-        c.internalPhase == AppPhase.home &&
-        identical(c.internalBackend, backend) &&
-        c.internalLocalAccount?.id == local?.id &&
-        c.internalLifecycleEpoch == lifecycle &&
-        c.internalReadCacheEpoch == epoch &&
-        c.internalOfflineAccountEpoch == cacheEpoch &&
-        [c.internalUser?.schoolId, c.internalUser?.username].contains(account);
-    void check() {
-      if (!current())
-        throw const BackendException(UbaaErrorCode.operationConflict);
-    }
-
-    check();
-    await c.internalOfflineOpenFuture;
-    check();
-    if (local == null || backend is! GradeScoreBaselineBackend) {
-      throw const BackendException(
-        UbaaErrorCode.internalError,
-        cacheFailure: CacheMaintenanceFailure.unavailable,
-      );
-    }
-    final previous = await (backend as GradeScoreBaselineBackend)
-        .updateGradeScoreBaseline(
-          accountId: local.id,
-          route: route,
-          latest: latest,
-        );
-    check();
-    return previous;
-  }
-
-  // 加密成绩由控制器的缓存清理/账号退出统一管理，没有第二套文件仓库。
+  ) => _owner.update(account, route, latest);
   @override
-  Future<void> clearAccount(String account) async {}
+  Future<void> clearAccount(String account) => _owner.clearAccount(account);
 }

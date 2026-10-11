@@ -38,7 +38,7 @@ mixin ControllerRefresh on ControllerState {
       await Future.wait(joining);
       return;
     }
-    internalReadCacheEpoch++;
+    internalCacheLifecycle.invalidateReads();
     final lifecycleEpoch = internalLifecycleEpoch;
     final generations = <FeatureId, int>{
       for (final feature in features) feature: ++internalReadRequestRevision,
@@ -504,8 +504,8 @@ mixin ControllerRefresh on ControllerState {
     internalFeatureRecoveryStates.clear();
     internalFeatureRecoveryErrors.clear();
     internalRecoveredRoute = null;
-    internalReadCacheEpoch++;
-    if (advanceLifecycle) internalLifecycleEpoch++;
+    internalCacheLifecycle.invalidateReads();
+    if (advanceLifecycle) internalSessionLifecycle.invalidate();
     internalYgdkGeneration++;
     internalWriteCoordinator.invalidate();
     internalYgdkReadbackState = const YgdkReadbackState.empty();

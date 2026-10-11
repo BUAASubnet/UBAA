@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../backend/unavailable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -22,10 +23,17 @@ mixin ControllerBackendRecovery on ControllerState {
         internalWriteTransitions != 1 ||
         internalWriteCoordinator.hasPendingOperation)
       return false;
-    internalRebuildingBackend = true;
+    internalSessionLifecycle.beginRebuild();
     try {
       final previous = internalBackend;
-      final replacement = factory();
+      final replacement = await factory();
+      if (replacement is UnavailableBackend) {
+        throw InitializationException(replacement.failure);
+      }
+      if (!internalRecoveryIsCurrent(request.epoch) || internalIsSigningOut) {
+        await internalDisposeBackendOnce(replacement);
+        return false;
+      }
       if (identical(previous, replacement))
         throw const BackendException(UbaaErrorCode.internalError);
       internalInvalidateReadsForRebuild(request);
@@ -54,17 +62,17 @@ mixin ControllerBackendRecovery on ControllerState {
       }
       // 释放旧实例期间页面仍可操作；此时新排队的查询也须交给继任实例。
       internalInvalidateReadsForRebuild(request);
-      internalBackend = replacement;
+      internalSessionLifecycle.replaceBackend(replacement);
       internalReplaceWriteCoordinator(replacement);
       internalProfileRefreshedEpoch = -1;
       internalProfileFailureEpoch = -1;
       internalProfileRequest = null;
-      internalRebuildingBackend = false;
+      internalSessionLifecycle.endRebuild();
       final account = internalLocalAccount;
       if (account != null) unawaited(internalRestoreCachedHome(account));
       return true;
     } finally {
-      internalRebuildingBackend = false;
+      internalSessionLifecycle.endRebuild();
       internalNotify();
     }
   }
@@ -77,9 +85,9 @@ mixin ControllerBackendRecovery on ControllerState {
       scope.cancel();
     }
     internalCancelDeferredRecovery();
-    request.epoch = ++internalLifecycleEpoch;
-    internalOfflineAccountEpoch++;
-    internalReadCacheEpoch++;
+    request.epoch = internalSessionLifecycle.invalidate();
+    internalCacheLifecycle.invalidateOffline();
+    internalCacheLifecycle.invalidateReads();
     internalYgdkGeneration++;
   }
 

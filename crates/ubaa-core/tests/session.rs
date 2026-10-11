@@ -337,3 +337,6 @@ fn legacy_single_session_migrates_only_to_its_mode_slot() {
     assert!(body.contains("\"schemaVersion\": 2"));
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[path = "session/lock_budget.rs"]
+mod lock_budget;

@@ -71,6 +71,20 @@ pub struct UbaaError {
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum ErrorCause {
     SessionConflict,
+    Initialization(InitializationFailure),
+}
+
+/// 本地初始化失败的白名单原因；不包含路径或原始异常正文。
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub enum InitializationFailure {
+    /// 配置无法安全读取或解析。
+    Configuration,
+    /// 会话无法安全读取或解析。
+    Session,
+    /// 其他实例占用本地会话资源。
+    ResourceBusy,
+    /// 本地传输或运行组件无法创建。
+    ComponentUnavailable,
 }
 
 impl fmt::Debug for UbaaError {
@@ -86,6 +100,31 @@ impl fmt::Debug for UbaaError {
 }
 
 impl UbaaError {
+    pub(crate) fn with_initialization_failure(mut self, failure: InitializationFailure) -> Self {
+        if self.initialization_failure().is_none() {
+            self.cause = Some(ErrorCause::Initialization(failure));
+        }
+        self
+    }
+
+    /// 返回本进程建立的初始化分类，不从外部字符串推断。
+    #[must_use]
+    pub fn initialization_failure(&self) -> Option<InitializationFailure> {
+        match self.cause {
+            Some(ErrorCause::Initialization(failure)) => Some(failure),
+            _ => None,
+        }
+    }
+
+    pub(crate) fn resource_busy() -> Self {
+        Self::new(
+            ErrorCode::Timeout,
+            ErrorKind::Internal,
+            true,
+            "本地会话资源忙，请稍后重试",
+        )
+        .with_initialization_failure(InitializationFailure::ResourceBusy)
+    }
     /// 构造安全的 Core 错误。
     pub fn new(
         code: ErrorCode,

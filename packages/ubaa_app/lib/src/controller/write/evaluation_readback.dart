@@ -34,7 +34,7 @@ Future<void> controllerRefreshEvaluationAfterWrite(
   final generation = controller.internalNextFeatureGeneration(
     FeatureId.evaluation,
   );
-  controller.internalReadCacheEpoch++;
+  controller.internalCacheLifecycle.invalidateReads();
   controller.internalBeginFeatureRead(
     FeatureId.evaluation,
     generation,

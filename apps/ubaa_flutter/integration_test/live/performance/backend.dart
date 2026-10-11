@@ -7,8 +7,16 @@ import 'measurement.dart';
 
 /// 学校只读探针，使用生产 Bridge；显式阻止全部业务提交。
 class MeasuredBackend extends BridgeBackend {
-  MeasuredBackend(String config, this.measurement)
-    : super(BridgeClient.open(configDir: config), configDirectory: config);
+  MeasuredBackend._(super.client, String config, this.measurement)
+    : super(configDirectory: config);
+  static Future<MeasuredBackend> open(
+    String config,
+    StartupMeasurement measurement,
+  ) async => MeasuredBackend._(
+    await BridgeClient.open(configDir: config),
+    config,
+    measurement,
+  );
   final StartupMeasurement measurement;
   final _hold = Completer<void>();
 

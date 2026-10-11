@@ -49,6 +49,7 @@ final class DiagnosticRecord {
     this.route,
     this.feature,
     this.latency,
+    this.initializationFailure,
   }) : source = List.unmodifiable(source);
 
   final String issueId;
@@ -62,6 +63,7 @@ final class DiagnosticRecord {
   final ConnectionMode? route;
   final FeatureId? feature;
   final Duration? latency;
+  final InitializationFailure? initializationFailure;
 
   Map<String, Object?> toJson() => {
     'issue_id': issueId,
@@ -75,6 +77,8 @@ final class DiagnosticRecord {
     if (feature != null) 'feature': feature!.wireName,
     if (latency != null) 'latency_ms': latency!.inMilliseconds,
     if (source.isNotEmpty) 'source': source,
+    if (initializationFailure != null)
+      'initialization_failure': initializationFailure!.name,
   };
 }
 
@@ -114,6 +118,7 @@ final class LocalDiagnostics {
         route: error.resolvedRoute,
         feature: feature,
         latency: latency,
+        initializationFailure: error.initializationFailure,
         cause: _classify(cause),
         timestamp: DateTime.now().toUtc(),
         source: _safeSource(stackTrace),

@@ -29,6 +29,7 @@ mod evaluation;
 mod libbook;
 mod libbook_cancel;
 mod lifecycle;
+mod panics;
 mod route_contract;
 mod signin;
 mod validation;

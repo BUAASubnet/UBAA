@@ -1,6 +1,15 @@
 import 'package:flutter/foundation.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
+/// 写后核对只读取 intent 的原路线，不能使用全局 Auto 策略。
+abstract interface class PinnedWriteReadbackBackend {
+  Future<FeatureResult> readAfterWriteOnRoute(
+    WriteOperation operation, {
+    required ConnectionMode route,
+    FeatureQuery? query,
+  });
+}
+
 /// 支持领域筛选/服务端分页的可选 backend 能力。
 ///
 /// 保留与 [UbaaBackend] 分离的接口，确保旧版 fake backend 不必伪造查询能力；

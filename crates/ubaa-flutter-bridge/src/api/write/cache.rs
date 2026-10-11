@@ -12,6 +12,8 @@ pub struct BridgeCachedWriteCommit {
     pub result: Option<BridgeWriteCommitResult>,
     pub error: Option<BridgeError>,
     pub cache_error: Option<BridgeCacheFailure>,
+    /// 结果投影完成后才确认此提示；未知结果不得自动清理。
+    pub readback_hint_id: Option<String>,
 }
 impl BridgeClient {
     /// 复用原意图消费、实时资格与单次发送；释放原客户端锁前完成关联本地失效。
@@ -110,11 +112,13 @@ pub(super) async fn finish_cached_commit(
             result: Some(result),
             error: None,
             cache_error,
+            readback_hint_id: None,
         },
         Err(error) => BridgeCachedWriteCommit {
             result: None,
             error: Some(error),
             cache_error,
+            readback_hint_id: None,
         },
     }
 }

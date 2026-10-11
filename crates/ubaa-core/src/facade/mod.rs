@@ -27,6 +27,9 @@ pub use offline::{OfflineCache, OfflineReadError, OfflineRefresh};
 mod interactive_auth;
 mod read;
 mod routing;
+#[path = "client/observation.rs"]
+mod write_observation;
+pub use write_observation::WriteBoundaryObservation;
 #[cfg(feature = "test-contract")]
 #[doc(hidden)]
 pub mod testing;
@@ -72,7 +75,7 @@ pub use crate::domain::{
     YgdkClockinSubmitResult, YgdkItem, YgdkOverview, YgdkPhotoUpload, YgdkRecord, YgdkRecordsPage,
     YgdkSubmitPreflight, YgdkSubmitTarget, YgdkTermSummary,
 };
-pub use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
+pub use crate::error::{ErrorCode, ErrorKind, InitializationFailure, Result, UbaaError};
 
 // 这些类型是宿主可见的安全路线诊断投影；其余 connection 实现仍属于 Core 内部。
 pub use crate::connection::{NetworkState, RouteDiagnostic, RouteResolution};

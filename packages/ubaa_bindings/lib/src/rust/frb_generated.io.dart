@@ -5,6 +5,7 @@
 
 import 'api/cache_management.dart';
 import 'api/client.dart';
+import 'api/initialization.dart';
 import 'api/interactive_auth.dart';
 import 'api/judge_refresh.dart';
 import 'api/judge_refresh/details.dart';
@@ -1230,6 +1231,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeHomeYgdkRefresh dco_decode_bridge_home_ygdk_refresh(dynamic raw);
 
   @protected
+  BridgeInitializationError dco_decode_bridge_initialization_error(dynamic raw);
+
+  @protected
+  BridgeInitializationFailure dco_decode_bridge_initialization_failure(
+    dynamic raw,
+  );
+
+  @protected
   BridgeInteractiveLoginCompletion
   dco_decode_bridge_interactive_login_completion(dynamic raw);
 
@@ -1392,6 +1401,19 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgePhotoUpload dco_decode_bridge_photo_upload(dynamic raw);
+
+  @protected
+  BridgePinnedBykcChosen dco_decode_bridge_pinned_bykc_chosen(dynamic raw);
+
+  @protected
+  BridgePinnedLibbookBookings dco_decode_bridge_pinned_libbook_bookings(
+    dynamic raw,
+  );
+
+  @protected
+  BridgePinnedSigninClasses dco_decode_bridge_pinned_signin_classes(
+    dynamic raw,
+  );
 
   @protected
   BridgeProfileRefresh dco_decode_bridge_profile_refresh(dynamic raw);
@@ -3583,6 +3605,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeInitializationError sse_decode_bridge_initialization_error(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeInitializationFailure sse_decode_bridge_initialization_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeInteractiveLoginCompletion
   sse_decode_bridge_interactive_login_completion(SseDeserializer deserializer);
 
@@ -3789,6 +3821,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgePhotoUpload sse_decode_bridge_photo_upload(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgePinnedBykcChosen sse_decode_bridge_pinned_bykc_chosen(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgePinnedLibbookBookings sse_decode_bridge_pinned_libbook_bookings(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgePinnedSigninClasses sse_decode_bridge_pinned_signin_classes(
     SseDeserializer deserializer,
   );
 
@@ -6438,6 +6485,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_initialization_error(
+    BridgeInitializationError self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_initialization_failure(
+    BridgeInitializationFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_interactive_login_completion(
     BridgeInteractiveLoginCompletion self,
     SseSerializer serializer,
@@ -6686,6 +6745,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_photo_upload(
     BridgePhotoUpload self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_pinned_bykc_chosen(
+    BridgePinnedBykcChosen self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_pinned_libbook_bookings(
+    BridgePinnedLibbookBookings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_pinned_signin_classes(
+    BridgePinnedSigninClasses self,
     SseSerializer serializer,
   );
 

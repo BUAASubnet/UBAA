@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'initialization.dart';
 import 'interactive_auth.dart';
 import 'judge_refresh.dart';
 import 'judge_refresh/details.dart';
@@ -214,6 +215,10 @@ abstract class BridgeClient implements RustOpaqueInterface {
   });
 
   Future<BridgeRoutedBykcChosenCourses> bykcChosenCourses();
+
+  Future<BridgePinnedBykcChosen> bykcChosenCoursesOnRoute({
+    required BridgeConnectionMode route,
+  });
 
   Future<BridgeRoutedBykcCourseCatalog> bykcCourseCatalog({
     required int page,
@@ -527,6 +532,12 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required int limit,
   });
 
+  Future<BridgePinnedLibbookBookings> libbookBookingsOnRoute({
+    required BridgeConnectionMode route,
+    required int page,
+    required int limit,
+  });
+
   Future<BridgeRoutedLibBookLibraries> libbookLibraries({required String day});
 
   /// 沿原协议读取并保存只读投影，待确认写意图阻止隐式恢复。
@@ -645,7 +656,10 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeSpocScanBatch> nextSpocScan({required BridgeSpocScan task});
 
   /// 打开应用私有目录中的 Core client。
-  static BridgeClient open({required String configDir}) =>
+  ///
+  /// # Errors
+  /// 配置、会话、资源忙或组件故障返回不含原始材料的初始化分类。
+  static Future<BridgeClient> open({required String configDir}) =>
       RustLib.instance.api.crateApiClientBridgeClientOpen(configDir: configDir);
 
   /// 打开专用页面，后续读取使用Core已固定的路线。
@@ -770,6 +784,10 @@ abstract class BridgeClient implements RustOpaqueInterface {
   });
 
   Future<BridgeRoutedSigninClasses> signinToday();
+
+  Future<BridgePinnedSigninClasses> signinTodayOnRoute({
+    required BridgeConnectionMode route,
+  });
 
   Future<BridgeRoutedSpocAssignmentDetail> spocAssignment({
     required String assignmentId,

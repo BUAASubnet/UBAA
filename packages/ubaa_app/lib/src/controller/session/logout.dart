@@ -27,7 +27,7 @@ mixin ControllerLogout on ControllerState {
       return;
     }
     internalCancelLoginVerification(notify: false);
-    internalIsSigningOut = true;
+    internalSessionLifecycle.beginSignOut();
     internalInPlaceLogin = false;
     internalInteractiveInPlace = false;
     internalCredentialRestoreAllowed = false;
@@ -99,7 +99,7 @@ mixin ControllerLogout on ControllerState {
         Error.throwWithStackTrace(failure!.$1, failure!.$2);
       }
     } finally {
-      internalIsSigningOut = false;
+      internalSessionLifecycle.endSignOut();
       internalEndWriteTransition();
     }
   }

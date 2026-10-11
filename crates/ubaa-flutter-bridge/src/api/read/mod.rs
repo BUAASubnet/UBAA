@@ -28,6 +28,7 @@ pub(super) use mappers::{
     map_signin_classes, map_spoc_assignments, map_spoc_detail, map_ygdk_overview, map_ygdk_summary,
 };
 mod methods;
+mod write_readback;
 
 use super::client::BridgeRouteDecision;
 
@@ -773,3 +774,19 @@ pub(super) use mappers::{
 pub(super) use evaluation::map_evaluation;
 
 pub(super) use mappers::map_ygdk_records;
+
+#[derive(Clone, Debug)]
+pub struct BridgePinnedBykcChosen {
+    pub data: Vec<BridgeBykcChosenCourse>,
+    pub pinned_route: super::client::BridgeConnectionMode,
+}
+#[derive(Clone, Debug)]
+pub struct BridgePinnedLibbookBookings {
+    pub data: BridgeLibBookBookingsPage,
+    pub pinned_route: super::client::BridgeConnectionMode,
+}
+#[derive(Clone, Debug)]
+pub struct BridgePinnedSigninClasses {
+    pub data: Vec<BridgeSigninClass>,
+    pub pinned_route: super::client::BridgeConnectionMode,
+}

@@ -8,7 +8,7 @@ use crate::auth::AuthWorkflow;
 use crate::config::RouteConfig;
 use crate::connection::{CachingGatewayProbe, GatewayProbe, SystemGatewayProbe};
 use crate::domain::{ConnectionMode, RoutePolicy};
-use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
+use crate::error::{ErrorCode, ErrorKind, InitializationFailure, Result, UbaaError};
 use crate::ports::{HttpTransport, ReqwestTransport};
 use crate::runtime::ClientRuntime;
 use crate::session::{DualSessionCoordinator, FileSessionStore};
@@ -34,14 +34,24 @@ impl UbaaClient {
     /// 路线配置、HTTP 传输、会话存储或任一路线运行时无法初始化时返回错误。
     pub fn open(config_dir: impl AsRef<Path>) -> Result<Self> {
         let config_dir = config_dir.as_ref();
-        let config = RouteConfig::load(config_dir)?;
+        let config = RouteConfig::load(config_dir).map_err(|error| {
+            error.with_initialization_failure(InitializationFailure::Configuration)
+        })?;
+        let transport = || {
+            ReqwestTransport::new().map_err(|error| {
+                error.with_initialization_failure(InitializationFailure::ComponentUnavailable)
+            })
+        };
         let mut client = Self::build_with_routing(
-            ReqwestTransport::new()?,
-            ReqwestTransport::new()?,
-            FileSessionStore::new(config_dir)?,
+            transport()?,
+            transport()?,
+            FileSessionStore::new(config_dir).map_err(|error| {
+                error.with_initialization_failure(InitializationFailure::Session)
+            })?,
             config,
             SystemGatewayProbe,
-        )?;
+        )
+        .map_err(|error| error.with_initialization_failure(InitializationFailure::Session))?;
         client.config_dir = Some(config_dir.to_path_buf());
         Ok(client)
     }

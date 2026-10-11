@@ -38,3 +38,8 @@
 OHOS安全存储合同：`bash scripts/tests/secure-storage-ohos.sh` 读取 `UBAA_DEVECO_HOME` 下的Node与TypeScript，执行插件实际源码的合成系统边界测试；不访问设备、钥匙串或真实账号。`just ohos-check`已包含此检查。
 
 OHOS网络插件合同：`bash scripts/tests/platform-plugins-ohos.sh` 编译实际社区适配源码并模拟系统边界，验证标准列表、失败传播与订阅生命周期；已纳入 `just ohos-check`。
+
+
+`source_manifest_test.py` 使用临时 Git 仓库验证 Core/锁文件/脚本改动可被摘要识别，且不读取未跟踪凭据。`release/source_manifest.py` 生成全部跟踪输入与可选产物的相对路径摘要、候选 SHA 和作业关联。
+
+`tests/linux-secure-storage.sh` 只在临时 XDG/D-Bus 会话验证合成安全材料，覆盖无 Secret Service 时安全失败。`tests/native/startup_lock_runner.py` 是登记到合成启动入口的外部持锁夹具：只使用新建临时目录，与 App 通过合成标记文件协调；不改变应用 Sandbox，不读取账号或用户会话。

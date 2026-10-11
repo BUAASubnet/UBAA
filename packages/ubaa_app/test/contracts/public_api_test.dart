@@ -175,7 +175,8 @@ List<Object?> verifyBackendValueSignatures(
   })
   routeSettingsConstructor = BackendRouteSettings.new;
   final BackendFactory backendFactory = createProductionBackend;
-  final UbaaBackend Function() productionFactory = createProductionBackend;
+  final Future<UbaaBackend> Function() productionFactory =
+      createProductionBackend;
   final UnavailableBackend Function() unavailableConstructor =
       UnavailableBackend.new;
   final DemoBackend Function({Duration loginDelay}) demoConstructor =
@@ -299,12 +300,13 @@ List<Object?> verifyWriteControllerSignatures(
 
 List<Object?> verifyBridgeSignatures(BridgeBackend bridgeBackend) {
   verifyBridgeClientShape(BridgeBackend.new, (backend) => backend.client);
-  final BridgeBackend Function(String) open = BridgeBackend.open;
+  final Future<BridgeBackend> Function(String) open = BridgeBackend.open;
   final Future<BackendRouteSettings> Function(RoutePolicy)
   setDefaultRoutePolicy = bridgeBackend.setDefaultRoutePolicy;
   final Future<BackendRouteSettings> Function() routeSettings =
       bridgeBackend.routeSettings;
-  final UbaaBackend Function() productionFactory = createProductionBackend;
+  final Future<UbaaBackend> Function() productionFactory =
+      createProductionBackend;
   final UbaaBackend backend = bridgeBackend;
   final RouteSettingsBackend routeBackend = bridgeBackend;
   final FeatureQueryBackend queryBackend = bridgeBackend;

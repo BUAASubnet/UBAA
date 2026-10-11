@@ -1,6 +1,9 @@
 //! 门面工作流共享的私有运行时状态。
 
-use std::sync::Arc;
+use std::sync::{
+    Arc, Weak,
+    atomic::{AtomicBool, Ordering},
+};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::connection::to_webvpn_url;
@@ -21,6 +24,7 @@ pub(crate) struct ClientRuntime {
     session_revision: u64,
     feature_state: Arc<RouteFeatureState>,
     non_idempotent_boundary_crossed: bool,
+    write_observer: Option<Weak<AtomicBool>>,
     clock: Arc<dyn Fn() -> SystemTime + Send + Sync>,
     interactive_login_scope: Option<InteractiveLoginHandle>,
 }
@@ -88,6 +92,7 @@ impl ClientRuntime {
             session_revision,
             feature_state: Arc::new(RouteFeatureState::default()),
             non_idempotent_boundary_crossed: false,
+            write_observer: None,
             clock,
             interactive_login_scope: None,
         })
@@ -125,6 +130,7 @@ impl ClientRuntime {
             session_revision: self.session_revision,
             feature_state: Arc::clone(&self.feature_state),
             non_idempotent_boundary_crossed: false,
+            write_observer: None,
             clock: Arc::clone(&self.clock),
             interactive_login_scope: None,
         }
@@ -133,6 +139,10 @@ impl ClientRuntime {
     /// 开始一个不可重放的写操作作用域，并清除上一次操作留下的边界状态。
     pub(crate) fn begin_non_idempotent_operation(&mut self) {
         self.non_idempotent_boundary_crossed = false;
+    }
+
+    pub(crate) fn observe_write_boundary(&mut self, observer: Weak<AtomicBool>) {
+        self.write_observer = Some(observer);
     }
 
     /// 取走本次写操作的发送边界状态，确保后续操作不会读到陈旧标记。
@@ -271,6 +281,9 @@ impl ClientRuntime {
         pre_send_check(self)?;
         let request_url = request.url.clone();
         self.non_idempotent_boundary_crossed = true;
+        if let Some(observer) = self.write_observer.as_ref().and_then(Weak::upgrade) {
+            observer.store(true, Ordering::SeqCst);
+        }
         let response = self
             .transport
             .execute(request)

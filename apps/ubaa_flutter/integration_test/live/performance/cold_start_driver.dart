@@ -90,7 +90,7 @@ Future<void> main() async {
     measurement.watchFrames();
     runApp(
       UbaaAppHost(
-        backendFactory: () => MeasuredBackend(config, measurement),
+        backendFactory: () => MeasuredBackend.open(config, measurement),
         networkChanges: LocalNetworkMonitor().changes,
         localAccountStore: accounts,
         credentialVault: const NoopCredentialVault(),
@@ -114,7 +114,7 @@ Future<void> _prepare(
   SecureLocalAccountStore accounts,
   StartupMeasurement measurement,
 ) async {
-  final backend = MeasuredBackend(config, measurement);
+  final backend = await MeasuredBackend.open(config, measurement);
   try {
     await backend.client.setDefaultRoutePolicy(
       policy: measurement.route == 'direct'

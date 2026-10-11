@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'write/pinned_readback.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
@@ -68,7 +69,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 40;
+const _supportedBridgeContractVersion = 41;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -78,6 +79,7 @@ const _supportedBridgeContractVersion = 40;
 class BridgeBackend
     implements
         UbaaBackend,
+        PinnedWriteReadbackBackend,
         InteractiveLoginBackend,
         CgyyLockDisplayBackend,
         FeatureQueryBackend,
@@ -114,7 +116,9 @@ class BridgeBackend
     final contractVersion = client.contractVersion();
     if (contractVersion != _supportedBridgeContractVersion) {
       _disposeIncompatibleBridgeClient(client);
-      throw StateError('Bridge 合同版本不兼容。');
+      throw const InitializationException(
+        InitializationFailure.bridgeIncompatible,
+      );
     }
   }
 
@@ -123,12 +127,19 @@ class BridgeBackend
       BridgeLockDisplaySession(client, await client.openCgyyLockDisplay());
 
   /// 从平台已经解析好的应用私有目录打开 Core。
-  factory BridgeBackend.open(String configDirectory) => BridgeBackend(
-    BridgeClient.open(configDir: configDirectory),
-    configDirectory: configDirectory,
-  );
+  static Future<BridgeBackend> open(String configDirectory) async =>
+      BridgeBackend(
+        await BridgeClient.open(configDir: configDirectory),
+        configDirectory: configDirectory,
+      );
 
   final BridgeContext _context;
+  @override
+  Future<FeatureResult> readAfterWriteOnRoute(
+    WriteOperation operation, {
+    required ConnectionMode route,
+    FeatureQuery? query,
+  }) => bridgePinnedWriteReadback(_context, operation, route, query);
   BridgeClient get client => _context.client;
   String? get configDirectory => _context.configDirectory;
 
@@ -497,9 +508,31 @@ void _disposeIncompatibleBridgeClient(BridgeClient client) {
 }
 
 /// 创建生产后端；任何初始化失败都保持明确的不可用状态，不回退到 Demo。
-UbaaBackend createProductionBackend() {
+Future<UbaaBackend> createProductionBackend() async {
+  final String directory;
   try {
-    return BridgeBackend.open(defaultConfigDirectory());
+    directory = defaultConfigDirectory();
+  } on Object {
+    return const UnavailableBackend(
+      failure: InitializationFailure.configuration,
+    );
+  }
+  try {
+    return await BridgeBackend.open(directory);
+  } on BridgeInitializationError catch (error) {
+    return UnavailableBackend(
+      failure: switch (error.failure) {
+        BridgeInitializationFailure.configuration =>
+          InitializationFailure.configuration,
+        BridgeInitializationFailure.session => InitializationFailure.session,
+        BridgeInitializationFailure.resourceBusy =>
+          InitializationFailure.resourceBusy,
+        BridgeInitializationFailure.componentUnavailable =>
+          InitializationFailure.componentUnavailable,
+      },
+    );
+  } on InitializationException catch (error) {
+    return UnavailableBackend(failure: error.failure);
   } on Object {
     return const UnavailableBackend();
   }

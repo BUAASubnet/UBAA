@@ -36,7 +36,10 @@ void main() {
     ).join();
     _ReadonlyBackend? backend;
     try {
-      backend = _ReadonlyBackend(BridgeClient.open(configDir: config), config);
+      backend = _ReadonlyBackend(
+        await BridgeClient.open(configDir: config),
+        config,
+      );
       final session = await backend.recoverRequiredSession(FeatureId.spoc);
       expect(session.route.name == route, isTrue);
       final account = LocalAccount(
@@ -102,7 +105,10 @@ void main() {
       final detailMs = elapsed.elapsedMilliseconds;
       expect(backend.commits, 0);
       await backend.dispose();
-      backend = _ReadonlyBackend(BridgeClient.open(configDir: config), config);
+      backend = _ReadonlyBackend(
+        await BridgeClient.open(configDir: config),
+        config,
+      );
       await backend.openOfflineAccount(account, key);
       final cached = await backend.readCachedQuery(
         FeatureId.spoc,

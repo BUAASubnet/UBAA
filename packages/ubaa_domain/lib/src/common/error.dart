@@ -2,6 +2,22 @@ import 'package:meta/meta.dart';
 
 import 'route.dart';
 
+/// 本地启动原因只接受枚举，不接受路径或异常正文。
+enum InitializationFailure {
+  configuration,
+  session,
+  resourceBusy,
+  bridgeIncompatible,
+  componentUnavailable,
+}
+
+final class InitializationException implements Exception {
+  const InitializationException(this.failure);
+  final InitializationFailure failure;
+  @override
+  String toString() => 'InitializationException(${failure.name})';
+}
+
 /// 错误类别属于共享领域模型，平台与应用层使用同一个类型。
 enum UbaaErrorKind {
   input,
@@ -70,6 +86,7 @@ class UiError {
     this.technicalDetail,
     this.kind = UbaaErrorKind.unknown,
     this.resolvedRoute,
+    this.initializationFailure,
   });
 
   final UbaaErrorCode code;
@@ -82,6 +99,7 @@ class UiError {
 
   /// 本次失败的实际路线，不能用配置策略或上一份成功快照代替。
   final ConnectionMode? resolvedRoute;
+  final InitializationFailure? initializationFailure;
 
   /// 不得包含密码、Cookie、URL、上游响应正文或个人信息。
   final String? technicalDetail;
@@ -97,6 +115,7 @@ class UiError {
     kind: kind,
     resolvedRoute: resolvedRoute,
     technicalDetail: technicalDetail,
+    initializationFailure: initializationFailure,
   );
 
   @override

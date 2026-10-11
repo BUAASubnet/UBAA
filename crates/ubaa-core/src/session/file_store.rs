@@ -3,7 +3,8 @@
 use std::fs::{self, File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 use std::path::{Path, PathBuf};
-use std::sync::{Arc, Mutex};
+use std::sync::{Arc, Mutex, TryLockError};
+use std::time::{Duration, Instant};
 
 use crate::domain::ConnectionMode;
 use crate::error::Result;
@@ -280,26 +281,55 @@ impl FileSessionStore {
     }
 
     fn acquire_lock(&self) -> Result<SessionFileLock<'_>> {
-        let process_guard = self
-            .process_lock
-            .lock()
-            .map_err(|_| session_error("session process lock is unavailable"))?;
+        // 两级锁共享一个预算，不能分别等待完整预算；调用方不得删除锁文件。
+        let deadline = Instant::now() + Duration::from_secs(2);
+        let process_guard = loop {
+            match self.process_lock.try_lock() {
+                Ok(guard) => break guard,
+                Err(TryLockError::Poisoned(_)) => {
+                    return Err(session_error("session process lock is unavailable"));
+                }
+                Err(TryLockError::WouldBlock) => wait_for_lock(deadline)?,
+            }
+        };
         let parent = self
             .path
             .parent()
             .ok_or_else(|| session_error("session path has no parent directory"))?;
         validate_directory(parent)?;
         let file = self.open_lock_file()?;
-        // Rust 1.95的标准库文件锁尚未覆盖Android；该平台仍必须取得内核排他锁。
-        #[cfg(target_os = "android")]
-        let acquired = fs2::FileExt::lock_exclusive(&file);
-        #[cfg(not(target_os = "android"))]
-        let acquired = file.lock();
-        acquired.map_err(|_| session_error("could not lock session"))?;
+        while !try_file_lock(&file)? {
+            wait_for_lock(deadline)?;
+        }
         Ok(SessionFileLock {
             _process_guard: process_guard,
             file,
         })
+    }
+}
+
+fn wait_for_lock(deadline: Instant) -> Result<()> {
+    let remaining = deadline.saturating_duration_since(Instant::now());
+    if remaining.is_zero() {
+        return Err(crate::error::UbaaError::resource_busy());
+    }
+    std::thread::sleep(remaining.min(Duration::from_millis(10)));
+    Ok(())
+}
+
+fn try_file_lock(file: &File) -> Result<bool> {
+    // Android 继续使用实际内核文件锁；其余平台使用 Rust 标准库。
+    #[cfg(target_os = "android")]
+    match fs2::FileExt::try_lock_exclusive(file) {
+        Ok(()) => Ok(true),
+        Err(error) if error.kind() == std::io::ErrorKind::WouldBlock => Ok(false),
+        Err(_) => Err(session_error("could not lock session")),
+    }
+    #[cfg(not(target_os = "android"))]
+    match file.try_lock() {
+        Ok(()) => Ok(true),
+        Err(std::fs::TryLockError::WouldBlock) => Ok(false),
+        Err(std::fs::TryLockError::Error(_)) => Err(session_error("could not lock session")),
     }
 }
 

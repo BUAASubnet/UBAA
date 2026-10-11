@@ -801,3 +801,7 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 - [Rust路线/错误/日期逐操作矩阵](source-parity-engineering-rust-2026-10-07.md)
 - [Dart认证/恢复/学期状态矩阵](source-parity-engineering-dart-2026-10-07.md)
 - [本地普通偏好/平台验证矩阵](source-parity-engineering-platform-2026-10-07.md)
+
+## 2026-10-11 工程边界整改
+
+[F03/F04/F05/F06 的本地初始化、会话锁、写入异常与状态所有权对照](source-parity-quality-2026-10-11.md)。不改变校园协议，冻结目录保持只读。

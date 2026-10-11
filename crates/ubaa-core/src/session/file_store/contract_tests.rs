@@ -36,9 +36,9 @@ fn dual_versioned_load_never_pairs_a_snapshot_with_a_later_revision() {
                 let next_revision = expected_revision + 1;
                 let replacement = dual_snapshot_for_revision(next_revision);
                 assert_eq!(
-                    store
-                        .compare_exchange_dual(expected_revision, Some(&replacement))
-                        .unwrap(),
+                    retry_busy(
+                        || store.compare_exchange_dual(expected_revision, Some(&replacement))
+                    ),
                     DualSessionMutation::Applied {
                         revision: next_revision
                     }
@@ -59,7 +59,7 @@ fn dual_versioned_load_never_pairs_a_snapshot_with_a_later_revision() {
             let store = FileSessionStore::new(root).unwrap();
             start.wait();
             loop {
-                let loaded = store.load_dual_versioned().unwrap();
+                let loaded = retry_busy(|| store.load_dual_versioned());
                 read_count.fetch_add(1, Ordering::Relaxed);
                 let marker = loaded
                     .snapshot
@@ -102,6 +102,27 @@ fn dual_versioned_load_never_pairs_a_snapshot_with_a_later_revision() {
         }
     );
     let _ = std::fs::remove_dir_all(root);
+}
+
+// 新的两秒锁预算允许竞争者显式返回资源忙；只重试尚未取得锁的本地操作。
+// 不跳过任何成功读取的快照/修订匹配断言，也不接受其他错误。
+fn retry_busy<T>(mut action: impl FnMut() -> crate::error::Result<T>) -> T {
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(30);
+    loop {
+        match action() {
+            Ok(value) => return value,
+            Err(error) => {
+                assert_eq!(
+                    error.initialization_failure(),
+                    Some(crate::error::InitializationFailure::ResourceBusy)
+                );
+                assert!(
+                    std::time::Instant::now() < deadline,
+                    "合成竞争必须最终取得进展"
+                );
+            }
+        }
+    }
 }
 
 fn dual_snapshot_for_revision(revision: u64) -> DualSessionSnapshot {

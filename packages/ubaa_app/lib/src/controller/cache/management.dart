@@ -72,7 +72,7 @@ mixin ControllerCacheManagement on ControllerState {
     internalCheckCacheManagement(accountId);
     final backend = internalBackend;
     var epoch = internalLifecycleEpoch;
-    internalClearingBusinessCache = true;
+    internalCacheLifecycle.beginClearing();
     internalWriteTransitions++;
     internalCancelDeferredRecovery();
     internalNotify();
@@ -82,9 +82,9 @@ mixin ControllerCacheManagement on ControllerState {
       if (!internalCacheOwnerCurrent(accountId, backend, epoch)) {
         throw const BackendException(UbaaErrorCode.operationConflict);
       }
-      epoch = ++internalLifecycleEpoch;
+      epoch = internalSessionLifecycle.invalidate();
       // 清理移交了仓库所有权，旧首页读取不能按路线切换重试。
-      internalOfflineAccountEpoch++;
+      internalCacheLifecycle.invalidateOffline();
       internalYgdkGeneration++;
       for (final scope in internalReadScopes.toList()) {
         scope.cancel();
@@ -103,7 +103,7 @@ mixin ControllerCacheManagement on ControllerState {
     } finally {
       if (internalCacheOwnerCurrent(accountId, backend, epoch))
         internalSettleCancelledLoads();
-      internalClearingBusinessCache = false;
+      internalCacheLifecycle.endClearing();
       internalWriteTransitions--;
       internalNotify();
     }

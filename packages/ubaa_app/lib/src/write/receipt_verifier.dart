@@ -4,6 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 class WriteReceiptVerifier {
   const WriteReceiptVerifier({
     this.refreshAfterWrite,
+    this.refreshPinnedAfterWrite,
     this.verifyCgyyReceipt,
     this.verifyCgyyCancellation,
     this.refreshYgdkAfterWrite,
@@ -11,6 +12,8 @@ class WriteReceiptVerifier {
   });
 
   final Future<void> Function(WriteOperation, FeatureQuery?)? refreshAfterWrite;
+  final Future<void> Function(WriteOperation, FeatureQuery?, ConnectionMode)?
+  refreshPinnedAfterWrite;
   final Future<bool> Function(CgyyReservationReceipt)? verifyCgyyReceipt;
   final Future<bool> Function({
     required int orderId,
@@ -69,7 +72,12 @@ class WriteReceiptVerifier {
         cancellationVerified = await _verifyCancellation(intent, report);
       } else {
         try {
-          await refreshAfterWrite?.call(operation, intent.readbackQuery);
+          final pinned = refreshPinnedAfterWrite;
+          if (pinned != null) {
+            await pinned(operation, intent.readbackQuery, intent.resolvedRoute);
+          } else {
+            await refreshAfterWrite?.call(operation, intent.readbackQuery);
+          }
         } on Object catch (cause, stackTrace) {
           // 读取失败不改变已经闭合的提交结果。
           report(cause, stackTrace);

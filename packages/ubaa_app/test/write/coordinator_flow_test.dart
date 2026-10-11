@@ -229,8 +229,8 @@ void _registerFlowTests() {
     release.completeError(StateError('/private/token=secret'));
     final outcome = await first;
     expect(calls, 1);
-    expect(outcome?.error?.code, UbaaErrorCode.internalError);
-    expect(outcome?.message, '应用内部错误，请返回后刷新相关状态。');
+    expect(outcome?.error?.code, UbaaErrorCode.outcomeUnknown);
+    expect(outcome?.message, '提交结果不确定，请先刷新相关状态，不要重复提交。');
     expect(coordinator.intent, isNull);
     expect(await coordinator.confirmForUi(), isNull);
     coordinator.dispose();
@@ -246,7 +246,7 @@ void _registerFlowTests() {
       coordinator.confirm(),
       throwsA(
         isA<BackendException>()
-            .having((error) => error.code, 'code', UbaaErrorCode.internalError)
+            .having((error) => error.code, 'code', UbaaErrorCode.outcomeUnknown)
             .having((error) => error.detail, 'detail', isNull),
       ),
     );

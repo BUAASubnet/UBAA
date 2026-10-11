@@ -156,7 +156,7 @@ mixin ControllerAuthentication on ControllerState {
     if (inPlace) {
       // 认证使旧在途读取失效，但不销毁当前页面、筛选草稿和返回位置。
       internalWriteTransitions++;
-      internalLifecycleEpoch++;
+      internalSessionLifecycle.invalidate();
       internalYgdkGeneration++;
       internalWriteCoordinator.invalidate();
     } else {

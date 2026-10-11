@@ -9,6 +9,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 
 part 'callbacks.dart';
 part 'lifecycle.dart';
+part 'startup.dart';
 part 'session.dart';
 part 'local_data.dart';
 part 'schedule_widgets.dart';

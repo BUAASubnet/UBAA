@@ -530,8 +530,8 @@ fn 聚合门面只保留唯一运行时选择器和路线算法() {
         "每个公开异步业务入口都必须经过统一收尾"
     );
     assert_eq!(
-        observed.caller_pinned, 5,
-        "只允许 Cgyy 与 Ygdk 各两项、Evaluation 一项回读固定路线"
+        observed.caller_pinned, 8,
+        "固定路线仅用于逐项审计的八个写后核对入口"
     );
     assert_eq!(observed.caller_pinned, observed.finish_caller_pinned);
     assert_caller_pinned_route_boundaries(&facade_dir);
@@ -546,6 +546,9 @@ fn assert_caller_pinned_route_boundaries(facade_dir: &std::path::Path) {
         ("read/services.rs", "ygdk_overview_on_route"),
         ("read/services.rs", "ygdk_records_on_route"),
         ("read/evaluation.rs", "evaluation_all_on_route"),
+        ("read/write_readback.rs", "bykc_chosen_courses_on_route"),
+        ("read/write_readback.rs", "libbook_bookings_on_route"),
+        ("read/write_readback.rs", "signin_today_on_route"),
     ] {
         let tokens = rust_tokens(&source(&facade_dir.join(relative)));
         let body = function_body(&tokens, helper)

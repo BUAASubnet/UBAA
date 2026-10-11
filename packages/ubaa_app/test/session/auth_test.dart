@@ -41,7 +41,7 @@ void _registerAuthTests() {
     final controller = AppController(backend: const UnavailableBackend());
     await controller.initialize();
     expect(controller.phase, AppPhase.login);
-    expect(controller.error?.code, UbaaErrorCode.unsupported);
+    expect(controller.error?.code, UbaaErrorCode.internalError);
     controller.dispose();
   });
 

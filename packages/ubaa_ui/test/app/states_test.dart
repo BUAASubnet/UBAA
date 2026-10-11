@@ -876,16 +876,16 @@ void _registerSharedStateTests() {
     expect(refreshCalls, 1);
   });
 
-  testWidgets('未知提交异常只显示内部错误安全提示', (tester) async {
+  testWidgets('未知提交异常提示结果不确定且先核对', (tester) async {
     final refreshCalls = await fixturePumpBykcCommitError(
       tester,
       Exception('/private/session?token=secret'),
     );
 
-    expect(find.text('应用内部错误，请返回后刷新相关状态。'), findsOneWidget);
-    expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsNothing);
+    expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsOneWidget);
+    expect(find.text('应用内部错误，请返回后刷新相关状态。'), findsNothing);
     expect(find.textContaining('secret'), findsNothing);
-    expect(refreshCalls, 0);
+    expect(refreshCalls, 1);
   });
 }
 

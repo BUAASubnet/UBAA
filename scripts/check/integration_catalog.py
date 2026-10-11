@@ -56,6 +56,10 @@ def validate(entries, root=TEST_ROOT):
         runner = entry.get("runner", "test")
         if runner not in {"test", "run"} or (runner == "run" and entry["ci"]):
             raise ValueError(f"入口执行方式或 CI 归属不符：{path}")
+        harness = entry.get("harness")
+        if harness is not None and (harness != "startup-lock" or entry["kind"] != "synthetic"
+                                    or not set(entry["platforms"]) <= {"macos", "linux"}):
+            raise ValueError(f"未登记的外部合成夹具：{path}")
         source = source_closure(root / path, root)
         if any(marker in source for marker in LIVE_MARKERS) and entry["kind"] not in {"live", "manual"}:
             raise ValueError(f"真实账号标记与分类不符：{path}")
@@ -112,6 +116,8 @@ def main():
     for entry in selected:
         command = [str(flutter), "test", f'integration_test/{entry["path"]}',
                    "-d", args.device or args.platform]
+        if entry.get("harness") == "startup-lock":
+            command = [sys.executable, str(ROOT / "scripts/tests/native/startup_lock_runner.py"), *command]
         print(shlex.join(command), flush=True)
         if not args.dry_run:
             subprocess.run(command, cwd=APP, env=environment, check=True)

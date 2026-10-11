@@ -36,7 +36,10 @@ void main() {
     ).join();
     _ReadonlyBackend? backend;
     try {
-      backend = _ReadonlyBackend(BridgeClient.open(configDir: config), config);
+      backend = _ReadonlyBackend(
+        await BridgeClient.open(configDir: config),
+        config,
+      );
       final session = await backend.recoverRequiredSession(
         FeatureId.evaluation,
       );
@@ -76,7 +79,10 @@ void main() {
       final onlineMs = elapsed.elapsedMilliseconds;
       final count = last.details.length;
       await backend.dispose();
-      backend = _ReadonlyBackend(BridgeClient.open(configDir: config), config);
+      backend = _ReadonlyBackend(
+        await BridgeClient.open(configDir: config),
+        config,
+      );
       await backend.openOfflineAccount(account, key);
       final cached = await backend.readCachedQuery(
         FeatureId.evaluation,

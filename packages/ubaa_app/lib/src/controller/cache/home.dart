@@ -14,7 +14,7 @@ mixin ControllerOfflineCache on ControllerState {
     final backend = internalBackend;
     if (backend is! OfflineCacheBackend) return;
     final offline = backend as OfflineCacheBackend;
-    final accountEpoch = ++internalOfflineAccountEpoch;
+    final accountEpoch = internalCacheLifecycle.invalidateOffline();
     final opened = Completer<void>();
     internalOfflineOpenFuture = opened.future;
     bool current() =>
@@ -136,7 +136,7 @@ mixin ControllerOfflineCache on ControllerState {
 
   @internal
   Future<void> internalCloseOfflineAccount({bool remove = false}) async {
-    internalOfflineAccountEpoch++;
+    internalCacheLifecycle.invalidateOffline();
     final backend = internalBackend;
     if (backend is OfflineCacheBackend) {
       final offline = backend as OfflineCacheBackend;
@@ -150,8 +150,8 @@ mixin ControllerOfflineCache on ControllerState {
 
   @internal
   Future<void> internalRejectMismatchedAccount() async {
-    internalLifecycleEpoch++;
-    internalReadCacheEpoch++;
+    internalSessionLifecycle.invalidate();
+    internalCacheLifecycle.invalidateReads();
     internalUser = null;
     internalActiveRoutes = const [];
     internalResetFeatureSnapshots();

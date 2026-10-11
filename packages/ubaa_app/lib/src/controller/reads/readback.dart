@@ -14,7 +14,7 @@ mixin ControllerReadbackDispatch on ControllerState {
     if (operation == WriteOperation.libbookReserve ||
         operation == WriteOperation.libbookCancelBooking) {
       if (internalBackend is FeatureQueryBackend) {
-        internalReadCacheEpoch++;
+        internalCacheLifecycle.invalidateReads();
         return internalRefreshFeatureQuery(
           FeatureId.libbook,
           readbackQuery ??
@@ -27,7 +27,7 @@ mixin ControllerReadbackDispatch on ControllerState {
       // 订单列表是场馆写入的唯一稳定核对入口；若后端不支持筛选查询，
       // 保留旧的领域刷新兼容路径，不伪造核对成功。
       if (internalBackend is FeatureQueryBackend) {
-        internalReadCacheEpoch++;
+        internalCacheLifecycle.invalidateReads();
         return internalRefreshFeatureQuery(
           FeatureId.cgyy,
           const FeatureQuery(view: FeatureQueryView.cgyyOrders),

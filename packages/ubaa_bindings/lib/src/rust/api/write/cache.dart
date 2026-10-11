@@ -19,10 +19,22 @@ class BridgeCachedWriteCommit {
   final BridgeError? error;
   final BridgeCacheFailure? cacheError;
 
-  const BridgeCachedWriteCommit({this.result, this.error, this.cacheError});
+  /// 结果投影完成后才确认此提示；未知结果不得自动清理。
+  final String? readbackHintId;
+
+  const BridgeCachedWriteCommit({
+    this.result,
+    this.error,
+    this.cacheError,
+    this.readbackHintId,
+  });
 
   @override
-  int get hashCode => result.hashCode ^ error.hashCode ^ cacheError.hashCode;
+  int get hashCode =>
+      result.hashCode ^
+      error.hashCode ^
+      cacheError.hashCode ^
+      readbackHintId.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -31,5 +43,6 @@ class BridgeCachedWriteCommit {
           runtimeType == other.runtimeType &&
           result == other.result &&
           error == other.error &&
-          cacheError == other.cacheError;
+          cacheError == other.cacheError &&
+          readbackHintId == other.readbackHintId;
 }

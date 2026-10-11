@@ -24,6 +24,10 @@ class UbaaErrorMapper {
   /// 不把异常正文作为用户提示；已验证的 typed 错误保留机器元数据。
   static UiError fromObject(Object error) => switch (error) {
     BackendException value => fromException(value),
+    UiError value when value.initializationFailure != null =>
+      const UiErrorMapper().fromException(
+        InitializationException(value.initializationFailure!),
+      ),
     UiError value => fromException(BackendException.fromUi(value)),
     _ => const UiErrorMapper().fromException(error),
   };

@@ -58,7 +58,7 @@ impl BridgeClient {
         .await
     }
 
-    async fn execute_caller_pinned_read<T, O, F>(
+    pub(super) async fn execute_caller_pinned_read<T, O, F>(
         &self,
         call: F,
         mapper: fn(T) -> O,

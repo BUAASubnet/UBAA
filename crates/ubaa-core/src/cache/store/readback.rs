@@ -42,6 +42,14 @@ pub struct WriteReadbackTicket {
     epoch: u64,
 }
 
+impl WriteReadbackTicket {
+    /// 仅用于宿主确认已接收结果；不是学校授权或重放凭据。
+    #[must_use]
+    pub fn id(&self) -> &str {
+        &self.id
+    }
+}
+
 const MAX_HINTS: usize = 64;
 
 impl OfflineRepository {

@@ -22,8 +22,8 @@ void main() {
     BridgeOfflineCache? second;
     BridgeClient? client;
     try {
-      client = BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 40);
+      client = await BridgeClient.open(configDir: directory.path);
+      expect(client.contractVersion(), 41);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),

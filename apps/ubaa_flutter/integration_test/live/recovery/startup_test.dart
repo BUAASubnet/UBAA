@@ -35,7 +35,7 @@ void main() {
     try {
       await materials.probe();
       expect(materials.isAvailable, isTrue);
-      seed = BridgeBackend.open(config);
+      seed = await BridgeBackend.open(config);
       final recovered = await seed.recoverRequiredSession(FeatureId.schedule);
       expect(recovered.route.name, route);
       final identity = recovered.profile.username;
@@ -60,7 +60,10 @@ void main() {
       }
       await seed.dispose();
       seed = null;
-      backend = _ReadonlyBackend(BridgeClient.open(configDir: config), config);
+      backend = _ReadonlyBackend(
+        await BridgeClient.open(configDir: config),
+        config,
+      );
       final elapsed = backend.elapsed..start();
       await tester.pumpWidget(
         UbaaAppHost(

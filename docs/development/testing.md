@@ -1,6 +1,6 @@
 # 测试策略与日常入口
 
-当前合同：CLI JSON schema v11；Flutter bridge contract v40。CLI 验证 human/JSON schema v11，版本常量、JSON Schema、Dart 接受版本与现行文档由 `just contract-version-check` 同步检查。旧升级流水见[历史指南](../migration/history/testing-before-2026-10-07.md)。
+当前合同：CLI JSON schema v11；Flutter bridge contract v41。CLI 验证 human/JSON schema v11，版本常量、JSON Schema、Dart 接受版本与现行文档由 `just contract-version-check` 同步检查。旧升级流水见[历史指南](../migration/history/testing-before-2026-10-07.md)。
 
 ## 按修改范围运行
 

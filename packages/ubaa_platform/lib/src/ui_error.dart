@@ -126,6 +126,29 @@ class UiErrorMapper {
 
   /// 把平台异常转换为稳定 UI 错误；不保留异常正文。
   UiError fromException(Object error, {String? feature}) {
+    if (error is InitializationException) {
+      final failure = error.failure;
+      return UiError(
+        code: failure == InitializationFailure.resourceBusy
+            ? UbaaErrorCode.operationConflict
+            : UbaaErrorCode.internalError,
+        kind: UiErrorKind.internal,
+        title: '应用暂时无法打开',
+        message: switch (failure) {
+          InitializationFailure.configuration => '本地配置无法读取，请检查配置或恢复备份后重新打开。',
+          InitializationFailure.session => '本地会话无法读取，请检查访问权限或恢复备份后重新打开。',
+          InitializationFailure.resourceBusy => '其他实例正在使用本地会话，请关闭其他实例后重新打开。',
+          InitializationFailure.bridgeIncompatible => '应用组件版本不一致，请重新安装完整的同一版本。',
+          InitializationFailure.componentUnavailable =>
+            '应用运行组件暂不可用，请重新打开；若仍失败，请重新安装完整版本。',
+        },
+        retryable:
+            failure == InitializationFailure.resourceBusy ||
+            failure == InitializationFailure.componentUnavailable,
+        actionLabel: '重新打开',
+        initializationFailure: failure,
+      );
+    }
     if (error is CredentialVaultException) {
       if (error.code == CredentialVaultErrorCode.invalidCredential) {
         return fromCore(const CoreErrorPayload(code: 'invalid_input'));

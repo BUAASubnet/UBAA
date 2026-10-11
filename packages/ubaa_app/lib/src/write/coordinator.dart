@@ -185,11 +185,18 @@ class WriteCoordinator extends ChangeNotifier {
         }
       } on Object catch (exception, stackTrace) {
         if (!_isCurrent(activity, generation)) return null;
-        code = _errorCode(exception);
+        final unclassified =
+            exception is! BackendException && exception is! UiError;
+        code = unclassified
+            ? UbaaErrorCode.outcomeUnknown
+            : _errorCode(exception);
         error = _safeError(
           exception,
           DiagnosticOperation.writeCommit,
           stackTrace,
+          semanticError: unclassified
+              ? UbaaErrorMapper.fromCode(UbaaErrorCode.outcomeUnknown)
+              : null,
         );
       }
       if (!_isCurrent(activity, generation)) return null;
@@ -257,9 +264,10 @@ class WriteCoordinator extends ChangeNotifier {
   UiError _safeError(
     Object exception,
     DiagnosticOperation operation,
-    StackTrace stackTrace,
-  ) {
-    final error = UbaaErrorMapper.fromObject(exception);
+    StackTrace stackTrace, {
+    UiError? semanticError,
+  }) {
+    final error = semanticError ?? UbaaErrorMapper.fromObject(exception);
     if (_disposed) return error;
     try {
       return _diagnostics.record(

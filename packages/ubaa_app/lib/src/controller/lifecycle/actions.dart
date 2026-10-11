@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../backend/unavailable.dart';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -140,11 +141,14 @@ mixin ControllerActions on ControllerState {
     internalBackendRebuildCompletion = completion;
     internalCancelLoginVerification(notify: false);
     internalReleaseLoginSecret();
-    internalRebuildingBackend = true;
+    internalSessionLifecycle.beginRebuild();
     internalBeginWriteTransition();
     internalSetPhase(AppPhase.checkingSession);
     try {
-      final replacement = factory();
+      final replacement = await factory();
+      if (replacement is UnavailableBackend) {
+        throw InitializationException(replacement.failure);
+      }
       if (identical(replacement, internalBackend)) {
         internalError = UbaaErrorMapper.fromCode(UbaaErrorCode.internalError);
         internalSetPhase(AppPhase.login);
@@ -169,12 +173,13 @@ mixin ControllerActions on ControllerState {
         }
         return false;
       }
-      internalBackend = replacement;
+      internalSessionLifecycle.replaceBackend(replacement);
       internalReplaceWriteCoordinator(replacement);
       internalInitialized = false;
       internalUser = null;
       internalActiveRoutes = const <ConnectionMode>[];
       internalResetFeatureSnapshots();
+      internalSessionLifecycle.endRebuild();
       await internalInitializeController(
         previousLoginError: internalLoginFormRevision == errorRevision
             ? previousLoginError
@@ -201,7 +206,7 @@ mixin ControllerActions on ControllerState {
       internalEndWriteTransition();
       internalBackendRebuildCompletion = null;
       completion.complete();
-      internalRebuildingBackend = false;
+      internalSessionLifecycle.endRebuild();
       internalNotify();
     }
   }
@@ -665,8 +670,8 @@ mixin ControllerActions on ControllerState {
   @internal
   void internalSetPhase(AppPhase phase) {
     if (phase == AppPhase.login) {
-      internalReadCacheEpoch++;
-      internalLifecycleEpoch++;
+      internalCacheLifecycle.invalidateReads();
+      internalSessionLifecycle.invalidate();
       internalYgdkGeneration++;
       internalWriteCoordinator.invalidate();
     }
@@ -714,7 +719,7 @@ mixin ControllerActions on ControllerState {
     internalInPlaceLogin = false;
     internalInteractiveInPlace = false;
     internalLockDisplay?.cancel();
-    internalDisposed = true;
+    internalSessionLifecycle.dispose();
     for (final scope in internalReadScopes.toList()) {
       scope.cancel();
     }
@@ -722,7 +727,7 @@ mixin ControllerActions on ControllerState {
     internalWriteRefreshes.clear();
     internalReadScheduler.close();
     internalCancelDeferredRecovery();
-    internalLifecycleEpoch++;
+    internalSessionLifecycle.invalidate();
     internalYgdkGeneration++;
     internalWriteCoordinator.removeListener(internalNotify);
     internalWriteCoordinator.dispose();

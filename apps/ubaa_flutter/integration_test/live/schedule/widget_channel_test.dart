@@ -13,7 +13,7 @@ void main() {
     await initializePrivateDirectory();
     final BridgeBackend backend;
     try {
-      backend = BridgeBackend.open(defaultConfigDirectory());
+      backend = await BridgeBackend.open(defaultConfigDirectory());
     } on BridgeError catch (error) {
       fail('Core初始化失败：${error.code.name}/${error.kind.name} ${error.message}');
     }

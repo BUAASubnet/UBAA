@@ -286,7 +286,7 @@ void main() {
         isA<BackendException>().having(
           (error) => error.code,
           'code',
-          UbaaErrorCode.internalError,
+          UbaaErrorCode.outcomeUnknown,
         ),
       ),
     );

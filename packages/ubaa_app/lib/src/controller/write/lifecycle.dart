@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'pinned_readback.dart';
+import 'package:ubaa_app/src/contracts/query.dart';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -28,6 +30,10 @@ mixin ControllerWriteLifecycle on ControllerState {
         discard: (intentId) =>
             internalDiscardWriteWithBackend(backend, intentId),
         receiptVerifier: WriteReceiptVerifier(
+          refreshPinnedAfterWrite: backend is PinnedWriteReadbackBackend
+              ? (operation, query, route) =>
+                    controllerPinnedWriteReadback(this, operation, query, route)
+              : null,
           refreshAfterWrite: (operation, query) =>
               refreshAfterWrite(operation, query),
           verifyCgyyReceipt: matchesCgyyReceipt,
@@ -42,8 +48,8 @@ mixin ControllerWriteLifecycle on ControllerState {
     internalLockDisplay?.cancel();
     // 必须先禁止入口，再发出 invalidate 通知，覆盖监听器同步重入。
     internalWriteTransitions++;
-    internalLifecycleEpoch++;
-    internalReadCacheEpoch++;
+    internalSessionLifecycle.invalidate();
+    internalCacheLifecycle.invalidateReads();
     internalYgdkGeneration++;
     internalWriteCoordinator.invalidate();
   }

@@ -7,10 +7,12 @@ use super::support::{
 };
 use super::{BridgeWriteCommitResult, PendingWrite};
 use crate::api::client::{
-    BridgeClient, BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeErrorKind, catch_panic,
-    disposed_error,
+    BridgeClient, BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeErrorKind,
+    disposed_error, panic_error,
 };
 use crate::api::offline::BridgeOfflineCache;
+use futures_util::FutureExt;
+use std::panic::AssertUnwindSafe;
 use ubaa_core::facade as domain;
 
 impl BridgeClient {
@@ -29,7 +31,10 @@ impl BridgeClient {
         cache: Option<&BridgeOfflineCache>,
         intent_id: String,
     ) -> Result<BridgeCachedWriteCommit, BridgeError> {
-        catch_panic(async {
+        let mut panic_scope = None;
+        let mut hint = None;
+        let mut hint_start_error = None;
+        let attempted = AssertUnwindSafe(async {
             if intent_id.trim().is_empty() {
                 return Err(invalid_input("intent id is required"));
             }
@@ -60,10 +65,14 @@ impl BridgeClient {
             let impact = pending.cache_impact();
             let expected_route = entry.resolved_route;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let observation = client.observe_write_boundary();
+            panic_scope = Some((observation, impact.clone(), expected_route));
             // 所有提交都在 Core 一次解析中绑定确认路线、fresh authority 和最终发送。
             // 博雅详情的唯一提交前复核也在 Core；Bridge 不再重复读取另一份 authority。
-            let (hint, hint_start_error) =
+            let (started_hint, start_error) =
                 super::readback::begin_hint(cache, operation, expected_route).await;
+            hint = started_hint;
+            hint_start_error = start_error;
             let result = match pending {
                 PendingWrite::BykcSelect(request) => client
                     .bykc_select_course_if_route_matches(request.course_id, expected_route.into())
@@ -251,8 +260,22 @@ impl BridgeClient {
                 ),
                 Err(error) => Err(map_dispatch_error(operation, expected_route, error)),
             };
-            let hint_finish_error = super::readback::finish_hint(cache, hint, &result).await;
+            // 跨过发送边界后，提示必须等 Dart 投影成功才能清理。
+            let sent = panic_scope
+                .as_ref()
+                .is_some_and(|(observation, _, _)| observation.may_have_been_sent());
+            let hint_id = if sent {
+                hint.as_ref().map(|ticket| ticket.id().to_owned())
+            } else {
+                None
+            };
+            let hint_finish_error = if sent {
+                None
+            } else {
+                super::readback::finish_hint(cache, hint.take(), &result).await
+            };
             let mut result = finish_cached_commit(cache, impact, expected_route, result).await;
+            result.readback_hint_id = hint_id;
             result.cache_error = result
                 .cache_error
                 .or(hint_start_error)
@@ -260,7 +283,32 @@ impl BridgeClient {
             drop(guard);
             Ok(result)
         })
-        .await
+        .catch_unwind()
+        .await;
+        match attempted {
+            Ok(result) => result,
+            Err(_) => {
+                let Some((observation, impact, route)) = panic_scope else {
+                    return Err(panic_error());
+                };
+                let mut error = panic_error();
+                let mut hint_finish_error = None;
+                if observation.may_have_been_sent() {
+                    error.code = BridgeErrorCode::OutcomeUnknown;
+                    error.message = "写入结果无法确认，请核对后再操作".into();
+                    error.resolved_route = Some(route);
+                } else {
+                    hint_finish_error =
+                        super::readback::finish_hint(cache, hint, &Err(error.clone())).await;
+                }
+                let mut result = finish_cached_commit(cache, impact, route, Err(error)).await;
+                result.cache_error = result
+                    .cache_error
+                    .or(hint_start_error)
+                    .or(hint_finish_error);
+                Ok(result)
+            }
+        }
     }
 }
 

@@ -24,7 +24,7 @@ Future<bool> controllerVerifyCgyyCancellation(
   // 这次较旧的列表覆盖 UI，但 proof 始终只使用下方局部结果。
   final lifecycleEpoch = controller.internalLifecycleEpoch;
   final generation = controller.internalNextFeatureGeneration(FeatureId.cgyy);
-  controller.internalReadCacheEpoch++;
+  controller.internalCacheLifecycle.invalidateReads();
   controller.internalNotify();
   if (!controller.internalIsFeatureLoadCurrent(
     FeatureId.cgyy,

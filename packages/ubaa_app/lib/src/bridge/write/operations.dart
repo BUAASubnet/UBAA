@@ -42,6 +42,17 @@ Future<WriteCommitResult> bridgeCommitWrite(
       cacheAccountId != null && cache == null
       ? CacheMaintenanceFailure.unavailable
       : null;
+  String? hintId;
+  Future<void> acknowledge() async {
+    if (cache == null || hintId == null) return;
+    try {
+      await cache.dismissWriteReadback(id: hintId);
+    } on Object {
+      // 提示清理失败必须保留学校结果；下次启动仍能看到核对线索。
+      cacheFailure ??= CacheMaintenanceFailure.unavailable;
+    }
+  }
+
   try {
     final BridgeWriteCommitResult result;
     if (cache != null) {
@@ -50,10 +61,15 @@ Future<WriteCommitResult> bridgeCommitWrite(
         intentId: intentId,
       );
       cacheFailure = bridgeCacheMaintenanceFailure(value.cacheError);
+      hintId = value.readbackHintId;
       if ((value.result == null) == (value.error == null)) {
         throw const BackendException(UbaaErrorCode.outcomeUnknown);
       }
-      if (value.error case final error?) throw bridgeMapError(error);
+      if (value.error case final error?) {
+        final mapped = bridgeMapError(error);
+        if (mapped.code != UbaaErrorCode.outcomeUnknown) await acknowledge();
+        throw mapped;
+      }
       result = value.result!;
     } else {
       result = await backend.client.commitWrite(intentId: intentId);
@@ -67,7 +83,7 @@ Future<WriteCommitResult> bridgeCommitWrite(
             result.outcomeUnknown != evaluationResult.outcomeUnknown)) {
       throw const BackendException(UbaaErrorCode.outcomeUnknown);
     }
-    return WriteCommitResult(
+    final projected = WriteCommitResult(
       operation: operation,
       success: result.success,
       message: evaluationResult == null
@@ -94,9 +110,16 @@ Future<WriteCommitResult> bridgeCommitWrite(
       evaluationResult: evaluationResult,
       cacheFailure: cacheFailure,
     );
+    if (!projected.outcomeUnknown) await acknowledge();
+    return projected.withCacheFailure(cacheFailure);
   } on BridgeError catch (error) {
     throw bridgeWriteCacheError(bridgeMapError(error), cacheFailure);
   } on BackendException catch (error) {
     throw bridgeWriteCacheError(error, cacheFailure);
+  } on Object {
+    throw BackendException(
+      UbaaErrorCode.outcomeUnknown,
+      cacheFailure: cacheFailure,
+    );
   }
 }

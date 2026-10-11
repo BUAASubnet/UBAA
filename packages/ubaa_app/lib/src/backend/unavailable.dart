@@ -8,7 +8,10 @@ import '../contracts/lifecycle.dart';
 /// 生产入口不能使用 [DemoBackend] 伪造登录或业务数据；路径、动态库或
 /// 平台能力尚未准备好时，所有操作明确失败并由 UI 映射为可行动错误。
 class UnavailableBackend implements UbaaBackend, BackendLifecycle {
-  const UnavailableBackend();
+  const UnavailableBackend({
+    this.failure = InitializationFailure.componentUnavailable,
+  });
+  final InitializationFailure failure;
 
   @override
   Future<AuthStatus> authStatus() => _unsupported<AuthStatus>();
@@ -33,5 +36,5 @@ class UnavailableBackend implements UbaaBackend, BackendLifecycle {
   Future<void> dispose() async {}
 
   Future<T> _unsupported<T>() =>
-      Future<T>.error(const BackendException(UbaaErrorCode.unsupported));
+      Future<T>.error(InitializationException(failure));
 }

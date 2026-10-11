@@ -205,4 +205,18 @@ class WriteCommitResult {
 
   /// 本地关联内容处理失败不改变学校提交的确定性和结果。
   final CacheMaintenanceFailure? cacheFailure;
+
+  /// 本地收尾失败仅追加材料状态，不覆盖已投影的学校结果。
+  WriteCommitResult withCacheFailure(CacheMaintenanceFailure? failure) =>
+      WriteCommitResult(
+        operation: operation,
+        success: success,
+        message: message,
+        outcomeUnknown: outcomeUnknown,
+        resolvedRoute: resolvedRoute,
+        cgyyReceipt: cgyyReceipt,
+        ygdkReceipt: ygdkReceipt,
+        evaluationResult: evaluationResult,
+        cacheFailure: failure,
+      );
 }

@@ -1,11 +1,19 @@
 part of 'ubaa_app_host.dart';
 
 class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
-  late final AppController _controller;
-  late final YgdkReminderStore _reminderStore;
-  late final GradeScoreStore _gradeScoreStore;
-  late final BykcCourseFilterStore _bykcFilterStore;
-  late final GradeScoreWatch _gradeWatch;
+  AppController? _readyController;
+  AppController get _controller => _readyController!;
+  late YgdkReminderStore _reminderStore;
+  late GradeScoreStore _gradeScoreStore;
+  late BykcCourseFilterStore _bykcFilterStore;
+  late GradeScoreWatch _gradeWatch;
+  final _startupDiagnostics = LocalDiagnostics();
+  UiError? _startupError;
+  int _startupGeneration = 0;
+  void _updateStartup(VoidCallback update) {
+    if (mounted) setState(update);
+  }
+
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   UiError? _scheduledHomeFeedback;
   ThemeMode _themeMode = ThemeMode.system;
@@ -37,6 +45,14 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   void initState() {
     super.initState();
     WidgetsBinding.instance.addObserver(this);
+    if (widget.backend case final backend?) {
+      _installBackend(backend);
+    } else {
+      unawaited(_openBackend());
+    }
+  }
+
+  void _installBackend(UbaaBackend opened) {
     final backend = widget.backend;
     _reminderStore =
         widget.reminderStore ??
@@ -44,8 +60,8 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
             ? MemoryYgdkReminderStore()
             : PreferencesYgdkReminderStore(scope: defaultConfigDirectory()));
     final backendFactory = widget.backendFactory ?? createProductionBackend;
-    _controller = AppController(
-      backend: backend ?? backendFactory(),
+    _readyController = AppController(
+      backend: opened,
       backendFactory: backend == null ? backendFactory : null,
       credentialVault: widget.credentialVault,
       localAccountStore: widget.localAccountStore,
@@ -96,6 +112,10 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _disposed = true;
     _stopNetworkChanges();
     WidgetsBinding.instance.removeObserver(this);
+    if (_readyController == null) {
+      super.dispose();
+      return;
+    }
     _controller.removeListener(_retryPendingRecovery);
     _controller.removeListener(_showHomeFeedback);
     _controller.removeListener(_syncScheduleWidgets);
@@ -107,6 +127,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (_readyController == null) return;
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
@@ -177,5 +198,6 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   }
 
   @override
-  Widget build(BuildContext context) => _buildApplication();
+  Widget build(BuildContext context) =>
+      _readyController == null ? _buildStartup() : _buildApplication();
 }

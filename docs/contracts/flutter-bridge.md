@@ -1,6 +1,6 @@
 # Flutter Bridge 合同
 
-状态：当前合同v40，离线首页与后台恢复任务仍在实施及验收。v9的Phase 11J/11K是typed写入和单一协调器的历史基线；当前版本、生成一致性及原生/真实App证据以实施区goal.md和迁移状态为准。实体设备与正式发布单独记录。
+状态：当前合同v41，离线首页与后台恢复任务仍在实施及验收。v9的Phase 11J/11K是typed写入和单一协调器的历史基线；当前版本、生成一致性及原生/真实App证据以实施区goal.md和迁移状态为准。实体设备与正式发布单独记录。
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
@@ -9,7 +9,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `40`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `41`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -21,7 +21,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
   caller-pinned 的概览/记录回读与安全提交收据。版本 9 为 Evaluation 增加 typed
   `submitEligibility/submitTarget`、只含 targets 的批量请求、四态逐项结果与 caller-pinned 原路线回读。
   旧macOS专项曾以独立候选v10开发逐日日程和博雅完整目录；与离线分支整合后统一为v37。
-  v38增加专用交互验证码通路，v39增加专用门锁显示，当前v40增加周课表完整节次时间轴；不能混用任一历史候选的生成绑定。
+  v38增加专用交互验证码通路，v39增加专用门锁显示，v40增加周课表完整节次时间轴，v41增加异步初始化、typed 初始化错误和提交结果接收确认；不能混用任一历史候选的生成绑定。
 - Rust 类型使用 `Bridge` 前缀，Dart 生成类型去除 Rust module 路径并使用 `camelCase` 字段。
 - `BridgeClient` 是 opaque handle。Dart 不能读取其内部 Core client、配置目录、Session、
   请求、路线 runtime 或待提交请求。
@@ -35,15 +35,15 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 | 方法 | 输入 | 成功结果 | 稳定语义 |
 |---|---|---|---|
-| `BridgeClient.open` | `configDir: String` | opaque `BridgeClient` | 只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
+| `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=40` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=41` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
 Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
 `open`，不得复用旧 handle 或 intent。应用仍处于认证/路线初始化读取阶段时，宿主重建请求
 必须安全拒绝，避免旧初始化结果写入新 handle；初始化结束后的下一次生命周期恢复再重建。
-panic 由 FRB 捕获为 `internal_error`，不得把 panic 正文、backtrace 或参数回传 UI。
+普通 panic 脱敏为 `internal_error`；写入越过发送边界后的 panic 保留 `outcome_unknown`。不得把 panic 正文、backtrace 或参数回传 UI。
 
 `AppController.initialize` 在每个异步路线、认证、用户资料和凭据读取边界检查 controller
 生命周期；若宿主已销毁，后续读取和首页刷新立即停止。宿主销毁会尽力释放当前 backend，不能
@@ -709,3 +709,13 @@ UI入口恢复“查看密码”，首次fresh读取、手动与30秒刷新singl
 ## v40：研究生课表完整时间轴
 
 现有scheduleTerms/Weeks/Week/Today遵循旧版本科读取优先、失败后实际验证GSMIS的规则，同一已验证研究生会话后续直接使用GSMIS。网络路线不回退。WeeklySchedule增加sectionTimes列表，每项为section/start?/end?，缓存/完整导入与空周均保留。code在本科仍是上游代码，不能统一解释为学期；GSMIS适配填学期代码。UI沿旧版52宽时间轴显示每节开始/结束，冲突值显示--:--，不猜课程时间。当前CLI JSON schema v11为该可选集合公开形状升级，历史v39及之前阶段描述保持原版本。
+
+## v41：有界初始化与提交结果接收确认
+
+`BridgeClient.open` 改为默认异步 FRB 调用，在工作线程完成磁盘读取与锁等待；Dart 返回 Future。Session 的进程锁与内核文件锁共享 2 秒等待预算；失败返回白名单 BridgeInitializationError，区分 configuration/session/resourceBusy/componentUnavailable。宿主合同不兼容另列 bridgeIncompatible。原 CLI v11、Session v2、配置 v1、缓存 v6 不变；初始化原因是进程内 typed 分类，不从原始文本猜测。
+
+`BridgeCachedWriteCommit.readbackHintId` 是可选的本地核对提示标识，不是学校授权。发送后提示保留到 Dart 成功投影确定结果，再通过已有缓存 dismissWriteReadback 确认；未知结果与投影异常不清理。清理失败仅追加 cacheFailure，不覆盖学校结果。无缓存或提示持久化失败必须保持可见的本地材料错误，不能宣称已保存重启线索。
+
+Core 的 WriteBoundaryObservation 与原收尾标记分开：请求交给 transport 即记录可能发送，普通收尾和 panic 展开都不擦除本轮观察。发送前已知错误保持原分类；发送后未分类 panic 返回 OutcomeUnknown、原确认路线，不重试。Dart 未分类提交异常保留相同语义，诊断另记异常类别。
+
+博雅已选、图书馆预约记录、今日课堂补充 caller-pinned 回读，场馆预约复用已有指定路线订单入口。取消、打卡和评教沿原专用回读；所有生产提交后核对均消费 intent.resolvedRoute，不通过改写全局偏好固定路线。

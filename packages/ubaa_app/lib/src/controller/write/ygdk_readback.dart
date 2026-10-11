@@ -20,7 +20,7 @@ Future<void> controllerRefreshYgdkAfterWrite(
   final requestRevision = controller.internalNextFeatureGeneration(
     FeatureId.ygdk,
   );
-  controller.internalReadCacheEpoch++;
+  controller.internalCacheLifecycle.invalidateReads();
   controller.internalHomeDefaults[FeatureId.ygdk] = FeatureSnapshot(
     feature: FeatureId.ygdk,
     status: FeatureLoadStatus.loading,

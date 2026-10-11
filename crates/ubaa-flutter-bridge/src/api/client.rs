@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use std::fmt;
 use std::future::Future;
 use std::panic::AssertUnwindSafe;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::sync::{
     RwLock,
     atomic::{AtomicBool, Ordering},
@@ -18,7 +18,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 40;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 41;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -257,22 +257,15 @@ pub struct BridgeClient {
 
 impl BridgeClient {
     /// 打开应用私有目录中的 Core client。
-    #[flutter_rust_bridge::frb(sync)]
-    pub fn open(config_dir: String) -> Result<Self, BridgeError> {
-        let path = Path::new(&config_dir);
-        if config_dir.trim().is_empty() || !path.is_absolute() {
-            return Err(BridgeError::local(
-                BridgeErrorCode::InvalidInput,
-                BridgeErrorKind::Input,
-                false,
-                "config directory must be an absolute path",
-            ));
-        }
-        let client = std::panic::catch_unwind(AssertUnwindSafe(|| UbaaClient::open(path)))
-            .map_err(|_| panic_error())?
-            .map_err(|error| BridgeError::from_core(error, None))?;
+    ///
+    /// # Errors
+    /// 配置、会话、资源忙或组件故障返回不含原始材料的初始化分类。
+    pub fn open(
+        config_dir: String,
+    ) -> Result<Self, super::initialization::BridgeInitializationError> {
+        let client = super::initialization::open(&config_dir)?;
         Ok(Self {
-            config_dir: path.to_path_buf(),
+            config_dir: PathBuf::from(config_dir),
             auth_control: RwLock::new(client.interactive_login_cancellation()),
             is_disposed: AtomicBool::new(false),
             inner: tokio::sync::Mutex::new(Some(client)),
@@ -652,7 +645,7 @@ mod tests {
         let path = std::env::temp_dir().join(format!("ubaa-bridge-client-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&path);
         let client = BridgeClient::open(path.to_string_lossy().into_owned()).expect("open client");
-        assert_eq!(client.contract_version(), 40);
+        assert_eq!(client.contract_version(), 41);
         client.dispose().await.expect("dispose client");
         client.dispose().await.expect("dispose client twice");
         let error = client.auth_status().await.expect_err("disposed client");
@@ -673,7 +666,7 @@ mod tests {
         old.dispose().await.expect("dispose old client");
 
         let rebuilt = BridgeClient::open(config_dir).expect("reopen after isolate rebuild");
-        assert_eq!(rebuilt.contract_version(), 40);
+        assert_eq!(rebuilt.contract_version(), 41);
         assert_eq!(
             old.route_settings()
                 .await
