@@ -239,3 +239,8 @@ macOS 的 MainFlutterWindow 注册 `Runner/Platform/PlatformChannel.swift`，组
 
 
 P5-F可选拍照接口PlatformPhotoCapture与相册接口分开：MethodChannelPhotoPicker独立探测photo.captureCapability；不存在该方法不影响原相册能力。PermissionedPhotoPicker只为拍照请求camera委托状态，宿主仍要求原阳光写入/回读/照片资格。Android PhotoChannel统一处理photo.capture并按captureCode区别选图结果；CameraPhoto仅内存压缩JPEG92，输出流有10MiB边界。Manifest只声明IMAGE_CAPTURE包可见性查询，没有新增CAMERA或存储权限。共享UI在原照片区并列显示拍照，iOS/macOS/OHOS没有因此获得相机能力。
+
+
+### Linux 安全存储依赖
+
+构建需要 libsecret-1-dev（插件要求 libsecret-1 >= 0.18.4）；运行需要 libsecret-1-0、可用的 D-Bus 会话和 Secret Service 提供者（例如已解锁的 GNOME Keyring）。CI 额外安装 gnome-keyring、dbus-x11、xvfb，仅在独立临时 XDG 目录中验证合成材料写入、重开读回和删除，以及无会话服务时安全失败。构建依赖齐全不自动代表用户桌面会话已解锁。

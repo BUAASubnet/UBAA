@@ -109,6 +109,7 @@ script-test:
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/module_graph_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/sensitive_test.py
     bash scripts/tools/python.sh scripts/tests/release_metadata_test.py
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/source_manifest_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/live/offline-startup/analyze_test.py
 
 # 显式联网准备固定开发依赖；检查入口本身不安装依赖。

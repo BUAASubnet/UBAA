@@ -59,13 +59,7 @@ while IFS= read -r -d '' lockfile; do
   sha256sum "$lockfile" >>"$output_dir/pubspec-locks.sha256"
 done < <(git ls-files -z -- 'apps/**/pubspec.lock' 'packages/**/pubspec.lock' | sort -z)
 
-git ls-files -z \
-  'apps/ubaa_flutter/**' \
-  'apps/ubaa_ohos/**' \
-  'packages/**' \
-  'crates/ubaa-flutter-bridge/**' \
-  'docs/runbooks/flutter-release.md' \
-  | xargs -0 sha256sum >"$output_dir/source-manifest.sha256"
+python3 "$script_dir/source_manifest.py" --output "$output_dir"
 
 cat >"$output_dir/summary.txt" <<EOF
 UBAA 无签名 RC 前置报告
@@ -75,7 +69,8 @@ Cargo 依赖清单与离线 schema 校验后的 SBOM：sbom.cdx.json
 原始 Cargo metadata：仅临时转换输入，不保存到发布材料
 Dart/Flutter 锁文件清单：pubspec-locks.txt
 Dart/OHOS 许可证材料与缺口：license-evidence.json、dependency-audit.txt、licenses/
-源码校验清单：source-manifest.sha256
+全部 Git 跟踪输入的校验清单：source-manifest.sha256
+候选与输入摘要关联：build-record.json（外部 SDK、系统库和下载依赖不属于源码清单）
 签名、证书、实体设备和真实写入：本报告不执行
 EOF
 

@@ -1172,6 +1172,23 @@
       "runner": "test",
       "environment": [],
       "defines": []
+    },
+    {
+      "path": "platform/credentials/linux_test.dart",
+      "kind": "platform",
+      "domain": "credentials",
+      "platforms": [
+        "linux"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [
+        "DBUS_SESSION_BUS_ADDRESS"
+      ],
+      "defines": [
+        "UBAA_SECURE_STORAGE_AVAILABLE=true"
+      ]
     }
   ]
 }

@@ -87,7 +87,11 @@ jobs:
         if: runner.os == 'Linux'
         run: >-
           sudo apt-get update && sudo apt-get install -y
-          clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev
+          clang cmake ninja-build pkg-config libgtk-3-dev liblzma-dev libsecret-1-dev
+
+      - name: 安装 Linux 安全存储运行验证依赖
+        if: matrix.platform == 'linux'
+        run: sudo apt-get install -y gnome-keyring dbus-x11 xvfb
 
       - name: 固定官方 Flutter SDK
         shell: bash
@@ -131,6 +135,26 @@ jobs:
         if: matrix.platform == 'macos'
         shell: bash
         run: just integration-test
+
+      - name: 验证 Linux 安全存储可用与不可用会话
+        if: matrix.platform == 'linux'
+        shell: bash
+        run: bash scripts/tests/linux-secure-storage.sh
+
+      - name: 关联候选输入与实际产物
+        shell: bash
+        run: >-
+          python3 scripts/release/source_manifest.py
+          --output "${{ runner.temp }}/ubaa-build-record"
+          --artifact "${{ matrix.artifact }}" --platform "${{ matrix.platform }}"
+
+      - name: 保存构建输入与产物证据
+        uses: actions/upload-artifact@v6
+        with:
+          name: ubaa-${{ matrix.platform }}-build-record-${{ github.run_id }}
+          path: ${{ runner.temp }}/ubaa-build-record
+          if-no-files-found: error
+          retention-days: 14
 
       - name: 保存可复核产物
         uses: actions/upload-artifact@v6

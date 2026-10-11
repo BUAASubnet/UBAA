@@ -17,7 +17,9 @@ pub(super) fn database_path(root: &Path, account: &str) -> CacheResult<PathBuf> 
         .map_err(|_| CacheError::Unavailable)?
         .join("business-cache");
     if !dir.exists() {
-        let mut builder = fs::DirBuilder::new();
+        let builder = fs::DirBuilder::new();
+        #[cfg(unix)]
+        let mut builder = builder;
         #[cfg(unix)]
         {
             use std::os::unix::fs::DirBuilderExt as _;
