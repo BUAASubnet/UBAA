@@ -77,6 +77,7 @@ fn 进程中断后只恢复加密核对线索且白名单不含意图和目标()
     assert!(serde_json::from_value::<WriteReadbackHint>(contaminated).is_err());
     reopened.dismiss_write_readback(&hint.id).unwrap();
     assert!(reopened.write_readback_hints().unwrap().is_empty());
+    drop((reopened,));
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -100,6 +101,7 @@ fn 确定结果只移除本轮提示且路线不合并() {
         WriteReadbackOperation::EvaluationSubmitCourses
     );
     assert_eq!(repo.usage().unwrap().entry_count, 1);
+    drop((repo,));
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -123,6 +125,7 @@ fn 退出隐藏提示但重登可核对而旧收尾不能删除() {
         Err(CacheError::Superseded)
     );
     assert_eq!(repo.write_readback_hints().unwrap().len(), 1);
+    drop((repo,));
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -139,6 +142,7 @@ fn 清理撤销提示和旧收尾且另一句柄不能复活() {
     );
     assert_eq!(old.write_readback_hints(), Err(CacheError::Superseded));
     assert_eq!(repo.usage().unwrap().entry_count, 0);
+    drop((old, repo));
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -179,6 +183,7 @@ fn 随机提示标识与账号作为认证加密绑定() {
         )
         .unwrap();
     assert_eq!(repo.write_readback_hints(), Err(CacheError::Corrupt));
+    drop((other, repo));
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -212,6 +217,7 @@ fn 提示达到上限不淘汰未核实记录且容量计入密文() {
         Err(CacheError::Capacity)
     );
     assert_eq!(repo.write_readback_hints().unwrap().len(), 64);
+    drop((repo,));
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -241,6 +247,7 @@ fn 无效时间标识和硬容量错误不假称保存() {
         Err(CacheError::Capacity)
     ));
     assert!(repo.write_readback_hints().unwrap().is_empty());
+    drop((repo,));
     std::fs::remove_dir_all(root).unwrap();
 }
 
@@ -266,5 +273,6 @@ fn 五版迁移保留旧业务与退出状态并拒绝已打开旧句柄() {
     let old_record = migrated.read(&scope(), 200).unwrap().unwrap();
     assert_eq!(old_record.fetched_at, 100);
     assert!(migrated.write_readback_hints().unwrap().is_empty());
+    drop((migrated, repo));
     std::fs::remove_dir_all(root).unwrap();
 }

@@ -29,7 +29,7 @@ def source_lines(root):
 def write_report(root, output, artifact=None, platform=None):
     output.mkdir(parents=True, exist_ok=True)
     manifest = output / "source-manifest.sha256"
-    manifest.write_text(source_lines(root))
+    manifest.write_text(source_lines(root), encoding="utf-8", newline="\n")
     record = {
         "schema_version": 1,
         "source_commit": subprocess.check_output(
@@ -51,11 +51,11 @@ def write_report(root, output, artifact=None, platform=None):
         entries = [{"path": path.name if artifact.is_file() else path.relative_to(artifact).as_posix(),
                     "sha256": digest(path), "symlink": path.is_symlink()} for path in files]
         body = json.dumps(entries, ensure_ascii=False, sort_keys=True, indent=2) + "\n"
-        (output / "artifact-files.json").write_text(body)
+        (output / "artifact-files.json").write_text(body, encoding="utf-8", newline="\n")
         record["artifact"] = {"platform": platform, "file_count": len(entries),
                               "manifest_sha256": hashlib.sha256(body.encode()).hexdigest()}
     (output / "build-record.json").write_text(
-        json.dumps(record, ensure_ascii=False, sort_keys=True, indent=2) + "\n")
+        json.dumps(record, ensure_ascii=False, sort_keys=True, indent=2) + "\n", encoding="utf-8", newline="\n")
 
 
 def main():

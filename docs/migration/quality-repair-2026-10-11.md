@@ -41,3 +41,14 @@ F03/F04 是源码确认的条件性风险；当前没有真实事故复现。F05
 
 
 本地严格 Rust/CLI/Shell 门禁已通过，包含 CLI E2E、Clippy -D warnings、测试、构建及文档。后续容量异常修复另跑全写 108 项与全工作区 Clippy 通过。来源、layout、敏感扫描、module/集成清单及公开合同门禁通过。首个阶段提交 f6bd5159 修复 F01/F02 与 F07；运行边界改动作为跨 Rust/FRB/Dart 的同一阶段提交，避免出现不匹配的中间 Bridge ABI。
+
+
+## 首轮远端候选反馈与平台补修
+
+源码候选 6d70a81f 的 Linux Debug、真实安全存储可用/不可用、macOS Debug/原生回归、iOS simulator、合同门禁、Flutter 检查与 macOS Rust 均已通过。Windows Debug 构建及产物结构成功，但新清单生成在 Python 3.12 的 cp1252 默认编码下拒绝中文路径；未把失败步骤记为通过。新增强制 cp1252 的正式反例复现相同 UnicodeEncodeError，修复为全部清单/JSON 显式 UTF-8 与 LF，同时避免 Windows 换行转换使产物清单摘要和文件字节不一致。四项来源清单合同 GREEN；后续候选重跑完整平台矩阵。
+
+
+Windows 严格 Clippy 修复后首次真正执行测试，又检出 readback_tests.rs 的 8 个既有清理失败（OS error 32）：行为断言均已执行，错误出在仍持有 SQLite 连接时删除目录。补修显式 drop 各测试的仓库连接，再保留 remove_dir_all(...).unwrap()，不忽略删除错误、不减少原业务断言。长扫描租约测试在该 runner 用时约 8 分钟但通过；未缩小其 4100 次续租边界或降低生产持久化要求。
+
+
+同类复核还发现 Bridge 持久详情测试的 task 持有缓存连接；清理前一并释放 task/cache/client。修复后 8 项 Core 核对提示测试、1 项 Bridge 持久详情测试、4 项清单合同及完整 check-strict 均通过。首轮作业为 CI 38138293082、原生 38138329586；两个失败均保留原日志，后续新候选单独复验，不将它们改记为通过。

@@ -89,6 +89,6 @@ async fn 批量持久详情逐批让位且写意图不被清除_结果可离线�
     );
     assert_eq!(before, transport.requests().unwrap().len());
     bridge.dispose().await.unwrap();
-    drop(cache);
+    drop((task, cache, bridge));
     std::fs::remove_dir_all(root).unwrap();
 }
