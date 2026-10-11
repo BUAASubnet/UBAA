@@ -1,6 +1,6 @@
 # F01—F07 工程质量整改
 
-日期：2026-10-11。基线 a0a1736031e9e380eedb9c70b27e26224a5f5793；分支 codex/engineering-quality-20261011。
+日期：2026-10-11。状态：F01—F07 工程整改已完成。基线 a0a1736031e9e380eedb9c70b27e26224a5f5793；分支 codex/engineering-quality-20261011。
 
 ## 基线事实
 
@@ -17,13 +17,13 @@ F03/F04 是源码确认的条件性风险；当前没有真实事故复现。F05
 
 | 审查项 | 最终实现 | 本轮行为证据 |
 |---|---|---|
-| F01 | Unix 才声明可变 DirBuilder，Windows 保留不可变构造；不降低 lint | 基线 Windows 作业实际 RED；修复分支的实际 Windows 作业单独登记 |
-| F02 | Linux 补 libsecret-1-dev；独立 XDG/D-Bus 会话覆盖 Secret Service 可用/不可用 | 插件锁定源码的 CMake 要求已核对；Linux 实际构建与运行门禁待候选作业 |
+| F01 | Unix 才声明可变 DirBuilder，Windows 保留不可变构造；不降低 lint | 基线 Windows 作业实际 RED；最终候选 Windows 格式、Clippy、测试、构建、文档与 Flutter Debug 全部 GREEN |
+| F02 | Linux 补 libsecret-1-dev；独立 XDG/D-Bus 会话覆盖 Secret Service 可用/不可用 | 最终候选 Linux 构建和上传成功；实际应用在坏 D-Bus 与合成钥匙串两种会话分别通过，覆盖安全失败及写入、重新打开读取、删除 |
 | F03 | FRB open 异步；进程 Mutex/内核排他锁共用 2 秒预算；保留锁文件与 CAS 修订 | 原双进程启动超过 5 秒 RED；修复后有界失败、解锁可恢复；真实 macOS FFI 同时验证加载帧、资源忙页面和重试登录 |
 | F04 | 发送观察独立于收尾标记；发送后 panic/未分类 Dart 异常归约 unknown，原路线回读，意图不重放；Dart 成功投影后才确认持久提示 | Rust 与 Dart 生效后异常先 RED；108 项 Bridge 写回归 GREEN；补测提示容量耗尽后 panic 的材料错误丢失，RED 后保留 Capacity；发送前 panic 不误判已发送 |
 | F05 | SessionLifecycleOwner 私有拥有后端/代次/退出/重建/销毁；CacheLifecycleOwner 私有拥有读/离线代次与清理；原字段改为只读查询，跨模块使用命令 | GradeBaselineOwner 可独立验证等待期间换账号、写入迟到、退出/重建后能力永久失效；不实例化 AppController，不新增通知权威 |
 | F06 | BridgeInitializationError 白名单原因；UnavailableBackend 保留分类；本地诊断保留枚举与编号，启动页可重新打开 | 配置/会话损坏不会删除原材料；Host 五类失败/重试、迟到实例释放、加载帧与异常脱敏 7 项通过；Host 全包 101 项通过 |
-| F07 | 全部 Git 跟踪输入摘要、工作区干净状态、候选 SHA、作业链接及产物相对路径摘要 | Core/Cargo.lock/构建脚本变化不改变旧清单的 3 个反例及缺工具链反例先 RED；3 项新行为合同 GREEN |
+| F07 | 全部 Git 跟踪输入摘要、工作区干净状态、候选 SHA、作业链接及产物相对路径摘要 | Core/Cargo.lock/构建脚本变化不改变旧清单及缺工具链的反例先 RED；含 Windows cp1252 默认编码回归的 4 项行为合同 GREEN；最终 Windows 上传材料摘要复核吻合 |
 
 新增 caller-pinned 入口在路线矩阵中逐项登记：博雅已选、图书馆预约列表和今日课堂。原有五项固定路线检查保留，新增三项同样要求一次 guard、一次 runtime_for、一次 finish_caller_pinned，禁止 Auto 解析与回退。只读 DTO 继续生成到唯一 canonical read.dart，不放宽原生成边界测试。
 
@@ -35,7 +35,7 @@ F03/F04 是源码确认的条件性风险；当前没有真实事故复现。F05
 - 默认 macOS 原生五入口共 12 项通过：网络 1、真实普通插件 2、应用流程 7、FFI 缓存 1、双进程启动 1。窗口无法前置的提示仍存在，这不是人工逐按钮或真实账号验收。
 - OHOS 无签名 Debug HAP、arm64 动态库与插件源码合成合同通过；不代表实体 HUKS 或正式签名验收。
 - FRB 2.13.0 生成零漂移通过；Bridge 升至 v41，CLI v11、Session v2、配置 v1、缓存 v6 保持。
-- 源码候选的 Windows/Linux 与其余原生 CI、干净候选 preflight 及最终提交将在收尾追加。
+- 同一源码候选的全部 CI、五平台原生矩阵及干净 preflight 通过，具体作业见下表。
 
 原生持锁夹具最初在 App 内启动 Python，被 Sandbox 正确拒绝；最终使用外部宿主与应用新建的合成标记协调，应用权限不变。初始化错误必须在测试主体断言，避免测试工厂内的断言被生产错误处理捕获而遮蔽诊断。所有日志仅在仓库外，未保存学校响应、凭据或 UI 媒体到 Git。
 
@@ -52,3 +52,25 @@ Windows 严格 Clippy 修复后首次真正执行测试，又检出 readback_tes
 
 
 同类复核还发现 Bridge 持久详情测试的 task 持有缓存连接；清理前一并释放 task/cache/client。修复后 8 项 Core 核对提示测试、1 项 Bridge 持久详情测试、4 项清单合同及完整 check-strict 均通过。首轮作业为 CI 38138293082、原生 38138329586；两个失败均保留原日志，后续新候选单独复验，不将它们改记为通过。
+
+
+## 最终源码候选
+
+平台补修提交为 `0cf097fa6d34994552f842d1a09eadcdd3b0329a`，三个实现提交 `f6bd5159`、`6d70a81f`、`0cf097fa` 均已推送到 `codex/engineering-quality-20261011`。本地另提交 `goal.md`、`status.md` 与本记录的验收收尾，不改源码；文档提交与被验证源码 SHA 分开记录。
+
+- [CI 38139830762](https://github.com/BUAASubnet/UBAA/actions/runs/38139830762)：全部成功，合同、Flutter、macOS Rust、Windows Rust 均通过。Windows 格式、Clippy `-D warnings`、完整测试、构建和文档步骤全部实际执行成功，没有以跳过代替通过。
+- [原生矩阵 38139888742](https://github.com/BUAASubnet/UBAA/actions/runs/38139888742)：全部成功，Linux/Windows/macOS/iOS simulator/Android APK 的产物和输入材料均上传。Linux 作业日志确认不可用和可用会话各通过 1 项真实插件测试。
+- 同一候选的本地 OHOS 无签名 HAP/arm64 库、插件源码合同和干净 preflight 通过。preflight 输入清单包含 5839 个跟踪文件；许可缺口保持 27/848。
+- Windows 原生构建记录已下载复核：source_commit 正确、tracked_workspace_clean=true、中文路径可按 UTF-8 解码、文件仅 LF、输入/产物清单摘要与实际字节均一致，共 48 个产物文件。
+- 三个独立工作树 HEAD/status/diff 与开工快照一致。OHOS 构建产生的 buildinfo 删除与本机 SDK HAR 锁文件差异已经单独核对并恢复。
+
+| 平台 | 最终候选构建证据 | 本轮额外运行证据 |
+|---|---|---|
+| Windows | 远端 Debug、结构、材料与上传通过 | Rust 完整确定性门禁通过；未做设备人工业务验收 |
+| Linux | 远端 Debug、结构、材料与上传通过 | 实际应用完成两种 Secret Service 会话测试 |
+| macOS | 远端 Debug、结构、材料与上传通过 | 本地与 CI 登记的原生回归通过，含真实 FFI 持锁启动 |
+| Android | 远端 Debug APK、结构、材料与上传通过 | 本轮未做实体设备业务验收 |
+| iOS | 远端 simulator Debug、结构、材料与上传通过 | 本轮未做实体设备业务验收 |
+| OHOS | 本地无签名 Debug HAP、arm64 库、材料与结构通过 | 插件源码合成合同通过，实体 HUKS 未验收 |
+
+这六行证明当前候选的 Debug 构建链已经恢复，不能提升为发布准入。真实账号 Direct/WebVPN、学校写入、实体设备、正式签名/公证、安装升级回退及依赖许可材料缺口仍需各自证据；本轮没有执行或批准正式发布。

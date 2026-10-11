@@ -1,30 +1,28 @@
 # 当前实现与验证状态
 
-更新日期：2026-10-11。F01—F07 整改进行中，基线 a0a1736；当前 CLI JSON schema v11、Flutter bridge contract v41。[活动合同](../../goal.md)、[整改记录](quality-repair-2026-10-11.md)。
+更新日期：2026-10-11（Asia/Shanghai）。F01—F07 工程整改与最终跨平台门禁已完成。源码候选 `0cf097fa6d34994552f842d1a09eadcdd3b0329a`；实现与 RED/GREEN 见[整改记录](quality-repair-2026-10-11.md)，活动合同见 [goal.md](../../goal.md)。
 
-10 月 9 日远端同一基线：Windows Rust Clippy 因 unused_mut 失败，后续测试/构建/文档跳过；Linux Debug 因 libsecret-1 缺失失败。10 月 7 日的本地严格门禁通过不能扩大为这些平台通过。
+## 当前实现
 
-下列内容是上一轮 I01—I09 的历史记录，具体证据范围保持原样，不能替代本轮候选验证。
+- CLI JSON schema v11、Flutter bridge contract v41、Session v2、配置 v1、缓存 v6。
+- Windows 条件编译修正；Linux 补齐 libsecret 构建依赖与 Secret Service 可用/不可用原生验证。
+- 生产初始化通过异步 FRB 打开，Session 两级锁共用 2 秒预算；保留原 CAS 修订和内核排他锁。初始化失败保留白名单分类与诊断编号，可重新打开。
+- 写入发送观察独立于收尾。发送后 panic/未分类 Dart 异常保留未知结果，按意图原路线回读，不重放。Dart 投影完成后才确认持久核对提示，材料失败与学校结果分列。
+- 会话与缓存生命周期分别由独立所有者管理，跨模块通过命令变更；成绩基线只消费统一 scope，可以独立测试。
+- 发布清单覆盖全部 5839 个跟踪输入，使用 UTF-8/LF，关联候选、实际作业和产物相对路径摘要。
 
+## 验证
 
-更新日期：2026-10-07（Asia/Shanghai）。[独立工程审查整改](../../goal.md)的I01—I09已完成，实现、阶段提交及干净候选材料预检均已落地。实施分支为ubaa2，仅本地提交，不推送发布。
+- 本地严格 Rust/CLI/Shell 门禁、敏感/结构/公开合同、FRB 零漂移通过；七包 Flutter 分析/格式和 1354 项测试通过。
+- macOS 默认五个原生入口共 12 项通过，包含真实 FFI 双进程持锁与重试。窗口前置限制仍不构成人工按钮验收证据。
+- 最终候选 OHOS 无签名 Debug HAP、arm64 动态库及插件源码合成合同通过。
+- 远端 [CI](https://github.com/BUAASubnet/UBAA/actions/runs/38139830762) 全部通过：合同、Flutter、macOS Rust、Windows Rust；Windows 格式、Clippy、测试、构建与文档均实际执行成功。
+- 远端[原生矩阵](https://github.com/BUAASubnet/UBAA/actions/runs/38139888742)：Linux、Windows、macOS、iOS simulator、Android APK 全部通过；Linux 安全存储可用/不可用与 macOS 原生回归均实际执行。
+- 干净候选 preflight 通过；Windows 已上传材料经下载复核，UTF-8/LF、候选 SHA 与两份清单摘要均吻合。
+- 三个实现提交已推送到 `codex/engineering-quality-20261011`；本地另提交收尾验收文档，上述证据绑定源码候选而非文档提交。
 
-## 当前事实
+## 保留的发布边界
 
-- CLI JSON schema v11、Flutter bridge contract v40、Session v2、配置v1、缓存v6保持；当前Rust错误构造兼容取舍见[ADR0007](../adr/0007-operation-scopes-and-verification.md)。
-- 冻结old为1f4b8f8412272b6a423d4ad92b396e3db721e6f3、示例为a63712fa2ae0a6c8066197063ddee98e3a6b5b81，普通refs纯校验。
-- 写入统一Core原子确认路线；认证完成token与验证码状态分离；SessionScope/ReadScope保护回写，学期缓存有明确owner，清理/重建统一失效。普通偏好可显式清除坏值。
-- 敏感扫描分别读取index/工作区并失败关闭；Dart指令检查完整自有源码闭包；SBOM实际离线schema校验、Dart/OHOS许可材料及缺口单列。
-- 原生清单仍73入口，默认macOS改为4入口，新增真实插件通道；live/manual不进入CI。生成与历史材料的边界继续保留。
+真实账号 Direct/WebVPN、真实学校写入、实体设备、OHOS 实体 HUKS、正式签名/公证/安装升级回退没有由本轮合成验证替代。依赖许可材料仍有 27/848 条缺口，不能凭 SBOM schema 校验通过宣称正式交付批准。
 
-## 当前候选验证
-
-严格Rust/CLI/Shell门禁通过；七包Flutter分析/格式与1340项通过；FRB同步1行机械注释后生成零漂移。macOS默认四入口分层累计11项通过（网络1、插件2、应用流程7、FFI缓存1）。Android Debug APK、iOS simulator App、OHOS无签名Debug HAP及对应结构检查通过。
-
-验证日志、RED/GREEN、修复中被回归检出的分支、阶段提交和预检结果见[完整实施记录](engineering-quality-implementation-2026-10-07.md)。历史F1—F7的1327项与WebVPN记录只适用于[上一轮候选](maintainability-implementation-2026-10-07.md)，不用于本轮宣称真实验收通过。
-
-## 继续保留的证据缺口
-
-本轮未发起Direct/WebVPN、真实App账号读取或学校写入。原生runner无法前置macOS窗口，合成流程和真实插件handler通过不代表逐按钮Computer Use。OHOS实体HUKS、Windows/Linux运行、移动实体设备、签名及正式发布未验收。
-
-原B2/C2/C3/D沿[旧收尾合同](history/goal-2026-10-07-before-maintainability.md)与[按钮记录](../design/macos-ui-button-results.md)继续跟踪。干净候选bbbbca52的preflight成功生成材料，411个Cargo组件通过schema；Dart/OHOS材料仍有27/848条自有包正文/原生分发缺口，不能凭schema通过声称正式交付批准。
+上一轮 I01—I09 与旧真实路线记录仍按其原候选使用，见[2026-10-07 实施记录](engineering-quality-implementation-2026-10-07.md)。三个独立工作树、冻结引用、凭据及原黄金基线保持；本轮没有合并默认分支或发布应用。
