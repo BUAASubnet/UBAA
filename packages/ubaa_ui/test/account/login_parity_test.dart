@@ -28,12 +28,13 @@ void main() {
     );
   });
 
-  testWidgets('登录路线仅右上单图标，菜单说明默认策略并非实际路线', (tester) async {
+  testWidgets('登录选项与路线菜单不显示多余说明', (tester) async {
     await tester.pumpWidget(_login());
     expect(find.textContaining('模式：'), findsNothing);
+    expect(find.text('密码仅保存在系统安全存储；自动登录决定是否自动使用已保存密码。'), findsNothing);
     await tester.tap(find.byTooltip('连接模式'));
     await tester.pumpAndSettle();
-    expect(find.text('尚未读取；这里设置登录与后续查询的默认策略。'), findsOneWidget);
+    expect(find.text('尚未读取；这里设置登录与后续查询的默认策略。'), findsNothing);
     expect(find.text('WebVPN'), findsOneWidget);
     expect(find.text('直连'), findsOneWidget);
   });

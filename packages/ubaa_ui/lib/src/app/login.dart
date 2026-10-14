@@ -396,11 +396,6 @@ class _LoginOptions extends StatelessWidget {
           ),
         ],
       ),
-      if (persistenceAvailable)
-        Text(
-          '密码仅保存在系统安全存储；自动登录决定是否自动使用已保存密码。',
-          style: Theme.of(context).textTheme.bodySmall,
-        ),
       if (!persistenceAvailable)
         Text(
           '当前平台暂未启用安全存储，密码只在本次运行中使用。',
@@ -462,10 +457,6 @@ class _RoutePolicyButton extends StatelessWidget {
     onSelected: onChanged,
     icon: const Icon(Icons.route_outlined),
     itemBuilder: (context) => [
-      const PopupMenuItem<RoutePolicy>(
-        enabled: false,
-        child: Text('尚未读取；这里设置登录与后续查询的默认策略。'),
-      ),
       ...RoutePolicy.values.map(
         (item) => PopupMenuItem<RoutePolicy>(
           value: item,
