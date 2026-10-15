@@ -17,12 +17,19 @@ test:
     just core-test-contract
     cargo test --locked --workspace --exclude ubaa-core
 
-# 分别验证 Core 默认单元/文档合同、显式测试注入合同和关闭态编译失败。
+# Core 单元/集成只执行一次；默认配置保留编译、文档与关闭态负向合同。
 core-test-contract:
-    cargo test --locked -p ubaa-core --no-default-features --lib --tests
+    cargo check --locked -p ubaa-core --no-default-features --all-targets
     cargo test --locked -p ubaa-core --no-default-features --doc
     cargo test --locked -p ubaa-core --features test-contract --all-targets
     bash ./scripts/tests/facade-test-contract.sh
+
+# 日常反馈：可用 base=origin/ubaa2 覆盖本分支已提交改动；默认包含全部本地改动。
+check-changed base="":
+    python3 scripts/check/changed_checks.py --base "{{base}}" --run
+
+check-plan base="":
+    python3 scripts/check/changed_checks.py --base "{{base}}"
 
 check:
     just shell-check
@@ -105,6 +112,7 @@ source-files:
 
 # 不访问学校或设备的 Python 行为合同。
 script-test:
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/changed_checks_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/integration_catalog_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/module_graph_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/sensitive_test.py

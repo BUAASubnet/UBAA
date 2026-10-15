@@ -7,6 +7,7 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 source "$script_dir/../lib/repo.sh"
 repo_root=$(ubaa_repo_root)
 check_mode=${1:-check}
+if [[ $# -gt 0 ]]; then shift; fi
 if [[ "$check_mode" != check && "$check_mode" != dependencies ]]; then
   printf '%s\n' 'error: 只接受 check 或 dependencies 模式' >&2
   exit 2
@@ -26,6 +27,20 @@ packages=(
   packages/ubaa_host
   apps/ubaa_flutter
 )
+
+# 显式包名由按改动入口传入；无参数仍完整遍历，不改变 CI 默认行为。
+if [[ $# -gt 0 ]]; then
+  selected=()
+  for package in "$@"; do
+    case "$package" in
+      ubaa_domain | ubaa_platform | ubaa_app | ubaa_ui | ubaa_bindings | ubaa_host)
+        selected+=("packages/$package") ;;
+      ubaa_flutter) selected+=("apps/ubaa_flutter") ;;
+      *) printf 'error: 未登记的 Flutter 包：%s\n' "$package" >&2; exit 2 ;;
+    esac
+  done
+  packages=("${selected[@]}")
+fi
 
 for package_dir in "${packages[@]}"; do
   printf '检查 %s\n' "$package_dir"

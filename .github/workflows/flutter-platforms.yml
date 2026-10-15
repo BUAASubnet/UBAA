@@ -6,12 +6,7 @@ on:
     paths:
       - '.github/workflows/ci.yml'
       - '.github/workflows/flutter-platforms.yml'
-      - 'AGENTS.md'
-      - 'README.md'
-      - 'CONTRIBUTING.md'
-      - 'goal.md'
       - 'justfile'
-      - 'docs/**'
       - 'apps/ubaa_flutter/**'
       - 'apps/ubaa_ohos/**'
       - 'crates/ubaa-core/**'
@@ -21,18 +16,14 @@ on:
       - 'Cargo.lock'
       - 'Cargo.toml'
       - 'rust-toolchain.toml'
+      - '!**/*.md'
   push:
     branches:
       - ubaa2
     paths:
       - '.github/workflows/ci.yml'
       - '.github/workflows/flutter-platforms.yml'
-      - 'AGENTS.md'
-      - 'README.md'
-      - 'CONTRIBUTING.md'
-      - 'goal.md'
       - 'justfile'
-      - 'docs/**'
       - 'apps/ubaa_flutter/**'
       - 'apps/ubaa_ohos/**'
       - 'crates/ubaa-core/**'
@@ -42,6 +33,7 @@ on:
       - 'Cargo.lock'
       - 'Cargo.toml'
       - 'rust-toolchain.toml'
+      - '!**/*.md'
 
 permissions:
   contents: read

@@ -43,3 +43,9 @@ OHOS网络插件合同：`bash scripts/tests/platform-plugins-ohos.sh` 编译实
 `source_manifest_test.py` 使用临时 Git 仓库验证 Core/锁文件/脚本改动可被摘要识别，且不读取未跟踪凭据。`release/source_manifest.py` 生成全部跟踪输入与可选产物的相对路径摘要、候选 SHA 和作业关联。
 
 `tests/linux-secure-storage.sh` 只在临时 XDG/D-Bus 会话验证合成安全材料，覆盖无 Secret Service 时安全失败。`tests/native/startup_lock_runner.py` 是登记到合成启动入口的外部持锁夹具：只使用新建临时目录，与 App 通过合成标记文件协调；不改变应用 Sandbox，不读取账号或用户会话。
+
+## 按改动选择检查
+
+`just check-plan [base=<Git基线>]` 只读取 Git 状态与本地 pubspec，打印计划；`just check-changed` 执行同一计划。默认覆盖全部本地差异（包含删除、移动及未跟踪文件），显式基线还包含分支提交。未知文件或依赖格式退回完整门禁，不自行安装依赖或修改冻结目录。
+
+Dart 生产变更沿本地依赖及 dev_dependencies 传播；测试变更仅验证所属包。执行命令沿用原门禁，因此可写构建缓存，FRB 检查沿用原生成/漂移约束。此入口不自动执行真实账号或任意设备测试；原生入口变更会提示专项验证。完整 `just check` 与无参数 `just flutter-check` 继续作为 CI 和最终整理验收入口。

@@ -19,8 +19,8 @@
 
 1. Run `git status --short --branch` and `just refs`.
 2. Update `docs/migration/status.md` and decision records with current facts.
-3. Add one failing behavior test and observe the expected failure.
-4. Implement the smallest change, run the focused test, then `just check`.
+3. 行为变更或缺陷修复先用有意义的失败反例证明问题；纯文案、样式、文档及可逆机械改动复用已有覆盖，不添加语言自证、固定文案缺席或 Widget 数量断言。整理测试时登记删除项对应的保留覆盖。
+4. 实现最小变更，先运行聚焦检查，再用 `just check-plan` / `just check-changed` 按影响范围验证；比较已提交分支时传入 `base=<基线>`。安全、协议、并发、存储和跨语言边界修改保留完整相关门禁。未知影响保守全量。
 5. Inspect staged files for sensitive material and keep each phase in a separate commit.
 
 ## Project map
@@ -35,7 +35,9 @@
 
 ## Completion gate
 
-Run `just refs`, `just layout-check`, `just check-sensitive`, `just check`, CLI end-to-end tests, `just verify-live mode=direct`, and `just verify-live mode=webvpn`. Fixture or mock success does not establish live protocol success. CI runs the deterministic gates only and never receives live credentials.
+日常阶段按上述改动范围运行检查；修改测试框架、门禁、公共合同或完成跨模块整理时，必须运行 `just refs`、`just layout-check`、`just check-sensitive`、`just check` 及 `just flutter-check`。PR/CI 保留完整确定性检查，不以选择性检查替代最终验收。
+
+认证/读取协议与发布验收另需 CLI 端到端、`just verify-live mode=direct` 和 `just verify-live mode=webvpn`；纯 UI 文案或测试整理不因此触发真实学校请求。Fixture/Mock 成功不代表真实协议成功，CI 永不接收真实凭据。
 
 ## Mandatory source-parity gate
 
