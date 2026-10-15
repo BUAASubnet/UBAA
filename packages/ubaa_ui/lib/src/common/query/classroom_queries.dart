@@ -173,11 +173,7 @@ extension ClassroomQueryControls on FeatureQueryControlsState {
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(
-                  options.isEmpty
-                      ? '先查询该日期校区以获取选项，也可关闭后手填。'
-                      : '来自该日期校区已查询的结果，可能仅含部分选项；也可手填。',
-                ),
+                Text(options.isEmpty ? '请先查询，或手动填写' : '仅显示已查询的选项，可手动填写'),
                 for (final option in options.entries)
                   ListTile(
                     title: Text(option.value),

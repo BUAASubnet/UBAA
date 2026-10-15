@@ -59,7 +59,7 @@ void main() {
     await tester.tap(find.byTooltip('选择楼层'));
     await tester.pumpAndSettle();
     expect(find.text('二层 · F02'), findsNothing);
-    expect(find.textContaining('先查询该日期校区'), findsOneWidget);
+    expect(find.textContaining('请先查询'), findsOneWidget);
   });
   testWidgets('选择对话框打开后epoch变化不能填回旧楼层', (tester) async {
     final h = await _open(tester);
@@ -110,7 +110,7 @@ void main() {
       await tester.tap(find.byTooltip('选择楼层'));
       await tester.pumpAndSettle();
       expect(find.text('二层 · F02'), findsNothing);
-      expect(find.textContaining('先查询该日期校区'), findsOneWidget);
+      expect(find.textContaining('请先查询'), findsOneWidget);
       await tester.tap(find.text('关闭'));
       await tester.pumpAndSettle();
       h.snapshot = _snapshot(3);

@@ -132,7 +132,7 @@ class _LibraryAreaMapState extends State<_LibraryAreaMap> {
             ],
           ),
           Text(
-            '静态座位分布图，颜色不代表当前可用状态。请在预约页面选择座位。',
+            '静态示意图，颜色不代表座位可用状态',
             style: Theme.of(context).textTheme.bodySmall,
           ),
           const SizedBox(height: 10),

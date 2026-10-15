@@ -5,7 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 void main() {
-  testWidgets('错误卡展示关联编号并只复制安全字段', (tester) async {
+  testWidgets('错误卡按需展开诊断并只复制安全字段', (tester) async {
     String? copied;
     tester.binding.defaultBinaryMessenger.setMockMethodCallHandler(
       SystemChannels.platform,
@@ -39,6 +39,10 @@ void main() {
         ),
       ),
     );
+    expect(find.textContaining('UBAA-fixture-1'), findsNothing);
+    expect(find.text('错误代码：parse_error'), findsNothing);
+    await tester.tap(find.text('错误详情'));
+    await tester.pumpAndSettle();
     expect(find.textContaining('UBAA-fixture-1'), findsOneWidget);
     expect(find.text('错误代码：parse_error'), findsOneWidget);
     await tester.tap(find.text('复制错误信息'));

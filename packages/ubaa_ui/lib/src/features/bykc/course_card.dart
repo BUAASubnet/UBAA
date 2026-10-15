@@ -54,7 +54,7 @@ class BykcCourseCard extends StatelessWidget {
                 course.audienceCampuses.join('、'),
                 maxLines: 1,
               ),
-              if (course.hasSignPoints) const Text('含地点签到配置'),
+              if (course.hasSignPoints) const Text('设有签到地点'),
               BykcInfoLine(
                 '时间',
                 uiBykcRange(course.courseStartDate, course.courseEndDate),

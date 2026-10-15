@@ -70,7 +70,7 @@ class ProfileView extends StatelessWidget {
               child: ListTile(
                 leading: const Icon(Icons.palette_outlined),
                 title: const Text('外观主题'),
-                subtitle: const Text('本次运行生效，重启后跟随系统'),
+                subtitle: const Text('仅本次生效，重启后跟随系统'),
                 trailing: DropdownButton<ThemeMode>(
                   value: themeMode,
                   onChanged: onThemeModeChanged == null
@@ -96,7 +96,6 @@ class ProfileView extends StatelessWidget {
                   ListTile(
                     leading: const Icon(Icons.tune),
                     title: const Text('连接模式'),
-                    subtitle: Text(routePolicy.description),
                     trailing: DropdownButton<RoutePolicy>(
                       value: routePolicy,
                       onChanged: (value) {
@@ -139,7 +138,6 @@ class ProfileView extends StatelessWidget {
                     ListTile(
                       leading: const Icon(Icons.bug_report_outlined),
                       title: const Text('本次运行诊断'),
-                      subtitle: const Text('查看或复制错误信息，不会自动上传'),
                       onTap: () =>
                           uiShowDiagnosticsDialog(context, onReadDiagnostics!),
                     ),
@@ -159,12 +157,6 @@ class ProfileView extends StatelessWidget {
             onPressed: () => _confirmClearAccount(context),
             icon: const Icon(Icons.delete_outline),
             label: const Text('退出并清除本机账号'),
-          ),
-          const SizedBox(height: 32),
-          Text(
-            'UBAA 应用\nMake BUAA Great Again',
-            style: Theme.of(context).textTheme.bodySmall,
-            textAlign: TextAlign.center,
           ),
         ],
       ),

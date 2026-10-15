@@ -56,6 +56,7 @@ void main() {
       testWidgets('物理点击${feature.title}后一次返回即可回到原功能分组', (tester) async {
         final reads = await _showGroup(tester, group.key);
         final card = await _revealCard(tester, feature);
+        expect(find.text(feature.description), findsNothing);
 
         await tester.tap(card);
         await tester.pumpAndSettle();

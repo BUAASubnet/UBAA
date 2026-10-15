@@ -54,7 +54,7 @@ class _WriteReadbackNoticeState extends State<WriteReadbackNotice> {
       childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
       expandedCrossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text('请按操作时间和原连接路线查看学校记录。移除提示只影响本机，不改变学校记录。'),
+        const Text('请核对学校记录；移除提示不会改变学校记录。'),
         if (widget.error != null) ...[
           const SizedBox(height: 8),
           const Text('本机待核实提示读取失败，已有提示仍保留。'),

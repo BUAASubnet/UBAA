@@ -57,7 +57,7 @@ class _SigninCourseCard extends StatelessWidget {
     if ((action.eligibility == ActionEligibility.denied && p.signStatus != 1) ||
         (action.eligibility == ActionEligibility.allowed &&
             p.signStatus != 0)) {
-      return '签到状态与操作资格信息不一致；操作资格由服务端判定。';
+      return '签到状态不一致，请刷新后重试';
     }
     return switch (action.eligibility) {
       ActionEligibility.unknown => '当前签到资格无法确认，请刷新后重试。',

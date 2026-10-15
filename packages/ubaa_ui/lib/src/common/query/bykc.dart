@@ -103,7 +103,7 @@ extension BykcQueryControls on FeatureQueryControlsState {
               ),
               const Padding(
                 padding: EdgeInsets.only(top: 8),
-                child: Text('仅筛选当前服务器页；其他页请翻页查询。'),
+                child: Text('仅筛选当前页'),
               ),
               Row(
                 children: [

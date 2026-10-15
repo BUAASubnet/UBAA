@@ -84,7 +84,7 @@ void main() {
       },
     );
     await _form(tester);
-    expect(find.text('活动类型来自本地冻结回退列表。'), findsOneWidget);
+    expect(find.text('使用预设活动类型'), findsOneWidget);
     expect(find.byTooltip('实际路线：混合'), findsOneWidget);
     await tester.ensureVisible(find.widgetWithText(OutlinedButton, '合成研讨甲'));
     await tester.tap(find.widgetWithText(OutlinedButton, '合成研讨甲'));

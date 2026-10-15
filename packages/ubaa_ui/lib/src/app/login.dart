@@ -468,7 +468,6 @@ class _RoutePolicyButton extends StatelessWidget {
                   : Icons.circle_outlined,
             ),
             title: Text(item.label),
-            subtitle: Text(item.description),
           ),
         ),
       ),

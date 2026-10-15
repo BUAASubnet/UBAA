@@ -59,8 +59,8 @@ FeatureResult bridgeProjectCgyyPurposes(
   ConnectionMode route,
 ) {
   final source = data.source == BridgeCgyyPurposeSource.upstream
-      ? '上游'
-      : '本地冻结回退';
+      ? '学校提供'
+      : '预设类型';
   final details = data.items
       .map(
         (item) => FeatureDetail(

@@ -122,7 +122,6 @@ extension AssignmentsQueryControls on FeatureQueryControlsState {
             decoration: const InputDecoration(
               labelText: '批量作业键',
               hintText: '每行：课程编号/作业编号',
-              helperText: '仅填写作业列表中的公开编号',
               isDense: true,
             ),
           ),

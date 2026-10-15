@@ -20,7 +20,7 @@ void main() {
       ),
     );
     await tester.pump(const Duration(seconds: 3));
-    expect(find.text('意图已过期'), findsNothing);
+    expect(find.text('确认已过期'), findsNothing);
     expect(
       tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
       isNull,
@@ -81,7 +81,7 @@ void main() {
     );
     expect(find.text('确认提交'), findsOneWidget);
     await tester.pump(const Duration(seconds: 3));
-    expect(find.text('意图已过期'), findsOneWidget);
+    expect(find.text('确认已过期'), findsOneWidget);
     expect(
       tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
       isNull,

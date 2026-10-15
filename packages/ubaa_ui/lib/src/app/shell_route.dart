@@ -25,7 +25,7 @@ extension UbaaShellRoute on _UbaaMainShellState {
                   Text('${entry.key}：${entry.value.label}'),
               ],
               const SizedBox(height: 8),
-              const Text('实际路线以当前显示的读取结果为准。切换默认策略后，下次读取使用新策略；已显示的结果不会被改写。'),
+              const Text('下次查询使用'),
               const SizedBox(height: 16),
               DropdownButton<RoutePolicy>(
                 value: widget.routePolicy,

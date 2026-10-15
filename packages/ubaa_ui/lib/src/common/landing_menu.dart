@@ -41,28 +41,18 @@ class FeatureLandingMenu extends StatelessWidget {
   Widget build(BuildContext context) {
     final entries = switch (feature) {
       FeatureId.bykc => [
-        ('选择课程', '浏览可选博雅课程', Icons.list_alt, FeatureQueryView.summary),
-        (
-          '我的课程',
-          '查看已选课程与签到签退',
-          Icons.menu_book,
-          FeatureQueryView.bykcChosenCourses,
-        ),
-        ('课程统计', '查看课程完成情况', Icons.bar_chart, FeatureQueryView.bykcStatistics),
+        ('选择课程', Icons.list_alt, FeatureQueryView.summary),
+        ('我的课程', Icons.menu_book, FeatureQueryView.bykcChosenCourses),
+        ('课程统计', Icons.bar_chart, FeatureQueryView.bykcStatistics),
       ],
       FeatureId.libbook => [
-        ('预约座位', '选择楼馆、分区和座位', Icons.event_seat, FeatureQueryView.summary),
-        ('我的预约', '查看座位预约与取消', Icons.history, FeatureQueryView.libbookBookings),
+        ('预约座位', Icons.event_seat, FeatureQueryView.summary),
+        ('我的预约', Icons.history, FeatureQueryView.libbookBookings),
       ],
       FeatureId.cgyy => [
-        ('预约研讨室', '选择校区、楼栋和时段', Icons.date_range, FeatureQueryView.summary),
-        ('我的预约', '查看预约状态与详情', Icons.history, FeatureQueryView.cgyyOrders),
-        (
-          '查看密码',
-          '查看门锁密码与预约信息',
-          Icons.lock_outline,
-          FeatureQueryView.cgyyLockCode,
-        ),
+        ('预约研讨室', Icons.date_range, FeatureQueryView.summary),
+        ('我的预约', Icons.history, FeatureQueryView.cgyyOrders),
+        ('查看密码', Icons.lock_outline, FeatureQueryView.cgyyLockCode),
       ],
       _ => throw StateError('此领域没有子菜单'),
     };
@@ -75,7 +65,7 @@ class FeatureLandingMenu extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
             crossAxisCount: constraints.maxWidth >= 900 ? 3 : 2,
-            mainAxisExtent: 176 * scale.clamp(1.0, 2.0),
+            mainAxisExtent: 144 * scale.clamp(1.0, 2.0),
             crossAxisSpacing: 12,
             mainAxisSpacing: 12,
           ),
@@ -90,7 +80,7 @@ class FeatureLandingMenu extends StatelessWidget {
                 onTap: () => onOpen(
                   FeatureReadNavigation(
                     feature: feature,
-                    query: FeatureQuery(view: item.$4),
+                    query: FeatureQuery(view: item.$3),
                   ),
                 ),
                 child: Padding(
@@ -98,21 +88,13 @@ class FeatureLandingMenu extends StatelessWidget {
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(item.$3, size: 48, color: theme.colorScheme.primary),
+                      Icon(item.$2, size: 48, color: theme.colorScheme.primary),
                       const SizedBox(height: 12),
                       Text(
                         item.$1,
                         textAlign: TextAlign.center,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item.$2,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodySmall?.copyWith(
-                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ],

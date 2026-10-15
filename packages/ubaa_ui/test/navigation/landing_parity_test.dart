@@ -41,6 +41,12 @@ void main() {
       for (final title in entry.value) {
         expect(find.widgetWithText(Card, title), findsOneWidget);
       }
+      for (final card in tester.widgetList<Card>(find.byType(Card))) {
+        expect(
+          find.descendant(of: find.byWidget(card), matching: find.byType(Text)),
+          findsOneWidget,
+        );
+      }
       expect(find.text('合成预载结果'), findsNothing);
       expect(find.byType(TextField), findsNothing);
       expect(find.byType(NavigationBar), findsNothing);

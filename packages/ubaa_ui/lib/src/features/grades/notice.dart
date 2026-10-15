@@ -22,13 +22,6 @@ class GradeScoreBanner extends StatelessWidget {
             color: colors.onPrimaryContainer,
           ),
         ),
-        const SizedBox(height: 4),
-        Text(
-          '前往成绩查询查看最新分数',
-          style: theme.textTheme.bodySmall?.copyWith(
-            color: colors.onPrimaryContainer,
-          ),
-        ),
       ],
     );
     final buttons = Row(

@@ -362,7 +362,6 @@ class _HomeViewState extends State<HomeView> {
                       ? '今天没有课程安排'
                       : _homeSummary(schedule),
                 ),
-                subtitle: const Text('打开课表查询查看课程安排'),
                 trailing: const Icon(Icons.chevron_right),
                 onTap: () => widget.onFeatureTap(FeatureId.schedule),
               ),
@@ -384,13 +383,13 @@ class _HomeViewState extends State<HomeView> {
               context,
             ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
           ),
-          const SizedBox(height: 4),
-          Text(
-            loading.isEmpty
-                ? '聚合近期需要处理的课程和任务'
-                : '正在加载 ${loading.map(_homeLabel).join('、')}',
-            style: Theme.of(context).textTheme.bodySmall,
-          ),
+          if (loading.isNotEmpty) ...[
+            const SizedBox(height: 4),
+            Text(
+              '正在加载 ${loading.map(_homeLabel).join('、')}',
+              style: Theme.of(context).textTheme.bodySmall,
+            ),
+          ],
           if (failed.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 8),
@@ -723,7 +722,7 @@ class _FeatureGridSliver extends StatelessWidget {
       return SliverGrid.builder(
         gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
           crossAxisCount: columns,
-          mainAxisExtent: 184 * scale.clamp(1.0, 2.0),
+          mainAxisExtent: 144 * scale.clamp(1.0, 2.0),
           crossAxisSpacing: 12,
           mainAxisSpacing: 12,
         ),
@@ -788,14 +787,6 @@ class _FeatureCard extends StatelessWidget {
                   textAlign: TextAlign.center,
                   style: Theme.of(context).textTheme.titleMedium?.copyWith(
                     fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  feature.description,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                    color: colorScheme.onSurfaceVariant,
                   ),
                 ),
               ],

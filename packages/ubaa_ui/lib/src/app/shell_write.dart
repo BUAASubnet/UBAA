@@ -7,7 +7,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     await _prepareWrite(
       prepare: () => prepare(operation, courseId),
       expectedOperation: operation,
-      failureMessage: '暂时无法准备操作；尚未提交任何写请求。',
+      failureMessage: '暂时无法准备操作；未提交，请重试。',
     );
   }
 
@@ -16,7 +16,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (prepare == null) return;
     await _prepareWrite(
       prepare: () => prepare(action),
-      failureMessage: '暂时无法准备博雅签到；尚未提交任何写请求。',
+      failureMessage: '暂时无法准备博雅签到；未提交，请重试。',
       expectedOperation: action.operation,
     );
   }
@@ -26,7 +26,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (prepare == null) return;
     await _prepareWrite(
       prepare: () => prepare(action),
-      failureMessage: '暂时无法准备签到；尚未提交任何写请求。',
+      failureMessage: '暂时无法准备签到；未提交，请重试。',
       expectedOperation: action.operation,
     );
   }
@@ -36,7 +36,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (prepare == null) return;
     await _prepareWrite(
       prepare: () => prepare(action),
-      failureMessage: '暂时无法准备取消研讨室订单；尚未提交任何写请求。',
+      failureMessage: '暂时无法准备取消研讨室订单；未提交，请重试。',
       expectedOperation: action.operation,
     );
   }
@@ -46,7 +46,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (prepare == null) return;
     await _prepareWrite(
       prepare: () => prepare(action),
-      failureMessage: '暂时无法准备图书馆预约；尚未提交任何写请求。',
+      failureMessage: '暂时无法准备图书馆预约；未提交，请重试。',
       expectedOperation: action.operation,
     );
   }
@@ -56,7 +56,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (prepare == null) return;
     await _prepareWrite(
       prepare: () => prepare(action),
-      failureMessage: '暂时无法准备取消图书馆预约；尚未提交任何写请求。',
+      failureMessage: '暂时无法准备取消图书馆预约；未提交，请重试。',
       expectedOperation: action.operation,
     );
   }
@@ -66,7 +66,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (prepare == null) return;
     await _prepareWrite(
       prepare: () => prepare(targets),
-      failureMessage: '暂时无法准备教学评教；尚未提交任何写请求。',
+      failureMessage: '暂时无法准备教学评教；未提交，请重试。',
       expectedOperation: WriteOperation.evaluationSubmitCourses,
     );
   }
@@ -76,7 +76,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (!_hasYgdkSubmissionCapabilities || prepare == null) return;
     await _prepareWrite(
       prepare: () => prepare(input),
-      failureMessage: '暂时无法准备阳光打卡；尚未提交任何写请求。',
+      failureMessage: '暂时无法准备阳光打卡；未提交，请重试。',
       expectedOperation: WriteOperation.ygdkSubmit,
     );
   }
@@ -86,7 +86,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (prepare == null) return;
     await _prepareWrite(
       prepare: () => prepare(input),
-      failureMessage: '暂时无法准备研讨室预约；尚未提交任何写请求。',
+      failureMessage: '暂时无法准备研讨室预约；未提交，请重试。',
       expectedOperation: WriteOperation.cgyySubmitReservation,
     );
   }
@@ -130,7 +130,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
         !_hasYgdkSubmissionCapabilities) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('阳光打卡能力不完整；尚未提交任何写请求。')));
+      ).showSnackBar(const SnackBar(content: Text('暂时无法打卡；未提交，请重试。')));
       return;
     }
     final confirm = widget.onConfirmWrite;

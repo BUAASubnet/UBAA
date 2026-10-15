@@ -189,7 +189,7 @@ void _registerYgdkWriteResultTests() {
 
         expect(commitCalls, 0, reason: '缺少 $missing 时不得调用 commit');
         expect(
-          find.text('阳光打卡能力不完整；尚未提交任何写请求。'),
+          find.text('暂时无法打卡；未提交，请重试。'),
           findsOneWidget,
           reason: '缺少 $missing 时必须明确失败关闭',
         );
@@ -235,7 +235,7 @@ void _registerYgdkWriteResultTests() {
     expect(discardedIntentIds, const <String>['wrong-domain-intent']);
     expect(commitCalls, 0);
     expect(find.text('确认提交'), findsNothing);
-    expect(find.text('暂时无法准备阳光打卡；尚未提交任何写请求。'), findsOneWidget);
+    expect(find.text('暂时无法准备阳光打卡；未提交，请重试。'), findsOneWidget);
   });
 
   testWidgets('阳光打卡回读能力在提交期间丢失时不虚称已尝试', (tester) async {

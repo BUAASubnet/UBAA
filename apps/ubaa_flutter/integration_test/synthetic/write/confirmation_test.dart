@@ -72,11 +72,11 @@ void main() {
             () => Future<void>.delayed(const Duration(seconds: 3)),
           );
           await tester.pumpAndSettle();
-          expect(find.text('意图已过期'), findsOneWidget);
+          expect(find.text('确认已过期'), findsOneWidget);
           expect(
             tester
                 .widget<FilledButton>(
-                  find.widgetWithText(FilledButton, '意图已过期'),
+                  find.widgetWithText(FilledButton, '确认已过期'),
                 )
                 .onPressed,
             isNull,
@@ -128,7 +128,7 @@ void main() {
               () => Future<void>.delayed(const Duration(seconds: 3)),
             );
             await tester.pump();
-            expect(find.text('意图已过期'), findsNothing);
+            expect(find.text('确认已过期'), findsNothing);
           }
           expect(backend.commitCalls, 1);
           await busy(tester);

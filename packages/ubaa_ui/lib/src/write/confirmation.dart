@@ -151,7 +151,7 @@ class _WriteConfirmationViewState extends State<WriteConfirmationView> {
                               child: CircularProgressIndicator(strokeWidth: 2),
                             )
                           : const Icon(Icons.check),
-                      label: Text(expired ? '意图已过期' : '确认提交'),
+                      label: Text(expired ? '确认已过期' : '确认提交'),
                     ),
                   ],
                 ),

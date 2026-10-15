@@ -566,9 +566,9 @@ void _registerRemainingWriteTests() {
       ),
     );
     expect(find.text('WebVPN'), findsOneWidget);
-    expect(find.text('意图已过期'), findsOneWidget);
+    expect(find.text('确认已过期'), findsOneWidget);
     final submit = tester.widget<FilledButton>(
-      find.widgetWithText(FilledButton, '意图已过期'),
+      find.widgetWithText(FilledButton, '确认已过期'),
     );
     expect(submit.onPressed, isNull);
   });

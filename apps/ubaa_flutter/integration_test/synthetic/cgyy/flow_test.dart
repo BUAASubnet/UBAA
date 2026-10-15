@@ -141,7 +141,7 @@ void main() {
       await _tap(tester, find.text('应用筛选'));
       await _closePanel(tester);
       expect(backend.roomReads.last.view, FeatureQueryView.cgyyPurposeTypes);
-      expect(find.text('本地冻结回退'), findsOneWidget);
+      expect(find.text('预设类型'), findsOneWidget);
       await shot('purposes', '独立用途查询保留回退来源，不把名称当作提交编号');
       expect(backend.commitCalls, 0);
     });

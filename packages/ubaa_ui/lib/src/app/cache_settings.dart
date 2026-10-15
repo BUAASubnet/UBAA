@@ -129,11 +129,6 @@ class _CacheSettingsState extends State<CacheSettings> {
                       ? '用量暂不可用'
                       : (_notice == null ? '正在读取用量…' : '用量暂无统计')),
           ),
-          if (_usage case final value?)
-            Text(
-              '容量上限 ${_bytes(value.hardLimitBytes)}',
-              style: Theme.of(context).textTheme.bodySmall,
-            ),
           if (_notice != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),

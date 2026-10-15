@@ -491,7 +491,7 @@ void _registerBykcStateTests() {
     );
     expect(select.onPressed, isNull);
     expect(deselect.onPressed, isNotNull);
-    expect(find.text('当前课程状态不支持该操作；最终资格和时间窗仍由 Core 校验。'), findsOneWidget);
+    expect(find.text('部分操作当前不可用'), findsOneWidget);
     await tester.tap(find.text('准备退选'));
     await tester.pumpAndSettle();
     expect(deselectCalls, 1);

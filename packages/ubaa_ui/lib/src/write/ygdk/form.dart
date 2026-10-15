@@ -213,13 +213,6 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
-                        const Card(
-                          child: Padding(
-                            padding: EdgeInsets.all(16),
-                            child: Text('请填写运动时间并选择照片，核对后再提交。'),
-                          ),
-                        ),
-                        const SizedBox(height: 12),
                         _section('运动项目', [
                           OutlinedButton(
                             onPressed: _chooseItem,
@@ -332,7 +325,7 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
                             ),
                           ],
                           if (widget.onPickPhoto == null)
-                            const Text('当前运行环境未提供照片选择器，无法提交打卡。'),
+                            const Text('无法选择照片，暂不能打卡'),
                         ]),
                         const SizedBox(height: 12),
                         Card(
@@ -343,7 +336,6 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
                             contentPadding: const EdgeInsets.all(16),
                             secondary: const Icon(Icons.share_outlined),
                             title: const Text('分享到打卡广场'),
-                            subtitle: const Text('默认不分享，开启后会把本次打卡同步到广场。'),
                           ),
                         ),
                       ],

@@ -46,7 +46,7 @@ extension BykcDetailActions on _FeatureDetailListState {
         Padding(
           padding: const EdgeInsets.only(top: 4),
           child: Text(
-            '当前课程状态不支持该操作；最终资格和时间窗仍由 Core 校验。',
+            '部分操作当前不可用',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ),
@@ -91,7 +91,7 @@ extension BykcDetailActions on _FeatureDetailListState {
         Padding(
           padding: const EdgeInsets.only(top: 4),
           child: Text(
-            '当前不在可操作时间窗或状态不允许，具体条件由 Core 判定。',
+            '部分签到操作当前不可用',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ),

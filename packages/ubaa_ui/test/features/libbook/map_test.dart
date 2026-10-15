@@ -17,7 +17,7 @@ void main() {
       'assets/libbook_maps/area_8.png',
     );
     expect((image.image as AssetImage).package, 'ubaa_ui');
-    expect(find.textContaining('颜色不代表当前可用状态'), findsOneWidget);
+    expect(find.textContaining('颜色不代表座位可用状态'), findsOneWidget);
     await tester.tap(find.byTooltip('放大'));
     await tester.pumpAndSettle();
     final controller = tester

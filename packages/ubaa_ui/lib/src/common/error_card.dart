@@ -34,19 +34,30 @@ class FriendlyErrorCard extends StatelessWidget {
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  const SizedBox(height: 4),
-                  Text(
-                    error.message,
-                    style: TextStyle(color: colors.onErrorContainer),
-                  ),
+                  if (error.message.isNotEmpty &&
+                      error.message != error.title) ...[
+                    const SizedBox(height: 4),
+                    Text(
+                      error.message,
+                      style: TextStyle(color: colors.onErrorContainer),
+                    ),
+                  ],
                   if (_safeIssueId != null) ...<Widget>[
                     const SizedBox(height: 8),
-                    SelectableText('错误编号：$_safeIssueId'),
-                    SelectableText('错误代码：${error.code.wireName}'),
-                    TextButton.icon(
-                      onPressed: () => _copyError(context),
-                      icon: const Icon(Icons.copy_outlined),
-                      label: const Text('复制错误信息'),
+                    ExpansionTile(
+                      tilePadding: EdgeInsets.zero,
+                      childrenPadding: EdgeInsets.zero,
+                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                      title: const Text('错误详情'),
+                      children: [
+                        SelectableText('错误编号：$_safeIssueId'),
+                        SelectableText('错误代码：${error.code.wireName}'),
+                        TextButton.icon(
+                          onPressed: () => _copyError(context),
+                          icon: const Icon(Icons.copy_outlined),
+                          label: const Text('复制错误信息'),
+                        ),
+                      ],
                     ),
                   ],
                   if (error.retryable && onRetry != null) ...<Widget>[

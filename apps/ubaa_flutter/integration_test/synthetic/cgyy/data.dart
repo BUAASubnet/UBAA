@@ -192,7 +192,7 @@ FeatureResult roomData(FeatureQuery query, String state) {
               name: '学习类',
               isStaticFallback: true,
             ),
-            fields: [FeatureField(label: '来源', value: '本地冻结回退')],
+            fields: [FeatureField(label: '来源', value: '预设类型')],
           ),
         ],
       );

@@ -216,8 +216,6 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
                   ),
                 ),
           ],
-          const SizedBox(height: 16),
-          const Text('页面每30秒刷新一次，也可手动下拉刷新。'),
         ],
       ),
     );

@@ -87,13 +87,7 @@ class _AboutViewState extends State<AboutView> {
                       ),
                     ),
                   const SizedBox(height: 16),
-                  const Text('UBAA 是一个用于（部分）代替i北航功能的程序。'),
-                  const SizedBox(height: 8),
-                  Text('主要功能：', style: Theme.of(context).textTheme.titleSmall),
-                  const SizedBox(height: 4),
-                  const Text(
-                    '• 课程表查询\n• 今日课程提醒\n• 个人信息管理\n• 博雅课程\n• 考试查询\n• 更多校园功能',
-                  ),
+                  const Text('北航校园生活助手'),
                   const SizedBox(height: 24),
                   for (final link in AppLink.values)
                     Padding(
