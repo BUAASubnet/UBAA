@@ -236,9 +236,13 @@ void _registerFlowTests() {
     coordinator.dispose();
   });
 
-  test('旧 confirm 对未知异常保持 BackendException 类型且消费意图', () async {
+  test('旧 confirm 过滤未知异常、消费意图且不能重复提交', () async {
+    var commits = 0;
     final coordinator = WriteFlowController(
-      commit: (_) async => throw StateError('/private/token=secret'),
+      commit: (_) async {
+        commits++;
+        throw StateError('/private/token=secret');
+      },
       now: () => fixtureNow,
     );
     coordinator.setIntent(fixtureIntent());
@@ -251,6 +255,8 @@ void _registerFlowTests() {
       ),
     );
     expect(coordinator.intent, isNull);
+    expect(await coordinator.confirm(), isNull);
+    expect(commits, 1);
     coordinator.dispose();
   });
 

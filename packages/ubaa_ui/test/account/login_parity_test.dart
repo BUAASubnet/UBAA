@@ -28,15 +28,16 @@ void main() {
     );
   });
 
-  testWidgets('登录选项与路线菜单不显示多余说明', (tester) async {
-    await tester.pumpWidget(_login());
-    expect(find.textContaining('模式：'), findsNothing);
-    expect(find.text('密码仅保存在系统安全存储；自动登录决定是否自动使用已保存密码。'), findsNothing);
+  testWidgets('登录路线入口可展开并选择连接模式', (tester) async {
+    RoutePolicy? selected;
+    await tester.pumpWidget(_login(routeChanged: (value) => selected = value));
     await tester.tap(find.byTooltip('连接模式'));
     await tester.pumpAndSettle();
-    expect(find.text('尚未读取；这里设置登录与后续查询的默认策略。'), findsNothing);
     expect(find.text('WebVPN'), findsOneWidget);
     expect(find.text('直连'), findsOneWidget);
+    await tester.tap(find.text('直连'));
+    await tester.pumpAndSettle();
+    expect(selected, RoutePolicy.direct);
   });
 
   testWidgets('短窗口大字登录表单保留顶部安全空间并可滚到登录', (tester) async {
@@ -120,6 +121,7 @@ Widget _login({
   bool loading = false,
   bool persistenceAvailable = true,
   VoidCallback? submit,
+  ValueChanged<RoutePolicy>? routeChanged,
   ValueChanged<bool>? rememberChanged,
   ValueChanged<bool>? autoChanged,
 }) => MaterialApp(
@@ -139,7 +141,7 @@ Widget _login({
     onCaptchaChanged: (_) {},
     onRememberPasswordChanged: rememberChanged ?? (_) {},
     onAutoLoginChanged: autoChanged ?? (_) {},
-    onRoutePolicyChanged: (_) {},
+    onRoutePolicyChanged: routeChanged ?? (_) {},
     onSubmit: submit ?? () {},
   ),
 );

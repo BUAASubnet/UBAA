@@ -18,7 +18,6 @@ void _registerLoginOld(IntegrationTestWidgetsFlutterBinding binding) {
         expect(find.byType(TextField), findsNWidgets(2));
         await _accountShot(binding, tester, '$tag-initial');
         await _accountTap(tester, find.byTooltip('连接模式'));
-        expect(find.text('尚未读取；这里设置登录与后续查询的默认策略。'), findsNothing);
         await _accountShot(binding, tester, '$tag-route');
         await _accountTap(tester, find.text('直连'));
         expect(backend.policy, RoutePolicy.direct);

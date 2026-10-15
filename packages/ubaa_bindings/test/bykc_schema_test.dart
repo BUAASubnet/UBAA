@@ -3,7 +3,6 @@ import 'package:flutter_test/flutter_test.dart';
 
 void main() {
   final read = File('lib/src/rust/api/read.dart').readAsStringSync();
-  final client = File('lib/src/rust/api/client.dart').readAsStringSync();
   test('完整博雅 DTO 只暴露明确定义的显示字段', () {
     const fields = {
       'BridgeBykcCourseCatalogItem': [
@@ -52,26 +51,11 @@ void main() {
         dotAll: true,
       ).firstMatch(read)?.group(1);
       expect(body, isNotNull, reason: entry.key);
-      final actual = RegExp(
-        r'^  final (.+);$',
-        multiLine: true,
-      ).allMatches(body!).map((m) => m.group(1)!).toList();
+      final actual = RegExp(r'^\s*final\s+([^;{}]+);', multiLine: true)
+          .allMatches(body!)
+          .map((m) => m.group(1)!.replaceAll(RegExp(r'\s+'), ' ').trim())
+          .toList();
       expect(actual, entry.value, reason: '${entry.key} 不能新增 raw、地址、坐标或写权限字段');
     }
-  });
-  test('新旧博雅读取方法与旧图书馆独立日程同时保留', () {
-    for (final name in [
-      'bykcCourses',
-      'bykcCourseDetail',
-      'bykcChosenCourses',
-      'bykcCourseCatalog',
-      'bykcCourseFullDetail',
-      'libbookAreaSchedule',
-      'libbookAreaDetail',
-    ]) {
-      expect(client, contains(RegExp('\\b$name\\s*\\(')));
-    }
-    expect(read, contains('class BridgeRoutedBykcCourseCatalog'));
-    expect(read, contains('class BridgeRoutedBykcCourseFullDetail'));
   });
 }

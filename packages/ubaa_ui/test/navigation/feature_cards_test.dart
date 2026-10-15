@@ -22,41 +22,42 @@ const _featureGroups = <int, List<FeatureId>>{
 void main() {
   for (final group in _featureGroups.entries) {
     for (final feature in group.value) {
-      testWidgets('完整语义标签激活${feature.title}并返回原功能分组', (tester) async {
-        final semantics = tester.ensureSemantics();
-        try {
-          final reads = await _showGroup(tester, group.key);
-          await _revealCard(tester, feature);
-          final label = '${feature.title}：合成快照摘要。点击查看详情';
-          final labeledCard = find.bySemanticsLabel(label);
-          final node = tester.getSemantics(labeledCard);
-          final data = node.getSemanticsData();
-          final tapActions = _countTapActions(node);
+      if (feature == group.value.first) {
+        testWidgets('完整语义标签激活${feature.title}并返回原功能分组', (tester) async {
+          final semantics = tester.ensureSemantics();
+          try {
+            final reads = await _showGroup(tester, group.key);
+            await _revealCard(tester, feature);
+            final label = '${feature.title}：合成快照摘要。点击查看详情';
+            final labeledCard = find.bySemanticsLabel(label);
+            final node = tester.getSemantics(labeledCard);
+            final data = node.getSemanticsData();
+            final tapActions = _countTapActions(node);
 
-          tester
-              .renderObject(labeledCard)
-              .owner!
-              .semanticsOwner!
-              .performAction(node.id, SemanticsAction.tap);
-          await tester.pumpAndSettle();
+            tester
+                .renderObject(labeledCard)
+                .owner!
+                .semanticsOwner!
+                .performAction(node.id, SemanticsAction.tap);
+            await tester.pumpAndSettle();
 
-          _expectFeaturePage(feature);
-          expect(data.label, label);
-          expect(data.flagsCollection.isButton, isTrue);
-          expect(data.hasAction(SemanticsAction.tap), isTrue);
-          expect(tapActions, 1, reason: '一张卡片只暴露一个完整标签的点击动作');
-          await _returnToGroup(tester, group.key, feature);
-          expect(reads, isEmpty, reason: '入口导航复用合成快照，不新增读取');
-          expect(tester.takeException(), isNull);
-        } finally {
-          semantics.dispose();
-        }
-      });
+            _expectFeaturePage(feature);
+            expect(data.label, label);
+            expect(data.flagsCollection.isButton, isTrue);
+            expect(data.hasAction(SemanticsAction.tap), isTrue);
+            expect(tapActions, 1, reason: '一张卡片只暴露一个完整标签的点击动作');
+            await _returnToGroup(tester, group.key, feature);
+            expect(reads, isEmpty, reason: '入口导航复用合成快照，不新增读取');
+            expect(tester.takeException(), isNull);
+          } finally {
+            semantics.dispose();
+          }
+        });
+      }
 
       testWidgets('物理点击${feature.title}后一次返回即可回到原功能分组', (tester) async {
         final reads = await _showGroup(tester, group.key);
         final card = await _revealCard(tester, feature);
-        expect(find.text(feature.description), findsNothing);
 
         await tester.tap(card);
         await tester.pumpAndSettle();

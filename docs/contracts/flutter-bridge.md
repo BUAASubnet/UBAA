@@ -592,12 +592,12 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
 
 ## 合同 v19：缓存 DTO 遵守相同禁曝边界
 
-移除 v18 `BridgeCachedBykcChosenCourse` 误带出的 `homework/homeworkAttachmentName`，与原 `BridgeBykcChosenCourse` 的禁曝合同一致。已选课程、考勤状态与时间窗仍保留；不改变学校协议、Core 缓存或 App 展示。schema_snapshot_test 同时约束在线与缓存 DTO，防止新类型绕过旧白名单。v19 必须与同次生成的 Dart/Rust 绑定配套。
+移除 v18 `BridgeCachedBykcChosenCourse` 误带出的 `homework/homeworkAttachmentName`，与原 `BridgeBykcChosenCourse` 的禁曝合同一致。已选课程、考勤状态与时间窗仍保留；不改变学校协议、Core 缓存或 App 展示。public_data_boundary_test 同时约束在线与缓存 DTO，防止新类型绕过旧白名单。v19 必须与同次生成的 Dart/Rust 绑定配套。
 
 
 ## 合同 v20：研讨室只读持久入口
 
-`api/offline_cgyy.rs` 提供五项 `read_cgyy_*` 与 `cgyy_*_cached`。缓存 DTO 不含预约或取消资格/target、交易号、电话、人员或审核内部材料；schema_snapshot_test 对新类型增加同等禁曝约束。部分刷新与缓存发布结果分离；本地读取无网络锁，在线恢复受 pending 写保护。原 Cgyy caller-pinned 双回读及门锁方法不变。App 与 Rust 必须同为 v20。
+`api/offline_cgyy.rs` 提供五项 `read_cgyy_*` 与 `cgyy_*_cached`。缓存 DTO 不含预约或取消资格/target、交易号、电话、人员或审核内部材料；public_data_boundary_test 对新类型增加同等禁曝约束。部分刷新与缓存发布结果分离；本地读取无网络锁，在线恢复受 pending 写保护。原 Cgyy caller-pinned 双回读及门锁方法不变。App 与 Rust 必须同为 v20。
 
 
 ## 合同 v21：图书馆只读持久入口

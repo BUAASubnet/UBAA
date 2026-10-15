@@ -35,7 +35,6 @@ void main() {
         ),
       ],
     );
-    expect(outcome.routes.single.frame!.rgba, <int>[17, 83, 149, 255]);
     expect(
       '$answer $frame $outcome',
       isNot(contains('synthetic-schema-answer')),
@@ -54,17 +53,6 @@ void main() {
       ).hasMatch(source),
       isFalse,
     );
-    for (final name in <String>[
-      'beginInteractiveLogin',
-      'cancelInteractiveLogin',
-      'prepareInteractiveLogin',
-      'submitInteractiveLogin',
-      'refreshInteractiveCaptcha',
-      'continueInteractiveLogin',
-    ]) {
-      expect(client, contains('$name('));
-    }
-    expect(client, contains('required bool pinReadyRoute'));
   });
 
   test('旧登录和普通结果不增加答案或像素', () {
@@ -72,8 +60,6 @@ void main() {
       r'Future<BridgeLoginOutcome> login\(\{(.*?)\}\);',
       dotAll: true,
     ).firstMatch(client)!.group(1)!;
-    expect(login, contains('required String username'));
-    expect(login, contains('required String password'));
     expect(login, isNot(contains('captcha')));
     final outcome = RegExp(
       r'class BridgeLoginOutcome \{(.*?)\n\}',

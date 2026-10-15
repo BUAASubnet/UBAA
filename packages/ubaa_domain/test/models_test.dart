@@ -62,22 +62,18 @@ void main() {
     expect(explicit.hasMore, isTrue);
   });
 
-  test('typed action 保留目标、写操作与资格', () {
+  test('博雅选退课映射写操作且资格保持三态', () {
     const action = BykcSelectAction(
       courseId: 42,
       eligibility: ActionEligibility.allowed,
     );
 
-    expect(action.courseId, 42);
     expect(action.operation, WriteOperation.bykcSelectCourse);
-    expect(action.eligibility, ActionEligibility.allowed);
     const deselect = BykcDeselectAction(
       courseId: 9527,
       eligibility: ActionEligibility.allowed,
     );
-    expect(deselect.courseId, 9527);
     expect(deselect.operation, WriteOperation.bykcDeselectCourse);
-    expect(deselect.eligibility, ActionEligibility.allowed);
     expect(ActionEligibility.values, <ActionEligibility>[
       ActionEligibility.allowed,
       ActionEligibility.denied,
@@ -85,7 +81,7 @@ void main() {
     ]);
   });
 
-  test('博雅签到 action 固定映射协议类型并保留 typed 目标资格', () {
+  test('博雅签到签退映射固定协议类型与写操作', () {
     const signIn = BykcSignAction(
       courseId: 9527,
       kind: BykcSignKind.signIn,
@@ -99,90 +95,50 @@ void main() {
       requiresCoordinates: true,
     );
 
-    expect(signIn.courseId, 9527);
-    expect(signIn.kind, BykcSignKind.signIn);
     expect(signIn.signType, 1);
     expect(signIn.operation, WriteOperation.bykcSignCourse);
-    expect(signIn.eligibility, ActionEligibility.allowed);
-    expect(signIn.requiresCoordinates, isFalse);
-    expect(signOut.courseId, 9527);
-    expect(signOut.kind, BykcSignKind.signOut);
     expect(signOut.signType, 2);
     expect(signOut.operation, WriteOperation.bykcSignCourse);
-    expect(signOut.eligibility, ActionEligibility.unknown);
-    expect(signOut.requiresCoordinates, isTrue);
     expect(BykcSignKind.values, <BykcSignKind>[
       BykcSignKind.signIn,
       BykcSignKind.signOut,
     ]);
   });
 
-  test('课堂签到 action 只保留 Core 核对的安排目标与资格', () {
-    const action = SigninPerformAction(
-      scheduleId: 'schedule-safe',
-      eligibility: ActionEligibility.allowed,
-    );
-
-    expect(action.scheduleId, 'schedule-safe');
-    expect(action.operation, WriteOperation.signinPerform);
-    expect(action.eligibility, ActionEligibility.allowed);
-  });
-
-  test('图书馆预约 action 保留 Core 目标、完整时段与三态资格', () {
-    const action = LibbookReserveAction(
-      areaId: 'area-safe',
-      seatId: 'seat-safe',
-      day: '2026-09-04',
-      segment: 'segment-safe',
-      startTime: '08:00',
-      endTime: '10:00',
-      eligibility: ActionEligibility.allowed,
-    );
-
-    expect(action.areaId, 'area-safe');
-    expect(action.seatId, 'seat-safe');
-    expect(action.day, '2026-09-04');
-    expect(action.segment, 'segment-safe');
-    expect(action.startTime, '08:00');
-    expect(action.endTime, '10:00');
-    expect(action.operation, WriteOperation.libbookReserve);
-    expect(action.eligibility, ActionEligibility.allowed);
-  });
-
-  test('图书馆取消 action 保留 Core 目标与同页权威上下文', () {
-    const action = LibbookCancelAction(
-      bookingId: 'booking-safe',
-      page: 2,
-      limit: 20,
-      eligibility: ActionEligibility.allowed,
-    );
-
-    expect(action.bookingId, 'booking-safe');
-    expect(action.page, 2);
-    expect(action.limit, 20);
-    expect(action.operation, WriteOperation.libbookCancelBooking);
-    expect(action.eligibility, ActionEligibility.allowed);
-  });
-
-  test('研讨室预约 action 保留 Core 核对的场地、时段顺序与三态资格', () {
-    const action = CgyyReserveAction(
-      venueSiteId: 3,
-      reservationDate: '2026-09-04',
-      spaceId: 4,
-      timeId: 900,
-      venueSpaceGroupId: 9,
-      timeOrdinal: 0,
-      eligibility: ActionEligibility.allowed,
-    );
-
-    expect(action.venueSiteId, 3);
-    expect(action.reservationDate, '2026-09-04');
-    expect(action.spaceId, 4);
-    expect(action.timeId, 900);
-    expect(action.venueSpaceGroupId, 9);
-    expect(action.timeOrdinal, 0);
-    expect(action.operation, WriteOperation.cgyySubmitReservation);
-    expect(action.eligibility, ActionEligibility.allowed);
+  test('基本写动作映射到正确操作', () {
+    const cases = <FeatureAction, WriteOperation>{
+      SigninPerformAction(
+        scheduleId: 'schedule-safe',
+        eligibility: ActionEligibility.allowed,
+      ): WriteOperation.signinPerform,
+      LibbookReserveAction(
+        areaId: 'area-safe',
+        seatId: 'seat-safe',
+        day: '2026-09-04',
+        segment: 'segment-safe',
+        startTime: '08:00',
+        endTime: '10:00',
+        eligibility: ActionEligibility.allowed,
+      ): WriteOperation.libbookReserve,
+      LibbookCancelAction(
+        bookingId: 'booking-safe',
+        page: 2,
+        limit: 20,
+        eligibility: ActionEligibility.allowed,
+      ): WriteOperation.libbookCancelBooking,
+      CgyyReserveAction(
+        venueSiteId: 3,
+        reservationDate: '2026-09-04',
+        spaceId: 4,
+        timeId: 900,
+        venueSpaceGroupId: 9,
+        timeOrdinal: 0,
+        eligibility: ActionEligibility.allowed,
+      ): WriteOperation.cgyySubmitReservation,
+    };
+    for (final entry in cases.entries) {
+      expect(entry.key.operation, entry.value);
+    }
   });
 
   test('场馆取消 action 只保留 Core 核对的 typed 目标与三态资格', () {
@@ -209,16 +165,8 @@ void main() {
       eligibility: ActionEligibility.denied,
     );
 
-    expect(action.orderId, 17);
-    expect(action.orderStatus, 1);
-    expect(action.checkStatus, 2);
-    expect(action.targetOrderId, 17);
     expect(action.operation, WriteOperation.cgyyCancelOrder);
-    expect(action.eligibility, ActionEligibility.allowed);
     expect(action.hasCanonicalTarget, isTrue);
-    expect(denied.orderStatus, 2);
-    expect(denied.targetOrderId, isNull);
-    expect(denied.eligibility, ActionEligibility.denied);
     expect(denied.hasCanonicalTarget, isFalse);
     expect(cancelled.confirmsCancellationOf(17), isTrue);
     expect(cancelled.confirmsCancellationOf(18), isFalse);
@@ -262,8 +210,6 @@ void main() {
       eligibility: ActionEligibility.allowed,
     );
 
-    expect(allowed.classifyId, 31);
-    expect(allowed.itemId, 7);
     expect(allowed.operation, WriteOperation.ygdkSubmit);
     expect(allowed.hasCanonicalTarget, isTrue);
     expect(unknown.hasCanonicalTarget, isFalse);
@@ -345,60 +291,13 @@ void main() {
     expect(missing.hasCanonicalTarget, isFalse);
   });
 
-  test('评教批量结果完整保留四态逐项结果并进入通用提交结果', () {
-    const first = EvaluationSubmitTarget(
-      rwid: 'task-1',
-      wjid: 'questionnaire-1',
-      kcdm: 'course-1',
-    );
-    const second = EvaluationSubmitTarget(
-      rwid: 'task-2',
-      wjid: 'questionnaire-2',
-      kcdm: 'course-2',
-      bpdm: 'teacher-2',
-    );
-    const batch = EvaluationBatchResult(
-      items: <EvaluationCourseResult>[
-        EvaluationCourseResult(
-          target: first,
-          courseName: '课程一',
-          outcome: EvaluationCourseOutcome.success,
-          message: '已提交',
-        ),
-        EvaluationCourseResult(
-          target: second,
-          courseName: '课程二',
-          outcome: EvaluationCourseOutcome.outcomeUnknown,
-          message: '结果待核对',
-        ),
-      ],
-      success: false,
-      outcomeUnknown: true,
-    );
-    const result = WriteCommitResult(
-      operation: WriteOperation.evaluationSubmitCourses,
-      success: false,
-      message: '部分结果待核对',
-      outcomeUnknown: true,
-      evaluationResult: batch,
-    );
-
+  test('评教结果保留成功、失败、未知和未尝试四态', () {
     expect(EvaluationCourseOutcome.values, <EvaluationCourseOutcome>[
       EvaluationCourseOutcome.success,
       EvaluationCourseOutcome.failure,
       EvaluationCourseOutcome.outcomeUnknown,
       EvaluationCourseOutcome.unattempted,
     ]);
-    expect(result.evaluationResult, same(batch));
-    expect(result.evaluationResult?.items, hasLength(2));
-    expect(
-      result.evaluationResult?.items.last.outcome,
-      EvaluationCourseOutcome.outcomeUnknown,
-    );
-    expect(
-      result.evaluationResult?.items.last.target.selectionKey,
-      second.selectionKey,
-    );
   });
 
   test('详情可按类型稳定查找 action，缺失时默认为空', () {

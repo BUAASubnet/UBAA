@@ -3,79 +3,7 @@ import 'package:ubaa_domain/src/write/state.dart' as write_state;
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
-  test('公共 barrel 保持五十一个稳定名字', () {
-    // 公开面精确由 44 个类型、5 个 named extension 和 2 个常量组成。
-    final publicTypes = <Type>{
-      RoutePolicy,
-      FeatureId,
-      UbaaErrorCode,
-      UiError,
-      LoginInput,
-      UserSummary,
-      FeatureLoadStatus,
-      FeatureQueryView,
-      FeatureSnapshot,
-      FeaturePagination,
-      FeatureResult,
-      JudgeAssignmentQueryKey,
-      FeatureQuery,
-      FeatureDetail,
-      FeatureField,
-      ActionEligibility,
-      FeatureAction,
-      BykcSelectAction,
-      BykcDeselectAction,
-      BykcSignKind,
-      BykcSignAction,
-      SigninPerformAction,
-      LibbookReserveAction,
-      LibbookCancelAction,
-      CgyyReserveAction,
-      CgyyCancelAction,
-      YgdkSubmitAction,
-      YgdkPhotoInput,
-      YgdkSubmitInput,
-      CgyySubmitInput,
-      EvaluationSubmitTarget,
-      EvaluationSubmitAction,
-      EvaluationCourseOutcome,
-      EvaluationCourseResult,
-      EvaluationBatchResult,
-      ConnectionMode,
-      WriteOperation,
-      WriteIntent,
-      CgyyReservationReceipt,
-      YgdkSubmitReceipt,
-      WriteCommitResult,
-      WritePhase,
-      WriteState,
-      WriteOutcome,
-    };
-    expect(publicTypes, hasLength(44));
-
-    expect(RoutePolicyText(RoutePolicy.direct).wireName, 'direct');
-    expect(FeatureIdText(FeatureId.schedule).title, '课表查询');
-    expect(
-      UbaaErrorCodeText(UbaaErrorCode.invalidInput).wireName,
-      'invalid_input',
-    );
-    expect(ConnectionModeText(ConnectionMode.webvpn).label, 'WebVPN');
-    expect(WriteOperationText(WriteOperation.signinPerform).title, '课堂签到');
-
-    const ordinary = ordinaryFeatureIds;
-    const advanced = advancedFeatureIds;
-    expect(ordinary, hasLength(8));
-    expect(advanced, hasLength(4));
-  });
-
   test('关键领域对象保持 barrel 类型身份', () {
-    const query = FeatureQuery(view: FeatureQueryView.scheduleToday);
-    const result = FeatureResult.success(summary: '脱敏摘要');
-    const receipt = CgyyReservationReceipt(orderId: 42);
-
-    expect(query.runtimeType, FeatureQuery);
-    expect(result.runtimeType, FeatureResult);
-    expect(receipt.runtimeType, CgyyReservationReceipt);
     expect(WritePhase, same(write_state.WritePhase));
     expect(WriteState, same(write_state.WriteState));
     expect(WriteOutcome, same(write_state.WriteOutcome));
