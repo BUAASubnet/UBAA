@@ -12,7 +12,11 @@ extension AssignmentsDetailActions on _FeatureDetailListState {
         signinAction != null) ...<Widget>[
       const SizedBox(height: 12),
       OutlinedButton.icon(
-        onPressed: canSignin ? () => widget.onSigninWrite!(signinAction) : null,
+        onPressed: !widget.writesEnabled
+            ? null
+            : canSignin
+            ? () => widget.onSigninWrite!(signinAction)
+            : null,
         icon: const Icon(Icons.how_to_reg),
         label: const Text('准备签到'),
       ),

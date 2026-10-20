@@ -63,6 +63,7 @@ class FeatureDetailList extends StatefulWidget {
   const FeatureDetailList({
     required this.feature,
     required this.details,
+    this.writesEnabled = true,
     this.timeline,
     this.filter = '',
     this.bykcStatuses = uiDefaultBykcStatuses,
@@ -99,6 +100,8 @@ class FeatureDetailList extends StatefulWidget {
   final bool isBykcChosenDetail;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final FeatureId feature;
+  // 刷新中保留按钮及列表布局，只暂停旧结果携带的写入动作。
+  final bool writesEnabled;
   final List<FeatureDetail> details;
   final ScheduleWeekOverview? timeline;
   final FeaturePagination? pagination;
@@ -290,6 +293,7 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                     feature: widget.feature,
                     details: visible,
                     onSignin: widget.onSigninWrite,
+                    writesEnabled: widget.writesEnabled,
                     evaluationRow: (detail) =>
                         _evaluationCourseRow(detail, setState),
                   )

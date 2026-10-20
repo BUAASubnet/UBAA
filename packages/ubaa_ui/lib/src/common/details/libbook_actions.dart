@@ -10,7 +10,9 @@ extension LibbookDetailActions on _FeatureDetailListState {
         widget.onLibbookCancelWrite != null) ...<Widget>[
       const SizedBox(height: 12),
       OutlinedButton.icon(
-        onPressed: canLibbookCancel
+        onPressed: !widget.writesEnabled
+            ? null
+            : canLibbookCancel
             ? () => widget.onLibbookCancelWrite!(libbookCancelAction)
             : null,
         icon: const Icon(Icons.event_busy),
@@ -38,7 +40,9 @@ extension LibbookDetailActions on _FeatureDetailListState {
         widget.onLibbookReserveWrite != null) ...<Widget>[
       const SizedBox(height: 12),
       OutlinedButton.icon(
-        onPressed: canLibbookReserve
+        onPressed: !widget.writesEnabled
+            ? null
+            : canLibbookReserve
             ? () => widget.onLibbookReserveWrite!(libbookReserveAction)
             : null,
         icon: const Icon(Icons.event_available),

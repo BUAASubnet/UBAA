@@ -131,7 +131,7 @@ class _GradesFlowState extends State<GradesFlow> {
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted && widget.visible) widget.onRoutes?.call(routes);
     });
-    if (!_ready ||
+    if ((!_ready && snapshot.status != FeatureLoadStatus.loading) ||
         current == null ||
         !uiSupportsAcademicContent(FeatureId.grades, snapshot.details))
       return widget.fallback;
@@ -181,7 +181,7 @@ class _GradesFlowState extends State<GradesFlow> {
             padding: const EdgeInsets.only(bottom: 12),
             child: Text('${snapshot.error?.message ?? '刷新失败。'} 以下为上次成功加载的数据。'),
           ),
-        if (hasTerms && activeTerm != null) ...[
+        if (widget.loader != null || hasTerms) ...[
           Card(
             elevation: 0,
             color: theme.colorScheme.surfaceContainerLow,
@@ -204,6 +204,7 @@ class _GradesFlowState extends State<GradesFlow> {
                   Expanded(
                     child: PopupMenuButton<String>(
                       tooltip: '选择学期',
+                      enabled: hasTerms,
                       initialValue: selectedCode,
                       onSelected: (code) =>
                           setState(() => _selectedTermCode = code),
@@ -243,7 +244,7 @@ class _GradesFlowState extends State<GradesFlow> {
                             Flexible(
                               child: Text(
                                 isCurrentTerm
-                                    ? '${activeTerm.name} (本学期)'
+                                    ? '${activeTerm?.name ?? current.termCode} (本学期)'
                                     : activeTerm.name,
                                 style: theme.textTheme.titleSmall?.copyWith(
                                   fontWeight: FontWeight.bold,

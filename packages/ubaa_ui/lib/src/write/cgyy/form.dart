@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../shared/loading.dart' show LoadingGlyph;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/error_card.dart' show FriendlyErrorCard;

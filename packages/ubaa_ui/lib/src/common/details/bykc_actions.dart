@@ -20,7 +20,9 @@ extension BykcDetailActions on _FeatureDetailListState {
         runSpacing: 8,
         children: <Widget>[
           OutlinedButton.icon(
-            onPressed: canBykcSelect
+            onPressed: !widget.writesEnabled
+                ? null
+                : canBykcSelect
                 ? () => widget.onBykcWrite!(
                     WriteOperation.bykcSelectCourse,
                     bykcSelectAction!.courseId,
@@ -31,7 +33,9 @@ extension BykcDetailActions on _FeatureDetailListState {
           ),
           if (bykcDeselectAction != null || courseId != null)
             OutlinedButton.icon(
-              onPressed: canBykcDeselect
+              onPressed: !widget.writesEnabled
+                  ? null
+                  : canBykcDeselect
                   ? () => widget.onBykcWrite!(
                       bykcDeselectAction!.operation,
                       bykcDeselectAction.courseId,
@@ -70,7 +74,9 @@ extension BykcDetailActions on _FeatureDetailListState {
         children: <Widget>[
           if (bykcSignInAction != null)
             OutlinedButton.icon(
-              onPressed: canBykcSign
+              onPressed: !widget.writesEnabled
+                  ? null
+                  : canBykcSign
                   ? () => widget.onBykcSignWrite!(bykcSignInAction)
                   : null,
               icon: const Icon(Icons.login),
@@ -78,7 +84,9 @@ extension BykcDetailActions on _FeatureDetailListState {
             ),
           if (bykcSignOutAction != null)
             OutlinedButton.icon(
-              onPressed: canBykcSignOut
+              onPressed: !widget.writesEnabled
+                  ? null
+                  : canBykcSignOut
                   ? () => widget.onBykcSignWrite!(bykcSignOutAction)
                   : null,
               icon: const Icon(Icons.logout),

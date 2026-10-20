@@ -3,6 +3,7 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
+import '../shared/loading.dart' show RefreshActionButton;
 import 'about.dart' show AboutView;
 import 'home.dart' show AdvancedFeaturesView, FeatureGridView, HomeView;
 import 'profile.dart' show ProfileView;
@@ -476,6 +477,40 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                 )
               : null,
           actions: <Widget>[
+            if (widget.connectionStatus != null)
+              IconButton(
+                tooltip: widget.onCompleteLogin != null ? '完成登录' : '连接状态',
+                icon: Icon(
+                  widget.onCompleteLogin != null
+                      ? Icons.person_outline
+                      : Icons.cloud_off_outlined,
+                ),
+                onPressed: () async {
+                  if (widget.onCompleteLogin != null) {
+                    widget.onCompleteLogin!(context);
+                    return;
+                  }
+                  final retry = await showDialog<bool>(
+                    context: context,
+                    builder: (context) => AlertDialog(
+                      title: const Text('连接状态'),
+                      content: Text(widget.connectionStatus ?? '连接已恢复'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(context),
+                          child: const Text('关闭'),
+                        ),
+                        if (widget.onReconnect != null)
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, true),
+                            child: const Text('重试'),
+                          ),
+                      ],
+                    ),
+                  );
+                  if (retry == true && mounted) widget.onReconnect?.call();
+                },
+              ),
             ValueListenableBuilder<(FeatureSnapshot, String)?>(
               valueListenable: _visiblePage,
               builder: (context, page, _) {
@@ -531,81 +566,44 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                 },
               ),
             if (_openedFeature != null && pendingWrite == null)
-              IconButton(
+              RefreshActionButton(
+                key: ValueKey(_openedFeature),
                 tooltip: '刷新当前查询',
-                onPressed: () {
+                onRefresh: () async {
                   final page = _readPageKeys[_openedFeature]?.currentState;
                   if (_openedFeature == FeatureId.cgyy &&
                       page?.currentFrame.query?.view ==
                           FeatureQueryView.cgyyLockCode) {
                     setState(() => _lockRefreshRevision++);
                   } else {
-                    page?.refreshCurrent();
+                    await page?.refreshCurrent();
                   }
                 },
-                icon: const Icon(Icons.refresh),
               ),
             if (_openedFeature == null &&
                 _utilityPage == null &&
                 _selectedIndex == 0 &&
                 pendingWrite == null)
-              IconButton(
+              RefreshActionButton(
+                key: const ValueKey('home-refresh'),
                 tooltip: '刷新',
-                onPressed: () => widget.onRefresh(),
-                icon: const Icon(Icons.refresh),
+                onRefresh: widget.onRefresh,
               ),
           ],
         ),
         drawer: pendingWrite == null ? _buildDrawer(context) : null,
         // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
-        body: Column(
-          children: [
-            // 保持占位与内容索引固定，连接提示消失时不销毁页面和草稿。
-            if (widget.connectionStatus == null)
-              const SizedBox.shrink()
-            else
-              Material(
-                color: Theme.of(context).colorScheme.surfaceContainerLow,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 6,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          widget.connectionStatus!,
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: widget.onCompleteLogin == null
-                            ? widget.onReconnect
-                            : () => widget.onCompleteLogin!(context),
-                        child: Text(
-                          widget.onCompleteLogin == null ? '重试' : '完成登录',
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
+        body: Row(
+          children: <Widget>[
+            if (wide) _buildRail(context),
+            if (wide) const VerticalDivider(width: 1),
             Expanded(
-              child: Row(
-                children: <Widget>[
-                  if (wide) _buildRail(context),
-                  if (wide) const VerticalDivider(width: 1),
-                  Expanded(
-                    key: const ValueKey<String>('feature-pages'),
-                    child: Center(
-                      child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 1200),
-                        child: body,
-                      ),
-                    ),
-                  ),
-                ],
+              key: const ValueKey<String>('feature-pages'),
+              child: Center(
+                child: ConstrainedBox(
+                  constraints: const BoxConstraints(maxWidth: 1200),
+                  child: body,
+                ),
               ),
             ),
           ],

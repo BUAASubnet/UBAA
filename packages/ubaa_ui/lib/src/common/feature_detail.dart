@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
+import '../shared/loading.dart' show LoadingPlaceholder;
 import '../app/home.dart' show uiCacheReadFailureText;
 import 'details/detail_list.dart' show FeatureDetailList;
 import 'error_card.dart' show FriendlyErrorCard;
@@ -201,9 +202,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
     final showDetails =
         (widget.snapshot.status == FeatureLoadStatus.success ||
             widget.snapshot.status == FeatureLoadStatus.stale ||
-            ((widget.feature == FeatureId.judge ||
-                    uiReadableCachedContent(widget.snapshot)) &&
-                widget.snapshot.status == FeatureLoadStatus.loading)) &&
+            widget.snapshot.status == FeatureLoadStatus.loading) &&
         widget.snapshot.details.isNotEmpty;
     final defaultContent = widget.isLanding
         ? FeatureLandingMenu(
@@ -265,9 +264,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                       (widget.snapshot.status == FeatureLoadStatus.success ||
                           widget.snapshot.status == FeatureLoadStatus.empty ||
                           widget.snapshot.status == FeatureLoadStatus.stale ||
-                          (widget.snapshot.status ==
-                                  FeatureLoadStatus.loading &&
-                              uiReadableCachedContent(widget.snapshot))))
+                          widget.snapshot.status == FeatureLoadStatus.loading))
                 CourseworkOverview(
                   overview: overview,
                   complete: widget.snapshot.evidence?.complete ?? true,
@@ -291,10 +288,13 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                     if (!showDetails)
                       switch (widget.snapshot.status) {
                         FeatureLoadStatus.loading
-                            when uiReadableCachedContent(widget.snapshot) =>
+                            when uiReadableCachedContent(widget.snapshot) ||
+                                widget.snapshot.updatedAt != null =>
                           _empty(context),
-                        FeatureLoadStatus.loading => const Center(
-                          child: CircularProgressIndicator(),
+                        FeatureLoadStatus.loading ||
+                        FeatureLoadStatus.idle => const SingleChildScrollView(
+                          padding: EdgeInsets.all(16),
+                          child: LoadingPlaceholder(),
                         ),
                         FeatureLoadStatus.failure => _error(context),
                         _ => _empty(context),
@@ -597,6 +597,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
   Widget _details(BuildContext context) {
     return FeatureDetailList(
       feature: widget.feature,
+      writesEnabled: widget.snapshot.status != FeatureLoadStatus.loading,
       details: widget.snapshot.details,
       timeline: _scheduleTimeline,
       filter: _searchController.text,
@@ -638,7 +639,9 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
 
   Widget _empty(BuildContext context) =>
       widget.feature == FeatureId.schedule &&
-          widget.snapshot.status == FeatureLoadStatus.empty &&
+          (widget.snapshot.status == FeatureLoadStatus.empty ||
+              (widget.snapshot.status == FeatureLoadStatus.loading &&
+                  widget.snapshot.updatedAt != null)) &&
           (widget.query?.view == FeatureQueryView.scheduleWeek ||
               (widget.query?.view == FeatureQueryView.summary &&
                   widget.query?.term != null &&

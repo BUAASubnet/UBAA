@@ -4,6 +4,7 @@ extension CgyyReservationTable on CgyyReservationFlowState {
   Map<String, CgyyReserveAction> get _actions {
     final day = _day;
     if (day == null) return {};
+    if (_busy) return {};
     final result = <String, CgyyReserveAction>{};
     for (final detail in widget.snapshot.details) {
       final p = detail.presentation;
@@ -128,8 +129,6 @@ extension CgyyReservationTable on CgyyReservationFlowState {
           ),
         if (widget.snapshot.evidence?.complete == false)
           const SliverToBoxAdapter(child: Text('查询范围尚未更新完整')),
-        if (_busy && widget.snapshot.evidence?.origin == DataOrigin.persisted)
-          const SliverToBoxAdapter(child: Text('正在核对更新')),
         if (widget.snapshot.status == FeatureLoadStatus.stale &&
             widget.snapshot.error != null)
           SliverToBoxAdapter(

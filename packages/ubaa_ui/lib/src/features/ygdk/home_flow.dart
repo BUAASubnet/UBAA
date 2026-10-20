@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
+import '../../shared/loading.dart' show LoadingGlyph, LoadingPlaceholder;
 import 'record_card.dart' show YgdkRecordCard, uiYgdkRecordSearchValues;
 import 'summary.dart' show YgdkSummary;
 import '../../shared/schedule_values.dart' show uiSavedScheduleTime;
@@ -277,7 +278,8 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
               ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 12),
-            if (loading) const LinearProgressIndicator(),
+            if (loading && visible.isEmpty && _page == null)
+              const LoadingPlaceholder(cards: 1),
             if (_page?.evidence?.origin == DataOrigin.persisted)
               Text(
                 '第${_page!.page}页记录上次保存 ${uiSavedScheduleTime(_page!.evidence!.fetchedAt)}，连接后核对更新',
@@ -304,7 +306,6 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
             if (_page != null &&
                 _page!.errorCode == null &&
                 _page!.evidence?.complete != false &&
-                !loading &&
                 visible.isEmpty)
               Text(filter.isEmpty ? '暂时还没有打卡记录' : '没有匹配的打卡记录'),
             for (final record in visible) ...[
@@ -314,14 +315,17 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
             if (_page?.hasMore == true &&
                 _page?.errorCode == null &&
                 _page?.evidence?.complete != false)
-              OutlinedButton(
+              OutlinedButton.icon(
+                icon: loading
+                    ? const LoadingGlyph()
+                    : const Icon(Icons.expand_more),
                 onPressed: loading
                     ? null
                     : () => _load(
                         FeatureQuery(page: _page!.page + 1, size: _page!.size),
                         append: true,
                       ),
-                child: Text(loading ? '加载中…' : '加载更多'),
+                label: const Text('加载更多'),
               ),
           ],
         ),

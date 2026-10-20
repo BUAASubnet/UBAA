@@ -28,8 +28,11 @@ extension EvaluationDetailActions on _FeatureDetailListState {
         if (evaluation != null && widget.onEvaluationWrite != null) ...<Widget>[
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: () =>
-                widget.onEvaluationWrite!(<EvaluationSubmitTarget>[evaluation]),
+            onPressed: !widget.writesEnabled
+                ? null
+                : () => widget.onEvaluationWrite!(<EvaluationSubmitTarget>[
+                    evaluation,
+                  ]),
             icon: const Icon(Icons.rate_review_outlined),
             label: const Text('准备提交评教'),
           ),
@@ -53,7 +56,9 @@ extension EvaluationDetailActions on _FeatureDetailListState {
           children: <Widget>[
             Text('已选择 ${selectedEvaluations.length} 门待评课程'),
             OutlinedButton(
-              onPressed: pendingEvaluations.isEmpty
+              onPressed: !widget.writesEnabled
+                  ? null
+                  : pendingEvaluations.isEmpty
                   ? null
                   : () => setState(() {
                       if (selectedEvaluations.length ==
@@ -76,7 +81,9 @@ extension EvaluationDetailActions on _FeatureDetailListState {
               ),
             ),
             FilledButton.icon(
-              onPressed: selectedEvaluations.isEmpty
+              onPressed: !widget.writesEnabled
+                  ? null
+                  : selectedEvaluations.isEmpty
                   ? null
                   : () => widget.onEvaluationWrite!(selectedEvaluations),
               icon: const Icon(Icons.rate_review_outlined),

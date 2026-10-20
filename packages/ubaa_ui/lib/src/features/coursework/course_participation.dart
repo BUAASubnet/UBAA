@@ -23,11 +23,13 @@ class CourseParticipationContent extends StatelessWidget {
     required this.details,
     required this.evaluationRow,
     this.onSignin,
+    this.writesEnabled = true,
   });
   final FeatureId feature;
   final List<FeatureDetail> details;
   final Widget Function(FeatureDetail) evaluationRow;
   final SigninStarter? onSignin;
+  final bool writesEnabled;
   @override
   Widget build(BuildContext context) => feature == FeatureId.evaluation
       ? ListView(
@@ -38,15 +40,23 @@ class CourseParticipationContent extends StatelessWidget {
           padding: const EdgeInsets.all(16),
           itemCount: details.length,
           separatorBuilder: (_, _) => const SizedBox(height: 16),
-          itemBuilder: (context, index) =>
-              _SigninCourseCard(detail: details[index], onSignin: onSignin),
+          itemBuilder: (context, index) => _SigninCourseCard(
+            detail: details[index],
+            onSignin: onSignin,
+            writesEnabled: writesEnabled,
+          ),
         );
 }
 
 class _SigninCourseCard extends StatelessWidget {
-  const _SigninCourseCard({required this.detail, required this.onSignin});
+  const _SigninCourseCard({
+    required this.detail,
+    required this.onSignin,
+    required this.writesEnabled,
+  });
   final FeatureDetail detail;
   final SigninStarter? onSignin;
+  final bool writesEnabled;
 
   String? get _notice {
     final p = detail.presentation! as SigninPresentation;
@@ -124,7 +134,9 @@ class _SigninCourseCard extends StatelessWidget {
                   )
                 else if (onSignin != null && action != null)
                   FilledButton(
-                    onPressed: allowed ? () => onSignin!(action) : null,
+                    onPressed: writesEnabled && allowed
+                        ? () => onSignin!(action)
+                        : null,
                     child: const Text('签到'),
                   ),
               ],

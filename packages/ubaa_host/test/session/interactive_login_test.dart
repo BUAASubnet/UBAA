@@ -31,7 +31,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byKey(const ValueKey<String>('tab-高级功能')));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('完成登录'));
+    await tester.tap(find.byTooltip('完成登录'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, '密码'),

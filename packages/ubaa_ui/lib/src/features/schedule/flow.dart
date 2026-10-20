@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../shared/loading.dart' show LoadingPlaceholder;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'import.dart' show ScheduleImportBar;
@@ -393,7 +394,10 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         widget.query == null &&
         widget.onQuery != null &&
         widget.visible) {
-      content = const Center(child: CircularProgressIndicator());
+      content = const SingleChildScrollView(
+        padding: EdgeInsets.all(16),
+        child: LoadingPlaceholder(),
+      );
     } else {
       content = widget.child;
     }

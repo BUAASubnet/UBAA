@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../shared/loading.dart' show LoadingGlyph;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
@@ -147,11 +148,10 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
               IconButton(
                 tooltip: '刷新密码',
                 onPressed: _busy ? null : _refresh,
-                icon: const Icon(Icons.refresh),
+                icon: _busy ? const LoadingGlyph() : const Icon(Icons.refresh),
               ),
             ],
           ),
-          if (_busy) const LinearProgressIndicator(),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),

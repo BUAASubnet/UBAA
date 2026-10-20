@@ -17,7 +17,10 @@ extension YgdkWriteForm on _FeatureDetailListState {
       onCapturePhoto: widget.onCaptureYgdkPhoto,
       formContext: widget.ygdkFormContext,
     );
-    if (input != null && mounted && identical(original, widget.details)) {
+    if (input != null &&
+        mounted &&
+        widget.writesEnabled &&
+        identical(original, widget.details)) {
       await widget.onYgdkSubmitWrite?.call(input);
     }
   }

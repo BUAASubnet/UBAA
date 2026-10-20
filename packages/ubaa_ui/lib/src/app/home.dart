@@ -3,6 +3,7 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/theme.dart';
+import '../shared/loading.dart' show LoadingGlyph, LoadingPlaceholder;
 import '../features/grades/notice.dart' show GradeScoreBanner;
 import '../shared/feature_icons.dart' show uiFeatureIcon;
 import '../shared/schedule_values.dart' show uiCourseStart, uiSavedScheduleTime;
@@ -348,6 +349,11 @@ class _HomeViewState extends State<HomeView> {
                 padding: const EdgeInsets.only(bottom: 12),
                 child: _HomeCourseCard(detail: detail),
               )
+          else if (schedule.evidence == null &&
+              schedule.updatedAt == null &&
+              (schedule.status == FeatureLoadStatus.loading ||
+                  schedule.status == FeatureLoadStatus.idle))
+            const LoadingPlaceholder(cards: 1)
           else
             Card(
               child: ListTile(
@@ -358,7 +364,9 @@ class _HomeViewState extends State<HomeView> {
                       : schedule.evidence?.origin == DataOrigin.persisted &&
                             schedule.evidence!.complete
                       ? '上次保存时没有课程安排'
-                      : schedule.status == FeatureLoadStatus.empty
+                      : schedule.status == FeatureLoadStatus.empty ||
+                            (schedule.status == FeatureLoadStatus.loading &&
+                                schedule.updatedAt != null)
                       ? '今天没有课程安排'
                       : _homeSummary(schedule),
                 ),
@@ -377,19 +385,48 @@ class _HomeViewState extends State<HomeView> {
           if (schedule.evidence?.savedForOffline == false)
             const Text('本次课表已更新，但尚未保存到本机。'),
           const SizedBox(height: 16),
-          Text(
-            '待办区',
-            style: Theme.of(
-              context,
-            ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+          Row(
+            children: [
+              Expanded(
+                child: Text(
+                  '待办区',
+                  style: Theme.of(
+                    context,
+                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
+                ),
+              ),
+              SizedBox.square(
+                dimension: 24,
+                child:
+                    loading.any(
+                      (f) => sources[f]?.status == FeatureLoadStatus.loading,
+                    )
+                    ? const Center(child: LoadingGlyph())
+                    : null,
+              ),
+            ],
           ),
-          if (loading.isNotEmpty) ...[
-            const SizedBox(height: 4),
-            Text(
-              '正在加载 ${loading.map(_homeLabel).join('、')}',
-              style: Theme.of(context).textTheme.bodySmall,
+          const SizedBox(height: 12),
+          for (final task in tasks)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _HomeTodoCard(
+                item: task,
+                onTap: () => widget.onTodoTap(task),
+                onSignin: task.signinAction != null && widget.onSignin != null
+                    ? () => widget.onSignin!(task.signinAction!)
+                    : null,
+              ),
             ),
-          ],
+          if (tasks.isEmpty && loading.isNotEmpty)
+            const LoadingPlaceholder(cards: 1)
+          else if (tasks.isEmpty)
+            Card(
+              child: Padding(
+                padding: const EdgeInsets.all(16),
+                child: Text(failed.isNotEmpty ? '已加载的来源中暂无近期待办' : '当前没有待办'),
+              ),
+            ),
           if (failed.isNotEmpty)
             Padding(
               padding: const EdgeInsets.only(top: 8),
@@ -417,31 +454,6 @@ class _HomeViewState extends State<HomeView> {
                   child: const Text('重试'),
                 ),
               ],
-            ),
-          const SizedBox(height: 12),
-          for (final task in tasks)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _HomeTodoCard(
-                item: task,
-                onTap: () => widget.onTodoTap(task),
-                onSignin: task.signinAction != null && widget.onSignin != null
-                    ? () => widget.onSignin!(task.signinAction!)
-                    : null,
-              ),
-            ),
-          if (tasks.isEmpty)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(
-                  loading.isNotEmpty
-                      ? '待办正在后台加载'
-                      : failed.isNotEmpty
-                      ? '已加载的来源中暂无近期待办'
-                      : '当前没有待办',
-                ),
-              ),
             ),
           for (final feature in failed)
             ListTile(

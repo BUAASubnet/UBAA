@@ -751,7 +751,7 @@ void _registerSharedStateTests() {
         await openFeature(feature);
         switch (status) {
           case FeatureLoadStatus.loading:
-            expect(find.byType(CircularProgressIndicator), findsOneWidget);
+            expect(find.bySemanticsLabel('正在加载'), findsWidgets);
           case FeatureLoadStatus.empty:
             expect(find.text('暂无${feature.title}数据'), findsOneWidget);
           case FeatureLoadStatus.failure:

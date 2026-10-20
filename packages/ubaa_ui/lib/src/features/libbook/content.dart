@@ -198,7 +198,8 @@ extension LibbookReservationContent on LibbookReservationFlowState {
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed:
-                        uiCanReserveSeat(action) &&
+                        !_busy &&
+                            uiCanReserveSeat(action) &&
                             widget.onReserve != null &&
                             _seatBelongsToQuery(p, action)
                         ? () => widget.onReserve!(action!)

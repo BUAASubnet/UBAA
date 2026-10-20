@@ -7,7 +7,9 @@ extension CgyyDetailActions on _FeatureDetailListState {
             widget.onCgyyCancelWrite != null) ...<Widget>[
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: () => widget.onCgyyCancelWrite!(cgyyCancelAction),
+            onPressed: !widget.writesEnabled
+                ? null
+                : () => widget.onCgyyCancelWrite!(cgyyCancelAction),
             icon: const Icon(Icons.event_busy),
             label: const Text('准备取消订单'),
           ),
@@ -22,11 +24,13 @@ extension CgyyDetailActions on _FeatureDetailListState {
         widget.onCgyySubmitWrite != null) ...<Widget>[
       const SizedBox(height: 12),
       OutlinedButton.icon(
-        onPressed: () => _showCgyyReservationForm(
-          context,
-          cgyyReservation,
-          _cgyyReserveCandidates(cgyyReservation),
-        ),
+        onPressed: !widget.writesEnabled
+            ? null
+            : () => _showCgyyReservationForm(
+                context,
+                cgyyReservation,
+                _cgyyReserveCandidates(cgyyReservation),
+              ),
         icon: const Icon(Icons.event_available),
         label: const Text('准备研讨室预约'),
       ),

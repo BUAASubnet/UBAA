@@ -13,7 +13,10 @@ extension CgyyWriteForm on _FeatureDetailListState {
       availableActions,
       formContext: widget.cgyyFormContext,
     );
-    if (input != null && mounted && identical(original, widget.details))
+    if (input != null &&
+        mounted &&
+        widget.writesEnabled &&
+        identical(original, widget.details))
       await widget.onCgyySubmitWrite?.call(input);
   }
 }

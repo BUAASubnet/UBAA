@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
+import '../../shared/loading.dart' show LoadingPlaceholder;
 import '../../common/error_card.dart' show FriendlyErrorCard;
 import 'reservation_table.dart' show CgyyTableHeader;
 import '../../shared/schedule_values.dart' show uiSavedScheduleTime;
@@ -229,11 +230,11 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
       children: [
         if (wide) buildInlineChips(context),
         Expanded(
-          child:
-              _busy &&
-                  !(snapshot.evidence?.origin == DataOrigin.persisted &&
-                      day != null)
-              ? const Center(child: CircularProgressIndicator())
+          child: _busy && day == null && snapshot.updatedAt == null
+              ? const SingleChildScrollView(
+                  padding: EdgeInsets.all(16),
+                  child: LoadingPlaceholder(),
+                )
               : snapshot.status == FeatureLoadStatus.failure
               ? widget.fallback
               : day == null
@@ -243,11 +244,11 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
                   child: _table(context, day),
                 ),
         ),
-        if (_selected.isNotEmpty && !_busy)
+        if (_selected.isNotEmpty)
           Padding(
             padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
             child: FilledButton(
-              onPressed: widget.onSubmit == null
+              onPressed: _busy || widget.onSubmit == null
                   ? null
                   : () async {
                       final selected =

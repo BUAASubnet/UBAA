@@ -90,7 +90,9 @@ extension BykcDetails on _FeatureDetailListState {
             widget.onNavigate != null) ...[
           const SizedBox(height: 12),
           OutlinedButton.icon(
-            onPressed: () => widget.onNavigate!(detail.readNavigation!),
+            onPressed: !widget.writesEnabled
+                ? null
+                : () => widget.onNavigate!(detail.readNavigation!),
             icon: const Icon(Icons.fact_check_outlined),
             label: const Text('查看签到与签退'),
           ),
@@ -103,7 +105,9 @@ extension BykcDetails on _FeatureDetailListState {
             children: [
               if (select != null && (course.selected != true || canSelect))
                 OutlinedButton.icon(
-                  onPressed: canSelect
+                  onPressed: !widget.writesEnabled
+                      ? null
+                      : canSelect
                       ? () => widget.onBykcWrite!(
                           select.operation,
                           select.courseId,
@@ -114,7 +118,9 @@ extension BykcDetails on _FeatureDetailListState {
                 ),
               if (deselect != null && (course.selected != false || canDeselect))
                 OutlinedButton.icon(
-                  onPressed: canDeselect
+                  onPressed: !widget.writesEnabled
+                      ? null
+                      : canDeselect
                       ? () => widget.onBykcWrite!(
                           deselect.operation,
                           deselect.courseId,
@@ -212,7 +218,9 @@ extension BykcDetails on _FeatureDetailListState {
           children: [
             if (signIn != null && widget.onBykcSignWrite != null)
               OutlinedButton.icon(
-                onPressed: canSign(signIn)
+                onPressed: !widget.writesEnabled
+                    ? null
+                    : canSign(signIn)
                     ? () => widget.onBykcSignWrite!(signIn)
                     : null,
                 icon: const Icon(Icons.login),
@@ -220,7 +228,9 @@ extension BykcDetails on _FeatureDetailListState {
               ),
             if (signOut != null && widget.onBykcSignWrite != null)
               OutlinedButton.icon(
-                onPressed: canSign(signOut)
+                onPressed: !widget.writesEnabled
+                    ? null
+                    : canSign(signOut)
                     ? () => widget.onBykcSignWrite!(signOut)
                     : null,
                 icon: const Icon(Icons.logout),
@@ -228,9 +238,10 @@ extension BykcDetails on _FeatureDetailListState {
               ),
             if (deselect != null && widget.onBykcWrite != null)
               OutlinedButton.icon(
-                onPressed:
-                    deselect.eligibility == ActionEligibility.allowed &&
-                        deselect.courseId > 0
+                onPressed: !widget.writesEnabled
+                    ? null
+                    : deselect.eligibility == ActionEligibility.allowed &&
+                          deselect.courseId > 0
                     ? () => widget.onBykcWrite!(
                         deselect.operation,
                         deselect.courseId,

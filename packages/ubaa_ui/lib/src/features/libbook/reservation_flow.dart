@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
+import '../../shared/loading.dart' show LoadingPlaceholder;
 import '../../common/error_card.dart' show FriendlyErrorCard;
 import 'area_map.dart' show LibraryMapControl;
 import 'reservation_content.dart' show uiCanReserveSeat;
@@ -365,7 +366,7 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
         if ((_reservationDay ?? _day) case final day?)
           Text(day, style: Theme.of(context).textTheme.bodySmall),
         if (MediaQuery.sizeOf(context).width >= 600) buildInlineChips(context),
-        if (!_busy && mapAreas.length == 1)
+        if (mapAreas.length == 1)
           LibraryMapControl(
             areaId: mapAreas.keys.single,
             areaName: mapAreas.values.single,
@@ -376,18 +377,15 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
           ),
         if (widget.snapshot.evidence?.complete == false)
           const Text('当前查询范围尚未更新完整。'),
-        if (_busy)
-          const Padding(
-            padding: EdgeInsets.all(24),
-            child: Center(child: CircularProgressIndicator()),
-          ),
+        if (_busy && details.isEmpty && widget.snapshot.updatedAt == null)
+          const LoadingPlaceholder(),
         if (widget.snapshot.error case final error? when !_busy)
           FriendlyErrorCard(error: error, onRetry: () => _read(widget.query)),
         if (!_busy && widget.snapshot.status == FeatureLoadStatus.stale)
           const Text('以下为上次成功加载的数据。'),
-        if (!_busy &&
-            details.isEmpty &&
-            widget.snapshot.status == FeatureLoadStatus.empty)
+        if (details.isEmpty &&
+            (widget.snapshot.status == FeatureLoadStatus.empty ||
+                (_busy && widget.snapshot.updatedAt != null)))
           const Padding(padding: EdgeInsets.all(16), child: Text('暂无可显示的结果')),
         if (!_busy &&
             (_areaOptions != null || _areaSchedule != null) &&
@@ -397,9 +395,7 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
             padding: EdgeInsets.symmetric(vertical: 12),
             child: Text('从右上角选择日期和时段，查询当前分区座位。'),
           ),
-        if ((!_busy ||
-                widget.snapshot.evidence?.origin == DataOrigin.persisted) &&
-            !_hideSeats &&
+        if (!_hideSeats &&
             details.any((d) => d.presentation is LibbookSeatPresentation))
           _seatGrid(context, details),
       ],

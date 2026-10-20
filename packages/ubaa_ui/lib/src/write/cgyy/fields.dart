@@ -11,12 +11,14 @@ extension CgyyFormFields on _CgyyReservationFormState {
     const SizedBox(height: 12),
     _field(theme, '预约主题', (s) => draft.theme = s),
     const SizedBox(height: 12),
-    if (loading) const LinearProgressIndicator(),
     if (loadError case final e?)
       FriendlyErrorCard(error: e, onRetry: () => _loadPurposes(true)),
-    OutlinedButton(
+    OutlinedButton.icon(
+      icon: loading
+          ? const LoadingGlyph()
+          : const Icon(Icons.category_outlined),
       onPressed: loading ? null : _choosePurpose,
-      child: Text(
+      label: Text(
         draft.manual
             ? '用途编号 ${draft.manualPurpose}'
             : options.where((p) => p.key == draft.purpose).firstOrNull?.name ??
@@ -71,7 +73,6 @@ extension CgyyFormFields on _CgyyReservationFormState {
               child: Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (loading) const LinearProgressIndicator(),
                   if (!loading && options.isEmpty)
                     const Text('暂无可选活动类型，可重试或手动填写已知编号。'),
                   for (final p in options)
@@ -88,7 +89,10 @@ extension CgyyFormFields on _CgyyReservationFormState {
           ),
           actions: [
             if (widget.data.loadPurposes != null)
-              TextButton(
+              TextButton.icon(
+                icon: loading
+                    ? const LoadingGlyph()
+                    : const Icon(Icons.refresh),
                 onPressed: loading
                     ? null
                     : () async {
@@ -97,7 +101,7 @@ extension CgyyFormFields on _CgyyReservationFormState {
                         await pending;
                         if (dialogContext.mounted) refresh(() {});
                       },
-                child: const Text('刷新活动类型'),
+                label: const Text('刷新活动类型'),
               ),
             TextButton(
               onPressed: () => Navigator.of(context).pop(-1),

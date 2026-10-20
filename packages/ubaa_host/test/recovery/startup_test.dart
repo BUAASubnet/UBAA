@@ -25,15 +25,14 @@ void main() {
     await tester.pump();
     expect(find.byType(UbaaMainShell), findsOneWidget);
     expect(backend.authCalls, 1);
-    expect(find.text('正在连接，稍后更新内容'), findsOneWidget);
+    expect(find.byTooltip('连接状态'), findsOneWidget);
     expect(find.byType(UbaaSplashView), findsNothing);
     await tester.tap(find.byKey(const ValueKey<String>('tab-普通功能')));
     await tester.pump();
     expect(find.byType(UbaaMainShell), findsOneWidget);
     backend.gate.complete(AuthStatus.signedOut);
     await tester.pumpAndSettle();
-    expect(find.text('需要登录，当前页面会保留'), findsOneWidget);
-    await tester.tap(find.text('完成登录'));
+    await tester.tap(find.byTooltip('完成登录'));
     await tester.pumpAndSettle();
     expect(find.text('记住密码'), findsOneWidget);
     expect(find.text('自动登录'), findsOneWidget);

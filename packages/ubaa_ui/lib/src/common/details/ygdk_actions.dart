@@ -9,8 +9,13 @@ extension YgdkDetailActions on _FeatureDetailListState {
     if (ygdkAction != null && widget.onYgdkSubmitWrite != null) ...<Widget>[
       const SizedBox(height: 12),
       OutlinedButton.icon(
-        onPressed: () =>
-            _showYgdkForm(context, action: ygdkAction, title: detail.title),
+        onPressed: !widget.writesEnabled
+            ? null
+            : () => _showYgdkForm(
+                context,
+                action: ygdkAction,
+                title: detail.title,
+              ),
         icon: const Icon(Icons.directions_run),
         label: const Text('准备阳光打卡'),
       ),
