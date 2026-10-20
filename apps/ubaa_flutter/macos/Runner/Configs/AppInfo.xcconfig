@@ -12,3 +12,7 @@ PRODUCT_BUNDLE_IDENTIFIER = cn.edu.ubaa.ubaaFlutter
 
 // The copyright displayed in application information
 PRODUCT_COPYRIGHT = Copyright © 2026 cn.edu.ubaa. All rights reserved.
+
+// 默认保持自动签名，本机可用独立配置选择固定开发证书。
+UBAA_CODE_SIGN_STYLE = Automatic
+#include? "LocalSigning.xcconfig"
