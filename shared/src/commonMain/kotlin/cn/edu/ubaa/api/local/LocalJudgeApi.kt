@@ -55,10 +55,9 @@ internal class LocalJudgeApiBackend(
       includeExpired: Boolean,
       userKey: String?,
   ): Result<JudgeAssignmentsResponse> =
-      runLocalJudgeCall("希冀作业列表加载失败，请稍后重试") { session ->
+      runLocalJudgeCall("希冀作业列表加载失败，请稍后重试") { _ ->
         getAssignmentsResponse(
             includeExpired = includeExpired,
-            userKey = resolveJudgeCourseSkipUserKey(userKey, session),
         )
       }
 
@@ -77,24 +76,19 @@ internal class LocalJudgeApiBackend(
 
   private suspend fun LocalJudgeClient.getAssignmentsResponse(
       includeExpired: Boolean,
-      userKey: String,
   ): JudgeAssignmentsResponse {
     val courses = getCoursesCached()
-    val skippedCourseIds =
-        if (includeExpired) emptySet()
-        else LocalJudgeHistoricalCourseStore.get(cacheScope.mode, userKey)
+    // 历史作业不代表整门课程永久失效；刷新复用短期请求缓存，不沿用旧的课程排除名单。
     val courseResults =
-        courses
-            .filter { course -> includeExpired || course.courseId !in skippedCourseIds }
-            .mapConcurrently(LOCAL_JUDGE_ASSIGNMENT_QUERY_CONCURRENCY) { course ->
-              withIsolatedClient { worker ->
-                getAssignmentSummaries(
-                    course = course,
-                    includeExpired = includeExpired,
-                    worker = worker,
-                )
-              }
-            }
+        courses.mapConcurrently(LOCAL_JUDGE_ASSIGNMENT_QUERY_CONCURRENCY) { course ->
+          withIsolatedClient { worker ->
+            getAssignmentSummaries(
+                course = course,
+                includeExpired = includeExpired,
+                worker = worker,
+            )
+          }
+        }
     val historicalCutoffCourseIds = courseResults.flatMap { it.historicalCutoffCourseIds }.toSet()
     val assignments =
         courseResults
@@ -104,12 +98,6 @@ internal class LocalJudgeApiBackend(
                     .thenBy { it.courseName }
                     .thenBy { it.title }
             )
-    LocalJudgeHistoricalCourseStore.add(
-        mode = cacheScope.mode,
-        userKey = userKey,
-        courseIds = historicalCutoffCourseIds,
-    )
-
     return JudgeAssignmentsResponse(
         assignments = assignments,
         historicalCutoffCourseIds = historicalCutoffCourseIds.sorted(),
@@ -156,7 +144,8 @@ internal class LocalJudgeApiBackend(
     return LocalJudgeAssignmentSummaryResult(
         summaries = summaries,
         historicalCutoffCourseIds =
-            if (reachedHistoricalCutoff) setOf(course.courseId) else emptySet(),
+            if (reachedHistoricalCutoff && summaries.isEmpty()) setOf(course.courseId)
+            else emptySet(),
     )
   }
 
@@ -248,12 +237,13 @@ private class LocalJudgeClient(
     val cacheScope: LocalJudgeCacheScope,
 ) {
   private val courseSelectionMutex = Mutex()
+  private val webVpnCourseSessionMutex = Mutex()
   private var judgeSessionActivated = false
 
-  suspend fun getCourses(): List<LocalJudgeCourseRaw> {
+  suspend fun getCourses(): List<LocalJudgeCourseRaw> = withSharedCourseSession {
     ensureJudgeSession()
     val body = getHtml("get_courses", "$BASE_URL/courselist.jsp?courseID=0")
-    return LocalJudgeHtmlParsers.parseCourses(body)
+    LocalJudgeHtmlParsers.parseCourses(body)
   }
 
   suspend fun getAssignments(course: LocalJudgeCourseRaw): List<LocalJudgeAssignmentRaw> {
@@ -365,20 +355,28 @@ private class LocalJudgeClient(
     return body
   }
 
-  suspend fun <T> withIsolatedClient(block: suspend (LocalJudgeClient) -> T): T {
-    val mode =
-        ConnectionRuntime.currentMode()?.takeIf { it != ConnectionMode.SERVER_RELAY }
-            ?: ConnectionMode.DIRECT
-    val cookieStorage = ForkedLocalJudgeCookieStorage(LocalCookieStore.storage(mode))
-    val client = LocalUpstreamClientProvider.newClient(cookieStorage)
-    val worker =
-        LocalJudgeClient(httpClient = client, ownsHttpClient = true, cacheScope = cacheScope)
-    return try {
-      block(worker)
-    } finally {
-      worker.close()
-    }
-  }
+  suspend fun <T> withIsolatedClient(block: suspend (LocalJudgeClient) -> T): T =
+      withSharedCourseSession {
+        val mode = cacheScope.mode
+        val cookieStorage = ForkedLocalJudgeCookieStorage(LocalCookieStore.storage(mode))
+        val client = LocalUpstreamClientProvider.newClient(cookieStorage)
+        val worker =
+            LocalJudgeClient(httpClient = client, ownsHttpClient = true, cacheScope = cacheScope)
+        try {
+          block(worker)
+        } finally {
+          worker.close()
+        }
+      }
+
+  private suspend fun <T> withSharedCourseSession(block: suspend () -> T): T =
+      if (cacheScope.mode == ConnectionMode.WEBVPN) {
+        // WebVPN 将上游 Cookie 保存在同一网关会话中；复制本地 Cookie 不能隔离课程选择。
+        // 从选择课程到读取列表和详情必须串行，直连仍使用各自的上游 Cookie 并发查询。
+        webVpnCourseSessionMutex.withLock { block() }
+      } else {
+        block()
+      }
 
   private suspend fun followJudgeActivationRedirectIfNeeded(response: HttpResponse): HttpResponse {
     if (response.status.value !in 300..399) return response
@@ -491,7 +489,7 @@ private class ForkedLocalJudgeCookieStorage(private val parent: CookiesStorage) 
 private fun judgeServiceLoginUrl(): String = localUpstreamUrl(JUDGE_SERVICE_LOGIN_URL)
 
 private const val JUDGE_SERVICE_LOGIN_URL =
-    "https://sso.buaa.edu.cn/login?service=http%3A%2F%2Fjudge.buaa.edu.cn%2F"
+    "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fjudge.buaa.edu.cn%2F"
 
 private fun HttpRequestBuilder.applyJudgeBrowserHeaders() {
   header(HttpHeaders.Accept, JUDGE_ACCEPT_HEADER)
@@ -1095,6 +1093,17 @@ private const val LOCAL_JUDGE_DETAIL_TTL_MILLIS = 2 * 60 * 1000L
 private fun isLocalJudgeSessionExpired(response: HttpResponse, body: String): Boolean {
   if (response.status == HttpStatusCode.Unauthorized) return true
   if (localIsSsoUrl(response.call.request.url.toString())) return true
+  val upstreamUrl = Url(LocalWebVpnSupport.fromWebVpnUrl(response.call.request.url.toString()))
+  // 希冀原生登录页返回 HTTP 200，不能将它或后续的空白课程页解释为没有作业。
+  if (upstreamUrl.host == "judge.buaa.edu.cn" && upstreamUrl.encodedPath == "/indexcs/simple.jsp") {
+    return true
+  }
+  if (
+      Regex("""<(?:a|button)\b[^>]*\bid\s*=\s*["']cgstuloginbtn["']""", RegexOption.IGNORE_CASE)
+          .containsMatchIn(body)
+  ) {
+    return true
+  }
   val trimmed = body.trimStart()
   if (
       trimmed.startsWith("<!DOCTYPE html", ignoreCase = true) ||

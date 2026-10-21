@@ -13,7 +13,10 @@
 
 - `JudgeViewModel` 负责作业列表、详情增量补全和批处理详情请求。
 - `JudgeApiBackend` 支持作业列表、单个详情和批量详情。
-- `LocalJudgeApiBackend` 处理直连/WebVPN 模式下的希冀登录、课程发现、作业解析、历史课程缓存和详情缓存。
+- `LocalJudgeApiBackend` 处理直连/WebVPN 模式下的希冀登录、课程发现、作业解析和短期请求缓存。
+- CAS `service` 使用官网提供的 `https://judge.buaa.edu.cn/`；原生登录页即使返回 HTTP 200，也按认证失败处理，不能显示为“暂无作业”。
+- 六个月规则只过滤历史作业，不再将整门课程永久排除；旧的课程排除名单不影响本地模式刷新。
+- WebVPN 的上游课程选择由网关会话共享，选择课程、读取作业及详情作为一个串行操作；直连仍使用独立上游 Cookie 并发查询。
 - 服务端的 `JudgeSupport` 包含 HTML 解析逻辑；解析回归需要比较上游 raw 数量与解析后数量。
 
 ## 接口
