@@ -14,6 +14,7 @@ import com.russhwolf.settings.MapSettings
 import kotlin.test.BeforeTest
 import kotlin.test.Test
 import kotlin.test.assertEquals
+import kotlin.test.assertFailsWith
 import kotlin.test.assertFalse
 import kotlin.test.assertNull
 import kotlin.test.assertTrue
@@ -36,6 +37,35 @@ class ConnectionRuntimeTest {
     LocalAuthSessionStore.clearAllScopes()
     LocalCookieStore.clearAllScopes()
     ConnectionRuntime.apiFactoryProvider = { DefaultApiFactory }
+  }
+
+  @Test
+  fun `连接方式只提供直连和 WebVPN`() {
+    assertEquals(
+        listOf(ConnectionMode.DIRECT, ConnectionMode.WEBVPN),
+        ConnectionRuntime.availableModes(),
+    )
+    assertFailsWith<IllegalArgumentException> {
+      ConnectionRuntime.switchMode(ConnectionMode.SERVER_RELAY)
+    }
+  }
+
+  @Test
+  fun `旧中转配置清除会话并要求重新选择连接方式`() {
+    ConnectionModeStore.save(ConnectionMode.SERVER_RELAY)
+    AuthTokensStore.save(StoredAuthTokens(accessToken = "old-access", refreshToken = "old-refresh"))
+    CredentialStore.saveCredentials("test-user", "test-password")
+    CredentialStore.setRememberPassword(true)
+    CredentialStore.setAutoLogin(true)
+
+    assertNull(ConnectionRuntime.resolveSelectedMode())
+    assertNull(ConnectionModeStore.get())
+    assertNull(AuthTokensStore.get())
+    assertFalse(CredentialStore.isAutoLogin())
+    assertEquals("test-user", CredentialStore.getUsername())
+    assertTrue(CredentialStore.isRememberPassword())
+    ConnectionRuntime.switchMode(ConnectionMode.DIRECT)
+    assertEquals(ConnectionMode.DIRECT, ConnectionRuntime.currentMode())
   }
 
   @Test
@@ -103,6 +133,7 @@ class ConnectionRuntimeTest {
     assertTrue(AuthService().hasPersistedSession())
 
     ConnectionModeStore.save(ConnectionMode.SERVER_RELAY)
+    ConnectionRuntime.resolveSelectedMode()
     assertFalse(AuthService().hasPersistedSession())
   }
 }

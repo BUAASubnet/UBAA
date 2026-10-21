@@ -63,6 +63,153 @@ class LocalAuthServiceBackendTest {
   }
 
   @Test
+  fun `直连预登录完成 UC 票据交换`() = runTest {
+    verifyUcTicketExchange(ConnectionMode.DIRECT, preload = true)
+  }
+
+  @Test
+  fun `直连密码登录完成 UC 票据交换`() = runTest {
+    verifyUcTicketExchange(ConnectionMode.DIRECT, preload = false)
+  }
+
+  @Test
+  fun `WebVPN 预登录升级网关包装的 HTTP SSO 地址`() = runTest {
+    verifyUcTicketExchange(ConnectionMode.WEBVPN, preload = true)
+  }
+
+  @Test
+  fun `WebVPN 密码登录升级原始 HTTP SSO 地址并保持网关路由`() = runTest {
+    verifyUcTicketExchange(ConnectionMode.WEBVPN, preload = false)
+  }
+
+  private suspend fun verifyUcTicketExchange(mode: ConnectionMode, preload: Boolean) {
+    ConnectionModeStore.save(mode)
+    ConnectionRuntime.resolveSelectedMode()
+    var ticketExchanged = false
+    var passwordPosts = 0
+    val activateUrl =
+        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
+    val serviceQuery = "service=https%3A%2F%2Fuc.buaa.edu.cn%2Fapi%2Flogin%3Ftarget%3Dtest"
+    val engine = MockEngine { request ->
+      assertEquals("https", request.url.protocol.name, "认证请求不得降级到 HTTP")
+      if (mode == ConnectionMode.WEBVPN) {
+        assertEquals("d.buaa.edu.cn", request.url.host)
+        assertTrue(request.url.encodedPath.startsWith("/https/"))
+      }
+      val original = cn.edu.ubaa.api.local.LocalWebVpnSupport.fromWebVpnUrl(request.url.toString())
+      when (original) {
+        "https://sso.buaa.edu.cn/login" -> {
+          if (request.method.value == "POST") {
+            passwordPosts++
+            val params = io.ktor.http.parseQueryString(request.bodyText())
+            assertEquals("test-user", params["username"])
+            assertEquals("test-password", params["password"])
+            assertEquals("username_password", params["type"])
+            assertEquals("e1s1", params["execution"])
+            assertEquals("submit", params["_eventId"])
+            respond(
+                "",
+                HttpStatusCode.Found,
+                headersOf(HttpHeaders.Location, "https://uc.buaa.edu.cn/"),
+            )
+          } else if (preload) {
+            respond(
+                "",
+                HttpStatusCode.Found,
+                headersOf(HttpHeaders.Location, "https://uc.buaa.edu.cn/"),
+            )
+          } else {
+            respond(
+                """<form id="loginForm"><input name="execution" value="e1s1"/><input name="type" value="username_password"/><input name="_eventId" value="submit"/></form>""",
+                HttpStatusCode.OK,
+            )
+          }
+        }
+        activateUrl ->
+            if (ticketExchanged) {
+              respond(
+                  "",
+                  HttpStatusCode.Found,
+                  headersOf(HttpHeaders.Location, "https://uc.buaa.edu.cn/"),
+              )
+            } else {
+              val location = "http://sso.buaa.edu.cn/login?$serviceQuery"
+              val wrapped =
+                  if (mode == ConnectionMode.WEBVPN && preload)
+                      cn.edu.ubaa.api.local.LocalWebVpnSupport.toWebVpnUrl(location)
+                  else location
+              respond("", HttpStatusCode.Found, headersOf(HttpHeaders.Location, wrapped))
+            }
+        "https://sso.buaa.edu.cn/login?$serviceQuery" ->
+            respond(
+                "",
+                HttpStatusCode.Found,
+                headersOf(HttpHeaders.Location, "$activateUrl&ticket=synthetic-ticket"),
+            )
+        "$activateUrl&ticket=synthetic-ticket" -> {
+          ticketExchanged = true
+          respond(
+              "",
+              HttpStatusCode.Found,
+              headersOf(
+                  HttpHeaders.Location to listOf(activateUrl),
+                  HttpHeaders.SetCookie to listOf("JSESSIONID=synthetic-uc; Path=/; Secure"),
+              ),
+          )
+        }
+        "https://uc.buaa.edu.cn/" -> respond("", HttpStatusCode.OK)
+        "https://uc.buaa.edu.cn/api/uc/status" -> {
+          val authenticated =
+              ticketExchanged &&
+                  request.headers[HttpHeaders.Cookie].orEmpty().contains("JSESSIONID=synthetic-uc")
+          respond(
+              if (authenticated) """{"code":0,"data":{"name":"测试用户","schoolid":"2333"}}"""
+              else """{"code":10600,"data":null}""",
+              HttpStatusCode.OK,
+              headersOf(HttpHeaders.ContentType, "application/json"),
+          )
+        }
+        else -> error("出现非预期请求")
+      }
+    }
+    useMockUpstream(engine)
+    // WebVPN 主登录成功后的辅助直连也使用模拟客户端，不能向真实上游发出测试请求。
+    LocalUpstreamClientProvider.isolatedClientFactory = { _, _ ->
+      HttpClient(MockEngine { respond("", HttpStatusCode.ServiceUnavailable) })
+    }
+
+    val schoolid =
+        if (preload) {
+          val result = LocalAuthServiceBackend().preloadLoginState()
+          assertTrue(result.isSuccess)
+          result.getOrNull()?.userData?.schoolid
+        } else {
+          val result = LocalAuthServiceBackend().login("test-user", "test-password", null, null)
+          assertTrue(result.isSuccess)
+          result.getOrNull()?.user?.schoolid
+        }
+    assertEquals("2333", schoolid)
+    assertEquals(if (preload) 0 else 1, passwordPosts)
+    assertTrue(ticketExchanged)
+  }
+
+  @Test
+  fun `UC 重定向循环应终止且不能创建登录态`() = runTest {
+    var activationRequests = 0
+    useMockUpstream(
+        MockEngine { request ->
+          if (request.url.host == "uc.buaa.edu.cn") activationRequests++
+          respond("", HttpStatusCode.Found, headersOf(HttpHeaders.Location, request.url.toString()))
+        }
+    )
+    val result = LocalAuthServiceBackend().preloadLoginState()
+    assertTrue(result.isFailure)
+    assertEquals(11, activationRequests)
+    assertNull(LocalAuthSessionStore.get())
+    assertTrue(reportedLogins.isEmpty())
+  }
+
+  @Test
   fun `preloadLoginState restores direct session from upstream cookies`() = runTest {
     val engine = MockEngine { request ->
       when (request.url.toString()) {

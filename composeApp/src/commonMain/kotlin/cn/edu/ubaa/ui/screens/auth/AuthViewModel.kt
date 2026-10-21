@@ -197,6 +197,8 @@ class AuthViewModel(
   /** 应用全局初始化入口。 用于检查本地 Token 是否有效，若失效则根据设置决定跳转登录页或尝试自动登录。 */
   fun initializeApp() {
     if (ConnectionRuntime.currentMode() == null) return
+    // 模式迁移可能关闭自动登录；同步表单，避免启动页仍等待旧的自动登录状态。
+    loadSavedCredentials()
     viewModelScope.launch {
       val restoredAccessToken = AuthTokensStore.get()?.accessToken?.takeIf { it.isNotBlank() }
       if (!authService.hasPersistedSession()) {

@@ -21,8 +21,8 @@ features:
     details: Android、iOS、Desktop、Web 共用 Kotlin Multiplatform 契约与 Compose Multiplatform UI，一套代码覆盖全部平台。
   - title: 校园服务聚合
     details: 覆盖认证、课表、考试、成绩、博雅、空教室、SPOC、希冀、图书馆座位、签到、研讨室、阳光打卡和评教，无需在多个系统间切换。
-  - title: 三种连接模式
-    details: Android、iOS 和 Desktop 可选择直连、WebVPN、服务器中转；Web/Wasm 端按平台能力固定使用服务器中转。
+  - title: 两种连接模式
+    details: Android、iOS 和 Desktop 可选择直连或 WebVPN，服务器中转已弃用。
   - title: 全栈同仓
     details: shared 管理契约与本地实现，server 适配上游系统并维护会话，composeApp 提供跨平台体验。
   - title: 持续更新

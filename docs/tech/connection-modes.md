@@ -1,19 +1,20 @@
 # 连接模式
 
-UBAA 支持三种连接模式：直连、WebVPN 和服务器中转。模式选择影响认证、Cookie、Token、上游访问方式和可用平台。
+UBAA App 支持直连和 WebVPN 两种连接模式。服务器中转已弃用，不再作为可选连接方式。模式选择影响认证、Cookie、上游访问方式和可用平台。
 
 ## 模式
 
 - `DIRECT`：客户端直接访问校内上游。
 - `WEBVPN`：客户端通过北航 WebVPN 访问上游。
-- `SERVER_RELAY`：客户端只访问 UBAA server，由 server 访问上游。
+- `SERVER_RELAY` 仅保留旧配置与后端代码的兼容标识，不在 App 中提供。
 
 ## 平台能力
 
 `ConnectionRuntime.availableModes()` 根据 `supportsLocalConnectionModes()` 决定可选模式。当前平台实现如下：
 
-- Android、iOS、JVM/Desktop：`supportsLocalConnectionModes()` 返回 `true`，提供三种模式。
-- JS Browser、Wasm JS Browser：`supportsLocalConnectionModes()` 返回 `false`，只提供服务器中转，并自动保存该模式。
+- Android、iOS、JVM/Desktop：`supportsLocalConnectionModes()` 返回 `true`，提供直连和 WebVPN。
+- JS Browser、Wasm JS Browser：不支持本地连接模式，显示使用原生客户端的提示，不再自动进入中转模式。
+- 启动时发现旧 `SERVER_RELAY` 配置，会清除旧会话、关闭自动登录并返回模式选择页；保留用户记住的账号密码。
 
 ## 切换语义
 
@@ -26,7 +27,7 @@ UBAA 支持三种连接模式：直连、WebVPN 和服务器中转。模式选�
 
 ## WebVPN URL
 
-本地 WebVPN 访问通过 `LocalWebVpnSupport` 和上游 URL 包装完成。服务端中转使用 `VpnCipher` 处理需要走 VPN 的服务端请求。
+本地 WebVPN 访问通过 `LocalWebVpnSupport` 和上游 URL 包装完成。UC 激活时手动跟随 SSO 票据跳转，先还原网关地址、将 SSO 的 HTTP 地址升级为 HTTPS，再包装回同一 WebVPN 路由，最多跟随 10 次跳转。
 
 ## CGYY 例外
 
