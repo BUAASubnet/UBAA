@@ -102,9 +102,7 @@ fn resolve_feature_redirect(
     mode: crate::domain::ConnectionMode,
     feature: &str,
 ) -> Result<String> {
-    let base = url::Url::parse(current).map_err(|_| feature_redirect_error(feature))?;
-    let target = base
-        .join(location)
+    let target = crate::connection::upstream_redirect_target(current, location)
         .map_err(|_| feature_redirect_error(feature))?;
     let Some(host) = target.host_str() else {
         return Err(feature_redirect_error(feature));
@@ -219,4 +217,69 @@ pub(crate) fn check_response(response: &HttpResponse, feature: &str) -> Result<(
         ));
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod redirect_tests {
+    use super::resolve_feature_redirect;
+    use crate::connection::to_webvpn_url;
+    use crate::domain::ConnectionMode;
+
+    #[test]
+    fn 业务跳转升级sso但不改写业务service或其他主机() {
+        let query =
+            "service=http%3a%2f%2fbyxt.buaa.edu.cn%2fjwapp%2fsys%2fhomeapp%2findex.do%3fx%3d%2526";
+        let target = format!("http://sso.buaa.edu.cn/login?{query}");
+        for location in [target.clone(), to_webvpn_url(&target).unwrap()] {
+            for mode in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+                let actual = resolve_feature_redirect(
+                    "https://byxt.buaa.edu.cn/",
+                    &location,
+                    mode,
+                    "schedule",
+                )
+                .unwrap();
+                let expected = format!("https://sso.buaa.edu.cn/login?{query}");
+                assert_eq!(
+                    actual,
+                    if mode == ConnectionMode::WebVpn {
+                        to_webvpn_url(&expected).unwrap()
+                    } else {
+                        expected
+                    }
+                );
+            }
+        }
+        let unchanged = "http://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.do";
+        assert_eq!(
+            resolve_feature_redirect(
+                "https://byxt.buaa.edu.cn/",
+                unchanged,
+                ConnectionMode::Direct,
+                "schedule"
+            )
+            .unwrap(),
+            unchanged
+        );
+    }
+
+    #[test]
+    fn 业务跳转仍拒绝网关内未登记主机及非http协议() {
+        for target in [
+            "https://unknown.example.invalid/",
+            "ftp://sso.buaa.edu.cn/login",
+        ] {
+            for location in [target.to_string(), to_webvpn_url(target).unwrap()] {
+                assert!(
+                    resolve_feature_redirect(
+                        "https://byxt.buaa.edu.cn/",
+                        &location,
+                        ConnectionMode::WebVpn,
+                        "schedule"
+                    )
+                    .is_err()
+                );
+            }
+        }
+    }
 }

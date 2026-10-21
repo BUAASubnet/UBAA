@@ -1,3 +1,5 @@
+#[path = "auth/activation.rs"]
+mod activation;
 #[path = "auth/common.rs"]
 mod common;
 #[path = "auth/conflict.rs"]

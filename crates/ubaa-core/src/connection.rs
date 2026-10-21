@@ -365,39 +365,7 @@ pub fn from_webvpn_url(url: &str) -> Result<String> {
 ///
 /// 重定向格式错误或未验证时返回权限错误或上游协议错误。
 pub fn resolve_redirect(current_url: &str, location: &str, mode: ConnectionMode) -> Result<String> {
-    let current =
-        Url::parse(current_url).map_err(|_| protocol_error("invalid current redirect URL"))?;
-    let absolute = if location.starts_with("//") {
-        format!("{}:{location}", current.scheme())
-    } else {
-        location.to_string()
-    };
-    let resolved = current
-        .join(&absolute)
-        .map_err(|_| protocol_error("invalid redirect Location"))?;
-    if !is_allowed_auth_scheme(&resolved) {
-        return Err(UbaaError::new(
-            ErrorCode::PermissionDenied,
-            ErrorKind::Authentication,
-            false,
-            "redirect scheme is not allowed",
-        ));
-    }
-    if resolved.host_str() != Some(WEBVPN_HOST)
-        && !resolved
-            .host_str()
-            .is_some_and(|host| AuthHostPolicy::default().allows(host))
-    {
-        return Err(UbaaError::new(
-            ErrorCode::PermissionDenied,
-            ErrorKind::Authentication,
-            false,
-            "redirect host is not allowed",
-        ));
-    }
-    if mode == ConnectionMode::WebVpn && resolved.host_str() != Some(WEBVPN_HOST) {
-        return to_webvpn_url(resolved.as_str());
-    }
+    let resolved = upstream_redirect_target(current_url, location)?;
     if !is_allowed_auth_host(resolved.as_str()) {
         return Err(UbaaError::new(
             ErrorCode::PermissionDenied,
@@ -406,7 +374,40 @@ pub fn resolve_redirect(current_url: &str, location: &str, mode: ConnectionMode)
             "redirect host is not allowed",
         ));
     }
-    Ok(resolved.to_string())
+    if mode == ConnectionMode::WebVpn {
+        to_webvpn_url(resolved.as_str())
+    } else {
+        Ok(resolved.to_string())
+    }
+}
+
+/// 先还原网关包装，再供调用方用各自的主机白名单校验。
+/// 只升级已由成功登录链证实的 SSO 默认 HTTP 端口，不重编码 service。
+pub(crate) fn upstream_redirect_target(current_url: &str, location: &str) -> Result<Url> {
+    let current =
+        Url::parse(current_url).map_err(|_| protocol_error("invalid current redirect URL"))?;
+    let resolved = current
+        .join(location)
+        .map_err(|_| protocol_error("invalid redirect Location"))?;
+    let mut upstream = Url::parse(&from_webvpn_url(resolved.as_str())?)
+        .map_err(|_| protocol_error("上游跳转地址无效"))?;
+    if !is_allowed_auth_scheme(&resolved) || !is_allowed_auth_scheme(&upstream) {
+        return Err(UbaaError::new(
+            ErrorCode::PermissionDenied,
+            ErrorKind::Authentication,
+            false,
+            "redirect scheme is not allowed",
+        ));
+    }
+    if upstream.scheme() == "http"
+        && upstream.host_str() == Some("sso.buaa.edu.cn")
+        && upstream.port_or_known_default() == Some(80)
+    {
+        upstream
+            .set_scheme("https")
+            .map_err(|()| protocol_error("SSO 跳转协议无效"))?;
+    }
+    Ok(upstream)
 }
 
 fn is_allowed_auth_scheme(url: &Url) -> bool {

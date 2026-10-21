@@ -832,3 +832,10 @@
 ## 2026-10-20：本机 macOS 使用固定开发签名
 
 按用户授权使用本机已有开发证书，解决临时签名随重建改变应用身份的问题。通过被 Git 忽略的本机 Xcode 配置选择身份，原 bundle identifier 与沙盒权限保持；无本机配置的共享默认行为不变。旧钥匙串与容器授权由用户在系统界面确认，不删除数据、不放宽访问控制。两次构建与再次启动的事实见[实施记录](macos-local-signing-2026-10-20.md)。
+
+
+## 2026-10-21：以成功 HAR 核对 SSO HTTP 跳转
+
+UBAA2 已有有界手动UC激活和最终status校验，但重定向仍原样保留HTTP SSO。用户成功HAR中UC激活经历HTTP Location后使用HTTPS SSO取得ticket；两份冻结源缺少这项显式协议升级。采用实时证据优先规则，计划仅升级精确SSO默认HTTP端口、保留service编码并维持固定路线；实现前完整对照见[来源记录](source-parity-auth-2026-10-21.md)。用户明确不处理中转，不改其配置。
+
+本轮随后确认教务currentUser原校验只依据HTTP200，已用HAR中的字符串code=0、datas.userId及正确最终地址补足成功条件，保留原GSMIS回退；完整反例和两路线真实验证均通过，见[实施记录](auth-repair-2026-10-21.md)。

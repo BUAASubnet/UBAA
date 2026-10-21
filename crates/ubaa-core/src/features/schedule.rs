@@ -362,7 +362,34 @@ fn classify_undergraduate_portal(response: &crate::ports::HttpResponse) -> Resul
             "本科教务门户探测失败",
         ));
     }
+    // 以实际 currentUser 业务响应确认身份，门户 HTML 或任意 JSON 不授予就绪状态。
+    let upstream = crate::connection::from_webvpn_url(&response.final_url)?;
+    let endpoint = url::Url::parse(&upstream).map_err(|_| portal_response_error())?;
+    let expected = url::Url::parse(CURRENT_USER_URL).map_err(|_| portal_response_error())?;
+    if endpoint.origin() != expected.origin() || endpoint.path() != expected.path() {
+        return Err(portal_response_error());
+    }
+    let payload: serde_json::Value =
+        serde_json::from_slice(&response.body).map_err(|_| portal_response_error())?;
+    if payload.get("code").and_then(serde_json::Value::as_str) != Some("0")
+        || payload
+            .get("datas")
+            .and_then(|data| data.get("userId"))
+            .and_then(serde_json::Value::as_str)
+            .is_none_or(|id| id.trim().is_empty())
+    {
+        return Err(portal_response_error());
+    }
     Ok(())
+}
+
+fn portal_response_error() -> UbaaError {
+    UbaaError::new(
+        ErrorCode::UpstreamChanged,
+        ErrorKind::Upstream,
+        false,
+        "本科教务门户未返回有效的用户状态",
+    )
 }
 
 fn invalid_url() -> crate::error::UbaaError {
@@ -425,3 +452,6 @@ fn ensure_ok(code: &str, context: &str) -> Result<()> {
 #[cfg(test)]
 #[path = "schedule/contract_tests.rs"]
 mod contract_tests;
+
+#[cfg(test)]
+mod portal_tests;

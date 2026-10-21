@@ -39,7 +39,7 @@ async fn 导入批次释放共享锁_待确认写意图阻止后续读取且不�
         status(),
         get(
             "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/currentUser.do",
-            b"{}".to_vec(),
+            br#"{"code":"0","datas":{"userId":"synthetic-user"}}"#.to_vec(),
         ),
         get(
             "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/student/schoolCalendars.do",

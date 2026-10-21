@@ -25,7 +25,7 @@ impl HttpTransport for ImportTransport {
         let mut body = if request.url.ends_with("/api/uc/status") {
             include_bytes!("../../../../../fixtures/auth/userinfo-success.json").to_vec()
         } else if request.url.contains("currentUser.do") {
-            b"{}".to_vec()
+            br#"{"code":"0","datas":{"userId":"synthetic-user"}}"#.to_vec()
         } else if request.url.contains("schoolCalendars.do") {
             include_bytes!("../../../../../fixtures/readonly/schedule-terms.json").to_vec()
         } else if request.url.contains("getTermWeeks.do") {

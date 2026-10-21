@@ -1,3 +1,5 @@
+const PORTAL_READY: &str = r#"{"code":"0","datas":{"userId":"synthetic-user"}}"#;
+
 use ubaa_core::facade::testing::{HttpMethod, HttpResponse, to_webvpn_url};
 use ubaa_core::facade::{ConnectionMode, ErrorCode, RouteClient};
 use ubaa_test_support::{ExpectedRequest, MockTransport, readonly_fixture};
@@ -26,11 +28,11 @@ async fn schedule_and_exam_use_verified_requests_and_sanitized_fixtures() {
     let today_url = format!("{TODAY_URL}?rq={}&lxdm=student", shanghai_date());
     let exam_url = format!("{EXAM_URL}?termCode=2025-2026-1");
     let transport = MockTransport::new([
-        expected_get(current_user, r#"{"user":"ok"}"#),
+        expected_get(current_user, PORTAL_READY),
         expected_get(terms_url, readonly_fixture("schedule-terms.json").unwrap()),
-        expected_get(current_user, r#"{"user":"ok"}"#),
+        expected_get(current_user, PORTAL_READY),
         expected_get(&weeks_url, readonly_fixture("schedule-weeks.json").unwrap()),
-        expected_get(current_user, r#"{"user":"ok"}"#),
+        expected_get(current_user, PORTAL_READY),
         ExpectedRequest::new(
             HttpMethod::Post,
             weekly_schedule_url,
@@ -40,9 +42,9 @@ async fn schedule_and_exam_use_verified_requests_and_sanitized_fixtures() {
                 readonly_fixture("schedule-week.json").unwrap(),
             ),
         ),
-        expected_get(current_user, r#"{"user":"ok"}"#),
+        expected_get(current_user, PORTAL_READY),
         expected_get(&today_url, readonly_fixture("schedule-today.json").unwrap()),
-        expected_get(current_user, r#"{"user":"ok"}"#),
+        expected_get(current_user, PORTAL_READY),
         expected_get(&exam_url, readonly_fixture("exam.json").unwrap()),
     ]);
     let observed = transport.clone();
@@ -115,7 +117,7 @@ async fn route_client_readonly_authentication_required_clears_the_selected_sessi
     let current_user = CURRENT_USER_URL;
     let terms = TERMS_URL;
     let transport = MockTransport::new([
-        expected_get(current_user, r#"{"user":"ok"}"#),
+        expected_get(current_user, PORTAL_READY),
         ExpectedRequest::new(HttpMethod::Get, terms, response(401, terms, "")),
         ExpectedRequest::new(
             HttpMethod::Get,
@@ -164,7 +166,7 @@ async fn schedule_activates_aas_after_the_portal_probe_requires_sso() {
             redirect_from(aas_login, aas_verify),
         ),
         expected_get(aas_verify, "AAS ready"),
-        expected_get(current_user, r#"{"user":"ok"}"#),
+        expected_get(current_user, PORTAL_READY),
         expected_get(terms, readonly_fixture("schedule-terms.json").unwrap()),
     ]);
     let observed = transport.clone();
@@ -204,7 +206,7 @@ async fn schedule_aas_recovery_stays_on_the_webvpn_gateway() {
             redirect_from(&aas_login, direct_aas_verify),
         ),
         expected_get(&aas_verify, "AAS ready"),
-        expected_get(&current_user, r#"{"user":"ok"}"#),
+        expected_get(&current_user, PORTAL_READY),
         expected_get(&terms, readonly_fixture("schedule-terms.json").unwrap()),
     ]);
     let observed = transport.clone();
@@ -331,7 +333,7 @@ async fn webvpn_readonly_requests_and_referers_stay_on_gateway_route() {
     let schedule_referer =
         to_webvpn_url("https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.html").unwrap();
     let schedule_transport = MockTransport::new([
-        expected_get(&current_user, r#"{"user":"ok"}"#),
+        expected_get(&current_user, PORTAL_READY),
         expected_get(&terms, readonly_fixture("schedule-terms.json").unwrap()),
     ]);
     let schedule_observed = schedule_transport.clone();

@@ -1,3 +1,5 @@
+const PORTAL_READY: &[u8] = br#"{"code":"0","datas":{"userId":"synthetic-user"}}"#;
+
 use super::*;
 use std::sync::Mutex;
 use ubaa_core::facade::{CacheKey, CacheLimits, JudgeScanKind, OfflineCache};
@@ -104,7 +106,7 @@ impl HttpTransport for ScanTransport {
                 HttpResponse::new(200, request.url.clone(), body.as_bytes().to_vec())
             }
         } else if request.url.contains("currentUser.do") {
-            HttpResponse::new(200, request.url.clone(), b"{}".to_vec())
+            HttpResponse::new(200, request.url.clone(), PORTAL_READY.to_vec())
         } else if request.url.contains("teachingSchedule/detail.do") {
             HttpResponse::new(
                 200,

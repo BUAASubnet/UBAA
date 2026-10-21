@@ -1,6 +1,6 @@
 # 认证与用户合同
 
-状态：确定性实现已完成；修正后的 2026-08-26 HEAD 已通过 Direct 与 WebVPN 实时认证。
+状态：2026-10-21 修复 SSO HTTP 跳转及教务状态校验，直连/WebVPN 认证与课表只读实测均通过；范围见[本轮记录](../migration/auth-repair-2026-10-21.md)。
 
 `UbaaClient` 是普通的聚合 Core facade。它拥有经过校验的路由配置、围绕
 `gw.buaa.edu.cn:80` TCP 探测的进程内 60 秒缓存、相互独立的 Direct/WebVPN runtime、一个
@@ -22,6 +22,8 @@ Ygdk typed 提交资格、请求、安全结果和 caller-pinned 回读，v10 �
 进入持久化会话或普通输出。
 
 公共 facade 暴露认证、标准只读功能和扩展功能，同时将传输、会话存储、单路线客户端及上游解析器保持在 Core 内部。`open` 负责加载配置；每个普通方法都在 Core 内解析策略和路线，并返回安全路线诊断及稳定 DTO。宿主不得检查存储细节、运行探测或自行计算路线。SPOC/Judge 诊断 facade 方法仅供确定性测试和实时验证使用，复用普通读取链，只附带安全的页数/数量元数据。`RouteClient` 仅用于 core-live 和测试，已标记为隐藏文档 API，不属于 SDK 或普通宿主的稳定边界。`auth` 模块负责 CAS 表单、一次性密码风险继续、激活、重定向、不支持交互式验证的拒绝和远程注销；`features/user` 负责用户中心状态/资料及失效分类。各功能模块负责其冻结协议要求的额外 CAS/引导激活，例如本科课表读取前的 AAS 服务激活。`WebVPN` 模式会把所有认证请求和重定向转换到 WebVPN 路线。
+
+认证及业务跳转先还原 WebVPN 包装并核对各自的上游白名单，只将精确 SSO 主机的默认 HTTP 端口升级到 HTTPS，再按固定路线包装。嵌套 service 编码保持；SSO 302、门户 HTML 200 都不代表登录完成。主登录仍需 UC status 校验，本科教务还需 homeapp currentUser 返回字符串 `code="0"` 与有效 `datas.userId`，不增加学校写入或自动重放凭据。
 
 每次持久化变更都经过同一个双路线会话协调器，并且只对其持有的 revision 执行一次
 compare-exchange。发生冲突时，当前 facade 清除内存 Cookie、待处理登录和路线功能状态，保留

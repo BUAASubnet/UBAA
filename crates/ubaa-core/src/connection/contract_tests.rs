@@ -301,3 +301,48 @@ fn concurrent_gateway_cache_misses_share_one_probe() {
     }
     assert_eq!(calls.load(Ordering::SeqCst), 1);
 }
+
+#[test]
+fn sso跳转只升级默认http端口并保留嵌套service编码() {
+    let query = "service=http%3a%2f%2fbyxt.buaa.edu.cn%2fjwapp%3fx%3d%252B&x=%2b+%2526";
+    for suffix in ["", ":80"] {
+        let http = format!("http://sso.buaa.edu.cn{suffix}/login?{query}");
+        for location in [http.clone(), super::to_webvpn_url(&http).unwrap()] {
+            for mode in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+                let actual =
+                    resolve_redirect("https://uc.buaa.edu.cn/api/login", &location, mode).unwrap();
+                let expected = format!("https://sso.buaa.edu.cn/login?{query}");
+                assert_eq!(
+                    actual,
+                    if mode == ConnectionMode::WebVpn {
+                        super::to_webvpn_url(&expected).unwrap()
+                    } else {
+                        expected
+                    }
+                );
+            }
+        }
+    }
+    for unchanged in [
+        "http://sso.buaa.edu.cn:8080/login?service=http%3A%2F%2Fuc.buaa.edu.cn%2F",
+        "http://uc.buaa.edu.cn/api/login?target=http%3A%2F%2Fsso.buaa.edu.cn",
+    ] {
+        assert_eq!(
+            resolve_redirect("https://uc.buaa.edu.cn/", unchanged, ConnectionMode::Direct).unwrap(),
+            unchanged
+        );
+    }
+}
+
+#[test]
+fn 网关包装不能绕过认证目标主机和协议白名单() {
+    for target in [
+        "https://unknown.example.invalid/login",
+        "ftp://sso.buaa.edu.cn/login",
+    ] {
+        let wrapped = super::to_webvpn_url(target).unwrap();
+        for mode in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+            assert!(resolve_redirect("https://uc.buaa.edu.cn/", &wrapped, mode).is_err());
+        }
+    }
+}
