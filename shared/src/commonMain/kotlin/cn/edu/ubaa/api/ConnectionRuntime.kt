@@ -69,21 +69,26 @@ object ConnectionModeStore {
 object ConnectionRuntime {
   internal var apiFactoryProvider: () -> ApiFactory = { DefaultApiFactory }
 
-  private val _currentMode = MutableStateFlow(ConnectionModeStore.get())
+  private val _currentMode = MutableStateFlow<ConnectionMode?>(null)
   val currentModeFlow: StateFlow<ConnectionMode?> = _currentMode.asStateFlow()
 
   internal fun apiFactory(): ApiFactory = apiFactoryProvider()
 
   fun availableModes(): List<ConnectionMode> =
       if (supportsLocalConnectionModes()) {
-        ConnectionMode.entries
+        listOf(ConnectionMode.DIRECT, ConnectionMode.WEBVPN)
       } else {
-        listOf(ConnectionMode.SERVER_RELAY)
+        emptyList()
       }
 
   fun resolveSelectedMode(): ConnectionMode? {
     val allowedModes = availableModes()
     val storedMode = ConnectionModeStore.get()
+    // 已弃用的中转配置不能恢复认证或触发自动登录，返回连接方式选择页。
+    if (storedMode != null && storedMode !in allowedModes) {
+      resetSession()
+      ConnectionModeStore.clear()
+    }
     val resolvedMode =
         when {
           storedMode != null && storedMode in allowedModes -> storedMode

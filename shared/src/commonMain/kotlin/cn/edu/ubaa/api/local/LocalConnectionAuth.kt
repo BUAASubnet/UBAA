@@ -10,6 +10,7 @@ import cn.edu.ubaa.api.auth.CaptchaRequiredClientException
 import cn.edu.ubaa.api.auth.LoginStatsReporter
 import cn.edu.ubaa.api.auth.SessionStatusResponse
 import cn.edu.ubaa.api.auth.UserServiceBackend
+import cn.edu.ubaa.api.auth.secureCasTransportUrl
 import cn.edu.ubaa.api.auth.toUserFacingApiException
 import cn.edu.ubaa.api.auth.userFacingMessageForCode
 import cn.edu.ubaa.api.core.getDefaultEngine
@@ -622,7 +623,12 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
   }
 
   private suspend fun activateUcLogin() {
-    LocalUpstreamClientProvider.shared().get(localUcActivateUrl())
+    val client = LocalUpstreamClientProvider.newNoRedirectClient()
+    try {
+      followRedirectsAndCheckError(client.get(localUcActivateUrl()), client)
+    } finally {
+      client.close()
+    }
   }
 
   @OptIn(ExperimentalEncodingApi::class)
@@ -638,14 +644,21 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
   private suspend fun followRedirectsAndCheckError(
       initialResponse: HttpResponse,
       noRedirectClient: HttpClient,
+      useWebVpn: Boolean = ConnectionRuntime.currentMode() == ConnectionMode.WEBVPN,
   ) {
     var currentResponse = initialResponse
     var passwordExpiryIgnored = false
+    var redirectCount = 0
     while (true) {
       while (currentResponse.status.value in 300..399) {
         val location = currentResponse.headers[HttpHeaders.Location] ?: break
+        if (++redirectCount > 10) throw ApiCallException("统一认证跳转次数过多，请稍后重试")
+        val resolved = resolveRedirectUrl(currentResponse.call.request.url, location)
+        val secureUrl = secureCasTransportUrl(LocalWebVpnSupport.fromWebVpnUrl(resolved))
         currentResponse =
-            noRedirectClient.get(resolveRedirectUrl(currentResponse.call.request.url, location))
+            noRedirectClient.get(
+                if (useWebVpn) LocalWebVpnSupport.toWebVpnUrl(secureUrl) else secureUrl
+            )
       }
 
       val bodyText = runCatching { currentResponse.bodyAsText() }.getOrNull().orEmpty()
@@ -687,7 +700,7 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
 
   private fun resolveRedirectUrl(currentUrl: Url, location: String): String {
     if (location.startsWith("http://") || location.startsWith("https://")) {
-      return localUpstreamUrl(location)
+      return location
     }
     if (location.startsWith("//")) {
       return "${currentUrl.protocol.name}:$location"
@@ -715,10 +728,12 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
       val loginPageResponse = directClient.get(directLoginUrl)
       if (loginPageResponse.status.value in 300..399) {
         // 已有直连会话，跟随重定向激活即可
-        followRedirectsAndCheckError(loginPageResponse, directClient)
-        directClient.get(
-            "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
-        )
+        followRedirectsAndCheckError(loginPageResponse, directClient, useWebVpn = false)
+        val activation =
+            directClient.get(
+                "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
+            )
+        followRedirectsAndCheckError(activation, directClient, useWebVpn = false)
         return
       }
       if (loginPageResponse.status != HttpStatusCode.OK) return
@@ -730,10 +745,12 @@ internal class LocalAuthServiceBackend : AuthServiceBackend {
       val parameters = LocalCasParser.buildCasLoginParameters(loginPageHtml, request)
       val submitResponse =
           directClient.post(directLoginUrl) { setBody(FormDataContent(parameters)) }
-      followRedirectsAndCheckError(submitResponse, directClient)
-      directClient.get(
-          "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
-      )
+      followRedirectsAndCheckError(submitResponse, directClient, useWebVpn = false)
+      val activation =
+          directClient.get(
+              "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin"
+          )
+      followRedirectsAndCheckError(activation, directClient, useWebVpn = false)
     } catch (_: Exception) {
       // 直连 SSO 会话建立失败不影响主登录流程
     } finally {

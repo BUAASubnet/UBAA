@@ -54,6 +54,29 @@ class AuthViewModelInitializeAppTest {
   }
 
   @Test
+  fun `中转模式迁移后同步表单并预加载而不自动提交凭据`() = runTest {
+    Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
+    ConnectionModeStore.save(ConnectionMode.SERVER_RELAY)
+    CredentialStore.saveCredentials("test-user", "test-password")
+    CredentialStore.setRememberPassword(true)
+    CredentialStore.setAutoLogin(true)
+    val authService = PreloadedSessionAuthService(LoginPreloadResponse(captchaRequired = false))
+    val viewModel = AuthViewModel(authService = authService, userService = StubUserService())
+    assertTrue(viewModel.loginForm.value.autoLogin)
+
+    assertNull(ConnectionRuntime.resolveSelectedMode())
+    ConnectionRuntime.switchMode(ConnectionMode.DIRECT)
+    viewModel.initializeApp()
+    advanceUntilIdle()
+
+    assertEquals(1, authService.preloadCalls)
+    assertFalse(viewModel.loginForm.value.autoLogin)
+    assertEquals("test-user", viewModel.loginForm.value.username)
+    assertFalse(viewModel.uiState.value.isLoggedIn)
+    assertNull(viewModel.uiState.value.error)
+  }
+
+  @Test
   fun `initializeApp is skipped until connection mode is selected`() = runTest {
     Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
     val authService = TimeoutAuthService()
@@ -78,7 +101,7 @@ class AuthViewModelInitializeAppTest {
   fun `initializeApp preserves tokens and skips relogin when auth status times out upstream`() =
       runTest {
         Dispatchers.setMain(UnconfinedTestDispatcher(testScheduler))
-        ConnectionModeStore.save(ConnectionMode.SERVER_RELAY)
+        ConnectionModeStore.save(ConnectionMode.DIRECT)
         AuthTokensStore.save(
             StoredAuthTokens(
                 accessToken = "stale-access-token",

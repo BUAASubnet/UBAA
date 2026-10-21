@@ -33,23 +33,25 @@ fun ConnectionModeSelectionScreen(
     onConfirm: (ConnectionMode) -> Unit,
     modifier: Modifier = Modifier,
 ) {
-  var selectedMode by
-      remember(availableModes) {
-        mutableStateOf(availableModes.firstOrNull() ?: ConnectionMode.SERVER_RELAY)
-      }
+  var selectedMode by remember(availableModes) { mutableStateOf(availableModes.firstOrNull()) }
 
   Column(
       modifier = modifier.fillMaxSize().padding(24.dp),
       verticalArrangement = Arrangement.Center,
   ) {
     Text(
-        text = "选择连接模式",
+        text = if (availableModes.isEmpty()) "请使用客户端" else "选择连接模式",
         style = MaterialTheme.typography.headlineMedium,
         fontWeight = FontWeight.Bold,
     )
     Spacer(modifier = Modifier.height(12.dp))
     Text(
-        text = "首次启动需要先确定连接方式，后续可在设置中切换。",
+        text =
+            if (availableModes.isEmpty()) {
+              "当前平台不支持直连或 WebVPN，请使用 Android、iOS 或桌面客户端。"
+            } else {
+              "首次启动需要先确定连接方式，后续可在设置中切换。"
+            },
         style = MaterialTheme.typography.bodyMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
     )
@@ -88,12 +90,14 @@ fun ConnectionModeSelectionScreen(
     }
 
     Spacer(modifier = Modifier.height(24.dp))
-    Button(
-        onClick = { onConfirm(selectedMode) },
-        modifier = Modifier.fillMaxWidth(),
-        contentPadding = PaddingValues(vertical = 14.dp),
-    ) {
-      Text("继续")
-    }
+    if (availableModes.isNotEmpty())
+        Button(
+            onClick = { selectedMode?.let(onConfirm) },
+            enabled = selectedMode != null,
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(vertical = 14.dp),
+        ) {
+          Text("继续")
+        }
   }
 }

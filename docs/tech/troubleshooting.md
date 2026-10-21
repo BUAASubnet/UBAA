@@ -16,7 +16,7 @@
 
 - 先确认当前模式是否在平台可用模式中。
 - 切换模式后应清理旧 Token、Cookie 和本地上游客户端。
-- Web/Wasm 只能使用服务器中转，直连问题应在 Android、iOS 或 Desktop 上复现。
+- 服务器中转已弃用；Web/Wasm 不支持本地连接，登录问题应在 Android、iOS 或 Desktop 的直连或 WebVPN 模式下排查。
 
 ## 功能数据为空
 

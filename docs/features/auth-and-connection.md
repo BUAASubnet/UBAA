@@ -1,23 +1,25 @@
 # 登录与连接模式
 
-登录模块负责把用户凭据、验证码、预登录上下文、Token 刷新和连接模式绑定在一起。客户端启动时会恢复已保存的连接模式；如果平台只支持服务器中转，则自动选择 `SERVER_RELAY`。
+登录模块负责把用户凭据、验证码、预登录上下文和连接模式绑定在一起。客户端恢复已保存的直连或 WebVPN 模式；旧服务器中转配置会被清除，返回模式选择页。
 
 ## 用户能力
 
-- Android、iOS、Desktop 支持直连模式、WebVPN 模式和服务器中转模式。
-- Web/Wasm 端只暴露服务器中转模式，启动时会自动保存 `SERVER_RELAY`。
-- 支持验证码获取、预登录、登录、登录状态检查、Token 刷新和退出登录。
+- Android、iOS、Desktop 支持直连模式和 WebVPN 模式。
+- Web/Wasm 端显示使用原生客户端的提示，不再提供已弃用的服务器中转。
+- 支持验证码获取、预登录、登录、登录状态检查和退出登录。
 - 切换连接模式时会清理 Token、ClientId、本地会话、Cookie、本地上游客户端和学期缓存，避免跨模式复用旧状态。
-- Web/Wasm 平台只暴露服务器中转；Android、iOS、Desktop 可按平台能力使用本地连接模式。
 
 ## 技术路径
 
 - `ConnectionRuntime` 决定可用模式、当前模式和切换时的会话清理。
-- `DefaultApiFactory` 根据模式把 shared 的业务接口分发到本地实现或 relay 实现。
-- 服务器中转通过 Ktor `/api/v1/auth/*` 路由维护服务端会话、Refresh Token、登录指标和验证码。
+- `DefaultApiFactory` 根据模式选择直连或 WebVPN 的本地实现；relay 实现仅保留兼容代码。
 - 本地直连/WebVPN 由 `LocalAuthServiceBackend` 登录统一认证，并把上游 Cookie 持久化到本地存储。
+- SSO 提交成功后还需要访问 UC `/api/login` 完成票据交换，并以 `/api/uc/status` 的业务结果判断登录状态；不能把 SSO 的 302 当作整个 App 登录成功。
+- UC 激活手动处理跳转，将 SSO 默认端口的 HTTP 地址升级为 HTTPS，保留 `service` 编码；WebVPN 模式保持网关路由，超过 10 次跳转会终止。
 
 ## 接口
+
+以下为仍保留在代码中的服务端接口，不再作为 App 的认证路径：
 
 - `POST /api/v1/auth/preload`
 - `POST /api/v1/auth/login`
