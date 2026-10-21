@@ -31,8 +31,9 @@ internal fun parseGsmisSchedule(
   require(root["code"]?.jsonPrimitive?.content == "1") { "GSMIS 课表返回失败" }
   val rows = root.getValue("jgList").jsonArray.map { it.jsonObject }
   val courses = root.getValue("rwList").jsonArray.map { it.jsonObject }
+  val schemes = root.getValue("jcfaList").jsonArray.map { it.jsonObject }
   val slots =
-      root.getValue("jcfaList").jsonArray.flatMap {
+      schemes.flatMap {
         it.jsonObject.getValue("skjcList").jsonArray.map { slot -> slot.jsonObject }
       }
   fun JsonObject.text(key: String) = get(key)?.jsonPrimitive?.contentOrNull
@@ -68,16 +69,23 @@ internal fun parseGsmisSchedule(
   }
   val normalizedRows =
       rows.map { row ->
+        // 部分跨系统课程不带方案编号；仅在上游明确返回唯一方案时补全，不能猜多方案。
+        val scheme =
+            requireNotNull(
+                row.text("JCFADM")?.takeIf { it.isNotBlank() }
+                    ?: schemes.singleOrNull()?.text("DM")?.takeIf { it.isNotBlank() }
+            ) {
+              "GSMIS 排课缺少节次方案且无法唯一确定"
+            }
         fun slot(key: String): JsonObject {
           val section = requireNotNull(row.text(key)).toInt()
-          return slots.single {
-            it.text("JCFADM") == row.text("JCFADM") && it.text("DM")?.toInt() == section
-          }
+          return slots.single { it.text("JCFADM") == scheme && it.text("DM")?.toInt() == section }
         }
         JsonObject(
             row +
                 mapOf(
                     "XNXQDM" to JsonPrimitive(termCode),
+                    "JCFADM" to JsonPrimitive(scheme),
                     "JSXM" to (row["JGJSXM"] ?: JsonNull),
                     "KSSJ" to slot("KSJCDM").getValue("KSSJ"),
                     "JSSJ" to slot("JSJCDM").getValue("JSSJ"),
