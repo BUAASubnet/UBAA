@@ -6,9 +6,10 @@ import '../../shared/text.dart' show uiNonBlank;
 
 String _gradeNumber(double? value) {
   if (value == null || !value.isFinite) return '--';
-  return value == value.truncateToDouble()
-      ? value.toStringAsFixed(0)
-      : value.toString();
+  final text = value.toStringAsFixed(2);
+  return text.contains('.') && !text.contains('e')
+      ? text.replaceFirst(RegExp(r'\.?0+$'), '')
+      : text;
 }
 
 class GradeSummaryCard extends StatelessWidget {
