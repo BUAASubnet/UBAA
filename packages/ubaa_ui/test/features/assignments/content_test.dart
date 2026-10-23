@@ -1,3 +1,5 @@
+import 'package:ubaa_ui/src/features/coursework/assignment_content.dart'
+    show AssignmentCard;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -145,7 +147,7 @@ void main() {
         ),
       ),
     ], queries);
-    await tester.tap(find.byTooltip('查看作业详情'));
+    await tester.tap(find.byType(AssignmentCard));
     await tester.pump();
     expect(queries.single.assignmentId, 'a');
   });

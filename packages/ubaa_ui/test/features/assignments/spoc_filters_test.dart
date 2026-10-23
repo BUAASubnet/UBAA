@@ -1,3 +1,5 @@
+import 'package:ubaa_ui/src/features/coursework/assignment_content.dart'
+    show AssignmentCard;
 import 'package:ubaa_ui/src/features/coursework/assignment_filters.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -124,7 +126,7 @@ void main() {
       lessThan(tester.getTopLeft(find.text('历史未提交')).dy),
     );
     expect(queries, isEmpty);
-    await tester.tap(find.byTooltip('查看作业详情').first);
+    await tester.tap(find.byType(AssignmentCard).first);
     await tester.pumpAndSettle();
     expect(queries.single.assignmentId, '当前未提交');
     await tester.tap(find.byTooltip('返回'));

@@ -125,7 +125,7 @@ class AssignmentCard extends StatelessWidget {
     if (!summary) return _AssignmentDetail(detail: detail, wide: wide);
     final target = detail.readNavigation;
     final canOpen = target != null && onNavigate != null;
-    final card = Card(
+    return Card(
       margin: EdgeInsets.zero,
       color: Theme.of(context).colorScheme.surfaceContainerHigh,
       child: InkWell(
@@ -207,7 +207,6 @@ class AssignmentCard extends StatelessWidget {
         ),
       ),
     );
-    return canOpen ? Tooltip(message: '查看作业详情', child: card) : card;
   }
 }
 

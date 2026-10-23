@@ -12,7 +12,7 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
       );
       await _search(tester, 'SPOC课程b');
       final before = backend.reads.length;
-      await _tap(tester, find.byTooltip('查看作业详情'));
+      await _tap(tester, find.byType(AssignmentCard));
       _expectQuery(
         tester,
         FeatureId.spoc,
@@ -47,7 +47,7 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
       await _panel(tester, false);
       expect(_snapshot(tester, FeatureId.judge).details.length, 3);
       await _search(tester, 'judge-a');
-      await _tap(tester, find.byTooltip('查看作业详情'));
+      await _tap(tester, find.byType(AssignmentCard));
       _expectQuery(
         tester,
         FeatureId.judge,
@@ -79,7 +79,7 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
       expect(find.text('没有匹配的详情'), findsNothing);
 
       final beforeSecond = backend.reads.length;
-      await _tap(tester, find.byTooltip('查看作业详情'));
+      await _tap(tester, find.byType(AssignmentCard));
       final second =
           _snapshot(tester, FeatureId.judge).details.single.presentation
               as JudgeAssignmentPresentation;

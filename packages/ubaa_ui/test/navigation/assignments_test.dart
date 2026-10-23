@@ -1,3 +1,5 @@
+import 'package:ubaa_ui/src/features/coursework/assignment_content.dart'
+    show AssignmentCard;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -10,7 +12,7 @@ void main() {
     state.progressive();
     await tester.pump();
     expect(find.text('A 作业'), findsOneWidget);
-    final target = find.byTooltip('查看作业详情').first;
+    final target = find.byType(AssignmentCard).first;
     await tester.ensureVisible(target);
     await tester.tap(target);
     await tester.pumpAndSettle();
@@ -34,7 +36,7 @@ void main() {
     }
 
     await search('A 课程');
-    final detail = find.byTooltip('查看作业详情');
+    final detail = find.byType(AssignmentCard);
     await Scrollable.ensureVisible(tester.element(detail), alignment: .5);
     await tester.pumpAndSettle();
     expect(detail.hitTestable(), findsOneWidget);
@@ -43,7 +45,7 @@ void main() {
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     await search('B 课程');
-    final choice = find.byTooltip('查看作业详情');
+    final choice = find.byType(AssignmentCard);
     await tester.ensureVisible(choice);
     await tester.tap(choice);
     await tester.pumpAndSettle();

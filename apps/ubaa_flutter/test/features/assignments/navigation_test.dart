@@ -1,3 +1,5 @@
+import 'package:ubaa_ui/src/features/coursework/assignment_content.dart'
+    show AssignmentCard;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -79,7 +81,7 @@ void main() {
     await tap(find.text('显示已截止'));
     await closePanel();
     await search('judge-a');
-    await tap(find.byTooltip('查看作业详情'));
+    await tap(find.byType(AssignmentCard));
     await tap(find.byTooltip('返回'));
     await search('judge-b');
     await panel();
@@ -91,7 +93,7 @@ void main() {
       'judge-b',
     );
     await closePanel();
-    await tap(find.byTooltip('查看作业详情'));
+    await tap(find.byType(AssignmentCard));
     expect(find.textContaining('judge-b'), findsWidgets);
   });
 }

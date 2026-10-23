@@ -113,7 +113,7 @@ void _registerStates(IntegrationTestWidgetsFlutterBinding binding) {
                 ? 'SPOC课程a'
                 : '希冀课程judge-a';
             await _search(tester, course);
-            await _tap(tester, find.byTooltip('查看作业详情'));
+            await _tap(tester, find.byType(AssignmentCard));
             if (feature == FeatureId.spoc) {
               final body = find.byType(SelectableText);
               expect(

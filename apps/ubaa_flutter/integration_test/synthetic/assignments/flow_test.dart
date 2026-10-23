@@ -1,3 +1,5 @@
+import 'package:ubaa_ui/src/features/coursework/assignment_content.dart'
+    show AssignmentCard;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';

@@ -1,3 +1,5 @@
+import 'package:ubaa_ui/src/features/coursework/assignment_content.dart'
+    show AssignmentCard;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -19,7 +21,7 @@ void main() {
       await tester.pumpAndSettle();
       await openFeature(tester, feature);
       expect(find.text('测试作业2'), findsOneWidget);
-      await tester.tap(find.byTooltip('查看作业详情').first);
+      await tester.tap(find.byType(AssignmentCard).first);
       await tester.pumpAndSettle();
       expect(find.text('详情作业1'), findsOneWidget);
       await openFeature(tester, feature);
