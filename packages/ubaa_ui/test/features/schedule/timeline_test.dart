@@ -2,11 +2,10 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../assignments/content_test.dart' show showFeature;
-import '../../support/navigation.dart' show openQueryPanel, closeQueryPanel;
 
 void main() {
   for (final width in [390.0, 834.0, 1280.0]) {
-    testWidgets('筛选无匹配课程在$width宽度保留周结构和时间轴，清空可恢复', (tester) async {
+    testWidgets('稀疏课程在$width宽度补齐校历作息且不请求新数据', (tester) async {
       final queries = <FeatureQuery>[];
       await showFeature(
         tester,
@@ -32,23 +31,16 @@ void main() {
           week: 1,
         ),
       );
-      await openQueryPanel(tester);
-      await tester.enterText(
-        find.widgetWithText(TextField, '筛选详情'),
-        'zz-no-match',
+      expect(find.text('08:45'), findsOneWidget);
+      expect(find.text('08:50'), findsOneWidget);
+      await tester.drag(
+        find.byKey(const ValueKey('schedule-grid-scroll')),
+        const Offset(0, -750),
       );
-      await closeQueryPanel(tester);
-      expect(find.text('合成课程'), findsNothing);
-      expect(find.text('周一'), findsOneWidget);
-      expect(find.text('周日'), findsOneWidget);
-      expect(find.text('08:00'), findsOneWidget);
-      expect(find.text('没有匹配的课程'), findsOneWidget);
-      expect(find.text('本周暂无课程'), findsNothing);
-      await openQueryPanel(tester);
-      await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '');
-      await closeQueryPanel(tester);
-      expect(find.text('合成课程'), findsOneWidget);
+      await tester.pumpAndSettle();
+      expect(find.text('22:15').hitTestable(), findsOneWidget);
       expect(queries, isEmpty);
+      expect(tester.takeException(), isNull);
     });
     testWidgets('空周完整时间轴在$width宽度保持可见且无需额外查询', (tester) async {
       final queries = <FeatureQuery>[];
@@ -82,8 +74,8 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
-  test('旧缓存只在校方标准边界匹配时补14节，冲突时间不猜', () {
-    final legacy = scheduleSectionTimes(code: '20261', courses: []);
+  test('本科旧缓存补齐14节，明确时间优先且冲突不猜', () {
+    final legacy = scheduleSectionTimes(code: 'fixture-student', courses: []);
     expect(legacy.length, 14);
     expect(legacy.last.end, '22:15');
     final conflict = scheduleSectionTimes(
@@ -98,7 +90,8 @@ void main() {
         ),
       ],
     );
-    expect(conflict.length, 12);
+    expect(conflict.length, 14);
+    expect(conflict[9].end, '18:15');
     expect(conflict.first.start, '09:00');
     final explicit = scheduleSectionTimes(
       code: '20261',

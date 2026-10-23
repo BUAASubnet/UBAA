@@ -101,7 +101,7 @@ final class ScheduleSectionTime {
   final String? start, end;
 }
 
-/// 沿冻结旧版优先使用作息表；旧研究生缓存仅在边界全部匹配时补标准方案。
+/// 明确作息及课程边界优先；缺失时间按用户提供的 2026—2027 校历补齐。
 List<ScheduleSectionTime> scheduleSectionTimes({
   required Iterable<ScheduleCoursePresentation> courses,
   List<ScheduleSectionTime> explicit = const [],
@@ -123,29 +123,8 @@ List<ScheduleSectionTime> scheduleSectionTimes({
     ('20:40', '21:25'),
     ('21:30', '22:15'),
   ];
-  String? boundary(int? section, bool start) =>
-      section != null && section > 0 && section <= standard.length
-      ? (start ? standard[section - 1].$1 : standard[section - 1].$2)
-      : null;
-  final legacy =
-      explicit.isEmpty &&
-      code != null &&
-      RegExp(r'^\d{4}[12]$').hasMatch(code) &&
-      courses.every(
-        (c) =>
-            (c.beginTime == null ||
-                boundary(c.beginSection, true) == c.beginTime) &&
-            (c.endTime == null || boundary(c.endSection, false) == c.endTime),
-      );
-  final times = explicit.isNotEmpty
-      ? explicit
-      : legacy
-      ? [
-          for (final (index, value) in standard.indexed)
-            ScheduleSectionTime(index + 1, value.$1, value.$2),
-        ]
-      : const <ScheduleSectionTime>[];
-  var count = 12;
+  final times = explicit;
+  var count = standard.length;
   for (final time in times) {
     if (time.section > count) count = time.section;
   }
@@ -157,25 +136,34 @@ List<ScheduleSectionTime> scheduleSectionTimes({
     return unique.length == 1 ? unique.single : null;
   }
 
+  String? boundary(
+    Iterable<String?> known,
+    Iterable<String?> observed,
+    String? fallback,
+  ) {
+    final values = known.whereType<String>().toList();
+    if (values.isNotEmpty) return single(values);
+    final courseValues = observed.whereType<String>().toList();
+    return courseValues.isEmpty ? fallback : single(courseValues);
+  }
+
   return List.unmodifiable(
     List.generate(count, (index) {
       final section = index + 1;
       final known = times.where((t) => t.section == section).toList();
       return ScheduleSectionTime(
         section,
-        single(
-          known.isNotEmpty
-              ? known.map((t) => t.start)
-              : courses
-                    .where((c) => c.beginSection == section)
-                    .map((c) => c.beginTime),
+        boundary(
+          known.map((t) => t.start),
+          courses
+              .where((c) => c.beginSection == section)
+              .map((c) => c.beginTime),
+          index < standard.length ? standard[index].$1 : null,
         ),
-        single(
-          known.isNotEmpty
-              ? known.map((t) => t.end)
-              : courses
-                    .where((c) => c.endSection == section)
-                    .map((c) => c.endTime),
+        boundary(
+          known.map((t) => t.end),
+          courses.where((c) => c.endSection == section).map((c) => c.endTime),
+          index < standard.length ? standard[index].$2 : null,
         ),
       );
     }),

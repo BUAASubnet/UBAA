@@ -76,7 +76,13 @@ int _countTapActions(SemanticsNode node) {
 }
 
 void _expectFeaturePage(FeatureId feature) {
-  expect(find.widgetWithText(AppBar, feature.title), findsOneWidget);
+  expect(
+    find.widgetWithText(
+      AppBar,
+      feature == FeatureId.schedule ? '课表' : feature.title,
+    ),
+    findsOneWidget,
+  );
   expect(find.byTooltip('返回'), findsOneWidget);
 }
 

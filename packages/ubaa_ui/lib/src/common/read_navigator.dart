@@ -208,6 +208,9 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
 
   void openPanel() => _current.pageKey.currentState?.togglePanel();
 
+  void selectScheduleTerm() =>
+      _current.pageKey.currentState?.selectScheduleTerm();
+
   void goBack() {
     if (_frames.length == 1) {
       if (_isAssignmentDetail(_current) && widget.onQuery != null) {
@@ -354,6 +357,8 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     final visible = _current.visibleSnapshot;
     final title = _current.bykcChosenKey != null
         ? '课程详情'
+        : visible.feature == FeatureId.schedule
+        ? '课表'
         : _current.scheduleTitle ??
               uiReadPageTitle(
                 visible.feature,

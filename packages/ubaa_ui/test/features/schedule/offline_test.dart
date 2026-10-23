@@ -18,7 +18,7 @@ void main() {
       expect(queries.last.term, 'term');
       expect(queries.last.week, 4);
       expect(find.text('合成已保存课程'), findsOneWidget);
-      expect(find.text('第 4 周'), findsNWidgets(2));
+      expect(find.text('第 4 周'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   }

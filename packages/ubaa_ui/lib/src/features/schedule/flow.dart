@@ -3,7 +3,9 @@ import '../../shared/loading.dart' show LoadingPlaceholder;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'import.dart' show ScheduleRefreshError;
+import 'colors.dart' show ScheduleCourseColors;
 import 'week_picker.dart' show AcademicWeekDialog;
+import '../academic/terms.dart' show AcademicTermDialog;
 import '../../shared/schedule_values.dart' show uiIsWeeklyScheduleQuery;
 
 enum _ScheduleAutoStage { terms, weeks }
@@ -21,6 +23,7 @@ class ScheduleFlow extends StatefulWidget {
     required this.child,
     this.onQuery,
     this.onTitle,
+    this.loadTerms,
     this.imports = const {},
     this.onSave,
     this.onCancelImport,
@@ -33,6 +36,7 @@ class ScheduleFlow extends StatefulWidget {
   final Future<void> Function(FeatureQuery)? onQuery;
   final ValueChanged<FeatureQuery> adoptDraft;
   final ValueChanged<String?>? onTitle;
+  final Future<FeatureResult> Function(bool)? loadTerms;
   final Widget child;
   final Map<String, ScheduleImportState> imports;
   final Future<void> Function(String)? onSave;
@@ -49,6 +53,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
   String? _weeksTerm, _metadataAttempt, _reportedTitle;
   FeatureResult? _weeks;
   final _downloadAttempts = <String>{};
+  final _courseColors = <String, ScheduleCourseColors>{};
   @override
   void initState() {
     super.initState();
@@ -61,6 +66,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     if (old.epoch != widget.epoch) {
       _generation++;
       _downloadAttempts.clear();
+      _courseColors.clear();
       _weeks = null;
       _weeksTerm = null;
       _metadataAttempt = null;
@@ -308,6 +314,30 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     );
   }
 
+  Future<void> selectTerm() async {
+    final loader = widget.loadTerms;
+    if (!widget.visible || loader == null || widget.onQuery == null) return;
+    stopAutomatic(clearPrompt: false);
+    final generation = _generation;
+    final selected = await showDialog<String>(
+      context: context,
+      builder: (_) => AcademicTermDialog(
+        loader: loader,
+        selected: widget.query?.term ?? '',
+      ),
+    );
+    if (!mounted ||
+        !widget.visible ||
+        generation != _generation ||
+        selected == null ||
+        selected == widget.query?.term)
+      return;
+    _automatic = _ScheduleAutoStage.weeks;
+    _request(
+      FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: selected),
+    );
+  }
+
   Future<void> _openWeekDialog(BuildContext context, String term) async {
     final selected = await showDialog<int>(
       context: context,
@@ -348,9 +378,8 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         ? (candidates[currentIndex + 1].presentation as WeekPresentation).number
         : (currentWeekNum != null ? currentWeekNum + 1 : null);
 
-    final weekHeader = Container(
+    final weekHeader = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
@@ -367,23 +396,34 @@ class ScheduleFlowState extends State<ScheduleFlow> {
                     ),
                   ),
           ),
-          InkWell(
-            borderRadius: BorderRadius.circular(8),
-            onTap: term == null ? null : () => _openWeekDialog(context, term),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    currentWeekNum != null ? '第 $currentWeekNum 周' : '选择周次',
-                    style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                      fontWeight: FontWeight.bold,
+          Flexible(
+            child: InkWell(
+              borderRadius: BorderRadius.circular(8),
+              onTap: term == null ? null : () => _openWeekDialog(context, term),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 6,
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Flexible(
+                      child: Text(
+                        _visibleWeek?.title ??
+                            (currentWeekNum != null
+                                ? '第 $currentWeekNum 周'
+                                : '选择周次'),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: Theme.of(context).textTheme.titleMedium
+                            ?.copyWith(fontWeight: FontWeight.bold),
+                      ),
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  const Icon(Icons.arrow_drop_down, size: 20),
-                ],
+                    const SizedBox(width: 4),
+                    const Icon(Icons.arrow_drop_down, size: 20),
+                  ],
+                ),
               ),
             ),
           ),
@@ -410,13 +450,13 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('请从右上角选择学期和教学周'),
+            Text(term == null ? '请选择学期' : '请选择教学周'),
             const SizedBox(height: 12),
             FilledButton.icon(
               icon: const Icon(Icons.calendar_view_week),
-              label: const Text('选择教学周'),
+              label: Text(term == null ? '选择学期' : '选择教学周'),
               onPressed: term == null
-                  ? null
+                  ? selectTerm
                   : () => _openWeekDialog(context, term),
             ),
           ],
@@ -435,6 +475,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     }
 
     return ScheduleWeekScope(
+      colors: _courseColors.putIfAbsent(term ?? '', ScheduleCourseColors.new),
       week: _visibleWeek?.presentation as WeekPresentation?,
       child: Column(
         children: [
@@ -453,10 +494,18 @@ class ScheduleFlowState extends State<ScheduleFlow> {
 }
 
 class ScheduleWeekScope extends InheritedWidget {
-  const ScheduleWeekScope({required this.week, required super.child});
+  const ScheduleWeekScope({
+    required this.week,
+    required super.child,
+    this.colors,
+  });
+  final ScheduleCourseColors? colors;
+  static ScheduleCourseColors? colorsOf(BuildContext context) =>
+      context.dependOnInheritedWidgetOfExactType<ScheduleWeekScope>()?.colors;
   final WeekPresentation? week;
   static WeekPresentation? of(BuildContext context) =>
       context.dependOnInheritedWidgetOfExactType<ScheduleWeekScope>()?.week;
   @override
-  bool updateShouldNotify(ScheduleWeekScope old) => !identical(old.week, week);
+  bool updateShouldNotify(ScheduleWeekScope old) =>
+      !identical(old.colors, colors) || !identical(old.week, week);
 }

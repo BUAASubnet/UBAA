@@ -4,6 +4,87 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/features/schedule/flow.dart';
 
 void main() {
+  for (final boundary in ['账号或路线变化', '离开课表']) {
+    testWidgets('学期弹窗期间$boundary不应用迟到选择', (tester) async {
+      final key = GlobalKey<ScheduleFlowState>();
+      final queries = <FeatureQuery>[];
+      var epoch = 0;
+      var visible = true;
+      late StateSetter update;
+      const query = FeatureQuery(
+        view: FeatureQueryView.scheduleWeek,
+        term: '原学期',
+        week: 3,
+      );
+      await tester.pumpWidget(
+        MaterialApp(
+          home: StatefulBuilder(
+            builder: (context, setState) {
+              update = setState;
+              return Scaffold(
+                appBar: AppBar(
+                  actions: [
+                    IconButton(
+                      tooltip: '选择学期',
+                      onPressed: () => key.currentState?.selectTerm(),
+                      icon: const Icon(Icons.calendar_month),
+                    ),
+                  ],
+                ),
+                body: ScheduleFlow(
+                  key: key,
+                  query: query,
+                  visible: visible,
+                  epoch: epoch,
+                  snapshot: FeatureSnapshot(
+                    feature: FeatureId.schedule,
+                    status: FeatureLoadStatus.empty,
+                    readContext: FeatureReadContext(
+                      query: query,
+                      requestRevision: 1,
+                    ),
+                  ),
+                  loadWeeks: (_, _) async => const FeatureResult.empty(),
+                  loadTerms: (_) async => const FeatureResult.success(
+                    details: [
+                      FeatureDetail(
+                        title: '新学期',
+                        presentation: TermPresentation(
+                          code: 'next-term',
+                          selected: false,
+                          index: 1,
+                        ),
+                      ),
+                    ],
+                  ),
+                  adoptDraft: (_) {},
+                  onQuery: (value) async {
+                    queries.add(value);
+                  },
+                  child: const SizedBox(),
+                ),
+              );
+            },
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('选择学期'));
+      await tester.pumpAndSettle();
+      update(() {
+        if (boundary == '离开课表') {
+          visible = false;
+        } else {
+          epoch++;
+        }
+      });
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('新学期'));
+      await tester.pumpAndSettle();
+      expect(queries, isEmpty);
+    });
+  }
+
   testWidgets('隐藏页不下载，进入后每学期一次，切周与重建不重复', (tester) async {
     var visible = false;
     var epoch = 0;

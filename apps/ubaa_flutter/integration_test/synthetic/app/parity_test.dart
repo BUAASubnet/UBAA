@@ -152,7 +152,7 @@ void main() {
         expect(
           find.widgetWithText(
             AppBar,
-            feature == FeatureId.schedule ? '第 2 周' : feature.title,
+            feature == FeatureId.schedule ? '课表' : feature.title,
           ),
           findsOneWidget,
         );
@@ -169,6 +169,16 @@ void main() {
           'feature-${feature.name}',
           '从当前功能分组打开${feature.title}，核对单顶栏与正文高度',
         );
+        if (feature == FeatureId.schedule) {
+          await tester.tap(find.byTooltip('选择学期'));
+          await tester.pumpAndSettle();
+          await capture('schedule-term-choice', '课表顶栏直接选择学期');
+          await tester.tap(find.widgetWithText(TextButton, '取消'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.byTooltip('返回'));
+          await tester.pumpAndSettle();
+          continue;
+        }
         await panel();
         expect(
           find.widgetWithText(

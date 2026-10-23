@@ -397,9 +397,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 600;
     final pendingWrite = widget.writeState.intent;
-    final maxContentWidth =
-        _openedFeature == FeatureId.schedule ||
-            _openedFeature == FeatureId.classroom
+    final maxContentWidth = _openedFeature == FeatureId.classroom
         ? 1600.0
         : 1040.0;
     if (_openedFeature case final feature?) _visitedFeatures.add(feature);
@@ -559,6 +557,13 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                   page?.currentFrame.query?.view ==
                       FeatureQueryView.cgyyLockCode)
                 return const SizedBox.shrink();
+              if (_openedFeature == FeatureId.schedule) {
+                return IconButton(
+                  tooltip: '选择学期',
+                  onPressed: () => page?.selectScheduleTerm(),
+                  icon: const Icon(Icons.calendar_month_outlined),
+                );
+              }
               return IconButton(
                 tooltip: '搜索与筛选',
                 onPressed: () => page?.openPanel(),

@@ -5,44 +5,21 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../support/navigation.dart';
 
 void main() {
-  testWidgets('周课表标明必填且缺学期或周次都不发送查询', (tester) async {
-    final queries = <FeatureQuery>[];
-    await _mount(tester, queries);
-    await _open(tester, FeatureId.schedule);
-    await _weekView(tester);
-    expect(find.text('必填'), findsNWidgets(2));
-    await tester.tap(find.text('应用筛选'));
-    await tester.pumpAndSettle();
-    expect(find.text('学期编码不能为空。'), findsOneWidget);
-    expect(queries, isEmpty);
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pumpAndSettle();
-    await tester.enterText(_field('学期编码'), 'fixture-term');
-    await tester.tap(find.text('应用筛选'));
-    await tester.pumpAndSettle();
-    expect(find.text('周次不能为空。'), findsOneWidget);
-    expect(queries, isEmpty);
-  });
   testWidgets('同一Shell更换账号清除已访问页面草稿和已应用查询', (tester) async {
     final queries = <FeatureQuery>[];
     await _mount(tester, queries);
     final shellState = tester.state(find.byType(UbaaMainShell));
-    await _open(tester, FeatureId.schedule);
-    await _weekView(tester);
+    await _open(tester, FeatureId.exam);
     await tester.enterText(_field('学期编码'), '2026-2027-1');
-    await tester.enterText(_field('周次'), '3');
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();
-    await tester.enterText(_field('周次'), '9');
     await tester.enterText(_field('筛选详情'), '旧账号草稿');
     await _mount(tester, queries, username: 'another-fixture-student');
     expect(tester.state(find.byType(UbaaMainShell)), same(shellState));
     expect(find.byTooltip('返回'), findsNothing);
-    await _open(tester, FeatureId.schedule);
-    expect(_view(tester), FeatureQueryView.scheduleToday);
-    await _weekView(tester);
+    await _open(tester, FeatureId.exam);
+    expect(_view(tester), FeatureQueryView.summary);
     expect(_text(tester, '学期编码'), isEmpty);
-    expect(_text(tester, '周次'), isEmpty);
     expect(_text(tester, '筛选详情'), isEmpty);
     expect(queries, hasLength(1));
   });
@@ -73,74 +50,61 @@ void main() {
     }
   });
 
-  testWidgets('未应用的学期周次草稿返回后重入仍保留且不触发查询', (tester) async {
+  testWidgets('未应用的学期草稿返回后重入仍保留且不触发查询', (tester) async {
     final queries = <FeatureQuery>[];
     await _mount(tester, queries);
-    await _open(tester, FeatureId.schedule);
-    await _weekView(tester);
+    await _open(tester, FeatureId.exam);
     await tester.enterText(_field('学期编码'), '2026-2027-1');
-    await tester.enterText(_field('周次'), '7');
     await _back(tester);
-    await _open(tester, FeatureId.schedule);
+    await _open(tester, FeatureId.exam);
 
-    expect(_view(tester), FeatureQueryView.scheduleWeek);
+    expect(_view(tester), FeatureQueryView.summary);
     expect(_text(tester, '学期编码'), '2026-2027-1');
-    expect(_text(tester, '周次'), '7');
     expect(queries, isEmpty);
   });
 
   testWidgets('重入保留未应用草稿而失败后的重试仍使用已应用查询', (tester) async {
     final queries = <FeatureQuery>[];
     // 已有缓存但刷新失败是公开 stale 状态，页面提供真实的“重试”入口。
-    await _mount(tester, queries, staleSchedule: true);
-    await _open(tester, FeatureId.schedule);
-    await _weekView(tester);
+    await _mount(tester, queries, staleExam: true);
+    await _open(tester, FeatureId.exam);
     await tester.enterText(_field('学期编码'), '2026-2027-1');
-    await tester.enterText(_field('周次'), '3');
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();
     expect(queries, hasLength(1));
-    expect(queries.single.view, FeatureQueryView.scheduleWeek);
+    expect(queries.single.view, FeatureQueryView.summary);
     expect(queries.single.term, '2026-2027-1');
-    expect(queries.single.week, 3);
 
     await tester.enterText(_field('学期编码'), '2027-2028-2');
-    await tester.enterText(_field('周次'), '9');
     await _back(tester);
-    await _open(tester, FeatureId.schedule);
-    expect(_view(tester), FeatureQueryView.scheduleWeek);
+    await _open(tester, FeatureId.exam);
+    expect(_view(tester), FeatureQueryView.summary);
     expect(_text(tester, '学期编码'), '2027-2028-2');
-    expect(_text(tester, '周次'), '9');
     expect(queries, hasLength(1));
 
     await closeQueryPanel(tester);
     await tester.tap(find.widgetWithText(TextButton, '重试'));
     await tester.pumpAndSettle();
     expect(queries, hasLength(2));
-    expect(queries.last.view, FeatureQueryView.scheduleWeek);
+    expect(queries.last.view, FeatureQueryView.summary);
     expect(queries.last.term, '2026-2027-1');
-    expect(queries.last.week, 3);
     expect(await queryFieldText(tester, '学期编码'), '2027-2028-2');
-    expect(await queryFieldText(tester, '周次'), '9');
   });
 
   testWidgets('不同领域的未应用草稿隔离且各自重入恢复', (tester) async {
     final queries = <FeatureQuery>[];
     await _mount(tester, queries);
-    await _open(tester, FeatureId.schedule);
-    await _weekView(tester);
+    await _open(tester, FeatureId.exam);
     await tester.enterText(_field('学期编码'), '2026-2027-1');
-    await tester.enterText(_field('周次'), '5');
     await _back(tester);
     await _open(tester, FeatureId.grades);
     expect(_text(tester, '学期编码'), isEmpty);
     expect(_view(tester), FeatureQueryView.summary);
     await tester.enterText(_field('学期编码'), '2025-2026-2');
     await _back(tester);
-    await _open(tester, FeatureId.schedule);
+    await _open(tester, FeatureId.exam);
     expect(_text(tester, '学期编码'), '2026-2027-1');
-    expect(_text(tester, '周次'), '5');
-    expect(_view(tester), FeatureQueryView.scheduleWeek);
+    expect(_view(tester), FeatureQueryView.summary);
     await _back(tester);
     await _open(tester, FeatureId.grades);
     expect(_text(tester, '学期编码'), '2025-2026-2');
@@ -153,7 +117,7 @@ Future<void> _mount(
   WidgetTester tester,
   List<FeatureQuery> queries, {
   double width = 799,
-  bool staleSchedule = false,
+  bool staleExam = false,
   String username = 'fixture-student',
 }) async {
   tester.view.devicePixelRatio = 1;
@@ -170,7 +134,7 @@ Future<void> _mount(
           for (final feature in FeatureId.values)
             feature: FeatureSnapshot(
               feature: feature,
-              status: staleSchedule && feature == FeatureId.schedule
+              status: staleExam && feature == FeatureId.exam
                   ? FeatureLoadStatus.stale
                   : FeatureLoadStatus.success,
               summary: '合成查询结果',
@@ -231,12 +195,5 @@ Future<void> _open(WidgetTester tester, FeatureId feature) async {
 Future<void> _back(WidgetTester tester) async {
   await closeQueryPanel(tester);
   await tester.tap(find.byTooltip('返回'));
-  await tester.pumpAndSettle();
-}
-
-Future<void> _weekView(WidgetTester tester) async {
-  await tester.tap(find.byType(DropdownButton<FeatureQueryView>));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('周课表').last);
   await tester.pumpAndSettle();
 }

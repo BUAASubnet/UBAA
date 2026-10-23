@@ -155,7 +155,7 @@ const _courses = [
 ];
 
 Widget _schedule() => Scaffold(
-  appBar: AppBar(title: const Text('第 2 周')),
+  appBar: AppBar(title: const Text('课表')),
   body: ScheduleContent(
     details: _courses,
     timeline: ScheduleWeekOverview(

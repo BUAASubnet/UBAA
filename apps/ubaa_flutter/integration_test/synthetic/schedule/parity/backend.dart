@@ -36,8 +36,28 @@ class ScheduleOldBackend extends AcademicOldBackend {
             dayOfWeek: state == 'many' ? 1 : i + 1,
             beginSection: state == 'many' ? 1 : [1, 3, 5, 7, 9, 11, 13][i],
             endSection: state == 'many' ? 2 : [2, 4, 6, 8, 10, 12, 13][i],
-            beginTime: '08:00',
-            endTime: '09:40',
+            beginTime: state == 'many'
+                ? '08:00'
+                : [
+                    '08:00',
+                    '09:50',
+                    '11:30',
+                    '14:50',
+                    '16:40',
+                    '19:00',
+                    '20:40',
+                  ][i],
+            endTime: state == 'many'
+                ? '09:35'
+                : [
+                    '09:35',
+                    '11:25',
+                    '14:45',
+                    '16:35',
+                    '18:15',
+                    '20:35',
+                    '21:25',
+                  ][i],
             place: title('合成A203'),
             weeksAndTeachers: title('合成教师与周次'),
             teachingTarget: '合成教学对象',

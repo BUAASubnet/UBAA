@@ -549,7 +549,7 @@ void _registerFeatureCollectionTests() {
           feature: feature,
           status: FeatureLoadStatus.success,
           summary: '已加载',
-          details: feature == FeatureId.schedule
+          details: feature == FeatureId.grades
               ? List<FeatureDetail>.generate(
                   21,
                   (index) => FeatureDetail(title: '课程 ${index + 1}'),
@@ -574,7 +574,7 @@ void _registerFeatureCollectionTests() {
         ),
       ),
     );
-    await openFeature(tester, FeatureId.schedule);
+    await openFeature(tester, FeatureId.grades);
     await tester.pumpAndSettle();
     expect(find.text('1 / 2'), findsOneWidget);
     expect(find.text('课程 21'), findsNothing);

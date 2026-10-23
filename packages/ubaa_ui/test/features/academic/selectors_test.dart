@@ -73,31 +73,6 @@ void main() {
     expect(find.text('合成甲学期'), findsOneWidget);
     expect(find.text('合成乙学期'), findsOneWidget);
   });
-  testWidgets('今日查询不携带旧周次草稿，按输入查询保留兼容周表', (tester) async {
-    final queries = <FeatureQuery>[];
-    await _show(
-      tester,
-      FeatureId.schedule,
-      queries,
-      (_) async => const FeatureResult.empty(),
-    );
-    await _chooseView(tester, '周课表');
-    await tester.enterText(find.widgetWithText(TextField, '学期编码'), 'term-week');
-    await tester.enterText(find.widgetWithText(TextField, '周次'), '3');
-    await _chooseView(tester, '今日课程');
-    expect(find.widgetWithText(TextField, '学期编码'), findsNothing);
-    await tester.tap(find.text('应用筛选'));
-    await tester.pumpAndSettle();
-    expect(queries.single.view, FeatureQueryView.scheduleToday);
-    expect(queries.single.term, isNull);
-    expect(queries.single.week, isNull);
-    await _chooseView(tester, '按输入查询');
-    await tester.tap(find.text('应用筛选'));
-    await tester.pumpAndSettle();
-    expect(queries.last.view, FeatureQueryView.summary);
-    expect(queries.last.term, 'term-week');
-    expect(queries.last.week, 3);
-  });
   testWidgets('选项打开后读取epoch变化不能应用旧学期', (tester) async {
     final epoch = ValueNotifier(0);
     addTearDown(epoch.dispose);
@@ -161,11 +136,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(queries.single.date, DateTime(2026, 9, 9));
   });
-  for (final feature in [
-    FeatureId.schedule,
-    FeatureId.exam,
-    FeatureId.grades,
-  ]) {
+  for (final feature in [FeatureId.exam, FeatureId.grades]) {
     testWidgets('${feature.title}学期选择只填typed编码，应用前不查询', (tester) async {
       final loads = <bool>[];
       final queries = <FeatureQuery>[];
@@ -185,13 +156,7 @@ void main() {
           ],
         );
       });
-      if (feature == FeatureId.schedule) {
-        await tester.tap(find.byType(DropdownButton<FeatureQueryView>));
-        await tester.pumpAndSettle();
-        await tester.tap(find.text('周课表').last);
-        await tester.pumpAndSettle();
-        await tester.enterText(find.widgetWithText(TextField, '周次'), '3');
-      }
+
       expect(loads, isEmpty);
       await tester.tap(find.text('选择学期'));
       await tester.pumpAndSettle();
@@ -207,16 +172,7 @@ void main() {
         'term-safe',
       );
       expect(queries, isEmpty);
-      if (feature == FeatureId.schedule) {
-        expect(
-          tester
-              .widget<TextField>(find.widgetWithText(TextField, '周次'))
-              .controller!
-              .text,
-          isEmpty,
-        );
-        await tester.enterText(find.widgetWithText(TextField, '周次'), '3');
-      }
+
       await tester.tap(find.text('应用筛选'));
       await tester.pumpAndSettle();
       expect(queries, hasLength(1));
@@ -251,13 +207,6 @@ void main() {
     );
     expect(tester.takeException(), isNull);
   });
-}
-
-Future<void> _chooseView(WidgetTester tester, String text) async {
-  await tester.tap(find.byType(DropdownButton<FeatureQueryView>));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text(text).last);
-  await tester.pumpAndSettle();
 }
 
 Future<void> _show(

@@ -167,7 +167,13 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
   Set<String> get _bykcCategories => widget.bykcFilters.categories;
   Set<String> get _bykcCampuses => widget.bykcFilters.campuses;
 
+  void selectScheduleTerm() => _scheduleKey.currentState?.selectTerm();
+
   void togglePanel() {
+    if (widget.feature == FeatureId.schedule) {
+      selectScheduleTerm();
+      return;
+    }
     if (!_panelOpen)
       _scheduleKey.currentState?.stopAutomatic(clearPrompt: false);
     FocusManager.instance.primaryFocus?.unfocus();
@@ -408,6 +414,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
             visible: widget.visible,
             epoch: widget.readCacheEpoch,
             loadWeeks: widget.onLoadAcademicWeeks!,
+            loadTerms: widget.onLoadAcademicTerms,
             imports: widget.scheduleImports,
             onSave: widget.onSaveScheduleSemester,
             onCancelImport: widget.onCancelScheduleImport,

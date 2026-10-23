@@ -3,8 +3,10 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'detail.dart' show uiShowScheduleDetails, uiShowScheduleGroup;
 import 'flow.dart' show ScheduleWeekScope;
+import 'colors.dart' show ScheduleCourseColors;
 import '../../shared/schedule_values.dart' show uiScheduled;
 import '../../shared/text.dart' show uiNonBlank;
+import '../../theme.dart' show UbaaTheme;
 
 /// 冻结旧版的七日节次网格；时间缺失或冲突不造成课程丢失。
 class ScheduleContent extends StatefulWidget {
@@ -24,6 +26,7 @@ class ScheduleContent extends StatefulWidget {
 
 class _ScheduleContentState extends State<ScheduleContent> {
   final _horizontal = ScrollController();
+  final _colors = ScheduleCourseColors();
   @override
   void dispose() {
     _horizontal.dispose();
@@ -35,7 +38,10 @@ class _ScheduleContentState extends State<ScheduleContent> {
     builder: (context, constraints) {
       final scale = MediaQuery.textScalerOf(context).scale(12) / 12;
       final dates = ScheduleWeekScope.of(context)?.headerDateLabels;
-      final width = math.max(constraints.maxWidth - 16, 330 * scale);
+      final colors = ScheduleWeekScope.colorsOf(context) ?? _colors;
+      colors.register(widget.timeSource ?? widget.details);
+      final gutter = UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width);
+      final width = math.max(constraints.maxWidth - gutter * 2, 330 * scale);
       final periodHeight = 64 * scale;
       final times =
           widget.timeline?.sectionTimes ??
@@ -48,7 +54,7 @@ class _ScheduleContentState extends State<ScheduleContent> {
       final columnWidth = (width - axisWidth) / 7;
       final groups = <_ScheduleBlock>[];
       final unknown = <FeatureDetail>[];
-      var periods = math.max(12, times.length);
+      var periods = math.max(14, times.length);
       for (final detail in widget.details) {
         final p = detail.presentation! as ScheduleCoursePresentation;
         if (!uiScheduled(p)) {
@@ -86,10 +92,10 @@ class _ScheduleContentState extends State<ScheduleContent> {
         }
       }
       return Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 8),
+        padding: EdgeInsets.symmetric(horizontal: gutter),
         child: Scrollbar(
           controller: _horizontal,
-          thumbVisibility: width > constraints.maxWidth - 16,
+          thumbVisibility: width > constraints.maxWidth - gutter * 2,
           notificationPredicate: (n) => n.metrics.axis == Axis.horizontal,
           child: SingleChildScrollView(
             controller: _horizontal,
@@ -179,7 +185,13 @@ class _ScheduleContentState extends State<ScheduleContent> {
                                   height:
                                       (group.end - group.begin + 1) *
                                       periodHeight,
-                                  child: _ScheduleCell(group: group),
+                                  child: _ScheduleCell(
+                                    group: group,
+                                    background: colors.background(
+                                      group.details.first,
+                                      Theme.of(context).brightness,
+                                    ),
+                                  ),
                                 ),
                               _SchedulePinnedAxis(
                                 controller: _horizontal,
@@ -197,7 +209,7 @@ class _ScheduleContentState extends State<ScheduleContent> {
                             child: AnimatedBuilder(
                               animation: _horizontal,
                               child: SizedBox(
-                                width: constraints.maxWidth - 16,
+                                width: constraints.maxWidth - gutter * 2,
                                 child: Column(
                                   crossAxisAlignment:
                                       CrossAxisAlignment.stretch,
@@ -330,25 +342,14 @@ class _ScheduleBlock {
 }
 
 class _ScheduleCell extends StatelessWidget {
-  const _ScheduleCell({required this.group});
+  const _ScheduleCell({required this.group, required this.background});
+  final Color background;
   final _ScheduleBlock group;
   @override
   Widget build(BuildContext context) {
     final detail = group.details.first;
     final p = detail.presentation! as ScheduleCoursePresentation;
-    final raw = p.color?.trim() ?? '';
-    final parsed = RegExp(r'^#[0-9a-fA-F]{6}$').hasMatch(raw)
-        ? Color(0xFF000000 | int.parse(raw.substring(1), radix: 16))
-        : null;
-    final dark = Theme.of(context).brightness == Brightness.dark;
-    final background = parsed == null
-        ? const Color(0xFF6200EE)
-        : dark
-        ? parsed.withValues(alpha: .7)
-        : parsed;
-    final foreground = background.computeLuminance() > .5
-        ? Colors.black
-        : Colors.white;
+    final foreground = ScheduleCourseColors.foreground(background);
     final multiple = group.details.length > 1;
     final short = group.end == group.begin;
     return Padding(
@@ -398,7 +399,7 @@ class _ScheduleCell extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         height: 13 / 11,
-                        color: foreground.withValues(alpha: .8),
+                        color: foreground,
                       ),
                     ),
                   ),
