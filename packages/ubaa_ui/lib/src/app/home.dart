@@ -305,11 +305,7 @@ class _HomeViewState extends State<HomeView> {
       FeatureId.ygdk,
     ];
     final loading = features
-        .where(
-          (f) =>
-              sources[f]?.status == FeatureLoadStatus.loading ||
-              sources[f]?.status == FeatureLoadStatus.idle,
-        )
+        .where((f) => sources[f]?.status == FeatureLoadStatus.loading)
         .toList();
     final failed = features
         .where(
@@ -338,9 +334,12 @@ class _HomeViewState extends State<HomeView> {
             )
         else if (schedule.evidence == null &&
             schedule.updatedAt == null &&
-            (schedule.status == FeatureLoadStatus.loading ||
-                schedule.status == FeatureLoadStatus.idle))
-          const LoadingPlaceholder(cards: 1)
+            schedule.status == FeatureLoadStatus.idle)
+          const SizedBox(height: 120)
+        else if (schedule.evidence == null &&
+            schedule.updatedAt == null &&
+            schedule.status == FeatureLoadStatus.loading)
+          const LoadingPlaceholder(compact: true)
         else
           Card(
             child: ListTile(
@@ -437,7 +436,10 @@ class _HomeViewState extends State<HomeView> {
           },
         ),
         if (tasks.isEmpty && loading.isNotEmpty)
-          const LoadingPlaceholder(cards: 1)
+          const LoadingPlaceholder(compact: true)
+        else if (tasks.isEmpty &&
+            features.any((f) => sources[f]?.status == FeatureLoadStatus.idle))
+          const SizedBox(height: 120)
         else if (tasks.isEmpty)
           Card(
             child: Padding(

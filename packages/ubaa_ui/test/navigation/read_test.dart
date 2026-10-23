@@ -10,11 +10,11 @@ void main() {
     await tester.tap(find.text('查看周次'));
     await tester.pumpAndSettle();
     harness.clearBusiness();
-    await tester.pumpAndSettle();
+    await tester.pump();
     expect(find.text('第 7 周'), findsNothing);
     expect(harness.queries, hasLength(1));
     await tester.tap(find.byTooltip('返回'));
-    await tester.pumpAndSettle();
+    await tester.pump();
     expect(find.text('秋季学期'), findsNothing);
     expect(harness.queries, hasLength(1));
     await tester.tap(find.byTooltip('刷新当前查询'));

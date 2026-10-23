@@ -308,10 +308,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                                 widget.snapshot.updatedAt != null =>
                           _empty(context),
                         FeatureLoadStatus.loading ||
-                        FeatureLoadStatus.idle => const SingleChildScrollView(
-                          padding: EdgeInsets.all(16),
-                          child: LoadingPlaceholder(),
-                        ),
+                        FeatureLoadStatus.idle => const LoadingPlaceholder(),
                         FeatureLoadStatus.failure => _error(context),
                         _ => _empty(context),
                       },

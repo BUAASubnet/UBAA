@@ -134,7 +134,8 @@ void main() {
     );
     expect(queries, isEmpty);
     await tester.tap(find.byType(AssignmentCard).first);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
     expect(queries.single.assignmentId, '当前未提交');
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();

@@ -1,3 +1,4 @@
+import '../shared/loading.dart' show LoadingGlyph;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -122,13 +123,14 @@ class _CacheSettingsState extends State<CacheSettings> {
         children: [
           Text('本机缓存', style: Theme.of(context).textTheme.titleMedium),
           const SizedBox(height: 8),
-          Text(
-            _usage != null
-                ? '${_usage!.entryCount} 条 · 内容 ${_bytes(_usage!.contentBytes)} · 文件 ${_bytes(_usage!.databaseBytes)}'
-                : (_failed
-                      ? '用量暂不可用'
-                      : (_notice == null ? '正在读取用量…' : '用量暂无统计')),
-          ),
+          if (_usage == null && !_failed && _notice == null)
+            const LoadingGlyph()
+          else
+            Text(
+              _usage != null
+                  ? '${_usage!.entryCount} 条 · 内容 ${_bytes(_usage!.contentBytes)} · 文件 ${_bytes(_usage!.databaseBytes)}'
+                  : (_failed ? '用量暂不可用' : '用量暂无统计'),
+            ),
           if (_notice != null)
             Padding(
               padding: const EdgeInsets.only(top: 8),

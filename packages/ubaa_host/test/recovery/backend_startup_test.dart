@@ -10,7 +10,6 @@ void main() {
     final gate = Completer<UbaaBackend>();
     await tester.pumpWidget(UbaaAppHost(backendFactory: () => gate.future));
     await tester.pump(const Duration(milliseconds: 50));
-    expect(find.text('正在打开本地数据…'), findsOneWidget);
     expect(find.byType(CircularProgressIndicator), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());
     final lateBackend = _Backend();

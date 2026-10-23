@@ -279,7 +279,7 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
             ),
             const SizedBox(height: 12),
             if (loading && visible.isEmpty && _page == null)
-              const LoadingPlaceholder(cards: 1),
+              const LoadingPlaceholder(compact: true),
             if (_page?.evidence?.origin == DataOrigin.persisted)
               Text(
                 '第${_page!.page}页记录上次保存 ${uiSavedScheduleTime(_page!.evidence!.fetchedAt)}，连接后核对更新',

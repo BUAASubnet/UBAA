@@ -20,7 +20,12 @@ Future<void> mount(
   );
   await tester.pumpAndSettle();
   await tester.tap(find.widgetWithText(Card, FeatureId.schedule.title));
-  await tester.pumpAndSettle();
+  if (backend.weekGate != null) {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+  } else {
+    await tester.pumpAndSettle();
+  }
 }
 
 Future<void> tap(WidgetTester tester, Finder target) async {

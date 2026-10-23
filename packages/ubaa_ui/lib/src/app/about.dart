@@ -1,3 +1,4 @@
+import '../shared/loading.dart' show LoadingGlyph;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -71,13 +72,13 @@ class _AboutViewState extends State<AboutView> {
                     ),
                   ),
                   const SizedBox(height: 8),
-                  Text(
-                    loading
-                        ? '正在读取版本…'
-                        : version == null
-                        ? '版本信息暂不可用'
-                        : '版本：$version',
-                  ),
+                  if (loading && version == null)
+                    const Align(
+                      alignment: Alignment.centerLeft,
+                      child: LoadingGlyph(),
+                    )
+                  else
+                    Text(version == null ? '版本信息暂不可用' : '版本：$version'),
                   if (!loading && version == null && widget.loadVersion != null)
                     Align(
                       alignment: Alignment.centerLeft,

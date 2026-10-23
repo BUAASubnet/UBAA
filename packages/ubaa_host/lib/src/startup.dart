@@ -72,14 +72,7 @@ extension _BackendStartup on _UbaaAppHostState {
                     ),
                   ],
                 )
-              : const Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    CircularProgressIndicator(),
-                    SizedBox(height: 16),
-                    Text('正在打开本地数据…'),
-                  ],
-                ),
+              : const CircularProgressIndicator(semanticsLabel: '正在加载'),
         ),
       ),
     ),

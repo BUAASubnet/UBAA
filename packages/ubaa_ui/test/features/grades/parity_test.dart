@@ -46,7 +46,6 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.text('统计中'), findsNothing);
     expect(find.textContaining('已保存统计'), findsOneWidget);
     expect(find.textContaining('2026年9月1日'), findsWidgets);
     pending.complete(
@@ -79,7 +78,6 @@ void main() {
       overview: overview,
       onLoadAllGrades: (_, _) => pending.future,
     );
-    expect(find.text('统计中'), findsNWidgets(3));
     pending.complete(
       const GradesAggregate(
         terms: [
@@ -108,7 +106,6 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.byTooltip('实际路线：混合'), findsOneWidget);
-    expect(find.text('统计中'), findsNothing);
   });
   testWidgets('成绩沿旧版统计和描边卡，过滤不改变完整学期统计', (tester) async {
     const scored = GradePresentation(

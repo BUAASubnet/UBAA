@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../academic/card.dart' show uiShowAcademicDetails;
+import '../../shared/loading.dart' show LoadingGlyph;
 import '../../shared/text.dart' show uiNonBlank;
 
 String _gradeNumber(double? value) {
@@ -76,20 +77,14 @@ class GradeSummaryCard extends StatelessWidget {
               ]),
               const SizedBox(height: 8),
             ],
-            row([
-              (
-                'GPA',
-                loading ? '统计中' : statistics?.gpa?.toStringAsFixed(2) ?? '--',
-              ),
-              (
-                '加权平均分',
-                loading ? '统计中' : _gradeNumber(statistics?.weightedAverage),
-              ),
-              (
-                '算数平均分',
-                loading ? '统计中' : _gradeNumber(statistics?.arithmeticAverage),
-              ),
-            ]),
+            if (loading && statistics == null)
+              const SizedBox(height: 64, child: Center(child: LoadingGlyph()))
+            else
+              row([
+                ('GPA', statistics?.gpa?.toStringAsFixed(2) ?? '--'),
+                ('加权平均分', _gradeNumber(statistics?.weightedAverage)),
+                ('算数平均分', _gradeNumber(statistics?.arithmeticAverage)),
+              ]),
             if (notice != null) ...[const SizedBox(height: 8), Text(notice!)],
             if (onRetry != null)
               TextButton(onPressed: onRetry, child: const Text('重试统计')),

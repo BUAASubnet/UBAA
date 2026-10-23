@@ -2,57 +2,27 @@ import 'package:flutter/material.dart';
 
 /// 小范围进度占用固定尺寸，不为状态切换增加一行。
 class LoadingGlyph extends StatelessWidget {
-  const LoadingGlyph({super.key});
+  const LoadingGlyph({this.dimension = 20, super.key});
+  final double dimension;
   @override
-  Widget build(BuildContext context) => const SizedBox.square(
-    dimension: 20,
-    child: CircularProgressIndicator(strokeWidth: 2, semanticsLabel: '正在加载'),
+  Widget build(BuildContext context) => SizedBox.square(
+    dimension: dimension,
+    child: const CircularProgressIndicator(
+      strokeWidth: 2,
+      semanticsLabel: '正在加载',
+    ),
   );
 }
 
-/// 初次读取的静态骨架只占内容区，避免持续闪动和重复说明。
+/// 首次读取在内容区居中；卡片和列表内的局部读取使用固定高度。
 class LoadingPlaceholder extends StatelessWidget {
-  const LoadingPlaceholder({this.cards = 3, super.key});
-  final int cards;
+  const LoadingPlaceholder({this.compact = false, super.key});
+  final bool compact;
   @override
-  Widget build(BuildContext context) => Semantics(
-    label: '正在加载',
-    child: ExcludeSemantics(
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          for (var i = 0; i < cards; i++)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _line(context, .48, 20),
-                    const SizedBox(height: 12),
-                    _line(context, .8, 14),
-                    const SizedBox(height: 8),
-                    _line(context, .6, 14),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
-    ),
-  );
-
-  Widget _line(BuildContext context, double width, double height) =>
-      FractionallySizedBox(
-        widthFactor: width,
-        child: Container(
-          height: height,
-          decoration: BoxDecoration(
-            color: Theme.of(context).colorScheme.surfaceContainerHighest,
-            borderRadius: BorderRadius.circular(4),
-          ),
-        ),
-      );
+  Widget build(BuildContext context) {
+    const indicator = Center(child: LoadingGlyph(dimension: 32));
+    return compact ? const SizedBox(height: 120, child: indicator) : indicator;
+  }
 }
 
 /// 刷新期间保留按钮位置并禁止重复触发，不改变内容布局。

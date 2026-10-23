@@ -411,7 +411,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           ? 0
           : pages.indexOf(_openedFeature!) + 1,
       children: <Widget>[
-        _buildTab(context),
+        TickerMode(
+          enabled: pendingWrite == null && _openedFeature == null,
+          child: _buildTab(context),
+        ),
         for (final feature in pages)
           TickerMode(
             key: ValueKey<FeatureId>(feature),

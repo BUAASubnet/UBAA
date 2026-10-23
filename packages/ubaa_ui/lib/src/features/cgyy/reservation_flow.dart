@@ -231,10 +231,7 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
         if (wide) buildInlineChips(context),
         Expanded(
           child: _busy && day == null && snapshot.updatedAt == null
-              ? const SingleChildScrollView(
-                  padding: EdgeInsets.all(16),
-                  child: LoadingPlaceholder(),
-                )
+              ? const LoadingPlaceholder()
               : snapshot.status == FeatureLoadStatus.failure
               ? widget.fallback
               : day == null

@@ -466,10 +466,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         widget.query == null &&
         widget.onQuery != null &&
         widget.visible) {
-      content = const SingleChildScrollView(
-        padding: EdgeInsets.all(16),
-        child: LoadingPlaceholder(),
-      );
+      content = const LoadingPlaceholder();
     } else {
       content = widget.child;
     }

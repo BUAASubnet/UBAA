@@ -27,7 +27,7 @@ void main() {
       onRead: (_) => usage.future,
       onClear: (_) async => throw StateError('合成清除失败'),
     );
-    await tap(tester, '清理缓存');
+    await tap(tester, '清理缓存', loading: true);
     await tap(tester, '确认清理');
     expect(find.text('缓存未能清除，请稍后重试。'), findsOneWidget);
     expect(find.text('内容已清除'), findsNothing);
@@ -108,10 +108,19 @@ void main() {
   });
 }
 
-Future<void> tap(WidgetTester tester, String text) async {
+Future<void> tap(
+  WidgetTester tester,
+  String text, {
+  bool loading = false,
+}) async {
   await tester.ensureVisible(find.text(text));
   await tester.tap(find.text(text));
-  await tester.pumpAndSettle();
+  if (loading) {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+  } else {
+    await tester.pumpAndSettle();
+  }
 }
 
 Future<void> mount(
@@ -162,5 +171,11 @@ Future<void> mount(
     ),
   );
   await tester.pumpAndSettle();
-  await openUtility(tester, '设置');
+  if (onRead != null) {
+    await tester.tap(find.byKey(const ValueKey('tab-设置')));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+  } else {
+    await openUtility(tester, '设置');
+  }
 }

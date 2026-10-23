@@ -329,5 +329,10 @@ Future<void> showFeature(
   await tester.ensureVisible(card);
   await tester.pumpAndSettle();
   await tester.tap(card);
-  await tester.pumpAndSettle();
+  if (onLoadAllGrades != null) {
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 350));
+  } else {
+    await tester.pumpAndSettle();
+  }
 }

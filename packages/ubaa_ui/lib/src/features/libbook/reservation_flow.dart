@@ -378,7 +378,7 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
         if (widget.snapshot.evidence?.complete == false)
           const Text('当前查询范围尚未更新完整。'),
         if (_busy && details.isEmpty && widget.snapshot.updatedAt == null)
-          const LoadingPlaceholder(),
+          const LoadingPlaceholder(compact: true),
         if (widget.snapshot.error case final error? when !_busy)
           FriendlyErrorCard(error: error, onRetry: () => _read(widget.query)),
         if (!_busy && widget.snapshot.status == FeatureLoadStatus.stale)
