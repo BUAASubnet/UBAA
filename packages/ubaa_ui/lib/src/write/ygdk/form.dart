@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'dart:convert';
 import 'dart:typed_data';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
@@ -7,6 +8,7 @@ import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../forms/action_bar.dart' show FormActionBar;
 import 'draft.dart' show YgdkFormContext, YgdkFormDraft, uiYgdkItemKey;
 part 'form_ygdk_draft.dart';
+part 'form_defaults.dart';
 
 class _YgdkFormPage extends StatefulWidget {
   const _YgdkFormPage({
@@ -214,6 +216,7 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
                         _section('运动项目', [
+                          const Text('留空时使用默认运动项目'),
                           OutlinedButton(
                             onPressed: _chooseItem,
                             child: Text(
@@ -223,6 +226,7 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
                         ]),
                         const SizedBox(height: 12),
                         _section('时间', [
+                          const Text('全部留空时自动生成一小时时间段'),
                           _timeField(
                             _startController,
                             '开始时间',
@@ -324,8 +328,7 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
                               ),
                             ),
                           ],
-                          if (widget.onPickPhoto == null)
-                            const Text('无法选择照片，暂不能打卡'),
+                          const Text('未选择照片时使用默认图片'),
                         ]),
                         const SizedBox(height: 12),
                         Card(
@@ -388,31 +391,7 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
     }
   }
 
-  void _continue() {
-    if (!_valid || _picking) return;
-    final selected = _selected;
-    final photo = _photo;
-    if (selected == null) {
-      setState(() => _error = '请选择可提交的运动项目。');
-      return;
-    }
-    if (draft.start.trim().isEmpty ||
-        draft.end.trim().isEmpty ||
-        photo == null) {
-      setState(() => _error = '请填写完整时间并选择照片。');
-      return;
-    }
-    final input = YgdkSubmitInput(
-      action: selected.action<YgdkSubmitAction>()!,
-      startTime: draft.start,
-      endTime: draft.end,
-      place: draft.place.trim(),
-      shareToSquare: draft.share,
-      photo: photo,
-    );
-    _releasePhotoReferences();
-    Navigator.of(context).pop(input);
-  }
+  void _showError(String message) => setState(() => _error = message);
 
   void _cancel() {
     _releasePhotoReferences();

@@ -549,23 +549,50 @@ pub(crate) fn parse_statistics(body: &str) -> Result<BykcStatistics> {
         .as_object()
         .cloned()
         .ok_or_else(|| error("博雅统计结构无效"))?;
-    let categories = m
-        .get("categories")
-        .or_else(|| m.get("list"))
-        .and_then(Value::as_array)
-        .map_or(&[][..], |v| v)
-        .iter()
-        .filter_map(Value::as_object)
-        .map(|v| BykcStatistic {
-            category_name: string(v, "categoryName"),
-            sub_category_name: string(v, "subCategoryName"),
-            required_count: int(v, "requiredCount"),
-            passed_count: int(v, "passedCount"),
-            qualified: v.get("isQualified").and_then(Value::as_bool),
-        })
-        .collect();
+    let required_int = |map: &Map<String, Value>, key: &str| {
+        map.get(key)
+            .and_then(Value::as_i64)
+            .and_then(|value| i32::try_from(value).ok())
+            .ok_or_else(|| error("博雅统计缺少有效计数"))
+    };
+    let total_valid_count = required_int(&m, "validCount")?;
+    let mut categories = Vec::new();
+    if let Some(statistical) = m.get("statistical") {
+        let statistical = statistical
+            .as_object()
+            .ok_or_else(|| error("博雅统计分类结构无效"))?;
+        for (category, children) in statistical {
+            let children = children
+                .as_object()
+                .ok_or_else(|| error("博雅统计小类结构无效"))?;
+            for (subcategory, entry) in children {
+                let entry = entry
+                    .as_object()
+                    .ok_or_else(|| error("博雅统计计数结构无效"))?;
+                let required = required_int(entry, "assessmentCount")?;
+                let passed = required_int(entry, "completeAssessmentCount")?;
+                categories.push(BykcStatistic {
+                    category_name: Some(
+                        category
+                            .split_once('|')
+                            .map_or(category.as_str(), |(_, name)| name)
+                            .to_owned(),
+                    ),
+                    sub_category_name: Some(
+                        subcategory
+                            .split_once('|')
+                            .map_or(subcategory.as_str(), |(_, name)| name)
+                            .to_owned(),
+                    ),
+                    required_count: Some(required),
+                    passed_count: Some(passed),
+                    qualified: Some(passed >= required),
+                });
+            }
+        }
+    }
     Ok(BykcStatistics {
-        total_valid_count: int(&m, "totalValidCount"),
+        total_valid_count: Some(total_valid_count),
         categories,
     })
 }

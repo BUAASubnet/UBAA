@@ -655,11 +655,45 @@ mod contract {
             9
         );
         assert_eq!(
-            parse_statistics(r#"{"status":"0","data":{"totalValidCount":2,"categories":[]}}"#)
+            parse_statistics(r#"{"status":"0","data":{"validCount":2,"statistical":{}}}"#)
                 .unwrap()
                 .total_valid_count,
             Some(2)
         );
         assert!(parse_profile(r#"{"status":"1","msg":"失败"}"#).is_err());
     }
+}
+
+#[test]
+fn 博雅统计按学校嵌套分类解析() {
+    let stats = super::parse_statistics(r#"{"status":"0","data":{"validCount":4,"statistical":{"1|博雅课程":{"2|劳动教育":{"assessmentCount":2,"completeAssessmentCount":2},"德育":{"assessmentCount":3,"completeAssessmentCount":1}}}}}"#).unwrap();
+    assert_eq!(stats.total_valid_count, Some(4));
+    assert_eq!(stats.categories.len(), 2);
+    let labor = stats
+        .categories
+        .iter()
+        .find(|c| c.sub_category_name.as_deref() == Some("劳动教育"))
+        .unwrap();
+    assert_eq!(labor.category_name.as_deref(), Some("博雅课程"));
+    assert_eq!(labor.required_count, Some(2));
+    assert_eq!(labor.passed_count, Some(2));
+    assert_eq!(labor.qualified, Some(true));
+    assert!(stats.categories.iter().any(|c| c.qualified == Some(false)));
+}
+
+#[test]
+fn 博雅统计拒绝缺失或损坏的必填数据() {
+    for data in [
+        serde_json::json!({}),
+        serde_json::json!({"validCount":0,"statistical":[]}),
+        serde_json::json!({"validCount":0,"statistical":{"大类":{"小类":{"assessmentCount":1}}}}),
+    ] {
+        assert!(
+            super::parse_statistics(&serde_json::json!({"status":"0","data":data}).to_string())
+                .is_err()
+        );
+    }
+    let zero = super::parse_statistics(r#"{"status":"0","data":{"validCount":0}}"#).unwrap();
+    assert_eq!(zero.total_valid_count, Some(0));
+    assert!(zero.categories.is_empty());
 }
