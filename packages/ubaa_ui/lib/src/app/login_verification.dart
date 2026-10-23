@@ -11,29 +11,41 @@ extension LoginVerificationControls on _UbaaLoginViewState {
         Semantics(
           button: true,
           label: '${route.route.label} 验证码，点击刷新',
-          child: InkWell(
-            key: ValueKey<String>('captcha-image-${route.route.name}'),
-            onTap: widget.isLoading || widget.onRefreshCaptcha == null
-                ? null
-                : () => widget.onRefreshCaptcha!(route.route),
-            child: Container(
-              height: 80,
-              alignment: Alignment.center,
-              decoration: BoxDecoration(
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
+          child: Stack(
+            children: [
+              Container(
+                height: 80,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  border: Border.all(
+                    color: Theme.of(context).colorScheme.outlineVariant,
+                  ),
+                  borderRadius: BorderRadius.circular(UbaaTheme.controlRadius),
                 ),
-                borderRadius: BorderRadius.circular(8),
+                child: route.isRefreshing
+                    ? const SizedBox.square(
+                        dimension: 20,
+                        child: CircularProgressIndicator(strokeWidth: 2),
+                      )
+                    : route.hasUsableFrame
+                    ? CaptchaPixels(frame: route.frame!)
+                    : const Text('图片暂不可用，点击刷新'),
               ),
-              child: route.isRefreshing
-                  ? const SizedBox.square(
-                      dimension: 20,
-                      child: CircularProgressIndicator(strokeWidth: 2),
-                    )
-                  : route.hasUsableFrame
-                  ? CaptchaPixels(frame: route.frame!)
-                  : const Text('图片暂不可用，点击刷新'),
-            ),
+              // 图片位于墨水层下方，避免反馈被不透明像素遮挡。
+              Positioned.fill(
+                child: Material(
+                  type: MaterialType.transparency,
+                  borderRadius: BorderRadius.circular(UbaaTheme.controlRadius),
+                  clipBehavior: Clip.antiAlias,
+                  child: InkWell(
+                    key: ValueKey<String>('captcha-image-${route.route.name}'),
+                    onTap: widget.isLoading || widget.onRefreshCaptcha == null
+                        ? null
+                        : () => widget.onRefreshCaptcha!(route.route),
+                  ),
+                ),
+              ),
+            ],
           ),
         ),
         const SizedBox(height: 6),

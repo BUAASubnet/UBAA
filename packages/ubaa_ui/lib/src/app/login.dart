@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../theme.dart' show UbaaTheme;
 import 'login_captcha.dart' show CaptchaPixels;
 import '../common/app_links.dart' show uiShowAppLinkFailure;
 import '../common/error_card.dart'
@@ -319,21 +320,30 @@ class _UbaaLoginViewState extends State<UbaaLoginView>
                           Semantics(
                             link: true,
                             child: InkWell(
+                              borderRadius: BorderRadius.circular(
+                                UbaaTheme.controlRadius,
+                              ),
                               onTap:
                                   widget.isLoading ||
                                       _openingProject ||
                                       widget.onOpenAppLink == null
                                   ? null
                                   : _openProject,
-                              child: Text(
-                                '开源项目: github.com/BUAASubnet/UBAA',
-                                style: Theme.of(context).textTheme.bodySmall
-                                    ?.copyWith(
-                                      color: Theme.of(
-                                        context,
-                                      ).colorScheme.primary,
-                                    ),
-                                textAlign: TextAlign.center,
+                              child: Padding(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 12,
+                                  vertical: 8,
+                                ),
+                                child: Text(
+                                  '开源项目: github.com/BUAASubnet/UBAA',
+                                  style: Theme.of(context).textTheme.bodySmall
+                                      ?.copyWith(
+                                        color: Theme.of(
+                                          context,
+                                        ).colorScheme.primary,
+                                      ),
+                                  textAlign: TextAlign.center,
+                                ),
                               ),
                             ),
                           ),
@@ -424,8 +434,7 @@ class _LoginOption extends StatelessWidget {
   Widget build(BuildContext context) => MergeSemantics(
     child: InkWell(
       onTap: enabled ? () => onChanged(!value) : null,
-      borderRadius: BorderRadius.circular(12),
-      hoverColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.04),
+      borderRadius: BorderRadius.circular(UbaaTheme.controlRadius),
       child: Padding(
         padding: const EdgeInsetsDirectional.only(end: 12),
         child: Row(
@@ -439,10 +448,6 @@ class _LoginOption extends StatelessWidget {
                   onChanged: enabled
                       ? (value) => onChanged(value ?? false)
                       : null,
-                  overlayColor: const WidgetStatePropertyAll(
-                    Colors.transparent,
-                  ),
-                  splashRadius: 0,
                 ),
               ),
             ),

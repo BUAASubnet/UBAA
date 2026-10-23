@@ -39,6 +39,21 @@ class UbaaTheme {
       colorScheme: colors,
       scaffoldBackgroundColor: colors.surface,
       visualDensity: VisualDensity.standard,
+      hoverColor: colors.primary.withValues(alpha: 0.04),
+      focusColor: colors.primary.withValues(alpha: 0.10),
+      // 当前复选框、开关均属于整行选项；反馈由外层选项行统一绘制。
+      checkboxTheme: const CheckboxThemeData(
+        overlayColor: WidgetStatePropertyAll(Colors.transparent),
+        splashRadius: 0,
+      ),
+      switchTheme: const SwitchThemeData(
+        overlayColor: WidgetStatePropertyAll(Colors.transparent),
+        splashRadius: 0,
+      ),
+      listTileTheme: ListTileThemeData(shape: controlShape),
+      textButtonTheme: TextButtonThemeData(
+        style: TextButton.styleFrom(shape: controlShape),
+      ),
       appBarTheme: AppBarTheme(
         backgroundColor: colors.surface,
         centerTitle: false,
@@ -51,6 +66,7 @@ class UbaaTheme {
         fillColor: colors.surfaceContainerLow,
       ),
       cardTheme: CardThemeData(
+        clipBehavior: Clip.antiAlias,
         margin: EdgeInsets.zero,
         elevation: 0,
         color: colors.surfaceContainerLow,

@@ -5,6 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../../common/detail_fields.dart' show DetailField;
 import '../../shared/text.dart' show uiTimeRange;
+import '../../theme.dart' show UbaaTheme;
 
 bool uiSupportsParticipationContent(
   FeatureId feature,
@@ -100,28 +101,37 @@ class _SigninCourseCard extends StatelessWidget {
                   child: Tooltip(
                     message: '课程详情',
                     child: InkWell(
+                      borderRadius: BorderRadius.circular(
+                        UbaaTheme.controlRadius,
+                      ),
                       onTap: () => _showDetails(context),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            detail.title,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: theme.textTheme.titleLarge?.copyWith(
-                              fontWeight: FontWeight.bold,
+                      child: Padding(
+                        padding: const EdgeInsets.all(8),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Text(
+                              detail.title,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: theme.textTheme.titleLarge?.copyWith(
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
-                          ),
-                          const SizedBox(height: 8),
-                          AcademicInfo(
-                            icon: Icons.schedule,
-                            text:
-                                uiTimeRange(p.classBeginTime, p.classEndTime) ??
-                                '时间未提供',
-                          ),
-                          if (p.signStatus != 0 && p.signStatus != 1)
-                            const Text('签到状态未知'),
-                        ],
+                            const SizedBox(height: 8),
+                            AcademicInfo(
+                              icon: Icons.schedule,
+                              text:
+                                  uiTimeRange(
+                                    p.classBeginTime,
+                                    p.classEndTime,
+                                  ) ??
+                                  '时间未提供',
+                            ),
+                            if (p.signStatus != 0 && p.signStatus != 1)
+                              const Text('签到状态未知'),
+                          ],
+                        ),
                       ),
                     ),
                   ),
