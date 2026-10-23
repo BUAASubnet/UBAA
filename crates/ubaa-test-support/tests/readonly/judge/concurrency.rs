@@ -38,7 +38,7 @@ impl HttpTransport for JudgeConcurrencyTransport {
         self.max_inflight.fetch_max(current, Ordering::SeqCst);
         tokio::time::sleep(Duration::from_millis(5)).await;
         let result = if request.url
-            == "https://sso.buaa.edu.cn/login?service=http%3A%2F%2Fjudge.buaa.edu.cn%2F"
+            == "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fjudge.buaa.edu.cn%2F"
         {
             Ok(redirect_from(&request.url, "https://judge.buaa.edu.cn/"))
         } else if request.url == "https://judge.buaa.edu.cn/" {

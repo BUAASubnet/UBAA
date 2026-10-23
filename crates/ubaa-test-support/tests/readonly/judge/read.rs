@@ -9,7 +9,7 @@ use crate::common::{
 
 #[tokio::test]
 async fn judge_selects_courses_before_reading_assignment_details() {
-    let login_url = "https://sso.buaa.edu.cn/login?service=http%3A%2F%2Fjudge.buaa.edu.cn%2F";
+    let login_url = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fjudge.buaa.edu.cn%2F";
     let judge_home = "https://judge.buaa.edu.cn/";
     let courses_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0";
     let select_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=1";
@@ -314,7 +314,7 @@ async fn judge_empty_batches_require_a_local_session_before_zero_network_short_c
 }
 
 #[tokio::test]
-async fn judge_historical_courses_are_skipped_by_default_but_includable() {
+async fn judge_历史作业逐项过滤且仍可显式包含() {
     let login_url = JUDGE_LOGIN_URL;
     let judge_home = "https://judge.buaa.edu.cn/";
     let courses_url = "https://judge.buaa.edu.cn/courselist.jsp?courseID=0";

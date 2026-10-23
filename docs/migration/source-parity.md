@@ -203,6 +203,8 @@ JSON。详情测试保留上游 ID 校验、摘要回退、可选提交信息、
 
 ## Judge 列表
 
+2026-10-23 当前实现覆盖说明：下表保留冻结旧版事实；HTTPS service、原生登录页识别、逐项历史过滤、WebVPN 串行和重新认证后选课恢复，以[最新逐操作对照](source-parity-judge-2026-10-23.md)为准。旧的整课跳过不再用于当前诊断计数。
+
 | 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
 | **旧版：** SSO `https://sso.buaa.edu.cn/login?service=http%3A%2F%2Fjudge.buaa.edu.cn%2F`，随后访问 `judge.buaa.edu.cn/courselist.jsp?courseID=0`。**示例：** 不适用且不等价，固定提交中没有 Judge 模块。**决策：** 旧版是唯一冻结协议来源。 | **旧版：** 解析一次激活跳转后再做路线转换；SSO 页面最多触发 3 次重新激活。**示例：** 不适用。**决策：** 所有跳转和地址均锁定当前路线。 | **旧版：** 按用户/模式使用客户端；独立 worker 从非 Judge 父客户端复制 Cookie，并保持 Judge Cookie 本地。**示例：** 不适用。**决策：** 状态归路线和客户端所有，不混用全局缓存或 Cookie。 | **旧版：** GET 课程列表；GET `courselist.jsp?courseID=<id>` 选择课程；GET `assignment/index.jsp`；`includeExpired` 只影响本地截止时间，不是上游参数。**示例：** 不适用。 | **旧版：** 浏览器 `Accept`、`Accept-Language: zh-CN,zh;q=0.9` 和精确 Chrome 58 UA，无正文。**示例：** 不适用。**决策：** 保持不变。 | **旧版/示例：** 不适用。 | **旧版：** 解析排除课程 0 的课程链接；按 `assignID` 解析作业链接，排除 `problemContent` 和 `judgeDetails`，并去重。**示例：** 不适用。**决策：** 实时对齐前必须保留完整过滤规则。 | **旧版：** 列表缓存按用户和路线分组，作业处理最多 4 个并发 worker，列表 TTL 5 分钟；除非 `includeExpired`，只保留六个月内课程。**示例：** 不适用。**决策：** 状态由路线客户端拥有并随会话生命周期清理。 | **旧版：** 本地未登录、SSO 重激活失败、非 200、无权限或不存在均映射为稳定错误。Judge 业务认证重试耗尽后先校验 UC，仅 UC 明确 Invalid 才清理主会话；Valid、5xx、网络或不确定结果保留会话并返回业务失败。**示例：** 不适用。**决策：** 顶层沿用该仲裁，保留会话时使用 `upstream_unavailable`；列表退出 0 或数量本身不能证明解析一致，Direct/WebVPN 数量差异继续保留。 |

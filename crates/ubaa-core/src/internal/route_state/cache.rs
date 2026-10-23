@@ -57,17 +57,15 @@ impl AssignmentList {
 
 pub(crate) const JUDGE_ASSIGNMENT_CACHE_LIMIT: usize = 128;
 pub(crate) const JUDGE_DETAIL_CACHE_LIMIT: usize = 1_024;
-pub(crate) const JUDGE_HISTORICAL_CACHE_LIMIT: usize = 128;
 
 #[derive(Default)]
 struct JudgeCache {
     courses: Option<TimedEntry<Vec<Course>>>,
     assignments: HashMap<String, TimedEntry<AssignmentList>>,
     details: HashMap<(String, String), TimedEntry<JudgeAssignmentDetail>>,
-    historical_courses: HashMap<String, TimedEntry<()>>,
 }
 
-/// 路线/客户端拥有的 Judge 缓存和历史截止状态。
+/// 路线/客户端拥有的 Judge 短期缓存。
 #[derive(Default)]
 pub(crate) struct JudgeState {
     invalidations: std::sync::atomic::AtomicU64,
@@ -205,29 +203,6 @@ impl JudgeState {
         true
     }
 
-    pub(crate) fn historical_courses(&self, generation: u64) -> std::collections::HashSet<String> {
-        let cache = self.cache();
-        if self.generation() != generation {
-            return std::collections::HashSet::new();
-        }
-        cache.historical_courses.keys().cloned().collect()
-    }
-
-    pub(crate) fn mark_historical(&self, generation: u64, course_id: &str, now: Instant) -> bool {
-        let mut cache = self.cache();
-        if self.generation() != generation {
-            return false;
-        }
-        insert_bounded(
-            &mut cache.historical_courses,
-            course_id.to_string(),
-            (),
-            now,
-            JUDGE_HISTORICAL_CACHE_LIMIT,
-        );
-        true
-    }
-
     pub(crate) fn clear(&self) {
         self.invalidations
             .fetch_add(1, std::sync::atomic::Ordering::AcqRel);
@@ -241,13 +216,12 @@ impl JudgeState {
     }
 
     #[cfg(test)]
-    pub(crate) fn cache_counts(&self) -> (usize, usize, usize, usize) {
+    pub(crate) fn cache_counts(&self) -> (usize, usize, usize) {
         let cache = self.cache();
         (
             usize::from(cache.courses.is_some()),
             cache.assignments.len(),
             cache.details.len(),
-            cache.historical_courses.len(),
         )
     }
 }
@@ -261,7 +235,6 @@ impl std::fmt::Debug for JudgeState {
             .field("courses_cached", &cache.courses.is_some())
             .field("assignment_cache_entries", &cache.assignments.len())
             .field("detail_cache_entries", &cache.details.len())
-            .field("historical_course_entries", &cache.historical_courses.len())
             .finish()
     }
 }

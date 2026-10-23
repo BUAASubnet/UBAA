@@ -25,7 +25,7 @@ fn get(url: &str, body: Vec<u8>) -> ExpectedRequest {
     ExpectedRequest::new(HttpMethod::Get, url, HttpResponse::new(200, url, body))
 }
 fn activation() -> ExpectedRequest {
-    let url = "https://sso.buaa.edu.cn/login?service=http%3A%2F%2Fjudge.buaa.edu.cn%2F";
+    let url = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fjudge.buaa.edu.cn%2F";
     let mut response = HttpResponse::new(302, url, Vec::new());
     response
         .headers

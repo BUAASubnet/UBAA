@@ -6,7 +6,7 @@ mod credentials;
 
 pub(crate) use cache::{AssignmentList, JudgeState};
 #[cfg(test)]
-use cache::{JUDGE_ASSIGNMENT_CACHE_LIMIT, JUDGE_DETAIL_CACHE_LIMIT, JUDGE_HISTORICAL_CACHE_LIMIT};
+use cache::{JUDGE_ASSIGNMENT_CACHE_LIMIT, JUDGE_DETAIL_CACHE_LIMIT};
 pub(crate) use classroom::ClassroomState;
 #[cfg(test)]
 pub(crate) use credentials::StoreCredentialHook;
@@ -279,7 +279,7 @@ mod tests {
                 .detail(generation, "1", "101", now, Duration::from_mins(2))
                 .is_none()
         );
-        assert_eq!(state.cache_counts(), (0, 0, 0, 0));
+        assert_eq!(state.cache_counts(), (0, 0, 0));
 
         assert!(state.store_assignments(
             generation,
@@ -318,7 +318,6 @@ mod tests {
                 },
                 now,
             ));
-            assert!(state.mark_historical(generation, &course_id, now));
         }
         for index in 0..=super::JUDGE_DETAIL_CACHE_LIMIT {
             let assignment_id = index.to_string();
@@ -346,13 +345,12 @@ mod tests {
             ));
         }
 
-        let (_, assignments, details, historical) = state.cache_counts();
+        let (_, assignments, details) = state.cache_counts();
         assert_eq!(assignments, super::JUDGE_ASSIGNMENT_CACHE_LIMIT);
         assert_eq!(details, super::JUDGE_DETAIL_CACHE_LIMIT);
-        assert!(historical <= super::JUDGE_HISTORICAL_CACHE_LIMIT);
 
         state.clear();
-        assert_eq!(state.cache_counts(), (0, 0, 0, 0));
+        assert_eq!(state.cache_counts(), (0, 0, 0));
         assert_ne!(state.generation(), generation);
         assert!(!state.store_assignments(
             generation,
@@ -394,7 +392,6 @@ mod tests {
             },
             now,
         ));
-        assert!(!state.mark_historical(generation, "1", now));
-        assert_eq!(state.cache_counts(), (0, 0, 0, 0));
+        assert_eq!(state.cache_counts(), (0, 0, 0));
     }
 }

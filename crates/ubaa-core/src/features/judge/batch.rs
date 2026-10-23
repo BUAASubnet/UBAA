@@ -2,7 +2,6 @@
 
 use std::collections::{HashMap, HashSet};
 use std::sync::Arc;
-use std::time::Instant;
 
 use tokio::sync::Semaphore;
 use tokio::task::JoinSet;
@@ -41,17 +40,8 @@ async fn get_assignments_diagnostics_inner(
     let generation = state.judge.generation();
     let courses = get_courses_cached(runtime, &state, generation, &mut false, false).await?;
     let course_count = courses.len();
-    let skipped = if include_expired {
-        HashSet::new()
-    } else {
-        state.judge.historical_courses(generation)
-    };
-    let courses = courses
-        .into_iter()
-        .filter(|course| !skipped.contains(&course.course_id))
-        .collect::<Vec<_>>();
     let cutoff = six_month_cutoff();
-    let limiter = Arc::new(Semaphore::new(ASSIGNMENT_QUERY_CONCURRENCY));
+    let limiter = Arc::new(Semaphore::new(course_concurrency(runtime.mode())));
     let mut workers = JoinSet::new();
     for (index, course) in courses.into_iter().enumerate() {
         let mut worker = fork_judge_worker(runtime);
@@ -98,11 +88,6 @@ async fn get_assignments_diagnostics_inner(
     for (_, summary) in summaries {
         raw_anchor_count = raw_anchor_count.saturating_add(summary.raw_anchor_count);
         filtered_unique_count = filtered_unique_count.saturating_add(summary.filtered_unique_count);
-        if summary.historical {
-            state
-                .judge
-                .mark_historical(generation, &summary.course_id, Instant::now());
-        }
         result.extend(summary.summaries);
     }
     result.sort_by(|left, right| {
@@ -211,7 +196,7 @@ async fn get_assignment_details_inner(
         grouped[group_index].1.push((index, key));
     }
 
-    let limiter = Arc::new(Semaphore::new(ASSIGNMENT_QUERY_CONCURRENCY));
+    let limiter = Arc::new(Semaphore::new(course_concurrency(runtime.mode())));
     let mut workers = JoinSet::new();
     for (course, course_keys) in grouped {
         let mut worker = fork_judge_worker(runtime);
@@ -289,11 +274,9 @@ async fn fetch_course_details(
 }
 
 struct CourseSummary {
-    course_id: String,
     summaries: Vec<JudgeAssignmentSummary>,
     raw_anchor_count: usize,
     filtered_unique_count: usize,
-    historical: bool,
 }
 
 pub(super) async fn resolve_required_judge_result<T>(
@@ -334,7 +317,6 @@ async fn summarize_course(
     let raw_anchor_count = assignment_list.raw_anchor_count;
     let filtered_unique_count = assignment_list.filtered_unique_count();
     let mut summaries = Vec::new();
-    let mut historical = false;
     for assignment in assignment_list.assignments {
         let detail = get_detail_cached(
             runtime,
@@ -349,21 +331,25 @@ async fn summarize_course(
             .start_time
             .as_deref()
             .is_some_and(|start| started_before_cutoff(start, cutoff))
+            && !include_expired
         {
-            historical = true;
-            if !include_expired {
-                break;
-            }
+            continue;
         }
         summaries.push(to_summary(&detail));
     }
     Ok(CourseSummary {
-        course_id: course.course_id,
         summaries,
         raw_anchor_count,
         filtered_unique_count,
-        historical,
     })
+}
+
+fn course_concurrency(mode: crate::domain::ConnectionMode) -> usize {
+    // 同一个父客户端由 &mut 独占；许可覆盖整个课程任务，网关共享状态不能交错。
+    match mode {
+        crate::domain::ConnectionMode::Direct => ASSIGNMENT_QUERY_CONCURRENCY,
+        crate::domain::ConnectionMode::WebVpn => 1,
+    }
 }
 
 fn worker_error() -> crate::error::UbaaError {

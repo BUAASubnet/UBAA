@@ -134,7 +134,7 @@ struct EmptyJudgeTransport(Arc<AtomicUsize>);
 impl HttpTransport for EmptyJudgeTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         self.0.fetch_add(1, Ordering::SeqCst);
-        if request.url == "https://sso.buaa.edu.cn/login?service=http%3A%2F%2Fjudge.buaa.edu.cn%2F"
+        if request.url == "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fjudge.buaa.edu.cn%2F"
         {
             let mut response = HttpResponse::new(302, request.url, Vec::new());
             response

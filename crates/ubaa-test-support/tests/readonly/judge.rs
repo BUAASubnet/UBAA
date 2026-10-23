@@ -13,7 +13,7 @@ mod read;
 mod retry;
 
 const JUDGE_LOGIN_URL: &str =
-    "https://sso.buaa.edu.cn/login?service=http%3A%2F%2Fjudge.buaa.edu.cn%2F";
+    "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fjudge.buaa.edu.cn%2F";
 
 #[derive(Clone, Copy)]
 struct UnknownGatewayProbe;
@@ -23,3 +23,6 @@ impl GatewayProbe for UnknownGatewayProbe {
         NetworkState::Unknown
     }
 }
+
+#[path = "judge/repair.rs"]
+mod repair;
