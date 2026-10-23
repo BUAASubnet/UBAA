@@ -1,3 +1,4 @@
+import '../../navigation.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -82,12 +83,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 250));
     }
 
-    await tap(
-      find.descendant(
-        of: find.byType(NavigationRail),
-        matching: find.byIcon(UiDestination.coursework.icon),
-      ),
-    );
+    await tap(uiDestinationFinder(tester, UiDestination.coursework));
     await tap(find.widgetWithText(Card, FeatureId.bykc.title));
     await tap(find.widgetWithText(Card, '选择课程'));
     await loaded(FeatureQueryView.summary);

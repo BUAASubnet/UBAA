@@ -60,3 +60,6 @@ session.json
 # 本地设计预览与调研草稿，不纳入版本控制。
 /docs/design/evidence/windows-settings-20261023/
 /docs/design/windows-settings-redesign-2026-10-23.md
+
+# Android Kotlin 编译缓存。
+/apps/ubaa_flutter/android/.kotlin/

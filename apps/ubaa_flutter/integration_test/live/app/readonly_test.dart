@@ -1,3 +1,4 @@
+import '../../navigation.dart';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -41,21 +42,9 @@ void main() {
     await tester.pumpAndSettle();
     final records = <Map<String, Object?>>[];
     for (final feature in FeatureId.values) {
-      final index = UiDestination.forFeature(feature).index;
-      final rail = find.byType(NavigationRail);
-      if (rail.evaluate().isNotEmpty) {
-        final current = tester.widget<NavigationRail>(rail).selectedIndex;
-        if (current != index) {
-          await tester.tap(
-            find.descendant(
-              of: rail,
-              matching: find.byIcon(UiDestination.forFeature(feature).icon),
-            ),
-          );
-        }
-      } else {
-        await tester.tap(find.byType(NavigationDestination).at(index));
-      }
+      await tester.tap(
+        uiDestinationFinder(tester, UiDestination.forFeature(feature)),
+      );
       await tester.pumpAndSettle();
       final card = find.widgetWithText(Card, feature.title);
       if (card.evaluate().isEmpty) {

@@ -1,3 +1,4 @@
+import '../../navigation.dart';
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -106,32 +107,13 @@ void main() {
         timeout: const Duration(seconds: 3),
       );
       expect(backend.recoveryCalls, 1);
-      final rail = find.byType(NavigationRail);
-      if (rail.evaluate().isNotEmpty) {
-        await tester.tap(
-          find.descendant(
-            of: rail,
-            matching: find.byIcon(UiDestination.academic.icon),
-          ),
-        );
-      } else {
-        await tester.tap(find.byType(NavigationDestination).at(1));
-      }
+      await tester.tap(uiDestinationFinder(tester, UiDestination.academic));
       await tester.pump(const Duration(milliseconds: 100));
-      if (rail.evaluate().isNotEmpty) {
-        expect(tester.widget<NavigationRail>(rail).selectedIndex, 1);
-        await tester.tap(
-          find.descendant(of: rail, matching: find.byIcon(Icons.home_outlined)),
-        );
-      } else {
-        expect(
-          tester
-              .widget<NavigationBar>(find.byType(NavigationBar))
-              .selectedIndex,
-          1,
-        );
-        await tester.tap(find.byType(NavigationDestination).at(0));
-      }
+      expect(
+        find.widgetWithText(AppBar, UiDestination.academic.label),
+        findsOneWidget,
+      );
+      await tester.tap(uiDestinationFinder(tester, UiDestination.home));
       await tester.pump(const Duration(milliseconds: 100));
       expect(backend.release.isCompleted, isFalse);
       debugPrint(

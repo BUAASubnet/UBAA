@@ -1,3 +1,4 @@
+import '../../navigation.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -76,12 +77,7 @@ void main() {
     final dates = find.byWidgetPredicate(
       (w) => w is Text && RegExp(r'^\d{1,2}-\d{1,2}$').hasMatch(w.data ?? ''),
     );
-    await tap(
-      find.descendant(
-        of: find.byType(NavigationRail),
-        matching: find.byIcon(UiDestination.academic.icon),
-      ),
-    );
+    await tap(uiDestinationFinder(tester, UiDestination.academic));
     await tap(find.widgetWithText(Card, FeatureId.schedule.title));
     await loaded(FeatureQueryView.scheduleWeek);
     debugPrint('周导航只读 automatic=true headerDates=${dates.evaluate().length}');

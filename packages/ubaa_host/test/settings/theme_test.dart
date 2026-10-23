@@ -56,7 +56,7 @@ void main() {
       Brightness.dark,
     );
 
-    await tester.tap(find.byTooltip('返回'));
+    await tester.tap(find.widgetWithText(NavigationDestination, '首页'));
     await tester.pumpAndSettle();
     expect(_mode(tester), ThemeMode.dark);
     await _profile(tester);

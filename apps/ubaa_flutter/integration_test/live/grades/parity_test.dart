@@ -1,3 +1,4 @@
+import '../../navigation.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -67,12 +68,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 250));
     }
 
-    await tap(
-      find.descendant(
-        of: find.byType(NavigationRail),
-        matching: find.byIcon(UiDestination.academic.icon),
-      ),
-    );
+    await tap(uiDestinationFinder(tester, UiDestination.academic));
     await tap(find.widgetWithText(Card, FeatureId.grades.title));
     await loaded(FeatureQueryView.summary);
     GradesAggregate? aggregate;

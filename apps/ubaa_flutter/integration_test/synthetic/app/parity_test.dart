@@ -1,7 +1,11 @@
+import '../../navigation.dart';
 import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'dart:io';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -14,12 +18,25 @@ void main() {
   for (final brightness in Brightness.values) {
     testWidgets('共享布局原生逐页与按需面板：${brightness.name}', (tester) async {
       expect(Platform.isIOS || Platform.isMacOS || Platform.isAndroid, isTrue);
+      if (const bool.fromEnvironment('UBAA_UI_LANDSCAPE') &&
+          (Platform.isIOS || Platform.isAndroid)) {
+        await SystemChrome.setPreferredOrientations(const [
+          DeviceOrientation.landscapeLeft,
+          DeviceOrientation.landscapeRight,
+        ]);
+        addTearDown(
+          () => SystemChrome.setPreferredOrientations(DeviceOrientation.values),
+        );
+      }
       tester.platformDispatcher.platformBrightnessTestValue = brightness;
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
       await tester.pumpWidget(
         KeyedSubtree(
           key: ValueKey('shared-${brightness.name}'),
-          child: createInspectionApp(),
+          child: RepaintBoundary(
+            key: const ValueKey('native-capture'),
+            child: createInspectionApp(),
+          ),
         ),
       );
       await tester.pumpAndSettle();
@@ -54,9 +71,25 @@ void main() {
           'viewportSource': 'native-view-unmodified',
           'dateUtc': DateTime.now().toUtc().toIso8601String(),
           'sourceSha': const String.fromEnvironment('UBAA_UI_SOURCE_SHA'),
+          'imageSource': Platform.isMacOS
+              ? 'native-flutter-repaint-boundary'
+              : 'integration-test-native-screenshot',
         });
         if (Platform.isIOS || Platform.isAndroid) {
           await binding.takeScreenshot(name);
+        } else if (Platform.isMacOS) {
+          final boundary = tester.renderObject<RenderRepaintBoundary>(
+            find.byKey(const ValueKey('native-capture')),
+          );
+          final image = await boundary.toImage(pixelRatio: ratio);
+          final data = await image.toByteData(format: ui.ImageByteFormat.png);
+          image.dispose();
+          (binding.reportData!.putIfAbsent('nativeRenders', () => <Object?>[])
+                  as List)
+              .add({
+                'name': name,
+                'bytes': data!.buffer.asUint8List().toList(),
+              });
         }
       }
 
@@ -73,18 +106,10 @@ void main() {
       }
 
       Future<void> tab(int index) async {
-        final narrow =
-            tester.view.physicalSize.width / tester.view.devicePixelRatio < 600;
-        if (narrow) {
-          await tester.tap(find.byType(NavigationDestination).at(index));
-        } else {
-          final destination = UiDestination.values[index];
-          final selected = find.byIcon(destination.selectedIcon);
-          final target = selected.evaluate().isNotEmpty
-              ? selected
-              : find.byIcon(destination.icon);
-          await tester.tap(target.first);
-        }
+        final target = uiDestinationFinder(tester, UiDestination.values[index]);
+        await tester.ensureVisible(target);
+        await tester.pumpAndSettle();
+        await tester.tap(target);
         await tester.pumpAndSettle();
       }
 
@@ -146,10 +171,22 @@ void main() {
         );
         await panel();
         expect(
-          find.widgetWithText(TextField, '筛选详情'),
+          find.widgetWithText(
+            TextField,
+            feature == FeatureId.spoc || feature == FeatureId.judge
+                ? '课程名称或作业标题'
+                : '筛选详情',
+          ),
           menus.containsKey(feature) ? findsNothing : findsOneWidget,
         );
-        expect(find.text('应用筛选'), findsOneWidget);
+        if (feature == FeatureId.spoc || feature == FeatureId.judge) {
+          expect(
+            find.text(feature == FeatureId.spoc ? '仅显示未提交' : '仅显示未完成'),
+            findsOneWidget,
+          );
+        } else {
+          expect(find.text('应用筛选'), findsOneWidget);
+        }
         if (feature == FeatureId.grades) {
           final panelBox = find.byWidgetPredicate(
             (w) => w is Material && w.elevation == 8,
@@ -244,6 +281,36 @@ void main() {
       await tab(UiDestination.settings.index);
       expect(find.text('外观主题'), findsOneWidget);
       await capture('settings', '进入分组设置，保留主题、连接、隐私及账号操作');
+      final themePicker = find.byType(DropdownButton<ThemeMode>);
+      await tester.tap(themePicker);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('浅色').last);
+      await tester.pumpAndSettle();
+      expect(
+        Theme.of(tester.element(themePicker)).brightness,
+        Brightness.light,
+      );
+      await tester.tap(themePicker);
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('跟随系统').last);
+      await tester.pumpAndSettle();
+      expect(Theme.of(tester.element(themePicker)).brightness, brightness);
+      final diagnostics = find.text('本次运行诊断');
+      await tester.scrollUntilVisible(
+        diagnostics,
+        250,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey<String>('feature-pages')),
+          matching: find.byType(Scrollable),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(diagnostics);
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      await capture('diagnostics', '沿设置进入合成会话的脱敏诊断，主题切换后恢复跟随系统');
+      await tester.tap(find.widgetWithText(TextButton, '关闭'));
+      await tester.pumpAndSettle();
       await tab(UiDestination.home.index);
     });
   }

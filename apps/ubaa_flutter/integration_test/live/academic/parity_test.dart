@@ -1,3 +1,4 @@
+import '../../navigation.dart';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -70,13 +71,8 @@ void main() {
       await tester.pump(const Duration(milliseconds: 250));
     }
 
-    Future<void> open(FeatureId feature, IconData group) async {
-      await tap(
-        find.descendant(
-          of: find.byType(NavigationRail),
-          matching: find.byIcon(group),
-        ),
-      );
+    Future<void> open(FeatureId feature) async {
+      await tap(uiDestinationFinder(tester, UiDestination.forFeature(feature)));
       await tap(find.widgetWithText(Card, feature.title));
       await loaded(feature, FeatureQueryView.summary);
       expect(find.byType(TextField).evaluate().isEmpty, isTrue);
@@ -89,7 +85,7 @@ void main() {
       );
     }
 
-    await open(FeatureId.exam, UiDestination.academic.icon);
+    await open(FeatureId.exam);
     for (final (label, view) in [
       ('已安排', FeatureQueryView.examArranged),
       ('未安排', FeatureQueryView.examNotArranged),
@@ -114,7 +110,7 @@ void main() {
       '学业旧版只读 examLocalDetail=${shell().snapshots[FeatureId.exam]!.details.isEmpty ? '无记录未执行' : '本批未执行'}',
     );
     await tap(find.byTooltip('返回'));
-    await open(FeatureId.signin, UiDestination.coursework.icon);
+    await open(FeatureId.signin);
     for (final (label, view, eligibility) in [
       ('可签到', FeatureQueryView.signinPending, ActionEligibility.allowed),
       ('已签到', FeatureQueryView.signinCompleted, ActionEligibility.denied),

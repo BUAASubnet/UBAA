@@ -46,6 +46,22 @@ Future<void> main() async {
       },
       writeResponseOnFailure: true,
       responseDataCallback: (data) async {
+        for (final raw in data?['nativeRenders'] as List? ?? <Object?>[]) {
+          final render = Map<String, Object?>.from(raw as Map);
+          final name = checkedName(render['name']);
+          final bytes = List<int>.from(render['bytes'] as List);
+          if (bytes.length < 8 ||
+              bytes[0] != 137 ||
+              bytes[1] != 80 ||
+              bytes[2] != 78 ||
+              bytes[3] != 71) {
+            throw StateError('原生Flutter渲染不是PNG：$name');
+          }
+          final file = File('${directory.path}/$name.png');
+          if (await file.exists()) throw StateError('拒绝覆盖已有截图：$name');
+          await file.writeAsBytes(bytes, flush: true);
+          names.add(name);
+        }
         final records = data?['uiEvidence'] as List? ?? <Object?>[];
         for (final raw in records) {
           final record = Map<String, Object?>.from(raw as Map);
@@ -61,7 +77,11 @@ Future<void> main() async {
           const JsonEncoder.withIndent('  ').convert(<String, Object?>{
             'savedScreenshots': names.toList(),
             'metadataCount': records.length,
-            'evidence': 'native-ios-synthetic-ui',
+            'evidence': 'native-synthetic-ui',
+            'platforms': records
+                .map((record) => (record as Map)['platform'])
+                .toSet()
+                .toList(),
             'acceptance': 'requires-test-result-and-visual-review',
           }),
           flush: true,

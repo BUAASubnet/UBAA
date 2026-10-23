@@ -164,17 +164,60 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend
             v == FeatureQueryView.judgeDetail ||
             v == FeatureQueryView.judgeBatchDetails;
         return [
-          _item(judge ? '实验二：树与递归' : '第三章：算法复杂度练习', {
-            '课程编号': q.courseId ?? 'course-demo',
-            '作业编号': q.assignmentId ?? 'assignment-demo',
-            if (!judge) '教师': '示例教师甲',
-            '开始': '2026-09-07 08:00',
-            '截止': '2026-09-14 23:59',
-            '状态': '未提交',
-            if (judge) ...{'进度': '2/5', '我的得分': '40'} else '得分': '尚未评分',
-            if (detail)
-              '作业内容': '这是一份合成作业。请阅读题目，完成推导与程序设计，并说明边界条件。长段落用于检查内容密度与换行。',
-          }, subtitle: '数据结构与算法（合成课程）'),
+          _item(
+            judge ? '实验二：树与递归' : '第三章：算法复杂度练习',
+            {
+              '课程编号': q.courseId ?? 'course-demo',
+              '作业编号': q.assignmentId ?? 'assignment-demo',
+              if (!judge) '教师': '示例教师甲',
+              '开始': '2026-09-07 08:00',
+              '截止': '2099-09-14 23:59',
+              '状态': '未提交',
+              if (judge) ...{'进度': '2/5', '我的得分': '40'} else '得分': '尚未评分',
+              if (detail)
+                '作业内容': '这是一份合成作业。请阅读题目，完成推导与程序设计，并说明边界条件。长段落用于检查内容密度与换行。',
+            },
+            subtitle: '数据结构与算法（合成课程）',
+            presentation: judge
+                ? JudgeAssignmentPresentation(
+                    courseId: q.courseId ?? 'course-demo',
+                    courseName: '数据结构与算法（合成课程）',
+                    assignmentId: q.assignmentId ?? 'assignment-demo',
+                    dueTime: '2099-09-14 23:59',
+                    status: AssignmentSubmissionStatus.partial,
+                    statusText: '部分提交',
+                    totalProblems: 5,
+                    submittedCount: 2,
+                    myScore: '40',
+                    maxScore: '100',
+                    isDetail: detail,
+                    contentPlainText: detail ? '这是一份合成作业，用于核对正文与换行。' : null,
+                  )
+                : SpocAssignmentPresentation(
+                    courseId: q.courseId ?? 'course-demo',
+                    courseName: '数据结构与算法（合成课程）',
+                    assignmentId: q.assignmentId ?? 'assignment-demo',
+                    teacherName: '示例教师甲',
+                    dueTime: '2099-09-14 23:59',
+                    status: AssignmentSubmissionStatus.unsubmitted,
+                    statusText: '未提交',
+                    score: '100',
+                    isDetail: detail,
+                    contentPlainText: detail ? '这是一份合成作业，用于核对正文与换行。' : null,
+                  ),
+            readNavigation: detail
+                ? null
+                : FeatureReadNavigation(
+                    feature: feature,
+                    query: FeatureQuery(
+                      view: judge
+                          ? FeatureQueryView.judgeDetail
+                          : FeatureQueryView.spocDetail,
+                      courseId: q.courseId ?? 'course-demo',
+                      assignmentId: q.assignmentId ?? 'assignment-demo',
+                    ),
+                  ),
+          ),
           if (judge && detail)
             _item('题目一：二叉树遍历', {'状态': '已通过', '得分': '20', '满分': '20'}),
           if (judge && detail)
