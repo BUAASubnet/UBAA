@@ -141,23 +141,67 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     }
   }
 
-  Future<void> openFromHome(FeatureReadNavigation target) async {
-    if (widget.onQuery == null || target.feature != widget.snapshot.feature)
-      return;
+  bool get _isAssignmentFeature =>
+      widget.snapshot.feature == FeatureId.spoc ||
+      widget.snapshot.feature == FeatureId.judge;
+
+  bool _isAssignmentDetail(_ReadFrame frame) =>
+      _isAssignmentFeature &&
+      (const {
+            FeatureQueryView.spocDetail,
+            FeatureQueryView.judgeDetail,
+            FeatureQueryView.judgeBatchDetails,
+          }.contains(frame.query?.view) ||
+          frame.snapshot.details.any(
+            (detail) => switch (detail.presentation) {
+              SpocAssignmentPresentation p => p.isDetail,
+              JudgeAssignmentPresentation p => p.isDetail,
+              _ => false,
+            },
+          ));
+
+  _ReadFrame _assignmentList() {
+    if (!_isAssignmentDetail(_frames.first)) return _frames.first;
+    return _ReadFrame(
+      _nextId++,
+      FeatureSnapshot(feature: widget.snapshot.feature),
+      const FeatureQuery(),
+    );
+  }
+
+  /// 功能卡入口回到作业列表；保留现有父页的筛选、滚动和选择。
+  void openList() {
+    if (!_isAssignmentFeature || widget.onQuery == null) return;
+    final parent = _assignmentList();
     setState(() {
       _externalAfterRevision = null;
       _frames
         ..clear()
-        ..add(
-          _ReadFrame(
-            _nextId++,
-            FeatureSnapshot(
-              feature: target.feature,
-              status: FeatureLoadStatus.loading,
-            ),
-            target.query,
+        ..add(parent);
+    });
+    if (parent.snapshot.status == FeatureLoadStatus.idle) {
+      unawaited(_query(parent, parent.query ?? const FeatureQuery()));
+    }
+  }
+
+  Future<void> openFromHome(FeatureReadNavigation target) async {
+    if (widget.onQuery == null || target.feature != widget.snapshot.feature)
+      return;
+    final parent = _isAssignmentFeature ? _assignmentList() : null;
+    setState(() {
+      _externalAfterRevision = null;
+      _frames.clear();
+      if (parent != null) _frames.add(parent);
+      _frames.add(
+        _ReadFrame(
+          _nextId++,
+          FeatureSnapshot(
+            feature: target.feature,
+            status: FeatureLoadStatus.loading,
           ),
-        );
+          target.query,
+        ),
+      );
     });
     await widget.onQuery!(target.query);
   }
@@ -166,10 +210,18 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
 
   void goBack() {
     if (_frames.length == 1) {
+      if (_isAssignmentDetail(_current) && widget.onQuery != null) {
+        openList();
+        return;
+      }
       widget.onExit();
     } else {
       setState(() => _frames.removeLast());
-      if ((widget.snapshot.feature == FeatureId.judge ||
+      if (_isAssignmentFeature &&
+          _current.snapshot.status == FeatureLoadStatus.idle &&
+          widget.onQuery != null) {
+        unawaited(_query(_current, _current.query ?? const FeatureQuery()));
+      } else if ((widget.snapshot.feature == FeatureId.judge ||
               uiReadableCachedContent(_current.snapshot)) &&
           _current.snapshot.status == FeatureLoadStatus.loading &&
           widget.onQuery != null) {
@@ -185,6 +237,18 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
 
   Future<void> _query(_ReadFrame frame, FeatureQuery query) async {
     if (widget.onQuery == null || !identical(frame, _current)) return;
+    if (_isAssignmentFeature &&
+        !_isAssignmentDetail(frame) &&
+        const {
+          FeatureQueryView.spocDetail,
+          FeatureQueryView.judgeDetail,
+          FeatureQueryView.judgeBatchDetails,
+        }.contains(query.view)) {
+      await _navigate(
+        FeatureReadNavigation(feature: widget.snapshot.feature, query: query),
+      );
+      return;
+    }
     if (frame.isLanding) {
       await _navigate(
         FeatureReadNavigation(feature: widget.snapshot.feature, query: query),

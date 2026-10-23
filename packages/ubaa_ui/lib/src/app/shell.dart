@@ -356,6 +356,18 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     );
   }
 
+  void _openFeatureList(FeatureId feature) {
+    final generation = _accountGeneration;
+    setState(() => _openedFeature = feature);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted &&
+          generation == _accountGeneration &&
+          _openedFeature == feature) {
+        _readPageKeys[feature]?.currentState?.openList();
+      }
+    });
+  }
+
   void _openHomeNavigation(FeatureReadNavigation target) {
     final generation = _accountGeneration;
     setState(() => _openedFeature = target.feature);
@@ -796,18 +808,18 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                 return;
               setState(() => _homeReadRoutes = Map.unmodifiable(routes));
             },
-            onFeatureTap: (feature) => setState(() => _openedFeature = feature),
+            onFeatureTap: _openFeatureList,
             onRetryFeature: widget.onRetryFeature,
             onRefresh: widget.onRefresh,
           ),
           1 => FeatureGridView(
             snapshots: widget.snapshots,
-            onFeatureTap: (feature) => setState(() => _openedFeature = feature),
+            onFeatureTap: _openFeatureList,
             onRetryFeature: widget.onRetryFeature,
           ),
           2 => AdvancedFeaturesView(
             snapshots: widget.snapshots,
-            onFeatureTap: (feature) => setState(() => _openedFeature = feature),
+            onFeatureTap: _openFeatureList,
             onRetryFeature: widget.onRetryFeature,
           ),
           _ => const SizedBox.shrink(),

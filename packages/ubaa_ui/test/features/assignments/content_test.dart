@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_ui/src/common/feature_detail.dart';
 import '../../support/navigation.dart';
 
 void main() {
@@ -298,6 +299,51 @@ Future<void> showFeature(
   tester.view.physicalSize = size;
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
+  if ((feature == FeatureId.spoc || feature == FeatureId.judge) &&
+      query.view != FeatureQueryView.summary) {
+    final key = GlobalKey<FeatureDetailViewState>();
+    await tester.pumpWidget(
+      MaterialApp(
+        builder: (context, child) => MediaQuery(
+          data: MediaQuery.of(
+            context,
+          ).copyWith(textScaler: TextScaler.linear(textScale)),
+          child: child!,
+        ),
+        home: Scaffold(
+          appBar: AppBar(
+            actions: [
+              IconButton(
+                tooltip: '搜索与筛选',
+                onPressed: () => key.currentState?.togglePanel(),
+                icon: const Icon(Icons.search),
+              ),
+            ],
+          ),
+          body: FeatureDetailView(
+            key: key,
+            feature: feature,
+            bykcFilters: const BykcCourseFilters.defaults(),
+            onBykcFiltersChanged: (_) async {},
+            snapshot: FeatureSnapshot(
+              feature: feature,
+              status: FeatureLoadStatus.success,
+              details: details,
+              readContext: FeatureReadContext(query: query, requestRevision: 1),
+            ),
+            query: query,
+            onBack: () {},
+            onRetry: () async {},
+            onQuery: (query) async {
+              queries.add(query);
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    return;
+  }
   await tester.pumpWidget(
     MaterialApp(
       builder: (context, child) => MediaQuery(

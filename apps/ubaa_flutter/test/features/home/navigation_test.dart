@@ -92,6 +92,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(backend.homeQueries.last.$2.view, FeatureQueryView.spocDetail);
     expect(backend.homeQueries.last.$2.assignmentId, 'spoc-a');
+    final requestsBeforeBack = backend.homeQueries.length;
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    expect(find.text(FeatureId.spoc.title), findsOneWidget);
+    expect(backend.homeQueries.length, requestsBeforeBack);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     expect(find.byTooltip('返回'), findsNothing);
