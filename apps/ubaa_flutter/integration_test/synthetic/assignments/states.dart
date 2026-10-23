@@ -85,6 +85,11 @@ void _registerStates(IntegrationTestWidgetsFlutterBinding binding) {
             final before = backend.reads.length;
             final overview = _snapshot(tester, feature).overview;
             expect(_snapshot(tester, feature).details.length, 42);
+            if (feature == FeatureId.spoc) {
+              await _panel(tester, true);
+              await _tap(tester, find.text('仅显示未提交'));
+              await _panel(tester, false);
+            }
             await _shot(binding, tester, '$prefix-page-one', feature);
             if (feature != FeatureId.judge && feature != FeatureId.spoc) {
               await _tap(tester, find.byTooltip('下一页'));

@@ -10,6 +10,9 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
         _snapshot(tester, FeatureId.spoc).overview,
         isA<SpocTermOverview>(),
       );
+      await _panel(tester, true);
+      await _tap(tester, find.text('仅显示未提交'));
+      await _panel(tester, false);
       await _search(tester, 'SPOC课程b');
       final before = backend.reads.length;
       await _tap(tester, find.byType(AssignmentCard));

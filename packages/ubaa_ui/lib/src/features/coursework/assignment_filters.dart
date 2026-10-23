@@ -8,8 +8,8 @@ class AssignmentListFilters {
     this.byStart = false,
     this.ascending = true,
     this.showExpired = false,
-    bool? onlyUnfinished,
-  }) : onlyUnfinished = onlyUnfinished ?? !isSpoc;
+    this.onlyUnfinished = true,
+  });
   final bool isSpoc, byStart, ascending, showExpired, onlyUnfinished;
 
   AssignmentListFilters copyWith({

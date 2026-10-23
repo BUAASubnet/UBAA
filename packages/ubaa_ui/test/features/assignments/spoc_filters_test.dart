@@ -61,21 +61,23 @@ void main() {
     ];
     List<String> titles(AssignmentListFilters filters) =>
         filters.apply(source, '', now: now).map((d) => d.title).toList();
-    expect(titles(defaults), containsAll(['未提交', '已提交', '部分提交', '未知状态']));
-    expect(titles(defaults), isNot(contains('刚截止')));
+    expect(titles(defaults), ['未提交']);
+    final allStatuses = defaults.copyWith(onlyUnfinished: false);
+    expect(titles(allStatuses), containsAll(['未提交', '已提交', '部分提交', '未知状态']));
+    expect(titles(allStatuses), isNot(contains('刚截止')));
     final unsubmitted = defaults.copyWith(onlyUnfinished: true);
     expect(titles(unsubmitted), ['未提交']);
     final both = unsubmitted.copyWith(showExpired: true);
     expect(titles(both), ['刚截止', '未提交']);
     expect(titles(both.copyWith(showExpired: false)), ['未提交']);
-    expect(titles(defaults.copyWith(byStart: true)).first, '部分提交');
+    expect(titles(allStatuses.copyWith(byStart: true)).first, '部分提交');
     expect(
-      titles(defaults.copyWith(ascending: false)),
-      titles(defaults).reversed.toList(),
+      titles(allStatuses.copyWith(ascending: false)),
+      titles(allStatuses).reversed.toList(),
     );
   });
 
-  testWidgets('SPOC 默认隐藏已截止且保留已提交，两个过滤条件独立且零读取', (tester) async {
+  testWidgets('SPOC 默认仅显示未提交，关闭条件可见已提交且筛选零读取', (tester) async {
     final queries = <FeatureQuery>[];
     await showFeature(tester, FeatureId.spoc, [
       spoc(
@@ -100,6 +102,11 @@ void main() {
       ),
     ], queries);
     expect(find.text('历史未提交'), findsNothing);
+    expect(find.text('当前已提交'), findsNothing);
+    expect(find.text('当前未提交'), findsOneWidget);
+    await openQueryPanel(tester);
+    await tester.tap(find.text('仅显示未提交'));
+    await closeQueryPanel(tester);
     expect(find.text('当前已提交'), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('当前已提交')).dy,
