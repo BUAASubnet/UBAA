@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import '../../shared/loading.dart' show LoadingPlaceholder;
 import '../../common/error_card.dart' show FriendlyErrorCard;
@@ -435,7 +436,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         : (currentWeekNum != null ? currentWeekNum + 1 : null);
 
     final weekHeader = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [

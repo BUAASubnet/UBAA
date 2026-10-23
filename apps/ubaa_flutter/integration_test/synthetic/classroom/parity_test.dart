@@ -1,6 +1,8 @@
 import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -18,13 +20,27 @@ void main() {
       final backend = ClassroomOldBackend();
       await mount(tester, backend, brightness);
       expect(find.text('14'), findsOneWidget);
-      expect(find.byType(TextField), findsNothing);
       await capture(
         binding,
         tester,
         '${brightness.name}-normal-table',
-        '14节表格与楼栋标题，正文无搜索筛选',
+        '统一宽度和页面边距，14节表格与楼栋标题、柔和空闲配色',
       );
+      final row = tester.getRect(find.byKey(const ValueKey('classroom-row-0')));
+      final mouse = await tester.createGesture(
+        kind: ui.PointerDeviceKind.mouse,
+      );
+      await mouse.addPointer(
+        location: Offset(row.left + row.width * .29, row.center.dy),
+      );
+      await tester.pump(const Duration(milliseconds: 800));
+      await capture(
+        binding,
+        tester,
+        '${brightness.name}-normal-hover',
+        '鼠标停留在空闲格子，保持表格展示',
+      );
+      await mouse.removePointer();
       await tap(tester, find.text('合成教室1'));
       expect(find.text('ROOM-SAFE-1'), findsOneWidget);
       expect(find.text('1,3,13'), findsOneWidget);
@@ -58,10 +74,10 @@ void main() {
       );
       await edit(tester, '筛选详情', '');
       await edit(tester, '日期', '2026-09-10');
-      await edit(tester, '楼层', 'F2');
-      await edit(tester, '节次', '14');
       await tap(tester, find.byType(DropdownButton<int>));
       await tap(tester, find.text('沙河').last);
+      await edit(tester, '楼层', 'F2');
+      await edit(tester, '节次', '14');
       await tap(tester, find.widgetWithText(FilledButton, '应用筛选'));
       expect(backend.classroomReads.last.date, DateTime(2026, 9, 10));
       expect(backend.classroomReads.last.campus, 2);
@@ -80,6 +96,7 @@ void main() {
     for (final state in [
       'long',
       'many',
+      'dense',
       'empty',
       'first-error',
       'stale',
@@ -96,7 +113,8 @@ void main() {
         if (state == 'stale') {
           backend.fail = true;
           await tap(tester, find.byTooltip('刷新当前查询'));
-          expect(find.text('以下为上次成功加载的数据。'), findsWidgets);
+          expect(find.text('合成教室1'), findsOneWidget);
+          expect(find.widgetWithText(TextButton, '重试'), findsOneWidget);
         }
         if (state == 'loading') {
           final gate = Completer<void>();
@@ -120,16 +138,21 @@ void main() {
           '旧表格原生状态与大字/长名显示',
         );
         if (state == 'long') {
-          final title = find.text(backend.title('合成一号楼'));
+          final title = find.descendant(
+            of: find.byKey(const ValueKey('classroom-table-scroll')),
+            matching: find.text(backend.title('合成一号楼')),
+          );
           final right =
               tester.view.physicalSize.width / tester.view.devicePixelRatio -
               16;
           expect(tester.getRect(title).right, lessThanOrEqualTo(right));
-          final horizontal = find.byWidgetPredicate(
-            (w) =>
-                w is SingleChildScrollView &&
-                w.scrollDirection == Axis.horizontal,
-          );
+          final horizontal = find
+              .byWidgetPredicate(
+                (w) =>
+                    w is SingleChildScrollView &&
+                    w.scrollDirection == Axis.horizontal,
+              )
+              .last;
           await tester.drag(horizontal, const Offset(-500, 0));
           await tester.pumpAndSettle();
           expect(find.text('14').hitTestable(), findsOneWidget);

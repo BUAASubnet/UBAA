@@ -253,26 +253,31 @@ void main() {
   }
 
   testWidgets('空教室明确显示楼层与完整节次令牌', (tester) async {
-    await _show(tester, FeatureId.classroom, const [
-      FeatureDetail(
-        title: 'A203',
-        presentation: ClassroomPresentation(
-          roomId: 'room-3',
-          floorId: 'F03',
-          floorName: '三层',
-          availableSections: '3,13',
+    final semantics = tester.ensureSemantics();
+    try {
+      await _show(tester, FeatureId.classroom, const [
+        FeatureDetail(
+          title: 'A203',
+          presentation: ClassroomPresentation(
+            roomId: 'room-3',
+            floorId: 'F03',
+            floorName: '三层',
+            availableSections: '3,13',
+          ),
         ),
-      ),
-    ]);
-    expect(find.text('三层'), findsOneWidget);
-    expect(find.byTooltip('第3节空闲'), findsOneWidget);
-    expect(find.byTooltip('第13节空闲'), findsOneWidget);
-    expect(find.byTooltip('第2节未列为空闲'), findsOneWidget);
-    await tester.tap(find.text('A203'));
-    await tester.pumpAndSettle();
-    expect(find.text('3,13'), findsOneWidget);
-    expect(find.text('room-3'), findsOneWidget);
-    expect(tester.takeException(), isNull);
+      ]);
+      expect(find.text('三层'), findsOneWidget);
+      expect(find.bySemanticsLabel('第3节空闲'), findsOneWidget);
+      expect(find.bySemanticsLabel('第13节空闲'), findsOneWidget);
+      expect(find.bySemanticsLabel('第2节未列为空闲'), findsOneWidget);
+      await tester.tap(find.text('A203'));
+      await tester.pumpAndSettle();
+      expect(find.text('3,13'), findsOneWidget);
+      expect(find.text('room-3'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    } finally {
+      semantics.dispose();
+    }
   });
 }
 

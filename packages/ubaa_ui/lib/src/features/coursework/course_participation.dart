@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/theme.dart';
 import '../../shared/academic_fields.dart' show AcademicInfo;
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -34,11 +35,11 @@ class CourseParticipationContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) => feature == FeatureId.evaluation
       ? ListView(
-          padding: const EdgeInsets.all(16),
+          padding: UbaaTheme.pageInsets(context),
           children: [for (final detail in details) evaluationRow(detail)],
         )
       : ListView.separated(
-          padding: const EdgeInsets.all(16),
+          padding: UbaaTheme.pageInsets(context),
           itemCount: details.length,
           separatorBuilder: (_, _) => const SizedBox(height: 16),
           itemBuilder: (context, index) => _SigninCourseCard(

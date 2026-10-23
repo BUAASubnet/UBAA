@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../ygdk/summary.dart' show YgdkSummary;
@@ -9,7 +10,7 @@ class CourseworkOverview extends StatelessWidget {
   final FeatureOverview overview;
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+    padding: UbaaTheme.pageInsets(context, top: 12, bottom: 0),
     child: SizedBox(
       width: double.infinity,
       child: Card(

@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -243,7 +244,7 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                 FeatureQueryView.summary &&
             widget.onOpenFilterPanel != null)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+            padding: UbaaTheme.pageInsets(context, top: 12, bottom: 0),
             child: _buildBykcFiltersBar(context, theme),
           ),
         Expanded(
@@ -308,7 +309,7 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                     onNavigate: widget.onNavigate,
                   )
                 : ListView.separated(
-                    padding: const EdgeInsets.all(16),
+                    padding: UbaaTheme.pageInsets(context),
                     itemCount: visible.length,
                     separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {

@@ -22,7 +22,7 @@ extension FeatureDetailPagination on _FeatureDetailListState {
     return <Widget>[
       if (serverPagination != null && widget.onQuery != null)
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          padding: UbaaTheme.pageInsets(context, top: 0, bottom: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[
@@ -65,7 +65,7 @@ extension FeatureDetailPagination on _FeatureDetailListState {
         )
       else if (pageCount > 1)
         Padding(
-          padding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          padding: UbaaTheme.pageInsets(context, top: 0, bottom: 12),
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: <Widget>[

@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -231,7 +232,7 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
     return Stack(
       children: [
         ListView(
-          padding: const EdgeInsets.fromLTRB(16, 16, 16, 96),
+          padding: UbaaTheme.pageInsets(context, top: 16, bottom: 96),
           children: [
             Card(
               color: Theme.of(context).colorScheme.surfaceContainerHighest,

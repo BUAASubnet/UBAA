@@ -1,4 +1,3 @@
-import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -23,20 +22,24 @@ FeatureDetail room(
   ),
 );
 void main() {
-  testWidgets('切换主导航后隐藏页面的提示浮层立即移除', (tester) async {
-    await showFeature(tester, FeatureId.classroom, [room('合成教室')], []);
-    final tip = find.byWidgetPredicate(
-      (w) => w is Tooltip && w.message == '第1节空闲',
+  testWidgets('宽屏空教室表格与返回后的功能列表左右对齐', (tester) async {
+    await showFeature(
+      tester,
+      FeatureId.classroom,
+      [room('合成教室')],
+      [],
+      size: const Size(1600, 1000),
     );
-    tester.state<TooltipState>(tip).ensureTooltipVisible();
-    await tester.pump();
-    await tester.pump(const Duration(milliseconds: 200));
-    expect(find.text('第1节空闲'), findsOneWidget);
-    await tester.tap(find.byIcon(UiDestination.campus.icon));
+    final table = tester.getRect(find.byKey(const ValueKey('classroom-row-0')));
+    await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
-    expect(find.text('第1节空闲', skipOffstage: false), findsNothing);
-    expect(find.text('校园服务'), findsWidgets);
+    final entry = tester.getRect(
+      find.widgetWithText(Card, FeatureId.classroom.title),
+    );
+    expect(table.left, closeTo(entry.left, .01));
+    expect(table.right, closeTo(entry.right, .01));
   });
+
   for (final changeDate in [false, true]) {
     testWidgets('正文切换${changeDate ? '日期' : '校区'}清除已应用的旧楼层节次', (tester) async {
       final queries = <FeatureQuery>[];

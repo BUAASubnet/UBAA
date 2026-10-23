@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -236,13 +237,13 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
               : day == null
               ? const Center(child: Text('当前暂无研讨室时段'))
               : Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  padding: UbaaTheme.pageInsets(context, top: 0, bottom: 0),
                   child: _table(context, day),
                 ),
         ),
         if (_selected.isNotEmpty)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 12),
+            padding: UbaaTheme.pageInsets(context, top: 8, bottom: 12),
             child: FilledButton(
               onPressed: _busy || widget.onSubmit == null
                   ? null

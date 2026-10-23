@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../theme.dart';
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -99,13 +100,17 @@ class _ClassroomContentState extends State<ClassroomContent> {
     }).toList();
 
     final wide = MediaQuery.sizeOf(context).width >= 600;
+    final gutter = UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width);
+    final availableColor = Theme.of(context).brightness == Brightness.dark
+        ? const Color(0xFF4D735F)
+        : const Color(0xFFD5E8D8);
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (wide) ...[
           // 顶行：校区切换
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+            padding: UbaaTheme.pageInsets(context, top: 8, bottom: 4),
             child: SegmentedButton<int>(
               segments: const [
                 ButtonSegment(value: 1, label: Text('学院路')),
@@ -128,7 +133,7 @@ class _ClassroomContentState extends State<ClassroomContent> {
           ),
           // 次行：日期卡片 + 教室过滤
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+            padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
             child: Row(
               children: [
                 Expanded(
@@ -172,7 +177,7 @@ class _ClassroomContentState extends State<ClassroomContent> {
           if (availableBuildings.isNotEmpty)
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+              padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
               child: Row(
                 children: [
                   for (final building in availableBuildings)
@@ -195,7 +200,10 @@ class _ClassroomContentState extends State<ClassroomContent> {
           child: LayoutBuilder(
             builder: (context, constraints) {
               final scale = MediaQuery.textScalerOf(context).scale(11) / 11;
-              final visibleWidth = math.max(0.0, constraints.maxWidth - 32);
+              final visibleWidth = math.max(
+                0.0,
+                constraints.maxWidth - gutter * 2,
+              );
               final width = math.max(visibleWidth, 324 * scale);
               final rowHeight = 44 * scale;
               final groups = <String, List<(int, FeatureDetail)>>{};
@@ -210,7 +218,7 @@ class _ClassroomContentState extends State<ClassroomContent> {
                 ],
               ];
               return Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.symmetric(horizontal: gutter),
                 child: Scrollbar(
                   controller: _horizontal,
                   thumbVisibility: width > visibleWidth,
@@ -252,7 +260,7 @@ class _ClassroomContentState extends State<ClassroomContent> {
                                         Container(
                                           width: 12,
                                           height: 12,
-                                          color: const Color(0xFF98FB98),
+                                          color: availableColor,
                                         ),
                                         const SizedBox(width: 4),
                                         Text(
@@ -346,12 +354,13 @@ class _ClassroomContentState extends State<ClassroomContent> {
                                         )
                                           Expanded(
                                             flex: 10,
-                                            child: Tooltip(
-                                              message:
+                                            child: Semantics(
+                                              container: true,
+                                              label:
                                                   '第$section节${free.contains(section) ? '空闲' : '未列为空闲'}',
                                               child: _ClassroomCell(
                                                 color: free.contains(section)
-                                                    ? const Color(0xFF98FB98)
+                                                    ? availableColor
                                                     : null,
                                               ),
                                             ),

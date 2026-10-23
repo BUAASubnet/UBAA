@@ -14,6 +14,7 @@ class UbaaTheme {
   ];
 
   static const Color seedColor = Color(0xFF536AA3);
+  static const double pageMaxWidth = 1040;
   static const double cardRadius = 16;
   static const double controlRadius = 12;
 
@@ -22,6 +23,15 @@ class UbaaTheme {
       : width < 1000
       ? 24
       : 32;
+
+  static EdgeInsets pageInsets(
+    BuildContext context, {
+    double? top,
+    double? bottom,
+  }) {
+    final gutter = pagePadding(MediaQuery.sizeOf(context).width);
+    return EdgeInsets.fromLTRB(gutter, top ?? gutter, gutter, bottom ?? gutter);
+  }
 
   static ThemeData light() => _build(Brightness.light);
   static ThemeData dark() => _build(Brightness.dark);

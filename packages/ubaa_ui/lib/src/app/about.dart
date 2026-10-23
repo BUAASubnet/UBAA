@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/theme.dart';
 import '../shared/loading.dart' show LoadingGlyph;
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -54,11 +55,11 @@ class _AboutViewState extends State<AboutView> {
   @override
   Widget build(BuildContext context) => SizedBox.expand(
     child: SingleChildScrollView(
-      padding: const EdgeInsets.all(16),
+      padding: UbaaTheme.pageInsets(context, top: 16, bottom: 16),
       child: Align(
         alignment: Alignment.topCenter,
-        child: ConstrainedBox(
-          constraints: const BoxConstraints(maxWidth: 840),
+        child: SizedBox(
+          width: double.infinity,
           child: Card(
             child: Padding(
               padding: const EdgeInsets.all(16),

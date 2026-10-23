@@ -70,7 +70,7 @@ extension CgyyReservationChoices on CgyyReservationFlowState {
         if (_sites.isNotEmpty)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
             child: Row(
               children: [
                 for (final campus in allCampuses)
@@ -111,7 +111,7 @@ extension CgyyReservationChoices on CgyyReservationFlowState {
         if (day != null && day.availableDates.isNotEmpty)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
             child: Row(
               children: [
                 for (final date in day.availableDates.toSet())
@@ -134,7 +134,7 @@ extension CgyyReservationChoices on CgyyReservationFlowState {
         if (_visibleSites.isNotEmpty)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
             child: Row(
               children: [
                 for (final site in _visibleSites)

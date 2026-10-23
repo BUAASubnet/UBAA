@@ -32,13 +32,15 @@ class ClassroomOldBackend extends AcademicOldBackend {
     final count = state == 'many' ? 42 : 5;
     for (var i = 0; i < count; i++) {
       final floor = i % 2 == 0 ? 'F1' : 'F2';
-      final sections = switch (i % 5) {
-        0 => '1,3,13',
-        1 => '2,4,14',
-        2 => '',
-        3 => '未开放',
-        _ => '03,14,15',
-      };
+      final sections = state == 'dense'
+          ? List.generate(14, (index) => '${index + 1}').join(',')
+          : switch (i % 5) {
+              0 => '1,3,13',
+              1 => '2,4,14',
+              2 => '',
+              3 => '未开放',
+              _ => '03,14,15',
+            };
       if (query.floorId?.isNotEmpty == true && query.floorId != floor) continue;
       if (query.section?.isNotEmpty == true &&
           !sections.split(',').contains(query.section)) {

@@ -61,8 +61,20 @@ Future<void> capture(
     'viewportSource': 'native-view-unmodified',
     'dateUtc': DateTime.now().toUtc().toIso8601String(),
     'sourceSha': const String.fromEnvironment('UBAA_UI_SOURCE_SHA'),
+    if (Platform.isMacOS) 'imageSource': 'native-flutter-repaint-boundary',
   });
-  if (Platform.isIOS) {
+  if (Platform.isMacOS) {
+    final boundary = tester.renderObject<RenderRepaintBoundary>(
+      find.byKey(const ValueKey('classroom-capture')),
+    );
+    final image = await boundary.toImage(pixelRatio: ratio);
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    final renders =
+        binding.reportData!.putIfAbsent('nativeRenders', () => <Object?>[])
+            as List;
+    renders.add({'name': name, 'bytes': data!.buffer.asUint8List()});
+  } else if (Platform.isIOS) {
     await binding.takeScreenshot(name);
   } else {
     debugPrint('原生教室表格检查点：$name');
@@ -91,16 +103,18 @@ Future<void> mount(
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
   }
   await tester.pumpWidget(
-    UbaaFlutterApp(
-      backend: backend,
-      credentialVault: MemoryCredentialVault(),
-      initialDestination: UiDestination.academic,
+    RepaintBoundary(
+      key: const ValueKey('classroom-capture'),
+      child: UbaaFlutterApp(
+        backend: backend,
+        credentialVault: MemoryCredentialVault(),
+        initialDestination: UiDestination.academic,
+      ),
     ),
   );
   await tester.pumpAndSettle();
   await tap(tester, find.widgetWithText(Card, FeatureId.classroom.title));
-  expect(find.byType(TextField), findsNothing);
   if (tester.view.physicalSize.width / tester.view.devicePixelRatio < 600) {
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(NavigationBar), findsOneWidget);
   }
 }

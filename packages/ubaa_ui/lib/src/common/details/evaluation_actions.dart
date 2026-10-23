@@ -48,7 +48,7 @@ extension EvaluationDetailActions on _FeatureDetailListState {
         selectedEvaluations.isNotEmpty &&
         widget.onEvaluationWrite != null)
       Padding(
-        padding: const EdgeInsets.fromLTRB(16, 4, 16, 4),
+        padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
         child: Wrap(
           spacing: 8,
           runSpacing: 4,

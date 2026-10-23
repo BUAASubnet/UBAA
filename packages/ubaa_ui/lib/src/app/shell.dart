@@ -414,9 +414,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 600;
     final pendingWrite = widget.writeState.intent;
-    final maxContentWidth = _openedFeature == FeatureId.classroom
-        ? 1600.0
-        : 1040.0;
+    const maxContentWidth = UbaaTheme.pageMaxWidth;
     if (_openedFeature case final feature?) _visitedFeatures.add(feature);
     final pages = _visitedFeatures.toList(growable: false);
     // 只保留已访问页面的 State；每次 build 都读取当前快照和回调。

@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -356,7 +357,7 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
           p.areaId: '座位分布',
     };
     return ListView(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 16),
+      padding: UbaaTheme.pageInsets(context, top: 12, bottom: 16),
       children: [
         if (library != null)
           Text(library.name, style: Theme.of(context).textTheme.titleMedium),
