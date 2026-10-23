@@ -17,7 +17,7 @@ void main() {
           score: '10',
           status: AssignmentSubmissionStatus.unsubmitted,
           statusText: '未提交',
-          dueTime: '2026-09-13 23:59',
+          dueTime: '2099-09-13 23:59',
         ),
         readNavigation: FeatureReadNavigation(
           feature: FeatureId.spoc,

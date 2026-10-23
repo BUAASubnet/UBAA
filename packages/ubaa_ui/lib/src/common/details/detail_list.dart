@@ -153,6 +153,7 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
     final theme = Theme.of(context);
     final isBykcStatistics = uiIsBykcStatistics(widget.feature, widget.details);
     final unpagedLocal =
+        widget.feature == FeatureId.spoc ||
         widget.feature == FeatureId.judge ||
         widget.feature == FeatureId.exam ||
         widget.feature == FeatureId.classroom ||
@@ -278,6 +279,8 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                           ? '当前页没有匹配项'
                           : widget.feature == FeatureId.judge
                           ? '暂无符合条件的希冀作业'
+                          : widget.feature == FeatureId.spoc
+                          ? '暂无符合条件的 SPOC 作业'
                           : '没有匹配的详情',
                     ),
                   )

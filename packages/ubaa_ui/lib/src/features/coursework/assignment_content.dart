@@ -54,19 +54,19 @@ class AssignmentContent extends StatelessWidget {
           _ => false,
         },
       );
-      final groups = <(String, String), List<FeatureDetail>>{};
+      final groups = <String, List<FeatureDetail>>{};
       if (summary) {
         for (final detail in details) {
           final key = switch (detail.presentation) {
-            SpocAssignmentPresentation p => (p.courseId, p.courseName),
-            JudgeAssignmentPresentation p => (p.courseId, p.courseName),
-            _ => ('', ''),
+            SpocAssignmentPresentation p => p.courseName,
+            JudgeAssignmentPresentation p => p.courseName,
+            _ => '',
           };
           groups.putIfAbsent(key, () => []).add(detail);
         }
       } else {
         // 批量详情保持调用者顺序，不按课程重新排列。
-        groups[('', '')] = details;
+        groups[''] = details;
       }
       return ListView(
         padding: const EdgeInsets.all(16),
@@ -76,7 +76,7 @@ class AssignmentContent extends StatelessWidget {
               Padding(
                 padding: const EdgeInsets.only(bottom: 12),
                 child: Text(
-                  uiNonBlank(entry.key.$2) ?? '课程名称未提供',
+                  uiNonBlank(entry.key) ?? '课程名称未提供',
                   style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                     fontWeight: FontWeight.w600,
                     color: Theme.of(context).colorScheme.onSurfaceVariant,
@@ -177,9 +177,11 @@ class AssignmentCard extends StatelessWidget {
               if (p is SpocAssignmentPresentation) ...[
                 if (uiNonBlank(p.teacherName) case final teacher?)
                   _assignmentLine(context, '教师：$teacher'),
-                if (uiNonBlank(p.startTime) case final start?)
-                  _assignmentLine(context, '开始：$start'),
-                _assignmentLine(context, '截止：${uiNonBlank(due) ?? '未提供'}'),
+                _assignmentLine(
+                  context,
+                  '开始：${uiNonBlank(p.startTime) ?? '未知'}',
+                ),
+                _assignmentLine(context, '截止：${uiNonBlank(due) ?? '未知'}'),
                 if (uiNonBlank(p.score) case final score?)
                   _assignmentLine(context, '分值：$score'),
               ],

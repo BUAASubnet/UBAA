@@ -1,4 +1,4 @@
-import 'package:ubaa_ui/src/features/coursework/judge_filters.dart';
+import 'package:ubaa_ui/src/features/coursework/assignment_filters.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -56,9 +56,9 @@ void main() {
       assignment('已完成', AssignmentSubmissionStatus.submitted, null),
       assignment('未知状态', AssignmentSubmissionStatus.unknown, null),
     ];
-    List<String> titles(JudgeListFilters filters, {String search = ''}) =>
+    List<String> titles(AssignmentListFilters filters, {String search = ''}) =>
         filters.apply(source, search, now: now).map((d) => d.title).toList();
-    const defaults = JudgeListFilters();
+    const defaults = AssignmentListFilters();
     expect(titles(defaults), ['截止相等', '较早', '稍后', '未知日期']);
     expect(titles(defaults.copyWith(ascending: false)), [
       '未知日期',

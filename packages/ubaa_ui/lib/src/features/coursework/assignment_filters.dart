@@ -2,27 +2,30 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 /// 展示条件独立于网络查询，父列表保留条件直到页面销毁。
-class JudgeListFilters {
-  const JudgeListFilters({
+class AssignmentListFilters {
+  const AssignmentListFilters({
+    this.isSpoc = false,
     this.byStart = false,
     this.ascending = true,
     this.showExpired = false,
-    this.onlyUnfinished = true,
-  });
-  final bool byStart, ascending, showExpired, onlyUnfinished;
+    bool? onlyUnfinished,
+  }) : onlyUnfinished = onlyUnfinished ?? !isSpoc;
+  final bool isSpoc, byStart, ascending, showExpired, onlyUnfinished;
 
-  JudgeListFilters copyWith({
+  AssignmentListFilters copyWith({
     bool? byStart,
     bool? ascending,
     bool? showExpired,
     bool? onlyUnfinished,
   }) {
     final expired = showExpired ?? this.showExpired;
-    return JudgeListFilters(
+    return AssignmentListFilters(
+      isSpoc: isSpoc,
       byStart: byStart ?? this.byStart,
       ascending: ascending ?? this.ascending,
       showExpired: expired,
-      onlyUnfinished: !expired && (onlyUnfinished ?? this.onlyUnfinished),
+      onlyUnfinished:
+          (isSpoc || !expired) && (onlyUnfinished ?? this.onlyUnfinished),
     );
   }
 
@@ -34,35 +37,60 @@ class JudgeListFilters {
     final query = search.trim().toLowerCase();
     final time = now ?? DateTime.now();
     final result = source.where((detail) {
-      final p = detail.presentation;
+      final p = _values(detail.presentation);
       // 渐进加载中尚无摘要的条目不冒充已确认的未完成作业。
-      if (p is! JudgeAssignmentPresentation) return false;
+      if (p == null) return false;
       if (p.isDetail) return true;
       if (query.isNotEmpty &&
           !detail.title.toLowerCase().contains(query) &&
-          !p.courseName.toLowerCase().contains(query))
+          !p.course.toLowerCase().contains(query))
         return false;
       if (onlyUnfinished &&
           p.status != AssignmentSubmissionStatus.unsubmitted &&
-          p.status != AssignmentSubmissionStatus.partial)
+          (isSpoc || p.status != AssignmentSubmissionStatus.partial))
         return false;
-      final due = _date(p.dueTime);
+      final due = _date(p.due);
       return showExpired || due == null || !due.isBefore(time);
     }).toList();
     result.sort((left, right) {
-      final a = left.presentation! as JudgeAssignmentPresentation;
-      final b = right.presentation! as JudgeAssignmentPresentation;
-      final at = _date(byStart ? a.startTime : a.dueTime);
-      final bt = _date(byStart ? b.startTime : b.dueTime);
+      final a = _values(left.presentation)!;
+      final b = _values(right.presentation)!;
+      final at = _date(byStart ? a.start : a.due);
+      final bt = _date(byStart ? b.start : b.due);
       var order = at == null
           ? (bt == null ? 0 : 1)
           : (bt == null ? -1 : at.compareTo(bt));
-      if (order == 0) order = a.courseName.compareTo(b.courseName);
+      if (order == 0) order = a.course.compareTo(b.course);
       if (order == 0) order = left.title.compareTo(right.title);
       return ascending ? order : -order;
     });
     return result;
   }
+
+  ({
+    String course,
+    String? start,
+    String? due,
+    AssignmentSubmissionStatus status,
+    bool isDetail,
+  })?
+  _values(FeaturePresentation? p) => switch (p) {
+    SpocAssignmentPresentation p when isSpoc => (
+      course: p.courseName,
+      start: p.startTime,
+      due: p.dueTime,
+      status: p.status,
+      isDetail: p.isDetail,
+    ),
+    JudgeAssignmentPresentation p when !isSpoc => (
+      course: p.courseName,
+      start: p.startTime,
+      due: p.dueTime,
+      status: p.status,
+      isDetail: p.isDetail,
+    ),
+    _ => null,
+  };
 
   static DateTime? _date(String? value) {
     final normalized = value?.trim().replaceAll(' ', 'T');
@@ -80,14 +108,14 @@ class JudgeListFilters {
   }
 }
 
-class JudgeFilterControls extends StatelessWidget {
-  const JudgeFilterControls({
+class AssignmentFilterControls extends StatelessWidget {
+  const AssignmentFilterControls({
     required this.filters,
     required this.onChanged,
     this.onLoadHistory,
   });
-  final JudgeListFilters filters;
-  final ValueChanged<JudgeListFilters> onChanged;
+  final AssignmentListFilters filters;
+  final ValueChanged<AssignmentListFilters> onChanged;
   final VoidCallback? onLoadHistory;
 
   @override
@@ -127,9 +155,9 @@ class JudgeFilterControls extends StatelessWidget {
         runSpacing: 8,
         children: [
           FilterChip(
-            label: const Text('仅显示未完成'),
+            label: Text(filters.isSpoc ? '仅显示未提交' : '仅显示未完成'),
             selected: filters.onlyUnfinished,
-            onSelected: filters.showExpired
+            onSelected: !filters.isSpoc && filters.showExpired
                 ? null
                 : (value) => onChanged(filters.copyWith(onlyUnfinished: value)),
           ),

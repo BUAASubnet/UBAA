@@ -727,6 +727,14 @@ void _registerSharedStateTests() {
                               totalProblems: 1,
                               submittedCount: 0,
                             )
+                          : feature == FeatureId.spoc
+                          ? const SpocAssignmentPresentation(
+                              courseId: 'c',
+                              courseName: '合成课程',
+                              assignmentId: 'a',
+                              status: AssignmentSubmissionStatus.unsubmitted,
+                              statusText: '未提交',
+                            )
                           : null,
                     ),
                   ]

@@ -14,8 +14,8 @@ import '../features/cgyy/reservation_flow.dart'
     show CgyyReservationChoices, CgyyReservationFlow, CgyyReservationFlowState;
 import '../features/coursework/coursework_overview.dart'
     show CourseworkOverview;
-import '../features/coursework/judge_filters.dart'
-    show JudgeListFilters, JudgeFilterControls;
+import '../features/coursework/assignment_filters.dart'
+    show AssignmentListFilters, AssignmentFilterControls;
 import '../features/grades/flow.dart' show GradesFlow;
 import '../features/libbook/reservation_flow.dart'
     show
@@ -156,9 +156,11 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
   final _scheduleKey = GlobalKey<ScheduleFlowState>();
   final _searchController = TextEditingController();
   bool _panelOpen = false;
-  JudgeListFilters _judgeFilters = const JudgeListFilters();
-  bool get _isJudgeList =>
-      widget.feature == FeatureId.judge &&
+  late AssignmentListFilters _assignmentFilters = AssignmentListFilters(
+    isSpoc: widget.feature == FeatureId.spoc,
+  );
+  bool get _isAssignmentList =>
+      (widget.feature == FeatureId.judge || widget.feature == FeatureId.spoc) &&
       (widget.query?.view ?? FeatureQueryView.summary) ==
           FeatureQueryView.summary;
   Set<BykcCourseStatus> get _bykcStatuses => widget.bykcFilters.statuses;
@@ -470,20 +472,22 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                                     TextField(
                                       controller: _searchController,
                                       decoration: InputDecoration(
-                                        labelText: _isJudgeList
+                                        labelText: _isAssignmentList
                                             ? '课程名称或作业标题'
                                             : '筛选详情',
                                         prefixIcon: const Icon(Icons.search),
                                       ),
                                       onChanged: (_) => setState(() {}),
                                     ),
-                                  if (_isJudgeList)
-                                    JudgeFilterControls(
-                                      filters: _judgeFilters,
-                                      onChanged: (value) =>
-                                          setState(() => _judgeFilters = value),
+                                  if (_isAssignmentList)
+                                    AssignmentFilterControls(
+                                      filters: _assignmentFilters,
+                                      onChanged: (value) => setState(
+                                        () => _assignmentFilters = value,
+                                      ),
                                       onLoadHistory:
-                                          widget.query?.includeExpired ==
+                                          widget.feature == FeatureId.spoc ||
+                                              widget.query?.includeExpired ==
                                                   true ||
                                               widget.onQuery == null ||
                                               widget.snapshot.status ==
@@ -498,6 +502,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                                             ),
                                     ),
                                   if (widget.feature != FeatureId.judge &&
+                                      widget.feature != FeatureId.spoc &&
                                       widget.onQuery != null &&
                                       _supportsQuery)
                                     if (_isCgyyReservation) ...[
@@ -629,11 +634,14 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
     return FeatureDetailList(
       feature: widget.feature,
       writesEnabled: widget.snapshot.status != FeatureLoadStatus.loading,
-      details: _isJudgeList
-          ? _judgeFilters.apply(widget.snapshot.details, _searchController.text)
+      details: _isAssignmentList
+          ? _assignmentFilters.apply(
+              widget.snapshot.details,
+              _searchController.text,
+            )
           : widget.snapshot.details,
       timeline: _scheduleTimeline,
-      filter: _isJudgeList ? '' : _searchController.text,
+      filter: _isAssignmentList ? '' : _searchController.text,
       bykcStatuses: _bykcStatuses,
       onBykcStatusesChanged: (statuses) => widget.onBykcFiltersChanged(
         widget.bykcFilters.copyWith(statuses: statuses),

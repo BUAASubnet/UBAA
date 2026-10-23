@@ -47,7 +47,7 @@ FeatureResult _courseworkData(
         assignmentId: id,
         teacherName: '合成教师$suffix',
         startTime: '时间待确认',
-        dueTime: '2026-09-20 23:59',
+        dueTime: '2099-09-20 23:59',
         score: i == 0 ? null : '优秀',
         status: i == 0
             ? AssignmentSubmissionStatus.unsubmitted

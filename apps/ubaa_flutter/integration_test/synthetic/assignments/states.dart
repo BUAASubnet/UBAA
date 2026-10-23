@@ -32,7 +32,7 @@ void _registerStates(IntegrationTestWidgetsFlutterBinding binding) {
               FeatureLoadStatus.success,
             );
           } else if (state == 'stale') {
-            if (feature != FeatureId.judge) {
+            if (feature != FeatureId.judge && feature != FeatureId.spoc) {
               await _apply(tester, feature, const FeatureQuery());
             }
             final old = _snapshot(tester, feature).details;
@@ -86,7 +86,7 @@ void _registerStates(IntegrationTestWidgetsFlutterBinding binding) {
             final overview = _snapshot(tester, feature).overview;
             expect(_snapshot(tester, feature).details.length, 42);
             await _shot(binding, tester, '$prefix-page-one', feature);
-            if (feature != FeatureId.judge) {
+            if (feature != FeatureId.judge && feature != FeatureId.spoc) {
               await _tap(tester, find.byTooltip('下一页'));
               expect(find.text('2 / 3'), findsOneWidget);
               await _shot(binding, tester, '$prefix-page-two', feature);

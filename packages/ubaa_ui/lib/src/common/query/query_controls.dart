@@ -10,8 +10,7 @@ import '../../features/schedule/week_picker.dart'
 part 'academic.dart';
 part 'classroom_queries.dart';
 part 'week_picker.dart';
-part 'assignments.dart';
-part 'assignment_picker.dart';
+part 'signin.dart';
 part 'bykc.dart';
 part 'cgyy.dart';
 part 'evaluation.dart';
@@ -75,7 +74,6 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
   late final TextEditingController _siteController;
   late final TextEditingController _orderController;
   late final TextEditingController _bykcCourseController;
-  late final TextEditingController _spocAssignmentController;
   final _classroomFloors = <String, String>{};
   final _classroomSections = <String>{};
   FeatureReadContext? _classroomLastContext;
@@ -92,7 +90,6 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
   FeatureQueryView _bykcView = FeatureQueryView.summary;
   FeatureQueryView _ygdkView = FeatureQueryView.summary;
   FeatureQueryView _cgyyView = FeatureQueryView.summary;
-  FeatureQueryView _spocView = FeatureQueryView.summary;
   FeatureQueryView _signinView = FeatureQueryView.summary;
   bool _submitting = false;
   bool _libraryNeedsExplicitDate = false;
@@ -117,7 +114,6 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
     _siteController = TextEditingController();
     _orderController = TextEditingController();
     _bykcCourseController = TextEditingController();
-    _spocAssignmentController = TextEditingController();
     _restoreQuery(widget.initialQuery);
     _classroomDraftDate = _dateController.text.trim();
     _consumeClassroomOptions();
@@ -193,7 +189,6 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
     _siteController.text = query.siteId?.toString() ?? '';
     _orderController.text = query.orderId?.toString() ?? '';
     _bykcCourseController.text = query.courseId ?? '';
-    _spocAssignmentController.text = query.assignmentId ?? '';
     switch (widget.feature) {
       case FeatureId.schedule:
         _scheduleView = query.view;
@@ -212,7 +207,7 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
       case FeatureId.cgyy:
         _cgyyView = query.view;
       case FeatureId.spoc:
-        _spocView = query.view;
+        break;
       case FeatureId.judge:
         break;
       case FeatureId.signin:
@@ -241,7 +236,6 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
     _siteController.dispose();
     _orderController.dispose();
     _bykcCourseController.dispose();
-    _spocAssignmentController.dispose();
     super.dispose();
   }
 
@@ -259,7 +253,6 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
           ..._libbookQueryFields(setState),
           ..._ygdkQueryFields(setState),
           ..._cgyyQueryFields(setState),
-          ..._spocQueryFields(setState),
           ..._evaluationQueryFields(setState),
           ..._signinQueryFields(setState),
           FilledButton.tonal(
@@ -447,12 +440,6 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
           }
         }
       }
-      if (widget.feature == FeatureId.spoc &&
-          _spocView == FeatureQueryView.spocDetail &&
-          _spocAssignmentController.text.trim().isEmpty) {
-        _showMessage('作业编号不能为空。');
-        return;
-      }
       await widget.onApply(
         FeatureQuery(
           term: _termController.text.trim().isEmpty
@@ -487,8 +474,6 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
               ? _cgyyView
               : widget.feature == FeatureId.bykc
               ? _bykcView
-              : widget.feature == FeatureId.spoc
-              ? _spocView
               : widget.feature == FeatureId.signin
               ? _signinView
               : _libbookView,
@@ -503,9 +488,6 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
               : null,
           orderId: widget.feature == FeatureId.cgyy
               ? int.tryParse(_orderController.text.trim())
-              : null,
-          assignmentId: widget.feature == FeatureId.spoc
-              ? _optionalText(_spocAssignmentController)
               : null,
           courseId: widget.feature == FeatureId.bykc
               ? _optionalText(_bykcCourseController)
