@@ -34,8 +34,10 @@ class HomeView extends StatefulWidget {
     this.onDismissGradeNotice,
     this.writeReadbackNotice,
     this.homeClock,
+    this.recentFeatures = const [],
   });
   final Clock? homeClock;
+  final List<FeatureId> recentFeatures;
   final ValueChanged<Map<String, ConnectionMode>>? onRoutes;
   final Widget? writeReadbackNotice;
   final GradeScoreNotice? gradeScoreNotice;
@@ -60,6 +62,7 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
+  final _todoScroll = ScrollController();
   final _supplements = <HomeSupplement, FeatureResult>{};
   final _loading = <HomeSupplement>{};
   int _generation = 0;
@@ -93,6 +96,7 @@ class _HomeViewState extends State<HomeView> {
   @override
   void dispose() {
     _clock.cancel();
+    _todoScroll.dispose();
     super.dispose();
   }
 
@@ -409,12 +413,33 @@ class _HomeViewState extends State<HomeView> {
                   ? () => widget.onSignin!(task.signinAction!)
                   : null,
             );
-            return Column(
-              children: [
-                for (var index = 0; index < tasks.length; index += columns)
-                  Padding(
-                    padding: const EdgeInsets.only(bottom: 12),
-                    child: columns == 1
+            if (tasks.isEmpty) return const SizedBox.shrink();
+            return Container(
+              clipBehavior: Clip.antiAlias,
+              decoration: BoxDecoration(
+                borderRadius: BorderRadius.circular(16),
+                border: Border.all(
+                  color: Theme.of(context).colorScheme.outlineVariant,
+                ),
+              ),
+              padding: const EdgeInsets.all(8),
+              constraints: BoxConstraints(
+                maxHeight: 328 * scale.clamp(1.0, 2.0),
+              ),
+              child: Scrollbar(
+                controller: _todoScroll,
+                thumbVisibility: true,
+                child: ListView.separated(
+                  key: const ValueKey('home-todos'),
+                  controller: _todoScroll,
+                  primary: false,
+                  shrinkWrap: true,
+                  padding: const EdgeInsets.only(right: 8),
+                  itemCount: (tasks.length / columns).ceil(),
+                  separatorBuilder: (_, _) => const SizedBox(height: 12),
+                  itemBuilder: (context, row) {
+                    final index = row * columns;
+                    return columns == 1
                         ? card(tasks[index])
                         : IntrinsicHeight(
                             child: Row(
@@ -429,9 +454,10 @@ class _HomeViewState extends State<HomeView> {
                                 ),
                               ],
                             ),
-                          ),
-                  ),
-              ],
+                          );
+                  },
+                ),
+              ),
             );
           },
         ),
@@ -510,6 +536,7 @@ class _HomeViewState extends State<HomeView> {
     return RefreshIndicator(
       onRefresh: widget.onRefresh,
       child: ListView(
+        key: const ValueKey('home-scroll'),
         physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.all(
           UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
@@ -530,12 +557,17 @@ class _HomeViewState extends State<HomeView> {
           courseSection,
           const SizedBox(height: 16),
           todoSection,
-          shortcuts('常用功能', const [
-            FeatureId.schedule,
-            FeatureId.grades,
-            FeatureId.spoc,
-            FeatureId.judge,
-          ]),
+          shortcuts(
+            '常用功能',
+            widget.recentFeatures.isNotEmpty
+                ? widget.recentFeatures.take(4).toList()
+                : const [
+                    FeatureId.schedule,
+                    FeatureId.grades,
+                    FeatureId.spoc,
+                    FeatureId.judge,
+                  ],
+          ),
           shortcuts('校园生活', UiDestination.campus.features),
         ],
       ),

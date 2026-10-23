@@ -21,6 +21,7 @@ void main() {
   late _Grades grades;
   late _Reminders reminders;
   late _Vault vault;
+  late MemoryRecentFeatureStore recents;
   late SecureLocalAccountStore accounts;
   Future<UbaaMainShell> mount(WidgetTester tester) async {
     materials = _Materials();
@@ -32,8 +33,10 @@ void main() {
     grades = _Grades();
     reminders = _Reminders();
     vault = _Vault();
+    recents = MemoryRecentFeatureStore();
     for (final key in ['fixture-user', 'fixture-school', 'other']) {
       await reminders.write(key, _settings);
+      await recents.write(key, [FeatureId.exam]);
     }
     await tester.pumpWidget(
       UbaaAppHost(
@@ -42,6 +45,7 @@ void main() {
         credentialVault: vault,
         gradeScoreStore: grades,
         reminderStore: reminders,
+        recentFeatureStore: recents,
       ),
     );
     await tester.pumpAndSettle();
@@ -54,11 +58,13 @@ void main() {
     expect(grades.cleared, containsAll(['fixture-user', 'fixture-school']));
     for (final key in ['fixture-user', 'fixture-school']) {
       final saved = await reminders.read(key);
+      expect(await recents.read(key), isEmpty);
       expect(saved.enabled, isTrue);
       expect(saved.weekDoneKey, isNull);
       expect(saved.termDoneKey, isNull);
     }
     expect((await reminders.read('other')).weekDoneKey, 'synthetic-week');
+    expect(await recents.read('other'), [FeatureId.exam]);
     expect(grades.cleared, isNot(contains('other')));
     expect((await accounts.read())!.account, isNull);
     await tester.pumpWidget(const SizedBox());
@@ -155,6 +161,10 @@ void main() {
     expect(backend.loginCalls, 1);
     expect(find.byType(UbaaMainShell), findsOneWidget);
     await expectLater(shell.onLogout(), throwsA(isA<BackendException>()));
+    await expectLater(
+      shell.onSaveRecentFeatures!([FeatureId.spoc]),
+      throwsA(isA<BackendException>()),
+    );
     await expectLater(
       shell.onSaveYgdkReminder!(_settings),
       throwsA(isA<BackendException>()),

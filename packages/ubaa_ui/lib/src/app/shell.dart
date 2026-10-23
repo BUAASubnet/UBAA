@@ -18,6 +18,7 @@ part 'shell_write.dart';
 part 'shell_route.dart';
 part 'shell_navigation.dart';
 part 'bykc_preferences.dart';
+part 'preferences/recent_features.dart';
 
 /// 主界面容器：窄屏使用底部导航，桌面宽屏使用侧边导航。
 class UbaaMainShell extends StatefulWidget {
@@ -70,6 +71,8 @@ class UbaaMainShell extends StatefulWidget {
     this.onSaveYgdkReminder,
     this.onLoadBykcFilters,
     this.onSaveBykcFilters,
+    this.onLoadRecentFeatures,
+    this.onSaveRecentFeatures,
     this.activeRoutes = const <ConnectionMode>[],
     this.onReadDiagnostics,
     this.writeState = const WriteState.idle(),
@@ -114,6 +117,8 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function(YgdkReminderSettings)? onSaveYgdkReminder;
   final Future<BykcCourseFilters?> Function()? onLoadBykcFilters;
   final Future<void> Function(BykcCourseFilters)? onSaveBykcFilters;
+  final Future<List<FeatureId>> Function()? onLoadRecentFeatures;
+  final Future<void> Function(List<FeatureId>)? onSaveRecentFeatures;
   final RoutePolicy routePolicy;
   final bool telemetryEnabled;
   final bool telemetryAvailable;
@@ -198,6 +203,12 @@ class UbaaMainShell extends StatefulWidget {
 }
 
 class _UbaaMainShellState extends State<UbaaMainShell> {
+  List<FeatureId> _recentFeatures = [];
+  int _recentRevision = 0;
+  void _setRecentFeatures(List<FeatureId> value) {
+    setState(() => _recentFeatures = value);
+  }
+
   Map<String, ConnectionMode> _homeReadRoutes = {};
   Map<String, ConnectionMode> _gradesReadRoutes = {};
   YgdkReminderSettings? _reminderSettings;
@@ -241,6 +252,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     _selectedIndex = widget.initialDestination.index;
     unawaited(_loadReminderSettings());
     unawaited(_loadBykcFilters());
+    unawaited(_loadRecentFeatures());
   }
 
   @override
@@ -265,6 +277,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     }
     // 学校标识变化只重新绑定偏好，不改变既有资料页的导航行为。
     if (accountChanged || oldWidget.user?.schoolId != widget.user?.schoolId) {
+      _recentRevision++;
+      _recentFeatures = [];
+      unawaited(_loadRecentFeatures());
       _bykcFilters = const BykcCourseFilters.defaults();
       _bykcFilterError = null;
       _bykcFilterRevision++;
@@ -362,6 +377,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   void _openFeatureList(FeatureId feature) {
     final generation = _accountGeneration;
     setState(() => _openedFeature = feature);
+    _recordFeatureVisit(feature);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted &&
           generation == _accountGeneration &&
@@ -374,6 +390,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   void _openHomeNavigation(FeatureReadNavigation target) {
     final generation = _accountGeneration;
     setState(() => _openedFeature = target.feature);
+    _recordFeatureVisit(target.feature);
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted &&
           generation == _accountGeneration &&
@@ -807,6 +824,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       : switch (_selectedIndex) {
           0 => HomeView(
             homeClock: widget.homeClock,
+            recentFeatures: _recentFeatures,
             user: widget.user,
             snapshots: widget.homeSnapshots ?? widget.snapshots,
             visible: _openedFeature == null && widget.writeState.intent == null,
@@ -826,8 +844,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                     error: widget.writeReadbackError,
                     onDismiss: widget.onDismissWriteReadback,
                     onRefresh: widget.onRefreshWriteReadbacks,
-                    onOpenFeature: (feature) =>
-                        setState(() => _openedFeature = feature),
+                    onOpenFeature: (feature) {
+                      setState(() => _openedFeature = feature);
+                      _recordFeatureVisit(feature);
+                    },
                   ),
             gradeScoreNotice: widget.gradeScoreNotice,
             gradeCheckRoute: widget.gradeCheckRoute,

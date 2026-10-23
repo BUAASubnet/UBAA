@@ -1,5 +1,7 @@
 import 'dart:async';
 import 'dart:io';
+import 'dart:ui' as ui;
+import 'package:flutter/rendering.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
@@ -8,6 +10,7 @@ import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'backend.dart';
+import 'scroll.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -36,8 +39,13 @@ void main() {
       ]) {
         await tap(tester, find.text(title));
         expect(backend.homeQueries.last.$2.view, view);
-        await shot(view.name.toLowerCase(), '待办直接到原只读目标，顶部返回回首页');
+        await shot(view.name.toLowerCase(), '待办直达只读目标，作业详情保留列表父层');
         await tap(tester, find.byTooltip('返回'));
+        if (view == FeatureQueryView.judgeDetail ||
+            view == FeatureQueryView.spocDetail) {
+          expect(find.byTooltip('返回'), findsOneWidget);
+          await tap(tester, find.byTooltip('返回'));
+        }
       }
       await ensure(tester, find.text('本周阳光打卡未达标'));
       await shot('sunlight', '旧第11到14周提醒规则，只显示真实投影次数');
@@ -120,35 +128,24 @@ Future<void> mount(
   tester.platformDispatcher.platformBrightnessTestValue = brightness;
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
   await tester.pumpWidget(
-    UbaaFlutterApp(backend: backend, credentialVault: MemoryCredentialVault()),
+    RepaintBoundary(
+      key: const ValueKey('home-capture'),
+      child: UbaaFlutterApp(
+        backend: backend,
+        credentialVault: MemoryCredentialVault(),
+      ),
+    ),
   );
   await tester.pumpAndSettle();
 }
 
 Future<void> ensure(WidgetTester tester, Finder finder) async {
-  if (finder.evaluate().isEmpty) {
-    final scroll = find
-        .byElementPredicate(
-          (e) =>
-              e.widget is Scrollable &&
-              (e.widget as Scrollable).axisDirection == AxisDirection.down &&
-              e is StatefulElement &&
-              (e.state as ScrollableState).position.viewportDimension > 100,
-        )
-        .hitTestable()
-        .last;
-    await tester.drag(scroll, const Offset(0, 30000));
-    await tester.pumpAndSettle();
-    if (finder.evaluate().isEmpty) {
-      await tester.scrollUntilVisible(
-        finder,
-        240,
-        scrollable: scroll,
-        maxScrolls: 80,
-      );
-    }
+  if (find.byKey(const ValueKey('home-todos')).evaluate().isNotEmpty &&
+      finder.hitTestable().evaluate().isEmpty) {
+    await ensureHomeTodo(tester, finder);
+    return;
   }
-  await tester.ensureVisible(finder);
+  await Scrollable.ensureVisible(tester.element(finder), alignment: .5);
   await tester.pumpAndSettle();
 }
 
@@ -184,8 +181,21 @@ Future<void> capture(
     'viewportSource': 'native-view-unmodified',
     'dateUtc': DateTime.now().toUtc().toIso8601String(),
     'sourceSha': const String.fromEnvironment('UBAA_UI_SOURCE_SHA'),
+    if (Platform.isMacOS) 'imageSource': 'native-flutter-repaint-boundary',
   });
-  if (Platform.isIOS) {
+  if (Platform.isMacOS) {
+    await tester.pump(const Duration(milliseconds: 250));
+    final boundary = tester.renderObject<RenderRepaintBoundary>(
+      find.byKey(const ValueKey('home-capture')),
+    );
+    final image = await boundary.toImage(pixelRatio: ratio);
+    final data = await image.toByteData(format: ui.ImageByteFormat.png);
+    image.dispose();
+    final renders =
+        binding.reportData!.putIfAbsent('nativeRenders', () => <Object?>[])
+            as List;
+    renders.add({'name': name, 'bytes': data!.buffer.asUint8List()});
+  } else if (Platform.isIOS) {
     await binding.takeScreenshot(name);
   } else {
     debugPrint('原生首页检查点：$name');

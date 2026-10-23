@@ -1,6 +1,22 @@
 part of 'ubaa_app_host.dart';
 
 extension _UbaaAppHostLocalData on _UbaaAppHostState {
+  Future<List<FeatureId>> _readRecentFeatures(LocalDataOwnerScope owner) async {
+    owner.checkCurrent();
+    final value = await _recentFeatureStore.read(owner.accountKey);
+    owner.checkCurrent();
+    return value;
+  }
+
+  Future<void> _saveRecentFeatures(
+    LocalDataOwnerScope owner,
+    List<FeatureId> value,
+  ) async {
+    owner.checkCurrent();
+    await _recentFeatureStore.write(owner.accountKey, value);
+    owner.checkCurrent();
+  }
+
   Future<void> _logoutLocalOwner(LocalDataOwnerScope owner) async {
     owner.checkCurrent();
     await Future.wait([_controller.logout(), _revokeScheduleWidgets()]);
@@ -71,6 +87,7 @@ extension _UbaaAppHostLocalData on _UbaaAppHostState {
               _gradeScoreStore.clearAccount,
               _reminderStore.clear,
               _bykcFilterStore.clearAccount,
+              _recentFeatureStore.clearAccount,
             ]) {
               try {
                 await clear(identity);

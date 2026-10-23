@@ -6,6 +6,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   late YgdkReminderStore _reminderStore;
   late GradeScoreStore _gradeScoreStore;
   late BykcCourseFilterStore _bykcFilterStore;
+  late RecentFeatureStore _recentFeatureStore;
   late GradeScoreWatch _gradeWatch;
   final _startupDiagnostics = LocalDiagnostics();
   UiError? _startupError;
@@ -85,6 +86,11 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
             : PreferencesBykcCourseFilterStore(
                 scope: defaultConfigDirectory(),
               ));
+    _recentFeatureStore =
+        widget.recentFeatureStore ??
+        (backend != null || widget.backendFactory != null
+            ? MemoryRecentFeatureStore()
+            : PreferencesRecentFeatureStore(scope: defaultConfigDirectory()));
     _controller.addListener(_retryPendingRecovery);
     _controller.addListener(_showHomeFeedback);
     final widgetGateway =

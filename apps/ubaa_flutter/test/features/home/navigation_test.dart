@@ -4,6 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import '../../../integration_test/synthetic/home/backend.dart';
+import '../../../integration_test/synthetic/home/scroll.dart';
 
 void main() {
   testWidgets('首页混合路线说明在短窗口可滚动并关闭', (tester) async {
@@ -59,28 +60,27 @@ void main() {
       '合成研讨室待办',
       '本周阳光打卡未达标',
     ]) {
-      await tester.scrollUntilVisible(
-        find.text(title),
-        200,
-        scrollable: find.byType(Scrollable).hitTestable().last,
-        maxScrolls: 25,
-      );
+      await ensureHomeTodo(tester, find.text(title));
       expect(find.text(title), findsOneWidget);
     }
-    await tester.drag(
-      find.byType(Scrollable).hitTestable().last,
-      const Offset(0, 5000),
-    );
+    // 恢复外层首页位置；独立待办区域的手势由窗口专项用例覆盖。
+    tester
+        .state<ScrollableState>(
+          find
+              .descendant(
+                of: find.byKey(const ValueKey('home-scroll')),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        )
+        .position
+        .jumpTo(0);
     await tester.pumpAndSettle();
     expect(
       tester.getTopLeft(find.text('合成上午课程')).dy,
       lessThan(tester.getTopLeft(find.text('合成下午课程')).dy),
     );
-    await tester.scrollUntilVisible(
-      find.text('合成SPOC待办'),
-      180,
-      scrollable: find.byType(Scrollable).hitTestable().last,
-    );
+    await ensureHomeTodo(tester, find.text('合成SPOC待办'));
     // ensureVisible 的默认顶端对齐可能仍落在滚动裁剪区外；点击前居中验证可命中。
     await Scrollable.ensureVisible(
       tester.element(find.text('合成SPOC待办')),
@@ -101,10 +101,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byTooltip('返回'), findsNothing);
     expect(find.text('合成SPOC待办'), findsOneWidget);
-    await tester.drag(
-      find.byType(Scrollable).hitTestable().last,
-      const Offset(0, 5000),
-    );
+    // 恢复外层首页位置；独立待办区域的手势由窗口专项用例覆盖。
+    tester
+        .state<ScrollableState>(
+          find
+              .descendant(
+                of: find.byKey(const ValueKey('home-scroll')),
+                matching: find.byType(Scrollable),
+              )
+              .first,
+        )
+        .position
+        .jumpTo(0);
     await tester.pumpAndSettle();
     expect(find.text('今日课表'), findsOneWidget);
     expect(backend.commitCalls, 0);
@@ -118,25 +126,14 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.widgetWithText(FilledButton, '签到'),
-      200,
-      scrollable: find.byType(Scrollable).hitTestable().last,
-    );
+    await ensureHomeTodo(tester, find.widgetWithText(FilledButton, '签到'));
     await tester.tap(find.widgetWithText(FilledButton, '签到'));
     await tester.pumpAndSettle();
     expect(backend.preparedSignin, ['signin-target']);
     await tester.tap(find.widgetWithText(OutlinedButton, '取消'));
     await tester.pumpAndSettle();
     expect(backend.commitCalls, 0);
-    await tester.scrollUntilVisible(
-      find.text('本周阳光打卡未达标'),
-      200,
-      scrollable: find.byType(Scrollable).hitTestable().last,
-      maxScrolls: 20,
-    );
-    await tester.ensureVisible(find.text('本周阳光打卡未达标'));
-    await tester.pumpAndSettle();
+    await ensureHomeTodo(tester, find.text('本周阳光打卡未达标'));
     await tester.tap(find.text('本周阳光打卡未达标'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(SwitchListTile, '首页提醒'), findsOneWidget);

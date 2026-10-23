@@ -152,6 +152,12 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onSaveBykcFilters: localOwner.accountKey.isEmpty
           ? null
           : (value) => _saveBykcFilters(localOwner, value),
+      onLoadRecentFeatures: localOwner.accountKey.isEmpty
+          ? null
+          : () => _readRecentFeatures(localOwner),
+      onSaveRecentFeatures: localOwner.accountKey.isEmpty
+          ? null
+          : (value) => _saveRecentFeatures(localOwner, value),
       ygdkRecordsReadback: _controller.ygdkReadbackState.records,
       routePolicy: _controller.loginForm.routePolicy,
       activeRoutes: _controller.activeRoutes,

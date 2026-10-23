@@ -63,6 +63,7 @@ class UbaaAppHost extends StatefulWidget {
     this.reminderStore,
     this.gradeScoreStore,
     this.bykcFilterStore,
+    this.recentFeatureStore,
     this.appInformation,
     this.onReadSchedulerTrace,
     this.onGradeCheckComplete,
@@ -89,6 +90,7 @@ class UbaaAppHost extends StatefulWidget {
   final YgdkReminderStore? reminderStore;
   final GradeScoreStore? gradeScoreStore;
   final BykcCourseFilterStore? bykcFilterStore;
+  final RecentFeatureStore? recentFeatureStore;
   final PlatformAppInformation? appInformation;
   final void Function(ReadSchedulerTrace trace)? onReadSchedulerTrace;
   final void Function(bool persisted)? onGradeCheckComplete;
