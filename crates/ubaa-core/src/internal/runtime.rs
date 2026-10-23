@@ -23,6 +23,8 @@ pub(crate) struct ClientRuntime {
     account_name: Option<String>,
     session_revision: u64,
     feature_state: Arc<RouteFeatureState>,
+    /// 仅属于本客户端的希冀选课上下文；代次失效后不可复用。
+    pub(crate) judge_selected_course: Option<(u64, String)>,
     non_idempotent_boundary_crossed: bool,
     write_observer: Option<Weak<AtomicBool>>,
     clock: Arc<dyn Fn() -> SystemTime + Send + Sync>,
@@ -91,6 +93,7 @@ impl ClientRuntime {
             account_name: None,
             session_revision,
             feature_state: Arc::new(RouteFeatureState::default()),
+            judge_selected_course: None,
             non_idempotent_boundary_crossed: false,
             write_observer: None,
             clock,
@@ -107,9 +110,11 @@ impl ClientRuntime {
     /// 工作实例共享不可变的传输与存储句柄，但从不持久化认证状态。调用方过滤服务
     /// Cookie，以免并发上游选择状态相互耦合。
     pub(crate) fn fork_for_readonly_with_cookie_filter(
-        &self,
+        &mut self,
         mut retain: impl FnMut(&crate::session::StoredCookie) -> bool,
     ) -> Self {
+        // 网关可能共享服务端当前课程；派生工作开始前撤销父客户端的记忆。
+        self.judge_selected_course = None;
         let mut jar = CookieJar::default();
         jar.replace(
             self.jar
@@ -129,6 +134,7 @@ impl ClientRuntime {
             account_name: self.account_name.clone(),
             session_revision: self.session_revision,
             feature_state: Arc::clone(&self.feature_state),
+            judge_selected_course: None,
             non_idempotent_boundary_crossed: false,
             write_observer: None,
             clock: Arc::clone(&self.clock),
@@ -347,6 +353,7 @@ impl ClientRuntime {
     }
 
     pub(crate) fn clear_memory(&mut self) {
+        self.judge_selected_course = None;
         self.jar = CookieJar::default();
         self.authenticated_at = None;
         self.last_activity = None;
@@ -760,8 +767,17 @@ mod tests {
         parent.account_name = Some("account-safe".to_owned());
         parent.session_revision = 303;
         parent.non_idempotent_boundary_crossed = true;
+        parent.judge_selected_course = Some((parent.feature_state.judge.generation(), "12".into()));
 
         let mut child = parent.fork_for_readonly_with_cookie_filter(|cookie| cookie.name == "KEEP");
+        assert!(
+            parent.judge_selected_course.is_none(),
+            "派生任务撤销父选课记忆"
+        );
+        assert!(
+            child.judge_selected_course.is_none(),
+            "子任务不能继承选课记忆"
+        );
         assert!(Arc::ptr_eq(&parent.transport, &child.transport));
         assert!(Arc::ptr_eq(&parent.store, &child.store));
         assert!(Arc::ptr_eq(&parent.feature_state, &child.feature_state));

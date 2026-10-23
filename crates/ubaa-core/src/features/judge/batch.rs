@@ -374,7 +374,7 @@ fn is_authentication_error(error: &crate::error::UbaaError) -> bool {
     error.code == crate::error::ErrorCode::AuthenticationRequired
 }
 
-fn fork_judge_worker(runtime: &crate::runtime::ClientRuntime) -> crate::runtime::ClientRuntime {
+fn fork_judge_worker(runtime: &mut crate::runtime::ClientRuntime) -> crate::runtime::ClientRuntime {
     let mode = runtime.mode();
     runtime.fork_for_readonly_with_cookie_filter(|cookie| !is_judge_scoped_cookie(cookie, mode))
 }

@@ -161,10 +161,56 @@ fn assert_full_coverage(transport: &ScanTransport) {
             .count()
     };
     assert_eq!(count("courselist.jsp?courseID=0"), 1);
-    assert_eq!(count("courselist.jsp?courseID=12"), 3);
-    assert_eq!(count("courselist.jsp?courseID=13"), 2);
+    assert_eq!(count("courselist.jsp?courseID=12"), 1);
+    assert_eq!(count("courselist.jsp?courseID=13"), 1);
     assert_eq!(count("assignment/index.jsp"), 2);
     for id in ["101", "102", "201"] {
         assert_eq!(count(&format!("assignID={id}")), 1);
     }
+}
+
+#[test]
+fn 交错扫描必须恢复各自课程_连续同课程详情只选择一次() {
+    let (root, mut client, cache, transport) = setup("judge-selection-interleave");
+    tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap()
+        .block_on(async {
+            let mut first = client
+                .begin_judge_online(JudgeOnlineOptions::default())
+                .await
+                .unwrap();
+            client.next_judge_online(&mut first).await.unwrap();
+            let mut second = client
+                .begin_judge_online(JudgeOnlineOptions {
+                    preferred_course: Some("13".into()),
+                    ..JudgeOnlineOptions::default()
+                })
+                .await
+                .unwrap();
+            client.next_judge_online(&mut second).await.unwrap();
+            transport.requests.lock().unwrap().clear();
+            for _ in 0..2 {
+                let result = client.next_judge_online(&mut first).await.unwrap();
+                assert_eq!(result.batch.kind, JudgeScanKind::Detail);
+                assert_eq!(result.batch.detail.unwrap().course_id, "12");
+            }
+            let result = client.next_judge_online(&mut second).await.unwrap();
+            assert_eq!(result.batch.detail.unwrap().course_id, "13");
+            let requests = transport.requests.lock().unwrap();
+            for course in ["12", "13"] {
+                assert_eq!(
+                    requests
+                        .iter()
+                        .filter(|request| request
+                            .url
+                            .ends_with(&format!("courselist.jsp?courseID={course}")))
+                        .count(),
+                    1
+                );
+            }
+        });
+    drop((client, cache));
+    std::fs::remove_dir_all(root).unwrap();
 }

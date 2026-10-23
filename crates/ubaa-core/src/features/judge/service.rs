@@ -18,6 +18,7 @@ const DETAIL_TTL: Duration = Duration::from_mins(2);
 const BUSINESS_REACTIVATION_LIMIT: usize = 3;
 
 async fn activate(runtime: &mut crate::runtime::ClientRuntime) -> crate::error::Result<()> {
+    runtime.judge_selected_course = None;
     let response = crate::features::get_with_redirects(
         runtime,
         runtime.url(LOGIN_URL)?,
@@ -43,6 +44,7 @@ pub(super) async fn get_courses_cached(
     let mut url =
         url::Url::parse(&format!("{BASE_URL}/courselist.jsp")).map_err(|_| invalid_url())?;
     url.query_pairs_mut().append_pair("courseID", "0");
+    runtime.judge_selected_course = None;
     let response = get_html(runtime, runtime.url(url.as_str())?, None).await?;
     let courses = parse_courses(&crate::features::body(&response));
     state
@@ -68,12 +70,7 @@ pub(super) async fn get_course_assignments_cached(
         return Ok(assignments);
     }
     ensure_worker_activated(runtime, activated).await?;
-    let mut select_url =
-        url::Url::parse(&format!("{BASE_URL}/courselist.jsp")).map_err(|_| invalid_url())?;
-    select_url
-        .query_pairs_mut()
-        .append_pair("courseID", &course.course_id);
-    get_html(runtime, runtime.url(select_url.as_str())?, None).await?;
+    select_course(runtime, &course.course_id).await?;
     let index_url = runtime.url(&format!("{BASE_URL}/assignment/index.jsp"))?;
     let response = get_html(runtime, index_url, Some(&course.course_id)).await?;
     let assignments = parse_assignment_list(&crate::features::body(&response), course);
@@ -106,12 +103,7 @@ pub(super) async fn get_detail_cached(
         return Ok(detail);
     }
     ensure_worker_activated(runtime, activated).await?;
-    let mut select_url =
-        url::Url::parse(&format!("{BASE_URL}/courselist.jsp")).map_err(|_| invalid_url())?;
-    select_url
-        .query_pairs_mut()
-        .append_pair("courseID", &assignment.course_id);
-    get_html(runtime, runtime.url(select_url.as_str())?, None).await?;
+    select_course(runtime, &assignment.course_id).await?;
     let mut detail_url =
         url::Url::parse(&format!("{BASE_URL}/assignment/index.jsp")).map_err(|_| invalid_url())?;
     detail_url
@@ -138,6 +130,27 @@ pub(super) async fn get_detail_cached(
         Instant::now(),
     );
     Ok(detail)
+}
+
+async fn select_course(
+    runtime: &mut crate::runtime::ClientRuntime,
+    course: &str,
+) -> crate::error::Result<()> {
+    let generation = runtime.feature_state().judge.generation();
+    if runtime
+        .judge_selected_course
+        .as_ref()
+        .is_some_and(|(owner, selected)| *owner == generation && selected == course)
+    {
+        return Ok(());
+    }
+    runtime.judge_selected_course = None;
+    let mut url =
+        url::Url::parse(&format!("{BASE_URL}/courselist.jsp")).map_err(|_| invalid_url())?;
+    url.query_pairs_mut().append_pair("courseID", course);
+    get_html(runtime, runtime.url(url.as_str())?, None).await?;
+    runtime.judge_selected_course = Some((generation, course.to_owned()));
+    Ok(())
 }
 
 async fn ensure_worker_activated(
@@ -169,10 +182,16 @@ async fn request_html(
     runtime: &mut crate::runtime::ClientRuntime,
     url: String,
 ) -> crate::error::Result<crate::ports::HttpResponse> {
-    let response =
-        crate::features::get_with_redirects(runtime, url, judge_headers(), "judge").await?;
-    check_judge_response(&response)?;
-    Ok(response)
+    let result = crate::features::get_with_redirects(runtime, url, judge_headers(), "judge")
+        .await
+        .and_then(|response| {
+            check_judge_response(&response)?;
+            Ok(response)
+        });
+    if result.is_err() {
+        runtime.judge_selected_course = None;
+    }
+    result
 }
 
 fn check_judge_response(response: &crate::ports::HttpResponse) -> crate::error::Result<()> {
@@ -205,7 +224,12 @@ async fn get_html(
             select_url.query_pairs_mut().append_pair("courseID", course);
             request_html(runtime, runtime.url(select_url.as_str())?)
                 .await
-                .map(|_| ())
+                .map(|_| {
+                    runtime.judge_selected_course = Some((
+                        runtime.feature_state().judge.generation(),
+                        course.to_owned(),
+                    ));
+                })
         } else {
             Ok(())
         };

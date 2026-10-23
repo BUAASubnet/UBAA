@@ -466,7 +466,6 @@ async fn successful_primary_login_invalidates_route_owned_judge_caches() {
                 assignments_url.into(),
                 response(200, assignments_url, assignments),
             ),
-            (select_url.into(), response(200, select_url, "selected")),
             (detail_url.into(), response(200, detail_url, detail)),
         ]
     };

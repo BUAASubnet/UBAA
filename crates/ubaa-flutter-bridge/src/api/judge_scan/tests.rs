@@ -159,10 +159,6 @@ async fn persistent_refresh_delivers_index_then_saved_summary_through_bridge() {
             b"<a href='assignment/index.jsp?assignID=101'>Task A</a>".to_vec(),
         ),
         get(
-            "https://judge.buaa.edu.cn/courselist.jsp?courseID=12",
-            b"ready".to_vec(),
-        ),
-        get(
             "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=101",
             include_bytes!("../../../../../fixtures/readonly/judge-detail.html").to_vec(),
         ),

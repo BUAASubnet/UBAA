@@ -37,7 +37,6 @@ async fn judge_selects_courses_before_reading_assignment_details() {
                 readonly_fixture("judge-assignments.html").unwrap(),
             ),
         ),
-        (select_url.into(), response(200, select_url, "selected")),
         (
             detail_url.into(),
             response(
@@ -96,7 +95,6 @@ async fn judge_diagnostics_reuse_the_list_chain_and_report_safe_parser_counts() 
         expected_get(judge_home, "judge ready"),
         expected_get(select_url, "selected"),
         expected_get(assignments_url, assignments),
-        expected_get(select_url, "selected"),
         expected_get(
             detail_url,
             "作业满分: 10 共 1 道 作业时间: 2026-08-01 08:00 至 2026-08-31 23:00 未提交",
@@ -170,7 +168,6 @@ async fn judge_reactivates_once_when_a_business_page_returns_login_html() {
                 readonly_fixture("judge-assignments.html").unwrap(),
             ),
         ),
-        (select_url.into(), response(200, select_url, "selected")),
         (
             detail_url.into(),
             response(
@@ -340,7 +337,6 @@ async fn judge_历史作业逐项过滤且仍可显式包含() {
             assignments_url,
             readonly_fixture("judge-assignments.html").unwrap(),
         ),
-        expected_get(select_url, "selected"),
         expected_get(
             detail_url,
             "作业时间: 2020-01-01 08:00:00 至 2020-01-31 23:00:00 未提交",
@@ -374,7 +370,6 @@ async fn judge_webvpn_batch_details_keep_every_request_on_gateway_host() {
         "https://judge.buaa.edu.cn/".into(),
         "https://judge.buaa.edu.cn/courselist.jsp?courseID=1".into(),
         "https://judge.buaa.edu.cn/assignment/index.jsp".into(),
-        "https://judge.buaa.edu.cn/courselist.jsp?courseID=1".into(),
         "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=101".into(),
     ];
     let urls = direct_urls
@@ -392,8 +387,7 @@ async fn judge_webvpn_batch_details_keep_every_request_on_gateway_host() {
             &urls[6],
             readonly_fixture("judge-assignments.html").unwrap(),
         ),
-        expected_get(&urls[7], "selected"),
-        expected_get(&urls[8], readonly_fixture("judge-detail.html").unwrap()),
+        expected_get(&urls[7], readonly_fixture("judge-detail.html").unwrap()),
     ]);
     let observed = transport.clone();
     let mut client = RouteClient::with_transport(
