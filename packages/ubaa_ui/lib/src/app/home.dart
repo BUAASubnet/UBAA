@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/theme.dart';
 import '../common/section.dart';
+import 'destination.dart';
 import '../shared/loading.dart' show LoadingGlyph, LoadingPlaceholder;
 import '../features/grades/notice.dart' show GradeScoreBanner;
 import '../shared/feature_icons.dart' show uiFeatureIcon;
@@ -317,161 +318,210 @@ class _HomeViewState extends State<HomeView> {
               sources[f]?.status == FeatureLoadStatus.stale,
         )
         .toList();
-    return RefreshIndicator(
-      onRefresh: widget.onRefresh,
-      child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
-        padding: const EdgeInsets.all(16),
-        children: [
-          Text(
-            '今日课表',
-            style: Theme.of(
-              context,
-            ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-          ),
-          const SizedBox(height: 4),
-          Text('${campusNow.month}月${campusNow.day}日'),
-          const SizedBox(height: 12),
-          if (widget.writeReadbackNotice case final notice?) ...[
-            notice,
-            const SizedBox(height: 12),
-          ],
-          if (widget.gradeScoreNotice case final notice?) ...[
-            GradeScoreBanner(
-              notice: notice,
-              onOpen: widget.onOpenGradeNotice,
-              onDismiss: widget.onDismissGradeNotice,
-            ),
-            const SizedBox(height: 12),
-          ],
-          if (today.isNotEmpty)
-            for (final detail in today)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 12),
-                child: _HomeCourseCard(detail: detail),
-              )
-          else if (schedule.evidence == null &&
-              schedule.updatedAt == null &&
-              (schedule.status == FeatureLoadStatus.loading ||
-                  schedule.status == FeatureLoadStatus.idle))
-            const LoadingPlaceholder(cards: 1)
-          else
-            Card(
-              child: ListTile(
-                leading: const Icon(Icons.calendar_today),
-                title: Text(
-                  differentDate
-                      ? '尚无今天保存的课表'
-                      : schedule.evidence?.origin == DataOrigin.persisted &&
-                            schedule.evidence!.complete
-                      ? '上次保存时没有课程安排'
-                      : schedule.status == FeatureLoadStatus.empty ||
-                            (schedule.status == FeatureLoadStatus.loading &&
-                                schedule.updatedAt != null)
-                      ? '今天没有课程安排'
-                      : _homeSummary(schedule),
-                ),
-                trailing: const Icon(Icons.chevron_right),
-                onTap: () => widget.onFeatureTap(FeatureId.schedule),
-              ),
-            ),
-          if (!differentDate &&
-              schedule.evidence?.origin == DataOrigin.persisted)
-            Text(
-              '上次保存：${uiSavedScheduleTime(schedule.evidence!.fetchedAt)}，连接后核对更新。',
-            )
-          else if (today.isNotEmpty &&
-              schedule.status == FeatureLoadStatus.stale)
-            const Text('课表刷新失败，以上为上次成功加载的数据。'),
-          if (schedule.evidence?.savedForOffline == false)
-            const Text('本次课表已更新，但尚未保存到本机。'),
-          const SizedBox(height: 16),
-          Row(
-            children: [
-              Expanded(
-                child: Text(
-                  '待办区',
-                  style: Theme.of(
-                    context,
-                  ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-                ),
-              ),
-              SizedBox.square(
-                dimension: 24,
-                child:
-                    loading.any(
-                      (f) => sources[f]?.status == FeatureLoadStatus.loading,
-                    )
-                    ? const Center(child: LoadingGlyph())
-                    : null,
-              ),
-            ],
-          ),
-          const SizedBox(height: 12),
-          for (final task in tasks)
+    final courseSection = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        Text(
+          '今日课表',
+          style: Theme.of(
+            context,
+          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
+        ),
+        const SizedBox(height: 4),
+        Text('${campusNow.month}月${campusNow.day}日'),
+        const SizedBox(height: 12),
+        if (today.isNotEmpty)
+          for (final detail in today)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
-              child: _HomeTodoCard(
-                item: task,
-                onTap: () => widget.onTodoTap(task),
-                onSignin: task.signinAction != null && widget.onSignin != null
-                    ? () => widget.onSignin!(task.signinAction!)
-                    : null,
+              child: _HomeCourseCard(detail: detail),
+            )
+        else if (schedule.evidence == null &&
+            schedule.updatedAt == null &&
+            (schedule.status == FeatureLoadStatus.loading ||
+                schedule.status == FeatureLoadStatus.idle))
+          const LoadingPlaceholder(cards: 1)
+        else
+          Card(
+            child: ListTile(
+              leading: const Icon(Icons.calendar_today),
+              title: Text(
+                differentDate
+                    ? '尚无今天保存的课表'
+                    : schedule.evidence?.origin == DataOrigin.persisted &&
+                          schedule.evidence!.complete
+                    ? '上次保存时没有课程安排'
+                    : schedule.status == FeatureLoadStatus.empty ||
+                          (schedule.status == FeatureLoadStatus.loading &&
+                              schedule.updatedAt != null)
+                    ? '今天没有课程安排'
+                    : _homeSummary(schedule),
+              ),
+              trailing: const Icon(Icons.chevron_right),
+              onTap: () => widget.onFeatureTap(FeatureId.schedule),
+            ),
+          ),
+        if (!differentDate && schedule.evidence?.origin == DataOrigin.persisted)
+          Text(
+            '上次保存：${uiSavedScheduleTime(schedule.evidence!.fetchedAt)}，连接后核对更新。',
+          )
+        else if (today.isNotEmpty && schedule.status == FeatureLoadStatus.stale)
+          const Text('课表刷新失败，以上为上次成功加载的数据。'),
+        if (schedule.evidence?.savedForOffline == false)
+          const Text('本次课表已更新，但尚未保存到本机。'),
+      ],
+    );
+    final todoSection = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 16),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                '待办区',
+                style: Theme.of(
+                  context,
+                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
-          if (tasks.isEmpty && loading.isNotEmpty)
-            const LoadingPlaceholder(cards: 1)
-          else if (tasks.isEmpty)
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Text(failed.isNotEmpty ? '已加载的来源中暂无近期待办' : '当前没有待办'),
-              ),
+            SizedBox.square(
+              dimension: 24,
+              child:
+                  loading.any(
+                    (f) => sources[f]?.status == FeatureLoadStatus.loading,
+                  )
+                  ? const Center(child: LoadingGlyph())
+                  : null,
             ),
-          if (failed.isNotEmpty)
+          ],
+        ),
+        const SizedBox(height: 12),
+        for (final task in tasks)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 12),
+            child: _HomeTodoCard(
+              item: task,
+              onTap: () => widget.onTodoTap(task),
+              onSignin: task.signinAction != null && widget.onSignin != null
+                  ? () => widget.onSignin!(task.signinAction!)
+                  : null,
+            ),
+          ),
+        if (tasks.isEmpty && loading.isNotEmpty)
+          const LoadingPlaceholder(cards: 1)
+        else if (tasks.isEmpty)
+          Card(
+            child: Padding(
+              padding: const EdgeInsets.all(16),
+              child: Text(failed.isNotEmpty ? '已加载的来源中暂无近期待办' : '当前没有待办'),
+            ),
+          ),
+        if (failed.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: Text(
+              '部分内容加载失败：${failed.map(_homeLabel).join('、')}，已显示其余待办。',
+            ),
+          ),
+        for (final feature in features)
+          if (sources[feature]?.evidence?.cacheFailure case final failure?
+              when !failed.contains(feature))
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
-                '部分内容加载失败：${failed.map(_homeLabel).join('、')}，已显示其余待办。',
+                '${_homeLabel(feature)}：${uiCacheReadFailureText(failure)}',
               ),
             ),
-          for (final feature in features)
-            if (sources[feature]?.evidence?.cacheFailure case final failure?
-                when !failed.contains(feature))
-              Padding(
-                padding: const EdgeInsets.only(top: 8),
-                child: Text(
-                  '${_homeLabel(feature)}：${uiCacheReadFailureText(failure)}',
-                ),
-              ),
-          if (_supplements[HomeSupplement.currentWeek] case final result?
-              when result.error != null || result.isEmpty)
-            Row(
-              children: [
-                const Expanded(child: Text('当前周次未确定，暂不显示阳光提醒')),
-                TextButton(
-                  onPressed: () =>
-                      _load(HomeSupplement.currentWeek, force: true),
-                  child: const Text('重试'),
-                ),
-              ],
-            ),
-          for (final feature in failed)
-            ListTile(
-              dense: true,
-              title: Text(
-                '${_homeLabel(feature)}：${_homeSummary(sources[feature]!)}',
-              ),
-              trailing: TextButton(
-                onPressed: () => feature == FeatureId.bykc
-                    ? _load(HomeSupplement.bykcChosen, force: true)
-                    : feature == FeatureId.cgyy
-                    ? _load(HomeSupplement.cgyyOrders, force: true)
-                    : widget.onRetryFeature(feature),
+        if (_supplements[HomeSupplement.currentWeek] case final result?
+            when result.error != null || result.isEmpty)
+          Row(
+            children: [
+              const Expanded(child: Text('当前周次未确定，暂不显示阳光提醒')),
+              TextButton(
+                onPressed: () => _load(HomeSupplement.currentWeek, force: true),
                 child: const Text('重试'),
               ),
+            ],
+          ),
+        for (final feature in failed)
+          ListTile(
+            dense: true,
+            title: Text(
+              '${_homeLabel(feature)}：${_homeSummary(sources[feature]!)}',
             ),
-        ],
+            trailing: TextButton(
+              onPressed: () => feature == FeatureId.bykc
+                  ? _load(HomeSupplement.bykcChosen, force: true)
+                  : feature == FeatureId.cgyy
+                  ? _load(HomeSupplement.cgyyOrders, force: true)
+                  : widget.onRetryFeature(feature),
+              child: const Text('重试'),
+            ),
+          ),
+      ],
+    );
+    Widget shortcuts(String title, List<FeatureId> items) => Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        const SizedBox(height: 24),
+        UiSectionTitle(title),
+        for (final feature in items)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: UiEntryCard(
+              title: feature.title,
+              icon: uiFeatureIcon(feature),
+              onTap: () => widget.onFeatureTap(feature),
+            ),
+          ),
+      ],
+    );
+    return LayoutBuilder(
+      builder: (context, constraints) => RefreshIndicator(
+        onRefresh: widget.onRefresh,
+        child: ListView(
+          physics: const AlwaysScrollableScrollPhysics(),
+          padding: EdgeInsets.all(
+            UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+          ),
+          children: [
+            if (widget.writeReadbackNotice case final notice?) ...[
+              notice,
+              const SizedBox(height: 12),
+            ],
+            if (widget.gradeScoreNotice case final notice?) ...[
+              GradeScoreBanner(
+                notice: notice,
+                onOpen: widget.onOpenGradeNotice,
+                onDismiss: widget.onDismissGradeNotice,
+              ),
+              const SizedBox(height: 12),
+            ],
+            if (constraints.maxWidth >= 820 &&
+                MediaQuery.textScalerOf(context).scale(14) <= 20)
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(child: courseSection),
+                  const SizedBox(width: 24),
+                  Expanded(child: todoSection),
+                ],
+              )
+            else ...[
+              courseSection,
+              const SizedBox(height: 16),
+              todoSection,
+            ],
+            shortcuts('常用功能', const [
+              FeatureId.schedule,
+              FeatureId.grades,
+              FeatureId.spoc,
+              FeatureId.judge,
+            ]),
+            shortcuts('校园生活', UiDestination.campus.features),
+          ],
+        ),
       ),
     );
   }
@@ -530,7 +580,7 @@ class _HomeTodoCard extends StatelessWidget {
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
     return Card(
-      color: theme.colorScheme.surfaceContainerHigh,
+      color: theme.colorScheme.surfaceContainerLow,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: item.navigation == null ? null : onTap,
@@ -559,18 +609,13 @@ class _HomeTodoCard extends StatelessWidget {
                     const SizedBox(height: 6),
                     Text(
                       item.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+
                       style: theme.textTheme.titleMedium?.copyWith(
                         fontWeight: FontWeight.bold,
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(
-                      item.subtitle,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                    Text(item.subtitle),
                     const SizedBox(height: 6),
                     Text(
                       item.timeLabel,
@@ -616,7 +661,7 @@ class _HomeCourseCard extends StatelessWidget {
     final course = detail.presentation! as TodayCoursePresentation;
     final theme = Theme.of(context);
     return Card(
-      color: theme.colorScheme.surfaceContainerHigh,
+      color: theme.colorScheme.surfaceContainerLow,
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(

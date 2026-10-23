@@ -30,12 +30,17 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('打开导航菜单'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('设置'));
+    await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     final button = find.text('退出并清除本机账号');
-    await tester.ensureVisible(button);
+    await tester.scrollUntilVisible(
+      button,
+      300,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey<String>('feature-pages')),
+        matching: find.byType(Scrollable),
+      ),
+    );
     await tester.pumpAndSettle();
     await tester.tap(button);
     await tester.pumpAndSettle();
@@ -70,7 +75,7 @@ void main() {
       tester.getCenter(find.text('忽略')).dy,
     );
   });
-  testWidgets('旧首页首次无提醒，变化在今日标题与课程间显示，忽略和查看分别消费', (tester) async {
+  testWidgets('首页首次无提醒，变化在内容顶部显示，忽略和查看分别消费', (tester) async {
     final backend = GradeWatchBackend();
     await tester.pumpWidget(
       UbaaFlutterApp(
@@ -87,7 +92,7 @@ void main() {
     expect(find.text('合成数学课程 成绩已更新'), findsOneWidget);
     expect(
       tester.getTopLeft(banner).dy,
-      greaterThan(tester.getTopLeft(find.text('今日课表')).dy),
+      lessThan(tester.getTopLeft(find.text('今日课表')).dy),
     );
     expect(
       tester.getBottomRight(banner).dy,
