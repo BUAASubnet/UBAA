@@ -183,17 +183,7 @@ void _registerLayoutMatrix() {
           if (width < 600) {
             target = find.byType(NavigationDestination).at(destination.index);
           } else if (width < 1000) {
-            final rail = tester.widget<NavigationRail>(
-              find.byType(NavigationRail),
-            );
-            target = find.descendant(
-              of: find.byType(NavigationRail),
-              matching: find.byIcon(
-                rail.selectedIndex == destination.index
-                    ? destination.selectedIcon
-                    : destination.icon,
-              ),
-            );
+            target = find.byTooltip(destination.label);
           } else {
             target = find.widgetWithText(ListTile, destination.label);
           }

@@ -62,7 +62,11 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.state(find.byType(UbaaMainShell)), same(state));
       for (final label in UiDestination.values.map((item) => item.label)) {
-        expect(find.text(label), findsWidgets);
+        if (width >= 600 && width < 1000) {
+          expect(find.byTooltip(label), findsOneWidget);
+        } else {
+          expect(find.text(label), findsWidgets);
+        }
       }
       if (width < 600) {
         expect(find.byType(NavigationBar), findsOneWidget);
@@ -72,8 +76,7 @@ void main() {
         expect(find.byType(NavigationRail), findsOneWidget);
         final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
         expect(rail.extended, isFalse);
-        if (width < 1000)
-          expect(rail.labelType, NavigationRailLabelType.selected);
+        expect(rail.labelType, NavigationRailLabelType.none);
       } else {
         expect(find.widgetWithText(ListTile, '校园服务'), findsOneWidget);
       }
