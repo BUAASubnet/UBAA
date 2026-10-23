@@ -27,7 +27,6 @@ import '../features/schedule/content.dart' show ScheduleContent;
 import '../features/schedule/flow.dart' show ScheduleFlow, ScheduleFlowState;
 import '../features/ygdk/home_flow.dart' show YgdkHomeFlow;
 import '../shared/feature_icons.dart' show uiFeatureIcon;
-import '../shared/schedule_values.dart' show uiSavedScheduleTime;
 import '../write/cgyy/draft.dart' show CgyyFormContext, CgyyFormDraft;
 import '../write/ygdk/draft.dart' show YgdkFormContext, YgdkFormDraft;
 
@@ -235,36 +234,26 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                     child: Text(message),
                   ),
                 ),
-              if (widget.snapshot.evidence?.cacheFailure case final failure?)
+              if (widget.snapshot.evidence?.cacheFailure case final failure?
+                  when widget.snapshot.status != FeatureLoadStatus.loading)
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(uiCacheReadFailureText(failure)),
                 ),
-              if (widget.snapshot.evidence?.complete == false &&
+              if (widget.snapshot.status != FeatureLoadStatus.loading &&
+                  widget.snapshot.evidence?.complete == false &&
                   widget.snapshot.details.isNotEmpty)
                 const Padding(
                   padding: EdgeInsets.all(12),
                   child: Text('当前内容尚不完整，连接后继续核对。'),
                 ),
-              if (widget.feature != FeatureId.schedule &&
-                  uiReadableCachedContent(widget.snapshot))
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(
-                    '上次保存 ${uiSavedScheduleTime(widget.snapshot.evidence!.fetchedAt)}，连接后核对更新',
-                  ),
-                ),
               if (widget.snapshot.status == FeatureLoadStatus.stale &&
-                  (widget.snapshot.error != null ||
-                      widget.snapshot.evidence == null))
+                  widget.snapshot.error != null)
                 MaterialBanner(
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(widget.snapshot.error?.message ?? '刷新失败，请稍后重试。'),
-                      const Text('以下为上次成功加载的数据。'),
-                    ],
+                    children: [Text(widget.snapshot.error!.message)],
                   ),
                   leading: const Icon(Icons.sync_problem),
                   actions: [
@@ -304,8 +293,9 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                     if (!showDetails)
                       switch (widget.snapshot.status) {
                         FeatureLoadStatus.loading
-                            when uiReadableCachedContent(widget.snapshot) ||
-                                widget.snapshot.updatedAt != null =>
+                            when widget.snapshot.evidence?.complete != false &&
+                                (uiReadableCachedContent(widget.snapshot) ||
+                                    widget.snapshot.updatedAt != null) =>
                           _empty(context),
                         FeatureLoadStatus.loading ||
                         FeatureLoadStatus.idle => const LoadingPlaceholder(),

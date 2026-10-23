@@ -8,7 +8,7 @@ import 'destination.dart';
 import '../shared/loading.dart' show LoadingGlyph, LoadingPlaceholder;
 import '../features/grades/notice.dart' show GradeScoreBanner;
 import '../shared/feature_icons.dart' show uiFeatureIcon;
-import '../shared/schedule_values.dart' show uiCourseStart, uiSavedScheduleTime;
+import '../shared/schedule_values.dart' show uiCourseStart;
 import '../shared/text.dart' show uiNonBlank;
 
 class HomeView extends StatefulWidget {
@@ -315,7 +315,8 @@ class _HomeViewState extends State<HomeView> {
         .where(
           (f) =>
               sources[f]?.status == FeatureLoadStatus.failure ||
-              sources[f]?.status == FeatureLoadStatus.stale,
+              (sources[f]?.status == FeatureLoadStatus.stale &&
+                  sources[f]?.error != null),
         )
         .toList();
     final courseSection = Column(
@@ -340,9 +341,9 @@ class _HomeViewState extends State<HomeView> {
             schedule.updatedAt == null &&
             schedule.status == FeatureLoadStatus.idle)
           const SizedBox(height: 120)
-        else if (schedule.evidence == null &&
-            schedule.updatedAt == null &&
-            schedule.status == FeatureLoadStatus.loading)
+        else if (schedule.status == FeatureLoadStatus.loading &&
+            (schedule.evidence?.complete == false ||
+                (schedule.evidence == null && schedule.updatedAt == null)))
           const LoadingPlaceholder(compact: true)
         else
           Card(
@@ -482,7 +483,8 @@ class _HomeViewState extends State<HomeView> {
           ),
         for (final feature in features)
           if (sources[feature]?.evidence?.cacheFailure case final failure?
-              when !failed.contains(feature))
+              when !failed.contains(feature) &&
+                  sources[feature]?.status != FeatureLoadStatus.loading)
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
@@ -490,7 +492,8 @@ class _HomeViewState extends State<HomeView> {
               ),
             ),
         if (_supplements[HomeSupplement.currentWeek] case final result?
-            when result.error != null || result.isEmpty)
+            when result.error != null &&
+                !_loading.contains(HomeSupplement.currentWeek))
           Row(
             children: [
               const Expanded(child: Text('当前周次未确定，暂不显示阳光提醒')),
@@ -590,34 +593,8 @@ String uiCacheReadFailureText(CacheMaintenanceFailure failure) =>
     ? '本机空间不足，在线内容已显示，暂未保存到本机。'
     : '在线内容已显示，暂未保存到本机。';
 
-String _homeSummary(FeatureSnapshot snapshot) {
-  final summary = _homeReadSummary(snapshot);
-  final failure = snapshot.evidence?.cacheFailure;
-  return failure == null
-      ? summary
-      : '$summary · ${uiCacheReadFailureText(failure)}';
-}
-
-String _homeReadSummary(FeatureSnapshot snapshot) =>
-    snapshot.evidence?.origin == DataOrigin.persisted
-    ? '上次保存 ${uiSavedScheduleTime(snapshot.evidence!.fetchedAt)}，待核实更新'
-    : snapshot.evidence?.origin == DataOrigin.mixed
-    ? '含已保存内容 ${uiSavedScheduleTime(snapshot.evidence!.fetchedAt)}，${snapshot.status == FeatureLoadStatus.loading
-          ? '继续更新'
-          : snapshot.evidence!.complete
-          ? '本轮检查完成'
-          : '部分范围待更新'}'
-    : switch (snapshot.status) {
-        FeatureLoadStatus.idle => '尚未查询',
-        FeatureLoadStatus.loading => '正在加载…',
-        FeatureLoadStatus.success => snapshot.summary ?? '已加载',
-        FeatureLoadStatus.empty => '当前条件暂无结果',
-        FeatureLoadStatus.stale =>
-          snapshot.evidence?.complete == false && snapshot.error == null
-              ? '部分内容尚未更新完成'
-              : '刷新失败，显示上次结果',
-        FeatureLoadStatus.failure => '加载失败',
-      };
+String _homeSummary(FeatureSnapshot snapshot) =>
+    snapshot.error?.message ?? '加载失败，请重试';
 
 class _HomeTodoCard extends StatelessWidget {
   const _HomeTodoCard({required this.item, required this.onTap, this.onSignin});

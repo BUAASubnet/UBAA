@@ -37,7 +37,7 @@ void main() {
     expect(find.text('保持选择'), findsOneWidget);
   });
 
-  testWidgets('已保存用途明确显示时间和未完整状态', (tester) async {
+  testWidgets('已保存用途保留选项与未完整状态', (tester) async {
     await _open(
       tester,
       _dayDetails,
@@ -55,7 +55,7 @@ void main() {
       ),
     );
     await _form(tester);
-    expect(find.textContaining('活动类型上次保存'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, '合成研讨甲'), findsOneWidget);
     expect(find.text('活动类型尚未核对完整'), findsOneWidget);
   });
 
@@ -63,7 +63,6 @@ void main() {
     await _open(tester, _dayDetails, [], cached: true);
     expect(tester.takeException(), isNull);
     expect(find.text('合成研讨室'), findsWidgets);
-    expect(find.textContaining('上次保存'), findsWidgets);
     expect(find.text('下一步'), findsNothing);
   });
 

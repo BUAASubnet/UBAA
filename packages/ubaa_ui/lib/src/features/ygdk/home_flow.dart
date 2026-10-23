@@ -5,7 +5,6 @@ import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../../shared/loading.dart' show LoadingGlyph, LoadingPlaceholder;
 import 'record_card.dart' show YgdkRecordCard, uiYgdkRecordSearchValues;
 import 'summary.dart' show YgdkSummary;
-import '../../shared/schedule_values.dart' show uiSavedScheduleTime;
 import '../../write/ygdk/draft.dart' show YgdkFormContext;
 import '../../write/ygdk/form.dart' show uiCollectYgdkForm;
 
@@ -247,13 +246,7 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
                           widget.snapshot.evidence?.complete != false ||
                           widget.snapshot.evidence?.origin == DataOrigin.mixed,
                     ),
-                    if (widget.snapshot.evidence?.origin ==
-                            DataOrigin.persisted ||
-                        widget.snapshot.evidence?.origin == DataOrigin.mixed)
-                      Text(
-                        '上次保存 ${uiSavedScheduleTime(widget.snapshot.evidence!.fetchedAt)}，连接后核对更新',
-                      ),
-                    if (widget.snapshot.evidence?.complete == false)
+                    if (!loading && widget.snapshot.evidence?.complete == false)
                       const Text('部分内容尚未更新完成'),
                   ],
                 ),
@@ -280,24 +273,21 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
             const SizedBox(height: 12),
             if (loading && visible.isEmpty && _page == null)
               const LoadingPlaceholder(compact: true),
-            if (_page?.evidence?.origin == DataOrigin.persisted)
-              Text(
-                '第${_page!.page}页记录上次保存 ${uiSavedScheduleTime(_page!.evidence!.fetchedAt)}，连接后核对更新',
-              ),
-            if (_page?.evidence?.complete == false) ...[
+            if (!loading && _page?.evidence?.complete == false) ...[
               const Text('打卡记录尚未核对完整'),
               TextButton(
                 onPressed: loading ? null : () => _load(widget.query),
                 child: const Text('重新核对记录'),
               ),
             ],
-            if (_page?.errorCode != null || widget.snapshot.error != null) ...[
+            if (!loading &&
+                (_page?.errorCode != null ||
+                    widget.snapshot.error != null)) ...[
               const Text('打卡记录加载失败，请重试。'),
               TextButton(
                 onPressed: loading ? null : () => _load(widget.query),
                 child: const Text('重试记录'),
               ),
-              if (_records.isNotEmpty) const Text('以下为上次成功加载的记录。'),
             ] else if (_page == null && !loading)
               TextButton(
                 onPressed: () => _load(widget.query),

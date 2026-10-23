@@ -5,7 +5,6 @@ import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../../shared/loading.dart' show LoadingPlaceholder;
 import '../../common/error_card.dart' show FriendlyErrorCard;
 import 'reservation_table.dart' show CgyyTableHeader;
-import '../../shared/schedule_values.dart' show uiSavedScheduleTime;
 import '../../write/cgyy/draft.dart' show CgyyFormContext;
 import '../../write/cgyy/form.dart'
     show uiCgyyActionKey, uiCollectCgyyReservation, uiSelectCgyyAction;

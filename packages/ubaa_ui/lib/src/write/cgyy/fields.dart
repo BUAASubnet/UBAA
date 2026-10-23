@@ -11,7 +11,7 @@ extension CgyyFormFields on _CgyyReservationFormState {
     const SizedBox(height: 12),
     _field(theme, '预约主题', (s) => draft.theme = s),
     const SizedBox(height: 12),
-    if (loadError case final e?)
+    if (loadError case final e? when !loading)
       FriendlyErrorCard(error: e, onRetry: () => _loadPurposes(true)),
     OutlinedButton.icon(
       icon: loading
@@ -25,9 +25,8 @@ extension CgyyFormFields on _CgyyReservationFormState {
                   '选择活动类型',
       ),
     ),
-    if (purposeEvidence?.origin == DataOrigin.persisted)
-      Text('活动类型上次保存 ${uiSavedScheduleTime(purposeEvidence!.fetchedAt)}'),
-    if (purposeEvidence?.complete == false) const Text('活动类型尚未核对完整'),
+    if (!loading && purposeEvidence?.complete == false)
+      const Text('活动类型尚未核对完整'),
     if (options.any((p) => p.isStaticFallback))
       Text('使用预设活动类型', style: Theme.of(context).textTheme.bodySmall),
     const SizedBox(height: 12),

@@ -65,7 +65,7 @@ void main() {
 
   testWidgets('重入保留未应用草稿而失败后的重试仍使用已应用查询', (tester) async {
     final queries = <FeatureQuery>[];
-    // 已有缓存但刷新失败是公开 stale 状态，页面提供真实的“重试”入口。
+    // 已有内容且请求返回真实错误，页面提供“重试”入口。
     await _mount(tester, queries, staleExam: true);
     await _open(tester, FeatureId.exam);
     await tester.enterText(_field('学期编码'), '2026-2027-1');
@@ -137,6 +137,14 @@ Future<void> _mount(
               status: staleExam && feature == FeatureId.exam
                   ? FeatureLoadStatus.stale
                   : FeatureLoadStatus.success,
+              error: staleExam && feature == FeatureId.exam
+                  ? const UiError(
+                      code: UbaaErrorCode.networkError,
+                      title: '读取失败',
+                      message: '合成网络失败',
+                      retryable: true,
+                    )
+                  : null,
               summary: '合成查询结果',
               details: <FeatureDetail>[
                 for (var i = 0; i < 20; i++)

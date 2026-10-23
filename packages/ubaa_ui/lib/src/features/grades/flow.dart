@@ -5,7 +5,6 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../academic/content.dart' show uiSupportsAcademicContent;
 import '../exam/timeline.dart' show uiAcademicSearchValues;
 import 'cards.dart' show GradeCard, GradeSummaryCard;
-import '../../shared/schedule_values.dart' show uiSavedScheduleTime;
 
 /// 旧版两张统计卡和课程列表共用滚动区域，面板筛选不改变统计集合。
 class GradesFlow extends StatefulWidget {
@@ -179,10 +178,11 @@ class _GradesFlowState extends State<GradesFlow> {
         UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
       ),
       children: [
-        if (snapshot.status == FeatureLoadStatus.stale)
+        if (snapshot.status == FeatureLoadStatus.stale &&
+            snapshot.error != null)
           Padding(
             padding: const EdgeInsets.only(bottom: 12),
-            child: Text('${snapshot.error?.message ?? '刷新失败。'} 以下为上次成功加载的数据。'),
+            child: Text(snapshot.error!.message),
           ),
         if (widget.loader != null || hasTerms) ...[
           Card(
@@ -303,7 +303,10 @@ class _GradesFlowState extends State<GradesFlow> {
           statistics: aggregate?.statistics,
           loading: (_loading || widget.loader != null) && aggregate == null,
           notice: aggregate != null
-              ? _gradesAggregateNotice(aggregate, _loading)
+              ? _gradesAggregateNotice(
+                  aggregate,
+                  _loading || snapshot.status == FeatureLoadStatus.loading,
+                )
               : widget.loader == null
               ? '全部学期统计暂不可用'
               : null,
@@ -316,9 +319,6 @@ class _GradesFlowState extends State<GradesFlow> {
               : null,
         ),
         const SizedBox(height: 12),
-        if ((isCurrentTerm ? snapshot.evidence : activeTerm.result.evidence)
-            case final evidence? when evidence.origin == DataOrigin.persisted)
-          Text('此学期上次保存 ${_savedGradeTime(evidence.fetchedAt)}'),
         GradeSummaryCard(
           title: isCurrentTerm ? '本学期' : activeTerm.name,
           statistics: activeOverview != null
@@ -345,26 +345,11 @@ class _GradesFlowState extends State<GradesFlow> {
 
 String? _gradesAggregateNotice(GradesAggregate aggregate, bool loading) {
   final lines = <String>[];
-  if (aggregate.hasSavedData) {
-    final times = [
-      if (aggregate.termsEvidence case final evidence?) evidence.fetchedAt,
-      for (final term in aggregate.terms)
-        if (term.result.evidence case final evidence?) evidence.fetchedAt,
-    ]..sort();
-    lines.add(
-      '已保存统计${times.isEmpty ? '' : ' · 最早保存 ${_savedGradeTime(times.first)}'}',
-    );
-    if (loading) lines.add('正在核对更新，仍可查看已保存成绩');
-  }
+  if (loading) return null;
   if (aggregate.error case final error?) lines.add(error.message);
   if (!aggregate.isComplete)
     lines.add(
       '部分统计 · 已读取 ${aggregate.loadedTerms}/${aggregate.terms.length} 个学期',
     );
   return lines.isEmpty ? null : lines.join('\n');
-}
-
-String _savedGradeTime(DateTime value) {
-  final campus = value.toUtc().add(const Duration(hours: 8));
-  return '${campus.year}年${uiSavedScheduleTime(value)}';
 }

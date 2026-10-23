@@ -6,7 +6,7 @@ import '../../support/navigation.dart';
 import '../../support/write_harness.dart';
 
 void main() {
-  testWidgets('记录部分空页不冒称没有记录并展示独立缓存时间', (tester) async {
+  testWidgets('记录部分空页不冒称没有记录并保留重试', (tester) async {
     await _open(
       tester,
       records: YgdkHomeRecords(
@@ -24,7 +24,6 @@ void main() {
     );
     expect(find.text('暂时还没有打卡记录'), findsNothing);
     expect(find.text('打卡记录尚未核对完整'), findsOneWidget);
-    expect(find.textContaining('记录上次保存'), findsOneWidget);
   });
   testWidgets('分类变化且新记录失败时清除旧分类记录', (tester) async {
     await _open(tester);

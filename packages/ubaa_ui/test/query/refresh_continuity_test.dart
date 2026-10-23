@@ -5,7 +5,45 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../support/navigation.dart';
 
 void main() {
-  testWidgets('刷新失败同时说明错误原因与旧数据来源', (tester) async {
+  testWidgets('已有内容从待更新到刷新和真实失败，只在失败后提供重试', (tester) async {
+    _viewport(tester, const Size(799, 1000));
+    final state = ValueNotifier<FeatureSnapshot>(
+      _grades().copyWith(status: FeatureLoadStatus.stale),
+    );
+    addTearDown(state.dispose);
+    await _mount(tester, state);
+    await _open(tester, FeatureId.grades);
+    expect(find.text('保留课程 0'), findsOneWidget);
+    expect(
+      find.widgetWithText(TextButton, '重试'),
+      findsNothing,
+      reason: '没有请求错误时，旧内容不能被判为失败',
+    );
+    state.value = _grades().copyWith(status: FeatureLoadStatus.loading);
+    await tester.pump();
+    expect(find.text('保留课程 0'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, '重试'), findsNothing);
+    state.value = _grades().copyWith(
+      status: FeatureLoadStatus.stale,
+      error: const UiError(
+        code: UbaaErrorCode.networkError,
+        title: '读取失败',
+        message: '合成网络错误',
+        retryable: true,
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('合成网络错误'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, '重试'), findsOneWidget);
+    expect(find.text('保留课程 0'), findsOneWidget);
+    state.value = _grades().copyWith(status: FeatureLoadStatus.loading);
+    await tester.pump();
+    expect(find.widgetWithText(TextButton, '重试'), findsNothing);
+    state.value = _grades();
+    await tester.pumpAndSettle();
+    expect(find.text('保留课程 0'), findsOneWidget);
+  });
+  testWidgets('刷新失败说明错误原因并保留原数据', (tester) async {
     _viewport(tester, const Size(799, 1000));
     final state = ValueNotifier<FeatureSnapshot>(
       _grades().copyWith(
@@ -22,7 +60,6 @@ void main() {
     await _mount(tester, state);
     await _open(tester, FeatureId.grades);
     expect(find.text('请检查网络连接后重试'), findsOneWidget);
-    expect(find.text('以下为上次成功加载的数据。'), findsOneWidget);
     expect(find.text('保留课程 0'), findsOneWidget);
   });
   testWidgets('已打开详情切换主题后标题颜色与当前主题一致', (tester) async {

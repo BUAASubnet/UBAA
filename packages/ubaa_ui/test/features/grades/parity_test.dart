@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:ubaa_ui/src/features/grades/cards.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -6,7 +7,7 @@ import '../assignments/content_test.dart' show showFeature;
 import '../../support/navigation.dart';
 
 void main() {
-  testWidgets('本地统计渐进返回后刷新中仍显示分数与保存时间', (tester) async {
+  testWidgets('本地统计渐进返回后刷新中仍显示分数', (tester) async {
     final pending = Completer<GradesAggregate>();
     void Function(GradesAggregate)? publish;
     const overview = GradesTermOverview(
@@ -46,8 +47,11 @@ void main() {
       ),
     );
     await tester.pump();
-    expect(find.textContaining('已保存统计'), findsOneWidget);
-    expect(find.textContaining('2026年9月1日'), findsWidgets);
+    final summary = tester
+        .widgetList<GradeSummaryCard>(find.byType(GradeSummaryCard))
+        .singleWhere((card) => card.title == '全部成绩');
+    expect(summary.statistics?.courseCount, 1);
+    expect(summary.notice, isNull);
     pending.complete(
       const GradesAggregate(
         terms: [
@@ -60,7 +64,6 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.textContaining('已保存统计'), findsNothing);
   });
 
   testWidgets('全部学期异步完成后同一顶栏图标更新为混合路线', (tester) async {

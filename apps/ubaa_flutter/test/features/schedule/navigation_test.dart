@@ -99,7 +99,6 @@ void main() {
     await mount(tester, backend);
     backend.fail = true;
     await tap(tester, find.byTooltip('刷新当前查询'));
-    expect(find.text('以下为上次成功加载的数据。'), findsWidgets);
     expect(find.text('9-7'), findsOneWidget);
     expect(find.text('合成教学第4周'), findsOneWidget);
   });

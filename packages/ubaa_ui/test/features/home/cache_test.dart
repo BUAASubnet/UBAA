@@ -6,6 +6,18 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../../support/navigation.dart';
 
 void main() {
+  testWidgets('缓存待办恢复不生成失败重试入口，来源失败后保留内容并可重试', (tester) async {
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await mount(tester, date: '2026-09-21', empty: true);
+    expect(find.text('缓存博雅待办'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, '重试'), findsNothing);
+    await mount(tester, date: '2026-09-21', empty: true, failSupplement: true);
+    expect(find.text('缓存博雅待办'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, '重试'), findsWidgets);
+  });
   testWidgets('本地缓存故障在首页及作业页独立提示且保留在线内容', (tester) async {
     tester.view.physicalSize = const Size(900, 1800);
     tester.view.devicePixelRatio = 1;
@@ -28,7 +40,6 @@ void main() {
     await mount(tester, date: '2026-09-21', empty: true, failSupplement: true);
     expect(find.text('缓存博雅待办'), findsOneWidget);
     expect(find.text('缓存研讨室待办'), findsOneWidget);
-    expect(find.textContaining('博雅：上次保存'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -40,7 +51,6 @@ void main() {
     await mount(tester, date: '2026-09-21', empty: true);
     expect(find.text('缓存博雅待办'), findsOneWidget);
     expect(find.text('缓存研讨室待办'), findsOneWidget);
-    expect(find.textContaining('博雅：上次保存'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -50,7 +60,7 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await mount(tester, date: '2026-09-21', partial: true);
-    expect(find.textContaining('希冀：部分内容尚未更新完成'), findsOneWidget);
+    expect(find.widgetWithText(TextButton, '重试'), findsNothing);
     expect(find.textContaining('希冀：刷新失败'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
@@ -59,15 +69,6 @@ void main() {
     await mount(tester, date: '2026-09-21', empty: true);
     expect(find.text('暂无课程安排'), findsOneWidget);
     expect(find.text('今天没有课程安排'), findsNothing);
-    await tester.pumpWidget(const SizedBox());
-  });
-  testWidgets('已保存待办标明保存依据，不误称刚发生刷新失败', (tester) async {
-    tester.view.physicalSize = const Size(900, 1800);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    await mount(tester, date: '2026-09-21', empty: true);
-    expect(find.textContaining('希冀：上次保存'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets('跨校园午夜后不把昨日缓存课程放在今日下', (tester) async {

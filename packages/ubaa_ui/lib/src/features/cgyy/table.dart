@@ -121,13 +121,7 @@ extension CgyyReservationTable on CgyyReservationFlowState {
     return CustomScrollView(
       key: const ValueKey('cgyy-room-rows'),
       slivers: [
-        if (widget.snapshot.evidence?.origin == DataOrigin.persisted)
-          SliverToBoxAdapter(
-            child: Text(
-              '上次保存 ${uiSavedScheduleTime(widget.snapshot.evidence!.fetchedAt)}，连接后核对更新',
-            ),
-          ),
-        if (widget.snapshot.evidence?.complete == false)
+        if (!_busy && widget.snapshot.evidence?.complete == false)
           const SliverToBoxAdapter(child: Text('查询范围尚未更新完整')),
         if (widget.snapshot.status == FeatureLoadStatus.stale &&
             widget.snapshot.error != null)
@@ -139,7 +133,6 @@ extension CgyyReservationTable on CgyyReservationFlowState {
                   error: widget.snapshot.error!,
                   onRetry: widget.onRetry,
                 ),
-                const Text('以下为上次成功加载的数据。'),
               ],
             ),
           ),

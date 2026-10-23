@@ -17,7 +17,6 @@ void main() {
     await tester.pumpWidget(_page(FeatureLoadStatus.loading));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('已保存评教课程'), findsOneWidget);
-    expect(find.textContaining('上次保存'), findsWidgets);
     expect(tester.takeException(), isNull);
   });
 }

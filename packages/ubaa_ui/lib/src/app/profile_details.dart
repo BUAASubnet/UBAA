@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../common/detail_fields.dart' show DetailField;
-import '../shared/schedule_values.dart' show uiSavedScheduleTime;
 import '../shared/text.dart' show uiNonBlank;
 
 /// 资料在个人页本地展开，离开或更新身份即销毁联系人显示状态。
@@ -25,11 +24,6 @@ class _ProfileIdentityCardState extends State<ProfileIdentityCard> {
   Widget build(BuildContext context) {
     final user = widget.user;
     final name = uiNonBlank(user?.preferredName) ?? '未登录';
-    final source = switch (user?.profileRoute) {
-      ConnectionMode.direct => 'Direct',
-      ConnectionMode.webvpn => 'WebVPN',
-      null => '来源未定',
-    };
     return Card(
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -43,15 +37,6 @@ class _ProfileIdentityCardState extends State<ProfileIdentityCard> {
             title: Text(name),
             subtitle: Text(user?.username ?? ''),
           ),
-          if (user?.profileEvidence case final evidence?)
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                evidence.origin == DataOrigin.persisted
-                    ? '资料上次保存 ${uiSavedScheduleTime(evidence.fetchedAt)} · $source，连接后核对更新'
-                    : '资料更新于 ${uiSavedScheduleTime(evidence.fetchedAt)} · $source',
-              ),
-            ),
           if (user?.profileNotice case final notice?)
             Padding(padding: const EdgeInsets.all(16), child: Text(notice)),
           if (user != null) ...[

@@ -6,7 +6,6 @@ import '../../shared/loading.dart' show LoadingPlaceholder;
 import '../../common/error_card.dart' show FriendlyErrorCard;
 import 'area_map.dart' show LibraryMapControl;
 import 'reservation_content.dart' show uiCanReserveSeat;
-import '../../shared/schedule_values.dart' show uiSavedScheduleTime;
 part 'schedule.dart';
 part 'choices.dart';
 part 'content.dart';
@@ -371,18 +370,12 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
             areaId: mapAreas.keys.single,
             areaName: mapAreas.values.single,
           ),
-        if (widget.snapshot.evidence?.origin == DataOrigin.persisted)
-          Text(
-            '上次保存 ${uiSavedScheduleTime(widget.snapshot.evidence!.fetchedAt)}，连接后核对更新',
-          ),
-        if (widget.snapshot.evidence?.complete == false)
+        if (!_busy && widget.snapshot.evidence?.complete == false)
           const Text('当前查询范围尚未更新完整。'),
         if (_busy && details.isEmpty && widget.snapshot.updatedAt == null)
           const LoadingPlaceholder(compact: true),
         if (widget.snapshot.error case final error? when !_busy)
           FriendlyErrorCard(error: error, onRetry: () => _read(widget.query)),
-        if (!_busy && widget.snapshot.status == FeatureLoadStatus.stale)
-          const Text('以下为上次成功加载的数据。'),
         if (details.isEmpty &&
             (widget.snapshot.status == FeatureLoadStatus.empty ||
                 (_busy && widget.snapshot.updatedAt != null)))

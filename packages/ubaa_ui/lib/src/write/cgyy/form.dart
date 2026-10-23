@@ -3,7 +3,6 @@ import '../../shared/loading.dart' show LoadingGlyph;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/error_card.dart' show FriendlyErrorCard;
-import '../../shared/schedule_values.dart' show uiSavedScheduleTime;
 import 'draft.dart' show CgyyFormContext, CgyyFormDraft;
 import '../forms/action_bar.dart' show FormActionBar;
 part 'fields.dart';

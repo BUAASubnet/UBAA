@@ -28,7 +28,7 @@ void main() {
     expect(find.text('查看账号资料'), findsOneWidget);
   });
 
-  testWidgets('遮罩资料标注时间与路线且在线更新不退出个人页', (tester) async {
+  testWidgets('遮罩资料保持联系人保护且在线更新不退出个人页', (tester) async {
     final profile = ValueNotifier<UserSummary?>(
       UserSummary(
         username: 'f***r',
@@ -48,8 +48,7 @@ void main() {
     );
     addTearDown(profile.dispose);
     await _mount(tester, profile, []);
-    expect(find.textContaining('资料上次保存'), findsOneWidget);
-    expect(find.textContaining('WebVPN'), findsWidgets);
+    expect(find.text('合***名'), findsWidgets);
     expect(find.text('资料暂未更新，保留上次内容'), findsOneWidget);
     await _tap(tester, '查看账号资料');
     expect(find.text('显示手机'), findsNothing);
@@ -61,7 +60,6 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('查看账号资料'), findsOneWidget);
-    expect(find.textContaining('资料上次保存'), findsNothing);
   });
 
   testWidgets('清除确认期间换账号，旧确认不能清除新账号', (tester) async {

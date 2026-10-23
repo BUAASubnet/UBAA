@@ -45,7 +45,6 @@ void main() {
       ),
     );
     expect(find.text('已保存考试'), findsWidgets);
-    expect(find.textContaining('上次保存'), findsOneWidget);
   });
 
   testWidgets('考试跨本地20条分组，结束默认收起且未来先于待定', (tester) async {
