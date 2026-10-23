@@ -48,6 +48,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
   int _generation = 0;
   String? _weeksTerm, _metadataAttempt, _reportedTitle;
   FeatureResult? _weeks;
+  final _downloadAttempts = <String>{};
   @override
   void initState() {
     super.initState();
@@ -59,6 +60,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     super.didUpdateWidget(old);
     if (old.epoch != widget.epoch) {
       _generation++;
+      _downloadAttempts.clear();
       _weeks = null;
       _weeksTerm = null;
       _metadataAttempt = null;
@@ -129,6 +131,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         evidence: widget.snapshot.evidence,
       );
     }
+    _downloadSemester();
     if (_automatic != null && _sameQuery(_expected, widget.query) && _settled) {
       if (_automatic == _ScheduleAutoStage.terms) {
         final selected = widget.snapshot.details
@@ -206,6 +209,35 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     if (_reportedTitle != title) {
       _reportedTitle = title;
       widget.onTitle?.call(title);
+    }
+  }
+
+  void _downloadSemester() {
+    final term = widget.query?.term;
+    if (!_settled ||
+        term == null ||
+        term.trim().isEmpty ||
+        widget.onSave == null ||
+        !(widget.query?.view == FeatureQueryView.scheduleWeeks ||
+            uiIsWeeklyScheduleQuery(widget.query)) ||
+        widget.imports.containsKey(term) ||
+        !_downloadAttempts.add(term))
+      return;
+    unawaited(_startDownload(term, widget.epoch));
+  }
+
+  Future<void> _startDownload(String term, int epoch) async {
+    try {
+      await widget.onSave!(term);
+    } on Object {
+      if (mounted &&
+          widget.visible &&
+          widget.epoch == epoch &&
+          widget.query?.term == term) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('暂时无法开始下载，请点击刷新重试')));
+      }
     }
   }
 

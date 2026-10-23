@@ -569,13 +569,24 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         if (_openedFeature != null && pendingWrite == null)
           RefreshActionButton(
             key: ValueKey(_openedFeature),
-            tooltip: '刷新当前查询',
+            tooltip:
+                _openedFeature == FeatureId.schedule &&
+                    widget.onSaveScheduleSemester != null
+                ? '刷新整学期课表'
+                : '刷新当前查询',
             onRefresh: () async {
               final page = _readPageKeys[_openedFeature]?.currentState;
               if (_openedFeature == FeatureId.cgyy &&
                   page?.currentFrame.query?.view ==
                       FeatureQueryView.cgyyLockCode) {
                 setState(() => _lockRefreshRevision++);
+              } else if (_openedFeature == FeatureId.schedule &&
+                  widget.onSaveScheduleSemester != null &&
+                  (page?.currentFrame.query?.term?.trim().isNotEmpty ??
+                      false)) {
+                await widget.onSaveScheduleSemester!(
+                  page!.currentFrame.query!.term!,
+                );
               } else {
                 await page?.refreshCurrent();
               }

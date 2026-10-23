@@ -6,9 +6,10 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import '../../../../ubaa_app/test/recovery/startup_test.dart' as startup;
+import '../../../../ubaa_ui/test/support/navigation.dart';
 
 void main() {
-  testWidgets('生产宿主接入整学期任务和进度，取消不触发学校写入', (tester) async {
+  testWidgets('生产宿主进入课表自动下载，取消后右上角重新下载整学期', (tester) async {
     final backend = _Backend();
     await tester.pumpWidget(
       UbaaAppHost(
@@ -19,7 +20,7 @@ void main() {
     await tester.pumpAndSettle();
     UbaaMainShell shell() => tester.widget(find.byType(UbaaMainShell));
     expect(shell().onSaveScheduleSemester, isNotNull);
-    final pending = shell().onSaveScheduleSemester!('selected');
+    await openFeature(tester, FeatureId.schedule);
     for (var i = 0; i < 20 && backend.task.calls == 0; i++) {
       await tester.pump();
     }
@@ -28,7 +29,8 @@ void main() {
       shell().scheduleImports['selected']!.status,
       ScheduleImportStatus.running,
     );
-    shell().onCancelScheduleImport!('selected');
+    await tester.tap(find.text('取消下载'));
+    await tester.pump();
     backend.task.pending.complete(
       const ScheduleImportProgress(
         term: 'selected',
@@ -39,23 +41,80 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await pending;
     expect(backend.task.cancelled, isTrue);
     expect(
       shell().scheduleImports['selected']!.status,
       ScheduleImportStatus.cancelled,
     );
+    final reads = backend.weekReads;
+    await tester.tap(find.byTooltip('刷新整学期课表'));
+    await tester.pumpAndSettle();
+    expect(backend.importTerms, ['selected', 'selected']);
+    expect(backend.weekReads, reads);
+    expect(
+      shell().scheduleImports['selected']!.status,
+      ScheduleImportStatus.saved,
+    );
+    expect(find.text('合成第3周'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 }
 
 class _Backend extends startup.FakeRecoveryBackend
-    implements ScheduleImportBackend, ProgressiveReadBackend {
+    implements
+        ScheduleImportBackend,
+        ProgressiveReadBackend,
+        FeatureQueryBackend {
+  final importTerms = <String>[];
+  int weekReads = 0;
+  @override
+  Future<FeatureResult> loadFeatureQuery(
+    FeatureId feature,
+    FeatureQuery query,
+  ) async {
+    if (query.view == FeatureQueryView.scheduleTerms) {
+      return FeatureResult.success(
+        resolvedRoute: ConnectionMode.direct,
+        details: const [
+          FeatureDetail(
+            title: '合成本学期',
+            presentation: TermPresentation(
+              code: 'selected',
+              selected: true,
+              index: 0,
+            ),
+          ),
+        ],
+      );
+    }
+    if (query.view == FeatureQueryView.scheduleWeeks) {
+      return FeatureResult.success(
+        resolvedRoute: ConnectionMode.direct,
+        details: const [
+          FeatureDetail(
+            title: '合成第3周',
+            presentation: WeekPresentation(
+              requestTerm: 'selected',
+              responseTerm: 'selected',
+              number: 3,
+              current: true,
+              startDate: '2026-10-19',
+              endDate: '2026-10-25',
+            ),
+          ),
+        ],
+      );
+    }
+    weekReads++;
+    return const FeatureResult.empty(resolvedRoute: ConnectionMode.direct);
+  }
+
   final task = _Task();
   String? term;
   @override
   Future<ScheduleImportTask> beginScheduleImport(String term) async {
     this.term = term;
+    importTerms.add(term);
     return task;
   }
 

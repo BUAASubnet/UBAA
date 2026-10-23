@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_platform/ubaa_platform.dart';
+import 'package:ubaa_app/src/contracts/offline.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/schedule_import.dart';
 import 'package:ubaa_app/src/controller/read_scheduler.dart';
@@ -108,7 +110,11 @@ mixin ControllerScheduleImport on ControllerState {
           progress: progress,
         );
         internalNotify();
-        if (progress.finished) break;
+        if (progress.finished) {
+          if (progress.saved)
+            await _publishImportedWeek(term, scope, progress.route);
+          break;
+        }
       }
     } on ReadCancelled {
       // 用户取消或归属变化已清理界面；在途返回不能恢复旧状态。
@@ -133,6 +139,64 @@ mixin ControllerScheduleImport on ControllerState {
         internalScheduleImportScopes.remove(term);
       scope.completion.complete();
       if (!internalDisposed) internalNotify();
+    }
+  }
+
+  Future<void> _publishImportedWeek(
+    String term,
+    ScheduleImportScope scope,
+    ConnectionMode route,
+  ) async {
+    final backend = internalBackend;
+    final account = internalLocalAccount;
+    final previous = internalSnapshots[FeatureId.schedule];
+    final query = previous?.readContext?.query;
+    if (!scope.valid ||
+        backend is! OfflineQueryBackend ||
+        account == null ||
+        !(query?.view == FeatureQueryView.scheduleWeek ||
+            (query?.view == FeatureQueryView.summary && query?.week != null)) ||
+        query?.term != term ||
+        previous!.status == FeatureLoadStatus.loading)
+      return;
+    bool current() =>
+        scope.valid &&
+        identical(internalSnapshots[FeatureId.schedule], previous);
+    try {
+      final read = await (backend as OfflineQueryBackend).readCachedQuery(
+        FeatureId.schedule,
+        query!,
+        route == ConnectionMode.direct
+            ? RoutePolicy.direct
+            : RoutePolicy.webvpn,
+      );
+      if (!current()) return;
+      final projection = read.projection;
+      if (projection != null &&
+          projection.complete &&
+          projection.feature == FeatureId.schedule &&
+          projection.accountId == account.id &&
+          projection.route == route &&
+          projection.readContext.hasSameQuery(query)) {
+        internalSnapshots[FeatureId.schedule] = projection
+            .toSnapshot()
+            .copyWith(readContext: previous.readContext);
+      }
+      if (read.error != null) {
+        internalLocalCacheError = internalRecordFailure(
+          read.error!,
+          DiagnosticOperation.read,
+          feature: FeatureId.schedule,
+        );
+      }
+    } on Object catch (error, stackTrace) {
+      if (!current()) return;
+      internalLocalCacheError = internalRecordFailure(
+        error,
+        DiagnosticOperation.read,
+        feature: FeatureId.schedule,
+        stackTrace: stackTrace,
+      );
     }
   }
 }

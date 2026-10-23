@@ -6,14 +6,12 @@ import '../../support/navigation.dart';
 
 void main() {
   for (final width in [390.0, 834.0, 1280.0]) {
-    testWidgets('$width宽度课表保存进度、取消和失败重试不改变查询', (tester) async {
+    testWidgets('$width宽度课表自动下载、进度与整学期刷新保留当前查询', (tester) async {
       tester.view.devicePixelRatio = 1;
       tester.view.physicalSize = Size(width, 1000);
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
-      var state = const ScheduleImportState(
-        status: ScheduleImportStatus.cancelled,
-      );
+      ScheduleImportState? state;
       late StateSetter update;
       final starts = <String>[],
           cancellations = <String>[],
@@ -61,7 +59,7 @@ void main() {
                   },
                   onLoadAcademicWeeks: (_, _) async =>
                       const FeatureResult.empty(),
-                  scheduleImports: {'selected': state},
+                  scheduleImports: {if (state != null) 'selected': state!},
                   onSaveScheduleSemester: (term) async {
                     starts.add(term);
                   },
@@ -73,8 +71,6 @@ void main() {
         ),
       );
       await openFeature(tester, FeatureId.schedule);
-      await tester.tap(find.text('保存整学期'));
-      await tester.pump();
       expect(starts, ['selected']);
       update(
         () => state = const ScheduleImportState(
@@ -89,8 +85,8 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(find.text('正在保存：1 / 2 周'), findsOneWidget);
-      await tester.tap(find.text('取消保存'));
+      expect(find.text('正在下载：1 / 2 周'), findsOneWidget);
+      await tester.tap(find.text('取消下载'));
       expect(cancellations, ['selected']);
       update(
         () => state = const ScheduleImportState(
@@ -108,7 +104,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(find.textContaining('空间不足'), findsOneWidget);
       expect(find.text('整学期已保存，可离线查看'), findsNothing);
-      await tester.tap(find.text('重新保存'));
+      await tester.tap(find.text('重试下载'));
       expect(starts.length, 2);
       update(
         () => state = const ScheduleImportState(
@@ -124,6 +120,9 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('整学期已保存，可离线查看'), findsOneWidget);
+      await tester.tap(find.byTooltip('刷新整学期课表'));
+      await tester.pumpAndSettle();
+      expect(starts, ['selected', 'selected', 'selected']);
       expect(find.text('第 3 周'), findsOneWidget);
       expect(queries, isEmpty);
       expect(tester.takeException(), isNull);

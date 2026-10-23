@@ -1,0 +1,38 @@
+# 课表默认下载整学期
+
+## 实施前来源核对
+
+2026-10-23，`just refs` 确认旧版固定为 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，buaa-api 固定为 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。本次改变入口调度和保存后的本地展示，不新增学校协议。
+
+核对旧版 `ScheduleApi.kt`、`LocalScheduleApi.kt`、`model/dto/Schedule.kt`、`ScheduleRepository.kt`、`ScheduleViewModel.kt` 和对应仓库、API 测试；另一来源核对 `src/api/aas/{core,opt,data}.rs`、`src/request.rs`。认证、共享 Cookie、加密与存储的完整来源矩阵继承[离线恢复对照 P4-B、P4-Y 至 P4-AB](source-parity-offline-recovery-2026-09-17.md)与[现行认证修复](source-parity-auth-2026-10-21.md)。
+
+| 操作 | bootstrap、service、跳转与 Cookie | 方法、精确参数、头与编码 | DTO、缓存并发与错误 |
+| --- | --- | --- | --- |
+| 学期索引 | 原 currentUser 能力检查，必要时原 AAS CAS service：`https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.do?contextPath=/jwapp`；原重定向及业务终点验证；共享当前账号、实际路线会话 | GET `/jwapp/sys/homeapp/api/home/student/schoolCalendars.do`，无参数；沿旧版 AJAX Accept、X-Requested-With、映射后的首页 Referer | 原 code 与学期列表，唯一 selected 才自动选择；完整导入的学期必须存在；失败保留旧内容 |
+| 教学周索引 | 同学期索引；每批完成原会话维护后让出队列，不复制 Cookie | GET `/jwapp/sys/homeapp/api/home/getTermWeeks.do`，query `termCode`；原 AJAX 头 | 原 term、number、日期和当前周标记；导入要求正且唯一周次、合法日期和所属学期；未知当前周仍可人工选择 |
+| 各周课表 | 同学期索引；固定账号、学期和路线代次，取消或归属变化丢弃迟到结果 | POST `/jwapp/sys/homeapp/api/home/student/getMyScheduleDetail.do`，表单 `termCode`、`type=week`、`week`，form-urlencoded 和原 AJAX 头；没有 campusCode | 原 arrangedList、notArrangeList、节次及课程 DTO；本科 WeeklySchedule.code 是学号，不是学期；所有周成功才原子保存，失败不覆盖旧完整学期 |
+| 下载后的当前周展示 | 只读取本地，校验账号、实际路线、学期和周次；无需 CAS、跳转或 Cookie | 无 HTTP、头、编码、加密或签名变更；复用 OfflineQueryBackend | 只接受完整的精确查询投影，保留原查询修订和数据取得时间；并发切周或新读取后不覆盖当前快照；读取失败保留原内容并记录本地诊断 |
+
+上述各在线操作均沿现有加密、签名、认证恢复与错误映射，无新增常量或错误代码。buaa-api 没有同构持久导入；其周/学期请求通过 query 传递 `campusCode`，学期请求使用 `type=term`，与旧版本科表单路径不同，本轮不采用。旧版研究生有专用适配，本轮不扩展当前 Core 的协议覆盖。完整导入的 code=0 和完整度约束继续 P4-Z，不改变普通读取容错或 CLI 退出语义。
+
+## 界面行为
+
+用户要求打开课表并确定学期后自动下载整学期，不再点击保存确认。每个界面生命周期内，同一学期只自动尝试一次；正在下载、已完成、失败或已取消均不会因重建或切周再次自动触发。账号、路线或缓存代次改变后重新按现有归属规则判断。学期来源不明确时仍需选择学期，不猜测第一个学期。
+
+右上角刷新使用当前已应用查询的学期，重新运行整学期任务；查询面板内未提交草稿不参与。重复点击由现有任务合并。下载完成后从本地精确投影更新当前周，保留所选周次。失败或取消显示重试，旧数据继续可见。底部只显示进度或结果，不保留首次保存按钮。
+
+## 验证
+
+实施前反例：三个屏宽的默认下载用例没有启动任务，App 完成导入后当前周仍为空，缓存回读等待未发生，均按预期失败。兼容性复查又用旧 summary 周查询复现未更新当前周，再修复为与 scheduleWeek 一致。RED 日志保存在仓库外私有验收目录。
+
+最终验证：
+
+- 七包格式、分析及测试通过：Domain 53、Platform 84、App 660、UI 367、Bindings 20、Host 101、官方宿主 75，共 1360 项。UI 首次分析发现空状态提前返回后残留的不可达分支，已修正并通过后续完整检查。
+- UI 覆盖手机 390、平板 834、桌面 1280 宽度及大字；自动下载、取消、失败重试、右上角整学期刷新均保留当前查询。另覆盖隐藏页、重建、切周、切学期、生命周期代次，以及已有任务不重复启动。
+- App 覆盖下载后当前周本地更新、不额外在线单周请求、迟到回读不覆盖切周结果、错账号/路线/查询/完整度拒绝和本地读取失败保留旧快照。复用原任务合并、取消、切路线、退出、清理及并发队列测试。
+- 生产 Host 用真实控件进入课表即启动任务，取消后点击右上角刷新重新下载同一学期；使用合成后端，不提交学校写入。该用例替代直接调用宿主回调的旧测试，保留原接线与取消覆盖。
+- `just refs`、`just check`、`just check-sensitive`、FRB 生成零漂移通过。`just check-plan` 包含既有未改动的 `.serena/` 而选择全量，本次执行完整门禁；`.serena/` 不纳入提交。
+
+自动化验证使用合成后端和固定夹具，没有运行新的真实账号双路线专项验收。应用重建启动用于用户检查，不计作人工界面验收。所有预览继续本地保留并受 Git 忽略，运行日志保存在仓库外私有目录。
+
+macOS Debug 最终构建成功，并按原隔离检查配置重新启动，供用户检查实际界面。

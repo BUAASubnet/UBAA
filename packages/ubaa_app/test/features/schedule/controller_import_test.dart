@@ -52,6 +52,119 @@ void main() {
       isTrue,
     );
   });
+  for (final view in [
+    FeatureQueryView.scheduleWeek,
+    FeatureQueryView.summary,
+  ]) {
+    test('$view整学期刷新后从本地更新当前周，不额外请求单周', () async {
+      final backend = _Backend();
+      final controller = await setup(backend);
+      final query = FeatureQuery(view: view, term: 'selected', week: 3);
+      await controller.refreshFeatureQuery(FeatureId.schedule, query);
+      final revision = controller.snapshots[FeatureId.schedule]!.readContext;
+      backend.events.clear();
+      final importing = controller.saveScheduleSemester('selected');
+      await until(() => backend.task.pending.isNotEmpty);
+      backend.cached = CachedFeatureProjection(
+        feature: FeatureId.schedule,
+        accountId: controller.cacheAccountId!,
+        route: ConnectionMode.direct,
+        fetchedAt: DateTime.utc(2026, 10, 23),
+        complete: true,
+        query: query,
+        details: const [FeatureDetail(title: '更新后的课程')],
+      );
+      backend.task.release(finished: true);
+      await importing;
+      final snapshot = controller.snapshots[FeatureId.schedule]!;
+      expect(snapshot.details.single.title, '更新后的课程');
+      expect(snapshot.readContext, same(revision));
+      expect(snapshot.evidence!.fetchedAt, DateTime.utc(2026, 10, 23));
+      expect(backend.events, ['begin', 'batch']);
+      expect(backend.cachePolicies.last, RoutePolicy.direct);
+    });
+  }
+
+  for (final invalid in ['账号', '路线', '查询', '完整度', '读取失败']) {
+    test('导入完成后拒绝$invalid异常投影，保留可见课表', () async {
+      final backend = _Backend();
+      final controller = await setup(backend);
+      const query = FeatureQuery(
+        view: FeatureQueryView.scheduleWeek,
+        term: 'selected',
+        week: 3,
+      );
+      await controller.refreshFeatureQuery(FeatureId.schedule, query);
+      final previous = controller.snapshots[FeatureId.schedule];
+      final importing = controller.saveScheduleSemester('selected');
+      await until(() => backend.task.pending.isNotEmpty);
+      backend.cached = CachedFeatureProjection(
+        feature: FeatureId.schedule,
+        accountId: invalid == '账号' ? 'other' : controller.cacheAccountId!,
+        route: invalid == '路线' ? ConnectionMode.webvpn : ConnectionMode.direct,
+        fetchedAt: DateTime.utc(2026, 10, 23),
+        complete: invalid != '完整度',
+        query: invalid == '查询'
+            ? const FeatureQuery(
+                view: FeatureQueryView.scheduleWeek,
+                term: 'selected',
+                week: 4,
+              )
+            : query,
+        details: const [FeatureDetail(title: '不可采用的课程')],
+      );
+      backend.failCache = invalid == '读取失败';
+      backend.task.release(finished: true);
+      await importing;
+      expect(controller.snapshots[FeatureId.schedule], same(previous));
+      expect(
+        controller.scheduleImports['selected']!.status,
+        ScheduleImportStatus.saved,
+      );
+    });
+  }
+
+  test('缓存回读期间切周，迟到导入投影不能覆盖新查询', () async {
+    final backend = _Backend();
+    final controller = await setup(backend);
+    const query = FeatureQuery(
+      view: FeatureQueryView.scheduleWeek,
+      term: 'selected',
+      week: 3,
+    );
+    await controller.refreshFeatureQuery(FeatureId.schedule, query);
+    final importing = controller.saveScheduleSemester('selected');
+    await until(() => backend.task.pending.isNotEmpty);
+    final read = Completer<OfflineQueryRead>();
+    backend.pendingCache = read;
+    backend.cachePolicies.clear();
+    backend.task.release(finished: true);
+    await until(() => backend.cachePolicies.isNotEmpty);
+    backend.pendingCache = null;
+    const next = FeatureQuery(
+      view: FeatureQueryView.scheduleWeek,
+      term: 'selected',
+      week: 4,
+    );
+    await controller.refreshFeatureQuery(FeatureId.schedule, next);
+    final current = controller.snapshots[FeatureId.schedule];
+    read.complete(
+      OfflineQueryRead(
+        CachedFeatureProjection(
+          feature: FeatureId.schedule,
+          accountId: controller.cacheAccountId!,
+          route: ConnectionMode.direct,
+          fetchedAt: DateTime.utc(2026, 10, 23),
+          complete: true,
+          query: query,
+          details: const [FeatureDetail(title: '迟到课程')],
+        ),
+      ),
+    );
+    await importing;
+    expect(controller.snapshots[FeatureId.schedule], same(current));
+  });
+
   test('后台及待确认写意图暂停下一批，恢复后继续且不自动提交', () async {
     final backend = _Backend();
     final controller = await setup(backend);
@@ -181,6 +294,7 @@ void main() {
 class _Backend extends support.FakeRecoveryBackend
     implements
         ScheduleImportBackend,
+        OfflineQueryBackend,
         ProgressiveReadBackend,
         FeatureQueryBackend,
         WriteCommitBackend,
@@ -200,6 +314,21 @@ class _Backend extends support.FakeRecoveryBackend
   }) async {
     clears++;
     return const CacheClearOutcome(compacted: true);
+  }
+
+  bool failCache = false;
+  CachedFeatureProjection? cached;
+  Completer<OfflineQueryRead>? pendingCache;
+  final cachePolicies = <RoutePolicy>[];
+  @override
+  Future<OfflineQueryRead> readCachedQuery(
+    FeatureId feature,
+    FeatureQuery query,
+    RoutePolicy policy,
+  ) async {
+    cachePolicies.add(policy);
+    if (failCache) throw const BackendException(UbaaErrorCode.networkError);
+    return pendingCache?.future ?? OfflineQueryRead(cached);
   }
 
   final events = <String>[];
