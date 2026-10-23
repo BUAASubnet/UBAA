@@ -240,7 +240,8 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                   padding: EdgeInsets.all(12),
                   child: Text('当前内容尚不完整，连接后继续核对。'),
                 ),
-              if (uiReadableCachedContent(widget.snapshot))
+              if (widget.feature != FeatureId.schedule &&
+                  uiReadableCachedContent(widget.snapshot))
                 Padding(
                   padding: const EdgeInsets.all(12),
                   child: Text(

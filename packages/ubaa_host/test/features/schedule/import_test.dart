@@ -9,7 +9,7 @@ import '../../../../ubaa_app/test/recovery/startup_test.dart' as startup;
 import '../../../../ubaa_ui/test/support/navigation.dart';
 
 void main() {
-  testWidgets('生产宿主进入课表自动下载，取消后右上角重新下载整学期', (tester) async {
+  testWidgets('生产宿主静默同步课表，失败后右上角重新刷新整学期', (tester) async {
     final backend = _Backend();
     await tester.pumpWidget(
       UbaaAppHost(
@@ -29,8 +29,19 @@ void main() {
       shell().scheduleImports['selected']!.status,
       ScheduleImportStatus.running,
     );
-    await tester.tap(find.text('取消下载'));
-    await tester.pump();
+    backend.task.pending.completeError(
+      const BackendException(UbaaErrorCode.networkError),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      shell().scheduleImports['selected']!.status,
+      ScheduleImportStatus.failed,
+    );
+    final reads = backend.weekReads;
+    await tester.tap(find.byTooltip('刷新'));
+    for (var i = 0; i < 20 && backend.importTerms.length < 2; i++) {
+      await tester.pump();
+    }
     backend.task.pending.complete(
       const ScheduleImportProgress(
         term: 'selected',
@@ -40,14 +51,6 @@ void main() {
         route: ConnectionMode.direct,
       ),
     );
-    await tester.pumpAndSettle();
-    expect(backend.task.cancelled, isTrue);
-    expect(
-      shell().scheduleImports['selected']!.status,
-      ScheduleImportStatus.cancelled,
-    );
-    final reads = backend.weekReads;
-    await tester.tap(find.byTooltip('刷新整学期课表'));
     await tester.pumpAndSettle();
     expect(backend.importTerms, ['selected', 'selected']);
     expect(backend.weekReads, reads);
@@ -109,13 +112,13 @@ class _Backend extends startup.FakeRecoveryBackend
     return const FeatureResult.empty(resolvedRoute: ConnectionMode.direct);
   }
 
-  final task = _Task();
+  var task = _Task();
   String? term;
   @override
   Future<ScheduleImportTask> beginScheduleImport(String term) async {
     this.term = term;
     importTerms.add(term);
-    return task;
+    return task = _Task();
   }
 
   @override

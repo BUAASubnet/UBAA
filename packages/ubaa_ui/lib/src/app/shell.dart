@@ -572,7 +572,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             tooltip:
                 _openedFeature == FeatureId.schedule &&
                     widget.onSaveScheduleSemester != null
-                ? '刷新整学期课表'
+                ? '刷新'
                 : '刷新当前查询',
             onRefresh: () async {
               final page = _readPageKeys[_openedFeature]?.currentState;

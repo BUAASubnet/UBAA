@@ -2,7 +2,7 @@ import 'dart:async';
 import '../../shared/loading.dart' show LoadingPlaceholder;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'import.dart' show ScheduleImportBar;
+import 'import.dart' show ScheduleRefreshError;
 import 'week_picker.dart' show AcademicWeekDialog;
 import '../../shared/schedule_values.dart' show uiIsWeeklyScheduleQuery;
 
@@ -236,7 +236,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
           widget.query?.term == term) {
         ScaffoldMessenger.of(
           context,
-        ).showSnackBar(const SnackBar(content: Text('暂时无法开始下载，请点击刷新重试')));
+        ).showSnackBar(const SnackBar(content: Text('刷新失败，请稍后重试')));
       }
     }
   }
@@ -440,11 +440,10 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         children: [
           weekHeader,
           if (term != null && widget.onSave != null)
-            ScheduleImportBar(
+            ScheduleRefreshError(
               term: term,
               state: widget.imports[term],
-              onSave: widget.onSave!,
-              onCancel: widget.onCancelImport,
+              onRefresh: widget.onSave!,
             ),
           Expanded(child: content),
         ],

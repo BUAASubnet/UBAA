@@ -347,28 +347,28 @@ class _HomeViewState extends State<HomeView> {
               leading: const Icon(Icons.calendar_today),
               title: Text(
                 differentDate
-                    ? '尚无今天保存的课表'
+                    ? '暂无今日课表'
                     : schedule.evidence?.origin == DataOrigin.persisted &&
                           schedule.evidence!.complete
-                    ? '上次保存时没有课程安排'
+                    ? '暂无课程安排'
                     : schedule.status == FeatureLoadStatus.empty ||
                           (schedule.status == FeatureLoadStatus.loading &&
                               schedule.updatedAt != null)
                     ? '今天没有课程安排'
-                    : _homeSummary(schedule),
+                    : schedule.evidence?.complete == false
+                    ? '课表暂未加载完整'
+                    : schedule.error != null
+                    ? '课表加载失败，请重试'
+                    : '暂无课程安排',
               ),
               trailing: const Icon(Icons.chevron_right),
               onTap: () => widget.onFeatureTap(FeatureId.schedule),
             ),
           ),
-        if (!differentDate && schedule.evidence?.origin == DataOrigin.persisted)
-          Text(
-            '上次保存：${uiSavedScheduleTime(schedule.evidence!.fetchedAt)}，连接后核对更新。',
-          )
-        else if (today.isNotEmpty && schedule.status == FeatureLoadStatus.stale)
-          const Text('课表刷新失败，以上为上次成功加载的数据。'),
-        if (schedule.evidence?.savedForOffline == false)
-          const Text('本次课表已更新，但尚未保存到本机。'),
+        if (today.isNotEmpty &&
+            schedule.status == FeatureLoadStatus.stale &&
+            schedule.error != null)
+          const Text('课表刷新失败，请稍后重试。'),
       ],
     );
     final todoSection = Column(

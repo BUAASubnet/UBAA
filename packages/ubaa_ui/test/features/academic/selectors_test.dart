@@ -5,7 +5,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../../support/navigation.dart';
 
 void main() {
-  testWidgets('缓存学期选项标明保存时间且仍能选择', (tester) async {
+  testWidgets('缓存学期选项仍可选择并填入查询草稿', (tester) async {
     await _show(
       tester,
       FeatureId.grades,
@@ -28,7 +28,6 @@ void main() {
     );
     await tester.tap(find.text('选择学期'));
     await tester.pumpAndSettle();
-    expect(find.textContaining('上次保存'), findsOneWidget);
     await tester.tap(find.text('合成旧学期'));
     await tester.pumpAndSettle();
     expect(

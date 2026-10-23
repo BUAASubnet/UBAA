@@ -55,10 +55,9 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('已保存的空课表不能冒充刚刚确认的今日无课', (tester) async {
+  testWidgets('本地空课表显示简洁空态', (tester) async {
     await mount(tester, date: '2026-09-21', empty: true);
-    expect(find.text('上次保存时没有课程安排'), findsOneWidget);
-    expect(find.textContaining('上次保存：'), findsOneWidget);
+    expect(find.text('暂无课程安排'), findsOneWidget);
     expect(find.text('今天没有课程安排'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
@@ -74,7 +73,7 @@ void main() {
   testWidgets('跨校园午夜后不把昨日缓存课程放在今日下', (tester) async {
     await mount(tester, date: '2026-09-20');
     expect(find.text('昨日合成课程'), findsNothing);
-    expect(find.text('尚无今天保存的课表'), findsOneWidget);
+    expect(find.text('暂无今日课表'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
 }

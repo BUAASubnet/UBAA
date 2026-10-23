@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/error_card.dart' show FriendlyErrorCard;
-import '../../shared/schedule_values.dart' show uiSavedScheduleTime;
 
 class AcademicTermDialog extends StatefulWidget {
   const AcademicTermDialog({required this.loader, required this.selected});
@@ -72,10 +71,6 @@ class _AcademicTermDialogState extends State<AcademicTermDialog> {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (result.evidence?.origin == DataOrigin.persisted)
-                    Text(
-                      '上次保存 ${uiSavedScheduleTime(result.evidence!.fetchedAt)}，连接后核对更新',
-                    ),
                   for (final entry in terms.entries)
                     ListTile(
                       title: Text(entry.value.title),

@@ -2,7 +2,6 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/error_card.dart' show FriendlyErrorCard;
-import '../../shared/schedule_values.dart' show uiSavedScheduleTime;
 
 /// 保留原教学周顺序，重复编号全部待确认，不静默挑一个当权威值。
 List<FeatureDetail> uiUniqueWeekOptions(FeatureResult result, String term) {
@@ -81,10 +80,6 @@ class _AcademicWeekDialogState extends State<AcademicWeekDialog> {
               return Column(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  if (snapshot.data!.evidence?.origin == DataOrigin.persisted)
-                    Text(
-                      '上次保存 ${uiSavedScheduleTime(snapshot.data!.evidence!.fetchedAt)}，连接后核对更新',
-                    ),
                   for (final detail in options)
                     ListTile(
                       title: Text(detail.title),
