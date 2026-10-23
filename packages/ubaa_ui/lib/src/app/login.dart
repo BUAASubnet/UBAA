@@ -424,15 +424,31 @@ class _LoginOption extends StatelessWidget {
   Widget build(BuildContext context) => MergeSemantics(
     child: InkWell(
       onTap: enabled ? () => onChanged(!value) : null,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: <Widget>[
-          Checkbox(
-            value: value,
-            onChanged: enabled ? (value) => onChanged(value ?? false) : null,
-          ),
-          Text(label),
-        ],
+      borderRadius: BorderRadius.circular(12),
+      hoverColor: Theme.of(context).colorScheme.primary.withValues(alpha: 0.04),
+      child: Padding(
+        padding: const EdgeInsetsDirectional.only(end: 12),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: <Widget>[
+            // 整行统一处理鼠标和键盘，复选框只呈现勾选及禁用状态。
+            ExcludeFocus(
+              child: IgnorePointer(
+                child: Checkbox(
+                  value: value,
+                  onChanged: enabled
+                      ? (value) => onChanged(value ?? false)
+                      : null,
+                  overlayColor: const WidgetStatePropertyAll(
+                    Colors.transparent,
+                  ),
+                  splashRadius: 0,
+                ),
+              ),
+            ),
+            Text(label),
+          ],
+        ),
       ),
     ),
   );

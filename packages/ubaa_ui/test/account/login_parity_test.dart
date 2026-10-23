@@ -74,13 +74,13 @@ void main() {
     await tester.tap(find.text('记住密码'));
     await tester.pump();
     expect(rememberChanges, <bool>[true]);
-    await tester.tap(find.byType(Checkbox).first);
+    await tester.tapAt(tester.getCenter(find.byType(Checkbox).first));
     await tester.pump();
     expect(rememberChanges, <bool>[true, true]);
     await tester.tap(find.text('自动登录'));
     await tester.pump();
     expect(autoChanges, <bool>[true]);
-    await tester.tap(find.byType(Checkbox).last);
+    await tester.tapAt(tester.getCenter(find.byType(Checkbox).last));
     await tester.pump();
     expect(autoChanges, <bool>[true, true]);
   });
@@ -102,7 +102,7 @@ void main() {
         await tester.tap(find.text(label));
       }
       for (final checkbox in find.byType(Checkbox).evaluate()) {
-        await tester.tap(find.byWidget(checkbox.widget));
+        await tester.tapAt(tester.getCenter(find.byWidget(checkbox.widget)));
       }
       await tester.pump();
 
