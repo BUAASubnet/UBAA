@@ -40,13 +40,8 @@ List<String> uiAssignmentSearchValues(FeaturePresentation? presentation) =>
     };
 
 class AssignmentContent extends StatelessWidget {
-  const AssignmentContent({
-    required this.details,
-    required this.selection,
-    this.onNavigate,
-  });
+  const AssignmentContent({required this.details, this.onNavigate});
   final List<FeatureDetail> details;
-  final Widget? Function(FeatureDetail) selection;
   final Future<void> Function(FeatureReadNavigation)? onNavigate;
 
   @override
@@ -94,7 +89,6 @@ class AssignmentContent extends StatelessWidget {
                 child: AssignmentCard(
                   detail: detail,
                   wide: constraints.maxWidth >= 740,
-                  selection: selection(detail),
                   onNavigate: onNavigate,
                 ),
               ),
@@ -109,12 +103,10 @@ class AssignmentCard extends StatelessWidget {
   const AssignmentCard({
     required this.detail,
     required this.wide,
-    this.selection,
     this.onNavigate,
   });
   final FeatureDetail detail;
   final bool wide;
-  final Widget? selection;
   final Future<void> Function(FeatureReadNavigation)? onNavigate;
 
   @override
@@ -156,26 +148,29 @@ class AssignmentCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 132),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 10,
-                        vertical: 6,
-                      ),
-                      decoration: BoxDecoration(
-                        color: Theme.of(
-                          context,
-                        ).colorScheme.surfaceContainerLow,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        uiNonBlank(status) ?? '提交状态未知',
-                        style: Theme.of(context).textTheme.labelMedium,
+                  if (p is! JudgeAssignmentPresentation ||
+                      p.status != AssignmentSubmissionStatus.unknown) ...[
+                    const SizedBox(width: 12),
+                    ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 132),
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 6,
+                        ),
+                        decoration: BoxDecoration(
+                          color: Theme.of(
+                            context,
+                          ).colorScheme.surfaceContainerLow,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Text(
+                          uiNonBlank(status) ?? '提交状态未知',
+                          style: Theme.of(context).textTheme.labelMedium,
+                        ),
                       ),
                     ),
-                  ),
+                  ],
                 ],
               ),
               const SizedBox(height: 8),
@@ -191,17 +186,20 @@ class AssignmentCard extends StatelessWidget {
               if (p is JudgeAssignmentPresentation) ...[
                 if (uiNonBlank(p.startTime) case final start?)
                   _assignmentLine(context, '开始：$start'),
-                _assignmentLine(context, '截止：${uiNonBlank(due) ?? '未提供'}'),
-                _assignmentLine(
-                  context,
-                  '已提交 ${p.submittedCount} / ${p.totalProblems} 题',
-                ),
-                if (uiNonBlank(p.myScore) case final score?)
-                  _assignmentLine(context, '我的得分：$score'),
-                if (uiNonBlank(p.maxScore) case final score?)
-                  _assignmentLine(context, '满分：$score'),
+                if (uiNonBlank(due) case final end?)
+                  _assignmentLine(context, '截止：$end'),
+                if (p.totalProblems > 0)
+                  _assignmentLine(
+                    context,
+                    '已提交 ${p.submittedCount} / ${p.totalProblems} 题',
+                  ),
+                if (uiNonBlank(p.maxScore) != null ||
+                    uiNonBlank(p.myScore) != null)
+                  _assignmentLine(
+                    context,
+                    '分数：${uiNonBlank(p.myScore) ?? '无'}${uiNonBlank(p.maxScore) == null ? '' : ' / ${p.maxScore}'}',
+                  ),
               ],
-              if (selection case final child?) child,
             ],
           ),
         ),

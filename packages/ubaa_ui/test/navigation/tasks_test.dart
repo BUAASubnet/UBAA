@@ -110,7 +110,20 @@ Future<void> _mount(WidgetTester tester) async {
               status: FeatureLoadStatus.success,
               summary: '合成结果',
               details: <FeatureDetail>[
-                FeatureDetail(title: '合成详情-${feature.wireName}'),
+                FeatureDetail(
+                  title: '合成详情-${feature.wireName}',
+                  presentation: feature == FeatureId.judge
+                      ? JudgeAssignmentPresentation(
+                          courseId: 'c',
+                          courseName: '合成课程',
+                          assignmentId: 'a',
+                          status: AssignmentSubmissionStatus.unsubmitted,
+                          statusText: '未提交',
+                          totalProblems: 1,
+                          submittedCount: 0,
+                        )
+                      : null,
+                ),
               ],
             ),
         },

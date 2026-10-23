@@ -714,7 +714,22 @@ void _registerSharedStateTests() {
             status: status,
             summary: status == FeatureLoadStatus.stale ? '上次成功摘要' : null,
             details: status == FeatureLoadStatus.stale
-                ? const <FeatureDetail>[FeatureDetail(title: '上次成功详情')]
+                ? <FeatureDetail>[
+                    FeatureDetail(
+                      title: '上次成功详情',
+                      presentation: feature == FeatureId.judge
+                          ? JudgeAssignmentPresentation(
+                              courseId: 'c',
+                              courseName: '合成课程',
+                              assignmentId: 'a',
+                              status: AssignmentSubmissionStatus.unsubmitted,
+                              statusText: '未提交',
+                              totalProblems: 1,
+                              submittedCount: 0,
+                            )
+                          : null,
+                    ),
+                  ]
                 : const <FeatureDetail>[],
             error:
                 status == FeatureLoadStatus.failure ||

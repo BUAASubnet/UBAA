@@ -42,12 +42,9 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
 
       await _open(tester, FeatureId.judge);
       await _panel(tester, true);
-      await _tap(tester, find.text('包含已过期作业'));
-      await _apply(
-        tester,
-        FeatureId.judge,
-        const FeatureQuery(includeExpired: true),
-      );
+      await _tap(tester, find.text('显示已截止'));
+      await _tap(tester, find.text('加载历史作业'));
+      await _panel(tester, false);
       expect(_snapshot(tester, FeatureId.judge).details.length, 3);
       await _search(tester, 'judge-a');
       await _tap(tester, find.byTooltip('查看作业详情'));
@@ -81,57 +78,20 @@ void _registerNormal(IntegrationTestWidgetsFlutterBinding binding) {
       expect(await _searchDraft(tester), 'judge-b');
       expect(find.text('没有匹配的详情'), findsNothing);
 
-      await _tap(
-        tester,
-        find.byKey(const ValueKey(('judge-selection', 'judge-b', 'shared'))),
-      );
-      await _search(tester, 'judge-a');
-      await _tap(
-        tester,
-        find.byKey(const ValueKey(('judge-selection', 'judge-a', 'shared'))),
-      );
-      expect(find.text('已选择 2 份作业'), findsOneWidget);
-      final beforeBatch = backend.reads.length;
-      await _tap(tester, find.text('查看所选作业'));
-      _expectQuery(
-        tester,
-        FeatureId.judge,
-        const FeatureQuery(
-          view: FeatureQueryView.judgeBatchDetails,
-          includeExpired: true,
-          judgeKeys: [
-            JudgeAssignmentQueryKey(
-              courseId: 'judge-b',
-              assignmentId: 'shared',
-            ),
-            JudgeAssignmentQueryKey(
-              courseId: 'judge-a',
-              assignmentId: 'shared',
-            ),
-          ],
-        ),
-      );
-      final batch = _snapshot(tester, FeatureId.judge).details
-          .map((d) => d.presentation as JudgeAssignmentPresentation)
-          .toList();
-      expect(batch.map((p) => p.courseId), ['judge-b', 'judge-a']);
-      expect(batch.map((p) => p.problems.first.score), ['22', '11']);
-      await _search(tester, 'judge-b 嵌套检索标记');
-      expect(find.text('希冀课程judge-a'), findsNothing);
-      await _shot(
-        binding,
-        tester,
-        '$prefix-judge-batch-nested-search',
-        FeatureId.judge,
-      );
+      final beforeSecond = backend.reads.length;
+      await _tap(tester, find.byTooltip('查看作业详情'));
+      final second =
+          _snapshot(tester, FeatureId.judge).details.single.presentation
+              as JudgeAssignmentPresentation;
+      expect(second.courseId, 'judge-b');
+      expect(second.problems.first.score, '22');
       await _tap(tester, find.byTooltip('返回'));
-      expect(find.text('已选择 2 份作业'), findsOneWidget);
-      expect(await _searchDraft(tester), 'judge-a');
-      expect(backend.reads.length, beforeBatch + 1);
+      expect(await _searchDraft(tester), 'judge-b');
+      expect(backend.reads.length, beforeSecond + 1);
       await _shot(
         binding,
         tester,
-        '$prefix-judge-parent-selection',
+        '$prefix-judge-parent-filter',
         FeatureId.judge,
       );
 

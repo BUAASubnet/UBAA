@@ -14,6 +14,8 @@ import '../features/cgyy/reservation_flow.dart'
     show CgyyReservationChoices, CgyyReservationFlow, CgyyReservationFlowState;
 import '../features/coursework/coursework_overview.dart'
     show CourseworkOverview;
+import '../features/coursework/judge_filters.dart'
+    show JudgeListFilters, JudgeFilterControls;
 import '../features/grades/flow.dart' show GradesFlow;
 import '../features/libbook/reservation_flow.dart'
     show
@@ -154,6 +156,11 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
   final _scheduleKey = GlobalKey<ScheduleFlowState>();
   final _searchController = TextEditingController();
   bool _panelOpen = false;
+  JudgeListFilters _judgeFilters = const JudgeListFilters();
+  bool get _isJudgeList =>
+      widget.feature == FeatureId.judge &&
+      (widget.query?.view ?? FeatureQueryView.summary) ==
+          FeatureQueryView.summary;
   Set<BykcCourseStatus> get _bykcStatuses => widget.bykcFilters.statuses;
   Set<String> get _bykcCategories => widget.bykcFilters.categories;
   Set<String> get _bykcCampuses => widget.bykcFilters.campuses;
@@ -462,13 +469,37 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                                   if (!widget.isLanding)
                                     TextField(
                                       controller: _searchController,
-                                      decoration: const InputDecoration(
-                                        labelText: '筛选详情',
-                                        prefixIcon: Icon(Icons.search),
+                                      decoration: InputDecoration(
+                                        labelText: _isJudgeList
+                                            ? '课程名称或作业标题'
+                                            : '筛选详情',
+                                        prefixIcon: const Icon(Icons.search),
                                       ),
                                       onChanged: (_) => setState(() {}),
                                     ),
-                                  if (widget.onQuery != null && _supportsQuery)
+                                  if (_isJudgeList)
+                                    JudgeFilterControls(
+                                      filters: _judgeFilters,
+                                      onChanged: (value) =>
+                                          setState(() => _judgeFilters = value),
+                                      onLoadHistory:
+                                          widget.query?.includeExpired ==
+                                                  true ||
+                                              widget.onQuery == null ||
+                                              widget.snapshot.status ==
+                                                  FeatureLoadStatus.loading
+                                          ? null
+                                          : () => widget.onQuery!(
+                                              (widget.query ??
+                                                      const FeatureQuery())
+                                                  .copyWith(
+                                                    includeExpired: true,
+                                                  ),
+                                            ),
+                                    ),
+                                  if (widget.feature != FeatureId.judge &&
+                                      widget.onQuery != null &&
+                                      _supportsQuery)
                                     if (_isCgyyReservation) ...[
                                       ValueListenableBuilder<int>(
                                         valueListenable: _cgyyChoicesRevision,
@@ -598,9 +629,11 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
     return FeatureDetailList(
       feature: widget.feature,
       writesEnabled: widget.snapshot.status != FeatureLoadStatus.loading,
-      details: widget.snapshot.details,
+      details: _isJudgeList
+          ? _judgeFilters.apply(widget.snapshot.details, _searchController.text)
+          : widget.snapshot.details,
       timeline: _scheduleTimeline,
-      filter: _searchController.text,
+      filter: _isJudgeList ? '' : _searchController.text,
       bykcStatuses: _bykcStatuses,
       onBykcStatusesChanged: (statuses) => widget.onBykcFiltersChanged(
         widget.bykcFilters.copyWith(statuses: statuses),

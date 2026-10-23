@@ -108,7 +108,13 @@ Future<void> _panel(WidgetTester tester, bool open) async {
 Future<String> _searchDraft(WidgetTester tester) async {
   await _panel(tester, true);
   final value = tester
-      .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
+      .widget<TextField>(
+        find.byWidgetPredicate(
+          (w) =>
+              w is TextField &&
+              const ['筛选详情', '课程名称或作业标题'].contains(w.decoration?.labelText),
+        ),
+      )
       .controller!
       .text;
   await _panel(tester, false);
@@ -117,7 +123,11 @@ Future<String> _searchDraft(WidgetTester tester) async {
 
 Future<void> _search(WidgetTester tester, String value) async {
   await _panel(tester, true);
-  final field = find.widgetWithText(TextField, '筛选详情');
+  final field = find.byWidgetPredicate(
+    (w) =>
+        w is TextField &&
+        const ['筛选详情', '课程名称或作业标题'].contains(w.decoration?.labelText),
+  );
   await _tap(tester, field);
   await tester.enterText(field, value);
   await tester.pump();

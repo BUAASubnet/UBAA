@@ -32,7 +32,9 @@ void _registerStates(IntegrationTestWidgetsFlutterBinding binding) {
               FeatureLoadStatus.success,
             );
           } else if (state == 'stale') {
-            await _apply(tester, feature, const FeatureQuery());
+            if (feature != FeatureId.judge) {
+              await _apply(tester, feature, const FeatureQuery());
+            }
             final old = _snapshot(tester, feature).details;
             await _tap(tester, find.byTooltip('刷新当前查询'));
             expect(_snapshot(tester, feature).status, FeatureLoadStatus.stale);
@@ -84,50 +86,13 @@ void _registerStates(IntegrationTestWidgetsFlutterBinding binding) {
             final overview = _snapshot(tester, feature).overview;
             expect(_snapshot(tester, feature).details.length, 42);
             await _shot(binding, tester, '$prefix-page-one', feature);
-            if (feature == FeatureId.judge) {
-              await _tap(
-                tester,
-                find.byKey(
-                  const ValueKey(('judge-selection', 'judge-b', 'shared')),
-                ),
-              );
+            if (feature != FeatureId.judge) {
+              await _tap(tester, find.byTooltip('下一页'));
+              expect(find.text('2 / 3'), findsOneWidget);
+              await _shot(binding, tester, '$prefix-page-two', feature);
             }
-            await _tap(tester, find.byTooltip('下一页'));
-            expect(find.text('2 / 3'), findsOneWidget);
-            await _shot(binding, tester, '$prefix-page-two', feature);
             expect(backend.reads.length, before);
             expect(_snapshot(tester, feature).overview, same(overview));
-            var expectedReads = before;
-            if (feature == FeatureId.judge) {
-              await _tap(
-                tester,
-                find.byKey(
-                  const ValueKey(('judge-selection', 'judge-20', 'shared')),
-                ),
-              );
-              await _tap(tester, find.text('查看所选作业'));
-              _expectQuery(
-                tester,
-                feature,
-                const FeatureQuery(
-                  view: FeatureQueryView.judgeBatchDetails,
-                  judgeKeys: [
-                    JudgeAssignmentQueryKey(
-                      courseId: 'judge-b',
-                      assignmentId: 'shared',
-                    ),
-                    JudgeAssignmentQueryKey(
-                      courseId: 'judge-20',
-                      assignmentId: 'shared',
-                    ),
-                  ],
-                ),
-              );
-              expectedReads++;
-              await _tap(tester, find.byTooltip('返回'));
-              expect(find.text('2 / 3'), findsOneWidget);
-              expect(find.text('已选择 2 份作业'), findsOneWidget);
-            }
             final keyword = switch (feature) {
               FeatureId.spoc => 'SPOC课程41',
               FeatureId.judge => 'judge-41',
@@ -136,7 +101,7 @@ void _registerStates(IntegrationTestWidgetsFlutterBinding binding) {
               _ => throw StateError('非课程领域'),
             };
             await _search(tester, keyword);
-            expect(backend.reads.length, expectedReads);
+            expect(backend.reads.length, before);
             if (feature == FeatureId.evaluation) {
               expect(find.text('已评 21 / 42 门'), findsOneWidget);
               expect(find.text('待评 21 门'), findsOneWidget);
@@ -149,23 +114,19 @@ void _registerStates(IntegrationTestWidgetsFlutterBinding binding) {
                 : '希冀课程judge-a';
             await _search(tester, course);
             await _tap(tester, find.byTooltip('查看作业详情'));
-            final body = find.byType(SelectableText);
-            expect(body, findsOneWidget);
-            expect(tester.widget<SelectableText>(body).data, contains('正文尾部'));
-            await _shot(binding, tester, '$prefix-body-start', feature);
-            final more = find.text('更多信息');
-            await _ensure(tester, more);
-            await Scrollable.ensureVisible(
-              tester.element(more),
-              alignment: 0.9,
-            );
-            await tester.pumpAndSettle();
-            if (feature == FeatureId.judge) {
+            if (feature == FeatureId.spoc) {
+              final body = find.byType(SelectableText);
+              expect(
+                tester.widget<SelectableText>(body).data,
+                contains('正文尾部'),
+              );
+              await _ensure(tester, find.text('作业说明'));
+            } else {
               final p =
                   _snapshot(tester, feature).details.single.presentation
                       as JudgeAssignmentPresentation;
-              expect(p.problems.length, 2);
               expect(p.problems.last.name, 'judge-a 嵌套检索标记');
+              await _ensure(tester, find.text('题目明细'));
             }
           }
           await _shot(binding, tester, '$prefix-result', feature);

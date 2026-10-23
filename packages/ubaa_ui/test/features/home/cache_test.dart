@@ -146,7 +146,20 @@ Future<void> mount(
                         ? FeatureLoadStatus.success
                         : FeatureLoadStatus.stale,
                     details: cacheFailure
-                        ? const [FeatureDetail(title: '合成在线作业')]
+                        ? [
+                            FeatureDetail(
+                              title: '合成在线作业',
+                              presentation: JudgeAssignmentPresentation(
+                                courseId: 'c',
+                                courseName: '合成课程',
+                                assignmentId: 'a',
+                                status: AssignmentSubmissionStatus.unsubmitted,
+                                statusText: '未提交',
+                                totalProblems: 1,
+                                submittedCount: 0,
+                              ),
+                            ),
+                          ]
                         : const [],
                     evidence: DataEvidence(
                       accountId: 'synthetic',

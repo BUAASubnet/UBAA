@@ -21,11 +21,11 @@ void main() {
     expect(state.queries, hasLength(2));
     expect(state.queries.last.view, FeatureQueryView.summary);
   });
-  testWidgets('手机单项返回后更换搜索仍能选择另一课程作业', (tester) async {
-    await showHarness(tester, size: const Size(402, 874));
+  testWidgets('手机单项返回后更换搜索仍能打开另一课程作业', (tester) async {
+    final state = await showHarness(tester, size: const Size(402, 874));
     Future<void> search(String value) async {
       await openQueryPanel(tester);
-      final field = find.widgetWithText(TextField, '筛选详情');
+      final field = find.widgetWithText(TextField, '课程名称或作业标题');
       await tester.ensureVisible(field);
       await tester.enterText(field, value);
       await closeQueryPanel(tester);
@@ -43,98 +43,11 @@ void main() {
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     await search('B 课程');
-    final choice = find.byKey(const ValueKey(('judge-selection', 'B', 'a')));
-    if (choice.evaluate().isEmpty) {
-      await tester.scrollUntilVisible(
-        choice,
-        100,
-        scrollable: find
-            .byWidgetPredicate(
-              (widget) =>
-                  widget is Scrollable &&
-                  widget.axisDirection == AxisDirection.down,
-            )
-            .last,
-      );
-    }
-    await Scrollable.ensureVisible(tester.element(choice), alignment: .5);
-    await tester.pumpAndSettle();
-    expect(choice.hitTestable(), findsOneWidget);
+    final choice = find.byTooltip('查看作业详情');
+    await tester.ensureVisible(choice);
     await tester.tap(choice);
     await tester.pumpAndSettle();
-    expect(find.text('已选择 1 份作业'), findsOneWidget);
-  });
-  testWidgets('批量详情返回保留父页选择顺序、筛选和过期条件且不重读', (tester) async {
-    final state = await showHarness(tester);
-    for (final course in ['B', 'A']) {
-      final selection = find.byKey(ValueKey(('judge-selection', course, 'a')));
-      await tester.ensureVisible(selection);
-      await tester.tap(selection);
-      await tester.pumpAndSettle();
-    }
-    await openQueryPanel(tester);
-    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '作业');
-    await closeQueryPanel(tester);
-    await closeQueryPanel(tester);
-    await tester.tap(find.text('查看所选作业'));
-    await tester.pumpAndSettle();
-    expect(state.queries.single.judgeKeys.map((key) => key.courseId), [
-      'B',
-      'A',
-    ]);
-    expect(state.queries.single.includeExpired, isTrue);
-    expect(find.text('B 子作业'), findsOneWidget);
-    await tester.tap(find.byTooltip('返回'));
-    await tester.pumpAndSettle();
-    expect(state.queries, hasLength(1));
-    expect(find.text('已选择 2 份作业'), findsOneWidget);
-    await openQueryPanel(tester);
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
-          .controller!
-          .text,
-      '作业',
-    );
-    expect(
-      tester
-          .widget<FilterChip>(find.widgetWithText(FilterChip, '包含已过期作业'))
-          .selected,
-      isTrue,
-    );
-    await closeQueryPanel(tester);
-    await tester.tap(find.text('查看所选作业'));
-    await tester.pumpAndSettle();
-    expect(state.queries.last.judgeKeys.map((key) => key.courseId), ['B', 'A']);
-  });
-  testWidgets('选择作业弹窗跨读取生命周期失效时不回填旧账号草稿', (tester) async {
-    final state = await showHarness(tester);
-    await openQueryPanel(tester);
-    await tester.tap(find.text('作业列表'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('作业详情').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('选择已加载作业'));
-    await tester.pumpAndSettle();
-    state.invalidate();
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('B 课程 · B 作业（B / a）'));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '课程编号'))
-          .controller!
-          .text,
-      isEmpty,
-    );
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '作业编号'))
-          .controller!
-          .text,
-      isEmpty,
-    );
-    expect(state.queries, isEmpty);
+    expect(state.queries.last.courseId, 'B');
   });
 }
 

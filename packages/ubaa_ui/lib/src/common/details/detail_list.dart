@@ -45,7 +45,6 @@ import '../../write/ygdk/draft.dart' show YgdkFormContext;
 import '../../write/ygdk/form.dart' show uiCollectYgdkForm;
 part 'pagination.dart';
 part 'assignments.dart';
-part 'assignment_selection.dart';
 part 'evaluation_row.dart';
 part 'bykc_actions.dart';
 part 'bykc_details.dart';
@@ -130,7 +129,6 @@ class FeatureDetailList extends StatefulWidget {
 class _FeatureDetailListState extends State<FeatureDetailList> {
   static const _pageSize = 20;
   final Set<String> _selectedEvaluationKeys = <String>{};
-  final List<(String, String)> _selectedJudgeKeys = [];
   int _page = 0;
 
   @override
@@ -147,13 +145,6 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
           target.selectionKey,
     };
     _selectedEvaluationKeys.removeWhere((key) => !validKeys.contains(key));
-    final judgeKeys = {
-      for (final detail in widget.details)
-        if (detail.presentation case JudgeAssignmentPresentation p
-            when !p.isDetail)
-          (p.courseId, p.assignmentId),
-    };
-    _selectedJudgeKeys.removeWhere((key) => !judgeKeys.contains(key));
   }
 
   @override
@@ -162,6 +153,7 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
     final theme = Theme.of(context);
     final isBykcStatistics = uiIsBykcStatistics(widget.feature, widget.details);
     final unpagedLocal =
+        widget.feature == FeatureId.judge ||
         widget.feature == FeatureId.exam ||
         widget.feature == FeatureId.classroom ||
         (widget.feature == FeatureId.schedule &&
@@ -239,7 +231,6 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
         .toList(growable: false);
     return Column(
       children: <Widget>[
-        ..._judgeBatchFields(setState),
         ..._evaluationBatchFields(
           setState,
           pendingEvaluations,
@@ -285,6 +276,8 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                       widget.feature == FeatureId.bykc &&
                               widget.query?.view == FeatureQueryView.summary
                           ? '当前页没有匹配项'
+                          : widget.feature == FeatureId.judge
+                          ? '暂无符合条件的希冀作业'
                           : '没有匹配的详情',
                     ),
                   )
@@ -300,7 +293,6 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                 : uiSupportsAssignmentContent(widget.feature, visible)
                 ? AssignmentContent(
                     details: visible,
-                    selection: (detail) => _judgeSelection(detail, setState),
                     onNavigate: widget.onNavigate,
                   )
                 : uiSupportsAcademicContent(widget.feature, visible)
@@ -325,7 +317,6 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                           builder: (context, constraints) => AssignmentCard(
                             detail: detail,
                             wide: constraints.maxWidth >= 708,
-                            selection: _judgeSelection(detail, setState),
                             onNavigate: widget.onNavigate,
                           ),
                         );

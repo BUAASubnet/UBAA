@@ -1,19 +1,11 @@
 part of 'query_controls.dart';
 
 extension LoadedAssignmentPicker on FeatureQueryControlsState {
-  Widget _loadedAssignmentPicker(StateSetter setState, {required bool judge}) {
+  Widget _loadedAssignmentPicker(StateSetter setState) {
     final options = <(String, String), String>{};
     for (final detail in widget.details) {
       final p = detail.presentation;
-      if (judge &&
-          p is JudgeAssignmentPresentation &&
-          p.courseId.trim().isNotEmpty &&
-          p.assignmentId.trim().isNotEmpty) {
-        options[(p.courseId, p.assignmentId)] =
-            '${p.courseName} · ${detail.title}（${p.courseId} / ${p.assignmentId}）';
-      } else if (!judge &&
-          p is SpocAssignmentPresentation &&
-          p.assignmentId.trim().isNotEmpty) {
+      if (p is SpocAssignmentPresentation && p.assignmentId.trim().isNotEmpty) {
         options[(p.courseId, p.assignmentId)] =
             '${p.courseName} · ${detail.title}（${p.assignmentId}）';
       }
@@ -55,12 +47,7 @@ extension LoadedAssignmentPicker on FeatureQueryControlsState {
                   !identical(snapshot, widget.snapshot))
                 return;
               setState(() {
-                if (judge) {
-                  _judgeCourseController.text = selected.$1;
-                  _judgeAssignmentController.text = selected.$2;
-                } else {
-                  _spocAssignmentController.text = selected.$2;
-                }
+                _spocAssignmentController.text = selected.$2;
               });
             },
       icon: const Icon(Icons.list_alt),

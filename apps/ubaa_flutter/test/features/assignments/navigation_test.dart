@@ -51,7 +51,7 @@ void main() {
 
     Future<void> search(String value) async {
       await panel();
-      final field = find.widgetWithText(TextField, '筛选详情');
+      final field = find.widgetWithText(TextField, '课程名称或作业标题');
       await ensure(field);
       await tester.enterText(field, value);
       await closePanel();
@@ -76,8 +76,8 @@ void main() {
     await tap(find.widgetWithText(NavigationDestination, '普通功能'));
     await tap(find.widgetWithText(Card, FeatureId.judge.title));
     await panel();
-    await tap(find.text('包含已过期作业'));
-    await tap(find.text('应用筛选'));
+    await tap(find.text('显示已截止'));
+    await closePanel();
     await search('judge-a');
     await tap(find.byTooltip('查看作业详情'));
     await tap(find.byTooltip('返回'));
@@ -85,15 +85,13 @@ void main() {
     await panel();
     expect(
       tester
-          .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
+          .widget<TextField>(find.widgetWithText(TextField, '课程名称或作业标题'))
           .controller!
           .text,
       'judge-b',
     );
     await closePanel();
-    await tap(
-      find.byKey(const ValueKey(('judge-selection', 'judge-b', 'shared'))),
-    );
-    expect(find.text('已选择 1 份作业'), findsOneWidget);
+    await tap(find.byTooltip('查看作业详情'));
+    expect(find.textContaining('judge-b'), findsWidgets);
   });
 }

@@ -68,51 +68,7 @@ void main() {
     expect(find.byTooltip('课程详情'), findsOneWidget);
     expect(find.text('当前评教资格无法确认，请刷新后重试。'), findsOneWidget);
   });
-  testWidgets('希冀选择已加载作业时课程和作业编号同时更新', (tester) async {
-    final queries = <FeatureQuery>[];
-    await showFeature(tester, FeatureId.judge, [
-      judge('A'),
-      judge('B'),
-    ], queries);
-    await openQueryPanel(tester);
-    await tester.tap(find.text('作业列表'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('作业详情').last);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('选择已加载作业'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('B 课程 · B 作业（B / same）'));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '课程编号'))
-          .controller!
-          .text,
-      'B',
-    );
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '作业编号'))
-          .controller!
-          .text,
-      'same',
-    );
-    expect(queries, isEmpty);
-  });
-  testWidgets('混合未知模型不移除合法作业的选择入口', (tester) async {
-    await showFeature(tester, FeatureId.judge, [
-      judge('A'),
-      const FeatureDetail(
-        title: '未知模型但保留内容',
-        fields: [FeatureField(label: '附加字段', value: '兼容内容')],
-      ),
-    ], []);
-    expect(
-      find.byKey(const ValueKey(('judge-selection', 'A', 'same'))),
-      findsOneWidget,
-    );
-    expect(find.text('兼容内容'), findsOneWidget);
-  });
+
   for (final size in [const Size(390, 1000), const Size(834, 1210)]) {
     testWidgets('长题目和长状态在 1.3 字号 ${size.width} 宽度不溢出', (tester) async {
       await showFeature(
@@ -193,34 +149,7 @@ void main() {
     await tester.pump();
     expect(queries.single.assignmentId, 'a');
   });
-  testWidgets('希冀跨课程同编号按 B 到 A 的选择顺序批量查询', (tester) async {
-    final queries = <FeatureQuery>[];
-    await showFeature(
-      tester,
-      FeatureId.judge,
-      [judge('A'), judge('B')],
-      queries,
-      query: const FeatureQuery(includeExpired: true),
-    );
-    for (final course in ['B', 'A']) {
-      final checkbox = find.byKey(
-        ValueKey(('judge-selection', course, 'same')),
-      );
-      await tester.ensureVisible(checkbox);
-      await tester.tap(checkbox);
-      await tester.pumpAndSettle();
-    }
-    await openQueryPanel(tester);
-    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '没有匹配');
-    await closeQueryPanel(tester);
-    await tester.pumpAndSettle();
-    expect(find.text('已选择 2 份作业'), findsOneWidget);
-    await tester.tap(find.text('查看所选作业'));
-    await tester.pump();
-    expect(queries.single.view, FeatureQueryView.judgeBatchDetails);
-    expect(queries.single.judgeKeys.map((key) => key.courseId), ['B', 'A']);
-    expect(queries.single.includeExpired, isTrue);
-  });
+
   testWidgets('待评空列表仍展示全局评教进度', (tester) async {
     await showFeature(
       tester,
