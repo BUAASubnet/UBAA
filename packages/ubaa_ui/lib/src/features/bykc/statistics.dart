@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/theme.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
@@ -22,7 +23,9 @@ class BykcStatisticsContent extends StatelessWidget {
         .map((d) => d.presentation)
         .whereType<BykcCategoryPresentation>();
     return ListView(
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(
+        UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+      ),
       children: [
         Card(
           color: theme.colorScheme.primaryContainer,

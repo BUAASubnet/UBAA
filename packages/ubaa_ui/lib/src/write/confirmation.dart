@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -81,7 +82,9 @@ class _WriteConfirmationViewState extends State<WriteConfirmationView> {
     final isDiscarding = widget.isDiscarding;
     final error = widget.error;
     return ListView(
-      padding: const EdgeInsets.all(24),
+      padding: EdgeInsets.all(
+        UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+      ),
       children: <Widget>[
         Card(
           child: Padding(

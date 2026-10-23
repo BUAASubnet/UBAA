@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -69,7 +70,9 @@ class AssignmentContent extends StatelessWidget {
         groups[''] = details;
       }
       return ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(
+          UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+        ),
         children: [
           for (final entry in groups.entries) ...[
             if (summary)
@@ -127,7 +130,7 @@ class AssignmentCard extends StatelessWidget {
     final canOpen = target != null && onNavigate != null;
     return Card(
       margin: EdgeInsets.zero,
-      color: Theme.of(context).colorScheme.surfaceContainerHigh,
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
       child: InkWell(
         onTap: canOpen ? () => onNavigate!(target) : null,
         borderRadius: BorderRadius.circular(16),
@@ -269,7 +272,7 @@ class _AssignmentDetail extends StatelessWidget {
       children: [
         Card(
           margin: EdgeInsets.zero,
-          color: Theme.of(context).colorScheme.surfaceContainerHigh,
+          color: Theme.of(context).colorScheme.surfaceContainerLow,
           child: Padding(
             padding: const EdgeInsets.all(16),
             child: Column(

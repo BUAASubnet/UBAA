@@ -18,7 +18,6 @@ class BykcCourseCard extends StatelessWidget {
     final count = course.courseCurrentCount, capacity = course.courseMaxCount;
     final selectTime = uiBykcSelectTime(course);
     return Card(
-      elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       clipBehavior: Clip.antiAlias,
       child: InkWell(

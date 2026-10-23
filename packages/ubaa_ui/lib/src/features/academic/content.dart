@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -58,7 +59,9 @@ class AcademicResultContent extends StatelessWidget {
           );
       if (weekly) return ScheduleContent(details: details, timeline: timeline);
       return ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(
+          UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+        ),
         children: [
           if (feature == FeatureId.exam)
             ExamTimeline(details: details)

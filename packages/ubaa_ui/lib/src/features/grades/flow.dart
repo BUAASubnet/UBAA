@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -174,7 +175,9 @@ class _GradesFlowState extends State<GradesFlow> {
         .toList();
     return ListView(
       key: const PageStorageKey('grades-old-list'),
-      padding: const EdgeInsets.all(16),
+      padding: EdgeInsets.all(
+        UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+      ),
       children: [
         if (snapshot.status == FeatureLoadStatus.stale)
           Padding(
