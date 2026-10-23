@@ -1,5 +1,6 @@
 import 'dart:async';
 import '../../shared/loading.dart' show LoadingPlaceholder;
+import '../../common/error_card.dart' show FriendlyErrorCard;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'import.dart' show ScheduleRefreshError;
@@ -8,7 +9,7 @@ import 'week_picker.dart' show AcademicWeekDialog;
 import '../academic/terms.dart' show AcademicTermDialog;
 import '../../shared/schedule_values.dart' show uiIsWeeklyScheduleQuery;
 
-enum _ScheduleAutoStage { terms, weeks }
+enum _ScheduleAutoStage { terms, weeks, week }
 
 /// 使用现有可见查询状态推进旧版选择顺序；每一步实际路线仍由该快照提供。
 class ScheduleFlow extends StatefulWidget {
@@ -48,7 +49,7 @@ class ScheduleFlow extends StatefulWidget {
 class ScheduleFlowState extends State<ScheduleFlow> {
   _ScheduleAutoStage? _automatic;
   FeatureQuery? _expected;
-  bool _started = false, _selectionNeeded = false;
+  bool _started = false, _selectionNeeded = false, _selectingTerm = false;
   int _generation = 0;
   String? _weeksTerm, _metadataAttempt, _reportedTitle;
   FeatureResult? _weeks;
@@ -122,7 +123,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
       _sameQuery(widget.snapshot.readContext?.query, widget.query);
 
   void _sync() {
-    if (!widget.visible || widget.onQuery == null) return;
+    if (!widget.visible || widget.onQuery == null || _selectingTerm) return;
     if (!_started && widget.query == null) {
       _started = true;
       _automatic = _ScheduleAutoStage.terms;
@@ -138,6 +139,25 @@ class ScheduleFlowState extends State<ScheduleFlow> {
       );
     }
     _downloadSemester();
+    if ((_automatic == _ScheduleAutoStage.terms ||
+            _automatic == _ScheduleAutoStage.weeks) &&
+        _sameQuery(_expected, widget.query) &&
+        widget.snapshot.status == FeatureLoadStatus.stale &&
+        !_hasSavedRead &&
+        widget.snapshot.error == null) {
+      _needSelection(widget.query?.term);
+      return;
+    }
+    if (_automatic == _ScheduleAutoStage.week &&
+        _sameQuery(_expected, widget.query) &&
+        (_settled ||
+            (widget.snapshot.status == FeatureLoadStatus.stale &&
+                _sameQuery(
+                  widget.snapshot.readContext?.query,
+                  widget.query,
+                )))) {
+      setState(() => _automatic = null);
+    }
     if (_automatic != null && _sameQuery(_expected, widget.query) && _settled) {
       if (_automatic == _ScheduleAutoStage.terms) {
         final selected = widget.snapshot.details
@@ -190,7 +210,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         _needSelection(term);
         return;
       }
-      _automatic = null;
+      _automatic = _ScheduleAutoStage.week;
       _request(
         FeatureQuery(
           view: FeatureQueryView.scheduleWeek,
@@ -316,8 +336,12 @@ class ScheduleFlowState extends State<ScheduleFlow> {
 
   Future<void> selectTerm() async {
     final loader = widget.loadTerms;
-    if (!widget.visible || loader == null || widget.onQuery == null) return;
-    stopAutomatic(clearPrompt: false);
+    if (!widget.visible ||
+        loader == null ||
+        widget.onQuery == null ||
+        _selectingTerm)
+      return;
+    setState(() => _selectingTerm = true);
     final generation = _generation;
     final selected = await showDialog<String>(
       context: context,
@@ -326,12 +350,17 @@ class ScheduleFlowState extends State<ScheduleFlow> {
         selected: widget.query?.term ?? '',
       ),
     );
-    if (!mounted ||
-        !widget.visible ||
-        generation != _generation ||
-        selected == null ||
-        selected == widget.query?.term)
+    if (!mounted) return;
+    setState(() => _selectingTerm = false);
+    if (!widget.visible || generation != _generation) {
+      _scheduleSync();
       return;
+    }
+    if (selected == null || selected == widget.query?.term) {
+      _scheduleSync();
+      return;
+    }
+    stopAutomatic(notify: false);
     _automatic = _ScheduleAutoStage.weeks;
     _request(
       FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: selected),
@@ -359,6 +388,33 @@ class ScheduleFlowState extends State<ScheduleFlow> {
 
   @override
   Widget build(BuildContext context) {
+    // 自动定位索引只参与选择，不作为正文交付到屏幕。
+    final firstFrame =
+        !_started && widget.query == null && widget.onQuery != null;
+    final failed =
+        _sameQuery(widget.snapshot.readContext?.query, widget.query) &&
+        (widget.snapshot.status == FeatureLoadStatus.failure ||
+            (widget.snapshot.status == FeatureLoadStatus.stale &&
+                widget.snapshot.error != null &&
+                !_hasSavedRead));
+    if (firstFrame || (_automatic != null && !failed)) {
+      return const LoadingPlaceholder();
+    }
+    final indexQuery = {
+      FeatureQueryView.scheduleTerms,
+      FeatureQueryView.scheduleWeeks,
+    }.contains(widget.query?.view);
+    if (indexQuery && failed && widget.snapshot.error != null) {
+      return Center(
+        child: FriendlyErrorCard(
+          error: widget.snapshot.error!,
+          onRetry: widget.onQuery == null
+              ? null
+              : () => _request(widget.query!),
+        ),
+      );
+    }
+    if (_automatic != null && failed) return widget.child;
     final term = widget.query?.term ?? _weeksTerm;
     final candidates = term != null
         ? _weekCandidates(term)
@@ -445,7 +501,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     );
 
     Widget content;
-    if (_selectionNeeded) {
+    if (_selectionNeeded || indexQuery) {
       content = Center(
         child: Column(
           mainAxisSize: MainAxisSize.min,
@@ -462,11 +518,6 @@ class ScheduleFlowState extends State<ScheduleFlow> {
           ],
         ),
       );
-    } else if (!_started &&
-        widget.query == null &&
-        widget.onQuery != null &&
-        widget.visible) {
-      content = const LoadingPlaceholder();
     } else {
       content = widget.child;
     }
@@ -476,7 +527,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
       week: _visibleWeek?.presentation as WeekPresentation?,
       child: Column(
         children: [
-          weekHeader,
+          if (term != null) weekHeader,
           if (term != null && widget.onSave != null)
             ScheduleRefreshError(
               term: term,

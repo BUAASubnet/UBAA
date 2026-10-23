@@ -164,9 +164,11 @@ void main() {
       backend.selections.where((q) => q.view == FeatureQueryView.scheduleWeeks),
       isEmpty,
     );
+    expect(find.text('合成本学期'), findsNothing);
     await tap(tester, find.byTooltip('选择学期'));
     await tap(tester, find.text('合成本学期'));
-    await tap(tester, find.widgetWithText(FilledButton, '选择教学周'));
+    expect(find.text('合成教学第4周'), findsNothing);
+    await tap(tester, find.text('选择周次'));
     await tap(tester, find.text('合成教学第4周'));
     expect(backend.scheduleReads.single.term, '2026-2027-1');
     expect(backend.scheduleReads.single.week, 4);

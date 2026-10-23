@@ -450,6 +450,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         builder: (context, page, _) => Text(
           pendingWrite != null
               ? '确认${pendingWrite.operation.title}'
+              : _openedFeature == FeatureId.schedule
+              ? '课表'
               : _openedFeature != null
               ? (page?.$1.feature == _openedFeature
                     ? page!.$2
