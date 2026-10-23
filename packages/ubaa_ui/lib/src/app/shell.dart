@@ -7,6 +7,7 @@ import '../shared/loading.dart' show RefreshActionButton;
 import 'about.dart' show AboutView;
 import 'home.dart' show FeatureGridView, HomeView;
 import 'destination.dart';
+import '../theme.dart';
 import 'profile.dart' show ProfileView;
 import 'write_readback_notice.dart' show WriteReadbackNotice;
 import '../common/feature_detail.dart' show FeatureDetailView;
@@ -396,6 +397,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 600;
     final pendingWrite = widget.writeState.intent;
+    final maxContentWidth =
+        _openedFeature == FeatureId.schedule ||
+            _openedFeature == FeatureId.classroom
+        ? 1600.0
+        : 1040.0;
     if (_openedFeature case final feature?) _visitedFeatures.add(feature);
     final pages = _visitedFeatures.toList(growable: false);
     // 只保留已访问页面的 State；每次 build 都读取当前快照和回调。
@@ -435,6 +441,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       centerTitle: false,
       toolbarHeight: wide ? 80 : 64,
       automaticallyImplyLeading: !wide,
+      titleSpacing: wide && _openedFeature == null && _utilityPage == null
+          ? UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width)
+          : null,
       title: ValueListenableBuilder<(FeatureSnapshot, String)?>(
         valueListenable: _visiblePage,
         builder: (context, page, _) => Text(
@@ -612,18 +621,17 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               key: const ValueKey<String>('feature-pages'),
               child: Column(
                 children: [
-                  header,
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxContentWidth),
+                      child: header,
+                    ),
+                  ),
                   Expanded(
                     child: Center(
                       child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          maxWidth:
-                              _openedFeature == FeatureId.schedule ||
-                                  _openedFeature == FeatureId.classroom
-                              ? 1600
-                              : 1040,
-                        ),
-                        child: body,
+                        constraints: BoxConstraints(maxWidth: maxContentWidth),
+                        child: SafeArea(top: false, bottom: wide, child: body),
                       ),
                     ),
                   ),
