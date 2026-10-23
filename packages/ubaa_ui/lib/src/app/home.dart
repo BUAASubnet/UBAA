@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart' show listEquals;
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/theme.dart';
 import '../common/section.dart';
@@ -66,6 +67,8 @@ class _HomeViewState extends State<HomeView> {
   final _supplements = <HomeSupplement, FeatureResult>{};
   final _loading = <HomeSupplement>{};
   int _generation = 0;
+  List<Object?>? _todoInputs;
+  List<HomeTodo> _todos = const [];
   bool uiScheduled = false;
   int? _gradeCheckEpoch;
   late final Timer _clock;
@@ -280,16 +283,40 @@ class _HomeViewState extends State<HomeView> {
         [];
     final week = weeks.length == 1 ? weeks.single : null;
     final reminder = widget.reminderSettings;
-    final tasks = buildHomeTodos(
-      snapshots: sources,
-      now: _now,
-      currentWeek: week,
-      ygdkReminderEnabled: reminder?.enabled ?? false,
-      ygdkWeekDone:
-          week != null &&
-          reminder?.weekDoneKey == '${week.responseTerm}:${week.number}',
-      ygdkTermDone: week != null && reminder?.termDoneKey == week.responseTerm,
-    );
+    // 课表、路线和成绩通知更新不改变待办；只在来源或时间变化时重新投影。
+    final todoInputs = <Object?>[
+      for (final feature in [
+        FeatureId.bykc,
+        FeatureId.cgyy,
+        FeatureId.spoc,
+        FeatureId.judge,
+        FeatureId.signin,
+        FeatureId.ygdk,
+      ])
+        widget.snapshots[feature],
+      for (final source in HomeSupplement.values) _supplements[source],
+      _loading.contains(HomeSupplement.bykcChosen),
+      _loading.contains(HomeSupplement.cgyyOrders),
+      _now,
+      reminder?.enabled,
+      reminder?.weekDoneKey,
+      reminder?.termDoneKey,
+    ];
+    if (!listEquals(_todoInputs, todoInputs)) {
+      _todoInputs = todoInputs;
+      _todos = buildHomeTodos(
+        snapshots: sources,
+        now: _now,
+        currentWeek: week,
+        ygdkReminderEnabled: reminder?.enabled ?? false,
+        ygdkWeekDone:
+            week != null &&
+            reminder?.weekDoneKey == '${week.responseTerm}:${week.number}',
+        ygdkTermDone:
+            week != null && reminder?.termDoneKey == week.responseTerm,
+      );
+    }
+    final tasks = _todos;
     final overview = sources[FeatureId.ygdk]?.overview;
     if (widget.visible &&
         week != null &&
