@@ -75,8 +75,8 @@ class ScheduleCourseColors {
     return HSLColor.fromAHSL(
       1,
       hue,
-      .62,
-      brightness == Brightness.dark ? .32 : .82,
+      .24,
+      brightness == Brightness.dark ? .28 : .87,
     ).toColor();
   }
 
