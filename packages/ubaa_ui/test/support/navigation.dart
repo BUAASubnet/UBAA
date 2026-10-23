@@ -1,32 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/ubaa_ui.dart';
 
-/// 回归用例沿实际三入口进入领域，查询和写入断言继续由原用例负责。
+/// 回归用例沿实际分类入口进入领域，查询和写入断言继续由原用例负责。
 Future<void> openFeature(WidgetTester tester, FeatureId feature) async {
-  final index = ordinaryFeatureIds.contains(feature) ? 1 : 2;
+  final destination = UiDestination.forFeature(feature);
   final nav = find.byType(NavigationBar);
   if (nav.evaluate().isNotEmpty) {
-    await tester.tap(find.byType(NavigationDestination).at(index));
-  } else if (find.byType(NavigationRail).evaluate().isNotEmpty) {
-    final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-    final selected = rail.selectedIndex == index;
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationRail),
-        matching: find.byIcon(
-          index == 1
-              ? (selected ? Icons.apps : Icons.apps_outlined)
-              : (selected ? Icons.auto_awesome : Icons.auto_awesome_outlined),
-        ),
-      ),
-    );
+    await tester.tap(find.byType(NavigationDestination).at(destination.index));
   } else {
-    while (find.byType(NavigationBar).evaluate().isEmpty) {
-      await tester.tap(find.byTooltip('返回'));
-      await tester.pumpAndSettle();
-    }
-    await tester.tap(find.byType(NavigationDestination).at(index));
+    final selected = find.byIcon(destination.selectedIcon);
+    final target = selected.evaluate().isNotEmpty
+        ? selected
+        : find.byIcon(destination.icon);
+    await tester.ensureVisible(target.first);
+    await tester.tap(target.first);
   }
   await tester.pumpAndSettle();
   final card = find.widgetWithText(Card, feature.title);
@@ -95,11 +84,22 @@ Future<void> closeQueryPanel(WidgetTester tester) async {
 }
 
 Future<void> openUtility(WidgetTester tester, String title) async {
-  tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
-  await tester.pumpAndSettle();
-  await tester.tap(
-    find.descendant(of: find.byType(Drawer), matching: find.text(title)),
-  );
+  final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
+  if (scaffold.drawer != null) {
+    tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text(title)),
+    );
+  } else if (title == '我的资料') {
+    await tester.tap(find.byType(Image).first);
+  } else {
+    final target = title == '关于' && find.byTooltip('关于').evaluate().isNotEmpty
+        ? find.byTooltip('关于')
+        : find.text(title).first;
+    await tester.ensureVisible(target);
+    await tester.tap(target);
+  }
   await tester.pumpAndSettle();
 }
 

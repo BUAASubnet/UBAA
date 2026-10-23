@@ -68,27 +68,16 @@ Future<void> _tap(
 }
 
 Future<void> _open(WidgetTester tester, FeatureId feature) async {
-  final index = ordinaryFeatureIds.contains(feature) ? 1 : 2;
-  while (find.byType(NavigationBar).evaluate().isEmpty &&
-      find.byType(NavigationRail).evaluate().isEmpty) {
-    await _tap(tester, find.byTooltip('返回'));
-  }
+  final index = UiDestination.forFeature(feature).index;
   if (find.byType(NavigationBar).evaluate().isNotEmpty) {
     await _tap(tester, find.byType(NavigationDestination).at(index));
   } else {
-    final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-    final selected = rail.selectedIndex == index;
-    await _tap(
-      tester,
-      find.descendant(
-        of: find.byType(NavigationRail),
-        matching: find.byIcon(
-          index == 1
-              ? (selected ? Icons.apps : Icons.apps_outlined)
-              : (selected ? Icons.auto_awesome : Icons.auto_awesome_outlined),
-        ),
-      ),
-    );
+    final destination = UiDestination.forFeature(feature);
+    final selected = find.byIcon(destination.selectedIcon);
+    final target = selected.evaluate().isNotEmpty
+        ? selected
+        : find.byIcon(destination.icon);
+    await _tap(tester, target.first);
   }
   await _tap(tester, find.widgetWithText(Card, feature.title));
   expect(find.byType(TextField), findsNothing);

@@ -38,7 +38,7 @@ void _registerResponsiveAccessibilityTests() {
             snapshots: snapshots,
             routePolicy: RoutePolicy.auto,
             activeRoutes: const <ConnectionMode>[ConnectionMode.direct],
-            initialTab: 1,
+            initialDestination: UiDestination.academic,
             telemetryEnabled: false,
             onRefresh: () async {},
             onRetryFeature: (_) async {},
@@ -66,12 +66,17 @@ void _registerResponsiveAccessibilityTests() {
       }
     }
 
-    await checkSemantics(ordinaryFeatureIds);
-    await tester.tap(find.byKey(const ValueKey<String>('tab-高级功能')));
-    await tester.pumpAndSettle();
-    await checkSemantics(advancedFeatureIds);
-    await tester.tap(find.byKey(const ValueKey<String>('tab-普通功能')));
-    await tester.pumpAndSettle();
+    for (final destination in [
+      UiDestination.academic,
+      UiDestination.coursework,
+      UiDestination.campus,
+    ]) {
+      await tester.tap(
+        find.byKey(ValueKey<String>('tab-${destination.label}')),
+      );
+      await tester.pumpAndSettle();
+      await checkSemantics(destination.features);
+    }
     await openFeature(tester, FeatureId.schedule);
     await tester.pumpAndSettle();
     expect(find.byTooltip('返回'), findsOneWidget);
@@ -80,7 +85,7 @@ void _registerResponsiveAccessibilityTests() {
     expect(back, findsOneWidget);
     await tester.tap(back);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey<String>('tab-普通功能')));
+    await tester.tap(find.byKey(const ValueKey<String>('tab-学业')));
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     expect(FocusManager.instance.primaryFocus?.hasFocus, isTrue);
@@ -105,7 +110,7 @@ void _registerFeatureCardSemanticsTest() {
       MaterialApp(
         theme: UbaaTheme.light(),
         home: coordinatedShell(
-          initialTab: 1,
+          initialDestination: UiDestination.academic,
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,
@@ -129,4 +134,88 @@ void _registerFeatureCardSemanticsTest() {
 void main() {
   _registerResponsiveAccessibilityTests();
   _registerFeatureCardSemanticsTest();
+  _registerLayoutMatrix();
+}
+
+void _registerLayoutMatrix() {
+  for (final width in <double>[320, 390, 600, 768, 1024, 1440]) {
+    for (final scale in <double>[1, 2]) {
+      testWidgets('窗口${width}大字$scale可切换全部分组并操作主题', (tester) async {
+        tester.view.physicalSize = Size(width, 900);
+        tester.view.devicePixelRatio = 1;
+        addTearDown(tester.view.resetPhysicalSize);
+        addTearDown(tester.view.resetDevicePixelRatio);
+        final changes = <ThemeMode>[];
+        await tester.pumpWidget(
+          MaterialApp(
+            theme: scale == 2 ? UbaaTheme.dark() : UbaaTheme.light(),
+            builder: (context, child) => MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: TextScaler.linear(scale),
+                disableAnimations: true,
+              ),
+              child: child!,
+            ),
+            home: UbaaMainShell(
+              user: const UserSummary(username: 'synthetic-layout'),
+              snapshots: {
+                for (final feature in FeatureId.values)
+                  feature: FeatureSnapshot(
+                    feature: feature,
+                    status: FeatureLoadStatus.empty,
+                  ),
+              },
+              routePolicy: RoutePolicy.auto,
+              telemetryEnabled: false,
+              onRefresh: () async => fail('布局切换不能刷新'),
+              onRetryFeature: (_) async => fail('布局切换不能重新读取'),
+              onLogout: () async {},
+              onLogoutAndClearAccount: () async {},
+              onRoutePolicyChanged: (_) {},
+              onTelemetryChanged: (_) {},
+              onThemeModeChanged: changes.add,
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        for (final destination in UiDestination.values) {
+          final Finder target;
+          if (width < 600) {
+            target = find.byType(NavigationDestination).at(destination.index);
+          } else if (width < 1000) {
+            final rail = tester.widget<NavigationRail>(
+              find.byType(NavigationRail),
+            );
+            target = find.descendant(
+              of: find.byType(NavigationRail),
+              matching: find.byIcon(
+                rail.selectedIndex == destination.index
+                    ? destination.selectedIcon
+                    : destination.icon,
+              ),
+            );
+          } else {
+            target = find.widgetWithText(ListTile, destination.label);
+          }
+          await tester.ensureVisible(target);
+          await tester.tap(target);
+          await tester.pumpAndSettle();
+          expect(
+            find.widgetWithText(AppBar, destination.label),
+            findsOneWidget,
+          );
+          final failure = tester.takeException();
+          expect(failure, isNull, reason: destination.label);
+        }
+        final theme = find.byType(DropdownButton<ThemeMode>);
+        await tester.ensureVisible(theme);
+        await tester.tap(theme);
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('深色').last);
+        await tester.pumpAndSettle();
+        expect(changes, [ThemeMode.dark]);
+        expect(tester.takeException(), isNull);
+      });
+    }
+  }
 }

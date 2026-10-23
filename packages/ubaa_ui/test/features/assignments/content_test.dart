@@ -285,7 +285,7 @@ Future<void> showFeature(
       ),
       home: UbaaMainShell(
         user: const UserSummary(username: 'fixture'),
-        initialTab: ordinaryFeatureIds.contains(feature) ? 1 : 2,
+        initialDestination: UiDestination.forFeature(feature),
         snapshots: {
           for (final id in FeatureId.values)
             id: id == feature

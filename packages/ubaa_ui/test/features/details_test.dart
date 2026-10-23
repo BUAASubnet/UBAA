@@ -217,7 +217,7 @@ void _registerFeatureInputTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(UiDestination.campus.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.cgyy);
     await tester.pumpAndSettle();
@@ -327,7 +327,7 @@ void _registerFeatureInputTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(UiDestination.campus.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.ygdk);
     await tester.pumpAndSettle();
@@ -429,7 +429,7 @@ void _registerFeatureInputTests() {
       ),
     );
 
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(UiDestination.campus.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.ygdk);
     await tester.pumpAndSettle();
@@ -525,7 +525,7 @@ void _registerFeatureInputTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(UiDestination.campus.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.libbook);
     await tester.pumpAndSettle();

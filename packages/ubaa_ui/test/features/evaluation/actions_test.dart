@@ -102,7 +102,7 @@ void _registerEvaluationWriteTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.apps_outlined));
+    await tester.tap(find.byIcon(UiDestination.academic.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
@@ -236,7 +236,7 @@ void _registerEvaluationWriteTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.apps_outlined));
+    await tester.tap(find.byIcon(UiDestination.academic.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
@@ -352,7 +352,7 @@ void _registerEvaluationWriteTests() {
       ),
     );
 
-    await tester.tap(find.byIcon(Icons.apps_outlined));
+    await tester.tap(find.byIcon(UiDestination.academic.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
@@ -427,7 +427,7 @@ void _registerEvaluationWriteTests() {
       ),
     );
 
-    await tester.tap(find.byIcon(Icons.apps_outlined));
+    await tester.tap(find.byIcon(UiDestination.academic.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
@@ -511,7 +511,7 @@ void _registerEvaluationWriteTests() {
         ),
       );
 
-      await tester.tap(find.byIcon(Icons.apps_outlined));
+      await tester.tap(find.byIcon(UiDestination.academic.icon));
       await tester.pumpAndSettle();
       await openFeature(tester, FeatureId.evaluation);
       await tester.pumpAndSettle();

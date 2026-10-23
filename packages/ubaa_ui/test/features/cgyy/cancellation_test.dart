@@ -269,7 +269,7 @@ Future<void> _pumpCgyyCancellationShell(
 );
 
 Future<void> _openCgyyCancellation(WidgetTester tester) async {
-  await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+  await tester.tap(find.byIcon(UiDestination.campus.icon));
   await tester.pumpAndSettle();
   await openFeature(tester, FeatureId.cgyy);
   await tester.pumpAndSettle();

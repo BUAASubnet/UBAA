@@ -246,7 +246,7 @@ class _HarnessState extends State<_Harness> {
   @override
   Widget build(BuildContext context) => UbaaMainShell(
     user: const UserSummary(username: 'fixture-student'),
-    initialTab: 1,
+    initialDestination: UiDestination.academic,
     snapshots: {
       for (final feature in FeatureId.values)
         feature: feature == FeatureId.schedule

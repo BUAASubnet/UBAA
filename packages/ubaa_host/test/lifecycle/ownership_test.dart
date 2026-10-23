@@ -30,7 +30,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey<String>('tab-普通功能')));
+      await tester.tap(find.byKey(const ValueKey<String>('tab-学业')));
       await tester.pumpAndSettle();
       await cycle(tester, background);
       await tester.pumpAndSettle();

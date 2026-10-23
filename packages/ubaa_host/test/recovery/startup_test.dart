@@ -27,7 +27,7 @@ void main() {
     expect(backend.authCalls, 1);
     expect(find.byTooltip('连接状态'), findsOneWidget);
     expect(find.byType(UbaaSplashView), findsNothing);
-    await tester.tap(find.byKey(const ValueKey<String>('tab-普通功能')));
+    await tester.tap(find.byKey(const ValueKey<String>('tab-学业')));
     await tester.pump();
     expect(find.byType(UbaaMainShell), findsOneWidget);
     backend.gate.complete(AuthStatus.signedOut);

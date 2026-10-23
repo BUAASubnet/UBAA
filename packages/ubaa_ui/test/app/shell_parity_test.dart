@@ -32,33 +32,53 @@ void main() {
     await tester.tap(find.text('重试'));
     expect(retried, isTrue);
   });
-  testWidgets('沿用旧版三个主入口和首页标题', (tester) async {
+  testWidgets('系统返回沿当前领域父层回到分组', (tester) async {
+    await mount(tester, tab: UiDestination.academic);
+    await openGrade(tester);
+    await tester.binding.handlePopRoute();
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, '学业'), findsOneWidget);
+    expect(find.byTooltip('返回'), findsNothing);
+  });
+  testWidgets('主分组切换进入校园服务后可打开研讨室并返回', (tester) async {
+    await mount(tester);
+    await tester.tap(find.text('校园服务'));
+    await tester.pumpAndSettle();
+    final entry = find.widgetWithText(Card, FeatureId.cgyy.title);
+    await tester.ensureVisible(entry);
+    await tester.tap(entry);
+    await tester.pumpAndSettle();
+    expect(find.text('预约研讨室'), findsOneWidget);
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, '校园服务'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('展示确认的五项入口和首页标题', (tester) async {
     await mount(tester);
     expect(
       tester
           .widgetList<NavigationDestination>(find.byType(NavigationDestination))
           .map((item) => item.label),
-      ['主页', '普通功能', '高级功能'],
+      ['首页', '学业', '课程与作业', '校园服务', '设置'],
     );
     expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
   });
-  testWidgets('首页保持今日课表到待办，不展示仪表盘或全功能网格', (tester) async {
+  testWidgets('首页保留今日课表与待办状态', (tester) async {
     await mount(tester);
     expect(find.text('今日课表'), findsOneWidget);
     expect(find.text('待办区'), findsOneWidget);
-    expect(find.text('重点关注'), findsNothing);
-    expect(find.widgetWithText(Card, FeatureId.grades.title), findsNothing);
   });
-  testWidgets('手机功能页仅顶部返回并隐藏全局底栏', (tester) async {
-    await mount(tester, tab: 1);
+  testWidgets('手机功能页保留全局底栏与父层返回', (tester) async {
+    await mount(tester, tab: UiDestination.academic);
     await openGrade(tester);
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byTooltip('返回'), findsOneWidget);
     expect(find.text('返回功能列表'), findsNothing);
     expect(find.text('返回上一层'), findsNothing);
   });
   testWidgets('实际路线仅由顶栏图标呈现且点击可查看说明', (tester) async {
-    await mount(tester, tab: 1);
+    await mount(tester, tab: UiDestination.academic);
     await openGrade(tester);
     final route = find.byTooltip('实际路线：直连');
     expect(route, findsOneWidget);
@@ -68,7 +88,7 @@ void main() {
     expect(find.text('当前页面：直连'), findsOneWidget);
   });
   testWidgets('少量查询条件按内容展开而不固定占据大半屏', (tester) async {
-    await mount(tester, tab: 1);
+    await mount(tester, tab: UiDestination.academic);
     await openGrade(tester);
     await tester.tap(find.byTooltip('搜索与筛选'));
     await tester.pumpAndSettle();
@@ -83,7 +103,7 @@ void main() {
   });
   testWidgets('搜索和完整查询收在右上面板，关闭保留草稿且不发请求', (tester) async {
     final queries = <FeatureQuery>[];
-    await mount(tester, tab: 1, queries: queries);
+    await mount(tester, tab: UiDestination.academic, queries: queries);
     await openGrade(tester);
     expect(find.byType(TextField), findsNothing);
     await tester.tap(find.byTooltip('搜索与筛选'));
@@ -124,7 +144,7 @@ Future<void> openGrade(WidgetTester tester) async {
 
 Future<void> mount(
   WidgetTester tester, {
-  int tab = 0,
+  UiDestination tab = UiDestination.home,
   List<FeatureQuery>? queries,
 }) async {
   tester.view.devicePixelRatio = 1;
@@ -136,7 +156,7 @@ Future<void> mount(
       theme: UbaaTheme.light(),
       home: UbaaMainShell(
         user: const UserSummary(username: 'synthetic'),
-        initialTab: tab,
+        initialDestination: tab,
         snapshots: {
           for (final id in FeatureId.values)
             id: FeatureSnapshot(

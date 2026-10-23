@@ -75,7 +75,7 @@ void main() {
     await tester.enterText(find.byType(TextField).at(1), 'synthetic-password');
     FocusManager.instance.primaryFocus?.unfocus();
     await tap(find.widgetWithText(FilledButton, '登录'));
-    await tap(find.widgetWithText(NavigationDestination, '普通功能'));
+    await tap(find.widgetWithText(NavigationDestination, '课程与作业'));
     await tap(find.widgetWithText(Card, FeatureId.judge.title));
     await panel();
     await tap(find.text('显示已截止'));

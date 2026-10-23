@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
@@ -22,7 +23,7 @@ final _photo = YgdkPhotoInput(
 Widget _app(SportsBackend backend) => UbaaFlutterApp(
   backend: backend,
   credentialVault: MemoryCredentialVault(),
-  initialTab: 2,
+  initialDestination: UiDestination.campus,
   photoPicker: MemoryPhotoPicker(photo: _photo),
   permissionGateway: MemoryPermissionGateway(
     initial: {PlatformPermission.photos: PlatformPermissionStatus.granted},

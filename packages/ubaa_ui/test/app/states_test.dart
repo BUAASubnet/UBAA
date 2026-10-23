@@ -608,7 +608,7 @@ void _registerCgyyStateTest() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(UiDestination.campus.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.cgyy);
     await tester.pumpAndSettle();
@@ -683,22 +683,29 @@ void _registerSharedStateTests() {
     ];
 
     Future<void> openFeature(FeatureId feature) async {
-      final ordinary = ordinaryFeatureIds.contains(feature);
-      final selectedIcon = ordinary ? Icons.apps : Icons.auto_awesome;
-      final unselectedIcon = ordinary
-          ? Icons.apps_outlined
-          : Icons.auto_awesome_outlined;
-      final selectedFinder = find.byIcon(selectedIcon);
+      final destination = UiDestination.forFeature(feature);
+      final selectedIcon = destination.selectedIcon;
+      final unselectedIcon = destination.icon;
+      final selectedFinder = find.descendant(
+        of: find.byType(NavigationRail),
+        matching: find.byIcon(selectedIcon),
+      );
       final tabFinder = selectedFinder.evaluate().isNotEmpty
           ? selectedFinder
-          : find.byIcon(unselectedIcon);
+          : find.descendant(
+              of: find.byType(NavigationRail),
+              matching: find.byIcon(unselectedIcon),
+            );
       await tester.tap(tabFinder.first);
       await tester.pump();
       final target = find.text(feature.title).first;
       await tester.scrollUntilVisible(
         target,
         240,
-        scrollable: find.byType(Scrollable).first,
+        scrollable: find.descendant(
+          of: find.byType(CustomScrollView),
+          matching: find.byType(Scrollable),
+        ),
       );
       await tester.pump();
       await tester.tap(target);

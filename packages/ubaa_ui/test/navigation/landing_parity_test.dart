@@ -43,7 +43,7 @@ void main() {
       }
       expect(find.text('合成预载结果'), findsNothing);
       expect(find.byType(TextField), findsNothing);
-      expect(find.byType(NavigationBar), findsNothing);
+      expect(find.byType(NavigationBar), findsOneWidget);
       expect(find.byTooltip('实际路线：未确定'), findsOneWidget);
       expect(state.queries, isEmpty);
     });
@@ -160,7 +160,7 @@ class _HarnessState extends State<_Harness> {
   @override
   Widget build(BuildContext context) => UbaaMainShell(
     user: const UserSummary(username: 'synthetic'),
-    initialTab: ordinaryFeatureIds.contains(widget.feature) ? 1 : 2,
+    initialDestination: UiDestination.forFeature(widget.feature),
     snapshots: {
       for (final id in FeatureId.values)
         id: id == widget.feature ? snapshot : FeatureSnapshot(feature: id),

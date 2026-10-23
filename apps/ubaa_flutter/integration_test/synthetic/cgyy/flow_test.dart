@@ -220,7 +220,7 @@ Future<void> _mount(
       child: UbaaFlutterApp(
         backend: backend,
         credentialVault: MemoryCredentialVault(),
-        initialTab: 2,
+        initialDestination: UiDestination.campus,
       ),
     ),
   );
@@ -236,7 +236,7 @@ Future<void> runInspection() async {
     UbaaFlutterApp(
       backend: RoomBackend(),
       credentialVault: MemoryCredentialVault(),
-      initialTab: 2,
+      initialDestination: UiDestination.campus,
     ),
   );
   return;

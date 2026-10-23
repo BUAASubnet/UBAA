@@ -29,7 +29,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey<String>('tab-高级功能')));
+    await tester.tap(find.byKey(const ValueKey<String>('tab-校园服务')));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('完成登录'));
     await tester.pumpAndSettle();
@@ -57,7 +57,7 @@ void main() {
     expect(find.byType(UbaaMainShell), findsOneWidget);
     expect(
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-      2,
+      UiDestination.campus.index,
     );
     expect((await accounts.read())!.canRestore, isTrue);
     expect((await accounts.read())!.account!.username, 'synthetic-account');

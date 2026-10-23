@@ -314,7 +314,7 @@ Future<void> _open(
         builder: (context, value, _) => UbaaMainShell(
           readCacheEpoch: value,
           onLoadCgyyPurposes: loadPurposes,
-          initialTab: 2,
+          initialDestination: UiDestination.campus,
           user: const UserSummary(username: 'synthetic'),
           snapshots: {
             for (final id in FeatureId.values)

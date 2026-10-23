@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -31,10 +32,10 @@ void main() {
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 200));
     expect(find.text('第1节空闲'), findsOneWidget);
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(UiDestination.campus.icon));
     await tester.pumpAndSettle();
     expect(find.text('第1节空闲', skipOffstage: false), findsNothing);
-    expect(find.text('高级功能'), findsWidgets);
+    expect(find.text('校园服务'), findsWidgets);
   });
   for (final changeDate in [false, true]) {
     testWidgets('正文切换${changeDate ? '日期' : '校区'}清除已应用的旧楼层节次', (tester) async {

@@ -4,15 +4,12 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import '../support/navigation.dart';
 
 void main() {
   testWidgets('旧侧栏关于入口保留单标题与项目反馈链接', (tester) async {
     await _mount(tester);
-    await tester.tap(find.byIcon(Icons.menu));
-    await tester.pumpAndSettle();
-    expect(find.text('关于'), findsOneWidget);
-    await tester.tap(find.text('关于'));
-    await tester.pumpAndSettle();
+    await openUtility(tester, '关于');
     expect(find.text('关于'), findsOneWidget);
     expect(find.text('UBAA 应用'), findsOneWidget);
     expect(find.text('开源项目 (GitHub)'), findsOneWidget);
@@ -153,9 +150,4 @@ Future<void> _mount(
   ),
 );
 
-Future<void> _open(WidgetTester tester) async {
-  await tester.tap(find.byIcon(Icons.menu));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('关于'));
-  await tester.pumpAndSettle();
-}
+Future<void> _open(WidgetTester tester) => openUtility(tester, '关于');

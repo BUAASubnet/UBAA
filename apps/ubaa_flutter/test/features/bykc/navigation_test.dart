@@ -55,7 +55,7 @@ Future<BoyaBackend> _open(WidgetTester tester) async {
     UbaaFlutterApp(
       backend: backend,
       credentialVault: MemoryCredentialVault(),
-      initialTab: 1,
+      initialDestination: UiDestination.coursework,
     ),
   );
   await tester.pumpAndSettle();

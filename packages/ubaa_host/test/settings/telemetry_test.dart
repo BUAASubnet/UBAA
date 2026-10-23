@@ -8,11 +8,7 @@ void main() {
   testWidgets('未配置统计服务的生产接线保持关闭并说明不可用', (tester) async {
     await tester.pumpWidget(UbaaAppHost(backend: _Backend()));
     await tester.pumpAndSettle();
-    tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(of: find.byType(Drawer), matching: find.text('设置')),
-    );
+    await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     final tile = tester.widget<SwitchListTile>(
       find.widgetWithText(SwitchListTile, '匿名产品改进统计'),

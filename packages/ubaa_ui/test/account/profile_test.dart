@@ -171,7 +171,7 @@ Future<void> _mount(
       home: ValueListenableBuilder<UserSummary?>(
         valueListenable: profile,
         builder: (context, user, _) => UbaaMainShell(
-          initialTab: 0,
+          initialDestination: UiDestination.home,
           user: user,
           snapshots: {
             for (final feature in FeatureId.values)

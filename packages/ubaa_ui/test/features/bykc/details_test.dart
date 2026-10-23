@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -478,7 +479,9 @@ Future<_Scenario> _mount(WidgetTester tester, {bool home = false}) async {
         builder: (context, update) {
           state.update = update;
           return coordinatedShell(
-            initialTab: home ? 0 : 1,
+            initialDestination: home
+                ? UiDestination.home
+                : UiDestination.coursework,
             onLoadHomeSupplement: home
                 ? (source, _) async => FeatureResult.success(
                     summary: '合成首页来源',

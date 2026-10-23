@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -182,7 +183,7 @@ Future<void> _mount(
       child: UbaaFlutterApp(
         backend: backend,
         credentialVault: MemoryCredentialVault(),
-        initialTab: 1,
+        initialDestination: UiDestination.campus,
       ),
     ),
   );
@@ -354,7 +355,7 @@ Future<void> runInspection() async {
         ),
       ),
       credentialVault: MemoryCredentialVault(),
-      initialTab: 1,
+      initialDestination: UiDestination.campus,
     ),
   );
   return;

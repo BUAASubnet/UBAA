@@ -4,27 +4,10 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import '../support/navigation.dart';
 
-const _ordinary = <FeatureId>[
-  FeatureId.schedule,
-  FeatureId.exam,
-  FeatureId.grades,
-  FeatureId.bykc,
-  FeatureId.classroom,
-  FeatureId.spoc,
-  FeatureId.judge,
-  FeatureId.libbook,
-];
-const _advanced = <FeatureId>[
-  FeatureId.signin,
-  FeatureId.cgyy,
-  FeatureId.ygdk,
-  FeatureId.evaluation,
-];
-
 void main() {
-  testWidgets('十二个领域沿旧版分组进入且不新增查询', (tester) async {
+  testWidgets('十二个领域沿展示分组进入且不新增查询', (tester) async {
     await _mount(tester);
-    expect(find.text('首页'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
     for (final feature in FeatureId.values) {
       await openFeature(tester, feature);
       expect(find.text('合成详情-${feature.wireName}'), findsOneWidget);
@@ -33,11 +16,15 @@ void main() {
     }
   });
 
-  testWidgets('普通功能八项高级功能四项且顺序沿旧版', (tester) async {
+  testWidgets('三个业务分组完整覆盖十二领域', (tester) async {
     await _mount(tester);
     for (final group in <(String, List<FeatureId>)>[
-      ('普通功能', _ordinary),
-      ('高级功能', _advanced),
+      for (final group in [
+        UiDestination.academic,
+        UiDestination.coursework,
+        UiDestination.campus,
+      ])
+        (group.label, group.features),
     ]) {
       final destination = find.widgetWithText(NavigationDestination, group.$1);
       expect(destination, findsOneWidget);
@@ -74,19 +61,21 @@ void main() {
       tester.view.physicalSize = Size(width, 1000);
       await tester.pumpAndSettle();
       expect(tester.state(find.byType(UbaaMainShell)), same(state));
-      for (final label in <String>['主页', '普通功能', '高级功能']) {
+      for (final label in UiDestination.values.map((item) => item.label)) {
         expect(find.text(label), findsWidgets);
       }
       if (width < 600) {
         expect(find.byType(NavigationBar), findsOneWidget);
         expect(find.byType(NavigationRail), findsNothing);
-      } else {
+      } else if (width < 1000) {
         expect(find.byType(NavigationBar), findsNothing);
         expect(find.byType(NavigationRail), findsOneWidget);
         final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-        expect(rail.extended, width >= 1000);
+        expect(rail.extended, isFalse);
         if (width < 1000)
           expect(rail.labelType, NavigationRailLabelType.selected);
+      } else {
+        expect(find.widgetWithText(ListTile, '校园服务'), findsOneWidget);
       }
       expect(tester.takeException(), isNull);
     }

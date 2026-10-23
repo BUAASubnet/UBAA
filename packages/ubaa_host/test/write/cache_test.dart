@@ -13,7 +13,11 @@ void main() {
     final backend = fixtures.SyntheticWriteCacheBackend()..failRefresh = true;
     final accounts = await startup.savedAccounts();
     await tester.pumpWidget(
-      UbaaAppHost(backend: backend, localAccountStore: accounts, initialTab: 1),
+      UbaaAppHost(
+        backend: backend,
+        localAccountStore: accounts,
+        initialDestination: UiDestination.academic,
+      ),
     );
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.bykc);

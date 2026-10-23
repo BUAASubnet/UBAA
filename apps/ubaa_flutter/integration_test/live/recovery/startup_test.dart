@@ -109,7 +109,10 @@ void main() {
       final rail = find.byType(NavigationRail);
       if (rail.evaluate().isNotEmpty) {
         await tester.tap(
-          find.descendant(of: rail, matching: find.byIcon(Icons.apps_outlined)),
+          find.descendant(
+            of: rail,
+            matching: find.byIcon(UiDestination.academic.icon),
+          ),
         );
       } else {
         await tester.tap(find.byType(NavigationDestination).at(1));

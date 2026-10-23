@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -19,7 +20,7 @@ void main() {
       UbaaFlutterApp(
         backend: backend,
         credentialVault: MemoryCredentialVault(),
-        initialTab: 1,
+        initialDestination: UiDestination.academic,
       ),
     );
     await tester.pumpAndSettle();
@@ -44,7 +45,7 @@ void main() {
       UbaaFlutterApp(
         backend: backend,
         credentialVault: MemoryCredentialVault(),
-        initialTab: 1,
+        initialDestination: UiDestination.academic,
       ),
     );
     await tester.pumpAndSettle();
@@ -72,7 +73,7 @@ void main() {
       UbaaFlutterApp(
         backend: backend,
         credentialVault: MemoryCredentialVault(),
-        initialTab: 1,
+        initialDestination: UiDestination.academic,
       ),
     );
     await tester.pumpAndSettle();
@@ -88,7 +89,7 @@ void main() {
       UbaaFlutterApp(
         backend: backend,
         credentialVault: MemoryCredentialVault(),
-        initialTab: 1,
+        initialDestination: UiDestination.academic,
       ),
     );
     await tester.pumpAndSettle();
@@ -108,7 +109,7 @@ void main() {
       UbaaFlutterApp(
         backend: backend,
         credentialVault: MemoryCredentialVault(),
-        initialTab: 1,
+        initialDestination: UiDestination.academic,
       ),
     );
     await tester.pumpAndSettle();
@@ -136,7 +137,7 @@ void main() {
       UbaaFlutterApp(
         backend: backend,
         credentialVault: MemoryCredentialVault(),
-        initialTab: 1,
+        initialDestination: UiDestination.academic,
       ),
     );
     await tester.pumpAndSettle();
@@ -176,7 +177,7 @@ void main() {
       UbaaFlutterApp(
         backend: backend,
         credentialVault: MemoryCredentialVault(),
-        initialTab: 1,
+        initialDestination: UiDestination.academic,
       ),
     );
     await tester.pumpAndSettle();
@@ -222,7 +223,7 @@ void main() {
       UbaaFlutterApp(
         backend: backend,
         credentialVault: MemoryCredentialVault(),
-        initialTab: 1,
+        initialDestination: UiDestination.academic,
       ),
     );
     await tester.pumpAndSettle();
@@ -242,7 +243,7 @@ void main() {
       UbaaFlutterApp(
         backend: backend,
         credentialVault: MemoryCredentialVault(),
-        initialTab: 1,
+        initialDestination: UiDestination.academic,
       ),
     );
     await tester.pumpAndSettle();

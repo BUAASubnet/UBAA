@@ -29,7 +29,7 @@ void main() {
                 ).copyWith(textScaler: const TextScaler.linear(1.3)),
                 child: UbaaMainShell(
                   user: const UserSummary(username: 'fixture'),
-                  initialTab: 1,
+                  initialDestination: UiDestination.academic,
                   snapshots: {
                     for (final feature in FeatureId.values)
                       feature: FeatureSnapshot(

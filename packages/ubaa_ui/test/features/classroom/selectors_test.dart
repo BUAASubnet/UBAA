@@ -204,7 +204,7 @@ Future<_Harness> _open(WidgetTester tester, {bool metadata = true}) async {
         listenable: h,
         builder: (_, __) => UbaaMainShell(
           user: const UserSummary(username: 'synthetic'),
-          initialTab: 1,
+          initialDestination: UiDestination.academic,
           snapshots: {
             for (final id in FeatureId.values)
               id: id == FeatureId.classroom

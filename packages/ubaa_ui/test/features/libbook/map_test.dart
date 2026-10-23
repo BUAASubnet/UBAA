@@ -50,7 +50,7 @@ Future<void> _open(WidgetTester tester, String id) async {
   await tester.pumpWidget(
     MaterialApp(
       home: UbaaMainShell(
-        initialTab: 1,
+        initialDestination: UiDestination.campus,
         user: const UserSummary(username: 'synthetic'),
         snapshots: {
           for (final feature in FeatureId.values)

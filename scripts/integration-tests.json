@@ -821,7 +821,8 @@
       "domain": "app",
       "platforms": [
         "macos",
-        "ios"
+        "ios",
+        "android"
       ],
       "ci": false,
       "inspection": false,

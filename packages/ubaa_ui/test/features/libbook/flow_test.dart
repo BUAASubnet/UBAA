@@ -14,7 +14,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: UbaaMainShell(
-          initialTab: 1,
+          initialDestination: UiDestination.campus,
           user: const UserSummary(username: 'synthetic'),
           snapshots: {
             for (final id in FeatureId.values)

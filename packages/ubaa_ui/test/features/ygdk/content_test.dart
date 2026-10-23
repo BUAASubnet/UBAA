@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -167,7 +168,7 @@ Future<void> _open(
   await tester.pumpWidget(
     MaterialApp(
       home: coordinatedShell(
-        initialTab: 2,
+        initialDestination: UiDestination.campus,
         user: const UserSummary(username: 'synthetic'),
         snapshots: {
           for (final id in FeatureId.values)

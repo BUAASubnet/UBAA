@@ -41,7 +41,7 @@ void main() {
     await tester.pumpAndSettle();
     final records = <Map<String, Object?>>[];
     for (final feature in FeatureId.values) {
-      final index = ordinaryFeatureIds.contains(feature) ? 1 : 2;
+      final index = UiDestination.forFeature(feature).index;
       final rail = find.byType(NavigationRail);
       if (rail.evaluate().isNotEmpty) {
         final current = tester.widget<NavigationRail>(rail).selectedIndex;
@@ -49,9 +49,7 @@ void main() {
           await tester.tap(
             find.descendant(
               of: rail,
-              matching: find.byIcon(
-                index == 1 ? Icons.apps_outlined : Icons.auto_awesome_outlined,
-              ),
+              matching: find.byIcon(UiDestination.forFeature(feature).icon),
             ),
           );
         }

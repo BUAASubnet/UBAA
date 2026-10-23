@@ -5,18 +5,13 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
-const _featureGroups = <int, List<FeatureId>>{
-  1: [
-    FeatureId.schedule,
-    FeatureId.exam,
-    FeatureId.grades,
-    FeatureId.bykc,
-    FeatureId.classroom,
-    FeatureId.spoc,
-    FeatureId.judge,
-    FeatureId.libbook,
-  ],
-  2: [FeatureId.cgyy, FeatureId.ygdk, FeatureId.evaluation, FeatureId.signin],
+final _featureGroups = {
+  for (final destination in [
+    UiDestination.academic,
+    UiDestination.coursework,
+    UiDestination.campus,
+  ])
+    destination: destination.features,
 };
 
 void main() {
@@ -87,15 +82,12 @@ void _expectFeaturePage(FeatureId feature) {
 
 Future<void> _returnToGroup(
   WidgetTester tester,
-  int tab,
+  UiDestination tab,
   FeatureId feature,
 ) async {
   await tester.tap(find.byTooltip('返回'));
   await tester.pumpAndSettle();
-  expect(
-    find.widgetWithText(AppBar, tab == 1 ? '普通功能' : '高级功能'),
-    findsOneWidget,
-  );
+  expect(find.widgetWithText(AppBar, tab.label), findsOneWidget);
   expect(find.byTooltip('返回'), findsNothing);
   await _revealCard(tester, feature);
 }
@@ -115,7 +107,10 @@ Future<Finder> _revealCard(WidgetTester tester, FeatureId feature) async {
   return card;
 }
 
-Future<List<FeatureId>> _showGroup(WidgetTester tester, int tab) async {
+Future<List<FeatureId>> _showGroup(
+  WidgetTester tester,
+  UiDestination tab,
+) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(800, 632);
   addTearDown(tester.view.resetPhysicalSize);
@@ -126,7 +121,7 @@ Future<List<FeatureId>> _showGroup(WidgetTester tester, int tab) async {
       theme: UbaaTheme.dark(),
       home: UbaaMainShell(
         user: const UserSummary(username: 'synthetic'),
-        initialTab: tab,
+        initialDestination: tab,
         snapshots: {
           for (final feature in FeatureId.values)
             feature: FeatureSnapshot(

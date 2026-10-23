@@ -23,7 +23,7 @@ void main() {
 
 Widget _page(FeatureLoadStatus status) => MaterialApp(
   home: UbaaMainShell(
-    initialTab: 1,
+    initialDestination: UiDestination.campus,
     user: const UserSummary(username: 'synthetic'),
     snapshots: {
       for (final feature in FeatureId.values)

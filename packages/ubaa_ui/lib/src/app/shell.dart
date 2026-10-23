@@ -5,7 +5,8 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../shared/loading.dart' show RefreshActionButton;
 import 'about.dart' show AboutView;
-import 'home.dart' show AdvancedFeaturesView, FeatureGridView, HomeView;
+import 'home.dart' show FeatureGridView, HomeView;
+import 'destination.dart';
 import 'profile.dart' show ProfileView;
 import 'write_readback_notice.dart' show WriteReadbackNotice;
 import '../common/feature_detail.dart' show FeatureDetailView;
@@ -14,6 +15,7 @@ import '../common/read_navigator.dart'
 import '../write/confirmation.dart' show WriteConfirmationView;
 part 'shell_write.dart';
 part 'shell_route.dart';
+part 'shell_navigation.dart';
 part 'bykc_preferences.dart';
 
 /// 主界面容器：窄屏使用底部导航，桌面宽屏使用侧边导航。
@@ -30,7 +32,7 @@ class UbaaMainShell extends StatefulWidget {
     required this.onLogoutAndClearAccount,
     required this.onRoutePolicyChanged,
     required this.onTelemetryChanged,
-    this.initialTab = 0,
+    this.initialDestination = UiDestination.home,
     this.homeClock,
     this.connectionStatus,
     this.writeReadbacks = const [],
@@ -122,7 +124,7 @@ class UbaaMainShell extends StatefulWidget {
   final ValueChanged<bool> onTelemetryChanged;
 
   /// 供宿主恢复上次导航位置或集成测试从指定功能分组启动。
-  final int initialTab;
+  final UiDestination initialDestination;
   final String? connectionStatus;
   final List<WriteReadbackHint> writeReadbacks;
   final UiError? writeReadbackError;
@@ -235,7 +237,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   @override
   void initState() {
     super.initState();
-    _selectedIndex = widget.initialTab.clamp(0, _tabs.length - 1);
+    _selectedIndex = widget.initialDestination.index;
     unawaited(_loadReminderSettings());
     unawaited(_loadBykcFilters());
   }
@@ -388,15 +390,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     super.dispose();
   }
 
-  static const _tabs = <({String label, IconData icon, IconData selectedIcon})>[
-    (label: '主页', icon: Icons.home_outlined, selectedIcon: Icons.home),
-    (label: '普通功能', icon: Icons.apps_outlined, selectedIcon: Icons.apps),
-    (
-      label: '高级功能',
-      icon: Icons.auto_awesome_outlined,
-      selectedIcon: Icons.auto_awesome,
-    ),
-  ];
+  static const _tabs = UiDestination.values;
 
   @override
   Widget build(BuildContext context) {
@@ -437,196 +431,212 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           ),
       ],
     );
+    final header = AppBar(
+      centerTitle: false,
+      toolbarHeight: wide ? 80 : 64,
+      automaticallyImplyLeading: !wide,
+      title: ValueListenableBuilder<(FeatureSnapshot, String)?>(
+        valueListenable: _visiblePage,
+        builder: (context, page, _) => Text(
+          pendingWrite != null
+              ? '确认${pendingWrite.operation.title}'
+              : _openedFeature != null
+              ? (page?.$1.feature == _openedFeature
+                    ? page!.$2
+                    : _openedFeature!.title)
+              : (_utilityPage ??
+                    (_selectedIndex == 0 ? '首页' : _tabs[_selectedIndex].label)),
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+        ),
+      ),
+      leading: pendingWrite != null
+          ? IconButton(
+              tooltip: '取消并返回',
+              onPressed: widget.writeState.isSubmitting ? null : _cancelWrite,
+              icon: const Icon(Icons.arrow_back),
+            )
+          : _openedFeature != null || _utilityPage != null
+          ? IconButton(
+              tooltip: '返回',
+              onPressed: () {
+                if (_utilityPage != null) {
+                  setState(() => _utilityPage = null);
+                } else {
+                  _readPageKeys[_openedFeature]?.currentState?.goBack();
+                }
+              },
+              icon: const Icon(Icons.arrow_back),
+            )
+          : null,
+      actions: <Widget>[
+        if (widget.connectionStatus != null)
+          IconButton(
+            tooltip: widget.onCompleteLogin != null ? '完成登录' : '连接状态',
+            icon: Icon(
+              widget.onCompleteLogin != null
+                  ? Icons.person_outline
+                  : Icons.cloud_off_outlined,
+            ),
+            onPressed: () async {
+              if (widget.onCompleteLogin != null) {
+                widget.onCompleteLogin!(context);
+                return;
+              }
+              final retry = await showDialog<bool>(
+                context: context,
+                builder: (context) => AlertDialog(
+                  title: const Text('连接状态'),
+                  content: Text(widget.connectionStatus ?? '连接已恢复'),
+                  actions: [
+                    TextButton(
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('关闭'),
+                    ),
+                    if (widget.onReconnect != null)
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: const Text('重试'),
+                      ),
+                  ],
+                ),
+              );
+              if (retry == true && mounted) widget.onReconnect?.call();
+            },
+          ),
+        ValueListenableBuilder<(FeatureSnapshot, String)?>(
+          valueListenable: _visiblePage,
+          builder: (context, page, _) {
+            final snapshot = page?.$1;
+            final homeVisible =
+                _openedFeature == null &&
+                _utilityPage == null &&
+                _selectedIndex == 0 &&
+                pendingWrite == null;
+            final pageRoutes = homeVisible
+                ? _homeReadRoutes
+                : _openedFeature == FeatureId.grades && pendingWrite == null
+                ? _gradesReadRoutes
+                : null;
+            final homeRoutes = pageRoutes?.values.toSet() ?? <ConnectionMode>{};
+            final mixed = homeRoutes.length > 1;
+            final route =
+                pendingWrite?.resolvedRoute ??
+                (pageRoutes != null && pageRoutes.isNotEmpty
+                    ? (homeRoutes.length == 1 ? homeRoutes.single : null)
+                    : (_openedFeature == snapshot?.feature
+                          ? snapshot?.resolvedRoute
+                          : null));
+            return IconButton(
+              tooltip: '实际路线：${mixed ? '混合' : route?.label ?? '未确定'}',
+              icon: Icon(
+                route == ConnectionMode.direct
+                    ? Icons.lan_outlined
+                    : route == ConnectionMode.webvpn
+                    ? Icons.vpn_lock_outlined
+                    : Icons.route_outlined,
+              ),
+              onPressed: () =>
+                  _showRouteOptions(context, route, homeRoutes: pageRoutes),
+            );
+          },
+        ),
+        if (_openedFeature != null && pendingWrite == null)
+          ValueListenableBuilder<(FeatureSnapshot, String)?>(
+            valueListenable: _visiblePage,
+            builder: (context, _, _) {
+              final page = _readPageKeys[_openedFeature]?.currentState;
+              if (_openedFeature == FeatureId.cgyy &&
+                  page?.currentFrame.query?.view ==
+                      FeatureQueryView.cgyyLockCode)
+                return const SizedBox.shrink();
+              return IconButton(
+                tooltip: '搜索与筛选',
+                onPressed: () => page?.openPanel(),
+                icon: const Icon(Icons.search),
+              );
+            },
+          ),
+        if (_openedFeature != null && pendingWrite == null)
+          RefreshActionButton(
+            key: ValueKey(_openedFeature),
+            tooltip: '刷新当前查询',
+            onRefresh: () async {
+              final page = _readPageKeys[_openedFeature]?.currentState;
+              if (_openedFeature == FeatureId.cgyy &&
+                  page?.currentFrame.query?.view ==
+                      FeatureQueryView.cgyyLockCode) {
+                setState(() => _lockRefreshRevision++);
+              } else {
+                await page?.refreshCurrent();
+              }
+            },
+          ),
+        if (_openedFeature == null &&
+            _utilityPage == null &&
+            _selectedIndex == 0 &&
+            pendingWrite == null)
+          RefreshActionButton(
+            key: const ValueKey('home-refresh'),
+            tooltip: '刷新',
+            onRefresh: widget.onRefresh,
+          ),
+      ],
+    );
     return PopScope<void>(
-      canPop: pendingWrite == null,
+      canPop:
+          pendingWrite == null &&
+          _openedFeature == null &&
+          _utilityPage == null,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop &&
             pendingWrite != null &&
             !widget.writeState.isSubmitting) {
           unawaited(_cancelWrite());
+        } else if (!didPop && pendingWrite == null) {
+          if (_utilityPage != null) {
+            setState(() => _utilityPage = null);
+          } else {
+            _readPageKeys[_openedFeature]?.currentState?.goBack();
+          }
         }
       },
       child: Scaffold(
-        appBar: AppBar(
-          centerTitle: true,
-          toolbarHeight: 56,
-          title: ValueListenableBuilder<(FeatureSnapshot, String)?>(
-            valueListenable: _visiblePage,
-            builder: (context, page, _) => Text(
-              pendingWrite != null
-                  ? '确认${pendingWrite.operation.title}'
-                  : _openedFeature != null
-                  ? (page?.$1.feature == _openedFeature
-                        ? page!.$2
-                        : _openedFeature!.title)
-                  : (_utilityPage ??
-                        (_selectedIndex == 0
-                            ? '首页'
-                            : _tabs[_selectedIndex].label)),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          leading: pendingWrite != null
-              ? IconButton(
-                  tooltip: '取消并返回',
-                  onPressed: widget.writeState.isSubmitting
-                      ? null
-                      : _cancelWrite,
-                  icon: const Icon(Icons.arrow_back),
-                )
-              : _openedFeature != null || _utilityPage != null
-              ? IconButton(
-                  tooltip: '返回',
-                  onPressed: () {
-                    if (_utilityPage != null) {
-                      setState(() => _utilityPage = null);
-                    } else {
-                      _readPageKeys[_openedFeature]?.currentState?.goBack();
-                    }
-                  },
-                  icon: const Icon(Icons.arrow_back),
-                )
-              : null,
-          actions: <Widget>[
-            if (widget.connectionStatus != null)
-              IconButton(
-                tooltip: widget.onCompleteLogin != null ? '完成登录' : '连接状态',
-                icon: Icon(
-                  widget.onCompleteLogin != null
-                      ? Icons.person_outline
-                      : Icons.cloud_off_outlined,
-                ),
-                onPressed: () async {
-                  if (widget.onCompleteLogin != null) {
-                    widget.onCompleteLogin!(context);
-                    return;
-                  }
-                  final retry = await showDialog<bool>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: const Text('连接状态'),
-                      content: Text(widget.connectionStatus ?? '连接已恢复'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('关闭'),
-                        ),
-                        if (widget.onReconnect != null)
-                          TextButton(
-                            onPressed: () => Navigator.pop(context, true),
-                            child: const Text('重试'),
-                          ),
-                      ],
-                    ),
-                  );
-                  if (retry == true && mounted) widget.onReconnect?.call();
-                },
-              ),
-            ValueListenableBuilder<(FeatureSnapshot, String)?>(
-              valueListenable: _visiblePage,
-              builder: (context, page, _) {
-                final snapshot = page?.$1;
-                final homeVisible =
-                    _openedFeature == null &&
-                    _utilityPage == null &&
-                    _selectedIndex == 0 &&
-                    pendingWrite == null;
-                final pageRoutes = homeVisible
-                    ? _homeReadRoutes
-                    : _openedFeature == FeatureId.grades && pendingWrite == null
-                    ? _gradesReadRoutes
-                    : null;
-                final homeRoutes =
-                    pageRoutes?.values.toSet() ?? <ConnectionMode>{};
-                final mixed = homeRoutes.length > 1;
-                final route =
-                    pendingWrite?.resolvedRoute ??
-                    (pageRoutes != null && pageRoutes.isNotEmpty
-                        ? (homeRoutes.length == 1 ? homeRoutes.single : null)
-                        : (_openedFeature == snapshot?.feature
-                              ? snapshot?.resolvedRoute
-                              : null));
-                return IconButton(
-                  tooltip: '实际路线：${mixed ? '混合' : route?.label ?? '未确定'}',
-                  icon: Icon(
-                    route == ConnectionMode.direct
-                        ? Icons.lan_outlined
-                        : route == ConnectionMode.webvpn
-                        ? Icons.vpn_lock_outlined
-                        : Icons.route_outlined,
-                  ),
-                  onPressed: () =>
-                      _showRouteOptions(context, route, homeRoutes: pageRoutes),
-                );
-              },
-            ),
-            if (_openedFeature != null && pendingWrite == null)
-              ValueListenableBuilder<(FeatureSnapshot, String)?>(
-                valueListenable: _visiblePage,
-                builder: (context, _, _) {
-                  final page = _readPageKeys[_openedFeature]?.currentState;
-                  if (_openedFeature == FeatureId.cgyy &&
-                      page?.currentFrame.query?.view ==
-                          FeatureQueryView.cgyyLockCode)
-                    return const SizedBox.shrink();
-                  return IconButton(
-                    tooltip: '搜索与筛选',
-                    onPressed: () => page?.openPanel(),
-                    icon: const Icon(Icons.search),
-                  );
-                },
-              ),
-            if (_openedFeature != null && pendingWrite == null)
-              RefreshActionButton(
-                key: ValueKey(_openedFeature),
-                tooltip: '刷新当前查询',
-                onRefresh: () async {
-                  final page = _readPageKeys[_openedFeature]?.currentState;
-                  if (_openedFeature == FeatureId.cgyy &&
-                      page?.currentFrame.query?.view ==
-                          FeatureQueryView.cgyyLockCode) {
-                    setState(() => _lockRefreshRevision++);
-                  } else {
-                    await page?.refreshCurrent();
-                  }
-                },
-              ),
-            if (_openedFeature == null &&
-                _utilityPage == null &&
-                _selectedIndex == 0 &&
-                pendingWrite == null)
-              RefreshActionButton(
-                key: const ValueKey('home-refresh'),
-                tooltip: '刷新',
-                onRefresh: widget.onRefresh,
-              ),
-          ],
-        ),
-        drawer: pendingWrite == null ? _buildDrawer(context) : null,
+        drawer: pendingWrite == null && !wide ? _buildDrawer(context) : null,
         // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
         body: Row(
           children: <Widget>[
             if (wide) _buildRail(context),
-            if (wide) const VerticalDivider(width: 1),
+
             Expanded(
               key: const ValueKey<String>('feature-pages'),
-              child: Center(
-                child: ConstrainedBox(
-                  constraints: const BoxConstraints(maxWidth: 1200),
-                  child: body,
-                ),
+              child: Column(
+                children: [
+                  header,
+                  Expanded(
+                    child: Center(
+                      child: ConstrainedBox(
+                        constraints: BoxConstraints(
+                          maxWidth:
+                              _openedFeature == FeatureId.schedule ||
+                                  _openedFeature == FeatureId.classroom
+                              ? 1600
+                              : 1040,
+                        ),
+                        child: body,
+                      ),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],
         ),
-        bottomNavigationBar:
-            wide ||
-                _openedFeature != null ||
-                _utilityPage != null ||
-                pendingWrite != null
+        bottomNavigationBar: wide || pendingWrite != null
             ? null
             : NavigationBar(
+                height:
+                    80 + (MediaQuery.textScalerOf(context).scale(12) - 12) * 3,
                 selectedIndex: _selectedIndex,
                 onDestinationSelected: _selectTab,
                 destinations: _tabs
@@ -812,16 +822,13 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             onRetryFeature: widget.onRetryFeature,
             onRefresh: widget.onRefresh,
           ),
-          1 => FeatureGridView(
+          1 || 2 || 3 => FeatureGridView(
+            features: _tabs[_selectedIndex].features,
             snapshots: widget.snapshots,
             onFeatureTap: _openFeatureList,
             onRetryFeature: widget.onRetryFeature,
           ),
-          2 => AdvancedFeaturesView(
-            snapshots: widget.snapshots,
-            onFeatureTap: _openFeatureList,
-            onRetryFeature: widget.onRetryFeature,
-          ),
+          4 => _buildProfile(),
           _ => const SizedBox.shrink(),
         };
 
@@ -830,7 +837,12 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     canClearBusinessCache: widget.canClearBusinessCache,
     onReadCacheUsage: widget.onReadCacheUsage,
     onClearBusinessCache: widget.onClearBusinessCache,
-    settingsOnly: _utilityPage == '设置',
+    settingsOnly:
+        _utilityPage == '设置' ||
+        (_utilityPage == null &&
+            _selectedIndex == UiDestination.settings.index),
+    onOpenProfile: () => _openUtility('我的资料'),
+    onOpenAbout: () => _openUtility('关于'),
     user: widget.user,
     routePolicy: widget.routePolicy,
     telemetryEnabled: widget.telemetryEnabled,
@@ -845,147 +857,17 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     onThemeModeChanged: widget.onThemeModeChanged,
   );
 
-  Widget _buildRail(BuildContext context) {
-    final extended = MediaQuery.sizeOf(context).width >= 1000;
-    return NavigationRail(
-      scrollable: true,
-      minWidth: 80,
-      minExtendedWidth: 200,
-      selectedIndex: _selectedIndex,
-      onDestinationSelected: _selectTab,
-      extended: extended,
-      labelType: extended
-          ? NavigationRailLabelType.none
-          : NavigationRailLabelType.selected,
-      leading: _buildRailLeading(context, extended),
-      destinations: _tabs
-          .map(
-            (tab) => NavigationRailDestination(
-              icon: Icon(tab.icon),
-              selectedIcon: Icon(tab.selectedIcon),
-              label: Text(tab.label),
-            ),
-          )
-          .toList(),
-    );
+  void _openUtility(String page) {
+    if (widget.writeState.intent != null) return;
+    if (page == UiDestination.settings.label) {
+      _selectTab(UiDestination.settings.index);
+      return;
+    }
+    setState(() {
+      _openedFeature = null;
+      _utilityPage = page;
+    });
   }
-
-  Widget _buildRailLeading(BuildContext context, bool extended) {
-    final theme = Theme.of(context);
-    final iconWidget = ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Image.asset(
-        'assets/icons/app_icon.png',
-        package: 'ubaa_ui',
-        width: 36,
-        height: 36,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => CircleAvatar(
-          radius: 18,
-          child: Text((widget.user?.preferredName ?? 'U').characters.first),
-        ),
-      ),
-    );
-
-    final name = widget.user?.preferredName ?? '用户';
-    final username = widget.user?.username ?? '';
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: () {
-        if (widget.writeState.intent != null) return;
-        setState(() {
-          _openedFeature = null;
-          _utilityPage = '我的资料';
-        });
-      },
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        child: extended
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  iconWidget,
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          name,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (username.isNotEmpty && username != name) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            username,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              )
-            : iconWidget,
-      ),
-    );
-  }
-
-  Drawer _buildDrawer(BuildContext context) => Drawer(
-    child: SafeArea(
-      child: Column(
-        children: <Widget>[
-          UserAccountsDrawerHeader(
-            decoration: BoxDecoration(
-              color: Theme.of(context).colorScheme.surfaceContainerHigh,
-            ),
-            accountName: Text(
-              widget.user?.preferredName ?? 'UBAA',
-              style: TextStyle(color: Theme.of(context).colorScheme.onSurface),
-            ),
-            accountEmail: Text(
-              widget.user?.username == widget.user?.preferredName
-                  ? ''
-                  : widget.user?.username ?? '',
-              style: TextStyle(
-                color: Theme.of(context).colorScheme.onSurfaceVariant,
-              ),
-            ),
-            currentAccountPicture: CircleAvatar(
-              child: Text((widget.user?.preferredName ?? 'U').characters.first),
-            ),
-          ),
-          for (final item in [
-            ('我的资料', Icons.person_outline),
-            ('设置', Icons.settings_outlined),
-            ('关于', Icons.info_outline),
-          ])
-            ListTile(
-              leading: Icon(item.$2),
-              title: Text(item.$1),
-              onTap: () {
-                Navigator.of(context).pop();
-                if (widget.writeState.intent != null) return;
-                setState(() {
-                  _openedFeature = null;
-                  _utilityPage = item.$1;
-                });
-              },
-            ),
-        ],
-      ),
-    ),
-  );
 
   void _selectTab(int index) {
     if (widget.writeState.intent != null) return;

@@ -13,7 +13,7 @@ void main() {
     'menu_desktop_dark',
     const Size(1280, 800),
     _menu,
-    content: NavigationRail,
+    content: UbaaMainShell,
     dark: true,
   );
   _visual(
@@ -96,7 +96,7 @@ void _visual(
 
 Widget _menu() => UbaaMainShell(
   user: const UserSummary(username: 'synthetic', displayName: '测试同学'),
-  initialTab: 1,
+  initialDestination: UiDestination.academic,
   snapshots: {
     for (final feature in FeatureId.values)
       feature: FeatureSnapshot(feature: feature),

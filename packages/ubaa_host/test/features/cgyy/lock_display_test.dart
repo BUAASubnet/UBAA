@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -13,7 +14,9 @@ void main() {
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       final backend = synthetic.SyntheticLockBackend();
-      await tester.pumpWidget(UbaaAppHost(backend: backend, initialTab: 2));
+      await tester.pumpWidget(
+        UbaaAppHost(backend: backend, initialDestination: UiDestination.campus),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.text('研讨室预约').first);
       await tester.pumpAndSettle();

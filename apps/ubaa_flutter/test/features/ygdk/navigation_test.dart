@@ -74,7 +74,7 @@ Future<SportsBackend> _mount(
       credentialVault: MemoryCredentialVault(),
       photoPicker: MemoryPhotoPicker(),
       permissionGateway: MemoryPermissionGateway(),
-      initialTab: 2,
+      initialDestination: UiDestination.campus,
     ),
   );
   await tester.pumpAndSettle();

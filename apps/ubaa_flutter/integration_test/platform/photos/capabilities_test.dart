@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -30,7 +31,7 @@ void main() {
           credentialVault: MemoryCredentialVault(),
           photoPicker: capabilities.photoPicker,
           permissionGateway: capabilities.permissionGateway,
-          initialTab: 2,
+          initialDestination: UiDestination.campus,
         ),
       );
       await tester.pumpAndSettle();

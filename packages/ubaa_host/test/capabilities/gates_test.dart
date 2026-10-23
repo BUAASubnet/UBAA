@@ -21,7 +21,7 @@ void _registerCapabilityGateTests() {
         backend: backend,
         photoPicker: const UnavailablePhotoPicker(),
         permissionGateway: MemoryPermissionGateway(),
-        initialTab: 2,
+        initialDestination: UiDestination.campus,
       ),
     );
     await tester.pumpAndSettle();
@@ -39,7 +39,7 @@ void _registerCapabilityGateTests() {
       UbaaAppHost(
         backend: backend,
         photoPicker: MemoryPhotoPicker(photo: fixtureSafeHostPhoto),
-        initialTab: 2,
+        initialDestination: UiDestination.campus,
       ),
     );
     await tester.pumpAndSettle();
@@ -62,7 +62,7 @@ void _registerCapabilityGateTests() {
           backend: backend,
           photoPicker: MemoryPhotoPicker(photo: fixtureSafeHostPhoto),
           permissionGateway: MemoryPermissionGateway(),
-          initialTab: 2,
+          initialDestination: UiDestination.campus,
         ),
       );
       await tester.pumpAndSettle();
@@ -81,7 +81,11 @@ void _registerCapabilityGateTests() {
       FixtureHostEvaluationReadbackOnlyBackend(),
     ]) {
       await tester.pumpWidget(
-        UbaaAppHost(key: UniqueKey(), backend: backend, initialTab: 2),
+        UbaaAppHost(
+          key: UniqueKey(),
+          backend: backend,
+          initialDestination: UiDestination.campus,
+        ),
       );
       await tester.pumpAndSettle();
 

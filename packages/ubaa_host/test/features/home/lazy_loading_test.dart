@@ -29,7 +29,7 @@ void main() {
       expect(backend.reads, isNot(contains(feature)));
       backend.reads.clear();
 
-      final tab = ordinaryFeatureIds.contains(feature) ? 1 : 2;
+      final tab = UiDestination.forFeature(feature).index;
       await tester.tap(find.byType(NavigationDestination).at(tab));
       await tester.pumpAndSettle();
       final card = find.widgetWithText(Card, feature.title);

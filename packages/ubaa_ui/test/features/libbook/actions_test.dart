@@ -361,7 +361,7 @@ Future<void> _pumpLibbookCancelShell(
       ),
     ),
   );
-  await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+  await tester.tap(find.byIcon(UiDestination.campus.icon));
   await tester.pumpAndSettle();
   await openFeature(tester, FeatureId.libbook);
   await tester.pumpAndSettle();
@@ -437,7 +437,7 @@ Future<void> _pumpLibbookShell(
       ),
     ),
   );
-  await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+  await tester.tap(find.byIcon(UiDestination.campus.icon));
   await tester.pumpAndSettle();
   await openFeature(tester, FeatureId.libbook);
   await tester.pumpAndSettle();

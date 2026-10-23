@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -11,17 +12,21 @@ void main() {
   WidgetController.hitTestWarningShouldBeFatal = true;
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   for (final brightness in Brightness.values) {
-    testWidgets('旧版骨架原生逐页与按需面板：${brightness.name}', (tester) async {
-      expect(Platform.isIOS || Platform.isMacOS, isTrue);
+    testWidgets('共享布局原生逐页与按需面板：${brightness.name}', (tester) async {
+      expect(Platform.isIOS || Platform.isMacOS || Platform.isAndroid, isTrue);
       tester.platformDispatcher.platformBrightnessTestValue = brightness;
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
       await tester.pumpWidget(
         KeyedSubtree(
-          key: ValueKey('old-${brightness.name}'),
+          key: ValueKey('shared-${brightness.name}'),
           child: createInspectionApp(),
         ),
       );
       await tester.pumpAndSettle();
+      if (Platform.isAndroid) {
+        await binding.convertFlutterSurfaceToImage();
+        await tester.pumpAndSettle();
+      }
 
       Future<void> capture(String scene, String steps) async {
         expect(tester.takeException(), isNull);
@@ -50,7 +55,9 @@ void main() {
           'dateUtc': DateTime.now().toUtc().toIso8601String(),
           'sourceSha': const String.fromEnvironment('UBAA_UI_SOURCE_SHA'),
         });
-        if (Platform.isIOS) await binding.takeScreenshot(name);
+        if (Platform.isIOS || Platform.isAndroid) {
+          await binding.takeScreenshot(name);
+        }
       }
 
       Future<void> panel() async {
@@ -71,22 +78,12 @@ void main() {
         if (narrow) {
           await tester.tap(find.byType(NavigationDestination).at(index));
         } else {
-          final rail = tester.widget<NavigationRail>(
-            find.byType(NavigationRail),
-          );
-          if (rail.selectedIndex != index) {
-            final icon = [
-              Icons.home_outlined,
-              Icons.apps_outlined,
-              Icons.auto_awesome_outlined,
-            ][index];
-            await tester.tap(
-              find.descendant(
-                of: find.byType(NavigationRail),
-                matching: find.byIcon(icon),
-              ),
-            );
-          }
+          final destination = UiDestination.values[index];
+          final selected = find.byIcon(destination.selectedIcon);
+          final target = selected.evaluate().isNotEmpty
+              ? selected
+              : find.byIcon(destination.icon);
+          await tester.tap(target.first);
         }
         await tester.pumpAndSettle();
       }
@@ -111,10 +108,17 @@ void main() {
           ? menus.keys
           : FeatureId.values;
       for (final feature in features) {
-        await tab(ordinaryFeatureIds.contains(feature) ? 1 : 2);
+        await tab(UiDestination.forFeature(feature).index);
         final card = find.widgetWithText(Card, feature.title);
         if (card.evaluate().isEmpty) {
-          await tester.scrollUntilVisible(card, 240);
+          await tester.scrollUntilVisible(
+            card,
+            240,
+            scrollable: find.descendant(
+              of: find.byType(CustomScrollView),
+              matching: find.byType(Scrollable),
+            ),
+          );
         }
         await tester.ensureVisible(card);
         await tester.pumpAndSettle();
@@ -134,11 +138,11 @@ void main() {
         expect(find.text('已选择 0 门待评课程'), findsNothing);
         if (tester.view.physicalSize.width / tester.view.devicePixelRatio <
             600) {
-          expect(find.byType(NavigationBar), findsNothing);
+          expect(find.byType(NavigationBar), findsOneWidget);
         }
         await capture(
           'feature-${feature.name}',
-          '从旧版功能分组打开${feature.title}，核对单顶栏与正文高度',
+          '从当前功能分组打开${feature.title}，核对单顶栏与正文高度',
         );
         await panel();
         expect(
@@ -237,16 +241,10 @@ void main() {
         await tester.tap(find.byTooltip('返回'));
         await tester.pumpAndSettle();
       }
-      await tab(0);
-      await tester.tap(find.byType(DrawerButton));
-      await tester.pumpAndSettle();
-      await capture('sidebar', '打开侧栏，资料和设置不占主导航');
-      await tester.tap(find.text('设置'));
-      await tester.pumpAndSettle();
-      expect(find.text('连接模式'), findsOneWidget);
-      await capture('settings', '从侧栏进入设置，保留连接模式与匿名统计');
-      await tester.tap(find.byTooltip('返回'));
-      await tester.pumpAndSettle();
+      await tab(UiDestination.settings.index);
+      expect(find.text('外观主题'), findsOneWidget);
+      await capture('settings', '进入分组设置，保留主题、连接、隐私及账号操作');
+      await tab(UiDestination.home.index);
     });
   }
 }

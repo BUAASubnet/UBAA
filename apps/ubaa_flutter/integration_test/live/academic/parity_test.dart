@@ -89,7 +89,7 @@ void main() {
       );
     }
 
-    await open(FeatureId.exam, Icons.apps_outlined);
+    await open(FeatureId.exam, UiDestination.academic.icon);
     for (final (label, view) in [
       ('已安排', FeatureQueryView.examArranged),
       ('未安排', FeatureQueryView.examNotArranged),
@@ -114,7 +114,7 @@ void main() {
       '学业旧版只读 examLocalDetail=${shell().snapshots[FeatureId.exam]!.details.isEmpty ? '无记录未执行' : '本批未执行'}',
     );
     await tap(find.byTooltip('返回'));
-    await open(FeatureId.signin, Icons.auto_awesome_outlined);
+    await open(FeatureId.signin, UiDestination.coursework.icon);
     for (final (label, view, eligibility) in [
       ('可签到', FeatureQueryView.signinPending, ActionEligibility.allowed),
       ('已签到', FeatureQueryView.signinCompleted, ActionEligibility.denied),

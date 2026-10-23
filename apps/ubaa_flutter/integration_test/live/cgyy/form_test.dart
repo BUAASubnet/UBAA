@@ -53,7 +53,7 @@ void main() {
       await tester.pump(const Duration(milliseconds: 400));
     }
 
-    await tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tap(find.byIcon(UiDestination.campus.icon));
     await tap(find.widgetWithText(Card, FeatureId.cgyy.title));
     await tap(find.widgetWithText(Card, '预约研讨室'));
     await wait(() {

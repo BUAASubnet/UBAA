@@ -526,7 +526,7 @@ void _registerInitialWriteTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(UiDestination.coursework.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.signin);
     await tester.pumpAndSettle();

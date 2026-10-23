@@ -108,12 +108,8 @@ void main() {
       await capture('home', '合成账号登录进入首页');
 
       for (final feature in FeatureId.values) {
-        final ordinary = learningFeatureIds.contains(feature);
-        await _selectTab(
-          tester,
-          ordinary ? Icons.apps : Icons.auto_awesome,
-          ordinary ? Icons.apps_outlined : Icons.auto_awesome_outlined,
-        );
+        final destination = UiDestination.forFeature(feature);
+        await _selectTab(tester, destination.selectedIcon, destination.icon);
         final grid = find.byType(CustomScrollView);
         final card = find.descendant(
           of: grid,

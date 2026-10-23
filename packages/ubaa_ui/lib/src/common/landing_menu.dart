@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'section.dart';
+import '../theme.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
@@ -56,55 +58,27 @@ class FeatureLandingMenu extends StatelessWidget {
       ],
       _ => throw StateError('此领域没有子菜单'),
     };
-    final theme = Theme.of(context);
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-        return GridView.builder(
-          key: ValueKey(('feature-landing', feature)),
-          padding: const EdgeInsets.all(16),
-          gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: constraints.maxWidth >= 900 ? 3 : 2,
-            mainAxisExtent: 144 * scale.clamp(1.0, 2.0),
-            crossAxisSpacing: 12,
-            mainAxisSpacing: 12,
-          ),
-          itemCount: entries.length,
-          itemBuilder: (context, index) {
-            final item = entries[index];
-            return Card(
-              elevation: 2,
-              clipBehavior: Clip.antiAlias,
-              color: theme.colorScheme.surfaceContainerHigh,
-              child: InkWell(
-                onTap: () => onOpen(
-                  FeatureReadNavigation(
-                    feature: feature,
-                    query: FeatureQuery(view: item.$3),
-                  ),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(item.$2, size: 48, color: theme.colorScheme.primary),
-                      const SizedBox(height: 12),
-                      Text(
-                        item.$1,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.titleMedium?.copyWith(
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
+    return ListView(
+      key: ValueKey(('feature-landing', feature)),
+      padding: EdgeInsets.all(
+        UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+      ),
+      children: [
+        for (final item in entries)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: UiEntryCard(
+              title: item.$1,
+              icon: item.$2,
+              onTap: () => onOpen(
+                FeatureReadNavigation(
+                  feature: feature,
+                  query: FeatureQuery(view: item.$3),
                 ),
               ),
-            );
-          },
-        );
-      },
+            ),
+          ),
+      ],
     );
   }
 }

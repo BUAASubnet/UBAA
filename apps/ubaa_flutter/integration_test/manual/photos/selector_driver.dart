@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'package:flutter/material.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
@@ -15,7 +16,7 @@ Future<void> main() async {
       credentialVault: MemoryCredentialVault(),
       photoPicker: capabilities.photoPicker,
       permissionGateway: capabilities.permissionGateway,
-      initialTab: 2,
+      initialDestination: UiDestination.campus,
     ),
   );
 }

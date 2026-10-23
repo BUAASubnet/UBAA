@@ -100,7 +100,7 @@ void _registerWriteCoordinationTests() {
             PlatformPermission.photos: PlatformPermissionStatus.granted,
           },
         ),
-        initialTab: 2,
+        initialDestination: UiDestination.campus,
       ),
     );
     await tester.pumpAndSettle();

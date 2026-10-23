@@ -40,7 +40,7 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(UiDestination.coursework.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.signin);
     await openQueryPanel(tester);
@@ -102,7 +102,7 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(UiDestination.coursework.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.signin);
     await tester.pumpAndSettle();
@@ -166,7 +166,7 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(UiDestination.coursework.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.signin);
     await tester.pumpAndSettle();
@@ -559,7 +559,7 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(UiDestination.campus.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.ygdk);
     await openQueryPanel(tester);
@@ -614,7 +614,7 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(UiDestination.campus.icon));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('研讨室预约'),
@@ -676,7 +676,7 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(Icons.apps_outlined));
+    await tester.tap(find.byIcon(UiDestination.academic.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.evaluation);
     await openQueryPanel(tester);

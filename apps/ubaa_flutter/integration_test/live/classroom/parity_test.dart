@@ -78,7 +78,7 @@ void main() {
     await tap(
       find.descendant(
         of: find.byType(NavigationRail),
-        matching: find.byIcon(Icons.apps_outlined),
+        matching: find.byIcon(UiDestination.academic.icon),
       ),
     );
     await tap(find.widgetWithText(Card, FeatureId.classroom.title));

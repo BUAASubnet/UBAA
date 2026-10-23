@@ -3,6 +3,7 @@ import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/theme.dart';
+import '../common/section.dart';
 import '../shared/loading.dart' show LoadingGlyph, LoadingPlaceholder;
 import '../features/grades/notice.dart' show GradeScoreBanner;
 import '../shared/feature_icons.dart' show uiFeatureIcon;
@@ -690,149 +691,41 @@ class FeatureGridView extends StatelessWidget {
     required this.snapshots,
     required this.onFeatureTap,
     required this.onRetryFeature,
+    required this.features,
   });
-
-  final Map<FeatureId, FeatureSnapshot> snapshots;
-  final ValueChanged<FeatureId> onFeatureTap;
-  final Future<void> Function(FeatureId) onRetryFeature;
-
-  @override
-  Widget build(BuildContext context) => CustomScrollView(
-    slivers: <Widget>[
-      SliverPadding(
-        padding: EdgeInsets.all(
-          UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-        ),
-        sliver: _FeatureGridSliver(
-          snapshots: snapshots,
-          onFeatureTap: onFeatureTap,
-          onRetryFeature: onRetryFeature,
-        ),
-      ),
-    ],
-  );
-}
-
-class _FeatureGridSliver extends StatelessWidget {
-  const _FeatureGridSliver({
-    required this.snapshots,
-    required this.onFeatureTap,
-    required this.onRetryFeature,
-    this.features = ordinaryFeatureIds,
-  });
-
   final Map<FeatureId, FeatureSnapshot> snapshots;
   final ValueChanged<FeatureId> onFeatureTap;
   final Future<void> Function(FeatureId) onRetryFeature;
   final List<FeatureId> features;
 
   @override
-  Widget build(BuildContext context) => SliverLayoutBuilder(
-    builder: (context, constraints) {
-      final columns = (constraints.crossAxisExtent / 220).floor().clamp(2, 5);
-      final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-      return SliverGrid.builder(
-        gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-          crossAxisCount: columns,
-          mainAxisExtent: 144 * scale.clamp(1.0, 2.0),
-          crossAxisSpacing: 12,
-          mainAxisSpacing: 12,
-        ),
-        itemCount: features.length,
-        itemBuilder: (context, index) {
-          final feature = features[index];
-          return _FeatureCard(
-            feature: feature,
-            snapshot: snapshots[feature]!,
-            onTap: () => onFeatureTap(feature),
-            onRetry: () => onRetryFeature(feature),
-          );
-        },
-      );
-    },
-  );
-}
-
-class _FeatureCard extends StatelessWidget {
-  const _FeatureCard({
-    required this.feature,
-    required this.snapshot,
-    required this.onTap,
-    required this.onRetry,
-  });
-
-  final FeatureId feature;
-  final FeatureSnapshot snapshot;
-  final VoidCallback onTap;
-  final Future<void> Function() onRetry;
-
-  @override
-  Widget build(BuildContext context) {
-    final colorScheme = Theme.of(context).colorScheme;
-    return Semantics(
-      container: true,
-      button: true,
-      excludeSemantics: true,
-      onTap: onTap,
-      label:
-          '${feature.title}：${snapshot.summary ?? feature.description}。点击查看详情',
-      child: Card(
-        clipBehavior: Clip.antiAlias,
-        color: colorScheme.surfaceContainerHigh,
-        elevation: 2,
-        child: InkWell(
-          onTap: onTap,
-          child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                Icon(
-                  uiFeatureIcon(feature),
-                  size: 40,
-                  color: colorScheme.primary,
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  feature.title,
-                  textAlign: TextAlign.center,
-                  style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class AdvancedFeaturesView extends StatelessWidget {
-  const AdvancedFeaturesView({
-    required this.snapshots,
-    required this.onFeatureTap,
-    required this.onRetryFeature,
-  });
-
-  final Map<FeatureId, FeatureSnapshot> snapshots;
-  final ValueChanged<FeatureId> onFeatureTap;
-  final Future<void> Function(FeatureId) onRetryFeature;
-
-  @override
   Widget build(BuildContext context) => CustomScrollView(
-    slivers: <Widget>[
+    slivers: [
       SliverPadding(
         padding: EdgeInsets.all(
           UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
         ),
-        sliver: _FeatureGridSliver(
-          features: advancedFeatureIds,
-          snapshots: snapshots,
-          onFeatureTap: onFeatureTap,
-          onRetryFeature: onRetryFeature,
+        sliver: SliverList.list(
+          children: [
+            for (final feature in features)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: Semantics(
+                  container: true,
+                  button: true,
+                  excludeSemantics: true,
+                  onTap: () => onFeatureTap(feature),
+                  label:
+                      '${feature.title}：${snapshots[feature]?.summary ?? feature.description}。点击查看详情',
+                  child: UiEntryCard(
+                    title: feature.title,
+                    icon: uiFeatureIcon(feature),
+                    subtitle: feature.description,
+                    onTap: () => onFeatureTap(feature),
+                  ),
+                ),
+              ),
+          ],
         ),
       ),
     ],

@@ -196,6 +196,8 @@ void main() {
       scrollable: scroll,
     );
     expect(find.text('时间待确认'), findsOneWidget);
+    await tester.ensureVisible(find.text('时间字段异常的课程'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('时间字段异常的课程'));
     await tester.pumpAndSettle();
     expect(find.text('原值 9'), findsOneWidget);
@@ -295,7 +297,7 @@ Future<void> _show(
         child: child!,
       ),
       home: UbaaMainShell(
-        initialTab: 1,
+        initialDestination: UiDestination.academic,
         user: const UserSummary(username: 'fixture-student'),
         snapshots: {
           for (final id in FeatureId.values)

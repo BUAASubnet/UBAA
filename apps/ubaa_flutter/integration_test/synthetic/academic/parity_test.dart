@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -163,7 +164,7 @@ Future<void> mount(
     UbaaFlutterApp(
       backend: backend,
       credentialVault: MemoryCredentialVault(),
-      initialTab: ordinaryFeatureIds.contains(feature) ? 1 : 2,
+      initialDestination: UiDestination.forFeature(feature),
     ),
   );
   await tester.pumpAndSettle();
@@ -187,7 +188,7 @@ Future<void> runInspection() async {
     UbaaFlutterApp(
       backend: AcademicOldBackend(),
       credentialVault: MemoryCredentialVault(),
-      initialTab: 1,
+      initialDestination: UiDestination.academic,
     ),
   );
   return;

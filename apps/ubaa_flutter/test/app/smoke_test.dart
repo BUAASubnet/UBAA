@@ -23,6 +23,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
     expect(find.text('今日课表'), findsOneWidget);
-    expect(find.text('普通功能'), findsOneWidget);
+    expect(find.text('学业'), findsOneWidget);
   });
 }

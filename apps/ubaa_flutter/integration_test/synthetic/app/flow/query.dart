@@ -7,7 +7,7 @@ void _registerQueryFlowTests() {
         key: const ValueKey<String>('advanced-smoke'),
         backend: _IntegrationBackend(),
         credentialVault: MemoryCredentialVault(),
-        initialTab: 1,
+        initialDestination: UiDestination.academic,
       ),
     );
     await tester.pumpAndSettle();
@@ -41,7 +41,7 @@ void _registerQueryFlowTests() {
         key: const ValueKey<String>('advanced-smoke-replacement'),
         backend: _IntegrationBackend(),
         credentialVault: MemoryCredentialVault(),
-        initialTab: 2,
+        initialDestination: UiDestination.campus,
       ),
     );
     await tester.pumpAndSettle();
@@ -209,9 +209,7 @@ Future<Finder> _scrollToQueryFeature(
     matching: find.byType(Scrollable),
   );
   expect(scrollable, findsOneWidget);
-  final features = ordinaryFeatureIds.contains(feature)
-      ? ordinaryFeatureIds
-      : advancedFeatureIds;
+  final features = UiDestination.forFeature(feature).features;
   // 合成摘要可能与标题同名；定位共同的唯一 Card，不对 Text 任取 first。
   Finder featureCard(FeatureId id) =>
       find.descendant(of: grid, matching: find.widgetWithText(Card, id.title));

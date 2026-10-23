@@ -98,7 +98,7 @@ void main() {
     await tap(
       find.descendant(
         of: rail,
-        matching: find.byIcon(Icons.auto_awesome_outlined),
+        matching: find.byIcon(UiDestination.campus.icon),
       ),
     );
     await tap(find.widgetWithText(Card, FeatureId.cgyy.title));

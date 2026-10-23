@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -235,7 +236,7 @@ Future<void> _open(
     MaterialApp(
       home: StatefulBuilder(
         builder: (context, update) => coordinatedShell(
-          initialTab: 1,
+          initialDestination: UiDestination.coursework,
           user: const UserSummary(username: 'synthetic'),
           snapshots: {
             for (final id in FeatureId.values)

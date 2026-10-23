@@ -233,7 +233,7 @@ void main() {
           factories++;
           return _BykcBackend(session: state);
         },
-        initialTab: 1,
+        initialDestination: UiDestination.coursework,
         credentialVault: MemoryCredentialVault(),
         reminderStore: MemoryYgdkReminderStore(),
         gradeScoreStore: grades,
@@ -331,7 +331,7 @@ Widget _host(
   GradeScoreStore? grades,
 }) => UbaaAppHost(
   backend: backend,
-  initialTab: 1,
+  initialDestination: UiDestination.coursework,
   credentialVault: vault ?? MemoryCredentialVault(),
   reminderStore: MemoryYgdkReminderStore(),
   gradeScoreStore: grades ?? MemoryGradeScoreStore(),

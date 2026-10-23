@@ -58,7 +58,7 @@ class UbaaAppHost extends StatefulWidget {
     this.photoPicker,
     this.permissionGateway,
     this.locationProvider,
-    this.initialTab = 0,
+    this.initialDestination = UiDestination.home,
     this.telemetry,
     this.reminderStore,
     this.gradeScoreStore,
@@ -84,7 +84,7 @@ class UbaaAppHost extends StatefulWidget {
   final PlatformPhotoPicker? photoPicker;
   final PlatformPermissionGateway? permissionGateway;
   final PlatformLocationProvider? locationProvider;
-  final int initialTab;
+  final UiDestination initialDestination;
   final TelemetryClient? telemetry;
   final YgdkReminderStore? reminderStore;
   final GradeScoreStore? gradeScoreStore;

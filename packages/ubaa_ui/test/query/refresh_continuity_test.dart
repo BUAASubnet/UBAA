@@ -114,7 +114,13 @@ void main() {
       final state = ValueNotifier<FeatureSnapshot>(_grades());
       addTearDown(state.dispose);
       final queries = <FeatureQuery>[];
-      await _mount(tester, state, scale: 1.3, queries: queries, initialTab: 2);
+      await _mount(
+        tester,
+        state,
+        scale: 1.3,
+        queries: queries,
+        initialDestination: UiDestination.campus,
+      );
       await _open(tester, feature);
       await openQueryPanel(tester);
       await tester.tap(find.text('更多查询'));
@@ -192,7 +198,7 @@ Future<void> _mount(
   ValueNotifier<FeatureSnapshot> state, {
   double scale = 1,
   List<FeatureQuery>? queries,
-  int initialTab = 1,
+  UiDestination initialDestination = UiDestination.academic,
   ThemeMode themeMode = ThemeMode.light,
 }) async {
   await tester.pumpWidget(
@@ -210,7 +216,7 @@ Future<void> _mount(
         valueListenable: state,
         builder: (context, value, _) => UbaaMainShell(
           user: const UserSummary(username: 'fixture-student'),
-          initialTab: initialTab,
+          initialDestination: initialDestination,
           snapshots: {
             for (final feature in FeatureId.values)
               feature: feature == FeatureId.grades

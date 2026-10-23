@@ -17,7 +17,7 @@ void _registerPrimaryWriteFlowTests() {
     await tester.tap(find.widgetWithText(FilledButton, '登录'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(UiDestination.campus.icon));
     await tester.pumpAndSettle();
     await tester.tap(find.text('课堂签到'));
     await tester.pumpAndSettle();
@@ -56,7 +56,7 @@ void _registerPrimaryWriteFlowTests() {
     await tester.tap(find.widgetWithText(FilledButton, '登录'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(UiDestination.campus.icon));
     await tester.pumpAndSettle();
     await tester.tap(find.text('课堂签到'));
     await tester.pumpAndSettle();
@@ -90,7 +90,7 @@ void _registerPrimaryWriteFlowTests() {
     await tester.tap(find.widgetWithText(FilledButton, '登录'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+    await tester.tap(find.byIcon(UiDestination.campus.icon));
     await tester.pumpAndSettle();
     await tester.tap(find.text('课堂签到'));
     await tester.pumpAndSettle();
@@ -130,7 +130,7 @@ void _registerWriteMatrixFlowTest() {
           ),
         ),
         permissionGateway: permissionGateway,
-        initialTab: 1,
+        initialDestination: UiDestination.coursework,
       ),
     );
     await tester.pumpAndSettle();

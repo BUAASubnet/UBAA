@@ -1,6 +1,6 @@
 part of '../flow_test.dart';
 
-/// 沿实际三入口、懒加载卡片与子菜单点击；不绕过生产导航状态。
+/// 沿实际分类入口、懒加载卡片与子菜单点击；不绕过生产导航状态。
 Future<void> _returnToFeatureRoot(WidgetTester tester) async {
   await _closeIntegrationPanel(tester);
   for (
@@ -11,11 +11,7 @@ Future<void> _returnToFeatureRoot(WidgetTester tester) async {
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
   }
-  expect(
-    find.byType(NavigationBar).evaluate().length +
-        find.byType(NavigationRail).evaluate().length,
-    1,
-  );
+  expect(find.byType(UbaaMainShell), findsOneWidget);
 }
 
 Future<void> _openIntegrationFeature(
@@ -24,21 +20,17 @@ Future<void> _openIntegrationFeature(
   bool enterLanding = true,
 }) async {
   await _returnToFeatureRoot(tester);
-  final index = ordinaryFeatureIds.contains(feature) ? 1 : 2;
+  final index = UiDestination.forFeature(feature).index;
   if (find.byType(NavigationBar).evaluate().isNotEmpty) {
     await tester.tap(find.byType(NavigationDestination).at(index));
   } else {
-    final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-    final selected = rail.selectedIndex == index;
-    final icon = index == 1
-        ? (selected ? Icons.apps : Icons.apps_outlined)
-        : (selected ? Icons.auto_awesome : Icons.auto_awesome_outlined);
-    await tester.tap(
-      find.descendant(
-        of: find.byType(NavigationRail),
-        matching: find.byIcon(icon),
-      ),
-    );
+    final destination = UiDestination.forFeature(feature);
+    final selected = find.byIcon(destination.selectedIcon);
+    final target = selected.evaluate().isNotEmpty
+        ? selected
+        : find.byIcon(destination.icon);
+    await tester.ensureVisible(target.first);
+    await tester.tap(target.first);
   }
   await tester.pumpAndSettle();
   final target = await _scrollToQueryFeature(tester, feature);

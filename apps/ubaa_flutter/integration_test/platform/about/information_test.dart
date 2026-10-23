@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -34,7 +35,7 @@ Widget _app(PlatformAppInformation information) => UbaaFlutterApp(
   backend: CourseworkBackend()..signedIn = true,
   credentialVault: MemoryCredentialVault(),
   appInformation: information,
-  initialTab: 1,
+  initialDestination: UiDestination.academic,
 );
 
 void main() {

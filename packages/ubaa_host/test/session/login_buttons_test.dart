@@ -157,13 +157,17 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+      await tester.tap(find.byIcon(Icons.settings_outlined));
       await tester.pumpAndSettle();
-      await tester.tap(
-        find.descendant(of: find.byType(Drawer), matching: find.text('设置')),
+      await tester.scrollUntilVisible(
+        find.text('退出并清除本机账号'),
+        300,
+        scrollable: find.descendant(
+          of: find.byKey(const ValueKey<String>('feature-pages')),
+          matching: find.byType(Scrollable),
+        ),
       );
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.text('退出并清除本机账号'));
       await tester.tap(find.text('退出并清除本机账号'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('退出并清除'));
@@ -439,13 +443,17 @@ Future<void> _backgroundAndResume(WidgetTester tester) async {
 }
 
 Future<void> _confirmClearFromSettings(WidgetTester tester) async {
-  tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+  await tester.tap(find.byIcon(Icons.settings_outlined));
   await tester.pumpAndSettle();
-  await tester.tap(
-    find.descendant(of: find.byType(Drawer), matching: find.text('设置')),
+  await tester.scrollUntilVisible(
+    find.text('退出并清除本机账号'),
+    300,
+    scrollable: find.descendant(
+      of: find.byKey(const ValueKey<String>('feature-pages')),
+      matching: find.byType(Scrollable),
+    ),
   );
   await tester.pumpAndSettle();
-  await tester.ensureVisible(find.text('退出并清除本机账号'));
   await tester.tap(find.text('退出并清除本机账号'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('退出并清除'));

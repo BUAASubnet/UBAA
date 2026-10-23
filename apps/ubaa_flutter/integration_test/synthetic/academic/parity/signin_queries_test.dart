@@ -72,7 +72,7 @@ void main() {
         snapshot().readContext?.query?.view,
         FeatureQueryView.signinPending,
       );
-      await shot('back', '返回高级功能再进入保持已应用视图');
+      await shot('back', '返回课程与作业再进入保持已应用视图');
 
       for (final (label, view, titles) in [
         ('已签到', FeatureQueryView.signinCompleted, ['合成已签到课程']),

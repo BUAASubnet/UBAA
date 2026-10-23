@@ -120,7 +120,7 @@ void main() {
     await tap(
       find.descendant(
         of: find.byType(NavigationRail),
-        matching: find.byIcon(Icons.apps_outlined),
+        matching: find.byIcon(UiDestination.campus.icon),
       ),
     );
     await tap(find.widgetWithText(Card, FeatureId.libbook.title));

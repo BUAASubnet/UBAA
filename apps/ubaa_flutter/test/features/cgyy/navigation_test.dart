@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -157,7 +158,7 @@ Future<RoomBackend> _open(
     UbaaFlutterApp(
       backend: backend,
       credentialVault: MemoryCredentialVault(),
-      initialTab: 2,
+      initialDestination: UiDestination.campus,
     ),
   );
   await tester.pumpAndSettle();

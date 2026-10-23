@@ -165,7 +165,7 @@ Future<void> _mount(
       theme: UbaaTheme.light(),
       home: UbaaMainShell(
         user: UserSummary(username: username),
-        initialTab: 1,
+        initialDestination: UiDestination.academic,
         snapshots: <FeatureId, FeatureSnapshot>{
           for (final feature in FeatureId.values)
             feature: FeatureSnapshot(
@@ -213,7 +213,10 @@ FeatureQueryView? _view(WidgetTester tester) => tester
 double _listOffset(WidgetTester tester) => tester
     .state<ScrollableState>(
       find.descendant(
-        of: find.byType(ListView),
+        of: find.descendant(
+          of: find.byKey(const ValueKey<String>('feature-pages')),
+          matching: find.byType(ListView),
+        ),
         matching: find.byType(Scrollable),
       ),
     )

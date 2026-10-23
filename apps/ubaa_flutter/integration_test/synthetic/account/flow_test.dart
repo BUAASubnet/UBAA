@@ -225,7 +225,7 @@ void main() {
       find.byType(NavigationRail).evaluate().isNotEmpty
           ? find.descendant(
               of: find.byType(NavigationRail),
-              matching: find.byIcon(Icons.apps_outlined),
+              matching: find.byIcon(UiDestination.academic.icon),
             )
           : find.byType(NavigationDestination).at(1),
     );

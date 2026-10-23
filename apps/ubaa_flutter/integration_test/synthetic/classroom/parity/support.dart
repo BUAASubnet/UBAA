@@ -94,7 +94,7 @@ Future<void> mount(
     UbaaFlutterApp(
       backend: backend,
       credentialVault: MemoryCredentialVault(),
-      initialTab: 1,
+      initialDestination: UiDestination.academic,
     ),
   );
   await tester.pumpAndSettle();

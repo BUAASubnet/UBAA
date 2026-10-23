@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -52,7 +53,7 @@ void main() {
               PlatformPermission.camera: PlatformPermissionStatus.granted,
             },
           ),
-          initialTab: 2,
+          initialDestination: UiDestination.campus,
         ),
       );
       await tester.pumpAndSettle();

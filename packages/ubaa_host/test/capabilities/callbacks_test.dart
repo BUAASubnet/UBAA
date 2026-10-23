@@ -33,7 +33,7 @@ void _registerCallbackTests() {
         photoPicker: picker,
         permissionGateway: permissions,
         locationProvider: locations,
-        initialTab: 2,
+        initialDestination: UiDestination.campus,
       ),
     );
     await tester.pumpAndSettle();
@@ -67,7 +67,7 @@ void _registerCallbackTests() {
     expect(vault.saveCount, 1);
 
     var shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
-    expect(shell.initialTab, 2);
+    expect(shell.initialDestination, UiDestination.campus);
     backend.resetReadCalls();
     await shell.onRefresh();
     expect(backend.loadedFeatures, [

@@ -51,7 +51,7 @@ Future<void> fixturePumpYgdkShell(
 );
 
 Future<void> fixtureOpenYgdkDetails(WidgetTester tester) async {
-  await tester.tap(find.byIcon(Icons.auto_awesome_outlined));
+  await tester.tap(find.byIcon(UiDestination.campus.icon));
   await tester.pumpAndSettle();
   await openFeature(tester, FeatureId.ygdk);
   await tester.pumpAndSettle();

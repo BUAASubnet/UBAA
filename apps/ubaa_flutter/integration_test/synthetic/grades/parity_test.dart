@@ -180,7 +180,7 @@ Future<void> mount(
     UbaaFlutterApp(
       backend: backend,
       credentialVault: MemoryCredentialVault(),
-      initialTab: 1,
+      initialDestination: UiDestination.academic,
     ),
   );
   await tester.pumpAndSettle();
@@ -204,7 +204,7 @@ Future<void> runInspection() async {
     UbaaFlutterApp(
       backend: GradesOldBackend(),
       credentialVault: MemoryCredentialVault(),
-      initialTab: 1,
+      initialDestination: UiDestination.academic,
     ),
   );
   return;

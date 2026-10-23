@@ -32,7 +32,7 @@ void main() {
           UbaaFlutterApp(
             backend: backend,
             credentialVault: MemoryCredentialVault(),
-            initialTab: 2,
+            initialDestination: UiDestination.campus,
           ),
         );
         await tester.pumpAndSettle();
