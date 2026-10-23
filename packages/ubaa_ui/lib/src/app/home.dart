@@ -397,17 +397,45 @@ class _HomeViewState extends State<HomeView> {
           ],
         ),
         const SizedBox(height: 12),
-        for (final task in tasks)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 12),
-            child: _HomeTodoCard(
+        LayoutBuilder(
+          builder: (context, constraints) {
+            final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+            final columns = constraints.maxWidth >= 652 * scale.clamp(1.0, 2.0)
+                ? 2
+                : 1;
+            Widget card(HomeTodo task) => _HomeTodoCard(
               item: task,
               onTap: () => widget.onTodoTap(task),
               onSignin: task.signinAction != null && widget.onSignin != null
                   ? () => widget.onSignin!(task.signinAction!)
                   : null,
-            ),
-          ),
+            );
+            return Column(
+              children: [
+                for (var index = 0; index < tasks.length; index += columns)
+                  Padding(
+                    padding: const EdgeInsets.only(bottom: 12),
+                    child: columns == 1
+                        ? card(tasks[index])
+                        : IntrinsicHeight(
+                            child: Row(
+                              crossAxisAlignment: CrossAxisAlignment.stretch,
+                              children: [
+                                Expanded(child: card(tasks[index])),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: index + 1 < tasks.length
+                                      ? card(tasks[index + 1])
+                                      : const SizedBox.shrink(),
+                                ),
+                              ],
+                            ),
+                          ),
+                  ),
+              ],
+            );
+          },
+        ),
         if (tasks.isEmpty && loading.isNotEmpty)
           const LoadingPlaceholder(cards: 1)
         else if (tasks.isEmpty)
@@ -477,51 +505,37 @@ class _HomeViewState extends State<HomeView> {
           ),
       ],
     );
-    return LayoutBuilder(
-      builder: (context, constraints) => RefreshIndicator(
-        onRefresh: widget.onRefresh,
-        child: ListView(
-          physics: const AlwaysScrollableScrollPhysics(),
-          padding: EdgeInsets.all(
-            UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-          ),
-          children: [
-            if (widget.writeReadbackNotice case final notice?) ...[
-              notice,
-              const SizedBox(height: 12),
-            ],
-            if (widget.gradeScoreNotice case final notice?) ...[
-              GradeScoreBanner(
-                notice: notice,
-                onOpen: widget.onOpenGradeNotice,
-                onDismiss: widget.onDismissGradeNotice,
-              ),
-              const SizedBox(height: 12),
-            ],
-            if (constraints.maxWidth >= 820 &&
-                MediaQuery.textScalerOf(context).scale(14) <= 20)
-              Row(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(child: courseSection),
-                  const SizedBox(width: 24),
-                  Expanded(child: todoSection),
-                ],
-              )
-            else ...[
-              courseSection,
-              const SizedBox(height: 16),
-              todoSection,
-            ],
-            shortcuts('常用功能', const [
-              FeatureId.schedule,
-              FeatureId.grades,
-              FeatureId.spoc,
-              FeatureId.judge,
-            ]),
-            shortcuts('校园生活', UiDestination.campus.features),
-          ],
+    return RefreshIndicator(
+      onRefresh: widget.onRefresh,
+      child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: EdgeInsets.all(
+          UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
         ),
+        children: [
+          if (widget.writeReadbackNotice case final notice?) ...[
+            notice,
+            const SizedBox(height: 12),
+          ],
+          if (widget.gradeScoreNotice case final notice?) ...[
+            GradeScoreBanner(
+              notice: notice,
+              onOpen: widget.onOpenGradeNotice,
+              onDismiss: widget.onDismissGradeNotice,
+            ),
+            const SizedBox(height: 12),
+          ],
+          courseSection,
+          const SizedBox(height: 16),
+          todoSection,
+          shortcuts('常用功能', const [
+            FeatureId.schedule,
+            FeatureId.grades,
+            FeatureId.spoc,
+            FeatureId.judge,
+          ]),
+          shortcuts('校园生活', UiDestination.campus.features),
+        ],
       ),
     );
   }
