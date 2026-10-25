@@ -48,48 +48,13 @@ void registerLibraryMapTests(IntegrationTestWidgetsFlutterBinding binding) {
       expect(controller.value.getTranslation().x, 0);
       await _tap(tester, find.byTooltip('关闭'));
       expect(backend.libraryReads, hasLength(count));
-      await _panel(tester);
-      await _tap(tester, find.widgetWithText(ActionChip, '下午 14:00–16:00'));
-      expect(backend.libraryReads, hasLength(count));
-      expect(
-        tester
-            .widget<TextField>(find.widgetWithText(TextField, '日期'))
-            .controller!
-            .text,
-        isEmpty,
-      );
-      expect(
-        tester
-            .widget<TextField>(find.widgetWithText(TextField, '开始时间'))
-            .controller!
-            .text,
-        '14:00',
-      );
-      expect(
-        tester
-            .widget<TextField>(find.widgetWithText(TextField, '结束时间'))
-            .controller!
-            .text,
-        '16:00',
-      );
-      expect(
-        tester
-            .widget<TextField>(find.widgetWithText(TextField, '时段编号（必填）'))
-            .controller!
-            .text,
-        'segment-b',
-      );
-      await shot('draft', '时段一次回填原始ID与起止，未自动赋予日期');
-      await _edit(tester, '日期', '2026-09-04');
-      FocusManager.instance.primaryFocus?.unfocus();
-      await tester.pumpAndSettle();
-      await _tap(tester, find.widgetWithText(FilledButton, '应用筛选'));
-      await _closePanel(tester);
+      await _tap(tester, find.byKey(const ValueKey('libbook-choice-时段')));
+      await _tap(tester, find.text('下午 14:00–16:00').last);
       expect(backend.libraryReads, hasLength(count + 1));
       expect(backend.libraryReads.last.segment, 'segment-b');
       expect(backend.libraryReads.last.startTime, '14:00');
       expect(backend.libraryReads.last.endTime, '16:00');
-      await shot('seats', '明确填写日期后查询座位，地图入口仍对应实际areaId');
+      await shot('seats', '切换同日时段后自动查询座位，地图入口仍对应实际areaId');
       await _tap(tester, find.text('查看座位分布'));
       expect(
         tester

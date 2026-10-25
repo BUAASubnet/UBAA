@@ -65,7 +65,6 @@ void main() {
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.libbook);
     expect(find.byType(FilterChip), findsNothing);
-    await openQueryPanel(tester);
     expect(
       tester
           .widget<DropdownButton<String>>(
@@ -87,8 +86,6 @@ void main() {
     expect(queries.single.premisesId, 'real-library');
     expect(queries.single.storeyId, 'real-floor');
     expect(queries.single.date, DateTime(2026, 9, 4));
-    await tester.tap(find.widgetWithText(TextButton, '完成'));
-    await tester.pumpAndSettle();
     expect(find.byType(TextField), findsNothing);
   });
 }

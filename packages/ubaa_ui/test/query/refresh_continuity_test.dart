@@ -144,7 +144,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  for (final feature in [FeatureId.cgyy, FeatureId.libbook]) {
+  for (final feature in [FeatureId.cgyy]) {
     testWidgets('手机放大文字和键盘占位时${feature.title}可滚动到应用且只查询一次', (tester) async {
       // 这是布局行为证据；真实软键盘另由原生宿主验收。
       _viewport(tester, const Size(360, 800));

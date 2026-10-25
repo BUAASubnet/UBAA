@@ -9,27 +9,62 @@ import '../../../integration_test/synthetic/libbook/backend.dart';
 
 void main() {
   WidgetController.hitTestWarningShouldBeFatal = true;
-  testWidgets('图书馆自然选择第二天原时段后精确查询且无需手输', (tester) async {
+  for (final width in [402.0, 900.0]) {
+    testWidgets('进入分区自动读取首日首时段并只显示可预约座位 $width', (tester) async {
+      final backend = await _open(tester, width: width);
+      expect(backend.libraryReads.map((q) => q.view), [
+        FeatureQueryView.summary,
+        FeatureQueryView.libbookAreas,
+        FeatureQueryView.libbookAreaDetail,
+        FeatureQueryView.libbookSeats,
+      ]);
+      final query = backend.libraryReads.last;
+      expect(query.date, DateTime(2026, 9, 4));
+      expect(
+        [query.segment, query.startTime, query.endTime],
+        ['first-slot', '08:00', '10:00'],
+      );
+      expect(find.widgetWithText(Card, 'A1'), findsOneWidget);
+      expect(find.widgetWithText(Card, 'A2'), findsNothing);
+      expect(find.widgetWithText(Card, 'A3'), findsNothing);
+      expect(backend.preparedSeats, isEmpty);
+      expect(backend.commitCalls, 0);
+    });
+  }
+  testWidgets('刷新后座位不可预约时清除原选择且展示可用座位为空', (tester) async {
+    final backend = await _open(tester);
+    await _tap(tester, find.widgetWithText(Card, 'A1'));
+    backend.noAvailableSeats = true;
+    await _tap(tester, find.byTooltip('刷新当前查询'));
+    expect(find.text('当前分区暂无可预约座位'), findsOneWidget);
+    expect(find.text('已选座位：A1'), findsNothing);
+    expect(find.text('准备预约此座位'), findsNothing);
+    expect(backend.preparedSeats, isEmpty);
+  });
+  testWidgets('窄屏大字和键盘占位下可滚动选择座位并取消准备', (tester) async {
+    tester.platformDispatcher.textScaleFactorTestValue = 1.3;
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    tester.view.viewInsets = const FakeViewPadding(bottom: 320);
+    addTearDown(tester.view.resetViewInsets);
+    final backend = await _open(tester, width: 360);
+    await _tap(tester, find.widgetWithText(Card, 'A1'));
+    await _tap(tester, find.text('准备预约此座位'));
+    expect(backend.preparedSeats.single.seatId, 'canonical-seat-0');
+    await _tap(tester, find.widgetWithText(OutlinedButton, '取消'));
+    expect(backend.commitCalls, 0);
+    expect(tester.takeException(), isNull);
+  });
+  testWidgets('正文切换日期自动取同日时段且准备保留完整canonical目标', (tester) async {
     final backend = await _open(tester);
     final before = backend.libraryReads.length;
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-    expect(find.byKey(const ValueKey('libbook-choice-日期')), findsOneWidget);
-    await _tap(tester, find.byKey(const ValueKey('libbook-choice-日期')));
-    await _tap(tester, find.text('2026-09-05').last);
-    await _tap(tester, find.byKey(const ValueKey('libbook-choice-时段')));
-    await _tap(tester, find.text('次日时段 14:00–16:00').last);
-    expect(backend.libraryReads, hasLength(before));
-    expect(find.widgetWithText(TextField, '日期'), findsNothing);
-    await _tap(tester, find.text('查询座位'));
+    await _secondDay(tester);
     expect(backend.libraryReads, hasLength(before + 1));
     final query = backend.libraryReads.last;
-    expect(query.view, FeatureQueryView.libbookSeats);
-    expect(query.areaId, 'library-a-floor-1-area-1');
     expect(query.date, DateTime(2026, 9, 5));
-    expect(query.segment, 'second-slot');
-    expect(query.startTime, '14:00');
-    expect(query.endTime, '16:00');
-    await _tap(tester, find.widgetWithText(TextButton, '完成'));
+    expect(
+      [query.segment, query.startTime, query.endTime],
+      ['second-slot', '14:00', '16:00'],
+    );
     await _tap(tester, find.widgetWithText(Card, 'A1'));
     await _tap(tester, find.text('准备预约此座位'));
     final action = backend.preparedSeats.single;
@@ -52,288 +87,137 @@ void main() {
       ],
     );
     await _tap(tester, find.widgetWithText(OutlinedButton, '取消'));
-    expect(backend.libraryReads.last, same(query));
     expect(backend.commitCalls, 0);
   });
-
-  testWidgets('日期时段草稿关闭再开保持原值且不发读取', (tester) async {
-    final backend = await _open(tester, width: 402);
-    final before = backend.libraryReads.length;
-    await _selectSecond(tester);
-    await _tap(tester, find.widgetWithText(TextButton, '完成'));
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-    expect(_choice(tester, '日期').value, '2026-09-05');
-    expect(_choice(tester, '时段').value, 'second-slot');
-    expect(backend.libraryReads, hasLength(before));
-    expect(find.widgetWithText(TextField, '日期'), findsNothing);
-  });
-
-  testWidgets('清除时段与日期立即取消旧座位动作且关闭返回不复活', (tester) async {
-    final backend = await _open(tester);
-    await _queryAndSelect(tester);
-    final before = backend.libraryReads.length;
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-    await _tap(tester, find.byTooltip('清除时段'));
-    expect(_choice(tester, '时段').value, isNull);
-    expect(
-      tester
-          .widget<OutlinedButton>(
-            find.byKey(const ValueKey('libbook-query-seats')),
-          )
-          .onPressed,
-      isNull,
+  testWidgets('同日切换时段自动查询且清除原座位选择', (tester) async {
+    final backend = await _open(
+      tester,
+      days: [
+        LibbookDaySchedulePresentation(
+          day: '2026-09-04',
+          timeSlots: [
+            ..._defaultDays.first.timeSlots,
+            ..._defaultDays.last.timeSlots,
+          ],
+        ),
+      ],
     );
-    await _tap(tester, find.widgetWithText(TextButton, '完成'));
+    await _tap(tester, find.widgetWithText(Card, 'A1'));
+    await _tap(tester, find.byKey(const ValueKey('libbook-choice-时段')));
+    await _tap(tester, find.text('次日时段 14:00–16:00').last);
+    expect(backend.libraryReads.last.segment, 'second-slot');
+    expect(backend.libraryReads.last.date, DateTime(2026, 9, 4));
     expect(find.text('已选座位：A1'), findsNothing);
-    expect(find.text('准备预约此座位'), findsNothing);
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-    await _tap(tester, find.byTooltip('清除日期'));
-    expect(_choice(tester, '日期').value, isNull);
-    expect(find.byKey(const ValueKey('libbook-choice-时段')), findsNothing);
-    await _tap(tester, find.widgetWithText(TextButton, '完成'));
-    expect(backend.libraryReads, hasLength(before));
-    await _tap(tester, find.byTooltip('返回'));
-    expect(find.widgetWithText(Card, '预约座位'), findsOneWidget);
-    await _tap(tester, find.widgetWithText(Card, '预约座位'));
-    expect(find.text('已选座位：A1'), findsNothing);
-    expect(find.text('准备预约此座位'), findsNothing);
-    expect(backend.preparedSeats, isEmpty);
-    expect(backend.commitCalls, 0);
   });
-
-  testWidgets('换日期保留当前楼馆楼层分区并清掉原时段与座位', (tester) async {
-    final backend = await _open(tester);
-    await _queryAndSelect(tester);
-    final before = backend.libraryReads.length;
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-    await _tap(tester, find.byKey(const ValueKey('libbook-choice-日期')));
-    await _tap(tester, find.text('2026-09-04').last);
-    expect(_choice(tester, '楼馆').value, 'library-a');
-    expect(_choice(tester, '楼层').value, 'library-a-floor-1');
-    expect(_choice(tester, '分区').value, 'library-a-floor-1-area-1');
-    expect(_choice(tester, '时段').value, isNull);
-    expect(_choice(tester, '时段').items!.map((item) => item.value), [
-      'first-slot',
-    ]);
-    expect(backend.libraryReads, hasLength(before));
-    await _tap(tester, find.widgetWithText(TextButton, '完成'));
-    expect(find.text('已选座位：A1'), findsNothing);
-    expect(find.widgetWithText(Card, 'A1'), findsNothing);
-    expect(find.text('准备预约此座位'), findsNothing);
-  });
-
   for (final parent in ['楼馆', '楼层', '分区']) {
-    testWidgets('切换$parent 清掉日期时段与旧座位且不自动查询座位', (tester) async {
-      final backend = await _open(tester);
-      await _queryAndSelect(tester);
-      await _tap(tester, find.byTooltip('搜索与筛选'));
+    testWidgets('切换$parent 自动加载新分区座位且清除旧选择', (tester) async {
+      final backend = await _open(tester, width: 402);
+      await _tap(tester, find.widgetWithText(Card, 'A1'));
       await _tap(tester, find.byKey(ValueKey('libbook-choice-$parent')));
       await _tap(tester, switch (parent) {
         '楼馆' => find.text('合成乙馆 3/40').last,
         '楼层' => find.text('二层 2/20').last,
         _ => find.textContaining('安静阅览区 2').last,
       });
-      expect(_choice(tester, '日期').value, isNull);
-      expect(find.byKey(const ValueKey('libbook-choice-时段')), findsNothing);
-      expect(
-        backend.libraryReads.where(
-          (q) => q.view == FeatureQueryView.libbookSeats,
-        ),
-        hasLength(1),
-      );
-      expect(
-        backend.libraryReads.last.view,
-        FeatureQueryView.libbookAreaDetail,
-      );
+      expect(backend.libraryReads.last.view, FeatureQueryView.libbookSeats);
       expect(backend.libraryReads.last.areaId, switch (parent) {
         '楼馆' => 'library-b-floor-1-area-1',
         '楼层' => 'library-a-floor-2-area-1',
         _ => 'library-a-floor-1-area-2',
       });
-      await _tap(tester, find.widgetWithText(TextButton, '完成'));
-      expect(find.text('准备预约此座位'), findsNothing);
       expect(find.text('已选座位：A1'), findsNothing);
       expect(backend.preparedSeats, isEmpty);
     });
   }
-
-  testWidgets('座位查询未完成时返回，迟到结果不恢复旧座位或后台读取', (tester) async {
+  testWidgets('切换日期挂起时旧座位失效，返回后迟到结果不扩展读取链', (tester) async {
     final backend = await _open(tester);
-    await _selectSecond(tester);
+    await _tap(tester, find.widgetWithText(Card, 'A1'));
+    await _tap(tester, find.byKey(const ValueKey('libbook-choice-日期')));
     final gate = Completer<void>();
     backend.pending = gate;
-    await tester.tap(find.byKey(const ValueKey('libbook-query-seats')));
+    await tester.tap(find.text('2026-09-05').last);
     await tester.pump();
-    await tester.tap(find.widgetWithText(TextButton, '完成'));
-    await tester.pump();
+    expect(find.text('已选座位：A1'), findsNothing);
     await tester.tap(find.byTooltip('返回'));
     await tester.pump();
     final before = backend.libraryReads.length;
     gate.complete();
     await tester.pumpAndSettle();
     expect(find.widgetWithText(Card, '预约座位'), findsOneWidget);
-    expect(find.widgetWithText(Card, 'A1'), findsNothing);
     expect(backend.libraryReads, hasLength(before));
     expect(backend.preparedSeats, isEmpty);
   });
-
-  testWidgets('日期为空时不猜日期且查询按钮不可用', (tester) async {
-    final backend = await _open(tester, days: const []);
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-    expect(find.text('当前分区暂无可用日期。'), findsOneWidget);
-    expect(_choice(tester, '日期').items, isEmpty);
-    expect(
-      tester
-          .widget<OutlinedButton>(
-            find.byKey(const ValueKey('libbook-query-seats')),
-          )
-          .onPressed,
-      isNull,
-    );
-    expect(
-      backend.libraryReads.where(
-        (q) => q.view == FeatureQueryView.libbookSeats,
-      ),
-      isEmpty,
-    );
-  });
-
-  for (final incomplete in [false, true]) {
-    testWidgets(incomplete ? '畸形时段不能形成查询参数' : '日期有值但空时段时明确展示空结果', (
-      tester,
-    ) async {
-      await _open(
-        tester,
-        days: [
-          LibbookDaySchedulePresentation(
-            day: '2026-09-04',
-            timeSlots: incomplete
-                ? const [
-                    LibbookTimeSlotPresentation(
-                      id: 'broken',
-                      start: '08:00',
-                      end: '',
-                      label: '字段缺失',
-                    ),
-                  ]
-                : const [],
+  for (final entry in <String, List<LibbookDaySchedulePresentation>>{
+    '当前分区暂无可用日期。': [],
+    '当前日期暂无可用时段。': [
+      const LibbookDaySchedulePresentation(day: '2026-09-04', timeSlots: []),
+    ],
+    '时段信息不完整或重复，请刷新后重试。': [
+      const LibbookDaySchedulePresentation(
+        day: '2026-09-04',
+        timeSlots: [
+          LibbookTimeSlotPresentation(
+            id: 'broken',
+            start: '08:00',
+            end: '',
+            label: '缺失',
           ),
         ],
-      );
-      await _tap(tester, find.byTooltip('搜索与筛选'));
-      await _tap(tester, find.byKey(const ValueKey('libbook-choice-日期')));
-      await _tap(tester, find.text('2026-09-04').last);
+      ),
+    ],
+    '日期信息无法唯一确认，请刷新后重试。': [_defaultDays.first, _defaultDays.first],
+  }.entries) {
+    testWidgets('不完整日程不猜查询参数：${entry.key}', (tester) async {
+      final backend = await _open(tester, days: entry.value);
+      expect(find.text(entry.key), findsOneWidget);
       expect(
-        find.text(incomplete ? '时段信息不完整或重复，请刷新后重试。' : '当前日期暂无可用时段。'),
-        findsOneWidget,
+        backend.libraryReads.where(
+          (q) => q.view == FeatureQueryView.libbookSeats,
+        ),
+        isEmpty,
       );
-      expect(_choice(tester, '时段').items, isEmpty);
-      expect(
-        tester
-            .widget<OutlinedButton>(
-              find.byKey(const ValueKey('libbook-query-seats')),
-            )
-            .onPressed,
-        isNull,
-      );
+      expect(backend.preparedSeats, isEmpty);
     });
   }
-
-  testWidgets('重复日期不能任取第一条或合并时段', (tester) async {
-    await _open(tester, days: [_defaultDays.first, _defaultDays.first]);
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-    expect(find.text('日期信息无法唯一确认，请刷新后重试。'), findsOneWidget);
-    expect(_choice(tester, '日期').items, isEmpty);
-    expect(
-      tester
-          .widget<OutlinedButton>(
-            find.byKey(const ValueKey('libbook-query-seats')),
-          )
-          .onPressed,
-      isNull,
-    );
-  });
-
-  testWidgets('明确冲突的父分区不可点选', (tester) async {
-    final backend = await _open(tester, state: 'conflicting-parents');
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-    expect(find.byKey(const ValueKey('libbook-choice-分区')), findsNothing);
-    expect(find.byKey(const ValueKey('libbook-choice-日期')), findsNothing);
-    expect(backend.libraryReads.last.view, FeatureQueryView.libbookAreas);
-  });
-
-  testWidgets('分区缺少父字段仍可自然选择第二天', (tester) async {
-    final backend = await _open(tester, state: 'missing-parents');
-    await _selectSecond(tester);
-    await _tap(tester, find.byKey(const ValueKey('libbook-query-seats')));
-    expect(backend.libraryReads.last.date, DateTime(2026, 9, 5));
-    expect(backend.libraryReads.last.segment, 'second-slot');
-  });
-
-  testWidgets('座位查询失败保留明确日期时段并可用原值重试', (tester) async {
+  testWidgets('座位失败显示重试并保留同一日期时段', (tester) async {
     final backend = await _open(tester);
-    await _selectSecond(tester);
     backend.failNext = true;
-    await _tap(tester, find.byKey(const ValueKey('libbook-query-seats')));
-    expect(_choice(tester, '日期').value, '2026-09-05');
-    expect(_choice(tester, '时段').value, 'second-slot');
-    final failedQuery = backend.libraryReads.last;
-    await _tap(tester, find.byKey(const ValueKey('libbook-query-seats')));
-    expect(backend.libraryReads.last.hasSameParameters(failedQuery), isTrue);
-    await _tap(tester, find.widgetWithText(TextButton, '完成'));
+    await _secondDay(tester);
+    final requested = backend.libraryReads.last;
+    expect(find.text('重试'), findsOneWidget);
+    await _tap(tester, find.text('重试'));
+    expect(backend.libraryReads.last.hasSameParameters(requested), isTrue);
     expect(find.widgetWithText(Card, 'A1'), findsOneWidget);
     expect(backend.preparedSeats, isEmpty);
   });
+}
 
-  testWidgets('高级跨分区查询失败后正文重试显示原参数座位', (tester) async {
-    final backend = await _open(tester);
-    await _selectSecond(tester);
-    await _tap(tester, find.text('更多查询'));
-    final area = find.widgetWithText(TextField, '分区 ID');
-    await tester.ensureVisible(area);
-    await tester.enterText(area, 'library-b-floor-1-area-1');
-    backend.failNext = true;
-    await _tap(tester, find.text('应用筛选'));
-    final requested = backend.libraryReads.last;
-    final callsBeforeRetry = backend.libraryReads.length;
-    expect(requested.view, FeatureQueryView.libbookSeats);
-    expect(requested.areaId, 'library-b-floor-1-area-1');
-    expect(requested.date, DateTime(2026, 9, 5));
-    expect(requested.segment, 'second-slot');
-    expect(requested.startTime, '14:00');
-    expect(requested.endTime, '16:00');
-    await _tap(tester, find.widgetWithText(TextButton, '完成'));
-    expect(find.text('重试'), findsOneWidget);
-    await _tap(tester, find.text('重试'));
-    expect(backend.libraryReads, hasLength(callsBeforeRetry + 1));
-    expect(backend.libraryReads.last.hasSameParameters(requested), isTrue);
-    expect(find.widgetWithText(Card, 'A1'), findsOneWidget);
-    await _tap(tester, find.widgetWithText(Card, 'A1'));
-    await _tap(tester, find.text('准备预约此座位'));
-    expect(backend.preparedSeats.single.areaId, requested.areaId);
-    expect(backend.preparedSeats.single.seatId, 'canonical-seat-0');
-    await _tap(tester, find.widgetWithText(OutlinedButton, '取消'));
-    expect(backend.commitCalls, 0);
-
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-    await _tap(tester, find.byKey(const ValueKey('libbook-choice-日期')));
-    await _tap(tester, find.text('2026-09-04').last);
-    await _tap(tester, find.widgetWithText(TextButton, '完成'));
-    expect(find.widgetWithText(Card, 'A1'), findsNothing);
-    expect(find.text('准备预约此座位'), findsNothing);
-    expect(backend.libraryReads, hasLength(callsBeforeRetry + 1));
-  });
+Future<void> _secondDay(WidgetTester tester) async {
+  await _tap(tester, find.byKey(const ValueKey('libbook-choice-日期')));
+  await _tap(tester, find.text('2026-09-05').last);
 }
 
 class _ScheduleBackend extends LibraryBackend {
   _ScheduleBackend({super.state, this.days = _defaultDays});
   final List<LibbookDaySchedulePresentation> days;
+  bool noAvailableSeats = false;
   @override
   Future<FeatureResult> loadFeatureQuery(
     FeatureId feature,
     FeatureQuery query,
   ) async {
     final result = await super.loadFeatureQuery(feature, query);
+    if (noAvailableSeats && query.view == FeatureQueryView.libbookSeats) {
+      return FeatureResult.success(
+        summary: '合成不可预约座位',
+        resolvedRoute: ConnectionMode.direct,
+        details: result.details
+            .where(
+              (d) => (d.presentation! as LibbookSeatPresentation).status != 1,
+            )
+            .toList(),
+      );
+    }
     if (result.details.isEmpty ||
         feature != FeatureId.libbook ||
         query.view != FeatureQueryView.libbookAreaDetail) {
@@ -404,27 +288,6 @@ const _defaultDays = [
     ],
   ),
 ];
-
-DropdownButton<String> _choice(WidgetTester tester, String label) =>
-    tester.widget<DropdownButton<String>>(
-      find.byKey(ValueKey('libbook-choice-$label')),
-    );
-
-Future<void> _selectSecond(WidgetTester tester) async {
-  await _tap(tester, find.byTooltip('搜索与筛选'));
-  await _tap(tester, find.byKey(const ValueKey('libbook-choice-日期')));
-  await _tap(tester, find.text('2026-09-05').last);
-  await _tap(tester, find.byKey(const ValueKey('libbook-choice-时段')));
-  await _tap(tester, find.text('次日时段 14:00–16:00').last);
-}
-
-Future<void> _queryAndSelect(WidgetTester tester) async {
-  await _selectSecond(tester);
-  await _tap(tester, find.byKey(const ValueKey('libbook-query-seats')));
-  await _tap(tester, find.widgetWithText(TextButton, '完成'));
-  await _tap(tester, find.widgetWithText(Card, 'A1'));
-  expect(find.text('已选座位：A1'), findsOneWidget);
-}
 
 Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.ensureVisible(finder);

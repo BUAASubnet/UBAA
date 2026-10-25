@@ -11,7 +11,7 @@ void registerLibraryParentTests(IntegrationTestWidgetsFlutterBinding binding) {
           backend.libraryReads.last.view,
           conflicting
               ? FeatureQueryView.libbookAreas
-              : FeatureQueryView.libbookAreaDetail,
+              : FeatureQueryView.libbookSeats,
         );
         await _shot(
           binding,
@@ -20,14 +20,13 @@ void registerLibraryParentTests(IntegrationTestWidgetsFlutterBinding binding) {
           conflicting ? '明确冲突的父标识不自动进入详情' : '原父字段完整或缺省均沿实际查询进入原分区详情',
         );
         if (conflicting) return;
-        await _seatQuery(tester, backend);
         expect(backend.libraryReads.last.view, FeatureQueryView.libbookSeats);
         expect(backend.preparedSeats, isEmpty);
         await _shot(
           binding,
           tester,
           '${brightness.name}-parents-$state-seats',
-          '明确日期与原时段后只查询座位，不准备或提交',
+          '自动使用同日首时段查询座位，不准备或提交',
         );
         await _chooseLibraryOption(tester, '楼馆', '合成乙馆 3/40');
         expect(backend.libraryReads.last.areaId, 'library-b-floor-1-area-1');

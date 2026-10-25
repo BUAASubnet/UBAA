@@ -121,46 +121,19 @@ void main() {
     await tap(uiDestinationFinder(tester, UiDestination.campus));
     await tap(find.widgetWithText(Card, FeatureId.libbook.title));
     await tap(find.widgetWithText(Card, '预约座位'));
-    await loaded(FeatureQueryView.libbookAreaDetail);
-    final area =
-        snapshot().details.single.presentation!
-            as LibbookAreaSchedulePresentation;
-    expect(find.byType(TextField), findsNothing);
-    expect(find.byType(FilterChip), findsNothing);
-    expect(find.byType(ActionChip), findsNothing);
-    final beforePanel = snapshot();
-    await tap(find.byTooltip('搜索与筛选'));
-    expect(
-      find.byKey(const ValueKey('libbook-choice-楼馆')).evaluate().isNotEmpty,
-      isTrue,
-    );
-    expect(
-      find.byKey(const ValueKey('libbook-choice-分区')).evaluate().isNotEmpty,
-      isTrue,
-    );
-    await tap(find.widgetWithText(TextButton, '完成'));
-    expect(identical(snapshot(), beforePanel), isTrue);
+    await loaded(FeatureQueryView.libbookSeats);
+    final query = snapshot().readContext!.query!;
+    expect(query.date, isNotNull);
+    expect(query.segment, isNotEmpty);
+    expect(query.startTime, isNotEmpty);
+    expect(query.endTime, isNotEmpty);
+    final seats = snapshot().details
+        .map((d) => d.presentation)
+        .whereType<LibbookSeatPresentation>();
     debugPrint(
-      '图书馆只读 areaDetail=true slots=${area.days.fold<int>(0, (sum, day) => sum + day.timeSlots.length)} dates=${area.days.length}',
+      '图书馆自动座位只读 total=${seats.length} available=${seats.where((s) => s.status == 1).length}',
     );
-    final availableDays = area.days.where((day) => day.timeSlots.isNotEmpty);
-    if (availableDays.isNotEmpty) {
-      final day = availableDays.first;
-      final slot = day.timeSlots.first;
-      await tap(find.byTooltip('搜索与筛选'));
-      await tap(find.byKey(const ValueKey('libbook-choice-日期')));
-      await tap(find.text(day.day).last);
-      await tap(find.byKey(const ValueKey('libbook-choice-时段')));
-      await tap(find.text('${slot.label} ${slot.start}–${slot.end}').last);
-      // 只使用同一已接受日程条目的日期与时段，明确查询且不选座。
-      await tap(find.byKey(const ValueKey('libbook-query-seats')));
-      await loaded(FeatureQueryView.libbookSeats);
-      FocusManager.instance.primaryFocus?.unfocus();
-      await tap(find.widgetWithText(TextButton, '完成'));
-      expect(find.text('准备预约此座位'), findsNothing);
-    } else {
-      debugPrint('图书馆只读 seats=NOT_APPLICABLE reason=no_time_slot');
-    }
+    expect(find.text('准备预约此座位'), findsNothing);
     await tap(find.byTooltip('返回'));
     await tap(find.widgetWithText(Card, '我的预约'));
     await loaded(FeatureQueryView.libbookBookings);

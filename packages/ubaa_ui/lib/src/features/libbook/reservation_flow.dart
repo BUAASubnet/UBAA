@@ -17,25 +17,17 @@ class LibbookReservationFlow extends StatefulWidget {
     required this.snapshot,
     required this.query,
     required this.cacheEpoch,
-    required this.filter,
     required this.fallback,
     required this.onQuery,
-    required this.onSeatQuery,
-    required this.onDraftChanged,
     this.onReserve,
-    required this.onChoicesChanged,
     super.key,
   });
   final FeatureSnapshot snapshot;
   final FeatureQuery query;
   final int cacheEpoch;
-  final String filter;
   final Widget fallback;
   final Future<void> Function(FeatureQuery)? onQuery;
-  final void Function(FeatureQuery) onSeatQuery;
-  final ValueChanged<FeatureQuery> onDraftChanged;
   final LibbookReserveStarter? onReserve;
-  final VoidCallback onChoicesChanged;
   @override
   State<LibbookReservationFlow> createState() => LibbookReservationFlowState();
 }
@@ -52,7 +44,6 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
   String? _reservationDay;
   String? _slotId;
   bool _hideSeats = false;
-  FeatureQuery? _manualSeatQuery;
   String? _selectedSeat;
   FeatureSnapshot? _consumed;
   int? _afterRevision;
@@ -63,7 +54,6 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
   void initState() {
     super.initState();
     _consume();
-    _publishChoices();
   }
 
   @override
@@ -91,16 +81,10 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
       _clear();
     if (!query.hasSameParameters(oldWidget.query)) _selectedSeat = null;
     _consume();
-    _publishChoices();
   }
-
-  void _publishChoices() => WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (mounted) widget.onChoicesChanged();
-  });
 
   void _change(VoidCallback update) {
     setState(update);
-    _publishChoices();
   }
 
   void _clear() {
@@ -111,7 +95,6 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
     _areaSchedule = null;
     _reservationDay = _slotId = null;
     _hideSeats = true;
-    _manualSeatQuery = null;
     _libraryId = _storeyId = _areaId = _day = _selectedSeat = null;
     _consumed = null;
     _pending = false;
@@ -141,15 +124,14 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
       _consumeAreaSchedule(details);
     } else if (widget.query.view == FeatureQueryView.libbookSeats) {
       _hideSeats =
-          _areaSchedule != null &&
-          !_matchesScheduleQuery(widget.query) &&
-          !(_manualSeatQuery?.hasSameParameters(widget.query) ?? false);
+          _areaSchedule != null && !_matchesScheduleQuery(widget.query);
     }
     if (snapshot.status == FeatureLoadStatus.empty ||
         (widget.query.view == FeatureQueryView.libbookSeats &&
             !details.any(
               (d) =>
                   d.presentation is LibbookSeatPresentation &&
+                  (d.presentation! as LibbookSeatPresentation).status == 1 &&
                   (d.presentation! as LibbookSeatPresentation).id ==
                       _selectedSeat,
             ))) {
@@ -222,10 +204,6 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
       _pending = true;
       _selectedSeat = null;
       _hideSeats = true;
-      // 正文重试沿用同一显式高级查询，新参数不能沿用旧上下文。
-      if (_manualSeatQuery?.hasSameParameters(query) != true) {
-        _manualSeatQuery = null;
-      }
     });
     try {
       await widget.onQuery!(query);
@@ -310,16 +288,6 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
 
   bool get _busy =>
       _pending || widget.snapshot.status == FeatureLoadStatus.loading;
-  bool _matchesDetail(FeatureDetail detail, Iterable<String> extra) => _matches(
-    [
-      detail.title,
-      detail.subtitle ?? '',
-      for (final field in detail.fields) ...[field.label, field.value],
-      ...extra,
-    ].join(' '),
-  );
-  bool _matches(String value) =>
-      value.toLowerCase().contains(widget.filter.trim().toLowerCase());
 
   @override
   Widget build(BuildContext context) {
@@ -365,7 +333,12 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
         if (_areaSchedule case final area?) Text(area.name),
         if ((_reservationDay ?? _day) case final day?)
           Text(day, style: Theme.of(context).textTheme.bodySmall),
-        if (MediaQuery.sizeOf(context).width >= 600) buildInlineChips(context),
+        if (MediaQuery.sizeOf(context).width >= 600)
+          buildInlineChips(context)
+        else
+          buildChoices(context),
+        if (MediaQuery.sizeOf(context).width >= 600 && _areaSchedule != null)
+          _scheduleDetail(context, _areaSchedule!),
         if (mapAreas.length == 1)
           LibraryMapControl(
             areaId: mapAreas.keys.single,
@@ -378,19 +351,13 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
         if (widget.snapshot.error case final error? when !_busy)
           FriendlyErrorCard(error: error, onRetry: () => _read(widget.query)),
         if (details.isEmpty &&
+            widget.query.view != FeatureQueryView.libbookSeats &&
             (widget.snapshot.status == FeatureLoadStatus.empty ||
                 (_busy && widget.snapshot.updatedAt != null)))
           const Padding(padding: EdgeInsets.all(16), child: Text('暂无可显示的结果')),
-        if (!_busy &&
-            (_areaOptions != null || _areaSchedule != null) &&
-            (_hideSeats ||
-                !details.any((d) => d.presentation is LibbookSeatPresentation)))
-          const Padding(
-            padding: EdgeInsets.symmetric(vertical: 12),
-            child: Text('从右上角选择日期和时段，查询当前分区座位。'),
-          ),
         if (!_hideSeats &&
-            details.any((d) => d.presentation is LibbookSeatPresentation))
+            (widget.query.view == FeatureQueryView.libbookSeats ||
+                details.any((d) => d.presentation is LibbookSeatPresentation)))
           _seatGrid(context, details),
       ],
     );

@@ -59,8 +59,7 @@ extension LibbookReservationChoices on LibbookReservationFlowState {
             (id) =>
                 unawaited(_chooseArea(areas.singleWhere((p) => p.id == id))),
           ),
-        if (_areaOptions case final area? when !_busy)
-          _areaDetail(context, area),
+        if (_areaOptions != null && !_busy) const Text('日期与时段信息不完整，请刷新后重试。'),
         if (_areaSchedule case final area? when !_busy)
           _scheduleDetail(context, area),
       ],
@@ -81,6 +80,7 @@ extension LibbookReservationChoices on LibbookReservationFlowState {
     final areas = _areas
         .map((d) => d.presentation)
         .whereType<LibbookAreaPresentation>()
+        .where(_validArea)
         .toList();
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -156,8 +156,7 @@ extension LibbookReservationChoices on LibbookReservationFlowState {
               ],
             ),
           ),
-        if (_areaOptions case final area? when !_busy)
-          _areaDetail(context, area),
+        if (_areaOptions != null && !_busy) const Text('日期与时段信息不完整，请刷新后重试。'),
       ],
     );
   }

@@ -23,7 +23,6 @@ extension LibbookReservationSchedule on LibbookReservationFlowState {
     _areaSchedule = null;
     _reservationDay = _slotId = _selectedSeat = null;
     _hideSeats = true;
-    _manualSeatQuery = null;
   }
 
   void _consumeAreaSchedule(List<FeatureDetail> details) {
@@ -46,6 +45,16 @@ extension LibbookReservationSchedule on LibbookReservationFlowState {
     }
     _selectedSeat = null;
     _hideSeats = true;
+    if (_selectedDay == null && _scheduleDays.isNotEmpty) {
+      _reservationDay = _scheduleDays.first.day;
+    }
+    if (_selectedSlot == null && _scheduleSlots.isNotEmpty) {
+      _slotId = _scheduleSlots.first.id;
+    }
+    if (_selectedDay != null && _selectedSlot != null) {
+      final query = _seatDraft;
+      _schedule(() => _read(query));
+    }
   }
 
   List<LibbookDaySchedulePresentation> get _scheduleDays {
@@ -105,10 +114,10 @@ extension LibbookReservationSchedule on LibbookReservationFlowState {
       _reservationDay = day;
       _slotId = _selectedSeat = null;
       _hideSeats = true;
-      _manualSeatQuery = null;
       _generation++;
     });
-    widget.onDraftChanged(_seatDraft);
+    if (_scheduleSlots.isNotEmpty) _slotId = _scheduleSlots.first.id;
+    if (_selectedSlot != null) unawaited(_read(_seatDraft));
   }
 
   void _chooseSlot(String? id) {
@@ -116,24 +125,9 @@ extension LibbookReservationSchedule on LibbookReservationFlowState {
       _slotId = id;
       _selectedSeat = null;
       _hideSeats = true;
-      _manualSeatQuery = null;
       _generation++;
     });
-    widget.onDraftChanged(_seatDraft);
-  }
-
-  /// 高级入口沿显式输入执行；只在完全匹配原日程时同步自然选择。
-  void adoptManualQuery(FeatureQuery query) {
-    _change(() {
-      _selectedSeat = null;
-      _hideSeats = true;
-      _manualSeatQuery = query.view == FeatureQueryView.libbookSeats
-          ? query
-          : null;
-      _reservationDay = query.date == null ? null : _date(query.date!);
-      _slotId = query.segment;
-      if (!_matchesScheduleQuery(query)) _reservationDay = _slotId = null;
-    });
+    if (_selectedSlot != null) unawaited(_read(_seatDraft));
   }
 
   bool _seatBelongsToQuery(
@@ -162,66 +156,31 @@ extension LibbookReservationSchedule on LibbookReservationFlowState {
   ) {
     final days = _scheduleDays;
     final slots = _scheduleSlots;
-    final enabled = !_busy && widget.onQuery != null;
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Row(
-          children: [
-            Expanded(
-              child: _libraryChoice('日期', _reservationDay, {
-                for (final day in days) day.day: day.day,
-              }, _chooseDay),
-            ),
-            IconButton(
-              tooltip: '清除日期',
-              onPressed: enabled && _reservationDay != null
-                  ? () => _chooseDay(null)
-                  : null,
-              icon: const Icon(Icons.clear),
-            ),
-          ],
-        ),
+        if (days.length > 1)
+          _libraryChoice('日期', _reservationDay, {
+            for (final day in days) day.day: day.day,
+          }, _chooseDay),
         if (days.isEmpty)
           Text(area.days.isEmpty ? '当前分区暂无可用日期。' : '日期信息无法唯一确认，请刷新后重试。'),
-        if (_selectedDay != null) ...[
-          Row(
-            children: [
-              Expanded(
-                child: _libraryChoice('时段', _slotId, {
-                  for (final slot in slots)
-                    slot.id: '${slot.label} ${slot.start}–${slot.end}',
-                }, _chooseSlot),
-              ),
-              IconButton(
-                tooltip: '清除时段',
-                onPressed: enabled && _slotId != null
-                    ? () => _chooseSlot(null)
-                    : null,
-                icon: const Icon(Icons.clear),
-              ),
-            ],
+        if (_selectedDay != null && slots.length > 1)
+          _libraryChoice('时段', _slotId, {
+            for (final slot in slots)
+              slot.id: '${slot.label} ${slot.start}–${slot.end}',
+          }, _chooseSlot),
+        if (_selectedDay != null && slots.isEmpty)
+          Text(
+            _selectedDay!.timeSlots.isEmpty
+                ? '当前日期暂无可用时段。'
+                : '时段信息不完整或重复，请刷新后重试。',
           ),
-          if (slots.isEmpty)
-            Text(
-              _selectedDay!.timeSlots.isEmpty
-                  ? '当前日期暂无可用时段。'
-                  : '时段信息不完整或重复，请刷新后重试。',
-            ),
-        ],
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          key: const ValueKey('libbook-query-seats'),
-          onPressed:
-              enabled &&
-                  area.id.trim().isNotEmpty &&
-                  _selectedDay != null &&
-                  _selectedSlot != null
-              ? () => unawaited(_read(_seatDraft))
-              : null,
-          icon: const Icon(Icons.event_seat_outlined),
-          label: const Text('查询座位'),
-        ),
+        if (_selectedSlot case final slot?)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text('${slot.start}–${slot.end}'),
+          ),
       ],
     );
   }

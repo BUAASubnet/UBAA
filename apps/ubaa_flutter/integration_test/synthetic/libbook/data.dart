@@ -78,23 +78,28 @@ FeatureResult libraryData(FeatureQuery q, String state) {
       details = [
         item(
           label('分区时段'),
-          LibbookAreaDetailPresentation(
+          LibbookAreaSchedulePresentation(
             id: q.areaId!,
             name: label('分区时段'),
-            availableDates: const ['2026-09-04', '2026-09-05'],
-            timeSlots: const [
-              LibbookTimeSlotPresentation(
-                id: 'segment-a',
-                start: '08:00',
-                end: '10:00',
-                label: '上午',
-              ),
-              LibbookTimeSlotPresentation(
-                id: 'segment-b',
-                start: '14:00',
-                end: '16:00',
-                label: '下午',
-              ),
+            days: [
+              for (final day in ['2026-09-04', '2026-09-05'])
+                LibbookDaySchedulePresentation(
+                  day: day,
+                  timeSlots: const [
+                    LibbookTimeSlotPresentation(
+                      id: 'segment-a',
+                      start: '08:00',
+                      end: '10:00',
+                      label: '上午',
+                    ),
+                    LibbookTimeSlotPresentation(
+                      id: 'segment-b',
+                      start: '14:00',
+                      end: '16:00',
+                      label: '下午',
+                    ),
+                  ],
+                ),
             ],
           ),
         ),

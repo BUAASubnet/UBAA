@@ -577,6 +577,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                   page?.currentFrame.query?.view ==
                       FeatureQueryView.cgyyLockCode)
                 return const SizedBox.shrink();
+              if (_openedFeature == FeatureId.libbook &&
+                  page?.currentFrame.query?.view !=
+                      FeatureQueryView.libbookBookings) {
+                return const SizedBox.shrink();
+              }
               if (_openedFeature == FeatureId.schedule) {
                 return IconButton(
                   tooltip: '选择学期',

@@ -17,12 +17,7 @@ import '../features/coursework/coursework_overview.dart'
 import '../features/coursework/assignment_filters.dart'
     show AssignmentListFilters, AssignmentFilterControls;
 import '../features/grades/flow.dart' show GradesFlow;
-import '../features/libbook/reservation_flow.dart'
-    show
-        LibbookReservationChoices,
-        LibbookReservationFlow,
-        LibbookReservationFlowState,
-        LibbookReservationSchedule;
+import '../features/libbook/reservation_flow.dart' show LibbookReservationFlow;
 import '../features/schedule/content.dart' show ScheduleContent;
 import '../features/schedule/flow.dart' show ScheduleFlow, ScheduleFlowState;
 import '../features/ygdk/home_flow.dart' show YgdkHomeFlow;
@@ -144,9 +139,6 @@ class FeatureDetailView extends StatefulWidget {
 }
 
 class FeatureDetailViewState extends State<FeatureDetailView> {
-  final _libraryKey = GlobalKey<LibbookReservationFlowState>();
-  final _libraryChoicesRevision = ValueNotifier(0);
-  final _libraryQueryExpansion = ExpansibleController();
   final _cgyyKey = GlobalKey<CgyyReservationFlowState>();
   final _cgyyChoicesRevision = ValueNotifier(0);
   final _cgyyDraft = CgyyFormDraft();
@@ -169,6 +161,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
   void selectScheduleTerm() => _scheduleKey.currentState?.selectTerm();
 
   void togglePanel() {
+    if (_isLibraryReservation) return;
     if (widget.feature == FeatureId.schedule) {
       selectScheduleTerm();
       return;
@@ -196,8 +189,6 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
     _cgyyDraft.dispose();
     _ygdkDraft.dispose();
     _cgyyChoicesRevision.dispose();
-    _libraryChoicesRevision.dispose();
-    _libraryQueryExpansion.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -313,29 +304,12 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
             (widget.query?.view ?? FeatureQueryView.summary) !=
                 FeatureQueryView.libbookBookings
         ? LibbookReservationFlow(
-            key: _libraryKey,
-            onChoicesChanged: () {
-              if (mounted) _libraryChoicesRevision.value++;
-            },
             snapshot: widget.snapshot,
             query: widget.query ?? const FeatureQuery(),
             cacheEpoch: widget.readCacheEpoch,
-            filter: _searchController.text,
             fallback: defaultContent,
             onReserve: widget.onLibbookReserveWrite,
-            onQuery: widget.onQuery == null
-                ? null
-                : (query) {
-                    _queryKey.currentState?.adoptLibraryQuery(query);
-                    return widget.onQuery!(query);
-                  },
-            onSeatQuery: (query) {
-              _queryKey.currentState?.adoptLibraryQuery(query, clearDate: true);
-              _libraryQueryExpansion.expand();
-              setState(() => _panelOpen = true);
-            },
-            onDraftChanged: (query) => _queryKey.currentState
-                ?.adoptLibraryQuery(query, clearDate: query.date == null),
+            onQuery: widget.onQuery,
           )
         : !widget.isLanding &&
               widget.feature == FeatureId.cgyy &&
@@ -514,21 +488,6 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                                         maintainState: true,
                                         children: [_queryControls()],
                                       ),
-                                    ] else if (_isLibraryReservation) ...[
-                                      ValueListenableBuilder<int>(
-                                        valueListenable:
-                                            _libraryChoicesRevision,
-                                        builder: (context, _, _) =>
-                                            _libraryKey.currentState
-                                                ?.buildChoices(context) ??
-                                            const SizedBox.shrink(),
-                                      ),
-                                      ExpansionTile(
-                                        title: const Text('更多查询'),
-                                        controller: _libraryQueryExpansion,
-                                        maintainState: true,
-                                        children: [_queryControls()],
-                                      ),
                                     ] else
                                       _queryControls(),
                                 ],
@@ -573,7 +532,6 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
     readCacheEpoch: widget.readCacheEpoch,
     onApply: (query) {
       _scheduleKey.currentState?.stopAutomatic();
-      _libraryKey.currentState?.adoptManualQuery(query);
       return widget.onQuery!(query);
     },
     bykcStatuses: _bykcStatuses,

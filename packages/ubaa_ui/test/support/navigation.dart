@@ -94,8 +94,8 @@ Future<void> openUtility(WidgetTester tester, String title) async {
   } else if (title == '我的资料') {
     await tester.tap(find.byType(Image).first);
   } else {
-    final target = title == '关于' && find.byTooltip('关于').evaluate().isNotEmpty
-        ? find.byTooltip('关于')
+    final target = find.byTooltip(title).evaluate().isNotEmpty
+        ? find.byTooltip(title)
         : find.text(title).first;
     await tester.ensureVisible(target);
     await tester.tap(target);

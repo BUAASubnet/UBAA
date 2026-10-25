@@ -1,101 +1,10 @@
 part of 'reservation_flow.dart';
 
 extension LibbookReservationContent on LibbookReservationFlowState {
-  Widget _areaDetail(
-    BuildContext context,
-    LibbookAreaDetailPresentation area,
-  ) => Card(
-    margin: const EdgeInsets.only(top: 4, bottom: 10),
-    child: Padding(
-      padding: const EdgeInsets.all(16),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(area.name, style: Theme.of(context).textTheme.titleMedium),
-          if (area.availableDates.isNotEmpty) ...[
-            const SizedBox(height: 8),
-            Text('可用日期：${area.availableDates.join('、')}'),
-          ],
-          if (area.timeSlots.isNotEmpty) ...[
-            _section('时段'),
-            Wrap(
-              spacing: 6,
-              runSpacing: 6,
-              children: [
-                for (final slot in area.timeSlots)
-                  Tooltip(
-                    message: '时段编号：${slot.id}',
-                    child: ActionChip(
-                      label: Text('${slot.label} ${slot.start}–${slot.end}'),
-                      onPressed:
-                          widget.onQuery == null ||
-                              [
-                                area.id,
-                                slot.id,
-                                slot.start,
-                                slot.end,
-                              ].any((v) => v.trim().isEmpty) ||
-                              area.timeSlots
-                                      .where((other) => other.id == slot.id)
-                                      .length !=
-                                  1
-                          ? null
-                          : () => widget.onSeatQuery(
-                              FeatureQuery(
-                                view: FeatureQueryView.libbookSeats,
-                                areaId: area.id,
-                                segment: slot.id,
-                                startTime: slot.start,
-                                endTime: slot.end,
-                              ),
-                            ),
-                    ),
-                  ),
-              ],
-            ),
-            const Text('当前时段未标明适用日期，请核对日期和时段后查询座位。'),
-          ] else
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 8),
-              child: Text('当前未提供时段信息。'),
-            ),
-          const SizedBox(height: 8),
-          OutlinedButton.icon(
-            onPressed: area.id.trim().isEmpty
-                ? null
-                : () => widget.onSeatQuery(
-                    FeatureQuery(
-                      view: FeatureQueryView.libbookSeats,
-                      areaId: area.id,
-                      segment: '',
-                      startTime: '',
-                      endTime: '',
-                    ),
-                  ),
-            icon: const Icon(Icons.event_seat_outlined),
-            label: const Text('查询座位'),
-          ),
-        ],
-      ),
-    ),
-  );
-
   Widget _seatGrid(BuildContext context, List<FeatureDetail> details) {
     final seats = details.where((detail) {
       final p = detail.presentation;
-      return p is LibbookSeatPresentation &&
-          _matchesDetail(detail, [
-            p.id,
-            p.name,
-            p.number,
-            p.statusName,
-            p.status?.toString() ?? '',
-            p.areaId,
-            p.queryDate,
-            p.segment,
-            p.startTime,
-            p.endTime,
-          ]);
+      return p is LibbookSeatPresentation && p.status == 1;
     }).toList();
     final selected = details.where(
       (d) =>
@@ -110,7 +19,7 @@ extension LibbookReservationContent on LibbookReservationFlowState {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         _section('座位'),
-        if (seats.isEmpty) const Text('没有匹配的座位'),
+        if (seats.isEmpty) const Text('当前分区暂无可预约座位'),
         GridView.builder(
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),

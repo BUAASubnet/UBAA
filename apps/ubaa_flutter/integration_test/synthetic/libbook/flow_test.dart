@@ -53,30 +53,11 @@ void main() {
         FeatureQueryView.summary,
         FeatureQueryView.libbookAreas,
         FeatureQueryView.libbookAreaDetail,
+        FeatureQueryView.libbookSeats,
       ]);
-      await shot('flow', '进入预约座位，自动读首馆首层分区与时段；未查询座位');
-      await _seatQuery(
-        tester,
-        backend,
-        onOpen: () => shot('query-empty-date', '从分区进入座位查询，日期未自动组合'),
-        onFilled: () => shot('query-draft', '手填日期和原始时段后关闭重开，草稿保留'),
-      );
-      await shot('seats', '仅一次座位查询，显示所有状态四列网格');
-      final readCount = backend.libraryReads.length;
-      await _panel(tester);
-      await _edit(tester, '筛选详情', '未知');
-      await _closePanel(tester);
-      expect(find.widgetWithText(Card, 'A3'), findsOneWidget);
-      expect(find.widgetWithText(Card, 'A1'), findsNothing);
-      await shot('status-search', '按状态本地搜索并关闭面板，仍可查看未知座位且不新增读取');
-      await _panel(tester);
-      await _edit(tester, '筛选详情', '');
-      await _closePanel(tester);
-      expect(backend.libraryReads, hasLength(readCount));
-      await _tap(tester, find.widgetWithText(Card, 'A2'));
-      expect(find.text('已选座位：A2'), findsNothing);
-      await _tap(tester, find.widgetWithText(Card, 'A3'));
-      expect(find.text('已选座位：A3'), findsNothing);
+      await shot('seats', '进入分区后自动查询首日首时段，只显示可预约座位');
+      expect(find.widgetWithText(Card, 'A2'), findsNothing);
+      expect(find.widgetWithText(Card, 'A3'), findsNothing);
       await _tap(tester, find.widgetWithText(Card, 'A1'));
       await _ensure(tester, find.text('准备预约此座位'));
       await shot('selected', '只选择allowed座位后显示摘要和准备入口');
@@ -134,24 +115,19 @@ void main() {
         if (state == 'stale') {
           backend.failNext = true;
           await _tap(tester, find.byTooltip('刷新当前查询'));
-          await _ensure(tester, find.text('以下为上次成功加载的数据。'));
-          expect(find.text('以下为上次成功加载的数据。'), findsOneWidget);
+          expect(find.text('重试'), findsOneWidget);
         } else if (state == 'loading') {
           final gate = Completer<void>();
-          await _panel(tester);
-          await _tap(tester, find.byKey(const ValueKey('libbook-choice-楼层')));
+          await _ensure(tester, find.widgetWithText(FilterChip, '二层 2/20'));
           backend.pending = gate;
-          await tester.tap(find.text('二层 2/20').last);
+          await tester.tap(find.widgetWithText(FilterChip, '二层 2/20'));
           await tester.pump(const Duration(milliseconds: 400));
-          await tester.tap(find.widgetWithText(TextButton, '完成'));
-          await tester.pump(const Duration(milliseconds: 200));
           await shot('pending', '显式保持读取，旧分区和座位不能继续操作');
           gate.complete();
           await tester.pumpAndSettle();
         } else if (state == 'many') {
-          await _seatQuery(tester, backend);
-          await shot('top', '大量座位首屏四列，各状态均可见');
-          await _ensure(tester, find.widgetWithText(Card, 'A42'));
+          await shot('top', '大量可预约座位首屏四列');
+          await _ensure(tester, find.widgetWithText(Card, 'A40'));
         }
         await shot('result', '检查本状态实际原生视图、文字、滚动和错误说明');
         if (state == 'first-error') {
@@ -159,8 +135,7 @@ void main() {
           await shot('retry', '首次失败显式重试后恢复楼馆分区');
         }
         if (state == 'long') {
-          await _panel(tester);
-          await _ensure(tester, find.text('查询座位'));
+          await _ensure(tester, find.widgetWithText(Card, 'A7'));
           await shot('bottom', '1.3文字与长名称仍可滚动到下一操作');
         }
         expect(backend.commitCalls, 0);
@@ -191,7 +166,7 @@ Future<void> _mount(
   await _tap(tester, find.widgetWithText(Card, FeatureId.libbook.title));
   await _tap(tester, find.widgetWithText(Card, '预约座位'));
   if (tester.view.physicalSize.width / tester.view.devicePixelRatio < 600) {
-    expect(find.byType(NavigationBar), findsNothing);
+    expect(find.byType(NavigationBar), findsOneWidget);
   }
   expect(find.byType(TextField), findsNothing);
 }
@@ -232,14 +207,6 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _edit(WidgetTester tester, String label, String value) async {
-  final field = find.widgetWithText(TextField, label);
-  await _tap(tester, field);
-  await tester.enterText(field, value);
-  await tester.pump();
-  expect(tester.widget<TextField>(field).controller!.text, value);
-}
-
 Future<void> _panel(WidgetTester tester) async {
   if (find.widgetWithText(TextButton, '完成').evaluate().isEmpty) {
     await _tap(tester, find.byTooltip('搜索与筛选'));
@@ -250,51 +217,6 @@ Future<void> _closePanel(WidgetTester tester) async {
   FocusManager.instance.primaryFocus?.unfocus();
   await tester.pumpAndSettle();
   await _tap(tester, find.widgetWithText(TextButton, '完成'));
-}
-
-Future<void> _seatQuery(
-  WidgetTester tester,
-  LibraryBackend backend, {
-  Future<void> Function()? onOpen,
-  Future<void> Function()? onFilled,
-}) async {
-  final count = backend.libraryReads.length;
-  await _panel(tester);
-  await _tap(tester, find.text('查询座位'));
-  expect(
-    tester
-        .widget<TextField>(find.widgetWithText(TextField, '日期'))
-        .controller!
-        .text,
-    isEmpty,
-  );
-  expect(backend.libraryReads, hasLength(count));
-  if (onOpen != null) await onOpen();
-  for (final entry in {
-    '日期': '2026-09-04',
-    '开始时间': '08:00',
-    '结束时间': '10:00',
-    '时段编号（必填）': 'segment-a',
-  }.entries) {
-    await _ensure(tester, find.widgetWithText(TextField, entry.key));
-    await tester.enterText(
-      find.widgetWithText(TextField, entry.key),
-      entry.value,
-    );
-  }
-  await _closePanel(tester);
-  await _panel(tester);
-  expect(
-    tester
-        .widget<TextField>(find.widgetWithText(TextField, '时段编号（必填）'))
-        .controller!
-        .text,
-    'segment-a',
-  );
-  if (onFilled != null) await onFilled();
-  await _tap(tester, find.widgetWithText(FilledButton, '应用筛选'));
-  await _closePanel(tester);
-  expect(backend.libraryReads, hasLength(count + 1));
 }
 
 Future<void> _shot(
@@ -337,10 +259,13 @@ Future<void> _chooseLibraryOption(
   String label,
   String value,
 ) async {
-  await _panel(tester);
-  await _tap(tester, find.byKey(ValueKey('libbook-choice-$label')));
-  await _tap(tester, find.text(value).last);
-  await _closePanel(tester);
+  if (tester.view.physicalSize.width / tester.view.devicePixelRatio >= 600) {
+    final chipText = label == '分区' ? value.replaceAll(' · 合成校区', '') : value;
+    await _tap(tester, find.widgetWithText(FilterChip, chipText));
+  } else {
+    await _tap(tester, find.byKey(ValueKey('libbook-choice-$label')));
+    await _tap(tester, find.text(value).last);
+  }
 }
 
 /// 人工巡检专用构造；自动测试入口不读取巡检模式开关。
