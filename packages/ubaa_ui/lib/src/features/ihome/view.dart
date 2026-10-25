@@ -4,6 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../theme.dart';
 part 'detail.dart';
 part 'filters.dart';
+part 'actions.dart';
 
 /// 校园服务独立页面，按用户选择读取，不参与首页后台刷新。
 class IhomeView extends StatefulWidget {
@@ -26,6 +27,15 @@ class _IhomeViewState extends State<IhomeView> {
   IhomeConfig? _config;
   String? _error, _configError;
   ConnectionMode? _route;
+  int _epoch = 0;
+  final _details = <int, IhomeResult<IhomeAppeal>>{};
+  final _expanded = <String>{};
+  final _detailLoading = <int>{};
+  final _detailErrors = <int, String>{};
+  final _busy = <int>{};
+  final _submitting = <int>{};
+  final _uncertain = <int>{};
+  void _update(VoidCallback action) => setState(action);
   @override
   void initState() {
     super.initState();
@@ -38,6 +48,14 @@ class _IhomeViewState extends State<IhomeView> {
     super.didUpdateWidget(oldWidget);
     if (!identical(oldWidget.service, widget.service)) {
       _revision++;
+      _epoch++;
+      _details.clear();
+      _expanded.clear();
+      _detailLoading.clear();
+      _detailErrors.clear();
+      _busy.clear();
+      _submitting.clear();
+      _uncertain.clear();
       _entries = [];
       _announcements = [];
       _config = null;
@@ -78,16 +96,20 @@ class _IhomeViewState extends State<IhomeView> {
   Future<void> _load({bool more = false, bool reset = false}) async {
     final service = widget.service;
     if (service == null) return;
+    if (_busy.isNotEmpty) return;
     final revision = ++_revision;
     final requested = more ? _page + 1 : 1;
     setState(() {
       _loading = true;
       _error = null;
+      _detailLoading.clear();
       if (reset) {
         _entries = [];
         _announcements = [];
         _hasMore = false;
         _route = null;
+        _expanded.clear();
+        _details.clear();
       }
     });
     try {
@@ -119,6 +141,7 @@ class _IhomeViewState extends State<IhomeView> {
             more && (result.data.page < requested || unique.isEmpty);
         setState(() {
           if (!stagnant) {
+            if (!more) _details.clear();
             _entries = more ? [..._entries, ...unique] : unique;
             _page = result.data.page;
           }
@@ -128,6 +151,12 @@ class _IhomeViewState extends State<IhomeView> {
               result.data.page < result.data.lastPage;
           _route = result.route;
         });
+        for (final entry in _entries) {
+          if (_expanded.contains(_entryKey(entry)) &&
+              !_details.containsKey(entry.appeal.id)) {
+            unawaited(_readDetail(entry.appeal.id));
+          }
+        }
       }
     } on Object catch (error) {
       if (mounted && revision == _revision)
@@ -137,22 +166,6 @@ class _IhomeViewState extends State<IhomeView> {
     } finally {
       if (mounted && revision == _revision) setState(() => _loading = false);
     }
-  }
-
-  Future<void> _open(IhomeEntry entry) async {
-    final service = widget.service;
-    if (service == null) return;
-    await Navigator.of(context).push(
-      MaterialPageRoute<void>(
-        builder: (_) => _IhomeDetail(
-          service: service,
-          id: entry.appeal.id,
-          mine: _scope == IhomeScope.mine,
-          config: _config,
-        ),
-      ),
-    );
-    if (mounted && identical(widget.service, service)) unawaited(_load());
   }
 
   @override
@@ -179,31 +192,35 @@ class _IhomeViewState extends State<IhomeView> {
                 ChoiceChip(
                   label: Text(item.$2),
                   selected: !_notices && _scope == item.$1,
-                  onSelected: (_) {
-                    setState(() {
-                      _scope = item.$1;
-                      _notices = false;
-                      _filter = item.$1 == IhomeScope.mine
-                          ? IhomeFilter.newest
-                          : IhomeFilter.all;
-                      _keyword = '';
-                      _search.clear();
-                      _category = null;
-                    });
-                    unawaited(_load(reset: true));
-                  },
+                  onSelected: _busy.isNotEmpty
+                      ? null
+                      : (_) {
+                          setState(() {
+                            _scope = item.$1;
+                            _notices = false;
+                            _filter = item.$1 == IhomeScope.mine
+                                ? IhomeFilter.newest
+                                : IhomeFilter.all;
+                            _keyword = '';
+                            _search.clear();
+                            _category = null;
+                          });
+                          unawaited(_load(reset: true));
+                        },
                 ),
               ChoiceChip(
                 label: const Text('公告'),
                 selected: _notices,
-                onSelected: (_) {
-                  setState(() => _notices = true);
-                  unawaited(_load(reset: true));
-                },
+                onSelected: _busy.isNotEmpty
+                    ? null
+                    : (_) {
+                        setState(() => _notices = true);
+                        unawaited(_load(reset: true));
+                      },
               ),
               IconButton(
                 tooltip: '刷新',
-                onPressed: _loading ? null : () => _load(),
+                onPressed: _loading || _busy.isNotEmpty ? null : () => _load(),
                 icon: const Icon(Icons.refresh),
               ),
             ],
@@ -231,14 +248,6 @@ class _IhomeViewState extends State<IhomeView> {
                 TextButton(onPressed: _loadConfig, child: const Text('重试')),
               ],
             ),
-          if (_route != null)
-            Padding(
-              padding: const EdgeInsets.symmetric(vertical: 8),
-              child: Text(
-                _route!.label,
-                style: Theme.of(context).textTheme.labelSmall,
-              ),
-            ),
           if (!_loading &&
               _error == null &&
               (_notices ? _announcements.isEmpty : _entries.isEmpty))
@@ -248,68 +257,13 @@ class _IhomeViewState extends State<IhomeView> {
             ),
           if (_notices)
             for (final notice in _announcements)
-              Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                child: ListTile(
-                  title: Text(notice.title),
-                  subtitle: Text(notice.date),
-                  trailing: const Icon(Icons.chevron_right),
-                  onTap: () => Navigator.of(context).push(
-                    MaterialPageRoute<void>(
-                      builder: (_) => _IhomeNoticeView(
-                        service: widget.service!,
-                        id: notice.id,
-                      ),
-                    ),
-                  ),
-                ),
+              _IhomeNoticeCard(
+                key: ValueKey('${_epoch}:${notice.id}'),
+                service: widget.service!,
+                notice: notice,
               ),
           if (!_notices)
-            for (final entry in _entries)
-              Card(
-                margin: const EdgeInsets.only(bottom: 8),
-                clipBehavior: Clip.antiAlias,
-                child: InkWell(
-                  onTap: () => _open(entry),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          entry.appeal.content,
-                          maxLines: 4,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        const SizedBox(height: 8),
-                        Text(
-                          [
-                            entry.appeal.category,
-                            entry.appeal.status,
-                            entry.appeal.publishedAt,
-                          ].where((s) => s.isNotEmpty).join(' · '),
-                          style: Theme.of(context).textTheme.bodySmall,
-                        ),
-                        if (entry.appeal.replies.isNotEmpty) ...[
-                          const Divider(),
-                          Text(
-                            '${entry.appeal.replies.first.department}：${entry.appeal.replies.first.content}',
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                        if (entry.evaluation != null) ...[
-                          const Divider(),
-                          Text('我的评价：${entry.evaluation!.content}'),
-                          Text(
-                            '响应速度 ${entry.evaluation!.speed} · 满意度 ${entry.evaluation!.satisfaction} · 解决程度 ${entry.evaluation!.degree}',
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ),
-              ),
+            for (final entry in _entries) _appealCard(context, entry),
           if (_hasMore)
             TextButton(
               onPressed: _loading ? null : () => _load(more: true),

@@ -7,16 +7,19 @@ extension _IhomeFilters on _IhomeViewState {
         padding: const EdgeInsets.symmetric(vertical: 12),
         child: TextField(
           controller: _search,
+          enabled: _busy.isEmpty,
           maxLength: 200,
           decoration: InputDecoration(
             labelText: '搜索诉求或回复',
             counterText: '',
             suffixIcon: IconButton(
               tooltip: '搜索',
-              onPressed: () {
-                _keyword = _search.text.trim();
-                unawaited(_load(reset: true));
-              },
+              onPressed: _busy.isNotEmpty
+                  ? null
+                  : () {
+                      _keyword = _search.text.trim();
+                      unawaited(_load(reset: true));
+                    },
               icon: const Icon(Icons.search),
             ),
           ),
@@ -61,11 +64,13 @@ extension _IhomeFilters on _IhomeViewState {
                 child: Text('未回复'),
               ),
             ],
-            onChanged: (v) {
-              if (v == null) return;
-              _setFilter(v);
-              unawaited(_load(reset: true));
-            },
+            onChanged: _busy.isNotEmpty
+                ? null
+                : (v) {
+                    if (v == null) return;
+                    _setFilter(v);
+                    unawaited(_load(reset: true));
+                  },
           ),
           if (_scope == IhomeScope.public && _config != null)
             DropdownButton<int>(
@@ -75,10 +80,12 @@ extension _IhomeFilters on _IhomeViewState {
                 for (final c in _config!.categories)
                   DropdownMenuItem(value: c.id, child: Text(c.name)),
               ],
-              onChanged: (v) {
-                _setCategory(v);
-                unawaited(_load(reset: true));
-              },
+              onChanged: _busy.isNotEmpty
+                  ? null
+                  : (v) {
+                      _setCategory(v);
+                      unawaited(_load(reset: true));
+                    },
             ),
         ],
       ),

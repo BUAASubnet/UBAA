@@ -4,29 +4,29 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/features/ihome/view.dart';
 
-IhomeAppeal appeal(int id, {String content = '测试诉求', bool followed = false}) =>
-    IhomeAppeal(
-      id: id,
-      content: content,
-      status: '已回复',
-      category: '校园服务',
-      publishedAt: '2026-10-25',
-      departments: const ['服务中心'],
-      isMine: false,
-      isFollowed: followed,
-      isSupported: null,
-      followCount: 1,
-      supportCount: null,
-      replies: const [
-        IhomeReply(
-          content: '官方回复内容',
-          department: '服务中心',
-          createdAt: '2026-10-25',
-        ),
-      ],
-      evaluations: const [],
-      history: const [],
-    );
+IhomeAppeal appeal(
+  int id, {
+  String content = '测试诉求',
+  bool followed = false,
+  bool supported = false,
+}) => IhomeAppeal(
+  id: id,
+  content: content,
+  status: '已回复',
+  category: '校园服务',
+  publishedAt: '2026-10-25',
+  departments: const ['服务中心'],
+  isMine: false,
+  isFollowed: followed,
+  isSupported: supported,
+  followCount: 1,
+  supportCount: 2,
+  replies: const [
+    IhomeReply(content: '官方回复内容', department: '服务中心', createdAt: '2026-10-25'),
+  ],
+  evaluations: const [],
+  history: const [],
+);
 IhomeResult<IhomePage> page(
   int id, {
   int current = 1,
@@ -46,6 +46,7 @@ IhomeResult<IhomePage> page(
 class Service implements IhomeService {
   final queries = <IhomeQuery>[];
   Future<IhomeResult<IhomePage>> Function(IhomeQuery)? load;
+  int detailCalls = 0;
   final writes = <(int, IhomeReaction, bool, ConnectionMode)>[];
   bool failWrite = false;
   @override
@@ -68,15 +69,18 @@ class Service implements IhomeService {
   @override
   Future<IhomeResult<IhomeConfig>> config() async => const IhomeResult(
     IhomeConfig(
-      supportEnabled: false,
+      supportEnabled: true,
       supportLabel: '支持',
       categories: [IhomeCategory(id: 7, name: '生活服务')],
     ),
     ConnectionMode.webvpn,
   );
   @override
-  Future<IhomeResult<IhomeAppeal>> detail(int id, {bool mine = false}) async =>
-      IhomeResult(appeal(id), ConnectionMode.webvpn);
+  Future<IhomeResult<IhomeAppeal>> detail(int id, {bool mine = false}) async {
+    detailCalls++;
+    return IhomeResult(appeal(id), ConnectionMode.webvpn);
+  }
+
   @override
   Future<IhomeResult<List<IhomeNotice>>> notices() async => const IhomeResult([
     IhomeNotice(id: 8, title: '通知', content: '', date: '2026-10-25'),
@@ -100,7 +104,14 @@ class Service implements IhomeService {
         title: '结果未知',
         message: '操作结果未确认，请刷新详情后核对',
       );
-    return IhomeResult(appeal(id, followed: enabled), route);
+    return IhomeResult(
+      appeal(
+        id,
+        followed: reaction == IhomeReaction.follow && enabled,
+        supported: reaction == IhomeReaction.support && enabled,
+      ),
+      route,
+    );
   }
 }
 
@@ -114,6 +125,44 @@ Future<void> mount(WidgetTester tester, Service service) async {
 }
 
 void main() {
+  testWidgets('展开详情保留搜索与列表位置并可原位收起', (tester) async {
+    final service = Service();
+    await mount(tester, service);
+    await tester.enterText(find.byType(TextField), '校园');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    final reads = service.queries.length;
+    await tester.tap(find.text('测试诉求'));
+    await tester.pumpAndSettle();
+    expect(find.text('校园'), findsOneWidget);
+    expect(find.text('官方回复内容'), findsOneWidget);
+    expect(service.detailCalls, 1);
+    await tester.tap(find.byTooltip('刷新'));
+    await tester.pumpAndSettle();
+    expect(service.detailCalls, 2);
+    expect(find.text('官方回复内容'), findsOneWidget);
+    await tester.ensureVisible(find.text('收起详情'));
+    await tester.tap(find.text('收起详情'));
+    await tester.pumpAndSettle();
+    expect(find.text('测试诉求'), findsOneWidget);
+    expect(service.queries.length, reads + 1);
+    await tester.tap(find.text('测试诉求'));
+    await tester.pumpAndSettle();
+    expect(service.detailCalls, 2);
+  });
+  testWidgets('列表支持无需打开详情并更新按钮状态', (tester) async {
+    final service = Service();
+    await mount(tester, service);
+    await tester.tap(find.text('支持 2'));
+    await tester.pumpAndSettle();
+    expect(service.detailCalls, 0);
+    await tester.tap(find.text('确认'));
+    await tester.pumpAndSettle();
+    expect(service.writes, [
+      (42, IhomeReaction.support, true, ConnectionMode.webvpn),
+    ]);
+    expect(find.text('已支持 2'), findsOneWidget);
+  });
   testWidgets('同一诉求的不同评价均保留且刷新失败保留内容', (tester) async {
     final service = Service();
     service.load = (q) async => IhomeResult(
@@ -189,12 +238,10 @@ void main() {
     expect(find.text('测试诉求'), findsOneWidget);
     expect(find.text('加载更多'), findsNothing);
   });
-  testWidgets('详情关注确认固定读取路线且未知结果禁止重复提交', (tester) async {
+  testWidgets('列表关注确认固定读取路线且未知结果禁止重复提交', (tester) async {
     final service = Service()..failWrite = true;
     await mount(tester, service);
-    await tester.tap(find.text('测试诉求'));
-    await tester.pumpAndSettle();
-    expect(find.text('官方回复内容'), findsOneWidget);
+    expect(service.detailCalls, 0);
     await tester.tap(find.text('关注 1'));
     await tester.pumpAndSettle();
     expect(service.writes, isEmpty);
@@ -204,17 +251,21 @@ void main() {
       (42, IhomeReaction.follow, true, ConnectionMode.webvpn),
     ]);
     expect(
-      tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+      tester
+          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '关注 1'))
+          .onPressed,
       isNull,
     );
     await tester.tap(find.text('刷新核对'));
     await tester.pumpAndSettle();
     expect(
-      tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+      tester
+          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '关注 1'))
+          .onPressed,
       isNotNull,
     );
   });
-  testWidgets('公告读取详情且窄屏大字可滚动', (tester) async {
+  testWidgets('公告在窄屏列表内展开收起并保留页签', (tester) async {
     final service = Service();
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -226,6 +277,11 @@ void main() {
     await tester.tap(find.text('通知'));
     await tester.pumpAndSettle();
     expect(find.text('公告正文'), findsOneWidget);
+    await tester.tap(find.text('通知'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('诉求广场'));
+    await tester.pumpAndSettle();
+    expect(find.text('测试诉求'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 }
