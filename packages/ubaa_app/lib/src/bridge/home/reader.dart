@@ -61,7 +61,12 @@ Future<OfflineHomeRead> bridgeReadCachedHome(
       newestJudge = judge;
   }
   final additional = <CachedFeatureProjection>[];
-  for (final feature in [FeatureId.signin, FeatureId.spoc, FeatureId.ygdk]) {
+  for (final feature in [
+    FeatureId.signin,
+    FeatureId.spoc,
+    FeatureId.ygdk,
+    FeatureId.exam,
+  ]) {
     final read = await bridgeReadCachedQuery(
       backend,
       feature,

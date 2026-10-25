@@ -90,6 +90,49 @@ WeekPresentation week(int n) => WeekPresentation(
   endDate: '2026-03-29',
 );
 void main() {
+  test('首页考试按开始时间排序且仅保留未结束已安排考试', () {
+    FeatureDetail exam(
+      String title,
+      String date,
+      String? start,
+      String? end, {
+      bool arranged = true,
+    }) => FeatureDetail(
+      title: title,
+      presentation: ExamPresentation(
+        arranged: arranged,
+        date: date,
+        startTime: start,
+        endTime: end,
+        place: '合成考场',
+        seat: '12',
+        taskId: title,
+      ),
+    );
+    final tasks = buildHomeTodos(
+      now: now,
+      snapshots: {
+        FeatureId.exam: source(FeatureId.exam, [
+          exam('明天考试', '2026-03-25', '09:00', '11:00'),
+          exam('已结束', '2026-03-24', '08:00', '10:00'),
+          exam('进行中', '2026-03-24', '11:00', '13:00'),
+          exam('未安排', '2026-03-24', '13:00', '15:00', arranged: false),
+          exam('日期错误', '2026-02-30', '13:00', '15:00'),
+          exam('时间待定', '2026-03-26', null, null),
+        ]),
+      },
+    );
+    expect(tasks.map((t) => t.title), ['进行中', '明天考试', '时间待定']);
+    expect(tasks.first.statusLabel, '考试中');
+    expect(tasks[1].statusLabel, '待考试');
+    expect(tasks.first.subtitle, contains('合成考场'));
+    expect(tasks.first.subtitle, contains('12'));
+    expect(tasks.first.timeLabel, contains('11:00–13:00'));
+    expect(tasks.last.timeLabel, contains('时间待定'));
+    expect(tasks.first.navigation?.query.view, FeatureQueryView.examArranged);
+    expect(tasks.first.signinAction, isNull);
+  });
+
   test('已保存签到跨日失效，同日仅导航且不能恢复写资格', () {
     FeatureSnapshot cached(String date) =>
         source(FeatureId.signin, [signin('cache', '12:05', '13:00')]).copyWith(

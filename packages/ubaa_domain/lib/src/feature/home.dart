@@ -45,6 +45,7 @@ List<HomeTodo> buildHomeTodos({
     FeatureId.judge,
     FeatureId.cgyy,
     FeatureId.signin,
+    FeatureId.exam,
   ]) {
     final snapshot = snapshots[feature];
     if (!_isHomeSource(snapshot)) continue;
@@ -60,6 +61,7 @@ List<HomeTodo> buildHomeTodos({
         feature,
         detail,
         now,
+        sourceQuery: snapshot.readContext?.query,
         fresh:
             snapshot.status == FeatureLoadStatus.success &&
             snapshot.evidence?.origin != DataOrigin.persisted &&
@@ -128,6 +130,10 @@ bool _isHomeSource(FeatureSnapshot? snapshot) {
     return false;
   final query = snapshot.readContext?.query;
   return switch (snapshot.feature) {
+    FeatureId.exam =>
+      query == null ||
+          query.view == FeatureQueryView.summary ||
+          query.view == FeatureQueryView.examArranged,
     FeatureId.bykc => query?.view == FeatureQueryView.bykcChosenCourses,
     FeatureId.cgyy => query?.view == FeatureQueryView.cgyyOrders,
     FeatureId.spoc ||
@@ -143,8 +149,36 @@ HomeTodo? _homeDetail(
   FeatureDetail detail,
   DateTime now, {
   required bool fresh,
+  FeatureQuery? sourceQuery,
 }) {
   final p = detail.presentation;
+  if (feature == FeatureId.exam && p is ExamPresentation) {
+    final day = p.calendarDate;
+    if (!p.arranged || day == null || p.isFinishedAt(now)) return null;
+    final start = _parseHomeTime(p.startTime, today: day);
+    final end = _parseHomeTime(p.endTime, today: day);
+    return HomeTodo(
+      id: 'exam:${p.taskId ?? p.courseNo ?? detail.title}:${p.date}:${p.startTime}',
+      feature: feature,
+      title: detail.title,
+      subtitle: _joinHome([
+        p.place,
+        if (p.seat?.trim().isNotEmpty == true) '座位 ${p.seat}',
+      ], '考场待定'),
+      statusLabel: start != null && !start.isAfter(now) ? '考试中' : '待考试',
+      timeLabel: start == null
+          ? '${day.month}月${day.day}日 · 时间待定'
+          : _homeRange(start, end),
+      sortTime: start ?? day,
+      navigation: FeatureReadNavigation(
+        feature: FeatureId.exam,
+        query: FeatureQuery(
+          view: FeatureQueryView.examArranged,
+          term: sourceQuery?.term,
+        ),
+      ),
+    );
+  }
   if (feature == FeatureId.bykc && p is BykcChosenPresentation) {
     final start = _parseHomeTime(p.courseStartDate),
         end = _parseHomeTime(p.courseEndDate);

@@ -25,13 +25,14 @@ void _registerAuthTests() {
               FeatureId.spoc,
               FeatureId.judge,
               FeatureId.ygdk,
+              FeatureId.exam,
             ].contains(s.feature),
           )
           .every((snapshot) => snapshot.status == FeatureLoadStatus.success),
       isTrue,
     );
     expect(
-      controller.snapshots[FeatureId.exam]!.status,
+      controller.snapshots[FeatureId.classroom]!.status,
       FeatureLoadStatus.idle,
     );
     controller.dispose();

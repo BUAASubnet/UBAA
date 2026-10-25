@@ -263,6 +263,7 @@ class _HomeViewState extends State<HomeView> {
           FeatureId.cgyy,
           FeatureId.signin,
           FeatureId.ygdk,
+          FeatureId.exam,
         ])
           if (sources[feature]?.resolvedRoute case final route?)
             _homeLabel(feature): route,
@@ -292,6 +293,7 @@ class _HomeViewState extends State<HomeView> {
         FeatureId.judge,
         FeatureId.signin,
         FeatureId.ygdk,
+        FeatureId.exam,
       ])
         widget.snapshots[feature],
       for (final source in HomeSupplement.values) _supplements[source],
@@ -334,6 +336,7 @@ class _HomeViewState extends State<HomeView> {
       FeatureId.cgyy,
       FeatureId.signin,
       FeatureId.ygdk,
+      FeatureId.exam,
     ];
     final loading = features
         .where((f) => sources[f]?.status == FeatureLoadStatus.loading)
@@ -606,6 +609,7 @@ class _HomeViewState extends State<HomeView> {
 }
 
 String _homeLabel(FeatureId feature) => switch (feature) {
+  FeatureId.exam => '考试',
   FeatureId.bykc => '博雅',
   FeatureId.spoc => 'SPOC',
   FeatureId.judge => '希冀',

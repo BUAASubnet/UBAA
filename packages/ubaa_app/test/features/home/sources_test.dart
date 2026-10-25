@@ -5,6 +5,32 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../support/controller/fakes.dart' show FixtureQueryBackend;
 
 void _registerHomeSourceTests() {
+  test('历史学期考试查询与首页当前学期读取互不覆盖', () async {
+    final backend = _HomeSourcesBackend();
+    final controller = AppController(backend: backend);
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await controller.refreshHome(only: [FeatureId.exam]);
+    final currentTerm = controller.homeSnapshots[FeatureId.exam];
+    const oldTerm = FeatureQuery(
+      view: FeatureQueryView.examArranged,
+      term: 'synthetic-old-term',
+    );
+    await controller.refreshFeatureQuery(FeatureId.exam, oldTerm);
+    expect(controller.homeSnapshots[FeatureId.exam], same(currentTerm));
+    final history = controller.snapshots[FeatureId.exam];
+    await controller.refreshHome(only: [FeatureId.exam]);
+    expect(controller.snapshots[FeatureId.exam], same(history));
+    expect(
+      controller.snapshots[FeatureId.exam]!.readContext!.query!.term,
+      'synthetic-old-term',
+    );
+    expect(
+      controller.homeSnapshots[FeatureId.exam]!.readContext!.query,
+      isNull,
+    );
+  });
+
   test('领域新查询不丢弃并行的首页默认结果，也不回写覆盖领域', () async {
     final backend = _HomeSourcesBackend();
     final controller = AppController(backend: backend);

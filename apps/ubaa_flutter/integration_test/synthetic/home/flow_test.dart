@@ -16,7 +16,7 @@ void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   WidgetController.hitTestWarningShouldBeFatal = true;
   for (final brightness in Brightness.values) {
-    testWidgets('首页六来源旧布局直达详情与合成签到取消 ${brightness.name}', (tester) async {
+    testWidgets('首页七来源布局直达详情与合成签到取消 ${brightness.name}', (tester) async {
       final backend = HomeBackend();
       await mount(tester, backend, brightness);
       Future<void> shot(String name, String steps) =>
@@ -26,12 +26,13 @@ void main() {
       await shot('routes', '一个图标按已显示来源说明实际路线，不使用默认Auto策略');
       await tap(tester, find.text('关闭'));
       await ensure(tester, find.text('合成签到待办'));
-      await shot('todos', '六来源按时间混合排序，旧来源和状态标签');
+      await shot('todos', '七来源按时间混合排序，旧来源和状态标签');
       await tap(tester, find.widgetWithText(FilledButton, '签到'));
       expect(backend.preparedSignin, ['signin-target']);
       await shot('signin-confirm', '明确合成目标prepare，未执行commit');
       await tap(tester, find.widgetWithText(OutlinedButton, '取消'));
       for (final (title, view) in [
+        ('合成考试待办', FeatureQueryView.examArranged),
         ('合成博雅待办', FeatureQueryView.bykcDetail),
         ('合成希冀待办', FeatureQueryView.judgeDetail),
         ('合成SPOC待办', FeatureQueryView.spocDetail),

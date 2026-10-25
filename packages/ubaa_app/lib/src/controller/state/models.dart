@@ -49,6 +49,7 @@ const controllerHomeDefaultFeatures = <FeatureId>[
   FeatureId.spoc,
   FeatureId.judge,
   FeatureId.ygdk,
+  FeatureId.exam,
 ];
 
 final class ProgressiveScope {

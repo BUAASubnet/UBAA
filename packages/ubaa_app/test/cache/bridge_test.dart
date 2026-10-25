@@ -159,6 +159,11 @@ class _Client implements BridgeClient {
 
 class _Cache implements BridgeOfflineCache {
   @override
+  Future<BridgeCachedAcademicTerms?> readAcademicTerms({
+    required BridgeConnectionMode route,
+  }) async => null;
+
+  @override
   Future<BridgeCachedCgyyOrdersRecord?> readCgyyOrders({
     required BridgeConnectionMode route,
     required int page,

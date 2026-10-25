@@ -185,6 +185,11 @@ class _Api implements RustLibApi {
 }
 
 class _Cache implements BridgeOfflineCache {
+  @override
+  Future<BridgeCachedAcademicTerms?> readAcademicTerms({
+    required BridgeConnectionMode route,
+  }) async => null;
+
   static int? page;
   static bool hasScopedCache = true;
   @override

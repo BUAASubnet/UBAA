@@ -76,6 +76,7 @@ void _registerCallbackTests() {
       FeatureId.spoc,
       FeatureId.judge,
       FeatureId.ygdk,
+      FeatureId.exam,
     ]);
     expect(backend.queryCalls, isEmpty);
 

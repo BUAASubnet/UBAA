@@ -22,11 +22,25 @@ void main() {
     final home = await backend.readCachedHome(RoutePolicy.direct);
     expect(
       home.map((item) => item.feature),
-      containsAll([FeatureId.signin, FeatureId.spoc, FeatureId.ygdk]),
+      containsAll([
+        FeatureId.signin,
+        FeatureId.spoc,
+        FeatureId.ygdk,
+        FeatureId.exam,
+      ]),
     );
     expect(
       home.expand((item) => item.details).expand((item) => item.actions),
       isEmpty,
+    );
+    final exam = home
+        .singleWhere((item) => item.feature == FeatureId.exam)
+        .toSnapshot();
+    expect(exam.evidence?.origin, DataOrigin.persisted);
+    expect(exam.details.single.title, '合成缓存考试');
+    expect(
+      (exam.details.single.presentation! as ExamPresentation).place,
+      '合成考场',
     );
     final ygdk = home
         .singleWhere((item) => item.feature == FeatureId.ygdk)
@@ -142,6 +156,47 @@ class _Api implements RustLibApi {
 }
 
 class _Cache implements BridgeOfflineCache {
+  @override
+  Future<BridgeCachedAcademicTerms?> readAcademicTerms({
+    required BridgeConnectionMode route,
+  }) async => BridgeCachedAcademicTerms(
+    data: const [
+      BridgeTerm(
+        itemCode: '2026-1',
+        itemName: '合成学期',
+        selected: true,
+        itemIndex: 1,
+      ),
+    ],
+    sourceRoute: route,
+    fetchedAt: 100,
+    complete: true,
+  );
+  @override
+  Future<BridgeCachedAcademicExams?> readAcademicExams({
+    required BridgeConnectionMode route,
+    required String term,
+  }) async {
+    expect(term, '2026-1');
+    return BridgeCachedAcademicExams(
+      data: const BridgeExamArrangement(
+        arranged: [
+          BridgeExam(
+            courseName: '合成缓存考试',
+            examDate: '2026-10-26',
+            startTime: '09:00',
+            endTime: '11:00',
+            examPlace: '合成考场',
+          ),
+        ],
+        notArranged: [],
+      ),
+      sourceRoute: route,
+      fetchedAt: 100,
+      complete: true,
+    );
+  }
+
   @override
   Future<BridgeCachedYgdkRecords?> readYgdkRecords({
     required BridgeConnectionMode route,

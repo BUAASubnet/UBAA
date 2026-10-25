@@ -8,6 +8,7 @@ const _homeSources = [
   FeatureId.spoc,
   FeatureId.judge,
   FeatureId.ygdk,
+  FeatureId.exam,
 ];
 
 void main() {
@@ -35,13 +36,13 @@ void main() {
     addTearDown(controller.dispose);
     await controller.initialize();
     await Future<void>.delayed(Duration.zero);
-    await controller.retryFeature(FeatureId.exam);
-    final exam = controller.snapshots[FeatureId.exam];
+    await controller.retryFeature(FeatureId.classroom);
+    final classroom = controller.snapshots[FeatureId.classroom];
     backend.reads.clear();
 
     await controller.refreshHome();
     expect(backend.reads, _homeSources);
-    expect(controller.snapshots[FeatureId.exam], same(exam));
+    expect(controller.snapshots[FeatureId.classroom], same(classroom));
 
     backend.reads.clear();
     await controller.retryFeature(FeatureId.evaluation);

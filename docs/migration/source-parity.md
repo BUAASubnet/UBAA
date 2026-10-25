@@ -249,6 +249,8 @@ JSON。详情测试保留上游 ID 校验、摘要回退、可选提交信息、
 
 ## 未改变的课表/考试证据
 
+2026-10-25 首页考试待办接线见[本轮来源对照](source-parity-home-exams-2026-10-25.md)。
+
 `LocalScheduleApi.kt` 探测 `currentUser.do`；`Schedule.kt` 和
 `LocalScheduleApiBackendTest.kt` 证明学期/教学周/今日/考试 GET 请求，以及周课表表单字段
 `termCode`、`type=week`、`week`。固定的 `api/aas/core.rs` 证明相同的 AAS 专用 CAS 激活和最终

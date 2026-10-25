@@ -3,7 +3,7 @@ import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../assignments/backend.dart';
 
-/// 首页旧六来源合成数据，所有时间围绕本次运行；绝不使用学校账号或网络。
+/// 首页七来源合成数据，所有时间围绕本次运行；绝不使用学校账号或网络。
 class HomeBackend extends CourseworkBackend {
   HomeBackend({super.state}) {
     signedIn = true;
@@ -96,6 +96,22 @@ class HomeBackend extends CourseworkBackend {
           ),
         ]);
       }
+    } else if (feature == FeatureId.exam) {
+      final start = time(90), end = time(150);
+      details.add(
+        FeatureDetail(
+          title: title('合成考试待办'),
+          presentation: ExamPresentation(
+            arranged: true,
+            date: start.substring(0, 10),
+            startTime: start.substring(11),
+            endTime: end.substring(11),
+            place: '合成考场',
+            seat: '12',
+            taskId: 'synthetic-exam',
+          ),
+        ),
+      );
     } else if (feature == FeatureId.spoc) {
       details.add(
         FeatureDetail(
