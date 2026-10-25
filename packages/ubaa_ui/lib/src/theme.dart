@@ -13,7 +13,7 @@ class UbaaTheme {
     GlobalCupertinoLocalizations.delegate,
   ];
 
-  static const Color seedColor = Color(0xFF0F6CBD);
+  static const Color seedColor = Color(0xFF1976D2);
   static const double pageMaxWidth = 1040;
   static const double cardRadius = 16;
   static const double controlRadius = 12;
@@ -38,56 +38,56 @@ class UbaaTheme {
 
   static ThemeData _build(Brightness brightness) {
     final dark = brightness == Brightness.dark;
-    // 中性色承担页面层次，蓝色只强调操作和选中状态。
-    // 明暗主题按角色配对，避免从品牌种子给大面积表面染色。
+    // 浅底与正文建立层次，图标蓝串联导航、来源和操作。
+    // 明暗主题按角色配对，区分品牌强调与普通状态。
     final accentContainer = dark
-        ? const Color(0xFF173B57)
-        : const Color(0xFFE5F0FA);
+        ? const Color(0xFF183F64)
+        : const Color(0xFFE3F0FC);
     final onAccentContainer = dark
-        ? const Color(0xFFB4D6FA)
-        : const Color(0xFF0F548C);
+        ? const Color(0xFFB8DAFC)
+        : const Color(0xFF125EA7);
     final colors =
         ColorScheme.fromSeed(
           seedColor: seedColor,
           brightness: brightness,
           dynamicSchemeVariant: DynamicSchemeVariant.neutral,
         ).copyWith(
-          primary: dark ? const Color(0xFF77B7F7) : seedColor,
+          primary: dark ? const Color(0xFF83BEF7) : seedColor,
           onPrimary: dark ? const Color(0xFF082F49) : Colors.white,
           primaryContainer: accentContainer,
           onPrimaryContainer: onAccentContainer,
-          secondary: dark ? const Color(0xFFC2C2C2) : const Color(0xFF616161),
+          secondary: dark ? const Color(0xFFC2C2C2) : const Color(0xFF596B7E),
           onSecondary: dark ? const Color(0xFF242424) : Colors.white,
           secondaryContainer: accentContainer,
           onSecondaryContainer: onAccentContainer,
-          surface: dark ? const Color(0xFF1B1B1B) : const Color(0xFFF7F7F7),
-          surfaceContainerLowest: dark ? const Color(0xFF141414) : Colors.white,
-          surfaceContainerLow: dark ? const Color(0xFF252525) : Colors.white,
+          surface: dark ? const Color(0xFF111C29) : const Color(0xFFFCFDFF),
+          surfaceContainerLowest: dark ? const Color(0xFF0D1621) : Colors.white,
+          surfaceContainerLow: dark ? const Color(0xFF1C2B3D) : Colors.white,
           surfaceContainer: dark
-              ? const Color(0xFF202020)
-              : const Color(0xFFF0F0F0),
+              ? const Color(0xFF14283D)
+              : const Color(0xFFEAF3FC),
           surfaceContainerHigh: dark
-              ? const Color(0xFF2D2D2D)
-              : const Color(0xFFEDEDED),
+              ? const Color(0xFF27374A)
+              : const Color(0xFFF1F4F7),
           surfaceContainerHighest: dark
-              ? const Color(0xFF383838)
-              : const Color(0xFFE5E5E5),
-          onSurface: dark ? const Color(0xFFF0F0F0) : const Color(0xFF242424),
+              ? const Color(0xFF34465B)
+              : const Color(0xFFE5EBF2),
+          onSurface: dark ? const Color(0xFFEAF3FC) : const Color(0xFF242424),
           onSurfaceVariant: dark
-              ? const Color(0xFFBDBDBD)
-              : const Color(0xFF616161),
+              ? const Color(0xFFB8C7D9)
+              : const Color(0xFF596B7E),
           outline: dark ? const Color(0xFF8A8A8A) : const Color(0xFF757575),
           outlineVariant: dark
-              ? const Color(0xFF404040)
-              : const Color(0xFFE0E0E0),
+              ? const Color(0xFF364B62)
+              : const Color(0xFFDBE5EF),
           inverseSurface: dark
-              ? const Color(0xFFF0F0F0)
+              ? const Color(0xFFEAF3FC)
               : const Color(0xFF303030),
           onInverseSurface: dark
               ? const Color(0xFF242424)
               : const Color(0xFFF5F5F5),
-          inversePrimary: dark ? seedColor : const Color(0xFF77B7F7),
-          surfaceTint: dark ? const Color(0xFF77B7F7) : seedColor,
+          inversePrimary: dark ? seedColor : const Color(0xFF83BEF7),
+          surfaceTint: dark ? const Color(0xFF83BEF7) : seedColor,
         );
     final controlShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(controlRadius),
@@ -140,7 +140,10 @@ class UbaaTheme {
       ),
       listTileTheme: ListTileThemeData(shape: controlShape),
       textButtonTheme: TextButtonThemeData(
-        style: TextButton.styleFrom(shape: controlShape),
+        style: TextButton.styleFrom(
+          shape: controlShape,
+          foregroundColor: colors.onPrimaryContainer,
+        ),
       ),
       appBarTheme: AppBarTheme(
         backgroundColor: colors.surface,
@@ -182,6 +185,7 @@ class UbaaTheme {
       outlinedButtonTheme: OutlinedButtonThemeData(
         style: OutlinedButton.styleFrom(
           shape: controlShape,
+          foregroundColor: colors.onPrimaryContainer,
           minimumSize: const Size(48, 48),
         ),
       ),
