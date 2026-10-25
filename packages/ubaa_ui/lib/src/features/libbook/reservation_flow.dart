@@ -315,12 +315,6 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
     if (!typed && _libraries.isEmpty && _areas.isEmpty) return widget.fallback;
     // 混合或未知结构仍沿通用白名单展示，不丢条目或误授操作。
     if (details.isNotEmpty && !typed) return widget.fallback;
-    final selectedLibraries = _libraries.where(
-      (library) => library.id == _libraryId,
-    );
-    final library = selectedLibraries.length == 1
-        ? selectedLibraries.single
-        : null;
     final mapAreas = <String, String>{
       for (final detail in details)
         if (detail.presentation case LibbookAreaDetailPresentation p)
@@ -335,12 +329,6 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
     return ListView(
       padding: UbaaTheme.pageInsets(context, top: 12, bottom: 16),
       children: [
-        if (library != null)
-          Text(library.name, style: Theme.of(context).textTheme.titleMedium),
-        if (_areaOptions case final area?) Text(area.name),
-        if (_areaSchedule case final area?) Text(area.name),
-        if ((_reservationDay ?? _day) case final day?)
-          Text(day, style: Theme.of(context).textTheme.bodySmall),
         if (MediaQuery.sizeOf(context).width >= 600)
           buildInlineChips(context)
         else
@@ -370,9 +358,4 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
       ],
     );
   }
-
-  Widget _section(String title) => Padding(
-    padding: const EdgeInsets.only(top: 8, bottom: 6),
-    child: Text(title, style: Theme.of(context).textTheme.titleMedium),
-  );
 }

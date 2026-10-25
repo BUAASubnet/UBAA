@@ -18,7 +18,7 @@ extension LibbookReservationContent on LibbookReservationFlowState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        _section('座位'),
+        const SizedBox(height: 12),
         if (seats.isEmpty) const Text('当前分区暂无可预约座位'),
         GridView.builder(
           shrinkWrap: true,
@@ -57,7 +57,7 @@ extension LibbookReservationContent on LibbookReservationFlowState {
                 ? '资格未确认'
                 : target.eligibility == ActionEligibility.denied
                 ? '不可预约'
-                : seat.statusName;
+                : null;
             return Card(
               color: _selectedSeat == seat.id
                   ? theme.colorScheme.primaryContainer
@@ -82,11 +82,12 @@ extension LibbookReservationContent on LibbookReservationFlowState {
                         textAlign: TextAlign.center,
                         maxLines: 2,
                       ),
-                      Text(
-                        status.isEmpty ? '状态未说明' : status,
-                        textAlign: TextAlign.center,
-                        style: theme.textTheme.bodySmall,
-                      ),
+                      if (status != null)
+                        Text(
+                          status,
+                          textAlign: TextAlign.center,
+                          style: theme.textTheme.bodySmall,
+                        ),
                     ],
                   ),
                 ),
@@ -103,7 +104,9 @@ extension LibbookReservationContent on LibbookReservationFlowState {
                 children: [
                   Text('已选座位：${p.number}', style: theme.textTheme.titleMedium),
                   Text('${p.queryDate} ${p.startTime}–${p.endTime}'),
-                  Text(p.name),
+                  if (p.name.trim().isNotEmpty &&
+                      p.name.trim() != p.number.trim())
+                    Text(p.name),
                   const SizedBox(height: 8),
                   OutlinedButton.icon(
                     onPressed:

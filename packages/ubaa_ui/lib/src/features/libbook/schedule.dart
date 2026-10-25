@@ -176,10 +176,19 @@ extension LibbookReservationSchedule on LibbookReservationFlowState {
                 ? '当前日期暂无可用时段。'
                 : '时段信息不完整或重复，请刷新后重试。',
           ),
-        if (_selectedSlot case final slot?)
+        if (_selectedDay != null && days.length == 1)
           Padding(
             padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text('${slot.start}–${slot.end}'),
+            child: Text(
+              _selectedSlot != null && slots.length == 1
+                  ? '$_reservationDay · ${_selectedSlot!.start}–${_selectedSlot!.end}'
+                  : _reservationDay!,
+            ),
+          )
+        else if (_selectedSlot != null && slots.length == 1)
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 8),
+            child: Text('${_selectedSlot!.start}–${_selectedSlot!.end}'),
           ),
       ],
     );
