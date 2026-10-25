@@ -3,7 +3,10 @@ part of 'view.dart';
 extension _IhomeCards on _IhomeViewState {
   Widget _appealCard(BuildContext context, IhomeEntry entry) {
     final id = entry.appeal.id;
-    final appeal = _details[id]?.data ?? entry.appeal;
+    // 详情读取只补充进度与操作状态，列表正文保持原位，避免打断选择复制。
+    final appeal = entry.appeal;
+    final detail = _details[id]?.data;
+    final reaction = detail ?? appeal;
     final expanded = _expanded.contains(_entryKey(entry));
     final busy = _busy.contains(id), loading = _detailLoading.contains(id);
     final disabled = _loading || busy || loading || _uncertain.contains(id);
@@ -14,44 +17,41 @@ extension _IhomeCards on _IhomeViewState {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          InkWell(
-            onTap: busy ? null : () => _toggle(entry),
-            child: Padding(
-              padding: const EdgeInsets.all(16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    appeal.content,
-                    maxLines: expanded ? null : 4,
-                    overflow: expanded ? null : TextOverflow.ellipsis,
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    [
-                      appeal.category,
-                      appeal.status,
-                      appeal.publishedAt,
-                    ].where((s) => s.isNotEmpty).join(' · '),
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-                  if (!expanded && appeal.replies.isNotEmpty) ...[
-                    const Divider(),
-                    Text(
-                      '${appeal.replies.first.department}：${appeal.replies.first.content}',
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
+          Padding(
+            padding: const EdgeInsets.all(16),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SelectableText(appeal.content),
+                const SizedBox(height: 8),
+                Text(
+                  [
+                    appeal.category,
+                    appeal.status,
+                    appeal.publishedAt,
+                  ].where((s) => s.isNotEmpty).join(' · '),
+                  style: Theme.of(context).textTheme.bodySmall,
+                ),
+                if (appeal.replies.isNotEmpty) ...[
+                  const Divider(),
+                  for (final reply in appeal.replies)
+                    Padding(
+                      padding: const EdgeInsets.only(top: 4, bottom: 4),
+                      child: SelectableText(
+                        reply.department.isEmpty
+                            ? reply.content
+                            : '${reply.department}：${reply.content}',
+                      ),
                     ),
-                  ],
-                  if (entry.evaluation != null) ...[
-                    const Divider(),
-                    Text('我的评价：${entry.evaluation!.content}'),
-                    Text(
-                      '响应速度 ${entry.evaluation!.speed} · 满意度 ${entry.evaluation!.satisfaction} · 解决程度 ${entry.evaluation!.degree}',
-                    ),
-                  ],
                 ],
-              ),
+                if (entry.evaluation != null) ...[
+                  const Divider(),
+                  Text('我的评价：${entry.evaluation!.content}'),
+                  Text(
+                    '响应速度 ${entry.evaluation!.speed} · 满意度 ${entry.evaluation!.satisfaction} · 解决程度 ${entry.evaluation!.degree}',
+                  ),
+                ],
+              ],
             ),
           ),
           Padding(
@@ -63,26 +63,26 @@ extension _IhomeCards on _IhomeViewState {
               children: [
                 _ihomeReaction(
                   context,
-                  selected: appeal.isFollowed == true,
+                  selected: reaction.isFollowed == true,
                   label: '关注',
                   icon: Icons.star_border,
                   selectedIcon: Icons.star,
-                  count: appeal.followCount,
-                  onPressed: disabled || appeal.isFollowed == null
+                  count: reaction.followCount,
+                  onPressed: disabled || reaction.isFollowed == null
                       ? null
-                      : () => _react(appeal, IhomeReaction.follow),
+                      : () => _react(reaction, IhomeReaction.follow),
                 ),
                 if (_config?.supportEnabled == true)
                   _ihomeReaction(
                     context,
-                    selected: appeal.isSupported == true,
+                    selected: reaction.isSupported == true,
                     label: _config!.supportLabel,
                     icon: Icons.thumb_up_outlined,
                     selectedIcon: Icons.thumb_up,
-                    count: appeal.supportCount,
-                    onPressed: disabled || appeal.isSupported == null
+                    count: reaction.supportCount,
+                    onPressed: disabled || reaction.isSupported == null
                         ? null
-                        : () => _react(appeal, IhomeReaction.support),
+                        : () => _react(reaction, IhomeReaction.support),
                   ),
                 TextButton.icon(
                   onPressed: busy ? null : () => _toggle(entry),
@@ -108,48 +108,21 @@ extension _IhomeCards on _IhomeViewState {
                 ],
               ),
             ),
-          if (expanded && _details.containsKey(id))
+          if (expanded && detail != null && detail.history.isNotEmpty)
             Padding(
               padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  if (appeal.departments.isNotEmpty)
-                    Text(appeal.departments.join('、')),
-                  if (appeal.replies.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      '官方回复',
-                      style: Theme.of(context).textTheme.titleMedium,
+                  const SizedBox(height: 16),
+                  Text('处理进度', style: Theme.of(context).textTheme.titleMedium),
+                  for (final history in detail.history)
+                    _ihomeBlock(
+                      context,
+                      '',
+                      history.content,
+                      history.createdAt,
                     ),
-                    for (final r in appeal.replies)
-                      _ihomeBlock(
-                        context,
-                        r.department,
-                        r.content,
-                        r.createdAt,
-                      ),
-                  ],
-                  if (appeal.evaluations.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Text('评价', style: Theme.of(context).textTheme.titleMedium),
-                    for (final e in appeal.evaluations)
-                      _ihomeBlock(
-                        context,
-                        e.department,
-                        '响应速度 ${e.speed} · 满意度 ${e.satisfaction} · 解决程度 ${e.degree}\n${e.content}',
-                        e.createdAt,
-                      ),
-                  ],
-                  if (appeal.history.isNotEmpty) ...[
-                    const SizedBox(height: 16),
-                    Text(
-                      '处理进度',
-                      style: Theme.of(context).textTheme.titleMedium,
-                    ),
-                    for (final h in appeal.history)
-                      _ihomeBlock(context, '', h.content, h.createdAt),
-                  ],
                 ],
               ),
             ),

@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/features/ihome/view.dart';
@@ -9,6 +10,10 @@ IhomeAppeal appeal(
   String content = '测试诉求',
   bool followed = false,
   bool supported = false,
+  List<IhomeReply> replies = const [
+    IhomeReply(content: '官方回复内容', department: '服务中心', createdAt: '2026-10-25'),
+  ],
+  List<IhomeHistory> history = const [],
 }) => IhomeAppeal(
   id: id,
   content: content,
@@ -21,11 +26,9 @@ IhomeAppeal appeal(
   isSupported: supported,
   followCount: 1,
   supportCount: 2,
-  replies: const [
-    IhomeReply(content: '官方回复内容', department: '服务中心', createdAt: '2026-10-25'),
-  ],
+  replies: replies,
   evaluations: const [],
-  history: const [],
+  history: history,
 );
 IhomeResult<IhomePage> page(
   int id, {
@@ -47,6 +50,7 @@ class Service implements IhomeService {
   final queries = <IhomeQuery>[];
   Future<IhomeResult<IhomePage>> Function(IhomeQuery)? load;
   int detailCalls = 0;
+  IhomeAppeal? detailValue;
   final writes = <(int, IhomeReaction, bool, ConnectionMode)>[];
   bool failWrite = false;
   @override
@@ -78,7 +82,16 @@ class Service implements IhomeService {
   @override
   Future<IhomeResult<IhomeAppeal>> detail(int id, {bool mine = false}) async {
     detailCalls++;
-    return IhomeResult(appeal(id), ConnectionMode.webvpn);
+    return IhomeResult(
+      detailValue ??
+          appeal(
+            id,
+            history: const [
+              IhomeHistory(content: '已分办', createdAt: '2026-10-25'),
+            ],
+          ),
+      ConnectionMode.webvpn,
+    );
   }
 
   @override
@@ -125,6 +138,98 @@ Future<void> mount(WidgetTester tester, Service service) async {
 }
 
 void main() {
+  testWidgets('长诉求和多条回复完整展示且点击复制不触发详情', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 1800));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final content = List.generate(8, (i) => '诉求第$i段：完整展示并支持选择复制。').join('\n');
+    final reply = List.generate(6, (i) => '回复第$i段：说明处理结果和后续安排。').join('\n');
+    final service = Service()
+      ..load = (q) async => IhomeResult(
+        IhomePage(
+          entries: [
+            IhomeEntry(
+              appeal: appeal(
+                42,
+                content: content,
+                replies: [
+                  IhomeReply(content: reply, department: '服务中心', createdAt: ''),
+                  const IhomeReply(
+                    content: '第二条完整回复',
+                    department: '另一部门',
+                    createdAt: '',
+                  ),
+                ],
+              ),
+              evaluation: null,
+            ),
+          ],
+          page: 1,
+          lastPage: 1,
+          total: 1,
+        ),
+        ConnectionMode.direct,
+      );
+    String? copied;
+    TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+        .setMockMethodCallHandler(SystemChannels.platform, (call) async {
+          if (call.method == 'Clipboard.setData')
+            copied = (call.arguments as Map)['text'] as String;
+          return null;
+        });
+    addTearDown(
+      () => TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger
+          .setMockMethodCallHandler(SystemChannels.platform, null),
+    );
+    await mount(tester, service);
+    for (final value in [content, '服务中心：$reply', '另一部门：第二条完整回复']) {
+      final text = find.text(value);
+      await tester.ensureVisible(text);
+      await tester.tap(text);
+      await tester.pumpAndSettle();
+      expect(service.detailCalls, 0);
+      final editable = find.byWidgetPredicate(
+        (widget) => widget is EditableText && widget.controller.text == value,
+      );
+      final state = tester.state<EditableTextState>(editable);
+      final render = state.renderEditable;
+      expect(
+        render.getLocalRectForCaret(TextPosition(offset: value.length)).bottom,
+        lessThanOrEqualTo(render.size.height + 1),
+      );
+      state.selectAll(SelectionChangedCause.keyboard);
+      state.copySelection(SelectionChangedCause.keyboard);
+      await tester.pump();
+      expect(copied, value);
+      expect(service.detailCalls, 0);
+    }
+  });
+  testWidgets('查看详情只追加进度且保持原回复的布局和内容', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(1000, 1200));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final service = Service()
+      ..detailValue = appeal(
+        42,
+        content: '详情响应中的其他正文',
+        replies: const [
+          IhomeReply(content: '详情中的不同回复', department: '其他部门', createdAt: ''),
+        ],
+        history: const [IhomeHistory(content: '已分办', createdAt: '2026-10-25')],
+      );
+    await mount(tester, service);
+    final reply = find.text('服务中心：官方回复内容');
+    final position = tester.getTopLeft(reply);
+    final size = tester.getSize(reply);
+    await tester.tap(find.text('查看详情'));
+    await tester.pumpAndSettle();
+    expect(service.detailCalls, 1);
+    expect(find.text('已分办'), findsOneWidget);
+    expect(tester.getTopLeft(reply), position);
+    expect(tester.getSize(reply), size);
+    await tester.tap(find.text('收起详情'));
+    await tester.pumpAndSettle();
+    expect(tester.getTopLeft(reply), position);
+    expect(service.detailCalls, 1);
+  });
   testWidgets('展开详情保留搜索与列表位置并可原位收起', (tester) async {
     final service = Service();
     await mount(tester, service);
@@ -132,21 +237,21 @@ void main() {
     await tester.testTextInput.receiveAction(TextInputAction.done);
     await tester.pumpAndSettle();
     final reads = service.queries.length;
-    await tester.tap(find.text('测试诉求'));
+    await tester.tap(find.text('查看详情'));
     await tester.pumpAndSettle();
     expect(find.text('校园'), findsOneWidget);
-    expect(find.text('官方回复内容'), findsOneWidget);
+    expect(find.text('服务中心：官方回复内容'), findsOneWidget);
     expect(service.detailCalls, 1);
     await tester.tap(find.byTooltip('刷新'));
     await tester.pumpAndSettle();
     expect(service.detailCalls, 2);
-    expect(find.text('官方回复内容'), findsOneWidget);
+    expect(find.text('服务中心：官方回复内容'), findsOneWidget);
     await tester.ensureVisible(find.text('收起详情'));
     await tester.tap(find.text('收起详情'));
     await tester.pumpAndSettle();
     expect(find.text('测试诉求'), findsOneWidget);
     expect(service.queries.length, reads + 1);
-    await tester.tap(find.text('测试诉求'));
+    await tester.tap(find.text('查看详情'));
     await tester.pumpAndSettle();
     expect(service.detailCalls, 2);
   });
