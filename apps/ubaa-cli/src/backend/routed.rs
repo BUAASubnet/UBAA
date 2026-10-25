@@ -15,6 +15,7 @@ use ubaa_core::facade::{
     WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview,
     YgdkRecordsPage,
 };
+use ubaa_core::facade::{IhomeAppeal, IhomeConfig, IhomeNotice, IhomePage, IhomeQuery};
 use ubaa_core::facade::{Result, RoutedResult, UbaaClient};
 
 use super::RoutedCliBackend;
@@ -22,6 +23,26 @@ use crate::io::input::internal_error;
 
 #[async_trait]
 impl RoutedCliBackend for UbaaClient {
+    async fn ihome_notice(&mut self, id: i64) -> RoutedResult<IhomeNotice> {
+        UbaaClient::ihome_notice(self, id).await
+    }
+
+    async fn ihome_notices(&mut self) -> RoutedResult<Vec<IhomeNotice>> {
+        UbaaClient::ihome_notices(self).await
+    }
+
+    async fn ihome_config(&mut self) -> RoutedResult<IhomeConfig> {
+        UbaaClient::ihome_config(self).await
+    }
+
+    async fn ihome_detail(&mut self, id: i64, mine: bool) -> RoutedResult<IhomeAppeal> {
+        UbaaClient::ihome_detail(self, id, mine).await
+    }
+
+    async fn ihome_page(&mut self, query: IhomeQuery) -> RoutedResult<IhomePage> {
+        UbaaClient::ihome_page(self, query).await
+    }
+
     async fn evaluation_all(&mut self) -> RoutedResult<EvaluationCoursesResponse> {
         UbaaClient::evaluation_all(self).await
     }

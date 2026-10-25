@@ -7,6 +7,7 @@ pub mod cgyy;
 pub mod classroom;
 pub mod evaluation;
 pub mod grades;
+pub(crate) mod ihome;
 pub mod judge;
 pub mod libbook;
 pub mod schedule;
@@ -32,3 +33,6 @@ pub(crate) fn feature_result<T>(
         resolved_route: runtime.mode(),
     }
 }
+
+#[cfg(test)]
+mod ihome_tests;

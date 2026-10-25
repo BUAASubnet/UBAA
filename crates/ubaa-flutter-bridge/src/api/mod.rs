@@ -24,3 +24,5 @@ pub mod cache_management;
 pub mod schedule_import;
 
 pub mod sensitive;
+
+pub mod ihome;

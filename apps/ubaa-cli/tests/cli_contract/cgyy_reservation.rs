@@ -146,11 +146,11 @@ fn with_schema_version(mut value: Value, version: u32) -> Value {
 
 #[test]
 fn cli_唯一_json_schema_版本为_11() {
-    assert_eq!(CLI_JSON_SCHEMA_VERSION, 11);
+    assert_eq!(CLI_JSON_SCHEMA_VERSION, 12);
 }
 
 #[test]
-fn 四类_cli_信封只接受_schema_v11_并拒绝旧_v10() {
+fn 四类_cli_信封只接受_schema_v12_并拒绝旧_v11() {
     let meta = ResolvedRoutedJsonMeta::explicit(CliFeature::Cgyy, ConnectionMode::Direct);
     let envelopes = [
         (
@@ -185,16 +185,16 @@ fn 四类_cli_信封只接受_schema_v11_并拒绝旧_v10() {
     let validator = contract_validator();
 
     for (kind, envelope) in envelopes {
-        let current = with_schema_version(envelope, 11);
+        let current = with_schema_version(envelope, 12);
         assert!(
             validator.is_valid(&current),
-            "schema v11 应接受 {kind} 信封：{current}"
+            "schema v12 应接受 {kind} 信封：{current}"
         );
 
-        let old = with_schema_version(current, 10);
+        let old = with_schema_version(current, 11);
         assert!(
             !validator.is_valid(&old),
-            "schema v11 必须拒绝旧 v10 {kind} 信封：{old}"
+            "schema v12 必须拒绝旧 v11 {kind} 信封：{old}"
         );
     }
 }

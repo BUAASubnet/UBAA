@@ -97,6 +97,7 @@ where
         Command::Libbook(arguments) => run_libbook(arguments, backend).await,
         Command::Bykc(arguments) => run_bykc(arguments, backend).await,
         Command::Cgyy(arguments) => run_cgyy(arguments, backend).await,
+        Command::Ihome(arguments) => super::features::ihome::run_ihome(arguments, backend).await,
         Command::Ygdk(arguments) => run_ygdk(arguments, backend).await,
         Command::Evaluation(arguments) => run_evaluation(arguments, backend).await,
     };

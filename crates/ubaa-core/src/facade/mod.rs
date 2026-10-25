@@ -24,8 +24,14 @@ pub use judge_scan::{
     JudgeScanCancellation, JudgeScanKind,
 };
 pub use offline::{OfflineCache, OfflineReadError, OfflineRefresh};
+#[path = "read/ihome.rs"]
+mod ihome;
 mod interactive_auth;
 mod read;
+pub use crate::domain::{
+    IhomeAppeal, IhomeCategory, IhomeConfig, IhomeEntry, IhomeEvaluation, IhomeFilter,
+    IhomeHistory, IhomeNotice, IhomePage, IhomeQuery, IhomeReaction, IhomeReply, IhomeScope,
+};
 mod routing;
 #[path = "client/observation.rs"]
 mod write_observation;

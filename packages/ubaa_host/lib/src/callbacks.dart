@@ -94,6 +94,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     final localOwner = _controller.localDataOwnerScope;
     final appInformation = widget.appInformation ?? SystemAppInformation();
     return UbaaMainShell(
+      ihomeService: _controller.ihomeService,
       connectionStatus: _connectionStatus,
       writeReadbacks: _controller.writeReadbacks,
       writeReadbackError: _controller.writeReadbackError,

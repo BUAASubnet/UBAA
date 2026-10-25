@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'ihome/service.dart';
 import 'write/pinned_readback.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -69,7 +70,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 41;
+const _supportedBridgeContractVersion = 42;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -79,6 +80,7 @@ const _supportedBridgeContractVersion = 41;
 class BridgeBackend
     implements
         UbaaBackend,
+        IhomeBackend,
         PinnedWriteReadbackBackend,
         InteractiveLoginBackend,
         CgyyLockDisplayBackend,
@@ -134,6 +136,8 @@ class BridgeBackend
       );
 
   final BridgeContext _context;
+  @override
+  late final IhomeService ihome = BridgeIhomeService(_context.client);
   @override
   Future<FeatureResult> readAfterWriteOnRoute(
     WriteOperation operation, {

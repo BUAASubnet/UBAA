@@ -12,7 +12,9 @@ mod auth;
 mod bykc;
 mod cgyy;
 mod evaluation;
+pub(crate) mod ihome;
 mod libbook;
+pub use ihome::{IhomeArgs, IhomeCommand};
 mod ygdk;
 
 pub use academic::{
@@ -54,6 +56,8 @@ pub struct Cli {
 /// 顶层命令组。
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// iHome 校园服务只读查询。
+    Ihome(IhomeArgs),
     /// 认证并管理持久化会话。
     Auth(AuthArgs),
     /// 查询已认证的用户中心资料。
@@ -126,6 +130,7 @@ impl Cli {
                 | Command::Libbook(_)
                 | Command::Bykc(_)
                 | Command::Cgyy(_)
+                | Command::Ihome(_)
                 | Command::Ygdk(_)
                 | Command::Evaluation(_)
         )
@@ -174,6 +179,7 @@ pub(crate) const fn command_feature(command: &Command) -> CliFeature {
         Command::Libbook(_) => CliFeature::LibBook,
         Command::Bykc(_) => CliFeature::Bykc,
         Command::Cgyy(_) => CliFeature::Cgyy,
+        Command::Ihome(_) => CliFeature::Ihome,
         Command::Ygdk(_) => CliFeature::Ygdk,
         Command::Evaluation(_) => CliFeature::Evaluation,
     }

@@ -73,6 +73,10 @@ where
         ),
         Command::Bykc(arguments) => (CliFeature::Bykc, run_routed_bykc(arguments, backend).await),
         Command::Cgyy(arguments) => (CliFeature::Cgyy, run_routed_cgyy(arguments, backend).await),
+        Command::Ihome(arguments) => (
+            CliFeature::Ihome,
+            super::features::ihome::run_routed_ihome(arguments, backend).await,
+        ),
         Command::Ygdk(arguments) => (CliFeature::Ygdk, run_routed_ygdk(arguments, backend).await),
         Command::Evaluation(arguments) => (
             CliFeature::Evaluation,

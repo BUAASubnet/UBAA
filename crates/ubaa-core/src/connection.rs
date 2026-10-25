@@ -341,13 +341,9 @@ pub fn from_webvpn_url(url: &str) -> Result<String> {
         || format!("{scheme}://{host}"),
         |port| format!("{scheme}://{host}:{port}"),
     );
-    let path = if parsed.path().ends_with('/') && segments.len() == 2 {
-        "/".to_string()
-    } else if segments.len() > 2 {
-        format!("/{}", segments[2..].join("/"))
-    } else {
-        String::new()
-    };
+    // 只移除网关协议与加密主机前缀，保留业务路径的尾斜杠和重复斜杠。
+    let prefix = format!("/{}/{}", segments[0], segments[1]);
+    let path = parsed.path().strip_prefix(&prefix).unwrap_or("");
     let query = parsed
         .query()
         .filter(|query| !query.is_empty())

@@ -64,3 +64,7 @@ abstract interface class UbaaBackend {
   /// 首发只读功能统一返回摘要。详情 DTO 接入时保持此接口的错误语义。
   Future<FeatureResult> loadFeature(FeatureId feature);
 }
+
+abstract interface class IhomeBackend {
+  IhomeService get ihome;
+}

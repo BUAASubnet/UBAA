@@ -10,6 +10,8 @@ mod route;
 pub use route::*;
 mod bykc;
 pub use bykc::*;
+mod ihome;
+pub use ihome::*;
 mod libbook;
 pub use libbook::*;
 mod ygdk;

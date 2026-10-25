@@ -10,7 +10,7 @@
   ],
   "$defs": {
     "feature": {
-      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "libbook", "ygdk", "bykc", "cgyy", "evaluation"]
+      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "libbook", "ygdk", "bykc", "cgyy", "evaluation", "ihome"]
     },
     "route": {
       "enum": ["direct", "webvpn"]
@@ -1093,7 +1093,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "schemaVersion": { "const": 11 },
+        "schemaVersion": { "const": 12 },
         "ok": { "type": "boolean" },
         "data": {},
         "error": { "$ref": "#/$defs/error" },
@@ -1254,7 +1254,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "error", "meta"],
       "properties": {
-        "schemaVersion": { "const": 11 },
+        "schemaVersion": { "const": 12 },
         "ok": { "const": false },
         "error": { "$ref": "#/$defs/error" },
         "meta": { "$ref": "#/$defs/unresolvedRoutedMeta" }
@@ -1410,7 +1410,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 11 },
+        "schemaVersion": { "const": 12 },
         "ok": { "type": "boolean" },
         "data": { "$ref": "#/$defs/aggregateAuthData" },
         "error": { "$ref": "#/$defs/error" },
@@ -1486,7 +1486,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 11 },
+        "schemaVersion": { "const": 12 },
         "ok": { "const": true },
         "data": { "$ref": "#/$defs/aggregateLogoutData" },
         "meta": { "$ref": "#/$defs/aggregateMeta" }

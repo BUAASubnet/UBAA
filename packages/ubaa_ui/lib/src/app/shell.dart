@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../features/ihome/view.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -58,6 +59,7 @@ class UbaaMainShell extends StatefulWidget {
     this.onCancelScheduleImport,
     this.onLoadCgyyPurposes,
     this.onLoadAppVersion,
+    this.ihomeService,
     this.onOpenAppLink,
     this.onLoadAllGrades,
     this.gradeScoreNotice,
@@ -158,6 +160,7 @@ class UbaaMainShell extends StatefulWidget {
   final ValueChanged<String>? onCancelScheduleImport;
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadCgyyPurposes;
   final Future<String?> Function()? onLoadAppVersion;
+  final IhomeService? ihomeService;
   final Future<bool> Function(AppLink)? onOpenAppLink;
   final GradesAggregateLoader? onLoadAllGrades;
   final GradeScoreNotice? gradeScoreNotice;
@@ -818,7 +821,14 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   );
 
   Widget _buildTab(BuildContext context) => _utilityPage != null
-      ? _utilityPage == '关于'
+      ? _utilityPage == 'iHome'
+            ? IhomeView(
+                key: ValueKey(
+                  widget.cacheAccountId ?? widget.user?.accountScope,
+                ),
+                service: widget.ihomeService,
+              )
+            : _utilityPage == '关于'
             ? AboutView(
                 loadVersion: widget.onLoadAppVersion,
                 openLink: widget.onOpenAppLink,
@@ -875,6 +885,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             onRefresh: widget.onRefresh,
           ),
           1 || 2 || 3 => FeatureGridView(
+            onOpenIhome: _selectedIndex == UiDestination.campus.index
+                ? () => _openUtility('iHome')
+                : null,
             features: _tabs[_selectedIndex].features,
             snapshots: widget.snapshots,
             onFeatureTap: _openFeatureList,

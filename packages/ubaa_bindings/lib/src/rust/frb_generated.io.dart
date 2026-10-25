@@ -5,6 +5,7 @@
 
 import 'api/cache_management.dart';
 import 'api/client.dart';
+import 'api/ihome.dart';
 import 'api/initialization.dart';
 import 'api/interactive_auth.dart';
 import 'api/judge_refresh.dart';
@@ -576,6 +577,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeGradeScoreBaseline dco_decode_box_autoadd_bridge_grade_score_baseline(
     dynamic raw,
   );
+
+  @protected
+  BridgeIhomeEvaluation dco_decode_box_autoadd_bridge_ihome_evaluation(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeIhomeQuery dco_decode_box_autoadd_bridge_ihome_query(dynamic raw);
 
   @protected
   BridgeJudgeAssignmentDetail
@@ -1231,6 +1240,65 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeHomeYgdkRefresh dco_decode_bridge_home_ygdk_refresh(dynamic raw);
 
   @protected
+  BridgeIhomeAppeal dco_decode_bridge_ihome_appeal(dynamic raw);
+
+  @protected
+  BridgeIhomeCategory dco_decode_bridge_ihome_category(dynamic raw);
+
+  @protected
+  BridgeIhomeConfig dco_decode_bridge_ihome_config(dynamic raw);
+
+  @protected
+  BridgeIhomeConfigResult dco_decode_bridge_ihome_config_result(dynamic raw);
+
+  @protected
+  BridgeIhomeDetailResult dco_decode_bridge_ihome_detail_result(dynamic raw);
+
+  @protected
+  BridgeIhomeEntry dco_decode_bridge_ihome_entry(dynamic raw);
+
+  @protected
+  BridgeIhomeEvaluation dco_decode_bridge_ihome_evaluation(dynamic raw);
+
+  @protected
+  BridgeIhomeFilter dco_decode_bridge_ihome_filter(dynamic raw);
+
+  @protected
+  BridgeIhomeHistory dco_decode_bridge_ihome_history(dynamic raw);
+
+  @protected
+  BridgeIhomeNotice dco_decode_bridge_ihome_notice(dynamic raw);
+
+  @protected
+  BridgeIhomeNoticeResult dco_decode_bridge_ihome_notice_result(dynamic raw);
+
+  @protected
+  BridgeIhomeNoticesResult dco_decode_bridge_ihome_notices_result(dynamic raw);
+
+  @protected
+  BridgeIhomePage dco_decode_bridge_ihome_page(dynamic raw);
+
+  @protected
+  BridgeIhomePageResult dco_decode_bridge_ihome_page_result(dynamic raw);
+
+  @protected
+  BridgeIhomeQuery dco_decode_bridge_ihome_query(dynamic raw);
+
+  @protected
+  BridgeIhomeReaction dco_decode_bridge_ihome_reaction(dynamic raw);
+
+  @protected
+  BridgeIhomeReactionResult dco_decode_bridge_ihome_reaction_result(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeIhomeReply dco_decode_bridge_ihome_reply(dynamic raw);
+
+  @protected
+  BridgeIhomeScope dco_decode_bridge_ihome_scope(dynamic raw);
+
+  @protected
   BridgeInitializationError dco_decode_bridge_initialization_error(dynamic raw);
 
   @protected
@@ -1831,6 +1899,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeIhomeCategory> dco_decode_list_bridge_ihome_category(dynamic raw);
+
+  @protected
+  List<BridgeIhomeEntry> dco_decode_list_bridge_ihome_entry(dynamic raw);
+
+  @protected
+  List<BridgeIhomeEvaluation> dco_decode_list_bridge_ihome_evaluation(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeIhomeHistory> dco_decode_list_bridge_ihome_history(dynamic raw);
+
+  @protected
+  List<BridgeIhomeNotice> dco_decode_list_bridge_ihome_notice(dynamic raw);
+
+  @protected
+  List<BridgeIhomeReply> dco_decode_list_bridge_ihome_reply(dynamic raw);
+
+  @protected
   List<BridgeInteractiveRouteResult>
   dco_decode_list_bridge_interactive_route_result(dynamic raw);
 
@@ -2154,6 +2242,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeGradeScoreBaseline?
   dco_decode_opt_box_autoadd_bridge_grade_score_baseline(dynamic raw);
+
+  @protected
+  BridgeIhomeEvaluation? dco_decode_opt_box_autoadd_bridge_ihome_evaluation(
+    dynamic raw,
+  );
 
   @protected
   BridgeJudgeAssignmentDetail?
@@ -2778,6 +2871,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeGradeScoreBaseline sse_decode_box_autoadd_bridge_grade_score_baseline(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeEvaluation sse_decode_box_autoadd_bridge_ihome_evaluation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeQuery sse_decode_box_autoadd_bridge_ihome_query(
     SseDeserializer deserializer,
   );
 
@@ -3605,6 +3708,91 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeIhomeAppeal sse_decode_bridge_ihome_appeal(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeCategory sse_decode_bridge_ihome_category(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeConfig sse_decode_bridge_ihome_config(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeConfigResult sse_decode_bridge_ihome_config_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeDetailResult sse_decode_bridge_ihome_detail_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeEntry sse_decode_bridge_ihome_entry(SseDeserializer deserializer);
+
+  @protected
+  BridgeIhomeEvaluation sse_decode_bridge_ihome_evaluation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeFilter sse_decode_bridge_ihome_filter(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeHistory sse_decode_bridge_ihome_history(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeNotice sse_decode_bridge_ihome_notice(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeNoticeResult sse_decode_bridge_ihome_notice_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeNoticesResult sse_decode_bridge_ihome_notices_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomePage sse_decode_bridge_ihome_page(SseDeserializer deserializer);
+
+  @protected
+  BridgeIhomePageResult sse_decode_bridge_ihome_page_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeQuery sse_decode_bridge_ihome_query(SseDeserializer deserializer);
+
+  @protected
+  BridgeIhomeReaction sse_decode_bridge_ihome_reaction(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeReactionResult sse_decode_bridge_ihome_reaction_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeReply sse_decode_bridge_ihome_reply(SseDeserializer deserializer);
+
+  @protected
+  BridgeIhomeScope sse_decode_bridge_ihome_scope(SseDeserializer deserializer);
+
+  @protected
   BridgeInitializationError sse_decode_bridge_initialization_error(
     SseDeserializer deserializer,
   );
@@ -4373,6 +4561,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeIhomeCategory> sse_decode_list_bridge_ihome_category(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeIhomeEntry> sse_decode_list_bridge_ihome_entry(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeIhomeEvaluation> sse_decode_list_bridge_ihome_evaluation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeIhomeHistory> sse_decode_list_bridge_ihome_history(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeIhomeNotice> sse_decode_list_bridge_ihome_notice(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeIhomeReply> sse_decode_list_bridge_ihome_reply(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BridgeInteractiveRouteResult>
   sse_decode_list_bridge_interactive_route_result(SseDeserializer deserializer);
 
@@ -4786,6 +5004,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeGradeScoreBaseline?
   sse_decode_opt_box_autoadd_bridge_grade_score_baseline(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeIhomeEvaluation? sse_decode_opt_box_autoadd_bridge_ihome_evaluation(
     SseDeserializer deserializer,
   );
 
@@ -5491,6 +5714,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_grade_score_baseline(
     BridgeGradeScoreBaseline self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_ihome_evaluation(
+    BridgeIhomeEvaluation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_ihome_query(
+    BridgeIhomeQuery self,
     SseSerializer serializer,
   );
 
@@ -6485,6 +6720,120 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_ihome_appeal(
+    BridgeIhomeAppeal self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_category(
+    BridgeIhomeCategory self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_config(
+    BridgeIhomeConfig self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_config_result(
+    BridgeIhomeConfigResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_detail_result(
+    BridgeIhomeDetailResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_entry(
+    BridgeIhomeEntry self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_evaluation(
+    BridgeIhomeEvaluation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_filter(
+    BridgeIhomeFilter self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_history(
+    BridgeIhomeHistory self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_notice(
+    BridgeIhomeNotice self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_notice_result(
+    BridgeIhomeNoticeResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_notices_result(
+    BridgeIhomeNoticesResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_page(
+    BridgeIhomePage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_page_result(
+    BridgeIhomePageResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_query(
+    BridgeIhomeQuery self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_reaction(
+    BridgeIhomeReaction self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_reaction_result(
+    BridgeIhomeReactionResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_reply(
+    BridgeIhomeReply self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_ihome_scope(
+    BridgeIhomeScope self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_initialization_error(
     BridgeInitializationError self,
     SseSerializer serializer,
@@ -7421,6 +7770,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_ihome_category(
+    List<BridgeIhomeCategory> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_ihome_entry(
+    List<BridgeIhomeEntry> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_ihome_evaluation(
+    List<BridgeIhomeEvaluation> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_ihome_history(
+    List<BridgeIhomeHistory> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_ihome_notice(
+    List<BridgeIhomeNotice> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_ihome_reply(
+    List<BridgeIhomeReply> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_interactive_route_result(
     List<BridgeInteractiveRouteResult> self,
     SseSerializer serializer,
@@ -7884,6 +8269,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_grade_score_baseline(
     BridgeGradeScoreBaseline? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_ihome_evaluation(
+    BridgeIhomeEvaluation? self,
     SseSerializer serializer,
   );
 

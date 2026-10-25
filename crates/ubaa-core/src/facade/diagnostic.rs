@@ -27,6 +27,7 @@ use super::routing::invalid_input;
 
 mod cgyy;
 mod evaluation;
+mod ihome;
 
 /// 仅供诊断、测试和真实验证使用的单路线客户端。
 #[doc(hidden)]

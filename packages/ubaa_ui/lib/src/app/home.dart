@@ -789,11 +789,13 @@ class FeatureGridView extends StatelessWidget {
     required this.onFeatureTap,
     required this.onRetryFeature,
     required this.features,
+    this.onOpenIhome,
   });
   final Map<FeatureId, FeatureSnapshot> snapshots;
   final ValueChanged<FeatureId> onFeatureTap;
   final Future<void> Function(FeatureId) onRetryFeature;
   final List<FeatureId> features;
+  final VoidCallback? onOpenIhome;
 
   @override
   Widget build(BuildContext context) => CustomScrollView(
@@ -804,6 +806,16 @@ class FeatureGridView extends StatelessWidget {
         ),
         sliver: SliverList.list(
           children: [
+            if (onOpenIhome != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: UiEntryCard(
+                  title: 'iHome',
+                  icon: Icons.forum_outlined,
+                  subtitle: '校园诉求、回复与公告',
+                  onTap: onOpenIhome!,
+                ),
+              ),
             for (final feature in features)
               Padding(
                 padding: const EdgeInsets.only(bottom: 8),

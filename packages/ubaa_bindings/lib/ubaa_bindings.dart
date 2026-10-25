@@ -41,3 +41,5 @@ export 'src/rust/api/offline_evaluation/scan.dart';
 export 'src/rust/api/sensitive.dart';
 
 export 'src/rust/api/initialization.dart';
+
+export 'src/rust/api/ihome.dart';

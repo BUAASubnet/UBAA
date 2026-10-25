@@ -16,12 +16,14 @@ use crate::io::error::{CliJsonError, output_invariant_error};
 use crate::io::input::internal_error;
 
 /// CLI 唯一支持的 JSON 架构版本。
-pub const CLI_JSON_SCHEMA_VERSION: u32 = 11;
+pub const CLI_JSON_SCHEMA_VERSION: u32 = 12;
 
 /// CLI JSON 元数据使用的封闭功能名称集合。
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CliFeature {
+    /// iHome 校园服务。
+    Ihome,
     /// 参数解析和进程启动。
     Cli,
     /// 认证、状态和登出。
@@ -59,6 +61,7 @@ impl CliFeature {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Ihome => "ihome",
             Self::Cli => "cli",
             Self::Auth => "auth",
             Self::User => "user",

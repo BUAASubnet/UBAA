@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'ihome.dart';
 import 'initialization.dart';
 import 'interactive_auth.dart';
 import 'judge_refresh.dart';
@@ -459,6 +460,26 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 原业务错误与账号/退出栅栏不降级为缓存保存错误。
   Future<BridgeHomeYgdkRefresh> homeYgdkCached({
     required BridgeOfflineCache cache,
+  });
+
+  Future<BridgeIhomeConfigResult> ihomeConfig();
+
+  Future<BridgeIhomeDetailResult> ihomeDetail({
+    required PlatformInt64 id,
+    required bool mine,
+  });
+
+  Future<BridgeIhomeNoticeResult> ihomeNotice({required PlatformInt64 id});
+
+  Future<BridgeIhomeNoticesResult> ihomeNotices();
+
+  Future<BridgeIhomePageResult> ihomePage({required BridgeIhomeQuery query});
+
+  Future<BridgeIhomeReactionResult> ihomeSetReaction({
+    required PlatformInt64 id,
+    required BridgeIhomeReaction reaction,
+    required bool enabled,
+    required BridgeConnectionMode expectedRoute,
   });
 
   Future<BridgeRoutedJudgeAssignmentDetail> judgeAssignment({

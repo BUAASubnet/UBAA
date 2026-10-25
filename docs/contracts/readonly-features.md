@@ -58,7 +58,7 @@ SPOC HTML 不进入公共 DTO。Fixture/Mock 只证明请求形状；真实证�
 
 隐藏的 `spoc diagnostics` 和 `judge diagnostics` CLI 命令调用独立 facade 方法，仅供确定性
 测试和实时验证使用。它们不增加业务请求、不接受 URL、不暴露上游内部信息，也不改变稳定用户
-命令面。输出与普通读取相同的 schema-v11 路由 envelope，并且一次完整功能运行必须保持同一
+命令面。输出与普通读取相同的 schema-v12 路由 envelope，并且一次完整功能运行必须保持同一
 条已解析路线。
 
 SPOC 诊断恰好返回 `globalPageCount` 和普通 `result`。该计数为正 `u32`，证明权威加密全局
@@ -85,4 +85,11 @@ Cgyy 目的类型诊断返回 `items` 与 `source`。`source=upstream` 表示本
 
 ## GSMIS研究生课表
 
-课表在本科门户或读取失败后沿冻结旧版访问GSMIS我的课表；不通过学号猜类型，不借本科campusCode或其它服务的URL。学期完整性、选定学期、排课班号、唯一校历周一及节次时间均核对后返回。完整规范化节次通过可选sectionTimes进入CLI schema-v11及缓存，旧缓存缺字段默认空。考试仍仅本科协议。来源与已证边界见[GSMIS逐操作对照](../migration/source-parity-gsmis-2026-10-02.md)。
+课表在本科门户或读取失败后沿冻结旧版访问GSMIS我的课表；不通过学号猜类型，不借本科campusCode或其它服务的URL。学期完整性、选定学期、排课班号、唯一校历周一及节次时间均核对后返回。完整规范化节次通过可选sectionTimes进入CLI schema-v12及缓存，旧缓存缺字段默认空。考试仍仅本科协议。来源与已证边界见[GSMIS逐操作对照](../migration/source-parity-gsmis-2026-10-02.md)。
+
+
+## iHome
+
+`ubaa ihome list` 默认读取公共诉求；`--scope mine|followed|appraised` 切换个人列表，`--page` 和 `--limit` 控制分页，公共列表支持 `--keyword`、`--category-id` 与 `--filter`。`detail <id> --mine` 使用本人详情路径；`config`、`notices` 和 `notice <id>` 读取配置与公告。普通详情省略 `--mine`。CLI不开放关注或支持写入。
+
+数据只包含诉求、部门回复、评价、当前轮次进度和明确的状态/数量；原始用户对象、联系方式字段和业务令牌不进入合同。DTO及来源矩阵见 [iHome对照](../migration/source-parity-ihome-2026-10-25.md)。

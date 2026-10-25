@@ -103,6 +103,9 @@ async fn run(args: Args) -> Result<Evidence> {
             Err(error) => evidence.fail("signin", "today", error.code),
         }
     }
+    if args.feature == "all" || args.feature == "ihome" {
+        run_ihome(&mut client, &mut evidence).await;
+    }
     if args.feature == "all" || args.feature == "ygdk" {
         run_ygdk(&mut client, &mut evidence).await;
     }
@@ -630,6 +633,54 @@ async fn run_evaluation(client: &mut RouteClient, evidence: &mut Evidence) {
             evidence.fail("evaluation", "all", error.code);
             evidence.blocked("evaluation", "pending", "all_failed");
         }
+    }
+}
+
+async fn run_ihome(client: &mut RouteClient, evidence: &mut Evidence) {
+    use ubaa_core::facade::{IhomeQuery, IhomeScope};
+    for (scope, label) in [
+        (IhomeScope::Public, "public"),
+        (IhomeScope::Mine, "mine"),
+        (IhomeScope::Followed, "followed"),
+        (IhomeScope::Appraised, "appraised"),
+    ] {
+        match client
+            .ihome_page(IhomeQuery {
+                scope,
+                ..IhomeQuery::default()
+            })
+            .await
+        {
+            Ok(v) => {
+                evidence.pass("ihome", label, Some(v.data.entries.len()));
+                if let Some(entry) = v.data.entries.first() {
+                    match client
+                        .ihome_detail(entry.appeal.id, scope == IhomeScope::Mine)
+                        .await
+                    {
+                        Ok(_) => evidence.pass("ihome", "detail", Some(1)),
+                        Err(e) => evidence.fail("ihome", "detail", e.code),
+                    }
+                }
+            }
+            Err(e) => evidence.fail("ihome", label, e.code),
+        }
+    }
+    match client.ihome_config().await {
+        Ok(v) => evidence.pass("ihome", "config", Some(v.data.categories.len())),
+        Err(e) => evidence.fail("ihome", "config", e.code),
+    }
+    match client.ihome_notices().await {
+        Ok(v) => {
+            evidence.pass("ihome", "notices", Some(v.data.len()));
+            if let Some(n) = v.data.first() {
+                match client.ihome_notice(n.id).await {
+                    Ok(_) => evidence.pass("ihome", "notice", Some(1)),
+                    Err(e) => evidence.fail("ihome", "notice", e.code),
+                }
+            }
+        }
+        Err(e) => evidence.fail("ihome", "notices", e.code),
     }
 }
 

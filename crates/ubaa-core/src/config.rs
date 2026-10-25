@@ -22,6 +22,7 @@ pub struct RouteConfig {
 
 #[derive(Clone, Debug, Default, Eq, PartialEq)]
 struct FeaturePolicies {
+    ihome: Option<RoutePolicy>,
     bykc: Option<RoutePolicy>,
     cgyy: Option<RoutePolicy>,
     libbook: Option<RoutePolicy>,
@@ -57,6 +58,7 @@ struct RawRoute {
 #[derive(Debug, Default, Deserialize)]
 #[serde(deny_unknown_fields)]
 struct RawFeatures {
+    ihome: Option<RoutePolicy>,
     bykc: Option<RoutePolicy>,
     cgyy: Option<RoutePolicy>,
     libbook: Option<RoutePolicy>,
@@ -99,6 +101,7 @@ impl RouteConfig {
             schema_version: raw.schema_version,
             default: raw.route.default,
             features: FeaturePolicies {
+                ihome: raw.route.features.ihome,
                 bykc: raw.route.features.bykc,
                 cgyy: raw.route.features.cgyy,
                 libbook: raw.route.features.libbook,
@@ -213,6 +216,7 @@ impl RouteConfig {
     #[must_use]
     pub fn feature(&self, feature: ReadonlyFeature) -> RoutePolicy {
         match feature {
+            ReadonlyFeature::Ihome => self.features.ihome,
             ReadonlyFeature::Bykc => self.features.bykc,
             ReadonlyFeature::Cgyy => self.features.cgyy,
             ReadonlyFeature::LibBook => self.features.libbook,
@@ -229,8 +233,9 @@ impl RouteConfig {
         .unwrap_or(self.default)
     }
 
-    fn explicit_feature_policies(&self) -> [(ReadonlyFeature, Option<RoutePolicy>); 12] {
+    fn explicit_feature_policies(&self) -> [(ReadonlyFeature, Option<RoutePolicy>); 13] {
         [
+            (ReadonlyFeature::Ihome, self.features.ihome),
             (ReadonlyFeature::Bykc, self.features.bykc),
             (ReadonlyFeature::Cgyy, self.features.cgyy),
             (ReadonlyFeature::LibBook, self.features.libbook),

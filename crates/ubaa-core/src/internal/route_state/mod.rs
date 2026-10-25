@@ -1,5 +1,7 @@
 //! 路线专属功能状态的聚合入口.
 
+mod ihome;
+pub(crate) use ihome::IhomeState;
 mod cache;
 mod classroom;
 mod credentials;
@@ -28,6 +30,7 @@ pub(crate) struct RouteFeatureState {
     pub(crate) spoc: SpocState,
     pub(crate) judge: JudgeState,
     pub(crate) ygdk: YgdkState,
+    pub(crate) ihome: IhomeState,
 }
 
 impl RouteFeatureState {
@@ -48,6 +51,7 @@ impl RouteFeatureState {
         self.spoc.clear();
         self.judge.clear();
         self.ygdk.clear();
+        self.ihome.clear();
     }
 }
 

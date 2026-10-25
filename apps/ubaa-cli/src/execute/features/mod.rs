@@ -7,3 +7,5 @@ pub(in crate::execute) mod cgyy;
 pub(in crate::execute) mod evaluation;
 pub(in crate::execute) mod libbook;
 pub(in crate::execute) mod ygdk;
+
+pub(in crate::execute) mod ihome;

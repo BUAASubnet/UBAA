@@ -17,11 +17,32 @@ use ubaa_core::facade::{
     TodayClass, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
     YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
+use ubaa_core::facade::{IhomeAppeal, IhomeConfig, IhomeNotice, IhomePage, IhomeQuery};
 
 use super::CliBackend;
 
 #[async_trait]
 impl CliBackend for RouteClient {
+    async fn ihome_notice(&mut self, id: i64) -> Result<FeatureResult<IhomeNotice>> {
+        RouteClient::ihome_notice(self, id).await
+    }
+
+    async fn ihome_notices(&mut self) -> Result<FeatureResult<Vec<IhomeNotice>>> {
+        RouteClient::ihome_notices(self).await
+    }
+
+    async fn ihome_config(&mut self) -> Result<FeatureResult<IhomeConfig>> {
+        RouteClient::ihome_config(self).await
+    }
+
+    async fn ihome_detail(&mut self, id: i64, mine: bool) -> Result<FeatureResult<IhomeAppeal>> {
+        RouteClient::ihome_detail(self, id, mine).await
+    }
+
+    async fn ihome_page(&mut self, query: IhomeQuery) -> Result<FeatureResult<IhomePage>> {
+        RouteClient::ihome_page(self, query).await
+    }
+
     fn mode(&self) -> ConnectionMode {
         self.mode()
     }

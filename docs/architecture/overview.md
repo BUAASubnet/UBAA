@@ -20,7 +20,7 @@ flowchart TD
 
 UbaaClient 是普通聚合 facade。Direct/WebVPN runtime、配置 revision、网关探测和双路线协调在 Core 内；RouteClient 仅用于明确固定路线的诊断/测试。原始 HTTP transport 不自动跟随重定向，不拥有全局 Cookie，跳转规则由已验证业务协议决定。
 
-CLI JSON schema v11 独立于磁盘 Session v2、配置 v1、缓存 schema v6。CLI envelope 的 schema v11 由序列化和 JSON Schema 合同共同验证，schema-v11 聚合输出覆盖成功、业务失败与参数错误。Flutter bridge contract v41 由 Rust 常量、Dart 接受版本与 codegen 零漂移检查共同约束。
+CLI JSON schema v12 独立于磁盘 Session v2、配置 v1、缓存 schema v6。CLI envelope 的 schema v12 由序列化和 JSON Schema 合同共同验证，schema-v12 聚合输出覆盖成功、业务失败与参数错误。Flutter bridge contract v42 由 Rust 常量、Dart 接受版本与 codegen 零漂移检查共同约束。
 
 AppController 的局部实现通过显式状态/操作合同协作，保持同一 ChangeNotifier 实例、账号代次和快照。BridgeContext 持有同一客户端，账号缓存与交互认证各有唯一状态对象。UI 消费不可变模型与回调；公开组件由显式 barrel 导出，局部 State 不越过组件边界供测试直接修改。详细路径见[现行代码组织](code-organization.md)。
 

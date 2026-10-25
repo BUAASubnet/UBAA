@@ -15,6 +15,7 @@ use ubaa_core::facade::{
     TodayClass, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
     YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
+use ubaa_core::facade::{IhomeAppeal, IhomeConfig, IhomeNotice, IhomePage, IhomeQuery};
 use ubaa_core::facade::{Result, UbaaError};
 use ubaa_core::facade::{RoutedError, RoutedResult};
 
@@ -26,6 +27,22 @@ mod routed;
 /// 命令执行所需的认证门面。
 #[async_trait]
 pub trait CliBackend {
+    async fn ihome_page(&mut self, _query: IhomeQuery) -> Result<FeatureResult<IhomePage>> {
+        Err(unavailable("iHome 功能不可用"))
+    }
+    async fn ihome_detail(&mut self, _id: i64, _mine: bool) -> Result<FeatureResult<IhomeAppeal>> {
+        Err(unavailable("iHome 功能不可用"))
+    }
+    async fn ihome_config(&mut self) -> Result<FeatureResult<IhomeConfig>> {
+        Err(unavailable("iHome 功能不可用"))
+    }
+    async fn ihome_notices(&mut self) -> Result<FeatureResult<Vec<IhomeNotice>>> {
+        Err(unavailable("iHome 功能不可用"))
+    }
+    async fn ihome_notice(&mut self, _id: i64) -> Result<FeatureResult<IhomeNotice>> {
+        Err(unavailable("iHome 功能不可用"))
+    }
+
     /// 当前后端固定使用的连接模式。
     fn mode(&self) -> ConnectionMode;
     /// 提交凭据并返回已认证的用户资料。
@@ -338,6 +355,22 @@ pub trait CliBackend {
 /// 不自行选择或修复路由。
 #[async_trait]
 pub trait RoutedCliBackend {
+    async fn ihome_page(&mut self, _query: IhomeQuery) -> RoutedResult<IhomePage> {
+        Err(routed_unavailable("iHome 功能不可用"))
+    }
+    async fn ihome_detail(&mut self, _id: i64, _mine: bool) -> RoutedResult<IhomeAppeal> {
+        Err(routed_unavailable("iHome 功能不可用"))
+    }
+    async fn ihome_config(&mut self) -> RoutedResult<IhomeConfig> {
+        Err(routed_unavailable("iHome 功能不可用"))
+    }
+    async fn ihome_notices(&mut self) -> RoutedResult<Vec<IhomeNotice>> {
+        Err(routed_unavailable("iHome 功能不可用"))
+    }
+    async fn ihome_notice(&mut self, _id: i64) -> RoutedResult<IhomeNotice> {
+        Err(routed_unavailable("iHome 功能不可用"))
+    }
+
     /// 通过 Core 路由查询全部评教课程。
     async fn evaluation_all(&mut self) -> RoutedResult<EvaluationCoursesResponse> {
         Err(routed_unavailable("评教功能不可用"))

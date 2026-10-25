@@ -1,0 +1,231 @@
+import 'dart:async';
+import 'package:flutter/material.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/features/ihome/view.dart';
+
+IhomeAppeal appeal(int id, {String content = '测试诉求', bool followed = false}) =>
+    IhomeAppeal(
+      id: id,
+      content: content,
+      status: '已回复',
+      category: '校园服务',
+      publishedAt: '2026-10-25',
+      departments: const ['服务中心'],
+      isMine: false,
+      isFollowed: followed,
+      isSupported: null,
+      followCount: 1,
+      supportCount: null,
+      replies: const [
+        IhomeReply(
+          content: '官方回复内容',
+          department: '服务中心',
+          createdAt: '2026-10-25',
+        ),
+      ],
+      evaluations: const [],
+      history: const [],
+    );
+IhomeResult<IhomePage> page(
+  int id, {
+  int current = 1,
+  String content = '测试诉求',
+}) => IhomeResult(
+  IhomePage(
+    entries: [
+      IhomeEntry(appeal: appeal(id, content: content), evaluation: null),
+    ],
+    page: current,
+    lastPage: 3,
+    total: 3,
+  ),
+  ConnectionMode.webvpn,
+);
+
+class Service implements IhomeService {
+  final queries = <IhomeQuery>[];
+  Future<IhomeResult<IhomePage>> Function(IhomeQuery)? load;
+  final writes = <(int, IhomeReaction, bool, ConnectionMode)>[];
+  bool failWrite = false;
+  @override
+  Future<IhomeResult<IhomePage>> page(IhomeQuery q) async {
+    queries.add(q);
+    return load?.call(q) ??
+        Future.value(
+          IhomeResult(
+            IhomePage(
+              entries: [IhomeEntry(appeal: appeal(42), evaluation: null)],
+              page: 1,
+              lastPage: 3,
+              total: 3,
+            ),
+            ConnectionMode.webvpn,
+          ),
+        );
+  }
+
+  @override
+  Future<IhomeResult<IhomeConfig>> config() async => const IhomeResult(
+    IhomeConfig(
+      supportEnabled: false,
+      supportLabel: '支持',
+      categories: [IhomeCategory(id: 7, name: '生活服务')],
+    ),
+    ConnectionMode.webvpn,
+  );
+  @override
+  Future<IhomeResult<IhomeAppeal>> detail(int id, {bool mine = false}) async =>
+      IhomeResult(appeal(id), ConnectionMode.webvpn);
+  @override
+  Future<IhomeResult<List<IhomeNotice>>> notices() async => const IhomeResult([
+    IhomeNotice(id: 8, title: '通知', content: '', date: '2026-10-25'),
+  ], ConnectionMode.webvpn);
+  @override
+  Future<IhomeResult<IhomeNotice>> notice(int id) async => IhomeResult(
+    IhomeNotice(id: id, title: '通知', content: '公告正文', date: '2026-10-25'),
+    ConnectionMode.webvpn,
+  );
+  @override
+  Future<IhomeResult<IhomeAppeal>> setReaction(
+    int id,
+    IhomeReaction reaction,
+    bool enabled,
+    ConnectionMode route,
+  ) async {
+    writes.add((id, reaction, enabled, route));
+    if (failWrite)
+      throw const UiError(
+        code: UbaaErrorCode.outcomeUnknown,
+        title: '结果未知',
+        message: '操作结果未确认，请刷新详情后核对',
+      );
+    return IhomeResult(appeal(id, followed: enabled), route);
+  }
+}
+
+Future<void> mount(WidgetTester tester, Service service) async {
+  await tester.pumpWidget(
+    MaterialApp(
+      home: Scaffold(body: IhomeView(service: service)),
+    ),
+  );
+  await tester.pumpAndSettle();
+}
+
+void main() {
+  testWidgets('同一诉求的不同评价均保留且刷新失败保留内容', (tester) async {
+    final service = Service();
+    service.load = (q) async => IhomeResult(
+      IhomePage(
+        entries: [
+          for (final id in [1, 2])
+            IhomeEntry(
+              appeal: appeal(42),
+              evaluation: IhomeEvaluation(
+                id: id,
+                department: '服务中心',
+                speed: 5,
+                satisfaction: 5,
+                degree: 5,
+                content: '评价$id',
+                createdAt: '',
+              ),
+            ),
+        ],
+        page: 1,
+        lastPage: 1,
+        total: 2,
+      ),
+      ConnectionMode.direct,
+    );
+    await mount(tester, service);
+    await tester.tap(find.text('我的评价'));
+    await tester.pumpAndSettle();
+    expect(find.text('我的评价：评价1'), findsOneWidget);
+    expect(find.text('我的评价：评价2'), findsOneWidget);
+    service.load = (q) async => throw StateError('模拟断网');
+    await tester.tap(find.byTooltip('刷新'));
+    await tester.pumpAndSettle();
+    expect(find.text('我的评价：评价1'), findsOneWidget);
+  });
+  testWidgets('搜索提交到服务且切换个人列表清除公共筛选', (tester) async {
+    final service = Service();
+    await mount(tester, service);
+    await tester.enterText(find.byType(TextField), '校园 回复');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pumpAndSettle();
+    expect(service.queries.last.keyword, '校园 回复');
+    await tester.tap(find.text('我的诉求'));
+    await tester.pumpAndSettle();
+    expect(service.queries.last.scope, IhomeScope.mine);
+    expect(service.queries.last.keyword, '');
+    expect(service.queries.last.page, 1);
+  });
+  testWidgets('迟到的公共搜索不会覆盖已切换的个人列表', (tester) async {
+    final service = Service();
+    await mount(tester, service);
+    final delayed = Completer<IhomeResult<IhomePage>>();
+    service.load = (q) => q.scope == IhomeScope.public
+        ? delayed.future
+        : Future.value(page(9, content: '我的诉求内容'));
+    await tester.enterText(find.byType(TextField), '延迟');
+    await tester.testTextInput.receiveAction(TextInputAction.done);
+    await tester.pump();
+    await tester.tap(find.text('我的诉求'));
+    await tester.pumpAndSettle();
+    delayed.complete(page(8, content: '迟到的公共内容'));
+    await tester.pumpAndSettle();
+    expect(find.text('我的诉求内容'), findsOneWidget);
+    expect(find.text('迟到的公共内容'), findsNothing);
+  });
+  testWidgets('上游重复首屏时终止分页并保留已显示诉求', (tester) async {
+    final service = Service();
+    await mount(tester, service);
+    await tester.ensureVisible(find.text('加载更多'));
+    await tester.tap(find.text('加载更多'));
+    await tester.pumpAndSettle();
+    expect(service.queries.last.page, 2);
+    expect(find.text('测试诉求'), findsOneWidget);
+    expect(find.text('加载更多'), findsNothing);
+  });
+  testWidgets('详情关注确认固定读取路线且未知结果禁止重复提交', (tester) async {
+    final service = Service()..failWrite = true;
+    await mount(tester, service);
+    await tester.tap(find.text('测试诉求'));
+    await tester.pumpAndSettle();
+    expect(find.text('官方回复内容'), findsOneWidget);
+    await tester.tap(find.text('关注 1'));
+    await tester.pumpAndSettle();
+    expect(service.writes, isEmpty);
+    await tester.tap(find.text('确认'));
+    await tester.pumpAndSettle();
+    expect(service.writes, [
+      (42, IhomeReaction.follow, true, ConnectionMode.webvpn),
+    ]);
+    expect(
+      tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+      isNull,
+    );
+    await tester.tap(find.text('刷新核对'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<OutlinedButton>(find.byType(OutlinedButton)).onPressed,
+      isNotNull,
+    );
+  });
+  testWidgets('公告读取详情且窄屏大字可滚动', (tester) async {
+    final service = Service();
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await mount(tester, service);
+    await tester.tap(find.text('公告'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('通知'));
+    await tester.pumpAndSettle();
+    expect(find.text('公告正文'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
+}

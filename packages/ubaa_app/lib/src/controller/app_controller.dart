@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'state/types.dart' show AppPhase;
+import 'features/ihome/service.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
@@ -82,6 +84,31 @@ class AppController extends ControllerState
         ControllerSettings,
         ControllerInteractiveAuthentication,
         ControllerActions {
+  IhomeService? _ihomeService;
+  UbaaBackend? _ihomeBackend;
+  int? _ihomeEpoch;
+  IhomeService? get ihomeService {
+    final backend = internalBackend;
+    if (backend is! IhomeBackend) return null;
+    final epoch = internalLifecycleEpoch;
+    if (!identical(backend, _ihomeBackend) || epoch != _ihomeEpoch) {
+      _ihomeBackend = backend;
+      _ihomeEpoch = epoch;
+      _ihomeService = GuardedIhomeService(
+        (backend as IhomeBackend).ihome,
+        () =>
+            !internalDisposed &&
+            !internalIsSigningOut &&
+            !internalInteractiveEngaged &&
+            internalPhase == AppPhase.home &&
+            internalWriteTransitions == 0 &&
+            internalLifecycleEpoch == epoch &&
+            identical(internalBackend, backend),
+      );
+    }
+    return _ihomeService;
+  }
+
   AppController({
     required UbaaBackend backend,
     BackendFactory? backendFactory,
