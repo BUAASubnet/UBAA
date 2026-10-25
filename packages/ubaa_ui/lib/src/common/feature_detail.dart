@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../shared/loading.dart' show LoadingPlaceholder;
+import '../shared/refresh.dart' show RefreshViewport;
 import '../app/home.dart' show uiCacheReadFailureText;
 import 'details/detail_list.dart' show FeatureDetailList;
 import 'error_card.dart' show FriendlyErrorCard;
@@ -17,7 +18,8 @@ import '../features/coursework/coursework_overview.dart'
 import '../features/coursework/assignment_filters.dart'
     show AssignmentListFilters, AssignmentFilterControls;
 import '../features/grades/flow.dart' show GradesFlow;
-import '../features/libbook/reservation_flow.dart' show LibbookReservationFlow;
+import '../features/libbook/reservation_flow.dart'
+    show LibbookReservationFlow, LibbookReservationFlowState;
 import '../features/schedule/content.dart' show ScheduleContent;
 import '../features/schedule/flow.dart' show ScheduleFlow, ScheduleFlowState;
 import '../features/ygdk/home_flow.dart' show YgdkHomeFlow;
@@ -139,6 +141,10 @@ class FeatureDetailView extends StatefulWidget {
 }
 
 class FeatureDetailViewState extends State<FeatureDetailView> {
+  final _libraryKey = GlobalKey<LibbookReservationFlowState>();
+  Future<void>? refreshLibrary() =>
+      widget.onQuery == null ? null : _libraryKey.currentState?.refresh();
+
   final _cgyyKey = GlobalKey<CgyyReservationFlowState>();
   final _cgyyChoicesRevision = ValueNotifier(0);
   final _cgyyDraft = CgyyFormDraft();
@@ -288,8 +294,8 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                                 (uiReadableCachedContent(widget.snapshot) ||
                                     widget.snapshot.updatedAt != null) =>
                           _empty(context),
-                        FeatureLoadStatus.loading ||
-                        FeatureLoadStatus.idle => const LoadingPlaceholder(),
+                        FeatureLoadStatus.loading || FeatureLoadStatus.idle =>
+                          const RefreshViewport(child: LoadingPlaceholder()),
                         FeatureLoadStatus.failure => _error(context),
                         _ => _empty(context),
                       },
@@ -304,6 +310,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
             (widget.query?.view ?? FeatureQueryView.summary) !=
                 FeatureQueryView.libbookBookings
         ? LibbookReservationFlow(
+            key: _libraryKey,
             snapshot: widget.snapshot,
             query: widget.query ?? const FeatureQuery(),
             cacheEpoch: widget.readCacheEpoch,
@@ -641,50 +648,54 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                   widget.query?.term != null &&
                   widget.query?.week != null))
       ? ScheduleContent(details: const [], timeline: _scheduleTimeline)
-      : Center(
-          child: Padding(
-            padding: const EdgeInsets.all(24),
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: <Widget>[
-                Icon(
-                  uiFeatureIcon(widget.feature),
-                  size: 56,
-                  color: Theme.of(context).colorScheme.primary,
-                ),
-                const SizedBox(height: 16),
-                Text(
-                  widget.snapshot.evidence?.complete == false
-                      ? '当前数据尚不完整，连接后继续核对。'
-                      : widget.isBykcChosenDetail
-                      ? '当前无法显示此选课记录，请返回列表核对。'
-                      : '暂无${widget.feature.title}数据',
-                ),
-                if (widget.snapshot.summary case final summary?
-                    when summary.trim().isNotEmpty) ...<Widget>[
-                  const SizedBox(height: 8),
-                  Text(summary, textAlign: TextAlign.center),
+      : RefreshViewport(
+          child: Center(
+            child: Padding(
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: <Widget>[
+                  Icon(
+                    uiFeatureIcon(widget.feature),
+                    size: 56,
+                    color: Theme.of(context).colorScheme.primary,
+                  ),
+                  const SizedBox(height: 16),
+                  Text(
+                    widget.snapshot.evidence?.complete == false
+                        ? '当前数据尚不完整，连接后继续核对。'
+                        : widget.isBykcChosenDetail
+                        ? '当前无法显示此选课记录，请返回列表核对。'
+                        : '暂无${widget.feature.title}数据',
+                  ),
+                  if (widget.snapshot.summary case final summary?
+                      when summary.trim().isNotEmpty) ...<Widget>[
+                    const SizedBox(height: 8),
+                    Text(summary, textAlign: TextAlign.center),
+                  ],
                 ],
-              ],
+              ),
             ),
           ),
         );
 
-  Widget _error(BuildContext context) => Center(
-    child: Padding(
-      padding: const EdgeInsets.all(24),
-      child: ConstrainedBox(
-        constraints: const BoxConstraints(maxWidth: 560),
-        child: FriendlyErrorCard(
-          error:
-              widget.snapshot.error ??
-              const UiError(
-                code: UbaaErrorCode.internalError,
-                title: '加载失败',
-                message: '暂时无法加载该功能，请稍后重试。',
-                retryable: true,
-              ),
-          onRetry: () => widget.onRetry(),
+  Widget _error(BuildContext context) => RefreshViewport(
+    child: Center(
+      child: Padding(
+        padding: const EdgeInsets.all(24),
+        child: ConstrainedBox(
+          constraints: const BoxConstraints(maxWidth: 560),
+          child: FriendlyErrorCard(
+            error:
+                widget.snapshot.error ??
+                const UiError(
+                  code: UbaaErrorCode.internalError,
+                  title: '加载失败',
+                  message: '暂时无法加载该功能，请稍后重试。',
+                  retryable: true,
+                ),
+            onRetry: () => widget.onRetry(),
+          ),
         ),
       ),
     ),

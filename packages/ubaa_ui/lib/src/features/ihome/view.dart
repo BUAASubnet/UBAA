@@ -93,7 +93,18 @@ class _IhomeViewState extends State<IhomeView> {
     }
   }
 
-  Future<void> _load({bool more = false, bool reset = false}) async {
+  Future<void>? _pendingRead;
+  Future<void> _load({bool more = false, bool reset = false}) {
+    if (!reset && _pendingRead != null) return _pendingRead!;
+    late final Future<void> read;
+    read = _fetch(more: more, reset: reset).whenComplete(() {
+      if (identical(_pendingRead, read)) _pendingRead = null;
+    });
+    _pendingRead = read;
+    return read;
+  }
+
+  Future<void> _fetch({bool more = false, bool reset = false}) async {
     final service = widget.service;
     if (service == null) return;
     if (_busy.isNotEmpty) return;
@@ -175,6 +186,7 @@ class _IhomeViewState extends State<IhomeView> {
     return RefreshIndicator(
       onRefresh: () => _load(),
       child: ListView(
+        physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.all(
           UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
         ),

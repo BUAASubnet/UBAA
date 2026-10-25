@@ -138,6 +138,26 @@ Future<void> mount(WidgetTester tester, Service service) async {
 }
 
 void main() {
+  testWidgets('iHome 空列表下拉刷新且按钮加入同一进行中读取', (tester) async {
+    final service = Service()
+      ..load = (_) async => const IhomeResult(
+        IhomePage(entries: [], page: 1, lastPage: 1, total: 0),
+        ConnectionMode.direct,
+      );
+    await mount(tester, service);
+    final before = service.queries.length;
+    final gate = Completer<IhomeResult<IhomePage>>();
+    service.load = (_) => gate.future;
+    await tester.drag(find.byType(ListView), const Offset(0, 350));
+    await tester.pump(const Duration(seconds: 1));
+    await tester.tap(find.byTooltip('刷新'));
+    await tester.pump();
+    expect(service.queries, hasLength(before + 1));
+    gate.complete(page(10));
+    await tester.pumpAndSettle();
+    expect(find.text('测试诉求'), findsOneWidget);
+  });
+
   testWidgets('长诉求和多条回复完整展示且点击复制不触发详情', (tester) async {
     await tester.binding.setSurfaceSize(const Size(1000, 1800));
     addTearDown(() => tester.binding.setSurfaceSize(null));

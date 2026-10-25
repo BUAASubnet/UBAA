@@ -233,10 +233,15 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     }
   }
 
-  Future<void> refreshCurrent() =>
-      _current.isLanding || _current.query == null || widget.onQuery == null
-      ? widget.onRetry()
-      : _query(_current, _current.query!);
+  Future<void> refreshCurrent() {
+    final library = _current.pageKey.currentState?.refreshLibrary();
+    if (library != null) return library;
+    return _current.isLanding ||
+            _current.query == null ||
+            widget.onQuery == null
+        ? widget.onRetry()
+        : _query(_current, _current.query!);
+  }
 
   Future<void> _query(_ReadFrame frame, FeatureQuery query) async {
     if (widget.onQuery == null || !identical(frame, _current)) return;

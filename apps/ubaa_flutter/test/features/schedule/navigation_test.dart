@@ -34,6 +34,21 @@ Future<void> tap(WidgetTester tester, Finder target) async {
 }
 
 void main() {
+  testWidgets('课表横向表格内部下拉沿当前学期周次刷新', (tester) async {
+    tester.view.physicalSize = const Size(390, 844);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final backend = ScheduleNavigationBackend();
+    await mount(tester, backend);
+    final selected = backend.scheduleReads.last;
+    final before = backend.scheduleReads.length;
+    await tester.dragFrom(const Offset(190, 300), const Offset(0, 330));
+    await tester.pumpAndSettle();
+    expect(backend.scheduleReads.length, before + 1);
+    expect(backend.scheduleReads.last.hasSameParameters(selected), isTrue);
+  });
+
   testWidgets('顶栏直接选择学期，取消不查询，确认后读取新学期当前周', (tester) async {
     final backend = ScheduleNavigationBackend();
     await mount(tester, backend);

@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../shared/loading.dart' show RefreshActionButton;
+import '../shared/refresh.dart' show PullToRefresh;
 import 'about.dart' show AboutView;
 import 'home.dart' show FeatureGridView, HomeView;
 import 'destination.dart';
@@ -264,6 +265,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     final accountChanged =
         (oldWidget.user?.accountScope ?? oldWidget.user?.username) !=
         (widget.user?.accountScope ?? widget.user?.username);
+    if (accountChanged ||
+        oldWidget.routePolicy != widget.routePolicy ||
+        oldWidget.businessCacheEpoch != widget.businessCacheEpoch) {
+      _refreshes.clear();
+    }
     if (accountChanged) {
       _accountGeneration++;
       _homeReadRoutes = {};
@@ -607,23 +613,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                     widget.onSaveScheduleSemester != null
                 ? '刷新'
                 : '刷新当前查询',
-            onRefresh: () async {
-              final page = _readPageKeys[_openedFeature]?.currentState;
-              if (_openedFeature == FeatureId.cgyy &&
-                  page?.currentFrame.query?.view ==
-                      FeatureQueryView.cgyyLockCode) {
-                setState(() => _lockRefreshRevision++);
-              } else if (_openedFeature == FeatureId.schedule &&
-                  widget.onSaveScheduleSemester != null &&
-                  (page?.currentFrame.query?.term?.trim().isNotEmpty ??
-                      false)) {
-                await widget.onSaveScheduleSemester!(
-                  page!.currentFrame.query!.term!,
-                );
-              } else {
-                await page?.refreshCurrent();
-              }
-            },
+            onRefresh: () => _refreshFeature(_openedFeature!),
           ),
         if (_openedFeature == null &&
             _utilityPage == null &&
@@ -632,7 +622,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           RefreshActionButton(
             key: const ValueKey('home-refresh'),
             tooltip: '刷新',
-            onRefresh: widget.onRefresh,
+            onRefresh: _refreshHome,
           ),
       ],
     );
@@ -706,6 +696,36 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     );
   }
 
+  final _refreshes = <Object, Future<void>>{};
+
+  Future<void> _joinRefresh(Object key, Future<void> Function() action) {
+    final pending = _refreshes[key];
+    if (pending != null) return pending;
+    late final Future<void> refresh;
+    refresh = Future<void>.sync(action).whenComplete(() {
+      if (identical(_refreshes[key], refresh)) _refreshes.remove(key);
+    });
+    _refreshes[key] = refresh;
+    return refresh;
+  }
+
+  Future<void> _refreshHome() => _joinRefresh('home', widget.onRefresh);
+
+  Future<void> _refreshFeature(FeatureId feature) =>
+      _joinRefresh(feature, () async {
+        final page = _readPageKeys[feature]?.currentState;
+        if (feature == FeatureId.cgyy &&
+            page?.currentFrame.query?.view == FeatureQueryView.cgyyLockCode) {
+          setState(() => _lockRefreshRevision++);
+        } else if (feature == FeatureId.schedule &&
+            widget.onSaveScheduleSemester != null &&
+            (page?.currentFrame.query?.term?.trim().isNotEmpty ?? false)) {
+          await widget.onSaveScheduleSemester!(page!.currentFrame.query!.term!);
+        } else {
+          await page?.refreshCurrent();
+        }
+      });
+
   Widget _buildFeaturePage(FeatureId feature) => FeatureReadNavigator(
     key: _readPageKeys.putIfAbsent(
       feature,
@@ -729,94 +749,103 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                   query.view == FeatureQueryView.cgyyLockCode
               ? Future<void>.value()
               : widget.onFeatureQuery!(feature, query),
-    pageBuilder: (page) => FeatureDetailView(
-      key: page.pageKey,
-      isLanding: page.isLanding,
-      onOpenLockDisplay: widget.onOpenLockDisplay,
-      lockRefreshRevision: _lockRefreshRevision,
-      visible: _openedFeature == feature && page.isCurrent,
-      onLoadAllGrades: widget.onLoadAllGrades,
-      onGradeRoutes: (routes) {
-        if (_openedFeature != FeatureId.grades ||
-            !page.isCurrent ||
-            (routes.length == _gradesReadRoutes.length &&
-                routes.entries.every(
-                  (e) => _gradesReadRoutes[e.key] == e.value,
-                )))
-          return;
-        setState(() => _gradesReadRoutes = Map.unmodifiable(routes));
-      },
-      isBykcChosenDetail: page.isBykcChosenDetail,
-      onOpenBykcChosen: page.onOpenBykcChosen,
-      bykcFilters: _bykcFilters,
-      bykcFilterError: _bykcFilterError,
-      onBykcFiltersChanged: (value) => unawaited(_saveBykcFilters(value)),
-      ygdkRecordsReadback: widget.ygdkRecordsReadback,
-      reminderSettings: _reminderSettings,
-      reminderError: _reminderError,
-      onReminderChanged: widget.onSaveYgdkReminder == null
-          ? null
-          : _setReminderEnabled,
-      feature: feature,
-      snapshot: page.snapshot,
-      query: page.query,
-      backLabel: page.backLabel,
-      onBack: page.onBack,
-      onRetry: page.onRetry,
-      onQuery: page.onQuery,
-      onNavigate: page.onNavigate,
-      onLoadAcademicTerms: widget.onLoadAcademicTerms,
-      onLoadAcademicWeeks: widget.onLoadAcademicWeeks,
-      scheduleImports: widget.scheduleImports,
-      onSaveScheduleSemester: widget.onSaveScheduleSemester,
-      onCancelScheduleImport: widget.onCancelScheduleImport,
-      onLoadCgyyPurposes: widget.onLoadCgyyPurposes,
-      onFormRouteOptions: (routes) => _showRouteOptions(
-        context,
-        routes.values.toSet().length == 1 ? routes.values.first : null,
-        homeRoutes: routes,
+    pageBuilder: (page) => PullToRefresh(
+      onRefresh: () => _refreshFeature(feature),
+      enabled:
+          _openedFeature == feature &&
+          page.isCurrent &&
+          widget.writeState.intent == null &&
+          !(feature == FeatureId.cgyy &&
+              page.query?.view == FeatureQueryView.cgyyLockCode),
+      child: FeatureDetailView(
+        key: page.pageKey,
+        isLanding: page.isLanding,
+        onOpenLockDisplay: widget.onOpenLockDisplay,
+        lockRefreshRevision: _lockRefreshRevision,
+        visible: _openedFeature == feature && page.isCurrent,
+        onLoadAllGrades: widget.onLoadAllGrades,
+        onGradeRoutes: (routes) {
+          if (_openedFeature != FeatureId.grades ||
+              !page.isCurrent ||
+              (routes.length == _gradesReadRoutes.length &&
+                  routes.entries.every(
+                    (e) => _gradesReadRoutes[e.key] == e.value,
+                  )))
+            return;
+          setState(() => _gradesReadRoutes = Map.unmodifiable(routes));
+        },
+        isBykcChosenDetail: page.isBykcChosenDetail,
+        onOpenBykcChosen: page.onOpenBykcChosen,
+        bykcFilters: _bykcFilters,
+        bykcFilterError: _bykcFilterError,
+        onBykcFiltersChanged: (value) => unawaited(_saveBykcFilters(value)),
+        ygdkRecordsReadback: widget.ygdkRecordsReadback,
+        reminderSettings: _reminderSettings,
+        reminderError: _reminderError,
+        onReminderChanged: widget.onSaveYgdkReminder == null
+            ? null
+            : _setReminderEnabled,
+        feature: feature,
+        snapshot: page.snapshot,
+        query: page.query,
+        backLabel: page.backLabel,
+        onBack: page.onBack,
+        onRetry: page.onRetry,
+        onQuery: page.onQuery,
+        onNavigate: page.onNavigate,
+        onLoadAcademicTerms: widget.onLoadAcademicTerms,
+        onLoadAcademicWeeks: widget.onLoadAcademicWeeks,
+        scheduleImports: widget.scheduleImports,
+        onSaveScheduleSemester: widget.onSaveScheduleSemester,
+        onCancelScheduleImport: widget.onCancelScheduleImport,
+        onLoadCgyyPurposes: widget.onLoadCgyyPurposes,
+        onFormRouteOptions: (routes) => _showRouteOptions(
+          context,
+          routes.values.toSet().length == 1 ? routes.values.first : null,
+          homeRoutes: routes,
+        ),
+        onScheduleTitle: page.onScheduleTitle,
+        readCacheEpoch: widget.readCacheEpoch + widget.businessCacheEpoch,
+        onBykcWrite: !_hasWriteCommands || widget.onPrepareBykcWrite == null
+            ? null
+            : _startBykcWrite,
+        onBykcSignWrite:
+            !_hasWriteCommands || widget.onPrepareBykcSignWrite == null
+            ? null
+            : _startBykcSignWrite,
+        onSigninWrite: !_hasWriteCommands || widget.onPrepareSigninWrite == null
+            ? null
+            : _startSigninWrite,
+        onCgyyCancelWrite:
+            !_hasWriteCommands || widget.onPrepareCgyyCancelWrite == null
+            ? null
+            : _startCgyyCancelWrite,
+        onLibbookReserveWrite:
+            !_hasWriteCommands || widget.onPrepareLibbookReserveWrite == null
+            ? null
+            : _startLibbookReserveWrite,
+        onLibbookCancelWrite:
+            !_hasWriteCommands || widget.onPrepareLibbookCancelWrite == null
+            ? null
+            : _startLibbookCancelWrite,
+        onEvaluationWrite:
+            !_hasWriteCommands || widget.onPrepareEvaluationWrite == null
+            ? null
+            : _startEvaluation,
+        onCgyySubmitWrite:
+            !_hasWriteCommands || widget.onPrepareCgyySubmitWrite == null
+            ? null
+            : _startCgyySubmitWrite,
+        onYgdkSubmitWrite: !_hasYgdkSubmissionCapabilities
+            ? null
+            : _startYgdkSubmitWrite,
+        onCaptureYgdkPhoto: _hasYgdkSubmissionCapabilities
+            ? widget.onCaptureYgdkPhoto
+            : null,
+        onPickYgdkPhoto: _hasYgdkSubmissionCapabilities
+            ? widget.onPickYgdkPhoto
+            : null,
       ),
-      onScheduleTitle: page.onScheduleTitle,
-      readCacheEpoch: widget.readCacheEpoch + widget.businessCacheEpoch,
-      onBykcWrite: !_hasWriteCommands || widget.onPrepareBykcWrite == null
-          ? null
-          : _startBykcWrite,
-      onBykcSignWrite:
-          !_hasWriteCommands || widget.onPrepareBykcSignWrite == null
-          ? null
-          : _startBykcSignWrite,
-      onSigninWrite: !_hasWriteCommands || widget.onPrepareSigninWrite == null
-          ? null
-          : _startSigninWrite,
-      onCgyyCancelWrite:
-          !_hasWriteCommands || widget.onPrepareCgyyCancelWrite == null
-          ? null
-          : _startCgyyCancelWrite,
-      onLibbookReserveWrite:
-          !_hasWriteCommands || widget.onPrepareLibbookReserveWrite == null
-          ? null
-          : _startLibbookReserveWrite,
-      onLibbookCancelWrite:
-          !_hasWriteCommands || widget.onPrepareLibbookCancelWrite == null
-          ? null
-          : _startLibbookCancelWrite,
-      onEvaluationWrite:
-          !_hasWriteCommands || widget.onPrepareEvaluationWrite == null
-          ? null
-          : _startEvaluation,
-      onCgyySubmitWrite:
-          !_hasWriteCommands || widget.onPrepareCgyySubmitWrite == null
-          ? null
-          : _startCgyySubmitWrite,
-      onYgdkSubmitWrite: !_hasYgdkSubmissionCapabilities
-          ? null
-          : _startYgdkSubmitWrite,
-      onCaptureYgdkPhoto: _hasYgdkSubmissionCapabilities
-          ? widget.onCaptureYgdkPhoto
-          : null,
-      onPickYgdkPhoto: _hasYgdkSubmissionCapabilities
-          ? widget.onPickYgdkPhoto
-          : null,
     ),
   );
 
@@ -882,7 +911,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             },
             onFeatureTap: _openFeatureList,
             onRetryFeature: widget.onRetryFeature,
-            onRefresh: widget.onRefresh,
+            onRefresh: _refreshHome,
           ),
           1 || 2 || 3 => FeatureGridView(
             onOpenIhome: _selectedIndex == UiDestination.campus.index

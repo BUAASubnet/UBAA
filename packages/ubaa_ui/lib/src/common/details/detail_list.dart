@@ -1,3 +1,4 @@
+import '../../shared/refresh.dart' show RefreshViewport;
 import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -273,16 +274,18 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                     emptyMessage: '没有匹配的课程',
                   )
                 : details.isEmpty
-                ? Center(
-                    child: Text(
-                      widget.feature == FeatureId.bykc &&
-                              widget.query?.view == FeatureQueryView.summary
-                          ? '当前页没有匹配项'
-                          : widget.feature == FeatureId.judge
-                          ? '暂无符合条件的希冀作业'
-                          : widget.feature == FeatureId.spoc
-                          ? '暂无符合条件的 SPOC 作业'
-                          : '没有匹配的详情',
+                ? RefreshViewport(
+                    child: Center(
+                      child: Text(
+                        widget.feature == FeatureId.bykc &&
+                                widget.query?.view == FeatureQueryView.summary
+                            ? '当前页没有匹配项'
+                            : widget.feature == FeatureId.judge
+                            ? '暂无符合条件的希冀作业'
+                            : widget.feature == FeatureId.spoc
+                            ? '暂无符合条件的 SPOC 作业'
+                            : '没有匹配的详情',
+                      ),
                     ),
                   )
                 : uiSupportsParticipationContent(widget.feature, visible)

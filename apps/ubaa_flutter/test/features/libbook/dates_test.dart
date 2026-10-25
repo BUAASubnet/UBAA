@@ -10,6 +10,25 @@ import '../../../integration_test/synthetic/libbook/backend.dart';
 void main() {
   WidgetController.hitTestWarningShouldBeFatal = true;
   for (final width in [402.0, 900.0]) {
+    testWidgets('座位刷新同步重读楼馆和分区汇总且保留所选日期 $width', (tester) async {
+      final backend = await _open(tester, width: width);
+      await _secondDay(tester);
+      final before = backend.libraryReads.length;
+      final selected = backend.libraryReads.last;
+      backend.refreshedFree = 7;
+      await _tap(tester, find.byTooltip('刷新当前查询'));
+      expect(backend.libraryReads.skip(before).map((q) => q.view), [
+        FeatureQueryView.summary,
+        FeatureQueryView.libbookAreas,
+        FeatureQueryView.libbookAreaDetail,
+        FeatureQueryView.libbookSeats,
+      ]);
+      expect(backend.libraryReads.last.hasSameParameters(selected), isTrue);
+      expect(backend.libraryReads[before].date, selected.date);
+      expect(find.text('合成甲馆 7/40'), findsWidgets);
+      expect(find.textContaining('空闲 7/10'), findsWidgets);
+      expect(backend.preparedSeats, isEmpty);
+    });
     testWidgets('进入分区自动读取首日首时段并只显示可预约座位 $width', (tester) async {
       final backend = await _open(tester, width: width);
       expect(backend.libraryReads.map((q) => q.view), [
@@ -31,6 +50,33 @@ void main() {
       expect(backend.commitCalls, 0);
     });
   }
+  testWidgets('汇总刷新失败不继续读取座位，也不清空已有馆区选择', (tester) async {
+    final backend = await _open(tester);
+    final before = backend.libraryReads.length;
+    backend.failNext = true;
+    await _tap(tester, find.byTooltip('刷新当前查询'));
+    expect(backend.libraryReads.skip(before).map((q) => q.view), [
+      FeatureQueryView.summary,
+    ]);
+    expect(find.text('重试'), findsOneWidget);
+    expect(backend.preparedSeats, isEmpty);
+  });
+  testWidgets('刷新汇总挂起后离开页面不再扩展分区座位读取', (tester) async {
+    final backend = await _open(tester);
+    final before = backend.libraryReads.length;
+    final gate = Completer<void>();
+    backend.pending = gate;
+    await tester.tap(find.byTooltip('刷新当前查询'));
+    await tester.pump();
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pump();
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(backend.libraryReads.skip(before).map((q) => q.view), [
+      FeatureQueryView.summary,
+    ]);
+    expect(find.widgetWithText(Card, '预约座位'), findsOneWidget);
+  });
   testWidgets('刷新后座位不可预约时清除原选择且展示可用座位为空', (tester) async {
     final backend = await _open(tester);
     await _tap(tester, find.widgetWithText(Card, 'A1'));
@@ -201,12 +247,57 @@ class _ScheduleBackend extends LibraryBackend {
   _ScheduleBackend({super.state, this.days = _defaultDays});
   final List<LibbookDaySchedulePresentation> days;
   bool noAvailableSeats = false;
+  int? refreshedFree;
   @override
   Future<FeatureResult> loadFeatureQuery(
     FeatureId feature,
     FeatureQuery query,
   ) async {
     final result = await super.loadFeatureQuery(feature, query);
+    if (refreshedFree != null &&
+        {
+          FeatureQueryView.summary,
+          FeatureQueryView.libbookAreas,
+        }.contains(query.view)) {
+      return FeatureResult.success(
+        resolvedRoute: ConnectionMode.direct,
+        details: [
+          for (final d in result.details)
+            FeatureDetail(
+              title: d.title,
+              presentation: switch (d.presentation) {
+                LibbookLibraryPresentation p => LibbookLibraryPresentation(
+                  id: p.id,
+                  name: p.name,
+                  queryDate: p.queryDate,
+                  freeNum: refreshedFree!,
+                  totalNum: p.totalNum,
+                  storeys: [
+                    for (final f in p.storeys)
+                      LibbookStoreyPresentation(
+                        id: f.id,
+                        name: f.name,
+                        freeNum: refreshedFree!,
+                        totalNum: f.totalNum,
+                      ),
+                  ],
+                ),
+                LibbookAreaPresentation p => LibbookAreaPresentation(
+                  id: p.id,
+                  name: p.name,
+                  areaName: p.areaName,
+                  premisesId: p.premisesId,
+                  storeyId: p.storeyId,
+                  freeNum: refreshedFree!,
+                  totalNum: p.totalNum,
+                  queryDate: p.queryDate,
+                ),
+                _ => d.presentation,
+              },
+            ),
+        ],
+      );
+    }
     if (noAvailableSeats && query.view == FeatureQueryView.libbookSeats) {
       return FeatureResult.success(
         summary: '合成不可预约座位',

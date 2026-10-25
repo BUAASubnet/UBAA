@@ -1,6 +1,7 @@
 import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import '../../shared/loading.dart' show LoadingPlaceholder;
+import '../../shared/refresh.dart' show RefreshViewport;
 import '../../common/error_card.dart' show FriendlyErrorCard;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -399,19 +400,21 @@ class ScheduleFlowState extends State<ScheduleFlow> {
                 widget.snapshot.error != null &&
                 !_hasSavedRead));
     if (firstFrame || (_automatic != null && !failed)) {
-      return const LoadingPlaceholder();
+      return const RefreshViewport(child: LoadingPlaceholder());
     }
     final indexQuery = {
       FeatureQueryView.scheduleTerms,
       FeatureQueryView.scheduleWeeks,
     }.contains(widget.query?.view);
     if (indexQuery && failed && widget.snapshot.error != null) {
-      return Center(
-        child: FriendlyErrorCard(
-          error: widget.snapshot.error!,
-          onRetry: widget.onQuery == null
-              ? null
-              : () => _request(widget.query!),
+      return RefreshViewport(
+        child: Center(
+          child: FriendlyErrorCard(
+            error: widget.snapshot.error!,
+            onRetry: widget.onQuery == null
+                ? null
+                : () => _request(widget.query!),
+          ),
         ),
       );
     }
@@ -503,20 +506,22 @@ class ScheduleFlowState extends State<ScheduleFlow> {
 
     Widget content;
     if (_selectionNeeded || indexQuery) {
-      content = Center(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text(term == null ? '请选择学期' : '请选择教学周'),
-            const SizedBox(height: 12),
-            FilledButton.icon(
-              icon: const Icon(Icons.calendar_view_week),
-              label: Text(term == null ? '选择学期' : '选择教学周'),
-              onPressed: term == null
-                  ? selectTerm
-                  : () => _openWeekDialog(context, term),
-            ),
-          ],
+      content = RefreshViewport(
+        child: Center(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(term == null ? '请选择学期' : '请选择教学周'),
+              const SizedBox(height: 12),
+              FilledButton.icon(
+                icon: const Icon(Icons.calendar_view_week),
+                label: Text(term == null ? '选择学期' : '选择教学周'),
+                onPressed: term == null
+                    ? selectTerm
+                    : () => _openWeekDialog(context, term),
+              ),
+            ],
+          ),
         ),
       );
     } else {

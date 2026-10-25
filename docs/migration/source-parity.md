@@ -288,6 +288,8 @@ DTO/解析器只解码 `WeeklyScheduleResponse.datas`，不要求两者相等。
 
 ## 图书馆座位只读查询
 
+2026-10-25 汇总与座位同步刷新、全页手势范围见[刷新记录](refresh-2026-10-25.md)。
+
 2026-10-25 自动加载及可预约座位展示核对见[本轮来源记录](source-parity-libbook-auto-seats-2026-10-25.md)。
 
 2026-09-15完整功能补齐的实施前对照与公开合同裁决见[日期与时段关系](source-parity-ui-libbook-dates.md)；下面保留原有协议基线。

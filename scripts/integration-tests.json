@@ -1010,6 +1010,20 @@
       "defines": []
     },
     {
+      "path": "synthetic/home/refresh_test.dart",
+      "kind": "synthetic",
+      "domain": "home",
+      "platforms": [
+        "macos",
+        "ios"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
       "path": "synthetic/judge/online_test.dart",
       "kind": "synthetic",
       "domain": "judge",

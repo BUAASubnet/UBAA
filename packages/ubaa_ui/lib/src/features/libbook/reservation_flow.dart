@@ -10,6 +10,7 @@ import 'reservation_content.dart' show uiCanReserveSeat;
 part 'schedule.dart';
 part 'choices.dart';
 part 'content.dart';
+part 'refresh.dart';
 
 /// 单页保留楼馆→楼层→分区顺序，并从原始日程选择日期与时段。
 class LibbookReservationFlow extends StatefulWidget {
@@ -48,6 +49,8 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
   FeatureSnapshot? _consumed;
   int? _afterRevision;
   bool _pending = false;
+  Object? _refreshToken;
+  Future<void> refresh() => _refreshAll();
   int _generation = 0;
 
   @override
@@ -71,7 +74,8 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
     }
     final query = widget.query;
     final incomingDay = query.date == null ? null : _date(query.date!);
-    if ({
+    if (_refreshToken == null &&
+        {
           FeatureQueryView.summary,
           FeatureQueryView.libbookAreas,
         }.contains(query.view) &&
@@ -88,6 +92,7 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
   }
 
   void _clear() {
+    _refreshToken = null;
     _generation++;
     _libraries = [];
     _areas = [];
@@ -181,6 +186,7 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
   }
 
   void _schedule(Future<void> Function() action) {
+    if (_refreshToken != null) return;
     final snapshot = widget.snapshot;
     final generation = _generation;
     WidgetsBinding.instance.addPostFrameCallback((_) {
@@ -287,7 +293,9 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
       '${date.year}-${date.month.toString().padLeft(2, '0')}-${date.day.toString().padLeft(2, '0')}';
 
   bool get _busy =>
-      _pending || widget.snapshot.status == FeatureLoadStatus.loading;
+      _refreshToken != null ||
+      _pending ||
+      widget.snapshot.status == FeatureLoadStatus.loading;
 
   @override
   Widget build(BuildContext context) {
