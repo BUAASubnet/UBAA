@@ -63,7 +63,7 @@ void main() {
       await ensureHomeTodo(tester, find.text(title));
       expect(find.text(title), findsOneWidget);
     }
-    // 恢复外层首页位置；独立待办区域的手势由窗口专项用例覆盖。
+    // 恢复外层首页位置；待办预览、展开和主滚动由窗口专项用例覆盖。
     tester
         .state<ScrollableState>(
           find
@@ -101,7 +101,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.byTooltip('返回'), findsNothing);
     expect(find.text('合成SPOC待办'), findsOneWidget);
-    // 恢复外层首页位置；独立待办区域的手势由窗口专项用例覆盖。
+    // 恢复外层首页位置；待办预览、展开和主滚动由窗口专项用例覆盖。
     tester
         .state<ScrollableState>(
           find

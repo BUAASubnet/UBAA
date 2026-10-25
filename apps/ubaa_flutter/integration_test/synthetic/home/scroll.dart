@@ -1,27 +1,34 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 
-/// 先展示待办窗口，再在独立列表中寻找可点击目标。
+/// 沿首页主滚动找到待办，必要时先展开完整列表。
 Future<void> ensureHomeTodo(WidgetTester tester, Finder target) async {
-  final window = find.byKey(const ValueKey('home-todos'));
+  if (target.hitTestable().evaluate().isNotEmpty) return;
   final outer = find
       .descendant(
         of: find.byKey(const ValueKey('home-scroll')),
         matching: find.byType(Scrollable),
       )
       .first;
-  if (window.evaluate().isEmpty) {
-    await tester.scrollUntilVisible(window, 200, scrollable: outer);
+  tester.state<ScrollableState>(outer).position.jumpTo(0);
+  await tester.pumpAndSettle();
+  final preview = find.byKey(const ValueKey('home-todos'));
+  if (preview.evaluate().isEmpty) {
+    await tester.scrollUntilVisible(preview, 200, scrollable: outer);
   }
-  await Scrollable.ensureVisible(tester.element(window), alignment: .4);
-  await tester.pumpAndSettle();
-  final inner = find.descendant(of: window, matching: find.byType(Scrollable));
-  await tester.drag(inner, const Offset(0, 30000));
-  await tester.pumpAndSettle();
+  if (target.evaluate().isEmpty) {
+    final toggle = find.byKey(const ValueKey('home-todos-toggle'));
+    if (toggle.evaluate().isNotEmpty && find.text('收起').evaluate().isEmpty) {
+      await tester.ensureVisible(toggle);
+      await tester.pumpAndSettle();
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+    }
+  }
   await tester.scrollUntilVisible(
     target.hitTestable(),
     160,
-    scrollable: inner,
+    scrollable: outer,
     maxScrolls: 100,
   );
   await Scrollable.ensureVisible(tester.element(target), alignment: .5);

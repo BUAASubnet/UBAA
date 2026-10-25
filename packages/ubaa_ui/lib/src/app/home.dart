@@ -63,7 +63,7 @@ class HomeView extends StatefulWidget {
 }
 
 class _HomeViewState extends State<HomeView> {
-  final _todoScroll = ScrollController();
+  bool _showAllTodos = false;
   final _supplements = <HomeSupplement, FeatureResult>{};
   final _loading = <HomeSupplement>{};
   int _generation = 0;
@@ -89,6 +89,7 @@ class _HomeViewState extends State<HomeView> {
     if (old.cacheEpoch != widget.cacheEpoch ||
         old.businessCacheEpoch != widget.businessCacheEpoch) {
       _generation++;
+      _showAllTodos = false;
       _supplements.clear();
       _loading.clear();
     }
@@ -99,7 +100,6 @@ class _HomeViewState extends State<HomeView> {
   @override
   void dispose() {
     _clock.cancel();
-    _todoScroll.dispose();
     super.dispose();
   }
 
@@ -419,6 +419,18 @@ class _HomeViewState extends State<HomeView> {
                 ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
               ),
             ),
+            if (tasks.length > 4)
+              Flexible(
+                child: Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    key: const ValueKey('home-todos-toggle'),
+                    onPressed: () =>
+                        setState(() => _showAllTodos = !_showAllTodos),
+                    child: Text(_showAllTodos ? '收起' : '查看全部（${tasks.length}）'),
+                  ),
+                ),
+              ),
             SizedBox.square(
               dimension: 24,
               child:
@@ -431,66 +443,20 @@ class _HomeViewState extends State<HomeView> {
           ],
         ),
         const SizedBox(height: 12),
-        LayoutBuilder(
-          builder: (context, constraints) {
-            final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-            final columns = constraints.maxWidth >= 652 * scale.clamp(1.0, 2.0)
-                ? 2
-                : 1;
-            Widget card(HomeTodo task) => _HomeTodoCard(
-              item: task,
-              onTap: () => widget.onTodoTap(task),
-              onSignin: task.signinAction != null && widget.onSignin != null
-                  ? () => widget.onSignin!(task.signinAction!)
-                  : null,
-            );
-            if (tasks.isEmpty) return const SizedBox.shrink();
-            return Container(
-              clipBehavior: Clip.antiAlias,
-              decoration: BoxDecoration(
-                borderRadius: BorderRadius.circular(16),
-                border: Border.all(
-                  color: Theme.of(context).colorScheme.outlineVariant,
-                ),
+        _HomeCardGrid(
+          key: const ValueKey('home-todos'),
+          maxColumns: 2,
+          minWidth: 320,
+          children: [
+            for (final task in _showAllTodos ? tasks : tasks.take(4))
+              _HomeTodoCard(
+                item: task,
+                onTap: () => widget.onTodoTap(task),
+                onSignin: task.signinAction != null && widget.onSignin != null
+                    ? () => widget.onSignin!(task.signinAction!)
+                    : null,
               ),
-              padding: const EdgeInsets.all(8),
-              constraints: BoxConstraints(
-                maxHeight: 328 * scale.clamp(1.0, 2.0),
-              ),
-              child: Scrollbar(
-                controller: _todoScroll,
-                thumbVisibility: true,
-                child: ListView.separated(
-                  key: const ValueKey('home-todos'),
-                  controller: _todoScroll,
-                  primary: false,
-                  shrinkWrap: true,
-                  padding: const EdgeInsets.only(right: 8),
-                  itemCount: (tasks.length / columns).ceil(),
-                  separatorBuilder: (_, _) => const SizedBox(height: 12),
-                  itemBuilder: (context, row) {
-                    final index = row * columns;
-                    return columns == 1
-                        ? card(tasks[index])
-                        : IntrinsicHeight(
-                            child: Row(
-                              crossAxisAlignment: CrossAxisAlignment.stretch,
-                              children: [
-                                Expanded(child: card(tasks[index])),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: index + 1 < tasks.length
-                                      ? card(tasks[index + 1])
-                                      : const SizedBox.shrink(),
-                                ),
-                              ],
-                            ),
-                          );
-                  },
-                ),
-              ),
-            );
-          },
+          ],
         ),
         if (tasks.isEmpty && loading.isNotEmpty)
           const LoadingPlaceholder(compact: true)
@@ -555,15 +521,17 @@ class _HomeViewState extends State<HomeView> {
       children: [
         const SizedBox(height: 24),
         UiSectionTitle(title),
-        for (final feature in items)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: UiEntryCard(
-              title: feature.title,
-              icon: uiFeatureIcon(feature),
-              onTap: () => widget.onFeatureTap(feature),
-            ),
-          ),
+        _HomeCardGrid(
+          maxColumns: 4,
+          minWidth: 156,
+          children: [
+            for (final feature in items)
+              _HomeShortcutCard(
+                feature: feature,
+                onTap: () => widget.onFeatureTap(feature),
+              ),
+          ],
+        ),
       ],
     );
     return RefreshIndicator(
@@ -645,11 +613,6 @@ class _HomeTodoCard extends StatelessWidget {
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-              Icon(
-                uiFeatureIcon(item.feature),
-                color: theme.colorScheme.primary,
-              ),
-              const SizedBox(width: 12),
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
@@ -716,13 +679,26 @@ class _HomeTodoCard extends StatelessWidget {
             : theme.colorScheme.surfaceContainerHigh,
         borderRadius: BorderRadius.circular(6),
       ),
-      child: Text(
-        text,
-        style: theme.textTheme.labelSmall?.copyWith(
-          color: accented
-              ? theme.colorScheme.onPrimaryContainer
-              : theme.colorScheme.onSurfaceVariant,
-        ),
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (accented) ...[
+            Icon(
+              uiFeatureIcon(item.feature),
+              size: 16,
+              color: theme.colorScheme.onPrimaryContainer,
+            ),
+            const SizedBox(width: 4),
+          ],
+          Text(
+            text,
+            style: theme.textTheme.labelSmall?.copyWith(
+              color: accented
+                  ? theme.colorScheme.onPrimaryContainer
+                  : theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -862,4 +838,77 @@ class FeatureGridView extends StatelessWidget {
       ),
     ],
   );
+}
+
+/// 卡片只负责排布，滚动统一交给首页；每行按内容自然增高。
+class _HomeCardGrid extends StatelessWidget {
+  const _HomeCardGrid({
+    super.key,
+    required this.children,
+    required this.maxColumns,
+    required this.minWidth,
+  });
+  final List<Widget> children;
+  final int maxColumns;
+  final double minWidth;
+
+  @override
+  Widget build(BuildContext context) => LayoutBuilder(
+    builder: (context, constraints) {
+      final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
+      final columns = ((constraints.maxWidth + 12) / (minWidth * scale + 12))
+          .floor()
+          .clamp(1, maxColumns);
+      return Column(
+        children: [
+          for (var start = 0; start < children.length; start += columns) ...[
+            if (start > 0) const SizedBox(height: 12),
+            IntrinsicHeight(
+              child: Row(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (var column = 0; column < columns; column++) ...[
+                    if (column > 0) const SizedBox(width: 12),
+                    Expanded(
+                      child: start + column < children.length
+                          ? children[start + column]
+                          : const SizedBox.shrink(),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+          ],
+        ],
+      );
+    },
+  );
+}
+
+class _HomeShortcutCard extends StatelessWidget {
+  const _HomeShortcutCard({required this.feature, required this.onTap});
+  final FeatureId feature;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Card(
+      child: InkWell(
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(uiFeatureIcon(feature), color: theme.colorScheme.primary),
+              const SizedBox(height: 8),
+              Text(feature.title, style: theme.textTheme.titleSmall),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -7,12 +7,13 @@ import '../../app/shell_parity_test.dart' as shell;
 
 void main() {
   for (final width in [1100.0, 390.0]) {
-    testWidgets('待办区域独立滚动并可打开末尾任务，宽度 $width', (tester) async {
-      tester.view.physicalSize = Size(width, 1000);
+    testWidgets('首页待办预览随页面滚动，展开后可打开末尾任务并收起，宽度 $width', (tester) async {
+      tester.view.physicalSize = Size(width, 600);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       HomeTodo? opened;
+      var refreshes = 0;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -49,30 +50,51 @@ void main() {
               },
               onFeatureTap: (_) {},
               onRetryFeature: (_) async {},
-              onRefresh: () async {},
+              onRefresh: () async {
+                refreshes++;
+              },
               onTodoTap: (item) => opened = item,
             ),
           ),
         ),
       );
       await tester.pumpAndSettle();
-      final before = tester.getTopLeft(find.text('今日课表'));
-      final scrolling = Scrollable.of(tester.element(find.text('任务0')));
+      final outer = find
+          .descendant(
+            of: find.byKey(const ValueKey('home-scroll')),
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      final position = tester.state<ScrollableState>(outer).position;
+      await tester.ensureVisible(find.text('任务0'));
+      final before = position.pixels;
       await tester.drag(find.text('任务0'), const Offset(0, -220));
       await tester.pumpAndSettle();
-      expect(
-        tester.getTopLeft(find.text('今日课表')),
-        before,
-        reason: '待办内滚动不能带动整个首页',
-      );
+      expect(position.pixels, greaterThan(before), reason: '待办手势应滚动整个首页');
+      final toggle = find.byKey(const ValueKey('home-todos-toggle'));
+      await tester.ensureVisible(toggle);
+      await tester.pumpAndSettle();
+      expect(find.text('任务4'), findsNothing, reason: '首页先展示时间最临近的四项');
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
         find.text('任务11').hitTestable(),
         200,
-        scrollable: find.byWidget(scrolling.widget),
+        scrollable: outer,
       );
-      await tester.pumpAndSettle();
       await tester.tap(find.text('任务11'));
       expect(opened?.title, '任务11');
+      await tester.ensureVisible(toggle);
+      await tester.pumpAndSettle();
+      await tester.tap(toggle);
+      await tester.pumpAndSettle();
+      expect(find.text('任务4'), findsNothing);
+      expect(find.text('任务3'), findsOneWidget);
+      position.jumpTo(0);
+      await tester.pumpAndSettle();
+      await tester.drag(find.text('任务0'), const Offset(0, 400));
+      await tester.pumpAndSettle();
+      expect(refreshes, 1, reason: '待办区域下拉同样触发首页刷新');
       expect(tester.takeException(), isNull);
     });
   }
