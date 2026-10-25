@@ -139,6 +139,8 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       user: _controller.displayUser,
       snapshots: _controller.snapshots,
       homeSnapshots: _controller.homeSnapshots,
+      onLoadHomeDaySchedule: (date, force) =>
+          _controller.loadHomeDaySchedule(date, forceRefresh: force),
       onLoadHomeSupplement: (source, force) =>
           _controller.loadHomeSupplement(source, forceRefresh: force),
       onLoadYgdkReminder: localOwner.accountKey.isEmpty

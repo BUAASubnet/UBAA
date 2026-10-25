@@ -5,12 +5,21 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/controller/read_scheduler.dart';
 import 'package:ubaa_app/src/contracts/query.dart';
+import 'package:ubaa_app/src/contracts/offline.dart';
 import 'package:ubaa_app/src/controller/error_mapper.dart';
 import '../../state/models.dart' show HomeSupplementCache, HomeSupplementEntry;
 import '../../state/state.dart' show ControllerState;
 import '../../state/types.dart' show AppPhase;
 
+part 'day_schedule.dart';
+
 mixin ControllerHomeSources on ControllerState {
+  @internal
+  Future<FeatureResult> internalLoadHomeDaySchedule(
+    String date, {
+    required bool forceRefresh,
+  }) => _loadHomeDay(this, date, forceRefresh);
+
   @internal
   Future<FeatureResult> internalLoadHomeSupplement(
     HomeSupplement source, {
@@ -114,15 +123,9 @@ mixin ControllerHomeSources on ControllerState {
           return;
         }
         final term = selected.single.code;
-        result = await internalScheduleAuxiliaryRead(
-          cache.backend,
-          feature,
-          ReadPriority.home,
-          current,
-          () => backend.loadFeatureQuery(
-            FeatureId.schedule,
-            FeatureQuery(view: FeatureQueryView.scheduleWeeks, term: term),
-          ),
+        result = await internalLoadAcademicWeeks(
+          term,
+          forceRefresh: forceRefresh,
         );
         if (result.error == null) {
           final weeks = result.details.where((d) {

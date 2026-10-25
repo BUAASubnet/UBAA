@@ -21,7 +21,7 @@ void main() {
       await mount(tester, backend, brightness);
       Future<void> shot(String name, String steps) =>
           capture(binding, tester, '${brightness.name}-normal-$name', steps);
-      await shot('today', '今日课程按时间排序，名称时间地点和简称');
+      await shot('today', '日程按时间排序，星期周次和课程状态');
       await tap(tester, find.byTooltip('实际路线：直连'));
       await shot('routes', '一个图标按已显示来源说明实际路线，不使用默认Auto策略');
       await tap(tester, find.text('关闭'));

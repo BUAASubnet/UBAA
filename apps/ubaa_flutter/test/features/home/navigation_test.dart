@@ -41,7 +41,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('当前页面：直连与WebVPN'), findsOneWidget);
     expect(find.text('研讨室：WebVPN'), findsOneWidget);
-    expect(find.text('今日课表：直连'), findsOneWidget);
+    expect(find.textContaining('课表：直连'), findsOneWidget);
   });
   testWidgets('首页恢复六来源并按旧今日课程时间排序，点击待办直达原作业', (tester) async {
     final backend = HomeBackend();
@@ -114,7 +114,8 @@ void main() {
         .position
         .jumpTo(0);
     await tester.pumpAndSettle();
-    expect(find.text('今日课表'), findsOneWidget);
+    expect(find.text('合成上午课程'), findsOneWidget);
+    expect(find.text('合成下午课程'), findsOneWidget);
     expect(backend.commitCalls, 0);
   });
   testWidgets('首页课堂签到只使用原typed目标准备并取消，阳光提醒可关闭', (tester) async {

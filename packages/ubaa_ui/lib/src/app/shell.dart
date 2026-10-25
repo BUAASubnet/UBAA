@@ -70,6 +70,7 @@ class UbaaMainShell extends StatefulWidget {
     this.ygdkRecordsReadback,
     this.homeSnapshots,
     this.onLoadHomeSupplement,
+    this.onLoadHomeDaySchedule,
     this.onLoadYgdkReminder,
     this.onSaveYgdkReminder,
     this.onLoadBykcFilters,
@@ -116,6 +117,8 @@ class UbaaMainShell extends StatefulWidget {
   final Map<FeatureId, FeatureSnapshot>? homeSnapshots;
   final Future<FeatureResult> Function(HomeSupplement source, bool force)?
   onLoadHomeSupplement;
+  final Future<FeatureResult> Function(String date, bool force)?
+  onLoadHomeDaySchedule;
   final Future<YgdkReminderSettings> Function()? onLoadYgdkReminder;
   final Future<void> Function(YgdkReminderSettings)? onSaveYgdkReminder;
   final Future<BykcCourseFilters?> Function()? onLoadBykcFilters;
@@ -873,6 +876,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             cacheEpoch: widget.readCacheEpoch,
             businessCacheEpoch: widget.businessCacheEpoch,
             onLoadSupplement: widget.onLoadHomeSupplement,
+            onLoadDaySchedule: widget.onLoadHomeDaySchedule,
             onTodoTap: _openHomeTodo,
             writeReadbackNotice:
                 widget.writeReadbacks.isEmpty &&

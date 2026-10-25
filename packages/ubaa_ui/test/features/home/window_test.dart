@@ -8,7 +8,7 @@ import '../../app/shell_parity_test.dart' as shell;
 void main() {
   for (final width in [1100.0, 390.0]) {
     testWidgets('首页待办预览随页面滚动，展开后可打开末尾任务并收起，宽度 $width', (tester) async {
-      tester.view.physicalSize = Size(width, 600);
+      tester.view.physicalSize = Size(width, 400);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
@@ -66,7 +66,9 @@ void main() {
           )
           .first;
       final position = tester.state<ScrollableState>(outer).position;
-      await tester.ensureVisible(find.text('任务0'));
+      if (find.text('任务0').hitTestable().evaluate().isEmpty) {
+        await tester.ensureVisible(find.text('任务0'));
+      }
       final before = position.pixels;
       await tester.drag(find.text('任务0'), const Offset(0, -220));
       await tester.pumpAndSettle();

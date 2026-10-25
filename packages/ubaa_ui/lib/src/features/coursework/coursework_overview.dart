@@ -23,6 +23,7 @@ class CourseworkOverview extends StatelessWidget {
             ),
             YgdkOverview p => YgdkSummary(p),
             // 成绩概要由成绩页随列表滚动，不进入常驻概要卡。
+            HomeScheduleOverview _ => const SizedBox.shrink(),
             ScheduleWeekOverview _ => const SizedBox.shrink(),
             GradesTermOverview _ => const SizedBox.shrink(),
             EvaluationProgressOverview p => Column(

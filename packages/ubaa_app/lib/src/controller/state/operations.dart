@@ -232,6 +232,12 @@ abstract class ControllerOperations extends ChangeNotifier {
   Future<FeatureResult> internalLoadCgyyPurposes({required bool forceRefresh});
 
   @internal
+  Future<FeatureResult> internalLoadHomeDaySchedule(
+    String date, {
+    required bool forceRefresh,
+  });
+
+  @internal
   Future<FeatureResult> internalLoadHomeSupplement(
     HomeSupplement source, {
     required bool forceRefresh,

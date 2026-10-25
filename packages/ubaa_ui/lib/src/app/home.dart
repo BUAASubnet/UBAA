@@ -5,12 +5,10 @@ import 'package:flutter/foundation.dart' show listEquals;
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/theme.dart';
 import '../common/section.dart';
-import 'destination.dart';
+import '../features/home/schedule.dart';
 import '../shared/loading.dart' show LoadingGlyph, LoadingPlaceholder;
 import '../features/grades/notice.dart' show GradeScoreBanner;
 import '../shared/feature_icons.dart' show uiFeatureIcon;
-import '../shared/schedule_values.dart' show uiCourseStart;
-import '../shared/text.dart' show uiNonBlank;
 
 class HomeView extends StatefulWidget {
   const HomeView({
@@ -24,6 +22,7 @@ class HomeView extends StatefulWidget {
     this.businessCacheEpoch = 0,
     required this.onTodoTap,
     this.onLoadSupplement,
+    this.onLoadDaySchedule,
     this.onSignin,
     this.reminderSettings,
     this.onObserveProgress,
@@ -56,6 +55,7 @@ class HomeView extends StatefulWidget {
   final ValueChanged<HomeTodo> onTodoTap;
   final Future<void> Function(SigninPerformAction)? onSignin;
   final Future<FeatureResult> Function(HomeSupplement, bool)? onLoadSupplement;
+  final Future<FeatureResult> Function(String, bool)? onLoadDaySchedule;
   final YgdkReminderSettings? reminderSettings;
   final void Function(WeekPresentation, YgdkOverview)? onObserveProgress;
   @override
@@ -64,6 +64,7 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   bool _showAllTodos = false;
+  HomeScheduleRoute? _calendarRoute;
   final _supplements = <HomeSupplement, FeatureResult>{};
   final _loading = <HomeSupplement>{};
   int _generation = 0;
@@ -239,21 +240,14 @@ class _HomeViewState extends State<HomeView> {
       });
     }
     final schedule = widget.snapshots[FeatureId.schedule]!;
-    final campusNow = _now.toUtc().add(const Duration(hours: 8));
-    final campusDate =
-        '${campusNow.year}-${campusNow.month.toString().padLeft(2, '0')}-${campusNow.day.toString().padLeft(2, '0')}';
-    final differentDate =
-        schedule.evidence?.scopeDate != null &&
-        schedule.evidence!.scopeDate != campusDate;
-    final today =
-        (differentDate ? <FeatureDetail>[] : schedule.details)
-            .where((d) => d.presentation is TodayCoursePresentation)
-            .toList()
-          ..sort((a, b) => uiCourseStart(a).compareTo(uiCourseStart(b)));
+    final campusNow = homeCampusTime(_now);
     final sources = _sources();
     if (widget.visible) {
       final routes = <String, ConnectionMode>{
-        if (schedule.resolvedRoute case final route?) '今日课表': route,
+        if (_calendarRoute?.route case final route?)
+          _calendarRoute!.label: route
+        else if (_calendarRoute == null && schedule.resolvedRoute != null)
+          '今日课表': schedule.resolvedRoute!,
         if (widget.gradeScoreNotice case final notice?) '成绩更新': notice.route,
         if (widget.gradeCheckRoute case final route?) '成绩检查': route,
         for (final feature in [
@@ -308,7 +302,7 @@ class _HomeViewState extends State<HomeView> {
       _todoInputs = todoInputs;
       _todos = buildHomeTodos(
         snapshots: sources,
-        now: _now,
+        now: campusNow,
         currentWeek: week,
         ygdkReminderEnabled: reminder?.enabled ?? false,
         ygdkWeekDone:
@@ -349,61 +343,19 @@ class _HomeViewState extends State<HomeView> {
                   sources[f]?.error != null),
         )
         .toList();
-    final courseSection = Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        Text(
-          '今日课表',
-          style: Theme.of(
-            context,
-          ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
-        ),
-        const SizedBox(height: 4),
-        Text('${campusNow.month}月${campusNow.day}日'),
-        const SizedBox(height: 12),
-        if (today.isNotEmpty)
-          for (final detail in today)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _HomeCourseCard(detail: detail),
-            )
-        else if (schedule.evidence == null &&
-            schedule.updatedAt == null &&
-            schedule.status == FeatureLoadStatus.idle)
-          const SizedBox(height: 120)
-        else if (schedule.status == FeatureLoadStatus.loading &&
-            (schedule.evidence?.complete == false ||
-                (schedule.evidence == null && schedule.updatedAt == null)))
-          const LoadingPlaceholder(compact: true)
-        else
-          Card(
-            child: ListTile(
-              leading: const Icon(Icons.calendar_today),
-              title: Text(
-                differentDate
-                    ? '暂无今日课表'
-                    : schedule.evidence?.origin == DataOrigin.persisted &&
-                          schedule.evidence!.complete
-                    ? '暂无课程安排'
-                    : schedule.status == FeatureLoadStatus.empty ||
-                          (schedule.status == FeatureLoadStatus.loading &&
-                              schedule.updatedAt != null)
-                    ? '今天没有课程安排'
-                    : schedule.evidence?.complete == false
-                    ? '课表暂未加载完整'
-                    : schedule.error != null
-                    ? '课表加载失败，请重试'
-                    : '暂无课程安排',
-              ),
-              trailing: const Icon(Icons.chevron_right),
-              onTap: () => widget.onFeatureTap(FeatureId.schedule),
-            ),
-          ),
-        if (today.isNotEmpty &&
-            schedule.status == FeatureLoadStatus.stale &&
-            schedule.error != null)
-          const Text('课表刷新失败，请稍后重试。'),
-      ],
+    final courseSection = HomeScheduleSection(
+      today: schedule,
+      weekResult: _supplements[HomeSupplement.currentWeek],
+      now: campusNow,
+      visible: widget.visible,
+      epoch: widget.cacheEpoch,
+      businessEpoch: widget.businessCacheEpoch,
+      onLoadDay: widget.onLoadDaySchedule,
+      onRoute: (value) {
+        if (mounted && value != _calendarRoute)
+          setState(() => _calendarRoute = value);
+      },
+      onOpenSchedule: () => widget.onFeatureTap(FeatureId.schedule),
     );
     final todoSection = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -451,6 +403,7 @@ class _HomeViewState extends State<HomeView> {
             for (final task in _showAllTodos ? tasks : tasks.take(4))
               _HomeTodoCard(
                 item: task,
+                now: campusNow,
                 onTap: () => widget.onTodoTap(task),
                 onSignin: task.signinAction != null && widget.onSignin != null
                     ? () => widget.onSignin!(task.signinAction!)
@@ -558,18 +511,8 @@ class _HomeViewState extends State<HomeView> {
           courseSection,
           const SizedBox(height: 16),
           todoSection,
-          shortcuts(
-            '常用功能',
-            widget.recentFeatures.isNotEmpty
-                ? widget.recentFeatures.take(4).toList()
-                : const [
-                    FeatureId.schedule,
-                    FeatureId.grades,
-                    FeatureId.spoc,
-                    FeatureId.judge,
-                  ],
-          ),
-          shortcuts('校园生活', UiDestination.campus.features),
+          if (widget.recentFeatures.isNotEmpty)
+            shortcuts('最近使用', widget.recentFeatures.take(4).toList()),
         ],
       ),
     );
@@ -596,8 +539,14 @@ String _homeSummary(FeatureSnapshot snapshot) =>
     snapshot.error?.message ?? '加载失败，请重试';
 
 class _HomeTodoCard extends StatelessWidget {
-  const _HomeTodoCard({required this.item, required this.onTap, this.onSignin});
+  const _HomeTodoCard({
+    required this.item,
+    required this.now,
+    required this.onTap,
+    this.onSignin,
+  });
   final HomeTodo item;
+  final DateTime now;
   final VoidCallback onTap;
   final Future<void> Function()? onSignin;
   @override
@@ -648,7 +597,11 @@ class _HomeTodoCard extends StatelessWidget {
                     Text(
                       item.timeLabel,
                       style: theme.textTheme.labelLarge?.copyWith(
-                        color: theme.colorScheme.onPrimaryContainer,
+                        color: item.isSoonAt(now)
+                            ? (theme.brightness == Brightness.dark
+                                  ? const Color(0xFFFFBD75)
+                                  : const Color(0xFF9A4D00))
+                            : theme.colorScheme.onPrimaryContainer,
                       ),
                     ),
                   ],
@@ -699,84 +652,6 @@ class _HomeTodoCard extends StatelessWidget {
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _HomeCourseCard extends StatelessWidget {
-  const _HomeCourseCard({required this.detail});
-  final FeatureDetail detail;
-  @override
-  Widget build(BuildContext context) {
-    final course = detail.presentation! as TodayCoursePresentation;
-    final theme = Theme.of(context);
-    return Card(
-      color: theme.colorScheme.surfaceContainerLow,
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text(
-              detail.title,
-              style: theme.textTheme.titleMedium?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      if (uiNonBlank(course.time) case final time?)
-                        Text(
-                          '时间：$time',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                      if (uiNonBlank(course.place) case final place?)
-                        Text(
-                          '地点：$place',
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                    ],
-                  ),
-                ),
-                if (uiNonBlank(detail.subtitle) case final shortName?) ...[
-                  const SizedBox(width: 8),
-                  ConstrainedBox(
-                    constraints: const BoxConstraints(maxWidth: 100),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 4,
-                      ),
-                      decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer,
-                        borderRadius: BorderRadius.circular(6),
-                      ),
-                      child: Text(
-                        shortName,
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onPrimaryContainer,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ],
-        ),
       ),
     );
   }

@@ -118,6 +118,7 @@ final class HomeSupplementCache {
   final UbaaBackend backend;
   final int lifecycle, epoch;
   final entries = <HomeSupplement, HomeSupplementEntry>{};
+  final days = <String, HomeSupplementEntry>{};
 }
 
 final class HomeSupplementEntry {

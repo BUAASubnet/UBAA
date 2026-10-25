@@ -28,7 +28,8 @@ class GradeWatchBackend extends GradesOldBackend {
           FeatureDetail(
             title: '合成今日课程',
             presentation: TodayCoursePresentation(
-              time: '09:00–10:40',
+              // 成绩提醒夹具保持今日课表；日程切换由独立日历用例覆盖。
+              time: '09:00–待定',
               place: '合成教学楼 A101',
             ),
           ),

@@ -63,19 +63,48 @@ class HomeBackend extends CourseworkBackend {
           ),
         );
       } else if (query.view == FeatureQueryView.scheduleWeeks) {
-        details.add(
-          const FeatureDetail(
-            title: '合成第12周',
-            presentation: WeekPresentation(
-              requestTerm: 'synthetic-term',
-              responseTerm: 'synthetic-term',
-              number: 12,
-              current: true,
-              startDate: '2026-09-07',
-              endDate: '2026-09-13',
+        final now = homeCampusTime(DateTime.now());
+        final monday = DateTime(now.year, now.month, now.day - now.weekday + 1);
+        for (final offset in [0, 7]) {
+          details.add(
+            FeatureDetail(
+              title: '合成教学周',
+              presentation: WeekPresentation(
+                requestTerm: 'synthetic-term',
+                responseTerm: 'synthetic-term',
+                number: offset == 0 ? 12 : 13,
+                current: offset == 0,
+                startDate: homeDateKey(monday.add(Duration(days: offset))),
+                endDate: homeDateKey(monday.add(Duration(days: offset + 6))),
+              ),
             ),
-          ),
-        );
+          );
+        }
+      } else if (query.view == FeatureQueryView.scheduleWeek) {
+        for (final day in [1, 2, 3, 4, 5, 6, 7]) {
+          details.addAll([
+            FeatureDetail(
+              title: '合成上午课程',
+              presentation: ScheduleCoursePresentation(
+                courseCode: 'morning-$day',
+                dayOfWeek: day,
+                beginTime: '08:00',
+                endTime: '09:30',
+                place: '合成教室A',
+              ),
+            ),
+            FeatureDetail(
+              title: '合成下午课程',
+              presentation: ScheduleCoursePresentation(
+                courseCode: 'afternoon-$day',
+                dayOfWeek: day,
+                beginTime: '14:00',
+                endTime: '15:30',
+                place: '合成教室B',
+              ),
+            ),
+          ]);
+        }
       } else {
         details.addAll(const [
           FeatureDetail(

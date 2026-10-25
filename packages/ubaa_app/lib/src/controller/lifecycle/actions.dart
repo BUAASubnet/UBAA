@@ -338,6 +338,11 @@ mixin ControllerActions on ControllerState {
     priority: background ? ReadPriority.background : ReadPriority.interactive,
   );
 
+  Future<FeatureResult> loadHomeDaySchedule(
+    String date, {
+    bool forceRefresh = false,
+  }) => internalLoadHomeDaySchedule(date, forceRefresh: forceRefresh);
+
   Future<FeatureResult> loadHomeSupplement(
     HomeSupplement source, {
     bool forceRefresh = false,

@@ -100,11 +100,13 @@ mixin ControllerAcademicWeeks on ControllerState {
             ? FeatureResult.empty(
                 resolvedRoute: result.resolvedRoute,
                 pagination: result.pagination,
+                evidence: result.evidence,
               )
             : FeatureResult.success(
                 summary: result.summary,
                 resolvedRoute: result.resolvedRoute,
                 pagination: result.pagination,
+                evidence: result.evidence,
                 details: List.unmodifiable(
                   result.details.map((detail) {
                     final navigation = detail.readNavigation;

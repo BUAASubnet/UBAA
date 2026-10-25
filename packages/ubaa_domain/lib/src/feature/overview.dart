@@ -101,3 +101,10 @@ final class ScheduleWeekOverview extends FeatureOverview {
   final String code;
   final List<ScheduleSectionTime> sectionTimes;
 }
+
+/// 首页单日课表的确切日期与真实教学周，不持久化另一份课表。
+final class HomeScheduleOverview extends FeatureOverview {
+  const HomeScheduleOverview({required this.date, required this.week});
+  final String date;
+  final WeekPresentation week;
+}

@@ -22,10 +22,22 @@ final class HomeTodo {
     required this.sortTime,
     this.navigation,
     this.signinAction,
+    this.deadline,
+    this.startsAt,
+    this.endsAt,
   });
   final String id, title, subtitle, statusLabel, timeLabel;
   final FeatureId feature;
   final DateTime sortTime;
+  final DateTime? deadline, startsAt, endsAt;
+
+  bool isSoonAt(DateTime now) {
+    final time = deadline ?? startsAt;
+    if (time == null) return false;
+    final remaining = time.difference(now);
+    return remaining > Duration.zero && remaining <= const Duration(hours: 48);
+  }
+
   final FeatureReadNavigation? navigation;
   final SigninPerformAction? signinAction;
 }
@@ -103,7 +115,8 @@ List<HomeTodo> buildHomeTodos({
         title: '本周阳光打卡未达标',
         subtitle: '本周已打卡 ${overview.weekCount} / 4 次',
         statusLabel: '待打卡',
-        timeLabel: '截止 ${_formatHomeTime(sunday)}',
+        timeLabel: '${_relativeHomeTime(sunday, now)} 截止',
+        deadline: sunday,
         sortTime: sunday,
         navigation: const FeatureReadNavigation(
           feature: FeatureId.ygdk,
@@ -168,8 +181,10 @@ HomeTodo? _homeDetail(
       statusLabel: start != null && !start.isAfter(now) ? '考试中' : '待考试',
       timeLabel: start == null
           ? '${day.month}月${day.day}日 · 时间待定'
-          : _homeRange(start, end),
+          : _homeRange(start, end, now),
       sortTime: start ?? day,
+      startsAt: start,
+      endsAt: end,
       navigation: FeatureReadNavigation(
         feature: FeatureId.exam,
         query: FeatureQuery(
@@ -191,8 +206,10 @@ HomeTodo? _homeDetail(
       title: p.courseName,
       subtitle: _joinHome([p.courseTeacher, p.coursePosition], '我的课程'),
       statusLabel: ongoing ? '进行中' : '即将开始',
-      timeLabel: _homeRange(start, end),
+      timeLabel: _homeRange(start, end, now),
       sortTime: start ?? end!,
+      startsAt: start,
+      endsAt: end,
       navigation: p.courseId <= 0
           ? null
           : FeatureReadNavigation(
@@ -219,7 +236,8 @@ HomeTodo? _homeDetail(
       title: detail.title,
       subtitle: _joinHome([p.courseName, p.teacherName], 'SPOC 作业'),
       statusLabel: '待提交',
-      timeLabel: '截止 ${_formatHomeTime(due)}',
+      timeLabel: '${_relativeHomeTime(due, now)} 截止',
+      deadline: due,
       sortTime: due,
       navigation: p.assignmentId.trim().isEmpty
           ? null
@@ -249,7 +267,8 @@ HomeTodo? _homeDetail(
       statusLabel: p.status == AssignmentSubmissionStatus.partial
           ? '待完成'
           : '待提交',
-      timeLabel: '截止 ${_formatHomeTime(due)}',
+      timeLabel: '${_relativeHomeTime(due, now)} 截止',
+      deadline: due,
       sortTime: due,
       navigation: p.courseId.trim().isEmpty || p.assignmentId.trim().isEmpty
           ? null
@@ -281,8 +300,10 @@ HomeTodo? _homeDetail(
       ),
       subtitle: _joinHome([p.theme, p.purposeTypeName], '我的预约'),
       statusLabel: start != null && !start.isAfter(now) ? '使用中' : '待使用',
-      timeLabel: _homeRange(start, end),
+      timeLabel: _homeRange(start, end, now),
       sortTime: start ?? end!,
+      startsAt: start,
+      endsAt: end,
       navigation: const FeatureReadNavigation(
         feature: FeatureId.cgyy,
         query: FeatureQuery(view: FeatureQueryView.cgyyOrders),
@@ -312,6 +333,8 @@ HomeTodo? _homeDetail(
           : '签到中',
       timeLabel: '${_clockHome(start)}–${_clockHome(end)}',
       sortTime: start,
+      startsAt: start,
+      endsAt: end,
       navigation: const FeatureReadNavigation(
         feature: FeatureId.signin,
         query: FeatureQuery(view: FeatureQueryView.signinPending),
@@ -344,13 +367,27 @@ String _clockHome(DateTime time) =>
 String _formatHomeTime(DateTime? value) => value == null
     ? '时间待定'
     : '${value.month}月${value.day}日 ${_clockHome(value)}';
-String _homeRange(DateTime? start, DateTime? end) {
+String _relativeHomeTime(DateTime value, DateTime now) {
+  final date = DateTime.utc(value.year, value.month, value.day);
+  final today = DateTime.utc(now.year, now.month, now.day);
+  final delta = date.difference(today).inDays;
+  final prefix = switch (delta) {
+    0 => '今天',
+    1 => '明天',
+    _ => null,
+  };
+  return prefix == null
+      ? _formatHomeTime(value)
+      : '$prefix ${_clockHome(value)}';
+}
+
+String _homeRange(DateTime? start, DateTime? end, DateTime now) {
   if (start == null || end == null) return '开始 ${_formatHomeTime(start)}';
   final sameDay =
       start.year == end.year &&
       start.month == end.month &&
       start.day == end.day;
-  return '${_formatHomeTime(start)}–${sameDay ? _clockHome(end) : _formatHomeTime(end)}';
+  return '${_relativeHomeTime(start, now)}–${sameDay ? _clockHome(end) : _relativeHomeTime(end, now)}';
 }
 
 /// 旧LocalDateTime接受的日期和钟点；拒绝Dart自动归一化越界日期。
