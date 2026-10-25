@@ -54,7 +54,7 @@ class UiEntryCard extends StatelessWidget {
                 width: 40,
                 height: 40,
                 decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer,
+                  color: theme.colorScheme.surfaceContainer,
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Icon(icon, size: 24, color: theme.colorScheme.primary),

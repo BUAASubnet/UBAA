@@ -13,7 +13,7 @@ class UbaaTheme {
     GlobalCupertinoLocalizations.delegate,
   ];
 
-  static const Color seedColor = Color(0xFF536AA3);
+  static const Color seedColor = Color(0xFF0F6CBD);
   static const double pageMaxWidth = 1040;
   static const double cardRadius = 16;
   static const double controlRadius = 12;
@@ -38,44 +38,56 @@ class UbaaTheme {
 
   static ThemeData _build(Brightness brightness) {
     final dark = brightness == Brightness.dark;
+    // 中性色承担页面层次，蓝色只强调操作和选中状态。
+    // 明暗主题按角色配对，避免从品牌种子给大面积表面染色。
+    final accentContainer = dark
+        ? const Color(0xFF173B57)
+        : const Color(0xFFE5F0FA);
+    final onAccentContainer = dark
+        ? const Color(0xFFB4D6FA)
+        : const Color(0xFF0F548C);
     final colors =
         ColorScheme.fromSeed(
           seedColor: seedColor,
           brightness: brightness,
+          dynamicSchemeVariant: DynamicSchemeVariant.neutral,
         ).copyWith(
-          primary: dark ? const Color(0xFFB7C7F4) : seedColor,
-          onPrimary: dark ? const Color(0xFF24365F) : Colors.white,
-          primaryContainer: dark
-              ? const Color(0xFF343F5B)
-              : const Color(0xFFE6EBF8),
-          onPrimaryContainer: dark
-              ? const Color(0xFFE5E7F0)
-              : const Color(0xFF253B6B),
-          secondaryContainer: dark
-              ? const Color(0xFF343F5B)
-              : const Color(0xFFE6EBF8),
-          onSecondaryContainer: dark
-              ? const Color(0xFFE5E7F0)
-              : const Color(0xFF253B6B),
-          surface: dark ? const Color(0xFF171A22) : const Color(0xFFF6F7FB),
-          surfaceContainerLowest: dark ? const Color(0xFF171A22) : Colors.white,
-          surfaceContainerLow: dark ? const Color(0xFF242833) : Colors.white,
+          primary: dark ? const Color(0xFF77B7F7) : seedColor,
+          onPrimary: dark ? const Color(0xFF082F49) : Colors.white,
+          primaryContainer: accentContainer,
+          onPrimaryContainer: onAccentContainer,
+          secondary: dark ? const Color(0xFFC2C2C2) : const Color(0xFF616161),
+          onSecondary: dark ? const Color(0xFF242424) : Colors.white,
+          secondaryContainer: accentContainer,
+          onSecondaryContainer: onAccentContainer,
+          surface: dark ? const Color(0xFF1B1B1B) : const Color(0xFFF7F7F7),
+          surfaceContainerLowest: dark ? const Color(0xFF141414) : Colors.white,
+          surfaceContainerLow: dark ? const Color(0xFF252525) : Colors.white,
           surfaceContainer: dark
-              ? const Color(0xFF1C202B)
-              : const Color(0xFFEDF0F8),
+              ? const Color(0xFF202020)
+              : const Color(0xFFF0F0F0),
           surfaceContainerHigh: dark
-              ? const Color(0xFF292E3B)
-              : const Color(0xFFF0F3FA),
+              ? const Color(0xFF2D2D2D)
+              : const Color(0xFFEDEDED),
           surfaceContainerHighest: dark
-              ? const Color(0xFF343B4B)
-              : const Color(0xFFE6EBF5),
-          onSurface: dark ? const Color(0xFFE5E7F0) : const Color(0xFF252832),
+              ? const Color(0xFF383838)
+              : const Color(0xFFE5E5E5),
+          onSurface: dark ? const Color(0xFFF0F0F0) : const Color(0xFF242424),
           onSurfaceVariant: dark
-              ? const Color(0xFFB7BDCE)
-              : const Color(0xFF606575),
+              ? const Color(0xFFBDBDBD)
+              : const Color(0xFF616161),
+          outline: dark ? const Color(0xFF8A8A8A) : const Color(0xFF757575),
           outlineVariant: dark
-              ? const Color(0xFF383F50)
-              : const Color(0xFFE0E4ED),
+              ? const Color(0xFF404040)
+              : const Color(0xFFE0E0E0),
+          inverseSurface: dark
+              ? const Color(0xFFF0F0F0)
+              : const Color(0xFF303030),
+          onInverseSurface: dark
+              ? const Color(0xFF242424)
+              : const Color(0xFFF5F5F5),
+          inversePrimary: dark ? seedColor : const Color(0xFF77B7F7),
+          surfaceTint: dark ? const Color(0xFF77B7F7) : seedColor,
         );
     final controlShape = RoundedRectangleBorder(
       borderRadius: BorderRadius.circular(controlRadius),

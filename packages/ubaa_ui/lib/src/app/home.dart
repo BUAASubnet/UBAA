@@ -647,7 +647,7 @@ class _HomeTodoCard extends StatelessWidget {
             children: [
               Icon(
                 uiFeatureIcon(item.feature),
-                color: theme.colorScheme.primary,
+                color: theme.colorScheme.onSurfaceVariant,
               ),
               const SizedBox(width: 12),
               Expanded(
@@ -671,12 +671,17 @@ class _HomeTodoCard extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 6),
-                    Text(item.subtitle),
+                    Text(
+                      item.subtitle,
+                      style: theme.textTheme.bodyMedium?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
+                      ),
+                    ),
                     const SizedBox(height: 6),
                     Text(
                       item.timeLabel,
                       style: theme.textTheme.labelLarge?.copyWith(
-                        color: theme.colorScheme.primary,
+                        color: theme.colorScheme.onSurface,
                       ),
                     ),
                   ],
@@ -686,7 +691,10 @@ class _HomeTodoCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 FilledButton(onPressed: onSignin, child: const Text('签到')),
               ] else if (item.navigation != null)
-                const Icon(Icons.chevron_right),
+                Icon(
+                  Icons.chevron_right,
+                  color: theme.colorScheme.onSurfaceVariant,
+                ),
             ],
           ),
         ),
@@ -697,13 +705,13 @@ class _HomeTodoCard extends StatelessWidget {
   Widget _homeChip(BuildContext context, String text) => Container(
     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
     decoration: BoxDecoration(
-      color: Theme.of(context).colorScheme.secondaryContainer,
+      color: Theme.of(context).colorScheme.surfaceContainer,
       borderRadius: BorderRadius.circular(6),
     ),
     child: Text(
       text,
       style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: Theme.of(context).colorScheme.onSecondaryContainer,
+        color: Theme.of(context).colorScheme.onSurfaceVariant,
       ),
     ),
   );
@@ -764,7 +772,7 @@ class _HomeCourseCard extends StatelessWidget {
                         vertical: 4,
                       ),
                       decoration: BoxDecoration(
-                        color: theme.colorScheme.primaryContainer,
+                        color: theme.colorScheme.surfaceContainer,
                         borderRadius: BorderRadius.circular(6),
                       ),
                       child: Text(
@@ -772,7 +780,7 @@ class _HomeCourseCard extends StatelessWidget {
                         maxLines: 2,
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.labelSmall?.copyWith(
-                          color: theme.colorScheme.onPrimaryContainer,
+                          color: theme.colorScheme.onSurfaceVariant,
                         ),
                       ),
                     ),
