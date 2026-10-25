@@ -2,4 +2,4 @@
 
 首页只保留真实最近使用入口；临近待办以相对日期和语义色强调。课表增加星期、真实教学周和课程状态，今日课程全部结束后按真实周次读取明日课程。复用已核对的学期／教学周／周课表协议，保持账号、路线、日期及缓存隔离，避免把未知时间或读取失败当作无课。
 
-实现与验证完成：完整 Rust/Shell、七包 1455 项、FRB 零漂移、Direct/WebVPN 课表只读验证、两端 32 个原生合成场景和 macOS Debug 构建／签名检查通过。源比较与验收见 docs/migration/source-parity-home-calendar-2026-10-25.md。实际用户窗口因 Mac 锁屏尚未重启，待用户解锁后检查真实首页。
+实现与验证完成：完整 Rust/Shell、七包 1455 项、FRB 零漂移、Direct/WebVPN 课表只读验证、两端 32 个原生合成场景和 macOS Debug 构建／签名检查通过。源比较与验收见 docs/migration/source-parity-home-calendar-2026-10-25.md。用户解锁后已重启最新 macOS Debug 应用，实际首页的明日课表、星期、周次、课程状态、暖色临近提醒及最近使用已核对。
