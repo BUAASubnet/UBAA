@@ -6,6 +6,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/theme.dart';
 import '../common/section.dart';
 import '../features/home/schedule.dart';
+import '../features/home/todo_grid.dart';
 import '../shared/loading.dart' show LoadingGlyph, LoadingPlaceholder;
 import '../features/grades/notice.dart' show GradeScoreBanner;
 import '../shared/feature_icons.dart' show uiFeatureIcon;
@@ -395,10 +396,8 @@ class _HomeViewState extends State<HomeView> {
           ],
         ),
         const SizedBox(height: 12),
-        _HomeCardGrid(
+        HomeTodoGrid(
           key: const ValueKey('home-todos'),
-          maxColumns: 2,
-          minWidth: 320,
           children: [
             for (final task in _showAllTodos ? tasks : tasks.take(4))
               _HomeTodoCard(
@@ -560,40 +559,47 @@ class _HomeTodoCard extends StatelessWidget {
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
-                    Wrap(
-                      spacing: 8,
-                      runSpacing: 4,
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        _homeChip(
-                          context,
-                          _homeLabel(item.feature),
-                          accented: true,
+                        Wrap(
+                          spacing: 8,
+                          runSpacing: 4,
+                          children: [
+                            _homeChip(
+                              context,
+                              _homeLabel(item.feature),
+                              accented: true,
+                            ),
+                            _homeChip(context, item.statusLabel),
+                          ],
                         ),
-                        _homeChip(context, item.statusLabel),
+                        const SizedBox(height: 6),
+                        Text(
+                          item.title,
+
+                          style: theme.textTheme.titleMedium?.copyWith(
+                            fontWeight: FontWeight.bold,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
+                        Text(
+                          item.subtitle,
+                          style: theme.textTheme.bodyMedium?.copyWith(
+                            color: theme.colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                        const SizedBox(height: 6),
                       ],
                     ),
-                    const SizedBox(height: 6),
-                    Text(
-                      item.title,
-
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
-                    Text(
-                      item.subtitle,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                    const SizedBox(height: 6),
                     Text(
                       item.timeLabel,
                       style: theme.textTheme.labelLarge?.copyWith(
@@ -609,7 +615,12 @@ class _HomeTodoCard extends StatelessWidget {
               ),
               if (item.feature == FeatureId.signin) ...[
                 const SizedBox(width: 8),
-                FilledButton(onPressed: onSignin, child: const Text('签到')),
+                Center(
+                  child: FilledButton(
+                    onPressed: onSignin,
+                    child: const Text('签到'),
+                  ),
+                ),
               ] else if (item.navigation != null)
                 Icon(
                   Icons.chevron_right,
@@ -718,7 +729,6 @@ class FeatureGridView extends StatelessWidget {
 /// 卡片只负责排布，滚动统一交给首页；每行按内容自然增高。
 class _HomeCardGrid extends StatelessWidget {
   const _HomeCardGrid({
-    super.key,
     required this.children,
     required this.maxColumns,
     required this.minWidth,

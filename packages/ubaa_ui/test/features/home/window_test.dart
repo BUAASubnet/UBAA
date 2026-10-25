@@ -101,6 +101,107 @@ void main() {
     });
   }
 
+  for (final config in [(1100.0, 1.0), (390.0, 2.0)]) {
+    testWidgets('长描述待办等高且时间对齐，窄屏大字保留全文 $config', (tester) async {
+      tester.view.physicalSize = Size(config.$1, 1600);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final descriptions = ['短课程', '合成的较长课程名称与地点说明' * 5, '课程三', '课程四'];
+      await tester.pumpWidget(
+        MaterialApp(
+          builder: (context, child) => MediaQuery(
+            data: MediaQuery.of(
+              context,
+            ).copyWith(textScaler: TextScaler.linear(config.$2)),
+            child: child!,
+          ),
+          home: Scaffold(
+            body: HomeView(
+              user: null,
+              visible: true,
+              cacheEpoch: 0,
+              homeClock: Clock.fixed(DateTime(2026, 10, 24)),
+              snapshots: {
+                for (final f in FeatureId.values)
+                  f: FeatureSnapshot(
+                    feature: f,
+                    status: FeatureLoadStatus.empty,
+                  ),
+                FeatureId.spoc: FeatureSnapshot(
+                  feature: FeatureId.spoc,
+                  status: FeatureLoadStatus.success,
+                  details: [
+                    for (var i = 0; i < 4; i++)
+                      FeatureDetail(
+                        title: '对齐任务$i',
+                        presentation: SpocAssignmentPresentation(
+                          courseId: 'c$i',
+                          courseName: descriptions[i],
+                          assignmentId: 'a$i',
+                          dueTime: '2026-10-25 12:0$i:00',
+                          status: AssignmentSubmissionStatus.unsubmitted,
+                          statusText: '未提交',
+                        ),
+                      ),
+                  ],
+                ),
+              },
+              onFeatureTap: (_) {},
+              onRetryFeature: (_) async {},
+              onRefresh: () async {},
+              onTodoTap: (_) {},
+            ),
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+      final cards = [
+        for (var i = 0; i < 4; i++) find.widgetWithText(Card, '对齐任务$i'),
+      ];
+      final rects = cards.map(tester.getRect).toList();
+      if (config.$1 > 1000) {
+        for (final rect in rects) {
+          expect(
+            rect.height,
+            closeTo(rects.first.height, 0.1),
+            reason: '长描述不能只撑高其中一排',
+          );
+        }
+        for (var i = 0; i < 4; i++) {
+          final time = find.descendant(
+            of: cards[i],
+            matching: find.textContaining('截止'),
+          );
+          expect(
+            tester.getRect(time).bottom - rects[i].top,
+            closeTo(
+              tester
+                      .getRect(
+                        find.descendant(
+                          of: cards.first,
+                          matching: find.textContaining('截止'),
+                        ),
+                      )
+                      .bottom -
+                  rects.first.top,
+              0.1,
+            ),
+            reason: '截止时间使用同一底部位置',
+          );
+        }
+      } else {
+        expect(rects[1].top, greaterThanOrEqualTo(rects[0].bottom));
+        final description = find.text(descriptions[1]);
+        expect(tester.getRect(description).bottom, lessThan(rects[1].bottom));
+        expect(tester.widget<Text>(description).maxLines, isNull);
+        await tester.ensureVisible(find.text('对齐任务3'));
+        await tester.pumpAndSettle();
+      }
+      expect(tester.takeException(), isNull);
+    });
+  }
+
   testWidgets('常用功能按最近访问排序，再次访问置顶且不重复', (tester) async {
     await shell.mount(tester);
     Future<void> visit(FeatureId id) async {
