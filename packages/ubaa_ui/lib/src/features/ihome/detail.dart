@@ -61,32 +61,28 @@ extension _IhomeCards on _IhomeViewState {
               runSpacing: 8,
               crossAxisAlignment: WrapCrossAlignment.center,
               children: [
-                OutlinedButton.icon(
+                _ihomeReaction(
+                  context,
+                  selected: appeal.isFollowed == true,
+                  label: '关注',
+                  icon: Icons.star_border,
+                  selectedIcon: Icons.star,
+                  count: appeal.followCount,
                   onPressed: disabled || appeal.isFollowed == null
                       ? null
                       : () => _react(appeal, IhomeReaction.follow),
-                  icon: Icon(
-                    appeal.isFollowed == true
-                        ? Icons.bookmark
-                        : Icons.bookmark_border,
-                  ),
-                  label: Text(
-                    '${appeal.isFollowed == true ? '已关注' : '关注'}${appeal.followCount == null ? '' : ' ${appeal.followCount}'}',
-                  ),
                 ),
                 if (_config?.supportEnabled == true)
-                  OutlinedButton.icon(
+                  _ihomeReaction(
+                    context,
+                    selected: appeal.isSupported == true,
+                    label: _config!.supportLabel,
+                    icon: Icons.thumb_up_outlined,
+                    selectedIcon: Icons.thumb_up,
+                    count: appeal.supportCount,
                     onPressed: disabled || appeal.isSupported == null
                         ? null
                         : () => _react(appeal, IhomeReaction.support),
-                    icon: Icon(
-                      appeal.isSupported == true
-                          ? Icons.thumb_up
-                          : Icons.thumb_up_outlined,
-                    ),
-                    label: Text(
-                      '${appeal.isSupported == true ? '已' : ''}${_config!.supportLabel}${appeal.supportCount == null ? '' : ' ${appeal.supportCount}'}',
-                    ),
                   ),
                 TextButton.icon(
                   onPressed: busy ? null : () => _toggle(entry),
@@ -162,6 +158,41 @@ extension _IhomeCards on _IhomeViewState {
     );
   }
 }
+
+/// 沿旧版使用图标切换和独立数量，视觉紧凑并保留完整点击区域。
+Widget _ihomeReaction(
+  BuildContext context, {
+  required bool selected,
+  required String label,
+  required IconData icon,
+  required IconData selectedIcon,
+  required int? count,
+  required VoidCallback? onPressed,
+}) => Row(
+  mainAxisSize: MainAxisSize.min,
+  children: [
+    IconButton(
+      tooltip: selected ? '取消$label' : label,
+      isSelected: selected,
+      iconSize: 20,
+      icon: Icon(icon),
+      selectedIcon: Icon(selectedIcon),
+      style: IconButton.styleFrom(
+        foregroundColor: selected
+            ? Theme.of(context).colorScheme.primary
+            : Theme.of(context).colorScheme.onSurfaceVariant,
+      ),
+      onPressed: onPressed,
+    ),
+    if (count != null)
+      Text(
+        '$count',
+        style: Theme.of(context).textTheme.labelMedium?.copyWith(
+          color: Theme.of(context).colorScheme.onSurfaceVariant,
+        ),
+      ),
+  ],
+);
 
 Widget _ihomeBlock(
   BuildContext context,

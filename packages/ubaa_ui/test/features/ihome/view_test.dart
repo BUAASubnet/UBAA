@@ -153,7 +153,7 @@ void main() {
   testWidgets('列表支持无需打开详情并更新按钮状态', (tester) async {
     final service = Service();
     await mount(tester, service);
-    await tester.tap(find.text('支持 2'));
+    await tester.tap(find.byTooltip('支持'));
     await tester.pumpAndSettle();
     expect(service.detailCalls, 0);
     await tester.tap(find.text('确认'));
@@ -161,7 +161,7 @@ void main() {
     expect(service.writes, [
       (42, IhomeReaction.support, true, ConnectionMode.webvpn),
     ]);
-    expect(find.text('已支持 2'), findsOneWidget);
+    expect(find.byTooltip('取消支持'), findsOneWidget);
   });
   testWidgets('同一诉求的不同评价均保留且刷新失败保留内容', (tester) async {
     final service = Service();
@@ -242,7 +242,7 @@ void main() {
     final service = Service()..failWrite = true;
     await mount(tester, service);
     expect(service.detailCalls, 0);
-    await tester.tap(find.text('关注 1'));
+    await tester.tap(find.byTooltip('关注'));
     await tester.pumpAndSettle();
     expect(service.writes, isEmpty);
     await tester.tap(find.text('确认'));
@@ -252,7 +252,11 @@ void main() {
     ]);
     expect(
       tester
-          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '关注 1'))
+          .widget<IconButton>(
+            find.byWidgetPredicate(
+              (widget) => widget is IconButton && widget.tooltip == '关注',
+            ),
+          )
           .onPressed,
       isNull,
     );
@@ -260,7 +264,11 @@ void main() {
     await tester.pumpAndSettle();
     expect(
       tester
-          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '关注 1'))
+          .widget<IconButton>(
+            find.byWidgetPredicate(
+              (widget) => widget is IconButton && widget.tooltip == '关注',
+            ),
+          )
           .onPressed,
       isNotNull,
     );
