@@ -69,12 +69,7 @@ impl HttpTransport for Transport {
         let url = url::Url::parse(&original).unwrap();
         let mut s = self.0.lock().unwrap();
         s.requests.push(request.clone());
-        let mut response = HttpResponse {
-            status: 200,
-            final_url: request.url.clone(),
-            headers: std::collections::BTreeMap::default(),
-            body: vec![],
-        };
+        let mut response = empty_response(&request);
         if url.host_str() == Some("sso.buaa.edu.cn") {
             s.logins += 1;
             assert!(!request.headers.contains_key("Authorization"));
@@ -167,6 +162,14 @@ impl HttpTransport for Transport {
             serde_json::to_vec(&serde_json::json!({"code":20000,"success":true,"data":data}))
                 .unwrap();
         Ok(response)
+    }
+}
+fn empty_response(request: &HttpRequest) -> HttpResponse {
+    HttpResponse {
+        status: 200,
+        final_url: request.url.clone(),
+        headers: std::collections::BTreeMap::default(),
+        body: vec![],
     }
 }
 fn fixture(
