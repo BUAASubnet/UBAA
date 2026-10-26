@@ -181,7 +181,7 @@ P0 的“保留”只表示当时允许作为后续实现起点；表内默认 b
 ## 7. FRB 生成边界
 
 `packages/ubaa_bindings/lib/src/rust/` 与
-`crates/ubaa-flutter-bridge/src/frb_generated.rs` 是 FRB `2.13.0` 的机械生成输出，
+`crates/ubaa_flutter_bridge/src/frb_generated.rs` 是 FRB `2.13.0` 的机械生成输出，
 禁止手改。生成的 FFI 编解码需要 `unsafe`；仓库仅在私有 `frb_generated` 模块上局部
 允许 `unsafe_code` 与生成噪声，bridge crate 的手写模块仍保持 `unsafe_code=deny` 和
 严格 Clippy。`just flutter-codegen-check` 重新生成、以锁定 Rust toolchain 机械执行

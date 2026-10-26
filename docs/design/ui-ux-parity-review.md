@@ -28,7 +28,7 @@
 
 ## 逐操作来源映射
 
-当前 Bridge 操作依据 `crates/ubaa-flutter-bridge/src/api/read/methods.rs` 和 `api/client.rs`；公开 DTO 位于 `api/read/mod.rs`。下表每一行独立受 C1–C9 约束。
+当前 Bridge 操作依据 `crates/ubaa_flutter_bridge/src/api/read/methods.rs` 和 `api/client.rs`；公开 DTO 位于 `api/read/mod.rs`。下表每一行独立受 C1–C9 约束。
 
 | 操作 | Kotlin 具体领域/函数来源 | Rust 示例来源与差异 | 既有对照章节 |
 |---|---|---|---|

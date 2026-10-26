@@ -9,8 +9,8 @@
 
 ## 已核对来源
 
-- 现行 `crates/ubaa-core/src/ports/reqwest_transport.rs` 与
-  `crates/ubaa-core/src/ports/mod.rs`：生产传输启用 TLS 校验、禁用自动重定向，
+- 现行 `crates/ubaa_core/src/ports/reqwest_transport.rs` 与
+  `crates/ubaa_core/src/ports/mod.rs`：生产传输启用 TLS 校验、禁用自动重定向，
   连接/整体超时为 10/30 秒，单次发送 GET 或 POST，并以 8 MiB 为完整响应预算。
 - 旧版
   `shared/src/commonMain/kotlin/cn/edu/ubaa/api/auth/NetworkUtils.kt` 及其测试：
@@ -24,7 +24,7 @@
 - 示例 `src/error.rs` 与 `src/request.rs`：示例错误包含 source 链，格式化和日志会输出
   原始 source 或响应体；客户端也允许调用方通过 `danger_accept_invalid_certs` 关闭 TLS
   校验。两项都违反现行安全合同，本轮不采用。
-- 现行 `crates/ubaa-flutter-bridge/src/api/simple.rs` 只在 FRB 初始化时调用
+- 现行 `crates/ubaa_flutter_bridge/src/api/simple.rs` 只在 FRB 初始化时调用
   `setup_default_user_utils()`。锁定的 `flutter_rust_bridge 2.13.0`
   `src/misc/user_utils.rs` 表明该函数只初始化 `log` 门面和 backtrace，不安装
   `tracing` subscriber；仓库中只有 CLI 与 `core-live` 安装 subscriber。因此新增

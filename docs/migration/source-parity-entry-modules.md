@@ -9,8 +9,8 @@
 
 | 原实现 | 目标实现 | 保留边界 |
 |---|---|---|
-| `crates/ubaa-core/src/features/mod.rs` | `features/http.rs` | 整体移动 `require_session/get_with_headers/get_with_redirects/post_form/post_json/body/check_response` 及私有 `safe_feature_url/resolve_feature_redirect/feature_redirect_error`；原 `crate::features::*` 路径以相同可见性重导出，调用方不改。 |
-| `crates/ubaa-core/src/ports/mod.rs` | `ports/reqwest_transport.rs` | 整体移动 `ReqwestTransport`、其构造和 `HttpTransport` 实现、响应预算、收包与错误映射、3 个既有测试；`crate::ports::ReqwestTransport` 继续重导出同一类型。 |
+| `crates/ubaa_core/src/features/mod.rs` | `features/http.rs` | 整体移动 `require_session/get_with_headers/get_with_redirects/post_form/post_json/body/check_response` 及私有 `safe_feature_url/resolve_feature_redirect/feature_redirect_error`；原 `crate::features::*` 路径以相同可见性重导出，调用方不改。 |
+| `crates/ubaa_core/src/ports/mod.rs` | `ports/reqwest_transport.rs` | 整体移动 `ReqwestTransport`、其构造和 `HttpTransport` 实现、响应预算、收包与错误映射、3 个既有测试；`crate::ports::ReqwestTransport` 继续重导出同一类型。 |
 | `features/mod.rs` 留存 | 原位置 | 领域声明、路线状态导出及只组合 `FeatureResult` 的 `feature_result` 保持原样。 |
 | `ports/mod.rs` 留存 | 原位置 | `HttpMethod/HttpRequest/HttpResponse/HttpTransport`、DTO 构造方法和脱敏 `Debug` 实现保持原样；不拆出无独立职责的 DTO 层。 |
 

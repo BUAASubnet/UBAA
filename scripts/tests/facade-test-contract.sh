@@ -3,7 +3,7 @@
 set -euo pipefail
 
 repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
-fixtures="$repo_root/crates/ubaa-core/tests/compile"
+fixtures="$repo_root/crates/ubaa_core/tests/compile"
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/ubaa-facade-contract.XXXXXX")
 off_log="$test_root/feature-off.log"
 trap 'rm -rf -- "$test_root"' EXIT HUP INT TERM

@@ -7,13 +7,13 @@
 
 | 层级 | 当前位置 | 证明内容 |
 |---|---|---|
-| Core 单元/合同 | `crates/ubaa-core/src/**` 内单元测试、`crates/ubaa-core/tests/` | DTO、解析、加密向量、错误、URL、Cookie、Session CAS、路线与 facade 行为 |
-| 脱敏 Fixture | `fixtures/`、`crates/ubaa-test-support/src/fixtures.rs` | 最小合成 payload 的解析形状与敏感标记拒绝；不证明真实上游当前行为 |
-| Rust Mock 集成 | `crates/ubaa-test-support/tests/auth.rs`、`readonly.rs` | 精确方法/URL/参数/Header/分页、认证顺序、缓存并发和 Direct/WebVPN 路线锁定 |
-| CLI 合同 | `apps/ubaa-cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v11、旧 v9 envelope 拒绝、路线诊断、脱敏、写确认和退出语义 |
-| CLI 二进制/Core-live | `apps/ubaa-cli/tests/binary_e2e.rs`、`apps/ubaa-cli/tests/core_live_runtime.rs`、`apps/ubaa-cli/src/bin/core_live/{main,args,evidence,steps}.rs` | facade-only 宿主、真实进程 stdout/stderr、缺凭据/auto 拒绝、安全摘要与会话清理 |
+| Core 单元/合同 | `crates/ubaa_core/src/**` 内单元测试、`crates/ubaa_core/tests/` | DTO、解析、加密向量、错误、URL、Cookie、Session CAS、路线与 facade 行为 |
+| 脱敏 Fixture | `fixtures/`、`crates/ubaa_test_support/src/fixtures.rs` | 最小合成 payload 的解析形状与敏感标记拒绝；不证明真实上游当前行为 |
+| Rust Mock 集成 | `crates/ubaa_test_support/tests/auth.rs`、`readonly.rs` | 精确方法/URL/参数/Header/分页、认证顺序、缓存并发和 Direct/WebVPN 路线锁定 |
+| CLI 合同 | `apps/ubaa_cli/tests/cli_contract.rs` | Clap/help、human/JSON schema v11、旧 v9 envelope 拒绝、路线诊断、脱敏、写确认和退出语义 |
+| CLI 二进制/Core-live | `apps/ubaa_cli/tests/binary_e2e.rs`、`apps/ubaa_cli/tests/core_live_runtime.rs`、`apps/ubaa_cli/src/bin/core_live/{main,args,evidence,steps}.rs` | facade-only 宿主、真实进程 stdout/stderr、缺凭据/auto 拒绝、安全摘要与会话清理 |
 | 结构与 Shell 合同 | `scripts/tests/layout.sh`、`contract-versions.sh`、`references.sh`、`flutter-toolchains.sh`、`live-launchers.sh`、`facade-test-contract.sh` | index/工作树结构棘轮、公开版本、refs 副作用边界、工具链完整输出与失败退出码、凭据 stdin、构建失败/信号清理与测试注入关闭态 |
-| FRB bridge | `crates/ubaa-flutter-bridge` 测试、`packages/ubaa_bindings/test/` | typed DTO/错误、panic 归约、公开 schema 快照和 codegen 零漂移 |
+| FRB bridge | `crates/ubaa_flutter_bridge` 测试、`packages/ubaa_bindings/test/` | typed DTO/错误、panic 归约、公开 schema 快照和 codegen 零漂移 |
 | Dart domain/app/platform | `packages/ubaa_domain/test/`、`packages/ubaa_app/test/`、`packages/ubaa_platform/test/` | 模型、状态机、bridge 投影、生命周期、权限/凭据/照片 typed 边界 |
 | 写入协调与宿主接线 | `packages/ubaa_app/test/write_coordinator_test.dart`、`app_write_lifecycle_test.dart`、`write_readback_reentry_test.dart`；`packages/ubaa_host/test/`；`packages/ubaa_ui/test/write_coordination_test.dart` | 唯一状态机、单次消费、取消/过期、注销/重建失效、回读重入与 UI 命令完整性 |
 | Widget/golden | `packages/ubaa_ui/test/` | 十二领域页面、loading/empty/failure/stale、查询、写确认、响应式、明暗主题和可访问性 |
@@ -58,7 +58,7 @@ OHOS、冷启动下载进度及版本前缀碰撞。检查允许下载进度位�
 `38ef75cf` 的冷启动修复另经隔离且无 `bin/cache` 的固定官方 SDK 验证，实际完成 Dart 下载和 Flutter
 工具编译后通过检查；原开发 SDK 未改变。该专项不能替代新候选完整门禁与 Linux CI 冷启动。
 
-CLI [照片输入测试](../../../apps/ubaa-cli/src/io/input.rs) 覆盖原文件和同尺寸替换文件的身份区别；跨平台实现
+CLI [照片输入测试](../../../apps/ubaa_cli/src/io/input.rs) 覆盖原文件和同尺寸替换文件的身份区别；跨平台实现
 通过稳定 `same_file::Handle` 持有初检文件，Unix 继续检查设备与 inode，大小限制与安全错误不放宽。
 本地 Unix 回归不能证明 Windows stable 编译通过；合同 workflow 的 Windows Rust job 必须单独通过。
 `f0daed09` 修正 Windows 无法创建非法名称的夹具：不可创建名称仍作为原始路径送入 CLI，另以所有平台

@@ -42,7 +42,7 @@ class SourceManifestTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.git("init", "-q")
-        for name in ["crates/ubaa-core/src/lib.rs", "Cargo.lock", "Cargo.toml",
+        for name in ["crates/ubaa_core/src/lib.rs", "Cargo.lock", "Cargo.toml",
                      "rust-toolchain.toml", "scripts/build/flutter.sh", "packages/app/lib/main.dart"]:
             path = self.root / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -55,7 +55,7 @@ class SourceManifestTest(unittest.TestCase):
         return subprocess.check_output(["git", "-C", str(self.root), *args], text=True).strip()
 
     def test_Core锁文件及脚本变化均改变输入摘要(self):
-        for name in ["crates/ubaa-core/src/lib.rs", "Cargo.lock", "scripts/build/flutter.sh"]:
+        for name in ["crates/ubaa_core/src/lib.rs", "Cargo.lock", "scripts/build/flutter.sh"]:
             with self.subTest(name=name):
                 before = manifest.source_lines(self.root)
                 path = self.root / name

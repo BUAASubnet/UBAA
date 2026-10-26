@@ -23,11 +23,15 @@
 4. 实现最小变更，先运行聚焦检查，再用 `just check-plan` / `just check-changed` 按影响范围验证；比较已提交分支时传入 `base=<基线>`。安全、协议、并发、存储和跨语言边界修改保留完整相关门禁。未知影响保守全量。
 5. Inspect staged files for sensitive material and keep each phase in a separate commit.
 
+## Directory names
+
+项目自有目录统一使用下划线。包名、命令名、框架固定路径、第三方和历史归档的例外见 [目录命名规则](docs/development/directories.md)。`just layout-check` 同时检查目录命名。
+
 ## Project map
 
-- `crates/ubaa-core`: domain, ports, session, connection, authentication, upstream parsing, and facade.
-- `crates/ubaa-test-support`: sanitized fixtures and deterministic test transports.
-- `apps/ubaa-cli`: human and JSON command-line host.
+- `crates/ubaa_core`: domain, ports, session, connection, authentication, upstream parsing, and facade.
+- `crates/ubaa_test_support`: sanitized fixtures and deterministic test transports.
+- `apps/ubaa_cli`: human and JSON command-line host.
 - `fixtures/auth`: sanitized protocol fixtures only.
 - `docs/contracts`: stable public and CLI contracts.
 - `docs/migration`: evidence, status, and decision history.

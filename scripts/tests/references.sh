@@ -177,7 +177,7 @@ dry_run_recipe() {
     (cd "$cwd" && just --dry-run "$recipe")
   fi
 }
-for cwd in "$repo_root" "$repo_root/apps/ubaa-cli" "$outside"; do
+for cwd in "$repo_root" "$repo_root/apps/ubaa_cli" "$outside"; do
   refs_dry_run=$(dry_run_recipe "$cwd" refs 2>&1)
   bootstrap_dry_run=$(dry_run_recipe "$cwd" refs-bootstrap 2>&1)
   sensitive_dry_run=$(dry_run_recipe "$cwd" check-sensitive 2>&1)

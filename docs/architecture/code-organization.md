@@ -6,10 +6,10 @@
 
 | 位置 | 所有权 |
 |---|---|
-| `crates/ubaa-core` | 协议、认证、路线、会话、缓存、解析和业务资格；宿主只使用 facade |
-| `crates/ubaa-flutter-bridge` | typed FRB 映射、句柄和稳定合同 |
-| `crates/ubaa-test-support` | 脱敏协议夹具与 Mock transport |
-| `apps/ubaa-cli` | CLI 参数、human/JSON、退出码和只读诊断 |
+| `crates/ubaa_core` | 协议、认证、路线、会话、缓存、解析和业务资格；宿主只使用 facade |
+| `crates/ubaa_flutter_bridge` | typed FRB 映射、句柄和稳定合同 |
+| `crates/ubaa_test_support` | 脱敏协议夹具与 Mock transport |
+| `apps/ubaa_cli` | CLI 参数、human/JSON、退出码和只读诊断 |
 | `apps/ubaa_flutter`、`apps/ubaa_ohos` | 官方五端与 OHOS 薄宿主、原生 runner |
 | `packages/ubaa_domain` | 不可变展示、查询和写状态模型 |
 | `packages/ubaa_app` | 会话与用例协调、Bridge 适配、唯一写入状态机 |

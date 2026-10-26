@@ -42,10 +42,10 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 
 | 位置 | 职责 |
 |---|---|
-| `crates/ubaa-core` | 领域、认证、路线、会话、协议、解析、读写与 facade |
-| `crates/ubaa-flutter-bridge` | facade 到 FRB 的稳定 typed 投影；不暴露内部协议状态 |
-| `crates/ubaa-test-support` | 脱敏 fixture、Mock transport 与确定性集成支持 |
-| `apps/ubaa-cli` | human/JSON schema v12 命令行宿主与只读 Core-live 入口 |
+| `crates/ubaa_core` | 领域、认证、路线、会话、协议、解析、读写与 facade |
+| `crates/ubaa_flutter_bridge` | facade 到 FRB 的稳定 typed 投影；不暴露内部协议状态 |
+| `crates/ubaa_test_support` | 脱敏 fixture、Mock transport 与确定性集成支持 |
+| `apps/ubaa_cli` | human/JSON schema v12 命令行宿主与只读 Core-live 入口 |
 | `apps/ubaa_flutter` | Windows/macOS/Linux/Android/iOS 官方 Flutter 薄宿主 |
 | `apps/ubaa_ohos` | HarmonyOS/OHOS fork 薄宿主与 API26 runner |
 | `packages/ubaa_domain` | Dart 稳定领域模型 |

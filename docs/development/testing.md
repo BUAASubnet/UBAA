@@ -20,7 +20,7 @@ just integration-check
 | 层级 | 入口 | 保护 |
 |---|---|---|
 | Core/Fixture/Mock | Core src、tests、ubaa-test-support | 精确请求、解析、加密、认证、路线、缓存与并发 |
-| CLI 及二进制 E2E | apps/ubaa-cli/tests | 参数、真实进程输出、schema、退出码与脱敏 |
+| CLI 及二进制 E2E | apps/ubaa_cli/tests | 参数、真实进程输出、schema、退出码与脱敏 |
 | FRB/Bindings | Rust Bridge、ubaa_bindings/test、codegen checker | typed DTO、错误、版本、句柄与生成零漂移 |
 | App/Domain/Platform | 各包 test 下的领域、session、recovery、write | 边界、账号代次、恢复和单次写入 |
 | UI | features、query、navigation、visual | 可点击入口、状态、草稿、响应式与 golden |
@@ -47,7 +47,7 @@ just integration-test synthetic/cache/bridge_test.dart macos macos
 flutter run -d macos -t integration_test/manual/app/flow_driver.dart
 ```
 
-manual/live 永不进入默认 CI。真实只读的 environment 与 defines 见清单；启动测量 driver 还需独立材料空间和 `scripts/live/offline-startup/run.py` 的显式参数。不要对整个 integration_test 目录执行通配测试。截图和录屏进入仓库外私有目录。
+manual/live 永不进入默认 CI。真实只读的 environment 与 defines 见清单；启动测量 driver 还需独立材料空间和 `scripts/live/offline_startup/run.py` 的显式参数。不要对整个 integration_test 目录执行通配测试。截图和录屏进入仓库外私有目录。
 
 ## 完整确定性门禁
 

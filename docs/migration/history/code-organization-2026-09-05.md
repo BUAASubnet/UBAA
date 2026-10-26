@@ -124,27 +124,27 @@ Flutter 测试通过；该结果不包含宿主 integration、原生构建、签
 | 行数 | 文件 | 混合职责 |
 |---:|---|---|
 | 4046 | `packages/ubaa_ui/lib/src/widgets.dart` | 锁定基线的登录、壳、十二领域、查询、写确认和错误 UI；Phase 11A–B 随后删除博雅选课与退选的字符串资格推断 |
-| 3747 | `crates/ubaa-test-support/tests/readonly.rs` | 多领域请求序列、解析、缓存和路由测试 |
+| 3747 | `crates/ubaa_test_support/tests/readonly.rs` | 多领域请求序列、解析、缓存和路由测试 |
 | 3222 | `packages/ubaa_ui/test/widgets_test.dart` | UI、查询、写入、golden、响应式和无障碍测试 |
-| 2598 | `apps/ubaa-cli/src/lib.rs` | 两套 backend、adapter、执行器和渲染器 |
-| 2031 | `crates/ubaa-core/src/facade/mod.rs` | 构造、认证、路由、全部读写和诊断客户端 |
+| 2598 | `apps/ubaa_cli/src/lib.rs` | 两套 backend、adapter、执行器和渲染器 |
+| 2031 | `crates/ubaa_core/src/facade/mod.rs` | 构造、认证、路由、全部读写和诊断客户端 |
 | 1830 | `packages/ubaa_app/lib/src/bridge_backend.dart` | 全领域读取投影、写入和错误映射 |
-| 1700 | `crates/ubaa-core/src/features/cgyy.rs` | 验证码、认证、HTTP、读写、日志与解析 |
-| 1652 | `crates/ubaa-flutter-bridge/src/api/read.rs` | 读取 DTO、公开调用和全领域映射 |
+| 1700 | `crates/ubaa_core/src/features/cgyy.rs` | 验证码、认证、HTTP、读写、日志与解析 |
+| 1652 | `crates/ubaa_flutter_bridge/src/api/read.rs` | 读取 DTO、公开调用和全领域映射 |
 | 1510 | `packages/ubaa_app/test/app_controller_test.dart` | 生命周期、认证、读取、写入和竞态测试 |
-| 1424 | `apps/ubaa-cli/tests/cli_contract.rs` | help、schema、路由、脱敏与写阻止 |
-| 1423 | `crates/ubaa-core/src/features/judge.rs` | 解析、认证、批处理、缓存和日期算法 |
-| 1417 | `crates/ubaa-core/src/features/spoc.rs` | 认证、分页、详情、诊断、解析和日期算法 |
-| 1165 | `crates/ubaa-test-support/tests/auth.rs` | 登录、生命周期、冲突与错误传输 |
-| 1130 | `crates/ubaa-core/src/session/mod.rs` | 双路线协调、文件 CAS、权限、锁和安全校验 |
+| 1424 | `apps/ubaa_cli/tests/cli_contract.rs` | help、schema、路由、脱敏与写阻止 |
+| 1423 | `crates/ubaa_core/src/features/judge.rs` | 解析、认证、批处理、缓存和日期算法 |
+| 1417 | `crates/ubaa_core/src/features/spoc.rs` | 认证、分页、详情、诊断、解析和日期算法 |
+| 1165 | `crates/ubaa_test_support/tests/auth.rs` | 登录、生命周期、冲突与错误传输 |
+| 1130 | `crates/ubaa_core/src/session/mod.rs` | 双路线协调、文件 CAS、权限、锁和安全校验 |
 | 1001 | `apps/ubaa_flutter/integration_test/app_flow_test.dart` | 认证、查询、写入宿主流程 |
 
 直属手写代码文件超过 16 个的目录有两个：
 
 | 数量 | 目录 | 原因 |
 |---:|---|---|
-| 24 | `apps/ubaa-cli/src` | 参数、backend、执行、IO 和 binary 辅助全部平铺 |
-| 20 | `crates/ubaa-core/src/features` | 大型领域实现、算法与共享状态并列平铺 |
+| 24 | `apps/ubaa_cli/src` | 参数、backend、执行、IO 和 binary 辅助全部平铺 |
+| 20 | `crates/ubaa_core/src/features` | 大型领域实现、算法与共享状态并列平铺 |
 
 FRB 生成 Dart/Rust 合计超过三万行，但每个文件都有生成标记、固定输出目录与零漂移门禁。它们是需要隔离
 和标注的机械产物，不是需要人工拆分的业务代码。
@@ -501,7 +501,7 @@ platform`，`ubaa_ui → domain`，`bindings → FRB`。
 
 ### 6.3 生成边界
 
-- `crates/ubaa-flutter-bridge/src/frb_generated.rs` 与 `packages/ubaa_bindings/lib/src/rust/**` 原位保留。
+- `crates/ubaa_flutter_bridge/src/frb_generated.rs` 与 `packages/ubaa_bindings/lib/src/rust/**` 原位保留。
 - `.gitattributes` 标记 FRB 输出为 generated，降低语言统计与评审噪声。
 - 手写 Rust `api/read` 拆分时，公开 DTO 继续定义在 `read/mod.rs`；只把 inherent methods 和 private mapper
   移到子模块，确保 FRB 类型路径不漂移。

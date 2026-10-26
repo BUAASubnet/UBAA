@@ -1,9 +1,9 @@
 [workspace]
 members = [
-  "apps/ubaa-cli",
-  "crates/ubaa-core",
-  "crates/ubaa-flutter-bridge",
-  "crates/ubaa-test-support",
+  "apps/ubaa_cli",
+  "crates/ubaa_core",
+  "crates/ubaa_flutter_bridge",
+  "crates/ubaa_test_support",
 ]
 resolver = "3"
 

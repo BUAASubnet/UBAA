@@ -51,6 +51,6 @@ android {
 
 apply from: "../cargokit/gradle/plugin.gradle"
 cargokit {
-    manifestDir = "../../../crates/ubaa-flutter-bridge"
+    manifestDir = "../../../crates/ubaa_flutter_bridge"
     libname = "ubaa_flutter_bridge"
 }

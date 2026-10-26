@@ -92,11 +92,11 @@ flowchart TD
 | 网络变化订阅与恢复唤醒 | Platform 接系统变化；Host 前后台订阅；Controller 决定学校恢复 | 类型变化不等于学校可达；默认原生用例未覆盖真实插件通道 |
 | 诊断与输出 | CLI 负责机器信封/退出码；LocalDiagnostics 限量白名单事件 | 本轮诊断测试通过；错误文案参与控制流的债务见 I09 |
 
-值得保留的具体保护包括：`crates/ubaa-core/src/lib.rs` 的私有协议模块与 feature 控制的测试注入；HTTP 禁止自动跳转、TLS 校验、10 秒连接/30 秒请求超时与 8 MiB 正文上限（`crates/ubaa-core/src/ports/reqwest_transport.rs:19,34-38,110`）；Judge 有界缓存与四并发；离线仓库不抢网络 mutex；缓存密钥使用现有 `aes-gcm`/`Zeroizing`；本地诊断默认 100 条、上限 1,000 条，过滤异常正文和外部路径（`packages/ubaa_platform/lib/src/diagnostics.dart:80-130,149-161`）。
+值得保留的具体保护包括：`crates/ubaa_core/src/lib.rs` 的私有协议模块与 feature 控制的测试注入；HTTP 禁止自动跳转、TLS 校验、10 秒连接/30 秒请求超时与 8 MiB 正文上限（`crates/ubaa_core/src/ports/reqwest_transport.rs:19,34-38,110`）；Judge 有界缓存与四并发；离线仓库不抢网络 mutex；缓存密钥使用现有 `aes-gcm`/`Zeroizing`；本地诊断默认 100 条、上限 1,000 条，过滤异常正文和外部路径（`packages/ubaa_platform/lib/src/diagnostics.dart:80-130,149-161`）。
 
 ## 4. 三条代表性变更路径
 
-以下只是追踪，没有实施假想变更。路径文件数不能直接比较优劣；生成、协议、展示和平台责任不同。本节 Dart 路径缩写从 `packages/<包名>/lib/src/` 起算；Core 从 `crates/ubaa-core/src/`、Rust Bridge 从 `crates/ubaa-flutter-bridge/src/` 起算。
+以下只是追踪，没有实施假想变更。路径文件数不能直接比较优劣；生成、协议、展示和平台责任不同。本节 Dart 路径缩写从 `packages/<包名>/lib/src/` 起算；Core 从 `crates/ubaa_core/src/`、Rust Bridge 从 `crates/ubaa_flutter_bridge/src/` 起算。
 
 ### 路径 A：调整成绩读取或当前学期缓存规则
 
@@ -108,7 +108,7 @@ flowchart TD
 
 ### 路径 B：博雅 DTO 增加展示字段或改变可选资格
 
-来源矩阵/fixture → Core `features/bykc/parser.rs:52` → `domain/bykc.rs:19,34` → `facade/read/services.rs:71` → Rust Bridge `api/read/mod.rs:279`、`mappers.rs:295` → FRB 生成 → Dart `bridge/features/bykc/projection.dart:7,33` → `ubaa_domain/feature/presentation/bykc.dart:72` → UI 课程组件。CLI 另从 `apps/ubaa-cli/src/backend/routed.rs:134` 消费 DTO，须核对 `cli-json.schema.json:355`。
+来源矩阵/fixture → Core `features/bykc/parser.rs:52` → `domain/bykc.rs:19,34` → `facade/read/services.rs:71` → Rust Bridge `api/read/mod.rs:279`、`mappers.rs:295` → FRB 生成 → Dart `bridge/features/bykc/projection.dart:7,33` → `ubaa_domain/feature/presentation/bykc.dart:72` → UI 课程组件。CLI 另从 `apps/ubaa_cli/src/backend/routed.rs:134` 消费 DTO，须核对 `cli-json.schema.json:355`。
 
 离线分支 `cache/bykc.rs:9,32` 与 Dart `cached_models.dart:13` 刻意剥离写资格，不能把新 action 机械复制进去。写链另走 `WriteCoordinator` → Dart prepare/commit → Rust `write/prepare.rs` / `commit.rs` → Core fresh authority 与单次发送。手写映射有必要，但共同路线约束分成两代入口是额外负担，并已经产生 I01。合同 v11/v40/v6 的变化需按实际破坏面分别判断。
 
@@ -160,7 +160,7 @@ I06 是已存在的维护负担及风险，不作为 I03/I04 之外的运行故�
 
 ### I01：写入确认路线与最终发送并非统一原子边界
 
-证据：`crates/ubaa-flutter-bridge/src/api/write/prepare.rs:70` 保存准备时路线；`write/commit.rs:65-83` 仅对场馆取消、阳光打卡、教学评教使用 Core 原子入口，其余先单独解析；博雅选课在 `:85-95` 又等待 fresh detail，`:115` 调普通写入口；`crates/ubaa-core/src/facade/write/campus.rs:19-24` 再次解析路线。`connection.rs:23,143` 的生产探测 TTL 为 60 秒，统一业务配置没有排除 Auto 切换。
+证据：`crates/ubaa_flutter_bridge/src/api/write/prepare.rs:70` 保存准备时路线；`write/commit.rs:65-83` 仅对场馆取消、阳光打卡、教学评教使用 Core 原子入口，其余先单独解析；博雅选课在 `:85-95` 又等待 fresh detail，`:115` 调普通写入口；`crates/ubaa_core/src/facade/write/campus.rs:19-24` 再次解析路线。`connection.rs:23,143` 的生产探测 TTL 为 60 秒，统一业务配置没有排除 Auto 切换。
 
 探针直接引用当前 Rust Bridge `api/mod.rs`，用内存 HttpTransport、双路线合成 Session、`SequenceProbe=[Campus,Campus,Campus,OffCampus]` 和 `TTL=ZERO` 压缩时间窗口。实际输出：
 
@@ -242,7 +242,7 @@ prepared=Direct; committed=Some(WebVpn); direct_writes=0; webvpn_writes=1; succe
 
 ### I09：稳定错误类别由完整英文文案决定
 
-证据：`crates/ubaa-flutter-bridge/src/api/write/support.rs:22,34,56,78,109,140,171,193,224` 共九处比较完整 Session 冲突 message 决定 OperationConflict；来源在 Core `session/coordinator.rs:283`、`internal/runtime.rs:367`，测试还固定该文字。修改文案或错误上下文可能改变机器语义，下一位开发者难以从 ErrorCode 发现依赖。
+证据：`crates/ubaa_flutter_bridge/src/api/write/support.rs:22,34,56,78,109,140,171,193,224` 共九处比较完整 Session 冲突 message 决定 OperationConflict；来源在 Core `session/coordinator.rs:283`、`internal/runtime.rs:367`，测试还固定该文字。修改文案或错误上下文可能改变机器语义，下一位开发者难以从 ErrorCode 发现依赖。
 
 最小改善：Core 保留私有 typed cause/稳定分类，在 Bridge 一个边界映射，公开 message 只展示。替代是短期集中一个兼容 predicate 并明确暂时字符串协议；这能减少散布，但未消除耦合。验收同时覆盖文案变化不改 code/kind/retryable、跨进程冲突不伪装认证失效、unknown 永不重试。风险是公开错误合同变化，需明确兼容策略。本轮未复现由修改文案造成的生产故障，优先级低于已发生的反例。
 

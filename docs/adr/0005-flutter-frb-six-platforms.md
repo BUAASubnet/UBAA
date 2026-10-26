@@ -11,7 +11,7 @@ UBAA 2 已把认证、Direct/WebVPN 路由、Cookie/session 和业务协议集�
 
 1. Windows、macOS、Linux、Android、iOS 使用官方 Flutter；HarmonyOS 使用 CPF-Flutter 的 OpenHarmony fork。
 2. 六个平台共享 `ubaa_domain`、`ubaa_app` 和 `ubaa_ui`；官方 Flutter 与 OHOS 各自保留薄宿主，平台能力通过 `ubaa_platform` 注入。
-3. Dart 通过 `flutter_rust_bridge` 调用 `crates/ubaa-flutter-bridge`，bridge 只能依赖 `ubaa-core::facade`。正式版覆盖活动执行合同列出的认证、路线、全部读取和 typed 写业务。
+3. Dart 通过 `flutter_rust_bridge` 调用 `crates/ubaa_flutter_bridge`，bridge 只能依赖 `ubaa-core::facade`。正式版覆盖活动执行合同列出的认证、路线、全部读取和 typed 写业务。
 4. bridge 使用 opaque client 串行保护现有 `UbaaClient`；不会把 raw URL、Cookie、业务 token、内部 DTO 或任意写 payload 暴露给 Dart。写操作只经一次性 `WriteIntent` 准备与确认入口提交。
 5. FRB Dart package、Rust crate、codegen 和 macros 锁定完全相同版本。首个候选为 2.13.0；升级必须重新生成并完成六平台 smoke。
 6. 官方 Flutter 与 OHOS fork 独立锁定完整工具链；不能只锁 Dart pub 版本或只写一个语义版本范围。

@@ -47,14 +47,14 @@ const FEATURE_TEST_TARGETS: [(&str, &str); 14] = [
 fn cli_与_bridge_生产源码只能通过_facade_引用_core() {
     let repository = repository_root();
     let hosts = [
-        ("CLI", repository.join("apps/ubaa-cli/src")),
+        ("CLI", repository.join("apps/ubaa_cli/src")),
         (
             "Flutter bridge",
-            repository.join("crates/ubaa-flutter-bridge/src"),
+            repository.join("crates/ubaa_flutter_bridge/src"),
         ),
         (
             "Test Support",
-            repository.join("crates/ubaa-test-support/src"),
+            repository.join("crates/ubaa_test_support/src"),
         ),
     ];
     let mut violations = Vec::new();
@@ -141,9 +141,9 @@ fn core_旧实现模块不再形成公开旁路() {
 fn test_contract_是关闭默认值且仅由测试支持显式启用() {
     let repository = repository_root();
     let core = parse_manifest(&manifest_dir().join("Cargo.toml"));
-    let test_support = parse_manifest(&repository.join("crates/ubaa-test-support/Cargo.toml"));
-    let cli = parse_manifest(&repository.join("apps/ubaa-cli/Cargo.toml"));
-    let bridge = parse_manifest(&repository.join("crates/ubaa-flutter-bridge/Cargo.toml"));
+    let test_support = parse_manifest(&repository.join("crates/ubaa_test_support/Cargo.toml"));
+    let cli = parse_manifest(&repository.join("apps/ubaa_cli/Cargo.toml"));
+    let bridge = parse_manifest(&repository.join("crates/ubaa_flutter_bridge/Cargo.toml"));
     let mut violations = Vec::new();
 
     if let Some(features) = core.get("features").and_then(toml::Value::as_table) {

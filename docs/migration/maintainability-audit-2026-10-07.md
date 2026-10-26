@@ -62,7 +62,7 @@ UI 的 77 个部件共同拥有私有名称可见性。AppController 的登录�
 
 工作区门禁对 `integration_test` 做格式检查和分析，但实际运行的是无路径参数的 `flutter test`。原生 CI 只明确调用 `integration_test/app_flow_test.dart`；它注册自己的 9 个部件，没有汇入其他 54 个入口。
 
-其他入口包含离线恢复、系统安全材料、平台插件、合成 UI、真实只读和人工巡检。本地专项可能执行过，当前统一门禁却没有持续运行它们。统计测试 [`analyze_test.py`](../../scripts/live/offline-startup/analyze_test.py:14) 本次 7 项通过，但没有接入 `justfile` 或 CI。OHOS 原生合成测试已接入 `scripts/build/ohos.sh`，不是完全遗漏，只是与 SDK/构建入口绑定。
+其他入口包含离线恢复、系统安全材料、平台插件、合成 UI、真实只读和人工巡检。本地专项可能执行过，当前统一门禁却没有持续运行它们。统计测试 [`analyze_test.py`](../../scripts/live/offline_startup/analyze_test.py:14) 本次 7 项通过，但没有接入 `justfile` 或 CI。OHOS 原生合成测试已接入 `scripts/build/ohos.sh`，不是完全遗漏，只是与 SDK/构建入口绑定。
 
 建议建立可执行清单，逐项记录领域、证据类型、所需平台、账号/设备需求、命令和 CI 归属。普通确定性测试提供按包/领域的快速入口；原生合成流程进入匹配 runner；设备能力、真实只读、人工巡检分别提供显式入口。不要对当前 `integration_test/` 盲目执行通配全量命令。
 
@@ -72,7 +72,7 @@ UI 的 77 个部件共同拥有私有名称可见性。AppController 的登录�
 |---|---|---|
 | [`public_api_contract_test.dart:6`](../../packages/ubaa_app/test/public_api_contract_test.dart:6)、第 54 行 | 手写 `_publicNames` 清单断言长度和去重长度为 33，没有从实际导出生成；导出变化不一定影响计数 | 删除清单计数，保留真实 import 与静态类型签名合同 |
 | [`bridge_backend_characterization/signatures.dart:3`](../../packages/ubaa_app/test/bridge_backend_characterization/signatures.dart:3) 与公共 API 合同 | 重复维护部分构造器/接口/tear-off；`hasLength(17)` 只核对局部列表 | 合并重复签名，保留独有的“构造不触发原生调用”断言 |
-| [`internal_architecture.rs:29`](../../crates/ubaa-core/tests/internal_architecture.rs:29) | 永久锁定迁移后的具体文件名，合法重组也会失败 | 保留禁止 `internal → features` 的依赖测试；路径清单改为必要入口/边界规则或归档迁移检查 |
+| [`internal_architecture.rs:29`](../../crates/ubaa_core/tests/internal_architecture.rs:29) | 永久锁定迁移后的具体文件名，合法重组也会失败 | 保留禁止 `internal → features` 的依赖测试；路径清单改为必要入口/边界规则或归档迁移检查 |
 | [`write_controller_test.dart`](../../packages/ubaa_app/test/write_controller_test.dart:23) 与 [`write_coordinator/flow.dart`](../../packages/ubaa_app/test/write_coordinator/flow.dart:78) | 旧名字已是同一实现的 typedef，测试仍按旧/新名字分组 | 统一放入 `write/`；保留少量兼容合同，逐断言对照后合并交叉用例 |
 
 最后一项不能直接整文件删除：旧入口与 UI 入口的抛错、返回值、销毁和释放断言存在差异。本次没有完成全仓等价断言证明，不承诺删掉某个比例的测试。
@@ -162,6 +162,6 @@ apps/ubaa_flutter/integration_test/
 - `just refs` 通过：ubaa_old `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`；buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。
 - `just layout-check` 通过，精确 baseline 违例为 0。
 - 固定官方 Flutter SDK 下，`ubaa_app` 的 `public_api_contract_test.dart`、`write_controller_test.dart`、`write_coordinator_test.dart` 合计 41 项通过；`ubaa_ui/test/query_panel_test.dart` 1 项通过。命令采用 `flutter test --no-pub --reporter expanded` 加对应文件路径。
-- `PYTHONDONTWRITEBYTECODE=1 python3 scripts/live/offline-startup/analyze_test.py`：7 项通过。
+- `PYTHONDONTWRITEBYTECODE=1 python3 scripts/live/offline_startup/analyze_test.py`：7 项通过。
 - 本轮只新增审查文档及索引/状态/决策记录，未修改生产代码、测试、依赖或合同；未运行全量 Rust/Flutter 门禁、原生构建、设备或真实学校请求。
 - F2 是源码确认的测试旁路风险，F3 是静态确认的持续回归缺口，均不表示已证明生产故障。测试合并判断限于明确列出的候选。

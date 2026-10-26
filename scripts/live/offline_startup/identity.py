@@ -25,7 +25,7 @@ def identity(repo, app, kind, device):
     roots = ["crates", "packages", "apps/ubaa_flutter/lib",
              "apps/ubaa_flutter/integration_test/live/performance",
              "apps/ubaa_flutter/macos", "apps/ubaa_flutter/ios",
-             "scripts/live/offline-startup", "Cargo.toml", "Cargo.lock"]
+             "scripts/live/offline_startup", "Cargo.toml", "Cargo.lock"]
     tracked = run(["git", "ls-files", "-z", "--cached", "--others",
                    "--exclude-standard", "--", *roots], cwd=repo).split("\0")
     source = file_set_digest(repo, [Path(x) for x in set(tracked) if x])

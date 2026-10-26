@@ -2,7 +2,7 @@
 
 本 package 保存 `flutter_rust_bridge` 生成的 Dart API，以及 Cargokit 在
 Android、iOS、macOS、Linux 和 Windows 的构建接线。Rust 输入只来自
-`../../crates/ubaa-flutter-bridge`，生成文件禁止手改。
+`../../crates/ubaa_flutter_bridge`，生成文件禁止手改。
 
 固定版本为 FRB `2.13.0`。重新生成必须在本目录执行：
 

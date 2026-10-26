@@ -265,7 +265,7 @@ fn cli_production_sources_use_only_facade_for_core_internals() {
 #[test]
 fn core_does_not_own_cli_output_or_exit_policy() {
     let repository_root = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../..");
-    let core_root = repository_root.join("crates/ubaa-core");
+    let core_root = repository_root.join("crates/ubaa_core");
     let core_source_root = core_root.join("src");
     let mut core_sources = Vec::new();
     collect_source_files(&core_source_root, &mut core_sources);
@@ -821,13 +821,13 @@ fn windows_cargokit_manifest_avoids_plugin_junction_parent_traversal() {
     let cargokit_cmake =
         include_str!("../../../packages/ubaa_bindings/cargokit/cmake/cargokit.cmake");
 
-    assert!(windows_cmake.contains("${CMAKE_SOURCE_DIR}/../../../crates/ubaa-flutter-bridge"));
+    assert!(windows_cmake.contains("${CMAKE_SOURCE_DIR}/../../../crates/ubaa_flutter_bridge"));
     assert!(windows_cmake.contains(
         "apply_cargokit(${PROJECT_NAME} \"${UBAA_RUST_CRATE_DIR}\" ubaa_flutter_bridge \"\")"
     ));
     assert!(
         !windows_cmake
-            .contains("apply_cargokit(${PROJECT_NAME} ../../../crates/ubaa-flutter-bridge")
+            .contains("apply_cargokit(${PROJECT_NAME} ../../../crates/ubaa_flutter_bridge")
     );
     assert!(cargokit_cmake.contains("if(IS_ABSOLUTE \"${manifest_dir}\")"));
     assert!(cargokit_cmake.contains("CARGOKIT_MANIFEST_DIR=${CARGOKIT_MANIFEST_DIR}"));

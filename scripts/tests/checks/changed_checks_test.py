@@ -53,13 +53,13 @@ class ChangedChecksTest(unittest.TestCase):
                 self.assertEqual(plan['packages'], list(gates.PACKAGES))
 
     def test_rust_bridge_adds_codegen_and_all_flutter(self):
-        plan = self.plan('crates/ubaa-flutter-bridge/src/api.rs')
+        plan = self.plan('crates/ubaa_flutter_bridge/src/api.rs')
         self.assertTrue(plan['rust'])
         self.assertEqual(plan['packages'], list(gates.PACKAGES))
         self.assertIn(['just', 'flutter-codegen-check'], plan['extra'])
 
     def test_core_requires_cross_language_checks(self):
-        plan = self.plan('crates/ubaa-core/src/session/mod.rs')
+        plan = self.plan('crates/ubaa_core/src/session/mod.rs')
         self.assertTrue(plan['rust'])
         self.assertEqual(plan['packages'], list(gates.PACKAGES))
         self.assertIn(['just', 'flutter-codegen-check'], plan['extra'])

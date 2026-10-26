@@ -49,3 +49,5 @@ OHOS网络插件合同：`bash scripts/tests/platform-plugins-ohos.sh` 编译实
 `just check-plan [base=<Git基线>]` 只读取 Git 状态与本地 pubspec，打印计划；`just check-changed` 执行同一计划。默认覆盖全部本地差异（包含删除、移动及未跟踪文件），显式基线还包含分支提交。未知文件或依赖格式退回完整门禁，不自行安装依赖或修改冻结目录。
 
 Dart 生产变更沿本地依赖及 dev_dependencies 传播；测试变更仅验证所属包。执行命令沿用原门禁，因此可写构建缓存，FRB 检查沿用原生成/漂移约束。此入口不自动执行真实账号或任意设备测试；原生入口变更会提示专项验证。完整 `just check` 与无参数 `just flutter-check` 继续作为 CI 和最终整理验收入口。
+
+自有目录统一使用下划线。`just layout-check` 包含 `check/directory_names.py`，检查跟踪文件及未忽略的新文件所在目录，冻结路径例外见 [目录命名规则](../docs/development/directories.md)。

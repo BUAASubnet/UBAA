@@ -100,7 +100,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
         stem: 'ubaa_flutter_bridge',
-        ioDirectory: '../../crates/ubaa-flutter-bridge/target/release/',
+        ioDirectory: '../../crates/ubaa_flutter_bridge/target/release/',
         webPrefix: 'pkg/',
         wasmBindgenName: 'wasm_bindgen',
       );

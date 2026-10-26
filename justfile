@@ -67,6 +67,7 @@ check-sensitive:
 # 结构 checker 与当前违例 baseline；合同测试由 just check 独立执行。
 layout-check:
     bash ./scripts/check/layout.sh
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/check/directory_names.py
 
 # 纯静态交叉校验 CLI/Bridge 常量、schema、Dart 接受版本和当前文档声明。
 contract-version-check:
@@ -112,13 +113,14 @@ source-files:
 
 # 不访问学校或设备的 Python 行为合同。
 script-test:
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/directory_names_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/changed_checks_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/integration_catalog_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/module_graph_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/sensitive_test.py
     bash scripts/tools/python.sh scripts/tests/release_metadata_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/source_manifest_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/live/offline-startup/analyze_test.py
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/live/offline_startup/analyze_test.py
 
 # 显式联网准备固定开发依赖；检查入口本身不安装依赖。
 quality-tools-bootstrap:

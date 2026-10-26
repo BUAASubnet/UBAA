@@ -2,7 +2,7 @@
 
 日期：2026-09-03
 
-本记录只授权 `crates/ubaa-core/src/features` 下 Cgyy、Judge、SPOC、Bykc、LibBook、Ygdk
+本记录只授权 `crates/ubaa_core/src/features` 下 Cgyy、Judge、SPOC、Bykc、LibBook、Ygdk
 六个既有实现的物理拆分。协议事实仍以 [`source-parity.md`](source-parity.md) 的逐操作九列矩阵为
 准；本记录把那些行为列映射到目标文件，防止目录整理时顺手改动 URL、参数、解析或错误语义。
 

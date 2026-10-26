@@ -17,7 +17,7 @@ sha2 = "=0.10.9"
 tokio = { version = "1.49.0", features = ["macros", "rt", "sync"] }
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt"] }
-ubaa-core = { path = "../ubaa-core" }
+ubaa-core = { path = "../ubaa_core" }
 
 [target.'cfg(target_os = "android")'.dependencies]
 jni = "=0.22.4"
@@ -25,7 +25,7 @@ rustls-platform-verifier = "=0.7.0"
 
 [dev-dependencies]
 async-trait = "0.1.89"
-ubaa-test-support = { path = "../ubaa-test-support" }
+ubaa-test-support = { path = "../ubaa_test_support" }
 
 [lints.rust]
 unsafe_code = "deny"

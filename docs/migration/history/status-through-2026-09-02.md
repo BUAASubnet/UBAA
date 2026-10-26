@@ -969,9 +969,9 @@ evaluation/all PASS(0); evaluation/pending PASS(0)
 | 严重度 | 位置 | 发现 | 修复与验证 | 残留风险 |
 |---|---|---|---|---|
 | 高 | `scripts/core-live.sh` | `exec` 绕过 `EXIT` 陷阱导致自动会话目录泄漏，构建失败和信号路径也没有合同测试。 | 移除 `exec`，保留子进程退出码，增加 EXIT 与信号陷阱；`scripts/test-verify-live.sh` 运行时覆盖成功、失败、构建失败、SIGTERM、参数转发和显式目录保留。 | 无；显式目录仍由调用方负责清理。 |
-| 高 | `crates/ubaa-core/src/facade/mod.rs`、`runtime.rs`、`session/mod.rs` | 读写请求前只检查进程内状态，外部会话修订变化可能在网络副作用后才被发现。 | 新增 `SessionStore::is_revision_current` 和协调器外部修订检查；聚合 facade 所有操作入口统一预检；stale reader/writer Mock 均断言请求计数为 0。 | Windows 权限策略仍依赖平台 ACL，按既有会话审计记录。 |
-| 中 | `apps/ubaa-cli/src/lib.rs`、`routing.rs` | CLI 生产代码直接导入 `connection` 路由诊断，宿主边界不完整。 | 将安全诊断类型经 `facade` 重导出，新增递归源码依赖扫描覆盖全部 CLI `src/`；CLI 全量测试通过。 | Core 内部模块仍为测试兼容保持公开，后续可在测试支持库迁移后进一步收紧。 |
-| 中 | `apps/ubaa-cli/src/bin/core-live.rs` | 认证准备、诊断字段和认证失败后的矩阵项不完整，Cgyy 静态回退来源不可区分。 | 显式调用一次 `prepare_login` 并映射到登录状态，补齐阻断矩阵和 SPOC/Judge 计数，新增 Cgyy 来源 DTO；两条真实路线逐项通过。 | 真实上游列表数量会波动，只记录安全计数并保持逐项语义门禁。 |
+| 高 | `crates/ubaa_core/src/facade/mod.rs`、`runtime.rs`、`session/mod.rs` | 读写请求前只检查进程内状态，外部会话修订变化可能在网络副作用后才被发现。 | 新增 `SessionStore::is_revision_current` 和协调器外部修订检查；聚合 facade 所有操作入口统一预检；stale reader/writer Mock 均断言请求计数为 0。 | Windows 权限策略仍依赖平台 ACL，按既有会话审计记录。 |
+| 中 | `apps/ubaa_cli/src/lib.rs`、`routing.rs` | CLI 生产代码直接导入 `connection` 路由诊断，宿主边界不完整。 | 将安全诊断类型经 `facade` 重导出，新增递归源码依赖扫描覆盖全部 CLI `src/`；CLI 全量测试通过。 | Core 内部模块仍为测试兼容保持公开，后续可在测试支持库迁移后进一步收紧。 |
+| 中 | `apps/ubaa_cli/src/bin/core-live.rs` | 认证准备、诊断字段和认证失败后的矩阵项不完整，Cgyy 静态回退来源不可区分。 | 显式调用一次 `prepare_login` 并映射到登录状态，补齐阻断矩阵和 SPOC/Judge 计数，新增 Cgyy 来源 DTO；两条真实路线逐项通过。 | 真实上游列表数量会波动，只记录安全计数并保持逐项语义门禁。 |
 
 ## 当前大文件拆分例外
 
@@ -980,20 +980,20 @@ evaluation/all PASS(0); evaluation/pending PASS(0)
 
 | 文件 | 行数（2026-08-31） | 暂缓原因与后续安排 |
 |---|---:|---|
-| `apps/ubaa-cli/src/lib.rs` | 2598 | 仍是 CLI backend 合同和命令委托的唯一组合入口；先保持公共 trait/退出语义稳定，后续按 `args/backend/execution/input/render` 迁移并逐组验证。 |
-| `crates/ubaa-core/src/facade/mod.rs` | 2000 | facade 委托方法共享路线生命周期和收尾逻辑；本周期新增读写 stale revision 预检，继续拆分前先冻结 facade 快照并为每个业务建立单独合同测试。 |
-| `crates/ubaa-core/src/features/cgyy.rs` | 1603 | Cgyy 协议、解析、重定向和写保护刚完成路线统一；加密/签名已独立文件，下一次协议变更前拆读/写/解析。 |
-| `crates/ubaa-core/src/features/judge.rs` | 1423 | Judge 列表、详情、缓存和并发边界需共享同一生命周期；保持四 worker/缓存测试完整，后续拆为读、解析、诊断。 |
-| `crates/ubaa-core/src/features/spoc.rs` | 1417 | SPOC 登录、分页、解析和诊断共享业务令牌状态；保持一次登录和全局页计数，后续按认证/读/解析拆分。 |
-| `crates/ubaa-core/src/session/mod.rs` | 1050 | 会话 CAS、锁、迁移和权限代码共同维护原子不变量；存储、Cookie、端口已先行拆出，后续继续按 coordinator/validation 拆分。 |
-| `crates/ubaa-core/src/features/bykc.rs` | 964 | 博雅读写协议和加密调用共享认证上下文；下一次写协议变更前按读/写/解析拆分。 |
-| `crates/ubaa-core/src/features/state.rs` | 843 | 路线状态缓存的生成号和失效逻辑需要集中维护；已有 `state_cache.rs`，后续按业务状态拆分并保留并发测试。 |
+| `apps/ubaa_cli/src/lib.rs` | 2598 | 仍是 CLI backend 合同和命令委托的唯一组合入口；先保持公共 trait/退出语义稳定，后续按 `args/backend/execution/input/render` 迁移并逐组验证。 |
+| `crates/ubaa_core/src/facade/mod.rs` | 2000 | facade 委托方法共享路线生命周期和收尾逻辑；本周期新增读写 stale revision 预检，继续拆分前先冻结 facade 快照并为每个业务建立单独合同测试。 |
+| `crates/ubaa_core/src/features/cgyy.rs` | 1603 | Cgyy 协议、解析、重定向和写保护刚完成路线统一；加密/签名已独立文件，下一次协议变更前拆读/写/解析。 |
+| `crates/ubaa_core/src/features/judge.rs` | 1423 | Judge 列表、详情、缓存和并发边界需共享同一生命周期；保持四 worker/缓存测试完整，后续拆为读、解析、诊断。 |
+| `crates/ubaa_core/src/features/spoc.rs` | 1417 | SPOC 登录、分页、解析和诊断共享业务令牌状态；保持一次登录和全局页计数，后续按认证/读/解析拆分。 |
+| `crates/ubaa_core/src/session/mod.rs` | 1050 | 会话 CAS、锁、迁移和权限代码共同维护原子不变量；存储、Cookie、端口已先行拆出，后续继续按 coordinator/validation 拆分。 |
+| `crates/ubaa_core/src/features/bykc.rs` | 964 | 博雅读写协议和加密调用共享认证上下文；下一次写协议变更前按读/写/解析拆分。 |
+| `crates/ubaa_core/src/features/state.rs` | 843 | 路线状态缓存的生成号和失效逻辑需要集中维护；已有 `state_cache.rs`，后续按业务状态拆分并保留并发测试。 |
 
 ## 2026-08-31 本周期基线检查
 
 本周期开始时工作树包含既有未提交改动，按合同作为基线保留。`just refs` 和
 `just check-sensitive` 已通过；`just check` 在 Clippy 阶段失败，具体为
-`crates/ubaa-core/src/facade/mod.rs:592` 的 `RouteResolution`（可复制小类型）
+`crates/ubaa_core/src/facade/mod.rs:592` 的 `RouteResolution`（可复制小类型）
 仍按引用传递，触发 `clippy::trivially-copy-pass-by-ref`。该失败是基线事实，
 不是验收通过；后续先做最小修复并重新运行完整门槛。
 
@@ -1154,47 +1154,47 @@ bash ./scripts/test-verify-live.sh                  PASS
 - Direct、WebVPN、auto 认证状态复验均成功（`feature=auth`，三条路线均 `parsed_user=yes`）；认证仅用于建立/检查只读会话，未执行业务写操作。
 - 方法级对照复核冻结 `ubaa_old/shared/api/feature` 的 13 个领域：当前 Core facade、RouteClient 与 CLI 均覆盖对应读写方法；未发现遗漏的直接上游操作。该复核未将 Server 或非等价 examples 接口纳入范围。
 - 对照冻结 `LocalClassroomApi` 移除教室响应 `e` 的额外非零门控；新增脱敏测试先失败后通过，保留完整信封/字段类型校验并原样映射 `ClassroomQuery.code`。
-- 将 Cgyy MD5 签名规范化与摘要构造移入 `crates/ubaa-core/src/features/cgyy_sign.rs`；保持前缀、路径、非空参数排序、时间戳、空格和摘要输出不变；Cgyy 请求向量、敏感扫描与全量门禁通过。
+- 将 Cgyy MD5 签名规范化与摘要构造移入 `crates/ubaa_core/src/features/cgyy_sign.rs`；保持前缀、路径、非空参数排序、时间戳、空格和摘要输出不变；Cgyy 请求向量、敏感扫描与全量门禁通过。
 - 将 Cgyy 签名模块中的毫秒时间戳读取与签名摘要保持同一职责边界；维持 Unix epoch、溢出处理及 `UpstreamChanged` 错误语义不变；Cgyy 定向测试与敏感扫描通过。
 - 对照冻结 `LocalCgyySigner.cleanParams` 补齐签名前审计键过滤，排除 `gmtCreate`、`gmtModified`、`creator`、`modifier`、`id`、`_index`、`_rowKey`；新增脱敏向量先失败后通过，保持其余签名排序、空值和摘要语义不变。
 - 校正 `legacy-feature-inventory.md` 与 `source-parity.md` 的 Cgyy WebVPN 现状：当前业务 runtime 与 facade 解析路线一致，并有 WebVPN-only 回归测试；剩余日期/订单/锁码仅按逐操作实时结果记录，避免历史失败表述与当前代码不一致。
-- 将 Cgyy 验证码点位与校验凭据的 AES-ECB/PKCS#7/Base64 加密辅助移入 `crates/ubaa-core/src/features/cgyy_crypto.rs`；保持三种密钥长度、字段拼接、错误文本和冻结向量不变；Core、敏感扫描与全量门禁通过。
-- 将 Ygdk 照片 multipart 正文构造移入 `crates/ubaa-core/src/features/ygdk_upload.rs`；保持 `uid`、`token`、文件元数据、CRLF 和 boundary 终止顺序不变；上传字段测试、敏感扫描与全量门禁通过。
-- 将 LibBook 预约请求 DTO 与日期派生 AES-128-CBC/PKCS#7 加密辅助移入 `crates/ubaa-core/src/features/libbook_crypto.rs`；保持固定 IV、字段顺序、错误文本和 Base64 输出不变；LibBook golden 向量、敏感扫描与全量门禁通过。
-- 将 SPOC 参数 AES-CFB/Base64 加密辅助移入 `crates/ubaa-core/src/features/spoc_crypto.rs`；保持冻结密钥、链式初始向量、零填充、块加密和 Base64 输出不变；golden 向量、敏感扫描与全量门禁通过。
-- 将 Judge 路线缓存共用的定时条目、TTL 判断和有界插入辅助移入 `crates/ubaa-core/src/features/state_cache.rs`；保持缓存容量、过期淘汰、空结果处理和并发语义不变；Core、CLI、敏感扫描与全量门禁通过。
+- 将 Cgyy 验证码点位与校验凭据的 AES-ECB/PKCS#7/Base64 加密辅助移入 `crates/ubaa_core/src/features/cgyy_crypto.rs`；保持三种密钥长度、字段拼接、错误文本和冻结向量不变；Core、敏感扫描与全量门禁通过。
+- 将 Ygdk 照片 multipart 正文构造移入 `crates/ubaa_core/src/features/ygdk_upload.rs`；保持 `uid`、`token`、文件元数据、CRLF 和 boundary 终止顺序不变；上传字段测试、敏感扫描与全量门禁通过。
+- 将 LibBook 预约请求 DTO 与日期派生 AES-128-CBC/PKCS#7 加密辅助移入 `crates/ubaa_core/src/features/libbook_crypto.rs`；保持固定 IV、字段顺序、错误文本和 Base64 输出不变；LibBook golden 向量、敏感扫描与全量门禁通过。
+- 将 SPOC 参数 AES-CFB/Base64 加密辅助移入 `crates/ubaa_core/src/features/spoc_crypto.rs`；保持冻结密钥、链式初始向量、零填充、块加密和 Base64 输出不变；golden 向量、敏感扫描与全量门禁通过。
+- 将 Judge 路线缓存共用的定时条目、TTL 判断和有界插入辅助移入 `crates/ubaa_core/src/features/state_cache.rs`；保持缓存容量、过期淘汰、空结果处理和并发语义不变；Core、CLI、敏感扫描与全量门禁通过。
 - 最新实时复测：WebVPN 全量在 Cgyy 日期阶段返回 `invalid_semantics`（此前非 Cgyy 及 Cgyy 站点均成功）；auto 解析到 Direct 并在 Ygdk 阶段返回 `timeout`，此前 User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin 成功。失败项按冻结逻辑与实时证据保留，未执行真实写操作。
-- 将 `RouteClient` 会话冲突保护、认证失效清理和操作收尾逻辑移入 `crates/ubaa-core/src/facade/session_lifecycle.rs`；保持会话所有权、错误码、清理时机及重试语义不变；Core、CLI、敏感扫描与全量门禁通过。
+- 将 `RouteClient` 会话冲突保护、认证失效清理和操作收尾逻辑移入 `crates/ubaa_core/src/facade/session_lifecycle.rs`；保持会话所有权、错误码、清理时机及重试语义不变；Core、CLI、敏感扫描与全量门禁通过。
 - 实时复核记录：`feature=auth route=direct` 单项认证成功；`feature=all route=direct` 在聚合登录语义校验阶段返回 `invalid_semantics`，未进入业务读操作。该结果按验证器双路线聚合边界记录，未据此修改冻结认证协议。
-- 将 WebVPN 主机段 AES-CFB 编解码与十六进制辅助逻辑移入 `crates/ubaa-core/src/connection_codec.rs`；保持冻结密钥、填充、重定向主机还原及错误码不变；Core、敏感扫描与全量门禁通过。
-- 将 CLI 的 `command_output_value` 与 human 输出渲染分别移入 `apps/ubaa-cli/src/command_output.rs`、`apps/ubaa-cli/src/render.rs`；保持 JSON/human 内容、错误文本和退出码不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `crates/ubaa-core/src/facade/aggregate_helpers.rs`，收拢聚合登录准备、路由结果、安全错误和备用路线辅助函数；保持 `UbaaClient` 的路由顺序、错误码和 JSON 安全投影不变；Core、CLI、敏感扫描与全量门禁通过。
-- 将 `Cli` 的登录、会话预检、登出、认证状态和功能映射方法移入 `apps/ubaa-cli/src/commands.rs`；保持命令匹配、路由模式和稳定功能标识不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/judge_args.rs`，收拢 Judge 列表、隐藏诊断和详情/批量 key 参数定义；保持历史作业开关、参数名称及输出语义不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/spoc_args.rs`，收拢 SPOC 列表、隐藏诊断与详情命令定义；保持作业 ID 参数、诊断隐藏属性和输出语义不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/classroom_args.rs`，收拢空闲教室命令参数与子命令定义；保持校区、日期参数及查询输出语义不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/grades_args.rs`，收拢成绩命令参数与子命令定义；保持 `grades list --term` 入口及参数语义不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/exam_args.rs`，收拢考试命令参数与子命令定义；保持 `exam list --term` 入口及参数语义不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/user_args.rs`，收拢用户中心命令参数与子命令定义；保持 `user show` 入口、会话要求和输出语义不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/schedule_args.rs`，收拢课表命令参数与子命令定义；保持学期、教学周、指定周次和今日课表入口及参数语义不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/auth_args.rs`，收拢认证命令参数与子命令定义；保持登录、状态、登出命令、敏感输入边界及输出语义不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/signin_args.rs`，收拢课堂签到命令参数与子命令定义；保持今日查询、课程编号校验及 `--confirm-write` 写操作保护不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/ygdk_args.rs`，收拢阳光打卡命令参数与子命令定义；保持概览/记录分页默认值、照片输入参数及 `--confirm-write` 写操作保护不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/libbook_args.rs`，收拢图书馆命令参数与子命令定义；保持库馆/分区/座位/预约查询参数、默认分页值及预约/取消的显式写保护不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/evaluation_args.rs`，收拢评教命令参数与子命令定义；保持全部/待评教查询、payload 路径校验及 `--confirm-write` 写操作保护不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/bykc_args.rs`，收拢博雅课程命令参数与子命令定义；保持课程分页默认值、详情/已选/统计查询以及选课、退选、签到的显式写保护不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/cgyy_args.rs`，收拢场馆命令参数与子命令定义；保持查询参数、写操作 `--confirm-write`/`--request-stdin` 保护和 CLI 命令语义不变；CLI、敏感扫描与全量门禁通过。
+- 将 WebVPN 主机段 AES-CFB 编解码与十六进制辅助逻辑移入 `crates/ubaa_core/src/connection_codec.rs`；保持冻结密钥、填充、重定向主机还原及错误码不变；Core、敏感扫描与全量门禁通过。
+- 将 CLI 的 `command_output_value` 与 human 输出渲染分别移入 `apps/ubaa_cli/src/command_output.rs`、`apps/ubaa_cli/src/render.rs`；保持 JSON/human 内容、错误文本和退出码不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `crates/ubaa_core/src/facade/aggregate_helpers.rs`，收拢聚合登录准备、路由结果、安全错误和备用路线辅助函数；保持 `UbaaClient` 的路由顺序、错误码和 JSON 安全投影不变；Core、CLI、敏感扫描与全量门禁通过。
+- 将 `Cli` 的登录、会话预检、登出、认证状态和功能映射方法移入 `apps/ubaa_cli/src/commands.rs`；保持命令匹配、路由模式和稳定功能标识不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/judge_args.rs`，收拢 Judge 列表、隐藏诊断和详情/批量 key 参数定义；保持历史作业开关、参数名称及输出语义不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/spoc_args.rs`，收拢 SPOC 列表、隐藏诊断与详情命令定义；保持作业 ID 参数、诊断隐藏属性和输出语义不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/classroom_args.rs`，收拢空闲教室命令参数与子命令定义；保持校区、日期参数及查询输出语义不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/grades_args.rs`，收拢成绩命令参数与子命令定义；保持 `grades list --term` 入口及参数语义不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/exam_args.rs`，收拢考试命令参数与子命令定义；保持 `exam list --term` 入口及参数语义不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/user_args.rs`，收拢用户中心命令参数与子命令定义；保持 `user show` 入口、会话要求和输出语义不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/schedule_args.rs`，收拢课表命令参数与子命令定义；保持学期、教学周、指定周次和今日课表入口及参数语义不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/auth_args.rs`，收拢认证命令参数与子命令定义；保持登录、状态、登出命令、敏感输入边界及输出语义不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/signin_args.rs`，收拢课堂签到命令参数与子命令定义；保持今日查询、课程编号校验及 `--confirm-write` 写操作保护不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/ygdk_args.rs`，收拢阳光打卡命令参数与子命令定义；保持概览/记录分页默认值、照片输入参数及 `--confirm-write` 写操作保护不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/libbook_args.rs`，收拢图书馆命令参数与子命令定义；保持库馆/分区/座位/预约查询参数、默认分页值及预约/取消的显式写保护不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/evaluation_args.rs`，收拢评教命令参数与子命令定义；保持全部/待评教查询、payload 路径校验及 `--confirm-write` 写操作保护不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/bykc_args.rs`，收拢博雅课程命令参数与子命令定义；保持课程分页默认值、详情/已选/统计查询以及选课、退选、签到的显式写保护不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/cgyy_args.rs`，收拢场馆命令参数与子命令定义；保持查询参数、写操作 `--confirm-write`/`--request-stdin` 保护和 CLI 命令语义不变；CLI、敏感扫描与全量门禁通过。
 - 最新 `auto` 全量只读复测解析到 Direct：User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin、Ygdk、LibBook、Bykc、Evaluation 成功；Cgyy 站点成功而日期、订单详情、锁码为 `upstream_unavailable`。未执行真实写操作；自动路由结果与 Direct 实时证据一致。
 - 最新 Direct/WebVPN 全量只读复测：Direct 的 User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin、Ygdk、LibBook、Bykc、Evaluation 成功，Cgyy 站点成功而日期/订单/锁码为 `upstream_unavailable`；WebVPN 的 User、Schedule、Exam、Grades、Classroom、SPOC、Signin、Ygdk、LibBook、Bykc、Evaluation 成功，Judge 因冻结语义校验为 `judge_cutoff`/`invalid_semantics`，Cgyy 日期/锁码为 `upstream_unavailable`。未执行真实写操作；失败项按旧版逻辑与实时上游证据保留。
-- 将 CLI 的评教 payload 与场馆预约标准输入读取移入 `apps/ubaa-cli/src/input.rs`；保持 JSON 校验、空 payload 拒绝、敏感输入边界和错误语义不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/command_output.rs`，收拢 `CommandOutput` 与 `readonly` Core 结果投影；保持 human/JSON 输出、路线元数据和序列化语义不变；CLI、敏感扫描与全量门禁通过。
+- 将 CLI 的评教 payload 与场馆预约标准输入读取移入 `apps/ubaa_cli/src/input.rs`；保持 JSON 校验、空 payload 拒绝、敏感输入边界和错误语义不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/command_output.rs`，收拢 `CommandOutput` 与 `readonly` Core 结果投影；保持 human/JSON 输出、路线元数据和序列化语义不变；CLI、敏感扫描与全量门禁通过。
 - 扩展 `docs/development/engineering-standards.md`，新增跨宿主交接规范矩阵，明确 Core/CLI 与 Flutter、OpenHarmony、Node、Swift、Kotlin、ArkTS、MCP、Server 的依赖方向、敏感边界、稳定输出和写操作默认关闭规则；文档、敏感扫描与全量门禁通过。
-- 新增 `crates/ubaa-core/src/session/storage.rs`，收拢会话文件锁与临时文件生命周期；保持原子写入、失败清理、跨平台锁释放和权限边界不变；Session、CLI、敏感扫描与全量门禁通过。
-- 新增 `crates/ubaa-core/src/session/ports.rs`，收拢 `SessionStore` 持久化端口；保持版本化加载、比较交换、保存/清理循环和错误语义不变；Session、CLI、敏感扫描与全量门禁通过。
-- 新增 `apps/ubaa-cli/src/login_args.rs`，收拢登录参数及敏感 Debug 脱敏实现；保持参数名称、隐藏属性、标准输入校验和 JSON/交互登录语义不变；CLI、敏感扫描与全量门禁通过。
-- 新增 `crates/ubaa-core/src/session/types.rs`，收拢单路线/双路线会话快照、版本包装、校验与比较交换结果类型；保持 schema-v2 字段、旧版迁移、Deref 和序列化语义不变；Session、CLI、敏感扫描与全量门禁通过。
-- 新增 `crates/ubaa-core/src/session/cookies.rs`，收拢 `StoredCookie`、`CookieJar` 及其容器逻辑；保持 Cookie 的 Domain/Path/Secure/Max-Age/Expires 过滤、替换、持久化和敏感 Debug 脱敏语义不变；Cookie、Session、支持库测试及全量门禁通过。
-- 新增 `apps/ubaa-cli/src/routing.rs`，收拢 `ReadonlyRouteContext` 及路由决策转换；保持 CLI 公共导出、路由元数据和 JSON 输出语义不变；Core、CLI、敏感扫描与全量门禁通过。
+- 新增 `crates/ubaa_core/src/session/storage.rs`，收拢会话文件锁与临时文件生命周期；保持原子写入、失败清理、跨平台锁释放和权限边界不变；Session、CLI、敏感扫描与全量门禁通过。
+- 新增 `crates/ubaa_core/src/session/ports.rs`，收拢 `SessionStore` 持久化端口；保持版本化加载、比较交换、保存/清理循环和错误语义不变；Session、CLI、敏感扫描与全量门禁通过。
+- 新增 `apps/ubaa_cli/src/login_args.rs`，收拢登录参数及敏感 Debug 脱敏实现；保持参数名称、隐藏属性、标准输入校验和 JSON/交互登录语义不变；CLI、敏感扫描与全量门禁通过。
+- 新增 `crates/ubaa_core/src/session/types.rs`，收拢单路线/双路线会话快照、版本包装、校验与比较交换结果类型；保持 schema-v2 字段、旧版迁移、Deref 和序列化语义不变；Session、CLI、敏感扫描与全量门禁通过。
+- 新增 `crates/ubaa_core/src/session/cookies.rs`，收拢 `StoredCookie`、`CookieJar` 及其容器逻辑；保持 Cookie 的 Domain/Path/Secure/Max-Age/Expires 过滤、替换、持久化和敏感 Debug 脱敏语义不变；Cookie、Session、支持库测试及全量门禁通过。
+- 新增 `apps/ubaa_cli/src/routing.rs`，收拢 `ReadonlyRouteContext` 及路由决策转换；保持 CLI 公共导出、路由元数据和 JSON 输出语义不变；Core、CLI、敏感扫描与全量门禁通过。
 - 三路线逐操作只读复核（本轮）：Direct 的 User、Schedule、Exam、Grades、Classroom、SPOC、Judge、Signin、Ygdk、LibBook、Bykc、Evaluation 通过，Cgyy 站点通过而日期为 `invalid_semantics`、锁码为 `upstream_unavailable`；WebVPN 的 User、Schedule、Exam、Grades、Classroom、SPOC、Signin、Ygdk、LibBook、Bykc、Evaluation 通过，Judge 为 `timeout`，Cgyy 日期/订单/锁码为 `upstream_unavailable`；auto 解析到 Direct，除 Schedule 当前周 `timeout` 外非 Cgyy 操作通过，Cgyy 日期/详情/锁码为 `upstream_unavailable`。未执行真实写操作；失败项与冻结请求逻辑一致，按上游实时证据保留。
 - 新增 `facade/types.rs`，收拢 `Routed`、`RoutedError` 与内部 `Operation` 类型；通过 facade 重新导出稳定结果包装器，保持 CLI/API 可见性、路由元数据和错误语义不变；Core、CLI、敏感扫描与全量门禁通过。
 - 新增 `domain/judge.rs`，收拢希冀状态、作业摘要、诊断、详情键、题目和详情 DTO；保持字段、公开导出与序列化语义不变；Core、CLI、敏感扫描与全量门禁通过。
@@ -1218,7 +1218,7 @@ bash ./scripts/test-verify-live.sh                  PASS
 - 认证领域拆分后重新执行三路线逐操作只读矩阵：Direct 仅 Cgyy 日期/锁码为 `upstream_unavailable`；WebVPN 的 Cgyy 日期为 `invalid_semantics`、锁码为 `upstream_unavailable`；auto 解析为 Direct，Cgyy 日期为 `invalid_semantics`、订单为 `upstream_unavailable`。其余功能逐项通过；未执行真实写操作。
 - `domain/auth.rs` 拆出认证输入、聚合登录结果、用户资料与认证状态 DTO；字段、serde 别名、脱敏 Debug/Display/Serialize 语义保持冻结实现一致。认证、契约、只读集成测试与全量门禁通过。
 - `execution.rs` 拆出 CLI 的公共后端执行入口与命令到功能映射；具体 feature 分支和渲染逻辑保持原边界，CLI、Core、敏感扫描和文档门禁全部通过。
-- 后续结构提交将 CLI 顶层解析器与命令分派移入 `apps/ubaa-cli/src/commands.rs`，保持现有命令、参数、输出和退出语义；本阶段全量确定性门禁通过。
+- 后续结构提交将 CLI 顶层解析器与命令分派移入 `apps/ubaa_cli/src/commands.rs`，保持现有命令、参数、输出和退出语义；本阶段全量确定性门禁通过。
 - `0d6284b` 将 CLI 连接模式解析及 `ConnectionMode` 转换拆分到独立模块；命令名、参数、退出码、路由和协议行为保持不变，`just check-sensitive` 与 `just check` 均通过。
 - `a70ea60` 固化 Cgyy 签名请求的 WebVPN 路线合同：场馆业务签名请求保持
   `cgyy.buaa.edu.cn` 直连主机，不被错误包装为 WebVPN 地址；测试使用无网络传输，
@@ -1335,7 +1335,7 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
 - Ygdk 写入阶段完成了 multipart 上传边界、固定表单字段、CLI 文件输入校验及脱敏请求向量；真实写操作仍永久禁止，最终验收仍受全局实时矩阵门禁约束。
 - Cgyy 阶段已提交 `1d25ef2`：完成日期上下文、空间/时段校验、预约上下文创建和最终预约表单的冻结字段实现；验证码挑战、受控图像求解和重试已迁移，CLI 提交入口和真实写验收继续禁止调用。
 - Signin 阶段已提交 `0824947`：按冻结协议严格读取 `get_timestamp.action` JSON 的 `timestamp` 字段，并拒绝非 JSON 或空值响应；Signin 写操作仍需补充 CLI 专用安全测试和 Mock 请求断言。
-- Signin 写链阶段新增 `crates/ubaa-core/tests/signin.rs` 端到端 Mock 断言，覆盖业务会话跳转、时间戳 GET、签到 URL 查询参数、`sessionId` 请求头和仅含 `id` 的表单；真实签到仍永久禁止。
+- Signin 写链阶段新增 `crates/ubaa_core/tests/signin.rs` 端到端 Mock 断言，覆盖业务会话跳转、时间戳 GET、签到 URL 查询参数、`sessionId` 请求头和仅含 `id` 的表单；真实签到仍永久禁止。
 - Evaluation 阶段已完成最终提交 JSON 信封、问卷题目读取/答案构造和逐课程自动提交链；CLI 提供 `evaluation submit-pending --confirm-write`，并以未确认不访问后端的测试覆盖安全门禁。仍需补充逐请求 Mock/错误向量以及真实只读矩阵收敛，评教写操作永不进入 live 验收。
 - 2026-08-28 只读实时矩阵：Direct 全量除 `cgyy_lock_code`（`upstream_unavailable`）外通过；WebVPN 全量的 Cgyy 与 Evaluation 返回 `authentication_required`，其余功能通过。Cgyy WebVPN 与冻结 `localCgyyUpstreamUrl` 的直连语义存在已记录路线冲突，尚未修复。
 - Cgyy 验证码阶段已补齐 Core `/api/captcha/check` 的 `pointJson`、挑战 token 和成功判定；敏感验证码字段仅存在当前请求内，CLI 暂不通过 argv 暴露，验证码获取/求解和 WebVPN 直连 runtime 仍未完成。
@@ -1347,7 +1347,7 @@ Cookie、令牌或摘要盐。它们用于解释上游快照波动，不替代 2
 - Ygdk 写链阶段新增完整 Mock 端到端测试，覆盖 OAuth 回调、业务登录、概览四请求、照片 multipart 上传和最终打卡表单；仅使用合成会话与响应，真实打卡仍禁止。
 - Evaluation 提交请求已补充固定地址、`Content-Type`、`X-Requested-With` 和 JSON 信封的确定性测试。
 - Evaluation `submit_payload` 现将空结果列表校验前置到会话和网络请求之前，新增禁止网络回归测试，避免无效评教写请求触发业务登录。
-- Evaluation 写链新增 `crates/ubaa-core/tests/evaluation.rs` Facade 到 HTTP 的 Mock，断言最终提交 URL、JSON 信封、`Content-Type` 与 `X-Requested-With`；真实评教提交仍永久禁止。
+- Evaluation 写链新增 `crates/ubaa_core/tests/evaluation.rs` Facade 到 HTTP 的 Mock，断言最终提交 URL、JSON 信封、`Content-Type` 与 `X-Requested-With`；真实评教提交仍永久禁止。
 - Evaluation 自动逐课程写链新增 Mock，覆盖 CAS 激活、`reviseQuestionnairePattern`、题目读取和 `submitSaveEvaluation` 的冻结顺序，并断言课程标识与 `pjdf=93`；真实评教仍永久禁止。
 - Cgyy CLI 已新增 `cgyy submit --request-stdin --confirm-write`，从标准输入读取包含敏感字段的 JSON 请求并在确认前拒绝读取；未执行真实预约。
 - Cgyy RouteClient 现补齐 `cgyy_cancel_order` 直接 Facade 入口，并以签名路径/订单标识 Mock 覆盖；聚合与直接宿主均要求显式确认，真实取消仍禁止。

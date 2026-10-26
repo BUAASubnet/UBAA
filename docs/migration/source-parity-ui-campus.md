@@ -13,7 +13,7 @@
 | 阳光概览 | summary的termId?/termName?/termCount/termTarget?/weekCount?/weekTarget?/monthCount?/monthTarget?/dayCount?/goodCount?；classifyId/classifyName/defaultItemId/defaultItemName；items(itemId/name/kind?/sort?) | 学期/周/月进度及当日/有效次数，保留null未提供；分类名称和默认项目作说明，不凭默认ID建立提交target。项目列表按响应顺序，不因sort字段任意改排序。选择项目只用既有YgdkSubmitAction。 |
 | 阳光记录 | recordId/itemId?/itemName?/startTime?/endTime?/place?/imageCount/isOpen/state?/createdAt?/createdAtLabel?；page/size/total/hasMore | 时间、地点、项目、公开性、图片数量优先；状态数值未知保留，不猜含义。createdAtLabel优先沿原显示回退createdAt，不重新解释时区。仅记录列表，无公开记录详情/图片读取API，不增加网络详情按钮。 |
 
-公开上限位置：`crates/ubaa-flutter-bridge/src/api/read/mod.rs:232`博雅profile、`:255`course、`:309`chosen、`:331`statistic、`:339`statistics；阳光`:421`item、`:430`termSummary、`:443`overview、`:452`record、`:466`page。Core对应`crates/ubaa-core/src/domain/bykc.rs`、`ygdk.rs`。原始附件路径、内部业务标识、照片URL不是因此可增加的展示字段。
+公开上限位置：`crates/ubaa_flutter_bridge/src/api/read/mod.rs:232`博雅profile、`:255`course、`:309`chosen、`:331`statistic、`:339`statistics；阳光`:421`item、`:430`termSummary、`:443`overview、`:452`record、`:466`page。Core对应`crates/ubaa_core/src/domain/bykc.rs`、`ygdk.rs`。原始附件路径、内部业务标识、照片URL不是因此可增加的展示字段。
 
 ## App现状与接入位置
 

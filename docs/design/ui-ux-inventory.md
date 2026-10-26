@@ -10,8 +10,8 @@
 
 以下路径前缀仅为排版缩写，拼接后均为仓库相对准确位置：
 
-- `F` = `crates/ubaa-core/src/facade/`；`B` = `crates/ubaa-flutter-bridge/src/api/`；`A` = `packages/ubaa_app/lib/src/`；`U` = `packages/ubaa_ui/lib/src/`。
-- `UT` = `packages/ubaa_ui/test/`；`AT` = `packages/ubaa_app/test/`；`CT` = `crates/ubaa-core/tests/`。
+- `F` = `crates/ubaa_core/src/facade/`；`B` = `crates/ubaa_flutter_bridge/src/api/`；`A` = `packages/ubaa_app/lib/src/`；`U` = `packages/ubaa_ui/lib/src/`。
+- `UT` = `packages/ubaa_ui/test/`；`AT` = `packages/ubaa_app/test/`；`CT` = `crates/ubaa_core/tests/`。
 - 所有读取链：`F/read/{academic,assignments,services,evaluation}.rs` → `B/read/methods.rs`（评教另有 `B/read/evaluation.rs`）→ 表中 `A/bridge/read/*.dart` → `A/controller/app_controller/refresh.dart` → `U/common/feature_detail.dart`、`detail_list.dart`、`detail_fields.dart` → 表中领域控件。表中“链”明确 facade 方法和 app/UI 文件；Bridge 同名 snake_case 方法生成 Dart camelCase 方法。
 - 所有写入链：表中 `F/write/*.rs` → `B/write/prepare.rs` 对应 `prepare_*` → `B/write/commit.rs` 的统一提交 → `A/bridge/write/{prepare,commit,lifecycle}.dart` → 唯一 `A/write/coordinator.dart` → `U/write_callbacks.dart`、`U/write/confirmation.dart` 和领域按钮。共同测试：`UT/write_coordination_test.dart`、`AT/write_coordinator_test.dart`、`AT/app_write_lifecycle_test.dart`、`AT/write_readback_reentry_test.dart`；领域测试列为额外定位，文件存在不表示每行已有充分断言。
 - 当前页面地图：`U/app/shell.dart` 的主页、普通功能、高级功能；资料、设置、关于从侧栏进入；普通功能包含课表/考试/成绩/博雅/空教室/SPOC/希冀/图书馆，高级功能包含课堂签到/研讨室预约/阳光/评教。来源 `packages/ubaa_domain/lib/src/feature/catalog.dart`。查询收于顶栏右上面板，关闭保留草稿；博雅/图书馆/研讨室沿旧子菜单与领域详情，低频字段按需展开，具体入口及欠验见各行。

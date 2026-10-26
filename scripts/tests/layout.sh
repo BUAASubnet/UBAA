@@ -215,7 +215,7 @@ write_source_lines "$repo/ignored/skipped.rs" 1001
 expect_pass 'Git ignored 源码被排除' "$repo"
 
 repo=$(new_repo generated-source)
-write_generated_lines "$repo/crates/ubaa-flutter-bridge/src/frb_generated.rs" 1001
+write_generated_lines "$repo/crates/ubaa_flutter_bridge/src/frb_generated.rs" 1001
 commit_all "$repo"
 expect_pass '限定 Rust 路径且有 FRB 文件头的 generated 源码被排除' "$repo"
 

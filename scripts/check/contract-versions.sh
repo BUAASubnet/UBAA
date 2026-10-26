@@ -44,7 +44,7 @@ require_literal() {
 
 cli_version=
 if read_single_version \
-  'apps/ubaa-cli/src/io/schema.rs' \
+  'apps/ubaa_cli/src/io/schema.rs' \
   's/.*pub const CLI_JSON_SCHEMA_VERSION: u32 = ([0-9]+);.*/\1/p' \
   'CLI_JSON_SCHEMA_VERSION'; then
   cli_version=$extracted_version
@@ -52,7 +52,7 @@ fi
 
 bridge_version=
 if read_single_version \
-  'crates/ubaa-flutter-bridge/src/api/client.rs' \
+  'crates/ubaa_flutter_bridge/src/api/client.rs' \
   's/.*pub const BRIDGE_CONTRACT_VERSION: u32 = ([0-9]+);.*/\1/p' \
   'BRIDGE_CONTRACT_VERSION'; then
   bridge_version=$extracted_version

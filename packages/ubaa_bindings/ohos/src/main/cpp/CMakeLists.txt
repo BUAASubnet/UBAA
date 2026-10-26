@@ -15,7 +15,7 @@ endif()
 include("../../../../cargokit/cmake/cargokit.cmake")
 apply_cargokit(
     ${PROJECT_NAME}
-    ../../../../../../crates/ubaa-flutter-bridge
+    ../../../../../../crates/ubaa_flutter_bridge
     ubaa_flutter_bridge
     ""
 )

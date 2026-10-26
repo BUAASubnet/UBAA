@@ -20,7 +20,7 @@
 
 旧API `BykcApi.kt:65–98`、Local `LocalBykcApi.kt:61–182/369–400`以及BackendTest课程、详情/已选/统计例已复读。五操作分别沿`source-parity.md`“博雅课程只读查询”的九列：相同CAS service与受限最终URL、当前路线Cookie和业务token内存范围；POST getUserProfile空对象、课程pageNumber/pageSize、详情id、getAllConfig选真实当前学期后查询已选startDate/endDate、统计空对象；双token/ak/sk/ts头及加密JSON；旧AES/RSA/SHA1常量和现有向量；公开DTO字段；单飞/缓存与失败语义不变。examples `boya/core.rs`、`opt.rs`和`data.rs`已复读，存在同业务协议，但其首次学期/估算学期、自动跳转token和错误解包差异继续采用已裁决旧版路径，不借示例改变认证或签名。
 
-**明确字段上限**：`crates/ubaa-flutter-bridge/src/api/read/mod.rs`的BridgeBykcCourse没有category、subCategory、audienceCampuses、audienceColleges、audienceTerms、audienceGroups、description、organizer、contact、signConfig；列表和详情共用该结构。旧版源码具有这些能力不等于当前Host已获得字段。不得从课程名称/地点猜类别校区，不借已选记录给未选课程强行补关系，不修改Bridge v9或读取内部rawData来迁就UI。已选的category/subCategory/signConfig和统计的分类字段可以在其各自视图使用。完整旧版列表类别/适用校区筛选与完整详情因此存在公开数据边界，需显式记账，不能用空控件冒充保留能力。
+**明确字段上限**：`crates/ubaa_flutter_bridge/src/api/read/mod.rs`的BridgeBykcCourse没有category、subCategory、audienceCampuses、audienceColleges、audienceTerms、audienceGroups、description、organizer、contact、signConfig；列表和详情共用该结构。旧版源码具有这些能力不等于当前Host已获得字段。不得从课程名称/地点猜类别校区，不借已选记录给未选课程强行补关系，不修改Bridge v9或读取内部rawData来迁就UI。已选的category/subCategory/signConfig和统计的分类字段可以在其各自视图使用。完整旧版列表类别/适用校区筛选与完整详情因此存在公开数据边界，需显式记账，不能用空控件冒充保留能力。
 
 ## 待执行
 

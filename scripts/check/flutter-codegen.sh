@@ -26,6 +26,6 @@ fi
 cargo fmt --manifest-path "$repo_root/Cargo.toml" --all
 
 git -C "$repo_root" diff --exit-code -- \
-  crates/ubaa-flutter-bridge/src/frb_generated.rs \
+  crates/ubaa_flutter_bridge/src/frb_generated.rs \
   packages/ubaa_bindings/lib/src/rust
 printf 'FRB 生成零漂移\n'

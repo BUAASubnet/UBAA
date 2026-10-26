@@ -23,11 +23,11 @@ P4-D仅改变公开DTO到App presentation/UI的投影，不更改Bridge v9、Cor
 | 订单及详情 | App `_mapCgyyOrdersResult/_mapCgyyOrderDetailResult`通用fields；UI从“订单编号”反推 | Order id/venueSiteId?/reservationDate?/reservationDateDetail?/venueSpaceName?/campusName?/venueName?/siteName?/reservationStartDate?/reservationEndDate?/orderStatus?/checkStatus?/theme?/purposeTypeName?/joinerNum?；独立取消资格、cancelTarget、cancelledTarget。列表点击用正整数typed id→orderDetail；保留原分页number/size/totalElements/totalPages。 |
 | 门锁 | App cgyyLockCode仅available | 仅available布尔与成功/错误状态；不得补锁码、token、二维码或复制敏感值入口。 |
 
-公共字段位置：`crates/ubaa-flutter-bridge/src/api/read/mod.rs:345`(馆)、`:353`(楼层)、`:360`(区域)、`:370`(时段)、`:377`(详情)、`:384`(座位)、`:394`(预约)、`:408`(分页)；场馆`:487`(站点)、`:499`/`:509`(用途及来源)、`:514`(时段)、`:521`(预约target)、`:530`(slot)、`:539`(space)、`:547`(day)、`:560`(order)、`:581`(page)、`:601`(lock)。这些是本轮字段上限，Core中更多内部字段不等于Host可公开字段。
+公共字段位置：`crates/ubaa_flutter_bridge/src/api/read/mod.rs:345`(馆)、`:353`(楼层)、`:360`(区域)、`:370`(时段)、`:377`(详情)、`:384`(座位)、`:394`(预约)、`:408`(分页)；场馆`:487`(站点)、`:499`/`:509`(用途及来源)、`:514`(时段)、`:521`(预约target)、`:530`(slot)、`:539`(space)、`:547`(day)、`:560`(order)、`:581`(page)、`:601`(lock)。这些是本轮字段上限，Core中更多内部字段不等于Host可公开字段。
 
 ## 日期与时段：必须保留的边界
 
-图书馆依据 `docs/design/ui-ux-redesign.md:70` 的“首日可确认”限制，绝不将相同timeSlots复制给全部availableDates。冻结 `LocalLibBookApi.kt:466` 把date.list中的非空日期收集为availableDates，却取原始第一项times为timeSlots；当前 `crates/ubaa-core/src/features/libbook/parser.rs:152` 同样如此，`:175` 还支持顶层timeSlots回退。Bridge AreaDetail没有日期→时段关联或解析来源标志。
+图书馆依据 `docs/design/ui-ux-redesign.md:70` 的“首日可确认”限制，绝不将相同timeSlots复制给全部availableDates。冻结 `LocalLibBookApi.kt:466` 把date.list中的非空日期收集为availableDates，却取原始第一项times为timeSlots；当前 `crates/ubaa_core/src/features/libbook/parser.rs:152` 同样如此，`:175` 还支持顶层timeSlots回退。Bridge AreaDetail没有日期→时段关联或解析来源标志。
 
 **额外需裁决的细节：仅凭availableDates.first与timeSlots均非空，不能对所有合法公开DTO证明关联。** 原始第一项日期为空但有times时，availableDates过滤空日期后会以第二天开头，times仍来自第一项；顶层回退同样无显式日期关联。本轮不能宣称“非空即确认”。建议将首日作为明确受限的候选展示，只有经既有受支持来源合同确认关联的场景才自动组合；如果App没有这样的证据，首日也只读列示并保留手输，记录“当前数据未提供可确认的日期时段”。要普遍自动关联须另开来源RED与公开合同决策，不偷偷改Bridge或假设一对一。
 

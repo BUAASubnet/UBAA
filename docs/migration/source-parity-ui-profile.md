@@ -11,10 +11,10 @@
 | 冻结本地实现 | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt:761` | GET uc/api/uc/userinfo，无参数；code=0且data存在返回资料，401/SSO HTML清理本地会话，其他错误保持user_info_failed语义。本批不改任何分支。 |
 | 冻结测试边界 | `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/ApiFactoryDispatchTest.kt:321`；`ubaa_old/composeApp/src/commonTest/kotlin/cn/edu/ubaa/ui/AuthViewModelInitializeAppTest.kt:240` | 检索到API桩/初始化fake；未发现专门验证这四个userinfo字段真实解码的冻结测试。不能将其它gsmis/getUserInfo.do测试当本接口证据，也不能冒称四字段已有冻结测试PASS。DTO及实际本地反序列化实现是直接来源。 |
 | examples最近模块 | `examples/buaa-api/src/api/user/opt.rs:6` | get_state GET `/api/uc/status?selfTimestamp=...`返回原始String；不是资料接口，无等价四字段typed DTO，不借该接口替代userinfo或补字段。用户中心激活复用既有parity说明，不新增协议假设。 |
-| 当前 Core 字段 | `crates/ubaa-core/src/domain/auth.rs:167` | Option<String>字段；school_id明确alias `schoolid`（`:175`），phone`:173`、id_card_type_name`:171`、email`:182`。不能把缺字段或空白联系人转成默认真实值。 |
-| 当前 Core 请求/解析 | `crates/ubaa-core/src/facade/read/services.rs:21`；`features/user.rs:20`、`:28`、`:41`；`upstream/mod.rs:202` | facade路线解析与本地预检→当前路线GET→parse_user_info。解析要求合法JSON、code0、data存在；同一次读取直接返回Profile，不加联系人请求。 |
-| 当前 Core 测试 | `crates/ubaa-core/src/upstream/tests.rs:129`、`:133`、`:134` | 脱敏fixture证明schoolid映射，partial name-only可以解析；本轮仅阅读，未运行，且不能把这两条断言扩成四个新App投影已通过。 |
-| 既有 Bridge 白名单 | `crates/ubaa-flutter-bridge/src/api/client.rs:209`、`:533` | BridgeUserProfile已有username/name/school_id/email/phone/id_card_type_name六项，map_profile逐字段映射；没有idCardNumber/idCardType。沿此白名单即可，不改Bridge v9及生成schema。 |
+| 当前 Core 字段 | `crates/ubaa_core/src/domain/auth.rs:167` | Option<String>字段；school_id明确alias `schoolid`（`:175`），phone`:173`、id_card_type_name`:171`、email`:182`。不能把缺字段或空白联系人转成默认真实值。 |
+| 当前 Core 请求/解析 | `crates/ubaa_core/src/facade/read/services.rs:21`；`features/user.rs:20`、`:28`、`:41`；`upstream/mod.rs:202` | facade路线解析与本地预检→当前路线GET→parse_user_info。解析要求合法JSON、code0、data存在；同一次读取直接返回Profile，不加联系人请求。 |
+| 当前 Core 测试 | `crates/ubaa_core/src/upstream/tests.rs:129`、`:133`、`:134` | 脱敏fixture证明schoolid映射，partial name-only可以解析；本轮仅阅读，未运行，且不能把这两条断言扩成四个新App投影已通过。 |
+| 既有 Bridge 白名单 | `crates/ubaa_flutter_bridge/src/api/client.rs:209`、`:533` | BridgeUserProfile已有username/name/school_id/email/phone/id_card_type_name六项，map_profile逐字段映射；没有idCardNumber/idCardType。沿此白名单即可，不改Bridge v9及生成schema。 |
 | App当前入口 | `packages/ubaa_app/lib/src/bridge/common.dart:14`、`:16`、`:18`、`:19`、`:20` | _userInfo只调用一次client.userInfo；trim username，null/empty立刻返回null。当前仅投影username与_nonBlank(name)，本批在同对象构造中追加四个可选字段。schoolId不得作为空username的替代登录身份。 |
 | 现有显示姓名规则 | `packages/ubaa_domain/lib/src/common/auth.dart:25`、`:36` | preferredName在displayName为null或trim后空时返回username，否则返回原displayName；保持规则，不因schoolId/联系人/证件类型替换姓名。department现无本次userinfo来源，不猜或合成。 |
 

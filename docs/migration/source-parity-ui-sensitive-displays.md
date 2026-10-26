@@ -53,11 +53,11 @@
 | L6 | `ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/cgyy/CgyyViewModel.kt:140-151,398-420`；`composeApp/src/commonTest/kotlin/cn/edu/ubaa/ui/CgyyViewModelTest.kt:164-203,404-407` | 加载标记、重复请求防护、缓存及失败保留旧值 |
 | L7 | `ubaa_old/composeApp/src/commonTest/kotlin/cn/edu/ubaa/ui/CgyyScreenLogicTest.kt:44-92` | `qrCode/dueDate/orderView` 与仅未来预约摘要两个正例 |
 | L8 | `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalCgyyApiBackendTest.kt:442-443,466-480`；`shared/src/commonTest/kotlin/cn/edu/ubaa/api/CgyyApiTest.kt:133-156` | `password` 字段仅验证原样透传，与 UI 所读字段不同 |
-| C1 | `crates/ubaa-core/src/upstream/mod.rs:27-89`；`src/auth/mod.rs:19-95,98-170,186-266` | 当前封闭交互拒绝、临时登录状态与普通认证链 |
-| C2 | `crates/ubaa-core/src/facade/auth.rs:15-80,88-102,153-181`；`src/domain/auth.rs:88-160` | 双路线固定顺序与旧序列化 envelope |
-| C3 | `crates/ubaa-flutter-bridge/src/api/client.rs:17,178-224,297-339,430-455` | 当前 Bridge v9、认证类型、整次异步锁与重开 |
-| C4 | `crates/ubaa-core/src/features/cgyy/read.rs:92-95`；`parser.rs:701-713`；`crates/ubaa-flutter-bridge/src/api/read/mod.rs:600-603` | 门锁只返回 data 非空布尔；当前时区转换仅服务其它 Cgyy 日期逻辑 |
-| C5 | `crates/ubaa-core/src/features/cgyy/auth.rs:20-74,77-143,150-191`；`http.rs:14-80,83-119,170-183` | 当前路线认证、WebVPN Cookie 同步、请求与响应摘要日志 |
+| C1 | `crates/ubaa_core/src/upstream/mod.rs:27-89`；`src/auth/mod.rs:19-95,98-170,186-266` | 当前封闭交互拒绝、临时登录状态与普通认证链 |
+| C2 | `crates/ubaa_core/src/facade/auth.rs:15-80,88-102,153-181`；`src/domain/auth.rs:88-160` | 双路线固定顺序与旧序列化 envelope |
+| C3 | `crates/ubaa_flutter_bridge/src/api/client.rs:17,178-224,297-339,430-455` | 当前 Bridge v9、认证类型、整次异步锁与重开 |
+| C4 | `crates/ubaa_core/src/features/cgyy/read.rs:92-95`；`parser.rs:701-713`；`crates/ubaa_flutter_bridge/src/api/read/mod.rs:600-603` | 门锁只返回 data 非空布尔；当前时区转换仅服务其它 Cgyy 日期逻辑 |
+| C5 | `crates/ubaa_core/src/features/cgyy/auth.rs:20-74,77-143,150-191`；`http.rs:14-80,83-119,170-183` | 当前路线认证、WebVPN Cookie 同步、请求与响应摘要日志 |
 | C6 | `packages/ubaa_app/lib/src/bridge/read/cgyy.dart:159-177` | `available` 被投影为“门锁可用”和普通 `FeatureField` |
 | P1 | `docs/migration/source-parity.md:72-76,95-104`，读取基线版本 | 现有 WebVPN/准备登录九列矩阵 |
 | P2 | 同文件 `594-609`，读取基线版本 | 现有 Cgyy 只读九列、3xx 规则及脱敏 WebVPN 观察记录 |
@@ -121,7 +121,7 @@ P2 中“站点”和“锁码”的九列可以复用既有请求链；本专�
 
 | 编号 | 初始测试位置 | 行为与应观察的 RED |
 |---|---|---|
-| A-RED-01 | 新 `crates/ubaa-core/tests/interactive_auth.rs` | 同一合成 image 页：旧 prepare仍 upstream_changed且仅一次登录页 GET；新入口应返回当前路线 challenge+帧。当前没有新能力或只返回旧错误，正向失败 |
+| A-RED-01 | 新 `crates/ubaa_core/tests/interactive_auth.rs` | 同一合成 image 页：旧 prepare仍 upstream_changed且仅一次登录页 GET；新入口应返回当前路线 challenge+帧。当前没有新能力或只返回旧错误，正向失败 |
 | A-RED-02 | 新 auth parser 单元测试 | 精确支持旧 config 形状；空 id/execution、未知 type、额外 MFA/OTP/select、混合未知交互一律拒绝且零取图/POST。防止把“支持 CAPTCHA”改成允许全部交互 |
 | A-RED-03 | Core Mock | Direct/WebVPN 分别验证精确 `/captcha?captchaId=...`、当前 jar、实际路线与最终端点；同一图像 handle 不能在另一 runtime使用。200 HTML、假 JPEG与超限字节均安全失败 |
 | A-RED-04 | Core Mock | 在 GET `/login` 后提交精确八字段，captcha/captchaResponse相等；不带 captchaId/clientId/旧隐藏额外字段。计数证明每个答案最多一个 POST，非验证码路线不收到答案 |
@@ -130,7 +130,7 @@ P2 中“站点”和“锁码”的九列可以复用既有请求链；本专�
 | A-RED-07 | Bridge/Dart认证控制器 | 一路Ready+一路CaptchaRequired保留partial/profile；完成第二路不再POST第一路；两路独立答案/刷新；无密码缓存供后台重放 |
 | A-RED-08 | UI widget | 点击图片只刷新当前challenge并清答案，保留用户字段；图片失败仍要求验证码；过期/隐藏/销毁即清帧与答案，迟到回复不复活控件 |
 | A-RED-09 | 序列化/诊断合同 | 哨兵 id、execution、图片字节、答案不在 Debug/Display/Error/LocalDiagnostics/Session/配置/CLI 输出；材料 DTO 不实现serde，旧CLI schema仍验证通过 |
-| L-RED-01 | 新 `crates/ubaa-core/tests/cgyy/sensitive_display.rs` 或现有 parser测试模块 | 使用 L7 结构合成 qrCode/dueDate/orderView，断言取得真正文本与摘要。当前只有available，正向必失败；密码前导零不得丢失 |
+| L-RED-01 | 新 `crates/ubaa_core/tests/cgyy/sensitive_display.rs` 或现有 parser测试模块 | 使用 L7 结构合成 qrCode/dueDate/orderView，断言取得真正文本与摘要。当前只有available，正向必失败；密码前导零不得丢失 |
 | L-RED-02 | 同上 | qrCode空串/空白/字面null/缺失+有效orderView为ReservationOnly；data null为NoReservation；password-only、bool、array不冒充code，不报“当前可开门” |
 | L-RED-03 | facade Mock | 首次解析路线、后续同lease固定路线，实际URL/Cookie/token一致；无主会话零HTTP；业务认证只刷新一次；绝不调用预约/取消/验证码写链 |
 | L-RED-04 | Bridge/Dart可控计时 | 29,999ms不刷新，30,000ms清旧码并触发一次fresh读取；定时与手动重叠只有一个请求；失败时旧码不会继续展示 |
@@ -147,7 +147,7 @@ P2 中“站点”和“锁码”的九列可以复用既有请求链；本专�
 
 ### Task3E 验证码候选实现
 
-生产所有者为 `crates/ubaa-core/src/facade/interactive_auth.rs` 与 `auth/interactive.rs`；页面分类在
+生产所有者为 `crates/ubaa_core/src/facade/interactive_auth.rs` 与 `auth/interactive.rs`；页面分类在
 `upstream/interactive_auth.rs`，资源解码在 `facade/interactive_auth/image.rs`。服务器 id/execution 只存 Core
 当前路线状态，已返回像素不进入 Core 会话或流程缓存。新手动上下文按[决策记录](decision-log.md)中
 “新手动交互登录与旧账号会话隔离”执行现有所有权/CAS 清理；普通启动恢复仍走旧非交互链。

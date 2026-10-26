@@ -91,10 +91,10 @@ def select_checks(root, paths):
         elif path.startswith(('apps/ubaa_ohos/', 'packages/flutter_secure_storage_ohos/', 'packages/connectivity_plus_ohos/')):
             full = True
             notes.add('OHOS 专属改动：另需 just ohos-check 及相应设备验证，官方 Flutter 检查不能替代。')
-        elif path.startswith('crates/ubaa-core/') or path.startswith('crates/ubaa-flutter-bridge/'):
+        elif path.startswith('crates/ubaa_core/') or path.startswith('crates/ubaa_flutter_bridge/'):
             rust = codegen = True
             selected.update(PACKAGES)
-        elif path.startswith(('crates/', 'apps/ubaa-cli/', 'fixtures/')) or path in {'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml'}:
+        elif path.startswith(('crates/', 'apps/ubaa_cli/', 'fixtures/')) or path in {'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml'}:
             rust = True
             if path in {'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml'}:
                 codegen = True

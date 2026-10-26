@@ -16,7 +16,7 @@
 
 ## R1 / P1：Cookie 标准处理
 
-位置：`crates/ubaa-core/src/session/cookies.rs:38`（解析）、`:103`（过期）、`:160` 起（保存/发送）；域和路径工具在 `session/file_safety.rs:122`。
+位置：`crates/ubaa_core/src/session/cookies.rs:38`（解析）、`:103`（过期）、`:160` 起（保存/发送）；域和路径工具在 `session/file_safety.rs:122`。
 
 现状：自行拆分 Set-Cookie、处理 Domain/Path/Expires/Max-Age、替换、发送和序列化。`is_expired` 对 Expires 与 Max-Age 取逻辑或，插入前也独立检查 Expires。
 
@@ -28,7 +28,7 @@
 
 ## R2 / P1：加密模式与填充
 
-位置：`crates/ubaa-core/src/connection_codec.rs:38` 自行 CFB 反馈/XOR；`features/spoc/crypto.rs:7` 自行 CBC 链与零填充；`features/libbook/crypto.rs:22` 自行 CBC 与 PKCS#7；`features/cgyy/crypto.rs:22` 自行 ECB 遍历与 PKCS#7。
+位置：`crates/ubaa_core/src/connection_codec.rs:38` 自行 CFB 反馈/XOR；`features/spoc/crypto.rs:7` 自行 CBC 链与零填充；`features/libbook/crypto.rs:22` 自行 CBC 与 PKCS#7；`features/cgyy/crypto.rs:22` 自行 ECB 遍历与 PKCS#7。
 
 项目已使用 RustCrypto AES 原语，问题是继续手工维护标准模式和填充，并非自创 AES。可复用 RustCrypto [cbc](https://docs.rs/cbc/0.1.2/cbc/)、[cfb-mode](https://docs.rs/cfb-mode/latest/cfb_mode/)、[ecb](https://docs.rs/ecb/0.1.2/ecb/) 与现有 `cipher::block_padding`。博雅已经使用 `encrypt_padded_mut::<Pkcs7>`，无需各业务重复手算填充。
 
@@ -78,7 +78,7 @@
 
 | 项目 | 当前事实与裁决 |
 |---|---|
-| multipart / P3 | `crates/ubaa-core/src/features/ygdk/upload.rs:14` 手拼正文、boundary 和头。可评估 [Reqwest multipart](https://docs.rs/reqwest/latest/reqwest/multipart/struct.Form.html)，但 HttpRequest 端口只接收 bytes，不能为上传绕过 HttpTransport/会话/一次性写入。先决定结构化 body 端口是否值得引入；当前单一三部分上传已有校验，未证实编码故障。 |
+| multipart / P3 | `crates/ubaa_core/src/features/ygdk/upload.rs:14` 手拼正文、boundary 和头。可评估 [Reqwest multipart](https://docs.rs/reqwest/latest/reqwest/multipart/struct.Form.html)，但 HttpRequest 端口只接收 bytes，不能为上传绕过 HttpTransport/会话/一次性写入。先决定结构化 body 端口是否值得引入；当前单一三部分上传已有校验，未证实编码故障。 |
 | 定位/权限 / 后续开发 | `packages/ubaa_platform/lib/src/location.dart:40` 只有通道门面，所查生产原生通道没有 location 方法。属于未完成能力，不是已完成定位引擎。启用时优先 [geolocator](https://pub.dev/packages/geolocator) 和适用 OHOS 实现；确需额外权限管理才评估 [permission_handler](https://pub.dev/packages/permission_handler)。不因占位类存在便增加无用权限。 |
 | Android 组件 / P3 | `widgets/{WidgetChannel,WidgetStore,WidgetRenderer,ScheduleWidgetProvider}.kt` 可用 [home_widget](https://pub.dev/packages/home_widget) 简化发布/更新，原生布局、课表投影、跨周选择、注销撤销和加密仍须保留。WidgetStore 已用 AndroidKeyStore、AES-GCM、AtomicFile，不能改为普通偏好明文。home_widget 不会消除原生组件实现。 |
 | OHOS 安全存储 fork | `packages/flutter_secure_storage_ohos/README.md`、UPSTREAM.json 与 ArkTS 源码：官方端已用发布插件；OHOS 仍是有来源的本地分支，负责 HUKS/GCM、错误、代次和并发合同。保留上游/许可证/补丁记录，跟进满足合同的社区发布版。本轮没有验证到可无补丁替换的版本，不能因名称统一就声称维护负担消失。 |

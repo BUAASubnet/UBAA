@@ -6,10 +6,10 @@
 
 | 层 | 目录 | 当前职责与检查重点 |
 |---|---|---|
-| Core | `crates/ubaa-core` | 认证、双路线、会话、十二领域协议、资格和加密缓存；`facade` 是生产出口 |
-| Bridge | `crates/ubaa-flutter-bridge` | 公开 typed 接口、异步客户端锁、渐进读取和缓存；当前 v40，已重新生成并验证 |
-| CLI | `apps/ubaa-cli` | schema v11、命令和退出码、只读 live 矩阵、二进制端到端 |
-| 测试支持 | `crates/ubaa-test-support`、`fixtures` | 脱敏响应、Mock 请求和协议合同 |
+| Core | `crates/ubaa_core` | 认证、双路线、会话、十二领域协议、资格和加密缓存；`facade` 是生产出口 |
+| Bridge | `crates/ubaa_flutter_bridge` | 公开 typed 接口、异步客户端锁、渐进读取和缓存；当前 v40，已重新生成并验证 |
+| CLI | `apps/ubaa_cli` | schema v11、命令和退出码、只读 live 矩阵、二进制端到端 |
+| 测试支持 | `crates/ubaa_test_support`、`fixtures` | 脱敏响应、Mock 请求和协议合同 |
 | Domain | `packages/ubaa_domain` | 十二领域、查询、结果、缓存依据和写操作模型 |
 | App | `packages/ubaa_app` | Core 投影、调度/会话/缓存生命周期、唯一 WriteCoordinator |
 | Host | `packages/ubaa_host` | 平台能力与 UI 回调接线、前后台、账号清理和后台恢复 |

@@ -59,7 +59,7 @@ UI 通过 `onLoadBykcFilters/onSaveBykcFilters` 在确认账号后恢复，编�
 ## 1. 约束与来源索引
 
 
-goal.md第9条已明确允许本专项有来源的typed只读补齐；尚未发布候选统一为 Bridge v10，CLI v10、Session v2、配置 v1 与写入确认权威保持。审计时生产 Bridge 常量仍为 9（crates/ubaa-flutter-bridge/src/api/client.rs:17）；“候选 v10”是本次变更目标，不能写成当前已实现。CLI 常量在 apps/ubaa-cli/src/io/schema.rs:19，Session 在 crates/ubaa-core/src/session/types.rs:97，配置在 crates/ubaa-core/src/config.rs:74–95。
+goal.md第9条已明确允许本专项有来源的typed只读补齐；尚未发布候选统一为 Bridge v10，CLI v10、Session v2、配置 v1 与写入确认权威保持。审计时生产 Bridge 常量仍为 9（crates/ubaa_flutter_bridge/src/api/client.rs:17）；“候选 v10”是本次变更目标，不能写成当前已实现。CLI 常量在 apps/ubaa_cli/src/io/schema.rs:19，Session 在 crates/ubaa_core/src/session/types.rs:97，配置在 crates/ubaa_core/src/config.rs:74–95。
 
 下文定位均相对此工作树；O 前缀统一为 ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e；E 前缀统一为 examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a。
 
@@ -86,13 +86,13 @@ goal.md第9条已明确允许本专项有来源的typed只读补齐；尚未发�
 | E-Context | examples/buaa-api/src/context.rs |
 | E-Cookies | examples/buaa-api/src/store/cookies.rs |
 | E-Cred | examples/buaa-api/src/store/cred.rs |
-| C-Domain | crates/ubaa-core/src/domain/bykc.rs |
-| C-Parser | crates/ubaa-core/src/features/bykc/parser.rs |
-| C-Read | crates/ubaa-core/src/features/bykc/read.rs |
-| C-Auth | crates/ubaa-core/src/features/bykc/auth.rs |
-| C-Write | crates/ubaa-core/src/features/bykc/write.rs |
-| C-Facade | crates/ubaa-core/src/facade/read/services.rs |
-| B-DTO / B-Map / B-Methods | crates/ubaa-flutter-bridge/src/api/read/mod.rs / mappers.rs / methods.rs |
+| C-Domain | crates/ubaa_core/src/domain/bykc.rs |
+| C-Parser | crates/ubaa_core/src/features/bykc/parser.rs |
+| C-Read | crates/ubaa_core/src/features/bykc/read.rs |
+| C-Auth | crates/ubaa_core/src/features/bykc/auth.rs |
+| C-Write | crates/ubaa_core/src/features/bykc/write.rs |
+| C-Facade | crates/ubaa_core/src/facade/read/services.rs |
+| B-DTO / B-Map / B-Methods | crates/ubaa_flutter_bridge/src/api/read/mod.rs / mappers.rs / methods.rs |
 | A-Read | packages/ubaa_app/lib/src/bridge/read/bykc.dart |
 | D-Presentation | packages/ubaa_domain/lib/src/feature/presentation/bykc.dart |
 | U-Detail / U-Navigation | packages/ubaa_ui/lib/src/features/bykc/details.dart / packages/ubaa_ui/lib/src/common/read_navigator.dart |
@@ -104,7 +104,7 @@ goal.md第9条已明确允许本专项有来源的typed只读补齐；尚未发�
 以下 H、K、L、F 是后续各操作九列表的完整展开定义，各行仍分别列明采用范围。
 
 - H（旧版业务请求）：O-Local:447–490。POST 到当前路线包装后的 https://bykc.buaa.edu.cn/sscv/{apiName}；Content-Type 为 application/json; charset=UTF-8，Accept 为 application/json；Referer 为当前路线包装后的 https://bykc.buaa.edu.cn/system/course-select，Origin 为当前路线包装后的 https://bykc.buaa.edu.cn；同时发送 auth_token、authtoken、ak、sk、ts。正文直接是加密后的 Base64 文本。响应先尝试 JSON 字符串解包，再 Base64/AES 解密，失败保留原文本供既有解析。
-- K（旧版加密）：O-Crypto:11–46。AES 密钥长 16，字符集为 ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678；AES-128-ECB，平台 PKCS5Padding，RSA PKCS#1 v1.5 分别加密 AES key 与 JSON UTF-8 字节的 SHA-1 小写十六进制摘要，ts 为毫秒时间戳。固定 RSA 公钥位于 O-Crypto:11–12；E-Core:11–16 的 PEM 内容与之相同。当前 crates/ubaa-core/src/features/bykc/crypto.rs:14–64 保留旧公钥、字符集与同一加密方式，不新增常量。
+- K（旧版加密）：O-Crypto:11–46。AES 密钥长 16，字符集为 ABCDEFGHJKMNPQRSTWXYZabcdefhijkmnprstwxyz2345678；AES-128-ECB，平台 PKCS5Padding，RSA PKCS#1 v1.5 分别加密 AES key 与 JSON UTF-8 字节的 SHA-1 小写十六进制摘要，ts 为毫秒时间戳。固定 RSA 公钥位于 O-Crypto:11–12；E-Core:11–16 的 PEM 内容与之相同。当前 crates/ubaa_core/src/features/bykc/crypto.rs:14–64 保留旧公钥、字符集与同一加密方式，不新增常量。
 - L（会话与登录）：O-Local:287–365 按用户名缓存 LocalBykcClient，clientMutex 与 loginMutex 防止重复创建/并发登录，bykcToken 仅内存。O-Connection:98–140 按连接模式保存 Cookie；:153–188 规范化 domain/path 并按 domain/path/secure/有效期发送；:231–262 的共享客户端自动跳转。O-WebVPN:98–102 把全部博雅 URL 包装为当前 WebVPN 路线。新入口继续交给现有 Core runtime、路线独立业务状态和 Cookie，不复制示例存储方式。
 - F（旧版只读失败）：O-Local:290–325/437–445/471–498/758–772。401、SSO 最终页/登录 HTML 判为未认证；包含“会话已失效”/“未登录”的解码结果清业务 token；除明确未认证异常外，callApiRaw 遇异常最多强制重新 login 并重试一次。decodeData 只接受 status=="0" 且 data 非 null；失败映射为业务认证错误或 bykc_error/安全操作文案，不把失败返回空列表。Kotlin 库无 CLI 退出码。本候选复用当前 Core 既有 request_api/error/finish_routed 链，不扩大重试或修改 CLI 退出分类。
 
@@ -212,7 +212,7 @@ O-Local:94–114/275–284/547–586 是完整依据，不能只以 fixture 的�
 | Core 领域模型 | BykcCourse 只有基本信息、时间、人数、状态、selected 与选退资格；列表和详情共用，类别/校区/联系人等没有承载字段。现成类别枚举及 BykcSignConfig 已供已选记录使用 | C-Domain:19–37/61–67/72–100/104–153 |
 | Core parser | course() 只返回上述窄结构；parse_courses_at 调用 course；parse_course_detail 也是 course(envelope)。原始响应中的目标字段在这里丢弃；不能通过桥接映射补回 | C-Parser:52–101/229–265 |
 | Core 读取流程 | get_course_detail 只有 queryCourseById；没有 selected 后配置/已选补查。另有可复用 get_chosen_courses 及专用写前读取 | C-Read:50–83/85–145 |
-| facade | bykc_courses/bykc_course_detail 的返回形状直接服务现有 CLI；改变旧结构会扩大 CLI JSON，与“保持 CLI v10”目标冲突 | C-Facade:47–81；apps/ubaa-cli/src/backend/fixed.rs:102–111；apps/ubaa-cli/src/backend/routed.rs:126–135 |
+| facade | bykc_courses/bykc_course_detail 的返回形状直接服务现有 CLI；改变旧结构会扩大 CLI JSON，与“保持 CLI v10”目标冲突 | C-Facade:47–81；apps/ubaa_cli/src/backend/fixed.rs:102–111；apps/ubaa_cli/src/backend/routed.rs:126–135 |
 | Bridge | BridgeBykcCourse 与 Core 同样窄；map_bykc_course 无这些字段；课程列表/详情方法各返回旧结构。现成 category/subCategory/signConfig 存在于 BridgeBykcChosenCourse | B-DTO:255–329；B-Map:282–299/310–349；B-Methods:243–273 |
 | App | summary 固定 all=true，保留服务器分页；详情只调用 bykcCourseDetail，然后 _bykcCoursePresentation(isDetail:true)。已选记录另外有 typed 签到动作，目标是 courseId | A-Read:13–19/65–79/84–129/154–190/329–354 |
 | 领域展示 | BykcCoursePresentation 不含类别/校区/详情补充；BykcChosenPresentation 有两级分类/四个签到日期/点数，但不含完整课程详情 | D-Presentation:6–31/33–63 |
@@ -350,9 +350,9 @@ O-Navigation:902–915 把四种旧按钮直接接到 ViewModel，旧签到传 n
 
 | RED 组 | 失败行为与关键断言 | 推荐位置 |
 |---|---|---|
-| R1 列表字段来源 | 新列表解析得到两级类别与可空 Unknown；校区 trim/去空/全部校区转换/去重/ALL 回退；缺/空校区不是所有校区；hasSignPoints 只跟完整有效配置的点列表，零/负半径不当“没有点”；服务器分页元数据不变 | crates/ubaa-core/src/features/bykc/tests.rs 邻近分页测试；使用完全自造脱敏 JSON，不复制旧测试联系人/电话 |
+| R1 列表字段来源 | 新列表解析得到两级类别与可空 Unknown；校区 trim/去空/全部校区转换/去重/ALL 回退；缺/空校区不是所有校区；hasSignPoints 只跟完整有效配置的点列表，零/负半径不当“没有点”；服务器分页元数据不变 | crates/ubaa_core/src/features/bykc/tests.rs 邻近分页测试；使用完全自造脱敏 JSON，不复制旧测试联系人/电话 |
 | R2 完整详情字段 | 联系人/电话/开课单位可空与 trim；学院/年级/人群列表去空且顺序保持；courseDesc 的换行、实体、标签纯文本投影；四时间窗和多点点数；新字段不能出现在旧 BykcCourse 的序列化快照 | 同上，独立 FullDetail parser 测试及 CLI 旧形状回归 |
-| R3 已选补查顺序 | 新方法 selected=true 的顺序为 queryCourseById→getAllConfig→queryChosenCourse；false/null 不补查；主配置已有效仍补查考勤；配置起止按现行当前学期/最新回退；同一已解析路线；旧方法依旧只有 queryCourseById | crates/ubaa-core/tests/bykc.rs 或新增独立只读 Mock 文件；Mock 断言方法/路径/安全结构，不输出密文/凭据 |
+| R3 已选补查顺序 | 新方法 selected=true 的顺序为 queryCourseById→getAllConfig→queryChosenCourse；false/null 不补查；主配置已有效仍补查考勤；配置起止按现行当前学期/最新回退；同一已解析路线；旧方法依旧只有 queryCourseById | crates/ubaa_core/tests/bykc.rs 或新增独立只读 Mock 文件；Mock 断言方法/路径/安全结构，不输出密文/凭据 |
 | R4 身份与回退 | record.id≠courseInfo.id；仅按内层 ID 匹配；无匹配保留主配置且 attendance=None；主配置有效时优先于已选，主配置缺/坏时用匹配已选；其他课程不能污染；缺 checkin/pass 保留 null | Core 只读组合/解析测试 |
 | R5 错误与原子性 | getAllConfig 请求失败、空学期、所选日期缺失、queryChosenCourse 失败/坏结构，均整次详情 Err；不回假成功；会话/路线变化后旧响应不能复活当前页；合法空 courseList 与上述错误不同 | Core Mock 与 App controller/导航测试 |
 | R6 筛选 | 三维 AND/维度 OR、二级优先一级回退、五固定类别、未知不冒充其他、刷新保留已选校区、关闭面板/往返详情保选择；只筛当前页且总数不变；Full/Available 旧行为不回退 | packages/ubaa_ui/test/navigation/bykc_content_test.dart，必要时独立筛选测试 |
@@ -364,7 +364,7 @@ O-Navigation:902–915 把四种旧按钮直接接到 ViewModel，旧签到传 n
 
 - O-BackendTest:71–192 的列表/状态例有类别/校区输入；:196–246 的 pathless Cookie；:250–303 的 SSO 链；:307–431 的详情/当前学期已选/开课单位/未指定校区/考勤；:526–581 的 WebVPN 包装。旧列表例未逐字段断言所有补充，因此转换函数自身仍是关键证据。
 - O-FilterTest:15–110 覆盖默认、三维交集、固定类别、校区去重和刷新保留；:154–229 覆盖 Full/Available。
-- 当前 crates/ubaa-core/src/features/bykc/tests.rs:322–403/592–630 覆盖学期、已选字段/包装与坏签到点；Core 专用写前测试在 crates/ubaa-core/tests/bykc.rs:113–297/461 起。当前测试通过与否须由主线在新实现后实际执行。
+- 当前 crates/ubaa_core/src/features/bykc/tests.rs:322–403/592–630 覆盖学期、已选字段/包装与坏签到点；Core 专用写前测试在 crates/ubaa_core/tests/bykc.rs:113–297/461 起。当前测试通过与否须由主线在新实现后实际执行。
 - 本报告完成标志仅为来源/方案审计完成。实施后仍需聚焦 RED→GREEN、just check-sensitive、just check、绑定生成和相应 App/UI 回归；是否进行实时/原生验收按主线授权流程执行，静态审计不计 live 或 App 验收。
 
 ## 10. Task3D2本地筛选偏好九列

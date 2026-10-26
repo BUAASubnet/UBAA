@@ -56,7 +56,7 @@ is_vendored_path() {
 
 is_frb_output_path() {
   case $1 in
-    crates/ubaa-flutter-bridge/src/frb_generated.rs | packages/ubaa_bindings/lib/src/rust/*)
+    crates/ubaa_flutter_bridge/src/frb_generated.rs | packages/ubaa_bindings/lib/src/rust/*)
       return 0
       ;;
     *)

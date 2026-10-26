@@ -11,7 +11,7 @@ project(${PROJECT_NAME} LANGUAGES CXX)
 include("../cargokit/cmake/cargokit.cmake")
 get_filename_component(
   UBAA_RUST_CRATE_DIR
-  "${CMAKE_SOURCE_DIR}/../../../crates/ubaa-flutter-bridge"
+  "${CMAKE_SOURCE_DIR}/../../../crates/ubaa_flutter_bridge"
   ABSOLUTE
 )
 apply_cargokit(${PROJECT_NAME} "${UBAA_RUST_CRATE_DIR}" ubaa_flutter_bridge "")

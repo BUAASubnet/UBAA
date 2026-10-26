@@ -14,9 +14,9 @@
 
 | 修改内容 | 生产入口 | 普通测试 |
 |---|---|---|
-| 协议、解析和资格 | [Core features](../crates/ubaa-core/src/features/)、[facade](../crates/ubaa-core/src/facade/) | Core tests、ubaa-test-support |
-| CLI 参数与输出 | [CLI](../apps/ubaa-cli/src/) | CLI tests 的合同和 binary E2E |
-| FRB DTO 与句柄 | [Bridge API](../crates/ubaa-flutter-bridge/src/api/) | Rust Bridge、Bindings 与 codegen |
+| 协议、解析和资格 | [Core features](../crates/ubaa_core/src/features/)、[facade](../crates/ubaa_core/src/facade/) | Core tests、ubaa-test-support |
+| CLI 参数与输出 | [CLI](../apps/ubaa_cli/src/) | CLI tests 的合同和 binary E2E |
+| FRB DTO 与句柄 | [Bridge API](../crates/ubaa_flutter_bridge/src/api/) | Rust Bridge、Bindings 与 codegen |
 | 领域投影/读取适配 | [Dart Bridge 领域](../packages/ubaa_app/lib/src/bridge/features/) | [App 领域](../packages/ubaa_app/test/features/) |
 | 会话、恢复和缓存 | [Controller](../packages/ubaa_app/lib/src/controller/) | [session](../packages/ubaa_app/test/session/)、[recovery](../packages/ubaa_app/test/recovery/)、[cache](../packages/ubaa_app/test/cache/) |
 | 写入与回读 | [唯一协调器](../packages/ubaa_app/lib/src/write/)、[Controller write](../packages/ubaa_app/lib/src/controller/write/) | [App write](../packages/ubaa_app/test/write/) |
