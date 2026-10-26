@@ -36,6 +36,22 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
   int _nextId = 0;
   int? _externalAfterRevision;
   bool _reloadScheduled = false;
+  _ReadFrame? _bykcWriteFrame;
+
+  void beginBykcCourseWrite() => _bykcWriteFrame = _current;
+
+  Future<void> finishBykcCourseWrite({required bool refresh}) async {
+    final frame = _bykcWriteFrame;
+    try {
+      if (!mounted || !identical(frame, _current)) return;
+      if (refresh) await refreshCurrent();
+      // 宿主通知在下一帧才传入；先应用写后失效和读取，再释放返回路径。
+      await WidgetsBinding.instance.endOfFrame;
+    } finally {
+      if (identical(_bykcWriteFrame, frame)) _bykcWriteFrame = null;
+    }
+  }
+
   static const _invalidatedError = UiError(
     code: UbaaErrorCode.operationConflict,
     title: '列表需要更新',
@@ -105,8 +121,10 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
           );
         }
       }
-      _frames.clear();
-      if (!current.isLanding && uiHasLandingMenu(incoming.feature)) {
+      if (!identical(_bykcWriteFrame, current)) _frames.clear();
+      if (_frames.isEmpty &&
+          !current.isLanding &&
+          uiHasLandingMenu(incoming.feature)) {
         _frames.add(
           _ReadFrame(
             _nextId++,
@@ -116,7 +134,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
           ),
         );
       }
-      _frames.add(current);
+      if (!_frames.contains(current)) _frames.add(current);
       // 失效通知可能仍携带旧子页快照；只接收边界之后的新读取代次。
       _externalAfterRevision =
           oldWidget.snapshot.readContext?.requestRevision ?? -1;
@@ -134,6 +152,11 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
       }
       return;
     }
+    // 写后核对读取已选列表；直接操作期间保留用户原来的列表或详情。
+    if (identical(_bykcWriteFrame, _current) &&
+        context != null &&
+        !context.hasSameQuery(_current.query))
+      return;
     if ((_current.bykcChosenKey != null ||
             PagedResults.supports(incoming.feature, _current.query)) &&
         _externalAfterRevision != null &&
@@ -478,7 +501,8 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
 
   void _scheduleInvalidatedReload() {
     final frame = _current;
-    if (_reloadScheduled ||
+    if (identical(_bykcWriteFrame, frame) ||
+        _reloadScheduled ||
         !frame.needsReload ||
         frame.isLanding ||
         widget.onQuery == null ||

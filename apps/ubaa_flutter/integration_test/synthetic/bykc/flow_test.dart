@@ -1,4 +1,4 @@
-import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
+import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination, UbaaMainShell;
 import 'dart:async';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -14,14 +14,36 @@ void main() {
   WidgetController.hitTestWarningShouldBeFatal = true;
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   for (final brightness in Brightness.values) {
-    testWidgets('博雅原生卡片查询详情及准备取消 ${brightness.name}', (tester) async {
+    testWidgets('博雅原生列表直接选退保持原页 ${brightness.name}', (tester) async {
+      final backend = BoyaBackend();
+      await _mount(tester, backend, brightness, 'courses');
+      Finder action(String label) => find.descendant(
+        of: find.widgetWithText(Card, '合成课程 1'),
+        matching: find.widgetWithText(OutlinedButton, label),
+      );
+      await _tap(tester, action('选课'));
+      expect(backend.commitCalls, 1);
+      expect(backend.selections[101], isTrue);
+      expect(find.widgetWithText(AppBar, '选择课程'), findsOneWidget);
+      await _tap(tester, action('退选'));
+      expect(backend.commitCalls, 2);
+      expect(backend.selections[101], isFalse);
+      expect(find.widgetWithText(AppBar, '选择课程'), findsOneWidget);
+      await _shot(
+        binding,
+        tester,
+        '${brightness.name}-list-direct',
+        '列表按钮直接选退一次并刷新原列表',
+      );
+    });
+    testWidgets('博雅原生卡片查询详情与直接选退 ${brightness.name}', (tester) async {
       final backend = BoyaBackend();
       await _mount(tester, backend, brightness, 'courses');
       Future<void> shot(String scene, String steps) =>
           _shot(binding, tester, '${brightness.name}-normal-$scene', steps);
       expect(find.byType(TextField), findsNothing);
-      expect(find.text('准备选课'), findsNothing);
-      await shot('courses', '旧版课程卡片，正文没有搜索或写入按钮堆叠');
+      expect(find.text('选课'), findsWidgets);
+      await shot('courses', '课程卡片正文进入详情，独立按钮直接选退');
       final reads = backend.boyaReads.length;
       await _panel(tester);
       await _tap(tester, find.widgetWithText(FilterChip, '已过期'));
@@ -54,22 +76,22 @@ void main() {
       await _tap(tester, find.widgetWithText(Card, '合成课程 1'));
       expect(backend.boyaReads.last.courseId, '101');
       await shot('course-detail-top', '课程标题状态、基本信息和时间安排');
-      await _ensure(tester, find.widgetWithText(OutlinedButton, '准备选课'));
+      await _ensure(tester, find.widgetWithText(OutlinedButton, '选课'));
       await shot('course-detail-actions', '详情底部操作来自独立typed资格');
-      await _tap(tester, find.widgetWithText(OutlinedButton, '准备选课'));
+      await _tap(tester, find.widgetWithText(OutlinedButton, '选课'));
       expect(backend.preparedBoya.last, (
         WriteOperation.bykcSelectCourse,
         101,
         null,
       ));
-      await shot('select-confirm', '仅准备合成101号课程，未使用兼容字段999');
-      await _tap(tester, find.widgetWithText(OutlinedButton, '取消'));
+      expect(backend.commitCalls, 1);
+      await shot('select-result', '直接提交合成101号课程并刷新详情');
       await _tap(tester, find.byTooltip('返回'));
       await _tap(tester, find.widgetWithText(Card, '合成课程 5'));
-      await _ensure(tester, find.widgetWithText(OutlinedButton, '准备选课'));
+      await _ensure(tester, find.widgetWithText(OutlinedButton, '选课'));
       expect(
         tester
-            .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '准备选课'))
+            .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '选课'))
             .onPressed,
         isNull,
       );
@@ -101,14 +123,14 @@ void main() {
         await _tap(tester, find.widgetWithText(OutlinedButton, '取消'));
         expect(find.widgetWithText(AppBar, '课程详情'), findsOneWidget);
       }
-      await _tap(tester, find.widgetWithText(OutlinedButton, '准备退选'));
+      await _tap(tester, find.widgetWithText(OutlinedButton, '退选'));
       expect(backend.preparedBoya.last, (
         WriteOperation.bykcDeselectCourse,
         101,
         null,
       ));
-      await shot('deselect-confirm', '退选仍针对课程101，而非记录9001');
-      await _tap(tester, find.widgetWithText(OutlinedButton, '取消'));
+      expect(backend.commitCalls, 2);
+      await shot('deselect-result', '直接退选课程101并清除原记录');
       await _tap(tester, find.byTooltip('返回'));
       await _tap(tester, find.byTooltip('返回'));
       await _tap(tester, find.widgetWithText(Card, '课程统计'));
@@ -127,7 +149,7 @@ void main() {
       await _closePanel(tester);
       expect(backend.boyaReads.last.view, FeatureQueryView.bykcProfile);
       await shot('profile', '既有博雅资料查询继续可达，仅合成白名单字段');
-      expect(backend.commitCalls, 0);
+      expect(backend.commitCalls, 2);
     });
     for (final view in ['courses', 'chosen', 'statistics']) {
       for (final state in [
@@ -156,7 +178,10 @@ void main() {
           if (state == 'stale') {
             backend.failNext = true;
             await _tap(tester, find.byTooltip('刷新当前查询'));
-            await _ensure(tester, find.text('以下为上次成功加载的数据。'));
+            final snapshot = tester
+                .widget<UbaaMainShell>(find.byType(UbaaMainShell))
+                .snapshots[FeatureId.bykc]!;
+            expect(snapshot.error?.code, UbaaErrorCode.networkError);
           } else if (state == 'loading') {
             if (view == 'chosen') {
               await _tap(tester, find.widgetWithText(Card, '合成已选课 1'));
@@ -165,7 +190,11 @@ void main() {
             backend.pending = gate;
             await tester.tap(find.byTooltip('刷新当前查询'));
             await tester.pump(const Duration(milliseconds: 200));
-            expect(find.text('准备退选'), findsNothing);
+            for (final button in tester.widgetList<OutlinedButton>(
+              find.widgetWithText(OutlinedButton, '退选'),
+            )) {
+              expect(button.onPressed, isNull);
+            }
             await shot('pending', '加载中不呈现上一次的可操作详情');
             gate.complete();
             await tester.pumpAndSettle();
@@ -207,7 +236,7 @@ void main() {
               tester,
               find.widgetWithText(
                 OutlinedButton,
-                view == 'courses' ? '准备选课' : '准备退选',
+                view == 'courses' ? '选课' : '退选',
               ),
             );
             await shot('detail-actions', '长内容滚动后操作仍可达');

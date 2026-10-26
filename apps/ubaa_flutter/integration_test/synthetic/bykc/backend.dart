@@ -4,12 +4,14 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../assignments/backend.dart';
 part 'data.dart';
 
-/// 显式博雅合成backend；不读取账号、不进入FRB，commit始终拒绝。
+/// 显式博雅合成后端；选退只改变内存数据，不读取账号、不进入 FRB。
 class BoyaBackend extends CourseworkBackend implements BykcWriteBackend {
   BoyaBackend({super.state}) {
     signedIn = true;
   }
   final boyaReads = <FeatureQuery>[];
+  final selections = <int, bool>{};
+  final _intents = <String, (WriteOperation, int)>{};
   final preparedBoya = <(WriteOperation, int, int?)>[];
   final _viewCounts = <FeatureQueryView, int>{};
   Completer<void>? pending;
@@ -41,7 +43,7 @@ class BoyaBackend extends CourseworkBackend implements BykcWriteBackend {
     }
     final empty = emptyNext || state == 'empty';
     emptyNext = false;
-    return boyaData(query, state, empty: empty);
+    return boyaData(query, state, empty: empty, selections: selections);
   }
 
   Future<WriteIntent> _prepare(
@@ -50,14 +52,36 @@ class BoyaBackend extends CourseworkBackend implements BykcWriteBackend {
     int? signType,
   ]) async {
     preparedBoya.add((operation, courseId, signType));
+    _intents['boya-${preparedBoya.length}'] = (operation, courseId);
     return WriteIntent(
       intentId: 'boya-${preparedBoya.length}',
       operation: operation,
       targetSummary: '合成博雅课程 $courseId',
       resolvedRoute: ConnectionMode.direct,
-      warnings: const ['显式合成数据，仅准备与取消'],
+      warnings: const ['显式内存数据，仅合成选退可提交'],
       expiresAt: DateTime.now().add(const Duration(minutes: 2)),
       requestDigest: 'synthetic-digest',
+    );
+  }
+
+  @override
+  Future<WriteCommitResult> commitWrite(String intentId) async {
+    final target = _intents.remove(intentId);
+    if (target == null ||
+        !const {
+          WriteOperation.bykcSelectCourse,
+          WriteOperation.bykcDeselectCourse,
+        }.contains(target.$1)) {
+      throw StateError('合成签到只允许准备和取消');
+    }
+    commitCalls++;
+    selections[target.$2] = target.$1 == WriteOperation.bykcSelectCourse;
+    return WriteCommitResult(
+      operation: target.$1,
+      success: true,
+      message: '合成选退成功',
+      outcomeUnknown: false,
+      resolvedRoute: ConnectionMode.direct,
     );
   }
 

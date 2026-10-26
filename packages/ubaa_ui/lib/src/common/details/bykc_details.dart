@@ -137,8 +137,10 @@ extension BykcDetails on _FeatureDetailListState {
                           select.courseId,
                         )
                       : null,
-                  icon: const Icon(Icons.add_circle_outline),
-                  label: const Text('准备选课'),
+                  icon: _bykcWriteIcon(select.operation, select.courseId),
+                  label: Text(
+                    _bykcWriteLabel(select.operation, select.courseId),
+                  ),
                 ),
               if (deselect != null && (course.selected != false || canDeselect))
                 OutlinedButton.icon(
@@ -150,8 +152,10 @@ extension BykcDetails on _FeatureDetailListState {
                           deselect.courseId,
                         )
                       : null,
-                  icon: const Icon(Icons.remove_circle_outline),
-                  label: const Text('准备退选'),
+                  icon: _bykcWriteIcon(deselect.operation, deselect.courseId),
+                  label: Text(
+                    _bykcWriteLabel(deselect.operation, deselect.courseId),
+                  ),
                 ),
             ],
           ),
@@ -277,8 +281,10 @@ extension BykcDetails on _FeatureDetailListState {
                         deselect.courseId,
                       )
                     : null,
-                icon: const Icon(Icons.remove_circle_outline),
-                label: const Text('准备退选'),
+                icon: _bykcWriteIcon(deselect.operation, deselect.courseId),
+                label: Text(
+                  _bykcWriteLabel(deselect.operation, deselect.courseId),
+                ),
               ),
           ],
         ),

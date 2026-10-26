@@ -58,6 +58,7 @@ class FeatureDetailView extends StatefulWidget {
     this.onGradeRoutes,
     this.isBykcChosenDetail = false,
     this.bykcListCourse,
+    this.bykcPendingCourseId,
     this.onOpenBykcChosen,
     required this.bykcFilters,
     required this.onBykcFiltersChanged,
@@ -108,6 +109,7 @@ class FeatureDetailView extends StatefulWidget {
   final GradesAggregateLoader? onLoadAllGrades;
   final ValueChanged<Map<String, ConnectionMode>>? onGradeRoutes;
   final BykcCoursePresentation? bykcListCourse;
+  final int? bykcPendingCourseId;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final BykcCourseFilters bykcFilters;
   final ValueChanged<BykcCourseFilters> onBykcFiltersChanged;
@@ -580,7 +582,9 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
   Widget _details(BuildContext context) {
     return FeatureDetailList(
       feature: widget.feature,
-      writesEnabled: widget.snapshot.status != FeatureLoadStatus.loading,
+      writesEnabled:
+          widget.snapshot.status != FeatureLoadStatus.loading &&
+          widget.bykcPendingCourseId == null,
       details: _isAssignmentList
           ? _assignmentFilters.apply(
               widget.snapshot.details,
@@ -600,6 +604,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
       bykcCampuses: _bykcCampuses,
       isBykcChosenDetail: widget.isBykcChosenDetail,
       bykcListCourse: widget.bykcListCourse,
+      bykcPendingCourseId: widget.bykcPendingCourseId,
       onOpenBykcChosen: widget.onOpenBykcChosen,
       pagination: widget.snapshot.pagination,
       paginationGeneration: widget.paginationGeneration,

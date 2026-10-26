@@ -1,6 +1,11 @@
 part of 'backend.dart';
 
-FeatureResult boyaData(FeatureQuery query, String state, {bool empty = false}) {
+FeatureResult boyaData(
+  FeatureQuery query,
+  String state, {
+  bool empty = false,
+  Map<int, bool> selections = const {},
+}) {
   final suffix = state == 'long' ? ' 与跨学科创新实践及大学生活专题研讨的较长名称' * 3 : '';
   if (empty && query.view != FeatureQueryView.bykcStatistics) {
     return const FeatureResult.empty(resolvedRoute: ConnectionMode.direct);
@@ -14,7 +19,7 @@ FeatureResult boyaData(FeatureQuery query, String state, {bool empty = false}) {
         resolvedRoute: ConnectionMode.direct,
         details: [
           for (var i = (page - 1) * size; i < count && i < page * size; i++)
-            _course(i, suffix),
+            _course(i, suffix, selection: selections[101 + i]),
         ],
         pagination: FeaturePagination(
           page: page,
@@ -31,77 +36,80 @@ FeatureResult boyaData(FeatureQuery query, String state, {bool empty = false}) {
       }
       return FeatureResult.success(
         resolvedRoute: ConnectionMode.direct,
-        details: [_course(id - 101, suffix, isDetail: true)],
+        details: [
+          _course(id - 101, suffix, isDetail: true, selection: selections[id]),
+        ],
       );
     case FeatureQueryView.bykcChosenCourses:
       return FeatureResult.success(
         resolvedRoute: ConnectionMode.direct,
         details: [
           for (var i = 0; i < (state == 'many' ? 42 : 3); i++)
-            FeatureDetail(
-              title: '合成已选课 ${i + 1}$suffix',
-              presentation: BykcChosenPresentation(
-                recordId: 9001 + i,
-                courseId: 101 + i,
-                courseName: '合成已选课 ${i + 1}$suffix',
-                courseTeacher: '合成教师$suffix',
-                coursePosition: '合成教学楼$suffix',
-                courseStartDate: '2026-09-09 08:00:00',
-                courseEndDate: '2026-09-09 10:00:00',
-                courseCancelEndDate: '2026-09-08 18:00:00',
-                selectDate: '2026-09-01 08:00:00',
-                category: '博雅课程',
-                subCategory: '美育',
-                checkin: i == 0
-                    ? 5
-                    : i == 1
-                    ? 1
-                    : null,
-                pass: i == 1 ? 1 : null,
-                score: i == 0
-                    ? 0
-                    : i == 1
-                    ? 95
-                    : null,
-                signStartDate: '2026-09-09 07:50:00',
-                signEndDate: '2026-09-09 08:10:00',
-                signOutStartDate: '2026-09-09 09:50:00',
-                signOutEndDate: '2026-09-09 10:10:00',
-                signPointCount: i == 2 ? null : 1,
-                courseSignType: 3,
-                fullDetail: query.courseId == '${101 + i}'
-                    ? _course(i, suffix, isDetail: true).presentation!
-                          as BykcCoursePresentation
-                    : null,
-              ),
-              fields: const [FeatureField(label: '课程 ID', value: '999')],
-              actions: [
-                BykcDeselectAction(
+            if (selections[101 + i] != false)
+              FeatureDetail(
+                title: '合成已选课 ${i + 1}$suffix',
+                presentation: BykcChosenPresentation(
+                  recordId: 9001 + i,
                   courseId: 101 + i,
-                  eligibility: i == 0
-                      ? ActionEligibility.allowed
+                  courseName: '合成已选课 ${i + 1}$suffix',
+                  courseTeacher: '合成教师$suffix',
+                  coursePosition: '合成教学楼$suffix',
+                  courseStartDate: '2026-09-09 08:00:00',
+                  courseEndDate: '2026-09-09 10:00:00',
+                  courseCancelEndDate: '2026-09-08 18:00:00',
+                  selectDate: '2026-09-01 08:00:00',
+                  category: '博雅课程',
+                  subCategory: '美育',
+                  checkin: i == 0
+                      ? 5
                       : i == 1
-                      ? ActionEligibility.denied
-                      : ActionEligibility.unknown,
+                      ? 1
+                      : null,
+                  pass: i == 1 ? 1 : null,
+                  score: i == 0
+                      ? 0
+                      : i == 1
+                      ? 95
+                      : null,
+                  signStartDate: '2026-09-09 07:50:00',
+                  signEndDate: '2026-09-09 08:10:00',
+                  signOutStartDate: '2026-09-09 09:50:00',
+                  signOutEndDate: '2026-09-09 10:10:00',
+                  signPointCount: i == 2 ? null : 1,
+                  courseSignType: 3,
+                  fullDetail: query.courseId == '${101 + i}'
+                      ? _course(i, suffix, isDetail: true).presentation!
+                            as BykcCoursePresentation
+                      : null,
                 ),
-                BykcSignAction(
-                  courseId: 101 + i,
-                  kind: BykcSignKind.signIn,
-                  eligibility: i == 0
-                      ? ActionEligibility.allowed
-                      : ActionEligibility.denied,
-                  requiresCoordinates: false,
-                ),
-                BykcSignAction(
-                  courseId: 101 + i,
-                  kind: BykcSignKind.signOut,
-                  eligibility: i == 0
-                      ? ActionEligibility.allowed
-                      : ActionEligibility.unknown,
-                  requiresCoordinates: false,
-                ),
-              ],
-            ),
+                fields: const [FeatureField(label: '课程 ID', value: '999')],
+                actions: [
+                  BykcDeselectAction(
+                    courseId: 101 + i,
+                    eligibility: i == 0
+                        ? ActionEligibility.allowed
+                        : i == 1
+                        ? ActionEligibility.denied
+                        : ActionEligibility.unknown,
+                  ),
+                  BykcSignAction(
+                    courseId: 101 + i,
+                    kind: BykcSignKind.signIn,
+                    eligibility: i == 0
+                        ? ActionEligibility.allowed
+                        : ActionEligibility.denied,
+                    requiresCoordinates: false,
+                  ),
+                  BykcSignAction(
+                    courseId: 101 + i,
+                    kind: BykcSignKind.signOut,
+                    eligibility: i == 0
+                        ? ActionEligibility.allowed
+                        : ActionEligibility.unknown,
+                    requiresCoordinates: false,
+                  ),
+                ],
+              ),
         ],
       );
     case FeatureQueryView.bykcStatistics:
@@ -152,17 +160,26 @@ FeatureResult boyaData(FeatureQuery query, String state, {bool empty = false}) {
   }
 }
 
-FeatureDetail _course(int index, String suffix, {bool isDetail = false}) {
+FeatureDetail _course(
+  int index,
+  String suffix, {
+  bool isDetail = false,
+  bool? selection,
+}) {
   final id = 101 + index;
-  final status = const [
-    BykcCourseStatus.available,
-    BykcCourseStatus.full,
-    BykcCourseStatus.selected,
-    BykcCourseStatus.preview,
-    BykcCourseStatus.available,
-    BykcCourseStatus.ended,
-    BykcCourseStatus.expired,
-  ][index % 7];
+  final status = selection == true
+      ? BykcCourseStatus.selected
+      : selection == false
+      ? BykcCourseStatus.available
+      : const [
+          BykcCourseStatus.available,
+          BykcCourseStatus.full,
+          BykcCourseStatus.selected,
+          BykcCourseStatus.preview,
+          BykcCourseStatus.available,
+          BykcCourseStatus.ended,
+          BykcCourseStatus.expired,
+        ][index % 7];
   return FeatureDetail(
     title: '合成课程 ${index + 1}$suffix',
     presentation: BykcCoursePresentation(
@@ -225,7 +242,9 @@ FeatureDetail _course(int index, String suffix, {bool isDetail = false}) {
     actions: [
       BykcSelectAction(
         courseId: id,
-        eligibility: index % 7 == 0
+        eligibility: status == BykcCourseStatus.selected
+            ? ActionEligibility.denied
+            : index % 7 == 0
             ? ActionEligibility.allowed
             : index % 7 == 4
             ? ActionEligibility.unknown

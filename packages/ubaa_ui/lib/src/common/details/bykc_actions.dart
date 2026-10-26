@@ -1,6 +1,49 @@
 part of 'detail_list.dart';
 
 extension BykcDetailActions on _FeatureDetailListState {
+  String _bykcWriteLabel(WriteOperation operation, int courseId) {
+    final label = operation == WriteOperation.bykcSelectCourse ? '选课' : '退选';
+    return widget.bykcPendingCourseId == courseId ? '$label中…' : label;
+  }
+
+  Widget _bykcWriteIcon(WriteOperation operation, int courseId) =>
+      widget.bykcPendingCourseId == courseId
+      ? const SizedBox.square(
+          dimension: 18,
+          child: CircularProgressIndicator(strokeWidth: 2),
+        )
+      : Icon(
+          operation == WriteOperation.bykcSelectCourse
+              ? Icons.add_circle_outline
+              : Icons.remove_circle_outline,
+        );
+
+  Widget? _bykcListAction(
+    FeatureDetail detail,
+    int courseId, {
+    required bool selected,
+    bool full = false,
+  }) {
+    if (widget.onBykcWrite == null) return null;
+    final select = detail.action<BykcSelectAction>();
+    final deselect = detail.action<BykcDeselectAction>();
+    final operation = selected ? deselect?.operation : select?.operation;
+    if (operation == null) return null;
+    final target = selected ? deselect!.courseId : select!.courseId;
+    final eligibility = selected ? deselect!.eligibility : select!.eligibility;
+    final allowed =
+        widget.writesEnabled &&
+        courseId > 0 &&
+        target == courseId &&
+        eligibility == ActionEligibility.allowed &&
+        (selected || !full);
+    return OutlinedButton.icon(
+      onPressed: allowed ? () => widget.onBykcWrite!(operation, target) : null,
+      icon: _bykcWriteIcon(operation, target),
+      label: Text(_bykcWriteLabel(operation, target)),
+    );
+  }
+
   List<Widget> _bykcCourseWriteFields(
     BuildContext context,
     int? courseId,
@@ -28,8 +71,16 @@ extension BykcDetailActions on _FeatureDetailListState {
                     bykcSelectAction!.courseId,
                   )
                 : null,
-            icon: const Icon(Icons.add_circle_outline),
-            label: const Text('准备选课'),
+            icon: _bykcWriteIcon(
+              WriteOperation.bykcSelectCourse,
+              bykcSelectAction?.courseId ?? 0,
+            ),
+            label: Text(
+              _bykcWriteLabel(
+                WriteOperation.bykcSelectCourse,
+                bykcSelectAction?.courseId ?? 0,
+              ),
+            ),
           ),
           if (bykcDeselectAction != null || courseId != null)
             OutlinedButton.icon(
@@ -41,8 +92,16 @@ extension BykcDetailActions on _FeatureDetailListState {
                       bykcDeselectAction.courseId,
                     )
                   : null,
-              icon: const Icon(Icons.remove_circle_outline),
-              label: const Text('准备退选'),
+              icon: _bykcWriteIcon(
+                WriteOperation.bykcDeselectCourse,
+                bykcDeselectAction?.courseId ?? 0,
+              ),
+              label: Text(
+                _bykcWriteLabel(
+                  WriteOperation.bykcDeselectCourse,
+                  bykcDeselectAction?.courseId ?? 0,
+                ),
+              ),
             ),
         ],
       ),

@@ -7,7 +7,7 @@ import '../support/write_harness.dart';
 import '../support/navigation.dart';
 
 void _registerInitialWriteTests() {
-  testWidgets('博雅课程写操作先展示一次性确认且仅在确认后提交', (tester) async {
+  testWidgets('博雅选退课点击直接提交且签到保留原确认流程', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -171,26 +171,19 @@ void _registerInitialWriteTests() {
     expect(signTypes, <int>[1, 1, 2]);
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备选课'));
+    await tester.tap(find.text('选课'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
-    expect(commitCalls, 0);
-    expect(find.text('确认博雅选课'), findsOneWidget);
-    expect(find.text('选择课程 42'), findsOneWidget);
-    await tester.tap(find.text('确认提交'));
-    await tester.pumpAndSettle();
+    expect(find.text('确认博雅选课'), findsNothing);
     expect(commitCalls, 1);
     expect(refreshCalls, 1);
     expect(committedIntent, 'intent-42');
     expect(find.text('已提交，请刷新已选课程确认'), findsOneWidget);
 
-    await tester.tap(find.text('准备退选'));
+    await tester.tap(find.text('退选'));
     await tester.pumpAndSettle();
     expect(deselectCalls, 1);
-    expect(commitCalls, 1);
-    expect(find.text('确认博雅退选'), findsOneWidget);
-    await tester.tap(find.text('确认提交'));
-    await tester.pumpAndSettle();
+    expect(find.text('确认博雅退选'), findsNothing);
     expect(commitCalls, 2);
     expect(committedIntent, 'deselect-intent-42');
   });

@@ -69,13 +69,12 @@ void _registerBykcStateTests() {
     await tester.pumpAndSettle();
 
     final select = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '准备选课'),
+      find.widgetWithText(OutlinedButton, '选课'),
     );
     expect(select.onPressed, isNotNull);
-    await tester.tap(find.text('准备选课'));
+    await tester.tap(find.text('选课'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
-    expect(find.text('选择课程 73'), findsOneWidget);
   });
 
   testWidgets('博雅选退课 action 缺失或资格非 allowed 时统一禁用', (tester) async {
@@ -163,12 +162,12 @@ void _registerBykcStateTests() {
     await tester.pumpAndSettle();
 
     final selects = tester.widgetList<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '准备选课'),
+      find.widgetWithText(OutlinedButton, '选课'),
     );
     expect(selects, hasLength(3));
     expect(selects.every((button) => button.onPressed == null), isTrue);
     final deselects = tester.widgetList<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '准备退选'),
+      find.widgetWithText(OutlinedButton, '退选'),
     );
     expect(deselects, hasLength(3));
     expect(deselects.every((button) => button.onPressed == null), isTrue);
@@ -484,15 +483,15 @@ void _registerBykcStateTests() {
     await tester.pumpAndSettle();
 
     final select = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '准备选课'),
+      find.widgetWithText(OutlinedButton, '选课'),
     );
     final deselect = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '准备退选'),
+      find.widgetWithText(OutlinedButton, '退选'),
     );
     expect(select.onPressed, isNull);
     expect(deselect.onPressed, isNotNull);
     expect(find.text('部分操作当前不可用'), findsOneWidget);
-    await tester.tap(find.text('准备退选'));
+    await tester.tap(find.text('退选'));
     await tester.pumpAndSettle();
     expect(deselectCalls, 1);
     expect(deselectCourseIds, <int>[9527]);
@@ -866,9 +865,7 @@ void _registerSharedStateTests() {
     );
     await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备选课'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('确认提交'));
+    await tester.tap(find.text('选课'));
     await tester.pumpAndSettle();
 
     expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsOneWidget);

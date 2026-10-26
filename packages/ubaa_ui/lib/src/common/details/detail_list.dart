@@ -76,6 +76,7 @@ class FeatureDetailList extends StatefulWidget {
     this.bykcCampuses = const {},
     this.isBykcChosenDetail = false,
     this.bykcListCourse,
+    this.bykcPendingCourseId,
     this.onOpenBykcChosen,
     this.pagination,
     this.paginationGeneration = 0,
@@ -108,6 +109,7 @@ class FeatureDetailList extends StatefulWidget {
   final Set<String> bykcCategories, bykcCampuses;
   final bool isBykcChosenDetail;
   final BykcCoursePresentation? bykcListCourse;
+  final int? bykcPendingCourseId;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final FeatureId feature;
   // 刷新中保留按钮及列表布局，只暂停旧结果携带的写入动作。
@@ -336,8 +338,17 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                               );
                             return BykcCourseCard(
                               course: course,
+                              action: _bykcListAction(
+                                detail,
+                                course.id,
+                                selected: course.selected == true,
+                                full:
+                                    uiBykcDisplayStatus(course) ==
+                                    BykcCourseStatus.full,
+                              ),
                               onTap:
-                                  detail.readNavigation == null ||
+                                  widget.bykcPendingCourseId != null ||
+                                      detail.readNavigation == null ||
                                       widget.onNavigate == null
                                   ? null
                                   : () => widget.onNavigate!(
@@ -355,7 +366,14 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                               );
                             return BykcChosenCard(
                               course: course,
-                              onTap: widget.onOpenBykcChosen == null
+                              action: _bykcListAction(
+                                detail,
+                                course.courseId,
+                                selected: true,
+                              ),
+                              onTap:
+                                  widget.bykcPendingCourseId != null ||
+                                      widget.onOpenBykcChosen == null
                                   ? null
                                   : () => widget.onOpenBykcChosen!(detail),
                             );

@@ -51,7 +51,7 @@ void main() {
       );
       await openFeature(tester, FeatureId.bykc);
       await tester.pumpAndSettle();
-      expect(find.text('准备选课'), findsNothing);
+      expect(find.text('选课'), findsNothing);
     });
   }
 

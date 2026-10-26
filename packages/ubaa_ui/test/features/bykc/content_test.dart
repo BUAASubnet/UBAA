@@ -119,7 +119,7 @@ void main() {
     );
     expect(picker.items!.map((item) => item.value), ['7']);
   });
-  testWidgets('博雅列表沿旧版整卡进入详情，正文不堆写入按钮和编号', (tester) async {
+  testWidgets('博雅卡片正文仍进入详情且列表显示选课入口', (tester) async {
     final queries = <FeatureQuery>[];
     await _open(tester, const [
       FeatureDetail(
@@ -148,7 +148,7 @@ void main() {
     expect(find.text('合成博雅课'), findsOneWidget);
     expect(find.text('合成教室'), findsOneWidget);
     expect(find.textContaining('08:00'), findsOneWidget);
-    expect(find.text('准备选课'), findsNothing);
+    expect(find.text('选课'), findsOneWidget);
     expect(find.text('999'), findsNothing);
     expect(find.byType(TextField), findsNothing);
     await tester.tap(find.widgetWithText(Card, '合成博雅课'));
@@ -206,17 +206,17 @@ void main() {
     expect(find.text('已签到、未签退'), findsOneWidget);
     expect(find.text('待考核'), findsOneWidget);
     expect(find.text('0 分'), findsOneWidget);
-    expect(find.text('准备退选'), findsNothing);
+    expect(find.text('退选'), findsOneWidget);
     await tester.tap(find.widgetWithText(Card, '合成已选课'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, '课程详情'), findsOneWidget);
     expect(find.text('签到信息'), findsOneWidget);
-    expect(find.text('准备退选'), findsOneWidget);
+    expect(find.text('退选'), findsOneWidget);
     expect(find.text('999'), findsNothing);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(Card, '合成已选课'), findsOneWidget);
-    expect(find.text('准备退选'), findsNothing);
+    expect(find.text('退选'), findsOneWidget);
   });
 }
 

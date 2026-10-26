@@ -9,7 +9,7 @@ import '../../../ubaa_app/test/recovery/startup_test.dart' as startup;
 import '../../../ubaa_ui/test/support/navigation.dart' show openFeature;
 
 void main() {
-  testWidgets('真实确认交互只调用一次脱敏提交，回读和同步失败仍撤下旧动作', (tester) async {
+  testWidgets('直接选课只调用一次脱敏提交，回读和同步失败仍撤下旧动作', (tester) async {
     final backend = fixtures.SyntheticWriteCacheBackend()..failRefresh = true;
     final accounts = await startup.savedAccounts();
     await tester.pumpWidget(
@@ -21,13 +21,10 @@ void main() {
     );
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.bykc);
-    expect(find.text('准备选课'), findsOneWidget);
-    await tester.tap(find.text('准备选课'));
-    await tester.pumpAndSettle();
-    expect(find.text('确认博雅选课'), findsOneWidget);
+    expect(find.text('选课'), findsOneWidget);
+    await tester.tap(find.text('选课'));
+    await tester.pump();
     expect(backend.prepares, 1);
-    expect(backend.cachedCommits, 0);
-    await tester.tap(find.text('确认提交'));
     for (var i = 0; i < 20 && backend.readbacks == 0; i++) {
       await tester.pump();
     }
@@ -37,7 +34,12 @@ void main() {
     await tester.pump();
     var shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
     expect(shell.snapshots[FeatureId.bykc]!.details.single.actions, isEmpty);
-    expect(find.text('准备选课'), findsNothing);
+    expect(
+      tester
+          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '选课'))
+          .onPressed,
+      isNull,
+    );
     backend.readback.completeError(
       const BackendException(UbaaErrorCode.networkError),
     );
@@ -45,11 +47,17 @@ void main() {
     expect(backend.cachedCommits, 1);
     expect(backend.postCommitQueries, greaterThan(0));
     shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
-    expect(shell.snapshots[FeatureId.bykc]!.details.single.actions, isEmpty);
-    final disabledPrepare = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '准备选课'),
+    expect(
+      shell.snapshots[FeatureId.bykc]!.details.expand(
+        (detail) => detail.actions,
+      ),
+      isEmpty,
     );
-    expect(disabledPrepare.onPressed, isNull);
+    for (final button in tester.widgetList<OutlinedButton>(
+      find.widgetWithText(OutlinedButton, '选课'),
+    )) {
+      expect(button.onPressed, isNull);
+    }
     expect(backend.prepares, 1);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());

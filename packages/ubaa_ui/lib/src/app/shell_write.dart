@@ -1,6 +1,15 @@
 part of 'shell.dart';
 
 extension UbaaShellWriteActions on _UbaaMainShellState {
+  WriteIntent? get _pendingWriteForDisplay =>
+      (_homeSigninActive &&
+              widget.writeState.intent?.operation ==
+                  WriteOperation.signinPerform) ||
+          (_bykcWriteActive != null &&
+              widget.writeState.intent?.operation == _bykcWriteActive!.$1)
+      ? null
+      : widget.writeState.intent;
+
   bool get _hasWriteCommands =>
       widget.onRunWritePrepare != null &&
       widget.onCancelWrite != null &&
@@ -49,13 +58,80 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
   }
 
   Future<void> _startBykcWrite(WriteOperation operation, int courseId) async {
+    final run = widget.onRunWritePrepare;
     final prepare = widget.onPrepareBykcWrite;
-    if (prepare == null) return;
-    await _prepareWrite(
-      prepare: () => prepare(operation, courseId),
-      expectedOperation: operation,
-      failureMessage: '暂时无法准备操作；未提交，请重试。',
-    );
+    final confirm = widget.onConfirmWrite;
+    if (_bykcWriteActive != null ||
+        widget.writeState.isSubmitting ||
+        widget.writeState.intent != null ||
+        !_hasWriteCommands ||
+        run == null ||
+        prepare == null ||
+        confirm == null ||
+        courseId <= 0 ||
+        !const {
+          WriteOperation.bykcSelectCourse,
+          WriteOperation.bykcDeselectCourse,
+        }.contains(operation))
+      return;
+    final generation = _accountGeneration;
+    final policy = widget.routePolicy;
+    final page = _readPageKeys[FeatureId.bykc]?.currentState;
+    var attempted = false;
+    WriteIntent? intent;
+    _setBykcWriteActive((operation, courseId));
+    page?.beginBykcCourseWrite();
+    try {
+      intent = await run(
+        () => prepare(operation, courseId),
+        expectedOperation: operation,
+      );
+      if (!mounted ||
+          generation != _accountGeneration ||
+          policy != widget.routePolicy ||
+          intent == null)
+        return;
+      attempted = true;
+      final outcome = await confirm();
+      if (!mounted || generation != _accountGeneration) return;
+      if (outcome != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(outcome.message)));
+      }
+    } on Object {
+      if (mounted && generation == _accountGeneration) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(
+              attempted ? '操作结果未确认，请刷新课程状态后核对。' : '未能提交，请刷新课程状态后重试。',
+            ),
+          ),
+        );
+      }
+    } finally {
+      // 过期或失效的准备结果不能在直接操作结束后变成意外确认页。
+      if (mounted &&
+          generation == _accountGeneration &&
+          intent != null &&
+          widget.writeState.intent?.intentId == intent.intentId &&
+          !widget.writeState.isSubmitting) {
+        await _cancelWrite();
+      }
+      try {
+        if (mounted && generation == _accountGeneration) {
+          await page?.finishBykcCourseWrite(refresh: attempted);
+        }
+      } on Object {
+        if (mounted && generation == _accountGeneration) {
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('课程状态刷新失败，请手动刷新后核对。')));
+        }
+      } finally {
+        if (mounted) _setBykcWriteActive(null);
+      }
+    }
   }
 
   Future<void> _startBykcSignWrite(BykcSignAction action) async {

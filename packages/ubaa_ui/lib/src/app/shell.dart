@@ -241,6 +241,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   int _lockRefreshRevision = 0;
   final Map<FeatureId, GlobalKey<FeatureReadNavigatorState>> _readPageKeys = {};
   bool _homeSigninActive = false;
+  (WriteOperation, int)? _bykcWriteActive;
+  void _setBykcWriteActive((WriteOperation, int)? action) =>
+      setState(() => _bykcWriteActive = action);
   void _setHomeSigninActive(bool active) =>
       setState(() => _homeSigninActive = active);
 
@@ -416,11 +419,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 600;
-    final pendingWrite =
-        _homeSigninActive &&
-            widget.writeState.intent?.operation == WriteOperation.signinPerform
-        ? null
-        : widget.writeState.intent;
+    final pendingWrite = _pendingWriteForDisplay;
     final cancelDialog =
         pendingWrite?.operation == WriteOperation.cgyyCancelOrder;
     final confirmationPage = cancelDialog ? null : pendingWrite;
@@ -792,6 +791,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         },
         isBykcChosenDetail: page.isBykcChosenDetail,
         bykcListCourse: page.bykcListCourse,
+        bykcPendingCourseId: _bykcWriteActive?.$2,
         onOpenBykcChosen: page.onOpenBykcChosen,
         bykcFilters: _bykcFilters,
         bykcFilterError: _bykcFilterError,

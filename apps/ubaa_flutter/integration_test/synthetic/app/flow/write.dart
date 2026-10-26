@@ -160,20 +160,28 @@ void _registerWriteMatrixFlowTest() {
       WriteOperation operation,
       FeatureId readbackFeature,
     ) async {
+      var before = backend.commitCalls;
+      var beforeReadback = backend.featureLoads[readbackFeature] ?? 0;
       await tester.ensureVisible(find.text(label).first);
+      await tester.pumpAndSettle();
       await tester.tap(find.text(label).first);
       await tester.pumpAndSettle();
+      final direct =
+          operation == WriteOperation.bykcSelectCourse ||
+          operation == WriteOperation.bykcDeselectCourse;
       final cancelOrder = operation == WriteOperation.cgyyCancelOrder;
-      expect(
-        find.text(cancelOrder ? '取消预约？' : '确认${operation.title}'),
-        findsAtLeastNWidgets(1),
-      );
-      final before = backend.commitCalls;
-      final beforeReadback = backend.featureLoads[readbackFeature] ?? 0;
-      await tester.tap(
-        find.widgetWithText(FilledButton, cancelOrder ? '确认取消' : '确认提交'),
-      );
-      await tester.pumpAndSettle();
+      if (!direct) {
+        before = backend.commitCalls;
+        beforeReadback = backend.featureLoads[readbackFeature] ?? 0;
+        expect(
+          find.text(cancelOrder ? '取消预约？' : '确认${operation.title}'),
+          findsAtLeastNWidgets(1),
+        );
+        await tester.tap(
+          find.widgetWithText(FilledButton, cancelOrder ? '确认取消' : '确认提交'),
+        );
+        await tester.pumpAndSettle();
+      }
       expect(backend.commitCalls, before + 1);
       expect(backend.committedOperations.last, operation);
       final readbackCount = backend.featureLoads[readbackFeature] ?? 0;
@@ -194,10 +202,10 @@ void _registerWriteMatrixFlowTest() {
     }
 
     await openFeature(FeatureId.bykc);
-    await confirm('准备选课', WriteOperation.bykcSelectCourse, FeatureId.bykc);
+    await confirm('选课', WriteOperation.bykcSelectCourse, FeatureId.bykc);
     await leaveFeature();
     await openFeature(FeatureId.bykc);
-    await confirm('准备退选', WriteOperation.bykcDeselectCourse, FeatureId.bykc);
+    await confirm('退选', WriteOperation.bykcDeselectCourse, FeatureId.bykc);
     await leaveFeature();
     await openFeature(FeatureId.bykc);
     await confirm('准备博雅签到', WriteOperation.bykcSignCourse, FeatureId.bykc);

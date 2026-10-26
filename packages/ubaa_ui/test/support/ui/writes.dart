@@ -62,9 +62,7 @@ Future<int> fixturePumpBykcCommitError(
   );
   await openFeature(tester, FeatureId.bykc);
   await tester.pumpAndSettle();
-  await tester.tap(find.text('准备选课'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('确认提交'));
+  await tester.tap(find.text('选课'));
   await tester.pumpAndSettle();
   return refreshCalls;
 }

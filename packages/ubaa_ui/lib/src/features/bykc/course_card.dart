@@ -9,9 +9,10 @@ import 'display.dart'
         uiBykcSelectTime;
 
 class BykcCourseCard extends StatelessWidget {
-  const BykcCourseCard({required this.course, this.onTap});
+  const BykcCourseCard({required this.course, this.onTap, this.action});
   final BykcCoursePresentation course;
   final VoidCallback? onTap;
+  final Widget? action;
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -80,6 +81,10 @@ class BykcCourseCard extends StatelessWidget {
                       : '已报名 $count / $capacity',
                   style: theme.textTheme.bodySmall,
                 ),
+              ],
+              if (action != null) ...[
+                const SizedBox(height: 12),
+                Align(alignment: Alignment.centerRight, child: action),
               ],
             ],
           ),

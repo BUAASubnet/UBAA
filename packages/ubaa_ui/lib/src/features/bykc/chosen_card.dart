@@ -4,9 +4,14 @@ import 'display.dart'
     show BykcInfoLine, uiBykcCheckinLabel, uiBykcPassLabel, uiBykcRange;
 
 class BykcChosenCard extends StatelessWidget {
-  const BykcChosenCard({required this.course, required this.onTap});
+  const BykcChosenCard({
+    required this.course,
+    required this.onTap,
+    this.action,
+  });
   final BykcChosenPresentation course;
   final VoidCallback? onTap;
+  final Widget? action;
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -73,6 +78,10 @@ class BykcChosenCard extends StatelessWidget {
                     Text('${course.score} 分', style: theme.textTheme.bodySmall),
                 ],
               ),
+              if (action != null) ...[
+                const SizedBox(height: 12),
+                Align(alignment: Alignment.centerRight, child: action),
+              ],
             ],
           ),
         ),

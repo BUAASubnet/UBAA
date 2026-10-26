@@ -7,7 +7,7 @@ import '../../support/navigation.dart';
 import '../../support/write_harness.dart';
 
 void main() {
-  testWidgets('详情继承同课程列表人数并阻止已满课程准备选课', (tester) async {
+  testWidgets('详情继承同课程列表人数并阻止已满课程选课', (tester) async {
     for (final (count, eligibility, route, enabled) in [
       (3, ActionEligibility.allowed, ConnectionMode.direct, true),
       (10, ActionEligibility.allowed, ConnectionMode.direct, false),
@@ -58,25 +58,23 @@ void main() {
         find.text('已报名（列表）'),
         route == ConnectionMode.direct ? findsOneWidget : findsNothing,
       );
-      await _show(tester, find.text('准备选课'));
+      await _show(tester, find.text('选课'));
       final button = tester.widget<OutlinedButton>(
-        find.widgetWithText(OutlinedButton, '准备选课'),
+        find.widgetWithText(OutlinedButton, '选课'),
       );
       expect(button.onPressed != null, enabled);
       if (enabled) {
-        await tester.tap(find.widgetWithText(OutlinedButton, '准备选课'));
+        await tester.tap(find.widgetWithText(OutlinedButton, '选课'));
         await tester.pumpAndSettle();
         expect(state.preparedCourses, [(WriteOperation.bykcSelectCourse, 71)]);
       }
       if (count == 10 && route == ConnectionMode.direct) {
         await tester.tap(find.byTooltip('刷新当前查询'));
         await tester.pumpAndSettle();
-        await _show(tester, find.text('准备选课'));
+        await _show(tester, find.text('选课'));
         expect(
           tester
-              .widget<OutlinedButton>(
-                find.widgetWithText(OutlinedButton, '准备选课'),
-              )
+              .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '选课'))
               .onPressed,
           isNotNull,
         );
@@ -270,7 +268,7 @@ void main() {
       await tester.tap(find.byTooltip('刷新当前查询'));
       await tester.pumpAndSettle();
       expect(find.text('准备博雅签到'), findsNothing);
-      expect(find.text('准备退选'), findsNothing);
+      expect(find.text('退选'), findsNothing);
       await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
       expect(find.text('准备博雅签到'), findsNothing);
@@ -285,7 +283,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.textContaining('合成完整详情读取失败'), findsWidgets);
     expect(find.text('准备博雅签到'), findsNothing);
-    expect(find.text('准备退选'), findsNothing);
+    expect(find.text('退选'), findsNothing);
   });
 
   testWidgets('返回和切账号后迟到详情不能复活旧子帧及筛选', (tester) async {
@@ -327,7 +325,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('准备退选'), findsNothing);
+    expect(find.text('退选'), findsNothing);
     expect(find.text('查看签到与签退'), findsNothing);
     expect(find.textContaining('合成会话失效'), findsWidgets);
   });
