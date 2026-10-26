@@ -6,15 +6,19 @@ extension CgyyDetailActions on _FeatureDetailListState {
         if (cgyyCancelAction != null &&
             widget.onCgyyCancelWrite != null) ...<Widget>[
           const SizedBox(height: 12),
-          OutlinedButton.icon(
-            onPressed: !widget.writesEnabled
-                ? null
-                : () => widget.onCgyyCancelWrite!(cgyyCancelAction),
-            icon: const Icon(Icons.event_busy),
-            label: const Text('准备取消订单'),
-          ),
+          _cgyyCancelButton(cgyyCancelAction),
         ],
       ];
+
+  Widget _cgyyCancelButton(CgyyCancelAction action) => TextButton(
+    onPressed: !widget.writesEnabled
+        ? null
+        : () => widget.onCgyyCancelWrite!(action),
+    style: TextButton.styleFrom(
+      foregroundColor: Theme.of(context).colorScheme.error,
+    ),
+    child: const Text('取消预约'),
+  );
 
   List<Widget> _cgyyReserveWriteFields(
     BuildContext context,

@@ -2,6 +2,7 @@ import 'dart:async';
 import '../features/ihome/view.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../shared/loading.dart' show RefreshActionButton;
@@ -243,19 +244,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   void _setHomeSigninActive(bool active) =>
       setState(() => _homeSigninActive = active);
 
-  bool get _hasWriteCommands =>
-      widget.onRunWritePrepare != null &&
-      widget.onCancelWrite != null &&
-      widget.onConfirmWrite != null;
-
-  bool get _hasYgdkSubmissionCapabilities =>
-      _hasWriteCommands &&
-      widget.onPrepareYgdkSubmitWrite != null &&
-      widget.onPickYgdkPhoto != null &&
-      widget.onRefreshYgdkAfterWrite != null &&
-      widget.onCommitWrite != null &&
-      widget.onDiscardWriteIntent != null;
-
   @override
   void initState() {
     super.initState();
@@ -433,13 +421,16 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             widget.writeState.intent?.operation == WriteOperation.signinPerform
         ? null
         : widget.writeState.intent;
+    final cancelDialog =
+        pendingWrite?.operation == WriteOperation.cgyyCancelOrder;
+    final confirmationPage = cancelDialog ? null : pendingWrite;
     const maxContentWidth = UbaaTheme.pageMaxWidth;
     if (_openedFeature case final feature?) _visitedFeatures.add(feature);
     final pages = _visitedFeatures.toList(growable: false);
     // 只保留已访问页面的 State；每次 build 都读取当前快照和回调。
     final body = IndexedStack(
       key: ValueKey<int>(_accountGeneration),
-      index: pendingWrite != null
+      index: confirmationPage != null
           ? pages.length + 1
           : _openedFeature == null
           ? 0
@@ -459,11 +450,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               child: _buildFeaturePage(feature),
             ),
           ),
-        if (pendingWrite != null)
+        if (confirmationPage != null)
           WriteConfirmationView(
             showTitle: false,
             showRoute: false,
-            intent: pendingWrite,
+            intent: confirmationPage,
             onCancel: _cancelWrite,
             onConfirm: _confirmWrite,
             isSubmitting: widget.writeState.isSubmitting,
@@ -482,8 +473,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       title: ValueListenableBuilder<(FeatureSnapshot, String)?>(
         valueListenable: _visiblePage,
         builder: (context, page, _) => Text(
-          pendingWrite != null
-              ? '确认${pendingWrite.operation.title}'
+          confirmationPage != null
+              ? '确认${confirmationPage.operation.title}'
               : _openedFeature == FeatureId.schedule
               ? '课表'
               : _openedFeature != null
@@ -496,7 +487,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           overflow: TextOverflow.ellipsis,
         ),
       ),
-      leading: pendingWrite != null
+      leading: confirmationPage != null
           ? IconButton(
               tooltip: '取消并返回',
               onPressed: widget.writeState.isSubmitting ? null : _cancelWrite,
@@ -659,54 +650,64 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           }
         }
       },
-      child: Scaffold(
-        drawer: pendingWrite == null && !wide ? _buildDrawer(context) : null,
-        // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
-        body: Row(
-          children: <Widget>[
-            if (wide) _buildRail(context),
+      child: _withCancelConfirmation(
+        intent: cancelDialog ? pendingWrite : null,
+        child: Scaffold(
+          drawer: pendingWrite == null && !wide ? _buildDrawer(context) : null,
+          // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
+          body: Row(
+            children: <Widget>[
+              if (wide) _buildRail(context),
 
-            Expanded(
-              key: const ValueKey<String>('feature-pages'),
-              child: Column(
-                children: [
-                  Center(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: maxContentWidth),
-                      child: header,
-                    ),
-                  ),
-                  Expanded(
-                    child: Center(
+              Expanded(
+                key: const ValueKey<String>('feature-pages'),
+                child: Column(
+                  children: [
+                    Center(
                       child: ConstrainedBox(
                         constraints: BoxConstraints(maxWidth: maxContentWidth),
-                        child: SafeArea(top: false, bottom: wide, child: body),
+                        child: header,
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-        bottomNavigationBar: wide || pendingWrite != null
-            ? null
-            : NavigationBar(
-                height:
-                    80 + (MediaQuery.textScalerOf(context).scale(12) - 12) * 3,
-                selectedIndex: _selectedIndex,
-                onDestinationSelected: _selectTab,
-                destinations: _tabs
-                    .map(
-                      (tab) => NavigationDestination(
-                        key: ValueKey<String>('tab-${tab.label}'),
-                        icon: Icon(tab.icon),
-                        selectedIcon: Icon(tab.selectedIcon),
-                        label: tab.label,
+                    Expanded(
+                      child: Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: maxContentWidth,
+                          ),
+                          child: SafeArea(
+                            top: false,
+                            bottom: wide,
+                            child: body,
+                          ),
+                        ),
                       ),
-                    )
-                    .toList(),
+                    ),
+                  ],
+                ),
               ),
+            ],
+          ),
+          bottomNavigationBar: wide || confirmationPage != null
+              ? null
+              : NavigationBar(
+                  height:
+                      80 +
+                      (MediaQuery.textScalerOf(context).scale(12) - 12) * 3,
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: _selectTab,
+                  destinations: _tabs
+                      .map(
+                        (tab) => NavigationDestination(
+                          key: ValueKey<String>('tab-${tab.label}'),
+                          icon: Icon(tab.icon),
+                          selectedIcon: Icon(tab.selectedIcon),
+                          label: tab.label,
+                        ),
+                      )
+                      .toList(),
+                ),
+        ),
       ),
     );
   }

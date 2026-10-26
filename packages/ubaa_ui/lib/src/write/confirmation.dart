@@ -81,6 +81,57 @@ class _WriteConfirmationViewState extends State<WriteConfirmationView> {
     final isSubmitting = widget.isSubmitting;
     final isDiscarding = widget.isDiscarding;
     final error = widget.error;
+    if (intent.operation == WriteOperation.cgyyCancelOrder) {
+      return AlertDialog(
+        title: const Text('取消预约？'),
+        scrollable: true,
+        content: SizedBox(
+          width: 400,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(intent.targetSummary),
+              const SizedBox(height: 12),
+              const Text('确认后将取消这条研讨室预约。'),
+              for (final warning in intent.warnings)
+                Padding(
+                  padding: const EdgeInsets.only(top: 8),
+                  child: Text(warning),
+                ),
+              if (expired) ...[
+                const SizedBox(height: 12),
+                const Text('本次确认已过期，请关闭后重新操作。'),
+              ],
+              if (error != null) ...[
+                const SizedBox(height: 12),
+                FriendlyErrorCard(error: error),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: isSubmitting ? null : widget.onCancel,
+            child: Text(isDiscarding ? '正在关闭' : '保留预约'),
+          ),
+          FilledButton(
+            onPressed: expired || isSubmitting ? null : widget.onConfirm,
+            style: FilledButton.styleFrom(
+              backgroundColor: Theme.of(context).colorScheme.error,
+              foregroundColor: Theme.of(context).colorScheme.onError,
+            ),
+            child: Text(
+              isSubmitting && !isDiscarding
+                  ? '正在取消…'
+                  : expired
+                  ? '确认已过期'
+                  : '确认取消',
+            ),
+          ),
+        ],
+      );
+    }
     return ListView(
       padding: EdgeInsets.all(
         UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),

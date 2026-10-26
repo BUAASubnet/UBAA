@@ -1,6 +1,53 @@
 part of 'shell.dart';
 
 extension UbaaShellWriteActions on _UbaaMainShellState {
+  bool get _hasWriteCommands =>
+      widget.onRunWritePrepare != null &&
+      widget.onCancelWrite != null &&
+      widget.onConfirmWrite != null;
+
+  bool get _hasYgdkSubmissionCapabilities =>
+      _hasWriteCommands &&
+      widget.onPrepareYgdkSubmitWrite != null &&
+      widget.onPickYgdkPhoto != null &&
+      widget.onRefreshYgdkAfterWrite != null &&
+      widget.onCommitWrite != null &&
+      widget.onDiscardWriteIntent != null;
+
+  Widget _withCancelConfirmation({required Widget child, WriteIntent? intent}) {
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        ExcludeFocus(
+          excluding: intent != null,
+          child: ExcludeSemantics(excluding: intent != null, child: child),
+        ),
+        if (intent != null) ...[
+          const ModalBarrier(dismissible: false, color: Colors.black54),
+          CallbackShortcuts(
+            bindings: {
+              const SingleActivator(LogicalKeyboardKey.escape): () {
+                if (!widget.writeState.isSubmitting) unawaited(_cancelWrite());
+              },
+            },
+            child: FocusScope(
+              autofocus: true,
+              child: WriteConfirmationView(
+                key: ValueKey(intent.intentId),
+                intent: intent,
+                onCancel: _cancelWrite,
+                onConfirm: _confirmWrite,
+                isSubmitting: widget.writeState.isSubmitting,
+                isDiscarding: widget.writeState.isDiscarding,
+                error: widget.writeState.error,
+              ),
+            ),
+          ),
+        ],
+      ],
+    );
+  }
+
   Future<void> _startBykcWrite(WriteOperation operation, int courseId) async {
     final prepare = widget.onPrepareBykcWrite;
     if (prepare == null) return;

@@ -1,4 +1,6 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
@@ -64,18 +66,152 @@ void _registerCgyyCancellationWriteTest() {
     );
 
     await _openCgyyCancellation(tester);
-    await tester.tap(find.text('准备取消订单'));
+    await tester.tap(find.text('取消预约'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
     expect(commitCalls, 0);
-    expect(find.text('确认取消研讨室订单'), findsOneWidget);
+    expect(
+      find.ancestor(of: find.text('确认取消'), matching: find.byType(AlertDialog)),
+      findsOneWidget,
+      reason: '取消确认应覆盖在原预约页面上，保留列表上下文',
+    );
+    expect(find.text('羽毛球馆订单'), findsOneWidget);
+    expect(find.text('取消预约？'), findsOneWidget);
 
-    await tester.tap(find.text('确认提交'));
+    await tester.tap(find.text('确认取消'));
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
     expect(verifyCalls, 1);
     expect(ordinaryRefreshCalls, 0);
     expect(find.text('场馆订单取消已提交（取消状态已核对）'), findsOneWidget);
+  });
+
+  testWidgets('保留预约和 Escape 丢弃确认，关闭完成前锁定且保留原卡片', (tester) async {
+    var discardCalls = 0;
+    var commitCalls = 0;
+    for (final escape in [false, true]) {
+      final discard = Completer<void>();
+      await _pumpCgyyCancellationShell(
+        tester,
+        action: _allowedCancel,
+        onPrepare: (_) async => _cancelIntent(),
+        onDiscard: (id) async {
+          expect(id, 'cancel-dialog-17');
+          discardCalls++;
+          await discard.future;
+        },
+        onCommit: (_) async {
+          commitCalls++;
+          throw StateError('保留预约时不能提交');
+        },
+      );
+      await _openCgyyCancellation(tester);
+      final originalRect = tester.getRect(find.text('羽毛球馆订单'));
+      await tester.tap(find.text('取消预约'));
+      await tester.pumpAndSettle();
+      expect(tester.getRect(find.text('羽毛球馆订单')), originalRect);
+      if (escape) {
+        await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      } else {
+        await tester.tap(find.text('保留预约'));
+      }
+      await tester.pump();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(
+        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        isNull,
+      );
+      await tester.binding.handlePopRoute();
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.pump();
+      expect(discardCalls, escape ? 2 : 1);
+      discard.complete();
+      await tester.pumpAndSettle();
+      expect(find.byType(AlertDialog), findsNothing);
+      expect(tester.getRect(find.text('羽毛球馆订单')), originalRect);
+      expect(find.text('取消预约').hitTestable(), findsOneWidget);
+      expect(commitCalls, 0);
+      await tester.pumpWidget(const SizedBox.shrink());
+    }
+  });
+
+  testWidgets('取消确认提交及核对期间阻止重复点击、Escape 和系统返回', (tester) async {
+    final commit = Completer<WriteCommitResult>();
+    final readback = Completer<bool>();
+    var commits = 0;
+    var discards = 0;
+    await _pumpCgyyCancellationShell(
+      tester,
+      action: _allowedCancel,
+      onPrepare: (_) async => _cancelIntent(),
+      onDiscard: (_) async => discards++,
+      onCommit: (_) async {
+        commits++;
+        return commit.future;
+      },
+      onVerify: ({required orderId, required expectedRoute}) => readback.future,
+    );
+    await _openCgyyCancellation(tester);
+    await tester.tap(find.text('取消预约'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认取消'));
+    await tester.pump();
+    for (final verifying in [false, true]) {
+      if (verifying) {
+        commit.complete(
+          const WriteCommitResult(
+            operation: WriteOperation.cgyyCancelOrder,
+            success: true,
+            message: '预约已取消',
+            outcomeUnknown: false,
+          ),
+        );
+        await tester.pump();
+      }
+      expect(
+        tester.widget<FilledButton>(find.byType(FilledButton)).onPressed,
+        isNull,
+      );
+      await tester.tap(find.text('正在取消…'));
+      await tester.sendKeyEvent(LogicalKeyboardKey.escape);
+      await tester.binding.handlePopRoute();
+      await tester.pump();
+      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(commits, 1);
+      expect(discards, 0);
+    }
+    readback.complete(true);
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.text('羽毛球馆订单'), findsOneWidget);
+  });
+
+  testWidgets('窄屏双倍字体仍可阅读确认内容并保留预约', (tester) async {
+    tester.view.physicalSize = const Size(360, 780);
+    tester.view.devicePixelRatio = 1;
+    tester.platformDispatcher.textScaleFactorTestValue = 2;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    var discards = 0;
+    await _pumpCgyyCancellationShell(
+      tester,
+      action: _allowedCancel,
+      onPrepare: (_) async => _cancelIntent(),
+      onDiscard: (_) async => discards++,
+    );
+    await _openCgyyCancellation(tester);
+    await tester.ensureVisible(find.text('取消预约'));
+    await tester.tap(find.text('取消预约'));
+    await tester.pumpAndSettle();
+    expect(find.text('合成研讨室预约 17'), findsOneWidget);
+    expect(find.text('确认取消').hitTestable(), findsOneWidget);
+    expect(find.text('保留预约').hitTestable(), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.tap(find.text('保留预约'));
+    await tester.pumpAndSettle();
+    expect(discards, 1);
+    expect(find.byType(AlertDialog), findsNothing);
   });
 
   testWidgets('场馆取消结果未知只双回读一次并显示固定禁止重试提示', (tester) async {
@@ -126,9 +262,9 @@ void _registerCgyyCancellationWriteTest() {
     );
 
     await _openCgyyCancellation(tester);
-    await tester.tap(find.text('准备取消订单'));
+    await tester.tap(find.text('取消预约'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('确认提交'));
+    await tester.tap(find.text('确认取消'));
     await tester.pumpAndSettle();
 
     expect(prepareCalls, 1);
@@ -179,9 +315,9 @@ void _registerCgyyCancellationWriteTest() {
     );
 
     await _openCgyyCancellation(tester);
-    await tester.tap(find.text('准备取消订单'));
+    await tester.tap(find.text('取消预约'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('确认提交'));
+    await tester.tap(find.text('确认取消'));
     await tester.pumpAndSettle();
 
     expect(verifyCalls, 1);
@@ -216,7 +352,7 @@ void _registerCgyyCancellationWriteTest() {
     ]) {
       await _pumpCgyyCancellationShell(tester, action: action);
       await _openCgyyCancellation(tester);
-      expect(find.text('准备取消订单'), findsNothing);
+      expect(find.text('取消预约'), findsNothing);
       await tester.pumpWidget(const SizedBox.shrink());
     }
   });
@@ -227,6 +363,7 @@ Future<void> _pumpCgyyCancellationShell(
   required CgyyCancelAction action,
   List<FeatureField> fields = const <FeatureField>[],
   CgyyCancelPreparer? onPrepare,
+  WriteIntentDiscarder? onDiscard,
   Future<WriteCommitResult> Function(String intentId)? onCommit,
   WriteSuccessHandler? onOrdinaryRefresh,
   CgyyCancellationVerifier? onVerify,
@@ -245,6 +382,12 @@ Future<void> _pumpCgyyCancellationShell(
                 ? <FeatureDetail>[
                     FeatureDetail(
                       title: '羽毛球馆订单',
+                      presentation: const CgyyOrderPresentation(
+                        id: 17,
+                        venueName: '羽毛球馆订单',
+                        statusText: '已预约',
+                        reservationDateDetail: '2026-10-27 08:00–09:00',
+                      ),
                       fields: fields,
                       actions: <FeatureAction>[action],
                     ),
@@ -258,6 +401,7 @@ Future<void> _pumpCgyyCancellationShell(
       onRetryFeature: (_) async {},
       onPrepareCgyyCancelWrite: onPrepare,
       onCommitWrite: onCommit,
+      onDiscardWriteIntent: onDiscard,
       onWriteSuccess: onOrdinaryRefresh,
       onVerifyCgyyCancellation: onVerify,
       onLogout: () async {},
@@ -278,3 +422,25 @@ Future<void> _openCgyyCancellation(WidgetTester tester) async {
 void main() {
   _registerCgyyCancellationWriteTest();
 }
+
+const _allowedCancel = CgyyCancelAction(
+  orderId: 17,
+  orderStatus: 1,
+  checkStatus: 2,
+  targetOrderId: 17,
+  eligibility: ActionEligibility.allowed,
+);
+
+WriteIntent _cancelIntent() => WriteIntent(
+  intentId: 'cancel-dialog-17',
+  operation: WriteOperation.cgyyCancelOrder,
+  targetSummary: '合成研讨室预约 17',
+  resolvedRoute: ConnectionMode.direct,
+  warnings: const [],
+  expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+  requestDigest: 'synthetic-digest',
+  readbackQuery: const FeatureQuery(
+    view: FeatureQueryView.cgyyOrderDetail,
+    orderId: 17,
+  ),
+);

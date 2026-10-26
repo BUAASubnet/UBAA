@@ -163,10 +163,16 @@ void _registerWriteMatrixFlowTest() {
       await tester.ensureVisible(find.text(label).first);
       await tester.tap(find.text(label).first);
       await tester.pumpAndSettle();
-      expect(find.text('确认${operation.title}'), findsAtLeastNWidgets(1));
+      final cancelOrder = operation == WriteOperation.cgyyCancelOrder;
+      expect(
+        find.text(cancelOrder ? '取消预约？' : '确认${operation.title}'),
+        findsAtLeastNWidgets(1),
+      );
       final before = backend.commitCalls;
       final beforeReadback = backend.featureLoads[readbackFeature] ?? 0;
-      await tester.tap(find.widgetWithText(FilledButton, '确认提交'));
+      await tester.tap(
+        find.widgetWithText(FilledButton, cancelOrder ? '确认取消' : '确认提交'),
+      );
       await tester.pumpAndSettle();
       expect(backend.commitCalls, before + 1);
       expect(backend.committedOperations.last, operation);
@@ -263,7 +269,7 @@ void _registerWriteMatrixFlowTest() {
     await leaveFeature();
 
     await openFeature(FeatureId.cgyy);
-    await confirm('准备取消订单', WriteOperation.cgyyCancelOrder, FeatureId.cgyy);
+    await confirm('取消预约', WriteOperation.cgyyCancelOrder, FeatureId.cgyy);
     await leaveFeature();
 
     await openFeature(FeatureId.ygdk);

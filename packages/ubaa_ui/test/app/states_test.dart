@@ -613,7 +613,7 @@ void _registerCgyyStateTest() {
     await openFeature(tester, FeatureId.cgyy);
     await tester.pumpAndSettle();
 
-    expect(find.text('准备取消订单'), findsOneWidget);
+    expect(find.text('取消预约'), findsOneWidget);
   });
 }
 

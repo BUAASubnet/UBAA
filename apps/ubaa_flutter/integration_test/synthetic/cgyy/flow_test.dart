@@ -130,14 +130,14 @@ void main() {
       await _tap(tester, find.widgetWithText(Card, '我的预约'));
       expect(backend.roomReads.last.page, 0);
       await shot('orders', '预约记录地点状态时间优先，详情及允许取消入口');
-      await _tap(tester, find.widgetWithText(OutlinedButton, '查看详情').first);
+      await _tap(tester, find.widgetWithText(TextButton, '查看详情').first);
       expect(backend.roomReads.last.orderId, 101);
       await shot('order-detail', '以typed订单ID读取详情，显示低频编号');
       await _tap(tester, find.byTooltip('返回'));
-      await _tap(tester, find.widgetWithText(OutlinedButton, '准备取消订单').first);
+      await _tap(tester, find.widgetWithText(TextButton, '取消预约').first);
       expect(backend.preparedOrders, [101]);
-      await shot('cancel-confirm', '仅prepare合成订单取消，不点击确认提交');
-      await _tap(tester, find.widgetWithText(OutlinedButton, '取消'));
+      await shot('cancel-confirm', '取消确认弹窗覆盖在原列表上，保留预约后返回列表');
+      await _tap(tester, find.widgetWithText(TextButton, '保留预约'));
       await _tap(tester, find.byTooltip('刷新当前查询'));
       expect(backend.roomReads.last.page, 0);
       await shot('orders-refresh', '刷新预约记录从零基首批开始，末页不自动追加');

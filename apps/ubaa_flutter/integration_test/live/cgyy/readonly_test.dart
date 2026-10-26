@@ -127,7 +127,7 @@ void main() {
     await loaded(FeatureQueryView.cgyyOrders, page: 0);
     final order =
         snapshot().details.first.presentation as CgyyOrderPresentation;
-    await tap(find.widgetWithText(OutlinedButton, '查看详情').first);
+    await tap(find.widgetWithText(TextButton, '查看详情').first);
     await loaded(FeatureQueryView.cgyyOrderDetail, orderId: order.id);
     expect(snapshot().details.length, 1);
     expect(find.byType(TextField), findsNothing);
