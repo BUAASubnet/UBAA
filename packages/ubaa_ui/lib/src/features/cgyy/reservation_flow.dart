@@ -20,24 +20,20 @@ class CgyyReservationFlow extends StatefulWidget {
     required this.snapshot,
     required this.query,
     required this.cacheEpoch,
-    required this.filter,
     required this.fallback,
     required this.onQuery,
     this.onSubmit,
     required this.formContext,
-    required this.onChoicesChanged,
     super.key,
     required this.onRetry,
   });
   final FeatureSnapshot snapshot;
   final FeatureQuery query;
   final int cacheEpoch;
-  final String filter;
   final Widget fallback;
   final Future<void> Function(FeatureQuery)? onQuery;
   final CgyyReservationStarter? onSubmit;
   final CgyyFormContext formContext;
-  final VoidCallback onChoicesChanged;
   final Future<void> Function() onRetry;
   @override
   State<CgyyReservationFlow> createState() => CgyyReservationFlowState();
@@ -68,14 +64,7 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
     _syncingTimes = false;
   }
 
-  void _publishChoices() => WidgetsBinding.instance.addPostFrameCallback((_) {
-    if (mounted) widget.onChoicesChanged();
-  });
-
-  void _change(VoidCallback update) {
-    setState(update);
-    _publishChoices();
-  }
+  void _change(VoidCallback update) => setState(update);
 
   @override
   void dispose() {
@@ -90,7 +79,6 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
     _headerTimes.addListener(() => _syncTimes(_headerTimes, _bodyTimes));
     _bodyTimes.addListener(() => _syncTimes(_bodyTimes, _headerTimes));
     _consume();
-    _publishChoices();
   }
 
   @override
@@ -113,7 +101,6 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
     }
     if (!oldWidget.query.hasSameParameters(widget.query)) _selected.clear();
     _consume();
-    _publishChoices();
   }
 
   CgyyDayPresentation? get _day {
@@ -228,10 +215,9 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
     ))
       return widget.fallback;
     final actions = _actions;
-    final wide = MediaQuery.sizeOf(context).width >= 600;
     return Column(
       children: [
-        if (wide) buildInlineChips(context),
+        buildInlineChips(context),
         Expanded(
           child: _busy && day == null && snapshot.updatedAt == null
               ? const LoadingPlaceholder()
@@ -282,10 +268,16 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
         uiSelectCgyyAction(_selected, actions, key);
       });
 
-  String _siteLabel(CgyySitePresentation site) => [
-    site.venueName.trim(),
-    site.siteName.trim(),
-  ].where((s) => s.isNotEmpty).toSet().join(' / ');
+  String _siteLabel(CgyySitePresentation site) {
+    final venue = site.venueName.trim();
+    final floor = site.siteName.trim();
+    final short = venue.replaceFirst(RegExp(r'研讨室$'), '');
+    return [
+      short.isEmpty ? venue : short,
+      if (floor != venue) floor,
+    ].where((value) => value.isNotEmpty).toSet().join(' / ');
+  }
+
   String _campusLabel(String name) => name.contains('学院路')
       ? '学院路'
       : name.contains('沙河')

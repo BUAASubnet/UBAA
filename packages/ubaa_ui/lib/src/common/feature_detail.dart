@@ -11,8 +11,7 @@ import 'landing_menu.dart' show FeatureLandingMenu;
 import 'query/query_controls.dart'
     show FeatureQueryControls, FeatureQueryControlsState;
 import '../features/cgyy/lock_display.dart' show UbaaCgyyLockDisplayView;
-import '../features/cgyy/reservation_flow.dart'
-    show CgyyReservationChoices, CgyyReservationFlow, CgyyReservationFlowState;
+import '../features/cgyy/reservation_flow.dart' show CgyyReservationFlow;
 import '../features/coursework/coursework_overview.dart'
     show CourseworkOverview;
 import '../features/coursework/assignment_filters.dart'
@@ -145,8 +144,6 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
   Future<void>? refreshLibrary() =>
       widget.onQuery == null ? null : _libraryKey.currentState?.refresh();
 
-  final _cgyyKey = GlobalKey<CgyyReservationFlowState>();
-  final _cgyyChoicesRevision = ValueNotifier(0);
   final _cgyyDraft = CgyyFormDraft();
   final _ygdkDraft = YgdkFormDraft();
   final _queryKey = GlobalKey<FeatureQueryControlsState>();
@@ -167,7 +164,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
   void selectScheduleTerm() => _scheduleKey.currentState?.selectTerm();
 
   void togglePanel() {
-    if (_isLibraryReservation) return;
+    if (_isLibraryReservation || _isCgyyReservation) return;
     if (widget.feature == FeatureId.schedule) {
       selectScheduleTerm();
       return;
@@ -194,7 +191,6 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
     _ygdkDraft.clear();
     _cgyyDraft.dispose();
     _ygdkDraft.dispose();
-    _cgyyChoicesRevision.dispose();
     _searchController.dispose();
     super.dispose();
   }
@@ -325,24 +321,14 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                 FeatureQueryView.cgyyDayInfo,
               }.contains(widget.query?.view ?? FeatureQueryView.summary)
         ? CgyyReservationFlow(
-            key: _cgyyKey,
-            onChoicesChanged: () {
-              if (mounted) _cgyyChoicesRevision.value++;
-            },
             snapshot: widget.snapshot,
             query: widget.query ?? const FeatureQuery(),
             cacheEpoch: widget.readCacheEpoch,
-            filter: _searchController.text,
             fallback: defaultContent,
             onRetry: widget.onRetry,
             onSubmit: widget.onCgyySubmitWrite,
             formContext: _cgyyFormContext,
-            onQuery: widget.onQuery == null
-                ? null
-                : (query) {
-                    _queryKey.currentState?.adoptCgyyQuery(query);
-                    return widget.onQuery!(query);
-                  },
+            onQuery: widget.onQuery,
           )
         : widget.feature == FeatureId.ygdk &&
               (widget.query?.view ?? FeatureQueryView.summary) ==
@@ -404,7 +390,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
         return Stack(
           children: [
             Positioned.fill(child: content),
-            if (_panelOpen)
+            if (_panelOpen && !_isCgyyReservation)
               Positioned.fill(
                 child: ModalBarrier(
                   color: Colors.black26,
@@ -412,102 +398,93 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                   semanticsLabel: '关闭搜索与筛选',
                 ),
               ),
-            Align(
-              alignment: wide ? Alignment.topRight : Alignment.bottomCenter,
-              child: ExcludeFocus(
-                excluding: !_panelOpen,
-                child: Offstage(
-                  offstage: !_panelOpen,
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minWidth: wide ? 420 : constraints.maxWidth,
-                      maxWidth: wide ? 420 : constraints.maxWidth,
-                      maxHeight: constraints.maxHeight * .85,
-                    ),
-                    child: Material(
-                      elevation: 8,
-                      color: Theme.of(context).colorScheme.surface,
-                      borderRadius: BorderRadius.circular(16),
-                      clipBehavior: Clip.antiAlias,
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          ListTile(
-                            title: const Text('搜索与筛选'),
-                            trailing: TextButton(
-                              onPressed: togglePanel,
-                              child: const Text('完成'),
-                            ),
-                          ),
-                          Flexible(
-                            child: SingleChildScrollView(
-                              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
-                              child: Column(
-                                children: [
-                                  if (!widget.isLanding)
-                                    TextField(
-                                      controller: _searchController,
-                                      decoration: InputDecoration(
-                                        labelText: _isAssignmentList
-                                            ? '课程名称或作业标题'
-                                            : '筛选详情',
-                                        prefixIcon: const Icon(Icons.search),
-                                      ),
-                                      onChanged: (_) => setState(() {}),
-                                    ),
-                                  if (_isAssignmentList)
-                                    AssignmentFilterControls(
-                                      filters: _assignmentFilters,
-                                      onChanged: (value) => setState(
-                                        () => _assignmentFilters = value,
-                                      ),
-                                      onLoadHistory:
-                                          widget.feature == FeatureId.spoc ||
-                                              widget.query?.includeExpired ==
-                                                  true ||
-                                              widget.onQuery == null ||
-                                              widget.snapshot.status ==
-                                                  FeatureLoadStatus.loading
-                                          ? null
-                                          : () => widget.onQuery!(
-                                              (widget.query ??
-                                                      const FeatureQuery())
-                                                  .copyWith(
-                                                    includeExpired: true,
-                                                  ),
-                                            ),
-                                    ),
-                                  if (widget.feature != FeatureId.judge &&
-                                      widget.feature != FeatureId.spoc &&
-                                      widget.onQuery != null &&
-                                      _supportsQuery)
-                                    if (_isCgyyReservation) ...[
-                                      ValueListenableBuilder<int>(
-                                        valueListenable: _cgyyChoicesRevision,
-                                        builder: (context, _, _) =>
-                                            _cgyyKey.currentState?.buildChoices(
-                                              context,
-                                            ) ??
-                                            const SizedBox.shrink(),
-                                      ),
-                                      ExpansionTile(
-                                        title: const Text('更多查询'),
-                                        maintainState: true,
-                                        children: [_queryControls()],
-                                      ),
-                                    ] else
-                                      _queryControls(),
-                                ],
+            if (!_isCgyyReservation)
+              Align(
+                alignment: wide ? Alignment.topRight : Alignment.bottomCenter,
+                child: ExcludeFocus(
+                  excluding: !_panelOpen,
+                  child: Offstage(
+                    offstage: !_panelOpen,
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(
+                        minWidth: wide ? 420 : constraints.maxWidth,
+                        maxWidth: wide ? 420 : constraints.maxWidth,
+                        maxHeight: constraints.maxHeight * .85,
+                      ),
+                      child: Material(
+                        elevation: 8,
+                        color: Theme.of(context).colorScheme.surface,
+                        borderRadius: BorderRadius.circular(16),
+                        clipBehavior: Clip.antiAlias,
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              title: const Text('搜索与筛选'),
+                              trailing: TextButton(
+                                onPressed: togglePanel,
+                                child: const Text('完成'),
                               ),
                             ),
-                          ),
-                        ],
+                            Flexible(
+                              child: SingleChildScrollView(
+                                padding: const EdgeInsets.fromLTRB(
+                                  16,
+                                  0,
+                                  16,
+                                  16,
+                                ),
+                                child: Column(
+                                  children: [
+                                    if (!widget.isLanding)
+                                      TextField(
+                                        controller: _searchController,
+                                        decoration: InputDecoration(
+                                          labelText: _isAssignmentList
+                                              ? '课程名称或作业标题'
+                                              : '筛选详情',
+                                          prefixIcon: const Icon(Icons.search),
+                                        ),
+                                        onChanged: (_) => setState(() {}),
+                                      ),
+                                    if (_isAssignmentList)
+                                      AssignmentFilterControls(
+                                        filters: _assignmentFilters,
+                                        onChanged: (value) => setState(
+                                          () => _assignmentFilters = value,
+                                        ),
+                                        onLoadHistory:
+                                            widget.feature == FeatureId.spoc ||
+                                                widget.query?.includeExpired ==
+                                                    true ||
+                                                widget.onQuery == null ||
+                                                widget.snapshot.status ==
+                                                    FeatureLoadStatus.loading
+                                            ? null
+                                            : () => widget.onQuery!(
+                                                (widget.query ??
+                                                        const FeatureQuery())
+                                                    .copyWith(
+                                                      includeExpired: true,
+                                                    ),
+                                              ),
+                                      ),
+                                    if (widget.feature != FeatureId.judge &&
+                                        widget.feature != FeatureId.spoc &&
+                                        widget.onQuery != null &&
+                                        _supportsQuery)
+                                      _queryControls(),
+                                  ],
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
                       ),
                     ),
                   ),
                 ),
               ),
-            ),
           ],
         );
       },
@@ -521,7 +498,6 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
           FeatureQueryView.libbookBookings;
 
   bool get _isCgyyReservation =>
-      !widget.isLanding &&
       widget.feature == FeatureId.cgyy &&
       {
         FeatureQueryView.summary,
@@ -601,7 +577,9 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
             )
           : widget.snapshot.details,
       timeline: _scheduleTimeline,
-      filter: _isAssignmentList ? '' : _searchController.text,
+      filter: _isAssignmentList || _isCgyyReservation
+          ? ''
+          : _searchController.text,
       bykcStatuses: _bykcStatuses,
       onBykcStatusesChanged: (statuses) => widget.onBykcFiltersChanged(
         widget.bykcFilters.copyWith(statuses: statuses),

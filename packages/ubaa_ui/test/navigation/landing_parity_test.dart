@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
-import '../support/navigation.dart' show openQueryPanel, closeQueryPanel;
+import '../support/navigation.dart' show openQueryPanel;
 
 void main() {
   testWidgets('默认子页保留首次错误，不因打开菜单项而自动重试', (tester) async {
@@ -48,16 +48,8 @@ void main() {
       expect(state.queries, isEmpty);
     });
   }
-  testWidgets('子菜单读完返回后保留查询草稿且路线不冒充菜单实际读取', (tester) async {
+  testWidgets('研讨室子菜单读完返回后路线不冒充菜单实际读取', (tester) async {
     final state = await _open(tester, FeatureId.cgyy);
-    await openQueryPanel(tester);
-    await tester.tap(find.text('站点列表'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('日期空间').last);
-    await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, '站点 ID'), '501');
-    await tester.enterText(find.widgetWithText(TextField, '日期'), '2026-09-10');
-    await closeQueryPanel(tester);
     await tester.tap(find.widgetWithText(Card, '我的预约'));
     await tester.pumpAndSettle();
     expect(state.queries.single.view, FeatureQueryView.cgyyOrders);
@@ -67,21 +59,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, '研讨室预约'), findsOneWidget);
     expect(find.byTooltip('实际路线：未确定'), findsOneWidget);
-    await openQueryPanel(tester);
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '日期'))
-          .controller!
-          .text,
-      '2026-09-10',
-    );
-    await tester.tap(find.widgetWithText(FilledButton, '应用筛选'));
-    await tester.pumpAndSettle();
-    expect(state.queries.last.view, FeatureQueryView.cgyyDayInfo);
-    expect(state.queries.last.siteId, 501);
-    expect(state.queries.last.date, DateTime(2026, 9, 10));
-    expect(find.widgetWithText(AppBar, '预约研讨室'), findsOneWidget);
-    expect(state.queries, hasLength(2));
+    expect(state.queries, hasLength(1));
   });
   testWidgets('子菜单请求中返回后迟到结果不能替换菜单', (tester) async {
     final state = await _open(tester, FeatureId.libbook);

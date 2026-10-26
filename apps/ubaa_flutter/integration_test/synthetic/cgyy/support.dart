@@ -98,8 +98,6 @@ Future<void> _chooseRoom(
   String label,
   String value,
 ) async {
-  await _panel(tester);
-  await _tap(tester, find.byKey(ValueKey('cgyy-choice-$label')));
-  await _tap(tester, find.text(value).last);
-  await _closePanel(tester);
+  final key = label == '预约日期' ? 'cgyy-date-$value' : 'cgyy-campus-$value';
+  await _tap(tester, find.byKey(ValueKey(key)));
 }

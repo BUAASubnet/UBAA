@@ -37,28 +37,11 @@ void main() {
         findsOneWidget,
       );
       expect(find.text('下一步'), findsNothing);
-      await shot('table', '自动选择首站点，保留旧版校区/日期/站点选择与时段矩阵；手输筛选在右上按需面板');
+      await shot('table', '自动选择首站点，保留旧版校区/日期/站点选择与时段矩阵；三排选项直接点选');
       await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
       await _tap(tester, find.byTooltip('合成研讨室 1 09:00–10:00'));
       expect(find.text('已选'), findsNWidgets(2));
       await shot('selected', '选择同房间相邻的9和3号时段，按原顺序而非ID排序');
-      final count = backend.roomReads.length;
-      await _panel(tester);
-      await _edit(tester, '筛选详情', '1');
-      await _closePanel(tester);
-      expect(find.text('已选'), findsNWidgets(2));
-      await _panel(tester);
-      expect(
-        tester
-            .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
-            .controller!
-            .text,
-        '1',
-      );
-      await shot('query-draft', '右上按需面板草稿关闭重开仍在，选择未清掉，未增加读取');
-      await _edit(tester, '筛选详情', '');
-      await _closePanel(tester);
-      expect(backend.roomReads, hasLength(count));
       await _tap(tester, find.text('下一步'));
       await shot('form', '进入预约信息表单，原始两时段选择保留');
       for (final entry in {
@@ -141,6 +124,7 @@ void main() {
       expect(find.text('001234'), findsOneWidget);
       expect(find.byTooltip('搜索与筛选'), findsNothing);
       await _tap(tester, find.byTooltip('返回'));
+      await _tap(tester, find.widgetWithText(Card, '我的预约'));
       await _panel(tester);
       await _tap(tester, find.byType(DropdownButton<FeatureQueryView>));
       await _tap(tester, find.text('用途类型').last);
@@ -174,13 +158,11 @@ void main() {
           await _ensure(tester, find.text('网络不可用'));
           expect(find.byTooltip('合成研讨室 1 08:00–09:00'), findsOneWidget);
         } else if (state == 'loading') {
-          await _panel(tester);
-          await _tap(tester, find.byKey(const ValueKey('cgyy-choice-预约日期')));
+          final date = find.byKey(const ValueKey('cgyy-date-2026-09-05'));
+          await _ensure(tester, date);
           final gate = Completer<void>();
           backend.pending = gate;
-          await tester.tap(find.text('2026-09-05').last);
-          await tester.pump(const Duration(milliseconds: 200));
-          await tester.tap(find.widgetWithText(TextButton, '完成'));
+          await tester.tap(date);
           await tester.pump(const Duration(milliseconds: 200));
           await shot('pending', '重新读取中禁止选择旧时段');
           gate.complete();

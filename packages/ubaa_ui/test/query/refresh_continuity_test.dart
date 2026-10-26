@@ -143,69 +143,6 @@ void main() {
     expect(find.text('外观主题'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-
-  for (final feature in [FeatureId.cgyy]) {
-    testWidgets('手机放大文字和键盘占位时${feature.title}可滚动到应用且只查询一次', (tester) async {
-      // 这是布局行为证据；真实软键盘另由原生宿主验收。
-      _viewport(tester, const Size(360, 800));
-      final state = ValueNotifier<FeatureSnapshot>(_grades());
-      addTearDown(state.dispose);
-      final queries = <FeatureQuery>[];
-      await _mount(
-        tester,
-        state,
-        scale: 1.3,
-        queries: queries,
-        initialDestination: UiDestination.campus,
-      );
-      await _open(tester, feature);
-      await openQueryPanel(tester);
-      await tester.tap(find.text('更多查询'));
-      await tester.pumpAndSettle();
-      await tester.tap(find.byType(DropdownButton<FeatureQueryView>));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.text(feature == FeatureId.cgyy ? '日期空间' : '座位查询').last,
-      );
-      await tester.pumpAndSettle();
-      if (feature == FeatureId.cgyy) {
-        await tester.enterText(find.widgetWithText(TextField, '站点 ID'), '3');
-      } else {
-        await tester.enterText(
-          find.widgetWithText(TextField, '分区 ID'),
-          'fixture-area',
-        );
-        await tester.enterText(
-          find.widgetWithText(TextField, '时段编号（必填）'),
-          'slot-1',
-        );
-      }
-      await tester.enterText(
-        find.widgetWithText(TextField, '日期'),
-        '2026-09-08',
-      );
-      tester.view.viewInsets = const FakeViewPadding(bottom: 320);
-      await tester.pumpAndSettle();
-      expect(tester.takeException(), isNull);
-      final apply = find.text('应用筛选');
-      await tester.ensureVisible(apply);
-      await tester.pumpAndSettle();
-      expect(apply.hitTestable(), findsOneWidget);
-      await tester.tap(apply);
-      await tester.pumpAndSettle();
-      expect(queries, hasLength(1));
-      if (feature == FeatureId.cgyy) {
-        expect(queries.single.view, FeatureQueryView.cgyyDayInfo);
-        expect(queries.single.siteId, 3);
-      } else {
-        expect(queries.single.view, FeatureQueryView.libbookSeats);
-        expect(queries.single.areaId, 'fixture-area');
-        expect(queries.single.segment, 'slot-1');
-      }
-      expect(queries.single.date, DateTime(2026, 9, 8));
-      expect(tester.takeException(), isNull);
-    });
-  }
 }
 
 FeatureSnapshot _grades() => FeatureSnapshot(

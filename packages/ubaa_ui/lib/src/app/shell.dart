@@ -586,8 +586,13 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             builder: (context, _, _) {
               final page = _readPageKeys[_openedFeature]?.currentState;
               if (_openedFeature == FeatureId.cgyy &&
-                  page?.currentFrame.query?.view ==
-                      FeatureQueryView.cgyyLockCode)
+                  {
+                    FeatureQueryView.summary,
+                    FeatureQueryView.cgyyDayInfo,
+                    FeatureQueryView.cgyyLockCode,
+                  }.contains(
+                    page?.currentFrame.query?.view ?? FeatureQueryView.summary,
+                  ))
                 return const SizedBox.shrink();
               if (_openedFeature == FeatureId.libbook &&
                   page?.currentFrame.query?.view !=

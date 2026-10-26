@@ -60,7 +60,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('宽屏长楼栋选项可展开选择，查询保持原始站点编号', (tester) async {
+  testWidgets('窄屏直接点选长楼栋，查询保持原始站点编号', (tester) async {
     final queries = <FeatureQuery>[];
     await _open(
       tester,
@@ -85,12 +85,12 @@ void main() {
         ),
       ],
       queries,
-      width: 1400,
+      width: 402,
     );
-    final choice = find.byKey(const ValueKey('cgyy-choice-楼栋 / 楼层'));
-    await tester.tap(choice);
+    final choice = find.byKey(const ValueKey('cgyy-site-17'));
+    await tester.ensureVisible(choice);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('合成长楼栋名称 / 合成长楼层名称').last);
+    await tester.tap(choice);
     await tester.pumpAndSettle();
     expect(queries.last.siteId, 17);
     expect(queries.last.view, FeatureQueryView.cgyyDayInfo);
@@ -272,7 +272,7 @@ void main() {
     expect(tester.widget<TextField>(phone).controller!.text, 'synthetic-phone');
   });
 
-  testWidgets('研讨室校区和楼栋采用typed选择，默认查询面板不占正文', (tester) async {
+  testWidgets('研讨室移动端直接显示原始站点选择，默认读取不采用展示编号', (tester) async {
     final queries = <FeatureQuery>[];
     await _open(tester, const [
       FeatureDetail(
@@ -286,15 +286,9 @@ void main() {
         ),
       ),
     ], queries);
-    expect(find.byType(FilterChip), findsNothing);
-    await tester.tap(find.byTooltip('搜索与筛选'));
-    await tester.pumpAndSettle();
-    final sites = tester.widget<DropdownButton<int>>(
-      find.byKey(const ValueKey('cgyy-choice-楼栋 / 楼层')),
-    );
-    expect(sites.items!.single.value, 7);
-    await tester.tap(find.widgetWithText(TextButton, '完成'));
-    await tester.pumpAndSettle();
+    final site = find.byKey(const ValueKey('cgyy-site-7'));
+    await tester.ensureVisible(site);
+    expect(tester.widget<FilterChip>(site).selected, isTrue);
     expect(queries, hasLength(1));
     expect(queries.single.siteId, 7);
     expect(queries.single.view, FeatureQueryView.cgyyDayInfo);

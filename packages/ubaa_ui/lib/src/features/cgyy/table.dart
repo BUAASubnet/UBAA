@@ -53,29 +53,9 @@ extension CgyyReservationTable on CgyyReservationFlowState {
   }
 
   Widget _table(BuildContext context, CgyyDayPresentation day) {
-    final filter = widget.filter.trim().toLowerCase();
-    final spaces = day.spaces
-        .where(
-          (space) =>
-              filter.isEmpty ||
-              space.spaceName.toLowerCase().contains(filter) ||
-              widget.snapshot.details.any(
-                (d) =>
-                    d.presentation is CgyySlotPresentation &&
-                    (d.presentation! as CgyySlotPresentation).spaceId ==
-                        space.spaceId &&
-                    [
-                      d.title,
-                      ...d.fields.expand((f) => [f.label, f.value]),
-                    ].any((value) => value.toLowerCase().contains(filter)),
-              ),
-        )
-        .toList();
+    final spaces = day.spaces;
     if (spaces.isEmpty)
-      return const Padding(
-        padding: EdgeInsets.all(24),
-        child: Text('没有匹配的研讨室'),
-      );
+      return const Padding(padding: EdgeInsets.all(24), child: Text('暂无研讨室'));
     final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
     final rowHeight = 56 * scale;
     final headerHeight = 62 * scale;

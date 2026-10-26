@@ -8,16 +8,13 @@ import '../../../integration_test/synthetic/cgyy/backend.dart';
 
 void main() {
   WidgetController.hitTestWarningShouldBeFatal = true;
-  testWidgets('研讨室默认无常驻筛选条，查询面板关闭保留选择', (tester) async {
+  testWidgets('移动端直接选择时段和清空不增加读取', (tester) async {
     final backend = await _open(tester);
-    expect(find.byType(FilterChip), findsNothing);
-    await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
     final count = backend.roomReads.length;
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-    expect(find.text('校区'), findsOneWidget);
-    expect(find.text('楼栋 / 楼层'), findsOneWidget);
-    await _tap(tester, find.widgetWithText(TextButton, '完成'));
+    await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
     expect(find.text('已选'), findsOneWidget);
+    await _tap(tester, find.text('清空选择'));
+    expect(find.text('下一步'), findsNothing);
     expect(backend.roomReads.length, count);
   });
   testWidgets('研讨室长表滚到底仍保留时段表头', (tester) async {
@@ -97,10 +94,7 @@ void main() {
     final backend = await _open(tester);
     await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
     expect(find.text('下一步'), findsOneWidget);
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-    await _tap(tester, find.byKey(const ValueKey('cgyy-choice-预约日期')));
-    await _tap(tester, find.text('2026-09-05').last);
-    await _tap(tester, find.widgetWithText(TextButton, '完成'));
+    await _tap(tester, find.byKey(const ValueKey('cgyy-date-2026-09-05')));
     expect(find.text('下一步'), findsNothing);
     expect(backend.roomReads.last.siteId, 7);
     expect(backend.roomReads.last.date, DateTime(2026, 9, 5));
@@ -118,36 +112,16 @@ void main() {
     await _tap(tester, find.byTooltip('刷新当前查询'));
     expect(find.text('下一步'), findsNothing);
   });
-  testWidgets('研讨室手填选择器采用typed站点而非兼容字段999', (tester) async {
+  testWidgets('直接切换校区按原始站点读取且保留当前日期', (tester) async {
     final backend = await _open(tester);
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-    await _tap(tester, find.text('更多查询'));
-    final picker = tester.widget<DropdownButton<String>>(
-      find.ancestor(
-        of: find.text('从当前站点选择'),
-        matching: find.byType(DropdownButton<String>),
-      ),
-    );
-    expect(picker.items!.map((item) => item.value), ['7']);
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '日期'))
-          .controller!
-          .text,
-      '2026-09-04',
-    );
-    final count = backend.roomReads.length;
-    await tester.enterText(find.widgetWithText(TextField, '站点 ID'), '17');
-    await _tap(tester, find.widgetWithText(TextButton, '完成'));
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '站点 ID'))
-          .controller!
-          .text,
-      '17',
-    );
-    expect(backend.roomReads, hasLength(count));
+    await _tap(tester, find.byKey(const ValueKey('cgyy-date-2026-09-05')));
+    await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
+    await _tap(tester, find.byKey(const ValueKey('cgyy-campus-沙河')));
+    expect(backend.roomReads.last.siteId, 17);
+    expect(backend.roomReads.last.date, DateTime(2026, 9, 5));
+    expect(find.text('下一步'), findsNothing);
+    expect(backend.preparedRooms, isEmpty);
+    expect(backend.commitCalls, 0);
   });
 }
 
