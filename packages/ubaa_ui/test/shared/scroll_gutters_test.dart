@@ -28,6 +28,130 @@ Widget _list(ScrollController controller, {bool reverse = false}) => ListView(
 );
 
 void main() {
+  for (final x in [100.0, 700.0]) {
+    testWidgets('触摸板在留白$x的拖动与惯性和正文一致', (tester) async {
+      final controller = ScrollController(initialScrollOffset: 500);
+      addTearDown(controller.dispose);
+      await _mount(tester, _list(controller));
+
+      Future<(double, double)> panAt(double x) async {
+        controller.jumpTo(500);
+        final point = Offset(x, 300);
+        final gesture = await tester.startGesture(
+          point,
+          kind: PointerDeviceKind.trackpad,
+        );
+        for (var step = 1; step <= 4; step++) {
+          await gesture.panZoomUpdate(
+            point,
+            pan: Offset(0, -40.0 * step),
+            timeStamp: Duration(milliseconds: step * 16),
+          );
+          await tester.pump(const Duration(milliseconds: 16));
+        }
+        final dragged = controller.offset;
+        await gesture.panZoomEnd(timeStamp: const Duration(milliseconds: 80));
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        final coasted = controller.offset;
+        await tester.pumpAndSettle();
+        return (dragged, coasted);
+      }
+
+      final content = await panAt(400);
+      expect(content.$1, greaterThan(500));
+      expect(content.$2, greaterThan(content.$1));
+      final gutter = await panAt(x);
+      expect(gutter.$1, closeTo(content.$1, .01));
+      expect(gutter.$2, closeTo(content.$2, .01));
+    });
+  }
+
+  testWidgets('触摸板手势中切换页面会停止旧目标且不带动新页面', (tester) async {
+    final first = ScrollController();
+    final second = ScrollController();
+    addTearDown(first.dispose);
+    addTearDown(second.dispose);
+    var page = 0;
+    late StateSetter update;
+    await _mount(
+      tester,
+      StatefulBuilder(
+        builder: (context, setState) {
+          update = setState;
+          return IndexedStack(
+            index: page,
+            children: [_list(first), _list(second)],
+          );
+        },
+      ),
+    );
+    const point = Offset(100, 300);
+    final gesture = await tester.startGesture(
+      point,
+      kind: PointerDeviceKind.trackpad,
+    );
+    await gesture.panZoomUpdate(point, pan: const Offset(0, -100));
+    await gesture.panZoomUpdate(point, pan: const Offset(0, -200));
+    expect(first.offset, greaterThan(0));
+    final before = first.offset;
+    update(() => page = 1);
+    await tester.pump();
+    await gesture.panZoomUpdate(point, pan: const Offset(0, -300));
+    await gesture.panZoomEnd();
+    await tester.pumpAndSettle();
+    expect(first.offset, before);
+    expect(second.offset, 0);
+    final next = await tester.startGesture(
+      point,
+      kind: PointerDeviceKind.trackpad,
+    );
+    await next.panZoomUpdate(point, pan: const Offset(0, -100));
+    await next.panZoomUpdate(point, pan: const Offset(0, -200));
+    await next.panZoomEnd();
+    await tester.pumpAndSettle();
+    expect(first.offset, before);
+    expect(second.offset, greaterThan(0));
+  });
+
+  testWidgets('留白处纯横向或缩放手势不移动正文，禁用滚动时纵向手势也不移动', (tester) async {
+    final controller = ScrollController();
+    addTearDown(controller.dispose);
+    await _mount(tester, _list(controller));
+    const point = Offset(100, 300);
+    final horizontal = await tester.startGesture(
+      point,
+      kind: PointerDeviceKind.trackpad,
+    );
+    await horizontal.panZoomUpdate(point, pan: const Offset(100, 0));
+    await horizontal.panZoomUpdate(point, pan: const Offset(200, 0));
+    await horizontal.panZoomEnd();
+    final pinch = await tester.startGesture(
+      point,
+      kind: PointerDeviceKind.trackpad,
+    );
+    await pinch.panZoomUpdate(point, scale: 2);
+    await pinch.panZoomEnd();
+    await tester.pumpAndSettle();
+    expect(controller.offset, 0);
+    await _mount(
+      tester,
+      ListView(
+        controller: controller,
+        physics: const NeverScrollableScrollPhysics(),
+        children: const [SizedBox(height: 2400)],
+      ),
+    );
+    final vertical = await tester.startGesture(
+      point,
+      kind: PointerDeviceKind.trackpad,
+    );
+    await vertical.panZoomUpdate(point, pan: const Offset(0, -200));
+    await vertical.panZoomEnd();
+    await tester.pumpAndSettle();
+    expect(controller.offset, 0);
+  });
+
   testWidgets('切换页面和返回时只滚动可见导航帧并保留其他位置', (tester) async {
     final parent = ScrollController();
     final detail = ScrollController();

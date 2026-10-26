@@ -2,7 +2,15 @@ part of 'shell.dart';
 
 /// 自适应导航的展示；页面与写入状态由 Shell 持有。
 extension UbaaShellNavigation on _UbaaMainShellState {
-  Widget _buildRail(BuildContext context) {
+  Widget _buildRail(BuildContext context) => ScrollConfiguration(
+    behavior: ScrollConfiguration.of(context).copyWith(
+      // 导航只在内容溢出时滚动，边界不随触摸板回弹。
+      physics: const ClampingScrollPhysics(),
+    ),
+    child: _buildRailContent(context),
+  );
+
+  Widget _buildRailContent(BuildContext context) {
     final extended = MediaQuery.sizeOf(context).width >= 1000;
     final colors = Theme.of(context).colorScheme;
     if (!extended) {
@@ -99,6 +107,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
               ),
               Expanded(
                 child: ListView(
+                  primary: false,
                   children: [
                     for (final tab in _UbaaMainShellState._tabs.take(4))
                       entry(tab),
