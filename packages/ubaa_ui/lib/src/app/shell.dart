@@ -8,6 +8,7 @@ import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../shared/loading.dart' show RefreshActionButton;
 import '../shared/feedback.dart';
 import '../shared/refresh.dart' show PullToRefresh;
+import '../shared/scroll_gutters.dart' show ScrollGutters;
 import 'about.dart' show AboutView;
 import 'home.dart' show FeatureGridView, HomeView;
 import 'destination.dart';
@@ -671,17 +672,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                       ),
                     ),
                     Expanded(
-                      child: Center(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: maxContentWidth,
-                          ),
-                          child: SafeArea(
-                            top: false,
-                            bottom: wide,
-                            child: body,
-                          ),
-                        ),
+                      child: ScrollGutters(
+                        maxWidth: maxContentWidth,
+                        child: SafeArea(top: false, bottom: wide, child: body),
                       ),
                     ),
                   ],
