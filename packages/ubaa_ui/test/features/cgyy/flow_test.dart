@@ -9,13 +9,13 @@ void main() {
   testWidgets('宽屏时段铺满内容宽度，选中汇总随取消更新', (tester) async {
     await _open(tester, _dayDetails, [], width: 1400);
     final header = find.byKey(const ValueKey('cgyy-time-header-scroll'));
-    final lastCell = find.byTooltip('无时段房间 09:00–10:00');
+    final lastCell = _slot('无时段房间', '09:00–10:00');
     expect(
       tester.getRect(lastCell).right,
       closeTo(tester.getRect(header).right, 1),
       reason: '宽屏最后一列应与内容区右边缘对齐',
     );
-    await tester.tap(find.byTooltip('合成研讨室 08:00–09:00'));
+    await tester.tap(_slot('合成研讨室', '08:00–09:00'));
     await tester.pumpAndSettle();
     final summary = find.byKey(const ValueKey('cgyy-selection-summary'));
     expect(
@@ -50,7 +50,7 @@ void main() {
     expect(a.offset, closeTo(b.offset, .01));
     a.jumpTo(0);
     await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('合成研讨室 08:00–09:00'));
+    await tester.tap(_slot('合成研讨室', '08:00–09:00'));
     await tester.pumpAndSettle();
     expect(find.text('下一步').hitTestable(), findsOneWidget);
     expect(
@@ -236,7 +236,7 @@ void main() {
       epoch: epoch,
       loadPurposes: (_) => gate.future,
     );
-    await tester.tap(find.byTooltip('合成研讨室 08:00–09:00'));
+    await tester.tap(_slot('合成研讨室', '08:00–09:00'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('下一步'));
     await tester.pump();
@@ -256,7 +256,7 @@ void main() {
 
   testWidgets('研讨室预约使用独立表单，返回修改时段保留草稿', (tester) async {
     await _open(tester, _dayDetails, []);
-    await tester.tap(find.byTooltip('合成研讨室 08:00–09:00'));
+    await tester.tap(_slot('合成研讨室', '08:00–09:00'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('下一步'));
     await tester.pumpAndSettle();
@@ -301,7 +301,7 @@ void main() {
     expect(find.text('无时段房间'), findsOneWidget);
     expect(find.text('资格未知'), findsOneWidget);
     expect(find.text('下一步'), findsNothing);
-    await tester.tap(find.byTooltip('合成研讨室 08:00–09:00'));
+    await tester.tap(_slot('合成研讨室', '08:00–09:00'));
     await tester.pumpAndSettle();
     expect(find.text('下一步'), findsOneWidget);
     await tester.tap(find.text('下一步'));
@@ -452,7 +452,7 @@ Future<void> _open(
 }
 
 Future<void> _form(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('合成研讨室 08:00–09:00'));
+  await tester.tap(_slot('合成研讨室', '08:00–09:00'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('下一步'));
   await tester.pumpAndSettle();
@@ -478,4 +478,11 @@ const _purposes = FeatureResult.success(
       ),
     ),
   ],
+);
+
+Finder _slot(String room, String time) => find.byWidgetPredicate(
+  (widget) =>
+      widget is Semantics &&
+      (widget.properties.label?.startsWith('$room ') ?? false) &&
+      (widget.properties.label?.contains(' $time ') ?? false),
 );

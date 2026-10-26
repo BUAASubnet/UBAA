@@ -11,7 +11,7 @@ void main() {
   testWidgets('移动端直接选择时段和清空不增加读取', (tester) async {
     final backend = await _open(tester);
     final count = backend.roomReads.length;
-    await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
+    await _tap(tester, _slot('合成研讨室 1', '08:00–09:00'));
     expect(find.text('已选'), findsOneWidget);
     await _tap(tester, find.text('清空选择'));
     expect(find.text('下一步'), findsNothing);
@@ -39,8 +39,8 @@ void main() {
       find
           .byWidgetPredicate(
             (widget) =>
-                widget is Tooltip &&
-                (widget.message?.startsWith('合成研讨室 42 ') ?? false),
+                widget is Semantics &&
+                (widget.properties.label?.startsWith('合成研讨室 42 ') ?? false),
           )
           .hitTestable()
           .first,
@@ -92,7 +92,7 @@ void main() {
   });
   testWidgets('研讨室换日期清掉旧选择和表单目标且不增加返回层级', (tester) async {
     final backend = await _open(tester);
-    await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
+    await _tap(tester, _slot('合成研讨室 1', '08:00–09:00'));
     expect(find.text('下一步'), findsOneWidget);
     await _tap(tester, find.byKey(const ValueKey('cgyy-date-2026-09-05')));
     expect(find.text('下一步'), findsNothing);
@@ -105,7 +105,7 @@ void main() {
   });
   testWidgets('研讨室明确空结果后刷新不复活已清掉的时段', (tester) async {
     final backend = await _open(tester);
-    await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
+    await _tap(tester, _slot('合成研讨室 1', '08:00–09:00'));
     backend.emptyNext = true;
     await _tap(tester, find.byTooltip('刷新当前查询'));
     expect(find.text('下一步'), findsNothing);
@@ -115,7 +115,7 @@ void main() {
   testWidgets('直接切换校区按原始站点读取且保留当前日期', (tester) async {
     final backend = await _open(tester);
     await _tap(tester, find.byKey(const ValueKey('cgyy-date-2026-09-05')));
-    await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
+    await _tap(tester, _slot('合成研讨室 1', '08:00–09:00'));
     await _tap(tester, find.byKey(const ValueKey('cgyy-campus-沙河')));
     expect(backend.roomReads.last.siteId, 17);
     expect(backend.roomReads.last.date, DateTime(2026, 9, 5));
@@ -154,3 +154,10 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.tap(finder);
   await tester.pumpAndSettle();
 }
+
+Finder _slot(String room, String time) => find.byWidgetPredicate(
+  (widget) =>
+      widget is Semantics &&
+      (widget.properties.label?.startsWith('$room ') ?? false) &&
+      (widget.properties.label?.contains(' $time ') ?? false),
+);

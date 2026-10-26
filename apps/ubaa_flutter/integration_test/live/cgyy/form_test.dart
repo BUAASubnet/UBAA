@@ -183,8 +183,13 @@ void main() {
         .toList();
     expect(times.length == 1, isTrue);
     await tap(
-      find.byTooltip(
-        '${slot.spaceName} ${times.single.beginTime}–${times.single.endTime}',
+      find.byWidgetPredicate(
+        (widget) =>
+            widget is Semantics &&
+            (widget.properties.label?.startsWith(
+                  '${slot.spaceName} ${slot.reservationDate} ${times.single.beginTime}–${times.single.endTime} ',
+                ) ??
+                false),
       ),
     );
     await tap(find.text('下一步'));

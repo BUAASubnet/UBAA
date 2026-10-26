@@ -261,50 +261,46 @@ extension CgyyReservationTable on CgyyReservationFlowState {
       selected: selected,
       onTap: toggle,
       excludeSemantics: true,
-      child: Tooltip(
-        message: '${space.spaceName} ${time.beginTime}–${time.endTime}',
-        excludeFromSemantics: true,
-        child: SizedBox.expand(
-          child: TextButton(
-            style: TextButton.styleFrom(
-              padding: EdgeInsets.zero,
-              shape: const RoundedRectangleBorder(),
-              backgroundColor: selected
-                  ? colors.primary
-                  : allowed
-                  ? colors.primaryContainer
-                  : colors.surface,
-              foregroundColor: selected
-                  ? colors.onPrimary
-                  : colors.onPrimaryContainer,
-              disabledForegroundColor: colors.onSurfaceVariant,
-            ),
-            onPressed: toggle,
-            child: selected
-                ? Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.check, size: 18),
-                      const SizedBox(width: 4),
-                      Text(
-                        '已选',
-                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
-                          color: colors.onPrimary,
-                        ),
-                      ),
-                    ],
-                  )
+      child: SizedBox.expand(
+        child: TextButton(
+          style: TextButton.styleFrom(
+            padding: EdgeInsets.zero,
+            shape: const RoundedRectangleBorder(),
+            backgroundColor: selected
+                ? colors.primary
                 : allowed
-                ? const Icon(Icons.add, size: 20)
-                : status == '不可预约'
-                ? const Icon(Icons.remove, size: 20)
-                : Text(
-                    status == '无时段信息' ? '—' : status,
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                      color: colors.onSurfaceVariant,
-                    ),
-                  ),
+                ? colors.primaryContainer
+                : colors.surface,
+            foregroundColor: selected
+                ? colors.onPrimary
+                : colors.onPrimaryContainer,
+            disabledForegroundColor: colors.onSurfaceVariant,
           ),
+          onPressed: toggle,
+          child: selected
+              ? Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Icon(Icons.check, size: 18),
+                    const SizedBox(width: 4),
+                    Text(
+                      '已选',
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelLarge?.copyWith(color: colors.onPrimary),
+                    ),
+                  ],
+                )
+              : allowed
+              ? const Icon(Icons.add, size: 20)
+              : status == '不可预约'
+              ? const Icon(Icons.remove, size: 20)
+              : Text(
+                  status == '无时段信息' ? '—' : status,
+                  style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
         ),
       ),
     );

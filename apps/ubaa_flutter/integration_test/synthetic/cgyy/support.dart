@@ -101,3 +101,10 @@ Future<void> _chooseRoom(
   final key = label == '预约日期' ? 'cgyy-date-$value' : 'cgyy-campus-$value';
   await _tap(tester, find.byKey(ValueKey(key)));
 }
+
+Finder _slot(String room, String time) => find.byWidgetPredicate(
+  (widget) =>
+      widget is Semantics &&
+      (widget.properties.label?.startsWith('$room ') ?? false) &&
+      (widget.properties.label?.contains(' $time ') ?? false),
+);

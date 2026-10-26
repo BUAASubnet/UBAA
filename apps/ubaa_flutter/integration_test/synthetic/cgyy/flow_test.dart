@@ -38,8 +38,8 @@ void main() {
       );
       expect(find.text('下一步'), findsNothing);
       await shot('table', '自动选择首站点，保留旧版校区/日期/站点选择与时段矩阵；三排选项直接点选');
-      await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
-      await _tap(tester, find.byTooltip('合成研讨室 1 09:00–10:00'));
+      await _tap(tester, _slot('合成研讨室 1', '08:00–09:00'));
+      await _tap(tester, _slot('合成研讨室 1', '09:00–10:00'));
       expect(find.text('已选'), findsNWidgets(2));
       await shot('selected', '选择同房间相邻的9和3号时段，按原顺序而非ID排序');
       await _tap(tester, find.text('下一步'));
@@ -156,7 +156,7 @@ void main() {
           backend.failNext = true;
           await _tap(tester, find.byTooltip('刷新当前查询'));
           await _ensure(tester, find.text('网络不可用'));
-          expect(find.byTooltip('合成研讨室 1 08:00–09:00'), findsOneWidget);
+          expect(_slot('合成研讨室 1', '08:00–09:00'), findsOneWidget);
         } else if (state == 'loading') {
           final date = find.byKey(const ValueKey('cgyy-date-2026-09-05'));
           await _ensure(tester, date);

@@ -6,7 +6,7 @@ void _registerRoomFormTests(IntegrationTestWidgetsFlutterBinding binding) {
       testWidgets('研讨室独立表单 $scenario ${brightness.name}', (tester) async {
         final backend = _PurposeRoomBackend(scenario);
         await _mount(tester, backend, brightness);
-        await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
+        await _tap(tester, _slot('合成研讨室 1', '08:00–09:00'));
         await _tap(tester, find.text('下一步'));
         expect(find.byType(AlertDialog), findsNothing);
         expect(find.byType(AppBar), findsOneWidget);
