@@ -22,7 +22,7 @@ void main() {
   });
   testWidgets('研讨室长表滚到底仍保留时段表头', (tester) async {
     await _open(tester, state: 'many');
-    final header = find.text('08:00\n–09:00');
+    final header = find.text('08:00–09:00');
     final before = tester.getTopLeft(header);
     await tester.ensureVisible(find.text('合成研讨室 42'));
     await tester.pumpAndSettle();
@@ -39,7 +39,14 @@ void main() {
     expect(find.text('合成研讨室 42').hitTestable(), findsOneWidget);
     final previous = b.offset;
     await tester.drag(
-      find.byTooltip('合成研讨室 42 11:00–12:00'),
+      find
+          .byWidgetPredicate(
+            (widget) =>
+                widget is Tooltip &&
+                (widget.message?.startsWith('合成研讨室 42 ') ?? false),
+          )
+          .hitTestable()
+          .first,
       const Offset(180, 0),
     );
     await tester.pumpAndSettle();

@@ -68,10 +68,11 @@ extension CgyyReservationChoices on CgyyReservationFlowState {
       mainAxisSize: MainAxisSize.min,
       children: [
         if (_sites.isNotEmpty)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+          Padding(
             padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
-            child: Row(
+            child: Wrap(
+              spacing: 0,
+              runSpacing: 4,
               children: [
                 for (final campus in allCampuses)
                   Padding(
@@ -109,17 +110,20 @@ extension CgyyReservationChoices on CgyyReservationFlowState {
             ),
           ),
         if (day != null && day.availableDates.isNotEmpty)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
+          Padding(
             padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
-            child: Row(
+            child: Wrap(
+              spacing: 0,
+              runSpacing: 4,
               children: [
                 for (final date in day.availableDates.toSet())
                   if (_parseDay(date) != null)
                     Padding(
                       padding: const EdgeInsets.only(right: 6),
                       child: FilterChip(
-                        label: Text(date),
+                        key: ValueKey('cgyy-date-$date'),
+                        tooltip: date,
+                        label: Text(_dateLabel(date)),
                         selected: day.reservationDate == date,
                         onSelected: _busy || widget.onQuery == null
                             ? null
@@ -132,33 +136,33 @@ extension CgyyReservationChoices on CgyyReservationFlowState {
             ),
           ),
         if (_visibleSites.isNotEmpty)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
-            child: Row(
-              children: [
-                for (final site in _visibleSites)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: FilterChip(
-                      label: Text(_siteLabel(site)),
-                      selected: _site == site.id,
-                      onSelected: _busy || widget.onQuery == null
-                          ? null
-                          : (_) => unawaited(
-                              _selectSite(
-                                site.id,
-                                _parseDay(day?.reservationDate) ??
-                                    widget.query.date,
-                              ),
-                            ),
-                    ),
-                  ),
-              ],
+          Padding(
+            padding: UbaaTheme.pageInsets(context, top: 0, bottom: 8),
+            child: _choice<int>(
+              '楼栋 / 楼层',
+              _site,
+              {for (final site in _visibleSites) site.id: _siteLabel(site)},
+              (site) => unawaited(
+                _selectSite(
+                  site,
+                  _parseDay(day?.reservationDate) ?? widget.query.date,
+                ),
+              ),
             ),
           ),
       ],
     );
+  }
+
+  String _dateLabel(String value) {
+    final date = _parseDay(value);
+    if (date == null) return value;
+    final now = homeCampusTime(clock.now());
+    final today =
+        date.year == now.year && date.month == now.month && date.day == now.day;
+    const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+    final prefix = date.year == now.year ? '' : '${date.year}年';
+    return '$prefix${date.month}月${date.day}日 ${today ? '今天' : weekdays[date.weekday - 1]}';
   }
 
   Widget _choice<T>(

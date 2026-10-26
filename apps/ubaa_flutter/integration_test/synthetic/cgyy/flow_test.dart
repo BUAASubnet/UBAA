@@ -28,8 +28,14 @@ void main() {
       ]);
       expect(backend.roomReads.last.siteId, 7);
       expect(find.byType(TextField), findsNothing);
-      expect(find.widgetWithText(FilterChip, '2026-09-04'), findsOneWidget);
-      expect(find.widgetWithText(FilterChip, '2026-09-05'), findsOneWidget);
+      expect(
+        find.byKey(const ValueKey('cgyy-date-2026-09-04')),
+        findsOneWidget,
+      );
+      expect(
+        find.byKey(const ValueKey('cgyy-date-2026-09-05')),
+        findsOneWidget,
+      );
       expect(find.text('下一步'), findsNothing);
       await shot('table', '自动选择首站点，保留旧版校区/日期/站点选择与时段矩阵；手输筛选在右上按需面板');
       await _tap(tester, find.byTooltip('合成研讨室 1 08:00–09:00'));
@@ -165,7 +171,8 @@ void main() {
         if (state == 'stale') {
           backend.failNext = true;
           await _tap(tester, find.byTooltip('刷新当前查询'));
-          await _ensure(tester, find.text('以下为上次成功加载的数据。'));
+          await _ensure(tester, find.text('网络不可用'));
+          expect(find.byTooltip('合成研讨室 1 08:00–09:00'), findsOneWidget);
         } else if (state == 'loading') {
           await _panel(tester);
           await _tap(tester, find.byKey(const ValueKey('cgyy-choice-预约日期')));
@@ -180,7 +187,7 @@ void main() {
           await tester.pumpAndSettle();
         } else if (state == 'many') {
           await shot('top', '42个房间列表首屏');
-          final header = find.text('08:00\n–09:00');
+          final header = find.text('08:00–09:00');
           final position = tester.getTopLeft(header);
           await _ensure(tester, find.text('合成研讨室 42'));
           expect(header.hitTestable(), findsOneWidget);

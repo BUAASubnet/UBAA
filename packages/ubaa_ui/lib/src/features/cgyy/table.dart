@@ -89,13 +89,17 @@ extension CgyyReservationTable on CgyyReservationFlowState {
           height: height,
           decoration: BoxDecoration(border: border),
           alignment: Alignment.center,
-          padding: const EdgeInsets.symmetric(horizontal: 4),
+          padding: child == null
+              ? const EdgeInsets.symmetric(horizontal: 8)
+              : EdgeInsets.zero,
           child:
               child ??
               Tooltip(
                 message: label,
                 child: Text(
                   label,
+                  textAlign: TextAlign.center,
+                  style: Theme.of(context).textTheme.bodyMedium,
                   maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -118,100 +122,122 @@ extension CgyyReservationTable on CgyyReservationFlowState {
           ),
     ];
     final actions = _actions;
-    return CustomScrollView(
-      key: const ValueKey('cgyy-room-rows'),
-      slivers: [
-        if (!_busy && widget.snapshot.evidence?.complete == false)
-          const SliverToBoxAdapter(child: Text('查询范围尚未更新完整')),
-        if (widget.snapshot.status == FeatureLoadStatus.stale &&
-            widget.snapshot.error != null)
-          SliverToBoxAdapter(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              children: [
-                FriendlyErrorCard(
-                  error: widget.snapshot.error!,
-                  onRetry: widget.onRetry,
-                ),
-              ],
-            ),
-          ),
-        SliverPersistentHeader(
-          pinned: true,
-          delegate: CgyyTableHeader(
-            height: headerHeight,
-            child: Material(
-              color: Theme.of(context).colorScheme.surface,
-              child: Row(
-                children: [
-                  cell('教室', 112 * scale, headerHeight),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      key: const ValueKey('cgyy-time-header-scroll'),
-                      controller: _headerTimes,
-                      scrollDirection: Axis.horizontal,
-                      child: Row(
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
+      children: [
+        _legend(context),
+        Expanded(
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final roomWidth = 112 * scale;
+              final timeWidth = math.max(
+                120 * scale,
+                (constraints.maxWidth - roomWidth) / math.max(times.length, 1),
+              );
+              return CustomScrollView(
+                key: const ValueKey('cgyy-room-rows'),
+                slivers: [
+                  if (!_busy && widget.snapshot.evidence?.complete == false)
+                    const SliverToBoxAdapter(child: Text('查询范围尚未更新完整')),
+                  if (widget.snapshot.status == FeatureLoadStatus.stale &&
+                      widget.snapshot.error != null)
+                    SliverToBoxAdapter(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
                         children: [
-                          for (final time in times)
-                            cell(
-                              time.beginTime.isEmpty
-                                  ? '${time.label}\n信息不完整'
-                                  : '${time.beginTime}\n–${time.endTime}',
-                              86 * scale,
-                              headerHeight,
-                            ),
+                          FriendlyErrorCard(
+                            error: widget.snapshot.error!,
+                            onRetry: widget.onRetry,
+                          ),
                         ],
                       ),
                     ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-        SliverToBoxAdapter(
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Column(
-                children: [
-                  for (final space in spaces)
-                    cell(space.spaceName, 112 * scale, rowHeight),
-                ],
-              ),
-              Expanded(
-                child: SingleChildScrollView(
-                  key: const ValueKey('cgyy-time-body-scroll'),
-                  controller: _bodyTimes,
-                  scrollDirection: Axis.horizontal,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      for (final space in spaces)
-                        Row(
+                  SliverPersistentHeader(
+                    pinned: true,
+                    delegate: CgyyTableHeader(
+                      height: headerHeight,
+                      child: Material(
+                        color: Theme.of(context).colorScheme.surface,
+                        child: Row(
                           children: [
-                            for (final time in times)
-                              cell(
-                                '',
-                                86 * scale,
-                                rowHeight,
-                                child: _slotCell(context, space, time, actions),
+                            cell('研讨室', roomWidth, headerHeight),
+                            Expanded(
+                              child: SingleChildScrollView(
+                                key: const ValueKey('cgyy-time-header-scroll'),
+                                controller: _headerTimes,
+                                scrollDirection: Axis.horizontal,
+                                child: Row(
+                                  children: [
+                                    for (final time in times)
+                                      cell(
+                                        time.beginTime.isEmpty
+                                            ? '${time.label}\n信息不完整'
+                                            : '${time.beginTime}–${time.endTime}',
+                                        timeWidth,
+                                        headerHeight,
+                                      ),
+                                  ],
+                                ),
                               ),
+                            ),
                           ],
                         ),
-                      if (times.isEmpty)
-                        const Padding(
-                          padding: EdgeInsets.all(16),
-                          child: Text('暂无时段'),
-                        ),
-                    ],
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ],
+                  SliverToBoxAdapter(
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Column(
+                          children: [
+                            for (final space in spaces)
+                              cell(space.spaceName, roomWidth, rowHeight),
+                          ],
+                        ),
+                        Expanded(
+                          child: SingleChildScrollView(
+                            key: const ValueKey('cgyy-time-body-scroll'),
+                            controller: _bodyTimes,
+                            scrollDirection: Axis.horizontal,
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                for (final space in spaces)
+                                  Row(
+                                    children: [
+                                      for (final time in times)
+                                        cell(
+                                          '',
+                                          timeWidth,
+                                          rowHeight,
+                                          child: _slotCell(
+                                            context,
+                                            space,
+                                            time,
+                                            actions,
+                                          ),
+                                        ),
+                                    ],
+                                  ),
+                                if (times.isEmpty)
+                                  const Padding(
+                                    padding: EdgeInsets.all(16),
+                                    child: Text('暂无时段'),
+                                  ),
+                              ],
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  const SliverToBoxAdapter(child: SizedBox(height: 16)),
+                ],
+              );
+            },
           ),
         ),
-        const SliverToBoxAdapter(child: SizedBox(height: 16)),
       ],
     );
   }
@@ -237,37 +263,116 @@ extension CgyyReservationTable on CgyyReservationFlowState {
     final allowed = key != null && actions.containsKey(key);
     final selected = allowed && _selected.contains(key);
     final colors = Theme.of(context).colorScheme;
-    return Tooltip(
-      message: '${space.spaceName} ${time.beginTime}–${time.endTime}',
-      child: SizedBox.expand(
-        child: TextButton(
-          style: TextButton.styleFrom(
-            padding: EdgeInsets.zero,
-            shape: const RoundedRectangleBorder(),
-            backgroundColor: selected
-                ? colors.primary
-                : allowed
-                ? colors.primaryContainer
-                : Colors.transparent,
-            foregroundColor: selected ? colors.onPrimary : colors.onSurface,
-            disabledForegroundColor: colors.onSurfaceVariant,
-          ),
-          onPressed: !allowed ? null : () => _toggleSlot(key, actions),
-          child: Text(
-            selected
-                ? '已选'
-                : allowed
-                ? '可预约'
-                : candidates.isEmpty
-                ? '—'
-                : p?.reservationStatus == null
-                ? '资格未知'
-                : '不可预约',
-            style: TextStyle(
-              fontSize: Theme.of(context).textTheme.labelSmall?.fontSize,
+    final status = selected
+        ? '已选'
+        : allowed
+        ? '可预约'
+        : candidates.isEmpty
+        ? '无时段信息'
+        : p?.reservationStatus == null
+        ? '资格未知'
+        : '不可预约';
+    final toggle = allowed ? () => _toggleSlot(key, actions) : null;
+    return Semantics(
+      label:
+          '${space.spaceName} ${_day?.reservationDate ?? ''} ${time.beginTime}–${time.endTime} $status',
+      button: true,
+      enabled: allowed,
+      selected: selected,
+      onTap: toggle,
+      excludeSemantics: true,
+      child: Tooltip(
+        message: '${space.spaceName} ${time.beginTime}–${time.endTime}',
+        excludeFromSemantics: true,
+        child: SizedBox.expand(
+          child: TextButton(
+            style: TextButton.styleFrom(
+              padding: EdgeInsets.zero,
+              shape: const RoundedRectangleBorder(),
+              backgroundColor: selected
+                  ? colors.primary
+                  : allowed
+                  ? colors.primaryContainer
+                  : colors.surface,
+              foregroundColor: selected
+                  ? colors.onPrimary
+                  : colors.onPrimaryContainer,
+              disabledForegroundColor: colors.onSurfaceVariant,
             ),
+            onPressed: toggle,
+            child: selected
+                ? Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.check, size: 18),
+                      const SizedBox(width: 4),
+                      Text(
+                        '已选',
+                        style: Theme.of(context).textTheme.labelLarge?.copyWith(
+                          color: colors.onPrimary,
+                        ),
+                      ),
+                    ],
+                  )
+                : allowed
+                ? const Icon(Icons.add, size: 20)
+                : status == '不可预约'
+                ? const Icon(Icons.remove, size: 20)
+                : Text(
+                    status == '无时段信息' ? '—' : status,
+                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget _legend(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    Widget item(
+      IconData icon,
+      String label,
+      Color background,
+      Color foreground,
+    ) => Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          width: 24,
+          height: 24,
+          decoration: BoxDecoration(
+            color: background,
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: Icon(icon, size: 16, color: foreground),
+        ),
+        const SizedBox(width: 6),
+        Text(label, style: Theme.of(context).textTheme.bodyMedium),
+      ],
+    );
+    return Padding(
+      padding: const EdgeInsets.only(top: 4, bottom: 12),
+      child: Wrap(
+        spacing: 20,
+        runSpacing: 8,
+        children: [
+          item(
+            Icons.add,
+            '可预约',
+            colors.primaryContainer,
+            colors.onPrimaryContainer,
+          ),
+          item(Icons.check, '已选择', colors.primary, colors.onPrimary),
+          item(
+            Icons.remove,
+            '不可预约',
+            colors.surfaceContainerHighest,
+            colors.onSurfaceVariant,
+          ),
+        ],
       ),
     );
   }

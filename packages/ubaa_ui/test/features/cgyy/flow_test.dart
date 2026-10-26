@@ -6,6 +6,97 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../../support/navigation.dart';
 
 void main() {
+  testWidgets('宽屏时段铺满内容宽度，选中汇总随取消更新', (tester) async {
+    await _open(tester, _dayDetails, [], width: 1400);
+    final header = find.byKey(const ValueKey('cgyy-time-header-scroll'));
+    final lastCell = find.byTooltip('无时段房间 09:00–10:00');
+    expect(
+      tester.getRect(lastCell).right,
+      closeTo(tester.getRect(header).right, 1),
+      reason: '宽屏最后一列应与内容区右边缘对齐',
+    );
+    await tester.tap(find.byTooltip('合成研讨室 08:00–09:00'));
+    await tester.pumpAndSettle();
+    final summary = find.byKey(const ValueKey('cgyy-selection-summary'));
+    expect(
+      find.descendant(of: summary, matching: find.textContaining('合成研讨室')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(of: summary, matching: find.textContaining('2026-09-04')),
+      findsOneWidget,
+    );
+    expect(
+      find.descendant(
+        of: summary,
+        matching: find.textContaining('08:00–09:00'),
+      ),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('清空选择'));
+    await tester.pumpAndSettle();
+    expect(find.text('下一步'), findsNothing);
+  });
+
+  testWidgets('窄屏大字时段表头同步滚动且汇总不遮挡下一步', (tester) async {
+    await _open(tester, _dayDetails, [], scale: 2);
+    final head = find.byKey(const ValueKey('cgyy-time-header-scroll'));
+    final body = find.byKey(const ValueKey('cgyy-time-body-scroll'));
+    await tester.drag(body, const Offset(-220, 0));
+    await tester.pumpAndSettle();
+    final a = tester.widget<SingleChildScrollView>(head).controller!;
+    final b = tester.widget<SingleChildScrollView>(body).controller!;
+    expect(a.offset, greaterThan(0));
+    expect(a.offset, closeTo(b.offset, .01));
+    a.jumpTo(0);
+    await tester.pumpAndSettle();
+    await tester.tap(find.byTooltip('合成研讨室 08:00–09:00'));
+    await tester.pumpAndSettle();
+    expect(find.text('下一步').hitTestable(), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('cgyy-selection-summary')),
+      findsOneWidget,
+    );
+    expect(tester.takeException(), isNull);
+  });
+
+  testWidgets('宽屏长楼栋选项可展开选择，查询保持原始站点编号', (tester) async {
+    final queries = <FeatureQuery>[];
+    await _open(
+      tester,
+      const [
+        FeatureDetail(
+          title: '忽略展示编号',
+          presentation: CgyySitePresentation(
+            id: 7,
+            venueName: '合成楼',
+            siteName: '合成楼',
+            campusName: '学院路校区',
+          ),
+        ),
+        FeatureDetail(
+          title: '另一个展示编号',
+          presentation: CgyySitePresentation(
+            id: 17,
+            venueName: '合成长楼栋名称',
+            siteName: '合成长楼层名称',
+            campusName: '学院路校区',
+          ),
+        ),
+      ],
+      queries,
+      width: 1400,
+    );
+    final choice = find.byKey(const ValueKey('cgyy-choice-楼栋 / 楼层'));
+    await tester.tap(choice);
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('合成长楼栋名称 / 合成长楼层名称').last);
+    await tester.pumpAndSettle();
+    expect(queries.last.siteId, 17);
+    expect(queries.last.view, FeatureQueryView.cgyyDayInfo);
+    expect(tester.takeException(), isNull);
+  });
+
   testWidgets('活动类型刷新失败保留已显示选项和草稿选择', (tester) async {
     var calls = 0;
     await _open(
@@ -297,17 +388,25 @@ Future<void> _open(
   List<FeatureQuery> queries, {
   Future<FeatureResult> Function(bool)? loadPurposes,
   bool cached = false,
+  double width = 402,
+  double scale = 1,
   ValueNotifier<int>? epoch,
   Future<WriteIntent> Function(CgyySubmitInput)? prepare,
 }) async {
   tester.view.devicePixelRatio = 1;
-  tester.view.physicalSize = const Size(402, 874);
+  tester.view.physicalSize = Size(width, 874);
   addTearDown(tester.view.resetDevicePixelRatio);
   addTearDown(tester.view.resetPhysicalSize);
   final revision = epoch ?? ValueNotifier(0);
   if (epoch == null) addTearDown(revision.dispose);
   await tester.pumpWidget(
     MaterialApp(
+      builder: (context, child) => MediaQuery(
+        data: MediaQuery.of(
+          context,
+        ).copyWith(textScaler: TextScaler.linear(scale)),
+        child: child!,
+      ),
       home: ValueListenableBuilder<int>(
         valueListenable: revision,
         builder: (context, value, _) => UbaaMainShell(

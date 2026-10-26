@@ -1,5 +1,7 @@
 import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
+import 'dart:math' as math;
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
@@ -11,6 +13,7 @@ import '../../write/cgyy/form.dart'
     show uiCgyyActionKey, uiCollectCgyyReservation, uiSelectCgyyAction;
 part 'table.dart';
 part 'choices.dart';
+part 'selection_bar.dart';
 
 class CgyyReservationFlow extends StatefulWidget {
   const CgyyReservationFlow({
@@ -241,34 +244,7 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
                   child: _table(context, day),
                 ),
         ),
-        if (_selected.isNotEmpty)
-          Padding(
-            padding: UbaaTheme.pageInsets(context, top: 8, bottom: 12),
-            child: FilledButton(
-              onPressed: _busy || widget.onSubmit == null
-                  ? null
-                  : () async {
-                      final selected =
-                          _selected.map((key) => actions[key]!).toList()..sort(
-                            (a, b) => a.timeOrdinal.compareTo(b.timeOrdinal),
-                          );
-                      final original = widget.snapshot;
-                      final input = await uiCollectCgyyReservation(
-                        context,
-                        selected.first,
-                        selected,
-                        formContext: widget.formContext,
-                        initialSelection: selected,
-                        selectionLabel: _selectionLabel(selected),
-                      );
-                      if (mounted &&
-                          input != null &&
-                          identical(original, widget.snapshot))
-                        await widget.onSubmit!(input);
-                    },
-              child: const Text('下一步'),
-            ),
-          ),
+        if (_selected.isNotEmpty) _selectionBar(context, actions),
       ],
     );
   }
@@ -306,8 +282,10 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
         uiSelectCgyyAction(_selected, actions, key);
       });
 
-  String _siteLabel(CgyySitePresentation site) =>
-      [site.venueName, site.siteName].where((s) => s.isNotEmpty).join(' / ');
+  String _siteLabel(CgyySitePresentation site) => [
+    site.venueName.trim(),
+    site.siteName.trim(),
+  ].where((s) => s.isNotEmpty).toSet().join(' / ');
   String _campusLabel(String name) => name.contains('学院路')
       ? '学院路'
       : name.contains('沙河')
