@@ -35,6 +35,13 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
   final List<_ReadFrame> _frames = [];
   int _nextId = 0;
   int? _externalAfterRevision;
+  bool _reloadScheduled = false;
+  static const _invalidatedError = UiError(
+    code: UbaaErrorCode.operationConflict,
+    title: '列表需要更新',
+    message: '读取状态已变化，请刷新重试。',
+    retryable: true,
+  );
   _ReadFrame get currentFrame => _current;
   _ReadFrame get _current => _frames.last;
   @override
@@ -72,6 +79,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
       // 清理内容但保留返回路径、查询参数和当前页面key。
       for (final frame in _frames) {
         frame.feed.reset();
+        frame.needsReload = false;
         frame.snapshot = FeatureSnapshot(
           feature: frame.snapshot.feature,
           readContext: frame.snapshot.readContext,
@@ -83,16 +91,30 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
       final current = _current;
       for (final frame in _frames) {
         frame.feed.reset();
-        if (PagedResults.supports(frame.snapshot.feature, frame.query)) {
+        if (frame.isLanding) {
+          frame.needsReload = false;
+          frame.snapshot = FeatureSnapshot(feature: frame.snapshot.feature);
+        } else if (PagedResults.supports(frame.snapshot.feature, frame.query)) {
+          frame.needsReload = true;
           frame.snapshot = FeatureSnapshot(
             feature: frame.snapshot.feature,
-            status: FeatureLoadStatus.empty,
+            status: FeatureLoadStatus.failure,
+            error: _invalidatedError,
           );
         }
       }
-      _frames
-        ..clear()
-        ..add(current);
+      _frames.clear();
+      if (!current.isLanding && uiHasLandingMenu(incoming.feature)) {
+        _frames.add(
+          _ReadFrame(
+            _nextId++,
+            FeatureSnapshot(feature: incoming.feature),
+            null,
+            isLanding: true,
+          ),
+        );
+      }
+      _frames.add(current);
       // 失效通知可能仍携带旧子页快照；只接收边界之后的新读取代次。
       _externalAfterRevision =
           oldWidget.snapshot.readContext?.requestRevision ?? -1;
@@ -104,7 +126,10 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
       }
     }
     if (_current.isLanding) {
-      _current.snapshot = incoming;
+      if (_externalAfterRevision == null ||
+          (context?.requestRevision ?? -1) > _externalAfterRevision!) {
+        _current.snapshot = incoming;
+      }
       return;
     }
     if ((_current.bykcChosenKey != null ||
@@ -117,7 +142,11 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
         context.requestRevision > _externalAfterRevision!) {
       _externalAfterRevision = null;
       if (!context.hasSameQuery(_current.query)) {
-        _frames[0] = _ReadFrame(_nextId++, incoming, context.query);
+        _frames[_frames.length - 1] = _ReadFrame(
+          _nextId++,
+          incoming,
+          context.query,
+        );
         return;
       }
     }
@@ -129,6 +158,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
         (context == null ||
             context.hasSameQuery(_current.query) ||
             isChosenParentRead)) {
+      _current.needsReload = false;
       _current.snapshot =
           incoming.feature == FeatureId.bykc &&
               context?.query?.view == FeatureQueryView.bykcDetail &&
@@ -181,9 +211,22 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     );
   }
 
-  /// 功能卡入口回到作业列表；保留现有父页的筛选、滚动和选择。
+  /// 功能入口回到子菜单或作业列表，具体待办仍沿指定查询打开。
   void openList() {
-    if (!_isAssignmentFeature || widget.onQuery == null) return;
+    if (widget.onQuery == null) return;
+    if (uiHasLandingMenu(widget.snapshot.feature)) {
+      if (_current.isLanding) return;
+      final landing = _frames.first.isLanding
+          ? _frames.first
+          : _ReadFrame(_nextId++, widget.snapshot, null, isLanding: true);
+      setState(() {
+        _frames
+          ..clear()
+          ..add(landing);
+      });
+      return;
+    }
+    if (!_isAssignmentFeature) return;
     final parent = _assignmentList();
     setState(() {
       _externalAfterRevision = null;
@@ -289,6 +332,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     setState(() {
       _externalAfterRevision = null;
       frame.feed.reset();
+      frame.needsReload = false;
       if (frame.query == null || !query.hasSameParameters(frame.query!))
         frame.bykcChosenKey = null;
       if (frame.query == null || !query.hasSameParameters(frame.query!))
@@ -422,8 +466,49 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     await widget.onQuery!(query);
   }
 
+  void _scheduleInvalidatedReload() {
+    final frame = _current;
+    if (_reloadScheduled ||
+        !frame.needsReload ||
+        frame.isLanding ||
+        widget.onQuery == null ||
+        !TickerMode.valuesOf(context).enabled)
+      return;
+    _reloadScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) async {
+      _reloadScheduled = false;
+      if (!mounted ||
+          !identical(frame, _current) ||
+          !frame.needsReload ||
+          !TickerMode.valuesOf(context).enabled)
+        return;
+      final generation = frame.feed.generation + 1;
+      try {
+        await _query(
+          frame,
+          (frame.query ?? const FeatureQuery()).copyWith(
+            page: PagedResults.firstPage(frame.snapshot.feature),
+          ),
+        );
+      } catch (_) {
+        if (mounted &&
+            identical(frame, _current) &&
+            frame.feed.generation == generation) {
+          setState(
+            () => frame.snapshot = FeatureSnapshot(
+              feature: frame.snapshot.feature,
+              status: FeatureLoadStatus.failure,
+              error: _invalidatedError,
+            ),
+          );
+        }
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
+    _scheduleInvalidatedReload();
     final visible = _current.visibleSnapshot;
     final title = _current.bykcChosenKey != null
         ? '课程详情'
@@ -577,6 +662,7 @@ class _ReadFrame {
 
   final feed = PagedResults();
   bool requestingMore = false;
+  bool needsReload = false;
   final pageKey = GlobalKey<FeatureDetailViewState>();
   final int id;
   FeatureSnapshot snapshot;

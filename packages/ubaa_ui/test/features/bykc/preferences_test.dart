@@ -140,7 +140,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(_selected(tester, '美育'), isTrue);
     expect(state.loads, 1);
-    expect(state.queries, 0);
+    expect(state.queries, 1);
   });
 
   testWidgets('后台销毁旧页面后迟到读取不能改写新页面选择', (tester) async {

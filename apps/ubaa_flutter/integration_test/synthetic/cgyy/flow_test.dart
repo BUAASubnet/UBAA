@@ -49,6 +49,14 @@ void main() {
       await _tap(tester, find.byTooltip('刷新当前查询'));
       expect(backend.roomReads.last.page, 0);
       expect(find.text('主题：连续订单101'), findsOneWidget);
+      final beforeReentry = backend.roomReads.length;
+      await _tap(tester, find.byIcon(UiDestination.campus.selectedIcon).first);
+      await _tap(tester, find.widgetWithText(Card, FeatureId.cgyy.title));
+      expect(find.widgetWithText(Card, '预约研讨室'), findsOneWidget);
+      expect(backend.roomReads, hasLength(beforeReentry));
+      await _tap(tester, find.widgetWithText(Card, '我的预约'));
+      expect(backend.roomReads.last.page, 0);
+      expect(find.text('主题：连续订单101'), findsOneWidget);
       expect(backend.commitCalls, 0);
     });
     testWidgets('研讨室原生选择表单草稿和订单 ${brightness.name}', (tester) async {

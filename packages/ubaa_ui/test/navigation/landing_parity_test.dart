@@ -61,6 +61,99 @@ void main() {
     expect(find.byTooltip('实际路线：未确定'), findsOneWidget);
     expect(state.queries, hasLength(1));
   });
+  for (final feature in [FeatureId.cgyy, FeatureId.libbook]) {
+    testWidgets('${feature.title}再次点击功能入口先回子菜单', (tester) async {
+      final state = await _open(tester, feature);
+      await tester.tap(find.widgetWithText(Card, '我的预约'));
+      await tester.pumpAndSettle();
+      await tester.tap(
+        find.byType(NavigationDestination).at(UiDestination.campus.index),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(Card, feature.title));
+      await tester.pumpAndSettle();
+      expect(
+        find.byKey(ValueKey(('feature-landing', feature))),
+        findsOneWidget,
+      );
+      expect(state.queries, hasLength(1));
+      await tester.tap(find.widgetWithText(Card, '我的预约'));
+      await tester.pumpAndSettle();
+      expect(find.text('合成子结果'), findsOneWidget);
+      expect(state.queries, hasLength(2));
+    });
+  }
+  testWidgets('当前预约记录失效后重读首批，等待期间保留返回菜单路径', (tester) async {
+    final state = await _open(tester, FeatureId.cgyy);
+    await tester.tap(find.widgetWithText(Card, '我的预约'));
+    await tester.pumpAndSettle();
+    state.pending = Completer<void>();
+    state.invalidate();
+    await tester.pump();
+    await tester.pump();
+    expect(state.queries, hasLength(2));
+    expect(state.queries.last.view, FeatureQueryView.cgyyOrders);
+    expect(state.queries.last.page, 0);
+    expect(find.text('合成子结果'), findsNothing);
+    expect(find.text('暂无研讨室预约数据'), findsNothing);
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pump();
+    expect(find.widgetWithText(Card, '预约研讨室'), findsOneWidget);
+    state.pending!.complete();
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(Card, '预约研讨室'), findsOneWidget);
+    expect(find.text('合成子结果'), findsNothing);
+  });
+  testWidgets('后台预约记录失效不自动读取，重新进入菜单后读取恢复', (tester) async {
+    final state = await _open(tester, FeatureId.cgyy);
+    await tester.tap(find.widgetWithText(Card, '我的预约'));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byType(NavigationDestination).at(UiDestination.campus.index),
+    );
+    await tester.pumpAndSettle();
+    state.invalidate();
+    await tester.pumpAndSettle();
+    expect(state.queries, hasLength(1));
+    await tester.tap(find.widgetWithText(Card, FeatureId.cgyy.title));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(Card, '预约研讨室'), findsOneWidget);
+    expect(state.queries, hasLength(1));
+    await tester.tap(find.widgetWithText(Card, '我的预约'));
+    await tester.pumpAndSettle();
+    expect(find.text('合成子结果'), findsOneWidget);
+    expect(state.queries, hasLength(2));
+  });
+  testWidgets('失效重读失败显示真实错误且只在手动重试后再次读取', (tester) async {
+    final state = await _open(tester, FeatureId.cgyy);
+    await tester.tap(find.widgetWithText(Card, '我的预约'));
+    await tester.pumpAndSettle();
+    state.failRead = true;
+    state.invalidate();
+    await tester.pumpAndSettle();
+    expect(state.queries, hasLength(2));
+    expect(find.text('合成读取失败'), findsOneWidget);
+    expect(find.text('暂无研讨室预约数据'), findsNothing);
+    await tester.pump(const Duration(seconds: 2));
+    expect(state.queries, hasLength(2));
+    state.failRead = false;
+    await tester.tap(find.widgetWithText(TextButton, '重试'));
+    await tester.pumpAndSettle();
+    expect(state.queries, hasLength(3));
+    expect(state.queries.last.page, 0);
+    expect(find.text('合成子结果'), findsOneWidget);
+  });
+  testWidgets('菜单中的预载内容失效后选择课程必须重新读取', (tester) async {
+    final state = await _open(tester, FeatureId.bykc);
+    state.invalidate();
+    await tester.pumpAndSettle();
+    expect(state.queries, isEmpty);
+    await tester.tap(find.widgetWithText(Card, '选择课程'));
+    await tester.pumpAndSettle();
+    expect(state.queries, hasLength(1));
+    expect(find.text('合成子结果'), findsOneWidget);
+    expect(find.text('合成预载结果'), findsNothing);
+  });
   testWidgets('子菜单请求中返回后迟到结果不能替换菜单', (tester) async {
     final state = await _open(tester, FeatureId.libbook);
     state.pending = Completer<void>();
@@ -116,7 +209,9 @@ class _Harness extends StatefulWidget {
 class _HarnessState extends State<_Harness> {
   final queries = <FeatureQuery>[];
   Completer<void>? pending;
-  int revision = 1;
+  int revision = 1, epoch = 0;
+  bool failRead = false;
+  void invalidate() => setState(() => epoch++);
   void fail() => setState(
     () => snapshot = FeatureSnapshot(
       feature: widget.feature,
@@ -138,6 +233,7 @@ class _HarnessState extends State<_Harness> {
   @override
   Widget build(BuildContext context) => UbaaMainShell(
     user: const UserSummary(username: 'synthetic'),
+    readCacheEpoch: epoch,
     initialDestination: UiDestination.forFeature(widget.feature),
     snapshots: {
       for (final id in FeatureId.values)
@@ -165,10 +261,20 @@ class _HarnessState extends State<_Harness> {
       setState(
         () => snapshot = FeatureSnapshot(
           feature: widget.feature,
-          status: FeatureLoadStatus.success,
+          status: failRead
+              ? FeatureLoadStatus.failure
+              : FeatureLoadStatus.success,
+          error: failRead
+              ? const UiError(
+                  code: UbaaErrorCode.networkError,
+                  title: '合成读取失败',
+                  message: '请重试',
+                  retryable: true,
+                )
+              : null,
           readContext: read,
           resolvedRoute: ConnectionMode.webvpn,
-          details: const [FeatureDetail(title: '合成子结果')],
+          details: failRead ? const [] : const [FeatureDetail(title: '合成子结果')],
         ),
       );
     },

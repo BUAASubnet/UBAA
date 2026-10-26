@@ -76,6 +76,8 @@ void main() {
     state.gate!.complete();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
+    expect(state.requests.map((q) => q.page), [2, 1]);
+    expect(find.text('项目0'), findsOneWidget);
     expect(find.text('项目10'), findsNothing);
     expect(tester.takeException(), isNull);
   });
