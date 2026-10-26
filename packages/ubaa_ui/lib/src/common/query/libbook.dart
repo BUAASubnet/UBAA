@@ -184,32 +184,6 @@ extension LibbookQueryControls on FeatureQueryControlsState {
           onSelected: (value) => _areaController.text = value,
         ),
       ],
-      if (_libbookView == FeatureQueryView.libbookBookings) ...<Widget>[
-        SizedBox(
-          width: 140,
-          child: TextField(
-            controller: _pageController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: '页码',
-              hintText: '从 1 开始',
-              isDense: true,
-            ),
-          ),
-        ),
-        SizedBox(
-          width: 140,
-          child: TextField(
-            controller: _sizeController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: '每页数量',
-              hintText: '1–100',
-              isDense: true,
-            ),
-          ),
-        ),
-      ],
     ],
   ];
 }

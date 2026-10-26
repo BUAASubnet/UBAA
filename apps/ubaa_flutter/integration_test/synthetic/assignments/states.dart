@@ -92,8 +92,11 @@ void _registerStates(IntegrationTestWidgetsFlutterBinding binding) {
             }
             await _shot(binding, tester, '$prefix-page-one', feature);
             if (feature != FeatureId.judge && feature != FeatureId.spoc) {
-              await _tap(tester, find.byTooltip('下一页'));
-              expect(find.text('2 / 3'), findsOneWidget);
+              await tester.drag(
+                find.byType(ListView).last,
+                const Offset(0, -2000),
+              );
+              await tester.pumpAndSettle();
               await _shot(binding, tester, '$prefix-page-two', feature);
             }
             expect(backend.reads.length, before);

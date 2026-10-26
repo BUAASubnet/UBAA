@@ -46,6 +46,11 @@ class FeatureDetailView extends StatefulWidget {
   const FeatureDetailView({
     required this.feature,
     this.isLanding = false,
+    this.paginationGeneration = 0,
+    this.loadingMore = false,
+    this.moreError,
+    this.hasMore = false,
+    this.onLoadMore,
     this.onOpenLockDisplay,
     this.lockRefreshRevision = 0,
     this.visible = true,
@@ -90,6 +95,10 @@ class FeatureDetailView extends StatefulWidget {
     super.key,
   });
 
+  final int paginationGeneration;
+  final bool loadingMore, hasMore;
+  final String? moreError;
+  final Future<void> Function()? onLoadMore;
   final ValueChanged<String?>? onScheduleTitle;
   final bool isLanding, isBykcChosenDetail;
   final bool visible;
@@ -590,6 +599,11 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
       isBykcChosenDetail: widget.isBykcChosenDetail,
       onOpenBykcChosen: widget.onOpenBykcChosen,
       pagination: widget.snapshot.pagination,
+      paginationGeneration: widget.paginationGeneration,
+      loadingMore: widget.loadingMore,
+      moreError: widget.moreError,
+      hasMore: widget.hasMore,
+      onLoadMore: widget.onLoadMore,
       query: widget.query ?? const FeatureQuery(),
       onQuery: widget.onQuery == null
           ? null

@@ -15,7 +15,8 @@ Future<void> _ensure(WidgetTester tester, Finder finder) async {
         })
         .hitTestable()
         .last;
-    await tester.drag(scroll, const Offset(0, 1200));
+    // 定位前回到顶部，避免向下拖动在列表已到顶时触发刷新。
+    tester.state<ScrollableState>(scroll).position.jumpTo(0);
     await tester.pumpAndSettle();
     if (finder.evaluate().isEmpty) {
       await tester.scrollUntilVisible(

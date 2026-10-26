@@ -63,8 +63,6 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
   late final TextEditingController _floorController;
   late final TextEditingController _sectionController;
   late final TextEditingController _weekController;
-  late final TextEditingController _pageController;
-  late final TextEditingController _sizeController;
   late final TextEditingController _premisesController;
   late final TextEditingController _storeyController;
   late final TextEditingController _areaController;
@@ -91,6 +89,11 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
   FeatureQueryView _ygdkView = FeatureQueryView.summary;
   FeatureQueryView _cgyyView = FeatureQueryView.summary;
   FeatureQueryView _signinView = FeatureQueryView.summary;
+  int get _pageSize {
+    final size = widget.initialQuery?.size ?? 20;
+    return size > 0 && size <= 100 ? size : 20;
+  }
+
   bool _submitting = false;
   bool _libraryNeedsExplicitDate = false;
   bool _libraryDateError = false;
@@ -103,8 +106,6 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
     _floorController = TextEditingController();
     _sectionController = TextEditingController();
     _weekController = TextEditingController();
-    _pageController = TextEditingController(text: '1');
-    _sizeController = TextEditingController(text: '20');
     _premisesController = TextEditingController();
     _storeyController = TextEditingController();
     _areaController = TextEditingController();
@@ -174,12 +175,6 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
     _campus = query.campus ?? 1;
     _floorController.text = query.floorId ?? '';
     _sectionController.text = query.section ?? '';
-    _pageController.text =
-        widget.feature == FeatureId.cgyy &&
-            query.view == FeatureQueryView.cgyyOrders
-        ? '${query.page < 0 ? 1 : query.page + 1}'
-        : '${query.page > 0 ? query.page : 1}';
-    _sizeController.text = '${query.size}';
     _premisesController.text = query.premisesId ?? '';
     _storeyController.text = query.storeyId ?? '';
     _areaController.text = query.areaId ?? '';
@@ -225,8 +220,6 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
     _floorController.dispose();
     _sectionController.dispose();
     _weekController.dispose();
-    _pageController.dispose();
-    _sizeController.dispose();
     _premisesController.dispose();
     _storeyController.dispose();
     _areaController.dispose();
@@ -332,16 +325,8 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
       }
       if (widget.feature == FeatureId.bykc) {
         if (_bykcView == FeatureQueryView.summary) {
-          page = int.tryParse(_pageController.text.trim()) ?? 0;
-          size = int.tryParse(_sizeController.text.trim()) ?? 0;
-          if (page <= 0 || size <= 0 || size > 100) {
-            if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('页码必须从 1 开始，每页数量须为 1–100。')),
-              );
-            }
-            return;
-          }
+          page = 1;
+          size = _pageSize;
         }
         if (_bykcView == FeatureQueryView.bykcDetail) {
           final courseId = int.tryParse(_bykcCourseController.text.trim());
@@ -391,22 +376,14 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
           }
         }
         if (_libbookView == FeatureQueryView.libbookBookings) {
-          page = int.tryParse(_pageController.text.trim()) ?? 0;
-          size = int.tryParse(_sizeController.text.trim()) ?? 0;
-          if (page <= 0 || size <= 0 || size > 100) {
-            _showMessage('页码必须从 1 开始，每页数量须为 1–100。');
-            return;
-          }
+          page = 1;
+          size = _pageSize;
         }
       }
       if (widget.feature == FeatureId.ygdk &&
           _ygdkView == FeatureQueryView.ygdkRecords) {
-        page = int.tryParse(_pageController.text.trim()) ?? 0;
-        size = int.tryParse(_sizeController.text.trim()) ?? 0;
-        if (page <= 0 || size <= 0 || size > 100) {
-          _showMessage('页码必须从 1 开始，每页数量须为 1–100。');
-          return;
-        }
+        page = 1;
+        size = _pageSize;
       }
       if (widget.feature == FeatureId.cgyy) {
         if (_cgyyView == FeatureQueryView.cgyyDayInfo) {
@@ -425,12 +402,8 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
           }
         }
         if (_cgyyView == FeatureQueryView.cgyyOrders) {
-          page = int.tryParse(_pageController.text.trim()) ?? 0;
-          size = int.tryParse(_sizeController.text.trim()) ?? 0;
-          if (page <= 0 || size <= 0 || size > 100) {
-            _showMessage('页码必须从 1 开始，每页数量须为 1–100。');
-            return;
-          }
+          page = 1;
+          size = _pageSize;
         }
         if (_cgyyView == FeatureQueryView.cgyyOrderDetail) {
           final order = int.tryParse(_orderController.text.trim());

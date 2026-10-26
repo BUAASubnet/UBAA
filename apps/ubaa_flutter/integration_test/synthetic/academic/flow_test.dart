@@ -427,8 +427,11 @@ void main() {
                   feature,
                   '40条合成数据的本地第一页',
                 );
-                await _tapAcademic(tester, find.byTooltip('下一页'));
-                expect(find.text('2 / 2'), findsOneWidget);
+                await tester.drag(
+                  find.byType(ListView).last,
+                  const Offset(0, -2000),
+                );
+                await tester.pumpAndSettle();
                 expect(
                   _academicSnapshot(
                     tester,

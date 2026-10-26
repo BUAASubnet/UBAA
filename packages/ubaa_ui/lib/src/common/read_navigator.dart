@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'paged_results.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'feature_detail.dart'
@@ -70,6 +71,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     if (oldWidget.businessCacheEpoch != widget.businessCacheEpoch) {
       // 清理内容但保留返回路径、查询参数和当前页面key。
       for (final frame in _frames) {
+        frame.feed.reset();
         frame.snapshot = FeatureSnapshot(
           feature: frame.snapshot.feature,
           readContext: frame.snapshot.readContext,
@@ -79,6 +81,15 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     }
     if (oldWidget.cacheEpoch != widget.cacheEpoch) {
       final current = _current;
+      for (final frame in _frames) {
+        frame.feed.reset();
+        if (PagedResults.supports(frame.snapshot.feature, frame.query)) {
+          frame.snapshot = FeatureSnapshot(
+            feature: frame.snapshot.feature,
+            status: FeatureLoadStatus.empty,
+          );
+        }
+      }
       _frames
         ..clear()
         ..add(current);
@@ -96,7 +107,8 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
       _current.snapshot = incoming;
       return;
     }
-    if (_current.bykcChosenKey != null &&
+    if ((_current.bykcChosenKey != null ||
+            PagedResults.supports(incoming.feature, _current.query)) &&
         _externalAfterRevision != null &&
         (context?.requestRevision ?? -1) <= _externalAfterRevision!)
       return;
@@ -125,7 +137,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
               status: FeatureLoadStatus.failure,
               clearDetails: true,
             )
-          : incoming;
+          : _current.feed.accept(incoming, _current.query);
       if (_current.bykcChosenKey != null &&
           context != null &&
           incoming.status != FeatureLoadStatus.loading) {
@@ -236,6 +248,16 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
   Future<void> refreshCurrent() {
     final library = _current.pageKey.currentState?.refreshLibrary();
     if (library != null) return library;
+    if (!_current.isLanding &&
+        widget.onQuery != null &&
+        PagedResults.supports(widget.snapshot.feature, _current.query)) {
+      return _query(
+        _current,
+        (_current.query ?? const FeatureQuery()).copyWith(
+          page: PagedResults.firstPage(widget.snapshot.feature),
+        ),
+      );
+    }
     return _current.isLanding ||
             _current.query == null ||
             widget.onQuery == null
@@ -266,6 +288,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     }
     setState(() {
       _externalAfterRevision = null;
+      frame.feed.reset();
       if (frame.query == null || !query.hasSameParameters(frame.query!))
         frame.bykcChosenKey = null;
       if (frame.query == null || !query.hasSameParameters(frame.query!))
@@ -273,6 +296,48 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
       frame.query = query;
     });
     await widget.onQuery!(query);
+  }
+
+  Future<void> _loadMore(_ReadFrame frame) async {
+    if (!mounted ||
+        widget.onQuery == null ||
+        !identical(frame, _current) ||
+        frame.requestingMore ||
+        frame.snapshot.status == FeatureLoadStatus.loading ||
+        !TickerMode.valuesOf(context).enabled)
+      return;
+    final next = frame.feed.begin(
+      frame.snapshot,
+      frame.query ?? const FeatureQuery(),
+    );
+    if (next == null) return;
+    final generation = frame.feed.generation;
+    setState(() {
+      frame.requestingMore = true;
+      frame.query = next;
+    });
+    try {
+      await widget.onQuery!(next);
+    } catch (_) {
+      if (mounted && generation == frame.feed.generation) {
+        frame.feed.fail();
+        if (frame.feed.snapshot != null) frame.snapshot = frame.feed.snapshot!;
+      }
+    } finally {
+      // 宿主状态通知在下一帧传入，不能把尚未构建的成功响应当成失败。
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        setState(() {
+          frame.requestingMore = false;
+          if (generation == frame.feed.generation && frame.feed.loading) {
+            frame.feed.fail();
+            if (frame.feed.snapshot != null)
+              frame.snapshot = frame.feed.snapshot!;
+          }
+        });
+      });
+      if (mounted) setState(() {});
+    }
   }
 
   Future<void> _navigate(
@@ -386,6 +451,30 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
               child: widget.pageBuilder(
                 _ReadPage(
                   pageKey: frame.pageKey,
+                  paginationGeneration: frame.feed.generation,
+                  loadingMore: frame.feed.loading || frame.requestingMore,
+                  moreError: frame.feed.error,
+                  hasMore: frame.feed.snapshot == null
+                      ? frame.snapshot.status == FeatureLoadStatus.success &&
+                            frame.snapshot.evidence?.complete != false &&
+                            frame.snapshot.evidence?.origin !=
+                                DataOrigin.persisted &&
+                            frame.snapshot.pagination != null &&
+                            (frame.snapshot.pagination!.hasMore ??
+                                (frame.snapshot.pagination!.page <
+                                    frame
+                                        .snapshot
+                                        .pagination!
+                                        .effectiveTotalPages))
+                      : frame.feed.hasMore,
+                  onLoadMore:
+                      widget.onQuery == null ||
+                          !PagedResults.supports(
+                            frame.snapshot.feature,
+                            frame.query,
+                          )
+                      ? null
+                      : () => _loadMore(frame),
                   onScheduleTitle: (title) {
                     if (!mounted ||
                         !identical(frame, _current) ||
@@ -486,6 +575,8 @@ class _ReadFrame {
     return _chosenSnapshot!;
   }
 
+  final feed = PagedResults();
+  bool requestingMore = false;
   final pageKey = GlobalKey<FeatureDetailViewState>();
   final int id;
   FeatureSnapshot snapshot;
@@ -495,6 +586,11 @@ class _ReadFrame {
 class _ReadPage {
   const _ReadPage({
     required this.pageKey,
+    this.paginationGeneration = 0,
+    this.loadingMore = false,
+    this.moreError,
+    this.hasMore = false,
+    this.onLoadMore,
     required this.isLanding,
     required this.isCurrent,
     required this.snapshot,
@@ -509,6 +605,10 @@ class _ReadPage {
     this.onScheduleTitle,
   });
   final ValueChanged<String?>? onScheduleTitle;
+  final int paginationGeneration;
+  final bool loadingMore, hasMore;
+  final String? moreError;
+  final Future<void> Function()? onLoadMore;
   final bool isBykcChosenDetail;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final GlobalKey<FeatureDetailViewState> pageKey;

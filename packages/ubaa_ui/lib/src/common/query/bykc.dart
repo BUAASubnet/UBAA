@@ -38,7 +38,7 @@ extension BykcQueryControls on FeatureQueryControlsState {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              const Text('当前页课程状态'),
+              const Text('已加载课程状态'),
               const SizedBox(height: 8),
               Wrap(
                 spacing: 8,
@@ -57,7 +57,7 @@ extension BykcQueryControls on FeatureQueryControlsState {
                 ],
               ),
               const SizedBox(height: 12),
-              const Text('当前页课程类别'),
+              const Text('已加载课程类别'),
               Wrap(
                 spacing: 8,
                 runSpacing: 4,
@@ -103,7 +103,7 @@ extension BykcQueryControls on FeatureQueryControlsState {
               ),
               const Padding(
                 padding: EdgeInsets.only(top: 8),
-                child: Text('仅筛选当前页'),
+                child: Text('筛选已加载内容，继续滚动会加载更多课程'),
               ),
               Row(
                 children: [
@@ -118,30 +118,6 @@ extension BykcQueryControls on FeatureQueryControlsState {
                 ],
               ),
             ],
-          ),
-        ),
-        SizedBox(
-          width: 110,
-          child: TextField(
-            controller: _pageController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: '页码',
-              hintText: '从 1 开始',
-              isDense: true,
-            ),
-          ),
-        ),
-        SizedBox(
-          width: 110,
-          child: TextField(
-            controller: _sizeController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: '每页数量',
-              hintText: '1–100',
-              isDense: true,
-            ),
           ),
         ),
       ],

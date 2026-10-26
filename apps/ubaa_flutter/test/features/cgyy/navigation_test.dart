@@ -51,32 +51,30 @@ void main() {
     expect(a.offset, closeTo(b.offset, .01));
   });
 
-  testWidgets('研讨室输入第2页及前后页按钮保留零基读取与一基显示', (tester) async {
-    final backend = await _open(tester);
+  testWidgets('预约记录滚动续载保留零基请求，刷新从首页重新开始', (tester) async {
+    final backend = await _open(tester, state: 'paged');
     await _tap(tester, find.byTooltip('返回'));
     await _tap(tester, find.widgetWithText(Card, '我的预约'));
     expect(backend.roomReads.last.page, 0);
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-    await tester.enterText(find.widgetWithText(TextField, '每页数量'), '1');
-    await tester.enterText(find.widgetWithText(TextField, '页码'), '2');
-    await _tap(tester, find.text('应用筛选'));
-    expect(backend.roomReads.last.page, 1);
-    await _tap(tester, find.widgetWithText(TextButton, '完成'));
-    expect(find.text('第 2 / 3 页（共 3 条）'), findsOneWidget);
-    await _tap(tester, find.byTooltip('上一页'));
-    expect(backend.roomReads.last.page, 0);
-    expect(find.text('第 1 / 3 页（共 3 条）'), findsOneWidget);
-    await _tap(tester, find.byTooltip('下一页'));
-    expect(backend.roomReads.last.page, 1);
-    expect(find.text('第 2 / 3 页（共 3 条）'), findsOneWidget);
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '页码'))
-          .controller!
-          .text,
-      '2',
+    final scroll = find
+        .descendant(
+          of: find.byType(ListView).last,
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      find.text('主题：连续订单144'),
+      600,
+      scrollable: scroll,
+      maxScrolls: 100,
     );
+    final reads = backend.roomReads
+        .where((q) => q.view == FeatureQueryView.cgyyOrders)
+        .toList();
+    expect(reads.map((q) => q.page), [0, 1, 2]);
+    await _tap(tester, find.byTooltip('刷新当前查询'));
+    expect(backend.roomReads.last.page, 0);
+    expect(find.text('主题：连续订单101'), findsOneWidget);
     expect(backend.commitCalls, 0);
   });
   testWidgets('研讨室隐藏后首页仅刷新待办订单，不重读站点或扩展日期空间', (tester) async {

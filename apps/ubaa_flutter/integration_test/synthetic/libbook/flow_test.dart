@@ -83,15 +83,9 @@ void main() {
       expect(backend.preparedBookings.single, ('canonical-booking-1', 1, 20));
       await shot('cancel-confirm', '准备取消canonical预约，保留服务器分页');
       await _tap(tester, find.widgetWithText(OutlinedButton, '取消'));
-      await _panel(tester);
-      await tester.enterText(find.widgetWithText(TextField, '页码'), '2');
-      await tester.enterText(find.widgetWithText(TextField, '每页数量'), '2');
-      await _tap(tester, find.widgetWithText(FilledButton, '应用筛选'));
-      await _closePanel(tester);
-      expect(backend.libraryReads.last.page, 2);
-      expect(backend.libraryReads.last.size, 2);
-      expect(find.textContaining('第 2 / 2 页'), findsOneWidget);
-      await shot('booking-page-two', '第二页显示剩余一条，总数仍为3；未知资格无可点取消');
+      await _tap(tester, find.byTooltip('刷新当前查询'));
+      expect(backend.libraryReads.last.page, 1);
+      await shot('booking-refresh', '刷新预约列表从首批重新加载，保留原始取消资格');
       expect(backend.discarded, hasLength(2));
       expect(backend.commitCalls, 0);
     });
@@ -205,18 +199,6 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
   await _ensure(tester, finder);
   await tester.tap(finder);
   await tester.pumpAndSettle();
-}
-
-Future<void> _panel(WidgetTester tester) async {
-  if (find.widgetWithText(TextButton, '完成').evaluate().isEmpty) {
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-  }
-}
-
-Future<void> _closePanel(WidgetTester tester) async {
-  FocusManager.instance.primaryFocus?.unfocus();
-  await tester.pumpAndSettle();
-  await _tap(tester, find.widgetWithText(TextButton, '完成'));
 }
 
 Future<void> _shot(

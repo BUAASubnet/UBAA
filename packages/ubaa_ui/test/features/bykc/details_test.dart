@@ -22,7 +22,6 @@ void main() {
     expect(find.widgetWithText(Card, '合成美育沙河'), findsOneWidget);
     expect(find.widgetWithText(Card, '合成德育沙河'), findsNothing);
     expect(find.widgetWithText(Card, '合成美育学院路'), findsNothing);
-    expect(find.textContaining('61'), findsWidgets);
     expect(state.queries, isEmpty);
     await openQueryPanel(tester);
     await _chip(tester, '德育');
@@ -49,7 +48,7 @@ void main() {
     ];
     await tester.tap(find.byTooltip('刷新当前查询'));
     await tester.pumpAndSettle();
-    expect(find.text('当前页没有匹配项'), findsOneWidget);
+    expect(find.text('已加载内容中没有匹配项'), findsOneWidget);
     await openQueryPanel(tester);
     expect(
       tester
@@ -111,7 +110,7 @@ void main() {
     await _chip(tester, '美育');
     await _chip(tester, '沙河校区');
     await closeQueryPanel(tester);
-    expect(find.text('当前页没有匹配项'), findsOneWidget);
+    expect(find.text('已加载内容中没有匹配项'), findsOneWidget);
     await openQueryPanel(tester);
     await _chip(tester, '学院路校区');
     await _chip(tester, '人数已满');
@@ -418,38 +417,44 @@ class _Scenario {
                   ),
             ),
         ];
-  FeatureSnapshot make(
-    FeatureQuery query, {
-    bool loading = false,
-  }) => FeatureSnapshot(
-    feature: FeatureId.bykc,
-    status: loading
-        ? FeatureLoadStatus.loading
-        : failFull && isFull(query)
-        ? FeatureLoadStatus.failure
-        : FeatureLoadStatus.success,
-    summary: '合成博雅数据',
-    updatedAt: DateTime(2026, 9, 15),
-    error: failFull && isFull(query)
-        ? const UiError(
-            code: UbaaErrorCode.upstreamChanged,
-            title: '详情读取失败',
-            message: '合成完整详情读取失败',
-            retryable: true,
-          )
-        : null,
-    details: loading || failFull && isFull(query)
-        ? const []
-        : query.view == FeatureQueryView.bykcDetail
-        ? [_full(query.courseId!)]
-        : query.view == FeatureQueryView.bykcChosenCourses
-        ? chosenDetails(query)
-        : catalog,
-    readContext: FeatureReadContext(query: query, requestRevision: revision),
-    pagination: query.view == FeatureQueryView.summary
-        ? const FeaturePagination(page: 1, size: 20, total: 61, totalPages: 4)
-        : null,
-  );
+  FeatureSnapshot make(FeatureQuery query, {bool loading = false}) =>
+      FeatureSnapshot(
+        feature: FeatureId.bykc,
+        status: loading
+            ? FeatureLoadStatus.loading
+            : failFull && isFull(query)
+            ? FeatureLoadStatus.failure
+            : FeatureLoadStatus.success,
+        summary: '合成博雅数据',
+        updatedAt: DateTime(2026, 9, 15),
+        error: failFull && isFull(query)
+            ? const UiError(
+                code: UbaaErrorCode.upstreamChanged,
+                title: '详情读取失败',
+                message: '合成完整详情读取失败',
+                retryable: true,
+              )
+            : null,
+        details: loading || failFull && isFull(query)
+            ? const []
+            : query.view == FeatureQueryView.bykcDetail
+            ? [_full(query.courseId!)]
+            : query.view == FeatureQueryView.bykcChosenCourses
+            ? chosenDetails(query)
+            : catalog,
+        readContext: FeatureReadContext(
+          query: query,
+          requestRevision: revision,
+        ),
+        pagination: query.view == FeatureQueryView.summary
+            ? FeaturePagination(
+                page: 1,
+                size: 20,
+                total: catalog.length,
+                totalPages: 1,
+              )
+            : null,
+      );
   Future<void> load(FeatureQuery query) async {
     queries.add(query);
     final current = ++revision;

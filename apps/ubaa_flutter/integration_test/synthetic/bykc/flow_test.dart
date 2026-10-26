@@ -25,10 +25,10 @@ void main() {
       final reads = backend.boyaReads.length;
       await _panel(tester);
       await _tap(tester, find.widgetWithText(FilterChip, '已过期'));
-      await shot('filters', '当前页状态多选仅在顶栏面板中');
+      await shot('filters', '已加载课程的状态多选仅在顶栏面板中');
       await _closePanel(tester);
       await _ensure(tester, find.widgetWithText(Card, '合成课程 7'));
-      await shot('expired', '主动包含过期课程，保留服务器总数');
+      await shot('expired', '主动包含过期课程，保留原始课程数据');
       await _panel(tester);
       expect(
         tester
@@ -39,7 +39,7 @@ void main() {
       await _tap(tester, find.text('恢复默认'));
       await _edit(tester, '筛选详情', '合成课程 1');
       await _closePanel(tester);
-      await shot('filtered', '关闭后搜索仍作用于当前页，未发新请求');
+      await shot('filtered', '关闭后搜索仍作用于已加载课程，末页不再发新请求');
       await _panel(tester);
       expect(
         tester
@@ -80,7 +80,9 @@ void main() {
       await shot('chosen', '已选卡片突出考勤、考核和零分，不铺编号');
       final beforeDetail = backend.boyaReads.length;
       await _tap(tester, find.widgetWithText(Card, '合成已选课 1'));
-      expect(backend.boyaReads, hasLength(beforeDetail));
+      expect(backend.boyaReads, hasLength(beforeDetail + 1));
+      expect(backend.boyaReads.last.view, FeatureQueryView.bykcChosenCourses);
+      expect(backend.boyaReads.last.courseId, '101');
       expect(find.widgetWithText(AppBar, '课程详情'), findsOneWidget);
       await shot('chosen-detail-top', '已选独立详情保留原记录和课程身份');
       await _ensure(tester, find.widgetWithText(OutlinedButton, '准备博雅签到'));
@@ -171,7 +173,6 @@ void main() {
             if (view == 'courses') {
               await _panel(tester);
               await _tap(tester, find.text('状态不限'));
-              await _edit(tester, '每页数量', '50');
               await _tap(tester, find.text('应用筛选'));
               await _closePanel(tester);
             }

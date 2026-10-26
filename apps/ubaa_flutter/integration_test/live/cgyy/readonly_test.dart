@@ -103,44 +103,28 @@ void main() {
     // 本轮账号由安全Core-live已确认首批有记录；只断言数量，不输出记录。
     expect(snapshot().details.isNotEmpty, isTrue);
 
-    await tap(find.byTooltip('搜索与筛选'));
-    Future<void> edit(String label, String text) async {
-      final field = find.widgetWithText(TextField, label);
-      await tap(field);
-      await tester.enterText(field, text);
-      await tester.pump();
-      expect(tester.widget<TextField>(field).controller!.text, text);
+    final more = snapshot().pagination;
+    if (more != null &&
+        (more.hasMore ?? (more.page < more.effectiveTotalPages))) {
+      final revision = snapshot().readContext?.requestRevision;
+      final list = find.byType(ListView).last;
+      for (
+        var i = 0;
+        i < 80 && snapshot().readContext?.requestRevision == revision;
+        i++
+      ) {
+        await tester.drag(list, const Offset(0, -600));
+        await tester.pump(const Duration(milliseconds: 500));
+      }
+      await loaded(
+        FeatureQueryView.cgyyOrders,
+        page: more.page,
+        size: more.size,
+        previousRevision: revision,
+      );
     }
-
-    await edit('页码', '2');
-    await edit('每页数量', '5');
-    final revision = snapshot().readContext?.requestRevision;
-    await tap(find.text('应用筛选'));
-    await loaded(
-      FeatureQueryView.cgyyOrders,
-      page: 1,
-      size: 5,
-      previousRevision: revision,
-    );
-    expect(snapshot().pagination?.page, 2);
-    expect(snapshot().details.isNotEmpty, isTrue);
-    FocusManager.instance.primaryFocus?.unfocus();
-    await tap(find.widgetWithText(TextButton, '完成'));
-    await tap(find.byTooltip('上一页'));
-    await loaded(FeatureQueryView.cgyyOrders, page: 0, size: 5);
-    expect(snapshot().pagination?.page, 1);
-    await tap(find.byTooltip('下一页'));
-    await loaded(FeatureQueryView.cgyyOrders, page: 1, size: 5);
-    expect(snapshot().pagination?.page, 2);
-    await tap(find.byTooltip('搜索与筛选'));
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '页码'))
-          .controller!
-          .text,
-      '2',
-    );
-    await tap(find.widgetWithText(TextButton, '完成'));
+    await tap(find.byTooltip('刷新当前查询'));
+    await loaded(FeatureQueryView.cgyyOrders, page: 0);
     final order =
         snapshot().details.first.presentation as CgyyOrderPresentation;
     await tap(find.widgetWithText(OutlinedButton, '查看详情').first);

@@ -66,32 +66,6 @@ extension CgyyQueryControls on FeatureQueryControlsState {
           onSelected: (value) => _siteController.text = value,
         ),
       ],
-      if (_cgyyView == FeatureQueryView.cgyyOrders) ...<Widget>[
-        SizedBox(
-          width: 110,
-          child: TextField(
-            controller: _pageController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: '页码',
-              hintText: '从 1 开始',
-              isDense: true,
-            ),
-          ),
-        ),
-        SizedBox(
-          width: 110,
-          child: TextField(
-            controller: _sizeController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: '每页数量',
-              hintText: '1–100',
-              isDense: true,
-            ),
-          ),
-        ),
-      ],
       if (_cgyyView == FeatureQueryView.cgyyOrderDetail) ...<Widget>[
         SizedBox(
           width: 110,

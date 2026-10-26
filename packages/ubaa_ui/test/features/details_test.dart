@@ -542,7 +542,7 @@ void _registerFeatureInputTests() {
 }
 
 void _registerFeatureCollectionTests() {
-  testWidgets('长详情列表分页且筛选会回到第一页', (tester) async {
+  testWidgets('长详情列表连续滚动且筛选回到顶部', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -576,21 +576,26 @@ void _registerFeatureCollectionTests() {
     );
     await openFeature(tester, FeatureId.grades);
     await tester.pumpAndSettle();
-    expect(find.text('1 / 2'), findsOneWidget);
-    expect(find.text('课程 21'), findsNothing);
-    await tester.tap(find.byTooltip('下一页'));
-    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('课程 21'),
+      300,
+      scrollable: find
+          .descendant(
+            of: find.byType(ListView).last,
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     expect(find.text('课程 21'), findsOneWidget);
     await openQueryPanel(tester);
     await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '课程 1');
     await closeQueryPanel(tester);
     await tester.pumpAndSettle();
-    expect(find.text('1 / 2'), findsNothing);
     expect(find.text('课程 1'), findsOneWidget);
     expect(find.byType(TextField), findsNothing);
   });
 
-  testWidgets('超长详情列表只保留当前分页避免页面节点累积', (tester) async {
+  testWidgets('超长详情列表惰性构建并可连续滚动', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -624,20 +629,24 @@ void _registerFeatureCollectionTests() {
     );
     await openFeature(tester, FeatureId.schedule);
     await tester.pumpAndSettle();
-    expect(find.text('1 / 50'), findsOneWidget);
-    expect(find.text('长列表课程 1'), findsOneWidget);
-    expect(find.text('长列表课程 21'), findsNothing);
-    for (var page = 2; page <= 6; page++) {
-      await tester.tap(find.byTooltip('下一页'));
-      await tester.pumpAndSettle();
-      expect(find.text('$page / 50'), findsOneWidget);
-      expect(find.text('长列表课程 ${(page - 1) * 20 + 1}'), findsOneWidget);
-      expect(find.text('长列表课程 ${(page - 2) * 20 + 1}'), findsNothing);
-      expect(tester.takeException(), isNull);
-    }
+    final scroll = find
+        .descendant(
+          of: find.byType(ListView).last,
+          matching: find.byType(Scrollable),
+        )
+        .first;
+    await tester.scrollUntilVisible(
+      find.text('长列表课程 121'),
+      800,
+      scrollable: scroll,
+      maxScrolls: 40,
+    );
+    expect(find.text('长列表课程 121'), findsOneWidget);
+    expect(find.text('长列表课程 1'), findsNothing, reason: '离屏行应释放渲染节点');
+    expect(tester.takeException(), isNull);
   });
 
-  testWidgets('服务端分页使用 Core 元数据并通过 typed 查询翻页', (tester) async {
+  testWidgets('服务端分页不足一屏时按 Core 元数据自动续载', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -684,8 +693,6 @@ void _registerFeatureCollectionTests() {
     await openQueryPanel(tester);
     await tester.pumpAndSettle();
     await closeQueryPanel(tester);
-    expect(find.text('第 1 / 3 页（共 41 条）'), findsOneWidget);
-    await tester.tap(find.byTooltip('下一页').last);
     await tester.pumpAndSettle();
     expect(received?.page, 2);
   });

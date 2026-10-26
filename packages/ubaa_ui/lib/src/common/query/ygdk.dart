@@ -17,32 +17,6 @@ extension YgdkQueryControls on FeatureQueryControlsState {
           ),
         ],
       ),
-      if (_ygdkView == FeatureQueryView.ygdkRecords) ...<Widget>[
-        SizedBox(
-          width: 110,
-          child: TextField(
-            controller: _pageController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: '页码',
-              hintText: '从 1 开始',
-              isDense: true,
-            ),
-          ),
-        ),
-        SizedBox(
-          width: 110,
-          child: TextField(
-            controller: _sizeController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: '每页数量',
-              hintText: '1–100',
-              isDense: true,
-            ),
-          ),
-        ),
-      ],
     ],
   ];
 }

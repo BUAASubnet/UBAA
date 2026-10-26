@@ -17,6 +17,40 @@ void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   _registerRoomFormTests(binding);
   for (final brightness in Brightness.values) {
+    testWidgets('研讨室原生连续追加与刷新 ${brightness.name}', (tester) async {
+      final backend = RoomBackend(state: 'paged');
+      await _mount(tester, backend, brightness);
+      await _tap(tester, find.byTooltip('返回'));
+      await _tap(tester, find.widgetWithText(Card, '我的预约'));
+      await tester.scrollUntilVisible(
+        find.text('主题：连续订单144'),
+        240,
+        scrollable: find
+            .descendant(
+              of: find.byType(ListView).last,
+              matching: find.byType(Scrollable),
+            )
+            .first,
+        maxScrolls: 80,
+      );
+      await tester.pumpAndSettle();
+      expect(
+        backend.roomReads
+            .where((q) => q.view == FeatureQueryView.cgyyOrders)
+            .map((q) => q.page),
+        [0, 1, 2],
+      );
+      await _shot(
+        binding,
+        tester,
+        '${brightness.name}-infinite-bottom',
+        '滚动加载三批订单，保留原始零基查询，末页停止',
+      );
+      await _tap(tester, find.byTooltip('刷新当前查询'));
+      expect(backend.roomReads.last.page, 0);
+      expect(find.text('主题：连续订单101'), findsOneWidget);
+      expect(backend.commitCalls, 0);
+    });
     testWidgets('研讨室原生选择表单草稿和订单 ${brightness.name}', (tester) async {
       final backend = RoomBackend();
       await _mount(tester, backend, brightness);
@@ -96,28 +130,9 @@ void main() {
       expect(backend.preparedOrders, [101]);
       await shot('cancel-confirm', '仅prepare合成订单取消，不点击确认提交');
       await _tap(tester, find.widgetWithText(OutlinedButton, '取消'));
-      await _panel(tester);
-      await _edit(tester, '页码', '2');
-      await _edit(tester, '每页数量', '2');
-      await _tap(tester, find.text('应用筛选'));
-      await _closePanel(tester);
-      expect(backend.roomReads.last.page, 1);
-      expect(find.textContaining('第 2 / 2 页'), findsOneWidget);
-      await shot('page-two', '显示第2页但请求原始page=1，保留未知资格订单');
-      await _tap(tester, find.byTooltip('上一页'));
+      await _tap(tester, find.byTooltip('刷新当前查询'));
       expect(backend.roomReads.last.page, 0);
-      expect(find.textContaining('第 1 / 2 页'), findsOneWidget);
-      await _tap(tester, find.byTooltip('下一页'));
-      expect(backend.roomReads.last.page, 1);
-      await _panel(tester);
-      expect(
-        tester
-            .widget<TextField>(find.widgetWithText(TextField, '页码'))
-            .controller!
-            .text,
-        '2',
-      );
-      await _closePanel(tester);
+      await shot('orders-refresh', '刷新预约记录从零基首批开始，末页不自动追加');
       await _tap(tester, find.byTooltip('返回'));
       await _tap(tester, find.widgetWithText(Card, '查看密码'));
       await shot('lock', '专用页面显示合成密码，不输出真实材料');

@@ -372,7 +372,7 @@ void _registerQueryTests() {
     expect(received?.view, FeatureQueryView.bykcStatistics);
   });
 
-  testWidgets('博雅查询控件提交 1-based 分页参数', (tester) async {
+  testWidgets('博雅筛选应用从第一页开始', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -409,11 +409,6 @@ void _registerQueryTests() {
     await openFeature(tester, FeatureId.bykc);
     await openQueryPanel(tester);
     await tester.pumpAndSettle();
-    final fields = find.byWidgetPredicate(
-      (w) => w is TextField && w.decoration?.labelText != '筛选详情',
-    );
-    await tester.enterText(fields.at(0), '2');
-    await tester.enterText(fields.at(1), '50');
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('应用筛选'));
@@ -421,11 +416,11 @@ void _registerQueryTests() {
     expect(find.text('应用筛选').hitTestable(), findsOneWidget);
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();
-    expect(received?.page, 2);
-    expect(received?.size, 50);
+    expect(received?.page, 1);
+    expect(received?.size, 20);
   });
 
-  testWidgets('阳光打卡查询控件提交记录分页 typed 参数', (tester) async {
+  testWidgets('阳光记录查询从第一页开始', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -468,16 +463,11 @@ void _registerQueryTests() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('记录列表'));
     await tester.pumpAndSettle();
-    final fields = find.byWidgetPredicate(
-      (w) => w is TextField && w.decoration?.labelText != '筛选详情',
-    );
-    await tester.enterText(fields.first, '3');
-    await tester.enterText(fields.at(1), '15');
     await tester.tap(find.text('应用筛选'));
     await tester.pumpAndSettle();
     expect(received?.view, FeatureQueryView.ygdkRecords);
-    expect(received?.page, 3);
-    expect(received?.size, 15);
+    expect(received?.page, 1);
+    expect(received?.size, 20);
   });
 
   testWidgets('评教查询控件提交待评本地派生视图', (tester) async {

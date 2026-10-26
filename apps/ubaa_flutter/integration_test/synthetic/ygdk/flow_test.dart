@@ -81,10 +81,10 @@ void main() {
         isFalse,
       );
       await _tap(tester, find.text('合成运动项目 1'));
-      await _tap(tester, find.text('继续确认'));
-      expect(find.text('请填写完整时间并选择照片。'), findsOneWidget);
-      expect(backend.prepared, isEmpty);
       await _edit(tester, '开始时间', '2026-09-09 08:00');
+      await _tap(tester, find.text('继续确认'));
+      expect(find.text('开始时间和结束时间需要同时填写。'), findsOneWidget);
+      expect(backend.prepared, isEmpty);
       await _edit(tester, '结束时间', '2026-09-09 09:00');
       await _edit(tester, '打卡地点', '合成操场');
       await _tap(tester, find.widgetWithText(OutlinedButton, '选择照片'));
@@ -98,17 +98,13 @@ void main() {
       await _panel(tester);
       await _tap(tester, find.byType(DropdownButton<FeatureQueryView>));
       await _tap(tester, find.text('记录列表').last);
-      await _edit(tester, '页码', '2');
-      await _edit(tester, '每页数量', '1');
-      await shot('query', '全部原始分页查询在按需面板，草稿保留');
+      await shot('query', '独立记录查询从首批开始');
       await _tap(tester, find.text('应用筛选'));
       await _closePanel(tester);
-      expect(backend.queries.last.page, 2);
-      expect(backend.queries.last.size, 1);
-      await shot('page2', '独立记录页一基分页与typed记录卡');
-      await _tap(tester, find.byTooltip('上一页'));
       expect(backend.queries.last.page, 1);
-      await shot('page1', '上一页恢复首批，未增加业务写入');
+      await shot('records', '独立记录页连续滚动与typed记录卡');
+      await _tap(tester, find.byTooltip('刷新当前查询'));
+      expect(backend.queries.last.page, 1);
       expect(backend.commitCalls, 0);
     });
     if (const bool.fromEnvironment('UBAA_UI_NORMAL_ONLY')) continue;
@@ -155,11 +151,6 @@ void main() {
               for (var page = 0; page < 2; page++) {
                 await _tap(tester, find.text('加载更多'));
               }
-            } else {
-              await _panel(tester);
-              await _edit(tester, '每页数量', '50');
-              await _tap(tester, find.text('应用筛选'));
-              await _closePanel(tester);
             }
             await _ensure(tester, find.text('合成运动记录 42'));
           }

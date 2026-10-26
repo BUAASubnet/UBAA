@@ -1,6 +1,8 @@
 import '../../shared/refresh.dart' show RefreshViewport;
 import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
+import 'package:flutter/foundation.dart' show setEquals;
+import '../../shared/infinite_scroll.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
@@ -45,7 +47,7 @@ import '../../write/cgyy/form.dart'
     show uiCgyyActionKey, uiCollectCgyyReservation;
 import '../../write/ygdk/draft.dart' show YgdkFormContext;
 import '../../write/ygdk/form.dart' show uiCollectYgdkForm;
-part 'pagination.dart';
+
 part 'assignments.dart';
 part 'evaluation_row.dart';
 part 'bykc_actions.dart';
@@ -75,6 +77,11 @@ class FeatureDetailList extends StatefulWidget {
     this.isBykcChosenDetail = false,
     this.onOpenBykcChosen,
     this.pagination,
+    this.paginationGeneration = 0,
+    this.loadingMore = false,
+    this.moreError,
+    this.hasMore = false,
+    this.onLoadMore,
     this.query,
     this.onQuery,
     this.onNavigate,
@@ -106,6 +113,10 @@ class FeatureDetailList extends StatefulWidget {
   final List<FeatureDetail> details;
   final ScheduleWeekOverview? timeline;
   final FeaturePagination? pagination;
+  final int paginationGeneration;
+  final bool loadingMore, hasMore;
+  final String? moreError;
+  final Future<void> Function()? onLoadMore;
   final FeatureQuery? query;
   final Future<void> Function(FeatureQuery query)? onQuery;
   final Future<void> Function(FeatureReadNavigation)? onNavigate;
@@ -129,18 +140,18 @@ class FeatureDetailList extends StatefulWidget {
 }
 
 class _FeatureDetailListState extends State<FeatureDetailList> {
-  static const _pageSize = 20;
+  int _filterGeneration = 0;
   final Set<String> _selectedEvaluationKeys = <String>{};
-  int _page = 0;
 
   @override
   void didUpdateWidget(covariant FeatureDetailList oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.filter != widget.filter ||
-        oldWidget.bykcStatuses != widget.bykcStatuses ||
-        oldWidget.bykcCategories != widget.bykcCategories ||
-        oldWidget.bykcCampuses != widget.bykcCampuses)
-      _page = 0;
+        !setEquals(oldWidget.bykcStatuses, widget.bykcStatuses) ||
+        !setEquals(oldWidget.bykcCategories, widget.bykcCategories) ||
+        !setEquals(oldWidget.bykcCampuses, widget.bykcCampuses)) {
+      _filterGeneration++;
+    }
     final validKeys = <String>{
       for (final detail in widget.details)
         if (_evaluationSubmitTarget(detail) case final target?)
@@ -154,21 +165,6 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
     // 列表的构建委托可能保留子元素；外层显式依赖主题，切换时更新标题样式。
     final theme = Theme.of(context);
     final isBykcStatistics = uiIsBykcStatistics(widget.feature, widget.details);
-    final unpagedLocal =
-        widget.feature == FeatureId.spoc ||
-        widget.feature == FeatureId.judge ||
-        widget.feature == FeatureId.exam ||
-        widget.feature == FeatureId.classroom ||
-        (widget.feature == FeatureId.schedule &&
-            widget.details.every(
-              (d) => d.presentation is ScheduleCoursePresentation,
-            )) ||
-        isBykcStatistics ||
-        (widget.feature == FeatureId.bykc &&
-            widget.details.isNotEmpty &&
-            widget.details.every(
-              (d) => d.presentation is BykcChosenPresentation,
-            ));
     final query = widget.filter.trim().toLowerCase();
     final candidates = widget.feature != FeatureId.bykc
         ? widget.details
@@ -207,17 +203,7 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                 );
               })
               .toList(growable: false);
-    final serverPagination = widget.pagination;
-    final pageCount = serverPagination == null && !unpagedLocal
-        ? details.isEmpty
-              ? 0
-              : (details.length + _pageSize - 1) ~/ _pageSize
-        : 1;
-    final page = pageCount == 0 ? 0 : _page.clamp(0, pageCount - 1);
-    final start = page * _pageSize;
-    final visible = serverPagination == null && !unpagedLocal
-        ? details.skip(start).take(_pageSize).toList(growable: false)
-        : details;
+    final visible = details;
     final pendingEvaluationsByKey = <String, EvaluationSubmitTarget>{};
     for (final detail in widget.details) {
       if (_evaluationSubmitTarget(detail) case final target?) {
@@ -249,287 +235,307 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
             child: _buildBykcFiltersBar(context, theme),
           ),
         Expanded(
-          // 翻页创建新的内容滚动位置；搜索与批量选择仍由外层 State 保留。
-          // 同页刷新、父子返回不改变 key，继续保留本页滚动状态。
-          child: KeyedSubtree(
-            key: ValueKey((page, serverPagination?.page)),
-            child: isBykcStatistics
-                ? BykcStatisticsContent(
-                    total: widget.details
-                        .map((d) => d.presentation)
-                        .whereType<BykcStatisticsPresentation>()
-                        .single,
-                    details: details,
-                  )
-                : details.isEmpty &&
-                      widget.feature == FeatureId.schedule &&
-                      widget.details.isNotEmpty &&
-                      widget.details.every(
-                        (d) => d.presentation is ScheduleCoursePresentation,
-                      )
-                ? ScheduleContent(
-                    details: const [],
-                    timeline: widget.timeline,
-                    timeSource: widget.details,
-                    emptyMessage: '没有匹配的课程',
-                  )
-                : details.isEmpty
-                ? RefreshViewport(
-                    child: Center(
-                      child: Text(
-                        widget.feature == FeatureId.bykc &&
-                                widget.query?.view == FeatureQueryView.summary
-                            ? '当前页没有匹配项'
-                            : widget.feature == FeatureId.judge
-                            ? '暂无符合条件的希冀作业'
-                            : widget.feature == FeatureId.spoc
-                            ? '暂无符合条件的 SPOC 作业'
-                            : '没有匹配的详情',
+          child: InfiniteScroll(
+            onLoadMore: widget.onLoadMore,
+            loading: widget.loadingMore,
+            error: widget.moreError,
+            hasMore: widget.hasMore,
+            child: KeyedSubtree(
+              key: ValueKey((widget.paginationGeneration, _filterGeneration)),
+              child: isBykcStatistics
+                  ? BykcStatisticsContent(
+                      total: widget.details
+                          .map((d) => d.presentation)
+                          .whereType<BykcStatisticsPresentation>()
+                          .single,
+                      details: details,
+                    )
+                  : details.isEmpty &&
+                        widget.feature == FeatureId.schedule &&
+                        widget.details.isNotEmpty &&
+                        widget.details.every(
+                          (d) => d.presentation is ScheduleCoursePresentation,
+                        )
+                  ? ScheduleContent(
+                      details: const [],
+                      timeline: widget.timeline,
+                      timeSource: widget.details,
+                      emptyMessage: '没有匹配的课程',
+                    )
+                  : details.isEmpty
+                  ? RefreshViewport(
+                      child: Center(
+                        child: Text(
+                          widget.feature == FeatureId.bykc &&
+                                  widget.query?.view == FeatureQueryView.summary
+                              ? '已加载内容中没有匹配项'
+                              : widget.feature == FeatureId.judge
+                              ? '暂无符合条件的希冀作业'
+                              : widget.feature == FeatureId.spoc
+                              ? '暂无符合条件的 SPOC 作业'
+                              : '没有匹配的详情',
+                        ),
                       ),
-                    ),
-                  )
-                : uiSupportsParticipationContent(widget.feature, visible)
-                ? CourseParticipationContent(
-                    feature: widget.feature,
-                    details: visible,
-                    onSignin: widget.onSigninWrite,
-                    writesEnabled: widget.writesEnabled,
-                    evaluationRow: (detail) =>
-                        _evaluationCourseRow(detail, setState),
-                  )
-                : uiSupportsAssignmentContent(widget.feature, visible)
-                ? AssignmentContent(
-                    details: visible,
-                    onNavigate: widget.onNavigate,
-                  )
-                : uiSupportsAcademicContent(widget.feature, visible)
-                ? AcademicResultContent(
-                    feature: widget.feature,
-                    details: visible,
-                    timeline: widget.timeline,
-                    query: widget.query,
-                    onQuery: widget.onQuery,
-                    onNavigate: widget.onNavigate,
-                  )
-                : ListView.separated(
-                    padding: UbaaTheme.pageInsets(context),
-                    itemCount: visible.length,
-                    separatorBuilder: (_, __) => const SizedBox(height: 12),
-                    itemBuilder: (context, index) {
-                      final detail = visible[index];
-                      if (uiSupportsAssignmentContent(widget.feature, [
-                        detail,
-                      ])) {
-                        return LayoutBuilder(
-                          builder: (context, constraints) => AssignmentCard(
-                            detail: detail,
-                            wide: constraints.maxWidth >= 708,
-                            onNavigate: widget.onNavigate,
-                          ),
-                        );
-                      }
-                      if (widget.feature == FeatureId.ygdk) {
-                        if (detail.presentation
-                            case YgdkRecordPresentation record) {
-                          return YgdkRecordCard(record);
+                    )
+                  : uiSupportsParticipationContent(widget.feature, visible)
+                  ? CourseParticipationContent(
+                      feature: widget.feature,
+                      details: visible,
+                      onSignin: widget.onSigninWrite,
+                      writesEnabled: widget.writesEnabled,
+                      evaluationRow: (detail) =>
+                          _evaluationCourseRow(detail, setState),
+                    )
+                  : uiSupportsAssignmentContent(widget.feature, visible)
+                  ? AssignmentContent(
+                      details: visible,
+                      onNavigate: widget.onNavigate,
+                    )
+                  : uiSupportsAcademicContent(widget.feature, visible)
+                  ? AcademicResultContent(
+                      feature: widget.feature,
+                      details: visible,
+                      timeline: widget.timeline,
+                      query: widget.query,
+                      onQuery: widget.onQuery,
+                      onNavigate: widget.onNavigate,
+                    )
+                  : ListView.separated(
+                      padding: UbaaTheme.pageInsets(context),
+                      itemCount: visible.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        final detail = visible[index];
+                        if (uiSupportsAssignmentContent(widget.feature, [
+                          detail,
+                        ])) {
+                          return LayoutBuilder(
+                            builder: (context, constraints) => AssignmentCard(
+                              detail: detail,
+                              wide: constraints.maxWidth >= 708,
+                              onNavigate: widget.onNavigate,
+                            ),
+                          );
                         }
-                      }
-                      if (widget.feature == FeatureId.bykc) {
-                        if (detail.presentation
-                            case BykcCoursePresentation course) {
-                          if (course.isDetail)
-                            return _bykcCourseDetails(context, detail, course);
-                          return BykcCourseCard(
-                            course: course,
-                            onTap:
-                                detail.readNavigation == null ||
-                                    widget.onNavigate == null
-                                ? null
-                                : () => widget.onNavigate!(
-                                    detail.readNavigation!,
+                        if (widget.feature == FeatureId.ygdk) {
+                          if (detail.presentation
+                              case YgdkRecordPresentation record) {
+                            return YgdkRecordCard(record);
+                          }
+                        }
+                        if (widget.feature == FeatureId.bykc) {
+                          if (detail.presentation
+                              case BykcCoursePresentation course) {
+                            if (course.isDetail)
+                              return _bykcCourseDetails(
+                                context,
+                                detail,
+                                course,
+                              );
+                            return BykcCourseCard(
+                              course: course,
+                              onTap:
+                                  detail.readNavigation == null ||
+                                      widget.onNavigate == null
+                                  ? null
+                                  : () => widget.onNavigate!(
+                                      detail.readNavigation!,
+                                    ),
+                            );
+                          }
+                          if (detail.presentation
+                              case BykcChosenPresentation course) {
+                            if (widget.isBykcChosenDetail)
+                              return _bykcChosenDetails(
+                                context,
+                                detail,
+                                course,
+                              );
+                            return BykcChosenCard(
+                              course: course,
+                              onTap: widget.onOpenBykcChosen == null
+                                  ? null
+                                  : () => widget.onOpenBykcChosen!(detail),
+                            );
+                          }
+                        }
+                        final courseId = _courseId(detail);
+                        final bykcSelectAction = detail
+                            .action<BykcSelectAction>();
+                        final bykcDeselectAction = detail
+                            .action<BykcDeselectAction>();
+                        final bykcSignInAction = _bykcSignAction(
+                          detail,
+                          BykcSignKind.signIn,
+                        );
+                        final bykcSignOutAction = _bykcSignAction(
+                          detail,
+                          BykcSignKind.signOut,
+                        );
+                        final signinAction = detail
+                            .action<SigninPerformAction>();
+                        final cgyyCancelAction = _cgyyCancelAction(detail);
+                        final libbookReserveAction = detail
+                            .action<LibbookReserveAction>();
+                        final libbookCancelAction = detail
+                            .action<LibbookCancelAction>();
+                        final cgyyReservation = _cgyyReserveAction(detail);
+                        final evaluation = _evaluationSubmitTarget(detail);
+                        final ygdkAction = _ygdkAction(detail);
+                        final canBykcSign =
+                            bykcSignInAction?.eligibility ==
+                            ActionEligibility.allowed;
+                        final canBykcSignOut =
+                            bykcSignOutAction?.eligibility ==
+                            ActionEligibility.allowed;
+                        final canBykcSelect =
+                            bykcSelectAction?.eligibility ==
+                            ActionEligibility.allowed;
+                        final canBykcDeselect =
+                            bykcDeselectAction?.eligibility ==
+                            ActionEligibility.allowed;
+                        final canSignin =
+                            signinAction?.eligibility ==
+                                ActionEligibility.allowed &&
+                            signinAction!.scheduleId.trim().isNotEmpty;
+                        final canLibbookReserve =
+                            libbookReserveAction?.eligibility ==
+                                ActionEligibility.allowed &&
+                            <String>[
+                              libbookReserveAction!.areaId,
+                              libbookReserveAction.seatId,
+                              libbookReserveAction.day,
+                              libbookReserveAction.segment,
+                              libbookReserveAction.startTime,
+                              libbookReserveAction.endTime,
+                            ].every((value) => value.trim().isNotEmpty);
+                        final canLibbookCancel =
+                            libbookCancelAction?.eligibility ==
+                                ActionEligibility.allowed &&
+                            libbookCancelAction!.bookingId.trim().isNotEmpty &&
+                            libbookCancelAction.page > 0 &&
+                            libbookCancelAction.limit > 0;
+                        if (widget.feature == FeatureId.libbook &&
+                            detail.presentation is LibbookBookingPresentation) {
+                          return _libbookBookingRow(
+                            context,
+                            detail,
+                            detail.presentation! as LibbookBookingPresentation,
+                            libbookCancelAction,
+                            canLibbookCancel,
+                          );
+                        }
+                        if (widget.feature == FeatureId.cgyy &&
+                            detail.presentation is CgyyOrderPresentation) {
+                          return _cgyyOrderRow(
+                            context,
+                            detail,
+                            detail.presentation! as CgyyOrderPresentation,
+                            cgyyCancelAction,
+                          );
+                        }
+                        if (detail.presentation case CgyyLockPresentation lock
+                            when widget.feature == FeatureId.cgyy) {
+                          return Card(
+                            child: Padding(
+                              padding: const EdgeInsets.all(16),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.lock_outline),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Text(
+                                      lock.available
+                                          ? '当前有可用门锁信息'
+                                          : '当前无可用门锁信息',
+                                    ),
                                   ),
+                                ],
+                              ),
+                            ),
                           );
                         }
-                        if (detail.presentation
-                            case BykcChosenPresentation course) {
-                          if (widget.isBykcChosenDetail)
-                            return _bykcChosenDetails(context, detail, course);
-                          return BykcChosenCard(
-                            course: course,
-                            onTap: widget.onOpenBykcChosen == null
-                                ? null
-                                : () => widget.onOpenBykcChosen!(detail),
-                          );
-                        }
-                      }
-                      final courseId = _courseId(detail);
-                      final bykcSelectAction = detail
-                          .action<BykcSelectAction>();
-                      final bykcDeselectAction = detail
-                          .action<BykcDeselectAction>();
-                      final bykcSignInAction = _bykcSignAction(
-                        detail,
-                        BykcSignKind.signIn,
-                      );
-                      final bykcSignOutAction = _bykcSignAction(
-                        detail,
-                        BykcSignKind.signOut,
-                      );
-                      final signinAction = detail.action<SigninPerformAction>();
-                      final cgyyCancelAction = _cgyyCancelAction(detail);
-                      final libbookReserveAction = detail
-                          .action<LibbookReserveAction>();
-                      final libbookCancelAction = detail
-                          .action<LibbookCancelAction>();
-                      final cgyyReservation = _cgyyReserveAction(detail);
-                      final evaluation = _evaluationSubmitTarget(detail);
-                      final ygdkAction = _ygdkAction(detail);
-                      final canBykcSign =
-                          bykcSignInAction?.eligibility ==
-                          ActionEligibility.allowed;
-                      final canBykcSignOut =
-                          bykcSignOutAction?.eligibility ==
-                          ActionEligibility.allowed;
-                      final canBykcSelect =
-                          bykcSelectAction?.eligibility ==
-                          ActionEligibility.allowed;
-                      final canBykcDeselect =
-                          bykcDeselectAction?.eligibility ==
-                          ActionEligibility.allowed;
-                      final canSignin =
-                          signinAction?.eligibility ==
-                              ActionEligibility.allowed &&
-                          signinAction!.scheduleId.trim().isNotEmpty;
-                      final canLibbookReserve =
-                          libbookReserveAction?.eligibility ==
-                              ActionEligibility.allowed &&
-                          <String>[
-                            libbookReserveAction!.areaId,
-                            libbookReserveAction.seatId,
-                            libbookReserveAction.day,
-                            libbookReserveAction.segment,
-                            libbookReserveAction.startTime,
-                            libbookReserveAction.endTime,
-                          ].every((value) => value.trim().isNotEmpty);
-                      final canLibbookCancel =
-                          libbookCancelAction?.eligibility ==
-                              ActionEligibility.allowed &&
-                          libbookCancelAction!.bookingId.trim().isNotEmpty &&
-                          libbookCancelAction.page > 0 &&
-                          libbookCancelAction.limit > 0;
-                      if (widget.feature == FeatureId.libbook &&
-                          detail.presentation is LibbookBookingPresentation) {
-                        return _libbookBookingRow(
-                          context,
-                          detail,
-                          detail.presentation! as LibbookBookingPresentation,
-                          libbookCancelAction,
-                          canLibbookCancel,
-                        );
-                      }
-                      if (widget.feature == FeatureId.cgyy &&
-                          detail.presentation is CgyyOrderPresentation) {
-                        return _cgyyOrderRow(
-                          context,
-                          detail,
-                          detail.presentation! as CgyyOrderPresentation,
-                          cgyyCancelAction,
-                        );
-                      }
-                      if (detail.presentation case CgyyLockPresentation lock
-                          when widget.feature == FeatureId.cgyy) {
                         return Card(
                           child: Padding(
                             padding: const EdgeInsets.all(16),
-                            child: Row(
-                              children: [
-                                const Icon(Icons.lock_outline),
-                                const SizedBox(width: 12),
-                                Expanded(
-                                  child: Text(
-                                    lock.available ? '当前有可用门锁信息' : '当前无可用门锁信息',
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: <Widget>[
+                                Text(
+                                  detail.title,
+                                  style: theme.textTheme.titleMedium,
+                                ),
+                                if (detail.subtitle case final subtitle?
+                                    when subtitle
+                                        .trim()
+                                        .isNotEmpty) ...<Widget>[
+                                  const SizedBox(height: 4),
+                                  Text(
+                                    subtitle,
+                                    style: theme.textTheme.bodySmall,
                                   ),
+                                ],
+                                for (final field in detail.fields) ...<Widget>[
+                                  const SizedBox(height: 8),
+                                  DetailField(
+                                    label: field.label,
+                                    value: field.value,
+                                  ),
+                                ],
+                                ..._evaluationSelectionFields(
+                                  setState,
+                                  evaluation,
+                                ),
+                                ..._bykcCourseWriteFields(
+                                  context,
+                                  courseId,
+                                  bykcSelectAction,
+                                  bykcDeselectAction,
+                                  canBykcSelect,
+                                  canBykcDeselect,
+                                ),
+                                ..._bykcSignWriteFields(
+                                  context,
+                                  bykcSignInAction,
+                                  bykcSignOutAction,
+                                  canBykcSign,
+                                  canBykcSignOut,
+                                ),
+                                ..._signinWriteFields(
+                                  context,
+                                  signinAction,
+                                  canSignin,
+                                ),
+                                ..._libbookCancelWriteFields(
+                                  context,
+                                  libbookCancelAction,
+                                  canLibbookCancel,
+                                ),
+                                ..._cgyyCancelWriteFields(cgyyCancelAction),
+                                ..._libbookReserveWriteFields(
+                                  context,
+                                  libbookReserveAction,
+                                  canLibbookReserve,
+                                ),
+                                ..._evaluationSubmitFields(evaluation),
+                                ..._cgyyReserveWriteFields(
+                                  context,
+                                  cgyyReservation,
+                                ),
+                                ..._ygdkWriteFields(
+                                  context,
+                                  ygdkAction,
+                                  detail,
                                 ),
                               ],
                             ),
                           ),
                         );
-                      }
-                      return Card(
-                        child: Padding(
-                          padding: const EdgeInsets.all(16),
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: <Widget>[
-                              Text(
-                                detail.title,
-                                style: theme.textTheme.titleMedium,
-                              ),
-                              if (detail.subtitle case final subtitle?
-                                  when subtitle.trim().isNotEmpty) ...<Widget>[
-                                const SizedBox(height: 4),
-                                Text(
-                                  subtitle,
-                                  style: theme.textTheme.bodySmall,
-                                ),
-                              ],
-                              for (final field in detail.fields) ...<Widget>[
-                                const SizedBox(height: 8),
-                                DetailField(
-                                  label: field.label,
-                                  value: field.value,
-                                ),
-                              ],
-                              ..._evaluationSelectionFields(
-                                setState,
-                                evaluation,
-                              ),
-                              ..._bykcCourseWriteFields(
-                                context,
-                                courseId,
-                                bykcSelectAction,
-                                bykcDeselectAction,
-                                canBykcSelect,
-                                canBykcDeselect,
-                              ),
-                              ..._bykcSignWriteFields(
-                                context,
-                                bykcSignInAction,
-                                bykcSignOutAction,
-                                canBykcSign,
-                                canBykcSignOut,
-                              ),
-                              ..._signinWriteFields(
-                                context,
-                                signinAction,
-                                canSignin,
-                              ),
-                              ..._libbookCancelWriteFields(
-                                context,
-                                libbookCancelAction,
-                                canLibbookCancel,
-                              ),
-                              ..._cgyyCancelWriteFields(cgyyCancelAction),
-                              ..._libbookReserveWriteFields(
-                                context,
-                                libbookReserveAction,
-                                canLibbookReserve,
-                              ),
-                              ..._evaluationSubmitFields(evaluation),
-                              ..._cgyyReserveWriteFields(
-                                context,
-                                cgyyReservation,
-                              ),
-                              ..._ygdkWriteFields(context, ygdkAction, detail),
-                            ],
-                          ),
-                        ),
-                      );
-                    },
-                  ),
+                      },
+                    ),
+            ),
           ),
         ),
-        ..._paginationFields(setState, serverPagination, pageCount, page),
       ],
     );
   }

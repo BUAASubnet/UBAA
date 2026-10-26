@@ -121,34 +121,15 @@ void main() {
     await tap(find.byTooltip('搜索与筛选'));
     await tap(find.byType(DropdownButton<FeatureQueryView>));
     await tap(find.text('记录列表').last);
-    Future<void> edit(String label, String value) async {
-      final field = find.widgetWithText(TextField, label);
-      await tester.ensureVisible(field);
-      await tester.enterText(field, value);
-      await tester.pump();
-    }
-
-    await edit('页码', '2');
-    await edit('每页数量', '5');
     await tap(find.text('应用筛选'));
-    await loaded(FeatureQueryView.ygdkRecords, page: 2);
+    await loaded(FeatureQueryView.ygdkRecords, page: 1);
     expect(
       snapshot().details.every((d) => d.presentation is YgdkRecordPresentation),
       isTrue,
     );
     await tap(find.widgetWithText(TextButton, '完成'));
-    await tap(find.byTooltip('搜索与筛选'));
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '页码'))
-          .controller!
-          .text,
-      '2',
-    );
-    await tap(find.widgetWithText(TextButton, '完成'));
-    await tap(find.byTooltip('上一页'));
+    await tap(find.byTooltip('刷新当前查询'));
     await loaded(FeatureQueryView.ygdkRecords, page: 1);
-    expect(find.byType(TextField).evaluate().isEmpty, isTrue);
     debugPrint('生产阳光旧首页与记录分页完成，businessWrites=0');
   });
 }

@@ -107,7 +107,10 @@ FeatureResult roomData(FeatureQuery query, String state) {
     case FeatureQueryView.cgyyOrders:
     case FeatureQueryView.cgyyOrderDetail:
       final all = [
-        for (final id in [101, 102, 103])
+        for (final id
+            in state == 'paged'
+                ? List.generate(45, (i) => 101 + i)
+                : [101, 102, 103])
           FeatureDetail(
             title: '合成订单',
             presentation: CgyyOrderPresentation(
@@ -117,7 +120,7 @@ FeatureResult roomData(FeatureQuery query, String state) {
               reservationDateDetail: '2026-09-04 08:00–10:00',
               venueName: '合成甲楼$suffix',
               venueSpaceName: '合成研讨室 1$suffix',
-              theme: '课程讨论$suffix',
+              theme: state == 'paged' ? '连续订单$id' : '课程讨论$suffix',
               purposeTypeName: '学习类',
               orderStatus: id == 102 ? 2 : 1,
               checkStatus: id == 103 ? null : 1,
@@ -176,9 +179,9 @@ FeatureResult roomData(FeatureQuery query, String state) {
         pagination: FeaturePagination(
           page: page,
           size: size,
-          total: 3,
-          totalPages: (3 / size).ceil(),
-          hasMore: page * size < 3,
+          total: all.length,
+          totalPages: (all.length / size).ceil(),
+          hasMore: page * size < all.length,
         ),
       );
     case FeatureQueryView.cgyyPurposeTypes:
