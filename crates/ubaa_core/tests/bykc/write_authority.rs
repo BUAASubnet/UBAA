@@ -152,6 +152,38 @@ fn 博雅课程写边界仅在资格明确允许时按精确序列提交() {
 }
 
 #[test]
+fn 博雅详情空人数不阻止单次选课且保留服务器满员拒绝() {
+    let detail = SELECT_ALLOWED.replace("\"courseCurrentCount\":1", "\"courseCurrentCount\":null");
+    for (case, response, succeeds) in [
+        (
+            "null-count-ok",
+            r#"{"status":"0","data":{"message":"ok"}}"#,
+            true,
+        ),
+        (
+            "null-count-full",
+            r#"{"status":"1","errmsg":"人数已满","data":null}"#,
+            false,
+        ),
+    ] {
+        let (root, paths, result) = exercise(CourseWrite::Select, case, &detail, response);
+        assert_eq!(result.is_ok(), succeeds);
+        assert_eq!(
+            paths,
+            [
+                "/sscv/cas/login",
+                "/sscv/queryCourseById",
+                "/sscv/choseCourse"
+            ]
+        );
+        if !succeeds {
+            assert_ne!(result.unwrap_err().code, ErrorCode::OutcomeUnknown);
+        }
+        let _ = std::fs::remove_dir_all(root);
+    }
+}
+
+#[test]
 fn 博雅课程写前核对拒绝宽松信封且不发送写请求() {
     for (action, allowed) in [
         (CourseWrite::Select, SELECT_ALLOWED),

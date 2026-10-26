@@ -57,6 +57,7 @@ class FeatureDetailView extends StatefulWidget {
     this.onLoadAllGrades,
     this.onGradeRoutes,
     this.isBykcChosenDetail = false,
+    this.bykcListCourse,
     this.onOpenBykcChosen,
     required this.bykcFilters,
     required this.onBykcFiltersChanged,
@@ -106,6 +107,7 @@ class FeatureDetailView extends StatefulWidget {
   final int lockRefreshRevision;
   final GradesAggregateLoader? onLoadAllGrades;
   final ValueChanged<Map<String, ConnectionMode>>? onGradeRoutes;
+  final BykcCoursePresentation? bykcListCourse;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final BykcCourseFilters bykcFilters;
   final ValueChanged<BykcCourseFilters> onBykcFiltersChanged;
@@ -597,6 +599,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
       bykcCategories: _bykcCategories,
       bykcCampuses: _bykcCampuses,
       isBykcChosenDetail: widget.isBykcChosenDetail,
+      bykcListCourse: widget.bykcListCourse,
       onOpenBykcChosen: widget.onOpenBykcChosen,
       pagination: widget.snapshot.pagination,
       paginationGeneration: widget.paginationGeneration,

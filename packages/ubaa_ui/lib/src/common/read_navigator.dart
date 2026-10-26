@@ -78,6 +78,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     if (oldWidget.businessCacheEpoch != widget.businessCacheEpoch) {
       // 清理内容但保留返回路径、查询参数和当前页面key。
       for (final frame in _frames) {
+        frame.bykcCatalog = null;
         frame.feed.reset();
         frame.needsReload = false;
         frame.snapshot = FeatureSnapshot(
@@ -90,6 +91,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     if (oldWidget.cacheEpoch != widget.cacheEpoch) {
       final current = _current;
       for (final frame in _frames) {
+        frame.bykcCatalog = null;
         frame.feed.reset();
         if (frame.isLanding) {
           frame.needsReload = false;
@@ -331,6 +333,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     }
     setState(() {
       _externalAfterRevision = null;
+      frame.bykcCatalog = null;
       frame.feed.reset();
       frame.needsReload = false;
       if (frame.query == null || !query.hasSameParameters(frame.query!))
@@ -426,6 +429,13 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
             : FeatureLoadStatus.loading,
       ),
       target.query,
+      bykcCatalog:
+          target.feature == FeatureId.bykc &&
+              target.query.view == FeatureQueryView.bykcDetail &&
+              (_current.query?.view ?? FeatureQueryView.summary) ==
+                  FeatureQueryView.summary
+          ? cached
+          : null,
     );
     setState(() {
       _externalAfterRevision = null;
@@ -573,6 +583,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
                       ? frame.snapshot
                       : frame.visibleSnapshot,
                   isBykcChosenDetail: frame.bykcChosenKey != null,
+                  bykcListCourse: frame.bykcListCourse,
                   onOpenBykcChosen: _openBykcChosen,
                   query: frame.query,
                   backLabel: _frames.indexOf(frame) == 0 ? '返回功能列表' : '返回上一层',
@@ -602,7 +613,25 @@ class _ReadFrame {
     this.navigationQuery,
     this.bykcChosenKey,
     this.bykcChosenParentId,
+    this.bykcCatalog,
   }) : menuSnapshot = FeatureSnapshot(feature: snapshot.feature);
+  FeatureSnapshot? bykcCatalog;
+  BykcCoursePresentation? get bykcListCourse {
+    final catalog = bykcCatalog;
+    if (catalog == null ||
+        catalog.status != FeatureLoadStatus.success ||
+        catalog.evidence?.origin == DataOrigin.persisted ||
+        catalog.resolvedRoute == null ||
+        catalog.resolvedRoute != snapshot.resolvedRoute)
+      return null;
+    final matches = catalog.details
+        .map((detail) => detail.presentation)
+        .whereType<BykcCoursePresentation>()
+        .where((course) => '${course.id}' == query?.courseId)
+        .toList();
+    return matches.length == 1 ? matches.single : null;
+  }
+
   final bool isLanding;
   String? scheduleTitle;
   final FeatureQuery? navigationQuery;
@@ -687,6 +716,7 @@ class _ReadPage {
     this.onQuery,
     this.onNavigate,
     this.isBykcChosenDetail = false,
+    this.bykcListCourse,
     this.onOpenBykcChosen,
     this.onScheduleTitle,
   });
@@ -696,6 +726,7 @@ class _ReadPage {
   final String? moreError;
   final Future<void> Function()? onLoadMore;
   final bool isBykcChosenDetail;
+  final BykcCoursePresentation? bykcListCourse;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final GlobalKey<FeatureDetailViewState> pageKey;
   final bool isLanding;

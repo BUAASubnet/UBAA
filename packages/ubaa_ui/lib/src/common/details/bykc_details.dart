@@ -9,9 +9,17 @@ extension BykcDetails on _FeatureDetailListState {
     final theme = Theme.of(context);
     final select = detail.action<BykcSelectAction>();
     final deselect = detail.action<BykcDeselectAction>();
+    final listCourse = widget.bykcListCourse?.id == course.id
+        ? widget.bykcListCourse
+        : null;
+    final full =
+        uiBykcDisplayStatus(course) == BykcCourseStatus.full ||
+        listCourse != null &&
+            uiBykcDisplayStatus(listCourse) == BykcCourseStatus.full;
     final canSelect =
         select?.eligibility == ActionEligibility.allowed &&
-        select!.courseId > 0;
+        select!.courseId > 0 &&
+        !full;
     final canDeselect =
         deselect?.eligibility == ActionEligibility.allowed &&
         deselect!.courseId > 0;
@@ -33,7 +41,11 @@ extension BykcDetails on _FeatureDetailListState {
                   ),
                 ),
                 const SizedBox(height: 8),
-                BykcStatusChip(uiBykcDisplayStatus(course)),
+                BykcStatusChip(
+                  full && course.selected != true
+                      ? BykcCourseStatus.full
+                      : uiBykcDisplayStatus(course),
+                ),
               ],
             ),
           ),
@@ -43,7 +55,14 @@ extension BykcDetails on _FeatureDetailListState {
           BykcInfoLine('教师', course.courseTeacher),
           BykcInfoLine('地点', course.coursePosition),
           BykcInfoLine('课程编号', '${course.id}'),
-          BykcInfoLine('已报名', course.courseCurrentCount?.toString()),
+          BykcInfoLine(
+            course.courseCurrentCount == null &&
+                    listCourse?.courseCurrentCount != null
+                ? '已报名（列表）'
+                : '已报名',
+            (course.courseCurrentCount ?? listCourse?.courseCurrentCount)
+                ?.toString(),
+          ),
           BykcInfoLine('人数上限', course.courseMaxCount?.toString()),
           BykcInfoLine('类别', course.categoryDisplayName),
           ...uiBykcContactFields(course.supplement),
@@ -69,20 +88,25 @@ extension BykcDetails on _FeatureDetailListState {
           ),
         ]),
         ...uiBykcSupplementSections(course),
-        if (course.supplement case final supplement?) ...[
+        if (course.supplement case final supplement?
+            when supplement.signConfig != null ||
+                supplement.attendance != null) ...[
           const SizedBox(height: 12),
           BykcSection('签到信息', [
-            BykcInfoLine(
-              '考勤',
-              uiBykcCheckinLabel(supplement.attendance?.checkin),
-            ),
-            BykcInfoLine(
-              '考核',
-              supplement.attendance?.pass == null
-                  ? '考核未知'
-                  : uiBykcPassLabel(supplement.attendance!.pass),
-            ),
-            ...uiBykcDisplaySignFields(supplement.signConfig),
+            if (supplement.attendance != null)
+              BykcInfoLine(
+                '考勤',
+                uiBykcCheckinLabel(supplement.attendance?.checkin),
+              ),
+            if (supplement.attendance != null)
+              BykcInfoLine(
+                '考核',
+                supplement.attendance?.pass == null
+                    ? '考核未知'
+                    : uiBykcPassLabel(supplement.attendance!.pass),
+              ),
+            if (supplement.signConfig != null)
+              ...uiBykcDisplaySignFields(supplement.signConfig),
           ]),
         ],
         if (course.selected == true &&
@@ -132,9 +156,15 @@ extension BykcDetails on _FeatureDetailListState {
             ],
           ),
           if (!canSelect && !canDeselect)
-            const Padding(
+            Padding(
               padding: EdgeInsets.only(top: 8),
-              child: Text('当前没有可执行的选课或退选操作，请刷新后核对。'),
+              child: Text(
+                full
+                    ? '该课程人数已满，当前不可选择。'
+                    : select?.eligibility == ActionEligibility.unknown
+                    ? '选课状态不完整，请刷新课程详情后重试。'
+                    : '当前没有可执行的选课或退选操作，请刷新后核对。',
+              ),
             ),
         ],
       ],

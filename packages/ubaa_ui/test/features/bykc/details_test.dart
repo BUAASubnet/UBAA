@@ -7,6 +7,83 @@ import '../../support/navigation.dart';
 import '../../support/write_harness.dart';
 
 void main() {
+  testWidgets('详情继承同课程列表人数并阻止已满课程准备选课', (tester) async {
+    for (final (count, eligibility, route, enabled) in [
+      (3, ActionEligibility.allowed, ConnectionMode.direct, true),
+      (10, ActionEligibility.allowed, ConnectionMode.direct, false),
+      (3, ActionEligibility.unknown, ConnectionMode.direct, false),
+      (10, ActionEligibility.allowed, ConnectionMode.webvpn, true),
+    ]) {
+      final state = await _mount(tester);
+      state.catalog = [
+        FeatureDetail(
+          title: '合成列表人数',
+          presentation: BykcCoursePresentation(
+            id: 71,
+            courseName: '合成列表人数',
+            status: BykcCourseStatus.available,
+            selected: false,
+            courseCurrentCount: count,
+            courseMaxCount: 10,
+          ),
+          readNavigation: const FeatureReadNavigation(
+            feature: FeatureId.bykc,
+            query: FeatureQuery(
+              view: FeatureQueryView.bykcDetail,
+              courseId: '71',
+            ),
+          ),
+        ),
+      ];
+      state.detailRoute = route;
+      state.full = (_) => FeatureDetail(
+        title: '合成空人数详情',
+        presentation: const BykcCoursePresentation(
+          id: 71,
+          courseName: '合成空人数详情',
+          status: BykcCourseStatus.available,
+          selected: false,
+          isDetail: true,
+          courseMaxCount: 10,
+          supplement: BykcCourseSupplement(),
+        ),
+        actions: [BykcSelectAction(courseId: 71, eligibility: eligibility)],
+      );
+      state.update(() => state.snapshot = state.make(const FeatureQuery()));
+      await tester.pumpAndSettle();
+      await openFeature(tester, FeatureId.bykc);
+      await tester.tap(find.widgetWithText(Card, '合成列表人数'));
+      await tester.pumpAndSettle();
+      expect(
+        find.text('已报名（列表）'),
+        route == ConnectionMode.direct ? findsOneWidget : findsNothing,
+      );
+      await _show(tester, find.text('准备选课'));
+      final button = tester.widget<OutlinedButton>(
+        find.widgetWithText(OutlinedButton, '准备选课'),
+      );
+      expect(button.onPressed != null, enabled);
+      if (enabled) {
+        await tester.tap(find.widgetWithText(OutlinedButton, '准备选课'));
+        await tester.pumpAndSettle();
+        expect(state.preparedCourses, [(WriteOperation.bykcSelectCourse, 71)]);
+      }
+      if (count == 10 && route == ConnectionMode.direct) {
+        await tester.tap(find.byTooltip('刷新当前查询'));
+        await tester.pumpAndSettle();
+        await _show(tester, find.text('准备选课'));
+        expect(
+          tester
+              .widget<OutlinedButton>(
+                find.widgetWithText(OutlinedButton, '准备选课'),
+              )
+              .onPressed,
+          isNotNull,
+        );
+      }
+    }
+  });
+
   testWidgets('博雅三维筛选交集维度内并集，关闭往返刷新保留且重置清三维', (tester) async {
     final state = await _mount(tester);
     await openFeature(tester, FeatureId.bykc);
@@ -387,8 +464,11 @@ class _Scenario {
   late FeatureSnapshot snapshot;
   final queries = <FeatureQuery>[];
   final prepared = <BykcSignAction>[];
+  final preparedCourses = <(WriteOperation, int)>[];
+  FeatureDetail Function(String) full = _full;
   String username = 'synthetic-a';
   int revision = 1;
+  ConnectionMode detailRoute = ConnectionMode.direct;
   bool failFull = false;
   Completer<void>? pendingFull;
   List<FeatureDetail> catalog = [
@@ -420,6 +500,7 @@ class _Scenario {
   FeatureSnapshot make(FeatureQuery query, {bool loading = false}) =>
       FeatureSnapshot(
         feature: FeatureId.bykc,
+        resolvedRoute: isFull(query) ? detailRoute : ConnectionMode.direct,
         status: loading
             ? FeatureLoadStatus.loading
             : failFull && isFull(query)
@@ -438,7 +519,7 @@ class _Scenario {
         details: loading || failFull && isFull(query)
             ? const []
             : query.view == FeatureQueryView.bykcDetail
-            ? [_full(query.courseId!)]
+            ? [full(query.courseId!)]
             : query.view == FeatureQueryView.bykcChosenCourses
             ? chosenDetails(query)
             : catalog,
@@ -510,7 +591,10 @@ Future<_Scenario> _mount(WidgetTester tester, {bool home = false}) async {
             onRefresh: () async {},
             onRetryFeature: (_) async {},
             onFeatureQuery: (_, query) => state.load(query),
-            onPrepareBykcWrite: (_, __) async => throw StateError('合成场景未提交'),
+            onPrepareBykcWrite: (operation, id) async {
+              state.preparedCourses.add((operation, id));
+              throw StateError('仅观察准备入口');
+            },
             onPrepareBykcSignWrite: (action) async {
               state.prepared.add(action);
               throw StateError('仅观察准备入口');

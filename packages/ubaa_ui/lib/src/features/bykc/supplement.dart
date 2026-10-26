@@ -12,41 +12,51 @@ List<Widget> uiBykcContactFields(BykcCourseSupplement? supplement) => [
 List<Widget> uiBykcSupplementSections(BykcCoursePresentation course) {
   final supplement = course.supplement;
   if (supplement == null) return const [];
-  String audience(List<String> values) =>
-      values.isEmpty ? '未提供' : values.join('、');
+  String? audience(List<String> values) =>
+      values.isEmpty ? null : values.join('、');
   return [
-    const SizedBox(height: 12),
-    BykcSection('课程简介', [Text(supplement.descriptionPlainText ?? '未提供')]),
-    const SizedBox(height: 12),
-    BykcSection('适用范围', [
-      BykcInfoLine('校区', audience(course.audienceCampuses)),
-      BykcInfoLine('学院', audience(supplement.audienceColleges)),
-      BykcInfoLine('年级', audience(supplement.audienceTerms)),
-      BykcInfoLine('人群', audience(supplement.audienceGroups)),
-    ]),
+    if (supplement.descriptionPlainText case final description?) ...[
+      const SizedBox(height: 12),
+      BykcSection('课程简介', [Text(description)]),
+    ],
+    if (course.audienceCampuses.isNotEmpty ||
+        supplement.audienceColleges.isNotEmpty ||
+        supplement.audienceTerms.isNotEmpty ||
+        supplement.audienceGroups.isNotEmpty) ...[
+      const SizedBox(height: 12),
+      BykcSection('适用范围', [
+        BykcInfoLine('校区', audience(course.audienceCampuses)),
+        BykcInfoLine('学院', audience(supplement.audienceColleges)),
+        BykcInfoLine('年级', audience(supplement.audienceTerms)),
+        BykcInfoLine('人群', audience(supplement.audienceGroups)),
+      ]),
+    ],
   ];
 }
 
 List<Widget> uiBykcDisplaySignFields(BykcSignDisplayConfig? config) => [
   BykcInfoLine(
     '签到开始',
-    config?.signStartDate == null ? '未提供' : uiBykcDate(config!.signStartDate!),
+    config?.signStartDate == null ? null : uiBykcDate(config!.signStartDate!),
   ),
   BykcInfoLine(
     '签到结束',
-    config?.signEndDate == null ? '未提供' : uiBykcDate(config!.signEndDate!),
+    config?.signEndDate == null ? null : uiBykcDate(config!.signEndDate!),
   ),
   BykcInfoLine(
     '签退开始',
     config?.signOutStartDate == null
-        ? '未提供'
+        ? null
         : uiBykcDate(config!.signOutStartDate!),
   ),
   BykcInfoLine(
     '签退结束',
-    config?.signOutEndDate == null
-        ? '未提供'
-        : uiBykcDate(config!.signOutEndDate!),
+    config?.signOutEndDate == null ? null : uiBykcDate(config!.signOutEndDate!),
   ),
-  BykcInfoLine('签到地点', config == null ? '未提供' : '${config.signPointCount} 处'),
+  BykcInfoLine(
+    '签到地点',
+    config == null || config.signPointCount == 0
+        ? null
+        : '${config.signPointCount} 处',
+  ),
 ];

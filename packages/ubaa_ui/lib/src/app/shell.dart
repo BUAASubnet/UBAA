@@ -791,6 +791,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           setState(() => _gradesReadRoutes = Map.unmodifiable(routes));
         },
         isBykcChosenDetail: page.isBykcChosenDetail,
+        bykcListCourse: page.bykcListCourse,
         onOpenBykcChosen: page.onOpenBykcChosen,
         bykcFilters: _bykcFilters,
         bykcFilterError: _bykcFilterError,

@@ -75,6 +75,7 @@ class FeatureDetailList extends StatefulWidget {
     this.bykcCategories = const {},
     this.bykcCampuses = const {},
     this.isBykcChosenDetail = false,
+    this.bykcListCourse,
     this.onOpenBykcChosen,
     this.pagination,
     this.paginationGeneration = 0,
@@ -106,6 +107,7 @@ class FeatureDetailList extends StatefulWidget {
   final VoidCallback? onOpenFilterPanel;
   final Set<String> bykcCategories, bykcCampuses;
   final bool isBykcChosenDetail;
+  final BykcCoursePresentation? bykcListCourse;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final FeatureId feature;
   // 刷新中保留按钮及列表布局，只暂停旧结果携带的写入动作。

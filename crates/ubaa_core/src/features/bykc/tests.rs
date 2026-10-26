@@ -125,6 +125,59 @@ fn 博雅选课资格缺失关键字段时为_unknown() {
 }
 
 #[test]
+fn 博雅详情人数为空仍可选且不伪造零人数() {
+    let now = NaiveDateTime::parse_from_str("2026-09-03 12:00:00", "%Y-%m-%d %H:%M:%S").unwrap();
+    for missing in [false, true] {
+        let mut value = serde_json::json!({
+            "id":42,"courseName":"合成可选课程","selected":false,
+            "courseStartDate":"2026-09-05 08:00:00",
+            "courseSelectStartDate":"2026-09-01 08:00:00",
+            "courseSelectEndDate":"2026-09-04 08:00:00",
+            "courseMaxCount":10,"courseCurrentCount":null
+        });
+        if missing {
+            value.as_object_mut().unwrap().remove("courseCurrentCount");
+        }
+        let result = super::parser::course(&value, now).unwrap();
+        assert_eq!(result.course_current_count, None);
+        assert_eq!(result.select_eligibility, ActionEligibility::Allowed);
+        for (key, bad) in [
+            ("selected", serde_json::Value::Null),
+            ("courseMaxCount", serde_json::Value::Null),
+            ("courseCurrentCount", serde_json::json!("无效人数")),
+            ("courseCurrentCount", serde_json::json!(-1)),
+        ] {
+            let mut invalid = value.clone();
+            invalid[key] = bad;
+            assert_eq!(
+                super::parser::course(&invalid, now)
+                    .unwrap()
+                    .select_eligibility,
+                ActionEligibility::Unknown,
+                "{key} 无效时不能成为选课依据"
+            );
+        }
+        for (key, denied) in [
+            ("selected", serde_json::json!(true)),
+            ("courseCurrentCount", serde_json::json!(10)),
+            (
+                "courseSelectEndDate",
+                serde_json::json!("2026-09-02 08:00:00"),
+            ),
+        ] {
+            let mut invalid = value.clone();
+            invalid[key] = denied;
+            assert_eq!(
+                super::parser::course(&invalid, now)
+                    .unwrap()
+                    .select_eligibility,
+                ActionEligibility::Denied
+            );
+        }
+    }
+}
+
+#[test]
 fn 博雅选课资格仅在完整且当前可选时为_allowed() {
     let now = NaiveDateTime::parse_from_str("2026-09-03 12:00:00", "%Y-%m-%d %H:%M:%S")
         .expect("解析固定时间");

@@ -70,7 +70,7 @@ pub(super) fn course(value: &Value, now: NaiveDateTime) -> Result<BykcCourse> {
         course_max_count,
         now,
     );
-    let select_eligibility = select_eligibility(
+    let mut select_eligibility = select_eligibility(
         course_start_date.as_deref(),
         course_select_start_date.as_deref(),
         course_select_end_date.as_deref(),
@@ -80,6 +80,13 @@ pub(super) fn course(value: &Value, now: NaiveDateTime) -> Result<BykcCourse> {
         status,
         now,
     );
+    if m.get("courseCurrentCount")
+        .is_some_and(|value| !value.is_null() && course_current_count.is_none())
+        || course_current_count.is_some_and(|count| count < 0)
+        || course_max_count.is_some_and(|count| count < 0)
+    {
+        select_eligibility = ActionEligibility::Unknown;
+    }
     let deselect_eligibility =
         deselect_eligibility(id, selected, course_start_date.as_deref(), now);
     Ok(BykcCourse {
@@ -158,7 +165,7 @@ fn select_eligibility(
     let Some(selected) = selected else {
         return ActionEligibility::Unknown;
     };
-    let (Some(current_count), Some(max_count)) = (current_count, max_count) else {
+    let Some(max_count) = max_count else {
         return ActionEligibility::Unknown;
     };
     let (Some(select_start), Some(select_end)) =
@@ -168,7 +175,8 @@ fn select_eligibility(
     };
 
     if selected
-        || (max_count > 0 && current_count >= max_count)
+        // 冻结来源允许详情人数为空；最终名额由学校选课接口判定。
+        || (max_count > 0 && current_count.is_some_and(|count| count >= max_count))
         || now < select_start
         || now > select_end
         || status != BykcCourseStatus::Available
