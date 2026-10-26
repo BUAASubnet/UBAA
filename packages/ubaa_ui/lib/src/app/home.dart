@@ -54,7 +54,7 @@ class HomeView extends StatefulWidget {
   final int cacheEpoch;
   final int businessCacheEpoch;
   final ValueChanged<HomeTodo> onTodoTap;
-  final Future<void> Function(SigninPerformAction)? onSignin;
+  final Future<WriteOutcome?> Function(SigninPerformAction)? onSignin;
   final Future<FeatureResult> Function(HomeSupplement, bool)? onLoadSupplement;
   final Future<FeatureResult> Function(String, bool)? onLoadDaySchedule;
   final YgdkReminderSettings? reminderSettings;
@@ -65,6 +65,51 @@ class HomeView extends StatefulWidget {
 
 class _HomeViewState extends State<HomeView> {
   bool _showAllTodos = false;
+  String? _signingTodo;
+  final _completedSignins = <String>{};
+  final _uncertainSignins = <String>{};
+  String _signinKey(HomeTodo item) =>
+      '${homeCampusTime(_now).toIso8601String().split('T').first}:${item.id}';
+
+  Future<void> _signin(HomeTodo item) async {
+    if (_signingTodo != null) return;
+    final action = item.signinAction;
+    if (action == null || widget.onSignin == null) return;
+    final key = _signinKey(item);
+    setState(() => _signingTodo = item.id);
+    try {
+      final outcome = await widget.onSignin!(action);
+      if (!mounted) return;
+      setState(() {
+        if (outcome?.operation == WriteOperation.signinPerform &&
+            outcome?.result?.success == true &&
+            outcome?.result?.outcomeUnknown == false) {
+          _completedSignins.add(key);
+        } else if (outcome?.result?.outcomeUnknown == true ||
+            outcome?.error?.code == UbaaErrorCode.outcomeUnknown) {
+          _uncertainSignins.add(key);
+        }
+      });
+    } finally {
+      if (mounted) setState(() => _signingTodo = null);
+    }
+  }
+
+  Future<void> _refreshSignin(HomeTodo item) async {
+    if (_signingTodo != null) return;
+    setState(() => _signingTodo = item.id);
+    try {
+      await widget.onRetryFeature(FeatureId.signin);
+      if (mounted &&
+          widget.snapshots[FeatureId.signin]?.status ==
+              FeatureLoadStatus.success) {
+        setState(() => _uncertainSignins.remove(_signinKey(item)));
+      }
+    } finally {
+      if (mounted) setState(() => _signingTodo = null);
+    }
+  }
+
   HomeScheduleRoute? _calendarRoute;
   final _supplements = <HomeSupplement, FeatureResult>{};
   final _loading = <HomeSupplement>{};
@@ -313,7 +358,9 @@ class _HomeViewState extends State<HomeView> {
             week != null && reminder?.termDoneKey == week.responseTerm,
       );
     }
-    final tasks = _todos;
+    final tasks = _todos
+        .where((task) => !_completedSignins.contains(_signinKey(task)))
+        .toList();
     final overview = sources[FeatureId.ygdk]?.overview;
     if (widget.visible &&
         week != null &&
@@ -404,8 +451,17 @@ class _HomeViewState extends State<HomeView> {
                 item: task,
                 now: campusNow,
                 onTap: () => widget.onTodoTap(task),
-                onSignin: task.signinAction != null && widget.onSignin != null
-                    ? () => widget.onSignin!(task.signinAction!)
+                signing: _signingTodo == task.id,
+                signinUncertain: _uncertainSignins.contains(_signinKey(task)),
+                onSignin:
+                    _signingTodo == null &&
+                        task.signinAction != null &&
+                        widget.onSignin != null &&
+                        !_uncertainSignins.contains(_signinKey(task))
+                    ? () => _signin(task)
+                    : null,
+                onRefreshSignin: _signingTodo == null
+                    ? () => _refreshSignin(task)
                     : null,
               ),
           ],
@@ -543,11 +599,15 @@ class _HomeTodoCard extends StatelessWidget {
     required this.now,
     required this.onTap,
     this.onSignin,
+    this.onRefreshSignin,
+    this.signing = false,
+    this.signinUncertain = false,
   });
   final HomeTodo item;
   final DateTime now;
   final VoidCallback onTap;
-  final Future<void> Function()? onSignin;
+  final Future<void> Function()? onSignin, onRefreshSignin;
+  final bool signing, signinUncertain;
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -555,7 +615,11 @@ class _HomeTodoCard extends StatelessWidget {
       color: theme.colorScheme.surfaceContainerLow,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: item.navigation == null ? null : onTap,
+        onTap: item.feature == FeatureId.signin
+            ? (signing ? null : onSignin ?? onRefreshSignin)
+            : item.navigation == null
+            ? null
+            : onTap,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Row(
@@ -579,7 +643,14 @@ class _HomeTodoCard extends StatelessWidget {
                               _homeLabel(item.feature),
                               accented: true,
                             ),
-                            _homeChip(context, item.statusLabel),
+                            _homeChip(
+                              context,
+                              item.feature == FeatureId.signin && signing
+                                  ? '签到处理中'
+                                  : signinUncertain
+                                  ? '结果待确认'
+                                  : item.statusLabel,
+                            ),
                           ],
                         ),
                         const SizedBox(height: 6),
@@ -617,8 +688,14 @@ class _HomeTodoCard extends StatelessWidget {
                 const SizedBox(width: 8),
                 Center(
                   child: FilledButton(
-                    onPressed: onSignin,
-                    child: const Text('签到'),
+                    onPressed: signing ? null : onSignin ?? onRefreshSignin,
+                    child: Text(
+                      signing
+                          ? '处理中…'
+                          : onSignin != null
+                          ? '签到'
+                          : '刷新状态',
+                    ),
                   ),
                 ),
               ] else if (item.navigation != null)

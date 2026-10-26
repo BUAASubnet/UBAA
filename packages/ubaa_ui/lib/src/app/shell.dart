@@ -239,6 +239,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   int _accountGeneration = 0;
   int _lockRefreshRevision = 0;
   final Map<FeatureId, GlobalKey<FeatureReadNavigatorState>> _readPageKeys = {};
+  bool _homeSigninActive = false;
+  void _setHomeSigninActive(bool active) =>
+      setState(() => _homeSigninActive = active);
 
   bool get _hasWriteCommands =>
       widget.onRunWritePrepare != null &&
@@ -425,7 +428,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 600;
-    final pendingWrite = widget.writeState.intent;
+    final pendingWrite =
+        _homeSigninActive &&
+            widget.writeState.intent?.operation == WriteOperation.signinPerform
+        ? null
+        : widget.writeState.intent;
     const maxContentWidth = UbaaTheme.pageMaxWidth;
     if (_openedFeature case final feature?) _visitedFeatures.add(feature);
     final pages = _visitedFeatures.toList(growable: false);
@@ -911,7 +918,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             onOpenGradeNotice: _openGradeNotice,
             onDismissGradeNotice: widget.onConsumeGradeNotice,
             onSignin: _hasWriteCommands && widget.onPrepareSigninWrite != null
-                ? _startSigninWrite
+                ? _performHomeSignin
                 : null,
             reminderSettings: _reminderSettings,
             onObserveProgress: _observeHomeProgress,

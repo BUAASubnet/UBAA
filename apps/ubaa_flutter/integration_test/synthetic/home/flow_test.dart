@@ -10,14 +10,15 @@ import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'backend.dart';
+import 'package:ubaa_app/ubaa_app.dart';
 import 'scroll.dart';
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   WidgetController.hitTestWarningShouldBeFatal = true;
   for (final brightness in Brightness.values) {
-    testWidgets('首页七来源布局直达详情与合成签到取消 ${brightness.name}', (tester) async {
-      final backend = HomeBackend();
+    testWidgets('首页七来源布局直达详情与合成直接签到 ${brightness.name}', (tester) async {
+      final backend = _SigninHomeBackend();
       await mount(tester, backend, brightness);
       Future<void> shot(String name, String steps) =>
           capture(binding, tester, '${brightness.name}-normal-$name', steps);
@@ -29,8 +30,10 @@ void main() {
       await shot('todos', '七来源按时间混合排序，旧来源和状态标签');
       await tap(tester, find.widgetWithText(FilledButton, '签到'));
       expect(backend.preparedSignin, ['signin-target']);
-      await shot('signin-confirm', '明确合成目标prepare，未执行commit');
-      await tap(tester, find.widgetWithText(OutlinedButton, '取消'));
+      expect(backend.commitCalls, 1);
+      expect(find.text('合成签到待办'), findsNothing);
+      expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
+      await shot('signin-success', '仅合成后端提交一次，首页移除签到卡片且不跳转');
       for (final (title, view) in [
         ('合成考试待办', FeatureQueryView.examArranged),
         ('合成博雅待办', FeatureQueryView.bykcDetail),
@@ -63,7 +66,7 @@ void main() {
       await tap(tester, find.byTooltip('返回'));
       expect(find.text('本周阳光打卡未达标'), findsNothing);
       await shot('home-reminder-off', '返回首页保留滚动和关闭状态');
-      expect(backend.commitCalls, 0);
+      expect(backend.commitCalls, 1);
     });
     for (final state in [
       'empty',
@@ -218,4 +221,34 @@ Future<void> runInspection() async {
     ),
   );
   return;
+}
+
+/// 仅本入口使用的签到内存后端，无 Core、网络和真实账号。
+class _SigninHomeBackend extends HomeBackend
+    implements PinnedWriteReadbackBackend {
+  bool completed = false;
+  @override
+  Future<WriteCommitResult> commitWrite(String intentId) async {
+    if (preparedSignin.length != 1) throw StateError('合成签到必须先准备');
+    commitCalls++;
+    completed = true;
+    return const WriteCommitResult(
+      operation: WriteOperation.signinPerform,
+      success: true,
+      outcomeUnknown: false,
+      message: '合成签到成功',
+    );
+  }
+
+  @override
+  Future<FeatureResult> readAfterWriteOnRoute(
+    WriteOperation operation, {
+    required ConnectionMode route,
+    FeatureQuery? query,
+  }) async {
+    expect(operation, WriteOperation.signinPerform);
+    expect(route, ConnectionMode.direct);
+    expect(completed, isTrue);
+    return const FeatureResult.empty(resolvedRoute: ConnectionMode.direct);
+  }
 }

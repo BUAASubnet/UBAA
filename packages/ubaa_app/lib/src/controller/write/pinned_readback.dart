@@ -35,7 +35,13 @@ Future<void> controllerPinnedWriteReadback(
   final scope = controller.internalCaptureSessionScope();
   final generation = controller.internalNextFeatureGeneration(feature);
   controller.internalCacheLifecycle.invalidateReads();
-  controller.internalBeginFeatureRead(feature, generation, readQuery);
+  final context = controller.internalBeginFeatureRead(
+    feature,
+    generation,
+    readQuery,
+  );
+  if (feature == FeatureId.signin)
+    controller.internalBeginHomeDefault(feature, context);
   controller.internalNotify();
   if (!scope.isCurrent) return;
   try {
@@ -50,6 +56,8 @@ Future<void> controllerPinnedWriteReadback(
       generation,
       scope.lifecycle,
     )) {
+      if (feature == FeatureId.signin)
+        controller.internalAcceptHomeDefault(feature, result, context);
       controller.internalNotify();
     }
   } on Object catch (error, stackTrace) {
@@ -76,6 +84,13 @@ Future<void> controllerPinnedWriteReadback(
       ),
       updatedAt: DateTime.now(),
     );
+    if (feature == FeatureId.signin) {
+      controller.internalAcceptHomeDefault(
+        feature,
+        FeatureResult.failure(controller.internalSnapshots[feature]!.error!),
+        context,
+      );
+    }
     controller.internalNotify();
   }
 }

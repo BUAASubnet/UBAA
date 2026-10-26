@@ -142,3 +142,47 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     ).showSnackBar(SnackBar(content: Text(outcome.message)));
   }
 }
+
+extension UbaaHomeSignin on _UbaaMainShellState {
+  Future<WriteOutcome?> _performHomeSignin(SigninPerformAction action) async {
+    final run = widget.onRunWritePrepare;
+    final prepare = widget.onPrepareSigninWrite;
+    final confirm = widget.onConfirmWrite;
+    if (_homeSigninActive ||
+        widget.writeState.isSubmitting ||
+        widget.writeState.intent != null ||
+        run == null ||
+        prepare == null ||
+        confirm == null ||
+        action.eligibility != ActionEligibility.allowed ||
+        action.scheduleId.trim().isEmpty)
+      return null;
+    final generation = _accountGeneration;
+    _setHomeSigninActive(true);
+    try {
+      final intent = await run(
+        () => prepare(action),
+        expectedOperation: action.operation,
+      );
+      if (!mounted || generation != _accountGeneration || intent == null)
+        return null;
+      final outcome = await confirm();
+      if (!mounted || generation != _accountGeneration) return null;
+      if (outcome != null) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(SnackBar(content: Text(outcome.message)));
+      }
+      return outcome;
+    } on Object {
+      if (mounted && generation == _accountGeneration) {
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('签到未完成，请刷新状态后重试。')));
+      }
+      return null;
+    } finally {
+      if (mounted) _setHomeSigninActive(false);
+    }
+  }
+}

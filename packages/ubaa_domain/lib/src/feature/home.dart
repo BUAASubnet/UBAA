@@ -327,10 +327,10 @@ HomeTodo? _homeDetail(
       title: detail.title,
       subtitle: '课程签到',
       statusLabel: !fresh
-          ? '上次未签到'
+          ? '状态待更新'
           : now.isBefore(start)
           ? '即将签到'
-          : '签到中',
+          : '待签到',
       timeLabel: '${_clockHome(start)}–${_clockHome(end)}',
       sortTime: start,
       startsAt: start,

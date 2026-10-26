@@ -118,7 +118,7 @@ void main() {
     expect(find.text('合成下午课程'), findsOneWidget);
     expect(backend.commitCalls, 0);
   });
-  testWidgets('首页课堂签到只使用原typed目标准备并取消，阳光提醒可关闭', (tester) async {
+  testWidgets('首页课堂签到使用原typed目标直接提交，未知结果保留待办且阳光提醒可关闭', (tester) async {
     final backend = HomeBackend();
     await tester.pumpWidget(
       UbaaFlutterApp(
@@ -131,9 +131,11 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, '签到'));
     await tester.pumpAndSettle();
     expect(backend.preparedSignin, ['signin-target']);
-    await tester.tap(find.widgetWithText(OutlinedButton, '取消'));
-    await tester.pumpAndSettle();
-    expect(backend.commitCalls, 0);
+    expect(backend.commitCalls, 1);
+    expect(find.text('合成签到待办'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
+    await tester.pump(const Duration(seconds: 2));
+    expect(backend.commitCalls, 1);
     await ensureHomeTodo(tester, find.text('本周阳光打卡未达标'));
     await tester.tap(find.text('本周阳光打卡未达标'));
     await tester.pumpAndSettle();
