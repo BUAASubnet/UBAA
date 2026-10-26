@@ -131,17 +131,26 @@ class BykcStatusChip extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final emphasized =
+        status == BykcCourseStatus.available ||
+        status == BykcCourseStatus.selected;
     return Container(
-      constraints: const BoxConstraints(maxWidth: 112),
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      constraints: const BoxConstraints(minHeight: 34),
+      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
       decoration: BoxDecoration(
-        color: theme.colorScheme.secondaryContainer,
-        borderRadius: BorderRadius.circular(16),
+        color: emphasized
+            ? colors.primaryContainer
+            : colors.surfaceContainerHighest,
+        borderRadius: BorderRadius.circular(18),
       ),
       child: Text(
         uiBykcStatusLabel(status),
-        style: theme.textTheme.labelMedium?.copyWith(
-          color: theme.colorScheme.onSecondaryContainer,
+        style: theme.textTheme.labelLarge?.copyWith(
+          fontWeight: FontWeight.w600,
+          color: emphasized
+              ? colors.onPrimaryContainer
+              : colors.onSurfaceVariant,
         ),
       ),
     );
