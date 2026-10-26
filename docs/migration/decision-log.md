@@ -1,5 +1,11 @@
 # 决策索引
 
+## 2026-10-26：统一临时提示并保留博雅选退页面
+
+统一使用 Flutter 官方 SnackBar 和 ScaffoldMessenger，提供限宽浮动提示、明暗主题、消息替换及辅助导航支持。已评估 `toastification` 的通知样式和队列能力；当前需求由已有 Flutter 组件覆盖，因此不新增依赖。临时消息入口集中到 `UbaaFeedback`，确认弹窗和页面错误继续承担确认与恢复操作。博雅写后失效不再显示为整页错误，保留列表展示并等待新读结果，旧数据不能提供新写入资格。来源与验证见[反馈记录](bykc-detail-2026-10-26.md#选退反馈与列表保留)，样式规则见[UI 规格](../design/flutter-ui-spec.md)。
+
+方案资料：[Flutter SnackBar](https://api.flutter.dev/flutter/material/SnackBar-class.html)、[ScaffoldMessenger](https://api.flutter.dev/flutter/material/ScaffoldMessenger-class.html) 和 [toastification](https://pub.dev/packages/toastification)。实现同时核对仓库锁定的 Flutter 3.41.9 源码，确认浮动宽度、关闭按钮和 persist 参数可用。
+
 ## 2026-10-26：博雅课程卡片紧凑布局
 
 按用户反馈，分类、校区和“自主签到”统一为标签，课程状态增加字号和内边距。宽屏把教师／地点与时间安排分成两列，窄屏按顺序展示。报名进度限制最大宽度，与选退按钮同排；已选卡片将考勤与退选放入同一操作区。保留实际字段与既有点击行为，复用交互和原生场景验证。见[卡片布局记录](bykc-detail-2026-10-26.md#课程卡片布局调整)。

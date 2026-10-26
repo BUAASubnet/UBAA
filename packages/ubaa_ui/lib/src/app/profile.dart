@@ -1,3 +1,4 @@
+import '../shared/feedback.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -260,8 +261,10 @@ class ProfileView extends StatelessWidget {
         await onLogoutAndClearAccount();
       } on Object {
         if (messenger?.mounted == true) {
-          messenger!.showSnackBar(
-            const SnackBar(content: Text('本机数据未能完全清除，请稍后重试。')),
+          UbaaFeedback.showOn(
+            messenger!,
+            '本机数据未能完全清除，请稍后重试。',
+            kind: UbaaFeedbackKind.error,
           );
         }
       }

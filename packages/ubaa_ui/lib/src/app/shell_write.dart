@@ -78,6 +78,8 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     final policy = widget.routePolicy;
     final page = _readPageKeys[FeatureId.bykc]?.currentState;
     var attempted = false;
+    WriteOutcome? outcome;
+    String? failure;
     WriteIntent? intent;
     _setBykcWriteActive((operation, courseId));
     page?.beginBykcCourseWrite();
@@ -92,22 +94,10 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
           intent == null)
         return;
       attempted = true;
-      final outcome = await confirm();
-      if (!mounted || generation != _accountGeneration) return;
-      if (outcome != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(outcome.message)));
-      }
+      outcome = await confirm();
     } on Object {
       if (mounted && generation == _accountGeneration) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(
-              attempted ? '操作结果未确认，请刷新课程状态后核对。' : '未能提交，请刷新课程状态后重试。',
-            ),
-          ),
-        );
+        failure = attempted ? '结果待核实，请刷新后确认，勿重复提交' : '未能提交，请刷新后重试';
       }
     } finally {
       // 过期或失效的准备结果不能在直接操作结束后变成意外确认页。
@@ -119,14 +109,43 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
         await _cancelWrite();
       }
       try {
-        if (mounted && generation == _accountGeneration) {
-          await page?.finishBykcCourseWrite(refresh: attempted);
+        if (mounted &&
+            generation == _accountGeneration &&
+            policy == widget.routePolicy) {
+          final refreshed = await page?.finishBykcCourseWrite(
+            refresh: attempted,
+          );
+          if (!mounted ||
+              generation != _accountGeneration ||
+              policy != widget.routePolicy)
+            return;
+          if (failure != null) {
+            UbaaFeedback.show(context, failure, kind: UbaaFeedbackKind.warning);
+          } else if (outcome != null) {
+            final success =
+                outcome.result?.success == true &&
+                outcome.result?.outcomeUnknown != true;
+            final label = operation == WriteOperation.bykcSelectCourse
+                ? '选课'
+                : '退选';
+            UbaaFeedback.show(
+              context,
+              success
+                  ? (refreshed == true ? '$label成功' : '$label成功，列表暂未更新')
+                  : outcome.message,
+              kind: success && refreshed == true
+                  ? UbaaFeedbackKind.success
+                  : UbaaFeedbackKind.warning,
+            );
+          }
         }
       } on Object {
         if (mounted && generation == _accountGeneration) {
-          ScaffoldMessenger.of(
+          UbaaFeedback.show(
             context,
-          ).showSnackBar(const SnackBar(content: Text('课程状态刷新失败，请手动刷新后核对。')));
+            '列表暂未更新，请刷新后核对',
+            kind: UbaaFeedbackKind.warning,
+          );
         }
       } finally {
         if (mounted) _setBykcWriteActive(null);
@@ -227,9 +246,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       await run(prepare, expectedOperation: expectedOperation);
     } on Object {
       if (!mounted) return;
-      ScaffoldMessenger.of(
-        context,
-      ).showSnackBar(SnackBar(content: Text(failureMessage)));
+      UbaaFeedback.show(context, failureMessage, kind: UbaaFeedbackKind.error);
     }
   }
 
@@ -240,9 +257,11 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       await cancel();
     } on Object {
       if (!mounted) return;
-      ScaffoldMessenger.of(
+      UbaaFeedback.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('暂时无法取消待确认操作，请重试。')));
+        '暂时无法取消待确认操作，请重试。',
+        kind: UbaaFeedbackKind.error,
+      );
     }
   }
 
@@ -251,18 +270,18 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
     if (intent == null || widget.writeState.isSubmitting) return;
     if (intent.operation == WriteOperation.ygdkSubmit &&
         !_hasYgdkSubmissionCapabilities) {
-      ScaffoldMessenger.of(
+      UbaaFeedback.show(
         context,
-      ).showSnackBar(const SnackBar(content: Text('暂时无法打卡；未提交，请重试。')));
+        '暂时无法打卡；未提交，请重试。',
+        kind: UbaaFeedbackKind.error,
+      );
       return;
     }
     final confirm = widget.onConfirmWrite;
     if (confirm == null) return;
     final outcome = await confirm();
     if (!mounted || outcome == null) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(outcome.message)));
+    UbaaFeedback.showOutcome(context, outcome);
   }
 }
 
@@ -292,16 +311,16 @@ extension UbaaHomeSignin on _UbaaMainShellState {
       final outcome = await confirm();
       if (!mounted || generation != _accountGeneration) return null;
       if (outcome != null) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(SnackBar(content: Text(outcome.message)));
+        UbaaFeedback.showOutcome(context, outcome);
       }
       return outcome;
     } on Object {
       if (mounted && generation == _accountGeneration) {
-        ScaffoldMessenger.of(
+        UbaaFeedback.show(
           context,
-        ).showSnackBar(const SnackBar(content: Text('签到未完成，请刷新状态后重试。')));
+          '签到未完成，请刷新状态后重试。',
+          kind: UbaaFeedbackKind.error,
+        );
       }
       return null;
     } finally {

@@ -178,7 +178,6 @@ void _registerInitialWriteTests() {
     expect(commitCalls, 1);
     expect(refreshCalls, 1);
     expect(committedIntent, 'intent-42');
-    expect(find.text('已提交，请刷新已选课程确认'), findsOneWidget);
 
     await tester.tap(find.text('退选'));
     await tester.pumpAndSettle();

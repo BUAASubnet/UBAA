@@ -41,9 +41,13 @@ extension _UbaaAppHostWidgets on _UbaaAppHostState {
           return;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (!_disposed && stamp == _scheduleWidgetStamp) {
-            _messengerKey.currentState?.showSnackBar(
-              const SnackBar(content: Text('桌面课表暂时不可用，请重新保存课表后重试。')),
-            );
+            final messenger = _messengerKey.currentState;
+            if (messenger != null)
+              UbaaFeedback.showOn(
+                messenger,
+                '桌面课表暂时不可用，请重新保存课表后重试。',
+                kind: UbaaFeedbackKind.warning,
+              );
           }
         });
       }),

@@ -8,12 +8,52 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'backend.dart';
+import 'feedback_backend.dart';
 part 'support.dart';
 
 void main() {
   WidgetController.hitTestWarningShouldBeFatal = true;
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   for (final brightness in Brightness.values) {
+    testWidgets('博雅原生选课回读期间保留卡片 ${brightness.name}', (tester) async {
+      final backend = BoyaFeedbackBackend();
+      await _mount(tester, backend, brightness, 'courses');
+      final card = find.widgetWithText(Card, '合成课程 1');
+      final action = find.descendant(
+        of: card,
+        matching: find.widgetWithText(OutlinedButton, '选课'),
+      );
+      await _ensure(tester, action);
+      await tester.tap(action);
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(backend.readbacks, 1);
+      expect(card, findsOneWidget);
+      await _shot(
+        binding,
+        tester,
+        '${brightness.name}-write-readback',
+        '固定路线回读时保留列表和按钮内进度',
+      );
+      backend.readback.complete();
+      await tester.pump(const Duration(milliseconds: 100));
+      expect(card, findsOneWidget);
+      backend.refresh.complete();
+      await tester.pumpAndSettle();
+      expect(backend.commitCalls, 1);
+      expect(
+        find.descendant(
+          of: card,
+          matching: find.widgetWithText(OutlinedButton, '退选'),
+        ),
+        findsOneWidget,
+      );
+      await _shot(
+        binding,
+        tester,
+        '${brightness.name}-write-feedback',
+        '刷新完成后原地更新课程并显示浮动反馈',
+      );
+    });
     testWidgets('博雅原生列表直接选退保持原页 ${brightness.name}', (tester) async {
       final backend = BoyaBackend();
       await _mount(tester, backend, brightness, 'courses');

@@ -1,3 +1,4 @@
+import '../shared/feedback.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
@@ -103,9 +104,7 @@ Future<void> _copyDiagnosticText(BuildContext context, String text) async {
     message = '复制失败，请手动选择文字';
   }
   if (context.mounted) {
-    ScaffoldMessenger.maybeOf(
-      context,
-    )?.showSnackBar(SnackBar(content: Text(message)));
+    UbaaFeedback.show(context, message);
   }
 }
 

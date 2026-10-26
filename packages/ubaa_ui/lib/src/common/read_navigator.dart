@@ -37,18 +37,113 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
   int? _externalAfterRevision;
   bool _reloadScheduled = false;
   _ReadFrame? _bykcWriteFrame;
+  FeatureQuery? _bykcRefreshQuery;
+  FeatureSnapshot? _bykcRefreshSnapshot;
 
   void beginBykcCourseWrite() => _bykcWriteFrame = _current;
 
-  Future<void> finishBykcCourseWrite({required bool refresh}) async {
+  void cancelBykcCourseWrite() {
+    _bykcWriteFrame = null;
+    _bykcRefreshQuery = null;
+    _bykcRefreshSnapshot = null;
+  }
+
+  Future<bool> finishBykcCourseWrite({required bool refresh}) async {
     final frame = _bykcWriteFrame;
     try {
-      if (!mounted || !identical(frame, _current)) return;
-      if (refresh) await refreshCurrent();
-      // 宿主通知在下一帧才传入；先应用写后失效和读取，再释放返回路径。
+      if (!mounted || frame == null || !identical(frame, _current))
+        return false;
+      if (refresh && widget.onQuery != null) {
+        final old = frame.snapshot;
+        final paged = PagedResults.supports(old.feature, frame.query);
+        final lastPage = old.pagination?.page ?? 1;
+        var query = frame.query ?? const FeatureQuery();
+        if (paged)
+          query = query.copyWith(page: PagedResults.firstPage(old.feature));
+        frame.resetFeed(preservePosition: true);
+        while (true) {
+          _bykcRefreshQuery = query;
+          _bykcRefreshSnapshot = null;
+          await widget.onQuery!(query);
+          // 宿主状态在下一帧传入，等待本次查询结果后再更新可见列表。
+          await WidgetsBinding.instance.endOfFrame;
+          if (!mounted ||
+              !identical(_bykcWriteFrame, frame) ||
+              !identical(frame, _current))
+            return false;
+          final result = _bykcRefreshSnapshot;
+          if (result == null ||
+              result.error != null ||
+              (paged &&
+                  result.status == FeatureLoadStatus.success &&
+                  result.pagination?.page != query.page) ||
+              !const {
+                FeatureLoadStatus.success,
+                FeatureLoadStatus.empty,
+              }.contains(result.status)) {
+            setState(() {
+              frame.resetFeed(preservePosition: true);
+              frame.needsReload = false;
+              frame.query = query;
+              _externalAfterRevision = null;
+              frame.snapshot = old.copyWith(
+                status: FeatureLoadStatus.stale,
+                details: readonlyFeatureDetails(old.details),
+                error: result?.error ?? _invalidatedError,
+              );
+            });
+            await WidgetsBinding.instance.endOfFrame;
+            return false;
+          }
+          final next = frame.feed.accept(result, query);
+          final nextQuery = paged && (result.pagination?.page ?? 1) < lastPage
+              ? frame.feed.begin(next, query)
+              : null;
+          if (nextQuery != null) {
+            query = nextQuery;
+            continue;
+          }
+          setState(() {
+            frame.snapshot = next;
+            frame.query = query;
+            frame.needsReload = false;
+            _externalAfterRevision = null;
+            for (final parent in _frames) {
+              if (parent.id == frame.bykcChosenParentId) {
+                parent.snapshot = next;
+                parent.needsReload = false;
+              }
+            }
+          });
+          break;
+        }
+      }
       await WidgetsBinding.instance.endOfFrame;
+      return true;
+    } on Object catch (error) {
+      if (mounted &&
+          identical(_bykcWriteFrame, frame) &&
+          identical(frame, _current)) {
+        setState(() {
+          frame!.resetFeed(preservePosition: true);
+          frame.needsReload = false;
+          frame.query = _bykcRefreshQuery ?? frame.query;
+          _externalAfterRevision = null;
+          frame.snapshot = frame.snapshot.copyWith(
+            status: FeatureLoadStatus.stale,
+            details: readonlyFeatureDetails(frame.snapshot.details),
+            error: error is UiError ? error : _invalidatedError,
+          );
+        });
+        await WidgetsBinding.instance.endOfFrame;
+      }
+      return false;
     } finally {
-      if (identical(_bykcWriteFrame, frame)) _bykcWriteFrame = null;
+      if (identical(_bykcWriteFrame, frame)) {
+        _bykcWriteFrame = null;
+        _bykcRefreshQuery = null;
+        _bykcRefreshSnapshot = null;
+      }
     }
   }
 
@@ -92,10 +187,11 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     final incoming = widget.snapshot;
     final context = incoming.readContext;
     if (oldWidget.businessCacheEpoch != widget.businessCacheEpoch) {
+      _bykcWriteFrame = null;
       // 清理内容但保留返回路径、查询参数和当前页面key。
       for (final frame in _frames) {
         frame.bykcCatalog = null;
-        frame.feed.reset();
+        frame.resetFeed();
         frame.needsReload = false;
         frame.snapshot = FeatureSnapshot(
           feature: frame.snapshot.feature,
@@ -108,7 +204,9 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
       final current = _current;
       for (final frame in _frames) {
         frame.bykcCatalog = null;
-        frame.feed.reset();
+        // 写后核对不清空正在显示的页面；按钮在整个操作期间禁用。
+        if (identical(frame, _bykcWriteFrame)) continue;
+        frame.resetFeed();
         if (frame.isLanding) {
           frame.needsReload = false;
           frame.snapshot = FeatureSnapshot(feature: frame.snapshot.feature);
@@ -118,6 +216,14 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
             feature: frame.snapshot.feature,
             status: FeatureLoadStatus.failure,
             error: _invalidatedError,
+          );
+        } else if (_bykcWriteFrame != null &&
+            frame.snapshot.feature == FeatureId.bykc) {
+          frame.needsReload = true;
+          frame.snapshot = frame.snapshot.copyWith(
+            status: FeatureLoadStatus.stale,
+            details: readonlyFeatureDetails(frame.snapshot.details),
+            clearError: true,
           );
         }
       }
@@ -138,7 +244,8 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
       // 失效通知可能仍携带旧子页快照；只接收边界之后的新读取代次。
       _externalAfterRevision =
           oldWidget.snapshot.readContext?.requestRevision ?? -1;
-      if (current.bykcChosenKey != null) {
+      if (current.bykcChosenKey != null &&
+          !identical(current, _bykcWriteFrame)) {
         current.snapshot = incoming.copyWith(
           status: FeatureLoadStatus.loading,
           clearDetails: true,
@@ -152,11 +259,15 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
       }
       return;
     }
-    // 写后核对读取已选列表；直接操作期间保留用户原来的列表或详情。
-    if (identical(_bykcWriteFrame, _current) &&
-        context != null &&
-        !context.hasSameQuery(_current.query))
+    // 固定路线回读及中间失效只影响业务快照。当前展示等最终刷新后整体替换。
+    if (identical(_bykcWriteFrame, _current)) {
+      if (_bykcRefreshQuery != null &&
+          context?.hasSameQuery(_bykcRefreshQuery) == true &&
+          incoming.status != FeatureLoadStatus.loading) {
+        _bykcRefreshSnapshot = incoming;
+      }
       return;
+    }
     if ((_current.bykcChosenKey != null ||
             PagedResults.supports(incoming.feature, _current.query)) &&
         _externalAfterRevision != null &&
@@ -314,6 +425,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
   }
 
   Future<void> refreshCurrent() {
+    if (_bykcWriteFrame != null) return Future.value();
     final library = _current.pageKey.currentState?.refreshLibrary();
     if (library != null) return library;
     if (!_current.isLanding &&
@@ -334,7 +446,10 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
   }
 
   Future<void> _query(_ReadFrame frame, FeatureQuery query) async {
-    if (widget.onQuery == null || !identical(frame, _current)) return;
+    if (widget.onQuery == null ||
+        !identical(frame, _current) ||
+        identical(frame, _bykcWriteFrame))
+      return;
     if (_isAssignmentFeature &&
         !_isAssignmentDetail(frame) &&
         const {
@@ -357,7 +472,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     setState(() {
       _externalAfterRevision = null;
       frame.bykcCatalog = null;
-      frame.feed.reset();
+      frame.resetFeed();
       frame.needsReload = false;
       if (frame.query == null || !query.hasSameParameters(frame.query!))
         frame.bykcChosenKey = null;
@@ -372,6 +487,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     if (!mounted ||
         widget.onQuery == null ||
         !identical(frame, _current) ||
+        identical(frame, _bykcWriteFrame) ||
         frame.requestingMore ||
         frame.snapshot.status == FeatureLoadStatus.loading ||
         !TickerMode.valuesOf(context).enabled)
@@ -570,7 +686,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
               child: widget.pageBuilder(
                 _ReadPage(
                   pageKey: frame.pageKey,
-                  paginationGeneration: frame.feed.generation,
+                  paginationGeneration: frame.paginationGeneration,
                   loadingMore: frame.feed.loading || frame.requestingMore,
                   moreError: frame.feed.error,
                   hasMore: frame.feed.snapshot == null
@@ -714,6 +830,12 @@ class _ReadFrame {
   }
 
   final feed = PagedResults();
+  int paginationGeneration = 0;
+  void resetFeed({bool preservePosition = false}) {
+    feed.reset();
+    if (!preservePosition) paginationGeneration++;
+  }
+
   bool requestingMore = false;
   bool needsReload = false;
   final pageKey = GlobalKey<FeatureDetailViewState>();

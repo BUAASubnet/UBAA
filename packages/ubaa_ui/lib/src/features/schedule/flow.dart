@@ -1,3 +1,4 @@
+import '../../shared/feedback.dart';
 import 'package:ubaa_ui/src/theme.dart';
 import 'dart:async';
 import '../../shared/loading.dart' show LoadingPlaceholder;
@@ -262,9 +263,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
           widget.visible &&
           widget.epoch == epoch &&
           widget.query?.term == term) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('刷新失败，请稍后重试')));
+        UbaaFeedback.show(context, '刷新失败，请稍后重试', kind: UbaaFeedbackKind.error);
       }
     }
   }

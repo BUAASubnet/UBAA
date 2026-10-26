@@ -1,3 +1,4 @@
+import '../shared/feedback.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show Clipboard, ClipboardData;
@@ -29,9 +30,11 @@ Future<void> uiShowAppLinkFailure(BuildContext context, AppLink link) =>
                 if (context.mounted) Navigator.pop(context);
               } on Object {
                 if (context.mounted) {
-                  ScaffoldMessenger.of(
+                  UbaaFeedback.show(
                     context,
-                  ).showSnackBar(const SnackBar(content: Text('复制失败，请重试。')));
+                    '复制失败，请重试。',
+                    kind: UbaaFeedbackKind.error,
+                  );
                 }
               }
             },

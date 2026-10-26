@@ -1,3 +1,4 @@
+import '../../shared/feedback.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -282,9 +283,11 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
           week = int.tryParse(rawWeek);
           if (week == null || week <= 0) {
             if (mounted) {
-              ScaffoldMessenger.of(
+              UbaaFeedback.show(
                 context,
-              ).showSnackBar(const SnackBar(content: Text('周次必须是正整数。')));
+                '周次必须是正整数。',
+                kind: UbaaFeedbackKind.warning,
+              );
             }
             return;
           }
@@ -307,8 +310,10 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
           date = _parseDateOnly(rawDate);
           if (date == null) {
             if (mounted) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('日期格式无效，请使用 YYYY-MM-DD。')),
+              UbaaFeedback.show(
+                context,
+                '日期格式无效，请使用 YYYY-MM-DD。',
+                kind: UbaaFeedbackKind.warning,
               );
             }
             return;
@@ -543,8 +548,6 @@ class FeatureQueryControlsState extends State<FeatureQueryControls> {
 
   void _showMessage(String message) {
     if (!mounted) return;
-    ScaffoldMessenger.of(
-      context,
-    ).showSnackBar(SnackBar(content: Text(message)));
+    UbaaFeedback.show(context, message, kind: UbaaFeedbackKind.warning);
   }
 }

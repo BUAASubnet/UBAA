@@ -1,3 +1,4 @@
+import '../../shared/feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
@@ -17,9 +18,7 @@ class ScheduleRefreshError extends StatelessWidget {
       await onRefresh(term);
     } on Object {
       if (context.mounted) {
-        ScaffoldMessenger.of(
-          context,
-        ).showSnackBar(const SnackBar(content: Text('刷新失败，请稍后重试')));
+        UbaaFeedback.show(context, '刷新失败，请稍后重试', kind: UbaaFeedbackKind.error);
       }
     }
   }

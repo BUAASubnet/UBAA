@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../shared/loading.dart' show RefreshActionButton;
+import '../shared/feedback.dart';
 import '../shared/refresh.dart' show PullToRefresh;
 import 'about.dart' show AboutView;
 import 'home.dart' show FeatureGridView, HomeView;
@@ -266,6 +267,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         oldWidget.routePolicy != widget.routePolicy ||
         oldWidget.businessCacheEpoch != widget.businessCacheEpoch) {
       _refreshes.clear();
+      _readPageKeys[FeatureId.bykc]?.currentState?.cancelBykcCourseWrite();
     }
     if (accountChanged) {
       _accountGeneration++;

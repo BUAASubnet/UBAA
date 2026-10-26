@@ -199,7 +199,11 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       if (messenger == null) return;
       // 首页绘制完成后消费一次，避免各只读来源的刷新反复显示同一提示。
       _controller.clearError();
-      messenger.showSnackBar(SnackBar(content: Text(error.message)));
+      UbaaFeedback.showOn(
+        messenger,
+        error.message,
+        kind: UbaaFeedbackKind.error,
+      );
     });
   }
 

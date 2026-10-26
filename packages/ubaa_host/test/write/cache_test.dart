@@ -36,7 +36,12 @@ void main() {
     expect(shell.snapshots[FeatureId.bykc]!.details.single.actions, isEmpty);
     expect(
       tester
-          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '选课'))
+          .widget<OutlinedButton>(
+            find.ancestor(
+              of: find.byType(CircularProgressIndicator),
+              matching: find.byType(OutlinedButton),
+            ),
+          )
           .onPressed,
       isNull,
     );
