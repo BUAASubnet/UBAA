@@ -95,7 +95,7 @@ void main() {
     testWidgets('原生刷新失败后保留搜索与上次结果：${brightness.name}', (tester) async {
       await _login(tester, brightness, state: 'stale');
       await _open(tester, FeatureId.grades);
-      final search = find.widgetWithText(TextField, '筛选详情');
+      final search = find.byKey(const ValueKey<String>('feature-search-field'));
       await tester.enterText(search, '程序设计');
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();

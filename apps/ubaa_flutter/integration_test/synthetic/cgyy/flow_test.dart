@@ -145,7 +145,10 @@ void main() {
       await _tap(tester, find.widgetWithText(Card, '查看密码'));
       await shot('lock', '专用页面显示合成密码，不输出真实材料');
       expect(find.text('001234'), findsOneWidget);
-      expect(find.byTooltip('搜索与筛选'), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('feature-filter-button')),
+        findsNothing,
+      );
       await _tap(tester, find.byTooltip('返回'));
       await _tap(tester, find.widgetWithText(Card, '我的预约'));
       await _panel(tester);

@@ -143,7 +143,7 @@ void main() {
       ),
     ], queries);
     await openQueryPanel(tester);
-    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), 'TASK-ONLY');
+    await tester.enterText(searchField, 'TASK-ONLY');
     await closeQueryPanel(tester);
     expect(find.text('目标考试'), findsOneWidget);
     expect(find.text('其他考试'), findsNothing);

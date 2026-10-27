@@ -49,36 +49,27 @@ Future<void> openFeature(WidgetTester tester, FeatureId feature) async {
 }
 
 /// 只沿用户可操作入口打开面板；入口缺失必须使调用测试失败。
+/// 列表顶部常驻的搜索框；搜索不再藏在面板中。
+final searchField = find.byKey(const ValueKey<String>('feature-search-field'));
+
+/// 打开当前列表的筛选面板；没有可调条件的页面只有常驻搜索框，调用即失败。
 Future<void> openQueryPanel(WidgetTester tester) async {
-  if (find
-      .widgetWithText(TextButton, '完成')
-      .hitTestable()
-      .evaluate()
-      .isNotEmpty) {
-    return;
+  if (find.byTooltip('关闭筛选').hitTestable().evaluate().isNotEmpty) return;
+  final button = find.byKey(const ValueKey<String>('feature-filter-button'));
+  if (button.hitTestable().evaluate().isEmpty) {
+    fail('找不到可点击的筛选入口；测试不得直接修改页面内部状态');
   }
-  final candidates = <Finder>[
-    find.byTooltip('搜索与筛选'),
-    find.byTooltip('排序与筛选'),
-    find.widgetWithText(FilledButton, '筛选'),
-    find.widgetWithText(FilledButton, '调整'),
-  ];
-  for (final candidate in candidates) {
-    final visible = candidate.hitTestable();
-    if (visible.evaluate().isEmpty) continue;
-    expect(visible, findsOneWidget, reason: '筛选入口必须唯一且可点击');
-    await tester.tap(visible);
-    await tester.pumpAndSettle();
-    return;
-  }
-  fail('找不到可点击的筛选入口；测试不得直接修改页面内部状态');
+  expect(button.hitTestable(), findsOneWidget, reason: '筛选入口必须唯一且可点击');
+  await tester.tap(button);
+  await tester.pumpAndSettle();
 }
 
 Future<void> closeQueryPanel(WidgetTester tester) async {
-  if (find.widgetWithText(TextButton, '完成').evaluate().isNotEmpty) {
-    FocusManager.instance.primaryFocus?.unfocus();
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(TextButton, '完成'));
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pumpAndSettle();
+  final close = find.byTooltip('关闭筛选').hitTestable();
+  if (close.evaluate().isNotEmpty) {
+    await tester.tap(close);
     await tester.pumpAndSettle();
   }
 }
@@ -103,12 +94,6 @@ Future<void> openUtility(WidgetTester tester, String title) async {
   await tester.pumpAndSettle();
 }
 
-Future<String> queryFieldText(WidgetTester tester, String label) async {
-  await openQueryPanel(tester);
-  final text = tester
-      .widget<TextField>(find.widgetWithText(TextField, label))
-      .controller!
-      .text;
-  await closeQueryPanel(tester);
-  return text;
-}
+/// 读取常驻搜索框中的关键字。
+String searchText(WidgetTester tester) =>
+    tester.widget<TextField>(searchField).controller!.text;

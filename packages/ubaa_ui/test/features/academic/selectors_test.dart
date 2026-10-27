@@ -5,11 +5,11 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../../support/navigation.dart';
 
 void main() {
-  testWidgets('缓存学期选项仍可选择并填入查询草稿', (tester) async {
+  testWidgets('缓存学期选项仍可选择并立即按学期查询考试', (tester) async {
+    final queries = <FeatureQuery>[];
     await _show(
       tester,
-      FeatureId.grades,
-      [],
+      queries,
       (_) async => FeatureResult.success(
         evidence: DataEvidence(
           accountId: 'synthetic',
@@ -26,23 +26,17 @@ void main() {
         ],
       ),
     );
-    await tester.tap(find.text('选择学期'));
+    await tester.tap(find.text('当前学期'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('合成旧学期'));
     await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '学期编码'))
-          .controller!
-          .text,
-      'a',
-    );
+    expect(queries.single.term, 'a');
+    expect(queries.single.view, FeatureQueryView.summary);
   });
 
   testWidgets('少量学期的选择面板按内容收缩，不固定占半页', (tester) async {
     await _show(
       tester,
-      FeatureId.grades,
       [],
       (_) async => const FeatureResult.success(
         details: [
@@ -61,7 +55,7 @@ void main() {
         ],
       ),
     );
-    await tester.tap(find.text('选择学期'));
+    await tester.tap(find.text('当前学期'));
     await tester.pumpAndSettle();
     final surface = find
         .descendant(
@@ -73,13 +67,14 @@ void main() {
     expect(find.text('合成甲学期'), findsOneWidget);
     expect(find.text('合成乙学期'), findsOneWidget);
   });
+
   testWidgets('选项打开后读取epoch变化不能应用旧学期', (tester) async {
     final epoch = ValueNotifier(0);
     addTearDown(epoch.dispose);
+    final queries = <FeatureQuery>[];
     await _show(
       tester,
-      FeatureId.grades,
-      [],
+      queries,
       (_) async => const FeatureResult.success(
         details: [
           FeatureDetail(
@@ -94,95 +89,50 @@ void main() {
       ),
       epoch: epoch,
     );
-    await tester.tap(find.text('选择学期'));
+    await tester.tap(find.text('当前学期'));
     await tester.pumpAndSettle();
     epoch.value++;
     await tester.pumpAndSettle();
     await tester.tap(find.text('旧会话学期'));
     await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '学期编码'))
-          .controller!
-          .text,
-      isEmpty,
-    );
+    expect(queries, isEmpty);
     expect(find.text('连接状态已变化，请重新选择学期。'), findsOneWidget);
   });
-  testWidgets('教室中文日期选择仅回填，应用时仍传严格日期', (tester) async {
-    final queries = <FeatureQuery>[];
-    await _show(
-      tester,
-      FeatureId.classroom,
-      queries,
-      (_) async => const FeatureResult.empty(),
-    );
-    await tester.enterText(find.widgetWithText(TextField, '日期'), '2026-09-08');
-    await tester.tap(find.byTooltip('选择日期'));
-    await tester.pumpAndSettle();
-    expect(find.text('选择查询日期'), findsOneWidget);
-    await tester.tap(find.text('9').last);
-    await tester.tap(find.text('使用此日期'));
-    await tester.pumpAndSettle();
-    expect(queries, isEmpty);
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '日期'))
-          .controller!
-          .text,
-      '2026-09-09',
-    );
-    await tester.tap(find.text('应用筛选'));
-    await tester.pumpAndSettle();
-    expect(queries.single.date, DateTime(2026, 9, 9));
-  });
-  for (final feature in [FeatureId.exam, FeatureId.grades]) {
-    testWidgets('${feature.title}学期选择只填typed编码，应用前不查询', (tester) async {
-      final loads = <bool>[];
-      final queries = <FeatureQuery>[];
-      await _show(tester, feature, queries, (force) async {
-        loads.add(force);
-        return const FeatureResult.success(
-          details: [
-            FeatureDetail(
-              title: '2026秋季学期',
-              fields: [FeatureField(label: '学期编码', value: '错误展示值')],
-              presentation: TermPresentation(
-                code: 'term-safe',
-                selected: true,
-                index: 1,
-              ),
-            ),
-          ],
-        );
-      });
 
-      expect(loads, isEmpty);
-      await tester.tap(find.text('选择学期'));
-      await tester.pumpAndSettle();
-      expect(loads, [false]);
-      await tester.tap(find.text('2026秋季学期'));
-      await tester.pumpAndSettle();
-      expect(find.byType(AlertDialog), findsNothing);
-      expect(
-        tester
-            .widget<TextField>(find.widgetWithText(TextField, '学期编码'))
-            .controller!
-            .text,
-        'term-safe',
-      );
-      expect(queries, isEmpty);
-
-      await tester.tap(find.text('应用筛选'));
-      await tester.pumpAndSettle();
-      expect(queries, hasLength(1));
-      expect(queries.single.term, 'term-safe');
-    });
-  }
-
-  testWidgets('学期选项失败可显式重试且手填入口保留', (tester) async {
+  testWidgets('考试学期按名称选择，只提交typed编码而非展示字段', (tester) async {
     final loads = <bool>[];
-    await _show(tester, FeatureId.grades, [], (force) async {
+    final queries = <FeatureQuery>[];
+    await _show(tester, queries, (force) async {
+      loads.add(force);
+      return const FeatureResult.success(
+        details: [
+          FeatureDetail(
+            title: '2026秋季学期',
+            fields: [FeatureField(label: '学期编码', value: '错误展示值')],
+            presentation: TermPresentation(
+              code: 'term-safe',
+              selected: true,
+              index: 1,
+            ),
+          ),
+        ],
+      );
+    });
+
+    expect(loads, isEmpty);
+    await tester.tap(find.text('当前学期'));
+    await tester.pumpAndSettle();
+    expect(loads, [false]);
+    await tester.tap(find.text('2026秋季学期'));
+    await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsNothing);
+    expect(queries.single.term, 'term-safe');
+  });
+
+  testWidgets('学期选项失败可显式重试，且不提供手填学期编码', (tester) async {
+    final loads = <bool>[];
+    final queries = <FeatureQuery>[];
+    await _show(tester, queries, (force) async {
       loads.add(force);
       return const FeatureResult.failure(
         UiError(
@@ -193,7 +143,7 @@ void main() {
         ),
       );
     });
-    await tester.tap(find.text('选择学期'));
+    await tester.tap(find.text('当前学期'));
     await tester.pumpAndSettle();
     expect(find.text('暂时无法获取学期'), findsOneWidget);
     await tester.tap(find.widgetWithText(TextButton, '重试'));
@@ -201,17 +151,15 @@ void main() {
     expect(loads, [false, true]);
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, '学期编码'),
-      'manual-term',
-    );
+    expect(find.text('学期编码'), findsNothing);
+    expect(queries, isEmpty);
     expect(tester.takeException(), isNull);
   });
 }
 
+/// 学期只在考试筛选中提供；成绩由页面顶部切换器负责。
 Future<void> _show(
   WidgetTester tester,
-  FeatureId feature,
   List<FeatureQuery> queries,
   Future<FeatureResult> Function(bool) loader, {
   ValueNotifier<int>? epoch,
@@ -257,7 +205,7 @@ Future<void> _show(
   final grid = find.byType(CustomScrollView);
   final card = find.descendant(
     of: grid,
-    matching: find.widgetWithText(Card, feature.title),
+    matching: find.widgetWithText(Card, FeatureId.exam.title),
   );
   await tester.scrollUntilVisible(
     card,

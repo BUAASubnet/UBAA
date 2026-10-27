@@ -101,13 +101,16 @@ Future<void> mount(
   );
   await tester.pumpAndSettle();
   await tap(tester, find.widgetWithText(Card, FeatureId.schedule.title));
-  await tap(tester, find.byTooltip('搜索与筛选'));
+  await tap(
+    tester,
+    find.byKey(const ValueKey<String>('feature-filter-button')),
+  );
   await tap(tester, find.text('今日课程').last);
   await tap(tester, find.text('周课表').last);
   await edit(tester, '学期编码', '2026-2027-1');
   await edit(tester, '周次', '4');
   await tap(tester, find.widgetWithText(FilledButton, '应用筛选'));
-  await tap(tester, find.widgetWithText(TextButton, '完成'));
+  await tap(tester, find.byTooltip('关闭筛选'));
   expect(find.byType(TextField), findsNothing);
   if (tester.view.physicalSize.width / tester.view.devicePixelRatio < 600) {
     expect(find.byType(NavigationBar), findsNothing);

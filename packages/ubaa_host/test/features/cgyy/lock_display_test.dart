@@ -34,7 +34,10 @@ void main() {
       );
       await tester.pumpAndSettle();
       expect(find.text('001234'), findsOneWidget);
-      expect(find.byTooltip('搜索与筛选'), findsNothing);
+      expect(
+        find.byKey(const ValueKey<String>('feature-search-field')),
+        findsNothing,
+      );
       expect(backend.ordinaryLockReads, 0);
       await tester.tap(find.byTooltip('刷新当前查询'));
       await tester.pump();

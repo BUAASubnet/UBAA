@@ -16,9 +16,10 @@ void main() {
         home: Scaffold(
           body: Offstage(
             child: IconButton(
-              tooltip: '搜索与筛选',
+              key: const ValueKey<String>('feature-filter-button'),
+              tooltip: '筛选',
               onPressed: () {},
-              icon: const Icon(Icons.search),
+              icon: const Icon(Icons.tune),
             ),
           ),
         ),

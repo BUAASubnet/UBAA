@@ -69,59 +69,8 @@ void main() {
       expect(queries.single.date, DateTime(2026, 9, changeDate ? 10 : 9));
       expect(queries.single.floorId, isNull);
       expect(queries.single.section, isNull);
-      await openQueryPanel(tester);
-      for (final label in ['楼层', '节次']) {
-        expect(
-          tester
-              .widget<TextField>(find.widgetWithText(TextField, label))
-              .controller!
-              .text,
-          isEmpty,
-        );
-      }
     });
   }
-  testWidgets('正文切换校区同步查询草稿并清除旧校区楼层节次', (tester) async {
-    final queries = <FeatureQuery>[];
-    await showFeature(
-      tester,
-      FeatureId.classroom,
-      [room('合成教室')],
-      queries,
-      size: const Size(1280, 900),
-      query: FeatureQuery(date: DateTime(2026, 9, 9), campus: 2),
-    );
-    await openQueryPanel(tester);
-    await tester.enterText(find.widgetWithText(TextField, '楼层'), 'old-floor');
-    await tester.enterText(find.widgetWithText(TextField, '节次'), '3');
-    await closeQueryPanel(tester);
-    await tester.tap(find.text('杭州'));
-    await tester.pumpAndSettle();
-    expect(queries.single.campus, 3);
-    await openQueryPanel(tester);
-    expect(
-      tester
-          .widget<DropdownButton<int>>(find.byType(DropdownButton<int>))
-          .value,
-      3,
-    );
-    for (final label in ['楼层', '节次']) {
-      expect(
-        tester
-            .widget<TextField>(find.widgetWithText(TextField, label))
-            .controller!
-            .text,
-        isEmpty,
-      );
-    }
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '日期'))
-          .controller!
-          .text,
-      '2026-09-09',
-    );
-  });
   testWidgets('大字横滚表格时长楼栋标题保持在可视宽度内', (tester) async {
     final name = List.filled(4, '合成较长教学楼名称').join();
     await showFeature(
@@ -158,7 +107,9 @@ void main() {
     expect(find.text('14'), findsOneWidget);
     expect(find.text('第13节'), findsNothing);
     expect(find.text('当前页楼层'), findsNothing);
-    expect(find.byType(TextField), findsNothing);
+    // 正文只常驻本地搜索框，不再提供楼层或节次输入。
+    expect(find.byType(TextField), findsOneWidget);
+    expect(searchField, findsOneWidget);
     final row = tester.getRect(find.byKey(const ValueKey('classroom-row-0')));
     expect(row.height, lessThanOrEqualTo(50));
     expect(tester.getRect(find.text('14')).right, lessThanOrEqualTo(390));
@@ -190,26 +141,23 @@ void main() {
     expect(find.text('14').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('校区按旧名称呈现，筛选收起保留草稿和本地搜索', (tester) async {
+  testWidgets('校区按旧名称呈现在正文，本地搜索收起键盘后保留且不读取', (tester) async {
     final queries = <FeatureQuery>[];
     await showFeature(tester, FeatureId.classroom, [
       room('目标教室'),
       room('其他教室'),
     ], queries);
-    await openQueryPanel(tester);
     expect(find.text('学院路'), findsAtLeastNWidgets(1));
-    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), 'ID-目标教室');
-    await closeQueryPanel(tester);
+    expect(
+      find.byKey(const ValueKey<String>('feature-filter-button')),
+      findsNothing,
+    );
+    await tester.enterText(searchField, 'ID-目标教室');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
     expect(find.text('目标教室'), findsOneWidget);
     expect(find.text('其他教室'), findsNothing);
-    await openQueryPanel(tester);
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
-          .controller!
-          .text,
-      'ID-目标教室',
-    );
+    expect(searchText(tester), 'ID-目标教室');
     expect(queries, isEmpty);
   });
 }

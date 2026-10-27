@@ -45,17 +45,17 @@ Future<void> _edit(WidgetTester tester, String label, String value) async {
 }
 
 Future<void> _panel(WidgetTester tester) async {
-  if (find.widgetWithText(TextButton, '完成').evaluate().isEmpty) {
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-  }
+  // 搜索框常驻列表上方；只有带筛选条件的列表需要打开面板。
+  if (find.byTooltip('关闭筛选').hitTestable().evaluate().isNotEmpty) return;
+  final button = find.byKey(const ValueKey<String>('feature-filter-button'));
+  if (button.hitTestable().evaluate().isNotEmpty) await _tap(tester, button);
 }
 
 Future<void> _closePanel(WidgetTester tester) async {
-  // 从菜单应用新子页查询时，生产导航会自动收起面板。
-  if (find.widgetWithText(TextButton, '完成').evaluate().isEmpty) return;
   FocusManager.instance.primaryFocus?.unfocus();
   await tester.pumpAndSettle();
-  await _tap(tester, find.widgetWithText(TextButton, '完成'));
+  final close = find.byTooltip('关闭筛选').hitTestable();
+  if (close.evaluate().isNotEmpty) await _tap(tester, close);
 }
 
 Future<void> _shot(

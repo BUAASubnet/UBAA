@@ -90,7 +90,9 @@ void main() {
   testWidgets('少量查询条件按内容展开而不固定占据大半屏', (tester) async {
     await mount(tester, tab: UiDestination.academic);
     await openGrade(tester);
-    await tester.tap(find.byTooltip('搜索与筛选'));
+    await tester.tap(
+      find.byKey(const ValueKey<String>('feature-filter-button')),
+    );
     await tester.pumpAndSettle();
     final panel = find.byWidgetPredicate(
       (widget) => widget is Material && widget.elevation == 8,
@@ -100,38 +102,6 @@ void main() {
   test('研讨室预约使用旧版业务名称', () {
     expect(FeatureId.cgyy.title, '研讨室预约');
     expect(WriteOperation.cgyySubmitReservation.title, '研讨室预约');
-  });
-  testWidgets('搜索和完整查询收在右上面板，关闭保留草稿且不发请求', (tester) async {
-    final queries = <FeatureQuery>[];
-    await mount(tester, tab: UiDestination.academic, queries: queries);
-    await openGrade(tester);
-    expect(find.byType(TextField), findsNothing);
-    await tester.tap(find.byTooltip('搜索与筛选'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, '学期编码'), '未应用学期');
-    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '合成');
-    FocusManager.instance.primaryFocus?.unfocus();
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('完成'));
-    await tester.pumpAndSettle();
-    expect(queries, isEmpty);
-    expect(find.byType(TextField), findsNothing);
-    await tester.tap(find.byTooltip('搜索与筛选'));
-    await tester.pumpAndSettle();
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '学期编码'))
-          .controller!
-          .text,
-      '未应用学期',
-    );
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
-          .controller!
-          .text,
-      '合成',
-    );
   });
 }
 

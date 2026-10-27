@@ -91,13 +91,13 @@ void main() {
     await tap(uiDestinationFinder(tester, UiDestination.academic));
     await tap(find.widgetWithText(Card, FeatureId.schedule.title));
     await loaded();
-    await tap(find.byTooltip('搜索与筛选'));
+    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
     await tap(find.text('今日课程').last);
     await tap(find.text('学期列表').last);
     final todayRevision = snapshot().readContext?.requestRevision;
     await tap(find.widgetWithText(FilledButton, '应用筛选'));
     await loaded(previous: todayRevision);
-    await tap(find.widgetWithText(TextButton, '完成'));
+    await tap(find.byTooltip('关闭筛选'));
     final terms = snapshot().details
         .where(
           (d) => d.presentation is TermPresentation && d.readNavigation != null,
@@ -164,7 +164,7 @@ void main() {
     } else {
       debugPrint('课表只读 localDetail=NOT_APPLICABLE reason=no_positioned_course');
     }
-    await tap(find.byTooltip('搜索与筛选'));
+    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
     final chosen = week.presentation! as WeekPresentation;
     expect(
       tester
@@ -182,7 +182,7 @@ void main() {
           '${chosen.number}',
       isTrue,
     );
-    await tap(find.widgetWithText(TextButton, '完成'));
+    await tap(find.byTooltip('关闭筛选'));
     expect(snapshot().readContext?.requestRevision == before, isTrue);
     expect(
       find

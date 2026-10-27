@@ -32,28 +32,47 @@ void main() {
         expect(find.byType(NavigationBar), findsNothing);
         await shot('list', '沿旧列表结构，查询入口只有顶栏，手机功能页无全局底栏');
         final count = backend.academicReads.length;
-        await tap(tester, find.byTooltip('搜索与筛选'));
-        await tap(tester, find.widgetWithText(TextField, '筛选详情'));
+        await tap(
+          tester,
+          find.byKey(const ValueKey<String>('feature-filter-button')),
+        );
+        await tap(
+          tester,
+          find.byKey(const ValueKey<String>('feature-search-field')),
+        );
         await tester.enterText(
-          find.widgetWithText(TextField, '筛选详情'),
+          find.byKey(const ValueKey<String>('feature-search-field')),
           feature == FeatureId.exam ? '待考' : '可签到',
         );
         await closePanel(tester);
         await shot('filtered', '按需筛选关闭后保持结果，无额外请求');
-        await tap(tester, find.byTooltip('搜索与筛选'));
+        await tap(
+          tester,
+          find.byKey(const ValueKey<String>('feature-filter-button')),
+        );
         expect(
           tester
-              .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
+              .widget<TextField>(
+                find.byKey(const ValueKey<String>('feature-search-field')),
+              )
               .controller!
               .text,
           feature == FeatureId.exam ? '待考' : '可签到',
         );
-        await tap(tester, find.widgetWithText(TextField, '筛选详情'));
-        await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '');
+        await tap(
+          tester,
+          find.byKey(const ValueKey<String>('feature-search-field')),
+        );
+        await tester.enterText(
+          find.byKey(const ValueKey<String>('feature-search-field')),
+          '',
+        );
         await tester.pumpAndSettle();
         expect(
           tester
-              .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
+              .widget<TextField>(
+                find.byKey(const ValueKey<String>('feature-search-field')),
+              )
               .controller!
               .text,
           '',
@@ -178,7 +197,7 @@ Future<void> mount(
 Future<void> closePanel(WidgetTester tester) async {
   FocusManager.instance.primaryFocus?.unfocus();
   await tester.pumpAndSettle();
-  await tap(tester, find.widgetWithText(TextButton, '完成'));
+  await tap(tester, find.byTooltip('关闭筛选'));
 }
 
 /// 人工巡检专用构造；自动测试入口不读取巡检模式开关。

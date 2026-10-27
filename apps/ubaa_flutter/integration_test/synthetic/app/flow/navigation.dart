@@ -52,17 +52,20 @@ Future<void> _openIntegrationFeature(
   }
 }
 
+/// 打开当前列表的筛选面板；搜索框常驻列表上方，不经面板。
 Future<void> _openIntegrationPanel(WidgetTester tester) async {
-  if (find.widgetWithText(TextButton, '完成').evaluate().isNotEmpty) return;
-  await tester.tap(find.byTooltip('搜索与筛选'));
+  if (find.byTooltip('关闭筛选').hitTestable().evaluate().isNotEmpty) return;
+  final button = find.byKey(const ValueKey<String>('feature-filter-button'));
+  expect(button.hitTestable(), findsOneWidget, reason: '当前页面必须提供筛选入口');
+  await tester.tap(button);
   await tester.pumpAndSettle();
 }
 
 Future<void> _closeIntegrationPanel(WidgetTester tester) async {
-  final close = find.widgetWithText(TextButton, '完成');
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pumpAndSettle();
+  final close = find.byTooltip('关闭筛选').hitTestable();
   if (close.evaluate().isNotEmpty) {
-    FocusManager.instance.primaryFocus?.unfocus();
-    await tester.pumpAndSettle();
     await tester.tap(close);
     await tester.pumpAndSettle();
   }

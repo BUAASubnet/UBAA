@@ -123,7 +123,7 @@ class AssignmentFilterControls extends StatelessWidget {
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
       const SizedBox(height: 16),
-      const Text('排序字段'),
+      const Text('排序方式'),
       Wrap(
         spacing: 8,
         children: [
@@ -136,7 +136,7 @@ class AssignmentFilterControls extends StatelessWidget {
         ],
       ),
       const SizedBox(height: 12),
-      const Text('排序方向'),
+      const Text('顺序'),
       Wrap(
         spacing: 8,
         children: [

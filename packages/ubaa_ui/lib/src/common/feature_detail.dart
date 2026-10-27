@@ -8,14 +8,15 @@ import '../app/home.dart' show uiCacheReadFailureText;
 import 'details/detail_list.dart' show FeatureDetailList;
 import 'error_card.dart' show FriendlyErrorCard;
 import 'landing_menu.dart' show FeatureLandingMenu;
-import 'query/query_controls.dart'
-    show FeatureQueryControls, FeatureQueryControlsState;
+import 'filters/feature_filters.dart'
+    show FeatureFilterControls, FeatureFilterKind, uiFeatureFilterKind;
+import '../theme.dart' show UbaaTheme;
 import '../features/cgyy/lock_display.dart' show UbaaCgyyLockDisplayView;
 import '../features/cgyy/reservation_flow.dart' show CgyyReservationFlow;
 import '../features/coursework/coursework_overview.dart'
     show CourseworkOverview;
 import '../features/coursework/assignment_filters.dart'
-    show AssignmentListFilters, AssignmentFilterControls;
+    show AssignmentListFilters;
 import '../features/grades/flow.dart' show GradesFlow;
 import '../features/libbook/reservation_flow.dart'
     show LibbookReservationFlow, LibbookReservationFlowState;
@@ -159,7 +160,6 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
 
   final _cgyyDraft = CgyyFormDraft();
   final _ygdkDraft = YgdkFormDraft();
-  final _queryKey = GlobalKey<FeatureQueryControlsState>();
   final _scheduleKey = GlobalKey<ScheduleFlowState>();
   final _searchController = TextEditingController();
   bool _panelOpen = false;
@@ -176,16 +176,65 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
 
   void selectScheduleTerm() => _scheduleKey.currentState?.selectTerm();
 
+  /// 筛选只调整当前列表；没有可调条件的页面不提供入口。
   void togglePanel() {
-    if (_isLibraryReservation || _isCgyyReservation) return;
-    if (widget.feature == FeatureId.schedule) {
-      selectScheduleTerm();
-      return;
-    }
-    if (!_panelOpen)
-      _scheduleKey.currentState?.stopAutomatic(clearPrompt: false);
+    if (_filterKind == null && !_panelOpen) return;
     FocusManager.instance.primaryFocus?.unfocus();
     setState(() => _panelOpen = !_panelOpen);
+  }
+
+  FeatureFilterKind? get _filterKind => widget.isLanding
+      ? null
+      : uiFeatureFilterKind(
+          widget.feature,
+          widget.query,
+          assignmentList: _isAssignmentList,
+          bykcChosenDetail: widget.isBykcChosenDetail,
+        );
+
+  /// 只有可浏览的结果列表提供搜索；菜单、详情、预约流程和课表沿各自入口操作。
+  bool get _showsToolbar {
+    if (widget.isLanding || _isLibraryReservation || _isCgyyReservation) {
+      return false;
+    }
+    final view = widget.query?.view ?? FeatureQueryView.summary;
+    return switch (widget.feature) {
+      FeatureId.schedule => false,
+      FeatureId.exam ||
+      FeatureId.grades ||
+      FeatureId.evaluation ||
+      FeatureId.signin => _filterKind != null,
+      FeatureId.bykc =>
+        (view == FeatureQueryView.summary && !widget.isBykcChosenDetail) ||
+            view == FeatureQueryView.bykcChosenCourses,
+      FeatureId.spoc || FeatureId.judge =>
+        _isAssignmentList || view == FeatureQueryView.judgeBatchDetails,
+      FeatureId.classroom => view == FeatureQueryView.summary,
+      FeatureId.libbook => view == FeatureQueryView.libbookBookings,
+      FeatureId.cgyy => view == FeatureQueryView.cgyyOrders,
+      FeatureId.ygdk =>
+        view == FeatureQueryView.summary ||
+            view == FeatureQueryView.ygdkRecords,
+    };
+  }
+
+  String get _searchHint => switch (widget.feature) {
+    FeatureId.exam => '搜索课程或考场',
+    FeatureId.grades => '搜索课程名称',
+    FeatureId.classroom => '搜索教学楼或教室',
+    FeatureId.bykc => '搜索课程、教师或地点',
+    FeatureId.spoc || FeatureId.judge => '搜索课程名称或作业标题',
+    FeatureId.evaluation => '搜索课程或教师',
+    FeatureId.signin => '搜索课程',
+    FeatureId.libbook => '搜索场馆或座位',
+    FeatureId.cgyy => '搜索研讨室或日期',
+    FeatureId.ygdk => '搜索打卡记录',
+    FeatureId.schedule => '搜索课程',
+  };
+
+  void _clearSearch() {
+    _searchController.clear();
+    setState(() {});
   }
 
   @override
@@ -389,35 +438,44 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
             onQuery: widget.onQuery == null
                 ? null
                 : (query) {
-                    _queryKey.currentState?.adoptScheduleQuery(query);
                     return widget.onQuery!(query);
                   },
-            adoptDraft: (query) =>
-                _queryKey.currentState?.adoptScheduleQuery(query),
             child: defaultContent,
           )
         : defaultContent;
+    final kind = _filterKind;
+    final body = _showsToolbar
+        ? Column(
+            children: [
+              _toolbar(context, kind),
+              Expanded(child: content),
+            ],
+          )
+        : content;
+    if (kind == null) return body;
     return LayoutBuilder(
       builder: (context, constraints) {
         final wide = MediaQuery.sizeOf(context).width >= 600;
+        final colors = Theme.of(context).colorScheme;
         return Stack(
           children: [
-            Positioned.fill(child: content),
-            if (_panelOpen && !_isCgyyReservation)
+            Positioned.fill(child: body),
+            if (_panelOpen)
               Positioned.fill(
                 child: ModalBarrier(
                   color: Colors.black26,
                   onDismiss: togglePanel,
-                  semanticsLabel: '关闭搜索与筛选',
+                  semanticsLabel: '关闭筛选',
                 ),
               ),
-            if (!_isCgyyReservation)
-              Align(
-                alignment: wide ? Alignment.topRight : Alignment.bottomCenter,
-                child: ExcludeFocus(
-                  excluding: !_panelOpen,
-                  child: Offstage(
-                    offstage: !_panelOpen,
+            Align(
+              alignment: wide ? Alignment.topRight : Alignment.bottomCenter,
+              child: ExcludeFocus(
+                excluding: !_panelOpen,
+                child: Offstage(
+                  offstage: !_panelOpen,
+                  child: Padding(
+                    padding: wide ? const EdgeInsets.all(16) : EdgeInsets.zero,
                     child: ConstrainedBox(
                       constraints: BoxConstraints(
                         minWidth: wide ? 420 : constraints.maxWidth,
@@ -426,69 +484,46 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                       ),
                       child: Material(
                         elevation: 8,
-                        color: Theme.of(context).colorScheme.surface,
-                        borderRadius: BorderRadius.circular(16),
+                        color: colors.surfaceContainerLow,
+                        borderRadius: wide
+                            ? BorderRadius.circular(16)
+                            : const BorderRadius.vertical(
+                                top: Radius.circular(20),
+                              ),
                         clipBehavior: Clip.antiAlias,
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            ListTile(
-                              title: const Text('搜索与筛选'),
-                              trailing: TextButton(
-                                onPressed: togglePanel,
-                                child: const Text('完成'),
+                            Padding(
+                              padding: const EdgeInsets.fromLTRB(20, 8, 8, 0),
+                              child: Row(
+                                children: [
+                                  Expanded(
+                                    child: Text(
+                                      '筛选',
+                                      style: Theme.of(
+                                        context,
+                                      ).textTheme.titleMedium,
+                                    ),
+                                  ),
+                                  IconButton(
+                                    tooltip: '关闭筛选',
+                                    onPressed: togglePanel,
+                                    icon: const Icon(Icons.close),
+                                  ),
+                                ],
                               ),
                             ),
                             Flexible(
                               child: SingleChildScrollView(
                                 padding: const EdgeInsets.fromLTRB(
-                                  16,
+                                  20,
                                   0,
-                                  16,
+                                  20,
                                   16,
                                 ),
-                                child: Column(
-                                  children: [
-                                    if (!widget.isLanding)
-                                      TextField(
-                                        controller: _searchController,
-                                        decoration: InputDecoration(
-                                          labelText: _isAssignmentList
-                                              ? '课程名称或作业标题'
-                                              : '筛选详情',
-                                          prefixIcon: const Icon(Icons.search),
-                                        ),
-                                        onChanged: (_) => setState(() {}),
-                                      ),
-                                    if (_isAssignmentList)
-                                      AssignmentFilterControls(
-                                        filters: _assignmentFilters,
-                                        onChanged: (value) => setState(
-                                          () => _assignmentFilters = value,
-                                        ),
-                                        onLoadHistory:
-                                            widget.feature == FeatureId.spoc ||
-                                                widget.query?.includeExpired ==
-                                                    true ||
-                                                widget.onQuery == null ||
-                                                widget.snapshot.status ==
-                                                    FeatureLoadStatus.loading
-                                            ? null
-                                            : () => widget.onQuery!(
-                                                (widget.query ??
-                                                        const FeatureQuery())
-                                                    .copyWith(
-                                                      includeExpired: true,
-                                                    ),
-                                              ),
-                                      ),
-                                    if (widget.feature != FeatureId.judge &&
-                                        widget.feature != FeatureId.spoc &&
-                                        widget.onQuery != null &&
-                                        _supportsQuery)
-                                      _queryControls(),
-                                  ],
-                                ),
+                                child: _filterControls(kind),
                               ),
                             ),
                           ],
@@ -498,9 +533,68 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                   ),
                 ),
               ),
+            ),
           ],
         );
       },
+    );
+  }
+
+  Widget _toolbar(BuildContext context, FeatureFilterKind? kind) {
+    final count = kind == null ? 0 : _filterControls(kind).activeCount;
+    return Padding(
+      padding: UbaaTheme.pageInsets(context, top: 12, bottom: 4),
+      child: Row(
+        children: [
+          Expanded(
+            child: TextField(
+              key: const ValueKey<String>('feature-search-field'),
+              controller: _searchController,
+              textInputAction: TextInputAction.search,
+              onChanged: (_) => setState(() {}),
+              onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+              onTapOutside: (_) =>
+                  FocusManager.instance.primaryFocus?.unfocus(),
+              decoration: InputDecoration(
+                isDense: true,
+                hintText: _searchHint,
+                prefixIcon: const Icon(Icons.search),
+                suffixIcon: _searchController.text.isEmpty
+                    ? null
+                    : IconButton(
+                        tooltip: '清除搜索',
+                        onPressed: _clearSearch,
+                        icon: const Icon(Icons.close),
+                      ),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(UbaaTheme.controlRadius),
+                ),
+              ),
+            ),
+          ),
+          if (kind != null) ...[
+            const SizedBox(width: 8),
+            Badge(
+              key: const ValueKey<String>('feature-filter-button'),
+              isLabelVisible: count > 0,
+              label: Text('$count'),
+              backgroundColor: Theme.of(context).colorScheme.primary,
+              textColor: Theme.of(context).colorScheme.onPrimary,
+              child: count > 0
+                  ? IconButton.filledTonal(
+                      tooltip: '筛选（$count 项生效）',
+                      onPressed: togglePanel,
+                      icon: const Icon(Icons.tune),
+                    )
+                  : IconButton.outlined(
+                      tooltip: '筛选',
+                      onPressed: togglePanel,
+                      icon: const Icon(Icons.tune),
+                    ),
+            ),
+          ],
+        ],
+      ),
     );
   }
 
@@ -517,49 +611,32 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
         FeatureQueryView.cgyyDayInfo,
       }.contains(widget.query?.view ?? FeatureQueryView.summary);
 
-  Widget _queryControls() => FeatureQueryControls(
-    key: _queryKey,
-    feature: widget.feature,
-    details: widget.snapshot.details,
-    snapshot: widget.snapshot,
-    initialQuery: widget.query,
-    onLoadAcademicTerms: widget.onLoadAcademicTerms,
-    onLoadAcademicWeeks: widget.onLoadAcademicWeeks,
-    readCacheEpoch: widget.readCacheEpoch,
-    onApply: (query) {
-      _scheduleKey.currentState?.stopAutomatic();
-      return widget.onQuery!(query);
-    },
-    bykcStatuses: _bykcStatuses,
-    bykcCategories: _bykcCategories,
-    bykcCampuses: _bykcCampuses,
-    onBykcCategoriesChanged: (values) => widget.onBykcFiltersChanged(
-      widget.bykcFilters.copyWith(categories: values),
-    ),
-    onBykcCampusesChanged: (values) => widget.onBykcFiltersChanged(
-      widget.bykcFilters.copyWith(campuses: values),
-    ),
-    onBykcReset: () =>
-        widget.onBykcFiltersChanged(const BykcCourseFilters.defaults()),
-    onBykcStatusesChanged: (values) => widget.onBykcFiltersChanged(
-      widget.bykcFilters.copyWith(statuses: values),
-    ),
-  );
-
-  bool get _supportsQuery => switch (widget.feature) {
-    FeatureId.schedule ||
-    FeatureId.exam ||
-    FeatureId.grades ||
-    FeatureId.classroom ||
-    FeatureId.bykc ||
-    FeatureId.libbook ||
-    FeatureId.ygdk ||
-    FeatureId.cgyy ||
-    FeatureId.signin ||
-    FeatureId.spoc ||
-    FeatureId.judge ||
-    FeatureId.evaluation => true,
-  };
+  FeatureFilterControls _filterControls(FeatureFilterKind kind) =>
+      FeatureFilterControls(
+        kind: kind,
+        feature: widget.feature,
+        query: widget.query ?? const FeatureQuery(),
+        details: widget.snapshot.details,
+        onQuery: widget.onQuery,
+        onLoadAcademicTerms: widget.onLoadAcademicTerms,
+        readCacheEpoch: () => widget.readCacheEpoch,
+        bykcFilters: widget.bykcFilters,
+        onBykcFiltersChanged: widget.onBykcFiltersChanged,
+        assignmentFilters: _isAssignmentList ? _assignmentFilters : null,
+        onAssignmentFiltersChanged: (value) =>
+            setState(() => _assignmentFilters = value),
+        onLoadAssignmentHistory:
+            widget.feature == FeatureId.spoc ||
+                widget.query?.includeExpired == true ||
+                widget.onQuery == null ||
+                widget.snapshot.status == FeatureLoadStatus.loading
+            ? null
+            : () => widget.onQuery!(
+                (widget.query ?? const FeatureQuery()).copyWith(
+                  includeExpired: true,
+                ),
+              ),
+      );
 
   YgdkFormContext get _ygdkFormContext => YgdkFormContext(
     draft: _ygdkDraft,
@@ -599,7 +676,6 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
       onBykcStatusesChanged: (statuses) => widget.onBykcFiltersChanged(
         widget.bykcFilters.copyWith(statuses: statuses),
       ),
-      onOpenFilterPanel: togglePanel,
       bykcCategories: _bykcCategories,
       bykcCampuses: _bykcCampuses,
       isBykcChosenDetail: widget.isBykcChosenDetail,
@@ -616,9 +692,6 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
       onQuery: widget.onQuery == null
           ? null
           : (query) {
-              if (widget.feature == FeatureId.classroom) {
-                _queryKey.currentState?.adoptClassroomQuery(query);
-              }
               return widget.onQuery!(query);
             },
       onNavigate: widget.onNavigate,

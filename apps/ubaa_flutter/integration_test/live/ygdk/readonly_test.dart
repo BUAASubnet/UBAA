@@ -118,7 +118,7 @@ void main() {
     debugPrint(
       '阳光只读 independentForm=true projectPicker=true extraRead=false prepare=false',
     );
-    await tap(find.byTooltip('搜索与筛选'));
+    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
     await tap(find.byType(DropdownButton<FeatureQueryView>));
     await tap(find.text('记录列表').last);
     await tap(find.text('应用筛选'));
@@ -127,7 +127,7 @@ void main() {
       snapshot().details.every((d) => d.presentation is YgdkRecordPresentation),
       isTrue,
     );
-    await tap(find.widgetWithText(TextButton, '完成'));
+    await tap(find.byTooltip('关闭筛选'));
     await tap(find.byTooltip('刷新当前查询'));
     await loaded(FeatureQueryView.ygdkRecords, page: 1);
     debugPrint('生产阳光旧首页与记录分页完成，businessWrites=0');

@@ -21,7 +21,6 @@ import '../../features/bykc/display.dart'
         uiBykcPassLabel,
         uiBykcRange,
         uiBykcSearchValues,
-        uiBykcStatusLabel,
         uiDefaultBykcStatuses,
         uiMatchesBykcFilters;
 import '../../features/bykc/section.dart' show BykcSection;
@@ -71,7 +70,6 @@ class FeatureDetailList extends StatefulWidget {
     this.filter = '',
     this.bykcStatuses = uiDefaultBykcStatuses,
     this.onBykcStatusesChanged,
-    this.onOpenFilterPanel,
     this.bykcCategories = const {},
     this.bykcCampuses = const {},
     this.isBykcChosenDetail = false,
@@ -105,7 +103,6 @@ class FeatureDetailList extends StatefulWidget {
   final String filter;
   final Set<BykcCourseStatus> bykcStatuses;
   final ValueChanged<Set<BykcCourseStatus>>? onBykcStatusesChanged;
-  final VoidCallback? onOpenFilterPanel;
   final Set<String> bykcCategories, bykcCampuses;
   final bool isBykcChosenDetail;
   final BykcCoursePresentation? bykcListCourse;
@@ -229,15 +226,6 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
           pendingEvaluations,
           selectedEvaluations,
         ),
-        if (widget.feature == FeatureId.bykc &&
-            !widget.isBykcChosenDetail &&
-            (widget.query?.view ?? FeatureQueryView.summary) ==
-                FeatureQueryView.summary &&
-            widget.onOpenFilterPanel != null)
-          Padding(
-            padding: UbaaTheme.pageInsets(context, top: 12, bottom: 0),
-            child: _buildBykcFiltersBar(context, theme),
-          ),
         Expanded(
           child: InfiniteScroll(
             onLoadMore: widget.onLoadMore,
@@ -557,70 +545,6 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildBykcFiltersBar(BuildContext context, ThemeData theme) {
-    final isCustom = widget.bykcStatuses != uiDefaultBykcStatuses;
-    final statusText = widget.bykcStatuses.isEmpty
-        ? '状态不限（显示所有课程）'
-        : isCustom
-        ? widget.bykcStatuses.map(uiBykcStatusLabel).join('、')
-        : '默认显示可选、预告、人数已满课程';
-    return Card(
-      elevation: 0,
-      color: theme.colorScheme.surfaceContainerLow,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-        child: Row(
-          children: [
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: theme.colorScheme.primaryContainer,
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Icon(
-                Icons.tune,
-                size: 20,
-                color: theme.colorScheme.onPrimaryContainer,
-              ),
-            ),
-            const SizedBox(width: 12),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  Text(
-                    isCustom
-                        ? '已应用筛选 (${widget.bykcStatuses.length} 项状态)'
-                        : '课程筛选',
-                    style: theme.textTheme.titleSmall?.copyWith(
-                      fontWeight: FontWeight.w600,
-                    ),
-                  ),
-                  Text(
-                    statusText,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ],
-              ),
-            ),
-            const SizedBox(width: 8),
-            FilledButton.tonalIcon(
-              icon: const Icon(Icons.filter_list, size: 18),
-              label: Text(isCustom ? '调整' : '筛选'),
-              onPressed: widget.onOpenFilterPanel,
-            ),
-          ],
-        ),
-      ),
     );
   }
 }

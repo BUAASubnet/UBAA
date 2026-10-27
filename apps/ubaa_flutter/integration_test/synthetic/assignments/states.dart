@@ -32,9 +32,6 @@ void _registerStates(IntegrationTestWidgetsFlutterBinding binding) {
               FeatureLoadStatus.success,
             );
           } else if (state == 'stale') {
-            if (feature != FeatureId.judge && feature != FeatureId.spoc) {
-              await _apply(tester, feature, const FeatureQuery());
-            }
             final old = _snapshot(tester, feature).details;
             await _tap(tester, find.byTooltip('刷新当前查询'));
             expect(_snapshot(tester, feature).status, FeatureLoadStatus.stale);

@@ -23,7 +23,6 @@ class ScheduleFlow extends StatefulWidget {
     required this.visible,
     required this.epoch,
     required this.loadWeeks,
-    required this.adoptDraft,
     required this.child,
     this.onQuery,
     this.onTitle,
@@ -38,7 +37,6 @@ class ScheduleFlow extends StatefulWidget {
   final int epoch;
   final Future<FeatureResult> Function(String, bool) loadWeeks;
   final Future<void> Function(FeatureQuery)? onQuery;
-  final ValueChanged<FeatureQuery> adoptDraft;
   final ValueChanged<String?>? onTitle;
   final Future<FeatureResult> Function(bool)? loadTerms;
   final Widget child;
@@ -330,9 +328,6 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     _automatic = null;
     _expected = null;
     setState(() => _selectionNeeded = true);
-    widget.adoptDraft(
-      FeatureQuery(view: FeatureQueryView.scheduleWeek, term: term),
-    );
   }
 
   Future<void> selectTerm() async {

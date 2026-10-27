@@ -21,30 +21,6 @@ void _registerAuthFlowTests() {
 
     await _openIntegrationFeature(tester, FeatureId.schedule);
     expect(find.text('查询后的课程'), findsOneWidget);
-    await _openIntegrationPanel(tester);
-
-    final queryMenu = find.byType(DropdownButton<FeatureQueryView>);
-    expect(queryMenu, findsOneWidget);
-    await tester.tap(queryMenu);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('周课表').last);
-    await tester.pumpAndSettle();
-
-    final termField = find.widgetWithText(TextField, '学期编码');
-    final weekField = find.widgetWithText(TextField, '周次');
-    expect(termField, findsOneWidget);
-    expect(weekField, findsOneWidget);
-    await tester.enterText(termField, '2026-2027-1');
-    await tester.enterText(weekField, '3');
-    await tester.tap(find.text('应用筛选'));
-    await tester.pumpAndSettle();
-
-    await _closeIntegrationPanel(tester);
-    expect(backend.lastQuery?.view, FeatureQueryView.scheduleWeek);
-    expect(backend.lastQuery?.term, '2026-2027-1');
-    expect(backend.lastQuery?.week, 3);
-    expect(find.text('查询后的课程'), findsOneWidget);
-
     await _returnToFeatureRoot(tester);
     await tester.tap(find.byIcon(Icons.menu));
     await tester.pumpAndSettle();

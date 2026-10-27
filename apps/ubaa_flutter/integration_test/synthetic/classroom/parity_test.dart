@@ -52,16 +52,24 @@ void main() {
       );
       await tap(tester, find.widgetWithText(TextButton, '关闭'));
       final before = backend.classroomReads.length;
-      await tap(tester, find.byTooltip('搜索与筛选'));
+      await tap(
+        tester,
+        find.byKey(const ValueKey<String>('feature-filter-button')),
+      );
       await edit(tester, '筛选详情', 'ROOM-SAFE-1');
-      await tap(tester, find.widgetWithText(TextButton, '完成'));
+      await tap(tester, find.byTooltip('关闭筛选'));
       expect(find.text('合成教室1'), findsOneWidget);
       expect(find.text('合成教室2'), findsNothing);
       expect(backend.classroomReads.length, before);
-      await tap(tester, find.byTooltip('搜索与筛选'));
+      await tap(
+        tester,
+        find.byKey(const ValueKey<String>('feature-filter-button')),
+      );
       expect(
         tester
-            .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
+            .widget<TextField>(
+              find.byKey(const ValueKey<String>('feature-search-field')),
+            )
             .controller!
             .text,
         'ROOM-SAFE-1',
@@ -83,7 +91,7 @@ void main() {
       expect(backend.classroomReads.last.campus, 2);
       expect(backend.classroomReads.last.floorId, 'F2');
       expect(backend.classroomReads.last.section, '14');
-      await tap(tester, find.widgetWithText(TextButton, '完成'));
+      await tap(tester, find.byTooltip('关闭筛选'));
       expect(find.text('合成教室2'), findsOneWidget);
       expect(find.text('合成教室1'), findsNothing);
       await capture(

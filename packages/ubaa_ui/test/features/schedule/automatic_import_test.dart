@@ -57,7 +57,6 @@ void main() {
                       ),
                     ],
                   ),
-                  adoptDraft: (_) {},
                   onQuery: (value) async {
                     queries.add(value);
                   },
@@ -111,7 +110,6 @@ void main() {
               visible: visible,
               epoch: epoch,
               loadWeeks: (_, _) async => const FeatureResult.empty(),
-              adoptDraft: (_) {},
               onQuery: (_) async {},
               onSave: (term) async {
                 starts.add(term);
@@ -177,7 +175,6 @@ void main() {
               visible: true,
               epoch: 0,
               loadWeeks: (_, _) async => const FeatureResult.empty(),
-              adoptDraft: (_) {},
               onQuery: (_) async {},
               imports: {'本学期': ScheduleImportState(status: status)},
               onSave: (_) async {

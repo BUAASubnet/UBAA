@@ -109,12 +109,12 @@ void main() {
       ('已出成绩', FeatureQueryView.gradesScored),
       ('全部成绩', FeatureQueryView.summary),
     ]) {
-      await tap(find.byTooltip('搜索与筛选'));
+      await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
       await tap(find.byType(DropdownButton<FeatureQueryView>));
       await tap(find.text(label).last);
       await tap(find.text('应用筛选'));
       await loaded(view);
-      await tap(find.widgetWithText(TextButton, '完成'));
+      await tap(find.byTooltip('关闭筛选'));
     }
     // 当前学期为空时，从已实际读取的学期中选择一个非空项，仍只使用原查询。
     if (shell().snapshots[FeatureId.grades]!.details.isEmpty) {
@@ -122,7 +122,7 @@ void main() {
         (term) => term.overview?.grades.isNotEmpty == true,
       );
       if (candidates.isNotEmpty) {
-        await tap(find.byTooltip('搜索与筛选'));
+        await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
         await tap(find.widgetWithText(TextField, '学期编码'));
         await tester.enterText(
           find.widgetWithText(TextField, '学期编码'),
@@ -132,7 +132,7 @@ void main() {
         await tester.pump(const Duration(milliseconds: 250));
         await tap(find.text('应用筛选'));
         await loaded(FeatureQueryView.summary);
-        await tap(find.widgetWithText(TextButton, '完成'));
+        await tap(find.byTooltip('关闭筛选'));
       }
     }
     var detailOpened = false;

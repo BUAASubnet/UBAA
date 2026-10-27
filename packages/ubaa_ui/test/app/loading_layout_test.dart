@@ -204,12 +204,20 @@ void main() {
         ),
       ),
     );
+    // 列表上方的搜索框自带横向滚动，这里只取纵向结果列表。
+    final list = find
+        .byWidgetPredicate(
+          (widget) =>
+              widget is Scrollable &&
+              widget.axisDirection == AxisDirection.down,
+        )
+        .first;
     await mount(ready);
-    await tester.drag(find.byType(Scrollable).first, const Offset(0, -400));
+    await tester.drag(list, const Offset(0, -400));
     await tester.pumpAndSettle();
     final anchor = find.text('合成记录 8');
     final before = tester.getTopLeft(anchor);
-    final scroll = tester.state<ScrollableState>(find.byType(Scrollable).first);
+    final scroll = tester.state<ScrollableState>(list);
     final offset = scroll.position.pixels;
     await mount(ready.copyWith(status: FeatureLoadStatus.loading));
     expect(anchor, findsOneWidget);

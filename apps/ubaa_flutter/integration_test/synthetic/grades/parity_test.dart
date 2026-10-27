@@ -29,26 +29,43 @@ void main() {
       await shot('routes', '同一个图标说明各学期实际路线，默认Auto不冒充结果');
       await tap(tester, find.widgetWithText(TextButton, '关闭'));
       final reads = backend.gradeReads.length;
-      await tap(tester, find.byTooltip('搜索与筛选'));
-      await tap(tester, find.widgetWithText(TextField, '筛选详情'));
+      await tap(
+        tester,
+        find.byKey(const ValueKey<String>('feature-filter-button')),
+      );
+      await tap(
+        tester,
+        find.byKey(const ValueKey<String>('feature-search-field')),
+      );
       await tester.enterText(
-        find.widgetWithText(TextField, '筛选详情'),
+        find.byKey(const ValueKey<String>('feature-search-field')),
         'GRADE-SAFE',
       );
       await closePanel(tester);
       expect(find.text('合成待出课程'), findsNothing);
       await shot('filtered', '搜索课程号保留完整学期统计，关闭面板无额外读取');
-      await tap(tester, find.byTooltip('搜索与筛选'));
+      await tap(
+        tester,
+        find.byKey(const ValueKey<String>('feature-filter-button')),
+      );
       expect(
         tester
-            .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
+            .widget<TextField>(
+              find.byKey(const ValueKey<String>('feature-search-field')),
+            )
             .controller!
             .text,
         'GRADE-SAFE',
       );
       await shot('draft', '重开搜索面板保留草稿');
-      await tap(tester, find.widgetWithText(TextField, '筛选详情'));
-      await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '');
+      await tap(
+        tester,
+        find.byKey(const ValueKey<String>('feature-search-field')),
+      );
+      await tester.enterText(
+        find.byKey(const ValueKey<String>('feature-search-field')),
+        '',
+      );
       await closePanel(tester);
       expect(backend.gradeReads.length, reads);
       await tap(tester, find.text('合成数学课程'));
@@ -62,7 +79,10 @@ void main() {
         ('已出成绩', FeatureQueryView.gradesScored),
         ('全部成绩', FeatureQueryView.summary),
       ]) {
-        await tap(tester, find.byTooltip('搜索与筛选'));
+        await tap(
+          tester,
+          find.byKey(const ValueKey<String>('feature-filter-button')),
+        );
         await tap(tester, find.byType(DropdownButton<FeatureQueryView>));
         await tap(tester, find.text(label).last);
         await tap(tester, find.text('应用筛选'));
@@ -78,7 +98,10 @@ void main() {
         await closePanel(tester);
         await shot('view-${view.name.toLowerCase()}', '成绩三视图保留完整学期统计');
       }
-      await tap(tester, find.byTooltip('搜索与筛选'));
+      await tap(
+        tester,
+        find.byKey(const ValueKey<String>('feature-filter-button')),
+      );
       await tap(tester, find.text('选择学期'));
       final pickerSurface = find
           .descendant(
@@ -194,7 +217,7 @@ Future<void> mount(
 Future<void> closePanel(WidgetTester tester) async {
   FocusManager.instance.primaryFocus?.unfocus();
   await tester.pumpAndSettle();
-  await tap(tester, find.widgetWithText(TextButton, '完成'));
+  await tap(tester, find.byTooltip('关闭筛选'));
 }
 
 /// 人工巡检专用构造；自动测试入口不读取巡检模式开关。

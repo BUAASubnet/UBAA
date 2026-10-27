@@ -26,7 +26,10 @@ void main() {
         '${brightness.name}-signin-query-$name',
         steps,
       );
-      Future<void> panel() => old.tap(tester, find.byTooltip('搜索与筛选'));
+      Future<void> panel() => old.tap(
+        tester,
+        find.byKey(const ValueKey<String>('feature-filter-button')),
+      );
       Future<void> select(String label) async {
         await old.tap(tester, find.byType(DropdownButton<FeatureQueryView>));
         await old.tap(tester, find.text(label).last);

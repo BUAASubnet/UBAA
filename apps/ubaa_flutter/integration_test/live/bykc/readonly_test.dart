@@ -93,9 +93,9 @@ void main() {
       isTrue,
     );
     expect(find.byType(TextField).evaluate().isEmpty, isTrue);
-    await tap(find.byTooltip('搜索与筛选'));
+    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
     await tap(find.text('状态不限'));
-    await tap(find.widgetWithText(TextButton, '完成'));
+    await tap(find.byTooltip('关闭筛选'));
     final course =
         snapshot().details.first.presentation as BykcCoursePresentation;
     await tap(find.widgetWithText(Card, course.courseName).first);
@@ -140,12 +140,12 @@ void main() {
       isTrue,
     );
     expect(find.text('总体净有效次数').evaluate().isNotEmpty, isTrue);
-    await tap(find.byTooltip('搜索与筛选'));
+    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
     await tap(find.byType(DropdownButton<FeatureQueryView>));
     await tap(find.text('个人资料').last);
     await tap(find.text('应用筛选'));
     await loaded(FeatureQueryView.bykcProfile);
-    await tap(find.widgetWithText(TextButton, '完成'));
+    await tap(find.byTooltip('关闭筛选'));
     expect(
       snapshot().details.any((d) => d.presentation is BykcProfilePresentation),
       isTrue,

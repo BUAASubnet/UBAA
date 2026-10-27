@@ -84,51 +84,36 @@ Future<void> _open(WidgetTester tester, FeatureId feature) async {
 }
 
 Future<void> _panel(WidgetTester tester, bool open) async {
-  final done = find.widgetWithText(TextButton, '完成');
-  if (open && done.evaluate().isEmpty) {
-    await _tap(tester, find.byTooltip('搜索与筛选'));
-  } else if (!open && done.evaluate().isNotEmpty) {
+  final close = find.byTooltip('关闭筛选').hitTestable();
+  final button = find.byKey(const ValueKey<String>('feature-filter-button'));
+  if (open && close.evaluate().isEmpty) {
+    if (button.hitTestable().evaluate().isNotEmpty) await _tap(tester, button);
+  } else if (!open) {
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
-    await _tap(tester, done);
+    if (close.evaluate().isNotEmpty) await _tap(tester, close);
   }
 }
 
-Future<String> _searchDraft(WidgetTester tester) async {
-  await _panel(tester, true);
-  final value = tester
-      .widget<TextField>(
-        find.byWidgetPredicate(
-          (w) =>
-              w is TextField &&
-              const ['筛选详情', '课程名称或作业标题'].contains(w.decoration?.labelText),
-        ),
-      )
-      .controller!
-      .text;
-  await _panel(tester, false);
-  return value;
-}
+final _searchField = find.byKey(const ValueKey<String>('feature-search-field'));
+
+Future<String> _searchDraft(WidgetTester tester) async =>
+    tester.widget<TextField>(_searchField).controller!.text;
 
 Future<void> _search(WidgetTester tester, String value) async {
-  await _panel(tester, true);
-  final field = find.byWidgetPredicate(
-    (w) =>
-        w is TextField &&
-        const ['筛选详情', '课程名称或作业标题'].contains(w.decoration?.labelText),
-  );
-  await _tap(tester, field);
-  await tester.enterText(field, value);
-  await tester.pump();
-  expect(tester.widget<TextField>(field).controller!.text, value);
   await _panel(tester, false);
-  expect(find.byType(TextField), findsNothing);
+  await _tap(tester, _searchField);
+  await tester.enterText(_searchField, value);
+  await tester.pump();
+  expect(tester.widget<TextField>(_searchField).controller!.text, value);
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pumpAndSettle();
 }
 
+/// 状态筛选点选即发出派生视图查询，无需再点“应用”。
 Future<void> _view(WidgetTester tester, String label) async {
   await _panel(tester, true);
-  await _tap(tester, find.byType(DropdownButton<FeatureQueryView>));
-  await _tap(tester, find.text(label).last);
+  await _tap(tester, find.widgetWithText(ChoiceChip, label));
 }
 
 Future<void> _apply(
@@ -136,14 +121,7 @@ Future<void> _apply(
   FeatureId feature,
   FeatureQuery query,
 ) async {
-  await _panel(tester, true);
-  await _tap(tester, find.widgetWithText(FilledButton, '应用筛选'));
-  // 现有通用表单无条件保留隐藏时段默认值；只校准手动应用，不污染typed导航。
-  _expectQuery(
-    tester,
-    feature,
-    query.copyWith(startTime: '08:00', endTime: '22:00'),
-  );
+  _expectQuery(tester, feature, query);
   await _panel(tester, false);
 }
 

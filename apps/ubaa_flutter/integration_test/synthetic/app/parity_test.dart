@@ -94,14 +94,16 @@ void main() {
       }
 
       Future<void> panel() async {
-        await tester.tap(find.byTooltip('搜索与筛选'));
+        await tester.tap(
+          find.byKey(const ValueKey<String>('feature-filter-button')),
+        );
         await tester.pumpAndSettle();
       }
 
       Future<void> closePanel() async {
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
-        await tester.tap(find.widgetWithText(TextButton, '完成'));
+        await tester.tap(find.byTooltip('关闭筛选'));
         await tester.pumpAndSettle();
       }
 
@@ -158,8 +160,11 @@ void main() {
         );
         expect(find.text('返回功能列表'), findsNothing);
         // 宽屏空教室保留旧版正文快速搜索；完整查询仍按需收纳。
-        expect(find.widgetWithText(TextField, '筛选详情'), findsNothing);
-        expect(find.widgetWithText(TextButton, '完成'), findsNothing);
+        expect(
+          find.byKey(const ValueKey<String>('feature-search-field')),
+          findsNothing,
+        );
+        expect(find.byTooltip('关闭筛选'), findsNothing);
         expect(find.text('已选择 0 门待评课程'), findsNothing);
         if (tester.view.physicalSize.width / tester.view.devicePixelRatio <
             600) {
@@ -206,7 +211,10 @@ void main() {
             find.widgetWithText(TextField, '学期编码'),
             '未应用学期',
           );
-          await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '合成');
+          await tester.enterText(
+            find.byKey(const ValueKey<String>('feature-search-field')),
+            '合成',
+          );
           await closePanel();
           expect(find.byType(TextField), findsNothing);
           await panel();
@@ -219,7 +227,9 @@ void main() {
           );
           expect(
             tester
-                .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
+                .widget<TextField>(
+                  find.byKey(const ValueKey<String>('feature-search-field')),
+                )
                 .controller!
                 .text,
             '合成',
@@ -250,7 +260,10 @@ void main() {
             );
             if (lockPage) {
               expect(find.text('001234'), findsOneWidget);
-              expect(find.byTooltip('搜索与筛选'), findsNothing);
+              expect(
+                find.byKey(const ValueKey<String>('feature-filter-button')),
+                findsNothing,
+              );
             }
             expect(find.byType(TextField), findsNothing);
             await capture(
@@ -260,14 +273,18 @@ void main() {
             if (index == 0) {
               await panel();
               await tester.enterText(
-                find.widgetWithText(TextField, '筛选详情'),
+                find.byKey(const ValueKey<String>('feature-search-field')),
                 'draft',
               );
               await closePanel();
               await panel();
               expect(
                 tester
-                    .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
+                    .widget<TextField>(
+                      find.byKey(
+                        const ValueKey<String>('feature-search-field'),
+                      ),
+                    )
                     .controller!
                     .text,
                 'draft',

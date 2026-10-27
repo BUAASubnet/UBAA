@@ -240,7 +240,10 @@ void main() {
     await _accountTap(tester, card);
     final reads = backend.reads;
     expect(find.byType(TextField), findsNothing);
-    await _accountTap(tester, find.byTooltip('搜索与筛选'));
+    await _accountTap(
+      tester,
+      find.byKey(const ValueKey<String>('feature-filter-button')),
+    );
     await _accountTap(tester, find.byType(DropdownButton<FeatureQueryView>));
     await _accountTap(tester, find.text('按输入查询').last);
     final term = find.byWidgetPredicate(
@@ -258,7 +261,10 @@ void main() {
     expect(editing.focusNode.hasFocus, isFalse);
     expect(term, findsNothing);
     await _accountShot(binding, tester, 'normal-light-query-collapsed');
-    await _accountTap(tester, find.byTooltip('搜索与筛选'));
+    await _accountTap(
+      tester,
+      find.byKey(const ValueKey<String>('feature-filter-button')),
+    );
     expect(tester.widget<TextField>(term).controller!.text, '合成未应用草稿');
     expect(backend.reads, reads);
     await _accountShot(binding, tester, 'normal-light-query-expanded');

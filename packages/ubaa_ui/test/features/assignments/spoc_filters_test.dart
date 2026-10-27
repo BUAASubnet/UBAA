@@ -1,7 +1,6 @@
 import 'package:ubaa_ui/src/features/coursework/assignment_content.dart'
     show AssignmentCard;
 import 'package:ubaa_ui/src/features/coursework/assignment_filters.dart';
-import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../support/navigation.dart';
@@ -122,10 +121,7 @@ void main() {
     expect(find.text('当前已提交'), findsNothing);
     await openQueryPanel(tester);
     await tester.tap(find.text('降序'));
-    await tester.enterText(
-      find.widgetWithText(TextField, '课程名称或作业标题'),
-      '  SYNTHETIC ',
-    );
+    await tester.enterText(searchField, '  SYNTHETIC ');
     await closeQueryPanel(tester);
     expect(find.text('当前未提交'), findsOneWidget);
     expect(

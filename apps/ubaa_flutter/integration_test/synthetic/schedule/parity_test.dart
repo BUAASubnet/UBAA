@@ -37,9 +37,12 @@ void main() {
         );
         await tap(tester, find.widgetWithText(TextButton, '关闭'));
         expect(backend.scheduleReads.length, reads);
-        await tap(tester, find.byTooltip('搜索与筛选'));
+        await tap(
+          tester,
+          find.byKey(const ValueKey<String>('feature-filter-button')),
+        );
         await edit(tester, '筛选详情', 'COURSE-SAFE-2');
-        await tap(tester, find.widgetWithText(TextButton, '完成'));
+        await tap(tester, find.byTooltip('关闭筛选'));
         expect(find.text('合成课程2'), findsOneWidget);
         expect(find.text('合成课程1'), findsNothing);
         await capture(
@@ -48,10 +51,15 @@ void main() {
           '${brightness.name}-normal-filter',
           '低频编号本地筛选，七日结构保留',
         );
-        await tap(tester, find.byTooltip('搜索与筛选'));
+        await tap(
+          tester,
+          find.byKey(const ValueKey<String>('feature-filter-button')),
+        );
         expect(
           tester
-              .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
+              .widget<TextField>(
+                find.byKey(const ValueKey<String>('feature-search-field')),
+              )
               .controller!
               .text,
           'COURSE-SAFE-2',

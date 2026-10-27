@@ -74,13 +74,11 @@ void main() {
 
   testWidgets('阳光首页搜索保留原记录编号和图片数量等低频字段能力', (tester) async {
     await _open(tester);
-    await openQueryPanel(tester);
-    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '101');
+    await tester.enterText(searchField, '101');
     await tester.pumpAndSettle();
     await closeQueryPanel(tester);
     expect(find.text('合成历史运动'), findsOneWidget);
-    await openQueryPanel(tester);
-    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '图片数量');
+    await tester.enterText(searchField, '图片数量');
     await tester.pumpAndSettle();
     await closeQueryPanel(tester);
     expect(find.text('合成历史运动'), findsOneWidget);
@@ -92,7 +90,7 @@ void main() {
     expect(find.text('打卡记录'), findsOneWidget);
     expect(find.text('合成历史运动'), findsOneWidget);
     expect(find.text('合成运动项目'), findsNothing);
-    expect(find.byType(TextField), findsNothing);
+    expect(find.widgetWithText(TextField, '开始时间'), findsNothing);
     expect(find.textContaining('2 张图片'), findsOneWidget);
     expect(find.textContaining('未分享'), findsOneWidget);
     await tester.tap(find.byTooltip('新增打卡'));

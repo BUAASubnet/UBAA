@@ -587,12 +587,17 @@ void _registerFeatureCollectionTests() {
           .first,
     );
     expect(find.text('课程 21'), findsOneWidget);
-    await openQueryPanel(tester);
-    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '课程 1');
-    await closeQueryPanel(tester);
+    await tester.enterText(searchField, '课程 1');
+    FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
-    expect(find.text('课程 1'), findsOneWidget);
-    expect(find.byType(TextField), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(ListView).last,
+        matching: find.text('课程 1'),
+      ),
+      findsOneWidget,
+    );
+    expect(searchText(tester), '课程 1');
   });
 
   testWidgets('超长详情列表惰性构建并可连续滚动', (tester) async {
@@ -697,153 +702,6 @@ void _registerFeatureCollectionTests() {
     expect(received?.page, 2);
   });
 
-  testWidgets('领域查询控件提交日期和校区 typed 参数', (tester) async {
-    final snapshots = <FeatureId, FeatureSnapshot>{
-      for (final feature in FeatureId.values)
-        feature: FeatureSnapshot(
-          feature: feature,
-          status: FeatureLoadStatus.success,
-          summary: '已加载',
-          details: feature == FeatureId.classroom
-              ? const <FeatureDetail>[FeatureDetail(title: '主楼 101')]
-              : const <FeatureDetail>[],
-        ),
-    };
-    FeatureQuery? received;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: UbaaTheme.light(),
-        home: coordinatedShell(
-          user: const UserSummary(username: 'student'),
-          snapshots: snapshots,
-          routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
-          onRefresh: () async {},
-          onRetryFeature: (_) async {},
-          onFeatureQuery: (feature, query) async {
-            expect(feature, FeatureId.classroom);
-            received = query;
-          },
-          onLogout: () async {},
-          onLogoutAndClearAccount: () async {},
-          onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
-        ),
-      ),
-    );
-    await openFeature(tester, FeatureId.classroom);
-    await openQueryPanel(tester);
-    await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, '日期'), '2026-09-02');
-    await tester.tap(find.text('学院路'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('沙河'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('应用筛选'));
-    await tester.tap(find.text('应用筛选'));
-    await tester.pumpAndSettle();
-    expect(received?.date, DateTime(2026, 9, 2));
-    expect(received?.campus, 2);
-  });
-
-  testWidgets('日期控件拒绝非日期字符串和不存在的日历日期', (tester) async {
-    final snapshots = <FeatureId, FeatureSnapshot>{
-      for (final feature in FeatureId.values)
-        feature: FeatureSnapshot(
-          feature: feature,
-          status: FeatureLoadStatus.success,
-          summary: '已加载',
-          details: feature == FeatureId.classroom
-              ? const <FeatureDetail>[FeatureDetail(title: '主楼 101')]
-              : const <FeatureDetail>[],
-        ),
-    };
-    FeatureQuery? received;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: UbaaTheme.light(),
-        home: coordinatedShell(
-          user: const UserSummary(username: 'student'),
-          snapshots: snapshots,
-          routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
-          onRefresh: () async {},
-          onRetryFeature: (_) async {},
-          onFeatureQuery: (feature, query) async {
-            expect(feature, FeatureId.classroom);
-            received = query;
-          },
-          onLogout: () async {},
-          onLogoutAndClearAccount: () async {},
-          onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
-        ),
-      ),
-    );
-    await openFeature(tester, FeatureId.classroom);
-    await openQueryPanel(tester);
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, '日期'),
-      '2026-09-02T12:00:00+08:00',
-    );
-    await tester.tap(find.text('应用筛选'));
-    await tester.pumpAndSettle();
-
-    expect(received, isNull);
-    expect(find.text('日期格式无效，请使用 YYYY-MM-DD。'), findsOneWidget);
-
-    await tester.enterText(find.widgetWithText(TextField, '日期'), '2026-02-30');
-    await tester.tap(find.text('应用筛选'));
-    await tester.pumpAndSettle();
-    expect(received, isNull);
-  });
-
-  testWidgets('空教室查询控件提交楼层和节次本地筛选参数', (tester) async {
-    final snapshots = <FeatureId, FeatureSnapshot>{
-      for (final feature in FeatureId.values)
-        feature: FeatureSnapshot(
-          feature: feature,
-          status: FeatureLoadStatus.success,
-          summary: '已加载',
-          details: feature == FeatureId.classroom
-              ? const <FeatureDetail>[FeatureDetail(title: '主楼 101')]
-              : const <FeatureDetail>[],
-        ),
-    };
-    FeatureQuery? received;
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: UbaaTheme.light(),
-        home: coordinatedShell(
-          user: const UserSummary(username: 'student'),
-          snapshots: snapshots,
-          routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
-          onRefresh: () async {},
-          onRetryFeature: (_) async {},
-          onFeatureQuery: (feature, query) async {
-            expect(feature, FeatureId.classroom);
-            received = query;
-          },
-          onLogout: () async {},
-          onLogoutAndClearAccount: () async {},
-          onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
-        ),
-      ),
-    );
-    await openFeature(tester, FeatureId.classroom);
-    await openQueryPanel(tester);
-    await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, '楼层'), 'F2');
-    await tester.enterText(find.widgetWithText(TextField, '节次'), '3');
-    await tester.tap(find.text('应用筛选'));
-    await tester.pumpAndSettle();
-    expect(received?.floorId, 'F2');
-    expect(received?.section, '3');
-  });
-
   testWidgets('查询失败重试会复用当前 typed 查询而不是退回摘要', (tester) async {
     var snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
@@ -851,8 +709,8 @@ void _registerFeatureCollectionTests() {
           feature: feature,
           status: FeatureLoadStatus.success,
           summary: '已加载',
-          details: feature == FeatureId.classroom
-              ? const <FeatureDetail>[FeatureDetail(title: '主楼 101')]
+          details: feature == FeatureId.exam
+              ? const <FeatureDetail>[FeatureDetail(title: '合成考试')]
               : const <FeatureDetail>[],
         ),
     };
@@ -860,7 +718,7 @@ void _registerFeatureCollectionTests() {
     var retryCalls = 0;
     var queryCalls = 0;
     Future<void> onQuery(FeatureId feature, FeatureQuery query) async {
-      expect(feature, FeatureId.classroom);
+      expect(feature, FeatureId.exam);
       applied = query;
       queryCalls++;
     }
@@ -883,23 +741,22 @@ void _registerFeatureCollectionTests() {
         ),
       ),
     );
-    await openFeature(tester, FeatureId.classroom);
+    await openFeature(tester, FeatureId.exam);
     await openQueryPanel(tester);
     await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, '楼层'), 'F2');
-    await tester.tap(find.text('应用筛选'));
+    await tester.tap(find.widgetWithText(ChoiceChip, '已安排'));
     await tester.pumpAndSettle();
-    expect(applied?.floorId, 'F2');
+    expect(applied?.view, FeatureQueryView.examArranged);
 
     snapshots = {
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
           feature: feature,
-          status: feature == FeatureId.classroom
+          status: feature == FeatureId.exam
               ? FeatureLoadStatus.failure
               : FeatureLoadStatus.success,
           summary: '已加载',
-          error: feature == FeatureId.classroom
+          error: feature == FeatureId.exam
               ? const UiError(
                   code: UbaaErrorCode.networkError,
                   title: '网络错误',
@@ -935,7 +792,7 @@ void _registerFeatureCollectionTests() {
     await tester.pumpAndSettle();
     expect(retryCalls, 0);
     expect(queryCalls, 2);
-    expect(applied?.floorId, 'F2');
+    expect(applied?.view, FeatureQueryView.examArranged);
   });
 }
 

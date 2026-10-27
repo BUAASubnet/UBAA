@@ -355,12 +355,13 @@ Future<void> _openBykc(WidgetTester tester) async {
 }
 
 Future<void> _openFilters(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('搜索与筛选'));
+  await tester.tap(find.byKey(const ValueKey<String>('feature-filter-button')));
   await tester.pumpAndSettle();
 }
 
 Future<void> _closeFilters(WidgetTester tester) async {
-  await _tapTextButton(tester, '完成');
+  await tester.tap(find.byTooltip('关闭筛选'));
+  await tester.pumpAndSettle();
 }
 
 Future<void> _tapTextButton(WidgetTester tester, String label) async {

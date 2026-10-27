@@ -118,13 +118,11 @@ void main() {
       ),
     ], width: 1280);
     expect(find.text('当前页楼层'), findsNothing);
-    await openQueryPanel(tester);
-    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '二层');
+    await tester.enterText(searchField, '二层');
     await closeQueryPanel(tester);
     expect(find.text('一层教室'), findsNothing);
     expect(find.text('二层教室'), findsOneWidget);
-    await openQueryPanel(tester);
-    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), '');
+    await tester.enterText(searchField, '');
     await closeQueryPanel(tester);
     expect(find.text('一层教室'), findsOneWidget);
     expect(tester.takeException(), isNull);

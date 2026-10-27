@@ -101,7 +101,7 @@ void main() {
       state.value = state.value.copyWith(status: next);
       await tester.pumpAndSettle();
 
-      expect(await queryFieldText(tester, '筛选详情'), '保留课程');
+      expect(searchText(tester), '保留课程');
       expect(_offset(tester), closeTo(before, 1));
       expect(find.text('不匹配的课程'), findsNothing);
       expect(tester.takeException(), isNull);
@@ -127,7 +127,7 @@ void main() {
     expect(find.text('暂无成绩查询数据'), findsOneWidget);
     state.value = _grades();
     await tester.pumpAndSettle();
-    expect(await queryFieldText(tester, '筛选详情'), '保留课程');
+    expect(searchText(tester), '保留课程');
     expect(find.text('不匹配的课程'), findsNothing);
   });
 
@@ -221,7 +221,7 @@ Future<void> _mount(
   await tester.pumpAndSettle();
 }
 
-Finder get _search => find.widgetWithText(TextField, '筛选详情');
+Finder get _search => searchField;
 double _offset(WidgetTester tester) => tester
     .state<ScrollableState>(
       find.descendant(

@@ -580,38 +580,12 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             );
           },
         ),
-        if (_openedFeature != null && pendingWrite == null)
-          ValueListenableBuilder<(FeatureSnapshot, String)?>(
-            valueListenable: _visiblePage,
-            builder: (context, _, _) {
-              final page = _readPageKeys[_openedFeature]?.currentState;
-              if (_openedFeature == FeatureId.cgyy &&
-                  {
-                    FeatureQueryView.summary,
-                    FeatureQueryView.cgyyDayInfo,
-                    FeatureQueryView.cgyyLockCode,
-                  }.contains(
-                    page?.currentFrame.query?.view ?? FeatureQueryView.summary,
-                  ))
-                return const SizedBox.shrink();
-              if (_openedFeature == FeatureId.libbook &&
-                  page?.currentFrame.query?.view !=
-                      FeatureQueryView.libbookBookings) {
-                return const SizedBox.shrink();
-              }
-              if (_openedFeature == FeatureId.schedule) {
-                return IconButton(
-                  tooltip: '选择学期',
-                  onPressed: () => page?.selectScheduleTerm(),
-                  icon: const Icon(Icons.calendar_month_outlined),
-                );
-              }
-              return IconButton(
-                tooltip: '搜索与筛选',
-                onPressed: () => page?.openPanel(),
-                icon: const Icon(Icons.search),
-              );
-            },
+        if (_openedFeature == FeatureId.schedule && pendingWrite == null)
+          IconButton(
+            tooltip: '选择学期',
+            onPressed: () => _readPageKeys[FeatureId.schedule]?.currentState
+                ?.selectScheduleTerm(),
+            icon: const Icon(Icons.calendar_month_outlined),
           ),
         if (_openedFeature != null && pendingWrite == null)
           RefreshActionButton(

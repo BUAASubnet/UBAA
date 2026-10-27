@@ -397,8 +397,6 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
     await widget.onQuery!(target.query);
   }
 
-  void openPanel() => _current.pageKey.currentState?.togglePanel();
-
   void selectScheduleTerm() =>
       _current.pageKey.currentState?.selectScheduleTerm();
 

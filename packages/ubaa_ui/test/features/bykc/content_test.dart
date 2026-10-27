@@ -97,28 +97,6 @@ void main() {
     );
     expect(queries, isEmpty);
   });
-  testWidgets('博雅课程选择器优先使用公开typed课程ID', (tester) async {
-    await _open(tester, const [
-      FeatureDetail(
-        title: '假标题',
-        fields: [FeatureField(label: '课程 ID', value: '999')],
-        presentation: BykcCoursePresentation(
-          id: 7,
-          courseName: '合成课',
-          status: BykcCourseStatus.available,
-        ),
-      ),
-    ]);
-    await openQueryPanel(tester);
-    await tester.tap(find.byType(DropdownButton<FeatureQueryView>));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('课程详情').last);
-    await tester.pumpAndSettle();
-    final picker = tester.widget<DropdownButton<String>>(
-      find.byType(DropdownButton<String>),
-    );
-    expect(picker.items!.map((item) => item.value), ['7']);
-  });
   testWidgets('博雅卡片正文仍进入详情且列表显示选课入口', (tester) async {
     final queries = <FeatureQuery>[];
     await _open(tester, const [
@@ -150,7 +128,9 @@ void main() {
     expect(find.textContaining('08:00'), findsOneWidget);
     expect(find.text('选课'), findsOneWidget);
     expect(find.text('999'), findsNothing);
-    expect(find.byType(TextField), findsNothing);
+    // 列表只常驻搜索框；课程详情经卡片进入，不提供手填课程 ID。
+    expect(find.byType(TextField), findsOneWidget);
+    expect(searchField, findsOneWidget);
     await tester.tap(find.widgetWithText(Card, '合成博雅课'));
     await tester.pump();
     expect(queries.single.courseId, '7');

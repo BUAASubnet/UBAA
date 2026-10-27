@@ -142,9 +142,12 @@ void main() {
     expect(find.text('历史'), findsOneWidget);
     await openQueryPanel(tester);
     await tester.tap(find.text('降序'));
-    await tester.enterText(find.widgetWithText(TextField, '课程名称或作业标题'), '稍后');
     await closeQueryPanel(tester);
-    expect(find.text('稍后'), findsOneWidget);
+    await tester.enterText(searchField, '稍后');
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
+    expect(searchText(tester), '稍后');
+    expect(find.widgetWithText(Card, '稍后'), findsOneWidget);
     expect(find.text('较早'), findsNothing);
     expect(queries, isEmpty);
   });

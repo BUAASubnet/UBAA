@@ -90,13 +90,13 @@ void main() {
       await tap(find.widgetWithText(TextButton, '关闭'));
       debugPrint('教室只读 localDetail=true extraReads=0');
     }
-    await tap(find.byTooltip('搜索与筛选'));
+    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
     await tap(find.byType(DropdownButton<int>));
     await tap(find.text('沙河').last);
     final previous = snapshot().readContext?.requestRevision;
     await tap(find.widgetWithText(FilledButton, '应用筛选'));
     await loaded(previous: previous, campus: 2);
-    await tap(find.widgetWithText(TextButton, '完成'));
+    await tap(find.byTooltip('关闭筛选'));
     final targets = snapshot().details
         .where((d) => d.presentation is ClassroomPresentation)
         .map((d) => d.presentation! as ClassroomPresentation)
@@ -113,7 +113,7 @@ void main() {
       final section = target.sectionTokens.firstWhere(
         (s) => int.tryParse(s) != null && int.parse(s) > 0,
       );
-      await tap(find.byTooltip('搜索与筛选'));
+      await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
       await edit('楼层', target.floorId);
       await edit('节次', section);
       final before = snapshot().readContext?.requestRevision;
@@ -131,8 +131,8 @@ void main() {
         ),
         isTrue,
       );
-      await tap(find.widgetWithText(TextButton, '完成'));
-      await tap(find.byTooltip('搜索与筛选'));
+      await tap(find.byTooltip('关闭筛选'));
+      await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
       expect(
         tester
                 .widget<TextField>(find.widgetWithText(TextField, '楼层'))
@@ -149,7 +149,7 @@ void main() {
             section,
         isTrue,
       );
-      await tap(find.widgetWithText(TextButton, '完成'));
+      await tap(find.byTooltip('关闭筛选'));
       debugPrint('教室只读 floorSection=true retainedDraft=true');
     } else {
       debugPrint('教室只读 floorSection=NOT_APPLICABLE reason=no_usable_option');

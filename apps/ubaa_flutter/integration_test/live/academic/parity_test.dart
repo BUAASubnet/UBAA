@@ -91,7 +91,7 @@ void main() {
       ('未安排', FeatureQueryView.examNotArranged),
       ('全部考试', FeatureQueryView.summary),
     ]) {
-      await tap(find.byTooltip('搜索与筛选'));
+      await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
       await tap(find.byType(DropdownButton<FeatureQueryView>));
       await tap(find.text(label).last);
       final revision =
@@ -103,7 +103,7 @@ void main() {
             revision,
       );
       await loaded(FeatureId.exam, view);
-      await tap(find.widgetWithText(TextButton, '完成'));
+      await tap(find.byTooltip('关闭筛选'));
       expect(find.byType(TextField).evaluate().isEmpty, isTrue);
     }
     debugPrint(
@@ -116,7 +116,7 @@ void main() {
       ('已签到', FeatureQueryView.signinCompleted, ActionEligibility.denied),
       ('全部课程', FeatureQueryView.summary, null),
     ]) {
-      await tap(find.byTooltip('搜索与筛选'));
+      await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
       await tap(find.byType(DropdownButton<FeatureQueryView>));
       await tap(find.text(label).last);
       final revision =
@@ -139,7 +139,7 @@ void main() {
           reason: '显式签到视图必须符合原资格筛选，不能用文字搜索替代',
         );
       }
-      await tap(find.widgetWithText(TextButton, '完成'));
+      await tap(find.byTooltip('关闭筛选'));
       expect(find.byType(TextField).evaluate().isEmpty, isTrue);
     }
     if (shell().snapshots[FeatureId.signin]!.details.isNotEmpty) {

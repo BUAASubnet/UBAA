@@ -84,7 +84,7 @@ void main() {
     expect(dates.evaluate().isEmpty || dates.evaluate().length == 7, isTrue);
     final current = snapshot().readContext!.query!;
     final before = snapshot().readContext!.requestRevision;
-    await tap(find.byTooltip('搜索与筛选'));
+    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
     expect(draft('学期编码') == current.term, isTrue);
     expect(draft('周次') == '${current.week}', isTrue);
     await tap(find.byTooltip('下一教学周'));
@@ -114,18 +114,18 @@ void main() {
     final next = int.tryParse(draft('周次'));
     expect(next != null && next > 0, isTrue);
     expect(snapshot().readContext?.requestRevision == before, isTrue);
-    await tap(find.widgetWithText(TextButton, '完成'));
-    await tap(find.byTooltip('搜索与筛选'));
+    await tap(find.byTooltip('关闭筛选'));
+    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
     expect(draft('周次') == '$next', isTrue);
     await tap(find.text('应用筛选'));
     await loaded(FeatureQueryView.scheduleWeek, previous: before);
-    await tap(find.widgetWithText(TextButton, '完成'));
+    await tap(find.byTooltip('关闭筛选'));
     expect(snapshot().readContext?.query?.week == next, isTrue);
     debugPrint(
       '周导航只读 adjacent=${next != current.week} retainedDraft=true headerDates=${dates.evaluate().length}',
     );
 
-    await tap(find.byTooltip('搜索与筛选'));
+    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
     await tap(find.widgetWithText(OutlinedButton, '选择学期'));
     final termChoices = find.descendant(
       of: find.byType(AlertDialog),
@@ -150,18 +150,18 @@ void main() {
     final previous = snapshot().readContext!.requestRevision;
     await tap(find.text('应用筛选'));
     await loaded(FeatureQueryView.scheduleWeek, previous: previous);
-    await tap(find.widgetWithText(TextButton, '完成'));
+    await tap(find.byTooltip('关闭筛选'));
     expect(snapshot().readContext?.query?.term == term, isTrue);
     expect(snapshot().readContext?.query?.week == week, isTrue);
     debugPrint('周导航只读 termChanged=true headerDates=${dates.evaluate().length}');
 
-    await tap(find.byTooltip('搜索与筛选'));
+    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
     await tap(find.byType(DropdownButton<FeatureQueryView>));
     await tap(find.text('今日课程').last);
     final termRevision = snapshot().readContext!.requestRevision;
     await tap(find.text('应用筛选'));
     await loaded(FeatureQueryView.scheduleToday, previous: termRevision);
-    await tap(find.widgetWithText(TextButton, '完成'));
+    await tap(find.byTooltip('关闭筛选'));
     expect(snapshot().readContext?.query?.term == null, isTrue);
     expect(snapshot().readContext?.query?.week == null, isTrue);
     expect(

@@ -39,24 +39,25 @@ void main() {
       await tester.pumpAndSettle();
     }
 
+    final searchField = find.byKey(
+      const ValueKey<String>('feature-search-field'),
+    );
+
     Future<void> panel() async {
-      if (find.text('完成').evaluate().isEmpty) {
-        await tap(find.byTooltip('搜索与筛选'));
+      if (find.byTooltip('关闭筛选').hitTestable().evaluate().isEmpty) {
+        await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
       }
     }
 
     Future<void> closePanel() async {
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
-      await tap(find.text('完成'));
+      await tap(find.byTooltip('关闭筛选'));
     }
 
     Future<void> search(String value) async {
-      await panel();
-      final field = find.widgetWithText(TextField, '课程名称或作业标题');
-      await ensure(field);
-      await tester.enterText(field, value);
-      await closePanel();
+      await ensure(searchField);
+      await tester.enterText(searchField, value);
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
     }
@@ -84,15 +85,7 @@ void main() {
     await tap(find.byType(AssignmentCard));
     await tap(find.byTooltip('返回'));
     await search('judge-b');
-    await panel();
-    expect(
-      tester
-          .widget<TextField>(find.widgetWithText(TextField, '课程名称或作业标题'))
-          .controller!
-          .text,
-      'judge-b',
-    );
-    await closePanel();
+    expect(tester.widget<TextField>(searchField).controller!.text, 'judge-b');
     await tap(find.byType(AssignmentCard));
     expect(find.textContaining('judge-b'), findsWidgets);
   });

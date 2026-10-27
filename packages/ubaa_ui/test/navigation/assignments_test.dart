@@ -27,7 +27,7 @@ void main() {
     final state = await showHarness(tester, size: const Size(402, 874));
     Future<void> search(String value) async {
       await openQueryPanel(tester);
-      final field = find.widgetWithText(TextField, '课程名称或作业标题');
+      final field = searchField;
       await tester.ensureVisible(field);
       await tester.enterText(field, value);
       await closeQueryPanel(tester);

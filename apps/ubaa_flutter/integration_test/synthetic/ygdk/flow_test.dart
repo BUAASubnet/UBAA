@@ -54,7 +54,9 @@ void main() {
       await _panel(tester);
       expect(
         tester
-            .widget<TextField>(find.widgetWithText(TextField, '筛选详情'))
+            .widget<TextField>(
+              find.byKey(const ValueKey<String>('feature-search-field')),
+            )
             .controller!
             .text,
         '记录 2',

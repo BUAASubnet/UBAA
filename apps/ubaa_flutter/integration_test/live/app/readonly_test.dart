@@ -112,8 +112,11 @@ void main() {
           find.byType(AppBar).evaluate().length == 1 &&
           find.byTooltip('返回').evaluate().length == 1;
       final noQueryBlock =
-          find.widgetWithText(TextField, '筛选详情').evaluate().isEmpty &&
-          find.widgetWithText(TextButton, '完成').evaluate().isEmpty;
+          find
+              .byKey(const ValueKey<String>('feature-search-field'))
+              .evaluate()
+              .isEmpty &&
+          find.byTooltip('关闭筛选').evaluate().isEmpty;
       records.add({
         'feature': feature.wireName,
         'initialStatus': initialStatus,

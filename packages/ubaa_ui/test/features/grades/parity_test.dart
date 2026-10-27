@@ -146,7 +146,7 @@ void main() {
       lessThan(tester.getTopLeft(find.text('合成已出课程')).dy),
     );
     await openQueryPanel(tester);
-    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), 'SAFE-1');
+    await tester.enterText(searchField, 'SAFE-1');
     await closeQueryPanel(tester);
     expect(find.text('合成待出课程'), findsNothing);
     final summary = find.widgetWithText(Card, '本学期');

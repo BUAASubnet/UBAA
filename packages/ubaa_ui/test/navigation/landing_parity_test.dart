@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
-import '../support/navigation.dart' show openQueryPanel;
 
 void main() {
   testWidgets('默认子页保留首次错误，不因打开菜单项而自动重试', (tester) async {
@@ -15,7 +14,7 @@ void main() {
     expect(state.queries, isEmpty);
     expect(find.text('网络不可用'), findsOneWidget);
   });
-  testWidgets('默认子页复用对应预载快照而显式应用仍发起读取', (tester) async {
+  testWidgets('默认子页复用对应预载快照而显式刷新仍发起读取', (tester) async {
     final state = await _open(tester, FeatureId.bykc);
     await tester.tap(find.widgetWithText(Card, '选择课程'));
     await tester.pumpAndSettle();
@@ -25,8 +24,10 @@ void main() {
     expect(find.byTooltip('实际路线：直连'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
-    await openQueryPanel(tester);
-    await tester.tap(find.widgetWithText(FilledButton, '应用筛选'));
+    await tester.tap(find.widgetWithText(Card, '选择课程'));
+    await tester.pumpAndSettle();
+    expect(state.queries, isEmpty);
+    await tester.tap(find.byTooltip('刷新当前查询'));
     await tester.pumpAndSettle();
     expect(state.queries, hasLength(1));
     expect(find.byTooltip('实际路线：WebVPN'), findsOneWidget);

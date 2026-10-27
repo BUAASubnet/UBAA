@@ -177,8 +177,7 @@ void main() {
       [],
       query: const FeatureQuery(view: FeatureQueryView.judgeBatchDetails),
     );
-    await openQueryPanel(tester);
-    await tester.enterText(find.widgetWithText(TextField, '筛选详情'), 'B 的题目');
+    await tester.enterText(searchField, 'B 的题目');
     await tester.pumpAndSettle();
     expect(
       find.byWidgetPredicate(

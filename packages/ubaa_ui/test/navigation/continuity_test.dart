@@ -5,22 +5,19 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../support/navigation.dart';
 
 void main() {
-  testWidgets('同一Shell更换账号清除已访问页面草稿和已应用查询', (tester) async {
+  testWidgets('同一Shell更换账号清除已访问页面的搜索和已生效筛选', (tester) async {
     final queries = <FeatureQuery>[];
     await _mount(tester, queries);
     final shellState = tester.state(find.byType(UbaaMainShell));
     await _open(tester, FeatureId.exam);
-    await tester.enterText(_field('学期编码'), '2026-2027-1');
-    await tester.tap(find.text('应用筛选'));
-    await tester.pumpAndSettle();
-    await tester.enterText(_field('筛选详情'), '旧账号草稿');
+    await _choose(tester, '已安排');
+    await tester.enterText(searchField, '旧账号草稿');
     await _mount(tester, queries, username: 'another-fixture-student');
     expect(tester.state(find.byType(UbaaMainShell)), same(shellState));
     expect(find.byTooltip('返回'), findsNothing);
     await _open(tester, FeatureId.exam);
-    expect(_view(tester), FeatureQueryView.summary);
-    expect(_text(tester, '学期编码'), isEmpty);
-    expect(_text(tester, '筛选详情'), isEmpty);
+    expect(searchText(tester), isEmpty);
+    expect(await _selected(tester), '全部');
     expect(queries, hasLength(1));
   });
 
@@ -28,9 +25,10 @@ void main() {
     final queries = <FeatureQuery>[];
     await _mount(tester, queries, width: 799);
     await _open(tester, FeatureId.grades);
-    await tester.enterText(_field('筛选详情'), '保留课程');
+    await tester.enterText(searchField, '保留课程');
     await tester.pumpAndSettle();
-    await closeQueryPanel(tester);
+    FocusManager.instance.primaryFocus?.unfocus();
+    await tester.pumpAndSettle();
     await tester.drag(find.byType(ListView), const Offset(0, -260));
     await tester.pumpAndSettle();
     final offset = _listOffset(tester);
@@ -43,72 +41,62 @@ void main() {
       expect(tester.state(find.byType(UbaaMainShell)), same(shellState));
       expect(find.byTooltip('返回'), findsOneWidget);
       expect(find.text(FeatureId.grades.title), findsOneWidget);
-      expect(await queryFieldText(tester, '筛选详情'), '保留课程');
+      expect(searchText(tester), '保留课程');
       expect(_listOffset(tester), closeTo(offset, 1));
       expect(queries, isEmpty);
       expect(tester.takeException(), isNull);
     }
   });
 
-  testWidgets('未应用的学期草稿返回后重入仍保留且不触发查询', (tester) async {
+  testWidgets('搜索关键字返回后重入仍显示且不触发查询', (tester) async {
     final queries = <FeatureQuery>[];
     await _mount(tester, queries);
     await _open(tester, FeatureId.exam);
-    await tester.enterText(_field('学期编码'), '2026-2027-1');
+    await tester.enterText(searchField, '保留课程 1');
     await _back(tester);
     await _open(tester, FeatureId.exam);
 
-    expect(_view(tester), FeatureQueryView.summary);
-    expect(_text(tester, '学期编码'), '2026-2027-1');
+    expect(searchText(tester), '保留课程 1');
+    expect(find.byTooltip('清除搜索'), findsOneWidget);
+    expect(await _selected(tester), '全部');
     expect(queries, isEmpty);
   });
 
-  testWidgets('重入保留未应用草稿而失败后的重试仍使用已应用查询', (tester) async {
+  testWidgets('重入后失败重试沿用已生效的筛选条件', (tester) async {
     final queries = <FeatureQuery>[];
     // 已有内容且请求返回真实错误，页面提供“重试”入口。
     await _mount(tester, queries, staleExam: true);
     await _open(tester, FeatureId.exam);
-    await tester.enterText(_field('学期编码'), '2026-2027-1');
-    await tester.tap(find.text('应用筛选'));
-    await tester.pumpAndSettle();
+    await _choose(tester, '已安排');
     expect(queries, hasLength(1));
-    expect(queries.single.view, FeatureQueryView.summary);
-    expect(queries.single.term, '2026-2027-1');
+    expect(queries.single.view, FeatureQueryView.examArranged);
 
-    await tester.enterText(_field('学期编码'), '2027-2028-2');
     await _back(tester);
     await _open(tester, FeatureId.exam);
-    expect(_view(tester), FeatureQueryView.summary);
-    expect(_text(tester, '学期编码'), '2027-2028-2');
+    expect(await _selected(tester), '已安排');
     expect(queries, hasLength(1));
 
-    await closeQueryPanel(tester);
     await tester.tap(find.widgetWithText(TextButton, '重试'));
     await tester.pumpAndSettle();
     expect(queries, hasLength(2));
-    expect(queries.last.view, FeatureQueryView.summary);
-    expect(queries.last.term, '2026-2027-1');
-    expect(await queryFieldText(tester, '学期编码'), '2027-2028-2');
+    expect(queries.last.view, FeatureQueryView.examArranged);
   });
 
-  testWidgets('不同领域的未应用草稿隔离且各自重入恢复', (tester) async {
+  testWidgets('不同领域的搜索互相隔离且各自重入恢复', (tester) async {
     final queries = <FeatureQuery>[];
     await _mount(tester, queries);
     await _open(tester, FeatureId.exam);
-    await tester.enterText(_field('学期编码'), '2026-2027-1');
+    await tester.enterText(searchField, '考试关键字');
     await _back(tester);
     await _open(tester, FeatureId.grades);
-    expect(_text(tester, '学期编码'), isEmpty);
-    expect(_view(tester), FeatureQueryView.summary);
-    await tester.enterText(_field('学期编码'), '2025-2026-2');
+    expect(searchText(tester), isEmpty);
+    await tester.enterText(searchField, '成绩关键字');
     await _back(tester);
     await _open(tester, FeatureId.exam);
-    expect(_text(tester, '学期编码'), '2026-2027-1');
-    expect(_view(tester), FeatureQueryView.summary);
+    expect(searchText(tester), '考试关键字');
     await _back(tester);
     await _open(tester, FeatureId.grades);
-    expect(_text(tester, '学期编码'), '2025-2026-2');
-    expect(_view(tester), FeatureQueryView.summary);
+    expect(searchText(tester), '成绩关键字');
     expect(queries, isEmpty);
   });
 }
@@ -173,14 +161,21 @@ Future<void> _mount(
   await tester.pumpAndSettle();
 }
 
-Finder _field(String label) => find.widgetWithText(TextField, label);
-String _text(WidgetTester tester, String label) =>
-    tester.widget<TextField>(_field(label)).controller!.text;
-FeatureQueryView? _view(WidgetTester tester) => tester
-    .widget<DropdownButton<FeatureQueryView>>(
-      find.byType(DropdownButton<FeatureQueryView>),
-    )
-    .value;
+Future<void> _choose(WidgetTester tester, String label) async {
+  await openQueryPanel(tester);
+  await tester.tap(find.widgetWithText(ChoiceChip, label));
+  await tester.pumpAndSettle();
+  await closeQueryPanel(tester);
+}
+
+Future<String> _selected(WidgetTester tester) async {
+  await openQueryPanel(tester);
+  final chip = tester
+      .widgetList<ChoiceChip>(find.byType(ChoiceChip))
+      .firstWhere((chip) => chip.selected);
+  await closeQueryPanel(tester);
+  return (chip.label as Text).data!;
+}
 
 double _listOffset(WidgetTester tester) => tester
     .state<ScrollableState>(
@@ -197,7 +192,6 @@ double _listOffset(WidgetTester tester) => tester
 
 Future<void> _open(WidgetTester tester, FeatureId feature) async {
   await openFeature(tester, feature);
-  await openQueryPanel(tester);
 }
 
 Future<void> _back(WidgetTester tester) async {

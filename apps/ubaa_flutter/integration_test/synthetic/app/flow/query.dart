@@ -68,7 +68,7 @@ void _registerQueryFlowTests() {
     }
   });
 
-  testWidgets('宿主集成流程覆盖全部领域的 typed 查询入口', (tester) async {
+  testWidgets('宿主集成流程的状态筛选点选即发出对应查询', (tester) async {
     final backend = _IntegrationBackend();
     await tester.pumpWidget(
       UbaaFlutterApp(
@@ -86,111 +86,35 @@ void _registerQueryFlowTests() {
 
     expect(find.byType(UbaaMainShell), findsOneWidget);
 
-    Future<void> openFeature(FeatureId feature) async {
+    // 视图切换由菜单、卡片和预约流程承担；筛选只含用户可理解的状态条件。
+    final cases = <(FeatureId, String, FeatureQueryView)>[
+      (FeatureId.exam, '已安排', FeatureQueryView.examArranged),
+      (FeatureId.grades, '已出成绩', FeatureQueryView.gradesScored),
+      (FeatureId.signin, '可签到', FeatureQueryView.signinPending),
+      (FeatureId.evaluation, '待评课程', FeatureQueryView.evaluationPending),
+    ];
+    for (final (feature, option, expectedView) in cases) {
       await _openIntegrationFeature(tester, feature, enterLanding: false);
       await _openIntegrationPanel(tester);
-    }
-
-    Future<void> chooseView(String label) async {
-      final menu = find.byType(DropdownButton<FeatureQueryView>);
-      expect(menu, findsOneWidget);
-      await tester.tap(menu);
-      await tester.pumpAndSettle();
-      expect(
-        find.text(label),
-        findsAtLeastNWidgets(1),
-        reason: '必须存在查询选项：$label',
-      );
-      await tester.tap(find.text(label).last);
-      await tester.pumpAndSettle();
-    }
-
-    Future<void> apply(FeatureId feature, FeatureQueryView view) async {
+      for (final text in ['应用筛选', '学期编码', '课程 ID', '站点 ID']) {
+        expect(find.text(text), findsNothing, reason: '筛选面板不应包含“$text”');
+      }
       final before = backend.queries.length;
-      final applyButton = find.widgetWithText(FilledButton, '应用筛选');
-      await tester.ensureVisible(applyButton);
+      final chip = find.widgetWithText(ChoiceChip, option);
+      await tester.ensureVisible(chip);
+      await tester.tap(chip);
       await tester.pumpAndSettle();
-      expect(applyButton.hitTestable(), findsOneWidget);
-      expect(tester.widget<FilledButton>(applyButton).onPressed, isNotNull);
-      await tester.tap(applyButton);
-      await tester.pumpAndSettle();
-      final emitted = backend.queries.skip(before).toList();
-      final targeted = emitted.where((entry) => entry.$1 == feature).toList();
+      final targeted = backend.queries
+          .skip(before)
+          .where((entry) => entry.$1 == feature)
+          .toList();
       expect(
         targeted,
         isNotEmpty,
-        reason:
-            '${feature.name} 点击应用后必须发出新查询；实际新增 '
-            '${emitted.map((entry) => '${entry.$1.name}/${entry.$2.view.name}').toList()}',
+        reason: '${feature.name} 点选“$option”后必须发出新查询',
       );
-      expect(targeted.last.$2.view, view);
+      expect(targeted.last.$2.view, expectedView);
       await _closeIntegrationPanel(tester);
-    }
-
-    await openFeature(FeatureId.schedule);
-    await chooseView('周课表');
-    await tester.enterText(
-      find.widgetWithText(TextField, '学期编码'),
-      '2026-2027-1',
-    );
-    await tester.enterText(find.widgetWithText(TextField, '周次'), '3');
-    await apply(FeatureId.schedule, FeatureQueryView.scheduleWeek);
-    await _returnToFeatureRoot(tester);
-    await tester.pumpAndSettle();
-
-    final queryCases =
-        <(FeatureId, String, FeatureQueryView, Map<String, String>)>[
-          (FeatureId.exam, '已安排', FeatureQueryView.examArranged, const {}),
-          (FeatureId.grades, '已出成绩', FeatureQueryView.gradesScored, const {}),
-          (
-            FeatureId.bykc,
-            '课程详情',
-            FeatureQueryView.bykcDetail,
-            const {'课程 ID': '42'},
-          ),
-          (FeatureId.classroom, '', FeatureQueryView.summary, const {}),
-          (
-            FeatureId.spoc,
-            '作业详情',
-            FeatureQueryView.spocDetail,
-            const {'作业编号': 'assignment-1'},
-          ),
-          (
-            FeatureId.judge,
-            '作业详情',
-            FeatureQueryView.judgeDetail,
-            const {'课程编号': 'course-1', '作业编号': 'assignment-1'},
-          ),
-          (
-            FeatureId.libbook,
-            '预约记录',
-            FeatureQueryView.libbookBookings,
-            const {},
-          ),
-          (FeatureId.signin, '可签到', FeatureQueryView.signinPending, const {}),
-          (
-            FeatureId.cgyy,
-            '日期空间',
-            FeatureQueryView.cgyyDayInfo,
-            const {'站点 ID': '7'},
-          ),
-          (FeatureId.ygdk, '记录列表', FeatureQueryView.ygdkRecords, const {}),
-          (
-            FeatureId.evaluation,
-            '待评课程',
-            FeatureQueryView.evaluationPending,
-            const {},
-          ),
-        ];
-    for (final (feature, option, expectedView, fields) in queryCases) {
-      await openFeature(feature);
-      if (option.isNotEmpty) await chooseView(option);
-      for (final MapEntry(key: label, value: value) in fields.entries) {
-        final field = find.widgetWithText(TextField, label);
-        await tester.enterText(field, value);
-        expect(tester.widget<TextField>(field).controller!.text, value);
-      }
-      await apply(feature, expectedView);
       await _returnToFeatureRoot(tester);
       await tester.pumpAndSettle();
     }
