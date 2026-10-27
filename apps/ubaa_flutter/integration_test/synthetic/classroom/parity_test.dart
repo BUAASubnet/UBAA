@@ -52,54 +52,48 @@ void main() {
       );
       await tap(tester, find.widgetWithText(TextButton, '关闭'));
       final before = backend.classroomReads.length;
-      await tap(
-        tester,
+      // 空教室没有筛选条件，只有常驻搜索；搜索只过滤已读取的教室。
+      final search = find.byKey(const ValueKey<String>('feature-search-field'));
+      expect(
         find.byKey(const ValueKey<String>('feature-filter-button')),
+        findsNothing,
       );
-      await edit(tester, '筛选详情', 'ROOM-SAFE-1');
-      await tap(tester, find.byTooltip('关闭筛选'));
+      await tap(tester, search);
+      await tester.enterText(search, 'ROOM-SAFE-1');
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
       expect(find.text('合成教室1'), findsOneWidget);
       expect(find.text('合成教室2'), findsNothing);
       expect(backend.classroomReads.length, before);
-      await tap(
-        tester,
-        find.byKey(const ValueKey<String>('feature-filter-button')),
-      );
-      expect(
-        tester
-            .widget<TextField>(
-              find.byKey(const ValueKey<String>('feature-search-field')),
-            )
-            .controller!
-            .text,
-        'ROOM-SAFE-1',
-      );
       await capture(
         binding,
         tester,
         '${brightness.name}-normal-draft',
-        '关闭重开保留本地筛选，未执行学校读取',
+        '常驻搜索过滤已读取教室，未执行学校读取',
       );
-      await edit(tester, '筛选详情', '');
-      await edit(tester, '日期', '2026-09-10');
-      await tap(tester, find.byType(DropdownButton<int>));
-      await tap(tester, find.text('沙河').last);
-      await edit(tester, '楼层', 'F2');
-      await edit(tester, '节次', '14');
-      await tap(tester, find.widgetWithText(FilledButton, '应用筛选'));
-      expect(backend.classroomReads.last.date, DateTime(2026, 9, 10));
-      expect(backend.classroomReads.last.campus, 2);
-      expect(backend.classroomReads.last.floorId, 'F2');
-      expect(backend.classroomReads.last.section, '14');
-      await tap(tester, find.byTooltip('关闭筛选'));
-      expect(find.text('合成教室2'), findsOneWidget);
-      expect(find.text('合成教室1'), findsNothing);
-      await capture(
-        binding,
-        tester,
-        '${brightness.name}-normal-query',
-        '明确应用日期校区楼栋节次，原typed参数保留',
-      );
+      await tap(tester, find.byTooltip('清除搜索'));
+      // 校区与日期在宽屏正文切换；窄屏正文不提供这两项入口。
+      final campus = find.widgetWithText(SegmentedButton<int>, '沙河');
+      if (campus.evaluate().isNotEmpty) {
+        await tap(tester, find.widgetWithText(OutlinedButton, '2026-09-09'));
+        await tap(tester, find.text('10').last);
+        await tap(tester, find.text('确定'));
+        expect(backend.classroomReads.last.date, DateTime(2026, 9, 10));
+        await tap(tester, campus);
+        expect(backend.classroomReads.last.date, DateTime(2026, 9, 10));
+        expect(backend.classroomReads.last.campus, 2);
+        expect(backend.classroomReads.last.floorId, isNull);
+        expect(backend.classroomReads.last.section, isNull);
+        await tap(tester, find.widgetWithText(FilterChip, '合成二号楼'));
+        expect(find.text('合成教室2'), findsOneWidget);
+        expect(find.text('合成教室1'), findsNothing);
+        await capture(
+          binding,
+          tester,
+          '${brightness.name}-normal-query',
+          '正文切换日期与校区按typed参数读取，楼栋标签本地过滤',
+        );
+      }
     });
     for (final state in [
       'long',

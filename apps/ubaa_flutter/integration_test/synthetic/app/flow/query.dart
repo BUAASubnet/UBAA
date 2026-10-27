@@ -21,14 +21,12 @@ void _registerQueryFlowTests() {
     expect(find.byType(CustomScrollView), findsOneWidget);
 
     for (final feature in ordinaryFeatureIds) {
-      final target = await _scrollToQueryFeature(tester, feature);
-      await tester.tap(target);
-      await tester.pumpAndSettle();
-      expect(find.byTooltip('返回'), findsOneWidget);
+      // 每项沿所属分组入口进入，功能分散在学业、课程与作业和校园服务三组。
+      await _openIntegrationFeature(tester, feature, enterLanding: false);
       expect(
         find.widgetWithText(
           AppBar,
-          feature == FeatureId.schedule ? '第3周' : feature.title,
+          feature == FeatureId.schedule ? '课表' : feature.title,
         ),
         findsOneWidget,
       );
@@ -52,14 +50,12 @@ void _registerQueryFlowTests() {
     await tester.pumpAndSettle();
     expect(find.byType(UbaaMainShell), findsOneWidget);
     for (final feature in advancedFeatureIds) {
-      final target = await _scrollToQueryFeature(tester, feature);
-      await tester.tap(target);
-      await tester.pumpAndSettle();
-      expect(find.byTooltip('返回'), findsOneWidget);
+      // 每项沿所属分组入口进入，功能分散在学业、课程与作业和校园服务三组。
+      await _openIntegrationFeature(tester, feature, enterLanding: false);
       expect(
         find.widgetWithText(
           AppBar,
-          feature == FeatureId.schedule ? '第3周' : feature.title,
+          feature == FeatureId.schedule ? '课表' : feature.title,
         ),
         findsOneWidget,
       );
@@ -96,9 +92,6 @@ void _registerQueryFlowTests() {
     for (final (feature, option, expectedView) in cases) {
       await _openIntegrationFeature(tester, feature, enterLanding: false);
       await _openIntegrationPanel(tester);
-      for (final text in ['应用筛选', '学期编码', '课程 ID', '站点 ID']) {
-        expect(find.text(text), findsNothing, reason: '筛选面板不应包含“$text”');
-      }
       final before = backend.queries.length;
       final chip = find.widgetWithText(ChoiceChip, option);
       await tester.ensureVisible(chip);
@@ -145,7 +138,8 @@ Future<Finder> _scrollToQueryFeature(
   );
   final target = featureCard(feature);
   await tester.scrollUntilVisible(target, 240, scrollable: scrollable);
-  await tester.pumpAndSettle();
+  // scrollUntilVisible 已完成定位；页面可能仍有懒加载或反馈动画，不能无限等待整棵树静止。
+  await tester.pump();
   expect(target, findsOneWidget);
   expect(target.hitTestable(), findsOneWidget);
   return target;

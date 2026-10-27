@@ -81,7 +81,7 @@ void main() {
       await _mount(tester, backend, brightness, 'courses');
       Future<void> shot(String scene, String steps) =>
           _shot(binding, tester, '${brightness.name}-normal-$scene', steps);
-      expect(find.byType(TextField), findsNothing);
+      expect(_searchField, findsOneWidget);
       expect(find.text('选课'), findsWidgets);
       await shot('courses', '课程卡片正文进入详情，独立按钮直接选退');
       final reads = backend.boyaReads.length;
@@ -99,21 +99,13 @@ void main() {
         isTrue,
       );
       await _tap(tester, find.text('恢复默认'));
-      await _edit(tester, '筛选详情', '合成课程 1');
       await _closePanel(tester);
-      await shot('filtered', '关闭后搜索仍作用于已加载课程，末页不再发新请求');
+      await _search(tester, '合成课程 1');
+      await shot('filtered', '常驻搜索作用于已加载课程，末页不再发新请求');
       await _panel(tester);
-      expect(
-        tester
-            .widget<TextField>(
-              find.byKey(const ValueKey<String>('feature-search-field')),
-            )
-            .controller!
-            .text,
-        '合成课程 1',
-      );
-      await _edit(tester, '筛选详情', '');
       await _closePanel(tester);
+      expect(tester.widget<TextField>(_searchField).controller!.text, '合成课程 1');
+      await _search(tester, '');
       expect(backend.boyaReads, hasLength(reads));
       await _tap(tester, find.widgetWithText(Card, '合成课程 1'));
       expect(backend.boyaReads.last.courseId, '101');
@@ -178,19 +170,9 @@ void main() {
       await _tap(tester, find.widgetWithText(Card, '课程统计'));
       expect(find.text('0'), findsOneWidget);
       await shot('statistics', '旧总次数卡与分类三列，权威达标不由前端重算');
-      await _panel(tester);
-      await _edit(tester, '筛选详情', '分类 1');
-      await _closePanel(tester);
+      // 统计页不提供搜索与筛选；博雅资料视图已不在 GUI 提供，CLI 保留。
+      expect(_searchField, findsNothing);
       expect(find.text('总体净有效次数'), findsOneWidget);
-      await shot('statistics-filter', '筛选分类仍保留独立总次数');
-      await _panel(tester);
-      await _edit(tester, '筛选详情', '');
-      await _tap(tester, find.byType(DropdownButton<FeatureQueryView>));
-      await _tap(tester, find.text('个人资料').last);
-      await _tap(tester, find.text('应用筛选'));
-      await _closePanel(tester);
-      expect(backend.boyaReads.last.view, FeatureQueryView.bykcProfile);
-      await shot('profile', '既有博雅资料查询继续可达，仅合成白名单字段');
       expect(backend.commitCalls, 2);
     });
     for (final view in ['courses', 'chosen', 'statistics']) {
@@ -244,7 +226,6 @@ void main() {
             if (view == 'courses') {
               await _panel(tester);
               await _tap(tester, find.text('状态不限'));
-              await _tap(tester, find.text('应用筛选'));
               await _closePanel(tester);
             }
             await shot('top', '42条合成记录首屏');

@@ -28,56 +28,27 @@ void main() {
           '${brightness.name}-${feature.name}-$name',
           steps,
         );
-        expect(find.byType(TextField), findsNothing);
+        final search = find.byKey(
+          const ValueKey<String>('feature-search-field'),
+        );
+        expect(search, findsOneWidget);
         expect(find.byType(NavigationBar), findsNothing);
-        await shot('list', '沿旧列表结构，查询入口只有顶栏，手机功能页无全局底栏');
+        await shot('list', '沿旧列表结构，搜索常驻列表顶部，手机功能页无全局底栏');
         final count = backend.academicReads.length;
-        await tap(
-          tester,
-          find.byKey(const ValueKey<String>('feature-filter-button')),
-        );
-        await tap(
-          tester,
-          find.byKey(const ValueKey<String>('feature-search-field')),
-        );
-        await tester.enterText(
-          find.byKey(const ValueKey<String>('feature-search-field')),
-          feature == FeatureId.exam ? '待考' : '可签到',
-        );
-        await closePanel(tester);
-        await shot('filtered', '按需筛选关闭后保持结果，无额外请求');
-        await tap(
-          tester,
-          find.byKey(const ValueKey<String>('feature-filter-button')),
-        );
-        expect(
-          tester
-              .widget<TextField>(
-                find.byKey(const ValueKey<String>('feature-search-field')),
-              )
-              .controller!
-              .text,
-          feature == FeatureId.exam ? '待考' : '可签到',
-        );
-        await tap(
-          tester,
-          find.byKey(const ValueKey<String>('feature-search-field')),
-        );
-        await tester.enterText(
-          find.byKey(const ValueKey<String>('feature-search-field')),
-          '',
-        );
+        final keyword = feature == FeatureId.exam ? '待考' : '可签到';
+        await tap(tester, search);
+        await tester.enterText(search, keyword);
+        FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
-        expect(
-          tester
-              .widget<TextField>(
-                find.byKey(const ValueKey<String>('feature-search-field')),
-              )
-              .controller!
-              .text,
-          '',
+        await shot('filtered', '常驻搜索过滤已读取结果，无额外请求');
+        await tap(
+          tester,
+          find.byKey(const ValueKey<String>('feature-filter-button')),
         );
         await closePanel(tester);
+        expect(tester.widget<TextField>(search).controller!.text, keyword);
+        await tap(tester, find.byTooltip('清除搜索'));
+        expect(tester.widget<TextField>(search).controller!.text, '');
         expect(backend.academicReads.length, count);
         if (feature == FeatureId.exam) {
           expect(find.text('合成已结束考试 1'), findsNothing);
@@ -143,7 +114,12 @@ void main() {
             backend.pending?.complete();
             await tester.pumpAndSettle();
             if (state == 'stale') {
-              expect(find.text('以下为上次成功加载的数据。'), findsOneWidget);
+              expect(find.byType(MaterialBanner), findsOneWidget);
+              expect(find.widgetWithText(TextButton, '重试'), findsOneWidget);
+              expect(
+                find.text(feature == FeatureId.exam ? '合成待考课程' : '合成可签到课程'),
+                findsWidgets,
+              );
             }
           }
           await shot('top');

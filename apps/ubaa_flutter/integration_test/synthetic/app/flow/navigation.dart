@@ -3,14 +3,16 @@ part of '../flow_test.dart';
 /// 沿实际分类入口、懒加载卡片与子菜单点击；不绕过生产导航状态。
 Future<void> _returnToFeatureRoot(WidgetTester tester) async {
   await _closeIntegrationPanel(tester);
+  // 页面内导航会逐级返回；每次只点可见的返回按钮，直到回到分组列表。
   for (
     var attempt = 0;
-    attempt < 5 && find.byTooltip('返回').evaluate().isNotEmpty;
+    attempt < 8 && find.byTooltip('返回').hitTestable().evaluate().isNotEmpty;
     attempt++
   ) {
-    await tester.tap(find.byTooltip('返回'));
+    await tester.tap(find.byTooltip('返回').hitTestable());
     await tester.pumpAndSettle();
   }
+  expect(find.byTooltip('返回').hitTestable(), findsNothing);
   expect(find.byType(UbaaMainShell), findsOneWidget);
 }
 
@@ -20,18 +22,12 @@ Future<void> _openIntegrationFeature(
   bool enterLanding = true,
 }) async {
   await _returnToFeatureRoot(tester);
-  final index = UiDestination.forFeature(feature).index;
-  if (find.byType(NavigationBar).evaluate().isNotEmpty) {
-    await tester.tap(find.byType(NavigationDestination).at(index));
-  } else {
-    final destination = UiDestination.forFeature(feature);
-    final selected = find.byIcon(destination.selectedIcon);
-    final target = selected.evaluate().isNotEmpty
-        ? selected
-        : find.byIcon(destination.icon);
-    await tester.ensureVisible(target.first);
-    await tester.tap(target.first);
-  }
+  final destination = uiDestinationFinder(
+    tester,
+    UiDestination.forFeature(feature),
+  );
+  await tester.ensureVisible(destination);
+  await tester.tap(destination);
   await tester.pumpAndSettle();
   final target = await _scrollToQueryFeature(tester, feature);
   await tester.tap(target);

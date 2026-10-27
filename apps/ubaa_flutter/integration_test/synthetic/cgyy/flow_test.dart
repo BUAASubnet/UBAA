@@ -149,16 +149,7 @@ void main() {
         find.byKey(const ValueKey<String>('feature-filter-button')),
         findsNothing,
       );
-      await _tap(tester, find.byTooltip('返回'));
-      await _tap(tester, find.widgetWithText(Card, '我的预约'));
-      await _panel(tester);
-      await _tap(tester, find.byType(DropdownButton<FeatureQueryView>));
-      await _tap(tester, find.text('用途类型').last);
-      await _tap(tester, find.text('应用筛选'));
-      await _closePanel(tester);
-      expect(backend.roomReads.last.view, FeatureQueryView.cgyyPurposeTypes);
-      expect(find.text('预设类型'), findsOneWidget);
-      await shot('purposes', '独立用途查询保留回退来源，不把名称当作提交编号');
+      // 用途类型调试视图已不在 GUI 提供；表单内用途读取见 form-draft，CLI 保留独立查询。
       expect(backend.commitCalls, 0);
     });
     for (final state in [

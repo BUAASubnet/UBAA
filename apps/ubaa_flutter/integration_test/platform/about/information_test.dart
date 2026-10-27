@@ -7,6 +7,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+import '../../navigation.dart';
 import '../../synthetic/assignments/backend.dart';
 
 class _Information implements PlatformAppInformation {
@@ -51,8 +52,7 @@ void main() {
   Future<void> open(WidgetTester tester, PlatformAppInformation info) async {
     await tester.pumpWidget(_app(info));
     await tester.pumpAndSettle();
-    await tap(tester, find.byIcon(Icons.menu));
-    await tap(tester, find.text('关于'));
+    await uiOpenUtility(tester, '关于');
   }
 
   for (final brightness in Brightness.values) {
@@ -74,7 +74,7 @@ void main() {
         await open(tester, info);
         Future<void> shot(String scene, String steps) =>
             _shot(binding, tester, '${brightness.name}-$state-$scene', steps);
-        expect(find.text('关于'), findsOneWidget);
+        expect(find.widgetWithText(AppBar, '关于'), findsOneWidget);
         expect(find.byType(TextField), findsNothing);
         expect(find.byType(NavigationBar), findsNothing);
         final card = find.ancestor(

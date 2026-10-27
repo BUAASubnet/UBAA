@@ -19,7 +19,11 @@ void main() {
       await mount(tester, backend, brightness);
       Future<void> shot(String name, String steps) =>
           capture(binding, tester, '${brightness.name}-grades-$name', steps);
-      expect(find.byType(TextField), findsNothing);
+      final search = find.byKey(const ValueKey<String>('feature-search-field'));
+      final filterButton = find.byKey(
+        const ValueKey<String>('feature-filter-button'),
+      );
+      expect(search, findsOneWidget);
       expect(find.byType(NavigationBar), findsNothing);
       expect(find.byType(DataTable), findsNothing);
       expect(find.text('本学期'), findsOneWidget);
@@ -29,44 +33,18 @@ void main() {
       await shot('routes', '同一个图标说明各学期实际路线，默认Auto不冒充结果');
       await tap(tester, find.widgetWithText(TextButton, '关闭'));
       final reads = backend.gradeReads.length;
-      await tap(
-        tester,
-        find.byKey(const ValueKey<String>('feature-filter-button')),
-      );
-      await tap(
-        tester,
-        find.byKey(const ValueKey<String>('feature-search-field')),
-      );
-      await tester.enterText(
-        find.byKey(const ValueKey<String>('feature-search-field')),
-        'GRADE-SAFE',
-      );
-      await closePanel(tester);
+      await tap(tester, search);
+      await tester.enterText(search, 'GRADE-SAFE');
+      FocusManager.instance.primaryFocus?.unfocus();
+      await tester.pumpAndSettle();
       expect(find.text('合成待出课程'), findsNothing);
-      await shot('filtered', '搜索课程号保留完整学期统计，关闭面板无额外读取');
-      await tap(
-        tester,
-        find.byKey(const ValueKey<String>('feature-filter-button')),
-      );
-      expect(
-        tester
-            .widget<TextField>(
-              find.byKey(const ValueKey<String>('feature-search-field')),
-            )
-            .controller!
-            .text,
-        'GRADE-SAFE',
-      );
-      await shot('draft', '重开搜索面板保留草稿');
-      await tap(
-        tester,
-        find.byKey(const ValueKey<String>('feature-search-field')),
-      );
-      await tester.enterText(
-        find.byKey(const ValueKey<String>('feature-search-field')),
-        '',
-      );
+      await shot('filtered', '常驻搜索课程号保留完整学期统计，无额外读取');
+      await tap(tester, filterButton);
       await closePanel(tester);
+      expect(tester.widget<TextField>(search).controller!.text, 'GRADE-SAFE');
+      await shot('draft', '开关筛选面板不清除常驻搜索');
+      await tap(tester, find.byTooltip('清除搜索'));
+      expect(tester.widget<TextField>(search).controller!.text, isEmpty);
       expect(backend.gradeReads.length, reads);
       await tap(tester, find.text('合成数学课程'));
       expect(find.text('RAW-KEEP'), findsOneWidget);
@@ -74,18 +52,14 @@ void main() {
       await tap(tester, find.text('更多信息'));
       await shot('detail-more', '课程号、学期和兼容低频字段不丢失');
       await tap(tester, find.widgetWithText(TextButton, '关闭'));
+      // 状态标签点选即发出派生视图查询，无需“应用”。
       for (final (label, view) in [
         ('待出成绩', FeatureQueryView.gradesMissing),
         ('已出成绩', FeatureQueryView.gradesScored),
-        ('全部成绩', FeatureQueryView.summary),
+        ('全部', FeatureQueryView.summary),
       ]) {
-        await tap(
-          tester,
-          find.byKey(const ValueKey<String>('feature-filter-button')),
-        );
-        await tap(tester, find.byType(DropdownButton<FeatureQueryView>));
-        await tap(tester, find.text(label).last);
-        await tap(tester, find.text('应用筛选'));
+        await tap(tester, filterButton);
+        await tap(tester, find.widgetWithText(ChoiceChip, label));
         expect(
           tester
               .widget<UbaaMainShell>(find.byType(UbaaMainShell))
@@ -98,33 +72,20 @@ void main() {
         await closePanel(tester);
         await shot('view-${view.name.toLowerCase()}', '成绩三视图保留完整学期统计');
       }
-      await tap(
-        tester,
-        find.byKey(const ValueKey<String>('feature-filter-button')),
-      );
-      await tap(tester, find.text('选择学期'));
-      final pickerSurface = find
-          .descendant(
-            of: find.byType(AlertDialog),
-            matching: find.byType(Material),
-          )
-          .first;
-      expect(tester.getSize(pickerSurface).height, lessThan(400));
-      await shot('term-picker', '少量学期选择按内容收缩，较多选项才滚动');
-      await tap(tester, find.text('合成上一学期'));
-      await tap(tester, find.text('应用筛选'));
-      await closePanel(tester);
+      // 学期切换器位于页面顶部，在已读取的全部学期间本地切换，不发新查询。
+      final termReads = backend.gradeReads.length;
+      await tap(tester, find.byTooltip('选择学期'));
+      await shot('term-picker', '页面顶部学期切换器列出已读取学期');
+      await tap(tester, find.text('合成上一学期').last);
       expect(
-        tester
-            .widget<UbaaMainShell>(find.byType(UbaaMainShell))
-            .snapshots[FeatureId.grades]!
-            .readContext!
-            .query!
-            .term,
-        '2025-2026-2',
+        find.descendant(
+          of: find.byTooltip('选择学期'),
+          matching: find.text('合成上一学期'),
+        ),
+        findsOneWidget,
       );
-      expect(backend.gradeReads.length, reads);
-      await shot('other-term', '通过旧学期入口选择真实选项；本学期统计跟随当前查询');
+      expect(backend.gradeReads.length, termReads);
+      await shot('other-term', '通过页面学期切换器查看上一学期；本学期统计不被覆盖');
       expect(backend.commitCalls, 0);
     });
     if (const bool.fromEnvironment('UBAA_UI_GRADES_QUERIES_ONLY')) continue;
@@ -165,7 +126,11 @@ void main() {
         }
         await shot('top');
         if (state == 'summary-loading') {
-          expect(find.text('统计中'), findsNWidgets(3));
+          expect(find.byType(CircularProgressIndicator), findsWidgets);
+          expect(
+            backend.gradeReads.any((q) => q.term == '2025-2026-2'),
+            isTrue,
+          );
           backend.aggregatePending!.complete();
           await tester.pumpAndSettle();
           await tester.pump(const Duration(milliseconds: 250));
@@ -211,7 +176,19 @@ Future<void> mount(
     of: find.byType(CustomScrollView),
     matching: find.widgetWithText(Card, FeatureId.grades.title),
   );
-  await tap(tester, card);
+  await ensure(tester, card);
+  await tester.tap(card);
+  if (backend.aggregatePending == null) {
+    await tester.pumpAndSettle();
+  } else {
+    final deadline = DateTime.now().add(const Duration(seconds: 10));
+    while (!backend.gradeReads.any((q) => q.term == '2025-2026-2') &&
+        DateTime.now().isBefore(deadline)) {
+      await tester.pump(const Duration(milliseconds: 100));
+    }
+    expect(backend.gradeReads.any((q) => q.term == '2025-2026-2'), isTrue);
+    await tester.pump();
+  }
 }
 
 Future<void> closePanel(WidgetTester tester) async {

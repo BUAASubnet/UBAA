@@ -71,14 +71,6 @@ Future<void> capture(
   }
 }
 
-Future<void> edit(WidgetTester tester, String label, String text) async {
-  final field = find.widgetWithText(TextField, label);
-  await tap(tester, field);
-  await tester.enterText(field, text);
-  await tester.pumpAndSettle();
-  expect(tester.widget<TextField>(field).controller!.text, text);
-}
-
 Future<void> mount(
   WidgetTester tester,
   ScheduleOldBackend backend,
@@ -101,17 +93,14 @@ Future<void> mount(
   );
   await tester.pumpAndSettle();
   await tap(tester, find.widgetWithText(Card, FeatureId.schedule.title));
-  await tap(
-    tester,
-    find.byKey(const ValueKey<String>('feature-filter-button')),
+  // 课表不提供搜索与筛选；自动定位到本周后核对实际查询参数。
+  final week = backend.scheduleReads.last;
+  expect(week.term, '2026-2027-1');
+  expect(week.week, 4);
+  expect(
+    find.byKey(const ValueKey<String>('feature-search-field')),
+    findsNothing,
   );
-  await tap(tester, find.text('今日课程').last);
-  await tap(tester, find.text('周课表').last);
-  await edit(tester, '学期编码', '2026-2027-1');
-  await edit(tester, '周次', '4');
-  await tap(tester, find.widgetWithText(FilledButton, '应用筛选'));
-  await tap(tester, find.byTooltip('关闭筛选'));
-  expect(find.byType(TextField), findsNothing);
   if (tester.view.physicalSize.width / tester.view.devicePixelRatio < 600) {
     expect(find.byType(NavigationBar), findsNothing);
   }

@@ -10,6 +10,8 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_flutter/main.dart';
 
+import '../../navigation.dart';
+
 part 'flow/auth.dart';
 part 'flow/navigation.dart';
 part 'flow/inspection.dart';
@@ -32,8 +34,16 @@ void main() {
 }
 
 /// 显式合成巡检宿主；不创建真实客户端，也不读取本机账号。
-Widget createInspectionApp({String state = 'normal'}) => UbaaFlutterApp(
-  backend: _InspectionBackend(state: state),
+Widget createInspectionApp({
+  String state = 'normal',
+  Set<FeatureId>? failingReads,
+  Future<void> Function()? beforeRead,
+}) => UbaaFlutterApp(
+  backend: _InspectionBackend(
+    state: state,
+    failingReads: failingReads,
+    beforeRead: beforeRead,
+  ),
   credentialVault: MemoryCredentialVault(),
   permissionGateway: MemoryPermissionGateway(
     initial: <PlatformPermission, PlatformPermissionStatus>{

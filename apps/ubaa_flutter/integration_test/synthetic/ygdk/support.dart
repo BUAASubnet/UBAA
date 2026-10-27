@@ -38,24 +38,24 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
 
 Future<void> _edit(WidgetTester tester, String label, String value) async {
   final field = find.widgetWithText(TextField, label);
+  // 项目选择对话框关闭后，等待表单恢复，再定位输入框。
+  await uiWaitFor(tester, () => field.evaluate().isNotEmpty, '阳光表单未显示$label');
   await _tap(tester, field);
   await tester.enterText(field, value);
   await tester.pump();
   expect(tester.widget<TextField>(field).controller!.text, value);
 }
 
-Future<void> _panel(WidgetTester tester) async {
-  // 搜索框常驻列表上方；只有带筛选条件的列表需要打开面板。
-  if (find.byTooltip('关闭筛选').hitTestable().evaluate().isNotEmpty) return;
-  final button = find.byKey(const ValueKey<String>('feature-filter-button'));
-  if (button.hitTestable().evaluate().isNotEmpty) await _tap(tester, button);
-}
+final _searchField = find.byKey(const ValueKey<String>('feature-search-field'));
 
-Future<void> _closePanel(WidgetTester tester) async {
+/// 搜索框常驻列表顶部，输入即过滤，不经筛选面板。
+Future<void> _search(WidgetTester tester, String value) async {
+  await _tap(tester, _searchField);
+  await tester.enterText(_searchField, value);
+  await tester.pump();
+  expect(tester.widget<TextField>(_searchField).controller!.text, value);
   FocusManager.instance.primaryFocus?.unfocus();
   await tester.pumpAndSettle();
-  final close = find.byTooltip('关闭筛选').hitTestable();
-  if (close.evaluate().isNotEmpty) await _tap(tester, close);
 }
 
 Future<void> _shot(

@@ -31,13 +31,13 @@ Future<void> _loginAccount(
   final boxes = find.byType(Checkbox);
   // 先关闭自动登录，避免它反向强制打开“记住密码”。
   if (!auto && tester.widget<Checkbox>(boxes.at(1)).value!) {
-    await _accountTap(tester, boxes.at(1));
+    await _accountTap(tester, find.text('自动登录'));
   }
   if (tester.widget<Checkbox>(boxes.at(0)).value != remember) {
-    await _accountTap(tester, boxes.at(0));
+    await _accountTap(tester, find.text('记住密码'));
   }
   if (tester.widget<Checkbox>(boxes.at(1)).value != auto) {
-    await _accountTap(tester, boxes.at(1));
+    await _accountTap(tester, find.text('自动登录'));
   }
   await _accountTap(tester, find.widgetWithText(FilledButton, '登录'));
   expect(find.byType(UbaaMainShell), succeeds ? findsOneWidget : findsNothing);
@@ -45,11 +45,13 @@ Future<void> _loginAccount(
 
 Future<void> _accountTap(WidgetTester tester, Finder finder) async {
   if (finder.evaluate().isEmpty) {
-    final scrollables = find.byWidgetPredicate(
-      (widget) =>
-          widget is Scrollable && widget.axisDirection == AxisDirection.down,
-    );
-    expect(scrollables, findsOneWidget);
+    final scrollables = find
+        .byWidgetPredicate(
+          (widget) =>
+              widget is Scrollable &&
+              widget.axisDirection == AxisDirection.down,
+        )
+        .last;
     await tester.scrollUntilVisible(finder, 220, scrollable: scrollables);
   }
   expect(finder, findsOneWidget);
@@ -150,15 +152,24 @@ Future<void> _accountShot(
 }
 
 Future<void> _accountBack(WidgetTester tester) async {
-  await _accountTap(tester, find.byTooltip('返回'));
+  final back = find.byTooltip('返回');
+  if (back.evaluate().isNotEmpty) {
+    await _accountTap(tester, back);
+  } else {
+    // 设置是主导航目的地，没有页面返回按钮，切回学业分组即可继续复用测试流程。
+    await _accountTap(
+      tester,
+      uiDestinationFinder(tester, UiDestination.academic),
+    );
+  }
 }
 
 Future<void> _openAccountUtility(WidgetTester tester, String title) async {
   if (find.byTooltip('返回').evaluate().isNotEmpty) await _accountBack(tester);
-  await _accountTap(tester, find.byIcon(Icons.menu));
-  await _accountTap(tester, find.text(title));
+  await uiOpenUtility(tester, title);
   expect(find.widgetWithText(AppBar, title), findsOneWidget);
-  expect(find.byTooltip('返回'), findsOneWidget);
+  // 设置是导航目的地，没有返回按钮；资料与关于是叠加的工具页。
+  expect(find.byTooltip('返回'), title == '设置' ? findsNothing : findsOneWidget);
   if (tester.view.physicalSize.width / tester.view.devicePixelRatio < 600) {
     expect(find.byType(NavigationBar), findsNothing);
   }

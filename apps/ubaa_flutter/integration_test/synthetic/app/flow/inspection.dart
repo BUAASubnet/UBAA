@@ -4,6 +4,8 @@ part of '../flow_test.dart';
 final class _InspectionBackend extends _AllWritesIntegrationBackend
     implements CgyyLockDisplayBackend {
   _InspectionBackend({
+    this.failingReads,
+    this.beforeRead,
     String state = const String.fromEnvironment(
       'UBAA_UI_STATE',
       defaultValue: 'normal',
@@ -15,6 +17,8 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend
       _InspectionLockSession();
 
   final String _state;
+  final Set<FeatureId>? failingReads;
+  final Future<void> Function()? beforeRead;
   final Map<String, int> _inspectionLoads = <String, int>{};
 
   @override
@@ -34,11 +38,13 @@ final class _InspectionBackend extends _AllWritesIntegrationBackend
       (value) => value + 1,
       ifAbsent: () => 1,
     );
-    if (_state == 'loading') {
+    if (beforeRead != null) {
+      await beforeRead!();
+    } else if (_state == 'loading') {
       await Future<void>.delayed(const Duration(seconds: 8));
     }
     if ((_state == 'first-error' && count == 1) ||
-        (_state == 'stale' && count > 1)) {
+        (failingReads?.contains(feature) ?? (_state == 'stale' && count > 1))) {
       throw const BackendException(UbaaErrorCode.networkError);
     }
     if (_state == 'empty') {

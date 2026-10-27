@@ -8,6 +8,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+import '../../navigation.dart';
 import 'backend.dart';
 import 'write_backend.dart';
 part 'support.dart';
@@ -39,39 +40,21 @@ void main() {
       await _mount(tester, backend, brightness, 'home');
       Future<void> shot(String scene, String steps) =>
           _shot(binding, tester, '${brightness.name}-normal-$scene', steps);
-      expect(find.byType(TextField), findsNothing);
+      expect(_searchField, findsOneWidget);
       expect(find.text('合成运动项目 1'), findsNothing);
       await shot('home', '学期周次数后是记录；项目不铺首页');
       await _tap(tester, find.widgetWithText(Card, '合成运动记录 1'));
       await shot('record-detail', '低频编号及未知state进入只读详情，历史图片仅计数');
       await _tap(tester, find.text('关闭'));
-      await _panel(tester);
-      await _edit(tester, '筛选详情', '记录 2');
-      await _closePanel(tester);
+      await _search(tester, '记录 2');
       expect(find.text('合成运动记录 1'), findsNothing);
       expect(find.text('合成运动记录 2'), findsOneWidget);
-      await shot('filtered', '本地记录筛选关闭后保留，不重算学期次数');
-      await _panel(tester);
-      expect(
-        tester
-            .widget<TextField>(
-              find.byKey(const ValueKey<String>('feature-search-field')),
-            )
-            .controller!
-            .text,
-        '记录 2',
-      );
-      await _edit(tester, '筛选详情', '');
-      await _closePanel(tester);
-      await _panel(tester);
-      await _edit(tester, '筛选详情', '999');
-      await _closePanel(tester);
+      await shot('filtered', '常驻搜索过滤本地记录，不重算学期次数');
+      await _search(tester, '999');
       expect(find.text('合成运动记录 3'), findsOneWidget);
       expect(find.text('合成运动记录 1'), findsNothing);
       await shot('metadata-filtered', '低频原始字段进入详情后仍可搜索');
-      await _panel(tester);
-      await _edit(tester, '筛选详情', '');
-      await _closePanel(tester);
+      await _search(tester, '');
       await _tap(tester, find.byTooltip('新增打卡'));
       await shot('form-empty', '旧版独立表单，项目在表单内部选择');
       await _tap(tester, find.text('选择运动项目'));
@@ -97,20 +80,12 @@ void main() {
       await shot('confirm', '只进入合成prepare确认，未执行commit');
       await _tap(tester, find.widgetWithText(OutlinedButton, '取消'));
       expect(find.text('打卡记录'), findsOneWidget);
-      await _panel(tester);
-      await _tap(tester, find.byType(DropdownButton<FeatureQueryView>));
-      await _tap(tester, find.text('记录列表').last);
-      await shot('query', '独立记录查询从首批开始');
-      await _tap(tester, find.text('应用筛选'));
-      await _closePanel(tester);
-      expect(backend.queries.last.page, 1);
-      await shot('records', '独立记录页连续滚动与typed记录卡');
+      // 独立记录视图已不在 GUI 提供；记录随首页分批加载，见状态矩阵 many。
       await _tap(tester, find.byTooltip('刷新当前查询'));
-      expect(backend.queries.last.page, 1);
       expect(backend.commitCalls, 0);
     });
     if (const bool.fromEnvironment('UBAA_UI_NORMAL_ONLY')) continue;
-    for (final view in ['home', 'records']) {
+    for (final view in ['home']) {
       for (final state in [
         'empty',
         'first-error',
@@ -120,7 +95,6 @@ void main() {
         'long',
         'many',
       ]) {
-        if (view == 'records' && state == 'partial-error') continue;
         testWidgets('阳光原生 $view $state ${brightness.name}', (tester) async {
           final backend = SportsBackend(state: state);
           if (state == 'long') {
@@ -149,10 +123,8 @@ void main() {
             await tester.pumpAndSettle();
           } else if (state == 'many') {
             await shot('top', '42条合成记录首屏');
-            if (view == 'home') {
-              for (var page = 0; page < 2; page++) {
-                await _tap(tester, find.text('加载更多'));
-              }
+            for (var page = 0; page < 2; page++) {
+              await _tap(tester, find.text('加载更多'));
             }
             await _ensure(tester, find.text('合成运动记录 42'));
           }
@@ -193,14 +165,8 @@ Future<void> _mount(
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
   await tester.pumpWidget(_app(backend));
   await tester.pumpAndSettle();
+  expect(view, 'home', reason: '阳光只有首页入口，记录随首页分批加载');
   await _tap(tester, find.widgetWithText(Card, FeatureId.ygdk.title));
-  if (view == 'records') {
-    await _panel(tester);
-    await _tap(tester, find.byType(DropdownButton<FeatureQueryView>));
-    await _tap(tester, find.text('记录列表').last);
-    await _tap(tester, find.text('应用筛选'));
-    await _closePanel(tester);
-  }
 }
 
 /// 人工巡检专用构造；自动测试入口不读取巡检模式开关。

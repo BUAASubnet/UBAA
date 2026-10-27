@@ -84,7 +84,13 @@ void main() {
       '阳光只读 homeRecords=${overview.records!.content.length} '
       'page=${overview.records!.page} error=${overview.records!.errorCode}',
     );
-    expect(find.byType(TextField).evaluate().isEmpty, isTrue);
+    expect(
+      find
+          .byKey(const ValueKey<String>('feature-search-field'))
+          .evaluate()
+          .isNotEmpty,
+      isTrue,
+    );
     if (overview.records!.content.isNotEmpty) {
       final item = overview.records!.content.first;
       final revision = snapshot().readContext?.requestRevision;
@@ -118,18 +124,11 @@ void main() {
     debugPrint(
       '阳光只读 independentForm=true projectPicker=true extraRead=false prepare=false',
     );
-    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
-    await tap(find.byType(DropdownButton<FeatureQueryView>));
-    await tap(find.text('记录列表').last);
-    await tap(find.text('应用筛选'));
-    await loaded(FeatureQueryView.ygdkRecords, page: 1);
-    expect(
-      snapshot().details.every((d) => d.presentation is YgdkRecordPresentation),
-      isTrue,
-    );
-    await tap(find.byTooltip('关闭筛选'));
+    // 独立记录视图已不在 GUI 提供；刷新首页后记录仍从第一页开始。
     await tap(find.byTooltip('刷新当前查询'));
-    await loaded(FeatureQueryView.ygdkRecords, page: 1);
-    debugPrint('生产阳光旧首页与记录分页完成，businessWrites=0');
+    await loaded(FeatureQueryView.summary);
+    final refreshed = snapshot().overview as YgdkOverview;
+    expect(refreshed.records?.page, 1);
+    debugPrint('生产阳光旧首页与首页记录完成，businessWrites=0');
   });
 }

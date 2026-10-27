@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/material.dart';
@@ -6,6 +7,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
+import '../../navigation.dart';
 import '../app/flow_test.dart' show createInspectionApp;
 
 part 'flow/support.dart';
@@ -21,122 +23,44 @@ const _academicFeatures = [
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   for (final brightness in Brightness.values) {
-    testWidgets('原生学业全部子视图与typed父子返回：${brightness.name}', (tester) async {
+    testWidgets('原生学业页内选择器与状态筛选：${brightness.name}', (tester) async {
       await _loginAcademic(tester, brightness, 'normal');
       await _openAcademic(tester, FeatureId.schedule);
-      await _chooseAcademicView(tester, '按输入查询');
-      await _selectAcademicTerm(tester, FeatureId.schedule);
-      await _academicField(tester, '周次（可选）', '2');
-      await _chooseAcademicView(tester, '按输入查询');
-      await _applyAcademic(
-        tester,
-        FeatureId.schedule,
-        FeatureQueryView.summary,
-        term: '2026-2027-1',
-      );
-      expect(
-        _academicSnapshot(tester, FeatureId.schedule).readContext!.query!.week,
-        2,
-      );
-      expect(
-        _academicSnapshot(tester, FeatureId.schedule).details.every(
-          (item) => item.presentation is ScheduleCoursePresentation,
-        ),
-        isTrue,
-      );
+      // 课表自动定位：学期列表 → 教学周 → 本周课表，不经手填。
+      _expectScheduleWeek(tester, '2026-2027-1', 2);
       await _academicCapture(
         binding,
         tester,
         brightness,
-        'normal-schedule-input-compatibility',
+        'normal-schedule-current-week',
         FeatureId.schedule,
-        '真实学期弹窗只更新草稿；按输入查询携带学期和周次并保持兼容',
+        '进入课表后自动定位当前学期本周，读取typed周课表',
       );
-      await _chooseAcademicView(tester, '今日课程');
-      await _applyAcademic(
-        tester,
-        FeatureId.schedule,
-        FeatureQueryView.scheduleToday,
-      );
-      expect(
-        _academicSnapshot(tester, FeatureId.schedule).readContext!.query!.term,
-        isNull,
-      );
-      expect(
-        _academicSnapshot(tester, FeatureId.schedule).readContext!.query!.week,
-        isNull,
-      );
-      expect(
-        _academicSnapshot(
-          tester,
-          FeatureId.schedule,
-        ).details.every((item) => item.presentation is TodayCoursePresentation),
-        isTrue,
-      );
+      await _tapAcademic(tester, find.byTooltip('下一周'));
+      _expectScheduleWeek(tester, '2026-2027-1', 3);
+      await _tapAcademic(tester, find.text('第 3 周'));
+      expect(find.text('选择教学周'), findsOneWidget);
       await _academicCapture(
         binding,
         tester,
         brightness,
-        'normal-schedule-today',
+        'normal-schedule-week-picker',
         FeatureId.schedule,
-        '应用今日课程，读取合成backend结果的typed上下文',
+        '课表自身的教学周选择器列出合成周次并标出本周',
       );
-
-      await _chooseAcademicView(tester, '学期列表');
-      await _applyAcademic(
-        tester,
-        FeatureId.schedule,
-        FeatureQueryView.scheduleTerms,
-      );
-      final term = _academicSnapshot(tester, FeatureId.schedule).details.first;
-      final termTarget = term.readNavigation!;
-      expect(term.presentation, isA<TermPresentation>());
-      await _academicField(tester, '筛选详情', '秋季');
-      await _academicField(tester, '学期编码（可选）', '父学期未应用草稿');
+      await _tapAcademic(tester, find.widgetWithText(ListTile, '第 1 周'));
+      _expectScheduleWeek(tester, '2026-2027-1', 1);
+      await _tapAcademic(tester, find.byTooltip('上一周'));
+      _expectScheduleWeek(tester, '2026-2027-1', 1);
+      await _selectAcademicTerm(tester, '2025-2026-2');
+      _expectScheduleWeek(tester, '2025-2026-2', 2);
       await _academicCapture(
         binding,
         tester,
         brightness,
-        'normal-schedule-terms',
+        'normal-schedule-other-term',
         FeatureId.schedule,
-        '学期列表保存本地搜索和未应用草稿',
-      );
-      await _tapAcademic(tester, find.text('查看周次'));
-      _expectAcademicQuery(tester, FeatureId.schedule, termTarget.query);
-      final weeks = _academicSnapshot(tester, FeatureId.schedule);
-      expect(
-        weeks.details.every((item) => item.presentation is WeekPresentation),
-        isTrue,
-      );
-      final week = weeks.details.firstWhere(
-        (item) => (item.presentation! as WeekPresentation).number == 2,
-      );
-      final weekTarget = week.readNavigation!;
-      await _academicField(tester, '筛选详情', '第 2 周');
-      await _academicField(tester, '学期编码（可选）', '父周次未应用草稿');
-      await _academicCapture(
-        binding,
-        tester,
-        brightness,
-        'normal-schedule-weeks',
-        FeatureId.schedule,
-        '点击typed学期后读取周次，保留第二层草稿',
-      );
-      await _tapAcademic(tester, find.text('查看周课表'));
-      _expectAcademicQuery(tester, FeatureId.schedule, weekTarget.query);
-      expect(
-        _academicSnapshot(tester, FeatureId.schedule).details.every(
-          (item) => item.presentation is ScheduleCoursePresentation,
-        ),
-        isTrue,
-      );
-      await _academicCapture(
-        binding,
-        tester,
-        brightness,
-        'normal-schedule-week',
-        FeatureId.schedule,
-        '点击第2周，参数从公开typed导航传入并在readContext核对',
+        '顶栏学期选择换学期后重新定位该学期本周',
       );
       await _horizontalAcademic(
         binding,
@@ -145,72 +69,47 @@ void main() {
         FeatureId.schedule,
         'normal-schedule-week-horizontal',
       );
-      final revision = _academicSnapshot(
-        tester,
-        FeatureId.schedule,
-      ).readContext!.requestRevision;
-      await _tapAcademic(tester, find.byTooltip('返回'));
-      expect(_academicFieldText(tester, '筛选详情'), '第 2 周');
-      expect(_academicFieldText(tester, '学期编码（可选）'), '父周次未应用草稿');
-      expect(
-        _academicSnapshot(
-          tester,
-          FeatureId.schedule,
-        ).readContext!.requestRevision,
-        revision,
-      );
-      await _academicCapture(
-        binding,
-        tester,
-        brightness,
-        'normal-schedule-back-weeks',
-        FeatureId.schedule,
-        '原生页面返回按钮恢复父周次搜索/草稿；readContext修订未增加，非新请求',
-      );
-      await _tapAcademic(tester, find.byTooltip('返回'));
-      expect(_academicFieldText(tester, '筛选详情'), '秋季');
-      expect(_academicFieldText(tester, '学期编码（可选）'), '父学期未应用草稿');
-      expect(
-        _academicSnapshot(
-          tester,
-          FeatureId.schedule,
-        ).readContext!.requestRevision,
-        revision,
-      );
-      await _academicCapture(
-        binding,
-        tester,
-        brightness,
-        'normal-schedule-back-terms',
-        FeatureId.schedule,
-        '再次返回父学期，UI缓存恢复而非冒称发生父查询',
-      );
 
       for (final (feature, options) in [
         (
           FeatureId.exam,
           <(String, FeatureQueryView)>[
-            ('全部考试', FeatureQueryView.summary),
             ('已安排', FeatureQueryView.examArranged),
             ('未安排', FeatureQueryView.examNotArranged),
+            ('全部', FeatureQueryView.summary),
           ],
         ),
         (
           FeatureId.grades,
           <(String, FeatureQueryView)>[
-            ('全部成绩', FeatureQueryView.summary),
             ('已出成绩', FeatureQueryView.gradesScored),
             ('待出成绩', FeatureQueryView.gradesMissing),
+            ('全部', FeatureQueryView.summary),
           ],
         ),
       ]) {
         await _openAcademic(tester, feature);
-        await _selectAcademicTerm(tester, feature);
+        if (feature == FeatureId.exam) {
+          await _openAcademicFilter(tester);
+          await _tapAcademic(tester, find.widgetWithText(ActionChip, '当前学期'));
+          await _tapAcademic(
+            tester,
+            find.widgetWithText(ListTile, '2026-2027-1'),
+          );
+          expect(
+            _academicSnapshot(tester, feature).readContext!.query!.term,
+            '2026-2027-1',
+          );
+          expect(
+            find.widgetWithText(ActionChip, '2026-2027-1'),
+            findsOneWidget,
+          );
+        }
         for (final (label, view) in options) {
-          await _chooseAcademicView(tester, label);
-          await _applyAcademic(tester, feature, view, term: '2026-2027-1');
+          await _chooseAcademicStatus(tester, feature, label, view);
           final result = _academicSnapshot(tester, feature);
           if (feature == FeatureId.exam) {
+            expect(result.readContext!.query!.term, '2026-2027-1');
             expect(
               result.details.every(
                 (item) => item.presentation is ExamPresentation,
@@ -254,12 +153,14 @@ void main() {
             brightness,
             'normal-${feature.name}-${view.name.toLowerCase()}',
             feature,
-            '应用$label；从snapshot.readContext核对学期与视图，校验typed结果分类',
+            '点选$label即读取；从snapshot.readContext核对视图，校验typed结果分类',
           );
           if (view == FeatureQueryView.summary) {
-            await _checkAcademicTable(binding, tester, brightness, feature);
+            await _closeAcademicFilter(tester);
+            await _checkAcademicDetails(binding, tester, brightness, feature);
           }
         }
+        await _closeAcademicFilter(tester);
       }
 
       await _openAcademic(tester, FeatureId.classroom);
@@ -270,7 +171,7 @@ void main() {
         brightness,
         'normal-classroom-matched',
         FeatureId.classroom,
-        '应用真实输入日期/校区/楼层/节次；typed上下文及令牌精确匹配',
+        '正文切换日期与校区；typed上下文精确匹配',
       );
     });
 
@@ -285,18 +186,28 @@ void main() {
       testWidgets(
         '原生学业四领域状态$state：${brightness.name}',
         (tester) async {
+          final failingReads = <FeatureId>{};
+          Completer<void>? pendingRead;
+          addTearDown(() {
+            if (pendingRead != null && !pendingRead.isCompleted) {
+              pendingRead.complete();
+            }
+          });
           await _loginAcademic(
             tester,
             brightness,
             state,
             scale: state == 'long' ? 1.3 : 1.0,
+            failingReads: state == 'stale' ? failingReads : null,
+            beforeRead: state == 'loading'
+                ? () async {
+                    await pendingRead?.future;
+                  }
+                : null,
           );
           for (final feature in _academicFeatures) {
             await _openAcademic(tester, feature);
-            if (feature == FeatureId.schedule &&
-                !['first-error', 'stale', 'long'].contains(state)) {
-              await _chooseAcademicView(tester, '按输入查询');
-            }
+            final schedule = feature == FeatureId.schedule;
             if (state == 'first-error') {
               final before = _academicSnapshot(tester, feature);
               expect(before.status, FeatureLoadStatus.failure);
@@ -308,29 +219,37 @@ void main() {
                 feature,
                 '首次合成读取失败，未回退演示成功',
               );
-              await _tapAcademic(tester, find.text('重试').last);
+              // 课表自动定位逐级读取学期、教学周和周课表，每级首读都会失败一次。
+              for (
+                var attempt = 0;
+                attempt < 3 &&
+                    _academicSnapshot(tester, feature).status ==
+                        FeatureLoadStatus.failure;
+                attempt++
+              ) {
+                await _tapAcademic(tester, find.text('重试').last);
+              }
               final after = _academicSnapshot(tester, feature);
               expect(after.status, FeatureLoadStatus.success);
-              expect(
-                after.readContext!.hasSameQuery(before.readContext!.query),
-                isTrue,
-              );
               expect(
                 after.readContext!.requestRevision,
                 greaterThan(before.readContext!.requestRevision),
               );
+              if (schedule) {
+                _expectScheduleWeek(tester, '2026-2027-1', 2);
+              } else {
+                expect(
+                  after.readContext!.hasSameQuery(before.readContext!.query),
+                  isTrue,
+                );
+              }
             } else if (state == 'loading') {
-              final apply = find.widgetWithText(FilledButton, '应用筛选');
-              await tester.ensureVisible(apply);
-              await tester.tap(apply);
+              pendingRead = Completer<void>();
+              await tester.tap(_academicRefresh);
               await tester.pump(const Duration(milliseconds: 200));
               expect(
                 _academicSnapshot(tester, feature).status,
                 FeatureLoadStatus.loading,
-              );
-              expect(
-                _academicSnapshot(tester, feature).readContext!.query!.view,
-                FeatureQueryView.summary,
               );
               await _academicCapture(
                 binding,
@@ -341,23 +260,42 @@ void main() {
                 '观察实际合成backend延迟中的加载态',
                 settle: false,
               );
+              pendingRead.complete();
+              pendingRead = null;
               await _waitAcademicStatus(
                 tester,
                 feature,
                 FeatureLoadStatus.success,
               );
             } else if (state == 'stale') {
-              await _academicField(tester, '筛选详情', _searchFor(feature));
-              await _tapAcademic(tester, find.byTooltip('刷新当前查询'));
-              final failed = _academicSnapshot(tester, feature);
-              expect(failed.status, FeatureLoadStatus.stale);
-              expect(find.text('以下为上次成功加载的数据。'), findsOneWidget);
+              final beforeRefresh = _academicSnapshot(tester, feature);
               expect(
-                failed.readContext!.query,
-                isNull,
-                reason: '默认读取刷新必须保持null上下文，不能换为显式summary',
+                beforeRefresh.status,
+                FeatureLoadStatus.success,
+                reason: feature.name,
               );
-              expect(_academicFieldText(tester, '筛选详情'), _searchFor(feature));
+              failingReads.add(feature);
+              // 课表不提供搜索；其余列表的常驻搜索在刷新失败后保留。
+              if (!schedule) {
+                await _academicSearch(tester, _searchFor(feature));
+              }
+              await _tapAcademic(tester, _academicRefresh);
+              final failed = _academicSnapshot(tester, feature);
+              expect(
+                failed.status,
+                FeatureLoadStatus.stale,
+                reason:
+                    '${feature.name}: ${beforeRefresh.readContext?.query} -> ${failed.readContext?.query}',
+              );
+              expect(find.widgetWithText(TextButton, '重试'), findsWidgets);
+              if (!schedule) {
+                expect(
+                  failed.readContext!.query,
+                  isNull,
+                  reason: '默认读取刷新必须保持null上下文，不能换为显式summary',
+                );
+                expect(_academicSearchText(tester), _searchFor(feature));
+              }
               await _academicCapture(
                 binding,
                 tester,
@@ -369,7 +307,7 @@ void main() {
               await _tapAcademic(tester, find.widgetWithText(TextButton, '重试'));
               final retried = _academicSnapshot(tester, feature);
               expect(retried.status, FeatureLoadStatus.stale);
-              expect(find.text('以下为上次成功加载的数据。'), findsOneWidget);
+              expect(find.widgetWithText(TextButton, '重试'), findsWidgets);
               expect(
                 retried.readContext!.hasSameQuery(failed.readContext!.query),
                 isTrue,
@@ -378,44 +316,30 @@ void main() {
                 retried.readContext!.requestRevision,
                 greaterThan(failed.readContext!.requestRevision),
               );
-              expect(_academicFieldText(tester, '筛选详情'), _searchFor(feature));
+              if (!schedule) {
+                expect(_academicSearchText(tester), _searchFor(feature));
+              }
+            } else if (schedule && (state == 'empty' || state == 'many')) {
+              // 学期列表为空或编号重复时不静默挑选，停在选择学期提示。
+              expect(find.text('请选择学期'), findsOneWidget);
+              expect(
+                _academicSnapshot(tester, feature).readContext?.query?.view,
+                FeatureQueryView.scheduleTerms,
+              );
             } else {
-              if (state == 'long' && feature == FeatureId.schedule) {
-                await _chooseAcademicView(tester, '周课表');
-                await _academicField(tester, '学期编码（可选）', '2026-2027-1');
-                await _academicField(tester, '周次（可选）', '2');
-                await _applyAcademic(
-                  tester,
-                  feature,
-                  FeatureQueryView.scheduleWeek,
-                  term: '2026-2027-1',
-                );
-                expect(
-                  _academicSnapshot(tester, feature).readContext!.query!.week,
-                  2,
-                );
-              } else {
-                if (state == 'long' && feature == FeatureId.classroom) {
-                  await _academicField(tester, '日期', '2026-09-08');
-                  await _captureAcademicDateField(binding, tester, brightness);
-                }
-                await _applyAcademic(
-                  tester,
-                  feature,
-                  FeatureQueryView.summary,
-                  status: state == 'empty'
-                      ? FeatureLoadStatus.empty
-                      : FeatureLoadStatus.success,
-                );
-              }
-              if (state == 'empty') {
-                expect(_academicSnapshot(tester, feature).details, isEmpty);
-              }
+              final snapshot = _academicSnapshot(tester, feature);
+              expect(
+                snapshot.status,
+                state == 'empty'
+                    ? FeatureLoadStatus.empty
+                    : FeatureLoadStatus.success,
+              );
+              if (schedule) _expectScheduleWeek(tester, '2026-2027-1', 2);
+              if (state == 'empty') expect(snapshot.details, isEmpty);
               if (state == 'many') {
-                final before = _academicSnapshot(tester, feature);
-                expect(before.details, hasLength(40));
+                expect(snapshot.details, hasLength(40));
                 expect(
-                  before.pagination,
+                  snapshot.pagination,
                   isNull,
                   reason: '学业合成many只用现有本地分页，不能冒称服务端页',
                 );
@@ -428,7 +352,7 @@ void main() {
                   '40条合成数据的本地第一页',
                 );
                 await tester.drag(
-                  find.byType(ListView).last,
+                  find.byType(Scrollable).hitTestable().last,
                   const Offset(0, -2000),
                 );
                 await tester.pumpAndSettle();
@@ -436,8 +360,8 @@ void main() {
                   _academicSnapshot(
                     tester,
                     feature,
-                  ).readContext!.requestRevision,
-                  before.readContext!.requestRevision,
+                  ).readContext?.requestRevision,
+                  snapshot.readContext?.requestRevision,
                 );
               }
             }

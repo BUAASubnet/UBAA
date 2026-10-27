@@ -81,14 +81,6 @@ Future<void> capture(
   }
 }
 
-Future<void> edit(WidgetTester tester, String label, String text) async {
-  final field = find.widgetWithText(TextField, label);
-  await tap(tester, field);
-  await tester.enterText(field, text);
-  await tester.pumpAndSettle();
-  expect(tester.widget<TextField>(field).controller!.text, text);
-}
-
 Future<void> mount(
   WidgetTester tester,
   ClassroomOldBackend backend,

@@ -92,7 +92,13 @@ void main() {
       snapshot().details.every((d) => d.presentation is BykcCoursePresentation),
       isTrue,
     );
-    expect(find.byType(TextField).evaluate().isEmpty, isTrue);
+    expect(
+      find
+          .byKey(const ValueKey<String>('feature-search-field'))
+          .evaluate()
+          .isNotEmpty,
+      isTrue,
+    );
     await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
     await tap(find.text('状态不限'));
     await tap(find.byTooltip('关闭筛选'));
@@ -140,17 +146,14 @@ void main() {
       isTrue,
     );
     expect(find.text('总体净有效次数').evaluate().isNotEmpty, isTrue);
-    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
-    await tap(find.byType(DropdownButton<FeatureQueryView>));
-    await tap(find.text('个人资料').last);
-    await tap(find.text('应用筛选'));
-    await loaded(FeatureQueryView.bykcProfile);
-    await tap(find.byTooltip('关闭筛选'));
+    // 统计页不提供搜索；博雅资料视图已不在 GUI 提供，CLI 保留。
     expect(
-      snapshot().details.any((d) => d.presentation is BykcProfilePresentation),
+      find
+          .byKey(const ValueKey<String>('feature-search-field'))
+          .evaluate()
+          .isEmpty,
       isTrue,
     );
-    expect(find.byType(TextField).evaluate().isEmpty, isTrue);
-    debugPrint('生产博雅五类只读操作完成，businessWrites=0');
+    debugPrint('生产博雅四类只读操作完成，businessWrites=0');
   });
 }

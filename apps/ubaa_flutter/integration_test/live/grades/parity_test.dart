@@ -103,40 +103,44 @@ void main() {
           .isNotEmpty,
       isTrue,
     );
-    expect(find.byType(TextField).evaluate().isEmpty, isTrue);
+    expect(
+      find
+          .byKey(const ValueKey<String>('feature-search-field'))
+          .evaluate()
+          .isNotEmpty,
+      isTrue,
+    );
+    // 状态标签点选即发出派生视图查询。
     for (final (label, view) in [
       ('待出成绩', FeatureQueryView.gradesMissing),
       ('已出成绩', FeatureQueryView.gradesScored),
-      ('全部成绩', FeatureQueryView.summary),
+      ('全部', FeatureQueryView.summary),
     ]) {
       await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
-      await tap(find.byType(DropdownButton<FeatureQueryView>));
-      await tap(find.text(label).last);
-      await tap(find.text('应用筛选'));
+      await tap(find.widgetWithText(ChoiceChip, label));
       await loaded(view);
       await tap(find.byTooltip('关闭筛选'));
     }
-    // 当前学期为空时，从已实际读取的学期中选择一个非空项，仍只使用原查询。
-    if (shell().snapshots[FeatureId.grades]!.details.isEmpty) {
+    // 当前学期为空时，用页面顶部学期切换器在已读取的学期中选一个非空项；切换只在本地进行。
+    var hasDetails = shell().snapshots[FeatureId.grades]!.details.isNotEmpty;
+    if (!hasDetails) {
       final candidates = result.terms.where(
         (term) => term.overview?.grades.isNotEmpty == true,
       );
       if (candidates.isNotEmpty) {
-        await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
-        await tap(find.widgetWithText(TextField, '学期编码'));
-        await tester.enterText(
-          find.widgetWithText(TextField, '学期编码'),
-          candidates.first.code,
+        final revision =
+            shell().snapshots[FeatureId.grades]!.readContext?.requestRevision;
+        await tap(find.byTooltip('选择学期'));
+        await tap(find.text(candidates.first.name).last);
+        expect(
+          shell().snapshots[FeatureId.grades]!.readContext?.requestRevision,
+          revision,
         );
-        FocusManager.instance.primaryFocus?.unfocus();
-        await tester.pump(const Duration(milliseconds: 250));
-        await tap(find.text('应用筛选'));
-        await loaded(FeatureQueryView.summary);
-        await tap(find.byTooltip('关闭筛选'));
+        hasDetails = true;
       }
     }
     var detailOpened = false;
-    if (shell().snapshots[FeatureId.grades]!.details.isNotEmpty) {
+    if (hasDetails) {
       final revision =
           shell().snapshots[FeatureId.grades]!.readContext?.requestRevision;
       await tap(find.byIcon(Icons.book).first);

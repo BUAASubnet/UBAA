@@ -22,10 +22,7 @@ void _registerAuthFlowTests() {
     await _openIntegrationFeature(tester, FeatureId.schedule);
     expect(find.text('查询后的课程'), findsOneWidget);
     await _returnToFeatureRoot(tester);
-    await tester.tap(find.byIcon(Icons.menu));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('我的资料'));
-    await tester.pumpAndSettle();
+    await uiOpenProfile(tester);
     expect(find.text('2020000000'), findsWidgets);
   });
 }

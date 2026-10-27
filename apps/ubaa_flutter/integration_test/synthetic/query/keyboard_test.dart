@@ -7,6 +7,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
+import '../../navigation.dart';
 import '../app/flow_test.dart' show createInspectionApp;
 
 void main() {
@@ -14,39 +15,27 @@ void main() {
   setUpAll(() async => _deviceCapture = await _DeviceCapture.start());
   tearDownAll(() => _deviceCapture.close());
   for (final brightness in Brightness.values) {
-    testWidgets('原生软键盘与放大文字下完成图书馆只读查询：${brightness.name}', (tester) async {
+    testWidgets('原生软键盘与放大文字下图书馆预约记录搜索：${brightness.name}', (tester) async {
       await _login(tester, brightness, scale: 1.3);
       await _open(tester, FeatureId.libbook);
-      await tester.tap(find.byType(DropdownButton<FeatureQueryView>));
+      // 座位查询沿预约流程逐级点选；可输入的只剩结果列表顶部的常驻搜索。
+      await tester.tap(find.widgetWithText(Card, '我的预约'));
       await tester.pumpAndSettle();
-      await tester.tap(find.text('座位查询').last);
+      final search = find.byKey(const ValueKey<String>('feature-search-field'));
+      await tester.tap(search);
       await tester.pumpAndSettle();
-      for (final field in const [
-        ('分区 ID', 'keyboard-fixture-area'),
-        ('时段编号（必填）', 'keyboard-slot-1'),
-        ('日期', '2026-09-08'),
-      ]) {
-        final finder = find.widgetWithText(TextField, field.$1);
-        await tester.ensureVisible(finder);
-        await tester.pumpAndSettle();
-        await tester.enterText(finder, field.$2);
-      }
-      // 先等待完整键盘动画，再滚动到整枚按钮；不改原生窗口或占位。
-      await _waitStableKeyboard(tester);
-      final apply = find.widgetWithText(FilledButton, '应用筛选');
-      await tester.ensureVisible(apply);
-      await tester.pumpAndSettle();
+      await tester.enterText(search, '合成');
       final stable = await _waitStableKeyboard(tester);
       final ratio = tester.view.devicePixelRatio;
       final availableBottom =
           tester.view.physicalSize.height / ratio -
           tester.view.viewInsets.bottom / ratio;
-      final buttonBottom = tester.getRect(apply).bottom;
-      expect(apply.hitTestable(), findsOneWidget);
+      final fieldBottom = tester.getRect(search).bottom;
+      expect(search.hitTestable(), findsOneWidget);
       expect(
-        buttonBottom,
+        fieldBottom,
         lessThanOrEqualTo(availableBottom),
-        reason: '应用按钮必须完整位于稳定系统键盘上方',
+        reason: '搜索框必须完整位于稳定系统键盘上方',
       );
       final scene = '${brightness.name}-library-keyboard';
       await _capture(
@@ -54,46 +43,44 @@ void main() {
         tester,
         scene,
         brightness,
-        '原生键盘占位稳定后滚动到应用按钮，字体比例1.3；尚未应用查询',
+        '原生键盘占位稳定后搜索框仍完整可见，字体比例1.3；搜索只过滤已读取记录',
         keyboardEvidence: {
           ...stable,
-          'applyButtonBottomLogical': buttonBottom,
+          'searchFieldBottomLogical': fieldBottom,
           'keyboardTopLogical': availableBottom,
           'deviceScreenshot': '$scene-device.png',
         },
       );
       await _deviceCapture.pauseForScreenshot(tester, scene);
-      expect(
-        tester.getRect(apply).bottom,
-        lessThanOrEqualTo(
-          tester.view.physicalSize.height / ratio -
-              tester.view.viewInsets.bottom / ratio,
-        ),
-      );
-      await tester.tap(apply);
-      await tester.pumpAndSettle();
-      final snapshot = tester
+      final reads = tester
           .widget<UbaaMainShell>(find.byType(UbaaMainShell))
-          .snapshots[FeatureId.libbook]!;
-      expect(snapshot.status, FeatureLoadStatus.success);
-      final action = snapshot.details.single.action<LibbookReserveAction>()!;
-      expect(action.areaId, 'keyboard-fixture-area');
-      expect(action.segment, 'keyboard-slot-1');
-      expect(action.day, '2026-09-08');
-      // 检查查询返回的typed上下文；不操作任何预约按钮。
+          .snapshots[FeatureId.libbook]!
+          .readContext
+          ?.requestRevision;
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
+      expect(tester.widget<TextField>(search).controller!.text, '合成');
+      expect(
+        tester
+            .widget<UbaaMainShell>(find.byType(UbaaMainShell))
+            .snapshots[FeatureId.libbook]!
+            .readContext
+            ?.requestRevision,
+        reads,
+        reason: '本地搜索不发新读取',
+      );
       await _capture(
         binding,
         tester,
         '${brightness.name}-library-query-result',
         brightness,
-        '键盘仍开启时滚动并应用只读查询，断言返回的typed上下文，再收起键盘',
+        '收起键盘后关键字保留，读取修订未变',
       );
     });
 
     testWidgets('原生刷新失败后保留搜索与上次结果：${brightness.name}', (tester) async {
-      await _login(tester, brightness, state: 'stale');
+      final failingReads = <FeatureId>{};
+      await _login(tester, brightness, failingReads: failingReads);
       await _open(tester, FeatureId.grades);
       final search = find.byKey(const ValueKey<String>('feature-search-field'));
       await tester.enterText(search, '程序设计');
@@ -106,6 +93,7 @@ void main() {
         brightness,
         '合成成绩中输入本地搜索并收起键盘',
       );
+      failingReads.add(FeatureId.grades);
       await tester.tap(find.byTooltip('刷新当前查询'));
       await tester.pumpAndSettle();
       expect(
@@ -133,6 +121,7 @@ Future<void> _login(
   Brightness brightness, {
   double scale = 1,
   String state = 'normal',
+  Set<FeatureId>? failingReads,
 }) async {
   expect(Platform.isIOS, isTrue);
   tester.platformDispatcher.platformBrightnessTestValue = brightness;
@@ -142,7 +131,7 @@ Future<void> _login(
   await tester.pumpWidget(
     KeyedSubtree(
       key: ValueKey('$brightness-$state'),
-      child: createInspectionApp(state: state),
+      child: createInspectionApp(state: state, failingReads: failingReads),
     ),
   );
   await tester.pumpAndSettle();
@@ -158,6 +147,10 @@ Future<void> _login(
 }
 
 Future<void> _open(WidgetTester tester, FeatureId feature) async {
+  await tester.tap(
+    uiDestinationFinder(tester, UiDestination.forFeature(feature)),
+  );
+  await tester.pumpAndSettle();
   final grid = find.byType(CustomScrollView);
   final card = find.descendant(
     of: grid,

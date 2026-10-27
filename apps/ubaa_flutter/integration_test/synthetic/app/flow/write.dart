@@ -17,10 +17,7 @@ void _registerPrimaryWriteFlowTests() {
     await tester.tap(find.widgetWithText(FilledButton, '登录'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(UiDestination.campus.icon));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('课堂签到'));
-    await tester.pumpAndSettle();
+    await _openIntegrationFeature(tester, FeatureId.signin);
     expect(find.text('未签到'), findsOneWidget);
 
     await tester.tap(find.text('准备签到'));
@@ -56,10 +53,7 @@ void _registerPrimaryWriteFlowTests() {
     await tester.tap(find.widgetWithText(FilledButton, '登录'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(UiDestination.campus.icon));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('课堂签到'));
-    await tester.pumpAndSettle();
+    await _openIntegrationFeature(tester, FeatureId.signin);
     await tester.tap(find.text('准备签到'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('确认提交'));
@@ -90,10 +84,7 @@ void _registerPrimaryWriteFlowTests() {
     await tester.tap(find.widgetWithText(FilledButton, '登录'));
     await tester.pumpAndSettle();
 
-    await tester.tap(find.byIcon(UiDestination.campus.icon));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('课堂签到'));
-    await tester.pumpAndSettle();
+    await _openIntegrationFeature(tester, FeatureId.signin);
     await tester.tap(find.text('准备签到'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('确认提交'));

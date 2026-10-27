@@ -37,54 +37,21 @@ void main() {
         );
         await tap(tester, find.widgetWithText(TextButton, '关闭'));
         expect(backend.scheduleReads.length, reads);
-        await tap(
-          tester,
-          find.byKey(const ValueKey<String>('feature-filter-button')),
-        );
-        await edit(tester, '筛选详情', 'COURSE-SAFE-2');
-        await tap(tester, find.byTooltip('关闭筛选'));
-        expect(find.text('合成课程2'), findsOneWidget);
-        expect(find.text('合成课程1'), findsNothing);
+        // 周次沿课表自身的选择器切换，不经手填。
+        await tap(tester, find.byTooltip('下一周'));
+        expect(backend.scheduleReads.last.week, 5);
+        await tap(tester, find.text('第 5 周'));
+        expect(find.text('选择教学周'), findsOneWidget);
         await capture(
           binding,
           tester,
-          '${brightness.name}-normal-filter',
-          '低频编号本地筛选，七日结构保留',
+          '${brightness.name}-normal-week-picker',
+          '课表自身的教学周选择器列出合成周次',
         );
-        await tap(
-          tester,
-          find.byKey(const ValueKey<String>('feature-filter-button')),
-        );
-        expect(
-          tester
-              .widget<TextField>(
-                find.byKey(const ValueKey<String>('feature-search-field')),
-              )
-              .controller!
-              .text,
-          'COURSE-SAFE-2',
-        );
-        expect(
-          tester
-              .widget<TextField>(find.widgetWithText(TextField, '学期编码'))
-              .controller!
-              .text,
-          '2026-2027-1',
-        );
-        expect(
-          tester
-              .widget<TextField>(find.widgetWithText(TextField, '周次'))
-              .controller!
-              .text,
-          '4',
-        );
-        await capture(
-          binding,
-          tester,
-          '${brightness.name}-normal-draft',
-          '关闭重开保留筛选与学期周次草稿',
-        );
-        expect(backend.scheduleReads.length, reads);
+        await tap(tester, find.widgetWithText(ListTile, '第 4 周'));
+        expect(backend.scheduleReads.last.term, '2026-2027-1');
+        expect(backend.scheduleReads.last.week, 4);
+        expect(backend.scheduleReads.length, reads + 2);
       });
     }
     for (final state
@@ -108,9 +75,16 @@ void main() {
           );
         }
         if (state == 'stale') {
+          final before = backend.scheduleReads.length;
           backend.fail = true;
           await tap(tester, find.byTooltip('刷新当前查询'));
-          expect(find.text('以下为上次成功加载的数据。'), findsWidgets);
+          expect(backend.scheduleReads.length, before + 1);
+          expect(find.text('合成课程1'), findsOneWidget);
+          expect(find.widgetWithText(TextButton, '重试'), findsOneWidget);
+          backend.fail = false;
+          await tap(tester, find.widgetWithText(TextButton, '重试'));
+          expect(backend.scheduleReads.length, before + 2);
+          expect(find.text('合成课程1'), findsOneWidget);
         }
         if (state == 'loading') {
           final gate = Completer<void>();

@@ -43,7 +43,7 @@ void _registerLoginOld(IntegrationTestWidgetsFlutterBinding binding) {
         await _accountTap(tester, find.byTooltip('隐藏密码'));
         FocusManager.instance.primaryFocus?.unfocus();
         await tester.pumpAndSettle();
-        await _accountTap(tester, find.byType(Checkbox).at(1));
+        await _accountTap(tester, find.text('自动登录'));
         expect(
           tester.widget<Checkbox>(find.byType(Checkbox).first).value,
           isTrue,

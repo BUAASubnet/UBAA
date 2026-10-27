@@ -6,6 +6,8 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
+import '../../navigation.dart';
+
 /// 真实账号资料仅本地显示验证，禁止截图及输出个人字段，不执行退出或学校写入。
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -51,8 +53,7 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    await tap(find.byIcon(Icons.menu));
-    await tap(find.text('我的资料'));
+    await uiOpenUtility(tester, '我的资料');
     expect(find.widgetWithText(AppBar, '我的资料').evaluate().isNotEmpty, isTrue);
     await tap(find.text('查看账号资料'));
     var contacts = 0;
@@ -67,8 +68,7 @@ void main() {
       expect(find.text(value).evaluate().isEmpty, isTrue);
     }
     await tap(find.byTooltip('返回'));
-    await tap(find.byIcon(Icons.menu));
-    await tap(find.text('设置'));
+    await uiOpenUtility(tester, '设置');
     expect(find.widgetWithText(AppBar, '设置').evaluate().isNotEmpty, isTrue);
     expect(
       tester
@@ -81,9 +81,8 @@ void main() {
       isTrue,
     );
     expect(find.text('已认证路线').evaluate().isNotEmpty, isTrue);
-    await tap(find.byTooltip('返回'));
-    await tap(find.byIcon(Icons.menu));
-    await tap(find.text('我的资料'));
+    // 设置是导航目的地，没有返回按钮；直接沿账号入口回到资料页。
+    await uiOpenUtility(tester, '我的资料');
     expect(find.text('查看账号资料').evaluate().isNotEmpty, isTrue);
     debugPrint(
       '账号只读 route=$route restored=true profile=true contacts=$contacts maskedAgain=true settings=true businessWrites=0',

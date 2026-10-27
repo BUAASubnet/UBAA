@@ -93,10 +93,31 @@ void main() {
         }
       }
 
+      final search = find.byKey(const ValueKey<String>('feature-search-field'));
+      final filterButton = find.byKey(
+        const ValueKey<String>('feature-filter-button'),
+      );
+      const searchable = {
+        FeatureId.exam,
+        FeatureId.grades,
+        FeatureId.classroom,
+        FeatureId.evaluation,
+        FeatureId.signin,
+        FeatureId.spoc,
+        FeatureId.judge,
+        FeatureId.ygdk,
+      };
+      const filterable = {
+        FeatureId.exam,
+        FeatureId.grades,
+        FeatureId.evaluation,
+        FeatureId.signin,
+        FeatureId.spoc,
+        FeatureId.judge,
+      };
+
       Future<void> panel() async {
-        await tester.tap(
-          find.byKey(const ValueKey<String>('feature-filter-button')),
-        );
+        await tester.tap(filterButton);
         await tester.pumpAndSettle();
       }
 
@@ -123,7 +144,7 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, '登录'));
       await tester.pumpAndSettle();
       expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
-      expect(find.text('今日课表'), findsOneWidget);
+      expect(find.textContaining(RegExp(r'^(今日|明日)课表$')), findsOneWidget);
       await capture('home', '合成登录，核对今日课表→待办区');
 
       const menus = <FeatureId, List<String>>{
@@ -159,10 +180,14 @@ void main() {
           findsOneWidget,
         );
         expect(find.text('返回功能列表'), findsNothing);
-        // 宽屏空教室保留旧版正文快速搜索；完整查询仍按需收纳。
+        // 结果列表常驻搜索框；有可调条件的列表才在旁边提供筛选按钮。
         expect(
-          find.byKey(const ValueKey<String>('feature-search-field')),
-          findsNothing,
+          search,
+          searchable.contains(feature) ? findsOneWidget : findsNothing,
+        );
+        expect(
+          filterButton,
+          filterable.contains(feature) ? findsOneWidget : findsNothing,
         );
         expect(find.byTooltip('关闭筛选'), findsNothing);
         expect(find.text('已选择 0 门待评课程'), findsNothing);
@@ -184,64 +209,35 @@ void main() {
           await tester.pumpAndSettle();
           continue;
         }
-        await panel();
-        expect(
-          find.widgetWithText(
-            TextField,
-            feature == FeatureId.spoc || feature == FeatureId.judge
-                ? '课程名称或作业标题'
-                : '筛选详情',
-          ),
-          menus.containsKey(feature) ? findsNothing : findsOneWidget,
-        );
-        if (feature == FeatureId.spoc || feature == FeatureId.judge) {
-          expect(
-            find.text(feature == FeatureId.spoc ? '仅显示未提交' : '仅显示未完成'),
-            findsOneWidget,
-          );
-        } else {
-          expect(find.text('应用筛选'), findsOneWidget);
+        if (filterable.contains(feature)) {
+          await panel();
+          if (feature == FeatureId.spoc || feature == FeatureId.judge) {
+            expect(
+              find.text(feature == FeatureId.spoc ? '仅显示未提交' : '仅显示未完成'),
+              findsOneWidget,
+            );
+          } else {
+            expect(find.widgetWithText(ChoiceChip, '全部'), findsOneWidget);
+          }
+          if (feature == FeatureId.grades) {
+            final panelBox = find.byWidgetPredicate(
+              (w) => w is Material && w.elevation == 8,
+            );
+            expect(tester.getSize(panelBox).height, lessThan(400));
+          }
+          await capture('query-${feature.name}', '筛选面板只含点选即生效的状态或排序条件，不含协议参数');
+          await closePanel();
         }
         if (feature == FeatureId.grades) {
-          final panelBox = find.byWidgetPredicate(
-            (w) => w is Material && w.elevation == 8,
-          );
-          expect(tester.getSize(panelBox).height, lessThan(400));
-          await tester.enterText(
-            find.widgetWithText(TextField, '学期编码'),
-            '未应用学期',
-          );
-          await tester.enterText(
-            find.byKey(const ValueKey<String>('feature-search-field')),
-            '合成',
-          );
-          await closePanel();
-          expect(find.byType(TextField), findsNothing);
+          await tester.enterText(search, '合成');
+          FocusManager.instance.primaryFocus?.unfocus();
+          await tester.pumpAndSettle();
           await panel();
-          expect(
-            tester
-                .widget<TextField>(find.widgetWithText(TextField, '学期编码'))
-                .controller!
-                .text,
-            '未应用学期',
-          );
-          expect(
-            tester
-                .widget<TextField>(
-                  find.byKey(const ValueKey<String>('feature-search-field')),
-                )
-                .controller!
-                .text,
-            '合成',
-          );
+          await closePanel();
+          expect(tester.widget<TextField>(search).controller!.text, '合成');
+          await tester.tap(find.byTooltip('清除搜索'));
+          await tester.pumpAndSettle();
         }
-        FocusManager.instance.primaryFocus?.unfocus();
-        await tester.pumpAndSettle();
-        await capture(
-          'query-${feature.name}',
-          '顶栏打开完整查询；结果页提供本地搜索，菜单不显示无结果搜索；成绩额外核验草稿',
-        );
-        await closePanel();
         if (menus.containsKey(feature)) {
           expect(find.byTooltip('实际路线：未确定'), findsOneWidget);
           for (final (index, label) in menus[feature]!.indexed) {
@@ -265,35 +261,39 @@ void main() {
                 findsNothing,
               );
             }
-            expect(find.byType(TextField), findsNothing);
+            // 博雅选课与我的课程、两处“我的预约”是结果列表；预约流程、统计和密码页不搜索。
+            final childSearch =
+                (feature == FeatureId.bykc && index < 2) ||
+                (feature != FeatureId.bykc && index == 1);
+            expect(search, childSearch ? findsOneWidget : findsNothing);
+            expect(
+              filterButton,
+              feature == FeatureId.bykc && index == 0
+                  ? findsOneWidget
+                  : findsNothing,
+            );
             await capture(
               'child-${feature.name}-$index',
               '从子菜单进入$label，检查当前页标题、真实结果路线和正文；未触发写入',
             );
-            if (index == 0) {
-              await panel();
-              await tester.enterText(
-                find.byKey(const ValueKey<String>('feature-search-field')),
-                'draft',
-              );
-              await closePanel();
-              await panel();
+            if (childSearch) {
+              await tester.enterText(search, 'draft');
+              FocusManager.instance.primaryFocus?.unfocus();
+              await tester.pumpAndSettle();
+              if (filterButton.evaluate().isNotEmpty) {
+                await panel();
+                await closePanel();
+              }
               expect(
-                tester
-                    .widget<TextField>(
-                      find.byKey(
-                        const ValueKey<String>('feature-search-field'),
-                      ),
-                    )
-                    .controller!
-                    .text,
+                tester.widget<TextField>(search).controller!.text,
                 'draft',
               );
               await capture(
-                'child-query-${feature.name}',
-                '默认子页打开搜索、输入草稿、关闭、重开；草稿保留',
+                'child-query-${feature.name}-$index',
+                '子页常驻搜索输入后开关筛选，关键字保留',
               );
-              await closePanel();
+              await tester.tap(find.byTooltip('清除搜索'));
+              await tester.pumpAndSettle();
             }
             await tester.tap(find.byTooltip('返回'));
             await tester.pumpAndSettle();

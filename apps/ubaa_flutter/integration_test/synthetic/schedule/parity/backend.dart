@@ -14,6 +14,28 @@ class ScheduleOldBackend extends AcademicOldBackend {
     FeatureId feature,
     FeatureQuery query,
   ) async {
+    // 课表自动定位：学期列表 → 教学周（第4周为本周）→ 周课表。
+    if (feature == FeatureId.schedule &&
+        query.view == FeatureQueryView.scheduleWeeks) {
+      final term = query.term!;
+      return FeatureResult.success(
+        resolvedRoute: ConnectionMode.direct,
+        details: [
+          for (final (index, week) in [3, 4, 5].indexed)
+            FeatureDetail(
+              title: '第 $week 周',
+              presentation: WeekPresentation(
+                requestTerm: term,
+                responseTerm: term,
+                number: week,
+                current: week == 4,
+                startDate: ['2026-08-31', '2026-09-07', '2026-09-14'][index],
+                endDate: ['2026-09-06', '2026-09-13', '2026-09-20'][index],
+              ),
+            ),
+        ],
+      );
+    }
     if (feature != FeatureId.schedule ||
         query.view != FeatureQueryView.scheduleWeek) {
       return super.loadFeatureQuery(feature, query);

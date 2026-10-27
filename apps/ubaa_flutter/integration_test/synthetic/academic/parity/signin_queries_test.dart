@@ -30,30 +30,19 @@ void main() {
         tester,
         find.byKey(const ValueKey<String>('feature-filter-button')),
       );
-      Future<void> select(String label) async {
-        await old.tap(tester, find.byType(DropdownButton<FeatureQueryView>));
-        await old.tap(tester, find.text(label).last);
-      }
+      // 状态标签点选即发出派生视图查询，没有草稿和“应用”步骤。
+      Future<void> select(String label) =>
+          old.tap(tester, find.widgetWithText(ChoiceChip, label));
+      final search = find.byKey(const ValueKey<String>('feature-search-field'));
 
       expect(snapshot().details.length, 4);
-      expect(find.byType(TextField), findsNothing);
+      expect(search, findsOneWidget);
       final initialReads = reads();
       await panel();
-      await select('可签到');
-      await old.closePanel(tester);
       expect(reads(), initialReads);
-      expect(snapshot().details.length, 4);
-      await panel();
-      expect(
-        tester
-            .widget<DropdownButton<FeatureQueryView>>(
-              find.byType(DropdownButton<FeatureQueryView>),
-            )
-            .value,
-        FeatureQueryView.signinPending,
-      );
-      await shot('draft', '右上选择可签到但不应用，关闭重开保留草稿和原全部结果');
-      await old.tap(tester, find.text('应用筛选'));
+      await shot('draft', '打开筛选面板不读取，原全部结果保持');
+      await select('可签到');
+      expect(reads(), initialReads + 1);
       await old.closePanel(tester);
       expect(
         snapshot().readContext?.query?.view,
@@ -80,20 +69,19 @@ void main() {
       for (final (label, view, titles) in [
         ('已签到', FeatureQueryView.signinCompleted, ['合成已签到课程']),
         (
-          '全部课程',
+          '全部',
           FeatureQueryView.summary,
           ['合成可签到课程', '合成已签到课程', '合成未知状态课程', '合成缺少目标课程'],
         ),
       ]) {
         await panel();
         await select(label);
-        await old.tap(tester, find.text('应用筛选'));
         await old.closePanel(tester);
         expect(snapshot().readContext?.query?.view, view);
         expect(snapshot().details.map((detail) => detail.title), titles);
         expect(snapshot().resolvedRoute, ConnectionMode.direct);
-        expect(find.byType(TextField), findsNothing);
-        await shot(view.name.toLowerCase(), '显式$label结果与原查询匹配，面板默认收起');
+        expect(find.byTooltip('关闭筛选').hitTestable(), findsNothing);
+        await shot(view.name.toLowerCase(), '显式$label结果与原查询匹配，面板已关闭');
         final count = reads();
         await old.tap(tester, find.byTooltip('刷新当前查询'));
         expect(reads(), count + 1);

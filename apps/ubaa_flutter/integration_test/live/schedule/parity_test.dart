@@ -10,7 +10,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 /// 生产课表真实只读；仅输出状态/条数，不截取个人课表或执行写入。
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  testWidgets('生产今日学期周次周课表及本地详情只读', (tester) async {
+  testWidgets('生产课表自动定位与学期周次选择及本地详情只读', (tester) async {
     final config = Platform.environment['UBAA_CONFIG_DIR'];
     const route = String.fromEnvironment('UBAA_EXPECTED_ROUTE');
     if (!const bool.fromEnvironment('UBAA_LIVE_READONLY') ||
@@ -90,56 +90,49 @@ void main() {
 
     await tap(uiDestinationFinder(tester, UiDestination.academic));
     await tap(find.widgetWithText(Card, FeatureId.schedule.title));
+    // 进入课表即自动定位：学期列表 → 教学周 → 本周课表；三层由页面依次读取。
+    await waitFor(
+      () =>
+          (snapshot().readContext?.query?.view ==
+                  FeatureQueryView.scheduleWeek &&
+              snapshot().status != FeatureLoadStatus.loading) ||
+          find.text('请选择学期').evaluate().isNotEmpty ||
+          find.text('请选择教学周').evaluate().isNotEmpty,
+    );
+    if (find.text('请选择学期').evaluate().isNotEmpty ||
+        find.text('请选择教学周').evaluate().isNotEmpty) {
+      // 当前学期或本周不唯一时停在选择提示，沿课表自身选择器显式选第一项。
+      final needTerm = find.text('请选择学期').evaluate().isNotEmpty;
+      await tap(find.widgetWithText(FilledButton, needTerm ? '选择学期' : '选择教学周'));
+      final choices = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byWidgetPredicate(
+          (w) => w is ListTile && w.onTap != null,
+        ),
+      );
+      await waitFor(() => choices.evaluate().isNotEmpty);
+      await tap(choices.first);
+      if (needTerm) {
+        await waitFor(
+          () =>
+              snapshot().readContext?.query?.view ==
+                  FeatureQueryView.scheduleWeek ||
+              find.widgetWithText(FilledButton, '选择教学周').evaluate().isNotEmpty,
+        );
+        if (find.widgetWithText(FilledButton, '选择教学周').evaluate().isNotEmpty) {
+          await tap(find.widgetWithText(FilledButton, '选择教学周'));
+          await waitFor(() => choices.evaluate().isNotEmpty);
+          await tap(choices.first);
+        }
+      }
+      debugPrint('课表只读 selection=explicit_first_returned');
+    } else {
+      debugPrint('课表只读 selection=automatic_current');
+    }
     await loaded();
-    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
-    await tap(find.text('今日课程').last);
-    await tap(find.text('学期列表').last);
-    final todayRevision = snapshot().readContext?.requestRevision;
-    await tap(find.widgetWithText(FilledButton, '应用筛选'));
-    await loaded(previous: todayRevision);
-    await tap(find.byTooltip('关闭筛选'));
-    final terms = snapshot().details
-        .where(
-          (d) => d.presentation is TermPresentation && d.readNavigation != null,
-        )
-        .toList();
-    expect(terms.isNotEmpty, isTrue);
-    final selected = terms
-        .where((d) => (d.presentation! as TermPresentation).selected)
-        .toList();
-    final term = selected.length == 1 ? selected.single : terms.first;
-    debugPrint(
-      '课表只读 termSelection=${selected.length == 1 ? 'current' : 'explicit_first_returned'}',
-    );
-    final termRevision = snapshot().readContext?.requestRevision;
-    await tap(
-      find.descendant(
-        of: find.widgetWithText(Card, term.title),
-        matching: find.text('查看周次'),
-      ),
-    );
-    await loaded(previous: termRevision);
-    final weeks = snapshot().details
-        .where(
-          (d) => d.presentation is WeekPresentation && d.readNavigation != null,
-        )
-        .toList();
-    expect(weeks.isNotEmpty, isTrue);
-    final current = weeks
-        .where((d) => (d.presentation! as WeekPresentation).current)
-        .toList();
-    final week = current.length == 1 ? current.single : weeks.first;
-    debugPrint(
-      '课表只读 weekSelection=${current.length == 1 ? 'current' : 'explicit_first_returned'}',
-    );
-    final weekRevision = snapshot().readContext?.requestRevision;
-    await tap(
-      find.descendant(
-        of: find.widgetWithText(Card, week.title),
-        matching: find.text('查看周课表'),
-      ),
-    );
-    await loaded(previous: weekRevision);
+    final chosen = snapshot().readContext!.query!;
+    expect(chosen.view, FeatureQueryView.scheduleWeek);
+    expect(chosen.term != null && (chosen.week ?? 0) > 0, isTrue);
     final before = snapshot().readContext?.requestRevision;
     if (find.byKey(const ValueKey('schedule-block-0')).evaluate().isNotEmpty) {
       await tap(find.byKey(const ValueKey('schedule-block-0')));
@@ -164,25 +157,9 @@ void main() {
     } else {
       debugPrint('课表只读 localDetail=NOT_APPLICABLE reason=no_positioned_course');
     }
-    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
-    final chosen = week.presentation! as WeekPresentation;
-    expect(
-      tester
-              .widget<TextField>(find.widgetWithText(TextField, '学期编码'))
-              .controller!
-              .text ==
-          chosen.requestTerm,
-      isTrue,
-    );
-    expect(
-      tester
-              .widget<TextField>(find.widgetWithText(TextField, '周次'))
-              .controller!
-              .text ==
-          '${chosen.number}',
-      isTrue,
-    );
-    await tap(find.byTooltip('关闭筛选'));
+    // 本地详情不改变已定位的学期与周次。
+    expect(snapshot().readContext?.query?.term == chosen.term, isTrue);
+    expect(snapshot().readContext?.query?.week == chosen.week, isTrue);
     expect(snapshot().readContext?.requestRevision == before, isTrue);
     expect(
       find
@@ -192,6 +169,6 @@ void main() {
       isTrue,
     );
     expect(tester.takeException(), isNull);
-    debugPrint('课表只读 完成 retainedDraft=true businessWrites=0');
+    debugPrint('课表只读 完成 retainedWeek=true businessWrites=0');
   });
 }

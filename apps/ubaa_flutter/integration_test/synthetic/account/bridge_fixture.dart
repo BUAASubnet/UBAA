@@ -5,10 +5,17 @@ final class AccountPartialBridgeClient implements BridgeClient {
   bool signedIn = false;
   int loginCalls = 0;
   int unsupportedReads = 0;
+  int continuationCalls = 0;
+  final interactiveHandle = _PartialLogin();
   BridgeRoutePolicy policy = BridgeRoutePolicy.auto;
 
   static const outcome = BridgeLoginOutcome(
     readiness: BridgeLoginReadiness.partial,
+    profile: BridgeUserProfile(
+      username: 'partial-fixture',
+      name: '合成部分路线同学',
+      email: 'partial@example.invalid',
+    ),
     routes: [
       BridgeRouteLoginResult(
         route: BridgeConnectionMode.direct,
@@ -33,7 +40,30 @@ final class AccountPartialBridgeClient implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 41;
+  int contractVersion() => 42;
+
+  BridgeInteractiveLoginOutcome interactiveOutcome({bool prepared = false}) =>
+      BridgeInteractiveLoginOutcome(
+        login: interactiveHandle,
+        readiness: prepared
+            ? BridgeLoginReadiness.noneReady
+            : outcome.readiness,
+        profile: prepared ? null : outcome.profile,
+        routes: [
+          for (final route in outcome.routes)
+            BridgeInteractiveRouteResult(
+              route: route.route,
+              state: prepared
+                  ? BridgeInteractiveRouteState.prepared
+                  : route.state == BridgeRouteLoginState.ready
+                  ? BridgeInteractiveRouteState.ready
+                  : BridgeInteractiveRouteState.failed,
+              error: prepared ? null : route.error,
+              revision: BigInt.zero,
+              validForMillis: 0,
+            ),
+        ],
+      );
 
   @override
   dynamic noSuchMethod(Invocation invocation) {
@@ -53,7 +83,28 @@ final class AccountPartialBridgeClient implements BridgeClient {
               ? outcome
               : const BridgeLoginOutcome(
                   readiness: BridgeLoginReadiness.noneReady,
-                  routes: [],
+                  routes: [
+                    BridgeRouteLoginResult(
+                      route: BridgeConnectionMode.direct,
+                      state: BridgeRouteLoginState.failed,
+                      error: BridgeSafeError(
+                        code: 'authentication_required',
+                        kind: 'authentication',
+                        retryable: true,
+                        message: '合成直连未登录',
+                      ),
+                    ),
+                    BridgeRouteLoginResult(
+                      route: BridgeConnectionMode.webVpn,
+                      state: BridgeRouteLoginState.failed,
+                      error: BridgeSafeError(
+                        code: 'authentication_required',
+                        kind: 'authentication',
+                        retryable: true,
+                        message: '合成 WebVPN 未登录',
+                      ),
+                    ),
+                  ],
                 ),
         );
       case #login:
@@ -77,9 +128,37 @@ final class AccountPartialBridgeClient implements BridgeClient {
             ),
           ),
         );
+      case #beginInteractiveLogin:
+        return interactiveHandle;
+      case #prepareInteractiveLogin:
+        return Future<BridgeInteractiveLoginOutcome>.value(
+          interactiveOutcome(prepared: true),
+        );
+      case #submitInteractiveLogin:
+        loginCalls++;
+        return Future<BridgeInteractiveLoginOutcome>.value(
+          interactiveOutcome(),
+        );
+      case #continueInteractiveLogin:
+        if (invocation.namedArguments[#selectedRoute] !=
+                BridgeConnectionMode.direct ||
+            invocation.namedArguments[#pinReadyRoute] != true) {
+          throw StateError('合成部分成功必须显式选择就绪的直连路线');
+        }
+        continuationCalls++;
+        signedIn = true;
+        policy = BridgeRoutePolicy.direct;
+        return Future<BridgeInteractiveLoginCompletion>.value(
+          BridgeInteractiveLoginCompletion(
+            outcome: outcome,
+            settings: settings,
+          ),
+        );
       case #logout:
         signedIn = false;
         return Future<void>.value();
+      case #cancelInteractiveLogin:
+        return null;
       case #dispose:
         return Future<void>.value();
       default:
@@ -88,4 +167,9 @@ final class AccountPartialBridgeClient implements BridgeClient {
         throw UnsupportedError('合成客户端未实现该业务读取');
     }
   }
+}
+
+class _PartialLogin implements BridgeInteractiveLogin {
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

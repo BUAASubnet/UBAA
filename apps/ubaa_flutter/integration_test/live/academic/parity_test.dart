@@ -75,7 +75,13 @@ void main() {
       await tap(uiDestinationFinder(tester, UiDestination.forFeature(feature)));
       await tap(find.widgetWithText(Card, feature.title));
       await loaded(feature, FeatureQueryView.summary);
-      expect(find.byType(TextField).evaluate().isEmpty, isTrue);
+      expect(
+        find
+            .byKey(const ValueKey<String>('feature-search-field'))
+            .evaluate()
+            .isNotEmpty,
+        isTrue,
+      );
       expect(
         find
             .byTooltip(route == 'direct' ? '实际路线：直连' : '实际路线：WebVPN')
@@ -89,14 +95,13 @@ void main() {
     for (final (label, view) in [
       ('已安排', FeatureQueryView.examArranged),
       ('未安排', FeatureQueryView.examNotArranged),
-      ('全部考试', FeatureQueryView.summary),
+      ('全部', FeatureQueryView.summary),
     ]) {
+      // 状态标签点选即发出派生视图查询。
       await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
-      await tap(find.byType(DropdownButton<FeatureQueryView>));
-      await tap(find.text(label).last);
       final revision =
           shell().snapshots[FeatureId.exam]!.readContext?.requestRevision;
-      await tap(find.text('应用筛选'));
+      await tap(find.widgetWithText(ChoiceChip, label));
       await waitFor(
         () =>
             shell().snapshots[FeatureId.exam]!.readContext?.requestRevision !=
@@ -104,7 +109,7 @@ void main() {
       );
       await loaded(FeatureId.exam, view);
       await tap(find.byTooltip('关闭筛选'));
-      expect(find.byType(TextField).evaluate().isEmpty, isTrue);
+      expect(find.byTooltip('关闭筛选').hitTestable().evaluate().isEmpty, isTrue);
     }
     debugPrint(
       '学业旧版只读 examLocalDetail=${shell().snapshots[FeatureId.exam]!.details.isEmpty ? '无记录未执行' : '本批未执行'}',
@@ -114,14 +119,13 @@ void main() {
     for (final (label, view, eligibility) in [
       ('可签到', FeatureQueryView.signinPending, ActionEligibility.allowed),
       ('已签到', FeatureQueryView.signinCompleted, ActionEligibility.denied),
-      ('全部课程', FeatureQueryView.summary, null),
+      ('全部', FeatureQueryView.summary, null),
     ]) {
+      // 状态标签点选即发出派生视图查询。
       await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
-      await tap(find.byType(DropdownButton<FeatureQueryView>));
-      await tap(find.text(label).last);
       final revision =
           shell().snapshots[FeatureId.signin]!.readContext?.requestRevision;
-      await tap(find.text('应用筛选'));
+      await tap(find.widgetWithText(ChoiceChip, label));
       await waitFor(
         () =>
             shell().snapshots[FeatureId.signin]!.readContext?.requestRevision !=
@@ -140,7 +144,7 @@ void main() {
         );
       }
       await tap(find.byTooltip('关闭筛选'));
-      expect(find.byType(TextField).evaluate().isEmpty, isTrue);
+      expect(find.byTooltip('关闭筛选').hitTestable().evaluate().isEmpty, isTrue);
     }
     if (shell().snapshots[FeatureId.signin]!.details.isNotEmpty) {
       final revision =

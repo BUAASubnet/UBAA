@@ -5,16 +5,23 @@ FeatureSnapshot _academicSnapshot(WidgetTester tester, FeatureId feature) =>
         .widget<UbaaMainShell>(find.byType(UbaaMainShell))
         .snapshots[feature]!;
 
-String _academicFieldText(WidgetTester tester, String label) =>
-    tester.widget<TextField>(_academicFieldFinder(label)).controller!.text;
+final _academicSearchField = find.byKey(
+  const ValueKey<String>('feature-search-field'),
+);
 
-Finder _academicFieldFinder(String label) {
-  final prefix = label.split('（').first;
-  return find.byWidgetPredicate(
-    (widget) =>
-        widget is TextField &&
-        (widget.decoration?.labelText?.startsWith(prefix) ?? false),
-  );
+/// 课表顶栏刷新与其他列表的“刷新当前查询”共用同一刷新按钮。
+final _academicRefresh = find.byWidgetPredicate(
+  (widget) => widget is Tooltip && (widget.message?.startsWith('刷新') ?? false),
+);
+
+String _academicSearchText(WidgetTester tester) =>
+    tester.widget<TextField>(_academicSearchField).controller!.text;
+
+Future<void> _academicSearch(WidgetTester tester, String value) async {
+  await _tapAcademic(tester, _academicSearchField);
+  await tester.enterText(_academicSearchField, value);
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pumpAndSettle();
 }
 
 Future<void> _loginAcademic(
@@ -22,8 +29,10 @@ Future<void> _loginAcademic(
   Brightness brightness,
   String state, {
   double scale = 1,
+  Set<FeatureId>? failingReads,
+  Future<void> Function()? beforeRead,
 }) async {
-  expect(Platform.isIOS, isTrue);
+  expect(Platform.isIOS || Platform.isMacOS, isTrue);
   tester.platformDispatcher.platformBrightnessTestValue = brightness;
   tester.platformDispatcher.textScaleFactorTestValue = scale;
   addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
@@ -31,7 +40,11 @@ Future<void> _loginAcademic(
   await tester.pumpWidget(
     KeyedSubtree(
       key: ValueKey('academic-${brightness.name}-$state'),
-      child: createInspectionApp(state: state),
+      child: createInspectionApp(
+        state: state,
+        failingReads: failingReads,
+        beforeRead: beforeRead,
+      ),
     ),
   );
   await tester.pumpAndSettle();
@@ -40,7 +53,11 @@ Future<void> _loginAcademic(
   await tester.enterText(find.byType(TextField).at(1), 'fixture-password');
   await tester.pump();
   await _tapAcademic(tester, find.widgetWithText(FilledButton, '登录'));
-  expect(find.byType(UbaaMainShell), findsOneWidget);
+  await uiWaitFor(
+    tester,
+    () => find.byType(UbaaMainShell).evaluate().isNotEmpty,
+    '合成登录完成后进入主界面',
+  );
   for (final feature in _academicFeatures) {
     final deadline = DateTime.now().add(const Duration(seconds: 20));
     while (_academicSnapshot(tester, feature).status ==
@@ -64,25 +81,18 @@ Future<void> _tapAcademic(WidgetTester tester, Finder target) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _academicField(
-  WidgetTester tester,
-  String label,
-  String value,
-) async {
-  final field = _academicFieldFinder(label);
-  expect(field, findsOneWidget);
-  await tester.ensureVisible(field);
-  await tester.pumpAndSettle();
-  await tester.enterText(field, value);
-  FocusManager.instance.primaryFocus?.unfocus();
-  await tester.pumpAndSettle();
-}
-
 Future<void> _openAcademic(WidgetTester tester, FeatureId feature) async {
-  final selected = find.byIcon(Icons.home);
+  // 先逐级返回分组页，再沿学业入口点开功能卡片。
+  for (
+    var attempt = 0;
+    attempt < 6 && find.byTooltip('返回').hitTestable().evaluate().isNotEmpty;
+    attempt++
+  ) {
+    await _tapAcademic(tester, find.byTooltip('返回').hitTestable());
+  }
   await _tapAcademic(
     tester,
-    selected.evaluate().isEmpty ? find.byIcon(Icons.home_outlined) : selected,
+    uiDestinationFinder(tester, UiDestination.academic),
   );
   final grid = find.byType(CustomScrollView);
   expect(grid, findsOneWidget);
@@ -104,40 +114,46 @@ Future<void> _openAcademic(WidgetTester tester, FeatureId feature) async {
   await _tapAcademic(tester, card(feature));
 }
 
-Future<void> _chooseAcademicView(WidgetTester tester, String label) async {
-  await _tapAcademic(tester, find.byType(DropdownButton<FeatureQueryView>));
-  await _tapAcademic(tester, find.text(label).last);
+void _expectScheduleWeek(WidgetTester tester, String term, int week) {
+  final snapshot = _academicSnapshot(tester, FeatureId.schedule);
+  expect(snapshot.status, FeatureLoadStatus.success);
+  final query = snapshot.readContext!.query!;
+  expect(query.view, FeatureQueryView.scheduleWeek);
+  expect(query.term, term);
+  expect(query.week, week);
+  expect(
+    snapshot.details.every(
+      (item) => item.presentation is ScheduleCoursePresentation,
+    ),
+    isTrue,
+  );
 }
 
-Future<void> _applyAcademic(
-  WidgetTester tester,
-  FeatureId feature,
-  FeatureQueryView view, {
-  String? term,
-  FeatureLoadStatus status = FeatureLoadStatus.success,
-}) async {
-  await _tapAcademic(tester, find.widgetWithText(FilledButton, '应用筛选'));
-  final snapshot = _academicSnapshot(tester, feature);
-  expect(snapshot.status, status);
-  expect(snapshot.readContext, isNotNull);
-  expect(snapshot.readContext!.query, isNotNull);
-  expect(snapshot.readContext!.query!.view, view);
-  if (term != null) expect(snapshot.readContext!.query!.term, term);
+Future<void> _openAcademicFilter(WidgetTester tester) async {
+  if (find.byTooltip('关闭筛选').hitTestable().evaluate().isNotEmpty) return;
+  await _tapAcademic(
+    tester,
+    find.byKey(const ValueKey<String>('feature-filter-button')),
+  );
 }
 
-void _expectAcademicQuery(
+Future<void> _closeAcademicFilter(WidgetTester tester) async {
+  final close = find.byTooltip('关闭筛选').hitTestable();
+  if (close.evaluate().isNotEmpty) await _tapAcademic(tester, close);
+}
+
+/// 状态标签点选即发出派生视图查询；重复点选已选项不重新读取。
+Future<void> _chooseAcademicStatus(
   WidgetTester tester,
   FeatureId feature,
-  FeatureQuery query,
-) {
+  String label,
+  FeatureQueryView view,
+) async {
+  await _openAcademicFilter(tester);
+  await _tapAcademic(tester, find.widgetWithText(ChoiceChip, label));
   final snapshot = _academicSnapshot(tester, feature);
   expect(snapshot.status, FeatureLoadStatus.success);
-  expect(snapshot.readContext, isNotNull);
-  expect(
-    snapshot.readContext!.hasSameQuery(query),
-    isTrue,
-    reason: '校验合成backend完成后App记录的typed读取归属，不以UI回调当真实上游请求',
-  );
+  expect(snapshot.readContext!.query!.view, view);
 }
 
 Future<void> _waitAcademicStatus(
@@ -181,9 +197,17 @@ Future<void> _horizontalAcademic(
   expect(viewport, findsOneWidget);
   final horizontal = find.descendant(
     of: viewport,
-    matching: find.byType(Scrollable),
+    matching: find.byWidgetPredicate(
+      (widget) =>
+          widget is Scrollable && widget.axisDirection == AxisDirection.right,
+    ),
   );
   expect(horizontal, findsOneWidget);
+  final position = tester.state<ScrollableState>(horizontal).position;
+  if (position.maxScrollExtent == 0) {
+    expect(position.pixels, 0);
+    return; // 宽表已完整放入视口时无需横向滚动。
+  }
   await tester.ensureVisible(horizontal);
   await tester.pumpAndSettle();
   await tester.drag(horizontal, const Offset(-480, 0));
@@ -267,5 +291,6 @@ Future<void> _academicCapture(
       defaultValue: 'unrecorded',
     ),
   });
-  await binding.takeScreenshot(name);
+  // macOS 原生窗口截图由独立巡检负责；这里只在 iOS 取图。
+  if (Platform.isIOS) await binding.takeScreenshot(name);
 }

@@ -10,7 +10,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 /// 生产周导航仅只读，证据只输出状态/数量，不截图个人课程或输出参数原值。
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
-  testWidgets('生产自然周选择与跨学期今日兼容只读', (tester) async {
+  testWidgets('生产相邻周与跨学期周次选择只读', (tester) async {
     final config = Platform.environment['UBAA_CONFIG_DIR'];
     const route = String.fromEnvironment('UBAA_EXPECTED_ROUTE');
     if (!const bool.fromEnvironment('UBAA_LIVE_READONLY') ||
@@ -70,10 +70,6 @@ void main() {
       await tester.pump(const Duration(milliseconds: 250));
     }
 
-    String draft(String label) => tester
-        .widget<TextField>(find.widgetWithText(TextField, label))
-        .controller!
-        .text;
     final dates = find.byWidgetPredicate(
       (w) => w is Text && RegExp(r'^\d{1,2}-\d{1,2}$').hasMatch(w.data ?? ''),
     );
@@ -84,49 +80,24 @@ void main() {
     expect(dates.evaluate().isEmpty || dates.evaluate().length == 7, isTrue);
     final current = snapshot().readContext!.query!;
     final before = snapshot().readContext!.requestRevision;
-    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
-    expect(draft('学期编码') == current.term, isTrue);
-    expect(draft('周次') == '${current.week}', isTrue);
-    await tap(find.byTooltip('下一教学周'));
-    await waitFor(
-      () => find
-          .byWidgetPredicate(
-            (w) =>
-                w is IconButton && w.tooltip == '下一教学周' && w.onPressed != null,
-          )
-          .evaluate()
-          .isNotEmpty,
-    );
-    if (draft('周次') == '${current.week}') {
-      await tap(find.byTooltip('上一教学周'));
-      await waitFor(
-        () => find
-            .byWidgetPredicate(
-              (w) =>
-                  w is IconButton &&
-                  w.tooltip == '上一教学周' &&
-                  w.onPressed != null,
-            )
-            .evaluate()
-            .isNotEmpty,
-      );
-    }
-    final next = int.tryParse(draft('周次'));
-    expect(next != null && next > 0, isTrue);
-    expect(snapshot().readContext?.requestRevision == before, isTrue);
-    await tap(find.byTooltip('关闭筛选'));
-    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
-    expect(draft('周次') == '$next', isTrue);
-    await tap(find.text('应用筛选'));
+    // 周次沿课表自身的上一周/下一周与教学周选择器切换，不经手填。
+    bool enabled(String tooltip) => find
+        .byWidgetPredicate(
+          (w) => w is IconButton && w.tooltip == tooltip && w.onPressed != null,
+        )
+        .evaluate()
+        .isNotEmpty;
+    final step = enabled('下一周') ? '下一周' : '上一周';
+    await tap(find.byTooltip(step));
     await loaded(FeatureQueryView.scheduleWeek, previous: before);
-    await tap(find.byTooltip('关闭筛选'));
-    expect(snapshot().readContext?.query?.week == next, isTrue);
+    final next = snapshot().readContext!.query!.week;
+    expect(next != null && next > 0 && next != current.week, isTrue);
+    expect(snapshot().readContext?.query?.term == current.term, isTrue);
     debugPrint(
-      '周导航只读 adjacent=${next != current.week} retainedDraft=true headerDates=${dates.evaluate().length}',
+      '周导航只读 adjacent=true step=$step headerDates=${dates.evaluate().length}',
     );
 
-    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
-    await tap(find.widgetWithText(OutlinedButton, '选择学期'));
+    await tap(find.byTooltip('选择学期'));
     final termChoices = find.descendant(
       of: find.byType(AlertDialog),
       matching: find.byWidgetPredicate(
@@ -134,36 +105,37 @@ void main() {
       ),
     );
     await waitFor(() => termChoices.evaluate().isNotEmpty);
-    await tap(termChoices.first);
-    expect(draft('学期编码') != current.term, isTrue);
-    expect(draft('周次').isEmpty, isTrue);
-    final term = draft('学期编码');
-    await tap(find.widgetWithText(OutlinedButton, '选择教学周'));
-    final weekChoices = find.descendant(
-      of: find.byType(AlertDialog),
-      matching: find.byWidgetPredicate((w) => w is ListTile && w.onTap != null),
-    );
-    await waitFor(() => weekChoices.evaluate().isNotEmpty);
-    await tap(weekChoices.first);
-    final week = int.tryParse(draft('周次'));
-    expect(week != null && week > 0, isTrue);
-    final previous = snapshot().readContext!.requestRevision;
-    await tap(find.text('应用筛选'));
-    await loaded(FeatureQueryView.scheduleWeek, previous: previous);
-    await tap(find.byTooltip('关闭筛选'));
-    expect(snapshot().readContext?.query?.term == term, isTrue);
-    expect(snapshot().readContext?.query?.week == week, isTrue);
-    debugPrint('周导航只读 termChanged=true headerDates=${dates.evaluate().length}');
-
-    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
-    await tap(find.byType(DropdownButton<FeatureQueryView>));
-    await tap(find.text('今日课程').last);
     final termRevision = snapshot().readContext!.requestRevision;
-    await tap(find.text('应用筛选'));
-    await loaded(FeatureQueryView.scheduleToday, previous: termRevision);
-    await tap(find.byTooltip('关闭筛选'));
-    expect(snapshot().readContext?.query?.term == null, isTrue);
-    expect(snapshot().readContext?.query?.week == null, isTrue);
+    await tap(termChoices.first);
+    // 新学期有唯一本周时自动定位；否则停在教学周提示，由用户选择。
+    await waitFor(
+      () =>
+          (snapshot().readContext?.query?.view ==
+                  FeatureQueryView.scheduleWeek &&
+              snapshot().readContext!.requestRevision != termRevision &&
+              snapshot().status != FeatureLoadStatus.loading) ||
+          find.widgetWithText(FilledButton, '选择教学周').evaluate().isNotEmpty,
+    );
+    if (find.widgetWithText(FilledButton, '选择教学周').evaluate().isNotEmpty) {
+      await tap(find.widgetWithText(FilledButton, '选择教学周'));
+      final weekChoices = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.byWidgetPredicate(
+          (w) => w is ListTile && w.onTap != null,
+        ),
+      );
+      await waitFor(() => weekChoices.evaluate().isNotEmpty);
+      final weekRevision = snapshot().readContext!.requestRevision;
+      await tap(weekChoices.first);
+      await loaded(FeatureQueryView.scheduleWeek, previous: weekRevision);
+    } else {
+      await loaded(FeatureQueryView.scheduleWeek);
+    }
+    final term = snapshot().readContext?.query?.term;
+    expect(term != null && term != current.term, isTrue);
+    expect((snapshot().readContext?.query?.week ?? 0) > 0, isTrue);
+    debugPrint('周导航只读 termChanged=true headerDates=${dates.evaluate().length}');
+    // 今日课程视图已不在课表页提供，首页今日课表另有覆盖。
     expect(
       find
           .byTooltip('实际路线：${route == 'direct' ? '直连' : 'WebVPN'}')
@@ -172,6 +144,6 @@ void main() {
       isTrue,
     );
     expect(tester.takeException(), isNull);
-    debugPrint('周导航只读 完成 todayCompatibility=true businessWrites=0');
+    debugPrint('周导航只读 完成 businessWrites=0');
   });
 }

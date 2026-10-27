@@ -14,6 +14,8 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_flutter/main.dart';
 
+import '../../navigation.dart';
+
 part 'fixture.dart';
 part 'support.dart';
 part 'profile_capture.dart';
@@ -143,11 +145,11 @@ void main() {
             .value,
         ThemeMode.dark,
       );
-      await _accountTap(tester, find.byType(SwitchListTile));
-      expect(
-        tester.widget<SwitchListTile>(find.byType(SwitchListTile)).value,
-        isTrue,
+      final telemetry = tester.widget<SwitchListTile>(
+        find.byType(SwitchListTile),
       );
+      expect(telemetry.onChanged, isNull, reason: '合成宿主未提供统计客户端');
+      expect(telemetry.value, isFalse);
       await _accountTap(tester, find.byType(DropdownButton<RoutePolicy>));
       await _accountTap(tester, find.text('直连').last);
       expect(
@@ -176,6 +178,7 @@ void main() {
         'normal-${brightness.name}-diagnostics',
       );
       await _accountTap(tester, find.text('关闭'));
+      await _openAccountUtility(tester, '我的资料');
       await _accountTap(tester, find.text('退出并清除本机账号'));
       await _accountTap(tester, find.text('取消'));
       expect(vault.hasValue, isTrue);
@@ -211,7 +214,7 @@ void main() {
       );
     });
   }
-  testWidgets('原生查询条件折叠不读取并保留草稿', (tester) async {
+  testWidgets('原生打开筛选收起键盘且不读取并保留搜索', (tester) async {
     final backend = _AccountBackend();
     await _mountAccount(
       tester,
@@ -222,14 +225,9 @@ void main() {
     await _loginAccount(tester);
     await _accountTap(
       tester,
-      find.byType(NavigationRail).evaluate().isNotEmpty
-          ? find.descendant(
-              of: find.byType(NavigationRail),
-              matching: find.byIcon(UiDestination.academic.icon),
-            )
-          : find.byType(NavigationDestination).at(1),
+      uiDestinationFinder(tester, UiDestination.academic),
     );
-    final card = find.widgetWithText(Card, FeatureId.schedule.title);
+    final card = find.widgetWithText(Card, FeatureId.exam.title);
     final scrollable = find
         .descendant(
           of: find.byType(CustomScrollView),
@@ -239,35 +237,25 @@ void main() {
     await tester.scrollUntilVisible(card, 200, scrollable: scrollable);
     await _accountTap(tester, card);
     final reads = backend.reads;
-    expect(find.byType(TextField), findsNothing);
-    await _accountTap(
-      tester,
-      find.byKey(const ValueKey<String>('feature-filter-button')),
-    );
-    await _accountTap(tester, find.byType(DropdownButton<FeatureQueryView>));
-    await _accountTap(tester, find.text('按输入查询').last);
-    final term = find.byWidgetPredicate(
-      (w) =>
-          w is TextField &&
-          (w.decoration?.labelText?.startsWith('学期编码') ?? false),
-    );
-    await tester.enterText(term, '合成未应用草稿');
+    final search = find.byKey(const ValueKey<String>('feature-search-field'));
+    expect(search, findsOneWidget);
+    await _accountTap(tester, search);
+    await tester.enterText(search, '合成未提交关键字');
     await tester.pumpAndSettle();
     final editing = tester.widget<EditableText>(
-      find.descendant(of: term, matching: find.byType(EditableText)),
+      find.descendant(of: search, matching: find.byType(EditableText)),
     );
     expect(editing.focusNode.hasFocus, isTrue);
-    await _accountTap(tester, find.text('完成'));
-    expect(editing.focusNode.hasFocus, isFalse);
-    expect(term, findsNothing);
-    await _accountShot(binding, tester, 'normal-light-query-collapsed');
     await _accountTap(
       tester,
       find.byKey(const ValueKey<String>('feature-filter-button')),
     );
-    expect(tester.widget<TextField>(term).controller!.text, '合成未应用草稿');
-    expect(backend.reads, reads);
+    expect(editing.focusNode.hasFocus, isFalse);
     await _accountShot(binding, tester, 'normal-light-query-expanded');
+    await _accountTap(tester, find.byTooltip('关闭筛选'));
+    expect(tester.widget<TextField>(search).controller!.text, '合成未提交关键字');
+    expect(backend.reads, reads);
+    await _accountShot(binding, tester, 'normal-light-query-collapsed');
   });
   testWidgets('原生保存的合成凭据自动登录失效后清理内存保险箱', (tester) async {
     final backend = _AccountBackend(state: 'invalid-credentials');
@@ -312,7 +300,11 @@ void main() {
       MemoryCredentialVault(),
       Brightness.light,
     );
-    await _loginAccount(tester);
+    await _loginAccount(tester, succeeds: false);
+    expect(client.continuationCalls, 0);
+    await _accountTap(tester, find.text('改用直连并继续'));
+    expect(client.continuationCalls, 1);
+    expect(client.policy, BridgeRoutePolicy.direct);
     expect(client.loginCalls, 1);
     expect(
       AccountPartialBridgeClient.outcome.readiness,
@@ -324,16 +316,18 @@ void main() {
     ]);
     final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
     expect(shell.activeRoutes, [ConnectionMode.direct]);
+    final attempted = shell.snapshots.values.where(
+      (snapshot) => snapshot.status != FeatureLoadStatus.idle,
+    );
+    expect(attempted, isNotEmpty);
     expect(
-      shell.snapshots.values.every(
-        (s) => s.status == FeatureLoadStatus.failure,
-      ),
+      attempted.every((s) => s.status == FeatureLoadStatus.failure),
       isTrue,
     );
-    expect(client.unsupportedReads, greaterThanOrEqualTo(12));
+    expect(client.unsupportedReads, greaterThan(0));
     await _accountShot(binding, tester, 'partial-bridge-light-home');
     await _openAccountUtility(tester, '我的资料');
-    expect(find.text('合成部分路线同学'), findsOneWidget);
+    expect(find.text('合成部分路线同学'), findsWidgets);
     await _accountTap(tester, find.text('查看账号资料'));
     expect(find.text('partial@example.invalid'), findsNothing);
     await _accountShot(binding, tester, 'partial-bridge-light-profile');

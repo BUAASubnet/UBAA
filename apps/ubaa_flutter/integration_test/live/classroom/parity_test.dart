@@ -46,14 +46,6 @@ void main() {
       await tester.pump(const Duration(milliseconds: 150));
     }
 
-    Future<void> edit(String label, String value) async {
-      final field = find.widgetWithText(TextField, label);
-      await tap(field);
-      await tester.enterText(field, value);
-      await tester.pump();
-      expect(tester.widget<TextField>(field).controller!.text == value, isTrue);
-    }
-
     Future<void> loaded({int? previous, int? campus}) async {
       await waitFor(
         () =>
@@ -79,7 +71,13 @@ void main() {
     await tap(uiDestinationFinder(tester, UiDestination.academic));
     await tap(find.widgetWithText(Card, FeatureId.classroom.title));
     await loaded();
-    expect(find.byType(TextField).evaluate().isEmpty, isTrue);
+    expect(
+      find
+          .byKey(const ValueKey<String>('feature-search-field'))
+          .evaluate()
+          .isNotEmpty,
+      isTrue,
+    );
     if (snapshot().details.isNotEmpty) {
       final first = snapshot().details.first;
       final before = snapshot().readContext?.requestRevision;
@@ -90,69 +88,34 @@ void main() {
       await tap(find.widgetWithText(TextButton, '关闭'));
       debugPrint('教室只读 localDetail=true extraReads=0');
     }
-    await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
-    await tap(find.byType(DropdownButton<int>));
-    await tap(find.text('沙河').last);
-    final previous = snapshot().readContext?.requestRevision;
-    await tap(find.widgetWithText(FilledButton, '应用筛选'));
-    await loaded(previous: previous, campus: 2);
-    await tap(find.byTooltip('关闭筛选'));
-    final targets = snapshot().details
-        .where((d) => d.presentation is ClassroomPresentation)
-        .map((d) => d.presentation! as ClassroomPresentation)
-        .where(
-          (p) =>
-              p.floorId.trim().isNotEmpty &&
-              p.sectionTokens.any(
-                (s) => int.tryParse(s) != null && int.parse(s) > 0,
-              ),
-        )
-        .toList();
-    if (targets.isNotEmpty) {
-      final target = targets.first;
-      final section = target.sectionTokens.firstWhere(
-        (s) => int.tryParse(s) != null && int.parse(s) > 0,
-      );
-      await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
-      await edit('楼层', target.floorId);
-      await edit('节次', section);
-      final before = snapshot().readContext?.requestRevision;
-      await tap(find.widgetWithText(FilledButton, '应用筛选'));
-      await loaded(previous: before, campus: 2);
-      expect(
-        snapshot().details.every(
-          (d) =>
-              d.presentation is ClassroomPresentation &&
-              (d.presentation! as ClassroomPresentation).floorId ==
-                  target.floorId &&
-              (d.presentation! as ClassroomPresentation).sectionTokens.contains(
-                section,
-              ),
-        ),
-        isTrue,
-      );
-      await tap(find.byTooltip('关闭筛选'));
-      await tap(find.byKey(const ValueKey<String>('feature-filter-button')));
-      expect(
-        tester
-                .widget<TextField>(find.widgetWithText(TextField, '楼层'))
-                .controller!
-                .text ==
-            target.floorId,
-        isTrue,
-      );
-      expect(
-        tester
-                .widget<TextField>(find.widgetWithText(TextField, '节次'))
-                .controller!
-                .text ==
-            section,
-        isTrue,
-      );
-      await tap(find.byTooltip('关闭筛选'));
-      debugPrint('教室只读 floorSection=true retainedDraft=true');
+    // 校区与日期在宽屏正文切换；楼层只剩正文楼栋标签的本地过滤，节次不再可选。
+    final campus = find.descendant(
+      of: find.byType(SegmentedButton<int>),
+      matching: find.text('沙河'),
+    );
+    if (campus.evaluate().isEmpty) {
+      debugPrint('教室只读 campus=NOT_APPLICABLE reason=narrow_layout');
     } else {
-      debugPrint('教室只读 floorSection=NOT_APPLICABLE reason=no_usable_option');
+      final previous = snapshot().readContext?.requestRevision;
+      await tap(campus);
+      await loaded(previous: previous, campus: 2);
+      expect(snapshot().readContext?.query?.floorId, isNull);
+      expect(snapshot().readContext?.query?.section, isNull);
+      final buildings = snapshot().details
+          .map((d) => d.presentation)
+          .whereType<ClassroomPresentation>()
+          .map((p) => p.floorName)
+          .where((name) => name.trim().isNotEmpty)
+          .toSet();
+      if (buildings.isNotEmpty) {
+        final before = snapshot().readContext?.requestRevision;
+        await tap(find.widgetWithText(FilterChip, buildings.first));
+        expect(snapshot().readContext?.requestRevision, before);
+        await tap(find.widgetWithText(FilterChip, buildings.first));
+        debugPrint('教室只读 campus=true buildingChip=true extraReads=0');
+      } else {
+        debugPrint('教室只读 campus=true buildingChip=NOT_APPLICABLE');
+      }
     }
     expect(tester.takeException(), isNull);
     debugPrint('教室只读 完成 businessWrites=0');

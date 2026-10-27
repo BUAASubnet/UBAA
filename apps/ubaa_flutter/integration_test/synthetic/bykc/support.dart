@@ -37,12 +37,16 @@ Future<void> _tap(WidgetTester tester, Finder finder) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> _edit(WidgetTester tester, String label, String value) async {
-  final field = find.widgetWithText(TextField, label);
-  await _tap(tester, field);
-  await tester.enterText(field, value);
+final _searchField = find.byKey(const ValueKey<String>('feature-search-field'));
+
+/// 搜索框常驻列表顶部，输入即过滤，不经筛选面板。
+Future<void> _search(WidgetTester tester, String value) async {
+  await _tap(tester, _searchField);
+  await tester.enterText(_searchField, value);
   await tester.pump();
-  expect(tester.widget<TextField>(field).controller!.text, value);
+  expect(tester.widget<TextField>(_searchField).controller!.text, value);
+  FocusManager.instance.primaryFocus?.unfocus();
+  await tester.pumpAndSettle();
 }
 
 Future<void> _panel(WidgetTester tester) async {
