@@ -103,6 +103,23 @@
       "defines": []
     },
     {
+      "path": "manual/preview/preview_driver.dart",
+      "kind": "manual",
+      "domain": "app",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": true,
+      "runner": "run",
+      "environment": [],
+      "defines": []
+    },
+    {
       "path": "platform/about/information_test.dart",
       "kind": "platform",
       "domain": "about",

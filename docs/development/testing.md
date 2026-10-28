@@ -64,3 +64,34 @@ git diff --check
 check-strict 要求 ShellCheck 0.11.0；普通 check 缺少它时明确 SKIP。两者均包含 Rust/CLI、Shell/Python、结构、模块与入口清单检查。普通 Flutter 七包测试不能替代原生测试；golden 固定官方 SDK 与 macOS 渲染环境。构建、设备、Core-live、真实 App 和发布分别记账。
 
 真实只读遵循 goal.md 路线与授权边界；当前整改不主动发起真实账号验证。Fixture、Mock、空数据和 unavailable 不等于当前候选真实成功。实际结果见[当前状态](../migration/status.md)。
+
+### 全平台合成数据预览
+
+人工入口为 `apps/ubaa_flutter/integration_test/manual/preview/preview_driver.dart`。它直接注入 `PreviewBackend`、内存凭据库、权限和照片实现，不初始化 FRB，不读取本机账号，不请求学校服务。登录页填写任意非空账号和密码即可进入。全部业务数据为合成内容，写入只改变当前进程的内存状态，重启后恢复初始数据。不要在此入口填写真实账号或个人信息。
+
+在 `apps/ubaa_flutter` 中运行：
+
+```sh
+flutter run -d <设备ID> -t integration_test/manual/preview/preview_driver.dart
+flutter run -d macos -t integration_test/manual/preview/preview_driver.dart --dart-define=UBAA_UI_STATE=many
+```
+
+相同入口适用于工程支持的 iOS、Android、macOS、Windows、Linux。设备 ID 通过 `flutter devices` 查询；桌面端也可使用 `macos`、`windows`、`linux`。各平台需要各自的 Flutter 原生构建环境。本入口仅在集成目录清单登记为 `manual`、`runner: run`、`ci: false`，不属于自动回归套件。
+
+`UBAA_UI_STATE` 支持以下值：
+
+| 值 | 行为 |
+| --- | --- |
+| `normal` | 常规 typed 内容和本地写入 |
+| `empty` | 空业务列表，保留课表学期、教学周选择 |
+| `loading` | 业务读取延迟 8 秒后返回 |
+| `first-error` | 同一查询范围第一次失败，重试恢复 |
+| `stale` | 同一查询范围首次成功，后续读取失败，用于检查旧内容保留 |
+| `long` | 长标题、长正文，增加时间待定课程 |
+| `many` | 大量课程、作业、座位等条目，增加时间待定课程 |
+
+学业数据包含三个学期、以运行当天为第 8 周的 18 周校历、14 节作息、已安排与未安排考试、百分制与等级制成绩，以及两校区各四栋楼、每栋八间空教室。首页单日课表使用 typed 投影。`long`、`many` 中的时间待定课程会触发现有首页的日期完整性保护。
+
+图书馆与研讨室预约、取消、博雅选退、签到、评教和阳光打卡可在内存中提交并回读；iHome 支持列表、详情、公告及本地关注和支持。个人资料使用合成身份。课表同步模拟 18 周进度，不写入实际课表缓存。
+
+当前边界：窄屏空教室页面没有校区、日期选择器，现有产品代码仅在宽屏展示这些控件。图书馆合成分区未关联平面图，因此显示“当前分区暂无平面图”。系统级通知、桌面组件、真实相册、定位、离线持久化及真实认证不属于该内存入口的模拟范围。iHome 列表提供分页、关键词和个人范围过滤，排序和分类选择不模拟服务端排序差异。状态模式用于主要业务读取，不覆盖系统设置和所有辅助元数据请求。页面截图与录屏只能保存在仓库外私有目录。
