@@ -264,7 +264,13 @@ void main() {
           ),
         ),
       ]);
-      expect(find.text('三层'), findsOneWidget);
+      expect(
+        find.descendant(
+          of: find.byKey(const ValueKey('classroom-table-scroll')),
+          matching: find.text('三层'),
+        ),
+        findsOneWidget,
+      );
       expect(find.bySemanticsLabel('第3节空闲'), findsOneWidget);
       expect(find.bySemanticsLabel('第13节空闲'), findsOneWidget);
       expect(find.bySemanticsLabel('第2节未列为空闲'), findsOneWidget);

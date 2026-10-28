@@ -17,13 +17,11 @@ class ClassroomContent extends StatefulWidget {
 
 class _ClassroomContentState extends State<ClassroomContent> {
   final _horizontal = ScrollController();
-  final _searchController = TextEditingController();
   String? _selectedBuilding;
 
   @override
   void dispose() {
     _horizontal.dispose();
-    _searchController.dispose();
     super.dispose();
   }
 
@@ -85,18 +83,10 @@ class _ClassroomContentState extends State<ClassroomContent> {
             .toList()
           ..sort();
 
-    final searchQuery = _searchController.text.trim().toLowerCase();
+    // 关键字搜索由外层常驻搜索框完成，这里只按楼栋过滤。
     final filteredDetails = widget.details.where((d) {
       final p = d.presentation! as ClassroomPresentation;
-      if (_selectedBuilding != null && p.floorName != _selectedBuilding) {
-        return false;
-      }
-      if (searchQuery.isNotEmpty) {
-        final titleMatch = d.title.toLowerCase().contains(searchQuery);
-        final floorMatch = p.floorName.toLowerCase().contains(searchQuery);
-        if (!titleMatch && !floorMatch) return false;
-      }
-      return true;
+      return _selectedBuilding == null || p.floorName == _selectedBuilding;
     }).toList();
 
     final wide = MediaQuery.sizeOf(context).width >= 600;
@@ -104,97 +94,78 @@ class _ClassroomContentState extends State<ClassroomContent> {
     final availableColor = Theme.of(context).brightness == Brightness.dark
         ? const Color(0xFF4D735F)
         : const Color(0xFFD5E8D8);
+    final dateButton = OutlinedButton.icon(
+      icon: const Icon(Icons.date_range, size: 18),
+      label: Text(queryDate, maxLines: 1),
+      onPressed: widget.onQuery == null
+          ? null
+          : () => _pickDate(context, dateObj, campus),
+    );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        if (wide) ...[
-          // 顶行：校区切换
-          Padding(
-            padding: UbaaTheme.pageInsets(context, top: 8, bottom: 4),
-            child: SegmentedButton<int>(
-              segments: const [
-                ButtonSegment(value: 1, label: Text('学院路')),
-                ButtonSegment(value: 2, label: Text('沙河')),
-                ButtonSegment(value: 3, label: Text('杭州')),
-              ],
-              selected: {campus},
-              onSelectionChanged: widget.onQuery == null
-                  ? null
-                  : (set) {
-                      final newCampus = set.first;
-                      if (newCampus != campus) {
-                        setState(() => _selectedBuilding = null);
-                        widget.onQuery?.call(
-                          FeatureQuery(campus: newCampus, date: dateObj),
-                        );
-                      }
-                    },
-            ),
+        // 校区与日期决定读取条件；楼栋筛选只在本地过滤。手机把日期并入楼栋行以节省高度。
+        Padding(
+          padding: UbaaTheme.pageInsets(context, top: 8, bottom: 4),
+          child: Row(
+            children: [
+              Expanded(
+                child: SegmentedButton<int>(
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: 1, label: Text('学院路')),
+                    ButtonSegment(value: 2, label: Text('沙河')),
+                    ButtonSegment(value: 3, label: Text('杭州')),
+                  ],
+                  selected: {campus},
+                  onSelectionChanged: widget.onQuery == null
+                      ? null
+                      : (set) {
+                          final newCampus = set.first;
+                          if (newCampus != campus) {
+                            setState(() => _selectedBuilding = null);
+                            widget.onQuery?.call(
+                              FeatureQuery(campus: newCampus, date: dateObj),
+                            );
+                          }
+                        },
+                ),
+              ),
+              if (wide) ...[const SizedBox(width: 8), dateButton],
+            ],
           ),
-          // 次行：日期卡片 + 教室过滤
-          Padding(
+        ),
+        if (!wide || availableBuildings.isNotEmpty)
+          SingleChildScrollView(
+            scrollDirection: Axis.horizontal,
             padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
             child: Row(
               children: [
-                Expanded(
-                  flex: 2,
-                  child: OutlinedButton.icon(
-                    icon: const Icon(Icons.date_range, size: 18),
-                    label: Text(
-                      queryDate,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
+                if (!wide) ...[
+                  // 与楼栋芯片同高，避免一行内高低不齐。
+                  ActionChip(
+                    avatar: const Icon(Icons.date_range, size: 18),
+                    label: Text(queryDate),
                     onPressed: widget.onQuery == null
                         ? null
                         : () => _pickDate(context, dateObj, campus),
                   ),
-                ),
-                const SizedBox(width: 8),
-                Expanded(
-                  flex: 3,
-                  child: TextField(
-                    controller: _searchController,
-                    decoration: InputDecoration(
-                      hintText: '搜索教室/楼栋',
-                      prefixIcon: const Icon(Icons.search, size: 18),
-                      isDense: true,
-                      contentPadding: const EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: 10,
-                      ),
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
+                  const SizedBox(width: 8),
+                ],
+                for (final building in availableBuildings)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: Text(building),
+                      selected: _selectedBuilding == building,
+                      onSelected: (selected) => setState(() {
+                        _selectedBuilding = selected ? building : null;
+                      }),
                     ),
-                    onChanged: (_) => setState(() {}),
                   ),
-                ),
               ],
             ),
           ),
-          // 第三行：楼栋 FilterChips
-          if (availableBuildings.isNotEmpty)
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
-              child: Row(
-                children: [
-                  for (final building in availableBuildings)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: FilterChip(
-                        label: Text(building),
-                        selected: _selectedBuilding == building,
-                        onSelected: (selected) => setState(() {
-                          _selectedBuilding = selected ? building : null;
-                        }),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-        ],
         // 第四行：主体表格
         Expanded(
           child: LayoutBuilder(

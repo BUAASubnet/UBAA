@@ -40,39 +40,47 @@ void main() {
     expect(table.right, closeTo(entry.right, .01));
   });
 
-  for (final changeDate in [false, true]) {
-    testWidgets('正文切换${changeDate ? '日期' : '校区'}清除已应用的旧楼层节次', (tester) async {
-      final queries = <FeatureQuery>[];
-      await showFeature(
+  for (final width in [390.0, 1280.0])
+    for (final changeDate in [false, true]) {
+      testWidgets('$width宽度正文切换${changeDate ? '日期' : '校区'}清除已应用的旧楼层节次', (
         tester,
-        FeatureId.classroom,
-        [room('合成教室')],
-        queries,
-        size: const Size(1280, 900),
-        query: FeatureQuery(
-          date: DateTime(2026, 9, 9),
-          campus: 2,
-          floorId: 'F',
-          section: '3',
-        ),
-      );
-      if (changeDate) {
-        await tester.tap(find.text('2026-09-09'));
+      ) async {
+        final queries = <FeatureQuery>[];
+        await showFeature(
+          tester,
+          FeatureId.classroom,
+          [room('合成教室')],
+          queries,
+          size: Size(width, 900),
+          query: FeatureQuery(
+            date: DateTime(2026, 9, 9),
+            campus: 2,
+            floorId: 'F',
+            section: '3',
+          ),
+        );
+        if (changeDate) {
+          await tester.tap(find.text('2026-09-09'));
+          await tester.pumpAndSettle();
+          await tester.tap(find.text('10').last);
+          await tester.tap(find.text('确定'));
+        } else {
+          await tester.tap(find.text('杭州'));
+        }
         await tester.pumpAndSettle();
-        await tester.tap(find.text('10').last);
-        await tester.tap(find.text('确定'));
-      } else {
-        await tester.tap(find.text('杭州'));
-      }
-      await tester.pumpAndSettle();
-      expect(queries.single.campus, changeDate ? 2 : 3);
-      expect(queries.single.date, DateTime(2026, 9, changeDate ? 10 : 9));
-      expect(queries.single.floorId, isNull);
-      expect(queries.single.section, isNull);
-    });
-  }
+        expect(queries.single.campus, changeDate ? 2 : 3);
+        expect(queries.single.date, DateTime(2026, 9, changeDate ? 10 : 9));
+        expect(queries.single.floorId, isNull);
+        expect(queries.single.section, isNull);
+      });
+    }
   testWidgets('大字横滚表格时长楼栋标题保持在可视宽度内', (tester) async {
     final name = List.filled(4, '合成较长教学楼名称').join();
+    // 楼栋筛选芯片同名，只核对表格内的分组标题。
+    Finder inTable(String text) => find.descendant(
+      of: find.byKey(const ValueKey('classroom-table-scroll')),
+      matching: find.text(text),
+    );
     await showFeature(
       tester,
       FeatureId.classroom,
@@ -81,17 +89,21 @@ void main() {
       size: const Size(390, 844),
       textScale: 1.3,
     );
-    expect(tester.getRect(find.text(name)).right, lessThanOrEqualTo(374));
-    final horizontal = find.byWidgetPredicate(
-      (w) => w is SingleChildScrollView && w.scrollDirection == Axis.horizontal,
+    expect(tester.getRect(inTable(name)).right, lessThanOrEqualTo(374));
+    final horizontal = find.ancestor(
+      of: find.byKey(const ValueKey('classroom-table-scroll')),
+      matching: find.byWidgetPredicate(
+        (w) =>
+            w is SingleChildScrollView && w.scrollDirection == Axis.horizontal,
+      ),
     );
     await tester.drag(horizontal, const Offset(-250, 0));
     await tester.pumpAndSettle();
     expect(find.text('14').hitTestable(), findsOneWidget);
     expect(tester.getRect(find.text('长名教室')).left, greaterThanOrEqualTo(16));
     expect(tester.getRect(find.text('教室')).left, greaterThanOrEqualTo(16));
-    expect(tester.getRect(find.text(name)).left, greaterThanOrEqualTo(16));
-    expect(tester.getRect(find.text(name)).right, lessThanOrEqualTo(374));
+    expect(tester.getRect(inTable(name)).left, greaterThanOrEqualTo(16));
+    expect(tester.getRect(inTable(name)).right, lessThanOrEqualTo(374));
     expect(tester.takeException(), isNull);
   });
 
