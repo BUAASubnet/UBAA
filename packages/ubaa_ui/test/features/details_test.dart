@@ -55,7 +55,6 @@ void _registerFeatureRenderingTests() {
     await tester.pumpAndSettle();
     expect(find.text('高等数学'), findsOneWidget);
     expect(find.text('主楼 101'), findsOneWidget);
-    expect(find.byTooltip('实际路线：直连'), findsOneWidget);
     expect(find.textContaining('只读详情页面将在'), findsNothing);
 
     await tester.ensureVisible(find.byTooltip('返回'));
@@ -65,7 +64,7 @@ void _registerFeatureRenderingTests() {
     expect(find.byTooltip('返回'), findsNothing);
     await openUtility(tester, '设置');
     await tester.pumpAndSettle();
-    expect(find.text('直连'), findsOneWidget);
+    expect(find.text('直连'), findsWidgets);
     await tester.scrollUntilVisible(
       find.text('退出并清除本机账号'),
       200,

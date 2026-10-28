@@ -230,11 +230,18 @@ class _IhomeViewState extends State<IhomeView> {
                         unawaited(_load(reset: true));
                       },
               ),
-              IconButton(
-                tooltip: '刷新',
-                onPressed: _loading || _busy.isNotEmpty ? null : () => _load(),
-                icon: const Icon(Icons.refresh),
-              ),
+              if (Theme.of(context).platform
+                  case TargetPlatform.macOS ||
+                      TargetPlatform.windows ||
+                      TargetPlatform.linux ||
+                      TargetPlatform.fuchsia)
+                IconButton(
+                  tooltip: '刷新',
+                  onPressed: _loading || _busy.isNotEmpty
+                      ? null
+                      : () => _load(),
+                  icon: const Icon(Icons.refresh),
+                ),
             ],
           ),
           if (!_notices) ..._filters(),

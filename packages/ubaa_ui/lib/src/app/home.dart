@@ -27,7 +27,6 @@ class HomeView extends StatefulWidget {
     this.onSignin,
     this.reminderSettings,
     this.onObserveProgress,
-    this.onRoutes,
     this.gradeScoreNotice,
     this.gradeCheckRoute,
     this.onCheckGradeUpdates,
@@ -39,7 +38,6 @@ class HomeView extends StatefulWidget {
   });
   final Clock? homeClock;
   final List<FeatureId> recentFeatures;
-  final ValueChanged<Map<String, ConnectionMode>>? onRoutes;
   final Widget? writeReadbackNotice;
   final GradeScoreNotice? gradeScoreNotice;
   final ConnectionMode? gradeCheckRoute;
@@ -288,33 +286,6 @@ class _HomeViewState extends State<HomeView> {
     final schedule = widget.snapshots[FeatureId.schedule]!;
     final campusNow = homeCampusTime(_now);
     final sources = _sources();
-    if (widget.visible) {
-      final routes = <String, ConnectionMode>{
-        if (_calendarRoute?.route case final route?)
-          _calendarRoute!.label: route
-        else if (_calendarRoute == null && schedule.resolvedRoute != null)
-          '今日课表': schedule.resolvedRoute!,
-        if (widget.gradeScoreNotice case final notice?) '成绩更新': notice.route,
-        if (widget.gradeCheckRoute case final route?) '成绩检查': route,
-        for (final feature in [
-          FeatureId.bykc,
-          FeatureId.spoc,
-          FeatureId.judge,
-          FeatureId.cgyy,
-          FeatureId.signin,
-          FeatureId.ygdk,
-          FeatureId.exam,
-        ])
-          if (sources[feature]?.resolvedRoute case final route?)
-            _homeLabel(feature): route,
-        if (_supplements[HomeSupplement.currentWeek]?.resolvedRoute
-            case final route?)
-          '当前周次': route,
-      };
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && widget.visible) widget.onRoutes?.call(routes);
-      });
-    }
 
     final weeks =
         _supplements[HomeSupplement.currentWeek]?.details

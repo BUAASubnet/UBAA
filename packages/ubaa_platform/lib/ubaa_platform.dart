@@ -13,6 +13,7 @@ export 'src/ui_error.dart';
 export 'src/reminders.dart';
 export 'src/grade_scores.dart';
 export 'src/bykc_filters.dart';
+export 'src/infrastructure/cgyy_defaults.dart';
 export 'src/recent_features.dart';
 export 'src/app_information.dart';
 export 'src/secure_material.dart';

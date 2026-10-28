@@ -155,6 +155,12 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       onSaveBykcFilters: localOwner.accountKey.isEmpty
           ? null
           : (value) => _saveBykcFilters(localOwner, value),
+      onLoadCgyyDefaults: localOwner.accountKey.isEmpty
+          ? null
+          : () => _readCgyyDefaults(localOwner),
+      onSaveCgyyDefaults: localOwner.accountKey.isEmpty
+          ? null
+          : (value) => _saveCgyyDefaults(localOwner, value),
       onLoadRecentFeatures: localOwner.accountKey.isEmpty
           ? null
           : () => _readRecentFeatures(localOwner),

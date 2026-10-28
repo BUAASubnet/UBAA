@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -7,6 +8,26 @@ import '../support/navigation.dart';
 import 'package:ubaa_ui/src/shared/refresh.dart';
 
 void main() {
+  for (final platform in [TargetPlatform.macOS, TargetPlatform.windows]) {
+    testWidgets('桌面快捷键沿当前查询刷新：$platform', (tester) async {
+      var calls = 0;
+      await mount(
+        tester,
+        FeatureId.exam,
+        FeatureLoadStatus.success,
+        () async => calls++,
+        platform: platform,
+      );
+      final modifier = platform == TargetPlatform.macOS
+          ? LogicalKeyboardKey.metaLeft
+          : LogicalKeyboardKey.controlLeft;
+      await tester.sendKeyDownEvent(modifier);
+      await tester.sendKeyEvent(LogicalKeyboardKey.keyR);
+      await tester.sendKeyUpEvent(modifier);
+      await tester.pumpAndSettle();
+      expect(calls, 1);
+    });
+  }
   for (final feature in FeatureId.values) {
     for (final status in [
       FeatureLoadStatus.success,
@@ -91,7 +112,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(calls, 1);
   });
-  testWidgets('下拉进行中再点顶栏刷新只发一次读取', (tester) async {
+  testWidgets('下拉进行中再次下拉只发一次读取', (tester) async {
     var calls = 0;
     final gate = Completer<void>();
     await mount(tester, FeatureId.exam, FeatureLoadStatus.success, () {
@@ -99,8 +120,9 @@ void main() {
       return gate.future;
     });
     await tester.dragFrom(const Offset(190, 220), const Offset(0, 330));
+    await tester.pump();
     await tester.pump(const Duration(seconds: 1));
-    await tester.tap(find.byTooltip('刷新当前查询'));
+    await tester.dragFrom(const Offset(190, 220), const Offset(0, 330));
     await tester.pump();
     expect(calls, 1);
     gate.complete();

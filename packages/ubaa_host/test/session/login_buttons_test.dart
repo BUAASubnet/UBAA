@@ -70,77 +70,85 @@ void main() {
     expect(find.byType(UbaaMainShell), findsOneWidget);
   });
 
-  testWidgets('凭据保存失败在首页只提示一次且不重复登录', (tester) async {
-    final backend = _CountingBackend();
-    final vault = _FailingVault()..failSave = true;
-    await tester.pumpWidget(
-      _host(_AppInformation(), backend: backend, vault: vault),
-    );
-    await tester.pumpAndSettle();
-    await _fillLogin(tester);
-    await tester.tap(find.byType(Checkbox).first);
-    await tester.tap(find.widgetWithText(FilledButton, '登录'));
-    await tester.pumpAndSettle();
+  testWidgets(
+    '凭据保存失败在首页只提示一次且不重复登录',
+    (tester) async {
+      final backend = _CountingBackend();
+      final vault = _FailingVault()..failSave = true;
+      await tester.pumpWidget(
+        _host(_AppInformation(), backend: backend, vault: vault),
+      );
+      await tester.pumpAndSettle();
+      await _fillLogin(tester);
+      await tester.tap(find.byType(Checkbox).first);
+      await tester.tap(find.widgetWithText(FilledButton, '登录'));
+      await tester.pumpAndSettle();
 
-    expect(find.byType(UbaaMainShell), findsOneWidget);
-    expect(find.byType(UbaaLoginView), findsNothing);
-    expect(find.text('已登录，但账号密码未能保存，下次需要重新输入。'), findsOneWidget);
-    expect(find.text('登录失败'), findsNothing);
-    expect(backend.loginCalls, 1);
-    expect(vault.saveAttempts, 1);
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('刷新'));
-    await tester.pumpAndSettle();
+      expect(find.byType(UbaaMainShell), findsOneWidget);
+      expect(find.byType(UbaaLoginView), findsNothing);
+      expect(find.text('已登录，但账号密码未能保存，下次需要重新输入。'), findsOneWidget);
+      expect(find.text('登录失败'), findsNothing);
+      expect(backend.loginCalls, 1);
+      expect(vault.saveAttempts, 1);
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('刷新'));
+      await tester.pumpAndSettle();
 
-    expect(find.text('已登录，但账号密码未能保存，下次需要重新输入。'), findsNothing);
-    expect(backend.loginCalls, 1);
-    expect(vault.saveAttempts, 1);
-  });
+      expect(find.text('已登录，但账号密码未能保存，下次需要重新输入。'), findsNothing);
+      expect(backend.loginCalls, 1);
+      expect(vault.saveAttempts, 1);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
+  );
 
-  testWidgets('登录期间后台恢复不能吞掉已经确认登录的保存失败提示', (tester) async {
-    final backend = _CountingBackend()..loginGate = Completer<void>();
-    final vault = _FailingVault()..failSave = true;
-    var factoryCalls = 0;
-    await tester.pumpWidget(
-      UbaaAppHost(
-        backendFactory: () =>
-            ++factoryCalls == 1 ? backend : _SignedInBackend(),
-        credentialVault: vault,
-        reminderStore: MemoryYgdkReminderStore(),
-        gradeScoreStore: MemoryGradeScoreStore(),
-        appInformation: _AppInformation(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await _fillLogin(tester);
-    await tester.tap(find.byType(Checkbox).first);
-    await tester.tap(find.widgetWithText(FilledButton, '登录'));
-    await tester.pump();
-    for (final state in <AppLifecycleState>[
-      AppLifecycleState.paused,
-      AppLifecycleState.hidden,
-      AppLifecycleState.inactive,
-      AppLifecycleState.resumed,
-    ]) {
-      tester.binding.handleAppLifecycleStateChanged(state);
+  testWidgets(
+    '登录期间后台恢复不能吞掉已经确认登录的保存失败提示',
+    (tester) async {
+      final backend = _CountingBackend()..loginGate = Completer<void>();
+      final vault = _FailingVault()..failSave = true;
+      var factoryCalls = 0;
+      await tester.pumpWidget(
+        UbaaAppHost(
+          backendFactory: () =>
+              ++factoryCalls == 1 ? backend : _SignedInBackend(),
+          credentialVault: vault,
+          reminderStore: MemoryYgdkReminderStore(),
+          gradeScoreStore: MemoryGradeScoreStore(),
+          appInformation: _AppInformation(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _fillLogin(tester);
+      await tester.tap(find.byType(Checkbox).first);
+      await tester.tap(find.widgetWithText(FilledButton, '登录'));
       await tester.pump();
-    }
-    expect(factoryCalls, 1);
-    backend.loginGate!.complete();
-    await tester.pumpAndSettle();
+      for (final state in <AppLifecycleState>[
+        AppLifecycleState.paused,
+        AppLifecycleState.hidden,
+        AppLifecycleState.inactive,
+        AppLifecycleState.resumed,
+      ]) {
+        tester.binding.handleAppLifecycleStateChanged(state);
+        await tester.pump();
+      }
+      expect(factoryCalls, 1);
+      backend.loginGate!.complete();
+      await tester.pumpAndSettle();
 
-    expect(factoryCalls, 1);
-    expect(find.byType(UbaaMainShell), findsOneWidget);
-    expect(find.text('已登录，但账号密码未能保存，下次需要重新输入。'), findsOneWidget);
-    expect(backend.loginCalls, 1);
-    expect(vault.saveAttempts, 1);
-    await tester.pump(const Duration(seconds: 5));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('刷新'));
-    await tester.pumpAndSettle();
-    expect(find.text('已登录，但账号密码未能保存，下次需要重新输入。'), findsNothing);
-  });
+      expect(factoryCalls, 1);
+      expect(find.byType(UbaaMainShell), findsOneWidget);
+      expect(find.text('已登录，但账号密码未能保存，下次需要重新输入。'), findsOneWidget);
+      expect(backend.loginCalls, 1);
+      expect(vault.saveAttempts, 1);
+      await tester.pump(const Duration(seconds: 5));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('刷新'));
+      await tester.pumpAndSettle();
+      expect(find.text('已登录，但账号密码未能保存，下次需要重新输入。'), findsNothing);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
+  );
 
   for (final failGradeClear in <bool>[false, true]) {
     testWidgets('退出清除保险箱失败仍清理成绩并隐藏已登录信息：成绩删除失败=$failGradeClear', (

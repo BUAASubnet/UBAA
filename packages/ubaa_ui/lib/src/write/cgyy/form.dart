@@ -55,7 +55,6 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
   late final int generation;
   late final phone = TextEditingController(text: draft.phone),
       theme = TextEditingController(text: draft.theme),
-      purpose = TextEditingController(text: draft.manualPurpose),
       people = TextEditingController(text: draft.people),
       content = TextEditingController(text: draft.content),
       joiners = TextEditingController(text: draft.joiners);
@@ -71,8 +70,10 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
   bool loading = false;
   UiError? loadError;
   ConnectionMode? purposeRoute;
-  DataEvidence? purposeEvidence;
   String? error;
+  CgyyReservationDefaults? defaults;
+  bool _submitted = false;
+  bool _purposeChosen = false;
 
   @override
   void initState() {
@@ -80,6 +81,47 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
     generation = draft.generation;
     draft.addListener(_invalidate);
     unawaited(_loadPurposes(false));
+    unawaited(_loadDefaults());
+  }
+
+  Future<void> _loadDefaults() async {
+    final load = widget.data.loadDefaults;
+    if (load == null) return;
+    CgyyReservationDefaults? value;
+    try {
+      value = await load();
+    } on Object {
+      return; // 记忆读取失败只影响默认值，不阻断预约。
+    }
+    if (!mounted || generation != draft.generation || value == null) return;
+    final last = value;
+    setState(() {
+      defaults = last;
+      _applyDefaultPurpose();
+      if (!draft.philosophy && !draft.offSchool) {
+        draft.philosophy = last.isPhilosophySocialSciences;
+        draft.offSchool = last.isOffSchoolJoiner;
+      }
+    });
+  }
+
+  void _applyDefaultPurpose() {
+    final last = defaults?.purposeType;
+    if (!_purposeChosen && last != null && options.any((p) => p.key == last))
+      draft.purpose = last;
+  }
+
+  void _refreshErrors() => setState(() {});
+
+  /// 未改动的输入框按灰字默认值提交。
+  String _value(TextEditingController controller, String fallback) {
+    final text = controller.text.trim();
+    return text.isEmpty ? fallback.trim() : text;
+  }
+
+  String get _peopleFallback {
+    final last = defaults?.joinerNum.trim() ?? '';
+    return last.isEmpty ? '1' : last;
   }
 
   void _invalidate() {
@@ -121,7 +163,6 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
       if (result.error != null && result.details.isEmpty && options.isNotEmpty)
         return;
       purposeRoute = result.resolvedRoute;
-      purposeEvidence = result.evidence;
       final candidates = result.details
           .map((d) => d.presentation)
           .whereType<CgyyPurposePresentation>()
@@ -135,53 +176,76 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
           .toList();
       if (!options.any((p) => p.key == draft.purpose))
         draft.purpose = options.isEmpty ? null : options.first.key;
+      _applyDefaultPurpose();
     });
   }
 
   @override
   void dispose() {
     draft.removeListener(_invalidate);
-    for (final c in [phone, theme, purpose, people, content, joiners]) {
+    for (final c in [phone, theme, people, content, joiners]) {
       c.dispose();
     }
     super.dispose();
   }
 
-  void _setManual(bool value) => setState(() => draft.manual = value);
   void _setPurpose(int value) => setState(() {
     draft.purpose = value;
-    draft.manual = false;
+    _purposeChosen = true;
   });
 
   void _continue() {
     if (generation != draft.generation) return;
-    final parsedPurpose = draft.manual
-        ? int.tryParse(purpose.text.trim())
-        : draft.purpose;
-    final count = int.tryParse(people.text.trim());
+    final parsedPurpose = draft.purpose;
+    final last = defaults ?? const CgyyReservationDefaults();
+    final phoneValue = _value(phone, last.phone);
+    final themeValue = _value(theme, last.theme);
+    final peopleValue = _value(people, _peopleFallback);
+    final contentValue = _value(content, last.activityContent);
+    final joinersValue = _value(joiners, last.joiners);
+    final count = int.tryParse(peopleValue);
     if (selected.isEmpty ||
-        phone.text.trim().isEmpty ||
-        theme.text.trim().isEmpty ||
-        content.text.trim().isEmpty ||
-        joiners.text.trim().isEmpty ||
+        phoneValue.isEmpty ||
+        themeValue.isEmpty ||
+        contentValue.isEmpty ||
+        joinersValue.isEmpty ||
         parsedPurpose == null ||
         parsedPurpose <= 0 ||
         count == null ||
         count <= 0) {
-      setState(() => error = '请选择时段并完整填写预约信息。');
+      setState(() {
+        _submitted = true;
+        error = selected.isEmpty ? '请选择预约时段。' : '请补全标红的信息。';
+      });
       return;
+    }
+    if (widget.data.saveDefaults case final save?) {
+      unawaited(
+        save(
+          CgyyReservationDefaults(
+            phone: phoneValue,
+            theme: themeValue,
+            purposeType: parsedPurpose,
+            joinerNum: peopleValue,
+            activityContent: contentValue,
+            joiners: joinersValue,
+            isPhilosophySocialSciences: draft.philosophy,
+            isOffSchoolJoiner: draft.offSchool,
+          ),
+        ).catchError((Object _) {}),
+      );
     }
     final actions = selected.map((k) => actionsByKey[k]!).toList()
       ..sort((a, b) => a.timeOrdinal.compareTo(b.timeOrdinal));
     Navigator.of(context).pop(
       CgyySubmitInput(
         actions: actions,
-        phone: phone.text.trim(),
-        theme: theme.text.trim(),
+        phone: phoneValue,
+        theme: themeValue,
         purposeType: parsedPurpose,
         joinerNum: count,
-        activityContent: content.text.trim(),
-        joiners: joiners.text.trim(),
+        activityContent: contentValue,
+        joiners: joinersValue,
         isPhilosophySocialSciences: draft.philosophy,
         isOffSchoolJoiner: draft.offSchool,
       ),
@@ -190,39 +254,20 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
 
   @override
   Widget build(BuildContext context) {
-    final routes = <String, ConnectionMode>{
-      if (widget.data.route case final r?) '已选时段': r,
-      if (purposeRoute case final r?) '活动类型': r,
-    };
-    final values = routes.values.toSet();
-    final route = values.length == 1 ? values.single : null;
     return Scaffold(
       appBar: AppBar(
-        centerTitle: true,
-        toolbarHeight: 56,
+        centerTitle: false,
+        toolbarHeight: 64,
         title: const Text(
-          '填写研讨室预约信息',
+          '填写预约信息',
           maxLines: 1,
           overflow: TextOverflow.ellipsis,
         ),
-        leading: BackButton(onPressed: () => Navigator.of(context).pop()),
-        actions: [
-          IconButton(
-            tooltip: '实际路线：${values.length > 1 ? '混合' : route?.label ?? '未确定'}',
-            icon: Icon(
-              route == ConnectionMode.direct
-                  ? Icons.lan_outlined
-                  : route == ConnectionMode.webvpn
-                  ? Icons.vpn_lock_outlined
-                  : Icons.route_outlined,
-            ),
-            onPressed: () async {
-              if (widget.data.onRouteOptions case final show?) {
-                await show(routes);
-              }
-            },
-          ),
-        ],
+        leading: IconButton(
+          tooltip: '返回',
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () => Navigator.of(context).pop(),
+        ),
       ),
       bottomNavigationBar: FormActionBar(
         child: Padding(
@@ -260,8 +305,9 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
                     children: [
                       _section('已选时段', [
                         Text(
-                          widget.selectionLabel ??
-                              '站点 ${widget.target.venueSiteId} · ${widget.target.reservationDate.trim()}\n空间 ${widget.target.spaceId} · 时段 ${widget.target.timeId}',
+                          (widget.selectionLabel ??
+                                  '站点 ${widget.target.venueSiteId} · ${widget.target.reservationDate.trim()}\n空间 ${widget.target.spaceId} · 时段 ${widget.target.timeId}')
+                              .replaceAll('\n', ' · '),
                         ),
                         if (widget.initialSelection == null &&
                             actionsByKey.length > 1)

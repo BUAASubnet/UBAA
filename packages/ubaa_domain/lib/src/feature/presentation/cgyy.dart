@@ -32,6 +32,23 @@ final class CgyyPurposePresentation extends FeaturePresentation {
   final bool isStaticFallback;
 }
 
+/// 上一次研讨室预约填写内容，仅作表单默认值，不含时段与学校写入资格。
+final class CgyyReservationDefaults {
+  const CgyyReservationDefaults({
+    this.phone = '',
+    this.theme = '',
+    this.purposeType,
+    this.joinerNum = '',
+    this.activityContent = '',
+    this.joiners = '',
+    this.isPhilosophySocialSciences = false,
+    this.isOffSchoolJoiner = false,
+  });
+  final String phone, theme, joinerNum, activityContent, joiners;
+  final int? purposeType;
+  final bool isPhilosophySocialSciences, isOffSchoolJoiner;
+}
+
 final class CgyyDayPresentation extends FeaturePresentation {
   const CgyyDayPresentation({
     required this.venueSiteId,

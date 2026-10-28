@@ -54,6 +54,18 @@ Widget coordinatedShell({
     initialDestination: initialDestination,
     onLoadHomeSupplement: onLoadHomeSupplement,
     activeRoutes: activeRoutes,
+    onLoadCgyyPurposes: (_) async => const FeatureResult.success(
+      details: [
+        FeatureDetail(
+          title: '合成用途',
+          presentation: CgyyPurposePresentation(
+            key: 2,
+            name: '合成用途',
+            isStaticFallback: false,
+          ),
+        ),
+      ],
+    ),
     onFeatureQuery: onFeatureQuery,
     onPrepareBykcWrite: onPrepareBykcWrite,
     onPrepareBykcSignWrite: onPrepareBykcSignWrite,
@@ -139,6 +151,7 @@ class _WriteHarnessState extends State<_WriteHarness> {
         onRunWritePrepare: _coordinator.prepareForUi,
         onCancelWrite: _coordinator.cancelForUi,
         onConfirmWrite: _coordinator.confirmForUi,
+        onLoadCgyyPurposes: shell.onLoadCgyyPurposes,
         onFeatureQuery: shell.onFeatureQuery,
         onPrepareBykcWrite: shell.onPrepareBykcWrite,
         onPrepareBykcSignWrite: shell.onPrepareBykcSignWrite,

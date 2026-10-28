@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/app/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart' show SystemChannels;
 import 'package:flutter_test/flutter_test.dart';
@@ -10,6 +11,15 @@ void main() {
     await tester.pumpWidget(UbaaAppHost(backend: _SignedInBackend()));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('本次运行诊断'),
+      250,
+      scrollable: find.descendant(
+        of: find.byType(ProfileView),
+        matching: find.byType(Scrollable),
+      ),
+    );
     await tester.pumpAndSettle();
     expect(find.text('本次运行诊断'), findsOneWidget);
     await tester.ensureVisible(find.text('本次运行诊断'));

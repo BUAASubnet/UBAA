@@ -27,6 +27,7 @@ class _Session implements CgyyLockDisplaySession {
 }
 
 Widget _view(_Session session, {bool visible = true}) => MaterialApp(
+  theme: ThemeData(platform: TargetPlatform.macOS),
   home: Scaffold(
     body: UbaaCgyyLockDisplayView(open: () async => session, visible: visible),
   ),

@@ -26,7 +26,13 @@ class CgyyReservationFlow extends StatefulWidget {
     required this.formContext,
     super.key,
     required this.onRetry,
+    this.onlyAvailable = true,
+    this.onShowAll,
   });
+
+  /// 由顶栏开关控制，切换日期或楼层时保持。
+  final bool onlyAvailable;
+  final VoidCallback? onShowAll;
   final FeatureSnapshot snapshot;
   final FeatureQuery query;
   final int cacheEpoch;
@@ -44,6 +50,8 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
   String _campus = '全部';
   int? _site;
   final _selected = <String>{};
+  // 切换日期或楼层时保留上一张表，避免整页闪成加载圈。
+  FeatureSnapshot? _lastDaySnapshot;
   FeatureSnapshot? _consumed;
   int _generation = 0;
   int? _afterRevision;
@@ -94,6 +102,7 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
       _sites = [];
       _site = null;
       _selected.clear();
+      _lastDaySnapshot = null;
       _consumed = null;
       _generation++;
       _pending = false;
@@ -103,8 +112,18 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
     _consume();
   }
 
-  CgyyDayPresentation? get _day {
-    final days = widget.snapshot.details
+  /// 当前表格依据：加载中且新快照尚无日表时沿用上一张。
+  FeatureSnapshot get _view {
+    final last = _lastDaySnapshot;
+    return _busy && _dayOf(widget.snapshot) == null && last != null
+        ? last
+        : widget.snapshot;
+  }
+
+  CgyyDayPresentation? get _day => _dayOf(_view);
+
+  static CgyyDayPresentation? _dayOf(FeatureSnapshot snapshot) {
+    final days = snapshot.details
         .map((d) => d.presentation)
         .whereType<CgyyDayPresentation>()
         .toList();
@@ -203,10 +222,14 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
   @override
   Widget build(BuildContext context) {
     final snapshot = widget.snapshot;
+    if (_dayOf(snapshot) != null) _lastDaySnapshot = snapshot;
     final day = _day;
     if ((_sites.isEmpty || snapshot.evidence?.origin == DataOrigin.persisted) &&
         day == null)
-      return widget.fallback;
+      // 缓存楼层先于网络到达；加载期间显示加载而不是通用列表，离线时才保留只读列表。
+      return _busy || snapshot.status == FeatureLoadStatus.loading
+          ? const LoadingPlaceholder()
+          : widget.fallback;
     if (snapshot.details.any(
       (d) =>
           d.presentation is! CgyySitePresentation &&
@@ -218,8 +241,16 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
     return Column(
       children: [
         buildInlineChips(context),
+        SizedBox(
+          height: 2,
+          child: _busy && day != null
+              ? const LinearProgressIndicator(minHeight: 2)
+              : null,
+        ),
         Expanded(
-          child: _busy && day == null && snapshot.updatedAt == null
+          child:
+              day == null &&
+                  (_busy || (_site == null && _visibleSites.isNotEmpty))
               ? const LoadingPlaceholder()
               : snapshot.status == FeatureLoadStatus.failure
               ? widget.fallback
@@ -288,4 +319,53 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
       : name.contains('沙河')
       ? 1
       : 99;
+}
+
+/// 时段格子图例，供顶栏弹出说明使用。
+class CgyySlotLegend extends StatelessWidget {
+  const CgyySlotLegend({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    final colors = Theme.of(context).colorScheme;
+    Widget item(IconData icon, String label, Color background, Color fg) =>
+        Padding(
+          padding: const EdgeInsets.symmetric(vertical: 6),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 24,
+                height: 24,
+                decoration: BoxDecoration(
+                  color: background,
+                  borderRadius: BorderRadius.circular(4),
+                ),
+                child: Icon(icon, size: 16, color: fg),
+              ),
+              const SizedBox(width: 10),
+              Text(label),
+            ],
+          ),
+        );
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        item(
+          Icons.add,
+          '可预约',
+          colors.primaryContainer,
+          colors.onPrimaryContainer,
+        ),
+        item(Icons.check, '已选择', colors.primary, colors.onPrimary),
+        item(
+          Icons.remove,
+          '不可预约',
+          colors.surfaceContainerHighest,
+          colors.onSurfaceVariant,
+        ),
+      ],
+    );
+  }
 }

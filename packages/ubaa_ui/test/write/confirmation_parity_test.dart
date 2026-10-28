@@ -27,13 +27,12 @@ void main() {
     );
   });
 
-  testWidgets('确认页仅顶栏实际路线并以取消返回代替侧栏和刷新', (tester) async {
+  testWidgets('确认页保留取消返回且不提供侧栏和刷新', (tester) async {
     var cancelled = 0;
     await tester.pumpWidget(shell(WritePhase.ready, () async => cancelled++));
     expect(find.byType(Drawer), findsNothing);
     expect(find.byTooltip('刷新'), findsNothing);
     expect(find.text('实际路线'), findsNothing);
-    expect(find.byTooltip('实际路线：直连'), findsOneWidget);
     await tester.tap(find.byTooltip('取消并返回'));
     await tester.pumpAndSettle();
     expect(cancelled, 1);

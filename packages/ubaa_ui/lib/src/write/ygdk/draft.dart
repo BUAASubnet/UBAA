@@ -1,4 +1,3 @@
-import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
@@ -20,10 +19,9 @@ class YgdkFormDraft extends ChangeNotifier {
 }
 
 class YgdkFormContext {
-  const YgdkFormContext({required this.draft, this.route, this.onRouteOptions});
+  const YgdkFormContext({required this.draft, this.route});
   final YgdkFormDraft draft;
   final ConnectionMode? route;
-  final Future<void> Function(Map<String, ConnectionMode>)? onRouteOptions;
 }
 
 String uiYgdkItemKey(YgdkSubmitAction action) =>

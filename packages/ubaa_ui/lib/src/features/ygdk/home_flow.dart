@@ -203,7 +203,6 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
       formContext: YgdkFormContext(
         draft: widget.formContext.draft,
         route: _route,
-        onRouteOptions: widget.formContext.onRouteOptions,
       ),
     );
     if (mounted &&

@@ -21,7 +21,6 @@ void main() {
     expect(state.queries, isEmpty);
     expect(find.text('合成预载结果'), findsOneWidget);
     expect(find.widgetWithText(AppBar, '选择课程'), findsOneWidget);
-    expect(find.byTooltip('实际路线：直连'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(Card, '选择课程'));
@@ -30,7 +29,6 @@ void main() {
     await tester.tap(find.byTooltip('刷新当前查询'));
     await tester.pumpAndSettle();
     expect(state.queries, hasLength(1));
-    expect(find.byTooltip('实际路线：WebVPN'), findsOneWidget);
   });
   for (final entry in <FeatureId, List<String>>{
     FeatureId.bykc: ['选择课程', '我的课程', '课程统计'],
@@ -45,21 +43,18 @@ void main() {
       expect(find.text('合成预载结果'), findsNothing);
       expect(find.byType(TextField), findsNothing);
       expect(find.byType(NavigationBar), findsOneWidget);
-      expect(find.byTooltip('实际路线：未确定'), findsOneWidget);
       expect(state.queries, isEmpty);
     });
   }
-  testWidgets('研讨室子菜单读完返回后路线不冒充菜单实际读取', (tester) async {
+  testWidgets('研讨室子页返回菜单保留读取次数', (tester) async {
     final state = await _open(tester, FeatureId.cgyy);
     await tester.tap(find.widgetWithText(Card, '我的预约'));
     await tester.pumpAndSettle();
     expect(state.queries.single.view, FeatureQueryView.cgyyOrders);
     expect(find.widgetWithText(AppBar, '我的预约'), findsOneWidget);
-    expect(find.byTooltip('实际路线：WebVPN'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, '研讨室预约'), findsOneWidget);
-    expect(find.byTooltip('实际路线：未确定'), findsOneWidget);
     expect(state.queries, hasLength(1));
   });
   for (final feature in [FeatureId.cgyy, FeatureId.libbook]) {
@@ -166,7 +161,6 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.widgetWithText(Card, '预约座位'), findsOneWidget);
     expect(find.text('合成子结果'), findsNothing);
-    expect(find.byTooltip('实际路线：未确定'), findsOneWidget);
     expect(state.queries.single.view, FeatureQueryView.libbookBookings);
   });
 }
@@ -179,6 +173,7 @@ Future<_HarnessState> _open(WidgetTester tester, FeatureId feature) async {
   final key = GlobalKey<_HarnessState>();
   await tester.pumpWidget(
     MaterialApp(
+      theme: ThemeData(platform: TargetPlatform.macOS),
       home: _Harness(key: key, feature: feature),
     ),
   );

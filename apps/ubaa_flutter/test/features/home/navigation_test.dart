@@ -7,42 +7,6 @@ import '../../../integration_test/synthetic/home/backend.dart';
 import '../../../integration_test/synthetic/home/scroll.dart';
 
 void main() {
-  testWidgets('首页混合路线说明在短窗口可滚动并关闭', (tester) async {
-    tester.view.devicePixelRatio = 1;
-    tester.view.physicalSize = const Size(740, 420);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    addTearDown(tester.view.resetPhysicalSize);
-    final backend = HomeBackend()..mixedRoutes = true;
-    await tester.pumpWidget(
-      UbaaFlutterApp(
-        backend: backend,
-        credentialVault: MemoryCredentialVault(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('实际路线：混合'));
-    await tester.pumpAndSettle();
-    expect(tester.takeException(), isNull);
-    await tester.tap(find.widgetWithText(TextButton, '关闭'));
-    await tester.pumpAndSettle();
-    expect(find.text('连接路线'), findsNothing);
-  });
-  testWidgets('首页路线按已显示的实际来源聚合，不能显示默认策略', (tester) async {
-    final backend = HomeBackend()..mixedRoutes = true;
-    await tester.pumpWidget(
-      UbaaFlutterApp(
-        backend: backend,
-        credentialVault: MemoryCredentialVault(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.byTooltip('实际路线：混合'), findsOneWidget);
-    await tester.tap(find.byTooltip('实际路线：混合'));
-    await tester.pumpAndSettle();
-    expect(find.text('当前页面：直连与WebVPN'), findsOneWidget);
-    expect(find.text('研讨室：WebVPN'), findsOneWidget);
-    expect(find.textContaining('课表：直连'), findsOneWidget);
-  });
   testWidgets('首页恢复六来源并按旧今日课程时间排序，点击待办直达原作业', (tester) async {
     final backend = HomeBackend();
     await tester.pumpWidget(

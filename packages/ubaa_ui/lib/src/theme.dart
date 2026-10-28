@@ -118,6 +118,8 @@ class UbaaTheme {
           ),
         ),
       ),
+      // 选中标签已有底色区分，不再加对钩，宽度也不随选中跳动。
+      chipTheme: const ChipThemeData(showCheckmark: false),
       navigationRailTheme: NavigationRailThemeData(
         backgroundColor: colors.surfaceContainer,
         indicatorColor: colors.secondaryContainer,

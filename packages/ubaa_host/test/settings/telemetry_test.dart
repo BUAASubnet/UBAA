@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/app/profile.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
@@ -9,6 +10,15 @@ void main() {
     await tester.pumpWidget(UbaaAppHost(backend: _Backend()));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.settings_outlined));
+    await tester.pumpAndSettle();
+    await tester.scrollUntilVisible(
+      find.text('匿名产品改进统计'),
+      250,
+      scrollable: find.descendant(
+        of: find.byType(ProfileView),
+        matching: find.byType(Scrollable),
+      ),
+    );
     await tester.pumpAndSettle();
     final tile = tester.widget<SwitchListTile>(
       find.widgetWithText(SwitchListTile, '匿名产品改进统计'),

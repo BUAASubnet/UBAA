@@ -99,7 +99,7 @@ extension CgyyReservationChoices on CgyyReservationFlowState {
   }
 }
 
-/// 保留旧版横向直选，滚动条提示还有选项并支持鼠标拖动。
+/// 保留旧版横向直选；桌面显示滚动条便于鼠标拖动，手机直接滑动。
 class _ChoiceStrip extends StatefulWidget {
   const _ChoiceStrip({super.key, required this.children});
   final List<Widget> children;
@@ -118,22 +118,27 @@ class _ChoiceStripState extends State<_ChoiceStrip> {
   }
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: UbaaTheme.pageInsets(context, top: 2, bottom: 2),
-    child: Scrollbar(
+  Widget build(BuildContext context) {
+    final touch = switch (Theme.of(context).platform) {
+      TargetPlatform.iOS || TargetPlatform.android => true,
+      _ => false,
+    };
+    final strip = SingleChildScrollView(
       controller: _scroll,
-      thumbVisibility: true,
-      child: SingleChildScrollView(
-        controller: _scroll,
-        scrollDirection: Axis.horizontal,
-        padding: const EdgeInsets.only(bottom: 6),
-        child: Row(
-          children: [
-            for (final child in widget.children)
-              Padding(padding: const EdgeInsets.only(right: 6), child: child),
-          ],
-        ),
+      scrollDirection: Axis.horizontal,
+      padding: EdgeInsets.only(bottom: touch ? 0 : 6),
+      child: Row(
+        children: [
+          for (final child in widget.children)
+            Padding(padding: const EdgeInsets.only(right: 6), child: child),
+        ],
       ),
-    ),
-  );
+    );
+    return Padding(
+      padding: UbaaTheme.pageInsets(context, top: 2, bottom: 2),
+      child: touch
+          ? strip
+          : Scrollbar(controller: _scroll, thumbVisibility: true, child: strip),
+    );
+  }
 }

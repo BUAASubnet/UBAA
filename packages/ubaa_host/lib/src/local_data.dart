@@ -67,6 +67,23 @@ extension _UbaaAppHostLocalData on _UbaaAppHostState {
     }
   }
 
+  Future<CgyyReservationDefaults?> _readCgyyDefaults(
+    LocalDataOwnerScope owner,
+  ) async {
+    owner.checkCurrent();
+    final value = await _cgyyDefaultsStore.read(owner.accountKey);
+    owner.checkCurrent();
+    return value;
+  }
+
+  Future<void> _saveCgyyDefaults(
+    LocalDataOwnerScope owner,
+    CgyyReservationDefaults value,
+  ) async {
+    owner.checkCurrent();
+    await _cgyyDefaultsStore.write(owner.accountKey, value);
+  }
+
   Future<void> _logoutAndClearLocalData(LocalDataOwnerScope owner) async {
     owner.checkCurrent();
     await Future.wait([
@@ -87,6 +104,7 @@ extension _UbaaAppHostLocalData on _UbaaAppHostState {
               _gradeScoreStore.clearAccount,
               _reminderStore.clear,
               _bykcFilterStore.clearAccount,
+              _cgyyDefaultsStore.clearAccount,
               _recentFeatureStore.clearAccount,
             ]) {
               try {

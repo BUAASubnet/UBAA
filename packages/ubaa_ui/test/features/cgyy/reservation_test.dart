@@ -261,7 +261,7 @@ void _registerCgyyReservationWriteTests() {
     await tester.tap(find.text('继续确认'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 0);
-    expect(find.text('填写研讨室预约信息'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, '填写预约信息'), findsOneWidget);
 
     await tester.enterText(fixtureCgyyTextField('参与人说明'), '  张三  ');
     await tester.tap(find.text('继续确认'));

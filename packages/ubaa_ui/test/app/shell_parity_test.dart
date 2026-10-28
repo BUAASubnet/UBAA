@@ -77,15 +77,23 @@ void main() {
     expect(find.text('返回功能列表'), findsNothing);
     expect(find.text('返回上一层'), findsNothing);
   });
-  testWidgets('实际路线仅由顶栏图标呈现且点击可查看说明', (tester) async {
-    await mount(tester, tab: UiDestination.academic);
-    await openGrade(tester);
-    final route = find.byTooltip('实际路线：直连');
-    expect(route, findsOneWidget);
-    expect(find.widgetWithText(Chip, '实际路线：直连'), findsNothing);
-    await tester.tap(route);
+  testWidgets('设置页点选连接模式立即生效，当前模式不重复保存', (tester) async {
+    final changed = <RoutePolicy>[];
+    await mount(
+      tester,
+      tab: UiDestination.settings,
+      onRoutePolicyChanged: changed.add,
+    );
+    await tester.ensureVisible(find.byKey(const ValueKey('route-policy-auto')));
+    await tester.tap(find.byKey(const ValueKey('route-policy-auto')));
     await tester.pumpAndSettle();
-    expect(find.text('当前页面：直连'), findsOneWidget);
+    expect(changed, isEmpty);
+    await tester.ensureVisible(
+      find.byKey(const ValueKey('route-policy-webvpn')),
+    );
+    await tester.tap(find.byKey(const ValueKey('route-policy-webvpn')));
+    await tester.pumpAndSettle();
+    expect(changed, [RoutePolicy.webvpn]);
   });
   testWidgets('少量查询条件按内容展开而不固定占据大半屏', (tester) async {
     await mount(tester, tab: UiDestination.academic);
@@ -116,6 +124,7 @@ Future<void> mount(
   WidgetTester tester, {
   UiDestination tab = UiDestination.home,
   List<FeatureQuery>? queries,
+  ValueChanged<RoutePolicy>? onRoutePolicyChanged,
 }) async {
   tester.view.devicePixelRatio = 1;
   tester.view.physicalSize = const Size(402, 874);
@@ -146,7 +155,7 @@ Future<void> mount(
         },
         onLogout: () async {},
         onLogoutAndClearAccount: () async {},
-        onRoutePolicyChanged: (_) {},
+        onRoutePolicyChanged: onRoutePolicyChanged ?? (_) {},
         onTelemetryChanged: (_) {},
       ),
     ),

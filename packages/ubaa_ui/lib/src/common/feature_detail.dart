@@ -56,7 +56,6 @@ class FeatureDetailView extends StatefulWidget {
     this.lockRefreshRevision = 0,
     this.visible = true,
     this.onLoadAllGrades,
-    this.onGradeRoutes,
     this.isBykcChosenDetail = false,
     this.bykcListCourse,
     this.bykcPendingCourseId,
@@ -92,7 +91,10 @@ class FeatureDetailView extends StatefulWidget {
     this.onSaveScheduleSemester,
     this.onCancelScheduleImport,
     this.onLoadCgyyPurposes,
-    this.onFormRouteOptions,
+    this.onLoadCgyyDefaults,
+    this.cgyyOnlyAvailable = true,
+    this.onCgyyShowAll,
+    this.onSaveCgyyDefaults,
     this.onScheduleTitle,
     this.readCacheEpoch = 0,
     super.key,
@@ -108,7 +110,6 @@ class FeatureDetailView extends StatefulWidget {
   final Future<CgyyLockDisplaySession> Function()? onOpenLockDisplay;
   final int lockRefreshRevision;
   final GradesAggregateLoader? onLoadAllGrades;
-  final ValueChanged<Map<String, ConnectionMode>>? onGradeRoutes;
   final BykcCoursePresentation? bykcListCourse;
   final int? bykcPendingCourseId;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
@@ -146,7 +147,10 @@ class FeatureDetailView extends StatefulWidget {
   final Future<void> Function(String)? onSaveScheduleSemester;
   final ValueChanged<String>? onCancelScheduleImport;
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadCgyyPurposes;
-  final Future<void> Function(Map<String, ConnectionMode>)? onFormRouteOptions;
+  final Future<CgyyReservationDefaults?> Function()? onLoadCgyyDefaults;
+  final bool cgyyOnlyAvailable;
+  final VoidCallback? onCgyyShowAll;
+  final Future<void> Function(CgyyReservationDefaults)? onSaveCgyyDefaults;
   final int readCacheEpoch;
 
   @override
@@ -391,6 +395,8 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
             onSubmit: widget.onCgyySubmitWrite,
             formContext: _cgyyFormContext,
             onQuery: widget.onQuery,
+            onlyAvailable: widget.cgyyOnlyAvailable,
+            onShowAll: widget.onCgyyShowAll,
           )
         : widget.feature == FeatureId.ygdk &&
               (widget.query?.view ?? FeatureQueryView.summary) ==
@@ -419,7 +425,6 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
             filter: _searchController.text,
             fallback: defaultContent,
             loader: widget.onLoadAllGrades,
-            onRoutes: widget.onGradeRoutes,
           )
         : widget.feature == FeatureId.schedule &&
               widget.onLoadAcademicWeeks != null
@@ -638,17 +643,15 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
               ),
       );
 
-  YgdkFormContext get _ygdkFormContext => YgdkFormContext(
-    draft: _ygdkDraft,
-    route: widget.snapshot.resolvedRoute,
-    onRouteOptions: widget.onFormRouteOptions,
-  );
+  YgdkFormContext get _ygdkFormContext =>
+      YgdkFormContext(draft: _ygdkDraft, route: widget.snapshot.resolvedRoute);
 
   CgyyFormContext get _cgyyFormContext => CgyyFormContext(
     draft: _cgyyDraft,
     loadPurposes: widget.onLoadCgyyPurposes,
+    loadDefaults: widget.onLoadCgyyDefaults,
+    saveDefaults: widget.onSaveCgyyDefaults,
     route: widget.snapshot.resolvedRoute,
-    onRouteOptions: widget.onFormRouteOptions,
   );
 
   ScheduleWeekOverview? get _scheduleTimeline =>

@@ -131,6 +131,7 @@ class Service implements IhomeService {
 Future<void> mount(WidgetTester tester, Service service) async {
   await tester.pumpWidget(
     MaterialApp(
+      theme: ThemeData(platform: TargetPlatform.macOS),
       home: Scaffold(body: IhomeView(service: service)),
     ),
   );

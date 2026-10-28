@@ -66,50 +66,6 @@ void main() {
     await tester.pumpAndSettle();
   });
 
-  testWidgets('全部学期异步完成后同一顶栏图标更新为混合路线', (tester) async {
-    final pending = Completer<GradesAggregate>();
-    const overview = GradesTermOverview(
-      requestTerm: 'a',
-      termCode: 'a',
-      grades: [],
-    );
-    await showFeature(
-      tester,
-      FeatureId.grades,
-      [],
-      [],
-      overview: overview,
-      onLoadAllGrades: (_, _) => pending.future,
-    );
-    pending.complete(
-      const GradesAggregate(
-        terms: [
-          GradeTermRead(
-            code: 'a',
-            name: '甲',
-            result: FeatureResult.empty(
-              overview: overview,
-              resolvedRoute: ConnectionMode.direct,
-            ),
-          ),
-          GradeTermRead(
-            code: 'b',
-            name: '乙',
-            result: FeatureResult.empty(
-              overview: GradesTermOverview(
-                requestTerm: 'b',
-                termCode: 'b',
-                grades: [],
-              ),
-              resolvedRoute: ConnectionMode.webvpn,
-            ),
-          ),
-        ],
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(find.byTooltip('实际路线：混合'), findsOneWidget);
-  });
   testWidgets('成绩沿旧版统计和描边卡，过滤不改变完整学期统计', (tester) async {
     const scored = GradePresentation(
       courseName: '合成已出课程',

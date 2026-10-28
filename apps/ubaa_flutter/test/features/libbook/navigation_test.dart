@@ -28,13 +28,17 @@ void main() {
       expect(backend.commitCalls, 0);
     });
   }
-  testWidgets('图书馆隐藏后首页刷新不能触发后台自动分区链', (tester) async {
-    final backend = await _open(tester, width: 1280);
-    await _tap(tester, find.byIcon(Icons.home_outlined));
-    final before = backend.libraryReads.length;
-    await _tap(tester, find.byTooltip('刷新'));
-    expect(backend.libraryReads, hasLength(before));
-  });
+  testWidgets(
+    '图书馆隐藏后首页刷新不能触发后台自动分区链',
+    (tester) async {
+      final backend = await _open(tester, width: 1280);
+      await _tap(tester, find.byIcon(Icons.home_outlined));
+      final before = backend.libraryReads.length;
+      await _tap(tester, find.byTooltip('刷新'));
+      expect(backend.libraryReads, hasLength(before));
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
+  );
   testWidgets('明确空座位后重新加载不复活原选择', (tester) async {
     final backend = await _open(tester);
     await _tap(tester, find.widgetWithText(Card, 'A1'));
@@ -44,7 +48,7 @@ void main() {
     await _tap(tester, find.byTooltip('刷新当前查询'));
     expect(find.widgetWithText(Card, 'A1'), findsOneWidget);
     expect(find.text('已选座位：A1'), findsNothing);
-  });
+  }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
   testWidgets('换楼馆沿新父项自动加载且返回仍为图书馆菜单', (tester) async {
     final backend = await _open(tester);
     await _tap(tester, find.widgetWithText(Card, 'A1'));

@@ -15,7 +15,6 @@ class GradesFlow extends StatefulWidget {
     required this.filter,
     required this.fallback,
     this.loader,
-    this.onRoutes,
   });
   final FeatureSnapshot snapshot;
   final bool visible;
@@ -23,7 +22,6 @@ class GradesFlow extends StatefulWidget {
   final String filter;
   final Widget fallback;
   final GradesAggregateLoader? loader;
-  final ValueChanged<Map<String, ConnectionMode>>? onRoutes;
   @override
   State<GradesFlow> createState() => _GradesFlowState();
 }
@@ -120,17 +118,6 @@ class _GradesFlowState extends State<GradesFlow> {
     final value = snapshot.overview;
     final current = value is GradesTermOverview ? value : null;
     final aggregate = _aggregate;
-    final routes = <String, ConnectionMode>{
-      if (_ready && snapshot.resolvedRoute != null)
-        '本学期': snapshot.resolvedRoute!,
-      if (_ready)
-        for (final term in aggregate?.terms ?? const <GradeTermRead>[])
-          if (term.overview != null && term.resolvedRoute != null)
-            '全部成绩 · ${term.name}': term.resolvedRoute!,
-    };
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && widget.visible) widget.onRoutes?.call(routes);
-    });
     if ((!_ready && snapshot.status != FeatureLoadStatus.loading) ||
         current == null ||
         !uiSupportsAcademicContent(FeatureId.grades, snapshot.details))

@@ -22,6 +22,7 @@ void main() {
   late _Reminders reminders;
   late _Vault vault;
   late MemoryRecentFeatureStore recents;
+  late MemoryCgyyReservationDefaultsStore defaults;
   late SecureLocalAccountStore accounts;
   Future<UbaaMainShell> mount(WidgetTester tester) async {
     materials = _Materials();
@@ -34,7 +35,9 @@ void main() {
     reminders = _Reminders();
     vault = _Vault();
     recents = MemoryRecentFeatureStore();
+    defaults = MemoryCgyyReservationDefaultsStore();
     for (final key in ['fixture-user', 'fixture-school', 'other']) {
+      await defaults.write(key, const CgyyReservationDefaults(theme: '合成主题'));
       await reminders.write(key, _settings);
       await recents.write(key, [FeatureId.exam]);
     }
@@ -46,6 +49,7 @@ void main() {
         gradeScoreStore: grades,
         reminderStore: reminders,
         recentFeatureStore: recents,
+        cgyyDefaultsStore: defaults,
       ),
     );
     await tester.pumpAndSettle();
@@ -59,12 +63,14 @@ void main() {
     for (final key in ['fixture-user', 'fixture-school']) {
       final saved = await reminders.read(key);
       expect(await recents.read(key), isEmpty);
+      expect(await defaults.read(key), isNull);
       expect(saved.enabled, isTrue);
       expect(saved.weekDoneKey, isNull);
       expect(saved.termDoneKey, isNull);
     }
     expect((await reminders.read('other')).weekDoneKey, 'synthetic-week');
     expect(await recents.read('other'), [FeatureId.exam]);
+    expect((await defaults.read('other'))?.theme, '合成主题');
     expect(grades.cleared, isNot(contains('other')));
     expect((await accounts.read())!.account, isNull);
     await tester.pumpWidget(const SizedBox());

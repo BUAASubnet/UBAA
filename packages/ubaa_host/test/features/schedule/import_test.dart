@@ -9,58 +9,62 @@ import '../../../../ubaa_app/test/recovery/startup_test.dart' as startup;
 import '../../../../ubaa_ui/test/support/navigation.dart';
 
 void main() {
-  testWidgets('生产宿主静默同步课表，失败后右上角重新刷新整学期', (tester) async {
-    final backend = _Backend();
-    await tester.pumpWidget(
-      UbaaAppHost(
-        backend: backend,
-        localAccountStore: await startup.savedAccounts(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    UbaaMainShell shell() => tester.widget(find.byType(UbaaMainShell));
-    expect(shell().onSaveScheduleSemester, isNotNull);
-    await openFeature(tester, FeatureId.schedule);
-    for (var i = 0; i < 20 && backend.task.calls == 0; i++) {
-      await tester.pump();
-    }
-    expect(backend.term, 'selected');
-    expect(
-      shell().scheduleImports['selected']!.status,
-      ScheduleImportStatus.running,
-    );
-    backend.task.pending.completeError(
-      const BackendException(UbaaErrorCode.networkError),
-    );
-    await tester.pumpAndSettle();
-    expect(
-      shell().scheduleImports['selected']!.status,
-      ScheduleImportStatus.failed,
-    );
-    final reads = backend.weekReads;
-    await tester.tap(find.byTooltip('刷新'));
-    for (var i = 0; i < 20 && backend.importTerms.length < 2; i++) {
-      await tester.pump();
-    }
-    backend.task.pending.complete(
-      const ScheduleImportProgress(
-        term: 'selected',
-        completedWeeks: 1,
-        totalWeeks: 1,
-        finished: true,
-        route: ConnectionMode.direct,
-      ),
-    );
-    await tester.pumpAndSettle();
-    expect(backend.importTerms, ['selected', 'selected']);
-    expect(backend.weekReads, reads);
-    expect(
-      shell().scheduleImports['selected']!.status,
-      ScheduleImportStatus.saved,
-    );
-    expect(find.text('合成第3周'), findsOneWidget);
-    await tester.pumpWidget(const SizedBox());
-  });
+  testWidgets(
+    '生产宿主静默同步课表，失败后右上角重新刷新整学期',
+    (tester) async {
+      final backend = _Backend();
+      await tester.pumpWidget(
+        UbaaAppHost(
+          backend: backend,
+          localAccountStore: await startup.savedAccounts(),
+        ),
+      );
+      await tester.pumpAndSettle();
+      UbaaMainShell shell() => tester.widget(find.byType(UbaaMainShell));
+      expect(shell().onSaveScheduleSemester, isNotNull);
+      await openFeature(tester, FeatureId.schedule);
+      for (var i = 0; i < 20 && backend.task.calls == 0; i++) {
+        await tester.pump();
+      }
+      expect(backend.term, 'selected');
+      expect(
+        shell().scheduleImports['selected']!.status,
+        ScheduleImportStatus.running,
+      );
+      backend.task.pending.completeError(
+        const BackendException(UbaaErrorCode.networkError),
+      );
+      await tester.pumpAndSettle();
+      expect(
+        shell().scheduleImports['selected']!.status,
+        ScheduleImportStatus.failed,
+      );
+      final reads = backend.weekReads;
+      await tester.tap(find.byTooltip('刷新'));
+      for (var i = 0; i < 20 && backend.importTerms.length < 2; i++) {
+        await tester.pump();
+      }
+      backend.task.pending.complete(
+        const ScheduleImportProgress(
+          term: 'selected',
+          completedWeeks: 1,
+          totalWeeks: 1,
+          finished: true,
+          route: ConnectionMode.direct,
+        ),
+      );
+      await tester.pumpAndSettle();
+      expect(backend.importTerms, ['selected', 'selected']);
+      expect(backend.weekReads, reads);
+      expect(
+        shell().scheduleImports['selected']!.status,
+        ScheduleImportStatus.saved,
+      );
+      expect(find.text('合成第3周'), findsOneWidget);
+      await tester.pumpWidget(const SizedBox());
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
+  );
 }
 
 class _Backend extends startup.FakeRecoveryBackend

@@ -6,6 +6,7 @@ import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../shared/loading.dart' show RefreshActionButton;
+import '../features/cgyy/reservation_flow.dart' show CgyySlotLegend;
 import '../shared/feedback.dart';
 import '../shared/refresh.dart' show PullToRefresh;
 import '../shared/scroll_gutters.dart' show ScrollGutters;
@@ -20,7 +21,6 @@ import '../common/read_navigator.dart'
     show FeatureReadNavigator, FeatureReadNavigatorState;
 import '../write/confirmation.dart' show WriteConfirmationView;
 part 'shell_write.dart';
-part 'shell_route.dart';
 part 'shell_navigation.dart';
 part 'bykc_preferences.dart';
 part 'preferences/recent_features.dart';
@@ -62,6 +62,8 @@ class UbaaMainShell extends StatefulWidget {
     this.onSaveScheduleSemester,
     this.onCancelScheduleImport,
     this.onLoadCgyyPurposes,
+    this.onLoadCgyyDefaults,
+    this.onSaveCgyyDefaults,
     this.onLoadAppVersion,
     this.ihomeService,
     this.onOpenAppLink,
@@ -166,6 +168,8 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function(String)? onSaveScheduleSemester;
   final ValueChanged<String>? onCancelScheduleImport;
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadCgyyPurposes;
+  final Future<CgyyReservationDefaults?> Function()? onLoadCgyyDefaults;
+  final Future<void> Function(CgyyReservationDefaults)? onSaveCgyyDefaults;
   final Future<String?> Function()? onLoadAppVersion;
   final IhomeService? ihomeService;
   final Future<bool> Function(AppLink)? onOpenAppLink;
@@ -219,8 +223,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     setState(() => _recentFeatures = value);
   }
 
-  Map<String, ConnectionMode> _homeReadRoutes = {};
-  Map<String, ConnectionMode> _gradesReadRoutes = {};
   YgdkReminderSettings? _reminderSettings;
   String? _reminderError;
   int _reminderRevision = 0;
@@ -238,6 +240,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   FeatureId? _openedFeature;
   String? _utilityPage;
   final _visiblePage = ValueNotifier<(FeatureSnapshot, String)?>(null);
+  bool _cgyyOnlyAvailable = true;
   final Set<FeatureId> _visitedFeatures = <FeatureId>{};
   int _accountGeneration = 0;
   int _lockRefreshRevision = 0;
@@ -272,8 +275,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     }
     if (accountChanged) {
       _accountGeneration++;
-      _homeReadRoutes = {};
-      _gradesReadRoutes = {};
       _reminderSettings = null;
       _reminderError = null;
       _reminderRevision++;
@@ -465,6 +466,18 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           ),
       ],
     );
+    // 手机用下拉刷新；桌面鼠标无法下拉，保留按钮与快捷键。
+    final touchRefresh = switch (Theme.of(context).platform) {
+      TargetPlatform.iOS || TargetPlatform.android => true,
+      _ => false,
+    };
+    final refreshPage = pendingWrite != null
+        ? null
+        : _openedFeature != null
+        ? () => _refreshFeature(_openedFeature!)
+        : _utilityPage == null && _selectedIndex == 0
+        ? _refreshHome
+        : null;
     final header = AppBar(
       centerTitle: false,
       toolbarHeight: wide ? 80 : 64,
@@ -543,43 +556,35 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               if (retry == true && mounted) widget.onReconnect?.call();
             },
           ),
-        ValueListenableBuilder<(FeatureSnapshot, String)?>(
-          valueListenable: _visiblePage,
-          builder: (context, page, _) {
-            final snapshot = page?.$1;
-            final homeVisible =
-                _openedFeature == null &&
-                _utilityPage == null &&
-                _selectedIndex == 0 &&
-                pendingWrite == null;
-            final pageRoutes = homeVisible
-                ? _homeReadRoutes
-                : _openedFeature == FeatureId.grades && pendingWrite == null
-                ? _gradesReadRoutes
-                : null;
-            final homeRoutes = pageRoutes?.values.toSet() ?? <ConnectionMode>{};
-            final mixed = homeRoutes.length > 1;
-            final route =
-                pendingWrite?.resolvedRoute ??
-                (pageRoutes != null && pageRoutes.isNotEmpty
-                    ? (homeRoutes.length == 1 ? homeRoutes.single : null)
-                    : (_openedFeature == snapshot?.feature
-                          ? snapshot?.resolvedRoute
-                          : null));
-            return IconButton(
-              tooltip: '实际路线：${mixed ? '混合' : route?.label ?? '未确定'}',
-              icon: Icon(
-                route == ConnectionMode.direct
-                    ? Icons.lan_outlined
-                    : route == ConnectionMode.webvpn
-                    ? Icons.vpn_lock_outlined
-                    : Icons.route_outlined,
-              ),
-              onPressed: () =>
-                  _showRouteOptions(context, route, homeRoutes: pageRoutes),
-            );
-          },
-        ),
+        if (_openedFeature == FeatureId.cgyy && pendingWrite == null)
+          ValueListenableBuilder<(FeatureSnapshot, String)?>(
+            valueListenable: _visiblePage,
+            builder: (context, page, _) => page?.$2 != '预约研讨室'
+                ? const SizedBox.shrink()
+                : Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      FilterChip(
+                        key: const ValueKey('cgyy-only-available'),
+                        label: const Text('只看可预约'),
+                        selected: _cgyyOnlyAvailable,
+                        visualDensity: VisualDensity.compact,
+                        onSelected: (value) =>
+                            setState(() => _cgyyOnlyAvailable = value),
+                      ),
+                      PopupMenuButton<void>(
+                        tooltip: '图例',
+                        icon: const Icon(Icons.info_outline),
+                        itemBuilder: (_) => [
+                          const PopupMenuItem<void>(
+                            // 点按即关闭；保持可用状态以免图例颜色被调淡。
+                            child: CgyySlotLegend(),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+          ),
         if (_openedFeature == FeatureId.schedule && pendingWrite == null)
           IconButton(
             tooltip: '选择学期',
@@ -587,7 +592,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                 ?.selectScheduleTerm(),
             icon: const Icon(Icons.calendar_month_outlined),
           ),
-        if (_openedFeature != null && pendingWrite == null)
+        if (!touchRefresh && _openedFeature != null && pendingWrite == null)
           RefreshActionButton(
             key: ValueKey(_openedFeature),
             tooltip:
@@ -597,7 +602,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                 : '刷新当前查询',
             onRefresh: () => _refreshFeature(_openedFeature!),
           ),
-        if (_openedFeature == null &&
+        if (!touchRefresh &&
+            _openedFeature == null &&
             _utilityPage == null &&
             _selectedIndex == 0 &&
             pendingWrite == null)
@@ -608,7 +614,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           ),
       ],
     );
-    return PopScope<void>(
+    final shell = PopScope<void>(
       canPop:
           pendingWrite == null &&
           _openedFeature == null &&
@@ -658,25 +664,36 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           ),
           bottomNavigationBar: wide || confirmationPage != null
               ? null
-              : NavigationBar(
-                  height:
-                      80 +
-                      (MediaQuery.textScalerOf(context).scale(12) - 12) * 3,
-                  selectedIndex: _selectedIndex,
-                  onDestinationSelected: _selectTab,
-                  destinations: _tabs
-                      .map(
-                        (tab) => NavigationDestination(
-                          key: ValueKey<String>('tab-${tab.label}'),
-                          icon: Icon(tab.icon),
-                          selectedIcon: Icon(tab.selectedIcon),
-                          label: tab.label,
-                        ),
-                      )
-                      .toList(),
+              : _CompactNavigationBar(
+                  child: NavigationBar(
+                    height:
+                        56 +
+                        (MediaQuery.textScalerOf(context).scale(12) - 12) * 3,
+                    selectedIndex: _selectedIndex,
+                    onDestinationSelected: _selectTab,
+                    destinations: _tabs
+                        .map(
+                          (tab) => NavigationDestination(
+                            key: ValueKey<String>('tab-${tab.label}'),
+                            icon: Icon(tab.icon),
+                            selectedIcon: Icon(tab.selectedIcon),
+                            label: tab.label,
+                          ),
+                        )
+                        .toList(),
+                  ),
                 ),
         ),
       ),
+    );
+    if (touchRefresh || refreshPage == null) return shell;
+    void refresh() => unawaited(refreshPage());
+    return CallbackShortcuts(
+      bindings: {
+        const SingleActivator(LogicalKeyboardKey.keyR, meta: true): refresh,
+        const SingleActivator(LogicalKeyboardKey.keyR, control: true): refresh,
+      },
+      child: Focus(autofocus: true, child: shell),
     );
   }
 
@@ -748,16 +765,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         lockRefreshRevision: _lockRefreshRevision,
         visible: _openedFeature == feature && page.isCurrent,
         onLoadAllGrades: widget.onLoadAllGrades,
-        onGradeRoutes: (routes) {
-          if (_openedFeature != FeatureId.grades ||
-              !page.isCurrent ||
-              (routes.length == _gradesReadRoutes.length &&
-                  routes.entries.every(
-                    (e) => _gradesReadRoutes[e.key] == e.value,
-                  )))
-            return;
-          setState(() => _gradesReadRoutes = Map.unmodifiable(routes));
-        },
         isBykcChosenDetail: page.isBykcChosenDetail,
         bykcListCourse: page.bykcListCourse,
         bykcPendingCourseId: _bykcWriteActive?.$2,
@@ -790,11 +797,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         onSaveScheduleSemester: widget.onSaveScheduleSemester,
         onCancelScheduleImport: widget.onCancelScheduleImport,
         onLoadCgyyPurposes: widget.onLoadCgyyPurposes,
-        onFormRouteOptions: (routes) => _showRouteOptions(
-          context,
-          routes.values.toSet().length == 1 ? routes.values.first : null,
-          homeRoutes: routes,
-        ),
+        onLoadCgyyDefaults: widget.onLoadCgyyDefaults,
+        cgyyOnlyAvailable: _cgyyOnlyAvailable,
+        onCgyyShowAll: () => setState(() => _cgyyOnlyAvailable = false),
+        onSaveCgyyDefaults: widget.onSaveCgyyDefaults,
         onScheduleTitle: page.onScheduleTitle,
         readCacheEpoch: widget.readCacheEpoch + widget.businessCacheEpoch,
         onBykcWrite: !_hasWriteCommands || widget.onPrepareBykcWrite == null
@@ -893,14 +899,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                 : null,
             reminderSettings: _reminderSettings,
             onObserveProgress: _observeHomeProgress,
-            onRoutes: (routes) {
-              if (routes.length == _homeReadRoutes.length &&
-                  routes.entries.every(
-                    (e) => _homeReadRoutes[e.key] == e.value,
-                  ))
-                return;
-              setState(() => _homeReadRoutes = Map.unmodifiable(routes));
-            },
             onFeatureTap: _openFeatureList,
             onRetryFeature: widget.onRetryFeature,
             onRefresh: _refreshHome,
@@ -962,5 +960,39 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       _utilityPage = null;
       _openedFeature = null;
     });
+  }
+}
+
+/// 底栏顶部留白 8pt，底部安全区最多保留 20pt，仍避开 Home 指示条。
+class _CompactNavigationBar extends StatelessWidget {
+  const _CompactNavigationBar({required this.child});
+
+  static const double _topGap = 8;
+  static const double _maxBottomInset = 20;
+
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    final media = MediaQuery.of(context);
+    final theme = Theme.of(context);
+    return ColoredBox(
+      color:
+          theme.navigationBarTheme.backgroundColor ??
+          theme.colorScheme.surfaceContainer,
+      child: Padding(
+        padding: const EdgeInsets.only(top: _topGap),
+        child: MediaQuery(
+          data: media.copyWith(
+            padding: media.padding.copyWith(
+              bottom: media.padding.bottom > _maxBottomInset
+                  ? _maxBottomInset
+                  : media.padding.bottom,
+            ),
+          ),
+          child: child,
+        ),
+      ),
+    );
   }
 }

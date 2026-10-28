@@ -109,14 +109,18 @@ void main() {
     expect(backend.scheduleReads.last.term, '2025-2026-2');
   });
 
-  testWidgets('课表刷新失败保留旧课程的教学周日期与名称', (tester) async {
-    final backend = ScheduleNavigationBackend();
-    await mount(tester, backend);
-    backend.fail = true;
-    await tap(tester, find.byTooltip('刷新当前查询'));
-    expect(find.text('9-7'), findsOneWidget);
-    expect(find.text('合成教学第4周'), findsOneWidget);
-  });
+  testWidgets(
+    '课表刷新失败保留旧课程的教学周日期与名称',
+    (tester) async {
+      final backend = ScheduleNavigationBackend();
+      await mount(tester, backend);
+      backend.fail = true;
+      await tap(tester, find.byTooltip('刷新当前查询'));
+      expect(find.text('9-7'), findsOneWidget);
+      expect(find.text('合成教学第4周'), findsOneWidget);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
+  );
 
   testWidgets('周次未返回时退出不在后台继续读课表，回来后才能推进', (tester) async {
     final gate = Completer<void>();

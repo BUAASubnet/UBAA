@@ -16,6 +16,7 @@ void main() {
       final starts = <String>[], queries = <FeatureQuery>[];
       await tester.pumpWidget(
         MaterialApp(
+          theme: ThemeData(platform: TargetPlatform.macOS),
           home: StatefulBuilder(
             builder: (context, setState) {
               update = setState;

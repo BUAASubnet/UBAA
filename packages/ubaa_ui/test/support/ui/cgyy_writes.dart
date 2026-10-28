@@ -15,13 +15,13 @@ Future<void> fixtureFillCgyyForm(
     '参与人说明': joiners,
   }.entries) {
     if (item.key == '用途编号') {
-      await tester.ensureVisible(find.widgetWithText(OutlinedButton, '选择活动类型'));
-      await tester.tap(find.widgetWithText(OutlinedButton, '选择活动类型'));
+      final purpose = find.byWidgetPredicate(
+        (w) => w is InputDecorator && w.decoration.labelText == '活动类型',
+      );
+      await tester.ensureVisible(purpose);
+      await tester.tap(purpose);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('手动填写'));
-      await tester.pumpAndSettle();
-      await tester.enterText(fixtureCgyyTextField('用途编号'), item.value);
-      await tester.tap(find.text('使用编号'));
+      await tester.tap(find.widgetWithText(ListTile, '合成用途'));
       await tester.pumpAndSettle();
       continue;
     }

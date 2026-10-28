@@ -44,7 +44,12 @@ void registerInspectionBackendTests() {
       ),
     );
     expect(weeks.details.last.readNavigation?.query.term, 'fixture-term-b');
-    expect(weeks.details.last.readNavigation?.query.week, 4);
+    expect(weeks.details, isNotEmpty);
+    for (final detail in weeks.details) {
+      final week = detail.presentation! as WeekPresentation;
+      expect(detail.readNavigation?.query.week, week.number);
+      expect(detail.readNavigation?.query.term, 'fixture-term-b');
+    }
     final rooms = await backend.loadFeatureQuery(
       FeatureId.classroom,
       const FeatureQuery(campus: 2, section: '3'),

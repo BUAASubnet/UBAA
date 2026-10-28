@@ -12,7 +12,12 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(MaterialApp(home: _Harness(key: key)));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: _Harness(key: key),
+      ),
+    );
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.bykc);
     final state = key.currentState!;
@@ -59,7 +64,12 @@ void main() {
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await tester.pumpWidget(MaterialApp(home: _Harness(key: key)));
+    await tester.pumpWidget(
+      MaterialApp(
+        theme: ThemeData(platform: TargetPlatform.macOS),
+        home: _Harness(key: key),
+      ),
+    );
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.bykc);
     final state = key.currentState!;

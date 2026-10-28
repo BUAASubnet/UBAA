@@ -559,6 +559,7 @@ Future<_Scenario> _mount(WidgetTester tester, {bool home = false}) async {
   );
   await tester.pumpWidget(
     MaterialApp(
+      theme: ThemeData(platform: TargetPlatform.macOS),
       home: StatefulBuilder(
         builder: (context, update) {
           state.update = update;

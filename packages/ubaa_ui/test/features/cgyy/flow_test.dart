@@ -4,11 +4,78 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import '../../support/navigation.dart';
+import 'package:ubaa_ui/src/features/cgyy/reservation_flow.dart';
+import 'package:ubaa_ui/src/write/cgyy/draft.dart';
+import 'package:ubaa_ui/src/shared/loading.dart';
 
 void main() {
+  testWidgets('只看可预约隐藏无可用房间和时段，关闭后恢复', (tester) async {
+    await _open(tester, _dayDetails, []);
+    expect(find.text('合成研讨室'), findsOneWidget);
+    expect(_slot('无时段房间', '09:00–10:00'), findsNothing);
+    expect(_slot('合成研讨室', '09:00–10:00'), findsNothing);
+    await tester.tap(find.text('只看可预约'));
+    await tester.pumpAndSettle();
+    expect(_slot('无时段房间', '09:00–10:00'), findsOneWidget);
+    expect(_slot('合成研讨室', '09:00–10:00'), findsOneWidget);
+  });
+  testWidgets('整页无可用时段提示并允许恢复全部表格', (tester) async {
+    await _open(tester, [_dayDetails.first, _dayDetails.last], []);
+    expect(find.text('这一天该楼层没有可预约时段'), findsOneWidget);
+    await tester.tap(find.text('显示全部时段'));
+    await tester.pumpAndSettle();
+    expect(_slot('合成研讨室', '09:00–10:00'), findsOneWidget);
+    expect(_slot('无时段房间', '09:00–10:00'), findsOneWidget);
+  });
+  testWidgets('缓存楼层先到且网络仍在加载时不闪通用列表', (tester) async {
+    final draft = CgyyFormDraft();
+    addTearDown(draft.dispose);
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: CgyyReservationFlow(
+            snapshot: FeatureSnapshot(
+              feature: FeatureId.cgyy,
+              status: FeatureLoadStatus.loading,
+              evidence: DataEvidence(
+                accountId: 'synthetic',
+                origin: DataOrigin.persisted,
+                fetchedAt: DateTime(2026, 10, 28),
+                complete: true,
+                savedForOffline: true,
+              ),
+              details: const [
+                FeatureDetail(
+                  title: '缓存楼层',
+                  presentation: CgyySitePresentation(
+                    id: 7,
+                    siteName: '一层',
+                    venueName: '合成楼',
+                    campusName: '沙河',
+                  ),
+                ),
+              ],
+            ),
+            query: const FeatureQuery(view: FeatureQueryView.summary),
+            cacheEpoch: 0,
+            fallback: const Text('通用楼层列表'),
+            onQuery: (_) async {},
+            onRetry: () async {},
+            formContext: CgyyFormContext(draft: draft),
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byType(LoadingPlaceholder), findsOneWidget);
+    expect(find.text('通用楼层列表'), findsNothing);
+    await tester.pumpWidget(const SizedBox());
+  });
   testWidgets('宽屏时段铺满内容宽度，选中汇总随取消更新', (tester) async {
     await _open(tester, _dayDetails, [], width: 1400);
     final header = find.byKey(const ValueKey('cgyy-time-header-scroll'));
+    await tester.tap(find.text('只看可预约'));
+    await tester.pumpAndSettle();
     final lastCell = _slot('无时段房间', '09:00–10:00');
     expect(
       tester.getRect(lastCell).right,
@@ -40,6 +107,8 @@ void main() {
 
   testWidgets('窄屏大字时段表头同步滚动且汇总不遮挡下一步', (tester) async {
     await _open(tester, _dayDetails, [], scale: 2);
+    await tester.tap(find.text('只看可预约'));
+    await tester.pumpAndSettle();
     final head = find.byKey(const ValueKey('cgyy-time-header-scroll'));
     final body = find.byKey(const ValueKey('cgyy-time-body-scroll'));
     await tester.drag(body, const Offset(-220, 0));
@@ -97,38 +166,34 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('活动类型刷新失败保留已显示选项和草稿选择', (tester) async {
+  testWidgets('活动类型首次读取失败可重试且保留已填草稿', (tester) async {
     var calls = 0;
     await _open(
       tester,
       _dayDetails,
       [],
       loadPurposes: (_) async => ++calls == 1
-          ? _purposes
-          : const FeatureResult.failure(
+          ? const FeatureResult.failure(
               UiError(
                 code: UbaaErrorCode.networkError,
-                title: '合成刷新失败',
-                message: '保持选择',
+                title: '活动类型加载失败',
+                message: '合成错误',
+                retryable: true,
               ),
-            ),
+            )
+          : _purposes,
     );
     await _form(tester);
-    expect(find.widgetWithText(OutlinedButton, '合成研讨甲'), findsOneWidget);
-    await tester.ensureVisible(find.widgetWithText(OutlinedButton, '合成研讨甲'));
-    await tester.tap(find.widgetWithText(OutlinedButton, '合成研讨甲'));
+    final phone = find.widgetWithText(TextField, '联系电话');
+    await tester.enterText(phone, 'synthetic-phone');
+    await tester.ensureVisible(find.text('重试'));
+    await tester.tap(find.text('重试'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('刷新活动类型'));
-    await tester.tap(find.text('刷新活动类型'));
-    await tester.pumpAndSettle();
-    expect(find.widgetWithText(ListTile, '合成研讨甲'), findsOneWidget);
-    await tester.tap(find.widgetWithText(TextButton, '关闭'));
-    await tester.pumpAndSettle();
-    expect(find.widgetWithText(OutlinedButton, '合成研讨甲'), findsOneWidget);
-    expect(find.text('保持选择'), findsOneWidget);
+    expect(find.text('合成研讨甲'), findsOneWidget);
+    expect(tester.widget<TextField>(phone).controller!.text, 'synthetic-phone');
+    expect(calls, 2);
   });
-
-  testWidgets('已保存用途保留选项与未完整状态', (tester) async {
+  testWidgets('已保存用途仍可选择原始编号', (tester) async {
     await _open(
       tester,
       _dayDetails,
@@ -146,18 +211,19 @@ void main() {
       ),
     );
     await _form(tester);
-    expect(find.widgetWithText(OutlinedButton, '合成研讨甲'), findsOneWidget);
-    expect(find.text('活动类型尚未核对完整'), findsOneWidget);
+    expect(find.text('合成研讨甲'), findsOneWidget);
   });
 
   testWidgets('已保存研讨室时段无错误码也可阅读且没有预约下一步', (tester) async {
     await _open(tester, _dayDetails, [], cached: true);
+    await tester.tap(find.text('显示全部时段'));
+    await tester.pumpAndSettle();
     expect(tester.takeException(), isNull);
     expect(find.text('合成研讨室'), findsWidgets);
     expect(find.text('下一步'), findsNothing);
   });
 
-  testWidgets('研讨室用途按原key选择，显示来源且返回保留选择', (tester) async {
+  testWidgets('研讨室用途按原key选择且返回保留选择', (tester) async {
     var calls = 0;
     CgyySubmitInput? input;
     await _open(
@@ -174,10 +240,9 @@ void main() {
       },
     );
     await _form(tester);
-    expect(find.text('使用预设活动类型'), findsOneWidget);
-    expect(find.byTooltip('实际路线：混合'), findsOneWidget);
-    await tester.ensureVisible(find.widgetWithText(OutlinedButton, '合成研讨甲'));
-    await tester.tap(find.widgetWithText(OutlinedButton, '合成研讨甲'));
+
+    await tester.ensureVisible(find.text('合成研讨甲'));
+    await tester.tap(find.text('合成研讨甲'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('合成研讨乙'));
     await tester.pumpAndSettle();
@@ -196,7 +261,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('下一步'));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(OutlinedButton, '合成研讨乙'), findsOneWidget);
+    expect(find.text('合成研讨乙'), findsOneWidget);
     await tester.tap(find.text('继续确认'));
     await tester.pumpAndSettle();
     expect(input?.purposeType, 37);
@@ -213,16 +278,10 @@ void main() {
           ++calls == 1 ? const FeatureResult.empty() : _purposes,
     );
     await _form(tester);
-    await tester.ensureVisible(find.widgetWithText(OutlinedButton, '选择活动类型'));
-    await tester.tap(find.widgetWithText(OutlinedButton, '选择活动类型'));
+    await tester.ensureVisible(find.text('重试'));
+    await tester.tap(find.text('重试'));
     await tester.pumpAndSettle();
-    expect(find.text('暂无可选活动类型，可重试或手动填写已知编号。'), findsOneWidget);
-    await tester.ensureVisible(find.text('刷新活动类型'));
-    await tester.tap(find.text('刷新活动类型'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListTile, '合成研讨甲'));
-    await tester.pumpAndSettle();
-    expect(find.widgetWithText(OutlinedButton, '合成研讨甲'), findsOneWidget);
+    expect(find.text('合成研讨甲'), findsOneWidget);
     expect(calls, 2);
   });
   testWidgets('研讨室读取代次变化关闭旧表单且拒绝迟到用途', (tester) async {
@@ -249,7 +308,7 @@ void main() {
     await tester.pump(const Duration(milliseconds: 400));
     gate.complete(_purposes);
     await tester.pumpAndSettle();
-    expect(find.text('填写研讨室预约信息'), findsNothing);
+    expect(find.text('填写预约信息'), findsNothing);
     expect(find.text('synthetic-private-draft'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -298,6 +357,8 @@ void main() {
     final queries = <FeatureQuery>[];
     await _open(tester, _dayDetails, queries);
     expect(find.text('合成研讨室'), findsOneWidget);
+    await tester.tap(find.text('只看可预约'));
+    await tester.pumpAndSettle();
     expect(find.text('无时段房间'), findsOneWidget);
     expect(find.text('资格未知'), findsOneWidget);
     expect(find.text('下一步'), findsNothing);
@@ -306,7 +367,7 @@ void main() {
     expect(find.text('下一步'), findsOneWidget);
     await tester.tap(find.text('下一步'));
     await tester.pumpAndSettle();
-    expect(find.text('填写研讨室预约信息'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, '填写预约信息'), findsOneWidget);
     expect(queries, isEmpty);
   });
 }

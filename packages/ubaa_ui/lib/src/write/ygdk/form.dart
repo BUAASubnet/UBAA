@@ -138,7 +138,6 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
 
   @override
   Widget build(BuildContext context) {
-    final route = widget.data.route;
     final selected = _selected;
     return Scaffold(
       appBar: AppBar(
@@ -150,23 +149,6 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
           overflow: TextOverflow.ellipsis,
         ),
         leading: BackButton(onPressed: _cancel),
-        actions: [
-          IconButton(
-            tooltip: '实际路线：${route?.label ?? '未确定'}',
-            icon: Icon(
-              route == ConnectionMode.direct
-                  ? Icons.lan_outlined
-                  : route == ConnectionMode.webvpn
-                  ? Icons.vpn_lock_outlined
-                  : Icons.route_outlined,
-            ),
-            onPressed: () async {
-              await widget.data.onRouteOptions?.call({
-                if (route != null) '运动项目': route,
-              });
-            },
-          ),
-        ],
       ),
       bottomNavigationBar: FormActionBar(
         child: Padding(

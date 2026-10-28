@@ -19,7 +19,8 @@ void main() {
   });
   testWidgets('研讨室长表滚到底仍保留时段表头', (tester) async {
     await _open(tester, state: 'many');
-    final header = find.text('08:00–09:00');
+    await _tap(tester, find.text('只看可预约'));
+    final header = find.byKey(const ValueKey('cgyy-time-header-scroll'));
     final before = tester.getTopLeft(header);
     await tester.ensureVisible(find.text('合成研讨室 42'));
     await tester.pumpAndSettle();
@@ -51,43 +52,51 @@ void main() {
     expect(a.offset, closeTo(b.offset, .01));
   });
 
-  testWidgets('预约记录滚动续载保留零基请求，刷新从首页重新开始', (tester) async {
-    final backend = await _open(tester, state: 'paged');
-    await _tap(tester, find.byTooltip('返回'));
-    await _tap(tester, find.widgetWithText(Card, '我的预约'));
-    expect(backend.roomReads.last.page, 0);
-    final scroll = find
-        .descendant(
-          of: find.byType(ListView).last,
-          matching: find.byType(Scrollable),
-        )
-        .first;
-    await tester.scrollUntilVisible(
-      find.text('主题：连续订单144'),
-      600,
-      scrollable: scroll,
-      maxScrolls: 100,
-    );
-    final reads = backend.roomReads
-        .where((q) => q.view == FeatureQueryView.cgyyOrders)
-        .toList();
-    expect(reads.map((q) => q.page), [0, 1, 2]);
-    await _tap(tester, find.byTooltip('刷新当前查询'));
-    expect(backend.roomReads.last.page, 0);
-    expect(find.text('主题：连续订单101'), findsOneWidget);
-    expect(backend.commitCalls, 0);
-  });
-  testWidgets('研讨室隐藏后首页仅刷新待办订单，不重读站点或扩展日期空间', (tester) async {
-    final backend = await _open(tester, width: 1280);
-    await _tap(tester, find.byIcon(Icons.home_outlined));
-    final before = backend.roomReads.length;
-    await _tap(tester, find.byTooltip('刷新'));
-    expect(backend.roomReads.skip(before).map((query) => query.view), [
-      FeatureQueryView.cgyyOrders,
-    ]);
-    expect(backend.roomReads.last.page, 0);
-    expect(backend.roomReads.last.size, 20);
-  });
+  testWidgets(
+    '预约记录滚动续载保留零基请求，刷新从首页重新开始',
+    (tester) async {
+      final backend = await _open(tester, state: 'paged');
+      await _tap(tester, find.byTooltip('返回'));
+      await _tap(tester, find.widgetWithText(Card, '我的预约'));
+      expect(backend.roomReads.last.page, 0);
+      final scroll = find
+          .descendant(
+            of: find.byType(ListView).last,
+            matching: find.byType(Scrollable),
+          )
+          .first;
+      await tester.scrollUntilVisible(
+        find.text('主题：连续订单144'),
+        600,
+        scrollable: scroll,
+        maxScrolls: 100,
+      );
+      final reads = backend.roomReads
+          .where((q) => q.view == FeatureQueryView.cgyyOrders)
+          .toList();
+      expect(reads.map((q) => q.page), [0, 1, 2]);
+      await _tap(tester, find.byTooltip('刷新当前查询'));
+      expect(backend.roomReads.last.page, 0);
+      expect(find.text('主题：连续订单101'), findsOneWidget);
+      expect(backend.commitCalls, 0);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
+  );
+  testWidgets(
+    '研讨室隐藏后首页仅刷新待办订单，不重读站点或扩展日期空间',
+    (tester) async {
+      final backend = await _open(tester, width: 1280);
+      await _tap(tester, find.byIcon(Icons.home_outlined));
+      final before = backend.roomReads.length;
+      await _tap(tester, find.byTooltip('刷新'));
+      expect(backend.roomReads.skip(before).map((query) => query.view), [
+        FeatureQueryView.cgyyOrders,
+      ]);
+      expect(backend.roomReads.last.page, 0);
+      expect(backend.roomReads.last.size, 20);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
+  );
   testWidgets('研讨室换日期清掉旧选择和表单目标且不增加返回层级', (tester) async {
     final backend = await _open(tester);
     await _tap(tester, _slot('合成研讨室 1', '08:00–09:00'));
@@ -101,15 +110,19 @@ void main() {
     expect(backend.preparedRooms, isEmpty);
     expect(backend.commitCalls, 0);
   });
-  testWidgets('研讨室明确空结果后刷新不复活已清掉的时段', (tester) async {
-    final backend = await _open(tester);
-    await _tap(tester, _slot('合成研讨室 1', '08:00–09:00'));
-    backend.emptyNext = true;
-    await _tap(tester, find.byTooltip('刷新当前查询'));
-    expect(find.text('下一步'), findsNothing);
-    await _tap(tester, find.byTooltip('刷新当前查询'));
-    expect(find.text('下一步'), findsNothing);
-  });
+  testWidgets(
+    '研讨室明确空结果后刷新不复活已清掉的时段',
+    (tester) async {
+      final backend = await _open(tester);
+      await _tap(tester, _slot('合成研讨室 1', '08:00–09:00'));
+      backend.emptyNext = true;
+      await _tap(tester, find.byTooltip('刷新当前查询'));
+      expect(find.text('下一步'), findsNothing);
+      await _tap(tester, find.byTooltip('刷新当前查询'));
+      expect(find.text('下一步'), findsNothing);
+    },
+    variant: TargetPlatformVariant.only(TargetPlatform.macOS),
+  );
   testWidgets('直接切换校区按原始站点读取且保留当前日期', (tester) async {
     final backend = await _open(tester);
     await _tap(tester, find.byKey(const ValueKey('cgyy-date-2026-09-05')));

@@ -54,11 +54,9 @@ void main() {
     expect(harness.queries, hasLength(1));
     expect(harness.queries.single.term, 'term-real');
     expect(find.text('第 7 周'), findsOneWidget);
-    expect(find.byTooltip('实际路线：WebVPN'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     expect(harness.queries, hasLength(1));
-    expect(find.byTooltip('实际路线：直连'), findsOneWidget);
     expect(find.text('秋季学期'), findsOneWidget);
   });
 
@@ -95,7 +93,12 @@ Future<_HarnessState> _show(WidgetTester tester) async {
   tester.view.physicalSize = const Size(800, 1000);
   addTearDown(tester.view.resetPhysicalSize);
   addTearDown(tester.view.resetDevicePixelRatio);
-  await tester.pumpWidget(const MaterialApp(home: _Harness()));
+  await tester.pumpWidget(
+    MaterialApp(
+      theme: ThemeData(platform: TargetPlatform.macOS),
+      home: _Harness(),
+    ),
+  );
   await tester.pumpAndSettle();
   final card = find.descendant(
     of: find.byType(CustomScrollView),

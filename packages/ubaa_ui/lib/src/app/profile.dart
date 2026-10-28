@@ -82,30 +82,28 @@ class ProfileView extends StatelessWidget {
           ),
         ),
         const SizedBox(height: 16),
-        const UiSectionTitle('连接'),
+        const UiSectionTitle('连接模式'),
         Card(
           child: Column(
             children: [
-              _setting(
-                context,
-                icon: Icons.tune,
-                title: '连接模式',
-                control: DropdownButton<RoutePolicy>(
-                  isExpanded: true,
-                  value: routePolicy,
-                  onChanged: (value) {
-                    if (value != null) onRoutePolicyChanged(value);
-                  },
-                  items: RoutePolicy.values
-                      .map(
-                        (item) => DropdownMenuItem(
-                          value: item,
-                          child: Text(item.label),
-                        ),
-                      )
-                      .toList(),
+              for (final policy in RoutePolicy.values)
+                ListTile(
+                  key: ValueKey<String>('route-policy-${policy.wireName}'),
+                  leading: Icon(switch (policy) {
+                    RoutePolicy.auto => Icons.tune,
+                    RoutePolicy.direct => Icons.lan_outlined,
+                    RoutePolicy.webvpn => Icons.vpn_lock_outlined,
+                  }),
+                  title: Text(policy.label),
+                  subtitle: Text(policy.description),
+                  selected: policy == routePolicy,
+                  trailing: policy == routePolicy
+                      ? const Icon(Icons.check)
+                      : null,
+                  onTap: policy == routePolicy
+                      ? null
+                      : () => onRoutePolicyChanged(policy),
                 ),
-              ),
               const Divider(height: 1),
               ListTile(
                 leading: const Icon(Icons.verified_user_outlined),
