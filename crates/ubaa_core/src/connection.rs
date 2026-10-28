@@ -5,7 +5,7 @@
     clippy::duration_suboptimal_units
 )]
 
-use std::net::{SocketAddr, TcpStream, ToSocketAddrs};
+use std::net::{IpAddr, SocketAddr, TcpStream, ToSocketAddrs};
 use std::sync::Mutex;
 use std::time::{Duration, Instant};
 
@@ -40,7 +40,7 @@ pub trait GatewayProbe: Send + Sync {
     fn probe(&self, budget: Duration) -> NetworkState;
 }
 
-/// 探测 `gw.buaa.edu.cn:80` 的 TCP 可达性，不内置校园网地址段。
+/// 探测 `gw.buaa.edu.cn:80` 的 TCP 可达性；只尝试解析到 `10.0.0.0/8` 的 IPv4 地址。
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SystemGatewayProbe;
 
@@ -103,7 +103,8 @@ where
     let Ok(addresses) = resolve(GATEWAY_HOST, GATEWAY_PORT) else {
         return NetworkState::OffCampus;
     };
-    for address in addresses {
+    // 代理的 fake-ip（如 198.18.0.0/15）会让任意 TCP 连接成功，只有校内私网地址才算校园网证据。
+    for address in addresses.into_iter().filter(is_campus_gateway_address) {
         let remaining = deadline.saturating_duration_since(now());
         if remaining.is_zero() {
             return NetworkState::OffCampus;
@@ -113,6 +114,10 @@ where
         }
     }
     NetworkState::OffCampus
+}
+
+fn is_campus_gateway_address(address: &SocketAddr) -> bool {
+    matches!(address.ip(), IpAddr::V4(ip) if ip.octets()[0] == 10)
 }
 
 /// 进程内网关结果缓存，生产 TTL 为 60 秒。
@@ -427,7 +432,7 @@ mod contract_tests;
 mod gateway_probe_tests {
     use std::collections::VecDeque;
     use std::io;
-    use std::net::{Ipv4Addr, SocketAddr};
+    use std::net::{Ipv4Addr, Ipv6Addr, SocketAddr};
     use std::time::{Duration, Instant};
 
     use super::{
@@ -436,7 +441,7 @@ mod gateway_probe_tests {
     };
 
     fn test_address(port: u16) -> SocketAddr {
-        SocketAddr::from((Ipv4Addr::LOCALHOST, port))
+        SocketAddr::from((Ipv4Addr::new(10, 0, 0, 1), port))
     }
 
     #[test]
@@ -473,6 +478,40 @@ mod gateway_probe_tests {
                 (second, Duration::from_millis(50)),
             ]
         );
+    }
+
+    #[test]
+    fn fake_ip_gateway_resolution_is_off_campus_without_connecting() {
+        let fake_ip = SocketAddr::from((Ipv4Addr::new(198, 18, 0, 33), GATEWAY_PORT));
+        let state = probe_gateway_until(
+            Instant::now() + Duration::from_millis(500),
+            |_, _| Ok(vec![fake_ip]),
+            |_, _| -> bool { panic!("non-campus address must not be attempted") },
+            Instant::now,
+        );
+
+        assert_eq!(state, NetworkState::OffCampus);
+    }
+
+    #[test]
+    fn only_ten_slash_eight_gateway_addresses_are_attempted() {
+        let fake_ip = SocketAddr::from((Ipv4Addr::new(198, 18, 0, 33), GATEWAY_PORT));
+        let ipv6 = SocketAddr::from((Ipv6Addr::LOCALHOST, GATEWAY_PORT));
+        let campus = test_address(GATEWAY_PORT);
+        let started = Instant::now();
+        let mut attempts = Vec::new();
+        let state = probe_gateway_until(
+            started + Duration::from_millis(500),
+            |_, _| Ok(vec![fake_ip, ipv6, campus]),
+            |address, _| {
+                attempts.push(address);
+                true
+            },
+            || started,
+        );
+
+        assert_eq!(state, NetworkState::Campus);
+        assert_eq!(attempts, vec![campus]);
     }
 
     #[test]

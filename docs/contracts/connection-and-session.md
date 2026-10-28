@@ -19,7 +19,7 @@
 | Cookie 过滤域名、路径、Secure、过期时间并处理替换 | `LocalConnectionAuth.kt::PersistentLocalCookieStorage`、`LocalCookieStoreTest.kt`、`examples/buaa-api/src/store/cookies.rs` | `tests/cookies.rs` |
 | 显式失效清理会话，超时/5xx 保留会话 | `validateLocalConnectionSession`、`getAuthStatus` | `tests/session.rs` 策略测试 |
 
-自动路由选择同样属于 Core 所有的连接状态。生产探测器只连接 `gw.buaa.edu.cn:80` 的 TCP；单个 500 ms 总期限包含域名解析和所有地址尝试。三态结果在 facade 进程内以 single-flight 方式缓存 60 秒。它不发送 HTTP/TLS 正文，也不读取 Cookie 或凭据。完整策略和错误映射见 `docs/contracts/route-policy.md`。
+自动路由选择同样属于 Core 所有的连接状态。生产探测器只连接 `gw.buaa.edu.cn:80` 解析出的 `10.0.0.0/8` IPv4 地址的 TCP；单个 500 ms 总期限包含域名解析和所有地址尝试。三态结果在 facade 进程内以 single-flight 方式缓存 60 秒。它不发送 HTTP/TLS 正文，也不读取 Cookie 或凭据。完整策略和错误映射见 `docs/contracts/route-policy.md`。
 
 ## 持久化
 

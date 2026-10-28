@@ -36,14 +36,15 @@ judge = "auto"
 ## 网关可达性
 
 可注入的生产探测器测试到 `gw.buaa.edu.cn:80` 的 TCP 连通性。单个 500 ms 总期限覆盖域名
-解析和每个解析地址的连接尝试；每次尝试只能使用剩余预算。任一连接成功即为 `Campus`。
-解析失败、无地址、拒绝/不可达连接和普通超时均为 `OffCampus`。只有内部探测失败（包括故意
+解析和每个解析地址的连接尝试；每次尝试只能使用剩余预算。只尝试落在 `10.0.0.0/8` 的 IPv4
+地址，其中任一连接成功即为 `Campus`。解析失败、无地址、只解析到其他地址（如代理 fake-ip 的
+`198.18.0.0/15`）、拒绝/不可达连接和普通超时均为 `OffCampus`。只有内部探测失败（包括故意
 注入的诊断失败）才是 `Unknown`。
 
 结果由聚合 Core facade 在当前进程内以 single-flight 方式缓存 60 秒；探测器、时钟和缓存行为
-均可在测试中注入。CLI 不拥有解析器或缓存。探测器不发送 HTTP/TLS 请求、不读取凭据，也不
-硬编码地址或 IP 段。目标、端口和时长来自 `examples/buaa-api/src/utils/net.rs`；单一总预算和
-`Unknown` 边界是 UBAA 2 产品约束。
+均可在测试中注入。CLI 不拥有解析器或缓存。探测器不发送 HTTP/TLS 请求、不读取凭据。目标、
+端口和时长来自 `examples/buaa-api/src/utils/net.rs`；单一总预算、`Unknown` 边界和
+`10.0.0.0/8` 地址过滤是 UBAA 2 产品约束（见 2026-10-28 决策）。
 
 `Campus` 将 `auto` 解析为 Direct；`OffCampus` 将其解析为 WebVPN。`Unknown` 使用功能路由行的 `unknown_default`，并保留在 `RouteDiagnostic` 中。所有标准及扩展功能路由行都使用 `unknown_default=Direct` 的共同映射；历史 Judge 命令曾到达两条路线，因此没有充分证据设置功能专属的 auto 覆盖，但其数量/详情语义差异仍需持续观察。显式路线不回退。
 
