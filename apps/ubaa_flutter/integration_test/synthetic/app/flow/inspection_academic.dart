@@ -30,18 +30,27 @@ extension _AcademicInspection on _InspectionBackend {
         }
         if (q.view == FeatureQueryView.scheduleWeeks) {
           final term = _required(q.term);
+          // 以今天为第 8 周动态生成 18 周，首页明日课表与周课表都能取到当前日期。
+          final today = DateTime.now();
+          final monday = DateTime(
+            today.year,
+            today.month,
+            today.day,
+          ).subtract(Duration(days: today.weekday - 1 + 7 * 7));
+          String day(DateTime d) =>
+              '${d.year.toString().padLeft(4, '0')}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}';
           return [
-            for (var week = 1; week <= 4; week++)
+            for (var week = 1; week <= 18; week++)
               _item(
                 '第 $week 周',
-                {'周次': '$week', '当前周': week == 2 ? '是' : '否'},
+                {'周次': '$week', '当前周': week == 8 ? '是' : '否'},
                 presentation: WeekPresentation(
                   requestTerm: term,
                   responseTerm: term,
                   number: week,
-                  current: week == 2,
-                  startDate: '2026-09-07',
-                  endDate: '2026-09-13',
+                  current: week == 8,
+                  startDate: day(monday.add(Duration(days: 7 * (week - 1)))),
+                  endDate: day(monday.add(Duration(days: 7 * (week - 1) + 6))),
                 ),
                 readNavigation: FeatureReadNavigation(
                   feature: feature,
@@ -99,7 +108,8 @@ extension _AcademicInspection on _InspectionBackend {
                     place: '合成实验楼 B105',
                   ),
           ),
-          if (weekly)
+          // 时间待定课程会让首页单日课表整体判为不完整，只在边界状态里出现。
+          if (weekly && (_state == 'long' || _state == 'many'))
             _item(
               '跨学科实践（时间待确认）',
               {'地点': '合成实践中心'},
