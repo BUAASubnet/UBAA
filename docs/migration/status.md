@@ -32,4 +32,4 @@ Rust Core 统一拥有认证、Direct/WebVPN/Auto 路线、会话、十二领域
 
 ## 本阶段验证
 
-阶段 6 以 `d1872cafdf2e425c9f4a48c2cce5856f53ad458c` 为基线。`just flutter-check`（官方七包全量：domain 60、platform 95、app 683、UI 478、bindings 20、host 102、官方宿主 88）、`just layout-check`、`just check-sensitive`、`just check-strict`、`cargo test --locked --workspace --all-features`、`just flutter-codegen-check`（零漂移）、保留集合 `just integration-test`（4 个 macOS 入口）、golden 六项定向比较、OHOS 工具链/插件合同/HUKS/网络合同和无签名 Debug HAP 均通过。`git diff --check` 已在严格门禁中通过；阶段基线 `just check-plan`/`just check-changed` 待文档提交后执行并登记。远端 CI、Linux/iOS 专项按监督者决定留待最终 push 后运行。
+阶段 6 以 `d1872cafdf2e425c9f4a48c2cce5856f53ad458c` 为基线。`just flutter-check`（官方七包全量：domain 60、platform 95、app 683、UI 478、bindings 20、host 102、官方宿主 88）、`just layout-check`、`just check-sensitive`、`just check-strict`、`cargo test --locked --workspace --all-features`、`just flutter-codegen-check`（零漂移）、保留集合 `just integration-test`（4 个 macOS 入口）、golden 六项定向比较、OHOS 工具链/插件合同/HUKS/网络合同和无签名 Debug HAP 均通过。`git diff --check` 已在严格门禁中通过；阶段基线 `just check-plan` 与 `just check-changed` 均通过（基线 `d1872cafdf2e425c9f4a48c2cce5856f53ad458c`）。远端 CI、Linux/iOS 专项按监督者决定留待最终 push 后运行。
