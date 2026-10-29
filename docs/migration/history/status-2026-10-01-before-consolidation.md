@@ -1,6 +1,6 @@
 # 当前迁移与交付状态
 
-更新日期：2026-09-24，Asia/Shanghai。活动合同为[离线首页与后台恢复](../../goal.md)，P0–P5仍执行中。实施区`.worktrees/offline-home-20260917`、分支`codex/offline-home-20260917`；主工作区保持原样，不推送、不发布。旧UI/UX状态已归档到[接续前状态](history/status-2026-09-23-before-offline-resume.md)。
+更新日期：2026-09-24，Asia/Shanghai。活动合同为[离线首页与后台恢复](goal-2026-10-01-before-consolidation.md)，P0–P5仍执行中。实施区`.worktrees/offline-home-20260917`、分支`codex/offline-home-20260917`；主工作区保持原样，不推送、不发布。旧UI/UX状态已归档到[接续前状态](history/status-2026-09-23-before-offline-resume.md)。
 
 接续起点`c7e55171`的29项未提交工作已保留并完成。现有独立提交P2-P `e09e63f4`、P2-Q `a80bbf33`、P3-B `c729e6b9`、P2-R `950c8192`、iPhone原生证据`55fe5dad`、P4-AG `3ca371fc`、P5-B1 `1a8f7ded`、P2-S `94ff3a5c`。本轮P2-R生命周期接续已提交`8003681c`：显式替换已展示首页的backend后，继任实例会沿既有恢复任务重新核对会话与身份；7项聚焦行为测试、全量Flutter1113项和`just check`均通过。Bridge当前为 **Flutter bridge contract v36**，业务缓存schema v6、CLI JSON schema v10、Session v2、配置v1；FRB零漂移通过。
 

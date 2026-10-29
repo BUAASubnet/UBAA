@@ -4,12 +4,13 @@
 
 ## 日常开发入口
 
-- [当前执行合同](../goal.md)
+- [Agent 长期规则](../AGENTS.md)、[当前阶段目标](../goal.md)、[长期路线图](../UBAA2.md)
+- [贡献指南](../CONTRIBUTING.md)、[安全策略](../SECURITY.md)
 - [当前实现与验证状态](migration/status.md)
 - [项目概览](../README.md)
 - [现行代码组织](architecture/code-organization.md)
 - [架构与协议边界](architecture/overview.md)
-- [开发命令](development/commands.md)、[测试策略](development/testing.md)、[工程规范](development/engineering-standards.md)
+- [开发命令](development/commands.md)、[测试策略](development/testing.md)、[工程规范](development/engineering-standards.md)、[开发约定](development/conventions.md)、[目录命名](development/directories.md)
 - [开发环境](development/setup.md)、[脚本副作用](../scripts/README.md)
 
 ## 按修改内容定位
@@ -30,8 +31,10 @@
 
 - [认证与用户](contracts/auth-and-user.md)、[连接与会话](contracts/connection-and-session.md)、[路由策略](contracts/route-policy.md)
 - [只读功能](contracts/readonly-features.md)、[Flutter Bridge](contracts/flutter-bridge.md)、[CLI JSON Schema](contracts/cli-json.schema.json)
-- [离线缓存与恢复](contracts/offline-cache-and-recovery.md)、[Flutter UI 规格](design/flutter-ui-spec.md)
+- [离线缓存与恢复](contracts/offline-cache-and-recovery.md)
 - [冻结参考](migration/references.md)、[来源对照矩阵及后续专项](migration/source-parity.md)
+
+界面设计依据另见 [Flutter UI 规格](design/flutter-ui-spec.md)，具体实现与验收按当前候选记录。
 
 ## 架构决策与平台
 
@@ -52,11 +55,16 @@
 - [发布流程](runbooks/flutter-release.md)
 - [UI 证据规则](design/evidence/README.md)、[历史采集批次](design/evidence/batches.md)
 
-## 历史与本轮记录
+## 近期实施与历史记录
+
+- [2026-10-29 首页业务并发](migration/source-parity-home-concurrency-2026-10-29.md)、[首页传输性能](migration/source-parity-home-performance-2026-10-29.md)
+- [2026-10-28 界面回归](migration/ui-regression-2026-10-28.md)、[2026-10-27 集成测试修复](migration/integration-repair-2026-10-27.md)
+- [2026-10-21 认证修复](migration/auth-repair-2026-10-21.md)、[2026-10-29 文档站迁移](migration/docs-site-2026-10-29.md)
+- [全部来源对照专项](migration/source-parity.md#全部来源对照专项)、[持续决策记录](migration/decision-log.md)
 
 - [独立工程审查](migration/engineering-quality-independent-review-2026-10-07.md)、[完整整改实施](migration/engineering-quality-implementation-2026-10-07.md)
 
-- [本轮可持续开发性审查](migration/maintainability-audit-2026-10-07.md)、[实施与验证](migration/maintainability-implementation-2026-10-07.md)
+- [2026-10-07 可持续开发性审查](migration/maintainability-audit-2026-10-07.md)、[实施与验证](migration/maintainability-implementation-2026-10-07.md)
 - [2026-10-01 项目整合快照](migration/project-audit-2026-10-01.md)
 - [原代码组织设计](migration/history/code-organization-2026-09-05.md)、[旧测试指南](migration/history/testing-before-2026-10-07.md)
 - [整理前状态](migration/history/status-before-maintainability-2026-10-07.md)、[此前项目收尾合同](migration/history/goal-2026-10-07-before-maintainability.md)

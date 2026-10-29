@@ -1,5 +1,7 @@
 # 实时认证验证
 
+当前脚本化认证入口、双路线验收和真实账号授权见[开发命令](../development/commands.md#来源对照与真实验证)、[只读手册](live-readonly-verification.md)及 [AGENTS](../../AGENTS.md#真实账号与验收范围)。下文为 2026-08-26 验证器与输出合同的历史记录，不作为当前 launcher 行为或授权依据。
+
 状态：本地验证器已实现并通过确定性测试。修正后的 2026-08-26 HEAD 已通过 Direct 和
 WebVPN 认证检查；更早的 2026-08-17、2026-08-23 结果仅作历史观察。
 
@@ -22,8 +24,7 @@ just verify-live feature=auth route=webvpn
 ```
 
 这些显式命令使用隐藏的锁定路线诊断入口，独立建立每条路线的证据。历史
-`mode=direct|webvpn` 形式仅保留为兼容别名。只读全量和 `auto` 验证改为执行聚合登录，并要求
-原子 Direct/WebVPN 协调器使两个槽位都就绪。
+`mode=direct|webvpn` 形式仅保留为兼容别名。当时的聚合验证描述保留作历史证据；现行 verify-live/core-live 拒绝 `auto`，只接受显式 Direct/WebVPN，不据此改变 Core 聚合登录合同。
 
 绝不要把原始输出、会话文件、Cookie、上游验证材料或完整资料字段附加到 issue 或提交中。
 

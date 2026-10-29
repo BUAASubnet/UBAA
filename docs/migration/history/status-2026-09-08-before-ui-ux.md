@@ -4,7 +4,7 @@
 
 ## 当前活动阶段：可维护性治理
 
-当前活动合同为[可维护性治理](../../goal.md)，设计和实施计划分别见[设计](../superpowers/specs/2026-09-07-maintainability-design.md)与[计划](../superpowers/plans/2026-09-07-maintainability.md)。本阶段处理错误传播、本地安全诊断、传输诊断、严格门禁和可共享交接证据。
+当前活动合同为[可维护性治理](goal-2026-09-08-before-ui-ux.md)，设计和实施计划分别见[设计](../superpowers/specs/2026-09-07-maintainability-design.md)与[计划](../superpowers/plans/2026-09-07-maintainability.md)。本阶段处理错误传播、本地安全诊断、传输诊断、严格门禁和可共享交接证据。
 
 本轮本地可维护性治理已完成，最终实现内容为 `541981ea51a79044043b74cec3af0a32b5c35308`，详见[验收记录](evidence/2026-09-07-maintainability.md)。真实 App 与 Core-live 保持暂停。本轮不读取 `.env.local`、会话或实时响应，不执行真实学校写入、签名发布、设备安装或诊断上传。
 

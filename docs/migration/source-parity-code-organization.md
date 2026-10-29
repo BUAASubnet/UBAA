@@ -8,7 +8,7 @@
 
 冻结引用必须保持在 [`references.md`](references.md) 记录的提交：
 
-- `ubaa_old/ @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`；
+- `examples/ubaa_old/ @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`；
 - `examples/buaa-api/ @ efb7976bf513f38364b88aeb83d704586cff9b2a`。
 
 ## 执行边界

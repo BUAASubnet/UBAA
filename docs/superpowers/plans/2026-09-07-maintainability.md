@@ -1,3 +1,5 @@
+> 历史计划：文中 goal.md、授权与门禁均描述当时任务。当前阶段目标见[goal.md](../../../goal.md)，长期规则见 [AGENTS](../../../AGENTS.md)，当前检查清单见[开发命令](../../development/commands.md)。
+
 # 可维护性治理实施计划
 
 > 执行者使用 `superpowers:subagent-driven-development`；任务按边界实现和独立复审，用户已授权连续完成，无需逐阶段确认。

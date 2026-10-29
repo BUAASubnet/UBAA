@@ -29,30 +29,30 @@
 
 | 代号 | 文件与行号 | 本次用途 |
 |---|---|---|
-| A1 | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/auth/AuthApi.kt:41-55,98-117` | 本地认证接口明确有 `captcha` 与 `execution` 入参 |
-| A2 | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/Auth.kt:15-20,58-76,103-112` | 请求、验证码与预加载 DTO；relay 的 `clientId` 不能类比成上游参数 |
-| A3 | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt:402-448` | GET 登录页、预加载检测、取图与结果 |
+| A1 | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/auth/AuthApi.kt:41-55,98-117` | 本地认证接口明确有 `captcha` 与 `execution` 入参 |
+| A2 | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/Auth.kt:15-20,58-76,103-112` | 请求、验证码与预加载 DTO；relay 的 `clientId` 不能类比成上游参数 |
+| A3 | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt:402-448` | GET 登录页、预加载检测、取图与结果 |
 | A4 | 同文件 `451-550` | 提交前 GET、外部 execution 优先、验证码分支、激活与状态验证 |
 | A5 | 同文件 `624-746` | 图片 GET、JPEG 前缀、跳转、错误、旧版 WebVPN 后额外 Direct 登录 |
 | A6 | 同文件 `831-974` | `config.captcha`、execution、普通/验证码表单、错误与风险页解析 |
 | A7 | 同文件 `98-116,150-196,232-240,297-316` | 路线 Cookie 存储、匹配、客户端重定向与超时 |
-| A8 | `ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/auth/LoginScreen.kt:133-157,191-197,297-331` | 图片/答案/点击刷新/提交使能 |
-| A9 | `ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/auth/AuthViewModel.kt:87-190` | preload、刷新、提交及错误恢复的实际实现 |
-| A10 | `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalAuthServiceBackendTest.kt:361-402` | Direct 要求验证码的 Mock；图片内容是四个伪字节，不是有效 JPEG |
-| W1 | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalWebVpnSupport.kt:8-27,68-83,98-105` | WebVPN 包装及 Cgyy 固定 Direct 特例 |
+| A8 | `examples/ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/auth/LoginScreen.kt:133-157,191-197,297-331` | 图片/答案/点击刷新/提交使能 |
+| A9 | `examples/ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/auth/AuthViewModel.kt:87-190` | preload、刷新、提交及错误恢复的实际实现 |
+| A10 | `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalAuthServiceBackendTest.kt:361-402` | Direct 要求验证码的 Mock；图片内容是四个伪字节，不是有效 JPEG |
+| W1 | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalWebVpnSupport.kt:8-27,68-83,98-105` | WebVPN 包装及 Cgyy 固定 Direct 特例 |
 | E1 | `examples/buaa-api/src/api/sso/auth.rs:9-92` | 普通 SSO/VPN URL、固定表单、风险继续与成功判据；没有验证码分支 |
 | E2 | `examples/buaa-api/src/api/sso/mod.rs:20-24`；`src/context.rs:11-14,61-66,185-188,231-235,267-283` | 所有分组共享 Context、Cookie 与凭据；不等价于两条隔离 runtime |
 | E3 | `examples/buaa-api/src/request.rs:7-22` | UA、reqwest 默认跳转、Cookie provider；不可复制关闭证书校验的配置 |
 | E4 | `examples/buaa-api/src/store/cookies.rs:130-176,215-269,297-321`；`src/store/cred.rs:13-39,91-157` | Cookie/凭据可序列化存盘、原子更新与过期标记；没有挑战存储协议 |
 | E5 | `examples/buaa-api/src/error.rs:13-19,57-98,136-149,185-193` | Auth/Network/Parse/Server 分类及可能记录 raw 的路径；无等价 CLI exit 合同 |
-| L1 | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/CgyyApi.kt:33-39,81-83,133-135` | 无参数 `getLockCode`；relay 路径不是学校上游 URL |
-| L2 | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/Cgyy.kt:93-118,136` | 原始订单 DTO 与不透明 `CgyyLockCodeResponse.rawData` |
-| L3 | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyyApi.kt:207-243,448-455,636-805` | 主会话预检、用户级 client、GET 锁码、业务认证/请求/错误与一次重试 |
-| L4 | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyySigner.kt:9-53` | 固定 app-key、MD5 常量、字段过滤和 GET nocache |
-| L5 | `ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/cgyy/CgyyLockCodeScreen.kt:38-53,62-146,177-244` | 门锁显示、30 秒刷新及实际字段解析 |
-| L6 | `ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/cgyy/CgyyViewModel.kt:140-151,398-420`；`composeApp/src/commonTest/kotlin/cn/edu/ubaa/ui/CgyyViewModelTest.kt:164-203,404-407` | 加载标记、重复请求防护、缓存及失败保留旧值 |
-| L7 | `ubaa_old/composeApp/src/commonTest/kotlin/cn/edu/ubaa/ui/CgyyScreenLogicTest.kt:44-92` | `qrCode/dueDate/orderView` 与仅未来预约摘要两个正例 |
-| L8 | `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalCgyyApiBackendTest.kt:442-443,466-480`；`shared/src/commonTest/kotlin/cn/edu/ubaa/api/CgyyApiTest.kt:133-156` | `password` 字段仅验证原样透传，与 UI 所读字段不同 |
+| L1 | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/CgyyApi.kt:33-39,81-83,133-135` | 无参数 `getLockCode`；relay 路径不是学校上游 URL |
+| L2 | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/Cgyy.kt:93-118,136` | 原始订单 DTO 与不透明 `CgyyLockCodeResponse.rawData` |
+| L3 | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyyApi.kt:207-243,448-455,636-805` | 主会话预检、用户级 client、GET 锁码、业务认证/请求/错误与一次重试 |
+| L4 | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyySigner.kt:9-53` | 固定 app-key、MD5 常量、字段过滤和 GET nocache |
+| L5 | `examples/ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/cgyy/CgyyLockCodeScreen.kt:38-53,62-146,177-244` | 门锁显示、30 秒刷新及实际字段解析 |
+| L6 | `examples/ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/cgyy/CgyyViewModel.kt:140-151,398-420`；`composeApp/src/commonTest/kotlin/cn/edu/ubaa/ui/CgyyViewModelTest.kt:164-203,404-407` | 加载标记、重复请求防护、缓存及失败保留旧值 |
+| L7 | `examples/ubaa_old/composeApp/src/commonTest/kotlin/cn/edu/ubaa/ui/CgyyScreenLogicTest.kt:44-92` | `qrCode/dueDate/orderView` 与仅未来预约摘要两个正例 |
+| L8 | `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalCgyyApiBackendTest.kt:442-443,466-480`；`shared/src/commonTest/kotlin/cn/edu/ubaa/api/CgyyApiTest.kt:133-156` | `password` 字段仅验证原样透传，与 UI 所读字段不同 |
 | C1 | `crates/ubaa_core/src/upstream/mod.rs:27-89`；`src/auth/mod.rs:19-95,98-170,186-266` | 当前封闭交互拒绝、临时登录状态与普通认证链 |
 | C2 | `crates/ubaa_core/src/facade/auth.rs:15-80,88-102,153-181`；`src/domain/auth.rs:88-160` | 双路线固定顺序与旧序列化 envelope |
 | C3 | `crates/ubaa_flutter_bridge/src/api/client.rs:17,178-224,297-339,430-455` | 当前 Bridge v9、认证类型、整次异步锁与重开 |

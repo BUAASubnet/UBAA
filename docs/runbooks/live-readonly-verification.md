@@ -1,8 +1,8 @@
 # 真实只读验证运行手册
 
-真实验证的唯一网络入口是 Core-live。`verify-live` 只做参数白名单、凭据安全读取、临时会话目录、`cargo build --locked --bin core-live` 和一次 stdin 转发；`scripts/live/core-live.sh` 只负责启动已构建的二进制。二进制在一个固定路线 `RouteClient` 内登录一次并串行执行只读 facade，stdout 每行都是安全摘要，不包含 DTO、URL、Cookie、Token、验证码或个人资料。
+脚本化真实只读验证的网络执行程序是 Core-live，真实 App 验收另行记录。`verify-live` 只做参数白名单、凭据安全读取、临时会话目录、`cargo build --locked --bin core-live` 和一次 stdin 转发；`scripts/live/core-live.sh` 只负责启动已构建的二进制。二进制在一个固定路线 `RouteClient` 内登录一次并串行执行只读 facade，stdout 每行都是安全摘要，不包含 DTO、URL、Cookie、Token、验证码或个人资料。
 
-前置条件：`just refs`、`just check-sensitive` 和 `just check` 已通过；`.env.local` 仅包含非空 `UBAA_TEST_USERNAME`、`UBAA_TEST_PASSWORD`（兼容无前缀名称）。该文件被忽略，凭据不会复制、打印或写入参数。
+前置条件：按[统一验收清单](../development/commands.md#来源对照与真实验证)完成对应检查，并具有 [AGENTS 规定的当前会话授权](../../AGENTS.md#真实账号与验收范围)；`.env.local` 仅包含非空 `UBAA_TEST_USERNAME`、`UBAA_TEST_PASSWORD`（兼容无前缀名称）。该文件被忽略，凭据不会复制、打印或写入参数。
 
 ## Direct/WebVPN 矩阵
 
@@ -45,7 +45,7 @@ RUST_LOG='ubaa::cgyy=debug' just verify-live feature=cgyy route=direct
 RUST_LOG='ubaa::cgyy=debug' just verify-live feature=cgyy route=webvpn
 ```
 
-日志只允许操作名、方法/路径、脱敏参数键与长度、状态码、最终主机/路径、响应长度/哈希和稳定错误码；不得使用全局 `trace`，不得记录用户名、密码、Cookie、业务令牌、签名、验证码、查询值或正文。WebVPN 的每个 Cgyy 操作都必须使用 facade 解析出的 WebVPN runtime，不能回退 Direct。
+诊断字段严格采用[统一日志脱敏规则](../development/conventions.md#日志与诊断脱敏)，不得直接共享原始 stderr。WebVPN 的每个 Cgyy 操作都必须使用 facade 解析出的 WebVPN runtime，不能回退 Direct。
 
 ## 记录失败
 

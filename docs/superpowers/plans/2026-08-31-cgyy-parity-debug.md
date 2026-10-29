@@ -1,3 +1,5 @@
+> 历史计划：文中 goal.md、授权与门禁均描述当时任务。当前阶段目标见[goal.md](../../../goal.md)，长期规则见 [AGENTS](../../../AGENTS.md)，当前检查清单见[开发命令](../../development/commands.md)。
+
 # Cgyy 路由与真实只读入口执行记录
 
 本记录对应 `goal.md` 本周期合同，协议事实来自冻结 `ubaa_old`、固定版本

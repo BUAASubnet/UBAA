@@ -24,7 +24,7 @@
 
 ## 登录页项目入口与选项点击范围
 
-冻结 `ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/auth/LoginScreen.kt:227–236` 的项目文本具有clickable，并将固定公开项目地址交给LocalUriHandler；当前 `packages/ubaa_ui/lib/src/app/login.dart` 对应位置只有Text，无点击回调。当前About页已有typed `AppLink.project`、宿主 `PlatformAppInformation.open` 与系统浏览器能力；恢复登录入口复用该白名单和已有失败反馈，不由UI拼学校URL、不携带账号或会话、不触发登录。
+冻结 `examples/ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/auth/LoginScreen.kt:227–236` 的项目文本具有clickable，并将固定公开项目地址交给LocalUriHandler；当前 `packages/ubaa_ui/lib/src/app/login.dart` 对应位置只有Text，无点击回调。当前About页已有typed `AppLink.project`、宿主 `PlatformAppInformation.open` 与系统浏览器能力；恢复登录入口复用该白名单和已有失败反馈，不由UI拼学校URL、不携带账号或会话、不触发登录。
 
 同一冻结LoginScreen的两个选项Row可点击，Checkbox另有回调；当前_LoginOptions的文字没有动作。应使文字与复选框等价、一次点击只触发一次更改，busy/能力不可用时整行保持禁用。示例项目是API库，没有项目链接或复选框交互；两项均无学校HTTP、重定向、Cookie、加密或DTO变更，也不新增网络读取缓存。外链目标沿现有AppLink公开常量，失败不能静默无效。
 

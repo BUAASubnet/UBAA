@@ -1,3 +1,20 @@
+# 协议来源对照与专项索引
+
+## 当前规则与冻结版本
+
+适用范围为所有认证、读取或写入功能变更；双来源读取范围、逐操作列、冲突停止、禁止类比与 TDD 要求只由 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)定义。真实只读验证不能证明真实写入成功，历史记录也不能提供当前授权。
+
+当前物理路径与固定提交以 [references.md](references.md)为准，2026-10-29 `just refs` 已确认：
+
+| 来源 | 固定提交 |
+|---|---|
+| `examples/ubaa_old/` | `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` |
+| `examples/buaa-api/` | `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` |
+
+这两个来源已在 2026-09-17 的 `f63e6d060059beaa68a4b9372c393ea56e3a4c61` 换钉；经过见[决策记录](decision-log.md#2026-10-29阶段-2-统一权威来源与规范)。本轮仅校正声明，未修改冻结目录或脚本固定值。下方与专项中的旧 SHA、旧候选、当时不适用项及来源例外均保留历史含义，不自动成为当前实现依据；引用前必须按当前来源重新核对所改操作。
+
+路径前缀统一写为 `examples/ubaa_old/` 与 `examples/buaa-api/`。旧来源内部的相对文件名仍相对该来源根目录，行号对应原记录版本。补充旧源例外仍须有明确决策，不能扩展为任意本机来源。
+
 ## 2026-10-26 博雅详情与选课
 
 详情空报名人数的双来源对照、列表人数展示和写前复核规则见[博雅修复记录](bykc-detail-2026-10-26.md)。
@@ -14,7 +31,7 @@
 
 所需路线恢复的新 facade 合同实施前对照见 [逐操作记录](source-parity-offline-recovery-2026-09-17.md)；旧双路线和 CLI 语义保留。缓存和 Judge 其余范围尚待逐项完成，不由认证对照覆盖。
 
-# 协议来源对照矩阵
+## 逐操作历史矩阵
 
 ## 2026-09-17 首页加载调度
 
@@ -27,11 +44,10 @@
 
 更新日期：2026-09-04
 
-本文件逐操作审计行为。`旧版` 指冻结的 `ubaa_old/` 提交
-`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`；`示例` 指固定的
-`examples/buaa-api/` 提交 `efb7976bf513f38364b88aeb83d704586cff9b2a`。每个单元格均记录两份
-来源与 UBAA 2 决策。标记为不等价的来源不得通过类比提供 URL、字段、加密或错误语义。只有在
-决策日志记录脱敏观察后，实时证据才可以取代冻结协议事实。
+以下 2026-09-04 及更早的矩阵原始取证版本为旧版
+`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e` 和示例
+`efb7976bf513f38364b88aeb83d704586cff9b2a`。这些 SHA 保留历史取证含义，不是当前冻结声明。
+后续专项按各自日期和提交记录；本轮未重新逐列验证历史矩阵，不将历史结果改称当前冻结版本已通过。
 
 2026-09-03 的复杂业务模块目录化另见
 [`source-parity-code-organization.md`](source-parity-code-organization.md)。该记录只授权在现有逐操作
@@ -39,8 +55,7 @@
 重新取证和执行 TDD，不得以结构整理为由推断行为。
 
 历史记录（2026-08-29）：当时的 `verify-live` 曾按独立 CLI 子操作执行，并有一笔单独授权的
-Cgyy Direct 写探针。本记录仅保留来源证据，不属于当前执行合同；当前唯一真实网络入口是
-`core-live`，只验证 Direct 和 WebVPN 的读操作，任何写操作均只做 Mock/Fixture 验证。
+Cgyy Direct 写探针。本记录仅保留来源证据，不属于当前执行合同；现行脚本化只读验证由 `core-live` 执行，真实 App 验收单独记录。当前授权规则见 [AGENTS](../../AGENTS.md#真实账号与验收范围)，此历史探针不授权任何新的真实操作。
 
 2026-09-01 bridge 写入边界复核（Cgyy/Ygdk）：本轮只修改 Flutter bridge 的本地输入校验和
 intent 摘要规范化，没有改变 Core facade、上游 URL、HTTP 方法、验证码挑战、正文或错误协议。
@@ -69,7 +84,7 @@ Bykc 已选课程解析修复：冻结 `LocalBykcApi` 的 `queryChosenCourse` �
 兼容形状；`features/bykc.rs` 单元测试先复现旧实现失败，再验证 `id`、`courseInfo.id`
 和列表长度。2026-08-29 Direct、WebVPN、auto 的 Bykc 逐项复测均退出 0。
 
-生产代码变更前，每个认证或只读操作都必须填写下方九列。
+生产代码变更前，所有认证、读取或写入功能都遵守 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)，不能用历史矩阵代替本次逐操作核对。
 
 ## Flutter bridge 产品投影
 
@@ -314,7 +329,7 @@ DTO/解析器只解码 `WeeklyScheduleResponse.datas`，不要求两者相等。
 
 取消操作的直接 Facade 证据：`RouteClient::cgyy_cancel_order` 已补齐正数订单校验，并通过合成传输断言 `/api/orders/new/cancel/{id}` 的 POST 签名请求；不跨路线复用令牌，也不执行真实取消。
 
-冻结 `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyyApi.kt` 的 `submitReservation` 要求先读取 `/api/reservation/day/info`，取得预约上下文 `token`，校验所有选择属于同一空间且时段可预约，再以表单 POST `/api/reservation/order/info` 创建订单上下文。验证码获取与校验分别使用 `/api/captcha/get`、`/api/captcha/check`，旧实现由注入的验证码求解器提供 `pointJson` 和 `captchaVerification`。旧版 `repeat(3)` 实际捕获验证码链和最终 `/api/reservation/order/submit` 的任意异常，底层认证层还可重放最终 POST；它不是安全的“只重试验证码”证据。最终表单字段为 `venueSiteId`、`reservationDate`、`reservationOrderJson`、`weekStartDate`、`phone`、`theme`、`purposeType`、`joinerNum`、`activityContent`、`joiners`、`isPhilosophySocialSciences`、`isOffSchoolJoiner`、`captchaVerification`、`token`。Phase 11G 只允许在最终发送前最多三轮挑战/校验，最终 submit 恰好发送一次。CLI 默认禁止写操作，`verify-live` 永远只读，独立用户授权例外另行记录。`examples/buaa-api` 未提供同一场馆预约协议，未借用其 URL、字段或错误语义。
+冻结 `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyyApi.kt` 的 `submitReservation` 要求先读取 `/api/reservation/day/info`，取得预约上下文 `token`，校验所有选择属于同一空间且时段可预约，再以表单 POST `/api/reservation/order/info` 创建订单上下文。验证码获取与校验分别使用 `/api/captcha/get`、`/api/captcha/check`，旧实现由注入的验证码求解器提供 `pointJson` 和 `captchaVerification`。旧版 `repeat(3)` 实际捕获验证码链和最终 `/api/reservation/order/submit` 的任意异常，底层认证层还可重放最终 POST；它不是安全的“只重试验证码”证据。最终表单字段为 `venueSiteId`、`reservationDate`、`reservationOrderJson`、`weekStartDate`、`phone`、`theme`、`purposeType`、`joinerNum`、`activityContent`、`joiners`、`isPhilosophySocialSciences`、`isOffSchoolJoiner`、`captchaVerification`、`token`。Phase 11G 只允许在最终发送前最多三轮挑战/校验，最终 submit 恰好发送一次。CLI 默认禁止写操作，`verify-live` 永远只读，独立用户授权例外另行记录。`examples/buaa-api` 未提供同一场馆预约协议，未借用其 URL、字段或错误语义。
 
 Signin perform 已由 Rust Core 和 CLI 暴露。冻结的本地顺序为：取得 iClass 业务会话，GET `app/common/get_timestamp.action`，再向 `eschool/app/course/stu_scan_sign.action` 发送带用户 `id` 的表单，并携带 `courseSchedId`、`timestamp` 查询参数和 `sessionId` 请求头。CLI 要求 `--confirm-write`，verify-live 永远不会调用它。响应必须同时解析顶层 `STATUS/ERRMSG` 与嵌套 `result.stuSignStatus`：明确成功状态加 nested `1` 是确定成功，nested `0` 或明确业务失败是确定的 `success=false`；只有发送后畸形、非 JSON、认证跳转或 transport/Cookie 失败才是不可重放的 `outcome_unknown`。2026-09-03 审查确认当时 Core 错把 course ID 放入表单并读取顶层 `stuSignStatus`，既有合成测试也固定了错误形状；这些内容只算待修 parity gap，不能继续作为通过证据。
 
@@ -641,7 +656,7 @@ URL、Service 值、重定向、Cookie/会话范围、方法、参数、请求�
 
 2026-08-31 WebVPN Cgyy HAR 交叉证据（`examples/BUAA-CGYY/d.buaa.edu.cn.cgyy.har`，仅读、未纳入提交）：浏览器完成 Cgyy SSO 后，`manageLogin` 经两次 302 到 `/venue-zhjs`；响应没有 `Set-Cookie`。随后 WebVPN 网关的只读接口 `GET /wengine-vpn/cookie` 使用 `method=get`、`host=cgyy.buaa.edu.cn`、`scheme=https`、`path=/venue-zhjs` 和当前 `vpn_timestamp` 查询参数，返回纯文本 Cookie 快照，快照仅包含 `_zte_fp_`、`sso_buaa_zhjs_token`、`logout_flag` 等名称。前端从快照取得 `sso_buaa_zhjs_token`，向 WebVPN 包装后的 `POST /venue-zhjs-server/api/login` 发送 `Sso-Token`、`app-key`、`timestamp`、`sign`，成功信封仍为 `code/data/message`，`data.token` 含 `access_token`；随后浏览器以 `roleid` 表单和 `cgAuthorization` 访问 `roleLogin`，再以 `cgAuthorization` 读取 `website/init` 等接口。HAR 未提供 `examples/buaa-api` 的等价 Cgyy 实现，也不改变冻结旧版的 Direct URL、参数、签名或错误语义；它只补充 WebVPN 网关 Cookie 同步适配。Core 通过先失败的脱敏 Mock `webvpn_从网关_cookie接口取得_cgyy_sso令牌` 固化该行为，令牌仅在内存中作为 `Sso-Token` 使用，不写入 Session、日志或文件。
 
-`examples/buaa-api` 在锁定提交中未实现 `venue-zhjs-server` 场馆预约协议，因此没有提供 URL、字段、令牌或错误语义；以上所有协议值均来自冻结 `ubaa_old/shared/.../CgyyApi.kt`、`LocalCgyyApi.kt`、`LocalCgyySigner.kt` 及对应服务测试。取消、锁码和预约提交已分别接入 Core/CLI 或 Core；预约提交现在还会按冻结协议 POST `/api/captcha/check`，发送 `pointJson` 与验证码挑战 `token`，并要求响应 `data.success=true` 后才提交最终表单。验证码挑战 GET 的 `captchaType=blockPuzzle`、`clientUid=slider-<毫秒时间>`、`ts=<毫秒时间>` 参数及 `secretKey/token/originalImageBase64/jigsawImageBase64` 解析已固化测试；受控图像求解器已迁移到 Core，实时验证永不调用写操作。锁码原始 `data` 只在 Core 请求解析的短生命周期内使用，facade 与 CLI 均仅返回 `{available: boolean}`，避免打印或持久化锁码内容。
+`examples/buaa-api` 在锁定提交中未实现 `venue-zhjs-server` 场馆预约协议，因此没有提供 URL、字段、令牌或错误语义；以上所有协议值均来自冻结 `examples/ubaa_old/shared/.../CgyyApi.kt`、`LocalCgyyApi.kt`、`LocalCgyySigner.kt` 及对应服务测试。取消、锁码和预约提交已分别接入 Core/CLI 或 Core；预约提交现在还会按冻结协议 POST `/api/captcha/check`，发送 `pointJson` 与验证码挑战 `token`，并要求响应 `data.success=true` 后才提交最终表单。验证码挑战 GET 的 `captchaType=blockPuzzle`、`clientUid=slider-<毫秒时间>`、`ts=<毫秒时间>` 参数及 `secretKey/token/originalImageBase64/jigsawImageBase64` 解析已固化测试；受控图像求解器已迁移到 Core，实时验证永不调用写操作。锁码原始 `data` 只在 Core 请求解析的短生命周期内使用，facade 与 CLI 均仅返回 `{available: boolean}`，避免打印或持久化锁码内容。
 
 验证码位移凭据的加密已由 Core 提供：输入冻结挑战 `secretKey`、`token` 和外部图像求解器得到的横向位移，输出 AES-ECB/PKCS#7 的 `pointJson` 与 `captchaVerification`；确定性 golden 向量已覆盖 16 字节密钥。Rust 现已使用受控 PNG/JPEG 解码复刻旧版灰度、边缘、掩码和滑动匹配算法，挑战缺失或图片解析失败会失败关闭。Phase 11G 将“最多三轮”严格限定为最终发送前的挑战获取、求解与校验；最终 submit 不属于该循环。此前段落中的“求解端口尚未迁移”仅为历史记录，当前实现已完成该 Core 算法；WebVPN 场馆业务现在和其它公共操作一样使用 facade 解析出的 WebVPN runtime，日期/订单/锁码的实时失败仍单独保留，不能由会话路由问题替代解释。
 
@@ -822,3 +837,58 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 ## 2026-10-25：iHome 补充旧版来源
 
 两份冻结源没有 iHome。依用户要求采用旧版主仓库已提交实现，逐操作认证、读取与切换写入矩阵，以及真实和合成证据见 [iHome 来源对照](source-parity-ihome-2026-10-25.md)。冻结引用保持不变。
+
+## 全部来源对照专项
+
+以下列出本目录全部 source-parity 专项。索引不声明其内容已按当前冻结版本重新验收，具体日期、来源与结论以各记录为准。
+
+- [source-parity-android-widgets-2026-10-03](source-parity-android-widgets-2026-10-03.md)
+- [source-parity-auth-2026-10-21](source-parity-auth-2026-10-21.md)
+- [source-parity-code-organization](source-parity-code-organization.md)
+- [source-parity-consolidation-2026-10-01](source-parity-consolidation-2026-10-01.md)
+- [source-parity-dependency-reuse](source-parity-dependency-reuse.md)
+- [source-parity-desktop-photo-2026-10-02](source-parity-desktop-photo-2026-10-02.md)
+- [source-parity-engineering-dart-2026-10-07](source-parity-engineering-dart-2026-10-07.md)
+- [source-parity-engineering-platform-2026-10-07](source-parity-engineering-platform-2026-10-07.md)
+- [source-parity-engineering-rust-2026-10-07](source-parity-engineering-rust-2026-10-07.md)
+- [source-parity-entry-modules](source-parity-entry-modules.md)
+- [source-parity-gsmis-2026-10-02](source-parity-gsmis-2026-10-02.md)
+- [source-parity-home-calendar-2026-10-25](source-parity-home-calendar-2026-10-25.md)
+- [source-parity-home-concurrency-2026-10-29](source-parity-home-concurrency-2026-10-29.md)
+- [source-parity-home-exams-2026-10-25](source-parity-home-exams-2026-10-25.md)
+- [source-parity-home-loading-2026-09-17](source-parity-home-loading-2026-09-17.md)
+- [source-parity-home-performance-2026-10-29](source-parity-home-performance-2026-10-29.md)
+- [source-parity-ihome-2026-10-25](source-parity-ihome-2026-10-25.md)
+- [source-parity-infinite-lists-2026-10-26](source-parity-infinite-lists-2026-10-26.md)
+- [source-parity-interactive-integration-2026-10-02](source-parity-interactive-integration-2026-10-02.md)
+- [source-parity-judge-2026-10-23](source-parity-judge-2026-10-23.md)
+- [source-parity-judge-performance-2026-10-24](source-parity-judge-performance-2026-10-24.md)
+- [source-parity-libbook-auto-seats-2026-10-25](source-parity-libbook-auto-seats-2026-10-25.md)
+- [source-parity-maintainability-transport](source-parity-maintainability-transport.md)
+- [source-parity-maintainability](source-parity-maintainability.md)
+- [source-parity-offline-recovery-2026-09-17](source-parity-offline-recovery-2026-09-17.md)
+- [source-parity-order-detail-2026-10-03](source-parity-order-detail-2026-10-03.md)
+- [source-parity-quality-2026-10-11](source-parity-quality-2026-10-11.md)
+- [source-parity-schedule-default-2026-10-23](source-parity-schedule-default-2026-10-23.md)
+- [source-parity-signin-2026-09-17](source-parity-signin-2026-09-17.md)
+- [source-parity-statistics-defaults](source-parity-statistics-defaults.md)
+- [source-parity-ui-academic-old](source-parity-ui-academic-old.md)
+- [source-parity-ui-bykc-details](source-parity-ui-bykc-details.md)
+- [source-parity-ui-bykc](source-parity-ui-bykc.md)
+- [source-parity-ui-campus](source-parity-ui-campus.md)
+- [source-parity-ui-classroom-old](source-parity-ui-classroom-old.md)
+- [source-parity-ui-coursework](source-parity-ui-coursework.md)
+- [source-parity-ui-grades](source-parity-ui-grades.md)
+- [source-parity-ui-home](source-parity-ui-home.md)
+- [source-parity-ui-libbook-dates](source-parity-ui-libbook-dates.md)
+- [source-parity-ui-login-options](source-parity-ui-login-options.md)
+- [source-parity-ui-macos-credentials](source-parity-ui-macos-credentials.md)
+- [source-parity-ui-navigation-actions](source-parity-ui-navigation-actions.md)
+- [source-parity-ui-photos](source-parity-ui-photos.md)
+- [source-parity-ui-profile](source-parity-ui-profile.md)
+- [source-parity-ui-reservations](source-parity-ui-reservations.md)
+- [source-parity-ui-route-lifecycle](source-parity-ui-route-lifecycle.md)
+- [source-parity-ui-schedule-old](source-parity-ui-schedule-old.md)
+- [source-parity-ui-sensitive-displays](source-parity-ui-sensitive-displays.md)
+- [source-parity-ui-telemetry-control](source-parity-ui-telemetry-control.md)
+- [source-parity-ui-ygdk](source-parity-ui-ygdk.md)

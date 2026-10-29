@@ -7,10 +7,7 @@
 Rust Core 负责协议事实、路由、会话/Cookie 作用域、密码学、解析、缓存和并发。生产宿主只能调用 facade
 或专用 bridge，不得检查上游响应、读取内部 Session、拼接 URL 或保存业务 Token。
 
-每个认证、读取和写入操作都必须在 `docs/migration/source-parity.md` 记录：引导/服务 URL、重定向/最终 URL、
-Cookie/Session/Token 作用域、HTTP 方法和精确参数、Header/正文、加密/签名、DTO/缺失值、缓存/并发/重试、
-错误/退出和产品语义。证据顺序是安全实时观察、冻结 `ubaa_old`、固定 `examples/buaa-api`；参考没有等价协议
-时记录“不适用”，发生冲突时停止该边界并写入 decision log。
+认证、读取或写入功能变更的双冻结来源、逐操作必填列、冲突停止条件与 TDD 顺序由 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)统一定义。当前固定目录和提交只以[冻结参考](../migration/references.md)为准，不能从历史记录继承版本或授权。门禁执行清单只在[开发命令](commands.md)维护。
 
 ## TDD 与变更边界
 
@@ -85,6 +82,10 @@ Mock、golden、simulator 或 CI artifact 不能证明签名、安装、实体�
 
 ## 安全与提交
 
-`ubaa_old/`、`examples/`、`.env.local`、Session、Cookie、Token、验证码、真实响应、个人资料、签名材料和构建
+`examples/ubaa_old/`、`examples/buaa-api/`、`.env.local`、Session、Cookie、Token、验证码、真实响应、个人资料、签名材料和构建
 缓存只读且不得进入 diff。提交前使用明确 pathspec 暂存，人工检查 staged 文件和内容，再运行
 `just check-sensitive`。禁止关闭 TLS、放宽 parser/lint、删除测试或手改生成文件来获得通过。
+
+## 日志与日常约定
+
+日志字段和敏感材料处理遵守[统一日志脱敏规则](conventions.md#日志与诊断脱敏)，命名、语言、依赖、版本和 ADR 采用[开发约定](conventions.md)。真实认证、读取、写入及发布的授权边界以 [AGENTS](../../AGENTS.md#真实账号与验收范围)为准，旧任务文档不能授权新的网络请求。

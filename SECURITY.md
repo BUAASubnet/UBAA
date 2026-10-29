@@ -1,7 +1,7 @@
 # 安全策略
 
-Do not submit passwords, cookies, tokens, authorization headers, captcha images, raw authentication responses, or complete personal records. `.env.local`, runtime state, live artifacts, and reference repositories are ignored by design.
+不得提交密码、Cookie、Token、Authorization 头、验证码图片、原始认证响应或完整个人资料。凭据文件、运行时材料和冻结参考始终遵守 [AGENTS 安全边界](AGENTS.md#安全边界)。
 
-CLI 必须通过不回显的终端输入或标准输入读取密码，绝不接受明文密码参数。会话文件只包含 Cookie、连接模式和非秘密时间戳，并限制当前用户访问。日志和普通输出必须遮盖手机号及证件号码。
+CLI 必须通过不回显的终端输入或标准输入读取密码，绝不接受明文密码参数。会话文件只包含 Cookie、连接模式和非秘密时间戳，并限制当前用户访问。产品中的必要个人字段显示按合同遮盖，共享日志、诊断和非业务输出还必须遵守[统一日志脱敏规则](docs/development/conventions.md#日志与诊断脱敏)。
 
 必须校验 TLS 证书。请私下向仓库维护者报告漏洞，不要在公开 issue 中附带敏感复现资料。

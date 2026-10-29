@@ -1,6 +1,6 @@
 # Flutter Bridge 合同
 
-状态：当前合同v42，离线首页与后台恢复任务仍在实施及验收。v9的Phase 11J/11K是typed写入和单一协调器的历史基线；当前版本、生成一致性及原生/真实App证据以实施区goal.md和迁移状态为准。实体设备与正式发布单独记录。
+状态：当前合同 v42。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。

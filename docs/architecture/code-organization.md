@@ -66,14 +66,12 @@ UI 模型与 callback 经构造参数传递。`part` 只用于同一局部 State
 
 ## 防止退化
 
-- `just layout-check`：受管手写源码每文件至多 1,000 行、每目录直属源码至多 16 个，包含 Python/CJS；FRB 与 Cargokit 排除规则保持。
-- `just module-check`：library 聚合规模、part 唯一归属和管理范围内导入/导出环。UI 上限 2,000 行，Bridge/Controller 上限 1,000 行，不允许靠增加部件绕过。
-- 当前规模以命令实时结果为准；旧整理计数见实施记录。依赖环必须按完整自有源码闭包验证，局部目录无环不等于整个包无环。
-- `just integration-check`：实际入口与清单双向一致，递归检查辅助文件中的真实账号标记；真实和人工入口不得进入默认 CI。
-- `just flutter-check`：公开 API 编译、类型、内部成员边界、行为与 golden；FRB 零漂移由 `just flutter-codegen-check` 独立验证。
+结构和验证入口统一见[开发命令](../development/commands.md)，本节只定义组织约束。受管手写源码每文件至多 1,000 行、每目录直属源码至多 16 个，包含 Python/CJS；FRB 与 Cargokit 排除规则保持。library 聚合规模、part 唯一归属和管理范围内导入/导出环必须同时检查，UI library 上限 2,000 行，Bridge/Controller 上限 1,000 行，不允许靠增加部件绕过。
 
-阈值是防线，代码定位和状态所有权仍需评审。小领域保持平铺；机械移动、行为修改、生成输出和 golden 更新分别审查。认证/读取行为变化继续先做双来源对照和 RED→GREEN。
+当前规模以命令实时结果为准，旧整理计数见实施记录。依赖环必须按完整自有源码闭包验证，局部目录无环不等于整个包无环。原生入口与清单保持双向一致，辅助文件中的真实账号标记也必须检查，真实和人工入口不得进入默认 CI。公开 API 编译、类型、内部成员边界、行为、golden 与 FRB 生成一致性均保留独立覆盖。
+
+阈值是防线，代码定位和状态所有权仍需评审。小领域保持平铺；机械移动、行为修改、生成输出和 golden 更新分别审查。认证、读取或写入功能变更遵守 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)。
 
 ## 文档与证据
 
-`goal.md` 是当前合同，`migration/status.md` 是最新状态；`architecture/`、`development/` 只承载现行规范和操作。历史流水进入 `migration/history`，新决策进入 `adr`。历史验收媒体在仓库外，元数据按[批次索引](../design/evidence/batches.md)定位；默认源码检索使用 `just source-files` 或限定源码目录的 `rg`。
+[AGENTS.md](../../AGENTS.md) 是长期规则入口，`goal.md` 只记录当前阶段目标，`migration/status.md` 记录验证状态；`architecture/`、`development/` 只承载现行规范和操作。历史流水进入 `migration/history`，新决策进入 `adr`。历史验收媒体在仓库外，元数据按[批次索引](../design/evidence/batches.md)定位；默认源码检索使用 `just source-files` 或限定源码目录的 `rg`。

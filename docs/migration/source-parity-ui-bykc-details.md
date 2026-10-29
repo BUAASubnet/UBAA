@@ -59,26 +59,26 @@ UI 通过 `onLoadBykcFilters/onSaveBykcFilters` 在确认账号后恢复，编�
 ## 1. 约束与来源索引
 
 
-goal.md第9条已明确允许本专项有来源的typed只读补齐；尚未发布候选统一为 Bridge v10，CLI v10、Session v2、配置 v1 与写入确认权威保持。审计时生产 Bridge 常量仍为 9（crates/ubaa_flutter_bridge/src/api/client.rs:17）；“候选 v10”是本次变更目标，不能写成当前已实现。CLI 常量在 apps/ubaa_cli/src/io/schema.rs:19，Session 在 crates/ubaa_core/src/session/types.rs:97，配置在 crates/ubaa_core/src/config.rs:74–95。
+当时任务允许本专项有来源的 typed 只读补齐，该历史范围不提供当前授权；长期要求见 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)。尚未发布候选统一为 Bridge v10，CLI v10、Session v2、配置 v1 与写入确认权威保持。审计时生产 Bridge 常量仍为 9（crates/ubaa_flutter_bridge/src/api/client.rs:17）；“候选 v10”是本次变更目标，不能写成当前已实现。CLI 常量在 apps/ubaa_cli/src/io/schema.rs:19，Session 在 crates/ubaa_core/src/session/types.rs:97，配置在 crates/ubaa_core/src/config.rs:74–95。
 
 下文定位均相对此工作树；O 前缀统一为 ubaa_old @ 6e75e120a26b0eefb3ab4a6f8251d1230db4a62e；E 前缀统一为 examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a。
 
 | 简称 | 精确源码路径 |
 |---|---|
-| O-API | ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/BykcApi.kt |
-| O-DTO | ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/Bykc.kt |
-| O-Local | ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalBykcApi.kt |
-| O-Crypto | ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalBykcCrypto.kt |
-| O-Connection | ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt |
-| O-WebVPN | ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalWebVpnSupport.kt |
-| O-BackendTest | ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalBykcApiBackendTest.kt |
-| O-Filter | ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/bykc/BykcCourseFilters.kt |
-| O-FilterTest | ubaa_old/composeApp/src/commonTest/kotlin/cn/edu/ubaa/ui/screens/bykc/BykcCourseFiltersTest.kt |
-| O-FilterStore | ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/storage/BykcCourseFilterStore.kt |
-| O-ListUI | ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/bykc/BykcCoursesScreen.kt |
-| O-DetailUI | ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/bykc/BykcCourseDetailScreen.kt |
-| O-ViewModel | ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/bykc/BykcViewModel.kt |
-| O-Navigation | ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/navigation/MainAppScreen.kt |
+| O-API | examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/BykcApi.kt |
+| O-DTO | examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/Bykc.kt |
+| O-Local | examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalBykcApi.kt |
+| O-Crypto | examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalBykcCrypto.kt |
+| O-Connection | examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt |
+| O-WebVPN | examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalWebVpnSupport.kt |
+| O-BackendTest | examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalBykcApiBackendTest.kt |
+| O-Filter | examples/ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/bykc/BykcCourseFilters.kt |
+| O-FilterTest | examples/ubaa_old/composeApp/src/commonTest/kotlin/cn/edu/ubaa/ui/screens/bykc/BykcCourseFiltersTest.kt |
+| O-FilterStore | examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/storage/BykcCourseFilterStore.kt |
+| O-ListUI | examples/ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/bykc/BykcCoursesScreen.kt |
+| O-DetailUI | examples/ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/bykc/BykcCourseDetailScreen.kt |
+| O-ViewModel | examples/ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/bykc/BykcViewModel.kt |
+| O-Navigation | examples/ubaa_old/composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/navigation/MainAppScreen.kt |
 | E-Core | examples/buaa-api/src/api/boya/core.rs |
 | E-Opt | examples/buaa-api/src/api/boya/opt.rs |
 | E-Data | examples/buaa-api/src/api/boya/data.rs |

@@ -1,6 +1,6 @@
 # Flutter 六平台交付与发布流程
 
-更新：2026-10-07。本文规定当前可执行流程，历史候选与旧测试数量见[归档](../migration/history/flutter-release-before-engineering-2026-10-07.md)。实际授权、路线及设备范围以 [goal.md](../../goal.md) 为准；当前工程整改不执行真实账号验证、签名或发布。
+更新：2026-10-07。本文规定当前可执行流程，历史候选与旧测试数量见[归档](../migration/history/flutter-release-before-engineering-2026-10-07.md)。当前阶段目标见 [goal.md](../../goal.md)，授权与安全规则见 [AGENTS](../../AGENTS.md#真实账号与验收范围)；历史任务不能授权新的账号请求、签名或发布。
 
 ## 候选与证据
 
@@ -12,22 +12,9 @@
 
 首次缺少冻结引用时显式执行 `just refs-bootstrap`；已有引用只运行 `just refs`。质量工具依赖由显式 `just quality-tools-bootstrap` 建立；首次用 `cargo fetch --locked` 预取所有目标、`just flutter-dependencies` 准备七包锁定源码。preflight 不隐式联网安装。官方 Flutter/OHOS、Rust、FRB 固定版本及路径见[平台矩阵](../architecture/flutter-platforms.md)。
 
-## 完整确定性门禁
+## 验收入口
 
-```bash
-just refs
-just layout-check
-just check-sensitive
-just check-strict
-just flutter-check
-CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
-just integration-test
-git diff --check
-```
-
-`check-strict` 强制固定 ShellCheck 并包含 Rust/CLI、Shell/Python、布局、依赖闭包、集成清单及合同检查；不能以明确跳过 ShellCheck 的宽松入口替代最终维护验收。Flutter/codegen/原生测试不是 Rust 门禁的隐含部分。
-
-默认 macOS 集成包含应用流程、合成 FFI 缓存、本地恢复和真实插件通道。网络插件读取/订阅只证明 handler 正常，不证明校园可达；普通偏好使用独立合成 scope 并清理。其余平台及设备按清单单独执行，不对整个 integration_test 通配运行。
+完整确定性清单、原生/发布候选的默认集成集合及平台专项只在[开发命令](../development/commands.md#检查选择与完成条件)维护。按该清单运行并保留实际结果；普通 Flutter、FRB 和原生测试分别记账。原生集合中的插件网络读取/订阅只证明 handler 行为，不证明校园可达。
 
 ## 无签名构建与交付材料
 
@@ -50,7 +37,7 @@ just release-preflight /仓库外绝对路径/ubaa-release-report
 
 ## 设备、真实路线与签名
 
-Android/iOS/OHOS实体机权限、前后台、网络订阅及安全材料写读删需要独立设备证据。Core-live/真实App只在当前合同明确允许的路线和只读范围内执行，空结果、静态回退与Mock不能当作真实按钮验收。真实写入必须有具体操作、目标、路线及时间授权；unknown立即停止，不重试。
+Android/iOS/OHOS实体机权限、前后台、网络订阅及安全材料写读删需要独立设备证据。Core-live/真实App只在当前会话用户已授权的路线和只读范围内执行，空结果、静态回退与Mock不能当作真实按钮验收。真实写入必须有具体操作、目标、路线及时间授权；unknown立即停止，不重试。
 
 正式签名、公证和上传只能在相应授权和环境满足后进行。签名材料由平台安全存储和隔离runner管理，不进入源码、argv、普通日志或artifact；发布前核对候选SHA、校验摘要、许可材料、安装/升级/卸载和平台权限。
 

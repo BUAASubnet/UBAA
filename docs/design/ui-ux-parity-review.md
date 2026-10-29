@@ -6,7 +6,7 @@
 
 本次 `git -C ubaa_old rev-parse HEAD` 与 `git -C examples/buaa-api rev-parse HEAD` 实际输出分别为 `6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`、`efb7976bf513f38364b88aeb83d704586cff9b2a`，与 `references.md` 一致。冻结目录完整纯校验由主执行代理记录。
 
-以下 `K` 指 `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/`，`T` 指 `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/`，`R` 指 `examples/buaa-api/src/`。文件名是具体来源定位，不是新增协议。旧版每个领域同时查 `api/feature/<领域>Api.kt`、`api/local/Local<领域>Api.kt`、`model/dto/<领域>.kt`；Evaluation 对应 `api/feature/EvaluationService.kt`、`api/local/LocalEvaluationService.kt`、`model/evaluation/EvaluationModel.kt`。测试对应 `T/Local<领域>ApiBackendTest.kt`，Evaluation 对应 `LocalEvaluationServiceBackendTest.kt`；Grade 的缓存测试为 `GradeScoreCacheStoreTest.kt`，不能声称其提供 HTTP 协议测试。
+以下 `K` 指 `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/`，`T` 指 `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/`，`R` 指 `examples/buaa-api/src/`。文件名是具体来源定位，不是新增协议。旧版每个领域同时查 `api/feature/<领域>Api.kt`、`api/local/Local<领域>Api.kt`、`model/dto/<领域>.kt`；Evaluation 对应 `api/feature/EvaluationService.kt`、`api/local/LocalEvaluationService.kt`、`model/evaluation/EvaluationModel.kt`。测试对应 `T/Local<领域>ApiBackendTest.kt`，Evaluation 对应 `LocalEvaluationServiceBackendTest.kt`；Grade 的缓存测试为 `GradeScoreCacheStoreTest.kt`，不能声称其提供 HTTP 协议测试。
 
 公共认证/传输来源：`K/api/auth/AuthApi.kt`、`K/api/local/LocalConnectionAuth.kt`、`K/api/local/LocalWebVpnSupport.kt`、`T/LocalAuthServiceBackendTest.kt`、`T/LocalAuthSessionStoreTest.kt`、`T/LocalCookieStoreTest.kt`、`T/LocalWebVpnSupportTest.kt`；独立 Rust 来源 `R/api/sso/auth.rs`、`R/api/user/{auth,opt}.rs`、`R/request.rs`、`R/context.rs`、`R/store/{cookies,cred}.rs`、`R/crypto/{aes,rsa}.rs`、`R/error.rs`。领域不等价时，不得从这组公共文件推导业务 URL、参数或令牌。
 

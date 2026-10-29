@@ -8,10 +8,10 @@
 
 | 层次 | 确切来源 | 已核对事实及限制 |
 |---|---|---|
-| 冻结 API | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/SigninApi.kt:11`、`:13`、`:33`、`:43` | getTodayClasses 返回今日 DTO；performSignin 参数为 courseId。没有通用 eligibility enum。 |
-| 冻结 DTO | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/Signin.kt:12`、`:15` | 明确 signStatus 0=未签到、1=已签到；课程安排 ID、课程名称、开始/结束时间、Int 状态。 |
-| 冻结本地 | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalSigninApi.kt:268`、`:280`；写结果`:153` | 今日从 id/courseName/classBeginTime/classEndTime/signStatus 映射；数字/数字字符串兼容。旧 flexibleIntValue 缺失/无法转整数返回0，此处不能照搬为UI默认未签到；当前 Core 已显式 unknown。提交结果才读取 result.stuSignStatus，不能把它当今日列表字段。 |
-| 冻结测试 | `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalSigninApiBackendTest.kt:64`、`:358`、`:408`、`:412`、`:470` | 今日数字0、字符串1→整数1；提交嵌套字符串1成功。证明字段兼容，不证明缺失状态可安全写入。 |
+| 冻结 API | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/SigninApi.kt:11`、`:13`、`:33`、`:43` | getTodayClasses 返回今日 DTO；performSignin 参数为 courseId。没有通用 eligibility enum。 |
+| 冻结 DTO | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/Signin.kt:12`、`:15` | 明确 signStatus 0=未签到、1=已签到；课程安排 ID、课程名称、开始/结束时间、Int 状态。 |
+| 冻结本地 | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalSigninApi.kt:268`、`:280`；写结果`:153` | 今日从 id/courseName/classBeginTime/classEndTime/signStatus 映射；数字/数字字符串兼容。旧 flexibleIntValue 缺失/无法转整数返回0，此处不能照搬为UI默认未签到；当前 Core 已显式 unknown。提交结果才读取 result.stuSignStatus，不能把它当今日列表字段。 |
+| 冻结测试 | `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalSigninApiBackendTest.kt:64`、`:358`、`:408`、`:412`、`:470` | 今日数字0、字符串1→整数1；提交嵌套字符串1成功。证明字段兼容，不证明缺失状态可安全写入。 |
 | examples 等价模块 | `examples/buaa-api/src/api/class/data.rs:119`、`:136`、`:157`、`:179`；`api/class/{core,opt}.rs` | Schedule.id 明确是签到用安排ID，另有 course_id 用于查课程；status 仅把字符串1/0转 bool，其它拒绝。没有 typed资格模型，不能借此把所有 denied 或 unknown 变成状态事实。examples 不是缺失，但入口/方法的历史差异按已有 parity 决策处理，本轮不改。 |
 | 当前 Core | `crates/ubaa_core/src/domain/signin.rs:8`；`features/signin.rs:456` | 原始值保留 Option<i32>；数字或数字字符串可解析且在i32范围内才保留。trim后非空id产生 target；(target,0)=allowed，(target,1)=denied，其它unknown。 |
 | 当前 Core 预检 | `crates/ubaa_core/src/features/signin.rs:77`、`:85`、`:94` | 每次以目标重读今日列表，恰一项才继续；目标消失/重复分别返回错误。只有 allowed 可准备写入；denied 明确不可重复签到，unknown 缺少必要字段。列表存在重复并不自动改每项eligibility，预检才挡重复，UI不可推断成功。 |

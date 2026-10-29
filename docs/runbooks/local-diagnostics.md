@@ -34,5 +34,5 @@ macOS 的系统 network-outbound 拒绝等平台证据可以作为独立排障�
 - Bridge typed 错误使用穷尽枚举映射；兼容 JSON 只解析固定字段，未知路线归空。
 - 旧 includeTechnicalDetail 参数为兼容保留，但不再把外部 message 当作“已脱敏”内容保留。新增诊断只能扩充允许字段，不增加原始字符串出口。
 - 新错误场景先写从真实适配器或控制器到最终状态的失败测试，并检查原文不会进入 UI/日志/报告。
-- 工程验收使用 `just check-strict`；普通 `just check` 显示 ShellCheck SKIP 时，不计为完整静态检查。
-- 全量门禁、宿主 integration、本地回环和真实学校验证分别记账。当前真实 App/Core-live 仍暂停。
+- 工程验收遵守[统一门禁清单](../development/commands.md#检查选择与完成条件)，日志字段遵守[脱敏规则](../development/conventions.md#日志与诊断脱敏)。
+- 全量门禁、宿主 integration、本地回环和真实学校验证分别记账。真实 App/Core-live 按 [AGENTS 授权规则](../../AGENTS.md#真实账号与验收范围)运行，具体结果见[当前状态](../migration/status.md)。

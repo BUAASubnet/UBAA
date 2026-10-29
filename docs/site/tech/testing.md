@@ -1,17 +1,7 @@
 # 测试与质量
 
-工程使用脱敏 Fixture、Mock、Rust 测试、Dart 测试与界面回归检查。修改协议需要先比较冻结参考并建立失败反例，再实现修复。
+工程使用脱敏 Fixture、Mock、Rust、Dart 和界面回归检查。长期安全边界与来源对照要求见 [AGENTS](https://github.com/BUAASubnet/UBAA/blob/ubaa2/AGENTS.md)，当前阶段目标和已执行结果分别记录。
 
-日常改动用 `just check-plan` 规划范围，再运行对应检查。维护门禁、公共合同或跨模块整理还需完整的 Rust/Shell 与 Flutter 检查。
+本地门禁清单、check 与 check-strict 的区别、原生专项及 CI 实际范围统一在仓库的[开发命令](https://github.com/BUAASubnet/UBAA/blob/ubaa2/docs/development/commands.md)维护。测试设计、golden 和预览入口见[测试策略](https://github.com/BUAASubnet/UBAA/blob/ubaa2/docs/development/testing.md)，网站安装与构建命令也在同一命令清单中说明。
 
-```bash
-just refs
-just layout-check
-just check-sensitive
-just check
-just flutter-check
-```
-
-真实学校只读验证、实体设备、安装升级、签名与发布分别验收。模拟数据通过不能证明真实预约或提交已经成功。CI 不接收真实学校凭据。
-
-网站使用 `npm ci` 安装锁定依赖，运行 `npm run docs:build` 检查 Markdown 与站内链接，再用 `npm run docs:preview` 核对页面。
+真实学校读取、设备、安装升级、签名与发布分别验收。模拟数据通过不能证明真实预约或提交成功；学校请求按当前会话用户授权执行，CI 不接收真实凭据。

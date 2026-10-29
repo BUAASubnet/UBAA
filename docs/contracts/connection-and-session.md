@@ -5,7 +5,7 @@
 
 ## 证据映射
 
-| 行为 | 冻结证据 | Rust 覆盖 |
+| 行为 | 冻结证据或本地安全规则 | Rust 覆盖 |
 |---|---|---|
 | Direct URL 保持直连 | `LocalWebVpnSupport.kt::localUpstreamUrl` | `tests/connection.rs` |
 | WebVPN 网关为 `d.buaa.edu.cn` | `LocalWebVpnSupport.kt`、`VpnCipher.kt`、`examples/buaa-api/src/api/sso/auth.rs` | `tests/connection.rs` |
@@ -14,7 +14,7 @@
 | 保留路径、查询和片段 | 两份冻结 WebVPN 实现及测试 | 路径/查询/片段往返测试 |
 | 已包装 URL 保持不变 | 两份冻结 WebVPN 实现 | 幂等测试 |
 | 绝对、协议相对、根相对和路径相对跳转均从当前 URL 解析 | `LocalConnectionAuth.kt::resolveRedirectUrl` | 跳转表测试 |
-| 认证跳转仅允许 SSO、用户中心和网关主机 | `goal.md` 安全合同及实时观察 URL | 未验证主机拒绝测试 |
+| 认证跳转仅允许 SSO、用户中心和网关主机 | 本地安全策略 [AuthHostPolicy](../../crates/ubaa_core/src/connection.rs)，不从阶段目标继承协议事实 | [主机允许列表及未验证主机拒绝测试](../../crates/ubaa_core/src/connection/contract_tests.rs) |
 | 主机校验后只接受 HTTP 或 HTTPS 认证跳转 | `LocalConnectionAuth.kt::resolveRedirectUrl`、WebVPN 协议段测试 | 非 HTTP 跳转拒绝测试 |
 | Cookie 过滤域名、路径、Secure、过期时间并处理替换 | `LocalConnectionAuth.kt::PersistentLocalCookieStorage`、`LocalCookieStoreTest.kt`、`examples/buaa-api/src/store/cookies.rs` | `tests/cookies.rs` |
 | 显式失效清理会话，超时/5xx 保留会话 | `validateLocalConnectionSession`、`getAuthStatus` | `tests/session.rs` 策略测试 |

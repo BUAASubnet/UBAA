@@ -181,9 +181,9 @@ just flutter test test/write_coordinator_test.dart test/app_write_lifecycle_test
 
 ## 每批提交与最终门禁（P3–P7）
 
-每批完成聚焦 GREEN、适用实际渲染及修复后，从根执行 `just check-sensitive`、`just check`；检查暂存清单不含敏感/冻结/临时文件，只提交本批文件和证据。本计划不指定未经核实的提交 SHA，不使用 blanket git add。UI 不变的 Rust 检查可按合同覆盖关系记录，不能删现有测试缩减要求。
+每批完成聚焦 GREEN、适用实际渲染及修复后，按[统一清单](../development/commands.md#检查选择与完成条件)执行对应验收；检查暂存清单不含敏感/冻结/临时文件，只提交本批文件和证据。本计划不指定未经核实的提交 SHA，使用明确 pathspec。UI 不变的 Rust 检查可按合同覆盖关系记录，不能删现有测试缩减要求。
 
-最终按 `goal.md` 第六节运行 refs/layout/contract/check-strict/CLI E2E/flutter-check/codegen 与 macOS/Android/iOS-simulator/OHOS 无签名门禁；构建后用实际产物路径做 artifact-check。串行 Direct/WebVPN Core-live，生产 App 只读单独记录。真实账号受阻时保留精确 blocker，继续 fake 三端验收，不将假数据渲染写成真实上游成功。
+该历史计划的确定性、平台和真实验证入口现统一见[开发命令](../development/commands.md)，不再依赖会被替换的阶段章节。构建后检查实际产物，Direct/WebVPN Core-live 与生产 App 只读结果单独记录，并遵守当前会话授权。真实账号受阻时保留精确 blocker，继续 fake 三端验收，不将假数据渲染写成真实上游成功。
 
 84 项追踪：批次 1 覆盖 NAV-01 与所有查询连续性；批次 2 覆盖 AUTH/SET 与导航；批次 3 覆盖 SCH/EXM/GRD/ROOM/SPOC/JDG/SIG/EV；批次 4 覆盖 USR/BY/LIB/CG/YG；批次 5 覆盖全部 W/CAP；INT-01–08 保持不公开并由边界测试回归。图书馆跨日期关联与其他明确协议缺证据项保留阻塞；不能从清单删除以获得完整。
 

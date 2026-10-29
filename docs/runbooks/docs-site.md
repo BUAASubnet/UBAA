@@ -47,7 +47,7 @@ DOCS_BASE=/UBAA/ npm run docs:preview
 
 ## 分支改名
 
-将 `ubaa2` 改名为 `main` 时，同步把 `DOCS_PUBLISH_BRANCH` 改为 `main`，更新 Pages 环境的部署分支规则，并替换网站中指向源码 `blob/ubaa2`、`tree/ubaa2` 的链接。日常文档与功能变更在 `dev` 审查后合入 `main`。
+分支使用与提交遵守[开发约定](../development/conventions.md#分支与提交)，本手册不另设合并流程。若用户另行决定将 `ubaa2` 改名为 `main`，还须同步调整 `DOCS_PUBLISH_BRANCH`、Pages 环境的部署分支规则，以及网站中指向源码 `blob/ubaa2`、`tree/ubaa2` 的链接；这些发布设置不随文档修改自动变更。
 
 ## 依据
 

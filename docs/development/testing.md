@@ -2,18 +2,9 @@
 
 当前合同：CLI JSON schema v12；Flutter bridge contract v42。CLI 验证 human/JSON schema v12，版本常量、JSON Schema、Dart 接受版本与现行文档由 `just contract-version-check` 同步检查。旧升级流水见[历史指南](../migration/history/testing-before-2026-10-07.md)。
 
-## 按修改范围运行
+## 检查入口
 
-```bash
-just refs
-just flutter-test ubaa_app test/features/grades
-just flutter-test ubaa_ui test/features/grades
-just flutter-test ubaa_host test/recovery
-just module-check
-just integration-check
-```
-
-`flutter-test` 使用固定官方 SDK，仅运行指定包的普通 test 路径，不解析依赖、不选择设备或真实账号。首次准备依赖或完整分析时用 `just flutter-check`。Rust 聚焦回归使用 `cargo test --locked -p <crate> <过滤名>`；Core facade 注入需 `--features test-contract`，完整开启/关闭态由 `just core-test-contract` 验证。
+日常聚焦回归、完整确定性清单、原生专项、真实验证及 CI 的实际范围只在[开发命令](commands.md)维护。本页说明测试设计与证据边界。Dart/Flutter 调用遵守 [AGENTS 工具链规则](../../AGENTS.md#项目工具链入口)。
 
 ## 各层的独立责任
 
@@ -44,26 +35,16 @@ just integration-test synthetic/cache/bridge_test.dart macos macos
 人工巡检在 apps/ubaa_flutter 下单独启动，例如：
 
 ```bash
-flutter run -d macos -t integration_test/manual/app/flow_driver.dart
+just flutter run -d macos -t integration_test/manual/app/flow_driver.dart
 ```
 
 manual/live 永不进入默认 CI。真实只读的 environment 与 defines 见清单；启动测量 driver 还需独立材料空间和 `scripts/live/offline_startup/run.py` 的显式参数。不要对整个 integration_test 目录执行通配测试。截图和录屏进入仓库外私有目录。
 
-## 完整确定性门禁
+## 验收与真实账号
 
-```bash
-just refs
-just check-sensitive
-just check-strict
-just flutter-check
-CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
-just integration-test
-git diff --check
-```
+按[统一完成条件](commands.md#检查选择与完成条件)验收，不在本页另列清单。普通七包测试不能替代原生测试；golden 固定官方 SDK 与 macOS 渲染环境，更新后必须在非更新模式精确比较通过。构建、设备、Core-live、真实 App 与发布分别记账。
 
-check-strict 要求 ShellCheck 0.11.0；普通 check 缺少它时明确 SKIP。两者均包含 Rust/CLI、Shell/Python、结构、模块与入口清单检查。普通 Flutter 七包测试不能替代原生测试；golden 固定官方 SDK 与 macOS 渲染环境。构建、设备、Core-live、真实 App 和发布分别记账。
-
-真实只读遵循 goal.md 路线与授权边界；当前整改不主动发起真实账号验证。Fixture、Mock、空数据和 unavailable 不等于当前候选真实成功。实际结果见[当前状态](../migration/status.md)。
+真实账号授权与双路线要求见 [AGENTS](../../AGENTS.md#真实账号与验收范围)及[来源对照验收](commands.md#来源对照与真实验证)。Fixture、Mock、空数据和 unavailable 不等于当前候选真实成功，历史文档不提供新的授权。实际结果见[当前状态](../migration/status.md)。
 
 ### 全平台合成数据预览
 
@@ -72,11 +53,11 @@ check-strict 要求 ShellCheck 0.11.0；普通 check 缺少它时明确 SKIP。�
 在 `apps/ubaa_flutter` 中运行：
 
 ```sh
-flutter run -d <设备ID> -t integration_test/manual/preview/preview_driver.dart
-flutter run -d macos -t integration_test/manual/preview/preview_driver.dart --dart-define=UBAA_UI_STATE=many
+just flutter run -d <设备ID> -t integration_test/manual/preview/preview_driver.dart
+just flutter run -d macos -t integration_test/manual/preview/preview_driver.dart --dart-define=UBAA_UI_STATE=many
 ```
 
-相同入口适用于工程支持的 iOS、Android、macOS、Windows、Linux。设备 ID 通过 `flutter devices` 查询；桌面端也可使用 `macos`、`windows`、`linux`。各平台需要各自的 Flutter 原生构建环境。本入口仅在集成目录清单登记为 `manual`、`runner: run`、`ci: false`，不属于自动回归套件。
+相同入口适用于工程支持的 iOS、Android、macOS、Windows、Linux。设备 ID 通过 `just flutter devices` 查询；桌面端也可使用 `macos`、`windows`、`linux`。各平台需要各自的 Flutter 原生构建环境。本入口仅在集成目录清单登记为 `manual`、`runner: run`、`ci: false`，不属于自动回归套件。
 
 `UBAA_UI_STATE` 支持以下值：
 

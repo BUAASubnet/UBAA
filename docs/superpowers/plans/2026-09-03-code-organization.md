@@ -1,3 +1,5 @@
+> 历史计划：文中目标、授权与门禁均描述当时任务。当前规则见 [AGENTS](../../../AGENTS.md)，当前检查清单见[开发命令](../../development/commands.md)。
+
 # 代码与目录组织实施计划
 
 日期：2026-09-03
@@ -15,7 +17,7 @@ Just/Bash 引用合同差异，并显式固定 Flutter 视觉基线的 CI 宿主
 
 ## 1. 不可变条件
 
-- `ubaa_old/`、`examples/`、`.env.local`、运行会话、验证码、真实响应与凭据只读且不得暂存。
+- `examples/ubaa_old/`、`examples/`、`.env.local`、运行会话、验证码、真实响应与凭据只读且不得暂存。
 - 上游协议、公开 DTO、CLI schema、FRB schema、golden、用户文案、key、semantics 和网络调用顺序不得因
   文件移动而改变。本轮已登记例外是 Phase 11C 的行为合同：Bykc 未知签到状态需要破坏性 typed 表达，故
   CLI envelope 从 v2 显式升为 v3、bridge contract 从 v1 显式升为 v2；不得在旧版本号下静默改变字段，且

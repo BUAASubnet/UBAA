@@ -1,6 +1,6 @@
 # 旧版功能盘点与迁移缺口
 
-本文基于冻结提交 `ubaa_old/`（`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`）进行盘点。旧版目录只读；本文不包含账号、密码、Cookie、验证码图片或真实响应。路径、方法名和字段名保留代码原文，说明文字使用中文。
+本文基于冻结提交 `examples/ubaa_old/`（`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`）进行盘点。旧版目录只读；本文不包含账号、密码、Cookie、验证码图片或真实响应。路径、方法名和字段名保留代码原文，说明文字使用中文。
 
 实时验收以 `core-live` 的 Direct/WebVPN 只读逐操作结果为准；历史写探针仅作背景记录，不构成本周期验收，写操作不得在真实账号上执行。
 
@@ -25,8 +25,8 @@
 
 证据文件：
 
-- `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalSigninApi.kt`
-- `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/SigninApi.kt`
+- `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalSigninApi.kt`
+- `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/SigninApi.kt`
 
 本地查询先从 `LocalAuthSessionStore` 获取主认证，再按学生标识缓存 `LocalSigninSession`。业务请求使用 `https://iclass.buaa.edu.cn:8347/app/course/get_stu_course_sched.action`，请求头为 `sessionId`，查询参数为 `id` 与当前日期 `dateStr`。业务登录使用 `.../app/user/login.action`，登录名由 User Center/重定向结果解析；签到动作另外读取 `app/common/get_timestamp.action`，再提交 `eschool/app/course/stu_scan_sign.action`。Direct 与 WebVPN 通过 `localUpstreamUrl`/`localSigninCheckinUrl` 选择，失败时有会话失效和一次重试逻辑。
 
@@ -36,10 +36,10 @@
 
 测试证据：
 
-- `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalSigninApiBackendTest.kt`
-- `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/SigninLoginNameSupportTest.kt`
-- `ubaa_old/shared/src/jvmTest/kotlin/cn/edu/ubaa/api/LocalSigninRealIntegrationTest.kt`
-- `ubaa_old/server/src/test/kotlin/cn/edu/ubaa/signin/SigninClientTest.kt`
+- `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalSigninApiBackendTest.kt`
+- `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/SigninLoginNameSupportTest.kt`
+- `examples/ubaa_old/shared/src/jvmTest/kotlin/cn/edu/ubaa/api/LocalSigninRealIntegrationTest.kt`
+- `examples/ubaa_old/server/src/test/kotlin/cn/edu/ubaa/signin/SigninClientTest.kt`
 
 ### Signin：UBAA2 缺口与优先级
 
@@ -60,8 +60,8 @@ UBAA2 已提供 `signin` domain、iClass 独立业务会话、Core facade 和 `s
 
 证据文件：
 
-- `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalYgdkApi.kt`
-- `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/YgdkApi.kt`
+- `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalYgdkApi.kt`
+- `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/YgdkApi.kt`
 
 本地实现先通过 OAuth 重定向获取授权码，再调用 `https://ygdk.buaa.edu.cn/api/Front/Clockin/User/campusAppLogin`（参数 `code`）建立业务会话。查询链路调用：`Classify/getList`、`Item/getList`、`Clockin/getCount`、`Term/get`、`Clockin/getList`；记录查询带分页参数。提交链路还调用 `Upload/File/post` 上传照片，再调用 `Clockin/clockin`。会话按学生标识缓存并有统一过期重试/错误映射。
 
@@ -71,10 +71,10 @@ UBAA2 已提供 `signin` domain、iClass 独立业务会话、Core facade 和 `s
 
 测试证据：
 
-- `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalYgdkApiBackendTest.kt`
-- `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/YgdkApiTest.kt`
-- `ubaa_old/server/src/test/kotlin/cn/edu/ubaa/ygdk/YgdkRoutesTest.kt`
-- `ubaa_old/server/src/test/kotlin/cn/edu/ubaa/ygdk/YgdkServiceTest.kt`
+- `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalYgdkApiBackendTest.kt`
+- `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/YgdkApiTest.kt`
+- `examples/ubaa_old/server/src/test/kotlin/cn/edu/ubaa/ygdk/YgdkRoutesTest.kt`
+- `examples/ubaa_old/server/src/test/kotlin/cn/edu/ubaa/ygdk/YgdkServiceTest.kt`
 
 ### Ygdk：UBAA2 缺口与优先级
 
@@ -95,9 +95,9 @@ UBAA2 已提供 OAuth 业务会话、概览和记录分页的 Core/CLI 能力，
 
 证据文件：
 
-- `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalLibBookApi.kt`
-- `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalLibBookCrypto.kt`
-- `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalLibBookHttpClient.kt`
+- `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalLibBookApi.kt`
+- `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalLibBookCrypto.kt`
+- `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalLibBookHttpClient.kt`
 
 本地业务基址为 `https://booking.lib.buaa.edu.cn`，请求统一走 `/v4/`：`space/pick`（图书馆）、`Space/seat`（区域/座位）、`space/confirm`（确认）、`member/seat`（我的预约）等。登录先访问 `https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbooking.lib.buaa.edu.cn%2Fv4%2Flogin%2Fcas`，从最终 URL 解析 `cas` 票据，再调用 `login/user`。实现包含独立客户端缓存、Referer/Origin 头、CAS 重定向和加密预约负载映射。
 
@@ -107,11 +107,11 @@ UBAA2 已提供 OAuth 业务会话、概览和记录分页的 Core/CLI 能力，
 
 测试证据：
 
-- `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalLibBookApiBackendTest.kt`
-- `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/model/dto/LibBookBookingStatusTest.kt`
-- `ubaa_old/shared/src/jvmTest/kotlin/cn/edu/ubaa/api/LocalLibBookRealIntegrationTest.kt`
-- `ubaa_old/server/src/test/kotlin/cn/edu/ubaa/libbook/LibBookRoutesTest.kt`
-- `ubaa_old/server/src/test/kotlin/cn/edu/ubaa/libbook/LibBookServiceTest.kt`
+- `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalLibBookApiBackendTest.kt`
+- `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/model/dto/LibBookBookingStatusTest.kt`
+- `examples/ubaa_old/shared/src/jvmTest/kotlin/cn/edu/ubaa/api/LocalLibBookRealIntegrationTest.kt`
+- `examples/ubaa_old/server/src/test/kotlin/cn/edu/ubaa/libbook/LibBookRoutesTest.kt`
+- `examples/ubaa_old/server/src/test/kotlin/cn/edu/ubaa/libbook/LibBookServiceTest.kt`
 
 ### LibBook：UBAA2 缺口与优先级
 
@@ -132,9 +132,9 @@ UBAA2 已提供五类图书馆只读查询及独立路线业务会话，并将�
 
 证据文件：
 
-- `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyyApi.kt`
-- `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyySigner.kt`
-- `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyyCaptchaSupport.kt`
+- `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyyApi.kt`
+- `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyySigner.kt`
+- `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalCgyyCaptchaSupport.kt`
 
 本地基址为 `https://cgyy.buaa.edu.cn/venue-zhjs-server/`，纯查询上游路径为 `/api/front/website/venues`、`/api/codes`、`/api/reservation/day/info`、`/api/orders/mine`、`/api/orders/{id}`、`/api/orders/lock/code`。业务登录先经过 `sso/manageLogin`/前端站点，再调用 `/api/login` 取得 token 或 `access_token`。实现有按用户的客户端缓存、签名、状态映射和统一错误转换。预约提交流程额外包含 `/api/reservation/order/info`、验证码 `/api/captcha/get` 与 `/api/captcha/check`、`/api/reservation/order/submit`，因此不可视为查询。
 
@@ -144,13 +144,13 @@ UBAA2 已提供五类图书馆只读查询及独立路线业务会话，并将�
 
 测试证据：
 
-- `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalCgyyApiBackendTest.kt`
-- `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalCgyyCaptchaSolverTest.kt`
-- `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalCgyySignerTest.kt`
-- `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/model/dto/CgyyOrderStatusTest.kt`
-- `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/model/dto/CgyyOrderCancellationTest.kt`
-- `ubaa_old/server/src/test/kotlin/cn/edu/ubaa/cgyy/CgyyRoutesTest.kt`
-- `ubaa_old/server/src/test/kotlin/cn/edu/ubaa/cgyy/CgyyServiceTest.kt`
+- `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalCgyyApiBackendTest.kt`
+- `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalCgyyCaptchaSolverTest.kt`
+- `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalCgyySignerTest.kt`
+- `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/model/dto/CgyyOrderStatusTest.kt`
+- `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/model/dto/CgyyOrderCancellationTest.kt`
+- `examples/ubaa_old/server/src/test/kotlin/cn/edu/ubaa/cgyy/CgyyRoutesTest.kt`
+- `examples/ubaa_old/server/src/test/kotlin/cn/edu/ubaa/cgyy/CgyyServiceTest.kt`
 
 ### Cgyy：UBAA2 缺口与优先级
 
@@ -169,8 +169,8 @@ UBAA2 已提供场地、用途、日期、订单、详情和锁码的 Core/CLI �
 
 证据文件：
 
-- `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalBykcApi.kt`
-- `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalBykcCrypto.kt`
+- `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalBykcApi.kt`
+- `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalBykcCrypto.kt`
 
 本地客户端先访问 `https://bykc.buaa.edu.cn/sscv/cas/login`，再处理 `cas-login?token=` 重定向。查询调用加密的 `/sscv/{apiName}` 请求，课程选择等动作调用 `/system/course-select`。实现有按用户客户端缓存、AES/请求签名、登录重定向、分页筛选及签到配置解析。由于 `apiName` 在加密请求体中动态传递，冻结实现是确定具体方法和参数的唯一依据，后续不得凭经验拼接。
 
@@ -180,14 +180,14 @@ UBAA2 已提供场地、用途、日期、订单、详情和锁码的 Core/CLI �
 
 测试证据：
 
-- `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalBykcApiBackendTest.kt`
-- `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalBykcCryptoTest.kt`
-- `ubaa_old/server/src/test/kotlin/cn/edu/ubaa/bykc/BykcClientTest.kt`
-- `ubaa_old/server/src/test/kotlin/cn/edu/ubaa/bykc/BykcCryptoTest.kt`
-- `ubaa_old/server/src/test/kotlin/cn/edu/ubaa/bykc/BykcModelsTest.kt`
-- `ubaa_old/server/src/test/kotlin/cn/edu/ubaa/bykc/BykcRoutesTest.kt`
-- `ubaa_old/server/src/test/kotlin/cn/edu/ubaa/bykc/BykcServiceCacheTest.kt`
-- `ubaa_old/server/src/test/kotlin/cn/edu/ubaa/bykc/BykcServiceDetailTest.kt`
+- `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalBykcApiBackendTest.kt`
+- `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalBykcCryptoTest.kt`
+- `examples/ubaa_old/server/src/test/kotlin/cn/edu/ubaa/bykc/BykcClientTest.kt`
+- `examples/ubaa_old/server/src/test/kotlin/cn/edu/ubaa/bykc/BykcCryptoTest.kt`
+- `examples/ubaa_old/server/src/test/kotlin/cn/edu/ubaa/bykc/BykcModelsTest.kt`
+- `examples/ubaa_old/server/src/test/kotlin/cn/edu/ubaa/bykc/BykcRoutesTest.kt`
+- `examples/ubaa_old/server/src/test/kotlin/cn/edu/ubaa/bykc/BykcServiceCacheTest.kt`
+- `examples/ubaa_old/server/src/test/kotlin/cn/edu/ubaa/bykc/BykcServiceDetailTest.kt`
 
 ### Bykc：UBAA2 缺口与优先级
 

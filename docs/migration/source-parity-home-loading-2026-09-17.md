@@ -2,7 +2,7 @@
 
 ## 范围与实施前事实
 
-本轮只处理用户反馈的首页加载慢；`goal.md` 中暂停的完整 UI/UX 计划不恢复。
+本轮只处理用户反馈的首页加载慢；当时暂停的[完整 UI/UX 计划](history/goal-2026-09-17-before-offline-home.md)不恢复，该历史范围不提供当前授权。
 起始分支 `ubaa2`，保留既有 UI 与引用管理未提交修改。
 `just refs` 通过：旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，
 `buaa-api` 为 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。

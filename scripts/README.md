@@ -1,53 +1,26 @@
-# 脚本入口与副作用
+# 脚本结构与副作用
 
-所有稳定入口由仓库根 `justfile` 暴露；脚本内部按副作用分类。除 `bootstrap/` 和 `live/` 外，验证脚本不得主动
-访问真实上游。运行时凭据、会话、验证码、原始响应和签名材料不得写入仓库或 CI artifact。
+稳定命令及本地/CI 验收要求只在[开发命令](../docs/development/commands.md)维护，本页说明脚本布局与内部支持文件。工具配置遵守 [AGENTS 工具链规则](../AGENTS.md#项目工具链入口)，网络、缓存和生成副作用见[命令边界](../docs/development/commands.md#网络与写入边界)。
 
-| 分类 | 稳定 recipe | 脚本 | 网络与写入边界 |
-|---|---|---|---|
-| bootstrap | `just refs-bootstrap` | `bootstrap/references.sh` | 唯一允许联网并创建缺失冻结引用的入口；已有路径只校验，不覆盖、不拉取 |
-| bootstrap | `just quality-tools-bootstrap` | `bootstrap/quality-tools.sh` | 显式建立带版本/哈希锁的开发工具环境；日常检查不隐式安装 |
-| check | `just refs` | `check/references.sh` | 纯只读校验 remote、HEAD 和干净工作树；缺失时失败并提示 bootstrap |
-| check | `just layout-check` | `check/layout.sh` | 检查手写文件行数、目录拥挤度和 baseline；不访问网络或凭据 |
-| check | `just module-check` | `check/module_graph.py` | 在完整自有源码依赖闭包检查环，再按受管域检查尺寸/part；不支持的指令失败关闭 |
-| check | `just integration-check/list` | `check/integration_catalog.py` | 入口与登记双向检查、展示分类；不运行学校请求 |
-| tests | `just integration-test` | `check/integration_catalog.py` | 只选择已登记的普通原生集合；默认 CI 排除账号和人工入口 |
-| tests | `just flutter-test` | `tests/flutter-package.sh` | 固定官方 SDK 的按包/领域普通测试，不访问设备或账号 |
-| tests | `just script-test` | Python 门禁与离线统计合同 | 临时目录及合成样本，不创建真实学校客户端 |
-| check | `just contract-version-check` | `check/contract-versions.sh` | 纯静态交叉校验 CLI/Bridge 源码常量、JSON Schema、Dart 接受版本与当前文档声明 |
-| check | `just check-sensitive` | `check/sensitive.sh` | 分别扫描暂存 blob 与未忽略工作区候选；扫描工具/读取失败非零，不读取 `.env.local` 或运行会话 |
-| check | `just shell-check` / `just shell-check-strict` | `check/shell.sh` | 均运行 Bash 语法检查；宽松入口缺 ShellCheck 时报告 SKIP，严格入口固定要求 0.11.0 |
-| bootstrap | `just flutter-dependencies` | `check/flutter-workspace.sh dependencies` | 复用完整七包列表，仅准备锁定依赖，可访问依赖源，不运行测试 |
-| check | `just flutter-check` | `check/flutter-workspace.sh` | 官方 Flutter 依赖解析、Dart format、analyze 和 test；只访问依赖源 |
-| check | `just flutter-codegen-check` | `check/flutter-codegen.sh` | 重生成 FRB 后要求受跟踪生成目录零漂移 |
-| build | `just flutter-build` | `build/flutter.sh` | 构建明确官方平台；不签名、不安装、不访问真实账号 |
-| build | `just ohos-check` | `build/ohos.sh` | 检查 OHOS 工具链并构建 HAP；签名与无签名模式由显式环境控制 |
-| live | `just verify-live` | `live/verify.sh`、`live/core-live.sh` | 真实只读矩阵汇总入口；只允许 direct/webvpn，凭据仅经 stdin，真实写入需另行授权 |
-| live | `just core-live` | `live/core-live.sh` | 底层只读进程入口；显式路线、stdin 凭据与会话清理规则同上 |
-| release | `just release-preflight` | `release/preflight.sh` | 只使用纯 refs 校验并生成无凭据报告；要求工作树干净 |
-| release | `just flutter-artifact-check` | `release/verify-flutter-artifact.sh`、`release/macos-entitlements.sh` | 只读检查本地产物结构和摘要；macOS 正式入口固定系统签名/plist 工具读取实际权限并要求 Sandbox 与客户端联网，不签名、不安装 |
-| tests | `just check`、`just check-strict` | `tests/{layout,contract-versions,references,flutter-toolchains,maintenance-gates,live-launchers}.sh` | 临时目录内的确定性合同；严格入口要求 ShellCheck，不访问真实上游 |
-| tests | `just core-test-contract` | `tests/facade-test-contract.sh` 与根 recipe 中的 Cargo 测试 | 分别验证 Core 默认/测试注入配置及关闭态编译拒绝；不访问真实上游 |
+| 目录或文件 | 职责 |
+|---|---|
+| `bootstrap/` | 显式建立缺失冻结引用或带版本/哈希锁的 Python 质量环境 |
+| `check/` | 布局、目录、敏感材料、版本、工具链、依赖闭包、集成登记及按改动检查 |
+| `build/` | 官方 Flutter 平台与 OHOS HAP 构建 |
+| `live/` | 显式获授权的学校只读验证及离线启动测量，不提供真实业务写入入口 |
+| `release/` | 依赖/许可证、源码与产物摘要、macOS 权限和无签名发布前置报告 |
+| `tests/`、`tests/checks/` | 临时目录及合成样本中的门禁自测；Flutter 包测试运行器仍保留在 tests 中，分类调整留待后续阶段 |
+| `lib/` | 仓库根定位、live 功能白名单及唯一工具配置回退解析器，没有独立网络/凭据所有权 |
+| `tools/` | Python 质量环境定位/执行、锁定 requirements 和 CycloneDX schema 上游记录 |
+| `integration-tests.json` | 原生、人工和真实入口的类别、平台、runner、环境及 defines 登记 |
+| `layout-baseline.txt` | 既有精确结构违例，不得用新增基线掩盖问题 |
 
-`lib/repo.sh` 只提供从任意当前目录定位仓库根的函数；`lib/live-features.sh` 只提供两个 live 入口共同使用的
-功能白名单。两者没有独立 CLI，也不拥有网络或凭据。
+`check/dart_sources.py` 是 Dart 指令与源码依赖闭包解析支持；`changed_checks.py` 编排检查计划，`module_graph.py` 和 `integration_catalog.py` 复用解析结果。`sensitive.py` 分别读取 index 和工作区，工具/读取错误失败关闭，不读取被忽略凭据。
 
-`bash scripts/tests/flutter-toolchains.sh` 的八项合同使用临时假 SDK 与 Git，验证完整消费长输出、容纳
-冷启动下载进度，并拒绝缺失或错误版本行、版本前缀碰撞、错误 commit 和命令失败；不启动真实 SDK 或下载依赖。
+`lib/repo.sh` 定位仓库根，`lib/live-features.sh` 提供 live 功能白名单，`lib/toolchain.py` 与 Shell 包装解析工具配置。`tools/environment.sh` 只定位质量 venv，普通 checker 不隐式安装依赖。
 
-OHOS安全存储合同：`bash scripts/tests/secure-storage-ohos.sh` 读取 `UBAA_DEVECO_HOME` 下的Node与TypeScript，执行插件实际源码的合成系统边界测试；不访问设备、钥匙串或真实账号。`just ohos-check`已包含此检查。
+`live/offline_startup/` 的 run.py、identity.py、process_start.c 和 analyze.py 分别负责显式测量编排、私有材料标识、进程启动计时和安全汇总。analyze_test.py 使用合成输入。`tests/native/startup_lock_runner.py` 是新建临时目录内的外部持锁夹具，不读取账号、会话或修改应用 Sandbox。
 
-OHOS网络插件合同：`bash scripts/tests/platform-plugins-ohos.sh` 编译实际社区适配源码并模拟系统边界，验证标准列表、失败传播与订阅生命周期；已纳入 `just ohos-check`。
+`release/dependency_report.py` 生成依赖/许可材料，`source_manifest.py` 关联全部跟踪输入与可选实际产物；其测试使用临时 Git 仓库，不读取未跟踪凭据。原始 Cargo metadata 只作临时转换输入。
 
-
-`source_manifest_test.py` 使用临时 Git 仓库验证 Core/锁文件/脚本改动可被摘要识别，且不读取未跟踪凭据。`release/source_manifest.py` 生成全部跟踪输入与可选产物的相对路径摘要、候选 SHA 和作业关联。
-
-`tests/linux-secure-storage.sh` 只在临时 XDG/D-Bus 会话验证合成安全材料，覆盖无 Secret Service 时安全失败。`tests/native/startup_lock_runner.py` 是登记到合成启动入口的外部持锁夹具：只使用新建临时目录，与 App 通过合成标记文件协调；不改变应用 Sandbox，不读取账号或用户会话。
-
-## 按改动选择检查
-
-`just check-plan [base=<Git基线>]` 只读取 Git 状态与本地 pubspec，打印计划；`just check-changed` 执行同一计划。默认覆盖全部本地差异（包含删除、移动及未跟踪文件），显式基线还包含分支提交。未知文件或依赖格式退回完整门禁，不自行安装依赖或修改冻结目录。
-
-Dart 生产变更沿本地依赖及 dev_dependencies 传播；测试变更仅验证所属包。执行命令沿用原门禁，因此可写构建缓存，FRB 检查沿用原生成/漂移约束。此入口不自动执行真实账号或任意设备测试；原生入口变更会提示专项验证。完整 `just check` 与无参数 `just flutter-check` 继续作为 CI 和最终整理验收入口。
-
-自有目录统一使用下划线。`just layout-check` 包含 `check/directory_names.py`，检查跟踪文件及未忽略的新文件所在目录，冻结路径例外见 [目录命名规则](../docs/development/directories.md)。
+平台合同分别覆盖 Linux 合成安全存储会话、OHOS HUKS 和 connectivity 系统边界；不证明实体设备、学校可达或其他 OHOS 插件已经验证。实际入口、覆盖缺口及 CI 平台范围见[命令清单](../docs/development/commands.md)。自有目录与上游目录例外见[目录命名](../docs/development/directories.md)。

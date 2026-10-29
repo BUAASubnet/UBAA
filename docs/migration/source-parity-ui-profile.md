@@ -6,10 +6,10 @@
 
 | 来源层 | 准确位置 | 事实/决定 |
 |---|---|---|
-| 冻结 API | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/auth/AuthApi.kt:63`、`:273` | getUserInfo返回UserInfo，API委托当前backend，不是另一个校园业务资料接口。 |
-| 冻结 DTO | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/UserInfo.kt:18` | schoolid/name/username/email/phone/idCardTypeName均nullable String；旧DTO另含idCardType/idCardNumber，本批不采用这两个字段。 |
-| 冻结本地实现 | `ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt:761` | GET uc/api/uc/userinfo，无参数；code=0且data存在返回资料，401/SSO HTML清理本地会话，其他错误保持user_info_failed语义。本批不改任何分支。 |
-| 冻结测试边界 | `ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/ApiFactoryDispatchTest.kt:321`；`ubaa_old/composeApp/src/commonTest/kotlin/cn/edu/ubaa/ui/AuthViewModelInitializeAppTest.kt:240` | 检索到API桩/初始化fake；未发现专门验证这四个userinfo字段真实解码的冻结测试。不能将其它gsmis/getUserInfo.do测试当本接口证据，也不能冒称四字段已有冻结测试PASS。DTO及实际本地反序列化实现是直接来源。 |
+| 冻结 API | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/auth/AuthApi.kt:63`、`:273` | getUserInfo返回UserInfo，API委托当前backend，不是另一个校园业务资料接口。 |
+| 冻结 DTO | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/model/dto/UserInfo.kt:18` | schoolid/name/username/email/phone/idCardTypeName均nullable String；旧DTO另含idCardType/idCardNumber，本批不采用这两个字段。 |
+| 冻结本地实现 | `examples/ubaa_old/shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt:761` | GET uc/api/uc/userinfo，无参数；code=0且data存在返回资料，401/SSO HTML清理本地会话，其他错误保持user_info_failed语义。本批不改任何分支。 |
+| 冻结测试边界 | `examples/ubaa_old/shared/src/commonTest/kotlin/cn/edu/ubaa/api/ApiFactoryDispatchTest.kt:321`；`examples/ubaa_old/composeApp/src/commonTest/kotlin/cn/edu/ubaa/ui/AuthViewModelInitializeAppTest.kt:240` | 检索到API桩/初始化fake；未发现专门验证这四个userinfo字段真实解码的冻结测试。不能将其它gsmis/getUserInfo.do测试当本接口证据，也不能冒称四字段已有冻结测试PASS。DTO及实际本地反序列化实现是直接来源。 |
 | examples最近模块 | `examples/buaa-api/src/api/user/opt.rs:6` | get_state GET `/api/uc/status?selfTimestamp=...`返回原始String；不是资料接口，无等价四字段typed DTO，不借该接口替代userinfo或补字段。用户中心激活复用既有parity说明，不新增协议假设。 |
 | 当前 Core 字段 | `crates/ubaa_core/src/domain/auth.rs:167` | Option<String>字段；school_id明确alias `schoolid`（`:175`），phone`:173`、id_card_type_name`:171`、email`:182`。不能把缺字段或空白联系人转成默认真实值。 |
 | 当前 Core 请求/解析 | `crates/ubaa_core/src/facade/read/services.rs:21`；`features/user.rs:20`、`:28`、`:41`；`upstream/mod.rs:202` | facade路线解析与本地预检→当前路线GET→parse_user_info。解析要求合法JSON、code0、data存在；同一次读取直接返回Profile，不加联系人请求。 |

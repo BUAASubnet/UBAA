@@ -1,6 +1,6 @@
 # 独立工程审查整改实施记录
 
-日期：2026-10-07（Asia/Shanghai）。基线 `06e4dfdb`，实施分支 `ubaa2`。用户已授权按[独立审查](engineering-quality-independent-review-2026-10-07.md)完整整理修复；活动合同见 [goal.md](../../goal.md)，新的状态与验证决定见 [ADR 0007](../adr/0007-operation-scopes-and-verification.md)。
+日期：2026-10-07（Asia/Shanghai）。基线 `06e4dfdb`，实施分支 `ubaa2`。用户已授权按[独立审查](engineering-quality-independent-review-2026-10-07.md)完整整理修复；当时目标见[固定任务快照](history/goal-before-quality-2026-10-11.md)，新的状态与验证决定见 [ADR 0007](../adr/0007-operation-scopes-and-verification.md)。
 
 ## 范围与行为边界
 

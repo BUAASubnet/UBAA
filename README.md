@@ -6,10 +6,10 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 
 ## 当前状态
 
-当前活动任务为[独立工程审查后的完整整理修复](goal.md)。现行模块与目录见[代码组织](docs/architecture/code-organization.md)，结果与剩余验收边界见[当前状态](docs/migration/status.md)。结构治理与此前整体 UI/设备/发布验收分别记账。
+当前目标见[阶段目标](goal.md)，长期规则由 [AGENTS.md](AGENTS.md)定义。现行模块与目录见[代码组织](docs/architecture/code-organization.md)，结果与剩余验收边界见[当前状态](docs/migration/status.md)。结构治理与此前整体 UI/设备/发布验收分别记账。
 
 2026-09-07 已完成本地可维护性治理：统一错误语义、增加安全诊断与严格门禁，并整理可共享交接证据。
-该历史阶段见[验收记录](docs/migration/evidence/2026-09-07-maintainability.md)。真实账号与设备验证按当前 goal.md 的授权范围执行；当前整改不主动发起真实账号请求。
+该历史阶段见[验收记录](docs/migration/evidence/2026-09-07-maintainability.md)。真实账号与设备验证遵守 [AGENTS 授权规则](AGENTS.md#真实账号与验收范围)，历史任务记录不能提供当前授权。
 
 - Rust Core 与 CLI 已实现认证、Direct/WebVPN/Auto 路由、双路线会话、用户中心、十二项业务读取和十项写入协议；
 - Windows、macOS、Linux、Android、iOS 使用官方 Flutter 共享 Dart/UI，HarmonyOS 使用锁定的 OHOS fork；
@@ -24,7 +24,7 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 
 当前状态及证据边界见[迁移与交付状态](docs/migration/status.md)。代码组织治理的当前权威是
 [代码与目录组织设计](docs/architecture/code-organization.md)和
-[现行模块决策](docs/adr/0006-explicit-dart-modules.md)。
+[现行模块决策](docs/adr/0006-explicit-dart-modules.md)及[操作作用域决策](docs/adr/0007-operation-scopes-and-verification.md)。
 
 ## 能力范围
 
@@ -116,40 +116,15 @@ caller-pinned overview 与 records 首页读取，安全收据只允许可选正
 `success/failure/outcomeUnknown/unattempted` 四态。任一提交结果或异常都只在 intent 原路线执行一次
 caller-pinned 只读回读，绝不据回读自动重发或把 unknown 升级为成功。
 
-## 确定性验证
+## 开发与验证
 
-```bash
-just refs
-just layout-check
-just contract-version-check
-just check-sensitive
-just check
-CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
-just flutter-check
-git diff --check
-```
+工具安装见[开发环境](docs/development/setup.md)，Dart/Flutter 调用规则见 [AGENTS](AGENTS.md#项目工具链入口)。日常检查、完整维护验收、CI 实际范围、平台构建及真实只读命令统一见[开发命令](docs/development/commands.md)。测试分层、golden 与人工入口见[测试策略](docs/development/testing.md)。
 
-`just layout-check` 对手写源码执行 1000 行/16 个直属文件的结构棘轮；`just contract-version-check` 纯静态
-交叉校验 CLI/Bridge 常量、JSON Schema、Dart 接受版本与当前文档；`just check` 当前覆盖布局/refs/live
-Shell 合同、上述版本门禁、Rust/Cargo、CLI、构建、文档和差异，不包含 Flutter/codegen，并先对全部 Shell
-执行 `bash -n`，环境有 ShellCheck 时再执行静态检查。后两项必须独立运行。平台构建、
-无签名 OHOS HAP 与发布前置命令见[开发命令](docs/development/commands.md)和
-[Flutter 发布 Runbook](docs/runbooks/flutter-release.md)。
-
-## 真实只读验证
-
-```bash
-just verify-live mode=direct
-just verify-live mode=webvpn
-```
-
-真实验证只允许显式 Direct 或 WebVPN，并在一个固定路线 `RouteClient` 中串行执行。凭据来自被忽略的
-`.env.local`，只经 stdin 使用；Core-live 只输出路线、操作、状态、稳定错误码、耗时、数量和依赖原因等
-安全摘要。`auto` 只保留 Core/Mock 确定性证据。Fixture、Mock、CI 或历史成功都不能替代当前真实协议结果。
+真实验证只执行已获授权的功能与路线，结果按候选单独记录。Fixture、Mock、CI 或历史成功均不能替代当前真实协议结果，真实写入仍受逐次具体授权及发送后禁止自动重试的规则限制。
 
 ## 安全边界
 
-`ubaa_old/`、`examples/`、`.env.local`、运行时 Session、验证码、真实响应和凭据始终只读且不得提交。
+`examples/ubaa_old/`、`examples/buaa-api/`、`.env.local`、运行时 Session、验证码、真实响应和凭据始终只读且不得提交。
 宿主不得调用 Core 私有协议模块、拼接上游 URL、读取 Cookie/Token 或关闭 TLS 校验。无签名构建不能称为
 正式发布，确定性写入流程不能称为真实写入成功。
 

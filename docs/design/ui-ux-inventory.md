@@ -2,7 +2,7 @@
 
 审计日期：2026-09-08。静态源码基点：`e6e0e3c5f9c52f9c302742a780da3e67a8251a65`。初始盘点为P1静态审查；现按每行和末尾的分批实现、原生操作及真实只读证据持续更新。未执行条目保持未执行，历史PASS不自动继承到新候选。
 
-依据为 `goal.md`、`AGENTS.md`、`UBAA2.md`、`full-feature-matrix.md`、`readonly-feature-matrix.md`、`source-parity.md`、`flutter-bridge.md` 与下列实际源码。前两份功能矩阵包含历史证据，本文只用来检查遗漏。`UBAA2.md` 的 MCP/公告是路线图示例，当前十二领域目录与 Bridge 没有对应产品操作，不作为已实现功能。
+目标依据为[当时 UI/UX 快照](../migration/history/goal-2026-09-17-before-offline-home.md)，长期规则见 [AGENTS](../../AGENTS.md)；其余依据为 `UBAA2.md`、`full-feature-matrix.md`、`readonly-feature-matrix.md`、`source-parity.md`、`flutter-bridge.md` 与下列实际源码。前两份功能矩阵包含历史证据，本文只用来检查遗漏。`UBAA2.md` 的 MCP/公告是路线图示例，当前十二领域目录与 Bridge 没有对应产品操作，不作为已实现功能。
 
 ## 读法与定位
 

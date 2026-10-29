@@ -176,7 +176,7 @@ Keychain/Keystore/Credential Manager/Secret Service/HUKS 能力；原生插件�
 | Demo backend、交互验证码字段 | 不作为生产合同采用 | Core 当前未证明通用交互验证码；Demo 不访问 Core，生产入口默认 `UnavailableBackend` | Demo 仅限测试/预览；交互挑战继续由 Core 已证明的 typed 流程处理 |
 
 P0 的“保留”只表示当时允许作为后续实现起点；表内默认 backend 是当时骨架状态，现行生产组合见第 3.1 节。
-该审查不表示满足 `goal.md` 的功能、平台或发布完成条件。
+该历史审查不表示当前候选已满足[统一验收条件](../development/commands.md)中的功能、平台或发布要求。
 
 ## 7. FRB 生成边界
 

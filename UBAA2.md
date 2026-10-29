@@ -1,6 +1,6 @@
 # UBAA 2 迁移路线图
 
-状态：长期路线图；当前开发与验收以 [goal.md](goal.md) 和[迁移状态](docs/migration/status.md)为准
+状态：长期路线图；长期规则见 [AGENTS.md](AGENTS.md)，当前阶段目标见 [goal.md](goal.md)，实际验收结果见[迁移状态](docs/migration/status.md)
 目标分支：`ubaa2`
 旧版参考：`examples/ubaa_old/` 与 `examples/buaa-api/`，固定提交见 [references.md](docs/migration/references.md)；不依赖不存在的 Tag
 

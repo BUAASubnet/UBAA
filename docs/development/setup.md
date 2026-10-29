@@ -1,6 +1,6 @@
 # 开发环境设置
 
-SDK 路径配置在本地 `.env.toolchain`，模板为 `.env.toolchain.example`。just 自动加载工具配置，文件缺失不影响非 SDK 配方；直接运行脚本也通过 `scripts/lib/toolchain.py` 的唯一回退解析器读取同一文件。已导出的环境变量优先。工具入口绝不加载 `.env.local`，凭据与工具链分开。Dart/Flutter 一律通过 `just dart`、`just flutter` 调用，OHOS 使用 `just flutter-ohos`，不写 SDK 绝对路径，不依赖 PATH 中的 Dart/Flutter。所有命令均在 UBAA2 仓库根目录执行。
+Dart/Flutter 的调用、工具配置与凭据分离规则只在 [AGENTS 项目工具链入口](../../AGENTS.md#项目工具链入口)维护。本页提供安装步骤、变量说明与模板用法，所有命令均在 UBAA2 仓库根执行，另有说明除外。
 
 ## 工具与版本
 
