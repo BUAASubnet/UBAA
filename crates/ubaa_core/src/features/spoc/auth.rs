@@ -193,25 +193,10 @@ fn is_authentication_error(error: &crate::error::UbaaError) -> bool {
 pub(super) fn check_business_response(
     response: &crate::ports::HttpResponse,
 ) -> crate::error::Result<()> {
-    if response_location_targets_sso(response) {
+    if crate::connection::response_location_targets_sso(response) {
         return Err(spoc_auth_error());
     }
     crate::features::check_response(response, "spoc")
-}
-
-fn response_location_targets_sso(response: &crate::ports::HttpResponse) -> bool {
-    response.header_first("location").is_some_and(|location| {
-        let resolved = url::Url::parse(&response.final_url)
-            .ok()
-            .and_then(|base| base.join(location).ok())
-            .map_or_else(|| location.to_owned(), |target| target.to_string());
-        let direct =
-            crate::connection::from_webvpn_url(&resolved).unwrap_or_else(|_| resolved.clone());
-        url::Url::parse(&direct)
-            .ok()
-            .and_then(|target| target.host_str().map(str::to_ascii_lowercase))
-            .is_some_and(|host| host == "sso.buaa.edu.cn")
-    })
 }
 
 pub(super) fn extract_login_token(

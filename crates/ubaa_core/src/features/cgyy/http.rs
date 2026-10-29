@@ -85,8 +85,8 @@ pub(super) fn signed_request(
 pub(super) fn check_business_response(response: &HttpResponse, feature: &str) -> Result<()> {
     let text = super::super::body(response);
     if response.status == 401
-        || is_sso_url(&response.final_url)
-        || response_location_targets_sso(response)
+        || crate::connection::is_sso_url(&response.final_url)
+        || crate::connection::response_location_targets_sso(response)
         || (text.contains("name=\"execution\"") && text.contains("username_password"))
     {
         debug!(target: "ubaa::cgyy", feature = "cgyy", response_status = response.status, auth_marker = true, "Cgyy 响应识别为认证失效");
@@ -117,19 +117,6 @@ pub(super) fn check_business_response(response: &HttpResponse, feature: &str) ->
     }
     debug!(target: "ubaa::cgyy", feature = "cgyy", response_status = response.status, business_code = 200, "Cgyy 业务响应通过");
     Ok(())
-}
-
-fn response_location_targets_sso(response: &HttpResponse) -> bool {
-    response
-        .header_first("location")
-        .and_then(|location| {
-            url::Url::parse(&response.final_url)
-                .ok()
-                .and_then(|base| base.join(location).ok())
-                .map(|target| target.to_string())
-                .or_else(|| Some(location.to_owned()))
-        })
-        .is_some_and(|target| is_sso_url(&target))
 }
 
 pub(super) fn operation_name(method: HttpMethod, path: &str) -> &'static str {
@@ -197,13 +184,4 @@ fn sha1_hex(value: &[u8]) -> String {
         write!(&mut result, "{byte:02x}").expect("写入 String 不会失败");
     }
     result
-}
-
-fn is_sso_url(candidate: &str) -> bool {
-    let direct =
-        crate::connection::from_webvpn_url(candidate).unwrap_or_else(|_| candidate.to_owned());
-    url::Url::parse(&direct)
-        .ok()
-        .and_then(|url| url.host_str().map(str::to_ascii_lowercase))
-        .is_some_and(|host| host == "sso.buaa.edu.cn")
 }

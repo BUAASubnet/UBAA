@@ -9,6 +9,7 @@ use super::{
 use crate::config::FeatureRouteConfig;
 use crate::domain::{ConnectionMode, ReadonlyFeature, RoutePolicy};
 use crate::error::ErrorCode;
+use crate::ports::HttpResponse;
 
 #[derive(Clone)]
 struct ProbeResult(NetworkState);
@@ -30,6 +31,23 @@ fn auth_host_policy_accepts_only_verified_sso_uc_and_gateway_hosts() {
     assert!(is_allowed_auth_host("http://sso.buaa.edu.cn/login"));
     assert!(!is_allowed_auth_host("ftp://sso.buaa.edu.cn/login"));
     assert!(!is_allowed_auth_host("https://evil.example.invalid/login"));
+}
+
+#[test]
+fn sso_location检测保持相对地址和网关还原语义() {
+    let mut response = HttpResponse::new(302, "https://app.buaa.edu.cn/login", Vec::new());
+    response.headers.insert(
+        "LOCATION".into(),
+        vec!["https://SSO.BUAA.EDU.CN/login".into()],
+    );
+    assert!(super::response_location_targets_sso(&response));
+
+    response.final_url = "https://app.buaa.edu.cn/path/".into();
+    response.headers.clear();
+    response
+        .headers
+        .insert("Location".into(), vec!["../login".into()]);
+    assert!(!super::response_location_targets_sso(&response));
 }
 
 #[test]

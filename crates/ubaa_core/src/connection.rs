@@ -411,6 +411,26 @@ pub(crate) fn upstream_redirect_target(current_url: &str, location: &str) -> Res
     Ok(upstream)
 }
 
+/// 判断 URL 是否指向已验证的 SSO 主机；网关包装会先还原。
+pub(crate) fn is_sso_url(candidate: &str) -> bool {
+    let direct = from_webvpn_url(candidate).unwrap_or_else(|_| candidate.to_owned());
+    Url::parse(&direct)
+        .ok()
+        .and_then(|url| url.host_str().map(str::to_ascii_lowercase))
+        .is_some_and(|host| host == "sso.buaa.edu.cn")
+}
+
+/// 解析响应的相对 Location，并判断目标是否指向 SSO。
+pub(crate) fn response_location_targets_sso(response: &crate::ports::HttpResponse) -> bool {
+    response.header_first("location").is_some_and(|location| {
+        let resolved = Url::parse(&response.final_url)
+            .ok()
+            .and_then(|base| base.join(location).ok())
+            .map_or_else(|| location.to_owned(), |target| target.to_string());
+        is_sso_url(&resolved)
+    })
+}
+
 fn is_allowed_auth_scheme(url: &Url) -> bool {
     matches!(url.scheme(), "http" | "https")
 }

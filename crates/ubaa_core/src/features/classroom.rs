@@ -143,8 +143,8 @@ async fn synchronize_session(runtime: &mut crate::runtime::ClientRuntime) -> boo
 
 fn session_expired(response: &crate::ports::HttpResponse, body: &str) -> bool {
     if response.status == 401
-        || is_sso_url(&response.final_url)
-        || response_location_targets_sso(response)
+        || crate::connection::is_sso_url(&response.final_url)
+        || crate::connection::response_location_targets_sso(response)
     {
         return true;
     }
@@ -155,24 +155,6 @@ fn session_expired(response: &crate::ports::HttpResponse, body: &str) -> bool {
         && (body.contains("input name=\"execution\"")
             || body.contains("input name='execution'")
             || body.contains("统一身份认证"))
-}
-
-fn response_location_targets_sso(response: &crate::ports::HttpResponse) -> bool {
-    response.header_first("location").is_some_and(|location| {
-        let resolved = url::Url::parse(&response.final_url)
-            .ok()
-            .and_then(|base| base.join(location).ok())
-            .map_or_else(|| location.to_owned(), |target| target.to_string());
-        is_sso_url(&resolved)
-    })
-}
-
-fn is_sso_url(candidate: &str) -> bool {
-    let direct = crate::connection::from_webvpn_url(candidate).unwrap_or_else(|_| candidate.into());
-    url::Url::parse(&direct)
-        .ok()
-        .and_then(|url| url.host_str().map(str::to_ascii_lowercase))
-        .is_some_and(|host| host == "sso.buaa.edu.cn")
 }
 
 fn starts_with_ignore_ascii_case(value: &str, prefix: &str) -> bool {
