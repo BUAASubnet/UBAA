@@ -30,7 +30,6 @@ void _registerShellTests() {
           onCaptchaChanged: (_) {},
           onRememberPasswordChanged: (_) {},
           onAutoLoginChanged: (_) {},
-          onRoutePolicyChanged: (_) {},
           onSubmit: () {},
         ),
       ),

@@ -379,38 +379,34 @@ class _HomeViewState extends State<HomeView> {
     final todoSection = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        const SizedBox(height: 16),
+        // 标题字号与“今日课表”一致；加载提示紧跟标题，不占用右侧位置。
         Row(
           children: [
-            Expanded(
-              child: Text(
-                '待办区',
-                style: Theme.of(
-                  context,
-                ).textTheme.titleLarge?.copyWith(fontWeight: FontWeight.bold),
-              ),
+            Text(
+              '待办区',
+              style: Theme.of(
+                context,
+              ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
             ),
+            if (loading.any(
+              (f) => sources[f]?.status == FeatureLoadStatus.loading,
+            )) ...[
+              const SizedBox(width: 8),
+              const SizedBox.square(
+                dimension: 20,
+                child: Center(child: LoadingGlyph()),
+              ),
+            ],
+            const Spacer(),
             if (tasks.length > 4)
-              Flexible(
-                child: Align(
-                  alignment: Alignment.centerRight,
-                  child: TextButton(
-                    key: const ValueKey('home-todos-toggle'),
-                    onPressed: () =>
-                        setState(() => _showAllTodos = !_showAllTodos),
-                    child: Text(_showAllTodos ? '收起' : '查看全部（${tasks.length}）'),
-                  ),
+              TextButton(
+                key: const ValueKey('home-todos-toggle'),
+                style: TextButton.styleFrom(
+                  padding: const EdgeInsets.symmetric(horizontal: 4),
                 ),
+                onPressed: () => setState(() => _showAllTodos = !_showAllTodos),
+                child: Text(_showAllTodos ? '收起' : '查看全部（${tasks.length}）'),
               ),
-            SizedBox.square(
-              dimension: 24,
-              child:
-                  loading.any(
-                    (f) => sources[f]?.status == FeatureLoadStatus.loading,
-                  )
-                  ? const Center(child: LoadingGlyph())
-                  : null,
-            ),
           ],
         ),
         const SizedBox(height: 12),
@@ -535,7 +531,8 @@ class _HomeViewState extends State<HomeView> {
             const SizedBox(height: 12),
           ],
           courseSection,
-          const SizedBox(height: 16),
+          // 课程卡片自带 12 的下边距，再留 12 与卡片间距相称。
+          const SizedBox(height: 12),
           todoSection,
           if (widget.recentFeatures.isNotEmpty)
             shortcuts('最近使用', widget.recentFeatures.take(4).toList()),
@@ -582,6 +579,11 @@ class _HomeTodoCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final status = item.feature == FeatureId.signin && signing
+        ? '签到处理中'
+        : signinUncertain
+        ? '结果待确认'
+        : item.statusLabel;
     return Card(
       color: theme.colorScheme.surfaceContainerLow,
       clipBehavior: Clip.antiAlias,
@@ -605,32 +607,31 @@ class _HomeTodoCard extends StatelessWidget {
                       mainAxisSize: MainAxisSize.min,
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        Wrap(
-                          spacing: 8,
-                          runSpacing: 4,
+                        // 类型标签与标题同一行；“待××”与时间信息重复，不再单独显示。
+                        Row(
                           children: [
                             _homeChip(
                               context,
                               _homeLabel(item.feature),
                               accented: true,
                             ),
-                            _homeChip(
-                              context,
-                              item.feature == FeatureId.signin && signing
-                                  ? '签到处理中'
-                                  : signinUncertain
-                                  ? '结果待确认'
-                                  : item.statusLabel,
+                            const SizedBox(width: 8),
+                            Flexible(
+                              child: Text(
+                                item.title,
+                                maxLines: 2,
+                                overflow: TextOverflow.ellipsis,
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
                             ),
+                            // 状态紧跟标题；“待××”与时间信息重复，不显示。
+                            if (!status.startsWith('待')) ...[
+                              const SizedBox(width: 6),
+                              _homeChip(context, status),
+                            ],
                           ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          item.title,
-
-                          style: theme.textTheme.titleMedium?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
                         ),
                         const SizedBox(height: 6),
                         Text(

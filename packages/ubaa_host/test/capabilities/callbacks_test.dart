@@ -45,7 +45,6 @@ void _registerCallbackTests() {
       login.onCaptchaChanged,
       login.onRememberPasswordChanged,
       login.onAutoLoginChanged,
-      login.onRoutePolicyChanged,
       login.onSubmit,
     ], everyElement(isA<Function>()));
     login.onUsernameChanged('student-fixture');
@@ -53,7 +52,6 @@ void _registerCallbackTests() {
     login.onCaptchaChanged('1234');
     login.onRememberPasswordChanged(true);
     login.onAutoLoginChanged(true);
-    login.onRoutePolicyChanged(RoutePolicy.direct);
     await tester.pumpAndSettle();
     login.onSubmit();
     await tester.pumpAndSettle();
@@ -63,7 +61,7 @@ void _registerCallbackTests() {
     expect(backend.lastLogin?.captcha, '1234');
     expect(backend.lastLogin?.rememberPassword, isTrue);
     expect(backend.lastLogin?.autoLogin, isTrue);
-    expect(backend.lastLogin?.routePolicy, RoutePolicy.direct);
+    expect(backend.lastLogin?.routePolicy, RoutePolicy.auto);
     expect(vault.saveCount, 1);
 
     var shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));

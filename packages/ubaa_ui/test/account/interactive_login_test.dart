@@ -39,7 +39,6 @@ Widget _login({required ValueChanged<ConnectionMode> onRefresh}) => MaterialApp(
     onCaptchaChanged: (_) {},
     onRememberPasswordChanged: (_) {},
     onAutoLoginChanged: (_) {},
-    onRoutePolicyChanged: (_) {},
     onSubmit: () {},
     onRefreshCaptcha: onRefresh,
     onCaptchaAnswerChanged: (_, _) {},

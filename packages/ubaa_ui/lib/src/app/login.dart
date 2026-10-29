@@ -25,7 +25,6 @@ class UbaaLoginView extends StatefulWidget {
     required this.onCaptchaChanged,
     required this.onRememberPasswordChanged,
     required this.onAutoLoginChanged,
-    required this.onRoutePolicyChanged,
     required this.onSubmit,
     this.onReadDiagnostics,
     this.onOpenAppLink,
@@ -52,7 +51,6 @@ class UbaaLoginView extends StatefulWidget {
   final ValueChanged<String> onCaptchaChanged;
   final ValueChanged<bool> onRememberPasswordChanged;
   final ValueChanged<bool> onAutoLoginChanged;
-  final ValueChanged<RoutePolicy> onRoutePolicyChanged;
   final VoidCallback onSubmit;
   final String Function()? onReadDiagnostics;
   final Future<bool> Function(AppLink)? onOpenAppLink;
@@ -191,20 +189,6 @@ class _UbaaLoginViewState extends State<UbaaLoginView>
       body: SafeArea(
         child: Column(
           children: <Widget>[
-            SizedBox(
-              height: 56,
-              child: Align(
-                alignment: Alignment.centerRight,
-                child: Padding(
-                  padding: const EdgeInsets.only(right: 16),
-                  child: _RoutePolicyButton(
-                    policy: widget.routePolicy,
-                    enabled: !widget.isLoading,
-                    onChanged: widget.onRoutePolicyChanged,
-                  ),
-                ),
-              ),
-            ),
             Expanded(
               child: Center(
                 child: SingleChildScrollView(
@@ -456,42 +440,5 @@ class _LoginOption extends StatelessWidget {
         ),
       ),
     ),
-  );
-}
-
-class _RoutePolicyButton extends StatelessWidget {
-  const _RoutePolicyButton({
-    required this.policy,
-    required this.enabled,
-    required this.onChanged,
-  });
-
-  final RoutePolicy policy;
-  final bool enabled;
-  final ValueChanged<RoutePolicy> onChanged;
-
-  @override
-  Widget build(BuildContext context) => PopupMenuButton<RoutePolicy>(
-    enabled: enabled,
-    initialValue: policy,
-    tooltip: '连接模式',
-    onSelected: onChanged,
-    icon: const Icon(Icons.route_outlined),
-    itemBuilder: (context) => [
-      ...RoutePolicy.values.map(
-        (item) => PopupMenuItem<RoutePolicy>(
-          value: item,
-          child: ListTile(
-            contentPadding: EdgeInsets.zero,
-            leading: Icon(
-              item == policy
-                  ? Icons.radio_button_checked
-                  : Icons.circle_outlined,
-            ),
-            title: Text(item.label),
-          ),
-        ),
-      ),
-    ],
   );
 }

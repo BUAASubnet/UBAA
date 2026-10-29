@@ -28,18 +28,6 @@ void main() {
     );
   });
 
-  testWidgets('登录路线入口可展开并选择连接模式', (tester) async {
-    RoutePolicy? selected;
-    await tester.pumpWidget(_login(routeChanged: (value) => selected = value));
-    await tester.tap(find.byTooltip('连接模式'));
-    await tester.pumpAndSettle();
-    expect(find.text('WebVPN'), findsOneWidget);
-    expect(find.text('直连'), findsOneWidget);
-    await tester.tap(find.text('直连'));
-    await tester.pumpAndSettle();
-    expect(selected, RoutePolicy.direct);
-  });
-
   testWidgets('短窗口大字登录表单保留顶部安全空间并可滚到登录', (tester) async {
     tester.view.physicalSize = const Size(390, 390);
     tester.view.devicePixelRatio = 1;
@@ -47,17 +35,25 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
+    tester.view.padding = FakeViewPadding(top: 24);
+    addTearDown(tester.view.resetPadding);
     await tester.pumpWidget(_login());
     expect(
       tester.getRect(find.text('UBAA 登录')).top,
-      greaterThanOrEqualTo(tester.getRect(find.byTooltip('连接模式')).bottom),
+      greaterThanOrEqualTo(24 + 32),
     );
+    final position = tester
+        .state<ScrollableState>(find.byType(Scrollable).first)
+        .position;
+    expect(position.maxScrollExtent, greaterThan(0));
+    final before = position.pixels;
     await tester.ensureVisible(find.widgetWithText(FilledButton, '登录'));
     await tester.pumpAndSettle();
     expect(
       find.widgetWithText(FilledButton, '登录').hitTestable(),
       findsOneWidget,
     );
+    expect(position.pixels, greaterThan(before));
     expect(tester.takeException(), isNull);
   });
 
@@ -121,7 +117,6 @@ Widget _login({
   bool loading = false,
   bool persistenceAvailable = true,
   VoidCallback? submit,
-  ValueChanged<RoutePolicy>? routeChanged,
   ValueChanged<bool>? rememberChanged,
   ValueChanged<bool>? autoChanged,
 }) => MaterialApp(
@@ -141,7 +136,6 @@ Widget _login({
     onCaptchaChanged: (_) {},
     onRememberPasswordChanged: rememberChanged ?? (_) {},
     onAutoLoginChanged: autoChanged ?? (_) {},
-    onRoutePolicyChanged: routeChanged ?? (_) {},
     onSubmit: submit ?? () {},
   ),
 );
