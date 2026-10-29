@@ -1,6 +1,5 @@
 //! 阳光打卡响应信封、概览、项目与记录解析。
 
-use chrono::{FixedOffset, TimeZone};
 use serde_json::{Map, Value};
 
 use crate::domain::{
@@ -56,18 +55,12 @@ pub(super) fn string(map: &Map<String, Value>, key: &str) -> Option<String> {
 fn datetime_text(map: &Map<String, Value>, key: &str) -> Option<String> {
     if let Some(value) = string(map, key) {
         if let Ok(seconds) = value.trim().parse::<i64>() {
-            return FixedOffset::east_opt(8 * 60 * 60)?
-                .timestamp_opt(seconds, 0)
-                .single()
-                .map(|value| value.format("%Y-%m-%d %H:%M").to_string());
+            return crate::time::format_shanghai_timestamp(seconds, "%Y-%m-%d %H:%M");
         }
         return Some(value);
     }
     let seconds = map.get(key).and_then(Value::as_i64)?;
-    FixedOffset::east_opt(8 * 60 * 60)?
-        .timestamp_opt(seconds, 0)
-        .single()
-        .map(|value| value.format("%Y-%m-%d %H:%M").to_string())
+    crate::time::format_shanghai_timestamp(seconds, "%Y-%m-%d %H:%M")
 }
 
 pub(super) fn list(map: &Map<String, Value>, key: &str) -> Vec<Value> {

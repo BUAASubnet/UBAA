@@ -23,7 +23,7 @@ impl HomeQuery {
     fn cache_query(&self, now: i64) -> super::CacheResult<CacheQuery> {
         Ok(match self {
             Self::SigninToday => CacheQuery::SigninToday {
-                date: crate::features::signin::shanghai_date(),
+                date: crate::time::shanghai_compact_date(std::time::SystemTime::now()),
             },
             Self::SpocAssignments => CacheQuery::SpocSelection,
             Self::SpocDetail { assignment_id } => CacheQuery::SpocDetail {

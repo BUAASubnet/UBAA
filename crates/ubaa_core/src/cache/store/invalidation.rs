@@ -39,7 +39,7 @@ impl CacheInvalidation {
     #[must_use]
     pub fn signin_today() -> Self {
         Self::Signin {
-            date: crate::features::signin::shanghai_date(),
+            date: crate::time::shanghai_compact_date(std::time::SystemTime::now()),
         }
     }
 

@@ -16,7 +16,7 @@ use crate::runtime::ClientRuntime;
 use super::auth::{business_request, ensure_login};
 use super::captcha::{check_captcha, prepare_captcha_once};
 use super::http::{log_response, signed_request};
-use super::parser::{data, error, parse_cancel_order_authority, shanghai_datetime};
+use super::parser::{data, error, parse_cancel_order_authority};
 use super::read::get_day_context;
 
 struct ReservationAuthority {
@@ -40,9 +40,12 @@ pub(crate) async fn preflight_cancel_order(
     )
     .await
     .map_err(|error| sanitize_cancel_authority_error(&error))?;
-    let authority =
-        parse_cancel_order_authority(&body, request.order_id, shanghai_datetime(runtime.now()))
-            .map_err(|error| sanitize_cancel_authority_error(&error))?;
+    let authority = parse_cancel_order_authority(
+        &body,
+        request.order_id,
+        crate::time::shanghai_datetime(runtime.now()),
+    )
+    .map_err(|error| sanitize_cancel_authority_error(&error))?;
     match authority.eligibility {
         ActionEligibility::Allowed => {}
         ActionEligibility::Denied => {

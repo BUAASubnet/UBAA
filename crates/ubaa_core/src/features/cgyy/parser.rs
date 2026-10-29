@@ -1,9 +1,8 @@
 //! 场馆预约响应信封、站点、用途、日期和订单解析。
 
 use std::collections::HashMap;
-use std::time::SystemTime;
 
-use chrono::{DateTime, Duration, FixedOffset, NaiveDateTime, Utc};
+use chrono::{Duration, NaiveDateTime};
 use serde_json::{Map, Value};
 
 use crate::domain::{
@@ -734,13 +733,6 @@ fn parse_cgyy_datetime(value: Option<&Value>) -> Option<NaiveDateTime> {
 
 fn format_cgyy_datetime(value: NaiveDateTime) -> String {
     value.format("%Y-%m-%d %H:%M:%S").to_string()
-}
-
-pub(super) fn shanghai_datetime(now: SystemTime) -> NaiveDateTime {
-    let offset = FixedOffset::east_opt(8 * 60 * 60).expect("Asia/Shanghai 固定偏移必须有效");
-    DateTime::<Utc>::from(now)
-        .with_timezone(&offset)
-        .naive_local()
 }
 
 /// 解析门锁码响应，仅保留是否存在数据的安全摘要。

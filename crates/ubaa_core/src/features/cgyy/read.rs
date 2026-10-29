@@ -13,7 +13,7 @@ use super::auth::get;
 use super::parser::{
     CgyyDayContext, fallback_purpose_types, parse_day_context, parse_lock_code,
     parse_order_detail_at, parse_orders_at, parse_orders_for_cache,
-    parse_purpose_types_with_source, parse_sites, shanghai_datetime,
+    parse_purpose_types_with_source, parse_sites,
 };
 
 pub(crate) async fn get_sites(runtime: &mut ClientRuntime) -> Result<Vec<CgyyVenueSite>> {
@@ -75,7 +75,7 @@ pub(crate) async fn get_orders(
     size: i32,
 ) -> Result<CgyyOrdersPage> {
     let body = orders_body(runtime, page, size).await?;
-    parse_orders_at(&body, shanghai_datetime(runtime.now()))
+    parse_orders_at(&body, crate::time::shanghai_datetime(runtime.now()))
 }
 
 pub(crate) async fn get_orders_observed(
@@ -84,7 +84,12 @@ pub(crate) async fn get_orders_observed(
     size: i32,
 ) -> Result<(CgyyOrdersPage, bool)> {
     let body = orders_body(runtime, page, size).await?;
-    parse_orders_for_cache(&body, shanghai_datetime(runtime.now()), page, size)
+    parse_orders_for_cache(
+        &body,
+        crate::time::shanghai_datetime(runtime.now()),
+        page,
+        size,
+    )
 }
 
 async fn orders_body(runtime: &mut ClientRuntime, page: i32, size: i32) -> Result<String> {
@@ -101,9 +106,9 @@ pub(crate) async fn get_order_detail(runtime: &mut ClientRuntime, id: i32) -> Re
     let body = get(runtime, &format!("/api/orders/{id}"), BTreeMap::new()).await?;
     let data = super::parser::data(&body)?;
     if data.get("orderInfo").is_some() {
-        return wrapped_order_detail(&data, id, shanghai_datetime(runtime.now()));
+        return wrapped_order_detail(&data, id, crate::time::shanghai_datetime(runtime.now()));
     }
-    let order = parse_order_detail_at(&body, shanghai_datetime(runtime.now()))?;
+    let order = parse_order_detail_at(&body, crate::time::shanghai_datetime(runtime.now()))?;
     // 空信封兼容仍留在 parser；具体订单读取不能成功返回编号0或其他订单。
     if order.id <= 0 || order.id != id {
         tracing::debug!(target: "ubaa::cgyy", operation = "orders.detail",

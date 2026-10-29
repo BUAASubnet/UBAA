@@ -80,7 +80,7 @@ impl OfflineCache {
     /// 继承本地仓库的稳定错误，不回退到昨日内容。
     pub fn read_today(&self, route: ConnectionMode) -> CacheResult<Option<CacheRecord>> {
         let query = CacheQuery::ScheduleToday {
-            date: crate::features::schedule::shanghai_date(),
+            date: crate::time::shanghai_date(std::time::SystemTime::now()),
         };
         let current = self.read(
             &CacheScope {
@@ -360,7 +360,7 @@ impl UbaaClient {
                 cache_error: cache.deactivate().err(),
             });
         }
-        let date = crate::features::schedule::shanghai_date();
+        let date = crate::time::shanghai_date(std::time::SystemTime::now());
         let scope = CacheScope {
             route: resolution.mode,
             query: CacheQuery::ScheduleToday { date: date.clone() },

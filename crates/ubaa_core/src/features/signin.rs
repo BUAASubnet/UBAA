@@ -284,7 +284,10 @@ async fn get_today_once(
     super::require_session(runtime)?;
     let credential = current_credential(runtime).await?;
     // 旧入口仍在每次认证后取当天日期；缓存入口固定同一次捕获的日期。
-    let request_date = date.map_or_else(shanghai_date, str::to_owned);
+    let request_date = date.map_or_else(
+        || crate::time::shanghai_compact_date(std::time::SystemTime::now()),
+        str::to_owned,
+    );
     let request = build_today_request(
         &runtime.url(SIGNIN_TODAY_URL)?,
         &credential.user_id,
@@ -413,25 +416,6 @@ fn ensure_login_host(url: &url::Url) -> Result<()> {
     } else {
         Err(upstream_error("签到登录跳转到未允许的主机"))
     }
-}
-
-pub(crate) fn shanghai_date() -> String {
-    let seconds = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .map_or(0, |value| value.as_secs())
-        + 8 * 60 * 60;
-    let days = i64::try_from(seconds / 86_400).unwrap_or(i64::MAX);
-    let z = days + 719_468;
-    let era = if z >= 0 { z } else { z - 146_096 } / 146_097;
-    let doe = z - era * 146_097;
-    let yoe = (doe - doe / 1_460 + doe / 36_524 - doe / 146_096) / 365;
-    let year = yoe + era * 400;
-    let doy = doe - (365 * yoe + yoe / 4 - yoe / 100);
-    let mp = (5 * doy + 2) / 153;
-    let day = doy - (153 * mp + 2) / 5 + 1;
-    let month = mp + if mp < 10 { 3 } else { -9 };
-    let year = year + i64::from(month <= 2);
-    format!("{year:04}{month:02}{day:02}")
 }
 
 fn invalid_url() -> UbaaError {

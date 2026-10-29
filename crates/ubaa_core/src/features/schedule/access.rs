@@ -31,7 +31,7 @@ pub(crate) async fn get_weeks(runtime: &mut ClientRuntime, term: &str) -> Result
     }
     graduate::fetch(runtime, Some(term))
         .await?
-        .weeks(&super::shanghai_date())
+        .weeks(&crate::time::shanghai_date(std::time::SystemTime::now()))
 }
 pub(crate) async fn get_weeks_for_import(
     runtime: &mut ClientRuntime,
@@ -45,7 +45,7 @@ pub(crate) async fn get_weeks_for_import(
     }
     graduate::fetch(runtime, Some(term))
         .await?
-        .weeks(&super::shanghai_date())
+        .weeks(&crate::time::shanghai_date(std::time::SystemTime::now()))
 }
 pub(crate) async fn get_week(
     runtime: &mut ClientRuntime,
@@ -86,7 +86,11 @@ fn check_week(term: &str, week: i32) -> Result<()> {
     Ok(())
 }
 pub(crate) async fn get_today(runtime: &mut ClientRuntime) -> Result<Vec<TodayClass>> {
-    get_today_for_date(runtime, &super::shanghai_date()).await
+    get_today_for_date(
+        runtime,
+        &crate::time::shanghai_date(std::time::SystemTime::now()),
+    )
+    .await
 }
 pub(crate) async fn get_today_for_date(
     runtime: &mut ClientRuntime,
