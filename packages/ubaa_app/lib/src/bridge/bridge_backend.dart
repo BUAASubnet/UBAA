@@ -75,7 +75,7 @@ const _supportedBridgeContractVersion = 42;
 /// 基于 FRB opaque client 的生产后端。
 ///
 /// 该适配器只负责把 bridge 的 typed 结果投影到应用层；请求 URL、Cookie、
-/// Session 和路线选择仍由 Rust Core 管理。测试可以继续显式注入 [DemoBackend]，
+/// Session 和路线选择仍由 Rust Core 管理。测试可以显式注入测试支持包中的脱敏后端，
 /// 生产宿主不得把 Demo 作为默认实现。
 class BridgeBackend
     implements

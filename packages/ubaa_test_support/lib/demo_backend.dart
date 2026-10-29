@@ -1,6 +1,5 @@
+import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-
-import '../contracts/backend.dart';
 
 /// UI 开发和 widget 测试使用的脱敏后端，不访问网络或真实账号。
 class DemoBackend implements UbaaBackend {

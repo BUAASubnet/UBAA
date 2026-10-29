@@ -43,12 +43,6 @@ class Credential {
   int get hashCode => Object.hash(username, password, autoLogin);
 }
 
-/// 兼容调用方常用的复数命名。
-typedef Credentials = Credential;
-
-/// 兼容旧调用方的存储值命名。
-typedef StoredCredential = Credential;
-
 /// 凭据保险箱的失败类别。
 enum CredentialVaultErrorCode { invalidCredential, unavailable, storageFailure }
 

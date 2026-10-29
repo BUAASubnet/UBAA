@@ -33,20 +33,6 @@ abstract final class TelemetryEvents {
   };
 }
 
-/// `TelemetryEvents` 的兼容命名别名。
-abstract final class TelemetryEventName {
-  static const appStarted = TelemetryEvents.appStarted;
-  static const authStarted = TelemetryEvents.authStarted;
-  static const authSucceeded = TelemetryEvents.authSucceeded;
-  static const authFailed = TelemetryEvents.authFailed;
-  static const sessionExpired = TelemetryEvents.sessionExpired;
-  static const routeResolved = TelemetryEvents.routeResolved;
-  static const featureLoaded = TelemetryEvents.featureLoaded;
-  static const featureFailed = TelemetryEvents.featureFailed;
-  static const uiErrorShown = TelemetryEvents.uiErrorShown;
-  static const Set<String> allowed = TelemetryEvents.allowed;
-}
-
 /// 遥测字段策略。
 ///
 /// 默认只接受跨平台 UI 需要的低基数、非敏感字段。自定义策略可以收窄
@@ -130,9 +116,6 @@ class TelemetryRecord {
 
   final String name;
   final Map<String, Object?> properties;
-
-  /// 兼容调用方使用的字段命名。
-  Map<String, Object?> get fields => properties;
 
   /// 便于测试和平台 sink 消费的扁平 JSON 投影。
   Map<String, Object?> toJson() => <String, Object?>{

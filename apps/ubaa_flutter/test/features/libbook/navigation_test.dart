@@ -32,40 +32,40 @@ void main() {
     '图书馆隐藏后首页刷新不能触发后台自动分区链',
     (tester) async {
       final backend = await _open(tester, width: 1280);
-      await _tap(tester, find.byIcon(Icons.home_outlined));
+      await tapVisibleWithScroll(tester, find.byIcon(Icons.home_outlined));
       final before = backend.libraryReads.length;
-      await _tap(tester, find.byTooltip('刷新'));
+      await tapVisibleWithScroll(tester, find.byTooltip('刷新'));
       expect(backend.libraryReads, hasLength(before));
     },
     variant: TargetPlatformVariant.only(TargetPlatform.macOS),
   );
   testWidgets('明确空座位后重新加载不复活原选择', (tester) async {
     final backend = await _open(tester);
-    await _tap(tester, find.widgetWithText(Card, 'A1'));
+    await tapVisibleWithScroll(tester, find.widgetWithText(Card, 'A1'));
     backend.emptyNext = true;
-    await _tap(tester, find.byTooltip('刷新当前查询'));
+    await tapVisibleWithScroll(tester, find.byTooltip('刷新当前查询'));
     expect(find.text('已选座位：A1'), findsNothing);
-    await _tap(tester, find.byTooltip('刷新当前查询'));
+    await tapVisibleWithScroll(tester, find.byTooltip('刷新当前查询'));
     expect(find.widgetWithText(Card, 'A1'), findsOneWidget);
     expect(find.text('已选座位：A1'), findsNothing);
   }, variant: TargetPlatformVariant.only(TargetPlatform.macOS));
   testWidgets('换楼馆沿新父项自动加载且返回仍为图书馆菜单', (tester) async {
     final backend = await _open(tester);
-    await _tap(tester, find.widgetWithText(Card, 'A1'));
-    await _tap(tester, find.byTooltip('切换楼馆'));
-    await _tap(
+    await tapVisibleWithScroll(tester, find.widgetWithText(Card, 'A1'));
+    await tapVisibleWithScroll(tester, find.byTooltip('切换楼馆'));
+    await tapVisibleWithScroll(
       tester,
       find.widgetWithText(CheckedPopupMenuItem<String>, '合成乙馆'),
     );
     expect(backend.libraryReads.last.areaId, 'library-b-floor-1-area-1');
     expect(find.text('已选座位：A1'), findsNothing);
-    await _tap(tester, find.byTooltip('返回'));
+    await tapVisibleWithScroll(tester, find.byTooltip('返回'));
     expect(find.widgetWithText(Card, FeatureId.libbook.title), findsOneWidget);
     expect(backend.preparedSeats, isEmpty);
   });
   testWidgets('我的预约仍沿分页上下文读取且不准备写入', (tester) async {
     final backend = await _open(tester);
-    await _tap(tester, find.text('我的预约'));
+    await tapVisibleWithScroll(tester, find.text('我的预约'));
     expect(backend.libraryReads.last.view, FeatureQueryView.libbookBookings);
     expect(backend.preparedBookings, isEmpty);
   });
@@ -89,11 +89,14 @@ Future<LibraryBackend> _open(
     ),
   );
   await tester.pumpAndSettle();
-  await _tap(tester, find.widgetWithText(Card, FeatureId.libbook.title));
+  await tapVisibleWithScroll(
+    tester,
+    find.widgetWithText(Card, FeatureId.libbook.title),
+  );
   return backend;
 }
 
-Future<void> _tap(WidgetTester tester, Finder finder) async {
+Future<void> tapVisibleWithScroll(WidgetTester tester, Finder finder) async {
   if (finder.evaluate().isEmpty) {
     await tester.scrollUntilVisible(
       finder,

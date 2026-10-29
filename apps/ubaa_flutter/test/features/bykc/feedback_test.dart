@@ -4,6 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/navigation.dart';
 import '../../support/bykc/feedback_backend.dart';
 
 void main() {
@@ -107,7 +108,7 @@ void main() {
           isTrue,
         );
         backend.failRefresh = false;
-        await _tap(tester, find.widgetWithText(TextButton, '重试'));
+        await tapVisible(tester, find.widgetWithText(TextButton, '重试'));
       }
       expect(
         find.descendant(
@@ -140,14 +141,7 @@ Future<void> _open(WidgetTester tester, BoyaFeedbackBackend backend) async {
     ),
   );
   await tester.pumpAndSettle();
-  await _tap(tester, find.widgetWithText(Card, FeatureId.bykc.title));
-}
-
-Future<void> _tap(WidgetTester tester, Finder finder) async {
-  await tester.ensureVisible(finder);
-  await tester.pumpAndSettle();
-  await tester.tap(finder);
-  await tester.pumpAndSettle();
+  await tapVisible(tester, find.widgetWithText(Card, FeatureId.bykc.title));
 }
 
 class _MemoryMaterials implements SecureMaterialTransport {

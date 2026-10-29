@@ -3,16 +3,13 @@
   "commit": "9571de239933ab2893dbd49037e128135b050a7c",
   "path": "packages/package_info_plus/package_info_plus",
   "files": {
-    "ohos/hvigorfile.ts": "25c483562a74da60534f667ebd49f502117889f2392926571d8785413758586c",
-    "ohos/oh-package.json5": "054882bb3d21c1d45f9dd848469404e0872e0c40a6ad7a98bad75e4dd4e17b70",
-    "ohos/index.ets": "5668e84d720a60ebba1dd25b036573d20f47721f0fe60a1bcbd3bd3207f30d79",
     "ohos/.gitignore": "0d60d2a19451b925373fbbb0a5792a9a0ac3b54ab983cbb66236548e14fd2f40",
-    "ohos/obfuscation-rules.txt": "f88a1784452ae00f3c37e2140635e63d822f16623835443d0a536b5aab12f87c",
     "ohos/build-profile.json5": "debda42bb960a8080394a2a75ebf62bd324af6ef5e46d27c6507a0bc4098f154",
-    "ohos/src/main/module.json5": "265d6a935b0928aa13bfd7e53b721dd6061aeaf3cf970f681f1c6fb80d4cccb8",
-    "ohos/src/main/ets/dev/fluttercommunity/plus/packageinfo/PackageInfoPlugin.ets": "e94f09aa52268c98526eabd5321f0c8c0017a7835ec5188e01bcc43fe526156a",
-    "ohos/src/main/resources/base/element/string.json": "aa2a53c175bf94004b4081b6a3e65851869d7a912f2c59eeb994ce6e075e1be6",
-    "ohos/src/main/resources/zh_CN/element/string.json": "aa2a53c175bf94004b4081b6a3e65851869d7a912f2c59eeb994ce6e075e1be6",
-    "ohos/src/main/resources/en_US/element/string.json": "aa2a53c175bf94004b4081b6a3e65851869d7a912f2c59eeb994ce6e075e1be6"
+    "ohos/hvigorfile.ts": "25c483562a74da60534f667ebd49f502117889f2392926571d8785413758586c",
+    "ohos/index.ets": "5668e84d720a60ebba1dd25b036573d20f47721f0fe60a1bcbd3bd3207f30d79",
+    "ohos/obfuscation-rules.txt": "f88a1784452ae00f3c37e2140635e63d822f16623835443d0a536b5aab12f87c",
+    "ohos/oh-package.json5": "91a75a2f92d6c68f4be35acdef5e85973914a41e402190b38a9d5f466dd6caaf",
+    "ohos/src/main/ets/dev/fluttercommunity/plus/packageinfo/PackageInfoPlugin.ets": "66aa3c803e6b2806e23261e2b78da1a05592fb1ea2489d57763410eaac2cc306",
+    "ohos/src/main/module.json5": "97684791470fa1bca7fb454434996b6e51ef848ad0c3256a81cd5192499eedb0"
   }
 }

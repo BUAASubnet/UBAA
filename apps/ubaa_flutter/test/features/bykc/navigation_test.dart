@@ -4,6 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/navigation.dart';
 import '../../support/bykc/backend.dart';
 
 void main() {
@@ -13,14 +14,14 @@ void main() {
       of: find.widgetWithText(Card, '合成课程 1'),
       matching: find.widgetWithText(OutlinedButton, label),
     );
-    await _tap(tester, action('选课'));
+    await tapVisible(tester, action('选课'));
     expect(backend.commitCalls, 1);
     expect(backend.selections[101], isTrue);
     expect(find.widgetWithText(AppBar, FeatureId.bykc.title), findsOneWidget);
     expect(backend.boyaReads.last.view, FeatureQueryView.summary);
-    await _tap(tester, action('退选'));
+    await tapVisible(tester, action('退选'));
     expect(backend.commitCalls, 1);
-    await _tap(tester, find.text('确认退选'));
+    await tapVisible(tester, find.text('确认退选'));
     expect(backend.commitCalls, 2);
     expect(backend.selections[101], isFalse);
     expect(find.widgetWithText(AppBar, FeatureId.bykc.title), findsOneWidget);
@@ -35,38 +36,38 @@ void main() {
   testWidgets('已选博雅详情确认退选后移除记录并保留返回路径', (tester) async {
     final backend = await _open(tester);
     final count = backend.boyaReads.length;
-    await _tap(tester, find.widgetWithText(Card, '合成已选课 1'));
+    await tapVisible(tester, find.widgetWithText(Card, '合成已选课 1'));
     expect(find.widgetWithText(AppBar, '课程详情'), findsOneWidget);
     expect(backend.boyaReads, hasLength(count + 1));
     expect(backend.boyaReads.last.view, FeatureQueryView.bykcChosenCourses);
     expect(backend.boyaReads.last.courseId, '101');
     expect(find.text('合成课程联系人'), findsOneWidget);
-    await _tap(tester, find.widgetWithText(OutlinedButton, '退选'));
+    await tapVisible(tester, find.widgetWithText(OutlinedButton, '退选'));
     expect(backend.preparedBoya, isEmpty);
-    await _tap(tester, find.text('确认退选'));
+    await tapVisible(tester, find.text('确认退选'));
     expect(backend.preparedBoya, [
       (WriteOperation.bykcDeselectCourse, 101, null),
     ]);
 
     expect(find.widgetWithText(AppBar, '课程详情'), findsOneWidget);
     expect(find.text('签到信息'), findsNothing);
-    await _tap(tester, find.byTooltip('返回'));
+    await tapVisible(tester, find.byTooltip('返回'));
     expect(find.widgetWithText(Card, '合成已选课 1'), findsNothing);
     expect(find.widgetWithText(AppBar, FeatureId.bykc.title), findsOneWidget);
     expect(backend.commitCalls, 1);
   });
   testWidgets('详情选课后返回原课程列表', (tester) async {
     final backend = await _open(tester, chosen: false);
-    await _tap(tester, find.widgetWithText(Card, '合成课程 1'));
-    await _tap(tester, find.widgetWithText(OutlinedButton, '选课'));
+    await tapVisible(tester, find.widgetWithText(Card, '合成课程 1'));
+    await tapVisible(tester, find.widgetWithText(OutlinedButton, '选课'));
     expect(backend.commitCalls, 1);
-    await _tap(tester, find.byTooltip('返回'));
+    await tapVisible(tester, find.byTooltip('返回'));
     expect(find.widgetWithText(AppBar, FeatureId.bykc.title), findsOneWidget);
     expect(find.widgetWithText(Card, '合成课程 1'), findsOneWidget);
   });
   testWidgets('已选记录刷新为空后详情和返回列表都不能复活旧动作', (tester) async {
     final backend = await _open(tester);
-    await _tap(tester, find.widgetWithText(Card, '合成已选课 1'));
+    await tapVisible(tester, find.widgetWithText(Card, '合成已选课 1'));
     backend.emptyNext = true;
     final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
     await shell.onFeatureQuery!(
@@ -75,7 +76,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('退选'), findsNothing);
-    await _tap(tester, find.byTooltip('返回'));
+    await tapVisible(tester, find.byTooltip('返回'));
     expect(find.widgetWithText(Card, '合成已选课 1'), findsNothing);
     expect(backend.preparedBoya, isEmpty);
     expect(backend.commitCalls, 0);
@@ -96,9 +97,9 @@ Future<BoyaBackend> _open(WidgetTester tester, {bool chosen = true}) async {
     ),
   );
   await tester.pumpAndSettle();
-  await _tap(tester, find.widgetWithText(Card, FeatureId.bykc.title));
+  await tapVisible(tester, find.widgetWithText(Card, FeatureId.bykc.title));
   if (chosen) {
-    await _tap(
+    await tapVisible(
       tester,
       find.descendant(
         of: find.byType(SegmentedButton<FeatureQueryView>),
@@ -107,11 +108,4 @@ Future<BoyaBackend> _open(WidgetTester tester, {bool chosen = true}) async {
     );
   }
   return backend;
-}
-
-Future<void> _tap(WidgetTester tester, Finder finder) async {
-  await tester.ensureVisible(finder);
-  await tester.pumpAndSettle();
-  await tester.tap(finder);
-  await tester.pumpAndSettle();
 }

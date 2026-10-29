@@ -2,6 +2,7 @@
 library;
 
 export 'backend_rebuild.dart';
+export 'demo_backend.dart';
 export 'grades.dart';
 export 'lock_display.dart';
 export 'navigation.dart';

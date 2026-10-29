@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
+import 'package:ubaa_test_support/ubaa_test_support.dart';
 import 'package:ubaa_app/src/controller/read_scheduler.dart' show ReadDemand;
 import 'package:ubaa_app/src/controller/state/academic_terms.dart';
 import 'package:ubaa_app/src/controller/state/read_scope.dart';

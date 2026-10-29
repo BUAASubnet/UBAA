@@ -90,12 +90,12 @@ BEGIN
         BLOCK "040904e4"
         BEGIN
             VALUE "CompanyName", "cn.edu.ubaa" "\0"
-            VALUE "FileDescription", "ubaa_flutter" "\0"
+            VALUE "FileDescription", "UBAA" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "ubaa_flutter" "\0"
             VALUE "LegalCopyright", "Copyright (C) 2026 cn.edu.ubaa. All rights reserved." "\0"
             VALUE "OriginalFilename", "ubaa_flutter.exe" "\0"
-            VALUE "ProductName", "ubaa_flutter" "\0"
+            VALUE "ProductName", "UBAA" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

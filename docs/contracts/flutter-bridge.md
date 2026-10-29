@@ -522,7 +522,7 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
   相对路径拒绝、幂等 dispose、use-after-dispose、随机 intent/digest 形状以及未知/重复 intent
   在网络前拒绝。
 - 生产 Flutter 适配提交 `7bd8fd2` 通过 `BridgeBackend` 连接上述 API，并保留显式
-  `UnavailableBackend` 安全失败；生产入口不再默认构造 `DemoBackend`。
+  `UnavailableBackend` 安全失败；生产入口不再默认构造测试支持包中的脱敏后端。
 - 读取结果中的 `RouteDecision.resolvedRoute` 现在沿 `FeatureResult`、`FeatureSnapshot` 和
   `BridgeBackend` 传到卡片与详情页；页面显示“实际路线”，不会把 `defaultPolicy` 冒充为本次
   请求路线。app/widget 回归测试固定该投影，刷新失败的 `stale` 数据继续保留上次实际路线。

@@ -1,8 +1,6 @@
 // Application-level settings for the Runner target.
 //
-// This may be replaced with something auto-generated from metadata (e.g., pubspec.yaml) in the
-// future. If not, the values below would default to using the project name when this becomes a
-// 'flutter create' template.
+// 应用设置由本文件维护，避免依赖 Flutter 模板默认值。
 
 // The application's name. By default this is also the title of the Flutter window.
 PRODUCT_NAME = ubaa_flutter

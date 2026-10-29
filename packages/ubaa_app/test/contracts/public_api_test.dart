@@ -10,8 +10,7 @@ void main() {
       commit: (_) async => throw StateError('公共入口编译合同不提交'),
       receiptVerifier: const WriteReceiptVerifier(),
     );
-    final WriteFlowController legacy = coordinator;
-    expect(identical(legacy, coordinator), isTrue);
+    expect(coordinator.runtimeType, WriteCoordinator);
     expect(coordinator.state, isA<WriteState>());
     coordinator.dispose();
   });
@@ -164,7 +163,6 @@ List<Object?> verifyBackendInterfaceSignatures(
 
 List<Object?> verifyBackendValueSignatures(
   UnavailableBackend unavailableBackend,
-  DemoBackend demoBackend,
 ) {
   const AuthStatus status = AuthStatus.signedOut;
   final BackendException Function(UbaaErrorCode, {String? detail})
@@ -179,11 +177,8 @@ List<Object?> verifyBackendValueSignatures(
       createProductionBackend;
   final UnavailableBackend Function() unavailableConstructor =
       UnavailableBackend.new;
-  final DemoBackend Function({Duration loginDelay}) demoConstructor =
-      DemoBackend.new;
   final UbaaBackend unavailableAsBackend = unavailableBackend;
   final BackendLifecycle unavailableAsLifecycle = unavailableBackend;
-  final UbaaBackend demoAsBackend = demoBackend;
 
   return <Object?>[
     status,
@@ -192,10 +187,8 @@ List<Object?> verifyBackendValueSignatures(
     backendFactory,
     productionFactory,
     unavailableConstructor,
-    demoConstructor,
     unavailableAsBackend,
     unavailableAsLifecycle,
-    demoAsBackend,
   ];
 }
 
@@ -269,16 +262,16 @@ List<Object?> verifyWriteControllerSignatures(
   WriteCommitter writeCommitter,
   WritePreparer writePreparer,
   WriteDiscarder writeDiscarder,
-  WriteFlowController writeFlowController,
+  WriteCoordinator writeFlowController,
 ) {
   final Future<WriteCommitResult> Function(String) commit = writeCommitter;
   final Future<WriteIntent> Function() prepareIntent = writePreparer;
   final Future<void> Function(String) discard = writeDiscarder;
-  final WriteFlowController Function({
+  final WriteCoordinator Function({
     required WriteCommitter commit,
     WriteDiscarder? discard,
   })
-  controllerConstructor = WriteFlowController.new;
+  controllerConstructor = WriteCoordinator.new;
   final void Function(WriteIntent) setIntent = writeFlowController.setIntent;
   final Future<WriteIntent?> Function(WritePreparer) prepare =
       writeFlowController.prepare;

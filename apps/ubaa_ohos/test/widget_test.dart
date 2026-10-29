@@ -7,7 +7,7 @@ void main() {
   testWidgets('OHOS 薄宿主使用共享登录界面', (tester) async {
     await tester.pumpWidget(
       UbaaOhosApp(
-        backend: DemoBackend(loginDelay: Duration.zero),
+        backend: const UnavailableBackend(),
         credentialVault: MemoryCredentialVault(),
       ),
     );

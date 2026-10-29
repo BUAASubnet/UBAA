@@ -5,7 +5,7 @@ import '../contracts/lifecycle.dart';
 
 /// 生产配置暂不可用时的安全后端。
 ///
-/// 生产入口不能使用 [DemoBackend] 伪造登录或业务数据；路径、动态库或
+/// 生产入口不能使用 测试支持包中的脱敏后端伪造登录或业务数据；路径、动态库或
 /// 平台能力尚未准备好时，所有操作明确失败并由 UI 映射为可行动错误。
 class UnavailableBackend implements UbaaBackend, BackendLifecycle {
   const UnavailableBackend({

@@ -1,0 +1,52 @@
+{
+  "repository": "https://github.com/irondash/cargokit.git",
+  "commit": "969c49a1b15ba8c1036cb6fc8790f40702b734b1",
+  "path": ".",
+  "files": {
+    ".gitignore": "ca39177a5e71fc3d705e49e3f2a86cc6beb4ebc86a5b3f0bd2eb101d57bded0a",
+    "LICENSE": "8b6ab9f32559167fe8cbda3f9a3da7bb80cc050c23f4d879ae62a37e61ea9930",
+    "README": "e17ab38d8143d8eec21535554837e099c58e4bd6a88be41d92acac46809bffdb",
+    "build_pod.sh": "a8b0a7a8cac48d2a70c146a1ca1f2406f14f9628883ac8291d212c11f941f568",
+    "build_tool/README.md": "610c79f3c40e1807d4731cf9f530d4d1218be4ba9b97dda87a01d02ff5295dbb",
+    "build_tool/analysis_options.yaml": "6cb5ec6808a5fd2a2acc4a866cff8761f34efa536f691219251f93688ffa8f53",
+    "build_tool/bin/build_tool.dart": "12b0b44884ee36164b2f71111efc859b1fb0b5d690bb68c8213074e9dfe38e90",
+    "build_tool/lib/build_tool.dart": "363b9137fcffb4d0a2b15b869cd6e8ebacf7ec13a36b8b3ae808304f12c17684",
+    "build_tool/lib/src/android_environment.dart": "c163291b92c1a4b24e4549642a6cda6f3ab524a59d8370dacf1589547dccf737",
+    "build_tool/lib/src/artifacts_provider.dart": "46ef875c9191acfb3f06625bf0d3e2d5da5f6fb12bd36f9bb59f20d2edfadc0d",
+    "build_tool/lib/src/build_cmake.dart": "4eb4b5f884d3688421876b8713456f68c51fbbdf4ff56ae059109fdc5897fb4b",
+    "build_tool/lib/src/build_gradle.dart": "63e63418216565bae8b1e1c3fa50b8c872f7706b689d2b5b11f6e2d6e3a66349",
+    "build_tool/lib/src/build_pod.dart": "eef48296bfbce61164c71596775c4400f6a15441d7895dbca1f7f264746f53e7",
+    "build_tool/lib/src/build_tool.dart": "8f93b6df784f67375568775de72641a3e32e25cdca89a798bf603615ef1e9d55",
+    "build_tool/lib/src/builder.dart": "aee9a3fd54f2f8f1901948c1b4a3cf32f6775653817d93881ca90c28fab18570",
+    "build_tool/lib/src/cargo.dart": "dbd19f431dc2a3347b64b23c06929e88d0ae0077b173e70016648b20b5e67741",
+    "build_tool/lib/src/crate_hash.dart": "4fbe239a8d42faede8c23b57721159980ea57bba21f5f003abc3bec6bf352f68",
+    "build_tool/lib/src/environment.dart": "5b6cc946e545e78928b15ffb7eec6a7ea73227f1e3c0aa85323d42cf3e4147cb",
+    "build_tool/lib/src/logging.dart": "a9040b71b546027bc22fdee1f4367f8bbabc1a2c9ed89f8e821bc3565e97f3d0",
+    "build_tool/lib/src/options.dart": "abcf4e0afb96058a074e53fe797518c47c589e4440df0afb262d27dd25e98381",
+    "build_tool/lib/src/precompile_binaries.dart": "3148e241cb33c663b58b4ad6e80c98e7ac91ef6f8dc155b6c155fbe256a80578",
+    "build_tool/lib/src/rustup.dart": "71bad604676b01a01659c87b5c21b8d4240cd579b0b83e7549654fb694fd2334",
+    "build_tool/lib/src/target.dart": "b505360f9624059c9ce3ebcf478336a6e1cf3a308396787519baef55798b2aa2",
+    "build_tool/lib/src/util.dart": "7baa9fff80a3da72383698f1205b17c96e8acb5b7499413072ba70a371852a0a",
+    "build_tool/lib/src/verify_binaries.dart": "1f26883a2cc42ce868512f7633cfc145753340cfc4f8012b5507dcbee23361d1",
+    "build_tool/pubspec.lock": "d16c36cbd3089b521fab03a8ced72e46f768021438486835233a1f655913372a",
+    "build_tool/pubspec.yaml": "b49e13fa7bd97fc05b9ff40eb58ae749981c1b7f1ca81b7ef54db542c1c04d3f",
+    "cmake/cargokit.cmake": "50e180ebede223a760fb85f6277389eeeab72d88957e029f1ddd7823f29a2b70",
+    "cmake/resolve_symlinks.ps1": "5a14a8bbea2ff777a761d47e223cac0a1f52747fd188eb495402ef3c8a0dd60f",
+    "gradle/plugin.gradle": "d6f1cc5f86eeb374547610ac924e013fb985cfde9bd1071052a99d5ca7b062f8",
+    "run_build_tool.cmd": "2b3d17806170a4c2f39d380b3f30a27050c7449a65b1f5aa57dd0acfd9ea174d",
+    "run_build_tool.sh": "babfe8e93dce2d0ee88eb3a62a3936b2f09efba58c10e5e8446a80094a3d91b6"
+  },
+  "source_note": "README 与文件内容可与 Cargokit 上游 969c49a1 对照；该副本另含 OHOS 构建支持和 Windows 绝对 manifest_dir 修复。",
+  "local_modifications": [
+    {
+      "commit": "893aa8484e1c81d91ff24376ef480564e5a53251",
+      "path": "cmake/cargokit.cmake",
+      "summary": "增加 OHOS 目标平台与 OHOS_SDK_HOME 传递，复制 OHOS 生成的动态库。"
+    },
+    {
+      "commit": "c94dbcd207f60342f23d5d550169d2cec9b8b90a",
+      "path": "cmake/cargokit.cmake",
+      "summary": "manifest_dir 已是绝对路径时不再拼接 CMAKE_CURRENT_SOURCE_DIR，修复 Windows 路径。"
+    }
+  ]
+}

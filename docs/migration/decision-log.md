@@ -87,3 +87,13 @@ Android release signing 改为同时接受 Gradle property 或环境变量 `UBAA
 监督者已决定本轮不继续拆分历史 `mod.rs` 中的协议实现，也不把 Bridge 离线流程泛型化；两项保留原实现并登记在状态页，待后续阶段重新评估。feature 专属 SSO URL 同样按阶段 5 决定保留，不在本阶段合并。
 
 本阶段实现提交为 `1b53eb1a`、`8480c23e`、`758e5de1`、`dbc3c847`、`43d9fc0c`、`c8777caa`；其中 `c8777caa` 固定 FRB 2.13.0 重复生成时 `BridgeClient.dispose` 注解的归一化，文档提交单独保留。完整验证结果写入 `.ubaa_local/supervision/phase6-report.md`。
+
+## 2026-10-30：阶段 6b 低风险清理
+
+本轮补做阶段 6 顺延的低风险项目，提交前以 `git grep -w` 检查正式名称、测试替身和 OHOS 宿主的全部使用方。删除 `Credentials`、`StoredCredential`、`TelemetryEventName`、`TelemetryRecord.fields`、`WriteFlowController` 以及 `ubaa_host` 的 `network_monitor` re-export；测试改用 `Credential`、`TelemetryEvents` 和 `WriteCoordinator`。`DemoBackend` 迁入 `ubaa_test_support`，生产包不再导出，使用它的官方测试改从 support 包导入；OHOS 宿主登录页测试继续使用 `UnavailableBackend`，避免让独立 OHOS fork 依赖官方测试包。上述变化只移除无人使用的兼容入口或测试替身位置，未改变生产协议、UI 文案、交互或 Bridge 调用。
+
+三个 OHOS 插件的 `UPSTREAM.json` 统一为 `repository`、40 位 `commit`、`path` 和逐文件 `sha256`。`flutter_secure_storage_ohos` 的现有材料只有 `Csy_Gitee@f1a8ada0`，没有公开仓库 URL 或完整提交，因此明确保存 `null` 并记录已知短引用，没有猜测提交。Cargokit 增加出处记录，基线对应上游 `969c49a1b15ba8c1036cb6fc8790f40702b734b1`；本地修改逐条注明 `893aa848` 的 OHOS 支持和 `c94dbcd2` 的 Windows 路径修复。
+
+清理平台模板中的 TODO 和占位内容：移除 Android Gradle 的模板 TODO、替换 macOS/Windows 模板展示文本、删除 iOS/macOS 空模板测试方法、删除 OHOS 插件未使用的 `page_show` 资源，并为 OHOS 宿主补齐英文资源回退。官方 Flutter CMake 生成注释保留，因为它们属于工具维护模板而非本项目待办。没有修改 bundle id、application id、版本号或 debug 构建行为；根 `.dart_tool` 等本地生成目录加入忽略规则。
+
+测试替身中可逐字机械合并的 `_tap` helper 收进 `ubaa_test_support.tapVisible`，图书馆导航中带额外滚动语义的变体保留为独立实现。所有原有断言保留，未改变测试覆盖范围。

@@ -4,6 +4,14 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 /// 回归用例沿实际分类入口进入领域，查询和写入断言继续由原用例负责。
+/// 确保目标可见后点击，并等待一次稳定帧。
+Future<void> tapVisible(WidgetTester tester, Finder finder) async {
+  await tester.ensureVisible(finder);
+  await tester.pumpAndSettle();
+  await tester.tap(finder);
+  await tester.pumpAndSettle();
+}
+
 Future<void> openFeature(WidgetTester tester, FeatureId feature) async {
   final destination = UiDestination.forFeature(feature);
   final nav = find.byType(NavigationBar);

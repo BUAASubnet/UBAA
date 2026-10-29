@@ -2,4 +2,3 @@
 library;
 
 export 'src/ubaa_app_host.dart' show UbaaAppHost, bootstrapUbaaHost;
-export 'src/network_monitor.dart' show LocalNetworkMonitor;

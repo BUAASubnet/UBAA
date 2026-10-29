@@ -41,7 +41,7 @@ Command Line Tools 根目录的 `tool/...`。当前 DevEco 已启用自动签名
 
 `lib/main.dart` 只是 composition root。P0 已执行 `RustLib.init` 与固定 hello；当前
 生产入口使用 `createProductionBackend()` 创建 FRB backend，初始化失败时安全显示
-`unsupported`，不会回退到 Demo 数据。`DemoBackend` 只允许由 widget 测试显式注入。
+`unsupported`，不会回退到 Demo 数据。测试替身只允许在测试代码中显式注入。
 HUKS 凭据库与遥测发送器也只在这里组合，不能把平台细节下沉到共享 UI。
 
 本宿主和官方五平台宿主已经依赖同一份生成 Dart API。OHOS 只拥有 runner、

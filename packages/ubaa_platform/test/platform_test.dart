@@ -236,9 +236,9 @@ void main() {
   test('内存凭据保险箱支持单账号覆盖和清除', () async {
     final vault = MemoryCredentialVault();
     expect(await vault.read(), isNull);
-    await vault.write(const StoredCredential(username: 'u1', password: 'p1'));
+    await vault.write(const Credential(username: 'u1', password: 'p1'));
     expect((await vault.read())?.username, 'u1');
-    await vault.write(const StoredCredential(username: 'u2', password: 'p2'));
+    await vault.write(const Credential(username: 'u2', password: 'p2'));
     expect((await vault.read())?.username, 'u2');
     await vault.clear();
     expect(await vault.read(), isNull);

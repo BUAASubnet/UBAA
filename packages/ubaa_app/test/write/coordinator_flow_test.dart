@@ -6,10 +6,10 @@ import '../support/write/fixtures.dart'
     show fixtureIntent, fixtureNow, fixtureResult;
 
 void _registerFlowTests() {
-  test('旧接口对所有 BackendException 保留原错误码而安全状态按 UI 映射', () async {
+  test('写协调器对所有 BackendException 保留原错误码而安全状态按 UI 映射', () async {
     for (final code in UbaaErrorCode.values) {
       for (final operation in <String>['prepare', 'cancel', 'confirm']) {
-        final coordinator = WriteFlowController(
+        final coordinator = WriteCoordinator(
           commit: (_) async =>
               throw BackendException(code, detail: '/private/token=secret'),
           discard: (_) async =>
@@ -80,15 +80,15 @@ void _registerFlowTests() {
     coordinator.dispose();
   });
 
-  test('旧控制器名称与新协调器使用同一类型和状态', () {
-    final WriteFlowController legacy = WriteCoordinator(
+  test('写协调器使用唯一类型和状态', () {
+    final WriteCoordinator coordinator = WriteCoordinator(
       commit: (_) async => fixtureResult(),
       now: () => fixtureNow,
     );
-    expect(legacy.runtimeType, WriteCoordinator);
-    legacy.setIntent(fixtureIntent());
-    expect(legacy.intent, same(legacy.state.intent));
-    legacy.dispose();
+    expect(coordinator.runtimeType, WriteCoordinator);
+    coordinator.setIntent(fixtureIntent());
+    expect(coordinator.intent, same(coordinator.state.intent));
+    coordinator.dispose();
   });
 
   test('准备期间阻止重入并在返回后发布不可变待确认状态', () async {
@@ -238,7 +238,7 @@ void _registerFlowTests() {
 
   test('旧 confirm 过滤未知异常、消费意图且不能重复提交', () async {
     var commits = 0;
-    final coordinator = WriteFlowController(
+    final coordinator = WriteCoordinator(
       commit: (_) async {
         commits++;
         throw StateError('/private/token=secret');

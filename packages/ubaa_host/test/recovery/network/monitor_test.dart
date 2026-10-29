@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:fake_async/fake_async.dart';
 import 'package:flutter_test/flutter_test.dart';
-import 'package:ubaa_host/src/network_monitor.dart';
+import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
   test('系统事件去重，离线不唤醒，恢复唤醒且没有周期轮询', () {

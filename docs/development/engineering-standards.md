@@ -40,7 +40,7 @@ Rust Core 负责协议事实、路由、会话/Cookie 作用域、密码学、�
 唯一 `BridgeBackend` 使用 bindings，`ubaa_ui` 生产代码只消费 domain 与 Flutter。`ubaa_domain` 定义不可变
 `WriteState/WriteOutcome`，`ubaa_app` 的 `WriteCoordinator` 唯一拥有待确认意图、提交和失效状态，
 `WriteReceiptVerifier` 只编排只读核对和安全结果提示。Host 注入状态和 prepare/cancel/confirm 三个命令；
-缺少任一命令或领域能力时 UI 关闭写入口。旧 `WriteFlowController` 是同一实现的类型别名，不是备用状态机。
+缺少任一命令或领域能力时 UI 关闭写入口。写入流程只有一个 `WriteCoordinator` 状态机。
 
 CLI 公开 envelope 的版本与本地持久化版本分别治理。破坏性 DTO/错误合同变化必须显式提升 CLI
 `schemaVersion` 并由 JSON Schema 与真实序列化合同共同验证；不得在旧版本号下静默改变字段。当前 CLI envelope 为 schema v12，

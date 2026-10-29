@@ -22,7 +22,7 @@ void main() {
 
   test('同一 intent 只提交一次并在成功后清除', () async {
     var calls = 0;
-    final controller = WriteFlowController(
+    final controller = WriteCoordinator(
       commit: (id) async {
         calls++;
         expect(id, 'intent-1');
@@ -48,7 +48,7 @@ void main() {
     for (final operation in WriteOperation.values) {
       var calls = 0;
       final id = 'intent-${operation.name}';
-      final controller = WriteFlowController(
+      final controller = WriteCoordinator(
         commit: (intentId) async {
           calls++;
           expect(intentId, id);
@@ -76,7 +76,7 @@ void main() {
 
   test('过期 intent 不调用提交器', () async {
     var calls = 0;
-    final controller = WriteFlowController(
+    final controller = WriteCoordinator(
       commit: (_) async {
         calls++;
         throw StateError('should not be called');
@@ -90,7 +90,7 @@ void main() {
   });
 
   test('结果不确定映射为禁止自动重试的安全错误', () async {
-    final controller = WriteFlowController(
+    final controller = WriteCoordinator(
       commit: (_) async =>
           throw const BackendException(UbaaErrorCode.outcomeUnknown),
     );
@@ -105,7 +105,7 @@ void main() {
   test('prepare 在控制器销毁后返回时 best-effort 释放晚到的 intent', () async {
     final prepared = Completer<WriteIntent>();
     final discardedIntentIds = <String>[];
-    final controller = WriteFlowController(
+    final controller = WriteCoordinator(
       commit: (_) async => throw StateError('不应提交'),
       discard: (intentId) async {
         discardedIntentIds.add(intentId);
@@ -125,7 +125,7 @@ void main() {
     var prepareCalls = 0;
     var commitCalls = 0;
     final discardedIntentIds = <String>[];
-    final controller = WriteFlowController(
+    final controller = WriteCoordinator(
       commit: (_) async {
         commitCalls++;
         return const WriteCommitResult(
@@ -162,7 +162,7 @@ void main() {
   test('取消必须等待后端释放 intent，成功后才清理本地状态', () async {
     final discardStarted = Completer<void>();
     final allowDiscard = Completer<void>();
-    final controller = WriteFlowController(
+    final controller = WriteCoordinator(
       commit: (_) async => throw StateError('不应提交'),
       discard: (intentId) async {
         expect(intentId, 'intent-await-discard');
@@ -188,7 +188,7 @@ void main() {
   });
 
   test('未消费的 intent 不能被后到的 setIntent 覆盖', () {
-    final controller = WriteFlowController(
+    final controller = WriteCoordinator(
       commit: (_) async => throw StateError('不应提交'),
     );
     controller.setIntent(intent(id: 'intent-original'));
@@ -201,7 +201,7 @@ void main() {
 
   test('取消首次失败保留 intent，第二次成功后清理', () async {
     var discardCalls = 0;
-    final controller = WriteFlowController(
+    final controller = WriteCoordinator(
       commit: (_) async => throw StateError('不应提交'),
       discard: (_) async {
         discardCalls++;
@@ -235,7 +235,7 @@ void main() {
   });
 
   test('未配置释放器或未知异常均安全失败且保留 intent', () async {
-    final unsupportedController = WriteFlowController(
+    final unsupportedController = WriteCoordinator(
       commit: (_) async => throw StateError('不应提交'),
     );
     unsupportedController.setIntent(intent(id: 'intent-no-discarder'));
@@ -253,7 +253,7 @@ void main() {
     expect(unsupportedController.error?.code, UbaaErrorCode.unsupported);
     unsupportedController.dispose();
 
-    final internalErrorController = WriteFlowController(
+    final internalErrorController = WriteCoordinator(
       commit: (_) async => throw StateError('不应提交'),
       discard: (_) async => throw StateError('/private/token=secret'),
     );
