@@ -12,7 +12,8 @@ pub(crate) fn shanghai_date(now: SystemTime) -> String {
         .map_or(0, |value| value.as_secs())
         + SHANGHAI_OFFSET_SECONDS as u64;
     let days = seconds / 86_400;
-    let (year, month, day) = civil_date(days as i64);
+    let days = i64::try_from(days).unwrap_or(i64::MAX);
+    let (year, month, day) = civil_date(days);
     format!("{year:04}-{month:02}-{day:02}")
 }
 
