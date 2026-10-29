@@ -17,7 +17,12 @@ def main():
     bridge = tomllib.loads((ROOT / 'crates/ubaa_flutter_bridge/Cargo.toml').read_text())
     frb = bridge['dependencies']['flutter_rust_bridge']
     if isinstance(frb, dict):
-        frb = frb['version']
+        if frb.get('workspace'):
+            frb = tomllib.loads((ROOT / 'Cargo.toml').read_text())['workspace']['dependencies'][
+                'flutter_rust_bridge'
+            ]
+        if isinstance(frb, dict):
+            frb = frb['version']
     mirrors = [('Rust edition', edition, values['RUST_EDITION']), ('Rust 工具链', rust, values['RUST_VERSION']),
                ('FRB Rust 依赖', frb.lstrip('='), values['FRB_VERSION'])]
     pubspec = (ROOT / 'packages/ubaa_bindings/pubspec.yaml').read_text()
