@@ -10,7 +10,6 @@ version.workspace = true
 
 [dependencies]
 async-trait.workspace = true
-base64.workspace = true
 clap.workspace = true
 directories.workspace = true
 rpassword.workspace = true
@@ -23,7 +22,6 @@ ubaa-core = { path = "../../crates/ubaa_core" }
 
 [dev-dependencies]
 jsonschema.workspace = true
-ubaa-test-support = { path = "../../crates/ubaa_test_support" }
 
 [[bin]]
 name = "ubaa"

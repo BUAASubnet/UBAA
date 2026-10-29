@@ -3365,7 +3365,6 @@ name = "ubaa-cli"
 version = "0.1.0"
 dependencies = [
  "async-trait",
- "base64",
  "clap",
  "directories",
  "jsonschema",
@@ -3376,7 +3375,6 @@ dependencies = [
  "tokio",
  "tracing-subscriber",
  "ubaa-core",
- "ubaa-test-support",
 ]
 
 [[package]]
