@@ -8,7 +8,7 @@ Rust Core 统一拥有认证、Direct/WebVPN/Auto 路线、会话、十二领域
 
 主题保存为设备偏好，重启恢复，不随退出或清除账号删除；业务缓存仍由 Core 持有。[界面规格](../design/flutter-ui-spec.md)描述现行展示规则，[来源对照](source-parity.md)保留逐操作协议依据。
 
-## 整改阶段 1–5 的实际结果
+## 整改阶段 1–6 的实际结果
 
 | 阶段 | 已提交结果 | 验证证据与边界 |
 |---|---|---|
@@ -17,18 +17,19 @@ Rust Core 统一拥有认证、Direct/WebVPN/Auto 路线、会话、十二领域
 | 3：门禁与 CI | `03beae27`、`7e2d486c`、`5b03cbdd`：保留原生能力、迁移夹具、修启动锁、统一脚本与版本、修 codegen 和 CI 配置 | 严格门禁、refs、布局、敏感扫描、文档链接/版本、FRB 零漂移通过。以 `c92806b4` 为基线的 check-changed 完整通过，七包 1526 项。监督者复核通过。 |
 | 4：文档瘦身与同步 | `308fa383`、`050be54b`：归档历史文档、修复现行链接、同步状态、决策索引和文档边界 | 现行文档断链为 0，旧决策逐字归档并保留索引，4000 个证据 JSON 原位保留。监督者复核通过。 |
 | 5：Rust 重构 | `19102297`、`00f40e01`、`b616bc53`、`fb73bac4`、`8d761ac9`、`fb8a60d4`、`81c6a0d6`、`bdc4232b`、`edeb41a4`、`db422ebd`、`29104992`、`69141903`、`aa687563`、`cdb65c22`、`a1d654ca`、`3cd9e3e5`、`f89ce2e2`、`80e1d77a`：依赖、错误与 HTTP 辅助、时区、SSO/缓存流程、CLI 契约和模块布局重构及最终状态同步 | `cargo test --locked --workspace --all-features`、严格 Clippy、`just check-strict`、七包 Flutter、FRB 零漂移、保留集合 macOS 集成测试和阶段基线 check-plan/check-changed 均通过；协议边界保持不变。 |
+| 6：Dart/Flutter/OHOS 重构 | `1b53eb1a`、`8480c23e`、`758e5de1`、`dbc3c847`：官方七包与 `ubaa_test_support` 纳入根 Pub workspace，统一 `flutter_lints`/implementation_imports，抽取跨包测试夹具，按 library 聚合布局门禁，Android release 签名改为显式配置，刷新 FRB 生成绑定；OHOS 保持独立 fork/锁文件 | 七包 `just flutter-check` 全部通过，OHOS 工具链、插件合同、HUKS/网络合同和无签名 Debug HAP 通过；golden 无变更，FRB 零漂移。 |
 
-阶段 3 原生 catalog 保留 10 个入口：`platform/*` 与 `synthetic/cache/*`。本机适用的 macOS 八个入口共 23 项通过，包含默认网络/插件/FFI/启动锁四入口的完整运行。启动锁由应用派生独立 Perl 进程持锁，从 PATH 查找解释器，不依赖终端访问应用容器的权限。照片首轮出现 SemanticsHandle 活跃断言，停止同时读取 UI 后代码不变重跑通过，首次失败保留。OHOS 工具链预检与 HUKS/网络插件合成合同通过，未构建 HAP 或运行设备验收。
+阶段 3 原生 catalog 保留 10 个入口：`platform/*` 与 `synthetic/cache/*`。本机适用的 macOS 八个入口共 23 项通过，包含默认网络/插件/FFI/启动锁四入口的完整运行。启动锁由应用派生独立 Perl 进程持锁，从 PATH 查找解释器，不依赖终端访问应用容器的权限。照片首轮出现 SemanticsHandle 活跃断言，停止同时读取 UI 后代码不变重跑通过，首次失败保留。阶段 3 当时只完成 OHOS 工具链预检与 HUKS/网络插件合成合同；阶段 6 已在同一锁定工具链上完成无签名 Debug HAP 检查，仍未运行实体设备验收。
 
 ## 当前未解决与未验证事项
 
 - 远端 CI 尚未运行。阶段 3 已修改 workflow，本地静态检查与监督复核通过；本轮未 push。
 - 保留原生集合的 Linux Secret Service 和 iOS/iPad 方向握手专项尚未在本轮运行；其他平台原生构建、签名、发布与真实账号验收也未运行。
 - [原生删减登记](history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29原生集成只保留真实原生能力)中的以下项目已无自动化覆盖：原生登录到查询完整路径、十二领域连续导航、十项写操作连续流程、原生软键盘专项、真实账号原生 UI 巡检、真实账号原生恢复、真实账号原生启动性能测量、Flutter 到 Android 的真实课表组件通道、常驻原生合成预览及 bindings 默认 driver。登记表逐项列出仍保留的 App/Host/Widget/Core 等分层覆盖。已删除流程的旧失败随入口移除，不计作修复通过。
-- OHOS 原生 `AppScope/app.json5` 仍为 `1.0.0`/`1000000`，两个 Flutter 应用为 `0.1.0+1`；平台模板标识、最低版本、依赖与测试支持库整理留待阶段 6。阶段 4 只更新文档。
-- Rust 阶段已完成。仍保留两类需要监督者决定的结构边界：feature 专属 SSO service URL 未合并，避免改变参数编码、重定向和 Cookie 作用域；历史 `mod.rs` 中的协议实现及 Bridge 离线泛型化未继续扩大范围。Dart/Flutter/OHOS 重构与依赖审计留待阶段 6、7。补充来源或私有观察无法由当前克隆复现的记录仍按[来源对照边界](source-parity.md)保留，不补造证据。
+- OHOS 原生 `AppScope/app.json5` 仍为 `1.0.0`/`1000000`，两个 Flutter 应用仍为 `0.1.0+1`；平台标识和版本号可能影响已安装应用升级，本阶段没有修改，留待后续决定。OHOS fork 与官方七包 Pub workspace 保持独立，原因和锁文件边界见决策记录。
+- Rust 阶段已完成。feature 专属 SSO service URL 未合并，避免改变参数编码、重定向和 Cookie 作用域。监督者决定本轮继续保留历史 `mod.rs` 中的协议实现和 Bridge 离线泛型化，列为后续待办；补充来源或私有观察无法由当前克隆复现的记录仍按[来源对照边界](source-parity.md)保留，不补造证据。
 - 最终逐项 UI/设备、异常生命周期、离线性能和发布验收仍有缺口；历史真实只读结果仅属于对应候选，不能继承为当前验收或真实写入授权。
 
 ## 本阶段验证
 
-阶段 5 以 `050be54b183b0a9a3db9581e48c04bdd31691665` 为基线完成 Rust 重构。`just refs`、`just layout-check`、`just check-sensitive`、`just check-strict`、`just flutter-check`（七包全量）、`just flutter-codegen-check`（零漂移）、`just integration-test`（macOS CI 保留集合 4 个入口）、`git diff --check`、`just check-plan` 和 `just check-changed` 均通过；工作区 Cargo 测试为 375 个 Core 单元测试通过（1 个忽略）及其余工作区测试全通过。严格门禁期间发现并修复了布局超限、工具版本解析和 Cargo 命令锁定问题，修复后重跑通过。远端 CI、Linux/iOS/OHOS 专项、真实账号和发布验收仍未运行。
+阶段 6 以 `d1872cafdf2e425c9f4a48c2cce5856f53ad458c` 为基线。`just flutter-check`（官方七包全量：domain 60、platform 95、app 683、UI 478、bindings 20、host 102、官方宿主 88）、`just layout-check`、`just check-sensitive`、`just check-strict`、`cargo test --workspace --all-features`、`just flutter-codegen-check`（零漂移）、保留集合 `just integration-test`（4 个 macOS 入口）、golden 六项定向比较、OHOS 工具链/插件合同/HUKS/网络合同和无签名 Debug HAP 均通过。`git diff --check` 已在严格门禁中通过；阶段基线 `just check-plan`/`just check-changed` 待文档提交后执行并登记。远端 CI、Linux/iOS 专项按监督者决定留待最终 push 后运行。
