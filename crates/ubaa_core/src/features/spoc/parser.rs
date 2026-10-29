@@ -353,9 +353,3 @@ fn first_non_empty_string(value: Option<&Value>) -> Option<String> {
 fn non_empty(value: &str) -> Option<String> {
     (!value.trim().is_empty()).then(|| value.to_string())
 }
-
-/// 在字段映射得到证明前保持 JSON 值不透明。
-#[allow(dead_code)]
-fn _value_type_marker(value: Value) -> Value {
-    value
-}

@@ -16,7 +16,6 @@ use super::parser::{data, error};
 use super::sign::timestamp_millis;
 
 /// 验证码挑战的脱敏结构；图像求解过程仅在 Core 内部流转。
-#[allow(dead_code)]
 #[derive(Clone, PartialEq, Eq)]
 pub(crate) struct CgyyCaptchaChallenge {
     pub(crate) secret_key: String,
@@ -44,7 +43,6 @@ impl std::fmt::Debug for CgyyCaptchaChallenge {
 ///
 /// 图像求解器只需提供滑块横向位移；密钥、令牌和 AES-ECB/PKCS#7 细节不会暴露给宿主。
 /// 复刻冻结旧版的滑块位移匹配算法。输入为去除可选 data URI 前缀后的图片字节。
-#[allow(dead_code)]
 pub(crate) fn solve_captcha_offset(original: &[u8], jigsaw: &[u8]) -> Result<u32> {
     let background =
         image::load_from_memory(original).map_err(|_| error("验证码背景图无法解析"))?;
@@ -200,7 +198,6 @@ fn edge_detect(gray: &[Vec<i32>]) -> Vec<Vec<u8>> {
         .collect()
 }
 
-#[allow(dead_code)]
 pub(super) fn build_captcha_params(now: i64) -> BTreeMap<String, String> {
     [
         ("captchaType".into(), "blockPuzzle".into()),
@@ -211,7 +208,6 @@ pub(super) fn build_captcha_params(now: i64) -> BTreeMap<String, String> {
     .collect()
 }
 
-#[allow(dead_code)]
 pub(super) fn parse_captcha_challenge(body: &str) -> Result<CgyyCaptchaChallenge> {
     let value = data(body)?;
     let success = value
