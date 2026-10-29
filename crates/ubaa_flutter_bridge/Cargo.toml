@@ -10,21 +10,21 @@ version.workspace = true
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
-futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
-flutter_rust_bridge = "=2.13.0"
-rand = "=0.10.2"
-sha2 = "=0.10.9"
-tokio = { version = "1.49.0", features = ["macros", "rt", "sync"] }
-tracing = "0.1.44"
-tracing-subscriber = { version = "0.3.23", default-features = false, features = ["fmt"] }
+futures-util.workspace = true
+flutter_rust_bridge.workspace = true
+rand.workspace = true
+sha2.workspace = true
+tokio = { workspace = true, features = ["macros", "rt", "sync"] }
+tracing.workspace = true
+tracing-subscriber = { workspace = true, features = ["fmt"] }
 ubaa-core = { path = "../ubaa_core" }
 
 [target.'cfg(target_os = "android")'.dependencies]
-jni = "=0.22.4"
-rustls-platform-verifier = "=0.7.0"
+jni.workspace = true
+rustls-platform-verifier.workspace = true
 
 [dev-dependencies]
-async-trait = "0.1.89"
+async-trait.workspace = true
 ubaa-test-support = { path = "../ubaa_test_support" }
 
 [lints.rust]

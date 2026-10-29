@@ -10,9 +10,53 @@ resolver = "3"
 [workspace.package]
 edition = "2024"
 license = "MIT"
+publish = false
 repository = "https://github.com/BUAASubnet/UBAA"
 rust-version = "1.95"
 version = "0.1.0"
+
+[workspace.dependencies]
+async-trait = "0.1.89"
+aes = "0.8.4"
+aes-gcm = "0.10.3"
+base64 = "0.22.1"
+cbc = "0.1.2"
+cfb-mode = "0.8.2"
+chrono = { version = "0.4.42", default-features = false, features = ["clock"] }
+chrono-tz = "0.10.4"
+cipher = { version = "0.4.4", features = ["block-padding"] }
+clap = { version = "4.5.60", features = ["derive"] }
+cookie_store = { version = "0.22.1", default-features = false }
+directories = "6.0.0"
+ecb = { version = "0.1.2", features = ["alloc"] }
+flate2 = "1.1.9"
+fs2 = "=0.4.3"
+futures-util = { version = "0.3.34", default-features = false, features = ["std"] }
+hex = "0.4.3"
+hmac = "0.12.1"
+image = { version = "0.25.8", default-features = false, features = ["jpeg", "png"] }
+jni = "=0.22.4"
+jsonschema = { version = "0.49.9", default-features = false }
+md-5 = "0.10.6"
+rand = "0.8.5"
+reqwest = { version = "0.13.1", features = ["gzip"] }
+rpassword = "7.4.0"
+rsa = "0.9.8"
+rusqlite = { version = "0.38.0", features = ["bundled"] }
+same-file = "=1.0.6"
+scraper = "0.27.0"
+serde = { version = "1.0.228", features = ["derive"] }
+serde_json = "1.0.149"
+sha1 = "0.10.6"
+sha2 = "0.10.9"
+rustls-platform-verifier = "=0.7.0"
+tokio = { version = "1.49.0" }
+toml = "1.1.4"
+tracing = "0.1.44"
+tracing-subscriber = { version = "0.3.23", default-features = false }
+url = "2.5.7"
+zeroize = "1.9.0"
+flutter_rust_bridge = "=2.13.0"
 
 [workspace.lints.rust]
 unsafe_code = "forbid"
