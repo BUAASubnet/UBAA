@@ -407,6 +407,7 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// # Errors
   ///
   /// 当前实现不会返回错误；保留 `Result` 以便未来生命周期清理失败时维持稳定 ABI。
+  @override
   Future<void> dispose();
 
   Future<BridgeRoutedEvaluation> evaluationAll();
