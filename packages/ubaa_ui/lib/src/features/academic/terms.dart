@@ -74,12 +74,14 @@ class _AcademicTermDialogState extends State<AcademicTermDialog> {
                   for (final entry in terms.entries)
                     ListTile(
                       title: Text(entry.value.title),
-                      subtitle: Text(entry.key),
-                      selected: entry.key == widget.selected,
-                      trailing:
+                      subtitle:
                           (entry.value.presentation! as TermPresentation)
                               .selected
-                          ? const Chip(label: Text('当前'))
+                          ? const Text('当前学期')
+                          : null,
+                      selected: entry.key == widget.selected,
+                      trailing: entry.key == widget.selected
+                          ? const Icon(Icons.check)
                           : null,
                       onTap: () => Navigator.of(context).pop(entry.key),
                     ),

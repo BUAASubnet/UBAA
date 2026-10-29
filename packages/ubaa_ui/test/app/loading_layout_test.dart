@@ -278,7 +278,7 @@ void main() {
     );
     await mount(ready);
     await tester.pump();
-    final before = tester.getTopLeft(find.text('全部成绩'));
+    final before = tester.getTopLeft(find.text('本学期'));
     pending.complete(
       const GradesAggregate(
         terms: [
@@ -302,8 +302,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(tester.getTopLeft(find.text('全部成绩')), before);
+    expect(tester.getTopLeft(find.text('本学期')), before);
     await mount(ready.copyWith(status: FeatureLoadStatus.loading));
-    expect(tester.getTopLeft(find.text('全部成绩')), before);
+    expect(tester.getTopLeft(find.text('本学期')), before);
   });
 }

@@ -1,3 +1,5 @@
+import 'package:clock/clock.dart';
+import 'package:ubaa_ui/src/features/classroom/content.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -22,6 +24,46 @@ FeatureDetail room(
   ),
 );
 void main() {
+  testWidgets('此刻空闲按当前节次筛选且仅查询当天时出现', (tester) async {
+    await withClock(Clock.fixed(DateTime.utc(2026, 9, 9, 0, 20)), () async {
+      Future<void> mount(DateTime date) => tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: ClassroomContent(
+              query: FeatureQuery(date: date),
+              details: [
+                room('此刻可用', sections: '1,3'),
+                room('稍后可用', sections: '2,13'),
+              ],
+            ),
+          ),
+        ),
+      );
+      await mount(DateTime(2026, 9, 9));
+      await tester.pumpAndSettle();
+      expect(find.text('当前第 1 节'), findsOneWidget);
+      expect(find.text('此刻可用'), findsOneWidget);
+      expect(find.text('稍后可用'), findsOneWidget);
+      final chip = find.widgetWithText(FilterChip, '此刻空闲');
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+      expect(tester.widget<FilterChip>(chip).selected, isTrue);
+      expect(find.text('此刻可用'), findsOneWidget);
+      expect(find.text('稍后可用'), findsNothing);
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+      expect(find.text('稍后可用'), findsOneWidget);
+      await tester.tap(chip);
+      await tester.pumpAndSettle();
+      await mount(DateTime(2026, 9, 10));
+      await tester.pumpAndSettle();
+      expect(chip, findsNothing);
+      expect(find.text('此刻可用'), findsOneWidget);
+      expect(find.text('稍后可用'), findsOneWidget);
+      expect(tester.takeException(), isNull);
+    });
+  });
+
   testWidgets('宽屏空教室表格与返回后的功能列表左右对齐', (tester) async {
     await showFeature(
       tester,
@@ -128,7 +170,7 @@ void main() {
     await tester.tap(find.text('A101'));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsOneWidget);
-    expect(find.text('ID-A101'), findsOneWidget);
+    expect(find.text('ID-A101'), findsNothing);
     expect(find.text('1,3,13'), findsOneWidget);
     expect(find.text('保留值'), findsOneWidget);
     expect(tester.takeException(), isNull);

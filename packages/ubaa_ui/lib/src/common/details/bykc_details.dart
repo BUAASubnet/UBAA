@@ -54,7 +54,6 @@ extension BykcDetails on _FeatureDetailListState {
         BykcSection('基本信息', [
           BykcInfoLine('教师', course.courseTeacher),
           BykcInfoLine('地点', course.coursePosition),
-          BykcInfoLine('课程编号', '${course.id}'),
           BykcInfoLine(
             course.courseCurrentCount == null &&
                     listCourse?.courseCurrentCount != null
@@ -214,8 +213,6 @@ extension BykcDetails on _FeatureDetailListState {
               course.subCategory,
             ].whereType<String>().join(' / '),
           ),
-          BykcInfoLine('课程编号', '${course.courseId}'),
-          BykcInfoLine('选课记录', '${course.recordId}'),
           ...uiBykcContactFields(course.fullDetail?.supplement),
         ]),
         const SizedBox(height: 12),

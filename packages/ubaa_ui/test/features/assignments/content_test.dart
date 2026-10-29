@@ -68,6 +68,9 @@ void main() {
     );
     expect(find.byType(DataTable), findsNothing);
     expect(find.byTooltip('课程详情'), findsOneWidget);
+    expect(find.text('资格待确认'), findsOneWidget);
+    await tester.tap(find.byTooltip('课程详情'));
+    await tester.pumpAndSettle();
     expect(find.text('当前评教资格无法确认，请刷新后重试。'), findsOneWidget);
   });
 

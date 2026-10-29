@@ -14,12 +14,26 @@ extension EvaluationCourseRows on _FeatureDetailListState {
               ? '当前课程不允许提交评教。'
               : '当前评教资格无法确认，请刷新后重试。'
         : null;
-    final subtitle = Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      mainAxisSize: MainAxisSize.min,
+    // 资格说明只留短标签，完整原因在详情里查看。
+    final subtitle = Row(
       children: [
-        Text(uiNonBlank(detail.subtitle) ?? '教师未提供'),
-        if (reason != null) Text(reason),
+        Flexible(child: Text(uiNonBlank(detail.subtitle) ?? '教师未提供')),
+        if (reason != null) ...[
+          const SizedBox(width: 8),
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
+            decoration: BoxDecoration(
+              color: theme.colorScheme.errorContainer,
+              borderRadius: BorderRadius.circular(4),
+            ),
+            child: Text(
+              reason.startsWith('当前课程不允许') ? '不可评' : '资格待确认',
+              style: theme.textTheme.labelSmall?.copyWith(
+                color: theme.colorScheme.onErrorContainer,
+              ),
+            ),
+          ),
+        ],
       ],
     );
     final info = IconButton(
@@ -37,7 +51,9 @@ extension EvaluationCourseRows on _FeatureDetailListState {
                 Text(uiNonBlank(detail.subtitle) ?? '教师未提供'),
                 Text(presentation.isEvaluated ? '已评' : '待评'),
                 if (reason != null) Text(reason),
-                for (final field in detail.fields)
+                for (final field in detail.fields.where(
+                  (f) => !uiHiddenAcademicField(f.label),
+                ))
                   Padding(
                     padding: const EdgeInsets.only(top: 8),
                     child: Text('${field.label}：${field.value}'),

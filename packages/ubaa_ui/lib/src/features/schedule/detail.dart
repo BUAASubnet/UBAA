@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/detail_fields.dart' show DetailField;
 
-import '../../shared/text.dart' show uiNonBlank, uiTimeRange;
+import '../../shared/text.dart'
+    show uiHiddenAcademicField, uiNonBlank, uiTimeRange;
 
 Future<void> uiShowScheduleGroup(
   BuildContext context,
@@ -58,22 +59,15 @@ Future<void> uiShowScheduleDetails(BuildContext context, FeatureDetail detail) {
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               for (final field in <(String, String)>[
-                ('课程代码', p.courseCode),
-                if (p.courseSerialNo != null) ('课程序号', p.courseSerialNo!),
-                if (p.credit != null) ('学分', p.credit!),
-                ('上课地点', uiNonBlank(p.place) ?? '地点待公布'),
-                if (uiTimeRange(p.beginTime, p.endTime) case final time?)
-                  ('上课时间', time),
-                if (p.dayOfWeek case final day?)
-                  (
-                    '星期',
-                    day >= 1 && day <= 7 ? uiWeekdays[day - 1] : '原值 $day',
-                  ),
-                if (p.beginSection case final start?) ('开始节次', '$start'),
-                if (p.endSection case final end?) ('结束节次', '$end'),
+                // 星期、节次和时间合成一行，便于一眼看懂何时上课。
+                if (_when(p) case final slot?) ('时间', slot),
+                ('地点', uiNonBlank(p.place) ?? '地点待公布'),
+                if (uiNonBlank(p.credit) case final credit?) ('学分', credit),
                 if (p.weeksAndTeachers != null) ('周次/教师', p.weeksAndTeachers!),
                 if (p.teachingTarget != null) ('教学对象', p.teachingTarget!),
-                for (final field in detail.fields) (field.label, field.value),
+                for (final field in detail.fields)
+                  if (!uiHiddenAcademicField(field.label))
+                    (field.label, field.value),
               ])
                 Padding(
                   padding: const EdgeInsets.only(bottom: 12),
@@ -91,4 +85,17 @@ Future<void> uiShowScheduleDetails(BuildContext context, FeatureDetail detail) {
       ],
     ),
   );
+}
+
+String? _when(ScheduleCoursePresentation p) {
+  final day = p.dayOfWeek;
+  final parts = [
+    if (day != null && day >= 1 && day <= 7) uiWeekdays[day - 1],
+    if (p.beginSection case final start?)
+      p.endSection == null || p.endSection == start
+          ? '第$start节'
+          : '第$start–${p.endSection}节',
+    ?uiTimeRange(p.beginTime, p.endTime),
+  ];
+  return parts.isEmpty ? null : parts.join(' · ');
 }

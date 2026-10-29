@@ -1,4 +1,5 @@
 import '../../shared/academic_fields.dart' show AcademicInfo;
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/theme.dart';
@@ -30,9 +31,21 @@ class _ExamTimelineState extends State<ExamTimeline> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
+        if (upcoming.isNotEmpty) ...[
+          _heading(context, '即将到来'),
+          ..._groups(upcoming),
+        ],
+        if (other.isNotEmpty) ...[
+          _heading(context, '未安排/其他'),
+          for (final detail in other)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _ExamCompactCard(detail: detail),
+            ),
+        ],
         if (finished.isNotEmpty) ...[
           Padding(
-            padding: const EdgeInsets.only(bottom: 16),
+            padding: const EdgeInsets.only(bottom: 12, top: 4),
             child: Material(
               color: Theme.of(context).colorScheme.surfaceContainerHighest,
               borderRadius: BorderRadius.circular(8),
@@ -57,18 +70,6 @@ class _ExamTimelineState extends State<ExamTimeline> {
             ),
           ),
           if (_showFinished) ..._groups(finished, finished: true),
-        ],
-        if (upcoming.isNotEmpty) ...[
-          _heading(context, '即将到来'),
-          ..._groups(upcoming),
-        ],
-        if (other.isNotEmpty) ...[
-          _heading(context, '未安排/其他'),
-          for (final detail in other)
-            Padding(
-              padding: const EdgeInsets.only(bottom: 12),
-              child: _ExamCompactCard(detail: detail),
-            ),
         ],
       ],
     );
@@ -133,15 +134,25 @@ class _ExamTimelineRow extends StatelessWidget {
             width: 60,
             child: Column(
               children: [
-                if (showDate)
+                if (showDate) ...[
                   Text(
                     d == null
                         ? '待定'
                         : '${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}',
-                    style: Theme.of(
-                      context,
-                    ).textTheme.labelMedium?.copyWith(color: color),
+                    style: Theme.of(context).textTheme.labelMedium?.copyWith(
+                      color: color,
+                      fontWeight: FontWeight.bold,
+                    ),
                   ),
+                  if (d != null)
+                    Text(
+                      _examDayHint(d, finished),
+                      textAlign: TextAlign.center,
+                      style: Theme.of(
+                        context,
+                      ).textTheme.labelSmall?.copyWith(color: color),
+                    ),
+                ],
                 const SizedBox(height: 8),
                 Icon(Icons.circle, size: 8, color: color),
                 const SizedBox(height: 4),
@@ -186,7 +197,7 @@ class _ExamCompactCard extends StatelessWidget {
         onTap: () => uiShowAcademicDetails(context, detail),
         borderRadius: BorderRadius.circular(UbaaTheme.cardRadius),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -210,28 +221,44 @@ class _ExamCompactCard extends StatelessWidget {
                     const SizedBox(width: 8),
                     ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 120),
-                      child: Text(
-                        '座位 ${p.seat}',
-                        maxLines: 2,
-                        overflow: TextOverflow.ellipsis,
-                        style: theme.textTheme.labelMedium,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 8,
+                          vertical: 2,
+                        ),
+                        decoration: BoxDecoration(
+                          color: finished
+                              ? theme.colorScheme.surfaceContainerHigh
+                              : theme.colorScheme.primaryContainer,
+                          borderRadius: BorderRadius.circular(6),
+                        ),
+                        child: Text(
+                          '座位 ${p.seat}',
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelLarge?.copyWith(
+                            fontWeight: FontWeight.bold,
+                            color: finished
+                                ? theme.colorScheme.onSurfaceVariant
+                                : theme.colorScheme.onPrimaryContainer,
+                          ),
+                        ),
                       ),
                     ),
                   ],
                 ],
               ),
-              const SizedBox(height: 12),
+              const SizedBox(height: 6),
+              // 时间与考场合为一行，卡片更紧凑。
               AcademicInfo(
                 icon: Icons.schedule,
-                text:
-                    uiTimeRange(p.startTime, p.endTime) ??
-                    uiNonBlank(p.description) ??
-                    '时间待公布',
+                text: [
+                  uiTimeRange(p.startTime, p.endTime) ??
+                      uiNonBlank(p.description) ??
+                      '时间待公布',
+                  ?uiNonBlank(p.place),
+                ].join(' · '),
               ),
-              if (uiNonBlank(p.place) case final place?) ...[
-                const SizedBox(height: 6),
-                AcademicInfo(icon: Icons.place_outlined, text: place),
-              ],
             ],
           ),
         ),
@@ -295,3 +322,23 @@ Iterable<String> uiAcademicSearchValues(FeaturePresentation? p) => switch (p) {
   ].whereType<String>(),
   _ => const [],
 };
+
+/// 日期下的星期与倒计时，分两行显示，例如“周五/明天”。
+String _examDayHint(DateTime date, bool finished) {
+  const weekdays = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+  final now = homeCampusTime(clock.now());
+  final days = DateTime(
+    date.year,
+    date.month,
+    date.day,
+  ).difference(DateTime(now.year, now.month, now.day)).inDays;
+  final relative = finished || days < 0
+      ? null
+      : switch (days) {
+          0 => '今天',
+          1 => '明天',
+          2 => '后天',
+          _ => '$days天后',
+        };
+  return [weekdays[date.weekday - 1], ?relative].join('\n');
+}

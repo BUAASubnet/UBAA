@@ -49,9 +49,11 @@ void main() {
     await tester.pump();
     final summary = tester
         .widgetList<GradeSummaryCard>(find.byType(GradeSummaryCard))
-        .singleWhere((card) => card.title == '全部成绩');
-    expect(summary.statistics?.courseCount, 1);
+        .single;
+    expect(summary.overall?.courseCount, 1);
     expect(summary.notice, isNull);
+    expect(summary.statistics?.courseCount, 1);
+    expect(find.textContaining('加权 80 · 算数 80'), findsOneWidget);
     pending.complete(
       const GradesAggregate(
         terms: [
@@ -93,21 +95,25 @@ void main() {
       size: const Size(1200, 1200),
     );
     expect(find.text('本学期'), findsOneWidget);
-    expect(find.text('课程数'), findsOneWidget);
-    expect(find.text('总学分'), findsOneWidget);
+    expect(find.text('2 门 · 3 学分'), findsOneWidget);
     expect(find.byType(DataTable), findsNothing);
     expect(find.text('RAW-KEEP'), findsNothing);
     expect(
       tester.getTopLeft(find.text('本学期')).dy,
       lessThan(tester.getTopLeft(find.text('合成已出课程')).dy),
     );
-    await openQueryPanel(tester);
     await tester.enterText(searchField, 'SAFE-1');
     await closeQueryPanel(tester);
     expect(find.text('合成待出课程'), findsNothing);
+    expect(find.text('合成已出课程'), findsOneWidget);
+    // 只看正文文字；搜索框里用户输入的课程号不算展示。
+    expect(
+      find.byWidgetPredicate((w) => w is Text && w.data == 'SAFE-1'),
+      findsNothing,
+    );
     final summary = find.widgetWithText(Card, '本学期');
     expect(
-      find.descendant(of: summary, matching: find.text('2')),
+      find.descendant(of: summary, matching: find.text('2 门 · 3 学分')),
       findsOneWidget,
     );
     await tester.tap(find.text('合成已出课程'));
@@ -127,10 +133,10 @@ void main() {
       ),
     );
     expect(find.text('本学期'), findsOneWidget);
-    expect(find.text('0'), findsOneWidget);
+    expect(find.text('0 门'), findsOneWidget);
     expect(find.text('暂无成绩'), findsOneWidget);
   });
-  testWidgets('学期切换与行内搜索可切至历史学期并联动更新统计和列表', (tester) async {
+  testWidgets('学期切换与顶栏搜索可切至历史学期并联动更新统计和列表', (tester) async {
     const term1Course = GradePresentation(
       courseName: '第一学期课程',
       courseCode: 'T1-1',
@@ -201,6 +207,20 @@ void main() {
     // 切换至 2025春
     expect(find.text('2025春'), findsNWidgets(2));
     expect(find.text('第二学期课程'), findsOneWidget);
+    expect(
+      tester
+          .widget<GradeSummaryCard>(find.byType(GradeSummaryCard))
+          .statistics
+          ?.totalCredits,
+      2,
+    );
+    expect(
+      tester
+          .widget<GradeSummaryCard>(find.byType(GradeSummaryCard))
+          .overall
+          ?.totalCredits,
+      5,
+    );
     expect(find.text('第一学期课程'), findsNothing);
 
     // 点击上一学期回到 2024秋（本学期）
@@ -209,13 +229,24 @@ void main() {
     expect(find.text('本学期'), findsOneWidget);
     expect(find.text('第一学期课程'), findsOneWidget);
 
-    // 行内搜索测试
-    await tester.enterText(
-      find.widgetWithText(TextField, '搜索课程名称/代码/教师/属性...'),
-      '不存在',
-    );
+    // 顶栏搜索测试
+    await tester.enterText(searchField, '不存在');
     await tester.pumpAndSettle();
     expect(find.text('没有匹配的成绩'), findsOneWidget);
+    expect(
+      tester
+          .widget<GradeSummaryCard>(find.byType(GradeSummaryCard))
+          .statistics
+          ?.totalCredits,
+      3,
+    );
+    expect(
+      tester
+          .widget<GradeSummaryCard>(find.byType(GradeSummaryCard))
+          .overall
+          ?.totalCredits,
+      5,
+    );
     expect(find.text('第一学期课程'), findsNothing);
   });
 }

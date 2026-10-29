@@ -557,11 +557,16 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                   ),
           ),
         if (_openedFeature == FeatureId.schedule)
-          IconButton(
-            tooltip: '选择学期',
-            onPressed: () => _readPageKeys[FeatureId.schedule]?.currentState
-                ?.selectScheduleTerm(),
-            icon: const Icon(Icons.calendar_month_outlined),
+          // 文字按钮比日历图标更不易被误认为“选日期”。
+          Tooltip(
+            message: '选择学期',
+            child: TextButton.icon(
+              onPressed: () => _readPageKeys[FeatureId.schedule]?.currentState
+                  ?.selectScheduleTerm(),
+              iconAlignment: IconAlignment.end,
+              icon: const Icon(Icons.arrow_drop_down),
+              label: const Text('学期'),
+            ),
           ),
         if (!touchRefresh && _openedFeature != null)
           RefreshActionButton(

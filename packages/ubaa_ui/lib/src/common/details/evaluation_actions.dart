@@ -39,61 +39,65 @@ extension EvaluationDetailActions on _FeatureDetailListState {
         ],
       ];
 
+  /// 评教底部操作栏：常驻于列表下方，不随选择数量改变列表位置。
   List<Widget> _evaluationBatchFields(
     StateSetter setState,
     List<EvaluationSubmitTarget> pendingEvaluations,
     List<EvaluationSubmitTarget> selectedEvaluations,
   ) => <Widget>[
     if (widget.feature == FeatureId.evaluation &&
-        selectedEvaluations.isNotEmpty &&
+        pendingEvaluations.isNotEmpty &&
         widget.onEvaluationWrite != null)
-      Padding(
-        padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
-        child: Wrap(
-          spacing: 8,
-          runSpacing: 4,
-          crossAxisAlignment: WrapCrossAlignment.center,
-          children: <Widget>[
-            Text('已选择 ${selectedEvaluations.length} 门待评课程'),
-            OutlinedButton(
-              onPressed: !widget.writesEnabled
-                  ? null
-                  : pendingEvaluations.isEmpty
-                  ? null
-                  : () => setState(() {
-                      if (selectedEvaluations.length ==
-                          pendingEvaluations.length) {
-                        _selectedEvaluationKeys.clear();
-                      } else {
-                        _selectedEvaluationKeys
-                          ..clear()
-                          ..addAll(
-                            pendingEvaluations.map(
-                              (target) => target.selectionKey,
-                            ),
-                          );
-                      }
-                    }),
-              child: Text(
-                selectedEvaluations.length == pendingEvaluations.length
-                    ? '取消全选'
-                    : '全选待评',
+      Material(
+        color: Theme.of(context).colorScheme.surfaceContainer,
+        child: Padding(
+          padding: UbaaTheme.pageInsets(context, top: 8, bottom: 8),
+          child: Row(
+            children: <Widget>[
+              Expanded(
+                child: Text(
+                  selectedEvaluations.isEmpty
+                      ? '待评 ${pendingEvaluations.length} 门'
+                      : '已选 ${selectedEvaluations.length} 门',
+                  style: Theme.of(context).textTheme.bodyMedium,
+                ),
               ),
-            ),
-            FilledButton.icon(
-              onPressed: !widget.writesEnabled
-                  ? null
-                  : selectedEvaluations.isEmpty
-                  ? null
-                  : () => widget.onEvaluationWrite!(selectedEvaluations),
-              icon: const Icon(Icons.rate_review_outlined),
-              label: Text(
-                selectedEvaluations.length == 1
-                    ? '提交评教'
-                    : '提交 ${selectedEvaluations.length} 门评教',
+              TextButton(
+                onPressed: !widget.writesEnabled
+                    ? null
+                    : () => setState(() {
+                        if (selectedEvaluations.length ==
+                            pendingEvaluations.length) {
+                          _selectedEvaluationKeys.clear();
+                        } else {
+                          _selectedEvaluationKeys
+                            ..clear()
+                            ..addAll(
+                              pendingEvaluations.map(
+                                (target) => target.selectionKey,
+                              ),
+                            );
+                        }
+                      }),
+                child: Text(
+                  selectedEvaluations.length == pendingEvaluations.length
+                      ? '取消全选'
+                      : '全选',
+                ),
               ),
-            ),
-          ],
+              const SizedBox(width: 8),
+              FilledButton(
+                onPressed: !widget.writesEnabled || selectedEvaluations.isEmpty
+                    ? null
+                    : () => widget.onEvaluationWrite!(selectedEvaluations),
+                child: Text(
+                  selectedEvaluations.length <= 1
+                      ? '提交评教'
+                      : '提交 ${selectedEvaluations.length} 门',
+                ),
+              ),
+            ],
+          ),
         ),
       ),
   ];

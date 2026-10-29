@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/detail_fields.dart' show DetailField;
 import 'fields.dart' show uiCourseFields;
-import '../../shared/text.dart' show uiNonBlank, uiTimeRange;
+import '../../shared/text.dart'
+    show uiNonBlank, uiTimeRange, uiHiddenAcademicField;
 
 class AcademicCard extends StatelessWidget {
   const AcademicCard({required this.detail, this.onNavigate});
@@ -83,13 +84,12 @@ class AcademicCard extends StatelessWidget {
                   fields: [
                     if (uiNonBlank(p.description) case final value?)
                       ('考试说明', value),
-                    if (uiNonBlank(p.courseNo) case final value?)
-                      ('课程编号', value),
                     if (p.week case final value?) ('周次', '$value'),
                     if (p.status case final value?) ('上游状态', '$value'),
                     if (uiNonBlank(p.type) case final value?) ('考试类型', value),
-                    if (uiNonBlank(p.taskId) case final value?) ('任务编号', value),
-                    for (final field in detail.fields)
+                    for (final field in detail.fields.where(
+                      (f) => !uiHiddenAcademicField(f.label),
+                    ))
                       (field.label, field.value),
                   ],
                 ),
@@ -119,12 +119,11 @@ class AcademicCard extends StatelessWidget {
                   ),
                 AcademicMore(
                   fields: [
-                    if (uiNonBlank(p.courseCode) case final value?)
-                      ('课程编号', value),
-                    if (uiNonBlank(p.termCode) case final value?) ('学期', value),
                     if (uiNonBlank(p.scoreType) case final value?)
                       ('成绩类型', value),
-                    for (final field in detail.fields)
+                    for (final field in detail.fields.where(
+                      (f) => !uiHiddenAcademicField(f.label),
+                    ))
                       (field.label, field.value),
                   ],
                 ),
@@ -147,7 +146,9 @@ class AcademicCard extends StatelessWidget {
                   ),
               ],
               _ => [
-                for (final field in detail.fields)
+                for (final field in detail.fields.where(
+                  (f) => !uiHiddenAcademicField(f.label),
+                ))
                   DetailField(label: field.label, value: field.value),
               ],
             },

@@ -26,11 +26,12 @@ void main() {
           ),
         ),
       );
-      final total = find
-          .ancestor(of: find.text('总学分'), matching: find.byType(Column))
-          .first;
+      final total = find.byType(GradeSummaryCard);
       expect(
-        find.descendant(of: total, matching: find.text(expected)),
+        find.descendant(
+          of: total,
+          matching: find.text('${credits.length} 门 · $expected 学分'),
+        ),
         findsOneWidget,
       );
     });

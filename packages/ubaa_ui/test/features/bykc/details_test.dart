@@ -259,7 +259,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(state.queries.last.view, FeatureQueryView.bykcChosenCourses);
       expect(state.queries.last.courseId, '71');
-      expect(find.text('7002'), findsOneWidget);
+      expect(find.text('7002'), findsNothing);
       expect(find.text('合成联系人'), findsOneWidget);
       await _show(tester, find.text('签到信息'));
       expect(find.text('已签到、未签退'), findsOneWidget);

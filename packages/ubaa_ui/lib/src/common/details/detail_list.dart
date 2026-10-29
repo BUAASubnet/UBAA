@@ -40,7 +40,7 @@ import '../../features/exam/timeline.dart' show uiAcademicSearchValues;
 import '../../features/schedule/content.dart' show ScheduleContent;
 import '../../features/ygdk/record_card.dart'
     show YgdkRecordCard, uiYgdkRecordSearchValues;
-import '../../shared/text.dart' show uiNonBlank;
+import '../../shared/text.dart' show uiNonBlank, uiHiddenAcademicField;
 import '../../write/cgyy/draft.dart' show CgyyFormContext;
 import '../../write/cgyy/form.dart'
     show uiCgyyActionKey, uiCollectCgyyReservation;
@@ -221,11 +221,6 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
         .toList(growable: false);
     return Column(
       children: <Widget>[
-        ..._evaluationBatchFields(
-          setState,
-          pendingEvaluations,
-          selectedEvaluations,
-        ),
         Expanded(
           child: InfiniteScroll(
             onLoadMore: widget.onLoadMore,
@@ -483,7 +478,9 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                                     style: theme.textTheme.bodySmall,
                                   ),
                                 ],
-                                for (final field in detail.fields) ...<Widget>[
+                                for (final field in detail.fields.where(
+                                  (f) => !uiHiddenAcademicField(f.label),
+                                )) ...<Widget>[
                                   const SizedBox(height: 8),
                                   DetailField(
                                     label: field.label,
@@ -543,6 +540,12 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
                     ),
             ),
           ),
+        ),
+        // 选择评教课程后在底部操作，避免批量栏插在列表中间跳动。
+        ..._evaluationBatchFields(
+          setState,
+          pendingEvaluations,
+          selectedEvaluations,
         ),
       ],
     );

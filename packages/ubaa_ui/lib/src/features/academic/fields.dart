@@ -29,8 +29,6 @@ List<Widget> uiCourseFields(ScheduleCoursePresentation course) => [
   if (uiNonBlank(course.weeksAndTeachers) case final value?) Text(value),
   AcademicMore(
     fields: [
-      ('课程编号', course.courseCode),
-      if (uiNonBlank(course.courseSerialNo) case final value?) ('课程序号', value),
       if (uiNonBlank(course.credit) case final value?) ('学分', value),
       if (uiNonBlank(course.teachingTarget) case final value?) ('教学对象', value),
       if (!uiScheduled(course)) ...[

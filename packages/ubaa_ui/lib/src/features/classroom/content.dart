@@ -1,9 +1,11 @@
 import 'dart:async';
 import '../../theme.dart';
 import 'dart:math' as math;
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/detail_fields.dart' show DetailField;
+import '../../shared/text.dart' show uiHiddenAcademicField;
 
 /// 沿旧版楼栋分组和14节表格；只呈现已读取的原空闲令牌。
 class ClassroomContent extends StatefulWidget {
@@ -18,6 +20,7 @@ class ClassroomContent extends StatefulWidget {
 class _ClassroomContentState extends State<ClassroomContent> {
   final _horizontal = ScrollController();
   String? _selectedBuilding;
+  bool _freeNow = false;
 
   @override
   void dispose() {
@@ -83,10 +86,23 @@ class _ClassroomContentState extends State<ClassroomContent> {
             .toList()
           ..sort();
 
-    // 关键字搜索由外层常驻搜索框完成，这里只按楼栋过滤。
+    // 只有查询当天才有“当前节次”；课间指向下一节。
+    final campusNow = homeCampusTime(clock.now());
+    final current =
+        dateObj.year == campusNow.year &&
+            dateObj.month == campusNow.month &&
+            dateObj.day == campusNow.day
+        ? _currentSection(campusNow)
+        : null;
+    final freeNow = _freeNow && current != null;
+
+    // 关键字搜索由外层常驻搜索框完成，这里只按楼栋和“此刻空闲”过滤。
     final filteredDetails = widget.details.where((d) {
       final p = d.presentation! as ClassroomPresentation;
-      return _selectedBuilding == null || p.floorName == _selectedBuilding;
+      if (_selectedBuilding != null && p.floorName != _selectedBuilding) {
+        return false;
+      }
+      return !freeNow || p.sectionTokens.contains('$current');
     }).toList();
 
     final wide = MediaQuery.sizeOf(context).width >= 600;
@@ -135,7 +151,7 @@ class _ClassroomContentState extends State<ClassroomContent> {
             ],
           ),
         ),
-        if (!wide || availableBuildings.isNotEmpty)
+        if (!wide || availableBuildings.isNotEmpty || current != null)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
             padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
@@ -152,6 +168,15 @@ class _ClassroomContentState extends State<ClassroomContent> {
                   ),
                   const SizedBox(width: 8),
                 ],
+                if (current != null)
+                  Padding(
+                    padding: const EdgeInsets.only(right: 6),
+                    child: FilterChip(
+                      label: const Text('此刻空闲'),
+                      selected: _freeNow,
+                      onSelected: (value) => setState(() => _freeNow = value),
+                    ),
+                  ),
                 for (final building in availableBuildings)
                   Padding(
                     padding: const EdgeInsets.only(right: 6),
@@ -216,15 +241,6 @@ class _ClassroomContentState extends State<ClassroomContent> {
                                   runSpacing: 4,
                                   crossAxisAlignment: WrapCrossAlignment.center,
                                   children: [
-                                    if (first case final f?
-                                        when f.queryDate != null &&
-                                            f.campus != null)
-                                      Text(
-                                        '${f.queryDate} · ${uiClassroomCampusName(f.campus!)}',
-                                        style: Theme.of(
-                                          context,
-                                        ).textTheme.bodySmall,
-                                      ),
                                     Row(
                                       mainAxisSize: MainAxisSize.min,
                                       children: [
@@ -242,6 +258,18 @@ class _ClassroomContentState extends State<ClassroomContent> {
                                         ),
                                       ],
                                     ),
+                                    if (current != null)
+                                      Text(
+                                        '当前第 $current 节',
+                                        style: Theme.of(context)
+                                            .textTheme
+                                            .labelSmall
+                                            ?.copyWith(
+                                              color: Theme.of(
+                                                context,
+                                              ).colorScheme.primary,
+                                            ),
+                                      ),
                                   ],
                                 ),
                               ),
@@ -254,6 +282,7 @@ class _ClassroomContentState extends State<ClassroomContent> {
                               controller: _horizontal,
                               nameWidth: width * 22 / 162,
                               theme: Theme.of(context),
+                              current: current,
                             ),
                           ),
                           SliverList.builder(
@@ -332,6 +361,13 @@ class _ClassroomContentState extends State<ClassroomContent> {
                                               child: _ClassroomCell(
                                                 color: free.contains(section)
                                                     ? availableColor
+                                                    : section == current
+                                                    ? Theme.of(context)
+                                                          .colorScheme
+                                                          .primary
+                                                          .withValues(
+                                                            alpha: .06,
+                                                          )
                                                     : null,
                                               ),
                                             ),
@@ -432,22 +468,27 @@ class _ClassroomTableHeader extends SliverPersistentHeaderDelegate {
     required this.theme,
     required this.controller,
     required this.nameWidth,
+    this.current,
   });
   final double height, nameWidth;
+  final int? current;
   final ThemeData theme;
   final ScrollController controller;
   @override
   double get minExtent => height;
   @override
   double get maxExtent => height;
-  Widget _label(String text) => _ClassroomCell(
+  Widget _label(String text, {bool highlight = false}) => _ClassroomCell(
+    color: highlight ? theme.colorScheme.primary : null,
     child: Center(
       child: Text(
         text,
         style: TextStyle(
           fontSize: 10,
           fontWeight: FontWeight.bold,
-          color: theme.colorScheme.onSurfaceVariant,
+          color: highlight
+              ? theme.colorScheme.onPrimary
+              : theme.colorScheme.onSurfaceVariant,
         ),
       ),
     ),
@@ -465,7 +506,10 @@ class _ClassroomTableHeader extends SliverPersistentHeaderDelegate {
           children: [
             const Expanded(flex: 22, child: SizedBox()),
             for (var section = 1; section <= 14; section++)
-              Expanded(flex: 10, child: _label('$section')),
+              Expanded(
+                flex: 10,
+                child: _label('$section', highlight: section == current),
+              ),
           ],
         ),
         _ClassroomPinnedName(
@@ -481,7 +525,8 @@ class _ClassroomTableHeader extends SliverPersistentHeaderDelegate {
       height != oldDelegate.height ||
       nameWidth != oldDelegate.nameWidth ||
       theme != oldDelegate.theme ||
-      controller != oldDelegate.controller;
+      controller != oldDelegate.controller ||
+      current != oldDelegate.current;
 }
 
 String uiClassroomCampusName(int campus) => switch (campus) {
@@ -509,8 +554,6 @@ Future<void> _showClassroomDetails(BuildContext context, FeatureDetail detail) {
             children: [
               for (final field in <(String, String)>[
                 ('楼栋', p.floorName),
-                ('教室编号', p.roomId),
-                ('楼栋/楼层编号', p.floorId),
                 (
                   '原空闲节次',
                   p.availableSections.isEmpty ? '未提供' : p.availableSections,
@@ -518,7 +561,9 @@ Future<void> _showClassroomDetails(BuildContext context, FeatureDetail detail) {
                 if (p.queryDate case final date?) ('查询日期', date),
                 if (p.campus case final campus?)
                   ('校区', uiClassroomCampusName(campus)),
-                for (final field in detail.fields) (field.label, field.value),
+                for (final field in detail.fields)
+                  if (!uiHiddenAcademicField(field.label))
+                    (field.label, field.value),
               ])
                 Padding(
                   padding: const EdgeInsets.only(bottom: 8),
@@ -536,4 +581,20 @@ Future<void> _showClassroomDetails(BuildContext context, FeatureDetail detail) {
       ],
     ),
   );
+}
+
+/// 当前所在节次；课间返回下一节，晚于最后一节返回 null。
+int? _currentSection(DateTime now) {
+  int? minutes(String? value) {
+    final match = RegExp(r'^(\d{1,2}):(\d{2})').firstMatch(value ?? '');
+    if (match == null) return null;
+    return int.parse(match[1]!) * 60 + int.parse(match[2]!);
+  }
+
+  final current = now.hour * 60 + now.minute;
+  for (final time in scheduleSectionTimes(courses: const [])) {
+    final end = minutes(time.end);
+    if (end != null && current <= end) return time.section;
+  }
+  return null;
 }

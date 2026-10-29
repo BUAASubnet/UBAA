@@ -1,3 +1,4 @@
+import 'package:ubaa_ui/src/common/details/detail_list.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -107,7 +108,12 @@ void _registerEvaluationWriteTests() {
     await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
     expect(find.byType(DataTable), findsNothing);
-    expect(find.text('提交评教'), findsNothing);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '提交评教'))
+          .onPressed,
+      isNull,
+    );
     await tester.tap(find.byTooltip('课程详情'));
     await tester.pumpAndSettle();
     expect(find.text('展示任务（已改名）：wrong-task'), findsOneWidget);
@@ -118,7 +124,7 @@ void _registerEvaluationWriteTests() {
       find.byKey(ValueKey<String>('evaluation-${expectedTarget.selectionKey}')),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('提交评教'));
+    await tester.tap(find.widgetWithText(FilledButton, '提交评教'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 0);
     expect(commitCalls, 0);
@@ -126,7 +132,7 @@ void _registerEvaluationWriteTests() {
     await tester.pumpAndSettle();
     expect(prepareCalls, 0);
     expect(commitCalls, 0);
-    await tester.tap(find.text('提交评教'));
+    await tester.tap(find.widgetWithText(FilledButton, '提交评教'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
@@ -137,6 +143,7 @@ void _registerEvaluationWriteTests() {
 
   testWidgets('评教可显式勾选多门待评课程后批量弹窗确认', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1600));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
     const firstTarget = EvaluationSubmitTarget(
       rwid: 'task-a',
       wjid: 'questionnaire-a',
@@ -247,8 +254,13 @@ void _registerEvaluationWriteTests() {
     await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
 
-    expect(find.text('提交 2 门评教'), findsNothing);
-    expect(find.text('已选择 0 门待评课程'), findsNothing);
+    expect(find.text('待评 2 门'), findsOneWidget);
+    expect(
+      tester
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '提交评教'))
+          .onPressed,
+      isNull,
+    );
     final first = find.byKey(
       ValueKey<String>('evaluation-${firstTarget.selectionKey}'),
     );
@@ -260,8 +272,8 @@ void _registerEvaluationWriteTests() {
     await tester.ensureVisible(second);
     await tester.tap(second);
     await tester.pumpAndSettle();
-    expect(find.text('已选择 2 门待评课程'), findsOneWidget);
-    await tester.tap(find.text('提交 2 门评教'));
+    expect(find.text('已选 2 门'), findsOneWidget);
+    await tester.tap(find.text('提交 2 门'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 0);
     expect(commitCalls, 0);
@@ -436,7 +448,11 @@ void _registerEvaluationWriteTests() {
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('提交评教'));
+    await tester.tap(
+      find.byKey(ValueKey<String>('evaluation-${target.selectionKey}')),
+    );
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '提交评教'));
     await tester.pumpAndSettle();
 
     await tester.tap(find.text('确认提交'));
@@ -522,7 +538,11 @@ void _registerEvaluationWriteTests() {
       await tester.pumpAndSettle();
       await openFeature(tester, FeatureId.evaluation);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('提交评教'));
+      await tester.tap(
+        find.byKey(ValueKey<String>('evaluation-${target.selectionKey}')),
+      );
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, '提交评教'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('确认提交'));
       await tester.pumpAndSettle();
@@ -646,5 +666,80 @@ void _registerEvaluationWriteTests() {
 }
 
 void main() {
+  testWidgets('评教底栏未选禁用、全选提交两门且已评分组可展开', (tester) async {
+    const targets = [
+      EvaluationSubmitTarget(rwid: 'a', wjid: 'qa', kcdm: 'ca'),
+      EvaluationSubmitTarget(rwid: 'b', wjid: 'qb', kcdm: 'cb'),
+    ];
+    final submitted = <List<EvaluationSubmitTarget>>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: FeatureDetailList(
+            feature: FeatureId.evaluation,
+            onEvaluationWrite: (targets) async {
+              submitted.add(targets);
+            },
+            details: [
+              const FeatureDetail(
+                title: '已评课程',
+                presentation: EvaluationCoursePresentation(
+                  courseId: 'done',
+                  isEvaluated: true,
+                ),
+              ),
+              for (var i = 0; i < targets.length; i++)
+                FeatureDetail(
+                  title: '待评课程$i',
+                  presentation: EvaluationCoursePresentation(
+                    courseId: 'pending$i',
+                    isEvaluated: false,
+                  ),
+                  actions: [
+                    EvaluationSubmitAction(
+                      target: targets[i],
+                      eligibility: ActionEligibility.allowed,
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    final submit = find.widgetWithText(FilledButton, '提交评教');
+    expect(tester.widget<FilledButton>(submit).onPressed, isNull);
+    expect(find.text('待评 2 门'), findsOneWidget);
+    expect(find.text('已评课程'), findsNothing);
+    expect(
+      tester.getTopLeft(find.text('待评课程0')).dy,
+      lessThan(tester.getTopLeft(find.text('已评 1 门')).dy),
+    );
+    final bottom = tester.getRect(submit).bottom;
+    await tester.tap(find.text('已评 1 门'));
+    await tester.pumpAndSettle();
+    expect(find.text('已评课程'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, '全选'));
+    await tester.pumpAndSettle();
+    final batch = find.widgetWithText(FilledButton, '提交 2 门');
+    expect(tester.widget<FilledButton>(batch).onPressed, isNotNull);
+    expect(tester.getRect(batch).bottom, bottom);
+    expect(find.text('已选 2 门'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, '取消全选'));
+    await tester.pumpAndSettle();
+    expect(tester.widget<FilledButton>(submit).onPressed, isNull);
+    expect(submitted, isEmpty);
+    await tester.tap(find.widgetWithText(TextButton, '全选'));
+    await tester.pumpAndSettle();
+    await tester.tap(batch);
+    await tester.pumpAndSettle();
+    expect(
+      submitted.single.map((t) => t.selectionKey),
+      targets.map((t) => t.selectionKey),
+    );
+    expect(tester.takeException(), isNull);
+  });
+
   _registerEvaluationWriteTests();
 }

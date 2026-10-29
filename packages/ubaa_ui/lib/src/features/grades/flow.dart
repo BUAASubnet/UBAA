@@ -139,7 +139,6 @@ class _GradesFlowState extends State<GradesFlow> {
     final canNext = hasTerms && termIndex < terms.length - 1;
 
     final theme = Theme.of(context);
-    final wide = MediaQuery.sizeOf(context).width >= 600;
     final localQ = _localSearch.trim().toLowerCase();
     final panelQ = widget.filter.trim().toLowerCase();
     final filter = localQ.isNotEmpty ? localQ : panelQ;
@@ -265,30 +264,16 @@ class _GradesFlowState extends State<GradesFlow> {
           ),
           const SizedBox(height: 12),
         ],
-        if (wide) ...[
-          TextField(
-            decoration: InputDecoration(
-              hintText: '搜索课程名称/代码/教师/属性...',
-              prefixIcon: const Icon(Icons.search, size: 20),
-              suffixIcon: _localSearch.isNotEmpty
-                  ? IconButton(
-                      icon: const Icon(Icons.clear, size: 18),
-                      onPressed: () => setState(() => _localSearch = ''),
-                    )
-                  : null,
-              isDense: true,
-              border: OutlineInputBorder(
-                borderRadius: BorderRadius.circular(10),
-              ),
-            ),
-            onChanged: (val) => setState(() => _localSearch = val),
-          ),
-          const SizedBox(height: 12),
-        ],
         GradeSummaryCard(
-          title: '全部成绩',
-          statistics: aggregate?.statistics,
-          loading: (_loading || widget.loader != null) && aggregate == null,
+          title: isCurrentTerm ? '本学期' : activeTerm.name,
+          statistics: activeOverview != null
+              ? GradeStatistics.calculate(activeOverview.grades)
+              : null,
+          showCourseAndCredits: true,
+          overallTitle: '全部学期',
+          overall: aggregate?.statistics,
+          overallLoading:
+              (_loading || widget.loader != null) && aggregate == null,
           notice: aggregate != null
               ? _gradesAggregateNotice(
                   aggregate,
@@ -306,14 +291,6 @@ class _GradesFlowState extends State<GradesFlow> {
               : null,
         ),
         const SizedBox(height: 12),
-        GradeSummaryCard(
-          title: isCurrentTerm ? '本学期' : activeTerm.name,
-          statistics: activeOverview != null
-              ? GradeStatistics.calculate(activeOverview.grades)
-              : null,
-          showCourseAndCredits: true,
-        ),
-        const SizedBox(height: 12),
         if (details.isEmpty)
           Padding(
             padding: const EdgeInsets.all(32),
@@ -322,7 +299,7 @@ class _GradesFlowState extends State<GradesFlow> {
         else
           for (final detail in details)
             Padding(
-              padding: const EdgeInsets.only(bottom: 12),
+              padding: const EdgeInsets.only(bottom: 8),
               child: GradeCard(detail: detail),
             ),
       ],

@@ -31,14 +31,14 @@ void main() {
           week: 1,
         ),
       );
-      expect(find.text('08:45'), findsOneWidget);
+      expect(find.text('08:00'), findsOneWidget);
       expect(find.text('08:50'), findsOneWidget);
       await tester.drag(
         find.byKey(const ValueKey('schedule-grid-scroll')),
         const Offset(0, -750),
       );
       await tester.pumpAndSettle();
-      expect(find.text('22:15').hitTestable(), findsOneWidget);
+      expect(find.text('21:30').hitTestable(), findsOneWidget);
       expect(queries, isEmpty);
       expect(tester.takeException(), isNull);
     });
@@ -69,7 +69,7 @@ void main() {
       );
       expect(find.text('本周暂无课程'), findsOneWidget);
       expect(find.text('08:00'), findsOneWidget);
-      expect(find.text('09:35'), findsOneWidget);
+      expect(find.text('09:50'), findsOneWidget);
       expect(queries, isEmpty);
       expect(tester.takeException(), isNull);
     });

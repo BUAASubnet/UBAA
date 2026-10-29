@@ -88,6 +88,11 @@ void main() {
       tester.getTopLeft(find.text('较晚考试')).dy,
       lessThan(tester.getTopLeft(find.text('日期异常')).dy),
     );
+    expect(
+      tester.getTopLeft(find.text('已结束考试 (24)')).dy,
+      greaterThan(tester.getTopLeft(find.text('日期异常')).dy),
+    );
+    await tester.ensureVisible(find.text('已结束考试 (24)'));
     await tester.tap(find.text('已结束考试 (24)'));
     await tester.pumpAndSettle();
     expect(find.text('已结束0'), findsOneWidget);
@@ -123,7 +128,7 @@ void main() {
     expect(find.text('2999-10-01'), findsOneWidget);
     await tester.tap(find.text('更多信息'));
     await tester.pumpAndSettle();
-    expect(find.text('TASK-KEEP'), findsOneWidget);
+    expect(find.text('TASK-KEEP'), findsNothing);
     expect(find.text('保留值'), findsOneWidget);
   });
   testWidgets('考试低频typed任务编号也可从顶栏筛选，收起后不丢条件', (tester) async {

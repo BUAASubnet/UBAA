@@ -1,4 +1,5 @@
 import 'dart:math' as math;
+import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'detail.dart' show uiShowScheduleDetails, uiShowScheduleGroup;
@@ -50,8 +51,7 @@ class _ScheduleContentState extends State<ScheduleContent> {
                 .map((d) => d.presentation)
                 .whereType<ScheduleCoursePresentation>(),
           );
-      final axisWidth = 52 * scale;
-      final columnWidth = (width - axisWidth) / 7;
+      final axisWidth = 40 * scale;
       final groups = <_ScheduleBlock>[];
       final unknown = <FeatureDetail>[];
       var periods = math.max(14, times.length);
@@ -91,6 +91,18 @@ class _ScheduleContentState extends State<ScheduleContent> {
           }
         }
       }
+      // 周末没课时只画周一到周五，给每天更宽的格子。
+      final dayCount = groups.any((g) => g.day >= 6) ? 7 : 5;
+      final columnWidth = (width - axisWidth) / dayCount;
+      final now = homeCampusTime(clock.now());
+      final todayIndex = dates?.indexOf('${now.month}-${now.day}') ?? -1;
+      final today = todayIndex >= 0 && todayIndex < dayCount
+          ? todayIndex
+          : null;
+      final nowOffset = today == null
+          ? null
+          : _nowOffset(now, times, periodHeight);
+      final accent = Theme.of(context).colorScheme.primary;
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: gutter),
         child: Scrollbar(
@@ -106,7 +118,7 @@ class _ScheduleContentState extends State<ScheduleContent> {
               child: Column(
                 children: [
                   SizedBox(
-                    height: 52 * scale,
+                    height: 56 * scale,
                     child: Row(
                       children: [
                         SizedBox(width: axisWidth),
@@ -118,30 +130,47 @@ class _ScheduleContentState extends State<ScheduleContent> {
                           '周五',
                           '周六',
                           '周日',
-                        ].indexed)
+                        ].take(dayCount).indexed)
                           Expanded(
                             child: Center(
-                              child: Column(
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(
-                                    label,
-                                    style: const TextStyle(
-                                      fontSize: 12,
-                                      fontWeight: FontWeight.w500,
-                                    ),
-                                  ),
-                                  if (dates?[index] case final date?)
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 6,
+                                  vertical: 2,
+                                ),
+                                decoration: index == today
+                                    ? BoxDecoration(
+                                        color: accent.withValues(alpha: .12),
+                                        borderRadius: BorderRadius.circular(8),
+                                      )
+                                    : null,
+                                child: Column(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
                                     Text(
-                                      date,
+                                      label,
                                       style: TextStyle(
-                                        fontSize: 11,
-                                        color: Theme.of(
-                                          context,
-                                        ).colorScheme.onSurfaceVariant,
+                                        fontSize: 12,
+                                        fontWeight: index == today
+                                            ? FontWeight.bold
+                                            : FontWeight.w500,
+                                        color: index == today ? accent : null,
                                       ),
                                     ),
-                                ],
+                                    if (dates?[index] case final date?)
+                                      Text(
+                                        date,
+                                        style: TextStyle(
+                                          fontSize: 11,
+                                          color: index == today
+                                              ? accent
+                                              : Theme.of(
+                                                  context,
+                                                ).colorScheme.onSurfaceVariant,
+                                        ),
+                                      ),
+                                  ],
+                                ),
                               ),
                             ),
                           ),
@@ -168,6 +197,9 @@ class _ScheduleContentState extends State<ScheduleContent> {
                                     periods: periods,
                                     rowHeight: periodHeight,
                                     axisWidth: axisWidth,
+                                    days: dayCount,
+                                    today: today,
+                                    todayColor: accent.withValues(alpha: .06),
                                     color: Theme.of(context)
                                         .colorScheme
                                         .onSurface
@@ -190,6 +222,38 @@ class _ScheduleContentState extends State<ScheduleContent> {
                                     background: colors.background(
                                       group.details.first,
                                       Theme.of(context).brightness,
+                                    ),
+                                  ),
+                                ),
+                              if (today != null && nowOffset != null)
+                                Positioned(
+                                  key: const ValueKey('schedule-now-line'),
+                                  left: axisWidth + today * columnWidth - 4,
+                                  top: nowOffset - 4,
+                                  width: columnWidth + 4,
+                                  height: 8,
+                                  child: IgnorePointer(
+                                    child: Row(
+                                      children: [
+                                        Container(
+                                          width: 8,
+                                          height: 8,
+                                          decoration: BoxDecoration(
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.error,
+                                            shape: BoxShape.circle,
+                                          ),
+                                        ),
+                                        Expanded(
+                                          child: Container(
+                                            height: 2,
+                                            color: Theme.of(
+                                              context,
+                                            ).colorScheme.error,
+                                          ),
+                                        ),
+                                      ],
                                     ),
                                   ),
                                 ),
@@ -314,16 +378,6 @@ class _SchedulePinnedAxis extends AnimatedWidget {
                         color: Theme.of(context).colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    Text(
-                      section <= times.length
-                          ? times[section - 1].end ?? '--:--'
-                          : '--:--',
-                      style: TextStyle(
-                        fontSize: 10,
-                        height: 1.3,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -392,14 +446,14 @@ class _ScheduleCell extends StatelessWidget {
                 if (!multiple && uiNonBlank(p.place) != null)
                   Flexible(
                     child: Text(
-                      '@${p.place}',
+                      p.place!,
                       textAlign: TextAlign.center,
                       maxLines: short ? 1 : 2,
                       overflow: TextOverflow.ellipsis,
                       style: TextStyle(
-                        fontSize: 11,
-                        height: 13 / 11,
-                        color: foreground,
+                        fontSize: 10,
+                        height: 12 / 10,
+                        color: foreground.withValues(alpha: .8),
                       ),
                     ),
                   ),
@@ -418,8 +472,13 @@ class _ScheduleLines extends CustomPainter {
     required this.rowHeight,
     required this.axisWidth,
     required this.color,
+    this.days = 7,
+    this.today,
+    this.todayColor = const Color(0x00000000),
   });
-  final int periods;
+  final int periods, days;
+  final int? today;
+  final Color todayColor;
   final double rowHeight, axisWidth;
   final Color color;
   @override
@@ -427,8 +486,14 @@ class _ScheduleLines extends CustomPainter {
     final paint = Paint()
       ..color = color
       ..strokeWidth = 1;
-    final column = (size.width - axisWidth) / 7;
-    for (var day = 0; day <= 7; day++) {
+    final column = (size.width - axisWidth) / days;
+    if (today case final index?) {
+      canvas.drawRect(
+        Rect.fromLTWH(axisWidth + index * column, 0, column, size.height),
+        Paint()..color = todayColor,
+      );
+    }
+    for (var day = 0; day <= days; day++) {
       final x = axisWidth + day * column;
       canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
     }
@@ -446,7 +511,34 @@ class _ScheduleLines extends CustomPainter {
   @override
   bool shouldRepaint(_ScheduleLines old) =>
       periods != old.periods ||
+      days != old.days ||
+      today != old.today ||
+      todayColor != old.todayColor ||
       rowHeight != old.rowHeight ||
       axisWidth != old.axisWidth ||
       color != old.color;
+}
+
+/// 当前时刻在节次网格中的纵向位置；不在任何节次或课间范围内时不画。
+double? _nowOffset(
+  DateTime now,
+  List<ScheduleSectionTime> times,
+  double rowHeight,
+) {
+  int? minutes(String? value) {
+    final match = RegExp(r'^(\d{1,2}):(\d{2})').firstMatch(value ?? '');
+    if (match == null) return null;
+    return int.parse(match[1]!) * 60 + int.parse(match[2]!);
+  }
+
+  final current = now.hour * 60 + now.minute;
+  for (var i = 0; i < times.length; i++) {
+    final start = minutes(times[i].start), end = minutes(times[i].end);
+    if (start == null || end == null) continue;
+    if (current < start) return i == 0 ? null : i * rowHeight;
+    if (current <= end) {
+      return (i + (current - start) / math.max(1, end - start)) * rowHeight;
+    }
+  }
+  return null;
 }

@@ -5,7 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../../common/detail_fields.dart' show DetailField;
-import '../../shared/text.dart' show uiTimeRange;
+import '../../shared/text.dart' show uiHiddenAcademicField, uiTimeRange;
 import '../../theme.dart' show UbaaTheme;
 
 bool uiSupportsParticipationContent(
@@ -34,10 +34,7 @@ class CourseParticipationContent extends StatelessWidget {
   final bool writesEnabled;
   @override
   Widget build(BuildContext context) => feature == FeatureId.evaluation
-      ? ListView(
-          padding: UbaaTheme.pageInsets(context),
-          children: [for (final detail in details) evaluationRow(detail)],
-        )
+      ? _EvaluationList(details: details, row: evaluationRow)
       : ListView.separated(
           padding: UbaaTheme.pageInsets(context),
           itemCount: details.length,
@@ -186,8 +183,9 @@ class _SigninCourseCard extends StatelessWidget {
                 const Text('该课程已签到，不能重复提交。'),
               if (_notice case final notice?) Text(notice),
               const SizedBox(height: 12),
-              DetailField(label: '课程编号', value: p.courseId),
-              for (final field in detail.fields)
+              for (final field in detail.fields.where(
+                (f) => !uiHiddenAcademicField(f.label),
+              ))
                 Padding(
                   padding: const EdgeInsets.only(top: 8),
                   child: DetailField(label: field.label, value: field.value),
@@ -202,6 +200,38 @@ class _SigninCourseCard extends StatelessWidget {
           ),
         ],
       ),
+    );
+  }
+}
+
+/// 待评在前；已评默认收起，减少需要滚动的内容。
+class _EvaluationList extends StatelessWidget {
+  const _EvaluationList({required this.details, required this.row});
+  final List<FeatureDetail> details;
+  final Widget Function(FeatureDetail) row;
+  bool _done(FeatureDetail d) =>
+      (d.presentation! as EvaluationCoursePresentation).isEvaluated;
+  @override
+  Widget build(BuildContext context) {
+    final pending = details.where((d) => !_done(d)).toList();
+    final done = details.where(_done).toList();
+    return ListView(
+      padding: UbaaTheme.pageInsets(context),
+      children: [
+        for (final detail in pending) row(detail),
+        if (done.isNotEmpty)
+          Theme(
+            data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+            child: ExpansionTile(
+              key: const PageStorageKey('evaluation-done'),
+              tilePadding: EdgeInsets.zero,
+              childrenPadding: EdgeInsets.zero,
+              initiallyExpanded: pending.isEmpty,
+              title: Text('已评 ${done.length} 门'),
+              children: [for (final detail in done) row(detail)],
+            ),
+          ),
+      ],
     );
   }
 }

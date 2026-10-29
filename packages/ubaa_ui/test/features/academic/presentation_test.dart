@@ -74,7 +74,7 @@ void main() {
       tester.getRect(find.widgetWithText(Card, '可打开的课程').first).right,
       lessThanOrEqualTo(834),
     );
-    expect(find.text('--'), findsOneWidget);
+    expect(find.text('待出'), findsOneWidget);
     expect(
       find.byWidgetPredicate(
         (widget) =>
@@ -92,7 +92,7 @@ void main() {
       find.descendant(of: find.byType(AlertDialog), matching: find.text('百分制')),
       findsOneWidget,
     );
-    expect(find.text('2026-1'), findsOneWidget);
+    expect(find.text('2026-1'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 
@@ -127,7 +127,7 @@ void main() {
     expect(find.text('一层教室'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('宽屏成绩长课程名在1.3文字完整伸展并显示课程编号', (tester) async {
+  testWidgets('宽屏成绩长课程名两行省略且可通过课程编号搜索并打开全文', (tester) async {
     final title = List.filled(12, '跨学科课程中的实践与理论').join('');
     await _show(
       tester,
@@ -144,12 +144,26 @@ void main() {
       width: 1280,
       textScale: 1.3,
     );
-    expect(find.text('CODE-FULL'), findsOneWidget);
+    await tester.enterText(searchField, 'CODE-FULL');
+    await tester.pumpAndSettle();
+    expect(find.text(title), findsOneWidget);
+    // 只看正文文字；搜索框里用户输入的课程号不算展示。
+    expect(
+      find.byWidgetPredicate((w) => w is Text && w.data == 'CODE-FULL'),
+      findsNothing,
+    );
+    expect(tester.widget<Text>(find.text(title)).maxLines, 2);
     final titleRect = tester.getRect(find.text(title));
-    expect(titleRect.height, greaterThan(112));
+    expect(titleRect.height, greaterThan(0));
     expect(
       tester.getRect(find.widgetWithText(Card, title).first).bottom,
       greaterThan(titleRect.bottom),
+    );
+    await tester.tap(find.text(title));
+    await tester.pumpAndSettle();
+    expect(
+      find.descendant(of: find.byType(AlertDialog), matching: find.text(title)),
+      findsOneWidget,
     );
     expect(tester.takeException(), isNull);
   });
@@ -180,8 +194,7 @@ void main() {
     expect(find.text('周二'), findsOneWidget);
     await tester.tap(find.text('程序设计'));
     await tester.pumpAndSettle();
-    expect(find.text('星期二'), findsOneWidget);
-    expect(find.text('10:00–11:40'), findsOneWidget);
+    expect(find.text('星期二 · 第3–4节 · 10:00–11:40'), findsOneWidget);
     await tester.tap(find.widgetWithText(TextButton, '关闭'));
     await tester.pumpAndSettle();
     final scroll = find.descendant(
@@ -198,9 +211,8 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('时间字段异常的课程'));
     await tester.pumpAndSettle();
-    expect(find.text('原值 9'), findsOneWidget);
-    expect(find.text('4'), findsWidgets);
-    expect(find.text('2'), findsWidgets);
+    expect(find.text('第4–2节'), findsOneWidget);
+    expect(find.byType(AlertDialog), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -241,7 +253,7 @@ void main() {
       ], width: width);
       expect(find.text('通过'), findsOneWidget);
       expect(find.text('优秀'), findsNothing);
-      expect(find.text('--'), findsOneWidget);
+      expect(find.text('待出'), findsOneWidget);
       await tester.tap(find.text('实践课程'));
       await tester.pumpAndSettle();
       expect(find.text('优秀'), findsOneWidget);
@@ -277,7 +289,7 @@ void main() {
       await tester.tap(find.text('A203'));
       await tester.pumpAndSettle();
       expect(find.text('3,13'), findsOneWidget);
-      expect(find.text('room-3'), findsOneWidget);
+      expect(find.text('room-3'), findsNothing);
       expect(tester.takeException(), isNull);
     } finally {
       semantics.dispose();
