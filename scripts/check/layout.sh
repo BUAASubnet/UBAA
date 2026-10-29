@@ -172,6 +172,15 @@ record_directory_violations "$index_dirs"
 record_directory_violations "$worktree_dirs"
 LC_ALL=C sort -u "$violations_raw" >"$violations"
 
+# Dart 的 part 文件属于同一个 library，单独计算文件行数会让拆分绕过
+# 结构上限。module_graph.py 同时验证 part 归属、library 聚合行数和依赖环，
+# 因此布局门禁也必须执行这一层检查。
+if [[ -f "$repo_root/scripts/check/module_graph.py" ]]; then
+  if ! PYTHONDONTWRITEBYTECODE=1 python3 "$repo_root/scripts/check/module_graph.py"; then
+    report_error 'Dart library 聚合检查失败'
+  fi
+fi
+
 valid_baseline_path() {
   local kind=$1
   local path=$2

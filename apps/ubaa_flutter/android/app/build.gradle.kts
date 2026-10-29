@@ -18,6 +18,22 @@ repositories {
     maven { url = uri(File(file(verifierPackage["manifest_path"] as String).parentFile, "maven")) }
 }
 
+// Release 证书只从 Gradle 属性或环境变量读取，仓库不保存密钥材料。
+// 未配置完整证书时生成无签名 release；debug 构建继续使用 Flutter/Android 默认配置。
+val releaseSigningValues = mapOf(
+    "storeFile" to "UBAA_RELEASE_STORE_FILE",
+    "storePassword" to "UBAA_RELEASE_STORE_PASSWORD",
+    "keyAlias" to "UBAA_RELEASE_KEY_ALIAS",
+    "keyPassword" to "UBAA_RELEASE_KEY_PASSWORD",
+).mapValues { (_, variable) ->
+    providers.gradleProperty(variable).orElse(providers.environmentVariable(variable)).orNull
+}
+val hasReleaseSigning = releaseSigningValues.values.all { !it.isNullOrBlank() }
+val hasPartialReleaseSigning = releaseSigningValues.values.any { !it.isNullOrBlank() }
+check(!hasPartialReleaseSigning || hasReleaseSigning) {
+    "UBAA_RELEASE_* 必须同时提供 keystore 文件、store/key 密码和 key alias"
+}
+
 android {
     namespace = "cn.edu.ubaa.ubaa_flutter"
     compileSdk = flutter.compileSdkVersion
@@ -45,11 +61,25 @@ android {
         versionName = flutter.versionName
     }
 
+    if (hasReleaseSigning) {
+        signingConfigs {
+            create("release") {
+                storeFile = file(releaseSigningValues.getValue("storeFile")!!)
+                storePassword = releaseSigningValues.getValue("storePassword")
+                keyAlias = releaseSigningValues.getValue("keyAlias")
+                keyPassword = releaseSigningValues.getValue("keyPassword")
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-            signingConfig = signingConfigs.getByName("debug")
+            if (hasReleaseSigning) {
+                signingConfig = signingConfigs.getByName("release")
+            } else {
+                // 没有受控证书时保持无签名 release，禁止退回 debug 密钥。
+                signingConfig = null
+            }
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
         }
     }
