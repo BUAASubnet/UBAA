@@ -129,13 +129,7 @@ impl UbaaClient {
             route: resolution.mode,
             query: cache_query,
         };
-        let (ticket, mut save_error) = match cache.begin(scope.clone()) {
-            Ok(ticket) => (Some(ticket), None),
-            Err(error @ (CacheError::Inactive | CacheError::Superseded)) => {
-                return Err(OfflineReadError::Cache(error));
-            }
-            Err(error) => (None, Some(error)),
-        };
+        let (ticket, mut save_error) = super::begin_refresh(cache, scope.clone())?;
         let runtime = self.runtime_for(resolution.mode);
         let read = match query {
             HomeQuery::SigninToday => {

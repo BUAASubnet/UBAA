@@ -45,13 +45,7 @@ impl UbaaClient {
             route: resolution.mode,
             query: CacheQuery::MaskedProfile,
         };
-        let (ticket, mut save_error) = match cache.begin(scope.clone()) {
-            Ok(ticket) => (Some(ticket), None),
-            Err(error @ (CacheError::Inactive | CacheError::Superseded)) => {
-                return Err(OfflineReadError::Cache(error));
-            }
-            Err(error) => (None, Some(error)),
-        };
+        let (ticket, mut save_error) = super::begin_refresh(cache, scope.clone())?;
         let read = {
             let (runtime, auth) = self.route_parts_for(resolution.mode);
             let mut clear_workflow = || auth.clear();

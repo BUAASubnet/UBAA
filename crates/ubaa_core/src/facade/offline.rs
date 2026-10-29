@@ -15,6 +15,22 @@ use std::{
 
 mod grade_baseline;
 
+/// 开始一次可降级保存的缓存读取。
+///
+/// Inactive/Superseded 仍然是硬失败；其他存储错误只记录到保存结果，保持在线读取路径。
+pub(crate) fn begin_refresh(
+    cache: &OfflineCache,
+    scope: CacheScope,
+) -> Result<(Option<CacheReadTicket>, Option<CacheError>), OfflineReadError> {
+    match cache.begin(scope) {
+        Ok(ticket) => Ok((Some(ticket), None)),
+        Err(error @ (CacheError::Inactive | CacheError::Superseded)) => {
+            Err(OfflineReadError::Cache(error))
+        }
+        Err(error) => Ok((None, Some(error))),
+    }
+}
+
 /// 与网络客户端锁独立的账号缓存句柄。格式化不会泄露账号或材料。
 #[derive(Clone)]
 pub struct OfflineCache {
@@ -296,13 +312,7 @@ impl UbaaClient {
             route: resolution.mode,
             query: CacheQuery::JudgeSummaries { include_expired },
         };
-        let (ticket, mut save_error) = match cache.begin(scope.clone()) {
-            Ok(ticket) => (Some(ticket), None),
-            Err(error @ (CacheError::Inactive | CacheError::Superseded)) => {
-                return Err(OfflineReadError::Cache(error));
-            }
-            Err(error) => (None, Some(error)),
-        };
+        let (ticket, mut save_error) = begin_refresh(cache, scope.clone())?;
         let read = crate::features::judge::get_assignments(
             self.runtime_for(resolution.mode),
             include_expired,
@@ -364,13 +374,7 @@ impl UbaaClient {
             route: resolution.mode,
             query: CacheQuery::ScheduleToday { date: date.clone() },
         };
-        let (ticket, mut save_error) = match cache.begin(scope.clone()) {
-            Ok(ticket) => (Some(ticket), None),
-            Err(error @ (CacheError::Inactive | CacheError::Superseded)) => {
-                return Err(OfflineReadError::Cache(error));
-            }
-            Err(error) => (None, Some(error)),
-        };
+        let (ticket, mut save_error) = begin_refresh(cache, scope.clone())?;
         let read =
             crate::features::schedule::get_today_for_date(self.runtime_for(resolution.mode), &date)
                 .await;

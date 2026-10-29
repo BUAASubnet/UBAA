@@ -25,6 +25,7 @@ pub use judge_scan::{
     JudgeOnlineOptions, JudgeOnlineProgress, JudgeOnlineScan, JudgeScan, JudgeScanBatch,
     JudgeScanCancellation, JudgeScanKind,
 };
+pub(super) use offline::begin_refresh;
 pub use offline::{OfflineCache, OfflineReadError, OfflineRefresh};
 #[path = "read/ihome.rs"]
 mod ihome;

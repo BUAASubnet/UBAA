@@ -46,18 +46,6 @@ impl OfflineCache {
         )
     }
 }
-fn begin(
-    cache: &OfflineCache,
-    scope: CacheScope,
-) -> Result<(Option<CacheReadTicket>, Option<CacheError>), OfflineReadError> {
-    match cache.begin(scope) {
-        Ok(ticket) => Ok((Some(ticket), None)),
-        Err(error @ (CacheError::Inactive | CacheError::Superseded)) => {
-            Err(OfflineReadError::Cache(error))
-        }
-        Err(error) => Ok((None, Some(error))),
-    }
-}
 impl UbaaClient {
     /// 原上下文确定真实分类后，先建立该页票据再读记录；不持本地锁等待学校网络。
     ///
@@ -130,7 +118,7 @@ impl UbaaClient {
                 cache_error: cache.deactivate().err(),
             });
         }
-        let (selection_ticket, mut save_error) = begin(
+        let (selection_ticket, mut save_error) = super::begin_refresh(
             cache,
             CacheScope {
                 route: resolution.mode,
@@ -157,7 +145,7 @@ impl UbaaClient {
         }
         let scope = records_scope(resolution.mode, selection.classify_id, page, size);
         scope.validate().map_err(OfflineReadError::Cache)?;
-        let (ticket, page_error) = begin(cache, scope.clone())?;
+        let (ticket, page_error) = super::begin_refresh(cache, scope.clone())?;
         save_error = page_error.or(save_error);
         let result = crate::features::ygdk::get_records_in_context(
             self.runtime_for(resolution.mode),
