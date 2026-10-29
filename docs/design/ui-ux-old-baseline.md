@@ -79,15 +79,15 @@ O1/O2共享骨架已实现并通过UI182项及手机/平板各56图原生复验�
 
 冻结 `EvaluationScreen.kt:198` 的 `EvaluationCourseItem` 是选择框/完成图标、课程名、教师与状态同行的卡片。新版两端纵向大卡和宽屏DataTable改回同一课程行；当前合法typed目标仍由既有 `_evaluationSubmitTarget` 提供，单门评教通过选择一门后执行现有准备流程，多门同一入口，避免每行重复常驻提交按钮。课程详情图标仅显示已公开字段，不在旧快照弹窗中创建写入意图。已评和未知资格仍分别显示状态/原因，不根据展示文案推资格。
 
-首次错误大红卡来自 `FriendlyErrorCard` 内部Column默认占满高度。按旧版错误说明+重试的紧凑结构收缩，安全错误编号与复制能力保留。新增失败回归观察到600高错误卡占满600视口，以及宽评教仍存在DataTable；日志 `/tmp/ubaa-old-o3b-red.log`。本批实现/新原生验收正在进行，不沿用O3-A图声称完成。
+首次错误大红卡来自 `FriendlyErrorCard` 内部Column默认占满高度。按旧版错误说明+重试的紧凑结构收缩，安全错误编号与复制能力保留。新增失败回归观察到600高错误卡占满600视口，以及宽评教仍存在DataTable；日志 `<private-evidence>/legacy-tmp/ubaa-old-o3b-red.log`。本批实现/新原生验收正在进行，不沿用O3-A图声称完成。
 
 ### O3-C子菜单与当前页标题
 
 按已读冻结三个HomeScreen恢复有查询能力宿主的根菜单：博雅3项、图书馆2项、研讨室3项。点击子卡发出既有FeatureQuery并压入当前只读返回栈；顶栏标题来自实际可见帧（冻结 `MainAppScreen.kt:688–708` 的课程/作业详情与预约子页映射），返回保留根查询草稿。菜单未展示预载数据，所以路线图标显示未确定；子页以该页读取结果实际路线为准，迟到结果不能替换已返回菜单。现有无查询回调的独立只读组件继续呈现宿主提供的快照，避免造出不能操作的菜单；生产宿主一直提供查询能力。
 
-门锁菜单采用“门锁状态”，保留旧版第三项位置并准确说明现有公开available能力；不承诺明文密码。研讨室顶层图标按 `AdvancedFeaturesScreen.kt:47` 使用DateRange，说明改为研讨室语义。根菜单的查询面板保留完整参数入口，本地结果搜索只在结果页显示；手动应用根查询同样进入子页，不覆盖菜单。5项菜单/草稿/实际路线/迟到响应测试已RED，日志 `/tmp/ubaa-old-o3c-menu-red.log`。
+门锁菜单采用“门锁状态”，保留旧版第三项位置并准确说明现有公开available能力；不承诺明文密码。研讨室顶层图标按 `AdvancedFeaturesScreen.kt:47` 使用DateRange，说明改为研讨室语义。根菜单的查询面板保留完整参数入口，本地结果搜索只在结果页显示；手动应用根查询同样进入子页，不覆盖菜单。5项菜单/草稿/实际路线/迟到响应测试已RED，日志 `<private-evidence>/legacy-tmp/ubaa-old-o3c-menu-red.log`。
 
-默认子页复用匹配的预载快照，含首次错误和加载状态；打开菜单不隐式重试，显式应用仍读取。缓存依据是冻结 `BykcViewModel.kt:95–111`、`LibBookViewModel.kt:63–83`、`CgyyViewModel.kt:85–100` 的ensure/initialLoadedOnce保护。对应新增重复读取及首次错误RED记录后，13项菜单/读取导航聚焦回归通过（`/tmp/ubaa-old-o3c-menu-green-r3.log`）。UI完整首轮因测试导航辅助未进入新增子页失败，修正辅助后的第二轮仅三张旧根页golden不匹配；三个新候选已逐图观察，正在原生验收，未声明P4-D完成。
+默认子页复用匹配的预载快照，含首次错误和加载状态；打开菜单不隐式重试，显式应用仍读取。缓存依据是冻结 `BykcViewModel.kt:95–111`、`LibBookViewModel.kt:63–83`、`CgyyViewModel.kt:85–100` 的ensure/initialLoadedOnce保护。对应新增重复读取及首次错误RED记录后，13项菜单/读取导航聚焦回归通过（`<private-evidence>/legacy-tmp/ubaa-old-o3c-menu-green-r3.log`）。UI完整首轮因测试导航辅助未进入新增子页失败，修正辅助后的第二轮仅三张旧根页golden不匹配；三个新候选已逐图观察，正在原生验收，未声明P4-D完成。
 
 
 ### O3-D3博雅操作链复核（2026-09-09）

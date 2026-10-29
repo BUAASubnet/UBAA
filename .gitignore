@@ -1,9 +1,10 @@
 # Local credentials and environment
+/.env
 .env.*
 !.env.example
+!.env.toolchain.example
 
 # 冻结本地引用（只能由 scripts/bootstrap/references.sh 创建）
-/ubaa_old/
 /examples/
 
 # Rust output
@@ -47,6 +48,10 @@ session.json
 
 # Editor and operating-system files
 .worktrees/
+/.claude/
+/.superpowers/
+/.serena/
+/.codex/
 .DS_Store
 .idea/
 .vscode/
@@ -57,10 +62,6 @@ session.json
 /packages/ubaa_bindings/ohos/BuildProfile.ets
 /packages/ubaa_bindings/ohos/libs/
 
-# 本地设计预览与调研草稿，不纳入版本控制。
-/docs/design/evidence/windows-settings-20261023/
-/docs/design/windows-settings-redesign-2026-10-23.md
-
 # Android Kotlin 编译缓存。
 /apps/ubaa_flutter/android/.kotlin/
 
@@ -68,3 +69,9 @@ session.json
 /node_modules/
 /docs/site/.vitepress/cache/
 /docs/site/.vitepress/dist/
+
+# 项目本地工作区：审计报告、监督记录等不提交的项目资料
+/.ubaa_local/
+
+# golden 比较失败时生成的运行截图。
+**/test/**/failures/

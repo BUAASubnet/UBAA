@@ -43,7 +43,7 @@
   "evidence": "native-ios-synthetic-ui",
   "acceptance": "P3/P4-A原生竖屏合成巡检，非最终全部子视图或真实上游验收",
   "device": "iPhone 17 Pro",
-  "deviceId": "B196C00E-FDA6-45C2-BAC5-D7208B8D9DBD",
+  "deviceId": "<simulator-id>",
   "testResult": "2主题场景通过；38张截图；driver退出0",
   "sourceLabel": "b2b91d46+P3A-visual-r2",
   "pngSha256": {

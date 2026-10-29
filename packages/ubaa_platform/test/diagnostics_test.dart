@@ -40,7 +40,7 @@ void main() {
       cause: _MustNotFormat(),
       stackTrace: StackTrace.fromString(
         '#0 read (package:ubaa_app/src/controller/app_controller.dart:123:4)\n'
-        '#1 external (file:///Users/private/person.dart:2:1)\n'
+        '#1 external (file:///external-source/person.dart:2:1)\n'
         '#2 secret (https://private.invalid:1:2)',
       ),
     );

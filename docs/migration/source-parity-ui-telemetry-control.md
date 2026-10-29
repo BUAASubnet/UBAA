@@ -9,7 +9,7 @@
 独立探针只注入 `UnavailableBackend` 和 `NoopTelemetryClient`，不初始化认证或请求网络。调用公开开关方法后，预期状态仍为关闭，实际为true，成功编译后的断言失败。精确命令：
 
 ```sh
-/Users/moorefoss/Dev/flutter-3.41.9/bin/flutter test '/Users/moorefoss/Library/Application Support/UBAA-private-evidence/macos-ui-20260915/telemetry-control/disabled_client_probe_test.dart' --no-pub --reporter expanded
+just flutter test '<private-evidence>/macos-ui-20260915/telemetry-control/disabled_client_probe_test.dart' --no-pub --reporter expanded
 ```
 
 运行目录为专项工作区的 `packages/ubaa_app`，退出1，日志为同私有目录下 `disabled-client-probe-red.log`。探针文件不进入Git，正式修复仍须添加正式行为回归。现有Host回调测试只断言开关布尔值变化，没有证明任何统计事件被记录，不能作为功能已经生效的证据。

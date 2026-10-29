@@ -20,12 +20,12 @@
 
 | 日志 | SHA-256 |
 |---|---|
-| `/tmp/ubaa-interactive-offline-red-20261002.log` | `77e4fa852c3eca6a859f1eb8b3984947bc3f9d84920f8faae6c4f51454b5968b` |
-| `/tmp/ubaa-interactive-preferred-route-red-20261002.log` | `a224ab998f10d34b3e9b65a627ac271d2f2f53eeb0f41874b48f11d42e0b1017` |
-| `/tmp/ubaa-interactive-offline-green-20261002.log` | `72ee96ca218d18245e462b8f70b778385fe6b202efcc8c26067922662c3577e0` |
-| `/tmp/ubaa-interactive-preferred-green-20261002.log` | `48aad7a4aa3a213b18a9d83b5bcd857fffa8b22442c5229e7ca8d749e29d2642` |
-| `/tmp/ubaa-interactive-flutter3-20261002.log` | `ed4df695ec913d949071d22be9f8ce0bdc198f4a1f4b1c62b31b109f5c2ff318` |
-| `/tmp/ubaa-interactive-check2-20261002.log` | `ba8e883ff33a2eb80a41eb7e492d993c445c24e1b22590e2ea6996409f73387a` |
-| `/tmp/ubaa-interactive-codegen-check-20261002.log` | `29063bdcf4962eb7dbf36303bd3c806720ae2c385578437c6f7eec590155f91f` |
-| `/tmp/ubaa-interactive-sensitive-20261002.log` | `db4b30fba0ea40ef2a453b0e584d7d066dabb027fd6d10112abf4b2462ffd3a7` |
-| `/tmp/ubaa-interactive-core-live-20261002.log` | `421f6c222bd601a434ba053910f0e1aab00362886988965b75d3abd716ede465` |
+| `<private-evidence>/legacy-tmp/ubaa-interactive-offline-red-20261002.log` | `77e4fa852c3eca6a859f1eb8b3984947bc3f9d84920f8faae6c4f51454b5968b` |
+| `<private-evidence>/legacy-tmp/ubaa-interactive-preferred-route-red-20261002.log` | `a224ab998f10d34b3e9b65a627ac271d2f2f53eeb0f41874b48f11d42e0b1017` |
+| `<private-evidence>/legacy-tmp/ubaa-interactive-offline-green-20261002.log` | `72ee96ca218d18245e462b8f70b778385fe6b202efcc8c26067922662c3577e0` |
+| `<private-evidence>/legacy-tmp/ubaa-interactive-preferred-green-20261002.log` | `48aad7a4aa3a213b18a9d83b5bcd857fffa8b22442c5229e7ca8d749e29d2642` |
+| `<private-evidence>/legacy-tmp/ubaa-interactive-flutter3-20261002.log` | `ed4df695ec913d949071d22be9f8ce0bdc198f4a1f4b1c62b31b109f5c2ff318` |
+| `<private-evidence>/legacy-tmp/ubaa-interactive-check2-20261002.log` | `ba8e883ff33a2eb80a41eb7e492d993c445c24e1b22590e2ea6996409f73387a` |
+| `<private-evidence>/legacy-tmp/ubaa-interactive-codegen-check-20261002.log` | `29063bdcf4962eb7dbf36303bd3c806720ae2c385578437c6f7eec590155f91f` |
+| `<private-evidence>/legacy-tmp/ubaa-interactive-sensitive-20261002.log` | `db4b30fba0ea40ef2a453b0e584d7d066dabb027fd6d10112abf4b2462ffd3a7` |
+| `<private-evidence>/legacy-tmp/ubaa-interactive-core-live-20261002.log` | `421f6c222bd601a434ba053910f0e1aab00362886988965b75d3abd716ede465` |

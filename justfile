@@ -1,4 +1,25 @@
+set dotenv-load
+set dotenv-filename := ".env.toolchain"
+set dotenv-required := false
+set dotenv-path := ".env.toolchain"
+
 set shell := ["bash", "-euo", "pipefail", "-c"]
+
+# 项目级 SDK 转发使用位置参数，保留空格、空参数及 Shell 元字符。
+[no-cd]
+[positional-arguments]
+dart *args:
+    python3 "{{justfile_directory()}}/scripts/lib/toolchain.py" dart "$@"
+
+[no-cd]
+[positional-arguments]
+flutter *args:
+    python3 "{{justfile_directory()}}/scripts/lib/toolchain.py" flutter "$@"
+
+[no-cd]
+[positional-arguments]
+flutter-ohos *args:
+    python3 "{{justfile_directory()}}/scripts/lib/toolchain.py" flutter-ohos "$@"
 
 default:
     @just --list
@@ -117,6 +138,7 @@ script-test:
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/changed_checks_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/integration_catalog_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/module_graph_test.py
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/toolchain_entry_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/sensitive_test.py
     bash scripts/tools/python.sh scripts/tests/release_metadata_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/source_manifest_test.py

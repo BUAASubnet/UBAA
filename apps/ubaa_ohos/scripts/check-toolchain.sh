@@ -2,6 +2,10 @@
 # 只读检查 HarmonyOS 构建前置条件；不会生成工程、下载依赖或改写配置。
 set -euo pipefail
 
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=../../../scripts/lib/toolchain.sh
+source "$script_dir/../../../scripts/lib/toolchain.sh"
+
 expected_flutter_tag=3.41.10-ohos-1.0.1
 expected_flutter_commit=adaf911c35c9136a7d18fc424d714c9ec7724e60
 required_api=26
@@ -24,23 +28,7 @@ fail() {
   error_count=$((error_count + 1))
 }
 
-resolve_flutter_root() {
-  if [[ -n ${UBAA_OHOS_FLUTTER_HOME:-} ]]; then
-    printf '%s' "$UBAA_OHOS_FLUTTER_HOME"
-    return
-  fi
-  if [[ -x /Users/moorefoss/Dev/flutter-ohos-3.41.10/bin/flutter ]]; then
-    printf '%s' /Users/moorefoss/Dev/flutter-ohos-3.41.10
-    return
-  fi
-  local flutter_command
-  flutter_command=$(command -v flutter 2>/dev/null || true)
-  if [[ -n "$flutter_command" ]]; then
-    cd "$(dirname "$flutter_command")/.." && pwd
-  fi
-}
-
-flutter_root=$(resolve_flutter_root)
+flutter_root=${UBAA_OHOS_FLUTTER_HOME:?请设置 UBAA_OHOS_FLUTTER_HOME 为锁定 OHOS Flutter SDK 的绝对路径}
 deveco_home=${UBAA_DEVECO_HOME:-/Applications/DevEco-Studio.app/Contents}
 hmos_sdk_home=${UBAA_HMOS_SDK_HOME:-$deveco_home/sdk}
 if [[ -d "$deveco_home/tools" ]]; then

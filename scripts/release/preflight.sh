@@ -3,6 +3,8 @@
 set -euo pipefail
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=../lib/toolchain.sh
+source "$script_dir/../lib/toolchain.sh"
 # shellcheck source=../lib/repo.sh
 source "$script_dir/../lib/repo.sh"
 repo_root=$(ubaa_repo_root)

@@ -16,13 +16,13 @@
 
 | 类别 | 仓库外日志 | SHA-256 |
 |---|---|---|
-| Rust/CLI完整门禁 | `/tmp/ubaa-consolidation-full-check3-20261001.log` | `c80a3122b1ac83500b712ff849a71d8a22aa5be15df43069bb41df59d0ee6df7` |
-| Flutter七包1258项与分析 | `/tmp/ubaa-consolidation-full-flutter2-20261001.log` | `fb39f5faabb0029938b536e0313fb258ab3d624753c8955226889f27712da0d6` |
-| FRB零漂移 | `/tmp/ubaa-consolidation-codegen-check-20261002.log` | `29063bdcf4962eb7dbf36303bd3c806720ae2c385578437c6f7eec590155f91f` |
-| macOS Debug构建 | `/tmp/ubaa-consolidation-macos-build-20261001.log` | `c765b32421012afe9af79719e9939aeee3c198d999bf63d9d57e37fa9788b095` |
-| 组合行为首次失败 | `/tmp/ubaa-consolidation-behavior-red-20261001.log` | `7e1166f784fe4bd6113e6b626af3e12d615cb6dbb477615e3b7416d4cef79d00` |
-| 登录与完整详情32项 | `/tmp/ubaa-consolidation-focused2-20261001.log` | `d2665310ab98aadb2ec6a0724a0ebac152675d4105b9d9871ecb35d7194da959` |
-| Core缓存44项 | `/tmp/ubaa-consolidation-core-caches-20261001.log` | `4d61f3a6c1947b4ff5852c2fa46202ee1620f82b5cac921e53008ca186278c83` |
+| Rust/CLI完整门禁 | `<private-evidence>/legacy-tmp/ubaa-consolidation-full-check3-20261001.log` | `c80a3122b1ac83500b712ff849a71d8a22aa5be15df43069bb41df59d0ee6df7` |
+| Flutter七包1258项与分析 | `<private-evidence>/legacy-tmp/ubaa-consolidation-full-flutter2-20261001.log` | `fb39f5faabb0029938b536e0313fb258ab3d624753c8955226889f27712da0d6` |
+| FRB零漂移 | `<private-evidence>/legacy-tmp/ubaa-consolidation-codegen-check-20261002.log` | `29063bdcf4962eb7dbf36303bd3c806720ae2c385578437c6f7eec590155f91f` |
+| macOS Debug构建 | `<private-evidence>/legacy-tmp/ubaa-consolidation-macos-build-20261001.log` | `c765b32421012afe9af79719e9939aeee3c198d999bf63d9d57e37fa9788b095` |
+| 组合行为首次失败 | `<private-evidence>/legacy-tmp/ubaa-consolidation-behavior-red-20261001.log` | `7e1166f784fe4bd6113e6b626af3e12d615cb6dbb477615e3b7416d4cef79d00` |
+| 登录与完整详情32项 | `<private-evidence>/legacy-tmp/ubaa-consolidation-focused2-20261001.log` | `d2665310ab98aadb2ec6a0724a0ebac152675d4105b9d9871ecb35d7194da959` |
+| Core缓存44项 | `<private-evidence>/legacy-tmp/ubaa-consolidation-core-caches-20261001.log` | `4d61f3a6c1947b4ff5852c2fa46202ee1620f82b5cac921e53008ca186278c83` |
 
 ## 实际运行与剩余范围
 

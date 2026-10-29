@@ -20,7 +20,7 @@ CLI schema升v11、Bridge升v40，旧缓存缺sectionTimes默认空。原普通�
 
 ## 仓库外日志指纹
 
-日志根：`/Users/moorefoss/Library/Application Support/UBAA-private-evidence/project-review-20261002-resume`。
+日志根：`<private-evidence>/project-review-20261002-resume`。
 
 | 文件 | SHA-256 |
 |---|---|

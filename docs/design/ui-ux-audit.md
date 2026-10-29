@@ -241,7 +241,7 @@ P4-E5局部结果（2026-09-10）：关于侧栏入口、旧版单卡顺序、�
 E6进展：仅内存AcademicOldBackend补原allowed/denied显式视图，原生RED实际看到1预期/4实际；修正后两端r1各2主题流程和12原图通过，24张全部查看。没有生产UI或协议变更，原生从右上查询实际操作，关闭未应用草稿、返回恢复和刷新原query均有断言；prepare与commit均0。App54、analyze和just check通过；Core双路线3认证+today各2条PASS，生产App与Mac本批尚待验，不用旧文字搜索代替。
 
 
-P5-D Mac-r3补验（2026-09-10）：以7459d677当前候选运行ui_sports_test.dart，全42业务场景+teardown在332秒通过、退出0，覆盖两主题七类内存完整写入及原首页/记录状态。此前已提交的阳光表单/时间/草稿/照片实现字节不变，旧r1/r2失败或未推进不改写为成功；独立鼠标实窗及生产App表单浏览仍待补。日志/tmp/ubaa-old-p5d-macos-r3.log；真实学校写入0。
+P5-D Mac-r3补验（2026-09-10）：以7459d677当前候选运行ui_sports_test.dart，全42业务场景+teardown在332秒通过、退出0，覆盖两主题七类内存完整写入及原首页/记录状态。此前已提交的阳光表单/时间/草稿/照片实现字节不变，旧r1/r2失败或未推进不改写为成功；独立鼠标实窗及生产App表单浏览仍待补。日志<private-evidence>/legacy-tmp/ubaa-old-p5d-macos-r3.log；真实学校写入0。
 
 
 E6最终局部验收（2026-09-10）：三显式签到查询原有生产投影保持，修复显式内存fixture后，手机31秒/平板31秒各2主题完整流程通过，Mac27秒2主题通过；两端各12原图共24全数检查归档old-e6-native。三端覆盖未应用草稿关闭往返、已应用视图返回保留、本地详情无请求、刷新沿原query、unknown/缺目标不误归类及0 prepare/commit。Core Direct/WebVPN各3认证+today2条通过；生产AppDirect65秒/WebVPN107秒，考试三视图均空（真实详情未执行），签到全部2→可签到1→已签到1→全部2，actualroute严格一致，本地签到详情无额外读取，学校写入0。两条全新App容器隔离配置经既有安全stdin使用授权.env.local，未输出或归档账号、session及真实正文。App54/analyze、just check、refs与敏感检查通过；完整715为E5最近门禁，E6无生产实现变更。独立Mac仍受已记录交互条件限制，P4余项、P5全领域/P6/P7未完成。

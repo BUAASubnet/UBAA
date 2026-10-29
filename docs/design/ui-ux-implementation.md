@@ -46,7 +46,7 @@
 
 ```sh
 # packages/ubaa_ui
-"${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test test/widgets_test.dart
+just flutter test test/widgets_test.dart
 ```
 
 失败应是输入/选中页丢失或新断点导航断言不符；若测试意外通过，检查场景是否真正重建了断点容器/返回重入，不编造失败。
@@ -172,9 +172,9 @@ final class AssignmentPresentation extends FeaturePresentation {
 
 ```sh
 # packages/ubaa_ui
-"${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test test/widgets_test.dart test/write_coordination_test.dart
+just flutter test test/widgets_test.dart test/write_coordination_test.dart
 # packages/ubaa_app
-"${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test test/write_coordinator_test.dart test/app_write_lifecycle_test.dart test/write_readback_reentry_test.dart
+just flutter test test/write_coordinator_test.dart test/app_write_lifecycle_test.dart test/write_readback_reentry_test.dart
 ```
 
 - [ ] 三端实际操作全部脱敏写入流程，合成照片不含个人数据；integration 通过不能替代截图和操作观察。

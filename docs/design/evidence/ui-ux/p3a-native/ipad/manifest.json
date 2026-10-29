@@ -43,7 +43,7 @@
   "evidence": "native-ios-synthetic-ui",
   "acceptance": "P3/P4-A原生竖屏合成巡检，非最终全部子视图或真实上游验收",
   "device": "iPad Pro 11-inch (M5)",
-  "deviceId": "9F9D9C27-D085-467E-86B6-2960D0082ECC",
+  "deviceId": "<simulator-id>",
   "testResult": "2主题场景通过；38张截图；driver退出0",
   "sourceLabel": "b2b91d46+P3A-visual-r2",
   "pngSha256": {

@@ -111,7 +111,7 @@
   "evidence": "native-ios-synthetic-ui",
   "acceptance": "原生学业14个业务场景通过；整批与macOS最终验收独立记录",
   "device": "iPhone 17 Pro",
-  "deviceId": "B196C00E-FDA6-45C2-BAC5-D7208B8D9DBD",
+  "deviceId": "<simulator-id>",
   "testResult": "14个业务场景通过，driver退出0；日志+15含tearDownAll",
   "pngSha256": {
     "dark-empty-classroom-result.png": "581abc7c2f06830968430dd966b07ab65fc79c48d45625a509901465b0b9953e",

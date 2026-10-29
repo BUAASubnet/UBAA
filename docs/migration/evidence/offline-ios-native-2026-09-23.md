@@ -6,7 +6,7 @@
 
 首次CocoaPods准备因官方CDN重定向下载超时失败；验证本机已配置代理 `127.0.0.1:7897` 能以TLS成功取回同一文件后，仅为构建进程设置HTTP(S)_PROXY及loopback的NO_PROXY。依赖准备1.526秒，首次Xcode构建244.3秒，随后测试通过。未改TLS校验、未修改全局网络配置。Podfile.lock补上pubspec已锁定的flutter_secure_storage_darwin 10.0.0依赖，未升级包版本。
 
-日志保存在仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2r-backend-recovery-20260923/`。
+日志保存在仓库外私有目录 `<private-evidence>/offline-home-20260917/p2r-backend-recovery-20260923/`。
 
 | 日志 | SHA-256 |
 |---|---|

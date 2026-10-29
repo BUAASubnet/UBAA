@@ -1,6 +1,6 @@
 # P4-D 博雅、阳光展示与导航计划
 
-2026-09-08，仅静态核对，未改生产代码、联网、运行测试或native。路径相对 `/Users/moorefoss/Code/UBAA`。冻结old为6e75e120a26b0eefb3ab4a6f8251d1230db4a62e，examples为efb7976bf513f38364b88aeb83d704586cff9b2a。本计划复用现Core/Bridge，不能作为新写入授权或已验证结果。
+2026-09-08，仅静态核对，未改生产代码、联网、运行测试或native。路径相对 `<private-evidence>/source-checkouts/UBAA`。冻结old为6e75e120a26b0eefb3ab4a6f8251d1230db4a62e，examples为efb7976bf513f38364b88aeb83d704586cff9b2a。本计划复用现Core/Bridge，不能作为新写入授权或已验证结果。
 
 ## 最小typed字段与完整视图
 

@@ -2,7 +2,7 @@
 
 日期：2026-10-02，起点`4fda272c`。当前冻结旧版`1f4b8f84`的LocalConnectionAuth/AuthApi、验证码DTO与后端测试，相较旧专项`6e75e120`内容未变化；旧AuthViewModel只增加课表账号关联，LoginScreen增加离线课表入口。当前示例`a63712fa`的SSO、request和store相较`efb7976`未变化，仍无同协议图像验证码实现。逐操作URL/service、跳转、Cookie、方法/八字段/编码、crypto、解析、生命周期及错误对照完整沿[敏感显示专项](source-parity-ui-sensitive-displays.md)。不能从示例普通SSO推断验证码字段。
 
-旧macOS worktree未提交Core候选已单独运行19项交互认证测试通过（`/tmp/ubaa-existing-interactive-core-20261002.log`），这是移植前专项证据，不是本候选已可用。原目录和未提交内容保持原样。接续采用受限PNG/JPEG解码后的RGBA、opaque挑战和单调时限；提交前按旧版GET复核execution/id，轮换时返回新挑战且零POST，未经真实来源裁决不得跳过此GET。
+旧macOS worktree未提交Core候选已单独运行19项交互认证测试通过（`<private-evidence>/legacy-tmp/ubaa-existing-interactive-core-20261002.log`），这是移植前专项证据，不是本候选已可用。原目录和未提交内容保持原样。接续采用受限PNG/JPEG解码后的RGBA、opaque挑战和单调时限；提交前按旧版GET复核execution/id，轮换时返回新挑战且零POST，未经真实来源裁决不得跳过此GET。
 
 本轮额外整合约束：本地首页仍可显示缓存，验证码不能授予写资格或触发后台自动提交；已有会话恢复保持非交互；仅用户手动登录进入交互链。原位登录须保留页面与查询，网络/校验期间阻止旧读取和写流程，关闭弹窗/退出/账号变化/失效/后台须撤销当前挑战并释放帧。最终身份核对、安全保存、本机账号绑定及恢复状态复用当前登录收尾，不能回退到旧分支缺少缓存接线的实现。
 

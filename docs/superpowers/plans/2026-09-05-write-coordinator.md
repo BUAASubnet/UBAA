@@ -288,8 +288,8 @@ harness 禁止保存 intent/error/submitting、判断 operation、决定回读�
 文件：原 `write_controller_test.dart`、新 `write_coordinator_test.dart` 与对应叶、`ubaa_host/test/ubaa_app_host/callbacks.dart`、`packages/ubaa_app/test/public_api_contract_test.dart`。
 
 - [x] 以已提交 `4b0dcb0` 保存原有测试源码基线，Phase 11J 的完整 Flutter 与 integration 已通过；与本阶段逐字核对测试叶和 golden SHA-256，见任务 E。
-- [x] 新增 Shell 状态消费接口 RED；缺少 `WriteState/WritePhase` 及 Shell 的 `writeState` 参数时编译失败，见 `/tmp/ubaa-write-ui-red.log`。Host 的唯一协调器接线另由真实行为测试验证，不把它记作未实际执行的 Host RED。
-- [x] 新增完整命令能力 RED：分别缺少 prepare、cancel、confirm 时仍出现“准备选课”，3 项预期失败见 `/tmp/ubaa-write-capabilities-red.log`；实现完整命令门禁后通过。
+- [x] 新增 Shell 状态消费接口 RED；缺少 `WriteState/WritePhase` 及 Shell 的 `writeState` 参数时编译失败，见 `<private-evidence>/legacy-tmp/ubaa-write-ui-red.log`。Host 的唯一协调器接线另由真实行为测试验证，不把它记作未实际执行的 Host RED。
+- [x] 新增完整命令能力 RED：分别缺少 prepare、cancel、confirm 时仍出现“准备选课”，3 项预期失败见 `<private-evidence>/legacy-tmp/ubaa-write-capabilities-red.log`；实现完整命令门禁后通过。
 - [x] 新增旧 `confirm` 的未知异常消费 RED：commit 抛 `StateError('/private/token=secret')`，断言原 intent 清除、第二次 confirm 不调用 commit、异常闭合为 `BackendException(internalError)`、安全状态不包含输入字符串。
 - [x] 对已发现的同步通知重入、过时结果交付、旧异常 code、会话转换窗口和第二次回读缺口先观察行为 RED，再作最小修复；具体失败见第 11 节，不把仅作回归覆盖的测试追记为 RED。
 
@@ -381,15 +381,15 @@ test('提交开始后双击确认只调用一次且未知异常消费意图', ()
 - 旧接口全错误码矩阵 RED 显示 `BackendException(parseError)` 被 UI mapper 改为 `upstreamChanged`；局部 record 现独立保留原 code，三个旧入口继续逐项通过，UI 保持原安全展示映射。
 - canStart RED 显示转换门禁关闭时仍返回完成结果；现准备、确认与兼容 setIntent 均拒绝启动。AppController 的延迟注销/路线转换及同步通知重入另有生产接线测试。
 - AppController getter 缺失 RED 后完成唯一持有接线；Cgyy 列表 await 后的注销/路线变更 RED 均为详情调用实际 1 次、期望 0 次，现已在第二读前检查生命周期。
-- 固定 `/Users/moorefoss/Dev/flutter-3.41.9/bin/flutter test --reporter expanded` 在 `packages/ubaa_app` 当前工作树为 171 项通过；domain 全包 25 项通过，app analyze 无问题，敏感扫描检查 782 个文件并通过。
-- Shell 接口 RED 的原始日志 `/tmp/ubaa-write-ui-red.log` 显示缺失 `WriteState/WritePhase/writeState`，不能加载新增接口测试；完整命令能力 RED 日志 `/tmp/ubaa-write-capabilities-red.log` 显示缺少三个命令各导致一项失败，合计 3 项。上述路径是本机本轮执行证据，不作为仓库永久测试输入。
-- 已核对 `/tmp/ubaa-write-flutter-check.log`：domain 25、platform 42、app 171、UI 95、bindings 15、Host 17、官方 Flutter app 2，共 367 项通过，7 个范围 analyze 无问题。该结果包含原 UI/golden 普通比较模式及新增 Host/命令能力测试，不代表 Rust、FRB codegen、integration、本机产物、最终候选或远端 CI 已验收。
+- 固定 `just flutter test --reporter expanded` 在 `packages/ubaa_app` 当前工作树为 171 项通过；domain 全包 25 项通过，app analyze 无问题，敏感扫描检查 782 个文件并通过。
+- Shell 接口 RED 的原始日志 `<private-evidence>/legacy-tmp/ubaa-write-ui-red.log` 显示缺失 `WriteState/WritePhase/writeState`，不能加载新增接口测试；完整命令能力 RED 日志 `<private-evidence>/legacy-tmp/ubaa-write-capabilities-red.log` 显示缺少三个命令各导致一项失败，合计 3 项。上述路径是本机本轮执行证据，不作为仓库永久测试输入。
+- 已核对 `<private-evidence>/legacy-tmp/ubaa-write-flutter-check.log`：domain 25、platform 42、app 171、UI 95、bindings 15、Host 17、官方 Flutter app 2，共 367 项通过，7 个范围 analyze 无问题。该结果包含原 UI/golden 普通比较模式及新增 Host/命令能力测试，不代表 Rust、FRB codegen、integration、本机产物、最终候选或远端 CI 已验收。
 - 后续新增 `write_coordinator_dispose_test.dart` 的 6 项 characterization 首次运行即通过，分别证明 cancel、commit、readback 在等待期间 dispose 后，成功及失败的晚到结果都不通知、不交付、不恢复意图；commit 不补偿释放、不回读，readback 不继续第二次收据核对。未因此修改生产代码，也不把这些成功基线记作 RED。
 - Host 新增照片等待注销的 Completer characterization，实际打开阳光表单、输入时间、开始照片选择，注销使原 Shell 卸载后才返回照片并点击“继续确认”；业务 prepare 与 commit 均为零。首次运行即通过，未修改生产代码。
 - 上述补充后重新运行 app 全包 177 项、Host 全包 18 项测试，全部通过；两个新增测试范围的 `dart analyze` 无问题，精确文件 `git diff --check` 通过。此前 367 项完整 Flutter 日志仍按执行时的测试数量保留，不将单包补充回归冒充另一次完整门禁。
-- 最终 Flutter 复跑 `/tmp/ubaa-write-flutter-check-final.log`：domain 25、platform 42、app 177、UI 95、bindings 15、Host 18、官方 app 2，共 374 项通过，全部格式、静态分析与锁文件强制校验通过。
-- `/tmp/ubaa-write-codegen.log` 为 FRB 零漂移，`/tmp/ubaa-write-integration.log` 为 macOS 7 项通过；`/tmp/ubaa-write-{macos,android,ios,ohos}-build.log` 记录本机三平台构建和 OHOS API26 无签名 HAP，三个官方平台另经 `just flutter-artifact-check` 通过。构建产生的本机元数据差异已按精确路径检查并恢复，不提交本机 SDK 路径。
-- `/tmp/ubaa-write-rust-check-final.log` 为完整 Rust/Shell/CLI 门禁退出码 0；前一轮因新文档命令漏写 `--locked` 被既有 CLI 合同拦截，修正文档后整套重跑通过，未修改测试绕过合同。
+- 最终 Flutter 复跑 `<private-evidence>/legacy-tmp/ubaa-write-flutter-check-final.log`：domain 25、platform 42、app 177、UI 95、bindings 15、Host 18、官方 app 2，共 374 项通过，全部格式、静态分析与锁文件强制校验通过。
+- `<private-evidence>/legacy-tmp/ubaa-write-codegen.log` 为 FRB 零漂移，`<private-evidence>/legacy-tmp/ubaa-write-integration.log` 为 macOS 7 项通过；`<private-evidence>/legacy-tmp/ubaa-write-{macos,android,ios,ohos}-build.log` 记录本机三平台构建和 OHOS API26 无签名 HAP，三个官方平台另经 `just flutter-artifact-check` 通过。构建产生的本机元数据差异已按精确路径检查并恢复，不提交本机 SDK 路径。
+- `<private-evidence>/legacy-tmp/ubaa-write-rust-check-final.log` 为完整 Rust/Shell/CLI 门禁退出码 0；前一轮因新文档命令漏写 `--locked` 被既有 CLI 合同拦截，修正文档后整套重跑通过，未修改测试绕过合同。
 
 | 等待阶段 | invalidate 证据 | dispose 证据 |
 |---|---|---|

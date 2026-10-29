@@ -8,7 +8,9 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../lib/repo.sh
 source "$script_dir/../lib/repo.sh"
 repo_root=$(ubaa_repo_root)
-flutter_root=${UBAA_OHOS_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-ohos-3.41.10}
+# shellcheck source=../lib/toolchain.sh
+source "$script_dir/../lib/toolchain.sh"
+flutter_root=${UBAA_OHOS_FLUTTER_HOME:?请设置 UBAA_OHOS_FLUTTER_HOME 为锁定 Flutter SDK 的绝对路径}
 flutter_bin=$flutter_root/bin/flutter
 app_root=$repo_root/apps/ubaa_ohos
 deveco_home=${UBAA_DEVECO_HOME:-/Applications/DevEco-Studio.app/Contents}

@@ -1,6 +1,6 @@
 # P4-D 图书馆与场馆展示来源和接入计划
 
-2026-09-08；静态读取当前 App/UI/Core/Bridge 与两冻结源。本文件为实施前静态核对；未运行测试或 native。路径相对 `/Users/moorefoss/Code/UBAA`。冻结 old=`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`，examples=`efb7976bf513f38364b88aeb83d704586cff9b2a`。本计划不代表完成验证。
+2026-09-08；静态读取当前 App/UI/Core/Bridge 与两冻结源。本文件为实施前静态核对；未运行测试或 native。路径相对 `<private-evidence>/source-checkouts/UBAA`。冻结 old=`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`，examples=`efb7976bf513f38364b88aeb83d704586cff9b2a`。本计划不代表完成验证。
 
 ## 总体裁决
 
@@ -66,7 +66,7 @@ Core内部 `parse_area_detail_for_day`（同parser`:193`）能从原始响应唯
 
 ## D1图书馆执行补记
 
-O3-C已提交ba9fadde，现执行图书馆子批。库API/DTO/Local实现与Mock已逐段复读，原五请求和v9合同不改。5项投影行为RED在`/tmp/ubaa-old-d1-libbook-red.log`观察到presentation缺失，6项聚焦GREEN（含原取消回读）。与旧版相同的可见预约页初始楼馆/楼层/分区加载保留；没有自动跨日期时段配对，未调用真实写入。明确空结果不复活座位选择，隐藏页面不自动继续子查询。原生r1发现fixture默认页问题与测试按钮类型误定位，保留失败并修复后重跑；子批尚未完成三端实屏验收。
+O3-C已提交ba9fadde，现执行图书馆子批。库API/DTO/Local实现与Mock已逐段复读，原五请求和v9合同不改。5项投影行为RED在`<private-evidence>/legacy-tmp/ubaa-old-d1-libbook-red.log`观察到presentation缺失，6项聚焦GREEN（含原取消回读）。与旧版相同的可见预约页初始楼馆/楼层/分区加载保留；没有自动跨日期时段配对，未调用真实写入。明确空结果不复活座位选择，隐藏页面不自动继续子查询。原生r1发现fixture默认页问题与测试按钮类型误定位，保留失败并修复后重跑；子批尚未完成三端实屏验收。
 
 
 ## D2研讨室执行前裁决

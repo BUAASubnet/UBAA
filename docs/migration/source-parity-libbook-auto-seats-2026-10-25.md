@@ -17,7 +17,7 @@
 
 ## 验证
 
-失败反例：原应用测试期待进入 `libbookSeats`，实际停在 `libbookAreaDetail`（`/tmp/ubaa-libbook-red.log`）；实现后同一反例转绿。聚焦应用 20 项通过，覆盖自动首日首时段、只显示 status=1、换馆/楼层/分区/日期/时段、明确空结果、失败原参数重试、隐藏页和迟到结果、canonical 预约准备与取消。
+失败反例：原应用测试期待进入 `libbookSeats`，实际停在 `libbookAreaDetail`（`<private-evidence>/legacy-tmp/ubaa-libbook-red.log`）；实现后同一反例转绿。聚焦应用 20 项通过，覆盖自动首日首时段、只显示 status=1、换馆/楼层/分区/日期/时段、明确空结果、失败原参数重试、隐藏页和迟到结果、canonical 预约准备与取消。
 
 覆盖迁移：移除预约页查询面板后，删除 UI `query_test.dart` 的手填馆区与空时段测试；分别由 `flow_test.dart` 的 typed 父项选择和应用 `dates_test.dart` 的不完整日程阻断、完整参数及 canonical 准备覆盖。旧应用测试的面板打开/关闭、手填日期、更多查询、跨分区手填重试和本地搜索场景改为正文自动查询；保留父字段缺省/冲突、换父项清选择、空结果不复活、隐藏页无后台链、迟到响应、同日时段关联与失败原参数重试覆盖。`refresh_continuity_test.dart` 的图书馆手填/键盘场景迁至应用测试的窄屏大字、键盘占位下选择座位并取消准备；研讨室原检查保留。另修正导航辅助函数，使上一轮紧凑侧栏的设置 Tooltip 可被既有详情测试操作。旧合成日程改用生产已在使用的逐日 DTO；地图、预约取消与记录分页原生覆盖保留。
 

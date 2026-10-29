@@ -242,15 +242,15 @@ UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
 
 ```sh
 # 工作目录：packages/ubaa_ui
-"${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test test/widgets_test.dart
-"${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test test/write_coordination_test.dart
+just flutter test test/widgets_test.dart
+just flutter test test/write_coordination_test.dart
 
 # 工作目录：packages/ubaa_app
-"${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test test/write_coordinator_test.dart test/app_write_lifecycle_test.dart test/write_readback_reentry_test.dart
+just flutter test test/write_coordinator_test.dart test/app_write_lifecycle_test.dart test/write_readback_reentry_test.dart
 
 # 工作目录：apps/ubaa_flutter；现有 integration 使用脱敏 backend
-CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 "${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test integration_test/app_flow_test.dart -d macos
-"${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" devices --machine
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter test integration_test/app_flow_test.dart -d macos
+just flutter devices --machine
 ```
 
 手机/平板宿主集成使用上条设备清单中的真实设备 ID 替换 `-d macos` 的值；如目标缺乏必需 runner，先完善最小测试接线并复验。所有平台都要补充实际界面观察，integration PASS 不替代截图和交互检查。

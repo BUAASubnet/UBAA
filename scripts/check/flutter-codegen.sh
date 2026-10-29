@@ -6,7 +6,9 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../lib/repo.sh
 source "$script_dir/../lib/repo.sh"
 repo_root=$(ubaa_repo_root)
-flutter_root=${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}
+# shellcheck source=../lib/toolchain.sh
+source "$script_dir/../lib/toolchain.sh"
+flutter_root=${UBAA_FLUTTER_HOME:?请设置 UBAA_FLUTTER_HOME 为锁定 Flutter SDK 的绝对路径}
 codegen=${UBAA_FRB_CODEGEN:-$(command -v flutter_rust_bridge_codegen || true)}
 
 "$repo_root/scripts/check/flutter-toolchains.sh" official

@@ -13,3 +13,15 @@
 后续运行须将已有驱动使用的 `UBAA_UI_EVIDENCE_DIR` 设为仓库外新建的私有绝对目录，再采集截图和元数据。审阅后仅将脱敏文字、元数据和摘要同步到本目录，图片及录屏留在外部归档。`.gitignore`对本目录常见媒体扩展名提供额外保护；不得用强制暂存绕过该规则。
 
 截图归档只保留原有证据类别，不增加设备操作、真实读取或业务写入的通过范围。2026-09-14归档时UI/UX目标暂停；2026-09-15已按用户新要求恢复macOS逐按钮专项，当前范围与状态以 `goal.md` 为准。
+
+## 路径与本机标识
+
+新证据统一使用 `UBAA_UI_EVIDENCE_DIR` 指定仓库外的私有目录。工具链位置配置在本地 `.env.toolchain`，Dart/Flutter 通过 `just dart` / `just flutter` 调用。`ui_render.dart` 与 `ui_keyboard.dart` 在任何写入和键盘截图握手前解析实际路径，包括尚未创建目录的现有父目录与符号链接，目标位于仓库内就拒绝。
+
+受跟踪文字与元数据只记录 `<private-evidence>/<run-id>/<文件名>`、内容摘要、采集方式与实际验收结论，不写个人家目录绝对路径。`<repo-root>` 表示本仓库根目录，`<simulator-id>` 表示本轮设备标识，均不是可直接执行的路径。私有材料标识使用纯文本，不生成指向个人文件系统的 Markdown 链接。键盘驱动还需要 `UBAA_KEYBOARD_RUN_ID` 和 `UBAA_UI_SIMULATOR_ID`，前者应与测试侧同名 dart-define 一致。
+
+阶段 1 将历史个人目录和临时日志路径改为逻辑占位。`<private-evidence>/legacy-tmp/` 表示原临时目录记录，仅用于保留文件名及其历史上下文，不表示文件已迁移或仍然可读取。未来需要保留的证据应直接写入持久的私有目录。历史 SDK 位置改为项目入口或环境变量，旧工作树位置保留为 `<private-evidence>/source-checkouts/UBAA`，原来源提交与例外性质不变。
+
+历史模拟器 UUID 改为 `<simulator-id>`。元数据中的其他设备描述和验收分类保留；既有 SHA256SUMS 描述采集时的原始材料，元数据经过路径脱敏后可能与原始摘要不同，不能将这些摘要视为当前元数据文件的校验结果。新归档应为脱敏后的元数据重新生成摘要，并另存原始材料摘要。
+
+约 4000 个历史 UI JSON 本阶段继续保留，迁出评估见[决策记录](../../migration/decision-log.md)。历史 E3c 的 `capture-macos.py` 通过 `--checkpoint-dir`、`--evidence-dir`、`--window-id` 接收本轮输入，使用 macOS 系统 `screencapture`，不依赖个人截图技能目录。脚本保留不增加任何本轮原生验收结论。

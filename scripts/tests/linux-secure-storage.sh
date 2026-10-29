@@ -5,6 +5,8 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../lib/repo.sh
 source "$script_dir/../lib/repo.sh"
 repo_root=$(ubaa_repo_root)
+# shellcheck source=../lib/toolchain.sh
+source "$script_dir/../lib/toolchain.sh"
 flutter_root=${UBAA_FLUTTER_HOME:?需要固定官方 Flutter SDK}
 if [[ ${1:-} == --keyring-session ]]; then
   printf '%s' 'ubaa-ci-synthetic' | gnome-keyring-daemon --unlock --components=secrets

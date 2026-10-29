@@ -637,7 +637,7 @@ just flutter-check
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
 (
   cd apps/ubaa_flutter
-  "${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test integration_test/app_flow_test.dart -d macos --ignore-timeouts
+  just flutter test integration_test/app_flow_test.dart -d macos --ignore-timeouts
 )
 ```
 
@@ -648,13 +648,13 @@ simulator 本机构建及产物结构检查；Linux/Windows 由官方五平台 w
 ```text
 (
   cd apps/ubaa_flutter
-  "${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test integration_test/app_flow_test.dart -d macos --ignore-timeouts
+  just flutter test integration_test/app_flow_test.dart -d macos --ignore-timeouts
 )
 just flutter-build platform=macos mode=debug
 just flutter-build platform=android-apk mode=debug
 just flutter-build platform=ios-simulator mode=debug
 just flutter-artifact-check <platform> <对应产物>
-UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools \
+UBAA_DEVECO_HOME=$UBAA_DEVECO_HOME \
   UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
 ```
 
@@ -671,10 +671,10 @@ just check
 cargo test --locked -p ubaa-cli --all-targets
 just flutter-check
 CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
-just release-preflight "${UBAA_RELEASE_REPORT_DIR:-/tmp/ubaa-code-organization-release-report}"
+just release-preflight "${UBAA_RELEASE_REPORT_DIR:-<private-evidence>/legacy-tmp/ubaa-code-organization-release-report}"
 (
   cd apps/ubaa_flutter
-  "${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}/bin/flutter" test integration_test/app_flow_test.dart -d macos --ignore-timeouts
+  just flutter test integration_test/app_flow_test.dart -d macos --ignore-timeouts
 )
 just flutter-build platform=macos mode=debug
 just flutter-artifact-check macos apps/ubaa_flutter/build/macos/Build/Products/Debug/ubaa_flutter.app
@@ -682,7 +682,7 @@ just flutter-build platform=android-apk mode=debug
 just flutter-artifact-check android-apk apps/ubaa_flutter/build/app/outputs/flutter-apk/app-debug.apk
 just flutter-build platform=ios-simulator mode=debug
 just flutter-artifact-check ios-simulator apps/ubaa_flutter/build/ios/iphonesimulator/Runner.app
-UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools \
+UBAA_DEVECO_HOME=$UBAA_DEVECO_HOME \
   UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
 just verify-live mode=direct
 just verify-live mode=webvpn

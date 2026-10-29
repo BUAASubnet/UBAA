@@ -1,5 +1,14 @@
 # 开发命令
 
+Dart/Flutter 命令一律通过项目入口 `just dart <参数…>`、`just flutter <参数…>` 调用，OHOS 使用 `just flutter-ohos <参数…>`。不写 SDK 绝对路径，不依赖 PATH 中的 Dart/Flutter。首次将 `.env.toolchain.example` 复制为 `.env.toolchain` 并填写本机路径。just 自动加载工具配置，文件缺失不影响列出配方等非 SDK 命令；直接运行脚本复用 `scripts/lib/toolchain.py` 回退读取同一文件。`.env.local` 仅供显式真实验证入口读取，工具入口不会加载它。参数中的空格、空参数和 Shell 元字符会原样传给工具，仍需由调用 Shell 正常加引号。
+
+```bash
+just dart --version
+just flutter --version
+just flutter doctor -v
+just flutter-ohos --version
+```
+
 工作区使用 `rust-toolchain.toml` 锁定 Rust 1.95.0；官方 Flutter、OHOS fork、FRB 与平台工具版本见
 [Flutter 平台矩阵](../architecture/flutter-platforms.md)。当前 recipe 由根 `justfile` 提供。
 

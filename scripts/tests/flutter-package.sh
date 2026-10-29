@@ -5,6 +5,8 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../lib/repo.sh
 source "$script_dir/../lib/repo.sh"
 repo_root=$(ubaa_repo_root)
+# shellcheck source=../lib/toolchain.sh
+source "$script_dir/../lib/toolchain.sh"
 package=${1:?缺少包名}
 test_path=${2:-test}
 case "$package" in
@@ -22,7 +24,7 @@ if [[ "$test_path" == *'..'* || ! -e "$package_dir/$test_path" ]]; then
   printf '%s\n' 'error: 测试路径不存在或越出包目录' >&2
   exit 2
 fi
-flutter_root=${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}
+flutter_root=${UBAA_FLUTTER_HOME:?请设置 UBAA_FLUTTER_HOME 为锁定 Flutter SDK 的绝对路径}
 bash "$repo_root/scripts/check/flutter-toolchains.sh" official
 cd "$package_dir"
 exec "$flutter_root/bin/flutter" test --no-pub "$test_path"

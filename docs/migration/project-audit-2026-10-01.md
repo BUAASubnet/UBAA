@@ -65,8 +65,8 @@
 | 类别 | 本轮状态 |
 |---|---|
 | 冻结引用 | 主目录两来源只读校验通过 |
-| Rust/CLI 基线 | 全部门禁与CLI端到端通过，日志 `/tmp/ubaa-consolidation-baseline-check-20261001.log` |
-| Flutter 基线 | 7包静态分析与1116项测试通过，日志 `/tmp/ubaa-consolidation-baseline-flutter-20261001.log` |
+| Rust/CLI 基线 | 全部门禁与CLI端到端通过，日志 `<private-evidence>/legacy-tmp/ubaa-consolidation-baseline-check-20261001.log` |
+| Flutter 基线 | 7包静态分析与1116项测试通过，日志 `<private-evidence>/legacy-tmp/ubaa-consolidation-baseline-flutter-20261001.log` |
 | 整合后门禁/FRB | 整合、设置、验证码、门锁分阶段重跑；最新见status与阶段证据 |
 | WebVPN Core-live/生产 App | 12域默认读取通过；图书馆分区详情code500阻塞；订单详情经实时包装解析修复后专项通过，桌面复验进行中 |
 | macOS Computer Use | 生产WebVPN已完成D01—275操作记录，逐行结果见按钮清单；随后再次锁屏，最终修复鼠标复验待解锁。本轮无CUA MCP，实际使用系统截图与鼠标键盘 |

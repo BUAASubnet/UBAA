@@ -117,7 +117,7 @@
   "evidence": "native-ios-synthetic-ui",
   "acceptance": "学业B1原生14场景通过；共享选择器等B2及macOS最终验收未完成",
   "device": "iPad Pro 11-inch (M5)",
-  "deviceId": "9F9D9C27-D085-467E-86B6-2960D0082ECC",
+  "deviceId": "<simulator-id>",
   "testResult": "14业务场景通过，driver退出0；112原图中6张为实际横向拖动附图",
   "pngSha256": {
     "dark-empty-classroom-result.png": "57757369ecc2945853ff5459159ebc8945d8d51d59ab0b9c2276bb7c45de6eda",

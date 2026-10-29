@@ -14,7 +14,7 @@ Windows/Linux插件注册文件已由Flutter更新，但本机是macOS，未宣�
 
 ## 当前日志
 
-根目录：`/Users/moorefoss/Library/Application Support/UBAA-private-evidence/project-review-20261002-resume`。
+根目录：`<private-evidence>/project-review-20261002-resume`。
 
 | 文件 | SHA-256 |
 |---|---|

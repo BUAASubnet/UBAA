@@ -4,12 +4,11 @@ import 'dart:io';
 
 import 'package:integration_test/integration_test_driver_extended.dart';
 
+import 'evidence_directory.dart';
+
 Future<void> main() async {
   final destination = Platform.environment['UBAA_UI_EVIDENCE_DIR'];
-  if (destination == null || !destination.startsWith('/')) {
-    throw ArgumentError('UBAA_UI_EVIDENCE_DIR 必须是本次运行的私有绝对路径');
-  }
-  final directory = Directory(destination);
+  final directory = checkedEvidenceDirectory(destination);
   if (await directory.exists() && !await directory.list().isEmpty) {
     throw ArgumentError('证据目录必须为空，不能改动已有目录内容或权限');
   }

@@ -44,7 +44,7 @@
 - 本增量只完成可无签名验证的平台通道和宿主接线，不声称已经实现 Android Keystore、iOS/macOS
   Keychain、Linux Secret Service 或 HarmonyOS HUKS 原生 handler；实体设备权限、硬件安全存储和
   真机生命周期仍保持后置 `BLOCKED`，不得用 MethodChannel fake 或无签名产物替代。
-- 提交 `30297a5` 后，`UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools
+- 提交 `30297a5` 后，`UBAA_DEVECO_HOME=$UBAA_DEVECO_HOME
   UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 再次通过：工具链/Dart/widget/native 前置为
   0 失败/0 警告，生成并检查无签名 `entry-default-unsigned.hap` 及 arm64 bridge；生成文件已移出工作树。
 - 修复无签名产物结构脚本的跨平台摘要逻辑：目录产物现在先选择环境中可用的 `shasum` 或
@@ -79,7 +79,7 @@
   基线复核模式通过，`ubaa_ui` 全量 38 项与 macOS 宿主集成 3/3 均通过。其合同 CI `33584844827` 与
   Flutter 原生 CI `33584844835` 均终态成功，Windows、Linux、macOS、iOS simulator、Android APK
   job 全部通过并上传 Debug 产物。golden 仍是共享壳/详情代表，不替代实体设备或签名证据。
-- 最终 HEAD `5bd9814` 重新通过 `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools
+- 最终 HEAD `5bd9814` 重新通过 `UBAA_DEVECO_HOME=$UBAA_DEVECO_HOME
   UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug`：DevEco `26.0.0.821`、API26、OHOS fork 与 arm64
   Rust 动态库检查均通过，Dart/widget/native 前置 0 失败/0 警告，生成无签名 `entry-default-unsigned.hap`
   并确认 `libs/arm64-v8a/libubaa_bindings.so`。产物未签名、未安装、未上传，生成目录已移出工作树。
@@ -114,7 +114,7 @@
 - 当前 HEAD（文档提交 `f67f95f`）以 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 重试 FRB 零漂移，
   `cargo-expand` 调用 `rustc -Zunpretty=expanded` 约两分钟无输出后安全中断；进程已清理且工作树无生成漂移，故本次仍记为“未完成运行”，
   不能从其它 CI 或历史成功推导当前本机门禁通过。
-- 最终审计提交 `7e6a4ea` 后，`just refs`、`just check-sensitive`、`just release-preflight /tmp/ubaa-release-preflight-final.qLoG85`
+- 最终审计提交 `7e6a4ea` 后，`just refs`、`just check-sensitive`、`just release-preflight <private-evidence>/legacy-tmp/ubaa-release-preflight-final.qLoG85`
   与 `git diff --check` 均成功；`HEAD` 与 `origin/ubaa2` 一致，工作树干净。OHOS 无签名 HAP 与 arm64 临时生成物已移出仓库，
   不含凭据、原始响应或个人数据。
 
@@ -158,7 +158,7 @@
 - 提交 `fba1316` 新增 `PlatformPermissionGateway`、`PlatformPhotoPicker`、不可用实现和内存 fake，覆盖相机、相册、文件、前台位置权限的稳定拒绝/授权状态；照片只以 typed `YgdkPhotoInput` 在内存中传递。权限拒绝回归验证不会调用 picker，原生插件和设备权限仍为后置 `BLOCKED`。
 - 官方 Flutter 与 OHOS 薄宿主新增可选照片 picker 注入点；无注入时不伪造照片。共享导航增加可恢复的初始分组参数，便于宿主恢复和确定性集成验证。
 - `apps/ubaa_flutter/integration_test/app_flow_test.dart` 现覆盖普通 8 项与高级 4 项全部详情入口，登录后逐项打开并返回；官方 Flutter macOS 集成场景 3/3 通过，未访问网络或真实账号。
-- `just flutter-check`、`just check`、`just check-sensitive`、`CARGO_INCREMENTAL=0 just flutter-codegen-check` 均通过；`UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 的工具链、Dart/widget/native 前置均为 0 失败/0 警告，并生成 `entry-default-unsigned.hap`；实体设备和签名未执行。
+- `just flutter-check`、`just check`、`just check-sensitive`、`CARGO_INCREMENTAL=0 just flutter-codegen-check` 均通过；`UBAA_DEVECO_HOME=$UBAA_DEVECO_HOME UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 的工具链、Dart/widget/native 前置均为 0 失败/0 警告，并生成 `entry-default-unsigned.hap`；实体设备和签名未执行。
 - 提交 `38763f4` 的 `release-preflight` 现生成 Cargo CycloneDX 风格 SBOM、Dart/Flutter 锁文件版本与许可证审计，并由合同 CI 归档；无签名报告仍不等价于正式签名发布。
 - 提交 `a7d4ac0` 将报告锁文件来源收敛为 Git 跟踪清单，排除构建目录临时文件；干净工作树复跑成功，报告列出 8 个锁文件并生成 SBOM、许可证审计、源码校验和无签名摘要。
 - 提交 `9dfe078` 修正 `just release-preflight` 的合同调用方式，统一使用绝对报告目录的位置参数；合同
@@ -167,9 +167,9 @@
 - `docs/architecture/flutter-platforms.md` 与 `docs/design/flutter-ui-spec.md` 已同步无签名合同：无签名
   HAP/静态包检查是当前 OHOS 交付，签名、设备、安全存储和逐领域 golden/真实 App 链路保留为后置或
   未闭合证据；十二项功能的共享详情入口和课堂签到组合回归已明确记录，不再描述为生产占位页。
-- 当前提交 `2ceda40` 在干净工作树上重新执行 `just release-preflight /tmp/ubaa-release-preflight.ehLJVk`：
+- 当前提交 `2ceda40` 在干净工作树上重新执行 `just release-preflight <private-evidence>/legacy-tmp/ubaa-release-preflight.ehLJVk`：
   生成 8 个跟踪 Flutter 锁文件、Cargo SBOM、依赖/许可证审计、源码校验和无签名摘要均成功；随后
-  `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug`
+  `UBAA_DEVECO_HOME=$UBAA_DEVECO_HOME UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug`
   以 0 失败/0 警告完成 API26 工具链和 HAP 包内容检查，确认 arm64 `libubaa_bindings.so`。生成输出已移出工作树，
   未签名 HAP 未安装、未签名、未上传。
 
@@ -217,7 +217,7 @@
   高级功能页和公开课程编号进入一次性 `WriteIntent` 确认页，确认后只调用一次 typed commit，并
   通过对应只读刷新观察到“已签到”状态。
 - 使用官方 Flutter 3.41.9 在 macOS runner 执行该集成测试，2 个场景全部通过；随后
-  `UBAA_FLUTTER_HOME=/Users/moorefoss/Dev/flutter-3.41.9 just flutter-check` 全量通过。本轮
+  `UBAA_FLUTTER_HOME=$UBAA_FLUTTER_HOME just flutter-check` 全量通过。本轮
   仅使用 fake backend 和脱敏数据，不访问网络、真实账号或真实写接口。
 - 该证据补齐宿主写入确认/刷新组合的一条确定性链路，但不替代十项写操作的逐领域真实核对、六平台
   App→FRB→Core E2E、实体设备和正式发布门禁；P4–P6 仍未完成。
@@ -236,7 +236,7 @@
 
 ## 2026-09-02 OHOS 无签名 debug HAP 包内容复核
 
-- 在用户确认当前没有实体设备后，使用 `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools`
+- 在用户确认当前没有实体设备后，使用 `UBAA_DEVECO_HOME=$UBAA_DEVECO_HOME`
   与 `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` 完成 OHOS Flutter、DevEco/SDK API26、
   Dart/widget、Rust arm64 native 前置和 HAP assemble；工具链与前置检查均为 0 失败/0 警告。
 - 旧门禁只查找 `libubaa_flutter_bridge.so`，而当前 Cargokit/模块实际将同一 Rust bridge 打包为
@@ -258,7 +258,7 @@
 ## 2026-09-02 当前提交状态与 API26 复核
 
 - 当前代码提交 `8e11c31` 的 `just refs`、`just check-sensitive`、`just check` 和 `just flutter-check` 均通过；新增空结果失败状态回归后，Flutter 全量测试仍通过，工作树仅保留本段文档待提交变更。
-- 以 `/Users/moorefoss/Code/bin/command-line-tools` 执行当前提交的 `UBAA_DEVECO_HOME=... just ohos-check mode=debug`：DevEco `26.0.0.821`、OpenHarmony API26、OHOS Flutter fork、Node/ohpm/Hvigor/hdc/Java、Rust `aarch64-unknown-linux-ohos` 及 Dart/native 前置均为 0 失败/0 警告；HAP assemble 在调试签名配置处按门禁停止，未产生签名 HAP、未连接设备。临时输出已移出工作树。
+- 以 `$UBAA_DEVECO_HOME` 执行当前提交的 `UBAA_DEVECO_HOME=... just ohos-check mode=debug`：DevEco `26.0.0.821`、OpenHarmony API26、OHOS Flutter fork、Node/ohpm/Hvigor/hdc/Java、Rust `aarch64-unknown-linux-ohos` 及 Dart/native 前置均为 0 失败/0 警告；HAP assemble 在调试签名配置处按门禁停止，未产生签名 HAP、未连接设备。临时输出已移出工作树。
 
 ## 2026-09-02 `8e11c31` 远端 CI 终态
 
@@ -305,7 +305,7 @@
 
 ## 2026-09-02 当前 HEAD OHOS API26 前置复核
 
-- 以更新后的 `/Users/moorefoss/Code/bin/command-line-tools` 执行 `UBAA_DEVECO_HOME=... just ohos-check mode=debug`：OHOS Flutter fork、DevEco 26.0.0.821、SDK API26、Node/ohpm/Hvigor/hdc/Java、Rust arm64 target、Dart analyze/widget 和 native 前置均 0 失败/0 警告。
+- 以更新后的 `$UBAA_DEVECO_HOME` 执行 `UBAA_DEVECO_HOME=... just ohos-check mode=debug`：OHOS Flutter fork、DevEco 26.0.0.821、SDK API26、Node/ohpm/Hvigor/hdc/Java、Rust arm64 target、Dart analyze/widget 和 native 前置均 0 失败/0 警告。
 - HAP assemble 仍在调试签名配置处按门禁停止；未配置签名、未生成可发布 HAP、未连接设备，临时生成输出已移出工作树。该证据不替代签名 HAP、设备 hello、正式 Release 或 P6 发布证据。
 
 ## 2026-09-02 当前提交远端 CI 终态
@@ -345,7 +345,7 @@
 ## 2026-09-02 当前提交双路线与 DevEco/CLI API26 复核
 
 - 在当前 HEAD `538f57d` 串行执行 `just verify-live mode=direct` 与 `mode=webvpn`：两条路线的认证、用户资料、课表、考试、成绩、空教室、SPOC/Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需读取均为 `PASS`；SPOC/博雅详情因同批次父列表为空记 `NOT_APPLICABLE`，Cgyy 用途为 `source=static_fallback`。本批次没有真实写接口调用。
-- 使用更新后的 `/Users/moorefoss/Code/bin/command-line-tools` 执行 `UBAA_DEVECO_HOME=... just ohos-check mode=debug`：Flutter OH、DevEco 26.0.0.821、SDK API26、Node/ohpm/Hvigor/hdc/Java、Rust arm64、Dart/widget/native 前置均为 0 失败/0 警告；HAP assemble 仍在调试签名配置处按门禁停止。未配置签名、未生成可发布 HAP、未连接设备，临时输出已移出工作树，P0/P6 继续受阻。
+- 使用更新后的 `$UBAA_DEVECO_HOME` 执行 `UBAA_DEVECO_HOME=... just ohos-check mode=debug`：Flutter OH、DevEco 26.0.0.821、SDK API26、Node/ohpm/Hvigor/hdc/Java、Rust arm64、Dart/widget/native 前置均为 0 失败/0 警告；HAP assemble 仍在调试签名配置处按门禁停止。未配置签名、未生成可发布 HAP、未连接设备，临时输出已移出工作树，P0/P6 继续受阻。
 
 ## 2026-09-02 生成读取 DTO 全量快照覆盖
 
@@ -355,7 +355,7 @@
 ## 2026-09-02 阳光打卡记录图片数量的应用层回归
 
 - 新增 `BridgeBackend` app 回归，使用 typed `BridgeYgdkRecord.imageCount` 验证记录详情只投影“图片数量”，且任何界面字段值都不含图片地址；同时断言记录分页按 1-based 页码和固定大小调用 bridge。
-- 聚焦 `bridge_backend_test.dart` 与完整 `UBAA_FLUTTER_HOME=/Users/moorefoss/Dev/flutter-3.41.9 just flutter-check` 均通过；该测试只覆盖本地 typed 投影，不代表六平台真实 App→FRB→Core E2E，P1/P3/P4/P5/P6 仍未完成。
+- 聚焦 `bridge_backend_test.dart` 与完整 `UBAA_FLUTTER_HOME=$UBAA_FLUTTER_HOME just flutter-check` 均通过；该测试只覆盖本地 typed 投影，不代表六平台真实 App→FRB→Core E2E，P1/P3/P4/P5/P6 仍未完成。
 
 ## 2026-09-02 阳光打卡记录图片地址不跨 FFI
 
@@ -370,7 +370,7 @@
 ## 2026-09-02 当前 HEAD 双路线与 API26 门禁复核
 
 - `just verify-live mode=direct` 与 `mode=webvpn` 均以 exit code 0 完成；认证、用户资料、课表、考试、成绩、空教室、SPOC/Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需只读操作均为 `PASS`。同批次 SPOC/博雅课程详情因父列表为空记 `NOT_APPLICABLE`，Cgyy 用途明确为 `source=static_fallback`；本次未调用任何真实写接口。
-- `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools just ohos-check mode=debug` 的 Flutter OH、SDK API26、Node/ohpm/Hvigor/hdc/Java、Rust arm64 target、Dart/widget 与 native 前置检查均为 0 失败/0 警告；HAP assemble 仍在调试签名配置处按门禁停止。未配置签名、未生成可发布 HAP、未连接设备，P0/P6 继续受阻。
+- `UBAA_DEVECO_HOME=$UBAA_DEVECO_HOME just ohos-check mode=debug` 的 Flutter OH、SDK API26、Node/ohpm/Hvigor/hdc/Java、Rust arm64 target、Dart/widget 与 native 前置检查均为 0 失败/0 警告；HAP assemble 仍在调试签名配置处按门禁停止。未配置签名、未生成可发布 HAP、未连接设备，P0/P6 继续受阻。
 
 ## 2026-09-02 只读 bridge 内部字段边界收紧
 
@@ -422,7 +422,7 @@
 
 - 当前 HEAD `5998d6d` 的根级 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check` 与 `just flutter-check` 均退出码 0；Flutter UI 全量回归 32 项通过，生成检查报告零漂移。
 - `just verify-live mode=direct` 与 `mode=webvpn` 在当前 HEAD 串行完成，认证、用户资料、课表、考试、成绩、空教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教必需只读操作均为 `PASS`；SPOC/博雅详情因父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`，两次均未调用真实写接口。
-- `/Users/moorefoss/Code/bin/command-line-tools` 上的 `UBAA_DEVECO_HOME=... just ohos-check mode=debug` 通过 API26/工具链、Dart/widget 与 native 前置检查并进入 HAP assemble，在调试签名配置处按门禁停止；退出码 1 为预期签名阻断，未配置签名、未生成可发布 HAP、未连接设备，生成输出已移出工作树。
+- `$UBAA_DEVECO_HOME` 上的 `UBAA_DEVECO_HOME=... just ohos-check mode=debug` 通过 API26/工具链、Dart/widget 与 native 前置检查并进入 HAP assemble，在调试签名配置处按门禁停止；退出码 1 为预期签名阻断，未配置签名、未生成可发布 HAP、未连接设备，生成输出已移出工作树。
 - 提交 `85deca3` 的合同 CI `33504585524`（合同门禁、macOS/Windows Rust）与 Flutter 原生五平台 CI `33504585537`（Windows、macOS、Linux、Android APK、iOS simulator）均终态成功；文档提交 `5998d6d` 的 CI `33505133780`（合同门禁、macOS/Windows Rust）亦成功。上述 CI 不包含 OHOS 签名 HAP、公证、实体设备或真实 Flutter→FRB→Core E2E。
 
 ## 2026-09-01 当前 HEAD 双路线只读复核
@@ -433,7 +433,7 @@
 
 ## 2026-09-01 DevEco/Command Line Tools API26 复核
 
-- 最新代码在 DevEco Studio 默认路径和 `/Users/moorefoss/Code/bin/command-line-tools` CLI 路径分别执行 `just ohos-check mode=debug`；两次 Flutter OH、SDK API26、Node/ohpm/Hvigor/hdc/Java、Rust arm64 target、Dart analyze/widget 与 native 前置检查均为 0 失败/0 警告。
+- 最新代码在 DevEco Studio 默认路径和 `$UBAA_DEVECO_HOME` CLI 路径分别执行 `just ohos-check mode=debug`；两次 Flutter OH、SDK API26、Node/ohpm/Hvigor/hdc/Java、Rust arm64 target、Dart analyze/widget 与 native 前置检查均为 0 失败/0 警告。
 - 两次 HAP assemble 均运行到调试签名配置后按门禁停止（要求在 DevEco Studio Project Structure → Signing Configs 配置自动签名）；未配置签名、未生成可发布 HAP、未连接设备。构建生成的 `rawfile/`、`BuildProfile.ets`、`libs/` 等临时输出已移出工作树。
 
 ## 2026-09-01 typed 写入提交的远端门禁
@@ -462,7 +462,7 @@
 ## 2026-09-01 评教批量入口后的门禁与实时复核
 
 - 评教批量入口提交 `0626fa0` 后，根级 `just refs`、`just check-sensitive`、`just check`、`just flutter-codegen-check` 和 `just flutter-check` 均通过；Flutter UI 全量测试为 31 项通过，工作树生成的 OHOS 临时输出已移出。
-- 当前提交在 CLI API26 路径执行 `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools just ohos-check mode=debug`：工具链、Dart/widget、native 前置均为 0 失败/0 警告，HAP assemble 在调试签名配置处停止；未配置签名、未生成可发布 HAP、未连接设备。
+- 当前提交在 CLI API26 路径执行 `UBAA_DEVECO_HOME=$UBAA_DEVECO_HOME just ohos-check mode=debug`：工具链、Dart/widget、native 前置均为 0 失败/0 警告，HAP assemble 在调试签名配置处停止；未配置签名、未生成可发布 HAP、未连接设备。
 - 当前提交串行执行 `just verify-live mode=direct` 与 `mode=webvpn`，两条路线认证、用户资料和必需只读操作均为 `PASS`；SPOC/博雅详情因同批次父列表为空为 `NOT_APPLICABLE`，Cgyy 用途为 `PASS source=static_fallback`。两次均未调用真实写接口。
 - 远端合同 CI `33502775133`、Flutter 原生五平台 CI `33502775143` 和文档 CI `33502786574` 均已成功；原生构建仍不包含 OHOS HAP、正式签名/公证、实体设备或真实 App→FRB→Core E2E。
 
@@ -598,7 +598,7 @@
   hvigor 与工程 `modelVersion` 已升至 `6.0.0`。门禁脚本支持 DevEco Studio 的
   `tools/...` 和 Command Line Tools 的 `tool/...` 两种布局，并将匹配的 hvigor、ohpm、Node
   固定到构建 `PATH`。
-- 默认 Studio 路径和 `UBAA_DEVECO_HOME=/Users/moorefoss/Code/bin/command-line-tools`
+- 默认 Studio 路径和 `UBAA_DEVECO_HOME=$UBAA_DEVECO_HOME`
   路径分别执行 `just ohos-check mode=debug`，均通过工具链、Dart、native 前置并进入 HAP
   assemble，随后在调试签名配置处停止：未打开 DevEco Signing Configs、未自动签名、未连接
   设备，也没有验收 HAP 或 FRB hello 证据。

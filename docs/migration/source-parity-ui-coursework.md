@@ -1,6 +1,6 @@
 # P4-C 展示来源补充
 
-2026-09-08 静态核对。主仓 HEAD 为 `83ee9e8969b25ca6fdce67ce61a79b86031b573b`，工作区 B2 候选并行进行；冻结 old=`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`、examples=`efb7976bf513f38364b88aeb83d704586cff9b2a`。本文路径相对 `/Users/moorefoss/Code/UBAA`，行号来自本次读取。本文件记录静态核对，不声明实时/渲染 PASS；P4-C生产实现尚未开始。
+2026-09-08 静态核对。主仓 HEAD 为 `83ee9e8969b25ca6fdce67ce61a79b86031b573b`，工作区 B2 候选并行进行；冻结 old=`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`、examples=`efb7976bf513f38364b88aeb83d704586cff9b2a`。本文路径相对 `<private-evidence>/source-checkouts/UBAA`，行号来自本次读取。本文件记录静态核对，不声明实时/渲染 PASS；P4-C生产实现尚未开始。
 
 ## 签到：结论及来源
 

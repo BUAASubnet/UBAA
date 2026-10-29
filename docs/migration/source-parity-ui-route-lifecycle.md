@@ -11,7 +11,7 @@
 精确命令如下，运行目录为专项工作区 `packages/ubaa_app`：
 
 ```sh
-/Users/moorefoss/Dev/flutter-3.41.9/bin/flutter test '/Users/moorefoss/Library/Application Support/UBAA-private-evidence/macos-ui-20260915/route-lifecycle/late_policy_probe_test.dart' --no-pub --reporter expanded
+just flutter test '<private-evidence>/macos-ui-20260915/route-lifecycle/late_policy_probe_test.dart' --no-pub --reporter expanded
 ```
 
 日志为同私有目录的 `late-policy-probe-red.log`。探针及日志不进入Git。Task3E 已补正式

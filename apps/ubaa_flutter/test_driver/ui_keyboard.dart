@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'ui_render.dart' as render;
+import 'evidence_directory.dart';
 
 /// 保留原Flutter截图driver，仅增加合成测试的整机键盘截图握手。
 Future<void> main() async {
@@ -14,12 +15,14 @@ Future<void> main() async {
       runId.isEmpty ||
       device == null ||
       !RegExp(r'^[A-Fa-f0-9-]{36}$').hasMatch(device) ||
-      directory == null ||
-      !directory.startsWith('/')) {
+      directory == null) {
     throw ArgumentError('缺少本轮runId、模拟器ID或私有证据绝对目录');
   }
+  final checkedDirectory = checkedEvidenceDirectory(directory);
   unawaited(
-    _captureDevices(runId, device, directory).catchError((Object _) {
+    _captureDevices(runId, device, checkedDirectory.path).catchError((
+      Object _,
+    ) {
       stderr.writeln('整机键盘截图握手失败，拒绝标记通过。');
       exit(1);
     }),

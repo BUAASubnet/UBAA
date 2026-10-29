@@ -1684,9 +1684,9 @@ Bridge升级v36；schema v6新增载荷变体而不改SQL结构、密文封装�
 
 复读冻结 old `1f4b8f84` 的 `composeApp/.../App.kt` 前后台会话检查、`AuthApi.kt` 的共享会话/资料入口和 `ResettableSharedInstance.kt` 的实例释放；buaa-api `a63712fa` 的 `context.rs`、`store/{cookies,cred}.rs` 只定义单一 Context 与调用方提供的 Cookie/凭据存储。两份来源均没有本项目 Flutter opaque backend 重建或首帧标记，因此不从来源借用新的字段、URL、参数、Cookie、错误或自动登录语义。现有 P2-R 合同继续沿既有 `auth_status`/所需路线恢复与身份核对，替换只改变客户端生命周期。
 
-新增行为 RED 先复现：本机已有可恢复首页在显式替换 backend 后，继任 backend 的 `authStatus` 调用次数为0，说明缓存重新打开但会话恢复没有自动排队；失败日志为`/tmp/ubaa-p2r-explicit-rebuild-red.log`，SHA-256=`51f4fc5dd1dfaacd6bf5e08cf039e032f87e62e992f27ca8939aa375a10feb54`。最小修复只在已消费首帧标记的本地首页重新初始化后排队一次现有 `recoverSession`，仍受写事务、前后台、退出和账号代次栅栏约束；不复制会话、不自动提交业务写入，也不修改学校请求。
+新增行为 RED 先复现：本机已有可恢复首页在显式替换 backend 后，继任 backend 的 `authStatus` 调用次数为0，说明缓存重新打开但会话恢复没有自动排队；失败日志为`<private-evidence>/legacy-tmp/ubaa-p2r-explicit-rebuild-red.log`，SHA-256=`51f4fc5dd1dfaacd6bf5e08cf039e032f87e62e992f27ca8939aa375a10feb54`。最小修复只在已消费首帧标记的本地首页重新初始化后排队一次现有 `recoverSession`，仍受写事务、前后台、退出和账号代次栅栏约束；不复制会话、不自动提交业务写入，也不修改学校请求。
 
-实施后聚焦 GREEN 通过：`packages/ubaa_app/test/offline/backend_rebuild/boundary_test.dart` 共7项通过，日志为`/tmp/ubaa-p2r-explicit-rebuild-green.log`，SHA-256=`1966a1ca67c8f8f533cbecc60f986f82a09c07b34f47f75569ea81f580b2bc34`。随后完整 `just flutter-check` 的7个包共1113项测试和分析、以及 `just check` 均通过，分别见`/tmp/ubaa-p2r-flutter-check-20260924.log`（SHA-256=`cb2abd1802a6dcd551044442290f92e28c6ebf837f35110fea022ae00c2a9fd0`）和`/tmp/ubaa-p2r-just-check-20260924.log`（SHA-256=`0c9168ad7f5b3f324405b51681ef47b39e05c66e8290f9ab848b599ba3359c7c`）。
+实施后聚焦 GREEN 通过：`packages/ubaa_app/test/offline/backend_rebuild/boundary_test.dart` 共7项通过，日志为`<private-evidence>/legacy-tmp/ubaa-p2r-explicit-rebuild-green.log`，SHA-256=`1966a1ca67c8f8f533cbecc60f986f82a09c07b34f47f75569ea81f580b2bc34`。随后完整 `just flutter-check` 的7个包共1113项测试和分析、以及 `just check` 均通过，分别见`<private-evidence>/legacy-tmp/ubaa-p2r-flutter-check-20260924.log`（SHA-256=`cb2abd1802a6dcd551044442290f92e28c6ebf837f35110fea022ae00c2a9fd0`）和`<private-evidence>/legacy-tmp/ubaa-p2r-just-check-20260924.log`（SHA-256=`0c9168ad7f5b3f324405b51681ef47b39e05c66e8290f9ab848b599ba3359c7c`）。
 
 
 ## 2026-10-01：整合现有成果并恢复旧版功能验收
@@ -1724,7 +1724,7 @@ Bridge升级v36；schema v6新增载荷变体而不改SQL结构、密文封装�
 
 ### 整合行为裁决与失败回归
 
-合并先运行两侧原有行为回归，32项登录/博雅详情中21项失败（`/tmp/ubaa-consolidation-behavior-red-20261001.log`）。其中新目录与完整详情仍走旧接口、凭据迟到覆盖新输入、后台替换/退出竞争均为实际接线缺口，后续32项聚焦已通过（`/tmp/ubaa-consolidation-focused2-20261001.log`），不能据此代替完整门禁。
+合并先运行两侧原有行为回归，32项登录/博雅详情中21项失败（`<private-evidence>/legacy-tmp/ubaa-consolidation-behavior-red-20261001.log`）。其中新目录与完整详情仍走旧接口、凭据迟到覆盖新输入、后台替换/退出竞争均为实际接线缺口，后续32项聚焦已通过（`<private-evidence>/legacy-tmp/ubaa-consolidation-focused2-20261001.log`），不能据此代替完整门禁。
 
 旧macOS分支与离线分支的两条本地合同互相冲突：旧分支每次回前台重建backend且允许偏好清理期间登录；新离线合同要求复用现有客户端、等待整个清理结束后再登录。选择新离线合同，保留原位恢复、迟到回调保护与账号清理栅栏；旧宿主测试改为验证客户端复用、清理期间零登录和清理后新账号偏好不被旧回调影响，保留错误/单次认证/旧密码不回填断言。明确清除还应如实传播会话清理失败；普通退出可清空显示但不伪称已清除持久材料。宿主将底层本机清除异常统一成固定中文UiError，不暴露原始错误正文。
 

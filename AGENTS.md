@@ -23,6 +23,10 @@
 4. 实现最小变更，先运行聚焦检查，再用 `just check-plan` / `just check-changed` 按影响范围验证；比较已提交分支时传入 `base=<基线>`。安全、协议、并发、存储和跨语言边界修改保留完整相关门禁。未知影响保守全量。
 5. Inspect staged files for sensitive material and keep each phase in a separate commit.
 
+## 项目工具链入口
+
+Dart/Flutter 命令一律使用 `just dart`、`just flutter`，OHOS 使用 `just flutter-ohos`。不得在命令中写 SDK 绝对路径，也不依赖 PATH 中的 Dart/Flutter。首次复制 `.env.toolchain.example` 为本地 `.env.toolchain` 并填写 SDK 位置；该文件不提交。just 自动加载工具配置，直接运行脚本时复用 `scripts/lib/toolchain.py` 的回退解析器。工具入口绝不加载 `.env.local`。
+
 ## Directory names
 
 项目自有目录统一使用下划线。包名、命令名、框架固定路径、第三方和历史归档的例外见 [目录命名规则](docs/development/directories.md)。`just layout-check` 同时检查目录命名。

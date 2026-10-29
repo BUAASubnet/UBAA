@@ -6,7 +6,7 @@ import subprocess
 import sys
 
 ROOT = Path(__file__).resolve().parents[2]
-FORBIDDEN = re.compile(r"(^|/)(ubaa_old|examples)(/|$)|(^|/)\.env\.local$|(^|/)(session\.json|.*\.session\.json)$")
+FORBIDDEN = re.compile(r"(^|/)(ubaa_old|examples)(/|$)|(^|/)\.env\.(local|toolchain)$|(^|/)(session\.json|.*\.session\.json)$")
 PATTERNS = tuple(re.compile(pattern) for pattern in (
     rb"UBAA_TEST_(USERNAME|PASSWORD)=[\"']?[A-Za-z0-9]",
     rb"-----BEGIN (RSA |OPENSSH |EC |DSA )?PRIVATE KEY-----",
@@ -14,6 +14,9 @@ PATTERNS = tuple(re.compile(pattern) for pattern in (
     rb"data:image/(png|jpe?g|gif);base64,[A-Za-z0-9+/]{24,}={0,2}",
     rb"gh[pousr]_[A-Za-z0-9]{36,}",
     rb"AKIA[0-9A-Z]{16}",
+    # 只接受 <private-evidence>/ 等逻辑占位；不豁免任何用户名或归档目录。
+    rb"(?<![A-Za-z0-9_./-])(?:file://)?/(?:Users|home)/[^\s/\\\"'`]+",
+    rb"(?i)\b[A-Z]:[\\/]+Users[\\/]+[^\s\\/\"'`]+",
 ))
 
 

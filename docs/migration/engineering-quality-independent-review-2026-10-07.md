@@ -288,7 +288,7 @@ prepared=Direct; committed=Some(WebVpn); direct_writes=0; webvpn_writes=1; succe
 
 ## 9. 本轮实际执行与未执行
 
-根目录为 `/Users/moorefoss/Code/UBAA2`；Flutter 固定入口为 `/Users/moorefoss/Dev/flutter-3.41.9/bin/flutter`。下列 PASS 均来自本轮；失败探针没有通过修改生产代码变成 GREEN。
+根目录为 `<repo-root>`；Flutter 固定入口为 `just flutter`。下列 PASS 均来自本轮；失败探针没有通过修改生产代码变成 GREEN。
 
 | 命令/对象 | 结果及解释 |
 |---|---|
@@ -307,7 +307,7 @@ prepared=Direct; committed=Some(WebVpn); direct_writes=0; webvpn_writes=1; succe
 | `cargo metadata --offline --locked --format-version 1` | 411 包，约 0.30 秒；只统计/摘要，不输出本机完整元数据 |
 | `cargo test --offline --locked -p ubaa_flutter_bridge api::write::tests -- --quiet` | 102 passed、0 failed、48 filtered；测试 1.77 秒，编译 27.23 秒 |
 | App 包中 `flutter test --no-pub --reporter expanded test/session/auth_test.dart test/session/race_test.dart test/session/route_lifecycle_test.dart test/session/interactive_login_test.dart` | 33 项通过 |
-| Platform 包中 `flutter test --no-pub --reporter expanded test/bykc_filters_test.dart test/reminders_test.dart test/local_accounts_test.dart test/credentials/secure_material_test.dart test/media/plugin_photo_test.dart test/diagnostics_test.dart` | 31 项通过，进程总耗时 2.85 秒；日志 `/tmp/ubaa2-independent-audit-20261007/platform-focused.log` |
+| Platform 包中 `flutter test --no-pub --reporter expanded test/bykc_filters_test.dart test/reminders_test.dart test/local_accounts_test.dart test/credentials/secure_material_test.dart test/media/plugin_photo_test.dart test/diagnostics_test.dart` | 31 项通过，进程总耗时 2.85 秒；日志 `<private-evidence>/legacy-tmp/ubaa2-independent-audit-20261007/platform-focused.log` |
 | 仓库外 Rust 路线探针，见下方 | 成功复现缺陷；退出 0 表示探针观测成立，非业务通过 |
 | 仓库外 Dart 状态五场景，见下方 | 五项预期安全断言失败，见 I03/I04；没有真实账号/网络 |
 | 仓库外偏好清除探针，见下方 | 1 项失败，exit 1，1.88 秒；固定 invalidData 错误 |
@@ -319,16 +319,16 @@ prepared=Direct; committed=Some(WebVpn); direct_writes=0; webvpn_writes=1; succe
 
 ```bash
 # 根目录；纯合成 HttpTransport，复用当前 Rust Bridge 源文件，绕过 FRB 编解码。
-cargo run --offline --locked --manifest-path /tmp/ubaa2-independent-rust-audit-20261007/Cargo.toml --target-dir /Users/moorefoss/Code/UBAA2/target
+cargo run --offline --locked --manifest-path <private-evidence>/legacy-tmp/ubaa2-independent-rust-audit-20261007/Cargo.toml --target-dir <repo-root>/target
 # packages/ubaa_app 下；公开 controller API + fake Backend/LocalAccountStore。
-/Users/moorefoss/Dev/flutter-3.41.9/bin/flutter test --no-pub --reporter expanded /tmp/ubaa2-independent-dart-review-test.dart
+just flutter test --no-pub --reporter expanded <private-evidence>/legacy-tmp/ubaa2-independent-dart-review-test.dart
 # packages/ubaa_platform 下；公开偏好 store + 内存 PreferenceValues。
-/Users/moorefoss/Dev/flutter-3.41.9/bin/flutter test --no-pub --reporter expanded /tmp/ubaa2-independent-audit-20261007/preferences_clear_test.dart
+just flutter test --no-pub --reporter expanded <private-evidence>/legacy-tmp/ubaa2-independent-audit-20261007/preferences_clear_test.dart
 # 临时 Git 与复制的 checker，执行后自动删除临时仓库。
-PYTHONDONTWRITEBYTECODE=1 python3 /tmp/ubaa2-engineering-audit-20261007-probes.py
+PYTHONDONTWRITEBYTECODE=1 python3 <private-evidence>/legacy-tmp/ubaa2-engineering-audit-20261007-probes.py
 ```
 
-Rust 输出和探针摘要在 `/tmp/ubaa2-independent-rust-audit-20261007/route-probe.log`；Dart 五场景在 `/tmp/ubaa2-independent-audit-20261007/dart-state-probes.log`；偏好结果在同目录 `preferences-clear.log`。独有场景只计一次，调查期间的重跑不计成新增缺陷。工具探针的最小构造和关键输出已写入 I02/I07；I01 描述的顺序 Probe 可直接转成正式测试。
+Rust 输出和探针摘要在 `<private-evidence>/legacy-tmp/ubaa2-independent-rust-audit-20261007/route-probe.log`；Dart 五场景在 `<private-evidence>/legacy-tmp/ubaa2-independent-audit-20261007/dart-state-probes.log`；偏好结果在同目录 `preferences-clear.log`。独有场景只计一次，调查期间的重跑不计成新增缺陷。工具探针的最小构造和关键输出已写入 I02/I07；I01 描述的顺序 Probe 可直接转成正式测试。
 
 未执行及原因：
 

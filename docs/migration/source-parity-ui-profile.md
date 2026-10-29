@@ -1,6 +1,6 @@
 # P4-A 用户资料白名单最小来源记录
 
-2026-09-08，仅静态核对；未读取真实资料/凭据，未运行测试或 native。仓库路径基于 `/Users/moorefoss/Code/UBAA`。冻结 old=`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`；examples=`efb7976bf513f38364b88aeb83d704586cff9b2a`。
+2026-09-08，仅静态核对；未读取真实资料/凭据，未运行测试或 native。仓库路径基于 `<private-evidence>/source-checkouts/UBAA`。冻结 old=`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`；examples=`efb7976bf513f38364b88aeb83d704586cff9b2a`。
 
 本批只把**现有同次 userInfo 返回**的 schoolId/email/phone/idCardTypeName 继续投影到 App，本地资料详情使用这些字段；不新增网络请求、接口、Bridge字段、证件号码或证件类型代码。联系人默认遮罩，用户主动显示；关闭详情或账号变化清除显示状态及旧资料引用，不持久化显示偏好。
 

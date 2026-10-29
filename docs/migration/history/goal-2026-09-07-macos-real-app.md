@@ -47,7 +47,7 @@ App/Core-live 请求，只完成文档、确定性检查、提交与推送。后
 
 ## 3. 基线与证据来源
 
-产品历史基线为 `0bd866c9ff5f205f2b1604bf5e72640a3e735018`，分支 `ubaa2`。该提交已有 2026-09-05 十九项本地门禁与同 SHA 两条 CI 的完整验收，见[最终报告](/Users/moorefoss/Documents/Codex/2026-09-05/ubaa-code-organization-evidence.md)。本轮在其基础上增加两份 macOS entitlement 的客户端权限和一个确定性回归，Core/FRB/Dart 业务代码未改；历史无签名结果不能自动继承为本轮完整 App 验收。
+产品历史基线为 `0bd866c9ff5f205f2b1604bf5e72640a3e735018`，分支 `ubaa2`。该提交已有 2026-09-05 十九项本地门禁与同 SHA 两条 CI 的完整验收，见最终报告（私有归档标识：`<private-evidence>/2026-09-05/ubaa-code-organization-evidence.md`）。本轮在其基础上增加两份 macOS entitlement 的客户端权限和一个确定性回归，Core/FRB/Dart 业务代码未改；历史无签名结果不能自动继承为本轮完整 App 验收。
 
 当前合同为 CLI JSON schema v10、Flutter bridge contract v9；磁盘 Session schema v2、config v1 独立治理。沿用锁定的官方 Flutter 3.41.9 与 FRB 2.13.0。
 
@@ -58,7 +58,7 @@ App/Core-live 请求，只完成文档、确定性检查、提交与推送。后
 
 权限与回归修复提交为 `cf5d431338d22d18c0e24245bb0ad1fd16709dde`。状态文档随后单独提交，最终推送结果以 Git 历史和仓库外记录为准，不称其为原先干净候选。新 Debug App 使用现有构建流程生成，相同相对路径 checker SHA-256 为 `37eed9dad817349c5125872ad7970bfb2bf2b7b42bbd6a03032cfd005312eb9f`，大小 188944384 字节；不沿用旧产物摘要。
 
-参考：[接手报告](/Users/moorefoss/Documents/Codex/2026-09-07/ubaa-project-handover.md)、[Core 边界](docs/architecture/core-boundaries.md)、[Bridge 合同](docs/contracts/flutter-bridge.md)、[完整功能矩阵](docs/migration/full-feature-matrix.md)、[UI 规格](docs/design/flutter-ui-spec.md)。
+参考：接手报告（私有归档标识：`<private-evidence>/2026-09-07/ubaa-project-handover.md`）、[Core 边界](docs/architecture/core-boundaries.md)、[Bridge 合同](docs/contracts/flutter-bridge.md)、[完整功能矩阵](docs/migration/full-feature-matrix.md)、[UI 规格](docs/design/flutter-ui-spec.md)。
 
 ## 4. 凭据、会话与证据保护
 
@@ -184,7 +184,7 @@ just verify-live mode=webvpn
 
 ## 6. 证据与停止条件
 
-报告位置：[macOS 测试记录](/Users/moorefoss/Documents/Codex/2026-09-07/ubaa-macos-live-test.md)。每项至少记录：
+报告位置：macOS 测试记录（私有归档标识：`<private-evidence>/2026-09-07/ubaa-macos-live-test.md`）。每项至少记录：
 
 ```text
 日期、上海时间

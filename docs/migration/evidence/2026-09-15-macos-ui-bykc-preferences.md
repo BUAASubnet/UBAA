@@ -22,7 +22,7 @@
 ## 已取得的确定性证据
 
 全部日志保存于仓库外私有目录的 `macos-ui-20260915/bykc-preferences/`。
-Flutter使用 `/Users/moorefoss/Dev/flutter-3.41.9/bin/flutter`。
+Flutter使用 `just flutter`。
 
 | 验证 | 工作目录与命令 | 结果 | 日志 |
 |---|---|---|---|

@@ -13,7 +13,7 @@
 本轮实际修改 DebugProfile/Release 两份 macOS entitlement，并增加一个权限回归；Core/FRB/Dart 业务未改。
 修复提交为 `cf5d431338d22d18c0e24245bb0ad1fd16709dde`，状态文档随后单独提交；最终远端结果以 Git 历史和仓库外报告为准。
 
-结构治理已在上述提交完整验收，见[仓库外最终报告](/Users/moorefoss/Documents/Codex/2026-09-05/ubaa-code-organization-evidence.md)。
+结构治理已在上述提交完整验收，见仓库外最终报告（私有归档标识：`<private-evidence>/2026-09-05/ubaa-code-organization-evidence.md`）。
 下文原 HEAD 表格及“候选待验收”描述保留 2026-09-05 的提交前快照；按当时规则，最终 PASS 在仓库外归档，
 不应再据冻结快照判断该候选尚未通过。
 
@@ -40,7 +40,7 @@ MACOS-001 已按授权修复：DebugProfile/Release 各补齐 network.client=tru
 用户同时反馈校园网负载较高并要求先整理提交推送，当前暂停进一步真实测试；该负载描述不作为容量测试证据。
 本轮没有代用户登录、再次运行 Core-live、手工重签旧包或执行业务写入。Release 配置已修正并通过静态回归，
 但 Release 包、正式签名与发布仍未验证。图书馆时段输入来源仍只有静态线索。当前记录和后续入口见
-[macOS 测试报告](/Users/moorefoss/Documents/Codex/2026-09-07/ubaa-macos-live-test.md)。
+macOS 测试报告（私有归档标识：`<private-evidence>/2026-09-07/ubaa-macos-live-test.md`）。
 
 ## HEAD 证据边界
 

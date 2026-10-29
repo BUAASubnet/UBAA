@@ -33,7 +33,7 @@
 - 在仓库外隔离副本中，给 `BridgeCgyyOrder` 注入 `phone` 字段，保留的边界测试按预期失败；恢复后通过。
 - 同样在隔离副本中使已提交意图恢复 ready，合并后的 confirm 测试按预期失败；恢复后通过。没有改动生产源码。
 - 代表性 golden 已逐图检查并在非更新模式通过；使用 Flutter 测试字体作为布局证据，不声称真实中文字体或真实账号验收。
-- 旧基准、隔离反例和日志保存在 `/Users/moorefoss/Documents/Codex/2026-10-15/ubaa2-test-cleanup/`，不纳入 Git；旧图也可从基线提交恢复。
+- 旧基准、隔离反例和日志保存在 `<private-evidence>/2026-10-15/ubaa2-test-cleanup/`，不纳入 Git；旧图也可从基线提交恢复。
 - `just check` 通过；日志核对仅一次 Core 单元运行（341 项）及一次 22/7 项架构检查，消除原先 339 + 29 项重复执行，保留默认 doc 与 feature 编译边界。
 - `just flutter-codegen-check` 通过，生成零漂移。
 - YAML 解析及两类事件的文档/源码触发样例检查通过；未推送或触发远端 CI。

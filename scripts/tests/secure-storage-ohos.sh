@@ -5,6 +5,8 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../lib/repo.sh
 source "$script_dir/../lib/repo.sh"
 repo_root=$(ubaa_repo_root)
+# shellcheck source=../lib/toolchain.sh
+source "$script_dir/../lib/toolchain.sh"
 deveco_root=${UBAA_DEVECO_HOME:-/Applications/DevEco-Studio.app/Contents}
 typescript="$deveco_root/sdk/default/openharmony/ets/build-tools/ets-loader/node_modules/typescript/lib/typescript.js"
 node_bin="$deveco_root/tools/node/bin/node"

@@ -29,7 +29,7 @@
 
 `just check` 退出 0，包含 Rust fmt/clippy、Core feature-on/off、CLI 二进制端到端 16 项、Bridge 110 项通过/2 项既有忽略、Shell 合同、文档编译等。此阶段未改 Bridge/Dart，尚未实现 App 路线恢复接线，不宣称登录性能改善。首次新增 Auto 测试曾错误预期签到支持就绪路线回退；现有功能矩阵禁止该回退，已修正测试以保持原合同，生产路由规则未改动。
 
-存储可行性原型使用 rusqlite 0.38.0（bundled SQLite）与 aes-gcm 0.10.3，在仓库外 `/tmp/ubaa-offline-storage-probe` 运行合成数据插入、密文读取和 AAD 不匹配拒绝。macOS 运行退出 0；`aarch64-unknown-linux-ohos`、`aarch64-apple-ios-sim`、`aarch64-linux-android` 均编译退出 0。OHOS 使用当前 DevEco native clang，Android 使用 NDK 28.2 的 API23 clang。这些是原型可编译/本机运行证据，不是宿主绑定、原生数据库运行或六端完成证明；Windows/Linux 原生运行未验证。
+存储可行性原型使用 rusqlite 0.38.0（bundled SQLite）与 aes-gcm 0.10.3，在仓库外 `<private-evidence>/legacy-tmp/ubaa-offline-storage-probe` 运行合成数据插入、密文读取和 AAD 不匹配拒绝。macOS 运行退出 0；`aarch64-unknown-linux-ohos`、`aarch64-apple-ios-sim`、`aarch64-linux-android` 均编译退出 0。OHOS 使用当前 DevEco native clang，Android 使用 NDK 28.2 的 API23 clang。这些是原型可编译/本机运行证据，不是宿主绑定、原生数据库运行或六端完成证明；Windows/Linux 原生运行未验证。
 
 macOS 仓库外 Swift Keychain 原型采用随机独立 service 和合成 32 字节测试值，SecItemAdd/CopyMatching/Delete 均返回 0，内容匹配；没有读取或改动既有账号/凭据。iOS/Android/OHOS 安全存储运行尚未验证，Windows/Linux 也待验证。原生 handler 仍需实现。
 
@@ -261,59 +261,59 @@ P4-D 最终门禁：`just check` 退出 0，Core 默认/测试注入配置各 24
 
 实施基线为 `6351f9e7`，仅在 `codex/offline-home-20260917` 隔离区修改；源工作区仍为 `ubaa2@d7c37f73`，干净、ahead 7。沿 P4-D 已核对的四个 Core 操作，新增 Bridge v17 typed 本地与在线入口，SPOC、签到、阳光恢复到本地首页；SPOC 单详情进入精确查询缓存。签到缓存没有资格或 target，跨日不生成当天待办，同日只读导航。在线部分结果与旧完整内容分别管理，阳光本次记录页不会被旧统计覆盖。
 
-RED：`/tmp/ubaa-p4e-bridge-red.log` 记录尚无本地首页 Bridge 入口；`/tmp/ubaa-p4e-app-red.log` 记录缺少明确签到既定回读能力；`/tmp/ubaa-p4e-domain-red.log` 中跨日签到仍生成待办及部分统计仍生成未达标提醒两项失败；`/tmp/ubaa-p4e-state-red.log` 中 complete=false/error=null 被标为 success；`/tmp/ubaa-p4e-ui-red.log` 中未出现“统计尚未确认”。编译过程中两次工作目录错误、一次诊断布尔表达式编辑错误已修正，不作为行为 RED。
+RED：`<private-evidence>/legacy-tmp/ubaa-p4e-bridge-red.log` 记录尚无本地首页 Bridge 入口；`<private-evidence>/legacy-tmp/ubaa-p4e-app-red.log` 记录缺少明确签到既定回读能力；`<private-evidence>/legacy-tmp/ubaa-p4e-domain-red.log` 中跨日签到仍生成待办及部分统计仍生成未达标提醒两项失败；`<private-evidence>/legacy-tmp/ubaa-p4e-state-red.log` 中 complete=false/error=null 被标为 success；`<private-evidence>/legacy-tmp/ubaa-p4e-ui-red.log` 中未出现“统计尚未确认”。编译过程中两次工作目录错误、一次诊断布尔表达式编辑错误已修正，不作为行为 RED。
 
 GREEN：Bridge 本地读不等待网络锁、路线隔离、退出屏障及 pending 写意图拒绝；App 首页三来源、无缓存写动作、签到既定回读独立派发、部分 SPOC 保留旧集合、阳光旧完整统计/旧 Partial 区分、本次记录页保留；Domain 跨日/只读导航/未知统计；UI 部分统计与真实记录错误区分，全部通过。首轮完整 Flutter 的宿主导航测试点击落在 800×600 屏幕外，修正测试为先居中并断言 hitTestable；保留首轮失败日志，不削弱业务断言。
 
-最终确定性门禁：`just check` 退出 0，Core 两配置各 244 项，Bridge 119 项通过/2 项既有忽略，CLI 二进制端到端 16 项，fmt/clippy/build/doc/Shell 均通过。完整 `just flutter-check` 退出 0，各套件 57/66/357/257/15/32/54，共 838 项通过，format/analyze 无问题；FRB v17 `just flutter-codegen-check` 零漂移。refs 校验两个原固定 SHA；layout 零 baseline 违例；sensitive 扫描 5240 文件通过。日志为 `/tmp/ubaa-p4e-check.log`、`/tmp/ubaa-p4e-flutter-final.log`、`/tmp/ubaa-p4e-codegen-check.log`、`/tmp/ubaa-p4e-sensitive.log`，仅脱敏测试内容。
+最终确定性门禁：`just check` 退出 0，Core 两配置各 244 项，Bridge 119 项通过/2 项既有忽略，CLI 二进制端到端 16 项，fmt/clippy/build/doc/Shell 均通过。完整 `just flutter-check` 退出 0，各套件 57/66/357/257/15/32/54，共 838 项通过，format/analyze 无问题；FRB v17 `just flutter-codegen-check` 零漂移。refs 校验两个原固定 SHA；layout 零 baseline 违例；sensitive 扫描 5240 文件通过。日志为 `<private-evidence>/legacy-tmp/ubaa-p4e-check.log`、`<private-evidence>/legacy-tmp/ubaa-p4e-flutter-final.log`、`<private-evidence>/legacy-tmp/ubaa-p4e-codegen-check.log`、`<private-evidence>/legacy-tmp/ubaa-p4e-sensitive.log`，仅脱敏测试内容。
 
-原生合成证据：macOS `integration_test/offline/cache_bridge_test.dart` 1 项通过，v17 四个本地入口空库返回、缺会话在线入口、句柄重开/退出跨句柄栅栏均经真实 FRB 运行。启动器 `Failed to foreground app; open returned 1`，所以不记为独立实窗视觉验收；未生成验收媒体、未使用真实会话。日志 `/tmp/ubaa-p4e-native.log`。真实学校写入为零；本阶段没有 Direct/WebVPN Core-live 或真实 App 新验收，未测真实性能，不据此声称缓存首屏或全部更新达到目标。
+原生合成证据：macOS `integration_test/offline/cache_bridge_test.dart` 1 项通过，v17 四个本地入口空库返回、缺会话在线入口、句柄重开/退出跨句柄栅栏均经真实 FRB 运行。启动器 `Failed to foreground app; open returned 1`，所以不记为独立实窗视觉验收；未生成验收媒体、未使用真实会话。日志 `<private-evidence>/legacy-tmp/ubaa-p4e-native.log`。真实学校写入为零；本阶段没有 Direct/WebVPN Core-live 或真实 App 新验收，未测真实性能，不据此声称缓存首屏或全部更新达到目标。
 
 余项仍包括十二领域其他持久范围、阳光记录分页、SPOC/无缓存希冀等大读取安全分段、剩余生命周期/异常场景及多端和双路线真实只读/性能测量。P0–P5 整体不勾选完成；活动合同继续。
 
-P4-E 收尾审查：首页来源说明对无错误码部分结果曾误称“刷新失败”，新增 `/tmp/ubaa-p4e-home-caption-red.log` 后修复；UI 全套追加验证 258 项通过、analyze 无问题。阳光同分类但已观察学期改变曾拼入旧统计，`/tmp/ubaa-p4e-term-red.log` 复现后按 termId 共同约束，App 全套追加验证 358 项通过、analyze 无问题。收尾日志为 `/tmp/ubaa-p4e-ui-final-{analyze,test}.log` 与 `/tmp/ubaa-p4e-app-final-{analyze,test}.log`；与其余未变套件合计 840 项，之前单次完整门禁为 838 项，二者不混记。最终 layout/sensitive 再验通过，仍为 5240 文件；源码差异和暂存内容复核未含凭据、会话、冻结材料或验收媒体。
+P4-E 收尾审查：首页来源说明对无错误码部分结果曾误称“刷新失败”，新增 `<private-evidence>/legacy-tmp/ubaa-p4e-home-caption-red.log` 后修复；UI 全套追加验证 258 项通过、analyze 无问题。阳光同分类但已观察学期改变曾拼入旧统计，`<private-evidence>/legacy-tmp/ubaa-p4e-term-red.log` 复现后按 termId 共同约束，App 全套追加验证 358 项通过、analyze 无问题。收尾日志为 `<private-evidence>/legacy-tmp/ubaa-p4e-ui-final-{analyze,test}.log` 与 `<private-evidence>/legacy-tmp/ubaa-p4e-app-final-{analyze,test}.log`；与其余未变套件合计 840 项，之前单次完整门禁为 838 项，二者不混记。最终 layout/sensitive 再验通过，仍为 5240 文件；源码差异和暂存内容复核未含凭据、会话、冻结材料或验收媒体。
 
 
 ## P4-F：博雅 Core 五项只读持久化（2026-09-22）
 
 实施基线 `ee40fc63`，冻结引用纯校验通过，原工作区未修改。先核对两个冻结来源的五个只读操作、CAS/业务令牌、加密和错误处理，记录于来源对照 P4-F。新增 `cache/bykc.rs` 的不可写课程/已选投影及 facade `BykcCacheQuery/BykcReadData/refresh_cached_bykc/read_bykc`。原在线 DTO 不丢字段，持久投影排除 eligibility、signInfo 位置结果、签到点坐标和附件路径。已选快照记录原 getAllConfig 真正选择的起止日期；分页只保存该请求页，不称作全课程覆盖。
 
-RED：`/tmp/ubaa-p4f-red.log` 为新持久类型/分页键不存在；`/tmp/ubaa-p4f-facade-red.log` 为新 facade/本地读取入口不存在。GREEN：`/tmp/ubaa-p4f-cache-green.log`、`/tmp/ubaa-p4f-facade-{green,final}.log`，覆盖 page/size/all/路线隔离、非法参数不发请求、在线与不可写持久投影分离、五项业务失败保留旧值、实际学期范围、空成功替换、详情 ID 不符只影响保存及退出后拒绝读取。测试 transport 只允许五个原只读端点和 getAllConfig，不解密/记录随机加密正文，不调用真实学校写入。
+RED：`<private-evidence>/legacy-tmp/ubaa-p4f-red.log` 为新持久类型/分页键不存在；`<private-evidence>/legacy-tmp/ubaa-p4f-facade-red.log` 为新 facade/本地读取入口不存在。GREEN：`<private-evidence>/legacy-tmp/ubaa-p4f-cache-green.log`、`<private-evidence>/legacy-tmp/ubaa-p4f-facade-{green,final}.log`，覆盖 page/size/all/路线隔离、非法参数不发请求、在线与不可写持久投影分离、五项业务失败保留旧值、实际学期范围、空成功替换、详情 ID 不符只影响保存及退出后拒绝读取。测试 transport 只允许五个原只读端点和 getAllConfig，不解密/记录随机加密正文，不调用真实学校写入。
 
-首轮 `just check` 因重复 match 分支与超长测试函数失败；按职责合并分支、拆出测试准备/替换断言和独立位置剥离测试，未降低 lint 标准。最终 `just check` 退出 0：Core 默认与 test-contract 各 246 项、facade 50 项、Bridge 119 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。refs 两个固定 SHA、layout 零 baseline 违例、sensitive 5243 文件和 diff 检查通过。收尾日志为 `/tmp/ubaa-p4f-check-final.log`、`/tmp/ubaa-p4f-layout.log`、`/tmp/ubaa-p4f-sensitive-final.log`。本阶段不改 Bridge/Dart 合同，未运行 App、原生或真实双路线验收，也未测性能，不能把 Core 缓存完成当作博雅离线首页已接线。
+首轮 `just check` 因重复 match 分支与超长测试函数失败；按职责合并分支、拆出测试准备/替换断言和独立位置剥离测试，未降低 lint 标准。最终 `just check` 退出 0：Core 默认与 test-contract 各 246 项、facade 50 项、Bridge 119 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。refs 两个固定 SHA、layout 零 baseline 违例、sensitive 5243 文件和 diff 检查通过。收尾日志为 `<private-evidence>/legacy-tmp/ubaa-p4f-check-final.log`、`<private-evidence>/legacy-tmp/ubaa-p4f-layout.log`、`<private-evidence>/legacy-tmp/ubaa-p4f-sensitive-final.log`。本阶段不改 Bridge/Dart 合同，未运行 App、原生或真实双路线验收，也未测性能，不能把 Core 缓存完成当作博雅离线首页已接线。
 
 
 ## P4-G：博雅 Bridge/App 五查询与首页已选接线（2026-09-22）
 
 实施基线 `79c4c49b`。Bridge v18 新增五项 typed 本地读取及在线缓存入口，不把资格、坐标或任意正文放入缓存 DTO。App 共用原展示映射，恢复课程页 pagination 与已选学期范围；首页已选按补充查询身份恢复，不能覆盖普通博雅列表。BykcReadbackBackend 将既定回读送往原在线方法，待确认写意图时不进入缓存认证。
 
-RED：`/tmp/ubaa-p4g-bridge-red.log` 为缺少本地博雅入口；`/tmp/ubaa-p4g-app-red.log` 为缺少明确既定回读能力；`/tmp/ubaa-p4g-home-red.log` 为首页排除了博雅补充缓存。UI 测试最初在新概要类型未穷尽匹配时编译失败（`/tmp/ubaa-p4g-ui-red.log`），该记录仅为编译 RED；修复后首页保留缓存/来源说明及失败保护有组件断言。另修正测试目录误用、合成缓存临时目录未建立、重复导入、测试错误映射器不可见、版本文档同步、wildcard import 与测试长度问题，没有放宽门禁。
+RED：`<private-evidence>/legacy-tmp/ubaa-p4g-bridge-red.log` 为缺少本地博雅入口；`<private-evidence>/legacy-tmp/ubaa-p4g-app-red.log` 为缺少明确既定回读能力；`<private-evidence>/legacy-tmp/ubaa-p4g-home-red.log` 为首页排除了博雅补充缓存。UI 测试最初在新概要类型未穷尽匹配时编译失败（`<private-evidence>/legacy-tmp/ubaa-p4g-ui-red.log`），该记录仅为编译 RED；修复后首页保留缓存/来源说明及失败保护有组件断言。另修正测试目录误用、合成缓存临时目录未建立、重复导入、测试错误映射器不可见、版本文档同步、wildcard import 与测试长度问题，没有放宽门禁。
 
 GREEN：Bridge 本地读取在 Core 网络锁被持有时仍可返回；页/路线隔离、pending 写意图保护、退出屏障通过。App 五类缓存均只读，课程分页/详情导航和已选真实范围保留；待确认写意图下控制器只派发专用博雅回读、不增加恢复调用。首页本地已选不会污染普通列表，补充来源失败仍可显示缓存；补充结果携带原 evidence，不把旧数据称为新成功。
 
 最终确定性证据：`just check` 退出 0，Core 两配置各 246 项、facade 50 项、Bridge 120 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。`just flutter-check` 单次全套 57/66/359/259/15/32/54，共 842 项通过；收尾追加回读与失败测试后 App 全套 361 项、UI 全套 260 项及各自 analyze 通过，与其余未变套件合计 845 项。FRB v18 零漂移，refs 原固定 SHA、layout 零 baseline 违例、sensitive 5248 文件、diff 检查通过。
 
-日志：`/tmp/ubaa-p4g-check-final.log`、`/tmp/ubaa-p4g-flutter-final.log`、`/tmp/ubaa-p4g-app-{analyze,final}.log`、`/tmp/ubaa-p4g-ui-{analyze,final}.log`、`/tmp/ubaa-p4g-focused.log`、`/tmp/ubaa-p4g-codegen-check.log`、`/tmp/ubaa-p4g-layout.log`、`/tmp/ubaa-p4g-sensitive-final.log`，仅脱敏内容。
+日志：`<private-evidence>/legacy-tmp/ubaa-p4g-check-final.log`、`<private-evidence>/legacy-tmp/ubaa-p4g-flutter-final.log`、`<private-evidence>/legacy-tmp/ubaa-p4g-app-{analyze,final}.log`、`<private-evidence>/legacy-tmp/ubaa-p4g-ui-{analyze,final}.log`、`<private-evidence>/legacy-tmp/ubaa-p4g-focused.log`、`<private-evidence>/legacy-tmp/ubaa-p4g-codegen-check.log`、`<private-evidence>/legacy-tmp/ubaa-p4g-layout.log`、`<private-evidence>/legacy-tmp/ubaa-p4g-sensitive-final.log`，仅脱敏内容。
 
-macOS 原生合成：v18 缓存集成 1 项通过，新增五个博雅空库读取及缺会话在线入口经真实 FRB；仍有 `Failed to foreground app; open returned 1`，不算独立实窗验收。日志 `/tmp/ubaa-p4g-native.log`；未生成媒体、未使用真实会话、真实学校写入为零。没有本阶段双路线 Core-live、真实 App 或性能测量。研讨室/图书馆/评教等剩余缓存、阳光分页、写后跨范围失效、大读取余项、生命周期全矩阵及多端/真实性能继续，P0–P5 不整体勾选完成。
+macOS 原生合成：v18 缓存集成 1 项通过，新增五个博雅空库读取及缺会话在线入口经真实 FRB；仍有 `Failed to foreground app; open returned 1`，不算独立实窗验收。日志 `<private-evidence>/legacy-tmp/ubaa-p4g-native.log`；未生成媒体、未使用真实会话、真实学校写入为零。没有本阶段双路线 Core-live、真实 App 或性能测量。研讨室/图书馆/评教等剩余缓存、阳光分页、写后跨范围失效、大读取余项、生命周期全矩阵及多端/真实性能继续，P0–P5 不整体勾选完成。
 
 
 ## P4-G 审查修正：缓存 Bridge 字段白名单（2026-09-22）
 
-基线 `cdfa41bd`。研讨室接入前核对既有来源与公开字段边界，发现新的 BridgeCachedBykcChosenCourse 误带出作业正文/附件名称，虽然页面不消费，仍违反 2026-09-02 明确禁曝决定。新增 schema_snapshot_test 对缓存 DTO 的断言，`/tmp/ubaa-p4g-boundary-red.log` 确认 homework 出现在生成类型；随后删除两个 Rust 字段及映射，重生 FRB 并将 Rust/Dart 合同同时提升至 v19。原 Core 加密存储、学校协议、页面功能和写路径不变。
+基线 `cdfa41bd`。研讨室接入前核对既有来源与公开字段边界，发现新的 BridgeCachedBykcChosenCourse 误带出作业正文/附件名称，虽然页面不消费，仍违反 2026-09-02 明确禁曝决定。新增 schema_snapshot_test 对缓存 DTO 的断言，`<private-evidence>/legacy-tmp/ubaa-p4g-boundary-red.log` 确认 homework 出现在生成类型；随后删除两个 Rust 字段及映射，重生 FRB 并将 Rust/Dart 合同同时提升至 v19。原 Core 加密存储、学校协议、页面功能和写路径不变。
 
 完整 Flutter `just flutter-check` 退出 0，57/66/361/260/16/32/54，共 846 项通过，format/analyze 无问题。FRB v19 零漂移，refs 固定 SHA、layout 零 baseline 违例、sensitive 5248 文件通过。macOS 原生合成缓存测试 1 项通过，版本19与全部本地入口/缺会话入口/句柄栅栏经真实绑定运行；依然无法置前（open returned 1），不算独立实窗验收。没有本轮真实学校调用、验收媒体或性能数据。
 
-日志为 `/tmp/ubaa-p4g-boundary-{red,codegen,drift,flutter,native,layout,sensitive}.log`。`/tmp/ubaa-p4g-boundary-check.log` 中 `just check` 退出 0：Core 两配置各 246 项、facade 50 项、Bridge 120 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。源工作区仍干净，阶段暂存内容复核未含凭据、会话、冻结材料或验收媒体。此次修正独立提交；研讨室已开始源码核对，但尚无该领域新增缓存实现，不将此修正冒充研讨室交付。完整 Goal 继续活动。
+日志为 `<private-evidence>/legacy-tmp/ubaa-p4g-boundary-{red,codegen,drift,flutter,native,layout,sensitive}.log`。`<private-evidence>/legacy-tmp/ubaa-p4g-boundary-check.log` 中 `just check` 退出 0：Core 两配置各 246 项、facade 50 项、Bridge 120 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。源工作区仍干净，阶段暂存内容复核未含凭据、会话、冻结材料或验收媒体。此次修正独立提交；研讨室已开始源码核对，但尚无该领域新增缓存实现，不将此修正冒充研讨室交付。完整 Goal 继续活动。
 
 
 ## P4-H：研讨室 Core 五范围缓存与兼容回退保护（2026-09-22）
 
 基线 `e9ea9db6`。先核对旧版 Cgyy API/本地实现/DTO/签名/测试；另一冻结源 Srs 为 byxk/xsxk 选课，不借用。新增 cache/cgyy.rs 明确只读字段、CgyyCacheQuery/CgyyReadData/CgyyRefresh 及 refresh_cached_cgyy/read_cgyy。范围为站点、用途、站点/日期空间、零基订单页、订单详情；门锁继续按需在线，不落盘。原学校 feature、签名、会话和写路径未修改。
 
-RED：`/tmp/ubaa-p4h-cache-red.log` 为持久范围/不可写 DTO 尚不存在；`/tmp/ubaa-p4h-facade-red.log` 为新 facade 缺失；`/tmp/ubaa-p4h-scope-red.log` 证明日期响应回退到其它日期时仍被标为 complete。GREEN：`/tmp/ubaa-p4h-cache-green.log`、`/tmp/ubaa-p4h-facade-final.log`，覆盖写资格与内部材料剥离、日期严格校验、跨日/路线/分页隔离、失败保留、合法空订单页替换、默认空详情不得覆盖、错日期不归档且未完成、动态用途失败保护旧值、首次 StaticFallback 保存为 Partial。
+RED：`<private-evidence>/legacy-tmp/ubaa-p4h-cache-red.log` 为持久范围/不可写 DTO 尚不存在；`<private-evidence>/legacy-tmp/ubaa-p4h-facade-red.log` 为新 facade 缺失；`<private-evidence>/legacy-tmp/ubaa-p4h-scope-red.log` 证明日期响应回退到其它日期时仍被标为 complete。GREEN：`<private-evidence>/legacy-tmp/ubaa-p4h-cache-green.log`、`<private-evidence>/legacy-tmp/ubaa-p4h-facade-final.log`，覆盖写资格与内部材料剥离、日期严格校验、跨日/路线/分页隔离、失败保留、合法空订单页替换、默认空详情不得覆盖、错日期不归档且未完成、动态用途失败保护旧值、首次 StaticFallback 保存为 Partial。
 
-期间修正合成用途名称未包含旧 parser 要求的“类”、模块注释放置、枚举大小和函数长度；没有修改上游解析规则或降低 lint。CgyyDay/Detail 响应必须对应请求才可标完成，静态用途回退不等于成功动态更新。最终 `just check` 退出 0：Core 两配置各 249 项、facade 52 项、Bridge 120 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。refs 两个原固定 SHA、layout 零 baseline 违例、sensitive 5252 文件和暂存 diff 检查通过；日志为 `/tmp/ubaa-p4h-check.log`、`/tmp/ubaa-p4h-layout.log`、`/tmp/ubaa-p4h-sensitive-final.log`。
+期间修正合成用途名称未包含旧 parser 要求的“类”、模块注释放置、枚举大小和函数长度；没有修改上游解析规则或降低 lint。CgyyDay/Detail 响应必须对应请求才可标完成，静态用途回退不等于成功动态更新。最终 `just check` 退出 0：Core 两配置各 249 项、facade 52 项、Bridge 120 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。refs 两个原固定 SHA、layout 零 baseline 违例、sensitive 5252 文件和暂存 diff 检查通过；日志为 `<private-evidence>/legacy-tmp/ubaa-p4h-check.log`、`<private-evidence>/legacy-tmp/ubaa-p4h-layout.log`、`<private-evidence>/legacy-tmp/ubaa-p4h-sensitive-final.log`。
 
 本阶段仅 Core，Bridge/Dart 合同仍为 v19，未把旧 Flutter/原生结果当作新的研讨室接线证明。未访问真实学校服务、未执行真实写入、未生成媒体或测量性能。Bridge/App、其他领域/阳光分页/跨范围失效/剩余长读取与完整生命周期、多端真实只读和性能验收继续。原工作区保持干净。
 
@@ -322,13 +322,13 @@ RED：`/tmp/ubaa-p4h-cache-red.log` 为持久范围/不可写 DTO 尚不存在�
 
 基线 `89d71d60`。Bridge v20 增加 sites/purposes/day/orders/detail 五项本地与在线缓存入口，缓存 DTO 只含既有公开字段且无学校操作资格。App 共用原投影，保持明确日期和订单零基请求/一基显示；首页缓存以 cgyyOrders 补充身份恢复，不污染普通站点列表。用途辅助读取复用本地优先机制并保留 evidence，预约后的明确 readback 能力绕过新增认证，取消原固定路线双回读未修改。
 
-RED：`/tmp/ubaa-p4i-bridge-red.log` 为本地订单入口不存在；`/tmp/ubaa-p4i-app-red.log` 为预约既定回读能力不存在；`/tmp/ubaa-p4i-home-red.log` 为用途等待认证和首页拒绝研讨室缓存；`/tmp/ubaa-p4i-ui-red.log` 复现无 error 的 stale 缓存触发空值断言；`/tmp/ubaa-p4i-first-partial-red.log` 复现首次 Stored Partial 被误标为旧内容；`/tmp/ubaa-p4i-purpose-retry-red.log` 在正确进入用途选择弹窗后复现失败清空已选选项。代码生成过程重复 visibility、mapper 命名、临时格式化差异，以及测试 import、fixture 必填字段和导航准备错误均已修正，不计作业务 RED。
+RED：`<private-evidence>/legacy-tmp/ubaa-p4i-bridge-red.log` 为本地订单入口不存在；`<private-evidence>/legacy-tmp/ubaa-p4i-app-red.log` 为预约既定回读能力不存在；`<private-evidence>/legacy-tmp/ubaa-p4i-home-red.log` 为用途等待认证和首页拒绝研讨室缓存；`<private-evidence>/legacy-tmp/ubaa-p4i-ui-red.log` 复现无 error 的 stale 缓存触发空值断言；`<private-evidence>/legacy-tmp/ubaa-p4i-first-partial-red.log` 复现首次 Stored Partial 被误标为旧内容；`<private-evidence>/legacy-tmp/ubaa-p4i-purpose-retry-red.log` 在正确进入用途选择弹窗后复现失败清空已选选项。代码生成过程重复 visibility、mapper 命名、临时格式化差异，以及测试 import、fixture 必填字段和导航准备错误均已修正，不计作业务 RED。
 
 GREEN：本地读取不等待网络锁、路线/分页隔离、pending 写意图和退出屏障；五类缓存公开字段禁曝；原页信息、站点导航日期、只读详情与首页订单；部分用途/错日期保留同范围旧内容，首次 Partial 来源不失真；无缓存写动作；预约回读不增加恢复调用，取消原两读保持；首帧前用途可本地返回；时段 stale/error/loading 分开处理；用途保存提示、完整度及失败后的选项/草稿保留均通过。
 
 确定性门禁：`just check` 退出 0，Core 两配置各 249 项、facade 52 项、Bridge 121 项通过/2 项既有忽略、CLI 二进制端到端 16 项，fmt/clippy/Shell/build/doc 通过。单次 `just flutter-check` 57/66/364/261/17/32/54，共 851 项通过；收尾新增测试及修复后 App 全套 367 项、UI 全套 263 项及各自 analyze 通过，与其余未变套件合计 856 项。FRB v20 最终零漂移，第一次漂移仅为 private mapper 改名的生成注释，已重新生成并核对；等待生成完成后 diff 检查通过，未把生成过程的临时空白当作稳定结果。最终 refs 校验两个固定 SHA，layout 零 baseline 违例，sensitive 检查暂存后的 5258 文件通过（选项 helper 重命名已归并），暂存 diff 无空白错误或敏感材料。
 
-日志为 `/tmp/ubaa-p4i-check-final.log`、`/tmp/ubaa-p4i-flutter-final.log`、`/tmp/ubaa-p4i-app-{analyze,final}.log`、`/tmp/ubaa-p4i-ui-{analyze,final}.log`、`/tmp/ubaa-p4i-codegen-final.log`、`/tmp/ubaa-p4i-layout.log`、`/tmp/ubaa-p4i-sensitive-final.log`。macOS v20 原生合成缓存集成 1 项通过（`/tmp/ubaa-p4i-native.log`），五个新增本地入口及缺会话在线入口经真实 FRB；仍无法置前（open returned 1），不算独立实窗验收。未访问真实学校服务、未做真实写入、未生成验收媒体或性能数据。
+日志为 `<private-evidence>/legacy-tmp/ubaa-p4i-check-final.log`、`<private-evidence>/legacy-tmp/ubaa-p4i-flutter-final.log`、`<private-evidence>/legacy-tmp/ubaa-p4i-app-{analyze,final}.log`、`<private-evidence>/legacy-tmp/ubaa-p4i-ui-{analyze,final}.log`、`<private-evidence>/legacy-tmp/ubaa-p4i-codegen-final.log`、`<private-evidence>/legacy-tmp/ubaa-p4i-layout.log`、`<private-evidence>/legacy-tmp/ubaa-p4i-sensitive-final.log`。macOS v20 原生合成缓存集成 1 项通过（`<private-evidence>/legacy-tmp/ubaa-p4i-native.log`），五个新增本地入口及缺会话在线入口经真实 FRB；仍无法置前（open returned 1），不算独立实窗验收。未访问真实学校服务、未做真实写入、未生成验收媒体或性能数据。
 
 其余图书馆/评教/资料与阳光分页、跨范围失效、长读取余项、完整生命周期/多端/双路线真实只读与性能仍需继续；不关闭整个 P4/P5。源工作区保持干净。
 
@@ -337,59 +337,59 @@ GREEN：本地读取不等待网络锁、路线/分页隔离、pending 写意图
 
 基线 e40cbfd5。逐操作对照冻结 old LibBook 接口/本地请求/DTO/BackendTest，以及 buaa-api 无对应协议事实后，新增五范围持久化和独立只读类型。原学校请求参数/登录/单次恢复、CLI 和写链保持，无真实学校请求或写入。
 
-RED：/tmp/ubaa-p4j-red.log 为缺少持久类型和查询；/tmp/ubaa-p4j-facade-red.log 为缺少 facade；/tmp/ubaa-p4j-partial-red.log 复现缺集合仍被标完整；/tmp/ubaa-p4j-observed-red.log 复现日期观察与 parser 别名优先级不一致。GREEN：只读资格剥离、精确键、五请求参数、路线隔离、失败和部分保护、错页拒绝、合法空页替换、认证前参数拒绝、原解析/加密 golden 保持。日志 /tmp/ubaa-p4j-green.log、facade-green.log、partial-green.log、observed-green.log（均同前缀）。类型解构编译修正不计业务 RED。
+RED：<private-evidence>/legacy-tmp/ubaa-p4j-red.log 为缺少持久类型和查询；<private-evidence>/legacy-tmp/ubaa-p4j-facade-red.log 为缺少 facade；<private-evidence>/legacy-tmp/ubaa-p4j-partial-red.log 复现缺集合仍被标完整；<private-evidence>/legacy-tmp/ubaa-p4j-observed-red.log 复现日期观察与 parser 别名优先级不一致。GREEN：只读资格剥离、精确键、五请求参数、路线隔离、失败和部分保护、错页拒绝、合法空页替换、认证前参数拒绝、原解析/加密 golden 保持。日志 <private-evidence>/legacy-tmp/ubaa-p4j-green.log、facade-green.log、partial-green.log、observed-green.log（均同前缀）。类型解构编译修正不计业务 RED。
 
 初次 just check 在审查追加测试后遭遇格式化检查失败，未记通过；随后 clippy 指出同返回值分支和过长测试，已合并分支/拆出 helper 并修正多余借用，重新运行完整门禁。Core-only 阶段，Bridge 仍 v20，尚未接 App；无新增原生渲染、Core-live、真实 App 或性能证据。
 
-最终确定性门禁：just check 退出0（/tmp/ubaa-p4j-check-final.log），Core 两配置各253、facade53、Bridge121通过/2既有忽略、CLI二进制端到端16，fmt/clippy/Shell/build/doc 通过。refs固定引用校验、layout零baseline违例、暂存后 sensitive5263文件通过，diff无空白错误。本阶段无 Dart/Bridge 合同修改，未重复 Flutter 或原生渲染。原始源工作区保持干净；全部 P0–P5仍未完成，下一阶段为图书馆 Bridge/App 接线。
+最终确定性门禁：just check 退出0（<private-evidence>/legacy-tmp/ubaa-p4j-check-final.log），Core 两配置各253、facade53、Bridge121通过/2既有忽略、CLI二进制端到端16，fmt/clippy/Shell/build/doc 通过。refs固定引用校验、layout零baseline违例、暂存后 sensitive5263文件通过，diff无空白错误。本阶段无 Dart/Bridge 合同修改，未重复 Flutter 或原生渲染。原始源工作区保持干净；全部 P0–P5仍未完成，下一阶段为图书馆 Bridge/App 接线。
 
 
 ## P4-K 图书馆 Bridge/App 五查询（2026-09-22）
 
 基线 b138b3ee。Bridge v21 本地/刷新五入口、只读 DTO、App 共用投影与分页/日期恢复已接通；LibbookReadbackBackend 保持原预约/取消既定读取，不走新增恢复。UI 保留缓存 loading 网格，显示保存时间与未完整提示，不生成预约操作。
 
-RED：/tmp/ubaa-p4k-bridge-red.log（本地/刷新入口缺失）；schema-red.log（生成缓存类型缺失）；app-red.log（明确回读能力缺失）；ui-red.log（loading 后座位消失）；input-red.log（缺segment却调用一次网络）；scope-red.log（无旧记录时错误页仍有分页投影）。前缀均 /tmp/ubaa-p4k-。测试准备中的错误路径、缺activate、readContext误用参数和假查询回调未发布结果所致timeout已修正，不计行为RED。Bridge mapper可见性修正后完成生成；初轮整体验证发现五处版本文档及一个合同测试仍v20，修正为v21后重跑。
+RED：<private-evidence>/legacy-tmp/ubaa-p4k-bridge-red.log（本地/刷新入口缺失）；schema-red.log（生成缓存类型缺失）；app-red.log（明确回读能力缺失）；ui-red.log（loading 后座位消失）；input-red.log（缺segment却调用一次网络）；scope-red.log（无旧记录时错误页仍有分页投影）。前缀均 <private-evidence>/legacy-tmp/ubaa-p4k-。测试准备中的错误路径、缺activate、readContext误用参数和假查询回调未发布结果所致timeout已修正，不计行为RED。Bridge mapper可见性修正后完成生成；初轮整体验证发现五处版本文档及一个合同测试仍v20，修正为v21后重跑。
 
 GREEN：本地读取独立网络锁、页/路线/退出隔离及pending写阻止恢复；公开DTO禁曝；五种精确范围恢复、原分页和保存时间、部分失败旧记录保护；离线无动作、预约/取消回读不增加缓存恢复；缺时段网络前拒绝、错页无旧记录不显示异范围；loading网格及静态地图原回归通过。
 
-确定性门禁：最终 just check 退出0，Core两配置各253、facade53、Bridge122通过/2既有忽略、CLI二进制端到端16，fmt/clippy/Shell/build/doc通过（/tmp/ubaa-p4k-check-final.log）。单次完整Flutter 57/66/372/264/18/32/54，共863项；错页收尾后App全套373和analyze通过，其余未变套件合计864项，不称为单次864。日志 /tmp/ubaa-p4k-flutter-final.log、app-final.log、app-final-analyze.log。FRB v21最终零漂移（codegen-final.log），敏感扫描暂存5270文件通过；原始源工作区无改动。
+确定性门禁：最终 just check 退出0，Core两配置各253、facade53、Bridge122通过/2既有忽略、CLI二进制端到端16，fmt/clippy/Shell/build/doc通过（<private-evidence>/legacy-tmp/ubaa-p4k-check-final.log）。单次完整Flutter 57/66/372/264/18/32/54，共863项；错页收尾后App全套373和analyze通过，其余未变套件合计864项，不称为单次864。日志 <private-evidence>/legacy-tmp/ubaa-p4k-flutter-final.log、app-final.log、app-final-analyze.log。FRB v21最终零漂移（codegen-final.log），敏感扫描暂存5270文件通过；原始源工作区无改动。
 
 macOS合成集成1项通过：五新增本地读取、缺会话在线缓存入口经真实FRB调用，断言合同v21。应用仍报 Failed to foreground app; open returned 1，只记绑定执行，不作为独立实窗/真实业务证据。没有新增真实学校请求、真实写入、验收媒体或性能测量。资料/评教和阳光分页、跨范围失效、剩余长读/生命周期/多端及双路线真实只读仍待后续；还需统一审查其他领域的“错范围且无旧缓存”投影边界，不能仅凭保存拒绝推定页面安全。
 
-最终refs固定SHA校验与layout零baseline违例通过，暂存敏感扫描5270文件通过。macOS最后复验日志 /tmp/ubaa-p4k-native-final.log 同样1项通过/仍无法置前；非视觉验收。最终暂存diff无空白错误。
+最终refs固定SHA校验与layout零baseline违例通过，暂存敏感扫描5270文件通过。macOS最后复验日志 <private-evidence>/legacy-tmp/ubaa-p4k-native-final.log 同样1项通过/仍无法置前；非视觉验收。最终暂存diff无空白错误。
 
 
 ## P4-L 跨范围响应防护审查（2026-09-22）
 
 基线e70b56e9。重新查阅冻结LocalCgyyApi.getMyOrders和LocalBykcApi.getCourses及另一源boya/opt：研讨室分页缺省沿请求；博雅公共currentPage/pageSize取请求，另一源只返回课程集合，不能借用页号换算。App对错日期/详情/页码增加展示保护，博雅缓存详情无法取得同范围旧值时拒绝。学校请求、签名/会话、CLI和原写回读不改。
 
-RED：/tmp/ubaa-p4l-core-red.log 复现明确错页仍完整；app-red.log 复现博雅错详情仍展示另一课程；cgyy-red.log 复现无旧缓存时显示别日；page-red.log 复现请求第2页却显示响应number=1。Cgyy测试初次漏填cancelEligibility导致编译失败，仅算准备错误，补全后才记录行为RED。GREEN：Core研讨室缓存3项、App两领域及原展示/写合同回归54项通过。缺集合保旧、data=null非首页及非默认大小按请求归档；错范围不产生新页面动作；本地缓存查询/退出屏障保留。
+RED：<private-evidence>/legacy-tmp/ubaa-p4l-core-red.log 复现明确错页仍完整；app-red.log 复现博雅错详情仍展示另一课程；cgyy-red.log 复现无旧缓存时显示别日；page-red.log 复现请求第2页却显示响应number=1。Cgyy测试初次漏填cancelEligibility导致编译失败，仅算准备错误，补全后才记录行为RED。GREEN：Core研讨室缓存3项、App两领域及原展示/写合同回归54项通过。缺集合保旧、data=null非首页及非默认大小按请求归档；错范围不产生新页面动作；本地缓存查询/退出屏障保留。
 
 本阶段Bridge合同仍v21且没有生成结构变化；不新增原生渲染、Core-live、真实App或性能证据。其余资料/评教/阳光分页、跨范围写后失效、长读取与最终15场景/多端/双路线只读验收保持待办。
 
-最终just check退出0：Core两配置各253、facade54、Bridge122通过/2既有忽略、CLI二进制端到端16，fmt/clippy/Shell/build/doc与layout零baseline违例通过（/tmp/ubaa-p4l-check.log）。完整Flutter 57/66/375/264/18/32/54，共866项通过（flutter.log）；博雅页码收尾后App全套375及analyze再次通过（app-final.log、app-analyze.log），针对两个领域/既有展示合同54项通过（page-green.log）。refs固定SHA、敏感扫描5270文件通过，暂存diff无空白错误；源工作区仍干净。日志上述短名均位于/tmp/ubaa-p4l-前缀。整个P0–P5未关闭，下一项继续评教与资料/阳光分页接入。
+最终just check退出0：Core两配置各253、facade54、Bridge122通过/2既有忽略、CLI二进制端到端16，fmt/clippy/Shell/build/doc与layout零baseline违例通过（<private-evidence>/legacy-tmp/ubaa-p4l-check.log）。完整Flutter 57/66/375/264/18/32/54，共866项通过（flutter.log）；博雅页码收尾后App全套375及analyze再次通过（app-final.log、app-analyze.log），针对两个领域/既有展示合同54项通过（page-green.log）。refs固定SHA、敏感扫描5270文件通过，暂存diff无空白错误；源工作区仍干净。日志上述短名均位于<private-evidence>/legacy-tmp/ubaa-p4l-前缀。整个P0–P5未关闭，下一项继续评教与资料/阳光分页接入。
 
 
 ## P4-M 评教 Core 当前任务范围（2026-09-22）
 
 基线04f6268c。按两冻结实现核对评教激活/任务/问卷/课程链、查询参数、DTO和错误边界后，新增只读持久类型与当前任务范围facade。现有Bridge公开四展示字段作为上限，进度与完整性分别携带，不持久化提交资格和目标。任务固定1/10且达到页上限时不宣称全覆盖。
 
-RED：/tmp/ubaa-p4m-red.log为新facade缺失；partial-red.log在接入旧读取后复现课程请求失败被标完整（模式1）。GREEN：green-final.log验证合成正常保存/路线隔离/字段禁曝，课程503、任务身份缺失、10项任务、激活503、ypjcs缺失、两问卷部分成功全部保留旧完整载荷；合法空任务替换，认证401不降级，退出本地读取拒绝。clippy-final.log通过。中途match缺逗号的编译错误修正不计行为RED。以上短名均为/tmp/ubaa-p4m-前缀。
+RED：<private-evidence>/legacy-tmp/ubaa-p4m-red.log为新facade缺失；partial-red.log在接入旧读取后复现课程请求失败被标完整（模式1）。GREEN：green-final.log验证合成正常保存/路线隔离/字段禁曝，课程503、任务身份缺失、10项任务、激活503、ypjcs缺失、两问卷部分成功全部保留旧完整载荷；合法空任务替换，认证401不降级，退出本地读取拒绝。clippy-final.log通过。中途match缺逗号的编译错误修正不计行为RED。以上短名均为<private-evidence>/legacy-tmp/ubaa-p4m-前缀。
 
 此阶段不访问真实学校服务、没有真实写入或媒体，没有Flutter/原生/真实性能新增证据。Bridge/App评教接线、长聚合分段、剩余领域/生命周期及双路线真实只读验收继续待办。
 
-最终just check退出0（/tmp/ubaa-p4m-check.log）：Core两配置各253、facade55、Bridge122通过/2既有忽略、CLI二进制端到端16；fmt/clippy/Shell/build/doc和layout零baseline违例通过。refs固定SHA校验、暂存敏感扫描5273文件通过，diff无空白错误。Core-only无Dart/Bridge结构变化，本阶段未重复Flutter或原生测试，不能继承旧原生证据为本轮通过。原始源工作区干净；隔离阶段继续下一项评教Bridge/App。
+最终just check退出0（<private-evidence>/legacy-tmp/ubaa-p4m-check.log）：Core两配置各253、facade55、Bridge122通过/2既有忽略、CLI二进制端到端16；fmt/clippy/Shell/build/doc和layout零baseline违例通过。refs固定SHA校验、暂存敏感扫描5273文件通过，diff无空白错误。Core-only无Dart/Bridge结构变化，本阶段未重复Flutter或原生测试，不能继承旧原生证据为本轮通过。原始源工作区干净；隔离阶段继续下一项评教Bridge/App。
 
 
 ## P4-N 评教 Bridge/App 只读恢复（2026-09-22）
 
 基线45068685。Bridge v22增加本地与缓存刷新入口，缓存白名单课程/进度不带提交材料；App恢复摘要和待评视图、原进度与取得时间，部分失败旧数据保留，完整在线资格维持原映射。EvaluationSubmissionReadbackBackend原固定路线回读未改。
 
-RED：/tmp/ubaa-p4n-bridge-red.log（本地方法不存在）；schema-red.log（只读类型文件尚未生成）；app-red.log（查询不恢复缓存且未调用新刷新入口）；ui-red.log（Partial仍显示待评0）。GREEN：本地读取独立网络锁、路线/退出隔离、pending写保护；schema禁曝；缓存筛选/进度/动作剥离、部分旧时间保留、首次Partial来源、完整在线资格和固定路线回读；Partial进度和loading可读、原课程内容回归12项通过。日志短名均使用/tmp/ubaa-p4n-前缀。
+RED：<private-evidence>/legacy-tmp/ubaa-p4n-bridge-red.log（本地方法不存在）；schema-red.log（只读类型文件尚未生成）；app-red.log（查询不恢复缓存且未调用新刷新入口）；ui-red.log（Partial仍显示待评0）。GREEN：本地读取独立网络锁、路线/退出隔离、pending写保护；schema禁曝；缓存筛选/进度/动作剥离、部分旧时间保留、首次Partial来源、完整在线资格和固定路线回读；Partial进度和loading可读、原课程内容回归12项通过。日志短名均使用<private-evidence>/legacy-tmp/ubaa-p4n-前缀。
 
 当前不宣称真实学校协议、真实App业务或性能通过；原生合成与确定性门禁单独记录。整个P0–P5仍未完成。
 
-最终门禁：just check退出0（/tmp/ubaa-p4n-check.log），Core两配置各253、facade55、Bridge123通过/2既有忽略、CLI二进制端到端16，fmt/clippy/Shell/build/doc与layout零baseline违例通过。完整Flutter 57/66/378/265/19/32/54，共871项及静态分析通过（flutter.log）；FRB v22零漂移（codegen-final.log）；refs固定SHA校验、暂存敏感扫描5278文件通过，diff无空白错误。上述短日志名均/tmp/ubaa-p4n-前缀。
+最终门禁：just check退出0（<private-evidence>/legacy-tmp/ubaa-p4n-check.log），Core两配置各253、facade55、Bridge123通过/2既有忽略、CLI二进制端到端16，fmt/clippy/Shell/build/doc与layout零baseline违例通过。完整Flutter 57/66/378/265/19/32/54，共871项及静态分析通过（flutter.log）；FRB v22零漂移（codegen-final.log）；refs固定SHA校验、暂存敏感扫描5278文件通过，diff无空白错误。上述短日志名均<private-evidence>/legacy-tmp/ubaa-p4n-前缀。
 
 macOS合成集成1项通过（native.log），实际v22绑定执行了新增评教空本地读取与缺会话缓存刷新错误路径，以及原多句柄退出屏障。仍有Failed to foreground app; open returned 1，不能记作实窗、真实业务或非空评教DTO原生展示。未做真实学校写入、未生成验收媒体或性能数据。源工作区干净，整个目标继续，下一项为阳光记录分页和资料/缓存管理等余项。
 
@@ -398,20 +398,20 @@ macOS合成集成1项通过（native.log），实际v22绑定执行了新增评�
 
 基线136e0c2a。按冻结Ygdk接口/本地实现/DTO/第2页5条测试，以及另一源无此协议事实核对后，增加按分类/页/大小的持久键、只读分类索引和facade。记录只保留公开字段与图片数量，账号、实际路线与本地修订分开管理。
 
-RED：/tmp/ubaa-p4o-red.log为新facade不存在；partial-red.log复现缺集合被标完整并清空旧页；parent-red.log复现索引被新任务替代后旧请求仍先写数据页（revision4而非2）；failure-fence-red.log复现迟到失败仍把旧页成功标记改false。GREEN：green-final.log两项合成集成覆盖分类切换、页/路线隔离、query/form双写、图片地址不落盘、失败/部分保旧、合法空页替换、非法分页网络前拒绝、父票据替代同时阻止数据与失败元数据修改。结构检查指出主方法过长，抽取范围构造和发布辅助函数后clippy-final.log通过。
+RED：<private-evidence>/legacy-tmp/ubaa-p4o-red.log为新facade不存在；partial-red.log复现缺集合被标完整并清空旧页；parent-red.log复现索引被新任务替代后旧请求仍先写数据页（revision4而非2）；failure-fence-red.log复现迟到失败仍把旧页成功标记改false。GREEN：green-final.log两项合成集成覆盖分类切换、页/路线隔离、query/form双写、图片地址不落盘、失败/部分保旧、合法空页替换、非法分页网络前拒绝、父票据替代同时阻止数据与失败元数据修改。结构检查指出主方法过长，抽取范围构造和发布辅助函数后clippy-final.log通过。
 
-日志短名均/tmp/ubaa-p4o-前缀。本阶段无真实学校请求/写入，没有Flutter/原生/真实性能新增证据，Bridge/App与余项继续待办。
+日志短名均<private-evidence>/legacy-tmp/ubaa-p4o-前缀。本阶段无真实学校请求/写入，没有Flutter/原生/真实性能新增证据，Bridge/App与余项继续待办。
 
-最终just check退出0（/tmp/ubaa-p4o-check.log）：Core两配置各253、facade57、Bridge123通过/2既有忽略、CLI二进制端到端16；fmt/clippy/Shell/build/doc与layout零baseline违例通过。refs固定SHA校验、暂存敏感扫描5281文件通过，diff无空白错误。Core-only未改Dart/Bridge结构，本阶段没有重复Flutter或原生测试，旧证据不充当当前通过。原始源工作区干净，下一阶段继续阳光记录Bridge/App接线及既定固定路线回读保护。
+最终just check退出0（<private-evidence>/legacy-tmp/ubaa-p4o-check.log）：Core两配置各253、facade57、Bridge123通过/2既有忽略、CLI二进制端到端16；fmt/clippy/Shell/build/doc与layout零baseline违例通过。refs固定SHA校验、暂存敏感扫描5281文件通过，diff无空白错误。Core-only未改Dart/Bridge结构，本阶段没有重复Flutter或原生测试，旧证据不充当当前通过。原始源工作区干净，下一阶段继续阳光记录Bridge/App接线及既定固定路线回读保护。
 
 
 ## P4-P 阳光记录 Bridge/App 接线（2026-09-22）
 
 基线 a0aff147。实施前补来源对照，Bridge v23 复用只含图片数量的既有记录白名单；增加普通缓存读取与概览路线/分类匹配合同。原学校参数与固定路线写后双回读保持。
 
-RED：/tmp/ubaa-p4p-route-red.log 为 Core 匹配方法缺失；bridge-red.log 为本地方法缺失；schema-red.log 为新增只读类型尚未生成；app-red.log 为本地查询空投影及普通刷新仍调用旧接口；home-behavior-red.log 为首页未按概览分类读页且未调用匹配合同；ui-red.log 三项失败分别证明部分空页误报无记录、分类变化留下旧记录、首次失败未展示持久内容。初次测试夹具缺 message 和误用 const 已修正，不作为行为 RED。
+RED：<private-evidence>/legacy-tmp/ubaa-p4p-route-red.log 为 Core 匹配方法缺失；bridge-red.log 为本地方法缺失；schema-red.log 为新增只读类型尚未生成；app-red.log 为本地查询空投影及普通刷新仍调用旧接口；home-behavior-red.log 为首页未按概览分类读页且未调用匹配合同；ui-red.log 三项失败分别证明部分空页误报无记录、分类变化留下旧记录、首次失败未展示持久内容。初次测试夹具缺 message 和误用 const 已修正，不作为行为 RED。
 
-GREEN：Core 阳光缓存三项、Bridge 独立锁/范围/退出/pending 写保护一项；App 六项覆盖精确页、时间、部分回退、首次 Partial、概览匹配、局部失败保旧、缓存损坏保概览与固定回读分流；UI 八项包含三项新增及原内容/详情回归。短日志名均使用 /tmp/ubaa-p4p- 前缀。完整门禁及原生合成结果待本阶段收尾填写，不声称真实业务或性能通过。
+GREEN：Core 阳光缓存三项、Bridge 独立锁/范围/退出/pending 写保护一项；App 六项覆盖精确页、时间、部分回退、首次 Partial、概览匹配、局部失败保旧、缓存损坏保概览与固定回读分流；UI 八项包含三项新增及原内容/详情回归。短日志名均使用 <private-evidence>/legacy-tmp/ubaa-p4p- 前缀。完整门禁及原生合成结果待本阶段收尾填写，不声称真实业务或性能通过。
 
 审查追加 local-failure-red.log：记录缓存错误原使整个概览投影为null，改为记录独立错误并保留合法统计；app-final.log六项通过。初轮完整check被Bridge测试函数139行结构限制拒绝，抽取合成播种辅助函数后clippy通过；Flutter初轮在原生测试夹具的可空client闭包静态检查失败，修正后完整复跑通过881项（57/66/384/268/20/32/54）及静态分析。FRB v23重生成零漂移（codegen-final.log）。
 
@@ -419,16 +419,16 @@ GREEN：Core 阳光缓存三项、Bridge 独立锁/范围/退出/pending 写保�
 
 当前候选 Core-live：用原工作区只读凭据经stdin注入独立临时会话，学校业务写入0。Direct全量24.389秒：35 PASS、2 FAIL、3 BLOCKED，失败为同一次Judge include_expired及其复用diagnostics的upstream_unavailable，current/detail/details_batch因此BLOCKED；WebVPN全量24.514秒40 PASS。有限Direct Judge复核7.079秒再次失败，安全传输元数据证明一个GET在约5.007秒返回HTTP 502、body_bytes=0（live-direct-judge.log），不推断具体学校故障位置，不改冻结URL、TLS或CLI路线。其余两路线阳光overview/records均PASS。Direct完整门禁仍受阻，不能把WebVPN成功替代Direct通过。
 
-上述时间为顺序Core-live累计完成时间，不是缓存首屏、首批、真实App或性能目标测量；验证使用既有RouteClient只读链，也不等于新增持久缓存的真实App验收。日志前缀/tmp/ubaa-p4p-，live-direct.log/live-webvpn.log仅安全摘要，复核日志仅白名单状态/字节数/耗时，无URL、正文或凭据。没有验收媒体或发布证据。本阶段接线完成，P0–P5整体仍有资料持久化、缓存管理、跨范围失效、剩余安全分段/生命周期和多端性能待办，继续执行。
+上述时间为顺序Core-live累计完成时间，不是缓存首屏、首批、真实App或性能目标测量；验证使用既有RouteClient只读链，也不等于新增持久缓存的真实App验收。日志前缀<private-evidence>/legacy-tmp/ubaa-p4p-，live-direct.log/live-webvpn.log仅安全摘要，复核日志仅白名单状态/字节数/耗时，无URL、正文或凭据。没有验收媒体或发布证据。本阶段接线完成，P0–P5整体仍有资料持久化、缓存管理、跨范围失效、剩余安全分段/生命周期和多端性能待办，继续执行。
 
 
 ## P4-Q 最小遮罩资料 Core（2026-09-22）
 
 基线c4c71bed。已重新核对冻结旧版userinfo接口/本地实现/DTO/分派测试及另一源user状态接口、request、Cookie和凭据存储，来源对照先于生产改动。新增三字段遮罩载荷、独立本地出口与在线身份双核对；不改学校协议、旧完整资料返回、Bridge v23或CLI合同。
 
-RED：/tmp/ubaa-p4q-red.log为新类型、范围和facade方法不存在；首个测试版本误用未启用的tokio::test已改为既有显式runtime形式后再记录RED。GREEN：green-final.log四项通过，覆盖在线完整返回而持久仅遮罩、路线隔离、503失败保旧时间、合法可选字段缺失替换、401保留离线数据、状态身份与资料身份分别不符、退出迟到拒绝、Unicode短值、额外字段/未遮罩载荷拒绝、票据替代、重开范围及原取得时间。新持久测试起初未创建私有父目录导致Unavailable，补夹具后通过，不归因为产品缺陷。
+RED：<private-evidence>/legacy-tmp/ubaa-p4q-red.log为新类型、范围和facade方法不存在；首个测试版本误用未启用的tokio::test已改为既有显式runtime形式后再记录RED。GREEN：green-final.log四项通过，覆盖在线完整返回而持久仅遮罩、路线隔离、503失败保旧时间、合法可选字段缺失替换、401保留离线数据、状态身份与资料身份分别不符、退出迟到拒绝、Unicode短值、额外字段/未遮罩载荷拒绝、票据替代、重开范围及原取得时间。新持久测试起初未创建私有父目录导致Unavailable，补夹具后通过，不归因为产品缺陷。
 
-clippy指出三个私有字段同前缀；内部字段简化命名，serde/getter仍明确masked语义，未增加allow例外。clippy-final.log通过；完整阶段门禁待收尾。短日志名前缀均/tmp/ubaa-p4q-。本阶段Core-only，无新增Flutter/原生/真实学校请求；P4-P的双路线事实仍只属于当时旧RouteClient只读验证，Direct希冀HTTP502阻塞不被本阶段覆盖为通过。Bridge/App和完整P0–P5继续。
+clippy指出三个私有字段同前缀；内部字段简化命名，serde/getter仍明确masked语义，未增加allow例外。clippy-final.log通过；完整阶段门禁待收尾。短日志名前缀均<private-evidence>/legacy-tmp/ubaa-p4q-。本阶段Core-only，无新增Flutter/原生/真实学校请求；P4-P的双路线事实仍只属于当时旧RouteClient只读验证，Direct希冀HTTP502阻塞不被本阶段覆盖为通过。Bridge/App和完整P0–P5继续。
 
 审查追加missing-red.log：空身份响应原被误认另一账号并关闭缓存。增加显式身份可用性判定后，状态或资料缺身份均返回UpstreamChanged且保留旧内容和时间，userinfo已建票据时记录失败观察。green-final.log五项通过。初轮完整check已退出0，但此语义修正后的完整门禁另行复跑，不能沿用初轮结果。
 
@@ -439,7 +439,7 @@ clippy指出三个私有字段同前缀；内部字段简化命名，serde/gette
 
 基线6796c7de。来源补录在实现前，Bridge v24新增三字段遮罩DTO、本地读取与缓存刷新；App独立展示副本/后台调度/失败保留，个人页来源时间与稳定本机归属接线。原userinfo、认证user、提醒账号与所有学校写流程保持。
 
-RED日志前缀/tmp/ubaa-p4r-：bridge-red为新入口缺失；schema-red为生成只读DTO缺失；app-red为App接口缺失；controller-behavior-red为本地资料未展示；late-red为迟到缓存错误误标成功在线资料失败；ui-red为缺保存提示；navigation-red为遮罩变在线文本导致退出个人页；identity-red为Core明确accountMismatch被当普通错误保留展示；nocache-behavior-red为缓存不可用阻断在线资料；logout-red为退出首条同步通知仍返回旧资料。错误目录下执行Flutter的未加载结果不作为行为RED，已从实际package目录重跑。
+RED日志前缀<private-evidence>/legacy-tmp/ubaa-p4r-：bridge-red为新入口缺失；schema-red为生成只读DTO缺失；app-red为App接口缺失；controller-behavior-red为本地资料未展示；late-red为迟到缓存错误误标成功在线资料失败；ui-red为缺保存提示；navigation-red为遮罩变在线文本导致退出个人页；identity-red为Core明确accountMismatch被当普通错误保留展示；nocache-behavior-red为缓存不可用阻断在线资料；logout-red为退出首条同步通知仍返回旧资料。错误目录下执行Flutter的未加载结果不作为行为RED，已从实际package目录重跑。
 
 聚焦GREEN覆盖独立网络锁/路线/退出及pending写意图、Bridge schema白名单、资料实际路线/时间、原接口分流、控制器独立身份与首帧恢复后自动刷新、晚到/失败/退出/前后台/待确认操作保护、同次去重、个人页路线位置与联系人默认隐藏。完整门禁和原生结果待收尾记录，不将此确定性结果冒充真实App或性能。
 
@@ -458,7 +458,7 @@ CARGO_INCREMENTAL=0的check-final.log退出0：Core两配置各253、facade63、
 
 基线92c028a3，refs通过。先补本地管理来源对照，无学校协议变更。新增数值用量、原子清理/返回新句柄、跨连接generation及v1到v2控制记录迁移；原CLI、Bridge v24形状与学校写流程不变。
 
-日志前缀/tmp/ubaa-p4s-：red.log为usage/clear_for_reopen缺失；facade-red.log为clear_and_reopen/usage缺失；judge-red.log复现旧句柄启动Judge仍发1次认证请求，补公共扫描入口的代次保护后归零；storage-red.log复现新预检把Corrupt阻断为读取错误，调整后保留完整在线资料且save_error=Corrupt。
+日志前缀<private-evidence>/legacy-tmp/ubaa-p4s-：red.log为usage/clear_for_reopen缺失；facade-red.log为clear_and_reopen/usage缺失；judge-red.log复现旧句柄启动Judge仍发1次认证请求，补公共扫描入口的代次保护后归零；storage-red.log复现新预检把Corrupt阻断为读取错误，调整后保留完整在线资料且save_error=Corrupt。
 
 management-final.log六项通过：用量不解密业务行、实际文件回收、独立连接/旧票据拒绝、清除事务回滚、v1迁移保原条目时间、旧AAD无法解密v2、错误密钥不改v1、迁移保留退出状态、提交后维护失败分列。维护Capacity通过私有维护回调注入，不冒称真实磁盘满；清除失败通过SQLite触发器事务中止验证。facade-final.log三项通过：旧clone/独立句柄拒绝、认证未返回时清理不允许旧链取新票据、新句柄继续使用原会话、普通缓存损坏仍允许在线读取。
 
@@ -469,7 +469,7 @@ management-final.log六项通过：用量不解密业务行、实际文件回收
 
 ## P4-T Bridge 管理合同与 App 后端代际（2026-09-22）
 
-基线21bd104f。先记录来源边界。日志前缀/tmp/ubaa-p4t-：bridge-red.log缺usage/clearAndReopen，schema-red.log缺生成文件，schema-shape-red.log复现结果被生成为可变opaque而不是明确DTO；non_opaque修正后生成不可变新句柄与报告。app-red.log为缺失管理合同/方法，初轮测试自身枚举与错误构造笔误已先修正，最终RED仅保留待实现缺口。
+基线21bd104f。先记录来源边界。日志前缀<private-evidence>/legacy-tmp/ubaa-p4t-：bridge-red.log缺usage/clearAndReopen，schema-red.log缺生成文件，schema-shape-red.log复现结果被生成为可变opaque而不是明确DTO；non_opaque修正后生成不可变新句柄与报告。app-red.log为缺失管理合同/方法，初轮测试自身枚举与错误构造笔误已先修正，最终RED仅保留待实现缺口。
 
 bridge-final.log本地清理在网络锁占用下完成1项通过；app-focused.log共12项，包括维护失败移交、事务失败保旧、排队读取失效、迟到结果拒绝、退出继任句柄、待切换账号拒绝旧确认、多步阳光概览不能用新句柄请求记录及原固定路线回读。schema与完整Flutter/原生/根门禁正在收尾。初次layout发现Bridge api目录新增第17个平铺文件，改为cache_management/mod.rs，未新增baseline。
 
@@ -496,7 +496,7 @@ ui-focused.log十一项通过：四项设置确认/失败/防重复/账号切换
 
 视觉反馈触发两项修正：units-red.log复现小用量显示0.0 MB，改为B/KB/MB自适应；result-red.log复现用量尚未返回时清理失败仍显示内容已清除，改为独立“用量暂无统计”，result-green.log五项通过。最终结果文案通过原生hot reload再次可见复核，不把reload耗时算启动性能。
 
-媒体仅在仓库外私有目录 /Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p4u/，目录0700、图片和manifest.json为0600。共3场景、6个捕获文件（同场景辅助窗口副本不算新场景），均1824×1488。设置主图settings-w399.png SHA256 512b2a7eee7db42bc241f90c6197730489da80133ef22d870eeb44839a0b237d；确认confirm-w399.png为66c0863390f8b63e0a9cffda7961e39cca653fc877de1222422aa10dfe39fb84；结果result-w399.png为7dd6f8c00d8d0b9da871f7c64b951070333034b6a333a4d2ab0b4aad4df81fa3。单个辅助window-id捕获失败后使用按应用捕获成功，没有把失败文件计作证据。合成检查应用已经退出。
+媒体仅在仓库外私有目录 <private-evidence>/offline-home-20260917/p4u/，目录0700、图片和manifest.json为0600。共3场景、6个捕获文件（同场景辅助窗口副本不算新场景），均1824×1488。设置主图settings-w399.png SHA256 512b2a7eee7db42bc241f90c6197730489da80133ef22d870eeb44839a0b237d；确认confirm-w399.png为66c0863390f8b63e0a9cffda7961e39cca653fc877de1222422aa10dfe39fb84；结果result-w399.png为7dd6f8c00d8d0b9da871f7c64b951070333034b6a333a4d2ab0b4aad4df81fa3。单个辅助window-id捕获失败后使用按应用捕获成功，没有把失败文件计作证据。合成检查应用已经退出。
 
 check.log退出0：Core两配置各259、facade66、Bridge126通过/2既有忽略、CLI端到端16，fmt/clippy/Shell/build/doc通过。无Rust/Bridge形状变化，未重复codegen，版本仍v25。用量条件修正后native-reviewed.log原生合成宿主1项通过；最终可见界面证据由上述CUA实窗补验提供。最后完整Flutter及暂存结构/敏感门禁另记。
 
@@ -505,7 +505,7 @@ check.log退出0：Core两配置各259、facade66、Bridge126通过/2既有忽�
 
 ## P4-V Core 容量保留策略（2026-09-22）
 
-基线5f1318d0，refs固定SHA通过。先核对双来源边界和规范化日期，来源记录见P4-V。日志前缀/tmp/ubaa-p4v-：red.log为缺retention模块，初轮测试ConnectionMode导入位置已先修正；首个GREEN尝试因测试未创建根目录返回Unavailable，修正测试环境后cache.log原35项加初4项共39项通过。环境错误不当作行为RED。
+基线5f1318d0，refs固定SHA通过。先核对双来源边界和规范化日期，来源记录见P4-V。日志前缀<private-evidence>/legacy-tmp/ubaa-p4v-：red.log为缺retention模块，初轮测试ConnectionMode导入位置已先修正；首个GREEN尝试因测试未创建根目录返回Unavailable，修正测试环境后cache.log原35项加初4项共39项通过。环境错误不当作行为RED。
 
 context-red.log复现两项真实缺口：没有学期索引的未来考试仍为Stable、当前学期切换被旧索引锁住容量而返回Capacity。加入未来日期保护与即将提交索引上下文后8项通过；final-focused.log包括多selected（含空项）不可信、路线隔离、24小时新鲜度、90天精确边界、未知/非法日期、跨年活跃任务、混合订单旧项后新项、旧课程复查索引保留、容量失败不丢活跃内容、插入前回收与插入失败回滚。SQLite触发器是确定性顺序/故障注入，不是实际满盘测量。
 
@@ -516,7 +516,7 @@ check.log初轮clippy拒绝wildcard import及可折叠if，已显式导入和合
 
 ## P4-W 损坏缓存显式重建（2026-09-22）
 
-基线ad3ce9c1，冻结引用纯校验通过。日志前缀/tmp/ubaa-p4w-：red.log缺Core重建合同；post-red.log缺清除后初始化故障注入；bridge-red.log缺新静态RPC；controller-red.log缺恢复backend与cacheReady字段。均先观察缺口，再最小实现。无学校协议更改，来源及SQLite原生合同已先记录。
+基线ad3ce9c1，冻结引用纯校验通过。日志前缀<private-evidence>/legacy-tmp/ubaa-p4w-：red.log缺Core重建合同；post-red.log缺清除后初始化故障注入；bridge-red.log缺新静态RPC；controller-red.log缺恢复backend与cacheReady字段。均先观察缺口，再最小实现。无学校协议更改，来源及SQLite原生合同已先记录。
 
 rebuild-green.log六项通过：独立数据库身份拒绝旧票据、损坏头重建且其他账号/会话字节不变、未知版本仅显式清理、独立读事务阻塞且失败保原文件、v2条目和退出状态迁移及旧AAD拒绝、清除提交后初始化失败准确分列。故障注入不等于设备磁盘满。bridge-green.log一项证明网络锁占用时本地重建仍完成、坏密钥长度不触碰原文件。app-focused.log十六项覆盖失败打开后恢复、临时密钥使用及归零、空继任句柄、旧读取/排队退出和账号归属；ui.log六项通过。
 
@@ -546,7 +546,7 @@ check.log退出0：Core两配置各273、facade66、Bridge127通过/2既有忽�
 
 ## P2-F 启动缓存打开与路线生命周期（2026-09-22）
 
-基线8a22e0f7，冻结refs通过。/tmp/ubaa-p2f-red.log两项真实失败：密钥返回前切路线不再打开账号库、首页磁盘读取途中换路线后没有新范围重读；旧退出保护先通过。加入独立仓库所有权代次后，延迟密钥、延迟投影、退出及同账号重登保护通过。clear-red.log复现清理后旧读取重试复活内容，清理在打开后轮换本地所有权后修复。
+基线8a22e0f7，冻结refs通过。<private-evidence>/legacy-tmp/ubaa-p2f-red.log两项真实失败：密钥返回前切路线不再打开账号库、首页磁盘读取途中换路线后没有新范围重读；旧退出保护先通过。加入独立仓库所有权代次后，延迟密钥、延迟投影、退出及同账号重登保护通过。clear-red.log复现清理后旧读取重试复活内容，清理在打开后轮换本地所有权后修复。
 
 final-focused.log57项通过，包括六项新生命周期及既有清理、首页、查询、资料、成绩隔离。profile-red.log另复现本轮抽取流程将遮罩资料错误地排到首页磁盘之后；恢复其独立启动、投影前再次核对页面代次后profile-green.log17项通过。删除了P4-X路线隔离测试中等待初次打开的临时前置，现在同一路径无需等待也能通过。没有学校协议/Bridge/CLI合同变更。
 
@@ -568,7 +568,7 @@ cache-green.log此前8项模型加现有缓存57项通过；最终全量根门�
 
 ## P4-Z 完整学期分段读取 facade（2026-09-22）
 
-基线af4c03a8，refs通过。/tmp/ubaa-p4z-red.log为缺begin/next；green.log首3项通过。observation-red.log复现未知包装code仍被完整导入接纳，增加导入专用完整度检查并保持普通API容错后5项通过。local-red.log缺facade本地投影出口；term-red.log复现不同学期租约相互取消；week-red.log复现导入收尾时间压过后来完成的精确周结果（包含时钟回退）；time-red.log缺逐查询取得依据；today-red.log复现今日缺精确快照时未使用完整导入覆盖。
+基线af4c03a8，refs通过。<private-evidence>/legacy-tmp/ubaa-p4z-red.log为缺begin/next；green.log首3项通过。observation-red.log复现未知包装code仍被完整导入接纳，增加导入专用完整度检查并保持普通API容错后5项通过。local-red.log缺facade本地投影出口；term-red.log复现不同学期租约相互取消；week-red.log复现导入收尾时间压过后来完成的精确周结果（包含时钟回退）；time-red.log缺逐查询取得依据；today-red.log复现今日缺精确快照时未使用完整导入覆盖。
 
 final-focused.log：新的facade确定性9项通过，包括Direct/WebVPN注入运输的逐批边界、完整发布/部分失败、不自动重发、在途取消、较新同学期/清理保护、不同学期交错保留、普通包装容错与严格导入区分、精确周/日期/路线本地恢复、较新单周优先及今日覆盖回退。另1项Core私有生命周期测试确认原运行时清理/路线往返均使旧计划失效、弱引用不延长原客户端寿命；初轮该测试FeatureRouteConfig导入路径错误已修正，不计产品RED。cache-green.log12项模型测试通过，包含加密保存后每周与周次索引的原时间。
 
@@ -579,7 +579,7 @@ P4-Z最终暂存敏感扫描5327文件及diff通过，源工作区ubaa2保持干
 
 ## P2-G 辅助读身份冲突与写入口保护（2026-09-22）
 
-已在P4-Z收尾期间先做来源核对及RED；生产改动单独提交。/tmp/ubaa-p2g-red.log复现学期和成绩辅助读收到明确accountMismatch后仍停留home；旧路线迟到错误隔离先通过。green.log120项通过，初轮flutter.log944项与分析通过。随后审查write-guard-red.log确认未保留本机账号的宿主关闭身份后仍调用准备回调（预期0，实际1）；首次write-red.log回调抛错已复现执行，捕获合成异常后重新保留次数断言RED。
+已在P4-Z收尾期间先做来源核对及RED；生产改动单独提交。<private-evidence>/legacy-tmp/ubaa-p2g-red.log复现学期和成绩辅助读收到明确accountMismatch后仍停留home；旧路线迟到错误隔离先通过。green.log120项通过，初轮flutter.log944项与分析通过。随后审查write-guard-red.log确认未保留本机账号的宿主关闭身份后仍调用准备回调（预期0，实际1）；首次write-red.log回调抛错已复现执行，捕获合成异常后重新保留次数断言RED。
 
 增加home/当前身份的统一准备条件，write-green.log138项通过，包含四项身份/准备保护、原控制器和WriteCoordinator回归。所有prepare使用脱敏回调，真实学校写入0。最终完整Flutter与根门禁进行中；此阶段无Bridge版本或协议变化，无新增原生/真实App/性能证据。
 
@@ -591,7 +591,7 @@ P2-G最终暂存敏感扫描5327文件与diff检查通过；源工作区保持�
 
 ## P4-AA 整学期导入 Bridge/App/课表页（2026-09-22）
 
-基线41bf5f4e，refs通过。/tmp/ubaa-p4aa-bridge-red.log缺begin/next；初版MockTransport断言方法名错误先修正后重新记录。bridge-green.log一项通过，实际在两批之间取得同一客户端锁执行所需路线恢复，并确认写意图、取消、dispose阻止下一批。App-red.log缺backend导入合同；初轮错误工作目录及枚举名噪声已修正，正式RED后app-green.log四项通过。
+基线41bf5f4e，refs通过。<private-evidence>/legacy-tmp/ubaa-p4aa-bridge-red.log缺begin/next；初版MockTransport断言方法名错误先修正后重新记录。bridge-green.log一项通过，实际在两批之间取得同一客户端锁执行所需路线恢复，并确认写意图、取消、dispose阻止下一批。App-red.log缺backend导入合同；初轮错误工作目录及枚举名噪声已修正，正式RED后app-green.log四项通过。
 
 controller-red.log缺任务入口、进度状态和取消合同；最终final-focused.log十项通过，包括后台/写意图暂停、逐批让位签到、同学期合并、当前查询保持、取消/路线/退出/清理迟到保护、首页刷新不取消、失败不重发和明确身份冲突。ui-red.log缺shell参数（初次非const构造噪声先移除），ui-green.log三项覆盖390/834/1280宽度与1.3倍文字、进度/取消/容量失败/重试/已保存状态。host-red.log真实断言保存回调为null，接线后host-green.log一项通过。全部合成，无真实学校写入。
 
@@ -603,7 +603,7 @@ codegen-check.log退出0，Bridge v27 FRB严格生成零漂移；layout零baseli
 
 ## P4-AB 离线课表自动导航与日期投影（2026-09-22）
 
-基线438390d8，refs通过。/tmp/ubaa-p4ab-ui-red.log两项真实失败：loading/stale中已有完整离线索引只发scheduleTerms，未继续教学周和周课表；部分索引保护先通过。修复后第一轮green仅因顶栏与周导航均显示同一周名而断言数量不符，明确验证两个既有位置，ui-final.log13项通过，含原父子返回和保存进度回归。
+基线438390d8，refs通过。<private-evidence>/legacy-tmp/ubaa-p4ab-ui-red.log两项真实失败：loading/stale中已有完整离线索引只发scheduleTerms，未继续教学周和周课表；部分索引保护先通过。修复后第一轮green仅因顶栏与周导航均显示同一周名而断言数量不符，明确验证两个既有位置，ui-final.log13项通过，含原父子返回和保存进度回归。
 
 core-red.log复现完整导入无学期索引退路及普通周缓存仍标记旧周/未知日期/错学期（[1,3,4]而非[2]）。最初测试命令误用不存在的test-support特性，修正为test-contract后保留实际RED。time-red.log缺索引独立观察方法；添加后模型测试证明索引取得时间100、逐周120和导入收尾999不混淆。固定UTC边界单测另覆盖校园午夜跨周和无覆盖日期，不依赖设备时区。Core、Flutter及原生最终门禁随后记录。
 
@@ -615,7 +615,7 @@ P4-AB候选重新执行双路线Core-live，原工作区只读凭据经stdin进�
 
 ## P4-AC 关联缓存与在途读取失效 Core（2026-09-22）
 
-基线771f7a04，refs通过。/tmp/ubaa-p4ac-red.log为缺typed失效合同和仓库方法，包含六领域已知/未知范围用例；green.log首三项通过，final-focused.log扩为六项，验证无旧条目的迟到请求被撤销、其他目标/账号/路线保留、新读可继续、所有相关资源分页、事务注入失败回滚、损坏请求范围不部分清除和v4迁移业务密文不变/退出状态保留/旧连接拒绝。所有操作为本地脱敏数据库，不调用学校写入或真实账号。
+基线771f7a04，refs通过。<private-evidence>/legacy-tmp/ubaa-p4ac-red.log为缺typed失效合同和仓库方法，包含六领域已知/未知范围用例；green.log首三项通过，final-focused.log扩为六项，验证无旧条目的迟到请求被撤销、其他目标/账号/路线保留、新读可继续、所有相关资源分页、事务注入失败回滚、损坏请求范围不部分清除和v4迁移业务密文不变/退出状态保留/旧连接拒绝。所有操作为本地脱敏数据库，不调用学校写入或真实账号。
 
 Core业务缓存升schema v5，Bridge v27/CLI v10不变；学校提交接线尚未完成。该阶段未新增真实App、Core-live或启动性能事实，P4-AB双路线结论保留原候选边界。完整门禁随后记录。
 
@@ -625,7 +625,7 @@ check.log首轮clippy要求合并相同match分支，并将103行测试表拆成
 
 ## P4-AD 写提交关联失效与只读补刷新（2026-09-22）
 
-基线2715377a。Bridge RED见/tmp/ubaa-p4ad-bridge-red.log（缺新提交合同）；实际路线测试route-red.log复现准备Direct、结果WebVPN却失效Direct的缺口，修正后bridge-reviewed.log五项通过，覆盖同意图不可重用、发送前资格拒绝不清缓存、未知结果不重发、部分评教及本地失败不覆盖学校成功。App RED见app-red.log及controller-red.log；focused.log共39项通过，覆盖原账号句柄、后台暂停补刷新、注销迟到结果、回读失败和未知结果。
+基线2715377a。Bridge RED见<private-evidence>/legacy-tmp/ubaa-p4ad-bridge-red.log（缺新提交合同）；实际路线测试route-red.log复现准备Direct、结果WebVPN却失效Direct的缺口，修正后bridge-reviewed.log五项通过，覆盖同意图不可重用、发送前资格拒绝不清缓存、未知结果不重发、部分评教及本地失败不覆盖学校成功。App RED见app-red.log及controller-red.log；focused.log共39项通过，覆盖原账号句柄、后台暂停补刷新、注销迟到结果、回读失败和未知结果。
 
 宿主真实点击准备/确认、单次脱敏提交、回读及后续同步失败：host-verified.log一项通过。此前host测试失败来自fixture初始列表未提供、通知后尚未pump以及把保留的禁用备用按钮误当旧资格；修正fixture和断言，未为此隐藏原版界面。原生FFI/合成宿主与最终门禁结果另记。上述均不是真实学校写入、真实App账号或性能证据。
 
@@ -633,7 +633,7 @@ check.log首轮clippy要求合并相同match分支，并将103行测试表拆成
 
 ## P4-AE 阳光概览学期与周期范围（2026-09-22）
 
-基线2bbe3a12。RED见/tmp/ubaa-p4ae-red.log（缺周期读取/发布模块）。green.log的Unavailable来自新fixture未建立根目录；修正fixture后green-final.log暴露子票据发布即消费、索引不能再用已消费子票据校验的实现错误，改为原父票据发布后green-verified.log四项通过。focused.log扩为五项通过，覆盖学期/分类/路线/周、日月投影不改正文、未知学期/部分失败、迟到父票据不撤销新子读、写后失效、旧单例不猜归属、非法范围/载荷与重开。
+基线2bbe3a12。RED见<private-evidence>/legacy-tmp/ubaa-p4ae-red.log（缺周期读取/发布模块）。green.log的Unavailable来自新fixture未建立根目录；修正fixture后green-final.log暴露子票据发布即消费、索引不能再用已消费子票据校验的实现错误，改为原父票据发布后green-verified.log四项通过。focused.log扩为五项通过，覆盖学期/分类/路线/周、日月投影不改正文、未知学期/部分失败、迟到父票据不撤销新子读、写后失效、旧单例不猜归属、非法范围/载荷与重开。
 
 facade-final.log两项Mock协议接线通过；学期接口失败的新未知范围Stored与旧已知范围Preserved分开断言，旧已知正文/时间和首页索引保持。没有新增学校请求或真实写入。首轮check.log由单函数116行触发clippy，抽出持久发布职责后重跑完整门禁；最终结果另记。
 
@@ -641,7 +641,7 @@ facade-final.log两项Mock协议接线通过；学期接口失败的新未知范
 
 ## P2-H 前台退避与网络变化恢复（2026-09-22）
 
-基线1af52ba7。/tmp/ubaa-p2h-red.log为缺onNetworkChanged；monitor-red.log为缺只读接口观察器；host-red.log为缺宿主stream接线。retry.log初八项通过，app-verified.log含新写保护及原恢复回归44项通过；query-verified.log十项退避/网络专项通过，包含失败学期查询原位更新和重复提示合并。写保护fixture先恢复合法会话才允许准备意图；首次fixture在未认证时setIntent被正确拒绝，不将该测试失败记作产品绕过保护。
+基线1af52ba7。<private-evidence>/legacy-tmp/ubaa-p2h-red.log为缺onNetworkChanged；monitor-red.log为缺只读接口观察器；host-red.log为缺宿主stream接线。retry.log初八项通过，app-verified.log含新写保护及原恢复回归44项通过；query-verified.log十项退避/网络专项通过，包含失败学期查询原位更新和重复提示合并。写保护fixture先恢复合法会话才允许准备意图；首次fixture在未认证时setIntent被正确拒绝，不将该测试失败记作产品绕过保护。
 
 监视器原widget计时测试在长pump收尾挂起，终止本任务测试进程后改用直接fake_async时钟，不改生产网络判定；host-verified.log两项监视器及一项宿主生命周期测试通过。首轮flutter.log因FeatureQuery使用对象身份相等的错误断言失败；修正为既有hasSameQuery语义后flutter-final.log退出0：57/66/463/284/22/39/54，共985项，格式/analyze通过。所有测试数据均合成，没有真实学校写入或真实登录材料。
 
@@ -649,11 +649,11 @@ native.log退出0：macOS系统NetworkInterface只读枚举调用与脱敏宿主
 
 空间维护只删除隔离区target/debug/deps中六小时前的本任务Core/Bridge可重建旧产物，84,819个文件，文件长度合计21.32 GiB；源工作区仍干净/ahead7，未删除冻结材料、运行会话或当前候选产物。
 
-OHOS：/tmp/ubaa-p2h-ohos.log退出0，锁定fork analyze、两项入口测试、API26工具链、无签名debug HAP与arm64 ELF门禁通过。构建删除的buildinfo及生成的本机SDK相对锁路径经diff核对后恢复HEAD原值；其余生成产物保持忽略。未在OHOS设备运行网络枚举/HUKS，不作为签名或发布证据。暂存diff和敏感扫描通过，原工作区仍未修改。
+OHOS：<private-evidence>/legacy-tmp/ubaa-p2h-ohos.log退出0，锁定fork analyze、两项入口测试、API26工具链、无签名debug HAP与arm64 ELF门禁通过。构建删除的buildinfo及生成的本机SDK相对锁路径经diff核对后恢复HEAD原值；其余生成产物保持忽略。未在OHOS设备运行网络枚举/HUKS，不作为签名或发布证据。暂存diff和敏感扫描通过，原工作区仍未修改。
 
 ## P2-I 无持久缓存希冀分段 facade（2026-09-22）
 
-基线f8ac79d8。/tmp/ubaa-p2i-red.log为缺新选项与begin/next合同；green.log首两项通过，路线测试因注入客户端没有可写配置目录失败，随后把路线往返/清理/弱引用用例放入可控制真实配置目录的Core单测，未修改生产路由权限。guard.log一项通过。facade-green.log三项、focused.log五项通过。身份审查新增identity-red.log（缺expected_identity），最小校验后identity-green.log六项通过，冲突只发UC状态请求、不继续课程读取。
+基线f8ac79d8。<private-evidence>/legacy-tmp/ubaa-p2i-red.log为缺新选项与begin/next合同；green.log首两项通过，路线测试因注入客户端没有可写配置目录失败，随后把路线往返/清理/弱引用用例放入可控制真实配置目录的Core单测，未修改生产路由权限。guard.log一项通过。facade-green.log三项、focused.log五项通过。身份审查新增identity-red.log（缺expected_identity），最小校验后identity-green.log六项通过，冲突只发UC状态请求、不继续课程读取。
 
 六项Mock覆盖旧项后新项、两次扫描都复查旧课程、逐批返回、显式目标/去重/课内顺序/空及缺失目标、取消迟到结果、普通课程失败与整体认证失败。请求仍由原runtime执行并在每次详情前重选课程；不创建OfflineCache或复制Cookie。尚无生产Bridge/App接线、真实账户、原生或性能证据。完整门禁结果另记。
 
@@ -661,7 +661,7 @@ check.log首轮因可避免的err().expect触发clippy的panic文档和err_expec
 
 ## P2-J 无缓存希冀 Bridge/App 接线（2026-09-22）
 
-基线e53024dd。/tmp/ubaa-p2j-bridge-red.log缺begin/next/options，bridge-green.log一项Mock通过：真实共享锁在索引后可供另一Bridge检查使用；待确认意图存在时begin/next无新增请求且意图不丢，取消后不继续，dispose保持原错误。app-red.log三项行为失败均为旧beginFeatureRead返回null；app-green.log五项通过，含原持久投影回归。
+基线e53024dd。<private-evidence>/legacy-tmp/ubaa-p2j-bridge-red.log缺begin/next/options，bridge-green.log一项Mock通过：真实共享锁在索引后可供另一Bridge检查使用；待确认意图存在时begin/next无新增请求且意图不丢，取消后不继续，dispose保持原错误。app-red.log三项行为失败均为旧beginFeatureRead返回null；app-green.log五项通过，含原持久投影回归。
 
 app-final-focused.log七项通过：无缓存摘要/单详情/批量渐进、原输入顺序投影、迟到代次拒绝、预期身份与非持久来源、缺密钥控制器仍传账号，以及生产Bridge投影经原调度器在首批后按索引→签到只读→详情执行。账户fixture首轮遗漏FeatureQueryBackend，导致查询按原合同unsupported，补齐fixture后通过。app-verified.log含既有恢复回归16项通过。
 
@@ -683,7 +683,7 @@ Direct真实App：seed-direct.log独立会话3认证+4课表只读PASS，1.807�
 
 WebVPN：seed-webvpn.log独立会话3认证+4课表只读PASS，累计1.731秒；app-webvpn.log退出0。宿主装配起首页600ms、缓存604ms、进入恢复RPC611ms；恢复挂起时入口切换成功。五来源success/实际WebVPN/complete=true，数量与本轮Direct同为2/2/6/73/11；希冀首批7059ms，全部完成105427ms，117条/contentBytes463931，业务写入0。不能仅凭数量相同断言两路线正文完全一致。
 
-私有安全日志与失败尝试索引归档到/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p5a，目录700、文件600；index.json SHA256为7f0fe70aa4f1b572cda5505ae6615bd9904aa2dc6a4f6c7fcb8c96ae56b26ca0。没有截图或会话/凭据副本。当前生产入口macOS debug已重新构建，未留集成测试runner作交付；最终门禁收尾。
+私有安全日志与失败尝试索引归档到<private-evidence>/offline-home-20260917/p5a，目录700、文件600；index.json SHA256为7f0fe70aa4f1b572cda5505ae6615bd9904aa2dc6a4f6c7fcb8c96ae56b26ca0。没有截图或会话/凭据副本。当前生产入口macOS debug已重新构建，未留集成测试runner作交付；最终门禁收尾。
 
 收尾：analyze-verified.log无问题，check.log退出0（Core两配置各302、facade83、Bridge134通过/2既有忽略、CLI端到端16及根门禁）。main-build.log正常macOS debug入口构建通过，artifact.log结构/实际签名沙箱与联网权限检查通过；refs、layout零baseline违例、5370文件敏感扫描通过。本阶段只新增验收入口及文档，Flutter生产行为未改，不重复累计P2-J的992项为新增测试。P1功能出口勾选，P0/P2/P3/P4/P5和整体目标仍未全量完成。
 
@@ -692,69 +692,69 @@ WebVPN：seed-webvpn.log独立会话3认证+4课表只读PASS，累计1.731秒�
 
 基点 dfea949e。实施前九列来源核对已追加于 source-parity-offline-recovery-2026-09-17.md，原 P4-D 的 DES 文字笔误纠正为实际沿用的 AES-128-CBC；协议实现没有换算法或常量。旧 CLI 聚合不变，新缓存刷新内部使用新的 begin/next facade；独立 Bridge/App 的生产批次接线尚待后续，不把 Core 能在批次间让位记为 App 抢占完成。
 
-RED：`/tmp/ubaa-p2k-red.log` 明确观察请求第一页却返回第二页仍被接受的失败；`/tmp/ubaa-p2k-scan-red.log` 又观察到 hasNextPage=false 与 pages=2 的第一页被误称完整。另一个测试夹具尝试对无 config_dir 的注入客户端改路线失败，随后用独立客户端替换检验弱归属；不把夹具错误算产品 RED。
+RED：`<private-evidence>/legacy-tmp/ubaa-p2k-red.log` 明确观察请求第一页却返回第二页仍被接受的失败；`<private-evidence>/legacy-tmp/ubaa-p2k-scan-red.log` 又观察到 hasNextPage=false 与 pages=2 的第一页被误称完整。另一个测试夹具尝试对无 config_dir 的注入客户端改路线失败，随后用独立客户端替换检验弱归属；不把夹具错误算产品 RED。
 
 实现按观察学期和页码/固定大小隔离；旧完整集合、原取得时间、新学期部分结果与选择指针分开。页码/大小或行学期错配拒绝；缺字段、重复项、矛盾结束和异常空页只算部分。缺本地缓存仍按同一客户端分段、核对可选账号；取消、退出、清理、新请求、客户端替换拒绝旧计划。测试中真实调用另一个 facade 签到只读操作插入两页之间，全部为脱敏 transport，无真实学校写入。
 
-聚焦 `/tmp/ubaa-p2k-green-final.log` 7 项通过；`/tmp/ubaa-p2k-check-final.log` 根门禁退出 0，Core 两配置各 302、facade 88、Bridge 134 通过/2 既有子进程入口忽略、CLI 端到端 16 项通过，fmt/clippy、Shell 合同、构建与文档通过。refs、layout 0 baseline、敏感扫描 5374 文件及暂存 diff 检查通过。Bridge v29、CLI v10、schema v5 不变；本批 Bridge 只更新测试种子以匹配新学期缓存，未新增公开接口或 codegen。未运行新 Bridge 原生、真实 App 或冷启动测量，P5-A 旧候选证据不继承为此候选通过。SPOC 单详情仍在旧内部聚合路径，后续分段须另外完成，不能据此宣布整个 SPOC 结束。
+聚焦 `<private-evidence>/legacy-tmp/ubaa-p2k-green-final.log` 7 项通过；`<private-evidence>/legacy-tmp/ubaa-p2k-check-final.log` 根门禁退出 0，Core 两配置各 302、facade 88、Bridge 134 通过/2 既有子进程入口忽略、CLI 端到端 16 项通过，fmt/clippy、Shell 合同、构建与文档通过。refs、layout 0 baseline、敏感扫描 5374 文件及暂存 diff 检查通过。Bridge v29、CLI v10、schema v5 不变；本批 Bridge 只更新测试种子以匹配新学期缓存，未新增公开接口或 codegen。未运行新 Bridge 原生、真实 App 或冷启动测量，P5-A 旧候选证据不继承为此候选通过。SPOC 单详情仍在旧内部聚合路径，后续分段须另外完成，不能据此宣布整个 SPOC 结束。
 
 
 ## P2-L：SPOC 首页生产分段 Bridge/App（2026-09-22）
 
-基点 69d48bd6。App RED `/tmp/ubaa-p2l-red.log` 观察到 SPOC beginFeatureRead 返回 null；随后新增真实生产 adapter，按当前学期/课程/页调用 Bridge v30。取消 RED `/tmp/ubaa-p2l-cancel-red.log` 观察打开详情后仍发送首页第二页；取消保护现同时覆盖 Judge/SPOC，保留已呈现首页摘要。
+基点 69d48bd6。App RED `<private-evidence>/legacy-tmp/ubaa-p2l-red.log` 观察到 SPOC beginFeatureRead 返回 null；随后新增真实生产 adapter，按当前学期/课程/页调用 Bridge v30。取消 RED `<private-evidence>/legacy-tmp/ubaa-p2l-cancel-red.log` 观察打开详情后仍发送首页第二页；取消保护现同时覆盖 Judge/SPOC，保留已呈现首页摘要。
 
 Core 协议沿 P2-K 三操作，新 Bridge beginSpocScan/beginSpocOnline/nextSpocScan 每批持同一客户端锁且守住待确认写意图。App 首两步不发布空结果，页批次先呈现可用摘要；同学期与跨学期旧缓存分别保留，不更改旧取得时间，不把无密钥路径称已保存。页面取消、任务创建中账号变化、页响应迟到均受代次保护。现仅摘要使用分段；SPOC 单详情的原聚合前置另行收尾。
 
-`/tmp/ubaa-p2l-green.log` 首批 6 项通过；新增取消测试由完整 Flutter 门禁复验。`/tmp/ubaa-p2l-bridge.log` 1 项同时覆盖持久/无缓存路径、页间实际 Bridge 所需会话读取、写意图保留、取消及销毁；其传输全部脱敏。`/tmp/ubaa-p2l-codegen-check.log` 生成零漂移。`/tmp/ubaa-p2l-flutter-final.log` 999 项（57/66/477/284/22/39/54）与静态分析通过。`/tmp/ubaa-p2l-native.log` macOS 3 项通过：真实 FFI 新入口缺会话分类及缓存生命周期 1 项，生产 Dart 投影/控制器接脱敏 Bridge 的调度与切页 2 项。仍有 foreground 返回 1 的环境提示，不把这些断言视作可见窗口验收、真实学校分页或进程冷启动。
+`<private-evidence>/legacy-tmp/ubaa-p2l-green.log` 首批 6 项通过；新增取消测试由完整 Flutter 门禁复验。`<private-evidence>/legacy-tmp/ubaa-p2l-bridge.log` 1 项同时覆盖持久/无缓存路径、页间实际 Bridge 所需会话读取、写意图保留、取消及销毁；其传输全部脱敏。`<private-evidence>/legacy-tmp/ubaa-p2l-codegen-check.log` 生成零漂移。`<private-evidence>/legacy-tmp/ubaa-p2l-flutter-final.log` 999 项（57/66/477/284/22/39/54）与静态分析通过。`<private-evidence>/legacy-tmp/ubaa-p2l-native.log` macOS 3 项通过：真实 FFI 新入口缺会话分类及缓存生命周期 1 项，生产 Dart 投影/控制器接脱敏 Bridge 的调度与切页 2 项。仍有 foreground 返回 1 的环境提示，不把这些断言视作可见窗口验收、真实学校分页或进程冷启动。
 
-根门禁初轮因 4 处当前版本文档未同步而拒绝，补齐 v30；原生与 Flutter 没有用旧版本凑通过。`/tmp/ubaa-p2l-check-final.log` 根门禁退出 0：Core 两配置各 302、facade 88、Bridge 135 通过/2 既有忽略、CLI 端到端 16 项，fmt/clippy、构建、文档与 Shell 合同通过；refs/layout/敏感扫描 5381 文件通过。新私有会话 Core-live 两路线各 40 PASS/退出 0，Direct 累计 18.762 s、WebVPN 19.282 s；本次 WebVPN 有详情目标，不能继续沿用 P2-J 的两项不适用。旧 CLI 聚合通过与新 App 分段仍分列。真实 App 两路线退出 0，使用各自新私有运行目录，不复用或覆盖之前冻结会话。
+根门禁初轮因 4 处当前版本文档未同步而拒绝，补齐 v30；原生与 Flutter 没有用旧版本凑通过。`<private-evidence>/legacy-tmp/ubaa-p2l-check-final.log` 根门禁退出 0：Core 两配置各 302、facade 88、Bridge 135 通过/2 既有忽略、CLI 端到端 16 项，fmt/clippy、构建、文档与 Shell 合同通过；refs/layout/敏感扫描 5381 文件通过。新私有会话 Core-live 两路线各 40 PASS/退出 0，Direct 累计 18.762 s、WebVPN 19.282 s；本次 WebVPN 有详情目标，不能继续沿用 P2-J 的两项不适用。旧 CLI 聚合通过与新 App 分段仍分列。真实 App 两路线退出 0，使用各自新私有运行目录，不复用或覆盖之前冻结会话。
 
 真实App宿主装配计时：Direct shell 591 ms、缓存 595 ms、恢复 RPC 602 ms、希冀首批 5682 ms、全部完成 85082 ms；WebVPN 对应 593/598/606/6690/95802 ms。五来源成功完整，课表2/签到2/SPOC6/希冀73/阳光11条，其他7领域未触发，缓存119条/内容466780字节。数量相同不证明正文一致。两路线真实提交均0；当前真实 SPOC 集合只有6项，不将此样本说成多页学校数据覆盖，分页边界由脱敏两页测试证明。
 
-仓库外私有归档 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2l` 包含8份安全日志与变更源码摘要，目录0700/文件0600；index.json SHA256 `c8fb9d34df475c44019dab5957a71c4b848dd9abad0a2e2818c5ebf80d53235c`。不含截图、凭据、会话副本或真实正文。新会话及上下文元数据保持仓库外私有，测试清理了其独立 Keychain 前缀。正常 macOS main 已重新构建，构建/产物权限日志另为 `/tmp/ubaa-p2l-main-build.log` 与 `/tmp/ubaa-p2l-artifact.log`。未启动正常入口连接原配置。
+仓库外私有归档 `<private-evidence>/offline-home-20260917/p2l` 包含8份安全日志与变更源码摘要，目录0700/文件0600；index.json SHA256 `c8fb9d34df475c44019dab5957a71c4b848dd9abad0a2e2818c5ebf80d53235c`。不含截图、凭据、会话副本或真实正文。新会话及上下文元数据保持仓库外私有，测试清理了其独立 Keychain 前缀。正常 macOS main 已重新构建，构建/产物权限日志另为 `<private-evidence>/legacy-tmp/ubaa-p2l-main-build.log` 与 `<private-evidence>/legacy-tmp/ubaa-p2l-artifact.log`。未启动正常入口连接原配置。
 
 
 ## P2-M：SPOC 单详情前置分段（2026-09-22）
 
-基点 605b1917。来源核对沿原当前列表三操作及单详情双步骤，不借另一冻结来源省略全局目标核实。Core RED `/tmp/ubaa-p2m-red.log` 为新 facade 尚不存在；App RED `/tmp/ubaa-p2m-app-red.log` 为详情 beginFeatureRead 仍返回 null。最小实现复用 P2-K 列表前置，最后有界正文/可选补充批次不再扫全列表；旧 CLI 全量语义不变。独立详情票据、原客户端弱标识/会话/路线代次、取消和退出/清理在前置完成后仍校验。部分失败保留旧完整详情与原时间，无缓存不宣称持久保存。
+基点 605b1917。来源核对沿原当前列表三操作及单详情双步骤，不借另一冻结来源省略全局目标核实。Core RED `<private-evidence>/legacy-tmp/ubaa-p2m-red.log` 为新 facade 尚不存在；App RED `<private-evidence>/legacy-tmp/ubaa-p2m-app-red.log` 为详情 beginFeatureRead 仍返回 null。最小实现复用 P2-K 列表前置，最后有界正文/可选补充批次不再扫全列表；旧 CLI 全量语义不变。独立详情票据、原客户端弱标识/会话/路线代次、取消和退出/清理在前置完成后仍校验。部分失败保留旧完整详情与原时间，无缓存不宣称持久保存。
 
-Core 聚焦 `/tmp/ubaa-p2m-green-final.log` 11 项通过，其中新增4项覆盖前置2页和一次正文、必需目标核实、部分补充保旧、无缓存、前置结束后失效及正文在途取消。App `/tmp/ubaa-p2m-app-green.log` 10 项通过，包括新增3项详情等待/精确目标/部分保旧/迟到拒绝及原首页调度回归。Bridge v31 新 opaque 详情任务与生成绑定已接线，codegen 零漂移；`/tmp/ubaa-p2m-check.log` 退出0，Core两配置各302、facade92、Bridge136通过/2既有忽略、CLI端到端16项通过，fmt/clippy、Shell/构建/文档及layout门禁通过。`/tmp/ubaa-p2m-flutter-final.log` 1002项（57/66/480/284/22/39/54）与静态分析通过；初轮新增验收测试一处 if 缺花括号被分析器拒绝，补齐后完整复跑。`/tmp/ubaa-p2m-native.log` macOS真实FFI缺会话/缓存生命周期与脱敏生产Adapter调度共3项通过；foreground仍提示1，非独立可见窗口验收。
+Core 聚焦 `<private-evidence>/legacy-tmp/ubaa-p2m-green-final.log` 11 项通过，其中新增4项覆盖前置2页和一次正文、必需目标核实、部分补充保旧、无缓存、前置结束后失效及正文在途取消。App `<private-evidence>/legacy-tmp/ubaa-p2m-app-green.log` 10 项通过，包括新增3项详情等待/精确目标/部分保旧/迟到拒绝及原首页调度回归。Bridge v31 新 opaque 详情任务与生成绑定已接线，codegen 零漂移；`<private-evidence>/legacy-tmp/ubaa-p2m-check.log` 退出0，Core两配置各302、facade92、Bridge136通过/2既有忽略、CLI端到端16项通过，fmt/clippy、Shell/构建/文档及layout门禁通过。`<private-evidence>/legacy-tmp/ubaa-p2m-flutter-final.log` 1002项（57/66/480/284/22/39/54）与静态分析通过；初轮新增验收测试一处 if 缺花括号被分析器拒绝，补齐后完整复跑。`<private-evidence>/legacy-tmp/ubaa-p2m-native.log` macOS真实FFI缺会话/缓存生命周期与脱敏生产Adapter调度共3项通过；foreground仍提示1，非独立可见窗口验收。
 
 新私有会话下 SPOC Core-live 两路线各6 PASS（认证3、列表/诊断/详情3），Direct累计1.006s、WebVPN1.551s，实际集合6项/1页；不是再次全领域门禁。新增原生生产 Bridge/Adapter 实时详情测试两路线各1项通过：前置3批后同一真实目标详情取得347ms/698ms，重新打开backend和数据库后读到同目标完整副本且无资格/动作，第二backend缓存读取不恢复认证。该计时从详情任务开始，不含进程启动，也非整个UI导航。随机缓存密钥仅本次进程内持有并清零，不作为Keychain跨进程测试；持久Keychain证据仍沿P5-A/P2-L。
 
-日志与变更源码摘要归档于仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2m`（0700/0600），index.json SHA256 `6d5a1c37a6759540fb9d226e0107e257a8cc0cae38926c5cfb614512256a0feb`；不含正文、账号、密钥或会话副本，真实业务写入0。普通main已重建，产物权限检查另见 `/tmp/ubaa-p2m-main-build.log` 与 `/tmp/ubaa-p2m-artifact.log`，未启动正常入口连接源配置。
+日志与变更源码摘要归档于仓库外私有目录 `<private-evidence>/offline-home-20260917/p2m`（0700/0600），index.json SHA256 `6d5a1c37a6759540fb9d226e0107e257a8cc0cae38926c5cfb614512256a0feb`；不含正文、账号、密钥或会话副本，真实业务写入0。普通main已重建，产物权限检查另见 `<private-evidence>/legacy-tmp/ubaa-p2m-main-build.log` 与 `<private-evidence>/legacy-tmp/ubaa-p2m-artifact.log`，未启动正常入口连接源配置。
 
 
 ## P2-N：评教只读分段与恢复账号上下文（2026-09-22）
 
 基点 f17af8cd。四操作来源对照先于实现，保留当前任务1/10范围及旧读取容错，不动strict写前/提交整体事务。Core/Bridge v32增加激活/任务/问卷/课程批次，持久和无密钥路径核对身份并绑定原客户端/会话/路线/账号票据；取消、退出/清理、新请求和迟到课程受保护。完整前无有效提交目标，重复ID使结果部分；内部authority不留在计划或缓存，最终typed资格仍仅供唯一写协调器重新实时核实。
 
-RED：`/tmp/ubaa-p2n-red.log` 新facade不存在，`/tmp/ubaa-p2n-app-red.log` 原App评教不创建分段任务；`/tmp/ubaa-p2n-identity-red.log` 明确观察恢复后task.yhdm为空而非已核实学校标识。修复限新计划在身份核实后补齐原易失上下文，缺学校标识退用户名，两者均缺不请求。最初Bridge夹具误以为应取username，改按冻结old和现登录路径取schoolid后才暴露该真实遗漏；没有靠接受空参数凑通过。
+RED：`<private-evidence>/legacy-tmp/ubaa-p2n-red.log` 新facade不存在，`<private-evidence>/legacy-tmp/ubaa-p2n-app-red.log` 原App评教不创建分段任务；`<private-evidence>/legacy-tmp/ubaa-p2n-identity-red.log` 明确观察恢复后task.yhdm为空而非已核实学校标识。修复限新计划在身份核实后补齐原易失上下文，缺学校标识退用户名，两者均缺不请求。最初Bridge夹具误以为应取username，改按冻结old和现登录路径取schoolid后才暴露该真实遗漏；没有靠接受空参数凑通过。
 
-另加 `/tmp/ubaa-p2n-partial-error-red.log` 锁定新批次必须保留子请求网络错误；新错误只走稳定分类，不入库正文。完整前/部分行无动作，有账号时明确完整度，无账号部分不显示总进度；旧集合可追加新ID并保持原时间，完整后替换。现有网络变化能识别该临时失败；定时退避目前只覆盖认证失败，业务读取定时退避由后续阶段补齐，不将两者混记。
+另加 `<private-evidence>/legacy-tmp/ubaa-p2n-partial-error-red.log` 锁定新批次必须保留子请求网络错误；新错误只走稳定分类，不入库正文。完整前/部分行无动作，有账号时明确完整度，无账号部分不显示总进度；旧集合可追加新ID并保持原时间，完整后替换。现有网络变化能识别该临时失败；定时退避目前只覆盖认证失败，业务读取定时退避由后续阶段补齐，不将两者混记。
 
-Core聚焦 `/tmp/ubaa-p2n-core-green-final.log` 7项通过；Bridge真实同锁脱敏测试通过。`/tmp/ubaa-p2n-check.log` 根门禁退出0，`/tmp/ubaa-p2n-flutter.log` 1008项（57/66/486/284/22/39/54）及静态分析通过，codegen零漂移。`/tmp/ubaa-p2n-native.log` macOS 2项通过（实际FFI/缓存生命周期、脱敏生产Adapter课程批次让位）；仍有foreground=1提示，不计独立可见窗口。
+Core聚焦 `<private-evidence>/legacy-tmp/ubaa-p2n-core-green-final.log` 7项通过；Bridge真实同锁脱敏测试通过。`<private-evidence>/legacy-tmp/ubaa-p2n-check.log` 根门禁退出0，`<private-evidence>/legacy-tmp/ubaa-p2n-flutter.log` 1008项（57/66/486/284/22/39/54）及静态分析通过，codegen零漂移。`<private-evidence>/legacy-tmp/ubaa-p2n-native.log` macOS 2项通过（实际FFI/缓存生命周期、脱敏生产Adapter课程批次让位）；仍有foreground=1提示，不计独立可见窗口。
 
 新私有会话Core-live评教两路线各5PASS：认证3与all/pending2，Direct累计1.545s、WebVPN1.280s，旧接口均返回0，但其非认证失败降为空集合，不能据此证明激活或真实空集合；也非本次再次全领域门禁。
 
 
 原生生产Adapter/FFI：WebVPN r2退出0，2批、完整空集合、721ms、数据库重开成功、缓存无动作、业务写入0。Direct r1/r2在激活第一批即Partial且成功断言失败；r3保留错误后明确networkError/retryable=true、业务写入0，成功验收未通过。未记录上游正文、URL查询或凭据，不修改原激活守卫。旧Core-live的5PASS只证明旧接口容错返回，不提升为Direct业务成功。该外部失败不妨碍继续本地重试/生命周期实现。
 
-激活分支漏传稳定错误由 `/tmp/ubaa-p2n-activation-red.log` 复现；最小修复后 `/tmp/ubaa-p2n-activation-green.log` 8项通过（含旧完整缓存/时间保留）。测试第一轮误要求初次Partial完全不存记录，按既有Partial仓库合同改为先种完整缓存再验证保留；不改变存储合同以迎合测试。最终根门禁及正常main重建继续。
+激活分支漏传稳定错误由 `<private-evidence>/legacy-tmp/ubaa-p2n-activation-red.log` 复现；最小修复后 `<private-evidence>/legacy-tmp/ubaa-p2n-activation-green.log` 8项通过（含旧完整缓存/时间保留）。测试第一轮误要求初次Partial完全不存记录，按既有Partial仓库合同改为先种完整缓存再验证保留；不改变存储合同以迎合测试。最终根门禁及正常main重建继续。
 
-最终 `/tmp/ubaa-p2n-check-final.log` 退出0：Core两配置各302、facade99、Bridge137通过/2既有忽略、CLI端到端16及Shell/fmt/clippy/build/doc；refs/layout零baseline/敏感扫描5399通过。普通main重建及签名沙箱/联网权限通过。私有归档 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2n` 目录0700/文件0600，index.json SHA256 `1494dd2542a87bc656beb10cd6030f4dc33a5393d2930cd58aecf0a147afc3dc`。Flutter1008及原生合成2项为本阶段先前候选，随后仅补Core激活稳定错误与一项回归；Direct r3运行了该修复，WebVPN r2仍是修复前成功分支证据。
+最终 `<private-evidence>/legacy-tmp/ubaa-p2n-check-final.log` 退出0：Core两配置各302、facade99、Bridge137通过/2既有忽略、CLI端到端16及Shell/fmt/clippy/build/doc；refs/layout零baseline/敏感扫描5399通过。普通main重建及签名沙箱/联网权限通过。私有归档 `<private-evidence>/offline-home-20260917/p2n` 目录0700/文件0600，index.json SHA256 `1494dd2542a87bc656beb10cd6030f4dc33a5393d2930cd58aecf0a147afc3dc`。Flutter1008及原生合成2项为本阶段先前候选，随后仅补Core激活稳定错误与一项回归；Direct r3运行了该修复，WebVPN r2仍是修复前成功分支证据。
 
 
 ## P2-O：业务读取前台退避（2026-09-22）
 
-基点bf5e95b6。`/tmp/ubaa-p2o-red.log` 观察认证健康时30秒后仍仅1次查询；新增独立业务退避状态，复用原调度与认证入口。`/tmp/ubaa-p2o-route-red.log` 在所有首页启动任务收尾后，明确另一领域unavailable仍阻断当前ready目标，改为所需领域检查后通过；此前未等待首页收尾的夹具误通过，未当作缺陷修复证据。`/tmp/ubaa-p2o-green-final.log` 18项通过，包含8项新增业务行为。初次查询列表测试误用对象同一性，已改为精确term值验证。
+基点bf5e95b6。`<private-evidence>/legacy-tmp/ubaa-p2o-red.log` 观察认证健康时30秒后仍仅1次查询；新增独立业务退避状态，复用原调度与认证入口。`<private-evidence>/legacy-tmp/ubaa-p2o-route-red.log` 在所有首页启动任务收尾后，明确另一领域unavailable仍阻断当前ready目标，改为所需领域检查后通过；此前未等待首页收尾的夹具误通过，未当作缺陷修复证据。`<private-evidence>/legacy-tmp/ubaa-p2o-green-final.log` 18项通过，包含8项新增业务行为。初次查询列表测试误用对象同一性，已改为精确term值验证。
 
 覆盖30/60/300秒、成功停止、后台/待确认写操作阻挡、新查询替换、网络提示与在途合并、退出后迟到拒绝、不可重试错误及首页/显式查询隔离。无学校写入或协议参数变化；Bridge32/schema5/CLI10不变。完整根与Flutter门禁进行中。
 
 
-提交前审查补充 `/tmp/ubaa-p2o-home-red.log`：显式页保持打开时首次首页失败的提前返回绕过末尾通知，30秒后请求数仍2而非3；将重试同步放在请求finally收尾后，`green-final.log` 19项通过。第一次完整门禁的1016项记录不删除；修复后再次跑最终完整门禁。
+提交前审查补充 `<private-evidence>/legacy-tmp/ubaa-p2o-home-red.log`：显式页保持打开时首次首页失败的提前返回绕过末尾通知，30秒后请求数仍2而非3；将重试同步放在请求finally收尾后，`green-final.log` 19项通过。第一次完整门禁的1016项记录不删除；修复后再次跑最终完整门禁。
 
-P2-O最终候选：Flutter完整1017项（57/66/495/284/22/39/54）及静态分析通过；根门禁日志完成至doc与git diff --check，含Core302两配置/facade99/Bridge137+2既有忽略/CLI16，进程句柄在中断恢复后已不存在，未保留额外退出码文件。恢复后refs、敏感扫描5401和git diff --check再次通过。正常macOS main已构建且产物签名权限通过，不把构建当作原生交互或实时学校重试验证。本批仅App调度改变，无新Bridge/codegen；双路线最新学校证据仍按P2-N分列。安全日志私有归档 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2o`，index SHA256 `f1d79e718bb0c7ea1ac0be8cfb007408d02c62767dbfd06f5b07121892a726bd`。
+P2-O最终候选：Flutter完整1017项（57/66/495/284/22/39/54）及静态分析通过；根门禁日志完成至doc与git diff --check，含Core302两配置/facade99/Bridge137+2既有忽略/CLI16，进程句柄在中断恢复后已不存在，未保留额外退出码文件。恢复后refs、敏感扫描5401和git diff --check再次通过。正常macOS main已构建且产物签名权限通过，不把构建当作原生交互或实时学校重试验证。本批仅App调度改变，无新Bridge/codegen；双路线最新学校证据仍按P2-N分列。安全日志私有归档 `<private-evidence>/offline-home-20260917/p2o`，index SHA256 `f1d79e718bb0c7ea1ac0be8cfb007408d02c62767dbfd06f5b07121892a726bd`。
 
 
 ## P2-P：本地缓存故障与希冀在线读取分离（2026-09-23）
@@ -765,7 +765,7 @@ P2-O最终候选：Flutter完整1017项（57/66/495/284/22/39/54）及静态分�
 
 本候选完整 `just check`、refs、layout、敏感扫描通过，包含CLI端到端16项、Bridge138项（另2项由父测试启动的隔离子进程）、clippy、默认/测试注入Core合同、构建及文档。双路线与设备性能留在后续最终候选验收。新增审查点：人工计划部分批次在失去缓存后是否保留已有列表，需要独立行为复现和修复；本批不据此宣称所有内容稳定性已验收。
 
-日志位于仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2p-cache-fallback-20260923/`，无真实学校业务写入。
+日志位于仓库外私有目录 `<private-evidence>/offline-home-20260917/p2p-cache-fallback-20260923/`，无真实学校业务写入。
 
 | 日志 | SHA-256 |
 |---|---|
@@ -788,7 +788,7 @@ P2-O最终候选：Flutter完整1017项（57/66/495/284/22/39/54）及静态分�
 
 5项新测试覆盖部分与完整结束、路线、账号和查询隔离；连同回退/调度共28项聚焦通过。完整Flutter共1037项（57+66+514+285+22+39+54）及7包静态分析通过；完整just check通过，CLI端到端16、Core默认与test-contract、Bridge138等保持。修正状态文档遗漏的版本声明后已重新执行完整门禁。未改变FRB、原生或学校协议，此阶段不新增真实App/设备性能证据。
 
-日志在仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2q-judge-content-20260923/`。
+日志在仓库外私有目录 `<private-evidence>/offline-home-20260917/p2q-judge-content-20260923/`。
 
 | 日志 | SHA-256 |
 |---|---|
@@ -805,7 +805,7 @@ Core行为RED证明原在线计划不会保存完整详情；App行为RED证明�
 
 新增5项Core行为测试覆盖重开、路线隔离、取消/清理/退出/被替代、请求中清理、失败保留与容量错误；扫描回归25项通过。Bridge测试证明批次间可让位、写意图阻止下一批及取消；App7项新增测试覆盖批量缓存、损坏项隔离、离线完整度与目标顺序，连同回退共35项聚焦通过。完整Flutter1044项（57+66+521+285+22+39+54）和7包静态分析通过。完整just check、CLI端到端16项、FRB零漂移通过；macOS原生cache_bridge_test一项通过，包含新批量RPC参数/缺会话分类。仍有“Failed to foreground app; open returned 1”，仅记为原生FFI合成证据，不当作可见App、学校live或性能验收。
 
-日志在仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p3b-judge-batch-20260923/`。
+日志在仓库外私有目录 `<private-evidence>/offline-home-20260917/p3b-judge-batch-20260923/`。
 
 | 日志 | SHA-256 |
 |---|---|
@@ -827,7 +827,7 @@ Core行为RED证明原在线计划不会保存完整详情；App行为RED证明�
 
 新增13项行为测试，连同缓存与恢复47项聚焦通过。完整Flutter1057项（57+66+534+285+22+39+54）及7包静态分析、just check/Rust/CLI16项、refs/layout/敏感扫描通过；Bridge仍v34，Rust和生成绑定未变。macOS原生FFI一项通过，包括dispose后的明确clientDisposed与cacheFailure=null；前台化仍报告open返回1，只计原生合成，不计可见App或性能。随后iPhone 17 Pro/iOS26.5模拟器已通过同一FFI，见[iOS原生记录](offline-ios-native-2026-09-23.md)；安全材料后续结果另见P4-AG。
 
-日志在仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p2r-backend-recovery-20260923/`。
+日志在仓库外私有目录 `<private-evidence>/offline-home-20260917/p2r-backend-recovery-20260923/`。
 
 | 日志 | SHA-256 |
 |---|---|
@@ -847,7 +847,7 @@ Core行为RED为8项提示不持久；Bridge实际Mock单次未知提交后缺�
 
 macOS原生FFI一项通过（仍报告前台化open返回1，不计可见App）；iPad Pro 13-inch (M5)/iOS26.5模拟器原生缓存与安全材料两项通过。iPhone 17 Pro模拟器安全材料单项也通过，属于P2-R后续独立平台证据。均为原生合成，不发送真实学校业务写入，不证明进程性能或真实App双路线。
 
-日志位于仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p4ag-write-readback-20260923/`。早期日志沿用P4AF文件前缀，最终阶段定为P4-AG以避免与旧SPOC阶段编号冲突。
+日志位于仓库外私有目录 `<private-evidence>/offline-home-20260917/p4ag-write-readback-20260923/`。早期日志沿用P4AF文件前缀，最终阶段定为P4-AG以避免与旧SPOC阶段编号冲突。
 
 | 日志 | SHA-256 |
 |---|---|

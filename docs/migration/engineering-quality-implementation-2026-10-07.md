@@ -48,7 +48,7 @@ Rust `UbaaError` 新私有cause不进入JSON/FRB/磁盘。`UbaaError::new`和四
 
 ## 当前验证账本
 
-日志统一保存在仓库外私有目录 `/Users/moorefoss/Library/Application Support/UBAA-private-evidence/engineering-repair-20261007`。下表只记本次实际结果；临时RED日志与来源记录一同归档，不纳入Git。
+日志统一保存在仓库外私有目录 `<private-evidence>/engineering-repair-20261007`。下表只记本次实际结果；临时RED日志与来源记录一同归档，不纳入Git。
 
 | 入口 | 当前结果 | 证据 |
 |---|---|---|

@@ -36,7 +36,7 @@
 - `state/academic_terms.dart` 私有持有学期结果、在途 Future、优先级 demand 与 serial；成绩只经 `CurrentTermsReader` 和 `ReadScope` 获取当前学期。`state/read_caches.dart` 提供唯一内存缓存失效入口，业务清理和 backend 重建继续分别控制空投影与 stale 投影。
 - 生产改动仅在 `packages/ubaa_app/lib/src/controller/`。新增测试为 `test/session/completion_boundary_test.dart`、`test/reads/cache_ownership_test.dart`；既有 `test/session/preferences_test.dart` 仅增加两项“销毁立即清密码”断言，没有删除旧断言。没有 Host/Platform/UI/FRB/Core 生产改动来自本阶段。
 
-日志根目录：仓库外 `/tmp/ubaa2-engineering-dart-fix-20261007`，只含合成身份与安全断言。
+日志根目录：仓库外 `<private-evidence>/legacy-tmp/ubaa2-engineering-dart-fix-20261007`，只含合成身份与安全断言。
 
 | 阶段/命令（在 packages/ubaa_app 下） | 实际结果 |
 |---|---|

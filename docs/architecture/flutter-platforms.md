@@ -10,14 +10,14 @@
 
 ## 1. 锁定候选
 
-| 组件 | 候选版本/提交 | 本机位置 | 证据 |
+| 组件 | 候选版本/提交 | 配置入口 | 证据 |
 |---|---|---|---|
-| 官方 Flutter | 3.41.9 / `00b0c91f06209d9e4a41f71b7a512d6eb3b9c694` | `/Users/moorefoss/Dev/flutter-3.41.9` | `flutter --version` |
+| 官方 Flutter | 3.41.9 / `00b0c91f06209d9e4a41f71b7a512d6eb3b9c694` | `$UBAA_FLUTTER_HOME` | `flutter --version` |
 | Dart | 3.11.5 | 随上述两个 SDK | 两个 SDK 的 `flutter --version` |
-| OHOS Flutter fork | tag `3.41.10-ohos-1.0.1` / `adaf911c35c9136a7d18fc424d714c9ec7724e60` | `/Users/moorefoss/Dev/flutter-ohos-3.41.10` | fork release note 与 Git 提交 |
+| OHOS Flutter fork | tag `3.41.10-ohos-1.0.1` / `adaf911c35c9136a7d18fc424d714c9ec7724e60` | `$UBAA_OHOS_FLUTTER_HOME` | fork release note 与 Git 提交 |
 | FRB | 2.13.0 | Cargo/pub 锁文件 | Dart/Rust/codegen/macros 必须完全一致 |
 | Rust | 1.95.0 | `rust-toolchain.toml` | `rustc --version` |
-| DevEco/CLI | 26.0.0.821 / Hvigor 6.26.4 / ohpm 26.0.0.630（已安装） | `/Applications/DevEco-Studio.app/Contents`；`/Users/moorefoss/Code/bin/command-line-tools` | `check-toolchain.sh` 双布局预检 |
+| DevEco/CLI | 26.0.0.821 / Hvigor 6.26.4 / ohpm 26.0.0.630（已安装） | `/Applications/DevEco-Studio.app/Contents`；`$UBAA_DEVECO_HOME` | `check-toolchain.sh` 双布局预检 |
 | OpenHarmony SDK | API 26 / platform 26.0.0（已安装） | 上述 DevEco/CLI 的 `sdk` | `check-toolchain.sh` 与 `sdk-pkg.json` |
 
 官方资料：
@@ -99,7 +99,7 @@ iOS/Android 及 Windows/Linux/OHOS 的实际安全材料运行仍未验证，不
 ## 4. 可复现命令
 
 ```sh
-cd /Users/moorefoss/Code/UBAA
+# 在 UBAA2 仓库根目录执行
 just flutter-codegen-check
 just flutter-check
 just flutter-build platform=macos mode=debug

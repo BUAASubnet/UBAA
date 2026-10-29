@@ -6,7 +6,7 @@
 
 首次Direct启动因实施区没有.env.local而在任何学校请求前退出2；显式引用主区只读路径后执行了上述一轮，不创建实施区凭据副本。
 
-日志保存在仓库外私有目录 `/Users/moorefoss/.local/share/ubaa-private-evidence/offline-home-20260917/p4ag-write-readback-20260923/`。
+日志保存在仓库外私有目录 `<private-evidence>/offline-home-20260917/p4ag-write-readback-20260923/`。
 
 | 日志 | SHA-256 |
 |---|---|

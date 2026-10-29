@@ -66,6 +66,16 @@ pass() {
   printf 'ok %d - %s\n' "$pass_count" "$1"
 }
 
+for sdk_mode in official ohos; do
+  sdk_variable=UBAA_FLUTTER_HOME
+  if [[ $sdk_mode == ohos ]]; then sdk_variable=UBAA_OHOS_FLUTTER_HOME; fi
+  if UBAA_FLUTTER_HOME='' UBAA_OHOS_FLUTTER_HOME='' bash "$checker" "$sdk_mode" >"$test_root/missing.out" 2>"$test_root/missing.err"; then
+    fail '未配置 SDK 路径时必须拒绝'
+  fi
+  grep -F "$sdk_variable" "$test_root/missing.err" >/dev/null || fail "缺失配置必须提示 $sdk_variable"
+  pass "缺少 $sdk_variable 时给出明确提示"
+done
+
 run_checker() {
   local name=$1 commit=$2 version=$3 output=$4 mode=${5:-official}
   PATH="$test_root/fake-bin:$PATH" \

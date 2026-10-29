@@ -15,7 +15,7 @@
   "evidence": "native-ios-synthetic-ui",
   "acceptance": "原生旋转/主题颜色/草稿连续性通过，非全部领域或macOS验收",
   "device": "iPad Pro 11-inch (M5)",
-  "deviceId": "9F9D9C27-D085-467E-86B6-2960D0082ECC",
+  "deviceId": "<simulator-id>",
   "testResult": "XCTest1项+Flutter1场景通过；两主题10图，双进程退出0",
   "pngSha256": {
     "dark-rotation-before.png": "83b569ac36c4c6eec54fc81aa9b653b53d4f7e646d0079c70fc83504a6745b3a",

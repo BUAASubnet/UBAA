@@ -728,7 +728,7 @@ P3B公共容器补充：刷新状态切换的State保留、隐藏焦点隔离、
 
 所有时间字符串仅展示，不假定可 DateTime.parse 或排序；term/weeks 导航不自动执行网络操作。actions 完全保留，不用展示结构推断任何写资格。本段是实现前约束，后续测试日志单独记录，不代表真实只读或 UI PASS。
 
-本段确定性实施结果：先新增仅 domain 类型/可空接口和六项 App 投影测试，实际运行出现六项 `presentation=null` 预期失败，原十一项 characterization 仍通过（`p4-academic-red.log`）；完成 academic 纯投影后同入口 17 项通过（`p4-academic-green.log`）。domain 全部 28 项测试通过；两个受影响 package 的 `dart analyze` 均无问题。日志位于本轮私有 `/tmp/ubaa-ui-ux-20260908/`，由阶段证据归档决定是否纳入长期证据。这些结果仅证明合成数据字段、导航参数和既有请求转发保持，不代表 UI 已使用新结构或实时读取成功。现有 title/subtitle/fields/actions 保留；新增展示不恢复未公开的周表字段，不解析时间排序。
+本段确定性实施结果：先新增仅 domain 类型/可空接口和六项 App 投影测试，实际运行出现六项 `presentation=null` 预期失败，原十一项 characterization 仍通过（`p4-academic-red.log`）；完成 academic 纯投影后同入口 17 项通过（`p4-academic-green.log`）。domain 全部 28 项测试通过；两个受影响 package 的 `dart analyze` 均无问题。日志位于本轮私有 `<private-evidence>/legacy-tmp/ubaa-ui-ux-20260908/`，由阶段证据归档决定是否纳入长期证据。这些结果仅证明合成数据字段、导航参数和既有请求转发保持，不代表 UI 已使用新结构或实时读取成功。现有 title/subtitle/fields/actions 保留；新增展示不恢复未公开的周表字段，不解析时间排序。
 
 ## 2026-09-08 P4-B 读取上下文与父缓存失效（实现前边界）
 

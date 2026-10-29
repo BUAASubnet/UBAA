@@ -56,7 +56,7 @@
 
 ## 最终验证
 
-生产与测试整理候选为 `d2e3d53f`，最后补齐集成执行器的固定 SDK 校验、纠正迁移后的注释并记录验收；没有新增业务行为。所有日志保存在仓库外私有目录 `/Users/moorefoss/Library/Application Support/UBAA-private-evidence/maintainability-20261007`，不纳入 Git。
+生产与测试整理候选为 `d2e3d53f`，最后补齐集成执行器的固定 SDK 校验、纠正迁移后的注释并记录验收；没有新增业务行为。所有日志保存在仓库外私有目录 `<private-evidence>/maintainability-20261007`，不纳入 Git。
 
 | 验证 | 当前结果 | 日志 |
 |---|---|---|

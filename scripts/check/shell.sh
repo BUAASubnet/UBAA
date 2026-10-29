@@ -2,6 +2,10 @@
 # 检查仓库 Shell；宽松模式允许缺少 ShellCheck，严格模式必须执行 ShellCheck。
 set -euo pipefail
 
+script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
+# shellcheck source=../lib/toolchain.sh
+source "$script_dir/../lib/toolchain.sh"
+
 mode=${1:-lenient}
 case "$mode" in
   lenient|strict) ;;

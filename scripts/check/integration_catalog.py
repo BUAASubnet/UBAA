@@ -13,6 +13,8 @@ import sys
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dart_sources import SourceClosure, workspace_for
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
+from toolchain import load_environment
 
 
 ROOT = Path(__file__).resolve().parents[2]
@@ -104,7 +106,11 @@ def main():
                   f'CI={str(entry["ci"]):5} {entry["path"]}')
         return
     selected = select(entries, args.suite, args.platform)
-    flutter = Path(os.environ.get("UBAA_FLUTTER_HOME", "/Users/moorefoss/Dev/flutter-3.41.9")) / "bin" / "flutter"
+    os.environ.update(load_environment(ROOT))
+    flutter_root = os.environ.get("UBAA_FLUTTER_HOME", "")
+    if not flutter_root or not Path(flutter_root).is_absolute():
+        raise ValueError("请设置 UBAA_FLUTTER_HOME 为锁定官方 Flutter SDK 的绝对路径")
+    flutter = Path(flutter_root) / "bin" / "flutter"
     environment = os.environ.copy()
     # 即使从带账号的终端发起，常规回归也不会继承真实配置入口。
     for name in ("UBAA_CONFIG_DIR", "UBAA_LIVE_MATERIAL_SCOPE", "UBAA_TEST_USERNAME",

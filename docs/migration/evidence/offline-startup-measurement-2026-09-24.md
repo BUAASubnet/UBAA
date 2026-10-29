@@ -12,8 +12,8 @@
 
 ## RED→GREEN 与门禁
 
-1. 修改分析测试使四个补充来源使用实际输出字段 `finished`，先观察到完整首页样本被错误标记 `incomplete_home_coverage`（RED，日志 `/tmp/ubaa-p5b2-analysis-red.log`）。
-2. 按最小范围拆分主领域与补充来源校验，并要求成绩检查收尾信号；7 项 Python 合同测试通过（GREEN，日志 `/tmp/ubaa-p5b2-analysis-green.log`）。
+1. 修改分析测试使四个补充来源使用实际输出字段 `finished`，先观察到完整首页样本被错误标记 `incomplete_home_coverage`（RED，日志 `<private-evidence>/legacy-tmp/ubaa-p5b2-analysis-red.log`）。
+2. 按最小范围拆分主领域与补充来源校验，并要求成绩检查收尾信号；7 项 Python 合同测试通过（GREEN，日志 `<private-evidence>/legacy-tmp/ubaa-p5b2-analysis-green.log`）。
 3. Flutter 全量检查在接入调度诊断、成绩收尾回调和独立入口后通过：domain 57、platform 75、app 562、UI 287、bindings 23、host 53、Flutter 应用 55，共 1112 项；7 个包分析器均无问题。日志 SHA-256：`dea8524f9fa80f5c105a36da6f584aba57bbd4585cfe8e3f25b44c750412d9fe`。
 4. `just refs`、`just layout-check`、`just check-sensitive`、`just flutter-codegen-check` 已通过；Rust/Bridge 生成目录无漂移。本批没有改变学校协议或 FRB schema。
 

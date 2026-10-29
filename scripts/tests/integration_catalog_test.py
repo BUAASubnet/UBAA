@@ -4,6 +4,7 @@ import importlib.util
 from pathlib import Path
 import tempfile
 import unittest
+from unittest.mock import patch
 
 
 SCRIPT = Path(__file__).resolve().parents[1] / "check" / "integration_catalog.py"
@@ -13,6 +14,12 @@ spec.loader.exec_module(catalog)
 
 
 class CatalogTest(unittest.TestCase):
+    def test_执行预览也要求显式SDK路径(self):
+        with tempfile.TemporaryDirectory() as directory, patch.object(catalog, "ROOT", Path(directory)), patch.dict(catalog.os.environ, {}, clear=True), patch.object(
+            catalog.sys, "argv", [str(SCRIPT), "run", "--dry-run"]
+        ):
+            self.assertRaisesRegex(ValueError, "UBAA_FLUTTER_HOME", catalog.main)
+
     def entry(self, **overrides):
         return dict(path="sample_test.dart", kind="synthetic", domain="home",
                     platforms=["macos"], ci=True, inspection=False, **overrides)

@@ -6,7 +6,7 @@
 
 冻结 `examples/ubaa_old` 为 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，接口、DTO、本地实现和测试目录均没有 iHome。固定 `examples/buaa-api` 为 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`，`src/api.rs` 无 iHome；核对 `api/sso/auth.rs`、`request.rs`、`store/cookies.rs`、`store/cred.rs`，其 SSO/用户中心实现不能提供 iHome 的业务参数、Bearer 或切换写入协议。不得借用其他模块的字段、加密常量及错误。
 
-用户明确要求参考更新后的旧版。本次补充来源为本机 `/Users/moorefoss/Code/UBAA` 的提交 `d6dd8f2e5c8121e43f22cd1fbf15152ae87100e9`：`shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/IhomeApi.kt`、`IhomeUpstreamClient.kt`、`IhomeProtocol.kt`、`api/local/LocalIhomeApi.kt`、`model/dto/Ihome.kt`，以及 `shared/src/commonTest/kotlin/cn/edu/ubaa/api/Ihome{Protocol,UpstreamClient}Test.kt`、Compose 的 iHome 页面与 ViewModel。该仓库存在无关 Judge 未提交改动，iHome 文件无本地改动。冻结引用保持原提交，新增功能仅依据上述已提交 iHome 实现。历史真实观察见旧仓库 `docs/_audit/2026-09-17-ihome-live-api.md` 与 `2026-09-18-ihome-webvpn-login.md`；当前验证另行记录。
+用户明确要求参考更新后的旧版。本次补充来源为本机 `<private-evidence>/source-checkouts/UBAA` 的提交 `d6dd8f2e5c8121e43f22cd1fbf15152ae87100e9`：`shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/IhomeApi.kt`、`IhomeUpstreamClient.kt`、`IhomeProtocol.kt`、`api/local/LocalIhomeApi.kt`、`model/dto/Ihome.kt`，以及 `shared/src/commonTest/kotlin/cn/edu/ubaa/api/Ihome{Protocol,UpstreamClient}Test.kt`、Compose 的 iHome 页面与 ViewModel。该仓库存在无关 Judge 未提交改动，iHome 文件无本地改动。冻结引用保持原提交，新增功能仅依据上述已提交 iHome 实现。历史真实观察见旧仓库 `docs/_audit/2026-09-17-ihome-live-api.md` 与 `2026-09-18-ihome-webvpn-login.md`；当前验证另行记录。
 
 ## 逐操作协议
 

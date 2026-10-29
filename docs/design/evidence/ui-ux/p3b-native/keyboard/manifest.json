@@ -13,7 +13,7 @@
   "evidence": "native-ios-synthetic-ui",
   "acceptance": "原生稳定软键盘与成绩stale搜索通过，非全领域或macOS最终验收",
   "device": "iPhone 17 Pro",
-  "deviceId": "B196C00E-FDA6-45C2-BAC5-D7208B8D9DBD",
+  "deviceId": "<simulator-id>",
   "testResult": "四个业务场景通过；driver退出0；8张Flutter窗口原图和2张含系统键盘整机原图",
   "deviceScreenshots": [
     "dark-library-keyboard-device",

@@ -16,10 +16,10 @@ Noop统计客户端仍可显示开启，App/Host两项新行为测试分别RED�
 
 | 证据 | 仓库外日志 | SHA-256 |
 |---|---|---|
-| 路线生命周期RED | `/tmp/ubaa-route-lifecycle-red-20261002.log` | `b6601f071e2845c38b4398515f87e0319bd3e63303ca7e14d4939b578e5b2125` |
-| 统计App RED | `/tmp/ubaa-telemetry-red-app-20261002.log` | `bfeaca40675020c6d8a9f82a174fa6145cc4202f35d3f4e643cdd21d65722073` |
-| 统计Host RED | `/tmp/ubaa-telemetry-red-host-20261002.log` | `e6ad1190986a71a751a1e8b135ac77ac819a28e05ded49690d45c61ead762a38` |
-| 43项聚焦GREEN | `/tmp/ubaa-settings-green-20261002.log` | `fcf66857981341c06a55c531eba7f706e98b86f819ca8992d064159d0308dddb` |
-| 完整Flutter1269项 | `/tmp/ubaa-settings-flutter-20261002.log` | `e71b0c04d26b30fa769320a87c25e6b0eda8638a9dbe11a6fb90b6230919e242` |
-| Rust/CLI完整门禁 | `/tmp/ubaa-settings-check2-20261002.log` | `45c69bd9c1900bb935ba28ed12999cea8d550fc60b3bd3d6d376381a508121f6` |
-| 拆分后外壳14项 | `/tmp/ubaa-settings-shell-green-20261002.log` | `5893e12ab363397847492801d1957ad334c0ae82b2500a17b984a528d9c4f0b0` |
+| 路线生命周期RED | `<private-evidence>/legacy-tmp/ubaa-route-lifecycle-red-20261002.log` | `b6601f071e2845c38b4398515f87e0319bd3e63303ca7e14d4939b578e5b2125` |
+| 统计App RED | `<private-evidence>/legacy-tmp/ubaa-telemetry-red-app-20261002.log` | `bfeaca40675020c6d8a9f82a174fa6145cc4202f35d3f4e643cdd21d65722073` |
+| 统计Host RED | `<private-evidence>/legacy-tmp/ubaa-telemetry-red-host-20261002.log` | `e6ad1190986a71a751a1e8b135ac77ac819a28e05ded49690d45c61ead762a38` |
+| 43项聚焦GREEN | `<private-evidence>/legacy-tmp/ubaa-settings-green-20261002.log` | `fcf66857981341c06a55c531eba7f706e98b86f819ca8992d064159d0308dddb` |
+| 完整Flutter1269项 | `<private-evidence>/legacy-tmp/ubaa-settings-flutter-20261002.log` | `e71b0c04d26b30fa769320a87c25e6b0eda8638a9dbe11a6fb90b6230919e242` |
+| Rust/CLI完整门禁 | `<private-evidence>/legacy-tmp/ubaa-settings-check2-20261002.log` | `45c69bd9c1900bb935ba28ed12999cea8d550fc60b3bd3d6d376381a508121f6` |
+| 拆分后外壳14项 | `<private-evidence>/legacy-tmp/ubaa-settings-shell-green-20261002.log` | `5893e12ab363397847492801d1957ad334c0ae82b2500a17b984a528d9c4f0b0` |

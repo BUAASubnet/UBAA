@@ -52,7 +52,7 @@
 
 旋转前后保持同一 Shell、`2026-2027-1` 学期第 3 周和设备像素比 2。两门合成课程的最小文字对比度为 7.72。已查看横屏课表和带真实软键盘的原生截图，检查对象均为合成数据。
 
-iOS 证据保存在仓库外私有目录 `/Users/moorefoss/Documents/Codex/2026-10-27/integration_repair/`，有效运行目录为 `keyboard_c4d3cf1a-09ee-4b11-8add-8374b9f33acf`、`rotation_b0a97985-8846-453a-89ed-b0804f539818` 和 `rotation_4ea41973-6d51-460e-a595-148e1a506d89`。每轮使用独立运行标识，未覆盖失败轮的证据。
+iOS 证据保存在仓库外私有目录 `<private-evidence>/2026-10-27/integration_repair/`，有效运行目录为 `keyboard_c4d3cf1a-09ee-4b11-8add-8374b9f33acf`、`rotation_b0a97985-8846-453a-89ed-b0804f539818` 和 `rotation_4ea41973-6d51-460e-a595-148e1a506d89`。每轮使用独立运行标识，未覆盖失败轮的证据。
 
 ## 验证边界
 

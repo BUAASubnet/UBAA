@@ -6,13 +6,15 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../lib/repo.sh
 source "$script_dir/../lib/repo.sh"
 repo_root=$(ubaa_repo_root)
+# shellcheck source=../lib/toolchain.sh
+source "$script_dir/../lib/toolchain.sh"
 check_mode=${1:-check}
 if [[ $# -gt 0 ]]; then shift; fi
 if [[ "$check_mode" != check && "$check_mode" != dependencies ]]; then
   printf '%s\n' 'error: 只接受 check 或 dependencies 模式' >&2
   exit 2
 fi
-flutter_root=${UBAA_FLUTTER_HOME:-/Users/moorefoss/Dev/flutter-3.41.9}
+flutter_root=${UBAA_FLUTTER_HOME:?请设置 UBAA_FLUTTER_HOME 为锁定 Flutter SDK 的绝对路径}
 flutter_bin=$flutter_root/bin/flutter
 dart_bin=$flutter_root/bin/dart
 

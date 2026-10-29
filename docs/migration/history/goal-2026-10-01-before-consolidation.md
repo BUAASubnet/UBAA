@@ -6,7 +6,7 @@
 
 ## 基线与授权
 
-- 源工作区 `/Users/moorefoss/Code/UBAA2`，分支 `ubaa2`，起点 `d7c37f73`，核对时 tracked/untracked 工作区均干净。
+- 源工作区 `<repo-root>`，分支 `ubaa2`，起点 `d7c37f73`，核对时 tracked/untracked 工作区均干净。
 - 设计 `7273283a`、首页按需加载 `db4e198d` 均为起点祖先。引用管理 `f63e6d06`、首页/UI/图标 `8f66ce7e`、查询/预约及 golden `d7c37f73` 已完整继承，均为既有成果，不计本任务新增。
 - 实施区 `.worktrees/offline-home-20260917`，分支 `codex/offline-home-20260917`；源工作区不覆盖、不清理。冻结引用通过本地忽略的符号链接只读复用，`just refs` 已通过，不运行不必要的 bootstrap。
 - 用户授权所需本地实现、构建、调试、模拟器及独立阶段提交、按既有安全路径进行 Direct/WebVPN 真实只读；禁止真实业务写入。敏感输入只读，验收媒体置于仓库外私有目录。

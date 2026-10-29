@@ -65,6 +65,28 @@ class SensitiveTest(unittest.TestCase):
         (self.root / "safe.txt").write_text("普通源码")
         self.assertEqual(self.scan().returncode, 0)
 
+    def test_家目录路径在工作区与暂存区均拒绝且不输出正文(self):
+        for prefix in ("/" + "Users/", "/" + "home/", "C:" + "\\Users\\"):
+            for user in ("synthetic-person", "<private-evidence>", "<username>", "private"):
+                marker = prefix + user + ("\\" if "\\" in prefix else "/") + "report.txt"
+                with self.subTest(prefix=prefix, user=user):
+                    sample = self.root / "personal.txt"
+                    sample.write_text(marker)
+                    result = self.scan()
+                    self.assertNotEqual(result.returncode, 0)
+                    self.assertNotIn(marker, result.stdout + result.stderr)
+                    self.git("add", "personal.txt")
+                    sample.write_text("工作区已清理")
+                    self.assertNotEqual(self.scan().returncode, 0)
+                    self.git("rm", "-f", "--cached", "personal.txt")
+                    sample.unlink()
+
+    def test_逻辑占位和业务home路径允许(self):
+        (self.root / "safe.txt").write_text(
+            "<private-evidence>/run/log.txt\n<repo-root>/apps\n"
+            "https://example.invalid/api/home/student/data\n../features/home/reader.dart\n")
+        self.assertEqual(self.scan().returncode, 0)
+
     def test_Git读取失败明确退出且不打印工具正文(self):
         fake_bin = self.root / "fake-bin"
         fake_bin.mkdir()

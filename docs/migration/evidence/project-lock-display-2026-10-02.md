@@ -26,4 +26,4 @@
 | `lock-sensitive.log` | `b950391523c26e866b9063b2772ab06e95f152baf97a49aaf37bc5b364f9b03a` |
 | `lock-live.log` | `9664b07ed5dd969ceaca1b1a5593cb1648d7fcb9022faf4d439c30e69c92599a` |
 
-私有日志根：`/Users/moorefoss/Library/Application Support/UBAA-private-evidence/project-review-20261002-resume`。
+私有日志根：`<private-evidence>/project-review-20261002-resume`。
