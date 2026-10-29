@@ -64,6 +64,7 @@ class ToolchainEntryTest(unittest.TestCase):
                 result = self.run_entry(command, *arguments, direct=direct)
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertEqual(json.loads(result.stdout), [arguments, False])
+                self.assertEqual(result.stderr, '')
         self.assertFalse((self.root / 'forbidden').exists())
 
     def test_外部环境优先且配置不执行shell(self):

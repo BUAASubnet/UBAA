@@ -1,5 +1,4 @@
 set dotenv-load
-set dotenv-filename := ".env.toolchain"
 set dotenv-required := false
 set dotenv-path := ".env.toolchain"
 
@@ -9,17 +8,17 @@ set shell := ["bash", "-euo", "pipefail", "-c"]
 [no-cd]
 [positional-arguments]
 dart *args:
-    python3 "{{justfile_directory()}}/scripts/lib/toolchain.py" dart "$@"
+    @python3 "{{justfile_directory()}}/scripts/lib/toolchain.py" dart "$@"
 
 [no-cd]
 [positional-arguments]
 flutter *args:
-    python3 "{{justfile_directory()}}/scripts/lib/toolchain.py" flutter "$@"
+    @python3 "{{justfile_directory()}}/scripts/lib/toolchain.py" flutter "$@"
 
 [no-cd]
 [positional-arguments]
 flutter-ohos *args:
-    python3 "{{justfile_directory()}}/scripts/lib/toolchain.py" flutter-ohos "$@"
+    @python3 "{{justfile_directory()}}/scripts/lib/toolchain.py" flutter-ohos "$@"
 
 default:
     @just --list
