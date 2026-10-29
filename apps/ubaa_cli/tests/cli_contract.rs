@@ -2,9 +2,9 @@
 mod cgyy_cancel;
 #[path = "cli_contract/cgyy_reservation.rs"]
 mod cgyy_reservation;
-#[path = "cli_contract/common.rs"]
+#[path = "cli_contract/common/mod.rs"]
 mod common;
-#[path = "cli_contract/evaluation.rs"]
+#[path = "cli_contract/evaluation/mod.rs"]
 mod evaluation;
 #[path = "cli_contract/exit.rs"]
 mod exit;
