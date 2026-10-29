@@ -16,7 +16,7 @@ Rust Core 统一拥有认证、Direct/WebVPN/Auto 路线、会话、十二领域
 | 2：统一权威来源 | `fd96b0bf`、`c92806b4`：工具配置解析与转发、长期规则、门禁清单、冻结来源及开发约定 | 严格门禁、七包 1523 项、FRB 零漂移及文档站构建通过。原生两项流程失败和旧启动锁 EPERM 经监督复核保留为当时失败。 |
 | 3：门禁与 CI | `03beae27`、`7e2d486c`、`5b03cbdd`：保留原生能力、迁移夹具、修启动锁、统一脚本与版本、修 codegen 和 CI 配置 | 严格门禁、refs、布局、敏感扫描、文档链接/版本、FRB 零漂移通过。以 `c92806b4` 为基线的 check-changed 完整通过，七包 1526 项。监督者复核通过。 |
 | 4：文档瘦身与同步 | `308fa383`、`050be54b`：归档历史文档、修复现行链接、同步状态、决策索引和文档边界 | 现行文档断链为 0，旧决策逐字归档并保留索引，4000 个证据 JSON 原位保留。监督者复核通过。 |
-| 5：Rust 重构 | `19102297`、`00f40e01`、`b616bc53`、`fb73bac4`、`8d761ac9`、`fb8a60d4`、`81c6a0d6`、`bdc4232b`、`edeb41a4`、`db422ebd`、`29104992`、`69141903`、`aa687563`、`cdb65c22`、`a1d654ca`：依赖、错误与 HTTP 辅助、时区、SSO/缓存流程、CLI 契约和模块布局重构 | `cargo test --locked --workspace --all-features`、严格 Clippy、`just check-strict`、七包 Flutter、FRB 零漂移、保留集合 macOS 集成测试和阶段基线 check-plan/check-changed 均通过；协议边界保持不变。 |
+| 5：Rust 重构 | `19102297`、`00f40e01`、`b616bc53`、`fb73bac4`、`8d761ac9`、`fb8a60d4`、`81c6a0d6`、`bdc4232b`、`edeb41a4`、`db422ebd`、`29104992`、`69141903`、`aa687563`、`cdb65c22`、`a1d654ca`、`3cd9e3e5`：依赖、错误与 HTTP 辅助、时区、SSO/缓存流程、CLI 契约和模块布局重构 | `cargo test --locked --workspace --all-features`、严格 Clippy、`just check-strict`、七包 Flutter、FRB 零漂移、保留集合 macOS 集成测试和阶段基线 check-plan/check-changed 均通过；协议边界保持不变。 |
 
 阶段 3 原生 catalog 保留 10 个入口：`platform/*` 与 `synthetic/cache/*`。本机适用的 macOS 八个入口共 23 项通过，包含默认网络/插件/FFI/启动锁四入口的完整运行。启动锁由应用派生独立 Perl 进程持锁，从 PATH 查找解释器，不依赖终端访问应用容器的权限。照片首轮出现 SemanticsHandle 活跃断言，停止同时读取 UI 后代码不变重跑通过，首次失败保留。OHOS 工具链预检与 HUKS/网络插件合成合同通过，未构建 HAP 或运行设备验收。
 
