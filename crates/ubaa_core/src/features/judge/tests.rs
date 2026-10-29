@@ -1,5 +1,7 @@
 //! Judge parser、批量调度与日期边界的单元合同。
 
+mod performance;
+
 use super::calendar::{six_month_cutoff_from_shanghai, started_before_cutoff};
 use super::parser::parse_assignment_list;
 use super::{Course, parse_courses, parse_detail};

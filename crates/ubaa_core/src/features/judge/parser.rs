@@ -1,5 +1,8 @@
 //! Judge 课程、作业与详情 HTML 解析。
 
+use std::sync::LazyLock;
+
+use regex::Regex;
 use scraper::{ElementRef, Html, Selector};
 
 use crate::domain::{
@@ -9,17 +12,37 @@ use crate::domain::{
 
 use super::AssignmentList;
 
+// 这些对象只保存静态匹配规则；每份响应仍独立解析，不保留账号或业务内容。
+static ANCHORS: LazyLock<Selector> = LazyLock::new(|| selector("a[href]"));
+static BODY: LazyLock<Selector> = LazyLock::new(|| selector("body"));
+static TABLES: LazyLock<Selector> = LazyLock::new(|| selector("table"));
+static ROWS: LazyLock<Selector> = LazyLock::new(|| selector("tr"));
+static COURSE_ID: LazyLock<Regex> = LazyLock::new(|| regex(r"(?i)courselist\.jsp\?courseID=(\d+)"));
+static ASSIGNMENT_ID: LazyLock<Regex> = LazyLock::new(|| regex(r"(?i)assignID=(\d+)"));
+static MAX_SCORE: LazyLock<Regex> = LazyLock::new(|| regex(r"作业满分[：:]\s*([\d.]+)"));
+static TOTAL_PROBLEMS: LazyLock<Regex> = LazyLock::new(|| regex(r"共\s*(\d+)\s*道"));
+static TOTAL_SCORE: LazyLock<Regex> = LazyLock::new(|| regex(r"总分[：:]\s*([\d.]+)"));
+static EARNED_SCORE: LazyLock<Regex> = LazyLock::new(|| regex(r"得分[：:]\s*([\d.]+)"));
+static SCORE_MARKER: LazyLock<Regex> = LazyLock::new(|| regex(r"得分[：:]\s*[\d.]+"));
+static NUMBER: LazyLock<Regex> = LazyLock::new(|| regex(r"^\d+(?:\.\d+)?$"));
+static WINDOW: LazyLock<Regex> = LazyLock::new(|| {
+    regex(
+        r"作业时间[：:]\s*(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(?::\d{2})?)\s*至\s*(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(?::\d{2})?)",
+    )
+});
+
+fn regex(pattern: &str) -> Regex {
+    Regex::new(pattern).expect("静态希冀解析规则必须有效")
+}
+
 /// 提取课程链接，并排除虚构的课程 0 条目。
 pub fn parse_courses(html: &str) -> Vec<Course> {
     let document = Html::parse_document(html);
-    let anchors = selector("a[href]");
-    let course_id = regex::Regex::new(r"(?i)courselist\.jsp\?courseID=(\d+)")
-        .expect("static Judge course id regex");
     let mut courses = Vec::new();
-    for anchor in document.select(&anchors) {
+    for anchor in document.select(&ANCHORS) {
         let Some(id) = anchor
             .attr("href")
-            .and_then(|href| course_id.captures(href))
+            .and_then(|href| COURSE_ID.captures(href))
             .and_then(|capture| capture.get(1).map(|value| value.as_str()))
         else {
             continue;
@@ -40,16 +63,13 @@ pub fn parse_courses(html: &str) -> Vec<Course> {
 
 pub(super) fn parse_assignment_list(html: &str, course: &Course) -> AssignmentList {
     let document = Html::parse_document(html);
-    let anchors = selector("a[href]");
-    let assignment_id =
-        regex::Regex::new(r"(?i)assignID=(\d+)").expect("static Judge assignment id regex");
     let mut assignments = Vec::new();
     let mut raw_anchor_count = 0;
-    for anchor in document.select(&anchors) {
+    for anchor in document.select(&ANCHORS) {
         let Some(href) = anchor.attr("href") else {
             continue;
         };
-        let Some(id) = assignment_id
+        let Some(id) = ASSIGNMENT_ID
             .captures(href)
             .and_then(|capture| capture.get(1).map(|value| value.as_str()))
         else {
@@ -92,14 +112,13 @@ pub fn parse_detail(
     title: &str,
 ) -> crate::error::Result<JudgeAssignmentDetail> {
     let document = Html::parse_document(html);
-    let body_selector = selector("body");
     let root = document
-        .select(&body_selector)
+        .select(&BODY)
         .next()
         .unwrap_or_else(|| document.root_element());
     let plain = element_text(root, None);
-    let max_score = capture_number(&plain, r"作业满分[：:]\s*([\d.]+)");
-    let total = capture_number(&plain, r"共\s*(\d+)\s*道")
+    let max_score = capture_number(&plain, &MAX_SCORE);
+    let total = capture_number(&plain, &TOTAL_PROBLEMS)
         .and_then(|value| value.parse().ok())
         .unwrap_or(0);
     let (start_time, due_time) = capture_window(&plain);
@@ -128,7 +147,7 @@ pub fn parse_detail(
     } else {
         total
     };
-    let explicit_my_score = capture_number(&plain, r"总分[：:]\s*([\d.]+)");
+    let explicit_my_score = capture_number(&plain, &TOTAL_SCORE);
     let my_score = explicit_my_score
         .or_else(|| (!earned_scores.is_empty()).then(|| format_score(earned_scores.iter().sum())));
     let status = resolve_status(total_problems, submitted_count);
@@ -177,19 +196,14 @@ pub fn to_summary(detail: &JudgeAssignmentDetail) -> JudgeAssignmentSummary {
     }
 }
 
-fn capture_number(text: &str, pattern: &str) -> Option<String> {
-    regex::Regex::new(pattern)
-        .expect("static Judge number regex")
+fn capture_number(text: &str, pattern: &Regex) -> Option<String> {
+    pattern
         .captures(text)
         .and_then(|capture| capture.get(1).map(|value| value.as_str().to_string()))
 }
 
 fn capture_window(text: &str) -> (Option<String>, Option<String>) {
-    let regex = regex::Regex::new(
-        r"作业时间[：:]\s*(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(?::\d{2})?)\s*至\s*(\d{4}-\d{2}-\d{2}\s+\d{2}:\d{2}(?::\d{2})?)",
-    )
-    .expect("static Judge date regex");
-    let Some(capture) = regex.captures(text) else {
+    let Some(capture) = WINDOW.captures(text) else {
         return (None, None);
     };
     (
@@ -216,17 +230,15 @@ struct ParsedProblem {
 }
 
 fn parse_problems(document: &Html) -> Vec<ParsedProblem> {
-    let table_selector = selector("table");
-    let row_selector = selector("tr");
     let mut problems = Vec::new();
-    for table in document.select(&table_selector).filter(|table| {
+    for table in document.select(&TABLES).filter(|table| {
         !table
             .ancestors()
             .filter_map(ElementRef::wrap)
             .any(|ancestor| ancestor.value().name() == "table")
     }) {
         for row in table
-            .select(&row_selector)
+            .select(&ROWS)
             .filter(|row| nearest_ancestor_table(*row).is_some_and(|owner| owner == table))
         {
             let cells = row
@@ -299,7 +311,7 @@ fn estimate_submitted_count(text: &str) -> i32 {
         .filter_map(|section| text.find(section))
         .min()
         .unwrap_or(text.len());
-    let choice_count = count_matches(&text[..first_section], r"得分[：:]\s*[\d.]+");
+    let choice_count = SCORE_MARKER.find_iter(&text[..first_section]).count();
 
     let fill_answer_count = text.find("填空题").map_or(0, |start| {
         let after_heading = start + "填空题".len();
@@ -312,23 +324,16 @@ fn estimate_submitted_count(text: &str) -> i32 {
             })
             .min()
             .unwrap_or(text.len());
-        count_matches(&text[start..next_section], r"得分[：:]\s*[\d.]+")
+        SCORE_MARKER.find_iter(&text[start..next_section]).count()
     });
-    let programming_count = text.find("编程题").map_or(0, |start| {
-        count_matches(&text[start..], r"最后一次提交时间")
-    });
+    let programming_count = text
+        .find("编程题")
+        .map_or(0, |start| text[start..].matches("最后一次提交时间").count());
     let file_upload_count = text
         .find("文件上传题")
-        .map_or(0, |start| count_matches(&text[start..], r"初次提交时间"));
+        .map_or(0, |start| text[start..].matches("初次提交时间").count());
     i32::try_from(choice_count + fill_answer_count + programming_count + file_upload_count)
         .unwrap_or(i32::MAX)
-}
-
-fn count_matches(text: &str, pattern: &str) -> usize {
-    regex::Regex::new(pattern)
-        .expect("static Judge fallback regex")
-        .find_iter(text)
-        .count()
 }
 
 fn detect_problem_status(text: &str) -> Option<JudgeSubmissionStatus> {
@@ -406,15 +411,14 @@ fn problem_status_text(status: JudgeSubmissionStatus) -> &'static str {
 
 fn parse_number(value: &str) -> Option<f64> {
     let value = normalize_text(value);
-    regex::Regex::new(r"^\d+(?:\.\d+)?$")
-        .expect("static Judge numeric regex")
+    NUMBER
         .is_match(&value)
         .then(|| value.parse().ok())
         .flatten()
 }
 
 fn parse_earned_score(value: &str) -> Option<f64> {
-    capture_number(&normalize_text(value), r"得分[：:]\s*([\d.]+)")?
+    capture_number(&normalize_text(value), &EARNED_SCORE)?
         .parse()
         .ok()
 }
