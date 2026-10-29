@@ -1,0 +1,16 @@
+{
+  "name": "ubaa-docs",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "docs:dev": "vitepress dev docs/site",
+    "docs:build": "vitepress build docs/site",
+    "docs:preview": "vitepress preview docs/site"
+  },
+  "devDependencies": {
+    "vitepress": "2.0.0-alpha.21"
+  },
+  "engines": {
+    "node": ">=22.12.0"
+  }
+}

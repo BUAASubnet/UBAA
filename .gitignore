@@ -63,3 +63,8 @@ session.json
 
 # Android Kotlin 编译缓存。
 /apps/ubaa_flutter/android/.kotlin/
+
+# VitePress 依赖与构建缓存。
+/node_modules/
+/docs/site/.vitepress/cache/
+/docs/site/.vitepress/dist/

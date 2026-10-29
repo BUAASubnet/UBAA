@@ -1,5 +1,7 @@
 # 文档索引
 
+用户网站入口见 [UBAA 使用指南](site/index.md)，构建和 GitHub Pages 配置见[网站维护手册](runbooks/docs-site.md)。本索引与工程文档保留在仓库中。
+
 ## 日常开发入口
 
 - [当前执行合同](../goal.md)

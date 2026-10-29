@@ -59,6 +59,9 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 
 完整文档入口见[文档索引](docs/index.md)。
 
+用户网站源码见 [UBAA 使用指南](docs/site/index.md)。运行 `npm ci`、`npm run docs:dev` 可本地编辑，
+`npm run docs:build` 构建并检查站内链接。GitHub Pages 启用与分支切换见[网站维护手册](docs/runbooks/docs-site.md)。
+
 修改协议先定位 Core 的对应领域；修改展示投影定位 `ubaa_app` 的 `bridge/features`；修改写入生命周期定位
 `ubaa_app` 的 `write` 与 `controller`；修改界面定位 `ubaa_ui`。共享 `WriteState`/`WriteOutcome` 位于
 `ubaa_domain`，`WriteCoordinator` 是应用层唯一生产写状态机；宿主向 UI 注入状态及 prepare/cancel/confirm
