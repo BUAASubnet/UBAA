@@ -550,4 +550,3 @@ impl RoutedCliBackend for FakeRoutedBackend {
         Err(test_routed_unavailable())
     }
 }
-

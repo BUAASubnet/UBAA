@@ -433,4 +433,3 @@ impl CliBackend for FakeBackend {
         Err(test_unavailable())
     }
 }
-
