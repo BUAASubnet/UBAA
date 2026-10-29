@@ -171,7 +171,6 @@ class AssignmentFilterControls extends StatelessWidget {
       ),
       if (filters.showExpired && onLoadHistory != null) ...[
         const SizedBox(height: 12),
-        const Text('当前仅筛选已加载作业，历史作业尚未全部加载。'),
         TextButton.icon(
           onPressed: onLoadHistory,
           icon: const Icon(Icons.history),

@@ -246,8 +246,6 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
                           widget.snapshot.evidence?.complete != false ||
                           widget.snapshot.evidence?.origin == DataOrigin.mixed,
                     ),
-                    if (!loading && widget.snapshot.evidence?.complete == false)
-                      const Text('部分内容尚未更新完成'),
                   ],
                 ),
               ),
@@ -273,13 +271,6 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
             const SizedBox(height: 12),
             if (loading && visible.isEmpty && _page == null)
               const LoadingPlaceholder(compact: true),
-            if (!loading && _page?.evidence?.complete == false) ...[
-              const Text('打卡记录尚未核对完整'),
-              TextButton(
-                onPressed: loading ? null : () => _load(widget.query),
-                child: const Text('重新核对记录'),
-              ),
-            ],
             if (!loading &&
                 (_page?.errorCode != null ||
                     widget.snapshot.error != null)) ...[

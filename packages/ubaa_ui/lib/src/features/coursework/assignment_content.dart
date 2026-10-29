@@ -3,6 +3,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/text.dart' show uiNonBlank;
+import '../../shared/when.dart'
+    show uiCampusNow, uiDeadlineHint, uiParseCampusTime, uiShortDateTime;
 
 bool uiSupportsAssignmentContent(
   FeatureId feature,
@@ -128,14 +130,74 @@ class AssignmentCard extends StatelessWidget {
     if (!summary) return _AssignmentDetail(detail: detail, wide: wide);
     final target = detail.readNavigation;
     final canOpen = target != null && onNavigate != null;
-    return Card(
+    final theme = Theme.of(context);
+    final scheme = theme.colorScheme;
+    final state = switch (p) {
+      SpocAssignmentPresentation p => p.status,
+      JudgeAssignmentPresentation p => p.status,
+      _ => AssignmentSubmissionStatus.unknown,
+    };
+    final label = switch (state) {
+      AssignmentSubmissionStatus.submitted => '已提交',
+      AssignmentSubmissionStatus.partial => '部分提交',
+      AssignmentSubmissionStatus.unsubmitted => '未提交',
+      AssignmentSubmissionStatus.unknown => uiNonBlank(status),
+    };
+    final (tagFg, tagBg) = switch (state) {
+      AssignmentSubmissionStatus.submitted => (
+        scheme.onPrimaryContainer,
+        scheme.primaryContainer,
+      ),
+      AssignmentSubmissionStatus.partial => (
+        scheme.onTertiaryContainer,
+        scheme.tertiaryContainer,
+      ),
+      AssignmentSubmissionStatus.unsubmitted => (
+        scheme.onErrorContainer,
+        scheme.errorContainer,
+      ),
+      AssignmentSubmissionStatus.unknown => (
+        scheme.onSurfaceVariant,
+        scheme.surfaceContainerHighest,
+      ),
+    };
+    final deadline = uiParseCampusTime(due);
+    final hint = deadline == null ? null : uiDeadlineHint(deadline);
+    final urgent =
+        deadline != null &&
+        state != AssignmentSubmissionStatus.submitted &&
+        deadline.isAfter(uiCampusNow()) &&
+        deadline.difference(uiCampusNow()) <= const Duration(days: 3);
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: scheme.onSurfaceVariant,
+    );
+    final meta = switch (p) {
+      SpocAssignmentPresentation p => [
+        if (uiNonBlank(p.teacherName) case final t?)
+          t.replaceAll(RegExp(r'\s*[,，]\s*'), '、'),
+        if (uiNonBlank(p.score) case final s?) '分值 $s',
+      ],
+      JudgeAssignmentPresentation p => [
+        if (p.totalProblems > 0) '已交 ${p.submittedCount}/${p.totalProblems} 题',
+        if (uiNonBlank(p.myScore) case final s?)
+          '得分 $s${uiNonBlank(p.maxScore) == null ? '' : '/${p.maxScore}'}'
+        else if (uiNonBlank(p.maxScore) case final m?
+            when (double.tryParse(m) ?? 1) > 0)
+          '满分 $m',
+      ],
+      _ => const <String>[],
+    };
+    return Card.outlined(
       margin: EdgeInsets.zero,
-      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(color: scheme.outlineVariant),
+      ),
+      clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: canOpen ? () => onNavigate!(target) : null,
-        borderRadius: BorderRadius.circular(16),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -145,66 +207,64 @@ class AssignmentCard extends StatelessWidget {
                   Expanded(
                     child: Text(
                       detail.title,
-                      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.w600,
-                        height: 1.4,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: theme.textTheme.titleMedium?.copyWith(
+                        fontWeight: FontWeight.bold,
                       ),
                     ),
                   ),
-                  if (p is! JudgeAssignmentPresentation ||
-                      p.status != AssignmentSubmissionStatus.unknown) ...[
+                  if (label != null) ...[
                     const SizedBox(width: 12),
-                    ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 132),
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                          horizontal: 10,
-                          vertical: 6,
-                        ),
-                        decoration: BoxDecoration(
-                          color: Theme.of(
-                            context,
-                          ).colorScheme.surfaceContainerLow,
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Text(
-                          uiNonBlank(status) ?? '提交状态未知',
-                          style: Theme.of(context).textTheme.labelMedium,
+                    Container(
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 3,
+                      ),
+                      decoration: BoxDecoration(
+                        color: tagBg,
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        label,
+                        style: theme.textTheme.labelMedium?.copyWith(
+                          color: tagFg,
                         ),
                       ),
                     ),
                   ],
                 ],
               ),
-              const SizedBox(height: 8),
-              if (p is SpocAssignmentPresentation) ...[
-                if (uiNonBlank(p.teacherName) case final teacher?)
-                  _assignmentLine(context, '教师：$teacher'),
-                _assignmentLine(
-                  context,
-                  '开始：${uiNonBlank(p.startTime) ?? '未知'}',
+              const SizedBox(height: 4),
+              Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(
+                      text: uiNonBlank(due) == null
+                          ? '截止时间未提供'
+                          : '截止 ${uiShortDateTime(due!)}',
+                    ),
+                    if (hint != null)
+                      TextSpan(
+                        text: ' · $hint',
+                        style: urgent
+                            ? TextStyle(
+                                color: scheme.error,
+                                fontWeight: FontWeight.w600,
+                              )
+                            : null,
+                      ),
+                  ],
                 ),
-                _assignmentLine(context, '截止：${uiNonBlank(due) ?? '未知'}'),
-                if (uiNonBlank(p.score) case final score?)
-                  _assignmentLine(context, '分值：$score'),
-              ],
-              if (p is JudgeAssignmentPresentation) ...[
-                if (uiNonBlank(p.startTime) case final start?)
-                  _assignmentLine(context, '开始：$start'),
-                if (uiNonBlank(due) case final end?)
-                  _assignmentLine(context, '截止：$end'),
-                if (p.totalProblems > 0)
-                  _assignmentLine(
-                    context,
-                    '已提交 ${p.submittedCount} / ${p.totalProblems} 题',
-                  ),
-                if (uiNonBlank(p.maxScore) != null ||
-                    uiNonBlank(p.myScore) != null)
-                  _assignmentLine(
-                    context,
-                    '分数：${uiNonBlank(p.myScore) ?? '无'}${uiNonBlank(p.maxScore) == null ? '' : ' / ${p.maxScore}'}',
-                  ),
-              ],
+                style: muted,
+              ),
+              if (meta.isNotEmpty)
+                Text(
+                  meta.join(' · '),
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: muted,
+                ),
             ],
           ),
         ),
@@ -303,11 +363,15 @@ class _AssignmentDetail extends StatelessWidget {
         ),
         section('提交信息', [
           Text('状态：${uiNonBlank(status) ?? '未知'}'),
-          Text('开始时间：${uiNonBlank(start) ?? '未知'}'),
-          Text('截止时间：${uiNonBlank(due) ?? '未知'}'),
+          if (uiNonBlank(start) case final s?)
+            Text('开始时间：${uiShortDateTime(s)}'),
+          Text(
+            '截止时间：${uiNonBlank(due) == null ? '未知' : uiShortDateTime(due!)}',
+          ),
           if (p is SpocAssignmentPresentation) ...[
             if (uiNonBlank(p.score) case final score?) Text('分值：$score'),
-            if (uiNonBlank(p.submittedAt) case final time?) Text('提交时间：$time'),
+            if (uiNonBlank(p.submittedAt) case final time?)
+              Text('提交时间：${uiShortDateTime(time)}'),
           ],
           if (p is JudgeAssignmentPresentation) ...[
             if (p.totalProblems > 0)

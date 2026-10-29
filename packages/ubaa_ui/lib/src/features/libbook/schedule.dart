@@ -19,7 +19,6 @@ extension LibbookReservationSchedule on LibbookReservationFlowState {
           1;
 
   void _clearAreaSelection() {
-    _areaOptions = null;
     _areaSchedule = null;
     _reservationDay = _slotId = _selectedSeat = null;
     _hideSeats = true;
@@ -28,10 +27,6 @@ extension LibbookReservationSchedule on LibbookReservationFlowState {
   void _consumeAreaSchedule(List<FeatureDetail> details) {
     final p = details.length == 1 ? details.single.presentation : null;
     final previousArea = _areaSchedule?.id;
-    _areaOptions =
-        p is LibbookAreaDetailPresentation && p.id == widget.query.areaId
-        ? p
-        : null;
     _areaSchedule =
         p is LibbookAreaSchedulePresentation && p.id == widget.query.areaId
         ? p
@@ -160,36 +155,17 @@ extension LibbookReservationSchedule on LibbookReservationFlowState {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
         if (days.length > 1)
-          _libraryChoice('日期', _reservationDay, {
-            for (final day in days) day.day: day.day,
+          _chipRow('日期', _reservationDay, {
+            for (final day in days) day.day: uiShortDateTime(day.day),
           }, _chooseDay),
-        if (days.isEmpty)
-          Text(area.days.isEmpty ? '当前分区暂无可用日期。' : '日期信息无法唯一确认，请刷新后重试。'),
+        if (days.isEmpty) const Text('当前分区暂无可用日期。'),
         if (_selectedDay != null && slots.length > 1)
-          _libraryChoice('时段', _slotId, {
+          _chipRow('时段', _slotId, {
             for (final slot in slots)
               slot.id: '${slot.label} ${slot.start}–${slot.end}',
           }, _chooseSlot),
-        if (_selectedDay != null && slots.isEmpty)
-          Text(
-            _selectedDay!.timeSlots.isEmpty
-                ? '当前日期暂无可用时段。'
-                : '时段信息不完整或重复，请刷新后重试。',
-          ),
-        if (_selectedDay != null && days.length == 1)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text(
-              _selectedSlot != null && slots.length == 1
-                  ? '$_reservationDay · ${_selectedSlot!.start}–${_selectedSlot!.end}'
-                  : _reservationDay!,
-            ),
-          )
-        else if (_selectedSlot != null && slots.length == 1)
-          Padding(
-            padding: const EdgeInsets.symmetric(vertical: 8),
-            child: Text('${_selectedSlot!.start}–${_selectedSlot!.end}'),
-          ),
+        if (_selectedDay != null && slots.isEmpty) Text('当前日期暂无可用时段。'),
+        // 只有一个日期/时段时不再单独写一行，避免与上方选项重复。
       ],
     );
   }

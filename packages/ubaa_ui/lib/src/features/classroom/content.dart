@@ -6,6 +6,8 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/detail_fields.dart' show DetailField;
 import '../../shared/text.dart' show uiHiddenAcademicField;
+import '../../shared/app_bar_slot.dart' show UiAppBarPicker, UiAppBarSlot;
+import '../../shared/place_memory.dart' show UiPlaceKeys, UiPlaceMemory;
 
 /// 沿旧版楼栋分组和14节表格；只呈现已读取的原空闲令牌。
 class ClassroomContent extends StatefulWidget {
@@ -21,6 +23,35 @@ class _ClassroomContentState extends State<ClassroomContent> {
   final _horizontal = ScrollController();
   String? _selectedBuilding;
   bool _freeNow = false;
+  bool _restored = false;
+
+  /// 首次有数据时恢复上次的校区与楼栋。
+  void _restore(int campus, DateTime date, List<String> buildings) {
+    if (_restored || widget.details.isEmpty) return;
+    _restored = true;
+    final wantedCampus = int.tryParse(
+      UiPlaceMemory.read(context, UiPlaceKeys.classroomCampus) ?? '',
+    );
+    final building = UiPlaceMemory.read(context, UiPlaceKeys.classroomBuilding);
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      if (widget.query?.campus == null &&
+          wantedCampus != null &&
+          wantedCampus != campus &&
+          widget.onQuery != null) {
+        widget.onQuery!(FeatureQuery(campus: wantedCampus, date: date));
+        return;
+      }
+      if (building != null && buildings.contains(building)) {
+        setState(() => _selectedBuilding = building);
+      }
+    });
+  }
+
+  void _selectBuilding(String? building) {
+    setState(() => _selectedBuilding = building);
+    UiPlaceMemory.write(context, UiPlaceKeys.classroomBuilding, building ?? '');
+  }
 
   @override
   void dispose() {
@@ -105,92 +136,76 @@ class _ClassroomContentState extends State<ClassroomContent> {
       return !freeNow || p.sectionTokens.contains('$current');
     }).toList();
 
-    final wide = MediaQuery.sizeOf(context).width >= 600;
     final gutter = UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width);
     final availableColor = Theme.of(context).brightness == Brightness.dark
         ? const Color(0xFF4D735F)
         : const Color(0xFFD5E8D8);
-    final dateButton = OutlinedButton.icon(
-      icon: const Icon(Icons.date_range, size: 18),
-      label: Text(queryDate, maxLines: 1),
-      onPressed: widget.onQuery == null
-          ? null
-          : () => _pickDate(context, dateObj, campus),
+    _restore(campus, dateObj, availableBuildings);
+    UiAppBarSlot.publish(
+      context,
+      FeatureId.classroom,
+      UiAppBarPicker<int>(
+        key: const ValueKey('classroom-campus'),
+        tooltip: '切换校区',
+        value: campus,
+        options: [
+          for (final c in const [1, 2, 3]) (c, uiClassroomCampusName(c)),
+        ],
+        onSelected: widget.onQuery == null
+            ? null
+            : (newCampus) {
+                setState(() => _selectedBuilding = null);
+                UiPlaceMemory.write(
+                  context,
+                  UiPlaceKeys.classroomCampus,
+                  '$newCampus',
+                );
+                widget.onQuery?.call(
+                  FeatureQuery(campus: newCampus, date: dateObj),
+                );
+              },
+      ),
     );
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // 校区与日期决定读取条件；楼栋筛选只在本地过滤。手机把日期并入楼栋行以节省高度。
-        Padding(
-          padding: UbaaTheme.pageInsets(context, top: 8, bottom: 4),
+        // 校区很少切换，放到顶栏右上角；日期与楼栋、此刻空闲同一行。
+        SingleChildScrollView(
+          scrollDirection: Axis.horizontal,
+          padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
           child: Row(
             children: [
-              Expanded(
-                child: SegmentedButton<int>(
-                  showSelectedIcon: false,
-                  segments: const [
-                    ButtonSegment(value: 1, label: Text('学院路')),
-                    ButtonSegment(value: 2, label: Text('沙河')),
-                    ButtonSegment(value: 3, label: Text('杭州')),
-                  ],
-                  selected: {campus},
-                  onSelectionChanged: widget.onQuery == null
-                      ? null
-                      : (set) {
-                          final newCampus = set.first;
-                          if (newCampus != campus) {
-                            setState(() => _selectedBuilding = null);
-                            widget.onQuery?.call(
-                              FeatureQuery(campus: newCampus, date: dateObj),
-                            );
-                          }
-                        },
-                ),
+              // 与楼栋芯片同高，避免一行内高低不齐。
+              ActionChip(
+                avatar: const Icon(Icons.date_range, size: 18),
+                label: Text(queryDate),
+                onPressed: widget.onQuery == null
+                    ? null
+                    : () => _pickDate(context, dateObj, campus),
               ),
-              if (wide) ...[const SizedBox(width: 8), dateButton],
+              const SizedBox(width: 8),
+              if (current != null)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: FilterChip(
+                    label: const Text('此刻空闲'),
+                    selected: _freeNow,
+                    onSelected: (value) => setState(() => _freeNow = value),
+                  ),
+                ),
+              for (final building in availableBuildings)
+                Padding(
+                  padding: const EdgeInsets.only(right: 6),
+                  child: FilterChip(
+                    label: Text(building),
+                    selected: _selectedBuilding == building,
+                    onSelected: (selected) =>
+                        _selectBuilding(selected ? building : null),
+                  ),
+                ),
             ],
           ),
         ),
-        if (!wide || availableBuildings.isNotEmpty || current != null)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
-            child: Row(
-              children: [
-                if (!wide) ...[
-                  // 与楼栋芯片同高，避免一行内高低不齐。
-                  ActionChip(
-                    avatar: const Icon(Icons.date_range, size: 18),
-                    label: Text(queryDate),
-                    onPressed: widget.onQuery == null
-                        ? null
-                        : () => _pickDate(context, dateObj, campus),
-                  ),
-                  const SizedBox(width: 8),
-                ],
-                if (current != null)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: FilterChip(
-                      label: const Text('此刻空闲'),
-                      selected: _freeNow,
-                      onSelected: (value) => setState(() => _freeNow = value),
-                    ),
-                  ),
-                for (final building in availableBuildings)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: FilterChip(
-                      label: Text(building),
-                      selected: _selectedBuilding == building,
-                      onSelected: (selected) => setState(() {
-                        _selectedBuilding = selected ? building : null;
-                      }),
-                    ),
-                  ),
-              ],
-            ),
-          ),
         // 第四行：主体表格
         Expanded(
           child: LayoutBuilder(

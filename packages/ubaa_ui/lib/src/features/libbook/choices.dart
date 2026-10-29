@@ -1,7 +1,8 @@
 part of 'reservation_flow.dart';
 
 extension LibbookReservationChoices on LibbookReservationFlowState {
-  Widget buildChoices(BuildContext context) {
+  /// 楼馆即校区，切换很少，放到顶栏右上角。
+  void publishLibraryPicker(BuildContext context) {
     final libraries = _libraries
         .where(
           (item) =>
@@ -9,60 +10,25 @@ extension LibbookReservationChoices on LibbookReservationFlowState {
               _libraries.where((other) => other.id == item.id).length == 1,
         )
         .toList();
-    final selected = libraries.where((item) => item.id == _libraryId);
-    final library = selected.length == 1 ? selected.single : null;
-    final floors = library?.storeys ?? const <LibbookStoreyPresentation>[];
-    final areas = _areas
-        .map((d) => d.presentation)
-        .whereType<LibbookAreaPresentation>()
-        .where(_validArea)
-        .toList();
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        if (libraries.isNotEmpty)
-          _libraryChoice(
-            '楼馆',
-            _libraryId,
-            {
-              for (final item in libraries)
-                item.id: '${item.name} ${item.freeNum}/${item.totalNum}',
-            },
-            (id) => unawaited(
-              _chooseLibrary(libraries.singleWhere((p) => p.id == id)),
+    UiAppBarSlot.publish(
+      context,
+      FeatureId.libbook,
+      libraries.isEmpty
+          ? null
+          : UiAppBarPicker<String>(
+              key: const ValueKey('libbook-library'),
+              tooltip: '切换楼馆',
+              value: _libraryId,
+              options: [
+                for (final item in libraries)
+                  (item.id, uiLibraryShortName(item.name)),
+              ],
+              onSelected: _busy || widget.onQuery == null
+                  ? null
+                  : (id) => unawaited(
+                      _chooseLibrary(libraries.singleWhere((p) => p.id == id)),
+                    ),
             ),
-          ),
-        if (floors.isNotEmpty)
-          _libraryChoice(
-            '楼层',
-            _storeyId,
-            {
-              for (final floor in floors)
-                if (floor.id.trim().isNotEmpty &&
-                    floors.where((other) => other.id == floor.id).length == 1)
-                  floor.id: '${floor.name} ${floor.freeNum}/${floor.totalNum}',
-            },
-            (id) =>
-                unawaited(_chooseFloor(floors.singleWhere((p) => p.id == id))),
-          ),
-        if (areas.isNotEmpty)
-          _libraryChoice(
-            '分区',
-            _areaId,
-            {
-              for (final area in areas)
-                if (area.id.trim().isNotEmpty &&
-                    areas.where((other) => other.id == area.id).length == 1)
-                  area.id:
-                      '${area.name} · ${area.areaName} · 空闲 ${area.freeNum}/${area.totalNum}',
-            },
-            (id) =>
-                unawaited(_chooseArea(areas.singleWhere((p) => p.id == id))),
-          ),
-        if (_areaOptions != null && !_busy) const Text('日期与时段信息不完整，请刷新后重试。'),
-        if (_areaSchedule case final area? when !_busy)
-          _scheduleDetail(context, area),
-      ],
     );
   }
 
@@ -86,32 +52,10 @@ extension LibbookReservationChoices on LibbookReservationFlowState {
       crossAxisAlignment: CrossAxisAlignment.stretch,
       mainAxisSize: MainAxisSize.min,
       children: [
-        if (libraries.isNotEmpty)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-            child: Row(
-              children: [
-                for (final item in libraries)
-                  Padding(
-                    padding: const EdgeInsets.only(right: 6),
-                    child: FilterChip(
-                      label: Text(
-                        '${item.name} ${item.freeNum}/${item.totalNum}',
-                      ),
-                      selected: item.id == _libraryId,
-                      onSelected: _busy || widget.onQuery == null
-                          ? null
-                          : (_) => unawaited(_chooseLibrary(item)),
-                    ),
-                  ),
-              ],
-            ),
-          ),
         if (floors.isNotEmpty)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
               children: [
                 for (final floor in floors)
@@ -121,7 +65,7 @@ extension LibbookReservationChoices on LibbookReservationFlowState {
                       padding: const EdgeInsets.only(right: 6),
                       child: FilterChip(
                         label: Text(
-                          '${floor.name} ${floor.freeNum}/${floor.totalNum}',
+                          '${floor.name} · 空 ${floor.freeNum}/${floor.totalNum}',
                         ),
                         selected: floor.id == _storeyId,
                         onSelected: _busy || widget.onQuery == null
@@ -135,7 +79,7 @@ extension LibbookReservationChoices on LibbookReservationFlowState {
         if (areas.isNotEmpty)
           SingleChildScrollView(
             scrollDirection: Axis.horizontal,
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.symmetric(vertical: 4),
             child: Row(
               children: [
                 for (final area in areas)
@@ -145,7 +89,7 @@ extension LibbookReservationChoices on LibbookReservationFlowState {
                       padding: const EdgeInsets.only(right: 6),
                       child: FilterChip(
                         label: Text(
-                          '${area.name} · 空闲 ${area.freeNum}/${area.totalNum}',
+                          '${area.name} · 空 ${area.freeNum}/${area.totalNum}',
                         ),
                         selected: area.id == _areaId,
                         onSelected: _busy || widget.onQuery == null
@@ -156,48 +100,44 @@ extension LibbookReservationChoices on LibbookReservationFlowState {
               ],
             ),
           ),
-        if (_areaOptions != null && !_busy) const Text('日期与时段信息不完整，请刷新后重试。'),
       ],
     );
   }
 
-  Widget _libraryChoice(
+  /// 可左右滑动的一行选项；替代下拉框。
+  Widget _chipRow(
     String label,
     String? selected,
     Map<String, String> choices,
     ValueChanged<String> select,
-  ) => Padding(
-    padding: const EdgeInsets.only(top: 12),
-    child: InputDecorator(
-      decoration: InputDecoration(labelText: label, isDense: true),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          key: ValueKey('libbook-choice-$label'),
-          value: choices.containsKey(selected) ? selected : null,
-          isExpanded: true,
-          isDense: true,
-          itemHeight: null,
-          selectedItemBuilder: (_) => [
-            for (final text in choices.values)
-              Text(text, maxLines: 1, overflow: TextOverflow.ellipsis),
-          ],
-          items: [
-            for (final entry in choices.entries)
-              DropdownMenuItem(
-                value: entry.key,
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(vertical: 8),
-                  child: Text(entry.value),
-                ),
-              ),
-          ],
-          onChanged: _busy || widget.onQuery == null
-              ? null
-              : (value) {
-                  if (value != null) select(value);
-                },
-        ),
-      ),
+  ) => SingleChildScrollView(
+    key: ValueKey('libbook-choice-$label'),
+    scrollDirection: Axis.horizontal,
+    padding: const EdgeInsets.symmetric(vertical: 4),
+    child: Row(
+      children: [
+        for (final entry in choices.entries)
+          Padding(
+            padding: const EdgeInsets.only(right: 6),
+            child: ChoiceChip(
+              label: Text(entry.value),
+              selected: entry.key == selected,
+              onSelected: _busy || widget.onQuery == null
+                  ? null
+                  : (_) => select(entry.key),
+            ),
+          ),
+      ],
     ),
   );
+}
+
+/// “学院路校区图书馆”→“学院路”，顶栏只放得下短名。
+String uiLibraryShortName(String name) {
+  final short = name
+      .trim()
+      .replaceAll(RegExp(r'(校区)?图书馆$'), '')
+      .replaceAll(RegExp(r'校区$'), '')
+      .trim();
+  return short.isEmpty ? name.trim() : short;
 }

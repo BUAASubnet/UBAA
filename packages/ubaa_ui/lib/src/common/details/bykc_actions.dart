@@ -31,6 +31,8 @@ extension BykcDetailActions on _FeatureDetailListState {
     if (operation == null) return null;
     final target = selected ? deselect!.courseId : select!.courseId;
     final eligibility = selected ? deselect!.eligibility : select!.eligibility;
+    // 已过退选截止等不能退选的课程不再放一个灰按钮。
+    if (selected && eligibility == ActionEligibility.denied) return null;
     final allowed =
         widget.writesEnabled &&
         courseId > 0 &&

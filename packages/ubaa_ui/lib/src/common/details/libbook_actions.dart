@@ -18,13 +18,12 @@ extension LibbookDetailActions on _FeatureDetailListState {
         icon: const Icon(Icons.event_busy),
         label: const Text('取消预约'),
       ),
-      if (!canLibbookCancel)
+      if (!canLibbookCancel &&
+          libbookCancelAction.eligibility == ActionEligibility.denied)
         Padding(
           padding: const EdgeInsets.only(top: 4),
           child: Text(
-            libbookCancelAction.eligibility == ActionEligibility.denied
-                ? '该预约当前不可取消。'
-                : '当前取消资格无法确认，请刷新后重试。',
+            '该预约当前不可取消。',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ),
@@ -48,13 +47,12 @@ extension LibbookDetailActions on _FeatureDetailListState {
         icon: const Icon(Icons.event_available),
         label: const Text('预约此座位'),
       ),
-      if (!canLibbookReserve)
+      if (!canLibbookReserve &&
+          libbookReserveAction.eligibility == ActionEligibility.denied)
         Padding(
           padding: const EdgeInsets.only(top: 4),
           child: Text(
-            libbookReserveAction.eligibility == ActionEligibility.denied
-                ? '该座位当前不可预约。'
-                : '当前预约资格无法确认，请刷新后重试。',
+            '该座位当前不可预约。',
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ),

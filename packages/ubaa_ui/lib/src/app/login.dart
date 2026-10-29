@@ -243,9 +243,7 @@ class _UbaaLoginViewState extends State<UbaaLoginView>
                               ),
                             ),
                             onChanged: widget.onPasswordChanged,
-                            onSubmitted: (_) {
-                              if (_canSubmit) widget.onSubmit();
-                            },
+                            onSubmitted: (_) => _submitFromKeyboard(),
                           ),
                           if (widget.captcha.isNotEmpty) ...<Widget>[
                             const SizedBox(height: 16),
@@ -257,6 +255,7 @@ class _UbaaLoginViewState extends State<UbaaLoginView>
                                 labelText: '验证码',
                               ),
                               onChanged: widget.onCaptchaChanged,
+                              onSubmitted: (_) => _submitFromKeyboard(),
                             ),
                           ],
                           if (_verificationVisible &&
@@ -342,6 +341,16 @@ class _UbaaLoginViewState extends State<UbaaLoginView>
         ),
       ),
     );
+  }
+
+  /// 键盘回车提交：按输入框当前内容判断，不等外层重建后的属性。
+  void _submitFromKeyboard() {
+    if (!widget.isLoading &&
+        _usernameController.text.trim().isNotEmpty &&
+        _passwordController.text.isNotEmpty &&
+        (widget.verification == null || widget.verification!.canSubmit)) {
+      widget.onSubmit();
+    }
   }
 
   bool get _canSubmit =>

@@ -21,7 +21,7 @@ class BykcCourseCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -38,8 +38,13 @@ class BykcCourseCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(width: 12),
-                  BykcStatusChip(uiBykcDisplayStatus(course)),
+                  // 可选、已满由选课按钮与人数进度表达，不再重复标签。
+                  if (uiBykcDisplayStatus(course) case final status
+                      when status != BykcCourseStatus.available &&
+                          status != BykcCourseStatus.full) ...[
+                    const SizedBox(width: 12),
+                    BykcStatusChip(status),
+                  ],
                 ],
               ),
               BykcCardTags(

@@ -23,7 +23,7 @@ class BykcChosenCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
@@ -44,30 +44,28 @@ class BykcChosenCard extends StatelessWidget {
                 position: course.coursePosition,
                 time: uiBykcRange(course.courseStartDate, course.courseEndDate),
                 deadlineLabel: '退选截止',
-                deadline: course.courseCancelEndDate == null
-                    ? null
-                    : uiBykcDate(course.courseCancelEndDate!),
+                // 退选截止已过时不再显示。
+                deadline: switch (DateTime.tryParse(
+                  course.courseCancelEndDate?.trim() ?? '',
+                )) {
+                  final end? when DateTime.now().isBefore(end) => uiBykcDate(
+                    course.courseCancelEndDate!,
+                  ),
+                  _ => null,
+                },
               ),
               BykcCardFooter(
                 action: action,
-                summary: Wrap(
-                  spacing: 12,
-                  runSpacing: 4,
-                  children: [
-                    Text(
-                      uiBykcCheckinLabel(course.checkin),
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    Text(
-                      uiBykcPassLabel(course.pass),
-                      style: theme.textTheme.bodyMedium,
-                    ),
-                    if (course.score != null)
-                      Text(
-                        '${course.score} 分',
-                        style: theme.textTheme.bodyMedium,
-                      ),
-                  ],
+                summary: Text(
+                  [
+                    uiBykcCheckinLabel(course.checkin),
+                    uiBykcPassLabel(course.pass),
+                    if (course.score != null) '${course.score} 分',
+                  ].join(' · '),
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: course.pass == 1 ? theme.colorScheme.primary : null,
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
             ],

@@ -158,16 +158,10 @@ extension BykcDetails on _FeatureDetailListState {
                 ),
             ],
           ),
-          if (!canSelect && !canDeselect)
-            Padding(
+          if (!canSelect && !canDeselect && full)
+            const Padding(
               padding: EdgeInsets.only(top: 8),
-              child: Text(
-                full
-                    ? '该课程人数已满，当前不可选择。'
-                    : select?.eligibility == ActionEligibility.unknown
-                    ? '选课状态不完整，请刷新课程详情后重试。'
-                    : '当前没有可执行的选课或退选操作，请刷新后核对。',
-              ),
+              child: Text('该课程人数已满，当前不可选择。'),
             ),
         ],
       ],

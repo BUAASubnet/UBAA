@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../shared/when.dart' show uiDay;
 
 String uiBykcStatusLabel(BykcCourseStatus status) => switch (status) {
   BykcCourseStatus.preview => '预告',
@@ -49,12 +50,12 @@ String uiBykcPassLabel(int? value) => switch (value) {
   final code => '考核状态 $code',
 };
 
+/// 列表与详情统一为“11月7日 19:00”，跨年时带年份；无法解析时原样返回。
 String uiBykcDate(String value) {
   final date = DateTime.tryParse(value.trim());
   if (date == null || date.isUtc) return value.trim();
   String two(int value) => value.toString().padLeft(2, '0');
-  return '${date.year}-${two(date.month)}-${two(date.day)} '
-      '${two(date.hour)}:${two(date.minute)}';
+  return '${uiDay(date)} ${two(date.hour)}:${two(date.minute)}';
 }
 
 String? uiBykcRange(String? start, String? end) {
@@ -63,13 +64,18 @@ String? uiBykcRange(String? start, String? end) {
     return finish == null || finish.isEmpty ? null : '截至 ${uiBykcDate(finish)}';
   }
   if (finish == null || finish.isEmpty) return uiBykcDate(begin);
-  final a = uiBykcDate(begin), b = uiBykcDate(finish);
-  if (a.length == 16 &&
-      b.length == 16 &&
-      a.substring(0, 10) == b.substring(0, 10)) {
-    return '$a–${b.substring(11)}';
+  final a = DateTime.tryParse(begin), b = DateTime.tryParse(finish);
+  if (a != null &&
+      b != null &&
+      !a.isUtc &&
+      !b.isUtc &&
+      a.year == b.year &&
+      a.month == b.month &&
+      a.day == b.day) {
+    String two(int value) => value.toString().padLeft(2, '0');
+    return '${uiBykcDate(begin)}–${two(b.hour)}:${two(b.minute)}';
   }
-  return '$a–$b';
+  return '${uiBykcDate(begin)}–${uiBykcDate(finish)}';
 }
 
 // 沿冻结 resolveSelectTimeDisplay；只决定列表文案，不参与写入资格。
@@ -136,18 +142,16 @@ class BykcStatusChip extends StatelessWidget {
         status == BykcCourseStatus.available ||
         status == BykcCourseStatus.selected;
     return Container(
-      constraints: const BoxConstraints(minHeight: 34),
-      padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: emphasized
             ? colors.primaryContainer
             : colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(8),
       ),
       child: Text(
         uiBykcStatusLabel(status),
-        style: theme.textTheme.labelLarge?.copyWith(
-          fontWeight: FontWeight.w600,
+        style: theme.textTheme.labelMedium?.copyWith(
           color: emphasized
               ? colors.onPrimaryContainer
               : colors.onSurfaceVariant,

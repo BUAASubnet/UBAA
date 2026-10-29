@@ -79,7 +79,7 @@ Future<FeatureResult> _finishEvaluationRefresh(
             )
             .toList();
   return FeatureResult.success(
-    summary: value.complete ? selected.summary : '评教任务尚未核对完整',
+    summary: selected.summary,
     details: details,
     overview: value.complete || account != null ? selected.overview : null,
     resolvedRoute: route,

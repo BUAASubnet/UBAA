@@ -8,11 +8,13 @@ extension EvaluationCourseRows on _FeatureDetailListState {
         target != null && _selectedEvaluationKeys.contains(target.selectionKey);
     final theme = Theme.of(context);
     final title = Text(detail.title, style: theme.textTheme.titleMedium);
-    final reason = target == null && !presentation.isEvaluated
-        ? detail.action<EvaluationSubmitAction>()?.eligibility ==
-                  ActionEligibility.denied
-              ? '当前课程不允许提交评教。'
-              : '当前评教资格无法确认，请刷新后重试。'
+    // 只标出确定不可评的课程；资格未确认时不打扰用户。
+    final reason =
+        target == null &&
+            !presentation.isEvaluated &&
+            detail.action<EvaluationSubmitAction>()?.eligibility ==
+                ActionEligibility.denied
+        ? '当前课程不允许提交评教。'
         : null;
     // 资格说明只留短标签，完整原因在详情里查看。
     final subtitle = Row(
@@ -27,7 +29,7 @@ extension EvaluationCourseRows on _FeatureDetailListState {
               borderRadius: BorderRadius.circular(4),
             ),
             child: Text(
-              reason.startsWith('当前课程不允许') ? '不可评' : '资格待确认',
+              '不可评',
               style: theme.textTheme.labelSmall?.copyWith(
                 color: theme.colorScheme.onErrorContainer,
               ),

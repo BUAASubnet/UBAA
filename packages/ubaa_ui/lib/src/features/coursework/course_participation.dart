@@ -1,11 +1,12 @@
 import 'package:ubaa_ui/src/theme.dart';
-import '../../shared/academic_fields.dart' show AcademicInfo;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../../common/detail_fields.dart' show DetailField;
-import '../../shared/text.dart' show uiHiddenAcademicField, uiTimeRange;
+import '../../shared/text.dart' show uiHiddenAcademicField;
+import '../../shared/when.dart'
+    show uiCampusNow, uiClock, uiParseCampusTime, uiShortRange;
 import '../../theme.dart' show UbaaTheme;
 
 bool uiSupportsParticipationContent(
@@ -35,45 +36,107 @@ class CourseParticipationContent extends StatelessWidget {
   @override
   Widget build(BuildContext context) => feature == FeatureId.evaluation
       ? _EvaluationList(details: details, row: evaluationRow)
-      : ListView.separated(
-          padding: UbaaTheme.pageInsets(context),
-          itemCount: details.length,
-          separatorBuilder: (_, _) => const SizedBox(height: 16),
-          itemBuilder: (context, index) => _SigninCourseCard(
-            detail: details[index],
-            onSignin: onSignin,
-            writesEnabled: writesEnabled,
-          ),
+      : _SigninList(
+          details: details,
+          onSignin: onSignin,
+          writesEnabled: writesEnabled,
         );
+}
+
+/// 课前 10 分钟到下课前可以签到；其余时间只显示状态。
+const _signinLead = Duration(minutes: 10);
+
+enum _SigninPhase { open, upcoming, ended, unknown }
+
+({_SigninPhase phase, DateTime? opensAt}) _signinPhase(
+  SigninPresentation p,
+  DateTime now,
+) {
+  final begin = uiParseCampusTime(p.classBeginTime, day: now);
+  final end = uiParseCampusTime(p.classEndTime, day: now);
+  if (begin == null || end == null)
+    return (phase: _SigninPhase.unknown, opensAt: null);
+  final opens = begin.subtract(_signinLead);
+  if (now.isBefore(opens))
+    return (phase: _SigninPhase.upcoming, opensAt: opens);
+  if (now.isBefore(end)) return (phase: _SigninPhase.open, opensAt: opens);
+  return (phase: _SigninPhase.ended, opensAt: opens);
+}
+
+class _SigninList extends StatefulWidget {
+  const _SigninList({
+    required this.details,
+    required this.onSignin,
+    required this.writesEnabled,
+  });
+  final List<FeatureDetail> details;
+  final SigninStarter? onSignin;
+  final bool writesEnabled;
+  @override
+  State<_SigninList> createState() => _SigninListState();
+}
+
+class _SigninListState extends State<_SigninList> {
+  Timer? _tick;
+
+  @override
+  void initState() {
+    super.initState();
+    // 签到窗口按分钟变化，定时刷新按钮与状态。
+    _tick = Timer.periodic(const Duration(seconds: 30), (_) {
+      if (mounted) setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _tick?.cancel();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final now = uiCampusNow();
+    int rank(FeatureDetail d) {
+      final p = d.presentation! as SigninPresentation;
+      return switch (_signinPhase(p, now).phase) {
+        _SigninPhase.open => p.signStatus == 1 ? 1 : 0,
+        _SigninPhase.unknown => 1,
+        _SigninPhase.upcoming => 2,
+        _SigninPhase.ended => 3,
+      };
+    }
+
+    final ordered = [for (final (i, d) in widget.details.indexed) (i, d)]
+      ..sort((a, b) {
+        final r = rank(a.$2).compareTo(rank(b.$2));
+        return r != 0 ? r : a.$1.compareTo(b.$1);
+      });
+    return ListView.separated(
+      padding: UbaaTheme.pageInsets(context),
+      itemCount: ordered.length,
+      separatorBuilder: (_, _) => const SizedBox(height: 8),
+      itemBuilder: (context, index) => _SigninCourseCard(
+        detail: ordered[index].$2,
+        now: now,
+        onSignin: widget.onSignin,
+        writesEnabled: widget.writesEnabled,
+      ),
+    );
+  }
 }
 
 class _SigninCourseCard extends StatelessWidget {
   const _SigninCourseCard({
     required this.detail,
+    required this.now,
     required this.onSignin,
     required this.writesEnabled,
   });
   final FeatureDetail detail;
+  final DateTime now;
   final SigninStarter? onSignin;
   final bool writesEnabled;
-
-  String? get _notice {
-    final p = detail.presentation! as SigninPresentation;
-    final action = detail.action<SigninPerformAction>();
-    if (action == null || action.scheduleId.trim().isEmpty) {
-      return '未提供签到目标，请刷新课程后重试。';
-    }
-    if ((action.eligibility == ActionEligibility.denied && p.signStatus != 1) ||
-        (action.eligibility == ActionEligibility.allowed &&
-            p.signStatus != 0)) {
-      return '签到状态不一致，请刷新后重试';
-    }
-    return switch (action.eligibility) {
-      ActionEligibility.unknown => '当前签到资格无法确认，请刷新后重试。',
-      ActionEligibility.denied when p.signStatus != 1 => '当前课程不允许签到，请刷新确认。',
-      _ => null,
-    };
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -83,77 +146,105 @@ class _SigninCourseCard extends StatelessWidget {
     final allowed =
         action?.eligibility == ActionEligibility.allowed &&
         action!.scheduleId.trim().isNotEmpty;
+    final window = _signinPhase(p, now);
+    final canSignNow = !done && window.phase == _SigninPhase.open;
     final theme = Theme.of(context);
-    return Card(
-      color: done
-          ? theme.colorScheme.primaryContainer
-          : theme.colorScheme.surfaceContainerHighest,
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
+    final scheme = theme.colorScheme;
+    Widget tag(String text, Color fg, Color bg) => Container(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+      decoration: BoxDecoration(
+        color: bg,
+        borderRadius: BorderRadius.circular(8),
+      ),
+      child: Text(
+        text,
+        style: theme.textTheme.labelMedium?.copyWith(color: fg),
+      ),
+    );
+    final Widget? trailing = done
+        ? tag('已签到', scheme.onPrimaryContainer, scheme.primaryContainer)
+        : canSignNow && onSignin != null && action != null
+        ? FilledButton(
+            onPressed: writesEnabled && allowed
+                ? () => onSignin!(action)
+                : null,
+            child: const Text('签到'),
+          )
+        : switch (window.phase) {
+            _SigninPhase.upcoming => tag(
+              '${uiClock(window.opensAt!)} 起可签',
+              scheme.onSurfaceVariant,
+              scheme.surfaceContainerHighest,
+            ),
+            _SigninPhase.ended => tag(
+              '未签到',
+              scheme.onSurfaceVariant,
+              scheme.surfaceContainerHighest,
+            ),
+            _ => null,
+          };
+    final time =
+        uiShortRange(
+          p.classBeginTime,
+          p.classEndTime,
+          withDate: false,
+          now: now,
+        ) ??
+        '时间未提供';
+    return Card.outlined(
+      margin: EdgeInsets.zero,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12),
+        side: BorderSide(
+          color: canSignNow && !done ? scheme.primary : scheme.outlineVariant,
+        ),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Tooltip(
+        message: '课程详情',
+        child: InkWell(
+          onTap: () => _showDetails(context),
+          child: Padding(
+            padding: const EdgeInsets.fromLTRB(16, 12, 12, 12),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Expanded(
-                  child: Tooltip(
-                    message: '课程详情',
-                    child: InkWell(
-                      borderRadius: BorderRadius.circular(
-                        UbaaTheme.controlRadius,
-                      ),
-                      onTap: () => _showDetails(context),
-                      child: Padding(
-                        padding: const EdgeInsets.all(8),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              detail.title,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.titleLarge?.copyWith(
-                                fontWeight: FontWeight.bold,
-                              ),
+                Row(
+                  children: [
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            detail.title,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.titleMedium?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: window.phase == _SigninPhase.ended && !done
+                                  ? scheme.onSurfaceVariant
+                                  : null,
                             ),
-                            const SizedBox(height: 8),
-                            AcademicInfo(
-                              icon: Icons.schedule,
-                              text:
-                                  uiTimeRange(
-                                    p.classBeginTime,
-                                    p.classEndTime,
-                                  ) ??
-                                  '时间未提供',
+                          ),
+                          const SizedBox(height: 2),
+                          Text(
+                            time,
+                            style: theme.textTheme.bodyMedium?.copyWith(
+                              color: scheme.onSurfaceVariant,
                             ),
-                            if (p.signStatus != 0 && p.signStatus != 1)
-                              const Text('签到状态未知'),
-                          ],
-                        ),
+                          ),
+                        ],
                       ),
                     ),
-                  ),
+                    if (trailing != null) ...[
+                      const SizedBox(width: 12),
+                      trailing,
+                    ],
+                  ],
                 ),
-                const SizedBox(width: 16),
-                if (done && !allowed)
-                  const Tooltip(
-                    message: '已签到',
-                    child: Icon(Icons.check_circle, size: 32),
-                  )
-                else if (onSignin != null && action != null)
-                  FilledButton(
-                    onPressed: writesEnabled && allowed
-                        ? () => onSignin!(action)
-                        : null,
-                    child: const Text('签到'),
-                  ),
               ],
             ),
-            if (_notice case final notice?) ...[
-              const SizedBox(height: 8),
-              Text(notice, style: theme.textTheme.bodySmall),
-            ],
-          ],
+          ),
         ),
       ),
     );
@@ -170,18 +261,14 @@ class _SigninCourseCard extends StatelessWidget {
             mainAxisSize: MainAxisSize.min,
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(uiTimeRange(p.classBeginTime, p.classEndTime) ?? '时间未提供'),
-              Text(switch (p.signStatus) {
-                0 => '未签到',
-                1 => '已签到',
-                _ => '签到状态未知',
-              }),
-              if (p.signStatus case final status?) Text('原始状态：$status'),
-              if (p.signStatus == 1 &&
-                  detail.action<SigninPerformAction>()?.eligibility ==
-                      ActionEligibility.denied)
-                const Text('该课程已签到，不能重复提交。'),
-              if (_notice case final notice?) Text(notice),
+              Text(uiShortRange(p.classBeginTime, p.classEndTime) ?? '时间未提供'),
+              if (switch (p.signStatus) {
+                    0 => '未签到',
+                    1 => '已签到',
+                    _ => null,
+                  }
+                  case final state?)
+                Text(state),
               const SizedBox(height: 12),
               for (final field in detail.fields.where(
                 (f) => !uiHiddenAcademicField(f.label),

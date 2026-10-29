@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'display.dart' show BykcInfoLine;
 
 class BykcCardTags extends StatelessWidget {
   const BykcCardTags({
@@ -15,7 +14,10 @@ class BykcCardTags extends StatelessWidget {
   Widget build(BuildContext context) {
     final labels = [
       if (category?.trim().isNotEmpty == true) category!,
-      ...campuses.where((value) => value.trim().isNotEmpty),
+      // “未指定校区”没有信息量，地点里通常已写明校区。
+      ...campuses.where(
+        (value) => value.trim().isNotEmpty && value.trim() != '未指定校区',
+      ),
     ];
     if (labels.isEmpty && !selfSign) return const SizedBox.shrink();
     return Padding(
@@ -43,7 +45,7 @@ class _Tag extends StatelessWidget {
     final colors = theme.colorScheme;
     final foreground = icon == null ? colors.onSurfaceVariant : colors.primary;
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
       decoration: BoxDecoration(
         color: icon == null
             ? colors.surfaceContainerHighest
@@ -54,13 +56,13 @@ class _Tag extends StatelessWidget {
         mainAxisSize: MainAxisSize.min,
         children: [
           if (icon != null) ...[
-            Icon(icon, size: 16, color: foreground),
+            Icon(icon, size: 14, color: foreground),
             const SizedBox(width: 4),
           ],
           Flexible(
             child: Text(
               label,
-              style: theme.textTheme.labelLarge?.copyWith(color: foreground),
+              style: theme.textTheme.labelMedium?.copyWith(color: foreground),
             ),
           ),
         ],
@@ -69,6 +71,7 @@ class _Tag extends StatelessWidget {
   }
 }
 
+/// 教师与地点合为一行，时间一行，选课/退选时间一行。
 class BykcCardInfo extends StatelessWidget {
   const BykcCardInfo({
     this.teacher,
@@ -80,54 +83,34 @@ class BykcCardInfo extends StatelessWidget {
   final String? teacher, position, time, deadlineLabel, deadline;
 
   @override
-  Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 4),
-    child: LayoutBuilder(
-      builder: (context, constraints) {
-        final people = [
-          BykcInfoLine('教师', teacher, maxLines: 1),
-          BykcInfoLine('地点', position, maxLines: 1),
-        ];
-        final schedule = [
-          BykcInfoLine('时间', time),
-          if (deadlineLabel != null) BykcInfoLine(deadlineLabel!, deadline),
-        ];
-        final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-        final hasPeople = [
-          teacher,
-          position,
-        ].any((value) => value?.trim().isNotEmpty == true);
-        final hasSchedule = [
-          time,
-          deadline,
-        ].any((value) => value?.trim().isNotEmpty == true);
-        if (constraints.maxWidth >= 560 * scale && hasPeople && hasSchedule) {
-          return Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: people,
-                ),
-              ),
-              const SizedBox(width: 24),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: schedule,
-                ),
-              ),
-            ],
-          );
-        }
-        return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [...people, ...schedule],
-        );
-      },
-    ),
-  );
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: theme.colorScheme.onSurfaceVariant,
+    );
+    String? clean(String? v) => v == null || v.trim().isEmpty ? null : v.trim();
+    final people = [?clean(teacher), ?clean(position)].join(' · ');
+    final until = clean(deadline);
+    return Padding(
+      padding: const EdgeInsets.only(top: 6),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          if (clean(time) case final t?)
+            Text(t, style: theme.textTheme.bodyMedium),
+          if (people.isNotEmpty)
+            Text(
+              people,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+              style: muted,
+            ),
+          if (until != null)
+            Text([?deadlineLabel, until].join(' '), style: muted),
+        ],
+      ),
+    );
+  }
 }
 
 class BykcCardFooter extends StatelessWidget {
@@ -137,7 +120,7 @@ class BykcCardFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) => Padding(
-    padding: const EdgeInsets.only(top: 12),
+    padding: const EdgeInsets.only(top: 8),
     child: LayoutBuilder(
       builder: (context, constraints) {
         if (action != null &&

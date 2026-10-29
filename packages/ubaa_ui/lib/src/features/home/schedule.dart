@@ -315,7 +315,8 @@ class _CourseCard extends StatelessWidget {
             const SizedBox(height: 8),
             if (uiNonBlank(course.time) case final time?)
               Text(
-                '时间：$time',
+                // 上游时间段用连字符，统一成与待办一致的长横线。
+                '时间：${time.replaceAll(RegExp(r'\s*[-—]\s*'), '–')}',
                 style: theme.textTheme.bodyMedium?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant,
                 ),

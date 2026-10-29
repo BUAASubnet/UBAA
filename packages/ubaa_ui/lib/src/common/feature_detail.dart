@@ -7,7 +7,7 @@ import '../shared/refresh.dart' show RefreshViewport;
 import '../app/home.dart' show uiCacheReadFailureText;
 import 'details/detail_list.dart' show FeatureDetailList;
 import 'error_card.dart' show FriendlyErrorCard;
-import 'landing_menu.dart' show FeatureLandingMenu;
+import 'landing_menu.dart' show FeatureLandingMenu, FeatureTabsBar;
 import 'filters/feature_filters.dart'
     show FeatureFilterControls, FeatureFilterKind, uiFeatureFilterKind;
 import '../theme.dart' show UbaaTheme;
@@ -85,6 +85,7 @@ class FeatureDetailView extends StatefulWidget {
     this.onCaptureYgdkPhoto,
     this.onQuery,
     this.onNavigate,
+    this.onSwitchView,
     this.backLabel = '返回功能列表',
     this.onLoadAcademicTerms,
     this.onLoadAcademicWeeks,
@@ -143,6 +144,9 @@ class FeatureDetailView extends StatefulWidget {
   final YgdkPhotoPicker? onCaptureYgdkPhoto;
   final Future<void> Function(FeatureQuery query)? onQuery;
   final Future<void> Function(FeatureReadNavigation)? onNavigate;
+
+  /// 同级页面分段切换；只有根层页面提供。
+  final ValueChanged<FeatureQueryView>? onSwitchView;
   final String backLabel;
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
   final Future<FeatureResult> Function(String term, bool forceRefresh)?
@@ -303,13 +307,6 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                   padding: const EdgeInsets.all(12),
                   child: Text(uiCacheReadFailureText(failure)),
                 ),
-              if (widget.snapshot.status != FeatureLoadStatus.loading &&
-                  widget.snapshot.evidence?.complete == false &&
-                  widget.snapshot.details.isNotEmpty)
-                const Padding(
-                  padding: EdgeInsets.all(12),
-                  child: Text('当前内容尚不完整，连接后继续核对。'),
-                ),
               if (widget.snapshot.status == FeatureLoadStatus.stale &&
                   widget.snapshot.error != null)
                 MaterialBanner(
@@ -329,6 +326,9 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
               if (widget.snapshot.overview case final overview?
                   when overview is! GradesTermOverview &&
                       overview is! ScheduleWeekOverview &&
+                      // 博雅已选的查询范围、SPOC 学期编码属于查询参数，不单独占卡片。
+                      overview is! BykcChosenOverview &&
+                      overview is! SpocTermOverview &&
                       (widget.snapshot.status == FeatureLoadStatus.success ||
                           widget.snapshot.status == FeatureLoadStatus.empty ||
                           widget.snapshot.status == FeatureLoadStatus.stale ||
@@ -453,10 +453,17 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
           )
         : defaultContent;
     final kind = _filterKind;
-    final body = _showsToolbar
+    final switchView = widget.onSwitchView;
+    final body = _showsToolbar || switchView != null
         ? Column(
             children: [
-              _toolbar(context, kind),
+              if (switchView != null)
+                FeatureTabsBar(
+                  feature: widget.feature,
+                  query: widget.query,
+                  onSelect: switchView,
+                ),
+              if (_showsToolbar) _toolbar(context, kind),
               Expanded(child: content),
             ],
           )
@@ -743,10 +750,10 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    widget.snapshot.evidence?.complete == false
-                        ? '当前数据尚不完整，连接后继续核对。'
-                        : widget.isBykcChosenDetail
-                        ? '当前无法显示此选课记录，请返回列表核对。'
+                    widget.isBykcChosenDetail
+                        ? '暂时无法显示这条选课记录'
+                        : widget.snapshot.evidence?.complete == false
+                        ? '暂时没有可显示的内容'
                         : '暂无${widget.feature.title}数据',
                   ),
                   if (widget.snapshot.summary case final summary?

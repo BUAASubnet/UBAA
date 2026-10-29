@@ -18,15 +18,17 @@ extension LibbookReservationContent on LibbookReservationFlowState {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const SizedBox(height: 12),
+        const SizedBox(height: 8),
         if (seats.isEmpty) const Text('当前分区暂无可预约座位'),
         GridView.builder(
+          // 不继承页面的安全区内边距，否则座位上方会空出一大块。
+          padding: EdgeInsets.zero,
           shrinkWrap: true,
           physics: const NeverScrollableScrollPhysics(),
           gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
-            crossAxisCount: 4,
+            crossAxisCount: MediaQuery.sizeOf(context).width >= 600 ? 8 : 5,
             mainAxisExtent:
-                100 *
+                64 *
                 (MediaQuery.textScalerOf(context).scale(14) / 14).clamp(1, 2),
             crossAxisSpacing: 6,
             mainAxisSpacing: 6,
@@ -51,42 +53,43 @@ extension LibbookReservationContent on LibbookReservationFlowState {
                 widget.onReserve != null &&
                 uiCanReserveSeat(target) &&
                 _seatBelongsToQuery(seat, target);
-            final status =
-                target == null ||
-                    target.eligibility == ActionEligibility.unknown
-                ? '资格未确认'
-                : target.eligibility == ActionEligibility.denied
+            final status = target?.eligibility == ActionEligibility.denied
                 ? '不可预约'
                 : null;
             return Card(
+              margin: EdgeInsets.zero,
               color: _selectedSeat == seat.id
                   ? theme.colorScheme.primaryContainer
                   : null,
               child: InkWell(
                 onTap: canSelect ? () => _toggleSeat(seat.id) : null,
                 child: Padding(
-                  padding: const EdgeInsets.all(6),
+                  padding: const EdgeInsets.all(4),
                   child: Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      Icon(
-                        Icons.event_seat_outlined,
-                        size: 22,
-                        color: canSelect
-                            ? theme.colorScheme.primary
-                            : theme.colorScheme.onSurfaceVariant,
-                      ),
-                      const SizedBox(height: 4),
+                      // 有资格提示时省掉图标，保证小方块放得下。
+                      if (status == null)
+                        Icon(
+                          Icons.event_seat_outlined,
+                          size: 18,
+                          color: canSelect
+                              ? theme.colorScheme.primary
+                              : theme.colorScheme.onSurfaceVariant,
+                        ),
                       Text(
                         seat.number.isEmpty ? seat.name : seat.number,
                         textAlign: TextAlign.center,
-                        maxLines: 2,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
                       ),
                       if (status != null)
                         Text(
                           status,
                           textAlign: TextAlign.center,
-                          style: theme.textTheme.bodySmall,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: theme.textTheme.labelSmall,
                         ),
                     ],
                   ),

@@ -149,8 +149,6 @@ extension CgyyReservationTable on CgyyReservationFlowState {
                 return CustomScrollView(
                   key: const ValueKey('cgyy-room-rows'),
                   slivers: [
-                    if (!_busy && _view.evidence?.complete == false)
-                      const SliverToBoxAdapter(child: Text('查询范围尚未更新完整')),
                     if (_view.status == FeatureLoadStatus.stale &&
                         _view.error != null)
                       SliverToBoxAdapter(
@@ -291,7 +289,6 @@ extension CgyyReservationTable on CgyyReservationFlowState {
           p.timeId == time.id;
     }).toList();
     final detail = candidates.length == 1 ? candidates.single : null;
-    final p = detail?.presentation as CgyySlotPresentation?;
     final candidate = detail?.action<CgyyReserveAction>();
     final key = candidate == null ? null : uiCgyyActionKey(candidate);
     final allowed = key != null && actions.containsKey(key);
@@ -303,8 +300,6 @@ extension CgyyReservationTable on CgyyReservationFlowState {
         ? '可预约'
         : candidates.isEmpty
         ? '无时段信息'
-        : p?.reservationStatus == null
-        ? '资格未知'
         : '不可预约';
     final toggle = allowed ? () => _toggleSlot(key, actions) : null;
     return Semantics(

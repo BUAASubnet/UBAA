@@ -31,9 +31,7 @@ class CourseworkOverview extends StatelessWidget {
               children: [
                 Text('评教进度', style: Theme.of(context).textTheme.titleSmall),
                 const SizedBox(height: 8),
-                if (!complete)
-                  const Text('评教任务尚未核对完整，进度暂不汇总')
-                else
+                if (complete)
                   Wrap(
                     spacing: 16,
                     runSpacing: 4,

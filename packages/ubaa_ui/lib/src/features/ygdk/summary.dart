@@ -14,7 +14,7 @@ class YgdkSummary extends StatelessWidget {
       children: [
         Text(
           !statisticsKnown
-              ? '统计尚未确认'
+              ? '本学期认定次数 --'
               : (p.termTarget ?? 0) > 0
               ? '本学期认定次数 ${p.termCount} / ${p.termTarget}'
               : '本学期认定次数 ${p.termCount} 次',

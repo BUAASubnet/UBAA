@@ -6,7 +6,10 @@ import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../../shared/loading.dart' show LoadingPlaceholder;
 import '../../common/error_card.dart' show FriendlyErrorCard;
 import 'area_map.dart' show LibraryMapControl;
+import '../../shared/app_bar_slot.dart' show UiAppBarPicker, UiAppBarSlot;
+import '../../shared/place_memory.dart' show UiPlaceKeys, UiPlaceMemory;
 import 'reservation_content.dart' show uiCanReserveSeat;
+import '../../shared/when.dart' show uiShortDateTime;
 part 'schedule.dart';
 part 'choices.dart';
 part 'content.dart';
@@ -36,7 +39,6 @@ class LibbookReservationFlow extends StatefulWidget {
 class LibbookReservationFlowState extends State<LibbookReservationFlow> {
   List<LibbookLibraryPresentation> _libraries = [];
   List<FeatureDetail> _areas = [];
-  LibbookAreaDetailPresentation? _areaOptions;
   LibbookAreaSchedulePresentation? _areaSchedule;
   String? _libraryId;
   String? _storeyId;
@@ -96,7 +98,6 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
     _generation++;
     _libraries = [];
     _areas = [];
-    _areaOptions = null;
     _areaSchedule = null;
     _reservationDay = _slotId = null;
     _hideSeats = true;
@@ -154,9 +155,10 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
             _libraries.where((other) => other.id == library.id).length == 1,
       );
       if (candidates.isNotEmpty) {
-        final previous = candidates.where(
-          (library) => library.id == _libraryId,
-        );
+        final wanted =
+            _libraryId ??
+            UiPlaceMemory.read(context, UiPlaceKeys.libbookLibrary);
+        final previous = candidates.where((library) => library.id == wanted);
         final next = previous.isEmpty ? candidates.first : previous.single;
         _schedule(() => _chooseLibrary(next));
       }
@@ -170,8 +172,10 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
         return p is LibbookAreaPresentation && _validArea(p);
       });
       if (candidates.isNotEmpty) {
+        final wanted =
+            _areaId ?? UiPlaceMemory.read(context, UiPlaceKeys.libbookArea);
         final previous = candidates.where(
-          (d) => (d.presentation! as LibbookAreaPresentation).id == _areaId,
+          (d) => (d.presentation! as LibbookAreaPresentation).id == wanted,
         );
         final p =
             (previous.isEmpty ? candidates.first : previous.single)
@@ -226,9 +230,10 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
           floor.id.trim().isNotEmpty &&
           library.storeys.where((other) => other.id == floor.id).length == 1,
     );
-    final previous = floors.where(
-      (floor) => library.id == _libraryId && floor.id == _storeyId,
-    );
+    final wantedFloor = library.id == _libraryId
+        ? _storeyId
+        : UiPlaceMemory.read(context, UiPlaceKeys.libbookStorey);
+    final previous = floors.where((floor) => floor.id == wantedFloor);
     final floor = floors.isEmpty
         ? null
         : previous.isEmpty
@@ -237,6 +242,7 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
     _libraryId = library.id;
     _storeyId = floor;
     _areaId = null;
+    UiPlaceMemory.write(context, UiPlaceKeys.libbookLibrary, library.id);
     _clearAreaSelection();
     _areas = [];
     _day = library.queryDate;
@@ -255,6 +261,7 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
     if (date == null || _libraryId == null) return;
     _storeyId = floor.id;
     _areaId = null;
+    UiPlaceMemory.write(context, UiPlaceKeys.libbookStorey, floor.id);
     _clearAreaSelection();
     _areas = [];
     return _read(
@@ -271,6 +278,7 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
     final date = _parsedDay(area.queryDate);
     if (date == null || !_validArea(area)) return;
     _areaId = area.id;
+    UiPlaceMemory.write(context, UiPlaceKeys.libbookArea, area.id);
     _clearAreaSelection();
     return _read(
       FeatureQuery(
@@ -326,22 +334,18 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
         if (detail.presentation case LibbookSeatPresentation p)
           p.areaId: '座位分布',
     };
+    publishLibraryPicker(context);
     return ListView(
-      padding: UbaaTheme.pageInsets(context, top: 12, bottom: 16),
+      padding: UbaaTheme.pageInsets(context, top: 8, bottom: 16),
       children: [
-        if (MediaQuery.sizeOf(context).width >= 600)
-          buildInlineChips(context)
-        else
-          buildChoices(context),
-        if (MediaQuery.sizeOf(context).width >= 600 && _areaSchedule != null)
-          _scheduleDetail(context, _areaSchedule!),
+        buildInlineChips(context),
+        if (_areaSchedule case final area? when !_busy)
+          _scheduleDetail(context, area),
         if (mapAreas.length == 1)
           LibraryMapControl(
             areaId: mapAreas.keys.single,
             areaName: mapAreas.values.single,
           ),
-        if (!_busy && widget.snapshot.evidence?.complete == false)
-          const Text('当前查询范围尚未更新完整。'),
         if (_busy && details.isEmpty && widget.snapshot.updatedAt == null)
           const LoadingPlaceholder(compact: true),
         if (widget.snapshot.error case final error? when !_busy)

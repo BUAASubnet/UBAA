@@ -60,24 +60,27 @@ class ProfileView extends StatelessWidget {
       if (settingsOnly) ...[
         const UiSectionTitle('个性化'),
         Card(
-          child: _setting(
-            context,
-            icon: Icons.palette_outlined,
-            title: '外观主题',
-            subtitle: '仅本次生效，重启后跟随系统',
-            control: DropdownButton<ThemeMode>(
-              isExpanded: true,
-              value: themeMode,
-              onChanged: onThemeModeChanged == null
-                  ? null
-                  : (value) {
-                      if (value != null) onThemeModeChanged!(value);
-                    },
-              items: const [
-                DropdownMenuItem(value: ThemeMode.system, child: Text('跟随系统')),
-                DropdownMenuItem(value: ThemeMode.light, child: Text('浅色')),
-                DropdownMenuItem(value: ThemeMode.dark, child: Text('深色')),
-              ],
+          child: ListTile(
+            leading: const Icon(Icons.palette_outlined),
+            title: const Text('外观主题'),
+            subtitle: Padding(
+              padding: const EdgeInsets.only(top: 8),
+              child: SizedBox(
+                width: double.infinity,
+                child: SegmentedButton<ThemeMode>(
+                  key: const ValueKey('theme-mode'),
+                  showSelectedIcon: false,
+                  segments: const [
+                    ButtonSegment(value: ThemeMode.system, label: Text('跟随系统')),
+                    ButtonSegment(value: ThemeMode.light, label: Text('浅色')),
+                    ButtonSegment(value: ThemeMode.dark, label: Text('深色')),
+                  ],
+                  selected: {themeMode},
+                  onSelectionChanged: onThemeModeChanged == null
+                      ? null
+                      : (value) => onThemeModeChanged!(value.single),
+                ),
+              ),
             ),
           ),
         ),
@@ -133,17 +136,17 @@ class ProfileView extends StatelessWidget {
         Card(
           child: Column(
             children: [
-              SwitchListTile(
-                secondary: const Icon(Icons.insights_outlined),
-                title: const Text('匿名产品改进统计'),
-                subtitle: Text(
-                  telemetryAvailable ? '仅统计功能使用次数，不收集账号、成绩或请求内容' : '此版本未启用统计功能',
+              // 未启用统计的版本不显示这个永远灰着的开关。
+              if (telemetryAvailable)
+                SwitchListTile(
+                  secondary: const Icon(Icons.insights_outlined),
+                  title: const Text('匿名产品改进统计'),
+                  subtitle: const Text('仅统计功能使用次数，不收集账号、成绩或请求内容'),
+                  value: telemetryEnabled,
+                  onChanged: onTelemetryChanged,
                 ),
-                value: telemetryEnabled,
-                onChanged: telemetryAvailable ? onTelemetryChanged : null,
-              ),
               if (onReadDiagnostics != null) ...[
-                const Divider(height: 1),
+                if (telemetryAvailable) const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.bug_report_outlined),
                   title: const Text('本次运行诊断'),
@@ -185,50 +188,6 @@ class ProfileView extends StatelessWidget {
         label: const Text('退出并清除本机账号'),
       ),
     ],
-  );
-
-  Widget _setting(
-    BuildContext context, {
-    required IconData icon,
-    required String title,
-    String? subtitle,
-    required Widget control,
-  }) => LayoutBuilder(
-    builder: (context, constraints) {
-      final stacked =
-          constraints.maxWidth < 480 ||
-          MediaQuery.textScalerOf(context).scale(14) > 20;
-      return Padding(
-        padding: const EdgeInsets.all(16),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Icon(icon),
-            const SizedBox(width: 16),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(title, style: Theme.of(context).textTheme.titleMedium),
-                  if (subtitle != null)
-                    Text(
-                      subtitle,
-                      style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
-                    ),
-                  if (stacked) ...[const SizedBox(height: 8), control],
-                ],
-              ),
-            ),
-            if (!stacked) ...[
-              const SizedBox(width: 16),
-              SizedBox(width: 220, child: control),
-            ],
-          ],
-        ),
-      );
-    },
   );
 
   Future<void> _confirmClearAccount(BuildContext context) async {

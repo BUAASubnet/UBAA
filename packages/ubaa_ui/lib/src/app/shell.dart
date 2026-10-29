@@ -2,6 +2,8 @@ import 'dart:async';
 import '../features/ihome/view.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
+import '../shared/app_bar_slot.dart' show UiAppBarSlot;
+import '../shared/place_memory.dart' show UiPlaceMemory, UiPlaceKeys;
 import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
@@ -23,6 +25,7 @@ part 'shell_write.dart';
 part 'shell_navigation.dart';
 part 'bykc_preferences.dart';
 part 'preferences/recent_features.dart';
+part 'preferences/places.dart';
 
 /// 主界面容器：窄屏使用底部导航，桌面宽屏使用侧边导航。
 class UbaaMainShell extends StatefulWidget {
@@ -79,6 +82,8 @@ class UbaaMainShell extends StatefulWidget {
     this.onSaveYgdkReminder,
     this.onLoadBykcFilters,
     this.onSaveBykcFilters,
+    this.placePreferences = const {},
+    this.onSavePlacePreference,
     this.onLoadRecentFeatures,
     this.onSaveRecentFeatures,
     this.activeRoutes = const <ConnectionMode>[],
@@ -127,6 +132,10 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function(YgdkReminderSettings)? onSaveYgdkReminder;
   final Future<BykcCourseFilters?> Function()? onLoadBykcFilters;
   final Future<void> Function(BykcCourseFilters)? onSaveBykcFilters;
+
+  /// 空教室、图书馆最后一次选择的校区/楼层/分区；键见 [UiPlaceKeys]。
+  final Map<String, String> placePreferences;
+  final Future<void> Function(String key, String value)? onSavePlacePreference;
   final Future<List<FeatureId>> Function()? onLoadRecentFeatures;
   final Future<void> Function(List<FeatureId>)? onSaveRecentFeatures;
   final RoutePolicy routePolicy;
@@ -239,6 +248,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   FeatureId? _openedFeature;
   String? _utilityPage;
   final _visiblePage = ValueNotifier<(FeatureSnapshot, String)?>(null);
+  final _appBarSlot = ValueNotifier<Map<FeatureId, Widget>>(const {});
+  late final _places = <String, String>{...widget.placePreferences};
   bool _cgyyOnlyAvailable = true;
   final Set<FeatureId> _visitedFeatures = <FeatureId>{};
   int _accountGeneration = 0;
@@ -270,6 +281,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     final accountChanged =
         (oldWidget.user?.accountScope ?? oldWidget.user?.username) !=
         (widget.user?.accountScope ?? widget.user?.username);
+    _updatePlaces(oldWidget, accountChanged);
     if (accountChanged ||
         oldWidget.routePolicy != widget.routePolicy ||
         oldWidget.businessCacheEpoch != widget.businessCacheEpoch) {
@@ -418,6 +430,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   @override
   void dispose() {
     _visiblePage.dispose();
+    _appBarSlot.dispose();
     super.dispose();
   }
 
@@ -556,6 +569,12 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                     ],
                   ),
           ),
+        if (_openedFeature case final feature?)
+          ValueListenableBuilder<Map<FeatureId, Widget>>(
+            valueListenable: _appBarSlot,
+            builder: (context, slots, _) =>
+                slots[feature] ?? const SizedBox.shrink(),
+          ),
         if (_openedFeature == FeatureId.schedule)
           // 文字按钮比日历图标更不易被误认为“选日期”。
           Tooltip(
@@ -603,30 +622,43 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       child: Scaffold(
         drawer: !wide ? _buildDrawer(context) : null,
         // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
-        body: Row(
-          children: <Widget>[
-            if (wide) _buildRail(context),
+        body: UiAppBarSlot(
+          slot: _appBarSlot,
+          child: UiPlaceMemory(
+            values: _places,
+            onChanged: _savePlace,
+            child: Row(
+              children: <Widget>[
+                if (wide) _buildRail(context),
 
-            Expanded(
-              key: const ValueKey<String>('feature-pages'),
-              child: Column(
-                children: [
-                  Center(
-                    child: ConstrainedBox(
-                      constraints: BoxConstraints(maxWidth: maxContentWidth),
-                      child: header,
-                    ),
+                Expanded(
+                  key: const ValueKey<String>('feature-pages'),
+                  child: Column(
+                    children: [
+                      Center(
+                        child: ConstrainedBox(
+                          constraints: BoxConstraints(
+                            maxWidth: maxContentWidth,
+                          ),
+                          child: header,
+                        ),
+                      ),
+                      Expanded(
+                        child: ScrollGutters(
+                          maxWidth: maxContentWidth,
+                          child: SafeArea(
+                            top: false,
+                            bottom: wide,
+                            child: body,
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  Expanded(
-                    child: ScrollGutters(
-                      maxWidth: maxContentWidth,
-                      child: SafeArea(top: false, bottom: wide, child: body),
-                    ),
-                  ),
-                ],
-              ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
         bottomNavigationBar: wide
             ? null
@@ -757,6 +789,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         onRetry: page.onRetry,
         onQuery: page.onQuery,
         onNavigate: page.onNavigate,
+        onSwitchView: page.onSwitchView,
         onLoadAcademicTerms: widget.onLoadAcademicTerms,
         onLoadAcademicWeeks: widget.onLoadAcademicWeeks,
         scheduleImports: widget.scheduleImports,

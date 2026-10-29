@@ -22,36 +22,54 @@ class BykcStatisticsContent extends StatelessWidget {
     final categories = details
         .map((d) => d.presentation)
         .whereType<BykcCategoryPresentation>();
+    // 大类都相同（通常都是“博雅课程”）时不再逐行重复。
+    final mixedParents =
+        categories.map((c) => c.categoryName).toSet().length > 1;
     return ListView(
       padding: EdgeInsets.all(
         UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
       ),
       children: [
+        // 总次数与达标进度压成一行，表格才是主体。
         Card(
+          margin: EdgeInsets.zero,
           color: theme.colorScheme.primaryContainer,
           child: Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.baseline,
+              textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
                   '总体净有效次数',
-                  style: theme.textTheme.titleMedium?.copyWith(
+                  style: theme.textTheme.titleSmall?.copyWith(
                     color: theme.colorScheme.onPrimaryContainer,
                   ),
                 ),
+                const SizedBox(width: 12),
                 Text(
                   total.totalValidCount?.toString() ?? '未提供',
-                  style: theme.textTheme.displayLarge?.copyWith(
+                  style: theme.textTheme.headlineMedium?.copyWith(
                     fontWeight: FontWeight.bold,
                     color: theme.colorScheme.onPrimaryContainer,
                   ),
                 ),
+                const Spacer(),
+                if (categories.where((c) => c.qualified != null).toList()
+                    case final known when known.isNotEmpty)
+                  Text(
+                    '达标 ${known.where((c) => c.qualified!).length}/${known.length} 类',
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: theme.colorScheme.onPrimaryContainer,
+                    ),
+                  ),
               ],
             ),
           ),
         ),
-        const SizedBox(height: 16),
+        const SizedBox(height: 12),
         Card(
+          margin: EdgeInsets.zero,
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
@@ -92,7 +110,7 @@ class BykcStatisticsContent extends StatelessWidget {
                               category.subCategoryName ?? '未提供小类',
                               style: theme.textTheme.bodyMedium,
                             ),
-                            if (category.categoryName != null)
+                            if (category.categoryName != null && mixedParents)
                               Text(
                                 category.categoryName!,
                                 style: theme.textTheme.labelSmall,

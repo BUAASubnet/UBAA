@@ -24,7 +24,6 @@ Future<FeatureResult> _preserveBykcDetail(
       resolvedRoute: route,
     );
   return FeatureResult.success(
-    summary: '课程详情尚未核对完整',
     details: old.details,
     resolvedRoute: old.route,
     evidence: DataEvidence(

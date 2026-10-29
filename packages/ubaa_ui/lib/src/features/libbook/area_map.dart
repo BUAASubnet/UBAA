@@ -40,12 +40,14 @@ class LibraryMapControl extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final available = _libraryMapIds.contains(areaId);
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
+    // 没有平面图时不显示不可用的按钮和说明。
+    if (!available) return const SizedBox.shrink();
+    return Align(
+      alignment: Alignment.centerLeft,
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          OutlinedButton.icon(
+          TextButton.icon(
             onPressed: !available
                 ? null
                 : () => showDialog<void>(
@@ -56,8 +58,6 @@ class LibraryMapControl extends StatelessWidget {
             icon: const Icon(Icons.map_outlined),
             label: const Text('查看座位分布'),
           ),
-          if (!available)
-            Text('当前分区暂无平面图', style: Theme.of(context).textTheme.bodySmall),
         ],
       ),
     );

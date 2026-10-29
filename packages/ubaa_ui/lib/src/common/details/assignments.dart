@@ -20,13 +20,12 @@ extension AssignmentsDetailActions on _FeatureDetailListState {
         icon: const Icon(Icons.how_to_reg),
         label: const Text('签到'),
       ),
-      if (!canSignin)
+      // 资格无法确认时只禁用按钮，不向用户解释内部状态。
+      if (!canSignin && signinAction.eligibility == ActionEligibility.denied)
         Padding(
           padding: const EdgeInsets.only(top: 4),
           child: Text(
-            signinAction.eligibility == ActionEligibility.denied
-                ? deniedMessage
-                : '当前签到资格无法确认，请刷新后重试。',
+            deniedMessage,
             style: Theme.of(context).textTheme.bodySmall,
           ),
         ),

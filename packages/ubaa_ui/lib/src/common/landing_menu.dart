@@ -5,7 +5,73 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 bool uiHasLandingMenu(FeatureId feature) =>
-    const {FeatureId.bykc, FeatureId.libbook, FeatureId.cgyy}.contains(feature);
+    const {FeatureId.cgyy}.contains(feature);
+
+/// 博雅与图书馆不再有二级菜单：进入即显示第一页，顶部分段切换同级页面。
+List<(String, FeatureQueryView)> uiFeatureTabs(FeatureId feature) =>
+    switch (feature) {
+      FeatureId.bykc => const [
+        ('选课', FeatureQueryView.summary),
+        ('已选', FeatureQueryView.bykcChosenCourses),
+        ('统计', FeatureQueryView.bykcStatistics),
+      ],
+      FeatureId.libbook => const [
+        ('预约座位', FeatureQueryView.summary),
+        ('我的预约', FeatureQueryView.libbookBookings),
+      ],
+      _ => const [],
+    };
+
+/// 页面内部读取（图书馆的楼层、分区、座位）仍属于第一个分段。
+FeatureQueryView uiFeatureTabView(FeatureId feature, FeatureQuery? query) {
+  final view = query?.view ?? FeatureQueryView.summary;
+  if (feature == FeatureId.libbook &&
+      view != FeatureQueryView.libbookBookings) {
+    return FeatureQueryView.summary;
+  }
+  return view;
+}
+
+/// 分段切换只出现在同级页面的根层（不含课程详情等下一层）。
+bool uiShowsFeatureTabs(FeatureId feature, FeatureQuery? query) {
+  final view = uiFeatureTabView(feature, query);
+  return uiFeatureTabs(feature).any((tab) => tab.$2 == view) &&
+      query?.courseId == null;
+}
+
+class FeatureTabsBar extends StatelessWidget {
+  const FeatureTabsBar({
+    required this.feature,
+    required this.query,
+    required this.onSelect,
+  });
+  final FeatureId feature;
+  final FeatureQuery? query;
+  final ValueChanged<FeatureQueryView> onSelect;
+
+  @override
+  Widget build(BuildContext context) {
+    final current = uiFeatureTabView(feature, query);
+    return Padding(
+      padding: UbaaTheme.pageInsets(context, top: 8, bottom: 4),
+      child: SizedBox(
+        width: double.infinity,
+        child: SegmentedButton<FeatureQueryView>(
+          key: ValueKey(('feature-tabs', feature)),
+          showSelectedIcon: false,
+          segments: [
+            for (final tab in uiFeatureTabs(feature))
+              ButtonSegment(value: tab.$2, label: Text(tab.$1)),
+          ],
+          selected: {current},
+          onSelectionChanged: (value) {
+            if (value.single != current) onSelect(value.single);
+          },
+        ),
+      ),
+    );
+  }
+}
 
 String uiReadPageTitle(FeatureId feature, FeatureQuery? query, bool landing) {
   if (landing || query == null) return feature.title;
@@ -15,18 +81,16 @@ String uiReadPageTitle(FeatureId feature, FeatureQuery? query, bool landing) {
     (FeatureId.schedule, FeatureQueryView.scheduleToday) => '今日课程',
     (FeatureId.schedule, FeatureQueryView.scheduleTerms) => '选择学期',
     (FeatureId.schedule, FeatureQueryView.scheduleWeeks) => '选择教学周',
-    (FeatureId.bykc, FeatureQueryView.summary) => '选择课程',
     (FeatureId.bykc, FeatureQueryView.bykcDetail) => '课程详情',
-    (FeatureId.bykc, FeatureQueryView.bykcChosenCourses) => '我的课程',
-    (FeatureId.bykc, FeatureQueryView.bykcStatistics) => '课程统计',
+    (FeatureId.bykc, FeatureQueryView.bykcChosenCourses)
+        when query.courseId != null =>
+      '课程详情',
     (FeatureId.bykc, FeatureQueryView.bykcProfile) => '博雅资料',
     (FeatureId.cgyy, FeatureQueryView.cgyyOrders) => '我的预约',
     (FeatureId.cgyy, FeatureQueryView.cgyyOrderDetail) => '预约详情',
     (FeatureId.cgyy, FeatureQueryView.cgyyLockCode) => '查看密码',
     (FeatureId.cgyy, FeatureQueryView.cgyyPurposeTypes) => '用途类型',
     (FeatureId.cgyy, _) => '预约研讨室',
-    (FeatureId.libbook, FeatureQueryView.libbookBookings) => '我的座位预约',
-    (FeatureId.libbook, _) => '预约座位',
     (FeatureId.spoc, FeatureQueryView.spocDetail) ||
     (FeatureId.judge, FeatureQueryView.judgeDetail) => '作业详情',
     (FeatureId.judge, FeatureQueryView.judgeBatchDetails) => '所选作业详情',
@@ -42,15 +106,6 @@ class FeatureLandingMenu extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final entries = switch (feature) {
-      FeatureId.bykc => [
-        ('选择课程', Icons.list_alt, FeatureQueryView.summary),
-        ('我的课程', Icons.menu_book, FeatureQueryView.bykcChosenCourses),
-        ('课程统计', Icons.bar_chart, FeatureQueryView.bykcStatistics),
-      ],
-      FeatureId.libbook => [
-        ('预约座位', Icons.event_seat, FeatureQueryView.summary),
-        ('我的预约', Icons.history, FeatureQueryView.libbookBookings),
-      ],
       FeatureId.cgyy => [
         ('预约研讨室', Icons.date_range, FeatureQueryView.summary),
         ('我的预约', Icons.history, FeatureQueryView.cgyyOrders),

@@ -4,7 +4,8 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'feature_detail.dart'
     show FeatureDetailViewState, uiReadableCachedContent;
-import 'landing_menu.dart' show uiHasLandingMenu, uiReadPageTitle;
+import 'landing_menu.dart'
+    show uiHasLandingMenu, uiReadPageTitle, uiShowsFeatureTabs;
 
 /// 父页只保存展示快照，不回写 AppController 或作为写入核对依据。
 class FeatureReadNavigator extends StatefulWidget {
@@ -733,6 +734,21 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
                       ? null
                       : (query) => _query(frame, query),
                   onNavigate: widget.onQuery == null ? null : _navigate,
+                  onSwitchView:
+                      widget.onQuery == null ||
+                          _frames.indexOf(frame) != 0 ||
+                          frame.bykcChosenKey != null ||
+                          !uiShowsFeatureTabs(
+                            frame.snapshot.feature,
+                            frame.query ?? frame.navigationQuery,
+                          )
+                      ? null
+                      : (view) => openFromHome(
+                          FeatureReadNavigation(
+                            feature: frame.snapshot.feature,
+                            query: FeatureQuery(view: view),
+                          ),
+                        ),
                 ),
               ),
             ),
@@ -863,8 +879,10 @@ class _ReadPage {
     this.bykcListCourse,
     this.onOpenBykcChosen,
     this.onScheduleTitle,
+    this.onSwitchView,
   });
   final ValueChanged<String?>? onScheduleTitle;
+  final ValueChanged<FeatureQueryView>? onSwitchView;
   final int paginationGeneration;
   final bool loadingMore, hasMore;
   final String? moreError;

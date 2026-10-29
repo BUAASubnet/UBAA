@@ -63,7 +63,7 @@ Future<FeatureResult?> _loadCachedYgdkRecords(
   if (backend.cache.account?.id != account.id)
     throw const BackendException(UbaaErrorCode.operationConflict);
   return FeatureResult.success(
-    summary: value.complete ? selected.summary : '打卡记录尚未核对完整',
+    summary: selected.summary,
     details: selected.details,
     pagination: selected.pagination,
     resolvedRoute: route,
