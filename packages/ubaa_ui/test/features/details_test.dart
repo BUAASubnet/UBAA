@@ -91,7 +91,7 @@ void _registerFeatureRenderingTests() {
 }
 
 void _registerFeatureInputTests() {
-  testWidgets('场馆可预约时段先填写 typed 信息再进入确认页', (tester) async {
+  testWidgets('场馆可预约时段先填写 typed 信息后直接提交', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -220,25 +220,21 @@ void _registerFeatureInputTests() {
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.cgyy);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备研讨室预约').first);
+    await tester.tap(find.text('预约研讨室').first);
     await tester.pumpAndSettle();
     expect(find.text('选择预约时段（已选 1 个）'), findsOneWidget);
     expect(find.widgetWithText(FilterChip, '空间 5 · 时段 7'), findsNothing);
     await tester.tap(find.widgetWithText(FilterChip, '空间 4 · 时段 6'));
     await tester.pumpAndSettle();
     await fixtureFillCgyyForm(tester, joiners: '合成参与人');
-    await tester.tap(find.text('继续确认'));
+    await tester.tap(find.text('提交预约'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
-    expect(commitCalls, 0);
-    expect(find.text('确认研讨室预约'), findsOneWidget);
-    await tester.tap(find.text('确认提交'));
-    await tester.pumpAndSettle();
     expect(commitCalls, 1);
     expect(find.text('研讨室预约结果已提交，请刷新订单确认（订单编号 42，订单列表已核对）'), findsOneWidget);
   });
 
-  testWidgets('阳光打卡填写时间并选择内存照片后才进入确认页', (tester) async {
+  testWidgets('阳光打卡填写时间并选择内存照片后直接提交', (tester) async {
     const expectedAction = YgdkSubmitAction(
       classifyId: 31,
       itemId: 7,
@@ -330,7 +326,7 @@ void _registerFeatureInputTests() {
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.ygdk);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备阳光打卡'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '阳光打卡'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, '开始时间'),
@@ -349,17 +345,13 @@ void _registerFeatureInputTests() {
       find.byWidgetPredicate((w) => w is Image && w.image is! AssetImage),
       findsOneWidget,
     );
-    await tester.tap(find.text('继续确认'));
+    await tester.tap(find.text('提交打卡'));
     await tester.pumpAndSettle();
     expect(
       find.byWidgetPredicate((w) => w is Image && w.image is! AssetImage),
       findsNothing,
     );
     expect(prepareCalls, 1);
-    expect(commitCalls, 0);
-    expect(find.text('确认阳光打卡'), findsOneWidget);
-    await tester.tap(find.text('确认提交'));
-    await tester.pumpAndSettle();
     expect(commitCalls, 1);
     expect(ygdkRefreshCalls, 1);
     expect(
@@ -433,7 +425,7 @@ void _registerFeatureInputTests() {
     await openFeature(tester, FeatureId.ygdk);
     await tester.pumpAndSettle();
 
-    expect(find.text('准备阳光打卡'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, '阳光打卡'), findsNothing);
     expect(prepareCalls, 0);
   });
 
@@ -528,13 +520,9 @@ void _registerFeatureInputTests() {
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.libbook);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备预约此座位'));
+    await tester.tap(find.text('预约此座位'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
-    expect(commitCalls, 0);
-    expect(find.text('确认图书馆预约'), findsOneWidget);
-    await tester.tap(find.text('确认提交'));
-    await tester.pumpAndSettle();
     expect(commitCalls, 1);
     expect(find.text('预约结果已提交，请刷新预约记录确认'), findsOneWidget);
   });

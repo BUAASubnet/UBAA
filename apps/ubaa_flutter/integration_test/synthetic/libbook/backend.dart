@@ -4,7 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../assignments/backend.dart';
 part 'data.dart';
 
-/// 显式合成图书馆宿主；复用离线认证与禁止commit的基础设施。
+/// 显式合成图书馆宿主；复用离线认证并在内存中消费合成意图。
 class LibraryBackend extends CourseworkBackend
     implements LibbookWriteBackend, CancellationWriteBackend {
   LibraryBackend({super.state}) {
@@ -78,13 +78,32 @@ class LibraryBackend extends CourseworkBackend
   @override
   Future<WriteIntent> prepareCgyyCancelOrder({required int id}) async =>
       throw StateError('图书馆测试不准备研讨室写入');
-  WriteIntent _intent(WriteOperation operation, String target) => WriteIntent(
-    intentId: 'library-${preparedSeats.length}-${preparedBookings.length}',
-    operation: operation,
-    targetSummary: target,
-    resolvedRoute: ConnectionMode.direct,
-    warnings: const ['显式合成目标，仅准备与取消'],
-    expiresAt: DateTime.now().add(const Duration(minutes: 2)),
-    requestDigest: 'synthetic-digest',
-  );
+  final _operations = <String, WriteOperation>{};
+  @override
+  Future<WriteCommitResult> commitWrite(String intentId) async {
+    final operation = _operations.remove(intentId);
+    if (operation == null) throw StateError('合成意图不存在或已消费');
+    commitCalls++;
+    return WriteCommitResult(
+      operation: operation,
+      success: true,
+      message: '合成操作已提交',
+      outcomeUnknown: false,
+      resolvedRoute: ConnectionMode.direct,
+    );
+  }
+
+  WriteIntent _intent(WriteOperation operation, String target) {
+    final id = 'library-${preparedSeats.length}-${preparedBookings.length}';
+    _operations[id] = operation;
+    return WriteIntent(
+      intentId: id,
+      operation: operation,
+      targetSummary: target,
+      resolvedRoute: ConnectionMode.direct,
+      warnings: const ['显式合成目标，仅在内存中提交'],
+      expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+      requestDigest: 'synthetic-digest',
+    );
+  }
 }

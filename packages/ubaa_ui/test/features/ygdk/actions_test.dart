@@ -24,9 +24,9 @@ void _registerYgdkWriteResultTests() {
     );
     await tester.pumpAndSettle();
     await fixtureOpenYgdkDetails(tester);
-    await tester.tap(find.text('准备阳光打卡'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '阳光打卡'));
     await tester.pumpAndSettle();
-    final button = find.widgetWithText(FilledButton, '继续确认');
+    final button = find.widgetWithText(FilledButton, '提交打卡');
     ScaffoldMessenger.of(tester.element(button)).showSnackBar(
       const SnackBar(content: Text('上一操作结果'), duration: Duration(minutes: 1)),
     );
@@ -113,7 +113,7 @@ void _registerYgdkWriteResultTests() {
         );
         await fixtureOpenYgdkDetails(tester);
         expect(
-          find.text('准备阳光打卡'),
+          find.widgetWithText(OutlinedButton, '阳光打卡'),
           findsNothing,
           reason: '缺少 ${item.missing} 时必须 fail-closed',
         );
@@ -122,7 +122,7 @@ void _registerYgdkWriteResultTests() {
   );
 
   testWidgets(
-    '''阳光打卡确认前 prepare picker readback commit 或 discard
+    '''阳光表单提交前 prepare picker readback commit 或 discard
 任一能力丢失都失败关闭''',
     (tester) async {
       for (final missing in <String>[
@@ -180,19 +180,12 @@ void _registerYgdkWriteResultTests() {
         );
 
         await fixtureOpenAndFillYgdkForm(tester);
-        await tester.tap(find.text('继续确认'));
-        await tester.pumpAndSettle();
         missingCapability.value = missing;
         await tester.pump();
-        await tester.tap(find.text('确认提交'));
+        await tester.tap(find.text('提交打卡'));
         await tester.pumpAndSettle();
 
         expect(commitCalls, 0, reason: '缺少 $missing 时不得调用 commit');
-        expect(
-          find.text('暂时无法打卡；未提交，请重试。'),
-          findsOneWidget,
-          reason: '缺少 $missing 时必须明确失败关闭',
-        );
         await tester.pumpWidget(const SizedBox.shrink());
         missingCapability.dispose();
       }
@@ -229,13 +222,13 @@ void _registerYgdkWriteResultTests() {
     );
 
     await fixtureOpenAndFillYgdkForm(tester);
-    await tester.tap(find.text('继续确认'));
+    await tester.tap(find.text('提交打卡'));
     await tester.pumpAndSettle();
 
     expect(discardedIntentIds, const <String>['wrong-domain-intent']);
     expect(commitCalls, 0);
     expect(find.text('确认提交'), findsNothing);
-    expect(find.text('暂时无法准备阳光打卡；未提交，请重试。'), findsOneWidget);
+    expect(find.text('阳光打卡未提交，已保留填写内容，请重试。'), findsOneWidget);
   });
 
   testWidgets('阳光打卡回读能力在提交期间丢失时不虚称已尝试', (tester) async {
@@ -271,9 +264,7 @@ void _registerYgdkWriteResultTests() {
     );
 
     await fixtureOpenAndFillYgdkForm(tester);
-    await tester.tap(find.text('继续确认'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('确认提交'));
+    await tester.tap(find.text('提交打卡'));
     await tester.pump();
     readbackAvailable.value = false;
     await tester.pump();
@@ -314,9 +305,7 @@ void _registerYgdkWriteResultTests() {
     );
 
     await fixtureOpenAndFillYgdkForm(tester);
-    await tester.tap(find.text('继续确认'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('确认提交'));
+    await tester.tap(find.text('提交打卡'));
     await tester.pumpAndSettle();
 
     expect(refreshCalls, 1);
@@ -347,9 +336,7 @@ void _registerYgdkWriteResultTests() {
     );
 
     await fixtureOpenAndFillYgdkForm(tester);
-    await tester.tap(find.text('继续确认'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('确认提交'));
+    await tester.tap(find.text('提交打卡'));
     await tester.pumpAndSettle();
 
     expect(refreshCalls, 1);
@@ -376,9 +363,7 @@ void _registerYgdkWriteResultTests() {
     );
 
     await fixtureOpenAndFillYgdkForm(tester);
-    await tester.tap(find.text('继续确认'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('确认提交'));
+    await tester.tap(find.text('提交打卡'));
     await tester.pumpAndSettle();
 
     expect(find.text('照片上传未完成，应用不会自动重试；本次阳光打卡尚未最终提交。'), findsOneWidget);
@@ -434,7 +419,7 @@ void _registerYgdkWriteResultTests() {
       find.widgetWithText(TextField, '结束时间'),
       ' 2026-09-01 09:00 ',
     );
-    await tester.tap(find.text('继续确认'));
+    await tester.tap(find.text('提交打卡'));
     await tester.pumpAndSettle();
 
     expect(preparedInput?.startTime, ' 2026-09-01 08:00 ');
@@ -489,9 +474,7 @@ void _registerYgdkWriteResultTests() {
     );
 
     await fixtureOpenAndFillYgdkForm(tester);
-    await tester.tap(find.text('继续确认'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('确认提交'));
+    await tester.tap(find.text('提交打卡'));
     await tester.pumpAndSettle();
 
     expect(refreshCalls, 1);
@@ -543,7 +526,7 @@ void _registerYgdkWriteResultTests() {
       findsNothing,
     );
 
-    await tester.tap(find.text('准备阳光打卡'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '阳光打卡'));
     await tester.pumpAndSettle();
     expect(find.text('选择照片'), findsOneWidget);
     expect(

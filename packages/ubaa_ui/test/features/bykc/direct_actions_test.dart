@@ -19,6 +19,11 @@ void main() {
       final before = state.queries.length;
       await tester.tap(button);
       await tester.pump();
+      if (chosen) {
+        await tester.pumpAndSettle();
+        await tester.tap(find.text('确认退选'));
+        await tester.pump();
+      }
       await tester.pump(const Duration(milliseconds: 100));
       expect(state.targets, [(state.operation, 71)]);
       expect(state.commits, 1);

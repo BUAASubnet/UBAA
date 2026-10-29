@@ -518,7 +518,25 @@ final class _AllWritesIntegrationBackend
   Future<FeatureResult> loadFeatureQuery(
     FeatureId feature,
     FeatureQuery query,
-  ) => loadFeature(feature);
+  ) async {
+    if (feature == FeatureId.cgyy &&
+        query.view == FeatureQueryView.cgyyPurposeTypes) {
+      return const FeatureResult.success(
+        details: [
+          FeatureDetail(
+            title: '合成用途',
+            presentation: CgyyPurposePresentation(
+              key: 2,
+              name: '合成用途',
+              isStaticFallback: false,
+            ),
+          ),
+        ],
+        resolvedRoute: ConnectionMode.direct,
+      );
+    }
+    return loadFeature(feature);
+  }
 
   @override
   Future<FeatureResult> loadCgyyOrdersOnRoute({

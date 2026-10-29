@@ -7,7 +7,7 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../../../integration_test/synthetic/bykc/backend.dart';
 
 void main() {
-  testWidgets('课程列表直接选退后刷新原列表，不跳详情或已选页', (tester) async {
+  testWidgets('课程列表选课和确认退选后刷新原列表，不跳详情或已选页', (tester) async {
     final backend = await _open(tester, chosen: false);
     Finder action(String label) => find.descendant(
       of: find.widgetWithText(Card, '合成课程 1'),
@@ -19,6 +19,8 @@ void main() {
     expect(find.widgetWithText(AppBar, '选择课程'), findsOneWidget);
     expect(backend.boyaReads.last.view, FeatureQueryView.summary);
     await _tap(tester, action('退选'));
+    expect(backend.commitCalls, 1);
+    await _tap(tester, find.text('确认退选'));
     expect(backend.commitCalls, 2);
     expect(backend.selections[101], isFalse);
     expect(find.widgetWithText(AppBar, '选择课程'), findsOneWidget);
@@ -30,7 +32,7 @@ void main() {
     );
     expect(action('选课'), findsOneWidget);
   });
-  testWidgets('已选博雅详情直接退选后移除记录并保留返回路径', (tester) async {
+  testWidgets('已选博雅详情确认退选后移除记录并保留返回路径', (tester) async {
     final backend = await _open(tester);
     final count = backend.boyaReads.length;
     await _tap(tester, find.widgetWithText(Card, '合成已选课 1'));
@@ -40,6 +42,8 @@ void main() {
     expect(backend.boyaReads.last.courseId, '101');
     expect(find.text('合成课程联系人'), findsOneWidget);
     await _tap(tester, find.widgetWithText(OutlinedButton, '退选'));
+    expect(backend.preparedBoya, isEmpty);
+    await _tap(tester, find.text('确认退选'));
     expect(backend.preparedBoya, [
       (WriteOperation.bykcDeselectCourse, 101, null),
     ]);

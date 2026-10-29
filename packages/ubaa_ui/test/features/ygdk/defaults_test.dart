@@ -48,7 +48,7 @@ void main() {
       await tester.tap(find.text('打开'));
       await tester.pumpAndSettle();
       await withClock(Clock.fixed(sample.$1), () async {
-        await tester.tap(find.text('继续确认'));
+        await tester.tap(find.text('提交打卡'));
         await tester.pumpAndSettle();
       });
       expect(result, isNotNull);
@@ -85,7 +85,7 @@ void main() {
       find.widgetWithText(TextField, '开始时间'),
       '2026-10-24 08:00',
     );
-    await tester.tap(find.text('继续确认'));
+    await tester.tap(find.text('提交打卡'));
     await tester.pumpAndSettle();
     expect(result, isNull);
     expect(find.text('开始时间和结束时间需要同时填写。'), findsOneWidget);

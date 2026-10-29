@@ -37,7 +37,6 @@ void _registerWriteCoordinationTests() {
     shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
     expect(identical(shell.writeState.intent, intent), isTrue);
     expect(shell.writeState.phase, WritePhase.ready);
-    expect(find.text('脱敏宿主确认目标'), findsOneWidget);
 
     final outcome = await shell.onConfirmWrite!();
     expect(outcome?.result, FixtureRecordingBackend.commitResult);
@@ -105,9 +104,9 @@ void _registerWriteCoordinationTests() {
     );
     await tester.pumpAndSettle();
     final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
-    await tester.tap(find.text('阳光打卡'));
+    await tester.tap(find.widgetWithText(Card, '阳光打卡'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备阳光打卡'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '阳光打卡'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, '填写阳光打卡信息'), findsOneWidget);
     await tester.enterText(
@@ -130,7 +129,7 @@ void _registerWriteCoordinationTests() {
     expect(find.byType(UbaaMainShell), findsNothing);
     picker.pending.complete(fixtureSafeHostPhoto);
     await tester.pumpAndSettle();
-    expect(find.text('继续确认'), findsNothing);
+    expect(find.text('提交打卡'), findsNothing);
     expect(find.text('填写阳光打卡信息'), findsNothing);
 
     expect(backend.prepareCalls, 0);

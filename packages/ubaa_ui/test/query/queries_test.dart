@@ -104,7 +104,7 @@ void _registerQueryTests() {
     await tester.pumpAndSettle();
 
     final button = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '准备签到'),
+      find.widgetWithText(OutlinedButton, '签到'),
     );
     expect(button.onPressed, isNull);
     expect(find.text('该课程已签到，不能重复提交。'), findsOneWidget);
@@ -167,9 +167,9 @@ void _registerQueryTests() {
     await openFeature(tester, FeatureId.signin);
     await tester.pumpAndSettle();
 
-    expect(find.widgetWithText(OutlinedButton, '准备签到'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, '签到'), findsOneWidget);
     final button = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '准备签到'),
+      find.widgetWithText(OutlinedButton, '签到'),
     );
     expect(button.onPressed, isNull);
     expect(prepareCalls, 0);

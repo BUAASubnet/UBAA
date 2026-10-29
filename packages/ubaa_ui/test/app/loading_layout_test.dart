@@ -130,7 +130,7 @@ void main() {
       ),
     );
     await mount(ready);
-    final button = find.widgetWithText(OutlinedButton, '准备签到');
+    final button = find.widgetWithText(OutlinedButton, '签到');
     final before = tester.getTopLeft(find.text('下方内容'));
     await mount(ready.copyWith(status: FeatureLoadStatus.loading));
     expect(tester.getTopLeft(find.text('下方内容')), before);

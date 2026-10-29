@@ -47,7 +47,7 @@ void _registerCgyyReservationWriteTests() {
     );
     await tester.tap(_cgyyButtonFor('合成时段'));
     await tester.pumpAndSettle();
-    final button = find.widgetWithText(FilledButton, '继续确认');
+    final button = find.widgetWithText(FilledButton, '提交预约');
     ScaffoldMessenger.of(tester.element(button)).showSnackBar(
       const SnackBar(content: Text('上一操作结果'), duration: Duration(minutes: 1)),
     );
@@ -229,12 +229,11 @@ void _registerCgyyReservationWriteTests() {
     expect(tester.widget<FilterChip>(_cgyyChip(700)).selected, isFalse);
 
     await fixtureFillCgyyForm(tester, joiners: '  张三  ');
-    await tester.tap(find.text('继续确认'));
+    await tester.tap(find.text('提交预约'));
     await tester.pumpAndSettle();
     expect(captured?.actions, hasLength(1));
     expect(identical(captured?.actions.single, _cgyyUiFirstAction), isTrue);
     expect(captured?.joiners, '张三');
-    expect(find.text('确认研讨室预约'), findsOneWidget);
   });
 
   testWidgets('场馆表单把 trim 后为空的参与人说明视为必填', (tester) async {
@@ -258,13 +257,13 @@ void _registerCgyyReservationWriteTests() {
     await tester.tap(_cgyyButtonFor('可预约时段'));
     await tester.pumpAndSettle();
     await fixtureFillCgyyForm(tester, joiners: '   ');
-    await tester.tap(find.text('继续确认'));
+    await tester.tap(find.text('提交预约'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 0);
     expect(find.widgetWithText(AppBar, '填写预约信息'), findsOneWidget);
 
     await tester.enterText(fixtureCgyyTextField('参与人说明'), '  张三  ');
-    await tester.tap(find.text('继续确认'));
+    await tester.tap(find.text('提交预约'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
     expect(captured?.joiners, '张三');
@@ -323,7 +322,7 @@ Finder _cgyyButtonFor(String title) {
   final card = find.ancestor(of: find.text(title), matching: find.byType(Card));
   return find.descendant(
     of: card,
-    matching: find.widgetWithText(OutlinedButton, '准备研讨室预约'),
+    matching: find.widgetWithText(OutlinedButton, '预约研讨室'),
   );
 }
 

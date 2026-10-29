@@ -103,9 +103,9 @@ void _registerLibbookWriteResultTests() {
     );
 
     expect(prepareCalls, 1);
-    await tester.tap(find.text('确认提交'));
+    await tester.tap(find.text('预约此座位'));
     await tester.pump();
-    await tester.tap(find.text('确认提交'));
+    await tester.tap(find.text('预约此座位'));
     await tester.pump();
     expect(commitCalls, 1);
     commit.complete(
@@ -143,7 +143,6 @@ void _registerLibbookWriteResultTests() {
       onRefresh: () => refreshCalls++,
     );
 
-    await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
 
     expect(commitCalls, 1);
@@ -210,14 +209,21 @@ void _registerLibbookCancellationWriteTest() {
       },
     );
 
-    await tester.tap(find.text('准备取消预约'));
+    await tester.tap(find.text('取消预约'));
     await tester.pumpAndSettle();
+    expect(prepareCalls, 0);
+    expect(commitCalls, 0);
+    await tester.tap(find.text('再想想'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 0);
+    expect(commitCalls, 0);
+    await tester.tap(find.text('取消预约'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认取消'));
+    await tester.pump();
+    await tester.tap(find.text('取消预约'));
+    await tester.pump();
     expect(prepareCalls, 1);
-    expect(find.text('确认取消图书馆预约'), findsOneWidget);
-    await tester.tap(find.text('确认提交'));
-    await tester.pump();
-    await tester.tap(find.text('确认提交'));
-    await tester.pump();
     expect(commitCalls, 1);
     commit.complete(
       const WriteCommitResult(
@@ -324,9 +330,9 @@ void _registerLibbookCancellationWriteTest() {
       onRefresh: (_, __) async => refreshCalls++,
     );
 
-    await tester.tap(find.text('准备取消预约'));
+    await tester.tap(find.text('取消预约'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('确认提交'));
+    await tester.tap(find.text('确认取消'));
     await tester.pumpAndSettle();
     expect(refreshCalls, 0);
     expect(find.text('预约取消未完成'), findsOneWidget);
@@ -404,9 +410,8 @@ Future<void> _pumpLibbookResult(
     onCommit: (_) => onCommit(),
     onRefresh: (_, __) async => onRefresh(),
   );
-  await tester.tap(find.text('准备预约此座位'));
-  await tester.pumpAndSettle();
-  expect(find.text('确认图书馆预约'), findsOneWidget);
+  await tester.tap(find.text('预约此座位'));
+  await tester.pump();
 }
 
 Future<void> _pumpLibbookShell(
@@ -459,7 +464,7 @@ Finder _libbookButtonFor(String title) {
   final card = find.ancestor(of: find.text(title), matching: find.byType(Card));
   return find.descendant(
     of: card,
-    matching: find.widgetWithText(OutlinedButton, '准备预约此座位'),
+    matching: find.widgetWithText(OutlinedButton, '预约此座位'),
   );
 }
 
@@ -467,7 +472,7 @@ Finder _libbookCancelButtonFor(String title) {
   final card = find.ancestor(of: find.text(title), matching: find.byType(Card));
   return find.descendant(
     of: card,
-    matching: find.widgetWithText(OutlinedButton, '准备取消预约'),
+    matching: find.widgetWithText(OutlinedButton, '取消预约'),
   );
 }
 

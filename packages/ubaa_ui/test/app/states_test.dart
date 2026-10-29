@@ -247,19 +247,17 @@ void _registerBykcStateTests() {
     await tester.pumpAndSettle();
 
     final signIn = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '准备博雅签到'),
+      find.widgetWithText(OutlinedButton, '博雅签到'),
     );
     final signOut = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '准备博雅签退'),
+      find.widgetWithText(OutlinedButton, '博雅签退'),
     );
     expect(signIn.onPressed, isNotNull);
     expect(signOut.onPressed, isNotNull);
-    await tester.tap(find.text('准备博雅签到'));
+    await tester.tap(find.text('博雅签到'));
     await tester.pumpAndSettle();
     expect(calls, <(int, int, bool)>[(73, 1, false)]);
-    await tester.tap(find.text('取消'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('准备博雅签退'));
+    await tester.tap(find.text('博雅签退'));
     await tester.pumpAndSettle();
     expect(calls, <(int, int, bool)>[(73, 1, false), (73, 2, true)]);
   });
@@ -347,10 +345,10 @@ void _registerBykcStateTests() {
     await tester.pumpAndSettle();
 
     final signIns = tester.widgetList<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '准备博雅签到'),
+      find.widgetWithText(OutlinedButton, '博雅签到'),
     );
     final signOuts = tester.widgetList<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '准备博雅签退'),
+      find.widgetWithText(OutlinedButton, '博雅签退'),
     );
     expect(signIns, hasLength(2));
     expect(signIns.every((button) => button.onPressed == null), isTrue);
@@ -408,8 +406,8 @@ void _registerBykcStateTests() {
     await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
 
-    expect(find.text('准备博雅签到'), findsNothing);
-    expect(find.text('准备博雅签退'), findsNothing);
+    expect(find.text('博雅签到'), findsNothing);
+    expect(find.text('博雅签退'), findsNothing);
   });
 
   testWidgets('博雅课程写入口只服从 typed 资格且退选目标不依赖展示字段', (tester) async {
@@ -492,6 +490,8 @@ void _registerBykcStateTests() {
     expect(deselect.onPressed, isNotNull);
     expect(find.text('部分操作当前不可用'), findsOneWidget);
     await tester.tap(find.text('退选'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认退选'));
     await tester.pumpAndSettle();
     expect(deselectCalls, 1);
     expect(deselectCourseIds, <int>[9527]);

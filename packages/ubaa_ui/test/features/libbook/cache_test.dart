@@ -11,11 +11,11 @@ void main() {
     await openFeature(tester, FeatureId.libbook);
     expect(find.text('合成座位甲'), findsOneWidget);
     expect(find.text('资格未确认'), findsOneWidget);
-    expect(find.text('准备预约此座位'), findsNothing);
+    expect(find.text('预约此座位'), findsNothing);
     await tester.pumpWidget(_page(FeatureLoadStatus.loading));
     await tester.pump(const Duration(milliseconds: 300));
     expect(find.text('合成座位甲'), findsOneWidget);
-    expect(find.text('准备预约此座位'), findsNothing);
+    expect(find.text('预约此座位'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

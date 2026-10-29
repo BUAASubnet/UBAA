@@ -262,7 +262,7 @@ void main() {
     await tester.tap(find.text('下一步'));
     await tester.pumpAndSettle();
     expect(find.text('合成研讨乙'), findsOneWidget);
-    await tester.tap(find.text('继续确认'));
+    await tester.tap(find.text('提交预约'));
     await tester.pumpAndSettle();
     expect(input?.purposeType, 37);
     expect(input?.phone, 'synthetic-phone');

@@ -232,20 +232,20 @@ void main() {
     expect(find.text('合成年级'), findsOneWidget);
     expect(find.text('合成人群'), findsOneWidget);
     await _show(tester, find.text('查看签到与签退'));
-    expect(find.text('准备博雅签到'), findsNothing);
+    expect(find.text('博雅签到'), findsNothing);
     await tester.tap(find.widgetWithText(OutlinedButton, '查看签到与签退'));
     await tester.pumpAndSettle();
     expect(state.queries.last.view, FeatureQueryView.bykcChosenCourses);
     await tester.tap(find.widgetWithText(Card, '合成已选记录'));
     await tester.pumpAndSettle();
-    await _show(tester, find.text('准备博雅签到'));
+    await _show(tester, find.text('博雅签到'));
     expect(
       tester
-          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '准备博雅签到'))
+          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '博雅签到'))
           .onPressed,
       isNotNull,
     );
-    await tester.tap(find.widgetWithText(OutlinedButton, '准备博雅签到'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '博雅签到'));
     await tester.pumpAndSettle();
     expect(state.prepared.single.courseId, 71);
     expect(state.prepared.single.kind, BykcSignKind.signIn);
@@ -267,11 +267,11 @@ void main() {
       state.chosen = duplicate ? [_chosen, _chosen] : const [];
       await tester.tap(find.byTooltip('刷新当前查询'));
       await tester.pumpAndSettle();
-      expect(find.text('准备博雅签到'), findsNothing);
+      expect(find.text('博雅签到'), findsNothing);
       expect(find.text('退选'), findsNothing);
       await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
-      expect(find.text('准备博雅签到'), findsNothing);
+      expect(find.text('博雅签到'), findsNothing);
     }
   });
 
@@ -282,7 +282,7 @@ void main() {
     await tester.tap(find.widgetWithText(Card, '合成已选记录'));
     await tester.pumpAndSettle();
     expect(find.textContaining('合成完整详情读取失败'), findsWidgets);
-    expect(find.text('准备博雅签到'), findsNothing);
+    expect(find.text('博雅签到'), findsNothing);
     expect(find.text('退选'), findsNothing);
   });
 
@@ -298,7 +298,7 @@ void main() {
     state.pendingFull!.complete();
     await tester.pumpAndSettle();
     expect(find.text('合成联系人'), findsNothing);
-    expect(find.text('准备博雅签到'), findsNothing);
+    expect(find.text('博雅签到'), findsNothing);
     state.update(() => state.username = 'synthetic-b');
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.bykc);

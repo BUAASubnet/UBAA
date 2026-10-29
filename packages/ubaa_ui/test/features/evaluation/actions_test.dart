@@ -107,7 +107,7 @@ void _registerEvaluationWriteTests() {
     await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
     expect(find.byType(DataTable), findsNothing);
-    expect(find.text('准备评教'), findsNothing);
+    expect(find.text('提交评教'), findsNothing);
     await tester.tap(find.byTooltip('课程详情'));
     await tester.pumpAndSettle();
     expect(find.text('展示任务（已改名）：wrong-task'), findsOneWidget);
@@ -118,18 +118,24 @@ void _registerEvaluationWriteTests() {
       find.byKey(ValueKey<String>('evaluation-${expectedTarget.selectionKey}')),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备评教'));
+    await tester.tap(find.text('提交评教'));
     await tester.pumpAndSettle();
-    expect(prepareCalls, 1);
+    expect(prepareCalls, 0);
     expect(commitCalls, 0);
-    expect(find.text('确认教学评教'), findsOneWidget);
+    await tester.tap(find.text('再想想'));
+    await tester.pumpAndSettle();
+    expect(prepareCalls, 0);
+    expect(commitCalls, 0);
+    await tester.tap(find.text('提交评教'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
+    expect(prepareCalls, 1);
     expect(commitCalls, 1);
     expect(find.text('评教结果已提交，请刷新确认'), findsOneWidget);
   });
 
-  testWidgets('评教可显式勾选多门待评课程后批量进入确认页', (tester) async {
+  testWidgets('评教可显式勾选多门待评课程后批量弹窗确认', (tester) async {
     await tester.binding.setSurfaceSize(const Size(800, 1600));
     const firstTarget = EvaluationSubmitTarget(
       rwid: 'task-a',
@@ -241,7 +247,7 @@ void _registerEvaluationWriteTests() {
     await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
 
-    expect(find.text('准备批量评教'), findsNothing);
+    expect(find.text('提交 2 门评教'), findsNothing);
     expect(find.text('已选择 0 门待评课程'), findsNothing);
     final first = find.byKey(
       ValueKey<String>('evaluation-${firstTarget.selectionKey}'),
@@ -255,11 +261,10 @@ void _registerEvaluationWriteTests() {
     await tester.tap(second);
     await tester.pumpAndSettle();
     expect(find.text('已选择 2 门待评课程'), findsOneWidget);
-    await tester.tap(find.text('准备批量评教'));
+    await tester.tap(find.text('提交 2 门评教'));
     await tester.pumpAndSettle();
-    expect(prepareCalls, 1);
+    expect(prepareCalls, 0);
     expect(commitCalls, 0);
-    expect(find.text('确认教学评教'), findsOneWidget);
     await tester.tap(find.text('确认提交'));
     await tester.pumpAndSettle();
     expect(commitCalls, 1);
@@ -357,11 +362,11 @@ void _registerEvaluationWriteTests() {
     await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
 
-    expect(find.text('准备提交评教'), findsNothing);
+    expect(find.text('提交评教'), findsNothing);
     expect(prepareCalls, 0);
   });
 
-  testWidgets('评教 prepare 返回错误 operation 时丢弃 intent 且不进入确认页', (tester) async {
+  testWidgets('评教 prepare 返回错误 operation 时丢弃 intent 且不提交', (tester) async {
     const target = EvaluationSubmitTarget(
       rwid: 'task-safe',
       wjid: 'questionnaire-safe',
@@ -431,9 +436,11 @@ void _registerEvaluationWriteTests() {
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.evaluation);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备提交评教'));
+    await tester.tap(find.text('提交评教'));
     await tester.pumpAndSettle();
 
+    await tester.tap(find.text('确认提交'));
+    await tester.pumpAndSettle();
     expect(discardedIntent, 'wrong-operation');
     expect(find.text('确认阳光打卡'), findsNothing);
   });
@@ -515,7 +522,7 @@ void _registerEvaluationWriteTests() {
       await tester.pumpAndSettle();
       await openFeature(tester, FeatureId.evaluation);
       await tester.pumpAndSettle();
-      await tester.tap(find.text('准备提交评教'));
+      await tester.tap(find.text('提交评教'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('确认提交'));
       await tester.pumpAndSettle();

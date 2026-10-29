@@ -35,7 +35,7 @@ void main() {
       );
       if (edited) await tester.enterText(phone, 'new-synthetic-phone');
       expect(saved, isEmpty);
-      await tester.tap(find.text('继续确认'));
+      await tester.tap(find.text('提交预约'));
       await tester.pumpAndSettle();
       expect(result?.phone, edited ? 'new-synthetic-phone' : defaults.phone);
       expect(result?.purposeType, 37);
@@ -55,7 +55,7 @@ void main() {
       (_) => fail('用途缺失不得提交'),
       purposesAvailable: false,
     );
-    await tester.tap(find.text('继续确认'));
+    await tester.tap(find.text('提交预约'));
     await tester.pumpAndSettle();
     final field = find.byWidgetPredicate(
       (w) => w is InputDecorator && w.decoration.labelText == '活动类型',
@@ -69,7 +69,7 @@ void main() {
   testWidgets('逐项标记缺失字段，填好一项后消除该项错误且不保存无效表单', (tester) async {
     final saved = <CgyyReservationDefaults>[];
     await open(tester, null, saved, (_) => fail('无效表单不得提交'));
-    await tester.tap(find.text('继续确认'));
+    await tester.tap(find.text('提交预约'));
     await tester.pumpAndSettle();
     for (final label in ['联系电话', '预约主题', '活动内容', '参与人说明']) {
       final field = find.widgetWithText(TextField, label);
@@ -87,7 +87,7 @@ void main() {
     await tester.enterText(people, '0');
     await tester.pump();
     expect(tester.widget<TextField>(people).decoration!.errorText, '请填写正整数');
-    await tester.tap(find.text('继续确认'));
+    await tester.tap(find.text('提交预约'));
     await tester.pumpAndSettle();
     expect(saved, isEmpty);
   });

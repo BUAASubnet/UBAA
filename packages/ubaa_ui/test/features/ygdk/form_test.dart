@@ -35,7 +35,7 @@ void _registerYgdkFormTests() {
     expect(find.widgetWithText(AppBar, '填写阳光打卡信息'), findsOneWidget);
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备阳光打卡'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '阳光打卡'));
     await tester.pumpAndSettle();
     expect(
       tester
@@ -141,7 +141,7 @@ void _registerYgdkFormTests() {
     await tester.pumpAndSettle();
     pending.complete(await fixtureValidYgdkPhoto());
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备阳光打卡'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '阳光打卡'));
     await tester.pumpAndSettle();
     expect(find.byKey(const ValueKey('ygdk-photo-preview')), findsNothing);
     expect(tester.takeException(), isNull);
@@ -184,7 +184,7 @@ void _registerYgdkFormTests() {
     final pending = Completer<YgdkPhotoInput?>();
     await mount(tester, () => pending.future);
     await fixtureOpenYgdkDetails(tester);
-    await tester.tap(find.text('准备阳光打卡'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '阳光打卡'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(find.text('选择照片'));
     await tester.pumpAndSettle();
@@ -192,13 +192,13 @@ void _registerYgdkFormTests() {
     await tester.pump();
     expect(
       tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, '继续确认'))
+          .widget<FilledButton>(find.widgetWithText(FilledButton, '提交打卡'))
           .onPressed,
       isNull,
     );
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备阳光打卡'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '阳光打卡'));
     await tester.pumpAndSettle();
     pending.complete(await fixtureValidYgdkPhoto());
     await tester.pumpAndSettle();

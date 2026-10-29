@@ -20,13 +20,7 @@ void _registerPrimaryWriteFlowTests() {
     await _openIntegrationFeature(tester, FeatureId.signin);
     expect(find.text('未签到'), findsOneWidget);
 
-    await tester.tap(find.text('准备签到'));
-    await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, '确认课堂签到'), findsOneWidget);
-    expect(backend.commitCalls, 0);
-
-    final confirm = find.widgetWithText(FilledButton, '确认提交');
-    await tester.tap(confirm);
+    await tester.tap(find.text('签到'));
     await tester.pumpAndSettle();
     expect(backend.commitCalls, 1);
     expect(backend.preparedCourse, 'course-integration');
@@ -54,9 +48,7 @@ void _registerPrimaryWriteFlowTests() {
     await tester.pumpAndSettle();
 
     await _openIntegrationFeature(tester, FeatureId.signin);
-    await tester.tap(find.text('准备签到'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('确认提交'));
+    await tester.tap(find.text('签到'));
     await tester.pumpAndSettle();
 
     expect(backend.commitCalls, 1);
@@ -85,9 +77,7 @@ void _registerPrimaryWriteFlowTests() {
     await tester.pumpAndSettle();
 
     await _openIntegrationFeature(tester, FeatureId.signin);
-    await tester.tap(find.text('准备签到'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('确认提交'));
+    await tester.tap(find.text('签到'));
     await tester.pumpAndSettle();
 
     expect(backend.commitCalls, 1);
@@ -157,20 +147,16 @@ void _registerWriteMatrixFlowTest() {
       await tester.pumpAndSettle();
       await tester.tap(find.text(label).first);
       await tester.pumpAndSettle();
-      final direct =
-          operation == WriteOperation.bykcSelectCourse ||
-          operation == WriteOperation.bykcDeselectCourse;
-      final cancelOrder = operation == WriteOperation.cgyyCancelOrder;
-      if (!direct) {
-        before = backend.commitCalls;
-        beforeReadback = backend.featureLoads[readbackFeature] ?? 0;
-        expect(
-          find.text(cancelOrder ? '取消预约？' : '确认${operation.title}'),
-          findsAtLeastNWidgets(1),
-        );
-        await tester.tap(
-          find.widgetWithText(FilledButton, cancelOrder ? '确认取消' : '确认提交'),
-        );
+      final confirmation = switch (operation) {
+        WriteOperation.bykcDeselectCourse => '确认退选',
+        WriteOperation.cgyyCancelOrder ||
+        WriteOperation.libbookCancelBooking => '确认取消',
+        WriteOperation.evaluationSubmitCourses => '确认提交',
+        _ => null,
+      };
+      if (confirmation != null) {
+        expect(backend.commitCalls, before);
+        await tester.tap(find.widgetWithText(FilledButton, confirmation));
         await tester.pumpAndSettle();
       }
       expect(backend.commitCalls, before + 1);
@@ -199,32 +185,32 @@ void _registerWriteMatrixFlowTest() {
     await confirm('退选', WriteOperation.bykcDeselectCourse, FeatureId.bykc);
     await leaveFeature();
     await openFeature(FeatureId.bykc);
-    await confirm('准备博雅签到', WriteOperation.bykcSignCourse, FeatureId.bykc);
+    await confirm('博雅签到', WriteOperation.bykcSignCourse, FeatureId.bykc);
     await leaveFeature();
     await openFeature(FeatureId.bykc);
-    await confirm('准备博雅签退', WriteOperation.bykcSignCourse, FeatureId.bykc);
+    await confirm('博雅签退', WriteOperation.bykcSignCourse, FeatureId.bykc);
     await leaveFeature();
 
     await openFeature(FeatureId.signin);
-    await confirm('准备签到', WriteOperation.signinPerform, FeatureId.signin);
+    await confirm('签到', WriteOperation.signinPerform, FeatureId.signin);
     await leaveFeature();
 
     await openFeature(FeatureId.libbook);
-    await confirm('准备预约此座位', WriteOperation.libbookReserve, FeatureId.libbook);
+    await confirm('预约此座位', WriteOperation.libbookReserve, FeatureId.libbook);
     await leaveFeature();
     await openFeature(FeatureId.libbook);
     await confirm(
-      '准备取消预约',
+      '取消预约',
       WriteOperation.libbookCancelBooking,
       FeatureId.libbook,
     );
     await leaveFeature();
 
     await openFeature(FeatureId.cgyy);
-    expect(find.text('准备研讨室预约'), findsOneWidget);
-    await tester.tap(find.text('准备研讨室预约').first);
+    expect(find.text('预约研讨室'), findsOneWidget);
+    await tester.tap(find.text('预约研讨室').first);
     await tester.pumpAndSettle();
-    expect(find.text('填写研讨室预约信息'), findsOneWidget);
+    expect(find.text('填写预约信息'), findsOneWidget);
     await tester.enterText(
       find.widgetWithText(TextField, '联系电话'),
       '010-00000000',
@@ -232,28 +218,22 @@ void _registerWriteMatrixFlowTest() {
     await tester.enterText(find.widgetWithText(TextField, '预约主题'), '集成测试');
     await tester.tap(find.text('选择活动类型'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('手动填写'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, '用途编号'), '2');
-    await tester.tap(find.text('使用编号'));
+    await tester.tap(find.text('合成用途'));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, '参与人数'), '2');
     await tester.enterText(find.widgetWithText(TextField, '活动内容'), '脱敏集成验证');
     await tester.enterText(find.widgetWithText(TextField, '参与人说明'), '脱敏参与人');
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('继续确认'));
-    await tester.tap(find.text('继续确认'));
+    final beforeCgyy = backend.commitCalls;
+    final beforeCgyyReadback = backend.featureLoads[FeatureId.cgyy] ?? 0;
+    await tester.ensureVisible(find.text('提交预约'));
+    await tester.tap(find.text('提交预约'));
     // 场馆表单在退出动画后延迟释放输入控制器；普通 Timer 不会让
     // pumpAndSettle 主动继续推进时间，因此这里显式越过该安全窗口。
     await tester.pump(const Duration(milliseconds: 400));
     await tester.pumpAndSettle();
-    expect(find.text('填写研讨室预约信息'), findsNothing);
-    expect(find.text('确认研讨室预约'), findsAtLeastNWidgets(1));
-    final beforeCgyy = backend.commitCalls;
-    final beforeCgyyReadback = backend.featureLoads[FeatureId.cgyy] ?? 0;
-    await tester.tap(find.widgetWithText(FilledButton, '确认提交'));
-    await tester.pumpAndSettle();
+    expect(find.text('填写预约信息'), findsNothing);
     expect(backend.commitCalls, beforeCgyy + 1);
     expect(
       backend.committedOperations.last,
@@ -272,7 +252,7 @@ void _registerWriteMatrixFlowTest() {
     await leaveFeature();
 
     await openFeature(FeatureId.ygdk);
-    await tester.tap(find.text('准备阳光打卡').first);
+    await tester.tap(find.widgetWithText(OutlinedButton, '阳光打卡'));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.widgetWithText(TextField, '开始时间'),
@@ -288,13 +268,10 @@ void _registerWriteMatrixFlowTest() {
     await tester.pumpAndSettle();
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.text('继续确认'));
-    await tester.tap(find.text('继续确认'));
-    await tester.pumpAndSettle();
-    expect(find.text('确认阳光打卡'), findsAtLeastNWidgets(1));
     final beforeYgdk = backend.commitCalls;
     final beforeYgdkReadback = backend.featureLoads[FeatureId.ygdk] ?? 0;
-    await tester.tap(find.widgetWithText(FilledButton, '确认提交'));
+    await tester.ensureVisible(find.text('提交打卡'));
+    await tester.tap(find.text('提交打卡'));
     await tester.pumpAndSettle();
     expect(backend.commitCalls, beforeYgdk + 1);
     expect(backend.committedOperations.last, WriteOperation.ygdkSubmit);
@@ -308,7 +285,7 @@ void _registerWriteMatrixFlowTest() {
 
     await openFeature(FeatureId.evaluation);
     await confirm(
-      '准备提交评教',
+      '提交评教',
       WriteOperation.evaluationSubmitCourses,
       FeatureId.evaluation,
     );

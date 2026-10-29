@@ -98,22 +98,21 @@ void main() {
       await _tap(tester, find.byTooltip('刷新当前查询'));
       expect(find.text('当前分区暂无可预约座位'), findsOneWidget);
       expect(find.text('已选座位：A1'), findsNothing);
-      expect(find.text('准备预约此座位'), findsNothing);
+      expect(find.text('预约此座位'), findsNothing);
       expect(backend.preparedSeats, isEmpty);
     },
     variant: TargetPlatformVariant.only(TargetPlatform.macOS),
   );
-  testWidgets('窄屏大字和键盘占位下可滚动选择座位并取消准备', (tester) async {
+  testWidgets('窄屏大字和键盘占位下可滚动选择座位并直接提交', (tester) async {
     tester.platformDispatcher.textScaleFactorTestValue = 1.3;
     addTearDown(tester.platformDispatcher.clearTextScaleFactorTestValue);
     tester.view.viewInsets = const FakeViewPadding(bottom: 320);
     addTearDown(tester.view.resetViewInsets);
     final backend = await _open(tester, width: 360);
     await _tap(tester, find.widgetWithText(Card, 'A1'));
-    await _tap(tester, find.text('准备预约此座位'));
+    await _tap(tester, find.text('预约此座位'));
     expect(backend.preparedSeats.single.seatId, 'canonical-seat-0');
-    await _tap(tester, find.widgetWithText(OutlinedButton, '取消'));
-    expect(backend.commitCalls, 0);
+    expect(backend.commitCalls, 1);
     expect(tester.takeException(), isNull);
   });
   testWidgets('正文切换日期自动取同日时段且准备保留完整canonical目标', (tester) async {
@@ -128,7 +127,7 @@ void main() {
       ['second-slot', '14:00', '16:00'],
     );
     await _tap(tester, find.widgetWithText(Card, 'A1'));
-    await _tap(tester, find.text('准备预约此座位'));
+    await _tap(tester, find.text('预约此座位'));
     final action = backend.preparedSeats.single;
     expect(
       [
@@ -148,8 +147,7 @@ void main() {
         '16:00',
       ],
     );
-    await _tap(tester, find.widgetWithText(OutlinedButton, '取消'));
-    expect(backend.commitCalls, 0);
+    expect(backend.commitCalls, 1);
   });
   testWidgets('同日切换时段自动查询且清除原座位选择', (tester) async {
     final backend = await _open(

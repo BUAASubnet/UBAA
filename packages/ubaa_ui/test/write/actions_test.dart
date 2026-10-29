@@ -7,7 +7,7 @@ import '../support/write_harness.dart';
 import '../support/navigation.dart';
 
 void _registerInitialWriteTests() {
-  testWidgets('博雅选退课点击直接提交且签到保留原确认流程', (tester) async {
+  testWidgets('博雅签到签退选课一点即完成，退选先弹窗确认', (tester) async {
     final snapshots = <FeatureId, FeatureSnapshot>{
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
@@ -116,9 +116,11 @@ void _registerInitialWriteTests() {
           onCommitWrite: (intentId) async {
             commitCalls++;
             committedIntent = intentId;
-            final operation = intentId == 'deselect-intent-42'
-                ? WriteOperation.bykcDeselectCourse
-                : WriteOperation.bykcSelectCourse;
+            final operation = switch (intentId) {
+              'deselect-intent-42' => WriteOperation.bykcDeselectCourse,
+              'sign-intent-42' => WriteOperation.bykcSignCourse,
+              _ => WriteOperation.bykcSelectCourse,
+            };
             return WriteCommitResult(
               operation: operation,
               success: true,
@@ -135,6 +137,7 @@ void _registerInitialWriteTests() {
               anyOf(
                 WriteOperation.bykcSelectCourse,
                 WriteOperation.bykcDeselectCourse,
+                WriteOperation.bykcSignCourse,
               ),
             );
             refreshCalls++;
@@ -148,120 +151,43 @@ void _registerInitialWriteTests() {
     );
     await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备博雅签到'));
+    // 签到、签退与选课一点即完成；退选不可撤销，先弹窗确认。
+    await tester.tap(find.text('博雅签到'));
     await tester.pumpAndSettle();
     expect(signCalls, 1);
     expect(signTypes, <int>[1]);
-    expect(commitCalls, 0);
-    expect(find.text('确认博雅签到'), findsOneWidget);
-    await tester.tap(find.text('取消'));
-    await tester.pumpAndSettle();
-    expect(discardedIntentIds, <String>['sign-intent-42']);
-    await tester.tap(find.text('准备博雅签到'));
+    expect(find.text('确认博雅签到'), findsNothing);
+    expect(commitCalls, 1);
+    expect(committedIntent, 'sign-intent-42');
+    await tester.tap(find.text('博雅签退'));
     await tester.pumpAndSettle();
     expect(signCalls, 2);
-    expect(signTypes, <int>[1, 1]);
-    expect(find.text('确认博雅签到'), findsOneWidget);
-    await tester.tap(find.text('取消'));
-    await tester.pumpAndSettle();
-    expect(discardedIntentIds, <String>['sign-intent-42', 'sign-intent-42']);
-    await tester.tap(find.text('准备博雅签退'));
-    await tester.pumpAndSettle();
-    expect(signCalls, 3);
-    expect(signTypes, <int>[1, 1, 2]);
-    await tester.tap(find.text('取消'));
-    await tester.pumpAndSettle();
+    expect(signTypes, <int>[1, 2]);
+    expect(commitCalls, 2);
     await tester.tap(find.text('选课'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
     expect(find.text('确认博雅选课'), findsNothing);
-    expect(commitCalls, 1);
-    expect(refreshCalls, 1);
+    expect(commitCalls, 3);
     expect(committedIntent, 'intent-42');
 
     await tester.tap(find.text('退选'));
     await tester.pumpAndSettle();
+    expect(find.byType(AlertDialog), findsOneWidget);
+    await tester.tap(find.text('再想想'));
+    await tester.pumpAndSettle();
+    expect(deselectCalls, 0);
+    expect(commitCalls, 3);
+    await tester.tap(find.text('退选'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('确认退选'));
+    await tester.pumpAndSettle();
     expect(deselectCalls, 1);
     expect(find.text('确认博雅退选'), findsNothing);
-    expect(commitCalls, 2);
+    expect(commitCalls, 4);
     expect(committedIntent, 'deselect-intent-42');
-  });
-
-  testWidgets('丢弃待确认意图首次失败保留，第二次成功清理', (tester) async {
-    final snapshots = <FeatureId, FeatureSnapshot>{
-      for (final feature in FeatureId.values)
-        feature: FeatureSnapshot(
-          feature: feature,
-          status: FeatureLoadStatus.success,
-          summary: '已加载',
-          details: feature == FeatureId.bykc
-              ? const <FeatureDetail>[
-                  FeatureDetail(
-                    title: '课程',
-                    actions: <FeatureAction>[
-                      BykcSignAction(
-                        courseId: 42,
-                        kind: BykcSignKind.signIn,
-                        eligibility: ActionEligibility.allowed,
-                        requiresCoordinates: false,
-                      ),
-                    ],
-                  ),
-                ]
-              : const <FeatureDetail>[],
-        ),
-    };
-    var prepareCalls = 0;
-    var discardCalls = 0;
-    await tester.pumpWidget(
-      MaterialApp(
-        home: coordinatedShell(
-          user: const UserSummary(username: 'student'),
-          snapshots: snapshots,
-          routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
-          onRefresh: () async {},
-          onRetryFeature: (_) async {},
-          onPrepareBykcSignWrite: (_) async {
-            prepareCalls++;
-            return WriteIntent(
-              intentId: 'intent-retained',
-              operation: WriteOperation.bykcSignCourse,
-              targetSummary: '课程签到',
-              resolvedRoute: ConnectionMode.direct,
-              warnings: const <String>[],
-              expiresAt: DateTime.now().add(const Duration(minutes: 2)),
-              requestDigest: 'digest',
-            );
-          },
-          onDiscardWriteIntent: (_) async {
-            discardCalls++;
-            if (discardCalls == 1) throw StateError('脱敏丢弃失败');
-          },
-          onLogout: () async {},
-          onLogoutAndClearAccount: () async {},
-          onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
-        ),
-      ),
-    );
-
-    await openFeature(tester, FeatureId.bykc);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('准备博雅签到'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('取消'));
-    await tester.pumpAndSettle();
-
-    expect(prepareCalls, 1);
-    expect(discardCalls, 1);
-    expect(find.text('确认博雅签到'), findsOneWidget);
-    expect(find.text('暂时无法取消待确认操作，请重试。'), findsOneWidget);
-
-    await tester.tap(find.text('取消'));
-    await tester.pumpAndSettle();
-    expect(discardCalls, 2);
-    expect(find.text('确认博雅签到'), findsNothing);
+    expect(discardedIntentIds, isEmpty);
+    expect(refreshCalls, greaterThanOrEqualTo(2));
   });
 
   testWidgets('prepare 在主界面卸载后返回时 best-effort 释放晚到的 intent', (tester) async {
@@ -312,7 +238,7 @@ void _registerInitialWriteTests() {
     );
     await openFeature(tester, FeatureId.bykc);
     await tester.pumpAndSettle();
-    await tester.tap(find.text('准备博雅签到'));
+    await tester.tap(find.text('博雅签到'));
     await tester.pump();
 
     await tester.pumpWidget(const SizedBox.shrink());
@@ -332,112 +258,7 @@ void _registerInitialWriteTests() {
     expect(discardedIntentIds, <String>['intent-after-unmount']);
   });
 
-  testWidgets('丢弃尚未完成时保留确认页并禁用取消与提交', (tester) async {
-    final discardFinished = Completer<void>();
-    var discardCalls = 0;
-    var commitCalls = 0;
-    final snapshots = <FeatureId, FeatureSnapshot>{
-      for (final feature in FeatureId.values)
-        feature: FeatureSnapshot(
-          feature: feature,
-          status: FeatureLoadStatus.success,
-          summary: '已加载',
-          details: feature == FeatureId.bykc
-              ? const <FeatureDetail>[
-                  FeatureDetail(
-                    title: '课程',
-                    actions: <FeatureAction>[
-                      BykcSignAction(
-                        courseId: 42,
-                        kind: BykcSignKind.signIn,
-                        eligibility: ActionEligibility.allowed,
-                        requiresCoordinates: false,
-                      ),
-                    ],
-                  ),
-                ]
-              : const <FeatureDetail>[],
-        ),
-    };
-    await tester.pumpWidget(
-      MaterialApp(
-        home: coordinatedShell(
-          user: const UserSummary(username: 'student'),
-          snapshots: snapshots,
-          routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
-          onRefresh: () async {},
-          onRetryFeature: (_) async {},
-          onPrepareBykcSignWrite: (_) async => WriteIntent(
-            intentId: 'intent-pending-discard',
-            operation: WriteOperation.bykcSignCourse,
-            targetSummary: '课程签到',
-            resolvedRoute: ConnectionMode.direct,
-            warnings: const <String>[],
-            expiresAt: DateTime.now().add(const Duration(minutes: 2)),
-            requestDigest: 'digest',
-          ),
-          onDiscardWriteIntent: (intentId) async {
-            discardCalls++;
-            expect(intentId, 'intent-pending-discard');
-            await discardFinished.future;
-          },
-          onCommitWrite: (_) async {
-            commitCalls++;
-            throw StateError('丢弃期间不应提交');
-          },
-          onLogout: () async {},
-          onLogoutAndClearAccount: () async {},
-          onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
-        ),
-      ),
-    );
-
-    await openFeature(tester, FeatureId.bykc);
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('准备博雅签到'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('取消'));
-    await tester.pump();
-
-    expect(discardCalls, 1);
-    expect(commitCalls, 0);
-    expect(find.text('确认博雅签到'), findsOneWidget);
-    expect(find.text('正在取消'), findsOneWidget);
-    expect(
-      tester
-          .widget<OutlinedButton>(find.widgetWithText(OutlinedButton, '正在取消'))
-          .onPressed,
-      isNull,
-    );
-    expect(
-      tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, '确认提交'))
-          .onPressed,
-      isNull,
-    );
-    expect(
-      find.descendant(
-        of: find.widgetWithText(FilledButton, '确认提交'),
-        matching: find.byType(CircularProgressIndicator),
-      ),
-      findsNothing,
-    );
-    expect(find.byType(CircularProgressIndicator), findsOneWidget);
-
-    await tester.tap(find.text('正在取消'), warnIfMissed: false);
-    await tester.pump();
-    expect(discardCalls, 1);
-    expect(commitCalls, 0);
-
-    discardFinished.complete();
-    await tester.pumpAndSettle();
-    expect(find.text('确认博雅签到'), findsNothing);
-    expect(discardCalls, 1);
-  });
-
-  testWidgets('课堂签到从 typed 签到目标准备并在确认后提交', (tester) async {
+  testWidgets('课堂签到从 typed 签到目标一点即提交', (tester) async {
     const expectedAction = SigninPerformAction(
       scheduleId: 'schedule-7',
       eligibility: ActionEligibility.allowed,
@@ -522,13 +343,11 @@ void _registerInitialWriteTests() {
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.signin);
     await tester.pumpAndSettle();
+    // 点击签到即准备并提交，不再出现确认页。
     await tester.tap(find.widgetWithText(FilledButton, '签到'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 1);
-    expect(commitCalls, 0);
-    expect(find.text('确认课堂签到'), findsOneWidget);
-    await tester.tap(find.text('确认提交'));
-    await tester.pumpAndSettle();
+    expect(find.text('确认课堂签到'), findsNothing);
     expect(commitCalls, 1);
     expect(refreshCalls, 1);
     expect(find.text('签到结果已提交，请刷新确认'), findsOneWidget);

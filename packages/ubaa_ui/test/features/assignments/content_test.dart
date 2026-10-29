@@ -47,7 +47,7 @@ void main() {
       ),
     ], []);
     expect(find.text('未提供签到目标，请刷新课程后重试。'), findsOneWidget);
-    expect(find.text('准备签到'), findsNothing);
+    expect(find.text('签到'), findsNothing);
   });
   testWidgets('评教各端沿旧版课程行并保留未知资格说明', (tester) async {
     await showFeature(

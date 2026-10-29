@@ -59,7 +59,7 @@ Future<void> fixtureOpenYgdkDetails(WidgetTester tester) async {
 
 Future<void> fixtureOpenAndFillYgdkForm(WidgetTester tester) async {
   await fixtureOpenYgdkDetails(tester);
-  await tester.tap(find.text('准备阳光打卡'));
+  await tester.tap(find.widgetWithText(OutlinedButton, '阳光打卡'));
   await tester.pumpAndSettle();
   await tester.enterText(
     find.widgetWithText(TextField, '开始时间'),
