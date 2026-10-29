@@ -380,7 +380,6 @@ fn write_revision(file: &mut File, revision: u64) -> Result<()> {
 }
 
 #[cfg(test)]
-#[path = "file_store/contract_tests.rs"]
 mod contract_tests;
 
 #[cfg(test)]

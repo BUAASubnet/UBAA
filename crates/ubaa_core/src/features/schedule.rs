@@ -426,7 +426,6 @@ fn ensure_ok(code: &str, context: &str) -> Result<()> {
 }
 
 #[cfg(test)]
-#[path = "schedule/contract_tests.rs"]
 mod contract_tests;
 
 #[cfg(test)]

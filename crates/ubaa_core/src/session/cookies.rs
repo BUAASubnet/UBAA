@@ -208,5 +208,4 @@ impl CookieJar {
 }
 
 #[cfg(test)]
-#[path = "cookies/tests.rs"]
 mod tests;

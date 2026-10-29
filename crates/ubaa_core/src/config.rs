@@ -393,7 +393,6 @@ fn sync_config_directory(dir: &Path) -> Result<()> {
 }
 
 #[cfg(test)]
-#[path = "config/contract_tests.rs"]
 mod contract_tests;
 
 #[cfg(test)]

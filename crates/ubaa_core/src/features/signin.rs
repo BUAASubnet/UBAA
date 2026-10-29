@@ -501,7 +501,6 @@ fn parse_error() -> UbaaError {
 }
 
 #[cfg(test)]
-#[path = "signin/contract_tests.rs"]
 mod contract_tests;
 
 #[cfg(test)]

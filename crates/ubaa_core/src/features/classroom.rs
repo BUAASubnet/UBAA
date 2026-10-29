@@ -241,5 +241,4 @@ fn valid_iso_date(date: &str) -> bool {
 }
 
 #[cfg(test)]
-#[path = "classroom/contract_tests.rs"]
 mod contract_tests;

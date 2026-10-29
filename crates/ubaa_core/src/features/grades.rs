@@ -158,5 +158,4 @@ fn parse_error() -> UbaaError {
 }
 
 #[cfg(test)]
-#[path = "grades/contract_tests.rs"]
 mod contract_tests;

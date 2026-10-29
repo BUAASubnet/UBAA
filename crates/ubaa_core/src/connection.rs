@@ -425,7 +425,6 @@ fn protocol_error(message: impl Into<String>) -> UbaaError {
 }
 
 #[cfg(test)]
-#[path = "connection/contract_tests.rs"]
 mod contract_tests;
 
 #[cfg(test)]
