@@ -2,6 +2,9 @@
 # 纯只读校验冻结引用；禁止 clone、fetch、pull 或改写已有引用。
 set -euo pipefail
 
+# shellcheck source=../lib/versions.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/versions.sh"
+
 references_check_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../lib/repo.sh
 source "$references_check_dir/../lib/repo.sh"
@@ -62,13 +65,13 @@ check_references_main() {
   check_reference \
     "$repo_root" \
     "$repo_root/examples/ubaa_old" \
-    'https://github.com/BUAASubnet/UBAA.git' \
-    '1f4b8f8412272b6a423d4ad92b396e3db721e6f3'
+    "$UBAA_OLD_REMOTE" \
+    "$UBAA_OLD_COMMIT"
   check_reference \
     "$repo_root" \
     "$repo_root/examples/buaa-api" \
-    'https://github.com/fontlos/buaa-api.git' \
-    'a63712fa2ae0a6c8066197063ddee98e3a6b5b81'
+    "$BUAA_API_REMOTE" \
+    "$BUAA_API_COMMIT"
 }
 
 if [[ "${BASH_SOURCE[0]}" == "$0" ]]; then

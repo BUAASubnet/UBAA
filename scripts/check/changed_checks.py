@@ -6,16 +6,12 @@ from pathlib import Path
 import re
 import subprocess
 
-ROOT = Path(__file__).resolve().parents[2]
-PACKAGES = {
-    'ubaa_domain': 'packages/ubaa_domain',
-    'ubaa_platform': 'packages/ubaa_platform',
-    'ubaa_app': 'packages/ubaa_app',
-    'ubaa_ui': 'packages/ubaa_ui',
-    'ubaa_bindings': 'packages/ubaa_bindings',
-    'ubaa_host': 'packages/ubaa_host',
-    'ubaa_flutter': 'apps/ubaa_flutter',
-}
+import sys
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
+from repo import ROOT, official_packages
+PACKAGES = official_packages()
+
 CODEGEN = ['just', 'flutter-codegen-check']
 
 
@@ -66,9 +62,10 @@ def dependents(root, seeds):
 
 def select_checks(root, paths):
     selected, production = set(), set()
-    rust = full = codegen = False
+    rust = full = codegen = site = False
     notes = set()
     for path in paths:
+        site |= path.startswith('docs/site/') or path in {'package.json', 'package-lock.json'}
         if (path in {'README.md', 'CONTRIBUTING.md', 'goal.md', 'scripts/README.md'}
                 or path in {folder + '/README.md' for folder in PACKAGES.values()}
                 or path.startswith('docs/')):
@@ -84,11 +81,11 @@ def select_checks(root, paths):
                     rust = codegen = True
             elif relative.startswith('integration_test/'):
                 selected.add(owner)
-                notes.add('原生集成入口变更：按 integration-list 选择对应设备套件。')
+                notes.add('原生能力测试变更：按 integration-list 在适用设备执行保留集合。')
             else:
                 full = True
                 notes.add('包配置或平台目录变更：原生能力还需在对应平台验证。')
-        elif path.startswith(('apps/ubaa_ohos/', 'packages/flutter_secure_storage_ohos/', 'packages/connectivity_plus_ohos/')):
+        elif path.startswith(('apps/ubaa_ohos/', 'packages/flutter_secure_storage_ohos/', 'packages/connectivity_plus_ohos/', 'packages/package_info_plus_ohos/')):
             full = True
             notes.add('OHOS 专属改动：另需 just ohos-check 及相应设备验证，官方 Flutter 检查不能替代。')
         elif path.startswith('crates/ubaa_core/') or path.startswith('crates/ubaa_flutter_bridge/'):
@@ -110,11 +107,12 @@ def select_checks(root, paths):
         rust = codegen = True
         selected.update(PACKAGES)
     return {'rust': rust, 'packages': [name for name in PACKAGES if name in selected],
-            'extra': [CODEGEN] if codegen else [], 'notes': sorted(notes)}
+            'extra': ([CODEGEN] if codegen else []) + ([['npm', 'run', 'docs:build']] if site else []), 'notes': sorted(notes)}
 
 
 def commands(plan):
-    result = [['just', 'refs'], ['just', 'check-sensitive'], ['git', 'diff', '--check']]
+    result = [['just', 'refs'], ['just', 'check-sensitive'], ['git', 'diff', '--check'],
+              ['just', 'contract-version-check'], ['just', 'docs-link-check']]
     if plan['rust']:
         result.append(['just', 'check'])
     elif plan['packages']:

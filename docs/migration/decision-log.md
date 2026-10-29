@@ -1381,3 +1381,17 @@ conventions.md 新增命名、语言、分支、版本、依赖、日志和 ADR 
 catalog 只登记上述 10 个入口，默认 CI 保持网络恢复、插件、FFI 缓存和启动锁四个入口，其他原生能力按平台和前提显式运行。普通回归清除真实账号环境，保留截图驱动继续拒绝仓库内证据目录。历史归档和设计证据保持原样，不把历史命令当作当前入口。
 
 启动锁先通过原注册 recipe 复现应用容器 EPERM，并记录缺少新持锁 helper 的失败反例。独立进程自测验证持锁期间非阻塞取锁失败、release/EOF 后可取锁。应用原用例还引用已改版启动页的旧文案，按当前实际 CircularProgressIndicator 验证等待画面，并保留 resourceBusy、解锁与真实 FFI 重试断言；没有更改产品行为。Perl 从应用继承的 PATH 查找，避免假设 Linux 固定安装到 `/usr/bin/perl`；缺少解释器时显式失败。该设计不依赖终端的「其他 App 数据」或完全磁盘访问权限。保留的关于用例复现旧导航 helper 在紧凑和展开侧栏查找已不存在的设置卡片；新增三种宽度的失败反例，helper 改走当前可点击的侧栏关于按钮，继续保留实际页面和版本断言。最终原生结果另记 status。
+
+## 2026-10-29：门禁基础逻辑与 CI 统一
+
+阶段 3 将工具/冻结来源的版本数据集中到 `scripts/tools/versions.env`。Rust 工具链与 Cargo/FRB 依赖必须在各自原生清单声明，版本门禁检查这些必要镜像。官方七包顺序由 `scripts/tools/flutter-packages.json` 提供；Shell 和 Python 根位置分别由 `scripts/lib/repo.sh`、repo.py 按自身文件定位。DevEco 的 Studio tools 与独立 tool 布局共用一个解析函数，SDK 与 Node 的显式覆盖优先，缺少根目录时提示 UBAA_DEVECO_HOME，不猜测个人安装位置。
+
+配置语法由 `scripts/lib/environment.py` 统一，不执行 Shell。工具入口只读 `.env.toolchain`，外部环境优先，允许显式变量展开。凭据仅由获授权的 live launcher 显式读取指定文件，不展开变量，经 stdin 交给子进程。兼容两套凭据名，UBAA_TEST_* 优先。旧实现重复键分别取首项和末项，无法保持两种行为，因此选更严格规则：拒绝重复键、无效引号、多词未引号值和控制字符，错误不输出正文。该选择只影响本地配置错误处理，不改变学校协议。
+
+带参数的项目 recipe 共用参数解析器，同时接受位置与 key=value，关键字可换序，重复和未知参数失败。自由参数通过位置参数数组转发，保留空格和空值。integration-test 的 device 默认空值，未指定设备时使用 platform；补充 Linux 回退及参数传递合同。
+
+三个 workflow 的 push 分支统一为 ubaa2/main/dev，PR 保留路径过滤。全部第三方 Action 使用核实过的完整提交 SHA，Rust/just/Node/Flutter 等安装读取唯一版本清单，Flutter 安装块合并。macOS/Windows 增加与本地一致的 Core test-contract 及关闭态负向合同，主 CI 去除重复 layout-check 并增加 concurrency。Action 用法依据各自官方仓库的 action 定义；SHA 在本轮通过官方 Git 远端核实。远端 CI 未运行，不把本地静态检查写成远端通过。
+
+文档门禁检查当前 Markdown 的本地目标、站内路由及标题锚点。本阶段选择保留 `docs/migration/history/`、`docs/design/evidence/` 的历史快照，内部链接保留历史语义，不纳入当前链接承诺；锁定 Cargokit 文档同样按第三方来源保留。当前文档指向历史快照的文件和锚点仍检查。此范围是明确的归档约定，没有新增逐链接 baseline。现行入口失效链接已修复；有明确旧源码基线的维护审计将失效源码链接保留为原路径文字，不伪装成当前入口。约 4000 个证据 JSON 继续保留，阶段 3 不迁出或删除。
+
+FRB 使用锁定 2.13.0。原有 Web 配置在修复后的门禁中实际零漂移，审计 H3/A116 的 dispose 注解漂移本轮未复现。去除全工作区格式化后，生成 Rust 文件仍按 workspace 的 Rust edition 2024 单独格式化，避免使用 rustfmt 默认 edition 造成无关导入排序差异。项目没有 Web 宿主，因此配置 `web: false`；上游生成器仍无条件写 Web 条件导入，项目通过有失败关闭测试的机械转换选 IO 分支并删除旧 Web 文件，不手改业务 API。生成变更只删除 Web 分支与导入，最终在提交后的候选再次运行零漂移检查。

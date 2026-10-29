@@ -3,30 +3,33 @@ name: CI
 on:
   pull_request:
   push:
+    branches: [ubaa2, main, dev]
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   contract-gates:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@1.95.0
-        with:
-          components: clippy,rustfmt
-      - uses: taiki-e/install-action@just
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: ./.github/actions/toolchain
 
       - name: 安装固定 ShellCheck
         shell: bash
         run: |
-          shellcheck_version=0.11.0
+          source scripts/tools/versions.env
+          shellcheck_version=$SHELLCHECK_VERSION
           archive="$RUNNER_TEMP/shellcheck-v${shellcheck_version}.linux.x86_64.tar.xz"
           bin_dir="$RUNNER_TEMP/shellcheck-bin"
           curl -fsSLo "$archive" \
             "https://github.com/koalaman/shellcheck/releases/download/v${shellcheck_version}/shellcheck-v${shellcheck_version}.linux.x86_64.tar.xz"
           printf '%s  %s\n' \
-            '8c3be12b05d5c177a04c29e3c78ce89ac86f1595681cab149b65b97c4e227198' \
+            "$SHELLCHECK_LINUX_SHA256" \
             "$archive" | sha256sum -c -
           mkdir -p "$bin_dir"
           tar -xJf "$archive" -C "$RUNNER_TEMP"
@@ -38,25 +41,17 @@ jobs:
 
       - name: 安装固定官方 Flutter SDK
         shell: bash
-        run: |
-          flutter_root="$RUNNER_TEMP/flutter"
-          git init "$flutter_root"
-          git -C "$flutter_root" remote add origin https://github.com/flutter/flutter.git
-          git -C "$flutter_root" fetch --depth=1 origin refs/tags/3.41.9:refs/tags/3.41.9
-          git -C "$flutter_root" checkout --detach 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694
-          printf 'UBAA_FLUTTER_HOME=%s\n' "$flutter_root" >> "$GITHUB_ENV"
-          printf '%s/bin\n' "$flutter_root" >> "$GITHUB_PATH"
-          export UBAA_FLUTTER_HOME="$flutter_root"
-          bash ./scripts/check/flutter-toolchains.sh official
+        run: bash scripts/bootstrap/flutter.sh
 
       - name: 安装固定 FRB codegen
         shell: bash
         run: |
-          cargo install --locked cargo-expand --version '=1.0.126'
-          test "$(cargo-expand --version)" = 'cargo-expand 1.0.126'
-          cargo install --locked flutter_rust_bridge_codegen --version '=2.13.0'
+          source scripts/tools/versions.env
+          cargo install --locked cargo-expand --version "=$CARGO_EXPAND_VERSION"
+          test "$(cargo-expand --version)" = "cargo-expand $CARGO_EXPAND_VERSION"
+          cargo install --locked flutter_rust_bridge_codegen --version "=$FRB_VERSION"
           codegen=$(command -v flutter_rust_bridge_codegen)
-          test "$("$codegen" --version)" = 'flutter_rust_bridge_codegen 2.13.0'
+          test "$("$codegen" --version)" = "flutter_rust_bridge_codegen $FRB_VERSION"
           printf 'UBAA_FRB_CODEGEN=%s\n' "$codegen" >> "$GITHUB_ENV"
 
       - name: 建立缺失的冻结引用
@@ -67,8 +62,6 @@ jobs:
         run: just quality-tools-bootstrap
       - name: 显式预取所有目标的锁定 Cargo 依赖
         run: cargo fetch --locked
-      - name: 检查代码与目录布局
-        run: just layout-check
       - name: 扫描敏感材料
         run: just check-sensitive
       - name: 运行严格 Rust 与 Shell 确定性门禁
@@ -83,7 +76,7 @@ jobs:
       - name: 生成无签名 RC 前置报告
         run: just release-preflight "$RUNNER_TEMP/ubaa-release-report"
       - name: 保存无签名 RC 前置报告
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: ubaa-release-preflight-${{ github.run_id }}
           path: ${{ runner.temp }}/ubaa-release-report
@@ -94,25 +87,17 @@ jobs:
     # 既有 golden 使用 macOS 渲染；完整测试固定同类宿主，保持逐像素比较。
     runs-on: macos-15
     steps:
-      - uses: actions/checkout@v5
-      - uses: taiki-e/install-action@just
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: ./.github/actions/toolchain
       - name: 安装固定官方 Flutter SDK
         shell: bash
-        run: |
-          flutter_root="$RUNNER_TEMP/flutter"
-          git init "$flutter_root"
-          git -C "$flutter_root" remote add origin https://github.com/flutter/flutter.git
-          git -C "$flutter_root" fetch --depth=1 origin refs/tags/3.41.9:refs/tags/3.41.9
-          git -C "$flutter_root" checkout --detach 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694
-          printf 'UBAA_FLUTTER_HOME=%s\n' "$flutter_root" >> "$GITHUB_ENV"
-          printf '%s/bin\n' "$flutter_root" >> "$GITHUB_PATH"
-          export UBAA_FLUTTER_HOME="$flutter_root"
-          bash ./scripts/check/flutter-toolchains.sh official
+        run: bash scripts/bootstrap/flutter.sh
+
       - name: 检查完整 Flutter 工作区与原始视觉基线
         run: just flutter-check
       - name: 保存失败的脱敏视觉差异
         if: failure()
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: ubaa-flutter-golden-diffs-${{ github.run_id }}
           path: packages/ubaa_ui/test/**/failures/*.png
@@ -126,12 +111,13 @@ jobs:
         os: [macos-latest, windows-latest]
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@1.95.0
-        with:
-          components: clippy,rustfmt
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: ./.github/actions/toolchain
       - run: cargo fmt --all -- --check
       - run: cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
-      - run: cargo test --locked --workspace --all-targets
+      - name: 跨平台 Core 默认与 test-contract 合同
+        shell: bash
+        run: just core-test-contract
+      - run: cargo test --locked --workspace --exclude ubaa-core --all-targets
       - run: cargo build --locked --workspace --all-targets
       - run: cargo doc --locked --workspace --no-deps

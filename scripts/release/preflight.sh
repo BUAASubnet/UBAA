@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # 生成无签名 RC 的可审计依赖和产物前置报告；不签名、不上传、不访问真实账号。
 set -euo pipefail
+# shellcheck source=../lib/checksum.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/checksum.sh"
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../lib/toolchain.sh
@@ -58,7 +60,7 @@ lock_manifest="$output_dir/pubspec-locks.txt"
 : >"$output_dir/pubspec-locks.sha256"
 while IFS= read -r -d '' lockfile; do
   printf '%s\n' "$lockfile" >>"$lock_manifest"
-  sha256sum "$lockfile" >>"$output_dir/pubspec-locks.sha256"
+  ubaa_sha256 "$lockfile" >>"$output_dir/pubspec-locks.sha256"
 done < <(git ls-files -z -- 'apps/**/pubspec.lock' 'packages/**/pubspec.lock' | sort -z)
 
 python3 "$script_dir/source_manifest.py" --output "$output_dir"
@@ -76,5 +78,9 @@ Dart/OHOS 许可证材料与缺口：license-evidence.json、dependency-audit.tx
 签名、证书、实体设备和真实写入：本报告不执行
 EOF
 
-printf '无签名 RC 前置报告已生成；许可缺口见材料清单：%s\n' "$output_dir"
+if [[ "$keep_output" == 1 ]]; then
+  printf '无签名 RC 前置报告已生成；许可缺口见材料清单：%s\n' "$output_dir"
+else
+  printf '无签名 RC 前置报告校验完成；临时报告将在退出时清理，保留报告请设置 report_dir。\n'
+fi
 printf '报告仅包含依赖元数据、锁文件列表、校验摘要和安全状态，不包含凭据或原始响应。\n'

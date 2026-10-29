@@ -1,0 +1,14 @@
+name: 安装项目工具入口
+description: 使用唯一版本清单准备 Rust 和 just
+runs:
+  using: composite
+  steps:
+    - id: versions
+      uses: ./.github/actions/versions
+    - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8
+      with:
+        toolchain: ${{ steps.versions.outputs.rust }}
+        components: clippy,rustfmt
+    - uses: taiki-e/install-action@86f7a0ffb25f40114606501a311ebcfaf882ea32
+      with:
+        tool: just@${{ steps.versions.outputs.just }}

@@ -1,3 +1,4 @@
 rust_input: crate::api
 rust_root: ../../crates/ubaa_flutter_bridge/
 dart_output: lib/src/rust
+web: false

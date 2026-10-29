@@ -4,6 +4,8 @@ on:
   pull_request:
     paths:
       - 'docs/site/**'
+      - '.github/actions/**'
+      - 'scripts/tools/versions.env'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/docs.yml'
@@ -11,6 +13,8 @@ on:
     branches: [ubaa2, main, dev]
     paths:
       - 'docs/site/**'
+      - '.github/actions/**'
+      - 'scripts/tools/versions.env'
       - 'package.json'
       - 'package-lock.json'
       - '.github/workflows/docs.yml'
@@ -31,25 +35,27 @@ jobs:
       contents: read
       pages: read
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
         with:
           fetch-depth: 0
-      - uses: actions/setup-node@v4
+      - id: versions
+        uses: ./.github/actions/versions
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
         with:
-          node-version: '22'
+          node-version: ${{ steps.versions.outputs.node }}
           cache: npm
       - run: npm ci
       - name: 读取 Pages 配置
         id: pages
         if: github.event_name != 'pull_request' && vars.DOCS_PUBLISH_BRANCH != '' && github.ref_name == vars.DOCS_PUBLISH_BRANCH
-        uses: actions/configure-pages@v5
+        uses: actions/configure-pages@983d7736d9b0ae728b81ab479565c72886d7745b
       - name: 构建网站并检查站内链接
         env:
           DOCS_BASE: ${{ steps.pages.outputs.base_path || '/' }}
         run: npm run docs:build
       - name: 上传 Pages 产物
         if: github.event_name != 'pull_request' && vars.DOCS_PUBLISH_BRANCH != '' && github.ref_name == vars.DOCS_PUBLISH_BRANCH
-        uses: actions/upload-pages-artifact@v3
+        uses: actions/upload-pages-artifact@56afc609e74202658d3ffba0e8f6dda462b719fa
         with:
           path: docs/site/.vitepress/dist
 
@@ -67,4 +73,4 @@ jobs:
     steps:
       - name: 部署静态网站
         id: deployment
-        uses: actions/deploy-pages@v4
+        uses: actions/deploy-pages@d6db90164ac5ed86f2b6aed7e0febac5b3c0c03e

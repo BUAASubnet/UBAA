@@ -36,11 +36,11 @@
 
 ## F1 · 高优先级：物理拆分掩盖了逻辑大模块
 
-位置：[`widgets.dart`](../../packages/ubaa_ui/lib/src/widgets.dart:13)、[`app_controller.dart`](../../packages/ubaa_app/lib/src/controller/app_controller.dart:31)、[`bridge_backend.dart`](../../packages/ubaa_app/lib/src/bridge/bridge_backend.dart:14)。
+位置：``widgets.dart``、``app_controller.dart``、``bridge_backend.dart``。
 
-UI 的 77 个部件共同拥有私有名称可见性。AppController 的登录、缓存、重试、查询、课表导入和写后回读通过同一 library 的 extension 访问集中状态。例如 [`offline_startup.dart`](../../packages/ubaa_app/lib/src/controller/app_controller/offline_startup.dart:3) 直接修改 `_phase`、`_localAccount`、恢复状态与生命周期代次；无法仅靠 import 或构造参数判断子文件的状态依赖。
+UI 的 77 个部件共同拥有私有名称可见性。AppController 的登录、缓存、重试、查询、课表导入和写后回读通过同一 library 的 extension 访问集中状态。例如 ``offline_startup.dart`` 直接修改 `_phase`、`_localAccount`、恢复状态与生命周期代次；无法仅靠 import 或构造参数判断子文件的状态依赖。
 
-[`layout.sh`](../../scripts/check/layout.sh:99) 只检查单文件超过 1,000 行、目录直属源码超过 16 个。当前零违例并不证明低耦合；后缀清单也未覆盖 `.py` / `.cjs`，不能视为全部手写逻辑的规模检查。
+``layout.sh`` 只检查单文件超过 1,000 行、目录直属源码超过 16 个。当前零违例并不证明低耦合；后缀清单也未覆盖 `.py` / `.cjs`，不能视为全部手写逻辑的规模检查。
 
 建议：UI 按领域改成独立 library，显式传入模型与 callback；AppController 保留对外组合入口，内部组合会话、恢复、查询等协作者；BridgeBackend 保留版本/客户端边界，提取领域适配与纯投影。每项可变状态继续只有一个所有者，避免拆出多套账号、路线或写入状态机。
 
@@ -48,21 +48,21 @@ UI 的 77 个部件共同拥有私有名称可见性。AppController 的登录�
 
 ## F2 · 高优先级：筛选测试可能绕过真实交互入口
 
-位置：[`test/support/navigation.dart`](../../packages/ubaa_ui/test/support/navigation.dart:88)。
+位置：``test/support/navigation.dart``。
 
 `openQueryPanel` 找不到“搜索与筛选”等按钮时，会按 `runtimeType.toString() == '_FeatureDetailView'` 定位内部 State，并用 `dynamic` 调用 `togglePanel()`。即使没找到用户可操作入口，测试也可能继续完成筛选断言；同时测试依赖私有类名。
 
-[`query_panel_test.dart`](../../packages/ubaa_ui/test/query_panel_test.dart:41) 和多处领域查询用例使用它。本次该测试通过，不能据此证明所有调用都经过真实按钮；本次没有证明生产界面已经缺失入口。
+``query_panel_test.dart`` 和多处领域查询用例使用它。本次该测试通过，不能据此证明所有调用都经过真实按钮；本次没有证明生产界面已经缺失入口。
 
 建议辅助函数只点击明确可见、可命中的语义按钮或稳定 key，缺失时立即失败。面板内部状态测试直接挂载组件，与用户导航测试分开。实施时先用“无可用入口”的合成场景证明辅助函数会失败，再更新调用者。
 
 ## F3 · 高优先级：集成入口缺少持续执行分类
 
-位置：[`flutter-workspace.sh`](../../scripts/check/flutter-workspace.sh:31)、[`flutter-platforms.yml`](../../.github/workflows/flutter-platforms.yml:130)、[`integration_test`](../../apps/ubaa_flutter/integration_test/)。
+位置：``flutter-workspace.sh``、``flutter-platforms.yml``、``integration_test``。
 
 工作区门禁对 `integration_test` 做格式检查和分析，但实际运行的是无路径参数的 `flutter test`。原生 CI 只明确调用 `integration_test/app_flow_test.dart`；它注册自己的 9 个部件，没有汇入其他 54 个入口。
 
-其他入口包含离线恢复、系统安全材料、平台插件、合成 UI、真实只读和人工巡检。本地专项可能执行过，当前统一门禁却没有持续运行它们。统计测试 [`analyze_test.py`](../../scripts/live/offline_startup/analyze_test.py:14) 本次 7 项通过，但没有接入 `justfile` 或 CI。OHOS 原生合成测试已接入 `scripts/build/ohos.sh`，不是完全遗漏，只是与 SDK/构建入口绑定。
+其他入口包含离线恢复、系统安全材料、平台插件、合成 UI、真实只读和人工巡检。本地专项可能执行过，当前统一门禁却没有持续运行它们。统计测试 ``analyze_test.py`` 本次 7 项通过，但没有接入 `justfile` 或 CI。OHOS 原生合成测试已接入 `scripts/build/ohos.sh`，不是完全遗漏，只是与 SDK/构建入口绑定。
 
 建议建立可执行清单，逐项记录领域、证据类型、所需平台、账号/设备需求、命令和 CI 归属。普通确定性测试提供按包/领域的快速入口；原生合成流程进入匹配 runner；设备能力、真实只读、人工巡检分别提供显式入口。不要对当前 `integration_test/` 盲目执行通配全量命令。
 
@@ -70,10 +70,10 @@ UI 的 77 个部件共同拥有私有名称可见性。AppController 的登录�
 
 | 位置 | 问题 | 建议 |
 |---|---|---|
-| [`public_api_contract_test.dart:6`](../../packages/ubaa_app/test/public_api_contract_test.dart:6)、第 54 行 | 手写 `_publicNames` 清单断言长度和去重长度为 33，没有从实际导出生成；导出变化不一定影响计数 | 删除清单计数，保留真实 import 与静态类型签名合同 |
-| [`bridge_backend_characterization/signatures.dart:3`](../../packages/ubaa_app/test/bridge_backend_characterization/signatures.dart:3) 与公共 API 合同 | 重复维护部分构造器/接口/tear-off；`hasLength(17)` 只核对局部列表 | 合并重复签名，保留独有的“构造不触发原生调用”断言 |
-| [`internal_architecture.rs:29`](../../crates/ubaa_core/tests/internal_architecture.rs:29) | 永久锁定迁移后的具体文件名，合法重组也会失败 | 保留禁止 `internal → features` 的依赖测试；路径清单改为必要入口/边界规则或归档迁移检查 |
-| [`write_controller_test.dart`](../../packages/ubaa_app/test/write_controller_test.dart:23) 与 [`write_coordinator/flow.dart`](../../packages/ubaa_app/test/write_coordinator/flow.dart:78) | 旧名字已是同一实现的 typedef，测试仍按旧/新名字分组 | 统一放入 `write/`；保留少量兼容合同，逐断言对照后合并交叉用例 |
+| ``public_api_contract_test.dart:6``、第 54 行 | 手写 `_publicNames` 清单断言长度和去重长度为 33，没有从实际导出生成；导出变化不一定影响计数 | 删除清单计数，保留真实 import 与静态类型签名合同 |
+| ``bridge_backend_characterization/signatures.dart:3`` 与公共 API 合同 | 重复维护部分构造器/接口/tear-off；`hasLength(17)` 只核对局部列表 | 合并重复签名，保留独有的“构造不触发原生调用”断言 |
+| ``internal_architecture.rs:29`` | 永久锁定迁移后的具体文件名，合法重组也会失败 | 保留禁止 `internal → features` 的依赖测试；路径清单改为必要入口/边界规则或归档迁移检查 |
+| ``write_controller_test.dart`` 与 ``write_coordinator/flow.dart`` | 旧名字已是同一实现的 typedef，测试仍按旧/新名字分组 | 统一放入 `write/`；保留少量兼容合同，逐断言对照后合并交叉用例 |
 
 最后一项不能直接整文件删除：旧入口与 UI 入口的抛错、返回值、销毁和释放断言存在差异。本次没有完成全仓等价断言证明，不承诺删掉某个比例的测试。
 
@@ -93,7 +93,7 @@ UI 的 77 个部件共同拥有私有名称可见性。AppController 的登录�
 
 ## F6 · 中优先级：当前文档入口仍依赖历史设计
 
-位置：[`README.md:25`](../../README.md:25)、[`code-organization.md:3`](../architecture/code-organization.md:3)、[`engineering-standards.md:3`](../development/engineering-standards.md:3)、[`testing.md`](../development/testing.md)、[`status.md`](status.md)。
+位置：``README.md:25``、``code-organization.md:3``、``engineering-standards.md:3``、[`testing.md`](../development/testing.md)、[`status.md`](status.md)。
 
 README 称旧组织设计为“当前权威”，目标文档却声明主体是 2026-09-05 历史记录。测试指南包含大量旧候选 SHA、schema 演进和修复流水；状态页前部仍写依赖审计“生产实现与依赖未修改”，末尾已经记录同日实施完成。工程规范顶部产品状态未跟随近期安全存储和整体未完成边界更新。
 

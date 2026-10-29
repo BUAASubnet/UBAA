@@ -2,39 +2,18 @@
 """项目工具链配置的唯一回退解析器；不执行配置内容，不读取凭据文件。"""
 import os
 from pathlib import Path
-import re
 import shlex
 import sys
-
-ROOT = Path(__file__).resolve().parents[2]
-VARIABLE = re.compile(r'\$(?:\{([A-Za-z_][A-Za-z_0-9]*)\}|([A-Za-z][A-Za-z0-9]*))')
+sys.dont_write_bytecode = True
+from environment import read_values
+from repo import ROOT
 
 
 def load_environment(root=ROOT):
-    environment = os.environ.copy()
     config = root / '.env.toolchain'
     if not config.exists():
-        return environment
-    for number, line in enumerate(config.read_text().splitlines(), 1):
-        line = line.strip()
-        if not line or line.startswith('#'):
-            continue
-        match = re.fullmatch(r'(?:export\s+)?([A-Za-z_][A-Za-z_0-9]*)\s*=\s*(.*)', line)
-        if match is None:
-            raise ValueError(f'.env.toolchain 第 {number} 行格式无效；请使用 KEY=value')
-        key, raw = match.groups()
-        try:
-            parts = shlex.split(raw, comments=True, posix=True)
-        except ValueError as error:
-            raise ValueError(f'.env.toolchain 第 {number} 行引号无效') from error
-        if len(parts) > 1:
-            raise ValueError(f'.env.toolchain 第 {number} 行包含空格，请用引号包围值')
-        value = parts[0] if parts else ''
-        if not raw.startswith("'"):
-            value = VARIABLE.sub(lambda m: environment.get(m[1] or m[2], ''), value)
-        # 与 just 默认 dotenv 行为一致：已导出的环境变量（含空值）优先。
-        environment.setdefault(key, value)
-    return environment
+        return os.environ.copy()
+    return read_values(config, environment=os.environ, expand=True)
 
 
 def main():

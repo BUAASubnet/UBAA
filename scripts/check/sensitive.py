@@ -5,7 +5,10 @@ import re
 import subprocess
 import sys
 
-ROOT = Path(__file__).resolve().parents[2]
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
+from repo import ROOT
+
 FORBIDDEN = re.compile(r"(^|/)(ubaa_old|examples)(/|$)|(^|/)\.env\.(local|toolchain)$|(^|/)(session\.json|.*\.session\.json)$")
 PATTERNS = tuple(re.compile(pattern) for pattern in (
     rb"UBAA_TEST_(USERNAME|PASSWORD)=[\"']?[A-Za-z0-9]",

@@ -20,29 +20,11 @@ dart_bin=$flutter_root/bin/dart
 
 "$repo_root/scripts/check/flutter-toolchains.sh" official
 
-packages=(
-  packages/ubaa_domain
-  packages/ubaa_platform
-  packages/ubaa_app
-  packages/ubaa_ui
-  packages/ubaa_bindings
-  packages/ubaa_host
-  apps/ubaa_flutter
-)
-
-# 显式包名由按改动入口传入；无参数仍完整遍历，不改变 CI 默认行为。
-if [[ $# -gt 0 ]]; then
-  selected=()
-  for package in "$@"; do
-    case "$package" in
-      ubaa_domain | ubaa_platform | ubaa_app | ubaa_ui | ubaa_bindings | ubaa_host)
-        selected+=("packages/$package") ;;
-      ubaa_flutter) selected+=("apps/ubaa_flutter") ;;
-      *) printf 'error: 未登记的 Flutter 包：%s\n' "$package" >&2; exit 2 ;;
-    esac
-  done
-  packages=("${selected[@]}")
-fi
+package_list=$(python3 "$repo_root/scripts/lib/packages.py" "$@") || exit 2
+packages=()
+while IFS= read -r package_dir; do
+  packages+=("$package_dir")
+done <<<"$package_list"
 
 for package_dir in "${packages[@]}"; do
   printf '检查 %s\n' "$package_dir"

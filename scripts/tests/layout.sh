@@ -2,7 +2,9 @@
 # 结构棘轮 Shell 合同测试。所有样例都在临时 Git 仓库中运行，不读取真实项目源码或构建缓存。
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+# shellcheck source=../lib/repo.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/repo.sh"
+repo_root=$(ubaa_repo_root)
 checker_source="$repo_root/scripts/check/layout.sh"
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/ubaa-layout-contract.XXXXXX")
 trap 'rm -rf -- "$test_root"' EXIT HUP INT TERM

@@ -17,7 +17,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
 from toolchain import load_environment
 
 
-ROOT = Path(__file__).resolve().parents[2]
+from repo import ROOT
 APP = ROOT / "apps" / "ubaa_flutter"
 TEST_ROOT = APP / "integration_test"
 MANIFEST = ROOT / "scripts" / "integration-tests.json"

@@ -12,26 +12,6 @@ repo_root=$(ubaa_repo_root)
 core_live=${UBAA_CORE_LIVE_SCRIPT:-$repo_root/scripts/live/core-live.sh}
 env_file=${UBAA_ENV_FILE:-$repo_root/.env.local}
 
-read_env_value() {
-  local key=$1 value
-  value=$(awk -v key="$key" '
-    $0 ~ /^[[:space:]]*#/ { next }
-    $1 ~ ("^" key "=") {
-      sub(/^[[:space:]]*/, "")
-      sub(/^[^=]*=/, "")
-      print
-      exit
-    }
-  ' "$env_file")
-  value=${value%$'\r'}
-  if [[ ${#value} -ge 2 && ${value:0:1} == '"' && ${value: -1} == '"' ]]; then
-    value=${value:1:${#value}-2}
-  elif [[ ${#value} -ge 2 && ${value:0:1} == "'" && ${value: -1} == "'" ]]; then
-    value=${value:1:${#value}-2}
-  fi
-  printf '%s' "$value"
-}
-
 route=
 feature=all
 date_value=${UBAA_VERIFY_DATE:-$(TZ=Asia/Shanghai date +%F)}
@@ -69,18 +49,11 @@ if [[ ! -f "$env_file" ]]; then
   printf '凭据文件不存在: %s\n' "$env_file" >&2
   exit 2
 fi
-username=$(read_env_value UBAA_TEST_USERNAME)
-password=$(read_env_value UBAA_TEST_PASSWORD)
-if [[ -z "$username" ]]; then
-  username=$(read_env_value UBAA_USERNAME)
-fi
-if [[ -z "$password" ]]; then
-  password=$(read_env_value UBAA_PASSWORD)
-fi
-if [[ -z "$username" || -z "$password" ]]; then
-  printf '%s\n' '凭据文件缺少 UBAA_TEST_USERNAME/UBAA_TEST_PASSWORD（或兼容名称）' >&2
-  exit 2
-fi
+# 解析成功后才启动子进程；凭据只经 stdin，不进入 argv 或日志。
+credential_input=$(python3 "$repo_root/scripts/lib/environment.py" "$env_file") || exit 2
+IFS= read -r username <<<"$credential_input"
+password=${credential_input#*$'\n'}
+unset credential_input
 
 if [[ ! -x "$core_live" ]]; then
   printf 'Core-live 启动器不可执行: %s\n' "$core_live" >&2

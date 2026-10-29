@@ -4,7 +4,11 @@ from pathlib import Path
 import subprocess
 import re
 
-ROOT = Path(__file__).resolve().parents[2]
+import sys
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
+from repo import ROOT
+
 
 
 # 这些目录保留上游命名或历史归档索引，不接受自有源码扩展。

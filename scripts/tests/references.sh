@@ -2,7 +2,9 @@
 # 冻结引用 bootstrap/纯校验合同；只操作临时本地 Git 仓库，不访问网络。
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+# shellcheck source=../lib/repo.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/repo.sh"
+repo_root=$(ubaa_repo_root)
 check_script=$repo_root/scripts/check/references.sh
 bootstrap_script=$repo_root/scripts/bootstrap/references.sh
 
@@ -188,7 +190,7 @@ for cwd in "$repo_root" "$repo_root/apps/ubaa_cli" "$outside"; do
     $bootstrap_dry_run == *'scripts/bootstrap/references.sh'* &&
     $sensitive_dry_run == *'scripts/check/sensitive.sh'* &&
     $flutter_dry_run == *'scripts/check/flutter-workspace.sh'* &&
-    $preflight_dry_run == *'scripts/release/preflight.sh'* ]]; then
+    $preflight_dry_run == *'scripts/lib/recipe.py release-preflight'*  ]]; then
     printf 'recipe dry-run 输出未满足副作用边界：%s\n' "$cwd" >&2
     exit 1
   fi

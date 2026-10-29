@@ -1,0 +1,21 @@
+name: 读取项目工具版本
+description: 版本数据只从受跟踪清单读取
+outputs:
+  rust:
+    value: ${{ steps.versions.outputs.RUST_VERSION }}
+    description: Rust 版本
+  just:
+    value: ${{ steps.versions.outputs.JUST_VERSION }}
+    description: just 版本
+  node:
+    value: ${{ steps.versions.outputs.NODE_VERSION }}
+    description: Node 版本
+runs:
+  using: composite
+  steps:
+    - id: versions
+      shell: bash
+      run: |
+        source scripts/tools/versions.env
+        printf 'RUST_VERSION=%s\nJUST_VERSION=%s\nNODE_VERSION=%s\n' \
+          "$RUST_VERSION" "$JUST_VERSION" "$NODE_VERSION" >> "$GITHUB_OUTPUT"

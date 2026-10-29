@@ -2,6 +2,9 @@
 # 验证 Flutter SDK 精确版本；所有调用方都使用绝对路径，不依赖 shell PATH。
 set -euo pipefail
 
+# shellcheck source=../lib/versions.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/versions.sh"
+
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../lib/toolchain.sh
 source "$script_dir/../lib/toolchain.sh"
@@ -9,9 +12,9 @@ source "$script_dir/../lib/toolchain.sh"
 mode=${1:-all}
 official_root=${UBAA_FLUTTER_HOME:-}
 ohos_root=${UBAA_OHOS_FLUTTER_HOME:-}
-official_commit=00b0c91f06209d9e4a41f71b7a512d6eb3b9c694
-ohos_commit=adaf911c35c9136a7d18fc424d714c9ec7724e60
-ohos_tag=3.41.10-ohos-1.0.1
+official_commit=$FLUTTER_COMMIT
+ohos_commit=$OHOS_FLUTTER_COMMIT
+ohos_tag=$OHOS_FLUTTER_VERSION
 
 check_sdk() {
   local label=$1
@@ -25,7 +28,7 @@ check_sdk() {
     return 1
   fi
 
-  # Windows runner 会把 GITHUB_ENV 中的 /d/... 重新表示为 D:/...；在 Git Bash
+  # CI 安装器向 GITHUB_ENV 导出 D:/... 原生绝对路径；在 Git Bash
   # 内先还原成 POSIX 绝对路径，再执行同一套版本和可执行文件检查。
   if command -v cygpath >/dev/null 2>&1; then
     root=$(cygpath -u "$root")
@@ -61,13 +64,13 @@ check_sdk() {
 
 case "$mode" in
   official)
-    check_sdk 官方Flutter "$official_root" "$official_commit" 3.41.9 UBAA_FLUTTER_HOME
+    check_sdk 官方Flutter "$official_root" "$official_commit" "$FLUTTER_VERSION" UBAA_FLUTTER_HOME
     ;;
   ohos)
     check_sdk OHOS-Flutter "$ohos_root" "$ohos_commit" "$ohos_tag" UBAA_OHOS_FLUTTER_HOME
     ;;
   all)
-    check_sdk 官方Flutter "$official_root" "$official_commit" 3.41.9 UBAA_FLUTTER_HOME
+    check_sdk 官方Flutter "$official_root" "$official_commit" "$FLUTTER_VERSION" UBAA_FLUTTER_HOME
     check_sdk OHOS-Flutter "$ohos_root" "$ohos_commit" "$ohos_tag" UBAA_OHOS_FLUTTER_HOME
     ;;
   *)

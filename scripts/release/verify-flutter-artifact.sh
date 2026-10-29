@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # 检查 Flutter 无签名 Debug 产物的结构；不签名、不安装、不读取运行时数据。
 set -euo pipefail
+# shellcheck source=../lib/checksum.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/checksum.sh"
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)
 # shellcheck source=macos-entitlements.sh
@@ -86,28 +88,18 @@ case "$platform" in
     ;;
 esac
 
-hash_file() {
-  if command -v shasum >/dev/null 2>&1; then
-    shasum -a 256 "$@"
-  elif command -v sha256sum >/dev/null 2>&1; then
-    sha256sum "$@"
-  else
-    printf 'error: 当前环境缺少 shasum 或 sha256sum，无法生成产物摘要\n' >&2
-    return 1
-  fi
-}
 
 if [[ -f "$artifact" ]]; then
   size=$(stat -f '%z' "$artifact" 2>/dev/null || stat -c '%s' "$artifact")
-  digest=$(hash_file "$artifact" | awk '{print $1}')
+  digest=$(ubaa_sha256 "$artifact" | awk '{print $1}')
 else
   size=$(du -sk "$artifact" | awk '{print $1 * 1024}')
   digest_input=$(mktemp)
   temporary_files+=("$digest_input")
   while IFS= read -r -d '' file; do
-    hash_file "$file" >>"$digest_input"
+    ubaa_sha256 "$file" >>"$digest_input"
   done < <(find "$artifact" -type f -print0 | sort -z)
-  digest=$(hash_file "$digest_input" | awk '{print $1}')
+  digest=$(ubaa_sha256 "$digest_input" | awk '{print $1}')
 fi
 printf 'Flutter 产物结构通过：平台=%s 路径=%s 大小=%s 字节 sha256=%s\n' \
   "$platform" "$artifact" "$size" "$digest"

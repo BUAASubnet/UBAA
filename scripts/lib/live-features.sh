@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# shellcheck shell=bash
 # Core-live 与 verify-live 共享的受支持功能清单；各入口保留自己的错误文案。
 
 ubaa_live_feature_supported() {

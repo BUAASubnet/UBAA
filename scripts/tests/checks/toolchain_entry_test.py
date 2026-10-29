@@ -17,8 +17,10 @@ class ToolchainEntryTest(unittest.TestCase):
         self.root = Path(self.temporary.name)
         (self.root / 'scripts/lib').mkdir(parents=True)
         (self.root / 'scripts/tests').mkdir()
+        (self.root / 'scripts/tools').mkdir()
+        shutil.copyfile(ROOT / 'scripts/tools/flutter-packages.json', self.root / 'scripts/tools/flutter-packages.json')
         shutil.copyfile(ROOT / 'justfile', self.root / 'justfile')
-        for name in ('toolchain.py',):
+        for name in ('toolchain.py', 'environment.py', 'repo.py'):
             source = ROOT / 'scripts/lib' / name
             if source.exists():
                 shutil.copyfile(source, self.root / 'scripts/lib' / name)
@@ -106,10 +108,37 @@ class ToolchainEntryTest(unittest.TestCase):
         self.assertEqual(json.loads(result.stdout), [['has spaces', ''], False])
         self.assertFalse((self.root / 'forbidden').exists())
 
+    def test_CI安装向Windows原生进程导出驱动器绝对路径(self):
+        for name in ('scripts/bootstrap/flutter.sh', 'scripts/lib/repo.sh',
+                     'scripts/lib/versions.sh', 'scripts/tools/versions.env'):
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / name, target)
+        checker = self.root / 'scripts/check/flutter-toolchains.sh'
+        checker.parent.mkdir()
+        checker.write_text('#!/bin/sh\nexit 0\n')
+        fakebin = self.root / 'fakebin'
+        fakebin.mkdir()
+        for name, source in {
+            'git': '#!/bin/sh\nexit 0\n',
+            'cygpath': '#!/bin/sh\nif [ "$1" = -m ]; then echo C:/ci/flutter; else echo "$2"; fi\n',
+        }.items():
+            tool = fakebin / name
+            tool.write_text(source)
+            tool.chmod(0o755)
+        output = self.root / 'github-env'
+        result = subprocess.run(['bash', 'scripts/bootstrap/flutter.sh'], cwd=self.root,
+                                env={**self.environment, 'PATH': str(fakebin) + os.pathsep + self.environment['PATH'],
+                                     'RUNNER_TEMP': str(self.root), 'GITHUB_ENV': str(output)},
+                                capture_output=True, text=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(output.read_text(), 'UBAA_FLUTTER_HOME=C:/ci/flutter\n')
+
     def test_质量工具与发布脚本直接调用读取项目配置(self):
         self.configure()
         for name in ('scripts/tools/environment.sh', 'scripts/tools/requirements.txt',
-                     'scripts/check/shell.sh', 'scripts/release/preflight.sh', 'scripts/lib/repo.sh'):
+                     'scripts/check/shell.sh', 'scripts/release/preflight.sh', 'scripts/lib/repo.sh', 'scripts/lib/versions.sh', 'scripts/tools/versions.env',
+                     'scripts/lib/checksum.sh'):
             destination = self.root / name
             destination.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, destination)

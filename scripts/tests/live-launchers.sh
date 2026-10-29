@@ -13,6 +13,7 @@ mkdir -p "$test_root/scripts/live" "$test_root/scripts/lib"
 cp "$repo_root/scripts/live/verify.sh" "$test_root/scripts/live/verify.sh"
 cp "$repo_root/scripts/lib/repo.sh" "$test_root/scripts/lib/repo.sh"
 cp "$repo_root/scripts/lib/live-features.sh" "$test_root/scripts/lib/live-features.sh"
+cp "$repo_root/scripts/lib/environment.py" "$test_root/scripts/lib/environment.py"
 chmod +x "$test_root/scripts/live/verify.sh"
 
 cat >"$test_root/scripts/fake-core-live.sh" <<'FAKE'
@@ -44,6 +45,17 @@ if grep -F 'test-password' "$test_root/stderr" >/dev/null; then
   exit 1
 fi
 grep -F 'argv=route=webvpn feature=cgyy date=2026-08-31 campus-id=2' "$test_root/stderr" >/dev/null
+
+# 同时通过真实启动器覆盖文档主名称，兼容名称与主名称选择规则由解析器测试保护。
+printf 'UBAA_TEST_%s\n' 'USERNAME=test-user' 'PASSWORD=test-password' >"$test_root/.env.local"
+output=$(UBAA_ENV_FILE="$test_root/.env.local" \
+  UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \
+  "$test_root/scripts/live/verify.sh" mode=direct feature=auth 2>"$test_root/primary.err")
+[[ $output == *'route=direct feature=auth'* && $output == *'stdin_lines=2'* ]]
+if grep -F 'test-password' "$test_root/primary.err" >/dev/null; then
+  printf '%s\n' '主名称启动器诊断泄露了测试密码' >&2
+  exit 1
+fi
 
 if UBAA_ENV_FILE="$test_root/.env.local" \
   UBAA_CORE_LIVE_SCRIPT="$test_root/scripts/fake-core-live.sh" \

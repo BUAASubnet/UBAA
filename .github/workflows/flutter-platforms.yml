@@ -4,6 +4,7 @@ on:
   workflow_dispatch:
   pull_request:
     paths:
+      - '.github/actions/**'
       - '.github/workflows/ci.yml'
       - '.github/workflows/flutter-platforms.yml'
       - 'justfile'
@@ -18,9 +19,9 @@ on:
       - 'rust-toolchain.toml'
       - '!**/*.md'
   push:
-    branches:
-      - ubaa2
+    branches: [ubaa2, main, dev]
     paths:
+      - '.github/actions/**'
       - '.github/workflows/ci.yml'
       - '.github/workflows/flutter-platforms.yml'
       - 'justfile'
@@ -71,9 +72,8 @@ jobs:
             artifact: apps/ubaa_flutter/build/app/outputs/flutter-apk/app-debug.apk
     runs-on: ${{ matrix.os }}
     steps:
-      - uses: actions/checkout@v5
-      - uses: dtolnay/rust-toolchain@1.95.0
-      - uses: taiki-e/install-action@just
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09
+      - uses: ./.github/actions/toolchain
 
       - name: 安装 Linux 构建依赖
         if: runner.os == 'Linux'
@@ -85,32 +85,25 @@ jobs:
         if: matrix.platform == 'linux'
         run: sudo apt-get install -y gnome-keyring dbus-x11 xvfb
 
-      - name: 固定官方 Flutter SDK
+      - name: 安装固定官方 Flutter SDK
         shell: bash
-        run: |
-          flutter_root="$RUNNER_TEMP/flutter"
-          if command -v cygpath >/dev/null 2>&1; then
-            flutter_root=$(cygpath -u "$flutter_root")
-          fi
-          git init "$flutter_root"
-          git -C "$flutter_root" remote add origin https://github.com/flutter/flutter.git
-          git -C "$flutter_root" fetch --depth=1 origin refs/tags/3.41.9:refs/tags/3.41.9
-          git -C "$flutter_root" checkout --detach 00b0c91f06209d9e4a41f71b7a512d6eb3b9c694
-          printf 'UBAA_FLUTTER_HOME=%s\n' "$flutter_root" >> "$GITHUB_ENV"
-          printf '%s/bin\n' "$flutter_root" >> "$GITHUB_PATH"
-          "$flutter_root/bin/flutter" --version
+        run: bash scripts/bootstrap/flutter.sh
 
       - name: 安装 Android 固定组件
         if: matrix.platform == 'android-apk'
         shell: bash
         run: |
           sdkmanager_bin="$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager"
-          yes | "$sdkmanager_bin" --licenses >/dev/null || true
+          source scripts/tools/versions.env
+          # 仅忽略 yes 在 sdkmanager 正常退出后的 SIGPIPE，保留 sdkmanager 的错误。
+          set +o pipefail
+          yes | "$sdkmanager_bin" --licenses >/dev/null
+          set -o pipefail
           "$sdkmanager_bin" \
-            'platforms;android-36' \
-            'build-tools;36.0.0' \
-            'ndk;28.2.13676358' \
-            'cmake;3.22.1'
+            "platforms;android-$ANDROID_API" \
+            "build-tools;$ANDROID_BUILD_TOOLS" \
+            "ndk;$ANDROID_NDK" \
+            "cmake;$ANDROID_CMAKE"
 
       - name: 构建原生宿主
         shell: bash
@@ -123,7 +116,7 @@ jobs:
         shell: bash
         run: bash ./scripts/release/verify-flutter-artifact.sh "${{ matrix.platform }}" "${{ matrix.artifact }}"
 
-      - name: 运行已登记的 macOS 合成与本地集成回归
+      - name: 运行已登记的 macOS 原生能力与 FFI 回归
         if: matrix.platform == 'macos'
         shell: bash
         run: just integration-test
@@ -141,7 +134,7 @@ jobs:
           --artifact "${{ matrix.artifact }}" --platform "${{ matrix.platform }}"
 
       - name: 保存构建输入与产物证据
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: ubaa-${{ matrix.platform }}-build-record-${{ github.run_id }}
           path: ${{ runner.temp }}/ubaa-build-record
@@ -149,7 +142,7 @@ jobs:
           retention-days: 14
 
       - name: 保存可复核产物
-        uses: actions/upload-artifact@v6
+        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
         with:
           name: ubaa-${{ matrix.platform }}-debug-${{ github.run_id }}
           path: ${{ matrix.artifact }}

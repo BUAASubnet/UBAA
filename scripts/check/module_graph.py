@@ -9,7 +9,10 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dart_sources import SourceClosure, workspace_for
 
 
-ROOT = Path(__file__).resolve().parents[2]
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
+from repo import ROOT
+
 
 
 def inspect(root, limit, package_name=None, package_lib=None):

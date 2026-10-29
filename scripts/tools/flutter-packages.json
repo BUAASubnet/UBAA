@@ -1,0 +1,9 @@
+{
+  "ubaa_domain": "packages/ubaa_domain",
+  "ubaa_platform": "packages/ubaa_platform",
+  "ubaa_app": "packages/ubaa_app",
+  "ubaa_ui": "packages/ubaa_ui",
+  "ubaa_bindings": "packages/ubaa_bindings",
+  "ubaa_host": "packages/ubaa_host",
+  "ubaa_flutter": "apps/ubaa_flutter"
+}

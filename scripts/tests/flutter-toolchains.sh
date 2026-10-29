@@ -2,7 +2,9 @@
 # Flutter 工具链检查合同；假 SDK 与 Git 仅存在于临时目录，不启动真实 Flutter。
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
+# shellcheck source=../lib/repo.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/repo.sh"
+repo_root=$(ubaa_repo_root)
 checker=$repo_root/scripts/check/flutter-toolchains.sh
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/ubaa-flutter-toolchains.XXXXXX")
 trap 'rm -rf -- "$test_root"' EXIT

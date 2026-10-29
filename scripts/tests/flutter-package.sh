@@ -9,13 +9,8 @@ repo_root=$(ubaa_repo_root)
 source "$script_dir/../lib/toolchain.sh"
 package=${1:?缺少包名}
 test_path=${2:-test}
-case "$package" in
-  ubaa_domain | ubaa_platform | ubaa_app | ubaa_ui | ubaa_bindings | ubaa_host)
-    package_dir="$repo_root/packages/$package"
-    ;;
-  ubaa_flutter) package_dir="$repo_root/apps/ubaa_flutter" ;;
-  *) printf 'error: 未登记的官方 Flutter 包：%s\n' "$package" >&2; exit 2 ;;
-esac
+relative=$(python3 "$repo_root/scripts/lib/packages.py" "$package") || exit 2
+package_dir="$repo_root/$relative"
 case "$test_path" in
   test | test/*) ;;
   *) printf '%s\n' 'error: 此入口只接受包内 test 路径，原生/真实验证使用专项入口' >&2; exit 2 ;;

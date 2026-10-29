@@ -28,7 +28,7 @@ just check-plan base=<阶段开始提交>
 just check-changed base=<阶段开始提交>
 ```
 
-默认计划包含暂存、未暂存、未跟踪、移动与删除；显式基线还包含分支提交。Dart 生产代码沿本地普通和开发依赖传播，普通测试变更选择所属包，Core/Bridge、工具链、包配置、脚本及未知路径保守检查。当前脚本对纯 docs 路径不自动运行合同版本检查，涉及合同声明时须另行运行下表入口；该选择器缺口仍待后续门禁整改。
+默认计划包含暂存、未暂存、未跟踪、移动与删除；显式基线还包含分支提交。Dart 生产代码沿本地普通和开发依赖传播，普通测试变更选择所属包，Core/Bridge、工具链、包配置、脚本及未知路径保守检查。所有改动至少执行合同版本和文档断链检查；文档站改动另执行站点构建。OHOS 三个插件均触发专属提示。
 
 修改测试框架、门禁、公共合同或完成跨模块整理，以及最终维护验收，必须运行下列完整确定性清单。PR/CI 保留完整相关检查，不能用按改动检查代替：
 
@@ -38,26 +38,28 @@ just layout-check
 just check-sensitive
 just check-strict
 just flutter-check
-CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
 just integration-test
+CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
 git diff --check
 ```
 
-完整清单采用较严格的既有要求：`check-strict` 取代宽松 `check`，并保留独立 FRB 生成检查和适用 runner 的默认原生集成集合。缺少原生环境时如实登记阻塞，不能删去该项或以普通七包测试替代。未触及完整验收条件的纯文档修改不自动触发原生构建，学校请求仍只按协议变化和授权规则执行。原生与发布候选还必须执行对应平台专项，见下文；测试、构建、设备、学校实测和发布分别记账。
+完整清单采用较严格的既有要求：`check-strict` 取代宽松 `check`，并保留独立 FRB 生成检查。原生能力默认集合继续执行，删除范围与覆盖缺口见测试策略。未触及完整验收条件的纯文档修改不自动触发原生构建，学校请求仍只按协议变化和授权规则执行。原生与发布候选还必须执行对应平台专项，见下文；测试、构建、设备、学校实测和发布分别记账。
 
 | 入口 | 实际范围和失败条件 |
 |---|---|
 | `just refs` | 只读校验两个固定参考的 remote、HEAD 和干净工作树；缺失或不匹配失败 |
 | `just layout-check` | 手写源码 1000 行/目录 16 文件棘轮、现有精确 baseline 及目录命名 |
 | `just check-sensitive` | 分别扫描 index blob 与未忽略工作区候选；读取或工具失败非零 |
+| `just docs-link-check` | 只读检查 Markdown 相对目标、站内路由及标题锚点；历史范围见下文 |
+| `just tool-version-check` | 校验版本镜像及全部第三方 Action 的 SHA 锁定 |
 | `just contract-version-check` | CLI/Bridge 常量、JSON Schema、Dart 接受版本与当前文档声明静态一致性 |
 | `just shell-check` / `just shell-check-strict` | 全部候选 Shell 运行 bash -n；严格模式必须存在 ShellCheck 0.11.0，宽松模式缺失时明确 SKIP |
 | `just check` / `just check-strict` | 相同的 Rust、CLI 和脚本检查；仅 ShellCheck 必需性不同。宽松入口只供日常反馈，不替代最终严格验收 |
 | `just flutter-check` | 依次对 ubaa_domain、ubaa_platform、ubaa_app、ubaa_ui、ubaa_bindings、ubaa_host、apps/ubaa_flutter 执行锁定 pub get、format 检查、analyze、test；golden 使用 macOS 基准 |
-| `just flutter-codegen-check` | 锁定 FRB codegen 2.13.0 重生成，要求受跟踪生成目录零漂移；当前仍会对 workspace 执行写入式 `cargo fmt --all`，尚未检测未跟踪生成文件，运行后须人工审阅工作区 |
+| `just flutter-codegen-check` | 锁定 FRB codegen 2.13.0 重生成，只写 FRB 生成路径并格式化生成 Rust 文件，检查 index、工作区及未跟踪生成文件；禁用 Web 输出 |
 | `git diff --check` | 检查当前差异中的空白错误；提交前另查 `git diff --cached --check`，验收提交范围时传入基线 |
 
-`check` 和 `check-strict` 共用 `_rust-shell-contracts`：Python 脚本自测、集成清单、完整自有依赖闭包、layout/contract-versions/references/flutter-toolchains/maintenance-gates/live-launchers 六个 Shell 合同脚本、实际布局与版本 checker、Cargo metadata/fmt/Clippy、Core 关闭/开启 test-contract 的合同、其余 workspace 测试、构建、文档和差异检查。这里的 references 合同使用临时仓库，并不替代实际冻结引用校验；live launcher 合同使用假程序和虚构凭据，不请求学校。
+`check` 和 `check-strict` 共用 `_rust-shell-contracts`：Python 脚本自测、原生清单、文档断链、工具版本镜像、完整自有依赖闭包、layout/contract-versions/references/flutter-toolchains/maintenance-gates/live-launchers 六个 Shell 合同脚本、实际布局与版本 checker、Cargo metadata/fmt/Clippy、Core 关闭/开启 test-contract 的合同、其余 workspace 测试、构建、文档和差异检查。这里的 references 合同使用临时仓库，并不替代实际冻结引用校验；live launcher 合同使用假程序和虚构凭据，不请求学校。
 
 这两个入口均不隐含完整 Flutter、FRB 生成、原生设备或学校实测。`fmt` recipe 也只执行格式检查，不写文件。
 
@@ -71,12 +73,12 @@ git diff --check
 | `just core-test-contract` | 默认 Core 编译/Rustdoc、启用 test-contract 的全目标测试，以及注入关闭时的预期编译失败合同 |
 | `just test` / `just fmt` | 前者执行 Core test-contract 合同及其余 workspace 测试；后者仅执行 Cargo 格式检查，不写文件 |
 | `just module-check` | 自有源码完整依赖闭包、环、library 聚合尺寸与 part 归属 |
+| `just integration-check` / `just integration-list` | 校验并查看保留的十个真实原生能力入口 |
+| `just integration-test` | 默认 macOS：网络恢复、插件、FFI 缓存、跨进程启动锁 |
+| `just integration-test suite=synthetic/cache/bridge_test.dart platform=macos` | 按精确路径与平台执行；device 未填时回退为平台 |
 | `just script-test` | Python 门禁及离线分析的合成合同 |
-| `just integration-check` / `just integration-list` | 校验并查看已登记入口，不执行学校请求 |
-| `just integration-test` | 当前默认 macOS CI 原生集合：应用流程、合成 FFI、本地网络恢复、插件通道 |
-| `just integration-test synthetic/cache/bridge_test.dart macos macos` | 显式选择一个已登记原生入口 |
 
-原生候选与发布验收在适用 runner 必须运行默认集成集合，其他平台按清单选择，不能对整个 integration_test 通配执行。原生集合、人工预览、测试数据和 golden 维护说明见[测试策略](testing.md)。入口标记适用某平台不等于该平台本轮已通过。
+原生集成只保留真实原生能力和 FFI/启动锁。保留覆盖与自动化缺口见[测试策略](testing.md)。各平台构建、设备验收和发布证据分别记录。
 
 OHOS 宿主与三个 *_ohos 插件不属于上述七包。`ohos-check` 当前执行 OHOS 宿主 analyze/test、工具链预检、HUKS 与 connectivity 的合成合同及 HAP 构建；package_info_plus_ohos 仅被间接编译，没有独立自动合同。普通 Flutter 成功不能代替 OHOS 结果，这些覆盖缺口留待后续阶段。
 
@@ -84,13 +86,13 @@ OHOS 宿主与三个 *_ohos 插件不属于上述七包。`ohos-check` 当前执
 
 | 工作流 / 作业 | 当前触发与实际执行 |
 |---|---|
-| [ci.yml](../../.github/workflows/ci.yml) / contract-gates | 所有 push 与 PR；Ubuntu 显式 bootstrap 参考/质量工具、校验 refs/layout/敏感扫描、执行 check-strict、准备 Dart 依赖、检查 FRB、生成并保存无签名 release-preflight 报告 |
+| [ci.yml](../../.github/workflows/ci.yml) / contract-gates | ubaa2/main/dev push 与 PR；Ubuntu 显式 bootstrap 参考/质量工具、校验 refs/敏感扫描、执行 check-strict、准备 Dart 依赖、检查 FRB、生成并保存无签名 release-preflight 报告 |
 | ci.yml / flutter-contracts | macOS 15 执行完整 flutter-check，失败时上传脱敏 golden 差异；不在此作业运行原生集成 |
-| ci.yml / rust-platforms | macOS/Windows 执行 Cargo fmt、全特性 Clippy、默认特性的 workspace 全目标测试/构建及文档；没有启用 Core test-contract 测试，不能称为与 Linux 严格入口等价 |
-| [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) / native-debug | 手动、受路径过滤的 PR，以及 ubaa2 push；构建 Linux/Windows/macOS/iOS simulator/Android APK，检查产物并生成源码/产物关联；macOS 跑 integration-test，Linux 跑合成安全存储。Markdown 路径被排除，OHOS 不在此工作流 |
+| ci.yml / rust-platforms | macOS/Windows 执行 Cargo fmt、全特性 Clippy、Core 默认关闭态检查/Rustdoc、开启 test-contract 的全目标测试、关闭态负向编译合同，其余 workspace 全目标测试/构建及文档 |
+| [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) / native-debug | 手动、受路径过滤的 PR，以及 ubaa2/main/dev push；构建 Linux/Windows/macOS/iOS simulator/Android APK，检查产物并生成源码/产物关联。macOS 执行默认原生集合，Linux 执行隔离安全存储；Markdown 路径被排除，OHOS 不在此工作流 |
 | [docs.yml](../../.github/workflows/docs.yml) | 手动、文档站相关 PR 和 ubaa2/main/dev push；npm ci 与 docs:build 检查站内链接；仅配置的发布分支且非 PR 时上传/部署 Pages |
 
-CI 尚未统一触发分支，也未统一 Action/just 锁定及跨平台 test-contract；本阶段只如实记录，不改工作流。当前本地通过不等于候选远端 CI 通过。网站本地检查为 `npm run docs:build`，不验证站外全部工程文档。
+三个工作流统一 push 分支为 ubaa2/main/dev，PR 保留各自路径过滤，均使用 concurrency 取消同一 ref 的旧运行。第三方 Action 使用完整 SHA，工具版本来自 `scripts/tools/versions.env`，Flutter 安装由同一脚本完成。当前本地通过不等于候选远端 CI 通过。网站本地检查为 `npm run docs:build`，不验证站外全部工程文档。
 
 ## 构建与发布命令
 
@@ -125,3 +127,9 @@ verify-live 从被忽略的 `.env.local` 安全读取非空主名称凭据，经
 - 按改动检查本身只读 Git/pubspec，所选子命令仍可能写缓存。FRB 生成检查的现有写入副作用已在上表说明，不能称所有 check 都只读。
 - 日志、stdout/stderr 和报告遵守[统一日志脱敏规则](conventions.md#日志与诊断脱敏)，禁止全局 trace。仅在已获授权的窄范围诊断使用 RUST_LOG，原始 stderr 不进入共享文档。
 - 锁文件、parser、lint 或生成检查失败时定位原因，不通过放宽规则、删除测试或手改生成物获得通过。upstream_changed 只表示响应不满足已证明合同，不能据此猜字段或绕过挑战。
+
+## 文档链接范围
+
+`docs-link-check` 检查当前 Markdown 的本地文件、站内路由和标题锚点，不请求外站。`docs/migration/history/` 和 `docs/design/evidence/` 按归档约定保持历史内容，检查器不把这些快照内部链接当作当前可执行承诺。锁定的 Cargokit 上游文档同样不改写。当前文档指向这些目录的目标和锚点仍检查。该范围决定见[决策记录](../migration/decision-log.md#2026-10-29门禁基础逻辑与-ci-统一)。
+
+带参数的项目 recipe 同时接受位置参数和 `key=value`，关键字可换序，重复或未知参数失败；例如 `just flutter-build mode=debug platform=linux`。Dart/Flutter 的自由参数仍原样透传。

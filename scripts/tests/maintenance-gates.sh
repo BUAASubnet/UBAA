@@ -2,7 +2,9 @@
 # 严格 Shell 门禁与 Flutter 产物权限合同；全部产物和命令夹具位于临时目录。
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
+# shellcheck source=../lib/repo.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/repo.sh"
+repo_root=$(ubaa_repo_root)
 artifact_checker=$repo_root/scripts/release/verify-flutter-artifact.sh
 entitlements_helper=$repo_root/scripts/release/macos-entitlements.sh
 artifact_bash=/usr/bin/bash

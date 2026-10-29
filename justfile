@@ -2,6 +2,8 @@ set dotenv-load
 set dotenv-required := false
 set dotenv-path := ".env.toolchain"
 
+export PYTHONDONTWRITEBYTECODE := "1"
+
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
 # 项目级 SDK 转发使用位置参数，保留空格、空参数及 Shell 元字符。
@@ -45,11 +47,13 @@ core-test-contract:
     bash ./scripts/tests/facade-test-contract.sh
 
 # 日常反馈：可用 base=origin/ubaa2 覆盖本分支已提交改动；默认包含全部本地改动。
-check-changed base="":
-    python3 scripts/check/changed_checks.py --base "{{base}}" --run
+[positional-arguments]
+check-changed *args:
+    @python3 scripts/lib/recipe.py check-changed "$@"
 
-check-plan base="":
-    python3 scripts/check/changed_checks.py --base "{{base}}"
+[positional-arguments]
+check-plan *args:
+    @python3 scripts/lib/recipe.py check-plan "$@"
 
 check:
     just shell-check
@@ -71,6 +75,8 @@ _rust-shell-contracts:
     bash ./scripts/tests/maintenance-gates.sh
     just layout-check
     just contract-version-check
+    just docs-link-check
+    just tool-version-check
     cargo metadata --locked --no-deps --format-version 1 >/dev/null
     cargo fmt --all -- --check
     cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
@@ -93,6 +99,12 @@ layout-check:
 contract-version-check:
     bash ./scripts/check/contract-versions.sh
 
+docs-link-check:
+    python3 scripts/check/docs_links.py
+
+tool-version-check:
+    python3 scripts/check/tool_versions.py
+
 # 检查仓库候选 Shell，显式排除锁定 Cargokit；路径全程使用 NUL 分隔。
 shell-check:
     bash ./scripts/check/shell.sh lenient
@@ -102,14 +114,17 @@ shell-check-strict:
     bash ./scripts/check/shell.sh strict
 
 # 生成不含签名、账号或真实响应的无签名 RC 依赖/源码校验报告。
-release-preflight report_dir="":
-    bash ./scripts/release/preflight.sh "{{report_dir}}"
+[positional-arguments]
+release-preflight *args:
+    @python3 scripts/lib/recipe.py release-preflight "$@"
 
+[positional-arguments]
 verify-live *args:
-    bash ./scripts/live/verify.sh {{args}}
+    bash ./scripts/live/verify.sh "$@"
 
+[positional-arguments]
 core-live *args:
-    bash ./scripts/live/core-live.sh {{args}}
+    bash ./scripts/live/core-live.sh "$@"
 
 # 固定 SDK 下重生成 FRB 绑定并要求零漂移。
 flutter-codegen-check:
@@ -124,8 +139,9 @@ flutter-dependencies:
     bash ./scripts/check/flutter-workspace.sh dependencies
 
 # 普通测试快速入口，例如 just flutter-test ubaa_app test/features/grades。
-flutter-test package path="test":
-    bash ./scripts/tests/flutter-package.sh "{{package}}" "{{path}}"
+[positional-arguments]
+flutter-test *args:
+    @python3 scripts/lib/recipe.py flutter-test "$@"
 
 # 默认定位手写源码；历史验收元数据不混入结果。
 source-files:
@@ -134,9 +150,14 @@ source-files:
 # 不访问学校或设备的 Python 行为合同。
 script-test:
     python3 scripts/tests/native/lock_holder_test.py
+    python3 scripts/tests/integration_catalog_test.py
+    python3 scripts/tests/checks/native_bindings_test.py
+    python3 scripts/tests/checks/codegen_gate_test.py
+    python3 scripts/tests/checks/docs_links_test.py
+    python3 scripts/tests/checks/environment_test.py
+    python3 scripts/tests/checks/recipe_args_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/directory_names_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/changed_checks_test.py
-    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/integration_catalog_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/module_graph_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/toolchain_entry_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/sensitive_test.py
@@ -148,27 +169,31 @@ script-test:
 quality-tools-bootstrap:
     bash scripts/bootstrap/quality-tools.sh
 
-# 集成入口必须全部分类，真实只读和人工巡检不进入普通回归。
+module-check:
+    python3 scripts/check/module_graph.py
+
+# 在当前原生 runner 构建指定平台；例如 platform=macos、android-apk、ios-simulator。
+[positional-arguments]
+flutter-build *args:
+    @python3 scripts/lib/recipe.py flutter-build "$@"
+
+# 检查已构建 Flutter 产物结构；macOS 还核验实际签名权限，不执行签名或安装。
+[positional-arguments]
+flutter-artifact-check *args:
+    @python3 scripts/lib/recipe.py flutter-artifact-check "$@"
+
+# 固定 OHOS fork、CLI/API26、native SDK 和 HAP 构建门禁。
+[positional-arguments]
+ohos-check *args:
+    @python3 scripts/lib/recipe.py ohos-check "$@"
+
+# 只登记真实原生能力与真实 FFI/启动锁，默认设备由平台回退。
 integration-check:
     python3 scripts/check/integration_catalog.py check
 
 integration-list:
     python3 scripts/check/integration_catalog.py list
 
-module-check:
-    python3 scripts/check/module_graph.py
-
-integration-test suite="ci" platform="macos" device="macos":
-    python3 scripts/check/integration_catalog.py run --suite "{{suite}}" --platform "{{platform}}" --device "{{device}}"
-
-# 在当前原生 runner 构建指定平台；例如 platform=macos、android-apk、ios-simulator。
-flutter-build platform="host" mode="debug":
-    bash ./scripts/build/flutter.sh "{{platform}}" "{{mode}}"
-
-# 检查已构建 Flutter 产物结构；macOS 还核验实际签名权限，不执行签名或安装。
-flutter-artifact-check platform artifact:
-    bash ./scripts/release/verify-flutter-artifact.sh "{{platform}}" "{{artifact}}"
-
-# 固定 OHOS fork、CLI/API26、native SDK 和 HAP 构建门禁。
-ohos-check mode="release":
-    bash ./scripts/build/ohos.sh "{{mode}}"
+[positional-arguments]
+integration-test *args:
+    @python3 scripts/lib/recipe.py integration-test "$@"

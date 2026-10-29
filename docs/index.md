@@ -25,7 +25,7 @@
 | 写入与回读 | [唯一协调器](../packages/ubaa_app/lib/src/write/)、[Controller write](../packages/ubaa_app/lib/src/controller/write/) | [App write](../packages/ubaa_app/test/write/) |
 | 领域 UI | [UI features](../packages/ubaa_ui/lib/src/features/) | [UI 领域](../packages/ubaa_ui/test/features/) |
 | 导航、查询与展示 | [UI app](../packages/ubaa_ui/lib/src/app/)、[common](../packages/ubaa_ui/lib/src/common/) | [query](../packages/ubaa_ui/test/query/)、[navigation](../packages/ubaa_ui/test/navigation/)、[visual](../packages/ubaa_ui/test/visual/) |
-| 平台与宿主接线 | [Host](../packages/ubaa_host/lib/)、[Platform](../packages/ubaa_platform/lib/) | 各包 test；[原生入口清单](../scripts/integration-tests.json) |
+| 平台与宿主接线 | [Host](../packages/ubaa_host/lib/)、[Platform](../packages/ubaa_platform/lib/) | 各包 test；[原生能力清单](../scripts/integration-tests.json)和[覆盖边界](development/testing.md) |
 
 ## 稳定合同
 

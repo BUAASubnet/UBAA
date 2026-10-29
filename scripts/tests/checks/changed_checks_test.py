@@ -22,6 +22,8 @@ class ChangedChecksTest(unittest.TestCase):
         self.assertFalse(plan['rust'])
         self.assertEqual(plan['packages'], [])
         self.assertEqual(plan['extra'], [])
+        self.assertIn(['just', 'contract-version-check'], gates.commands(plan))
+        self.assertIn(['just', 'docs-link-check'], gates.commands(plan))
 
     def test_ui_implementation_includes_consumers(self):
         self.assertEqual(self.plan('packages/ubaa_ui/lib/src/app/home.dart')['packages'],
@@ -65,7 +67,7 @@ class ChangedChecksTest(unittest.TestCase):
         self.assertIn(['just', 'flutter-codegen-check'], plan['extra'])
 
     def test_ohos_changes_require_explicit_native_followup(self):
-        plan = self.plan('packages/connectivity_plus_ohos/lib/channel.dart')
+        plan = self.plan('packages/package_info_plus_ohos/lib/channel.dart')
         self.assertTrue(plan['rust'])
         self.assertTrue(any('ohos-check' in note for note in plan['notes']))
 

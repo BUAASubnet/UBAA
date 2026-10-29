@@ -17,7 +17,7 @@ class SensitiveTest(unittest.TestCase):
         self.root = Path(self.temporary.name)
         (self.root / "scripts/check").mkdir(parents=True)
         (self.root / "scripts/lib").mkdir()
-        for name in ["scripts/check/sensitive.sh", "scripts/lib/repo.sh"]:
+        for name in ["scripts/check/sensitive.sh", "scripts/lib/repo.sh", "scripts/lib/repo.py"]:
             shutil.copyfile(ROOT / name, self.root / name)
         checker = ROOT / "scripts/check/sensitive.py"
         if checker.exists():

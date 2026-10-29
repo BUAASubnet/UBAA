@@ -13,24 +13,13 @@ source "$script_dir/../lib/toolchain.sh"
 flutter_root=${UBAA_OHOS_FLUTTER_HOME:?请设置 UBAA_OHOS_FLUTTER_HOME 为锁定 Flutter SDK 的绝对路径}
 flutter_bin=$flutter_root/bin/flutter
 app_root=$repo_root/apps/ubaa_ohos
-deveco_home=${UBAA_DEVECO_HOME:-/Applications/DevEco-Studio.app/Contents}
-export OHOS_SDK_HOME=${OHOS_SDK_HOME:-$deveco_home/sdk/default/openharmony/native}
-
-# Flutter OH 会从 PATH 调用 hvigorw。固定使用同一 DevEco 安装提供的
-# Hvigor、ohpm、Node 和 SDK，避免 shell 中残留的旧 command-line-tools
-# 把 API26 工程误编译成旧 API。
-export DEVECO_SDK_HOME="$deveco_home/sdk"
-if [[ -d "$deveco_home/tools" ]]; then
-  DEVECO_NODE_HOME="$deveco_home/tools/node"
-  deveco_hvigor_home="$deveco_home/tools/hvigor"
-  deveco_ohpm_home="$deveco_home/tools/ohpm"
-else
-  DEVECO_NODE_HOME="$deveco_home/tool/node"
-  deveco_hvigor_home="$deveco_home/hvigor"
-  deveco_ohpm_home="$deveco_home/ohpm"
-fi
-export DEVECO_NODE_HOME
-export PATH="$deveco_hvigor_home/bin:$deveco_ohpm_home/bin:$DEVECO_NODE_HOME/bin:$PATH"
+# shellcheck source=../lib/deveco.sh
+source "$script_dir/../lib/deveco.sh"
+ubaa_deveco_layout
+export OHOS_SDK_HOME="$ohos_native_home"
+export DEVECO_SDK_HOME="$hmos_sdk_home"
+export DEVECO_NODE_HOME="$node_home"
+export PATH="$deveco_hvigor_home/bin:$deveco_ohpm_home/bin:$node_home/bin:$PATH"
 
 if [[ "$mode" != debug && "$mode" != release ]]; then
   printf 'error: 构建模式只能是 debug 或 release\n' >&2

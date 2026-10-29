@@ -6,10 +6,14 @@ script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../../../scripts/lib/toolchain.sh
 source "$script_dir/../../../scripts/lib/toolchain.sh"
 
-expected_flutter_tag=3.41.10-ohos-1.0.1
-expected_flutter_commit=adaf911c35c9136a7d18fc424d714c9ec7724e60
-required_api=26
-required_rust_target=aarch64-unknown-linux-ohos
+# shellcheck source=../../../scripts/lib/versions.sh
+source "$script_dir/../../../scripts/lib/versions.sh"
+# shellcheck source=../../../scripts/lib/deveco.sh
+source "$script_dir/../../../scripts/lib/deveco.sh"
+expected_flutter_tag=$OHOS_FLUTTER_VERSION
+expected_flutter_commit=$OHOS_FLUTTER_COMMIT
+required_api=$OHOS_API
+required_rust_target=$OHOS_RUST_TARGET
 
 error_count=0
 warning_count=0
@@ -29,19 +33,7 @@ fail() {
 }
 
 flutter_root=${UBAA_OHOS_FLUTTER_HOME:?请设置 UBAA_OHOS_FLUTTER_HOME 为锁定 OHOS Flutter SDK 的绝对路径}
-deveco_home=${UBAA_DEVECO_HOME:-/Applications/DevEco-Studio.app/Contents}
-hmos_sdk_home=${UBAA_HMOS_SDK_HOME:-$deveco_home/sdk}
-if [[ -d "$deveco_home/tools" ]]; then
-  deveco_node_home="$deveco_home/tools/node"
-  deveco_ohpm="$deveco_home/tools/ohpm/bin/ohpm"
-  deveco_hvigor="$deveco_home/tools/hvigor/bin/hvigorw"
-else
-  deveco_node_home="$deveco_home/tool/node"
-  deveco_ohpm="$deveco_home/ohpm/bin/ohpm"
-  deveco_hvigor="$deveco_home/hvigor/bin/hvigorw"
-fi
-node_home=${UBAA_OHOS_NODE_HOME:-$deveco_node_home}
-ohos_native_home=${OHOS_SDK_HOME:-$hmos_sdk_home/default/openharmony/native}
+ubaa_deveco_layout
 
 if [[ -z "$flutter_root" || ! -x "$flutter_root/bin/flutter" ]]; then
   fail '未找到 Flutter OH；请设置 UBAA_OHOS_FLUTTER_HOME'

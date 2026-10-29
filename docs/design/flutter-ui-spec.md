@@ -97,22 +97,21 @@ parts。维护实现时按下表定位，调用方不直接导入 part 文件。
 |---|---|
 | 启动、登录、主页和个人页 | [app/splash.dart](../../packages/ubaa_ui/lib/src/app/splash.dart)、[login.dart](../../packages/ubaa_ui/lib/src/app/login.dart)、[home.dart](../../packages/ubaa_ui/lib/src/app/home.dart)、[profile.dart](../../packages/ubaa_ui/lib/src/app/profile.dart) |
 | 页签/详情导航、外部写状态与命令接线 | [app/shell.dart](../../packages/ubaa_ui/lib/src/app/shell.dart) |
-| 查询控制器创建/释放、输入校验、FeatureQuery 组装与提交 | [common/query_controls.dart](../../packages/ubaa_ui/lib/src/common/query_controls.dart) |
+| 查询控制器创建/释放、输入校验、FeatureQuery 组装与提交 | [common/filters/feature_filters.dart](../../packages/ubaa_ui/lib/src/common/filters/feature_filters.dart) |
 | loading/empty/failure/stale 和查询/详情组合 | [common/feature_detail.dart](../../packages/ubaa_ui/lib/src/common/feature_detail.dart) |
-| 本地筛选、详情行组合与选择集合生命周期 | [common/detail_list.dart](../../packages/ubaa_ui/lib/src/common/detail_list.dart)；字段展示在 [detail_fields.dart](../../packages/ubaa_ui/lib/src/common/detail_fields.dart) |
-| 服务端/本地翻页控件与错误卡 | [common/pagination.dart](../../packages/ubaa_ui/lib/src/common/pagination.dart)、[error_card.dart](../../packages/ubaa_ui/lib/src/common/error_card.dart) |
-| 课表、考试、成绩、空教室查询控件 | [features/academic.dart](../../packages/ubaa_ui/lib/src/features/academic.dart) |
-| SPOC/Judge 作业与 Signin 课堂签到查询、签到按钮 | [features/assignments.dart](../../packages/ubaa_ui/lib/src/features/assignments.dart) |
-| 博雅、图书馆的领域查询与 typed 写按钮 | [features/bykc.dart](../../packages/ubaa_ui/lib/src/features/bykc.dart)、[libbook.dart](../../packages/ubaa_ui/lib/src/features/libbook.dart) |
-| 研讨室、阳光打卡、评教的领域查询、typed action 与选择控件 | [features/cgyy.dart](../../packages/ubaa_ui/lib/src/features/cgyy.dart)、[ygdk.dart](../../packages/ubaa_ui/lib/src/features/ygdk.dart)、[evaluation.dart](../../packages/ubaa_ui/lib/src/features/evaluation.dart) |
-| 研讨室预约与阳光打卡输入表单 | [write/cgyy_form.dart](../../packages/ubaa_ui/lib/src/write/cgyy_form.dart)、[ygdk_form.dart](../../packages/ubaa_ui/lib/src/write/ygdk_form.dart) |
+| 本地筛选、详情行组合与选择集合生命周期 | [common/details/detail_list.dart](../../packages/ubaa_ui/lib/src/common/details/detail_list.dart)；字段展示在 [detail_fields.dart](../../packages/ubaa_ui/lib/src/common/detail_fields.dart) |
+| 服务端/本地翻页控件与错误卡 | [common/paged_results.dart](../../packages/ubaa_ui/lib/src/common/paged_results.dart)、[error_card.dart](../../packages/ubaa_ui/lib/src/common/error_card.dart) |
+| 课表、考试、成绩、空教室查询控件 | [features/academic/](../../packages/ubaa_ui/lib/src/features/academic/) |
+| SPOC/Judge 作业与 Signin 课堂签到查询、签到按钮 | [features/coursework/](../../packages/ubaa_ui/lib/src/features/coursework/) |
+| 博雅、图书馆的领域查询与 typed 写按钮 | [features/bykc/](../../packages/ubaa_ui/lib/src/features/bykc/)、[libbook.dart](../../packages/ubaa_ui/lib/src/features/libbook/) |
+| 研讨室、阳光打卡、评教的领域查询、typed action 与选择控件 | [features/cgyy/](../../packages/ubaa_ui/lib/src/features/cgyy/)、[ygdk.dart](../../packages/ubaa_ui/lib/src/features/ygdk/)、[evaluation.dart](../../packages/ubaa_ui/lib/src/common/details/evaluation_actions.dart) |
+| 研讨室预约与阳光打卡输入表单 | [common/details/cgyy_form.dart](../../packages/ubaa_ui/lib/src/common/details/cgyy_form.dart)、[ygdk_form.dart](../../packages/ubaa_ui/lib/src/common/details/ygdk_form.dart) |
 | 意图摘要、错误、取消与提交按钮 | [write/confirmation.dart](../../packages/ubaa_ui/lib/src/write/confirmation.dart)；回调类型在 [write_callbacks.dart](../../packages/ubaa_ui/lib/src/write_callbacks.dart) |
 
 页面测试按领域位于 `packages/ubaa_ui/test/widgets/`，写命令接线测试位于
 `packages/ubaa_ui/test/write_coordination_test.dart`。应用层 `packages/ubaa_app/test/` 中的
 `write_coordinator_test.dart`、`app_write_lifecycle_test.dart` 与 `write_readback_reentry_test.dart`
-分别保护单次消费、会话失效和回读重入。宿主 integration 位于
-`apps/ubaa_flutter/integration_test/app_flow_test.dart`，只使用脱敏 backend。
+分别保护单次消费、会话失效和回读重入。原生集成入口已按用户决定删除，覆盖与缺口见[测试策略](../development/testing.md)。
 生产唯一状态机的实现与接口见[协调器实施记录](../superpowers/plans/2026-09-05-write-coordinator.md)。
 
 ## 历史与阶段 UI 验证记录

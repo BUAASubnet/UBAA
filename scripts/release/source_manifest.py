@@ -5,6 +5,11 @@ import json
 import os
 from pathlib import Path
 import subprocess
+import sys
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
+from repo import ROOT
+
 
 
 def digest(path):
@@ -60,7 +65,7 @@ def write_report(root, output, artifact=None, platform=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--root", type=Path, default=Path(__file__).resolve().parents[2])
+    parser.add_argument("--root", type=Path, default=ROOT)
     parser.add_argument("--output", type=Path, required=True)
     parser.add_argument("--artifact", type=Path)
     parser.add_argument("--platform")

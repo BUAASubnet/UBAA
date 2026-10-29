@@ -15,7 +15,10 @@ import jsonschema
 from referencing import Registry, Resource
 import yaml
 
-ROOT = Path(__file__).resolve().parents[2]
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
+from repo import ROOT
+
 SCHEMAS = ROOT / 'scripts/tools/cyclonedx-1.5'
 
 

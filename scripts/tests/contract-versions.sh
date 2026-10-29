@@ -2,7 +2,9 @@
 # 公开合同版本静态门禁测试；全部样例都在临时目录中运行，不读取真实账号或构建缓存。
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd -P)
+# shellcheck source=../lib/repo.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/repo.sh"
+repo_root=$(ubaa_repo_root)
 checker_source="$repo_root/scripts/check/contract-versions.sh"
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/ubaa-contract-versions.XXXXXX")
 trap 'rm -rf -- "$test_root"' EXIT HUP INT TERM

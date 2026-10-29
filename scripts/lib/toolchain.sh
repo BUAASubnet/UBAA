@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+# shellcheck shell=bash
 # 直接运行的 Shell 入口与 just 共用工具链配置，禁止 source 凭据文件。
 ubaa_toolchain_script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 ubaa_toolchain_exports=$(python3 "$ubaa_toolchain_script_dir/toolchain.py" shell) || return

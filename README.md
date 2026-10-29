@@ -67,9 +67,9 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 `ubaa_domain`，`WriteCoordinator` 是应用层唯一生产写状态机；宿主向 UI 注入状态及 prepare/cancel/confirm
 命令，UI 不保存另一份待确认意图，也不从展示文本推断写资格。
 
-UI 的[应用页面](packages/ubaa_ui/lib/src/app/)、[领域组件](packages/ubaa_ui/lib/src/features/)、[查询](packages/ubaa_ui/lib/src/common/query/)和[详情接线](packages/ubaa_ui/lib/src/common/details/)通过独立 library 组织；widgets.dart 只显式导出公共组件。应用协调见 [controller](packages/ubaa_app/lib/src/controller/)，Bridge 领域适配见 [bridge/features](packages/ubaa_app/lib/src/bridge/features/)。
+UI 的[应用页面](packages/ubaa_ui/lib/src/app/)、[领域组件](packages/ubaa_ui/lib/src/features/)、[查询](packages/ubaa_ui/lib/src/common/filters/)和[详情接线](packages/ubaa_ui/lib/src/common/details/)通过独立 library 组织；widgets.dart 只显式导出公共组件。应用协调见 [controller](packages/ubaa_app/lib/src/controller/)，Bridge 领域适配见 [bridge/features](packages/ubaa_app/lib/src/bridge/features/)。
 
-常用入口：`just source-files` 定位源码；`just flutter-test ubaa_app test/features/grades` 执行领域回归；`just integration-list` 查询原生、真实与人工入口。完整验证见[测试策略](docs/development/testing.md)。
+常用入口：`just source-files` 定位源码；`just flutter-test ubaa_app test/features/grades` 执行领域回归。完整验证见[测试策略](docs/development/testing.md)。
 
 ## CLI 快速开始
 

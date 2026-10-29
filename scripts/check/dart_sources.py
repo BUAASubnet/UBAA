@@ -2,7 +2,11 @@
 from pathlib import Path
 import re
 
-REPOSITORY = Path(__file__).resolve().parents[2]
+import sys
+sys.dont_write_bytecode = True
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
+from repo import ROOT as REPOSITORY
+
 WORD = re.compile(r"[A-Za-z_$][A-Za-z0-9_$]*")
 
 

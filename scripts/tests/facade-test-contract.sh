@@ -2,7 +2,9 @@
 # 独立验证测试注入 feature 的开启/关闭编译边界，以及生产宿主默认 feature 构建。
 set -euo pipefail
 
-repo_root=$(cd "$(dirname "${BASH_SOURCE[0]}")/../.." && pwd)
+# shellcheck source=../lib/repo.sh
+source "$(dirname "${BASH_SOURCE[0]}")/../lib/repo.sh"
+repo_root=$(ubaa_repo_root)
 fixtures="$repo_root/crates/ubaa_core/tests/compile"
 test_root=$(mktemp -d "${TMPDIR:-/tmp}/ubaa-facade-contract.XXXXXX")
 off_log="$test_root/feature-off.log"
