@@ -31,6 +31,22 @@ class NativeBindingsTest(unittest.TestCase):
                 native.normalize(root)
             self.assertTrue((root / 'frb_generated.web.dart').exists())
 
+    def test_dispose_override_is_normalized_when_present(self):
+        with tempfile.TemporaryDirectory() as folder:
+            root = Path(folder)
+            (root / 'frb_generated.dart').write_text(
+                "import 'frb_generated.io.dart'\n"
+                "    if (dart.library.js_interop) 'frb_generated.web.dart';\n"
+            )
+            api = root / 'api'
+            api.mkdir()
+            client = api / 'client.dart'
+            client.write_text(
+                '  @override\n  Future<void> dispose();\n'
+            )
+            native.normalize(root)
+            self.assertEqual(client.read_text(), '  Future<void> dispose();\n')
+
 
 if __name__ == '__main__':
     unittest.main()
