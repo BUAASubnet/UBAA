@@ -707,17 +707,7 @@ async fn request_json(
 }
 
 fn safe_url(value: &str) -> String {
-    url::Url::parse(value).map_or_else(
-        |_| "<无效 URL>".to_owned(),
-        |url| {
-            format!(
-                "{}://{}{}",
-                url.scheme(),
-                url.host_str().unwrap_or("<无主机>"),
-                url.path()
-            )
-        },
-    )
+    crate::logging::safe_url(value)
 }
 
 fn safe_body_shape(body: &[u8]) -> String {
@@ -818,15 +808,12 @@ async fn fetch_cas(runtime: &mut crate::runtime::ClientRuntime) -> Result<String
             return Ok(value);
         }
         let location = response
-            .headers
-            .iter()
-            .find(|(name, _)| name.eq_ignore_ascii_case("location"))
-            .and_then(|(_, values)| values.first())
+            .header_first("location")
             .ok_or_else(|| error("图书馆 CAS 登录跳转缺少目标地址"))?;
         let direct_final = crate::connection::from_webvpn_url(&response.final_url)
             .unwrap_or_else(|_| response.final_url.clone());
         let direct_location =
-            crate::connection::from_webvpn_url(location).unwrap_or_else(|_| location.clone());
+            crate::connection::from_webvpn_url(location).unwrap_or_else(|_| location.to_string());
         let target = url::Url::parse(&direct_final)
             .map_err(|_| error("图书馆登录跳转地址无效"))?
             .join(&direct_location)

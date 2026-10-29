@@ -73,10 +73,7 @@ async fn oauth_code(runtime: &mut ClientRuntime, generation: u64) -> Result<Stri
             return Ok(code);
         }
         let location = response
-            .headers
-            .iter()
-            .find(|(k, _)| k.eq_ignore_ascii_case("location"))
-            .and_then(|(_, v)| v.first())
+            .header_first("location")
             .ok_or_else(|| error("阳光打卡登录跳转缺少目标地址"))?;
         let base =
             url::Url::parse(&response.final_url).map_err(|_| error("阳光打卡登录跳转地址无效"))?;

@@ -382,7 +382,8 @@ async fn resolve_login_name(runtime: &mut crate::runtime::ClientRuntime) -> Resu
         if let Some(login_name) = login_name_from_url(&final_direct) {
             return Ok(login_name);
         }
-        let location = header(&response, "location")
+        let location = response
+            .header_first("location")
             .ok_or_else(|| upstream_error("签到登录跳转缺少目标地址"))?;
         let location_direct =
             crate::connection::from_webvpn_url(location).unwrap_or_else(|_| location.to_string());
@@ -414,15 +415,6 @@ fn ensure_login_host(url: &url::Url) -> Result<()> {
     }
 }
 
-fn header<'a>(response: &'a crate::ports::HttpResponse, name: &str) -> Option<&'a str> {
-    response
-        .headers
-        .iter()
-        .find(|(header, _)| header.eq_ignore_ascii_case(name))
-        .and_then(|(_, values)| values.first())
-        .map(String::as_str)
-}
-
 pub(crate) fn shanghai_date() -> String {
     let seconds = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
@@ -447,12 +439,7 @@ fn invalid_url() -> UbaaError {
 }
 
 fn upstream_error(message: &'static str) -> UbaaError {
-    UbaaError::new(
-        ErrorCode::UpstreamChanged,
-        ErrorKind::Upstream,
-        false,
-        message,
-    )
+    UbaaError::upstream_changed(message)
 }
 
 fn validate_course_id(course_id: &str) -> Result<()> {

@@ -31,12 +31,7 @@ pub(crate) async fn ensure_login(
         let response = runtime.request(HttpRequest::get(current.clone())).await?;
         for candidate in [
             response.final_url.as_str(),
-            response
-                .headers
-                .iter()
-                .find(|(k, _)| k.eq_ignore_ascii_case("location"))
-                .and_then(|(_, v)| v.first())
-                .map_or("", |value| value.as_str()),
+            response.header_first("location").unwrap_or_default(),
         ] {
             if let Some(token) = token_from_url(candidate) {
                 let value = BykcCredential { token };
@@ -45,10 +40,7 @@ pub(crate) async fn ensure_login(
             }
         }
         let location = response
-            .headers
-            .iter()
-            .find(|(k, _)| k.eq_ignore_ascii_case("location"))
-            .and_then(|(_, v)| v.first())
+            .header_first("location")
             .ok_or_else(|| error("博雅登录跳转缺少目标地址"))?;
         let target = resolve_login_target(&response.final_url, location)?;
         let parsed = url::Url::parse(&target).map_err(|_| error("博雅登录跳转地址无效"))?;

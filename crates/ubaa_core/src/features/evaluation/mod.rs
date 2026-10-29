@@ -7,7 +7,7 @@ mod read;
 pub(crate) mod scan;
 mod write;
 
-use crate::error::{ErrorCode, ErrorKind, UbaaError};
+use crate::error::{ErrorCode, UbaaError};
 
 #[cfg(test)]
 pub use parser::parse_courses;
@@ -29,12 +29,7 @@ pub(super) const SUBMIT_URL: &str =
     "https://spoc.buaa.edu.cn/pjxt/evaluationMethodSix/submitSaveEvaluation";
 
 pub(super) fn upstream_error(message: &'static str) -> UbaaError {
-    UbaaError::new(
-        ErrorCode::UpstreamChanged,
-        ErrorKind::Upstream,
-        false,
-        message,
-    )
+    UbaaError::upstream_changed(message)
 }
 
 pub(super) fn authority_error() -> UbaaError {
@@ -42,7 +37,7 @@ pub(super) fn authority_error() -> UbaaError {
 }
 
 pub(super) fn invalid_input(message: &'static str) -> UbaaError {
-    UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, false, message)
+    UbaaError::invalid_input(message)
 }
 
 pub(super) fn is_authentication_error(error: &UbaaError) -> bool {

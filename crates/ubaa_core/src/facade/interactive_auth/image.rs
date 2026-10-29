@@ -3,7 +3,6 @@
 use std::io::Cursor;
 
 use image::{ImageFormat, ImageReader, Limits};
-use url::Url;
 
 use crate::domain::CaptchaFrame;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
@@ -14,9 +13,8 @@ pub(super) async fn fetch_captcha_frame(
     runtime: &mut ClientRuntime,
     id: &str,
 ) -> Result<CaptchaFrame> {
-    let mut url = Url::parse("https://sso.buaa.edu.cn/captcha").map_err(|_| invalid_image())?;
-    url.query_pairs_mut().append_pair("captchaId", id);
-    let target = runtime.url(url.as_str())?;
+    let captcha_url = crate::upstream::sso_captcha_url(id);
+    let target = runtime.url(&captcha_url)?;
     let response = runtime.request(HttpRequest::get(&target)).await?;
     // 生产 transport 不自动跳转。本地边界只允许同路线的精确资源，未证跳转关闭。
     if response.status != 200 || response.final_url != target {

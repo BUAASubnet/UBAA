@@ -81,12 +81,7 @@ pub(super) async fn ensure_token(runtime: &mut ClientRuntime) -> Result<String> 
         if response.final_url != request_url || !(300..400).contains(&response.status) {
             return Err(auth_error());
         }
-        let location = response
-            .headers
-            .iter()
-            .find(|(k, _)| k.eq_ignore_ascii_case("location"))
-            .and_then(|(_, v)| v.first())
-            .ok_or_else(auth_error)?;
+        let location = response.header_first("location").ok_or_else(auth_error)?;
         next = url::Url::parse(&response.final_url)
             .map_err(|_| invalid())?
             .join(location)

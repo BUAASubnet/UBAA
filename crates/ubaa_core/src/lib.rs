@@ -16,6 +16,7 @@ pub mod error;
 pub mod facade;
 mod features;
 mod internal;
+mod logging;
 mod ports;
 pub(crate) use internal::runtime;
 mod session;

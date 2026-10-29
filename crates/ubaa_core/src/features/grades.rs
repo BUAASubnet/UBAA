@@ -150,21 +150,11 @@ fn clean(value: Option<String>) -> Option<String> {
 }
 
 fn invalid_term() -> UbaaError {
-    UbaaError::new(
-        ErrorCode::InvalidInput,
-        ErrorKind::Input,
-        false,
-        "term code must use yyyy-yyyy-semester",
-    )
+    UbaaError::invalid_input("term code must use yyyy-yyyy-semester")
 }
 
 fn parse_error() -> UbaaError {
-    UbaaError::new(
-        ErrorCode::ParseError,
-        ErrorKind::Parse,
-        false,
-        "grades response is not valid JSON",
-    )
+    UbaaError::parse_error("grades response is not valid JSON")
 }
 
 #[cfg(test)]

@@ -9,6 +9,8 @@ use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 
 /// 冻结的 SSO 登录地址。
 pub const SSO_LOGIN_URL: &str = "https://sso.buaa.edu.cn/login";
+/// 冻结的 SSO 验证码地址。
+pub const SSO_CAPTCHA_URL: &str = "https://sso.buaa.edu.cn/captcha";
 /// 冻结的 SSO 登出地址。
 pub const SSO_LOGOUT_URL: &str = "https://sso.buaa.edu.cn/logout";
 /// 冻结的用户中心激活地址。
@@ -18,6 +20,13 @@ pub const UC_ACTIVATE_URL: &str =
 pub const UC_STATUS_URL: &str = "https://uc.buaa.edu.cn/api/uc/status";
 /// 冻结的用户中心资料地址。
 pub const UC_USERINFO_URL: &str = "https://uc.buaa.edu.cn/api/uc/userinfo";
+
+/// 按冻结协议构造验证码请求地址。
+pub(crate) fn sso_captcha_url(id: &str) -> String {
+    let mut url = url::Url::parse(SSO_CAPTCHA_URL).expect("static SSO captcha URL");
+    url.query_pairs_mut().append_pair("captchaId", id);
+    url.to_string()
+}
 
 /// 从 HTML 表单中提取当前 CAS execution 令牌。
 #[must_use]
@@ -259,12 +268,7 @@ fn selector(query: &str) -> Selector {
 }
 
 fn upstream_changed(message: impl Into<String>) -> UbaaError {
-    UbaaError::new(
-        ErrorCode::UpstreamChanged,
-        ErrorKind::Upstream,
-        false,
-        message,
-    )
+    UbaaError::upstream_changed(message)
 }
 
 #[cfg(test)]

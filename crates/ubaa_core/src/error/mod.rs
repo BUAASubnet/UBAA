@@ -100,6 +100,56 @@ impl fmt::Debug for UbaaError {
 }
 
 impl UbaaError {
+    /// 构造不可重试的输入错误。
+    pub fn invalid_input(message: impl Into<String>) -> Self {
+        Self::new(ErrorCode::InvalidInput, ErrorKind::Input, false, message)
+    }
+
+    /// 构造不可重试的上游协议变化错误。
+    pub fn upstream_changed(message: impl Into<String>) -> Self {
+        Self::new(
+            ErrorCode::UpstreamChanged,
+            ErrorKind::Upstream,
+            false,
+            message,
+        )
+    }
+
+    /// 构造不可重试的解析错误。
+    pub fn parse_error(message: impl Into<String>) -> Self {
+        Self::new(ErrorCode::ParseError, ErrorKind::Parse, false, message)
+    }
+
+    /// 构造认证要求错误。
+    pub fn authentication_required(message: impl Into<String>) -> Self {
+        Self::new(
+            ErrorCode::AuthenticationRequired,
+            ErrorKind::Authentication,
+            false,
+            message,
+        )
+    }
+
+    /// 构造可重试的上游不可用错误。
+    pub fn upstream_unavailable(message: impl Into<String>) -> Self {
+        Self::new(
+            ErrorCode::UpstreamUnavailable,
+            ErrorKind::Upstream,
+            true,
+            message,
+        )
+    }
+
+    /// 构造不可重试的结果未知错误。
+    pub fn outcome_unknown(message: impl Into<String>) -> Self {
+        Self::new(
+            ErrorCode::OutcomeUnknown,
+            ErrorKind::Upstream,
+            false,
+            message,
+        )
+    }
+
     pub(crate) fn with_initialization_failure(mut self, failure: InitializationFailure) -> Self {
         if self.initialization_failure().is_none() {
             self.cause = Some(ErrorCause::Initialization(failure));
@@ -212,5 +262,43 @@ mod tests {
         assert_eq!(projected.kind, error.kind);
         assert_eq!(projected.retryable, error.retryable);
         assert_eq!(projected.message, error.message);
+    }
+
+    #[test]
+    fn 便捷构造器保持错误合同字段() {
+        assert_eq!(
+            UbaaError::invalid_input("x"),
+            UbaaError::new(ErrorCode::InvalidInput, ErrorKind::Input, false, "x")
+        );
+        assert_eq!(
+            UbaaError::upstream_changed("x"),
+            UbaaError::new(ErrorCode::UpstreamChanged, ErrorKind::Upstream, false, "x")
+        );
+        assert_eq!(
+            UbaaError::parse_error("x"),
+            UbaaError::new(ErrorCode::ParseError, ErrorKind::Parse, false, "x")
+        );
+        assert_eq!(
+            UbaaError::authentication_required("x"),
+            UbaaError::new(
+                ErrorCode::AuthenticationRequired,
+                ErrorKind::Authentication,
+                false,
+                "x",
+            )
+        );
+        assert_eq!(
+            UbaaError::upstream_unavailable("x"),
+            UbaaError::new(
+                ErrorCode::UpstreamUnavailable,
+                ErrorKind::Upstream,
+                true,
+                "x"
+            )
+        );
+        assert_eq!(
+            UbaaError::outcome_unknown("x"),
+            UbaaError::new(ErrorCode::OutcomeUnknown, ErrorKind::Upstream, false, "x")
+        );
     }
 }

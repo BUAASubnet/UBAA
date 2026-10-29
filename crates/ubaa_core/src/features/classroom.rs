@@ -158,18 +158,13 @@ fn session_expired(response: &crate::ports::HttpResponse, body: &str) -> bool {
 }
 
 fn response_location_targets_sso(response: &crate::ports::HttpResponse) -> bool {
-    response
-        .headers
-        .iter()
-        .find(|(name, _)| name.eq_ignore_ascii_case("location"))
-        .and_then(|(_, values)| values.first())
-        .is_some_and(|location| {
-            let resolved = url::Url::parse(&response.final_url)
-                .ok()
-                .and_then(|base| base.join(location).ok())
-                .map_or_else(|| location.clone(), |target| target.to_string());
-            is_sso_url(&resolved)
-        })
+    response.header_first("location").is_some_and(|location| {
+        let resolved = url::Url::parse(&response.final_url)
+            .ok()
+            .and_then(|base| base.join(location).ok())
+            .map_or_else(|| location.to_owned(), |target| target.to_string());
+        is_sso_url(&resolved)
+    })
 }
 
 fn is_sso_url(candidate: &str) -> bool {

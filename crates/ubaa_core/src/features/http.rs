@@ -61,10 +61,7 @@ pub(crate) async fn get_with_redirects(
             return Ok(response);
         }
         let location = response
-            .headers
-            .iter()
-            .find(|(name, _)| name.eq_ignore_ascii_case("location"))
-            .and_then(|(_, values)| values.first())
+            .header_first("location")
             .ok_or_else(|| feature_redirect_error(feature))?;
         let next =
             resolve_feature_redirect(&response.final_url, location, runtime.mode(), feature)?;
@@ -87,13 +84,7 @@ pub(crate) async fn get_with_redirects(
 }
 
 fn safe_feature_url(value: &str) -> String {
-    url::Url::parse(value).map_or_else(
-        |_| "<无效 URL>".into(),
-        |parsed| {
-            let host = parsed.host_str().unwrap_or("<无主机>");
-            format!("{}://{}{}", parsed.scheme(), host, parsed.path())
-        },
-    )
+    crate::logging::safe_url(value)
 }
 
 fn resolve_feature_redirect(

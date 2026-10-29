@@ -64,7 +64,7 @@ fn 日志摘要不包含参数值并隐藏动态路径段() {
     assert!(!rendered.contains("access-token-secret"));
     assert_eq!(
         safe_url("https://cgyy.buaa.edu.cn/api/orders/123"),
-        "https://cgyy.buaa.edu.cn/api/orders/<id>"
+        "https://cgyy.buaa.edu.cn/<redacted>"
     );
 }
 

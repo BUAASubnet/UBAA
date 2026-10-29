@@ -121,16 +121,13 @@ pub(super) fn check_business_response(response: &HttpResponse, feature: &str) ->
 
 fn response_location_targets_sso(response: &HttpResponse) -> bool {
     response
-        .headers
-        .iter()
-        .find(|(name, _)| name.eq_ignore_ascii_case("location"))
-        .and_then(|(_, values)| values.first())
+        .header_first("location")
         .and_then(|location| {
             url::Url::parse(&response.final_url)
                 .ok()
                 .and_then(|base| base.join(location).ok())
                 .map(|target| target.to_string())
-                .or_else(|| Some(location.clone()))
+                .or_else(|| Some(location.to_owned()))
         })
         .is_some_and(|target| is_sso_url(&target))
 }
@@ -189,44 +186,7 @@ pub(super) fn log_response(runtime: &ClientRuntime, operation: &str, response: &
 }
 
 pub(super) fn safe_url(value: &str) -> String {
-    url::Url::parse(value).map_or_else(
-        |_| "<无效 URL>".into(),
-        |parsed| {
-            let host = parsed.host_str().unwrap_or("<无主机>");
-            let path = parsed
-                .path_segments()
-                .map(|segments| {
-                    segments
-                        .map(safe_path_segment)
-                        .collect::<Vec<_>>()
-                        .join("/")
-                })
-                .unwrap_or_default();
-            format!(
-                "{}://{}{}",
-                parsed.scheme(),
-                host,
-                if path.is_empty() {
-                    String::new()
-                } else {
-                    format!("/{path}")
-                }
-            )
-        },
-    )
-}
-
-fn safe_path_segment(segment: &str) -> String {
-    if segment.chars().all(|character| character.is_ascii_digit())
-        || segment.len() >= 24
-            && segment
-                .chars()
-                .all(|character| character.is_ascii_alphanumeric() || "-_".contains(character))
-    {
-        "<id>".into()
-    } else {
-        segment.into()
-    }
+    crate::logging::safe_url(value)
 }
 
 fn sha1_hex(value: &[u8]) -> String {

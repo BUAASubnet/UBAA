@@ -22,15 +22,10 @@ pub(crate) use read::{
 };
 pub(crate) use write::{deselect_course, preflight_sign_course, select_course, sign_course};
 
-use crate::error::{ErrorCode, ErrorKind, UbaaError};
+use crate::error::UbaaError;
 
 fn error(message: &str) -> UbaaError {
-    UbaaError::new(
-        ErrorCode::UpstreamChanged,
-        ErrorKind::Upstream,
-        false,
-        message,
-    )
+    UbaaError::upstream_changed(message)
 }
 
 #[cfg(test)]

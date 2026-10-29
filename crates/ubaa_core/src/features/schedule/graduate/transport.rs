@@ -77,10 +77,9 @@ fn checked(response: &HttpResponse) -> Result<String> {
         || body.contains("name=\"execution\"")
         || body.contains("name='execution'")
         || response
-            .headers
-            .iter()
-            .filter(|(k, _)| k.eq_ignore_ascii_case("location"))
-            .flat_map(|(_, v)| v)
+            .header_values("location")
+            .into_iter()
+            .flatten()
             .any(|v| {
                 url::Url::parse(&response.final_url)
                     .ok()

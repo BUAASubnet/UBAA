@@ -125,10 +125,7 @@ async fn fetch_login_token(
             return Err(spoc_auth_error());
         }
         let location = response
-            .headers
-            .iter()
-            .find(|(name, _)| name.eq_ignore_ascii_case("location"))
-            .and_then(|(_, values)| values.first())
+            .header_first("location")
             .ok_or_else(spoc_auth_error)?;
         if let Some(token) = extract_login_token(location, runtime.mode()) {
             return Ok(token);
@@ -203,23 +200,18 @@ pub(super) fn check_business_response(
 }
 
 fn response_location_targets_sso(response: &crate::ports::HttpResponse) -> bool {
-    response
-        .headers
-        .iter()
-        .find(|(name, _)| name.eq_ignore_ascii_case("location"))
-        .and_then(|(_, values)| values.first())
-        .is_some_and(|location| {
-            let resolved = url::Url::parse(&response.final_url)
-                .ok()
-                .and_then(|base| base.join(location).ok())
-                .map_or_else(|| location.clone(), |target| target.to_string());
-            let direct =
-                crate::connection::from_webvpn_url(&resolved).unwrap_or_else(|_| resolved.clone());
-            url::Url::parse(&direct)
-                .ok()
-                .and_then(|target| target.host_str().map(str::to_ascii_lowercase))
-                .is_some_and(|host| host == "sso.buaa.edu.cn")
-        })
+    response.header_first("location").is_some_and(|location| {
+        let resolved = url::Url::parse(&response.final_url)
+            .ok()
+            .and_then(|base| base.join(location).ok())
+            .map_or_else(|| location.to_owned(), |target| target.to_string());
+        let direct =
+            crate::connection::from_webvpn_url(&resolved).unwrap_or_else(|_| resolved.clone());
+        url::Url::parse(&direct)
+            .ok()
+            .and_then(|target| target.host_str().map(str::to_ascii_lowercase))
+            .is_some_and(|host| host == "sso.buaa.edu.cn")
+    })
 }
 
 pub(super) fn extract_login_token(

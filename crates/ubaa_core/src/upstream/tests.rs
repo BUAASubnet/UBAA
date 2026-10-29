@@ -2,7 +2,7 @@ use crate::domain::{LoginInput, SecretValue};
 
 use super::{
     build_login_form, extract_execution, find_login_error, has_unsupported_login_step,
-    is_password_risk_page, parse_user_info,
+    is_password_risk_page, parse_user_info, sso_captcha_url,
 };
 
 #[test]
@@ -39,6 +39,14 @@ fn cas_parser_preserves_hidden_and_checked_fields_and_filters_buttons() {
     assert_eq!(
         form.get("type").map(String::as_str),
         Some("username_password")
+    );
+}
+
+#[test]
+fn 验证码地址由上游模块按协议编码() {
+    assert_eq!(
+        sso_captcha_url("id with space"),
+        "https://sso.buaa.edu.cn/captcha?captchaId=id+with+space"
     );
 }
 

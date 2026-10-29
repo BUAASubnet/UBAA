@@ -112,6 +112,22 @@ impl HttpResponse {
             body,
         }
     }
+
+    /// 按 HTTP 头名称不区分大小写读取全部值。
+    #[must_use]
+    pub fn header_values(&self, name: &str) -> Option<&[String]> {
+        self.headers
+            .iter()
+            .find(|(candidate, _)| candidate.eq_ignore_ascii_case(name))
+            .map(|(_, values)| values.as_slice())
+    }
+
+    /// 按 HTTP 头名称不区分大小写读取第一个值。
+    #[must_use]
+    pub fn header_first(&self, name: &str) -> Option<&str> {
+        self.header_values(name)
+            .and_then(|values| values.first().map(String::as_str))
+    }
 }
 
 /// 可替换的 HTTP 传输。重定向和 Cookie 仍由 Core 负责。
@@ -127,4 +143,20 @@ fn redacted_header_names(headers: &BTreeMap<String, String>) -> Vec<&str> {
 
 fn redacted_header_names_vec(headers: &BTreeMap<String, Vec<String>>) -> Vec<&str> {
     headers.keys().map(String::as_str).collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::HttpResponse;
+
+    #[test]
+    fn 响应头读取保持大小写不敏感和首值语义() {
+        let mut response = HttpResponse::new(302, "https://example.test", Vec::new());
+        response
+            .headers
+            .insert("Location".into(), vec!["/first".into(), "/second".into()]);
+        assert_eq!(response.header_first("location"), Some("/first"));
+        assert_eq!(response.header_values("LOCATION").unwrap().len(), 2);
+        assert_eq!(response.header_first("missing"), None);
+    }
 }
