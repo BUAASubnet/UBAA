@@ -1,0 +1,25 @@
+name: ubaa_test_support
+description: UBAA Flutter 测试夹具与跨包测试辅助库。
+publish_to: none
+resolution: workspace
+version: 0.1.0
+
+environment:
+  sdk: ^3.11.5
+  flutter: '>=3.41.9'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  flutter_test:
+    sdk: flutter
+  ubaa_app:
+    path: ../ubaa_app
+  ubaa_bindings:
+    path: ../ubaa_bindings
+  ubaa_domain:
+    path: ../ubaa_domain
+  ubaa_platform:
+    path: ../ubaa_platform
+  ubaa_ui:
+    path: ../ubaa_ui

@@ -77,6 +77,10 @@ just flutter-dependencies
 | `UBAA_SHELLCHECK_BIN` | 默认在 PATH 查找 ShellCheck；覆盖为 0.11.0 程序的绝对路径 |
 | `UBAA_QUALITY_TOOLS_DIR` | 默认 `${XDG_CACHE_HOME:-$HOME/.cache}/ubaa2-quality/<key>`，key 含 Python 主次版本和 requirements 摘要；覆盖值须为绝对目录 |
 | `UBAA_RELEASE_REPORT_DIR` | 发布 preflight 的默认输出目录；须为空的绝对目录。未配置且无位置参数时使用临时目录，退出删除 |
+| `UBAA_RELEASE_STORE_FILE` | Android release keystore 路径；与下列三个 `UBAA_RELEASE_*` 变量同时设置才启用受控签名，文件不得提交 |
+| `UBAA_RELEASE_STORE_PASSWORD` | Android release keystore 密码；仅从本地环境或 Gradle 属性读取 |
+| `UBAA_RELEASE_KEY_ALIAS` | Android release 密钥别名 |
+| `UBAA_RELEASE_KEY_PASSWORD` | Android release 密钥密码 |
 | `UBAA_ENV_FILE` | 默认 `<repo-root>/.env.local`，显式 live launcher 的凭据文件路径 |
 | `UBAA_TEST_USERNAME`、`UBAA_TEST_PASSWORD` | 凭据文件中的主名称，无默认值；只交给显式真实验证入口，不用于普通回归 |
 | `UBAA_USERNAME`、`UBAA_PASSWORD` | 兼容旧凭据名称，主名称为空时回退；本阶段保留兼容行为，新配置使用主名称 |

@@ -1,6 +1,7 @@
 name: ubaa_host
 description: UBAA Flutter 与 HarmonyOS 共用的宿主组合层。
 publish_to: none
+resolution: workspace
 version: 0.1.0
 
 environment:
@@ -20,6 +21,8 @@ dependencies:
     path: ../ubaa_ui
 
 dev_dependencies:
+  ubaa_test_support:
+    path: ../ubaa_test_support
   fake_async: 1.3.3
   flutter_test:
     sdk: flutter

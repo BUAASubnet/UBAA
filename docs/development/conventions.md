@@ -40,7 +40,7 @@ UBAA 2 / 网站的 UBAA v2.0 是区分旧版的代际名称，不表示已经发
 
 引入依赖前说明需要解决的问题、现有实现/标准库是否够用、维护状态、平台/OHOS 兼容性、许可证与体积影响。优先复用仓库已有依赖，按需启用最少 features，不为机械整理顺带升级。
 
-FRB runtime/codegen/macros、Flutter 工具链和依赖兼容边界使用仓库已锁定的精确版本；其他 Rust/Dart 依赖按生态允许兼容区间，但必须审查实际锁文件变化和支持的 SDK 下限。应用及当前受跟踪的锁文件继续提交，暂不迁移 pub workspace 或批量统一已有约束。第三方源码保留许可证、来源提交、逐文件摘要与本地修改说明，不猜缺失的上游版本；普通依赖依据锁文件和发布报告核验。
+FRB runtime/codegen/macros、Flutter 工具链和依赖兼容边界使用仓库已锁定的精确版本；其他 Rust/Dart 依赖按生态允许兼容区间，但必须审查实际锁文件变化和支持的 SDK 下限。官方七个 Flutter 包与 `ubaa_test_support` 使用根 `pubspec.yaml` 的 Pub workspace，由 `just flutter pub get` 生成唯一根锁文件；OHOS 宿主和三个 OHOS 插件使用 3.41.10-ohos fork，保持独立 manifest 与锁文件，不能由官方 workspace 解析。第三方源码保留许可证、来源提交、逐文件摘要与本地修改说明，不猜缺失的上游版本；普通依赖依据锁文件和发布报告核验。
 
 ## 日志与诊断脱敏
 

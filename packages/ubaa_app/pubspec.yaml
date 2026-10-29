@@ -1,6 +1,7 @@
 name: ubaa_app
 description: UBAA Flutter 客户端的应用状态与用例协调层。
 publish_to: none
+resolution: workspace
 version: 0.1.0
 
 environment:
@@ -18,5 +19,7 @@ dependencies:
     path: ../ubaa_bindings
 
 dev_dependencies:
+  ubaa_test_support:
+    path: ../ubaa_test_support
   flutter_test:
     sdk: flutter

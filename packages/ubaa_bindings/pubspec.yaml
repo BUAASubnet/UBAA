@@ -1,6 +1,7 @@
 name: ubaa_bindings
 description: UBAA Rust Core 的 FRB 生成绑定与 Cargokit 平台集成。
 publish_to: none
+resolution: workspace
 version: 0.1.0
 
 environment:

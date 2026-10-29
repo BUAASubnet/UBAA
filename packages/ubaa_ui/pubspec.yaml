@@ -1,6 +1,7 @@
 name: ubaa_ui
 description: UBAA 跨平台共享 Material 3 UI。
 publish_to: none
+resolution: workspace
 version: 0.1.0
 
 environment:
@@ -17,6 +18,8 @@ dependencies:
     path: ../ubaa_domain
 
 dev_dependencies:
+  ubaa_test_support:
+    path: ../ubaa_test_support
   flutter_test:
     sdk: flutter
   ubaa_app:
