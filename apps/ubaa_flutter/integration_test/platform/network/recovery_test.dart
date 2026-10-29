@@ -6,8 +6,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
-import '../../../../../packages/ubaa_app/test/recovery/startup_test.dart'
-    as fixtures;
+import 'package:ubaa_test_support/recovery.dart' as fixtures;
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();

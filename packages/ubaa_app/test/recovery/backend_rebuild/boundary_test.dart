@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import '../startup_test.dart' as support;
+import 'package:ubaa_test_support/recovery.dart' as support;
 import 'fakes.dart';
 
 void main() {

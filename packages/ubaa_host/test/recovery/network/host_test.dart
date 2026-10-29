@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
-import '../../../../ubaa_app/test/recovery/startup_test.dart' as fixtures;
+import 'package:ubaa_test_support/recovery.dart' as fixtures;
 
 void main() {
   testWidgets('宿主网络提示唤醒失败恢复，后台停订阅，销毁后不再回调', (tester) async {

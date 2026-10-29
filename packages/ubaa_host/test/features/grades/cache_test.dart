@@ -5,9 +5,8 @@ import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
-import '../../../../ubaa_app/test/features/grades/aggregate_test.dart'
-    as fixtures;
-import '../../../../ubaa_app/test/recovery/startup_test.dart' as startup;
+import 'package:ubaa_test_support/grades.dart' as fixtures;
+import 'package:ubaa_test_support/recovery.dart' as startup;
 
 void main() {
   testWidgets('宿主统计回调在恢复挂起时交付本地集合，失败保留内容', (tester) async {

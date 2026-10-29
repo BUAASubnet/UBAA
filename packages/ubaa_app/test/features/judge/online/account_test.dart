@@ -4,7 +4,7 @@ import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
-import '../../../recovery/startup_test.dart' as startup;
+import 'package:ubaa_test_support/recovery.dart' as startup;
 import 'bridge_test.dart' as fixtures;
 
 void main() {

@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import '../recovery/startup_test.dart' as support;
+import 'package:ubaa_test_support/recovery.dart' as support;
 
 Future<void> until(bool Function() ready) async {
   for (var i = 0; i < 100 && !ready(); i++) {

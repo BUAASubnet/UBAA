@@ -6,7 +6,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
-import '../../../../ubaa_app/test/recovery/startup_test.dart' as startup;
+import 'package:ubaa_test_support/recovery.dart' as startup;
 
 void main() {
   testWidgets('宿主从本地账号发布组件且退出立即撤销，不等待线上认证', (tester) async {

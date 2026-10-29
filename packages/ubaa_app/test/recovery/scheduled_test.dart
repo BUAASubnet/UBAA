@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
-import 'startup_test.dart' as support;
+import 'package:ubaa_test_support/recovery.dart' as support;
 
 Future<void> until(bool Function() ready) async {
   for (var i = 0; i < 150 && !ready(); i++) {

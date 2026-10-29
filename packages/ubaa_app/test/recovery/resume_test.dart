@@ -2,7 +2,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
-import 'startup_test.dart' as support;
+import 'package:ubaa_test_support/recovery.dart' as support;
 
 void main() {
   test('写意图确认期间合并恢复，取消安全收尾后自动开始一次检查', () async {

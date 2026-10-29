@@ -3,7 +3,7 @@ import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'progressive_test.dart' as fixtures;
-import '../../recovery/startup_test.dart' as startup;
+import 'package:ubaa_test_support/recovery.dart' as startup;
 
 void main() {
   test('当前评教读取在课程批次之间优先让位紧急签到', () async {

@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../support/controller/fakes.dart';
-import '../../recovery/startup_test.dart' as recovery;
+import 'package:ubaa_test_support/recovery.dart' as recovery;
 
 void main() {
   test('不完整周次索引不能推导单日课表', () async {

@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_host/ubaa_host.dart';
-import '../../../ubaa_app/test/recovery/startup_test.dart' as fixtures;
+import 'package:ubaa_test_support/recovery.dart' as fixtures;
 
 void main() {
   for (final hidden in [AppLifecycleState.hidden, AppLifecycleState.paused]) {

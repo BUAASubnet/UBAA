@@ -2,7 +2,7 @@ import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import '../startup_test.dart' as fixtures;
+import 'package:ubaa_test_support/recovery.dart' as fixtures;
 
 Future<AppController> start(fixtures.FakeRecoveryBackend backend) async {
   final controller = AppController(

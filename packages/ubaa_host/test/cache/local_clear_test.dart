@@ -6,8 +6,8 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
-import '../../../ubaa_app/test/recovery/startup_test.dart' as support;
-import '../../../ubaa_app/test/recovery/backend_rebuild/fakes.dart' as base;
+import 'package:ubaa_test_support/recovery.dart' as support;
+import 'package:ubaa_test_support/backend_rebuild.dart' as base;
 
 const _settings = YgdkReminderSettings(
   enabled: false,

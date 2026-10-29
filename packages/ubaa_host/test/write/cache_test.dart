@@ -4,9 +4,9 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
-import '../../../ubaa_app/test/write/cache/controller_test.dart' as fixtures;
-import '../../../ubaa_app/test/recovery/startup_test.dart' as startup;
-import '../../../ubaa_ui/test/support/navigation.dart' show openFeature;
+import 'package:ubaa_test_support/write_cache.dart' as fixtures;
+import 'package:ubaa_test_support/recovery.dart' as startup;
+import 'package:ubaa_test_support/navigation.dart' show openFeature;
 
 void main() {
   testWidgets('直接选课只调用一次脱敏提交，回读和同步失败仍撤下旧动作', (tester) async {

@@ -3,8 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
-import '../../../../ubaa_app/test/session/cgyy_lock_display_test.dart'
-    as synthetic;
+import 'package:ubaa_test_support/lock_display.dart' as synthetic;
 
 void main() {
   for (final size in [const Size(390, 844), const Size(1024, 900)]) {

@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'aggregate_test.dart' as fixtures;
-import '../../recovery/startup_test.dart' as startup;
+import 'package:ubaa_test_support/recovery.dart' as startup;
 import '../../cache/query_test.dart' show until;
 
 void main() {

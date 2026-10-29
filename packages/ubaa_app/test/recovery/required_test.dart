@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
-import 'startup_test.dart' as support;
+import 'package:ubaa_test_support/recovery.dart' as support;
 
 void main() {
   test('首页恢复只调用所需路线合同，直接使用已验证身份而不再双路线校验', () async {

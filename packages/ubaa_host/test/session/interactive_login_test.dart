@@ -8,7 +8,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
-import '../../../ubaa_app/test/recovery/startup_test.dart' as offline;
+import 'package:ubaa_test_support/recovery.dart' as offline;
 
 void main() {
   testWidgets('离线首页原位完成验证码保留导航并绑定可恢复账号', (tester) async {

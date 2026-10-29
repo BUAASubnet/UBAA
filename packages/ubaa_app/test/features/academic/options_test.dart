@@ -3,7 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
-import '../../recovery/startup_test.dart' as support;
+import 'package:ubaa_test_support/recovery.dart' as support;
 
 void main() {
   test('首帧恢复之前研讨室用途选项可从缓存返回', () async {
