@@ -68,7 +68,7 @@ jobs:
           test "$(cargo-deny --version)" = "cargo-deny $CARGO_DENY_VERSION"
       - name: 显式预取所有目标的锁定 Cargo 依赖
         run: cargo fetch --locked
-      - name: 运行显式联网依赖审计
+      - name: 运行 scripts/release/dependency-audit.sh 显式联网审计
         run: just dependency-audit
       - name: 扫描敏感材料
         run: just check-sensitive

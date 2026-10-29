@@ -8,7 +8,7 @@
 | `check/` | 布局、目录、敏感材料、版本、工具链、依赖闭包、集成登记及按改动检查 |
 | `build/` | 官方 Flutter 平台与 OHOS HAP 构建 |
 | `live/` | 显式获授权的学校只读验证及历史离线测量分析，不提供真实业务写入入口 |
-| `release/` | 依赖/许可证、源码与产物摘要、macOS 权限和无签名发布前置报告 |
+| `release/` | 依赖/许可证与显式联网 cargo-deny 审计、源码与产物摘要、macOS 权限和无签名发布前置报告 |
 | `tests/`、`tests/checks/` | 临时目录及合成样本中的门禁自测；Flutter 包测试运行器仍保留在 tests 中，分类调整留待后续阶段 |
 | `lib/` | 仓库根定位、包清单、版本、参数、DevEco、摘要和配置解析支持；凭据只由显式 live 入口读取 |
 | `tools/` | Python 质量环境定位/执行、锁定 requirements 和 CycloneDX schema 上游记录 |
@@ -23,6 +23,8 @@
 `live/offline_startup/analyze.py` 与 analyze_test.py 保留历史测量材料的安全统计和合成合同。原生集成登记只保留真实平台能力和 FFI/启动锁，外部持锁程序由应用在自身沙箱派生，自动化缺口见[测试策略](../docs/development/testing.md)。
 
 `release/dependency_report.py` 生成依赖/许可材料，`source_manifest.py` 关联全部跟踪输入与可选实际产物；其测试使用临时 Git 仓库，不读取未跟踪凭据。原始 Cargo metadata 只作临时转换输入。
+
+`release/dependency-audit.sh` 是 CI 和发布流程显式调用的 RustSec 审计入口。脚本校验 `tools/versions.env` 中的 cargo-deny 版本后运行 `deny.toml`；advisory 数据库访问只发生在该入口，不由纯校验门禁隐式触发。
 
 平台合同分别覆盖 Linux 合成安全存储会话、OHOS HUKS 和 connectivity 系统边界；不证明实体设备、学校可达或其他 OHOS 插件已经验证。实际入口、覆盖缺口及 CI 平台范围见[命令清单](../docs/development/commands.md)。自有目录与上游目录例外见[目录命名](../docs/development/directories.md)。
 

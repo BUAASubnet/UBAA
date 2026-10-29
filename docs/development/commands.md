@@ -62,7 +62,7 @@ git diff --check
 
 `check` 和 `check-strict` 共用 `_rust-shell-contracts`：Python 脚本自测、原生清单、文档断链、工具版本镜像、完整自有依赖闭包、layout/contract-versions/references/flutter-toolchains/maintenance-gates/live-launchers 六个 Shell 合同脚本、实际布局与版本 checker、Cargo metadata/fmt/Clippy、Core 关闭/开启 test-contract 的合同、其余 workspace 测试、构建、文档和差异检查。这里的 references 合同使用临时仓库，并不替代实际冻结引用校验；live launcher 合同使用假程序和虚构凭据，不请求学校。
 
-`just dependency-audit` 是独立的网络入口，不由 `check`、`check-strict` 或其他纯校验命令隐式调用。该入口检查 `CARGO_DENY_VERSION` 锁定的 cargo-deny，并允许 cargo-deny 按配置从 RustSec advisory 数据库获取或更新安全公告；CI 在安装同一版本后显式调用它。没有网络时应如实记录该入口未运行，不能把离线 Cargo metadata 或 release-preflight 的许可证材料当作 advisory 审计通过。
+`just dependency-audit`（由 `scripts/release/dependency-audit.sh` 实现）是独立的网络入口，不由 `check`、`check-strict` 或其他纯校验命令隐式调用。该入口检查 `CARGO_DENY_VERSION` 锁定的 cargo-deny，并允许 cargo-deny 按配置从 RustSec advisory 数据库获取或更新安全公告；CI 在安装同一版本后显式调用它。没有网络时应如实记录该入口未运行，不能把离线 Cargo metadata 或 release-preflight 的许可证材料当作 advisory 审计通过。
 
 这两个入口均不隐含完整 Flutter、FRB 生成、原生设备或学校实测。`fmt` recipe 也只执行格式检查，不写文件。
 

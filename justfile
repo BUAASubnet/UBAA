@@ -107,7 +107,7 @@ tool-version-check:
 
 # 显式联网更新 RustSec advisory 数据库并运行 cargo-deny；不属于纯校验门禁。
 dependency-audit:
-    bash ./scripts/check/dependency-audit.sh
+    bash ./scripts/release/dependency-audit.sh
 
 # 检查仓库候选 Shell，显式排除锁定 Cargokit；路径全程使用 NUL 分隔。
 shell-check:

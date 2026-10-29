@@ -108,4 +108,4 @@ Android release signing 改为同时接受 Gradle property 或环境变量 `UBAA
 
 重复版本检查设为 deny。当前经审计仍因平台目标、时区/解析生态、过程宏和图像/压缩链路的独立约束保留 `core-foundation`、`getrandom`、`hashbrown`、`miniz_oxide`、`phf`、`phf_shared`、`syn` 的重复版本；每项在 `deny.toml` 的 `bans.skip` 中写明原因。workspace path 依赖不代表外部版本漂移，cargo-deny 的 wildcard 检查保持 allow，边界和理由记录在本条。
 
-Advisory 数据库访问只发生在 `just dependency-audit` 或 CI 的对应显式步骤。`just check-strict`、`just release-preflight` 和普通 refs/检查命令不隐式联网。
+Advisory 数据库访问只发生在 `just dependency-audit` 或 CI 的对应显式步骤。入口脚本归入 `scripts/release/dependency-audit.sh`，因为它需要联网、由 CI/发布流程显式调用，职责与 `scripts/release/dependency_report.py` 同属发布依赖材料；`scripts/check` 保持 16 个直属源码且不新增布局基线。`just check-strict`、`just release-preflight` 和普通 refs/检查命令不隐式联网。

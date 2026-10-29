@@ -54,6 +54,13 @@ class ChangedChecksTest(unittest.TestCase):
                 self.assertTrue(plan['rust'])
                 self.assertEqual(plan['packages'], list(gates.PACKAGES))
 
+    def test_dependency_audit_entry_keeps_network_run_explicit(self):
+        plan = self.plan('scripts/release/dependency-audit.sh')
+        self.assertTrue(plan['rust'])
+        self.assertEqual(plan['packages'], list(gates.PACKAGES))
+        self.assertTrue(any('显式联网' in note for note in plan['notes']))
+        self.assertNotIn(['just', 'dependency-audit'], gates.commands(plan))
+
     def test_rust_bridge_adds_codegen_and_all_flutter(self):
         plan = self.plan('crates/ubaa_flutter_bridge/src/api.rs')
         self.assertTrue(plan['rust'])

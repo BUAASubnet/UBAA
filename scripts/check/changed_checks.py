@@ -98,6 +98,10 @@ def select_checks(root, paths):
             if path in {'Cargo.toml', 'Cargo.lock', 'rust-toolchain.toml'}:
                 codegen = True
                 selected.update(PACKAGES)
+        elif path == 'scripts/release/dependency-audit.sh':
+            # 依赖审计需要联网；变更选择只运行确定性检查，不隐式调用该入口。
+            full = True
+            notes.add('发布依赖审计入口改动：just dependency-audit 仍需显式联网运行。')
         else:
             full = True
     try:
