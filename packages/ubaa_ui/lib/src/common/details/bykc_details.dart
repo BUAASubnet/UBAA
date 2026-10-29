@@ -258,7 +258,7 @@ extension BykcDetails on _FeatureDetailListState {
                     ? () => widget.onBykcSignWrite!(signIn)
                     : null,
                 icon: const Icon(Icons.login),
-                label: const Text('准备博雅签到'),
+                label: const Text('博雅签到'),
               ),
             if (signOut != null && widget.onBykcSignWrite != null)
               OutlinedButton.icon(
@@ -268,7 +268,7 @@ extension BykcDetails on _FeatureDetailListState {
                     ? () => widget.onBykcSignWrite!(signOut)
                     : null,
                 icon: const Icon(Icons.logout),
-                label: const Text('准备博雅签退'),
+                label: const Text('博雅签退'),
               ),
             if (deselect != null && widget.onBykcWrite != null)
               OutlinedButton.icon(

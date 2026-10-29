@@ -59,6 +59,7 @@ class FeatureDetailView extends StatefulWidget {
     this.isBykcChosenDetail = false,
     this.bykcListCourse,
     this.bykcPendingCourseId,
+    this.writeBusy = false,
     this.onOpenBykcChosen,
     required this.bykcFilters,
     required this.onBykcFiltersChanged,
@@ -112,6 +113,9 @@ class FeatureDetailView extends StatefulWidget {
   final GradesAggregateLoader? onLoadAllGrades;
   final BykcCoursePresentation? bykcListCourse;
   final int? bykcPendingCourseId;
+
+  /// 一点即完成的写入进行中，期间禁用其他写操作按钮。
+  final bool writeBusy;
   final ValueChanged<FeatureDetail>? onOpenBykcChosen;
   final BykcCourseFilters bykcFilters;
   final ValueChanged<BykcCourseFilters> onBykcFiltersChanged;
@@ -664,7 +668,8 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
       feature: widget.feature,
       writesEnabled:
           widget.snapshot.status != FeatureLoadStatus.loading &&
-          widget.bykcPendingCourseId == null,
+          widget.bykcPendingCourseId == null &&
+          !widget.writeBusy,
       details: _isAssignmentList
           ? _assignmentFilters.apply(
               widget.snapshot.details,

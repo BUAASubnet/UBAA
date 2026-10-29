@@ -36,7 +36,7 @@ extension CgyyDetailActions on _FeatureDetailListState {
                 _cgyyReserveCandidates(cgyyReservation),
               ),
         icon: const Icon(Icons.event_available),
-        label: const Text('准备研讨室预约'),
+        label: const Text('预约研讨室'),
       ),
     ],
   ];

@@ -139,7 +139,7 @@ extension BykcDetailActions on _FeatureDetailListState {
                   ? () => widget.onBykcSignWrite!(bykcSignInAction)
                   : null,
               icon: const Icon(Icons.login),
-              label: const Text('准备博雅签到'),
+              label: const Text('博雅签到'),
             ),
           if (bykcSignOutAction != null)
             OutlinedButton.icon(
@@ -149,7 +149,7 @@ extension BykcDetailActions on _FeatureDetailListState {
                   ? () => widget.onBykcSignWrite!(bykcSignOutAction)
                   : null,
               icon: const Icon(Icons.logout),
-              label: const Text('准备博雅签退'),
+              label: const Text('博雅签退'),
             ),
         ],
       ),

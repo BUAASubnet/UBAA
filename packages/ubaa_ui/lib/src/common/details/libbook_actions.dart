@@ -16,7 +16,7 @@ extension LibbookDetailActions on _FeatureDetailListState {
             ? () => widget.onLibbookCancelWrite!(libbookCancelAction)
             : null,
         icon: const Icon(Icons.event_busy),
-        label: const Text('准备取消预约'),
+        label: const Text('取消预约'),
       ),
       if (!canLibbookCancel)
         Padding(
@@ -46,7 +46,7 @@ extension LibbookDetailActions on _FeatureDetailListState {
             ? () => widget.onLibbookReserveWrite!(libbookReserveAction)
             : null,
         icon: const Icon(Icons.event_available),
-        label: const Text('准备预约此座位'),
+        label: const Text('预约此座位'),
       ),
       if (!canLibbookReserve)
         Padding(

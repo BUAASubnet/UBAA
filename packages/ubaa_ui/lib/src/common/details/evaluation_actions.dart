@@ -34,7 +34,7 @@ extension EvaluationDetailActions on _FeatureDetailListState {
                     evaluation,
                   ]),
             icon: const Icon(Icons.rate_review_outlined),
-            label: const Text('准备提交评教'),
+            label: const Text('提交评教'),
           ),
         ],
       ];
@@ -87,7 +87,11 @@ extension EvaluationDetailActions on _FeatureDetailListState {
                   ? null
                   : () => widget.onEvaluationWrite!(selectedEvaluations),
               icon: const Icon(Icons.rate_review_outlined),
-              label: Text(selectedEvaluations.length == 1 ? '准备评教' : '准备批量评教'),
+              label: Text(
+                selectedEvaluations.length == 1
+                    ? '提交评教'
+                    : '提交 ${selectedEvaluations.length} 门评教',
+              ),
             ),
           ],
         ),

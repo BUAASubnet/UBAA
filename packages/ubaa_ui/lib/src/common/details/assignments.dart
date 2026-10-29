@@ -18,7 +18,7 @@ extension AssignmentsDetailActions on _FeatureDetailListState {
             ? () => widget.onSigninWrite!(signinAction)
             : null,
         icon: const Icon(Icons.how_to_reg),
-        label: const Text('准备签到'),
+        label: const Text('签到'),
       ),
       if (!canSignin)
         Padding(

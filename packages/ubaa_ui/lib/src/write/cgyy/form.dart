@@ -284,7 +284,7 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
               Expanded(
                 child: FilledButton(
                   onPressed: _continue,
-                  child: const Text('继续确认'),
+                  child: const Text('提交预约'),
                 ),
               ),
             ],

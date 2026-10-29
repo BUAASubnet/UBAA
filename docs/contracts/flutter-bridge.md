@@ -372,6 +372,12 @@ opaque `intentId` 只在当前 client 内绑定内存中的 typed 请求、过�
 确认页只有在 discard 成功后才能清除本地待确认状态；若 commit 已先开始，discard 不负责中断已进入
 Core 的操作。
 
+图形界面把 prepare 与 commit 合并为一次用户操作：签到、博雅签到/签退/选课、图书馆预约、研讨室预约和阳光打卡
+在点击或表单提交后立即 prepare 并 commit，不再展示整页确认；博雅退选、图书馆取消、研讨室取消和评教提交在
+prepare 之前先由系统弹窗确认，取消弹窗不发起任何 Bridge 调用。prepare 返回后若因过期等原因未能 commit，
+界面立即 discard 该 intent。上述合并只发生在 UI 层，一次性消费、时限、冲突、`outcome_unknown` 不重放等
+Bridge 与 Core 约束不变；CLI 与其他调用方仍按两步调用。
+
 博雅签到 prepare 必须先由 Core 重读当前学期、目标课程、三态资格、时间窗和位置配置；确认摘要
 必须包含脱敏课程名称、课程标识、签到或签退类型、有效时间窗以及位置来源。若已有同一课程和
 签到类型的未过期 intent，第二次 prepare 返回 `operation_conflict`。commit 消费 intent 后再次

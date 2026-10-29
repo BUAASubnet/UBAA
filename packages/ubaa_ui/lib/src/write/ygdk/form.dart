@@ -170,7 +170,7 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
                       height: 52,
                       child: FilledButton(
                         onPressed: _picking ? null : _continue,
-                        child: const Text('继续确认'),
+                        child: const Text('提交打卡'),
                       ),
                     ),
                   ),

@@ -117,7 +117,7 @@ extension LibbookReservationContent on LibbookReservationFlowState {
                         ? () => widget.onReserve!(action!)
                         : null,
                     icon: const Icon(Icons.event_available),
-                    label: const Text('准备预约此座位'),
+                    label: const Text('预约此座位'),
                   ),
                 ],
               ),

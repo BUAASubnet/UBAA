@@ -19,7 +19,6 @@ import 'write_readback_notice.dart' show WriteReadbackNotice;
 import '../common/feature_detail.dart' show FeatureDetailView;
 import '../common/read_navigator.dart'
     show FeatureReadNavigator, FeatureReadNavigatorState;
-import '../write/confirmation.dart' show WriteConfirmationView;
 part 'shell_write.dart';
 part 'shell_navigation.dart';
 part 'bykc_preferences.dart';
@@ -246,6 +245,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   int _lockRefreshRevision = 0;
   final Map<FeatureId, GlobalKey<FeatureReadNavigatorState>> _readPageKeys = {};
   bool _homeSigninActive = false;
+  // 一点即完成的写操作进行中；期间忽略其他写入点击。
+  WriteOperation? _directWriteActive;
+  void _setDirectWriteActive(WriteOperation? operation) =>
+      setState(() => _directWriteActive = operation);
   (WriteOperation, int)? _bykcWriteActive;
   void _setBykcWriteActive((WriteOperation, int)? action) =>
       setState(() => _bykcWriteActive = action);
@@ -423,46 +426,24 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   @override
   Widget build(BuildContext context) {
     final wide = MediaQuery.sizeOf(context).width >= 600;
-    final pendingWrite = _pendingWriteForDisplay;
-    final cancelDialog =
-        pendingWrite?.operation == WriteOperation.cgyyCancelOrder;
-    final confirmationPage = cancelDialog ? null : pendingWrite;
     const maxContentWidth = UbaaTheme.pageMaxWidth;
     if (_openedFeature case final feature?) _visitedFeatures.add(feature);
     final pages = _visitedFeatures.toList(growable: false);
     // 只保留已访问页面的 State；每次 build 都读取当前快照和回调。
     final body = IndexedStack(
       key: ValueKey<int>(_accountGeneration),
-      index: confirmationPage != null
-          ? pages.length + 1
-          : _openedFeature == null
-          ? 0
-          : pages.indexOf(_openedFeature!) + 1,
+      index: _openedFeature == null ? 0 : pages.indexOf(_openedFeature!) + 1,
       children: <Widget>[
-        TickerMode(
-          enabled: pendingWrite == null && _openedFeature == null,
-          child: _buildTab(context),
-        ),
+        TickerMode(enabled: _openedFeature == null, child: _buildTab(context)),
         for (final feature in pages)
           TickerMode(
             key: ValueKey<FeatureId>(feature),
-            enabled: pendingWrite == null && _openedFeature == feature,
+            enabled: _openedFeature == feature,
             // 页面状态继续保留，但提示浮层不能随停用的 ticker 冻结在其他页面。
             child: TooltipVisibility(
-              visible: pendingWrite == null && _openedFeature == feature,
+              visible: _openedFeature == feature,
               child: _buildFeaturePage(feature),
             ),
-          ),
-        if (confirmationPage != null)
-          WriteConfirmationView(
-            showTitle: false,
-            showRoute: false,
-            intent: confirmationPage,
-            onCancel: _cancelWrite,
-            onConfirm: _confirmWrite,
-            isSubmitting: widget.writeState.isSubmitting,
-            isDiscarding: widget.writeState.isDiscarding,
-            error: widget.writeState.error,
           ),
       ],
     );
@@ -471,9 +452,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       TargetPlatform.iOS || TargetPlatform.android => true,
       _ => false,
     };
-    final refreshPage = pendingWrite != null
-        ? null
-        : _openedFeature != null
+    final refreshPage = _openedFeature != null
         ? () => _refreshFeature(_openedFeature!)
         : _utilityPage == null && _selectedIndex == 0
         ? _refreshHome
@@ -488,9 +467,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       title: ValueListenableBuilder<(FeatureSnapshot, String)?>(
         valueListenable: _visiblePage,
         builder: (context, page, _) => Text(
-          confirmationPage != null
-              ? '确认${confirmationPage.operation.title}'
-              : _openedFeature == FeatureId.schedule
+          _openedFeature == FeatureId.schedule
               ? '课表'
               : _openedFeature != null
               ? (page?.$1.feature == _openedFeature
@@ -502,13 +479,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           overflow: TextOverflow.ellipsis,
         ),
       ),
-      leading: confirmationPage != null
-          ? IconButton(
-              tooltip: '取消并返回',
-              onPressed: widget.writeState.isSubmitting ? null : _cancelWrite,
-              icon: const Icon(Icons.arrow_back),
-            )
-          : _openedFeature != null || _utilityPage != null
+      leading: _openedFeature != null || _utilityPage != null
           ? IconButton(
               tooltip: '返回',
               onPressed: () {
@@ -556,7 +527,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               if (retry == true && mounted) widget.onReconnect?.call();
             },
           ),
-        if (_openedFeature == FeatureId.cgyy && pendingWrite == null)
+        if (_openedFeature == FeatureId.cgyy)
           ValueListenableBuilder<(FeatureSnapshot, String)?>(
             valueListenable: _visiblePage,
             builder: (context, page, _) => page?.$2 != '预约研讨室'
@@ -585,14 +556,14 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                     ],
                   ),
           ),
-        if (_openedFeature == FeatureId.schedule && pendingWrite == null)
+        if (_openedFeature == FeatureId.schedule)
           IconButton(
             tooltip: '选择学期',
             onPressed: () => _readPageKeys[FeatureId.schedule]?.currentState
                 ?.selectScheduleTerm(),
             icon: const Icon(Icons.calendar_month_outlined),
           ),
-        if (!touchRefresh && _openedFeature != null && pendingWrite == null)
+        if (!touchRefresh && _openedFeature != null)
           RefreshActionButton(
             key: ValueKey(_openedFeature),
             tooltip:
@@ -605,8 +576,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         if (!touchRefresh &&
             _openedFeature == null &&
             _utilityPage == null &&
-            _selectedIndex == 0 &&
-            pendingWrite == null)
+            _selectedIndex == 0)
           RefreshActionButton(
             key: const ValueKey('home-refresh'),
             tooltip: '刷新',
@@ -615,16 +585,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       ],
     );
     final shell = PopScope<void>(
-      canPop:
-          pendingWrite == null &&
-          _openedFeature == null &&
-          _utilityPage == null,
+      canPop: _openedFeature == null && _utilityPage == null,
       onPopInvokedWithResult: (didPop, _) {
-        if (!didPop &&
-            pendingWrite != null &&
-            !widget.writeState.isSubmitting) {
-          unawaited(_cancelWrite());
-        } else if (!didPop && pendingWrite == null) {
+        if (!didPop) {
           if (_utilityPage != null) {
             setState(() => _utilityPage = null);
           } else {
@@ -632,58 +595,55 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           }
         }
       },
-      child: _withCancelConfirmation(
-        intent: cancelDialog ? pendingWrite : null,
-        child: Scaffold(
-          drawer: pendingWrite == null && !wide ? _buildDrawer(context) : null,
-          // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
-          body: Row(
-            children: <Widget>[
-              if (wide) _buildRail(context),
+      child: Scaffold(
+        drawer: !wide ? _buildDrawer(context) : null,
+        // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
+        body: Row(
+          children: <Widget>[
+            if (wide) _buildRail(context),
 
-              Expanded(
-                key: const ValueKey<String>('feature-pages'),
-                child: Column(
-                  children: [
-                    Center(
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(maxWidth: maxContentWidth),
-                        child: header,
-                      ),
+            Expanded(
+              key: const ValueKey<String>('feature-pages'),
+              child: Column(
+                children: [
+                  Center(
+                    child: ConstrainedBox(
+                      constraints: BoxConstraints(maxWidth: maxContentWidth),
+                      child: header,
                     ),
-                    Expanded(
-                      child: ScrollGutters(
-                        maxWidth: maxContentWidth,
-                        child: SafeArea(top: false, bottom: wide, child: body),
-                      ),
+                  ),
+                  Expanded(
+                    child: ScrollGutters(
+                      maxWidth: maxContentWidth,
+                      child: SafeArea(top: false, bottom: wide, child: body),
                     ),
-                  ],
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+        bottomNavigationBar: wide
+            ? null
+            : _CompactNavigationBar(
+                child: NavigationBar(
+                  height:
+                      56 +
+                      (MediaQuery.textScalerOf(context).scale(12) - 12) * 3,
+                  selectedIndex: _selectedIndex,
+                  onDestinationSelected: _selectTab,
+                  destinations: _tabs
+                      .map(
+                        (tab) => NavigationDestination(
+                          key: ValueKey<String>('tab-${tab.label}'),
+                          icon: Icon(tab.icon),
+                          selectedIcon: Icon(tab.selectedIcon),
+                          label: tab.label,
+                        ),
+                      )
+                      .toList(),
                 ),
               ),
-            ],
-          ),
-          bottomNavigationBar: wide || confirmationPage != null
-              ? null
-              : _CompactNavigationBar(
-                  child: NavigationBar(
-                    height:
-                        56 +
-                        (MediaQuery.textScalerOf(context).scale(12) - 12) * 3,
-                    selectedIndex: _selectedIndex,
-                    onDestinationSelected: _selectTab,
-                    destinations: _tabs
-                        .map(
-                          (tab) => NavigationDestination(
-                            key: ValueKey<String>('tab-${tab.label}'),
-                            icon: Icon(tab.icon),
-                            selectedIcon: Icon(tab.selectedIcon),
-                            label: tab.label,
-                          ),
-                        )
-                        .toList(),
-                  ),
-                ),
-        ),
       ),
     );
     if (touchRefresh || refreshPage == null) return shell;
@@ -768,6 +728,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         isBykcChosenDetail: page.isBykcChosenDetail,
         bykcListCourse: page.bykcListCourse,
         bykcPendingCourseId: _bykcWriteActive?.$2,
+        writeBusy: _directWriteActive != null,
         onOpenBykcChosen: page.onOpenBykcChosen,
         bykcFilters: _bykcFilters,
         bykcFilterError: _bykcFilterError,

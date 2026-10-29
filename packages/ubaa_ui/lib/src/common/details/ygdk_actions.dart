@@ -17,7 +17,7 @@ extension YgdkDetailActions on _FeatureDetailListState {
                 title: detail.title,
               ),
         icon: const Icon(Icons.directions_run),
-        label: const Text('准备阳光打卡'),
+        label: const Text('阳光打卡'),
       ),
     ],
   ];
