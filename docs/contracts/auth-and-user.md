@@ -33,6 +33,8 @@ revision。
 
 场馆预约（Cgyy）属于扩展功能，公共读写入口同样由 facade 解析路线并绑定对应 runtime。WebVPN 的 Cgyy 业务登录在 SSO 重定向后按当前 HAR 证据读取 `d.buaa.edu.cn/wengine-vpn/cookie` 的纯文本快照，仅在当前请求内存中取得 `sso_buaa_zhjs_token`，不会把业务令牌写入会话文件。冻结 `ubaa_old` 与固定 `examples/buaa-api` 对该 WebVPN 网关同步没有等价实现；具体证据和边界记录在 `docs/migration/source-parity.md` 与决策日志中。
 
+CLI JSON Schema 的标识为 `urn:ubaa:cli:json:schema:12`，消费者从受跟踪的 [Schema 文件](cli-json.schema.json)加载定义。URN 表示该版本的身份，不是网络下载地址；Schema 内的局部 `$ref` 继续在同一文件解析。
+
 ## CLI 宿主
 
 `ubaa` 二进制暴露认证、用户信息、全部标准只读命令组和扩展只读命令；扩展写命令仍要求显式确认并受真实验证器阻止。普通 `auth login` 会尝试两条路线；隐藏的 `--mode`、`spoc diagnostics` 和 `judge diagnostics` 仅供测试与实时验证，不属于稳定用户命令合同。人类模式可以提示用户名，除非选择 `--password-stdin`，否则使用隐藏密码输入。JSON 模式绝不执行隐藏交互。需要交互式验证的登录页会安全返回 `upstream_changed`；CLI 没有验证码选项、图片路径、提示或挑战持久化能力。

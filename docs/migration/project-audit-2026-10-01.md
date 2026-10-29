@@ -23,7 +23,7 @@
 
 ## 功能覆盖与收尾重点
 
-稳定84项操作清单沿用 [ui-ux-inventory](../design/ui-ux-inventory.md)，按钮清单从 macOS 专项纳入；以下是领域级导航，不替代逐按钮结论。
+稳定84项操作清单沿用 [ui-ux-inventory](history/2026-09-08-ui-ux-inventory.md)，按钮清单从 macOS 专项纳入；以下是领域级导航，不替代逐按钮结论。
 
 | 领域 | 已有实现 | 本轮必须核对 |
 |---|---|---|

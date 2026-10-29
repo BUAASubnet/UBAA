@@ -1,7 +1,7 @@
 # Flutter 六平台版本与验收矩阵
 
-状态：无签名执行目标 P0–P6 已完成；签名、设备和原生安全存储为后置发布条件
-更新：2026-09-05
+状态：维护工具链说明并保留历史平台证据，当前候选结果见[迁移状态](../migration/status.md)。
+更新：2026-10-30；下方 P0–P6 结果属于原记录候选，不能继承为本轮平台或远端 CI 通过。
 
 本文件记录可复现工具链事实和实际验证结果。版本“理论支持”不等于 UBAA 已验证；只有带日期、命令和产物/设备证据的行才能标记通过。
 
@@ -32,9 +32,9 @@
 - CPF-Flutter fork：https://gitcode.com/CPF-Flutter/flutter_flutter
 - DevEco 历史版本：https://developer.huawei.com/consumer/cn/deveco-studio/archive/
 
-## 2. 产品目标
+## 2. 产品目标与历史候选结果
 
-| 平台 | 目标系统 | 架构 | 当前状态 |
+| 平台 | 目标系统 | 架构 | 原候选的验证结果 |
 |---|---|---|---|
 | Windows | Windows 10/11 | x64；arm64 后续 | `windows-2025` 原生 debug runner 构建与产物上传通过 |
 | macOS | macOS 12+ | arm64；x64 兼容构建 | arm64 debug App 已构建、启动并完成 FRB hello |
@@ -229,16 +229,9 @@ iOS simulator、Android APK 全部成功，macOS 另通过宿主 integration smo
 决定写资格，场馆选择另受一至两个相邻时段约束，现行规则见 [UI 规格](../design/flutter-ui-spec.md)。
 
 
-照片原生适配定位（P5-E）：iOS 的 `Runner/Platform/PhotoChannel.swift` 由 AppDelegate 注册；
-macOS 的 MainFlutterWindow 注册 `Runner/Platform/PlatformChannel.swift`，组合
-`PhotoHandler.swift` 与 `CredentialHandler.swift`。两端图片解码共用
-`packages/ubaa_platform/native/apple/PhotoPayload.swift`；Android 的 MainActivity 委托
-`platform/PhotoChannel.kt`，OHOS EntryAbility 委托 `platform/PhotoChannel.ets`。每个宿主只允许
-一个拥有者注册 `cn.edu.buaa.ubaa/platform`，其他能力必须在该路由中组合。业务资格、typed 输入
-及写入状态机仍由 App/Core 持有。
+照片适配当前经 [media.dart](../../packages/ubaa_platform/lib/src/media.dart) 定义能力边界，[PluginPhotoPicker](../../packages/ubaa_platform/lib/src/media/plugin_photo.dart) 使用 image_picker 选择/拍摄照片，[DesktopFilePhotoPicker](../../packages/ubaa_platform/lib/src/media/desktop_photo.dart) 使用 file_selector。共享读取校验限制图片为 10 MiB 内的可解码内容；只将受限内存字节、展示名与 MIME 交给 Host，不暴露插件路径。Android 相机请求沿现有插件限制预览尺寸与质量，跨进程遗失结果只清理，不附回新账号。平台默认能力的选择以 [defaults.dart](../../packages/ubaa_platform/lib/src/defaults.dart) 为准，插件注册成功仍需对应平台验收。
 
-
-P5-F可选拍照接口PlatformPhotoCapture与相册接口分开：MethodChannelPhotoPicker独立探测photo.captureCapability；不存在该方法不影响原相册能力。PermissionedPhotoPicker只为拍照请求camera委托状态，宿主仍要求原阳光写入/回读/照片资格。Android PhotoChannel统一处理photo.capture并按captureCode区别选图结果；CameraPhoto仅内存压缩JPEG92，输出流有10MiB边界。Manifest只声明IMAGE_CAPTURE包可见性查询，没有新增CAMERA或存储权限。共享UI在原照片区并列显示拍照，iOS/macOS/OHOS没有因此获得相机能力。
+旧 P5-E/P5-F 的手写 PhotoChannel / PhotoPayload.swift 定位属于历史实现，现行入口以上述平台包为准；原生测试、实体拍照和学校写入分别记录，不能互相代替。
 
 
 ### Linux 安全存储依赖

@@ -1,5 +1,7 @@
 # P4-C 展示来源补充
 
+> 本页保留原审查时点的路径、行号与缺口。当前 Dart 适配位于 [bridge/features](../../packages/ubaa_app/lib/src/bridge/features/)，UI 位于 [features](../../packages/ubaa_ui/lib/src/features/)，完整定位见[文档索引](../index.md#按修改内容定位)。表内旧路径仅用于结合原提交追溯，不能作为当前源码入口。
+
 2026-09-08 静态核对。主仓 HEAD 为 `83ee9e8969b25ca6fdce67ce61a79b86031b573b`，工作区 B2 候选并行进行；冻结 old=`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`、examples=`efb7976bf513f38364b88aeb83d704586cff9b2a`。本文路径相对 `<private-evidence>/source-checkouts/UBAA`，行号来自本次读取。本文件记录静态核对，不声明实时/渲染 PASS；P4-C生产实现尚未开始。
 
 ## 签到：结论及来源
@@ -18,7 +20,7 @@
 | 当前 Core 测试 | `crates/ubaa_core/src/features/signin/contract_tests.rs:5`、`:20`、`:32`、`:53`；`crates/ubaa_core/tests/signin/write_authority.rs:56`、`:89` | 分别覆盖0/1、缺失/null/bool/object/小数/坏字符串/越界/2→unknown、空目标、denied/unknown拒绝、目标消失/重复；本轮仅阅读未执行。 |
 | Bridge | `crates/ubaa_flutter_bridge/src/api/read/mod.rs:127`；`read/mappers.rs:146` | sign_status、signin_eligibility、signin_target分别原样映射，Bridge不重算事实或资格，无需改Bridge v9。 |
 | App现状 | `packages/ubaa_app/lib/src/bridge/read/assignments.dart:194`、`:198`、`:205`、`:223`、`:234` | pending只筛allowed，completed只筛denied；显示状态当前反推自eligibility；action只在target非空时附加并保留资格。P4-C应加typed presentation保留原始signStatus，不能从已翻译FeatureField反推。 |
-| 既有设计/矩阵 | `docs/design/ui-ux-redesign.md:62`；`docs/migration/source-parity.md:248`、`:332`、`:615`、`:649` | redesign的denied→已签到对当前Core正常映射成立，不能泛化三态枚举。parity今日表九列已覆盖引导、跳转、会话、方法参数、头/正文、加密、DTO、缓存、错误；11D字段列0/1/unknown需结合非空target条件理解。615/649仅补时间戳与嵌套写响应，不混入展示事实。 |
+| 既有设计/矩阵 | `docs/migration/history/2026-09-08-ui-ux-redesign.md:62`；`docs/migration/source-parity.md:248`、`:332`、`:615`、`:649` | redesign的denied→已签到对当前Core正常映射成立，不能泛化三态枚举。parity今日表九列已覆盖引导、跳转、会话、方法参数、头/正文、加密、DTO、缓存、错误；11D字段列0/1/unknown需结合非空target条件理解。615/649仅补时间戳与嵌套写响应，不混入展示事实。 |
 
 建议展示裁决（不修改现有筛选、Core写资格或pending/completed含义）：
 

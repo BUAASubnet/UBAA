@@ -22,7 +22,19 @@
 
 ## 版本号与依赖
 
-产品展示版本、Cargo/pub 包版本、平台 build number、CLI envelope、Bridge contract、Session/config/cache 磁盘版本各自表达不同含义，不能批量改成相同数字。`docs/contracts` 定义兼容行为；破坏性 CLI DTO/错误变化必须提升 schemaVersion 并更新 Schema、序列化测试和消费者，Bridge 变化同样更新合同及生成物，磁盘格式按迁移规则升级。正式发布需明确展示版本、build number、迁移与回退条件。当前各平台产品版本的历史差异留待既定版本治理，不在本阶段猜测统一版本。
+产品展示版本、Cargo/pub 包版本、平台 build number、CLI envelope、Bridge contract、Session/config/cache 磁盘版本各自表达不同含义，不能批量改成相同数字。`docs/contracts` 定义兼容行为；破坏性 CLI DTO/错误变化必须提升 schemaVersion 并更新 Schema、序列化测试和消费者，Bridge 变化同样更新合同及生成物，磁盘格式按迁移规则升级。正式发布需明确展示版本、build number、迁移与回退条件。
+
+UBAA 2 / 网站的 UBAA v2.0 是区分旧版的代际名称，不表示已经发布 SemVer 2.0.0。当前源码取值（2026-10-30）如下，实际可安装版本仍以授权发布的产物和发布记录为准：
+
+| 对象 | 当前声明与规则 |
+|---|---|
+| Cargo workspace | `0.1.0`，表达 Rust 包版本。 |
+| 两个 Flutter 应用 | pubspec 为 `0.1.0+1`；未显式覆盖构建参数时提供 Flutter 展示版本和构建号。 |
+| OHOS 原生应用 | AppScope/app.json5 仍为 `1.0.0` / `1000000`，与 pubspec 不一致，登记为阶段 6 待修复项。发布前必须核对构建产物，不能仅凭 pubspec 宣称已统一。 |
+| ubaa_bindings | pubspec 为 `0.1.0`；CHANGELOG 保留早期 `0.0.1` 建立记录，并说明当前开发版本。 |
+| 插件模块模板版本 | oh-package 与 Android 插件内部版本不作为产品展示版本来源；清理留待阶段 6。 |
+
+应用展示版本以各宿主 pubspec 作为维护入口，平台必要镜像应在阶段 6 收敛为派生值或受检查的镜像。本阶段只记录策略，不修改平台配置或构建逻辑。
 
 新发布采用 SemVer：兼容缺陷修复提升 patch，兼容功能增加提升 minor；稳定版的破坏性变化提升 major。0.x 开发期的破坏性变化至少提升 minor，并在发布说明列出迁移办法；预发布使用明确后缀。平台 build number 在同一发布序列中单调增加。产品发布 Tag 使用 `v<展示版本>`，面向用户的更新记录维护在 `docs/site/changelog/`，包独立发布时维护该包的 CHANGELOG。只有获得发布授权并完成发布验收后才创建 Tag、发布说明或产物，规范本身不提供授权。
 

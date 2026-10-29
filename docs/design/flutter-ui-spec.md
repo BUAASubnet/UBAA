@@ -1,12 +1,12 @@
-# Flutter UI 规格（旧版对齐实施中）
+# Flutter UI 规格
 
-更新：2026-09-12
+更新：2026-10-30。只维护现行共享界面规则；历史验证与旧版设计补记见[历史记录](../migration/history/2026-10-30-flutter-ui-spec-history.md)。
 
 2026-10-26 操作反馈补充：应用内的短暂提示统一通过 `UbaaFeedback` 显示。使用 Flutter 官方 `SnackBar` 的浮动布局，桌面最大宽度 420，窄屏两侧各留 16。成功／一般提示显示 3 秒，错误／待核实提示显示 6 秒并可关闭；开启辅助导航时，后两类提示保持到用户关闭。新消息替换旧消息，避免排队遮挡。样式跟随明暗主题，以图标和文字区分结果，不用整条红色背景。确认弹窗继续使用共享 Dialog 主题，页面读取错误保留原位置和重试入口。
 
 博雅选退在当前按钮内展示进度，提交、核对和刷新期间保留列表和滚动位置；刷新覆盖已加载页后一次更新。刷新失败保留只读内容并提供重试。成功提示简化为“选课成功／退选成功”；结果未知仍明确要求核对且不能重复提交。协议与验证见[博雅反馈记录](../migration/bykc-detail-2026-10-26.md#选退反馈与列表保留)。
 
-界面结构依据[旧版界面基准](ui-ux-old-baseline.md)，当前实施结果见[迁移状态](../migration/status.md)，保留旧版页面结构与操作顺序。历史无签名目标完成记录不代表本轮P0–P7已通过。
+界面按首页、学业、课程与作业、校园服务、设置组织，当前实现与未验范围见[迁移状态](../migration/status.md)。[旧版界面基准](../migration/history/2026-09-08-ui-ux-old-baseline.md)只用于追溯历史设计，冲突项以本页和后续已登记决定为准。
 
 2026-09-07 维护补充：错误卡显示本次诊断编号并可主动复制稳定字段；登录失败页和“我的”均可
 查看本次运行诊断。诊断默认仅在有界内存保存，不自动上传。错误码、重试标志和失败路线完整
@@ -18,19 +18,23 @@
 
 ## 导航与响应式布局
 
-| 来源 | 目标 | 窄屏 | 宽屏 |
-|---|---|---|---|
-| Splash/会话恢复 | 登录或主页 | 全屏居中 | 全屏居中 |
-| 登录页 | 主页 | 底部表单、顶部路线菜单 | 最大宽度 460 的居中表单 |
-| 主页 | 今日课表→待办；旧三导航主页/普通功能/高级功能 | `NavigationBar` | `NavigationRail` |
-| 普通功能 | 课表、考试、成绩、博雅、空教室、SPOC、希冀、图书馆 | 网格列表 | 最大宽度自适应网格 |
-| 高级功能 | 课堂签到、研讨室预约、阳光打卡、教学评教 | 网格列表 | 最大宽度自适应网格 |
-| 功能卡片 | 领域列表/详情与按需查询 | 顶部返回；隐藏全局底栏 | 保持同一信息顺序，按宽度调整表格或列表详情 |
-| 侧栏 | 资料、设置、关于；路线/主题/统计/诊断/退出保留既有入口 | 按需抽屉进入 | 侧栏进入同一页面 |
+| 入口 | 当前行为 |
+|---|---|
+| 启动 | 根据本地账号、材料与恢复状态进入登录或首页，等待与错误保持独立可见。 |
+| 登录 | 同一表单适配窄宽窗口，保留密码显隐与验证码；连接方式入口放在设置。 |
+| 主导航 | 首页、学业、课程与作业、校园服务、设置；窄屏底部导航，宽屏侧栏。 |
+| 领域页 | 领域列表、详情和预约步骤保持可返回；按宽度调整表格、卡片与详情排列。 |
+| 设置与资料 | 设置内管理路线、外观、缓存和诊断；侧栏或对应入口打开资料与关于页。 |
+
+首页预览与磁贴见[首页规格](home-layout.md)，浅深色角色见[配色规格](color-system.md)。导航分组以 [destination.dart](../../packages/ubaa_ui/lib/src/app/destination.dart) 为实现入口。
+
+## 外观与设备偏好
+
+主题可选 system、light、dark，由 [ThemePreferenceStore](../../packages/ubaa_platform/lib/src/infrastructure/place_preferences.dart) 通过 PreferenceValues 保存设备偏好，键为 `flutter.ubaa.preferences.theme`。Host 在启动时恢复，读取失败或值无效时跟随系统；迟到的恢复结果不能覆盖本次新选择。主题不随退出或清除账号删除。普通偏好写失败不打断本次选择，因此无法保证失败后的下次启动仍恢复同一主题。账号凭据继续使用独立安全存储。
 
 ## 照片与拍照
 
-阳光沿旧版独立表单顺序，照片区提供选择、预览、元信息与清除。仅可选平台拍照能力探测成功时，在选择按钮旁显示“拍摄照片”；Android沿旧版委托系统相机取得预览并在内存压缩JPEG92，不增加相机/存储直接权限。选择与拍照共享等待、取消保原图、失败反馈、退出释放和迟到保护。大小限制10MiB；跨宿主只传字节、合法展示名与MIME。
+阳光表单提供照片选择、预览、元信息与清除，拍照入口由当前平台能力决定。照片由系统插件或桌面文件选择器取得，平台层先做 10 MiB 上限和可解码校验，只向 Host 交付内存字节、合法展示名与 MIME。选择与拍照共享等待、取消保原图、失败反馈、退出释放和迟到保护；插件遗失结果只清理，不自动附回新账号。当前实现见[平台照片适配](../../packages/ubaa_platform/lib/src/media.dart)。
 
 实际平台与验收范围见[照片来源对照](../migration/source-parity-ui-photos.md)和[迁移状态](../migration/status.md)，合成相机原生UI测试不代表真实设备拍照通过。
 
@@ -62,7 +66,7 @@ authority，仍是最终业务权威。
 | 阳光打卡 | typed 提交、照片选择与回读能力齐备才开放入口；表单消费 Core 签发的分类/项目 target、完整本地时间和内存照片，权限失败或缺照片不进入 prepare | 成功或 unknown 按 intent 原路线各尝试一次概览与记录首页读取，结果不确定仍保持 unknown |
 | 教学评教 | 单门或批量选择非空、有序、无重复的 typed targets；完整问卷、题目和答案只留在 Core | 确定结果、部分失败、unknown 或 commit 异常都至多按原路线回读一次，保留逐课程四态结果 |
 
-确认页显示 `WriteIntent` 的摘要、实际路线、警告与过期时间。应用层唯一 `WriteCoordinator` 拥有
+需要确认的流程显示 `WriteIntent` 的摘要、实际路线、警告与过期时间；直接操作继续经同一 prepare/commit 协调器执行，不因省去弹窗绕过 Core 校验。应用层唯一 `WriteCoordinator` 拥有
 prepare、待确认、取消、提交、回读与失效状态；共享 Host 将 domain `WriteState` 和三个命令注入 UI，
 UI 只负责表单、确认展示和安全提示，不保存另一份待确认意图。提交或取消期间禁止重复操作；取消失败保留
 原意图供再次取消，过期意图不得提交。注销、重登录、路线切换或 backend 重建使旧操作失效，晚到结果不能
@@ -90,8 +94,7 @@ UI 只负责表单、确认展示和安全提示，不保存另一份待确认�
 
 ## 实现定位与验证边界
 
-公共导出继续经 `packages/ubaa_ui/lib/ubaa_ui.dart`；`lib/src/widgets.dart` 只组装同一 library 的 imports 与
-parts。维护实现时按下表定位，调用方不直接导入 part 文件。
+公共导出继续经 `packages/ubaa_ui/lib/ubaa_ui.dart`；`lib/src/widgets.dart` 显式导出独立 library。维护实现时按下表定位，调用方不直接导入 part 文件。
 
 | 修改内容 | 实际实现 |
 |---|---|
@@ -103,116 +106,11 @@ parts。维护实现时按下表定位，调用方不直接导入 part 文件。
 | 服务端/本地翻页控件与错误卡 | [common/paged_results.dart](../../packages/ubaa_ui/lib/src/common/paged_results.dart)、[error_card.dart](../../packages/ubaa_ui/lib/src/common/error_card.dart) |
 | 课表、考试、成绩、空教室查询控件 | [features/academic/](../../packages/ubaa_ui/lib/src/features/academic/) |
 | SPOC/Judge 作业与 Signin 课堂签到查询、签到按钮 | [features/coursework/](../../packages/ubaa_ui/lib/src/features/coursework/) |
-| 博雅、图书馆的领域查询与 typed 写按钮 | [features/bykc/](../../packages/ubaa_ui/lib/src/features/bykc/)、[libbook.dart](../../packages/ubaa_ui/lib/src/features/libbook/) |
-| 研讨室、阳光打卡、评教的领域查询、typed action 与选择控件 | [features/cgyy/](../../packages/ubaa_ui/lib/src/features/cgyy/)、[ygdk.dart](../../packages/ubaa_ui/lib/src/features/ygdk/)、[evaluation.dart](../../packages/ubaa_ui/lib/src/common/details/evaluation_actions.dart) |
+| 博雅、图书馆的领域查询与 typed 写按钮 | [features/bykc/](../../packages/ubaa_ui/lib/src/features/bykc/)、[libbook/](../../packages/ubaa_ui/lib/src/features/libbook/) |
+| 研讨室、阳光打卡、评教的领域查询、typed action 与选择控件 | [features/cgyy/](../../packages/ubaa_ui/lib/src/features/cgyy/)、[ygdk/](../../packages/ubaa_ui/lib/src/features/ygdk/)、[evaluation_actions.dart](../../packages/ubaa_ui/lib/src/common/details/evaluation_actions.dart) |
 | 研讨室预约与阳光打卡输入表单 | [common/details/cgyy_form.dart](../../packages/ubaa_ui/lib/src/common/details/cgyy_form.dart)、[ygdk_form.dart](../../packages/ubaa_ui/lib/src/common/details/ygdk_form.dart) |
 | 意图摘要、错误、取消与提交按钮 | [write/confirmation.dart](../../packages/ubaa_ui/lib/src/write/confirmation.dart)；回调类型在 [write_callbacks.dart](../../packages/ubaa_ui/lib/src/write_callbacks.dart) |
 
-页面测试按领域位于 `packages/ubaa_ui/test/widgets/`，写命令接线测试位于
-`packages/ubaa_ui/test/write_coordination_test.dart`。应用层 `packages/ubaa_app/test/` 中的
-`write_coordinator_test.dart`、`app_write_lifecycle_test.dart` 与 `write_readback_reentry_test.dart`
-分别保护单次消费、会话失效和回读重入。原生集成入口已按用户决定删除，覆盖与缺口见[测试策略](../development/testing.md)。
-生产唯一状态机的实现与接口见[协调器实施记录](../superpowers/plans/2026-09-05-write-coordinator.md)。
+普通回归按领域位于 [UI tests](../../packages/ubaa_ui/test/)、[App write](../../packages/ubaa_app/test/write/) 和[宿主 tests](../../apps/ubaa_flutter/test/)；导航、查询、焦点、状态连续性与写入协调由这些测试分层保护。原生只保留 `platform/*` 和 `synthetic/cache/*`，逐项删除能力、保留理由与无自动化覆盖项见[范围登记](../migration/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29原生集成只保留真实原生能力)。
 
-## 历史与阶段 UI 验证记录
-
-以下保留当时的实现和验证事实，旧提交中的资格推断、刷新行为与测试数量不再定义现行规则；现行规则以
-上文 typed action/协调器边界及稳定合同为准，当前门禁结果以迁移状态页为准。
-
-- `packages/ubaa_ui/test/widgets_test.dart` 已覆盖登录安全提示、详情字段渲染、本地/服务端分页与筛选、
-  日期格式/日历校验、摘要-only stale 保留、实际路线展示、手机/平板/桌面明暗主题响应式 golden、
-  动态字体、键盘焦点、十二项卡片语义和 1000 条长列表分页；`packages/ubaa_app/test/app_controller_test.dart` 覆盖不可用生产 backend 不
-  伪造 Demo 登录、刷新失败后的 `stale` 数据保留、实际路线投影以及未认证固定路线的安全
-  回登录。
-- `apps/ubaa_flutter/integration_test/app_flow_test.dart` 已覆盖官方 Flutter 宿主从登录、主页、
-  课表详情到学期/周次 typed 查询、“我的”页，以及普通 8 项和高级 4 项全部详情入口；另有
-  课堂签到的 prepare/confirm/单次提交/只读刷新组合回归。测试仅使用脱敏 fake backend，不能
-  代替设备上的真实 FRB/上游读取。
-- `BridgeBackend` 已为 12 个只读功能映射白名单详情，并为课表/考试/成绩提供学期（课表另有
-  周次）、空教室提供日期/校区及楼层/节次本地过滤的 typed 查询入口；详情页控件只向
-  `AppController.refreshFeatureQuery` 传递 `FeatureQuery`，不拼接 URL。上述入口已有 app/widget
-  参数传递测试。Judge 另提供批量详情视图，逐行接收公开的 `课程编号/作业编号` 并解析为 typed
-  键列表，不接收 raw JSON 或上游正文；课堂签到提供全部/未签到/已签到本地状态视图。
-- 博雅已选课程的签到时间窗、位置点数量和签到类型现有 bridge 白名单与 widget 覆盖；位置坐标不跨入
-  `FeatureDetail`，不可操作状态的签到/签退按钮会禁用并说明由 Core 判定。
-- 课堂签到详情只消费 Core/bridge 输出的 typed action；action 缺失、目标为空或资格为 `unknown/denied`
-  时默认拒绝且不调用 prepare。只有稳定目标和 `allowed` 同时成立时才开放入口，prepare/commit 仍由 Core
-  重读当天唯一安排做最终校验。
-- `777261f` 固定了主页与共享详情页明亮主题 1280×800 golden 基线；随后 `c2fed18` 为十二项
-  `FeatureId` 分别固定同一详情渲染器在领域标题、脱敏字段、实际路线和查询控件下的 1280×800
-  明亮主题输出（`test/goldens/feature_<id>_light.png`）。这些基线不代表实体设备字体、权限或安全存储能力。
-- `35ffb0d` 为功能卡片补充容器级无障碍语义（功能名、状态和点击提示），并以 widget 回归固定语义标签；
-  失败/过期卡片的重试按钮仍保持独立 tooltip/语义。该证据覆盖共享卡片壳，不替代逐领域页面和实体设备读屏验证。
-- `7bc9c1a` 为统一写入确认结果固定 `outcome_unknown` 文案：“提交结果不确定，请先刷新相关状态，不要重复提交。”；
-  widget 回归证明未知结果不会沿用普通后端消息，也不会自动触发重试或写后刷新。该证据覆盖共享确认壳，
-  不替代逐领域真实写后核对。
-- `1e3c729` 的合同 CI `33589036008` 与五平台 Debug CI `33589036000` 已终态成功；CI 只证明无签名构建和
-  确定性门禁，不替代 OHOS 签名、实体设备读屏或真实 App→FRB→Core 链路。当时 HEAD `0a0bb71` 的
-  `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check` 已完成并报告 FRB 零漂移。
-- `7bc9c1a` 的合同 CI `33591063958` 与五平台 Debug CI `33591063833` 已终态成功；Android APK、iOS simulator、
-  macOS、Linux、Windows 均上传无签名 Debug 产物。CI 不替代 OHOS 签名、实体设备读屏、真实写后核对或当前本机
-  FRB 零漂移重试。
-- `f46c65c` 将提交异常与显式 `outcome_unknown` 统一为稳定的“提交结果不确定，请先刷新相关状态，不要重复提交”提示；
-  widget 回归证明异常路径不泄露具体业务上下文。该提交的本地 Flutter/根级门禁、无签名 RC 前置与 API26 HAP 复核均通过，
-  合同 CI `33592184452` 与五平台 CI `33592184458` 也已终态成功；这些证据仍不替代真实写后核对、实体设备或签名。
-- `190f318` 在官方 Flutter macOS 宿主集成中加入 commit 异常场景，4/4 场景通过；异常结果不刷新签到状态、不显示已签到，
-  仅保留稳定未知结果提示。集成使用脱敏 typed fake backend，不替代真实 FRB、上游或设备证据。
-- 当时官方 Flutter macOS 宿主集成已扩展到 5/5：新增全领域 typed 查询矩阵，逐项覆盖十二个功能的查询视图、公开 ID、日期、学期/周次和分页
-  参数，并从页面回到功能列表验证导航状态不丢失；所有输入均为脱敏 fixture，不访问真实账号或上游。
-- `WriteFlowController` 测试当时以 `WriteOperation.values` 逐项验证十项写操作的 prepare→confirm 单次提交和重复确认拒绝；该矩阵只证明共享确认
-  状态机，不证明任何真实账号副作用或写后上游核对。
-- `190f318` 的合同 CI `33593160544` 与五平台 Debug CI `33593160580`，以及后续文档 CI `33593227275` 均终态成功；五平台
-  Debug 产物已上传，仍不替代 OHOS 签名、实体设备或真实写后核对。
-- 当时 HEAD `0a0bb71` 的 FRB 零漂移重试已完成，`cargo-expand`、生成、格式化和生成目录差异检查均通过；此前无输出后中断的尝试仅作为过程记录保留。
-- 最终审计提交 `7e6a4ea` 的引用、敏感扫描、无签名 RC 前置报告和差异检查均通过，且远端同步、工作树清洁；临时 OHOS 无签名产物已移出仓库。
-- 平台权限和照片选择器通过 `CallbackPermissionGateway`、`CallbackPhotoPicker` 注入原生回调；回调异常
-  归约为稳定不可用/能力错误，`PermissionedPhotoPicker` 可按宿主选择相册或桌面文件权限。当前测试覆盖
-  权限拒绝不调用 picker、文件权限选择和图书馆取消确认；这仍不是原生插件或实体设备证据。
-- 十二项功能均已通过共享详情页提供正式导航入口，不再使用生产 Demo backend 或“即将接入”占位页。
-  `c2fed18` 已补齐十二项详情逐领域 golden；`81dd9d2` 的官方 macOS 宿主十项写入组合回归进一步逐项
-  断言提交后刷新关联只读领域，预期失败后聚焦场景 1/1 通过。结合当前 Direct/WebVPN Core-live、五平台
-  原生 CI 与 API26 无签名 OHOS 门禁，无签名执行目标的 P3/P4 UI 证据已闭合；原生 handler、实体设备读屏/
-  权限/生命周期、签名发布仍为后置 `BLOCKED`，不在本规格中宣称正式发布。
-
-### 2026-09-09旧版E1补正
-
-考试各端使用日期时间线，已结束默认折叠且日期倒序，待考升序，日期无法解析按待定显示且可查看原值；未安排最后。卡片沿旧描边、课程与右侧座位、时间和地点；更多字段通过自适应本地详情。签到使用课程/时间在左、操作/已签图标在右的横卡，未知资格与缺目标保留短说明；系统Material控件统一中文。真实路由、原始目标及协调器行为保持。成绩页面仍待E2旧统计与变化通知，不把E1局部验收视作整应用完成。
-
-O3-E2a局部终态（2026-09-09）：成绩完整投影、旧统计/描边卡、全学期缓存与按需查询已实现；最终641项Flutter门禁（46/50/257/215/15/23/35）通过。三端r2各18业务场景，最后学期弹窗收缩后r3各2正常查询场景通过；两端各50张候选原图加macOS独立8图，共108PNG已逐图检查归档old-e2a-native。Direct/WebVPN Core-live与生产App均通过，9/9学期82条完整聚合，当前14待出、0已出、详情无额外读取，真实业务写入0。最后只修改选择器高度，未重跑已通过且未受影响的生产读取路径。CUA Key A输入事件限制保留，不宣称完整物理键盘通过。E2b首页变化通知和整体P5–P7仍未完成。
-
-
-### O3-E2b局部终态（2026-09-09）
-
-E2b首页成绩变化提醒已沿旧横幅实现：首次仅建立独立基线，查看/忽略消费，空集合和失败不覆盖，账号与实际路线隔离，唯一当前学期读取；无通知时实际成绩检查路线也进入唯一顶栏。最终655项Flutter门禁通过，三端各12业务场景通过，手机/平板各30及macOS独立6张合成原图共66张已逐图复核。生产Direct/WebVPN各完成14条首次基线、重读和宿主/存储实例重建恢复；文件600，实测变化0，真实业务写入0。仅证明宿主重建，不冒称完整进程重启或观察到真实学校分数更新。P4其余旧布局及P5–P7继续，完整键盘限制保留。
-
-
-### O3-D1c局部终态（2026-09-09）
-
-D1c修复缺省父标识使图书馆分区详情不自动读取的问题：仅使用当前查询返回的原唯一area.id，不回填DTO父字段；非空父标识冲突仍阻止自动进入。10项聚焦、657项Flutter门禁、三端各6场景通过，28张两端原图和macOS独立3图共31张已复核。生产Direct/WebVPN均自动完成楼馆/分区/详情、明确查询175座位和2条预约记录，真实业务写入0；先前超时不标通过。协议与资格不变，跨日期时段关联仍不猜。
-
-
-### O3-E3a局部终态（2026-09-09）
-
-E3a空教室已恢复旧楼栋分组与1–14节紧凑表格，绿色只表示原空闲令牌；无服务端分页时完整连续滚动，真实分页保留。日期/校区/楼栋/节次和搜索仅右上按需面板，学院路/沙河/杭州沿旧源码命名；原字段本地详情及检索保留。1.3倍文字必要横滚时固定教室列和楼栋标题，纵滚保持表头。661项Flutter门禁、三端最终r3各14场景通过；两端各30及macOS独立4图，共64合成原图已检查。生产两路线均158条学院路、144条沙河、楼栋节次过滤27条，详情无额外读取、草稿保留、业务写入0。macOS独立CUA操作到查询面板后持续AXError.failure，未完成该独立鼠标路径的楼栋选择，不以原生测试代称；整体P6工具输入复验继续。
-
-
-### 周课表旧网格（E3b）
-
-周课表沿冻结旧版的七列与节次纵轴呈现，至少12节、按原结束节次延伸；每节64随文字缩放，普通手机完整七列，大字/窄屏才横滚，节次列保持可读。课程使用公开原color（合法#RRGGBB），暗色透明度沿旧版；非法/缺失使用旧回退紫色。重叠课程可打开全部条目；无效周几或节次单列完整原字段，不造位置。已查询的空周仍为网格。点击课程显示本地完整详情、关闭不读取；所有查询和搜索仍在右上按需面板。真实周日期及自然周次导航待E3c，不从本机时间反推。
-
-## 课表当前行为（E3c，2026-09-09）
-
-默认课表走学期→教学周→周课表的原查询链，仅采用唯一当前标记；缺失或歧义交由用户在右上按需面板选择。学期/周选择与前后周均只改变草稿，明确应用才查询；关闭保留，换学期清旧周次。顶栏原周名单行省略，七日日期由有效起始日或结束日减6计算，且与课程实际路线一致；不能从默认路线或本机时间推断。今日、学期列表、周次列表、周课表及兼容手填全部保留。
-
-
-### E4 登录与账号复核（2026-09-09）
-
-E4登录页的路线入口只显示图标；菜单明确尚未读取、此处选择默认策略。登录表单采用旧32边距和48高提交按钮，安全区顶部独立，窄短视口可滚动。登录中禁止按钮、密码完成键重复触发及密码显隐；Core与App原有并发保护不变。
-
-### 研讨室按需条件（P5-B2）
-
-预约时段页正文只显示当前实际地点、日期与时段表，校区→日期→楼栋/楼层在右上按需面板。更多查询保留完整视图及手填参数；关闭不清草稿/已选，不触发读取。选择真实日期或站点仍沿既有读取动作。长表纵滚固定时间表头，横滚同步表头和数据，固定房间列；错误提示滚动在表头之前。
-
-### 图书馆按需条件（P5-C）
-
-预约座位页正文显示当前实际楼馆/分区/日期、地图与座位，选中后显示准备动作。楼馆→楼层→分区和日期/时段在预约流程正文中选择，不经筛选面板，也不提供 ID 手填；改变父选择按既有请求清旧目标，同代分区时段在座位查询后仍可用。
+生产状态机见[write](../../packages/ubaa_app/lib/src/write/) 和 [controller/write](../../packages/ubaa_app/lib/src/controller/write/)，生命周期与协议语义见[Bridge 合同](../contracts/flutter-bridge.md#2-生命周期与并发)。历史协调器计划归入[实施记录](../migration/history/2026-09-05-write-coordinator.md)，不作为现行实现入口。

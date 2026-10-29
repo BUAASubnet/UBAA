@@ -22,6 +22,8 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 当前公开合同版本为 CLI JSON schema v12 与 Flutter bridge contract v42；这两个版本都与磁盘
 `session.json` schema v2、`config.toml` 版本 1、业务缓存 schema v6 相互独立。
 
+产品代际名 UBAA 2 与包的 SemVer、平台构建号和合同版本相互独立，发布规则见[版本约定](docs/development/conventions.md#版本号与依赖)。
+
 当前状态及证据边界见[迁移与交付状态](docs/migration/status.md)。代码组织治理的当前权威是
 [代码与目录组织设计](docs/architecture/code-organization.md)和
 [现行模块决策](docs/adr/0006-explicit-dart-modules.md)及[操作作用域决策](docs/adr/0007-operation-scopes-and-verification.md)。
@@ -94,27 +96,8 @@ cargo run --locked -p ubaa-cli -- auth logout
 
 默认 Session 位于操作系统的用户私有配置目录；隔离测试可使用 `--config-dir <path>`。CLI 每次 JSON 成功或
 失败只输出一个 schema-v12 信封，合同见[认证与用户合同](docs/contracts/auth-and-user.md)和
-[CLI JSON Schema](docs/contracts/cli-json.schema.json)。该输出版本独立于磁盘存储合同；`session.json` 仍为
-schema v2，`config.toml` 仍为版本 1。当前 Flutter bridge contract 为 v42；图书馆预约记录的 `status` 为
-nullable int，并由 Core 提供 typed `cancelEligibility/cancelTarget`。取消 action 在本地携带
-`id/page/limit` 以便 prepare、commit 和写后读取核对使用同一页，但最终上游取消正文仍只有 `id`。
-场馆时段的 `reservationStatus` 同样为 nullable int，只有 Core 明确给出 `allowed` 和完整
-`reservationTarget` 时才生成 `CgyyReserveAction`。Flutter 场馆预约输入只接受一至两个同站点、日期、空间、
-空间组且 raw ordinal 唯一相邻的 action；prepare 与 commit 都重新读取资格，最终非幂等提交最多发送一次，
-成功结果至多附带安全收据，发送后无法判定时返回不可重试的 `outcome_unknown`；两者都不公开验证码材料、
-完整订单或个人信息。
-场馆取消同样只消费 Core 派生的 `cancelEligibility/cancelTarget`；prepare 与 commit 均
-重新读取同 ID 订单，并按上海时区严格校验开始前四小时截止点。最终取消只在同一
-原子路线解析中发送一次；确定成功或 `outcome_unknown` 都固定原路线回读第一页列表与
-同 ID 详情，只有两者都带 Core 严格派生的已取消证明时才标记已核对，回读失败绝不重发写请求。
-阳光打卡同样只消费 fresh overview 派生的 typed `submitTarget(classifyId,itemId)`；prepare 不上传，commit
-在 Core 的 expected-route 原子入口中固定路线、Session/credential generation、fresh authority、单次 upload
-和单次 final。上传与最终提交均禁止自动重试；确定成功和 `outcome_unknown` 只在 intent 原路线各执行一次
-caller-pinned overview 与 records 首页读取，安全收据只允许可选正 `recordId`。
-教学评教只消费 Core 从 fresh 读取派生的 typed `submitEligibility/submitTarget`。Flutter 与 CLI 只提交
-非空、有序且无重复的 target 列表，完整问卷 authority、题目与答案始终留在 Core；逐课程结果使用
-`success/failure/outcomeUnknown/unattempted` 四态。任一提交结果或异常都只在 intent 原路线执行一次
-caller-pinned 只读回读，绝不据回读自动重发或把 unknown 升级为成功。
+[CLI JSON Schema](docs/contracts/cli-json.schema.json)。该输出版本独立于磁盘存储合同；当前 Flutter bridge contract 为 v42。
+图书馆、场馆、阳光与教学评教的 typed 资格、prepare/commit、单次发送、未知结果和原路线回读规则，统一见 [Bridge 写入合同](docs/contracts/flutter-bridge.md#6-写-intent)。CLI、Bridge 与缓存格式的兼容边界分别见对应合同。
 
 ## 开发与验证
 

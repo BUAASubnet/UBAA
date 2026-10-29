@@ -11,7 +11,7 @@
 | `examples/ubaa_old/` | `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` |
 | `examples/buaa-api/` | `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` |
 
-这两个来源已在 2026-09-17 的 `f63e6d060059beaa68a4b9372c393ea56e3a4c61` 换钉；经过见[决策记录](decision-log.md#2026-10-29阶段-2-统一权威来源与规范)。本轮仅校正声明，未修改冻结目录或脚本固定值。下方与专项中的旧 SHA、旧候选、当时不适用项及来源例外均保留历史含义，不自动成为当前实现依据；引用前必须按当前来源重新核对所改操作。
+这两个来源已在 2026-09-17 的 `f63e6d060059beaa68a4b9372c393ea56e3a4c61` 换钉；经过见[决策记录](history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29阶段-2-统一权威来源与规范)。本轮仅校正声明，未修改冻结目录或脚本固定值。下方与专项中的旧 SHA、旧候选、当时不适用项及来源例外均保留历史含义，不自动成为当前实现依据；引用前必须按当前来源重新核对所改操作。
 
 路径前缀统一写为 `examples/ubaa_old/` 与 `examples/buaa-api/`。旧来源内部的相对文件名仍相对该来源根目录，行号对应原记录版本。补充旧源例外仍须有明确决策，不能扩展为任意本机来源。
 
@@ -487,7 +487,7 @@ Auto 探测及任何 HTTP 前拒绝、prepare/commit 双 fresh、截止时间下
 `LocalEvaluationServiceBackendTest.kt`，以及旧 server `EvaluationClient.kt`、`EvaluationService.kt` 与
 测试。交叉来源为 `examples/buaa-api @ efb7976bf513f38364b88aeb83d704586cff9b2a` 的
 `src/api/tes/{auth,data,opt}.rs`。两份来源部分等价但存在明确冲突；产品取舍见
-[Phase 11J 决策](decision-log.md#2026-09-05phase-11j-评教-fresh-typed-批量提交与逐课程结果边界来源合同已固定)。
+[Phase 11J 决策](history/2026-10-30-decisions-through-quality-phase3.md#2026-09-05phase-11j-评教-fresh-typed-批量提交与逐课程结果边界来源合同已固定)。
 
 | 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | Header/正文编码 | 加密/签名 | DTO/解析字段与缺失值 | 缓存/并发/新鲜度 | 错误/退出/产品语义 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -514,7 +514,7 @@ caller-pinned 回读不重发也不升级 unknown；架构测试禁止正常 fac
 `aas/app/boya/class/cloud/live/spoc/srs/sso/tes/user/wifi`，没有 Ygdk、Clockin 或照片上传等价实现；所以下表
 每一行的九个示例来源单元格都为 **N/A 且不等价**。不得从示例的通用 SSO、credential、Cookie、上传、
 错误类型或其它业务模块类比补齐任何字段。与本表绑定的产品取舍见
-[Phase 11I 决策](decision-log.md#2026-09-05phase-11i-阳光打卡-typed-资格与单次最终提交边界本地确定性门禁完成)。
+[Phase 11I 决策](history/2026-10-30-decisions-through-quality-phase3.md#2026-09-05phase-11i-阳光打卡-typed-资格与单次最终提交边界本地确定性门禁完成)。
 
 | 操作 | 引导/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | Header/正文编码 | 加密/签名 | DTO/解析字段与缺失值 | 缓存/并发/新鲜度 | 错误/退出/产品语义 |
 |---|---|---|---|---|---|---|---|---|---|
@@ -719,7 +719,7 @@ Evaluation 原语文本补充：冻结评教本地实现同样通过 `JsonPrimit
 ## 2026-09-08 UI/UX 重设计前逐操作保持合同
 
 本轮在生产 UI 修改前完成静态来源索引与 typed 接线边界核对，详见
-[UI/UX 来源与接线审查](../design/ui-ux-parity-review.md)。两冻结 HEAD 已读回并与本文件固定值一致；完整 refs 门禁由本轮主证据记录。该审查为每个当前认证/只读 Bridge 操作列出旧版接口、本地实现、DTO、测试与 Rust 示例适用性，并独立应用 C1–C9：URL/service、重定向、Cookie/Session、方法参数、Header/编码、加密、DTO/解析、缓存/并发、错误/退出均保持现有协议。纯视觉不授权改变请求或扩充公开合同。
+[UI/UX 来源与接线审查](history/2026-09-08-ui-ux-parity-review.md)。两冻结 HEAD 已读回并与本文件固定值一致；完整 refs 门禁由本轮主证据记录。该审查为每个当前认证/只读 Bridge 操作列出旧版接口、本地实现、DTO、测试与 Rust 示例适用性，并独立应用 C1–C9：URL/service、重定向、Cookie/Session、方法参数、Header/编码、加密、DTO/解析、缓存/并发、错误/退出均保持现有协议。纯视觉不授权改变请求或扩充公开合同。
 
 可接线范围：图书馆馆列表已有 typed 楼层，分区已有父 ID，详情已有 typed 时段；App 可无损保留这些公开字段为选择器，segment 只能取时段 ID。阻塞范围：当前公开分区详情仅给出第一日期/顶层时段，不能据此声称全部日期共享时段；跨日期精确时段需另行合同与失败测试。userInfo 已接入但仅投影 username/name，既有白名单其它字段可做遮罩资料展示，department 没有来源。
 
@@ -817,9 +817,9 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 当前GSMIS研究生课表与节次时间轴的逐操作九列见[source-parity-gsmis-2026-10-02.md](source-parity-gsmis-2026-10-02.md)。
 
 
-2026-10-07本机账号初始化异常的页面边界见[分支裁决](decision-log.md#2026-10-07未确认本机账号时启动必须进入登录页)：对照冻结旧版App状态机及示例Context/存储；不修改学校认证协议，未知本机身份回登录页，不开放离线首页。
+2026-10-07本机账号初始化异常的页面边界见[分支裁决](history/2026-10-30-decisions-through-quality-phase3.md#2026-10-07未确认本机账号时启动必须进入登录页)：对照冻结旧版App状态机及示例Context/存储；不修改学校认证协议，未知本机身份回登录页，不开放离线首页。
 
-2026-10-07统一安全存储插件及开发阶段无迁移范围见[实施前九列裁决](decision-log.md#2026-10-07开发阶段统一安全存储插件)与[验证记录](evidence/unified-secure-storage-2026-10-07.md)。
+2026-10-07统一安全存储插件及开发阶段无迁移范围见[实施前九列裁决](history/2026-10-30-decisions-through-quality-phase3.md#2026-10-07开发阶段统一安全存储插件)与[验证记录](evidence/unified-secure-storage-2026-10-07.md)。
 
 2026-10-07通用依赖收敛实施前对照见[九列裁决](source-parity-dependency-reuse.md)。
 

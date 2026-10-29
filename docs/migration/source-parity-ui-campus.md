@@ -1,5 +1,7 @@
 # P4-D 博雅、阳光展示与导航计划
 
+> 本页保留原审查时点的路径、行号与缺口。当前 Dart 适配位于 [bridge/features](../../packages/ubaa_app/lib/src/bridge/features/)，UI 位于 [features](../../packages/ubaa_ui/lib/src/features/)，完整定位见[文档索引](../index.md#按修改内容定位)。表内旧路径仅用于结合原提交追溯，不能作为当前源码入口。
+
 2026-09-08，仅静态核对，未改生产代码、联网、运行测试或native。路径相对 `<private-evidence>/source-checkouts/UBAA`。冻结old为6e75e120a26b0eefb3ab4a6f8251d1230db4a62e，examples为efb7976bf513f38364b88aeb83d704586cff9b2a。本计划复用现Core/Bridge，不能作为新写入授权或已验证结果。
 
 ## 最小typed字段与完整视图
@@ -21,7 +23,7 @@
 
 `packages/ubaa_app/lib/src/bridge/read/ygdk.dart`中 `_mapYgdkOverviewResult` 当前仅项目ID/kind与学期计数字符串，丢大量集合字段；`_mapYgdkRecordsResult`当前丢itemId/state但保留图片数量。普通加载和 `_loadYgdkOverviewOnRoute/_loadYgdkRecordsOnRoute`已经共用这两mapper，新增typed字段必须继续共用，不能只修普通查询而让写后回读退回旧模型。
 
-可复用P4-C拟定集合overview传递设施。依据 `docs/design/ui-ux-implementation.md:95`、`:229`、`:235`：FeatureOverview独立于details，穿过FeatureResult/FeatureSnapshot/copyWith/Controller/返回帧/写后回读。新增BykcStatisticsOverview(totalValidCount)、YgdkOverview(summary+分类/默认项目)；不能把总计塞进伪课程首行或从summary拆数字。若C设施尚未落地，依赖它的全链契约先完成，不能只加DTO并忽略生命周期。新query清旧overview，同query stale保留，显式空结果清旧或采用当前overview，只有overview而details空仍展示；局部搜索/分页不重算总量。
+可复用P4-C拟定集合overview传递设施。依据 `docs/migration/history/2026-09-08-ui-ux-implementation.md:95`、`:229`、`:235`：FeatureOverview独立于details，穿过FeatureResult/FeatureSnapshot/copyWith/Controller/返回帧/写后回读。新增BykcStatisticsOverview(totalValidCount)、YgdkOverview(summary+分类/默认项目)；不能把总计塞进伪课程首行或从summary拆数字。若C设施尚未落地，依赖它的全链契约先完成，不能只加DTO并忽略生命周期。新query清旧overview，同query stale保留，显式空结果清旧或采用当前overview，只有overview而details空仍展示；局部搜索/分页不重算总量。
 
 ## 资格、位置与照片边界
 

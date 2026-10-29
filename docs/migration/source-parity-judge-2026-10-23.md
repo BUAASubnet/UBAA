@@ -6,6 +6,9 @@
 
 - 冻结旧版 `examples/ubaa_old`：`1f4b8f8412272b6a423d4ad92b396e3db721e6f3`。核对 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/JudgeApi.kt`（接口）、`model/dto/Judge.kt`、`api/local/LocalJudgeApi.kt`（请求、解析、Cookie worker、缓存与错误）、`shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalJudgeApiBackendTest.kt` 和 `JudgeApiTest.kt`。
 - 固定 `examples/buaa-api`：`a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。`src/api.rs` 无 Judge 模块；最邻近的 `api/spoc/{core,data}.rs` 使用 SPOC token/AES JSON 协议，与希冀 HTML 不等价。另核对 `api/sso/auth.rs`、`request.rs`、`context.rs`、`store/{cookies,cred}.rs` 的认证、重定向、凭证及错误边界；不能借用 SPOC URL、加密常量、字段或错误语义，TLS 仍严格验证。
+
+> 本段的聊天与 `docs/_audit/` 属于当时的仓库外补充材料，当前克隆无法复现；只保留历史来源说明，不将其登记为新的冻结引用。可复现的协议依据仍按[冻结参考](references.md)与本页实际受跟踪的测试定位核对。
+
 - 用户引用的聊天 `01a15d06-1f02-7723-a877-ffbccbceb335` 已实际读取。其 UBAA 工作区审计 `docs/_audit/2026-10-21-judge-login-har.md` 记录 HTTPS service、原生登录页误判、历史整课排除与 WebVPN 网关共享课程状态。另仓库 HEAD 为 `d6dd8f2e5c8121e43f22cd1fbf15152ae87100e9` 且含未提交优化，仅作补充证据，未修改或替换冻结引用。
 - 本轮新鲜公共上游观察：GET `https://judge.buaa.edu.cn/indexcs/simple.jsp` 返回 HTTP 200，含 `cgstuloginbtn`，其 SSO `/login` 链接的 service 为 `https://judge.buaa.edu.cn/`。只输出状态、固定路径与公开 service，不保存原始页面。
 - 原 HAR 在 Downloads 中未找到，本轮不声称重新分析原 HAR；历史真实业务结果来自上述记录，当前账号验证单独记录。

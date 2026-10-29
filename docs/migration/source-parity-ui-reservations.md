@@ -1,5 +1,7 @@
 # P4-D 图书馆与场馆展示来源和接入计划
 
+> 本页保留原审查时点的路径、行号与缺口。当前 Dart 适配位于 [bridge/features](../../packages/ubaa_app/lib/src/bridge/features/)，UI 位于 [features](../../packages/ubaa_ui/lib/src/features/)，完整定位见[文档索引](../index.md#按修改内容定位)。表内旧路径仅用于结合原提交追溯，不能作为当前源码入口。
+
 2026-09-08；静态读取当前 App/UI/Core/Bridge 与两冻结源。本文件为实施前静态核对；未运行测试或 native。路径相对 `<private-evidence>/source-checkouts/UBAA`。冻结 old=`6e75e120a26b0eefb3ab4a6f8251d1230db4a62e`，examples=`efb7976bf513f38364b88aeb83d704586cff9b2a`。本计划不代表完成验证。
 
 ## 总体裁决
@@ -27,7 +29,7 @@ P4-D仅改变公开DTO到App presentation/UI的投影，不更改Bridge v9、Cor
 
 ## 日期与时段：必须保留的边界
 
-图书馆依据 `docs/design/ui-ux-redesign.md:70` 的“首日可确认”限制，绝不将相同timeSlots复制给全部availableDates。冻结 `LocalLibBookApi.kt:466` 把date.list中的非空日期收集为availableDates，却取原始第一项times为timeSlots；当前 `crates/ubaa_core/src/features/libbook/parser.rs:152` 同样如此，`:175` 还支持顶层timeSlots回退。Bridge AreaDetail没有日期→时段关联或解析来源标志。
+图书馆依据 `docs/migration/history/2026-09-08-ui-ux-redesign.md:70` 的“首日可确认”限制，绝不将相同timeSlots复制给全部availableDates。冻结 `LocalLibBookApi.kt:466` 把date.list中的非空日期收集为availableDates，却取原始第一项times为timeSlots；当前 `crates/ubaa_core/src/features/libbook/parser.rs:152` 同样如此，`:175` 还支持顶层timeSlots回退。Bridge AreaDetail没有日期→时段关联或解析来源标志。
 
 **额外需裁决的细节：仅凭availableDates.first与timeSlots均非空，不能对所有合法公开DTO证明关联。** 原始第一项日期为空但有times时，availableDates过滤空日期后会以第二天开头，times仍来自第一项；顶层回退同样无显式日期关联。本轮不能宣称“非空即确认”。建议将首日作为明确受限的候选展示，只有经既有受支持来源合同确认关联的场景才自动组合；如果App没有这样的证据，首日也只读列示并保留手输，记录“当前数据未提供可确认的日期时段”。要普遍自动关联须另开来源RED与公开合同决策，不偷偷改Bridge或假设一对一。
 

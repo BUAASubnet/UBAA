@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "https://github.com/BUAASubnet/UBAA/docs/contracts/cli-json.schema.json",
+  "$id": "urn:ubaa:cli:json:schema:12",
   "title": "UBAA CLI JSON envelope",
   "oneOf": [
     { "$ref": "#/$defs/resolvedRoutedEnvelope" },

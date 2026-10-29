@@ -34,7 +34,7 @@
 - [离线缓存与恢复](contracts/offline-cache-and-recovery.md)
 - [冻结参考](migration/references.md)、[来源对照矩阵及后续专项](migration/source-parity.md)
 
-界面设计依据另见 [Flutter UI 规格](design/flutter-ui-spec.md)，具体实现与验收按当前候选记录。
+界面设计依据见 [Flutter UI 规格](design/flutter-ui-spec.md)、[配色](design/color-system.md)和[首页](design/home-layout.md)，具体实现与验收按当前候选记录。
 
 ## 架构决策与平台
 
@@ -71,3 +71,16 @@
 - [旧版功能迁移矩阵](migration/full-feature-matrix.md)、[旧版能力盘点](migration/legacy-feature-inventory.md)
 
 历史提交、计数和验收结果只描述对应候选；不能代替当前确定性、原生、设备、真实只读或发布证据。
+
+## 文档分工与归档
+
+| 位置 | 维护内容 |
+|---|---|
+| architecture / contracts / development / runbooks | 现行架构、兼容行为、工程规则与操作入口。 |
+| design | 持续维护的界面、配色与首页规格，历史设计和执行清单归档。 |
+| migration | 当前状态、来源对照、决策入口及按候选登记的专项结果。 |
+| migration/history | 已取代的目标、快照、设计、审计和计划，含原 superpowers 内容；见[历史说明](migration/history/README.md)。 |
+| migration/evidence | 迁移、协议和阶段验收的脱敏文字证据与映射。 |
+| design/evidence | UI 原型、采集元数据、批次与外部媒体索引。3967 个 JSON 保留原位，内部历史链接按既定约定处理。 |
+
+历史内部链接按原提交追溯，现行文档指向归档的文件和锚点仍纳入[断链门禁](development/commands.md#文档链接范围)。历史材料不能充当当前任务授权。

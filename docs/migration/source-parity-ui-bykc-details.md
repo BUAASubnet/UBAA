@@ -33,7 +33,7 @@
 筛选仅针对当前服务器页，服务器分页元数据不改。跨重启偏好未在本批实现，不改宿主存储或预留推测性接口。
 
 真正 RED、聚焦 GREEN、完整门禁命令与结果集中记录在
-`.superpowers/sdd/macos-ui-button-plan/task-3d-bykc-report.md`，日志仅存仓库外私有证据目录。
+当时本地的 `.superpowers/sdd/macos-ui-button-plan/task-3d-bykc-report.md`。该报告未受跟踪，当前克隆无法复现；不据此新增通过结论。受跟踪的阶段事实见下节，原日志只属于当时私有证据。
 这些是合成数据的确定性证据；本批没有运行 live、CUA 或 native App 验收，没有学校写入。
 
 ## Task3D2 实施与审查事实
