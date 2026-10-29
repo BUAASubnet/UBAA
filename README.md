@@ -152,3 +152,5 @@ just verify-live mode=webvpn
 `ubaa_old/`、`examples/`、`.env.local`、运行时 Session、验证码、真实响应和凭据始终只读且不得提交。
 宿主不得调用 Core 私有协议模块、拼接上游 URL、读取 Cookie/Token 或关闭 TLS 校验。无签名构建不能称为
 正式发布，确定性写入流程不能称为真实写入成功。
+
+项目自身采用 [MIT 许可证](LICENSE)。移植代码、协议参考及随仓库保留的第三方源码见[第三方声明](THIRD_PARTY_NOTICES.md)。
