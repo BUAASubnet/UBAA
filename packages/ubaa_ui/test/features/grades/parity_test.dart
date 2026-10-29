@@ -97,7 +97,8 @@ void main() {
     expect(find.text('本学期'), findsOneWidget);
     expect(find.text('2 门 · 3 学分'), findsOneWidget);
     expect(find.byType(DataTable), findsNothing);
-    expect(find.text('RAW-KEEP'), findsNothing);
+    // 绩点原样紧跟分数显示。
+    expect(find.textContaining('80  RAW-KEEP'), findsOneWidget);
     expect(
       tester.getTopLeft(find.text('本学期')).dy,
       lessThan(tester.getTopLeft(find.text('合成已出课程')).dy),
@@ -116,9 +117,6 @@ void main() {
       find.descendant(of: summary, matching: find.text('2 门 · 3 学分')),
       findsOneWidget,
     );
-    await tester.tap(find.text('合成已出课程'));
-    await tester.pumpAndSettle();
-    expect(find.text('RAW-KEEP'), findsOneWidget);
   });
   testWidgets('真实空成绩仍展示本学期零门统计', (tester) async {
     await showFeature(

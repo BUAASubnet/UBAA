@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import '../academic/card.dart' show uiShowAcademicDetails;
 import '../../shared/loading.dart' show LoadingGlyph;
 import '../../shared/text.dart' show uiNonBlank;
 
@@ -174,61 +173,70 @@ class GradeCard extends StatelessWidget {
         borderRadius: BorderRadius.circular(12),
         side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: () => uiShowAcademicDetails(context, detail),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
+      // 课程名、分数、绩点和学分已全部在卡片上，不再弹详情。
+      child: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        child: Row(
+          children: [
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    detail.title,
+                    maxLines: 2,
+                    overflow: TextOverflow.ellipsis,
+                    style: theme.textTheme.titleMedium?.copyWith(
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  if (meta.isNotEmpty) ...[
+                    const SizedBox(height: 2),
                     Text(
-                      detail.title,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: theme.textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold,
+                      meta,
+                      style: theme.textTheme.bodySmall?.copyWith(
+                        color: theme.colorScheme.onSurfaceVariant,
                       ),
                     ),
-                    if (meta.isNotEmpty) ...[
-                      const SizedBox(height: 2),
-                      Text(
-                        meta,
+                  ],
+                ],
+              ),
+            ),
+            const SizedBox(width: 12),
+            ConstrainedBox(
+              constraints: const BoxConstraints(maxWidth: 160),
+              child: Text.rich(
+                TextSpan(
+                  children: [
+                    TextSpan(text: score ?? '待出'),
+                    if (score != null && uiNonBlank(grade.gradePoint) != null)
+                      TextSpan(
+                        text: '  ${grade.gradePoint!.trim()}',
                         style: theme.textTheme.bodySmall?.copyWith(
                           color: theme.colorScheme.onSurfaceVariant,
+                          fontWeight: FontWeight.normal,
                         ),
                       ),
-                    ],
                   ],
                 ),
+                textAlign: TextAlign.right,
+                maxLines: 2,
+                overflow: TextOverflow.ellipsis,
+                style:
+                    (score == null
+                            ? theme.textTheme.titleSmall
+                            : theme.textTheme.titleLarge)
+                        ?.copyWith(
+                          fontWeight: FontWeight.bold,
+                          color: score == null
+                              ? theme.colorScheme.onSurfaceVariant
+                              : _gradeFailed(score)
+                              ? theme.colorScheme.error
+                              : theme.colorScheme.primary,
+                        ),
               ),
-              const SizedBox(width: 12),
-              ConstrainedBox(
-                constraints: const BoxConstraints(maxWidth: 96),
-                child: Text(
-                  score ?? '待出',
-                  textAlign: TextAlign.right,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style:
-                      (score == null
-                              ? theme.textTheme.titleSmall
-                              : theme.textTheme.titleLarge)
-                          ?.copyWith(
-                            fontWeight: FontWeight.bold,
-                            color: score == null
-                                ? theme.colorScheme.onSurfaceVariant
-                                : _gradeFailed(score)
-                                ? theme.colorScheme.error
-                                : theme.colorScheme.primary,
-                          ),
-                ),
-              ),
-            ],
-          ),
+            ),
+          ],
         ),
       ),
     );

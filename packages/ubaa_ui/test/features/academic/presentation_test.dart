@@ -48,7 +48,7 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('平板成绩沿旧卡片无需横滚且次要字段可本地打开', (tester) async {
+  testWidgets('平板成绩无需横滚，绩点与次要字段直接显示在卡片上', (tester) async {
     await _show(
       tester,
       FeatureId.grades,
@@ -83,15 +83,12 @@ void main() {
       ),
       findsNothing,
     );
+    // 成绩卡片不再弹详情：绩点紧跟分数，学分与成绩类型在第二行。
+    expect(find.textContaining('80  3'), findsOneWidget);
+    expect(find.textContaining('2 学分 · 百分制'), findsOneWidget);
     await tester.tap(find.text('可打开的课程'));
     await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsOneWidget);
-    await tester.tap(find.text('更多信息').last);
-    await tester.pumpAndSettle();
-    expect(
-      find.descendant(of: find.byType(AlertDialog), matching: find.text('百分制')),
-      findsOneWidget,
-    );
+    expect(find.byType(AlertDialog), findsNothing);
     expect(find.text('2026-1'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -127,7 +124,7 @@ void main() {
     expect(find.text('一层教室'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('宽屏成绩长课程名两行省略且可通过课程编号搜索并打开全文', (tester) async {
+  testWidgets('宽屏成绩长课程名两行省略且可通过课程编号搜索', (tester) async {
     final title = List.filled(12, '跨学科课程中的实践与理论').join('');
     await _show(
       tester,
@@ -158,12 +155,6 @@ void main() {
     expect(
       tester.getRect(find.widgetWithText(Card, title).first).bottom,
       greaterThan(titleRect.bottom),
-    );
-    await tester.tap(find.text(title));
-    await tester.pumpAndSettle();
-    expect(
-      find.descendant(of: find.byType(AlertDialog), matching: find.text(title)),
-      findsOneWidget,
     );
     expect(tester.takeException(), isNull);
   });
@@ -251,13 +242,10 @@ void main() {
         ),
         FeatureDetail(title: '待出课程', presentation: GradePresentation()),
       ], width: width);
-      expect(find.text('通过'), findsOneWidget);
-      expect(find.text('优秀'), findsNothing);
+      // 非数值绩点原样跟在分数后，不推算成数字。
+      expect(find.textContaining('通过  优秀'), findsOneWidget);
       expect(find.text('待出'), findsOneWidget);
-      await tester.tap(find.text('实践课程'));
-      await tester.pumpAndSettle();
-      expect(find.text('优秀'), findsOneWidget);
-      expect(find.text('0.0'), findsNothing);
+      expect(find.textContaining('0.0'), findsNothing);
       expect(tester.takeException(), isNull);
     });
   }
