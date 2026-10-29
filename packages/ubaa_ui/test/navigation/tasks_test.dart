@@ -62,7 +62,15 @@ void main() {
       await tester.pumpAndSettle();
       expect(tester.state(find.byType(UbaaMainShell)), same(state));
       for (final label in UiDestination.values.map((item) => item.label)) {
-        if (width >= 600 && width < 1000) {
+        if (width < 600 && label == '设置') {
+          tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+          await tester.pumpAndSettle();
+          expect(find.text(label), findsOneWidget);
+          tester
+              .state<ScaffoldState>(find.byType(Scaffold).first)
+              .closeDrawer();
+          await tester.pumpAndSettle();
+        } else if (width >= 600 && width < 1000) {
           expect(find.byTooltip(label), findsOneWidget);
         } else {
           expect(find.text(label), findsWidgets);

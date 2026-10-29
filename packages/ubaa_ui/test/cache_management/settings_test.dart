@@ -58,7 +58,7 @@ void main() {
     await tap(tester, '确认清理');
     expect(calls, 1);
     expect(find.text('内容已清除，空间回收暂未完成。'), findsOneWidget);
-    expect(find.text('退出登录'), findsOneWidget);
+    expect(find.text('退出并清除本机账号'), findsOneWidget);
   });
   testWidgets('事务失败不显示成功且保留重试入口', (tester) async {
     await mount(tester, onClear: (_) async => throw StateError('合成失败'));
@@ -172,7 +172,11 @@ Future<void> mount(
   );
   await tester.pumpAndSettle();
   if (onRead != null) {
-    await tester.tap(find.byKey(const ValueKey('tab-设置')));
+    tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.descendant(of: find.byType(Drawer), matching: find.text('设置')),
+    );
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
   } else {

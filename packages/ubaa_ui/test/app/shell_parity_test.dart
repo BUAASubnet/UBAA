@@ -54,13 +54,13 @@ void main() {
     expect(find.widgetWithText(AppBar, '校园服务'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
-  testWidgets('展示确认的五项入口和首页标题', (tester) async {
+  testWidgets('手机底栏展示四项入口和首页标题', (tester) async {
     await mount(tester);
     expect(
       tester
           .widgetList<NavigationDestination>(find.byType(NavigationDestination))
           .map((item) => item.label),
-      ['首页', '学业', '课程与作业', '校园服务', '设置'],
+      ['首页', '学业', '课程与作业', '校园服务'],
     );
     expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
   });

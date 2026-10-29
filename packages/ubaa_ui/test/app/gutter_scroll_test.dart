@@ -87,7 +87,8 @@ void main() {
     final position = tester.state<ScrollableState>(scrollable).position;
     final bounds = tester.getRect(scrollable);
     expect(bounds.width, UbaaTheme.pageMaxWidth);
-    expect(position.maxScrollExtent, greaterThan(240));
+    expect(position.maxScrollExtent, greaterThan(0));
+    final step = position.maxScrollExtent / 3;
 
     Future<void> wheel(Offset point, double delta) async {
       await tester.sendEventToBinding(
@@ -96,12 +97,12 @@ void main() {
       await tester.pumpAndSettle();
     }
 
-    await wheel(bounds.centerLeft - const Offset(40, 0), 120);
-    expect(position.pixels, 120);
-    await wheel(bounds.centerRight + const Offset(40, 0), 120);
-    expect(position.pixels, 240);
-    await wheel(bounds.center, -120);
-    expect(position.pixels, 120);
+    await wheel(bounds.centerLeft - const Offset(40, 0), step);
+    expect(position.pixels, closeTo(step, 0.01));
+    await wheel(bounds.centerRight + const Offset(40, 0), step);
+    expect(position.pixels, closeTo(step * 2, 0.01));
+    await wheel(bounds.center, -step);
+    expect(position.pixels, closeTo(step, 0.01));
     await wheel(bounds.centerLeft - const Offset(40, 0), -1000);
     expect(position.pixels, 0);
     await wheel(bounds.centerRight + const Offset(40, 0), 100000);

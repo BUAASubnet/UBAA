@@ -218,26 +218,21 @@ void main() {
     await visit(FeatureId.exam);
     await visit(FeatureId.grades);
     await visit(FeatureId.exam);
-    // 通过实际首页卡片顺序检查导航结果，后台数据刷新不算访问。
-    final cards = find.descendant(
-      of: find.byType(HomeView),
-      matching: find.byType(Card),
-    );
-    final texts = <String>[];
-    for (final element in cards.evaluate()) {
-      final descendants = find.descendant(
-        of: find.byWidget(element.widget),
-        matching: find.byType(Text),
-      );
-      texts.addAll(
-        tester.widgetList<Text>(descendants).map((t) => t.data ?? ''),
-      );
-    }
-    expect(texts.indexOf(FeatureId.exam.title), greaterThanOrEqualTo(0));
-    expect(
-      texts.indexOf(FeatureId.exam.title),
-      lessThan(texts.indexOf(FeatureId.grades.title)),
-    );
-    expect(texts.where((t) => t == FeatureId.exam.title), hasLength(1));
+    final icons = tester
+        .widgetList<IconButton>(
+          find.descendant(
+            of: find.byType(HomeView),
+            matching: find.byType(IconButton),
+          ),
+        )
+        .where((button) => button.key.toString().contains('recent-'))
+        .toList();
+    expect(icons.map((button) => button.tooltip), [
+      FeatureId.exam.title,
+      FeatureId.grades.title,
+    ]);
+    await tester.tap(find.byKey(const ValueKey('recent-grades')));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, FeatureId.grades.title), findsOneWidget);
   });
 }

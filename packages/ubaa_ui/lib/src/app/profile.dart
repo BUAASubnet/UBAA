@@ -155,38 +155,23 @@ class ProfileView extends StatelessWidget {
                       uiShowDiagnosticsDialog(context, onReadDiagnostics!),
                 ),
               ],
+              if (telemetryAvailable || onReadDiagnostics != null)
+                const Divider(height: 1),
+              ListTile(
+                leading: Icon(
+                  Icons.delete_outline,
+                  color: Theme.of(context).colorScheme.error,
+                ),
+                title: Text(
+                  '退出并清除本机账号',
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+                onTap: () => _confirmClearAccount(context),
+              ),
             ],
           ),
         ),
-        const SizedBox(height: 16),
-        const UiSectionTitle('账号'),
-        if (onOpenProfile != null)
-          UiEntryCard(
-            title: '我的资料',
-            icon: Icons.person_outline,
-            onTap: onOpenProfile!,
-          ),
-        if (onOpenAbout != null) ...[
-          const SizedBox(height: 8),
-          UiEntryCard(
-            title: '关于',
-            icon: Icons.info_outline,
-            onTap: onOpenAbout!,
-          ),
-        ],
       ],
-      const SizedBox(height: 24),
-      OutlinedButton.icon(
-        onPressed: () => onLogout(),
-        icon: const Icon(Icons.logout),
-        label: const Text('退出登录'),
-      ),
-      const SizedBox(height: 12),
-      TextButton.icon(
-        onPressed: () => _confirmClearAccount(context),
-        icon: const Icon(Icons.delete_outline),
-        label: const Text('退出并清除本机账号'),
-      ),
     ],
   );
 

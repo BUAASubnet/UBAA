@@ -8,8 +8,8 @@ const _profile = UserSummary(
   username: 'fixture-login',
   displayName: '合成同学',
   schoolId: 'school-fixture',
-  email: 'student@example.invalid',
-  phone: '00000000000',
+  email: 's***t@example.invalid',
+  phone: '000****0000',
   idCardTypeName: '合成证件类型',
 );
 
@@ -25,7 +25,8 @@ void main() {
       accountScope: 'same',
     );
     await tester.pumpAndSettle();
-    expect(find.text('查看账号资料'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, '我的资料'), findsOneWidget);
+    expect(find.text('fixture-user'), findsOneWidget);
   });
 
   testWidgets('遮罩资料保持联系人保护且在线更新不退出个人页', (tester) async {
@@ -50,16 +51,14 @@ void main() {
     await _mount(tester, profile, []);
     expect(find.text('合***名'), findsWidgets);
     expect(find.text('资料暂未更新，保留上次内容'), findsOneWidget);
-    await _tap(tester, '查看账号资料');
-    expect(find.text('显示手机'), findsNothing);
-    expect(find.text('显示邮箱'), findsNothing);
     profile.value = const UserSummary(
       username: 'fixture-user',
       accountScope: 'local-account',
       displayName: '线上合成姓名',
     );
     await tester.pumpAndSettle();
-    expect(find.text('查看账号资料'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, '我的资料'), findsOneWidget);
+    expect(find.text('fixture-user'), findsOneWidget);
   });
 
   testWidgets('清除确认期间换账号，旧确认不能清除新账号', (tester) async {
@@ -67,6 +66,7 @@ void main() {
     addTearDown(profile.dispose);
     var clears = 0;
     await _mount(tester, profile, [], onClear: () async => clears++);
+    await openUtility(tester, '设置');
     await _tap(tester, '退出并清除本机账号');
     expect(find.text('清除本机账号？'), findsOneWidget);
     profile.value = const UserSummary(username: 'new-account');
@@ -75,49 +75,27 @@ void main() {
     expect(clears, 0);
     expect(find.byType(AlertDialog), findsNothing);
   });
-  testWidgets('账号资料联系人默认不在文本或语义中，主动查看只影响本地且关闭后隐藏', (tester) async {
+  testWidgets('资料直接显示上游遮罩联系人，返回再进入不触发读取', (tester) async {
     final profile = ValueNotifier<UserSummary?>(_profile);
     addTearDown(profile.dispose);
-    final semantics = tester.ensureSemantics();
-    try {
-      final reads = <String>[];
-      await _mount(tester, profile, reads);
-      await _tap(tester, '查看账号资料');
-      expect(find.text('school-fixture'), findsOneWidget);
-      expect(find.text('合成证件类型'), findsOneWidget);
-      expect(find.text(_profile.email!), findsNothing);
-      expect(find.text(_profile.phone!), findsNothing);
-      expect(find.bySemanticsLabel(_profile.email!), findsNothing);
-      expect(find.bySemanticsLabel(_profile.phone!), findsNothing);
-      await _tap(tester, '显示邮箱');
-      await _tap(tester, '显示手机');
-      expect(find.text(_profile.email!), findsOneWidget);
-      expect(find.text(_profile.phone!), findsOneWidget);
-      expect(reads, isEmpty);
-      await _tap(tester, '收起账号资料');
-      await _tap(tester, '查看账号资料');
-      expect(find.text(_profile.email!), findsNothing);
-      expect(find.text(_profile.phone!), findsNothing);
-      expect(reads, isEmpty);
-      await _tap(tester, '显示邮箱');
-      await tester.tap(find.byTooltip('返回'));
-      await tester.pumpAndSettle();
-      await openUtility(tester, '我的资料');
-      expect(find.text(_profile.email!), findsNothing);
-      await _tap(tester, '查看账号资料');
-      expect(find.text(_profile.email!), findsNothing);
-      expect(reads, isEmpty);
-    } finally {
-      semantics.dispose();
-    }
+    final reads = <String>[];
+    await _mount(tester, profile, reads);
+    expect(find.text('school-fixture'), findsOneWidget);
+    expect(find.text(_profile.email!), findsOneWidget);
+    expect(find.text(_profile.phone!), findsOneWidget);
+    expect(reads, isEmpty);
+    await tester.tap(find.byTooltip('返回'));
+    await tester.pumpAndSettle();
+    await openUtility(tester, '我的资料');
+    expect(find.text(_profile.email!), findsOneWidget);
+    expect(find.text(_profile.phone!), findsOneWidget);
+    expect(reads, isEmpty);
   });
 
-  testWidgets('同账号资料更新或换账号立即移除旧内容和展开状态', (tester) async {
+  testWidgets('同账号资料更新立即替换内容，换账号和退出移除旧内容', (tester) async {
     final profile = ValueNotifier<UserSummary?>(_profile);
     addTearDown(profile.dispose);
     await _mount(tester, profile, []);
-    await _tap(tester, '查看账号资料');
-    await _tap(tester, '显示邮箱');
     profile.value = const UserSummary(
       username: 'fixture-login',
       email: 'new@example.invalid',
@@ -125,22 +103,17 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text(_profile.email!), findsNothing);
-    expect(find.text('new@example.invalid'), findsNothing);
-    await _tap(tester, '查看账号资料');
-    expect(find.text('x'), findsNothing);
-    await _tap(tester, '显示邮箱');
+    expect(find.text('x'), findsOneWidget);
     expect(find.text('new@example.invalid'), findsOneWidget);
     profile.value = const UserSummary(username: 'other-fixture');
     await tester.pumpAndSettle();
     expect(find.text('new@example.invalid'), findsNothing);
     await openUtility(tester, '我的资料');
-    await _tap(tester, '查看账号资料');
-    expect(find.text('显示邮箱'), findsNothing);
-    expect(find.text('显示手机'), findsNothing);
+    expect(find.text('other-fixture'), findsOneWidget);
     profile.value = null;
     await tester.pumpAndSettle();
-    expect(find.text('收起账号资料'), findsNothing);
-    expect(find.text('查看账号资料'), findsNothing);
+    expect(find.text(_profile.email!), findsNothing);
+    expect(find.text('new@example.invalid'), findsNothing);
     expect(tester.takeException(), isNull);
   });
 }

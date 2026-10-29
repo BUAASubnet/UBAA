@@ -667,9 +667,13 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                   height:
                       56 +
                       (MediaQuery.textScalerOf(context).scale(12) - 12) * 3,
-                  selectedIndex: _selectedIndex,
+                  // 设置入口在侧边栏，底栏只放常用的四项。
+                  selectedIndex: _selectedIndex < UiDestination.settings.index
+                      ? _selectedIndex
+                      : 0,
                   onDestinationSelected: _selectTab,
                   destinations: _tabs
+                      .take(UiDestination.settings.index)
                       .map(
                         (tab) => NavigationDestination(
                           key: ValueKey<String>('tab-${tab.label}'),
@@ -942,7 +946,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
 
   void _openUtility(String page) {
     if (widget.writeState.intent != null) return;
-    if (page == UiDestination.settings.label) {
+    if (page == UiDestination.settings.label &&
+        MediaQuery.sizeOf(context).width >= 600) {
       _selectTab(UiDestination.settings.index);
       return;
     }
@@ -959,39 +964,5 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       _utilityPage = null;
       _openedFeature = null;
     });
-  }
-}
-
-/// 底栏顶部留白 8pt，底部安全区最多保留 20pt，仍避开 Home 指示条。
-class _CompactNavigationBar extends StatelessWidget {
-  const _CompactNavigationBar({required this.child});
-
-  static const double _topGap = 8;
-  static const double _maxBottomInset = 20;
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final media = MediaQuery.of(context);
-    final theme = Theme.of(context);
-    return ColoredBox(
-      color:
-          theme.navigationBarTheme.backgroundColor ??
-          theme.colorScheme.surfaceContainer,
-      child: Padding(
-        padding: const EdgeInsets.only(top: _topGap),
-        child: MediaQuery(
-          data: media.copyWith(
-            padding: media.padding.copyWith(
-              bottom: media.padding.bottom > _maxBottomInset
-                  ? _maxBottomInset
-                  : media.padding.bottom,
-            ),
-          ),
-          child: child,
-        ),
-      ),
-    );
   }
 }

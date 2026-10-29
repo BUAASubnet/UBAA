@@ -80,7 +80,10 @@ Future<void> openUtility(WidgetTester tester, String title) async {
     tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
     await tester.pumpAndSettle();
     await tester.tap(
-      find.descendant(of: find.byType(Drawer), matching: find.text(title)),
+      find.descendant(
+        of: find.byType(Drawer),
+        matching: title == '我的资料' ? find.byType(Image) : find.text(title),
+      ),
     );
   } else if (title == '我的资料') {
     await tester.tap(find.byType(Image).first);

@@ -375,6 +375,12 @@ class _HomeViewState extends State<HomeView> {
           setState(() => _calendarRoute = value);
       },
       onOpenSchedule: () => widget.onFeatureTap(FeatureId.schedule),
+      trailing: widget.recentFeatures.isEmpty
+          ? null
+          : _RecentFeatureIcons(
+              features: widget.recentFeatures.take(4).toList(),
+              onTap: widget.onFeatureTap,
+            ),
     );
     final todoSection = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -491,24 +497,6 @@ class _HomeViewState extends State<HomeView> {
           ),
       ],
     );
-    Widget shortcuts(String title, List<FeatureId> items) => Column(
-      crossAxisAlignment: CrossAxisAlignment.stretch,
-      children: [
-        const SizedBox(height: 24),
-        UiSectionTitle(title),
-        _HomeCardGrid(
-          maxColumns: 4,
-          minWidth: 156,
-          children: [
-            for (final feature in items)
-              _HomeShortcutCard(
-                feature: feature,
-                onTap: () => widget.onFeatureTap(feature),
-              ),
-          ],
-        ),
-      ],
-    );
     return RefreshIndicator(
       onRefresh: widget.onRefresh,
       child: ListView(
@@ -534,8 +522,6 @@ class _HomeViewState extends State<HomeView> {
           // 课程卡片自带 12 的下边距，再留 12 与卡片间距相称。
           const SizedBox(height: 12),
           todoSection,
-          if (widget.recentFeatures.isNotEmpty)
-            shortcuts('最近使用', widget.recentFeatures.take(4).toList()),
         ],
       ),
     );
@@ -775,74 +761,37 @@ class FeatureGridView extends StatelessWidget {
   );
 }
 
-/// 卡片只负责排布，滚动统一交给首页；每行按内容自然增高。
-class _HomeCardGrid extends StatelessWidget {
-  const _HomeCardGrid({
-    required this.children,
-    required this.maxColumns,
-    required this.minWidth,
-  });
-  final List<Widget> children;
-  final int maxColumns;
-  final double minWidth;
-
-  @override
-  Widget build(BuildContext context) => LayoutBuilder(
-    builder: (context, constraints) {
-      final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
-      final columns = ((constraints.maxWidth + 12) / (minWidth * scale + 12))
-          .floor()
-          .clamp(1, maxColumns);
-      return Column(
-        children: [
-          for (var start = 0; start < children.length; start += columns) ...[
-            if (start > 0) const SizedBox(height: 12),
-            IntrinsicHeight(
-              child: Row(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  for (var column = 0; column < columns; column++) ...[
-                    if (column > 0) const SizedBox(width: 12),
-                    Expanded(
-                      child: start + column < children.length
-                          ? children[start + column]
-                          : const SizedBox.shrink(),
-                    ),
-                  ],
-                ],
-              ),
-            ),
-          ],
-        ],
-      );
-    },
-  );
-}
-
-class _HomeShortcutCard extends StatelessWidget {
-  const _HomeShortcutCard({required this.feature, required this.onTap});
-  final FeatureId feature;
-  final VoidCallback onTap;
+/// 最近使用的功能：今日课表标题右侧的一排小图标，长按显示名称。
+class _RecentFeatureIcons extends StatelessWidget {
+  const _RecentFeatureIcons({required this.features, required this.onTap});
+  final List<FeatureId> features;
+  final ValueChanged<FeatureId> onTap;
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    return Card(
-      child: InkWell(
-        onTap: onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(uiFeatureIcon(feature), color: theme.colorScheme.primary),
-              const SizedBox(height: 8),
-              Text(feature.title, style: theme.textTheme.titleSmall),
-            ],
+    final scheme = Theme.of(context).colorScheme;
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        for (final (i, feature) in features.indexed) ...[
+          if (i > 0) const SizedBox(width: 8),
+          IconButton.filledTonal(
+            key: ValueKey('recent-${feature.name}'),
+            tooltip: feature.title,
+            style: IconButton.styleFrom(
+              minimumSize: const Size(36, 36),
+              fixedSize: const Size(36, 36),
+              padding: EdgeInsets.zero,
+              tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+              backgroundColor: scheme.primaryContainer,
+              foregroundColor: scheme.onPrimaryContainer,
+            ),
+            iconSize: 18,
+            onPressed: () => onTap(feature),
+            icon: Icon(uiFeatureIcon(feature)),
           ),
-        ),
-      ),
+        ],
+      ],
     );
   }
 }

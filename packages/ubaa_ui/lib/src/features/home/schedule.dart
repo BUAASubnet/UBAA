@@ -19,8 +19,12 @@ class HomeScheduleSection extends StatefulWidget {
     this.weekResult,
     this.onLoadDay,
     this.onRoute,
+    this.trailing,
   });
   final ValueChanged<HomeScheduleRoute>? onRoute;
+
+  /// 标题右侧的小控件（首页放最近使用的功能图标）。
+  final Widget? trailing;
   final FeatureSnapshot today;
   final FeatureResult? weekResult;
   final DateTime now;
@@ -189,11 +193,18 @@ class _HomeScheduleSectionState extends State<HomeScheduleSection> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Text(
-          tomorrow ? '明日课表' : '今日课表',
-          style: theme.textTheme.headlineSmall?.copyWith(
-            fontWeight: FontWeight.bold,
-          ),
+        Row(
+          children: [
+            Expanded(
+              child: Text(
+                tomorrow ? '明日课表' : '今日课表',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+            ),
+            if (widget.trailing case final trailing?) trailing,
+          ],
         ),
         const SizedBox(height: 4),
         Text(
