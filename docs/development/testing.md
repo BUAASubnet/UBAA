@@ -22,57 +22,14 @@
 
 公共 API 使用真实 import 与静态签名编译，不检查手写名字清单长度。旧 WriteFlowController 是同一协调器的兼容入口，独有错误/返回值合同归 `ubaa_app/test/write/compatibility_test.dart`。行为文件独立注册，共享夹具放 test/support；UI 点击前滚动并确认可命中，不能调用内部 State 跳过入口，也不能依赖前一用例留下的大窗口。golden 字节保持原基线。
 
-## 原生、真实与人工入口
+## 原生能力与覆盖边界
 
-```bash
-just integration-list
-just integration-test
-just integration-test synthetic/cache/bridge_test.dart macos macos
-```
+原生测试只保留 `integration_test/platform/` 和 `synthetic/cache/`：真实安全存储、私有目录、网络、照片、包信息、系统方向，以及真实 Rust FFI 缓存和跨进程启动锁。入口、平台、前提和 CI 归属集中在 `scripts/integration-tests.json`，用 `just integration-list` 查看，用 `just integration-test` 执行默认集合。其他能力选择清单中的精确路径，不对整个目录通配执行。
 
-默认集合包含已登记的应用流程、合成 FFI 缓存、本地网络恢复与真实插件通道；macOS CI 使用同一集合。其余原生用例按清单路径显式运行。platforms 表示入口适用条件，不表示本轮已验证全部平台。
+合成全流程、软键盘专项、真实账号 UI 和常驻预览已按用户决定删除。被普通测试引用的合成数据位于 `apps/ubaa_flutter/test/support/`，不再由单元测试导入原生入口。删除项、保留覆盖与自动化缺口见[范围决定](../migration/decision-log.md#2026-10-29原生集成只保留真实原生能力)。Fixture、Widget 和构建成功不能代替真实原生能力或学校协议证据。
 
-人工巡检在 apps/ubaa_flutter 下单独启动，例如：
+启动锁通过已登记夹具执行：应用在自身沙箱创建临时目录并派生系统 Perl 子进程持有真实 OS 锁，验证不同 PID、等待画面、resourceBusy 与释放后的 FFI 重试。宿主终端不访问应用容器，也不修改系统权限。Perl 从应用继承的 PATH 查找，以兼容 Linux 的安装位置；不依赖终端访问其他 App 数据的权限。Perl 缺失或不能启动时该项应失败，不能改用同进程锁。
 
-```bash
-just flutter run -d macos -t integration_test/manual/app/flow_driver.dart
-```
+关于、照片和 iPad 方向测试保留截图元数据。需要保存 iOS 截图时，显式使用 `test_driver/ui_render.dart`，设置仓库外空目录 UBAA_UI_EVIDENCE_DIR；安全校验由共享 evidence_directory 和原单元测试保护。软键盘专用驱动已删除。方向用例需要唯一 UBAA_ROTATION_RUN_ID 和外部系统方向握手，不能用修改 Widget 尺寸替代。
 
-manual/live 永不进入默认 CI。真实只读的 environment 与 defines 见清单；启动测量 driver 还需独立材料空间和 `scripts/live/offline_startup/run.py` 的显式参数。不要对整个 integration_test 目录执行通配测试。截图和录屏进入仓库外私有目录。
-
-## 验收与真实账号
-
-按[统一完成条件](commands.md#检查选择与完成条件)验收，不在本页另列清单。普通七包测试不能替代原生测试；golden 固定官方 SDK 与 macOS 渲染环境，更新后必须在非更新模式精确比较通过。构建、设备、Core-live、真实 App 与发布分别记账。
-
-真实账号授权与双路线要求见 [AGENTS](../../AGENTS.md#真实账号与验收范围)及[来源对照验收](commands.md#来源对照与真实验证)。Fixture、Mock、空数据和 unavailable 不等于当前候选真实成功，历史文档不提供新的授权。实际结果见[当前状态](../migration/status.md)。
-
-### 全平台合成数据预览
-
-人工入口为 `apps/ubaa_flutter/integration_test/manual/preview/preview_driver.dart`。它直接注入 `PreviewBackend`、内存凭据库、权限和照片实现，不初始化 FRB，不读取本机账号，不请求学校服务。登录页填写任意非空账号和密码即可进入。全部业务数据为合成内容，写入只改变当前进程的内存状态，重启后恢复初始数据。不要在此入口填写真实账号或个人信息。
-
-在 `apps/ubaa_flutter` 中运行：
-
-```sh
-just flutter run -d <设备ID> -t integration_test/manual/preview/preview_driver.dart
-just flutter run -d macos -t integration_test/manual/preview/preview_driver.dart --dart-define=UBAA_UI_STATE=many
-```
-
-相同入口适用于工程支持的 iOS、Android、macOS、Windows、Linux。设备 ID 通过 `just flutter devices` 查询；桌面端也可使用 `macos`、`windows`、`linux`。各平台需要各自的 Flutter 原生构建环境。本入口仅在集成目录清单登记为 `manual`、`runner: run`、`ci: false`，不属于自动回归套件。
-
-`UBAA_UI_STATE` 支持以下值：
-
-| 值 | 行为 |
-| --- | --- |
-| `normal` | 常规 typed 内容和本地写入 |
-| `empty` | 空业务列表，保留课表学期、教学周选择 |
-| `loading` | 业务读取延迟 8 秒后返回 |
-| `first-error` | 同一查询范围第一次失败，重试恢复 |
-| `stale` | 同一查询范围首次成功，后续读取失败，用于检查旧内容保留 |
-| `long` | 长标题、长正文，增加时间待定课程 |
-| `many` | 大量课程、作业、座位等条目，增加时间待定课程 |
-
-学业数据包含三个学期、以运行当天为第 8 周的 18 周校历、14 节作息、已安排与未安排考试、百分制与等级制成绩，以及两校区各四栋楼、每栋八间空教室。首页单日课表使用 typed 投影。`long`、`many` 中的时间待定课程会触发现有首页的日期完整性保护。
-
-图书馆与研讨室预约、取消、博雅选退、签到、评教和阳光打卡可在内存中提交并回读；iHome 支持列表、详情、公告及本地关注和支持。个人资料使用合成身份。课表同步模拟 18 周进度，不写入实际课表缓存。
-
-当前边界：窄屏空教室页面没有校区、日期选择器，现有产品代码仅在宽屏展示这些控件。图书馆合成分区未关联平面图，因此显示“当前分区暂无平面图”。系统级通知、桌面组件、真实相册、定位、离线持久化及真实认证不属于该内存入口的模拟范围。iHome 列表提供分页、关键词和个人范围过滤，排序和分类选择不模拟服务端排序差异。状态模式用于主要业务读取，不覆盖系统设置和所有辅助元数据请求。页面截图与录屏只能保存在仓库外私有目录。
+Golden 保留既有 macOS 基准，变更基准必须审阅实际差异。运行媒体遵守 [AGENTS 安全边界](../../AGENTS.md#安全边界)。offline_startup/analyze.py 只保留历史测量材料分析，不再提供已删除 driver 的测量启动器。

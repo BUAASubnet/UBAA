@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
-import '../../../integration_test/synthetic/cgyy/backend.dart';
+import '../../support/cgyy/backend.dart';
 
 void main() {
   WidgetController.hitTestWarningShouldBeFatal = true;

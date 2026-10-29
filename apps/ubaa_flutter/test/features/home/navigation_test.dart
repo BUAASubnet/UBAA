@@ -3,8 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
-import '../../../integration_test/synthetic/home/backend.dart';
-import '../../../integration_test/synthetic/home/scroll.dart';
+import '../../support/home/backend.dart';
+import '../../support/home/scroll.dart';
 
 void main() {
   testWidgets('首页恢复六来源并按旧今日课程时间排序，点击待办直达原作业', (tester) async {

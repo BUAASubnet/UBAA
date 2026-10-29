@@ -1,3 +1,3 @@
-import '../../integration_test/synthetic/app/flow_test.dart' as inspection;
+import 'inspection/backend.dart' as inspection;
 
 void main() => inspection.registerInspectionBackendTests();

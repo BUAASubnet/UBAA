@@ -7,8 +7,8 @@ import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
-import '../../navigation.dart';
-import '../../synthetic/app/flow_test.dart' show createInspectionApp;
+import '../../../test/support/navigation/native.dart';
+import '../../../test/support/inspection/backend.dart' show createInspectionApp;
 
 void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();

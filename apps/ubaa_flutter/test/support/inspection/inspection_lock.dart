@@ -1,4 +1,4 @@
-part of '../flow_test.dart';
+part of 'backend.dart';
 
 /// 独立合成短期显示，不访问网络，也不把密码放进普通读取结果。
 class _InspectionLockSession implements CgyyLockDisplaySession {

@@ -11,7 +11,7 @@
 
 开发阶段按用户要求使用材料前缀 `ubaa.material.v2.`，不迁移或删除旧v1材料及旧macOS通道条目。密码、账号索引、缓存密钥各自使用独立键；业务正文仍由Core加密缓存拥有。能力探测必须写入、读回、删除并确认；不可用时不构造本机账号仓库、不降级明文。存储错误采用安全中文提示与类型化诊断，不输出原始平台错误正文。
 
-聚焦测试为 `just flutter-test ubaa_platform test/credentials`。真实 macOS 平台能力验证运行官方宿主的 `integration_test/platform/credentials/plugin_test.dart` 与 `integration_test/platform/credentials/material_test.dart`，使用独立合成键/文件并在结束时清理；以 `just integration-list` 查看适用平台。原生、确定性与真实账号登录证据分别记录。
+聚焦测试为 `just flutter-test ubaa_platform test/credentials`。当前覆盖合成接口与通道合同，真实安全存储、照片权限与系统插件保留原生能力测试，详见[测试策略](../../docs/development/testing.md)。
 
 ## 遥测
 

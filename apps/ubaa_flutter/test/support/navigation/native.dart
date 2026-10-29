@@ -24,14 +24,23 @@ Finder uiDestinationFinder(WidgetTester tester, UiDestination destination) {
   return find.widgetWithText(ListTile, destination.label).first;
 }
 
-/// 打开“我的资料”“设置”或“关于”：窄屏走抽屉；宽屏侧栏没有抽屉，
-/// 设置走导航目的地，其余走设置页的账号入口。
+/// 窄屏从抽屉打开工具页，桌面“关于”从侧栏底部的可见入口打开。
 Future<void> uiOpenUtility(WidgetTester tester, String title) async {
   final menu = find.byIcon(Icons.menu);
   if (menu.hitTestable().evaluate().isNotEmpty) {
     await tester.tap(menu);
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(ListTile, title));
+    await tester.pumpAndSettle();
+    return;
+  }
+  if (title == '关于') {
+    final button = find.byTooltip(title).hitTestable();
+    final entry = button.evaluate().isNotEmpty
+        ? button
+        : find.widgetWithText(ListTile, title).hitTestable();
+    expect(entry, findsOneWidget);
+    await tester.tap(entry);
     await tester.pumpAndSettle();
     return;
   }

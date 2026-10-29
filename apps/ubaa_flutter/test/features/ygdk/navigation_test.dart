@@ -4,7 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
-import '../../../integration_test/synthetic/ygdk/backend.dart';
+import '../../support/ygdk/backend.dart';
 
 void main() {
   testWidgets('阳光仅进入可见页面后补记录，隐藏后刷新不自动追加查询', (tester) async {

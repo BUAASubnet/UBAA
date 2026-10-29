@@ -4,7 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
-import '../../../integration_test/synthetic/bykc/backend.dart';
+import '../../support/bykc/backend.dart';
 
 void main() {
   testWidgets('课程列表选课和确认退选后刷新原列表，不跳详情或已选页', (tester) async {

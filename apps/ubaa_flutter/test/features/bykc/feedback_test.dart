@@ -4,7 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
-import '../../../integration_test/synthetic/bykc/feedback_backend.dart';
+import '../../support/bykc/feedback_backend.dart';
 
 void main() {
   testWidgets('第二页选课后更新已加载页并保留原卡片位置', (tester) async {

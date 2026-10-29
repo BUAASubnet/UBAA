@@ -133,6 +133,7 @@ source-files:
 
 # 不访问学校或设备的 Python 行为合同。
 script-test:
+    python3 scripts/tests/native/lock_holder_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/directory_names_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/changed_checks_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/integration_catalog_test.py

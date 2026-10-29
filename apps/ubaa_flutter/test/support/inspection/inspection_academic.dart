@@ -1,4 +1,4 @@
-part of '../flow_test.dart';
+part of 'backend.dart';
 
 extension _AcademicInspection on _InspectionBackend {
   List<FeatureDetail> _academicDetails(FeatureId feature, FeatureQuery q) {

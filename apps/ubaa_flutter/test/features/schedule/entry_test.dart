@@ -4,7 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
-import '../../../integration_test/synthetic/schedule/navigation/backend.dart';
+import '../../support/schedule/navigation/backend.dart';
 
 class _EntryBackend extends ScheduleNavigationBackend {
   final terms = Completer<void>(),

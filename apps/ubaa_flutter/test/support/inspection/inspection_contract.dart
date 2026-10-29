@@ -1,4 +1,4 @@
-part of '../flow_test.dart';
+part of 'backend.dart';
 
 /// 巡检数据必须遵守输入和结果合同，避免用错误假数据掩盖界面问题。
 void registerInspectionBackendTests() {

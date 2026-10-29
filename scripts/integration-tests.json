@@ -2,124 +2,6 @@
   "schema": 2,
   "tests": [
     {
-      "path": "live/app/readonly_test.dart",
-      "kind": "live",
-      "domain": "app",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false,
-      "runner": "test",
-      "environment": [
-        "UBAA_CONFIG_DIR"
-      ],
-      "defines": [
-        "UBAA_LIVE_READONLY=true",
-        "UBAA_EXPECTED_ROUTE=webvpn"
-      ]
-    },
-    {
-      "path": "live/performance/cold_start_driver.dart",
-      "kind": "live",
-      "domain": "performance",
-      "platforms": [
-        "macos",
-        "ios"
-      ],
-      "ci": false,
-      "inspection": false,
-      "runner": "run",
-      "environment": [
-        "UBAA_CONFIG_DIR",
-        "UBAA_LIVE_MATERIAL_SCOPE",
-        "UBAA_STARTUP_OUTPUT",
-        "UBAA_STARTUP_MODE",
-        "UBAA_EXPECTED_ROUTE",
-        "UBAA_STARTUP_SCENARIO"
-      ],
-      "defines": []
-    },
-    {
-      "path": "live/recovery/startup_test.dart",
-      "kind": "live",
-      "domain": "recovery",
-      "platforms": [
-        "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
-      ],
-      "ci": false,
-      "inspection": false,
-      "runner": "test",
-      "environment": [
-        "UBAA_CONFIG_DIR",
-        "UBAA_LIVE_MATERIAL_SCOPE"
-      ],
-      "defines": [
-        "UBAA_LIVE_READONLY=true",
-        "UBAA_EXPECTED_ROUTE=webvpn"
-      ]
-    },
-    {
-      "path": "live/schedule/widget_channel_test.dart",
-      "kind": "live",
-      "domain": "schedule",
-      "platforms": [
-        "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
-      ],
-      "ci": false,
-      "inspection": false,
-      "runner": "test",
-      "environment": [
-        "UBAA_CONFIG_DIR"
-      ],
-      "defines": [
-        "UBAA_VERIFY_WEBVPN=true"
-      ]
-    },
-    {
-      "path": "manual/app/flow_driver.dart",
-      "kind": "manual",
-      "domain": "app",
-      "platforms": [
-        "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
-      ],
-      "ci": false,
-      "inspection": true,
-      "runner": "run",
-      "environment": [],
-      "defines": []
-    },
-    {
-      "path": "manual/preview/preview_driver.dart",
-      "kind": "manual",
-      "domain": "app",
-      "platforms": [
-        "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
-      ],
-      "ci": false,
-      "inspection": true,
-      "runner": "run",
-      "environment": [],
-      "defines": []
-    },
-    {
       "path": "platform/about/information_test.dart",
       "kind": "platform",
       "domain": "about",
@@ -225,23 +107,6 @@
       "defines": []
     },
     {
-      "path": "synthetic/app/flow_test.dart",
-      "kind": "synthetic",
-      "domain": "app",
-      "platforms": [
-        "macos",
-        "ios",
-        "android",
-        "linux",
-        "windows"
-      ],
-      "ci": true,
-      "inspection": false,
-      "runner": "test",
-      "environment": [],
-      "defines": []
-    },
-    {
       "path": "synthetic/cache/bridge_test.dart",
       "kind": "synthetic",
       "domain": "cache",
@@ -253,19 +118,6 @@
         "windows"
       ],
       "ci": true,
-      "inspection": false,
-      "runner": "test",
-      "environment": [],
-      "defines": []
-    },
-    {
-      "path": "synthetic/query/keyboard_test.dart",
-      "kind": "synthetic",
-      "domain": "query",
-      "platforms": [
-        "ios"
-      ],
-      "ci": false,
       "inspection": false,
       "runner": "test",
       "environment": [],

@@ -5,7 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart' show UiDestination;
-import '../../../integration_test/synthetic/schedule/navigation/backend.dart';
+import '../../support/schedule/navigation/backend.dart';
 
 Future<void> mount(
   WidgetTester tester,

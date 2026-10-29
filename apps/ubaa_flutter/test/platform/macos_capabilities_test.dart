@@ -1,7 +1,7 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
-import '../../integration_test/platform/credentials/system_version.dart';
+import '../support/platform/system_version.dart';
 
 void main() {
   test('macOS 10.15 照片不可用但不排除凭据测试', () {

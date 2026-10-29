@@ -7,8 +7,8 @@ import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
-import '../../navigation.dart';
-import '../../synthetic/assignments/backend.dart';
+import '../../../test/support/navigation/native.dart';
+import '../../../test/support/assignments/backend.dart';
 
 class _Information implements PlatformAppInformation {
   _Information(this.state);

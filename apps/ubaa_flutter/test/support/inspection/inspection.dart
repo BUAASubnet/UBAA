@@ -1,6 +1,6 @@
-part of '../flow_test.dart';
+part of 'backend.dart';
 
-// 仅供显式人工巡检入口使用；全部业务数据为合成数据，不创建真实客户端。
+// 单元合同与原生旋转测试共用的合成数据，不创建真实客户端。
 final class _InspectionBackend extends _AllWritesIntegrationBackend
     implements CgyyLockDisplayBackend {
   _InspectionBackend({

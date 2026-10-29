@@ -5,7 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
-import '../../../integration_test/synthetic/grades/watch/backend.dart';
+import '../../support/grades/watch/backend.dart';
 
 void main() {
   testWidgets('成绩基线保存失败不打断在线首页，也不显示内部缓存故障', (tester) async {

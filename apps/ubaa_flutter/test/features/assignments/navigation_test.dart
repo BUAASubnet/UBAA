@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
-import '../../../integration_test/synthetic/assignments/backend.dart';
+import '../../support/assignments/backend.dart';
 
 void main() {
   testWidgets('真实App控制器单项返回后换搜索保留其他父作业', (tester) async {

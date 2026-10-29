@@ -1347,3 +1347,37 @@ conventions.md 新增命名、语言、分支、版本、依赖、日志和 ADR 
 默认 macOS 原生集合未全通过：网络恢复 1 项、插件 2 项通过，应用流程 5 项通过/2 项失败；失败位置为 integration_test/navigation.dart:51 的滚动容器查找和 synthetic/app/flow/write.dart:162 的提交次数断言。补跑缓存 Bridge 1 项通过；启动锁夹具因本机 Sandbox 容器临时目录权限拒绝，在测试开始前退出。这些 Dart/原生源码与阶段基线一致，规范整理不扩展为 UI 测试修复，不删除失败项或放宽原生验收。后续需要修复应用流程测试并在允许容器临时目录访问的环境重跑启动锁。日志留在本地监督目录，受跟踪文档不复制个人路径。
 
 按阶段开始提交 ff9a52e7 生成并执行检查计划，完整 Rust/CLI、七包 Flutter 与 FRB 零漂移全部通过。新增和修改的 230 个文档链接检查无新增失效，50 份专项索引齐全，全仓 15 个当前 goal 链接均能解析且无旧章节锚点；改动文档中继承的 50 条历史断链保留后续阶段处理，没有新增豁免。最终提交只包含已审阅的规范、索引、历史目标引用和编辑器配置。
+
+## 2026-10-29：原生集成只保留真实原生能力
+
+用户的新决定取代此前“全部删除”：保留 platform 全部能力测试和 synthetic/cache 的真实 Rust FFI、跨进程启动锁，删除 synthetic/app 全流程、软键盘专项、live、manual 与专用驱动。未提交的旧删除记录已按新范围重写。生产功能、学校协议、安全边界与真实账号授权保持不变。
+
+删除前把业务 Widget 测试和保留能力测试使用的合成后端、数据与 helper 迁至 `apps/ubaa_flutter/test/support/` 对应领域，巡检后端的 9 项数据合同和 macOS 版本解析测试也保留。业务测试只改 import，巡检合同正文与断言保持。迁移阶段宿主 85 项测试通过。assignments、ygdk 和系统版本 helper 也统一迁入 test/support，删除原生目录内的重复副本。后端工厂继续服务真实旋转测试，不恢复合成全流程或常驻预览入口。
+
+| 被删除测试或设施原有能力 | 保留覆盖与缺口 |
+|---|---|
+| synthetic/app/flow/auth.dart：登录到课表详情、typed 查询与个人页 | `apps/ubaa_flutter/test/app/smoke_test.dart`、`test/features/schedule/entry_test.dart` 及 App `test/session/auth_test.dart` 保留分层登录/查询。原生完整路径已无自动化覆盖。 |
+| synthetic/app/flow/query.dart：十二领域详情导航、状态筛选立即传递 typed 查询 | 宿主 `test/features/*/navigation_test.dart`、UI `test/query/` 保留领域导航和筛选关系。原生十二领域连续导航已无自动化覆盖。 |
+| synthetic/app/flow/write.dart：签到单次提交/刷新、未知结果仅回读、业务 false 不显示成功、十项写操作及签到签退分支 | Host `test/write/coordination_test.dart`、App `test/write/coordinator_flow_test.dart`、`post_send_exception_test.dart`、`bridge_results_test.dart`、`controller_test.dart` 保留确认、单次消费、未知不重发、收据及回读合同。原生 App 十项写操作连续流程已无自动化覆盖。 |
+| synthetic/app/flow_test.dart 及 flow/navigation.dart、support.dart：注册上述七项测试及其专用导航/写入后端 | 删除入口与无消费者 helper。原先两项导航/写入矩阵失败随入口删除，不记为修复通过。 |
+| synthetic/query/keyboard_test、ui_keyboard：原生软键盘、放大文字、搜索及刷新失败 | UI query Widget 测试保留焦点、MediaQuery 和输入/结果关系。原生软键盘专项已无自动化覆盖。 |
+| live/app/readonly_test：真实会话恢复和十二领域只读巡检 | CLI/Core 显式只读验证仍保留并要求当前任务授权。原生 UI 真实账号巡检已无自动化覆盖。 |
+| live/recovery/startup_test：真实离线启动、挂起恢复和逐批更新 | App `test/recovery/startup_test.dart`、`resume_test.dart`、`scheduled_test.dart` 及保留的 FFI 缓存用例覆盖状态机和缓存边界。真实账号原生恢复已无自动化覆盖。 |
+| live/performance/cold_start_driver、backend、measurement 及 scripts/live/offline_startup/run.py、identity.py、process_start.c：真实进程启动计时和阶段记录 | `scripts/live/offline_startup/analyze_test.py` 保留合成统计合同，真实账号原生启动性能测量已无自动化覆盖。专用启动器随 driver 删除。 |
+| live/schedule/widget_channel_test：Flutter 到 Android 的真实组件通道、加密发布、退出清理和迟到拒绝 | Host schedule widget、Core schedule import 及 Android 组件自身的独立 androidTest 保留各层实现合同。Flutter 到 Android 的真实组件通道已无自动化覆盖。 |
+| manual/app、manual/preview：合成常驻预览、多状态和手工巡检 | 业务 Widget/golden 与迁移的巡检数据合同保留。常驻原生合成预览已无自动化覆盖。 |
+| 根 navigation.dart、无消费者的合成后端与 bindings 默认 driver（连接原生驱动的框架入口） | `test/support/navigation/native.dart` 保留当前导航 helper；bindings 默认 driver 已无自动化覆盖。仅把保留能力用例实际需要的支持提取至 test/support；未保留无消费者入口。ui_render、evidence_directory 与隔离单元测试继续服务原生关于/照片/旋转的截图输出。ui_keyboard 只服务已删软键盘测试，因此删除。 |
+
+| 保留集合 | 保留理由与边界 |
+|---|---|
+| platform/credentials：plugin、material、linux | 验证真实钥匙串/Secret Service、私有目录、安全材料重开清理，Mock 无法替代。Linux 仍由独立临时桌面会话运行器隔离用户钥匙串。 |
+| platform/plugins、platform/network | 验证真实网络插件枚举、订阅重订阅及宿主恢复，保留系统边界证据。 |
+| platform/photos | 验证真实照片能力与权限接线到表单，使用合成业务后端，不执行学校写入。 |
+| platform/about | 验证真实安装包版本及原生窗口中的关于页。 |
+| platform/orientation | 验证 iPad 系统方向事件、真实窗口及周次/主题状态保留，需设备和外部旋转握手。 |
+| synthetic/cache/bridge_test | 验证 Flutter 内真实 Rust FFI、缓存句柄重开与退出栅栏。 |
+| synthetic/cache/startup_lock_test | 验证真实另一进程持锁时绘制、resourceBusy 及解锁重试。应用创建自己的临时目录并从 PATH 查找 Perl，派生子进程持有 OS flock，校验不同 PID、锁竞争及释放握手；终端不访问应用容器，Sandbox 和系统权限不变。 |
+
+catalog 只登记上述 10 个入口，默认 CI 保持网络恢复、插件、FFI 缓存和启动锁四个入口，其他原生能力按平台和前提显式运行。普通回归清除真实账号环境，保留截图驱动继续拒绝仓库内证据目录。历史归档和设计证据保持原样，不把历史命令当作当前入口。
+
+启动锁先通过原注册 recipe 复现应用容器 EPERM，并记录缺少新持锁 helper 的失败反例。独立进程自测验证持锁期间非阻塞取锁失败、release/EOF 后可取锁。应用原用例还引用已改版启动页的旧文案，按当前实际 CircularProgressIndicator 验证等待画面，并保留 resourceBusy、解锁与真实 FFI 重试断言；没有更改产品行为。Perl 从应用继承的 PATH 查找，避免假设 Linux 固定安装到 `/usr/bin/perl`；缺少解释器时显式失败。该设计不依赖终端的「其他 App 数据」或完全磁盘访问权限。保留的关于用例复现旧导航 helper 在紧凑和展开侧栏查找已不存在的设置卡片；新增三种宽度的失败反例，helper 改走当前可点击的侧栏关于按钮，继续保留实际页面和版本断言。最终原生结果另记 status。

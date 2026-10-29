@@ -6,7 +6,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
-import 'system_version.dart';
+import '../../../test/support/platform/system_version.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
