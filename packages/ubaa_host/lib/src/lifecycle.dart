@@ -18,9 +18,77 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
 
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
   UiError? _scheduledHomeFeedback;
+  late PlacePreferenceStore _placeStore;
+  late ThemePreferenceStore _themeStore;
+  String? _placeOwner;
+  bool _placesReady = false;
+  Map<String, String> _placePreferences = {};
+  int _themeRevision = 0;
   ThemeMode _themeMode = ThemeMode.system;
 
-  void _setThemeMode(ThemeMode value) => setState(() => _themeMode = value);
+  void _setThemeMode(ThemeMode value) {
+    _themeRevision++;
+    setState(() => _themeMode = value);
+    unawaited(_themeStore.write(value.name).catchError((Object _) {}));
+  }
+
+  Future<void> _restoreTheme() async {
+    final revision = _themeRevision;
+    final mode = await _themeStore.read();
+    if (mounted && revision == _themeRevision) {
+      setState(() => _themeMode = ThemeMode.values.byName(mode));
+    }
+  }
+
+  void _syncPlaces() {
+    if (_controller.phase != AppPhase.home) {
+      _placeOwner = null;
+      _placesReady = false;
+      _placePreferences = {};
+      return;
+    }
+    final owner = _controller.localDataOwnerScope;
+    if (_placeOwner == owner.accountKey) return;
+    _placeOwner = owner.accountKey;
+    _placePreferences = {};
+    _placesReady = owner.accountKey.isEmpty;
+    if (_placesReady) return;
+    unawaited(_restorePlaces(owner));
+  }
+
+  Future<void> _restorePlaces(LocalDataOwnerScope owner) async {
+    final value = await _placeStore.read(owner.accountKey);
+    try {
+      owner.checkCurrent();
+      if (mounted)
+        setState(() {
+          _placePreferences = value;
+          _placesReady = true;
+        });
+    } on Object {
+      /* 旧账号的异步读取结果丢弃。 */
+    }
+  }
+
+  Future<void> _savePlace(
+    LocalDataOwnerScope owner,
+    String key,
+    String value,
+  ) async {
+    try {
+      owner.checkCurrent();
+      if (!UiPlaceKeys.all.contains(key)) return;
+      _placePreferences = {..._placePreferences, key: value};
+      unawaited(
+        _placeStore
+            .write(owner.accountKey, _placePreferences)
+            .catchError((Object _) {}),
+      );
+    } on Object {
+      /* 普通偏好写失败不打断操作。 */
+    }
+  }
+
   bool _wasBackgrounded = false;
   bool _resumeRecoveryPending = false;
   bool _recoveryInFlight = false;
@@ -56,6 +124,24 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
 
   void _installBackend(UbaaBackend opened) {
     final backend = widget.backend;
+    final preferences =
+        widget.preferenceValues ??
+        (backend != null || widget.backendFactory != null
+            ? MemoryPreferenceValues()
+            : PluginPreferenceValues());
+    _placeStore =
+        widget.preferenceValues == null &&
+            (backend != null || widget.backendFactory != null)
+        ? PlacePreferenceStore.memory(allowedKeys: UiPlaceKeys.all)
+        : PlacePreferenceStore(
+            scope: backend != null || widget.backendFactory != null
+                ? 'synthetic'
+                : defaultConfigDirectory(),
+            allowedKeys: UiPlaceKeys.all,
+            values: preferences,
+          );
+    _themeStore = ThemePreferenceStore(values: preferences);
+    unawaited(_restoreTheme());
     _reminderStore =
         widget.reminderStore ??
         (backend != null || widget.backendFactory != null
@@ -99,6 +185,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
         (backend != null || widget.backendFactory != null
             ? MemoryRecentFeatureStore()
             : PreferencesRecentFeatureStore(scope: defaultConfigDirectory()));
+    _controller.addListener(_syncPlaces);
     _controller.addListener(_retryPendingRecovery);
     _controller.addListener(_showHomeFeedback);
     final widgetGateway =
@@ -130,6 +217,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       super.dispose();
       return;
     }
+    _controller.removeListener(_syncPlaces);
     _controller.removeListener(_retryPendingRecovery);
     _controller.removeListener(_showHomeFeedback);
     _controller.removeListener(_syncScheduleWidgets);

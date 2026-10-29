@@ -1,3 +1,4 @@
+import 'package:clock/clock.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -258,100 +259,104 @@ void _registerInitialWriteTests() {
     expect(discardedIntentIds, <String>['intent-after-unmount']);
   });
 
-  testWidgets('课堂签到从 typed 签到目标一点即提交', (tester) async {
-    const expectedAction = SigninPerformAction(
-      scheduleId: 'schedule-7',
-      eligibility: ActionEligibility.allowed,
-    );
-    final snapshots = <FeatureId, FeatureSnapshot>{
-      for (final feature in FeatureId.values)
-        feature: FeatureSnapshot(
-          feature: feature,
-          status: FeatureLoadStatus.success,
-          summary: '已加载',
-          details: feature == FeatureId.signin
-              ? const <FeatureDetail>[
-                  FeatureDetail(
-                    title: '课堂签到课程',
-                    presentation: SigninPresentation(
-                      courseId: '展示课程编号',
-                      classBeginTime: '08:00',
-                      classEndTime: '09:40',
-                      signStatus: 0,
-                    ),
-                    fields: <FeatureField>[
-                      FeatureField(label: '课程 ID', value: '误导目标'),
-                      FeatureField(label: '签到状态', value: '已签到'),
-                    ],
-                    actions: <FeatureAction>[expectedAction],
-                  ),
-                ]
-              : const <FeatureDetail>[],
-        ),
-    };
-    var prepareCalls = 0;
-    var commitCalls = 0;
-    var refreshCalls = 0;
-    final intent = WriteIntent(
-      intentId: 'signin-intent',
-      operation: WriteOperation.signinPerform,
-      targetSummary: '课堂签到课程',
-      resolvedRoute: ConnectionMode.webvpn,
-      warnings: const <String>['提交后请刷新今日签到状态确认结果'],
-      expiresAt: DateTime.now().add(const Duration(minutes: 2)),
-      requestDigest: 'digest',
-    );
-    await tester.pumpWidget(
-      MaterialApp(
-        theme: UbaaTheme.light(),
-        home: coordinatedShell(
-          user: const UserSummary(username: 'student'),
-          snapshots: snapshots,
-          routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
-          onRefresh: () async {},
-          onRetryFeature: (_) async {},
-          onPrepareSigninWrite: (action) async {
-            prepareCalls++;
-            expect(identical(action, expectedAction), isTrue);
-            expect(action.scheduleId, 'schedule-7');
-            expect(action.eligibility, ActionEligibility.allowed);
-            return intent;
-          },
-          onCommitWrite: (intentId) async {
-            commitCalls++;
-            expect(intentId, 'signin-intent');
-            return const WriteCommitResult(
-              operation: WriteOperation.signinPerform,
-              success: true,
-              message: '签到结果已提交，请刷新确认',
-              outcomeUnknown: false,
-            );
-          },
-          onWriteSuccess: (operation, _) async {
-            expect(operation, WriteOperation.signinPerform);
-            refreshCalls++;
-          },
-          onLogout: () async {},
-          onLogoutAndClearAccount: () async {},
-          onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
-        ),
-      ),
-    );
-    await tester.tap(find.byIcon(UiDestination.coursework.icon));
-    await tester.pumpAndSettle();
-    await openFeature(tester, FeatureId.signin);
-    await tester.pumpAndSettle();
-    // 点击签到即准备并提交，不再出现确认页。
-    await tester.tap(find.widgetWithText(FilledButton, '签到'));
-    await tester.pumpAndSettle();
-    expect(prepareCalls, 1);
-    expect(find.text('确认课堂签到'), findsNothing);
-    expect(commitCalls, 1);
-    expect(refreshCalls, 1);
-    expect(find.text('签到结果已提交，请刷新确认'), findsOneWidget);
-  });
+  testWidgets(
+    '课堂签到从 typed 签到目标一点即提交',
+    (tester) =>
+        withClock(Clock.fixed(DateTime.utc(2026, 10, 29, 0, 10)), () async {
+          const expectedAction = SigninPerformAction(
+            scheduleId: 'schedule-7',
+            eligibility: ActionEligibility.allowed,
+          );
+          final snapshots = <FeatureId, FeatureSnapshot>{
+            for (final feature in FeatureId.values)
+              feature: FeatureSnapshot(
+                feature: feature,
+                status: FeatureLoadStatus.success,
+                summary: '已加载',
+                details: feature == FeatureId.signin
+                    ? const <FeatureDetail>[
+                        FeatureDetail(
+                          title: '课堂签到课程',
+                          presentation: SigninPresentation(
+                            courseId: '展示课程编号',
+                            classBeginTime: '08:00',
+                            classEndTime: '09:40',
+                            signStatus: 0,
+                          ),
+                          fields: <FeatureField>[
+                            FeatureField(label: '课程 ID', value: '误导目标'),
+                            FeatureField(label: '签到状态', value: '已签到'),
+                          ],
+                          actions: <FeatureAction>[expectedAction],
+                        ),
+                      ]
+                    : const <FeatureDetail>[],
+              ),
+          };
+          var prepareCalls = 0;
+          var commitCalls = 0;
+          var refreshCalls = 0;
+          final intent = WriteIntent(
+            intentId: 'signin-intent',
+            operation: WriteOperation.signinPerform,
+            targetSummary: '课堂签到课程',
+            resolvedRoute: ConnectionMode.webvpn,
+            warnings: const <String>['提交后请刷新今日签到状态确认结果'],
+            expiresAt: DateTime.now().add(const Duration(minutes: 2)),
+            requestDigest: 'digest',
+          );
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: UbaaTheme.light(),
+              home: coordinatedShell(
+                user: const UserSummary(username: 'student'),
+                snapshots: snapshots,
+                routePolicy: RoutePolicy.auto,
+                telemetryEnabled: false,
+                onRefresh: () async {},
+                onRetryFeature: (_) async {},
+                onPrepareSigninWrite: (action) async {
+                  prepareCalls++;
+                  expect(identical(action, expectedAction), isTrue);
+                  expect(action.scheduleId, 'schedule-7');
+                  expect(action.eligibility, ActionEligibility.allowed);
+                  return intent;
+                },
+                onCommitWrite: (intentId) async {
+                  commitCalls++;
+                  expect(intentId, 'signin-intent');
+                  return const WriteCommitResult(
+                    operation: WriteOperation.signinPerform,
+                    success: true,
+                    message: '签到结果已提交，请刷新确认',
+                    outcomeUnknown: false,
+                  );
+                },
+                onWriteSuccess: (operation, _) async {
+                  expect(operation, WriteOperation.signinPerform);
+                  refreshCalls++;
+                },
+                onLogout: () async {},
+                onLogoutAndClearAccount: () async {},
+                onRoutePolicyChanged: (_) {},
+                onTelemetryChanged: (_) {},
+              ),
+            ),
+          );
+          await tester.tap(find.byIcon(UiDestination.coursework.icon));
+          await tester.pumpAndSettle();
+          await openFeature(tester, FeatureId.signin);
+          await tester.pumpAndSettle();
+          // 点击签到即准备并提交，不再出现确认页。
+          await tester.tap(find.widgetWithText(FilledButton, '签到'));
+          await tester.pumpAndSettle();
+          expect(prepareCalls, 1);
+          expect(find.text('确认课堂签到'), findsNothing);
+          expect(commitCalls, 1);
+          expect(refreshCalls, 1);
+          expect(find.text('签到结果已提交，请刷新确认'), findsOneWidget);
+        }),
+  );
 }
 
 void _registerRemainingWriteTests() {

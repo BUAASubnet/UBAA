@@ -42,10 +42,7 @@ void main() {
       gate.complete(result(state.operation));
       await tester.pumpAndSettle();
       expect(state.readbacks, 1);
-      expect(
-        find.widgetWithText(AppBar, chosen ? '我的课程' : '选择课程'),
-        findsOneWidget,
-      );
+      expect(find.widgetWithText(AppBar, FeatureId.bykc.title), findsOneWidget);
       expect(state.commits, 1);
     });
   }
@@ -63,7 +60,7 @@ void main() {
       await tester.pumpAndSettle();
       expect(state.commits, 1);
       expect(state.readbacks, unknown ? 1 : 0);
-      expect(find.widgetWithText(AppBar, '选择课程'), findsOneWidget);
+      expect(find.widgetWithText(AppBar, FeatureId.bykc.title), findsOneWidget);
       await tester.pump(const Duration(seconds: 3));
       expect(state.commits, 1);
     });
@@ -226,9 +223,12 @@ Future<Scenario> mount(
   await tester.pumpAndSettle();
   await openFeature(tester, FeatureId.bykc);
   if (chosen) {
-    await tester.tap(find.byTooltip('返回'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(Card, '我的课程'));
+    await tester.tap(
+      find.descendant(
+        of: find.byType(SegmentedButton<FeatureQueryView>),
+        matching: find.text('已选'),
+      ),
+    );
     await tester.pumpAndSettle();
   }
   return state;

@@ -29,10 +29,10 @@ void main() {
         ),
       ),
     ]);
-    expect(find.text('开始选课'), findsOneWidget);
-    expect(find.text('截止选课'), findsOneWidget);
-    expect(find.text('2100-01-01 08:00'), findsOneWidget);
-    expect(find.text('2000-01-02 18:00'), findsOneWidget);
+    expect(find.textContaining('开始选课'), findsOneWidget);
+    expect(find.textContaining('截止选课'), findsOneWidget);
+    expect(find.textContaining('2100年1月1日 08:00'), findsOneWidget);
+    expect(find.textContaining('2000年1月2日 18:00'), findsOneWidget);
     expect(find.textContaining('2100-01-02'), findsNothing);
     expect(find.textContaining('2000-01-01'), findsNothing);
   });
@@ -124,9 +124,9 @@ void main() {
       ),
     ], queries: queries);
     expect(find.text('合成博雅课'), findsOneWidget);
-    expect(find.text('合成教室'), findsOneWidget);
+    expect(find.textContaining('合成教室'), findsOneWidget);
     expect(find.textContaining('08:00'), findsOneWidget);
-    expect(find.text('选课'), findsOneWidget);
+    expect(find.widgetWithText(OutlinedButton, '选课'), findsOneWidget);
     expect(find.text('999'), findsNothing);
     // 列表只常驻搜索框；课程详情经卡片进入，不提供手填课程 ID。
     expect(find.byType(TextField), findsOneWidget);
@@ -183,9 +183,9 @@ void main() {
         ],
       ),
     ], view: FeatureQueryView.bykcChosenCourses);
-    expect(find.text('已签到、未签退'), findsOneWidget);
-    expect(find.text('待考核'), findsOneWidget);
-    expect(find.text('0 分'), findsOneWidget);
+    expect(find.textContaining('已签到、未签退'), findsOneWidget);
+    expect(find.textContaining('待考核'), findsOneWidget);
+    expect(find.textContaining('0 分'), findsOneWidget);
     expect(find.text('退选'), findsOneWidget);
     await tester.tap(find.widgetWithText(Card, '合成已选课'));
     await tester.pumpAndSettle();
@@ -288,10 +288,7 @@ Future<void> _open(
     await tester.tap(find.widgetWithText(Card, FeatureId.bykc.title));
     await tester.pumpAndSettle();
     await tester.tap(
-      find.widgetWithText(
-        Card,
-        view == FeatureQueryView.bykcStatistics ? '课程统计' : '我的课程',
-      ),
+      find.text(view == FeatureQueryView.bykcStatistics ? '统计' : '已选'),
     );
     await tester.pumpAndSettle();
   }

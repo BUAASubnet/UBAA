@@ -11,21 +11,10 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('匿名产品改进统计'),
-      250,
-      scrollable: find.descendant(
-        of: find.byType(ProfileView),
-        matching: find.byType(Scrollable),
-      ),
-    );
-    await tester.pumpAndSettle();
-    final tile = tester.widget<SwitchListTile>(
-      find.widgetWithText(SwitchListTile, '匿名产品改进统计'),
-    );
-    expect(tile.onChanged, isNull);
-    expect(tile.value, isFalse);
-    expect(find.text('此版本未启用统计功能'), findsOneWidget);
+    final profile = tester.widget<ProfileView>(find.byType(ProfileView));
+    expect(profile.telemetryAvailable, isFalse);
+    expect(profile.telemetryEnabled, isFalse);
+    expect(find.widgetWithText(SwitchListTile, '匿名产品改进统计'), findsNothing);
   });
 }
 

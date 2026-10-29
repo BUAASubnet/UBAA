@@ -42,11 +42,11 @@ void main() {
     final calls = backend.featureLoads;
     final hostState = tester.state(find.byType(UbaaAppHost));
     await _profile(tester);
-    final theme = find.byType(DropdownButton<ThemeMode>);
+    final theme = find.byType(SegmentedButton<ThemeMode>);
     // 旧宿主没有主题选择；此断言应先产生功能缺失 RED。
     expect(theme, findsOneWidget);
     expect(
-      tester.widget<DropdownButton<ThemeMode>>(theme).value,
+      tester.widget<SegmentedButton<ThemeMode>>(theme).selected.single,
       ThemeMode.system,
     );
     await _choose(tester, '深色');
@@ -64,7 +64,7 @@ void main() {
     expect(tester.state(find.byType(UbaaAppHost)), same(hostState));
     expect(_mode(tester), ThemeMode.dark);
     expect(
-      tester.widget<DropdownButton<ThemeMode>>(theme).value,
+      tester.widget<SegmentedButton<ThemeMode>>(theme).selected.single,
       ThemeMode.dark,
     );
     await _choose(tester, '浅色');
@@ -78,11 +78,13 @@ void main() {
     expect(backend.featureLoads, calls);
   });
 
-  testWidgets('销毁并创建全新宿主后主题恢复跟随系统而非持久化深色', (tester) async {
+  testWidgets('销毁并创建全新宿主后恢复设备主题', (tester) async {
     _setSize(tester);
+    final preferences = MemoryPreferenceValues();
     await tester.pumpWidget(
       UbaaAppHost(
         key: const ValueKey<String>('first-run'),
+        preferenceValues: preferences,
         backend: _CountingBackend(),
         credentialVault: MemoryCredentialVault(),
       ),
@@ -90,7 +92,7 @@ void main() {
     await tester.pumpAndSettle();
     await _login(tester);
     await _profile(tester);
-    expect(find.byType(DropdownButton<ThemeMode>), findsOneWidget);
+    expect(find.byType(SegmentedButton<ThemeMode>), findsOneWidget);
     await _choose(tester, '深色');
     expect(_mode(tester), ThemeMode.dark);
     await tester.pumpWidget(const SizedBox.shrink());
@@ -98,22 +100,24 @@ void main() {
     await tester.pumpWidget(
       UbaaAppHost(
         key: const ValueKey<String>('second-run'),
+        preferenceValues: preferences,
         backend: _CountingBackend(),
         credentialVault: MemoryCredentialVault(),
       ),
     );
     await tester.pumpAndSettle();
     expect(find.byType(UbaaLoginView), findsOneWidget);
-    expect(_mode(tester), ThemeMode.system);
+    expect(_mode(tester), ThemeMode.dark);
     await _login(tester);
     await _profile(tester);
     expect(
       tester
-          .widget<DropdownButton<ThemeMode>>(
-            find.byType(DropdownButton<ThemeMode>),
+          .widget<SegmentedButton<ThemeMode>>(
+            find.byType(SegmentedButton<ThemeMode>),
           )
-          .value,
-      ThemeMode.system,
+          .selected
+          .single,
+      ThemeMode.dark,
     );
   });
 }
@@ -157,8 +161,6 @@ Future<void> _profile(WidgetTester tester) async {
 }
 
 Future<void> _choose(WidgetTester tester, String label) async {
-  await tester.tap(find.byType(DropdownButton<ThemeMode>));
-  await tester.pumpAndSettle();
   await tester.tap(find.text(label).last);
   await tester.pumpAndSettle();
 }

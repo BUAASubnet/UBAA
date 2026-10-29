@@ -141,7 +141,6 @@ Future<void> _open(WidgetTester tester, BoyaFeedbackBackend backend) async {
   );
   await tester.pumpAndSettle();
   await _tap(tester, find.widgetWithText(Card, FeatureId.bykc.title));
-  await _tap(tester, find.widgetWithText(Card, '选择课程'));
 }
 
 Future<void> _tap(WidgetTester tester, Finder finder) async {

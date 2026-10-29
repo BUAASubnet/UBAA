@@ -20,7 +20,7 @@ void main() {
         savedForOffline: true,
       ),
     );
-    expect(find.textContaining('不完整'), findsOneWidget);
+    expect(find.text('暂时没有可显示的内容'), findsOneWidget);
     expect(find.textContaining('暂无'), findsNothing);
   });
 
@@ -174,16 +174,16 @@ void main() {
         ],
       ),
     ], []);
-    expect(find.byIcon(Icons.check_circle), findsOneWidget);
+    expect(find.text('已签到'), findsOneWidget);
     expect(find.byType(Chip), findsNothing);
     expect(find.text('更多信息'), findsNothing);
     final title = tester.getRect(find.text('合成已签到课程'));
-    final icon = tester.getRect(find.byIcon(Icons.check_circle));
+    final icon = tester.getRect(find.text('已签到'));
     expect(icon.left, greaterThan(title.left));
     expect((icon.center.dy - title.center.dy).abs(), lessThan(60));
     await tester.tap(find.byTooltip('课程详情'));
     await tester.pumpAndSettle();
     expect(find.text('只在详情'), findsOneWidget);
-    expect(find.textContaining('不能重复提交'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '签到'), findsNothing);
   });
 }

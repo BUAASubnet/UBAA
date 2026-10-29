@@ -106,6 +106,7 @@ extension _UbaaAppHostLocalData on _UbaaAppHostState {
               _bykcFilterStore.clearAccount,
               _cgyyDefaultsStore.clearAccount,
               _recentFeatureStore.clearAccount,
+              _placeStore.clearAccount,
             ]) {
               try {
                 await clear(identity);

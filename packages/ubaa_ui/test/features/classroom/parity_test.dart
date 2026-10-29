@@ -107,6 +107,8 @@ void main() {
           await tester.tap(find.text('10').last);
           await tester.tap(find.text('确定'));
         } else {
+          await tester.tap(find.byTooltip('切换校区'));
+          await tester.pumpAndSettle();
           await tester.tap(find.text('杭州'));
         }
         await tester.pumpAndSettle();
@@ -201,7 +203,11 @@ void main() {
       room('目标教室'),
       room('其他教室'),
     ], queries);
-    expect(find.text('学院路'), findsAtLeastNWidgets(1));
+    expect(find.byTooltip('切换校区'), findsOneWidget);
+    expect(
+      tester.getRect(find.byTooltip('切换校区')).center.dx,
+      greaterThan(tester.view.physicalSize.width / 2),
+    );
     expect(
       find.byKey(const ValueKey<String>('feature-filter-button')),
       findsNothing,

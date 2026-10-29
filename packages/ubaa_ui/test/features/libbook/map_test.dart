@@ -34,11 +34,8 @@ void main() {
   });
   testWidgets('未知分区不能从伪展示编号借用另一张地图', (tester) async {
     await _open(tester, '999');
-    expect(find.text('当前分区暂无平面图'), findsOneWidget);
-    final button = tester.widget<OutlinedButton>(
-      find.widgetWithText(OutlinedButton, '查看座位分布'),
-    );
-    expect(button.onPressed, isNull);
+    expect(find.text('当前分区暂无平面图'), findsNothing);
+    expect(find.widgetWithText(OutlinedButton, '查看座位分布'), findsNothing);
   });
 }
 

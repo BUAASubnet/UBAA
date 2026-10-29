@@ -350,8 +350,6 @@ Future<void> _login(WidgetTester tester, String account) async {
 Future<void> _openBykc(WidgetTester tester) async {
   await tester.tap(find.widgetWithText(Card, FeatureId.bykc.title));
   await tester.pumpAndSettle();
-  await tester.tap(find.widgetWithText(Card, '选择课程'));
-  await tester.pumpAndSettle();
 }
 
 Future<void> _openFilters(WidgetTester tester) async {

@@ -206,6 +206,13 @@ void main() {
     state.update(() => state.username = 'synthetic-b');
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.bykc);
+    await tester.tap(
+      find.descendant(
+        of: find.byType(SegmentedButton<FeatureQueryView>),
+        matching: find.text('选课'),
+      ),
+    );
+    await tester.pumpAndSettle();
     await openQueryPanel(tester);
     expect(
       tester.widget<FilterChip>(find.widgetWithText(FilterChip, '美育')).selected,
@@ -299,7 +306,10 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('合成联系人'), findsNothing);
     expect(find.text('博雅签到'), findsNothing);
-    state.update(() => state.username = 'synthetic-b');
+    state.update(() {
+      state.username = 'synthetic-b';
+      state.snapshot = state.make(const FeatureQuery());
+    });
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.bykc);
     await openQueryPanel(tester);
@@ -364,7 +374,12 @@ Future<void> _show(WidgetTester tester, Finder finder) async {
 Future<void> _openChosen(WidgetTester tester) async {
   await tester.tap(find.widgetWithText(Card, FeatureId.bykc.title));
   await tester.pumpAndSettle();
-  await tester.tap(find.widgetWithText(Card, '我的课程'));
+  await tester.tap(
+    find.descendant(
+      of: find.byType(SegmentedButton<FeatureQueryView>),
+      matching: find.text('已选'),
+    ),
+  );
   await tester.pumpAndSettle();
 }
 

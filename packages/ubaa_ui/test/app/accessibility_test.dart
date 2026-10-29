@@ -197,10 +197,8 @@ void _registerLayoutMatrix() {
           final failure = tester.takeException();
           expect(failure, isNull, reason: destination.label);
         }
-        final theme = find.byType(DropdownButton<ThemeMode>);
+        final theme = find.byType(SegmentedButton<ThemeMode>);
         await tester.ensureVisible(theme);
-        await tester.tap(theme);
-        await tester.pumpAndSettle();
         await tester.tap(find.text('深色').last);
         await tester.pumpAndSettle();
         expect(changes, [ThemeMode.dark]);

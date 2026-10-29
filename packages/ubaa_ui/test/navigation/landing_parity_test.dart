@@ -9,30 +9,20 @@ void main() {
     final state = await _open(tester, FeatureId.libbook);
     state.fail();
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(Card, '预约座位'));
-    await tester.pumpAndSettle();
     expect(state.queries, isEmpty);
     expect(find.text('网络不可用'), findsOneWidget);
   });
   testWidgets('默认子页复用对应预载快照而显式刷新仍发起读取', (tester) async {
     final state = await _open(tester, FeatureId.bykc);
-    await tester.tap(find.widgetWithText(Card, '选择课程'));
-    await tester.pumpAndSettle();
     expect(state.queries, isEmpty);
     expect(find.text('合成预载结果'), findsOneWidget);
-    expect(find.widgetWithText(AppBar, '选择课程'), findsOneWidget);
-    await tester.tap(find.byTooltip('返回'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(Card, '选择课程'));
-    await tester.pumpAndSettle();
-    expect(state.queries, isEmpty);
+    expect(find.widgetWithText(AppBar, FeatureId.bykc.title), findsOneWidget);
+
     await tester.tap(find.byTooltip('刷新当前查询'));
     await tester.pumpAndSettle();
     expect(state.queries, hasLength(1));
   });
   for (final entry in <FeatureId, List<String>>{
-    FeatureId.bykc: ['选择课程', '我的课程', '课程统计'],
-    FeatureId.libbook: ['预约座位', '我的预约'],
     FeatureId.cgyy: ['预约研讨室', '我的预约', '查看密码'],
   }.entries) {
     testWidgets('${entry.key.title}沿旧版先显示子菜单', (tester) async {
@@ -46,6 +36,25 @@ void main() {
       expect(state.queries, isEmpty);
     });
   }
+  for (final feature in [FeatureId.bykc, FeatureId.libbook]) {
+    testWidgets('${feature.title}进入第一页，分段替换页面，返回退出功能', (tester) async {
+      final state = await _open(tester, feature);
+      expect(find.text('合成预载结果'), findsOneWidget);
+      await tester.tap(find.text(feature == FeatureId.bykc ? '已选' : '我的预约'));
+      await tester.pumpAndSettle();
+      expect(
+        state.queries.single.view,
+        feature == FeatureId.bykc
+            ? FeatureQueryView.bykcChosenCourses
+            : FeatureQueryView.libbookBookings,
+      );
+      expect(find.text('合成子结果'), findsOneWidget);
+      await tester.tap(find.byTooltip('返回'));
+      await tester.pumpAndSettle();
+      expect(find.widgetWithText(Card, feature.title), findsOneWidget);
+      expect(find.text('合成子结果'), findsNothing);
+    });
+  }
   testWidgets('研讨室子页返回菜单保留读取次数', (tester) async {
     final state = await _open(tester, FeatureId.cgyy);
     await tester.tap(find.widgetWithText(Card, '我的预约'));
@@ -57,7 +66,7 @@ void main() {
     expect(find.widgetWithText(AppBar, '研讨室预约'), findsOneWidget);
     expect(state.queries, hasLength(1));
   });
-  for (final feature in [FeatureId.cgyy, FeatureId.libbook]) {
+  for (final feature in [FeatureId.cgyy]) {
     testWidgets('${feature.title}再次点击功能入口先回子菜单', (tester) async {
       final state = await _open(tester, feature);
       await tester.tap(find.widgetWithText(Card, '我的预约'));
@@ -143,9 +152,6 @@ void main() {
     final state = await _open(tester, FeatureId.bykc);
     state.invalidate();
     await tester.pumpAndSettle();
-    expect(state.queries, isEmpty);
-    await tester.tap(find.widgetWithText(Card, '选择课程'));
-    await tester.pumpAndSettle();
     expect(state.queries, hasLength(1));
     expect(find.text('合成子结果'), findsOneWidget);
     expect(find.text('合成预载结果'), findsNothing);
@@ -153,13 +159,13 @@ void main() {
   testWidgets('子菜单请求中返回后迟到结果不能替换菜单', (tester) async {
     final state = await _open(tester, FeatureId.libbook);
     state.pending = Completer<void>();
-    await tester.tap(find.widgetWithText(Card, '我的预约'));
+    await tester.tap(find.text('我的预约'));
     await tester.pump();
     await tester.tap(find.byTooltip('返回'));
     await tester.pump();
     state.pending!.complete();
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(Card, '预约座位'), findsOneWidget);
+    expect(find.widgetWithText(Card, FeatureId.libbook.title), findsOneWidget);
     expect(find.text('合成子结果'), findsNothing);
     expect(state.queries.single.view, FeatureQueryView.libbookBookings);
   });

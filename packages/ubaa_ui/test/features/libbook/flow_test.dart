@@ -64,23 +64,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.libbook);
-    expect(find.byType(FilterChip), findsNothing);
-    expect(
-      tester
-          .widget<DropdownButton<String>>(
-            find.byKey(const ValueKey('libbook-choice-楼馆')),
-          )
-          .value,
-      'real-library',
-    );
-    expect(
-      tester
-          .widget<DropdownButton<String>>(
-            find.byKey(const ValueKey('libbook-choice-楼层')),
-          )
-          .value,
-      'real-floor',
-    );
+    expect(find.text('合成楼馆'), findsOneWidget);
+    expect(find.textContaining('一层 · 空 3/20'), findsOneWidget);
     expect(queries, hasLength(1));
     expect(queries.single.view, FeatureQueryView.libbookAreas);
     expect(queries.single.premisesId, 'real-library');

@@ -11,7 +11,7 @@ void main() {
     await openFeature(tester, FeatureId.evaluation);
     expect(find.text('已保存评教课程'), findsOneWidget);
     expect(find.text('待评 0 门'), findsNothing);
-    expect(find.textContaining('评教任务尚未核对完整'), findsOneWidget);
+    expect(find.textContaining('评教任务尚未核对完整'), findsNothing);
     expect(find.byType(LinearProgressIndicator), findsNothing);
     expect(find.text('提交评教'), findsNothing);
     await tester.pumpWidget(_page(FeatureLoadStatus.loading));

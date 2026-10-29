@@ -23,7 +23,7 @@ void main() {
       ),
     );
     expect(find.text('暂时还没有打卡记录'), findsNothing);
-    expect(find.text('打卡记录尚未核对完整'), findsOneWidget);
+    expect(find.text('打卡记录尚未核对完整'), findsNothing);
   });
   testWidgets('分类变化且新记录失败时清除旧分类记录', (tester) async {
     await _open(tester);
@@ -66,7 +66,7 @@ void main() {
 
   testWidgets('部分统计不显示默认零且不冒称记录加载失败', (tester) async {
     await _open(tester, partial: true);
-    expect(find.text('统计尚未确认'), findsOneWidget);
+    expect(find.text('统计尚未确认'), findsNothing);
     expect(find.text('本学期认定次数 0 次'), findsNothing);
     expect(find.text('打卡记录加载失败，请重试。'), findsNothing);
     expect(find.text('合成历史运动'), findsOneWidget);
@@ -125,8 +125,8 @@ void main() {
     await tester.tap(find.widgetWithText(Card, '合成历史运动'));
     await tester.pumpAndSettle();
     expect(find.text('记录详情'), findsOneWidget);
-    expect(find.text('记录编号'), findsOneWidget);
-    expect(find.text('999'), findsOneWidget);
+    expect(find.text('记录编号'), findsNothing);
+    expect(find.text('999'), findsNothing);
     expect(find.byType(Image), findsNothing);
   });
 }

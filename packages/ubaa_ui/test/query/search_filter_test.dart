@@ -83,7 +83,7 @@ void main() {
     );
   });
 
-  testWidgets('菜单页不提供搜索，博雅列表筛选不含视图切换和课程 ID', (tester) async {
+  testWidgets('进入即提供搜索，博雅列表筛选不含视图切换和课程 ID', (tester) async {
     await _pumpShell(tester);
     await tester.tap(
       find
@@ -92,12 +92,6 @@ void main() {
     );
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(Card, FeatureId.bykc.title));
-    await tester.pumpAndSettle();
-    expect(find.byKey(_searchField), findsNothing);
-    expect(find.byKey(_filterButton), findsNothing);
-    expect(find.byIcon(Icons.search), findsNothing);
-
-    await tester.tap(find.widgetWithText(Card, '选择课程'));
     await tester.pumpAndSettle();
     expect(find.byKey(_searchField), findsOneWidget);
     await tester.tap(find.byKey(_filterButton));

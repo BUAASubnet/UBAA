@@ -21,8 +21,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.bykc);
-    expect(find.text('选课'), findsOneWidget);
-    await tester.tap(find.text('选课'));
+    expect(find.widgetWithText(OutlinedButton, '选课'), findsOneWidget);
+    await tester.tap(find.widgetWithText(OutlinedButton, '选课'));
     await tester.pump();
     expect(backend.prepares, 1);
     for (var i = 0; i < 20 && backend.readbacks == 0; i++) {

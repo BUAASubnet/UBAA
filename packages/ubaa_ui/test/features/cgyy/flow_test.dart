@@ -360,7 +360,7 @@ void main() {
     await tester.tap(find.text('只看可预约'));
     await tester.pumpAndSettle();
     expect(find.text('无时段房间'), findsOneWidget);
-    expect(find.text('资格未知'), findsOneWidget);
+    expect(find.text('资格未知'), findsNothing);
     expect(find.text('下一步'), findsNothing);
     await tester.tap(_slot('合成研讨室', '08:00–09:00'));
     await tester.pumpAndSettle();

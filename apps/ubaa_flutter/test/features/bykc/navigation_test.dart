@@ -16,14 +16,14 @@ void main() {
     await _tap(tester, action('选课'));
     expect(backend.commitCalls, 1);
     expect(backend.selections[101], isTrue);
-    expect(find.widgetWithText(AppBar, '选择课程'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, FeatureId.bykc.title), findsOneWidget);
     expect(backend.boyaReads.last.view, FeatureQueryView.summary);
     await _tap(tester, action('退选'));
     expect(backend.commitCalls, 1);
     await _tap(tester, find.text('确认退选'));
     expect(backend.commitCalls, 2);
     expect(backend.selections[101], isFalse);
-    expect(find.widgetWithText(AppBar, '选择课程'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, FeatureId.bykc.title), findsOneWidget);
     expect(
       backend.boyaReads.where(
         (query) => query.view == FeatureQueryView.bykcDetail,
@@ -52,7 +52,7 @@ void main() {
     expect(find.text('签到信息'), findsNothing);
     await _tap(tester, find.byTooltip('返回'));
     expect(find.widgetWithText(Card, '合成已选课 1'), findsNothing);
-    expect(find.widgetWithText(AppBar, '我的课程'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, FeatureId.bykc.title), findsOneWidget);
     expect(backend.commitCalls, 1);
   });
   testWidgets('详情选课后返回原课程列表', (tester) async {
@@ -61,7 +61,7 @@ void main() {
     await _tap(tester, find.widgetWithText(OutlinedButton, '选课'));
     expect(backend.commitCalls, 1);
     await _tap(tester, find.byTooltip('返回'));
-    expect(find.widgetWithText(AppBar, '选择课程'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, FeatureId.bykc.title), findsOneWidget);
     expect(find.widgetWithText(Card, '合成课程 1'), findsOneWidget);
   });
   testWidgets('已选记录刷新为空后详情和返回列表都不能复活旧动作', (tester) async {
@@ -97,7 +97,15 @@ Future<BoyaBackend> _open(WidgetTester tester, {bool chosen = true}) async {
   );
   await tester.pumpAndSettle();
   await _tap(tester, find.widgetWithText(Card, FeatureId.bykc.title));
-  await _tap(tester, find.widgetWithText(Card, chosen ? '我的课程' : '选择课程'));
+  if (chosen) {
+    await _tap(
+      tester,
+      find.descendant(
+        of: find.byType(SegmentedButton<FeatureQueryView>),
+        matching: find.text('已选'),
+      ),
+    );
+  }
   return backend;
 }
 
