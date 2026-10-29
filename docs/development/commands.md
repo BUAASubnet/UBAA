@@ -52,6 +52,7 @@ git diff --check
 | `just check-sensitive` | 分别扫描 index blob 与未忽略工作区候选；读取或工具失败非零 |
 | `just docs-link-check` | 只读检查 Markdown 相对目标、站内路由及标题锚点；历史范围见下文 |
 | `just tool-version-check` | 校验版本镜像及全部第三方 Action 的 SHA 锁定 |
+| `just dependency-audit` | 显式联网运行锁定版本的 cargo-deny，检查 Rust advisories、licenses、bans 和 sources；缺少固定工具或版本不符失败 |
 | `just contract-version-check` | CLI/Bridge 常量、JSON Schema、Dart 接受版本与当前文档声明静态一致性 |
 | `just shell-check` / `just shell-check-strict` | 全部候选 Shell 运行 bash -n；严格模式必须存在 ShellCheck 0.11.0，宽松模式缺失时明确 SKIP |
 | `just check` / `just check-strict` | 相同的 Rust、CLI 和脚本检查；仅 ShellCheck 必需性不同。宽松入口只供日常反馈，不替代最终严格验收 |
@@ -60,6 +61,8 @@ git diff --check
 | `git diff --check` | 检查当前差异中的空白错误；提交前另查 `git diff --cached --check`，验收提交范围时传入基线 |
 
 `check` 和 `check-strict` 共用 `_rust-shell-contracts`：Python 脚本自测、原生清单、文档断链、工具版本镜像、完整自有依赖闭包、layout/contract-versions/references/flutter-toolchains/maintenance-gates/live-launchers 六个 Shell 合同脚本、实际布局与版本 checker、Cargo metadata/fmt/Clippy、Core 关闭/开启 test-contract 的合同、其余 workspace 测试、构建、文档和差异检查。这里的 references 合同使用临时仓库，并不替代实际冻结引用校验；live launcher 合同使用假程序和虚构凭据，不请求学校。
+
+`just dependency-audit` 是独立的网络入口，不由 `check`、`check-strict` 或其他纯校验命令隐式调用。该入口检查 `CARGO_DENY_VERSION` 锁定的 cargo-deny，并允许 cargo-deny 按配置从 RustSec advisory 数据库获取或更新安全公告；CI 在安装同一版本后显式调用它。没有网络时应如实记录该入口未运行，不能把离线 Cargo metadata 或 release-preflight 的许可证材料当作 advisory 审计通过。
 
 这两个入口均不隐含完整 Flutter、FRB 生成、原生设备或学校实测。`fmt` recipe 也只执行格式检查，不写文件。
 
@@ -86,7 +89,7 @@ OHOS 宿主与三个 *_ohos 插件不属于上述七包。`ohos-check` 当前执
 
 | 工作流 / 作业 | 当前触发与实际执行 |
 |---|---|
-| [ci.yml](../../.github/workflows/ci.yml) / contract-gates | ubaa2/main/dev push 与 PR；Ubuntu 显式 bootstrap 参考/质量工具、校验 refs/敏感扫描、执行 check-strict、准备 Dart 依赖、检查 FRB、生成并保存无签名 release-preflight 报告 |
+| [ci.yml](../../.github/workflows/ci.yml) / contract-gates | ubaa2/main/dev push 与 PR；Ubuntu 显式 bootstrap 参考/质量工具、安装固定 cargo-deny 并运行联网依赖审计、校验 refs/敏感扫描、执行 check-strict、准备 Dart 依赖、检查 FRB、生成并保存无签名 release-preflight 报告 |
 | ci.yml / flutter-contracts | macOS 15 执行完整 flutter-check，失败时上传脱敏 golden 差异；不在此作业运行原生集成 |
 | ci.yml / rust-platforms | macOS/Windows 执行 Cargo fmt、全特性 Clippy、Core 默认关闭态检查/Rustdoc、开启 test-contract 的全目标测试、关闭态负向编译合同，其余 workspace 全目标测试/构建及文档 |
 | [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) / native-debug | 手动、受路径过滤的 PR，以及 ubaa2/main/dev push；构建 Linux/Windows/macOS/iOS simulator/Android APK，检查产物并生成源码/产物关联。macOS 执行默认原生集合，Linux 执行隔离安全存储；Markdown 路径被排除，OHOS 不在此工作流 |

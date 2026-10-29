@@ -19,7 +19,7 @@ version = "0.1.0"
 async-trait = "0.1.89"
 aes = "0.8.4"
 aes-gcm = "0.10.3"
-base64 = "0.22.1"
+base64 = "0.23.1"
 cbc = "0.1.2"
 cfb-mode = "0.8.2"
 chrono = { version = "0.4.42", default-features = false, features = ["clock"] }
@@ -39,7 +39,7 @@ jni = "=0.22.4"
 jsonschema = { version = "0.49.9", default-features = false }
 md-5 = "0.10.6"
 rand = "0.8.5"
-reqwest = { version = "0.13.1", features = ["gzip"] }
+reqwest = { version = "0.13.5", features = ["gzip"] }
 rpassword = "7.4.0"
 rsa = "0.9.8"
 rusqlite = { version = "0.38.0", features = ["bundled"] }
@@ -49,8 +49,8 @@ serde = { version = "1.0.228", features = ["derive"] }
 serde_json = "1.0.149"
 sha1 = "0.10.6"
 sha2 = "0.10.9"
-rustls-platform-verifier = "=0.7.0"
-tokio = { version = "1.49.0" }
+rustls-platform-verifier = "=0.7.1"
+tokio = { version = "1.54.1" }
 toml = "1.1.4"
 tracing = "0.1.44"
 tracing-subscriber = { version = "0.3.23", default-features = false }

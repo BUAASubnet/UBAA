@@ -60,8 +60,16 @@ jobs:
         run: just refs
       - name: 准备固定发布材料开发工具
         run: just quality-tools-bootstrap
+      - name: 安装固定 cargo-deny
+        shell: bash
+        run: |
+          source scripts/tools/versions.env
+          cargo install --locked cargo-deny --version "=$CARGO_DENY_VERSION"
+          test "$(cargo-deny --version)" = "cargo-deny $CARGO_DENY_VERSION"
       - name: 显式预取所有目标的锁定 Cargo 依赖
         run: cargo fetch --locked
+      - name: 运行显式联网依赖审计
+        run: just dependency-audit
       - name: 扫描敏感材料
         run: just check-sensitive
       - name: 运行严格 Rust 与 Shell 确定性门禁

@@ -15,6 +15,7 @@ Dart/Flutter 的调用、工具配置与凭据分离规则只在 [AGENTS 项目�
 | Python | 3.11+，含 venv、pip | Python 门禁与质量工具环境 |
 | Python 开发依赖 | `scripts/tools/requirements.txt` 中的版本及哈希 | JSON Schema、YAML/JSON5 解析；显式 bootstrap 安装 |
 | ShellCheck | 精确 0.11.0 | `check-strict`；可通过 `UBAA_SHELLCHECK_BIN` 指定 |
+| cargo-deny | 精确 0.20.2 | `just dependency-audit`；版本来自 `scripts/tools/versions.env` |
 | 官方 Flutter / Dart | Flutter 3.41.9，commit `00b0c91f06209d9e4a41f71b7a512d6eb3b9c694`；Dart 3.11.5 | 共享七包和官方宿主 |
 | FRB codegen / cargo-expand | 精确 2.13.0 / 1.0.126 | FRB 生成检查；运行时与生成器须一致 |
 | ripgrep | 提供 `rg --files` | `just source-files` |

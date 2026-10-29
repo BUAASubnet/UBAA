@@ -1,0 +1,103 @@
+version: 2
+updates:
+  - package-ecosystem: cargo
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    groups:
+      rust-dependencies:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: pub
+    directory: "/"
+    schedule:
+      interval: weekly
+      day: monday
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 5
+    groups:
+      flutter-workspace:
+        patterns:
+          - "*"
+        update-types:
+          - "minor"
+          - "patch"
+
+  - package-ecosystem: pub
+    directory: "/apps/ubaa_ohos"
+    schedule:
+      interval: monthly
+      day: 1
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 2
+    groups:
+      ohos-host:
+        patterns:
+          - "*"
+
+  - package-ecosystem: pub
+    directory: "/packages/connectivity_plus_ohos"
+    schedule:
+      interval: monthly
+      day: 1
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 2
+    groups:
+      ohos-connectivity:
+        patterns:
+          - "*"
+
+  - package-ecosystem: pub
+    directory: "/packages/flutter_secure_storage_ohos"
+    schedule:
+      interval: monthly
+      day: 1
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 2
+    groups:
+      ohos-secure-storage:
+        patterns:
+          - "*"
+
+  - package-ecosystem: pub
+    directory: "/packages/package_info_plus_ohos"
+    schedule:
+      interval: monthly
+      day: 1
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 2
+    groups:
+      ohos-package-info:
+        patterns:
+          - "*"
+
+  - package-ecosystem: npm
+    directory: "/"
+    schedule:
+      interval: monthly
+      day: 1
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 3
+    groups:
+      docs-tooling:
+        patterns:
+          - "*"
+
+  - package-ecosystem: github-actions
+    directory: "/"
+    schedule:
+      interval: monthly
+      day: 1
+      timezone: Asia/Shanghai
+    open-pull-requests-limit: 3
+    groups:
+      github-actions:
+        patterns:
+          - "*"

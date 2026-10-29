@@ -1,0 +1,62 @@
+# cargo-deny 0.20.2；仅由显式 dependency-audit 入口联网更新 advisory 数据库。
+[graph]
+all-features = true
+
+[advisories]
+version = 2
+db-path = "~/.cargo/advisory-dbs"
+db-urls = ["https://github.com/RustSec/advisory-db"]
+yanked = "deny"
+ignore = [
+  { id = "RUSTSEC-2023-0071", reason = "rsa 0.9.10 是当前稳定版本且暂无安全修复；本项目只在本地解析固定来源的登录材料，不把私钥解密服务暴露为网络接口，升级条件由上游修复后重新评估。" },
+]
+
+[licenses]
+version = 2
+confidence-threshold = 0.8
+allow = [
+  "0BSD",
+  "Apache-2.0",
+  "Apache-2.0 WITH LLVM-exception",
+  "BSD-2-Clause",
+  "BSD-3-Clause",
+  "CC0-1.0",
+  "CDLA-Permissive-2.0",
+  "ISC",
+  "LGPL-2.1-or-later",
+  "MIT",
+  "MIT-0",
+  "MPL-2.0",
+  "Unicode-3.0",
+  "Unlicense",
+  "Zlib",
+]
+
+[licenses.private]
+ignore = false
+
+[bans]
+multiple-versions = "deny"
+wildcards = "allow"
+workspace-default-features = "allow"
+external-default-features = "allow"
+allow = []
+deny = []
+# 这些重复来自不同目标平台、FRB/CLI 工具链或同一生态的无法合并版本；
+# 每项保留独立原因，升级上游依赖时应重新评估。
+skip = [
+  { crate = "core-foundation", reason = "macOS 原生依赖与跨平台 TLS 依赖的目标条件不同" },
+  { crate = "getrandom", reason = "不同平台随机源和 Rust 版本约束导致并存" },
+  { crate = "hashbrown", reason = "jsonschema 与运行时依赖的版本约束暂不能合并" },
+  { crate = "miniz_oxide", reason = "image 与压缩链路的上游版本约束不同" },
+  { crate = "phf", reason = "时区数据与解析链路的上游版本约束不同" },
+  { crate = "phf_shared", reason = "时区数据与解析链路的上游版本约束不同" },
+  { crate = "syn", reason = "过程宏依赖跨 Rust 版本并存，统一会改变生成链" },
+]
+skip-tree = []
+
+[sources]
+unknown-registry = "deny"
+unknown-git = "deny"
+allow-registry = ["https://github.com/rust-lang/crates.io-index"]
+allow-git = []

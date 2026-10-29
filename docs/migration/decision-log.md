@@ -97,3 +97,15 @@ Android release signing 改为同时接受 Gradle property 或环境变量 `UBAA
 清理平台模板中的 TODO 和占位内容：移除 Android Gradle 的模板 TODO、替换 macOS/Windows 模板展示文本、删除 iOS/macOS 空模板测试方法、删除 OHOS 插件未使用的 `page_show` 资源，并为 OHOS 宿主补齐英文资源回退。官方 Flutter CMake 生成注释保留，因为它们属于工具维护模板而非本项目待办。没有修改 bundle id、application id、版本号或 debug 构建行为；根 `.dart_tool` 等本地生成目录加入忽略规则。
 
 测试替身中可逐字机械合并的 `_tap` helper 收进 `ubaa_test_support.tapVisible`，图书馆导航中带额外滚动语义的变体保留为独立实现。所有原有断言保留，未改变测试覆盖范围。
+
+## 2026-10-30：阶段 7 依赖审计
+
+依赖审计采用两个显式边界。Dependabot 覆盖根 Cargo、官方 Pub workspace、四个独立 OHOS Pub 包、根目录的 docs npm manifest 和 GitHub Actions；Cargo/Pub 每周或每月按生态分组，避免为每个传递依赖单独创建 PR。审计配置使用 `deny.toml`，cargo-deny 版本 `0.20.2` 只在 `scripts/tools/versions.env` 维护，`just dependency-audit` 和 CI 安装/校验同一版本。
+
+许可证白名单根据当前 `cargo metadata --locked` 和 cargo-deny 的实际许可证表达式建立，包含 `0BSD`、Apache-2.0（含 LLVM exception）、BSD-2/3-Clause、CC0-1.0、CDLA-Permissive-2.0、ISC、LGPL-2.1-or-later、MIT/MIT-0、MPL-2.0、Unicode-3.0、Unlicense 和 Zlib。`allo-isolate` 清单缺少 license 字段，但其 LICENSE 被 cargo-deny 识别为 Apache-2.0；该现有上游材料缺口保留 warning，不放宽许可证策略。
+
+本次通过 Cargo 的依赖更新流程修复可直接升级的公告：`h2`、`rustls`、`rustls-webpki`、`tokio`、`webpki-root-certs` 等均由 Cargo 实际更新并写入 `Cargo.lock`；工作区直接依赖统一到 reqwest 0.13.5、rustls-platform-verifier 0.7.1、tokio 1.54.1 和 base64 0.23.1。剩余 `RUSTSEC-2023-0071`（rsa Marvin timing）目前没有安全修复，稳定版本仍受影响；项目只在本地解析固定来源登录材料，不提供可被网络观察的 RSA 私钥解密服务，因此按 cargo-deny 配置逐项豁免并登记，待上游发布修复后删除豁免。该豁免不涵盖其他 advisories，当前检查结果为 advisories、licenses、bans、sources 全部通过。
+
+重复版本检查设为 deny。当前经审计仍因平台目标、时区/解析生态、过程宏和图像/压缩链路的独立约束保留 `core-foundation`、`getrandom`、`hashbrown`、`miniz_oxide`、`phf`、`phf_shared`、`syn` 的重复版本；每项在 `deny.toml` 的 `bans.skip` 中写明原因。workspace path 依赖不代表外部版本漂移，cargo-deny 的 wildcard 检查保持 allow，边界和理由记录在本条。
+
+Advisory 数据库访问只发生在 `just dependency-audit` 或 CI 的对应显式步骤。`just check-strict`、`just release-preflight` 和普通 refs/检查命令不隐式联网。
