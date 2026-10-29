@@ -249,7 +249,7 @@ pub struct BridgeRoutedUserProfile {
 /// FRB opaque client。内部 Core、Session 和路线 runtime 不对 Dart 可见。
 pub struct BridgeClient {
     config_dir: PathBuf,
-    pub(crate) inner: tokio::sync::Mutex<Option<UbaaClient>>,
+    pub(crate) inner: super::read_pool::ClientPool,
     pub(crate) write_intents: tokio::sync::Mutex<HashMap<String, super::write::PendingEntry>>,
     pub(crate) auth_control: RwLock<ubaa_core::facade::InteractiveLoginCancellation>,
     pub(crate) is_disposed: AtomicBool,
@@ -268,7 +268,7 @@ impl BridgeClient {
             config_dir: PathBuf::from(config_dir),
             auth_control: RwLock::new(client.interactive_login_cancellation()),
             is_disposed: AtomicBool::new(false),
-            inner: tokio::sync::Mutex::new(Some(client)),
+            inner: super::read_pool::ClientPool::new(client),
             write_intents: tokio::sync::Mutex::new(HashMap::new()),
         })
     }
@@ -291,6 +291,7 @@ impl BridgeClient {
         catch_panic(async {
             let mut guard = self.inner.lock().await;
             *guard = None;
+            self.inner.clear_readers().await;
             self.write_intents.lock().await.clear();
             Ok(())
         })

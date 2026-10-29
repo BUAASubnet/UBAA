@@ -32,7 +32,10 @@ impl BridgeClient {
         expected_identity: Option<String>,
     ) -> Result<BridgeSpocScan, BridgeError> {
         catch_panic(async {
-            let mut guard = self.inner.lock().await;
+            let mut guard = self
+                .inner
+                .read(Some(crate::api::read_pool::ReadGroup::Spoc))
+                .await?;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             self.ensure_recovery_allowed().await?;
             let plan = client
@@ -80,7 +83,10 @@ impl BridgeClient {
     ) -> Result<BridgeSpocScanBatch, BridgeError> {
         catch_panic(async {
             let mut plan = task.plan.lock().await;
-            let mut guard = self.inner.lock().await;
+            let mut guard = self
+                .inner
+                .read(Some(crate::api::read_pool::ReadGroup::Spoc))
+                .await?;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             self.ensure_recovery_allowed().await?;
             let batch = client

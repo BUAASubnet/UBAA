@@ -27,7 +27,7 @@ image = { version = "0.25.8", default-features = false, features = ["jpeg", "png
 md-5 = "0.10.6"
 regex = "1.12.2"
 rand = "0.8.5"
-reqwest = "0.13.1"
+reqwest = { version = "0.13.1", features = ["gzip"] }
 rsa = "0.9.8"
 scraper = "0.27.0"
 serde = { version = "1.0.228", features = ["derive"] }
@@ -121,3 +121,6 @@ required-features = ["test-contract"]
 
 [lints]
 workspace = true
+
+[dev-dependencies]
+flate2 = "1.1.9"

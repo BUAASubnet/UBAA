@@ -110,6 +110,7 @@ class BridgeBackend
         GradeScoreBaselineBackend,
         OfflineQueryBackend,
         ProgressiveReadBackend,
+        ConcurrentReadBackend,
         AccountScopedProgressiveReadBackend,
         ScheduleImportBackend,
         BackendLifecycle {

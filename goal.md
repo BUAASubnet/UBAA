@@ -1,4 +1,8 @@
-# 当前阶段：首页解析性能优化已完成
+# 当前阶段：首页加载进一步优化
+
+本轮重点为真正的跨业务并发：Dart 与 Rust 同时按业务分组，最多四组在途，同组串行；认证及写入独占，旧账号/路线结果不可回填。同时启用 gzip 并调整首批调度。用户最新说明校园网无法直连，因此后续仅执行 WebVPN 真实验证，保留 Direct 确定性覆盖。实施与验收见 [并发记录](docs/migration/source-parity-home-concurrency-2026-10-29.md) 和 [传输性能记录](docs/migration/source-parity-home-performance-2026-10-29.md)。
+
+## 已完成：首页解析优化
 
 用户于 2026-10-29 要求尽可能优化首页加载，授权使用 `.env.local` 的真实账号执行认证与只读实测。先分解延迟，记录冻结来源对照，再减少重复工作并复测 Direct、WebVPN 与 iOS 首页。保留工作区已有界面修改，不提交凭据、会话、响应正文或运行截图。实施记录见 [首页性能记录](docs/migration/source-parity-home-performance-2026-10-29.md)。
 

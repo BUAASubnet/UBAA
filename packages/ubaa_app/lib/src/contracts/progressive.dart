@@ -1,6 +1,9 @@
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
+/// 后端已保护分业务读取、认证及写入互斥，允许调度器同时推进独立业务。
+abstract interface class ConcurrentReadBackend {}
+
 /// 可分段读取的 backend；未支持的领域返回 null，继续使用原 typed 读取。
 abstract interface class ProgressiveReadBackend {
   Future<FeatureReadTask?> beginFeatureRead(

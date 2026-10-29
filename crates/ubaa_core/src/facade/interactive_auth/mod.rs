@@ -46,6 +46,7 @@ impl UbaaClient {
         &mut self,
         login: &InteractiveLoginHandle,
     ) -> Result<InteractiveLoginOutcome> {
+        self.direct_runtime.ensure_primary_client()?;
         login.ensure_owner(&self.interactive.cancellation)?;
         login.claim_preparation()?;
         self.guard_latest_session_ownership()?;

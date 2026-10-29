@@ -165,7 +165,10 @@ impl BridgeClient {
         query: core::BykcCacheQuery,
     ) -> Result<core::OfflineRefresh<core::BykcReadData>, BridgeError> {
         catch_panic(async {
-            let mut guard = self.inner.lock().await;
+            let mut guard = self
+                .inner
+                .read(Some(crate::api::read_pool::ReadGroup::Bykc))
+                .await?;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             self.ensure_recovery_allowed().await?;
             client

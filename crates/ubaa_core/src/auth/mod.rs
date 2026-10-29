@@ -74,6 +74,7 @@ pub(crate) struct AuthWorkflow {
 
 impl AuthWorkflow {
     pub(crate) async fn prepare_login(&mut self, runtime: &mut ClientRuntime) -> Result<()> {
+        runtime.ensure_primary_client()?;
         self.state.clear();
         let response = runtime
             .request(HttpRequest::get(runtime.url(SSO_LOGIN_URL)?))
@@ -102,6 +103,7 @@ impl AuthWorkflow {
         runtime: &mut ClientRuntime,
         input: LoginInput,
     ) -> Result<UserProfile> {
+        runtime.ensure_primary_client()?;
         if input.username.trim().is_empty() || input.password.expose_secret().is_empty() {
             return Err(UbaaError::new(
                 ErrorCode::InvalidInput,
@@ -154,6 +156,7 @@ impl AuthWorkflow {
     }
 
     pub(crate) async fn logout(&mut self, runtime: &mut ClientRuntime) -> Result<()> {
+        runtime.ensure_primary_client()?;
         self.remote_logout(runtime).await;
         runtime.clear_with(|| self.state.clear())
     }

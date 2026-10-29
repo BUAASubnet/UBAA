@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
+import 'package:ubaa_app/src/contracts/progressive.dart';
 import 'package:ubaa_app/src/controller/read_scheduler.dart';
 import 'package:ubaa_app/src/contracts/profile.dart';
 import '../../state/models.dart' show ProfileRequest;
@@ -130,6 +131,9 @@ mixin ControllerProfile on ControllerState {
         () => (request.backend as ProfileCacheBackend).refreshProfile(
           account: account,
         ),
+        lane: request.backend is ConcurrentReadBackend
+            ? ReadLane.profile
+            : null,
       );
       if (!current()) return;
       if (result.evidence.accountId != account.id ||

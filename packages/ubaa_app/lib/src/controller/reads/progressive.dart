@@ -10,6 +10,7 @@ import '../state/models.dart'
     show FeatureReadStart, ProgressiveScope, ReadPlanRestart;
 import '../state/state.dart' show ControllerState;
 import '../state/types.dart' show AppPhase, SessionRecoveryStatus;
+import 'lanes.dart';
 
 mixin ControllerProgressive on ControllerState {
   @internal
@@ -212,16 +213,22 @@ mixin ControllerProgressive on ControllerState {
       final task = start.task;
       if (task == null) return start.result!;
       scope.task = task;
+      // 首次结果之前允许少量准备步骤连续执行，避免空白作业区等待慢来源。
+      // 预算耗尽或已发布首批后让位，不能让异常计划一直占用首页队列。
+      var homeBootstrapBatches = 3;
       try {
         while (scope.valid) {
-          final batchPriority = query == null
+          final homeBootstrap = query == null && homeBootstrapBatches > 0;
+          final batchPriority = query == null && !homeBootstrap
               ? ReadPriority.background
               : priority;
-          await internalScheduleReadAuthentication(
-            feature,
-            batchPriority,
-            () => scope.valid,
-          );
+          if (internalReadTargetNeedsRecovery(feature)) {
+            await internalScheduleReadAuthentication(
+              feature,
+              batchPriority,
+              () => scope.valid,
+            );
+          }
           if (scope.restartRequested) throw const ReadPlanRestart();
           FeatureReadBatch batch;
           try {
@@ -232,6 +239,8 @@ mixin ControllerProgressive on ControllerState {
                 if (scope.restartRequested) throw const ReadPlanRestart();
                 return task.next();
               },
+              continuation: homeBootstrap,
+              lane: controllerReadLane(backend, feature),
             );
           } on BackendException catch (error) {
             if (scope.restartRequested) throw const ReadPlanRestart();
@@ -251,6 +260,7 @@ mixin ControllerProgressive on ControllerState {
             throw const ReadPlanRestart();
           }
           if (scope.restartRequested) throw const ReadPlanRestart();
+          homeBootstrapBatches = batch.publish ? 0 : homeBootstrapBatches - 1;
           scope.route = batch.result.resolvedRoute ?? scope.route;
           if (batch.finished) return batch.result;
           if (batch.publish) onBatch(batch);

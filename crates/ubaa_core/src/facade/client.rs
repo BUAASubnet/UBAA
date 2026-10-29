@@ -1,6 +1,7 @@
 //! 聚合客户端字段、构造与全局配置。
 
 use std::path::{Path, PathBuf};
+use std::sync::Arc;
 #[cfg(feature = "test-contract")]
 use std::time::Duration;
 
@@ -17,7 +18,7 @@ pub struct UbaaClient {
     pub(super) config_dir: Option<PathBuf>,
     pub(super) config: RouteConfig,
     pub(super) route_generation: u64,
-    pub(super) probe: Box<dyn GatewayProbe>,
+    pub(super) probe: Arc<dyn GatewayProbe>,
     pub(super) direct_runtime: ClientRuntime,
     pub(super) webvpn_runtime: ClientRuntime,
     pub(super) direct_auth: AuthWorkflow,
@@ -171,7 +172,7 @@ impl UbaaClient {
             config_dir: None,
             route_generation: 0,
             config,
-            probe,
+            probe: probe.into(),
             direct_runtime: ClientRuntime::new(
                 ConnectionMode::Direct,
                 direct_transport,
@@ -207,6 +208,7 @@ impl UbaaClient {
     ///
     /// 客户端没有配置目录或替换后的路线配置无法持久化时返回错误。
     pub fn set_default_route_policy(&mut self, policy: RoutePolicy) -> Result<()> {
+        self.direct_runtime.ensure_primary_client()?;
         let Some(config_dir) = self.config_dir.as_ref() else {
             return Err(UbaaError::new(
                 ErrorCode::InternalError,

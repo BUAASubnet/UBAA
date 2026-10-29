@@ -72,7 +72,10 @@ impl BridgeClient {
         cache: &BridgeOfflineCache,
     ) -> Result<BridgeProfileRefresh, BridgeError> {
         catch_panic(async {
-            let mut guard = self.inner.lock().await;
+            let mut guard = self
+                .inner
+                .read(Some(super::read_pool::ReadGroup::Profile))
+                .await?;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             self.ensure_recovery_allowed().await?;
             let value = client

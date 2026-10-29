@@ -13,6 +13,10 @@ use crate::internal::route_state::RouteFeatureState;
 use crate::ports::{HttpRequest, HttpResponse, HttpTransport};
 use crate::session::{CookieJar, SessionMutation, SessionSnapshot, SessionStore, VersionedSession};
 
+#[path = "runtime_readonly.rs"]
+mod readonly;
+use readonly::ReadonlyOwner;
+
 pub(crate) struct ClientRuntime {
     mode: ConnectionMode,
     transport: Arc<dyn HttpTransport>,
@@ -29,6 +33,7 @@ pub(crate) struct ClientRuntime {
     write_observer: Option<Weak<AtomicBool>>,
     clock: Arc<dyn Fn() -> SystemTime + Send + Sync>,
     interactive_login_scope: Option<InteractiveLoginHandle>,
+    readonly_generation: Option<ReadonlyOwner>,
 }
 
 impl ClientRuntime {
@@ -98,6 +103,7 @@ impl ClientRuntime {
             write_observer: None,
             clock,
             interactive_login_scope: None,
+            readonly_generation: None,
         })
     }
 
@@ -139,6 +145,7 @@ impl ClientRuntime {
             write_observer: None,
             clock: Arc::clone(&self.clock),
             interactive_login_scope: None,
+            readonly_generation: self.readonly_generation.clone(),
         }
     }
 
@@ -192,6 +199,7 @@ impl ClientRuntime {
     ///
     /// 只比较单调 CAS 修订，不重新采用外部快照；发现变化后由上层清理内存并拒绝操作。
     pub(crate) fn ensure_session_revision(&self) -> Result<()> {
+        self.ensure_readonly_generation()?;
         if !self.store.is_revision_current(self.session_revision)? {
             return Err(session_conflict());
         }
@@ -246,8 +254,14 @@ impl ClientRuntime {
         }
         pre_send_check(self)?;
         self.check_interactive_login_scope()?;
+        if self.readonly_generation.is_some() {
+            self.ensure_session_revision()?;
+        }
         let request_url = request.url.clone();
         let response = self.transport.execute(request).await?;
+        if self.readonly_generation.is_some() {
+            self.ensure_session_revision()?;
+        }
         self.check_interactive_login_scope()?;
         self.jar.store_response(&response, &request_url, now)?;
         Ok(response)
@@ -278,6 +292,7 @@ impl ClientRuntime {
     where
         F: FnOnce(&Self) -> Result<()>,
     {
+        self.ensure_primary_client()?;
         let now = self.now();
         let cookie = self.jar.cookie_header(&request.url, now)?;
         if !cookie.is_empty() {
@@ -310,6 +325,10 @@ impl ClientRuntime {
         let authenticated_at = self.authenticated_at.unwrap_or(now);
         self.authenticated_at = Some(authenticated_at);
         self.last_activity = Some(now);
+        if self.readonly_generation.is_some() {
+            self.ensure_session_revision()?;
+            return Ok((authenticated_at, now));
+        }
         let snapshot = SessionSnapshot {
             mode: self.mode,
             cookies: self.jar.cookies().to_vec(),
@@ -343,6 +362,9 @@ impl ClientRuntime {
     pub(crate) fn clear_with(&mut self, clear_workflow: impl FnOnce()) -> Result<()> {
         self.clear_memory();
         clear_workflow();
+        if self.readonly_generation.is_some() {
+            return Ok(());
+        }
         match self.store.compare_exchange(self.session_revision, None)? {
             SessionMutation::Applied { revision } => {
                 self.session_revision = revision;
@@ -359,6 +381,9 @@ impl ClientRuntime {
         self.last_activity = None;
         self.account_name = None;
         self.feature_state.clear();
+        if let Some(owner) = &self.readonly_generation {
+            owner.invalidate();
+        }
     }
 
     pub(crate) fn set_session_revision(&mut self, revision: u64) {

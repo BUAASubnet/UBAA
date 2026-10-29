@@ -3,6 +3,9 @@ import 'dart:async';
 /// 只调度尚未发送的工作；既定写回读不会被普通读取暂停条件阻塞。
 enum ReadPriority { writeReadback, urgent, interactive, home, background }
 
+/// 共享业务状态的读取组；未指定分组的任务独占调度器。
+enum ReadLane { academic, signin, spoc, judge, ygdk, bykc, cgyy, profile }
+
 enum ReadSchedulerTraceKind { queued, started, completed, cancelled }
 
 final class ReadSchedulerTrace {
@@ -45,6 +48,7 @@ final class _ReadJob {
     this.continuation,
     this.demand,
     this.queuedAtUs,
+    this.lane,
   );
   final ReadPriority initialPriority;
   final ReadDemand? demand;
@@ -54,15 +58,17 @@ final class _ReadJob {
   final Future<void> Function() execute;
   final void Function() cancel;
   final int queuedAtUs;
+  final ReadLane? lane;
 }
 
-/// 一次只发出一批。执行回调必须在 Core 的安全返回边界结束。
+/// 不同业务有限并发，同组和未分组操作串行；每批必须在 Core 安全边界结束。
 final class ReadScheduler {
-  ReadScheduler({required this.canRun, this.onTrace});
+  ReadScheduler({required this.canRun, this.onTrace, this.maxConcurrent = 4});
   final bool Function(ReadPriority) canRun;
   final void Function(ReadSchedulerTrace trace)? onTrace;
+  final int maxConcurrent;
   final _pending = <_ReadJob>[];
-  bool _running = false;
+  final _running = <_ReadJob>{};
   bool _scheduled = false;
   bool _closed = false;
 
@@ -81,6 +87,7 @@ final class ReadScheduler {
     void Function(T)? discard,
     bool continuation = false,
     ReadDemand? demand,
+    ReadLane? lane,
   }) {
     final completion = Completer<T>();
     if (_closed) return Future.error(const ReadCancelled());
@@ -118,6 +125,7 @@ final class ReadScheduler {
         continuation,
         demand,
         queuedAtUs,
+        lane,
       ),
     );
     pump();
@@ -141,51 +149,70 @@ final class ReadScheduler {
         job.cancel();
       }
     }
-    if (_closed || _running || _scheduled) return;
+    if (_closed ||
+        _scheduled ||
+        _running.length >= maxConcurrent ||
+        _running.any((job) => job.lane == null))
+      return;
     _scheduled = true;
     scheduleMicrotask(() {
       _scheduled = false;
-      if (_closed || _running) return;
-      _ReadJob? selected;
-      for (final job in _pending) {
-        if (canRun(job.priority) &&
-            (selected == null ||
-                job.priority.index < selected.priority.index ||
-                (job.priority == selected.priority &&
-                    job.continuation &&
-                    !selected.continuation)))
-          selected = job;
+      while (!_closed && _running.length < maxConcurrent) {
+        if (_running.any((job) => job.lane == null)) return;
+        _ReadJob? selected;
+        for (final job in _pending) {
+          if (!canRun(job.priority) ||
+              (job.lane != null &&
+                  _running.any((active) => active.lane == job.lane)))
+            continue;
+          if (selected == null ||
+              job.priority.index < selected.priority.index ||
+              (job.priority == selected.priority &&
+                  job.lane == null &&
+                  selected.lane != null) ||
+              (job.priority == selected.priority &&
+                  (job.lane == null) == (selected.lane == null) &&
+                  job.continuation &&
+                  !selected.continuation))
+            selected = job;
+        }
+        if (selected == null) return;
+        // 已排到的认证、写回读等独占任务先等在途批次收尾，不被新读取插队。
+        if (selected.lane == null && _running.isNotEmpty) return;
+        _pending.remove(selected);
+        _start(selected);
       }
-      if (selected == null) return;
-      _pending.remove(selected);
-      _running = true;
-      final startedAtUs = DateTime.now().microsecondsSinceEpoch;
-      _trace(
-        ReadSchedulerTrace(
-          kind: ReadSchedulerTraceKind.started,
-          priority: selected.priority,
-          atUs: startedAtUs,
-          waitUs: (startedAtUs - selected.queuedAtUs).clamp(0, 1 << 62),
-          runUs: 0,
-        ),
-      );
-      unawaited(
-        selected.execute().whenComplete(() {
-          final completedAtUs = DateTime.now().microsecondsSinceEpoch;
-          _trace(
-            ReadSchedulerTrace(
-              kind: ReadSchedulerTraceKind.completed,
-              priority: selected!.priority,
-              atUs: completedAtUs,
-              waitUs: (startedAtUs - selected.queuedAtUs).clamp(0, 1 << 62),
-              runUs: (completedAtUs - startedAtUs).clamp(0, 1 << 62),
-            ),
-          );
-          _running = false;
-          pump();
-        }),
-      );
     });
+  }
+
+  void _start(_ReadJob selected) {
+    _running.add(selected);
+    final startedAtUs = DateTime.now().microsecondsSinceEpoch;
+    _trace(
+      ReadSchedulerTrace(
+        kind: ReadSchedulerTraceKind.started,
+        priority: selected.priority,
+        atUs: startedAtUs,
+        waitUs: (startedAtUs - selected.queuedAtUs).clamp(0, 1 << 62),
+        runUs: 0,
+      ),
+    );
+    unawaited(
+      selected.execute().whenComplete(() {
+        final completedAtUs = DateTime.now().microsecondsSinceEpoch;
+        _trace(
+          ReadSchedulerTrace(
+            kind: ReadSchedulerTraceKind.completed,
+            priority: selected.priority,
+            atUs: completedAtUs,
+            waitUs: (startedAtUs - selected.queuedAtUs).clamp(0, 1 << 62),
+            runUs: (completedAtUs - startedAtUs).clamp(0, 1 << 62),
+          ),
+        );
+        _running.remove(selected);
+        pump();
+      }),
+    );
   }
 
   void close() {

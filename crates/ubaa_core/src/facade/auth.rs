@@ -128,6 +128,7 @@ impl UbaaClient {
     ///
     /// 会话所有权已失效或无法原子清理持久化槽位时返回错误。
     pub async fn logout(&mut self) -> Result<()> {
+        self.direct_runtime.ensure_primary_client()?;
         self.guard_latest_session_ownership()?;
         self.clear_interactive_context();
         self.direct_auth

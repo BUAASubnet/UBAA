@@ -98,7 +98,14 @@ impl BridgeClient {
         query: core::HomeQuery,
     ) -> Result<core::HomeRefresh, BridgeError> {
         catch_panic(async {
-            let mut guard = self.inner.lock().await;
+            let group = match &query {
+                core::HomeQuery::SigninToday => crate::api::read_pool::ReadGroup::Signin,
+                core::HomeQuery::SpocAssignments | core::HomeQuery::SpocDetail { .. } => {
+                    crate::api::read_pool::ReadGroup::Spoc
+                }
+                core::HomeQuery::YgdkOverview => crate::api::read_pool::ReadGroup::Ygdk,
+            };
+            let mut guard = self.inner.read(Some(group)).await?;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             self.ensure_recovery_allowed().await?;
             client

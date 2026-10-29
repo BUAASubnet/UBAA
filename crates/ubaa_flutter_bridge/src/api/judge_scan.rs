@@ -74,7 +74,10 @@ impl BridgeClient {
         preferred_course: Option<String>,
     ) -> Result<BridgeJudgeScan, BridgeError> {
         catch_panic(async {
-            let mut guard = self.inner.lock().await;
+            let mut guard = self
+                .inner
+                .read(Some(crate::api::read_pool::ReadGroup::Judge))
+                .await?;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             self.ensure_recovery_allowed().await?;
             let plan = client
@@ -100,7 +103,10 @@ impl BridgeClient {
         catch_panic(async {
             // 固定先获取计划锁，避免同计划并发调用排队占用客户端锁。
             let mut plan = scan.plan.lock().await;
-            let mut guard = self.inner.lock().await;
+            let mut guard = self
+                .inner
+                .read(Some(crate::api::read_pool::ReadGroup::Judge))
+                .await?;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             self.ensure_recovery_allowed().await?;
             let result = client

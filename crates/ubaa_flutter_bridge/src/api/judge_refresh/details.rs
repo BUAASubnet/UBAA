@@ -26,7 +26,10 @@ impl BridgeClient {
         keys: Vec<BridgeJudgeAssignmentKey>,
     ) -> Result<BridgeJudgeDetailsTask, BridgeError> {
         catch_panic(async {
-            let mut guard = self.inner.lock().await;
+            let mut guard = self
+                .inner
+                .read(Some(crate::api::read_pool::ReadGroup::Judge))
+                .await?;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             self.ensure_recovery_allowed().await?;
             let plan = client
@@ -59,7 +62,10 @@ impl BridgeClient {
     ) -> Result<BridgeJudgeProgress, BridgeError> {
         catch_panic(async {
             let mut plan = task.plan.lock().await;
-            let mut guard = self.inner.lock().await;
+            let mut guard = self
+                .inner
+                .read(Some(crate::api::read_pool::ReadGroup::Judge))
+                .await?;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             self.ensure_recovery_allowed().await?;
             let value = client

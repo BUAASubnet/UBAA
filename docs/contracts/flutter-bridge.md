@@ -39,8 +39,13 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
 | `contractVersion` | 无 | `u32=42` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
-同一 client 的 Core 调用串行持有一个异步互斥锁；读操作可以在 Dart 侧取消等待，但已经进入
-Core 的调用不会被透明重放。dispose 后所有方法返回 `client_disposed`。isolate 重建必须重新
+同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
+组间最多四个完整批次在途。每组的只读 Core 实例复用连接池，独立保存业务 Cookie、Token 和缓存，
+绑定主客户端的账号、路线与会话代次。只读实例不竞争持久会话 CAS，也不能提交登录凭据、注销或执行学校写入。
+认证恢复、路线切换、学校写入和其余尚未分组的操作独占同一读写锁；等待的写方阻止新读取插队，
+已经发送的批次正常收尾后才能执行写入。Dart 调度器对声明并发能力的后端执行相同分组和上限。
+读操作可以在 Dart 侧取消等待，但已经进入 Core 的调用不会被透明重放。
+dispose 等待在途批次结束并释放全部读取实例，之后所有方法返回 `client_disposed`。isolate 重建必须重新
 `open`，不得复用旧 handle 或 intent。应用仍处于认证/路线初始化读取阶段时，宿主重建请求
 必须安全拒绝，避免旧初始化结果写入新 handle；初始化结束后的下一次生命周期恢复再重建。
 普通 panic 脱敏为 `internal_error`；写入越过发送边界后的 panic 保留 `outcome_unknown`。不得把 panic 正文、backtrace 或参数回传 UI。

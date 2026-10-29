@@ -13,6 +13,8 @@ pub mod offline_home;
 pub mod offline_libbook;
 pub mod offline_ygdk;
 pub mod read;
+#[path = "client/read_pool.rs"]
+mod read_pool;
 pub mod recovery;
 pub mod simple;
 pub mod write;

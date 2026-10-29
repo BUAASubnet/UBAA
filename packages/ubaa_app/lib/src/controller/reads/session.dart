@@ -9,6 +9,7 @@ import 'package:ubaa_app/src/contracts/recovery.dart';
 import '../state/models.dart' show RecoveryRequest;
 import '../state/state.dart' show ControllerState;
 import '../state/types.dart' show SessionRecoveryStatus;
+import 'lanes.dart';
 
 mixin ControllerScheduledSession on ControllerState {
   @internal
@@ -109,8 +110,9 @@ mixin ControllerScheduledSession on ControllerState {
         current,
         operation,
         discard: discard,
-        continuation: recovered,
+        continuation: recovered && internalBackend is! ConcurrentReadBackend,
         demand: demand,
+        lane: controllerReadLane(internalBackend, feature),
       );
     } on BackendException catch (error) {
       if (error.code != UbaaErrorCode.authenticationRequired ||
@@ -133,6 +135,7 @@ mixin ControllerScheduledSession on ControllerState {
         discard: discard,
         continuation: true,
         demand: demand,
+        lane: controllerReadLane(internalBackend, feature),
       );
     }
   }

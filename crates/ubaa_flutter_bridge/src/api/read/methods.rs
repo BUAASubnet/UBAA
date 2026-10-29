@@ -1,5 +1,6 @@
 //! `BridgeClient` 读取 API 的路线执行与公开方法。
 
+use crate::api::read_pool::ReadGroup;
 use std::future::Future;
 use std::pin::Pin;
 
@@ -41,6 +42,7 @@ use crate::api::client::{
 impl BridgeClient {
     async fn execute_read<T, O, F>(
         &self,
+        group: Option<ReadGroup>,
         call: F,
         mapper: fn(T) -> O,
     ) -> Result<(O, BridgeRouteDecision), BridgeError>
@@ -50,7 +52,7 @@ impl BridgeClient {
         ) -> Pin<Box<dyn Future<Output = RoutedResult<T>> + Send + 'a>>,
     {
         catch_panic(async {
-            let mut guard = self.inner.lock().await;
+            let mut guard = self.inner.read(group).await?;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             let routed = call(client).await.map_err(BridgeError::from_routed)?;
             Ok((mapper(routed.data), map_route(routed.resolution)))
@@ -84,6 +86,7 @@ impl BridgeClient {
     pub async fn schedule_terms(&self) -> Result<BridgeRoutedTerms, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Academic),
                 |client| Box::pin(async move { client.schedule_terms().await }),
                 map_terms,
             )
@@ -93,6 +96,7 @@ impl BridgeClient {
     pub async fn schedule_weeks(&self, term: String) -> Result<BridgeRoutedWeeks, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Academic),
                 move |client| Box::pin(async move { client.schedule_weeks(&term).await }),
                 map_weeks,
             )
@@ -106,6 +110,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedWeeklySchedule, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Academic),
                 move |client| Box::pin(async move { client.schedule_week(&term, week).await }),
                 map_weekly_schedule,
             )
@@ -115,6 +120,7 @@ impl BridgeClient {
     pub async fn schedule_today(&self) -> Result<BridgeRoutedTodayClasses, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Academic),
                 |client| Box::pin(async move { client.schedule_today().await }),
                 map_today_classes,
             )
@@ -127,6 +133,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedExamArrangement, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Academic),
                 move |client| Box::pin(async move { client.exam_arrangement(&term).await }),
                 map_exam_arrangement,
             )
@@ -136,6 +143,7 @@ impl BridgeClient {
     pub async fn grades(&self, term: String) -> Result<BridgeRoutedGrades, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Academic),
                 move |client| Box::pin(async move { client.grades(&term).await }),
                 map_grade_data,
             )
@@ -149,6 +157,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedClassroomQuery, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Academic),
                 move |client| Box::pin(async move { client.classroom_search(campus, &date).await }),
                 map_classroom_query,
             )
@@ -158,6 +167,7 @@ impl BridgeClient {
     pub async fn signin_today(&self) -> Result<BridgeRoutedSigninClasses, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Signin),
                 |client| Box::pin(async move { client.signin_today().await }),
                 map_signin_classes,
             )
@@ -167,6 +177,7 @@ impl BridgeClient {
     pub async fn spoc_assignments(&self) -> Result<BridgeRoutedSpocAssignments, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Spoc),
                 |client| Box::pin(async move { client.spoc_assignments().await }),
                 map_spoc_assignments,
             )
@@ -179,6 +190,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedSpocAssignmentDetail, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Spoc),
                 move |client| Box::pin(async move { client.spoc_assignment(&assignment_id).await }),
                 map_spoc_detail,
             )
@@ -191,6 +203,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedJudgeSummaries, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Judge),
                 |client| Box::pin(async move { client.judge_assignments(include_expired).await }),
                 map_judge_summaries,
             )
@@ -204,6 +217,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedJudgeAssignmentDetail, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Judge),
                 move |client| {
                     Box::pin(
                         async move { client.judge_assignment(&course_id, &assignment_id).await },
@@ -227,6 +241,7 @@ impl BridgeClient {
             .collect::<Vec<_>>();
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Judge),
                 move |client| Box::pin(async move { client.judge_assignment_details(&keys).await }),
                 map_judge_details,
             )
@@ -236,6 +251,7 @@ impl BridgeClient {
     pub async fn bykc_profile(&self) -> Result<BridgeRoutedBykcProfile, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Bykc),
                 |client| Box::pin(async move { client.bykc_profile().await }),
                 map_bykc_profile,
             )
@@ -250,6 +266,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedBykcCourses, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Bykc),
                 |client| Box::pin(async move { client.bykc_courses(page, size, all).await }),
                 map_bykc_course_page,
             )
@@ -259,6 +276,7 @@ impl BridgeClient {
     pub async fn bykc_course_detail(&self, id: i64) -> Result<BridgeRoutedBykcCourse, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Bykc),
                 |client| Box::pin(async move { client.bykc_course_detail(id).await }),
                 map_bykc_course,
             )
@@ -268,6 +286,7 @@ impl BridgeClient {
     pub async fn bykc_chosen_courses(&self) -> Result<BridgeRoutedBykcChosenCourses, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Bykc),
                 |client| Box::pin(async move { client.bykc_chosen_courses().await }),
                 map_bykc_chosen_courses,
             )
@@ -282,6 +301,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedBykcCourseCatalog, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Bykc),
                 |client| Box::pin(async move { client.bykc_course_catalog(page, size, all).await }),
                 map_bykc_catalog,
             )
@@ -294,6 +314,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedBykcCourseFullDetail, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Bykc),
                 |client| Box::pin(async move { client.bykc_course_full_detail(id).await }),
                 map_bykc_full_detail,
             )
@@ -303,6 +324,7 @@ impl BridgeClient {
     pub async fn bykc_statistics(&self) -> Result<BridgeRoutedBykcStatistics, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Bykc),
                 |client| Box::pin(async move { client.bykc_statistics().await }),
                 map_bykc_statistics,
             )
@@ -315,6 +337,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedLibBookLibraries, BridgeError> {
         let (data, route) = self
             .execute_read(
+                None,
                 move |client| Box::pin(async move { client.libbook_libraries(&day).await }),
                 map_libbook_libraries,
             )
@@ -329,6 +352,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedLibBookAreas, BridgeError> {
         let (data, route) = self
             .execute_read(
+                None,
                 move |client| {
                     Box::pin(async move {
                         client
@@ -347,6 +371,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedLibBookAreaDetail, BridgeError> {
         let (data, route) = self
             .execute_read(
+                None,
                 move |client| Box::pin(async move { client.libbook_area_detail(&area_id).await }),
                 map_libbook_area_detail,
             )
@@ -359,6 +384,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedLibBookAreaSchedule, BridgeError> {
         let (data, route) = self
             .execute_read(
+                None,
                 move |client| Box::pin(async move { client.libbook_area_schedule(&area_id).await }),
                 map_libbook_area_schedule,
             )
@@ -374,6 +400,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedLibBookSeats, BridgeError> {
         let (data, route) = self
             .execute_read(
+                None,
                 move |client| {
                     Box::pin(async move {
                         client
@@ -393,6 +420,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedLibBookBookings, BridgeError> {
         let (data, route) = self
             .execute_read(
+                None,
                 |client| Box::pin(async move { client.libbook_bookings(page, limit).await }),
                 map_libbook_bookings,
             )
@@ -402,6 +430,7 @@ impl BridgeClient {
     pub async fn ygdk_overview(&self) -> Result<BridgeRoutedYgdkOverview, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Ygdk),
                 |client| Box::pin(async move { client.ygdk_overview().await }),
                 map_ygdk_overview,
             )
@@ -430,6 +459,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedYgdkRecords, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Ygdk),
                 |client| Box::pin(async move { client.ygdk_records(page, size).await }),
                 map_ygdk_records,
             )
@@ -458,6 +488,7 @@ impl BridgeClient {
     pub async fn cgyy_sites(&self) -> Result<BridgeRoutedCgyySites, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Cgyy),
                 |client| Box::pin(async move { client.cgyy_sites().await }),
                 map_cgyy_sites,
             )
@@ -467,6 +498,7 @@ impl BridgeClient {
     pub async fn cgyy_purpose_types(&self) -> Result<BridgeRoutedCgyyPurposeTypes, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Cgyy),
                 |client| Box::pin(async move { client.cgyy_purpose_types_diagnostics().await }),
                 map_cgyy_purpose_types,
             )
@@ -480,6 +512,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedCgyyDayInfo, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Cgyy),
                 move |client| Box::pin(async move { client.cgyy_day_info(site_id, &date).await }),
                 map_cgyy_day_info,
             )
@@ -493,6 +526,7 @@ impl BridgeClient {
     ) -> Result<BridgeRoutedCgyyOrders, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Cgyy),
                 |client| Box::pin(async move { client.cgyy_orders(page, size).await }),
                 map_cgyy_orders,
             )
@@ -521,6 +555,7 @@ impl BridgeClient {
     pub async fn cgyy_order_detail(&self, id: i32) -> Result<BridgeRoutedCgyyOrder, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Cgyy),
                 |client| Box::pin(async move { client.cgyy_order_detail(id).await }),
                 map_cgyy_order,
             )
@@ -548,6 +583,7 @@ impl BridgeClient {
     pub async fn cgyy_lock_code(&self) -> Result<BridgeRoutedCgyyLockCode, BridgeError> {
         let (data, route) = self
             .execute_read(
+                Some(ReadGroup::Cgyy),
                 |client| Box::pin(async move { client.cgyy_lock_code().await }),
                 map_cgyy_lock_code,
             )
@@ -557,6 +593,7 @@ impl BridgeClient {
     pub async fn evaluation_all(&self) -> Result<BridgeRoutedEvaluation, BridgeError> {
         let (data, route) = self
             .execute_read(
+                None,
                 |client| Box::pin(async move { client.evaluation_all().await }),
                 map_evaluation,
             )

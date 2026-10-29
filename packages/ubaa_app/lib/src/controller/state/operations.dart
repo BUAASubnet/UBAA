@@ -189,6 +189,9 @@ abstract class ControllerOperations extends ChangeNotifier {
   bool get internalReadTransitionBlocked;
 
   @internal
+  bool internalReadTargetNeedsRecovery(FeatureId feature);
+
+  @internal
   Future<void> internalScheduleReadAuthentication(
     FeatureId feature,
     ReadPriority priority,

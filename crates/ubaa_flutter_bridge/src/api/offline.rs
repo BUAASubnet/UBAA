@@ -232,7 +232,10 @@ impl BridgeClient {
         include_expired: bool,
     ) -> Result<BridgeJudgeRefresh, BridgeError> {
         catch_panic(async {
-            let mut guard = self.inner.lock().await;
+            let mut guard = self
+                .inner
+                .read(Some(crate::api::read_pool::ReadGroup::Judge))
+                .await?;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             if !self.write_intents.lock().await.is_empty() {
                 return Err(BridgeError::local(
@@ -268,7 +271,10 @@ impl BridgeClient {
         cache: &BridgeOfflineCache,
     ) -> Result<BridgeTodayRefresh, BridgeError> {
         catch_panic(async {
-            let mut guard = self.inner.lock().await;
+            let mut guard = self
+                .inner
+                .read(Some(crate::api::read_pool::ReadGroup::Academic))
+                .await?;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             if !self.write_intents.lock().await.is_empty() {
                 return Err(BridgeError::local(

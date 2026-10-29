@@ -12,6 +12,10 @@ use super::{HttpMethod, HttpRequest, HttpResponse, HttpTransport};
 #[path = "reqwest_transport_diagnostic.rs"]
 mod diagnostic;
 
+#[cfg(test)]
+#[path = "reqwest_transport_compression_tests.rs"]
+mod compression_tests;
+
 /// 完整缓冲认证和用户中心响应的保守上限。
 ///
 /// 这是实现安全预算，不是上游协议大小声明。更大的业务载荷应使用独立流式端口，
@@ -33,6 +37,8 @@ impl ReqwestTransport {
     pub fn new() -> Result<Self> {
         let client = reqwest::Client::builder()
             .redirect(reqwest::redirect::Policy::none())
+            // 只协商响应压缩；正文上限继续由流式解压后的累计字节数检查。
+            .gzip(true)
             .connect_timeout(std::time::Duration::from_secs(10))
             .timeout(std::time::Duration::from_secs(30))
             .user_agent("Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/130.0.0.0 Safari/537.36 Edg/130.0.0.0")
