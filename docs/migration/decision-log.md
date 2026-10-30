@@ -168,3 +168,11 @@ Android 自动读取被忽略的 `.sign/android/signing.properties`，使用 AND
 真实 Gradle 配置阶段反例先证实本地字段未被加载，修改后本地读取、相对路径、字段缺失拒绝、平台环境覆盖和旧 CI 兼容均通过。配置反例使用隔离的合成属性文件，另已验证部分外部覆盖不会回退到本地字段、显式缺失路径拒绝和空配置保持无签名。完整按改动检查以 `552edafe` 为基线通过，包含 Rust/脚本检查、八成员 Flutter 检查和 FRB 零漂移，严格 ShellCheck 也通过。日志位于本地忽略目录 `.ubaa_local/android_signing_config/`。
 
 用户完成本地配置后，使用提供的 keystore 构建 Release APK，签名校验及与 keystore 的公开证书摘要对照通过。包名保持 `cn.edu.ubaa`，版本仍为签名试包用的 `0.1.0+1`。首次构建与 Flutter 检查并行时发生插件注册文件引用 `integration_test` 的编译错误；检查结束后源码不变、单独重跑成功。后续同一 checkout 的 Flutter 检查与平台构建应串行运行，避免生成文件互相覆盖。旧正式包证书对照、覆盖升级和设备运行仍未验收。
+
+## 2026-10-30：逐图 UI 元数据移出当前文件树
+
+阶段 4 曾决定 3967 个历史 UI JSON 原位保留。复核后，这些文件只描述已移到仓库外的截图（尺寸、时间、`pngSaved`），
+占当前文档行数约四分之三，却没有现行流程读取它们，反而拖慢检索与全仓扫描。本次移除这些 JSON 和 40 份 SHA256SUMS，
+只保留批次文字说明、原型、`external-archive.json` 与 `prototype-manifest.json`。原文在 `7348b8b3` 及更早提交中完整可取，
+恢复方式写入[批次索引](../design/evidence/batches.md)。新批次的逐图元数据与截图一起留在 `UBAA_UI_EVIDENCE_DIR`，
+仓库只提交文字摘要。验收分类、外部归档和提交映射均不变。

@@ -10,7 +10,7 @@
 
 - `examples/`、`.env.local`、运行时会话、验证码图片和真实响应均为只读敏感输入，不得暂存。
 - 不得提交凭据、Cookie、Token、原始真实响应、完整个人数据、验证码图片或签名密钥。本地 `.env.toolchain` 同样不得提交。
-- UI 截图、录屏等运行验收媒体保存到仓库外私有目录，不纳入 Git。`docs/design/evidence/` 仅提交原型源文件、文字记录、脱敏元数据与摘要，`UBAA_UI_EVIDENCE_DIR` 必须指向仓库外目录。应用图标、静态地图和 golden 测试基准属于工程资源，继续按既有规则管理。归档与旧提交映射见[证据规则](docs/design/evidence/README.md)。
+- UI 截图、录屏等运行验收媒体保存到仓库外私有目录，不纳入 Git。`docs/design/evidence/` 仅提交原型源文件与脱敏文字摘要，逐图元数据随截图留在仓库外，`UBAA_UI_EVIDENCE_DIR` 必须指向仓库外目录。应用图标、静态地图和 golden 测试基准属于工程资源，继续按既有规则管理。归档与旧提交映射见[证据规则](docs/design/evidence/README.md)。
 - 不得关闭 TLS 校验，也不得在缺少证据时推断上游字段或 URL。
 - 宿主只能通过 facade 或专用 bridge 使用 Core，不得依赖 `upstream` 内部实现。
 
