@@ -98,7 +98,7 @@ just check-changed base=<阶段开始提交> mode=full
 | `just test` / `just fmt` | 前者执行 Core test-contract 合同及其余 workspace 测试；后者仅执行 Cargo 格式检查，不写文件 |
 | `just module-check` | 自有源码完整依赖闭包、环、library 聚合尺寸与 part 归属 |
 | `just integration-check` / `just integration-list` | 校验并查看保留的十一个原生能力和宿主 smoke 入口 |
-| `just integration-test` | 默认 macOS：宿主 smoke、网络恢复、插件、FFI 缓存 |
+| `just integration-test` | 默认 macOS：宿主 smoke、网络恢复、插件、FFI 缓存；按清单生成一个临时聚合入口，一次构建、一次启动依次运行，`suite=ci-isolated` 改为逐文件运行以便定位 |
 | `just integration-test suite=synthetic/cache/bridge_test.dart platform=macos` | 按精确路径与平台执行；device 未填时回退为平台 |
 | `just script-test` | Python 门禁及离线分析的合成合同 |
 

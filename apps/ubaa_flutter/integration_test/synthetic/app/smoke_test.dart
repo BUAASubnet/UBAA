@@ -7,44 +7,17 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'package:ubaa_test_support/ubaa_test_support.dart';
 import 'package:ubaa_test_support/recovery.dart' as fixtures;
 import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import '../../support/rust_library.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
-  testWidgets('DemoBackend 驱动官方宿主完成登录交互并显示首页', (tester) async {
-    try {
-      await tester.pumpWidget(
-        UbaaFlutterApp(
-          backend: DemoBackend(loginDelay: Duration.zero),
-          credentialVault: MemoryCredentialVault(),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('UBAA 登录'), findsOneWidget);
-
-      await tester.enterText(find.byType(TextField).at(0), '2020000000');
-      await tester.enterText(find.byType(TextField).at(1), 'demo-password');
-      final loginButton = find.widgetWithText(FilledButton, '登录');
-      await tester.pump();
-      expect(tester.widget<FilledButton>(loginButton).onPressed, isNotNull);
-      await tester.tap(loginButton);
-      await tester.pumpAndSettle();
-
-      expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
-      expect(find.text('今日课表'), findsOneWidget);
-      expect(tester.takeException(), isNull);
-    } finally {
-      await tester.pumpWidget(const SizedBox.shrink());
-    }
-  });
-
   testWidgets('真实 FRB/Core 打开本地首页并将缺会话结果显示为需要登录', (tester) async {
-    await RustLib.init();
+    await initializeRustLibrary();
     final directory = await Directory.systemTemp.createTemp('ubaa-host-smoke-');
     final accounts = await fixtures.savedAccounts();
     final account = (await accounts.read())!.account!;

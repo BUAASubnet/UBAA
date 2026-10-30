@@ -78,6 +78,9 @@ session.json
 # Android Kotlin 编译缓存。
 /apps/ubaa_flutter/android/.kotlin/
 
+# 默认集成集合运行时生成的聚合入口，结束即删除。
+/apps/ubaa_flutter/integration_test/.ci_suite/
+
 # VitePress 依赖与构建缓存。
 /node_modules/
 /docs/site/.vitepress/cache/

@@ -6,6 +6,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../support/rust_library.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -13,7 +14,7 @@ void main() {
     await tester.pumpWidget(
       const MaterialApp(home: Scaffold(body: Text('本地缓存合成验证'))),
     );
-    await RustLib.init();
+    await initializeRustLibrary();
     final directory = await Directory.systemTemp.createTemp(
       'ubaa-cache-probe-',
     );

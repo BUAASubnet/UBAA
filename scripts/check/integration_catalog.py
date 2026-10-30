@@ -7,6 +7,7 @@ import os
 from pathlib import Path
 import re
 import shlex
+import shutil
 import subprocess
 import sys
 
@@ -25,6 +26,10 @@ KINDS = {"synthetic", "platform", "live", "manual"}
 PLATFORMS = {"macos", "ios", "android", "linux", "windows"}
 LIVE_MARKERS = ("UBAA_LIVE_READONLY", "UBAA_VERIFY_WEBVPN", "UBAA_LIVE_MATERIAL_SCOPE")
 ENVIRONMENT_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
+# 默认集合在此生成一次构建、一次启动的聚合入口，运行结束即删除。
+# Flutter 只把 integration_test/ 下的文件当作集成测试；点目录不参与登记、格式化和分析。
+AGGREGATE_DIR = ".ci_suite"
+AGGREGATE_PATH = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_/]*\.dart$")
 
 
 def source_closure(path, root, seen=None):
@@ -72,8 +77,9 @@ def build_command(entry, flutter, platform, device=None):
 def validate(entries, root=TEST_ROOT):
     """实际入口与清单双向一致，失效路径和未知条件均拒绝。"""
     actual = {p.relative_to(root).as_posix() for p in root.rglob("*.dart")
-              if p.name.endswith(("_test.dart", "_driver.dart"))
-              or re.search(r"^(?:Future<void>|void) main\(", p.read_text(), re.M)}
+              if p.relative_to(root).parts[0] != AGGREGATE_DIR
+              and (p.name.endswith(("_test.dart", "_driver.dart"))
+                   or re.search(r"^(?:Future<void>|void) main\(", p.read_text(), re.M))}
     paths = [entry["path"] for entry in entries]
     if len(paths) != len(set(paths)):
         raise ValueError("集成清单存在重复入口")
@@ -113,10 +119,41 @@ def validate(entries, root=TEST_ROOT):
     return entries
 
 
+def aggregate(entries, root):
+    """把多个入口合成一个清单项与 Dart 源码；前提冲突或无法合并时拒绝，不静默拆分。"""
+    defines = {}
+    for entry in entries:
+        path = entry["path"]
+        if entry.get("runner", "test") != "test":
+            raise ValueError(f"聚合入口只接受 flutter test：{path}")
+        if not AGGREGATE_PATH.fullmatch(path) or path.split("/")[0] == AGGREGATE_DIR:
+            raise ValueError(f"入口路径不能安全写入聚合源码：{path}")
+        # group 回调必须同步；异步 main 的顶层 await 无法在 group 内等待。
+        if not re.search(r"^void main\(\)", (root / path).read_text(), re.M):
+            raise ValueError(f"聚合入口要求同步 void main()：{path}")
+        for define in _entry_values(entry, "defines"):
+            key, _, value = define.partition("=")
+            if defines.setdefault(key, value) != value:
+                raise ValueError(f"入口 Dart define 冲突，不能合并：{key}")
+    merged = {
+        "path": f"{AGGREGATE_DIR}/suite_test.dart",
+        "runner": "test",
+        "environment": sorted({name for entry in entries for name in _entry_values(entry, "environment")}),
+        "defines": [f"{key}={value}" for key, value in defines.items()],
+    }
+    lines = ["// 由 scripts/check/integration_catalog.py 按清单生成，运行结束即删除。",
+             "import 'package:flutter_test/flutter_test.dart';", ""]
+    lines += [f"import '../{entry['path']}' as entry{index};" for index, entry in enumerate(entries)]
+    lines += ["", "void main() {"]
+    lines += [f"  group('{entry['path']}', entry{index}.main);" for index, entry in enumerate(entries)]
+    lines += ["}", ""]
+    return merged, "\n".join(lines)
+
+
 def select(entries, suite, platform):
     if platform not in PLATFORMS:
         raise ValueError(f"未知平台：{platform}")
-    if suite == "ci":
+    if suite in {"ci", "ci-isolated"}:
         selected = [e for e in entries if e["ci"] and platform in e["platforms"]]
     else:
         selected = [e for e in entries if e["path"] == suite]
@@ -134,7 +171,8 @@ def select(entries, suite, platform):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("action", choices=["check", "list", "run"])
-    parser.add_argument("--suite", default="ci", help="ci 或清单中的精确入口路径")
+    parser.add_argument("--suite", default="ci",
+                        help="ci（一次构建运行全部默认入口）、ci-isolated（逐个文件构建运行）或清单中的精确入口路径")
     parser.add_argument("--platform", default="macos", choices=sorted(PLATFORMS))
     parser.add_argument("--device", help="Flutter 的设备 ID；默认使用平台名")
     parser.add_argument("--dry-run", action="store_true")
@@ -159,18 +197,36 @@ def main():
     for name in ("UBAA_CONFIG_DIR", "UBAA_LIVE_MATERIAL_SCOPE", "UBAA_TEST_USERNAME",
                  "UBAA_TEST_PASSWORD", "UBAA_USERNAME", "UBAA_PASSWORD"):
         environment.pop(name, None)
-    commands = []
+    # 任一入口前提缺失时不启动任何命令，也不生成聚合入口。
     for entry in selected:
+        environment_for_entry(entry, environment)
+    runs, generated = selected, None
+    if args.suite == "ci" and len(selected) > 1:
+        # 每个入口文件都会触发一次原生构建和应用启动，默认集合合并为一次。
+        merged, generated = aggregate(selected, TEST_ROOT)
+        runs = [merged]
+        print("聚合入口：" + "、".join(entry["path"] for entry in selected), flush=True)
+    commands = []
+    for entry in runs:
         entry_environment = environment_for_entry(entry, environment)
         command = build_command(entry, flutter, args.platform, args.device)
         commands.append((command, entry_environment))
     if not args.dry_run:
         subprocess.run(["bash", str(ROOT / "scripts/check/flutter-toolchains.sh"), "official"],
                        cwd=ROOT, env=environment, check=True)
-    for command, entry_environment in commands:
-        print(shlex.join(command), flush=True)
-        if not args.dry_run:
-            subprocess.run(command, cwd=APP, env=entry_environment, check=True)
+    aggregate_dir = TEST_ROOT / AGGREGATE_DIR
+    try:
+        if generated is not None and not args.dry_run:
+            shutil.rmtree(aggregate_dir, ignore_errors=True)
+            aggregate_dir.mkdir()
+            (TEST_ROOT / runs[0]["path"]).write_text(generated)
+        for command, entry_environment in commands:
+            print(shlex.join(command), flush=True)
+            if not args.dry_run:
+                subprocess.run(command, cwd=APP, env=entry_environment, check=True)
+    finally:
+        if generated is not None and not args.dry_run:
+            shutil.rmtree(aggregate_dir, ignore_errors=True)
 
 
 if __name__ == "__main__":

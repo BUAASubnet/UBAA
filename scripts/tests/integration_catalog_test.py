@@ -211,5 +211,88 @@ class CatalogTest(unittest.TestCase):
             catalog.build_command(entry, Path("/sdk/bin/flutter"), "linux")
 
 
+    def run_main(self, argv, entries, root, run=None):
+        """在临时测试根目录执行 main，返回输出和 subprocess.run 的替身。"""
+        output = io.StringIO()
+        run = run or patch.object(catalog.subprocess, "run").start()
+        self.addCleanup(patch.stopall)
+        with patch.dict(catalog.os.environ, {}, clear=True), \
+                patch.object(catalog, "load_environment", return_value={"UBAA_FLUTTER_HOME": "/sdk"}), \
+                patch.object(catalog, "validate", return_value=entries), \
+                patch.object(catalog, "TEST_ROOT", root), \
+                patch.object(catalog.sys, "argv", [str(SCRIPT), "run", *argv]), \
+                redirect_stdout(output):
+            catalog.main()
+        return output.getvalue(), run
+
+    def write_entries(self, root, *entries):
+        for entry in entries:
+            path = root / entry["path"]
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_text("void main() {}\n")
+        return list(entries)
+
+    def test_默认集合只构建启动一次并合并define(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            entries = self.write_entries(
+                root, self.entry(path="a/first_test.dart", defines=["SHARED=1"]),
+                self.entry(path="b/lock_test.dart", defines=["SHARED=1", "LOCK=on"]))
+            seen = []
+            def record(command, **kwargs):
+                if command[0] != "bash":
+                    seen.append((command, (root / ".ci_suite/suite_test.dart").read_text()))
+            output, run = self.run_main([], entries, root, patch.object(
+                catalog.subprocess, "run", side_effect=record).start())
+            self.assertEqual(len(seen), 1, "多个入口只能启动一次 flutter test")
+            command, source = seen[0]
+            self.assertIn("integration_test/.ci_suite/suite_test.dart", command)
+            self.assertEqual([c for c in command if c.startswith("--dart-define")],
+                             ["--dart-define=SHARED=1", "--dart-define=LOCK=on"])
+            self.assertIn("import '../a/first_test.dart' as entry0;", source)
+            self.assertIn("group('b/lock_test.dart', entry1.main);", source)
+            self.assertFalse((root / ".ci_suite").exists(), "运行后必须删除聚合入口")
+            self.assertIn("聚合入口：a/first_test.dart、b/lock_test.dart", output)
+
+    def test_运行失败也删除聚合入口(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            entries = self.write_entries(root, self.entry(path="a_test.dart"), self.entry(path="b_test.dart"))
+            def fail(command, **kwargs):
+                if command[0] != "bash":
+                    raise catalog.subprocess.CalledProcessError(1, command)
+            with self.assertRaises(catalog.subprocess.CalledProcessError):
+                self.run_main([], entries, root, patch.object(catalog.subprocess, "run", side_effect=fail).start())
+            self.assertFalse((root / ".ci_suite").exists())
+
+    def test_逐文件模式保留原有每入口一次运行(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            entries = self.write_entries(root, self.entry(path="a_test.dart"), self.entry(path="b_test.dart"))
+            output, run = self.run_main(["--suite", "ci-isolated"], entries, root)
+            flutter = [call.args[0] for call in run.call_args_list if call.args[0][0] != "bash"]
+            self.assertEqual([command[2] for command in flutter],
+                             ["integration_test/a_test.dart", "integration_test/b_test.dart"])
+
+    def test_聚合拒绝冲突define和异步入口(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            first, second = self.write_entries(
+                root, self.entry(path="a_test.dart", defines=["MODE=a"]),
+                self.entry(path="b_test.dart", defines=["MODE=b"]))
+            self.assertRaisesRegex(ValueError, "冲突", catalog.aggregate, [first, second], root)
+            (root / "b_test.dart").write_text("Future<void> main() async {}\n")
+            self.assertRaisesRegex(ValueError, "同步", catalog.aggregate,
+                                   [first, self.entry(path="b_test.dart")], root)
+
+    def test_残留聚合入口不计入登记(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "sample_test.dart").write_text("void main() {}")
+            (root / ".ci_suite").mkdir()
+            (root / ".ci_suite/suite_test.dart").write_text("void main() {}")
+            self.assertEqual(catalog.validate([self.entry()], root), [self.entry()])
+
+
 if __name__ == "__main__":
     unittest.main()
