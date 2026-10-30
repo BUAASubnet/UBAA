@@ -24,10 +24,10 @@ class HomeBackend extends CourseworkBackend {
       state == 'long' ? '$value 校园课程和近期学习任务的较长说明 校园课程和近期学习任务的较长说明' : value;
   final homeQueries = <(FeatureId, FeatureQuery)>[];
   final defaults = <FeatureId>[];
-  String time(int minutes) => DateTime.now()
-      .add(Duration(minutes: minutes))
-      .toIso8601String()
-      .substring(0, 19);
+  // 产品按校园时间解读这些字段，不能用运行机器的本地时间。
+  String time(int minutes) => homeCampusTime(
+    DateTime.now(),
+  ).add(Duration(minutes: minutes)).toIso8601String().substring(0, 19);
   @override
   Future<FeatureResult> loadFeature(FeatureId feature) async {
     defaults.add(feature);

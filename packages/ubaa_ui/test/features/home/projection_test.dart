@@ -17,7 +17,7 @@ void main() {
             user: null,
             visible: true,
             cacheEpoch: 0,
-            homeClock: Clock.fixed(DateTime(2026, 10, 25, 11)),
+            homeClock: Clock.fixed(DateTime.parse('2026-10-25T11:00:00+08:00')),
             snapshots: {
               for (final feature in FeatureId.values)
                 feature: FeatureSnapshot(
@@ -71,7 +71,7 @@ void main() {
 
   for (final feature in [FeatureId.spoc, FeatureId.exam]) {
     testWidgets('${feature.title}首页重建复用后仍响应来源替换与时间推进', (tester) async {
-      var now = DateTime(2026, 10, 24);
+      var now = DateTime.parse('2026-10-24T00:00:00+08:00');
       final snapshots = {
         for (final feature in FeatureId.values)
           feature: FeatureSnapshot(
@@ -138,7 +138,7 @@ void main() {
       rebuild(() => snapshots[feature] = source('更新任务'));
       await tester.pump();
       expect(find.text('更新任务'), findsOneWidget);
-      now = DateTime(2026, 10, 26);
+      now = DateTime.parse('2026-10-26T00:00:00+08:00');
       await tester.pump(const Duration(minutes: 1));
       expect(find.text('当前没有待办'), findsOneWidget);
       await tester.pumpWidget(const SizedBox.shrink());

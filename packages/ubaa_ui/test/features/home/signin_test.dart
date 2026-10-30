@@ -7,62 +7,71 @@ import '../../support/write_harness.dart';
 
 void main() {
   testWidgets('首页一次点击直接签到，连点只提交一次，成功立即移除对应待办', (tester) async {
-    await withClock(Clock.fixed(DateTime(2026, 10, 26, 15)), () async {
-      final gate = Completer<WriteCommitResult>();
-      final state = await mount(tester, commit: () => gate.future);
-      final button = find.widgetWithText(FilledButton, '签到').first;
-      await tester.tap(button);
-      await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
-      expect(state.commits, 1);
-      expect(state.targets, ['canonical-1']);
-      expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
-      await tester.tap(find.text('课程1'));
-      await tester.pump();
-      expect(state.commits, 1);
-      gate.complete(result(true));
-      await tester.pumpAndSettle();
-      expect(find.text('课程1'), findsNothing);
-      expect(find.text('课程2'), findsOneWidget);
-      state.rebuild(() {});
-      await tester.pumpAndSettle();
-      expect(find.text('课程1'), findsNothing);
-    });
+    await withClock(
+      Clock.fixed(DateTime.parse('2026-10-26T15:00:00+08:00')),
+      () async {
+        final gate = Completer<WriteCommitResult>();
+        final state = await mount(tester, commit: () => gate.future);
+        final button = find.widgetWithText(FilledButton, '签到').first;
+        await tester.tap(button);
+        await tester.pump();
+        await tester.pump(const Duration(milliseconds: 100));
+        expect(state.commits, 1);
+        expect(state.targets, ['canonical-1']);
+        expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
+        await tester.tap(find.text('课程1'));
+        await tester.pump();
+        expect(state.commits, 1);
+        gate.complete(result(true));
+        await tester.pumpAndSettle();
+        expect(find.text('课程1'), findsNothing);
+        expect(find.text('课程2'), findsOneWidget);
+        state.rebuild(() {});
+        await tester.pumpAndSettle();
+        expect(find.text('课程1'), findsNothing);
+      },
+    );
   });
   for (final unknown in [false, true]) {
     testWidgets('签到${unknown ? '结果未知' : '失败'}保留待办且不自动重试', (tester) async {
-      await withClock(Clock.fixed(DateTime(2026, 10, 26, 15)), () async {
-        final state = await mount(
-          tester,
-          commit: () async => result(false, unknown: unknown),
-        );
-        await tester.tap(find.widgetWithText(FilledButton, '签到').first);
-        await tester.pumpAndSettle();
-        expect(state.commits, 1);
-        expect(find.text('课程1'), findsOneWidget);
-        expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
-        await tester.pump(const Duration(seconds: 3));
-        expect(state.commits, 1);
-      });
+      await withClock(
+        Clock.fixed(DateTime.parse('2026-10-26T15:00:00+08:00')),
+        () async {
+          final state = await mount(
+            tester,
+            commit: () async => result(false, unknown: unknown),
+          );
+          await tester.tap(find.widgetWithText(FilledButton, '签到').first);
+          await tester.pumpAndSettle();
+          expect(state.commits, 1);
+          expect(find.text('课程1'), findsOneWidget);
+          expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
+          await tester.pump(const Duration(seconds: 3));
+          expect(state.commits, 1);
+        },
+      );
     });
   }
   testWidgets('缓存签到卡点击只刷新状态，不进入详情或直接提交', (tester) async {
-    await withClock(Clock.fixed(DateTime(2026, 10, 26, 15)), () async {
-      final state = await mount(
-        tester,
-        stale: true,
-        commit: () async => result(true),
-      );
-      await tester.tap(find.text('课程1'));
-      await tester.pumpAndSettle();
-      expect(state.refreshes, 1);
-      expect(state.targets, isEmpty);
-      expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
-      await tester.tap(find.widgetWithText(FilledButton, '签到').first);
-      await tester.pumpAndSettle();
-      expect(state.commits, 1);
-      expect(find.text('课程1'), findsNothing);
-    });
+    await withClock(
+      Clock.fixed(DateTime.parse('2026-10-26T15:00:00+08:00')),
+      () async {
+        final state = await mount(
+          tester,
+          stale: true,
+          commit: () async => result(true),
+        );
+        await tester.tap(find.text('课程1'));
+        await tester.pumpAndSettle();
+        expect(state.refreshes, 1);
+        expect(state.targets, isEmpty);
+        expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
+        await tester.tap(find.widgetWithText(FilledButton, '签到').first);
+        await tester.pumpAndSettle();
+        expect(state.commits, 1);
+        expect(find.text('课程1'), findsNothing);
+      },
+    );
   });
 }
 
