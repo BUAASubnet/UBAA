@@ -57,12 +57,27 @@ SSO 服务 URL（课程表、空教室、图书馆、iHome 等）的 `service` �
 
 本阶段提交：`19102297`、`00f40e01`、`b616bc53`、`fb73bac4`、`8d761ac9`、`fb8a60d4`、`81c6a0d6`、`bdc4232b`、`edeb41a4`、`db422ebd`、`29104992`、`69141903`、`aa687563`、`cdb65c22`、`a1d654ca`、`3cd9e3e5`、`f89ce2e2`、`80e1d77a`。阶段验证和未运行项目写入 `.ubaa_local/supervision/phase5-report.md`。
 
-## 2026-10-30：认证重定向安全收紧
+## 2026-10-30：认证重定向安全收紧与复核更正
 
-本轮修复将认证重定向的安全边界集中到 `connection`：认证目标拒绝用户信息和未声明端口，WebVPN 网关只接受 HTTPS 默认端口；Direct 路线拒绝把校园网关当作上游目标，WebVPN 路线只保留经过校验的网关地址。BYKC 令牌只有在最终目标或 Location 已通过主机、协议和端口校验后才会提取。签到、课表、用户状态、图书馆 CAS、SPOC、Cgyy 和课堂认证判定改为解析后的安全 authority 与精确主机，避免查询参数、恶意主机名、用户信息或非法端口伪命中。
+逐操作来源、反例和测试见[认证安全复核](source-parity-auth-review-2026-10-30.md)。认证目标拒绝用户信息与未声明端口，WebVPN 外壳只接受 HTTPS 默认端口。SSO 不借用 iClass 的 8346/8347 许可。通用 codec 保留冻结业务自定义端口与网关原生路径，仅在加密主机可识别后严格解析 wrapper 端口，防止畸形端口降为默认端口。
 
-Ygdk 的冻结测试只证明 `app.buaa.edu.cn` 到 `ygdk.buaa.edu.cn` 的回调，不能证明完整的中间主机集合。本轮因此限制每跳的协议、用户信息、端口和 WebVPN 网关路线，但没有凭空扩大主机白名单；未知主机仍是发布前必须补充来源或实时脱敏证据的阻塞项。相关代码和负例测试位于 `crates/ubaa_core/src/features/ygdk/auth.rs` 及其测试模块。
+BYKC final URL 与 Location 先解析实际目标，再校验精确主机、协议、端口，token 仅取已证 `/cas-login`。Signin、LibBook 同样先解析根相对/协议相对网关包装，普通相对路径继续沿用解包后的业务基址。Direct 接受合法 wrapper 并请求解包上游的行为有冻结测试支持；路线测试确认其实际请求不发往 d，不能把这种解包误判为路线越界。
 
+Ygdk 冻结代码与 BackendTest 证明 app→ygdk 回调，buaa-api 无等价模块。当前只请求 HTTPS 默认端口 app/ygdk，WebVPN 解包后主机同样验证，未知目标失败关闭。code 仅取 ygdk 根路径 query 或 `/home` fragment query，并按冻结 Ktor 语义单次百分号解码，保留字面 `+` 和 `&`。没有推测新的中间主机；完整真实跳转链兼容性仍需双路线证据。
+
+复核撤回了把 Signin/LibBook 写后认证判定改为严格安全 authority 的做法。写已发送后，异常 SSO 地址或认证路径必须继续归为 OutcomeUnknown，严格发送前校验不能缩小未知结果范围。恶意 final URL 加成功 JSON 的 Mock 反例证明分类回归，但生产 Reqwest 禁止自动跳转，不能据此声称普通 Location 已能远程制造该 final。用户/课表等读取认证判定保留解析后的精确主机与路径。
+
+## 2026-10-30：发布材料、集成执行器与宿主 smoke 复核
+
+根 Pub workspace 的成员和锁文件作为检查输入，独立 OHOS 与 Cargokit 锁文件继续保留。读取 workspace 成员时跳过空行和注释，不因顶格注释提前截断。第三方 Git 包不得沿父目录继承本项目许可证。发布默认严格模式在材料不完整时保留报告并返回状态 3；源码 CI 显式使用报告模式，保留缺口清单，同时继续阻断解析、工具或 schema 错误。报告模式不作为发布完成条件。
+
+集成执行器先校验所有选中入口，再启动 Flutter，避免先运行部分测试才发现后续配置缺失。环境变量与 Dart defines 使用环境副本和参数数组传递。清单和参数失败均有离线合同测试；不通过跳过入口或删除前提获得通过。
+
+独立运行 CLI 二进制测试时，编译器报告缺少 `ubaa_core::facade::testing`。全 workspace 测试原先借用了其他成员启用的 `test-contract` feature，掩盖了 CLI 的测试依赖遗漏。CLI 现在显式依赖 `ubaa-test-support` 开发包，并从该包导入测试会话类型，由统一测试支持层启用 feature。生产依赖保持默认关闭，原有 CLI 单包测试命令可以独立执行。
+
+原生 smoke 包含两种证据：DemoBackend 驱动真实宿主登录交互，RustLib/BridgeBackend/Core 验证本地首页、缺会话错误和缓存读取。后者不请求学校，因此保留真实 FFI 接线覆盖，同时明确不覆盖成功的学校登录或业务写入。宿主在首页首帧后合并待处理恢复，并保留异步后端初始化期间的前后台状态；退出再登录时重置首帧标记，避免恢复过早或重复执行。
+
+Bridge 保留 rand 0.10 系列，由锁文件固定为 0.10.3，避免精确钉住 0.10.2 导致其他依赖降级。Core/RSA 仍依赖 0.8，两组接口不能机械合并；cargo-deny 的重复版本记录按实际依赖树说明原因。Cargo 重算还将 cssparser-macros 的 syn 解析从 3.0.9 改为已有的 2.0.119，该上游接受两个系列；完整编译与测试验证当前锁文件，未手改依赖解析结果。
 
 ## 2026-10-30：阶段 6 Dart/Flutter/OHOS 结构重构
 
