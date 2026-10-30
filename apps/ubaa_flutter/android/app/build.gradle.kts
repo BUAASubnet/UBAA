@@ -7,7 +7,7 @@ plugins {
     id("dev.flutter.flutter-gradle-plugin")
 }
 
-// 使用Cargo.lock实际选中的Android证书组件，验证过程不隐式更新依赖。
+// 使用 Cargo.lock 实际选中的 Android 证书组件版本，不隐式更新依赖。
 val verifierMetadata = providers.exec {
     commandLine("cargo", "metadata", "--locked", "--format-version", "1",
         "--filter-platform", "aarch64-linux-android", "--manifest-path", file("../../../../Cargo.toml").path)
@@ -15,7 +15,15 @@ val verifierMetadata = providers.exec {
 val verifierPackage = ((JsonSlurper().parseText(verifierMetadata) as Map<*, *>)["packages"] as List<*>)
     .map { it as Map<*, *> }.single { it["name"] == "rustls-platform-verifier-android" }
 repositories {
-    maven { url = uri(File(file(verifierPackage["manifest_path"] as String).parentFile, "maven")) }
+    // 0.2.0 起 AAR 由上游 Maven archive 分发，Cargo 包只负责版本同步。
+    exclusiveContent {
+        forRepository {
+            maven {
+                url = uri("https://github.com/rustls/rustls-platform-verifier/raw/maven-archive/android-release-support/maven/")
+            }
+        }
+        filter { includeModule("org.rustls", "rustls-platform-verifier") }
+    }
 }
 
 // Release 证书只从 Gradle 属性或环境变量读取，仓库不保存密钥材料。
@@ -51,7 +59,7 @@ android {
 
     defaultConfig {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
-        applicationId = "cn.edu.ubaa.ubaa_flutter"
+        applicationId = "cn.edu.ubaa"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion
@@ -85,7 +93,7 @@ android {
 }
 
 dependencies {
-    implementation("rustls:rustls-platform-verifier:${verifierPackage["version"]}")
+    implementation("org.rustls:rustls-platform-verifier:${verifierPackage["version"]}")
     coreLibraryDesugaring("com.android.tools:desugar_jdk_libs:2.1.5")
     testImplementation("junit:junit:4.13.2")
     testImplementation("org.json:json:20240303")
