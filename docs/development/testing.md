@@ -32,4 +32,4 @@
 
 关于、照片和 iPad 方向测试保留截图元数据。需要保存 iOS 截图时，显式使用 `test_driver/ui_render.dart`，将 UBAA_UI_EVIDENCE_DIR 设为 `.ubaa_local/` 中本次运行的空子目录；安全校验由共享 evidence_directory 和单元测试保护。软键盘专用驱动已删除。方向用例需要唯一 UBAA_ROTATION_RUN_ID 和外部系统方向握手，不能用修改 Widget 尺寸替代。
 
-Golden 保留既有 macOS 基准，变更基准必须审阅实际差异。运行媒体遵守 [AGENTS 安全边界](../../AGENTS.md#安全边界)。offline_startup/analyze.py 只保留历史测量材料分析，不再提供已删除 driver 的测量启动器。
+Golden 保留既有 macOS 基准，变更基准必须审阅实际差异。`ubaa_ui` 的 `flutter_test_config.dart` 允许不超过 0.2% 的像素差异，吸收 CI 与本机的字体抗锯齿差别，可见的颜色、间距和布局变化仍会失败；测试里的固定时钟使用带 `+08:00` 的校园时刻，不随运行机器时区变化。运行媒体遵守 [AGENTS 安全边界](../../AGENTS.md#安全边界)。offline_startup/analyze.py 只保留历史测量材料分析，不再提供已删除 driver 的测量启动器。

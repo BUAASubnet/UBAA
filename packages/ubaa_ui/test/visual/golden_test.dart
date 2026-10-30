@@ -66,31 +66,34 @@ void _visual(
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await withClock(Clock.fixed(DateTime(2026, 9, 9)), () async {
-      await tester.pumpWidget(
-        RepaintBoundary(
-          key: const ValueKey('visual-scene'),
-          child: MaterialApp(
-            debugShowCheckedModeBanner: false,
-            theme: dark ? UbaaTheme.dark() : UbaaTheme.light(),
-            builder: (context, child) => MediaQuery(
-              data: MediaQuery.of(
-                context,
-              ).copyWith(textScaler: TextScaler.linear(scale)),
-              child: child!,
+    await withClock(
+      Clock.fixed(DateTime.parse('2026-09-09T00:00:00+08:00')),
+      () async {
+        await tester.pumpWidget(
+          RepaintBoundary(
+            key: const ValueKey('visual-scene'),
+            child: MaterialApp(
+              debugShowCheckedModeBanner: false,
+              theme: dark ? UbaaTheme.dark() : UbaaTheme.light(),
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(
+                  context,
+                ).copyWith(textScaler: TextScaler.linear(scale)),
+                child: child!,
+              ),
+              home: build(),
             ),
-            home: build(),
           ),
-        ),
-      );
-      await tester.pumpAndSettle();
-      expect(find.byType(content), findsOneWidget);
-      expect(tester.takeException(), isNull);
-      await expectLater(
-        find.byKey(const ValueKey('visual-scene')),
-        matchesGoldenFile('../goldens/$name.png'),
-      );
-    });
+        );
+        await tester.pumpAndSettle();
+        expect(find.byType(content), findsOneWidget);
+        expect(tester.takeException(), isNull);
+        await expectLater(
+          find.byKey(const ValueKey('visual-scene')),
+          matchesGoldenFile('../goldens/$name.png'),
+        );
+      },
+    );
   });
 }
 
