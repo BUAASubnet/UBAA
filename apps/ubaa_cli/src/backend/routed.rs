@@ -15,6 +15,7 @@ use ubaa_core::facade::{
     WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview,
     YgdkRecordsPage,
 };
+use ubaa_core::facade::{CampusMetrics, NetworkUsage, PortalProfile};
 use ubaa_core::facade::{IhomeAppeal, IhomeConfig, IhomeNotice, IhomePage, IhomeQuery};
 use ubaa_core::facade::{Result, RoutedResult, UbaaClient};
 
@@ -23,6 +24,15 @@ use crate::io::input::internal_error;
 
 #[async_trait]
 impl RoutedCliBackend for UbaaClient {
+    async fn portal_profile(&mut self) -> RoutedResult<PortalProfile> {
+        UbaaClient::portal_profile(self).await
+    }
+    async fn campus_metrics(&mut self) -> RoutedResult<CampusMetrics> {
+        UbaaClient::campus_metrics(self).await
+    }
+    async fn network_usage(&mut self) -> RoutedResult<NetworkUsage> {
+        UbaaClient::network_usage(self).await
+    }
     async fn ihome_notice(&mut self, id: i64) -> RoutedResult<IhomeNotice> {
         UbaaClient::ihome_notice(self, id).await
     }

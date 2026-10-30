@@ -37,6 +37,14 @@ where
 {
     let json_mode = cli.json;
     let (feature, result) = match cli.command {
+        Command::Portal(arguments) => (
+            CliFeature::Portal,
+            super::features::campus::routed_portal(arguments, backend).await,
+        ),
+        Command::Network(arguments) => (
+            CliFeature::Network,
+            super::features::campus::routed_network(arguments, backend).await,
+        ),
         Command::User(UserArgs {
             command: UserCommand::Show,
         }) => (

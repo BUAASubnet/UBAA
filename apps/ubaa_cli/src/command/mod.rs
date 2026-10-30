@@ -7,6 +7,8 @@ use clap::{Parser, Subcommand};
 use ubaa_core::facade::ConnectionMode;
 
 mod academic;
+mod campus;
+pub use campus::{NetworkArgs, NetworkCommand, PortalArgs, PortalCommand};
 mod assignments;
 mod auth;
 mod bykc;
@@ -56,6 +58,10 @@ pub struct Cli {
 /// 顶层命令组。
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// 门户身份及校园账户只读查询。
+    Portal(PortalArgs),
+    /// 网费流量只读查询。
+    Network(NetworkArgs),
     /// iHome 校园服务只读查询。
     Ihome(IhomeArgs),
     /// 认证并管理持久化会话。
@@ -133,6 +139,8 @@ impl Cli {
                 | Command::Ihome(_)
                 | Command::Ygdk(_)
                 | Command::Evaluation(_)
+                | Command::Portal(_)
+                | Command::Network(_)
         )
     }
 
@@ -167,6 +175,8 @@ impl Cli {
 
 pub(crate) const fn command_feature(command: &Command) -> CliFeature {
     match command {
+        Command::Portal(_) => CliFeature::Portal,
+        Command::Network(_) => CliFeature::Network,
         Command::Auth(_) => CliFeature::Auth,
         Command::User(_) => CliFeature::User,
         Command::Schedule(_) => CliFeature::Schedule,

@@ -22,6 +22,10 @@ pub const CLI_JSON_SCHEMA_VERSION: u32 = 12;
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CliFeature {
+    /// 门户身份及校园账户指标。
+    Portal,
+    /// 网费流量。
+    Network,
     /// iHome 校园服务。
     Ihome,
     /// 参数解析和进程启动。
@@ -61,6 +65,8 @@ impl CliFeature {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Portal => "portal",
+            Self::Network => "network",
             Self::Ihome => "ihome",
             Self::Cli => "cli",
             Self::Auth => "auth",

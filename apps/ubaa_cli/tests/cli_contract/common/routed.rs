@@ -1,5 +1,8 @@
 #[async_trait]
 impl RoutedCliBackend for FakeRoutedBackend {
+    async fn portal_profile(&mut self) -> RoutedResult<PortalProfile> { Ok(Routed { data: campus_profile(), resolution: direct_resolution() }) }
+    async fn campus_metrics(&mut self) -> RoutedResult<CampusMetrics> { Ok(Routed { data: campus_metrics(), resolution: direct_resolution() }) }
+    async fn network_usage(&mut self) -> RoutedResult<NetworkUsage> { Ok(Routed { data: campus_network(), resolution: direct_resolution() }) }
     async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
         self.ygdk_overview_calls += 1;
         Ok(Routed {

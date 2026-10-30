@@ -9,8 +9,235 @@
     { "$ref": "#/$defs/aggregateLogoutEnvelope" }
   ],
   "$defs": {
+    "campusAmount": {
+      "type": "object",
+      "required": [
+        "value",
+        "unit"
+      ],
+      "properties": {
+        "value": {
+          "type": "string",
+          "pattern": "^(0|[1-9][0-9]*)(\\.[0-9]+)?$",
+          "maxLength": 64
+        },
+        "unit": {
+          "type": "string",
+          "maxLength": 16
+        }
+      },
+      "additionalProperties": false
+    },
+    "campusAmountMetric": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "status",
+            "value",
+            "fetchedAt"
+          ],
+          "properties": {
+            "status": {
+              "const": "success"
+            },
+            "value": {
+              "$ref": "#/$defs/campusAmount"
+            },
+            "fetchedAt": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "status",
+            "error",
+            "fetchedAt"
+          ],
+          "properties": {
+            "status": {
+              "const": "failure"
+            },
+            "error": {
+              "$ref": "#/$defs/error"
+            },
+            "fetchedAt": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "campusCountMetric": {
+      "oneOf": [
+        {
+          "type": "object",
+          "required": [
+            "status",
+            "value",
+            "fetchedAt"
+          ],
+          "properties": {
+            "status": {
+              "const": "success"
+            },
+            "value": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 18446744073709551615
+            },
+            "fetchedAt": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        },
+        {
+          "type": "object",
+          "required": [
+            "status",
+            "error",
+            "fetchedAt"
+          ],
+          "properties": {
+            "status": {
+              "const": "failure"
+            },
+            "error": {
+              "$ref": "#/$defs/error"
+            },
+            "fetchedAt": {
+              "type": "integer",
+              "minimum": 0
+            }
+          },
+          "additionalProperties": false
+        }
+      ]
+    },
+    "portalProfile": {
+      "type": "object",
+      "required": [
+        "identity",
+        "department",
+        "fetchedAt"
+      ],
+      "properties": {
+        "identity": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "department": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "fetchedAt": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "campusMetrics": {
+      "type": "object",
+      "required": [
+        "networkBalance",
+        "cardBalance",
+        "unreadMail",
+        "borrowedBooks",
+        "cloudStorageRemaining"
+      ],
+      "properties": {
+        "networkBalance": {
+          "$ref": "#/$defs/campusAmountMetric"
+        },
+        "cardBalance": {
+          "$ref": "#/$defs/campusAmountMetric"
+        },
+        "unreadMail": {
+          "$ref": "#/$defs/campusCountMetric"
+        },
+        "borrowedBooks": {
+          "$ref": "#/$defs/campusCountMetric"
+        },
+        "cloudStorageRemaining": {
+          "$ref": "#/$defs/campusAmountMetric"
+        }
+      },
+      "additionalProperties": false
+    },
+    "networkProductUsage": {
+      "type": "object",
+      "required": [
+        "productName",
+        "used",
+        "freeRemaining",
+        "billableRemaining"
+      ],
+      "properties": {
+        "productName": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 512
+        },
+        "used": {
+          "$ref": "#/$defs/campusAmount"
+        },
+        "freeRemaining": {
+          "$ref": "#/$defs/campusAmount"
+        },
+        "billableRemaining": {
+          "$ref": "#/$defs/campusAmount"
+        }
+      },
+      "additionalProperties": false
+    },
+    "networkUsage": {
+      "type": "object",
+      "required": [
+        "products",
+        "remainingExcludesPackages",
+        "fetchedAt"
+      ],
+      "properties": {
+        "products": {
+          "type": "array",
+          "minItems": 1,
+          "items": {
+            "$ref": "#/$defs/networkProductUsage"
+          }
+        },
+        "remainingExcludesPackages": {
+          "const": true
+        },
+        "fetchedAt": {
+          "type": "integer",
+          "minimum": 0
+        }
+      },
+      "additionalProperties": false
+    },
+    "portalRoutedData": {
+      "oneOf": [
+        {
+          "$ref": "#/$defs/portalProfile"
+        },
+        {
+          "$ref": "#/$defs/campusMetrics"
+        }
+      ]
+    },
     "feature": {
-      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "libbook", "ygdk", "bykc", "cgyy", "evaluation", "ihome"]
+      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "libbook", "ygdk", "bykc", "cgyy", "evaluation", "ihome", "portal", "network"]
     },
     "route": {
       "enum": ["direct", "webvpn"]
@@ -1120,6 +1347,40 @@
           },
           "then": {
             "oneOf": [
+              {
+                "properties": {
+                  "meta": {
+                    "properties": {
+                      "feature": {
+                        "const": "portal"
+                      }
+                    },
+                    "required": [
+                      "feature"
+                    ]
+                  },
+                  "data": {
+                    "$ref": "#/$defs/portalRoutedData"
+                  }
+                }
+              },
+              {
+                "properties": {
+                  "meta": {
+                    "properties": {
+                      "feature": {
+                        "const": "network"
+                      }
+                    },
+                    "required": [
+                      "feature"
+                    ]
+                  },
+                  "data": {
+                    "$ref": "#/$defs/networkUsage"
+                  }
+                }
+              },
               {
                 "properties": {
                   "meta": { "properties": { "feature": { "const": "auth" } }, "required": ["feature"] },

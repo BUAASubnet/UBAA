@@ -1,5 +1,6 @@
 //! CLI 输入、稳定输出模型与人类可读渲染。
 
+mod campus;
 pub(crate) mod error;
 pub(crate) mod exit_code;
 pub(crate) mod human;

@@ -66,6 +66,8 @@ where
     let mode = backend.mode();
     let feature = command_feature(&cli.command);
     let result = match cli.command {
+        Command::Portal(arguments) => super::features::campus::portal(arguments, backend).await,
+        Command::Network(arguments) => super::features::campus::network(arguments, backend).await,
         Command::Auth(AuthArgs {
             command: AuthCommand::Login(arguments),
         }) => run_login(cli.json, arguments, backend, input, stderr).await,

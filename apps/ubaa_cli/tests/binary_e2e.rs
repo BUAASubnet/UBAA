@@ -596,6 +596,37 @@ fn binary_json_readonly_without_session_uses_schema_v10_route_diagnostics() {
 }
 
 #[test]
+fn 校园命令二进制缺少会话时保留功能和路线错误() {
+    let config = std::env::temp_dir().join(format!("ubaa-campus-cli-e2e-{}", std::process::id()));
+    std::fs::create_dir_all(&config).unwrap();
+    std::fs::write(
+        config.join("config.toml"),
+        "schema_version=1\n[route]\ndefault=\"direct\"\n",
+    )
+    .unwrap();
+    for (group, operation) in [
+        ("portal", "profile"),
+        ("portal", "metrics"),
+        ("network", "usage"),
+    ] {
+        let output = Command::new(env!("CARGO_BIN_EXE_ubaa"))
+            .args(["--json", "--config-dir"])
+            .arg(&config)
+            .args([group, operation])
+            .output()
+            .unwrap();
+        let value: serde_json::Value = serde_json::from_slice(&output.stdout).unwrap();
+        assert_cli_schema(&value);
+        assert_eq!(output.status.code(), Some(3));
+        assert_eq!(value["error"]["code"], "authentication_required");
+        assert_eq!(value["meta"]["feature"], group);
+        assert_eq!(value["meta"]["resolvedRoute"], "direct");
+        assert!(output.stderr.is_empty());
+    }
+    std::fs::remove_dir_all(config).unwrap();
+}
+
+#[test]
 fn binary_json_login_without_mode_or_config_enters_aggregate_facade() {
     let config = std::env::temp_dir().join(format!("ubaa-cli-mode-e2e-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&config);

@@ -2,6 +2,19 @@ use clap::{CommandFactory, Parser};
 use ubaa_cli::{BykcCommand, Cli, Command};
 
 #[test]
+fn 校园账户三个只读命令要求会话并标明功能() {
+    for (group, operation, feature) in [
+        ("portal", "profile", "portal"),
+        ("portal", "metrics", "portal"),
+        ("network", "usage", "network"),
+    ] {
+        let cli = Cli::try_parse_from(["ubaa", "--json", group, operation]).unwrap();
+        assert!(cli.requires_session());
+        assert_eq!(cli.feature().as_str(), feature);
+    }
+}
+
+#[test]
 fn 博雅课程命令可显式包含已结束课程() {
     let cli = Cli::try_parse_from(["ubaa", "bykc", "courses", "--all"]).unwrap();
 

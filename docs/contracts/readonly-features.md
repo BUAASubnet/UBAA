@@ -9,6 +9,24 @@ CLI 只通过 Core facade 访问下列标准和扩展只读方法。宿主不得
 HTML、加密参数、Token、Cookie 和响应正文始终留在 Core 内部，Cgyy 锁码仅投影为
 `available`。
 
+## 门户账户与网络流量
+
+`portal profile`、`portal metrics`、`network usage` 为在线只读命令，分别调用 `portal_profile()`、`campus_metrics()`、`network_usage()`。CLI 及单路线诊断客户端均通过 facade 接入，普通 CLI 的路线由 Core 决定。配置 `[route.features]` 可以分别设置 `portal`、`network`，取值为 `direct`、`webvpn` 或 `auto`。
+
+| 返回类型 | 公开字段与含义 |
+|---|---|
+| `PortalProfile` | `identity`、`department`、`fetchedAt`，分别表示门户身份、学院及 Unix 秒取得时间。资料不作为认证资格。 |
+| `CampusMetrics` | `networkBalance`、`cardBalance`、`unreadMail`、`borrowedBooks`、`cloudStorageRemaining`。云盘字段表示剩余空间。 |
+| `CampusMetric<T>` | `status=success` 时包含 `value` 和 `fetchedAt`，`status=failure` 时包含安全 `error` 和 `fetchedAt`。有效零值为成功，单项失败保留其他项。 |
+| `CampusAmount` | `value` 为十进制字符串，`unit` 为上游单位，可为空；金额和容量不经过浮点换算。邮件、图书数量直接采用非负整数。 |
+| `NetworkUsage` | `products`、`remainingExcludesPackages=true`、`fetchedAt`。每产品提供 `productName`、`used`、`freeRemaining`、`billableRemaining`，三项流量使用 `CampusAmount`。 |
+
+业务认证或公共配置失败返回整体错误；指标服务、字段或格式失败记录在对应指标。会话所有权冲突立即终止，不作为部分成功。部分指标失败时命令仍返回成功信封，调用方须检查各项 `status`，Core-live 将任何失败项单独记为 FAIL。
+
+原始 Cookie、CAS ticket、配置 ID、跳转 URL、上游消息与 HTML 不进入 DTO。网络两项剩余量均不含套餐，不合计成总剩余量。图书只有数量，不推断书目和到期日。
+
+三个命令为兼容性新增，沿用 CLI JSON schema v12 的信封；Schema 为 `portal`、`network` 增加独立且封闭的数据定义，既有命令的 DTO 不变。本阶段不增加业务快照磁盘格式或 Bridge API。来源、精确参数及失败边界见[门户与网费来源对照](../migration/source-parity-campus.md)。
+
 ## 标准只读功能
 
 | Feature | CLI | Facade | Frozen request evidence |

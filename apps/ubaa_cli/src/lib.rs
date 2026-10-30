@@ -11,6 +11,7 @@ pub use command::{
     SigninCommand, SpocArgs, SpocAssignmentCommand, SpocCommand, UserArgs, UserCommand, YgdkArgs,
     YgdkCommand,
 };
+pub use command::{NetworkArgs, NetworkCommand, PortalArgs, PortalCommand};
 mod execute;
 pub use execute::{
     run_dual_login, run_dual_logout, run_dual_status, run_with_backend,

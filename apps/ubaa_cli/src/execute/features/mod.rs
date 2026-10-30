@@ -3,6 +3,7 @@
 pub(in crate::execute) mod academic;
 pub(in crate::execute) mod assignments;
 pub(in crate::execute) mod bykc;
+pub(in crate::execute) mod campus;
 pub(in crate::execute) mod cgyy;
 pub(in crate::execute) mod evaluation;
 pub(in crate::execute) mod libbook;

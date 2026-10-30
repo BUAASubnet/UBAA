@@ -52,7 +52,7 @@ pub(crate) fn render_routed_result<O: Write, E: Write>(
                         route,
                         feature,
                     } => {
-                        if writeln!(stdout, "{} ({route:?}): {data}", feature.as_str()).is_err() {
+                        if write_readonly(stdout, &data, feature, route, true).is_err() {
                             return ExitCode::Internal as i32;
                         }
                     }
@@ -126,7 +126,7 @@ pub(crate) fn render_result<O: Write, E: Write>(
                 feature,
             } = output
             {
-                if writeln!(stdout, "{}（{route:?}）：{data}", feature.as_str()).is_err() {
+                if write_readonly(stdout, &data, feature, route, false).is_err() {
                     return ExitCode::Internal as i32;
                 }
             } else if render_human(output, stdout).is_err() {
@@ -226,4 +226,21 @@ pub fn render_startup_error<O: Write, E: Write>(
         return ExitCode::Internal as i32;
     }
     exit_code
+}
+
+fn write_readonly<W: Write>(
+    stdout: &mut W,
+    data: &Value,
+    feature: CliFeature,
+    route: ConnectionMode,
+    routed: bool,
+) -> std::io::Result<()> {
+    if !super::campus::write(stdout, feature, route, data)? {
+        if routed {
+            writeln!(stdout, "{} ({route:?}): {data}", feature.as_str())?;
+        } else {
+            writeln!(stdout, "{}（{route:?}）：{data}", feature.as_str())?;
+        }
+    }
+    Ok(())
 }

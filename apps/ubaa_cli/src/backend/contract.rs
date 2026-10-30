@@ -1,5 +1,7 @@
 //! CLI 后端契约与默认不可用错误。
 
+use ubaa_core::facade::{CampusMetrics, NetworkUsage, PortalProfile};
+
 use async_trait::async_trait;
 use ubaa_core::facade::{
     AuthStatus, BykcActionResult, BykcChosenCourse, BykcCourse, BykcCoursePage, BykcSignRequest,
@@ -23,6 +25,9 @@ use crate::io::input::internal_error;
 /// 命令执行所需的认证门面。
 #[async_trait]
 pub trait CliBackend {
+    async fn portal_profile(&mut self) -> Result<FeatureResult<PortalProfile>>;
+    async fn campus_metrics(&mut self) -> Result<FeatureResult<CampusMetrics>>;
+    async fn network_usage(&mut self) -> Result<FeatureResult<NetworkUsage>>;
     async fn ihome_page(&mut self, _query: IhomeQuery) -> Result<FeatureResult<IhomePage>>;
     async fn ihome_detail(&mut self, _id: i64, _mine: bool) -> Result<FeatureResult<IhomeAppeal>>;
     async fn ihome_config(&mut self) -> Result<FeatureResult<IhomeConfig>>;
@@ -251,6 +256,9 @@ pub trait CliBackend {
 /// 不自行选择或修复路由。
 #[async_trait]
 pub trait RoutedCliBackend {
+    async fn portal_profile(&mut self) -> RoutedResult<PortalProfile>;
+    async fn campus_metrics(&mut self) -> RoutedResult<CampusMetrics>;
+    async fn network_usage(&mut self) -> RoutedResult<NetworkUsage>;
     async fn ihome_page(&mut self, _query: IhomeQuery) -> RoutedResult<IhomePage>;
     async fn ihome_detail(&mut self, _id: i64, _mine: bool) -> RoutedResult<IhomeAppeal>;
     async fn ihome_config(&mut self) -> RoutedResult<IhomeConfig>;

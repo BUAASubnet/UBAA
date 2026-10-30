@@ -1,4 +1,6 @@
 use async_trait::async_trait;
+mod campus;
+pub(crate) use campus::{campus_metrics, campus_network, campus_profile};
 use ubaa_cli::{CliBackend, RoutedCliBackend};
 use ubaa_core::facade::*;
 use ubaa_core::facade::{

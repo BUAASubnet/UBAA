@@ -1,10 +1,14 @@
 # 当前实现与验证状态
 
-更新：2026-10-30。本文只维护当前快照，不记录单轮验证流水。整改阶段 1–7、Rust Core 精简、审查修复与签名配置的逐轮记录见[状态流水](history/2026-10-30-status-log-through-signing.md)，更早的时间线见[阶段 4 整理前状态](history/2026-10-30-status-before-quality-phase4.md)，历史决定见[决策索引](decision-log.md)。[阶段目标](../../goal.md)定义本轮范围，门禁清单只在[开发命令](../development/commands.md#检查选择与完成条件)维护。
+更新：2026-10-31。本文只维护当前快照，不记录单轮验证流水。整改阶段 1–7、Rust Core 精简、审查修复与签名配置的逐轮记录见[状态流水](history/2026-10-30-status-log-through-signing.md)，更早的时间线见[阶段 4 整理前状态](history/2026-10-30-status-before-quality-phase4.md)，历史决定见[决策索引](decision-log.md)。[阶段目标](../../goal.md)定义本轮范围，门禁清单只在[开发命令](../development/commands.md#检查选择与完成条件)维护。
 
 ## 当前实现
 
-Rust Core 统一拥有认证、Direct/WebVPN/Auto 路线、会话、十二领域读写和加密缓存。CLI 与 Bridge 通过 facade 使用 Core，Flutter/OHOS 宿主通过 Bridge 与共享 Dart/UI 接线。当前公开合同为 CLI JSON schema v12 与 Flutter bridge contract v42，独立于 Session v2、配置 v1、业务缓存 v7。产品展示版本与合同版本分别治理，取值与发布规则见[版本约定](../development/conventions.md#版本号与依赖)。
+Rust Core 统一拥有认证、Direct/WebVPN/Auto 路线、会话、校园领域读写和加密缓存。CLI 与 Bridge 通过 facade 使用 Core，Flutter/OHOS 宿主通过 Bridge 与共享 Dart/UI 接线。当前公开合同为 CLI JSON schema v12 与 Flutter bridge contract v42，独立于 Session v2、配置 v1、业务缓存 v7。产品展示版本与合同版本分别治理，取值与发布规则见[版本约定](../development/conventions.md#版本号与依赖)。
+
+Core 与 CLI 已增加门户身份/学院、五项账户指标和网络流量在线查询，云盘指标明确为剩余空间。三个 facade 方法和 `portal profile`、`portal metrics`、`network usage` 命令已在 Direct/WebVPN 两条路线实测成功，并验证网络业务会话在 CLI 进程重开后复用。单项指标失败保留其他结果，金额采用十进制字符串，免费与计费剩余流量分别保留“不含套餐”的含义。精确范围见[门户与网费接入](source-parity-campus.md)。业务快照缓存、Bridge 和 UI 尚未接入这些新查询。
+
+macOS 应用最低版本已按用户要求统一为 12.0，以匹配 Xcode 27.2 的构建范围。Runner、Podfile 和自有 bindings Podspec 保持一致，依赖 Pod 的较低目标由安装后处理提升，较高要求继续保留。依据见[部署目标决定](decision-log.md#2026-10-31macos-最低版本统一为-120)。
 
 主题保存为设备偏好，重启恢复，不随退出或清除账号删除；业务缓存仍由 Core 持有。[界面规格](../design/flutter-ui-spec.md)描述现行展示规则，[来源对照](source-parity.md)保留逐操作协议依据。
 
@@ -25,4 +29,4 @@ OHOS 已修复 Rust 动态库被改名导致的启动白屏，并更正 HUKS 密
 
 ## 最近一次完整验证
 
-2026-10-30 Rust Core 精简后：完整严格检查、1531 项 Flutter 测试、macOS 默认原生集成、FRB 零漂移和按基线检查通过；Direct 与 WebVPN 各 50 项完整只读检查通过。远端 CI 和正式发布均未运行。
+2026-10-31 门户与网络查询接入后：Rust/CLI/Bridge 测试、严格 Clippy、八包静态分析（无 error/warning）、1535 项 Flutter 测试、5 项 macOS 原生集成及 FRB 生成零漂移逐项通过。Core 单元/集成共 732 项通过，保留既有 1 项 ignored；CLI 合同 98 项通过。原生构建按正式 macOS 12.0 声明执行，产物的 LSMinimumSystemVersion 和 Mach-O minos 均为 12.0。Direct/WebVPN 的本次真实只读范围为门户资料、五项账户指标及网络流量，跨 CLI 进程会话复用同样通过。本批改动已按主题分步提交，尚未推送，没有本批候选的远端 CI 或发布结果。

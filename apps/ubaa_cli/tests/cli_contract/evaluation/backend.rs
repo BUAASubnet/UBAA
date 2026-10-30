@@ -42,6 +42,9 @@ struct EvaluationBackend {
 
 #[async_trait]
 impl RoutedCliBackend for EvaluationBackend {
+    async fn portal_profile(&mut self) -> RoutedResult<PortalProfile> { Err(crate::common::test_routed_unavailable()) }
+    async fn campus_metrics(&mut self) -> RoutedResult<CampusMetrics> { Err(crate::common::test_routed_unavailable()) }
+    async fn network_usage(&mut self) -> RoutedResult<NetworkUsage> { Err(crate::common::test_routed_unavailable()) }
     async fn evaluation_all(&mut self) -> RoutedResult<EvaluationCoursesResponse> {
         self.read_calls += 1;
         Ok(Routed {
@@ -360,6 +363,9 @@ struct FixedEvaluationBackend {
 
 #[async_trait]
 impl CliBackend for FixedEvaluationBackend {
+    async fn portal_profile(&mut self) -> Result<FeatureResult<PortalProfile>> { Err(crate::common::test_unavailable()) }
+    async fn campus_metrics(&mut self) -> Result<FeatureResult<CampusMetrics>> { Err(crate::common::test_unavailable()) }
+    async fn network_usage(&mut self) -> Result<FeatureResult<NetworkUsage>> { Err(crate::common::test_unavailable()) }
     fn mode(&self) -> ConnectionMode {
         ConnectionMode::Direct
     }

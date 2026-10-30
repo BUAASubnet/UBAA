@@ -1,5 +1,8 @@
 #[async_trait]
 impl CliBackend for FakeBackend {
+    async fn portal_profile(&mut self) -> Result<FeatureResult<PortalProfile>> { Ok(FeatureResult { data: campus_profile(), resolved_route: ConnectionMode::Direct }) }
+    async fn campus_metrics(&mut self) -> Result<FeatureResult<CampusMetrics>> { Ok(FeatureResult { data: campus_metrics(), resolved_route: ConnectionMode::Direct }) }
+    async fn network_usage(&mut self) -> Result<FeatureResult<NetworkUsage>> { Ok(FeatureResult { data: campus_network(), resolved_route: ConnectionMode::Direct }) }
     async fn evaluation_all(&mut self) -> Result<FeatureResult<EvaluationCoursesResponse>> {
         Err(test_unavailable())
     }

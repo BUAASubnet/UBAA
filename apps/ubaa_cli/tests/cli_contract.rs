@@ -1,3 +1,5 @@
+#[path = "cli_contract/campus.rs"]
+mod campus;
 #[path = "cli_contract/cgyy_cancel.rs"]
 mod cgyy_cancel;
 #[path = "cli_contract/cgyy_reservation.rs"]

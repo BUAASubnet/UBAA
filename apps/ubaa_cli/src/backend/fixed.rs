@@ -17,12 +17,22 @@ use ubaa_core::facade::{
     TodayClass, UserProfile, Week, WeeklySchedule, YgdkClockinSubmitRequest,
     YgdkClockinSubmitResult, YgdkOverview, YgdkRecordsPage,
 };
+use ubaa_core::facade::{CampusMetrics, NetworkUsage, PortalProfile};
 use ubaa_core::facade::{IhomeAppeal, IhomeConfig, IhomeNotice, IhomePage, IhomeQuery};
 
 use super::CliBackend;
 
 #[async_trait]
 impl CliBackend for RouteClient {
+    async fn portal_profile(&mut self) -> Result<FeatureResult<PortalProfile>> {
+        RouteClient::portal_profile(self).await
+    }
+    async fn campus_metrics(&mut self) -> Result<FeatureResult<CampusMetrics>> {
+        RouteClient::campus_metrics(self).await
+    }
+    async fn network_usage(&mut self) -> Result<FeatureResult<NetworkUsage>> {
+        RouteClient::network_usage(self).await
+    }
     async fn ihome_notice(&mut self, id: i64) -> Result<FeatureResult<IhomeNotice>> {
         RouteClient::ihome_notice(self, id).await
     }

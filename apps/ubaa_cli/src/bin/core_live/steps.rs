@@ -121,6 +121,7 @@ async fn run(args: Args) -> Result<Evidence> {
     if args.feature == "all" || args.feature == "evaluation" {
         run_evaluation(&mut client, &mut evidence).await;
     }
+    run_campus(&mut client, &mut evidence, &args.feature).await;
     Ok(evidence)
 }
 
@@ -164,6 +165,13 @@ fn block_after_auth_failure(evidence: &mut Evidence, feature: &str) {
         ("cgyy", "lock_code"),
         ("evaluation", "all"),
         ("evaluation", "pending"),
+        ("portal", "profile"),
+        ("portal", "network_balance"),
+        ("portal", "card_balance"),
+        ("portal", "unread_mail"),
+        ("portal", "borrowed_books"),
+        ("portal", "cloud_storage_remaining"),
+        ("network", "usage"),
     ];
     for &(operation_feature, operation) in ALL {
         let selected = feature == "all"
@@ -681,6 +689,58 @@ async fn run_ihome(client: &mut RouteClient, evidence: &mut Evidence) {
             }
         }
         Err(e) => evidence.fail("ihome", "notices", e.code),
+    }
+}
+
+async fn run_campus(client: &mut RouteClient, evidence: &mut Evidence, feature: &str) {
+    if matches!(feature, "all" | "portal") {
+        match client.portal_profile().await {
+            Ok(_) => evidence.pass("portal", "profile", None),
+            Err(error) => evidence.fail("portal", "profile", error.code),
+        }
+        match client.campus_metrics().await {
+            Ok(result) => {
+                campus_metric(evidence, "network_balance", &result.data.network_balance);
+                campus_metric(evidence, "card_balance", &result.data.card_balance);
+                campus_metric(evidence, "unread_mail", &result.data.unread_mail);
+                campus_metric(evidence, "borrowed_books", &result.data.borrowed_books);
+                campus_metric(
+                    evidence,
+                    "cloud_storage_remaining",
+                    &result.data.cloud_storage_remaining,
+                );
+            }
+            Err(error) => {
+                for operation in [
+                    "network_balance",
+                    "card_balance",
+                    "unread_mail",
+                    "borrowed_books",
+                    "cloud_storage_remaining",
+                ] {
+                    evidence.fail("portal", operation, error.code);
+                }
+            }
+        }
+    }
+    if matches!(feature, "all" | "network") {
+        match client.network_usage().await {
+            Ok(result) => evidence.pass("network", "usage", Some(result.data.products.len())),
+            Err(error) => evidence.fail("network", "usage", error.code),
+        }
+    }
+}
+
+fn campus_metric<T>(
+    evidence: &mut Evidence,
+    operation: &str,
+    result: &ubaa_core::facade::CampusMetric<T>,
+) {
+    match result {
+        ubaa_core::facade::CampusMetric::Success { .. } => evidence.pass("portal", operation, None),
+        ubaa_core::facade::CampusMetric::Failure { error, .. } => {
+            evidence.fail("portal", operation, error.code);
+        }
     }
 }
 
