@@ -47,6 +47,9 @@ mod write;
 
 pub use crate::domain::CgyyLockDisplay;
 pub use crate::domain::{
+    CampusAmount, CampusMetric, CampusMetrics, NetworkProductUsage, NetworkUsage, PortalProfile,
+};
+pub use crate::domain::{
     CaptchaAnswer, CaptchaChallenge, CaptchaFrame, InteractiveLoginCancellation,
     InteractiveLoginHandle, InteractiveLoginOutcome, InteractiveRouteResult, InteractiveRouteState,
 };

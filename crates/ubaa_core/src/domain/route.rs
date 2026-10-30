@@ -27,6 +27,10 @@ pub enum RoutePolicy {
 #[derive(Clone, Copy, Debug, Deserialize, Eq, Ord, PartialEq, PartialOrd, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum ReadonlyFeature {
+    /// 门户身份及校园账户指标。
+    Portal,
+    /// 网费自助流量查询。
+    Network,
     /// iHome 校园诉求。
     Ihome,
     /// 博雅课程只读查询。
@@ -60,6 +64,8 @@ impl ReadonlyFeature {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Portal => "portal",
+            Self::Network => "network",
             Self::Ihome => "ihome",
             Self::Bykc => "bykc",
             Self::Cgyy => "cgyy",

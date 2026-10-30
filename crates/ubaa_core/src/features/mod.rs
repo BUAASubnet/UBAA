@@ -1,5 +1,6 @@
 //! 构建于 Core 认证会话之上的校园功能模块。
 
+pub(crate) mod campus;
 mod http;
 
 pub mod bykc;

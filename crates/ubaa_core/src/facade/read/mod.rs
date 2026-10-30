@@ -3,6 +3,7 @@
 mod academic;
 mod assignments;
 mod bykc_catalog;
+mod campus;
 mod evaluation;
 mod services;
 mod write_readback;

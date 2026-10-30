@@ -39,3 +39,17 @@ fn feature_route_config_has_explicit_unknown_default_and_fallback_flags() {
     let judge = FeatureRouteConfig::for_feature(ReadonlyFeature::Judge);
     assert_eq!(judge.auto_route_override, None);
 }
+
+#[test]
+fn 门户与网络的路线覆盖可以分别保存和恢复() {
+    let config = RouteConfig::parse(
+        "[route]\ndefault=\"auto\"\n[route.features]\nportal=\"direct\"\nnetwork=\"webvpn\"\n",
+    )
+    .unwrap();
+    assert_eq!(config.feature(ReadonlyFeature::Portal), RoutePolicy::Direct);
+    assert_eq!(
+        config.feature(ReadonlyFeature::Network),
+        RoutePolicy::WebVpn
+    );
+    assert_eq!(RouteConfig::parse(&config.to_toml()).unwrap(), config);
+}

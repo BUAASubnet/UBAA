@@ -1,5 +1,8 @@
 //! Core facade 与宿主绑定共享的稳定领域值。
 
+mod campus;
+pub use campus::*;
+
 mod action;
 pub use action::*;
 mod auth;

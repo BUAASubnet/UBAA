@@ -25,6 +25,7 @@ use crate::session::{DualSessionCoordinator, FileSessionStore, SessionStore};
 
 use super::routing::{RouteExecution, invalid_input};
 
+mod campus;
 mod cgyy;
 mod evaluation;
 mod ihome;
