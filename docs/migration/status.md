@@ -67,3 +67,5 @@ Direct 收到合法 WebVPN 包装后解包并请求直连上游，不等于向�
 验证基线为 `3b676593`，对应源码提交为 `94d34898`。按改动检查通过，包含完整 Rust/脚本检查、八成员 1531 项 Flutter 测试和 FRB 零漂移；严格 ShellCheck、文档链接、布局、合同版本和敏感扫描通过。Android Debug APK、iOS 模拟器 App、OHOS 无签名 Debug HAP 均成功构建，包内应用标识均为 `cn.edu.ubaa`，Android/iOS 产物结构及 OHOS arm64 动态库检查通过。Android 入口类仍正确解析为原 Kotlin namespace 下的 MainActivity。macOS Release 构建设置解析通过，未重建或签名发布包。
 
 Android 首次构建因 TLS 组件 Maven 分发方式变化失败，按[决策记录](decision-log.md#2026-10-30android-tls-组件的-maven-分发迁移)修复仓库地址和 group 后通过，依赖版本不变。OHOS 首次缺少本机 DevEco 根目录，补充被忽略的 `.env.toolchain` 后通过；构建工具生成的无关锁文件和资源变动已还原。本地日志为 `.ubaa_local/signing_*.log`。未运行正式签名、公证、商店上传、旧版覆盖安装、数据迁移、真实账号、远端 CI 或 Windows/Linux 原生构建，签名材料有效性仍需正式候选验证。
+
+签名配置目录后续调整：默认使用根 `.sign/`，已加入整目录忽略规则并更新手册示例。现有平台配置入口不变，没有导出或移动私钥。

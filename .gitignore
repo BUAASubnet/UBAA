@@ -4,7 +4,8 @@
 !.env.example
 !.env.toolchain.example
 
-# 发布私钥和签名描述文件只保存在仓库外；误复制进来时也不纳入 Git。
+# 本地签名目录、发布私钥和签名描述文件不纳入 Git。
+/.sign/
 *.jks
 *.keystore
 *.p12

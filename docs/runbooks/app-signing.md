@@ -21,24 +21,28 @@ macOS、Windows、Linux 旧版使用不同的桌面打包工具。正式覆盖�
 
 ## 材料保存约定
 
-建议每个发布者在仓库外建立独立目录。例如 macOS/Linux：
+默认在仓库根目录的 `.sign/` 保存本机签名材料及私有配置，整个目录由根 `.gitignore` 排除。仓库外目录也可以使用，不要求统一机器上的绝对路径。在仓库根目录执行以下 macOS/Linux 命令：
 
 ```bash
-install -d -m 700 "$HOME/.config/ubaa/signing"
-install -d -m 700 "$HOME/.config/ubaa/signing/android"
-install -d -m 700 "$HOME/.config/ubaa/signing/apple"
-install -d -m 700 "$HOME/.config/ubaa/signing/ohos"
-install -d -m 700 "$HOME/.config/ubaa/signing/windows"
+install -d -m 700 ".sign"
+install -d -m 700 ".sign/android"
+install -d -m 700 ".sign/apple"
+install -d -m 700 ".sign/ohos"
+install -d -m 700 ".sign/windows"
 ```
 
-Windows 可使用当前用户目录下的独立私有目录，并限制 NTFS 访问权限。示例路径只是目录约定，平台配置中填实际绝对路径。不要把密码、私钥或 Profile 写入仓库示例、提交、命令行参数、截图或普通构建日志。`.env.toolchain` 只配置工具和非秘密路径，`.env.local` 继续只用于已有真实账号流程。
+Windows 同样可以在仓库根创建 `.sign/`，并限制 NTFS 访问权限。目录使用 `0700`、私钥及含密码的配置文件使用 `0600`（macOS/Linux）。共享示例放在受 Git 跟踪的文档中，真实值只写入本地私有配置。不要把密码、私钥或 Profile 写入提交、命令行参数、截图或普通构建日志。`.env.toolchain` 只配置工具和非秘密路径，`.env.local` 继续只用于已有真实账号流程。
+
+`.sign/` 是保存目录，当前构建工具不会自动读取其中的配置。按下文通过 Gradle 属性、环境变量或平台原生工具引用材料，并填写实际绝对路径。Android 的相对 `storeFile` 路径以 `android/app` 为基准，不能直接把 `.sign/android/release.jks` 当作仓库根路径传入。Apple 签名身份仍需导入 Keychain，磁盘上的 `.p12` 用于导入或备份。
+
+忽略规则不会加密文件，也不会阻止强制暂存或将整个工作目录打包。分享源码、归档工作区或上传 CI artifact 时排除 `.sign/`，不要执行 `git add -f .sign`。`git clean -fdx` 会删除被忽略的文件，清理前单独备份签名材料。Git clone 和新 worktree 不会携带 `.sign/`，其他开发者自行准备材料。
 
 | 平台 | 准备的材料 | 保存位置 |
 |---|---|---|
-| Android | 原发布 keystore、store password、key alias、key password | 私有目录；密码配置见下一节 |
+| Android | 原发布 keystore、store password、key alias、key password | `.sign/android/`；密码配置见下一节 |
 | iOS | Apple Distribution 证书和对应私钥、Team、匹配 Bundle ID 的分发 Profile | 本机 Keychain 和 Xcode；CI 使用加密导出的 `.p12` 与密码 |
 | macOS 官网分发 | Developer ID Application 证书及私钥、公证认证方式 | Keychain；公证凭据通过 Keychain profile 或 CI secret 管理 |
-| OHOS | `.p12`、别名和密码、发布 `.cer`、发布 `.p7b` | 私有目录，由 DevEco 导入 |
+| OHOS | `.p12`、别名和密码、发布 `.cer`、发布 `.p7b` | `.sign/ohos/`，由 DevEco 导入 |
 | Windows 可信签名 | 受信代码签名证书及其私钥访问方式，或签名服务 | 系统证书存储、硬件设备或服务，不要求必须存在可导出的 PFX |
 | Linux 可选签名 | GPG 私钥、公钥和备份 | GPG 密钥环 |
 
@@ -51,7 +55,7 @@ Windows 可使用当前用户目录下的独立私有目录，并限制 NTFS 访
 ```properties
 # 放入当前用户的 ~/.gradle/gradle.properties，不放进项目目录。
 # 以下值均为示例，替换成自己的材料；路径建议使用正斜杠。
-UBAA_RELEASE_STORE_FILE=/私有目录/signing/android/release.jks
+UBAA_RELEASE_STORE_FILE=/项目绝对路径/UBAA2/.sign/android/release.jks
 UBAA_RELEASE_STORE_PASSWORD=替换为密钥库密码
 UBAA_RELEASE_KEY_ALIAS=替换为密钥别名
 UBAA_RELEASE_KEY_PASSWORD=替换为密钥密码
@@ -77,7 +81,7 @@ just flutter-build platform=android-appbundle mode=release
 3. 可让 Xcode 自动管理匹配的 Profile。手动管理时，在开发者后台选择准确的 App ID、分发证书及分发类型，再下载 Profile。App Store/TestFlight 和 Ad Hoc 使用不同类型的 Profile；Ad Hoc 还需登记设备。
 4. 在 Xcode 中 Archive，随后通过 Organizer 的 Distribute App 导出或上传。团队与签名选择产生的本机修改要在提交前审阅，不提交个人身份、证书材料或凭据。
 
-现有 `just flutter-build platform=ios-device mode=release` 明确带有 `--no-codesign`，只用于无签名构建。命令行正式导出可在宿主目录使用 `just flutter build ipa --release --export-options-plist=/私有目录/signing/apple/ExportOptions.plist`，前提是 Xcode 的 Team/签名已正确配置。ExportOptions 由当前 Xcode Organizer 导出流程生成并复用，避免手写过时的导出字段。
+现有 `just flutter-build platform=ios-device mode=release` 明确带有 `--no-codesign`，只用于无签名构建。命令行正式导出可在宿主目录使用 `just flutter build ipa --release --export-options-plist=/项目绝对路径/UBAA2/.sign/apple/ExportOptions.plist`，前提是 Xcode 的 Team/签名已正确配置。ExportOptions 由当前 Xcode Organizer 导出流程生成并复用，避免手写过时的导出字段。
 
 CI 需将 `.p12` 导入临时 Keychain、安装匹配 Profile，并在结束时清理。App Store Connect API 密钥用于上传认证，不能替代签名证书和私钥。官方更新继续使用原商店记录；二次开发者注册自己的 App ID、Team 和商店记录。
 
