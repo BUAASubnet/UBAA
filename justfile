@@ -108,7 +108,9 @@ _rust-shell-contracts:
     cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
     just core-test-contract
     cargo test --locked --workspace --exclude ubaa-core
-    cargo build --locked --workspace
+    # 生产宿主各自按默认 feature 链接；--workspace 会被测试辅助 crate 统一打开 test-contract。
+    cargo build --locked -p ubaa-cli
+    cargo build --locked -p ubaa_flutter_bridge
     cargo doc --locked --workspace --no-deps
 
 check-sensitive:

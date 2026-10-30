@@ -5,6 +5,7 @@ import json
 from pathlib import Path
 import re
 import subprocess
+import tomllib
 
 import sys
 sys.dont_write_bytecode = True
@@ -60,6 +61,88 @@ def dependents(root, seeds):
         affected = expanded
 
 
+def previous_reader(root, base=''):
+    """读取比较起点的文件内容：有基线时取与 HEAD 的合并基点，否则取 HEAD；读不到返回 None。"""
+    base = base.removeprefix('base=')
+    revision = 'HEAD'
+    if base:
+        revision = subprocess.check_output(['git', '-C', str(root), 'merge-base', base, 'HEAD'],
+                                           text=True, stderr=subprocess.PIPE).strip()
+
+    def read(path):
+        try:
+            return subprocess.check_output(['git', '-C', str(root), 'show', f'{revision}:{path}'],
+                                           text=True, stderr=subprocess.DEVNULL)
+        except subprocess.CalledProcessError:
+            return None
+    return read
+
+
+BRIDGE = 'ubaa_flutter_bridge'
+
+
+def bridge_closure(lock_text):
+    """按锁文件求 Bridge 的依赖闭包（含 dev 依赖，偏大即保守）；无法唯一解析时报错。"""
+    packages = {}
+    for package in tomllib.loads(lock_text)['package']:
+        packages.setdefault(package['name'], []).append(package)
+
+    def resolve(dependency):
+        name, *rest = dependency.split(' ')
+        candidates = packages.get(name, [])
+        if rest:
+            candidates = [c for c in candidates if c['version'] == rest[0]]
+        if len(candidates) != 1:
+            raise ValueError('锁文件依赖无法唯一解析')
+        return candidates[0]
+
+    closure, stack = {}, [resolve(BRIDGE)]
+    while stack:
+        package = stack.pop()
+        key = (package['name'], package['version'], package.get('source'))
+        if key not in closure:
+            closure[key] = package.get('checksum')
+            stack.extend(resolve(dependency) for dependency in package.get('dependencies', []))
+    return closure
+
+
+def rust_only_manifest(root, path, previous):
+    """Rust 清单改动能否证明不影响 Bridge 原生产物与 FRB 生成；不能证明时返回 False。"""
+    if path == 'apps/ubaa_cli/Cargo.toml':
+        # CLI 清单只影响 CLI 自身；依赖版本变化会体现在 Cargo.lock 或根清单，另行判断。
+        return True
+    if path not in {'Cargo.lock', 'Cargo.toml'} or previous is None:
+        return False
+    try:
+        old_lock, new_lock = previous('Cargo.lock'), (root / 'Cargo.lock').read_text()
+        if old_lock is None:
+            return False
+        old_closure, new_closure = bridge_closure(old_lock), bridge_closure(new_lock)
+        if old_closure != new_closure:
+            return False
+        if path == 'Cargo.lock':
+            return True
+        old_text = previous('Cargo.toml')
+        if old_text is None:
+            return False
+        old, new = tomllib.loads(old_text), tomllib.loads((root / 'Cargo.toml').read_text())
+        old_deps = old.get('workspace', {}).pop('dependencies', {})
+        new_deps = new.get('workspace', {}).pop('dependencies', {})
+        # profile、lints、成员等其他字段会影响所有 crate，只放过工作区依赖表。
+        if old != new:
+            return False
+        names = set()
+        for key in old_deps.keys() | new_deps.keys():
+            if old_deps.get(key) != new_deps.get(key):
+                for table in (old_deps, new_deps):
+                    entry = table.get(key)
+                    names.add(entry.get('package', key) if isinstance(entry, dict) else key)
+        used = {name for name, _, _ in old_closure} | {name for name, _, _ in new_closure}
+        return not (names & used)
+    except (OSError, ValueError, KeyError, TypeError, tomllib.TOMLDecodeError):
+        return False
+
+
 # 路径只能识别已知边界；审阅发现新的安全/协议等影响时必须显式用 mode=full。
 BOUNDARIES = (
     'crates/ubaa_core/', 'crates/ubaa_flutter_bridge/', 'crates/ubaa_test_support/',
@@ -85,11 +168,11 @@ DOCUMENT_ROOTS = ('docs/', 'scripts/', '.github/', 'apps/ubaa_cli/',
 SCRIPT_EXTENSIONS = {'.py', '.sh', '.cjs', '.js', '.ts', '.pl', '.yml', '.yaml', '.json', '.txt', '.env'}
 
 
-def select_checks(root, paths, mode='commit'):
+def select_checks(root, paths, mode='commit', previous=None):
     if mode not in {'commit', 'push', 'full'}:
         raise ValueError('检查模式只接受 commit、push 或 full')
     selected, production = set(), set()
-    rust = scripts = native = site = False
+    rust = scripts = native = site = strict_rust = False
     full = mode == 'full'
     codegen = full
     notes = set()
@@ -106,6 +189,11 @@ def select_checks(root, paths, mode='commit'):
         if path.startswith(OHOS):
             full = True
             notes.add('OHOS 专属改动：另需 just ohos-check 及相应设备验证，官方 Flutter 检查不能替代。')
+        # 只影响 CLI 或 Bridge 依赖闭包之外的 Rust 清单：完整 Rust 严格检查，不需要原生与 Flutter。
+        if Path(path).name in {'Cargo.toml', 'Cargo.lock'} and rust_only_manifest(root, path, previous):
+            rust = strict_rust = True
+            notes.add('Rust 清单改动未触及 Bridge 依赖闭包：执行完整 Rust 严格检查，不运行原生与 Flutter。')
+            continue
         # Bridge API、生成文件及依赖配置是生成输入。Core 实现变化保留完整测试，
         # 未改生成输入时省去重复重生成。未知影响仍包含生成检查。
         rust_test = ('tests' in Path(path).parts or Path(path).name == 'tests.rs'
@@ -160,7 +248,7 @@ def select_checks(root, paths, mode='commit'):
         selected.update(PACKAGES)
     if native and not full and mode == 'commit':
         notes.add('原生改动：提交前检查所属包，推送前 mode=push 或 CI 执行原生集成及对应平台专项。')
-    return {'rust': rust, 'scripts': scripts, 'full': full, 'strict': full or mode == 'push',
+    return {'rust': rust, 'scripts': scripts, 'full': full, 'strict': full or strict_rust or mode == 'push',
             'native': native and (full or mode == 'push'),
             'packages': [name for name in PACKAGES if name in selected],
             'extra': ([CODEGEN] if codegen else []) + ([['npm', 'run', 'docs:build']] if site else []),
@@ -197,7 +285,7 @@ def main():
     if not paths and args.mode != 'full':
         print('没有待检查改动；检查已提交分支时请传入 --base。')
         return
-    plan = select_checks(ROOT, paths, args.mode)
+    plan = select_checks(ROOT, paths, args.mode, previous_reader(ROOT, args.base))
     print(json.dumps({'改动': paths, '命令': commands(plan), '专项说明': plan['notes']}, ensure_ascii=False, indent=2), flush=True)
     if args.run:
         for command in commands(plan):

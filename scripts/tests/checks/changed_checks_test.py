@@ -228,5 +228,104 @@ class ChangedChecksTest(unittest.TestCase):
                 gates.changed_paths(repo, 'missing-ref')
 
 
+LOCK = """version = 4
+
+[[package]]
+name = "ubaa_flutter_bridge"
+version = "0.1.0"
+dependencies = ["serde", "ubaa-core"]
+
+[[package]]
+name = "ubaa-core"
+version = "0.1.0"
+dependencies = ["serde"]
+
+[[package]]
+name = "ubaa-cli"
+version = "0.1.0"
+dependencies = ["clap", "ubaa-core"]
+
+[[package]]
+name = "serde"
+version = "SERDE"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "aa"
+
+[[package]]
+name = "clap"
+version = "CLAP"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "bb"
+"""
+MANIFEST = """[workspace]
+members = ["apps/ubaa_cli", "crates/ubaa_core", "crates/ubaa_flutter_bridge"]
+
+[workspace.dependencies]
+clap = "CLAP"
+serde = "SERDE"
+renamed = { package = "serde", version = "SERDE" }
+
+[profile.dev]
+debug = "DEBUG"
+"""
+
+
+class RustManifestTierTest(unittest.TestCase):
+    """只有能证明不触及 Bridge 依赖闭包的 Rust 清单改动才降为 Rust 严格检查。"""
+
+    def plan(self, path, old, new):
+        def fill(text, values):
+            for key, value in values.items():
+                text = text.replace(key, value)
+            return text
+        base = {'SERDE': '1.0.0', 'CLAP': '4.0.0', 'DEBUG': 'line-tables-only'}
+        # 先套用本用例的替换，再补默认值。
+        def render(text, values):
+            return fill(fill(text, values), base)
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / 'Cargo.lock').write_text(render(LOCK, new))
+            (root / 'Cargo.toml').write_text(render(MANIFEST, new))
+            previous = {'Cargo.lock': render(LOCK, old), 'Cargo.toml': render(MANIFEST, old)}
+            return gates.select_checks(root, [path], previous=previous.get)
+
+    def assert_rust_only(self, plan):
+        self.assertFalse(plan['full'])
+        self.assertTrue(plan['rust'] and plan['strict'])
+        self.assertFalse(plan['native'])
+        self.assertEqual(plan['packages'], [])
+        self.assertEqual(plan['extra'], [])
+        self.assertIn(['just', 'check-strict'], gates.commands(plan))
+
+    def assert_full(self, plan):
+        self.assertTrue(plan['full'])
+        self.assertIn(['just', 'integration-test'], gates.commands(plan))
+        self.assertIn(gates.CODEGEN, plan['extra'])
+
+    def test_CLI清单只做Rust严格检查(self):
+        self.assert_rust_only(gates.select_checks(ROOT, ['apps/ubaa_cli/Cargo.toml']))
+
+    def test_只升级CLI依赖的锁文件不运行原生检查(self):
+        self.assert_rust_only(self.plan('Cargo.lock', {}, {'CLAP': '4.1.0'}))
+
+    def test_升级Bridge闭包内依赖仍完整验收(self):
+        self.assert_full(self.plan('Cargo.lock', {}, {'SERDE': '1.0.1'}))
+
+    def test_根清单只改CLI工作区依赖时只做Rust严格检查(self):
+        self.assert_rust_only(self.plan('Cargo.toml', {'CLAP': '4.0.0'}, {'CLAP': '4.1.0'}))
+
+    def test_根清单改闭包内依赖或改名依赖仍完整验收(self):
+        self.assert_full(self.plan('Cargo.toml', {}, {'"SERDE"': '"1.0.1"'}))
+        self.assert_full(self.plan('Cargo.toml', {}, {'version = "SERDE"': 'version = "1.0.1"'}))
+
+    def test_根清单其他字段影响所有crate时完整验收(self):
+        self.assert_full(self.plan('Cargo.toml', {}, {'DEBUG': 'full'}))
+
+    def test_缺少旧版本或无法解析时完整验收(self):
+        self.assert_full(gates.select_checks(ROOT, ['Cargo.lock'], previous=lambda path: None))
+        self.assert_full(self.plan('Cargo.lock', {}, {'"serde", "ubaa-core"]': '"serde", "serde", "ubaa-core", "missing"]'}))
+        self.assert_full(self.plan('Cargo.lock', {}, {'version = 4': 'version = ['}))
+
+
 if __name__ == '__main__':
     unittest.main()
