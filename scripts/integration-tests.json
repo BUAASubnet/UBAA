@@ -156,21 +156,6 @@
       "defines": [
         "UBAA_SECURE_STORAGE_AVAILABLE=true"
       ]
-    },
-    {
-      "path": "synthetic/cache/startup_lock_test.dart",
-      "kind": "synthetic",
-      "domain": "initialization",
-      "platforms": [
-        "macos",
-        "linux"
-      ],
-      "ci": true,
-      "inspection": false,
-      "runner": "test",
-      "environment": [],
-      "defines": [],
-      "harness": "startup-lock"
     }
   ]
 }

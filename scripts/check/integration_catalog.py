@@ -103,9 +103,7 @@ def validate(entries, root=TEST_ROOT):
             key, separator, _ = define.partition("=")
             if not separator or not key or any(character in define for character in "\x00\r\n"):
                 raise ValueError(f"入口 Dart define 无效：{path}")
-        harness = entry.get("harness")
-        if harness is not None and (harness != "startup-lock" or entry["kind"] != "synthetic"
-                                    or not set(entry["platforms"]) <= {"macos", "linux"}):
+        if "harness" in entry:
             raise ValueError(f"未登记的外部合成夹具：{path}")
         source = source_closure(root / path, root)
         if any(marker in source for marker in LIVE_MARKERS) and entry["kind"] not in {"live", "manual"}:
@@ -165,8 +163,6 @@ def main():
     for entry in selected:
         entry_environment = environment_for_entry(entry, environment)
         command = build_command(entry, flutter, args.platform, args.device)
-        if entry.get("harness") == "startup-lock":
-            command = [sys.executable, str(ROOT / "scripts/tests/native/startup_lock_runner.py"), *command]
         commands.append((command, entry_environment))
     if not args.dry_run:
         subprocess.run(["bash", str(ROOT / "scripts/check/flutter-toolchains.sh"), "official"],

@@ -98,13 +98,13 @@ just check-changed base=<阶段开始提交> mode=full
 | `just test` / `just fmt` | 前者执行 Core test-contract 合同及其余 workspace 测试；后者仅执行 Cargo 格式检查，不写文件 |
 | `just module-check` | 自有源码完整依赖闭包、环、library 聚合尺寸与 part 归属 |
 | `just integration-check` / `just integration-list` | 校验并查看保留的十一个原生能力和宿主 smoke 入口 |
-| `just integration-test` | 默认 macOS：宿主 smoke、网络恢复、插件、FFI 缓存、跨进程启动锁 |
+| `just integration-test` | 默认 macOS：宿主 smoke、网络恢复、插件、FFI 缓存 |
 | `just integration-test suite=synthetic/cache/bridge_test.dart platform=macos` | 按精确路径与平台执行；device 未填时回退为平台 |
 | `just script-test` | Python 门禁及离线分析的合成合同 |
 
 集成清单中的 `environment` 表示当前进程或工具链配置必须提供的非空环境变量，缺失时入口在启动 Flutter 前失败；`defines` 会逐项转换为 `--dart-define=...` 传给 Flutter。`runner` 为 `test` 或 `run`，分别执行对应的 Flutter 子命令，清单中的 `ci` 入口只能使用 `test`。
 
-原生集成保留真实原生能力、FFI/启动锁和最小宿主 smoke。保留覆盖与自动化缺口见[测试策略](testing.md)。各平台构建、设备验收和发布证据分别记录。
+原生集成保留真实原生能力、FFI 和最小宿主 smoke。保留覆盖与自动化缺口见[测试策略](testing.md)。各平台构建、设备验收和发布证据分别记录。
 
 OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员。`ohos-check` 当前执行 OHOS 宿主 analyze/test、工具链预检、HUKS 与 connectivity 的合成合同及 HAP 构建；package_info_plus_ohos 仅被间接编译，没有独立自动合同。普通 Flutter 成功不能代替 OHOS 结果，这些覆盖缺口留待后续阶段。
 

@@ -20,7 +20,7 @@
 
 `lib/repo.sh` 与 `lib/repo.py` 定位仓库根，`lib/live-features.sh` 提供 live 功能白名单，`lib/toolchain.py` 与 Shell 包装解析工具配置。`tools/environment.sh` 只定位质量 venv，普通 checker 不隐式安装依赖。
 
-`live/offline_startup/analyze.py` 与 analyze_test.py 保留历史测量材料的安全统计和合成合同。原生集成登记只保留真实平台能力和 FFI/启动锁，外部持锁程序由应用在自身沙箱派生，自动化缺口见[测试策略](../docs/development/testing.md)。
+`live/offline_startup/analyze.py` 与 analyze_test.py 保留历史测量材料的安全统计和合成合同。原生集成登记只保留真实平台能力和 FFI，自动化缺口见[测试策略](../docs/development/testing.md)。
 
 `release/dependency_report.py` 生成 Dart/OHOS 许可材料，`build_record.py` 把候选提交、CI 作业与实际产物摘要关联；其测试使用临时 Git 仓库，不读取未跟踪凭据。
 
@@ -28,4 +28,4 @@
 
 平台合同分别覆盖 Linux 合成安全存储会话、OHOS HUKS 和 connectivity 系统边界；不证明实体设备、学校可达或其他 OHOS 插件已经验证。实际入口、覆盖缺口及 CI 平台范围见[命令清单](../docs/development/commands.md)。自有目录与上游目录例外见[目录命名](../docs/development/directories.md)。
 
-`integration-tests.json` 只登记保留的原生能力；`tests/native/` 提供注册启动锁夹具及真实独立进程合同，`tests/linux-secure-storage.sh` 在隔离的合成 Secret Service 会话中运行 Linux 能力测试。截图 driver 仍负责将保留用例的媒体写入仓库外。
+`integration-tests.json` 只登记保留的原生能力；`tests/linux-secure-storage.sh` 在隔离的合成 Secret Service 会话中运行 Linux 能力测试。截图 driver 仍负责将保留用例的媒体写入仓库外。

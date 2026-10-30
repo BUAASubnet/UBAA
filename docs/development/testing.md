@@ -24,11 +24,11 @@
 
 ## 原生能力与覆盖边界
 
-原生测试保留 `integration_test/platform/`、`synthetic/cache/` 和一个 `synthetic/app/` 宿主 smoke：真实安全存储、私有目录、网络、照片、包信息、系统方向、使用替身的登录到首页接线、真实 Rust FFI 的离线启动与缺会话处理、缓存和跨进程启动锁。入口、平台、前提和 CI 归属集中在 `scripts/integration-tests.json`，用 `just integration-list` 查看，用 `just integration-test` 执行默认集合。其他能力选择清单中的精确路径，不对整个目录通配执行。
+原生测试保留 `integration_test/platform/`、`synthetic/cache/` 和一个 `synthetic/app/` 宿主 smoke：真实安全存储、私有目录、网络、照片、包信息、系统方向、使用替身的登录到首页接线、真实 Rust FFI 的离线启动与缺会话处理和缓存。入口、平台、前提和 CI 归属集中在 `scripts/integration-tests.json`，用 `just integration-list` 查看，用 `just integration-test` 执行默认集合。其他能力选择清单中的精确路径，不对整个目录通配执行。
 
 宿主 smoke 分别验证真实 Bridge/Core 的本地错误传播和替身的正向登录，不包含真实登录、查询及写入的完整链路。合成全流程、软键盘专项、真实账号 UI 和常驻预览已按用户决定删除。被普通测试引用的合成数据位于 `apps/ubaa_flutter/test/support/`，不再由单元测试导入原生入口。删除项、保留覆盖与自动化缺口见[范围决定](../migration/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29原生集成只保留真实原生能力)。Fixture、Widget 和构建成功不能代替真实原生能力或学校协议证据。
 
-启动锁通过已登记夹具执行：应用在自身沙箱创建临时目录并派生系统 Perl 子进程持有真实 OS 锁，验证不同 PID、等待画面、resourceBusy 与释放后的 FFI 重试。宿主终端不访问应用容器，也不修改系统权限。Perl 从应用继承的 PATH 查找，以兼容 Linux 的安装位置；不依赖终端访问其他 App 数据的权限。Perl 缺失或不能启动时该项应失败，不能改用同进程锁。
+桌面宿主只允许单实例：macOS 在 AppDelegate 初始化时发现同 Bundle ID 的其他进程即唤起它并退出，Windows 使用会话级命名互斥量并唤起已有窗口，Linux 由 GApplication 在会话总线上把重复启动转交主实例。该行为没有自动化测试，需在各平台手动重复启动验证。Core 会话文件锁与 resourceBusy 提示继续作为兜底，由 Rust 合同测试覆盖；跨进程启动锁原生集成测试已删除。
 
 关于、照片和 iPad 方向测试保留截图元数据。需要保存 iOS 截图时，显式使用 `test_driver/ui_render.dart`，将 UBAA_UI_EVIDENCE_DIR 设为 `.ubaa_local/` 中本次运行的空子目录；安全校验由共享 evidence_directory 和单元测试保护。软键盘专用驱动已删除。方向用例需要唯一 UBAA_ROTATION_RUN_ID 和外部系统方向握手，不能用修改 Widget 尺寸替代。
 

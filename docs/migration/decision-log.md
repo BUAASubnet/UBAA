@@ -1,5 +1,11 @@
 # 决策记录
 
+## 2026-10-30：桌面宿主改为单实例并删除跨进程启动锁测试
+
+用户决定应用不支持多开：有其他实例运行时禁止启动，跨进程启动锁原生集成测试不再保留。macOS 在 AppDelegate 初始化时按 Bundle ID 查找同用户的其他进程，唤起后退出；Windows 用会话级命名互斥量 `Local\cn.edu.ubaa.single_instance` 判断并唤起已有窗口；Linux 去掉 `G_APPLICATION_NON_UNIQUE`，由 GApplication 把重复启动的 activate 转交主实例并呈现已有窗口。移动端与 OHOS 由系统保证单实例，不改。
+
+Core 会话文件锁和 resourceBusy 提示保留为兜底（例如无会话总线的 Linux、或绕过宿主的进程），由 Rust 合同测试覆盖。删除 `startup_lock_test.dart`、Perl 持锁夹具与其自测、catalog harness 字段；单实例行为暂无自动化覆盖，需各平台手动重复启动验收。
+
 ## 2026-10-30：Rust Core 重复实现收敛与开发期缓存格式
 
 用户要求执行 Core 审查中发现的全部修复，并明确当前应用处于全新开发阶段，无需保留缓存格式迁移。本轮删除历史缓存迁移和无效兼容字段，旧数据库返回明确版本错误，用户可显式重建。当前格式的加密、账号/路线隔离、持久失效票据和部分结果保护继续保留。

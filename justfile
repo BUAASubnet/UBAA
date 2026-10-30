@@ -184,7 +184,6 @@ source-files:
 # 不访问学校或设备的 Python 行为合同。
 script-test:
     bash scripts/tools/python.sh scripts/tests/checks/ohos_materials_test.py
-    python3 scripts/tests/native/lock_holder_test.py
     python3 scripts/tests/integration_catalog_test.py
     python3 scripts/tests/checks/native_bindings_test.py
     python3 scripts/tests/checks/ohos_native_library_test.py
@@ -239,7 +238,7 @@ flutter-artifact-check *args:
 ohos-check *args:
     @python3 scripts/lib/recipe.py ohos-check "$@"
 
-# 登记原生能力、FFI/启动锁和最小宿主 smoke，默认设备由平台回退。
+# 登记原生能力、FFI 和最小宿主 smoke，默认设备由平台回退。
 integration-check:
     python3 scripts/check/integration_catalog.py check
 

@@ -62,7 +62,7 @@ UI 模型与 callback 经构造参数传递。`part` 只用于同一局部 State
 
 普通测试按 `features/<领域>`、`session`、`recovery`、`cache`、`reads`、`write`、`contracts` 组织；共享夹具放 `test/support`。每个行为文件独立注册，不依赖其他文件留下的窗口、时钟或全局状态。
 
-原生集成只保留真实平台能力和真实 FFI/启动锁，其余合成全流程与人工预览已删除；合成夹具位于 `apps/ubaa_flutter/test/support/`，覆盖范围见[测试策略](../development/testing.md)。
+原生集成只保留真实平台能力和真实 FFI，其余合成全流程与人工预览已删除；合成夹具位于 `apps/ubaa_flutter/test/support/`，覆盖范围见[测试策略](../development/testing.md)。
 
 ## 防止退化
 
