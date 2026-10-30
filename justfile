@@ -163,7 +163,7 @@ core-live *args:
 flutter-codegen-check:
     bash ./scripts/check/flutter-codegen.sh
 
-# 固定官方 Flutter SDK 下逐 package 执行依赖、静态分析和测试。
+# 固定官方 Flutter SDK 下统一解析依赖、一次格式与静态分析，再逐包测试。
 [env("CARGO_INCREMENTAL", "0")]
 flutter-check:
     bash ./scripts/check/flutter-workspace.sh

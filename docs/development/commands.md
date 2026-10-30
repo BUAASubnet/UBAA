@@ -77,7 +77,7 @@ just check-changed base=<阶段开始提交> mode=full
 | `just cargo-lock-check` | 静态扫描文档、Shell、workflow 与 justfile 中的 Cargo 命令锁定要求，与 CLI 二进制合同使用相同范围和规则，无需编译 Rust |
 | `just script-check` | 严格 ShellCheck、脚本自测、Shell 合同、布局、原生清单、文档、版本和 Cargo 命令锁定检查 |
 | `just check` / `just check-strict` | 相同的 Rust、CLI 和脚本检查；仅 ShellCheck 必需性不同。普通 Rust 提交使用前者，推送与完整验收使用后者 |
-| `just flutter-check` | 依次对根 Pub workspace 的八个成员执行锁定 pub get、format 检查、analyze、test；golden 使用 macOS 基准 |
+| `just flutter-check` | 对根 Pub workspace 的八个成员执行一次锁定 pub get、一次 format 检查和一次多目录 analyze，再逐包 test（`UBAA_FLUTTER_TEST_JOBS` 可设并行包数，默认 1：8 核本机并行反而更慢）；golden 使用 macOS 基准 |
 | `just flutter-codegen-check` | 锁定 FRB codegen 2.13.0 重生成，只写 FRB 生成路径并格式化生成 Rust 文件，检查 index、工作区及未跟踪生成文件；禁用 Web 输出 |
 | `git diff --check` | 检查当前差异中的空白错误；提交前另查 `git diff --cached --check`，验收提交范围时传入基线 |
 
