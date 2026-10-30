@@ -4,6 +4,16 @@
 !.env.example
 !.env.toolchain.example
 
+# 发布私钥和签名描述文件只保存在仓库外；误复制进来时也不纳入 Git。
+*.jks
+*.keystore
+*.p12
+*.pfx
+AuthKey_*.p8
+*.mobileprovision
+*.provisionprofile
+*.p7b
+
 # 冻结本地引用（只能由 scripts/bootstrap/references.sh 创建）
 /examples/
 

@@ -24,6 +24,8 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 
 产品代际名 UBAA 2 与包的 SemVer、平台构建号和合同版本相互独立，发布规则见[版本约定](docs/development/conventions.md#版本号与依赖)。
 
+官方更新与二次开发的应用标识、签名材料、本机配置及 CI 字段见[应用签名配置](docs/runbooks/app-signing.md)。
+
 当前状态及证据边界见[迁移与交付状态](docs/migration/status.md)。代码组织治理的当前权威是
 [代码与目录组织设计](docs/architecture/code-organization.md)和
 [现行模块决策](docs/adr/0006-explicit-dart-modules.md)及[操作作用域决策](docs/adr/0007-operation-scopes-and-verification.md)。

@@ -48,12 +48,22 @@ Direct 收到合法 WebVPN 包装后解包并请求直连上游，不等于向�
 ## 当前未解决与未验证事项
 
 - 远端 CI 尚未运行。阶段 3 已修改 workflow，本地静态检查与监督复核通过；本轮未 push。
-- 保留原生集合的 Linux Secret Service 和 iOS/iPad 方向握手专项尚未在本轮运行；其他平台原生构建、签名、发布与真实账号验收也未运行。
+- 保留原生集合的 Linux Secret Service 和 iOS/iPad 方向握手专项尚未在本轮运行。最新平台构建结果见下述签名配置记录，正式签名、发布与真实账号验收仍未运行。
 - [原生删减登记](history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29原生集成只保留真实原生能力)中的以下项目已无自动化覆盖：原生登录到查询完整路径、十二领域连续导航、十项写操作连续流程、原生软键盘专项、真实账号原生 UI 巡检、真实账号原生恢复、真实账号原生启动性能测量、Flutter 到 Android 的真实课表组件通道、常驻原生合成预览及 bindings 默认 driver。登记表逐项列出仍保留的 App/Host/Widget/Core 等分层覆盖。已删除流程的旧失败随入口移除，不计作修复通过。
-- OHOS 原生 `AppScope/app.json5` 仍为 `1.0.0`/`1000000`，两个 Flutter 应用仍为 `0.1.0+1`；平台标识和版本号可能影响已安装应用升级，本阶段没有修改，留待后续决定。OHOS fork 与官方七包 Pub workspace 保持独立，原因和锁文件边界见决策记录。
+- OHOS 原生 `AppScope/app.json5` 仍为 `1.0.0`/`1000000`，两个 Flutter 应用仍为 `0.1.0+1`。版本号仍需在发布前与旧正式包核对，平台标识已按下述签名配置工作统一。OHOS fork 与官方七包 Pub workspace 保持独立，原因和锁文件边界见决策记录。
 - Rust 阶段已完成。feature 专属 SSO service URL 未合并，避免改变参数编码、重定向和 Cookie 作用域。监督者决定本轮继续保留历史 `mod.rs` 中的协议实现和 Bridge 离线泛型化，列为后续待办；补充来源或私有观察无法由当前克隆复现的记录仍按[来源对照边界](source-parity.md)保留，不补造证据。
 - 最终逐项 UI/设备、异常生命周期、离线性能和发布验收仍有缺口；历史真实只读结果仅属于对应候选，不能继承为当前验收或真实写入授权。
 
 ## 本阶段验证
 
 阶段 6 以 `d1872cafdf2e425c9f4a48c2cce5856f53ad458c` 为基线。`just flutter-check`（官方七包全量：domain 60、platform 95、app 683、UI 478、bindings 20、host 102、官方宿主 88）、`just layout-check`、`just check-sensitive`、`just check-strict`、`cargo test --locked --workspace --all-features`、`just flutter-codegen-check`（零漂移）、保留集合 `just integration-test`（4 个 macOS 入口）、golden 六项定向比较、OHOS 工具链/插件合同/HUKS/网络合同和无签名 Debug HAP 均通过。`git diff --check` 已在严格门禁中通过；阶段基线 `just check-plan` 与 `just check-changed` 均通过（基线 `d1872cafdf2e425c9f4a48c2cce5856f53ad458c`）。远端 CI、Linux/iOS 专项按监督者决定留待最终 push 后运行。
+
+## 2026-10-30：统一应用标识与签名配置方法
+
+用户要求延续旧版更新，并统一各平台产品标识。Android、iOS、macOS、Linux 和 OHOS 现在使用 `cn.edu.ubaa`；Apple 测试 target 保留独立后缀，Android Kotlin namespace 不变。Windows 当前没有 MSIX 配置，后续非商店包采用同一标识，商店包使用 Partner Center 指定的身份。
+
+新增[应用签名配置](../runbooks/app-signing.md)，覆盖私有材料目录、六平台配置、二次开发和既有 CI secret 映射。当前阶段没有生成密钥、接入签名流水线或上传发布。旧版桌面身份、macOS 开发容器切换、凭据和数据迁移、正式构建号与覆盖升级仍需独立验证。
+
+验证基线为 `3b676593`，对应源码提交为 `94d34898`。按改动检查通过，包含完整 Rust/脚本检查、八成员 1531 项 Flutter 测试和 FRB 零漂移；严格 ShellCheck、文档链接、布局、合同版本和敏感扫描通过。Android Debug APK、iOS 模拟器 App、OHOS 无签名 Debug HAP 均成功构建，包内应用标识均为 `cn.edu.ubaa`，Android/iOS 产物结构及 OHOS arm64 动态库检查通过。Android 入口类仍正确解析为原 Kotlin namespace 下的 MainActivity。macOS Release 构建设置解析通过，未重建或签名发布包。
+
+Android 首次构建因 TLS 组件 Maven 分发方式变化失败，按[决策记录](decision-log.md#2026-10-30android-tls-组件的-maven-分发迁移)修复仓库地址和 group 后通过，依赖版本不变。OHOS 首次缺少本机 DevEco 根目录，补充被忽略的 `.env.toolchain` 后通过；构建工具生成的无关锁文件和资源变动已还原。本地日志为 `.ubaa_local/signing_*.log`。未运行正式签名、公证、商店上传、旧版覆盖安装、数据迁移、真实账号、远端 CI 或 Windows/Linux 原生构建，签名材料有效性仍需正式候选验证。

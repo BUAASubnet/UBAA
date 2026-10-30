@@ -1,5 +1,11 @@
 # 决策记录
 
+## 2026-10-30：延续旧版应用身份与签名配置
+
+用户明确要求 UBAA 2 作为旧版更新。根据用户后续要求，Android applicationId、iOS/macOS Bundle ID、Linux APPLICATION_ID 和 OHOS bundleName 统一为 `cn.edu.ubaa`，Apple 测试 target 同步后缀。Windows 尚无 MSIX 配置，后续非商店包 Identity Name 使用同一标识，Publisher 由证书确定；商店包遵循 Partner Center 分配的身份。Android Kotlin namespace 保持现有值，避免无关源码移动。依据为旧版 androidApp/build.gradle.kts 与 release.yml 的发布身份，以及本机旧版 iOS Profile。当前桌面身份不能从移动端类推，仍需核对旧正式安装包的身份和数据目录。
+
+[应用签名配置](../runbooks/app-signing.md)统一仓库外材料目录、原生工具配置和旧 CI secret 映射，分别说明官方更新与二次开发。当前阶段提供配置方法，不新增自动签名或上传流水线，不生成或替换官方密钥。构建号、签名有效性和旧版数据迁移仍是正式发布前的独立检查项。
+
 本页维护现行决策入口与新增记录。阶段 3 及以前的 282 个记录标题已建立[完整索引](history/2026-10-30-decision-index.md)，正文[原样归档](history/2026-10-30-decisions-through-quality-phase3.md)，顺序、文字和既有链接均未改写。更早的历史汇总仍见原记录中的归档入口。历史授权与测试结果只适用于记录时的范围，不能提供当前操作授权。
 
 ## 近期决定索引
@@ -136,3 +142,9 @@ Advisory 数据库访问只发生在 `just dependency-audit` 或 CI 的对应显
 复核发现原报告无条件把四条 OHPM 本地依赖标记为待核对，缺少读取补充证据的路径。本轮增加显式 JSON 输入并校验产物、许可证和使用方声明的摘要，来源仓库只允许无凭据的公开 HTTPS URL 与完整提交。相同名称和产物摘要合并，来源或许可冲突时失败。材料映射只证明文件一致性，来源字段仍是显式声明，不自动证明二进制构建来源。
 
 `libubaa_flutter_bridge.so` 的 OHPM 依赖实际指向受跟踪的类型声明目录，本轮改为收集声明版本、源码摘要和项目许可证，不把该记录当作动态库材料。三个 Flutter 插件的本机 OHPM 锁文件解析到同一份 embedding HAR，SDK 位于固定提交且工作树干净。已从该 SDK 收集许可证正文并生成本地材料映射；历史“四项缺口”由这次实际收集结果替代，不能继续解释成四份文件确实缺失。
+
+## 2026-10-30：Android TLS 组件的 Maven 分发迁移
+
+Android Debug 实际构建先失败于缺少 `rustls:rustls-platform-verifier:0.2.0`。锁定的 rustls-platform-verifier 0.7.1 依赖 Android shim 0.2.0，该 Cargo 包不再携带 Maven/AAR。按[上游发行说明](https://github.com/rustls/rustls-platform-verifier/releases/tag/v/0.7.1)及 [0.2.0 POM](https://github.com/rustls/rustls-platform-verifier/blob/maven-archive/android-release-support/maven/org/rustls/rustls-platform-verifier/0.2.0/rustls-platform-verifier-0.2.0.pom)，改用官方 Maven archive 和 `org.rustls` group。上游 README 中仍有旧 group 示例，因此以实际 POM 为准。
+
+Gradle 的 exclusiveContent 仅允许该模块从此仓库解析，版本继续由 `cargo metadata --locked` 取得。没有改动 TLS 校验逻辑、学校请求、Cargo 锁文件或依赖版本。首次失败和逐次构建日志保留在本地忽略目录 `.ubaa_local/signing_android_*.log`。
