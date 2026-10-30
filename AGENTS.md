@@ -26,7 +26,7 @@
 
 ## 项目工具链入口
 
-Dart/Flutter 命令一律使用 `just dart`、`just flutter`，OHOS 使用 `just flutter-ohos`。不得在命令中写 SDK 绝对路径，也不依赖 PATH 中的 Dart/Flutter。首次复制 `.env.toolchain.example` 为本地 `.env.toolchain` 并填写 SDK 位置，该文件不提交。just 只自动加载仓库根的工具配置，直接运行脚本时复用 `scripts/lib/toolchain.py` 的唯一回退解析器。工具入口绝不加载 `.env.local`，已导出的环境变量优先。配置示例与安装步骤见[开发环境](docs/development/setup.md)。本节是工具链调用规则的唯一维护位置，其他开发文档链接本节。
+Dart/Flutter 命令一律使用 `just dart`、`just flutter`，OHOS 使用 `just flutter-ohos`。不得在命令中写 SDK 绝对路径，也不依赖 PATH 中的 Dart/Flutter。首次复制 `.env.toolchain.example` 为本地 `.env.toolchain` 并填写 SDK 位置，该文件不提交，然后运行 `just setup` 安装锁定工具；`just doctor` 只读核对本机版本。just 只自动加载仓库根的工具配置，直接运行脚本时复用 `scripts/lib/toolchain.py` 的唯一回退解析器。工具入口绝不加载 `.env.local`，已导出的环境变量优先。配置示例与安装步骤见[开发环境](docs/development/setup.md)。本节是工具链调用规则的唯一维护位置，其他开发文档链接本节。
 
 ## 来源对照门禁
 

@@ -25,6 +25,14 @@ flutter-ohos *args:
 default:
     @just --list
 
+# 只读汇总本机工具与锁定版本的差异；不联网、不安装。
+doctor:
+    python3 scripts/check/doctor.py
+
+# 显式联网准备本机开发环境；已一致的工具跳过，不改写已有 SDK 或 .env.toolchain。
+setup:
+    bash ./scripts/bootstrap/setup.sh
+
 refs:
     bash ./scripts/check/references.sh
 
@@ -170,6 +178,7 @@ script-test:
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/release_preflight_test.py
     bash scripts/tools/python.sh scripts/tests/release_metadata_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/build_record_test.py
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/doctor_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/live/offline_startup/analyze_test.py
 
 # 显式联网准备固定开发依赖；检查入口本身不安装依赖。

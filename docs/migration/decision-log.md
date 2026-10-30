@@ -193,3 +193,10 @@ pubspec 锁文件摘要。没有使用方读取 SBOM；Rust 依赖的许可与�
 材料缺口仍以状态 3 阻止发布。随之删除 CycloneDX schema 副本及 jsonschema 依赖链（六个 Python 包）。
 `source_manifest.py` 改名为 `build_record.py`，原生工作流仍把候选 SHA、作业和产物逐文件摘要关联。
 日常 CI 不再以报告模式运行发布前置，发布前本地执行。OHOS 补充材料清单格式不变。
+
+## 2026-10-30：本机工具链改为一条命令准备
+
+版本仍只维护在 `scripts/tools/versions.env`，但新机器原先要手敲十余条命令，也没有入口能一次看出本机哪些工具
+与锁定版本不符。新增 `just setup`（显式联网，已一致项跳过，不改写已有 SDK 或 `.env.toolchain`）和只读的
+`just doctor`。暂不引入 mise：它无法管理 OHOS fork、DevEco 和 Flutter 提交锁定，引入后还需迁移 CI 与
+`versions.env` 的全部读取方，收益不足以抵消第二套版本来源的风险。

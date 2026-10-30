@@ -10,7 +10,7 @@ Dart/Flutter 的调用、工具配置与凭据分离规则只在 [AGENTS 项目�
 
 | 工具 | 版本或能力 | 用途 |
 |---|---|---|
-| Git、Bash、just | Git 支持 worktree；Bash 3.2+；just 1.51.0 已验证 dotenv 设置与位置参数透传 | 所有脚本入口；just 目前未锁版本 |
+| Git、Bash、just | Git 支持 worktree；Bash 3.2+；just 1.51.0 已验证 dotenv 设置与位置参数透传 | 所有脚本入口；版本由 `just doctor` 核对 |
 | Rustup、Rust、rustfmt、Clippy | `rust-toolchain.toml`：Rust 1.95.0，含 rustfmt、Clippy | Rust 构建、测试和文档 |
 | Python | 3.11+，含 venv、pip | Python 门禁与质量工具环境 |
 | Python 开发依赖 | `scripts/tools/requirements.txt` 中的版本及哈希 | YAML/JSON5 解析；显式 bootstrap 安装 |
@@ -35,25 +35,18 @@ Dart/Flutter 的调用、工具配置与凭据分离规则只在 [AGENTS 项目�
 先用操作系统包管理器安装上述通用工具、Rustup、Python 3.11+ 和 ShellCheck 0.11.0。以下准备过程会从 Git、crates.io、Python 和 Dart 依赖源下载固定工具或锁定依赖。无需学校账号。
 
 ```bash
-# 先进入刚 clone 的 UBAA2 根目录，再编辑 .env.toolchain 中的本机 SDK 位置。
 cp .env.toolchain.example .env.toolchain
-# 下列安装示例须与刚编辑的 UBAA_FLUTTER_HOME 保持一致。
-source scripts/tools/versions.env
-export UBAA_FLUTTER_HOME="${XDG_DATA_HOME:-$HOME/.local/share}/ubaa2_sdks/flutter"
-git clone --branch "$FLUTTER_VERSION" --depth 1 "$FLUTTER_REMOTE" "$UBAA_FLUTTER_HOME"
-git -C "$UBAA_FLUTTER_HOME" checkout --detach "$FLUTTER_COMMIT"
-export PATH="$HOME/.cargo/bin:$PATH"
-rustup toolchain install "$RUST_VERSION" --profile minimal --component rustfmt --component clippy
-bash scripts/check/flutter-toolchains.sh official
-just flutter precache
-cargo install --locked cargo-expand --version "=$CARGO_EXPAND_VERSION"
-cargo install --locked flutter_rust_bridge_codegen --version "=$FRB_VERSION"
-export UBAA_FRB_CODEGEN="$(command -v flutter_rust_bridge_codegen)"
-just refs-bootstrap
-just quality-tools-bootstrap
-cargo fetch --locked
-just flutter-dependencies
 ```
+
+编辑 `.env.toolchain`，至少把 `UBAA_FLUTTER_HOME` 设为准备放官方 Flutter 的绝对路径（目录可以还不存在）。然后运行：
+
+```bash
+just setup
+```
+
+`just setup` 按 `versions.env` 克隆锁定的 Flutter、安装 Rust 工具链和 cargo-expand/FRB codegen/cargo-deny，并依次执行 refs-bootstrap、质量环境、`cargo fetch` 与 Dart 依赖准备。已一致的工具直接跳过；已有 SDK 不是锁定提交时停止，不改写。具体步骤见 [setup.sh](../../scripts/bootstrap/setup.sh)，它也是手工安装的参考。
+
+之后任何时候都可以运行只读的 `just doctor`，逐项对照锁定版本，必需项不符时退出 1。
 
 首次建立缺失冻结引用才执行 `just refs-bootstrap`，之后只用 `just refs` 只读校验。质量环境缺失或依赖锁变更时显式重跑 `just quality-tools-bootstrap`。普通 checker 不会自动安装 Python 依赖。Cargo 和 Flutter 检查可能补充依赖缓存，均不主动访问学校上游。
 

@@ -14,6 +14,8 @@ just flutter-ohos --version
 
 | 命令 | 实际作用 |
 |---|---|
+| `just setup` | 显式联网准备本机环境：依次安装缺失的锁定工具并执行下列准备命令，已一致项跳过；不改写已有 SDK 或 `.env.toolchain` |
+| `just doctor` | 只读对照本机工具与 `versions.env`，不联网；必需项不符时退出 1 |
 | `just refs-bootstrap` | 仅首次缺少冻结引用时显式联网建立；已有路径只校验，不覆盖、不拉取 |
 | `just quality-tools-bootstrap` | 显式安装带版本与哈希锁的 Python 质量依赖 |
 | `cargo fetch --locked` | 显式预取锁定 Cargo 依赖 |
