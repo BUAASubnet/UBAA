@@ -23,6 +23,10 @@ RELEASE_BLOCKED_EXIT = 3
 DART_LOCK_PATTERNS = ('pubspec.lock', 'apps/**/pubspec.lock', 'packages/**/pubspec.lock')
 
 
+def read_json(path):
+    return json.loads(path.read_text())
+
+
 def tracked(root, *patterns):
     result = subprocess.run(['git', '-C', str(root), 'ls-files', '-z', '--', *patterns],
                             capture_output=True, check=True)

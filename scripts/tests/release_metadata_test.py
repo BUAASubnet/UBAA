@@ -45,6 +45,18 @@ class ReleaseMetadataTest(unittest.TestCase):
         self.assertEqual(report.release_exit_code(records, report_only=True), 0)
         self.assertEqual(report.release_exit_code(records[:1]), 0)
 
+    def test_从package_config解析本地包根目录(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / ".dart_tool").mkdir()
+            (root / ".dart_tool/package_config.json").write_text(json.dumps({
+                "configVersion": 2,
+                "packages": [{"name": "sample", "rootUri": "../vendor/sample"},
+                             {"name": "remote", "rootUri": "https://example.invalid/remote"}]}))
+            roots = report.package_roots(root)
+            self.assertEqual(list(roots), ["sample"])
+            self.assertEqual(roots["sample"].resolve(), (root / "vendor/sample").resolve())
+
     def test_Dart材料来自锁定包正文并保留摘要(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
