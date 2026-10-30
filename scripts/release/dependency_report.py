@@ -161,6 +161,25 @@ def collect_license_files(directory, output):
     return files
 
 
+def collect_workspace_license(directory, workspace, output):
+    """为仓库内自有路径包寻找最近的项目许可证。"""
+    try:
+        directory = directory.resolve()
+        workspace = workspace.resolve()
+        directory.relative_to(workspace)
+    except ValueError:
+        return [], None
+    for parent in (directory, *directory.parents):
+        if not parent.is_relative_to(workspace):
+            break
+        files = collect_license_files(parent, output)
+        if files:
+            return files, parent.relative_to(workspace).as_posix() or "."
+        if parent == workspace:
+            break
+    return [], None
+
+
 def package_roots(project):
     configuration = project / '.dart_tool/package_config.json'
     if not configuration.is_file():
@@ -227,6 +246,12 @@ def package_record(lockfile, name, package, roots, workspace, output):
             return record
     record['files'] = collect_license_files(directory, output)
     record['license_scope'] = 'package'
+    if not record['files'] and source == 'path':
+        files, source_path = collect_workspace_license(directory, workspace, output)
+        if files:
+            record['files'] = files
+            record['license_scope'] = 'workspace-ancestor'
+            record['license_source'] = source_path
     if not record['files'] and source in {'sdk', 'git'}:
         top = subprocess.run(['git', '-C', str(directory), 'rev-parse', '--show-toplevel'],
                              capture_output=True, text=True)
@@ -280,9 +305,16 @@ def ohos_evidence(workspace, output, manifests=None):
         if package_root.name == 'ohos':
             package_root = package_root.parent
         files = collect_license_files(package_root, output)
+        license_scope = 'package'
+        license_source = None
+        if not files:
+            files, license_source = collect_workspace_license(package_root, workspace, output)
+            if files:
+                license_scope = 'workspace-ancestor'
         record = {'ecosystem': 'ohos', 'name': data['name'], 'version': data['version'],
                   'manifest': manifest.relative_to(workspace).as_posix(),
                   'declared_license': data.get('license'), 'files': files,
+                  'license_scope': license_scope, 'license_source': license_source,
                   'review_status': '未进行法律审核',
                   'evidence_status': 'collected' if files else 'license_missing'}
         records.append(record)
@@ -292,6 +324,7 @@ def ohos_evidence(workspace, output, manifests=None):
                             'requested': '本地路径依赖' if local else requested,
                             'manifest': manifest.relative_to(workspace).as_posix(),
                             'review_status': '未进行法律审核', 'files': [],
+                            'material_input': '需在发布报告目录提供对应 HAR/so 的许可证正文和来源摘要',
                             'evidence_status': 'native_dependency_requires_artifact_review'})
     return records
 

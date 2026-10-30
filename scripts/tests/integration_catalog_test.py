@@ -136,6 +136,18 @@ class CatalogTest(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, "缺少必需环境变量"):
             catalog.environment_for_entry(entry, {"DBUS_SESSION_BUS_ADDRESS": ""})
 
+    def test_缺少后续入口配置时不启动任何Flutter命令(self):
+        entries = [self.entry(), self.entry(path="second_test.dart", environment=["REQUIRED_CONFIG"])]
+        with patch.dict(catalog.os.environ, {}, clear=True), \
+                patch.object(catalog, "load_environment", return_value={"UBAA_FLUTTER_HOME": "/sdk"}), \
+                patch.object(catalog, "validate", return_value=entries), \
+                patch.object(catalog.sys, "argv", [str(SCRIPT), "run"]), \
+                patch.object(catalog.subprocess, "run") as run, \
+                redirect_stdout(io.StringIO()):
+            with self.assertRaisesRegex(ValueError, "缺少必需环境变量"):
+                catalog.main()
+        run.assert_not_called()
+
     def test_命令应用Dart_define和run执行方式(self):
         entry = self.entry(runner="run", defines=["FEATURE=true", "VALUE=a=b"])
         command = catalog.build_command(entry, Path("/sdk/bin/flutter"), "linux", "linux-device")

@@ -165,6 +165,8 @@ script-test:
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/module_graph_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/toolchain_entry_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/sensitive_test.py
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/repo_test.py
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/release_preflight_test.py
     bash scripts/tools/python.sh scripts/tests/release_metadata_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/source_manifest_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/live/offline_startup/analyze_test.py
@@ -191,7 +193,7 @@ flutter-artifact-check *args:
 ohos-check *args:
     @python3 scripts/lib/recipe.py ohos-check "$@"
 
-# 只登记真实原生能力与真实 FFI/启动锁，默认设备由平台回退。
+# 登记原生能力、FFI/启动锁和最小宿主 smoke，默认设备由平台回退。
 integration-check:
     python3 scripts/check/integration_catalog.py check
 

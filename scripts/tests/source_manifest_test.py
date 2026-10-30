@@ -42,7 +42,7 @@ class SourceManifestTest(unittest.TestCase):
         self.addCleanup(self.temp.cleanup)
         self.root = Path(self.temp.name)
         self.git("init", "-q")
-        for name in ["crates/ubaa_core/src/lib.rs", "Cargo.lock", "Cargo.toml",
+        for name in ["crates/ubaa_core/src/lib.rs", "Cargo.lock", "Cargo.toml", "pubspec.lock",
                      "rust-toolchain.toml", "scripts/build/flutter.sh", "packages/app/lib/main.dart"]:
             path = self.root / name
             path.parent.mkdir(parents=True, exist_ok=True)
@@ -62,10 +62,15 @@ class SourceManifestTest(unittest.TestCase):
                 path.write_text(path.read_text(encoding="utf-8") + "变更\n", encoding="utf-8")
                 self.assertNotEqual(before, manifest.source_lines(self.root))
 
-    def test_未跟踪凭据不进入清单而工具链进入(self):
+    def test_未跟踪凭据和构建输出不进入清单而根锁文件进入(self):
         (self.root / ".env.local").write_text("合成私密输入", encoding="utf-8")
+        generated = self.root / "build/unit_test_assets/AssetManifest.bin"
+        generated.parent.mkdir(parents=True)
+        generated.write_bytes(b"synthetic build")
         lines = manifest.source_lines(self.root)
         self.assertNotIn(".env.local", lines)
+        self.assertNotIn("build/unit_test_assets", lines)
+        self.assertIn("pubspec.lock", lines)
         self.assertIn("rust-toolchain.toml", lines)
 
     def test_产物摘要不依赖绝对路径且关联候选(self):

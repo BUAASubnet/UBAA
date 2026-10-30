@@ -17,7 +17,7 @@ just flutter-ohos --version
 | `just refs-bootstrap` | 仅首次缺少冻结引用时显式联网建立；已有路径只校验，不覆盖、不拉取 |
 | `just quality-tools-bootstrap` | 显式安装带版本与哈希锁的 Python 质量依赖 |
 | `cargo fetch --locked` | 显式预取锁定 Cargo 依赖 |
-| `just flutter-dependencies` | 准备根 Pub workspace 的七个正式包和 `ubaa_test_support` 锁定依赖，不运行测试 |
+| `just flutter-dependencies` | 准备根 Pub workspace 的八个成员（七个正式包、`ubaa_test_support`）锁定依赖，不运行测试 |
 
 ## 检查选择与完成条件
 
@@ -56,7 +56,7 @@ git diff --check
 | `just contract-version-check` | CLI/Bridge 常量、JSON Schema、Dart 接受版本与当前文档声明静态一致性 |
 | `just shell-check` / `just shell-check-strict` | 全部候选 Shell 运行 bash -n；严格模式必须存在 ShellCheck 0.11.0，宽松模式缺失时明确 SKIP |
 | `just check` / `just check-strict` | 相同的 Rust、CLI 和脚本检查；仅 ShellCheck 必需性不同。宽松入口只供日常反馈，不替代最终严格验收 |
-| `just flutter-check` | 依次对根 Pub workspace 的七个正式包、`packages/ubaa_test_support` 和 `apps/ubaa_flutter` 执行锁定 pub get、format 检查、analyze、test；golden 使用 macOS 基准 |
+| `just flutter-check` | 依次对根 Pub workspace 的八个成员执行锁定 pub get、format 检查、analyze、test；golden 使用 macOS 基准 |
 | `just flutter-codegen-check` | 锁定 FRB codegen 2.13.0 重生成，只写 FRB 生成路径并格式化生成 Rust 文件，检查 index、工作区及未跟踪生成文件；禁用 Web 输出 |
 | `git diff --check` | 检查当前差异中的空白错误；提交前另查 `git diff --cached --check`，验收提交范围时传入基线 |
 
@@ -77,21 +77,21 @@ git diff --check
 | `just test` / `just fmt` | 前者执行 Core test-contract 合同及其余 workspace 测试；后者仅执行 Cargo 格式检查，不写文件 |
 | `just module-check` | 自有源码完整依赖闭包、环、library 聚合尺寸与 part 归属 |
 | `just integration-check` / `just integration-list` | 校验并查看保留的十一个原生能力和宿主 smoke 入口 |
-| `just integration-test` | 默认 macOS：宿主登录 smoke、网络恢复、插件、FFI 缓存、跨进程启动锁 |
+| `just integration-test` | 默认 macOS：宿主 smoke、网络恢复、插件、FFI 缓存、跨进程启动锁 |
 | `just integration-test suite=synthetic/cache/bridge_test.dart platform=macos` | 按精确路径与平台执行；device 未填时回退为平台 |
 | `just script-test` | Python 门禁及离线分析的合成合同 |
 
 集成清单中的 `environment` 表示当前进程或工具链配置必须提供的非空环境变量，缺失时入口在启动 Flutter 前失败；`defines` 会逐项转换为 `--dart-define=...` 传给 Flutter。`runner` 为 `test` 或 `run`，分别执行对应的 Flutter 子命令，清单中的 `ci` 入口只能使用 `test`。
 
-原生集成只保留真实原生能力和 FFI/启动锁。保留覆盖与自动化缺口见[测试策略](testing.md)。各平台构建、设备验收和发布证据分别记录。
+原生集成保留真实原生能力、FFI/启动锁和最小宿主 smoke。保留覆盖与自动化缺口见[测试策略](testing.md)。各平台构建、设备验收和发布证据分别记录。
 
-OHOS 宿主与三个 *_ohos 插件不属于上述七包。`ohos-check` 当前执行 OHOS 宿主 analyze/test、工具链预检、HUKS 与 connectivity 的合成合同及 HAP 构建；package_info_plus_ohos 仅被间接编译，没有独立自动合同。普通 Flutter 成功不能代替 OHOS 结果，这些覆盖缺口留待后续阶段。
+OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员。`ohos-check` 当前执行 OHOS 宿主 analyze/test、工具链预检、HUKS 与 connectivity 的合成合同及 HAP 构建；package_info_plus_ohos 仅被间接编译，没有独立自动合同。普通 Flutter 成功不能代替 OHOS 结果，这些覆盖缺口留待后续阶段。
 
 ## 当前 CI 的实际范围
 
 | 工作流 / 作业 | 当前触发与实际执行 |
 |---|---|
-| [ci.yml](../../.github/workflows/ci.yml) / contract-gates | ubaa2/main/dev push 与 PR；Ubuntu 显式 bootstrap 参考/质量工具、安装固定 cargo-deny 并运行联网依赖审计、校验 refs/敏感扫描、执行 check-strict、准备 Dart 依赖、检查 FRB、生成并保存无签名 release-preflight 报告 |
+| [ci.yml](../../.github/workflows/ci.yml) / contract-gates | ubaa2/main/dev push 与 PR；Ubuntu 显式 bootstrap 参考/质量工具、安装固定 cargo-deny 并运行联网依赖审计、校验 refs/敏感扫描、执行 check-strict、准备 Dart 依赖、检查 FRB、以 `mode=report` 生成并保存依赖材料报告；材料缺口保留在报告中，生成错误仍失败 |
 | ci.yml / flutter-contracts | macOS 15 执行完整 flutter-check，失败时上传脱敏 golden 差异；不在此作业运行原生集成 |
 | ci.yml / rust-platforms | macOS/Windows 执行 Cargo fmt、全特性 Clippy、Core 默认关闭态检查/Rustdoc、开启 test-contract 的全目标测试、关闭态负向编译合同，其余 workspace 全目标测试/构建及文档 |
 | [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) / native-debug | 手动、受路径过滤的 PR，以及 ubaa2/main/dev push；构建 Linux/Windows/macOS/iOS simulator/Android APK，检查产物并生成源码/产物关联。macOS 执行默认原生集合，Linux 执行隔离安全存储；Markdown 路径被排除，OHOS 不在此工作流 |
@@ -106,7 +106,10 @@ OHOS 宿主与三个 *_ohos 插件不属于上述七包。`ohos-check` 当前执
 | `just flutter-build platform=<平台> mode=debug` | 官方目标 host/macos/linux/windows/android-apk/ios-simulator 的原生构建，具体目标由脚本白名单限定 |
 | `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` | 固定 OHOS fork 与 DevEco/API26 的无签名 Debug HAP；无签名模式不能用于发布或实体设备验收 |
 | `just flutter-artifact-check macos <私有绝对路径>/ubaa_flutter.app` | 只读检查产物；macOS 从真实签名读取并要求 Sandbox 和客户端联网权限，不修改或重签 |
-| `just release-preflight <私有绝对路径>/release-report` | 干净工作树、空报告目录下生成离线 schema 校验的依赖、许可和源码报告；不签名、不上传、不使用真实账号 |
+| `just release-preflight <私有绝对路径>/release-report` | 默认 `mode=strict`：干净工作树、空报告目录下生成离线依赖、许可和源码报告；材料缺口保留报告并以状态 3 阻止发布 |
+| `just release-preflight <私有绝对路径>/release-report mode=report` | 源码 CI 仅收集材料，报告列明完整性和发布阻塞项；材料缺口不改变退出码，真实生成错误仍失败；不判定发布通过 |
+
+两种报告模式均不签名、不上传、不使用真实账号。OHOS 原生依赖仍需结合构建产物核查材料；源码报告不能补齐这类证据。
 
 构建、签名、安装、实体设备和发布准入详见[发布流程](../runbooks/flutter-release.md)。无签名构建、模拟器、Mock 和 CI artifact 均不能代替实体设备、安全存储、签名或发布证据。
 

@@ -16,6 +16,7 @@ __pycache__/
 
 # Flutter/Dart/OpenHarmony local build metadata
 /.dart_tool/
+/build/
 /.hvigor/
 /packages/*/.dart_tool/
 **/.flutter-plugins-dependencies

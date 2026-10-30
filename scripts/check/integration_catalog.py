@@ -161,14 +161,17 @@ def main():
     for name in ("UBAA_CONFIG_DIR", "UBAA_LIVE_MATERIAL_SCOPE", "UBAA_TEST_USERNAME",
                  "UBAA_TEST_PASSWORD", "UBAA_USERNAME", "UBAA_PASSWORD"):
         environment.pop(name, None)
-    if not args.dry_run:
-        subprocess.run(["bash", str(ROOT / "scripts/check/flutter-toolchains.sh"), "official"],
-                       cwd=ROOT, env=environment, check=True)
+    commands = []
     for entry in selected:
         entry_environment = environment_for_entry(entry, environment)
         command = build_command(entry, flutter, args.platform, args.device)
         if entry.get("harness") == "startup-lock":
             command = [sys.executable, str(ROOT / "scripts/tests/native/startup_lock_runner.py"), *command]
+        commands.append((command, entry_environment))
+    if not args.dry_run:
+        subprocess.run(["bash", str(ROOT / "scripts/check/flutter-toolchains.sh"), "official"],
+                       cwd=ROOT, env=environment, check=True)
+    for command, entry_environment in commands:
         print(shlex.join(command), flush=True)
         if not args.dry_run:
             subprocess.run(command, cwd=APP, env=entry_environment, check=True)

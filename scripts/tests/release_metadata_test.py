@@ -25,6 +25,11 @@ class ReleaseMetadataTest(unittest.TestCase):
             nested.mkdir(parents=True)
             (root / "pubspec.lock").write_text("root")
             (nested / "pubspec.lock").write_text("nested")
+            generated = root / "build/generated/pubspec.lock"
+            generated.parent.mkdir(parents=True)
+            generated.write_text("untracked build")
+            (nested / "build").mkdir()
+            (nested / "build/pubspec.lock").write_text("untracked nested build")
             subprocess.run(["git", "-C", str(root), "init", "-q"], check=True)
             subprocess.run(["git", "-C", str(root), "add", "pubspec.lock", "apps/sample/pubspec.lock"], check=True)
             self.assertEqual(
@@ -40,11 +45,6 @@ class ReleaseMetadataTest(unittest.TestCase):
         self.assertEqual(report.release_exit_code(records), report.RELEASE_BLOCKED_EXIT)
         self.assertEqual(report.release_exit_code(records, report_only=True), 0)
         self.assertEqual(report.release_exit_code(records[:1]), 0)
-
-    def test_发布前置清单也包含根锁文件(self):
-        source = (ROOT / "scripts/release/preflight.sh").read_text()
-        self.assertIn("'pubspec.lock'", source)
-        self.assertIn("preserve_output=1", source)
 
     def test_复合许可证不能放在单一ID字段(self):
         document = build({"packages": [{"name": "sample", "version": "1.0.0",
@@ -92,6 +92,39 @@ class ReleaseMetadataTest(unittest.TestCase):
             self.assertEqual((output / evidence["artifact"]).read_bytes(), body)
             self.assertNotIn(str(root), json.dumps(records))
 
+    def test_Dart仓库内路径包可继承项目根许可证(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "LICENSE").write_text("项目许可证")
+            package = root / "packages/sample"
+            package.mkdir(parents=True)
+            (package / "pubspec.yaml").write_text("name: sample\nversion: 1.0.0\n")
+            lock = root / "pubspec.lock"
+            lock.write_text("packages:\n  sample:\n    version: 1.0.0\n    source: path\n    description:\n      path: packages/sample\n")
+            records = report.dart_evidence(root, root / "output", [lock])
+            self.assertEqual(records[0]["evidence_status"], "collected")
+            self.assertEqual(records[0]["license_scope"], "workspace-ancestor")
+            self.assertEqual(records[0]["license_source"], ".")
+
+    def test_仓库内第三方Git包不能继承项目许可证(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "LICENSE").write_text("项目许可证")
+            package = root / "vendor/sample"
+            package.mkdir(parents=True)
+            (package / "pubspec.yaml").write_text("name: sample\nversion: 1.0.0\n")
+            subprocess.run(["git", "-C", str(package), "init", "-q"], check=True)
+            subprocess.run(["git", "-C", str(package), "add", "pubspec.yaml"], check=True)
+            subprocess.run(["git", "-C", str(package), "-c", "user.name=测试",
+                            "-c", "user.email=fixture@example.invalid", "commit", "-qm", "合成包"], check=True)
+            revision = subprocess.check_output(["git", "-C", str(package), "rev-parse", "HEAD"], text=True).strip()
+            record = report.package_record(root / "pubspec.lock", "sample", {
+                "version": "1.0.0", "source": "git",
+                "description": {"url": "https://example.invalid/sample.git", "resolved-ref": revision},
+            }, {"sample": package}, root, root / "output")
+            self.assertEqual(record["evidence_status"], "license_missing")
+            self.assertEqual(record["files"], [])
+
     def test_Dart缺源或版本漂移明确标记(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
@@ -118,6 +151,7 @@ class ReleaseMetadataTest(unittest.TestCase):
             self.assertEqual(records[0]["evidence_status"], "collected")
             self.assertEqual(len(records[0]["files"]), 2)
             self.assertEqual(records[1]["evidence_status"], "native_dependency_requires_artifact_review")
+            self.assertIn("material_input", records[1])
             self.assertNotIn("/private/sdk", json.dumps(records))
 
     def test_工具未准备时失败且不自动安装(self):

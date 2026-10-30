@@ -15,13 +15,18 @@ class RecipeArgsTest(unittest.TestCase):
                          recipe.values('flutter-build', ['mode=debug', 'platform=linux']))
         self.assertEqual(recipe.values('flutter-test', ['package=ubaa_ui', 'path=test/有 空格']),
                          ['ubaa_ui', 'test/有 空格'])
-        self.assertEqual(recipe.values('release-preflight', ['report_dir=/tmp/a=b']), ['/tmp/a=b'])
+        self.assertEqual(recipe.values('release-preflight', ['report_dir=/tmp/a=b']), ['/tmp/a=b', 'strict'])
         self.assertEqual(recipe.values('check-plan', []), [''])
         self.assertEqual(recipe.values('flutter-artifact-check', ['macos', '$(touch forbidden)']),
                          ['macos', '$(touch forbidden)'])
 
     def test_native_device_defaults_to_platform(self):
         self.assertEqual(recipe.values('integration-test', ['platform=linux']), ['ci', 'linux', ''])
+
+    def test_发布报告模式必须显式选择(self):
+        self.assertEqual(recipe.values('release-preflight', []), ['', 'strict'])
+        self.assertEqual(recipe.values('release-preflight', ['mode=report', 'report_dir=/tmp/report']),
+                         ['/tmp/report', 'report'])
 
     def test_missing_duplicate_unknown_and_extra_arguments_fail(self):
         for name, args in [('flutter-test', []), ('flutter-build', ['platform=linux', 'platform=macos']),

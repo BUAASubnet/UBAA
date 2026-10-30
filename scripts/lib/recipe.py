@@ -11,7 +11,7 @@ SPECS = {
     'integration-test': [('suite', 'ci'), ('platform', 'macos'), ('device', '')],
     'check-plan': [('base', '')],
     'check-changed': [('base', '')],
-    'release-preflight': [('report_dir', '')],
+    'release-preflight': [('report_dir', ''), ('mode', 'strict')],
     'flutter-test': [('package', None), ('path', 'test')],
     'flutter-build': [('platform', 'host'), ('mode', 'debug')],
     'flutter-artifact-check': [('platform', None), ('artifact', None)],
