@@ -5,7 +5,7 @@
 以下路径保留原名：
 
 - `examples/` 是固定提交的只读参考源码。
-- `packages/ubaa_bindings/cargokit/` 和 `scripts/tools/cyclonedx-1.5/` 是第三方工具及规范文件。
+- `packages/ubaa_bindings/cargokit/` 是第三方工具源码。
 - Android 的 `res/drawable-v21`、`res/mipmap-hdpi` 等资源限定目录由框架识别。
 - `docs/design/evidence/ui-ux/` 是历史证据归档，其目录名对应仓库外原图和原哈希清单。新增自有代码或新证据批次不得借此例外继续使用连字符目录。
 

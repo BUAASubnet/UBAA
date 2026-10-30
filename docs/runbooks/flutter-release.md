@@ -31,7 +31,7 @@ just flutter-artifact-check platform=android-apk artifact=/绝对路径/app-debu
 just release-preflight /仓库外绝对路径/ubaa-release-report
 ```
 
-`release-preflight` 要求工作树干净、报告目录为空，只运行纯 refs/敏感检查并生成依赖与源码清单；原始 Cargo metadata 仅为自动清理的临时输入，不进入报告。SBOM 必须通过其声明版本的固定 schema 校验；Cargo 元数据是解析依赖图，不自动等于每个平台实际打包集合。Dart/OHOS 许可材料应列出锁定来源、许可证证据及缺失项；包名/版本清单不称作许可批准。默认严格模式遇到材料缺口会保留报告并以状态 3 阻断发布。源码 CI 使用的仅报告模式仍列出缺口，但不能用于判定发布通过；参数与实际边界见[开发命令](../development/commands.md#构建与发布命令)。
+`release-preflight` 要求工作树干净、报告目录为空，只运行纯 refs/敏感检查并生成 Dart/OHOS 许可证材料。Rust 依赖的许可与安全公告由 `just dependency-audit`（cargo-deny）检查，发布前单独运行。源码以提交 SHA 标识，不再另生成逐文件源码清单或 SBOM。Dart/OHOS 许可材料应列出锁定来源、许可证证据及缺失项；包名/版本清单不称作许可批准。默认严格模式遇到材料缺口会保留报告并以状态 3 阻断发布。仅报告模式仍列出缺口，但不能用于判定发布通过，日常 CI 不运行本入口；参数与实际边界见[开发命令](../development/commands.md#构建与发布命令)。
 
 产物结构检查覆盖宿主入口、Flutter资源和Rust动态库；macOS还核验实际签名权限。无签名Debug包和HAP不能证明商店签名、安装升级、设备HUKS或正式发布。普通日志、报告和工件不能包含凭据、Cookie、token、原始响应、完整个人资料或本机敏感路径；UI媒体在仓库外私有目录。
 
@@ -50,7 +50,7 @@ Android/iOS/OHOS实体机权限、前后台、网络订阅及安全材料写读�
 
 ### 候选输入与产物关联
 
-source-manifest.sha256 覆盖全部 Git 跟踪文件，包括 Core、根 Cargo.toml/Cargo.lock、工具链和构建脚本；未跟踪的凭据与运行目录不会进入清单。build-record.json 将候选 SHA、输入清单摘要和 GitHub 作业关联；原生工作流同时生成 artifact-files.json，使用相对路径及逐文件摘要，避免同一产物因本机绝对目录不同而得到不同内容摘要。外部 SDK、系统库、下载依赖和签名环境仍需按平台登记，这不是可复现构建证明。
+原生工作流的 build-record.json 将候选 SHA、工作树是否干净和 GitHub 作业关联，源码内容由提交 SHA 唯一确定；原生工作流同时生成 artifact-files.json，使用相对路径及逐文件摘要，避免同一产物因本机绝对目录不同而得到不同内容摘要。外部 SDK、系统库、下载依赖和签名环境仍需按平台登记，这不是可复现构建证明。
 
 ## OHOS 补充材料
 

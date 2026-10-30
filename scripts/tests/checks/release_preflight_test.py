@@ -17,8 +17,7 @@ class ReleasePreflightTest(unittest.TestCase):
         self.base = Path(self.temporary.name)
         self.root = self.base / "repo"
         self.root.mkdir()
-        for name in ("scripts/release/preflight.sh", "scripts/release/source_manifest.py",
-                     "scripts/lib/repo.py", "scripts/lib/repo.sh", "scripts/lib/checksum.sh"):
+        for name in ("scripts/release/preflight.sh", "scripts/lib/repo.py", "scripts/lib/repo.sh"):
             target = self.root / name
             target.parent.mkdir(parents=True, exist_ok=True)
             shutil.copyfile(ROOT / name, target)
@@ -30,7 +29,7 @@ class ReleasePreflightTest(unittest.TestCase):
         (self.root / "scripts/tools/python.sh").write_text('#!/usr/bin/env bash\nexec python3 "$@"\n')
         (self.root / "scripts/release/dependency_report.py").write_text(
             "import argparse,json,os\nfrom pathlib import Path\n"
-            "p=argparse.ArgumentParser();p.add_argument('--metadata');p.add_argument('--output',type=Path);"
+            "p=argparse.ArgumentParser();p.add_argument('--output',type=Path);"
             "p.add_argument('--report-only',action='store_true');p.add_argument('--ohos-evidence');a=p.parse_args()\n"
             "if os.environ.get('TEST_REPORT_FAILURE'): raise SystemExit(2)\n"
             "if os.environ.get('UBAA_OHOS_EVIDENCE') != a.ohos_evidence: raise SystemExit(2)\n"
@@ -43,9 +42,6 @@ class ReleasePreflightTest(unittest.TestCase):
         (self.root / "apps/sample/pubspec.lock").write_text("packages: {}\n")
         self.bin = self.base / "bin"
         self.bin.mkdir()
-        cargo = self.bin / "cargo"
-        cargo.write_text('#!/usr/bin/env bash\nprintf \'{"packages": []}\\n\'\n')
-        cargo.chmod(0o755)
         subprocess.run(["git", "init", "-q", str(self.root)], check=True)
         subprocess.run(["git", "-C", str(self.root), "add", "scripts", "pubspec.lock", "apps"], check=True)
         subprocess.run(["git", "-C", str(self.root), "-c", "user.name=测试", "-c",
@@ -61,8 +57,7 @@ class ReleasePreflightTest(unittest.TestCase):
     def test_默认严格模式返回发布阻断且保留完整报告(self):
         result, output = self.run_preflight()
         self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
-        self.assertIn("pubspec.lock", (output / "pubspec-locks.txt").read_text().splitlines())
-        self.assertTrue((output / "build-record.json").is_file())
+        self.assertFalse((output / "sbom.cdx.json").exists())
         self.assertIn("发布阻塞", (output / "summary.txt").read_text())
 
     def test_报告模式保留partial与阻断但不充当发布通过(self):

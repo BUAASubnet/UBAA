@@ -1,4 +1,4 @@
-"""生成受 Git 跟踪的输入摘要，并将候选、作业和产物关联。"""
+"""将候选提交、CI 作业与实际产物的逐文件摘要关联。"""
 import argparse
 import hashlib
 import json
@@ -19,30 +19,15 @@ def digest(path):
         return hashlib.file_digest(stream, "sha256").hexdigest()
 
 
-def source_lines(root):
-    paths = subprocess.check_output([
-        "git", "-C", str(root), "ls-files", "-z",
-    ]).decode().split("\0")
-    lines = []
-    for name in sorted(filter(None, paths)):
-        if any(char in name for char in "\n\r\\"):
-            raise ValueError("构建输入文件名不能安全写入摘要清单")
-        lines.append(f"{digest(root / name)}  {name}\n")
-    return "".join(lines)
-
-
 def write_report(root, output, artifact=None, platform=None):
     output.mkdir(parents=True, exist_ok=True)
-    manifest = output / "source-manifest.sha256"
-    manifest.write_text(source_lines(root), encoding="utf-8", newline="\n")
     record = {
-        "schema_version": 1,
+        "schema_version": 2,
         "source_commit": subprocess.check_output(
             ["git", "-C", str(root), "rev-parse", "HEAD"], text=True).strip(),
         "tracked_workspace_clean": not subprocess.check_output(
             ["git", "-C", str(root), "status", "--porcelain", "--untracked-files=no"], text=True).strip(),
-        "source_manifest_sha256": digest(manifest),
-        "scope": "Git 跟踪的工作区输入；外部 SDK、系统库与下载依赖另行登记",
+        "scope": "源码以提交标识；外部 SDK、系统库与下载依赖另行登记",
     }
     if os.environ.get("GITHUB_ACTIONS") == "true":
         record["workflow_run"] = (

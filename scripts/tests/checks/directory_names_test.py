@@ -19,7 +19,6 @@ class DirectoryNamesTest(unittest.TestCase):
         self.assertEqual(find_violations([
             'examples/buaa-api/src/lib.rs',
             'packages/ubaa_bindings/cargokit/third-party/file.rs',
-            'scripts/tools/cyclonedx-1.5/bom-1.5.schema.json',
             'docs/design/evidence/ui-ux/old-p5-native/info.json',
             'apps/ubaa_flutter/android/app/src/main/res/mipmap-hdpi/icon.png',
             'apps/ubaa_ohos/ohos/entry/src/main/resources/zh_CN/string.json',

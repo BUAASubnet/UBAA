@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""离线生成标准 Cargo SBOM 与可追溯的 Dart/OHOS 许可材料清单。"""
+"""离线生成可追溯的 Dart/OHOS 许可材料清单；Rust 依赖许可由 cargo-deny 检查。"""
 import argparse
 import hashlib
 import json
@@ -11,8 +11,6 @@ import sys
 from urllib.parse import unquote, urljoin, urlsplit
 
 import json5
-import jsonschema
-from referencing import Registry, Resource
 import yaml
 
 sys.dont_write_bytecode = True
@@ -21,115 +19,8 @@ from repo import ROOT
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ohos_materials import dependencies as ohos_dependencies
 
-SCHEMAS = ROOT / 'scripts/tools/cyclonedx-1.5'
 RELEASE_BLOCKED_EXIT = 3
 DART_LOCK_PATTERNS = ('pubspec.lock', 'apps/**/pubspec.lock', 'packages/**/pubspec.lock')
-
-
-def read_json(path):
-    return json.loads(path.read_text())
-
-
-def schema_resources():
-    provenance = read_json(SCHEMAS / 'UPSTREAM.json')
-    resources, schemas = [], {}
-    for entry in provenance['files']:
-        path = SCHEMAS / entry['file']
-        body = path.read_bytes()
-        if hashlib.sha256(body).hexdigest() != entry['sha256']:
-            raise ValueError(f'固定 schema/许可摘要不符：{path.name}')
-        if path.suffix == '.json':
-            schema = json.loads(body)
-            schemas[path.name] = schema
-            resource = Resource.from_contents(schema)
-            resources.append((f'http://cyclonedx.org/schema/{path.name}', resource))
-            resources.append((f'https://cyclonedx.org/schema/{path.name}', resource))
-            if '$id' in schema:
-                resources.append((schema['$id'], resource))
-    def refuse_remote(uri):
-        raise ValueError('schema 引用了未登记资源；离线校验拒绝网络访问')
-    return schemas, Registry(retrieve=refuse_remote).with_resources(resources)
-
-
-def validate_sbom(document):
-    schemas, registry = schema_resources()
-    validator = jsonschema.Draft7Validator(schemas['bom-1.5.schema.json'], registry=registry)
-    errors = list(validator.iter_errors(document))
-    if errors:
-        location = '/'.join(map(str, errors[0].absolute_path))
-        raise ValueError(f'CycloneDX 1.5 schema 校验失败：{location}；无效值不输出')
-    refs = [component['bom-ref'] for component in document.get('components', [])]
-    if len(set(refs)) != len(refs):
-        raise ValueError('SBOM bom-ref 不唯一')
-
-
-def is_expression(value, identifiers):
-    """只接受已知 SPDX ID 的 AND/OR/括号；其他声明保留为自定义名称待核对。"""
-    tokens = re.findall(r'[A-Za-z0-9.+-]+|\S', value)
-    position = 0
-    def operand():
-        nonlocal position
-        if position == len(tokens):
-            return False
-        token = tokens[position]
-        position += 1
-        if token == '(':
-            if not expression() or position == len(tokens) or tokens[position] != ')':
-                return False
-            position += 1
-            return True
-        return token in identifiers
-    def expression():
-        nonlocal position
-        if not operand():
-            return False
-        while position < len(tokens) and tokens[position] in {'AND', 'OR'}:
-            position += 1
-            if not operand():
-                return False
-        return True
-    return expression() and position == len(tokens)
-
-
-def build_sbom(metadata):
-    schemas, _ = schema_resources()
-    identifiers = set(schemas['spdx.schema.json']['enum'])
-    components, identities = [], {}
-    for package in metadata['packages']:
-        identity = package.get('id', f"{package['name']}@{package['version']}")
-        reference = f"cargo:{package['name']}@{package['version']}:{hashlib.sha256(identity.encode()).hexdigest()[:16]}"
-        identities[identity] = reference
-        component = {'type': 'library', 'bom-ref': reference,
-                     'name': package['name'], 'version': package['version']}
-        license_text = package.get('license')
-        if license_text in identifiers:
-            component['licenses'] = [{'license': {'id': license_text}}]
-            status = 'Cargo SPDX 声明；未进行法律审核'
-        elif license_text and is_expression(license_text, identifiers):
-            component['licenses'] = [{'expression': license_text}]
-            status = 'Cargo SPDX 表达式声明；未进行法律审核'
-        elif license_text:
-            component['licenses'] = [{'license': {'name': license_text}}]
-            status = '需人工核对声明'
-        else:
-            status = '缺少许可证声明；需核对 license_file 或上游材料'
-        component['properties'] = [{'name': 'ubaa:license-evidence', 'value': status}]
-        components.append(component)
-    document = {
-        'bomFormat': 'CycloneDX', 'specVersion': '1.5', 'version': 1,
-        'metadata': {'tools': [{'vendor': 'UBAA', 'name': 'release-preflight'}],
-                     'lifecycles': [{'phase': 'pre-build'}],
-                     'properties': [{'name': 'ubaa:inventory-scope',
-                                     'value': 'Cargo metadata 全图；不等同单平台最终产物'}]},
-        'components': components,
-    }
-    if metadata.get('resolve'):
-        document['dependencies'] = [
-            {'ref': identities[node['id']],
-             'dependsOn': [identities[dependency] for dependency in node['dependencies']]}
-            for node in metadata['resolve']['nodes']]
-    validate_sbom(document)
-    return document
 
 
 def tracked(root, *patterns):
@@ -327,15 +218,12 @@ def ohos_evidence(workspace, output, manifests=None, evidence=None):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--metadata', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--ohos-evidence', type=Path, help='显式 OHOS 来源与许可证材料清单')
     parser.add_argument('--report-only', action='store_true',
                         help='保留报告并允许材料缺口；不作为发布前置通过')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
-    document = build_sbom(read_json(args.metadata))
-    (args.output / 'sbom.cdx.json').write_text(json.dumps(document, ensure_ascii=False, indent=2) + '\n')
     records = dart_evidence(ROOT, args.output) + ohos_evidence(ROOT, args.output, evidence=args.ohos_evidence)
     missing = sum(record['evidence_status'] != 'collected' for record in records)
     blockers = release_blockers(records)
@@ -352,7 +240,7 @@ def main():
         lines.append(f'{record["ecosystem"]} {record["name"]} '
                      f'{record.get("version", record.get("requested", ""))}：{record["evidence_status"]}')
     (args.output / 'dependency-audit.txt').write_text('\n'.join(lines) + '\n')
-    print(f'CycloneDX 1.5 离线 schema 通过；许可材料状态={report["material_status"]}，缺口={missing}/{len(records)}；未进行法律审核')
+    print(f'许可材料状态={report["material_status"]}，缺口={missing}/{len(records)}；未进行法律审核')
     if release_exit_code(records, args.report_only):
         print(f'依赖材料存在 {len(blockers)} 项发布阻塞；报告已生成但不能作为发布通过。',
               file=sys.stderr)

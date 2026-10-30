@@ -135,7 +135,7 @@ jobs:
       - name: 关联候选输入与实际产物
         shell: bash
         run: >-
-          python3 scripts/release/source_manifest.py
+          python3 scripts/release/build_record.py
           --output "${{ runner.temp }}/ubaa-build-record"
           --artifact "${{ matrix.artifact }}" --platform "${{ matrix.platform }}"
 

@@ -1,8 +1,6 @@
 #!/usr/bin/env bash
-# 生成无签名 RC 的可审计依赖和产物前置报告；不签名、不上传、不访问真实账号。
+# 发布前检查干净工作树、敏感扫描与 Dart/OHOS 许可证材料；不签名、不上传、不访问真实账号。
 set -euo pipefail
-# shellcheck source=../lib/checksum.sh
-source "$(dirname "${BASH_SOURCE[0]}")/../lib/checksum.sh"
 
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../lib/toolchain.sh
@@ -18,7 +16,6 @@ if [[ "$mode" != strict && "$mode" != report ]]; then
 fi
 keep_output=1
 preserve_output=0
-metadata_file=''
 if [[ -z "$output_dir" ]]; then
   output_dir=$(mktemp -d "${TMPDIR:-/tmp}/ubaa-release-preflight.XXXXXX")
   keep_output=0
@@ -36,9 +33,6 @@ if any(Path(sys.argv[1]).iterdir()):
 PY
 
 cleanup() {
-  if [[ -n "$metadata_file" ]]; then
-    rm -f "$metadata_file"
-  fi
   if [[ "$keep_output" == 0 && "$preserve_output" == 0 ]]; then
     rm -rf "$output_dir"
   fi
@@ -47,19 +41,17 @@ trap cleanup EXIT
 
 cd "$repo_root"
 if [[ -n "$(git status --porcelain)" ]]; then
-  printf 'error: 无签名 RC 前置要求工作树干净\n' >&2
+  printf 'error: 发布前置要求工作树干净\n' >&2
   git status --short >&2
   exit 1
 fi
 
 bash ./scripts/check/references.sh
 bash ./scripts/check/sensitive.sh
-metadata_file=$(mktemp "${TMPDIR:-/tmp}/ubaa-cargo-metadata.XXXXXX")
-cargo metadata --offline --locked --format-version 1 >"$metadata_file"
 
-# 固定工具和 schema 均离线使用；依赖准备由显式 bootstrap 完成。
+# 固定工具离线使用；依赖准备由显式 bootstrap 完成。Rust 依赖许可由 cargo-deny 检查。
 dependency_status=0
-dependency_args=(--metadata "$metadata_file" --output "$output_dir")
+dependency_args=(--output "$output_dir")
 if [[ -n "${UBAA_OHOS_EVIDENCE:-}" ]]; then
   if [[ "$UBAA_OHOS_EVIDENCE" != /* ]]; then
     printf 'error: OHOS 材料清单必须是绝对路径\n' >&2
@@ -94,27 +86,13 @@ print(f'许可证材料状态：{report["material_status"]}；发布阻塞：{le
 PY
 )
 
-lock_manifest="$output_dir/pubspec-locks.txt"
-: >"$lock_manifest"
-: >"$output_dir/pubspec-locks.sha256"
-while IFS= read -r -d '' lockfile; do
-  printf '%s\n' "$lockfile" >>"$lock_manifest"
-  ubaa_sha256 "$lockfile" >>"$output_dir/pubspec-locks.sha256"
-done < <(git ls-files -z -- 'pubspec.lock' 'apps/**/pubspec.lock' 'packages/**/pubspec.lock' | sort -z)
-
-python3 "$script_dir/source_manifest.py" --output "$output_dir"
-
 cat >"$output_dir/summary.txt" <<EOF
-UBAA 无签名 RC 前置报告
+UBAA 发布前置报告
 $material_summary
 提交：$(git rev-parse HEAD)
 分支：$(git branch --show-current)
-Cargo 依赖清单与离线 schema 校验后的 SBOM：sbom.cdx.json
-原始 Cargo metadata：仅临时转换输入，不保存到发布材料
-Dart/Flutter 锁文件清单：pubspec-locks.txt
 Dart/OHOS 许可证材料与缺口：license-evidence.json、dependency-audit.txt、licenses/
-全部 Git 跟踪输入的校验清单：source-manifest.sha256
-候选与输入摘要关联：build-record.json（外部 SDK、系统库和下载依赖不属于源码清单）
+Rust 依赖许可与安全公告：由 just dependency-audit（cargo-deny）检查，不在本报告重复
 签名、证书、实体设备和真实写入：本报告不执行
 EOF
 
@@ -126,15 +104,15 @@ if [[ "$dependency_status" -eq 3 ]]; then
 fi
 
 if [[ "$mode" == report ]]; then
-  printf '无签名 RC 依赖报告已生成；%s；未判定发布通过：%s\n' "$material_summary" "$output_dir"
+  printf '发布前置报告已生成；%s；未判定发布通过：%s\n' "$material_summary" "$output_dir"
 elif [[ "$keep_output" == 1 ]]; then
-  printf '无签名 RC 前置报告已生成；许可缺口见材料清单：%s\n' "$output_dir"
+  printf '发布前置报告已生成；许可缺口见材料清单：%s\n' "$output_dir"
 elif [[ "$dependency_status" -eq 3 ]]; then
-  printf '无签名 RC 前置报告存在发布阻塞，报告已保留：%s\n' "$output_dir"
+  printf '发布前置报告存在发布阻塞，报告已保留：%s\n' "$output_dir"
 else
-  printf '无签名 RC 前置报告校验完成；临时报告将在退出时清理，保留报告请设置 report_dir。\n'
+  printf '发布前置报告校验完成；临时报告将在退出时清理，保留报告请设置 report_dir。\n'
 fi
-printf '报告仅包含依赖元数据、锁文件列表、校验摘要和安全状态，不包含凭据或原始响应。\n'
+printf '报告仅包含许可证材料、摘要和状态，不包含凭据或原始响应。\n'
 if [[ "$dependency_status" -ne 0 ]]; then
   exit "$dependency_status"
 fi

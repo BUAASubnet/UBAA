@@ -81,16 +81,6 @@ jobs:
           CARGO_INCREMENTAL: 0
           CARGO_BUILD_JOBS: 1
         run: just flutter-codegen-check
-      - name: 生成无签名 RC 前置报告
-        run: just release-preflight "$RUNNER_TEMP/ubaa-release-report" mode=report
-      - name: 保存无签名 RC 前置报告
-        if: ${{ !cancelled() }}
-        uses: actions/upload-artifact@b7c566a772e6b6bfb58ed0dc250532a479d7789f
-        with:
-          name: ubaa-release-preflight-${{ github.run_id }}
-          path: ${{ runner.temp }}/ubaa-release-report
-          if-no-files-found: error
-          retention-days: 14
 
   flutter-contracts:
     # 既有 golden 使用 macOS 渲染；完整测试固定同类宿主，保持逐像素比较。

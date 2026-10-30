@@ -13,7 +13,7 @@ Dart/Flutter 的调用、工具配置与凭据分离规则只在 [AGENTS 项目�
 | Git、Bash、just | Git 支持 worktree；Bash 3.2+；just 1.51.0 已验证 dotenv 设置与位置参数透传 | 所有脚本入口；just 目前未锁版本 |
 | Rustup、Rust、rustfmt、Clippy | `rust-toolchain.toml`：Rust 1.95.0，含 rustfmt、Clippy | Rust 构建、测试和文档 |
 | Python | 3.11+，含 venv、pip | Python 门禁与质量工具环境 |
-| Python 开发依赖 | `scripts/tools/requirements.txt` 中的版本及哈希 | JSON Schema、YAML/JSON5 解析；显式 bootstrap 安装 |
+| Python 开发依赖 | `scripts/tools/requirements.txt` 中的版本及哈希 | YAML/JSON5 解析；显式 bootstrap 安装 |
 | ShellCheck | 精确 0.11.0 | `check-strict`；可通过 `UBAA_SHELLCHECK_BIN` 指定 |
 | cargo-deny | 精确 0.20.2 | `just dependency-audit`；版本来自 `scripts/tools/versions.env` |
 | 官方 Flutter / Dart | Flutter 3.41.9，commit `00b0c91f06209d9e4a41f71b7a512d6eb3b9c694`；Dart 3.11.5 | 根 Pub workspace 的七个正式包、测试辅助包和官方宿主 |

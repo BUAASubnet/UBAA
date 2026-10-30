@@ -184,3 +184,12 @@ Android 自动读取被忽略的 `.sign/android/signing.properties`，使用 AND
 日志留在 `.ubaa_local/`，决策记录只收会影响后续判断的取舍。原状态流水原样移入
 [历史目录](history/2026-10-30-status-log-through-signing.md)，单轮任务报告同样归档。来源对照门禁、
 真实账号授权和完成条件不变。
+
+## 2026-10-30：发布前置只保留许可证材料
+
+`release-preflight` 原先还生成带 CycloneDX schema 校验的 Cargo SBOM、全部跟踪文件的逐文件 SHA-256 清单和
+pubspec 锁文件摘要。没有使用方读取 SBOM；Rust 依赖的许可与公告已由 cargo-deny 检查；提交 SHA 已唯一确定
+全部跟踪文件和锁文件，逐文件清单不增加保证。现在入口只做干净工作树、refs、敏感扫描和 Dart/OHOS 许可证材料，
+材料缺口仍以状态 3 阻止发布。随之删除 CycloneDX schema 副本及 jsonschema 依赖链（六个 Python 包）。
+`source_manifest.py` 改名为 `build_record.py`，原生工作流仍把候选 SHA、作业和产物逐文件摘要关联。
+日常 CI 不再以报告模式运行发布前置，发布前本地执行。OHOS 补充材料清单格式不变。

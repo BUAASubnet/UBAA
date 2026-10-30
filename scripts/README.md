@@ -11,7 +11,7 @@
 | `release/` | 依赖/许可证与显式联网 cargo-deny 审计、源码与产物摘要、macOS 权限和无签名发布前置报告 |
 | `tests/`、`tests/checks/` | 临时目录及合成样本中的门禁自测；Flutter 包测试运行器仍保留在 tests 中，分类调整留待后续阶段 |
 | `lib/` | 仓库根定位、包清单、版本、参数、DevEco、摘要和配置解析支持；凭据只由显式 live 入口读取 |
-| `tools/` | Python 质量环境定位/执行、锁定 requirements 和 CycloneDX schema 上游记录 |
+| `tools/` | Python 质量环境定位/执行、锁定 requirements 及其上游记录 |
 | `layout-baseline.txt` | 既有精确结构违例，不得用新增基线掩盖问题 |
 
 `check/dart_sources.py` 是 Dart 指令与源码依赖闭包解析支持；`changed_checks.py` 编排检查计划，`module_graph.py`、`integration_catalog.py` 复用解析结果。`sensitive.py` 分别读取 index 和工作区，工具/读取错误失败关闭，不读取被忽略凭据。
@@ -22,7 +22,7 @@
 
 `live/offline_startup/analyze.py` 与 analyze_test.py 保留历史测量材料的安全统计和合成合同。原生集成登记只保留真实平台能力和 FFI/启动锁，外部持锁程序由应用在自身沙箱派生，自动化缺口见[测试策略](../docs/development/testing.md)。
 
-`release/dependency_report.py` 生成依赖/许可材料，`source_manifest.py` 关联全部跟踪输入与可选实际产物；其测试使用临时 Git 仓库，不读取未跟踪凭据。原始 Cargo metadata 只作临时转换输入。
+`release/dependency_report.py` 生成 Dart/OHOS 许可材料，`build_record.py` 把候选提交、CI 作业与实际产物摘要关联；其测试使用临时 Git 仓库，不读取未跟踪凭据。
 
 `release/dependency-audit.sh` 是 CI 和发布流程显式调用的 RustSec 审计入口。脚本校验 `tools/versions.env` 中的 cargo-deny 版本后运行 `deny.toml`；advisory 数据库访问只发生在该入口，不由纯校验门禁隐式触发。
 

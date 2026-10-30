@@ -14,7 +14,7 @@ from repo import ROOT
 # 这些目录保留上游命名或历史归档索引，不接受自有源码扩展。
 FROZEN = (
     'examples/', 'packages/ubaa_bindings/cargokit/',
-    'scripts/tools/cyclonedx-1.5/', 'docs/design/evidence/ui-ux/',
+    'docs/design/evidence/ui-ux/',
 )
 ANDROID_RESOURCE = re.compile(
     r'apps/ubaa_flutter/android/app/src/(?:main|debug|profile|test|androidTest)/res/'

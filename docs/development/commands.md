@@ -91,7 +91,7 @@ OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员�
 
 | 工作流 / 作业 | 当前触发与实际执行 |
 |---|---|
-| [ci.yml](../../.github/workflows/ci.yml) / contract-gates | ubaa2/main/dev push 与 PR；Ubuntu 显式 bootstrap 参考/质量工具、安装固定 cargo-deny 并运行联网依赖审计、校验 refs/敏感扫描、执行 check-strict、准备 Dart 依赖、检查 FRB、以 `mode=report` 生成并保存依赖材料报告；材料缺口保留在报告中，生成错误仍失败 |
+| [ci.yml](../../.github/workflows/ci.yml) / contract-gates | ubaa2/main/dev push 与 PR；Ubuntu 显式 bootstrap 参考/质量工具、安装固定 cargo-deny 并运行联网依赖审计、校验 refs/敏感扫描、执行 check-strict、准备 Dart 依赖、检查 FRB。发布前置报告不在日常 CI 运行，发布前本地执行 `just release-preflight` |
 | ci.yml / flutter-contracts | macOS 15 执行完整 flutter-check，失败时上传脱敏 golden 差异；不在此作业运行原生集成 |
 | ci.yml / rust-platforms | macOS/Windows 执行 Cargo fmt、全特性 Clippy、Core 默认关闭态检查/Rustdoc、开启 test-contract 的全目标测试、关闭态负向编译合同，其余 workspace 全目标测试/构建及文档 |
 | [flutter-platforms.yml](../../.github/workflows/flutter-platforms.yml) / native-debug | 手动、受路径过滤的 PR，以及 ubaa2/main/dev push；构建 Linux/Windows/macOS/iOS simulator/Android APK，检查产物并生成源码/产物关联。macOS 执行默认原生集合，Linux 执行隔离安全存储；Markdown 路径被排除，OHOS 不在此工作流 |
@@ -106,8 +106,8 @@ OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员�
 | `just flutter-build platform=<平台> mode=debug` | 官方目标 host/macos/linux/windows/android-apk/ios-simulator 的原生构建，具体目标由脚本白名单限定 |
 | `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` | 固定 OHOS fork 与 DevEco/API26 的无签名 Debug HAP；无签名模式不能用于发布或实体设备验收 |
 | `just flutter-artifact-check macos <私有绝对路径>/ubaa_flutter.app` | 只读检查产物；macOS 从真实签名读取并要求 Sandbox 和客户端联网权限，不修改或重签 |
-| `just release-preflight <私有绝对路径>/release-report` | 默认 `mode=strict`：干净工作树、空报告目录下生成离线依赖、许可和源码报告；材料缺口保留报告并以状态 3 阻止发布 |
-| `just release-preflight <私有绝对路径>/release-report mode=report` | 源码 CI 仅收集材料，报告列明完整性和发布阻塞项；材料缺口不改变退出码，真实生成错误仍失败；不判定发布通过 |
+| `just release-preflight <私有绝对路径>/release-report` | 默认 `mode=strict`：干净工作树、空报告目录下生成离线 Dart/OHOS 许可证材料；材料缺口保留报告并以状态 3 阻止发布 |
+| `just release-preflight <私有绝对路径>/release-report mode=report` | 仅收集材料，报告列明完整性和发布阻塞项；材料缺口不改变退出码，真实生成错误仍失败；不判定发布通过 |
 
 两种报告模式均不签名、不上传、不使用真实账号。OHOS 补充材料通过 `UBAA_OHOS_EVIDENCE` 指定 JSON 清单绝对路径，结构及来源声明边界见[OHOS 补充材料](../runbooks/flutter-release.md#ohos-补充材料)。工具校验文件与使用方摘要，合并同一产物的引用，并单独记录仓库内类型声明；实际 HAP、动态库与签名仍需产物验收。
 

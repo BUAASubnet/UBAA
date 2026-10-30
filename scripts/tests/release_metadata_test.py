@@ -1,4 +1,4 @@
-"""标准 SBOM 与许可证材料必须拒绝无效格式，并保留缺失证据。"""
+"""许可证材料必须保留缺失证据，材料缺口默认阻止发布。"""
 import importlib.util
 import hashlib
 import json
@@ -14,7 +14,6 @@ ROOT = Path(__file__).resolve().parents[2]
 spec = importlib.util.spec_from_file_location("dependency_report", ROOT / "scripts/release/dependency_report.py")
 report = importlib.util.module_from_spec(spec)
 spec.loader.exec_module(report)
-build = report.build_sbom
 
 
 class ReleaseMetadataTest(unittest.TestCase):
@@ -45,34 +44,6 @@ class ReleaseMetadataTest(unittest.TestCase):
         self.assertEqual(report.release_exit_code(records), report.RELEASE_BLOCKED_EXIT)
         self.assertEqual(report.release_exit_code(records, report_only=True), 0)
         self.assertEqual(report.release_exit_code(records[:1]), 0)
-
-    def test_复合许可证不能放在单一ID字段(self):
-        document = build({"packages": [{"name": "sample", "version": "1.0.0",
-                                        "license": "MIT OR Apache-2.0"}]})
-        self.assertEqual(document["components"][0]["licenses"],
-                         [{"expression": "MIT OR Apache-2.0"}])
-
-    def test_非标准声明保留名称并显式待核对(self):
-        document = build({"packages": [{"name": "sample", "version": "1.0.0",
-                                        "license": "Custom-Project-License"}]})
-        component = document["components"][0]
-        self.assertEqual(component["licenses"], [{"license": {"name": "Custom-Project-License"}}])
-        self.assertIn({"name": "ubaa:license-evidence", "value": "需人工核对声明"}, component["properties"])
-
-    def test_无效license_id被离线schema拒绝(self):
-        document = build({"packages": [{"name": "sample", "version": "1", "license": "MIT"}]})
-        document["components"][0]["licenses"][0]["license"]["id"] = "MIT OR Apache-2.0"
-        self.assertRaisesRegex(ValueError, "schema", report.validate_sbom, document)
-
-    def test_未闭合表达式不冒充标准SPDX(self):
-        document = build({"packages": [{"name": "sample", "version": "1", "license": "(MIT OR)"}]})
-        self.assertEqual(document["components"][0]["licenses"], [{"license": {"name": "(MIT OR)"}}])
-
-    def test_缺少许可证可见且不是通过许可审核(self):
-        document = build({"packages": [{"name": "sample", "version": "1", "license": None}]})
-        component = document["components"][0]
-        self.assertNotIn("licenses", component)
-        self.assertIn("缺少", component["properties"][0]["value"])
 
     def test_Dart材料来自锁定包正文并保留摘要(self):
         with tempfile.TemporaryDirectory() as directory:
