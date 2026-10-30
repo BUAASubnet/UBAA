@@ -4,7 +4,7 @@
 
 | 目录或文件 | 职责 |
 |---|---|
-| `bootstrap/` | 显式安装 CI 固定 Flutter、建立缺失冻结引用、带版本/哈希锁的 Python 质量环境，以及本机一站式 `setup.sh` |
+| `bootstrap/` | 显式安装 CI 固定 Flutter、建立缺失冻结引用、带版本/哈希锁的 Python 质量环境，本机一站式 `setup.sh`，以及只读核对版本的 `doctor.py` |
 | `check/` | 布局、目录、敏感材料、版本、工具链、依赖闭包、集成登记及按改动检查 |
 | `build/` | 官方 Flutter 平台与 OHOS HAP 构建 |
 | `live/` | 显式获授权的学校只读验证及历史离线测量分析，不提供真实业务写入入口 |

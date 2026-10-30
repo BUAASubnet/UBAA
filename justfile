@@ -27,7 +27,7 @@ default:
 
 # 只读汇总本机工具与锁定版本的差异；不联网、不安装。
 doctor:
-    python3 scripts/check/doctor.py
+    python3 scripts/bootstrap/doctor.py
 
 # 显式联网准备本机开发环境；已一致的工具跳过，不改写已有 SDK 或 .env.toolchain。
 setup:

@@ -54,4 +54,4 @@ just flutter-dependencies
 if ! command -v "${UBAA_SHELLCHECK_BIN:-shellcheck}" >/dev/null 2>&1; then
   printf 'ShellCheck %s 需用系统包管理器安装，或在 .env.toolchain 设置 UBAA_SHELLCHECK_BIN\n' "$SHELLCHECK_VERSION"
 fi
-python3 scripts/check/doctor.py
+python3 scripts/bootstrap/doctor.py
