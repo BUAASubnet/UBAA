@@ -1,12 +1,15 @@
 //! SPOC 当前学期、课程与全局作业分页读取。
 
 use serde::Serialize;
+use std::collections::HashMap;
 
 use super::SpocCredential;
 use super::auth::{check_business_response, resolve_required_spoc_result, with_spoc_auth_retry};
 use super::calendar::normalize_datetime;
 use super::crypto::encrypt_param;
-use super::parser::{AssignmentPage, CourseRaw, CurrentTerm, parse_envelope, summary};
+use super::parser::{
+    AssignmentPage, AssignmentRaw, CourseRaw, CurrentTerm, parse_envelope, summary,
+};
 
 /// 当前学期查询地址。
 pub const CURRENT_TERM_URL: &str = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
@@ -30,17 +33,7 @@ pub(crate) async fn get_assignments(
 pub(crate) async fn get_assignments_diagnostics(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> crate::error::Result<crate::domain::SpocAssignmentsDiagnostics> {
-    Ok(get_assignments_observed(runtime).await?.0)
-}
-
-pub(crate) async fn get_assignments_observed(
-    runtime: &mut crate::runtime::ClientRuntime,
-) -> crate::error::Result<(crate::domain::SpocAssignmentsDiagnostics, bool)> {
-    let term_result = with_spoc_auth_retry(runtime, |runtime, credential| {
-        Box::pin(fetch_current_term(runtime, credential))
-    })
-    .await;
-    let term = resolve_required_spoc_result(runtime, term_result).await?;
+    let term = current_term(runtime).await?;
     let term_code = term.mrxq.unwrap_or_default();
     if term_code.is_empty() {
         return Err(crate::error::UbaaError::new(
@@ -50,30 +43,7 @@ pub(crate) async fn get_assignments_observed(
             "SPOC 当前学期缺失",
         ));
     }
-    let mut courses_url = url::Url::parse(&runtime.url(COURSES_URL)?).map_err(|_| {
-        crate::error::UbaaError::new(
-            crate::error::ErrorCode::UpstreamChanged,
-            crate::error::ErrorKind::Upstream,
-            false,
-            "SPOC 地址无效",
-        )
-    })?;
-    courses_url
-        .query_pairs_mut()
-        .append_pair("kcmc", "")
-        .append_pair("xnxq", &term_code);
-    let courses_url = courses_url.to_string();
-    let courses_result: crate::error::Result<Vec<CourseRaw>> =
-        with_spoc_auth_retry(runtime, move |runtime, credential| {
-            Box::pin(fetch_courses(runtime, courses_url.clone(), credential))
-        })
-        .await;
-    let mut complete = courses_result.is_ok();
-    let courses = courses_result
-        .unwrap_or_default()
-        .into_iter()
-        .map(|course| (course.kcid.clone(), course))
-        .collect::<std::collections::HashMap<_, _>>();
+    let courses = course_map(runtime, &term_code).await.unwrap_or_default();
 
     let mut assignments = Vec::new();
     let mut page_num = 1;
@@ -81,7 +51,7 @@ pub(crate) async fn get_assignments_observed(
     loop {
         let page_term_code = term_code.clone();
         let page_result = with_spoc_auth_retry(runtime, move |runtime, credential| {
-            Box::pin(fetch_assignment_page(
+            Box::pin(fetch_assignment_page_as::<AssignmentPage>(
                 runtime,
                 page_term_code.clone(),
                 page_num,
@@ -91,31 +61,84 @@ pub(crate) async fn get_assignments_observed(
         .await;
         let page = resolve_required_spoc_result(runtime, page_result).await?;
         global_page_count = global_page_count.saturating_add(1);
-        let page_empty = page.list.is_empty();
-        for item in page.list {
-            let course = item.sskcid.as_ref().and_then(|id| courses.get(id));
-            let mut item_summary = summary(
-                item.zyid,
-                item.sskcid.unwrap_or_default(),
-                item.kcmc
-                    .or_else(|| course.map(|course| course.kcmc.clone()))
-                    .unwrap_or_default(),
-                item.zymc,
-                item.tjzt.as_deref(),
-                item.mf.as_deref(),
-            );
-            item_summary.teacher_name = course.and_then(|course| course.skjs.clone());
-            item_summary.start_time = normalize_datetime(item.zykssj.as_deref());
-            item_summary.due_time = normalize_datetime(item.zyjzsj.as_deref());
-            assignments.push(item_summary);
-        }
-        if !page.has_next_page || page_num >= page.pages || page_empty {
-            // 旧读取仍在原边界结束；若服务器还宣告下一页，不能保存为完整集合。
-            complete &= !page.has_next_page;
+        let finished = page_finished(&page, page_num);
+        assignments.extend(assignment_summaries(page.list, &courses));
+        if finished {
             break;
         }
         page_num += 1;
     }
+    sort_assignments(&mut assignments);
+    Ok(crate::domain::SpocAssignmentsDiagnostics {
+        global_page_count,
+        result: crate::domain::SpocAssignments {
+            term_code,
+            term_name: term.dqxq,
+            assignments,
+        },
+    })
+}
+
+pub(super) async fn current_term(
+    runtime: &mut crate::runtime::ClientRuntime,
+) -> crate::error::Result<CurrentTerm> {
+    let result = with_spoc_auth_retry(runtime, |runtime, credential| {
+        Box::pin(fetch_current_term(runtime, credential))
+    })
+    .await;
+    resolve_required_spoc_result(runtime, result).await
+}
+
+pub(super) async fn course_map(
+    runtime: &mut crate::runtime::ClientRuntime,
+    term: &str,
+) -> crate::error::Result<HashMap<String, CourseRaw>> {
+    let mut url = url::Url::parse(&runtime.url(COURSES_URL)?)
+        .map_err(|_| crate::error::UbaaError::upstream_changed("SPOC 地址无效"))?;
+    url.query_pairs_mut()
+        .append_pair("kcmc", "")
+        .append_pair("xnxq", term);
+    let url = url.to_string();
+    with_spoc_auth_retry(runtime, move |runtime, credential| {
+        Box::pin(fetch_courses(runtime, url.clone(), credential))
+    })
+    .await
+    .map(|courses| {
+        courses
+            .into_iter()
+            .map(|course| (course.kcid.clone(), course))
+            .collect()
+    })
+}
+
+pub(super) fn page_finished(page: &AssignmentPage, number: u32) -> bool {
+    !page.has_next_page || number >= page.pages || page.list.is_empty()
+}
+
+pub(super) fn assignment_summaries(
+    items: Vec<AssignmentRaw>,
+    courses: &HashMap<String, CourseRaw>,
+) -> impl Iterator<Item = crate::domain::SpocAssignmentSummary> + '_ {
+    items.into_iter().map(|item| {
+        let course = item.sskcid.as_ref().and_then(|id| courses.get(id));
+        let mut value = summary(
+            item.zyid,
+            item.sskcid.unwrap_or_default(),
+            item.kcmc
+                .or_else(|| course.map(|course| course.kcmc.clone()))
+                .unwrap_or_default(),
+            item.zymc,
+            item.tjzt.as_deref(),
+            item.mf.as_deref(),
+        );
+        value.teacher_name = course.and_then(|course| course.skjs.clone());
+        value.start_time = normalize_datetime(item.zykssj.as_deref());
+        value.due_time = normalize_datetime(item.zyjzsj.as_deref());
+        value
+    })
+}
+
+pub(super) fn sort_assignments(assignments: &mut [crate::domain::SpocAssignmentSummary]) {
     assignments.sort_by(|left, right| {
         left.due_time
             .as_deref()
@@ -124,17 +147,6 @@ pub(crate) async fn get_assignments_observed(
             .then_with(|| left.course_name.cmp(&right.course_name))
             .then_with(|| left.title.cmp(&right.title))
     });
-    Ok((
-        crate::domain::SpocAssignmentsDiagnostics {
-            global_page_count,
-            result: crate::domain::SpocAssignments {
-                term_code,
-                term_name: term.dqxq,
-                assignments,
-            },
-        },
-        complete,
-    ))
 }
 
 pub(super) async fn fetch_current_term(
@@ -178,15 +190,6 @@ pub(super) async fn fetch_courses(
     .await?;
     check_business_response(&response)?;
     parse_envelope(&crate::features::body(&response))
-}
-
-async fn fetch_assignment_page(
-    runtime: &mut crate::runtime::ClientRuntime,
-    term_code: String,
-    page_num: u32,
-    credential: &SpocCredential,
-) -> crate::error::Result<AssignmentPage> {
-    fetch_assignment_page_as(runtime, term_code, page_num, credential).await
 }
 
 pub(super) async fn fetch_assignment_page_as<T: serde::de::DeserializeOwned>(

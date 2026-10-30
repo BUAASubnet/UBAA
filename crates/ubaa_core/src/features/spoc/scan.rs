@@ -1,9 +1,11 @@
 //! 分段只读复用原认证与请求编码，每次完整完成重试/主会话仲裁后才返回。
 use super::{
     auth::{resolve_required_spoc_result, with_spoc_auth_retry},
-    calendar::normalize_datetime,
-    list::{COURSES_URL, fetch_assignment_page_as, fetch_courses, fetch_current_term},
-    parser::{AssignmentPage, CourseRaw, summary},
+    list::{
+        assignment_summaries, course_map, current_term, fetch_assignment_page_as, page_finished,
+        sort_assignments,
+    },
+    parser::{AssignmentPage, CourseRaw},
 };
 use crate::{
     domain::SpocAssignments,
@@ -22,11 +24,7 @@ pub(crate) struct Page {
     pub pages: Option<u32>,
 }
 pub(crate) async fn term(runtime: &mut ClientRuntime) -> Result<SpocAssignments> {
-    let result = with_spoc_auth_retry(runtime, |runtime, credential| {
-        Box::pin(fetch_current_term(runtime, credential))
-    })
-    .await;
-    let term = resolve_required_spoc_result(runtime, result).await?;
+    let term = current_term(runtime).await?;
     let code = term
         .mrxq
         .filter(|value| !value.trim().is_empty() && value.len() <= 1024)
@@ -38,25 +36,12 @@ pub(crate) async fn term(runtime: &mut ClientRuntime) -> Result<SpocAssignments>
     })
 }
 pub(crate) async fn courses(runtime: &mut ClientRuntime, term: &str) -> Result<Courses> {
-    let mut url = url::Url::parse(&runtime.url(COURSES_URL)?).map_err(|_| changed())?;
-    url.query_pairs_mut()
-        .append_pair("kcmc", "")
-        .append_pair("xnxq", term);
-    let url = url.to_string();
-    let result = with_spoc_auth_retry(runtime, move |runtime, credential| {
-        Box::pin(fetch_courses(runtime, url.clone(), credential))
-    })
-    .await;
+    let result = course_map(runtime, term).await;
     resolve_required_spoc_result(runtime, result)
         .await
-        .map(|rows| {
-            Courses(
-                rows.into_iter()
-                    .map(|row| (row.kcid.clone(), row))
-                    .collect(),
-            )
-        })
+        .map(Courses)
 }
+
 pub(crate) async fn page(
     runtime: &mut ClientRuntime,
     term: &SpocAssignments,
@@ -110,33 +95,16 @@ pub(crate) async fn page(
         return Err(changed());
     }
     let empty = data.list.is_empty();
-    let finished = !data.has_next_page || page >= data.pages || empty;
+    let finished = page_finished(&data, page);
     let complete = observed
         && (data.has_next_page || data.pages == page || (page == 1 && empty && data.pages == 0))
         && !(finished && data.has_next_page)
         && (data.pages >= page || (page == 1 && empty && data.pages == 0))
         && !(empty && page > 1);
-    let mut result = SpocAssignments {
-        assignments: Vec::new(),
+    let result = SpocAssignments {
+        assignments: assignment_summaries(data.list, &courses.0).collect(),
         ..term.clone()
     };
-    for item in data.list {
-        let course = item.sskcid.as_ref().and_then(|id| courses.0.get(id));
-        let mut value = summary(
-            item.zyid,
-            item.sskcid.unwrap_or_default(),
-            item.kcmc
-                .or_else(|| course.map(|course| course.kcmc.clone()))
-                .unwrap_or_default(),
-            item.zymc,
-            item.tjzt.as_deref(),
-            item.mf.as_deref(),
-        );
-        value.teacher_name = course.and_then(|course| course.skjs.clone());
-        value.start_time = normalize_datetime(item.zykssj.as_deref());
-        value.due_time = normalize_datetime(item.zyjzsj.as_deref());
-        result.assignments.push(value);
-    }
     Ok(Page {
         data: result,
         complete,
@@ -146,15 +114,9 @@ pub(crate) async fn page(
     })
 }
 pub(crate) fn sort(data: &mut SpocAssignments) {
-    data.assignments.sort_by(|left, right| {
-        left.due_time
-            .as_deref()
-            .unwrap_or("9999-99-99 99:99:99")
-            .cmp(right.due_time.as_deref().unwrap_or("9999-99-99 99:99:99"))
-            .then_with(|| left.course_name.cmp(&right.course_name))
-            .then_with(|| left.title.cmp(&right.title))
-    });
+    sort_assignments(&mut data.assignments);
 }
+
 fn changed() -> UbaaError {
     UbaaError::new(
         ErrorCode::UpstreamChanged,

@@ -4,12 +4,11 @@ use std::collections::HashSet;
 
 use serde_json::Value;
 
-use super::parser::{envelope, error, parse_time_slots, text};
+use super::parser::{error, parse_time_slots, text};
 use crate::domain::{LibBookAreaSchedule, LibBookDaySchedule};
 use crate::error::Result;
 
-pub(super) fn parse_area_schedule_for(area_id: &str, body: &str) -> Result<LibBookAreaSchedule> {
-    let value = envelope(body)?;
+pub(super) fn parse_area_schedule_for(area_id: &str, value: &Value) -> Result<LibBookAreaSchedule> {
     let object = value
         .as_object()
         .ok_or_else(|| error("图书馆分区响应结构无效"))?;

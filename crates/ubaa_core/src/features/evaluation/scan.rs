@@ -2,7 +2,7 @@
 use super::parser::{
     AuthorityEntry, CourseContext, EvaluationAuthoritySnapshot, canonical_string, parse_course_rows,
 };
-use super::{COURSES_URL, QUESTIONNAIRES_URL, TASKS_URL, is_authentication_error, read};
+use super::{is_authentication_error, read};
 use crate::{
     domain::{ActionEligibility, EvaluationCoursesResponse},
     error::Result,
@@ -86,7 +86,7 @@ impl Cursor {
         url: url::Url,
         complete: &mut bool,
     ) -> Result<Value> {
-        match read::fetch_result(runtime, url, true, complete).await {
+        match read::fetch_result(runtime, url, true).await {
             Ok(value) => Ok(value),
             Err(error) if !is_authentication_error(&error) => {
                 *complete = false;
@@ -97,11 +97,7 @@ impl Cursor {
         }
     }
     async fn read_tasks(&mut self, runtime: &mut ClientRuntime) -> Result<()> {
-        let mut url = read::parsed_runtime_url(runtime, TASKS_URL)?;
-        url.query_pairs_mut()
-            .append_pair("yhdm", runtime.account_name().unwrap_or_default())
-            .append_pair("pageNum", "1")
-            .append_pair("pageSize", "10");
+        let url = read::tasks_url(runtime)?;
         let mut complete = true;
         let data = self.fetch(runtime, url, &mut complete).await?;
         let rows = read::rows_from_page_or_array(&data, "评教任务列表结构无效", false)?;
@@ -127,8 +123,7 @@ impl Cursor {
     }
     async fn read_forms(&mut self, runtime: &mut ClientRuntime) -> Result<()> {
         let rwid = self.tasks[self.task_index].clone();
-        let mut url = read::parsed_runtime_url(runtime, QUESTIONNAIRES_URL)?;
-        url.query_pairs_mut().append_pair("rwid", &rwid);
+        let url = read::questionnaires_url(runtime, &rwid)?;
         let mut complete = true;
         let data = self.fetch(runtime, url, &mut complete).await?;
         complete &= data.is_array();
@@ -136,11 +131,7 @@ impl Cursor {
             if let Some(row) = row.as_object()
                 && let Some(wjid) = canonical_string(row, "wjid")
             {
-                self.forms.push(CourseContext {
-                    rwid: rwid.clone(),
-                    wjid,
-                    msid: canonical_string(row, "msid").unwrap_or_default(),
-                });
+                self.forms.push(read::course_context(row, &rwid, wjid));
             } else {
                 complete = false;
             }
@@ -155,8 +146,7 @@ impl Cursor {
     }
     async fn read_courses(&mut self, runtime: &mut ClientRuntime) -> Result<()> {
         let context = self.forms[self.form_index].clone();
-        let mut url = read::parsed_runtime_url(runtime, COURSES_URL)?;
-        url.query_pairs_mut().append_pair("wjid", &context.wjid);
+        let url = read::courses_url(runtime, &context.wjid)?;
         let mut complete = true;
         let data = self.fetch(runtime, url, &mut complete).await?;
         complete &= read::course_rows_complete(&data, &context);

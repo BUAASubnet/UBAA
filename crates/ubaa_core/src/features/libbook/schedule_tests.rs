@@ -1,6 +1,6 @@
 //! 分区公开日程的关联与兼容合同，只使用合成响应。
 
-use super::schedule::parse_area_schedule_for;
+use super::test_response::parse_area_schedule_for;
 use crate::error::ErrorCode;
 use serde_json::{Value, json};
 

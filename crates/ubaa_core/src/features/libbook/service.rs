@@ -14,8 +14,9 @@ use crate::ports::HttpRequest;
 use super::LibBookCredential;
 use super::crypto::encrypt_reserve_request;
 use super::parser::{
-    error, is_expired_body, parse_area_detail_for, parse_area_detail_for_day, parse_areas,
+    error, is_expired_response, parse_area_detail_for, parse_area_detail_for_day, parse_areas,
     parse_bookings_for_request, parse_bookings_with_strict_metadata, parse_libraries, parse_seats,
+    response_data,
 };
 use super::schedule::parse_area_schedule_for;
 
@@ -39,9 +40,10 @@ pub(crate) async fn get_libraries_observed(
     runtime: &mut crate::runtime::ClientRuntime,
     day: &str,
 ) -> Result<(Vec<LibBookLibrary>, bool)> {
-    let body = request_json(runtime, "space/pcTopFor", json!({"day": day}), true).await?;
+    let body =
+        response_data(request_json(runtime, "space/pcTopFor", json!({"day": day}), true).await?)?;
     Ok((
-        parse_libraries(&body)?,
+        parse_libraries(&body),
         super::observed::list_complete(&body, &["list", "libraries"]),
     ))
 }
@@ -65,9 +67,9 @@ pub(crate) async fn get_areas_observed(
     day: &str,
 ) -> Result<(Vec<LibBookArea>, bool)> {
     let body = json!({"premisesIds": premises_id, "categoryIds": [], "storeyIds": storey_id.map_or_else(Vec::new, |id| vec![id]), "boutiqueIds": [], "date": day});
-    let body = request_json(runtime, "space/pick", body, true).await?;
+    let body = response_data(request_json(runtime, "space/pick", body, true).await?)?;
     Ok((
-        parse_areas(&body)?,
+        parse_areas(&body),
         super::observed::list_complete(&body, &["area", "areas", "list"]),
     ))
 }
@@ -86,7 +88,8 @@ pub(crate) async fn get_area_detail_observed(
     runtime: &mut crate::runtime::ClientRuntime,
     area_id: &str,
 ) -> Result<(LibBookAreaDetail, bool)> {
-    let body = request_json(runtime, "Space/map", json!({"id": area_id}), true).await?;
+    let body =
+        response_data(request_json(runtime, "Space/map", json!({"id": area_id}), true).await?)?;
     Ok((
         parse_area_detail_for(area_id, &body)?,
         super::observed::detail_complete(&body),
@@ -98,7 +101,8 @@ pub(crate) async fn get_area_detail_with_schedule_observed(
     runtime: &mut crate::runtime::ClientRuntime,
     area_id: &str,
 ) -> Result<(LibBookAreaDetail, bool)> {
-    let body = request_json(runtime, "Space/map", json!({"id": area_id}), true).await?;
+    let body =
+        response_data(request_json(runtime, "Space/map", json!({"id": area_id}), true).await?)?;
     let mut detail = parse_area_detail_for(area_id, &body)?;
     detail.schedule = Some(parse_area_schedule_for(area_id, &body)?);
     Ok((detail, super::observed::detail_complete(&body)))
@@ -111,7 +115,7 @@ pub(crate) async fn get_area_schedule(
 ) -> Result<LibBookAreaSchedule> {
     parse_area_schedule_for(
         area_id,
-        &request_json(runtime, "Space/map", json!({"id": area_id}), true).await?,
+        &response_data(request_json(runtime, "Space/map", json!({"id": area_id}), true).await?)?,
     )
 }
 
@@ -136,9 +140,9 @@ pub(crate) async fn get_seats_observed(
     end_time: &str,
 ) -> Result<(Vec<LibBookSeat>, bool)> {
     let body = json!({"id": area_id, "day": day, "label_id": [], "start_time": start_time, "end_time": end_time, "begdate": "", "enddate": ""});
-    let body = request_json(runtime, "Space/seat", body, true).await?;
+    let body = response_data(request_json(runtime, "Space/seat", body, true).await?)?;
     Ok((
-        parse_seats(&body)?,
+        parse_seats(&body),
         super::observed::list_complete(&body, &["list", "seats"]),
     ))
 }
@@ -160,7 +164,7 @@ pub(crate) async fn get_bookings_observed(
     limit: i32,
 ) -> Result<(LibBookBookingsPage, bool)> {
     validate_bookings_page(page, limit)?;
-    let body = request_bookings(runtime, page, limit).await?;
+    let body = response_data(request_bookings(runtime, page, limit).await?)?;
     Ok((
         parse_bookings_for_request(&body, page, limit)?,
         super::observed::list_complete(&body, &["data", "bookings", "list"]),
@@ -183,7 +187,7 @@ async fn request_bookings(
     runtime: &mut crate::runtime::ClientRuntime,
     page: i32,
     limit: i32,
-) -> Result<String> {
+) -> Result<Value> {
     request_json(
         runtime,
         "member/seat",
@@ -199,8 +203,11 @@ async fn get_cancel_bookings(
     limit: i32,
 ) -> Result<LibBookBookingsPage> {
     validate_bookings_page(page, limit)?;
-    let body = request_bookings(runtime, page, limit).await?;
-    parse_bookings_with_strict_metadata(&body).map_err(sanitize_cancel_authority_error)
+    request_bookings(runtime, page, limit)
+        .await
+        .and_then(response_data)
+        .and_then(|data| parse_bookings_with_strict_metadata(&data))
+        .map_err(sanitize_cancel_authority_error)
 }
 
 fn sanitize_cancel_authority_error(error: UbaaError) -> UbaaError {
@@ -252,8 +259,9 @@ pub(crate) async fn preflight_reserve(
     request: &LibBookReserveRequest,
 ) -> Result<LibBookReservePreflight> {
     let request = normalize_reserve_request(request)?;
-    let detail_body =
-        request_json(runtime, "Space/map", json!({"id": request.area_id}), true).await?;
+    let detail_body = response_data(
+        request_json(runtime, "Space/map", json!({"id": request.area_id}), true).await?,
+    )?;
     let detail = parse_area_detail_for_day(&request.area_id, &request.day, &detail_body)?
         .ok_or_else(|| unavailable("图书馆预约日期已变化，请刷新后重新准备"))?;
     if detail.id.trim() != request.area_id {
@@ -664,7 +672,7 @@ async fn request_json(
     path: &str,
     body: Value,
     allow_retry: bool,
-) -> Result<String> {
+) -> Result<Value> {
     crate::features::require_session(runtime)?;
     let credential = current_credential(runtime).await?;
     let url = runtime.url(&format!("{BASE_URL}/v4/{path}"))?;
@@ -676,6 +684,8 @@ async fn request_json(
         .insert("Content-Type".into(), "application/json".into());
     apply_headers(runtime, &mut request, Some(&authorization))?;
     let response = runtime.request(request).await?;
+    let decoded = serde_json::from_str::<Value>(&String::from_utf8_lossy(&response.body))
+        .map_err(|_| error("图书馆响应无法解析"));
     debug!(
         target: "ubaa::libbook",
         operation = path,
@@ -683,11 +693,10 @@ async fn request_json(
         status = response.status,
         final_url = %safe_url(&response.final_url),
         body_len = response.body.len(),
-        body_shape = %safe_body_shape(&response.body),
+        body_shape = %safe_body_shape(decoded.as_ref().ok()),
         "图书馆业务响应摘要"
     );
-    if response.status == 401 || (allow_retry && is_expired_body(&crate::features::body(&response)))
-    {
+    if response.status == 401 || (allow_retry && decoded.as_ref().is_ok_and(is_expired_response)) {
         if allow_retry {
             runtime.feature_state().libbook.clear_credential();
             return Box::pin(request_json(runtime, path, body, false)).await;
@@ -707,19 +716,19 @@ async fn request_json(
             "图书馆服务暂时不可用",
         ));
     }
-    Ok(crate::features::body(&response))
+    decoded
 }
 
 fn safe_url(value: &str) -> String {
     crate::logging::safe_url(value)
 }
 
-fn safe_body_shape(body: &[u8]) -> String {
-    let Ok(value) = serde_json::from_slice::<Value>(body) else {
+fn safe_body_shape(value: Option<&Value>) -> String {
+    let Some(value) = value else {
         return "非 JSON".to_owned();
     };
     let Some(object) = value.as_object() else {
-        return format!("顶层={}", json_kind(&value));
+        return format!("顶层={}", json_kind(value));
     };
     let mut keys = object.keys().cloned().collect::<Vec<_>>();
     keys.sort_unstable();

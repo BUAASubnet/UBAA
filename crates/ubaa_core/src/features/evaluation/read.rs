@@ -24,83 +24,78 @@ pub(super) async fn read_authority(
     runtime: &mut ClientRuntime,
     strict: bool,
 ) -> Result<EvaluationAuthoritySnapshot> {
-    read_authority_observed(runtime, strict)
-        .await
-        .map(|(snapshot, _)| snapshot)
-}
-
-async fn read_authority_observed(
-    runtime: &mut ClientRuntime,
-    strict: bool,
-) -> Result<(EvaluationAuthoritySnapshot, bool)> {
-    let mut complete = true;
     super::super::require_session(runtime)?;
     if let Err(error) = activate(runtime).await {
         if !strict && !is_authentication_error(&error) {
-            return Ok((EvaluationAuthoritySnapshot::default(), false));
+            return Ok(EvaluationAuthoritySnapshot::default());
         }
         return Err(error);
     }
 
-    let mut tasks_url = parsed_runtime_url(runtime, TASKS_URL)?;
-    tasks_url
-        .query_pairs_mut()
-        .append_pair("yhdm", runtime.account_name().unwrap_or_default())
-        .append_pair("pageNum", "1")
-        .append_pair("pageSize", "10");
-    let tasks = fetch_result(runtime, tasks_url, strict, &mut complete).await?;
+    let tasks = fetch_result(runtime, tasks_url(runtime)?, strict).await?;
     let task_rows = rows_from_page_or_array(&tasks, "评教任务列表结构无效", strict)?;
-    complete &= (tasks.is_array() || tasks.get("list").is_some_and(Value::is_array))
-        && task_rows.len() < 10;
     let mut entries = Vec::new();
 
     for task in task_rows {
         let Some(task) = task.as_object() else {
-            complete = false;
             continue;
         };
         let Some(rwid) = canonical_string(task, "rwid") else {
-            complete = false;
             continue;
         };
-        let mut questionnaire_url = parsed_runtime_url(runtime, QUESTIONNAIRES_URL)?;
-        questionnaire_url
-            .query_pairs_mut()
-            .append_pair("rwid", &rwid);
-        let forms = fetch_result(runtime, questionnaire_url, strict, &mut complete).await?;
-        complete &= forms.is_array();
+        let forms = fetch_result(runtime, questionnaires_url(runtime, &rwid)?, strict).await?;
         let form_rows = rows_from_array(&forms, "评教问卷列表结构无效", strict)?;
         for form in form_rows {
             let Some(form) = form.as_object() else {
-                complete = false;
                 continue;
             };
             let Some(wjid) = canonical_string(form, "wjid") else {
-                complete = false;
                 continue;
             };
-            let msid = canonical_string(form, "msid").unwrap_or_default();
-            let mut courses_url = parsed_runtime_url(runtime, COURSES_URL)?;
-            courses_url.query_pairs_mut().append_pair("wjid", &wjid);
-            let courses = fetch_result(runtime, courses_url, strict, &mut complete).await?;
-            let context = CourseContext {
-                rwid: rwid.clone(),
-                wjid,
-                msid,
-            };
-            complete &= course_rows_complete(&courses, &context);
+            let context = course_context(form, &rwid, wjid);
+            let courses =
+                fetch_result(runtime, courses_url(runtime, &context.wjid)?, strict).await?;
             match parse_course_rows(&courses, &context) {
                 Ok(parsed) => entries.extend(parsed),
-                Err(error) if !strict && !is_authentication_error(&error) => complete = false,
+                Err(error) if !strict && !is_authentication_error(&error) => {}
                 Err(error) => return Err(error),
             }
         }
     }
-    let mut identities = std::collections::HashSet::new();
-    complete &= entries
-        .iter()
-        .all(|entry| !entry.course.id.is_empty() && identities.insert(entry.course.id.clone()));
-    Ok((EvaluationAuthoritySnapshot::finalize(entries), complete))
+    Ok(EvaluationAuthoritySnapshot::finalize(entries))
+}
+
+pub(super) fn tasks_url(runtime: &ClientRuntime) -> Result<url::Url> {
+    let mut url = parsed_runtime_url(runtime, TASKS_URL)?;
+    url.query_pairs_mut()
+        .append_pair("yhdm", runtime.account_name().unwrap_or_default())
+        .append_pair("pageNum", "1")
+        .append_pair("pageSize", "10");
+    Ok(url)
+}
+
+pub(super) fn questionnaires_url(runtime: &ClientRuntime, rwid: &str) -> Result<url::Url> {
+    let mut url = parsed_runtime_url(runtime, QUESTIONNAIRES_URL)?;
+    url.query_pairs_mut().append_pair("rwid", rwid);
+    Ok(url)
+}
+
+pub(super) fn courses_url(runtime: &ClientRuntime, wjid: &str) -> Result<url::Url> {
+    let mut url = parsed_runtime_url(runtime, COURSES_URL)?;
+    url.query_pairs_mut().append_pair("wjid", wjid);
+    Ok(url)
+}
+
+pub(super) fn course_context(
+    form: &serde_json::Map<String, Value>,
+    rwid: &str,
+    wjid: String,
+) -> CourseContext {
+    CourseContext {
+        rwid: rwid.to_owned(),
+        wjid,
+        msid: canonical_string(form, "msid").unwrap_or_default(),
+    }
 }
 
 pub(super) async fn activate(runtime: &mut ClientRuntime) -> Result<()> {
@@ -126,7 +121,6 @@ pub(super) async fn fetch_result(
     runtime: &mut ClientRuntime,
     url: url::Url,
     strict: bool,
-    complete: &mut bool,
 ) -> Result<Value> {
     let expected = url.to_string();
     let result = async {
@@ -140,10 +134,7 @@ pub(super) async fn fetch_result(
     .await;
     match result {
         Ok(value) => Ok(value),
-        Err(error) if !strict && !is_authentication_error(&error) => {
-            *complete = false;
-            Ok(Value::Array(Vec::new()))
-        }
+        Err(error) if !strict && !is_authentication_error(&error) => Ok(Value::Array(Vec::new())),
         Err(error) => Err(error),
     }
 }

@@ -64,10 +64,14 @@ fn array<'a>(map: &'a Map<String, Value>, keys: &[&str]) -> &'a [Value] {
         .unwrap_or(&[])
 }
 
+#[cfg(test)]
 pub(super) fn envelope(body: &str) -> Result<Value> {
-    let value: Value = serde_json::from_str(body).map_err(|_| error("图书馆响应无法解析"))?;
+    response_data(serde_json::from_str(body).map_err(|_| error("图书馆响应无法解析"))?)
+}
+
+pub(super) fn response_data(mut value: Value) -> Result<Value> {
     let object = value
-        .as_object()
+        .as_object_mut()
         .ok_or_else(|| error("图书馆响应结构无效"))?;
     let code = object.get("code").and_then(|v| {
         v.as_i64()
@@ -75,9 +79,8 @@ pub(super) fn envelope(body: &str) -> Result<Value> {
     });
     if matches!(code, Some(0 | 1)) {
         Ok(object
-            .get("data")
-            .or_else(|| object.get("result"))
-            .cloned()
+            .remove("data")
+            .or_else(|| object.remove("result"))
             .unwrap_or(Value::Null))
     } else {
         let message = text(object, &["message", "msg"]);
@@ -106,9 +109,8 @@ fn list_value<'a>(value: &'a Value, keys: &[&str]) -> &'a [Value] {
 }
 
 /// 解析图书馆与楼层列表。
-pub fn parse_libraries(body: &str) -> Result<Vec<LibBookLibrary>> {
-    let value = envelope(body)?;
-    Ok(list_value(&value, &["list", "libraries"])
+pub fn parse_libraries(value: &Value) -> Vec<LibBookLibrary> {
+    list_value(value, &["list", "libraries"])
         .iter()
         .filter_map(Value::as_object)
         .map(|object| LibBookLibrary {
@@ -127,13 +129,12 @@ pub fn parse_libraries(body: &str) -> Result<Vec<LibBookLibrary>> {
                 })
                 .collect(),
         })
-        .collect())
+        .collect()
 }
 
 /// 解析图书馆分区列表。
-pub fn parse_areas(body: &str) -> Result<Vec<LibBookArea>> {
-    let value = envelope(body)?;
-    Ok(list_value(&value, &["area", "areas", "list"])
+pub fn parse_areas(value: &Value) -> Vec<LibBookArea> {
+    list_value(value, &["area", "areas", "list"])
         .iter()
         .filter_map(Value::as_object)
         .map(|object| LibBookArea {
@@ -145,12 +146,11 @@ pub fn parse_areas(body: &str) -> Result<Vec<LibBookArea>> {
             free_num: number(object, &["free_num", "freeNum"]),
             total_num: number(object, &["total_num", "totalNum"]),
         })
-        .collect())
+        .collect()
 }
 
 /// 解析分区详情，并在上游缺少区域 ID 时使用请求 ID 回退。
-pub fn parse_area_detail_for(area_id: &str, body: &str) -> Result<LibBookAreaDetail> {
-    let value = envelope(body)?;
+pub fn parse_area_detail_for(area_id: &str, value: &Value) -> Result<LibBookAreaDetail> {
     let object = value
         .as_object()
         .ok_or_else(|| error("图书馆分区响应结构无效"))?;
@@ -195,9 +195,8 @@ pub fn parse_area_detail_for(area_id: &str, body: &str) -> Result<LibBookAreaDet
 pub(super) fn parse_area_detail_for_day(
     area_id: &str,
     day: &str,
-    body: &str,
+    value: &Value,
 ) -> Result<Option<LibBookAreaDetail>> {
-    let value = envelope(body)?;
     let object = value
         .as_object()
         .ok_or_else(|| error("图书馆分区响应结构无效"))?;
@@ -257,9 +256,8 @@ pub(super) fn parse_time_slots(slots: &[Value]) -> Vec<LibBookTimeSlot> {
 }
 
 /// 解析座位列表，并从严格整数状态与非空座位编号派生预约资格。
-pub fn parse_seats(body: &str) -> Result<Vec<LibBookSeat>> {
-    let value = envelope(body)?;
-    let mut seats: Vec<_> = list_value(&value, &["list", "seats"])
+pub fn parse_seats(value: &Value) -> Vec<LibBookSeat> {
+    let mut seats: Vec<_> = list_value(value, &["list", "seats"])
         .iter()
         .filter_map(Value::as_object)
         .map(|object| {
@@ -287,28 +285,27 @@ pub fn parse_seats(body: &str) -> Result<Vec<LibBookSeat>> {
         })
         .collect();
     seats.sort_by(|left, right| left.no.cmp(&right.no));
-    Ok(seats)
+    seats
 }
 
 /// 按调用方请求值补齐普通只读分页；冻结实现允许响应省略分页元数据。
 pub(super) fn parse_bookings_for_request(
-    body: &str,
+    value: &Value,
     requested_page: i32,
     requested_limit: i32,
 ) -> Result<LibBookBookingsPage> {
-    parse_bookings_with_metadata(body, Some((requested_page, requested_limit)))
+    parse_bookings_with_metadata(value, Some((requested_page, requested_limit)))
 }
 
 /// 取消 authority 必须由响应中的完整、无冲突分页元数据证明。
-pub(super) fn parse_bookings_with_strict_metadata(body: &str) -> Result<LibBookBookingsPage> {
-    parse_bookings_with_metadata(body, None)
+pub(super) fn parse_bookings_with_strict_metadata(value: &Value) -> Result<LibBookBookingsPage> {
+    parse_bookings_with_metadata(value, None)
 }
 
 fn parse_bookings_with_metadata(
-    body: &str,
+    value: &Value,
     fallback: Option<(i32, i32)>,
 ) -> Result<LibBookBookingsPage> {
-    let value = envelope(body)?;
     let object = value
         .as_object()
         .ok_or_else(|| error("图书馆预约响应结构无效"))?;
@@ -394,9 +391,8 @@ fn is_expired_message(message: &str) -> bool {
         .iter()
         .any(|part| message.contains(part))
 }
-pub(super) fn is_expired_body(body: &str) -> bool {
-    serde_json::from_str::<Value>(body)
-        .ok()
-        .and_then(|value| value.as_object().cloned())
-        .is_some_and(|object| is_expired_message(&text(&object, &["message", "msg"])))
+pub(super) fn is_expired_response(value: &Value) -> bool {
+    value
+        .as_object()
+        .is_some_and(|object| is_expired_message(&text(object, &["message", "msg"])))
 }

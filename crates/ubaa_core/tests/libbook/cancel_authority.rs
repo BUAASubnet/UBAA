@@ -365,6 +365,27 @@ fn 图书馆取消准备与提交的预约列表错误不暴露上游原文() {
 }
 
 #[test]
+fn 图书馆取消列表畸形_json_仍返回固定资格核对错误且不发送写请求() {
+    for phase in ["prepare", "commit"] {
+        let scenario = Scenario::new(["{无效响应".to_owned()]);
+        let (mut client, root) = client_for(&format!("invalid-json-{phase}"), scenario.clone());
+        let error = if phase == "prepare" {
+            runtime()
+                .block_on(client.preflight_libbook_cancel(&cancel_request()))
+                .unwrap_err()
+        } else {
+            runtime()
+                .block_on(client.libbook_cancel_booking(cancel_request()))
+                .unwrap_err()
+        };
+        assert_eq!(error.code, ErrorCode::UpstreamChanged);
+        assert_eq!(error.message, "图书馆预约取消资格核对响应无效");
+        assert_eq!(scenario.cancel_count(), 0);
+        cleanup(root);
+    }
+}
+
+#[test]
 fn 显式取消预检通过后提交仍重新读取并拒绝状态漂移() {
     let scenario = Scenario::new([
         bookings_response(&allowed_booking_row()),

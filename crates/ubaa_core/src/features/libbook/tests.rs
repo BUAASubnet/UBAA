@@ -1,9 +1,10 @@
 //! 图书馆 parser 与冻结加密向量单元合同。
 
 use super::crypto::encrypt_reserve_request;
-use super::parser::parse_area_detail_for_day;
-use super::parser::parse_bookings_for_request;
-use super::{parse_area_detail_for, parse_libraries, parse_seats};
+use super::test_response::{
+    parse_area_detail_for, parse_area_detail_for_day, parse_bookings_for_request, parse_libraries,
+    parse_seats,
+};
 use crate::domain::{ActionEligibility, LibBookReserveRequest};
 use crate::error::ErrorCode;
 

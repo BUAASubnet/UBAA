@@ -1,8 +1,10 @@
 use chrono::NaiveDateTime;
 use serde_json::{Value, json};
 
-use super::{parse_catalog_at, parse_full_detail};
 use crate::domain::{BykcCourseCategory, BykcCourseSubCategory};
+use crate::features::bykc::tests::response::{
+    parse_catalog_at, parse_course_detail, parse_full_detail,
+};
 
 fn wrapped(value: &Value) -> String {
     json!({"status":"0", "data":value}).to_string()
@@ -117,7 +119,7 @@ fn 完整详情投影联系信息范围纯文本可空窗口并保留旧序列�
     assert!(config.sign_out_end_date.is_none());
     assert_eq!(config.sign_points.len(), 2);
     assert!(detail.course.has_sign_points && detail.attendance.is_none());
-    let old = super::super::parser::parse_course_detail(&body).unwrap();
+    let old = parse_course_detail(&body).unwrap();
     assert_eq!(detail.course.course, old);
     let keys = serde_json::to_value(old).unwrap();
     let mut actual = keys
@@ -168,10 +170,7 @@ fn 完整详情空值不虚构并独立拒绝响应课程身份不符() {
         parse_full_detail(&body, 99).is_err(),
         "新接口不得把其他课程作为完整成功返回"
     );
-    assert!(
-        super::super::parser::parse_course_detail(&body).is_ok(),
-        "旧接口合同不变"
-    );
+    assert!(parse_course_detail(&body).is_ok(), "旧接口合同不变");
 }
 
 #[test]

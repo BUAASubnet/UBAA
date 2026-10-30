@@ -208,19 +208,16 @@ fn deselect_eligibility(
 }
 
 /// 解析用户资料。
-pub(crate) fn parse_profile(body: &str) -> Result<BykcUserProfile> {
-    let m = envelope(body)?
-        .as_object()
-        .cloned()
-        .ok_or_else(|| error("博雅资料结构无效"))?;
+pub(crate) fn parse_profile(value: &Value) -> Result<BykcUserProfile> {
+    let m = value.as_object().ok_or_else(|| error("博雅资料结构无效"))?;
     Ok(BykcUserProfile {
         id: m
             .get("id")
             .and_then(Value::as_i64)
             .ok_or_else(|| error("博雅资料缺少用户标识"))?,
-        employee_id: string(&m, "employeeId"),
-        real_name: string(&m, "realName"),
-        student_no: string(&m, "studentNo"),
+        employee_id: string(m, "employeeId"),
+        real_name: string(m, "realName"),
+        student_no: string(m, "studentNo"),
         college_name: m
             .get("college")
             .and_then(Value::as_object)
@@ -228,20 +225,13 @@ pub(crate) fn parse_profile(body: &str) -> Result<BykcUserProfile> {
     })
 }
 
-/// 解析课程分页。
-#[allow(dead_code)]
-pub(crate) fn parse_courses(body: &str) -> Result<BykcCoursePage> {
-    parse_courses_at(body, true, Local::now().naive_local())
-}
-
 pub(super) fn parse_courses_at(
-    body: &str,
+    value: &Value,
     all: bool,
     now: NaiveDateTime,
 ) -> Result<BykcCoursePage> {
-    let m = envelope(body)?
+    let m = value
         .as_object()
-        .cloned()
         .ok_or_else(|| error("博雅课程分页结构无效"))?;
     let content = m
         .get("content")
@@ -261,50 +251,48 @@ pub(super) fn parse_courses_at(
         .collect();
     Ok(BykcCoursePage {
         content,
-        total_elements: int(&m, "totalElements").unwrap_or_default(),
-        total_pages: int(&m, "totalPages").unwrap_or_default(),
-        size: int(&m, "size").unwrap_or_default(),
-        number: int(&m, "number").unwrap_or_default(),
+        total_elements: int(m, "totalElements").unwrap_or_default(),
+        total_pages: int(m, "totalPages").unwrap_or_default(),
+        size: int(m, "size").unwrap_or_default(),
+        number: int(m, "number").unwrap_or_default(),
     })
 }
 
 /// 解析课程详情。
-pub(crate) fn parse_course_detail(body: &str) -> Result<BykcCourse> {
-    course(&envelope(body)?, Local::now().naive_local())
+pub(crate) fn parse_course_detail(value: &Value) -> Result<BykcCourse> {
+    course(value, Local::now().naive_local())
 }
 
-pub(super) fn parse_course_detail_for_write(body: &str) -> Result<BykcCourse> {
-    let value = envelope(body)?;
+pub(super) fn parse_course_detail_for_write(value: &Value) -> Result<BykcCourse> {
     let map = value
         .as_object()
         .ok_or_else(|| error("博雅课程详情结构无效"))?;
     ensure_optional_i32(map, "courseCurrentCount")?;
     ensure_optional_i32(map, "courseMaxCount")?;
-    course(&value, Local::now().naive_local())
+    course(value, Local::now().naive_local())
 }
 
 /// 解析已选课程列表。
-pub(crate) fn parse_chosen_courses(body: &str) -> Result<Vec<BykcChosenCourse>> {
-    parse_chosen_courses_at(body, Local::now().naive_local())
+pub(crate) fn parse_chosen_courses(payload: &Value) -> Result<Vec<BykcChosenCourse>> {
+    parse_chosen_courses_at(payload, Local::now().naive_local())
 }
 
-pub(super) fn parse_chosen_courses_for_write(body: &str) -> Result<Vec<BykcChosenCourse>> {
-    parse_chosen_courses_at_for_purpose(body, Local::now().naive_local(), true)
+pub(super) fn parse_chosen_courses_for_write(payload: &Value) -> Result<Vec<BykcChosenCourse>> {
+    parse_chosen_courses_at_for_purpose(payload, Local::now().naive_local(), true)
 }
 
 pub(super) fn parse_chosen_courses_at(
-    body: &str,
+    payload: &Value,
     now: NaiveDateTime,
 ) -> Result<Vec<BykcChosenCourse>> {
-    parse_chosen_courses_at_for_purpose(body, now, false)
+    parse_chosen_courses_at_for_purpose(payload, now, false)
 }
 
 fn parse_chosen_courses_at_for_purpose(
-    body: &str,
+    payload: &Value,
     now: NaiveDateTime,
     write_preflight: bool,
 ) -> Result<Vec<BykcChosenCourse>> {
-    let payload = envelope(body)?;
     let courses = if write_preflight {
         payload.get("courseList").and_then(Value::as_array)
     } else {
@@ -552,18 +540,15 @@ pub(super) fn resolve_current_semester(
 }
 
 /// 解析修读统计。
-pub(crate) fn parse_statistics(body: &str) -> Result<BykcStatistics> {
-    let m = envelope(body)?
-        .as_object()
-        .cloned()
-        .ok_or_else(|| error("博雅统计结构无效"))?;
+pub(crate) fn parse_statistics(value: &Value) -> Result<BykcStatistics> {
+    let m = value.as_object().ok_or_else(|| error("博雅统计结构无效"))?;
     let required_int = |map: &Map<String, Value>, key: &str| {
         map.get(key)
             .and_then(Value::as_i64)
             .and_then(|value| i32::try_from(value).ok())
             .ok_or_else(|| error("博雅统计缺少有效计数"))
     };
-    let total_valid_count = required_int(&m, "validCount")?;
+    let total_valid_count = required_int(m, "validCount")?;
     let mut categories = Vec::new();
     if let Some(statistical) = m.get("statistical") {
         let statistical = statistical

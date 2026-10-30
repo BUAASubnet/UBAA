@@ -12,10 +12,6 @@ pub(crate) use crate::internal::route_state::BykcCredential;
 pub(crate) use auth::ensure_login;
 #[allow(unused_imports)]
 pub(crate) use crypto::{EncryptedRequest, decrypt_response, encrypt_request};
-#[allow(unused_imports)]
-pub(crate) use parser::{
-    parse_chosen_courses, parse_course_detail, parse_courses, parse_profile, parse_statistics,
-};
 pub(crate) use read::{
     get_chosen_courses, get_chosen_courses_observed, get_course_catalog, get_course_detail,
     get_course_full_detail, get_courses, get_profile, get_statistics,

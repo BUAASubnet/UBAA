@@ -7,17 +7,16 @@ use super::auth::{
     LOGIN_URL, resolve_login_target, token_from_valid_target, validate_login_target,
 };
 use super::crypto::{decrypt_response, encrypt_request_with_key};
-use super::parser::{
-    parse_chosen_courses, parse_chosen_courses_at, parse_courses_at, parse_sign_config,
-    resolve_current_semester,
-};
+use super::parser::{parse_sign_config, resolve_current_semester};
 use super::write::{resolve_sign_location, sign_location_requires_fallback, sign_payload};
 use crate::connection::to_webvpn_url;
 use crate::domain::{
     ActionEligibility, BykcCourseCategory, BykcCourseStatus, BykcCourseSubCategory, BykcSignRequest,
 };
+use response::{parse_chosen_courses, parse_chosen_courses_at, parse_courses_at};
 
 mod auth_redirects;
+pub(super) mod response;
 
 #[test]
 fn webvpn_绝对跳转先还原为直连目标() {
@@ -757,7 +756,7 @@ fn 签到配置包含无效签到点时整体解析失败() {
 }
 
 mod contract {
-    use super::super::{
+    use super::response::{
         parse_chosen_courses, parse_course_detail, parse_courses, parse_profile, parse_statistics,
     };
 
@@ -795,7 +794,7 @@ mod contract {
 
 #[test]
 fn 博雅统计按学校嵌套分类解析() {
-    let stats = super::parse_statistics(r#"{"status":"0","data":{"validCount":4,"statistical":{"1|博雅课程":{"2|劳动教育":{"assessmentCount":2,"completeAssessmentCount":2},"德育":{"assessmentCount":3,"completeAssessmentCount":1}}}}}"#).unwrap();
+    let stats = response::parse_statistics(r#"{"status":"0","data":{"validCount":4,"statistical":{"1|博雅课程":{"2|劳动教育":{"assessmentCount":2,"completeAssessmentCount":2},"德育":{"assessmentCount":3,"completeAssessmentCount":1}}}}}"#).unwrap();
     assert_eq!(stats.total_valid_count, Some(4));
     assert_eq!(stats.categories.len(), 2);
     let labor = stats
@@ -818,11 +817,11 @@ fn 博雅统计拒绝缺失或损坏的必填数据() {
         serde_json::json!({"validCount":0,"statistical":{"大类":{"小类":{"assessmentCount":1}}}}),
     ] {
         assert!(
-            super::parse_statistics(&serde_json::json!({"status":"0","data":data}).to_string())
+            response::parse_statistics(&serde_json::json!({"status":"0","data":data}).to_string())
                 .is_err()
         );
     }
-    let zero = super::parse_statistics(r#"{"status":"0","data":{"validCount":0}}"#).unwrap();
+    let zero = response::parse_statistics(r#"{"status":"0","data":{"validCount":0}}"#).unwrap();
     assert_eq!(zero.total_valid_count, Some(0));
     assert!(zero.categories.is_empty());
 }

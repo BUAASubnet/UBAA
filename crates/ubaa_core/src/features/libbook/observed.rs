@@ -1,5 +1,4 @@
 //! 只观察持久替换所需完整性，不改变旧解析容错或写入资格。
-use super::parser::envelope;
 use serde_json::Value;
 
 fn list<'a>(value: &'a Value, keys: &[&str]) -> Option<&'a Vec<Value>> {
@@ -14,28 +13,23 @@ fn identified(value: &Value) -> bool {
         .and_then(|v| v.get("id"))
         .is_some_and(|v| v.as_str().is_some_and(|s| !s.trim().is_empty()) || v.is_number())
 }
-pub(super) fn list_complete(body: &str, keys: &[&str]) -> bool {
-    envelope(body).ok().is_some_and(|v| {
-        list(&v, keys).is_some_and(|items| {
-            items.iter().all(|item| {
-                identified(item)
-                    && ["children", "storeys"].iter().all(|key| {
-                        item.get(*key).is_none_or(|v| {
-                            v.as_array()
-                                .is_some_and(|items| items.iter().all(identified))
-                        })
+pub(super) fn list_complete(value: &Value, keys: &[&str]) -> bool {
+    list(value, keys).is_some_and(|items| {
+        items.iter().all(|item| {
+            identified(item)
+                && ["children", "storeys"].iter().all(|key| {
+                    item.get(*key).is_none_or(|v| {
+                        v.as_array()
+                            .is_some_and(|items| items.iter().all(identified))
                     })
-            })
+                })
         })
     })
 }
-pub(super) fn detail_complete(body: &str) -> bool {
-    let Ok(value) = envelope(body) else {
-        return false;
-    };
+pub(super) fn detail_complete(value: &Value) -> bool {
     let dates = match value.get("date").and_then(Value::as_object) {
         Some(date) => date.get("list").and_then(Value::as_array),
-        None => list(&value, &["availableDates", "available_dates"]),
+        None => list(value, &["availableDates", "available_dates"]),
     };
     let direct_slots_complete = ["timeSlots", "time_slots"].iter().all(|key| {
         value.get(*key).is_none_or(|slots| {
@@ -64,7 +58,16 @@ pub(super) fn detail_complete(body: &str) -> bool {
 
 #[cfg(test)]
 mod tests {
-    use super::*;
+    fn list_complete(body: &str, keys: &[&str]) -> bool {
+        super::super::parser::envelope(body)
+            .ok()
+            .is_some_and(|value| super::list_complete(&value, keys))
+    }
+    fn detail_complete(body: &str) -> bool {
+        super::super::parser::envelope(body)
+            .ok()
+            .is_some_and(|value| super::detail_complete(&value))
+    }
     #[test]
     fn 缺失列表和丢弃项不证明完整而显式空集合可以替换() {
         assert!(!list_complete(r#"{"code":1,"data":{}}"#, &["list"]));

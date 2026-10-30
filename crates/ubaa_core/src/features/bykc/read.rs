@@ -18,16 +18,10 @@ use crate::domain::{
 };
 use crate::error::Result;
 
-fn wrap(value: &Value) -> String {
-    serde_json::json!({"status":"0","data":value}).to_string()
-}
-
 pub(crate) async fn get_profile(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> Result<BykcUserProfile> {
-    parse_profile(&wrap(
-        &request_api(runtime, "getUserProfile", serde_json::json!({})).await?,
-    ))
+    parse_profile(&request_api(runtime, "getUserProfile", serde_json::json!({})).await?)
 }
 
 pub(crate) async fn get_courses(
@@ -37,14 +31,12 @@ pub(crate) async fn get_courses(
     all: bool,
 ) -> Result<BykcCoursePage> {
     parse_courses_at(
-        &wrap(
-            &request_api(
-                runtime,
-                "queryStudentSemesterCourseByPage",
-                catalog_payload(page, size),
-            )
-            .await?,
-        ),
+        &request_api(
+            runtime,
+            "queryStudentSemesterCourseByPage",
+            catalog_payload(page, size),
+        )
+        .await?,
         all,
         Local::now().naive_local(),
     )
@@ -63,14 +55,12 @@ pub(crate) async fn get_course_catalog(
     size: i32,
     all: bool,
 ) -> Result<crate::domain::BykcCourseCatalogPage> {
-    let body = wrap(
-        &request_api(
-            runtime,
-            "queryStudentSemesterCourseByPage",
-            catalog_payload(page, size),
-        )
-        .await?,
-    );
+    let body = request_api(
+        runtime,
+        "queryStudentSemesterCourseByPage",
+        catalog_payload(page, size),
+    )
+    .await?;
     parse_catalog_at(&body, all, Local::now().naive_local())
 }
 
@@ -78,10 +68,10 @@ pub(crate) async fn get_course_full_detail(
     runtime: &mut crate::runtime::ClientRuntime,
     id: i64,
 ) -> Result<crate::domain::BykcCourseFullDetail> {
-    let body = wrap(&request_api(runtime, "queryCourseById", detail_payload(id)).await?);
+    let body = request_api(runtime, "queryCourseById", detail_payload(id)).await?;
     let mut detail = parse_full_detail(&body, id)?;
     if detail.course.course.selected == Some(true) {
-        let chosen = parse_chosen_display(&get_chosen_body(runtime, false).await?)?;
+        let chosen = parse_chosen_display(&get_chosen_data(runtime, false).await?)?;
         merge_chosen_display(&mut detail, chosen);
     }
     Ok(detail)
@@ -99,15 +89,13 @@ async fn get_course_detail_inner(
     id: i64,
     write_preflight: bool,
 ) -> Result<BykcCourse> {
-    let body = wrap(
-        &request_for_purpose(
-            runtime,
-            "queryCourseById",
-            detail_payload(id),
-            write_preflight,
-        )
-        .await?,
-    );
+    let body = request_for_purpose(
+        runtime,
+        "queryCourseById",
+        detail_payload(id),
+        write_preflight,
+    )
+    .await?;
     if write_preflight {
         parse_course_detail_for_write(&body)
     } else {
@@ -162,7 +150,7 @@ async fn get_chosen_courses_inner(
     runtime: &mut crate::runtime::ClientRuntime,
     write_preflight: bool,
 ) -> Result<(String, String, Vec<BykcChosenCourse>)> {
-    let (start, end, body) = get_chosen_body_observed(runtime, write_preflight).await?;
+    let (start, end, body) = get_chosen_data_observed(runtime, write_preflight).await?;
     let courses = if write_preflight {
         parse_chosen_courses_for_write(&body)
     } else {
@@ -171,19 +159,19 @@ async fn get_chosen_courses_inner(
     Ok((start, end, courses))
 }
 
-async fn get_chosen_body(
+async fn get_chosen_data(
     runtime: &mut crate::runtime::ClientRuntime,
     write_preflight: bool,
-) -> Result<String> {
-    get_chosen_body_observed(runtime, write_preflight)
+) -> Result<Value> {
+    get_chosen_data_observed(runtime, write_preflight)
         .await
         .map(|(_, _, body)| body)
 }
 
-async fn get_chosen_body_observed(
+async fn get_chosen_data_observed(
     runtime: &mut crate::runtime::ClientRuntime,
     write_preflight: bool,
-) -> Result<(String, String, String)> {
+) -> Result<(String, String, Value)> {
     let config = request_for_purpose(
         runtime,
         "getAllConfig",
@@ -192,15 +180,13 @@ async fn get_chosen_body_observed(
     )
     .await?;
     let (start, end) = resolve_current_semester(&config, Local::now().naive_local())?;
-    let body = wrap(
-        &request_for_purpose(
-            runtime,
-            "queryChosenCourse",
-            chosen_payload(&start, &end),
-            write_preflight,
-        )
-        .await?,
-    );
+    let body = request_for_purpose(
+        runtime,
+        "queryChosenCourse",
+        chosen_payload(&start, &end),
+        write_preflight,
+    )
+    .await?;
     Ok((start, end, body))
 }
 
@@ -220,9 +206,7 @@ async fn request_for_purpose(
 pub(crate) async fn get_statistics(
     runtime: &mut crate::runtime::ClientRuntime,
 ) -> Result<BykcStatistics> {
-    parse_statistics(&wrap(
-        &request_api(runtime, "queryStatisticByUserId", serde_json::json!({})).await?,
-    ))
+    parse_statistics(&request_api(runtime, "queryStatisticByUserId", serde_json::json!({})).await?)
 }
 
 fn catalog_payload(page: i32, size: i32) -> Value {

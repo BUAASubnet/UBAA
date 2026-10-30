@@ -7,8 +7,8 @@ use std::sync::OnceLock;
 
 use super::error;
 use super::parser::{
-    course, envelope, int, nested_kind_name, normalized_string, parse_category,
-    parse_chosen_courses, parse_sign_config, parse_sub_category,
+    course, int, nested_kind_name, normalized_string, parse_category, parse_chosen_courses,
+    parse_sign_config, parse_sub_category,
 };
 use crate::domain::{
     BykcChosenCourse, BykcCourseAttendanceDisplay, BykcCourseCatalogItem, BykcCourseCatalogPage,
@@ -17,11 +17,10 @@ use crate::domain::{
 use crate::error::Result;
 
 pub(super) fn parse_catalog_at(
-    body: &str,
+    value: &Value,
     all: bool,
     now: NaiveDateTime,
 ) -> Result<BykcCourseCatalogPage> {
-    let value = envelope(body)?;
     let map = value
         .as_object()
         .ok_or_else(|| error("博雅课程分页结构无效"))?;
@@ -95,13 +94,12 @@ fn campuses(map: &Map<String, Value>) -> Vec<String> {
     result
 }
 
-pub(super) fn parse_full_detail(body: &str, id: i64) -> Result<BykcCourseFullDetail> {
-    let value = envelope(body)?;
+pub(super) fn parse_full_detail(value: &Value, id: i64) -> Result<BykcCourseFullDetail> {
     let map = value
         .as_object()
         .ok_or_else(|| error("博雅课程详情结构无效"))?;
-    let sign_config = display_config(&value);
-    let course = catalog_item(&value, Local::now().naive_local(), sign_config.as_ref())?;
+    let sign_config = display_config(value);
+    let course = catalog_item(value, Local::now().naive_local(), sign_config.as_ref())?;
     if course.course.id != id {
         return Err(error("博雅课程详情标识与请求不一致"));
     }
@@ -148,9 +146,8 @@ pub(super) fn merge_chosen_display(
         .is_some_and(|config| !config.sign_points.is_empty());
 }
 
-pub(super) fn parse_chosen_display(body: &str) -> Result<Vec<BykcChosenCourse>> {
-    let mut records = parse_chosen_courses(body)?;
-    let payload = envelope(body)?;
+pub(super) fn parse_chosen_display(payload: &Value) -> Result<Vec<BykcChosenCourse>> {
+    let mut records = parse_chosen_courses(payload)?;
     let values = payload
         .as_array()
         .or_else(|| payload.get("courseList").and_then(Value::as_array))

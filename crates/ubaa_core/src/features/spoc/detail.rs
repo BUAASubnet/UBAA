@@ -2,7 +2,7 @@
 
 use super::SpocCredential;
 use super::auth::{check_business_response, resolve_required_spoc_result, with_spoc_auth_retry};
-use super::list::get_assignments_observed;
+use super::list::get_assignments;
 use super::parser::{
     DetailRaw, SubmissionRaw, detail_id_mismatch, merge_detail, parse_envelope,
     parse_optional_envelope,
@@ -18,15 +18,6 @@ pub(crate) async fn get_assignment_detail(
     runtime: &mut crate::runtime::ClientRuntime,
     assignment_id: &str,
 ) -> crate::error::Result<crate::domain::SpocAssignmentDetail> {
-    Ok(get_assignment_detail_observed(runtime, assignment_id)
-        .await?
-        .0)
-}
-
-pub(crate) async fn get_assignment_detail_observed(
-    runtime: &mut crate::runtime::ClientRuntime,
-    assignment_id: &str,
-) -> crate::error::Result<(crate::domain::SpocAssignmentDetail, bool)> {
     if assignment_id.trim().is_empty() {
         return Err(crate::error::UbaaError::new(
             crate::error::ErrorCode::InvalidInput,
@@ -35,9 +26,8 @@ pub(crate) async fn get_assignment_detail_observed(
             "作业标识不能为空",
         ));
     }
-    let (assignments, list_complete) = get_assignments_observed(runtime).await?;
+    let assignments = get_assignments(runtime).await?;
     let base = assignments
-        .result
         .assignments
         .into_iter()
         .find(|assignment| assignment.assignment_id == assignment_id)
@@ -51,7 +41,7 @@ pub(crate) async fn get_assignment_detail_observed(
         })?;
     get_assignment_detail_for_base(runtime, &base)
         .await
-        .map(|(detail, complete)| (detail, list_complete && complete))
+        .map(|(detail, _)| detail)
 }
 
 /// 已核实目标的有界正文与补充读取，不再次扫描全局列表。
