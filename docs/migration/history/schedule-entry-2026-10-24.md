@@ -4,7 +4,7 @@
 
 首页“今天没有课程安排”调用共享课表入口。ScheduleFlow 自动执行学期索引、教学周索引和当前周课表查询，但只在第一帧显示专用加载占位；中间索引成功到下一帧推进查询之间，通用详情正文会展示学期/教学周卡片。最后一步查询发出时自动阶段又提前结束，过渡被拆成多段可见状态。
 
-`just refs` 核对旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`、buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。复查旧版 ScheduleViewModel.selectTerm/fetchWeeks/loadWeeklySchedule：索引用于选择，主课表由 weeklySchedule 提供；独立来源 aas/opt.rs 是在线查询接口，没有同构 Flutter 导航。逐操作 bootstrap/service、跳转终点、Cookie、HTTP 参数/头/编码、DTO、签名加密、缓存并发与错误继续[既有课表对照](source-parity-schedule-default-2026-10-23.md)。本轮不改变任何学校读取或自动导入，只修复这些查询状态的可见边界。
+`just refs` 核对旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`、buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。复查旧版 ScheduleViewModel.selectTerm/fetchWeeks/loadWeeklySchedule：索引用于选择，主课表由 weeklySchedule 提供；独立来源 aas/opt.rs 是在线查询接口，没有同构 Flutter 导航。逐操作 bootstrap/service、跳转终点、Cookie、HTTP 参数/头/编码、DTO、签名加密、缓存并发与错误继续[既有课表对照](../source-parity-schedule-default-2026-10-23.md)。本轮不改变任何学校读取或自动导入，只修复这些查询状态的可见边界。
 
 正常自动链共享一个居中加载画面，直至选定周结果可用；成功缓存仍可按原规则推进。失败显示原错误和重试，无唯一选择或不完整索引需要手动选择。重入已经显示的课表不重新初始化。自动定位期间打开并取消学期选择时恢复原自动阶段，避免留在中间结果。
 

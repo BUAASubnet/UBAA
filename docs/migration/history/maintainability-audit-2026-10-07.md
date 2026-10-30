@@ -2,7 +2,7 @@
 
 日期：2026-10-07（Asia/Shanghai）。源码基线：`1e6935fe3dfd7315f7723afc6a3a3cce76a25516`，分支 `ubaa2`，开始时主工作区干净。本报告为审查与建议，尚未实施生产重构或删除测试。
 
-本文保留审查时的结论与原路径；后续修复、当前入口和验证结果见[实施记录](maintainability-implementation-2026-10-07.md)，现行组织以[架构规范](../architecture/code-organization.md)为准。
+本文保留审查时的结论与原路径；后续修复、当前入口和验证结果见[实施记录](maintainability-implementation-2026-10-07.md)，现行组织以[架构规范](../../architecture/code-organization.md)为准。
 
 ## 结论
 
@@ -81,7 +81,7 @@ UI 的 77 个部件共同拥有私有名称可见性。AppController 的登录�
 
 ## F5 · 中优先级：领域、技术动作、历史阶段混作目录主轴
 
-位置：[`ubaa_app/test`](../../packages/ubaa_app/test/)、[`controller/app_controller`](../../packages/ubaa_app/lib/src/controller/app_controller/)、[`UI features`](../../packages/ubaa_ui/lib/src/features/)。
+位置：[`ubaa_app/test`](../../../packages/ubaa_app/test/)、[`controller/app_controller`](../../../packages/ubaa_app/lib/src/controller/app_controller/)、[`UI features`](../../../packages/ubaa_ui/lib/src/features/)。
 
 一个领域的测试散布于 `app_controller/`、`bridge_backend/`、`bridge_backend_characterization/`、`offline/`；UI 并存 `academic.dart`、`academic_content.dart`、`academic/`。Controller 并存 `grades.dart`、`grades/baseline_store.dart`、`offline/grades.dart`。定位时需要知道开发背景，而非只知道功能。
 
@@ -93,7 +93,7 @@ UI 的 77 个部件共同拥有私有名称可见性。AppController 的登录�
 
 ## F6 · 中优先级：当前文档入口仍依赖历史设计
 
-位置：``README.md:25``、``code-organization.md:3``、``engineering-standards.md:3``、[`testing.md`](../development/testing.md)、[`status.md`](status.md)。
+位置：``README.md:25``、``code-organization.md:3``、``engineering-standards.md:3``、[`testing.md`](../../development/testing.md)、[`status.md`](../status.md)。
 
 README 称旧组织设计为“当前权威”，目标文档却声明主体是 2026-09-05 历史记录。测试指南包含大量旧候选 SHA、schema 演进和修复流水；状态页前部仍写依赖审计“生产实现与依赖未修改”，末尾已经记录同日实施完成。工程规范顶部产品状态未跟随近期安全存储和整体未完成边界更新。
 
@@ -101,7 +101,7 @@ README 称旧组织设计为“当前权威”，目标文档却声明主体是 
 
 ## F7 · 低优先级：历史证据明细挤占日常搜索
 
-位置：[`证据规则`](../design/evidence/README.md)、[`ui-ux`](../design/evidence/ui-ux/)。
+位置：[`证据规则`](../../design/evidence/README.md)、[`ui-ux`](../../design/evidence/ui-ux/)。
 
 4,021 个跟踪文件主要是归档验收 JSON，总计仅约 3.20 MB；截图已经外置。问题是文件树和搜索命中被历史采集阶段占据，不是大媒体未清理。
 

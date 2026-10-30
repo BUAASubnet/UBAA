@@ -1,6 +1,6 @@
 # 独立工程审查整改实施记录
 
-日期：2026-10-07（Asia/Shanghai）。基线 `06e4dfdb`，实施分支 `ubaa2`。用户已授权按[独立审查](engineering-quality-independent-review-2026-10-07.md)完整整理修复；当时目标见[固定任务快照](history/goal-before-quality-2026-10-11.md)，新的状态与验证决定见 [ADR 0007](../adr/0007-operation-scopes-and-verification.md)。
+日期：2026-10-07（Asia/Shanghai）。基线 `06e4dfdb`，实施分支 `ubaa2`。用户已授权按[独立审查](engineering-quality-independent-review-2026-10-07.md)完整整理修复；当时目标见[固定任务快照](goal-before-quality-2026-10-11.md)，新的状态与验证决定见 [ADR 0007](../../adr/0007-operation-scopes-and-verification.md)。
 
 ## 范围与行为边界
 
@@ -10,9 +10,9 @@ I01—I09 已实现且相关确定性/原生/构建门禁、阶段提交和干�
 
 来源对照均先于生产实现建立：
 
-- [Rust 路线、Session错误和日期](source-parity-engineering-rust-2026-10-07.md)
-- [Dart 认证、恢复、学期与缓存](source-parity-engineering-dart-2026-10-07.md)
-- [本地普通偏好及平台验证](source-parity-engineering-platform-2026-10-07.md)
+- [Rust 路线、Session错误和日期](../source-parity-engineering-rust-2026-10-07.md)
+- [Dart 认证、恢复、学期与缓存](../source-parity-engineering-dart-2026-10-07.md)
+- [本地普通偏好及平台验证](../source-parity-engineering-platform-2026-10-07.md)
 
 ## 审查项闭环
 

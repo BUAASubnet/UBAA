@@ -10,7 +10,7 @@
 
 本阶段只修改 UI：复用希冀的日期、排序及 Material 3 控件，显式保留两功能的默认状态和开关联动差异；删除 SPOC 手输编号查询面板与通用20项分页。列表卡片继续使用typed单项导航，保留详情、父页状态和学期概览。
 
-协议逐列沿用 [SPOC 来源矩阵](source-parity-code-organization.md#spoc) 及其链接的认证、列表、详情逐操作记录：CAS/bootstrap/service、重定向/final URL、Cookie/token作用域、方法及精确参数、Header/编码、加密常量、DTO/解析、缓存/并发、错误/退出均不改变。不新增历史范围请求，也不新增学校写入操作。
+协议逐列沿用 [SPOC 来源矩阵](../source-parity-code-organization.md#spoc) 及其链接的认证、列表、详情逐操作记录：CAS/bootstrap/service、重定向/final URL、Cookie/token作用域、方法及精确参数、Header/编码、加密常量、DTO/解析、缓存/并发、错误/退出均不改变。不新增历史范围请求，也不新增学校写入操作。
 
 ## 覆盖与验证
 

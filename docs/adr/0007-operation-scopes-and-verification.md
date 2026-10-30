@@ -1,6 +1,6 @@
 # ADR 0007：操作作用域、状态提交与验证闭包
 
-日期：2026-10-07。状态：已实施。依据为[独立工程审查](../migration/engineering-quality-independent-review-2026-10-07.md)，承接 [ADR 0006](0006-explicit-dart-modules.md)。结果与当前候选证据见[实施记录](../migration/engineering-quality-implementation-2026-10-07.md)。
+日期：2026-10-07。状态：已实施。依据为[独立工程审查](../migration/history/engineering-quality-independent-review-2026-10-07.md)，承接 [ADR 0006](0006-explicit-dart-modules.md)。结果与当前候选证据见[实施记录](../migration/history/engineering-quality-implementation-2026-10-07.md)。
 
 ## 问题
 

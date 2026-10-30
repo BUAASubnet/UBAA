@@ -1,6 +1,6 @@
 # 认证与用户合同
 
-状态：2026-10-21 修复 SSO HTTP 跳转及教务状态校验，直连/WebVPN 认证与课表只读实测均通过；范围见[本轮记录](../migration/auth-repair-2026-10-21.md)。
+状态：2026-10-21 修复 SSO HTTP 跳转及教务状态校验，直连/WebVPN 认证与课表只读实测均通过；范围见[本轮记录](../migration/history/auth-repair-2026-10-21.md)。
 
 `UbaaClient` 是普通的聚合 Core facade。它拥有经过校验的路由配置、围绕
 `gw.buaa.edu.cn:80` TCP 探测的进程内 60 秒缓存、相互独立的 Direct/WebVPN runtime、一个

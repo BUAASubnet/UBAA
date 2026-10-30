@@ -6,7 +6,7 @@
 
 `just refs` 核对旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 和 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。重新阅读旧版 ScheduleScreen、ScheduleViewModel.selectTerm/fetchWeeks、ScheduleApi、LocalScheduleApi 与既有仓库测试；另一来源阅读 aas/{core,opt,data}.rs。旧版选择学期即清除旧周次并读取该学期周列表，界面取用上游颜色；本轮按用户要求替换重复配色，并沿用学期→教学周→周课表的现有流程。唯一当前周不明确时保留周次选择，不借用旧版 firstOrNull 猜测。
 
-逐操作协议继承[已完成的课表对照](source-parity-schedule-default-2026-10-23.md)：学期索引 GET schoolCalendars.do 无参数、教学周 GET getTermWeeks.do 带 termCode、周课表 POST getMyScheduleDetail.do 使用 form-urlencoded 的 termCode/type=week/week；每项继续原 currentUser 前置检查、AAS CAS service、最终地址校验、实际路线 Cookie、AJAX Accept/X-Requested-With/Referer、DTO、加密签名、完整保存、并发取消和错误映射。本轮不新增请求字段或协议。buaa-api 的 query/campusCode/type=term 仍不采用；不存在对应 Flutter UI 或持久学期仓库，不从其实现推断界面行为。
+逐操作协议继承[已完成的课表对照](../source-parity-schedule-default-2026-10-23.md)：学期索引 GET schoolCalendars.do 无参数、教学周 GET getTermWeeks.do 带 termCode、周课表 POST getMyScheduleDetail.do 使用 form-urlencoded 的 termCode/type=week/week；每项继续原 currentUser 前置检查、AAS CAS service、最终地址校验、实际路线 Cookie、AJAX Accept/X-Requested-With/Referer、DTO、加密签名、完整保存、并发取消和错误映射。本轮不新增请求字段或协议。buaa-api 的 query/campusCode/type=term 仍不采用；不存在对应 Flutter UI 或持久学期仓库，不从其实现推断界面行为。
 
 时间轴目前只有特定研究生编码且课程边界全部匹配时才补标准作息，本科返回的 code 可能是学号，因此缺失中间边界。用户提供的校历明确列出下列 14 节时间，作为缺失边界的默认值；明确返回的时间优先，同一边界出现冲突仍保持未知，不覆盖或猜测。旧快照同样补全；课表无需额外请求校历。
 

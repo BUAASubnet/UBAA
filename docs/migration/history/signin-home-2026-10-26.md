@@ -6,7 +6,7 @@
 
 `just refs` 验证旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`、buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。旧版 `SigninViewModel.performSignin` 直接提交，成功后重新读取今日课程。`LocalSigninApi` 使用业务 sessionId 头，先 GET 时间戳，再 POST 签到，query 为 courseSchedId/timestamp，表单 id 为业务 userId；成功须满足 STATUS 成功且 result.stuSignStatus=1。今日课程的 signStatus=0 为未签到、1 为已签到。
 
-buaa-api `api/class/opt.rs` 的 checkin 同样读取服务器时间并检查返回状态，但 universal_request 的参数位置、业务身份和登录入口与旧版不同，继续采用现有旧版来源支持的 Core 实现。认证 bootstrap/service、跳转/final URL、会话范围、头与编码、无加密签名、DTO、缓存并发及错误语义逐项沿用 [来源矩阵](source-parity.md) 的“课堂签到只读查询”和“11D Signin 签到”。不复制旧版遇登录字样重放最终 POST 的行为。
+buaa-api `api/class/opt.rs` 的 checkin 同样读取服务器时间并检查返回状态，但 universal_request 的参数位置、业务身份和登录入口与旧版不同，继续采用现有旧版来源支持的 Core 实现。认证 bootstrap/service、跳转/final URL、会话范围、头与编码、无加密签名、DTO、缓存并发及错误语义逐项沿用 [来源矩阵](../source-parity.md) 的“课堂签到只读查询”和“11D Signin 签到”。不复制旧版遇登录字样重放最终 POST 的行为。
 
 ## 修复范围
 

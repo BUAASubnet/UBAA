@@ -1,6 +1,6 @@
 # 现行代码与目录组织
 
-历史尺寸、旧目标树与实施流水见[原设计快照](../migration/history/code-organization-2026-09-05.md)。现行决定是 [ADR 0006](../adr/0006-explicit-dart-modules.md)，验证见[整理记录](../migration/maintainability-implementation-2026-10-07.md)。
+历史尺寸、旧目标树与实施流水见[原设计快照](../migration/history/code-organization-2026-09-05.md)。现行决定是 [ADR 0006](../adr/0006-explicit-dart-modules.md)，验证见[整理记录](../migration/history/maintainability-implementation-2026-10-07.md)。
 
 ## 包边界
 

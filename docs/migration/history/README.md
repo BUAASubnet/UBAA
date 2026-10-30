@@ -20,3 +20,7 @@
 | design/offline-home-and-background-sync.md | [2026-09-17 离线设计](2026-09-17-offline-home-and-background-sync.md)，现行规则见[离线合同](../../contracts/offline-cache-and-recovery.md) |
 
 配色与首页规格改为不带日期的[配色](../../design/color-system.md)与[首页](../../design/home-layout.md)入口。旧命名保存在 Git 历史中，运行结果仍标明原验收日期。
+
+## 2026-10-30 单轮任务报告归档
+
+原放在 `docs/migration/` 根目录的 31 份按日期命名的任务报告（修复、审查、实施、布局与反馈记录）用 git mv 移入本目录，正文未改，现行文档中的链接已同步改到新位置。`docs/migration/` 根目录现在只保留状态页、决策记录、冻结参考、功能清单和来源对照。来源对照文件属于 AGENTS 门禁要求的协议依据，继续留在原位。

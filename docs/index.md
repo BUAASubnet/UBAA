@@ -58,14 +58,14 @@
 ## 近期实施与历史记录
 
 - [2026-10-29 首页业务并发](migration/source-parity-home-concurrency-2026-10-29.md)、[首页传输性能](migration/source-parity-home-performance-2026-10-29.md)
-- [2026-10-28 界面回归](migration/ui-regression-2026-10-28.md)、[2026-10-27 集成测试修复（历史快照）](migration/history/integration-repair-2026-10-27.md)
-- [2026-10-21 认证修复](migration/auth-repair-2026-10-21.md)、[2026-10-29 文档站迁移](migration/docs-site-2026-10-29.md)
+- [2026-10-28 界面回归](migration/history/ui-regression-2026-10-28.md)、[2026-10-27 集成测试修复（历史快照）](migration/history/integration-repair-2026-10-27.md)
+- [2026-10-21 认证修复](migration/history/auth-repair-2026-10-21.md)、[2026-10-29 文档站迁移](migration/history/docs-site-2026-10-29.md)
 - [全部来源对照专项](migration/source-parity.md#全部来源对照专项)、[持续决策记录](migration/decision-log.md)
 
-- [独立工程审查](migration/engineering-quality-independent-review-2026-10-07.md)、[完整整改实施](migration/engineering-quality-implementation-2026-10-07.md)
+- [独立工程审查](migration/history/engineering-quality-independent-review-2026-10-07.md)、[完整整改实施](migration/history/engineering-quality-implementation-2026-10-07.md)
 
-- [2026-10-07 可持续开发性审查](migration/maintainability-audit-2026-10-07.md)、[实施与验证](migration/maintainability-implementation-2026-10-07.md)
-- [2026-10-01 项目整合快照](migration/project-audit-2026-10-01.md)
+- [2026-10-07 可持续开发性审查](migration/history/maintainability-audit-2026-10-07.md)、[实施与验证](migration/history/maintainability-implementation-2026-10-07.md)
+- [2026-10-01 项目整合快照](migration/history/project-audit-2026-10-01.md)
 - [原代码组织设计](migration/history/code-organization-2026-09-05.md)、[旧测试指南](migration/history/testing-before-2026-10-07.md)
 - [整理前状态](migration/history/status-before-maintainability-2026-10-07.md)、[此前项目收尾合同](migration/history/goal-2026-10-07-before-maintainability.md)
 - [旧版功能迁移矩阵](migration/full-feature-matrix.md)、[旧版能力盘点](migration/legacy-feature-inventory.md)

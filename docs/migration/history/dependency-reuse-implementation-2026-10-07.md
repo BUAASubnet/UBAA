@@ -1,6 +1,6 @@
 # 通用依赖收敛实施与扩展约定
 
-日期：2026-10-07。分支：ubaa2。审计基线 2eae5549，Core 阶段提交 f73fafc9。实施前来源与九列裁决见 [source-parity-dependency-reuse.md](source-parity-dependency-reuse.md)，问题清单见 [审计](dependency-reuse-audit-2026-10-07.md)。用户已授权落地，不考虑旧数据迁移。
+日期：2026-10-07。分支：ubaa2。审计基线 2eae5549，Core 阶段提交 f73fafc9。实施前来源与九列裁决见 [source-parity-dependency-reuse.md](../source-parity-dependency-reuse.md)，问题清单见 [审计](dependency-reuse-audit-2026-10-07.md)。用户已授权落地，不考虑旧数据迁移。
 
 ## 最终结构
 
