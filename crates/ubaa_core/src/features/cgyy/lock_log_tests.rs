@@ -54,3 +54,46 @@ fn 门锁响应不记录整包指纹或低熵密码() {
     assert!(!rendered.contains("001234"));
     let _ = std::fs::remove_dir_all(root);
 }
+
+#[test]
+fn 登录订单与写入响应日志不派生敏感正文摘要() {
+    use sha1::{Digest, Sha1};
+
+    let root = std::env::temp_dir().join(format!("ubaa-sensitive-log-{}", std::process::id()));
+    let runtime = crate::runtime::ClientRuntime::new(
+        crate::domain::ConnectionMode::Direct,
+        super::tests::NoNetworkTransport,
+        crate::session::FileSessionStore::new(&root).unwrap(),
+    )
+    .unwrap();
+    for operation in [
+        "business_login.api",
+        "orders.list",
+        "orders.detail_or_cancel",
+        "orders.cancel",
+        "reservation.submit",
+    ] {
+        let body =
+            br#"{"code":200,"data":{"access_token":"synthetic-secret","phone":"synthetic-phone"}}"#;
+        let digest = format!("{:x}", Sha1::digest(body));
+        let response = crate::ports::HttpResponse::new(
+            200,
+            "https://cgyy.buaa.edu.cn/venue-zhjs-server/api/login",
+            body.to_vec(),
+        );
+        let capture = Capture::default();
+        let events = capture.0.clone();
+        tracing::subscriber::with_default(capture, || {
+            super::http::log_response(&runtime, operation, &response);
+        });
+        let rendered = events.lock().unwrap().join(" ");
+        assert!(rendered.contains("status"), "{operation} 缺少安全状态");
+        assert!(!rendered.contains("synthetic-secret"));
+        assert!(!rendered.contains("synthetic-phone"));
+        assert!(
+            !rendered.contains(&digest),
+            "{operation} 泄露了敏感正文摘要"
+        );
+    }
+    let _ = std::fs::remove_dir_all(root);
+}

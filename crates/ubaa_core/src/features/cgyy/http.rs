@@ -166,7 +166,6 @@ pub(super) fn log_response(runtime: &ClientRuntime, operation: &str, response: &
         status = response.status,
         final_url = %safe_url(&response.final_url),
         body_len = body.len(),
-        body_sha1 = %sha1_hex(body),
         content_type = ?response.headers.get("content-type").and_then(|values| values.first()),
         "收到 Cgyy 响应"
     );
@@ -174,14 +173,4 @@ pub(super) fn log_response(runtime: &ClientRuntime, operation: &str, response: &
 
 pub(super) fn safe_url(value: &str) -> String {
     crate::logging::safe_url(value)
-}
-
-fn sha1_hex(value: &[u8]) -> String {
-    use sha1::{Digest, Sha1};
-    use std::fmt::Write as _;
-    let mut result = String::with_capacity(40);
-    for byte in Sha1::digest(value) {
-        write!(&mut result, "{byte:02x}").expect("写入 String 不会失败");
-    }
-    result
 }
