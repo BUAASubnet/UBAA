@@ -44,7 +44,7 @@ cp .env.toolchain.example .env.toolchain
 just setup
 ```
 
-`just setup` 按 `versions.env` 克隆锁定的 Flutter、安装 Rust 工具链和 cargo-expand/FRB codegen/cargo-deny，并依次执行 refs-bootstrap、质量环境、`cargo fetch` 与 Dart 依赖准备。已一致的工具直接跳过；已有 SDK 不是锁定提交时停止，不改写。具体步骤见 [setup.sh](../../scripts/bootstrap/setup.sh)，它也是手工安装的参考。
+`just setup` 按 `versions.env` 克隆锁定的 Flutter、安装 Rust 工具链和 cargo-expand/FRB codegen/cargo-deny，并依次执行 refs-bootstrap、质量环境、`cargo fetch --locked` 与 Dart 依赖准备。已一致的工具直接跳过；已有 SDK 不是锁定提交时停止，不改写。具体步骤见 [setup.sh](../../scripts/bootstrap/setup.sh)，它也是手工安装的参考。
 
 之后任何时候都可以运行只读的 `just doctor`，逐项对照锁定版本，必需项不符时退出 1。
 
