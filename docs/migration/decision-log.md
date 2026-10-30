@@ -152,3 +152,13 @@ Gradle 的 exclusiveContent 仅允许该模块从此仓库解析，版本继续�
 ## 2026-10-30：签名材料默认使用仓库内 .sign 目录
 
 按用户要求，签名手册默认使用根目录 `.sign/`，根 `.gitignore` 排除整个目录。仓库外保存只是先前的建议，长期规则要求的是不提交签名密钥，没有要求所有签名文件必须放在仓库外。原生安全存储继续按平台要求使用，目录约定不新增自动配置加载。共享示例与真实材料分开，说明相对路径基准、目录备份和打包排除要求。
+
+## 2026-10-30：Android 平台签名字段与本机配置入口
+
+Android 自动读取被忽略的 `.sign/android/signing.properties`，使用 ANDROID_STORE_FILE、ANDROID_KEY_ALIAS、ANDROID_KEY_PASSWORD、ANDROID_STORE_PASSWORD。文件中的密钥相对路径以配置文件所在目录为基准；外部 Gradle/环境覆盖值仍沿用原 app 目录基准。
+
+配置按整组选择：ANDROID_ 外部字段优先，其次为兼容旧 CI 的 UBAA_RELEASE_ 外部字段，最后是本地文件。选中组不完整时失败，避免从下一组混入另一个密钥的口令。ANDROID_SIGNING_PROPERTIES 支持指定独立配置文件，显式路径不存在时失败；默认文件缺失且没有外部字段时保持无签名。密码只在构建进程内使用，不打印或加入仓库。
+
+真实 Gradle 配置阶段反例先证实本地字段未被加载，修改后本地读取、相对路径、字段缺失拒绝、平台环境覆盖和旧 CI 兼容均通过。配置反例使用隔离的合成属性文件，另已验证部分外部覆盖不会回退到本地字段、显式缺失路径拒绝和空配置保持无签名。完整按改动检查以 `552edafe` 为基线通过，包含 Rust/脚本检查、八成员 Flutter 检查和 FRB 零漂移，严格 ShellCheck 也通过。日志位于本地忽略目录 `.ubaa_local/android_signing_config/`。
+
+用户完成本地配置后，使用提供的 keystore 构建 Release APK，签名校验及与 keystore 的公开证书摘要对照通过。包名保持 `cn.edu.ubaa`，版本仍为签名试包用的 `0.1.0+1`。首次构建与 Flutter 检查并行时发生插件注册文件引用 `integration_test` 的编译错误；检查结束后源码不变、单独重跑成功。后续同一 checkout 的 Flutter 检查与平台构建应串行运行，避免生成文件互相覆盖。旧正式包证书对照、覆盖升级和设备运行仍未验收。

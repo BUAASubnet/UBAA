@@ -48,7 +48,7 @@ Direct 收到合法 WebVPN 包装后解包并请求直连上游，不等于向�
 ## 当前未解决与未验证事项
 
 - 远端 CI 尚未运行。阶段 3 已修改 workflow，本地静态检查与监督复核通过；本轮未 push。
-- 保留原生集合的 Linux Secret Service 和 iOS/iPad 方向握手专项尚未在本轮运行。最新平台构建结果见下述签名配置记录，正式签名、发布与真实账号验收仍未运行。
+- 保留原生集合的 Linux Secret Service 和 iOS/iPad 方向握手专项尚未在本轮运行。最新平台构建与 Android 签名测试结果见下述签名配置记录，正式发布与真实账号验收仍未运行。
 - [原生删减登记](history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29原生集成只保留真实原生能力)中的以下项目已无自动化覆盖：原生登录到查询完整路径、十二领域连续导航、十项写操作连续流程、原生软键盘专项、真实账号原生 UI 巡检、真实账号原生恢复、真实账号原生启动性能测量、Flutter 到 Android 的真实课表组件通道、常驻原生合成预览及 bindings 默认 driver。登记表逐项列出仍保留的 App/Host/Widget/Core 等分层覆盖。已删除流程的旧失败随入口移除，不计作修复通过。
 - OHOS 原生 `AppScope/app.json5` 仍为 `1.0.0`/`1000000`，两个 Flutter 应用仍为 `0.1.0+1`。版本号仍需在发布前与旧正式包核对，平台标识已按下述签名配置工作统一。OHOS fork 与官方七包 Pub workspace 保持独立，原因和锁文件边界见决策记录。
 - Rust 阶段已完成。feature 专属 SSO service URL 未合并，避免改变参数编码、重定向和 Cookie 作用域。监督者决定本轮继续保留历史 `mod.rs` 中的协议实现和 Bridge 离线泛型化，列为后续待办；补充来源或私有观察无法由当前克隆复现的记录仍按[来源对照边界](source-parity.md)保留，不补造证据。
@@ -69,3 +69,7 @@ Direct 收到合法 WebVPN 包装后解包并请求直连上游，不等于向�
 Android 首次构建因 TLS 组件 Maven 分发方式变化失败，按[决策记录](decision-log.md#2026-10-30android-tls-组件的-maven-分发迁移)修复仓库地址和 group 后通过，依赖版本不变。OHOS 首次缺少本机 DevEco 根目录，补充被忽略的 `.env.toolchain` 后通过；构建工具生成的无关锁文件和资源变动已还原。本地日志为 `.ubaa_local/signing_*.log`。未运行正式签名、公证、商店上传、旧版覆盖安装、数据迁移、真实账号、远端 CI 或 Windows/Linux 原生构建，签名材料有效性仍需正式候选验证。
 
 签名配置目录后续调整：默认使用根 `.sign/`，已加入整目录忽略规则并更新手册示例。现有平台配置入口不变，没有导出或移动私钥。
+
+Android 签名入口后续配置：已支持 `.sign/android/signing.properties` 中的四项 ANDROID_ 字段，按整组覆盖并保留旧 UBAA_RELEASE_ CI 输入。本机用户提供的 keystore 位于 `.sign/android/release/release.jks`，用户已填写口令和别名。Release APK 构建成功，包名为 `cn.edu.ubaa`，版本为 `0.1.0+1`，大小为 139885216 字节。APK v2 签名验证通过，签名证书与用户提供的 keystore 一致，证书在有效期内且非 Android 调试证书。三架构原生库结构、非调试标记及 `zipalign -P 16` 检查通过。产物 SHA-256 为 `b338c99fc3142444bf808447b94e7b1788db62f04fa417de03883fcf878e1540`，保存在被忽略的 `.ubaa_local/releases/android/UBAA-0.1.0+1-b338c99f.apk`。未安装运行、对照旧正式 APK 证书或测试旧版覆盖升级，构建号仍需发布前调整。
+
+本轮以 `552edafe` 为基线的按改动检查、1531 项 Flutter 测试、FRB 零漂移、严格 ShellCheck 和敏感扫描通过。首次 Release 编译时，生成的插件注册文件意外引用 `integration_test`；停止并行检查、单独重跑构建后通过，推断为共享生成文件被并行检查重写。未修改插件依赖，保留首次失败和重跑日志于 `.ubaa_local/android_signing_config/`。没有上传或发布。

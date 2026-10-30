@@ -2,7 +2,7 @@
 
 UBAA 2 作为旧版更新发布。Android、iOS、macOS、Linux 和 OHOS 的产品应用标识统一为 `cn.edu.ubaa`。Android 更新必须继续使用原来的应用签名密钥，iOS 更新必须使用原 App Store Connect 应用记录和所属 Team。二次开发者使用自己的应用标识、开发者账号和密钥。
 
-本手册统一材料保存位置、平台配置步骤和 CI 字段映射。平台构建仍使用现有入口，签名和商店上传使用平台原生工具。仓库目前没有自动加载 `.env.signing`、统一签名生成器或六平台发布流水线。完整发布验收见[发布手册](flutter-release.md)，命令与门禁见[开发命令](../development/commands.md)。
+本手册统一材料保存位置、平台配置步骤和 CI 字段映射。平台构建仍使用现有入口，签名和商店上传使用平台原生工具。Android 会读取 `.sign/android/signing.properties`；其他平台仍使用下文的原生配置入口，目前没有六平台发布流水线。完整发布验收见[发布手册](flutter-release.md)，命令与门禁见[开发命令](../development/commands.md)。
 
 ## 先确认应用身份
 
@@ -33,7 +33,7 @@ install -d -m 700 ".sign/windows"
 
 Windows 同样可以在仓库根创建 `.sign/`，并限制 NTFS 访问权限。目录使用 `0700`、私钥及含密码的配置文件使用 `0600`（macOS/Linux）。共享示例放在受 Git 跟踪的文档中，真实值只写入本地私有配置。不要把密码、私钥或 Profile 写入提交、命令行参数、截图或普通构建日志。`.env.toolchain` 只配置工具和非秘密路径，`.env.local` 继续只用于已有真实账号流程。
 
-`.sign/` 是保存目录，当前构建工具不会自动读取其中的配置。按下文通过 Gradle 属性、环境变量或平台原生工具引用材料，并填写实际绝对路径。Android 的相对 `storeFile` 路径以 `android/app` 为基准，不能直接把 `.sign/android/release.jks` 当作仓库根路径传入。Apple 签名身份仍需导入 Keychain，磁盘上的 `.p12` 用于导入或备份。
+Android 自动读取 `.sign/android/signing.properties`，文件中的相对密钥路径以该配置文件所在目录为基准。通过 Gradle 属性或环境变量传入的相对密钥路径继续以 `android/app` 为基准，建议这些覆盖值使用绝对路径。其他平台通过原生工具引用材料。Apple 签名身份仍需导入 Keychain，磁盘上的 `.p12` 用于导入或备份。
 
 忽略规则不会加密文件，也不会阻止强制暂存或将整个工作目录打包。分享源码、归档工作区或上传 CI artifact 时排除 `.sign/`，不要执行 `git add -f .sign`。`git clean -fdx` 会删除被忽略的文件，清理前单独备份签名材料。Git clone 和新 worktree 不会携带 `.sign/`，其他开发者自行准备材料。
 
@@ -48,20 +48,22 @@ Windows 同样可以在仓库根创建 `.sign/`，并限制 NTFS 访问权限。
 
 保留加密备份并记录证书用途、公开指纹、到期时间和管理人。Android 原密钥丢失会影响自行分发包的后续更新，不能随意重新生成替代；Google Play 的上传密钥和应用签名密钥要分别管理。
 
-## Android：本地配置与 CI 共用同一组字段
+## Android：本地配置与 CI 共用平台字段
 
-现有 Gradle 入口支持以下四个字段，可通过 Gradle property 或环境变量提供。Gradle property 优先，四项必须完整。
+在 `.sign/android/signing.properties` 填写以下内容。`ANDROID_STORE_FILE` 相对于配置文件所在目录，也接受绝对路径。以下例子对应 `.sign/android/release/release.jks`：
 
 ```properties
-# 放入当前用户的 ~/.gradle/gradle.properties，不放进项目目录。
-# 以下值均为示例，替换成自己的材料；路径建议使用正斜杠。
-UBAA_RELEASE_STORE_FILE=/项目绝对路径/UBAA2/.sign/android/release.jks
-UBAA_RELEASE_STORE_PASSWORD=替换为密钥库密码
-UBAA_RELEASE_KEY_ALIAS=替换为密钥别名
-UBAA_RELEASE_KEY_PASSWORD=替换为密钥密码
+ANDROID_STORE_FILE=release/release.jks
+ANDROID_KEY_ALIAS=替换为密钥别名
+ANDROID_KEY_PASSWORD=替换为密钥密码
+ANDROID_STORE_PASSWORD=替换为密钥库密码
 ```
 
-macOS/Linux 将该用户配置权限设为 `0600`。该文件会被当前用户的其他 Gradle 项目读取；共用构建机应使用独立账号或临时 CI 环境变量。Java properties 对反斜杠有转义规则，路径与含反斜杠的密码必须正确转义；不要给值额外加引号。
+文件采用 UTF-8 编码，macOS/Linux 权限设为 `0600`。Java properties 对反斜杠有转义规则，路径与含反斜杠的密码必须正确转义；不要给值额外加引号。文件中不执行 Shell 变量展开或命令。已放入 keystore 时，填写其路径及三项身份/密码即可。
+
+构建按整组选择配置，避免不同密钥和密码混用：优先使用 Gradle property 或环境变量中的 `ANDROID_*` 四字段，其次兼容原 `UBAA_RELEASE_*` 四字段，最后读取本地文件。同一组内 Gradle property 优先于环境变量；选中组缺字段就失败，不从下一组补齐。显式空值也属于覆盖配置。
+
+通常不需要设置其他变量。需要单独的配置文件时，可用 `ANDROID_SIGNING_PROPERTIES` 环境变量指定配置文件绝对路径；明确指定的文件缺失时失败。没有配置文件且没有外部签名字段时保持无签名构建，普通开发者无需持有发布密钥。其他平台的私有字段按 `IOS_`、`MACOS_`、`OHOS_`、`WINDOWS_` 前缀命名，具体加载仍按各平台入口说明。
 
 构建入口：
 
@@ -123,10 +125,10 @@ Linux 普通压缩包和 AppImage 不强制代码签名。可以用 GPG 提供�
 
 | 既有 secret | 用途与 UBAA2 接线 |
 |---|---|
-| `SIGNING_KEY` | Base64 编码的 Android keystore，解码到 runner 临时私有目录，将文件路径传给 `UBAA_RELEASE_STORE_FILE` |
-| `SIGNING_STORE_PASSWORD` | 映射为 `UBAA_RELEASE_STORE_PASSWORD` |
-| `SIGNING_KEY_ALIAS` | 映射为 `UBAA_RELEASE_KEY_ALIAS` |
-| `SIGNING_KEY_PASSWORD` | 映射为 `UBAA_RELEASE_KEY_PASSWORD` |
+| `SIGNING_KEY` | Base64 编码的 Android keystore，解码到 runner 临时私有目录，将文件绝对路径传给 `ANDROID_STORE_FILE` |
+| `SIGNING_STORE_PASSWORD` | 映射为 `ANDROID_STORE_PASSWORD` |
+| `SIGNING_KEY_ALIAS` | 映射为 `ANDROID_KEY_ALIAS` |
+| `SIGNING_KEY_PASSWORD` | 映射为 `ANDROID_KEY_PASSWORD` |
 | `IOS_CERTIFICATE_P12_BASE64`、`IOS_CERTIFICATE_PASSWORD` | 导入 Apple 分发证书及私钥 |
 | `IOS_PROVISIONING_PROFILE_BASE64` | 安装对应应用和渠道的 Profile |
 | `APPSTORE_KEY_ID`、`APPSTORE_ISSUER_ID`、`APPSTORE_PRIVATE_KEY` | App Store Connect 上传认证 |

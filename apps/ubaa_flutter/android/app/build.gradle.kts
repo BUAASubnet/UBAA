@@ -1,4 +1,5 @@
 import groovy.json.JsonSlurper
+import java.util.Properties
 
 plugins {
     id("com.android.application")
@@ -26,20 +27,34 @@ repositories {
     }
 }
 
-// Release 证书只从 Gradle 属性或环境变量读取，仓库不保存密钥材料。
-// 未配置完整证书时生成无签名 release；debug 构建继续使用 Flutter/Android 默认配置。
-val releaseSigningValues = mapOf(
-    "storeFile" to "UBAA_RELEASE_STORE_FILE",
-    "storePassword" to "UBAA_RELEASE_STORE_PASSWORD",
-    "keyAlias" to "UBAA_RELEASE_KEY_ALIAS",
-    "keyPassword" to "UBAA_RELEASE_KEY_PASSWORD",
-).mapValues { (_, variable) ->
+// 平台字段、旧 CI 字段、本机文件按整组选择，防止混用不同证书的密码。
+val signingFields = mapOf(
+    "storeFile" to "STORE_FILE",
+    "storePassword" to "STORE_PASSWORD",
+    "keyAlias" to "KEY_ALIAS",
+    "keyPassword" to "KEY_PASSWORD",
+)
+fun signingOverrides(prefix: String) = signingFields.mapValues { (_, field) ->
+    val variable = "${prefix}${field}"
     providers.gradleProperty(variable).orElse(providers.environmentVariable(variable)).orNull
+}.takeIf { values -> values.values.any { it != null } }
+val releaseSigningOverrides = signingOverrides("ANDROID_") ?: signingOverrides("UBAA_RELEASE_")
+val signingPropertiesPath = providers.environmentVariable("ANDROID_SIGNING_PROPERTIES").orNull
+val signingPropertiesFile = rootProject.file(signingPropertiesPath ?: "../../../.sign/android/signing.properties")
+val releaseSigningValues = releaseSigningOverrides ?: run {
+    check(signingPropertiesPath == null || signingPropertiesFile.isFile) {
+        "ANDROID_SIGNING_PROPERTIES 指定的签名配置文件不存在"
+    }
+    val properties = Properties()
+    if (signingPropertiesFile.isFile) {
+        signingPropertiesFile.reader(Charsets.UTF_8).use { properties.load(it) }
+    }
+    signingFields.mapValues { (_, field) -> properties.getProperty("ANDROID_$field") }
 }
 val hasReleaseSigning = releaseSigningValues.values.all { !it.isNullOrBlank() }
 val hasPartialReleaseSigning = releaseSigningValues.values.any { !it.isNullOrBlank() }
 check(!hasPartialReleaseSigning || hasReleaseSigning) {
-    "UBAA_RELEASE_* 必须同时提供 keystore 文件、store/key 密码和 key alias"
+    "Android 签名必须同时提供 keystore 文件、store/key 密码和 key alias"
 }
 
 android {
@@ -71,7 +86,8 @@ android {
     if (hasReleaseSigning) {
         signingConfigs {
             create("release") {
-                storeFile = file(releaseSigningValues.getValue("storeFile")!!)
+                val path = releaseSigningValues.getValue("storeFile")!!
+                storeFile = if (releaseSigningOverrides != null) file(path) else signingPropertiesFile.parentFile.resolve(path)
                 storePassword = releaseSigningValues.getValue("storePassword")
                 keyAlias = releaseSigningValues.getValue("keyAlias")
                 keyPassword = releaseSigningValues.getValue("keyPassword")
