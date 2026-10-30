@@ -1,5 +1,11 @@
 # 决策记录
 
+## 2026-10-30：Rust Core 重复实现收敛与开发期缓存格式
+
+用户要求执行 Core 审查中发现的全部修复，并明确当前应用处于全新开发阶段，无需保留缓存格式迁移。本轮删除历史缓存迁移和无效兼容字段，旧数据库返回明确版本错误，用户可显式重建。当前格式的加密、账号/路线隔离、持久失效票据和部分结果保护继续保留。
+
+缓存刷新共用准备/收尾，业务凭据共用私有 typed 槽位，两种客户端共用路线内安全检查与清理。固定路线客户端和双路线客户端的公开返回值、协调范围继续分别处理。SPOC、评教与 LibBook 共用协议读取/解析步骤，博雅移除 JSON 内存往返；Cgyy 删除敏感正文 SHA1 日志。来源、失败反例、测试整理登记及最终验证见[本轮记录](2026-10-30-core-simplification.md)。
+
 ## 2026-10-30：延续旧版应用身份与签名配置
 
 用户明确要求 UBAA 2 作为旧版更新。根据用户后续要求，Android applicationId、iOS/macOS Bundle ID、Linux APPLICATION_ID 和 OHOS bundleName 统一为 `cn.edu.ubaa`，Apple 测试 target 同步后缀。Windows 尚无 MSIX 配置，后续非商店包 Identity Name 使用同一标识，Publisher 由证书确定；商店包遵循 Partner Center 分配的身份。Android Kotlin namespace 保持现有值，避免无关源码移动。依据为旧版 androidApp/build.gradle.kts 与 release.yml 的发布身份，以及本机旧版 iOS Profile。当前桌面身份不能从移动端类推，仍需核对旧正式安装包的身份和数据目录。

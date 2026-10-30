@@ -4,9 +4,17 @@
 
 ## 当前实现
 
-Rust Core 统一拥有认证、Direct/WebVPN/Auto 路线、会话、十二领域读写和加密缓存。CLI 与 Bridge 通过 facade 使用 Core，Flutter/OHOS 宿主通过 Bridge 与共享 Dart/UI 接线。当前公开合同为 CLI JSON schema v12 与 Flutter bridge contract v42，独立于 Session v2、配置 v1、业务缓存 v6。产品展示版本与合同版本分别治理，取值与发布规则见[版本约定](../development/conventions.md#版本号与依赖)。
+Rust Core 统一拥有认证、Direct/WebVPN/Auto 路线、会话、十二领域读写和加密缓存。CLI 与 Bridge 通过 facade 使用 Core，Flutter/OHOS 宿主通过 Bridge 与共享 Dart/UI 接线。当前公开合同为 CLI JSON schema v12 与 Flutter bridge contract v42，独立于 Session v2、配置 v1、业务缓存 v7。产品展示版本与合同版本分别治理，取值与发布规则见[版本约定](../development/conventions.md#版本号与依赖)。
 
 主题保存为设备偏好，重启恢复，不随退出或清除账号删除；业务缓存仍由 Core 持有。[界面规格](../design/flutter-ui-spec.md)描述现行展示规则，[来源对照](source-parity.md)保留逐操作协议依据。
+
+## 2026-10-30：Rust Core 精简与修复
+
+重复缓存刷新、路线内安全检查、凭据槽位及协议解析已收敛。新增反例修复今日/希冀迟到结果误报成功、未完成认证时错误清理遗漏 Cookie，以及 LibBook 取消资格畸形 JSON 的安全文案边界。Cgyy 不再记录敏感正文 SHA1，重复测试和不可达旧分支已删除。
+
+按用户确认的全新开发状态，缓存提升为 schema v7，删除历史开发格式迁移、priority 列和旧无范围查询。旧库普通打开会明确拒绝并保持文件不变，用户可以显式重建。会话 CAS、当前缓存加密、账号/路线隔离和写入结果未知保护继续保留。Rust Core 从 68,000 行降为 67,353 行，含注释、空行及新增回归测试，净减少 647 行。
+
+完整严格检查、1531 项 Flutter 测试、macOS 默认原生集成、FRB 零漂移和按基线检查全部通过。Direct 与 WebVPN 各有 50 项完整只读检查通过记录，WebVPN 首次 Judge 超时及复跑经过见[本轮记录](2026-10-30-core-simplification.md)。本轮保留原有 OHOS 工具链工作区改动，按主题独立提交。
 
 ## 整改阶段 1–6 的实际结果
 

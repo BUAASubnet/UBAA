@@ -4,6 +4,8 @@
 
 适用范围为所有认证、读取或写入功能变更；双来源读取范围、逐操作列、冲突停止、禁止类比与 TDD 要求只由 [AGENTS 来源对照门禁](../../AGENTS.md#来源对照门禁)定义。真实只读验证不能证明真实写入成功，历史记录也不能提供当前授权。
 
+2026-10-30 Rust Core 精简的本轮方案、凭据与日志比较见[总记录](2026-10-30-core-simplification.md)，操作明细分别见[缓存](2026-10-30-core-cache-simplification.md)、[协议解析](2026-10-30-core-protocol-simplification.md)和[路线/会话边界](2026-10-30-core-boundary-simplification.md)。本轮按当前冻结引用重新核对，不把旧矩阵作为当前来源读取的替代。
+
 当前物理路径与固定提交以 [references.md](references.md)为准，2026-10-29 `just refs` 已确认：
 
 | 来源 | 固定提交 |
