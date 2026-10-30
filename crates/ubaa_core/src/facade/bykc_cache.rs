@@ -1,8 +1,8 @@
 //! 博雅在线资格和只读持久快照分开；不新增学校协议或写路径。
 use super::{
-    BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile, CacheError,
-    CachePayload, CacheQuery, CacheScope, CachedBykcChosen, ConnectionMode, OfflineCache,
-    OfflineReadError, OfflineRefresh, ReadonlyFeature, UbaaClient,
+    BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile, CachePayload,
+    CacheQuery, CacheScope, CachedBykcChosen, ConnectionMode, OfflineCache, OfflineReadError,
+    OfflineRefresh, ReadonlyFeature, UbaaClient,
 };
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum BykcCacheQuery {
@@ -77,65 +77,16 @@ impl UbaaClient {
         cache: &OfflineCache,
         query: BykcCacheQuery,
     ) -> Result<OfflineRefresh<BykcReadData>, OfflineReadError> {
-        cache
-            .check_read_generation()
-            .map_err(OfflineReadError::Cache)?;
-        let cache_query = query.cache_query();
-        CacheScope {
-            route: ConnectionMode::Direct,
-            query: cache_query.clone(),
-        }
-        .validate()
-        .map_err(OfflineReadError::Cache)?;
-        let authenticated = self
-            .recover_required_session(ReadonlyFeature::Bykc)
-            .await
-            .map_err(OfflineReadError::Read)?;
-        let resolution = authenticated.resolution;
-        if !cache.matches(&authenticated.data.user) {
-            return Err(OfflineReadError::IdentityMismatch {
-                resolution,
-                cache_error: cache.deactivate().err(),
-            });
-        }
-        let scope = CacheScope {
-            route: resolution.mode,
-            query: cache_query,
-        };
-        let (ticket, mut save_error) = super::begin_refresh(cache, scope.clone())?;
+        let refresh = self
+            .prepare_cached_refresh(cache, ReadonlyFeature::Bykc, query.cache_query())
+            .await?;
+        let resolution = refresh.resolution;
         let runtime = self.runtime_for(resolution.mode);
         let result = query.read(runtime).await;
-        let fetched_at = chrono::Utc::now().timestamp();
-        match self.finish_routed(resolution, result) {
-            Ok(result) => {
-                if let Some(ticket) = &ticket {
-                    save_error = cache
-                        .publish(ticket, result.data.readonly_payload(), fetched_at)
-                        .err();
-                    if save_error.is_some() {
-                        cache.failure(ticket, fetched_at);
-                    }
-                    if let Some(error @ (CacheError::Inactive | CacheError::Superseded)) =
-                        save_error
-                    {
-                        return Err(OfflineReadError::Cache(error));
-                    }
-                }
-                Ok(OfflineRefresh {
-                    data: result.data,
-                    resolution,
-                    scope,
-                    fetched_at,
-                    save_error,
-                })
-            }
-            Err(error) => {
-                if let Some(ticket) = &ticket {
-                    cache.failure(ticket, fetched_at);
-                }
-                Err(OfflineReadError::Read(error))
-            }
-        }
+        let data = refresh.read_result(self.finish_routed(resolution, result))?;
+        refresh
+            .finish(data, true, BykcReadData::readonly_payload)
+            .map(|value| value.result)
     }
 }
 impl OfflineCache {

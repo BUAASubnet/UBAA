@@ -4,7 +4,6 @@ use super::{
     OptionalExtension, TransactionBehavior, control_aad, load_current_control, require_active,
     save_control,
 };
-use serde::Deserialize;
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CacheUsage {
     pub entry_count: u64,
@@ -22,58 +21,22 @@ pub struct CacheClearReport {
     /// 提交后的压缩或统计错误不假装成事务回滚。
     pub maintenance_error: Option<CacheError>,
 }
-#[derive(Deserialize)]
-struct LegacyControl {
-    epoch: u64,
-    revision: i64,
-    active: bool,
-    #[serde(default)]
-    generation: u64,
-}
 pub(super) fn prepare_control(
     db: &Connection,
     crypto: &Crypto,
     account: &str,
-    version: u32,
+    new_database: bool,
 ) -> CacheResult<Generation> {
     let body: Option<Vec<u8>> = db
         .query_row("SELECT body FROM control WHERE id=1", [], |r| r.get(0))
         .optional()
         .map_err(CacheError::from)?;
     if let Some(body) = body {
-        let control = if version == 1 || version == 2 {
-            let aad = if version == 1 {
-                account.as_bytes().to_vec()
-            } else {
-                [b"ubaa.cache.control.v2\0".as_slice(), account.as_bytes()].concat()
-            };
-            let old: LegacyControl = crypto.open(&body, &aad)?;
-            let control = Control {
-                epoch: old.epoch.checked_add(1).ok_or(CacheError::Capacity)?,
-                revision: old.revision,
-                active: old.active,
-                generation: old.generation,
-                database_id: database_id()?,
-            };
-            save_control(db, crypto, account, &control)?;
-            control
-        } else {
-            let mut control = crypto.open::<Control>(&body, &control_aad(account))?;
-            if (3..=5).contains(&version) {
-                control.epoch = control.epoch.checked_add(1).ok_or(CacheError::Capacity)?;
-                control.generation = control
-                    .generation
-                    .checked_add(1)
-                    .ok_or(CacheError::Capacity)?;
-                save_control(db, crypto, account, &control)?;
-                db.execute("DELETE FROM requests", [])
-                    .map_err(CacheError::from)?;
-            }
-            control
-        };
-        return Ok(control.handle_generation());
+        return crypto
+            .open::<Control>(&body, &control_aad(account))
+            .map(|control| control.handle_generation());
     }
-    if version != 0 {
+    if !new_database {
         return Err(CacheError::Corrupt);
     }
     let control = Control {

@@ -20,7 +20,7 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 - 系统安全材料与统一加密缓存已接入，原生运行按平台分别验收；实体设备、签名、公证、商店上传和真实业务写入均不由模拟器或只读结果证明。
 
 当前公开合同版本为 CLI JSON schema v12 与 Flutter bridge contract v42；这两个版本都与磁盘
-`session.json` schema v2、`config.toml` 版本 1、业务缓存 schema v6 相互独立。
+`session.json` schema v2、`config.toml` 版本 1、业务缓存 schema v7 相互独立。
 
 产品代际名 UBAA 2 与包的 SemVer、平台构建号和合同版本相互独立，发布规则见[版本约定](docs/development/conventions.md#版本号与依赖)。
 

@@ -189,91 +189,22 @@ fn 各领域失效只撤销相关范围_另一路线和无关日期继续可发�
 }
 
 #[test]
-fn v4迁移保留业务密文和退出状态_旧连接和旧票据均失效() {
-    for inactive in [false, true] {
-        let (root, mut old) = fixture();
-        seed(&mut old, ConnectionMode::Direct, 1);
-        let ticket = old.begin_read(scope(ConnectionMode::Direct, 1)).unwrap();
-        if inactive {
-            old.deactivate().unwrap();
-        }
-        let before: Vec<u8> = old
-            .db
-            .query_row("SELECT body FROM entries", [], |r| r.get(0))
-            .unwrap();
-        old.db.execute_batch("DROP TABLE requests; CREATE TABLE requests(key BLOB PRIMARY KEY, revision INTEGER NOT NULL);").unwrap();
-        let key = old.crypto.index(&(&old.account, &ticket.scope)).unwrap();
-        old.db
-            .execute(
-                "INSERT INTO requests VALUES(?1,?2)",
-                rusqlite::params![key, ticket.revision],
-            )
-            .unwrap();
-        let revision: i64 = old
-            .db
-            .query_row("SELECT revision FROM requests", [], |row| row.get(0))
-            .unwrap();
-        assert_eq!(revision, ticket.revision);
-        old.db.pragma_update(None, "user_version", 4).unwrap();
-        let mut current = OfflineRepository::open(
-            &root,
-            ACCOUNT,
-            CacheKey::new([8; 32]),
-            CacheLimits::default(),
-        )
+fn 请求范围密文保存且失效撤销对应票据() {
+    let (root, mut repo) = fixture();
+    let ticket = repo.begin_read(scope(ConnectionMode::Direct, 1)).unwrap();
+    let encrypted: Vec<u8> = repo
+        .db
+        .query_row("SELECT scope FROM requests", [], |row| row.get(0))
         .unwrap();
-        let after: Vec<u8> = current
-            .db
-            .query_row("SELECT body FROM entries", [], |r| r.get(0))
-            .unwrap();
-        assert_eq!(before, after);
-        assert!(matches!(
-            old.begin_read(scope(ConnectionMode::Direct, 1)),
-            Err(CacheError::Superseded)
-        ));
-        assert!(matches!(
-            old.validate_read(&ticket),
-            Err(CacheError::Superseded)
-        ));
-        if inactive {
-            assert!(matches!(
-                current.invalidate(
-                    ConnectionMode::Direct,
-                    &CacheInvalidation::Bykc { course_id: 1 }
-                ),
-                Err(CacheError::Inactive)
-            ));
-            current.activate().unwrap();
-        }
-        assert_eq!(
-            current
-                .read(&scope(ConnectionMode::Direct, 1), 200)
-                .unwrap()
-                .unwrap()
-                .fetched_at,
-            100
-        );
-        let fresh = current
-            .begin_read(scope(ConnectionMode::Direct, 1))
-            .unwrap();
-        let encrypted: Vec<u8> = current
-            .db
-            .query_row("SELECT scope FROM requests", [], |r| r.get(0))
-            .unwrap();
-        assert!(serde_json::from_slice::<CacheScope>(&encrypted).is_err());
-        current
-            .invalidate(
-                ConnectionMode::Direct,
-                &CacheInvalidation::Bykc { course_id: 1 },
-            )
-            .unwrap();
-        assert!(matches!(
-            current.validate_read(&fresh),
-            Err(CacheError::Superseded)
-        ));
-        drop((old, current));
-        std::fs::remove_dir_all(root).unwrap();
-    }
+    assert!(serde_json::from_slice::<CacheScope>(&encrypted).is_err());
+    repo.invalidate(
+        ConnectionMode::Direct,
+        &CacheInvalidation::Bykc { course_id: 1 },
+    )
+    .unwrap();
+    assert_eq!(repo.validate_read(&ticket), Err(CacheError::Superseded));
+    drop(repo);
+    std::fs::remove_dir_all(root).unwrap();
 }
 
 #[test]

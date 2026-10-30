@@ -250,29 +250,3 @@ fn 无效时间标识和硬容量错误不假称保存() {
     drop((repo,));
     std::fs::remove_dir_all(root).unwrap();
 }
-
-#[test]
-fn 五版迁移保留旧业务与退出状态并拒绝已打开旧句柄() {
-    let (root, mut repo) = fixture();
-    let read = repo.begin_read(scope()).unwrap();
-    repo.publish(
-        &read,
-        CachePayload::Today(vec![]),
-        100,
-        CacheCompleteness::Complete,
-    )
-    .unwrap();
-    repo.deactivate().unwrap();
-    repo.db
-        .execute_batch("DROP TABLE readback_hints; PRAGMA user_version=5;")
-        .unwrap();
-    let mut migrated = open(&root);
-    assert_eq!(migrated.write_readback_hints(), Err(CacheError::Inactive));
-    assert_eq!(repo.activate(), Err(CacheError::Superseded));
-    migrated.activate().unwrap();
-    let old_record = migrated.read(&scope(), 200).unwrap().unwrap();
-    assert_eq!(old_record.fetched_at, 100);
-    assert!(migrated.write_readback_hints().unwrap().is_empty());
-    drop((migrated, repo));
-    std::fs::remove_dir_all(root).unwrap();
-}

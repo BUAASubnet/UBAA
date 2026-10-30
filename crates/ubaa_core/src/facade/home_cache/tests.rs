@@ -183,21 +183,11 @@ fn 阳光迟到父票据与写后失效不能重建旧周期或撤销新读取()
 }
 
 #[test]
-fn 阳光旧单例不猜周期_未知学期不完整_范围和载荷必须一致() {
+fn 阳光未知学期不完整_范围和载荷必须一致() {
     use crate::facade::{CacheQuery, CacheScope};
     let (root, cache) = cache();
     let at = now("2026-09-22T12:00:00+08:00");
     let route = ConnectionMode::Direct;
-    let legacy = CacheScope {
-        route,
-        query: CacheQuery::YgdkOverview,
-    };
-    let old = cache.begin(legacy.clone()).unwrap();
-    cache
-        .publish(&old, CachePayload::YgdkOverview(value(Some(10), 1, 2)), at)
-        .unwrap();
-    assert!(ygdk::read(&cache, route, at).unwrap().is_none());
-    assert!(cache.read(&legacy, at).unwrap().is_some());
     let unknown = save(&cache, route, at, &value(None, 1, 0), true).0;
     assert_eq!(
         cache.read(&unknown, at).unwrap().unwrap().completeness,

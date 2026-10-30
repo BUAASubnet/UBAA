@@ -89,46 +89,6 @@ fn 清理事务失败不推进代次且不丢旧数据() {
     let _ = std::fs::remove_dir_all(root);
 }
 #[test]
-fn v1控制记录事务升级且旧格式不能重新写回() {
-    let (root, mut repo, scope) = fixture();
-    seed(&mut repo, scope.clone());
-    let legacy = serde_json::json!({"epoch":0,"revision":1,"active":true});
-    let body = repo.crypto.seal(&legacy, repo.account.as_bytes()).unwrap();
-    repo.db
-        .execute("UPDATE control SET body=?1 WHERE id=1", [body])
-        .unwrap();
-    repo.db.pragma_update(None, "user_version", 1).unwrap();
-    drop(repo);
-    let mut reopened = OfflineRepository::open(
-        &root,
-        "0123456789abcdef0123456789abcdef",
-        CacheKey::new([9; 32]),
-        CacheLimits::default(),
-    )
-    .unwrap();
-    assert_eq!(
-        reopened
-            .db
-            .pragma_query_value(None, "user_version", |r| r.get::<_, u32>(0))
-            .unwrap(),
-        crate::cache::CACHE_SCHEMA_VERSION
-    );
-    assert_eq!(reopened.read(&scope, 120).unwrap().unwrap().fetched_at, 100);
-    let body: Vec<u8> = reopened
-        .db
-        .query_row("SELECT body FROM control", [], |r| r.get(0))
-        .unwrap();
-    assert!(
-        reopened
-            .crypto
-            .open::<serde_json::Value>(&body, reopened.account.as_bytes())
-            .is_err()
-    );
-    drop(reopened);
-    let _ = std::fs::remove_dir_all(root);
-}
-
-#[test]
 fn 清除提交后的压缩失败明确返回且旧数据确实已删除() {
     let (root, mut repo, scope) = fixture();
     seed(&mut repo, scope.clone());
@@ -144,59 +104,6 @@ fn 清除提交后的压缩失败明确返回且旧数据确实已删除() {
     let _ = std::fs::remove_dir_all(root);
 }
 #[test]
-fn 错误密钥不迁移v1而正确迁移保留退出状态() {
-    let (root, mut repo, scope) = fixture();
-    seed(&mut repo, scope.clone());
-    let legacy = serde_json::json!({"epoch":3,"revision":1,"active":false});
-    let body = repo.crypto.seal(&legacy, repo.account.as_bytes()).unwrap();
-    repo.db
-        .execute("UPDATE control SET body=?1 WHERE id=1", [&body])
-        .unwrap();
-    repo.db.pragma_update(None, "user_version", 1).unwrap();
-    let path = repo.path().to_owned();
-    drop(repo);
-    assert!(matches!(
-        OfflineRepository::open(
-            &root,
-            "0123456789abcdef0123456789abcdef",
-            CacheKey::new([8; 32]),
-            CacheLimits::default()
-        ),
-        Err(CacheError::Corrupt)
-    ));
-    let check = Connection::open(&path).unwrap();
-    assert_eq!(
-        check
-            .pragma_query_value(None, "user_version", |r| r.get::<_, i32>(0))
-            .unwrap(),
-        1
-    );
-    assert_eq!(
-        check
-            .query_row("SELECT body FROM control", [], |r| r.get::<_, Vec<u8>>(0))
-            .unwrap(),
-        body
-    );
-    drop(check);
-    let mut upgraded = OfflineRepository::open(
-        &root,
-        "0123456789abcdef0123456789abcdef",
-        CacheKey::new([9; 32]),
-        CacheLimits::default(),
-    )
-    .unwrap();
-    assert_eq!(upgraded.usage(), Err(CacheError::Inactive));
-    assert!(matches!(
-        upgraded.clear_for_reopen(),
-        Err(CacheError::Inactive)
-    ));
-    upgraded.activate().unwrap();
-    assert_eq!(upgraded.usage().unwrap().entry_count, 1);
-    assert!(upgraded.read(&scope, 120).unwrap().is_some());
-    drop(upgraded);
-    let _ = std::fs::remove_dir_all(root);
-}
-#[test]
 fn 用量统计不需要解析业务密文() {
     let (root, mut repo, scope) = fixture();
     seed(&mut repo, scope);
@@ -208,4 +115,40 @@ fn 用量统计不需要解析业务密文() {
     assert_eq!(usage.content_bytes, 71);
     drop(repo);
     let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn 旧开发格式一律拒绝且普通打开不改原库() {
+    for version in [1, 2, 3, 4, 5, 6, 99] {
+        let (root, mut repo, scope) = fixture();
+        seed(&mut repo, scope);
+        let path = repo.path().to_owned();
+        repo.db
+            .pragma_update(None, "user_version", version)
+            .unwrap();
+        drop(repo);
+        let before = std::fs::read(&path).unwrap();
+        assert!(
+            matches!(
+                OfflineRepository::open(
+                    &root,
+                    "0123456789abcdef0123456789abcdef",
+                    CacheKey::new([9; 32]),
+                    CacheLimits::default(),
+                ),
+                Err(CacheError::UnsupportedVersion)
+            ),
+            "开发格式 {version} 需要用户显式重建"
+        );
+        assert_eq!(std::fs::read(&path).unwrap(), before);
+        let recovery = OfflineRepository::clear_or_rebuild(
+            &root,
+            "0123456789abcdef0123456789abcdef",
+            CacheKey::new([9; 32]),
+            CacheLimits::default(),
+        )
+        .unwrap();
+        assert_eq!(recovery.repository.unwrap().usage().unwrap().entry_count, 0);
+        std::fs::remove_dir_all(root).unwrap();
+    }
 }

@@ -1,8 +1,8 @@
 //! 图书馆精确查询持久化；展示状态不恢复预约或取消资格。
 use super::{
-    CacheCompleteness, CacheError, CachePayload, CachePublication, CacheQuery, CacheScope,
-    ConnectionMode, LibBookArea, LibBookAreaDetail, LibBookBookingsPage, LibBookLibrary,
-    LibBookSeat, OfflineCache, OfflineReadError, OfflineRefresh, ReadonlyFeature, UbaaClient,
+    CachePayload, CacheQuery, CacheScope, ConnectionMode, LibBookArea, LibBookAreaDetail,
+    LibBookBookingsPage, LibBookLibrary, LibBookSeat, OfflineCache, OfflineReadError,
+    ReadonlyFeature, UbaaClient,
 };
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum LibBookCacheQuery {
@@ -86,13 +86,7 @@ impl LibBookReadData {
         }
     }
 }
-#[derive(Debug)]
-pub struct LibBookRefresh {
-    pub result: OfflineRefresh<LibBookReadData>,
-    pub complete: bool,
-    /// 本次 Stored 与保留此前记录的 Preserved 分开报告。
-    pub publication: Option<CachePublication>,
-}
+pub type LibBookRefresh = super::CachedRefresh<LibBookReadData>;
 impl OfflineCache {
     /// 读取明确查询范围的缓存，不获取网络锁或恢复学校写资格。
     ///
@@ -122,81 +116,14 @@ impl UbaaClient {
         cache: &OfflineCache,
         query: LibBookCacheQuery,
     ) -> Result<LibBookRefresh, OfflineReadError> {
-        cache
-            .check_read_generation()
-            .map_err(OfflineReadError::Cache)?;
-        let cache_query = query.cache_query();
-        CacheScope {
-            route: ConnectionMode::Direct,
-            query: cache_query.clone(),
-        }
-        .validate()
-        .map_err(OfflineReadError::Cache)?;
-        let authenticated = self
-            .recover_required_session(ReadonlyFeature::LibBook)
-            .await
-            .map_err(OfflineReadError::Read)?;
-        let resolution = authenticated.resolution;
-        if !cache.matches(&authenticated.data.user) {
-            return Err(OfflineReadError::IdentityMismatch {
-                resolution,
-                cache_error: cache.deactivate().err(),
-            });
-        }
-        let scope = CacheScope {
-            route: resolution.mode,
-            query: cache_query,
-        };
-        let (ticket, mut save_error) = super::begin_refresh(cache, scope.clone())?;
+        let refresh = self
+            .prepare_cached_refresh(cache, ReadonlyFeature::LibBook, query.cache_query())
+            .await?;
+        let resolution = refresh.resolution;
         let runtime = self.runtime_for(resolution.mode);
         let read = query.read(runtime).await;
-        let fetched_at = chrono::Utc::now().timestamp();
-        let read = match self.finish_routed(resolution, read) {
-            Ok(read) => read,
-            Err(error) => {
-                if let Some(ticket) = &ticket {
-                    cache.failure(ticket, fetched_at);
-                }
-                return Err(OfflineReadError::Read(error));
-            }
-        };
-        let (data, complete) = read.data;
-        let mut publication = None;
-        if let Some(ticket) = &ticket {
-            let saved = cache.repository(|repository| {
-                repository.publish(
-                    ticket,
-                    data.readonly_payload(),
-                    fetched_at,
-                    if complete {
-                        CacheCompleteness::Complete
-                    } else {
-                        CacheCompleteness::Partial
-                    },
-                )
-            });
-            match saved {
-                Ok(value) => publication = Some(value),
-                Err(error @ (CacheError::Inactive | CacheError::Superseded)) => {
-                    return Err(OfflineReadError::Cache(error));
-                }
-                Err(error) => {
-                    save_error = Some(error);
-                    cache.failure(ticket, fetched_at);
-                }
-            }
-        }
-        Ok(LibBookRefresh {
-            result: OfflineRefresh {
-                data,
-                resolution,
-                scope,
-                fetched_at,
-                save_error,
-            },
-            complete,
-            publication,
-        })
+        let (data, complete) = refresh.read_result(self.finish_routed(resolution, read))?;
+        refresh.finish(data, complete, LibBookReadData::readonly_payload)
     }
 }
 

@@ -1,7 +1,7 @@
 //! 学业只读缓存复用既有协议，持久范围不由宿主序列化任意正文。
 use super::{
-    CacheError, CachePayload, CacheQuery, CacheScope, ConnectionMode, OfflineCache,
-    OfflineReadError, OfflineRefresh, ReadonlyFeature, UbaaClient,
+    CachePayload, CacheQuery, CacheScope, ConnectionMode, OfflineCache, OfflineReadError,
+    OfflineRefresh, ReadonlyFeature, UbaaClient,
 };
 
 /// 仅允许已核对的学业和空教室操作；筛选投影不改变学校查询范围。
@@ -52,32 +52,10 @@ impl UbaaClient {
         cache: &OfflineCache,
         query: AcademicQuery,
     ) -> Result<OfflineRefresh<CachePayload>, OfflineReadError> {
-        cache
-            .check_read_generation()
-            .map_err(OfflineReadError::Cache)?;
-        let cache_query = query.cache_query();
-        CacheScope {
-            route: ConnectionMode::Direct,
-            query: cache_query.clone(),
-        }
-        .validate()
-        .map_err(OfflineReadError::Cache)?;
-        let authenticated = self
-            .recover_required_session(query.feature())
-            .await
-            .map_err(OfflineReadError::Read)?;
-        let resolution = authenticated.resolution;
-        if !cache.matches(&authenticated.data.user) {
-            return Err(OfflineReadError::IdentityMismatch {
-                resolution,
-                cache_error: cache.deactivate().err(),
-            });
-        }
-        let scope = CacheScope {
-            route: resolution.mode,
-            query: cache_query,
-        };
-        let (ticket, mut save_error) = super::begin_refresh(cache, scope.clone())?;
+        let refresh = self
+            .prepare_cached_refresh(cache, query.feature(), query.cache_query())
+            .await?;
+        let resolution = refresh.resolution;
         let runtime = self.runtime_for(resolution.mode);
         let result = match query {
             AcademicQuery::Terms => crate::features::schedule::get_terms(runtime)
@@ -103,35 +81,10 @@ impl UbaaClient {
                     .map(CachePayload::Classrooms)
             }
         };
-        let fetched_at = chrono::Utc::now().timestamp();
-        match self.finish_routed(resolution, result) {
-            Ok(result) => {
-                if let Some(ticket) = &ticket {
-                    save_error = cache.publish(ticket, result.data.clone(), fetched_at).err();
-                    if save_error.is_some() {
-                        cache.failure(ticket, fetched_at);
-                    }
-                    if let Some(error @ (CacheError::Inactive | CacheError::Superseded)) =
-                        save_error
-                    {
-                        return Err(OfflineReadError::Cache(error));
-                    }
-                }
-                Ok(OfflineRefresh {
-                    data: result.data,
-                    resolution,
-                    scope,
-                    fetched_at,
-                    save_error,
-                })
-            }
-            Err(error) => {
-                if let Some(ticket) = &ticket {
-                    cache.failure(ticket, fetched_at);
-                }
-                Err(OfflineReadError::Read(error))
-            }
-        }
+        let data = refresh.read_result(self.finish_routed(resolution, result))?;
+        refresh
+            .finish(data, true, Clone::clone)
+            .map(|value| value.result)
     }
 }
 

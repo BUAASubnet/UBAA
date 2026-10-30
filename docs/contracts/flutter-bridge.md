@@ -2,6 +2,8 @@
 
 状态：当前合同 v42。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
 
+业务缓存持久格式当前为 schema v7，独立于 Bridge v42。旧开发格式不迁移，普通打开拒绝并保留原库，用户明确清理后才能重建。下文各阶段的缓存版本与迁移说明保留历史事实，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
+
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
 协议事实仍以 `docs/migration/source-parity.md` 为准；本文件只定义已有稳定 facade 的产品投影，

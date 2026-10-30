@@ -326,67 +326,6 @@ fn 跨学期重叠选择开学更晚的覆盖_没有覆盖不返回空() {
 }
 
 #[test]
-fn v3升级保留内容和退出状态_旧连接不能参与新格式回收() {
-    for inactive in [false, true] {
-        let root = root();
-        let mut old = OfflineRepository::open(
-            &root,
-            ACCOUNT,
-            CacheKey::new([7; 32]),
-            CacheLimits::default(),
-        )
-        .unwrap();
-        let scope = CacheScope {
-            route: ConnectionMode::Direct,
-            query: CacheQuery::ScheduleWeek {
-                term: "a".into(),
-                week: 1,
-            },
-        };
-        let ticket = old.begin_read(scope.clone()).unwrap();
-        old.publish(
-            &ticket,
-            CachePayload::Week(WeeklySchedule::default()),
-            100,
-            CacheCompleteness::Complete,
-        )
-        .unwrap();
-        if inactive {
-            old.deactivate().unwrap();
-        }
-        let db = rusqlite::Connection::open(old.path()).unwrap();
-        db.pragma_update(None, "user_version", 3).unwrap();
-        drop(db);
-        let mut current = OfflineRepository::open(
-            &root,
-            ACCOUNT,
-            CacheKey::new([7; 32]),
-            CacheLimits::default(),
-        )
-        .unwrap();
-        assert!(matches!(old.read(&scope, 200), Err(CacheError::Superseded)));
-        if inactive {
-            assert!(matches!(
-                current.read(&scope, 200),
-                Err(CacheError::Inactive)
-            ));
-            current.activate().unwrap();
-        }
-        assert_eq!(current.read(&scope, 200).unwrap().unwrap().fetched_at, 100);
-        let db = rusqlite::Connection::open(current.path()).unwrap();
-        assert_eq!(
-            db.pragma_query_value(None, "user_version", |row| row.get::<_, u32>(0))
-                .unwrap(),
-            crate::cache::CACHE_SCHEMA_VERSION
-        );
-        drop(db);
-        drop(current);
-        drop(old);
-        std::fs::remove_dir_all(root).unwrap();
-    }
-}
-
-#[test]
 fn 退出栅栏优先于不完整导入_失效任务不能继续使用仓库() {
     let root = root();
     let mut repo = OfflineRepository::open(

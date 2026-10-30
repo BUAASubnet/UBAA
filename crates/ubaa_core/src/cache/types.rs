@@ -14,7 +14,7 @@ use crate::domain::{BykcStatistics, BykcUserProfile, SpocAssignmentDetail, SpocA
 use serde::{Deserialize, Serialize};
 
 /// 独立于 Session 和 Bridge 的业务缓存版本。
-pub const CACHE_SCHEMA_VERSION: u32 = 6;
+pub const CACHE_SCHEMA_VERSION: u32 = 7;
 
 /// 精确业务查询；日期使用既有校园日期，不在读取时替换成今天。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -105,8 +105,6 @@ pub enum CacheQuery {
     SigninToday {
         date: String,
     },
-    /// 旧无学期集合仅用于兼容，不再作为首页当前选择。
-    SpocAssignments,
     SpocSelection,
     SpocTerm {
         term: String,
@@ -119,8 +117,6 @@ pub enum CacheQuery {
     SpocDetail {
         assignment_id: String,
     },
-    /// 旧无周期记录只供兼容读取，不再用于当前首页。
-    YgdkOverview,
     YgdkOverviewSelection {
         week_start: String,
     },
@@ -386,13 +382,6 @@ impl CacheScope {
             Err(CacheError::InvalidInput)
         }
     }
-    // 仅维持旧持久格式；实际保留策略集中在store::retention。
-    pub(super) fn legacy_priority(&self) -> i64 {
-        match self.query {
-            CacheQuery::ScheduleToday { .. } | CacheQuery::ScheduleWeek { .. } => 1,
-            _ => 0,
-        }
-    }
 }
 impl CachePayload {
     fn spoc_matches(&self, query: &CacheQuery) -> Option<bool> {
@@ -475,8 +464,6 @@ impl CachePayload {
             | (Self::BykcStatistics(_), CacheQuery::BykcStatistics)
             | (Self::BykcCourses(_), CacheQuery::BykcCourses { .. })
             | (Self::SigninToday(_), CacheQuery::SigninToday { .. })
-            | (Self::SpocAssignments(_), CacheQuery::SpocAssignments)
-            | (Self::YgdkOverview(_), CacheQuery::YgdkOverview)
             | (Self::Terms(_), CacheQuery::ScheduleTerms)
             | (Self::Weeks(_), CacheQuery::ScheduleWeeks { .. })
             | (Self::Exams(_), CacheQuery::Exams { .. })

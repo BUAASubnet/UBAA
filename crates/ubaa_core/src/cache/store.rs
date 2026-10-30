@@ -368,7 +368,7 @@ impl OfflineRepository {
             now,
         }
         .reserve(&key, &record, body.len())?;
-        tx.execute("INSERT INTO entries VALUES(?1,?2,?3,?4) ON CONFLICT(key) DO UPDATE SET body=excluded.body, accessed=excluded.accessed, priority=excluded.priority", params![key, body, now, ticket.scope.legacy_priority()]).map_err(CacheError::from)?;
+        tx.execute("INSERT INTO entries(key,body,accessed) VALUES(?1,?2,?3) ON CONFLICT(key) DO UPDATE SET body=excluded.body, accessed=excluded.accessed", params![key, body, now]).map_err(CacheError::from)?;
         tx.execute("DELETE FROM requests WHERE key=?1", [&key])
             .map_err(CacheError::from)?;
         tx.commit().map_err(CacheError::from)?;
@@ -622,7 +622,7 @@ fn initialize_database(
     let version: u32 = db
         .pragma_query_value(None, "user_version", |r| r.get(0))
         .map_err(CacheError::from)?;
-    if version > CACHE_SCHEMA_VERSION {
+    if version != 0 && version != CACHE_SCHEMA_VERSION {
         return Err(CacheError::UnsupportedVersion);
     }
     db.execute_batch("PRAGMA journal_mode=DELETE; PRAGMA synchronous=FULL; PRAGMA secure_delete=ON; PRAGMA temp_store=MEMORY; PRAGMA trusted_schema=OFF;").map_err(CacheError::from)?;
@@ -635,22 +635,18 @@ fn initialize_database(
     let tx = db
         .transaction_with_behavior(TransactionBehavior::Immediate)
         .map_err(CacheError::from)?;
-    // 取得写锁后重新读取，避免并发打开时使用迁移前的版本快照。
+    // 取得写锁后重新读取，避免并发初始化时使用过期版本。
     let current_version: u32 = tx
         .pragma_query_value(None, "user_version", |r| r.get(0))
         .map_err(CacheError::from)?;
-    if current_version > CACHE_SCHEMA_VERSION {
+    if current_version != 0 && current_version != CACHE_SCHEMA_VERSION {
         return Err(CacheError::UnsupportedVersion);
     }
     tx.execute_batch("CREATE TABLE IF NOT EXISTS control(id INTEGER PRIMARY KEY CHECK(id=1), body BLOB NOT NULL);
-        CREATE TABLE IF NOT EXISTS entries(key BLOB PRIMARY KEY, body BLOB NOT NULL, accessed INTEGER NOT NULL, priority INTEGER NOT NULL);
+        CREATE TABLE IF NOT EXISTS entries(key BLOB PRIMARY KEY, body BLOB NOT NULL, accessed INTEGER NOT NULL);
         CREATE TABLE IF NOT EXISTS requests(key BLOB PRIMARY KEY, revision INTEGER NOT NULL, scope BLOB NOT NULL);
         CREATE TABLE IF NOT EXISTS readback_hints(id TEXT PRIMARY KEY, body BLOB NOT NULL);").map_err(CacheError::from)?;
-    let generation = management::prepare_control(&tx, crypto, account, current_version)?;
-    if current_version > 0 && current_version < 5 {
-        // 旧在途票据不迁移，业务条目的密文和取得时间保持原样。
-        tx.execute_batch("DROP TABLE requests; CREATE TABLE requests(key BLOB PRIMARY KEY, revision INTEGER NOT NULL, scope BLOB NOT NULL);").map_err(CacheError::from)?;
-    }
+    let generation = management::prepare_control(&tx, crypto, account, current_version == 0)?;
     tx.pragma_update(None, "user_version", CACHE_SCHEMA_VERSION)
         .map_err(CacheError::from)?;
     tx.commit().map_err(CacheError::from)?;

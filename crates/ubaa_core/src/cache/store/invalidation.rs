@@ -89,10 +89,7 @@ impl CacheInvalidation {
             )
             | (Self::LibBook { .. }, CacheQuery::LibBookBookings { .. })
             | (Self::Cgyy { .. }, CacheQuery::CgyyOrders { .. })
-            | (
-                Self::Ygdk { .. },
-                CacheQuery::YgdkOverview | CacheQuery::YgdkOverviewSelection { .. },
-            )
+            | (Self::Ygdk { .. }, CacheQuery::YgdkOverviewSelection { .. })
             | (Self::Evaluation, CacheQuery::EvaluationCurrent) => true,
             (
                 Self::LibBook { day, .. },

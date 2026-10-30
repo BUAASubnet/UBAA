@@ -246,6 +246,130 @@ fn judge_summary_cache_keeps_expired_scope_and_persists_across_reopen() {
     let _ = std::fs::remove_dir_all(root);
 }
 
+#[derive(Clone, Copy)]
+enum LateCacheChange {
+    Logout,
+    NewerRead,
+}
+
+#[derive(Clone)]
+struct LateCacheTransport {
+    inner: OfflineTransport,
+    cache: OfflineCache,
+    root: std::path::PathBuf,
+    change: LateCacheChange,
+    judge: bool,
+}
+
+#[async_trait]
+impl HttpTransport for LateCacheTransport {
+    async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        let query = if self.judge && request.url.ends_with("assignment/index.jsp") {
+            Some(ubaa_core::facade::CacheQuery::JudgeSummaries {
+                include_expired: true,
+            })
+        } else if !self.judge && request.url.contains("teachingSchedule/detail.do") {
+            let url = url::Url::parse(&request.url).unwrap();
+            Some(ubaa_core::facade::CacheQuery::ScheduleToday {
+                date: url
+                    .query_pairs()
+                    .find(|(key, _)| key == "rq")
+                    .unwrap()
+                    .1
+                    .into_owned(),
+            })
+        } else {
+            None
+        };
+        if let Some(query) = query {
+            match self.change {
+                LateCacheChange::Logout => self.cache.deactivate().unwrap(),
+                LateCacheChange::NewerRead => {
+                    // 第二个连接模拟另一个宿主/进程开始同范围读取。
+                    let mut repository = ubaa_core::facade::OfflineRepository::open(
+                        &self.root,
+                        "0123456789abcdef0123456789abcdef",
+                        CacheKey::new([9; 32]),
+                        CacheLimits::default(),
+                    )
+                    .unwrap();
+                    repository
+                        .begin_read(ubaa_core::facade::CacheScope {
+                            route: ConnectionMode::Direct,
+                            query,
+                        })
+                        .unwrap();
+                }
+            }
+        }
+        self.inner.execute(request).await
+    }
+}
+
+fn assert_late_cache_change_is_rejected(judge: bool, change: LateCacheChange) {
+    let root = test_root("offline-late-change");
+    std::fs::create_dir_all(&root).unwrap();
+    let cache = OfflineCache::open(
+        &root,
+        "0123456789abcdef0123456789abcdef",
+        "fixture-user",
+        CacheKey::new([9; 32]),
+        CacheLimits::default(),
+    )
+    .unwrap();
+    let mut client = cached_client_transport(
+        &root,
+        LateCacheTransport {
+            inner: OfflineTransport(Arc::new(std::sync::Mutex::new(Vec::new()))),
+            cache: cache.clone(),
+            root: root.clone(),
+            change,
+            judge,
+        },
+    );
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let error = if judge {
+        runtime
+            .block_on(client.refresh_cached_judge(&cache, true))
+            .map(|_| ())
+    } else {
+        runtime
+            .block_on(client.refresh_cached_today(&cache))
+            .map(|_| ())
+    }
+    .expect_err("退出或较新读取后，旧在线结果必须停止交付");
+    let expected = match change {
+        LateCacheChange::Logout => ubaa_core::facade::CacheError::Inactive,
+        LateCacheChange::NewerRead => ubaa_core::facade::CacheError::Superseded,
+    };
+    assert!(matches!(error, OfflineReadError::Cache(value) if value == expected));
+    drop((client, cache));
+    let _ = std::fs::remove_dir_all(root);
+}
+
+#[test]
+fn 今日读取期间退出后拒绝迟到结果() {
+    assert_late_cache_change_is_rejected(false, LateCacheChange::Logout);
+}
+
+#[test]
+fn 今日读取被另一连接取代后拒绝迟到结果() {
+    assert_late_cache_change_is_rejected(false, LateCacheChange::NewerRead);
+}
+
+#[test]
+fn 希冀读取期间退出后拒绝迟到结果() {
+    assert_late_cache_change_is_rejected(true, LateCacheChange::Logout);
+}
+
+#[test]
+fn 希冀读取被另一连接取代后拒绝迟到结果() {
+    assert_late_cache_change_is_rejected(true, LateCacheChange::NewerRead);
+}
+
 #[derive(Clone)]
 struct OfflineTransport(Arc<std::sync::Mutex<Vec<HttpRequest>>>);
 #[async_trait]

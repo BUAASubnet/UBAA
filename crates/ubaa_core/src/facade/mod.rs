@@ -26,7 +26,7 @@ pub use judge_scan::{
     JudgeScanCancellation, JudgeScanKind,
 };
 pub(super) use offline::begin_refresh;
-pub use offline::{OfflineCache, OfflineReadError, OfflineRefresh};
+pub use offline::{CachedRefresh, OfflineCache, OfflineReadError, OfflineRefresh};
 #[path = "read/ihome.rs"]
 mod ihome;
 mod interactive_auth;

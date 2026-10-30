@@ -1,15 +1,9 @@
 //! 评教当前任务范围的只读快照；部分容错不覆盖旧完整结果。
 use super::{
-    CachePublication, CacheQuery, CacheScope, ConnectionMode, EvaluationCoursesResponse,
-    OfflineCache, OfflineReadError, OfflineRefresh, UbaaClient,
+    CacheQuery, CacheScope, ConnectionMode, EvaluationCoursesResponse, OfflineCache,
+    OfflineReadError, OfflineRefresh, UbaaClient,
 };
-#[derive(Debug)]
-pub struct EvaluationRefresh {
-    pub result: OfflineRefresh<EvaluationCoursesResponse>,
-    pub complete: bool,
-    /// 本次 Stored 与保留此前记录的 Preserved 分开报告。
-    pub publication: Option<CachePublication>,
-}
+pub type EvaluationRefresh = super::CachedRefresh<EvaluationCoursesResponse>;
 impl OfflineCache {
     /// 读取明确查询范围的缓存，不获取网络锁或恢复学校写资格。
     ///

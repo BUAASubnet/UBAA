@@ -153,42 +153,6 @@ fn 其他读取连接持锁时重建失败不清空原库() {
     std::fs::remove_dir_all(root).unwrap();
 }
 #[test]
-fn v2升级保留业务与退出状态且旧aad不能重用() {
-    let (root, mut repo, scope) = fixture();
-    let ticket = repo.begin_read(scope.clone()).unwrap();
-    repo.publish(
-        &ticket,
-        CachePayload::Today(vec![]),
-        123,
-        CacheCompleteness::Complete,
-    )
-    .unwrap();
-    let aad = [b"ubaa.cache.control.v2\0".as_slice(), ACCOUNT.as_bytes()].concat();
-    let body = repo
-        .crypto
-        .seal(
-            &serde_json::json!({"epoch":4,"revision":8,"active":false,"generation":2}),
-            &aad,
-        )
-        .unwrap();
-    repo.db
-        .execute("UPDATE control SET body=?1", [body])
-        .unwrap();
-    repo.db.pragma_update(None, "user_version", 2).unwrap();
-    drop(repo);
-    let mut repo = open(&root);
-    assert_eq!(repo.read(&scope, 124), Err(CacheError::Inactive));
-    let bytes: Vec<u8> = repo
-        .db
-        .query_row("SELECT body FROM control", [], |r| r.get(0))
-        .unwrap();
-    assert!(repo.crypto.open::<serde_json::Value>(&bytes, &aad).is_err());
-    repo.activate().unwrap();
-    assert_eq!(repo.read(&scope, 124).unwrap().unwrap().fetched_at, 123);
-    drop(repo);
-    std::fs::remove_dir_all(root).unwrap();
-}
-#[test]
 fn 清空后初始化失败明确返回无可用仓库而不冒称旧内容保留() {
     let (root, repo, _) = fixture();
     repo.db.pragma_update(None, "user_version", 99).unwrap();
