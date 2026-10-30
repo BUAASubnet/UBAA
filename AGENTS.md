@@ -51,7 +51,7 @@ Dart/Flutter 命令一律使用 `just dart`、`just flutter`，OHOS 使用 `just
 
 ## 完成条件
 
-门禁清单只在[开发命令](docs/development/commands.md#检查选择与完成条件)维护。修改测试框架、门禁、公共合同或完成跨模块整理时必须完成其中的完整确定性验收；PR/CI 不以选择性检查替代最终验收。原生集成按用户决定只保留真实原生能力与 FFI/启动锁，保留覆盖与自动化缺口见[测试策略](docs/development/testing.md)。代码实现、静态分析、设备、真实账号、远端 CI 和发布证据分别报告，Fixture/Mock 成功不能代替真实协议成功。
+门禁清单只在[开发命令](docs/development/commands.md#检查选择与完成条件)维护。修改测试框架、门禁、公共合同或完成跨模块整理时必须完成其中的完整确定性验收；PR/CI 不以选择性检查替代最终验收。原生集成保留真实原生能力、FFI/启动锁和最小宿主 smoke，保留覆盖与自动化缺口见[测试策略](docs/development/testing.md)。代码实现、静态分析、设备、真实账号、远端 CI 和发布证据分别报告，Fixture/Mock 成功不能代替真实协议成功。
 
 ## 目录与项目地图
 

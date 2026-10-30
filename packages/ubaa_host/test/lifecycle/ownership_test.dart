@@ -105,6 +105,29 @@ void main() {
     expect(backend.disposed, 0);
     await tester.pumpWidget(const SizedBox());
   });
+  testWidgets('退出后重新登录的恢复等待新首页首帧', (tester) async {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final backend = _Backend();
+    await tester.pumpWidget(UbaaAppHost(backend: backend));
+    await tester.pumpAndSettle();
+    await tester.widget<UbaaMainShell>(find.byType(UbaaMainShell)).onLogout();
+    await tester.pumpAndSettle();
+    backend.loginGate = Completer<void>();
+    final view = tester.widget<UbaaLoginView>(find.byType(UbaaLoginView));
+    view.onUsernameChanged('fixture-user');
+    view.onPasswordChanged('synthetic-password');
+    view.onSubmit();
+    await tester.pump();
+    await cycle(tester, AppLifecycleState.paused);
+    final beforeLoginCompletes = backend.authCalls;
+    backend.loginGate!.complete();
+    await tester.idle();
+    expect(backend.authCalls, beforeLoginCompletes);
+    await tester.pumpAndSettle();
+    expect(find.byType(UbaaMainShell), findsOneWidget);
+    expect(backend.authCalls, beforeLoginCompletes + 1);
+    await tester.pumpWidget(const SizedBox());
+  });
 }
 
 Future<void> cycle(WidgetTester tester, AppLifecycleState background) async {

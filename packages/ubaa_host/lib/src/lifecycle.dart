@@ -42,6 +42,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
 
   void _syncPlaces() {
     if (_controller.phase != AppPhase.home) {
+      _homeFrameReported = false;
       _placeOwner = null;
       _placesReady = false;
       _placePreferences = {};
@@ -90,6 +91,8 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   }
 
   bool _wasBackgrounded = false;
+  // 启动和登录期间收到的恢复事件，等首页首帧后再交给同一恢复任务。
+  bool _homeFrameReported = false;
   bool _resumeRecoveryPending = false;
   bool _recoveryInFlight = false;
   bool _disposed = false;
@@ -99,6 +102,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   StreamSubscription<void>? _networkSubscription;
 
   void _listenNetworkChanges() {
+    if (_wasBackgrounded) return;
     _networkSubscription ??= _networkChanges?.listen(
       (_) => _controller.onNetworkChanged(),
       onError: (Object _) {},
@@ -114,6 +118,12 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _wasBackgrounded = switch (WidgetsBinding.instance.lifecycleState) {
+      AppLifecycleState.paused ||
+      AppLifecycleState.hidden ||
+      AppLifecycleState.detached => true,
+      _ => false,
+    };
     WidgetsBinding.instance.addObserver(this);
     if (widget.backend case final backend?) {
       _installBackend(backend);
@@ -156,6 +166,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       telemetry: widget.telemetry,
       onReadSchedulerTrace: widget.onReadSchedulerTrace,
     );
+    _controller.setAppForeground(!_wasBackgrounded);
     _gradeScoreStore =
         widget.gradeScoreStore ??
         (backend != null
@@ -229,13 +240,12 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (_readyController == null) return;
     if (state == AppLifecycleState.paused ||
         state == AppLifecycleState.hidden ||
         state == AppLifecycleState.detached) {
       _wasBackgrounded = true;
       _stopNetworkChanges();
-      _controller.setAppForeground(false);
+      _readyController?.setAppForeground(false);
       return;
     }
     // inactive 已有可见窗口；桌面可能一直没有焦点，不能等待 resumed 才解暂停。
@@ -244,6 +254,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
         state == AppLifecycleState.inactive;
     if (visible && _wasBackgrounded) {
       _wasBackgrounded = false;
+      if (_readyController == null) return;
       _listenNetworkChanges();
       _controller.setAppForeground(true);
       if (_recoveryInFlight) return;
@@ -255,6 +266,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   void _retryPendingRecovery() {
     if (_disposed ||
         _wasBackgrounded ||
+        !_homeFrameReported ||
         !_resumeRecoveryPending ||
         _recoveryInFlight)
       return;

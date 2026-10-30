@@ -24,9 +24,9 @@
 
 ## 原生能力与覆盖边界
 
-原生测试保留 `integration_test/platform/`、`synthetic/cache/` 和一个 `synthetic/app/` 宿主 smoke：真实安全存储、私有目录、网络、照片、包信息、系统方向、登录到首页的宿主接线、真实 Rust FFI 缓存和跨进程启动锁。入口、平台、前提和 CI 归属集中在 `scripts/integration-tests.json`，用 `just integration-list` 查看，用 `just integration-test` 执行默认集合。其他能力选择清单中的精确路径，不对整个目录通配执行。
+原生测试保留 `integration_test/platform/`、`synthetic/cache/` 和一个 `synthetic/app/` 宿主 smoke：真实安全存储、私有目录、网络、照片、包信息、系统方向、使用替身的登录到首页接线、真实 Rust FFI 的离线启动与缺会话处理、缓存和跨进程启动锁。入口、平台、前提和 CI 归属集中在 `scripts/integration-tests.json`，用 `just integration-list` 查看，用 `just integration-test` 执行默认集合。其他能力选择清单中的精确路径，不对整个目录通配执行。
 
-合成全流程、软键盘专项、真实账号 UI 和常驻预览已按用户决定删除。被普通测试引用的合成数据位于 `apps/ubaa_flutter/test/support/`，不再由单元测试导入原生入口。删除项、保留覆盖与自动化缺口见[范围决定](../migration/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29原生集成只保留真实原生能力)。Fixture、Widget 和构建成功不能代替真实原生能力或学校协议证据。
+宿主 smoke 分别验证真实 Bridge/Core 的本地错误传播和替身的正向登录，不包含真实登录、查询及写入的完整链路。合成全流程、软键盘专项、真实账号 UI 和常驻预览已按用户决定删除。被普通测试引用的合成数据位于 `apps/ubaa_flutter/test/support/`，不再由单元测试导入原生入口。删除项、保留覆盖与自动化缺口见[范围决定](../migration/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29原生集成只保留真实原生能力)。Fixture、Widget 和构建成功不能代替真实原生能力或学校协议证据。
 
 启动锁通过已登记夹具执行：应用在自身沙箱创建临时目录并派生系统 Perl 子进程持有真实 OS 锁，验证不同 PID、等待画面、resourceBusy 与释放后的 FFI 重试。宿主终端不访问应用容器，也不修改系统权限。Perl 从应用继承的 PATH 查找，以兼容 Linux 的安装位置；不依赖终端访问其他 App 数据的权限。Perl 缺失或不能启动时该项应失败，不能改用同进程锁。
 

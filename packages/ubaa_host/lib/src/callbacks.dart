@@ -84,7 +84,11 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
 
   Widget _buildMainShell() {
     WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (!_disposed) _controller.onHomeFirstFrame();
+      if (!_disposed && _controller.phase == AppPhase.home) {
+        _homeFrameReported = true;
+        _controller.onHomeFirstFrame();
+        _retryPendingRecovery();
+      }
     });
     final photoPicker = _photoPicker;
     final hasYgdkSubmissionCapabilities =

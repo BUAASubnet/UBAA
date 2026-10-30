@@ -6,6 +6,57 @@ import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_test_support/recovery.dart' as fixtures;
 
 void main() {
+  testWidgets('后端打开期间进入后台，迟到实例等待窗口可见才订阅和恢复', (tester) async {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final events = StreamController<void>.broadcast();
+    final opened = Completer<UbaaBackend>();
+    final backend = fixtures.FakeRecoveryBackend();
+    await tester.pumpWidget(
+      UbaaAppHost(
+        backendFactory: () => opened.future,
+        localAccountStore: await fixtures.savedAccounts(),
+        networkChanges: events.stream,
+      ),
+    );
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    opened.complete(backend);
+    await tester.pump();
+    await tester.pump();
+    expect(events.hasListener, isFalse);
+    expect(backend.authCalls, 0);
+    expect(backend.readCalls, 0);
+
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await tester.pumpAndSettle();
+    expect(events.hasListener, isTrue);
+    expect(backend.authCalls, 1);
+    expect(backend.readCalls, greaterThan(0));
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await tester.pumpAndSettle();
+    expect(backend.authCalls, 1);
+    await tester.pumpWidget(const SizedBox());
+    await events.close();
+  });
+
+  testWidgets('本地首页首帧前的恢复事件与启动恢复合并', (tester) async {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final opened = Completer<UbaaBackend>();
+    final backend = fixtures.FakeRecoveryBackend();
+    await tester.pumpWidget(
+      UbaaAppHost(
+        backendFactory: () => opened.future,
+        localAccountStore: await fixtures.savedAccounts(),
+      ),
+    );
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    opened.complete(backend);
+    await tester.pumpAndSettle();
+    expect(backend.authCalls, 1);
+    expect(backend.loginCalls, 0);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   for (final hidden in [AppLifecycleState.hidden, AppLifecycleState.paused]) {
     testWidgets('$hidden 后窗口可见但未获焦点，恢复订阅与读取且获焦点不重复恢复', (tester) async {
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
