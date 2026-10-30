@@ -94,14 +94,15 @@ function(apply_cargokit target manifest_dir lib_name any_symbol_name)
     elseif (CARGOKIT_TARGET_PLATFORM STREQUAL "ohos-arm64"
              OR CARGOKIT_TARGET_PLATFORM STREQUAL "ohos-arm"
              OR CARGOKIT_TARGET_PLATFORM STREQUAL "ohos-x64")
-             set(SOURCE_LIB "../../ohos/.cxx/default/default/debug/${OHOS_ARCH}/lib${PROJECT_NAME}.so")
-             set(DEST_LIB "${TARGET_LIB_DIR}/lib${PROJECT_NAME}.so")
+             # Dart 按 Rust crate 名加载动态库，打包时保留原文件名。
+             set(DEST_LIB "${TARGET_LIB_DIR}/${CARGOKIT_LIB_FULL_NAME}")
              add_custom_command(
                  OUTPUT
                  ${OUTPUT_LIB}
                  "${CMAKE_CURRENT_BINARY_DIR}/_phony_"
                  COMMAND ${CMAKE_COMMAND} -E env ${CARGOKIT_ENV}
                  "${cargokit_cmake_root}/run_build_tool${SCRIPT_EXTENSION}" build-cmake
+                 COMMAND ${CMAKE_COMMAND} -E make_directory ${TARGET_LIB_DIR}
                  COMMAND ${CMAKE_COMMAND} -E copy ${OUTPUT_LIB} ${DEST_LIB}
                  COMMENT "Building and copying ${OUTPUT_LIB} to ${DEST_LIB}"
                  VERBATIM

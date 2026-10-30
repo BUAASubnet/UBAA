@@ -56,10 +56,10 @@ fi
   "$flutter_bin" build hap "${hap_args[@]}"
 )
 
-# OHOS fork 构建时会把受跟踪的 buildinfo 模板移到被忽略的 rawfile/；flutter clean 后再构建仍需要模板。
+# OHOS fork 会移动 buildinfo 模板；从本次配置恢复，保留本地的渲染选项。
 buildinfo=apps/ubaa_ohos/ohos/entry/src/main/resources/base/profile/buildinfo.json5
 if [[ ! -e "$repo_root/$buildinfo" ]]; then
-  git -C "$repo_root" checkout -- "$buildinfo"
+  cp "$app_root/ohos/entry/src/main/resources/rawfile/buildinfo.json5" "$repo_root/$buildinfo"
 fi
 
 hap_root=$app_root/build/ohos/hap
@@ -68,9 +68,9 @@ if [[ -z "$hap_path" ]]; then
   printf 'error: 未生成 HAP\n' >&2
   exit 1
 fi
-bridge_lib=$(unzip -Z1 "$hap_path" | grep -E '(^|/)libs/arm64-v8a/libubaa_(bindings|flutter_bridge)\.so$' | head -n 1 || true)
+bridge_lib=$(unzip -Z1 "$hap_path" | grep -E '^libs/arm64-v8a/libubaa_flutter_bridge\.so$' | head -n 1 || true)
 if [[ -z "$bridge_lib" ]]; then
-  printf 'error: HAP 内未包含 arm64 UBAA Rust bridge 动态库\n' >&2
+  printf 'error: HAP 内缺少 Dart 实际加载的 arm64 动态库 libubaa_flutter_bridge.so\n' >&2
   exit 1
 fi
 bridge_tmp=$(mktemp)

@@ -827,6 +827,16 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 
 2026-10-07统一安全存储插件及开发阶段无迁移范围见[实施前九列裁决](history/2026-10-30-decisions-through-quality-phase3.md#2026-10-07开发阶段统一安全存储插件)与[验证记录](evidence/unified-secure-storage-2026-10-07.md)。
 
+### 2026-10-30：OHOS 首次创建安全存储密钥
+
+实施前复核冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/storage/CredentialStore.kt` 与 `composeApp/src/commonMain/kotlin/cn/edu/ubaa/ui/screens/auth/AuthViewModel.kt`：本地开关联动与成功登录后保存凭据沿原规则。固定 `buaa-api@a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `src/store/cred.rs` 使用 JSON 文件，没有 HUKS 实现，该平台接口不适用，不借用其明文存储方式。
+
+当前 API 26 SDK 的 `ets/api/@ohos.security.huks.d.ts` 明确规定：`isKeyItemExist` 在密钥缺失时以 `12000011` 拒绝 Promise；`hasKeyItem` 在相同情况下返回 `false`，自 API 11 提供。现有模拟实现错误地让前者返回 `false`，补成真实接口语义后，首次写入在创建密钥前失败。插件改用 `hasKeyItem`，其他 HUKS 异常继续传播。
+
+| 操作 | CAS/bootstrap/service | redirect/finalURL | Cookie/session | HTTP/参数 | headers/body | crypto | DTO/parser | cache/concurrency | error/exit |
+|---|---|---|---|---|---|---|---|---|---|
+| 首次写入与后续读取安全材料 | 不适用，本地操作 | 不适用 | 不访问学校会话 | 无学校请求；插件键值接口不变 | 原插件参数不变 | RSA-OAEP、AES-256-GCM、别名和存储空间不变；仅更正密钥存在性查询 | 公共 DTO 不变 | 保留串行、写入读回与删除探测 | 仅缺失密钥按原规则允许首次创建；已有密文丢失密钥仍拒绝替换，其他异常不降级明文 |
+
 2026-10-07通用依赖收敛实施前对照见[九列裁决](source-parity-dependency-reuse.md)。
 
 ## 2026-10-07 独立工程审查整改

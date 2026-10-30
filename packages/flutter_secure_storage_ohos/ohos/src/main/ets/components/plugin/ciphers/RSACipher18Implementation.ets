@@ -76,7 +76,8 @@ export default class RSACipher18Implementation implements KeyCipher {
   }
 
   protected async createRSAKeysIfNeeded(allowCreate: boolean = true) {
-    const exists = await huks.isKeyItemExist(this.SECRET_RSA_KEY_ALIAS, { properties: [] });
+    // hasKeyItem 在密钥缺失时返回 false；isKeyItemExist 会抛出 12000011。
+    const exists = await huks.hasKeyItem(this.SECRET_RSA_KEY_ALIAS, { properties: [] });
     if (exists) return;
     if (!allowCreate) throw new Error('unavailable');
     await this.generateKeyItem();

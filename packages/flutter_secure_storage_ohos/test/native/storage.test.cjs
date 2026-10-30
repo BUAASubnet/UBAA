@@ -13,7 +13,13 @@ const huks = {
   HuksTag: properties, HuksKeyAlg: properties, HuksKeySize: properties,
   HuksKeyPadding: properties, HuksKeyDigest: properties, HuksCipherMode: properties,
   HuksKeyPurpose: { HUKS_KEY_PURPOSE_ENCRYPT: 1, HUKS_KEY_PURPOSE_DECRYPT: 2 },
-  async isKeyItemExist(alias) { if (failLookup) throw Error('合成拒绝'); return keys.has(alias); },
+  async isKeyItemExist(alias) {
+    if (failLookup) throw Error('合成拒绝');
+    // 与系统 API 一致：此接口在密钥缺失时抛错，不返回 false。
+    if (!keys.has(alias)) throw Object.assign(Error('密钥不存在'), { code: 12000011 });
+    return true;
+  },
+  async hasKeyItem(alias) { if (failLookup) throw Error('合成拒绝'); return keys.has(alias); },
   async generateKeyItem(alias) {
     generationCount++;
     keys.set(alias, crypto.generateKeyPairSync('rsa', { modulusLength: 2048 }));
@@ -103,6 +109,7 @@ const fresh = () => new Storage({}, new Map());
   assert.equal(await first.read('missing'), null);
   assert.equal(generationCount, 0, '无记录读取不创建密钥');
   await first.write('alpha', '合成凭据🔐');
+  assert.equal(generationCount, 1, '首次写入创建一份 HUKS 密钥');
   const reopened = fresh();
   assert.equal(await reopened.read('alpha'), '合成凭据🔐');
   await reopened.write('beta', '');

@@ -10,7 +10,7 @@
     "ohos/src/main/ets/components/plugin/FlutterSecureStorage.ets": "caac31d2322badcd25c574107e5aae6d0094141efa81da75c6a6b621ec9961f1",
     "ohos/src/main/ets/components/plugin/FlutterSecureStorageOhosPlugin.ets": "4a66442803d33364600a8166a8933631823c28a1b4c59b82ee31769529a9849c",
     "ohos/src/main/ets/components/plugin/ciphers/KeyCipher.ets": "fca0d430e5e8f5b06faca86359dcc7958260f2392dacc21efea03db62231e731",
-    "ohos/src/main/ets/components/plugin/ciphers/RSACipher18Implementation.ets": "945f027fddb9eeae3d3df9c3acbd008265189d676b641d4e4b9b8e2659e6f3d6",
+    "ohos/src/main/ets/components/plugin/ciphers/RSACipher18Implementation.ets": "4e59f896de68f681750296bef7e5a7319b170dbef9e08934d40fb1e0aa7e8e9c",
     "ohos/src/main/ets/components/plugin/ciphers/RSACipherOAEPImplementation.ets": "ea3c9116e4af70abb9361b3b896ac25a1220b2ed874b30f1c454cc3b86859602",
     "ohos/src/main/ets/components/plugin/ciphers/StorageCipher.ets": "40f5d17d54a580974d84161ead8b5cf3667adcf7fb9be5cdf09050f9070f3e90",
     "ohos/src/main/ets/components/plugin/ciphers/StorageCipher18Implementation.ets": "6b5f6b668bc5c72ff9b56014181f0e82b7a2ddfaf3b929f907e2bdd308f3a9ee",
@@ -18,5 +18,12 @@
     "ohos/src/main/ets/components/plugin/utils/index.ts": "6c0135656a4b1abaaed583266ab15e1a7697a062c1e063a33f9829a79f4f7a19",
     "ohos/src/main/module.json5": "5e5b659e58b3d56b07249dcaae3b6360bfb7be250c3b20a374068f17b31c8e9b"
   },
-  "source_note": "已知来源为 Csy_Gitee@f1a8ada0；当前仓库材料未提供公开 repository URL 和完整 40 位 commit，未猜测或补造。"
+  "source_note": "已知来源为 Csy_Gitee@f1a8ada0；当前仓库材料未提供公开 repository URL 和完整 40 位 commit，未猜测或补造。",
+  "local_modifications": [
+    {
+      "commit": null,
+      "path": "ohos/src/main/ets/components/plugin/ciphers/RSACipher18Implementation.ets",
+      "summary": "按 API 26 SDK 语义使用 hasKeyItem 查询密钥，使首次写入可创建密钥，并保留其他异常与丢失密钥保护。"
+    }
+  ]
 }

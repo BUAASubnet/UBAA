@@ -177,6 +177,7 @@ script-test:
     python3 scripts/tests/native/lock_holder_test.py
     python3 scripts/tests/integration_catalog_test.py
     python3 scripts/tests/checks/native_bindings_test.py
+    python3 scripts/tests/checks/ohos_native_library_test.py
     python3 scripts/tests/checks/codegen_gate_test.py
     python3 scripts/tests/checks/docs_links_test.py
     python3 scripts/tests/checks/environment_test.py
