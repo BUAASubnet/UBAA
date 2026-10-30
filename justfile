@@ -153,6 +153,7 @@ source-files:
 
 # 不访问学校或设备的 Python 行为合同。
 script-test:
+    bash scripts/tools/python.sh scripts/tests/checks/ohos_materials_test.py
     python3 scripts/tests/native/lock_holder_test.py
     python3 scripts/tests/integration_catalog_test.py
     python3 scripts/tests/checks/native_bindings_test.py

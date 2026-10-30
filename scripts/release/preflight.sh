@@ -60,6 +60,13 @@ cargo metadata --offline --locked --format-version 1 >"$metadata_file"
 # 固定工具和 schema 均离线使用；依赖准备由显式 bootstrap 完成。
 dependency_status=0
 dependency_args=(--metadata "$metadata_file" --output "$output_dir")
+if [[ -n "${UBAA_OHOS_EVIDENCE:-}" ]]; then
+  if [[ "$UBAA_OHOS_EVIDENCE" != /* ]]; then
+    printf 'error: OHOS 材料清单必须是绝对路径\n' >&2
+    exit 2
+  fi
+  dependency_args+=(--ohos-evidence "$UBAA_OHOS_EVIDENCE")
+fi
 if [[ "$mode" == report ]]; then
   dependency_args+=(--report-only)
 fi

@@ -49,3 +49,27 @@ Android/iOS/OHOS实体机权限、前后台、网络订阅及安全材料写读�
 ### 候选输入与产物关联
 
 source-manifest.sha256 覆盖全部 Git 跟踪文件，包括 Core、根 Cargo.toml/Cargo.lock、工具链和构建脚本；未跟踪的凭据与运行目录不会进入清单。build-record.json 将候选 SHA、输入清单摘要和 GitHub 作业关联；原生工作流同时生成 artifact-files.json，使用相对路径及逐文件摘要，避免同一产物因本机绝对目录不同而得到不同内容摘要。外部 SDK、系统库、下载依赖和签名环境仍需按平台登记，这不是可复现构建证明。
+
+## OHOS 补充材料
+
+OHPM 的本地依赖需要区分类型声明和原生产物。受 Git 跟踪、位于本仓库内的纯 `.d.ts` 包记录版本与文件摘要，并沿用项目许可证；这类记录不包含实际动态库。HAR 或其他原生产物通过独立 JSON 材料清单提供来源、摘要、使用方和许可证正文。
+
+运行前设置 `UBAA_OHOS_EVIDENCE` 为清单的绝对路径，再执行 `just release-preflight`。也可以直接给依赖报告生成器传入 `--ohos-evidence`。清单放在仓库外私有目录或被忽略的 `.ubaa_local/`，不要放进要求为空的输出目录。文件路径相对于清单目录解析，也接受绝对路径；绝对路径不会进入输出报告。结构如下，示例摘要和提交必须换成实际值：
+
+```json
+{
+  "schema": 1,
+  "artifacts": [{
+    "name": "@ohos/flutter_ohos",
+    "version": "实际包版本",
+    "artifact": {"path": "flutter_embedding.har", "sha256": "产物的完整 SHA-256"},
+    "source": {"repository": "https://example.invalid/source.git", "revision": "40 位源码提交"},
+    "references": [{"manifest": "packages/connectivity_plus_ohos/ohos/oh-package.json5", "sha256": "使用方清单的完整 SHA-256"}],
+    "licenses": [{"path": "LICENSE", "sha256": "许可证正文的完整 SHA-256"}]
+  }]
+}
+```
+
+同一产物的全部使用方应放入 `references`。工具逐项验证依赖名、使用方清单摘要、产物摘要及非空许可证正文，拒绝失效、重复或相互冲突的映射。相同名称与产物摘要合并为一条记录，保留全部使用方；不同产物不合并。输出保存输入清单摘要和许可证正文副本，并记录来源仓库、提交和版本。
+
+这些来源字段是材料提供方的显式声明。摘要校验能证明本次读取的文件与声明一致，不能独立证明二进制由该源码构建。实际 HAP、动态库架构、签名和构建关联仍按本手册的产物验收执行。缺少清单或某项材料仍阻断严格发布；报告模式只允许材料缺口，格式或摘要错误继续失败。

@@ -150,7 +150,7 @@ class ReleaseMetadataTest(unittest.TestCase):
             records = report.ohos_evidence(root, root / "output", [manifest])
             self.assertEqual(records[0]["evidence_status"], "collected")
             self.assertEqual(len(records[0]["files"]), 2)
-            self.assertEqual(records[1]["evidence_status"], "native_dependency_requires_artifact_review")
+            self.assertEqual(records[1]["evidence_status"], "native_evidence_missing")
             self.assertIn("material_input", records[1])
             self.assertNotIn("/private/sdk", json.dumps(records))
 

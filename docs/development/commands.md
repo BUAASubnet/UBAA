@@ -109,7 +109,7 @@ OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员�
 | `just release-preflight <私有绝对路径>/release-report` | 默认 `mode=strict`：干净工作树、空报告目录下生成离线依赖、许可和源码报告；材料缺口保留报告并以状态 3 阻止发布 |
 | `just release-preflight <私有绝对路径>/release-report mode=report` | 源码 CI 仅收集材料，报告列明完整性和发布阻塞项；材料缺口不改变退出码，真实生成错误仍失败；不判定发布通过 |
 
-两种报告模式均不签名、不上传、不使用真实账号。OHOS 原生依赖仍需结合构建产物核查材料；源码报告不能补齐这类证据。
+两种报告模式均不签名、不上传、不使用真实账号。OHOS 补充材料通过 `UBAA_OHOS_EVIDENCE` 指定 JSON 清单绝对路径，结构及来源声明边界见[OHOS 补充材料](../runbooks/flutter-release.md#ohos-补充材料)。工具校验文件与使用方摘要，合并同一产物的引用，并单独记录仓库内类型声明；实际 HAP、动态库与签名仍需产物验收。
 
 构建、签名、安装、实体设备和发布准入详见[发布流程](../runbooks/flutter-release.md)。无签名构建、模拟器、Mock 和 CI artifact 均不能代替实体设备、安全存储、签名或发布证据。
 

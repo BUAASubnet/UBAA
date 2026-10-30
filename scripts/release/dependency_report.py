@@ -18,6 +18,8 @@ import yaml
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
 from repo import ROOT
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+from ohos_materials import dependencies as ohos_dependencies
 
 SCHEMAS = ROOT / 'scripts/tools/cyclonedx-1.5'
 RELEASE_BLOCKED_EXIT = 3
@@ -285,7 +287,8 @@ def release_blockers(records):
     return [
         {'ecosystem': record['ecosystem'], 'name': record['name'],
          'version': record.get('version'), 'reason': record['evidence_status'],
-         'source': record.get('lockfile', record.get('manifest'))}
+         'source': record.get('lockfile', record.get('manifest')),
+         'references': record.get('references', [])}
         for record in records if record['evidence_status'] != 'collected'
     ]
 
@@ -295,7 +298,7 @@ def release_exit_code(records, report_only=False):
     return 0 if report_only or not release_blockers(records) else RELEASE_BLOCKED_EXIT
 
 
-def ohos_evidence(workspace, output, manifests=None):
+def ohos_evidence(workspace, output, manifests=None, evidence=None):
     """原生分发与其依赖单列；本机 SDK 路径不写入报告。"""
     records = []
     manifests = manifests if manifests is not None else tracked(workspace, '**/oh-package.json5')
@@ -318,14 +321,7 @@ def ohos_evidence(workspace, output, manifests=None):
                   'review_status': '未进行法律审核',
                   'evidence_status': 'collected' if files else 'license_missing'}
         records.append(record)
-        for name, requested in sorted(data.get('dependencies', {}).items()):
-            local = requested.startswith(('file:', '.', '/'))
-            records.append({'ecosystem': 'ohos-dependency', 'name': name,
-                            'requested': '本地路径依赖' if local else requested,
-                            'manifest': manifest.relative_to(workspace).as_posix(),
-                            'review_status': '未进行法律审核', 'files': [],
-                            'material_input': '需在发布报告目录提供对应 HAR/so 的许可证正文和来源摘要',
-                            'evidence_status': 'native_dependency_requires_artifact_review'})
+    records.extend(ohos_dependencies(workspace, output, manifests, evidence, collect_workspace_license))
     return records
 
 
@@ -333,18 +329,20 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--metadata', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--ohos-evidence', type=Path, help='显式 OHOS 来源与许可证材料清单')
     parser.add_argument('--report-only', action='store_true',
                         help='保留报告并允许材料缺口；不作为发布前置通过')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     document = build_sbom(read_json(args.metadata))
     (args.output / 'sbom.cdx.json').write_text(json.dumps(document, ensure_ascii=False, indent=2) + '\n')
-    records = dart_evidence(ROOT, args.output) + ohos_evidence(ROOT, args.output)
+    records = dart_evidence(ROOT, args.output) + ohos_evidence(ROOT, args.output, evidence=args.ohos_evidence)
     missing = sum(record['evidence_status'] != 'collected' for record in records)
     blockers = release_blockers(records)
     report = {'schema': 1, 'material_status': 'partial' if missing else 'collected',
               'review_status': '未进行法律审核；材料收集不等同正式发布批准',
               'incomplete_records': missing, 'records': records,
+              'ohos_evidence_sha256': hashlib.sha256(args.ohos_evidence.read_bytes()).hexdigest() if args.ohos_evidence else None,
               'release_blockers': blockers}
     (args.output / 'license-evidence.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     lines = ['Dart/OHOS 许可证材料清单（名称、锁定版本、来源及正文摘要）',
@@ -364,5 +362,5 @@ def main():
 if __name__ == '__main__':
     try:
         main()
-    except (ValueError, OSError, subprocess.CalledProcessError) as error:
+    except (ValueError, OSError, KeyError, TypeError, subprocess.CalledProcessError) as error:
         raise SystemExit(f'依赖材料生成失败：{type(error).__name__}；请检查输入与固定工具') from error
