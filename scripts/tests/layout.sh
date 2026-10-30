@@ -37,6 +37,10 @@ new_repo() {
   git -C "$repo" config user.name 'UBAA Layout Contract'
   git -C "$repo" config user.email 'layout-contract@example.invalid'
   cp "$checker_source" "$repo/scripts/check/layout.sh"
+  if [[ -f "$repo_root/scripts/lib/layout.py" ]]; then
+    mkdir -p "$repo/scripts/lib"
+    cp "$repo_root/scripts/lib/layout.py" "$repo/scripts/lib/layout.py"
+  fi
   chmod +x "$repo/scripts/check/layout.sh"
   printf '%s\n' '# kind<TAB>path<TAB>exact-count' >"$repo/scripts/layout-baseline.txt"
   printf '%s\n' "$repo"
@@ -128,6 +132,23 @@ for number in {01..16}; do
 done
 commit_all "$repo"
 expect_pass '1000 行与 16 个直属源码是允许边界' "$repo"
+
+# 批量 blob 读取仍按原始路径和物理行计数，不借助 Shell 拆分路径。
+repo=$(new_repo source-path-with-spaces)
+write_source_lines "$repo/src/含 空格.rs" 1001
+commit_all "$repo"
+expect_rejected '含空格路径的源码仍被检查' "$repo" 'src/含 空格.rs'
+
+repo=$(new_repo source-without-final-newline)
+write_source_lines "$repo/src/no_newline.rs" 1000
+printf '%s' '// 最后一行没有换行符' >>"$repo/src/no_newline.rs"
+commit_all "$repo"
+expect_rejected '无尾换行的最后一行仍计入物理行数' "$repo" 'src/no_newline.rs'
+
+repo=$(new_repo hidden-extension-source)
+write_source_lines "$repo/src/.rs" 1001
+commit_all "$repo"
+expect_rejected '仅含扩展名的隐藏源码仍被检查' "$repo" 'src/.rs'
 
 # 已提交的超长文件与拥挤目录都必须被拒绝。
 repo=$(new_repo tracked-too-long)
@@ -284,5 +305,31 @@ for extension in "${extensions[@]}"; do
   commit_all "$repo"
   expect_rejected ".$extension 扩展名受扫描" "$repo" "$path"
 done
+
+# Git 列举失败不能被 process substitution 吞掉，否则会把空快照判为通过。
+repo=$(new_repo git-list-failure)
+commit_all "$repo"
+mkdir -p "$test_root/failing-git"
+cat >"$test_root/failing-git/git" <<'FAILING_GIT'
+#!/usr/bin/env bash
+set -euo pipefail
+case " $* " in
+  *" ${UBAA_LAYOUT_TEST_FAIL_COMMAND:-ls-files} "*"${UBAA_LAYOUT_TEST_FAIL_ARGUMENT}"*) exit 73 ;;
+esac
+exec "$UBAA_LAYOUT_TEST_REAL_GIT" "$@"
+FAILING_GIT
+chmod +x "$test_root/failing-git/git"
+real_git=$(command -v git)
+for argument in --cached --others; do
+  PATH="$test_root/failing-git:$PATH" \
+    UBAA_LAYOUT_TEST_REAL_GIT="$real_git" \
+    UBAA_LAYOUT_TEST_FAIL_ARGUMENT="$argument" \
+    expect_rejected "Git $argument 列举失败必须阻止门禁" "$repo" 'Git'
+done
+PATH="$test_root/failing-git:$PATH" \
+  UBAA_LAYOUT_TEST_REAL_GIT="$real_git" \
+  UBAA_LAYOUT_TEST_FAIL_COMMAND=cat-file \
+  UBAA_LAYOUT_TEST_FAIL_ARGUMENT=--batch \
+  expect_rejected 'Git blob 读取失败必须阻止门禁' "$repo" 'Git'
 
 printf '%s\n' "layout shell contracts passed: $pass_count"
