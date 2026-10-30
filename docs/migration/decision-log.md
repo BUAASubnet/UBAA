@@ -176,3 +176,11 @@ Android 自动读取被忽略的 `.sign/android/signing.properties`，使用 AND
 只保留批次文字说明、原型、`external-archive.json` 与 `prototype-manifest.json`。原文在 `7348b8b3` 及更早提交中完整可取，
 恢复方式写入[批次索引](../design/evidence/batches.md)。新批次的逐图元数据与截图一起留在 `UBAA_UI_EVIDENCE_DIR`，
 仓库只提交文字摘要。验收分类、外部归档和提交映射均不变。
+
+## 2026-10-30：记录只跟随事实变化
+
+此前开发循环要求每轮都更新状态页和决策记录，结果近 60 个提交中 `docs/migration` 的改动次数超过 Core，
+状态页也变成按日期追加的流水。现在状态页只保留当前实现、未解决事项和最近一次完整验证；单轮验证写提交说明，
+日志留在 `.ubaa_local/`，决策记录只收会影响后续判断的取舍。原状态流水原样移入
+[历史目录](history/2026-10-30-status-log-through-signing.md)，单轮任务报告同样归档。来源对照门禁、
+真实账号授权和完成条件不变。

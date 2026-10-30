@@ -6,7 +6,7 @@
 
 自有目录使用下划线，例外沿用[目录命名](directories.md)。文件按语言工具约定：Rust/Python 模块用 snake_case，Dart 文件用 lower_snake_case，Kotlin/Swift 类型文件使用 UpperCamelCase；Shell 入口沿用现有 kebab-case。命令名、Cargo/pub 包名、框架固定路径和第三方文件不随自有目录规则改名。
 
-新增长期文档用小写 ASCII kebab-case，不附日期。新增阶段记录用 `YYYY-MM-DD-topic.md`，日期放前缀。ADR 用四位顺序编号及主题。既有历史文件本轮不批量改名，后续迁移必须同步链接；不因命名规则删除来源或证据。文档和原型分别按 development/architecture/contracts、migration/history/evidence、design 的实际用途保存，不以本地工具目录充当正式文档入口。
+新增长期文档用小写 ASCII kebab-case，不附日期。普通任务不新建阶段记录；只有跨模块整改需要长期追溯时才新增，命名用 `YYYY-MM-DD-topic.md`，日期放前缀。ADR 用四位顺序编号及主题。既有历史文件本轮不批量改名，后续迁移必须同步链接；不因命名规则删除来源或证据。文档和原型分别按 development/architecture/contracts、migration/history/evidence、design 的实际用途保存，不以本地工具目录充当正式文档入口。
 
 默认 UTF-8、LF、结尾换行和空格缩进；Dart/JSON/YAML/Markdown/TS/Shell/Swift 默认 2 空格，Rust/Python/Kotlin 与 justfile recipe 为 4 空格。以 `.editorconfig` 和对应语言 formatter 为准，不手动格式化第三方或机械生成代码。Markdown 保留有语义的行尾空格，修改时仍须通过差异检查。
 
@@ -52,7 +52,7 @@ FRB runtime/codegen/macros、Flutter 工具链和依赖兼容边界使用仓库�
 
 ## ADR 模板
 
-涉及长期所有权、模块边界、安全/协议取舍或替代既有设计时新增 ADR。单轮观察、换钉经过和验收结果写 decision-log 或阶段记录；新决策必须链接受影响合同与来源对照。ADR 状态为“提议”“已接受”“已实施”“已取代”“已废弃”，取代时保留旧文并指向新记录。
+涉及长期所有权、模块边界、安全/协议取舍或替代既有设计时新增 ADR。单轮观察和验收结果写提交说明；会影响后续判断的取舍（如换钉、来源冲突裁决）写 decision-log；新决策必须链接受影响合同与来源对照。ADR 状态为“提议”“已接受”“已实施”“已取代”“已废弃”，取代时保留旧文并指向新记录。
 
 ```markdown
 # ADR NNNN：具体决定
