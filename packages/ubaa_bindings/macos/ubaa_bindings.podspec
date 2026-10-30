@@ -25,7 +25,7 @@ UBAA Flutter Rust bridge generated bindings.
   # 链接时遗漏 SCDynamicStore/SCNetworkReachability 符号。
   s.frameworks = 'SystemConfiguration'
 
-  s.platform = :osx, '10.11'
+  s.platform = :osx, '12.0'
   s.pod_target_xcconfig = { 'DEFINES_MODULE' => 'YES' }
   s.swift_version = '5.0'
 
