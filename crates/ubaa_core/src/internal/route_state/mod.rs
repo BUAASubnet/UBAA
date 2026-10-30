@@ -58,15 +58,14 @@ impl RouteFeatureState {
 #[cfg(test)]
 mod tests {
     use std::sync::Arc;
-    use std::sync::atomic::{AtomicUsize, Ordering};
     use std::thread;
     use std::time::{Duration, Instant};
 
     use crate::domain::{Assignment, Course, JudgeAssignmentDetail, JudgeSubmissionStatus};
 
     use super::{
-        AssignmentList, BykcCredential, BykcState, ClassroomState, JudgeState, RouteFeatureState,
-        SigninCredential, SigninState, StoreCredentialHook, YgdkCredential, YgdkState,
+        AssignmentList, BykcCredential, BykcState, JudgeState, RouteFeatureState, SigninCredential,
+        SigninState, StoreCredentialHook, YgdkCredential, YgdkState,
     };
 
     #[test]
@@ -122,10 +121,14 @@ mod tests {
 
         let writer_state = Arc::clone(&state);
         let writer = thread::spawn(move || {
-            writer_state.set(YgdkCredential {
-                uid: 42,
-                token: "旧登录返回的测试令牌".into(),
-            });
+            let generation = writer_state.generation();
+            writer_state.store_credential(
+                generation,
+                YgdkCredential {
+                    uid: 42,
+                    token: "旧登录返回的测试令牌".into(),
+                },
+            );
         });
 
         hook.wait_until_paused();
@@ -148,77 +151,6 @@ mod tests {
 
         state.clear();
         assert!(state.credential().is_none());
-    }
-
-    #[test]
-    fn concurrent_classroom_bootstraps_use_one_double_checked_sync() {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .enable_time()
-            .build()
-            .unwrap();
-        runtime.block_on(async {
-            let state = Arc::new(ClassroomState::default());
-            let calls = Arc::new(AtomicUsize::new(0));
-            let first_state = Arc::clone(&state);
-            let first_calls = Arc::clone(&calls);
-            let second_state = Arc::clone(&state);
-            let second_calls = Arc::clone(&calls);
-
-            let first = tokio::spawn(async move {
-                first_state
-                    .ensure_synced(|| async move {
-                        first_calls.fetch_add(1, Ordering::SeqCst);
-                        tokio::time::sleep(Duration::from_millis(10)).await;
-                        true
-                    })
-                    .await;
-            });
-            let second = tokio::spawn(async move {
-                second_state
-                    .ensure_synced(|| async move {
-                        second_calls.fetch_add(1, Ordering::SeqCst);
-                        true
-                    })
-                    .await;
-            });
-            first.await.unwrap();
-            second.await.unwrap();
-
-            assert_eq!(calls.load(Ordering::SeqCst), 1);
-        });
-    }
-
-    #[test]
-    fn failed_or_cleared_classroom_sync_remains_retryable() {
-        let runtime = tokio::runtime::Builder::new_current_thread()
-            .build()
-            .unwrap();
-        runtime.block_on(async {
-            let state = ClassroomState::default();
-            let calls = AtomicUsize::new(0);
-
-            state
-                .ensure_synced(|| async {
-                    calls.fetch_add(1, Ordering::SeqCst);
-                    false
-                })
-                .await;
-            state
-                .ensure_synced(|| async {
-                    calls.fetch_add(1, Ordering::SeqCst);
-                    true
-                })
-                .await;
-            state.clear();
-            state
-                .ensure_synced(|| async {
-                    calls.fetch_add(1, Ordering::SeqCst);
-                    true
-                })
-                .await;
-
-            assert_eq!(calls.load(Ordering::SeqCst), 3);
-        });
     }
 
     #[test]

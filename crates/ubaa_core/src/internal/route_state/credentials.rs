@@ -100,106 +100,63 @@ impl std::fmt::Debug for SpocCredential {
     }
 }
 
-/// 路线内的场馆预约业务状态。
-#[derive(Default)]
-pub(crate) struct CgyyState {
-    token: SyncMutex<Option<String>>,
+/// 业务凭据的路线内存槽位。每个字段实例拥有独立的登录锁和失效代次。
+pub(crate) struct CredentialState<T> {
+    credential: SyncMutex<Option<T>>,
     login: Mutex<()>,
+    invalidations: AtomicU64,
+    #[cfg(test)]
+    store_hook: TestMutex<Option<(bool, Arc<StoreCredentialHook>)>>,
 }
 
-impl CgyyState {
-    pub(crate) fn token(&self) -> Option<String> {
-        self.token
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .clone()
-    }
-
-    pub(crate) fn set(&self, token: String) {
-        *self
-            .token
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(token);
-    }
-
-    pub(crate) async fn login_guard(&self) -> tokio::sync::MutexGuard<'_, ()> {
-        self.login.lock().await
-    }
-
-    pub(crate) fn clear(&self) {
-        *self
-            .token
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
+impl<T> Default for CredentialState<T> {
+    fn default() -> Self {
+        Self {
+            credential: SyncMutex::new(None),
+            login: Mutex::new(()),
+            invalidations: AtomicU64::new(0),
+            #[cfg(test)]
+            store_hook: TestMutex::new(None),
+        }
     }
 }
 
-impl std::fmt::Debug for CgyyState {
+impl<T> std::fmt::Debug for CredentialState<T> {
     fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         formatter
-            .debug_struct("CgyyState")
-            .field("token", &"[已隐藏]")
-            .field("login", &"[已隐藏]")
+            .debug_struct("CredentialState")
+            .field("generation", &self.generation())
+            .field("credential", &"[已隐藏]")
             .finish()
     }
 }
 
-/// 路线内的博雅业务状态。
-#[allow(dead_code)]
-#[derive(Debug, Default)]
-pub(crate) struct BykcState {
-    credential: SyncMutex<Option<BykcCredential>>,
-    login: Mutex<()>,
-}
-
-#[allow(dead_code)]
-impl BykcState {
-    pub(crate) fn credential(&self) -> Option<BykcCredential> {
-        self.credential
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .clone()
+impl<T> CredentialState<T> {
+    pub(crate) fn generation(&self) -> u64 {
+        self.invalidations.load(Ordering::Acquire)
     }
 
-    pub(crate) fn set(&self, value: BykcCredential) {
+    fn replace_credential(&self, value: T) {
         *self
             .credential
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(value);
     }
 
-    pub(crate) async fn login_guard(&self) -> tokio::sync::MutexGuard<'_, ()> {
-        self.login.lock().await
-    }
-
-    pub(crate) fn clear(&self) {
-        *self
+    pub(crate) fn store_credential(&self, generation: u64, value: T) -> bool {
+        #[cfg(test)]
+        self.pause_store(true);
+        let mut cached = self
             .credential
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
-    }
-}
-
-/// 路线内的图书馆业务状态。
-#[derive(Debug, Default)]
-pub(crate) struct LibBookState {
-    credential: SyncMutex<Option<LibBookCredential>>,
-    login: Mutex<()>,
-}
-
-impl LibBookState {
-    pub(crate) fn credential(&self) -> Option<LibBookCredential> {
-        self.credential
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .clone()
-    }
-
-    pub(crate) fn set(&self, value: LibBookCredential) {
-        *self
-            .credential
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(value);
+            .unwrap_or_else(std::sync::PoisonError::into_inner);
+        if self.generation() != generation {
+            return false;
+        }
+        #[cfg(test)]
+        self.pause_store(false);
+        *cached = Some(value);
+        true
     }
 
     pub(crate) fn clear_credential(&self) {
@@ -209,103 +166,91 @@ impl LibBookState {
             .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
     }
 
+    pub(crate) fn clear(&self) {
+        self.invalidations.fetch_add(1, Ordering::AcqRel);
+        self.clear_credential();
+    }
+
     pub(crate) async fn login_guard(&self) -> tokio::sync::MutexGuard<'_, ()> {
         self.login.lock().await
     }
 
-    pub(crate) fn clear(&self) {
-        self.clear_credential();
-    }
-}
-
-/// 路线内的阳光打卡业务状态。
-#[allow(dead_code)]
-#[derive(Default)]
-pub(crate) struct YgdkState {
-    invalidations: AtomicU64,
-    credential: SyncMutex<Option<YgdkCredential>>,
-    login: Mutex<()>,
     #[cfg(test)]
-    store_hook: TestMutex<Option<Arc<StoreCredentialHook>>>,
-}
-
-impl std::fmt::Debug for YgdkState {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("YgdkState")
-            .field("generation", &self.generation())
-            .field("credential", &"[已隐藏]")
-            .field("login", &"[已隐藏]")
-            .finish()
-    }
-}
-
-impl YgdkState {
-    pub(crate) fn generation(&self) -> u64 {
-        self.invalidations.load(Ordering::Acquire)
-    }
-
-    #[allow(dead_code)]
-    pub(crate) fn credential(&self) -> Option<YgdkCredential> {
-        self.credential
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .clone()
-    }
-
-    #[cfg(test)]
-    pub(crate) fn set(&self, value: YgdkCredential) {
-        let generation = self.generation();
-        let _ = self.store_credential(generation, value);
-    }
-
-    pub(crate) fn store_credential(&self, generation: u64, value: YgdkCredential) -> bool {
-        #[cfg(test)]
-        self.pause_before_store();
-        let mut cached = self
-            .credential
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if self.generation() != generation {
-            return false;
-        }
-        *cached = Some(value);
-        true
-    }
-
-    #[cfg(test)]
-    pub(crate) fn set_store_hook(&self, hook: Arc<StoreCredentialHook>) {
-        *self
-            .store_hook
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(hook);
-    }
-
-    #[cfg(test)]
-    fn pause_before_store(&self) {
+    fn pause_store(&self, before_lock: bool) {
         let hook = self
             .store_hook
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner)
             .clone();
-        if let Some(hook) = hook {
+        if let Some((checkpoint, hook)) = hook
+            && checkpoint == before_lock
+        {
             hook.pause();
         }
     }
+}
 
-    pub(crate) fn clear(&self) {
-        self.invalidations.fetch_add(1, Ordering::AcqRel);
-        *self
-            .credential
+impl<T: Clone> CredentialState<T> {
+    pub(crate) fn credential(&self) -> Option<T> {
+        self.credential
             .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
-    }
-
-    #[allow(dead_code)]
-    pub(crate) async fn login_guard(&self) -> tokio::sync::MutexGuard<'_, ()> {
-        self.login.lock().await
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+            .clone()
     }
 }
+
+impl CredentialState<String> {
+    pub(crate) fn set(&self, token: String) {
+        self.replace_credential(token);
+    }
+
+    pub(crate) fn token(&self) -> Option<String> {
+        self.credential()
+    }
+}
+
+impl CredentialState<BykcCredential> {
+    pub(crate) fn set(&self, value: BykcCredential) {
+        self.replace_credential(value);
+    }
+}
+
+impl CredentialState<LibBookCredential> {
+    pub(crate) fn set(&self, value: LibBookCredential) {
+        self.replace_credential(value);
+    }
+}
+
+#[cfg(test)]
+impl CredentialState<YgdkCredential> {
+    pub(crate) fn set(&self, value: YgdkCredential) {
+        let _ = self.store_credential(self.generation(), value);
+    }
+
+    pub(crate) fn set_store_hook(&self, hook: Arc<StoreCredentialHook>) {
+        *self
+            .store_hook
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some((true, hook));
+    }
+}
+
+#[cfg(test)]
+impl CredentialState<SigninCredential> {
+    pub(crate) fn set_store_hook(&self, hook: Arc<StoreCredentialHook>) {
+        *self
+            .store_hook
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some((false, hook));
+    }
+}
+
+pub(crate) type CgyyState = CredentialState<String>;
+pub(crate) type BykcState = CredentialState<BykcCredential>;
+pub(crate) type LibBookState = CredentialState<LibBookCredential>;
+pub(crate) type YgdkState = CredentialState<YgdkCredential>;
+pub(crate) type SigninState = CredentialState<SigninCredential>;
+pub(crate) type SpocState = CredentialState<SpocCredential>;
 
 #[cfg(test)]
 #[derive(Default)]
@@ -351,154 +296,6 @@ impl StoreCredentialHook {
             .unwrap_or_else(std::sync::PoisonError::into_inner);
         flags.1 = true;
         self.signal.notify_all();
-    }
-}
-
-/// 路线内的 iClass 业务状态。
-#[allow(dead_code)]
-#[derive(Default)]
-pub(crate) struct SigninState {
-    invalidations: AtomicU64,
-    login: Mutex<()>,
-    credential: SyncMutex<Option<SigninCredential>>,
-    #[cfg(test)]
-    store_hook: TestMutex<Option<Arc<StoreCredentialHook>>>,
-}
-
-impl SigninState {
-    pub(crate) fn generation(&self) -> u64 {
-        self.invalidations.load(Ordering::Acquire)
-    }
-
-    pub(crate) fn credential(&self) -> Option<SigninCredential> {
-        self.credential
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .clone()
-    }
-
-    pub(crate) async fn login_guard(&self) -> tokio::sync::MutexGuard<'_, ()> {
-        self.login.lock().await
-    }
-
-    pub(crate) fn store_credential(&self, generation: u64, credential: SigninCredential) -> bool {
-        let mut cached = self
-            .credential
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if self.generation() != generation {
-            return false;
-        }
-        #[cfg(test)]
-        self.pause_after_generation_check();
-        *cached = Some(credential);
-        true
-    }
-
-    #[cfg(test)]
-    pub(crate) fn set_store_hook(&self, hook: Arc<StoreCredentialHook>) {
-        *self
-            .store_hook
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = Some(hook);
-    }
-
-    #[cfg(test)]
-    fn pause_after_generation_check(&self) {
-        let hook = self
-            .store_hook
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .clone();
-        if let Some(hook) = hook {
-            hook.pause();
-        }
-    }
-
-    pub(crate) fn clear_credential(&self) {
-        *self
-            .credential
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
-    }
-
-    pub(crate) fn clear(&self) {
-        self.invalidations.fetch_add(1, Ordering::AcqRel);
-        self.clear_credential();
-    }
-}
-
-impl std::fmt::Debug for SigninState {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("SigninState")
-            .field("generation", &self.generation())
-            .field("credential", &"[已隐藏]")
-            .finish()
-    }
-}
-
-/// 路线内的 SPOC 业务状态。
-#[derive(Default)]
-pub(crate) struct SpocState {
-    invalidations: AtomicU64,
-    login: Mutex<()>,
-    credential: SyncMutex<Option<SpocCredential>>,
-}
-
-impl SpocState {
-    pub(crate) fn credential(&self) -> Option<SpocCredential> {
-        self.credential
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner)
-            .clone()
-    }
-
-    pub(crate) fn store_credential(&self, generation: u64, credential: SpocCredential) -> bool {
-        let mut cached = self
-            .credential
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        if self.generation() != generation {
-            return false;
-        }
-        *cached = Some(credential);
-        true
-    }
-
-    pub(crate) fn clear_credential(&self) {
-        *self
-            .credential
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner) = None;
-    }
-
-    pub(crate) async fn login_guard(&self) -> tokio::sync::MutexGuard<'_, ()> {
-        self.login.lock().await
-    }
-
-    pub(crate) fn generation(&self) -> u64 {
-        self.invalidations.load(Ordering::Acquire)
-    }
-
-    pub(crate) fn clear(&self) {
-        self.invalidations.fetch_add(1, Ordering::AcqRel);
-        // 并发持有者可能仍在使用旧凭据；代数检查可防止失效后重新填充此缓存。
-        let mut credential = self
-            .credential
-            .lock()
-            .unwrap_or_else(std::sync::PoisonError::into_inner);
-        *credential = None;
-    }
-}
-
-impl std::fmt::Debug for SpocState {
-    fn fmt(&self, formatter: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-        formatter
-            .debug_struct("SpocState")
-            .field("generation", &self.generation())
-            .field("credential", &"[已隐藏]")
-            .finish()
     }
 }
 
