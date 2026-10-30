@@ -98,6 +98,10 @@ just flutter-ohos pub get --enforce-lockfile
 OHOS Flutter 的全局设置 `flutter-ohos config --ohos-sdk` 优先于项目配置写入 `hwsdk.dir`。
 `just doctor` 会核对 `local.properties` 与 `.env.toolchain` 是否一致，不一致时修正全局设置后重新 pub get。
 
+本机签名配置可放在 Git 忽略的 `.sign/ohos/hvigor-signing.json`，按构建模式（`debug`、`release`）提供
+签名项，由 `hvigorfile.ts` 只在内存中注入，不改写 `build-profile.json5`。Debug 未配置时保持无签名，
+其他模式缺配置会直接失败。材料管理见[应用签名配置](../../docs/runbooks/app-signing.md)。
+
 `ohos/local.properties` 只保存本机绝对路径，始终忽略且不得提交。设备 FRB smoke 使用
 `ohos/ohos_device_smoke_main.dart`，只在 `bridgeHello` 返回固定值后输出
 `FRB_OHOS_SMOKE_RESULT=PASS`。

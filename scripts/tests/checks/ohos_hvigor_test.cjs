@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const os = require('node:os');
 const path = require('node:path');
-const { resolveToolchain, requireDependencies, nativeArguments } = require('../../tools/ohos_hvigor.cjs');
+const { resolveToolchain, requireDependencies, nativeArguments, applySigning } = require('../../tools/ohos_hvigor.cjs');
 
 function sdk(t) {
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'ubaa_hvigor_'));
@@ -68,4 +68,22 @@ test('缺少 Flutter 依赖配置时提示显式准备命令', t => {
     fs.mkdirSync(path.join(root, '.dart_tool'));
     fs.writeFileSync(path.join(root, '.dart_tool/package_config.json'), '{}');
     requireDependencies(root);
+});
+
+function profile() {
+    return { app: { signingConfigs: [{ name: 'tracked' }], products: [{ name: 'default', signingConfig: 'tracked' }] } };
+}
+
+test('签名按构建模式注入，未提供本机配置时保持原样', () => {
+    assert.deepEqual(applySigning(profile(), 'release', null), profile());
+    const signed = applySigning(profile(), 'release', { release: { name: 'local-release' } });
+    assert.deepEqual(signed.app.signingConfigs, [{ name: 'local-release' }]);
+    assert.equal(signed.app.products[0].signingConfig, 'local-release');
+});
+
+test('Debug 缺配置时清空签名，Release 缺配置时失败', () => {
+    const debug = applySigning(profile(), 'debug', { release: { name: 'local-release' } });
+    assert.deepEqual(debug.app.signingConfigs, []);
+    assert.equal('signingConfig' in debug.app.products[0], false);
+    assert.throws(() => applySigning(profile(), 'release', { debug: { name: 'x' } }), /缺少当前构建模式/);
 });

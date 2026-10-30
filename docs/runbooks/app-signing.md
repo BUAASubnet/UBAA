@@ -111,6 +111,8 @@ ENABLE_HARDENED_RUNTIME = YES
 
 DevEco 可能把签名字段写入受 Git 跟踪的 build-profile.json5。即使密码显示为加密字符串，该配置也不得提交。只在专用发布 checkout 中保存本机修改，完成后确认工作区差异和材料都没有进入 Git。不要使用 `assume-unchanged` 隐藏秘密改动。
 
+不想改动 build-profile.json5 时，把签名项按构建模式写入 Git 忽略的 `.sign/ohos/hvigor-signing.json`，例如 `{"release": {"name": "default", "type": "HarmonyOS", "material": {...}}}`，字段与 DevEco 写入 build-profile.json5 的 `signingConfigs` 条目相同。`hvigorfile.ts` 构建时只在内存中注入当前模式的条目；Debug 缺少条目时保持无签名，Release 缺少条目时构建失败。
+
 配置后执行 `just ohos-check mode=release`。`UBAA_OHOS_NO_CODESIGN=1` 只用于 Debug 内容检查。HAP 的设备安装、HUKS 与版本更新需要实体设备验收；上架还应通过 DevEco 生成渠道要求的发布 APP 包，不能直接把无签名 HAP 当成商店发布包。
 
 ## Windows 与 Linux

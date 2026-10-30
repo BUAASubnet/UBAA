@@ -56,4 +56,26 @@ function nativeArguments(config) {
         `-DCARGOKIT_OHOS_SDK_HOME:PATH=${config.nativeSdkRoot}`];
 }
 
-module.exports = { readLocalProperties, resolveToolchain, requireDependencies, nativeArguments };
+// 本机签名材料只在内存中注入，不写入受 Git 跟踪的 build-profile.json5。
+// Debug 未配置时清空签名，供模拟器无签名运行；其他模式缺配置直接失败。
+function applySigning(profile, mode, local) {
+    if (!local) return profile;
+    const signing = local[mode];
+    if (!signing && mode !== 'debug') {
+        throw new Error('本机签名配置缺少当前构建模式，请检查 .sign/ohos/hvigor-signing.json');
+    }
+    profile.app.signingConfigs = signing ? [signing] : [];
+    for (const product of profile.app.products ?? []) {
+        if (signing) product.signingConfig = signing.name;
+        else delete product.signingConfig;
+    }
+    return profile;
+}
+
+function readLocalSigning(repoRoot) {
+    const file = path.join(repoRoot, '.sign/ohos/hvigor-signing.json');
+    return fs.existsSync(file) ? JSON.parse(fs.readFileSync(file, 'utf8')) : null;
+}
+
+module.exports = { readLocalProperties, resolveToolchain, requireDependencies, nativeArguments,
+    applySigning, readLocalSigning };

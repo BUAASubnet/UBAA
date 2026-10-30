@@ -49,7 +49,7 @@
       "summary": "manifest_dir 已是绝对路径时不再拼接 CMAKE_CURRENT_SOURCE_DIR，修复 Windows 路径。"
     },
     {
-      "commit": "本次提交",
+      "commit": "b7980089cc33505a50a80be3eb52f6575655e858",
       "path": "cmake/cargokit.cmake",
       "summary": "允许以 CMake 参数传入 CARGOKIT_OHOS_SDK_HOME 与 CARGOKIT_FLUTTER_ROOT，只作用于 Cargokit 子进程，供 DevEco 直接构建使用。"
     }

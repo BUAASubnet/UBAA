@@ -1,9 +1,10 @@
 import path from 'path'
 import { hvigor } from '@ohos/hvigor';
-import { appTasks, OhosModuleContext, OhosPluginId } from '@ohos/hvigor-ohos-plugin';
+import { appTasks, OhosAppContext, OhosModuleContext, OhosPluginId } from '@ohos/hvigor-ohos-plugin';
 import { flutterHvigorPlugin } from 'flutter-hvigor-plugin';
 
-const { resolveToolchain, requireDependencies, nativeArguments } = require('../../../scripts/tools/ohos_hvigor.cjs');
+const { resolveToolchain, requireDependencies, nativeArguments, applySigning, readLocalSigning } =
+    require('../../../scripts/tools/ohos_hvigor.cjs');
 
 // DevEco 直接构建时没有 just 导出的环境变量；SDK 路径从 local.properties 读取，
 // 只作为 CMake 参数传给 Cargokit 子进程，不修改 Hvigor daemon 的环境。
@@ -21,6 +22,14 @@ hvigor.nodesEvaluated(() => {
             ...nativeArguments(toolchain)];
         context.setBuildProfileOpt(profile);
     });
+});
+
+// 签名材料位于 Git 忽略的 .sign/ohos/hvigor-signing.json，只在内存中按构建模式注入。
+hvigor.nodesEvaluated(() => {
+    const local = readLocalSigning(path.resolve(__dirname, '../../..'));
+    if (!local) return;
+    const context = hvigor.getRootNode().getContext(OhosPluginId.OHOS_APP_PLUGIN) as OhosAppContext;
+    context.setBuildProfileOpt(applySigning(context.getBuildProfileOpt(), context.getBuildMode(), local));
 });
 
 export default {
