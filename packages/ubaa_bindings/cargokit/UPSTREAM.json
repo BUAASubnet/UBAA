@@ -17,7 +17,7 @@
     "build_tool/lib/src/build_gradle.dart": "63e63418216565bae8b1e1c3fa50b8c872f7706b689d2b5b11f6e2d6e3a66349",
     "build_tool/lib/src/build_pod.dart": "eef48296bfbce61164c71596775c4400f6a15441d7895dbca1f7f264746f53e7",
     "build_tool/lib/src/build_tool.dart": "8f93b6df784f67375568775de72641a3e32e25cdca89a798bf603615ef1e9d55",
-    "build_tool/lib/src/builder.dart": "aee9a3fd54f2f8f1901948c1b4a3cf32f6775653817d93881ca90c28fab18570",
+    "build_tool/lib/src/builder.dart": "20b32d309a042135cb24333f66be9b14de3af51d994e207d935f396e3d006d2c",
     "build_tool/lib/src/cargo.dart": "dbd19f431dc2a3347b64b23c06929e88d0ae0077b173e70016648b20b5e67741",
     "build_tool/lib/src/crate_hash.dart": "4fbe239a8d42faede8c23b57721159980ea57bba21f5f003abc3bec6bf352f68",
     "build_tool/lib/src/environment.dart": "5b6cc946e545e78928b15ffb7eec6a7ea73227f1e3c0aa85323d42cf3e4147cb",
@@ -32,7 +32,7 @@
     "build_tool/pubspec.yaml": "b49e13fa7bd97fc05b9ff40eb58ae749981c1b7f1ca81b7ef54db542c1c04d3f",
     "cmake/cargokit.cmake": "e355cd8c6f580fe24a7bd1821270e851524eefa748a8cd3b69bd55f75190004e",
     "cmake/resolve_symlinks.ps1": "5a14a8bbea2ff777a761d47e223cac0a1f52747fd188eb495402ef3c8a0dd60f",
-    "gradle/plugin.gradle": "d6f1cc5f86eeb374547610ac924e013fb985cfde9bd1071052a99d5ca7b062f8",
+    "gradle/plugin.gradle": "6aee989579b0cdb038e47a2ff7cdc0a02a8205ad7200db93028b4e974b130c1c",
     "run_build_tool.cmd": "2b3d17806170a4c2f39d380b3f30a27050c7449a65b1f5aa57dd0acfd9ea174d",
     "run_build_tool.sh": "babfe8e93dce2d0ee88eb3a62a3936b2f09efba58c10e5e8446a80094a3d91b6"
   },
@@ -52,6 +52,16 @@
       "commit": "b7980089cc33505a50a80be3eb52f6575655e858",
       "path": "cmake/cargokit.cmake",
       "summary": "允许以 CMake 参数传入 CARGOKIT_OHOS_SDK_HOME 与 CARGOKIT_FLUTTER_ROOT，只作用于 Cargokit 子进程，供 DevEco 直接构建使用。"
+    },
+    {
+      "commit": null,
+      "path": "build_tool/lib/src/builder.dart",
+      "summary": "改用 cargo rustc --lib --crate-type，按平台只编译接线所需的 cdylib 或 staticlib；zigbuild 路径不变。"
+    },
+    {
+      "commit": null,
+      "path": "gradle/plugin.gradle",
+      "summary": "debug 构建不再强行追加 android-x86/x64，与 Flutter 3.41 的目标平台列表一致。"
     },
     {
       "commit": null,

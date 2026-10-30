@@ -58,6 +58,11 @@ url = "2.5.7"
 zeroize = "1.9.0"
 flutter_rust_bridge = "=2.13.0"
 
+# 开发与测试构建只保留文件名和行号，崩溃堆栈仍可定位；需要查看变量时
+# 临时用 CARGO_PROFILE_DEV_DEBUG=true 构建。Cargokit 的移动端构建同样适用。
+[profile.dev]
+debug = "line-tables-only"
+
 [workspace.lints.rust]
 unsafe_code = "forbid"
 unexpected_cfgs = { level = "warn", check-cfg = ['cfg(frb_expand)'] }

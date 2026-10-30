@@ -25,6 +25,9 @@ flutter-ohos *args:
 default:
     @just --list
 
+# 标注 [env("CARGO_INCREMENTAL", "0")] 的门禁只跑一次，不保留增量缓存；
+# 否则每种 feature 组合各积累一份，单日可达数 GiB。日常 Rust 与 Flutter 运行仍保留增量。
+
 # 只读汇总本机工具与锁定版本的差异；不联网、不安装。
 doctor:
     python3 scripts/bootstrap/doctor.py
@@ -43,11 +46,13 @@ refs-bootstrap:
 fmt:
     cargo fmt --all -- --check
 
+[env("CARGO_INCREMENTAL", "0")]
 test:
     just core-test-contract
     cargo test --locked --workspace --exclude ubaa-core
 
 # Core 单元/集成只执行一次；默认配置保留编译、文档与关闭态负向合同。
+[env("CARGO_INCREMENTAL", "0")]
 core-test-contract:
     cargo check --locked -p ubaa-core --no-default-features --all-targets
     cargo test --locked -p ubaa-core --no-default-features --doc
@@ -56,6 +61,7 @@ core-test-contract:
 
 # 日常反馈：可用 base=origin/ubaa2 覆盖本分支已提交改动；默认包含全部本地改动。
 [positional-arguments]
+[env("CARGO_INCREMENTAL", "0")]
 check-changed *args:
     @python3 scripts/lib/recipe.py check-changed "$@"
 
@@ -63,11 +69,13 @@ check-changed *args:
 check-plan *args:
     @python3 scripts/lib/recipe.py check-plan "$@"
 
+[env("CARGO_INCREMENTAL", "0")]
 check:
     just shell-check
     just _rust-shell-contracts
 
 # 维护验收和 CI 使用的严格入口；ShellCheck 缺失或版本不是 0.11.0 时立即失败。
+[env("CARGO_INCREMENTAL", "0")]
 check-strict:
     just shell-check-strict
     just _rust-shell-contracts
@@ -151,10 +159,12 @@ core-live *args:
     bash ./scripts/live/core-live.sh "$@"
 
 # 固定 SDK 下重生成 FRB 绑定并要求零漂移。
+[env("CARGO_INCREMENTAL", "0")]
 flutter-codegen-check:
     bash ./scripts/check/flutter-codegen.sh
 
 # 固定官方 Flutter SDK 下逐 package 执行依赖、静态分析和测试。
+[env("CARGO_INCREMENTAL", "0")]
 flutter-check:
     bash ./scripts/check/flutter-workspace.sh
 
@@ -185,6 +195,7 @@ script-test:
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/directory_names_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/changed_checks_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/cargo_locks_test.py
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/build_cache_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/module_graph_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/toolchain_entry_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/sensitive_test.py
@@ -208,6 +219,15 @@ module-check:
 flutter-build *args:
     @python3 scripts/lib/recipe.py flutter-build "$@"
 
+# 只读显示仓库内各类构建缓存占用；不删除任何文件。
+cache:
+    python3 scripts/build/cache.py show
+
+# 按范围清理可重建缓存，例如 just cache-clean rust-incremental ohos；范围见 just cache。
+[positional-arguments]
+cache-clean *args:
+    @python3 scripts/build/cache.py clean "$@"
+
 # 检查已构建 Flutter 产物结构；macOS 还核验实际签名权限，不执行签名或安装。
 [positional-arguments]
 flutter-artifact-check *args:
@@ -215,6 +235,7 @@ flutter-artifact-check *args:
 
 # 固定 OHOS fork、CLI/API26、native SDK 和 HAP 构建门禁。
 [positional-arguments]
+[env("CARGO_INCREMENTAL", "0")]
 ohos-check *args:
     @python3 scripts/lib/recipe.py ohos-check "$@"
 
@@ -226,5 +247,6 @@ integration-list:
     python3 scripts/check/integration_catalog.py list
 
 [positional-arguments]
+[env("CARGO_INCREMENTAL", "0")]
 integration-test *args:
     @python3 scripts/lib/recipe.py integration-test "$@"

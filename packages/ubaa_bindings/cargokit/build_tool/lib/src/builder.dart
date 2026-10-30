@@ -8,6 +8,7 @@ import 'package:logging/logging.dart';
 import 'package:path/path.dart' as path;
 
 import 'android_environment.dart';
+import 'artifacts_provider.dart';
 import 'cargo.dart';
 import 'environment.dart';
 import 'options.dart';
@@ -154,26 +155,28 @@ class RustBuilder {
   Future<String> build() async {
     final extraArgs = _buildOptions?.flags ?? [];
     final manifestPath = path.join(environment.manifestDir, 'Cargo.toml');
+    final zigbuild = target.android == null && environment.glibcVersion != null;
+    // UBAA: crate 同时声明 cdylib 与 staticlib，每个平台只编译宿主实际接线的一种，
+    // 避免 Android/OHOS 多生成数百 MB 的 .a、Apple 多生成 .dylib。
+    final crateType = artifactTypeForTarget(target) == AritifactType.staticlib
+        ? 'staticlib'
+        : 'cdylib';
     runCommand(
       'rustup',
       [
         'run',
         _effectiveToolchain,
         'cargo',
-        (target.android == null && environment.glibcVersion != null)
-            ? 'zigbuild'
-            : 'build',
+        zigbuild ? 'zigbuild' : 'rustc',
         ...extraArgs,
         '--manifest-path',
         manifestPath,
         '-p',
         environment.crateInfo.packageName,
+        if (!zigbuild) ...['--lib', '--crate-type', crateType],
         if (!environment.configuration.isDebug) '--release',
         '--target',
-        target.rust +
-            ((target.android == null && environment.glibcVersion != null)
-                ? '.${environment.glibcVersion!}'
-                : ""),
+        target.rust + (zigbuild ? '.${environment.glibcVersion!}' : ""),
         '--target-dir',
         environment.targetTempDir,
       ],

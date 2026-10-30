@@ -227,3 +227,26 @@ DevEco 直接构建时没有 just 导出的环境变量，Cargokit 找不到 Dar
 文档和脚本使用独立静态 Cargo 命令锁定扫描，保留 CLI 二进制中原扫描，避免分级后漏掉文档里的未锁定命令。共用脚本检查从 Rust 入口抽出，布局中的 Dart 依赖检查不再重复执行。审查后保留 CLI 与 Bridge 各自的默认编译合同：合并两个宿主会统一 Core feature，可能掩盖另一个宿主误用测试注入面。workspace 测试和默认生产构建也继续保留。
 
 布局检查改为批量读取 Git index blob，分别检查 index 与工作树。原有 42 项 Shell 合同保留，另增加空格路径、无尾换行、隐藏源码及 Git 列举/读取失败的六项反例；本机布局耗时从约 78 秒降至约 1.3 秒。不新增布局基线，验证日志保存在本地忽略目录，耗时和最终验收写入提交说明。
+
+## 2026-10-30：构建缓存从源头限制增长
+
+清理约 123 GiB 后一小时内仓库又长回约 31 GiB。实测主要来源：根 `target` 的增量缓存因门禁的多种 feature 组合
+（默认、`--no-default-features`、`test-contract`、`--all-features`、doc、clippy）同时存在 24 份 `ubaa_core`
+变体；OHOS `.cxx` 是 Cargokit 独立的 Cargo 目录，`flutter clean` 清不到；桥接 crate 同时声明 `cdylib` 与
+`staticlib`，各平台都把两种都编出来；Cargokit Gradle 插件在 debug 下无条件追加 `android-x86`/`android-x64`，
+指定 `--target-platform android-arm64` 或 `flutter run` 到真机时仍编三份 Rust。
+
+处理：门禁 recipe 用 `[env("CARGO_INCREMENTAL", "0")]` 关闭增量（日常 Rust 与 Flutter 运行不受影响）；
+`profile.dev.debug = "line-tables-only"`，保留堆栈行号；Cargokit 改用 Cargo 的 rustc 子命令并传入 `--lib --crate-type`，Apple
+只编 `staticlib`、其余只编 `cdylib`，zigbuild 路径不变；删除 Gradle 插件过时的 debug 架构追加，与 Flutter 3.41
+的平台列表一致。两处 Cargokit 修改登记到 `UPSTREAM.json`。新增 `just cache`/`just cache-clean`，只删除被忽略、
+无受跟踪文件的真实目录，任一目标不安全时整体拒绝；`.ubaa_local` 只显示不清理。
+
+实测（同一机器，清理后重建）：macOS debug 的桥接 `.a` 从 590 MB 降到 325 MB，不再生成 75 MB `.dylib`，
+`build/macos` 从 5.0 GiB 降到 3.1 GiB；Android arm64 debug 只编一种目标、不生成 `.a`，桥接 `.so` 146 MB
+（改前 OHOS 同类产物 342 MB 外加 844 MB `.a`），整次构建 132 秒。
+
+未处理：Core 集成测试仍是每个 `tests/*.rs` 一个二进制。精简调试信息后 `test-contract` 全部测试目标共 17 个、合计 213 MB（单个最大 45 MB），合并收益有限且会触及测试目标登记合同，因此不合并；
+Cargokit 固定使用 `rustup run stable` 而非 `rust-toolchain.toml` 的 1.95.0，目前两者版本相同，属于可复现性问题，
+另行处理。仓库外的模拟器、Gradle 旧版本缓存等不在本入口范围内。
+

@@ -6,7 +6,7 @@
 |---|---|
 | `bootstrap/` | 显式安装 CI 固定 Flutter、建立缺失冻结引用、带版本/哈希锁的 Python 质量环境，本机一站式 `setup.sh`，以及只读核对版本的 `doctor.py` |
 | `check/` | 布局、目录、敏感材料、版本、工具链、依赖闭包、集成登记及按改动检查 |
-| `build/` | 官方 Flutter 平台与 OHOS HAP 构建 |
+| `build/` | 官方 Flutter 平台与 OHOS HAP 构建，以及构建缓存占用查看与分范围清理 `cache.py` |
 | `live/` | 显式获授权的学校只读验证及历史离线测量分析，不提供真实业务写入入口 |
 | `release/` | 依赖/许可证与显式联网 cargo-deny 审计、源码与产物摘要、macOS 权限和无签名发布前置报告 |
 | `tests/`、`tests/checks/` | 临时目录及合成样本中的门禁自测；Flutter 包测试运行器仍保留在 tests 中，分类调整留待后续阶段 |

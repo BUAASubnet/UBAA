@@ -125,6 +125,7 @@ OHOS 宿主与三个 *_ohos 插件不属于官方 Pub workspace 的八个成员�
 | 命令 | 作用 |
 |---|---|
 | `just flutter-build platform=<平台> mode=debug` | 官方目标 host/macos/linux/windows/android-apk/ios-simulator 的原生构建，具体目标由脚本白名单限定 |
+| `just cache`、`just cache-clean <范围…>` | 只读显示仓库内构建缓存占用；按范围删除可重建产物（如 `rust-incremental`、`flutter-macos`、`ohos`），任一目录受跟踪或未被忽略时整体拒绝；`.ubaa_local` 只显示不清理 |
 | `UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug` | 固定 OHOS fork 与 DevEco/API26 的无签名 Debug HAP；无签名模式不能用于发布或实体设备验收 |
 | `just flutter-artifact-check macos <私有绝对路径>/ubaa_flutter.app` | 只读检查产物；macOS 从真实签名读取并要求 Sandbox 和客户端联网权限，不修改或重签 |
 | `just release-preflight <私有绝对路径>/release-report` | 默认 `mode=strict`：干净工作树、空报告目录下生成离线 Dart/OHOS 许可证材料；材料缺口保留报告并以状态 3 阻止发布 |
@@ -153,7 +154,7 @@ verify-live 从被忽略的 `.env.local` 安全读取非空主名称凭据，经
 
 - 实际 refs 校验不联网、不改冻结目录；只有 refs-bootstrap 可以联网建立缺失冻结引用。已有目录错误时停止，不清理或重置敏感参考。
 - 普通检查不访问学校服务。Cargo/Rustup/Flutter 可能补齐工具或依赖缓存，flutter-check 会执行锁定 pub get；依赖源访问与学校请求分别管理。质量 Python 工具缺失时明确失败，安装只经显式 bootstrap。
-- 按改动检查本身只读 Git/pubspec，所选子命令仍可能写缓存。FRB 生成检查的现有写入副作用已在上表说明，不能称所有 check 都只读。
+- 按改动检查本身只读 Git/pubspec，所选子命令仍可能写缓存。门禁 recipe 统一设置 `CARGO_INCREMENTAL=0`，不积累只用一次的增量缓存；日常 Rust 与 Flutter 运行保留增量。开发构建只带行号调试信息，需要查看变量时临时设 `CARGO_PROFILE_DEV_DEBUG=true`。FRB 生成检查的现有写入副作用已在上表说明，不能称所有 check 都只读。
 - 日志、stdout/stderr 和报告遵守[统一日志脱敏规则](conventions.md#日志与诊断脱敏)，禁止全局 trace。仅在已获授权的窄范围诊断使用 RUST_LOG，原始 stderr 不进入共享文档。
 - 锁文件、parser、lint 或生成检查失败时定位原因，不通过放宽规则、删除测试或手改生成物获得通过。upstream_changed 只表示响应不满足已证明合同，不能据此猜字段或绕过挑战。
 
