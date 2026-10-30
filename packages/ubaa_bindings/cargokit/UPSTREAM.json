@@ -30,7 +30,7 @@
     "build_tool/lib/src/verify_binaries.dart": "1f26883a2cc42ce868512f7633cfc145753340cfc4f8012b5507dcbee23361d1",
     "build_tool/pubspec.lock": "d16c36cbd3089b521fab03a8ced72e46f768021438486835233a1f655913372a",
     "build_tool/pubspec.yaml": "b49e13fa7bd97fc05b9ff40eb58ae749981c1b7f1ca81b7ef54db542c1c04d3f",
-    "cmake/cargokit.cmake": "50e180ebede223a760fb85f6277389eeeab72d88957e029f1ddd7823f29a2b70",
+    "cmake/cargokit.cmake": "42e7ca204418e238af4f80c8af89e14cd652386f28baf4a9104f6d4f0a9e5769",
     "cmake/resolve_symlinks.ps1": "5a14a8bbea2ff777a761d47e223cac0a1f52747fd188eb495402ef3c8a0dd60f",
     "gradle/plugin.gradle": "d6f1cc5f86eeb374547610ac924e013fb985cfde9bd1071052a99d5ca7b062f8",
     "run_build_tool.cmd": "2b3d17806170a4c2f39d380b3f30a27050c7449a65b1f5aa57dd0acfd9ea174d",
@@ -47,6 +47,11 @@
       "commit": "c94dbcd207f60342f23d5d550169d2cec9b8b90a",
       "path": "cmake/cargokit.cmake",
       "summary": "manifest_dir 已是绝对路径时不再拼接 CMAKE_CURRENT_SOURCE_DIR，修复 Windows 路径。"
+    },
+    {
+      "commit": "本次提交",
+      "path": "cmake/cargokit.cmake",
+      "summary": "允许以 CMake 参数传入 CARGOKIT_OHOS_SDK_HOME 与 CARGOKIT_FLUTTER_ROOT，只作用于 Cargokit 子进程，供 DevEco 直接构建使用。"
     }
   ]
 }

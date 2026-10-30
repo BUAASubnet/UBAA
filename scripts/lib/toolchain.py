@@ -3,6 +3,7 @@
 import os
 from pathlib import Path
 import shlex
+import subprocess
 import sys
 sys.dont_write_bytecode = True
 from environment import read_values
@@ -14,6 +15,23 @@ def load_environment(root=ROOT):
     if not config.exists():
         return os.environ.copy()
     return read_values(config, environment=os.environ, expand=True)
+
+
+def deveco_environment(environment):
+    """OHOS Flutter 写入 local.properties 时需要 DevEco SDK；布局规则只在 deveco.sh 维护。"""
+    if not environment.get('UBAA_DEVECO_HOME'):
+        return environment
+    result = subprocess.run(
+        ['bash', '-euc', 'source "$1"; ubaa_deveco_layout; printf "%s\\n%s" "$hmos_sdk_home" "$ohos_native_home"',
+         'deveco', str(ROOT / 'scripts/lib/deveco.sh')],
+        env=environment, capture_output=True, text=True)
+    if result.returncode:
+        raise ValueError('无法从 UBAA_DEVECO_HOME 推出 DevEco SDK，请检查 .env.toolchain')
+    hmos_sdk, native_sdk = result.stdout.split('\n')
+    environment = environment.copy()
+    environment.setdefault('DEVECO_SDK_HOME', hmos_sdk)
+    environment.setdefault('OHOS_SDK_HOME', native_sdk)
+    return environment
 
 
 def main():
@@ -34,6 +52,8 @@ def main():
     executable = Path(root) / 'bin' / tool
     if not root or not Path(root).is_absolute() or not executable.is_file():
         raise ValueError(f'请在 .env.toolchain 中设置 {variable} 为包含 bin/{tool} 的 SDK 绝对路径')
+    if command == 'flutter-ohos':
+        environment = deveco_environment(environment)
     os.execvpe(str(executable), [str(executable), *sys.argv[2:]], environment)
 
 

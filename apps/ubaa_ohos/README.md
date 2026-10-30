@@ -80,6 +80,24 @@ UBAA_OHOS_NO_CODESIGN=1 just ohos-check mode=debug
 该模式只允许 `debug`，并明确输出 `entry-default-unsigned.hap`；正式
 `just ohos-check mode=release` 仍必须使用受控签名。
 
+## 在 DevEco 中直接构建
+
+SDK 路径只在根目录 `.env.toolchain` 手写一次（`UBAA_OHOS_FLUTTER_HOME`、`UBAA_DEVECO_HOME`）。
+首次构建或执行 Flutter clean 后，先在本目录运行：
+
+```sh
+just flutter-ohos pub get --enforce-lockfile
+```
+
+它用锁定的 OHOS Flutter 生成 `ohos/local.properties`（`flutter.sdk`、`hwsdk.dir`），不要手工编辑。
+随后在 DevEco 打开 `ohos/` 并同步工程。`hvigorfile.ts` 从 `local.properties` 读取这两个路径，
+推出 native SDK（`hwsdk.dir/default/openharmony/native`），作为 CMake 参数只传给 Cargokit 子进程；
+不读取 `FLUTTER_ROOT` 等环境变量，也不修改 Hvigor daemon 的环境。文件缺失、缺项或 SDK 失效时，
+构建直接失败并提示上述准备命令。当前 Hvigor 会按空格拆分 CMake 参数，因此 SDK 路径不能含空白。
+
+OHOS Flutter 的全局设置 `flutter-ohos config --ohos-sdk` 优先于项目配置写入 `hwsdk.dir`。
+`just doctor` 会核对 `local.properties` 与 `.env.toolchain` 是否一致，不一致时修正全局设置后重新 pub get。
+
 `ohos/local.properties` 只保存本机绝对路径，始终忽略且不得提交。设备 FRB smoke 使用
 `ohos/ohos_device_smoke_main.dart`，只在 `bridgeHello` 返回固定值后输出
 `FRB_OHOS_SMOKE_RESULT=PASS`。

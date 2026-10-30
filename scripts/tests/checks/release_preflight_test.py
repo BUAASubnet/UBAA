@@ -30,9 +30,8 @@ class ReleasePreflightTest(unittest.TestCase):
         (self.root / "scripts/release/dependency_report.py").write_text(
             "import argparse,json,os\nfrom pathlib import Path\n"
             "p=argparse.ArgumentParser();p.add_argument('--output',type=Path);"
-            "p.add_argument('--report-only',action='store_true');p.add_argument('--ohos-evidence');a=p.parse_args()\n"
+            "p.add_argument('--report-only',action='store_true');a=p.parse_args()\n"
             "if os.environ.get('TEST_REPORT_FAILURE'): raise SystemExit(2)\n"
-            "if os.environ.get('UBAA_OHOS_EVIDENCE') != a.ohos_evidence: raise SystemExit(2)\n"
             "(a.output/'license-evidence.json').write_text(json.dumps({'material_status':'partial',"
             "'release_blockers':[{'name':'synthetic-native','reason':'license_missing'}]}))\n"
             "raise SystemExit(0 if a.report_only else 3)\n"
@@ -74,10 +73,6 @@ class ReleasePreflightTest(unittest.TestCase):
     def test_报告模式仍传播真实生成错误(self):
         result, _ = self.run_preflight("report", TEST_REPORT_FAILURE="1")
         self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
-
-    def test_补充OHOS材料参数传给生成器(self):
-        result, _ = self.run_preflight(UBAA_OHOS_EVIDENCE=str(self.base / "materials.json"))
-        self.assertEqual(result.returncode, 3, result.stdout + result.stderr)
 
     def test_未知模式拒绝执行(self):
         result, output = self.run_preflight("unknown")

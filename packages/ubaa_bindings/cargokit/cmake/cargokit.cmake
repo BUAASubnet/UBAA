@@ -32,7 +32,10 @@ function(apply_cargokit target manifest_dir lib_name any_symbol_name)
     else()
         set(CARGOKIT_TARGET_PLATFORM "windows-x64")
     endif()
-    set(CARGOKIT_OHOS_SDK_HOME $ENV{OHOS_SDK_HOME})
+    # Hvigor 通过 CMake 参数传入路径，参数改变时会重新配置 Ninja。
+    if (NOT DEFINED CARGOKIT_OHOS_SDK_HOME)
+        set(CARGOKIT_OHOS_SDK_HOME $ENV{OHOS_SDK_HOME})
+    endif()
 
     if(IS_ABSOLUTE "${manifest_dir}")
         set(CARGOKIT_MANIFEST_DIR "${manifest_dir}")
@@ -51,6 +54,11 @@ function(apply_cargokit target manifest_dir lib_name any_symbol_name)
         "CARGOKIT_ROOT_PROJECT_DIR=${CMAKE_SOURCE_DIR}"
         "CARGOKIT_OHOS_SDK_HOME=${CARGOKIT_OHOS_SDK_HOME}"
     )
+
+    # 仅影响当前 Cargokit 子进程，不修改 Hvigor daemon 或其他平台环境。
+    if (DEFINED CARGOKIT_FLUTTER_ROOT)
+        list(APPEND CARGOKIT_ENV "FLUTTER_ROOT=${CARGOKIT_FLUTTER_ROOT}")
+    endif()
 
     if (WIN32)
         set(SCRIPT_EXTENSION ".cmd")

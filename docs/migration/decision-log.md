@@ -200,3 +200,22 @@ pubspec 锁文件摘要。没有使用方读取 SBOM；Rust 依赖的许可与�
 与锁定版本不符。新增 `just setup`（显式联网，已一致项跳过，不改写已有 SDK 或 `.env.toolchain`）和只读的
 `just doctor`。暂不引入 mise：它无法管理 OHOS fork、DevEco 和 Flutter 提交锁定，引入后还需迁移 CI 与
 `versions.env` 的全部读取方，收益不足以抵消第二套版本来源的风险。
+
+## 2026-10-30：OHOS 工具链收成一条单链
+
+DevEco 直接构建时没有 just 导出的环境变量，Cargokit 找不到 Dart 和 native SDK。另一轮未提交的修复让 Hvigor
+优先读 `FLUTTER_ROOT`/`OHOS_SDK_HOME`、缺项再调用 Python 解析 `.env.toolchain`，同一组 SDK 路径因此分散在
+`.env.toolchain`、环境变量、`local.properties`、`ohos-json` 接口和手写材料清单五处，`FLUTTER_ROOT` 还可能
+让 OHOS 构建悄悄用上官方 Flutter。
+
+现在只保留一条链：`.env.toolchain` → `just flutter-ohos`（从 `UBAA_DEVECO_HOME` 导出 `DEVECO_SDK_HOME`、
+`OHOS_SDK_HOME`）→ OHOS Flutter 生成的 `ohos/local.properties` → `hvigorfile.ts` 读取 `flutter.sdk` 与
+`hwsdk.dir`，以 CMake 参数只传给 Cargokit 子进程。Flutter 自己的 hvigor 插件本就读取该文件。OHOS Flutter 的
+全局 `ohos-sdk` 设置优先于环境变量写入 `hwsdk.dir`，由 `just doctor` 核对与 `.env.toolchain` 一致。删除手抄的
+`local.properties.example`。
+
+发布预检不再读取 `UBAA_OHOS_EVIDENCE` 手写清单：embedding HAR 的许可证从提交等于 `OHOS_FLUTTER_COMMIT` 的
+锁定 SDK 收集，来源记为新增的 `OHOS_FLUTTER_REMOTE`。实测仍为 324 条材料、0 项缺口，并多收集了 HAR 附带的
+`LICENSE.flutter_har_zip.md`。`packages/ubaa_bindings/ohos/oh-package-lock.json5` 与其他 OHOS 包一致改为忽略，
+它只锁定仓库内的类型声明，每次构建都会被写入本机 SDK 路径。OHOS fork 构建时会移走受跟踪的
+`buildinfo.json5` 模板，`ohos.sh` 构建后自动恢复。Cargokit 的本地修改登记到 `UPSTREAM.json`。

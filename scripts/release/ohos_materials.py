@@ -1,70 +1,41 @@
-"""校验显式 OHOS 材料映射，区分仓库类型声明与原生产物。"""
+"""OHOS 原生依赖材料：Flutter embedding HAR 由锁定 SDK 推导，仓库类型声明单独记录。"""
 import hashlib
-import json
 from pathlib import Path
-import re
 import subprocess
-from urllib.parse import urlsplit
 
 import json5
+
+FLUTTER_HAR = '@ohos/flutter_ohos'
 
 
 def digest(path):
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def checked_file(base, entry):
-    path = base / entry['path']
-    if not path.is_file() or not path.stat().st_size or digest(path) != entry['sha256']:
-        raise ValueError('OHOS 材料缺失、为空或摘要不匹配')
-    return path
-
-
-def load_evidence(path, workspace, manifests, output):
-    """材料属于显式输入声明；校验文件一致性，不推断二进制构建来源。"""
-    if path is None:
-        return {}
-    data = json.loads(path.read_text())
-    if data.get('schema') != 1 or not isinstance(data.get('artifacts'), list):
-        raise ValueError('OHOS 材料清单格式无效')
-    allowed = {p.relative_to(workspace).as_posix(): p for p in manifests}
-    result = {}
-    for entry in data['artifacts']:
-        source = entry['source']
-        url = urlsplit(source['repository'])
-        if (url.scheme != 'https' or not url.hostname or url.username or url.password
-                or url.query or url.fragment or not re.fullmatch(r'[0-9a-f]{40}', source['revision'])):
-            raise ValueError('OHOS 来源必须包含公开 HTTPS 仓库与完整提交')
-        if not isinstance(entry['version'], str) or not entry['version']:
-            raise ValueError('OHOS 材料必须声明版本')
-        artifact = checked_file(path.parent, entry['artifact'])
-        if not entry['licenses'] or not entry['references']:
-            raise ValueError('OHOS 材料必须包含许可证正文与使用方')
-        files = []
-        for item in entry['licenses']:
-            license_path = checked_file(path.parent, item)
-            relative = Path('licenses') / f'{digest(license_path)}.txt'
-            (output / relative).parent.mkdir(parents=True, exist_ok=True)
-            (output / relative).write_bytes(license_path.read_bytes())
-            files.append({'name': license_path.name, 'sha256': digest(license_path),
-                          'artifact': relative.as_posix()})
-        record = {'ecosystem': 'ohos-dependency', 'name': entry['name'], 'version': entry['version'],
-                  'scope': 'native-artifact', 'artifact_sha256': digest(artifact),
-                  'source_url': source['repository'], 'revision': source['revision'],
-                  'provenance': 'explicit-evidence', 'files': files, 'references': [],
-                  'review_status': '材料映射为显式来源声明；未验证构建来源或进行法律审核',
-                  'evidence_status': 'collected'}
-        for reference in entry['references']:
-            manifest = allowed.get(reference['manifest'])
-            if manifest is None or digest(manifest) != reference['sha256']:
-                raise ValueError('OHOS 材料使用方不存在或声明已变化')
-            dependencies = json5.loads(manifest.read_text()).get('dependencies', {})
-            key = (reference['manifest'], entry['name'])
-            if entry['name'] not in dependencies or key in result:
-                raise ValueError('OHOS 材料使用方依赖不存在或重复映射')
-            record['references'].append(reference['manifest'])
-            result[key] = record
-    return result
+def sdk_material(sdk, pins, output):
+    """HAR 与许可证都来自锁定的 OHOS Flutter SDK；提交不符时不收集，避免错配许可证。"""
+    if not sdk or not Path(sdk).is_dir():
+        return None, '配置 UBAA_OHOS_FLUTTER_HOME 为锁定的 OHOS Flutter SDK'
+    sdk = Path(sdk)
+    head = subprocess.run(['git', '-C', str(sdk), 'rev-parse', 'HEAD'], capture_output=True, text=True)
+    if head.returncode or head.stdout.strip() != pins['OHOS_FLUTTER_COMMIT']:
+        return None, 'UBAA_OHOS_FLUTTER_HOME 不是锁定提交 OHOS_FLUTTER_COMMIT'
+    # SDK 根许可证与 engine 目录中 HAR 附带的许可说明一并收集。
+    licenses = sorted(path for pattern in ('LICENSE*', 'bin/cache/artifacts/engine/ohos-arm64/LICENSE*')
+                      for path in sdk.glob(pattern) if path.is_file() and path.stat().st_size)
+    if not licenses:
+        return None, '锁定 SDK 缺少许可证正文'
+    files = []
+    for path in licenses:
+        relative = Path('licenses') / f'{digest(path)}.txt'
+        (output / relative).parent.mkdir(parents=True, exist_ok=True)
+        (output / relative).write_bytes(path.read_bytes())
+        files.append({'name': path.name, 'sha256': digest(path), 'artifact': relative.as_posix()})
+    return {'ecosystem': 'ohos-dependency', 'name': FLUTTER_HAR, 'version': pins['OHOS_FLUTTER_VERSION'],
+            'scope': 'native-artifact', 'source_url': pins['OHOS_FLUTTER_REMOTE'],
+            'revision': pins['OHOS_FLUTTER_COMMIT'], 'provenance': 'locked-sdk', 'files': files,
+            'references': [], 'review_status': '许可证取自锁定 SDK；未进行法律审核',
+            'evidence_status': 'collected'}, None
 
 
 def type_declarations(workspace, output, manifest, name, requested, inherit):
@@ -102,28 +73,22 @@ def type_declarations(workspace, output, manifest, name, requested, inherit):
             'evidence_status': 'collected' if files else 'license_missing'}
 
 
-def dependencies(workspace, output, manifests, evidence, inherit):
-    mapped = load_evidence(evidence, workspace, manifests, output)
-    records, identities = [], {}
+def dependencies(workspace, output, manifests, sdk, pins, inherit):
+    shared, reason = sdk_material(sdk, pins, output)
+    records = []
     for manifest in manifests:
+        relative = manifest.relative_to(workspace).as_posix()
         for name, requested in sorted(json5.loads(manifest.read_text()).get('dependencies', {}).items()):
-            relative = manifest.relative_to(workspace).as_posix()
-            record = mapped.get((relative, name))
-            if record is None:
-                record = type_declarations(workspace, output, manifest, name, requested, inherit)
+            if name == FLUTTER_HAR and shared is not None:
+                if not shared['references']:
+                    records.append(shared)
+                shared['references'] = sorted(set(shared['references'] + [relative]))
+                continue
+            record = type_declarations(workspace, output, manifest, name, requested, inherit)
             if record is None:
                 record = {'ecosystem': 'ohos-dependency', 'name': name, 'manifest': relative,
                           'references': [relative], 'files': [],
-                          'material_input': '通过 --ohos-evidence 提供产物摘要、来源、使用方声明摘要与许可证正文',
+                          'material_input': reason if name == FLUTTER_HAR else '未知原生依赖，需要补充来源与许可证',
                           'evidence_status': 'native_evidence_missing'}
-            if record.get('artifact_sha256'):
-                identity = (name, record['artifact_sha256'])
-                previous = identities.get(identity)
-                if previous is not None:
-                    if any(previous[k] != record[k] for k in ['version', 'source_url', 'revision', 'files']):
-                        raise ValueError('同一 OHOS 产物的来源或许可证材料相互冲突')
-                    previous['references'] = sorted(set(previous['references'] + record['references']))
-                    continue
-                identities[identity] = record
             records.append(record)
     return records

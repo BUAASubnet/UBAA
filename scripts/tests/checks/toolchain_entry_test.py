@@ -58,6 +58,28 @@ class ToolchainEntryTest(unittest.TestCase):
                     self.assertIn(variable, result.stderr)
                     self.assertIn('.env.toolchain', result.stderr)
 
+    def test_flutter_ohos导出DevEco_SDK且外部环境优先(self):
+        shutil.copyfile(ROOT / 'scripts/lib/deveco.sh', self.root / 'scripts/lib/deveco.sh')
+        deveco = self.root / 'deveco'
+        (deveco / 'sdk').mkdir(parents=True)
+        program = self.sdk / 'bin' / 'flutter'
+        program.write_text('#!/usr/bin/env python3\nimport json,os\n'
+                           'print(json.dumps([os.environ.get("DEVECO_SDK_HOME"), os.environ.get("OHOS_SDK_HOME")]))\n')
+        self.configure()
+        with (self.root / '.env.toolchain').open('a') as stream:
+            stream.write(f'UBAA_DEVECO_HOME="{deveco}"\n')
+        result = self.run_entry('flutter-ohos', direct=True)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout),
+                         [str(deveco / 'sdk'), str(deveco / 'sdk/default/openharmony/native')])
+        self.environment['OHOS_SDK_HOME'] = '/external/native'
+        result = self.run_entry('flutter-ohos', direct=True)
+        self.assertEqual(json.loads(result.stdout)[1], '/external/native')
+        program.write_text('#!/usr/bin/env python3\nimport json,os\n'
+                           'print(json.dumps("DEVECO_SDK_HOME" in os.environ))\n')
+        result = self.run_entry('flutter', direct=True)
+        self.assertEqual(json.loads(result.stdout), False)
+
     def test_参数原样透传且不读取凭据文件(self):
         self.configure()
         arguments = ['--flag', 'has spaces', '', '"quote"', '$(touch forbidden)', '*.dart', '$HOME']

@@ -56,6 +56,12 @@ fi
   "$flutter_bin" build hap "${hap_args[@]}"
 )
 
+# OHOS fork 构建时会把受跟踪的 buildinfo 模板移到被忽略的 rawfile/；flutter clean 后再构建仍需要模板。
+buildinfo=apps/ubaa_ohos/ohos/entry/src/main/resources/base/profile/buildinfo.json5
+if [[ ! -e "$repo_root/$buildinfo" ]]; then
+  git -C "$repo_root" checkout -- "$buildinfo"
+fi
+
 hap_root=$app_root/build/ohos/hap
 hap_path=$(find "$hap_root" -type f -name '*.hap' -print -quit)
 if [[ -z "$hap_path" ]]; then

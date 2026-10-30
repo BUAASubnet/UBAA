@@ -16,6 +16,8 @@ import yaml
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
 from repo import ROOT
+from environment import read_values
+from toolchain import load_environment
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from ohos_materials import dependencies as ohos_dependencies
 
@@ -193,7 +195,7 @@ def release_exit_code(records, report_only=False):
     return 0 if report_only or not release_blockers(records) else RELEASE_BLOCKED_EXIT
 
 
-def ohos_evidence(workspace, output, manifests=None, evidence=None):
+def ohos_evidence(workspace, output, manifests=None, sdk=None, pins=None):
     """原生分发与其依赖单列；本机 SDK 路径不写入报告。"""
     records = []
     manifests = manifests if manifests is not None else tracked(workspace, '**/oh-package.json5')
@@ -216,25 +218,24 @@ def ohos_evidence(workspace, output, manifests=None, evidence=None):
                   'review_status': '未进行法律审核',
                   'evidence_status': 'collected' if files else 'license_missing'}
         records.append(record)
-    records.extend(ohos_dependencies(workspace, output, manifests, evidence, collect_workspace_license))
+    pins = pins if pins is not None else read_values(workspace / 'scripts/tools/versions.env')
+    records.extend(ohos_dependencies(workspace, output, manifests, sdk, pins, collect_workspace_license))
     return records
 
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output', type=Path, required=True)
-    parser.add_argument('--ohos-evidence', type=Path, help='显式 OHOS 来源与许可证材料清单')
     parser.add_argument('--report-only', action='store_true',
                         help='保留报告并允许材料缺口；不作为发布前置通过')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
-    records = dart_evidence(ROOT, args.output) + ohos_evidence(ROOT, args.output, evidence=args.ohos_evidence)
+    records = dart_evidence(ROOT, args.output) + ohos_evidence(ROOT, args.output, sdk=load_environment().get('UBAA_OHOS_FLUTTER_HOME'))
     missing = sum(record['evidence_status'] != 'collected' for record in records)
     blockers = release_blockers(records)
     report = {'schema': 1, 'material_status': 'partial' if missing else 'collected',
               'review_status': '未进行法律审核；材料收集不等同正式发布批准',
               'incomplete_records': missing, 'records': records,
-              'ohos_evidence_sha256': hashlib.sha256(args.ohos_evidence.read_bytes()).hexdigest() if args.ohos_evidence else None,
               'release_blockers': blockers}
     (args.output / 'license-evidence.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     lines = ['Dart/OHOS 许可证材料清单（名称、锁定版本、来源及正文摘要）',

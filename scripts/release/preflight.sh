@@ -52,13 +52,6 @@ bash ./scripts/check/sensitive.sh
 # 固定工具离线使用；依赖准备由显式 bootstrap 完成。Rust 依赖许可由 cargo-deny 检查。
 dependency_status=0
 dependency_args=(--output "$output_dir")
-if [[ -n "${UBAA_OHOS_EVIDENCE:-}" ]]; then
-  if [[ "$UBAA_OHOS_EVIDENCE" != /* ]]; then
-    printf 'error: OHOS 材料清单必须是绝对路径\n' >&2
-    exit 2
-  fi
-  dependency_args+=(--ohos-evidence "$UBAA_OHOS_EVIDENCE")
-fi
 if [[ "$mode" == report ]]; then
   dependency_args+=(--report-only)
 fi

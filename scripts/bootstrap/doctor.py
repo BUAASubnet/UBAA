@@ -10,7 +10,7 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
 from environment import read_values
 from repo import ROOT
-from toolchain import load_environment
+from toolchain import deveco_environment, load_environment
 
 
 def run(command, cwd=ROOT, env=None):
@@ -41,6 +41,23 @@ def git_head(path):
     return output.strip() if output else None
 
 
+def ohos_local_properties(environment):
+    """DevEco 直接构建只读 local.properties；它必须与 .env.toolchain 指向同一组 SDK。"""
+    path = ROOT / 'apps/ubaa_ohos/ohos/local.properties'
+    if not path.is_file() or not environment.get('UBAA_OHOS_FLUTTER_HOME'):
+        return None
+    values = dict(line.split('=', 1) for line in path.read_text().splitlines() if '=' in line)
+    try:
+        expected_sdk = deveco_environment(environment).get('DEVECO_SDK_HOME')
+    except ValueError:
+        return None
+    same = lambda a, b: bool(a and b) and Path(a).resolve() == Path(b).resolve()
+    if same(values.get('flutter.sdk'), environment['UBAA_OHOS_FLUTTER_HOME']) and \
+            same(values.get('hwsdk.dir'), expected_sdk):
+        return '一致'
+    return '不一致'
+
+
 def collect(environment, pins):
     """返回 (名称, 是否必需, 期望, 实际)；实际为 None 表示缺失。"""
     rust = run(['rustup', 'toolchain', 'list'])
@@ -63,9 +80,10 @@ def collect(environment, pins):
          version_of(find('shellcheck', environment, 'UBAA_SHELLCHECK_BIN'), r'version: (\S+)')),
         ('cargo-deny', False, pins['CARGO_DENY_VERSION'],
          version_of(find('cargo-deny', environment), r'cargo-deny (\S+)')),
-        ('Node.js（文档站）', False, pins['NODE_VERSION'] + '+', node),
+        ('Node.js', True, pins['NODE_VERSION'] + '+', node),
         ('OHOS Flutter', False, short(pins['OHOS_FLUTTER_COMMIT']),
          short(git_head(environment.get('UBAA_OHOS_FLUTTER_HOME')))),
+        ('OHOS local.properties', False, '一致', ohos_local_properties(environment)),
         ('DevEco', False, '已配置', '已配置' if environment.get('UBAA_DEVECO_HOME')
          and Path(environment['UBAA_DEVECO_HOME']).is_dir() else None),
     ]
@@ -94,6 +112,9 @@ def main():
         mark = '✓' if ok else ('✗' if required else '-')
         failed += required and not ok
         print(f'{mark} {name:<{width}}  期望 {expected:<14} 实际 {actual or "缺失"}')
+    if any(name == 'OHOS local.properties' and actual == '不一致' for name, _, _, actual in rows):
+        print('OHOS local.properties 与 .env.toolchain 不一致：检查 flutter-ohos config --ohos-sdk，'
+              '然后在 apps/ubaa_ohos 运行 just flutter-ohos pub get', file=sys.stderr)
     if failed:
         print(f'{failed} 项必需工具不符；运行 just setup 或按 docs/development/setup.md 安装', file=sys.stderr)
         return 1

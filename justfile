@@ -179,6 +179,7 @@ script-test:
     bash scripts/tools/python.sh scripts/tests/release_metadata_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/build_record_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/doctor_test.py
+    node --test scripts/tests/checks/ohos_hvigor_test.cjs
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/live/offline_startup/analyze_test.py
 
 # 显式联网准备固定开发依赖；检查入口本身不安装依赖。
