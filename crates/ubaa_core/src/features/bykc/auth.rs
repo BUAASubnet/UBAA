@@ -6,7 +6,6 @@ use serde_json::Value;
 use super::crypto::{decrypt_response, encrypt_request};
 use super::parser::envelope;
 use super::{BykcCredential, error};
-use crate::connection::from_webvpn_url;
 use crate::domain::ConnectionMode;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
@@ -74,6 +73,7 @@ pub(super) fn token_from_valid_target(raw: &str, mode: ConnectionMode) -> Option
             .host_str()
             .is_some_and(|host| host.eq_ignore_ascii_case("bykc.buaa.edu.cn"))
         || !crate::connection::is_valid_auth_target(&parsed, &["bykc.buaa.edu.cn"], true, &[])
+        || parsed.path() != "/cas-login"
     {
         return None;
     }
@@ -107,12 +107,8 @@ pub(super) fn validate_login_target(raw: &str, mode: ConnectionMode) -> Result<(
 }
 
 pub(super) fn resolve_login_target(final_url: &str, location: &str) -> Result<String> {
-    let direct_final = from_webvpn_url(final_url)?;
-    let direct_location = from_webvpn_url(location)?;
-    let base = url::Url::parse(&direct_final).map_err(|_| error("博雅登录跳转地址无效"))?;
-    base.join(&direct_location)
+    crate::connection::business_redirect_target(final_url, location)
         .map(|target| target.to_string())
-        .map_err(|_| error("博雅登录跳转地址无效"))
 }
 
 pub(super) async fn request_api(

@@ -171,7 +171,7 @@
 | 行为列 | 目录化决定 |
 |---|---|
 | 启动/服务 URL | OAuth、`campusAppLogin`、分类、项目、统计、学期、记录、上传和提交地址保持原样。 |
-| 重定向/最终 URL | 十次有界跳转及 query/fragment code 提取原样归入 `auth.rs`。冻结实现和当前 Core 均未提供完整 host 允许集合证据；当前 Core 仅校验每跳使用 HTTP(S)、不含用户信息、使用默认端口，并要求 WebVPN 网关为 HTTPS 默认端口。主机集合仍登记为未决 parity gap，不凭空猜测白名单；残留风险和补证条件见 Ygdk 来源记录。 |
+| 重定向/最终 URL | 十次有界跳转及 query/fragment code 提取归入 `auth.rs`。2026-10-30 复核后只允许冻结已证的 HTTPS app/ygdk 默认端口，WebVPN 内层同样验证，未知主机拒绝。code 只取 ygdk 已证回调并单次百分号解码；真实完整跳转链兼容性尚未验证。行为修改与结构整理分开记录，见[认证安全复核](source-parity-auth-review-2026-10-30.md)。 |
 | Cookie/会话范围 | `{uid,token}` 仍为路线内存状态，不复用主认证 Cookie、不持久化。 |
 | HTTP 方法与精确参数 | 概览固定分页、记录分页、上传 multipart 和提交表单全部保持冻结字段。 |
 | Header/正文编码 | `X-Requested-With`、form 编码、multipart boundary/filename/MIME 与 query/body 双写不改。 |

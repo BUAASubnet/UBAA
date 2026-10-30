@@ -17,6 +17,8 @@ use crate::domain::{
     ActionEligibility, BykcCourseCategory, BykcCourseStatus, BykcCourseSubCategory, BykcSignRequest,
 };
 
+mod auth_redirects;
+
 #[test]
 fn webvpn_绝对跳转先还原为直连目标() {
     let final_url = to_webvpn_url(LOGIN_URL).expect("包装博雅登录地址");
@@ -40,16 +42,43 @@ fn webvpn_相对跳转按还原后的业务地址解析() {
 }
 
 #[test]
+fn webvpn_普通上级相对路径仍以业务目录为基址() {
+    let final_url = to_webvpn_url(LOGIN_URL).unwrap();
+    assert_eq!(
+        resolve_login_target(&final_url, "../../../cas-login?token=fixture").unwrap(),
+        "https://bykc.buaa.edu.cn/cas-login?token=fixture"
+    );
+}
+
+#[test]
+fn 网关根相对包装不能借用当前博雅主机提取令牌() {
+    let base = to_webvpn_url(LOGIN_URL).unwrap();
+    for upstream in [
+        "https://evil.example.invalid/cas-login?token=fixture",
+        "https://bykc.buaa.edu.cn:8443/cas-login?token=fixture",
+    ] {
+        let wrapped = to_webvpn_url(upstream).unwrap();
+        let relative = wrapped.strip_prefix("https://d.buaa.edu.cn").unwrap();
+        let target = resolve_login_target(&base, relative).unwrap();
+        assert_eq!(target, upstream);
+        assert!(validate_login_target(&target, crate::domain::ConnectionMode::WebVpn).is_err());
+        assert!(token_from_valid_target(&target, crate::domain::ConnectionMode::WebVpn).is_none());
+    }
+}
+
+#[test]
 fn 博雅令牌必须来自已验证的业务登录目标() {
     assert_eq!(
         token_from_valid_target(
-            "https://bykc.buaa.edu.cn/sscv/cas/login?token=token-safe",
+            "https://bykc.buaa.edu.cn/cas-login?token=token-safe",
             crate::domain::ConnectionMode::Direct,
         )
         .as_deref(),
         Some("token-safe")
     );
     for candidate in [
+        "https://bykc.buaa.edu.cn/sscv/cas/login?token=token-leak",
+        "https://bykc.buaa.edu.cn/other?token=token-leak",
         "https://evil.example.invalid/?token=token-leak",
         "https://sso.buaa.edu.cn/login?token=token-leak",
         "https://user:pass@bykc.buaa.edu.cn/?token=token-leak",

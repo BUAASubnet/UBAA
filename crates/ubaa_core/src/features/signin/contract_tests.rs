@@ -2,6 +2,27 @@ use super::parse_today;
 use crate::domain::ActionEligibility;
 
 #[test]
+fn 网关根相对跳转按实际签到目标验证() {
+    let base =
+        crate::connection::to_webvpn_url("https://iclass.buaa.edu.cn:8346/?type=jumpMyCenter")
+            .unwrap();
+    for (upstream, allowed) in [
+        ("https://iclass.buaa.edu.cn:8346/?loginName=fixture", true),
+        ("https://evil.example.invalid/?loginName=fixture", false),
+        (
+            "https://sso.buaa.edu.cn:8346/login?loginName=fixture",
+            false,
+        ),
+    ] {
+        let wrapped = crate::connection::to_webvpn_url(upstream).unwrap();
+        let location = wrapped.strip_prefix("https://d.buaa.edu.cn").unwrap();
+        let target = crate::connection::business_redirect_target(&base, location).unwrap();
+        assert_eq!(target.as_str(), upstream);
+        assert_eq!(super::ensure_login_host(&target).is_ok(), allowed);
+    }
+}
+
+#[test]
 fn 登录跳转校验允许固定业务端口并拒绝用户信息与未声明端口() {
     for url in [
         "https://iclass.buaa.edu.cn:8346/?loginName=fixture",
@@ -13,6 +34,8 @@ fn 登录跳转校验允许固定业务端口并拒绝用户信息与未声明�
     for url in [
         "https://user@sso.buaa.edu.cn/login",
         "https://sso.buaa.edu.cn:8443/login",
+        "https://sso.buaa.edu.cn:8346/login",
+        "https://sso.buaa.edu.cn:8347/login",
         "http://iclass.buaa.edu.cn:8346/?loginName=fixture",
         "https://iclass.buaa.edu.cn:9999/?loginName=fixture",
     ] {

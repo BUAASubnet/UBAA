@@ -478,7 +478,7 @@ impl HttpTransport for CourseActionTransport {
             "/sscv/cas/login" => {
                 return Ok(HttpResponse::new(
                     302,
-                    "https://bykc.buaa.edu.cn/sscv/cas/login?token=token-safe",
+                    "https://bykc.buaa.edu.cn/cas-login?token=token-safe",
                     Vec::new(),
                 ));
             }

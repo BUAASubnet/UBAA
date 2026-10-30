@@ -20,7 +20,9 @@ impl HttpTransport for DetailTransport {
         if path.ends_with("/sscv/cas/login") {
             return Ok(HttpResponse::new(
                 302,
-                format!("{}?token=synthetic-detail", request.url),
+                request
+                    .url
+                    .replace("/sscv/cas/login", "/cas-login?token=synthetic-detail"),
                 Vec::new(),
             ));
         }

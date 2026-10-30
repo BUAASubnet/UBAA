@@ -95,38 +95,65 @@ async fn oauth_code(runtime: &mut ClientRuntime, generation: u64) -> Result<Stri
 
 pub(super) fn validate_oauth_target(raw: &str, mode: ConnectionMode) -> Result<()> {
     let parsed = url::Url::parse(raw).map_err(|_| error("阳光打卡登录跳转地址无效"))?;
-    let is_gateway = parsed
-        .host_str()
-        .is_some_and(|host| host.eq_ignore_ascii_case("d.buaa.edu.cn"));
+    let is_gateway = parsed.host_str().is_some_and(|host| {
+        host.trim_end_matches('.')
+            .eq_ignore_ascii_case("d.buaa.edu.cn")
+    });
     let valid = if is_gateway {
-        mode == ConnectionMode::WebVpn && crate::connection::is_valid_webvpn_gateway(&parsed)
+        if mode != ConnectionMode::WebVpn || !crate::connection::is_valid_webvpn_gateway(&parsed) {
+            false
+        } else {
+            // 网关本身安全不等于其编码的上游安全。先解包，再检查内层
+            // authority，防止自定义端口或用户信息借助 WebVPN 外壳进入请求。
+            crate::connection::from_webvpn_url(raw)
+                .ok()
+                .and_then(|decoded| url::Url::parse(&decoded).ok())
+                .is_some_and(|decoded| is_oauth_upstream(&decoded))
+        }
     } else {
-        crate::connection::is_safe_redirect_authority(&parsed)
+        is_oauth_upstream(&parsed)
     };
     if valid {
         Ok(())
     } else {
-        Err(error("阳光打卡登录跳转包含不安全的协议、用户信息或端口"))
+        Err(error("阳光打卡登录跳转目标未通过验证"))
     }
 }
 
+fn is_oauth_upstream(url: &url::Url) -> bool {
+    crate::connection::is_valid_auth_target(
+        url,
+        &["app.buaa.edu.cn", "ygdk.buaa.edu.cn"],
+        true,
+        &[],
+    )
+}
+
 pub(super) fn code_from_url(raw: &str) -> Option<String> {
-    let url = url::Url::parse(raw).ok()?;
-    url.query_pairs()
-        .find(|(k, _)| k == "code")
-        .map(|(_, v)| v.into_owned())
-        .filter(|value| !value.trim().is_empty())
-        .or_else(|| {
-            let query = url.fragment()?.split_once('?')?.1;
-            url::form_urlencoded::parse(query.as_bytes())
-                .find(|(key, _)| key == "code")
-                .map(|(_, value)| value.into_owned())
+    let direct = crate::connection::from_webvpn_url(raw).ok()?;
+    let url = url::Url::parse(&direct).ok()?;
+    if !crate::connection::is_valid_auth_target(&url, &["ygdk.buaa.edu.cn"], true, &[])
+        || url.path() != "/"
+    {
+        return None;
+    }
+    let from_query = |query: &str| {
+        query.split('&').find_map(|pair| {
+            let (key, value) = pair.split_once('=')?;
+            (key == "code")
+                .then(|| percent_decode(value))
                 .filter(|value| !value.trim().is_empty())
         })
+    };
+    url.query().and_then(from_query).or_else(|| {
+        let (route, query) = url.fragment()?.split_once('?')?;
+        (route == "/home").then(|| from_query(query)).flatten()
+    })
 }
 
 pub(super) fn percent_decode(value: &str) -> String {
-    let encoded = format!("value={value}");
+    // 冻结 Ktor 解码只处理百分号，不将 + 当空格，也不将值中的 & 当分隔符。
+    let encoded = format!("value={}", value.replace('&', "%26").replace('+', "%2B"));
     url::form_urlencoded::parse(encoded.as_bytes())
         .next()
         .map_or_else(|| value.to_owned(), |(_, v)| v.into_owned())

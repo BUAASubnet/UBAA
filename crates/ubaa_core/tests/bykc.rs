@@ -542,7 +542,7 @@ impl HttpTransport for BykcWriteTransport {
         match path.as_str() {
             "/sscv/cas/login" => Ok(HttpResponse::new(
                 302,
-                "https://bykc.buaa.edu.cn/sscv/cas/login?token=token-safe",
+                "https://bykc.buaa.edu.cn/cas-login?token=token-safe",
                 Vec::new(),
             )),
             "/sscv/choseCourse" | "/sscv/delChosenCourse" | "/sscv/signCourseByUser" => {
@@ -599,7 +599,7 @@ impl HttpTransport for BykcSignPreflightTransport {
             "/sscv/cas/login" => {
                 return Ok(HttpResponse::new(
                     302,
-                    "https://bykc.buaa.edu.cn/sscv/cas/login?token=token-safe",
+                    "https://bykc.buaa.edu.cn/cas-login?token=token-safe",
                     Vec::new(),
                 ));
             }

@@ -40,7 +40,11 @@ fn bykc_login_request() -> ExpectedRequest {
     ExpectedRequest::new(
         HttpMethod::Get,
         url,
-        HttpResponse::new(302, format!("{url}?token=token-safe"), Vec::new()),
+        HttpResponse::new(
+            302,
+            "https://bykc.buaa.edu.cn/cas-login?token=token-safe",
+            Vec::new(),
+        ),
     )
 }
 

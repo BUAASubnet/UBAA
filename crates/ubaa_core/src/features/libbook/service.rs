@@ -452,37 +452,16 @@ fn is_authentication_message(message: &str) -> bool {
 }
 
 fn final_url_is_authentication(value: &str) -> bool {
-    let direct = crate::connection::from_webvpn_url(value).unwrap_or_else(|_| value.to_owned());
-    url::Url::parse(&direct).is_ok_and(|url| {
-        crate::connection::is_sso_url(&direct)
-            || (crate::connection::is_valid_auth_target(
-                &url,
-                &["booking.lib.buaa.edu.cn"],
-                true,
-                &[],
-            ) && matches!(url.path(), "/login" | "/v4/login/cas"))
-    })
-}
-
-#[cfg(test)]
-mod authentication_url_tests {
-    use super::final_url_is_authentication;
-
-    #[test]
-    fn 图书馆写入只识别安全的认证落点() {
-        assert!(final_url_is_authentication("https://sso.buaa.edu.cn/login"));
-        assert!(final_url_is_authentication(
-            "https://booking.lib.buaa.edu.cn/v4/login/cas"
-        ));
-        for url in [
-            "https://user@sso.buaa.edu.cn/login",
-            "https://sso.buaa.edu.cn:8443/login",
-            "https://evil.example/v4/login/cas",
-            "https://booking.lib.buaa.edu.cn.evil/v4/login/cas",
-        ] {
-            assert!(!final_url_is_authentication(url), "不应误判认证地址：{url}");
-        }
-    }
+    // 写已发送，无法验证落点时不能因成功 JSON 误报成功。
+    let Ok(direct) = crate::connection::from_webvpn_url(value) else {
+        return true;
+    };
+    let Ok(url) = url::Url::parse(&direct) else {
+        return true;
+    };
+    url.host_str().is_some_and(|host| {
+        host.eq_ignore_ascii_case("sso.buaa.edu.cn") || host.eq_ignore_ascii_case("d.buaa.edu.cn")
+    }) || matches!(url.path(), "/login" | "/v4/login/cas")
 }
 
 fn unavailable(message: &'static str) -> UbaaError {
@@ -835,14 +814,7 @@ async fn fetch_cas(runtime: &mut crate::runtime::ClientRuntime) -> Result<String
         let location = response
             .header_first("location")
             .ok_or_else(|| error("图书馆 CAS 登录跳转缺少目标地址"))?;
-        let direct_final = crate::connection::from_webvpn_url(&response.final_url)
-            .unwrap_or_else(|_| response.final_url.clone());
-        let direct_location =
-            crate::connection::from_webvpn_url(location).unwrap_or_else(|_| location.to_string());
-        let target = url::Url::parse(&direct_final)
-            .map_err(|_| error("图书馆登录跳转地址无效"))?
-            .join(&direct_location)
-            .map_err(|_| error("图书馆登录跳转地址无效"))?;
+        let target = crate::connection::business_redirect_target(&response.final_url, location)?;
         if !crate::connection::is_valid_auth_target(
             &target,
             &["sso.buaa.edu.cn", "booking.lib.buaa.edu.cn"],
@@ -909,4 +881,59 @@ fn validated_cas_from_url(raw: &str) -> Option<String> {
         return None;
     }
     cas_from_url(url.as_str())
+}
+
+#[cfg(test)]
+mod authentication_url_tests {
+    use super::final_url_is_authentication;
+
+    #[test]
+    fn 网关根相对跳转验证实际图书馆主机并保留片段凭据() {
+        let base = crate::connection::to_webvpn_url("https://booking.lib.buaa.edu.cn/v4/login/cas")
+            .unwrap();
+        for (upstream, expected) in [
+            (
+                "https://booking.lib.buaa.edu.cn/h5/index.html#/cas/?cas=fixture",
+                Some("fixture"),
+            ),
+            (
+                "https://evil.example.invalid/h5/index.html#/cas/?cas=fixture",
+                None,
+            ),
+            (
+                "https://booking.lib.buaa.edu.cn:8443/h5/index.html#/cas/?cas=fixture",
+                None,
+            ),
+        ] {
+            let wrapped = crate::connection::to_webvpn_url(upstream).unwrap();
+            let location = wrapped.strip_prefix("https://d.buaa.edu.cn").unwrap();
+            let target = crate::connection::business_redirect_target(&base, location).unwrap();
+            assert_eq!(target.as_str(), upstream);
+            assert_eq!(
+                super::validated_cas_from_url(target.as_str()).as_deref(),
+                expected
+            );
+        }
+    }
+
+    #[test]
+    fn 图书馆写入把认证路径和_sso_落点判定为未知() {
+        assert!(final_url_is_authentication("https://sso.buaa.edu.cn/login"));
+        assert!(final_url_is_authentication(
+            "https://booking.lib.buaa.edu.cn/v4/login/cas"
+        ));
+        for url in [
+            "not a URL",
+            "https://d.buaa.edu.cn/wengine-vpn/cookie",
+            "https://user@sso.buaa.edu.cn/login",
+            "https://sso.buaa.edu.cn:8443/login",
+            "https://evil.example/v4/login/cas",
+            "https://booking.lib.buaa.edu.cn.evil/v4/login/cas",
+        ] {
+            assert!(
+                final_url_is_authentication(url),
+                "认证落点必须阻止误报成功：{url}"
+            );
+        }
+    }
 }

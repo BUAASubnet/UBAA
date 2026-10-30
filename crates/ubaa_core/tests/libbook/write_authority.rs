@@ -388,6 +388,34 @@ fn 图书馆预约发送后歧义统一为_outcome_unknown_且_confirm_只发送
                 r#"{"code":1,"data":{"success":true,"message":"不得采信"}}"#.into(),
             ),
         ),
+        (
+            "authentication-userinfo-final-url",
+            Submit::FinalUrl(
+                "https://user@sso.buaa.edu.cn/login",
+                r#"{"code":1,"data":{"success":true,"message":"不得采信"}}"#.into(),
+            ),
+        ),
+        (
+            "authentication-custom-port-final-url",
+            Submit::FinalUrl(
+                "https://sso.buaa.edu.cn:8443/login",
+                r#"{"code":1,"data":{"success":true,"message":"不得采信"}}"#.into(),
+            ),
+        ),
+        (
+            "authentication-path-on-unknown-host",
+            Submit::FinalUrl(
+                "https://evil.example/v4/login/cas",
+                r#"{"code":1,"data":{"success":true,"message":"不得采信"}}"#.into(),
+            ),
+        ),
+        (
+            "invalid-gateway-final-url",
+            Submit::FinalUrl(
+                "http://d.buaa.edu.cn/landing",
+                r#"{"code":1,"data":{"success":true,"message":"不得采信"}}"#.into(),
+            ),
+        ),
     ];
 
     for (case, submit) in cases {

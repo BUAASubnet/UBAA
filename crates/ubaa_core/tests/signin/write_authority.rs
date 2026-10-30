@@ -262,7 +262,28 @@ fn malformed_post_boundary_responses_are_outcome_unknown_and_not_retried() {
                 r#"{"STATUS":0,"ERRMSG":"ok","result":{"stuSignStatus":1}}"#.into(),
             ),
         ),
+        (
+            "authentication-userinfo-final-url",
+            Submit::FinalUrl(
+                "https://user@sso.buaa.edu.cn/login",
+                r#"{"STATUS":0,"ERRMSG":"ok","result":{"stuSignStatus":1}}"#.into(),
+            ),
+        ),
+        (
+            "authentication-custom-port-final-url",
+            Submit::FinalUrl(
+                "https://sso.buaa.edu.cn:8443/login",
+                r#"{"STATUS":0,"ERRMSG":"ok","result":{"stuSignStatus":1}}"#.into(),
+            ),
+        ),
         ("transport", Submit::TransportError),
+        (
+            "invalid-gateway-final-url",
+            Submit::FinalUrl(
+                "http://d.buaa.edu.cn/landing",
+                r#"{"STATUS":0,"ERRMSG":"ok","result":{"stuSignStatus":1}}"#.into(),
+            ),
+        ),
     ] {
         let scenario =
             Scenario::new([today_row(SCHEDULE_ID, "signStatus", "0")]).with_submit(submit);

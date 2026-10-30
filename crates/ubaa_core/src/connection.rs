@@ -398,24 +398,33 @@ pub fn from_webvpn_url(url: &str) -> Result<String> {
     if segments.len() < 2 {
         return Ok(url.to_string());
     }
-    let (scheme, port) = segments[0]
-        .split_once('-')
-        .map_or((segments[0], None), |(scheme, port)| {
-            (scheme, port.parse::<u16>().ok())
-        });
-    if scheme.is_empty() {
-        return Ok(url.to_string());
-    }
+    // 网关自身也有多段路径；只有能解码出主机时才按上游包装解释。
     let Ok(host) = decrypt_host(segments[1]) else {
         return Ok(url.to_string());
+    };
+    let (scheme, port) = match segments[0].split_once('-') {
+        None => (segments[0], None),
+        Some((scheme, suffix)) if !scheme.is_empty() => (
+            scheme,
+            Some(
+                suffix
+                    .parse::<u16>()
+                    .map_err(|_| protocol_error("WebVPN 协议端口段无效"))?,
+            ),
+        ),
+        Some(_) => return Err(protocol_error("WebVPN 协议段无效")),
     };
     let authority = port.map_or_else(
         || format!("{scheme}://{host}"),
         |port| format!("{scheme}://{host}:{port}"),
     );
     // 只移除网关协议与加密主机前缀，保留业务路径的尾斜杠和重复斜杠。
-    let prefix = format!("/{}/{}", segments[0], segments[1]);
-    let path = parsed.path().strip_prefix(&prefix).unwrap_or("");
+    let path = parsed
+        .path()
+        .trim_start_matches('/')
+        .strip_prefix(segments[0])
+        .and_then(|path| path.trim_start_matches('/').strip_prefix(segments[1]))
+        .ok_or_else(|| protocol_error("WebVPN 路径前缀无效"))?;
     let query = parsed
         .query()
         .filter(|query| !query.is_empty())
@@ -425,6 +434,50 @@ pub fn from_webvpn_url(url: &str) -> Result<String> {
         .filter(|fragment| !fragment.is_empty())
         .map_or_else(String::new, |fragment| format!("#{fragment}"));
     Ok(format!("{authority}{path}{query}{fragment}"))
+}
+
+/// 解析业务登录跳转：先识别网关包装，普通相对路径仍基于直连业务地址。
+pub(crate) fn business_redirect_target(current: &str, location: &str) -> Result<Url> {
+    let current = Url::parse(current).map_err(|_| protocol_error("业务跳转基址无效"))?;
+    let explicit_wrapper_path = location.starts_with('/')
+        && location
+            .split('/')
+            .nth(1)
+            .is_some_and(is_webvpn_protocol_segment);
+    if Url::parse(location).is_err() && !location.starts_with("//") && !explicit_wrapper_path {
+        let direct_base = from_webvpn_url(current.as_str())?;
+        let base = Url::parse(&direct_base).map_err(|_| protocol_error("业务跳转基址无效"))?;
+        return if location.is_empty() {
+            Ok(base)
+        } else {
+            base.join(location)
+                .map_err(|_| protocol_error("业务跳转目标无效"))
+        };
+    }
+    let routed = current
+        .join(location)
+        .map_err(|_| protocol_error("业务跳转目标无效"))?;
+    let decoded = from_webvpn_url(routed.as_str())?;
+    if decoded != routed.as_str() {
+        return Url::parse(&decoded).map_err(|_| protocol_error("业务跳转上游地址无效"));
+    }
+    if routed.host_str() == Some(WEBVPN_HOST)
+        && routed
+            .path()
+            .split('/')
+            .nth(1)
+            .is_some_and(is_webvpn_protocol_segment)
+    {
+        return Err(protocol_error("业务跳转的 WebVPN 主机载荷无效"));
+    }
+    Ok(routed)
+}
+
+fn is_webvpn_protocol_segment(segment: &str) -> bool {
+    matches!(segment, "http" | "https" | "ws" | "wss")
+        || ["http-", "https-", "ws-", "wss-"]
+            .iter()
+            .any(|prefix| segment.starts_with(prefix))
 }
 
 /// 应用当前连接策略解析一次手动重定向。

@@ -8,7 +8,7 @@
 - 冻结 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`：`src/api/sso/auth.rs`、`api/user/{auth,opt}.rs`、`api/aas/core.rs`、`request.rs`、`store/{cookies,cred}.rs`、`error.rs`。其 WebVPN 主要服务 ClassAPI，不是 UBAA 的全请求路线，不能照搬该 service。
 - 用户 UC HAR 共 131 请求：#24 密码 POST 返回302；#71 status仍为10600；#72 UC激活跳到 HTTP SSO，#74 HTTPS SSO 返回UC ticket回调，#75去ticket，#76落地；#125/#129 status为0。BYXT HAR共90请求：#0根入口指向HTTP；#1浏览器307升级HTTPS；#26 SSO返回带ticket教务回调；#38/#49 currentUser的code为字符串0，数据在datas。独立解析只输出地址主机/路径、参数名和业务code，不读取到日志的实际凭据或资料。
 - 冻结旧版 UC 激活依赖 Ktor 自动跳转，独立 Rust 参考依赖 Reqwest 自动跳转；两者没有覆盖本次 HTTP SSO Location 的显式升级。UBAA2 已手动跳转、禁用 Reqwest 自动跳转、最终核对 UC status，不能直接套用 Kotlin 缺陷结论。UBAA2 当前会原样请求 HTTP SSO，Secure Cookie 因协议不匹配而不发送；WebVPN 包装也会保留 HTTP 上游段。
-- 决策：仅对跳转目标中默认 HTTP 端口的精确 `sso.buaa.edu.cn` 主机升级 HTTPS，网关包装先还原、核对目标后按固定路线重包；保留原始查询编码，不改 service 值和其他主机协议。主登录与业务门户既有白名单、跳转上限分别保留。依据是实际浏览器成功链，优先于冻结源未覆盖的旧行为。2026-10-30 起，认证重定向同时拒绝用户信息和非默认端口；这是针对 Location 注入与网关绕过的安全收紧，若与未覆盖的旧端点行为冲突，必须先补充来源证据再放宽。
+- 决策：仅对跳转目标中默认 HTTP 端口的精确 `sso.buaa.edu.cn` 主机升级 HTTPS，网关包装先还原、核对目标后按固定路线重包；保留原始查询编码，不改 service 值和其他主机协议。主登录与业务门户既有白名单、跳转上限分别保留。依据是实际浏览器成功链，优先于冻结源未覆盖的旧行为。2026-10-30 起，认证重定向同时拒绝用户信息和未声明端口；SSO 只接受默认端口，iClass 仅在自身主机允许来源已声明的 8346/8347，通用 WebVPN codec 继续支持业务自定义端口；这是针对 Location 注入与网关绕过的安全收紧，若与未覆盖的旧端点行为冲突，必须先补充来源证据再放宽。
 
 ## 逐操作对照
 

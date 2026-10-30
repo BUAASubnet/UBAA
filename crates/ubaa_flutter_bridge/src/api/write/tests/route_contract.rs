@@ -195,7 +195,9 @@ impl HttpTransport for BykcTransport {
         if request.url.contains("/cas/login") {
             return Ok(HttpResponse::new(
                 302,
-                format!("{}?token=synthetic", request.url),
+                request
+                    .url
+                    .replace("/sscv/cas/login", "/cas-login?token=synthetic"),
                 Vec::new(),
             ));
         }

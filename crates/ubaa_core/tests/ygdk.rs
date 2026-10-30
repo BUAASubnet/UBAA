@@ -375,7 +375,7 @@ impl HttpTransport for YgdkOptionalTransport {
             _ => return Err(test_error("unexpected ygdk path")),
         };
         let final_url = if path == "/uc/api/oauth/index" {
-            "https://app.buaa.edu.cn/uc/api/oauth/index?code=code-safe".into()
+            "https://ygdk.buaa.edu.cn/#/home?code=code-safe".into()
         } else {
             request.url
         };
@@ -446,7 +446,7 @@ impl HttpTransport for YgdkWriteFailureTransport {
             _ => return Err(test_error("unexpected ygdk path")),
         };
         let final_url = if path == "/uc/api/oauth/index" {
-            "https://app.buaa.edu.cn/uc/api/oauth/index?code=code-safe".into()
+            "https://ygdk.buaa.edu.cn/#/home?code=code-safe".into()
         } else {
             request.url
         };
@@ -495,7 +495,7 @@ impl HttpTransport for YgdkCredentialRefreshTransport {
             _ => return Err(test_error("unexpected ygdk path")),
         };
         let final_url = if path == "/uc/api/oauth/index" {
-            "https://app.buaa.edu.cn/uc/api/oauth/index?code=code-safe".into()
+            "https://ygdk.buaa.edu.cn/#/home?code=code-safe".into()
         } else {
             request.url
         };
@@ -528,7 +528,7 @@ impl HttpTransport for YgdkWriteTransport {
             _ => return Err(test_error("unexpected ygdk path")),
         };
         let final_url = if path == "/uc/api/oauth/index" {
-            "https://app.buaa.edu.cn/uc/api/oauth/index?code=code-safe".into()
+            "https://ygdk.buaa.edu.cn/#/home?code=code-safe".into()
         } else {
             request.url
         };

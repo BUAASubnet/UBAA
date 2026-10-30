@@ -19,6 +19,7 @@ use super::parser::{parse_envelope, parse_items, parse_overview, parse_records};
 use super::read::get_records;
 use super::upload::{build_upload_body, upload_photo};
 use super::write::{normalize_submit_request, parse_submit_result, submit_clockin};
+use crate::connection::to_webvpn_url;
 
 fn valid_submit_request() -> YgdkClockinSubmitRequest {
     YgdkClockinSubmitRequest {
@@ -39,28 +40,37 @@ fn valid_submit_request() -> YgdkClockinSubmitRequest {
 }
 
 #[test]
-fn 阳光打卡_oauth跳转限制协议用户信息和端口但保留未知主机() {
+fn 阳光打卡_oauth只允许已证实主机和安全网关包装() {
     for target in [
-        "https://unknown.example.invalid/callback?code=fixture",
-        "http://unknown.example.invalid/callback?code=fixture",
+        "https://app.buaa.edu.cn/uc/api/oauth/index",
+        "https://ygdk.buaa.edu.cn/#/home?code=fixture",
     ] {
         assert!(validate_oauth_target(target, ConnectionMode::Direct).is_ok());
     }
     for target in [
+        "https://unknown.example.invalid/callback?code=fixture",
+        "http://ygdk.buaa.edu.cn/#/home?code=fixture",
         "ftp://unknown.example.invalid/callback?code=fixture",
         "https://user:pass@unknown.example.invalid/callback?code=fixture",
         "https://unknown.example.invalid:8443/callback?code=fixture",
         "http://d.buaa.edu.cn/callback?code=fixture",
+        "https://d.buaa.edu.cn./callback?code=fixture",
     ] {
         assert!(validate_oauth_target(target, ConnectionMode::Direct).is_err());
     }
-    assert!(
-        validate_oauth_target(
-            "https://D.BUAA.EDU.CN/callback?code=fixture",
-            ConnectionMode::WebVpn,
-        )
-        .is_ok()
-    );
+    let wrapped = to_webvpn_url("https://ygdk.buaa.edu.cn/#/home?code=fixture").unwrap();
+    assert!(validate_oauth_target(&wrapped, ConnectionMode::WebVpn).is_ok());
+    assert!(validate_oauth_target(&wrapped, ConnectionMode::Direct).is_err());
+    for target in [
+        "https://evil.example.invalid/",
+        "https://ygdk.buaa.edu.cn:8443/",
+    ] {
+        let wrapped = to_webvpn_url(target).unwrap();
+        assert!(validate_oauth_target(&wrapped, ConnectionMode::WebVpn).is_err());
+    }
+    let wrapped_custom_port = to_webvpn_url("https://unknown.example.invalid:8443/callback")
+        .expect("生成带自定义端口的 WebVPN 地址");
+    assert!(validate_oauth_target(&wrapped_custom_port, ConnectionMode::WebVpn).is_err());
 }
 
 fn save_session(store: &FileSessionStore, snapshot: &SessionSnapshot) -> crate::error::Result<()> {
@@ -75,6 +85,7 @@ fn save_session(store: &FileSessionStore, snapshot: &SessionSnapshot) -> crate::
     }
 }
 
+mod auth_redirects;
 mod contract;
 mod runtime_guards;
 mod value_contracts;

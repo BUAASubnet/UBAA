@@ -9,6 +9,19 @@ fn 从回调片段查询中提取授权码() {
 }
 
 #[test]
+fn 根路径查询授权码不受无关片段影响() {
+    for suffix in ["", "#", "#/home", "#section"] {
+        assert_eq!(
+            code_from_url(&format!(
+                "https://ygdk.buaa.edu.cn/?code=code+part%26tail%252B{suffix}"
+            ))
+            .as_deref(),
+            Some("code+part&tail%2B")
+        );
+    }
+}
+
+#[test]
 fn 空白回调授权码不会被当作可用凭据() {
     for url in [
         "https://ygdk.buaa.edu.cn/?code=",
@@ -19,8 +32,43 @@ fn 空白回调授权码不会被当作可用凭据() {
 }
 
 #[test]
+fn 授权码只从已证实的阳光回调取值() {
+    for url in [
+        "https://evil.example.invalid/?code=fixture",
+        "https://app.buaa.edu.cn/uc/api/oauth/index?code=fixture",
+        "https://ygdk.buaa.edu.cn/other?code=fixture",
+        "https://ygdk.buaa.edu.cn/#/other?code=fixture",
+        "https://user@ygdk.buaa.edu.cn/#/home?code=fixture",
+        "https://ygdk.buaa.edu.cn:8443/#/home?code=fixture",
+    ] {
+        assert_eq!(code_from_url(url), None, "不应采信该回调");
+    }
+    let wrapped = to_webvpn_url("https://ygdk.buaa.edu.cn/#/home?code=code%2B%26%252B").unwrap();
+    assert_eq!(code_from_url(&wrapped).as_deref(), Some("code+&%2B"));
+    let non_callback = to_webvpn_url("https://ygdk.buaa.edu.cn/other?code=fixture").unwrap();
+    for malformed in [
+        non_callback.replace("/https/", "//https/"),
+        non_callback.replace("/https/", "/https//"),
+    ] {
+        assert_eq!(
+            code_from_url(&malformed),
+            None,
+            "畸形网关前缀不能丢弃业务路径后被识别成回调"
+        );
+    }
+}
+
+#[test]
 fn 解码不含等号的业务令牌值() {
     assert_eq!(percent_decode("token%2Bvalue%2Ftail"), "token+value/tail");
+    assert_eq!(
+        percent_decode("token+value&tail%252B"),
+        "token+value&tail%2B"
+    );
+    assert_eq!(
+        code_from_url("https://ygdk.buaa.edu.cn/#/home?code=code+part%26tail%252B").as_deref(),
+        Some("code+part&tail%2B")
+    );
 }
 
 #[test]

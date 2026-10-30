@@ -554,7 +554,7 @@ impl HttpTransport for OauthGuardMutationTransport {
         }
         let (final_url, body) = match path.as_str() {
             "/uc/api/oauth/index" => (
-                "https://app.buaa.edu.cn/uc/api/oauth/index?code=code-safe".into(),
+                "https://ygdk.buaa.edu.cn/#/home?code=code-safe".into(),
                 Vec::new(),
             ),
             "/api/Front/Clockin/User/campusAppLogin" => (
@@ -617,7 +617,7 @@ impl HttpTransport for GenerationMutationTransport {
             _ => panic!("未预期的阳光打卡 generation 测试请求: {path}"),
         };
         let final_url = if path == "/uc/api/oauth/index" {
-            "https://app.buaa.edu.cn/uc/api/oauth/index?code=code-safe".into()
+            "https://ygdk.buaa.edu.cn/#/home?code=code-safe".into()
         } else {
             request.url
         };

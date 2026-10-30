@@ -238,7 +238,16 @@ fn action_status(value: &Value) -> Option<i64> {
 }
 
 fn final_url_is_authentication(value: &str) -> bool {
-    crate::connection::is_sso_url(value)
+    // 写已发送，无法验证落点时不能因成功 JSON 误报成功。
+    let Ok(direct) = crate::connection::from_webvpn_url(value) else {
+        return true;
+    };
+    let Ok(url) = url::Url::parse(&direct) else {
+        return true;
+    };
+    url.host_str().is_some_and(|host| {
+        host.eq_ignore_ascii_case("sso.buaa.edu.cn") || host.eq_ignore_ascii_case("d.buaa.edu.cn")
+    })
 }
 
 fn parse_timestamp(body: &[u8]) -> Result<String> {
@@ -376,9 +385,7 @@ async fn resolve_login_name(runtime: &mut crate::runtime::ClientRuntime) -> Resu
         }
         let request_url = runtime.url(&direct_url)?;
         let response = runtime.request(HttpRequest::get(request_url)).await?;
-        let final_direct = crate::connection::from_webvpn_url(&response.final_url)
-            .unwrap_or_else(|_| response.final_url.clone());
-        let final_url = url::Url::parse(&final_direct).map_err(|_| invalid_url())?;
+        let final_url = crate::connection::business_redirect_target(&response.final_url, "")?;
         ensure_login_host(&final_url)?;
         if let Some(login_name) = login_name_from_url(final_url.as_str()) {
             return Ok(login_name);
@@ -386,11 +393,7 @@ async fn resolve_login_name(runtime: &mut crate::runtime::ClientRuntime) -> Resu
         let location = response
             .header_first("location")
             .ok_or_else(|| upstream_error("签到登录跳转缺少目标地址"))?;
-        let location_direct =
-            crate::connection::from_webvpn_url(location).unwrap_or_else(|_| location.to_string());
-        let target = url::Url::parse(&final_direct)
-            .and_then(|base| base.join(&location_direct))
-            .map_err(|_| invalid_url())?;
+        let target = crate::connection::business_redirect_target(&response.final_url, location)?;
         ensure_login_host(&target)?;
         direct_url = target.to_string();
     }
@@ -406,12 +409,9 @@ fn login_name_from_url(value: &str) -> Option<String> {
 }
 
 fn ensure_login_host(url: &url::Url) -> Result<()> {
-    if crate::connection::is_valid_auth_target(
-        url,
-        &["iclass.buaa.edu.cn", "sso.buaa.edu.cn"],
-        true,
-        &[8346, 8347],
-    ) {
+    if crate::connection::is_valid_auth_target(url, &["iclass.buaa.edu.cn"], true, &[8346, 8347])
+        || crate::connection::is_valid_auth_target(url, &["sso.buaa.edu.cn"], true, &[])
+    {
         Ok(())
     } else {
         Err(upstream_error("签到登录跳转到未允许的主机"))
@@ -614,18 +614,26 @@ mod tests {
     }
 
     #[test]
-    fn 签到结果只把安全的_sso_地址判定为认证失效() {
+    fn 签到结果把所有_sso_落点判定为认证失效以防止误报成功() {
+        assert!(final_url_is_authentication("not a URL"));
+        assert!(final_url_is_authentication(
+            "https://d.buaa.edu.cn/wengine-vpn/cookie"
+        ));
         assert!(final_url_is_authentication(
             "https://sso.buaa.edu.cn/login?execution=fixture"
         ));
-        for url in [
-            "https://user@sso.buaa.edu.cn/login",
-            "https://sso.buaa.edu.cn:8443/login",
-            "https://sso.buaa.edu.cn.evil.example/login",
-            "https://iclass.buaa.edu.cn/login",
-        ] {
-            assert!(!final_url_is_authentication(url), "不应误判认证地址：{url}");
-        }
+        assert!(final_url_is_authentication(
+            "https://user@sso.buaa.edu.cn/login"
+        ));
+        assert!(final_url_is_authentication(
+            "https://sso.buaa.edu.cn:8443/login"
+        ));
+        assert!(!final_url_is_authentication(
+            "https://sso.buaa.edu.cn.evil.example/login"
+        ));
+        assert!(!final_url_is_authentication(
+            "https://iclass.buaa.edu.cn/login"
+        ));
     }
 
     #[test]
