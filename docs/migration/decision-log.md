@@ -261,3 +261,16 @@ Cargokit 固定使用 `rustup run stable` 而非 `rust-toolchain.toml` 的 1.95.
 用户明确要求项目临时源码、调试脚本、日志、截图和原始调试材料统一放入被忽略的 `.ubaa_local/`，按任务使用独立子目录。本决定更新此前运行媒体必须保存在仓库外的约定，已有历史归档保持原位置。原始材料继续只保留在本地并设置私有访问权限，共享文档仅使用必要的脱敏摘要，不纳入 Git。
 
 截图驱动同步检查真实路径，只允许 `.ubaa_local/` 下的任务子目录，拒绝父目录跳转、仓库其他目录及符号链接越界。关于、照片与方向用例的截图内容和验收范围保持原规则。
+
+## 2026-10-30：完整验收合并原生构建与静态分析
+
+同一台 8 核 macOS 上，冷缓存的完整验收（`just check-changed mode=full`）基线共 1175 秒：Rust 严格检查 434 秒、八包 Flutter 374 秒、原生集成 212 秒、FRB 生成检查 150 秒。只追加一行 Core 改动后重跑，Rust 262 秒、Flutter 235 秒。处理如下，覆盖不减少：
+
+- 原生集成：Flutter 3.41 对每个入口文件各调用一次 `startApp`，一次传多个文件也逐个构建、启动。基线首个文件构建 87 秒，之后每个文件还要 25 至 30 秒重建和启动，测试本体只有 1 至 3 秒。默认集合改为运行时按清单生成被忽略的 `integration_test/.ci_suite/` 聚合入口，各入口在同一应用进程依次运行，Dart define 合并、冲突时拒绝，结束即删除。两个 FFI 入口共用一次 `RustLib.init()`，FRB 不允许重复初始化；`suite=ci-isolated` 保留逐文件运行，用于排查入口间的状态影响。当时五个入口的冷缓存运行连同 macOS 与 Rust 构建一共 184 秒，测试本体 9 秒；启动锁用例随单实例改动删除后剩四个入口，每次仍省去 3 次重建和启动，约 80 秒。
+- 删除 `synthetic/app/smoke_test.dart` 的替身登录用例：原生集成绑定不注册测试输入法，应用没能切到前台时文本输入失效。未改动的基线与新版都在“登录按钮可点”处失败过。同样的流程和断言由 `apps/ubaa_flutter/test/app/smoke_test.dart` 覆盖，同文件的真实 FRB/Core 首页用例继续承担宿主 smoke。
+- Flutter：在根目录执行一次 `pub get`、一次覆盖八包的 `dart format`，以及一次多目录 `flutter analyze`。基线逐包的这三步合计 59 至 81 秒，合并后约 10 秒，诊断集合与逐包分析逐条一致（674 条）。测试仍逐包执行；三包并行的实测为 199 秒，比串行的 175 秒还慢，因为单个 `flutter test` 已按核数并发，所以默认串行，`UBAA_FLUTTER_TEST_JOBS` 留给核数更多的机器。
+- Rust：`cargo tree -e normal,build,features` 显示 `cargo build --workspace` 中的 Core 被 `ubaa_test_support` 统一打开了 `test-contract`，并不是此前记录的默认生产构建。改为分别执行 `cargo build -p ubaa-cli` 与 `cargo build -p ubaa_flutter_bridge`，两个宿主各按默认 feature 链接，Core 默认配置的编译单元与文档测试共用，facade 的 CLI、Bridge 各自 check 保持不变。其余组合各有独立合同，未合并：all-features clippy、默认配置 all-targets check、默认配置下的两条 `compile_fail` 文档测试、`test-contract` 测试。CI 的 `rust-platforms` 仍使用 `cargo build --workspace --all-targets`，留待单独处理。
+- 分级：近期 38 次 `Cargo.toml` 改动中 33 次同时改了 `Cargo.lock`，工作区依赖的版本也写在根清单，所以只放宽单个清单作用不大。现在按锁文件求 Bridge 的依赖闭包（含 dev 依赖，偏大即保守），三类改动只执行完整 Rust 严格检查，不运行原生、Flutter 与 FRB 生成：CLI 清单；锁文件改动未触及该闭包；根清单只改了闭包外的工作区依赖。读不到比较起点、解析失败或改动其他字段时，仍执行完整验收。Core、Bridge 与测试辅助 crate 的清单按原边界保持完整验收。
+- `CARGO_INCREMENTAL=0` 保持不变。开启增量只对小改动的重复运行有利，却会让每种 feature 组合各自积累一份缓存，这正是上一条记录要解决的问题。FRB 生成检查的 `CARGO_BUILD_JOBS=1` 没有找到原因记录，本次未改动。
+
+改动后的完整验收没有在相同条件下再完整计时一遍：用户要求停止测量，集成测试在本机还偶发上述焦点失败。按上面各阶段的实测估算，冷缓存约省 2.5 分钟（集成约 1.5 分钟、Flutter 约 1 分钟），日常 Core 改动后重跑约省 2.5 分钟。
