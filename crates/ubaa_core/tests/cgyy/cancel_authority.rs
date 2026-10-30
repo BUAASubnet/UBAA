@@ -1,6 +1,3 @@
-use std::sync::Arc;
-use std::sync::atomic::{AtomicUsize, Ordering};
-
 use chrono::NaiveDateTime;
 use ubaa_core::facade::testing::HttpMethod;
 use ubaa_core::facade::testing::{
@@ -457,10 +454,9 @@ fn 场馆取消最终发送前会话修订检查失败保留原错误且不误�
         })
         .expect("写入初始脱敏会话");
     let scenario = Scenario::new([detail_response(&allowed_order_row())]);
-    let revision_checks = Arc::new(AtomicUsize::new(0));
-    let guarded_store = ThirdRevisionCheckFails {
+    let guarded_store = AfterAuthorityRevisionCheckFails {
         inner: store,
-        checks: Arc::clone(&revision_checks),
+        scenario: scenario.clone(),
     };
     let mut client =
         RouteClient::with_transport(ConnectionMode::Direct, scenario.clone(), guarded_store)
@@ -477,7 +473,6 @@ fn 场馆取消最终发送前会话修订检查失败保留原错误且不误�
     assert_ne!(error.code, ErrorCode::OutcomeUnknown);
     assert_eq!(scenario.detail_count(), 1);
     assert_eq!(scenario.cancel_count(), 0);
-    assert_eq!(revision_checks.load(Ordering::SeqCst), 4);
     cleanup(root);
 }
 
@@ -623,12 +618,12 @@ fn 场馆取消详情请求只把订单_id_放入路径并保留_get_nocache() {
 }
 
 #[derive(Clone)]
-struct ThirdRevisionCheckFails {
+struct AfterAuthorityRevisionCheckFails {
     inner: FileSessionStore,
-    checks: Arc<AtomicUsize>,
+    scenario: Scenario,
 }
 
-impl SessionStore for ThirdRevisionCheckFails {
+impl SessionStore for AfterAuthorityRevisionCheckFails {
     fn load_versioned(&self) -> Result<VersionedSession> {
         self.inner.load_versioned()
     }
@@ -642,8 +637,7 @@ impl SessionStore for ThirdRevisionCheckFails {
     }
 
     fn is_revision_current(&self, expected_revision: u64) -> Result<bool> {
-        let check = self.checks.fetch_add(1, Ordering::SeqCst);
-        if check == 2 {
+        if self.scenario.detail_count() > 0 {
             Err(UbaaError::new(
                 ErrorCode::InternalError,
                 ErrorKind::Internal,

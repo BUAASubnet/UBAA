@@ -14,12 +14,15 @@ use super::file_safety::{
     restrict_directory, restrict_file_creation, restrict_open_file, session_error, sync_directory,
     validate_directory, validate_open_regular_file, validate_regular_file,
 };
+#[cfg(any(test, feature = "test-contract"))]
 use super::ports::SessionStore;
 use super::storage::{SessionFileLock, TemporaryFile};
 use super::types::{
-    DualSessionMutation, DualSessionSnapshot, RouteSessionSnapshot, SessionMutation,
-    SessionSnapshot, VersionedDualSession, VersionedSession,
+    DualSessionMutation, DualSessionSnapshot, RouteSessionSnapshot, SessionSnapshot,
+    VersionedDualSession,
 };
+#[cfg(any(test, feature = "test-contract"))]
+use super::types::{SessionMutation, VersionedSession};
 
 const MAX_SESSION_FILE_BYTES: usize = 1024 * 1024;
 const REVISION_FILE_BYTES: usize = 17;
@@ -105,7 +108,7 @@ impl FileSessionStore {
                         .checked_add(1)
                         .ok_or_else(|| session_error("session revision is exhausted"))?;
                     write_revision(&mut lock.file, revision)?;
-                    self.save_unlocked(&encode_dual_snapshot(&migrated)?)?;
+                    self.save_unlocked(&encode_snapshot(&migrated)?)?;
                     Some(migrated)
                 }
             }
@@ -142,7 +145,7 @@ impl FileSessionStore {
         if replacement.is_some_and(|snapshot| snapshot.schema_version != 2) {
             return Err(session_error("session format is invalid"));
         }
-        let body = replacement.map(encode_dual_snapshot).transpose()?;
+        let body = replacement.map(encode_snapshot).transpose()?;
         let mut lock = self.acquire_lock()?;
         let current_revision = read_revision(&mut lock.file)?;
         if current_revision != expected_revision {
@@ -160,6 +163,8 @@ impl FileSessionStore {
     }
 }
 
+// 旧格式写入只用于历史快照和测试注入。生产通过双路线协调器写 schema-v2。
+#[cfg(any(test, feature = "test-contract"))]
 impl SessionStore for FileSessionStore {
     fn load_versioned(&self) -> Result<VersionedSession> {
         let mut lock = self.acquire_lock()?;
@@ -208,6 +213,7 @@ impl FileSessionStore {
         Ok(Some(body))
     }
 
+    #[cfg(any(test, feature = "test-contract"))]
     fn load_unlocked(&self) -> Result<Option<SessionSnapshot>> {
         let Some(body) = self.read_body_unlocked()? else {
             return Ok(None);
@@ -333,16 +339,7 @@ fn try_file_lock(file: &File) -> Result<bool> {
     }
 }
 
-fn encode_snapshot(snapshot: &SessionSnapshot) -> Result<Vec<u8>> {
-    let body = serde_json::to_vec_pretty(snapshot)
-        .map_err(|_| session_error("could not encode session"))?;
-    if body.len() > MAX_SESSION_FILE_BYTES {
-        return Err(session_error("encoded session exceeds the allowed size"));
-    }
-    Ok(body)
-}
-
-fn encode_dual_snapshot(snapshot: &DualSessionSnapshot) -> Result<Vec<u8>> {
+fn encode_snapshot(snapshot: &impl serde::Serialize) -> Result<Vec<u8>> {
     let body = serde_json::to_vec_pretty(snapshot)
         .map_err(|_| session_error("could not encode session"))?;
     if body.len() > MAX_SESSION_FILE_BYTES {

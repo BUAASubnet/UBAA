@@ -10,6 +10,59 @@ use crate::runtime::ClientRuntime;
 use super::client::UbaaClient;
 use super::types::{CallerPinned, Operation, Routed, RoutedError, RoutedResult};
 
+/// 已选定路线的会话检查与操作收尾，两种 facade 共用此实现。
+pub(super) struct RouteExecution<'a> {
+    runtime: &'a mut ClientRuntime,
+    auth: &'a mut AuthWorkflow,
+}
+
+impl<'a> RouteExecution<'a> {
+    pub(super) fn new(runtime: &'a mut ClientRuntime, auth: &'a mut AuthWorkflow) -> Self {
+        Self { runtime, auth }
+    }
+
+    pub(super) fn guard_session_ownership(&mut self) -> Result<()> {
+        if !self.runtime.has_local_session() && !self.auth.has_pending_login() {
+            return self.runtime.sync_empty_session_revision();
+        }
+        if let Err(error) = self.runtime.ensure_session_revision() {
+            self.runtime.clear_memory();
+            self.auth.clear();
+            return Err(error);
+        }
+        Ok(())
+    }
+
+    pub(super) fn cleanup_result<T>(&mut self, result: &Result<T>) -> Result<()> {
+        if should_clear_invalidated_route(result) {
+            if self.runtime.has_local_session() {
+                self.runtime.clear_with(|| self.auth.clear())?;
+            } else {
+                self.runtime.clear_memory();
+                self.auth.clear();
+            }
+        }
+        if result
+            .as_ref()
+            .is_err_and(|error| error.code == ErrorCode::InternalError)
+            && !self.runtime.has_local_session()
+        {
+            self.runtime.clear_memory();
+            self.auth.clear();
+        }
+        Ok(())
+    }
+
+    /// 发送后的清理不能覆盖学校写入结果，未发送的操作交回普通收尾。
+    pub(super) fn cleanup_sent_write<T>(&mut self, result: &Result<T>) -> bool {
+        if !self.runtime.take_non_idempotent_boundary_crossed() {
+            return false;
+        }
+        let _ = self.cleanup_result(result);
+        true
+    }
+}
+
 impl UbaaClient {
     /// 为 typed 读取/写入准备解析本次实际路线，不发起业务请求。
     ///
@@ -103,23 +156,12 @@ impl UbaaClient {
 
     pub(super) fn guard_latest_session_ownership(&mut self) -> Result<()> {
         self.clear_on_session_conflict()?;
-        if !self.direct_runtime.has_local_session() && !self.direct_auth.has_pending_login() {
-            self.direct_runtime.sync_empty_session_revision()?;
-        }
-        if !self.webvpn_runtime.has_local_session() && !self.webvpn_auth.has_pending_login() {
-            self.webvpn_runtime.sync_empty_session_revision()?;
-        }
-        if (self.direct_runtime.has_local_session() || self.direct_auth.has_pending_login())
-            && let Err(error) = self.direct_runtime.ensure_session_revision()
-        {
-            self.clear_all_memory();
-            return Err(error);
-        }
-        if (self.webvpn_runtime.has_local_session() || self.webvpn_auth.has_pending_login())
-            && let Err(error) = self.webvpn_runtime.ensure_session_revision()
-        {
-            self.clear_all_memory();
-            return Err(error);
+        for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+            let (runtime, auth) = self.route_parts_for(route);
+            if let Err(error) = RouteExecution::new(runtime, auth).guard_session_ownership() {
+                self.clear_all_memory();
+                return Err(error);
+            }
         }
         Ok(())
     }
@@ -190,13 +232,10 @@ impl UbaaClient {
         resolution: RouteResolution,
         result: Result<T>,
     ) -> RoutedResult<T> {
-        if !self
-            .runtime_for(resolution.mode)
-            .take_non_idempotent_boundary_crossed()
-        {
+        let (runtime, auth) = self.route_parts_for(resolution.mode);
+        if !RouteExecution::new(runtime, auth).cleanup_sent_write(&result) {
             return self.finish_routed(resolution, result);
         }
-        let _ = self.cleanup_route_result(resolution.mode, &result);
         let _ = self.guard_latest_session_ownership();
         result
             .map(|data| Routed { data, resolution })
@@ -204,32 +243,8 @@ impl UbaaClient {
     }
 
     fn cleanup_route_result<T>(&mut self, route: ConnectionMode, result: &Result<T>) -> Result<()> {
-        if should_clear_invalidated_route(result) {
-            if self.route_is_ready(route) {
-                self.clear_invalidated_route(route)?;
-            } else {
-                self.clear_invalidated_route_memory(route);
-            }
-        }
-        if result
-            .as_ref()
-            .is_err_and(|error| error.code == ErrorCode::InternalError)
-            && !self.route_is_ready(route)
-        {
-            self.clear_invalidated_route_memory(route);
-        }
-        Ok(())
-    }
-
-    fn clear_invalidated_route(&mut self, route: ConnectionMode) -> Result<()> {
         let (runtime, auth) = self.route_parts_for(route);
-        runtime.clear_with(|| auth.clear())
-    }
-
-    fn clear_invalidated_route_memory(&mut self, route: ConnectionMode) {
-        let (runtime, auth) = self.route_parts_for(route);
-        runtime.clear_memory();
-        auth.clear();
+        RouteExecution::new(runtime, auth).cleanup_result(result)
     }
 
     pub(super) fn clear_all_memory(&mut self) {

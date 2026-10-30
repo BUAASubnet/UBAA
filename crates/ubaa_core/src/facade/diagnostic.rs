@@ -17,13 +17,13 @@ use crate::domain::{
     WeeklySchedule, YgdkClockinSubmitRequest, YgdkClockinSubmitResult, YgdkOverview,
     YgdkRecordsPage,
 };
-use crate::error::{ErrorCode, Result};
+use crate::error::Result;
 use crate::features::user;
 use crate::ports::{HttpTransport, ReqwestTransport};
 use crate::runtime::ClientRuntime;
 use crate::session::{DualSessionCoordinator, FileSessionStore, SessionStore};
 
-use super::routing::invalid_input;
+use super::routing::{RouteExecution, invalid_input};
 
 mod cgyy;
 mod evaluation;
@@ -778,35 +778,12 @@ impl RouteClient {
             self.auth.clear();
             return Err(DualSessionCoordinator::conflict_error());
         }
-        if !self.runtime.has_local_session() && !self.auth.has_pending_login() {
-            self.runtime.sync_empty_session_revision()?;
-            return Ok(());
-        }
-        match self.runtime.ensure_session_revision() {
-            Ok(()) => Ok(()),
-            Err(error) => {
-                self.runtime.clear_memory();
-                self.auth.clear();
-                Err(error)
-            }
-        }
+        RouteExecution::new(&mut self.runtime, &mut self.auth).guard_session_ownership()
     }
 
     /// 在会产生网络副作用的入口前确认当前运行时仍拥有最新会话修订。
     fn guard_latest_session_ownership(&mut self) -> Result<()> {
-        self.guard_session_ownership()?;
-        if !self.runtime.has_local_session() && !self.auth.has_pending_login() {
-            self.runtime.sync_empty_session_revision()?;
-            return Ok(());
-        }
-        match self.runtime.ensure_session_revision() {
-            Ok(()) => Ok(()),
-            Err(error) => {
-                self.runtime.clear_memory();
-                self.auth.clear();
-                Err(error)
-            }
-        }
+        self.guard_session_ownership()
     }
 
     fn finish_session_operation<T>(&mut self, result: Result<T>) -> Result<T> {
@@ -815,25 +792,7 @@ impl RouteClient {
     }
 
     fn cleanup_operation_result<T>(&mut self, result: &Result<T>) -> Result<()> {
-        if result
-            .as_ref()
-            .is_err_and(|error| error.code == ErrorCode::AuthenticationRequired)
-        {
-            if self.runtime.has_local_session() {
-                self.runtime.clear_with(|| self.auth.clear())?;
-            } else {
-                self.runtime.clear_memory();
-                self.auth.clear();
-            }
-        }
-        if result
-            .as_ref()
-            .is_err_and(|error| error.code == ErrorCode::InternalError)
-            && !self.runtime.has_local_session()
-        {
-            self.auth.clear();
-        }
-        Ok(())
+        RouteExecution::new(&mut self.runtime, &mut self.auth).cleanup_result(result)
     }
 
     fn finish_readonly_operation<T>(&mut self, result: Result<T>) -> Result<T> {
@@ -843,11 +802,73 @@ impl RouteClient {
 
     /// 写请求跨越发送边界后，收尾检查只负责使失效会话进入安全状态，不能覆盖写结果。
     fn finish_write_operation<T>(&mut self, result: Result<T>) -> Result<T> {
-        if !self.runtime.take_non_idempotent_boundary_crossed() {
+        if !RouteExecution::new(&mut self.runtime, &mut self.auth).cleanup_sent_write(&result) {
             return self.finish_readonly_operation(result);
         }
-        let _ = self.cleanup_operation_result(&result);
         let _ = self.guard_session_ownership();
         result
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::error::{ErrorCode, ErrorKind, UbaaError};
+    use crate::ports::{HttpRequest, HttpResponse};
+
+    struct PartialLoginTransport;
+
+    #[async_trait::async_trait]
+    impl HttpTransport for PartialLoginTransport {
+        async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+            let mut response = HttpResponse::new(200, request.url, Vec::new());
+            response.headers.insert(
+                "Set-Cookie".into(),
+                vec!["SESSION=partial-login; Path=/".into()],
+            );
+            Ok(response)
+        }
+    }
+
+    #[test]
+    fn 未完成认证时内部错误清理残留业务_cookie() {
+        let directory = std::env::temp_dir().join(format!(
+            "ubaa-facade-partial-login-{}-{:?}",
+            std::process::id(),
+            std::thread::current().id()
+        ));
+        let store = FileSessionStore::new(&directory).unwrap();
+        let mut client =
+            RouteClient::build(ConnectionMode::Direct, PartialLoginTransport, store, None).unwrap();
+        let url = "https://sso.buaa.edu.cn/login";
+        tokio::runtime::Builder::new_current_thread()
+            .build()
+            .unwrap()
+            .block_on(client.runtime.request(HttpRequest::get(url)))
+            .unwrap();
+        assert!(
+            client
+                .runtime
+                .cookie_value("SESSION", url)
+                .unwrap()
+                .is_some()
+        );
+
+        let result: Result<()> = client.finish_readonly_operation(Err(UbaaError::new(
+            ErrorCode::InternalError,
+            ErrorKind::Internal,
+            false,
+            "合成的内部故障",
+        )));
+
+        assert_eq!(result.unwrap_err().code, ErrorCode::InternalError);
+        assert!(
+            client
+                .runtime
+                .cookie_value("SESSION", url)
+                .unwrap()
+                .is_none()
+        );
+        std::fs::remove_dir_all(directory).unwrap();
     }
 }
