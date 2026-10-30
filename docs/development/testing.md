@@ -30,6 +30,6 @@
 
 启动锁通过已登记夹具执行：应用在自身沙箱创建临时目录并派生系统 Perl 子进程持有真实 OS 锁，验证不同 PID、等待画面、resourceBusy 与释放后的 FFI 重试。宿主终端不访问应用容器，也不修改系统权限。Perl 从应用继承的 PATH 查找，以兼容 Linux 的安装位置；不依赖终端访问其他 App 数据的权限。Perl 缺失或不能启动时该项应失败，不能改用同进程锁。
 
-关于、照片和 iPad 方向测试保留截图元数据。需要保存 iOS 截图时，显式使用 `test_driver/ui_render.dart`，设置仓库外空目录 UBAA_UI_EVIDENCE_DIR；安全校验由共享 evidence_directory 和原单元测试保护。软键盘专用驱动已删除。方向用例需要唯一 UBAA_ROTATION_RUN_ID 和外部系统方向握手，不能用修改 Widget 尺寸替代。
+关于、照片和 iPad 方向测试保留截图元数据。需要保存 iOS 截图时，显式使用 `test_driver/ui_render.dart`，将 UBAA_UI_EVIDENCE_DIR 设为 `.ubaa_local/` 中本次运行的空子目录；安全校验由共享 evidence_directory 和单元测试保护。软键盘专用驱动已删除。方向用例需要唯一 UBAA_ROTATION_RUN_ID 和外部系统方向握手，不能用修改 Widget 尺寸替代。
 
 Golden 保留既有 macOS 基准，变更基准必须审阅实际差异。运行媒体遵守 [AGENTS 安全边界](../../AGENTS.md#安全边界)。offline_startup/analyze.py 只保留历史测量材料分析，不再提供已删除 driver 的测量启动器。

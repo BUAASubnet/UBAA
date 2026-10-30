@@ -1,15 +1,19 @@
 import 'dart:io';
 
-/// 在写入截图或启动键盘握手前统一验证目标。
+/// 在写入截图前确认目标位于项目本地的任务子目录。
 Directory checkedEvidenceDirectory(String? destination, {Directory? repoRoot}) {
   if (destination == null || !Directory(destination).isAbsolute) {
-    throw ArgumentError('UBAA_UI_EVIDENCE_DIR 必须是仓库外的私有绝对路径');
+    throw ArgumentError('UBAA_UI_EVIDENCE_DIR 必须是 .ubaa_local 下的私有绝对路径');
+  }
+  if (destination.split(RegExp(r'[/\\]')).contains('..')) {
+    throw ArgumentError('证据目录不能包含父目录跳转');
   }
   final root = _resolvedDirectory(repoRoot ?? _findRepoRoot());
   final directory = _resolvedDirectory(Directory(destination));
-  if (directory.uri == root.uri ||
-      directory.uri.toString().startsWith(root.uri.toString())) {
-    throw ArgumentError('UBAA_UI_EVIDENCE_DIR 必须位于仓库外');
+  final localRoot = root.uri.resolve('.ubaa_local/');
+  if (directory.uri == localRoot ||
+      !directory.uri.toString().startsWith(localRoot.toString())) {
+    throw ArgumentError('UBAA_UI_EVIDENCE_DIR 必须位于仓库 .ubaa_local 的任务子目录');
   }
   return directory;
 }

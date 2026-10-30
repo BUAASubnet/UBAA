@@ -33,7 +33,7 @@ just release-preflight /仓库外绝对路径/ubaa-release-report
 
 `release-preflight` 要求工作树干净、报告目录为空，只运行纯 refs/敏感检查并生成 Dart/OHOS 许可证材料。Rust 依赖的许可与安全公告由 `just dependency-audit`（cargo-deny）检查，发布前单独运行。源码以提交 SHA 标识，不再另生成逐文件源码清单或 SBOM。Dart/OHOS 许可材料应列出锁定来源、许可证证据及缺失项；包名/版本清单不称作许可批准。默认严格模式遇到材料缺口会保留报告并以状态 3 阻断发布。仅报告模式仍列出缺口，但不能用于判定发布通过，日常 CI 不运行本入口；参数与实际边界见[开发命令](../development/commands.md#构建与发布命令)。
 
-产物结构检查覆盖宿主入口、Flutter资源和Rust动态库；macOS还核验实际签名权限。无签名Debug包和HAP不能证明商店签名、安装升级、设备HUKS或正式发布。普通日志、报告和工件不能包含凭据、Cookie、token、原始响应、完整个人资料或本机敏感路径；UI媒体在仓库外私有目录。
+产物结构检查覆盖宿主入口、Flutter资源和Rust动态库；macOS还核验实际签名权限。无签名Debug包和HAP不能证明商店签名、安装升级、设备HUKS或正式发布。共享日志、报告和工件不能包含凭据、Cookie、token、原始响应、完整个人资料或本机敏感路径；本地原始调试材料与 UI 媒体统一保存在被忽略的 `.ubaa_local/` 任务子目录。
 
 ## 设备、真实路线与签名
 

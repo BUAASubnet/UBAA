@@ -43,7 +43,7 @@ session.json
 *.captcha
 *.captcha.*
 
-# UI 验收媒体保存在仓库外；目录中只提交文字、元数据和摘要。
+# UI 验收媒体保存在 .ubaa_local/；本目录只提交原型源文件和脱敏文字摘要。
 /docs/design/evidence/**/*.png
 /docs/design/evidence/**/*.jpg
 /docs/design/evidence/**/*.jpeg
