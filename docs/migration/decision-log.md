@@ -57,6 +57,12 @@ SSO 服务 URL（课程表、空教室、图书馆、iHome 等）的 `service` �
 
 本阶段提交：`19102297`、`00f40e01`、`b616bc53`、`fb73bac4`、`8d761ac9`、`fb8a60d4`、`81c6a0d6`、`bdc4232b`、`edeb41a4`、`db422ebd`、`29104992`、`69141903`、`aa687563`、`cdb65c22`、`a1d654ca`、`3cd9e3e5`、`f89ce2e2`、`80e1d77a`。阶段验证和未运行项目写入 `.ubaa_local/supervision/phase5-report.md`。
 
+## 2026-10-30：认证重定向安全收紧
+
+本轮修复将认证重定向的安全边界集中到 `connection`：认证目标拒绝用户信息和未声明端口，WebVPN 网关只接受 HTTPS 默认端口；Direct 路线拒绝把校园网关当作上游目标，WebVPN 路线只保留经过校验的网关地址。BYKC 令牌只有在最终目标或 Location 已通过主机、协议和端口校验后才会提取。签到、课表、用户状态、图书馆 CAS、SPOC、Cgyy 和课堂认证判定改为解析后的安全 authority 与精确主机，避免查询参数、恶意主机名、用户信息或非法端口伪命中。
+
+Ygdk 的冻结测试只证明 `app.buaa.edu.cn` 到 `ygdk.buaa.edu.cn` 的回调，不能证明完整的中间主机集合。本轮因此限制每跳的协议、用户信息、端口和 WebVPN 网关路线，但没有凭空扩大主机白名单；未知主机仍是发布前必须补充来源或实时脱敏证据的阻塞项。相关代码和负例测试位于 `crates/ubaa_core/src/features/ygdk/auth.rs` 及其测试模块。
+
 
 ## 2026-10-30：阶段 6 Dart/Flutter/OHOS 结构重构
 

@@ -1,5 +1,6 @@
 //! 阳光打卡 OAuth 跳转、业务登录与路线内凭据。
 
+use crate::domain::ConnectionMode;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 use crate::runtime::ClientRuntime;
@@ -62,13 +63,16 @@ pub(super) async fn ensure_login(runtime: &mut ClientRuntime) -> Result<YgdkCred
 
 async fn oauth_code(runtime: &mut ClientRuntime, generation: u64) -> Result<String> {
     let mut current = OAUTH_URL.to_owned();
+    let mode = runtime.mode();
     for _ in 0..REDIRECT_LIMIT {
+        validate_oauth_target(&current, mode)?;
         let response = runtime
             .request_with_pre_send_check(HttpRequest::get(runtime.url(&current)?), |runtime| {
                 ensure_active_generation(runtime, generation)
             })
             .await?;
         ensure_active_generation(runtime, generation)?;
+        validate_oauth_target(&response.final_url, mode)?;
         if let Some(code) = code_from_url(&response.final_url) {
             return Ok(code);
         }
@@ -81,11 +85,29 @@ async fn oauth_code(runtime: &mut ClientRuntime, generation: u64) -> Result<Stri
             .join(location)
             .map_err(|_| error("阳光打卡登录跳转地址无效"))?
             .to_string();
+        validate_oauth_target(&current, mode)?;
         if let Some(code) = code_from_url(&current) {
             return Ok(code);
         }
     }
     Err(error("阳光打卡登录跳转次数超限"))
+}
+
+pub(super) fn validate_oauth_target(raw: &str, mode: ConnectionMode) -> Result<()> {
+    let parsed = url::Url::parse(raw).map_err(|_| error("阳光打卡登录跳转地址无效"))?;
+    let is_gateway = parsed
+        .host_str()
+        .is_some_and(|host| host.eq_ignore_ascii_case("d.buaa.edu.cn"));
+    let valid = if is_gateway {
+        mode == ConnectionMode::WebVpn && crate::connection::is_valid_webvpn_gateway(&parsed)
+    } else {
+        crate::connection::is_safe_redirect_authority(&parsed)
+    };
+    if valid {
+        Ok(())
+    } else {
+        Err(error("阳光打卡登录跳转包含不安全的协议、用户信息或端口"))
+    }
 }
 
 pub(super) fn code_from_url(raw: &str) -> Option<String> {

@@ -30,6 +30,7 @@ fn auth_host_policy_accepts_only_verified_sso_uc_and_gateway_hosts() {
     assert!(is_allowed_auth_host("https://sso.buaa.edu.cn/login"));
     assert!(is_allowed_auth_host("http://sso.buaa.edu.cn/login"));
     assert!(!is_allowed_auth_host("ftp://sso.buaa.edu.cn/login"));
+    assert!(!is_allowed_auth_host("https://d.buaa.edu.cn/login"));
     assert!(!is_allowed_auth_host("https://evil.example.invalid/login"));
 }
 
@@ -48,6 +49,18 @@ fn sso_location检测保持相对地址和网关还原语义() {
         .headers
         .insert("Location".into(), vec!["../login".into()]);
     assert!(!super::response_location_targets_sso(&response));
+}
+
+#[test]
+fn sso_认证判定拒绝用户信息非法端口和伪造主机() {
+    assert!(super::is_sso_url("https://sso.buaa.edu.cn/login"));
+    for url in [
+        "https://user@sso.buaa.edu.cn/login",
+        "https://sso.buaa.edu.cn:8443/login",
+        "https://sso.buaa.edu.cn.evil.example/login",
+    ] {
+        assert!(!super::is_sso_url(url), "不应误判 SSO 地址：{url}");
+    }
 }
 
 #[test]
@@ -341,15 +354,53 @@ fn sso跳转只升级默认http端口并保留嵌套service编码() {
             }
         }
     }
-    for unchanged in [
-        "http://sso.buaa.edu.cn:8080/login?service=http%3A%2F%2Fuc.buaa.edu.cn%2F",
-        "http://uc.buaa.edu.cn/api/login?target=http%3A%2F%2Fsso.buaa.edu.cn",
+    assert!(
+        resolve_redirect(
+            "https://uc.buaa.edu.cn/",
+            "http://sso.buaa.edu.cn:8080/login?service=http%3A%2F%2Fuc.buaa.edu.cn%2F",
+            ConnectionMode::Direct,
+        )
+        .is_err()
+    );
+    let unchanged = "http://uc.buaa.edu.cn/api/login?target=http%3A%2F%2Fsso.buaa.edu.cn";
+    assert_eq!(
+        resolve_redirect("https://uc.buaa.edu.cn/", unchanged, ConnectionMode::Direct).unwrap(),
+        unchanged
+    );
+}
+
+#[test]
+fn 认证跳转拒绝用户信息和非法网关端口或协议() {
+    for location in [
+        "https://user@sso.buaa.edu.cn/login",
+        "https://sso.buaa.edu.cn:8443/login",
+        "http://d.buaa.edu.cn/login",
+        "https://D.BUAA.EDU.CN:8443/login",
+        "https://user@D.BUAA.EDU.CN/login",
     ] {
-        assert_eq!(
-            resolve_redirect("https://uc.buaa.edu.cn/", unchanged, ConnectionMode::Direct).unwrap(),
-            unchanged
-        );
+        for mode in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+            assert!(
+                resolve_redirect("https://uc.buaa.edu.cn/", location, mode).is_err(),
+                "认证跳转不应接受非法 authority: {location}"
+            );
+        }
     }
+    assert!(
+        resolve_redirect(
+            "https://uc.buaa.edu.cn/",
+            "https://d.buaa.edu.cn/login",
+            ConnectionMode::WebVpn,
+        )
+        .is_ok()
+    );
+    assert!(
+        resolve_redirect(
+            "https://uc.buaa.edu.cn/",
+            "https://d.buaa.edu.cn/login",
+            ConnectionMode::Direct,
+        )
+        .is_err()
+    );
 }
 
 #[test]

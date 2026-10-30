@@ -12,6 +12,10 @@
 
 ## 两操作九列
 
+### 2026-10-30 OAuth 重定向安全边界
+
+冻结 `ubaa_old` 与 `buaa-api` 没有给出 Ygdk OAuth 的完整回调主机集合，当前实现不把观察到的 `app.buaa.edu.cn`、`ygdk.buaa.edu.cn` 等主机擅自提升为白名单。每一跳必须使用 HTTP(S)、不含用户信息并使用协议默认端口；Direct 路线拒绝 `d.buaa.edu.cn`，WebVPN 路线只接受 HTTPS 默认端口的网关。后续若要收紧主机，必须先补充冻结来源或脱敏实时响应证据，并增加对应负例夹具。
+
 两读分别复用source-parity.md“阳光打卡只读查询”九列，且已复读LocalYgdkApi:63–105与BackendTest:63–179：OAuth入口app.buaa.edu.cn/uc/api/oauth/index，code换业务campusAppLogin；query/fragment code及既有最多10跳规则不变，完整允许主机集合仍为既有未决项，不臆造白名单。uid/token只存路线隔离业务会话内，认证失效代数/单飞/一次重登沿Core现合同。POST表单与query同时携既有参数、X-Requested-With头，无新加密签名。概览读取体育分类→项目→可选汇总/学期，records读分类→项目→getList(page/limit/classify_id/user_id)；所有上游URL/字段/编码不变。DTO全部来自Bridge白名单：term/week/month/day/good计数、可空目标、分类/默认项目/项目原顺序；记录ID、item、时间、place、imageCount、isOpen、state、createdAt/Label与服务端page/total/hasMore。code=1、-98及非法输入/错误分类不改，不将失败当空记录。
 
 ## 组合读取与业务保护计划

@@ -98,6 +98,12 @@ fn resolve_feature_redirect(
     let Some(host) = target.host_str() else {
         return Err(feature_redirect_error(feature));
     };
+    if !matches!(target.scheme(), "http" | "https")
+        || !target.username().is_empty()
+        || target.password().is_some()
+    {
+        return Err(feature_redirect_error(feature));
+    }
     if !(matches!(
         host.to_ascii_lowercase().as_str(),
         "sso.buaa.edu.cn"
@@ -112,7 +118,14 @@ fn resolve_feature_redirect(
     {
         return Err(feature_redirect_error(feature));
     }
-    if mode == crate::domain::ConnectionMode::WebVpn && host != "d.buaa.edu.cn" {
+    let is_gateway = host.eq_ignore_ascii_case("d.buaa.edu.cn");
+    if is_gateway
+        && (mode != crate::domain::ConnectionMode::WebVpn
+            || !crate::connection::is_valid_webvpn_gateway(&target))
+    {
+        return Err(feature_redirect_error(feature));
+    }
+    if mode == crate::domain::ConnectionMode::WebVpn && !is_gateway {
         crate::connection::to_webvpn_url(target.as_str())
     } else {
         Ok(target.to_string())

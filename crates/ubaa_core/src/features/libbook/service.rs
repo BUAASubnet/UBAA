@@ -454,10 +454,35 @@ fn is_authentication_message(message: &str) -> bool {
 fn final_url_is_authentication(value: &str) -> bool {
     let direct = crate::connection::from_webvpn_url(value).unwrap_or_else(|_| value.to_owned());
     url::Url::parse(&direct).is_ok_and(|url| {
-        url.host_str()
-            .is_some_and(|host| host.eq_ignore_ascii_case("sso.buaa.edu.cn"))
-            || matches!(url.path(), "/login" | "/v4/login/cas")
+        crate::connection::is_sso_url(&direct)
+            || (crate::connection::is_valid_auth_target(
+                &url,
+                &["booking.lib.buaa.edu.cn"],
+                true,
+                &[],
+            ) && matches!(url.path(), "/login" | "/v4/login/cas"))
     })
+}
+
+#[cfg(test)]
+mod authentication_url_tests {
+    use super::final_url_is_authentication;
+
+    #[test]
+    fn 图书馆写入只识别安全的认证落点() {
+        assert!(final_url_is_authentication("https://sso.buaa.edu.cn/login"));
+        assert!(final_url_is_authentication(
+            "https://booking.lib.buaa.edu.cn/v4/login/cas"
+        ));
+        for url in [
+            "https://user@sso.buaa.edu.cn/login",
+            "https://sso.buaa.edu.cn:8443/login",
+            "https://evil.example/v4/login/cas",
+            "https://booking.lib.buaa.edu.cn.evil/v4/login/cas",
+        ] {
+            assert!(!final_url_is_authentication(url), "不应误判认证地址：{url}");
+        }
+    }
 }
 
 fn unavailable(message: &'static str) -> UbaaError {
@@ -804,7 +829,7 @@ async fn fetch_cas(runtime: &mut crate::runtime::ClientRuntime) -> Result<String
         let mut request = HttpRequest::get(runtime.url(&current)?);
         apply_headers(runtime, &mut request, None)?;
         let response = runtime.request(request).await?;
-        if let Some(value) = cas_from_url(&response.final_url) {
+        if let Some(value) = validated_cas_from_url(&response.final_url) {
             return Ok(value);
         }
         let location = response
@@ -818,14 +843,16 @@ async fn fetch_cas(runtime: &mut crate::runtime::ClientRuntime) -> Result<String
             .map_err(|_| error("图书馆登录跳转地址无效"))?
             .join(&direct_location)
             .map_err(|_| error("图书馆登录跳转地址无效"))?;
-        if !matches!(
-            target.host_str(),
-            Some("sso.buaa.edu.cn" | "booking.lib.buaa.edu.cn")
+        if !crate::connection::is_valid_auth_target(
+            &target,
+            &["sso.buaa.edu.cn", "booking.lib.buaa.edu.cn"],
+            true,
+            &[],
         ) {
             return Err(error("图书馆登录跳转到未允许的主机"));
         }
         current = target.to_string();
-        if let Some(value) = cas_from_url(&current) {
+        if let Some(value) = validated_cas_from_url(&current) {
             return Ok(value);
         }
     }
@@ -868,4 +895,18 @@ fn cas_from_url(raw: &str) -> Option<String> {
                     .map(|(_, value)| value.into_owned())
             })
         })
+}
+
+fn validated_cas_from_url(raw: &str) -> Option<String> {
+    let direct = crate::connection::from_webvpn_url(raw).ok()?;
+    let url = url::Url::parse(&direct).ok()?;
+    if !crate::connection::is_valid_auth_target(
+        &url,
+        &["sso.buaa.edu.cn", "booking.lib.buaa.edu.cn"],
+        true,
+        &[],
+    ) {
+        return None;
+    }
+    cas_from_url(url.as_str())
 }

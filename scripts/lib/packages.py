@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
-"""向 Shell 入口提供同一官方包清单，未知包失败关闭。"""
+"""向 Shell 入口提供同一 workspace 包清单，未知包失败关闭。"""
 import sys
 sys.dont_write_bytecode = True
-from repo import official_packages
-PACKAGES = official_packages()
+from repo import workspace_packages
+PACKAGES = workspace_packages()
 
 try:
     for name in sys.argv[1:] or PACKAGES:

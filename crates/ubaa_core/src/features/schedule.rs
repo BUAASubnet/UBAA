@@ -310,7 +310,9 @@ async fn activate_undergraduate_portal(runtime: &mut crate::runtime::ClientRunti
     super::check_response(&response, "schedule")?;
     let final_url = crate::connection::from_webvpn_url(&response.final_url)
         .unwrap_or_else(|_| response.final_url.clone());
-    if !final_url.starts_with(AAS_VERIFY_URL) {
+    let final_url = url::Url::parse(&final_url).map_err(|_| portal_response_error())?;
+    let expected_url = url::Url::parse(AAS_VERIFY_URL).map_err(|_| portal_response_error())?;
+    if final_url.origin() != expected_url.origin() || final_url.path() != expected_url.path() {
         return Err(UbaaError::new(
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
@@ -323,8 +325,14 @@ async fn activate_undergraduate_portal(runtime: &mut crate::runtime::ClientRunti
 
 fn undergraduate_portal_requires_sso(response: &crate::ports::HttpResponse) -> bool {
     let text = super::body(response);
+    let direct_final = crate::connection::from_webvpn_url(&response.final_url)
+        .unwrap_or_else(|_| response.final_url.clone());
+    let sso_login = url::Url::parse(&direct_final).is_ok_and(|url| {
+        crate::connection::is_valid_auth_target(&url, &["sso.buaa.edu.cn"], false, &[])
+            && url.path() == "/login"
+    });
     response.status == 401
-        || response.final_url.contains("sso.buaa.edu.cn")
+        || sso_login
         || text.contains("input name=\"execution\"")
         || text.contains("统一身份认证")
 }

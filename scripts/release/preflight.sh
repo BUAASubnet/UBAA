@@ -12,6 +12,7 @@ source "$script_dir/../lib/repo.sh"
 repo_root=$(ubaa_repo_root)
 output_dir=${1:-${UBAA_RELEASE_REPORT_DIR:-}}
 keep_output=1
+preserve_output=0
 metadata_file=''
 if [[ -z "$output_dir" ]]; then
   output_dir=$(mktemp -d "${TMPDIR:-/tmp}/ubaa-release-preflight.XXXXXX")
@@ -33,7 +34,7 @@ cleanup() {
   if [[ -n "$metadata_file" ]]; then
     rm -f "$metadata_file"
   fi
-  if [[ "$keep_output" == 0 ]]; then
+  if [[ "$keep_output" == 0 && "$preserve_output" == 0 ]]; then
     rm -rf "$output_dir"
   fi
 }
@@ -52,8 +53,19 @@ metadata_file=$(mktemp "${TMPDIR:-/tmp}/ubaa-cargo-metadata.XXXXXX")
 cargo metadata --offline --locked --format-version 1 >"$metadata_file"
 
 # 固定工具和 schema 均离线使用；依赖准备由显式 bootstrap 完成。
+dependency_status=0
+set +e
 bash "$repo_root/scripts/tools/python.sh" "$script_dir/dependency_report.py" \
   --metadata "$metadata_file" --output "$output_dir"
+dependency_status=$?
+set -e
+if [[ "$dependency_status" -ne 0 && "$dependency_status" -ne 3 ]]; then
+  exit "$dependency_status"
+fi
+if [[ "$dependency_status" -eq 3 ]]; then
+  preserve_output=1
+  printf 'error: 许可证材料存在发布阻塞；报告已保留：%s\n' "$output_dir" >&2
+fi
 
 lock_manifest="$output_dir/pubspec-locks.txt"
 : >"$lock_manifest"
@@ -61,7 +73,7 @@ lock_manifest="$output_dir/pubspec-locks.txt"
 while IFS= read -r -d '' lockfile; do
   printf '%s\n' "$lockfile" >>"$lock_manifest"
   ubaa_sha256 "$lockfile" >>"$output_dir/pubspec-locks.sha256"
-done < <(git ls-files -z -- 'apps/**/pubspec.lock' 'packages/**/pubspec.lock' | sort -z)
+done < <(git ls-files -z -- 'pubspec.lock' 'apps/**/pubspec.lock' 'packages/**/pubspec.lock' | sort -z)
 
 python3 "$script_dir/source_manifest.py" --output "$output_dir"
 
@@ -78,9 +90,18 @@ Dart/OHOS 许可证材料与缺口：license-evidence.json、dependency-audit.tx
 签名、证书、实体设备和真实写入：本报告不执行
 EOF
 
+if [[ "$dependency_status" -eq 3 ]]; then
+  printf '许可证材料存在发布阻塞；详见 license-evidence.json。\n' >>"$output_dir/summary.txt"
+fi
+
 if [[ "$keep_output" == 1 ]]; then
   printf '无签名 RC 前置报告已生成；许可缺口见材料清单：%s\n' "$output_dir"
+elif [[ "$dependency_status" -eq 3 ]]; then
+  printf '无签名 RC 前置报告存在发布阻塞，报告已保留：%s\n' "$output_dir"
 else
   printf '无签名 RC 前置报告校验完成；临时报告将在退出时清理，保留报告请设置 report_dir。\n'
 fi
 printf '报告仅包含依赖元数据、锁文件列表、校验摘要和安全状态，不包含凭据或原始响应。\n'
+if [[ "$dependency_status" -ne 0 ]]; then
+  exit "$dependency_status"
+fi

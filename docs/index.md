@@ -58,7 +58,7 @@
 ## 近期实施与历史记录
 
 - [2026-10-29 首页业务并发](migration/source-parity-home-concurrency-2026-10-29.md)、[首页传输性能](migration/source-parity-home-performance-2026-10-29.md)
-- [2026-10-28 界面回归](migration/ui-regression-2026-10-28.md)、[2026-10-27 集成测试修复](migration/integration-repair-2026-10-27.md)
+- [2026-10-28 界面回归](migration/ui-regression-2026-10-28.md)、[2026-10-27 集成测试修复（历史快照）](migration/history/integration-repair-2026-10-27.md)
 - [2026-10-21 认证修复](migration/auth-repair-2026-10-21.md)、[2026-10-29 文档站迁移](migration/docs-site-2026-10-29.md)
 - [全部来源对照专项](migration/source-parity.md#全部来源对照专项)、[持续决策记录](migration/decision-log.md)
 

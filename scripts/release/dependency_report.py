@@ -20,6 +20,8 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
 from repo import ROOT
 
 SCHEMAS = ROOT / 'scripts/tools/cyclonedx-1.5'
+RELEASE_BLOCKED_EXIT = 3
+DART_LOCK_PATTERNS = ('pubspec.lock', 'apps/**/pubspec.lock', 'packages/**/pubspec.lock')
 
 
 def read_json(path):
@@ -134,6 +136,11 @@ def tracked(root, *patterns):
     return [root / item.decode() for item in result.stdout.split(b'\0') if item]
 
 
+def dart_lockfiles(workspace):
+    """返回官方 workspace 与独立宿主的全部 Git 跟踪 Pub 锁文件。"""
+    return tracked(workspace, *DART_LOCK_PATTERNS)
+
+
 def license_files(directory):
     if not directory.is_dir():
         return []
@@ -240,14 +247,27 @@ def package_record(lockfile, name, package, roots, workspace, output):
 
 def dart_evidence(workspace, output, lockfiles=None):
     records = []
-    lockfiles = lockfiles if lockfiles is not None else tracked(
-        workspace, 'apps/**/pubspec.lock', 'packages/**/pubspec.lock')
+    lockfiles = lockfiles if lockfiles is not None else dart_lockfiles(workspace)
     for lockfile in lockfiles:
         lock = yaml.safe_load(lockfile.read_text())
         roots = package_roots(lockfile.parent)
         for name, package in sorted(lock['packages'].items()):
             records.append(package_record(lockfile, name, package, roots, workspace, output))
     return records
+
+
+def release_blockers(records):
+    return [
+        {'ecosystem': record['ecosystem'], 'name': record['name'],
+         'version': record.get('version'), 'reason': record['evidence_status'],
+         'source': record.get('lockfile', record.get('manifest'))}
+        for record in records if record['evidence_status'] != 'collected'
+    ]
+
+
+def release_exit_code(records, report_only=False):
+    """材料缺口默认阻止发布；显式报告模式只生成材料。"""
+    return 0 if report_only or not release_blockers(records) else RELEASE_BLOCKED_EXIT
 
 
 def ohos_evidence(workspace, output, manifests=None):
@@ -280,20 +300,19 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--metadata', type=Path, required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--report-only', action='store_true',
+                        help='保留报告并允许材料缺口；不作为发布前置通过')
     args = parser.parse_args()
     args.output.mkdir(parents=True, exist_ok=True)
     document = build_sbom(read_json(args.metadata))
     (args.output / 'sbom.cdx.json').write_text(json.dumps(document, ensure_ascii=False, indent=2) + '\n')
     records = dart_evidence(ROOT, args.output) + ohos_evidence(ROOT, args.output)
     missing = sum(record['evidence_status'] != 'collected' for record in records)
+    blockers = release_blockers(records)
     report = {'schema': 1, 'material_status': 'partial' if missing else 'collected',
               'review_status': '未进行法律审核；材料收集不等同正式发布批准',
               'incomplete_records': missing, 'records': records,
-              'release_blockers': [
-                  {'ecosystem': r['ecosystem'], 'name': r['name'],
-                   'version': r.get('version'), 'reason': r['evidence_status'],
-                   'source': r.get('lockfile', r.get('manifest'))}
-                  for r in records if r['evidence_status'] != 'collected']}
+              'release_blockers': blockers}
     (args.output / 'license-evidence.json').write_text(json.dumps(report, ensure_ascii=False, indent=2) + '\n')
     lines = ['Dart/OHOS 许可证材料清单（名称、锁定版本、来源及正文摘要）',
              f'材料状态：{report["material_status"]}；未完整收集：{missing}/{len(records)}',
@@ -303,6 +322,10 @@ def main():
                      f'{record.get("version", record.get("requested", ""))}：{record["evidence_status"]}')
     (args.output / 'dependency-audit.txt').write_text('\n'.join(lines) + '\n')
     print(f'CycloneDX 1.5 离线 schema 通过；许可材料状态={report["material_status"]}，缺口={missing}/{len(records)}；未进行法律审核')
+    if release_exit_code(records, args.report_only):
+        print(f'依赖材料存在 {len(blockers)} 项发布阻塞；报告已生成但不能作为发布通过。',
+              file=sys.stderr)
+        raise SystemExit(RELEASE_BLOCKED_EXIT)
 
 
 if __name__ == '__main__':

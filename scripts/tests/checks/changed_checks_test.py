@@ -27,19 +27,30 @@ class ChangedChecksTest(unittest.TestCase):
 
     def test_ui_implementation_includes_consumers(self):
         self.assertEqual(self.plan('packages/ubaa_ui/lib/src/app/home.dart')['packages'],
-                         ['ubaa_ui', 'ubaa_host', 'ubaa_flutter'])
+                         ['ubaa_app', 'ubaa_ui', 'ubaa_host', 'ubaa_flutter', 'ubaa_test_support'])
 
     def test_app_implementation_includes_ui_test_dependency(self):
         self.assertEqual(self.plan('packages/ubaa_app/lib/src/write/coordinator.dart')['packages'],
-                         ['ubaa_app', 'ubaa_ui', 'ubaa_host', 'ubaa_flutter'])
+                         ['ubaa_app', 'ubaa_ui', 'ubaa_host', 'ubaa_flutter', 'ubaa_test_support'])
 
     def test_domain_reaches_all_consumers_but_not_unrelated_bindings(self):
         plan = self.plan('packages/ubaa_domain/lib/src/models.dart')
         self.assertEqual(plan['packages'],
-                         ['ubaa_domain', 'ubaa_platform', 'ubaa_app', 'ubaa_ui', 'ubaa_host', 'ubaa_flutter'])
+                         ['ubaa_domain', 'ubaa_platform', 'ubaa_app', 'ubaa_ui', 'ubaa_host',
+                          'ubaa_flutter', 'ubaa_test_support'])
 
     def test_tests_only_check_own_package(self):
         self.assertEqual(self.plan('packages/ubaa_ui/test/navigation/read_test.dart')['packages'], ['ubaa_ui'])
+
+    def test_workspace测试辅助包进入清单和改动规划(self):
+        self.assertEqual(gates.PACKAGES['ubaa_test_support'], 'packages/ubaa_test_support')
+        package_list = subprocess.check_output(
+            ['python3', str(ROOT / 'scripts/lib/packages.py')], text=True).splitlines()
+        self.assertEqual(package_list[-1], 'packages/ubaa_test_support')
+        self.assertEqual(
+            self.plan('packages/ubaa_test_support/lib/recovery.dart')['packages'],
+            ['ubaa_app', 'ubaa_ui', 'ubaa_host', 'ubaa_flutter', 'ubaa_test_support'],
+        )
 
     def test_deleted_or_renamed_source_still_checks_old_owner(self):
         plan = self.plan('packages/ubaa_domain/lib/removed.dart', 'packages/ubaa_ui/lib/new.dart')

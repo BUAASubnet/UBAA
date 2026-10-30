@@ -215,6 +215,21 @@ fn cas_token_is_bound_to_the_expected_host_and_route() {
 }
 
 #[test]
+fn cas_token拒绝用户信息和非默认端口的认证落点() {
+    for candidate in [
+        "https://user@spoc.buaa.edu.cn/spocnew/cas?token=fixture-token",
+        "https://spoc.buaa.edu.cn:8443/spocnew/cas?token=fixture-token",
+        "http://d.buaa.edu.cn/spocnew/cas?token=fixture-token",
+        "https://D.BUAA.EDU.CN:8443/spocnew/cas?token=fixture-token",
+    ] {
+        assert!(
+            extract_login_token(candidate, crate::domain::ConnectionMode::WebVpn).is_none(),
+            "不应从非法认证落点提取 SPOC token: {candidate}"
+        );
+    }
+}
+
+#[test]
 fn role_code_accepts_primitive_and_array_shapes() {
     for (body, expected) in [
         (r#"{"jsdm":"01"}"#, "01"),

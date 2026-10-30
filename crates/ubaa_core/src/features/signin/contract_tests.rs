@@ -2,6 +2,28 @@ use super::parse_today;
 use crate::domain::ActionEligibility;
 
 #[test]
+fn 登录跳转校验允许固定业务端口并拒绝用户信息与未声明端口() {
+    for url in [
+        "https://iclass.buaa.edu.cn:8346/?loginName=fixture",
+        "https://iclass.buaa.edu.cn:8347/app/user/login.action",
+        "https://sso.buaa.edu.cn/login",
+    ] {
+        assert!(super::ensure_login_host(&url::Url::parse(url).unwrap()).is_ok());
+    }
+    for url in [
+        "https://user@sso.buaa.edu.cn/login",
+        "https://sso.buaa.edu.cn:8443/login",
+        "http://iclass.buaa.edu.cn:8346/?loginName=fixture",
+        "https://iclass.buaa.edu.cn:9999/?loginName=fixture",
+    ] {
+        assert!(
+            super::ensure_login_host(&url::Url::parse(url).unwrap()).is_err(),
+            "不应接受非法签到登录跳转: {url}"
+        );
+    }
+}
+
+#[test]
 fn parses_legacy_iclass_today_classes() {
     let classes = parse_today(
         r#"{"STATUS":"0","result":[{"id":"schedule-safe","courseName":"Rust","classBeginTime":"08:00","classEndTime":"09:40","signStatus":"0"}]}"#,

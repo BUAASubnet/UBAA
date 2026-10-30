@@ -1,6 +1,8 @@
 """集成清单必须完整，批量回归不能意外选择真实账号入口。"""
 
+from contextlib import redirect_stdout
 import importlib.util
+import io
 from pathlib import Path
 import tempfile
 import unittest
@@ -17,12 +19,14 @@ class CatalogTest(unittest.TestCase):
     def test_执行预览也要求显式SDK路径(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(catalog, "ROOT", Path(directory)), patch.dict(catalog.os.environ, {}, clear=True), patch.object(
             catalog.sys, "argv", [str(SCRIPT), "run", "--dry-run"]
-        ):
+        ), patch.object(catalog, "validate", return_value=[self.entry()]):
             self.assertRaisesRegex(ValueError, "UBAA_FLUTTER_HOME", catalog.main)
 
     def entry(self, **overrides):
-        return dict(path="sample_test.dart", kind="synthetic", domain="home",
-                    platforms=["macos"], ci=True, inspection=False, **overrides)
+        entry = dict(path="sample_test.dart", kind="synthetic", domain="home",
+                     platforms=["macos"], ci=True, inspection=False)
+        entry.update(overrides)
+        return entry
 
     def test_未登记入口必须失败(self):
         with tempfile.TemporaryDirectory() as directory:
@@ -124,6 +128,75 @@ class CatalogTest(unittest.TestCase):
     def test_平台不匹配不能静默跳过(self):
         self.assertRaisesRegex(ValueError, "平台", catalog.select,
                                [self.entry()], "sample_test.dart", "linux")
+
+    def test_入口环境变量缺失必须失败(self):
+        entry = self.entry(environment=["DBUS_SESSION_BUS_ADDRESS"])
+        with self.assertRaisesRegex(ValueError, "缺少必需环境变量"):
+            catalog.environment_for_entry(entry, {})
+        with self.assertRaisesRegex(ValueError, "缺少必需环境变量"):
+            catalog.environment_for_entry(entry, {"DBUS_SESSION_BUS_ADDRESS": ""})
+
+    def test_命令应用Dart_define和run执行方式(self):
+        entry = self.entry(runner="run", defines=["FEATURE=true", "VALUE=a=b"])
+        command = catalog.build_command(entry, Path("/sdk/bin/flutter"), "linux", "linux-device")
+        self.assertEqual(command, [
+            "/sdk/bin/flutter", "run", "integration_test/sample_test.dart",
+            "-d", "linux-device", "--dart-define=FEATURE=true", "--dart-define=VALUE=a=b",
+        ])
+
+    def test_CI入口不能使用run(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            (root / "sample_test.dart").write_text("void main() {}")
+            entry = self.entry(runner="run")
+            with self.assertRaisesRegex(ValueError, "执行方式或 CI"):
+                catalog.validate([entry], root)
+
+    def test_命令预览显示清单中的Dart_define(self):
+        output = io.StringIO()
+        environment = {
+            "UBAA_FLUTTER_HOME": "/sdk",
+            "DBUS_SESSION_BUS_ADDRESS": "unix:path=/tmp/bus",
+        }
+        entry = self.entry(
+            platforms=["linux"], ci=False,
+            environment=["DBUS_SESSION_BUS_ADDRESS"],
+            defines=["UBAA_SECURE_STORAGE_AVAILABLE=true"],
+        )
+        with patch.dict(catalog.os.environ, {}, clear=True), \
+                patch.object(catalog, "load_environment", return_value=environment), \
+                patch.object(catalog, "validate", return_value=[entry]), \
+                patch.object(catalog.sys, "argv", [
+                    str(SCRIPT), "run", "--suite", "sample_test.dart",
+                    "--platform", "linux", "--device", "linux-device", "--dry-run",
+                ]), redirect_stdout(output):
+            catalog.main()
+        self.assertIn("--dart-define=UBAA_SECURE_STORAGE_AVAILABLE=true", output.getvalue())
+
+    def test_入口环境变量传给Flutter(self):
+        environment = {
+            "UBAA_FLUTTER_HOME": "/sdk",
+            "DBUS_SESSION_BUS_ADDRESS": "unix:path=/tmp/bus",
+        }
+        entry = self.entry(
+            platforms=["linux"], ci=False,
+            environment=["DBUS_SESSION_BUS_ADDRESS"],
+        )
+        with patch.dict(catalog.os.environ, {}, clear=True), \
+                patch.object(catalog, "load_environment", return_value=environment), \
+                patch.object(catalog, "validate", return_value=[entry]), \
+                patch.object(catalog.sys, "argv", [
+                    str(SCRIPT), "run", "--suite", "sample_test.dart", "--platform", "linux",
+                ]), patch.object(catalog.subprocess, "run") as run, \
+                redirect_stdout(io.StringIO()):
+            catalog.main()
+        child_environment = run.call_args_list[-1].kwargs["env"]
+        self.assertEqual(child_environment["DBUS_SESSION_BUS_ADDRESS"], "unix:path=/tmp/bus")
+
+    def test_无效Dart_define必须失败(self):
+        entry = self.entry(defines=["=missing-name"])
+        with self.assertRaisesRegex(ValueError, "Dart define"):
+            catalog.build_command(entry, Path("/sdk/bin/flutter"), "linux")
 
 
 if __name__ == "__main__":

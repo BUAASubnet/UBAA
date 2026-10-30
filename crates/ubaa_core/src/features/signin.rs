@@ -238,11 +238,7 @@ fn action_status(value: &Value) -> Option<i64> {
 }
 
 fn final_url_is_authentication(value: &str) -> bool {
-    let direct = crate::connection::from_webvpn_url(value).unwrap_or_else(|_| value.to_owned());
-    url::Url::parse(&direct).is_ok_and(|url| {
-        url.host_str()
-            .is_some_and(|host| host.eq_ignore_ascii_case("sso.buaa.edu.cn"))
-    })
+    crate::connection::is_sso_url(value)
 }
 
 fn parse_timestamp(body: &[u8]) -> Result<String> {
@@ -382,7 +378,9 @@ async fn resolve_login_name(runtime: &mut crate::runtime::ClientRuntime) -> Resu
         let response = runtime.request(HttpRequest::get(request_url)).await?;
         let final_direct = crate::connection::from_webvpn_url(&response.final_url)
             .unwrap_or_else(|_| response.final_url.clone());
-        if let Some(login_name) = login_name_from_url(&final_direct) {
+        let final_url = url::Url::parse(&final_direct).map_err(|_| invalid_url())?;
+        ensure_login_host(&final_url)?;
+        if let Some(login_name) = login_name_from_url(final_url.as_str()) {
             return Ok(login_name);
         }
         let location = response
@@ -408,9 +406,11 @@ fn login_name_from_url(value: &str) -> Option<String> {
 }
 
 fn ensure_login_host(url: &url::Url) -> Result<()> {
-    if matches!(
-        url.host_str().map(str::to_ascii_lowercase).as_deref(),
-        Some("iclass.buaa.edu.cn" | "sso.buaa.edu.cn")
+    if crate::connection::is_valid_auth_target(
+        url,
+        &["iclass.buaa.edu.cn", "sso.buaa.edu.cn"],
+        true,
+        &[8346, 8347],
     ) {
         Ok(())
     } else {
@@ -506,8 +506,9 @@ mod contract_tests;
 #[cfg(test)]
 mod tests {
     use super::{
-        SIGNIN_LOGIN_URL, build_signin_form, build_signin_url, build_today_request, integer_value,
-        parse_login_credential, parse_timestamp, signin_checkin_url,
+        SIGNIN_LOGIN_URL, build_signin_form, build_signin_url, build_today_request,
+        final_url_is_authentication, integer_value, parse_login_credential, parse_timestamp,
+        signin_checkin_url,
     };
 
     #[test]
@@ -610,6 +611,21 @@ mod tests {
         let form = build_signin_form("user-safe");
         assert_eq!(form.len(), 1);
         assert_eq!(form[0], ("id", "user-safe".to_owned()));
+    }
+
+    #[test]
+    fn 签到结果只把安全的_sso_地址判定为认证失效() {
+        assert!(final_url_is_authentication(
+            "https://sso.buaa.edu.cn/login?execution=fixture"
+        ));
+        for url in [
+            "https://user@sso.buaa.edu.cn/login",
+            "https://sso.buaa.edu.cn:8443/login",
+            "https://sso.buaa.edu.cn.evil.example/login",
+            "https://iclass.buaa.edu.cn/login",
+        ] {
+            assert!(!final_url_is_authentication(url), "不应误判认证地址：{url}");
+        }
     }
 
     #[test]

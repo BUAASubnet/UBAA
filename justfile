@@ -138,7 +138,7 @@ flutter-codegen-check:
 flutter-check:
     bash ./scripts/check/flutter-workspace.sh
 
-# 显式准备同一七包列表的锁定依赖，供离线材料收集使用；不运行测试。
+# 显式准备根 Pub workspace 的正式包和测试辅助包锁定依赖，供离线材料收集使用；不运行测试。
 flutter-dependencies:
     bash ./scripts/check/flutter-workspace.sh dependencies
 

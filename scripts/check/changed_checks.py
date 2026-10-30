@@ -9,10 +9,8 @@ import subprocess
 import sys
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
-from repo import ROOT, official_packages
-PACKAGES = official_packages()
-# 共享测试夹具不属于七个官方发布包，但属于已登记的本地测试依赖。
-TEST_SUPPORT = {'ubaa_test_support': 'packages/ubaa_test_support'}
+from repo import ROOT, workspace_packages
+PACKAGES = workspace_packages()
 
 CODEGEN = ['just', 'flutter-codegen-check']
 
@@ -38,7 +36,7 @@ def changed_paths(root, base=''):
 
 def dependents(root, seeds):
     # 同时读取 dependencies 与 dev_dependencies，避免漏掉使用生产包的测试消费者。
-    owners = {(root / path).resolve(): name for name, path in {**PACKAGES, **TEST_SUPPORT}.items()}
+    owners = {(root / path).resolve(): name for name, path in PACKAGES.items()}
     graph = {}
     for name, path in PACKAGES.items():
         source = (root / path / 'pubspec.yaml').read_text()

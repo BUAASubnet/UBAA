@@ -7,6 +7,7 @@ use super::crypto::{decrypt_response, encrypt_request};
 use super::parser::envelope;
 use super::{BykcCredential, error};
 use crate::connection::from_webvpn_url;
+use crate::domain::ConnectionMode;
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 
@@ -27,28 +28,35 @@ pub(crate) async fn ensure_login(
         return Ok(value);
     }
     let mut current = runtime.url(LOGIN_URL)?;
+    let mode = runtime.mode();
     for _ in 0..8 {
         let response = runtime.request(HttpRequest::get(current.clone())).await?;
-        for candidate in [
-            response.final_url.as_str(),
-            response.header_first("location").unwrap_or_default(),
-        ] {
-            if let Some(token) = token_from_url(candidate) {
-                let value = BykcCredential { token };
-                state.bykc.set(value.clone());
-                return Ok(value);
-            }
+        let final_target = resolve_login_target(&response.final_url, "")?;
+        validate_login_target(&final_target, mode)?;
+        if let Some(token) = token_from_valid_target(&final_target, mode) {
+            let value = BykcCredential { token };
+            state.bykc.set(value.clone());
+            return Ok(value);
         }
         let location = response
             .header_first("location")
             .ok_or_else(|| error("博雅登录跳转缺少目标地址"))?;
+        let routed_base =
+            url::Url::parse(&response.final_url).map_err(|_| error("博雅登录跳转地址无效"))?;
+        let routed_target = routed_base
+            .join(location)
+            .map_err(|_| error("博雅登录跳转地址无效"))?;
+        if !crate::connection::is_safe_redirect_authority(&routed_target)
+            && !crate::connection::is_valid_webvpn_gateway(&routed_target)
+        {
+            return Err(error("博雅登录跳转地址包含不安全的用户信息或端口"));
+        }
         let target = resolve_login_target(&response.final_url, location)?;
-        let parsed = url::Url::parse(&target).map_err(|_| error("博雅登录跳转地址无效"))?;
-        if !matches!(
-            parsed.host_str().unwrap_or_default(),
-            "sso.buaa.edu.cn" | "bykc.buaa.edu.cn"
-        ) {
-            return Err(error("博雅登录跳转到未允许的主机"));
+        validate_login_target(&target, mode)?;
+        if let Some(token) = token_from_valid_target(&target, mode) {
+            let value = BykcCredential { token };
+            state.bykc.set(value.clone());
+            return Ok(value);
         }
         // 业务跳转必须继续沿用当前路线，WebVPN 模式不能回落到直连地址。
         current = runtime.url(&target)?;
@@ -56,13 +64,46 @@ pub(crate) async fn ensure_login(
     Err(error("博雅登录跳转次数超过限制"))
 }
 
-fn token_from_url(raw: &str) -> Option<String> {
-    url::Url::parse(raw)
-        .ok()?
+pub(super) fn token_from_valid_target(raw: &str, mode: ConnectionMode) -> Option<String> {
+    let parsed = url::Url::parse(raw).ok()?;
+    if (mode == ConnectionMode::Direct
+        && parsed
+            .host_str()
+            .is_some_and(|host| host.eq_ignore_ascii_case("d.buaa.edu.cn")))
+        || !parsed
+            .host_str()
+            .is_some_and(|host| host.eq_ignore_ascii_case("bykc.buaa.edu.cn"))
+        || !crate::connection::is_valid_auth_target(&parsed, &["bykc.buaa.edu.cn"], true, &[])
+    {
+        return None;
+    }
+    parsed
         .query_pairs()
         .find(|(k, _)| k == "token")
         .map(|(_, v)| v.into_owned())
         .filter(|v| !v.is_empty())
+}
+
+pub(super) fn validate_login_target(raw: &str, mode: ConnectionMode) -> Result<()> {
+    let parsed = url::Url::parse(raw).map_err(|_| error("博雅登录跳转地址无效"))?;
+    let is_gateway = parsed
+        .host_str()
+        .is_some_and(|host| host.eq_ignore_ascii_case("d.buaa.edu.cn"));
+    let valid = if is_gateway {
+        mode == ConnectionMode::WebVpn && crate::connection::is_valid_webvpn_gateway(&parsed)
+    } else {
+        crate::connection::is_valid_auth_target(
+            &parsed,
+            &["sso.buaa.edu.cn", "bykc.buaa.edu.cn"],
+            true,
+            &[],
+        )
+    };
+    if valid {
+        Ok(())
+    } else {
+        Err(error("博雅登录跳转到未允许的主机、协议或端口"))
+    }
 }
 
 pub(super) fn resolve_login_target(final_url: &str, location: &str) -> Result<String> {

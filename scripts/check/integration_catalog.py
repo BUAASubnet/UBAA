@@ -24,6 +24,7 @@ MANIFEST = ROOT / "scripts" / "integration-tests.json"
 KINDS = {"synthetic", "platform", "live", "manual"}
 PLATFORMS = {"macos", "ios", "android", "linux", "windows"}
 LIVE_MARKERS = ("UBAA_LIVE_READONLY", "UBAA_VERIFY_WEBVPN", "UBAA_LIVE_MATERIAL_SCOPE")
+ENVIRONMENT_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 
 
 def source_closure(path, root, seen=None):
@@ -31,6 +32,41 @@ def source_closure(path, root, seen=None):
     closure = SourceClosure(workspace_for(root))
     closure.add(path)
     return "\n".join(closure.sources.values())
+
+
+def _entry_values(entry, name):
+    values = entry.get(name, [])
+    if not isinstance(values, list) or any(not isinstance(value, str) for value in values):
+        raise ValueError(f"入口 {entry.get('path', '<unknown>')} 的 {name} 必须是字符串数组")
+    return values
+
+
+def environment_for_entry(entry, base_environment):
+    """校验入口声明的前提，并返回传给 Flutter 的环境副本。"""
+    environment = dict(base_environment)
+    required = _entry_values(entry, "environment")
+    invalid = [name for name in required if not ENVIRONMENT_NAME.fullmatch(name)]
+    if invalid:
+        raise ValueError(f"入口 {entry['path']} 的环境变量名无效：{invalid}")
+    missing = [name for name in required if not environment.get(name)]
+    if missing:
+        raise ValueError(f"入口 {entry['path']} 缺少必需环境变量：{missing}")
+    return environment
+
+
+def build_command(entry, flutter, platform, device=None):
+    """根据清单组装 Flutter 命令，不拼接 Shell 字符串。"""
+    runner = entry.get("runner", "test")
+    if runner not in {"test", "run"}:
+        raise ValueError(f"入口 {entry['path']} 的执行方式无效：{runner}")
+    command = [str(flutter), runner, f"integration_test/{entry['path']}",
+               "-d", device or platform]
+    for define in _entry_values(entry, "defines"):
+        key, separator, _ = define.partition("=")
+        if not separator or not key or any(character in define for character in "\x00\r\n"):
+            raise ValueError(f"入口 {entry['path']} 的 Dart define 无效：{define!r}")
+        command.append(f"--dart-define={define}")
+    return command
 
 
 def validate(entries, root=TEST_ROOT):
@@ -58,6 +94,15 @@ def validate(entries, root=TEST_ROOT):
         runner = entry.get("runner", "test")
         if runner not in {"test", "run"} or (runner == "run" and entry["ci"]):
             raise ValueError(f"入口执行方式或 CI 归属不符：{path}")
+        _entry_values(entry, "environment")
+        _entry_values(entry, "defines")
+        for name in entry.get("environment", []):
+            if not ENVIRONMENT_NAME.fullmatch(name):
+                raise ValueError(f"入口环境变量名无效：{path}")
+        for define in entry.get("defines", []):
+            key, separator, _ = define.partition("=")
+            if not separator or not key or any(character in define for character in "\x00\r\n"):
+                raise ValueError(f"入口 Dart define 无效：{path}")
         harness = entry.get("harness")
         if harness is not None and (harness != "startup-lock" or entry["kind"] != "synthetic"
                                     or not set(entry["platforms"]) <= {"macos", "linux"}):
@@ -120,13 +165,13 @@ def main():
         subprocess.run(["bash", str(ROOT / "scripts/check/flutter-toolchains.sh"), "official"],
                        cwd=ROOT, env=environment, check=True)
     for entry in selected:
-        command = [str(flutter), "test", f'integration_test/{entry["path"]}',
-                   "-d", args.device or args.platform]
+        entry_environment = environment_for_entry(entry, environment)
+        command = build_command(entry, flutter, args.platform, args.device)
         if entry.get("harness") == "startup-lock":
             command = [sys.executable, str(ROOT / "scripts/tests/native/startup_lock_runner.py"), *command]
         print(shlex.join(command), flush=True)
         if not args.dry_run:
-            subprocess.run(command, cwd=APP, env=environment, check=True)
+            subprocess.run(command, cwd=APP, env=entry_environment, check=True)
 
 
 if __name__ == "__main__":

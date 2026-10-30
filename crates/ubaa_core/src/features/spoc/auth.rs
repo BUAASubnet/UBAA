@@ -150,20 +150,21 @@ fn resolve_login_redirect(
     let routed_is_gateway = routed_target
         .host_str()
         .is_some_and(|host| host.eq_ignore_ascii_case("d.buaa.edu.cn"));
-    if mode == crate::domain::ConnectionMode::Direct && routed_is_gateway {
+    if routed_is_gateway
+        && (mode == crate::domain::ConnectionMode::Direct
+            || !crate::connection::is_valid_webvpn_gateway(&routed_target))
+    {
         return Err(spoc_auth_error());
     }
     let direct = crate::connection::from_webvpn_url(routed_target.as_str())
         .map_err(|_| spoc_auth_error())?;
     let direct_target = url::Url::parse(&direct).map_err(|_| spoc_auth_error())?;
-    if direct_target.scheme() != "https"
-        || !direct_target.host_str().is_some_and(|host| {
-            matches!(
-                host.to_ascii_lowercase().as_str(),
-                "spoc.buaa.edu.cn" | "sso.buaa.edu.cn"
-            )
-        })
-    {
+    if !crate::connection::is_valid_auth_target(
+        &direct_target,
+        &["spoc.buaa.edu.cn", "sso.buaa.edu.cn"],
+        true,
+        &[],
+    ) {
         return Err(spoc_auth_error());
     }
     if mode == crate::domain::ConnectionMode::WebVpn {
@@ -212,12 +213,12 @@ pub(super) fn extract_login_token(
     {
         return None;
     }
+    if raw_is_gateway && !crate::connection::is_valid_webvpn_gateway(&raw) {
+        return None;
+    }
     let direct = crate::connection::from_webvpn_url(candidate).ok()?;
     let parsed = url::Url::parse(&direct).ok()?;
-    if parsed.scheme() != "https"
-        || !parsed
-            .host_str()
-            .is_some_and(|host| host.eq_ignore_ascii_case("spoc.buaa.edu.cn"))
+    if !crate::connection::is_valid_auth_target(&parsed, &["spoc.buaa.edu.cn"], true, &[])
         || parsed.path() != "/spocnew/cas"
     {
         return None;

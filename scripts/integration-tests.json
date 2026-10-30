@@ -2,6 +2,23 @@
   "schema": 2,
   "tests": [
     {
+      "path": "synthetic/app/smoke_test.dart",
+      "kind": "synthetic",
+      "domain": "app",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": true,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
       "path": "platform/about/information_test.dart",
       "kind": "platform",
       "domain": "about",

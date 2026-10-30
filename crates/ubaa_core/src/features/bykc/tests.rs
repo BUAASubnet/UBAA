@@ -3,7 +3,9 @@ use chrono::NaiveDateTime;
 use sha1::{Digest, Sha1};
 
 use super::BykcCredential;
-use super::auth::{LOGIN_URL, resolve_login_target};
+use super::auth::{
+    LOGIN_URL, resolve_login_target, token_from_valid_target, validate_login_target,
+};
 use super::crypto::{decrypt_response, encrypt_request_with_key};
 use super::parser::{
     parse_chosen_courses, parse_chosen_courses_at, parse_courses_at, parse_sign_config,
@@ -34,6 +36,51 @@ fn webvpn_相对跳转按还原后的业务地址解析() {
     assert_eq!(
         resolve_login_target(&final_url, "/cas-login?token=已脱敏").expect("解析 WebVPN 相对跳转"),
         "https://bykc.buaa.edu.cn/cas-login?token=%E5%B7%B2%E8%84%B1%E6%95%8F"
+    );
+}
+
+#[test]
+fn 博雅令牌必须来自已验证的业务登录目标() {
+    assert_eq!(
+        token_from_valid_target(
+            "https://bykc.buaa.edu.cn/sscv/cas/login?token=token-safe",
+            crate::domain::ConnectionMode::Direct,
+        )
+        .as_deref(),
+        Some("token-safe")
+    );
+    for candidate in [
+        "https://evil.example.invalid/?token=token-leak",
+        "https://sso.buaa.edu.cn/login?token=token-leak",
+        "https://user:pass@bykc.buaa.edu.cn/?token=token-leak",
+        "https://bykc.buaa.edu.cn:8443/?token=token-leak",
+        "https://d.buaa.edu.cn/?token=token-leak",
+    ] {
+        assert!(
+            token_from_valid_target(candidate, crate::domain::ConnectionMode::Direct).is_none(),
+            "不应从未经验证的登录目标提取令牌: {candidate}"
+        );
+    }
+}
+
+#[test]
+fn 博雅登录跳转拒绝网关大小写绕过用户信息和非默认端口() {
+    for candidate in [
+        "http://d.buaa.edu.cn/landing",
+        "https://D.BUAA.EDU.CN:8443/landing",
+        "https://user@D.BUAA.EDU.CN/landing",
+    ] {
+        assert!(
+            validate_login_target(candidate, crate::domain::ConnectionMode::WebVpn).is_err(),
+            "不应接受非法 WebVPN 网关: {candidate}"
+        );
+    }
+    assert!(
+        validate_login_target(
+            "https://bykc.buaa.edu.cn/landing",
+            crate::domain::ConnectionMode::Direct,
+        )
+        .is_ok()
     );
 }
 

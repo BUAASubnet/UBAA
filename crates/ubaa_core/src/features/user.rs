@@ -83,7 +83,10 @@ pub(crate) fn looks_unauthenticated(status: u16, final_url: &str, body: &str) ->
         return true;
     }
     let direct_url = from_webvpn_url(final_url).unwrap_or_else(|_| final_url.into());
-    if direct_url.contains("sso.buaa.edu.cn") {
+    if url::Url::parse(&direct_url).is_ok_and(|url| {
+        crate::connection::is_valid_auth_target(&url, &["sso.buaa.edu.cn"], false, &[])
+            && url.path() == "/login"
+    }) {
         return true;
     }
     let trimmed = body.trim_start();
@@ -135,5 +138,32 @@ fn status_error(status: u16, message: impl Into<String>) -> UbaaError {
             false,
             message,
         )
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::looks_unauthenticated;
+
+    #[test]
+    fn 用户认证失效只识别精确的_sso_login_地址() {
+        let body = r#"{"code":0}"#;
+        assert!(looks_unauthenticated(
+            200,
+            "https://sso.buaa.edu.cn/login?execution=fixture",
+            body
+        ));
+        for url in [
+            "https://sso.buaa.edu.cn/login-extra",
+            "https://sso.buaa.edu.cn/not-login",
+            "https://sso.buaa.edu.cn.evil.example/login",
+            "https://user@sso.buaa.edu.cn/login",
+            "https://sso.buaa.edu.cn:8443/login",
+        ] {
+            assert!(
+                !looks_unauthenticated(200, url, body),
+                "不应把非认证落点判为认证失效: {url}"
+            );
+        }
     }
 }

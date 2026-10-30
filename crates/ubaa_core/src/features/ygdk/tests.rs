@@ -13,7 +13,7 @@ use crate::runtime::ClientRuntime;
 use crate::session::{FileSessionStore, SessionMutation, SessionSnapshot, SessionStore};
 
 use super::YgdkCredential;
-use super::auth::{code_from_url, ensure_login, percent_decode};
+use super::auth::{code_from_url, ensure_login, percent_decode, validate_oauth_target};
 use super::http::{post, post_non_idempotent, post_with_query};
 use super::parser::{parse_envelope, parse_items, parse_overview, parse_records};
 use super::read::get_records;
@@ -36,6 +36,31 @@ fn valid_submit_request() -> YgdkClockinSubmitRequest {
             bytes: b"JPEG".to_vec(),
         },
     }
+}
+
+#[test]
+fn 阳光打卡_oauth跳转限制协议用户信息和端口但保留未知主机() {
+    for target in [
+        "https://unknown.example.invalid/callback?code=fixture",
+        "http://unknown.example.invalid/callback?code=fixture",
+    ] {
+        assert!(validate_oauth_target(target, ConnectionMode::Direct).is_ok());
+    }
+    for target in [
+        "ftp://unknown.example.invalid/callback?code=fixture",
+        "https://user:pass@unknown.example.invalid/callback?code=fixture",
+        "https://unknown.example.invalid:8443/callback?code=fixture",
+        "http://d.buaa.edu.cn/callback?code=fixture",
+    ] {
+        assert!(validate_oauth_target(target, ConnectionMode::Direct).is_err());
+    }
+    assert!(
+        validate_oauth_target(
+            "https://D.BUAA.EDU.CN/callback?code=fixture",
+            ConnectionMode::WebVpn,
+        )
+        .is_ok()
+    );
 }
 
 fn save_session(store: &FileSessionStore, snapshot: &SessionSnapshot) -> crate::error::Result<()> {

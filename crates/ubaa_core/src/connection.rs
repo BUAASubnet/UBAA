@@ -258,10 +258,64 @@ pub fn is_allowed_auth_host(url: &str) -> bool {
         .ok()
         .and_then(|parsed| {
             parsed.host_str().map(|host| {
-                is_allowed_auth_scheme(&parsed) && AuthHostPolicy::default().allows(host)
+                is_valid_auth_target(&parsed, &["sso.buaa.edu.cn", "uc.buaa.edu.cn"], false, &[])
+                    && AuthHostPolicy::default().allows(host)
             })
         })
         .unwrap_or(false)
+}
+
+/// 检查重定向 URL 的协议、用户信息和端口是否处于可验证范围。
+///
+/// 上游功能可能使用自定义端口，因此调用方需要通过 `allowed_ports` 明确声明
+/// 这些端口。认证主机默认只接受协议默认端口，网关另有更严格的 HTTPS 要求。
+pub(crate) fn is_valid_auth_target(
+    url: &Url,
+    allowed_hosts: &[&str],
+    require_https: bool,
+    allowed_ports: &[u16],
+) -> bool {
+    is_allowed_auth_scheme(url)
+        && (!require_https || url.scheme() == "https")
+        && url.username().is_empty()
+        && url.password().is_none()
+        && url.port().is_none_or(|port| {
+            (url.scheme() == "https" && allowed_ports.contains(&port))
+                || matches!((url.scheme(), port), ("http", 80) | ("https", 443))
+        })
+        && url.host_str().is_some_and(|host| {
+            allowed_hosts
+                .iter()
+                .any(|allowed| host.eq_ignore_ascii_case(allowed))
+        })
+}
+
+/// 检查不带主机白名单的安全重定向 authority。
+pub(crate) fn is_safe_redirect_authority(url: &Url) -> bool {
+    is_allowed_auth_scheme(url)
+        && url.username().is_empty()
+        && url.password().is_none()
+        && url
+            .port()
+            .is_none_or(|port| matches!((url.scheme(), port), ("http", 80) | ("https", 443)))
+}
+
+/// `WebVPN` 网关本身只能通过 HTTPS 默认端口访问。
+pub(crate) fn is_valid_webvpn_gateway(url: &Url) -> bool {
+    is_safe_redirect_authority(url)
+        && url.scheme() == "https"
+        && url
+            .host_str()
+            .is_some_and(|host| host.eq_ignore_ascii_case(WEBVPN_HOST))
+}
+
+fn permission_error(message: &'static str) -> UbaaError {
+    UbaaError::new(
+        ErrorCode::PermissionDenied,
+        ErrorKind::Authentication,
+        false,
+        message,
+    )
 }
 
 /// 将上游直连地址转换为已验证的北航 `WebVPN` 格式。
@@ -277,7 +331,15 @@ pub fn to_webvpn_url(url: &str) -> Result<String> {
         .host_str()
         .is_some_and(|host| host.eq_ignore_ascii_case(WEBVPN_HOST))
     {
+        if !is_valid_webvpn_gateway(&parsed) {
+            return Err(permission_error(
+                "WebVPN 网关必须使用 HTTPS 默认端口且不得包含用户信息",
+            ));
+        }
         return Ok(url.to_string());
+    }
+    if !parsed.username().is_empty() || parsed.password().is_some() {
+        return Err(permission_error("重定向 URL 不得包含用户信息"));
     }
     let host = parsed
         .host_str()
@@ -321,6 +383,11 @@ pub fn from_webvpn_url(url: &str) -> Result<String> {
         .is_some_and(|host| host.eq_ignore_ascii_case(WEBVPN_HOST))
     {
         return Ok(url.to_string());
+    }
+    if !is_valid_webvpn_gateway(&parsed) {
+        return Err(permission_error(
+            "WebVPN 网关必须使用 HTTPS 默认端口且不得包含用户信息",
+        ));
     }
 
     let segments: Vec<&str> = parsed
@@ -367,7 +434,15 @@ pub fn from_webvpn_url(url: &str) -> Result<String> {
 /// 重定向格式错误或未验证时返回权限错误或上游协议错误。
 pub fn resolve_redirect(current_url: &str, location: &str, mode: ConnectionMode) -> Result<String> {
     let resolved = upstream_redirect_target(current_url, location)?;
-    if !is_allowed_auth_host(resolved.as_str()) {
+    let allowed = if resolved
+        .host_str()
+        .is_some_and(|host| host.eq_ignore_ascii_case(WEBVPN_HOST))
+    {
+        mode == ConnectionMode::WebVpn && is_valid_webvpn_gateway(&resolved)
+    } else {
+        is_allowed_auth_host(resolved.as_str())
+    };
+    if !allowed {
         return Err(UbaaError::new(
             ErrorCode::PermissionDenied,
             ErrorKind::Authentication,
@@ -375,7 +450,11 @@ pub fn resolve_redirect(current_url: &str, location: &str, mode: ConnectionMode)
             "redirect host is not allowed",
         ));
     }
-    if mode == ConnectionMode::WebVpn {
+    if mode == ConnectionMode::WebVpn
+        && !resolved
+            .host_str()
+            .is_some_and(|host| host.eq_ignore_ascii_case(WEBVPN_HOST))
+    {
         to_webvpn_url(resolved.as_str())
     } else {
         Ok(resolved.to_string())
@@ -390,6 +469,15 @@ pub(crate) fn upstream_redirect_target(current_url: &str, location: &str) -> Res
     let resolved = current
         .join(location)
         .map_err(|_| protocol_error("invalid redirect Location"))?;
+    if resolved
+        .host_str()
+        .is_some_and(|host| host.eq_ignore_ascii_case(WEBVPN_HOST))
+        && !is_valid_webvpn_gateway(&resolved)
+    {
+        return Err(permission_error(
+            "WebVPN 网关必须使用 HTTPS 默认端口且不得包含用户信息",
+        ));
+    }
     let mut upstream = Url::parse(&from_webvpn_url(resolved.as_str())?)
         .map_err(|_| protocol_error("上游跳转地址无效"))?;
     if !is_allowed_auth_scheme(&resolved) || !is_allowed_auth_scheme(&upstream) {
@@ -401,7 +489,9 @@ pub(crate) fn upstream_redirect_target(current_url: &str, location: &str) -> Res
         ));
     }
     if upstream.scheme() == "http"
-        && upstream.host_str() == Some("sso.buaa.edu.cn")
+        && upstream
+            .host_str()
+            .is_some_and(|host| host.eq_ignore_ascii_case("sso.buaa.edu.cn"))
         && upstream.port_or_known_default() == Some(80)
     {
         upstream
@@ -416,8 +506,7 @@ pub(crate) fn is_sso_url(candidate: &str) -> bool {
     let direct = from_webvpn_url(candidate).unwrap_or_else(|_| candidate.to_owned());
     Url::parse(&direct)
         .ok()
-        .and_then(|url| url.host_str().map(str::to_ascii_lowercase))
-        .is_some_and(|host| host == "sso.buaa.edu.cn")
+        .is_some_and(|url| is_valid_auth_target(&url, &["sso.buaa.edu.cn"], false, &[]))
 }
 
 /// 解析响应的相对 Location，并判断目标是否指向 SSO。

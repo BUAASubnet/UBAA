@@ -18,6 +18,34 @@ build = report.build_sbom
 
 
 class ReleaseMetadataTest(unittest.TestCase):
+    def test_默认Dart锁文件清单包含根workspace锁(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            nested = root / "apps/sample"
+            nested.mkdir(parents=True)
+            (root / "pubspec.lock").write_text("root")
+            (nested / "pubspec.lock").write_text("nested")
+            subprocess.run(["git", "-C", str(root), "init", "-q"], check=True)
+            subprocess.run(["git", "-C", str(root), "add", "pubspec.lock", "apps/sample/pubspec.lock"], check=True)
+            self.assertEqual(
+                [path.relative_to(root).as_posix() for path in report.dart_lockfiles(root)],
+                ["apps/sample/pubspec.lock", "pubspec.lock"],
+            )
+
+    def test_材料缺口默认阻止发布但报告模式允许保留(self):
+        records = [
+            {"ecosystem": "dart", "name": "ok", "evidence_status": "collected"},
+            {"ecosystem": "dart", "name": "missing", "evidence_status": "source_unavailable"},
+        ]
+        self.assertEqual(report.release_exit_code(records), report.RELEASE_BLOCKED_EXIT)
+        self.assertEqual(report.release_exit_code(records, report_only=True), 0)
+        self.assertEqual(report.release_exit_code(records[:1]), 0)
+
+    def test_发布前置清单也包含根锁文件(self):
+        source = (ROOT / "scripts/release/preflight.sh").read_text()
+        self.assertIn("'pubspec.lock'", source)
+        self.assertIn("preserve_output=1", source)
+
     def test_复合许可证不能放在单一ID字段(self):
         document = build({"packages": [{"name": "sample", "version": "1.0.0",
                                         "license": "MIT OR Apache-2.0"}]})
