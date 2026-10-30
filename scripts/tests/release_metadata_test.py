@@ -130,7 +130,8 @@ class ReleaseMetadataTest(unittest.TestCase):
             (package / "LICENSE-BSD").write_text("保留上游许可")
             manifest = package / "ohos/oh-package.json5"
             manifest.write_text('{name:"plugin",version:"1",dependencies:{flutter:"file:/private/sdk/flutter.har",},}')
-            records = report.ohos_evidence(root, root / "output", [manifest])
+            # 此夹具不提供原生 SDK，显式传入版本清单，避免读取真实仓库配置。
+            records = report.ohos_evidence(root, root / "output", [manifest], sdk=None, pins={})
             self.assertEqual(records[0]["evidence_status"], "collected")
             self.assertEqual(len(records[0]["files"]), 2)
             self.assertEqual(records[1]["evidence_status"], "native_evidence_missing")

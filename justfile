@@ -72,10 +72,14 @@ check-strict:
     just shell-check-strict
     just _rust-shell-contracts
 
-_rust-shell-contracts:
+# 文档、脚本与工作流使用独立轻检查，不编译 Rust 或原生宿主。
+script-check:
+    just shell-check-strict
+    just _script-contracts
+
+_script-contracts:
     just script-test
     just integration-check
-    just module-check
     bash ./scripts/tests/layout.sh
     bash ./scripts/tests/contract-versions.sh
     bash ./scripts/tests/references.sh
@@ -85,15 +89,19 @@ _rust-shell-contracts:
     just contract-version-check
     just docs-link-check
     just tool-version-check
+    just cargo-lock-check
+    bash ./scripts/tests/live-launchers.sh
+    git diff --check
+
+_rust-shell-contracts:
+    just _script-contracts
     cargo metadata --locked --no-deps --format-version 1 >/dev/null
     cargo fmt --all -- --check
     cargo clippy --locked --workspace --all-targets --all-features -- -D warnings
     just core-test-contract
     cargo test --locked --workspace --exclude ubaa-core
-    bash ./scripts/tests/live-launchers.sh
     cargo build --locked --workspace
     cargo doc --locked --workspace --no-deps
-    git diff --check
 
 check-sensitive:
     bash ./scripts/check/sensitive.sh
@@ -112,6 +120,10 @@ docs-link-check:
 
 tool-version-check:
     python3 scripts/check/tool_versions.py
+
+# 与 CLI 二进制合同相同的命令扫描，文档和脚本改动也必须执行。
+cargo-lock-check:
+    python3 scripts/lib/cargo_locks.py
 
 # 显式联网更新 RustSec advisory 数据库并运行 cargo-deny；不属于纯校验门禁。
 dependency-audit:
@@ -171,6 +183,7 @@ script-test:
     python3 scripts/tests/checks/recipe_args_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/directory_names_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/changed_checks_test.py
+    PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/cargo_locks_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/module_graph_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/checks/toolchain_entry_test.py
     PYTHONDONTWRITEBYTECODE=1 python3 scripts/tests/sensitive_test.py
