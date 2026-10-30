@@ -30,22 +30,39 @@ just check-plan base=<阶段开始提交>
 just check-changed base=<阶段开始提交>
 ```
 
-默认计划包含暂存、未暂存、未跟踪、移动与删除；显式基线还包含分支提交。Dart 生产代码沿本地普通和开发依赖传播，普通测试变更选择所属包，Core/Bridge、工具链、包配置、脚本及未知路径保守检查。所有改动至少执行合同版本和文档断链检查；文档站改动另执行站点构建。OHOS 三个插件均触发专属提示。
+默认 `mode=commit` 包含暂存、未暂存、未跟踪、移动与删除；显式基线还包含分支提交。混合改动合并所需检查，共用检查只执行一次。提交前按下表选择，普通改动无需再叠加完整清单：
 
-修改测试框架、门禁、公共合同或完成跨模块整理，以及最终维护验收，必须运行下列完整确定性清单。PR/CI 保留完整相关检查，不能用按改动检查代替：
+| 改动 | 提交前执行范围 |
+|---|---|
+| 根目录或已知工程目录中的 Markdown、文档图片 | refs、敏感扫描、差异空白、合同版本、文档断链、静态 Cargo 命令锁定扫描；文档站及其 npm 配置另运行站点构建 |
+| 普通脚本、justfile、workflow | refs、敏感扫描、差异空白和 `just script-check`，不启动 Rust、Flutter 或 FRB 编译 |
+| 普通 Rust / CLI 展示代码 | refs、敏感扫描、差异空白和 `just check`；共用脚本、布局、版本与文档检查已包含其中 |
+| 普通 Dart 展示代码、资源或测试 | 共用静态检查及布局检查；生产代码沿本地普通依赖和开发依赖选择消费者，普通测试只检查所属包 |
+| 原生平台目录或原生测试 | 提交前检查所属 Flutter 包，推送前或 CI 执行原生集成及对应平台专项；涉及 FFI 或安全边界时立即完整验收 |
+| 安全、协议、并发、存储、公共合同、跨语言边界、依赖配置或未知影响 | 提交前完整确定性验收，继续保守处理 |
+
+自动完整范围包括 Core/Bridge、Fixture、Dart Domain、Platform/Host 生产代码、App 中展示目录以外的生产代码、CLI 执行/凭据读取、UI 写操作与缓存管理等边界，以及凭据读取与签名权限脚本。路径选择不能判断所有语义：其他目录中出现安全、协议、并发、存储或跨语言影响时，审阅者必须显式选择 `mode=full`。未知路径或无法解析的本地依赖也执行完整验收。OHOS 改动另外提示 `just ohos-check` 和对应设备验证。
+
+FRB 生成检查只随 Bridge API 源码、生成文件、生成配置及依赖配置/锁文件变化执行，Bridge 测试和平台接线不单独触发重生成。Core 的认证、缓存等内部变化仍执行完整相关测试，未改变生成输入时不额外重生成。未知影响和显式 `mode=full` 保留生成检查，使用 `CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1`。
+
+推送前审阅同一阶段范围：
 
 ```bash
-just refs
-just layout-check
-just check-sensitive
-just check-strict
-just flutter-check
-just integration-test
-CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 just flutter-codegen-check
-git diff --check
+just check-plan base=<阶段开始提交> mode=push
+just check-changed base=<阶段开始提交> mode=push
 ```
 
-完整清单采用较严格的既有要求：`check-strict` 取代宽松 `check`，并保留独立 FRB 生成检查。原生能力默认集合继续执行，删除范围与覆盖缺口见测试策略。未触及完整验收条件的纯文档修改不自动触发原生构建，学校请求仍只按协议变化和授权规则执行。原生与发布候选还必须执行对应平台专项，见下文；测试、构建、设备、学校实测和发布分别记账。
+`mode=push` 对代码改动扩展到全部 Flutter 包，Rust 使用严格 ShellCheck；只有原生、FFI、平台改动或完整验收范围才执行原生集成。纯文档和普通脚本仍使用各自级别。全量 Flutter、原生集成和生成检查可由同一候选提交的 CI 承担，应明确记录本地未运行及远端结果，不能提前宣称通过。安全等完整验收范围仍须在提交前完成。
+
+修改门禁或测试框架时，提交前执行脚本级自测与新增失败反例，再验证实际受影响的入口。完整确定性清单保留为显式模式及 PR/CI 的最终验收要求：
+
+```bash
+just check-changed base=<阶段开始提交> mode=full
+```
+
+该入口依次运行 refs、敏感扫描、差异空白、一次 `check-strict`、全部 Flutter 包、原生集成和一次 FRB 生成检查。`check-strict` 已包含布局、脚本合同、版本及文档检查，不再另跑普通 `check`、`script-check` 或默认 `check-changed`。空工作树也可显式执行 `mode=full`。PR/CI 保留完整相关检查，发布验收继续执行完整清单与平台专项。
+
+原生与发布候选还必须执行对应平台专项，见下文；测试、构建、设备、学校实测和发布分别记账。普通工程检查不请求学校服务。
 
 | 入口 | 实际范围和失败条件 |
 |---|---|
@@ -57,16 +74,18 @@ git diff --check
 | `just dependency-audit` | 显式联网运行锁定版本的 cargo-deny，检查 Rust advisories、licenses、bans 和 sources；缺少固定工具或版本不符失败 |
 | `just contract-version-check` | CLI/Bridge 常量、JSON Schema、Dart 接受版本与当前文档声明静态一致性 |
 | `just shell-check` / `just shell-check-strict` | 全部候选 Shell 运行 bash -n；严格模式必须存在 ShellCheck 0.11.0，宽松模式缺失时明确 SKIP |
-| `just check` / `just check-strict` | 相同的 Rust、CLI 和脚本检查；仅 ShellCheck 必需性不同。宽松入口只供日常反馈，不替代最终严格验收 |
+| `just cargo-lock-check` | 静态扫描文档、Shell、workflow 与 justfile 中的 Cargo 命令锁定要求，与 CLI 二进制合同使用相同范围和规则，无需编译 Rust |
+| `just script-check` | 严格 ShellCheck、脚本自测、Shell 合同、布局、原生清单、文档、版本和 Cargo 命令锁定检查 |
+| `just check` / `just check-strict` | 相同的 Rust、CLI 和脚本检查；仅 ShellCheck 必需性不同。普通 Rust 提交使用前者，推送与完整验收使用后者 |
 | `just flutter-check` | 依次对根 Pub workspace 的八个成员执行锁定 pub get、format 检查、analyze、test；golden 使用 macOS 基准 |
 | `just flutter-codegen-check` | 锁定 FRB codegen 2.13.0 重生成，只写 FRB 生成路径并格式化生成 Rust 文件，检查 index、工作区及未跟踪生成文件；禁用 Web 输出 |
 | `git diff --check` | 检查当前差异中的空白错误；提交前另查 `git diff --cached --check`，验收提交范围时传入基线 |
 
-`check` 和 `check-strict` 共用 `_rust-shell-contracts`：Python 脚本自测、原生清单、文档断链、工具版本镜像、完整自有依赖闭包、layout/contract-versions/references/flutter-toolchains/maintenance-gates/live-launchers 六个 Shell 合同脚本、实际布局与版本 checker、Cargo metadata/fmt/Clippy、Core 关闭/开启 test-contract 的合同、其余 workspace 测试、构建、文档和差异检查。这里的 references 合同使用临时仓库，并不替代实际冻结引用校验；live launcher 合同使用假程序和虚构凭据，不请求学校。
+`script-check` 与 Rust 检查共用 `_script-contracts`；`check` 和 `check-strict` 在此基础上通过 `_rust-shell-contracts` 追加 Rust 检查：Python 脚本自测、原生清单、文档断链、工具版本镜像、完整自有依赖闭包、layout/contract-versions/references/flutter-toolchains/maintenance-gates/live-launchers 六个 Shell 合同脚本、实际布局与版本 checker、静态 Cargo 命令锁定扫描、Cargo metadata/fmt/Clippy、Core 关闭/开启 test-contract 的合同、其余 workspace 测试、构建、文档和差异检查。这里的 references 合同使用临时仓库，并不替代实际冻结引用校验；live launcher 合同使用假程序和虚构凭据，不请求学校。
 
 `just dependency-audit`（由 `scripts/release/dependency-audit.sh` 实现）是独立的网络入口，不由 `check`、`check-strict` 或其他纯校验命令隐式调用。该入口检查 `CARGO_DENY_VERSION` 锁定的 cargo-deny，并允许 cargo-deny 按配置从 RustSec advisory 数据库获取或更新安全公告；CI 在安装同一版本后显式调用它。没有网络时应如实记录该入口未运行，不能把离线 Cargo metadata 或 release-preflight 的许可证材料当作 advisory 审计通过。
 
-这两个入口均不隐含完整 Flutter、FRB 生成、原生设备或学校实测。`fmt` recipe 也只执行格式检查，不写文件。
+这三个入口均不隐含完整 Flutter、FRB 生成、原生设备或学校实测。`fmt` recipe 也只执行格式检查，不写文件。
 
 ## 聚焦回归与原生验证
 

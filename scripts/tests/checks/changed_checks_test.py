@@ -30,14 +30,13 @@ class ChangedChecksTest(unittest.TestCase):
                          ['ubaa_app', 'ubaa_ui', 'ubaa_host', 'ubaa_flutter', 'ubaa_test_support'])
 
     def test_app_implementation_includes_ui_test_dependency(self):
-        self.assertEqual(self.plan('packages/ubaa_app/lib/src/write/coordinator.dart')['packages'],
+        self.assertEqual(self.plan('packages/ubaa_app/lib/src/presentation/grades.dart')['packages'],
                          ['ubaa_app', 'ubaa_ui', 'ubaa_host', 'ubaa_flutter', 'ubaa_test_support'])
 
     def test_domain_reaches_all_consumers_but_not_unrelated_bindings(self):
-        plan = self.plan('packages/ubaa_domain/lib/src/models.dart')
-        self.assertEqual(plan['packages'],
-                         ['ubaa_domain', 'ubaa_platform', 'ubaa_app', 'ubaa_ui', 'ubaa_host',
-                          'ubaa_flutter', 'ubaa_test_support'])
+        self.assertEqual(gates.dependents(ROOT, {'ubaa_domain'}),
+                         {'ubaa_domain', 'ubaa_platform', 'ubaa_app', 'ubaa_ui', 'ubaa_host',
+                          'ubaa_flutter', 'ubaa_test_support'})
 
     def test_tests_only_check_own_package(self):
         self.assertEqual(self.plan('packages/ubaa_ui/test/navigation/read_test.dart')['packages'], ['ubaa_ui'])
@@ -57,18 +56,37 @@ class ChangedChecksTest(unittest.TestCase):
         self.assertIn('ubaa_domain', plan['packages'])
         self.assertIn('ubaa_flutter', plan['packages'])
 
-    def test_manifest_or_tool_changes_fall_back_to_complete_checks(self):
-        for path in ['packages/ubaa_ui/pubspec.yaml', 'AGENTS.md', 'justfile',
-                     'scripts/check/changed_checks.py', '.github/workflows/ci.yml', 'unexpected/file']:
+    def test_root_documents_and_scripts_have_lightweight_tiers(self):
+        for path in ['AGENTS.md', 'SECURITY.md', 'UBAA2.md', 'crates/ubaa_core/README.md',
+                     'apps/ubaa_cli/README.md', 'packages/package_info_plus_ohos/README.md']:
+            with self.subTest(path=path):
+                plan = self.plan(path)
+                self.assertFalse(plan['rust'])
+                self.assertEqual(plan['packages'], [])
+                self.assertIn(['just', 'cargo-lock-check'], gates.commands(plan))
+        for path in ['justfile', 'scripts/check/changed_checks.py', '.github/workflows/ci.yml']:
+            with self.subTest(path=path):
+                plan = self.plan(path)
+                self.assertFalse(plan['rust'])
+                self.assertEqual(plan['packages'], [])
+                self.assertEqual(plan['extra'], [])
+                self.assertIn(['just', 'script-check'], gates.commands(plan))
+
+    def test_unknown_paths_and_dependency_manifests_remain_conservative(self):
+        for path in ['packages/ubaa_ui/pubspec.yaml', 'unexpected/file', 'crates/unknown/src/mod.rs',
+                     'scripts/new_native.rs', 'packages/unknown/README.md',
+                     'Cargo.toml', 'pubspec.lock', 'docs/contracts/cli.schema.json']:
             with self.subTest(path=path):
                 plan = self.plan(path)
                 self.assertTrue(plan['rust'])
                 self.assertEqual(plan['packages'], list(gates.PACKAGES))
+                self.assertIn(['just', 'check-strict'], gates.commands(plan))
+                self.assertIn(['just', 'integration-test'], gates.commands(plan))
 
     def test_dependency_audit_entry_keeps_network_run_explicit(self):
         plan = self.plan('scripts/release/dependency-audit.sh')
-        self.assertTrue(plan['rust'])
-        self.assertEqual(plan['packages'], list(gates.PACKAGES))
+        self.assertFalse(plan['rust'])
+        self.assertEqual(plan['packages'], [])
         self.assertTrue(any('显式联网' in note for note in plan['notes']))
         self.assertNotIn(['just', 'dependency-audit'], gates.commands(plan))
 
@@ -76,13 +94,92 @@ class ChangedChecksTest(unittest.TestCase):
         plan = self.plan('crates/ubaa_flutter_bridge/src/api.rs')
         self.assertTrue(plan['rust'])
         self.assertEqual(plan['packages'], list(gates.PACKAGES))
-        self.assertIn(['just', 'flutter-codegen-check'], plan['extra'])
+        self.assertIn(gates.CODEGEN, plan['extra'])
 
-    def test_core_requires_cross_language_checks(self):
+    def test_core_storage_keeps_full_checks_without_redundant_codegen(self):
         plan = self.plan('crates/ubaa_core/src/session/mod.rs')
         self.assertTrue(plan['rust'])
         self.assertEqual(plan['packages'], list(gates.PACKAGES))
-        self.assertIn(['just', 'flutter-codegen-check'], plan['extra'])
+        self.assertNotIn(gates.CODEGEN, plan['extra'])
+
+    def test_regular_rust_does_not_regenerate_bindings_or_run_flutter(self):
+        plan = self.plan('apps/ubaa_cli/src/render/tables.rs')
+        self.assertTrue(plan['rust'])
+        self.assertEqual(plan['packages'], [])
+        self.assertEqual(plan['extra'], [])
+        self.assertIn(['just', 'check'], gates.commands(plan))
+        self.assertNotIn(['just', 'integration-test'], gates.commands(plan))
+
+    def test_security_protocol_concurrency_storage_and_ffi_require_full(self):
+        for path in ['crates/ubaa_core/src/session/storage.rs',
+                     'crates/ubaa_core/src/upstream/mod.rs',
+                     'packages/ubaa_app/lib/src/controller/reads/lanes.dart',
+                     'packages/ubaa_app/lib/src/controller/session/authentication.dart',
+                     'packages/ubaa_app/lib/src/bridge/auth/session.dart',
+                     'packages/ubaa_app/lib/src/bridge/cache/account.dart',
+                     'packages/ubaa_app/lib/src/write/coordinator.dart',
+                     'packages/ubaa_ui/lib/src/write_callbacks.dart',
+                     'packages/ubaa_ui/lib/src/app/shell_write.dart',
+                     'packages/ubaa_domain/lib/src/feature/cached_feature.dart',
+                     'apps/ubaa_cli/src/io/input.rs',
+                     'scripts/lib/environment.py',
+                     'scripts/release/macos-entitlements.sh',
+                     'apps/ubaa_flutter/macos/Runner/Release.entitlements',
+                     'packages/ubaa_platform/lib/src/infrastructure/preferences.dart',
+                     'packages/ubaa_bindings/lib/src/backend.dart',
+                     'packages/ubaa_host/lib/src/lifecycle.dart']:
+            with self.subTest(path=path):
+                commands = gates.commands(self.plan(path))
+                self.assertIn(['just', 'check-strict'], commands)
+                self.assertIn(['just', 'integration-test'], commands)
+
+    def test_codegen_is_selected_for_bridge_inputs_and_locks(self):
+        for path in ['crates/ubaa_flutter_bridge/src/api/read/methods.rs',
+                     'packages/ubaa_bindings/flutter_rust_bridge.yaml', 'Cargo.lock', 'pubspec.lock']:
+            with self.subTest(path=path):
+                self.assertEqual(gates.commands(self.plan(path)).count(gates.CODEGEN), 1)
+
+    def test_bridge_tests_and_platform_glue_do_not_regenerate_api(self):
+        for path in ['crates/ubaa_flutter_bridge/src/api/read/tests.rs',
+                     'crates/ubaa_flutter_bridge/src/api/write/tests/lifecycle.rs',
+                     'crates/ubaa_flutter_bridge/src/android_tls.rs',
+                     'packages/ubaa_bindings/test/backend_test.dart']:
+            with self.subTest(path=path):
+                plan = self.plan(path)
+                self.assertTrue(plan['full'])
+                self.assertNotIn(gates.CODEGEN, plan['extra'])
+
+    def test_push_expands_flutter_and_defers_native_until_needed(self):
+        plan = gates.select_checks(ROOT, ['packages/ubaa_ui/test/navigation/read_test.dart'], mode='push')
+        self.assertEqual(plan['packages'], list(gates.PACKAGES))
+        self.assertNotIn(['just', 'integration-test'], gates.commands(plan))
+        self.assertEqual(plan['extra'], [])
+        for path in ['apps/ubaa_flutter/macos/Runner/AppDelegate.swift',
+                     'apps/ubaa_flutter/integration_test/platform/network_test.dart']:
+            with self.subTest(path=path):
+                commit = self.plan(path)
+                self.assertNotIn(['just', 'integration-test'], gates.commands(commit))
+                push = gates.select_checks(ROOT, [path], mode='push')
+                self.assertIn(['just', 'integration-test'], gates.commands(push))
+
+    def test_full_mode_executes_each_heavy_gate_once(self):
+        plan = gates.select_checks(ROOT, ['AGENTS.md'], mode='full')
+        commands = gates.commands(plan)
+        for recipe in ['check-strict', 'integration-test']:
+            self.assertEqual(commands.count(['just', recipe]), 1)
+        self.assertEqual(commands.count(gates.CODEGEN), 1)
+        self.assertNotIn(['just', 'check'], commands)
+        self.assertNotIn(['just', 'script-check'], commands)
+        self.assertNotIn(['just', 'check-changed'], commands)
+        self.assertNotIn(['just', 'docs-link-check'], commands)
+
+    def test_mixed_paths_merge_without_repeating_common_checks(self):
+        plan = self.plan('AGENTS.md', 'scripts/check/changed_checks.py',
+                         'apps/ubaa_cli/src/render/tables.rs')
+        commands = gates.commands(plan)
+        self.assertEqual(commands.count(['just', 'check']), 1)
+        self.assertNotIn(['just', 'script-check'], commands)
+        self.assertNotIn(['just', 'cargo-lock-check'], commands)
 
     def test_ohos_changes_require_explicit_native_followup(self):
         plan = self.plan('packages/package_info_plus_ohos/lib/channel.dart')

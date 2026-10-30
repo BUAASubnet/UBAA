@@ -3,6 +3,7 @@
 import importlib.util
 from pathlib import Path
 import unittest
+from unittest.mock import patch
 ROOT = Path(__file__).resolve().parents[3]
 spec = importlib.util.spec_from_file_location('recipe', ROOT / 'scripts/lib/recipe.py')
 recipe = importlib.util.module_from_spec(spec)
@@ -10,13 +11,20 @@ spec.loader.exec_module(recipe)
 
 
 class RecipeArgsTest(unittest.TestCase):
+    def test_single_argument_recipe_still_dispatches(self):
+        with patch.object(recipe.sys, 'argv', ['recipe.py', 'ohos-check']), \
+                patch.object(recipe.os, 'chdir'), patch.object(recipe.os, 'execvpe') as execute:
+            recipe.main()
+        self.assertEqual(execute.call_args.args[1], ['bash', 'scripts/build/ohos.sh', 'release'])
+
     def test_positional_and_named_forms_are_equivalent(self):
         self.assertEqual(recipe.values('flutter-build', ['linux', 'debug']),
                          recipe.values('flutter-build', ['mode=debug', 'platform=linux']))
         self.assertEqual(recipe.values('flutter-test', ['package=ubaa_ui', 'path=test/有 空格']),
                          ['ubaa_ui', 'test/有 空格'])
         self.assertEqual(recipe.values('release-preflight', ['report_dir=/tmp/a=b']), ['/tmp/a=b', 'strict'])
-        self.assertEqual(recipe.values('check-plan', []), [''])
+        self.assertEqual(recipe.values('check-plan', []), ['', 'commit'])
+        self.assertEqual(recipe.values('check-changed', ['mode=full', 'base=HEAD~2']), ['HEAD~2', 'full'])
         self.assertEqual(recipe.values('flutter-artifact-check', ['macos', '$(touch forbidden)']),
                          ['macos', '$(touch forbidden)'])
 

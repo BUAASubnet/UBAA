@@ -9,8 +9,8 @@ from repo import ROOT
 
 SPECS = {
     'integration-test': [('suite', 'ci'), ('platform', 'macos'), ('device', '')],
-    'check-plan': [('base', '')],
-    'check-changed': [('base', '')],
+    'check-plan': [('base', ''), ('mode', 'commit')],
+    'check-changed': [('base', ''), ('mode', 'commit')],
     'release-preflight': [('report_dir', ''), ('mode', 'strict')],
     'flutter-test': [('package', None), ('path', 'test')],
     'flutter-build': [('platform', 'host'), ('mode', 'debug')],
@@ -47,14 +47,16 @@ def main():
     args = values(name, sys.argv[2:])
     commands = {
         'integration-test': [sys.executable, 'scripts/check/integration_catalog.py', 'run'],
-        'check-plan': [sys.executable, 'scripts/check/changed_checks.py', '--base', *args],
-        'check-changed': [sys.executable, 'scripts/check/changed_checks.py', '--base', *args, '--run'],
         'release-preflight': ['bash', 'scripts/release/preflight.sh', *args],
         'flutter-test': ['bash', 'scripts/tests/flutter-package.sh', *args],
         'flutter-build': ['bash', 'scripts/build/flutter.sh', *args],
         'flutter-artifact-check': ['bash', 'scripts/release/verify-flutter-artifact.sh', *args],
         'ohos-check': ['bash', 'scripts/build/ohos.sh', *args],
     }
+    if name in {'check-plan', 'check-changed'}:
+        commands[name] = [sys.executable, 'scripts/check/changed_checks.py', '--base', args[0], '--mode', args[1]]
+        if name == 'check-changed':
+            commands[name].append('--run')
     if name == 'integration-test':
         commands[name] += ['--suite', args[0], '--platform', args[1], '--device', args[2]]
     os.chdir(ROOT)
