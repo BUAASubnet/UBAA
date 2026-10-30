@@ -45,12 +45,15 @@ deny = []
 # 这些重复来自不同目标平台、FRB/CLI 工具链或同一生态的无法合并版本；
 # 每项保留独立原因，升级上游依赖时应重新评估。
 skip = [
+  { crate = "cpufeatures", reason = "AES/SHA 依赖 cpufeatures 0.2，Bridge 的 chacha20 依赖 0.3，两条上游依赖约束不兼容" },
   { crate = "core-foundation", reason = "macOS 原生依赖与跨平台 TLS 依赖的目标条件不同" },
   { crate = "getrandom", reason = "不同平台随机源和 Rust 版本约束导致并存" },
   { crate = "hashbrown", reason = "jsonschema 与运行时依赖的版本约束暂不能合并" },
   { crate = "miniz_oxide", reason = "image 与压缩链路的上游版本约束不同" },
   { crate = "phf", reason = "时区数据与解析链路的上游版本约束不同" },
   { crate = "phf_shared", reason = "时区数据与解析链路的上游版本约束不同" },
+  { crate = "rand", reason = "Core 的 RSA 依赖 rand 0.8；Flutter Bridge 保留 rand 0.10，两个版本系列的接口不兼容" },
+  { crate = "rand_core", reason = "rand 0.8 与 rand 0.10 的核心接口不兼容，分别由 Core/RSA 和 Bridge 使用" },
   { crate = "syn", reason = "过程宏依赖跨 Rust 版本并存，统一会改变生成链" },
 ]
 skip-tree = []

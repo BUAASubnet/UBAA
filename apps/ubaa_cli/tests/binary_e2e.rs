@@ -4,7 +4,7 @@ use std::process::Command;
 use std::time::{Duration, Instant};
 
 use ubaa_core::facade::ConnectionMode;
-use ubaa_core::facade::testing::{FileSessionStore, SessionSnapshot, SessionStore};
+use ubaa_test_support::{FileSessionStore, SessionSnapshot, SessionStore};
 
 fn assert_cli_schema(value: &serde_json::Value) {
     let schema: serde_json::Value =

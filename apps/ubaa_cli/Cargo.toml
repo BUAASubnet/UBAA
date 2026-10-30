@@ -22,6 +22,7 @@ ubaa-core = { path = "../../crates/ubaa_core" }
 
 [dev-dependencies]
 jsonschema.workspace = true
+ubaa-test-support = { path = "../../crates/ubaa_test_support" }
 
 [[bin]]
 name = "ubaa"

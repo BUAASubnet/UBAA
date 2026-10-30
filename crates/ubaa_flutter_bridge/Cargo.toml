@@ -12,9 +12,8 @@ crate-type = ["cdylib", "staticlib"]
 [dependencies]
 futures-util.workspace = true
 flutter_rust_bridge.workspace = true
-# Bridge intent identifiers keep the exact version used before workspace
-# consolidation; the API remains compatible with the generated bindings.
-rand = "=0.10.2"
+# Bridge 保留重构前的 rand 0.10 依赖系列，与 Core 的 rand 0.8 分开声明。
+rand = "0.10.2"
 sha2.workspace = true
 tokio = { workspace = true, features = ["macros", "rt", "sync"] }
 tracing.workspace = true
