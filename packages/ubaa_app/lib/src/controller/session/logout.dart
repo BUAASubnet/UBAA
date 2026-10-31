@@ -54,7 +54,13 @@ mixin ControllerLogout on ControllerState {
       }
     }
 
+    // 先同步撤销日程代次，不能等待安全索引或后端工厂后才拒绝旧结果。
+    final agendaClosed = attempt(internalCloseAgenda);
+    final indexClosed = attempt(
+      () async => internalLocalAccountStore?.signOut(),
+    );
     try {
+      await indexClosed;
       await internalBackendRebuildCompletion?.future;
       if (internalDisposed) {
         if (clearSavedCredential)
@@ -63,8 +69,8 @@ mixin ControllerLogout on ControllerState {
           );
         return;
       }
-      await attempt(() async => internalLocalAccountStore?.signOut());
-      // 必须保持Core清除成功后才移除账号密钥的原有顺序。
+      await agendaClosed;
+      // 账号别名与原缓存密钥保留，只清除可确认清除的缓存内容。
       await attempt(
         () => internalCloseOfflineAccount(remove: clearSavedCredential),
       );
@@ -99,6 +105,7 @@ mixin ControllerLogout on ControllerState {
         Error.throwWithStackTrace(failure!.$1, failure!.$2);
       }
     } finally {
+      await agendaClosed;
       internalSessionLifecycle.endSignOut();
       internalEndWriteTransition();
     }

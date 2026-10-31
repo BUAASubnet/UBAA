@@ -74,9 +74,11 @@ mixin ControllerAuthenticationCompletion on ControllerState {
       internalUser = null;
       internalResetFeatureSnapshots(advanceLifecycle: false);
       internalNotify();
-      await internalLocalAccountStore?.signOut();
-      if (!current()) return;
-      await internalCloseOfflineAccount();
+      // 已核实新身份，立即关闭旧日程，避免安全存储等待期间交付旧结果。
+      await Future.wait<void>([
+        internalLocalAccountStore?.signOut() ?? Future<void>.value(),
+        internalCloseOfflineAccount(),
+      ]);
       if (!current()) return;
       internalLocalAccount = null;
     }

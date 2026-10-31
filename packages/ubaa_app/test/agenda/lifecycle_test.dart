@@ -8,6 +8,130 @@ import 'package:ubaa_test_support/recovery.dart' as support;
 import '../recovery/backend_rebuild/fakes.dart' as rebuild;
 
 void main() {
+  test('日程停用尚未返回也先持久禁止账号自动恢复', () async {
+    final accounts = _MissingKey(await support.savedAccounts());
+    final backend = _Backend();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: accounts,
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await backend.agenda.unsyncedCount();
+    backend.data.deactivateGate = Completer<void>();
+    final signingOut = controller.logout();
+    await Future<void>.delayed(Duration.zero);
+    await Future<void>.delayed(Duration.zero);
+    try {
+      expect((await accounts.read())!.canRestore, isFalse);
+    } finally {
+      backend.data.deactivateGate!.complete();
+      await signingOut;
+    }
+  });
+
+  test('退出等待安全索引时立即撤销旧日程引用和迟到结果', () async {
+    final accounts = _SlowSignOut(await support.savedAccounts());
+    final backend = _Backend();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: accounts,
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    backend.data.countGate = Completer<int>();
+    final reading = backend.agenda.unsyncedCount();
+    await backend.data.countStarted.future;
+    final rejected = expectLater(reading, throwsA(isA<AgendaException>()));
+    final signingOut = controller.logout();
+    await accounts.started.future;
+    backend.data.countGate!.complete(99);
+    try {
+      await rejected;
+      await expectLater(
+        backend.agenda.unsyncedCount(),
+        throwsA(isA<AgendaException>()),
+      );
+    } finally {
+      accounts.gate.complete();
+      await signingOut;
+    }
+  });
+
+  test('核实新账号后等待旧索引关闭时不交付旧日程结果', () async {
+    final accounts = _SlowSignOut(await support.savedAccounts());
+    final backend = _Backend();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: accounts,
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    backend.data.countGate = Completer<int>();
+    final reading = backend.agenda.unsyncedCount();
+    await backend.data.countStarted.future;
+    final rejected = expectLater(reading, throwsA(isA<AgendaException>()));
+    backend.username = 'fixture-other';
+    controller.setUsername('fixture-other');
+    controller.setPassword('synthetic');
+    final login = controller.submitLogin(preserveHome: true);
+    await accounts.started.future;
+    backend.data.countGate!.complete(99);
+    try {
+      await rejected;
+    } finally {
+      accounts.gate.complete();
+      await login;
+    }
+    expect(controller.phase, AppPhase.home);
+    expect(backend.data.accounts, hasLength(2));
+    expect(backend.data.accounts.first, isNot(backend.data.accounts.last));
+  });
+  for (final failed in [false, true]) {
+    test('等待重建工厂时撤销日程，工厂${failed ? "失败恢复原服务" : "成功启用继任服务"}', () async {
+      final first = _RebuildBackend()..dead = true;
+      final next = _RebuildBackend();
+      final factoryStarted = Completer<void>();
+      final factoryGate = Completer<UbaaBackend>();
+      final controller = AppController(
+        backend: first,
+        backendFactory: () {
+          factoryStarted.complete();
+          return factoryGate.future;
+        },
+        localAccountStore: await support.savedAccounts(),
+      );
+      addTearDown(controller.dispose);
+      await rebuild.cachedHome(controller, first);
+      await Future<void>.delayed(Duration.zero);
+      final account = first.agenda.accountId;
+      first.data.countGate = Completer<int>();
+      final reading = first.agenda.unsyncedCount();
+      await first.data.countStarted.future;
+      final rejected = expectLater(reading, throwsA(isA<AgendaException>()));
+      final recovering = controller.resumeSession();
+      await factoryStarted.future;
+      first.data.countGate!.complete(99);
+      try {
+        await rejected;
+      } finally {
+        if (failed) {
+          factoryGate.completeError(StateError('合成工厂失败'));
+        } else {
+          factoryGate.complete(next);
+        }
+        await recovering;
+      }
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.agenda, same(failed ? first.agenda : next.agenda));
+      expect(controller.agenda!.accountId, account);
+      if (failed) {
+        first.data.countGate = null;
+        expect(await controller.agenda!.unsyncedCount(), 5);
+      }
+    });
+  }
+
   test('后端重建关闭旧日程服务，同账号继任服务拒绝旧结果', () async {
     final first = _RebuildBackend()..dead = true;
     final next = _RebuildBackend();
@@ -136,6 +260,7 @@ class _Agenda implements AgendaBackend {
   final countStarted = Completer<void>();
   Completer<void>? openGate;
   bool active = false;
+  Completer<void>? deactivateGate;
   @override
   Future<void> openAccount(String id) async {
     accounts.add(id);
@@ -146,6 +271,7 @@ class _Agenda implements AgendaBackend {
 
   @override
   Future<void> deactivate() async {
+    await deactivateGate?.future;
     active = false;
   }
 
@@ -186,4 +312,16 @@ class _RebuildBackend extends rebuild.Backend implements AgendaProvider {
   final data = _Agenda();
   @override
   late final AgendaService agenda = AgendaService(data);
+}
+
+class _SlowSignOut extends _MissingKey {
+  _SlowSignOut(super.delegate);
+  final gate = Completer<void>();
+  final started = Completer<void>();
+  @override
+  Future<void> signOut() async {
+    started.complete();
+    await gate.future;
+    await super.signOut();
+  }
 }

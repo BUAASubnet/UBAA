@@ -24,8 +24,20 @@ mixin ControllerBackendRecovery on ControllerState {
         internalWriteCoordinator.hasPendingOperation)
       return false;
     internalSessionLifecycle.beginRebuild();
+    final previous = internalBackend;
+    final previousAccount = internalLocalAccount;
     try {
-      final previous = internalBackend;
+      if (previous is AgendaProvider) {
+        try {
+          await internalCloseAgenda();
+        } on Object catch (error, stackTrace) {
+          internalRecordFailure(
+            error,
+            DiagnosticOperation.disposal,
+            stackTrace: stackTrace,
+          );
+        }
+      }
       final replacement = await factory();
       if (replacement is UnavailableBackend) {
         throw InitializationException(replacement.failure);
@@ -73,6 +85,15 @@ mixin ControllerBackendRecovery on ControllerState {
       return true;
     } finally {
       internalSessionLifecycle.endRebuild();
+      // 工厂失败或返回原对象时，本地日程仍独立于网络客户端恢复。
+      if (previous is AgendaProvider &&
+          identical(previous, internalBackend) &&
+          !internalDisposed &&
+          !internalIsSigningOut &&
+          previousAccount != null &&
+          internalLocalAccount?.id == previousAccount.id) {
+        internalOpenAgenda(previousAccount);
+      }
       internalNotify();
     }
   }
