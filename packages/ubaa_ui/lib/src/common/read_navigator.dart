@@ -18,8 +18,12 @@ class FeatureReadNavigator extends StatefulWidget {
     required this.pageBuilder,
     required this.onVisibleSnapshot,
     this.onQuery,
+    this.initialHomeTarget,
     super.key,
   });
+
+  /// 首次从首页打开时直接显示的目标，避免先渲染一帧列表。
+  final FeatureReadNavigation? initialHomeTarget;
   final void Function(FeatureSnapshot, String) onVisibleSnapshot;
   final FeatureSnapshot snapshot;
   final int cacheEpoch;
@@ -37,6 +41,9 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
   int _nextId = 0;
   int? _externalAfterRevision;
   bool _reloadScheduled = false;
+
+  /// 从首页直接打开的详情返回时回到首页，而不是功能列表。
+  bool _returnToHome = false;
   _ReadFrame? _bykcWriteFrame;
   FeatureQuery? _bykcRefreshQuery;
   FeatureSnapshot? _bykcRefreshSnapshot;
@@ -159,6 +166,17 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
   @override
   void initState() {
     super.initState();
+    final target = widget.initialHomeTarget;
+    if (target != null &&
+        widget.onQuery != null &&
+        target.feature == widget.snapshot.feature) {
+      _returnToHome = true;
+      _frames.add(_homeTargetFrame(target));
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) unawaited(widget.onQuery!(target.query));
+      });
+      return;
+    }
     _frames.add(
       _ReadFrame(
         _nextId++,
@@ -230,6 +248,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
       }
       if (!identical(_bykcWriteFrame, current)) _frames.clear();
       if (_frames.isEmpty &&
+          !_returnToHome &&
           !current.isLanding &&
           uiHasLandingMenu(incoming.feature)) {
         _frames.add(
@@ -351,6 +370,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
   /// 功能入口回到子菜单或作业列表，具体待办仍沿指定查询打开。
   void openList() {
     if (widget.onQuery == null) return;
+    _returnToHome = false;
     if (uiHasLandingMenu(widget.snapshot.feature)) {
       if (_current.isLanding) return;
       final landing = _frames.first.isLanding
@@ -379,30 +399,33 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
   Future<void> openFromHome(FeatureReadNavigation target) async {
     if (widget.onQuery == null || target.feature != widget.snapshot.feature)
       return;
-    final parent = _isAssignmentFeature ? _assignmentList() : null;
+    // 只放目标这一层：直接显示详情，返回时回到首页。
     setState(() {
       _externalAfterRevision = null;
-      _frames.clear();
-      if (parent != null) _frames.add(parent);
-      _frames.add(
-        _ReadFrame(
-          _nextId++,
-          FeatureSnapshot(
-            feature: target.feature,
-            status: FeatureLoadStatus.loading,
-          ),
-          target.query,
-        ),
-      );
+      _returnToHome = true;
+      _frames
+        ..clear()
+        ..add(_homeTargetFrame(target));
     });
     await widget.onQuery!(target.query);
   }
+
+  _ReadFrame _homeTargetFrame(FeatureReadNavigation target) => _ReadFrame(
+    _nextId++,
+    FeatureSnapshot(feature: target.feature, status: FeatureLoadStatus.loading),
+    target.query,
+  );
 
   void selectScheduleTerm() =>
       _current.pageKey.currentState?.selectScheduleTerm();
 
   void goBack() {
     if (_frames.length == 1) {
+      if (_returnToHome) {
+        _returnToHome = false;
+        widget.onExit();
+        return;
+      }
       if (_isAssignmentDetail(_current) && widget.onQuery != null) {
         openList();
         return;

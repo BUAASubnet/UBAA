@@ -260,6 +260,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   late int _selectedIndex;
   late PageController _tabPager;
   FeatureId? _openedFeature;
+  FeatureReadNavigation? _pendingHomeTarget;
   String? _utilityPage;
   final _visiblePage = ValueNotifier<(FeatureSnapshot, String)?>(null);
   final _appBarSlot = ValueNotifier<Map<FeatureId, Widget>>(const {});
@@ -470,18 +471,21 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   }
 
   void _openHomeNavigation(FeatureReadNavigation target) {
-    final generation = _accountGeneration;
-    setState(() => _openedFeature = target.feature);
-    _recordFeatureVisit(target.feature);
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted &&
-          generation == _accountGeneration &&
-          _openedFeature == target.feature) {
-        unawaited(
-          _readPageKeys[target.feature]?.currentState?.openFromHome(target),
-        );
-      }
+    // 已打开过的页面在同一帧切到目标；首次打开由页面初始化直接显示目标，
+    // 都不会先闪一帧功能列表。
+    final page = _readPageKeys[target.feature]?.currentState;
+    setState(() {
+      _openedFeature = target.feature;
+      if (page == null) _pendingHomeTarget = target;
     });
+    _recordFeatureVisit(target.feature);
+    if (page != null) {
+      unawaited(page.openFromHome(target));
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _pendingHomeTarget = null,
+      );
+    }
   }
 
   @override
@@ -743,6 +747,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       feature,
       () => GlobalKey<FeatureReadNavigatorState>(),
     ),
+    initialHomeTarget: _pendingHomeTarget?.feature == feature
+        ? _pendingHomeTarget
+        : null,
     onVisibleSnapshot: (snapshot, title) {
       if (_openedFeature == feature &&
           _visiblePage.value != (snapshot, title)) {

@@ -59,10 +59,8 @@ void main() {
     final requestsBeforeBack = backend.homeQueries.length;
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
-    expect(find.text(FeatureId.spoc.title), findsOneWidget);
+    expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
     expect(backend.homeQueries.length, requestsBeforeBack);
-    await tester.tap(find.byTooltip('返回'));
-    await tester.pumpAndSettle();
     expect(find.byTooltip('返回'), findsNothing);
     expect(find.text('合成SPOC待办'), findsOneWidget);
     // 恢复外层首页位置；待办预览、展开和主滚动由窗口专项用例覆盖。
