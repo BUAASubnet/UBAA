@@ -44,9 +44,23 @@ mixin ControllerOfflineStartup on ControllerState {
       internalUsesLocalRecovery = true;
       internalSessionRecoveryStatus = SessionRecoveryStatus.idle;
       // 先登记本地打开任务，状态通知中的详情读取也能等待同一账号句柄。
-      // 不等待磁盘，首页首帧仍只依赖轻量账号索引。
-      unawaited(internalRestoreCachedHome(index.account!));
+      // 限时等待本机首页缓存，首帧直接显示缓存内容而不是加载动画；
+      // 磁盘或密钥读取较慢时到时即进入首页，缓存稍后补上。
+      final waited = Completer<void>();
+      void release() {
+        if (!waited.isCompleted) waited.complete();
+      }
+
+      final limit = Timer(const Duration(milliseconds: 800), release);
+      unawaited(
+        internalRestoreCachedHome(index.account!).whenComplete(release),
+      );
+      await waited.future;
+      limit.cancel();
+      if (internalDisposed || epoch != internalLifecycleEpoch) return true;
       internalSetPhase(AppPhase.home);
+      // 预读期间尚未进入首页，待核实提示只在首页阶段读取；进入后补读。
+      unawaited(internalLoadWriteReadbacks());
       if (internalHomeFrameReported) {
         // backend 在已展示首页后被显式替换时不会再产生新的首帧；仍须
         // 沿既有恢复任务重新核对继任实例的会话和身份。

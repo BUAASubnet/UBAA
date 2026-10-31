@@ -25,7 +25,9 @@ mixin ControllerProfile on ControllerState {
       epoch == internalLifecycleEpoch &&
       internalLocalAccount?.id == accountId &&
       internalLoginForm.routePolicy == policy &&
-      (internalPhase == AppPhase.home || internalPhase == AppPhase.loggingIn);
+      (internalPhase == AppPhase.home ||
+          internalPhase == AppPhase.loggingIn ||
+          internalPhase == AppPhase.checkingSession);
 
   @internal
   bool get internalHasFreshProfile =>

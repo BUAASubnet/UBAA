@@ -114,8 +114,9 @@ abstract class ControllerOperations extends ChangeNotifier {
   FeatureReadContext internalBeginFeatureRead(
     FeatureId feature,
     int generation,
-    FeatureQuery? query,
-  );
+    FeatureQuery? query, {
+    FeatureSnapshot? seed,
+  });
   @internal
   int internalNextFeatureGeneration(FeatureId feature);
 
@@ -389,6 +390,18 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   Future<void> internalQueueProfileRefresh({bool force = false});
 
+  @internal
+  Future<FeatureSnapshot?> internalPeekCachedQuery(
+    FeatureId feature,
+    FeatureQuery query,
+  );
+  @internal
+  Future<void> internalRestoreCachedDefault(
+    FeatureId feature,
+    int generation,
+    int lifecycle,
+    int? ygdkGeneration,
+  );
   @internal
   Future<void> internalRestoreCachedQuery(
     FeatureId feature,

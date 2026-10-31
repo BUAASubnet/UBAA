@@ -24,7 +24,10 @@ mixin ControllerOfflineCache on ControllerState {
         accountEpoch == internalOfflineAccountEpoch &&
         identical(backend, internalBackend) &&
         internalLocalAccount?.id == account.id &&
-        (internalPhase == AppPhase.home || internalPhase == AppPhase.loggingIn);
+        (internalPhase == AppPhase.home ||
+            internalPhase == AppPhase.loggingIn ||
+            // 冷启动在进入首页前限时预读缓存。
+            internalPhase == AppPhase.checkingSession);
     try {
       final key = await internalLocalAccountStore!.cacheKey(account);
       try {

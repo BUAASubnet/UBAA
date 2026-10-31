@@ -6,13 +6,24 @@ import 'package:ubaa_test_support/recovery.dart' as support;
 import '../../recovery/backend_rebuild/fakes.dart' as base;
 
 void main() {
-  test('恢复缓存账号时独立读取重启核对提示，认证挂起也不自动提交', () async {
+  test('预读进入首页后补读待核实提示，认证挂起也不自动提交', () async {
     final backend = HintBackend()..gate = Completer<AuthStatus>();
     final controller = AppController(
       backend: backend,
       localAccountStore: await support.savedAccounts(),
     );
     addTearDown(controller.dispose);
+    var firstHome = true;
+    controller.addListener(() {
+      if (firstHome && controller.phase == AppPhase.home) {
+        firstHome = false;
+        expect(backend.hintReads, 0, reason: '预读阶段不加载写入核对提示');
+        expect(
+          controller.homeSnapshots[FeatureId.schedule]!.details,
+          isNotEmpty,
+        );
+      }
+    });
     await base.cachedHome(controller, backend);
     expect(backend.hintReads, 1);
     expect(backend.authCalls, 0);

@@ -6,6 +6,49 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/recovery.dart' as support;
 
 void main() {
+  testWidgets('首页磁盘挂起时等待预算届满进入首页，迟到缓存仍可补入', (tester) async {
+    final backend = _CachedBackend()..diskGate = Completer<void>();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: await support.savedAccounts(),
+    );
+    addTearDown(controller.dispose);
+    unawaited(controller.initialize());
+    for (var i = 0; i < 10; i++) {
+      await tester.pump();
+    }
+    expect(controller.phase, AppPhase.checkingSession);
+    await tester.pump(const Duration(milliseconds: 799));
+    expect(controller.phase, AppPhase.checkingSession);
+    await tester.pump(const Duration(milliseconds: 1));
+    expect(controller.phase, AppPhase.home);
+    expect(controller.homeSnapshots[FeatureId.schedule]!.details, isEmpty);
+    backend.diskGate!.complete();
+    await tester.pump();
+    expect(
+      controller.homeSnapshots[FeatureId.schedule]!.details.single.title,
+      '已保存的合成课程',
+    );
+  });
+
+  test('进入首页的首次通知已带本机课表且未发起认证', () async {
+    final backend = _CachedBackend();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: await support.savedAccounts(),
+    );
+    addTearDown(controller.dispose);
+    FeatureSnapshot? first;
+    controller.addListener(() {
+      if (controller.phase == AppPhase.home)
+        first ??= controller.homeSnapshots[FeatureId.schedule];
+    });
+    await controller.initialize();
+    expect(first!.details.single.title, '已保存的合成课程');
+    expect(first!.evidence!.origin, DataOrigin.persisted);
+    expect(controller.sessionRecoveryStatus, SessionRecoveryStatus.idle);
+  });
+
   test('认证挂起时独立恢复缓存，认证失败保留原更新时间和内容', () async {
     final backend = _CachedBackend()..gate = Completer<AuthStatus>();
     final controller = AppController(

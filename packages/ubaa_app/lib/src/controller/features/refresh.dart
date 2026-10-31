@@ -7,6 +7,7 @@ import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/progressive.dart';
 import 'package:ubaa_app/src/controller/read_scheduler.dart';
 import 'package:ubaa_app/src/contracts/query.dart';
+import 'package:ubaa_app/src/contracts/offline.dart';
 import 'package:ubaa_app/src/contracts/recovery.dart';
 import 'package:ubaa_app/src/controller/error_mapper.dart';
 import '../reads/judge_projection.dart' show controllerRetainJudgePartial;
@@ -101,8 +102,27 @@ mixin ControllerRefresh on ControllerState {
         ? internalCachedGradeQuery(query)
         : null;
     final generation = internalNextFeatureGeneration(feature);
+    // 换查询时先限时读本机缓存：命中则带着缓存进入加载，不先清空成空白页。
+    FeatureSnapshot? seed;
+    if (!writeReadback &&
+        cachedGrades == null &&
+        internalBackend is OfflineQueryBackend &&
+        internalLocalAccount != null &&
+        internalSnapshots[feature]!.readContext?.hasSameQuery(query) != true) {
+      final lifecycle = internalLifecycleEpoch;
+      seed = await internalPeekCachedQuery(feature, query);
+      if (internalDisposed ||
+          lifecycle != internalLifecycleEpoch ||
+          generation != internalFeatureRefreshGenerations[feature])
+        return;
+    }
     internalBeginBusinessAttempt(feature, query, generation);
-    final context = internalBeginFeatureRead(feature, generation, query);
+    final context = internalBeginFeatureRead(
+      feature,
+      generation,
+      query,
+      seed: seed,
+    );
     if (internalBackend is! FeatureQueryBackend) {
       internalSnapshots[feature] = internalSnapshots[feature]!.copyWith(
         status: FeatureLoadStatus.failure,
@@ -131,8 +151,9 @@ mixin ControllerRefresh on ControllerState {
   FeatureReadContext internalBeginFeatureRead(
     FeatureId feature,
     int generation,
-    FeatureQuery? query,
-  ) {
+    FeatureQuery? query, {
+    FeatureSnapshot? seed,
+  }) {
     final context = FeatureReadContext(
       query: query,
       requestRevision: generation,
@@ -145,6 +166,12 @@ mixin ControllerRefresh on ControllerState {
             status: FeatureLoadStatus.loading,
             clearError: true,
             readContext: context,
+          )
+        : seed != null
+        ? seed.copyWith(
+            status: FeatureLoadStatus.loading,
+            readContext: context,
+            clearError: true,
           )
         : FeatureSnapshot(
             feature: feature,
@@ -204,6 +231,19 @@ mixin ControllerRefresh on ControllerState {
               )),
     );
     internalReadScopes.add(scope);
+    if (query == null &&
+        !writeReadback &&
+        !controllerHomeDefaultFeatures.contains(feature)) {
+      // 首页来源由首页缓存负责；其余功能的默认读取在这里先补缓存。
+      unawaited(
+        internalRestoreCachedDefault(
+          feature,
+          generation,
+          lifecycleEpoch,
+          ygdkGeneration,
+        ),
+      );
+    }
     if (query != null && !writeReadback) {
       unawaited(
         internalRestoreCachedQuery(

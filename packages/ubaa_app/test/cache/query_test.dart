@@ -18,6 +18,62 @@ Future<void> until(bool Function() ready) async {
 }
 
 void main() {
+  test('换查询的首次 loading 通知直接携带缓存种子', () async {
+    final backend = _Backend();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: await support.savedAccounts(),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    final loading = <FeatureSnapshot>[];
+    controller.addListener(() {
+      final value = controller.snapshots[FeatureId.judge]!;
+      if (value.status == FeatureLoadStatus.loading &&
+          value.readContext?.hasSameQuery(target) == true)
+        loading.add(value);
+    });
+    unawaited(controller.refreshFeatureQuery(FeatureId.judge, target));
+    await until(() => loading.isNotEmpty);
+    expect(loading.first.details.single.title, '缓存101');
+    expect(loading.first.evidence!.origin, DataOrigin.persisted);
+  });
+
+  test('默认读取也拒绝其他查询的缓存投影', () async {
+    final backend = _Backend()..mismatch = '查询';
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: await support.savedAccounts(),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    unawaited(controller.retryFeature(FeatureId.classroom));
+    await until(() => backend.queries.isNotEmpty);
+    for (var i = 0; i < 20; i++) {
+      await Future<void>.delayed(Duration.zero);
+    }
+    expect(controller.snapshots[FeatureId.classroom]!.details, isEmpty);
+  });
+
+  test('默认读取等待认证时先展示缓存且保留默认查询范围', () async {
+    final backend = _Backend();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: await support.savedAccounts(),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    unawaited(controller.retryFeature(FeatureId.classroom));
+    await until(
+      () => controller.snapshots[FeatureId.classroom]!.details.isNotEmpty,
+    );
+    final value = controller.snapshots[FeatureId.classroom]!;
+    expect(value.status, FeatureLoadStatus.loading);
+    expect(value.readContext!.query, isNull);
+    expect(value.evidence!.origin, DataOrigin.persisted);
+    expect(backend.authCalls, 0);
+  });
+
   test('首页状态通知中立即进入详情也等待账号缓存打开', () async {
     final backend = _Backend();
     final controller = AppController(
