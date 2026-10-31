@@ -50,7 +50,7 @@ fn 双路线只从回调取一次授权码并编码后交换() {
         let mut runtime = ClientRuntime::new(
             mode,
             RedirectTransport {
-                location,
+                locations: vec![location],
                 requests: Arc::clone(&requests),
             },
             store,
@@ -94,7 +94,7 @@ fn 双路线只从回调取一次授权码并编码后交换() {
 }
 
 struct RedirectTransport {
-    location: String,
+    locations: Vec<String>,
     requests: Arc<Mutex<Vec<HttpRequest>>>,
 }
 
@@ -104,20 +104,116 @@ impl HttpTransport for RedirectTransport {
         let mut requests = self.requests.lock().unwrap();
         let count = requests.len();
         requests.push(request.clone());
-        match count {
-            0 => {
-                let mut response = HttpResponse::new(302, request.url, vec![]);
-                response
-                    .headers
-                    .insert("location".into(), vec![self.location.clone()]);
-                Ok(response)
-            }
-            1 => Ok(HttpResponse::new(
+        if let Some(location) = self.locations.get(count) {
+            let mut response = HttpResponse::new(302, request.url, vec![]);
+            response
+                .headers
+                .insert("location".into(), vec![location.clone()]);
+            Ok(response)
+        } else if count == self.locations.len() {
+            Ok(HttpResponse::new(
                 200,
                 request.url,
                 br#"{"code":1,"result":{"uid":7,"token":"token+part&tail%252B"}}"#.to_vec(),
-            )),
-            _ => panic!("授权码回调不能额外访问或重试"),
+            ))
+        } else {
+            panic!("授权码回调不能额外访问或重试")
         }
+    }
+}
+
+#[test]
+fn 双路线阳光登录经过_sso_后才交换回调授权码() {
+    for mode in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../.ubaa_local/ygdk_diagnosis")
+            .join(format!("mock-{mode:?}-{}", std::process::id()));
+        let store = FileSessionStore::new(&root).unwrap();
+        save_session(
+            &store,
+            &SessionSnapshot {
+                mode,
+                cookies: vec![],
+                authenticated_at: 1_000,
+                last_activity: 1_001,
+            },
+        )
+        .unwrap();
+        let direct_locations = [
+            "https://app.buaa.edu.cn/uc/wap/login",
+            "https://app.buaa.edu.cn/a_buaa/api/cas/index",
+            "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fapp.buaa.edu.cn%2Fa_buaa%2Fapi%2Fcas%2Findex&code=不能提取",
+            "https://app.buaa.edu.cn/a_buaa/api/cas/index?ticket=fixture",
+            "https://app.buaa.edu.cn/uc/api/oauth/index",
+            "https://ygdk.buaa.edu.cn/#/home?code=callback-fixture",
+        ];
+        let locations = direct_locations
+            .iter()
+            .map(|url| {
+                if mode == ConnectionMode::WebVpn {
+                    to_webvpn_url(url).unwrap()
+                } else {
+                    (*url).to_owned()
+                }
+            })
+            .collect();
+        let requests = Arc::new(Mutex::new(Vec::new()));
+        let mut runtime = ClientRuntime::new(
+            mode,
+            RedirectTransport {
+                locations,
+                requests: Arc::clone(&requests),
+            },
+            store,
+        )
+        .unwrap();
+        tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap()
+            .block_on(ensure_login(&mut runtime))
+            .expect("完整 SSO 链应成功");
+        let requests = requests.lock().unwrap();
+        assert_eq!(requests.len(), 7);
+        for request in requests.iter() {
+            assert_eq!(
+                url::Url::parse(&request.url).unwrap().host_str() == Some("d.buaa.edu.cn"),
+                mode == ConnectionMode::WebVpn
+            );
+        }
+        let last = crate::connection::from_webvpn_url(&requests[6].url).unwrap();
+        let last = url::Url::parse(&last).unwrap();
+        assert_eq!(last.path(), "/api/Front/Clockin/User/campusAppLogin");
+        assert_eq!(
+            last.query_pairs().find(|(k, _)| k == "code").unwrap().1,
+            "callback-fixture"
+        );
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[test]
+fn 阳光_sso_仅允许安全登录路径且不能提取授权码() {
+    for mode in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+        for target in [
+            "http://sso.buaa.edu.cn/login",
+            "https://sso.buaa.edu.cn:8443/login",
+            "https://user:pass@sso.buaa.edu.cn/login",
+            "https://sso.buaa.edu.cn/logout",
+            "https://sso.buaa.edu.cn/login/other",
+            "https://sso.buaa.edu.cn.evil.example/login",
+        ] {
+            let target = if mode == ConnectionMode::WebVpn {
+                let Ok(wrapped) = to_webvpn_url(target) else {
+                    // codec 提前拒绝带用户信息的地址，同样不能进入请求。
+                    continue;
+                };
+                wrapped
+            } else {
+                target.into()
+            };
+            assert!(validate_oauth_target(&target, mode).is_err(), "{target}");
+        }
+        assert!(code_from_url("https://sso.buaa.edu.cn/login?code=fixture").is_none());
     }
 }

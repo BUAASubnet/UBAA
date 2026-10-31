@@ -126,7 +126,8 @@ fn is_oauth_upstream(url: &url::Url) -> bool {
         &["app.buaa.edu.cn", "ygdk.buaa.edu.cn"],
         true,
         &[],
-    )
+    ) || (url.path() == "/login"
+        && crate::connection::is_valid_auth_target(url, &["sso.buaa.edu.cn"], true, &[]))
 }
 
 pub(super) fn code_from_url(raw: &str) -> Option<String> {

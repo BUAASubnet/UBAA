@@ -912,3 +912,21 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 - [source-parity-ui-sensitive-displays](source-parity-ui-sensitive-displays.md)
 - [source-parity-ui-telemetry-control](source-parity-ui-telemetry-control.md)
 - [source-parity-ui-ygdk](source-parity-ui-ygdk.md)
+
+### 2026-10-31：阳光 OAuth 的 SSO 中间跳转
+
+本次按冻结参考重新核对：旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/local/LocalYgdkApi.kt` 中 `fetchOauthCode`、业务登录与对应 BackendTest；buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `src/api.rs`、`src/request.rs` 和 SSO 模块没有阳光等价协议，因此本操作不适用其业务字段。
+
+| OAuth 操作边界 | 本次对照与决定 |
+|---|---|
+| 引导 URL 与 service | 继续采用冻结 OAuth URL 及其 redirect/appid/state/qrcode；SSO service 来自上游 Location，不自行构造。 |
+| 重定向与最终 URL | Direct 实测 app OAuth→app 登录→app CAS→SSO `/login`→app CAS→app OAuth→ygdk 回调。旧版逐跳跟随；本次只补充 HTTPS 默认端口 SSO `/login`，WebVPN 解包后同样校验。 |
+| Cookie/Session/Token | 当前用户与路线 Cookie；授权码仅在本次登录内存中传递，业务 uid/token 作用域不变。 |
+| HTTP 方法与参数 | 沿上游 Location 执行 GET，不修改 query，不发送新业务写操作。 |
+| Header 与正文 | 继续无业务正文，不新增 Header。 |
+| 加密与签名 | 无新增加密，保留 WebVPN URL 转换。 |
+| DTO 与解析 | 仅从 ygdk 根路径 query 或 `/home` fragment 提取 code，SSO query 中同名字段不能作为授权码。 |
+| 缓存/并发/重试 | 保留十跳上限、登录单飞和会话代次守卫。 |
+| 错误与产品语义 | 未知主机、SSO 非登录路径、HTTP、用户信息或非默认端口仍在发送前失败；此次修复已证实的正常跳转误拦截。 |
+
+本节补充上文历史双主机决定，依据见[决策记录](decision-log.md#2026-10-31阳光打卡-oauth-补齐-sso-中间跳转)。

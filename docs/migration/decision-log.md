@@ -288,3 +288,7 @@ Cargokit 固定使用 `rustup run stable` 而非 `rust-toolchain.toml` 的 1.95.
 用户更新至 Xcode 27.2 后，原生构建明确拒绝 Runner、FlutterMacOS 和插件 Pod 的 10.14/10.15 部署目标，当前 SDK 支持的最低构建版本为 12.0。用户明确要求直接修改项目声明，因此将 Runner 的 Debug/Profile/Release、Podfile 平台和自有 bindings Podspec 统一为 macOS 12.0。Podfile 的安装后处理将依赖的较低目标提升到 12.0，同时保留依赖已经声明的更高版本要求。
 
 该决定使应用最低支持版本变为 macOS 12.0，不继续承诺在 10.15/11 安装。已有旧版系统的历史测试和来源记录保留历史含义，不改写第三方 Podspec 或 Flutter SDK。原生验收使用正式项目设置，不依赖本地部署目标覆盖文件。
+
+## 2026-10-31：阳光打卡 OAuth 补齐 SSO 中间跳转
+
+Direct 实测统一认证成功后，阳光 OAuth 依次经过 app 的 `/uc/wap/login`、`/a_buaa/api/cas/index`、SSO 的 `/login`，再回到 app CAS、OAuth 和 ygdk 根路径回调。现有 app/ygdk 双主机检查在 SSO 跳转前返回 `upstream_changed`。冻结旧版 `LocalYgdkApi.fetchOauthCode` 逐跳处理 Location，没有该双主机限制，故支持这条链。依据当前实时证据，只补充 HTTPS 默认端口 `sso.buaa.edu.cn/login`，不开放 SSO 其他路径，不改变授权码提取主机、十跳上限、Cookie 作用域或路线。WebVPN 同样校验解包后的主机和路径。双路线真实读取结果在迁移状态维护。
