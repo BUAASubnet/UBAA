@@ -7,7 +7,7 @@ import subprocess
 import sys
 sys.dont_write_bytecode = True
 from environment import read_values
-from repo import ROOT
+from repo import ROOT, hand_off
 
 
 def load_environment(root=ROOT):
@@ -54,7 +54,7 @@ def main():
         raise ValueError(f'请在 .env.toolchain 中设置 {variable} 为包含 bin/{tool} 的 SDK 绝对路径')
     if command == 'flutter-ohos':
         environment = deveco_environment(environment)
-    os.execvpe(str(executable), [str(executable), *sys.argv[2:]], environment)
+    hand_off([str(executable), *sys.argv[2:]], environment)
 
 
 if __name__ == '__main__':

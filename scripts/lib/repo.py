@@ -1,8 +1,21 @@
-"""Python 入口共用的仓库位置与 Flutter 包清单。"""
+"""Python 入口共用的仓库位置、Flutter 包清单与命令交接。"""
 import json
+import os
 from pathlib import Path
 import re
 ROOT = Path(__file__).resolve().parents[2]
+
+
+def hand_off(argv, environment):
+    """把当前入口交给目标命令，退出码与目标一致。
+
+    Windows 的 os.exec* 会另起进程并立即以 0 返回，调用方无法等待结果，
+    因此在 Windows 上等待子进程结束后按其退出码退出。
+    """
+    if os.name == 'nt':
+        import subprocess
+        raise SystemExit(subprocess.call(argv, env=environment))
+    os.execvpe(argv[0], argv, environment)
 
 
 def official_packages():

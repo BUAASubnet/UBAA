@@ -5,7 +5,7 @@ from pathlib import Path
 import sys
 sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-from repo import ROOT
+from repo import ROOT, hand_off
 
 SPECS = {
     'integration-test': [('suite', 'ci'), ('platform', 'macos'), ('device', '')],
@@ -60,7 +60,7 @@ def main():
     if name == 'integration-test':
         commands[name] += ['--suite', args[0], '--platform', args[1], '--device', args[2]]
     os.chdir(ROOT)
-    os.execvpe(commands[name][0], commands[name], os.environ)
+    hand_off(commands[name], os.environ)
 
 
 if __name__ == '__main__':

@@ -17,6 +17,18 @@ class RecipeArgsTest(unittest.TestCase):
             recipe.main()
         self.assertEqual(execute.call_args.args[1], ['bash', 'scripts/build/ohos.sh', 'release'])
 
+    def test_windows_waits_for_command_and_keeps_exit_code(self):
+        # Windows 的 os.exec* 会另起进程并立即以 0 返回，just 会把未完成的构建当成成功。
+        with patch.object(recipe.sys, 'argv', ['recipe.py', 'flutter-build', 'windows']), \
+                patch.object(recipe.os, 'chdir'), patch('os.name', 'nt'), \
+                patch.object(recipe.os, 'execvpe') as execute, \
+                patch('subprocess.call', return_value=3) as call, \
+                self.assertRaises(SystemExit) as exit_:
+            recipe.main()
+        execute.assert_not_called()
+        self.assertEqual(call.call_args.args[0], ['bash', 'scripts/build/flutter.sh', 'windows', 'debug'])
+        self.assertEqual(exit_.exception.code, 3)
+
     def test_positional_and_named_forms_are_equivalent(self):
         self.assertEqual(recipe.values('flutter-build', ['linux', 'debug']),
                          recipe.values('flutter-build', ['mode=debug', 'platform=linux']))
