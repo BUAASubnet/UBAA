@@ -291,14 +291,15 @@ mod tests {
     }
 
     fn capture_events<T>(run: impl FnOnce() -> T) -> (T, Vec<CapturedEvent>) {
+        // tracing-core 0.1.36 的单 Dispatch 快路径会用首次触发记录点的线程
+        // 判断 interest。并行测试的无订阅者线程可能因此把新记录点缓存为 never。
+        // 保留一个不安装的 Dispatch，让整个捕获作用域使用已注册订阅者列表。
+        // 上游缺陷：https://github.com/tokio-rs/tracing/issues/3611
+        let _dispatcher_guard =
+            tracing::Dispatch::new(tracing::subscriber::NoSubscriber::default());
         let subscriber = CapturingSubscriber::default();
         let events = Arc::clone(&subscriber.events);
-        let result = tracing::subscriber::with_default(subscriber, || {
-            // 并行测试可能在本订阅者生效前先注册同一记录点，并缓存为不记录；
-            // 生效后重建缓存，避免在 CI 上偶发漏掉诊断事件。
-            tracing::callsite::rebuild_interest_cache();
-            run()
-        });
+        let result = tracing::subscriber::with_default(subscriber, run);
         let events = Arc::try_unwrap(events)
             .unwrap_or_else(|_| panic!("诊断事件不应再有其它持有者"))
             .into_inner()
@@ -351,6 +352,51 @@ mod tests {
                     .is_some_and(|value| value == stage)
             })
             .unwrap_or_else(|| panic!("应捕获 {stage} 阶段诊断事件，实际为 {events:?}"))
+    }
+
+    #[test]
+    fn capture_keeps_diagnostics_first_registered_without_subscriber() {
+        const CHILD: &str = "UBAA_TRANSPORT_CAPTURE_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            // 独立进程保证记录点尚未注册，也没有其它测试留下的 Dispatch。
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "ports::reqwest_transport::tests::capture_keeps_diagnostics_first_registered_without_subscriber",
+                    "--nocapture",
+                ])
+                .env(CHILD, "1")
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "独立进程的诊断捕获失败：\n{}\n{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr),
+            );
+            return;
+        }
+
+        let record = || {
+            super::diagnostic::record_known_failure(
+                super::diagnostic::TransportStage::Receive,
+                super::diagnostic::FailureReason::UnexpectedEof,
+                std::time::Duration::ZERO,
+            );
+        };
+        let ((), events) = capture_events(|| {
+            // 捕获作用域已生效，但首次诊断发生在没有订阅者的线程上。
+            std::thread::spawn(record).join().unwrap();
+            record();
+        });
+        assert_eq!(events.len(), 1, "只应捕获当前线程的诊断：{events:?}");
+        assert_eq!(
+            event_for_stage(&events, "receive")
+                .fields
+                .get("reason")
+                .map(String::as_str),
+            Some("unexpected_eof"),
+        );
     }
 
     #[test]
