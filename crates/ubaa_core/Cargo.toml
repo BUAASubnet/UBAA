@@ -26,6 +26,7 @@ cfb-mode.workspace = true
 ecb.workspace = true
 hex.workspace = true
 image.workspace = true
+icalendar.workspace = true
 md-5.workspace = true
 regex = "1.12.2"
 rand.workspace = true
@@ -126,3 +127,4 @@ workspace = true
 
 [dev-dependencies]
 flate2.workspace = true
+icalendar = { workspace = true, features = ["parser"] }

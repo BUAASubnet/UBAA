@@ -946,6 +946,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "icalendar"
+version = "0.17.17"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2fe2f2ca4a82ec12ebd129ca664030add9b80d17a2b79ce885884fefb1c650e6"
+dependencies = [
+ "chrono",
+ "iso8601",
+ "uuid",
+]
+
+[[package]]
 name = "icu_collections"
 version = "2.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -1089,6 +1100,15 @@ name = "ipnet"
 version = "2.12.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "791930b43c0d5973160d90a8f3894509f2b273430f5c5c73b668636d0287c5c0"
+
+[[package]]
+name = "iso8601"
+version = "0.6.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4ffd3254cf2b0fc53e38414bdba99719f3e269db8a6519731b68a3a90040c41b"
+dependencies = [
+ "nom",
+]
 
 [[package]]
 name = "itoa"
@@ -1316,6 +1336,15 @@ name = "new_debug_unreachable"
 version = "1.0.6"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "650eef8c711430f1a879fdd01d4745a7deea475becfb90269c06775983bbf086"
+
+[[package]]
+name = "nom"
+version = "8.0.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "df9761775871bdef83bee530e60050f7e54b1105350d6884eb0fb4f46c2f9405"
+dependencies = [
+ "memchr",
+]
 
 [[package]]
 name = "num-bigint-dig"
@@ -2596,6 +2625,7 @@ dependencies = [
  "fs2",
  "hex",
  "hmac",
+ "icalendar",
  "image",
  "libc",
  "md-5",
