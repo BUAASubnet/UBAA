@@ -28,20 +28,60 @@ Future<void> bootstrapUbaaHost({
   required void Function(Widget app) runApplication,
 }) async {
   ensureFlutterInitialized();
-  await initializeSdk();
-  assert(debugHello() == _expectedBridgeHello);
-  final capabilities = await createCapabilities();
-  runApplication(
-    UbaaAppHost(
-      credentialVault: capabilities.credentialVault,
-      localAccountStore: capabilities.secureMaterials?.isAvailable == true
-          ? SecureLocalAccountStore(capabilities.secureMaterials!)
-          : null,
-      photoPicker: capabilities.photoPicker,
-      permissionGateway: capabilities.permissionGateway,
-      locationProvider: capabilities.locationProvider,
-    ),
-  );
+  // 先画启动页再做 SDK 与钥匙串等初始化，避免原生启动图长时间停留。
+  runApplication(const UbaaBootSplash());
+  var stage = 'SDK 初始化';
+  try {
+    await initializeSdk();
+    stage = 'Bridge 自检';
+    assert(debugHello() == _expectedBridgeHello);
+    stage = '平台能力初始化';
+    final capabilities = await createCapabilities();
+    runApplication(
+      UbaaAppHost(
+        credentialVault: capabilities.credentialVault,
+        localAccountStore: capabilities.secureMaterials?.isAvailable == true
+            ? SecureLocalAccountStore(capabilities.secureMaterials!)
+            : null,
+        photoPicker: capabilities.photoPicker,
+        permissionGateway: capabilities.permissionGateway,
+        locationProvider: capabilities.locationProvider,
+      ),
+    );
+  } on Object catch (error, stackTrace) {
+    final diagnostics = LocalDiagnostics();
+    final safe = error is InitializationException
+        ? error
+        : const InitializationException(
+            InitializationFailure.componentUnavailable,
+          );
+    final failure = diagnostics.record(
+      operation: DiagnosticOperation.initialization,
+      error: const UiErrorMapper().fromException(safe),
+      cause: error,
+      stackTrace: stackTrace,
+    );
+    runApplication(
+      _startupApplication(
+        home: _StartupFailure(
+          error: failure,
+          stage: stage,
+          diagnostics: diagnostics.exportText(),
+        ),
+      ),
+    );
+    rethrow;
+  }
+}
+
+/// 平台初始化完成前跟随系统主题，宿主读取设备偏好后使用保存的主题。
+class UbaaBootSplash extends StatelessWidget {
+  const UbaaBootSplash({super.key, this.themeMode = ThemeMode.system});
+  final ThemeMode themeMode;
+
+  @override
+  Widget build(BuildContext context) =>
+      _startupApplication(themeMode: themeMode, home: const UbaaSplashView());
 }
 
 /// Flutter 与 HarmonyOS 共用的应用组合根。

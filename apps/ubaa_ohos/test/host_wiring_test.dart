@@ -37,6 +37,7 @@ void main() {
 
     expect(events, <String>[
       'ensureInitialized',
+      'runApp',
       'RustLib.init',
       'bridgeHello',
       'createCapabilities',

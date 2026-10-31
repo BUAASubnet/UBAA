@@ -45,34 +45,70 @@ extension _BackendStartup on _UbaaAppHostState {
     }
   }
 
-  Widget _buildStartup() => MaterialApp(
-    title: 'UBAA',
-    locale: UbaaTheme.locale,
-    supportedLocales: UbaaTheme.supportedLocales,
-    localizationsDelegates: UbaaTheme.localizationsDelegates,
-    theme: UbaaTheme.light(),
-    darkTheme: UbaaTheme.dark(),
-    home: Scaffold(
-      body: Center(
-        child: Padding(
+  Widget _buildStartup() => _startupError == null
+      ? UbaaBootSplash(themeMode: _themeMode)
+      : _startupApplication(
+          themeMode: _themeMode,
+          home: _StartupFailure(
+            error: _startupError!,
+            onRetry: () => unawaited(_openBackend()),
+          ),
+        );
+}
+
+Widget _startupApplication({
+  required Widget home,
+  ThemeMode themeMode = ThemeMode.system,
+}) => MaterialApp(
+  title: 'UBAA',
+  locale: UbaaTheme.locale,
+  supportedLocales: UbaaTheme.supportedLocales,
+  localizationsDelegates: UbaaTheme.localizationsDelegates,
+  debugShowCheckedModeBanner: false,
+  theme: UbaaTheme.light(),
+  darkTheme: UbaaTheme.dark(),
+  themeMode: themeMode,
+  home: home,
+);
+
+class _StartupFailure extends StatelessWidget {
+  const _StartupFailure({
+    required this.error,
+    this.onRetry,
+    this.stage,
+    this.diagnostics,
+  });
+  final UiError error;
+  final VoidCallback? onRetry;
+  final String? stage, diagnostics;
+
+  @override
+  Widget build(BuildContext context) => Scaffold(
+    body: SafeArea(
+      child: Center(
+        child: SingleChildScrollView(
           padding: const EdgeInsets.all(24),
-          child: _startupError != null
-              ? Column(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    Text(_startupError!.title),
-                    const SizedBox(height: 12),
-                    Text(_startupError!.message),
-                    const SizedBox(height: 12),
-                    SelectableText('诊断编号：${_startupError!.issueId}'),
-                    const SizedBox(height: 12),
-                    FilledButton(
-                      onPressed: () => unawaited(_openBackend()),
-                      child: const Text('重新打开'),
-                    ),
-                  ],
-                )
-              : const CircularProgressIndicator(semanticsLabel: '正在加载'),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(error.title),
+              const SizedBox(height: 12),
+              Text(error.message),
+              const SizedBox(height: 12),
+              if (stage != null) Text('失败阶段：$stage'),
+              SelectableText('诊断编号：${error.issueId}'),
+              const SizedBox(height: 12),
+              if (onRetry != null)
+                FilledButton(onPressed: onRetry, child: const Text('重新打开'))
+              else
+                const Text('请关闭应用后重新打开。'),
+              if (diagnostics != null)
+                ExpansionTile(
+                  title: const Text('诊断详情'),
+                  children: [SelectableText(diagnostics!)],
+                ),
+            ],
+          ),
         ),
       ),
     ),
