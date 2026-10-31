@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'campus.dart';
 import 'ihome.dart';
 import 'initialization.dart';
 import 'interactive_auth.dart';
@@ -287,6 +288,18 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeBykcStatisticsRefresh> bykcStatisticsCached({
     required BridgeOfflineCache cache,
   });
+
+  /// 在线读取并保存快照；保存失败只在结果中报告，不影响在线数据。
+  ///
+  /// # Errors
+  /// 原认证/业务与账号/退出屏障保持。
+  Future<BridgeCampusRefresh> campusCached({
+    required BridgeOfflineCache cache,
+    required BridgeCampusCacheQuery query,
+  });
+
+  /// 在线读取五项校园账户指标；单项失败保留在对应项中。
+  Future<BridgeCampusMetricsResult> campusMetrics();
 
   /// 立即撤销当前交互，永不排队等待 Core 网络锁。
   void cancelInteractiveLogin();
@@ -615,6 +628,9 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 客户端已销毁或 Core 注销失败时返回安全错误。
   Future<void> logout();
 
+  /// 在线读取网络产品流量，保留原始单位。
+  Future<BridgeNetworkUsageResult> networkUsage();
+
   /// 仅推进激活或一个任务/问卷/课程请求，完成后释放同一客户端共享锁。
   ///
   /// # Errors
@@ -686,6 +702,9 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// # Errors
   /// 已销毁、路线或会话无效时返回安全错误。
   Future<BridgeCgyyLockDisplayLease> openCgyyLockDisplay();
+
+  /// 在线读取门户身份与学院，不写业务缓存。
+  Future<BridgePortalProfileResult> portalProfile();
 
   Future<BridgeWriteIntent> prepareBykcDeselectCourse({
     required BridgeBykcCourseRequest request,

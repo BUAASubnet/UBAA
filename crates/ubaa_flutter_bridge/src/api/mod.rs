@@ -28,3 +28,5 @@ pub mod schedule_import;
 pub mod sensitive;
 
 pub mod ihome;
+
+pub mod campus;

@@ -1,4 +1,5 @@
 export 'common/auth.dart';
+export 'common/campus_account.dart';
 export 'common/interactive_auth.dart';
 export 'common/error.dart';
 export 'common/route.dart';

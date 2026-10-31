@@ -293,7 +293,7 @@ class _Client implements BridgeClient {
   int cachedCalls = 0;
   final pinned = <BridgeConnectionMode>[];
   @override
-  int contractVersion() => 42;
+  int contractVersion() => 43;
   @override
   Future<BridgeYgdkRecordsRefresh> ygdkRecordsCached({
     required BridgeOfflineCache cache,

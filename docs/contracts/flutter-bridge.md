@@ -1,8 +1,8 @@
 # Flutter Bridge 合同
 
-状态：当前合同 v42。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
+状态：当前合同 v43。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
 
-业务缓存持久格式当前为 schema v7，独立于 Bridge v42。旧开发格式不迁移，普通打开拒绝并保留原库，用户明确清理后才能重建。下文各阶段的缓存版本与迁移说明保留历史事实，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
+业务缓存持久格式当前为 schema v7，独立于 Bridge v43。旧开发格式不迁移，普通打开拒绝并保留原库，用户明确清理后才能重建。下文各阶段的缓存版本与迁移说明保留历史事实，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `42`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `43`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -39,7 +39,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=42` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=43` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
 组间最多四个完整批次在途。每组的只读 Core 实例复用连接池，独立保存业务 Cookie、Token 和缓存，
@@ -737,3 +737,7 @@ Core 的 WriteBoundaryObservation 与原收尾标记分开：请求交给 transp
 ## v42：iHome 校园服务
 
 新增 `ihomePage/Detail/Config/Notices/Notice/SetReaction` 与独立类型化 DTO，来源见 [iHome 对照](../migration/source-parity-ihome-2026-10-25.md)。入口仅在校园服务；首页不自动读取。API 地址、Bearer 和 Cookie 均留在 Core。列表分页、搜索和筛选由 Core 编码；详情支持本人独立路径。UI 写入先确认，绑定读取路线；Core 写前复核、只提交一次并回读，结果未知时界面要求刷新核对，禁止自动重发。不提供新建诉求。
+
+## v43：门户资料、校园账户与网费流量
+
+新增 `portalProfile`、`campusMetrics`、`networkUsage` 三个在线只读调用及类型化 DTO，Core 协议与来源见[接入方案](../migration/source-parity-campus.md)。金额与容量保留十进制字符串和原始单位；计数投影为 `i64`，超出范围的计数转为该项失败而不截断。在线五项指标各自为“值或失败”二选一，失败只公开安全错误码与消息。本地快照中从未成功取得的项可以同时缺少值和失败，由 Dart 投影为 null。时间戳为 Unix 秒。另增 `campusCached(cache, query)` 与 `BridgeOfflineCache.readCampus(route, query)`，在线结果按[缓存合同](offline-cache-and-recovery.md#门户资料校园账户与网费流量快照)保存逐项快照，失败项回退为上次成功值；读取结果以 `BridgeCampusSection` 的三个可选字段之一承载。不进入首页自动读取；入口为“我的”页，首次进入时先显示本机快照再在线刷新，用户下拉或刷新时重读，账号、会话或路线代次变化后丢弃旧结果。

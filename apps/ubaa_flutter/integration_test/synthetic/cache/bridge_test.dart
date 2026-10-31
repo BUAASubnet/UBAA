@@ -24,7 +24,7 @@ void main() {
     BridgeClient? client;
     try {
       client = await BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 42);
+      expect(client.contractVersion(), 43);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),

@@ -64,7 +64,7 @@ class Backend extends support.FakeRecoveryBackend
 
 class DisposedClient implements BridgeClient {
   @override
-  int contractVersion() => 42;
+  int contractVersion() => 43;
   @override
   Future<BridgeLoginOutcome> authStatus() async => throw const BridgeError(
     code: BridgeErrorCode.clientDisposed,

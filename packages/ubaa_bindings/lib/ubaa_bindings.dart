@@ -43,3 +43,4 @@ export 'src/rust/api/sensitive.dart';
 export 'src/rust/api/initialization.dart';
 
 export 'src/rust/api/ihome.dart';
+export 'src/rust/api/campus.dart';

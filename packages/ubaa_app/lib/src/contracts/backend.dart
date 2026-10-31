@@ -68,3 +68,8 @@ abstract interface class UbaaBackend {
 abstract interface class IhomeBackend {
   IhomeService get ihome;
 }
+
+/// 门户资料、校园账户指标与网费流量的在线只读能力。
+abstract interface class CampusAccountBackend {
+  CampusAccountService get campusAccount;
+}

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'state/types.dart' show AppPhase;
 import 'features/ihome/service.dart';
+import 'features/campus/service.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
@@ -107,6 +108,32 @@ class AppController extends ControllerState
       );
     }
     return _ihomeService;
+  }
+
+  CampusAccountService? _campusService;
+  UbaaBackend? _campusBackend;
+  int? _campusEpoch;
+
+  /// “我的”页面的在线读取；账号、会话或路线代次变化后旧绑定失效。
+  CampusAccountService? get campusAccountService {
+    final backend = internalBackend;
+    if (backend is! CampusAccountBackend) return null;
+    final epoch = internalLifecycleEpoch;
+    if (!identical(backend, _campusBackend) || epoch != _campusEpoch) {
+      _campusBackend = backend;
+      _campusEpoch = epoch;
+      _campusService = GuardedCampusAccountService(
+        (backend as CampusAccountBackend).campusAccount,
+        () =>
+            !internalDisposed &&
+            !internalIsSigningOut &&
+            !internalInteractiveEngaged &&
+            internalPhase == AppPhase.home &&
+            internalLifecycleEpoch == epoch &&
+            identical(internalBackend, backend),
+      );
+    }
+    return _campusService;
   }
 
   AppController({

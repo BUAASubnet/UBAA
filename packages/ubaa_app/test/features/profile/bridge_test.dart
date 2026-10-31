@@ -109,7 +109,7 @@ const route = BridgeRouteDecision(
 class _Client implements BridgeClient {
   int cachedCalls = 0, plainCalls = 0;
   @override
-  int contractVersion() => 42;
+  int contractVersion() => 43;
   @override
   Future<BridgeProfileRefresh> userInfoCached({
     required BridgeOfflineCache cache,

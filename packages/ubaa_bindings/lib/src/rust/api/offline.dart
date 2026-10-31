@@ -5,6 +5,7 @@
 
 import '../frb_generated.dart';
 import 'cache_management.dart';
+import 'campus.dart';
 import 'client.dart';
 import 'offline_academic.dart';
 import 'offline_academic/baseline.dart';
@@ -181,6 +182,15 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   /// 账号关闭、范围无效或记录损坏返回稳定错误。
   Future<BridgeCachedBykcStatisticsRecord?> readBykcStatistics({
     required BridgeConnectionMode route,
+  });
+
+  /// 读取本地快照，不等待网络锁；没有记录时返回 None。
+  ///
+  /// # Errors
+  /// 账号关闭或存储损坏返回稳定错误。
+  Future<BridgeCachedCampusSection?> readCampus({
+    required BridgeConnectionMode route,
+    required BridgeCampusCacheQuery query,
   });
 
   /// 无网络读取精确本地范围。

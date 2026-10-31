@@ -4,6 +4,7 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/cache_management.dart';
+import 'api/campus.dart';
 import 'api/client.dart';
 import 'api/ihome.dart';
 import 'api/initialization.dart';
@@ -444,6 +445,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_box_autoadd_bridge_cached_bykc_statistics_record(dynamic raw);
 
   @protected
+  BridgeCachedCampusSection dco_decode_box_autoadd_bridge_cached_campus_section(
+    dynamic raw,
+  );
+
+  @protected
   BridgeCachedCgyyDayRecord
   dco_decode_box_autoadd_bridge_cached_cgyy_day_record(dynamic raw);
 
@@ -531,6 +537,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCampusAmount dco_decode_box_autoadd_bridge_campus_amount(dynamic raw);
+
+  @protected
+  BridgeCampusMetricFailure dco_decode_box_autoadd_bridge_campus_metric_failure(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCampusMetrics dco_decode_box_autoadd_bridge_campus_metrics(dynamic raw);
+
+  @protected
   BridgeCaptchaFrame dco_decode_box_autoadd_bridge_captcha_frame(dynamic raw);
 
   @protected
@@ -616,6 +633,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeLibbookReserveRequest
   dco_decode_box_autoadd_bridge_libbook_reserve_request(dynamic raw);
+
+  @protected
+  BridgeNetworkUsage dco_decode_box_autoadd_bridge_network_usage(dynamic raw);
+
+  @protected
+  BridgePortalProfile dco_decode_box_autoadd_bridge_portal_profile(dynamic raw);
 
   @protected
   BridgeRoutedSpocAssignmentDetail
@@ -880,6 +903,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_bridge_cached_bykc_statistics_record(dynamic raw);
 
   @protected
+  BridgeCachedCampusSection dco_decode_bridge_cached_campus_section(
+    dynamic raw,
+  );
+
+  @protected
   BridgeCachedCgyyDayInfo dco_decode_bridge_cached_cgyy_day_info(dynamic raw);
 
   @protected
@@ -1043,6 +1071,37 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeCallerPinnedYgdkRecords dco_decode_bridge_caller_pinned_ygdk_records(
     dynamic raw,
   );
+
+  @protected
+  BridgeCampusAmount dco_decode_bridge_campus_amount(dynamic raw);
+
+  @protected
+  BridgeCampusAmountMetric dco_decode_bridge_campus_amount_metric(dynamic raw);
+
+  @protected
+  BridgeCampusCacheQuery dco_decode_bridge_campus_cache_query(dynamic raw);
+
+  @protected
+  BridgeCampusCountMetric dco_decode_bridge_campus_count_metric(dynamic raw);
+
+  @protected
+  BridgeCampusMetricFailure dco_decode_bridge_campus_metric_failure(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCampusMetrics dco_decode_bridge_campus_metrics(dynamic raw);
+
+  @protected
+  BridgeCampusMetricsResult dco_decode_bridge_campus_metrics_result(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCampusRefresh dco_decode_bridge_campus_refresh(dynamic raw);
+
+  @protected
+  BridgeCampusSection dco_decode_bridge_campus_section(dynamic raw);
 
   @protected
   BridgeCaptchaAnswer dco_decode_bridge_captcha_answer(dynamic raw);
@@ -1465,7 +1524,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeMaskedProfile dco_decode_bridge_masked_profile(dynamic raw);
 
   @protected
+  BridgeNetworkProductUsage dco_decode_bridge_network_product_usage(
+    dynamic raw,
+  );
+
+  @protected
   BridgeNetworkState dco_decode_bridge_network_state(dynamic raw);
+
+  @protected
+  BridgeNetworkUsage dco_decode_bridge_network_usage(dynamic raw);
+
+  @protected
+  BridgeNetworkUsageResult dco_decode_bridge_network_usage_result(dynamic raw);
 
   @protected
   BridgePhotoUpload dco_decode_bridge_photo_upload(dynamic raw);
@@ -1480,6 +1550,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgePinnedSigninClasses dco_decode_bridge_pinned_signin_classes(
+    dynamic raw,
+  );
+
+  @protected
+  BridgePortalProfile dco_decode_bridge_portal_profile(dynamic raw);
+
+  @protected
+  BridgePortalProfileResult dco_decode_bridge_portal_profile_result(
     dynamic raw,
   );
 
@@ -1975,6 +2053,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeNetworkProductUsage> dco_decode_list_bridge_network_product_usage(
+    dynamic raw,
+  );
+
+  @protected
   List<BridgeRouteLoginResult> dco_decode_list_bridge_route_login_result(
     dynamic raw,
   );
@@ -2111,6 +2194,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_opt_box_autoadd_bridge_cached_bykc_statistics_record(dynamic raw);
 
   @protected
+  BridgeCachedCampusSection?
+  dco_decode_opt_box_autoadd_bridge_cached_campus_section(dynamic raw);
+
+  @protected
   BridgeCachedCgyyDayRecord?
   dco_decode_opt_box_autoadd_bridge_cached_cgyy_day_record(dynamic raw);
 
@@ -2207,6 +2294,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   dco_decode_opt_box_autoadd_bridge_cached_ygdk_selection(dynamic raw);
 
   @protected
+  BridgeCampusAmount? dco_decode_opt_box_autoadd_bridge_campus_amount(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeCampusMetricFailure?
+  dco_decode_opt_box_autoadd_bridge_campus_metric_failure(dynamic raw);
+
+  @protected
+  BridgeCampusMetrics? dco_decode_opt_box_autoadd_bridge_campus_metrics(
+    dynamic raw,
+  );
+
+  @protected
   BridgeCaptchaFrame? dco_decode_opt_box_autoadd_bridge_captcha_frame(
     dynamic raw,
   );
@@ -2259,6 +2360,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeLibBookAreaSchedule?
   dco_decode_opt_box_autoadd_bridge_lib_book_area_schedule(dynamic raw);
+
+  @protected
+  BridgeNetworkUsage? dco_decode_opt_box_autoadd_bridge_network_usage(
+    dynamic raw,
+  );
+
+  @protected
+  BridgePortalProfile? dco_decode_opt_box_autoadd_bridge_portal_profile(
+    dynamic raw,
+  );
 
   @protected
   BridgeRoutedSpocAssignmentDetail?
@@ -2692,6 +2803,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedCampusSection sse_decode_box_autoadd_bridge_cached_campus_section(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedCgyyDayRecord
   sse_decode_box_autoadd_bridge_cached_cgyy_day_record(
     SseDeserializer deserializer,
@@ -2809,6 +2925,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCampusAmount sse_decode_box_autoadd_bridge_campus_amount(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusMetricFailure sse_decode_box_autoadd_bridge_campus_metric_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusMetrics sse_decode_box_autoadd_bridge_campus_metrics(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCaptchaFrame sse_decode_box_autoadd_bridge_captcha_frame(
     SseDeserializer deserializer,
   );
@@ -2920,6 +3051,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeLibbookReserveRequest
   sse_decode_box_autoadd_bridge_libbook_reserve_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeNetworkUsage sse_decode_box_autoadd_bridge_network_usage(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgePortalProfile sse_decode_box_autoadd_bridge_portal_profile(
     SseDeserializer deserializer,
   );
 
@@ -3242,6 +3383,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   sse_decode_bridge_cached_bykc_statistics_record(SseDeserializer deserializer);
 
   @protected
+  BridgeCachedCampusSection sse_decode_bridge_cached_campus_section(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedCgyyDayInfo sse_decode_bridge_cached_cgyy_day_info(
     SseDeserializer deserializer,
   );
@@ -3441,6 +3587,51 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeCallerPinnedYgdkRecords sse_decode_bridge_caller_pinned_ygdk_records(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusAmount sse_decode_bridge_campus_amount(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusAmountMetric sse_decode_bridge_campus_amount_metric(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusCacheQuery sse_decode_bridge_campus_cache_query(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusCountMetric sse_decode_bridge_campus_count_metric(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusMetricFailure sse_decode_bridge_campus_metric_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusMetrics sse_decode_bridge_campus_metrics(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusMetricsResult sse_decode_bridge_campus_metrics_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusRefresh sse_decode_bridge_campus_refresh(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusSection sse_decode_bridge_campus_section(
     SseDeserializer deserializer,
   );
 
@@ -4003,7 +4194,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeNetworkProductUsage sse_decode_bridge_network_product_usage(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeNetworkState sse_decode_bridge_network_state(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeNetworkUsage sse_decode_bridge_network_usage(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeNetworkUsageResult sse_decode_bridge_network_usage_result(
     SseDeserializer deserializer,
   );
 
@@ -4024,6 +4230,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgePinnedSigninClasses sse_decode_bridge_pinned_signin_classes(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgePortalProfile sse_decode_bridge_portal_profile(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgePortalProfileResult sse_decode_bridge_portal_profile_result(
     SseDeserializer deserializer,
   );
 
@@ -4657,6 +4873,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeNetworkProductUsage> sse_decode_list_bridge_network_product_usage(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BridgeRouteLoginResult> sse_decode_list_bridge_route_login_result(
     SseDeserializer deserializer,
   );
@@ -4837,6 +5058,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCachedCampusSection?
+  sse_decode_opt_box_autoadd_bridge_cached_campus_section(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCachedCgyyDayRecord?
   sse_decode_opt_box_autoadd_bridge_cached_cgyy_day_record(
     SseDeserializer deserializer,
@@ -4957,6 +5184,22 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeCampusAmount? sse_decode_opt_box_autoadd_bridge_campus_amount(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusMetricFailure?
+  sse_decode_opt_box_autoadd_bridge_campus_metric_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeCampusMetrics? sse_decode_opt_box_autoadd_bridge_campus_metrics(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCaptchaFrame? sse_decode_opt_box_autoadd_bridge_captcha_frame(
     SseDeserializer deserializer,
   );
@@ -5027,6 +5270,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeLibBookAreaSchedule?
   sse_decode_opt_box_autoadd_bridge_lib_book_area_schedule(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeNetworkUsage? sse_decode_opt_box_autoadd_bridge_network_usage(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgePortalProfile? sse_decode_opt_box_autoadd_bridge_portal_profile(
     SseDeserializer deserializer,
   );
 
@@ -5520,6 +5773,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bridge_cached_campus_section(
+    BridgeCachedCampusSection self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bridge_cached_cgyy_day_record(
     BridgeCachedCgyyDayRecord self,
     SseSerializer serializer,
@@ -5646,6 +5905,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bridge_campus_amount(
+    BridgeCampusAmount self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_campus_metric_failure(
+    BridgeCampusMetricFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_campus_metrics(
+    BridgeCampusMetrics self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bridge_captcha_frame(
     BridgeCaptchaFrame self,
     SseSerializer serializer,
@@ -5768,6 +6045,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_libbook_reserve_request(
     BridgeLibbookReserveRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_network_usage(
+    BridgeNetworkUsage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_portal_profile(
+    BridgePortalProfile self,
     SseSerializer serializer,
   );
 
@@ -6159,6 +6448,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_cached_campus_section(
+    BridgeCachedCampusSection self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_cached_cgyy_day_info(
     BridgeCachedCgyyDayInfo self,
     SseSerializer serializer,
@@ -6395,6 +6690,60 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_caller_pinned_ygdk_records(
     BridgeCallerPinnedYgdkRecords self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_campus_amount(
+    BridgeCampusAmount self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_campus_amount_metric(
+    BridgeCampusAmountMetric self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_campus_cache_query(
+    BridgeCampusCacheQuery self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_campus_count_metric(
+    BridgeCampusCountMetric self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_campus_metric_failure(
+    BridgeCampusMetricFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_campus_metrics(
+    BridgeCampusMetrics self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_campus_metrics_result(
+    BridgeCampusMetricsResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_campus_refresh(
+    BridgeCampusRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_campus_section(
+    BridgeCampusSection self,
     SseSerializer serializer,
   );
 
@@ -7086,8 +7435,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_network_product_usage(
+    BridgeNetworkProductUsage self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_network_state(
     BridgeNetworkState self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_network_usage(
+    BridgeNetworkUsage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_network_usage_result(
+    BridgeNetworkUsageResult self,
     SseSerializer serializer,
   );
 
@@ -7112,6 +7479,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_pinned_signin_classes(
     BridgePinnedSigninClasses self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_portal_profile(
+    BridgePortalProfile self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_portal_profile_result(
+    BridgePortalProfileResult self,
     SseSerializer serializer,
   );
 
@@ -7890,6 +8269,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_network_product_usage(
+    List<BridgeNetworkProductUsage> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_route_login_result(
     List<BridgeRouteLoginResult> self,
     SseSerializer serializer,
@@ -8093,6 +8478,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_bridge_cached_campus_section(
+    BridgeCachedCampusSection? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_bridge_cached_cgyy_day_record(
     BridgeCachedCgyyDayRecord? self,
     SseSerializer serializer,
@@ -8219,6 +8610,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_bridge_campus_amount(
+    BridgeCampusAmount? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_campus_metric_failure(
+    BridgeCampusMetricFailure? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_campus_metrics(
+    BridgeCampusMetrics? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_bridge_captcha_frame(
     BridgeCaptchaFrame? self,
     SseSerializer serializer,
@@ -8293,6 +8702,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_lib_book_area_schedule(
     BridgeLibBookAreaSchedule? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_network_usage(
+    BridgeNetworkUsage? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_portal_profile(
+    BridgePortalProfile? self,
     SseSerializer serializer,
   );
 
