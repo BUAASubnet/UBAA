@@ -4,6 +4,10 @@ import '../../support/mapping.dart'
     show bridgeCompactFields, bridgeCountResult, bridgeField, bridgePagination;
 part 'cached_models.dart';
 
+/// 博雅选课列表每页条数。学校接口生成列表时每门课约需 0.3 秒，
+/// 小页先显示首屏，后续页由列表自动预取；在线与本机缓存共用同一键。
+const bridgeBykcCatalogPageSize = 8;
+
 FeatureResult bridgeProjectBykcCourses(
   BridgeBykcCoursePage data,
   ConnectionMode route, {

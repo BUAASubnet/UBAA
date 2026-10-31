@@ -1,5 +1,13 @@
 # 决策记录
 
+## 2026-10-31：缓存预读与博雅首屏分页
+
+本轮冻结参考为旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 和 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。旧版 `LocalBykcApi.kt::getCourses/queryStudentSemesterCourseByPage`、DTO `Bykc.kt` 和 `LocalBykcApiBackendTest.kt` 将调用方的页码、条数传入上游；旧 UI `BykcViewModel.kt` 默认 20 条。buaa-api `api/boya/opt.rs::query_courses` 同样传入 `pageNumber/pageSize`，并未要求固定 20 条。请求、登录、加密和错误继续遵守[博雅逐操作对照](source-parity.md#博雅课程只读查询)的九列规则。
+
+App 的选课 summary 固定每页 8 条，在线和本机缓存使用同一分页键。选择依据是用户在本轮提供的先前只读耗时观察：1/5/20/50 条分别约 0.6/1.6/5.4–6.4/17.5 秒；本轮没有重新访问学校核验，因此这些数值只作为性能取舍的输入，不是当前候选的实测结果。可见选课列表串行预取到 40 门，之后保留滚动加载。失败、无新增项目、离线缓存、离开当前帧、清缓存、账号变化和写入期间均停止自动追加；筛选与搜索只处理已加载集合，不能据此宣称全量搜索。Core 和 CLI 的可选分页参数保持原约定。
+
+缓存预读仅调整本机投影时机。逐操作的 URL、service、跳转、Cookie/Token、HTTP 参数、请求头、正文、加密和 DTO 沿用[来源索引](source-parity.md)及[离线恢复对照](source-parity-offline-recovery-2026-09-17.md)。旧版按账号保存课表、按账号与路线缓存 Judge；buaa-api 没有等价全功能离线仓库，对此次本机首帧调度不适用。首页最多等待本机缓存 800ms，查询切换最多等待 300ms 后开始在线读取，默认读取与缓存恢复并行。任何缓存结果均须校验账号、路线、查询与读取代次；资料缓存允许在 checkingSession 阶段投影，仍不改变认证身份或恢复状态。待核实提示在进入首页后补读。本轮只运行合成数据与本机门禁，Direct/WebVPN 实测留待有相应任务授权时执行。
+
 ## 2026-10-30：桌面宿主改为单实例并删除跨进程启动锁测试
 
 用户决定应用不支持多开：有其他实例运行时禁止启动，跨进程启动锁原生集成测试不再保留。macOS 在 AppDelegate 初始化时按 Bundle ID 查找同用户的其他进程，唤起后退出；Windows 用会话级命名互斥量 `Local\cn.edu.ubaa.single_instance` 判断并唤起已有窗口；Linux 去掉 `G_APPLICATION_NON_UNIQUE`，由 GApplication 把重复启动的 activate 转交主实例并呈现已有窗口。移动端与 OHOS 由系统保证单实例，不改。

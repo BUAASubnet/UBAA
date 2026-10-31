@@ -8,6 +8,7 @@ import '../../cache/lifecycle.dart' show bridgeAwaitOfflineScope;
 import 'cache.dart' show bridgeCachedBykcProjection;
 import 'projection.dart'
     show
+        bridgeBykcCatalogPageSize,
         bridgeBykcCoursePresentation,
         bridgeBykcSupplement,
         bridgeProjectBykcCatalog,
@@ -40,7 +41,7 @@ Future<FeatureResult> bridgeLoadBykcFeature(
         final value = await backend.client.bykcCatalogCached(
           cache: cache,
           page: query.page <= 0 ? 1 : query.page,
-          size: query.size.clamp(1, 100),
+          size: bridgeBykcCatalogPageSize,
           all: true,
         );
         return _finishBykcRefresh(
@@ -50,21 +51,21 @@ Future<FeatureResult> bridgeLoadBykcFeature(
             value.data,
             bridgeToConnectionMode(value.route.resolvedRoute),
             requestedPage: query.page <= 0 ? 1 : query.page,
-            requestedSize: query.size.clamp(1, 100),
+            requestedSize: bridgeBykcCatalogPageSize,
           ),
           value.state,
         );
       }
       final value = await backend.client.bykcCourseCatalog(
         page: query.page <= 0 ? 1 : query.page,
-        size: query.size.clamp(1, 100),
+        size: bridgeBykcCatalogPageSize,
         all: true,
       );
       return bridgeProjectBykcCatalog(
         value.data,
         bridgeToConnectionMode(value.route.resolvedRoute),
         requestedPage: query.page <= 0 ? 1 : query.page,
-        requestedSize: query.size.clamp(1, 100),
+        requestedSize: bridgeBykcCatalogPageSize,
       );
     case FeatureQueryView.bykcDetail:
       if (cache != null && account != null) {

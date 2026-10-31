@@ -20,7 +20,7 @@ void main() {
     expect(course.selected, isNull);
     expect(result.pagination?.total, 61);
     expect(result.pagination?.page, 2);
-    expect(client.arguments, {'page': 2, 'size': 10, 'all': true});
+    expect(client.arguments, {'page': 2, 'size': 8, 'all': true});
   });
   test('完整详情保留空窗口和零考勤且显示对象不生成签到资格', () async {
     final client = _DetailClient(selected: true);

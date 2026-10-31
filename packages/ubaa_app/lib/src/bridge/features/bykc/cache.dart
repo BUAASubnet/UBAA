@@ -5,6 +5,7 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/backend.dart';
 import 'projection.dart'
     show
+        bridgeBykcCatalogPageSize,
         bridgeCachedBykcCatalog,
         bridgeCachedBykcChosen,
         bridgeCachedBykcCourse,
@@ -36,7 +37,7 @@ Future<CachedFeatureProjection?> bridgeCachedBykcProjection(
       final value = await cache.readBykcCourses(
         route: route,
         page: query.page <= 0 ? 1 : query.page,
-        size: query.size.clamp(1, 100),
+        size: bridgeBykcCatalogPageSize,
         all: true,
       );
       if (value == null) return null;
@@ -44,7 +45,7 @@ Future<CachedFeatureProjection?> bridgeCachedBykcProjection(
         bridgeCachedBykcPage(value.data),
         bridgeToConnectionMode(value.sourceRoute),
         requestedPage: query.page <= 0 ? 1 : query.page,
-        requestedSize: query.size.clamp(1, 100),
+        requestedSize: bridgeBykcCatalogPageSize,
         catalog: {
           for (final item in value.data.content)
             item.id: bridgeCachedBykcCatalog(item),

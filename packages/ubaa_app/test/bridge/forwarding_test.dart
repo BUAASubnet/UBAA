@@ -588,7 +588,7 @@ void registerBridgeBackendReadCharacterization() {
     expect(client.calls, <String>[
       'bykcChosenCourses',
       'bykcCourseFullDetail:id=42',
-      'bykcCourseCatalog:page=1,size=100,all=true',
+      'bykcCourseCatalog:page=1,size=8,all=true',
       'bykcProfile',
       'bykcStatistics',
       'cgyyDayInfo:siteId=7,date=2026-09-04',
@@ -711,7 +711,7 @@ void registerBridgeBackendReadCharacterization() {
         ],
       ],
       <List<int>>[
-        <int>[1, 100, 201, 3],
+        <int>[1, 8, 201, 3],
         <int>[1, 100, 201, 3],
         <int>[2, 1, 9],
         <int>[3, 77, 9],

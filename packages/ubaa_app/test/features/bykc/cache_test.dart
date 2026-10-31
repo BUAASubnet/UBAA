@@ -254,6 +254,7 @@ class _Cache implements BridgeOfflineCache {
     required bool all,
   }) async {
     requestPage = page;
+    expect(size, 8);
     return const BridgeCachedBykcCoursesRecord(
       data: BridgeCachedBykcCoursePage(
         content: [
@@ -318,6 +319,7 @@ class _Client implements BridgeClient {
     required bool all,
   }) async {
     cachedReads++;
+    expect(size, 8);
     return BridgeBykcCatalogRefresh(
       data: _catalogPage(),
       route: route,
@@ -332,6 +334,7 @@ class _Client implements BridgeClient {
     required bool all,
   }) async {
     plainReads++;
+    expect(size, 8);
     return BridgeRoutedBykcCourseCatalog(data: _catalogPage(), route: route);
   }
 

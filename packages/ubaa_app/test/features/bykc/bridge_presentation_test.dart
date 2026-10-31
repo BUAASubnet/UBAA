@@ -31,7 +31,7 @@ void registerBykcPresentationTests() {
       detail.action<BykcSelectAction>()?.eligibility,
       ActionEligibility.unknown,
     );
-    expect(client.calls, ['bykcCourseCatalog:page=2,size=5,all=true']);
+    expect(client.calls, ['bykcCourseCatalog:page=2,size=8,all=true']);
     expect(result.pagination?.page, 2);
   });
   test('博雅详情使用公开课程结构，未选和未知资格不补签到动作', () async {

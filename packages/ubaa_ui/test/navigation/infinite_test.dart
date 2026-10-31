@@ -51,9 +51,14 @@ void main() {
     restored.jumpTo(0);
     await tester.pumpAndSettle();
     expect(find.text('项目0'), findsOneWidget);
+    final beforeRefresh = state.requests.length;
     await tester.tap(find.byTooltip('刷新当前查询'));
     await tester.pumpAndSettle();
-    expect(state.requests.last.page, 1);
+    expect(
+      state.requests.skip(beforeRefresh).map((q) => q.page),
+      [1, 2],
+      reason: '刷新从首页开始并允许成功后的预取',
+    );
     expect(find.text('项目0'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
@@ -86,9 +91,9 @@ void main() {
     state.gate!.complete();
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 500));
-    expect(state.requests.map((q) => q.page), [2, 1]);
-    expect(find.text('项目0'), findsOneWidget);
-    expect(find.text('项目10'), findsNothing);
+    expect(state.requests.map((q) => q.page), [2, 1, 2]);
+    expect(find.text('新项目0'), findsOneWidget);
+    expect(find.text('项目10'), findsNothing, reason: '迟到的旧代次不能进入新列表');
     expect(tester.takeException(), isNull);
   });
 }
@@ -126,10 +131,10 @@ class _HarnessState extends State<_Harness> {
               i++
             )
               FeatureDetail(
-                title: '项目$i',
+                title: '${epoch == 0 ? '' : '新'}项目$i',
                 presentation: BykcCoursePresentation(
                   id: i + 1,
-                  courseName: '项目$i',
+                  courseName: '${epoch == 0 ? '' : '新'}项目$i',
                   status: BykcCourseStatus.available,
                 ),
                 readNavigation: FeatureReadNavigation(

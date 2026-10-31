@@ -324,6 +324,9 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
               clearDetails: true,
             )
           : _current.feed.accept(incoming, _current.query);
+      if (incoming.status != FeatureLoadStatus.loading) {
+        _schedulePrefetch(_current);
+      }
       if (_current.bykcChosenKey != null &&
           context != null &&
           incoming.status != FeatureLoadStatus.loading) {
@@ -503,6 +506,51 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
       frame.query = query;
     });
     await widget.onQuery!(query);
+  }
+
+  bool _canLoadMore(_ReadFrame frame) {
+    if (frame.feed.snapshot != null) return frame.feed.hasMore;
+    final snapshot = frame.snapshot;
+    final page = snapshot.pagination;
+    return snapshot.status == FeatureLoadStatus.success &&
+        snapshot.evidence?.complete != false &&
+        snapshot.evidence?.origin != DataOrigin.persisted &&
+        page != null &&
+        (page.hasMore ?? (page.page < page.effectiveTotalPages));
+  }
+
+  /// 博雅选课列表每页条数较少（学校接口按课程数线性变慢），首页到达后
+  /// 在后台逐页预取，直到显示 [_bykcPrefetchLimit] 门课程，之后仍按滚动加载。
+  static const _bykcPrefetchLimit = 40;
+
+  void _schedulePrefetch(_ReadFrame frame) {
+    if (frame.snapshot.feature != FeatureId.bykc ||
+        (frame.query?.view ?? FeatureQueryView.summary) !=
+            FeatureQueryView.summary ||
+        frame.query?.courseId != null)
+      return;
+    final generation = frame.feed.generation;
+    final query = frame.query;
+    final cacheEpoch = widget.cacheEpoch;
+    final businessEpoch = widget.businessCacheEpoch;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted ||
+          !identical(frame, _current) ||
+          frame.isLanding ||
+          frame.needsReload ||
+          frame.feed.generation != generation ||
+          frame.query != query ||
+          widget.cacheEpoch != cacheEpoch ||
+          widget.businessCacheEpoch != businessEpoch ||
+          frame.feed.error != null ||
+          frame.snapshot.error != null ||
+          frame.requestingMore ||
+          frame.feed.loading ||
+          frame.snapshot.details.length >= _bykcPrefetchLimit ||
+          !_canLoadMore(frame))
+        return;
+      unawaited(_loadMore(frame));
+    });
   }
 
   Future<void> _loadMore(_ReadFrame frame) async {
@@ -711,19 +759,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
                   paginationGeneration: frame.paginationGeneration,
                   loadingMore: frame.feed.loading || frame.requestingMore,
                   moreError: frame.feed.error,
-                  hasMore: frame.feed.snapshot == null
-                      ? frame.snapshot.status == FeatureLoadStatus.success &&
-                            frame.snapshot.evidence?.complete != false &&
-                            frame.snapshot.evidence?.origin !=
-                                DataOrigin.persisted &&
-                            frame.snapshot.pagination != null &&
-                            (frame.snapshot.pagination!.hasMore ??
-                                (frame.snapshot.pagination!.page <
-                                    frame
-                                        .snapshot
-                                        .pagination!
-                                        .effectiveTotalPages))
-                      : frame.feed.hasMore,
+                  hasMore: _canLoadMore(frame),
                   onLoadMore:
                       widget.onQuery == null ||
                           !PagedResults.supports(
