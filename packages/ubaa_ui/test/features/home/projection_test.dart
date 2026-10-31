@@ -1,3 +1,4 @@
+import '../../support/home_todos.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,6 +15,8 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: HomeView(
+            onProjectTodos: (r) =>
+                homeTodoFixture(r, statuses: const {'当前考试': '考试中'}),
             user: null,
             visible: true,
             cacheEpoch: 0,
@@ -71,6 +74,7 @@ void main() {
 
   for (final feature in [FeatureId.spoc, FeatureId.exam]) {
     testWidgets('${feature.title}首页重建复用后仍响应来源替换与时间推进', (tester) async {
+      var projectVisible = true;
       var now = DateTime.parse('2026-10-24T00:00:00+08:00');
       final snapshots = {
         for (final feature in FeatureId.values)
@@ -114,6 +118,8 @@ void main() {
             return MaterialApp(
               home: Scaffold(
                 body: HomeView(
+                  onProjectTodos: (r) =>
+                      homeTodoFixture(r, visible: projectVisible),
                   user: null,
                   visible: true,
                   cacheEpoch: 0,
@@ -136,8 +142,9 @@ void main() {
       await tester.pump();
       expect(find.text('初始任务'), findsOneWidget);
       rebuild(() => snapshots[feature] = source('更新任务'));
-      await tester.pump();
+      await tester.pumpAndSettle();
       expect(find.text('更新任务'), findsOneWidget);
+      projectVisible = false;
       now = DateTime.parse('2026-10-26T00:00:00+08:00');
       await tester.pump(const Duration(minutes: 1));
       expect(find.text('当前没有待办'), findsOneWidget);

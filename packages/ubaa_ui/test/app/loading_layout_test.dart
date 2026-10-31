@@ -1,3 +1,4 @@
+import '../support/home_todos.dart';
 import 'dart:async';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
@@ -19,6 +20,7 @@ void main() {
       MaterialApp(
         home: Scaffold(
           body: HomeView(
+            onProjectTodos: homeTodoFixture,
             user: null,
             visible: true,
             cacheEpoch: 0,

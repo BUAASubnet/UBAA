@@ -1,7 +1,7 @@
 import 'dart:async';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show listEquals;
+import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/theme.dart';
 import '../common/section.dart';
@@ -35,12 +35,16 @@ class HomeView extends StatefulWidget {
     this.onDismissGradeNotice,
     this.writeReadbackNotice,
     this.homeClock,
+    this.onProjectTodos,
+    this.agendaEpoch = 0,
     this.recentFeatures = const [],
     this.onSyncStatus,
     this.onPullRefresh,
     this.deferSupplements = false,
   });
   final Clock? homeClock;
+  final HomeTodoReader? onProjectTodos;
+  final int agendaEpoch;
   final List<FeatureId> recentFeatures;
 
   /// 上报首页全部来源（含博雅已选、研讨室订单）是否刷新中及最早更新时间，供标题栏显示。
@@ -157,6 +161,14 @@ class HomeViewState extends State<HomeView> {
 
   Future<void> _signin(HomeTodo item) async {
     if (_signingTodo != null) return;
+    final currentTime = (widget.homeClock ?? clock).now();
+    if (homeDateKey(homeCampusTime(currentTime)) !=
+        homeDateKey(homeCampusTime(_now))) {
+      setState(() => _now = currentTime);
+      unawaited(_projectTodos());
+      await _refreshSignin(item);
+      return;
+    }
     final action = item.signinAction;
     if (action == null || widget.onSignin == null) return;
     final key = _signinKey(item);
@@ -199,7 +211,9 @@ class HomeViewState extends State<HomeView> {
   final _loading = <HomeSupplement>{};
   final _pending = <HomeSupplement, Future<void>>{};
   int _generation = 0;
-  List<Object?>? _todoInputs;
+  int _projectionGeneration = 0;
+  Object? _projectionFailure;
+  Map<FeatureId, FeatureSnapshot> _lastSnapshots = const {};
   List<HomeTodo> _todos = const [];
   bool uiScheduled = false;
   int? _gradeCheckEpoch;
@@ -208,9 +222,12 @@ class HomeViewState extends State<HomeView> {
   @override
   void initState() {
     super.initState();
+    _lastSnapshots = Map.of(widget.snapshots);
+    unawaited(_projectTodos());
     _clock = Timer.periodic(const Duration(minutes: 1), (_) {
       if (mounted && widget.visible) {
         setState(() => _now = (widget.homeClock ?? clock).now());
+        unawaited(_projectTodos());
       }
     });
   }
@@ -240,6 +257,15 @@ class HomeViewState extends State<HomeView> {
     }
     if (!old.visible && widget.visible)
       _now = (widget.homeClock ?? clock).now();
+    if (old.cacheEpoch != widget.cacheEpoch ||
+        old.businessCacheEpoch != widget.businessCacheEpoch ||
+        old.agendaEpoch != widget.agendaEpoch ||
+        old.reminderSettings != widget.reminderSettings ||
+        !mapEquals(_lastSnapshots, widget.snapshots) ||
+        (!old.visible && widget.visible)) {
+      _lastSnapshots = Map.of(widget.snapshots);
+      unawaited(_projectTodos());
+    }
   }
 
   @override
@@ -330,6 +356,7 @@ class HomeViewState extends State<HomeView> {
             )
           : result;
     });
+    unawaited(_projectTodos());
   }
 
   Map<FeatureId, FeatureSnapshot> _sources() {
@@ -393,6 +420,51 @@ class HomeViewState extends State<HomeView> {
     return sources;
   }
 
+  Future<void> _projectTodos() async {
+    final generation = ++_projectionGeneration;
+    _todos = _todos.map((v) => v.withoutSigninAction()).toList();
+    final time = _now;
+    final reader = widget.onProjectTodos;
+    if (reader == null) return;
+    final weeks =
+        _supplements[HomeSupplement.currentWeek]?.details
+            .map((d) => d.presentation)
+            .whereType<WeekPresentation>()
+            .toList() ??
+        [];
+    try {
+      final value = await reader(
+        HomeTodoRequest(
+          snapshots: _sources(),
+          now: _now,
+          currentWeek: weeks.length == 1 ? weeks.single : null,
+          currentWeekRoute:
+              _supplements[HomeSupplement.currentWeek]?.resolvedRoute,
+          reminder:
+              widget.reminderSettings ??
+              const YgdkReminderSettings(enabled: false),
+        ),
+      );
+      if (!mounted || generation != _projectionGeneration) return;
+      if (homeDateKey(homeCampusTime((widget.homeClock ?? clock).now())) !=
+          homeDateKey(homeCampusTime(time))) {
+        _now = (widget.homeClock ?? clock).now();
+        unawaited(_projectTodos());
+        return;
+      }
+      setState(() {
+        _todos = value.todos;
+        _projectionFailure = value.overlayFailure;
+      });
+    } on Object catch (e) {
+      if (!mounted || generation != _projectionGeneration) return;
+      setState(() {
+        _todos = const [];
+        _projectionFailure = e;
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     _scheduleLoads();
@@ -421,41 +493,6 @@ class HomeViewState extends State<HomeView> {
             .toList() ??
         [];
     final week = weeks.length == 1 ? weeks.single : null;
-    final reminder = widget.reminderSettings;
-    // 课表、路线和成绩通知更新不改变待办；只在来源或时间变化时重新投影。
-    final todoInputs = <Object?>[
-      for (final feature in [
-        FeatureId.bykc,
-        FeatureId.cgyy,
-        FeatureId.spoc,
-        FeatureId.judge,
-        FeatureId.signin,
-        FeatureId.ygdk,
-        FeatureId.exam,
-      ])
-        widget.snapshots[feature],
-      for (final source in HomeSupplement.values) _supplements[source],
-      _loading.contains(HomeSupplement.bykcChosen),
-      _loading.contains(HomeSupplement.cgyyOrders),
-      _now,
-      reminder?.enabled,
-      reminder?.weekDoneKey,
-      reminder?.termDoneKey,
-    ];
-    if (!listEquals(_todoInputs, todoInputs)) {
-      _todoInputs = todoInputs;
-      _todos = buildHomeTodos(
-        snapshots: sources,
-        now: campusNow,
-        currentWeek: week,
-        ygdkReminderEnabled: reminder?.enabled ?? false,
-        ygdkWeekDone:
-            week != null &&
-            reminder?.weekDoneKey == '${week.responseTerm}:${week.number}',
-        ygdkTermDone:
-            week != null && reminder?.termDoneKey == week.responseTerm,
-      );
-    }
     final tasks = _todos
         .where((task) => !_completedSignins.contains(_signinKey(task)))
         .toList();
@@ -568,6 +605,11 @@ class HomeViewState extends State<HomeView> {
               padding: const EdgeInsets.all(16),
               child: Text(failed.isNotEmpty ? '已加载的来源中暂无近期待办' : '当前没有待办'),
             ),
+          ),
+        if (_projectionFailure != null)
+          const Padding(
+            padding: EdgeInsets.only(top: 8),
+            child: Text('本机日程标记暂不可用，请刷新后重试'),
           ),
         if (failed.isNotEmpty)
           Padding(
@@ -750,7 +792,7 @@ class _HomeTodoCard extends StatelessWidget {
                     Text(
                       item.timeLabel,
                       style: theme.textTheme.labelLarge?.copyWith(
-                        color: item.isSoonAt(now)
+                        color: item.soon
                             ? (theme.brightness == Brightness.dark
                                   ? const Color(0xFFFFBD75)
                                   : const Color(0xFF9A4D00))

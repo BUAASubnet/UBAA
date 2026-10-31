@@ -148,7 +148,7 @@ fn project_schedule(
         Ok((Vec::new(), schedule.arranged_list.len()))
     }
 }
-fn remove_ambiguous_duplicates(
+pub(super) fn remove_ambiguous_duplicates(
     items: &mut Vec<SchoolAgendaItem>,
     unavailable: &mut BTreeMap<ReadonlyFeature, usize>,
 ) {

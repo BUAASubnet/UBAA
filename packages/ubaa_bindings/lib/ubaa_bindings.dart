@@ -48,3 +48,5 @@ export 'src/rust/api/campus.dart';
 export 'src/rust/api/agenda.dart';
 export 'src/rust/api/agenda/models.dart';
 export 'src/rust/api/agenda/school.dart';
+
+export 'src/rust/api/agenda/home.dart';

@@ -1,3 +1,4 @@
+import '../../support/home_todos.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -91,6 +92,7 @@ Future<void> mount(
     await tester.pumpWidget(
       MaterialApp(
         home: UbaaMainShell(
+          onProjectHomeTodos: homeTodoFixture,
           homeClock: clock,
           user: const UserSummary(username: 'synthetic'),
           snapshots: {

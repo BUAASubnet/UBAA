@@ -72,7 +72,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 44;
+const _supportedBridgeContractVersion = 45;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -83,6 +83,7 @@ class BridgeBackend
     implements
         UbaaBackend,
         AgendaProvider,
+        HomeTodoBackend,
         IhomeBackend,
         CampusAccountBackend,
         PinnedWriteReadbackBackend,
@@ -142,9 +143,11 @@ class BridgeBackend
 
   final BridgeContext _context;
   @override
-  late final AgendaService agenda = AgendaService(
-    BridgeAgendaBackend(_context),
-  );
+  Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request) =>
+      _homeAgenda.projectHomeTodos(request);
+  late final BridgeAgendaBackend _homeAgenda = BridgeAgendaBackend(_context);
+  @override
+  late final AgendaService agenda = AgendaService(_homeAgenda);
   @override
   late final IhomeService ihome = BridgeIhomeService(_context.client);
   @override

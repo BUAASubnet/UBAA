@@ -211,7 +211,7 @@ class _Api implements RustLibApi {
 
 class _Client implements BridgeClient {
   @override
-  int contractVersion() => 44;
+  int contractVersion() => 45;
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

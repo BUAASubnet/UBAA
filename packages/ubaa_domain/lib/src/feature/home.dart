@@ -1,10 +1,13 @@
 import '../write/actions.dart';
 import 'catalog.dart';
-import 'data_evidence.dart';
+import '../common/route.dart';
+
 import 'presentation.dart';
 import 'result.dart';
-import 'overview.dart';
-import 'query.dart';
+import '../agenda/school.dart';
+import '../agenda/models.dart';
+import 'schedule/home.dart';
+
 import 'read_navigation.dart';
 
 /// 首页额外读取只允许旧版已有的三类来源。
@@ -20,6 +23,7 @@ final class HomeTodo {
     required this.statusLabel,
     required this.timeLabel,
     required this.sortTime,
+    this.soon = false,
     this.navigation,
     this.signinAction,
     this.deadline,
@@ -31,335 +35,24 @@ final class HomeTodo {
   final DateTime sortTime;
   final DateTime? deadline, startsAt, endsAt;
 
-  bool isSoonAt(DateTime now) {
-    final time = deadline ?? startsAt;
-    if (time == null) return false;
-    final remaining = time.difference(now);
-    return remaining > Duration.zero && remaining <= const Duration(hours: 48);
-  }
+  HomeTodo withoutSigninAction() => HomeTodo(
+    id: id,
+    feature: feature,
+    title: title,
+    subtitle: subtitle,
+    statusLabel: statusLabel,
+    timeLabel: timeLabel,
+    sortTime: sortTime,
+    navigation: navigation,
+    deadline: deadline,
+    startsAt: startsAt,
+    endsAt: endsAt,
+    soon: soon,
+  );
+  final bool soon;
 
   final FeatureReadNavigation? navigation;
   final SigninPerformAction? signinAction;
-}
-
-List<HomeTodo> buildHomeTodos({
-  required Map<FeatureId, FeatureSnapshot> snapshots,
-  required DateTime now,
-  WeekPresentation? currentWeek,
-  bool ygdkReminderEnabled = true,
-  bool ygdkWeekDone = false,
-  bool ygdkTermDone = false,
-}) {
-  final result = <HomeTodo>[];
-  for (final feature in [
-    FeatureId.bykc,
-    FeatureId.spoc,
-    FeatureId.judge,
-    FeatureId.cgyy,
-    FeatureId.signin,
-    FeatureId.exam,
-  ]) {
-    final snapshot = snapshots[feature];
-    if (!_isHomeSource(snapshot)) continue;
-    if (feature == FeatureId.signin && snapshot!.evidence != null) {
-      final date =
-          '${now.year.toString().padLeft(4, '0')}-'
-          '${now.month.toString().padLeft(2, '0')}-'
-          '${now.day.toString().padLeft(2, '0')}';
-      if (snapshot.evidence!.scopeDate != date) continue;
-    }
-    for (final detail in snapshot!.details) {
-      final item = _homeDetail(
-        feature,
-        detail,
-        now,
-        sourceQuery: snapshot.readContext?.query,
-        fresh:
-            snapshot.status == FeatureLoadStatus.success &&
-            snapshot.evidence?.origin != DataOrigin.persisted &&
-            snapshot.evidence?.complete != false,
-      );
-      if (item != null) result.add(item);
-    }
-  }
-  final sunlight = snapshots[FeatureId.ygdk];
-  final overview = sunlight?.overview;
-  final week = currentWeek;
-  if (_isHomeSource(sunlight) &&
-      (sunlight!.evidence?.complete != false ||
-          sunlight.evidence?.origin == DataOrigin.mixed) &&
-      overview is YgdkOverview &&
-      week != null &&
-      week.current &&
-      week.responseTerm.trim().isNotEmpty &&
-      week.number >= 11 &&
-      week.number <= 14 &&
-      ygdkReminderEnabled &&
-      !ygdkWeekDone &&
-      !ygdkTermDone &&
-      overview.weekCount != null &&
-      overview.weekCount! < 4 &&
-      overview.termCount < 16) {
-    final sunday = DateTime(
-      now.year,
-      now.month,
-      now.day + 7 - now.weekday,
-      23,
-      59,
-      59,
-    );
-    result.add(
-      HomeTodo(
-        id: 'ygdk:${week.responseTerm}:${week.number}',
-        feature: FeatureId.ygdk,
-        title: '本周阳光打卡未达标',
-        subtitle: '本周已打卡 ${overview.weekCount} / 4 次',
-        statusLabel: '待打卡',
-        timeLabel: '${_relativeHomeTime(sunday, now)} 截止',
-        deadline: sunday,
-        sortTime: sunday,
-        navigation: const FeatureReadNavigation(
-          feature: FeatureId.ygdk,
-          query: FeatureQuery(),
-        ),
-      ),
-    );
-  }
-  // Dart排序不保证稳定；时间相同沿旧来源和原响应顺序。
-  final ordered = result.indexed.toList()
-    ..sort((a, b) {
-      final time = a.$2.sortTime.compareTo(b.$2.sortTime);
-      return time == 0 ? a.$1.compareTo(b.$1) : time;
-    });
-  return List.unmodifiable(ordered.map((e) => e.$2));
-}
-
-bool _isHomeSource(FeatureSnapshot? snapshot) {
-  if (snapshot == null ||
-      (snapshot.status != FeatureLoadStatus.success &&
-          snapshot.status != FeatureLoadStatus.stale &&
-          !(snapshot.status == FeatureLoadStatus.loading &&
-              snapshot.updatedAt != null)))
-    return false;
-  final query = snapshot.readContext?.query;
-  return switch (snapshot.feature) {
-    FeatureId.exam =>
-      query == null ||
-          query.view == FeatureQueryView.summary ||
-          query.view == FeatureQueryView.examArranged,
-    FeatureId.bykc => query?.view == FeatureQueryView.bykcChosenCourses,
-    FeatureId.cgyy => query?.view == FeatureQueryView.cgyyOrders,
-    FeatureId.spoc ||
-    FeatureId.judge ||
-    FeatureId.ygdk ||
-    FeatureId.signin => query == null || query.view == FeatureQueryView.summary,
-    _ => false,
-  };
-}
-
-HomeTodo? _homeDetail(
-  FeatureId feature,
-  FeatureDetail detail,
-  DateTime now, {
-  required bool fresh,
-  FeatureQuery? sourceQuery,
-}) {
-  final p = detail.presentation;
-  if (feature == FeatureId.exam && p is ExamPresentation) {
-    final day = p.calendarDate;
-    if (!p.arranged || day == null || p.isFinishedAt(now)) return null;
-    final start = _parseHomeTime(p.startTime, today: day);
-    final end = _parseHomeTime(p.endTime, today: day);
-    return HomeTodo(
-      id: 'exam:${p.taskId ?? p.courseNo ?? detail.title}:${p.date}:${p.startTime}',
-      feature: feature,
-      title: detail.title,
-      subtitle: _joinHome([
-        p.place,
-        if (p.seat?.trim().isNotEmpty == true) '座位 ${p.seat}',
-      ], '考场待定'),
-      statusLabel: start != null && !start.isAfter(now) ? '考试中' : '待考试',
-      timeLabel: start == null
-          ? '${day.month}月${day.day}日 · 时间待定'
-          : _homeRange(start, end, now),
-      sortTime: start ?? day,
-      startsAt: start,
-      endsAt: end,
-      navigation: FeatureReadNavigation(
-        feature: FeatureId.exam,
-        query: FeatureQuery(
-          view: FeatureQueryView.examArranged,
-          term: sourceQuery?.term,
-        ),
-      ),
-    );
-  }
-  if (feature == FeatureId.bykc && p is BykcChosenPresentation) {
-    final start = _parseHomeTime(p.courseStartDate),
-        end = _parseHomeTime(p.courseEndDate);
-    if ((start == null && end == null) || end?.isBefore(now) == true)
-      return null;
-    final ongoing = start != null && !start.isAfter(now);
-    return HomeTodo(
-      id: 'bykc:${p.courseId}',
-      feature: feature,
-      title: p.courseName,
-      subtitle: _joinHome([p.courseTeacher, p.coursePosition], '我的课程'),
-      statusLabel: ongoing ? '进行中' : '即将开始',
-      timeLabel: _homeRange(start, end, now),
-      sortTime: start ?? end!,
-      startsAt: start,
-      endsAt: end,
-      navigation: p.courseId <= 0
-          ? null
-          : FeatureReadNavigation(
-              feature: feature,
-              query: FeatureQuery(
-                view: FeatureQueryView.bykcDetail,
-                courseId: '${p.courseId}',
-              ),
-            ),
-    );
-  }
-  if (feature == FeatureId.spoc &&
-      p is SpocAssignmentPresentation &&
-      !p.isDetail) {
-    final start = _parseHomeTime(p.startTime), due = _parseHomeTime(p.dueTime);
-    if (p.status != AssignmentSubmissionStatus.unsubmitted ||
-        start?.isAfter(now) == true ||
-        due == null ||
-        !due.isAfter(now))
-      return null;
-    return HomeTodo(
-      id: 'spoc:${p.assignmentId}',
-      feature: feature,
-      title: detail.title,
-      subtitle: _joinHome([p.courseName, p.teacherName], 'SPOC 作业'),
-      statusLabel: '待提交',
-      timeLabel: '${_relativeHomeTime(due, now)} 截止',
-      deadline: due,
-      sortTime: due,
-      navigation: p.assignmentId.trim().isEmpty
-          ? null
-          : FeatureReadNavigation(
-              feature: feature,
-              query: FeatureQuery(
-                view: FeatureQueryView.spocDetail,
-                assignmentId: p.assignmentId,
-              ),
-            ),
-    );
-  }
-  if (feature == FeatureId.judge &&
-      p is JudgeAssignmentPresentation &&
-      !p.isDetail) {
-    final due = _parseHomeTime(p.dueTime);
-    if ((p.status != AssignmentSubmissionStatus.unsubmitted &&
-            p.status != AssignmentSubmissionStatus.partial) ||
-        due == null ||
-        !due.isAfter(now))
-      return null;
-    return HomeTodo(
-      id: 'judge:${p.courseId}:${p.assignmentId}',
-      feature: feature,
-      title: detail.title,
-      subtitle: _joinHome([p.courseName], '希冀作业'),
-      statusLabel: p.status == AssignmentSubmissionStatus.partial
-          ? '待完成'
-          : '待提交',
-      timeLabel: '${_relativeHomeTime(due, now)} 截止',
-      deadline: due,
-      sortTime: due,
-      navigation: p.courseId.trim().isEmpty || p.assignmentId.trim().isEmpty
-          ? null
-          : FeatureReadNavigation(
-              feature: feature,
-              query: FeatureQuery(
-                view: FeatureQueryView.judgeDetail,
-                courseId: p.courseId,
-                assignmentId: p.assignmentId,
-              ),
-            ),
-    );
-  }
-  if (feature == FeatureId.cgyy && p is CgyyOrderPresentation) {
-    final start = _parseHomeTime(p.reservationStartDate),
-        end = _parseHomeTime(p.reservationEndDate);
-    if ((p.checkStatus ?? 0) < 0 ||
-        p.orderStatus == 2 ||
-        (end != null && !end.isAfter(now)) ||
-        (start == null && end == null))
-      return null;
-    return HomeTodo(
-      id: 'cgyy:${p.id}',
-      feature: feature,
-      title: _joinHome(
-        [p.venueName, p.venueSpaceName ?? p.siteName],
-        '研讨室预约',
-        separator: ' / ',
-      ),
-      subtitle: _joinHome([p.theme, p.purposeTypeName], '我的预约'),
-      statusLabel: start != null && !start.isAfter(now) ? '使用中' : '待使用',
-      timeLabel: _homeRange(start, end, now),
-      sortTime: start ?? end!,
-      startsAt: start,
-      endsAt: end,
-      navigation: const FeatureReadNavigation(
-        feature: FeatureId.cgyy,
-        query: FeatureQuery(view: FeatureQueryView.cgyyOrders),
-      ),
-    );
-  }
-  if (feature == FeatureId.signin && p is SigninPresentation) {
-    final start = _parseHomeTime(p.classBeginTime, today: now),
-        end = _parseHomeTime(p.classEndTime, today: now);
-    if (p.signStatus != 0 ||
-        start == null ||
-        end == null ||
-        !now.isBefore(end) ||
-        now.isBefore(start.subtract(const Duration(minutes: 10))))
-      return null;
-    final actions = detail.actions.whereType<SigninPerformAction>().toList();
-    final action = actions.length == 1 ? actions.single : null;
-    return HomeTodo(
-      id: 'signin:${p.courseId}',
-      feature: feature,
-      title: detail.title,
-      subtitle: '课程签到',
-      statusLabel: !fresh
-          ? '状态待更新'
-          : now.isBefore(start)
-          ? '即将签到'
-          : '待签到',
-      timeLabel: '${_clockHome(start)}–${_clockHome(end)}',
-      sortTime: start,
-      startsAt: start,
-      endsAt: end,
-      navigation: const FeatureReadNavigation(
-        feature: FeatureId.signin,
-        query: FeatureQuery(view: FeatureQueryView.signinPending),
-      ),
-      signinAction:
-          fresh &&
-              action?.eligibility == ActionEligibility.allowed &&
-              action!.scheduleId.trim().isNotEmpty
-          ? action
-          : null,
-    );
-  }
-  return null;
-}
-
-String _joinHome(
-  List<String?> values,
-  String fallback, {
-  String separator = ' · ',
-}) {
-  final joined = values
-      .whereType<String>()
-      .where((v) => v.trim().isNotEmpty)
-      .join(separator);
-  return joined.isEmpty ? fallback : joined;
 }
 
 String _clockHome(DateTime time) =>
@@ -390,41 +83,6 @@ String _homeRange(DateTime? start, DateTime? end, DateTime now) {
   return '${_relativeHomeTime(start, now)}–${sameDay ? _clockHome(end) : _relativeHomeTime(end, now)}';
 }
 
-/// 旧LocalDateTime接受的日期和钟点；拒绝Dart自动归一化越界日期。
-DateTime? _parseHomeTime(String? value, {DateTime? today}) {
-  final text = value?.trim() ?? '';
-  final full = RegExp(
-    r'^(\d{4})-(\d{2})-(\d{2})[ T](\d{2}):(\d{2})(?::(\d{2})(?:\.\d{1,9})?)?$',
-  ).firstMatch(text);
-  int year, month, day, hour, minute, second;
-  if (full != null) {
-    year = int.parse(full[1]!);
-    month = int.parse(full[2]!);
-    day = int.parse(full[3]!);
-    hour = int.parse(full[4]!);
-    minute = int.parse(full[5]!);
-    second = int.parse(full[6] ?? '0');
-  } else {
-    final clock = RegExp(r'^(\d{1,2}):(\d{2})(?::(\d{2}))?$').firstMatch(text);
-    if (today == null || clock == null) return null;
-    year = today.year;
-    month = today.month;
-    day = today.day;
-    hour = int.parse(clock[1]!);
-    minute = int.parse(clock[2]!);
-    second = int.parse(clock[3] ?? '0');
-  }
-  final result = DateTime(year, month, day, hour, minute, second);
-  if (result.year != year ||
-      result.month != month ||
-      result.day != day ||
-      result.hour != hour ||
-      result.minute != minute ||
-      result.second != second)
-    return null;
-  return result;
-}
-
 /// 本地提醒偏好与已观察到的达标记忆；不表示学校提交成功。
 final class YgdkReminderSettings {
   const YgdkReminderSettings({
@@ -442,5 +100,79 @@ final class YgdkReminderSettings {
     enabled: enabled ?? this.enabled,
     weekDoneKey: weekDoneKey ?? this.weekDoneKey,
     termDoneKey: termDoneKey ?? this.termDoneKey,
+  );
+}
+
+/// 首页只提交已经取得的 typed 读结果；纯时间刷新不会请求学校。
+final class HomeTodoRequest {
+  HomeTodoRequest({
+    required Map<FeatureId, FeatureSnapshot> snapshots,
+    required this.now,
+    this.accountId,
+    this.currentWeek,
+    this.currentWeekRoute,
+    this.reminder = const YgdkReminderSettings(),
+  }) : snapshots = Map.unmodifiable(snapshots);
+  final Map<FeatureId, FeatureSnapshot> snapshots;
+  final DateTime now;
+  final String? accountId;
+  final WeekPresentation? currentWeek;
+  final ConnectionMode? currentWeekRoute;
+  final YgdkReminderSettings reminder;
+}
+
+final class HomeTodoProjection {
+  HomeTodoProjection(List<HomeTodo> todos, {this.overlayFailure})
+    : todos = List.unmodifiable(todos);
+  final List<HomeTodo> todos;
+  final AgendaFailure? overlayFailure;
+}
+
+abstract interface class HomeTodoBackend {
+  Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request);
+}
+
+typedef HomeTodoReader =
+    Future<HomeTodoProjection> Function(HomeTodoRequest request);
+
+/// 这里只格式化 Core 已筛选、排序和判定紧迫程度的条目。
+HomeTodo formatHomeTodo(
+  AgendaEntry entry, {
+  required DateTime now,
+  FeatureReadNavigation? navigation,
+  SigninPerformAction? signinAction,
+}) {
+  final item = entry.school!;
+  DateTime? display(String? raw) =>
+      raw == null ? null : homeCampusTime(DateTime.parse(raw));
+  final start = display(entry.timing.start?.rfc3339),
+      end = display(entry.timing.end?.rfc3339),
+      due = display(entry.timing.due?.rfc3339);
+  final day = entry.timing.from == null
+      ? null
+      : DateTime.parse(entry.timing.from!);
+  final label = due != null
+      ? '${_relativeHomeTime(due, now)} 截止'
+      : item.navigation.feature == AgendaFeature.signin &&
+            start != null &&
+            end != null
+      ? '${_clockHome(start)}–${_clockHome(end)}'
+      : start == null && item.navigation.feature == AgendaFeature.exam
+      ? '${(day ?? homeCampusTime(DateTime.parse(entry.sortTime!.rfc3339))).month}月${(day ?? homeCampusTime(DateTime.parse(entry.sortTime!.rfc3339))).day}日 · 时间待定'
+      : _homeRange(start, end, now);
+  return HomeTodo(
+    id: '${item.key.source}:${item.key.upstreamId}',
+    feature: FeatureId.values.byName(item.key.source),
+    title: item.title,
+    subtitle: item.subtitle,
+    statusLabel: item.statusLabel,
+    timeLabel: label,
+    sortTime: display(entry.sortTime!.rfc3339)!,
+    deadline: due,
+    startsAt: start,
+    endsAt: end,
+    soon: entry.soon,
+    navigation: navigation,
+    signinAction: signinAction,
   );
 }

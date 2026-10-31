@@ -223,6 +223,7 @@ abstract class ControllerState extends ControllerOperations {
   int internalAgendaEpoch = 0;
   @internal
   AgendaFailure? internalAgendaFailure;
+  int get agendaProjectionEpoch => internalAgendaEpoch;
   AgendaFailure? get localAgendaFailure => internalAgendaFailure;
   AgendaService? get agenda {
     final backend = internalBackend;

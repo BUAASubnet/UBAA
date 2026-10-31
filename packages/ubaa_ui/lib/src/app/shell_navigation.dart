@@ -2,6 +2,12 @@ part of 'shell.dart';
 
 /// 自适应导航的展示；页面与写入状态由 Shell 持有。
 extension UbaaShellNavigation on _UbaaMainShellState {
+  void _openHomeTodo(HomeTodo item) {
+    final target = item.navigation;
+    if (target == null) return;
+    _openHomeNavigation(target);
+  }
+
   /// 手机上首页、三个分类与“我的”可左右滑动切换；各页保留状态。
   Widget _buildTab(BuildContext context) => _utilityPage != null
       ? _utilityPage == 'iHome'

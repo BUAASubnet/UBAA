@@ -4,8 +4,62 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../support/write_harness.dart';
+import 'package:ubaa_ui/src/app/home.dart';
 
 void main() {
+  testWidgets('午夜后尚未触发分钟刷新时点击旧签到先刷新，禁止交付旧动作', (tester) async {
+    var now = DateTime.parse('2026-03-24T23:59:55+08:00');
+    var writes = 0, refreshes = 0;
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeView(
+            user: null,
+            visible: true,
+            cacheEpoch: 0,
+            homeClock: Clock(() => now),
+            snapshots: {
+              for (final f in FeatureId.values)
+                f: FeatureSnapshot(feature: f, status: FeatureLoadStatus.empty),
+            },
+            onProjectTodos: (r) async => HomeTodoProjection([
+              HomeTodo(
+                id: 'signin:synthetic',
+                feature: FeatureId.signin,
+                title: '午夜前签到',
+                subtitle: '合成课程',
+                statusLabel: '待签到',
+                timeLabel: '合成时段',
+                sortTime: r.now,
+                signinAction: const SigninPerformAction(
+                  scheduleId: 'old-target',
+                  eligibility: ActionEligibility.allowed,
+                ),
+              ),
+            ]),
+            onFeatureTap: (_) {},
+            onTodoTap: (_) {},
+            onRefresh: () async {},
+            onRetryFeature: (_) async {
+              refreshes++;
+            },
+            onSignin: (_) async {
+              writes++;
+              return null;
+            },
+          ),
+        ),
+      ),
+    );
+    await tester.pumpAndSettle();
+    now = DateTime.parse('2026-03-25T00:00:05+08:00');
+    await tester.tap(find.widgetWithText(FilledButton, '签到'));
+    await tester.pumpAndSettle();
+    expect(writes, 0);
+    expect(refreshes, 1);
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('首页一次点击直接签到，连点只提交一次，成功立即移除对应待办', (tester) async {
     await withClock(
       Clock.fixed(DateTime.parse('2026-10-26T15:00:00+08:00')),

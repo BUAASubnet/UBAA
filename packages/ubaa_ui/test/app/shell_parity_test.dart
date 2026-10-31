@@ -1,3 +1,4 @@
+import '../support/home_todos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -238,6 +239,7 @@ Future<void> mount(
     MaterialApp(
       theme: UbaaTheme.light(),
       home: UbaaMainShell(
+        onProjectHomeTodos: homeTodoFixture,
         user: UserSummary(username: username),
         initialDestination: tab,
         writeState: writeState,

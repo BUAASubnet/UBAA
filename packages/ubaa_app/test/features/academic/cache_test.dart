@@ -67,6 +67,11 @@ void main() {
       RoutePolicy.direct,
     );
     expect(exams.projection!.details.single.title, '待定考试');
+    expect(
+      (exams.projection!.details.single.presentation as ExamPresentation)
+          .requestTerm,
+      '2025-2026-1',
+    );
     final rooms = await value.readCachedQuery(
       FeatureId.classroom,
       FeatureQuery(
@@ -298,7 +303,7 @@ class _Cache implements BridgeOfflineCache {
 
 class _Client implements BridgeClient {
   @override
-  int contractVersion() => 44;
+  int contractVersion() => 45;
   @override
   Future<BridgeAcademicGradesRefresh> academicGradesCached({
     required BridgeOfflineCache cache,

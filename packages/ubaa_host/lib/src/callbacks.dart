@@ -153,6 +153,8 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       user: _controller.displayUser,
       snapshots: _controller.snapshots,
       homeSnapshots: _controller.homeSnapshots,
+      onProjectHomeTodos: _controller.projectHomeTodos,
+      agendaEpoch: _controller.agendaProjectionEpoch,
       onLoadHomeDaySchedule: (date, force) =>
           _controller.loadHomeDaySchedule(date, forceRefresh: force),
       onLoadHomeSupplement: (source, force) =>

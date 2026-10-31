@@ -219,30 +219,28 @@ pub(super) fn result(
     school_cache_failure: Option<crate::api::offline::BridgeCacheFailure>,
 ) -> BridgeAgendaQueryResult {
     BridgeAgendaQueryResult {
-        entries: v
-            .entries
-            .into_iter()
-            .map(|e| {
-                let timing = e.timing();
-                let sort_time = e.sort_time().map(Into::into);
-                let soon = timing.is_soon_at(now);
-                let (local, school) = match e.item {
-                    core::AgendaEntryItem::Local(v) => (Some(v.into()), None),
-                    core::AgendaEntryItem::School(v) => (None, Some(v.into())),
-                };
-                BridgeAgendaEntry {
-                    local,
-                    school,
-                    timing: timing.into(),
-                    sort_time,
-                    soon,
-                    completed: e.completed,
-                    hidden: e.hidden,
-                    note: e.note,
-                }
-            })
-            .collect(),
+        entries: v.entries.into_iter().map(|e| entry(e, now)).collect(),
         sources: v.sources.into_iter().map(Into::into).collect(),
         school_cache_failure,
+    }
+}
+
+pub(super) fn entry(e: core::AgendaEntry, now: core::AgendaTime) -> BridgeAgendaEntry {
+    let timing = e.timing();
+    let sort_time = e.sort_time().map(Into::into);
+    let soon = timing.is_soon_at(now);
+    let (local, school) = match e.item {
+        core::AgendaEntryItem::Local(v) => (Some(v.into()), None),
+        core::AgendaEntryItem::School(v) => (None, Some(v.into())),
+    };
+    BridgeAgendaEntry {
+        local,
+        school,
+        timing: timing.into(),
+        sort_time,
+        soon,
+        completed: e.completed,
+        hidden: e.hidden,
+        note: e.note,
     }
 }

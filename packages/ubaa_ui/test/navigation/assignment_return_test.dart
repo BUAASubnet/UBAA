@@ -1,3 +1,4 @@
+import '../support/home_todos.dart';
 import 'package:ubaa_ui/src/features/coursework/assignment_content.dart'
     show AssignmentCard;
 import 'package:flutter/material.dart';
@@ -165,6 +166,7 @@ class _HarnessState extends State<_Harness> {
 
   @override
   Widget build(BuildContext context) => UbaaMainShell(
+    onProjectHomeTodos: homeTodoFixture,
     user: const UserSummary(username: 'synthetic'),
     snapshots: {
       for (final feature in FeatureId.values)

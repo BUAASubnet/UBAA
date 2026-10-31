@@ -75,7 +75,7 @@ class _Client implements BridgeClient {
   final calls = <String>[];
   Completer<BridgePortalProfileResult>? gate;
   @override
-  int contractVersion() => 44;
+  int contractVersion() => 45;
   @override
   Future<BridgePortalProfileResult> portalProfile() {
     calls.add('profile');

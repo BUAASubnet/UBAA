@@ -25,3 +25,6 @@ mod storage_tests;
 pub(crate) mod test_fixture;
 
 mod sqlite;
+
+mod home;
+pub use home::{HomeAgendaRead, project_home_agenda};

@@ -28,6 +28,7 @@ mixin ControllerAgenda on ControllerState {
             : AgendaFailure.unavailable;
       }
       if (generation == internalAgendaEpoch && !internalDisposed) {
+        internalAgendaEpoch++;
         internalNotify();
       }
     }();

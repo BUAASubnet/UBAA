@@ -3,6 +3,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../context.dart';
 import 'models.dart';
 import 'school.dart';
+import '../home/agenda.dart';
 
 /// 只按安全索引提供的别名打开日程，不读取缓存密钥，也不触发学校请求。
 final class BridgeAgendaBackend implements AgendaBackend {
@@ -10,6 +11,7 @@ final class BridgeAgendaBackend implements AgendaBackend {
   final BridgeContext context;
   BridgeAgendaStore? _handle;
   String? _account;
+  bool _opened = false;
   Future<T> _call<T>(Future<T> Function() action) async {
     try {
       return await action();
@@ -43,9 +45,11 @@ final class BridgeAgendaBackend implements AgendaBackend {
     _handle = handle;
     _account = accountId;
     await handle.activate();
+    _opened = true;
   });
   @override
   Future<void> deactivate() => _call(() async {
+    _opened = false;
     final handle = _handle;
     await handle?.deactivate();
     _handle = null;
@@ -74,6 +78,25 @@ final class BridgeAgendaBackend implements AgendaBackend {
     }
     return fromAgendaQueryResult(value);
   });
+  Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request) async {
+    final values = bridgeHomeAgendaInputs(request);
+    final ctx = bridgeHomeAgendaContext(request);
+    // 不等待 openAccount、安全索引或缓存密钥。已打开的同账号日程才叠加覆盖。
+    final handle = _opened && _account == request.accountId ? _handle : null;
+    AgendaFailure? failure;
+    List<BridgeAgendaEntry> rows;
+    if (handle != null) {
+      try {
+        rows = await handle.projectHome(values: values, context: ctx);
+        return bridgeHomeTodoProjection(rows, request);
+      } on BridgeAgendaError catch (e) {
+        failure = AgendaFailure.values.byName(e.failure.name);
+      }
+    }
+    rows = await agendaProjectHome(values: values, context: ctx);
+    return bridgeHomeTodoProjection(rows, request, overlayFailure: failure);
+  }
+
   @override
   Future<AgendaItem> create(AgendaDraft draft, AgendaTime now) => _call(
     () async => fromAgendaItem(

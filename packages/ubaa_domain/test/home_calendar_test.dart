@@ -67,26 +67,6 @@ void main() {
     expect(homeCoursePeriod('12:00-09:00', date), isNull);
     expect(homeCampusTime(DateTime.utc(2026, 10, 25, 16)).day, 26);
   });
-  test('临近48小时边界和未知事件时间保持区别', () {
-    final now = DateTime(2026, 10, 25, 12);
-    HomeTodo task(DateTime? deadline) => HomeTodo(
-      id: 'a',
-      feature: FeatureId.spoc,
-      title: '',
-      subtitle: '',
-      statusLabel: '',
-      timeLabel: '',
-      sortTime: now,
-      deadline: deadline,
-    );
-    expect(task(now.add(const Duration(hours: 48))).isSoonAt(now), isTrue);
-    expect(
-      task(now.add(const Duration(hours: 48, seconds: 1))).isSoonAt(now),
-      isFalse,
-    );
-    expect(task(now).isSoonAt(now), isFalse);
-    expect(task(null).isSoonAt(now), isFalse);
-  });
   test('周课表只投影目标星期，不把周二课程显示到周一', () {
     final result = homeProjectScheduleDay(
       const FeatureResult.success(
@@ -114,32 +94,6 @@ void main() {
     );
     expect(result.details.single.title, '周一课');
     expect((result.overview! as HomeScheduleOverview).date, '2026-10-26');
-  });
-
-  test('临近作业保留精确时刻并显示明天，不重复倒计时', () {
-    final items = buildHomeTodos(
-      snapshots: {
-        FeatureId.spoc: const FeatureSnapshot(
-          feature: FeatureId.spoc,
-          status: FeatureLoadStatus.success,
-          details: [
-            FeatureDetail(
-              title: '合成作业',
-              presentation: SpocAssignmentPresentation(
-                courseId: 'c',
-                courseName: '课程',
-                assignmentId: 'a',
-                dueTime: '2026-10-26 23:59',
-                statusText: '未提交',
-                status: AssignmentSubmissionStatus.unsubmitted,
-              ),
-            ),
-          ],
-        ),
-      },
-      now: DateTime(2026, 10, 25, 12),
-    );
-    expect(items.single.timeLabel, '明天 23:59 截止');
   });
 }
 

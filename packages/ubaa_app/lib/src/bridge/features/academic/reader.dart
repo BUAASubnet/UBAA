@@ -189,8 +189,11 @@ Future<FeatureResult> _projectAcademicFeature(
           ];
           final details = exams
               .map(
-                (entry) =>
-                    bridgeMapExamDetail(entry.item, arranged: entry.arranged),
+                (entry) => bridgeMapExamDetail(
+                  entry.item,
+                  arranged: entry.arranged,
+                  requestTerm: term,
+                ),
               )
               .toList(growable: false);
           final label = switch (query.view) {

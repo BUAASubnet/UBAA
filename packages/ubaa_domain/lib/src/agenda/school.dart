@@ -1,7 +1,8 @@
 /// 本机日程的不可变领域值，不携带学校操作资格。
 library;
 
-import '../models.dart' show ConnectionMode, CacheMaintenanceFailure;
+import '../common/route.dart';
+import '../common/cache_management.dart';
 import 'models.dart';
 
 enum AgendaFeature { bykc, spoc, judge, cgyy, signin, exam, ygdk, schedule }

@@ -8,6 +8,7 @@ import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../support/rust_library.dart';
 import 'agenda_probe.dart';
+import 'home_todo_probe.dart';
 import 'agenda_write_probe.dart';
 
 void main() {
@@ -25,10 +26,11 @@ void main() {
     BridgeOfflineCache? second;
     BridgeClient? client;
     try {
+      await probeHomeTodos(directory.path);
       await probeAgenda(directory.path);
       await probeAgendaWriteFence(directory.path);
       client = await BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 44);
+      expect(client.contractVersion(), 45);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),

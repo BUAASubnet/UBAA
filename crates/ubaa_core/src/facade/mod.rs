@@ -141,3 +141,5 @@ pub use crate::domain::agenda::{
 pub use agenda::{
     AgendaCacheObservation, AgendaQuery, AgendaQueryResult, AgendaSourceAvailability,
 };
+
+pub use crate::agenda::{HomeAgendaRead, project_home_agenda};

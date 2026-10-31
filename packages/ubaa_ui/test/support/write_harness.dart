@@ -1,3 +1,4 @@
+import 'home_todos.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -41,6 +42,7 @@ Widget coordinatedShell({
 }) => _WriteHarness(
   key: key,
   shell: UbaaMainShell(
+    onProjectHomeTodos: homeTodoFixture,
     user: user,
     snapshots: snapshots,
     routePolicy: routePolicy,
@@ -134,6 +136,7 @@ class _WriteHarnessState extends State<_WriteHarness> {
     builder: (context, _) {
       final shell = widget.shell;
       return UbaaMainShell(
+        onProjectHomeTodos: homeTodoFixture,
         user: shell.user,
         snapshots: shell.snapshots,
         routePolicy: shell.routePolicy,

@@ -1,7 +1,9 @@
-import 'package:test/test.dart';
+import 'package:flutter_test/flutter_test.dart';
+import 'package:ubaa_bindings/ubaa_bindings.dart';
+import 'package:ubaa_app/src/bridge/home/agenda.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
-final now = DateTime(2026, 3, 24, 12);
+final now = DateTime.parse('2026-03-24T12:00:00+08:00');
 FeatureSnapshot source(
   FeatureId feature,
   List<FeatureDetail> details, {
@@ -57,6 +59,7 @@ FeatureDetail signin(
   title: '合成签到 $id',
   presentation: SigninPresentation(
     courseId: id,
+    actionTarget: id,
     classBeginTime: start,
     classEndTime: end,
     signStatus: state,
@@ -89,8 +92,8 @@ WeekPresentation week(int n) => WeekPresentation(
   startDate: '2026-03-23',
   endDate: '2026-03-29',
 );
-void main() {
-  test('首页考试按开始时间排序且仅保留未结束已安排考试', () {
+Future<void> probeHomeTodos(String directory) async {
+  await scenario('首页考试按开始时间排序且仅保留未结束已安排考试', () async {
     FeatureDetail exam(
       String title,
       String date,
@@ -109,7 +112,7 @@ void main() {
         taskId: title,
       ),
     );
-    final tasks = buildHomeTodos(
+    final tasks = (await projectTodos(
       now: now,
       snapshots: {
         FeatureId.exam: source(FeatureId.exam, [
@@ -121,7 +124,7 @@ void main() {
           exam('时间待定', '2026-03-26', null, null),
         ]),
       },
-    );
+    ));
     expect(tasks.map((t) => t.title), ['进行中', '明天考试', '时间待定']);
     expect(tasks.first.statusLabel, '考试中');
     expect(tasks[1].statusLabel, '待考试');
@@ -133,7 +136,7 @@ void main() {
     expect(tasks.first.signinAction, isNull);
   });
 
-  test('已保存签到跨日失效，同日仅导航且不能恢复写资格', () {
+  await scenario('已保存签到跨日失效，同日仅导航且不能恢复写资格', () async {
     FeatureSnapshot cached(String date) =>
         source(FeatureId.signin, [signin('cache', '12:05', '13:00')]).copyWith(
           evidence: DataEvidence(
@@ -146,20 +149,20 @@ void main() {
           ),
         );
     expect(
-      buildHomeTodos(
+      (await projectTodos(
         now: now,
         snapshots: {FeatureId.signin: cached('2026-03-23')},
-      ),
+      )),
       isEmpty,
     );
-    final today = buildHomeTodos(
+    final today = (await projectTodos(
       now: now,
       snapshots: {FeatureId.signin: cached('2026-03-24')},
-    ).single;
+    )).single;
     expect(today.signinAction, isNull);
     expect(today.navigation?.query.view, FeatureQueryView.signinPending);
   });
-  test('首次阳光部分统计不能把默认零当作未达标依据', () {
+  await scenario('首次阳光部分统计不能把默认零当作未达标依据', () async {
     final partial = sunlight().copyWith(
       evidence: DataEvidence(
         accountId: 'synthetic',
@@ -170,31 +173,31 @@ void main() {
       ),
     );
     expect(
-      buildHomeTodos(
+      (await projectTodos(
         now: now,
         currentWeek: week(11),
         snapshots: {FeatureId.ygdk: partial},
-      ),
+      )),
       isEmpty,
     );
   });
 
-  test('后台刷新保留已显示待办但暂停原签到动作', () {
+  await scenario('后台刷新保留已显示待办但暂停原签到动作', () async {
     final loading = source(
       FeatureId.signin,
       [signin('refresh', '12:05', '13:00')],
       status: FeatureLoadStatus.loading,
     ).copyWith(updatedAt: DateTime(2026, 3, 24, 11, 59));
-    final items = buildHomeTodos(
+    final items = (await projectTodos(
       now: now,
       snapshots: {FeatureId.signin: loading},
-    );
+    ));
     expect(items, hasLength(1));
     expect(items.single.signinAction, isNull);
   });
 
-  test('六来源按旧时间混合排序并保留原始详情参数', () {
-    final items = buildHomeTodos(
+  await scenario('六来源按旧时间混合排序并保留原始详情参数', () async {
+    final items = (await projectTodos(
       now: now,
       currentWeek: week(11),
       snapshots: {
@@ -237,7 +240,7 @@ void main() {
         ], view: FeatureQueryView.cgyyOrders),
         FeatureId.ygdk: sunlight(),
       },
-    );
+    ));
     expect(items.map((e) => e.feature), [
       FeatureId.bykc,
       FeatureId.signin,
@@ -254,8 +257,8 @@ void main() {
     expect(items[3].statusLabel, '待提交');
     expect(items.last.sortTime, DateTime(2026, 3, 29, 23, 59, 59));
   });
-  test('博雅结束时刻保留、研讨室结束时刻与拒绝取消排除', () {
-    final items = buildHomeTodos(
+  await scenario('博雅结束时刻保留、研讨室结束时刻与拒绝取消排除', () async {
+    final items = (await projectTodos(
       now: now,
       snapshots: {
         FeatureId.bykc: source(FeatureId.bykc, [
@@ -270,11 +273,11 @@ void main() {
           room(4),
         ], view: FeatureQueryView.cgyyOrders),
       },
-    );
+    ));
     expect(items.map((e) => e.id), ['bykc:101', 'cgyy:4']);
   });
-  test('签到开始前十分钟和结束边界，状态未知或缺资格不伪造动作', () {
-    final items = buildHomeTodos(
+  await scenario('签到开始前十分钟和结束边界，状态未知或缺资格不伪造动作', () async {
+    final items = (await projectTodos(
       now: now,
       snapshots: {
         FeatureId.signin: source(FeatureId.signin, [
@@ -286,52 +289,52 @@ void main() {
           signin('bad-time', '25:00', '26:00'),
         ]),
       },
-    );
+    ));
     expect(items.map((e) => e.id), ['signin:no-action', 'signin:visible']);
     expect(items.first.signinAction, isNull);
     expect(items.last.statusLabel, '即将签到');
-    final stale = buildHomeTodos(
+    final stale = (await projectTodos(
       now: now,
       snapshots: {
         FeatureId.signin: source(FeatureId.signin, [
           signin('stale', '12:05', '13:00'),
         ], status: FeatureLoadStatus.stale),
       },
-    );
+    ));
     expect(stale.single.signinAction, isNull);
   });
-  test('阳光旧提醒只在11到14周且未达4和16，不把缺数据当零', () {
-    List<HomeTodo> items({
+  await scenario('阳光旧提醒只在11到14周且未达4和16，不把缺数据当零', () async {
+    Future<List<HomeTodo>> reminders({
       int n = 11,
       int? count = 3,
       int term = 15,
       bool enabled = true,
       bool done = false,
       bool termDone = false,
-    }) => buildHomeTodos(
+    }) async => (await projectTodos(
       now: now,
       currentWeek: week(n),
       ygdkReminderEnabled: enabled,
       ygdkWeekDone: done,
       ygdkTermDone: termDone,
       snapshots: {FeatureId.ygdk: sunlight(week: count, term: term)},
-    );
-    expect(items(n: 14), hasLength(1));
+    ));
+    expect((await reminders(n: 14)), hasLength(1));
     for (final value in [
-      items(n: 10),
-      items(n: 15),
-      items(count: null),
-      items(count: 4),
-      items(term: 16),
-      items(enabled: false),
-      items(done: true),
-      items(termDone: true),
+      (await reminders(n: 10)),
+      (await reminders(n: 15)),
+      (await reminders(count: null)),
+      (await reminders(count: 4)),
+      (await reminders(term: 16)),
+      (await reminders(enabled: false)),
+      (await reminders(done: true)),
+      (await reminders(termDone: true)),
     ]) {
       expect(value, isEmpty);
     }
   });
-  test('错误和其他查询不能变成首页来源，日期溢出不归一化', () {
-    final items = buildHomeTodos(
+  await scenario('错误和其他查询不能变成首页来源，日期溢出不归一化', () async {
+    final items = (await projectTodos(
       now: now,
       snapshots: {
         FeatureId.bykc: source(FeatureId.bykc, [
@@ -357,7 +360,202 @@ void main() {
           ),
         ]),
       },
-    );
+    ));
     expect(items, isEmpty);
   });
+  await scenario('唯一在线目标不符、重复与跨日均撤销签到资格', () async {
+    for (final (target, count, observed) in [
+      ('wrong', 1, '2026-03-24'),
+      ('s', 2, '2026-03-24'),
+      ('s', 1, '2026-03-23'),
+    ]) {
+      final items = await projectTodos(
+        now: now,
+        snapshots: {
+          FeatureId.signin: FeatureSnapshot(
+            feature: FeatureId.signin,
+            status: FeatureLoadStatus.success,
+            resolvedRoute: ConnectionMode.direct,
+            evidence: DataEvidence(
+              accountId: 'synthetic',
+              origin: DataOrigin.online,
+              fetchedAt: now,
+              complete: true,
+              savedForOffline: false,
+              scopeDate: observed,
+            ),
+            details: [
+              for (var i = 0; i < count; i++)
+                FeatureDetail(
+                  title: '合成签到',
+                  presentation: const SigninPresentation(
+                    courseId: 's',
+                    actionTarget: 's',
+                    classBeginTime: '12:05',
+                    classEndTime: '13:00',
+                    signStatus: 0,
+                  ),
+                  actions: [
+                    SigninPerformAction(
+                      scheduleId: target,
+                      eligibility: ActionEligibility.allowed,
+                    ),
+                  ],
+                ),
+            ],
+          ),
+        },
+      );
+      expect(items.every((v) => v.signinAction == null), isTrue);
+    }
+  });
+  await scenario('投影使用校园日期且保留截止文案和48小时边界', () async {
+    final snapshot = source(FeatureId.spoc, const [
+      FeatureDetail(
+        title: '临近作业',
+        presentation: SpocAssignmentPresentation(
+          courseId: 'c',
+          courseName: '课',
+          assignmentId: 'a',
+          dueTime: '2026-03-26 12:00',
+          status: AssignmentSubmissionStatus.unsubmitted,
+          statusText: '未提交',
+        ),
+      ),
+    ]);
+    final at = DateTime.parse('2026-03-24T04:00:00Z');
+    expect(
+      (await projectTodos(
+        now: at,
+        snapshots: {FeatureId.spoc: snapshot},
+      )).single.soon,
+      isTrue,
+    );
+    expect(
+      (await projectTodos(
+        now: at.subtract(const Duration(seconds: 1)),
+        snapshots: {FeatureId.spoc: snapshot},
+      )).single.soon,
+      isFalse,
+    );
+    final tomorrow = await projectTodos(
+      now: DateTime.parse('2026-03-25T15:59:00Z'),
+      snapshots: {FeatureId.spoc: snapshot},
+    );
+    expect(tomorrow.single.timeLabel, '明天 12:00 截止');
+    final midnight = await projectTodos(
+      now: DateTime.parse('2026-03-25T16:00:00Z'),
+      snapshots: {FeatureId.spoc: snapshot},
+    );
+    expect(midnight.single.timeLabel, '今天 12:00 截止');
+  });
+  await scenario('真实FFI叠加本地重新挂起并保留学校已提交状态', () async {
+    final store = await BridgeAgendaStore.open(
+      configDir: directory,
+      accountId: '00000000000000000000000000000009',
+    );
+    final context = bridgeHomeAgendaContext(
+      HomeTodoRequest(snapshots: const {}, now: now),
+    );
+    BridgeHomeAgendaInput input(AssignmentSubmissionStatus status) =>
+        bridgeHomeAgendaInputs(
+          HomeTodoRequest(
+            snapshots: {
+              FeatureId.spoc: source(FeatureId.spoc, [
+                FeatureDetail(
+                  title: '可重新挂起',
+                  presentation: SpocAssignmentPresentation(
+                    courseId: 'c',
+                    courseName: '课',
+                    assignmentId: 'reopen',
+                    dueTime: '2026-03-25 12:00',
+                    status: status,
+                    statusText: '原始学校状态',
+                  ),
+                ),
+              ]),
+            },
+            now: now,
+          ),
+        );
+    final initial = await agendaProjectHome(
+      values: input(AssignmentSubmissionStatus.unsubmitted),
+      context: context,
+    );
+    final key = initial.single.school!.key;
+    expect(
+      await store.projectHome(
+        values: input(AssignmentSubmissionStatus.submitted),
+        context: context,
+      ),
+      isEmpty,
+    );
+    await store.setOverlay(
+      overlay: BridgeAgendaOverlayDraft(
+        key: key,
+        completionOverride: true,
+        hidden: false,
+      ),
+      now: context.now,
+    );
+    final reopened = await store.projectHome(
+      values: input(AssignmentSubmissionStatus.submitted),
+      context: context,
+    );
+    expect(
+      reopened.single.school!.upstreamStatus.submission,
+      BridgeAgendaSubmission.submitted,
+    );
+    expect(reopened.single.school!.statusLabel, '本地待办');
+    await store.setOverlay(
+      overlay: BridgeAgendaOverlayDraft(
+        key: key,
+        completionOverride: true,
+        completedAt: context.now,
+        hidden: false,
+      ),
+      now: context.now,
+    );
+    expect(
+      await store.projectHome(
+        values: input(AssignmentSubmissionStatus.unsubmitted),
+        context: context,
+      ),
+      isEmpty,
+    );
+    await store.deactivate();
+  });
+}
+
+Future<void> scenario(String label, Future<void> Function() body) async {
+  await body();
+}
+
+Future<List<HomeTodo>> projectTodos({
+  required Map<FeatureId, FeatureSnapshot> snapshots,
+  required DateTime now,
+  WeekPresentation? currentWeek,
+  bool ygdkReminderEnabled = true,
+  bool ygdkWeekDone = false,
+  bool ygdkTermDone = false,
+}) async {
+  final request = HomeTodoRequest(
+    snapshots: snapshots,
+    now: now,
+    currentWeek: currentWeek,
+    reminder: YgdkReminderSettings(
+      enabled: ygdkReminderEnabled,
+      weekDoneKey: ygdkWeekDone && currentWeek != null
+          ? '${currentWeek.responseTerm}:${currentWeek.number}'
+          : null,
+      termDoneKey: ygdkTermDone ? currentWeek?.responseTerm : null,
+    ),
+  );
+  return bridgeHomeTodoProjection(
+    await agendaProjectHome(
+      values: bridgeHomeAgendaInputs(request),
+      context: bridgeHomeAgendaContext(request),
+    ),
+    request,
+  ).todos;
 }

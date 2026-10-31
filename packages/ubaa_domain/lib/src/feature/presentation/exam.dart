@@ -3,6 +3,7 @@ part of '../presentation.dart';
 final class ExamPresentation extends FeaturePresentation {
   const ExamPresentation({
     required this.arranged,
+    this.requestTerm,
     this.courseNo,
     this.date,
     this.description,
@@ -17,6 +18,9 @@ final class ExamPresentation extends FeaturePresentation {
   });
 
   final bool arranged;
+
+  /// 产生本次结果的真实请求学期，独立于首页当前页面参数。
+  final String? requestTerm;
   final String? courseNo;
   final String? date;
   final String? description;

@@ -50,36 +50,40 @@ FeatureDetail bridgeMapScheduleCourseDetail(BridgeCourseClass item) =>
       ]),
     );
 
-FeatureDetail bridgeMapExamDetail(BridgeExam item, {required bool arranged}) =>
-    FeatureDetail(
-      title: item.courseName,
-      subtitle: item.examTimeDescription ?? item.examDate,
-      presentation: ExamPresentation(
-        arranged: arranged,
-        courseNo: item.courseNo,
-        date: item.examDate,
-        description: item.examTimeDescription,
-        startTime: item.startTime,
-        endTime: item.endTime,
-        place: item.examPlace,
-        seat: item.examSeatNo,
-        week: item.week,
-        status: item.examStatus,
-        type: item.examType,
-        taskId: item.taskId,
-      ),
-      fields: bridgeCompactFields(<FeatureField?>[
-        bridgeField(
-          '时间',
-          item.startTime == null || item.endTime == null
-              ? null
-              : '${item.startTime}–${item.endTime}',
-        ),
-        bridgeField('地点', item.examPlace),
-        bridgeField('座位', item.examSeatNo),
-        bridgeField('类型', item.examType),
-      ]),
-    );
+FeatureDetail bridgeMapExamDetail(
+  BridgeExam item, {
+  required bool arranged,
+  String? requestTerm,
+}) => FeatureDetail(
+  title: item.courseName,
+  subtitle: item.examTimeDescription ?? item.examDate,
+  presentation: ExamPresentation(
+    arranged: arranged,
+    requestTerm: requestTerm,
+    courseNo: item.courseNo,
+    date: item.examDate,
+    description: item.examTimeDescription,
+    startTime: item.startTime,
+    endTime: item.endTime,
+    place: item.examPlace,
+    seat: item.examSeatNo,
+    week: item.week,
+    status: item.examStatus,
+    type: item.examType,
+    taskId: item.taskId,
+  ),
+  fields: bridgeCompactFields(<FeatureField?>[
+    bridgeField(
+      '时间',
+      item.startTime == null || item.endTime == null
+          ? null
+          : '${item.startTime}–${item.endTime}',
+    ),
+    bridgeField('地点', item.examPlace),
+    bridgeField('座位', item.examSeatNo),
+    bridgeField('类型', item.examType),
+  ]),
+);
 
 GradePresentation bridgeMapGradePresentation(BridgeGrade item) =>
     GradePresentation(

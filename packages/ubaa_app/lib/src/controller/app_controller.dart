@@ -87,6 +87,59 @@ class AppController extends ControllerState
         ControllerSettings,
         ControllerInteractiveAuthentication,
         ControllerActions {
+  int _homeProjectionGeneration = 0;
+
+  /// 纯本地投影沿用读取、账号和路线栅栏，不排入学校读取队列。
+  Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request) async {
+    final scope = internalCaptureReadScope();
+    final route = internalRoutePolicyGeneration;
+    final account = internalLocalAccount?.id;
+    final generation = ++_homeProjectionGeneration;
+    bool current() =>
+        scope.isCurrent &&
+        !internalDisposed &&
+        !internalIsSigningOut &&
+        internalPhase == AppPhase.home &&
+        route == internalRoutePolicyGeneration &&
+        account == internalLocalAccount?.id &&
+        generation == _homeProjectionGeneration;
+    final backend = internalBackend;
+    if (!current() || backend is! HomeTodoBackend)
+      throw const AgendaException(AgendaFailure.unavailable);
+    final expectedRoute = switch (internalLoginForm.routePolicy) {
+      RoutePolicy.direct => ConnectionMode.direct,
+      RoutePolicy.webvpn => ConnectionMode.webvpn,
+      RoutePolicy.auto => null,
+    };
+    final safe = HomeTodoRequest(
+      accountId: account,
+      snapshots: {
+        for (final e in request.snapshots.entries)
+          if ((e.value.evidence == null ||
+                  e.value.evidence!.accountId == account) &&
+              (expectedRoute == null || e.value.resolvedRoute == expectedRoute))
+            e.key: e.value,
+      },
+      now: request.now,
+      currentWeek: request.currentWeek,
+      currentWeekRoute: request.currentWeekRoute,
+      reminder: request.reminder,
+    );
+    try {
+      final value = await (backend as HomeTodoBackend).projectHomeTodos(safe);
+      if (!current()) throw const AgendaException(AgendaFailure.superseded);
+      return value.overlayFailure == null && internalAgendaFailure != null
+          ? HomeTodoProjection(
+              value.todos,
+              overlayFailure: internalAgendaFailure,
+            )
+          : value;
+    } on Object {
+      if (!current()) throw const AgendaException(AgendaFailure.superseded);
+      rethrow;
+    }
+  }
+
   IhomeService? _ihomeService;
   UbaaBackend? _ihomeBackend;
   int? _ihomeEpoch;

@@ -440,3 +440,149 @@ fn exam_with_unknown_start_sorts_at_midnight_without_inventing_start() {
     );
     assert!(!items[0].timing.is_soon_at(ctx.now));
 }
+
+#[test]
+fn home_reopened_submission_keeps_local_intent() {
+    let (mut records, ctx) = fixture();
+    for record in &mut records {
+        if let CachePayload::SpocAssignments(v) = &mut record.payload {
+            v.assignments[0].submission_status = SpocSubmissionStatus::Submitted;
+        }
+    }
+    let dir = super::tests::root();
+    let store = AgendaStore::open(&dir, "0123456789abcdef0123456789abcdef").unwrap();
+    let school = project_school_agenda(&records, &ctx).unwrap();
+    let key = school
+        .iter()
+        .find(|v| v.key.source == "spoc")
+        .unwrap()
+        .key
+        .clone();
+    store
+        .set_overlay(
+            SchoolAgendaOverlay {
+                key,
+                completed_at: None,
+                completion_override: true,
+                hidden: false,
+                note: None,
+                updated_at: ctx.now,
+                deleted_at: None,
+                locally_modified: true,
+            },
+            ctx.now,
+        )
+        .unwrap();
+    let reads = records
+        .iter()
+        .filter_map(|r| match &r.payload {
+            CachePayload::SpocAssignments(v) => Some(HomeAgendaRead::Spoc(v.assignments.clone())),
+            _ => None,
+        })
+        .collect::<Vec<_>>();
+    let rows = project_home_agenda(&reads, &ctx, Some(&store)).unwrap();
+    assert!(rows.iter().any(
+        |v| matches!(&v.item, AgendaEntryItem::School(s) if s.key.source == "spoc") && !v.completed
+    ));
+}
+
+fn home_reads(records: &[CacheRecord]) -> Vec<HomeAgendaRead> {
+    records
+        .iter()
+        .filter_map(|r| {
+            Some(match (&r.scope.query, &r.payload) {
+                (_, CachePayload::BykcChosen(v)) => HomeAgendaRead::Bykc(v.courses.clone()),
+                (_, CachePayload::SpocAssignments(v)) => {
+                    HomeAgendaRead::Spoc(v.assignments.clone())
+                }
+                (_, CachePayload::JudgeSummaries(v)) => HomeAgendaRead::Judge(v.clone()),
+                (_, CachePayload::CgyyOrders(v)) => HomeAgendaRead::Cgyy(v.content.clone()),
+                (CacheQuery::SigninToday { date }, CachePayload::SigninToday(v)) => {
+                    HomeAgendaRead::Signin {
+                        date: chrono::NaiveDate::parse_from_str(date, "%Y%m%d").unwrap(),
+                        classes: v.clone(),
+                        fresh: false,
+                    }
+                }
+                (CacheQuery::Exams { term }, CachePayload::Exams(v)) => HomeAgendaRead::Exam {
+                    term: term.clone(),
+                    exams: v.arranged.clone(),
+                },
+                (_, CachePayload::YgdkOverview(v)) => HomeAgendaRead::Ygdk(v.clone()),
+                _ => return None,
+            })
+        })
+        .collect()
+}
+#[test]
+fn home_reads_match_seven_sources_without_cache_and_preserve_progressive_order() {
+    let (records, ctx) = fixture();
+    let expected = home(&records, &ctx);
+    let reads = home_reads(&records);
+    let rows = project_home_agenda(&reads, &ctx, None).unwrap();
+    assert_eq!(
+        rows.iter()
+            .map(|v| match &v.item {
+                AgendaEntryItem::School(v) => v.clone(),
+                AgendaEntryItem::Local(_) => unreachable!(),
+            })
+            .collect::<Vec<_>>(),
+        expected
+    );
+    let mut reversed = reads.clone();
+    reversed.reverse();
+    assert_eq!(project_home_agenda(&reversed, &ctx, None).unwrap(), rows);
+    for read in reads {
+        assert!(
+            project_home_agenda(&[read], &ctx, None)
+                .unwrap()
+                .iter()
+                .all(|v| rows.contains(v))
+        );
+    }
+}
+#[test]
+fn home_local_completed_hidden_deleted_and_reopened_keep_upstream_status() {
+    let (records, ctx) = fixture();
+    let reads = home_reads(&records);
+    let root = super::tests::root();
+    let store = AgendaStore::open(&root, super::tests::ACCOUNT).unwrap();
+    let original = project_home_agenda(&reads, &ctx, None).unwrap();
+    for completed in [true, false] {
+        let AgendaEntryItem::School(item) = &original[0].item else {
+            unreachable!()
+        };
+        store
+            .set_overlay(
+                SchoolAgendaOverlay {
+                    key: item.key.clone(),
+                    completed_at: completed.then_some(ctx.now),
+                    completion_override: true,
+                    hidden: !completed,
+                    note: None,
+                    updated_at: ctx.now,
+                    deleted_at: None,
+                    locally_modified: true,
+                },
+                ctx.now,
+            )
+            .unwrap();
+        assert_eq!(
+            project_home_agenda(&reads, &ctx, Some(&store))
+                .unwrap()
+                .len(),
+            original.len() - 1
+        );
+        store.clear_overlay(&item.key, ctx.now).unwrap();
+        assert_eq!(
+            project_home_agenda(&reads, &ctx, Some(&store)).unwrap(),
+            original
+        );
+    }
+    store.deactivate().unwrap();
+    assert_eq!(
+        project_home_agenda(&reads, &ctx, Some(&store)),
+        Err(CacheError::Inactive)
+    );
+    assert_eq!(project_home_agenda(&[], &ctx, None).unwrap(), []);
+}

@@ -1,6 +1,8 @@
 //! 本机日程独立于网络客户端、业务缓存密钥和学校操作资格。
 mod convert;
 mod evidence;
+pub mod home;
+mod home_input;
 pub mod models;
 mod projection;
 pub mod school;

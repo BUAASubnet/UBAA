@@ -42,6 +42,7 @@ FeatureResult bridgeMapSigninHome(
           subtitle: '${item.classBeginTime}–${item.classEndTime}',
           presentation: SigninPresentation(
             courseId: item.courseId,
+            actionTarget: persisted ? null : target,
             classBeginTime: item.classBeginTime,
             classEndTime: item.classEndTime,
             signStatus: item.signStatus,

@@ -2,9 +2,32 @@ import 'dart:async';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../assignments/backend.dart';
+import 'package:ubaa_test_support/home_todos.dart';
 
 /// 首页七来源合成数据，所有时间围绕本次运行；绝不使用学校账号或网络。
-class HomeBackend extends CourseworkBackend {
+class HomeBackend extends CourseworkBackend implements HomeTodoBackend {
+  @override
+  Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request) async {
+    final projected = await homeTodoFixture(request);
+    return HomeTodoProjection([
+      ...projected.todos,
+      if (request.currentWeek != null && request.reminder.enabled)
+        HomeTodo(
+          id: 'synthetic-ygdk',
+          feature: FeatureId.ygdk,
+          title: '本周阳光打卡未达标',
+          subtitle: '合成阳光进度',
+          statusLabel: '待打卡',
+          timeLabel: '合成截止',
+          sortTime: request.now,
+          navigation: const FeatureReadNavigation(
+            feature: FeatureId.ygdk,
+            query: FeatureQuery(),
+          ),
+        ),
+    ]);
+  }
+
   HomeBackend({super.state}) {
     signedIn = true;
   }

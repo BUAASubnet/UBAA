@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_app/src/backend.dart';
 import 'package:ubaa_app/src/bridge/context.dart';
 import '../../cache/lifecycle.dart' show bridgeAwaitOfflineScope;
 import 'projection.dart' show bridgeMapSigninHome;
@@ -11,6 +12,7 @@ Future<FeatureResult> bridgeLoadSigninHome(
   BridgeContext backend,
   FeatureQuery query, {
   bool useCache = true,
+  DateTime Function() currentTime = DateTime.now,
 }) async {
   try {
     if (useCache) await bridgeAwaitOfflineScope(backend);
@@ -32,7 +34,12 @@ Future<FeatureResult> bridgeLoadSigninHome(
         value.state,
       );
     }
+    final readDate = homeDateKey(homeCampusTime(currentTime()));
     final value = await backend.client.signinToday();
+    // 无缓存读没有持久范围证据，跨校园日期的返回不能重新授予首页动作。
+    if (readDate != homeDateKey(homeCampusTime(currentTime()))) {
+      throw const BackendException(UbaaErrorCode.operationConflict);
+    }
     return bridgeMapSigninHome(
       value.data,
       query,

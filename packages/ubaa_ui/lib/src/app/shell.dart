@@ -83,6 +83,8 @@ class UbaaMainShell extends StatefulWidget {
     this.onConsumeGradeNotice,
     this.ygdkRecordsReadback,
     this.homeSnapshots,
+    this.onProjectHomeTodos,
+    this.agendaEpoch = 0,
     this.onLoadHomeSupplement,
     this.onLoadHomeDaySchedule,
     this.onLoadYgdkReminder,
@@ -131,6 +133,8 @@ class UbaaMainShell extends StatefulWidget {
   /// 仅用于呈现原协调器已完成的固定路线记录回读，不触发新读取。
   final FeatureSnapshot? ygdkRecordsReadback;
   final Map<FeatureId, FeatureSnapshot>? homeSnapshots;
+  final HomeTodoReader? onProjectHomeTodos;
+  final int agendaEpoch;
   final Future<FeatureResult> Function(HomeSupplement source, bool force)?
   onLoadHomeSupplement;
   final Future<FeatureResult> Function(String date, bool force)?
@@ -437,12 +441,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         ),
       ),
     );
-  }
-
-  void _openHomeTodo(HomeTodo item) {
-    final target = item.navigation;
-    if (target == null) return;
-    _openHomeNavigation(target);
   }
 
   void _openGradeNotice() {
@@ -904,6 +902,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onLoadSupplement: widget.onLoadHomeSupplement,
       onLoadDaySchedule: widget.onLoadHomeDaySchedule,
       onTodoTap: _openHomeTodo,
+      onProjectTodos: widget.onProjectHomeTodos,
+      agendaEpoch: widget.agendaEpoch,
       writeReadbackNotice:
           widget.writeReadbacks.isEmpty && widget.writeReadbackError == null
           ? null
