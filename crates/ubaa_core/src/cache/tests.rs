@@ -877,3 +877,78 @@ fn 博雅已选持久投影不保存写资格或位置结果() {
     }
     assert!(chosen.sign_window.unwrap().has_points);
 }
+
+#[test]
+fn campus_snapshots_round_trip_and_reject_mismatched_payloads() {
+    use crate::domain::{CampusAmount, NetworkProductUsage, NetworkUsage, PortalProfile};
+    let root = root();
+    let mut repo = open(&root);
+    let amount = |value: &str, unit: &str| CampusAmount {
+        value: value.into(),
+        unit: unit.into(),
+    };
+    let profile = CachePayload::CampusProfile(PortalProfile {
+        identity: "合成身份".into(),
+        department: "合成学院".into(),
+        fetched_at: 100,
+    });
+    let metrics = CachePayload::CampusMetrics(CachedCampusMetrics {
+        card_balance: Some(CachedCampusItem {
+            value: amount("0", "元"),
+            fetched_at: 100,
+        }),
+        ..Default::default()
+    });
+    let usage = CachePayload::NetworkUsage(NetworkUsage {
+        products: vec![NetworkProductUsage {
+            product_name: "合成产品".into(),
+            used: amount("1.5", "G"),
+            free_remaining: amount("0", "byte"),
+            billable_remaining: amount("2", "G"),
+        }],
+        remaining_excludes_packages: true,
+        fetched_at: 100,
+    });
+    for (query, payload) in [
+        (CacheQuery::CampusProfile, profile.clone()),
+        (CacheQuery::CampusMetrics, metrics.clone()),
+        (CacheQuery::NetworkUsage, usage.clone()),
+    ] {
+        let scope = CacheScope {
+            route: ConnectionMode::Direct,
+            query,
+        };
+        let ticket = repo.begin_read(scope.clone()).unwrap();
+        // 类型与范围不符的载荷不能写入。
+        let wrong = if matches!(payload, CachePayload::CampusProfile(_)) {
+            usage.clone()
+        } else {
+            profile.clone()
+        };
+        assert_eq!(
+            repo.publish(&ticket, wrong, 100, CacheCompleteness::Complete),
+            Err(CacheError::InvalidInput)
+        );
+        let ticket = repo.begin_read(scope.clone()).unwrap();
+        repo.publish(&ticket, payload.clone(), 100, CacheCompleteness::Complete)
+            .unwrap();
+        assert_eq!(repo.read(&scope, 120).unwrap().unwrap().payload, payload);
+    }
+    // 空快照不是有效记录。
+    let scope = CacheScope {
+        route: ConnectionMode::WebVpn,
+        query: CacheQuery::CampusMetrics,
+    };
+    let ticket = repo.begin_read(scope).unwrap();
+    assert_eq!(
+        repo.publish(
+            &ticket,
+            CachePayload::CampusMetrics(CachedCampusMetrics::default()),
+            100,
+            CacheCompleteness::Partial
+        ),
+        Err(CacheError::InvalidInput)
+    );
+    drop(repo);
+    std::fs::remove_dir_all(root).unwrap();
+}

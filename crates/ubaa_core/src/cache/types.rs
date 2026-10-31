@@ -1,4 +1,5 @@
 //! 缓存持久合同只包含可再次阅读的数据，不包含写入资格。
+use super::CachedCampusMetrics;
 use super::{
     CachedBykcChosen, CachedBykcCourse, CachedBykcCoursePage, CachedCgyyDayInfo, CachedCgyyOrder,
     CachedCgyyOrdersPage, CachedEvaluationCourses, CachedGradeScoreBaseline,
@@ -11,6 +12,7 @@ use crate::domain::{
     LibBookAreaDetail, LibBookLibrary, Term, TodayClass, Week, WeeklySchedule,
 };
 use crate::domain::{BykcStatistics, BykcUserProfile, SpocAssignmentDetail, SpocAssignments};
+use crate::domain::{NetworkUsage, PortalProfile};
 use serde::{Deserialize, Serialize};
 
 /// 独立于 Session 和 Bridge 的业务缓存版本。
@@ -139,6 +141,12 @@ pub enum CacheQuery {
         course_id: String,
         assignment_id: String,
     },
+    /// 门户身份与学院，仅供“我的”页展示。
+    CampusProfile,
+    /// 五项账户指标的逐项最近成功值。
+    CampusMetrics,
+    /// 网费系统的产品流量表。
+    NetworkUsage,
 }
 
 /// 一个账号库内的实际来源和精确查询，不使用 Auto 作为数据来源。
@@ -202,6 +210,9 @@ pub enum CachePayload {
     JudgeAssignments(Vec<Assignment>),
     JudgeSummaries(Vec<JudgeAssignmentSummary>),
     JudgeDetail(Box<JudgeAssignmentDetail>),
+    CampusProfile(PortalProfile),
+    CampusMetrics(CachedCampusMetrics),
+    NetworkUsage(NetworkUsage),
 }
 
 /// 部分结果不能宣称本次完整，也不能清空旧的完整集合。
@@ -384,7 +395,11 @@ impl CacheScope {
     }
 }
 impl CachePayload {
+    /// SPOC 与校园快照的专用匹配，其他范围返回 None。
     fn spoc_matches(&self, query: &CacheQuery) -> Option<bool> {
+        if let Some(matches) = self.campus_matches(query) {
+            return Some(matches);
+        }
         Some(match (self, query) {
             (Self::SpocSelection { term }, CacheQuery::SpocSelection) => {
                 !term.trim().is_empty() && term.len() <= 1024
@@ -400,6 +415,18 @@ impl CachePayload {
                     size: requested_size,
                 },
             ) => &data.term_code == term && page == requested_page && size == requested_size,
+            _ => return None,
+        })
+    }
+    fn campus_matches(&self, query: &CacheQuery) -> Option<bool> {
+        Some(match (self, query) {
+            (Self::CampusProfile(v), CacheQuery::CampusProfile) => {
+                !v.identity.trim().is_empty() && !v.department.trim().is_empty()
+            }
+            (Self::CampusMetrics(v), CacheQuery::CampusMetrics) => v.valid(),
+            (Self::NetworkUsage(v), CacheQuery::NetworkUsage) => {
+                v.products.iter().all(|p| !p.product_name.trim().is_empty())
+            }
             _ => return None,
         })
     }

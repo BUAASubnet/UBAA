@@ -44,6 +44,9 @@ pub use ygdk_records::{CachedYgdkRecord, CachedYgdkRecordsPage, CachedYgdkRecord
 mod profile;
 pub use profile::CachedMaskedProfile;
 
+mod campus;
+pub use campus::{CachedCampusItem, CachedCampusMetrics};
+
 mod schedule;
 pub use schedule::CachedSemesterSchedule;
 

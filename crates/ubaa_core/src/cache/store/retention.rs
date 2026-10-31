@@ -173,6 +173,7 @@ pub(super) fn classify(record: &CacheRecord, context: &Context, now: i64) -> Pri
         | CachePayload::JudgeAssignments(_)
         | CachePayload::JudgeCourseReview(_)
         | CachePayload::MaskedProfile(_)
+        | CachePayload::CampusProfile(_)
         | CachePayload::BykcChosen(_)
         | CachePayload::BykcStatistics(_) => Priority::Stable,
         CachePayload::EvaluationCurrent(_) => Priority::Recent,

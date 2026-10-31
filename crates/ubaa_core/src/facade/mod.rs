@@ -98,14 +98,14 @@ pub use crate::cache::{
     CacheInvalidationReport, CacheKey, CacheLimits, CacheObservation, CachePayload,
     CachePublication, CacheQuery, CacheReadTicket, CacheRecord, CacheRecovery, CacheResult,
     CacheScope, CacheUsage, CachedBykcChosen, CachedBykcChosenCourse, CachedBykcCourse,
-    CachedBykcCoursePage, CachedBykcSignWindow, CachedCgyyDayInfo, CachedCgyyOrder,
-    CachedCgyyOrdersPage, CachedCgyySlotStatus, CachedCgyySpaceAvailability,
-    CachedEvaluationCourse, CachedEvaluationCourses, CachedGradeScoreBaseline,
-    CachedGradeScoreEntry, CachedLibBookBooking, CachedLibBookBookingsPage, CachedLibBookSeat,
-    CachedMaskedProfile, CachedSemesterSchedule, CachedSigninClass, CachedYgdkItem,
-    CachedYgdkOverview, CachedYgdkRecord, CachedYgdkRecordsPage, CachedYgdkRecordsSelection,
-    JudgeCourseReview, OfflineRepository, WriteReadbackHint, WriteReadbackOperation,
-    WriteReadbackTicket,
+    CachedBykcCoursePage, CachedBykcSignWindow, CachedCampusItem, CachedCampusMetrics,
+    CachedCgyyDayInfo, CachedCgyyOrder, CachedCgyyOrdersPage, CachedCgyySlotStatus,
+    CachedCgyySpaceAvailability, CachedEvaluationCourse, CachedEvaluationCourses,
+    CachedGradeScoreBaseline, CachedGradeScoreEntry, CachedLibBookBooking,
+    CachedLibBookBookingsPage, CachedLibBookSeat, CachedMaskedProfile, CachedSemesterSchedule,
+    CachedSigninClass, CachedYgdkItem, CachedYgdkOverview, CachedYgdkRecord, CachedYgdkRecordsPage,
+    CachedYgdkRecordsSelection, JudgeCourseReview, OfflineRepository, WriteReadbackHint,
+    WriteReadbackOperation, WriteReadbackTicket,
 };
 
 mod libbook_cache;
@@ -120,6 +120,10 @@ mod ygdk_cache;
 pub use ygdk_cache::YgdkRecordsRefresh;
 
 mod profile_cache;
+
+#[path = "campus/cache.rs"]
+mod campus_cache;
+pub use campus_cache::{CampusCacheQuery, CampusMetricsRead, CampusReadData, CampusRefresh};
 
 mod schedule_import;
 pub use schedule_import::{ScheduleImport, ScheduleImportBatch, ScheduleImportCancellation};
