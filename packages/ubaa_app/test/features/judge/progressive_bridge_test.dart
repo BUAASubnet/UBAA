@@ -54,7 +54,10 @@ void main() {
     expect(finalBatch.result.details.length, 2);
     expect(finalBatch.result.error?.code, UbaaErrorCode.networkError);
     expect(finalBatch.result.evidence!.complete, isFalse);
-    expect(finalBatch.result.evidence!.fetchedAt.millisecondsSinceEpoch, 200000);
+    expect(
+      finalBatch.result.evidence!.fetchedAt.millisecondsSinceEpoch,
+      200000,
+    );
     expect(finalBatch.result.details.expand((item) => item.actions), isEmpty);
     task.cancel();
     expect(client.task.cancelled, isTrue);
