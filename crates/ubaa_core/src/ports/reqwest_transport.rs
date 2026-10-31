@@ -293,7 +293,12 @@ mod tests {
     fn capture_events<T>(run: impl FnOnce() -> T) -> (T, Vec<CapturedEvent>) {
         let subscriber = CapturingSubscriber::default();
         let events = Arc::clone(&subscriber.events);
-        let result = tracing::subscriber::with_default(subscriber, run);
+        let result = tracing::subscriber::with_default(subscriber, || {
+            // 并行测试可能在本订阅者生效前先注册同一记录点，并缓存为不记录；
+            // 生效后重建缓存，避免在 CI 上偶发漏掉诊断事件。
+            tracing::callsite::rebuild_interest_cache();
+            run()
+        });
         let events = Arc::try_unwrap(events)
             .unwrap_or_else(|_| panic!("诊断事件不应再有其它持有者"))
             .into_inner()
