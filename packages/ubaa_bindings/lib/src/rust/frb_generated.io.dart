@@ -4,6 +4,7 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/agenda.dart';
+import 'api/agenda/home.dart';
 import 'api/agenda/models.dart';
 import 'api/agenda/school.dart';
 import 'api/cache_management.dart';
@@ -654,6 +655,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeHomeAgendaContext dco_decode_box_autoadd_bridge_home_agenda_context(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeHomeAgendaInput dco_decode_box_autoadd_bridge_home_agenda_input(
+    dynamic raw,
+  );
+
+  @protected
   BridgeIhomeEvaluation dco_decode_box_autoadd_bridge_ihome_evaluation(
     dynamic raw,
   );
@@ -726,6 +737,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeUserProfile dco_decode_box_autoadd_bridge_user_profile(dynamic raw);
+
+  @protected
+  BridgeWeek dco_decode_box_autoadd_bridge_week(dynamic raw);
 
   @protected
   BridgeWriteCommitResult dco_decode_box_autoadd_bridge_write_commit_result(
@@ -1438,10 +1452,34 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeGradeScoreEntry dco_decode_bridge_grade_score_entry(dynamic raw);
 
   @protected
+  BridgeHomeAgendaContext dco_decode_bridge_home_agenda_context(dynamic raw);
+
+  @protected
+  BridgeHomeAgendaInput dco_decode_bridge_home_agenda_input(dynamic raw);
+
+  @protected
+  BridgeHomeBykc dco_decode_bridge_home_bykc(dynamic raw);
+
+  @protected
+  BridgeHomeCgyy dco_decode_bridge_home_cgyy(dynamic raw);
+
+  @protected
+  BridgeHomeExam dco_decode_bridge_home_exam(dynamic raw);
+
+  @protected
+  BridgeHomeJudge dco_decode_bridge_home_judge(dynamic raw);
+
+  @protected
   BridgeHomeRefreshState dco_decode_bridge_home_refresh_state(dynamic raw);
 
   @protected
+  BridgeHomeSignin dco_decode_bridge_home_signin(dynamic raw);
+
+  @protected
   BridgeHomeSigninRefresh dco_decode_bridge_home_signin_refresh(dynamic raw);
+
+  @protected
+  BridgeHomeSpoc dco_decode_bridge_home_spoc(dynamic raw);
 
   @protected
   BridgeHomeSpocDetailRefresh dco_decode_bridge_home_spoc_detail_refresh(
@@ -1450,6 +1488,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeHomeSpocRefresh dco_decode_bridge_home_spoc_refresh(dynamic raw);
+
+  @protected
+  BridgeHomeYgdk dco_decode_bridge_home_ygdk(dynamic raw);
 
   @protected
   BridgeHomeYgdkRefresh dco_decode_bridge_home_ygdk_refresh(dynamic raw);
@@ -2179,6 +2220,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeHomeBykc> dco_decode_list_bridge_home_bykc(dynamic raw);
+
+  @protected
+  List<BridgeHomeCgyy> dco_decode_list_bridge_home_cgyy(dynamic raw);
+
+  @protected
+  List<BridgeHomeExam> dco_decode_list_bridge_home_exam(dynamic raw);
+
+  @protected
+  List<BridgeHomeJudge> dco_decode_list_bridge_home_judge(dynamic raw);
+
+  @protected
+  List<BridgeHomeSignin> dco_decode_list_bridge_home_signin(dynamic raw);
+
+  @protected
+  List<BridgeHomeSpoc> dco_decode_list_bridge_home_spoc(dynamic raw);
+
+  @protected
+  List<BridgeHomeYgdk> dco_decode_list_bridge_home_ygdk(dynamic raw);
+
+  @protected
   List<BridgeIhomeCategory> dco_decode_list_bridge_ihome_category(dynamic raw);
 
   @protected
@@ -2610,6 +2672,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeUserProfile? dco_decode_opt_box_autoadd_bridge_user_profile(
     dynamic raw,
   );
+
+  @protected
+  BridgeWeek? dco_decode_opt_box_autoadd_bridge_week(dynamic raw);
 
   @protected
   BridgeWriteCommitResult?
@@ -3297,6 +3362,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeHomeAgendaContext sse_decode_box_autoadd_bridge_home_agenda_context(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeHomeAgendaInput sse_decode_box_autoadd_bridge_home_agenda_input(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeIhomeEvaluation sse_decode_box_autoadd_bridge_ihome_evaluation(
     SseDeserializer deserializer,
   );
@@ -3391,6 +3466,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeUserProfile sse_decode_box_autoadd_bridge_user_profile(
     SseDeserializer deserializer,
   );
+
+  @protected
+  BridgeWeek sse_decode_box_autoadd_bridge_week(SseDeserializer deserializer);
 
   @protected
   BridgeWriteCommitResult sse_decode_box_autoadd_bridge_write_commit_result(
@@ -4309,14 +4387,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeHomeAgendaContext sse_decode_bridge_home_agenda_context(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeHomeAgendaInput sse_decode_bridge_home_agenda_input(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeHomeBykc sse_decode_bridge_home_bykc(SseDeserializer deserializer);
+
+  @protected
+  BridgeHomeCgyy sse_decode_bridge_home_cgyy(SseDeserializer deserializer);
+
+  @protected
+  BridgeHomeExam sse_decode_bridge_home_exam(SseDeserializer deserializer);
+
+  @protected
+  BridgeHomeJudge sse_decode_bridge_home_judge(SseDeserializer deserializer);
+
+  @protected
   BridgeHomeRefreshState sse_decode_bridge_home_refresh_state(
     SseDeserializer deserializer,
   );
 
   @protected
+  BridgeHomeSignin sse_decode_bridge_home_signin(SseDeserializer deserializer);
+
+  @protected
   BridgeHomeSigninRefresh sse_decode_bridge_home_signin_refresh(
     SseDeserializer deserializer,
   );
+
+  @protected
+  BridgeHomeSpoc sse_decode_bridge_home_spoc(SseDeserializer deserializer);
 
   @protected
   BridgeHomeSpocDetailRefresh sse_decode_bridge_home_spoc_detail_refresh(
@@ -4327,6 +4433,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeHomeSpocRefresh sse_decode_bridge_home_spoc_refresh(
     SseDeserializer deserializer,
   );
+
+  @protected
+  BridgeHomeYgdk sse_decode_bridge_home_ygdk(SseDeserializer deserializer);
 
   @protected
   BridgeHomeYgdkRefresh sse_decode_bridge_home_ygdk_refresh(
@@ -5272,6 +5381,41 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeHomeBykc> sse_decode_list_bridge_home_bykc(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeHomeCgyy> sse_decode_list_bridge_home_cgyy(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeHomeExam> sse_decode_list_bridge_home_exam(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeHomeJudge> sse_decode_list_bridge_home_judge(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeHomeSignin> sse_decode_list_bridge_home_signin(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeHomeSpoc> sse_decode_list_bridge_home_spoc(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeHomeYgdk> sse_decode_list_bridge_home_ygdk(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BridgeIhomeCategory> sse_decode_list_bridge_ihome_category(
     SseDeserializer deserializer,
   );
@@ -5821,6 +5965,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeUserProfile? sse_decode_opt_box_autoadd_bridge_user_profile(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeWeek? sse_decode_opt_box_autoadd_bridge_week(
     SseDeserializer deserializer,
   );
 
@@ -6595,6 +6744,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bridge_home_agenda_context(
+    BridgeHomeAgendaContext self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_home_agenda_input(
+    BridgeHomeAgendaInput self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bridge_ihome_evaluation(
     BridgeIhomeEvaluation self,
     SseSerializer serializer,
@@ -6699,6 +6860,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_user_profile(
     BridgeUserProfile self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_week(
+    BridgeWeek self,
     SseSerializer serializer,
   );
 
@@ -7819,14 +7986,62 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_home_agenda_context(
+    BridgeHomeAgendaContext self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_home_agenda_input(
+    BridgeHomeAgendaInput self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_home_bykc(
+    BridgeHomeBykc self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_home_cgyy(
+    BridgeHomeCgyy self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_home_exam(
+    BridgeHomeExam self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_home_judge(
+    BridgeHomeJudge self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_home_refresh_state(
     BridgeHomeRefreshState self,
     SseSerializer serializer,
   );
 
   @protected
+  void sse_encode_bridge_home_signin(
+    BridgeHomeSignin self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_home_signin_refresh(
     BridgeHomeSigninRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_home_spoc(
+    BridgeHomeSpoc self,
     SseSerializer serializer,
   );
 
@@ -7839,6 +8054,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_home_spoc_refresh(
     BridgeHomeSpocRefresh self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_home_ygdk(
+    BridgeHomeYgdk self,
     SseSerializer serializer,
   );
 
@@ -9001,6 +9222,48 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_home_bykc(
+    List<BridgeHomeBykc> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_home_cgyy(
+    List<BridgeHomeCgyy> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_home_exam(
+    List<BridgeHomeExam> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_home_judge(
+    List<BridgeHomeJudge> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_home_signin(
+    List<BridgeHomeSignin> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_home_spoc(
+    List<BridgeHomeSpoc> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_home_ygdk(
+    List<BridgeHomeYgdk> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_ihome_category(
     List<BridgeIhomeCategory> self,
     SseSerializer serializer,
@@ -9620,6 +9883,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_opt_box_autoadd_bridge_user_profile(
     BridgeUserProfile? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_week(
+    BridgeWeek? self,
     SseSerializer serializer,
   );
 

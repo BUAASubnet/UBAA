@@ -4,11 +4,13 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'agenda/home.dart';
 import 'agenda/models.dart';
 import 'agenda/school.dart';
 import 'client.dart';
 import 'offline.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
+import 'read.dart';
 
 // These functions are ignored because they are not marked as `pub`: `task`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `try_from`
@@ -117,6 +119,15 @@ abstract class BridgeAgendaStore implements RustOpaqueInterface {
   /// # Errors
   /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
   Future<BridgeAgendaOverlay?> overlay({required BridgeSchoolAgendaKey key});
+
+  /// 用同账号日程覆盖合并已取得读结果，不重新读取学校缓存。
+  ///
+  /// # Errors
+  /// 输入非法、结果超限或日程不可读时返回独立日程错误。
+  Future<List<BridgeAgendaEntry>> projectHome({
+    required BridgeHomeAgendaInput values,
+    required BridgeHomeAgendaContext context,
+  });
 
   /// 学校缓存未打开时查询本地日程和学校来源缺失状态。
   ///
