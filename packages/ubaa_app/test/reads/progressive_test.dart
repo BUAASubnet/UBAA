@@ -137,6 +137,7 @@ void main() {
           controller.homeSnapshots[FeatureId.judge]!.status,
           FeatureLoadStatus.loading,
         );
+        expect(controller.homeSnapshots[FeatureId.judge]!.refining, isTrue);
         query = controller.refreshFeatureQuery(
           FeatureId.signin,
           const FeatureQuery(view: FeatureQueryView.signinPending),
@@ -162,6 +163,7 @@ void main() {
       '全部已到',
     );
     expect(backend.legacyJudgeReads, 0);
+    expect(controller.homeSnapshots[FeatureId.judge]!.refining, isFalse);
   });
   test('同首页批次与相同显式查询在途时合并，不重复开始学校读取', () async {
     final backend = _Backend();

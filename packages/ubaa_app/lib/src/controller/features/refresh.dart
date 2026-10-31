@@ -281,7 +281,10 @@ mixin ControllerRefresh on ControllerState {
                   FeatureReadContext(requestRevision: generation),
                 );
                 internalHomeDefaults[feature] = internalHomeDefaults[feature]!
-                    .copyWith(status: FeatureLoadStatus.loading);
+                    .copyWith(
+                      status: FeatureLoadStatus.loading,
+                      refining: true,
+                    );
               }
               if (internalApplyFeatureResultIfCurrent(
                 feature,
@@ -292,7 +295,10 @@ mixin ControllerRefresh on ControllerState {
                 preservePreviousOnFailure: hadPreviousData,
               )) {
                 internalSnapshots[feature] = internalSnapshots[feature]!
-                    .copyWith(status: FeatureLoadStatus.loading);
+                    .copyWith(
+                      status: FeatureLoadStatus.loading,
+                      refining: true,
+                    );
               }
               internalNotify();
             },

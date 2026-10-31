@@ -23,23 +23,17 @@ void main() {
     await Future.wait([read, auth]);
     expect(events, ['认证', '读取']);
   });
-  test('最多四个业务在途，同组等待且独占写回读优先排空队列', () async {
+  test('最多八个业务在途，同组等待且独占写回读优先排空队列', () async {
     final scheduler = ReadScheduler(canRun: (_) => true);
     addTearDown(scheduler.close);
-    final gates = List.generate(5, (_) => Completer<void>());
+    final gates = List.generate(8, (_) => Completer<void>());
     addTearDown(() {
       for (final gate in gates) {
         if (!gate.isCompleted) gate.complete();
       }
     });
     final started = <String>[];
-    final lanes = [
-      ReadLane.academic,
-      ReadLane.signin,
-      ReadLane.spoc,
-      ReadLane.judge,
-      ReadLane.ygdk,
-    ];
+    final lanes = ReadLane.values;
     final jobs = [
       for (var i = 0; i < lanes.length; i++)
         scheduler.run(ReadPriority.home, () => true, () async {
@@ -47,7 +41,7 @@ void main() {
           await gates[i].future;
         }, lane: lanes[i]),
     ];
-    await until(() => started.length == 4);
+    await until(() => started.length == 8);
     final same = scheduler.run(
       ReadPriority.home,
       () => true,
@@ -62,13 +56,12 @@ void main() {
     gates[0].complete();
     await jobs[0];
     await Future<void>.delayed(Duration.zero);
-    expect(started.length, 4, reason: '空出的名额必须留待独占任务，不能继续发读取');
-    for (var i = 1; i < 4; i++) {
+    expect(started.length, 8, reason: '空出的名额必须留待独占任务，不能继续发读取');
+    for (var i = 1; i < 8; i++) {
       gates[i].complete();
     }
     await write;
-    expect(started.indexOf('写回读'), 4);
-    gates[4].complete();
+    expect(started.indexOf('写回读'), 8);
     await Future.wait([...jobs, same]);
     expect(started.indexOf('同组'), greaterThan(started.indexOf('写回读')));
   });

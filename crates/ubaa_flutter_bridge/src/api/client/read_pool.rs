@@ -60,7 +60,7 @@ impl ClientPool {
                 client: Mutex::new(None),
             }),
             barrier: RwLock::new(()),
-            permits: Semaphore::new(4),
+            permits: Semaphore::new(8),
         }
     }
 

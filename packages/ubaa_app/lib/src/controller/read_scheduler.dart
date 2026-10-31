@@ -63,7 +63,7 @@ final class _ReadJob {
 
 /// 不同业务有限并发，同组和未分组操作串行；每批必须在 Core 安全边界结束。
 final class ReadScheduler {
-  ReadScheduler({required this.canRun, this.onTrace, this.maxConcurrent = 4});
+  ReadScheduler({required this.canRun, this.onTrace, this.maxConcurrent = 8});
   final bool Function(ReadPriority) canRun;
   final void Function(ReadSchedulerTrace trace)? onTrace;
   final int maxConcurrent;

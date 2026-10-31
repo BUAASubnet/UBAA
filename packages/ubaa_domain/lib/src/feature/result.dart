@@ -26,6 +26,7 @@ class FeatureSnapshot {
     this.updatedAt,
     this.readContext,
     this.evidence,
+    this.refining = false,
   });
 
   final FeatureId feature;
@@ -43,6 +44,10 @@ class FeatureSnapshot {
   final DateTime? updatedAt;
   final FeatureReadContext? readContext;
   final DataEvidence? evidence;
+
+  /// 分批读取已发布可用结果、仍在后台补全细节。状态保持加载中以维持原有写入与读取约束，
+  /// 仅用于界面不再显示“更新中”。任何未显式传入的复制都会清除该标记。
+  final bool refining;
 
   FeatureSnapshot copyWith({
     FeatureLoadStatus? status,
@@ -62,6 +67,7 @@ class FeatureSnapshot {
     bool clearDetails = false,
     bool clearResolvedRoute = false,
     bool clearPagination = false,
+    bool refining = false,
   }) => FeatureSnapshot(
     feature: feature,
     status: status ?? this.status,
@@ -76,6 +82,7 @@ class FeatureSnapshot {
     updatedAt: updatedAt ?? this.updatedAt,
     readContext: readContext ?? this.readContext,
     evidence: clearEvidence ? null : (evidence ?? this.evidence),
+    refining: refining,
   );
 }
 
