@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_test_support/navigation.dart' as shared;
 
 /// 定位用户当前可操作的导航入口，兼容底栏、紧凑侧栏及展开侧栏。
 Finder uiDestinationFinder(WidgetTester tester, UiDestination destination) {
@@ -24,47 +25,9 @@ Finder uiDestinationFinder(WidgetTester tester, UiDestination destination) {
   return find.widgetWithText(ListTile, destination.label).first;
 }
 
-/// 窄屏从抽屉打开工具页，桌面“关于”从侧栏底部的可见入口打开。
-Future<void> uiOpenUtility(WidgetTester tester, String title) async {
-  final menu = find.byIcon(Icons.menu);
-  if (menu.hitTestable().evaluate().isNotEmpty) {
-    await tester.tap(menu);
-    await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListTile, title));
-    await tester.pumpAndSettle();
-    return;
-  }
-  if (title == '关于') {
-    final button = find.byTooltip(title).hitTestable();
-    final entry = button.evaluate().isNotEmpty
-        ? button
-        : find.widgetWithText(ListTile, title).hitTestable();
-    expect(entry, findsOneWidget);
-    await tester.tap(entry);
-    await tester.pumpAndSettle();
-    return;
-  }
-  await tester.tap(uiDestinationFinder(tester, UiDestination.settings));
-  await tester.pumpAndSettle();
-  if (title == UiDestination.settings.label) return;
-  final entry = find.widgetWithText(Card, title);
-  if (entry.evaluate().isEmpty) {
-    // 设置正文按需构建；末个纵向滚动器属于正文，前面的滚动器属于侧栏。
-    final bodyScroll = find
-        .byWidgetPredicate(
-          (widget) =>
-              widget is Scrollable &&
-              widget.axisDirection == AxisDirection.down,
-        )
-        .last;
-    await tester.scrollUntilVisible(entry, 220, scrollable: bodyScroll);
-  }
-  expect(entry, findsOneWidget);
-  await tester.ensureVisible(entry);
-  await tester.pumpAndSettle();
-  await tester.tap(entry);
-  await tester.pumpAndSettle();
-}
+/// 工具页沿共享导航测试入口进入，保留真实点击与滚动。
+Future<void> uiOpenUtility(WidgetTester tester, String title) =>
+    shared.openUtility(tester, title);
 
 Future<void> uiOpenProfile(WidgetTester tester) =>
     uiOpenUtility(tester, '我的资料');

@@ -22,6 +22,7 @@ enum UiDestination {
     FeatureId.cgyy,
     FeatureId.ygdk,
   ]),
+  me('我的', Icons.person_outline, Icons.person, []),
   settings('设置', Icons.settings_outlined, Icons.settings, []);
 
   const UiDestination(this.label, this.icon, this.selectedIcon, this.features);

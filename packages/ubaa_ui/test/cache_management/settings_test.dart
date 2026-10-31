@@ -172,11 +172,14 @@ Future<void> mount(
   );
   await tester.pumpAndSettle();
   if (onRead != null) {
-    tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
+    await tester.tap(find.byKey(const ValueKey('tab-我的')));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(of: find.byType(Drawer), matching: find.text('设置')),
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('me-settings')),
+      250,
+      scrollable: find.byType(Scrollable).last,
     );
+    await tester.tap(find.byKey(const ValueKey('me-settings')));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 350));
   } else {

@@ -13,9 +13,10 @@ import '../shared/feedback.dart';
 import '../shared/refresh.dart' show PullToRefresh;
 import '../shared/scroll_gutters.dart' show ScrollGutters;
 import 'about.dart' show AboutView;
-import 'home.dart' show FeatureGridView, HomeView;
+import 'home.dart' show FeatureGridView, HomeView, HomeViewState;
 import 'destination.dart';
 import '../theme.dart';
+import 'account/me.dart' show MeView;
 import 'profile.dart' show ProfileView;
 import 'write_readback_notice.dart' show WriteReadbackNotice;
 import '../common/feature_detail.dart' show FeatureDetailView;
@@ -23,6 +24,7 @@ import '../common/read_navigator.dart'
     show FeatureReadNavigator, FeatureReadNavigatorState;
 part 'shell_write.dart';
 part 'shell_navigation.dart';
+part 'account/campus_account_loader.dart';
 part 'bykc_preferences.dart';
 part 'preferences/recent_features.dart';
 part 'preferences/places.dart';
@@ -42,6 +44,7 @@ class UbaaMainShell extends StatefulWidget {
     required this.onRoutePolicyChanged,
     required this.onTelemetryChanged,
     this.initialDestination = UiDestination.home,
+    this.campusAccountService,
     this.homeClock,
     this.connectionStatus,
     this.writeReadbacks = const [],
@@ -150,6 +153,10 @@ class UbaaMainShell extends StatefulWidget {
 
   /// 供宿主恢复上次导航位置或集成测试从指定功能分组启动。
   final UiDestination initialDestination;
+
+  /// “我的”页面的门户资料、账户指标与流量读取；为空时页面显示占位。
+  final CampusAccountService? campusAccountService;
+
   final String? connectionStatus;
   final List<WriteReadbackHint> writeReadbacks;
   final UiError? writeReadbackError;
@@ -253,7 +260,27 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   bool _cgyyOnlyAvailable = true;
   final Set<FeatureId> _visitedFeatures = <FeatureId>{};
   int _accountGeneration = 0;
+  final _homeKey = GlobalKey<HomeViewState>();
+
+  /// 进行中的下拉刷新数；大于零时标题栏只显示更新时间。
+  int _pulling = 0;
+  Future<void> _pull(Future<void> Function() refresh) async {
+    setState(() => _pulling++);
+    try {
+      await refresh();
+    } finally {
+      if (mounted) setState(() => _pulling--);
+    }
+  }
+
+  CampusAccountOverview? _campusOverview;
+  Future<void>? _campusRefresh;
+  DateTime? _campusRefreshedAt;
+  int _campusRevision = 0;
+  void _setCampusOverview(CampusAccountOverview value) =>
+      setState(() => _campusOverview = value);
   int _lockRefreshRevision = 0;
+  void _refreshLockDisplay() => setState(() => _lockRefreshRevision++);
   final Map<FeatureId, GlobalKey<FeatureReadNavigatorState>> _readPageKeys = {};
   bool _homeSigninActive = false;
   // 一点即完成的写操作进行中；期间忽略其他写入点击。
@@ -273,6 +300,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     unawaited(_loadReminderSettings());
     unawaited(_loadBykcFilters());
     unawaited(_loadRecentFeatures());
+    if (_onMeTab) {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => mounted ? _ensureCampusAccountLoaded() : null,
+      );
+    }
   }
 
   @override
@@ -282,6 +314,20 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         (oldWidget.user?.accountScope ?? oldWidget.user?.username) !=
         (widget.user?.accountScope ?? widget.user?.username);
     _updatePlaces(oldWidget, accountChanged);
+    if (accountChanged ||
+        oldWidget.routePolicy != widget.routePolicy ||
+        oldWidget.businessCacheEpoch != widget.businessCacheEpoch ||
+        !identical(
+          oldWidget.campusAccountService,
+          widget.campusAccountService,
+        )) {
+      _resetCampusAccount();
+      if (_onMeTab) {
+        WidgetsBinding.instance.addPostFrameCallback(
+          (_) => mounted ? _ensureCampusAccountLoaded() : null,
+        );
+      }
+    }
     if (accountChanged ||
         oldWidget.routePolicy != widget.routePolicy ||
         oldWidget.businessCacheEpoch != widget.businessCacheEpoch) {
@@ -461,19 +507,20 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       ],
     );
     // 手机用下拉刷新；桌面鼠标无法下拉，保留按钮与快捷键。
-    final touchRefresh = switch (Theme.of(context).platform) {
-      TargetPlatform.iOS || TargetPlatform.android => true,
-      _ => false,
-    };
+    final touchRefresh =
+        Theme.of(context).platform == TargetPlatform.iOS ||
+        Theme.of(context).platform == TargetPlatform.android;
     final refreshPage = _openedFeature != null
         ? () => _refreshFeature(_openedFeature!)
         : _utilityPage == null && _selectedIndex == 0
         ? _refreshHome
+        : _onMeTab && widget.campusAccountService != null
+        ? _refreshCampusAccount
         : null;
     final header = AppBar(
       centerTitle: false,
       toolbarHeight: wide ? 80 : 64,
-      automaticallyImplyLeading: !wide,
+      automaticallyImplyLeading: false,
       titleSpacing: wide && _openedFeature == null && _utilityPage == null
           ? UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width)
           : null,
@@ -587,24 +634,15 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               label: const Text('学期'),
             ),
           ),
-        if (!touchRefresh && _openedFeature != null)
+        if (!touchRefresh && refreshPage != null)
           RefreshActionButton(
-            key: ValueKey(_openedFeature),
             tooltip:
-                _openedFeature == FeatureId.schedule &&
-                    widget.onSaveScheduleSemester != null
+                _openedFeature == null ||
+                    (_openedFeature == FeatureId.schedule &&
+                        widget.onSaveScheduleSemester != null)
                 ? '刷新'
                 : '刷新当前查询',
-            onRefresh: () => _refreshFeature(_openedFeature!),
-          ),
-        if (!touchRefresh &&
-            _openedFeature == null &&
-            _utilityPage == null &&
-            _selectedIndex == 0)
-          RefreshActionButton(
-            key: const ValueKey('home-refresh'),
-            tooltip: '刷新',
-            onRefresh: _refreshHome,
+            onRefresh: refreshPage,
           ),
       ],
     );
@@ -620,7 +658,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         }
       },
       child: Scaffold(
-        drawer: !wide ? _buildDrawer(context) : null,
         // 保持内容父层级与 key 稳定，宽窄切换不销毁已访问页面。
         body: UiAppBarSlot(
           slot: _appBarSlot,
@@ -667,7 +704,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                   height:
                       56 +
                       (MediaQuery.textScalerOf(context).scale(12) - 12) * 3,
-                  // 设置入口在侧边栏，底栏只放常用的四项。
+                  // 底栏放四个分类和“我的”；设置、关于与退出收在“我的”页。
                   selectedIndex: _selectedIndex < UiDestination.settings.index
                       ? _selectedIndex
                       : 0,
@@ -700,34 +737,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
 
   final _refreshes = <Object, Future<void>>{};
 
-  Future<void> _joinRefresh(Object key, Future<void> Function() action) {
-    final pending = _refreshes[key];
-    if (pending != null) return pending;
-    late final Future<void> refresh;
-    refresh = Future<void>.sync(action).whenComplete(() {
-      if (identical(_refreshes[key], refresh)) _refreshes.remove(key);
-    });
-    _refreshes[key] = refresh;
-    return refresh;
-  }
-
-  Future<void> _refreshHome() => _joinRefresh('home', widget.onRefresh);
-
-  Future<void> _refreshFeature(FeatureId feature) =>
-      _joinRefresh(feature, () async {
-        final page = _readPageKeys[feature]?.currentState;
-        if (feature == FeatureId.cgyy &&
-            page?.currentFrame.query?.view == FeatureQueryView.cgyyLockCode) {
-          setState(() => _lockRefreshRevision++);
-        } else if (feature == FeatureId.schedule &&
-            widget.onSaveScheduleSemester != null &&
-            (page?.currentFrame.query?.term?.trim().isNotEmpty ?? false)) {
-          await widget.onSaveScheduleSemester!(page!.currentFrame.query!.term!);
-        } else {
-          await page?.refreshCurrent();
-        }
-      });
-
   Widget _buildFeaturePage(FeatureId feature) => FeatureReadNavigator(
     key: _readPageKeys.putIfAbsent(
       feature,
@@ -752,7 +761,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               ? Future<void>.value()
               : widget.onFeatureQuery!(feature, query),
     pageBuilder: (page) => PullToRefresh(
-      onRefresh: () => _refreshFeature(feature),
+      onRefresh: () => _pull(() => _refreshFeature(feature)),
       enabled:
           _openedFeature == feature &&
           page.isCurrent &&
@@ -865,6 +874,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             : _buildProfile()
       : switch (_selectedIndex) {
           0 => HomeView(
+            key: _homeKey,
+            onPullRefresh: _pull,
             homeClock: widget.homeClock,
             recentFeatures: _recentFeatures,
             user: widget.user,
@@ -904,7 +915,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             onObserveProgress: _observeHomeProgress,
             onFeatureTap: _openFeatureList,
             onRetryFeature: widget.onRetryFeature,
-            onRefresh: _refreshHome,
+            onRefresh: () => _joinRefresh('home-core', widget.onRefresh),
           ),
           1 || 2 || 3 => FeatureGridView(
             onOpenIhome: _selectedIndex == UiDestination.campus.index
@@ -915,7 +926,22 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             onFeatureTap: _openFeatureList,
             onRetryFeature: widget.onRetryFeature,
           ),
-          4 => _buildProfile(),
+          4 => PullToRefresh(
+            onRefresh: () => _pull(_refreshCampusAccount),
+            enabled:
+                widget.campusAccountService != null &&
+                widget.writeState.intent == null,
+            child: MeView(
+              user: widget.user,
+              overview: _campusOverview,
+              showShortcuts: MediaQuery.sizeOf(context).width < 600,
+              onOpenProfile: () => _openUtility('我的资料'),
+              onOpenSettings: () => _openUtility(UiDestination.settings.label),
+              onOpenAbout: () => _openUtility('关于'),
+              onLogout: _logout,
+            ),
+          ),
+          5 => _buildProfile(),
           _ => const SizedBox.shrink(),
         };
 
@@ -928,7 +954,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         _utilityPage == '设置' ||
         (_utilityPage == null &&
             _selectedIndex == UiDestination.settings.index),
-    onOpenProfile: () => _openUtility('我的资料'),
+    onOpenProfile: () => _selectTab(UiDestination.me.index),
     onOpenAbout: () => _openUtility('关于'),
     user: widget.user,
     routePolicy: widget.routePolicy,
@@ -964,5 +990,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       _utilityPage = null;
       _openedFeature = null;
     });
+    if (index == UiDestination.me.index) _ensureCampusAccountLoaded();
   }
 }

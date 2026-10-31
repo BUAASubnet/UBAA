@@ -83,25 +83,28 @@ Future<void> closeQueryPanel(WidgetTester tester) async {
 }
 
 Future<void> openUtility(WidgetTester tester, String title) async {
-  final scaffold = tester.widget<Scaffold>(find.byType(Scaffold).first);
-  if (scaffold.drawer != null) {
-    tester.state<ScaffoldState>(find.byType(Scaffold).first).openDrawer();
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.descendant(
-        of: find.byType(Drawer),
-        matching: title == '我的资料' ? find.byType(Image) : find.text(title),
-      ),
-    );
-  } else if (title == '我的资料') {
-    await tester.tap(find.byType(Image).first);
-  } else {
-    final target = find.byTooltip(title).evaluate().isNotEmpty
-        ? find.byTooltip(title)
-        : find.text(title).first;
-    await tester.ensureVisible(target);
+  final mobile = find.byType(NavigationBar).evaluate().isNotEmpty;
+  if (mobile || title == '我的资料' || title == '我的') {
+    final target = mobile
+        ? find.byKey(const ValueKey('tab-我的'))
+        : find.byType(Image).first;
     await tester.tap(target);
+    await tester.pumpAndSettle();
+    if (title == '我的') return;
   }
+  final target = title == '我的资料'
+      ? find.byKey(const ValueKey('me-profile'))
+      : find.byTooltip(title).evaluate().isNotEmpty
+      ? find.byTooltip(title)
+      : find.text(title).last;
+  await tester.scrollUntilVisible(
+    target,
+    250,
+    scrollable: find.byType(Scrollable).last,
+  );
+  await tester.ensureVisible(target);
+  await tester.pumpAndSettle();
+  await tester.tap(target);
   await tester.pumpAndSettle();
 }
 

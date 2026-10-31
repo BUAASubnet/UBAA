@@ -173,7 +173,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
 
     return InkWell(
       borderRadius: BorderRadius.circular(12),
-      onTap: onTap ?? () => _openUtility('我的资料'),
+      onTap: onTap ?? () => _selectTab(UiDestination.me.index),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
         child: extended
@@ -216,133 +216,42 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     );
   }
 
-  Drawer _buildDrawer(BuildContext context) {
-    final theme = Theme.of(context);
-    final scheme = theme.colorScheme;
-    final name = widget.user?.preferredName ?? 'UBAA';
-    final username = widget.user?.username ?? '';
-    void open(BuildContext drawerContext, String page) {
-      Navigator.of(drawerContext).pop();
-      _openUtility(page);
-    }
-
-    return Drawer(
-      child: SafeArea(
-        child: Builder(
-          builder: (drawerContext) => Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: <Widget>[
-              // 头部卡片：左边应用图标，右边姓名与学号；点按进入我的资料。
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 16, 16, 12),
-                child: Material(
-                  color: scheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(20),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    onTap: () => open(drawerContext, '我的资料'),
-                    child: Padding(
-                      padding: const EdgeInsets.all(16),
-                      child: Row(
-                        children: [
-                          ClipRRect(
-                            borderRadius: BorderRadius.circular(12),
-                            child: Image.asset(
-                              'assets/icons/app_icon.png',
-                              package: 'ubaa_ui',
-                              width: 52,
-                              height: 52,
-                              fit: BoxFit.cover,
-                              errorBuilder: (_, __, ___) => CircleAvatar(
-                                radius: 26,
-                                child: Text(name.characters.first),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 14),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  name,
-                                  maxLines: 1,
-                                  overflow: TextOverflow.ellipsis,
-                                  style: theme.textTheme.titleMedium?.copyWith(
-                                    fontWeight: FontWeight.bold,
-                                    color: scheme.onPrimaryContainer,
-                                  ),
-                                ),
-                                if (username.isNotEmpty && username != name)
-                                  Text(
-                                    username,
-                                    maxLines: 1,
-                                    overflow: TextOverflow.ellipsis,
-                                    style: theme.textTheme.bodyMedium?.copyWith(
-                                      color: scheme.onPrimaryContainer
-                                          .withValues(alpha: 0.8),
-                                    ),
-                                  ),
-                              ],
-                            ),
-                          ),
-                          Icon(
-                            Icons.chevron_right,
-                            color: scheme.onPrimaryContainer,
-                          ),
-                        ],
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-              for (final item in [
-                ('设置', Icons.settings_outlined, Icons.settings),
-                ('关于', Icons.info_outline, Icons.info),
-              ])
-                Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 2,
-                  ),
-                  child: ListTile(
-                    shape: const StadiumBorder(),
-                    selected: _utilityPage == item.$1,
-                    selectedTileColor: scheme.secondaryContainer,
-                    selectedColor: scheme.onSecondaryContainer,
-                    leading: Icon(_utilityPage == item.$1 ? item.$3 : item.$2),
-                    title: Text(item.$1),
-                    onTap: () => open(drawerContext, item.$1),
-                  ),
-                ),
-              const Spacer(),
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 8, 16, 16),
-                child: OutlinedButton.icon(
-                  style: OutlinedButton.styleFrom(
-                    foregroundColor: scheme.error,
-                    side: BorderSide(color: scheme.error),
-                    minimumSize: const Size.fromHeight(48),
-                  ),
-                  onPressed: () {
-                    Navigator.of(drawerContext).pop();
-                    _logout();
-                  },
-                  icon: const Icon(Icons.logout),
-                  label: const Text('退出登录'),
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
   void _logout() {
     if (widget.writeState.intent != null) return;
     unawaited(widget.onLogout());
   }
+
+  Future<void> _joinRefresh(Object key, Future<void> Function() action) {
+    final pending = _refreshes[key];
+    if (pending != null) return pending;
+    late final Future<void> refresh;
+    refresh = Future<void>.sync(action).whenComplete(() {
+      if (identical(_refreshes[key], refresh)) _refreshes.remove(key);
+    });
+    _refreshes[key] = refresh;
+    return refresh;
+  }
+
+  /// 标题栏按钮与快捷键走首页自身的刷新，补充来源一起重读。
+  Future<void> _refreshHome() => _joinRefresh(
+    'home',
+    () => _homeKey.currentState?.refresh() ?? widget.onRefresh(),
+  );
+
+  Future<void> _refreshFeature(FeatureId feature) =>
+      _joinRefresh(feature, () async {
+        final page = _readPageKeys[feature]?.currentState;
+        if (feature == FeatureId.cgyy &&
+            page?.currentFrame.query?.view == FeatureQueryView.cgyyLockCode) {
+          _refreshLockDisplay();
+        } else if (feature == FeatureId.schedule &&
+            widget.onSaveScheduleSemester != null &&
+            (page?.currentFrame.query?.term?.trim().isNotEmpty ?? false)) {
+          await widget.onSaveScheduleSemester!(page!.currentFrame.query!.term!);
+        } else {
+          await page?.refreshCurrent();
+        }
+      });
 }
 
 /// 底栏顶部留白 8pt，底部安全区最多保留 20pt，仍避开 Home 指示条。

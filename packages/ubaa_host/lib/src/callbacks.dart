@@ -103,6 +103,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           ? null
           : (key, value) => _savePlace(localOwner, key, value),
       ihomeService: _controller.ihomeService,
+      campusAccountService: _controller.campusAccountService,
       connectionStatus: _connectionStatus,
       writeReadbacks: _controller.writeReadbacks,
       writeReadbackError: _controller.writeReadbackError,

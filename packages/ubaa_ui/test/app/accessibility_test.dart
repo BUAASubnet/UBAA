@@ -180,9 +180,13 @@ void _registerLayoutMatrix() {
         await tester.pumpAndSettle();
         for (final destination in UiDestination.values) {
           final Finder target;
-          if (width < 600 && destination == UiDestination.settings) {
-            await openUtility(tester, '设置');
-            expect(find.widgetWithText(AppBar, '设置'), findsOneWidget);
+          if (destination == UiDestination.me ||
+              (width < 600 && destination == UiDestination.settings)) {
+            await openUtility(tester, destination.label);
+            expect(
+              find.widgetWithText(AppBar, destination.label),
+              findsOneWidget,
+            );
             expect(tester.takeException(), isNull);
             continue;
           }
