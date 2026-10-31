@@ -82,16 +82,8 @@ final class SecureLocalAccountStore implements LocalAccountStore {
         (_) => random.nextInt(256).toRadixString(16).padLeft(2, '0'),
       ).join();
       account = LocalAccount(id: id, username: normalized);
-      final key = Uint8List.fromList(
-        List.generate(32, (_) => random.nextInt(256)),
-      );
-      await materials.write('cache-key.$id', base64Encode(key));
-      key.fillRange(0, key.length, 0);
       index.accounts.add(account);
-    } else {
-      // 检查旧材料确实存在；密钥丢失必须由用户明确清除旧账号后重建。
-      final key = await _readKey(account);
-      key.fillRange(0, key.length, 0);
+      index.pendingCacheKeys.add(id);
     }
     index.activeId = account.id;
     index.canRestore = retainSession;
@@ -109,7 +101,26 @@ final class SecureLocalAccountStore implements LocalAccountStore {
         )) {
       throw const SecureMaterialException();
     }
-    return _readKey(account);
+    if (!index.pendingCacheKeys.contains(account.id)) return _readKey(account);
+    // 只有索引明确登记为从未打开缓存的新别名可以首次建密钥。
+    // 先前写密钥后索引保存失败时，复用该密钥，避免覆盖已写材料。
+    final encoded = await materials.read('cache-key.${account.id}');
+    final key = encoded == null
+        ? Uint8List.fromList(
+            List.generate(32, (_) => Random.secure().nextInt(256)),
+          )
+        : await _readKey(account);
+    try {
+      if (encoded == null) {
+        await materials.write('cache-key.${account.id}', base64Encode(key));
+      }
+      index.pendingCacheKeys.remove(account.id);
+      await _save(index);
+      return key;
+    } on Object {
+      key.fillRange(0, key.length, 0);
+      rethrow;
+    }
   });
 
   @override
@@ -132,6 +143,7 @@ final class SecureLocalAccountStore implements LocalAccountStore {
     await _save(index);
     await materials.delete('cache-key.$accountId');
     index.accounts.removeWhere((item) => item.id == accountId);
+    index.pendingCacheKeys.remove(accountId);
     if (index.activeId == accountId) index.activeId = null;
     await _save(index);
   });
@@ -161,13 +173,17 @@ final class SecureLocalAccountStore implements LocalAccountStore {
   Future<void> _save(_AccountIndex index) => materials.write(
     _indexKey,
     jsonEncode({
-      'version': 1,
+      'version': 2,
       'generation': index.generation,
       'activeId': index.activeId,
       'canRestore': index.canRestore,
       'accounts': [
         for (final account in index.accounts)
-          {'id': account.id, 'username': account.username},
+          {
+            'id': account.id,
+            'username': account.username,
+            'cacheKeyPending': index.pendingCacheKeys.contains(account.id),
+          },
       ],
     }),
   );
@@ -175,6 +191,7 @@ final class SecureLocalAccountStore implements LocalAccountStore {
 
 class _AccountIndex {
   final accounts = <LocalAccount>[];
+  final pendingCacheKeys = <String>{};
   String? activeId;
   bool canRestore = false;
   int generation = 0;
@@ -194,7 +211,7 @@ class _AccountIndex {
 
   static _AccountIndex decode(dynamic value) {
     if (value is! Map<String, dynamic> ||
-        value['version'] != 1 ||
+        (value['version'] != 1 && value['version'] != 2) ||
         value['generation'] is! int ||
         (value['generation'] as int) < 0 ||
         value['canRestore'] is! bool ||
@@ -209,6 +226,7 @@ class _AccountIndex {
       ..activeId = value['activeId'] as String?;
     for (final item in value['accounts'] as List) {
       if (item is! Map<String, dynamic> ||
+          (value['version'] == 2 && item['cacheKeyPending'] is! bool) ||
           item['id'] is! String ||
           !validId(item['id'] as String) ||
           item['username'] is! String ||
@@ -218,6 +236,9 @@ class _AccountIndex {
             (old) => old.id == item['id'] || old.username == item['username'],
           )) {
         throw const SecureMaterialException();
+      }
+      if (value['version'] == 2 && item['cacheKeyPending'] == true) {
+        index.pendingCacheKeys.add(item['id'] as String);
       }
       index.accounts.add(
         LocalAccount(

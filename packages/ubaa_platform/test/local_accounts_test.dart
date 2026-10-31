@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 
@@ -50,21 +51,78 @@ void main() {
     );
   });
 
-  test('无法读取密钥不生成替代密钥或伪装账号可恢复', () async {
+  test('已知账号失去缓存密钥仍保留同一日程身份，缓存拒绝生成替代密钥', () async {
     final transport = _MemoryTransport();
     final materials = SecureMaterialStore(transport: transport);
     await materials.probe();
     final accounts = SecureLocalAccountStore(materials);
     final a = await accounts.retain('fixture-a', retainSession: true);
+    await accounts.cacheKey(a.account!);
     transport.values.removeWhere((key, _) => key.contains('cache-key.'));
     await expectLater(
       accounts.cacheKey(a.account!),
       throwsA(isA<SecureMaterialException>()),
     );
+    final again = await accounts.retain('fixture-a', retainSession: true);
+    expect(again.account!.id, a.account!.id);
     await expectLater(
-      accounts.retain('fixture-a', retainSession: true),
+      accounts.cacheKey(again.account!),
       throwsA(isA<SecureMaterialException>()),
     );
+    expect(
+      transport.values.keys.where((key) => key.contains('cache-key.')),
+      isEmpty,
+    );
+  });
+
+  test('首次保留账号只建立身份，缓存密钥延后到业务缓存打开时创建', () async {
+    final transport = _MemoryTransport();
+    final materials = SecureMaterialStore(transport: transport);
+    await materials.probe();
+    final accounts = SecureLocalAccountStore(materials);
+    final saved = await accounts.retain('fixture-a', retainSession: true);
+    expect(
+      transport.values.keys.where((key) => key.contains('cache-key.')),
+      isEmpty,
+    );
+    final reopened = SecureLocalAccountStore(materials);
+    expect((await reopened.read())!.account!.id, saved.account!.id);
+    expect((await reopened.cacheKey(saved.account!)).length, 32);
+  });
+  test('旧版索引缺少密钥不会被识别为首次建密钥，也不会换别名', () async {
+    final transport = _MemoryTransport();
+    final materials = SecureMaterialStore(transport: transport);
+    await materials.probe();
+    const alias = '00000000000000000000000000000001';
+    await materials.write(
+      'account-index.v1',
+      jsonEncode({
+        'version': 1,
+        'generation': 1,
+        'activeId': alias,
+        'canRestore': true,
+        'accounts': [
+          {'id': alias, 'username': 'fixture-legacy'},
+        ],
+      }),
+    );
+    final accounts = SecureLocalAccountStore(materials);
+    final saved = await accounts.retain('fixture-legacy', retainSession: true);
+    expect(saved.account!.id, alias);
+    await expectLater(
+      accounts.cacheKey(saved.account!),
+      throwsA(isA<SecureMaterialException>()),
+    );
+    expect(
+      transport.values.keys.where((key) => key.contains('cache-key.')),
+      isEmpty,
+    );
+    await materials.write('account-index.v1', '{invalid');
+    await expectLater(
+      accounts.retain('fixture-legacy', retainSession: true),
+      throwsA(isA<SecureMaterialException>()),
+    );
+    expect(await materials.read('account-index.v1'), '{invalid');
   });
 }
 
