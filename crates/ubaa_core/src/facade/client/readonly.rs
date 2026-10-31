@@ -16,6 +16,7 @@ impl UbaaClient {
         self.guard_latest_session_ownership()?;
         Ok(Self {
             verified_login: None,
+            verified_login_generations: None,
             config_dir: None,
             config: self.config.clone(),
             route_generation: self.route_generation,

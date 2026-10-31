@@ -18,6 +18,7 @@ pub struct UbaaClient {
     pub(super) config_dir: Option<PathBuf>,
     pub(super) verified_login: Option<(String, uuid::Uuid, bool, std::time::Instant)>,
     pub(super) config: RouteConfig,
+    pub(super) verified_login_generations: Option<(uuid::Uuid, uuid::Uuid)>,
     pub(super) route_generation: u64,
     pub(super) probe: Arc<dyn GatewayProbe>,
     pub(super) direct_runtime: ClientRuntime,
@@ -172,6 +173,7 @@ impl UbaaClient {
         Ok(Self {
             config_dir: None,
             verified_login: None,
+            verified_login_generations: None,
             route_generation: 0,
             config,
             probe: probe.into(),

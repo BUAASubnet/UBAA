@@ -26,6 +26,7 @@ pub(crate) struct ClientRuntime {
     last_activity: Option<i64>,
     account_name: Option<String>,
     session_revision: u64,
+    authentication_generation: uuid::Uuid,
     feature_state: Arc<RouteFeatureState>,
     /// 仅属于本客户端的希冀选课上下文；代次失效后不可复用。
     pub(crate) judge_selected_course: Option<(u64, String)>,
@@ -97,6 +98,7 @@ impl ClientRuntime {
             last_activity,
             account_name: None,
             session_revision,
+            authentication_generation: uuid::Uuid::new_v4(),
             feature_state: Arc::new(RouteFeatureState::default()),
             judge_selected_course: None,
             non_idempotent_boundary_crossed: false,
@@ -139,6 +141,7 @@ impl ClientRuntime {
             last_activity: self.last_activity,
             account_name: self.account_name.clone(),
             session_revision: self.session_revision,
+            authentication_generation: self.authentication_generation,
             feature_state: Arc::clone(&self.feature_state),
             judge_selected_course: None,
             non_idempotent_boundary_crossed: false,
@@ -374,7 +377,12 @@ impl ClientRuntime {
         }
     }
 
+    pub(crate) const fn authentication_generation(&self) -> uuid::Uuid {
+        self.authentication_generation
+    }
+
     pub(crate) fn clear_memory(&mut self) {
+        self.authentication_generation = uuid::Uuid::new_v4();
         self.judge_selected_course = None;
         self.jar = CookieJar::default();
         self.authenticated_at = None;

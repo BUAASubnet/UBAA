@@ -33,6 +33,7 @@ impl UbaaClient {
         &mut self,
         username: String,
     ) -> Result<InteractiveLoginOutcome> {
+        self.verified_login = None;
         let login = self.interactive.cancellation.begin(&username)?;
         self.prepare_interactive_login_for(&login).await
     }
@@ -46,6 +47,7 @@ impl UbaaClient {
         &mut self,
         login: &InteractiveLoginHandle,
     ) -> Result<InteractiveLoginOutcome> {
+        self.verified_login = None;
         self.direct_runtime.ensure_primary_client()?;
         login.ensure_owner(&self.interactive.cancellation)?;
         login.claim_preparation()?;

@@ -129,6 +129,7 @@ impl UbaaClient {
                 .iter()
                 .all(|value| value.as_ref() == Some(identity))
         {
+            self.verified_login_generations = Some(self.login_generations());
             self.verified_login = Some((
                 identity.clone(),
                 uuid::Uuid::new_v4(),

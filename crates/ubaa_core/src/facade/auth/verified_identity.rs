@@ -11,6 +11,7 @@ use uuid::Uuid;
 pub struct VerifiedLoginIdentity {
     identity: String,
     nonce: Uuid,
+    generations: (Uuid, Uuid),
 }
 impl std::fmt::Debug for VerifiedLoginIdentity {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -18,12 +19,25 @@ impl std::fmt::Debug for VerifiedLoginIdentity {
     }
 }
 impl UbaaClient {
+    pub(super) fn login_generations(&self) -> (Uuid, Uuid) {
+        (
+            self.direct_runtime.authentication_generation(),
+            self.webvpn_runtime.authentication_generation(),
+        )
+    }
+    fn guard_login_generations(&mut self) {
+        if self.verified_login_generations != Some(self.login_generations()) {
+            self.verified_login = None;
+        }
+    }
+
     /// 取出最近一次显式聚合登录的身份能力，仅可取一次。
     ///
     /// # Errors
     /// 没有一致身份、已消费、过期或会话所有权冲突时失败。
     pub fn take_verified_login_identity(&mut self) -> Result<VerifiedLoginIdentity> {
         self.guard_latest_session_ownership()?;
+        self.guard_login_generations();
         let (identity, nonce, issued, created) =
             self.verified_login.as_mut().ok_or_else(unverified)?;
         if *issued || created.elapsed() > std::time::Duration::from_mins(5) {
@@ -33,6 +47,7 @@ impl UbaaClient {
         Ok(VerifiedLoginIdentity {
             identity: identity.clone(),
             nonce: *nonce,
+            generations: self.login_generations(),
         })
     }
     /// 在登记关键段重新验证能力所属的客户端、登录代次及双槽会话所有权。
@@ -41,11 +56,13 @@ impl UbaaClient {
     /// 旧能力、其他客户端能力或外部会话变更均失败，不能恢复外部会话。
     pub fn validate_login_identity(&mut self, identity: &VerifiedLoginIdentity) -> Result<&str> {
         self.guard_latest_session_ownership()?;
+        self.guard_login_generations();
         match &self.verified_login {
             Some((value, nonce, true, created))
                 if created.elapsed() <= std::time::Duration::from_mins(5)
                     && *nonce == identity.nonce
-                    && *value == identity.identity =>
+                    && *value == identity.identity
+                    && identity.generations == self.login_generations() =>
             {
                 Ok(value)
             }
@@ -91,10 +108,11 @@ mod tests {
     #[test]
     fn 过期身份能力拒绝登记() {
         let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-            .join("../../.ubaa_local/agenda_cli_read")
+            .join("../../.ubaa_local/agenda_cli_a_fix")
             .join(Uuid::new_v4().simple().to_string());
         let mut client = UbaaClient::open(&root).unwrap();
         let nonce = Uuid::new_v4();
+        client.verified_login_generations = Some(client.login_generations());
         client.verified_login = Some((
             "fixture-a".into(),
             nonce,
@@ -108,6 +126,7 @@ mod tests {
         let token = VerifiedLoginIdentity {
             identity: "fixture-a".into(),
             nonce,
+            generations: client.login_generations(),
         };
         assert!(client.validate_login_identity(&token).is_err());
     }
