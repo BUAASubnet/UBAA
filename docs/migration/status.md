@@ -30,10 +30,11 @@ OHOS 已修复 Rust 动态库被改名导致的启动白屏，并更正 HUKS 密
 
 本地会话恢复中及暂时失败时均保留原位登录入口，登录面板保留当前页面位置。合成测试覆盖入口、验证码流程及恢复期间导航，真实账号长时间后台恢复仍需设备验证。
 
+iOS simulator 的 `debug_unpack_ios` 架构误报已修复。构建入口仅在发现 Xcode 27.2 的 `lipo` 多架构参数解析错误时，默认选择本机架构，其他工具链保持原行为。2026-10-31 在 Flutter 3.41.9 / Xcode 27.2 上实际构建通过，产物为 arm64 模拟器应用；脚本自测覆盖正常探测、明确缺陷、无关错误和显式架构覆盖，详见[命令说明](../development/commands.md#构建与发布命令)。
+
 ## 当前未解决与未验证事项
 
 - 远端 CI 尚未运行。阶段 3 已修改 workflow，本地静态检查与监督复核通过；本轮未 push。
-- iOS simulator 构建仍在 Flutter 3.41.9 / Xcode 27.2 的 `debug_unpack_ios` 阶段失败：架构检查报告缺少 `arm64 x86_64`，但同一 Flutter.framework 二进制经 `lipo` 核对含这两种架构。未修改 SDK 或绕过检查，工具链问题解决后需重跑构建。
 - 保留原生集合的 Linux Secret Service 和 iOS/iPad 方向握手专项尚未在本轮运行。最新平台构建与 Android 签名测试结果见[状态流水](history/2026-10-30-status-log-through-signing.md)，正式发布与真实账号验收仍未运行。
 - [原生删减登记](history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29原生集成只保留真实原生能力)中的以下项目已无自动化覆盖：原生登录到查询完整路径、十二领域连续导航、十项写操作连续流程、原生软键盘专项、真实账号原生 UI 巡检、真实账号原生恢复、真实账号原生启动性能测量、Flutter 到 Android 的真实课表组件通道、常驻原生合成预览及 bindings 默认 driver。登记表逐项列出仍保留的 App/Host/Widget/Core 等分层覆盖。已删除流程的旧失败随入口移除，不计作修复通过。
 - OHOS 原生 `AppScope/app.json5` 仍为 `1.0.0`/`1000000`，两个 Flutter 应用仍为 `0.1.0+1`。版本号仍需在发布前与旧正式包核对，平台标识已统一。OHOS fork 与官方 Pub workspace 保持独立，原因和锁文件边界见决策记录。
@@ -42,7 +43,7 @@ OHOS 已修复 Rust 动态库被改名导致的启动白屏，并更正 HUKS 密
 
 ## 最近一次完整验证
 
-2026-10-31 启动页与课表第二轮收尾以 `37d560f7` 为基线。严格 Rust/CLI/脚本检查、八包 Flutter 的 1,579 项测试（含六张 golden）和 macOS 五项原生集成通过；macOS 运行器未能将窗口置前，未据此记录新增目视验收。OHOS analyze、两个宿主测试、插件合同及无签名 Debug HAP 构建通过。iOS simulator 再次复现上文的 `debug_unpack_ios` 架构误报，未绕过。FRB 生成输入未变，跳过 codegen；没有真实学校请求、推送、远端 CI 或新增实体设备验收。
+2026-10-31 启动页与课表第二轮收尾以 `37d560f7` 为基线。严格 Rust/CLI/脚本检查、八包 Flutter 的 1,579 项测试（含六张 golden）和 macOS 五项原生集成通过；macOS 运行器未能将窗口置前，未据此记录新增目视验收。OHOS analyze、两个宿主测试、插件合同及无签名 Debug HAP 构建通过。该次 iOS simulator 构建仍复现 `debug_unpack_ios` 架构误报，当前修复结果见上节。FRB 生成输入未变，跳过 codegen；没有真实学校请求、推送、远端 CI 或新增实体设备验收。
 
 2026-10-31 导航、首页直达、缓存预读和博雅分页收尾以 `34f75c6c` 为基线，按 `check-plan` 的完整确定性范围验收。共享工作区同时出现其他启动与课表改动，因此使用仅包含本轮变更的隔离候选。修复失败反例及旧导航断言后，`check-strict`、八包格式与静态分析（无 error/warning）、1568 项 Flutter 测试和 5 项 macOS 原生集成通过。原生套件有窗口前台激活警告，但所有测试断言均完成。FRB 生成输入未变化，按计划跳过重生成，不沿用此前的零漂移结果。最终本轮文件与隔离候选逐字节核对，过程日志保留在 `.ubaa_local/supervision/closure_20261031/`，iOS 构建状态见上节。
 

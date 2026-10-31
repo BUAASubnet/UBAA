@@ -156,6 +156,52 @@ class ToolchainEntryTest(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertEqual(output.read_text(), 'UBAA_FLUTTER_HOME=C:/ci/flutter\n')
 
+    def test_iOS模拟器只在多架构参数缺陷时回退且保留显式架构(self):
+        self.configure()
+        for name in ('scripts/build/flutter.sh', 'scripts/lib/repo.sh'):
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / name, target)
+        (self.root / 'apps/ubaa_flutter').mkdir(parents=True)
+        checker = self.root / 'scripts/check/flutter-toolchains.sh'
+        checker.parent.mkdir()
+        checker.write_text('#!/bin/sh\nexit 0\n')
+        checker.chmod(0o755)
+        fakebin = self.root / 'fakebin'
+        fakebin.mkdir()
+        for name, source in {
+            'lipo': '#!/bin/sh\nprintf "%s\\n" "$LIPO_ERROR" >&2\nexit "$LIPO_STATUS"\n',
+            'uname': '#!/bin/sh\necho arm64\n',
+        }.items():
+            tool = fakebin / name
+            tool.write_text(source)
+            tool.chmod(0o755)
+        (self.sdk / 'bin/flutter').write_text(
+            '#!/usr/bin/env python3\nimport os,sys,json\n'
+            'if sys.argv[1] == "build": print(json.dumps([sys.argv[2:], os.environ.get("FLUTTER_XCODE_ARCHS")]))\n')
+        defect = 'lipo: -verify_arch requires exactly one input file'
+        for platform, status, error, explicit, expected in [
+            ('ios-simulator', 0, '', None, None),
+            ('ios-simulator', 1, defect, None, 'arm64'),
+            ('ios-simulator', 1, 'does not contain architecture arm64e', None, None),
+            ('ios-simulator', 127, 'command not found', None, None),
+            ('ios-simulator', 1, defect, 'x86_64', 'x86_64'),
+            ('macos', 1, defect, None, None),
+        ]:
+            with self.subTest(platform=platform, error=error, explicit=explicit):
+                env = {**self.environment, 'PATH': str(fakebin) + os.pathsep + self.environment['PATH'],
+                       'LIPO_ERROR': error, 'LIPO_STATUS': str(status)}
+                env.pop('FLUTTER_XCODE_ARCHS', None)
+                if explicit is not None:
+                    env['FLUTTER_XCODE_ARCHS'] = explicit
+                result = subprocess.run(['bash', 'scripts/build/flutter.sh', platform, 'debug'],
+                                        cwd=self.root, env=env, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                arguments, archs = json.loads(result.stdout)
+                self.assertEqual(archs, expected)
+                self.assertEqual(arguments, ['ios', '--simulator', '--debug', '--no-codesign']
+                                 if platform == 'ios-simulator' else ['macos', '--debug'])
+
     def test_质量工具与发布脚本直接调用读取项目配置(self):
         self.configure()
         for name in ('scripts/tools/environment.sh', 'scripts/tools/requirements.txt',

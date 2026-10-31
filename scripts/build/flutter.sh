@@ -52,6 +52,14 @@ fi
         printf 'error: iOS simulator 不支持 release；请使用 debug\n' >&2
         exit 2
       fi
+      # Xcode 27.2 的 lipo 无法一次校验多个架构，Flutter 的 debug_unpack_ios 会误报缺架构；
+      # 此时只编本机架构，旧版 Xcode 仍构建 arm64 + x86_64。
+      # 仅匹配参数解析错误；探针缺少架构或工具不可用时不改变构建目标。
+      lipo_diagnostic=$(LC_ALL=C lipo /usr/bin/true -verify_arch x86_64 arm64e 2>&1) || true
+      if [[ "$lipo_diagnostic" == *'-verify_arch requires exactly one input file'* ]]; then
+        export FLUTTER_XCODE_ARCHS=${FLUTTER_XCODE_ARCHS:-$(uname -m)}
+        printf 'note: lipo 不支持多架构校验，模拟器只构建 %s\n' "$FLUTTER_XCODE_ARCHS" >&2
+      fi
       flutter_build ios --simulator --debug --no-codesign
       ;;
     ios-device) flutter_build ios --"$mode" --no-codesign ;;
