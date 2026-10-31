@@ -19,7 +19,7 @@ impl CacheKey {
     }
 }
 
-pub(super) struct Crypto {
+pub(crate) struct Crypto {
     key: CacheKey,
 }
 impl Crypto {

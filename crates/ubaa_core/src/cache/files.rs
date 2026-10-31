@@ -6,6 +6,14 @@ use std::{
 };
 
 pub(super) fn database_path(root: &Path, account: &str) -> CacheResult<PathBuf> {
+    scoped_database_path(root, account, "business-cache")
+}
+
+pub(crate) fn scoped_database_path(
+    root: &Path,
+    account: &str,
+    directory: &str,
+) -> CacheResult<PathBuf> {
     if !root.is_absolute() || account.len() != 32 || !account.bytes().all(|b| b.is_ascii_hexdigit())
     {
         return Err(CacheError::InvalidInput);
@@ -15,7 +23,7 @@ pub(super) fn database_path(root: &Path, account: &str) -> CacheResult<PathBuf> 
     let dir = root
         .canonicalize()
         .map_err(|_| CacheError::Unavailable)?
-        .join("business-cache");
+        .join(directory);
     if !dir.exists() {
         let builder = fs::DirBuilder::new();
         #[cfg(unix)]

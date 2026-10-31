@@ -6,6 +6,7 @@
 //! use ubaa_core::upstream::SSO_LOGIN_URL;
 //! ```
 
+mod agenda;
 mod auth;
 mod cache;
 mod config;

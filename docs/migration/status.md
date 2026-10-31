@@ -4,6 +4,8 @@
 
 ## 当前实现
 
+日程一期 1a 已增加 Rust Core 自建事项、标准重复展开、教学周规则转换、账号独立加密持久化和学校事项本地覆盖层，入口见[日程 Core 合同](../contracts/agenda.md)。日程 schema v1 不随只读缓存淘汰或重建，退出后保留，同账号登录后显式激活。学校来源投影、CLI、Bridge、Flutter、导出与同步尚未接入，既有 CLI v12 与 Bridge v43 保持原合同。
+
 Rust Core 统一拥有认证、Direct/WebVPN/Auto 路线、会话、校园领域读写和加密缓存。CLI 与 Bridge 通过 facade 使用 Core，Flutter/OHOS 宿主通过 Bridge 与共享 Dart/UI 接线。当前公开合同为 CLI JSON schema v12 与 Flutter bridge contract v43，独立于 Session v2、配置 v1、业务缓存 v7。产品展示版本与合同版本分别治理，取值与发布规则见[版本约定](../development/conventions.md#版本号与依赖)。
 
 Core 与 CLI 已增加门户身份/学院、五项账户指标和网络流量在线查询，云盘指标明确为剩余空间。此前三个 facade 方法和 `portal profile`、`portal metrics`、`network usage` 命令已在 Direct/WebVPN 两条路线实测成功，并验证网络业务会话在 CLI 进程重开后复用。单项指标失败保留其他结果，金额采用十进制字符串，免费与计费剩余流量分别保留“不含套餐”的含义。精确范围见[门户与网费接入](source-parity-campus.md)。Bridge v43 已提供这三项类型化读取，移动端底栏新增“我的”页展示身份、账户指标与流量，先显示本机快照再后台在线刷新，并支持下拉刷新；三组数据按账号与路线保存快照，指标逐项保留最近成功值，App 内真实账号读取尚未单独验收。iOS 最低版本已按 Xcode 27.2 统一为 15.0。
@@ -46,8 +48,8 @@ iOS simulator 的 `debug_unpack_ios` 架构误报已修复。构建入口仅在�
 
 ## 最近一次完整验证
 
-2026-10-31 以 `925e7540` 为基线执行 `just check-changed mode=full`，严格 Rust/CLI/脚本检查、八包 Flutter 的 1,587 项测试（含六张 golden）、macOS 五项原生集成和 FRB 生成零漂移全部通过。八包格式检查通过，静态分析为 692 项 info，无 error/warning。macOS 运行器未能将窗口置前，但五项断言均完成，未据此记录新增目视验收。
+2026-10-31 日程一期 1a 以 `dec8097d` 为基线执行 `just check-changed mode=full`，严格 Rust/CLI/脚本检查、八包 Flutter 的 1,587 项测试（含六张 golden）、macOS 五项原生集成和 FRB 生成零漂移全部通过。日程聚焦测试 25 项在普通环境与 `TZ=UTC` 均通过，独立 facade 编译夹具已同步锁文件并通过。依赖审计的 advisories、licenses、bans、sources 全部通过，保留既有 allo-isolate 缺少 manifest 许可证字段的警告。八包格式检查通过，静态分析为 692 项 info，无 error/warning。macOS 运行器未能将窗口置前，但五项断言均完成，未据此记录新增目视验收。
 
-同轮实际重跑 iOS simulator、Android Debug APK、macOS Debug 构建，均通过。OHOS analyze 无问题、两个宿主测试、HUKS/connectivity 合同和无签名 Debug HAP 构建均通过。日志、失败反例和回归探测保存在 `.ubaa_local/supervision/theme_closure_20261031/`，验证过程写入对应提交说明。
+此前启动主题阶段实际重跑 iOS simulator、Android Debug APK、macOS Debug 构建，均通过。OHOS analyze 无问题、两个宿主测试、HUKS/connectivity 合同和无签名 Debug HAP 构建均通过。此前启动主题阶段的日志保存在 `.ubaa_local/supervision/theme_closure_20261031/`，日程 1a 的失败反例与完整检查日志保存在 `.ubaa_local/agenda_1a/`，验证过程写入对应提交说明。
 
 本次收尾没有发送真实学校认证、读取或写入请求。门户与阳光的 Direct/WebVPN 记录保留此前独立验证的范围，不能作为当前 App 的真实账号验收。改动按主题本地提交，未推送，远端 CI、实体设备与发布验收未运行。

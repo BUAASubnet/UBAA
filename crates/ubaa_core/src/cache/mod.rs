@@ -9,8 +9,8 @@ pub use bykc::{
     CachedBykcChosen, CachedBykcChosenCourse, CachedBykcCourse, CachedBykcCoursePage,
     CachedBykcSignWindow,
 };
-mod crypto;
-mod files;
+pub(crate) mod crypto;
+pub(crate) mod files;
 mod home;
 pub use home::{CachedSigninClass, CachedYgdkItem, CachedYgdkOverview};
 mod store;
