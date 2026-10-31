@@ -51,7 +51,8 @@ class _ScheduleContentState extends State<ScheduleContent> {
                 .map((d) => d.presentation)
                 .whereType<ScheduleCoursePresentation>(),
           );
-      final axisWidth = 40 * scale;
+      // 给五字符时间留足宽度，避免两行时间再次自动折行。
+      final axisWidth = 52 * scale;
       final groups = <_ScheduleBlock>[];
       final unknown = <FeatureDetail>[];
       var periods = math.max(14, times.length);
@@ -91,8 +92,8 @@ class _ScheduleContentState extends State<ScheduleContent> {
           }
         }
       }
-      // 周末没课时只画周一到周五，给每天更宽的格子。
-      final dayCount = groups.any((g) => g.day >= 6) ? 7 : 5;
+      // 始终显示整周七天，切换周次时列宽和日期位置保持不变。
+      const dayCount = 7;
       final columnWidth = (width - axisWidth) / dayCount;
       final now = homeCampusTime(clock.now());
       final todayIndex = dates?.indexOf('${now.month}-${now.day}') ?? -1;
@@ -368,10 +369,13 @@ class _SchedulePinnedAxis extends AnimatedWidget {
                         fontWeight: FontWeight.w500,
                       ),
                     ),
+                    // 时间段：开始与结束上下排列。
                     Text(
                       section <= times.length
-                          ? times[section - 1].start ?? '--:--'
+                          ? '${times[section - 1].start ?? '--:--'}\n'
+                                '${times[section - 1].end ?? '--:--'}'
                           : '--:--',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 10,
                         height: 1.3,

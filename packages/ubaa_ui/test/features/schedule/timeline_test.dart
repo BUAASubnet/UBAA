@@ -4,7 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../assignments/content_test.dart' show showFeature;
 
 void main() {
-  for (final width in [390.0, 834.0, 1280.0]) {
+  for (final width in [320.0, 390.0, 834.0, 1280.0]) {
     testWidgets('稀疏课程在$width宽度补齐校历作息且不请求新数据', (tester) async {
       final queries = <FeatureQuery>[];
       await showFeature(
@@ -31,14 +31,14 @@ void main() {
           week: 1,
         ),
       );
-      expect(find.text('08:00'), findsOneWidget);
-      expect(find.text('08:50'), findsOneWidget);
+      expect(find.text('08:00\n08:45'), findsOneWidget);
+      expect(find.text('08:50\n09:35'), findsOneWidget);
       await tester.drag(
         find.byKey(const ValueKey('schedule-grid-scroll')),
         const Offset(0, -750),
       );
       await tester.pumpAndSettle();
-      expect(find.text('21:30').hitTestable(), findsOneWidget);
+      expect(find.text('21:30\n22:15').hitTestable(), findsOneWidget);
       expect(queries, isEmpty);
       expect(tester.takeException(), isNull);
     });
@@ -68,8 +68,8 @@ void main() {
         ),
       );
       expect(find.text('本周暂无课程'), findsOneWidget);
-      expect(find.text('08:00'), findsOneWidget);
-      expect(find.text('09:50'), findsOneWidget);
+      expect(find.text('08:00\n08:45'), findsOneWidget);
+      expect(find.text('09:50\n10:35'), findsOneWidget);
       expect(queries, isEmpty);
       expect(tester.takeException(), isNull);
     });

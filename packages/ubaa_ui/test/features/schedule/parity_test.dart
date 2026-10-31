@@ -22,8 +22,9 @@ FeatureDetail course(String title, int day, int begin, int end) =>
       ),
     );
 void main() {
-  testWidgets('周末课程决定五列或七列且当天表头和时间线对应周三', (tester) async {
+  testWidgets('周末有无课程都保持七列宽度且当天表头和时间线对应周三', (tester) async {
     await withClock(Clock.fixed(DateTime.utc(2026, 9, 9, 0, 20)), () async {
+      double? previousColumnWidth;
       for (final weekend in [false, true]) {
         await tester.pumpWidget(
           MaterialApp(
@@ -51,8 +52,8 @@ void main() {
         for (final day in ['周一', '周二', '周三', '周四', '周五']) {
           expect(find.text(day), findsOneWidget);
         }
-        expect(find.text('周六'), weekend ? findsOneWidget : findsNothing);
-        expect(find.text('周日'), weekend ? findsOneWidget : findsNothing);
+        expect(find.text('周六'), findsOneWidget);
+        expect(find.text('周日'), findsOneWidget);
         final today = tester.widget<Text>(find.text('周三'));
         final theme = Theme.of(tester.element(find.text('周三')));
         expect(today.style?.color, theme.colorScheme.primary);
@@ -60,11 +61,12 @@ void main() {
         expect(tester.widget<Text>(find.text('周二')).style?.color, isNull);
         final monday = tester.getCenter(find.text('周一')).dx;
         final tuesday = tester.getCenter(find.text('周二')).dx;
-        final last = tester.getCenter(find.text(weekend ? '周日' : '周五')).dx;
-        expect(
-          (last - monday) / (tuesday - monday),
-          closeTo(weekend ? 6 : 4, .01),
-        );
+        if (previousColumnWidth != null) {
+          expect(tuesday - monday, closeTo(previousColumnWidth, .01));
+        }
+        previousColumnWidth = tuesday - monday;
+        final last = tester.getCenter(find.text('周日')).dx;
+        expect((last - monday) / (tuesday - monday), closeTo(6, .01));
         final line = tester.getRect(
           find.byKey(const ValueKey('schedule-now-line')),
         );
@@ -82,7 +84,7 @@ void main() {
     });
   });
 
-  testWidgets('已查询的空周课表保留五日网格，不冒充读取失败', (tester) async {
+  testWidgets('已查询的空周课表保留七日网格，不冒充读取失败', (tester) async {
     await showFeature(
       tester,
       FeatureId.schedule,
@@ -96,7 +98,7 @@ void main() {
     );
     expect(find.text('周一'), findsOneWidget);
     expect(find.text('周五'), findsOneWidget);
-    expect(find.text('周日'), findsNothing);
+    expect(find.text('周日'), findsOneWidget);
     expect(find.text('本周暂无课程'), findsOneWidget);
     expect(
       tester.getRect(find.text('本周暂无课程')).top,

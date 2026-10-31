@@ -83,7 +83,7 @@ void main() {
         ),
       );
       await tester.pump();
-      expect(find.text('第 3 周'), findsOneWidget);
+      expect(find.text('第3周'), findsOneWidget);
       expect(starts, ['selected']);
       update(
         () => state = const ScheduleImportState(
@@ -118,7 +118,7 @@ void main() {
       await tester.tap(find.byTooltip('刷新'));
       await tester.pumpAndSettle();
       expect(starts, ['selected', 'selected', 'selected']);
-      expect(find.text('第 3 周'), findsOneWidget);
+      expect(find.text('第3周'), findsOneWidget);
       expect(queries, isEmpty);
       expect(tester.takeException(), isNull);
     });

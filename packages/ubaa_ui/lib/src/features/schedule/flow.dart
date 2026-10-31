@@ -77,6 +77,14 @@ class ScheduleFlowState extends State<ScheduleFlow> {
       _started = false;
       _selectionNeeded = false;
     }
+    final route = widget.snapshot.resolvedRoute;
+    if (route != null &&
+        route != (_weeks?.resolvedRoute ?? old.snapshot.resolvedRoute)) {
+      _generation++;
+      _weeks = null;
+      _weeksTerm = null;
+      _metadataAttempt = null;
+    }
     if (!widget.visible && old.visible) {
       _generation++;
       _metadataAttempt = null;
@@ -297,6 +305,31 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     return matching.length == 1 ? matching.single : null;
   }
 
+  /// 表头使用的周：已加载的周优先；切换周次后数据到达前，直接用周次元数据中的
+  /// 目标周显示标题和日期，避免表头先变空再出现。课程内容仍以 [_visibleWeek] 为准。
+  FeatureDetail? get _headerWeek {
+    final visible = _visibleWeek;
+    if (visible != null) return visible;
+    final q = widget.query;
+    final route = widget.snapshot.resolvedRoute;
+    // 未缓存周的加载快照尚无路线；沿用同一 epoch 的元数据，收到明确路线后核对。
+    final awaitingRoute =
+        route == null &&
+        widget.snapshot.status == FeatureLoadStatus.loading &&
+        _sameQuery(widget.snapshot.readContext?.query, q);
+    if (!uiIsWeeklyScheduleQuery(q) ||
+        q?.term == null ||
+        q?.week == null ||
+        _weeks?.resolvedRoute == null ||
+        (!awaitingRoute && _weeks?.resolvedRoute != route)) {
+      return null;
+    }
+    final matching = _weekCandidates(q!.term!)
+        .where((d) => (d.presentation! as WeekPresentation).number == q.week)
+        .toList();
+    return matching.length == 1 ? matching.single : null;
+  }
+
   Future<void> _loadMetadata(String term, int generation) async {
     try {
       final result = await widget.loadWeeks(term, false);
@@ -464,9 +497,9 @@ class ScheduleFlowState extends State<ScheduleFlow> {
                   children: [
                     Flexible(
                       child: Text(
-                        _visibleWeek?.title ??
+                        _headerWeek?.title ??
                             (currentWeekNum != null
-                                ? '第 $currentWeekNum 周'
+                                ? '第$currentWeekNum周'
                                 : '选择周次'),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -524,7 +557,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
 
     return ScheduleWeekScope(
       colors: _courseColors.putIfAbsent(term ?? '', ScheduleCourseColors.new),
-      week: _visibleWeek?.presentation as WeekPresentation?,
+      week: _headerWeek?.presentation as WeekPresentation?,
       child: Column(
         children: [
           if (term != null) weekHeader,
