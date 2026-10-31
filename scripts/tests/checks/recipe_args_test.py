@@ -22,11 +22,16 @@ class RecipeArgsTest(unittest.TestCase):
         with patch.object(recipe.sys, 'argv', ['recipe.py', 'flutter-build', 'windows']), \
                 patch.object(recipe.os, 'chdir'), patch('os.name', 'nt'), \
                 patch.object(recipe.os, 'execvpe') as execute, \
+                patch('shutil.which', return_value='C:/Git/usr/bin/bash.exe') as which, \
                 patch('subprocess.call', return_value=3) as call, \
                 self.assertRaises(SystemExit) as exit_:
             recipe.main()
         execute.assert_not_called()
-        self.assertEqual(call.call_args.args[0], ['bash', 'scripts/build/flutter.sh', 'windows', 'debug'])
+        # 按 PATH 解析出 Git Bash，不能交给 CreateProcess 找到 System32 的 WSL bash。
+        self.assertEqual(which.call_args.args[0], 'bash')
+        self.assertEqual(which.call_args.kwargs['path'], recipe.os.environ.get('PATH'))
+        self.assertEqual(call.call_args.args[0],
+                         ['C:/Git/usr/bin/bash.exe', 'scripts/build/flutter.sh', 'windows', 'debug'])
         self.assertEqual(exit_.exception.code, 3)
 
     def test_positional_and_named_forms_are_equivalent(self):

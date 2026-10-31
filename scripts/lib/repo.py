@@ -13,8 +13,11 @@ def hand_off(argv, environment):
     因此在 Windows 上等待子进程结束后按其退出码退出。
     """
     if os.name == 'nt':
+        import shutil
         import subprocess
-        raise SystemExit(subprocess.call(argv, env=environment))
+        # CreateProcess 先搜 System32，会把 bash 解析成 WSL；按 PATH 顺序先找到完整路径。
+        executable = shutil.which(argv[0], path=environment.get('PATH')) or argv[0]
+        raise SystemExit(subprocess.call([executable, *argv[1:]], env=environment))
     os.execvpe(argv[0], argv, environment)
 
 
