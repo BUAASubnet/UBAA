@@ -38,7 +38,7 @@ iOS simulator 的 `debug_unpack_ios` 架构误报已修复。构建入口仅在�
 
 2026-11-01 日程 1d 的 Core 导出部分以 `8075e64d` 为基线完成 `just check-changed base=8075e64d mode=full`，退出码 0。严格 Rust/CLI/脚本检查、八包 Flutter 1,635 项测试、macOS 五项原生集成及 FRB 生成零漂移全部通过。Core 单元测试 489 项通过，1 项既有手动基准忽略；日程聚焦 78 项在 `TZ=UTC` 通过，其中新增 10 项导出回归。初始 5 项导出反例失败，随后 2 项学校覆盖/缓存反例失败，均已保留日志并修复。新依赖的 advisories、licenses、bans、sources 审计通过，两个锁文件只新增日历依赖链，没有升级既有包版本。依赖审计保留既有 allo-isolate 缺少 manifest 许可证字段的警告，macOS 运行器仍有应用置前提示，五项断言均完成。
 
-本次只交付 Core 范围快照导出和 CLI 接线设计，CLI schema v12、Bridge v45、日程 v2、缓存 v7 均保持。方案 A 已由主聊天选定，CLI 的身份登记、跨进程锁、命令执行与原子文件输出由后续新会话实施。大量长中文字段的未优化压力测试耗时约 15.5 分钟，输出正确但性能限制见[导出合同](../contracts/agenda.md#rfc-5545-范围快照导出)。证据在被忽略的 `.ubaa_local/agenda_1d/`，完整记录为 `full.log` 与 `full.exit`，依赖审计为 `audit.log`，失败反例为 `red.log`、`red_school.log`。本轮没有读取真实凭据/会话，没有学校请求、远端 CI、其他平台设备或发布验收。
+本次只交付 Core 范围快照导出和 CLI 接线设计，CLI schema v12、Bridge v45、日程 v2、缓存 v7 均保持。方案 A 已由主聊天选定，CLI 的身份登记、跨进程锁、命令执行与原子文件输出由后续新会话实施。修复前未优化构建的完整 Core 测试耗时 930.64 秒，其中 600 次重复、每次 63,000 字节备注的超限用例长期占用序列化锁。独立审查确认属性折行的二次增长，修复说明见[最近一次完整验证](#最近一次完整验证)及[导出合同](../contracts/agenda.md#rfc-5545-范围快照导出)。证据在被忽略的 `.ubaa_local/agenda_1d/`，完整记录为 `full.log` 与 `full.exit`，依赖审计为 `audit.log`，失败反例为 `red.log`、`red_school.log`。本轮没有读取真实凭据/会话，没有学校请求、远端 CI、其他平台设备或发布验收。
 
 ## 当前未解决与未验证事项
 
@@ -54,7 +54,11 @@ iOS simulator 的 `debug_unpack_ios` 架构误报已修复。构建入口仅在�
 
 ## 最近一次完整验证
 
-2026-11-01 日程 1c-b 路线切换竞态修复以 `12eecabd` 为基线完成 `just check-changed base=12eecabd mode=full`，退出码 0。严格 Rust/CLI/脚本检查、八包 Flutter 1,635 项、macOS 五项原生集成和 FRB 生成零漂移全部通过。Core 单元测试通过 479 项，保留 1 项既有手动基准为 ignored；静态分析保留 692 项 info，无 error/warning。旧实现的正式回归在 16 项中失败 14 项，证明窗口内立即交付、切换后迟到交付及快速切换的投影缺陷。新增 16 项 App 与 6 项生产宿主 Widget 回归覆盖 Direct/WebVPN 双向、Auto、准备失败回滚、切换前与窗口内投影、快速切换、退出换号、来源未变时恢复及新读取恢复签到动作。App 连同既有路线、首页和日程生命周期聚焦共 75 项通过。证据位于被忽略的 `.ubaa_local/agenda_1c_b_route_fence/`，旧失败为 `app_red.log`，完整通过为 `full.log` 与 `full.exit`。首次完整检查曾因 Shell library 聚合超限停止，最终复用可空投影回调接线，布局规则保持原值。macOS 运行器报告应用置前失败，五项断言均完成。本轮没有读取真实凭据或会话，没有学校请求、远端 CI、其他平台设备或发布验收，等待主聊天再次复核。
+2026-11-01 日程 1d 导出修复以 `ac21375644395bc426e579ad1f08fe6ec8358b48` 为基线完成 `just check-changed base=ac213756 mode=full`，退出码 0。严格 Rust/CLI/脚本检查、Core 496 项单元测试（保留 1 项既有手动基准 ignored）、八包 Flutter 1,635 项、macOS 五项原生集成及 FRB 生成零漂移全部通过。新候选的完整 Core 单元测试总耗时为 15.15 秒。
+
+2026-11-01，1d 独立审查发现的两个 P2 已修复：非重复 UID 仅使用已有 UUID，重复单次移动继续保留原发生身份；内容行改为线性流式转义与折行，保留原输出容量、同次读取事务及账号关闭语义。新增解析回归覆盖事件/全天改时、待办截止与无日期转换、重复形态转换和不同事项/发生身份区分，以及长字段、UTF-8、转义及空白边界。UID 两项真实失败反例保留后修复，日程聚焦 85 项在 `TZ=UTC` 通过。原超限输入在本机 debug 构建中单独计时为 1.135 秒，返回 Capacity 且无部分正文；该值是完整导出调用耗时，修复前 930.64 秒是完整 Core 测试总耗时。旧折行函数的独立探针由 rustc -O 编译，输入为 24,012/48,012/63,012 字节，各运行 10 次，测量为 0.008400/0.034195/0.056248 秒，只用于证明旧函数二次增长，未测量 release 完整导出。严格检查保留 692 项既有静态分析 info，无 error/warning。macOS 运行器仍提示无法将应用置前，五项断言全部完成。本轮仅使用合成数据，没有学校请求、真实账号材料、远端 CI 或发布验收。修复证据保存在被忽略的 `.ubaa_local/agenda_1d_export_fix/`，失败反例为 `uid_red.log/uid_red.exit`，聚焦为 `agenda_green.log/agenda_green.exit`，完整为 `full.log/full.exit`。CLI 接线继续由后续会话实施，私有监督状态由主聊天维护。
+
+2026-11-01 日程 1c-b 路线切换竞态修复以 `12eecabd` 为基线完成 `just check-changed base=12eecabd mode=full`，退出码 0。严格 Rust/CLI/脚本检查、八包 Flutter 1,635 项、macOS 五项原生集成和 FRB 生成零漂移全部通过。Core 单元测试通过 479 项，保留 1 项既有手动基准为 ignored；静态分析保留 692 项 info，无 error/warning。旧实现的正式回归在 16 项中失败 14 项，证明窗口内立即交付、切换后迟到交付及快速切换的投影缺陷。新增 16 项 App 与 6 项生产宿主 Widget 回归覆盖 Direct/WebVPN 双向、Auto、准备失败回滚、切换前与窗口内投影、快速切换、退出换号、来源未变时恢复及新读取恢复签到动作。App 连同既有路线、首页和日程生命周期聚焦共 75 项通过。证据位于被忽略的 `.ubaa_local/agenda_1c_b_route_fence/`，旧失败为 `app_red.log`，完整通过为 `full.log` 与 `full.exit`。首次完整检查曾因 Shell library 聚合超限停止，最终复用可空投影回调接线，布局规则保持原值。macOS 运行器报告应用置前失败，五项断言均完成。本轮没有读取真实凭据或会话，没有学校请求、远端 CI、其他平台设备或发布验收，候选 `8075e64d` 已由主聊天独立复核放行。
 
 2026-11-01 日程 1c-b 以 `9fb0bdf1` 为基线完成 `just check-changed base=9fb0bdf1 mode=full`，退出码 0。严格 Rust/CLI/脚本检查、八包 Flutter 1,613 项、macOS 五项原生集成和 FRB 生成零漂移全部通过。Core 单元测试通过 479 项，保留 1 项既有手动基准为 ignored；日程聚焦 68 项通过。静态分析为 692 项 info，无 error/warning。App 新增 7 项聚焦，首页 Widget、加载布局和单层返回聚焦分别通过。原生缓存入口经过生产 App 字段适配及真实 FFI，保留原首页九组业务预期，并覆盖本地重新挂起、原始学校状态、目标不符、重复签到来源、时区、午夜及 48 小时边界。失败反例分别证明已提交作业被原 `home_todo` 漏掉、实际考试学期丢失、无缓存签到跨日交付及分钟刷新前的旧按钮动作问题。证据保存在被忽略的 `.ubaa_local/agenda_1c_b/`，完整记录为 `full.log` 与 `full.exit`。macOS 运行器仍报告窗口置前失败，五项断言均完成。本轮没有学校请求、远端 CI、其他平台设备或发布验收。
 

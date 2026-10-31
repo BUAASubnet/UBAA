@@ -446,3 +446,5 @@ Bridge v44 用独立 `BridgeAgendaStore` 直接包装 facade，不持有网络�
 已在 2026-11-01 核实 [crates.io 的 icalendar 0.17.17](https://crates.io/crates/icalendar/0.17.17) 及该发布包 manifest：2026-10-26 发布，未撤回，最低 Rust 1.88，MIT/Apache-2.0，官方仓库为 [hoodie/icalendar](https://github.com/hoodie/icalendar)。现有 chrono/rrule 负责时刻与展开，尚无 RFC 5545 组件、TEXT 转义及 UTF-8 折行构造器，标准库也不提供这些能力，因此引入精确版本。生产关闭默认 parser/recurrence，测试启用 parser。新增运行时依赖为纯 Rust icalendar、iso8601、nom，测试另有 nom-language，复用已锁定 chrono/uuid。未引入新的原生库、动态加载或平台服务，现有 Rust 1.95 满足版本要求。OHOS 与其他实体平台的本次产物体积尚无实测，不能由 macOS 检查推导。
 
 输出逐组件写入 32 MiB 缓冲预算，超限整体失败。Core 返回正文与计数，后续 CLI 才处理安全路径与文件原子交付。CLI/Bridge/磁盘版本均不变。源码审查、合成回归与完整门禁结果由状态页和提交说明记录。
+
+独立复核后，非重复事项改用已有 UUID 派生导出 UID，重复发生继续使用原始发生键。增加或移除 RRULE 时切换两种身份空间，不补造持久历史。`icalendar 0.17.17` 的长 UTF-8 折行存在反复从头查找的二次增长，因此保留 typed 组件构造，范围快照自行按 RFC 5545 实现流式 TEXT 转义及内容行折行，并在写入过程中检查原 32 MiB 预算。本地内容行写入器属于项目实现，没有修改、复制或维护第三方发布包补丁，也没有改变依赖或许可证清单。序列化继续在原 mutex 和读取事务内执行，避免引入锁外迟到结果及重开代次问题。
