@@ -7,7 +7,7 @@ import '../shared/place_memory.dart' show UiPlaceMemory, UiPlaceKeys;
 import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
-import '../shared/loading.dart' show RefreshActionButton;
+import '../shared/sync_status.dart' show UiSyncStatus, uiIsTouchPlatform;
 import '../features/cgyy/reservation_flow.dart' show CgyySlotLegend;
 import '../shared/feedback.dart';
 import '../shared/refresh.dart' show PullToRefresh;
@@ -25,6 +25,7 @@ import '../common/read_navigator.dart'
 part 'shell_write.dart';
 part 'shell_navigation.dart';
 part 'account/campus_account_loader.dart';
+part 'shell_sync.dart';
 part 'bykc_preferences.dart';
 part 'preferences/recent_features.dart';
 part 'preferences/places.dart';
@@ -45,6 +46,7 @@ class UbaaMainShell extends StatefulWidget {
     required this.onTelemetryChanged,
     this.initialDestination = UiDestination.home,
     this.campusAccountService,
+    this.connecting = false,
     this.homeClock,
     this.connectionStatus,
     this.writeReadbacks = const [],
@@ -157,6 +159,8 @@ class UbaaMainShell extends StatefulWidget {
   /// “我的”页面的门户资料、账户指标与流量读取；为空时页面显示占位。
   final CampusAccountService? campusAccountService;
 
+  /// 会话正在恢复；与页面刷新一起显示在标题栏右侧，不单独显示图标。
+  final bool connecting;
   final String? connectionStatus;
   final List<WriteReadbackHint> writeReadbacks;
   final UiError? writeReadbackError;
@@ -273,6 +277,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     }
   }
 
+  (bool, DateTime?) _homeSync = (false, null);
   CampusAccountOverview? _campusOverview;
   Future<void>? _campusRefresh;
   DateTime? _campusRefreshedAt;
@@ -507,9 +512,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       ],
     );
     // 手机用下拉刷新；桌面鼠标无法下拉，保留按钮与快捷键。
-    final touchRefresh =
-        Theme.of(context).platform == TargetPlatform.iOS ||
-        Theme.of(context).platform == TargetPlatform.android;
+    final touchRefresh = uiIsTouchPlatform(context);
     final refreshPage = _openedFeature != null
         ? () => _refreshFeature(_openedFeature!)
         : _utilityPage == null && _selectedIndex == 0
@@ -553,7 +556,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             )
           : null,
       actions: <Widget>[
-        if (widget.connectionStatus != null)
+        if (widget.connectionStatus != null || widget.onCompleteLogin != null)
           IconButton(
             tooltip: widget.onCompleteLogin != null ? '完成登录' : '连接状态',
             icon: Icon(
@@ -634,16 +637,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               label: const Text('学期'),
             ),
           ),
-        if (!touchRefresh && refreshPage != null)
-          RefreshActionButton(
-            tooltip:
-                _openedFeature == null ||
-                    (_openedFeature == FeatureId.schedule &&
-                        widget.onSaveScheduleSemester != null)
-                ? '刷新'
-                : '刷新当前查询',
-            onRefresh: refreshPage,
-          ),
+        _buildSyncStatus(touchRefresh ? null : refreshPage),
       ],
     );
     final shell = PopScope<void>(
@@ -876,6 +870,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           0 => HomeView(
             key: _homeKey,
             onPullRefresh: _pull,
+            deferSupplements: widget.connecting,
+            onSyncStatus: (busy, updatedAt) {
+              if (mounted) setState(() => _homeSync = (busy, updatedAt));
+            },
             homeClock: widget.homeClock,
             recentFeatures: _recentFeatures,
             user: widget.user,

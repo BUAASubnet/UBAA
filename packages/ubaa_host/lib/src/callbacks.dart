@@ -72,8 +72,8 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
   String? get _connectionStatus {
     if (!_controller.usesLocalRecovery) return null;
     return switch (_controller.sessionRecoveryStatus) {
-      SessionRecoveryStatus.idle ||
-      SessionRecoveryStatus.restoring => '正在连接，稍后更新内容',
+      // 恢复中并入标题栏的“更新中”，不显示断网图标，避免反复闪烁。
+      SessionRecoveryStatus.idle || SessionRecoveryStatus.restoring => null,
       SessionRecoveryStatus.needsLogin => '需要登录，当前页面会保留',
       SessionRecoveryStatus.unavailable => '暂时无法更新，请稍后重试',
       SessionRecoveryStatus.ready =>
@@ -105,6 +105,11 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       ihomeService: _controller.ihomeService,
       campusAccountService: _controller.campusAccountService,
       connectionStatus: _connectionStatus,
+      connecting:
+          _controller.usesLocalRecovery &&
+          (_controller.sessionRecoveryStatus == SessionRecoveryStatus.idle ||
+              _controller.sessionRecoveryStatus ==
+                  SessionRecoveryStatus.restoring),
       writeReadbacks: _controller.writeReadbacks,
       writeReadbackError: _controller.writeReadbackError,
       onRefreshWriteReadbacks: _controller.refreshWriteReadbacks,
@@ -113,7 +118,11 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           : null,
       onReconnect: () => unawaited(_controller.recoverSession()),
       onCompleteLogin:
-          _controller.sessionRecoveryStatus == SessionRecoveryStatus.needsLogin
+          _controller.usesLocalRecovery &&
+              _controller.sessionRecoveryStatus !=
+                  SessionRecoveryStatus.ready &&
+              _controller.sessionRecoveryStatus !=
+                  SessionRecoveryStatus.signedOut
           ? _showInPlaceLogin
           : null,
       onLoadAppVersion: appInformation.version,

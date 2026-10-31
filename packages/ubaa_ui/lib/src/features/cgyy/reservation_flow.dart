@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../../shared/loading.dart' show LoadingPlaceholder;
+import '../../shared/sync_status.dart' show uiIsTouchPlatform;
 import '../../common/error_card.dart' show FriendlyErrorCard;
 import 'reservation_table.dart' show CgyyTableHeader;
 import '../../write/cgyy/draft.dart' show CgyyFormContext;

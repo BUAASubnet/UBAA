@@ -26,7 +26,12 @@ void main() {
     await tester.pump();
     expect(find.byType(UbaaMainShell), findsOneWidget);
     expect(backend.authCalls, 1);
-    expect(find.byTooltip('连接状态'), findsOneWidget);
+    expect(find.byTooltip('完成登录'), findsOneWidget);
+    await tester.tap(find.byTooltip('完成登录'));
+    await tester.pump(const Duration(milliseconds: 350));
+    expect(find.byType(UbaaLoginView), findsOneWidget);
+    Navigator.of(tester.element(find.byType(UbaaLoginView))).pop();
+    await tester.pump(const Duration(milliseconds: 350));
     expect(find.byType(UbaaSplashView), findsNothing);
     await tester.tap(find.byKey(const ValueKey<String>('tab-学业')));
     await tester.pump();

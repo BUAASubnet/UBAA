@@ -144,36 +144,37 @@ void main() {
 
   testWidgets('连接恢复结束不移动首页内容，登录入口仍可用', (tester) async {
     var logins = 0;
-    Future<void> mount(String? status, {bool login = false}) =>
-        tester.pumpWidget(
-          MaterialApp(
-            home: UbaaMainShell(
-              user: const UserSummary(username: 'synthetic'),
-              snapshots: {
-                for (final f in FeatureId.values)
-                  f: FeatureSnapshot(
-                    feature: f,
-                    status: FeatureLoadStatus.empty,
-                  ),
-              },
-              routePolicy: RoutePolicy.auto,
-              telemetryEnabled: false,
-              connectionStatus: status,
-              onCompleteLogin: login
-                  ? (_) async {
-                      logins++;
-                    }
-                  : null,
-              onRefresh: () async {},
-              onRetryFeature: (_) async {},
-              onLogout: () async {},
-              onLogoutAndClearAccount: () async {},
-              onRoutePolicyChanged: (_) {},
-              onTelemetryChanged: (_) {},
-            ),
-          ),
-        );
-    await mount('正在连接，稍后更新内容');
+    Future<void> mount(
+      String? status, {
+      bool login = false,
+      bool connecting = false,
+    }) => tester.pumpWidget(
+      MaterialApp(
+        home: UbaaMainShell(
+          user: const UserSummary(username: 'synthetic'),
+          snapshots: {
+            for (final f in FeatureId.values)
+              f: FeatureSnapshot(feature: f, status: FeatureLoadStatus.empty),
+          },
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          connectionStatus: status,
+          connecting: connecting,
+          onCompleteLogin: login
+              ? (_) async {
+                  logins++;
+                }
+              : null,
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: (_) {},
+          onTelemetryChanged: (_) {},
+        ),
+      ),
+    );
+    await mount(null, connecting: true, login: true);
     final before = tester.getTopLeft(find.text('今日课表'));
     await mount(null);
     expect(tester.getTopLeft(find.text('今日课表')), before);

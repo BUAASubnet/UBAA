@@ -119,10 +119,7 @@ class _ChoiceStripState extends State<_ChoiceStrip> {
 
   @override
   Widget build(BuildContext context) {
-    final touch = switch (Theme.of(context).platform) {
-      TargetPlatform.iOS || TargetPlatform.android => true,
-      _ => false,
-    };
+    final touch = uiIsTouchPlatform(context);
     final strip = SingleChildScrollView(
       controller: _scroll,
       scrollDirection: Axis.horizontal,
