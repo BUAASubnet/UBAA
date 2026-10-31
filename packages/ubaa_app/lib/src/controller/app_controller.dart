@@ -89,24 +89,31 @@ class AppController extends ControllerState
         ControllerActions {
   int _homeProjectionGeneration = 0;
 
+  /// 沿用 transition 计数；纯投影不采用学校读取在目标会话恢复中的放行特例。
+  bool get homeTodoProjectionBlocked =>
+      internalRoutePolicyInFlight || internalWriteTransitions != 0;
+
   /// 纯本地投影沿用读取、账号和路线栅栏，不排入学校读取队列。
   Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request) async {
     final scope = internalCaptureReadScope();
     final route = internalRoutePolicyGeneration;
+    final policy = internalLoginForm.routePolicy;
     final account = internalLocalAccount?.id;
     final generation = ++_homeProjectionGeneration;
     bool current() =>
         scope.isCurrent &&
         !internalDisposed &&
         !internalIsSigningOut &&
+        !homeTodoProjectionBlocked &&
         internalPhase == AppPhase.home &&
         route == internalRoutePolicyGeneration &&
+        policy == internalLoginForm.routePolicy &&
         account == internalLocalAccount?.id &&
         generation == _homeProjectionGeneration;
     final backend = internalBackend;
     if (!current() || backend is! HomeTodoBackend)
       throw const AgendaException(AgendaFailure.unavailable);
-    final expectedRoute = switch (internalLoginForm.routePolicy) {
+    final expectedRoute = switch (policy) {
       RoutePolicy.direct => ConnectionMode.direct,
       RoutePolicy.webvpn => ConnectionMode.webvpn,
       RoutePolicy.auto => null,
@@ -118,7 +125,15 @@ class AppController extends ControllerState
           if ((e.value.evidence == null ||
                   e.value.evidence!.accountId == account) &&
               (expectedRoute == null || e.value.resolvedRoute == expectedRoute))
-            e.key: e.value,
+            e.key:
+                e.key == FeatureId.signin &&
+                    internalRoutePolicyReadRevision >= 0 &&
+                    (e.value.readContext?.requestRevision ?? -1) <=
+                        internalRoutePolicyReadRevision
+                ? e.value.copyWith(
+                    details: readonlyFeatureDetails(e.value.details),
+                  )
+                : e.value,
       },
       now: request.now,
       currentWeek: request.currentWeek,

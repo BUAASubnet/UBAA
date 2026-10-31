@@ -18,6 +18,7 @@ mixin ControllerSettings on ControllerState {
     final backend = internalBackend;
     final credentials = internalLoginCredentialRevision;
     final request = ++internalRoutePolicyGeneration;
+    internalRoutePolicyReadRevision = internalReadRequestRevision;
     internalRoutePolicyInFlight = true;
     internalBeginWriteTransition();
     final epoch = internalLifecycleEpoch;
@@ -75,8 +76,9 @@ mixin ControllerSettings on ControllerState {
       if (request == internalRoutePolicyGeneration)
         internalRoutePolicyInFlight = false;
       internalEndWriteTransition();
+      // 旧请求也可能是最后一个 transition；收尾必须通知首页恢复纯投影。
+      internalNotify();
     }
-    internalNotify();
     unawaited(internalQueueProfileRefresh(force: true));
   }
 

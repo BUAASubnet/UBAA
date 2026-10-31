@@ -160,7 +160,7 @@ class HomeViewState extends State<HomeView> {
       '${homeCampusTime(_now).toIso8601String().split('T').first}:${item.id}';
 
   Future<void> _signin(HomeTodo item) async {
-    if (_signingTodo != null) return;
+    if (_signingTodo != null || widget.onProjectTodos == null) return;
     final currentTime = (widget.homeClock ?? clock).now();
     if (homeDateKey(homeCampusTime(currentTime)) !=
         homeDateKey(homeCampusTime(_now))) {
@@ -260,6 +260,7 @@ class HomeViewState extends State<HomeView> {
     if (old.cacheEpoch != widget.cacheEpoch ||
         old.businessCacheEpoch != widget.businessCacheEpoch ||
         old.agendaEpoch != widget.agendaEpoch ||
+        (old.onProjectTodos == null) != (widget.onProjectTodos == null) ||
         old.reminderSettings != widget.reminderSettings ||
         !mapEquals(_lastSnapshots, widget.snapshots) ||
         (!old.visible && widget.visible)) {
@@ -423,9 +424,13 @@ class HomeViewState extends State<HomeView> {
   Future<void> _projectTodos() async {
     final generation = ++_projectionGeneration;
     _todos = _todos.map((v) => v.withoutSigninAction()).toList();
-    final time = _now;
     final reader = widget.onProjectTodos;
-    if (reader == null) return;
+    if (reader == null) {
+      _todos = const [];
+      _projectionFailure = null;
+      return;
+    }
+    final time = _now;
     final weeks =
         _supplements[HomeSupplement.currentWeek]?.details
             .map((d) => d.presentation)

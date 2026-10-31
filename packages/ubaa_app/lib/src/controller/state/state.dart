@@ -131,6 +131,10 @@ abstract class ControllerState extends ControllerOperations {
   @internal
   int internalRoutePolicyGeneration = 0;
 
+  /// 路线切换前已发出的读取不能重新赋予首页签到动作。
+  @internal
+  int internalRoutePolicyReadRevision = -1;
+
   @internal
   bool internalRoutePolicyInFlight = false;
 
