@@ -4,8 +4,8 @@ use std::path::PathBuf;
 use clap::Parser;
 use directories::ProjectDirs;
 use ubaa_cli::{
-    Cli, CliFeature, render_startup_error, run_dual_login, run_dual_logout, run_dual_status,
-    run_with_backend, run_with_routed_backend,
+    Cli, CliFeature, render_startup_error, run_dual_login_with_agenda, run_dual_logout,
+    run_dual_status, run_with_backend, run_with_routed_backend,
 };
 use ubaa_core::facade::{ErrorCode, ErrorKind, UbaaError};
 use ubaa_core::facade::{RouteClient, UbaaClient};
@@ -77,6 +77,36 @@ async fn run(cli: Cli) -> i32 {
             &mut stderr,
         );
     };
+    if matches!(cli.command, ubaa_cli::Command::Agenda(_)) {
+        return ubaa_cli::local_agenda::run_agenda(&cli, &config_dir, &mut stdout, &mut stderr);
+    }
+    let mut agenda = if cli.is_login() || cli.is_logout() {
+        match ubaa_cli::local_agenda::AgendaAccess::open(&config_dir).and_then(|mut a| {
+            a.revoke()?;
+            Ok(a)
+        }) {
+            Ok(access) => Some(access),
+            Err(_) => {
+                return render_startup_error(
+                    json_mode,
+                    feature,
+                    UbaaError::new(
+                        ErrorCode::InternalError,
+                        ErrorKind::Internal,
+                        false,
+                        "本机日程账号无法安全撤销，认证操作已停止",
+                    ),
+                    &mut stdout,
+                    &mut stderr,
+                );
+            }
+        }
+    } else {
+        None
+    };
+    let config_dir = agenda
+        .as_ref()
+        .map_or(config_dir.clone(), |a| a.config_dir().to_path_buf());
     if cli.is_login() && cli.login_mode().is_some() {
         let client = match RouteClient::open(cli.login_mode(), &config_dir) {
             Ok(client) => client,
@@ -113,7 +143,15 @@ async fn run(cli: Cli) -> i32 {
     if cli.is_login() {
         let stdin = io::stdin();
         let mut input = BufReader::new(stdin.lock());
-        run_dual_login(cli, &mut client, &mut input, &mut stdout, &mut stderr).await
+        run_dual_login_with_agenda(
+            cli,
+            &mut client,
+            &mut input,
+            &mut stdout,
+            &mut stderr,
+            agenda.as_mut().expect("登录持有配置作用域锁"),
+        )
+        .await
     } else if cli.is_auth_status() {
         run_dual_status(cli, &mut client, &mut stdout, &mut stderr).await
     } else if cli.is_logout() {

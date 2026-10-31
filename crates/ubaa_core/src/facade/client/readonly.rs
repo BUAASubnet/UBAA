@@ -15,6 +15,7 @@ impl UbaaClient {
         self.direct_runtime.ensure_primary_client()?;
         self.guard_latest_session_ownership()?;
         Ok(Self {
+            verified_login: None,
             config_dir: None,
             config: self.config.clone(),
             route_generation: self.route_generation,

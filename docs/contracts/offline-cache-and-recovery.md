@@ -4,7 +4,7 @@
 
 ## 版本和所有权
 
-业务缓存数据库当前为 version 7，独立于 Session v2、配置 v1 和 CLI JSON schema v12。应用处于全新开发阶段，不迁移 v1–v6 开发缓存。普通打开遇到旧版或未知版本时返回 UnsupportedVersion 并保留原文件，用户显式确认后才能重建为空库。当前格式保留加密请求范围、精确失效及最小待核实提示，移除不再使用的 priority 列和无学期/周期查询变体。公开版本与兼容规则见[认证与用户合同](auth-and-user.md)和[Flutter Bridge 合同](flutter-bridge.md)。新 Bridge 缓存/恢复出口须同步升级 Bridge、生成绑定和 App 消费方；旧双路线 API 不删除或改义。只有 Core 业务仓库保存业务内容，平台仅保存最小账号索引、本地偏好和安全密钥。App 只持有不可写的内存展示投影。
+业务缓存数据库当前为 version 7，独立于 Session v2、配置 v1 和 CLI JSON schema v13。应用处于全新开发阶段，不迁移 v1–v6 开发缓存。普通打开遇到旧版或未知版本时返回 UnsupportedVersion 并保留原文件，用户显式确认后才能重建为空库。当前格式保留加密请求范围、精确失效及最小待核实提示，移除不再使用的 priority 列和无学期/周期查询变体。公开版本与兼容规则见[认证与用户合同](auth-and-user.md)和[Flutter Bridge 合同](flutter-bridge.md)。新 Bridge 缓存/恢复出口须同步升级 Bridge、生成绑定和 App 消费方；旧双路线 API 不删除或改义。只有 Core 业务仓库保存业务内容，平台仅保存最小账号索引、本地偏好和安全密钥。App 只持有不可写的内存展示投影。
 
 当前格式只接受新库初始化和 schema v7 重开。v1–v6 及未知版本返回 UnsupportedVersion，普通打开不重封、不改写或清空原库。当前格式错误密钥继续返回缓存错误，已退出状态须在显式认证后激活。设置中的显式重建会删除本账号业务副本和核对提示，并产生新的数据库身份，使旧句柄及票据失效。淘汰只依据 `store/retention.rs`，不保存旧 priority 列。下文按阶段保留的旧版本和迁移记录只描述历史实现，当前处理以本节为准。
 

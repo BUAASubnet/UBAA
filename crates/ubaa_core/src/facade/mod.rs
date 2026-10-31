@@ -1,5 +1,8 @@
 //! CLI 与未来绑定层使用的稳定 facade。
 mod auth;
+#[path = "auth/verified_identity.rs"]
+mod verified_identity;
+pub use verified_identity::VerifiedLoginIdentity;
 mod client;
 mod diagnostic;
 mod judge_refresh;

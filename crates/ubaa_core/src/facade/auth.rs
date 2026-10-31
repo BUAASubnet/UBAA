@@ -42,6 +42,7 @@ impl UbaaClient {
         route: ConnectionMode,
         input: LoginInput,
     ) -> Result<super::types::CallerPinned<UserProfile>> {
+        self.verified_login = None;
         self.guard_latest_session_ownership()?;
         let result = self.login_route(route, input).await;
         self.clear_on_session_conflict()?;
@@ -86,6 +87,7 @@ impl UbaaClient {
         self.clear_interactive_context();
         let mut routes = Vec::with_capacity(2);
         let mut profile = None;
+        let mut identities = Vec::new();
         for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
             let login = self
                 .login_route(
@@ -96,6 +98,12 @@ impl UbaaClient {
                     },
                 )
                 .await;
+            if let Ok(ref current) = login {
+                identities.push(super::verified_identity::login_identity(
+                    current,
+                    &input.username,
+                ));
+            }
             let (route_result, current) = Self::finish_route_login(route, login);
             if profile.is_none() {
                 profile = current;
@@ -115,6 +123,19 @@ impl UbaaClient {
             1 => LoginReadiness::Partial,
             _ => LoginReadiness::NoneReady,
         };
+        if let Some(Some(identity)) = identities.first()
+            && self.active_routes().len() == ready
+            && identities
+                .iter()
+                .all(|value| value.as_ref() == Some(identity))
+        {
+            self.verified_login = Some((
+                identity.clone(),
+                uuid::Uuid::new_v4(),
+                false,
+                std::time::Instant::now(),
+            ));
+        }
         Ok(LoginOutcome {
             readiness,
             routes: fixed_route_results(routes),

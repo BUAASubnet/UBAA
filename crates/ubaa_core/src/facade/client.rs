@@ -16,6 +16,7 @@ use crate::session::{DualSessionCoordinator, FileSessionStore};
 
 pub struct UbaaClient {
     pub(super) config_dir: Option<PathBuf>,
+    pub(super) verified_login: Option<(String, uuid::Uuid, bool, std::time::Instant)>,
     pub(super) config: RouteConfig,
     pub(super) route_generation: u64,
     pub(super) probe: Arc<dyn GatewayProbe>,
@@ -170,6 +171,7 @@ impl UbaaClient {
         let webvpn_store = sessions.route_store(ConnectionMode::WebVpn);
         Ok(Self {
             config_dir: None,
+            verified_login: None,
             route_generation: 0,
             config,
             probe: probe.into(),

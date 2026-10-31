@@ -26,6 +26,28 @@ where
     O: Write,
     E: Write,
 {
+    run_dual_login_impl(cli, backend, input, stdout, stderr, None).await
+}
+
+/// 生产 CLI 在同一配置作用域锁内完成登录登记后再输出结果。
+pub async fn run_dual_login_with_agenda<R: BufRead, O: Write, E: Write>(
+    cli: Cli,
+    backend: &mut UbaaClient,
+    input: &mut R,
+    stdout: &mut O,
+    stderr: &mut E,
+    agenda: &mut crate::local_agenda::AgendaAccess,
+) -> i32 {
+    run_dual_login_impl(cli, backend, input, stdout, stderr, Some(agenda)).await
+}
+async fn run_dual_login_impl<R: BufRead, O: Write, E: Write>(
+    cli: Cli,
+    backend: &mut UbaaClient,
+    input: &mut R,
+    stdout: &mut O,
+    stderr: &mut E,
+    agenda: Option<&mut crate::local_agenda::AgendaAccess>,
+) -> i32 {
     let json_mode = cli.json;
     let route_policy = backend.default_route_policy();
     let Command::Auth(AuthArgs {
@@ -57,8 +79,23 @@ where
             return render_aggregate_input_error(json_mode, error, stdout, stderr);
         }
     };
+    let registration = agenda
+        .filter(|_| outcome.readiness != LoginReadiness::NoneReady)
+        .map(|agenda| {
+            backend
+                .take_verified_login_identity()
+                .map_err(|_| crate::local_agenda::LocalError::StaleIdentity)
+                .and_then(|identity| agenda.register(backend, &identity))
+        });
     outcome.profile = outcome.profile.map(redacted_profile);
-    render_dual_outcome(json_mode, outcome, route_policy, stdout, stderr)
+    render_dual_outcome(
+        json_mode,
+        outcome,
+        route_policy,
+        stdout,
+        stderr,
+        registration,
+    )
 }
 
 /// 执行普通聚合认证状态流程。
@@ -78,7 +115,7 @@ where
         Err(error) => return render_aggregate_input_error(cli.json, error, stdout, stderr),
     };
     outcome.profile = outcome.profile.map(redacted_profile);
-    render_dual_outcome(cli.json, outcome, route_policy, stdout, stderr)
+    render_dual_outcome(cli.json, outcome, route_policy, stdout, stderr, None)
 }
 
 /// 使用固定的聚合路由元数据退出两个路由槽位。
@@ -149,9 +186,16 @@ fn render_dual_outcome<O: Write, E: Write>(
     route_policy: RoutePolicy,
     stdout: &mut O,
     stderr: &mut E,
+    registration: Option<std::result::Result<(), crate::local_agenda::LocalError>>,
 ) -> i32 {
     let error = aggregate_error(&outcome);
-    let exit_code = aggregate_exit_code(&outcome, error.as_ref());
+    let exit_code = registration
+        .as_ref()
+        .and_then(|r| r.as_ref().err())
+        .map_or_else(
+            || aggregate_exit_code(&outcome, error.as_ref()),
+            |error| error.exit(),
+        );
     if json_mode {
         let envelope = match error {
             Some(error) => AggregateJsonEnvelope::auth_failure(outcome, error, route_policy),
@@ -163,8 +207,19 @@ fn render_dual_outcome<O: Write, E: Write>(
                 return render_startup_error(true, CliFeature::Auth, error, stdout, stderr);
             }
         };
-        if write_json(stdout, &envelope).is_err() {
-            return ExitCode::Internal as i32;
+        let Ok(mut value) = serde_json::to_value(&envelope) else {
+            return 7;
+        };
+        if let Some(result) = registration {
+            value["agendaRegistration"] = match result {
+                Ok(()) => serde_json::json!({"state":"ready"}),
+                Err(error) => {
+                    serde_json::json!({"state":"failed","error":{"code":error,"message":error.message(),"retryable":false}})
+                }
+            };
+        }
+        if write_json(stdout, &value).is_err() {
+            return 7;
         }
     } else {
         for route in &outcome.routes {
@@ -179,6 +234,20 @@ fn render_dual_outcome<O: Write, E: Write>(
         }
         if let Some(error) = error {
             let _ = writeln!(stderr, "错误：{}", error.message);
+        }
+        if let Some(result) = registration {
+            match result {
+                Ok(()) => {
+                    let _ = writeln!(stdout, "本机日程账号已登记。");
+                }
+                Err(error) => {
+                    let _ = writeln!(
+                        stderr,
+                        "学校认证已完成，本机日程登记失败：{}",
+                        error.message()
+                    );
+                }
+            }
         }
     }
     exit_code

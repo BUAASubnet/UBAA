@@ -90,6 +90,13 @@ where
             CliFeature::Evaluation,
             run_routed_evaluation(arguments, backend).await,
         ),
+        Command::Agenda(_) => (
+            CliFeature::Agenda,
+            Err(RoutedError {
+                error: invalid_input("本机日程应使用独立执行入口"),
+                resolution: None,
+            }),
+        ),
         Command::Auth(_) => (
             CliFeature::Auth,
             Err(RoutedError {

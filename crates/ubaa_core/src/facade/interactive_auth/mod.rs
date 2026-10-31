@@ -448,6 +448,7 @@ impl UbaaClient {
     }
 
     pub(super) fn clear_interactive_context(&mut self) {
+        self.verified_login = None;
         self.interactive.cancellation.cancel();
         let had_login = self.interactive.current_login.take().is_some();
         if self.interactive.context.take().is_some() || had_login {

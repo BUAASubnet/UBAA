@@ -66,6 +66,9 @@ where
     let mode = backend.mode();
     let feature = command_feature(&cli.command);
     let result = match cli.command {
+        Command::Agenda(_) => Err(crate::io::input::invalid_input(
+            "本机日程应使用独立执行入口",
+        )),
         Command::Portal(arguments) => super::features::campus::portal(arguments, backend).await,
         Command::Network(arguments) => super::features::campus::network(arguments, backend).await,
         Command::Auth(AuthArgs {

@@ -6,6 +6,8 @@ use crate::io::schema::CliFeature;
 use clap::{Parser, Subcommand};
 use ubaa_core::facade::ConnectionMode;
 
+mod agenda;
+pub use agenda::{AgendaArgs, AgendaCommand};
 mod academic;
 mod campus;
 pub use campus::{NetworkArgs, NetworkCommand, PortalArgs, PortalCommand};
@@ -58,6 +60,8 @@ pub struct Cli {
 /// 顶层命令组。
 #[derive(Debug, Subcommand)]
 pub enum Command {
+    /// 本机日程只读操作，不隐式认证或刷新学校来源。
+    Agenda(AgendaArgs),
     /// 门户身份及校园账户只读查询。
     Portal(PortalArgs),
     /// 网费流量只读查询。
@@ -175,6 +179,7 @@ impl Cli {
 
 pub(crate) const fn command_feature(command: &Command) -> CliFeature {
     match command {
+        Command::Agenda(_) => CliFeature::Agenda,
         Command::Portal(_) => CliFeature::Portal,
         Command::Network(_) => CliFeature::Network,
         Command::Auth(_) => CliFeature::Auth,

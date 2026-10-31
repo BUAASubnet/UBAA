@@ -12,6 +12,10 @@ version.workspace = true
 async-trait.workspace = true
 clap.workspace = true
 directories.workspace = true
+fs2.workspace = true
+sha2.workspace = true
+uuid.workspace = true
+chrono.workspace = true
 rpassword.workspace = true
 same-file.workspace = true
 serde.workspace = true
@@ -19,6 +23,9 @@ serde_json.workspace = true
 tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
 tracing-subscriber = { workspace = true, features = ["env-filter", "fmt"] }
 ubaa-core = { path = "../../crates/ubaa_core" }
+
+[target.'cfg(unix)'.dependencies]
+libc = "0.2.189"
 
 [dev-dependencies]
 jsonschema.workspace = true

@@ -16,12 +16,14 @@ use crate::io::error::{CliJsonError, output_invariant_error};
 use crate::io::input::internal_error;
 
 /// CLI 唯一支持的 JSON 架构版本。
-pub const CLI_JSON_SCHEMA_VERSION: u32 = 12;
+pub const CLI_JSON_SCHEMA_VERSION: u32 = 13;
 
 /// CLI JSON 元数据使用的封闭功能名称集合。
 #[derive(Clone, Copy, Debug, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "lowercase")]
 pub enum CliFeature {
+    /// 本机日程。
+    Agenda,
     /// 门户身份及校园账户指标。
     Portal,
     /// 网费流量。
@@ -65,6 +67,7 @@ impl CliFeature {
     #[must_use]
     pub const fn as_str(self) -> &'static str {
         match self {
+            Self::Agenda => "agenda",
             Self::Portal => "portal",
             Self::Network => "network",
             Self::Ihome => "ihome",

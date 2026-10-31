@@ -1,20 +1,21 @@
 //! UBAA Core 的命令行解析与输出展示。
 
 mod backend;
+pub mod local_agenda;
 pub use backend::{CliBackend, RoutedCliBackend};
 mod command;
 pub use command::{
-    AuthArgs, AuthCommand, BykcArgs, BykcCommand, CgyyArgs, CgyyCommand, ClassroomArgs,
-    ClassroomCommand, Cli, CliConnectionMode, Command, EvaluationArgs, EvaluationCommand, ExamArgs,
-    ExamCommand, GradesArgs, GradesCommand, JudgeArgs, JudgeAssignmentCommand, JudgeCommand,
-    LibBookArgs, LibBookCommand, LoginArgs, ScheduleArgs, ScheduleCommand, SigninArgs,
-    SigninCommand, SpocArgs, SpocAssignmentCommand, SpocCommand, UserArgs, UserCommand, YgdkArgs,
-    YgdkCommand,
+    AgendaArgs, AgendaCommand, AuthArgs, AuthCommand, BykcArgs, BykcCommand, CgyyArgs, CgyyCommand,
+    ClassroomArgs, ClassroomCommand, Cli, CliConnectionMode, Command, EvaluationArgs,
+    EvaluationCommand, ExamArgs, ExamCommand, GradesArgs, GradesCommand, JudgeArgs,
+    JudgeAssignmentCommand, JudgeCommand, LibBookArgs, LibBookCommand, LoginArgs, ScheduleArgs,
+    ScheduleCommand, SigninArgs, SigninCommand, SpocArgs, SpocAssignmentCommand, SpocCommand,
+    UserArgs, UserCommand, YgdkArgs, YgdkCommand,
 };
 pub use command::{NetworkArgs, NetworkCommand, PortalArgs, PortalCommand};
 mod execute;
 pub use execute::{
-    run_dual_login, run_dual_logout, run_dual_status, run_with_backend,
+    run_dual_login, run_dual_login_with_agenda, run_dual_logout, run_dual_status, run_with_backend,
     run_with_backend_with_route, run_with_routed_backend,
 };
 mod io;

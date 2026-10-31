@@ -1,12 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:ubaa:cli:json:schema:12",
+  "$id": "urn:ubaa:cli:json:schema:13",
   "title": "UBAA CLI JSON envelope",
   "oneOf": [
     { "$ref": "#/$defs/resolvedRoutedEnvelope" },
     { "$ref": "#/$defs/unresolvedRoutedFailure" },
     { "$ref": "#/$defs/aggregateAuthEnvelope" },
-    { "$ref": "#/$defs/aggregateLogoutEnvelope" }
+    { "$ref": "#/$defs/aggregateLogoutEnvelope" },
+    { "$ref": "#/$defs/agendaEnvelope" }
   ],
   "$defs": {
     "campusAmount": {
@@ -1312,7 +1313,7 @@
       "type": "object",
       "required": ["feature"],
       "properties": {
-        "feature": { "$ref": "#/$defs/feature" }
+        "feature": { "anyOf": [{ "$ref": "#/$defs/feature" }, { "const": "agenda" }] }
       },
       "additionalProperties": false
     },
@@ -1320,7 +1321,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "meta"],
       "properties": {
-        "schemaVersion": { "const": 12 },
+        "schemaVersion": { "const": 13 },
         "ok": { "type": "boolean" },
         "data": {},
         "error": { "$ref": "#/$defs/error" },
@@ -1515,7 +1516,7 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "error", "meta"],
       "properties": {
-        "schemaVersion": { "const": 12 },
+        "schemaVersion": { "const": 13 },
         "ok": { "const": false },
         "error": { "$ref": "#/$defs/error" },
         "meta": { "$ref": "#/$defs/unresolvedRoutedMeta" }
@@ -1671,7 +1672,8 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 12 },
+        "agendaRegistration": { "$ref": "#/$defs/agendaRegistration" },
+        "schemaVersion": { "const": 13 },
         "ok": { "type": "boolean" },
         "data": { "$ref": "#/$defs/aggregateAuthData" },
         "error": { "$ref": "#/$defs/error" },
@@ -1747,12 +1749,480 @@
       "type": "object",
       "required": ["schemaVersion", "ok", "data", "meta"],
       "properties": {
-        "schemaVersion": { "const": 12 },
+        "schemaVersion": { "const": 13 },
         "ok": { "const": true },
         "data": { "$ref": "#/$defs/aggregateLogoutData" },
         "meta": { "$ref": "#/$defs/aggregateMeta" }
       },
       "additionalProperties": false
     }
+,
+      "agendaItem": {
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "format": "uuid"
+          },
+          "content": {
+            "type": "object",
+            "properties": {
+              "kind": {
+                "enum": [
+                  "event",
+                  "task"
+                ]
+              },
+              "title": {
+                "type": "string"
+              },
+              "location": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "notes": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "color": {
+                "type": [
+                  "string",
+                  "null"
+                ]
+              },
+              "start": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "end": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              },
+              "all_day": {
+                "type": "boolean"
+              },
+              "due": {
+                "type": [
+                  "object",
+                  "null"
+                ]
+              }
+            },
+            "required": [
+              "kind",
+              "title",
+              "location",
+              "notes",
+              "color",
+              "start",
+              "end",
+              "all_day",
+              "due"
+            ],
+            "additionalProperties": false
+          },
+          "rrule": {
+            "type": [
+              "string",
+              "null"
+            ]
+          },
+          "exdates": {
+            "type": "array",
+            "items": {
+              "type": "object"
+            }
+          },
+          "overrides": {
+            "type": "object",
+            "additionalProperties": {
+              "type": "object",
+              "properties": {
+                "kind": {
+                  "enum": [
+                    "event",
+                    "task"
+                  ]
+                },
+                "title": {
+                  "type": "string"
+                },
+                "location": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "notes": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "color": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "start": {
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
+                "end": {
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                },
+                "all_day": {
+                  "type": "boolean"
+                },
+                "due": {
+                  "type": [
+                    "object",
+                    "null"
+                  ]
+                }
+              },
+              "required": [
+                "kind",
+                "title",
+                "location",
+                "notes",
+                "color",
+                "start",
+                "end",
+                "all_day",
+                "due"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "completions": {
+            "type": "object"
+          },
+          "created_at": {
+            "type": "object"
+          },
+          "updated_at": {
+            "type": "object"
+          },
+          "deleted_at": {
+            "type": [
+              "object",
+              "null"
+            ]
+          },
+          "locally_modified": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "id",
+          "content",
+          "rrule",
+          "exdates",
+          "overrides",
+          "completions",
+          "created_at",
+          "updated_at",
+          "deleted_at",
+          "locally_modified"
+        ],
+        "additionalProperties": false
+      },
+      "agendaRegistration": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "state": {
+                "const": "ready"
+              }
+            },
+            "required": [
+              "state"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "state": {
+                "const": "failed"
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "registration_required",
+                      "material_unavailable",
+                      "material_corrupt",
+                      "storage",
+                      "stale_identity",
+                      "cache_key_missing",
+                      "cache_missing",
+                      "cache_corrupt",
+                      "agenda_corrupt",
+                      "invalid_input",
+                      "not_found"
+                    ]
+                  },
+                  "message": {
+                    "type": "string"
+                  },
+                  "retryable": {
+                    "const": false
+                  }
+                },
+                "required": [
+                  "code",
+                  "message",
+                  "retryable"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "state",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      },
+      "agendaEnvelope": {
+        "oneOf": [
+          {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "const": 13
+              },
+              "ok": {
+                "const": true
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "feature": {
+                    "const": "agenda"
+                  },
+                  "operation": {
+                    "enum": [
+                      "list",
+                      "show",
+                      "unsynced"
+                    ]
+                  },
+                  "accountState": {
+                    "enum": [
+                      "active",
+                      "unavailable"
+                    ]
+                  }
+                },
+                "required": [
+                  "feature",
+                  "operation",
+                  "accountState"
+                ],
+                "additionalProperties": false
+              },
+              "data": {
+                "oneOf": [
+                  {
+                    "type": "object",
+                    "properties": {
+                      "count": {
+                        "type": "integer",
+                        "minimum": 0
+                      }
+                    },
+                    "required": [
+                      "count"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "item": {
+                        "$ref": "#/$defs/agendaItem"
+                      }
+                    },
+                    "required": [
+                      "item"
+                    ],
+                    "additionalProperties": false
+                  },
+                  {
+                    "type": "object",
+                    "properties": {
+                      "from": {
+                        "type": "string"
+                      },
+                      "to": {
+                        "type": "string"
+                      },
+                      "entries": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "item": {
+                              "type": "object"
+                            },
+                            "timing": {
+                              "type": "object"
+                            },
+                            "completed": {
+                              "type": "boolean"
+                            },
+                            "hidden": {
+                              "type": "boolean"
+                            },
+                            "note": {
+                              "type": [
+                                "string",
+                                "null"
+                              ]
+                            }
+                          },
+                          "required": [
+                            "item",
+                            "timing",
+                            "completed",
+                            "hidden",
+                            "note"
+                          ],
+                          "additionalProperties": false
+                        }
+                      },
+                      "sources": {
+                        "type": "array",
+                        "items": {
+                          "type": "object"
+                        }
+                      },
+                      "schoolCacheIncluded": {
+                        "type": "boolean"
+                      }
+                    },
+                    "required": [
+                      "from",
+                      "to",
+                      "entries",
+                      "sources",
+                      "schoolCacheIncluded"
+                    ],
+                    "additionalProperties": false
+                  }
+                ]
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "ok",
+              "meta",
+              "data"
+            ],
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "properties": {
+              "schemaVersion": {
+                "const": 13
+              },
+              "ok": {
+                "const": false
+              },
+              "meta": {
+                "type": "object",
+                "properties": {
+                  "feature": {
+                    "const": "agenda"
+                  },
+                  "operation": {
+                    "enum": [
+                      "list",
+                      "show",
+                      "unsynced"
+                    ]
+                  },
+                  "accountState": {
+                    "enum": [
+                      "active",
+                      "unavailable"
+                    ]
+                  }
+                },
+                "required": [
+                  "feature",
+                  "operation",
+                  "accountState"
+                ],
+                "additionalProperties": false
+              },
+              "error": {
+                "type": "object",
+                "properties": {
+                  "code": {
+                    "enum": [
+                      "registration_required",
+                      "material_unavailable",
+                      "material_corrupt",
+                      "storage",
+                      "stale_identity",
+                      "cache_key_missing",
+                      "cache_missing",
+                      "cache_corrupt",
+                      "agenda_corrupt",
+                      "invalid_input",
+                      "not_found"
+                    ]
+                  },
+                  "kind": {
+                    "const": "local"
+                  },
+                  "retryable": {
+                    "const": false
+                  },
+                  "message": {
+                    "type": "string"
+                  }
+                },
+                "required": [
+                  "code",
+                  "kind",
+                  "retryable",
+                  "message"
+                ],
+                "additionalProperties": false
+              }
+            },
+            "required": [
+              "schemaVersion",
+              "ok",
+              "meta",
+              "error"
+            ],
+            "additionalProperties": false
+          }
+        ]
+      }
   }
 }

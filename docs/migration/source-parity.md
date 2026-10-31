@@ -262,7 +262,7 @@ JSON。详情测试保留上游 ID 校验、摘要回退、可选提交信息、
 
 | 启动/服务 URL | 重定向/最终 URL | Cookie/会话范围 | 方法与精确参数 | 请求头/正文编码 | 加密常量 | DTO/解析字段 | 缓存/并发 | 错误/退出语义 |
 |---|---|---|---|---|---|---|---|---|
-| **旧版：**宿主 UI 选择 `ConnectionMode`，没有等价 UBAA2 CLI/配置。**示例：**只有库上下文，没有 CLI/配置/schema。**决策：**上游 URL 不适用，普通路由由聚合 Core facade 负责。 | **旧版/示例：**没有等价 CLI 跳转合同。**决策：**宿主只接收 facade 结果。 | **旧版：**按模式保存设置，切换会清会话。**示例：**调用方管理 `cookies.json`/`cred.json`。**决策：**Core 加载严格的 `config.toml` 版本 1 和 schema-v2 双路线 `session.json`；CLI 不读取存储内部。 | **旧版/示例：**无等价命令。**决策：**CLI 解析文档命令/参数，调用不带 `ConnectionMode` 的 facade 并负责渲染；隐藏模式仅用于诊断/测试。 | **旧版/示例：**无信封。**决策：**stdout 只输出一个 JSON 值，诊断仅写 stderr，不输出敏感值或原始上游数据。 | **旧版/示例：**不适用。**决策：**当前 CLI envelope 只使用 schema v12；配置/会话磁盘版本独立。历史 v3 显式承载 Bykc 可空 `checkin`、三态签到/签退资格和 `outcome_unknown`；v4 再承载 Signin 可空 `signStatus`、三态资格/目标与确定业务结果；v5 承载 LibBook seat 可空整数 `status`、typed `reserveEligibility/reserveTarget` 和确定的 `LibBookReserveResult`；v6 再承载 LibBook booking 可空整数 `status`、typed `cancelEligibility/cancelTarget` 与取消结果；v7 承载 Cgyy 可空 canonical 状态、typed `reservationEligibility/reservationTarget` 与安全预约结果/收据；v8 承载 Cgyy typed `cancelEligibility/cancelTarget/cancelledTarget` 与固定安全取消结果；v9 承载 Ygdk typed `submitEligibility/submitTarget`、完整请求、安全结果和 caller-pinned 回读；v10 再承载 Evaluation typed `submitEligibility/submitTarget`、仅含 targets 的请求、四态批量结果与 caller-pinned 回读，均不在旧版本号下静默改变合同。聚合路线数组固定 Direct 后 WebVPN；`all_ready`/`partial` 必须有完整资料，`none_ready` 禁止存在资料。路线错误只含稳定安全错误，不含挑战/图片字段或验证码错误码。单路线信封不能带聚合字段，解析前错误只带功能名。 | **旧版：**全局模式/运行时。**示例：**调用方拥有上下文。**决策：**配置、探测缓存、路由、会话和业务状态由 facade 拥有；CLI 不持有路由缓存。配置写入拒绝符号链接/非普通文件并使用唯一原子临时文件。 | **旧版/示例：**没有等价退出分类。**决策：**使用稳定退出码 0/2/3/5/6/7；新配置目录支持 JSON 登录；交互验证页映射为 `upstream_changed`（退出 6），缺少本地用户/功能会话时在网络前失败。
+| **旧版：**宿主 UI 选择 `ConnectionMode`，没有等价 UBAA2 CLI/配置。**示例：**只有库上下文，没有 CLI/配置/schema。**决策：**上游 URL 不适用，普通路由由聚合 Core facade 负责。 | **旧版/示例：**没有等价 CLI 跳转合同。**决策：**宿主只接收 facade 结果。 | **旧版：**按模式保存设置，切换会清会话。**示例：**调用方管理 `cookies.json`/`cred.json`。**决策：**Core 加载严格的 `config.toml` 版本 1 和 schema-v2 双路线 `session.json`；CLI 不读取存储内部。 | **旧版/示例：**无等价命令。**决策：**CLI 解析文档命令/参数，调用不带 `ConnectionMode` 的 facade 并负责渲染；隐藏模式仅用于诊断/测试。 | **旧版/示例：**无信封。**决策：**stdout 只输出一个 JSON 值，诊断仅写 stderr，不输出敏感值或原始上游数据。 | **旧版/示例：**不适用。**决策：**当前 CLI envelope 只使用 schema v13；配置/会话磁盘版本独立。历史 v3 显式承载 Bykc 可空 `checkin`、三态签到/签退资格和 `outcome_unknown`；v4 再承载 Signin 可空 `signStatus`、三态资格/目标与确定业务结果；v5 承载 LibBook seat 可空整数 `status`、typed `reserveEligibility/reserveTarget` 和确定的 `LibBookReserveResult`；v6 再承载 LibBook booking 可空整数 `status`、typed `cancelEligibility/cancelTarget` 与取消结果；v7 承载 Cgyy 可空 canonical 状态、typed `reservationEligibility/reservationTarget` 与安全预约结果/收据；v8 承载 Cgyy typed `cancelEligibility/cancelTarget/cancelledTarget` 与固定安全取消结果；v9 承载 Ygdk typed `submitEligibility/submitTarget`、完整请求、安全结果和 caller-pinned 回读；v10 再承载 Evaluation typed `submitEligibility/submitTarget`、仅含 targets 的请求、四态批量结果与 caller-pinned 回读，均不在旧版本号下静默改变合同。聚合路线数组固定 Direct 后 WebVPN；`all_ready`/`partial` 必须有完整资料，`none_ready` 禁止存在资料。路线错误只含稳定安全错误，不含挑战/图片字段或验证码错误码。单路线信封不能带聚合字段，解析前错误只带功能名。 | **旧版：**全局模式/运行时。**示例：**调用方拥有上下文。**决策：**配置、探测缓存、路由、会话和业务状态由 facade 拥有；CLI 不持有路由缓存。配置写入拒绝符号链接/非普通文件并使用唯一原子临时文件。 | **旧版/示例：**没有等价退出分类。**决策：**使用稳定退出码 0/2/3/5/6/7；新配置目录支持 JSON 登录；交互验证页映射为 `upstream_changed`（退出 6），缺少本地用户/功能会话时在网络前失败。
 
 2026-08-24 的配置持久化证据：Unix 测试证明加载和保存会拒绝符号链接 `config.toml`，不会读取
 或改变其目标。八个并发保存使用唯一独占临时文件发布一份完整可解析配置，不遗留临时文件，
@@ -962,3 +962,19 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 | 本机自建范围导出 | 不适用，无学校请求。 | 不适用，本机读取且不写文件。 | 复用 AgendaStore 展开/覆盖，单事务读快照，不重试；范围、容量、失效和非法文本使用 CacheError。 |
 | 既有学校缓存范围导出 | 不新增学校引导或认证；同账号、指定路线。 | 不适用，不新增 wire 请求。 | 复用 1b 学校投影及原 CacheRecord，返回缺口/观察时间；学校缓存逐范围读取，日程事务独立，不声明全缓存原子性。 |
 | CLI 账号登记与 CRUD 接线 | 暂未实施，不扩大认证或真实账号授权。 | 暂未实施。 | 现有公开边界不足，方案 A 已选定，由后续会话实现独立身份材料与命令执行。 |
+
+## CLI 独立日程账号登记（2026-11-01）
+
+冻结引用：旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`，buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。本次保留学校请求协议，仅在显式登录完成后增加 Core 身份能力及 CLI 本机登记。
+
+| 操作与比较项 | 冻结旧版 | 固定 buaa-api | 本次处理 |
+|---|---|---|---|
+| 显式认证：CAS/service、跳转与最终 URL | `LocalConnectionAuth.kt` 的 login/prepareLogin、activateUserCenter、validateLocalConnectionSession；`AuthApi.kt` 接口及 `LocalAuthServiceBackendTest.kt` 的 UC Cookie/身份回归；SSO login → UC activation → status | `src/api/sso/auth.rs` 与 `src/api/user/auth.rs`；SSO、WebVPN 专用 service、UC activation | 沿用现有 Core URL、嵌套编码、白名单、TLS 与跳转上限，不增加认证请求 |
+| 方法、精确参数、请求头、编码与加密 | `LocalCasParser.buildCasLoginParameters` 使用页面隐藏字段、用户名密码、execution，表单编码；status 的 Accept/X-Requested-With | SSO POST 表单 username/password/submit/type/execution/_eventId，UC GET 带 selfTimestamp | 现有请求构建、加密/签名常量均不变，本地登记无学校参数或密码学协议 |
+| Cookie/Session/Token 作用域、缓存/并发/重试 | `LocalAuthSessionStoreTest.kt` 证明路线隔离；本地会话记录认证及活动时间 | `src/store/cred.rs` 为 SSO/VPN 分开有效期，`context.rs` 共享 Cookie/凭据，`request.rs` 使用 reqwest Cookie provider 和默认重定向 | 保留 Core 双槽 revision/CAS、Cookie 路线与重试语义。CLI 外层配置作用域锁串行化登记、退出与本地日程操作 |
+| DTO 与身份字段 | `model/dto/UserInfo.kt`：code 为 Int、data 可空，身份字段可空字符串；status `code=0` 且 data 非空，schoolid 优先、username 后备；姓名仅展示 | `src/api/user/opt.rs` 返回 status 原始字符串，没有 typed 已核实能力 | 在 Core 登录内部逐成功路线核对非空 schoolid，同一显式输入须与 schoolid 或 username 匹配。字段缺失或路线身份不一致时不签发登记能力。首个 profile 仍只供既有认证输出 |
+| 状态查询 | validateLocalConnectionSession 发起 UC status | get_state 发起 UC status | auth_status 保持联网，不能产生本机登记能力，本机命令不调用它 |
+| 退出、错误与产品语义 | logout 请求 SSO 并清本地；无有效 status 时拒绝认证 | SSO 错误与独立凭据有效期 | 既有远程退出保留。CLI 先在同一锁内撤销本机 active，再执行原退出。登记失败与认证成功分开报告 |
+| 独立安全索引、随机别名、代次、学校缓存读取 | 不适用：没有同等日程 CLI 协议 | 不适用：没有同等日程 CLI 协议 | 新增宿主本地机制，只消费 Core 已核实能力及现有 AgendaStore/OfflineCache facade，不类比新增学校 URL/字段。只读缓存仍 schema7，日程仍 schema2 |
+
+来源没有跨宿主离线身份票据。CLI 索引保存于独立平台安全材料命名空间，与规范化 config-dir 绑定；普通 profile、JSON、用户名与旧会话均不能建立登记。真实 Direct/WebVPN 认证及读取在本会话未获授权，保留未运行状态，确定性验证使用合成账号和 Mock transport。

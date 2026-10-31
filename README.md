@@ -19,7 +19,7 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 - Direct 与 WebVPN 的历史真实证据只覆盖对应提交的 Core-live 只读矩阵，不代表本轮真实 App 账号链路或真实写入；
 - 系统安全材料与统一加密缓存已接入，原生运行按平台分别验收；实体设备、签名、公证、商店上传和真实业务写入均不由模拟器或只读结果证明。
 
-当前公开合同版本为 CLI JSON schema v12 与 Flutter bridge contract v45；这两个版本都与磁盘
+当前公开合同版本为 CLI JSON schema v13 与 Flutter bridge contract v45；这两个版本都与磁盘
 `session.json` schema v2、`config.toml` 版本 1、业务缓存 schema v7 相互独立。
 
 产品代际名 UBAA 2 与包的 SemVer、平台构建号和合同版本相互独立，发布规则见[版本约定](docs/development/conventions.md#版本号与依赖)。
@@ -49,7 +49,7 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 | `crates/ubaa_core` | 领域、认证、路线、会话、协议、解析、读写与 facade |
 | `crates/ubaa_flutter_bridge` | facade 到 FRB 的稳定 typed 投影；不暴露内部协议状态 |
 | `crates/ubaa_test_support` | 脱敏 fixture、Mock transport 与确定性集成支持 |
-| `apps/ubaa_cli` | human/JSON schema v12 命令行宿主与只读 Core-live 入口 |
+| `apps/ubaa_cli` | human/JSON schema v13 命令行宿主与只读 Core-live 入口 |
 | `apps/ubaa_flutter` | Windows/macOS/Linux/Android/iOS 官方 Flutter 薄宿主 |
 | `apps/ubaa_ohos` | HarmonyOS/OHOS fork 薄宿主与 API26 runner |
 | `packages/ubaa_domain` | Dart 稳定领域模型 |
@@ -96,8 +96,17 @@ cargo run --locked -p ubaa-cli -- grades list --term 2025-2026-1
 cargo run --locked -p ubaa-cli -- auth logout
 ```
 
+已通过显式登录登记的 CLI 账号可离线读取本机日程。当前安全材料 provider 只支持 macOS Keychain，CLI 与 Flutter 使用独立材料和默认目录。命令不校验学校会话或刷新学校来源：
+
+```bash
+cargo run --locked -p ubaa-cli --bin ubaa -- agenda list --from 2026-11-01 --to 2026-11-08
+cargo run --locked -p ubaa-cli --bin ubaa -- --json agenda unsynced
+```
+
+show、显式学校缓存合并、错误码与下一阶段保留范围见[日程 CLI 合同](docs/contracts/agenda.md#cli-a-的身份与离线访问)。
+
 默认 Session 位于操作系统的用户私有配置目录；隔离测试可使用 `--config-dir <path>`。CLI 每次 JSON 成功或
-失败只输出一个 schema-v12 信封，合同见[认证与用户合同](docs/contracts/auth-and-user.md)和
+失败只输出一个 schema-v13 信封，合同见[认证与用户合同](docs/contracts/auth-and-user.md)和
 [CLI JSON Schema](docs/contracts/cli-json.schema.json)。该输出版本独立于磁盘存储合同；当前 Flutter bridge contract 为 v45。
 图书馆、场馆、阳光与教学评教的 typed 资格、prepare/commit、单次发送、未知结果和原路线回读规则，统一见 [Bridge 写入合同](docs/contracts/flutter-bridge.md#6-写-intent)。CLI、Bridge 与缓存格式的兼容边界分别见对应合同。
 

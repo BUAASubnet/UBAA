@@ -1,6 +1,6 @@
 # 日程 Core 合同
 
-日程一期 1a、1b 提供本机自建事项、标准重复展开、学校事项投影与本地覆盖层，以及本地合并查询。所有生产入口从 `ubaa_core::facade` 导出，不调用学校网络。1c-a 通过独立 typed Bridge 和 Dart 服务接入账号生命周期，1c-b 已将首页七类学校待办接入统一纯投影，1d 增加 Core 范围快照导出。CLI 独立安全材料方案 A 已由主聊天选定，执行通道留给后续会话，命令执行与同步仍未接入。[设计稿](../design/agenda.md)描述完整产品目标，[明文存储决定](../migration/decision-log.md#2026-10-31日程改为逐记录明文-sqlite)记录本期取舍。
+日程一期 1a、1b 提供本机自建事项、标准重复展开、学校事项投影与本地覆盖层，以及本地合并查询。所有生产入口从 `ubaa_core::facade` 导出，不调用学校网络。1c-a 通过独立 typed Bridge 和 Dart 服务接入账号生命周期，1c-b 已将首页七类学校待办接入统一纯投影，1d 增加 Core 范围快照导出。CLI 独立安全材料方案 A 已接通独立账号登记及 list/show/unsynced，只读以外的命令与同步留给后续阶段。[设计稿](../design/agenda.md)描述完整产品目标，[明文存储决定](../migration/decision-log.md#2026-10-31日程改为逐记录明文-sqlite)记录本期取舍。
 
 ## 时间与事项
 
@@ -24,7 +24,7 @@
 
 所有本地修改写入 `updated_at` 和未同步标记，发生错误时事务回滚。调用方传入当前校园时间，早于原记录修改时间的写入会被拒绝。`unsynced_count` 包含事项、覆盖和删除标记。`clear_local_data` 显式删除当前账号全部日程并返回清除前未同步记录数，宿主可先查询数量再展示确认。`purge_tombstones` 仅移除已同步且严格超过 180 天的删除标记；所有未同步删除标记均保留。同步确认和跨设备合并属于后续任务，本期没有清除未同步标记的公开入口。
 
-日程磁盘 schema 为 2：`agenda_meta` 单行保存 schema、账号别名与持久 `active`，`agenda_items` 按 UUID 每项一行，`agenda_overlays` 按来源/上游标识的 JSON 元组每项一行。两类记录的 `body` 是可直接读取的 UTF-8 JSON，重复例外及完成记录仍属于对应事项。`PRAGMA user_version` 与元数据版本均须匹配。只读缓存磁盘版本仍为 7，CLI schema v12 保持不变，独立日程通道当前使用 Bridge v45。
+日程磁盘 schema 为 2：`agenda_meta` 单行保存 schema、账号别名与持久 `active`，`agenda_items` 按 UUID 每项一行，`agenda_overlays` 按来源/上游标识的 JSON 元组每项一行。两类记录的 `body` 是可直接读取的 UTF-8 JSON，重复例外及完成记录仍属于对应事项。`PRAGMA user_version` 与元数据版本均须匹配。只读缓存磁盘版本仍为 7，CLI schema v13，独立日程通道当前使用 Bridge v45。
 
 写操作在 SQLite IMMEDIATE 事务内读取最新记录、执行既有领域操作、比较前后状态，只 INSERT/UPDATE/DELETE 实际变化的行。系列拆分、完成、覆盖、删除和清理均在同一事务内提交，任一步失败整体回滚，跨连接写入不会覆盖另一连接已提交的记录。读取使用同一快照事务。当前操作仍会在内存加载账号全部记录，这次没有改成按操作选择记录。
 
@@ -113,9 +113,9 @@ UID 使用编码元组的 SHA-256 摘要。非重复自建事项只编码已有 
 
 ## CLI 命令与输入模型（方案 A 已选定，待实施）
 
-主聊天已选定 CLI 独立安全材料方案 A，由后续新会话实施。当前 `ubaa` 尚无 agenda 命令，下表是待实现接口设计。生产 CLI 只有 `--config-dir` 与会话入口，没有可离线恢复的已核实账号登记。现有会话文件不持久化账号身份，普通 `auth_status` 会请求学校。不能从用户名参数或裸别名打开日程，也不能通过读取 Flutter 安全索引或扫描库寻找账号。证据、备选和停止位置见[账号接线决定](../migration/decision-log.md#2026-11-01日程-cli-独立安全材料方案-a-已选定)。
+方案 A 的 CLI-a 已实现独立账号登记及只读命令。下表保留完整产品范围，其中 list/show/unsynced 已接入，修改和导出文件尚待后续阶段。现有会话文件不持久化账号身份，普通 `auth_status` 会请求学校。不能从用户名参数或裸别名打开日程，也不能通过读取 Flutter 安全索引或扫描库寻找账号。证据、备选和停止位置见[账号接线决定](../migration/decision-log.md#2026-11-01日程-cli-独立安全材料方案-a-已选定)。
 
-| 拟定命令 | 参数与行为 |
+| 命令范围 | 参数与行为 |
 |---|---|
 | `agenda list` | 必填 `--from YYYY-MM-DD --to YYYY-MM-DD`；默认仅本机。显式 `--school-cache --route direct/webvpn --term TERM` 才合并同账号缓存，输出逐来源缺失/过期信息。 |
 | `agenda show --id UUID` | 返回本机原始事项与删除标记，不能通过学校键读取其他账号。 |
@@ -127,8 +127,32 @@ UID 使用编码元组的 SHA-256 摘要。非重复自建事项只编码已有 
 | `agenda unsynced`、`agenda clear` | 前者返回未同步记录数；后者默认先显示数量并拒绝，显式确认和 `--expected-unsynced N` 与当前数量匹配才清除。需要新增 Core 原子比较并清除能力，不能只在 CLI 查询后无条件清空。 |
 | `agenda export` | 同 list 的范围与缓存参数，必选 `--output FILE` 或 `--stdout`。文件默认拒绝覆盖，显式 `--overwrite` 才原子替换普通文件；JSON 与 `--stdout` 互斥。成功 JSON 只返回计数、范围、交付类型与缓存观察，不混入正文或日志。 |
 
-所有本机修改要求明确的 `--confirm-local-write`，其确认文案写明“本机日程”，不使用 Direct 学校写入的路由元数据。输入模型应为独立 `deny_unknown_fields` DTO：`kind/title/location/notes/color/start/end/all_day/due/rrule`，创建输入额外允许 exdates。编辑沿 Core 的范围操作保留或重映射例外，不接收内部 exdates/overrides/completions 映射。两个输入均不接受 id、locally_modified、会话或存储配置。日期时间通过明确偏移量转换为校园时刻。接口落地时新增 local envelope，`meta.feature=agenda`、本机操作标识及账号状态，无伪造 resolvedRoute；版本随最终公开字段兼容性决策。本次 CLI schema v12、Bridge v45、日程 v2 和缓存 v7 均保持。
+所有本机修改要求明确的 `--confirm-local-write`，其确认文案写明“本机日程”，不使用 Direct 学校写入的路由元数据。输入模型应为独立 `deny_unknown_fields` DTO：`kind/title/location/notes/color/start/end/all_day/due/rrule`，创建输入额外允许 exdates。编辑沿 Core 的范围操作保留或重映射例外，不接收内部 exdates/overrides/completions 映射。两个输入均不接受 id、locally_modified、会话或存储配置。日期时间通过明确偏移量转换为校园时刻。CLI-a 已新增 local envelope，`meta.feature=agenda`、本机操作标识及账号状态，无伪造 resolvedRoute；本阶段 CLI schema 提升为 v13；Bridge v45、日程 v2 和缓存 v7 保持。
 
-暂不提供 sync。二进制 CRUD/退出/切号/坏缓存/确认/原子文件输出验收随账号方案实施，当前没有可用 CLI 示例；上述命令不能作为已实现功能调用。
+暂不提供 sync。create/edit/delete/complete/reopen/overlay/clear/export 及确认和原子文件输出保留为下一阶段范围。
 
-后续账号接线按 `--config-dir` 的独立安全材料作用域登记，只能由显式成功登录的核实 profile/Core 身份能力建立映射，账号/路线/会话冲突均拒绝。旧会话未登记时要求显式登录，不自动校验学校状态。同账号跨路线复用随机别名，退出撤销活动选择且保留日程与映射。新材料丢失或不可用时失败关闭并保留原文件，不另造别名，不访问 Flutter 安全材料。日程操作、登记、退出和切号关键段必须有跨进程共享作用域锁或等价原子关联，以阻止旧操作借后续激活重新生效。安全材料只管理身份与必要密钥，日程正文仍为明文。这些条件尚未实现，平台覆盖须按后续实际提供者分别验收。
+账号接线按 `--config-dir` 的独立安全材料作用域登记，只能由显式成功登录的核实 profile/Core 身份能力建立映射，账号/路线/会话冲突均拒绝。旧会话未登记时要求显式登录，不自动校验学校状态。同账号跨路线复用随机别名，退出撤销活动选择且保留日程与映射。新材料丢失或不可用时失败关闭并保留原文件，不另造别名，不访问 Flutter 安全材料。日程操作、登记、退出和切号关键段必须有跨进程共享作用域锁或等价原子关联，以阻止旧操作借后续激活重新生效。安全材料只管理身份与必要密钥，日程正文仍为明文。当前生产 provider 只实现 macOS Keychain，其他平台明确返回 material_unavailable，未声明设备验收。
+
+
+### CLI-a 的身份与离线访问
+
+生产服务名为 `cn.edu.ubaa.cli.local-accounts.v1`，account 使用规范化配置目录原始路径字节的 SHA-256 摘要。Keychain 保存 version 1 索引、目录设备/节点身份、随机初始化标记、账号到随机 alias 的映射、活动选择和随机 epoch，以及可选 CacheKey。身份不写入普通配置 JSON。默认目录继续由 `ProjectDirs::from("org", "BUAASubnet", "UBAA")` 决定，CLI 与 Flutter 默认目录和安全材料分开。本阶段不读取 Flutter 材料，不自动共库。
+
+只有 Core 显式聚合登录可签发 `VerifiedLoginIdentity`。Core 在每条成功路线内核对用户中心 schoolid，要求非空、无控制字符且与显式输入的 schoolid 或 username 相符。成功路线身份必须一致，失败路线若仍保留旧会话槽位则拒绝签发。部分成功且失败路线无残留槽位可以登记。能力绑定当前客户端随机 nonce、双槽会话所有权和五分钟有效期，只能取出一次，登记成功后消费。普通 UserProfile、JSON、auth_status、旧会话或固定路线诊断登录均不能兑换能力。字段不足或身份冲突不改变既有学校认证结果，但 `agendaRegistration.state=failed` 且进程退出非零。
+
+配置目录必须私有，路径中的符号链接直接拒绝，macOS 固定系统祖先 /var、/tmp 沿用 Core 已有映射例外；`.` 和可解析到同目录的路径拼写使用同一规范化目录和 `cli-accounts.lock`。所有本地命令、普通/诊断登录、退出及切号从进入关键段到结果交付持有同一排他文件锁，打开网络客户端也在锁内。日程读取没有可脱离锁使用的生产句柄。锁文件及目录的固定身份在打开、材料读取和交付前核对，替换即失败。新登录前先撤销旧 active 并关闭日程，然后执行原认证流程。
+
+锁文件内容是随机初始化标记，首次显式成功登录才写入。标记与 Keychain 索引必须同时存在并匹配，已有 agenda/business-cache 目录也禁止按首次初始化认领。材料丢失、损坏、权限或平台能力不可用时保留文件并拒绝访问，不生成替代 alias。登记和撤销先持久化 `cli-accounts.pending`，成功后移除并同步目录。中断或写入结果无法确认会保留标记，下次访问失败关闭；本阶段不提供自动修复。退出保留映射、日程和原 CacheKey。Keychain 通过固定系统工具 `/usr/bin/security` 访问，正文只经 stdin 交付，不通过 shell/argv，输出均被收集且不透传。五秒期限、1 MiB stdout 和 16 KiB stderr 上限防止交互等待或异常输出持续阻塞，拒绝访问时返回固定不可用错误。
+
+可直接调用：
+
+```bash
+ubaa agenda list --from 2026-11-01 --to 2026-11-08
+ubaa --json agenda show --id 00000000-0000-4000-8000-000000000001
+ubaa --json agenda unsynced
+ubaa --json agenda list --from 2026-11-01 --to 2026-11-08 --school-cache --route direct --term TERM
+```
+
+list 范围为校园日期 `[from,to)`。默认仅本机，sources 为空且 schoolCacheIncluded=false，完全不打开会话、路由配置或网络客户端。显式合并缓存时复用同账号 OfflineCache，不预取和写入学校缓存。缺 CacheKey 返回 cache_key_missing，缺数据库返回 cache_missing，坏缓存返回 cache_corrupt 并整体失败。已有库缺范围通过 missingScopes 返回，过期记录仍可展示，observations.fresh 使用五分钟提示阈值，同时保留原取得/验证时间和完整性。生产 CLI 当前没有学校缓存预取流水线，因此缓存可用路径仅由合成夹具验证。
+
+CLI v13 新增 local envelope，meta 仅包含 feature=agenda、operation=list/show/unsynced、accountState=active/unavailable，没有 resolvedRoute 或学校写入元数据。list 返回 entries/sources/from/to/schoolCacheIncluded，show 返回 Core 公开原始 item，unsynced 返回 count。JSON 仅写 stdout，human 错误写 stderr。错误 code 为 registration_required、material_unavailable、material_corrupt、storage、stale_identity、cache_key_missing、cache_missing、cache_corrupt、agenda_corrupt、invalid_input、not_found，不包含原生存储详细错误。参数错误退出 2，缺登记/旧能力退出 3，其余本地失败退出 7。聚合登录保留既有 ok/data/error 的认证语义，额外 agendaRegistration 独立报告本机登记；登记失败退出 7 或身份失效退出 3。无法安全撤销旧活动账号时，在认证前停止并返回固定启动错误。真实学校 Direct/WebVPN 本阶段均未运行。

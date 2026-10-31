@@ -12,7 +12,7 @@
 `upstream_changed`，绝不下载、提示或提交验证材料。Core 会拒绝破坏这些关系的聚合 envelope。
 
 稳定 DTO、错误码及输出关系由本文与 [CLI JSON Schema](cli-json.schema.json)定义。每个 CLI 成功、失败、参数错误、聚合认证结果和
-隐藏诊断结果都使用 `docs/contracts/cli-json.schema.json` 定义的当前 CLI JSON schema v12；CLI 不再
+隐藏诊断结果都使用 `docs/contracts/cli-json.schema.json` 定义的当前 CLI JSON schema v13；CLI 不再
 输出 schema-v9 或更早 envelope。历史 schema v4 首次承载 Signin typed 写结果，v5–v7 分别承载
 LibBook 预约、LibBook 取消与 Cgyy 预约合同，v8 承载 Cgyy typed 取消资格与安全结果，v9 再承载
 Ygdk typed 提交资格、请求、安全结果和 caller-pinned 回读，v10 承载 Evaluation typed target、四态批量
@@ -33,7 +33,7 @@ revision。
 
 研讨室预约（Cgyy）属于扩展功能，公共读写入口同样由 facade 解析路线并绑定对应 runtime。WebVPN 的 Cgyy 业务登录在 SSO 重定向后按当前 HAR 证据读取 `d.buaa.edu.cn/wengine-vpn/cookie` 的纯文本快照，仅在当前请求内存中取得 `sso_buaa_zhjs_token`，不会把业务令牌写入会话文件。冻结 `ubaa_old` 与固定 `examples/buaa-api` 对该 WebVPN 网关同步没有等价实现；具体证据和边界记录在 `docs/migration/source-parity.md` 与决策日志中。
 
-CLI JSON Schema 的标识为 `urn:ubaa:cli:json:schema:12`，消费者从受跟踪的 [Schema 文件](cli-json.schema.json)加载定义。URN 表示该版本的身份，不是网络下载地址；Schema 内的局部 `$ref` 继续在同一文件解析。
+CLI JSON Schema 的标识为 `urn:ubaa:cli:json:schema:13`，消费者从受跟踪的 [Schema 文件](cli-json.schema.json)加载定义。URN 表示该版本的身份，不是网络下载地址；Schema 内的局部 `$ref` 继续在同一文件解析。
 
 ## CLI 宿主
 
@@ -47,6 +47,8 @@ version 保留普通文本行为。无效参数文本会归约为安全的 `inva
 成功。
 
 稳定退出类别为：0 表示调用成功完成，2 表示输入无效，3 表示认证失败（包括拒绝密码风险继续），5 表示网络/可用性错误，6 表示上游合同或解析变化，7 表示内部失败。课堂签到的确定业务拒绝以外层 `ok=true`、退出码 0 和内层 `data.success=false` 表达；调用方不得只凭退出码认定签到成功。发送后不确定性使用 `outcome_unknown` 和退出码 5。`docs/contracts/cli-json.schema.json` 已通过实际 dispatcher 序列化的签到 true/false/unknown、其它成功和失败 envelope 验证。
+
+本机日程通过独立的 `agenda list/show/unsynced` 入口执行，不创建网络客户端、不解析学校配置或会话，也不隐式调用 `auth_status`。普通显式聚合登录在学校认证完成后，才使用 Core 不可构造的已核实身份能力登记 CLI 独立随机别名。`agendaRegistration` 与原有认证 `ok/data/error` 分开：学校认证成功而登记失败时，认证结果保留，登记状态为 failed，进程退出非零。固定路线诊断登录不产生登记。身份核对、跨进程锁、材料中断、macOS Keychain provider、缓存缺口与本地错误码见[日程 CLI 合同](agenda.md#cli-a-的身份与离线访问)。
 
 ## 手动交互验证码
 

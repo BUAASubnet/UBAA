@@ -25,7 +25,7 @@ HTML、加密参数、Token、Cookie 和响应正文始终留在 Core 内部，C
 
 原始 Cookie、CAS ticket、配置 ID、跳转 URL、上游消息与 HTML 不进入 DTO。网络两项剩余量均不含套餐，不合计成总剩余量。图书只有数量，不推断书目和到期日。
 
-三个命令为兼容性新增，沿用 CLI JSON schema v12 的信封；Schema 为 `portal`、`network` 增加独立且封闭的数据定义，既有命令的 DTO 不变。本阶段不增加业务快照磁盘格式或 Bridge API。来源、精确参数及失败边界见[门户与网费来源对照](../migration/source-parity-campus.md)。
+三个命令为兼容性新增，沿用 CLI JSON schema v13 的信封；Schema 为 `portal`、`network` 增加独立且封闭的数据定义，既有命令的 DTO 不变。本阶段不增加业务快照磁盘格式或 Bridge API。来源、精确参数及失败边界见[门户与网费来源对照](../migration/source-parity-campus.md)。
 
 ## 标准只读功能
 
@@ -76,7 +76,7 @@ SPOC HTML 不进入公共 DTO。Fixture/Mock 只证明请求形状；真实证�
 
 隐藏的 `spoc diagnostics` 和 `judge diagnostics` CLI 命令调用独立 facade 方法，仅供确定性
 测试和实时验证使用。它们不增加业务请求、不接受 URL、不暴露上游内部信息，也不改变稳定用户
-命令面。输出与普通读取相同的 schema-v12 路由 envelope，并且一次完整功能运行必须保持同一
+命令面。输出与普通读取相同的 schema-v13 路由 envelope，并且一次完整功能运行必须保持同一
 条已解析路线。
 
 SPOC 诊断恰好返回 `globalPageCount` 和普通 `result`。该计数为正 `u32`，证明权威加密全局
@@ -103,7 +103,7 @@ Cgyy 目的类型诊断返回 `items` 与 `source`。`source=upstream` 表示本
 
 ## GSMIS研究生课表
 
-课表在本科门户或读取失败后沿冻结旧版访问GSMIS我的课表；不通过学号猜类型，不借本科campusCode或其它服务的URL。学期完整性、选定学期、排课班号、唯一校历周一及节次时间均核对后返回。完整规范化节次通过可选sectionTimes进入CLI schema-v12及缓存，旧缓存缺字段默认空。考试仍仅本科协议。来源与已证边界见[GSMIS逐操作对照](../migration/source-parity-gsmis-2026-10-02.md)。
+课表在本科门户或读取失败后沿冻结旧版访问GSMIS我的课表；不通过学号猜类型，不借本科campusCode或其它服务的URL。学期完整性、选定学期、排课班号、唯一校历周一及节次时间均核对后返回。完整规范化节次通过可选sectionTimes进入CLI schema-v13及缓存，旧缓存缺字段默认空。考试仍仅本科协议。来源与已证边界见[GSMIS逐操作对照](../migration/source-parity-gsmis-2026-10-02.md)。
 
 
 ## iHome
