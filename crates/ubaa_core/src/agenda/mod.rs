@@ -20,4 +20,8 @@ mod school;
 mod school_tests;
 
 #[cfg(test)]
+mod storage_tests;
+#[cfg(test)]
 pub(crate) mod test_fixture;
+
+mod sqlite;

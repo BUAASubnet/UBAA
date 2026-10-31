@@ -1,13 +1,13 @@
 use super::*;
 use crate::domain::agenda::*;
 use chrono::{NaiveDate, NaiveTime, Weekday};
-fn t(raw: &str) -> AgendaTime {
+pub(super) fn t(raw: &str) -> AgendaTime {
     AgendaTime::new(raw.parse().unwrap())
 }
 fn d(raw: &str) -> NaiveDate {
     raw.parse().unwrap()
 }
-fn event() -> AgendaItem {
+pub(super) fn event() -> AgendaItem {
     AgendaItem::new(
         AgendaContent {
             kind: AgendaKind::Event,
@@ -65,27 +65,27 @@ fn teaching_even_weeks_and_holiday() {
         vec![d("2026-03-04"), d("2026-04-01"), d("2026-04-15")]
     );
 }
-fn root() -> std::path::PathBuf {
+pub(super) fn root() -> std::path::PathBuf {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/agenda_1a/tests")
+        .join("../../.ubaa_local/agenda_plaintext/tests")
         .join(uuid::Uuid::new_v4().to_string());
     std::fs::create_dir_all(&root).unwrap();
     root.canonicalize().unwrap()
 }
-const ACCOUNT: &str = "00000000000000000000000000000001";
+pub(super) const ACCOUNT: &str = "00000000000000000000000000000001";
 #[test]
 fn persistent_account_data_survives_reopen() {
     let root = root();
     let item = event();
     let id = item.id;
-    let store = AgendaStore::open(&root, ACCOUNT, crate::facade::CacheKey::new([1; 32])).unwrap();
+    let store = AgendaStore::open(&root, ACCOUNT).unwrap();
     store.create(item.clone()).unwrap();
     drop(store);
-    let store = AgendaStore::open(&root, ACCOUNT, crate::facade::CacheKey::new([1; 32])).unwrap();
+    let store = AgendaStore::open(&root, ACCOUNT).unwrap();
     assert_eq!(store.get(id).unwrap(), Some(item));
 }
 fn opened() -> AgendaStore {
-    AgendaStore::open(&root(), ACCOUNT, crate::facade::CacheKey::new([1; 32])).unwrap()
+    AgendaStore::open(&root(), ACCOUNT).unwrap()
 }
 fn repeated() -> AgendaItem {
     let mut i = event();
@@ -297,14 +297,9 @@ fn accounts_routes_logout_and_cache_rebuild_are_independent() {
     let root = root();
     let item = event();
     let id = item.id;
-    let store = AgendaStore::open(&root, ACCOUNT, CacheKey::new([1; 32])).unwrap();
+    let store = AgendaStore::open(&root, ACCOUNT).unwrap();
     store.create(item.clone()).unwrap();
-    let second = AgendaStore::open(
-        &root,
-        "00000000000000000000000000000002",
-        CacheKey::new([1; 32]),
-    )
-    .unwrap();
+    let second = AgendaStore::open(&root, "00000000000000000000000000000002").unwrap();
     assert!(second.get(id).unwrap().is_none());
     let mut cache = OfflineRepository::open(
         &root,
@@ -337,7 +332,7 @@ fn accounts_routes_logout_and_cache_rebuild_are_independent() {
     }
     cache.deactivate().unwrap();
     store.deactivate().unwrap();
-    let reopened = AgendaStore::open(&root, ACCOUNT, CacheKey::new([1; 32])).unwrap();
+    let reopened = AgendaStore::open(&root, ACCOUNT).unwrap();
     assert_eq!(reopened.get(id), Err(CacheError::Inactive));
     store.activate().unwrap();
     assert_eq!(reopened.get(id).unwrap(), Some(item));
@@ -357,12 +352,11 @@ fn accounts_routes_logout_and_cache_rebuild_are_independent() {
 }
 #[test]
 fn failed_update_is_atomic_and_independent_connections_do_not_lose_updates() {
-    use crate::facade::CacheKey;
     let root = root();
     let item = repeated();
     let id = item.id;
-    let first = AgendaStore::open(&root, ACCOUNT, CacheKey::new([1; 32])).unwrap();
-    let second = AgendaStore::open(&root, ACCOUNT, CacheKey::new([1; 32])).unwrap();
+    let first = AgendaStore::open(&root, ACCOUNT).unwrap();
+    let second = AgendaStore::open(&root, ACCOUNT).unwrap();
     first.create(item.clone()).unwrap();
     let mut bad = item.content.clone();
     bad.title.clear();
@@ -401,43 +395,6 @@ fn failed_update_is_atomic_and_independent_connections_do_not_lose_updates() {
         .unwrap();
     let rows = second.query(d("2026-02-01"), d("2026-02-02")).unwrap();
     assert!(rows[0].completed_at.is_none());
-}
-#[test]
-fn wrong_key_unknown_version_and_ciphertext_tampering_preserve_database() {
-    use crate::facade::{CacheError, CacheKey};
-    let root = root();
-    let item = event();
-    let id = item.id;
-    let store = AgendaStore::open(&root, ACCOUNT, CacheKey::new([1; 32])).unwrap();
-    store.create(item).unwrap();
-    assert!(matches!(
-        AgendaStore::open(&root, ACCOUNT, CacheKey::new([2; 32])),
-        Err(CacheError::Corrupt)
-    ));
-    assert!(store.get(id).unwrap().is_some());
-    let path = root.join("agenda").join(format!("{ACCOUNT}.sqlite"));
-    let db = rusqlite::Connection::open(&path).unwrap();
-    let bytes = std::fs::read(&path).unwrap();
-    assert!(
-        !bytes
-            .windows("合成日程".len())
-            .any(|v| v == "合成日程".as_bytes())
-    );
-    assert!(
-        !bytes
-            .windows(b"Asia/Shanghai".len())
-            .any(|v| v == b"Asia/Shanghai")
-    );
-    db.pragma_update(None, "user_version", 999).unwrap();
-    assert!(matches!(
-        AgendaStore::open(&root, ACCOUNT, CacheKey::new([1; 32])),
-        Err(CacheError::UnsupportedVersion)
-    ));
-    db.pragma_update(None, "user_version", 1).unwrap();
-    assert!(store.get(id).unwrap().is_some());
-    db.execute("UPDATE agenda_state SET body=zeroblob(64)", [])
-        .unwrap();
-    assert_eq!(store.get(id), Err(CacheError::Corrupt));
 }
 #[test]
 fn all_day_exclusive_end_and_modern_dst_dates() {
@@ -747,10 +704,9 @@ fn note_only_overlay_keeps_upstream_completion() {
 }
 #[test]
 fn concurrent_connections_commit_both_items() {
-    use crate::facade::CacheKey;
     let root = root();
-    let first = AgendaStore::open(&root, ACCOUNT, CacheKey::new([1; 32])).unwrap();
-    let second = AgendaStore::open(&root, ACCOUNT, CacheKey::new([1; 32])).unwrap();
+    let first = AgendaStore::open(&root, ACCOUNT).unwrap();
+    let second = AgendaStore::open(&root, ACCOUNT).unwrap();
     let barrier = std::sync::Arc::new(std::sync::Barrier::new(2));
     let handles = [first, second]
         .into_iter()
@@ -765,7 +721,7 @@ fn concurrent_connections_commit_both_items() {
     for handle in handles {
         handle.join().unwrap();
     }
-    let store = AgendaStore::open(&root, ACCOUNT, CacheKey::new([1; 32])).unwrap();
+    let store = AgendaStore::open(&root, ACCOUNT).unwrap();
     assert_eq!(
         store.query(d("2026-01-01"), d("2026-03-01")).unwrap().len(),
         2
@@ -778,7 +734,7 @@ fn eviction_of_old_readonly_data_keeps_agenda() {
         ConnectionMode, OfflineRepository, TodayClass,
     };
     let root = root();
-    let store = AgendaStore::open(&root, ACCOUNT, CacheKey::new([1; 32])).unwrap();
+    let store = AgendaStore::open(&root, ACCOUNT).unwrap();
     let item = event();
     let id = item.id;
     store.create(item).unwrap();
@@ -924,12 +880,12 @@ fn all_day_date_until_uses_shanghai_and_survives_split() {
 }
 #[test]
 fn unknown_schema_rejects_open_handles_and_does_not_change_journal_mode() {
-    use crate::facade::{CacheError, CacheKey};
+    use crate::facade::CacheError;
     let root = root();
-    let store = AgendaStore::open(&root, ACCOUNT, CacheKey::new([1; 32])).unwrap();
+    let store = AgendaStore::open(&root, ACCOUNT).unwrap();
     let path = root.join("agenda").join(format!("{ACCOUNT}.sqlite"));
     let db = rusqlite::Connection::open(&path).unwrap();
-    db.pragma_update(None, "user_version", 2).unwrap();
+    db.pragma_update(None, "user_version", 999).unwrap();
     let mode: String = db
         .pragma_query_value(None, "journal_mode", |r| r.get(0))
         .unwrap();
@@ -937,7 +893,7 @@ fn unknown_schema_rejects_open_handles_and_does_not_change_journal_mode() {
     assert_eq!(store.unsynced_count(), Err(CacheError::UnsupportedVersion));
     db.pragma_update(None, "journal_mode", "WAL").unwrap();
     assert!(matches!(
-        AgendaStore::open(&root, ACCOUNT, CacheKey::new([1; 32])),
+        AgendaStore::open(&root, ACCOUNT),
         Err(CacheError::UnsupportedVersion)
     ));
     let mode: String = db

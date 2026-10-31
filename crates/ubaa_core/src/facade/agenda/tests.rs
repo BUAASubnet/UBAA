@@ -10,7 +10,7 @@ fn d(raw: &str) -> NaiveDate {
 }
 fn opened(account: &str) -> (PathBuf, OfflineCache, AgendaStore) {
     let root = PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/agenda_1b/tests")
+        .join("../../.ubaa_local/agenda_plaintext/query_tests")
         .join(uuid::Uuid::new_v4().to_string());
     std::fs::create_dir_all(&root).unwrap();
     let root = root.canonicalize().unwrap();
@@ -22,7 +22,7 @@ fn opened(account: &str) -> (PathBuf, OfflineCache, AgendaStore) {
         CacheLimits::default(),
     )
     .unwrap();
-    let agenda = AgendaStore::open(&root, account, CacheKey::new([2; 32])).unwrap();
+    let agenda = AgendaStore::open(&root, account).unwrap();
     (root, cache, agenda)
 }
 fn query() -> AgendaQuery {
@@ -232,12 +232,7 @@ fn query_rejects_cross_account_logout_and_bad_ranges_and_keeps_routes_separate()
     let (root, cache, agenda) = opened(ACCOUNT);
     fixture(&cache);
     local(&agenda);
-    let foreign = AgendaStore::open(
-        &root,
-        "00000000000000000000000000000002",
-        CacheKey::new([2; 32]),
-    )
-    .unwrap();
+    let foreign = AgendaStore::open(&root, "00000000000000000000000000000002").unwrap();
     assert_eq!(
         cache.query_agenda(&foreign, &query()),
         Err(CacheError::InvalidInput)
