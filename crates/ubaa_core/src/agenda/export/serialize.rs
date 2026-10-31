@@ -1,5 +1,5 @@
 //! 将已展开条目序列化为有大小限制的 RFC 5545 快照。
-use super::{AgendaExportOptions, AgendaExportResult};
+use super::{AgendaExportOptions, AgendaExportResult, content_lines};
 use crate::{
     agenda::store::AgendaData,
     cache::{CacheError, CacheResult},
@@ -21,13 +21,12 @@ pub(super) fn serialize(
     calendar.append_property(Property::new("X-UBAA-RANGE-FROM", o.from.to_string()));
     calendar.append_property(Property::new("X-UBAA-RANGE-TO", o.to.to_string()));
     calendar.append_property(Property::new("X-UBAA-TIMEZONE", "Asia/Shanghai"));
-    let header = calendar.to_string();
-    let mut out = LimitedOutput(
-        header
-            .strip_suffix("END:VCALENDAR\r\n")
-            .ok_or(CacheError::Unavailable)?
-            .to_owned(),
-    );
+    let mut out = LimitedOutput(String::new());
+    out.write_str("BEGIN:VCALENDAR\r\n")
+        .map_err(|_| CacheError::Capacity)?;
+    for property in &calendar.properties {
+        content_lines::property(&mut out, property).map_err(|_| CacheError::Capacity)?;
+    }
     let mut result = AgendaExportResult {
         ics: String::new(),
         exported_count: 0,
@@ -49,9 +48,7 @@ pub(super) fn serialize(
                     .starts(start.datetime.with_timezone(&Utc))
                     .ends(end.datetime.with_timezone(&Utc));
                 decorate(&mut event, entry, data, o, account)?;
-                event
-                    .fmt_write(&mut out)
-                    .map_err(|_| CacheError::Capacity)?;
+                content_lines::component(&mut out, &event).map_err(|_| CacheError::Capacity)?;
             }
             AgendaTiming::AllDay { from, to }
                 if matches!(entry.item, AgendaEntryItem::Local(_)) && from < to =>
@@ -62,9 +59,7 @@ pub(super) fn serialize(
                 let mut event = Event::new();
                 event.starts(from).ends(to);
                 decorate(&mut event, entry, data, o, account)?;
-                event
-                    .fmt_write(&mut out)
-                    .map_err(|_| CacheError::Capacity)?;
+                content_lines::component(&mut out, &event).map_err(|_| CacheError::Capacity)?;
             }
             timing @ (AgendaTiming::Deadline(_) | AgendaTiming::Undated)
                 if matches!(timing, AgendaTiming::Deadline(_))
@@ -96,7 +91,7 @@ pub(super) fn serialize(
                     }
                 }
                 decorate(&mut todo, entry, data, o, account)?;
-                todo.fmt_write(&mut out).map_err(|_| CacheError::Capacity)?;
+                content_lines::component(&mut out, &todo).map_err(|_| CacheError::Capacity)?;
             }
             // 学校的全天占位、未知端点或无日期并不能证明真实的事件/待办时间。
             _ => {
@@ -136,7 +131,12 @@ fn decorate(
             c.add_property("X-UBAA-SOURCE", "local");
             c.add_property("X-UBAA-RECURRENCE-ID", &v.recurrence_id);
             (
-                serde_json::to_vec(&("local", v.item_id, &v.recurrence_id)),
+                if item.rrule.is_some() {
+                    serde_json::to_vec(&("local", v.item_id, &v.recurrence_id))
+                } else {
+                    // 单次事项的发生键随改时变化，稳定身份只使用已有 UUID。
+                    serde_json::to_vec(&("local", v.item_id))
+                },
                 &v.content.location,
             )
         }

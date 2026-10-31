@@ -13,7 +13,7 @@ fn now() -> AgendaTime {
 }
 fn store() -> AgendaStore {
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/agenda_1d/test_data")
+        .join("../../.ubaa_local/agenda_1d_export_fix/test_data")
         .join(uuid::Uuid::new_v4().to_string());
     std::fs::create_dir_all(&root).unwrap();
     AgendaStore::open(&root, "11111111111111111111111111111111").unwrap()
@@ -38,6 +38,131 @@ fn parse(result: &AgendaExportResult) -> Calendar {
     result.ics.parse().unwrap()
 }
 
+fn only_uid(store: &AgendaStore) -> String {
+    let calendar = parse(&store.export_local_ics(&options()).unwrap());
+    assert_eq!(calendar.components.len(), 1);
+    calendar
+        .events()
+        .filter_map(|e| e.get_uid())
+        .chain(calendar.todos().filter_map(|e| e.get_uid()))
+        .next()
+        .unwrap()
+        .into()
+}
+
+#[test]
+fn single_event_uid_survives_timed_and_all_day_moves() {
+    for scope in [AgendaEditScope::This, AgendaEditScope::All] {
+        for all_day in [false, true] {
+            let store = store();
+            let mut item = event();
+            if all_day {
+                item.content.all_day = true;
+                item.content.start = Some(t("2026-03-03T00:00:00+08:00"));
+                item.content.end = Some(t("2026-03-04T00:00:00+08:00"));
+            }
+            store.create(item.clone()).unwrap();
+            let uid = only_uid(&store);
+            let mut content = item.content.clone();
+            content.start.as_mut().unwrap().datetime += Duration::days(1);
+            content.end.as_mut().unwrap().datetime += Duration::days(1);
+            store
+                .edit(
+                    item.id,
+                    scope,
+                    item.content.start,
+                    content.clone(),
+                    None,
+                    now(),
+                )
+                .unwrap();
+            let calendar = parse(&store.export_local_ics(&options()).unwrap());
+            let moved = calendar.events().next().unwrap();
+            assert_eq!(store.get(item.id).unwrap().unwrap().content, content);
+            assert_eq!(moved.get_uid(), Some(uid.as_str()));
+            assert_eq!(
+                moved.get_start().unwrap(),
+                if all_day {
+                    DatePerhapsTime::Date(d("2026-03-04"))
+                } else {
+                    DatePerhapsTime::from(content.start.unwrap().datetime.with_timezone(&Utc))
+                }
+            );
+        }
+    }
+}
+
+#[test]
+fn single_task_uid_survives_assigning_moving_and_removing_due_date() {
+    for scope in [AgendaEditScope::This, AgendaEditScope::All] {
+        let store = store();
+        let mut item = event();
+        item.content.kind = AgendaKind::Task;
+        item.content.start = None;
+        item.content.end = None;
+        store.create(item.clone()).unwrap();
+        let uid = only_uid(&store);
+        for due in [
+            Some(t("2026-03-03T12:00:00+08:00")),
+            Some(t("2026-03-04T12:00:00+08:00")),
+            None,
+        ] {
+            let at = item.content.due;
+            item.content.due = due;
+            store
+                .edit(item.id, scope, at, item.content.clone(), None, now())
+                .unwrap();
+            let calendar = parse(&store.export_local_ics(&options()).unwrap());
+            let task = calendar.todos().next().unwrap();
+            assert_eq!(task.get_uid(), Some(uid.as_str()));
+            assert_eq!(
+                task.get_due(),
+                due.map(|t| DatePerhapsTime::from(t.datetime.with_timezone(&Utc)))
+            );
+            assert_eq!(store.get(item.id).unwrap().unwrap().id, item.id);
+        }
+    }
+}
+
+#[test]
+fn recurrence_conversion_uses_distinct_occurrences_and_restores_single_identity() {
+    let store = store();
+    let item = event();
+    store.create(item.clone()).unwrap();
+    let single_uid = only_uid(&store);
+    store
+        .edit(
+            item.id,
+            AgendaEditScope::All,
+            None,
+            item.content.clone(),
+            Some("FREQ=DAILY;COUNT=2".into()),
+            now(),
+        )
+        .unwrap();
+    let repeated = parse(&store.export_local_ics(&options()).unwrap());
+    let uids: std::collections::BTreeSet<_> =
+        repeated.events().map(|e| e.get_uid().unwrap()).collect();
+    assert_eq!(uids.len(), 2);
+    assert!(!uids.contains(single_uid.as_str()));
+    store
+        .edit(
+            item.id,
+            AgendaEditScope::All,
+            None,
+            item.content,
+            None,
+            now(),
+        )
+        .unwrap();
+    assert_eq!(only_uid(&store), single_uid);
+    store.create(event()).unwrap();
+    let distinct = parse(&store.export_local_ics(&options()).unwrap());
+    let uids: std::collections::BTreeSet<_> =
+        distinct.events().map(|e| e.get_uid().unwrap()).collect();
+    assert_eq!(uids.len(), 2);
+}
+
 #[test]
 fn recurrence_snapshot_keeps_original_identity_after_move_and_exclusion() {
     let store = store();
@@ -45,6 +170,13 @@ fn recurrence_snapshot_keeps_original_identity_after_move_and_exclusion() {
     item.rrule = Some("FREQ=DAILY;COUNT=4".into());
     let id = item.id;
     store.create(item.clone()).unwrap();
+    let before = parse(&store.export_local_ics(&options()).unwrap());
+    let before_move = before
+        .events()
+        .find(|e| e.property_value("X-UBAA-RECURRENCE-ID") == Some("2026-03-03T09:00:00+08:00"))
+        .unwrap()
+        .get_uid()
+        .unwrap();
     store
         .delete(
             id,
@@ -76,6 +208,15 @@ fn recurrence_snapshot_keeps_original_identity_after_move_and_exclusion() {
         .events()
         .find(|e| e.property_value("X-UBAA-COMPLETED") == Some("TRUE"))
         .unwrap();
+    assert_eq!(moved.get_uid(), Some(before_move));
+    assert_eq!(
+        calendar
+            .events()
+            .map(|e| e.get_uid().unwrap())
+            .collect::<std::collections::BTreeSet<_>>()
+            .len(),
+        3
+    );
     assert_eq!(
         moved.get_start(),
         Some(DatePerhapsTime::from(
@@ -224,6 +365,60 @@ fn chinese_text_roundtrip_cannot_inject_components_and_lines_are_utf8_octets() {
     assert_eq!(e.get_summary(), Some(text.as_str()));
     assert_eq!(e.get_description(), Some(text.as_str()));
     assert_eq!(e.get_location(), Some("中文地点,甲;乙\\丙"));
+}
+
+#[test]
+fn folding_preserves_spaces_and_escaped_text_at_utf8_boundaries() {
+    let store = store();
+    let mut expected = std::collections::BTreeSet::new();
+    for prefix in 58..=78 {
+        let mut item = event();
+        // 让普通空格、多字节字符和转义序列分别跨过首行及续行边界。
+        let text = format!(
+            "{}  中文🙂\\n\\,;\r\n{}  尾部 ",
+            "a".repeat(prefix),
+            "🙂中 ".repeat(18)
+        );
+        item.content.title = text.clone();
+        item.content.location = Some(text.clone());
+        item.content.notes = Some(text.clone());
+        store.create(item).unwrap();
+        expected.insert(text.replace("\r\n", "\n"));
+    }
+    let result = store.export_local_ics(&options()).unwrap();
+    assert!(result.ics.ends_with("END:VCALENDAR\r\n"));
+    assert!(
+        result
+            .ics
+            .split("\r\n")
+            .all(|line| line.len() <= 75 && !line.contains(['\r', '\n']))
+    );
+    let parsed = parse(&result);
+    let mut actual = std::collections::BTreeSet::new();
+    for e in parsed.events() {
+        let summary = e.get_summary().unwrap();
+        assert_eq!(e.get_description(), Some(summary));
+        assert_eq!(e.get_location(), Some(summary));
+        actual.insert(summary.to_owned());
+    }
+    assert_eq!(actual, expected);
+}
+
+#[test]
+fn near_limit_notes_roundtrip_with_long_continuations() {
+    let store = store();
+    let mut item = event();
+    let notes = format!("{} 尾部 ", "中文🙂\\,;\n ".repeat(4368));
+    assert!((63_000..=65_536).contains(&notes.len()));
+    item.content.notes = Some(notes.clone());
+    store.create(item).unwrap();
+    let result = store.export_local_ics(&options()).unwrap();
+    assert!(result.ics.split("\r\n").all(|line| line.len() <= 75));
+    let parsed = parse(&result);
+    assert_eq!(
+        parsed.events().next().unwrap().get_description(),
+        Some(notes.as_str())
+    );
 }
 
 #[test]
@@ -392,7 +587,7 @@ fn note_only_overlay_does_not_supply_school_completion_timestamp() {
 #[test]
 fn public_cache_export_retains_availability_and_rejects_another_account() {
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/agenda_1d/test_data")
+        .join("../../.ubaa_local/agenda_1d_export_fix/test_data")
         .join(uuid::Uuid::new_v4().to_string());
     std::fs::create_dir_all(&root).unwrap();
     let account = "22222222222222222222222222222222";
@@ -433,7 +628,12 @@ fn output_capacity_is_an_error_and_reopening_task_removes_completion_time() {
     store.create(item).unwrap();
     let mut wide = options();
     wide.to = d("2028-01-01");
+    let started = std::time::Instant::now();
     assert_eq!(store.export_local_ics(&wide), Err(CacheError::Capacity));
+    eprintln!(
+        "600 次重复、每次 63,000 字节备注的完整导出：{:?}，返回 Capacity，无部分正文",
+        started.elapsed()
+    );
     let store = self::store();
     let mut task = event();
     task.content.kind = AgendaKind::Task;

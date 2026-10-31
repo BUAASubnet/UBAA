@@ -5,6 +5,7 @@ use crate::{
     domain::agenda::{AgendaTime, SchoolAgendaItem},
 };
 use chrono::{Datelike, NaiveDate};
+mod content_lines;
 mod serialize;
 use serialize::{serialize, valid_time};
 
