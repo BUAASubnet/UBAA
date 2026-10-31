@@ -3,6 +3,9 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
+import 'api/agenda.dart';
+import 'api/agenda/models.dart';
+import 'api/agenda/school.dart';
 import 'api/cache_management.dart';
 import 'api/campus.dart';
 import 'api/client.dart';
@@ -47,6 +50,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     required super.generalizedFrbRustBinding,
     required super.portManager,
   });
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_BridgeAgendaStorePtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStorePtr;
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_BridgeCaptchaChallengePtr => wire
@@ -99,6 +106,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_BridgeSpocScanPtr => wire
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScanPtr;
+
+  @protected
+  BridgeAgendaStore
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    dynamic raw,
+  );
 
   @protected
   BridgeCaptchaChallenge
@@ -179,6 +192,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeAgendaStore
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    dynamic raw,
+  );
+
+  @protected
   BridgeCaptchaChallenge
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(
     dynamic raw,
@@ -253,6 +272,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeSpocScan
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAgendaStore
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
     dynamic raw,
   );
 
@@ -354,6 +379,39 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   bool dco_decode_box_autoadd_bool(dynamic raw);
+
+  @protected
+  BridgeAgendaContent dco_decode_box_autoadd_bridge_agenda_content(dynamic raw);
+
+  @protected
+  BridgeAgendaDraft dco_decode_box_autoadd_bridge_agenda_draft(dynamic raw);
+
+  @protected
+  BridgeAgendaItem dco_decode_box_autoadd_bridge_agenda_item(dynamic raw);
+
+  @protected
+  BridgeAgendaOccurrence dco_decode_box_autoadd_bridge_agenda_occurrence(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAgendaOverlay dco_decode_box_autoadd_bridge_agenda_overlay(dynamic raw);
+
+  @protected
+  BridgeAgendaOverlayDraft dco_decode_box_autoadd_bridge_agenda_overlay_draft(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAgendaQuery dco_decode_box_autoadd_bridge_agenda_query(dynamic raw);
+
+  @protected
+  BridgeAgendaSubmission dco_decode_box_autoadd_bridge_agenda_submission(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAgendaTime dco_decode_box_autoadd_bridge_agenda_time(dynamic raw);
 
   @protected
   BridgeBykcCourseAttendanceDisplay
@@ -648,8 +706,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeSafeError dco_decode_box_autoadd_bridge_safe_error(dynamic raw);
 
   @protected
+  BridgeSchoolAgendaItem dco_decode_box_autoadd_bridge_school_agenda_item(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeSchoolAgendaKey dco_decode_box_autoadd_bridge_school_agenda_key(
+    dynamic raw,
+  );
+
+  @protected
   BridgeSigninPerformRequest
   dco_decode_box_autoadd_bridge_signin_perform_request(dynamic raw);
+
+  @protected
+  BridgeTeachingWeekInput dco_decode_box_autoadd_bridge_teaching_week_input(
+    dynamic raw,
+  );
 
   @protected
   BridgeUserProfile dco_decode_box_autoadd_bridge_user_profile(dynamic raw);
@@ -718,6 +791,89 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeActionEligibility dco_decode_bridge_action_eligibility(dynamic raw);
+
+  @protected
+  BridgeAgendaCacheKind dco_decode_bridge_agenda_cache_kind(dynamic raw);
+
+  @protected
+  BridgeAgendaCacheScope dco_decode_bridge_agenda_cache_scope(dynamic raw);
+
+  @protected
+  BridgeAgendaCompleteness dco_decode_bridge_agenda_completeness(dynamic raw);
+
+  @protected
+  BridgeAgendaCompletion dco_decode_bridge_agenda_completion(dynamic raw);
+
+  @protected
+  BridgeAgendaContent dco_decode_bridge_agenda_content(dynamic raw);
+
+  @protected
+  BridgeAgendaDraft dco_decode_bridge_agenda_draft(dynamic raw);
+
+  @protected
+  BridgeAgendaEditScope dco_decode_bridge_agenda_edit_scope(dynamic raw);
+
+  @protected
+  BridgeAgendaEntry dco_decode_bridge_agenda_entry(dynamic raw);
+
+  @protected
+  BridgeAgendaError dco_decode_bridge_agenda_error(dynamic raw);
+
+  @protected
+  BridgeAgendaFailure dco_decode_bridge_agenda_failure(dynamic raw);
+
+  @protected
+  BridgeAgendaFeature dco_decode_bridge_agenda_feature(dynamic raw);
+
+  @protected
+  BridgeAgendaItem dco_decode_bridge_agenda_item(dynamic raw);
+
+  @protected
+  BridgeAgendaKind dco_decode_bridge_agenda_kind(dynamic raw);
+
+  @protected
+  BridgeAgendaNavigation dco_decode_bridge_agenda_navigation(dynamic raw);
+
+  @protected
+  BridgeAgendaObservation dco_decode_bridge_agenda_observation(dynamic raw);
+
+  @protected
+  BridgeAgendaOccurrence dco_decode_bridge_agenda_occurrence(dynamic raw);
+
+  @protected
+  BridgeAgendaOverlay dco_decode_bridge_agenda_overlay(dynamic raw);
+
+  @protected
+  BridgeAgendaOverlayDraft dco_decode_bridge_agenda_overlay_draft(dynamic raw);
+
+  @protected
+  BridgeAgendaOverride dco_decode_bridge_agenda_override(dynamic raw);
+
+  @protected
+  BridgeAgendaQuery dco_decode_bridge_agenda_query(dynamic raw);
+
+  @protected
+  BridgeAgendaQueryResult dco_decode_bridge_agenda_query_result(dynamic raw);
+
+  @protected
+  BridgeAgendaSource dco_decode_bridge_agenda_source(dynamic raw);
+
+  @protected
+  BridgeAgendaSubmission dco_decode_bridge_agenda_submission(dynamic raw);
+
+  @protected
+  BridgeAgendaTime dco_decode_bridge_agenda_time(dynamic raw);
+
+  @protected
+  BridgeAgendaTiming dco_decode_bridge_agenda_timing(dynamic raw);
+
+  @protected
+  BridgeAgendaTimingKind dco_decode_bridge_agenda_timing_kind(dynamic raw);
+
+  @protected
+  BridgeAgendaUpstreamStatus dco_decode_bridge_agenda_upstream_status(
+    dynamic raw,
+  );
 
   @protected
   BridgeBykcCatalogRefresh dco_decode_bridge_bykc_catalog_refresh(dynamic raw);
@@ -1733,6 +1889,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeSchoolAgendaItem dco_decode_bridge_school_agenda_item(dynamic raw);
+
+  @protected
+  BridgeSchoolAgendaKey dco_decode_bridge_school_agenda_key(dynamic raw);
+
+  @protected
   BridgeSectionTime dco_decode_bridge_section_time(dynamic raw);
 
   @protected
@@ -1768,6 +1930,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeSpocSubmissionStatus dco_decode_bridge_spoc_submission_status(
     dynamic raw,
   );
+
+  @protected
+  BridgeTeachingWeekInput dco_decode_bridge_teaching_week_input(dynamic raw);
+
+  @protected
+  BridgeTeachingWeekPattern dco_decode_bridge_teaching_week_pattern(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeTeachingWeekRule dco_decode_bridge_teaching_week_rule(dynamic raw);
 
   @protected
   BridgeTerm dco_decode_bridge_term(dynamic raw);
@@ -1842,6 +2015,35 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> dco_decode_list_String(dynamic raw);
+
+  @protected
+  List<BridgeAgendaCacheScope> dco_decode_list_bridge_agenda_cache_scope(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeAgendaCompletion> dco_decode_list_bridge_agenda_completion(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeAgendaEntry> dco_decode_list_bridge_agenda_entry(dynamic raw);
+
+  @protected
+  List<BridgeAgendaObservation> dco_decode_list_bridge_agenda_observation(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeAgendaOverride> dco_decode_list_bridge_agenda_override(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeAgendaSource> dco_decode_list_bridge_agenda_source(dynamic raw);
+
+  @protected
+  List<BridgeAgendaTime> dco_decode_list_bridge_agenda_time(dynamic raw);
 
   @protected
   List<BridgeBykcChosenCourse> dco_decode_list_bridge_bykc_chosen_course(
@@ -2117,6 +2319,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool? dco_decode_opt_box_autoadd_bool(dynamic raw);
 
   @protected
+  BridgeAgendaItem? dco_decode_opt_box_autoadd_bridge_agenda_item(dynamic raw);
+
+  @protected
+  BridgeAgendaOccurrence? dco_decode_opt_box_autoadd_bridge_agenda_occurrence(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAgendaOverlay? dco_decode_opt_box_autoadd_bridge_agenda_overlay(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAgendaSubmission? dco_decode_opt_box_autoadd_bridge_agenda_submission(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAgendaTime? dco_decode_opt_box_autoadd_bridge_agenda_time(dynamic raw);
+
+  @protected
   BridgeBykcCourseAttendanceDisplay?
   dco_decode_opt_box_autoadd_bridge_bykc_course_attendance_display(dynamic raw);
 
@@ -2379,6 +2602,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeSafeError? dco_decode_opt_box_autoadd_bridge_safe_error(dynamic raw);
 
   @protected
+  BridgeSchoolAgendaItem? dco_decode_opt_box_autoadd_bridge_school_agenda_item(
+    dynamic raw,
+  );
+
+  @protected
   BridgeUserProfile? dco_decode_opt_box_autoadd_bridge_user_profile(
     dynamic raw,
   );
@@ -2429,6 +2657,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt dco_decode_usize(dynamic raw);
+
+  @protected
+  BridgeAgendaStore
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    SseDeserializer deserializer,
+  );
 
   @protected
   BridgeCaptchaChallenge
@@ -2509,6 +2743,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeAgendaStore
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCaptchaChallenge
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(
     SseDeserializer deserializer,
@@ -2583,6 +2823,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeSpocScan
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaStore
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
     SseDeserializer deserializer,
   );
 
@@ -2684,6 +2930,51 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   bool sse_decode_box_autoadd_bool(SseDeserializer deserializer);
+
+  @protected
+  BridgeAgendaContent sse_decode_box_autoadd_bridge_agenda_content(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaDraft sse_decode_box_autoadd_bridge_agenda_draft(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaItem sse_decode_box_autoadd_bridge_agenda_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaOccurrence sse_decode_box_autoadd_bridge_agenda_occurrence(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaOverlay sse_decode_box_autoadd_bridge_agenda_overlay(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaOverlayDraft sse_decode_box_autoadd_bridge_agenda_overlay_draft(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaQuery sse_decode_box_autoadd_bridge_agenda_query(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaSubmission sse_decode_box_autoadd_bridge_agenda_submission(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaTime sse_decode_box_autoadd_bridge_agenda_time(
+    SseDeserializer deserializer,
+  );
 
   @protected
   BridgeBykcCourseAttendanceDisplay
@@ -3076,8 +3367,23 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeSchoolAgendaItem sse_decode_box_autoadd_bridge_school_agenda_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSchoolAgendaKey sse_decode_box_autoadd_bridge_school_agenda_key(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeSigninPerformRequest
   sse_decode_box_autoadd_bridge_signin_perform_request(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeTeachingWeekInput sse_decode_box_autoadd_bridge_teaching_week_input(
     SseDeserializer deserializer,
   );
 
@@ -3150,6 +3456,135 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeActionEligibility sse_decode_bridge_action_eligibility(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaCacheKind sse_decode_bridge_agenda_cache_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaCacheScope sse_decode_bridge_agenda_cache_scope(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaCompleteness sse_decode_bridge_agenda_completeness(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaCompletion sse_decode_bridge_agenda_completion(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaContent sse_decode_bridge_agenda_content(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaDraft sse_decode_bridge_agenda_draft(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaEditScope sse_decode_bridge_agenda_edit_scope(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaEntry sse_decode_bridge_agenda_entry(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaError sse_decode_bridge_agenda_error(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaFailure sse_decode_bridge_agenda_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaFeature sse_decode_bridge_agenda_feature(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaItem sse_decode_bridge_agenda_item(SseDeserializer deserializer);
+
+  @protected
+  BridgeAgendaKind sse_decode_bridge_agenda_kind(SseDeserializer deserializer);
+
+  @protected
+  BridgeAgendaNavigation sse_decode_bridge_agenda_navigation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaObservation sse_decode_bridge_agenda_observation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaOccurrence sse_decode_bridge_agenda_occurrence(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaOverlay sse_decode_bridge_agenda_overlay(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaOverlayDraft sse_decode_bridge_agenda_overlay_draft(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaOverride sse_decode_bridge_agenda_override(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaQuery sse_decode_bridge_agenda_query(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaQueryResult sse_decode_bridge_agenda_query_result(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaSource sse_decode_bridge_agenda_source(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaSubmission sse_decode_bridge_agenda_submission(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaTime sse_decode_bridge_agenda_time(SseDeserializer deserializer);
+
+  @protected
+  BridgeAgendaTiming sse_decode_bridge_agenda_timing(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaTimingKind sse_decode_bridge_agenda_timing_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaUpstreamStatus sse_decode_bridge_agenda_upstream_status(
     SseDeserializer deserializer,
   );
 
@@ -4473,6 +4908,16 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeSchoolAgendaItem sse_decode_bridge_school_agenda_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeSchoolAgendaKey sse_decode_bridge_school_agenda_key(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeSectionTime sse_decode_bridge_section_time(
     SseDeserializer deserializer,
   );
@@ -4514,6 +4959,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeSpocSubmissionStatus sse_decode_bridge_spoc_submission_status(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeTeachingWeekInput sse_decode_bridge_teaching_week_input(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeTeachingWeekPattern sse_decode_bridge_teaching_week_pattern(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeTeachingWeekRule sse_decode_bridge_teaching_week_rule(
     SseDeserializer deserializer,
   );
 
@@ -4618,6 +5078,41 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   List<String> sse_decode_list_String(SseDeserializer deserializer);
+
+  @protected
+  List<BridgeAgendaCacheScope> sse_decode_list_bridge_agenda_cache_scope(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeAgendaCompletion> sse_decode_list_bridge_agenda_completion(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeAgendaEntry> sse_decode_list_bridge_agenda_entry(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeAgendaObservation> sse_decode_list_bridge_agenda_observation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeAgendaOverride> sse_decode_list_bridge_agenda_override(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeAgendaSource> sse_decode_list_bridge_agenda_source(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeAgendaTime> sse_decode_list_bridge_agenda_time(
+    SseDeserializer deserializer,
+  );
 
   @protected
   List<BridgeBykcChosenCourse> sse_decode_list_bridge_bykc_chosen_course(
@@ -4945,6 +5440,31 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer);
+
+  @protected
+  BridgeAgendaItem? sse_decode_opt_box_autoadd_bridge_agenda_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaOccurrence? sse_decode_opt_box_autoadd_bridge_agenda_occurrence(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaOverlay? sse_decode_opt_box_autoadd_bridge_agenda_overlay(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaSubmission? sse_decode_opt_box_autoadd_bridge_agenda_submission(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaTime? sse_decode_opt_box_autoadd_bridge_agenda_time(
+    SseDeserializer deserializer,
+  );
 
   @protected
   BridgeBykcCourseAttendanceDisplay?
@@ -5295,6 +5815,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeSchoolAgendaItem? sse_decode_opt_box_autoadd_bridge_school_agenda_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeUserProfile? sse_decode_opt_box_autoadd_bridge_user_profile(
     SseDeserializer deserializer,
   );
@@ -5349,6 +5874,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BigInt sse_decode_usize(SseDeserializer deserializer);
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    BridgeAgendaStore self,
+    SseSerializer serializer,
+  );
 
   @protected
   void
@@ -5443,6 +5975,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    BridgeAgendaStore self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(
     BridgeCaptchaChallenge self,
     SseSerializer serializer,
@@ -5529,6 +6068,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan(
     BridgeSpocScan self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    BridgeAgendaStore self,
     SseSerializer serializer,
   );
 
@@ -5645,6 +6191,60 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_content(
+    BridgeAgendaContent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_draft(
+    BridgeAgendaDraft self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_item(
+    BridgeAgendaItem self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_occurrence(
+    BridgeAgendaOccurrence self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_overlay(
+    BridgeAgendaOverlay self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_overlay_draft(
+    BridgeAgendaOverlayDraft self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_query(
+    BridgeAgendaQuery self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_submission(
+    BridgeAgendaSubmission self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_time(
+    BridgeAgendaTime self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_box_autoadd_bridge_bykc_course_attendance_display(
@@ -6073,8 +6673,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_box_autoadd_bridge_school_agenda_item(
+    BridgeSchoolAgendaItem self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_school_agenda_key(
+    BridgeSchoolAgendaKey self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_box_autoadd_bridge_signin_perform_request(
     BridgeSigninPerformRequest self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_teaching_week_input(
+    BridgeTeachingWeekInput self,
     SseSerializer serializer,
   );
 
@@ -6162,6 +6780,168 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_action_eligibility(
     BridgeActionEligibility self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_cache_kind(
+    BridgeAgendaCacheKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_cache_scope(
+    BridgeAgendaCacheScope self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_completeness(
+    BridgeAgendaCompleteness self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_completion(
+    BridgeAgendaCompletion self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_content(
+    BridgeAgendaContent self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_draft(
+    BridgeAgendaDraft self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_edit_scope(
+    BridgeAgendaEditScope self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_entry(
+    BridgeAgendaEntry self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_error(
+    BridgeAgendaError self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_failure(
+    BridgeAgendaFailure self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_feature(
+    BridgeAgendaFeature self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_item(
+    BridgeAgendaItem self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_kind(
+    BridgeAgendaKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_navigation(
+    BridgeAgendaNavigation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_observation(
+    BridgeAgendaObservation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_occurrence(
+    BridgeAgendaOccurrence self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_overlay(
+    BridgeAgendaOverlay self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_overlay_draft(
+    BridgeAgendaOverlayDraft self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_override(
+    BridgeAgendaOverride self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_query(
+    BridgeAgendaQuery self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_query_result(
+    BridgeAgendaQueryResult self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_source(
+    BridgeAgendaSource self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_submission(
+    BridgeAgendaSubmission self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_time(
+    BridgeAgendaTime self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_timing(
+    BridgeAgendaTiming self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_timing_kind(
+    BridgeAgendaTimingKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_upstream_status(
+    BridgeAgendaUpstreamStatus self,
     SseSerializer serializer,
   );
 
@@ -7771,6 +8551,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_bridge_school_agenda_item(
+    BridgeSchoolAgendaItem self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_school_agenda_key(
+    BridgeSchoolAgendaKey self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_bridge_section_time(
     BridgeSectionTime self,
     SseSerializer serializer,
@@ -7821,6 +8613,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_spoc_submission_status(
     BridgeSpocSubmissionStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_teaching_week_input(
+    BridgeTeachingWeekInput self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_teaching_week_pattern(
+    BridgeTeachingWeekPattern self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_teaching_week_rule(
+    BridgeTeachingWeekRule self,
     SseSerializer serializer,
   );
 
@@ -7949,6 +8759,48 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void sse_encode_list_String(List<String> self, SseSerializer serializer);
+
+  @protected
+  void sse_encode_list_bridge_agenda_cache_scope(
+    List<BridgeAgendaCacheScope> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_agenda_completion(
+    List<BridgeAgendaCompletion> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_agenda_entry(
+    List<BridgeAgendaEntry> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_agenda_observation(
+    List<BridgeAgendaObservation> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_agenda_override(
+    List<BridgeAgendaOverride> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_agenda_source(
+    List<BridgeAgendaSource> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_agenda_time(
+    List<BridgeAgendaTime> self,
+    SseSerializer serializer,
+  );
 
   @protected
   void sse_encode_list_bridge_bykc_chosen_course(
@@ -8364,6 +9216,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_bridge_agenda_item(
+    BridgeAgendaItem? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_agenda_occurrence(
+    BridgeAgendaOccurrence? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_agenda_overlay(
+    BridgeAgendaOverlay? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_agenda_submission(
+    BridgeAgendaSubmission? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_agenda_time(
+    BridgeAgendaTime? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_bridge_bykc_course_attendance_display(
     BridgeBykcCourseAttendanceDisplay? self,
     SseSerializer serializer,
@@ -8730,6 +9612,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_bridge_school_agenda_item(
+    BridgeSchoolAgendaItem? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_bridge_user_profile(
     BridgeUserProfile? self,
     SseSerializer serializer,
@@ -8806,6 +9694,40 @@ class RustLibWire implements BaseWire {
   /// The symbols are looked up in [dynamicLibrary].
   RustLibWire(ffi.DynamicLibrary dynamicLibrary)
     : _lookup = dynamicLibrary.lookup;
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStorePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStorePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStorePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStorePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
   rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(

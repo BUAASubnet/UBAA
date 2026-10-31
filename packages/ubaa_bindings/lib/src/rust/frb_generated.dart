@@ -3,6 +3,9 @@
 
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
+import 'api/agenda.dart';
+import 'api/agenda/models.dart';
+import 'api/agenda/school.dart';
 import 'api/cache_management.dart';
 import 'api/campus.dart';
 import 'api/client.dart';
@@ -95,7 +98,7 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
   String get codegenVersion => '2.13.0';
 
   @override
-  int get rustContentHash => -237898554;
+  int get rustContentHash => 1664281412;
 
   static const kDefaultExternalLibraryLoaderConfig =
       ExternalLibraryLoaderConfig(
@@ -107,6 +110,93 @@ class RustLib extends BaseEntrypoint<RustLibApi, RustLibApiImpl, RustLibWire> {
 }
 
 abstract class RustLibApi extends BaseApi {
+  Future<void> crateApiAgendaBridgeAgendaStoreActivate({
+    required BridgeAgendaStore that,
+  });
+
+  Future<int> crateApiAgendaBridgeAgendaStoreClearLocalData({
+    required BridgeAgendaStore that,
+  });
+
+  Future<void> crateApiAgendaBridgeAgendaStoreClearOverlay({
+    required BridgeAgendaStore that,
+    required BridgeSchoolAgendaKey key,
+    required BridgeAgendaTime now,
+  });
+
+  Future<void> crateApiAgendaBridgeAgendaStoreComplete({
+    required BridgeAgendaStore that,
+    required String itemId,
+    BridgeAgendaTime? at,
+    required bool completed,
+    required BridgeAgendaTime now,
+  });
+
+  Future<BridgeAgendaItem> crateApiAgendaBridgeAgendaStoreCreate({
+    required BridgeAgendaStore that,
+    required BridgeAgendaDraft draft,
+    required BridgeAgendaTime now,
+  });
+
+  Future<void> crateApiAgendaBridgeAgendaStoreDeactivate({
+    required BridgeAgendaStore that,
+  });
+
+  Future<void> crateApiAgendaBridgeAgendaStoreDelete({
+    required BridgeAgendaStore that,
+    required String itemId,
+    required BridgeAgendaEditScope scope,
+    BridgeAgendaTime? at,
+    required BridgeAgendaTime now,
+  });
+
+  Future<String?> crateApiAgendaBridgeAgendaStoreEdit({
+    required BridgeAgendaStore that,
+    required String itemId,
+    required BridgeAgendaEditScope scope,
+    BridgeAgendaTime? at,
+    required BridgeAgendaContent content,
+    String? rrule,
+    required BridgeAgendaTime now,
+  });
+
+  Future<BridgeAgendaItem?> crateApiAgendaBridgeAgendaStoreGet({
+    required BridgeAgendaStore that,
+    required String itemId,
+  });
+
+  Future<BridgeAgendaStore> crateApiAgendaBridgeAgendaStoreOpen({
+    required String configDir,
+    required String accountId,
+  });
+
+  Future<BridgeAgendaOverlay?> crateApiAgendaBridgeAgendaStoreOverlay({
+    required BridgeAgendaStore that,
+    required BridgeSchoolAgendaKey key,
+  });
+
+  Future<BridgeAgendaQueryResult> crateApiAgendaBridgeAgendaStoreQueryLocal({
+    required BridgeAgendaStore that,
+    required BridgeAgendaQuery query,
+  });
+
+  Future<BridgeAgendaQueryResult>
+  crateApiAgendaBridgeAgendaStoreQueryWithCache({
+    required BridgeAgendaStore that,
+    required BridgeOfflineCache cache,
+    required BridgeAgendaQuery query,
+  });
+
+  Future<void> crateApiAgendaBridgeAgendaStoreSetOverlay({
+    required BridgeAgendaStore that,
+    required BridgeAgendaOverlayDraft overlay,
+    required BridgeAgendaTime now,
+  });
+
+  Future<int> crateApiAgendaBridgeAgendaStoreUnsyncedCount({
+    required BridgeAgendaStore that,
+  });
+
   void crateApiInteractiveAuthBridgeCaptchaChallengeCancel({
     required BridgeCaptchaChallenge that,
   });
@@ -1221,6 +1311,10 @@ abstract class RustLibApi extends BaseApi {
     required BridgeSpocScan that,
   });
 
+  Future<BridgeTeachingWeekRule> crateApiAgendaAgendaTeachingWeekRule({
+    required BridgeTeachingWeekInput input,
+  });
+
   String crateApiSimpleBridgeHello();
 
   Future<BridgeJudgeOnlineOptions>
@@ -1230,6 +1324,15 @@ abstract class RustLibApi extends BaseApi {
   crateApiJudgeRefreshBridgeJudgeRefreshOptionsDefault();
 
   Future<void> crateApiSimpleInitApp();
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_BridgeAgendaStore;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_BridgeAgendaStore;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_BridgeAgendaStorePtr;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_BridgeCaptchaChallenge;
@@ -1357,6 +1460,603 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   });
 
   @override
+  Future<void> crateApiAgendaBridgeAgendaStoreActivate({
+    required BridgeAgendaStore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 1,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaBridgeAgendaStoreActivateConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaBridgeAgendaStoreActivateConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeAgendaStore_activate",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<int> crateApiAgendaBridgeAgendaStoreClearLocalData({
+    required BridgeAgendaStore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 2,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaBridgeAgendaStoreClearLocalDataConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaBridgeAgendaStoreClearLocalDataConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeAgendaStore_clear_local_data",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<void> crateApiAgendaBridgeAgendaStoreClearOverlay({
+    required BridgeAgendaStore that,
+    required BridgeSchoolAgendaKey key,
+    required BridgeAgendaTime now,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_school_agenda_key(key, serializer);
+          sse_encode_box_autoadd_bridge_agenda_time(now, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 3,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaBridgeAgendaStoreClearOverlayConstMeta,
+        argValues: [that, key, now],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaBridgeAgendaStoreClearOverlayConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeAgendaStore_clear_overlay",
+        argNames: ["that", "key", "now"],
+      );
+
+  @override
+  Future<void> crateApiAgendaBridgeAgendaStoreComplete({
+    required BridgeAgendaStore that,
+    required String itemId,
+    BridgeAgendaTime? at,
+    required bool completed,
+    required BridgeAgendaTime now,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+            that,
+            serializer,
+          );
+          sse_encode_String(itemId, serializer);
+          sse_encode_opt_box_autoadd_bridge_agenda_time(at, serializer);
+          sse_encode_bool(completed, serializer);
+          sse_encode_box_autoadd_bridge_agenda_time(now, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 4,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaBridgeAgendaStoreCompleteConstMeta,
+        argValues: [that, itemId, at, completed, now],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaBridgeAgendaStoreCompleteConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeAgendaStore_complete",
+        argNames: ["that", "itemId", "at", "completed", "now"],
+      );
+
+  @override
+  Future<BridgeAgendaItem> crateApiAgendaBridgeAgendaStoreCreate({
+    required BridgeAgendaStore that,
+    required BridgeAgendaDraft draft,
+    required BridgeAgendaTime now,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_agenda_draft(draft, serializer);
+          sse_encode_box_autoadd_bridge_agenda_time(now, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 5,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_agenda_item,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaBridgeAgendaStoreCreateConstMeta,
+        argValues: [that, draft, now],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaBridgeAgendaStoreCreateConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeAgendaStore_create",
+        argNames: ["that", "draft", "now"],
+      );
+
+  @override
+  Future<void> crateApiAgendaBridgeAgendaStoreDeactivate({
+    required BridgeAgendaStore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 6,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaBridgeAgendaStoreDeactivateConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaBridgeAgendaStoreDeactivateConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeAgendaStore_deactivate",
+        argNames: ["that"],
+      );
+
+  @override
+  Future<void> crateApiAgendaBridgeAgendaStoreDelete({
+    required BridgeAgendaStore that,
+    required String itemId,
+    required BridgeAgendaEditScope scope,
+    BridgeAgendaTime? at,
+    required BridgeAgendaTime now,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+            that,
+            serializer,
+          );
+          sse_encode_String(itemId, serializer);
+          sse_encode_bridge_agenda_edit_scope(scope, serializer);
+          sse_encode_opt_box_autoadd_bridge_agenda_time(at, serializer);
+          sse_encode_box_autoadd_bridge_agenda_time(now, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 7,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaBridgeAgendaStoreDeleteConstMeta,
+        argValues: [that, itemId, scope, at, now],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaBridgeAgendaStoreDeleteConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeAgendaStore_delete",
+        argNames: ["that", "itemId", "scope", "at", "now"],
+      );
+
+  @override
+  Future<String?> crateApiAgendaBridgeAgendaStoreEdit({
+    required BridgeAgendaStore that,
+    required String itemId,
+    required BridgeAgendaEditScope scope,
+    BridgeAgendaTime? at,
+    required BridgeAgendaContent content,
+    String? rrule,
+    required BridgeAgendaTime now,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+            that,
+            serializer,
+          );
+          sse_encode_String(itemId, serializer);
+          sse_encode_bridge_agenda_edit_scope(scope, serializer);
+          sse_encode_opt_box_autoadd_bridge_agenda_time(at, serializer);
+          sse_encode_box_autoadd_bridge_agenda_content(content, serializer);
+          sse_encode_opt_String(rrule, serializer);
+          sse_encode_box_autoadd_bridge_agenda_time(now, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 8,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_String,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaBridgeAgendaStoreEditConstMeta,
+        argValues: [that, itemId, scope, at, content, rrule, now],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaBridgeAgendaStoreEditConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeAgendaStore_edit",
+        argNames: ["that", "itemId", "scope", "at", "content", "rrule", "now"],
+      );
+
+  @override
+  Future<BridgeAgendaItem?> crateApiAgendaBridgeAgendaStoreGet({
+    required BridgeAgendaStore that,
+    required String itemId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+            that,
+            serializer,
+          );
+          sse_encode_String(itemId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 9,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_bridge_agenda_item,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaBridgeAgendaStoreGetConstMeta,
+        argValues: [that, itemId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaBridgeAgendaStoreGetConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeAgendaStore_get",
+        argNames: ["that", "itemId"],
+      );
+
+  @override
+  Future<BridgeAgendaStore> crateApiAgendaBridgeAgendaStoreOpen({
+    required String configDir,
+    required String accountId,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_String(configDir, serializer);
+          sse_encode_String(accountId, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 10,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData:
+              sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaBridgeAgendaStoreOpenConstMeta,
+        argValues: [configDir, accountId],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaBridgeAgendaStoreOpenConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeAgendaStore_open",
+        argNames: ["configDir", "accountId"],
+      );
+
+  @override
+  Future<BridgeAgendaOverlay?> crateApiAgendaBridgeAgendaStoreOverlay({
+    required BridgeAgendaStore that,
+    required BridgeSchoolAgendaKey key,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_school_agenda_key(key, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 11,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_opt_box_autoadd_bridge_agenda_overlay,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaBridgeAgendaStoreOverlayConstMeta,
+        argValues: [that, key],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaBridgeAgendaStoreOverlayConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeAgendaStore_overlay",
+        argNames: ["that", "key"],
+      );
+
+  @override
+  Future<BridgeAgendaQueryResult> crateApiAgendaBridgeAgendaStoreQueryLocal({
+    required BridgeAgendaStore that,
+    required BridgeAgendaQuery query,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_agenda_query(query, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 12,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_agenda_query_result,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaBridgeAgendaStoreQueryLocalConstMeta,
+        argValues: [that, query],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaBridgeAgendaStoreQueryLocalConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeAgendaStore_query_local",
+        argNames: ["that", "query"],
+      );
+
+  @override
+  Future<BridgeAgendaQueryResult>
+  crateApiAgendaBridgeAgendaStoreQueryWithCache({
+    required BridgeAgendaStore that,
+    required BridgeOfflineCache cache,
+    required BridgeAgendaQuery query,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+            that,
+            serializer,
+          );
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeOfflineCache(
+            cache,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_agenda_query(query, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 13,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_agenda_query_result,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaBridgeAgendaStoreQueryWithCacheConstMeta,
+        argValues: [that, cache, query],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaBridgeAgendaStoreQueryWithCacheConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeAgendaStore_query_with_cache",
+        argNames: ["that", "cache", "query"],
+      );
+
+  @override
+  Future<void> crateApiAgendaBridgeAgendaStoreSetOverlay({
+    required BridgeAgendaStore that,
+    required BridgeAgendaOverlayDraft overlay,
+    required BridgeAgendaTime now,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+            that,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_agenda_overlay_draft(
+            overlay,
+            serializer,
+          );
+          sse_encode_box_autoadd_bridge_agenda_time(now, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 14,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_unit,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaBridgeAgendaStoreSetOverlayConstMeta,
+        argValues: [that, overlay, now],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaBridgeAgendaStoreSetOverlayConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeAgendaStore_set_overlay",
+        argNames: ["that", "overlay", "now"],
+      );
+
+  @override
+  Future<int> crateApiAgendaBridgeAgendaStoreUnsyncedCount({
+    required BridgeAgendaStore that,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+            that,
+            serializer,
+          );
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 15,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_u_32,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaBridgeAgendaStoreUnsyncedCountConstMeta,
+        argValues: [that],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaBridgeAgendaStoreUnsyncedCountConstMeta =>
+      const TaskConstMeta(
+        debugName: "BridgeAgendaStore_unsynced_count",
+        argNames: ["that"],
+      );
+
+  @override
   void crateApiInteractiveAuthBridgeCaptchaChallengeCancel({
     required BridgeCaptchaChallenge that,
   }) {
@@ -1368,7 +2068,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 1)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 16)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1401,7 +2101,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 2)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 17)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -1446,7 +2146,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 3,
+            funcId: 18,
             port: port_,
           );
         },
@@ -1491,7 +2191,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 4,
+            funcId: 19,
             port: port_,
           );
         },
@@ -1535,7 +2235,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 5,
+            funcId: 20,
             port: port_,
           );
         },
@@ -1577,7 +2277,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 6,
+            funcId: 21,
             port: port_,
           );
         },
@@ -1623,7 +2323,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 7,
+            funcId: 22,
             port: port_,
           );
         },
@@ -1667,7 +2367,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 8,
+            funcId: 23,
             port: port_,
           );
         },
@@ -1703,7 +2403,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 9,
+            funcId: 24,
             port: port_,
           );
         },
@@ -1741,7 +2441,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 10,
+            funcId: 25,
             port: port_,
           );
         },
@@ -1783,7 +2483,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 11,
+            funcId: 26,
             port: port_,
           );
         },
@@ -1819,7 +2519,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             serializer,
           );
           sse_encode_String(username, serializer);
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 12)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 27)!;
         },
         codec: SseCodec(
           decodeSuccessData:
@@ -1861,7 +2561,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 13,
+            funcId: 28,
             port: port_,
           );
         },
@@ -1903,7 +2603,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 14,
+            funcId: 29,
             port: port_,
           );
         },
@@ -1950,7 +2650,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 15,
+            funcId: 30,
             port: port_,
           );
         },
@@ -1996,7 +2696,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 16,
+            funcId: 31,
             port: port_,
           );
         },
@@ -2041,7 +2741,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 17,
+            funcId: 32,
             port: port_,
           );
         },
@@ -2082,7 +2782,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 18,
+            funcId: 33,
             port: port_,
           );
         },
@@ -2126,7 +2826,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 19,
+            funcId: 34,
             port: port_,
           );
         },
@@ -2165,7 +2865,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 20,
+            funcId: 35,
             port: port_,
           );
         },
@@ -2207,7 +2907,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 21,
+            funcId: 36,
             port: port_,
           );
         },
@@ -2255,7 +2955,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 22,
+            funcId: 37,
             port: port_,
           );
         },
@@ -2296,7 +2996,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 23,
+            funcId: 38,
             port: port_,
           );
         },
@@ -2331,7 +3031,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 24,
+            funcId: 39,
             port: port_,
           );
         },
@@ -2370,7 +3070,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 25,
+            funcId: 40,
             port: port_,
           );
         },
@@ -2414,7 +3114,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 26,
+            funcId: 41,
             port: port_,
           );
         },
@@ -2452,7 +3152,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 27,
+            funcId: 42,
             port: port_,
           );
         },
@@ -2491,7 +3191,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 28,
+            funcId: 43,
             port: port_,
           );
         },
@@ -2533,7 +3233,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 29,
+            funcId: 44,
             port: port_,
           );
         },
@@ -2580,7 +3280,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 30,
+            funcId: 45,
             port: port_,
           );
         },
@@ -2623,7 +3323,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 31,
+            funcId: 46,
             port: port_,
           );
         },
@@ -2667,7 +3367,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 32,
+            funcId: 47,
             port: port_,
           );
         },
@@ -2703,7 +3403,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 33,
+            funcId: 48,
             port: port_,
           );
         },
@@ -2744,7 +3444,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 34,
+            funcId: 49,
             port: port_,
           );
         },
@@ -2780,7 +3480,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 35,
+            funcId: 50,
             port: port_,
           );
         },
@@ -2822,7 +3522,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 36,
+            funcId: 51,
             port: port_,
           );
         },
@@ -2865,7 +3565,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 37,
+            funcId: 52,
             port: port_,
           );
         },
@@ -2901,7 +3601,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 38,
+            funcId: 53,
             port: port_,
           );
         },
@@ -2934,7 +3634,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 39)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 54)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_unit,
@@ -2978,7 +3678,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 40,
+            funcId: 55,
             port: port_,
           );
         },
@@ -3018,7 +3718,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 41,
+            funcId: 56,
             port: port_,
           );
         },
@@ -3061,7 +3761,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 42,
+            funcId: 57,
             port: port_,
           );
         },
@@ -3097,7 +3797,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 43,
+            funcId: 58,
             port: port_,
           );
         },
@@ -3135,7 +3835,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 44,
+            funcId: 59,
             port: port_,
           );
         },
@@ -3176,7 +3876,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 45,
+            funcId: 60,
             port: port_,
           );
         },
@@ -3217,7 +3917,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 46,
+            funcId: 61,
             port: port_,
           );
         },
@@ -3262,7 +3962,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 47,
+            funcId: 62,
             port: port_,
           );
         },
@@ -3305,7 +4005,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 48,
+            funcId: 63,
             port: port_,
           );
         },
@@ -3340,7 +4040,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 49,
+            funcId: 64,
             port: port_,
           );
         },
@@ -3382,7 +4082,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 50,
+            funcId: 65,
             port: port_,
           );
         },
@@ -3418,7 +4118,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 51,
+            funcId: 66,
             port: port_,
           );
         },
@@ -3459,7 +4159,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 52,
+            funcId: 67,
             port: port_,
           );
         },
@@ -3499,7 +4199,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 53,
+            funcId: 68,
             port: port_,
           );
         },
@@ -3537,7 +4237,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 54,
+            funcId: 69,
             port: port_,
           );
         },
@@ -3580,7 +4280,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 55,
+            funcId: 70,
             port: port_,
           );
         },
@@ -3626,7 +4326,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 56,
+            funcId: 71,
             port: port_,
           );
         },
@@ -3658,7 +4358,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
             that,
             serializer,
           );
-          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 57)!;
+          return pdeCallFfi(generalizedFrbRustBinding, serializer, funcId: 72)!;
         },
         codec: SseCodec(
           decodeSuccessData: sse_decode_u_32,
@@ -3694,7 +4394,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 58,
+            funcId: 73,
             port: port_,
           );
         },
@@ -3728,7 +4428,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 59,
+            funcId: 74,
             port: port_,
           );
         },
@@ -3764,7 +4464,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 60,
+            funcId: 75,
             port: port_,
           );
         },
@@ -3803,7 +4503,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 61,
+            funcId: 76,
             port: port_,
           );
         },
@@ -3844,7 +4544,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 62,
+            funcId: 77,
             port: port_,
           );
         },
@@ -3883,7 +4583,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 63,
+            funcId: 78,
             port: port_,
           );
         },
@@ -3921,7 +4621,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 64,
+            funcId: 79,
             port: port_,
           );
         },
@@ -3962,7 +4662,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 65,
+            funcId: 80,
             port: port_,
           );
         },
@@ -4003,7 +4703,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 66,
+            funcId: 81,
             port: port_,
           );
         },
@@ -4047,7 +4747,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 67,
+            funcId: 82,
             port: port_,
           );
         },
@@ -4088,7 +4788,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 68,
+            funcId: 83,
             port: port_,
           );
         },
@@ -4124,7 +4824,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 69,
+            funcId: 84,
             port: port_,
           );
         },
@@ -4164,7 +4864,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 70,
+            funcId: 85,
             port: port_,
           );
         },
@@ -4202,7 +4902,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 71,
+            funcId: 86,
             port: port_,
           );
         },
@@ -4238,7 +4938,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 72,
+            funcId: 87,
             port: port_,
           );
         },
@@ -4276,7 +4976,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 73,
+            funcId: 88,
             port: port_,
           );
         },
@@ -4320,7 +5020,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 74,
+            funcId: 89,
             port: port_,
           );
         },
@@ -4361,7 +5061,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 75,
+            funcId: 90,
             port: port_,
           );
         },
@@ -4400,7 +5100,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 76,
+            funcId: 91,
             port: port_,
           );
         },
@@ -4440,7 +5140,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 77,
+            funcId: 92,
             port: port_,
           );
         },
@@ -4483,7 +5183,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 78,
+            funcId: 93,
             port: port_,
           );
         },
@@ -4523,7 +5223,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 79,
+            funcId: 94,
             port: port_,
           );
         },
@@ -4567,7 +5267,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 80,
+            funcId: 95,
             port: port_,
           );
         },
@@ -4607,7 +5307,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 81,
+            funcId: 96,
             port: port_,
           );
         },
@@ -4649,7 +5349,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 82,
+            funcId: 97,
             port: port_,
           );
         },
@@ -4697,7 +5397,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 83,
+            funcId: 98,
             port: port_,
           );
         },
@@ -4738,7 +5438,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 84,
+            funcId: 99,
             port: port_,
           );
         },
@@ -4784,7 +5484,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 85,
+            funcId: 100,
             port: port_,
           );
         },
@@ -4827,7 +5527,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 86,
+            funcId: 101,
             port: port_,
           );
         },
@@ -4867,7 +5567,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 87,
+            funcId: 102,
             port: port_,
           );
         },
@@ -4911,7 +5611,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 88,
+            funcId: 103,
             port: port_,
           );
         },
@@ -4956,7 +5656,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 89,
+            funcId: 104,
             port: port_,
           );
         },
@@ -5006,7 +5706,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 90,
+            funcId: 105,
             port: port_,
           );
         },
@@ -5046,7 +5746,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 91,
+            funcId: 106,
             port: port_,
           );
         },
@@ -5088,7 +5788,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 92,
+            funcId: 107,
             port: port_,
           );
         },
@@ -5122,7 +5822,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 93,
+            funcId: 108,
             port: port_,
           );
         },
@@ -5155,7 +5855,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 94,
+            funcId: 109,
             port: port_,
           );
         },
@@ -5197,7 +5897,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 95,
+            funcId: 110,
             port: port_,
           );
         },
@@ -5238,7 +5938,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 96,
+            funcId: 111,
             port: port_,
           );
         },
@@ -5279,7 +5979,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 97,
+            funcId: 112,
             port: port_,
           );
         },
@@ -5320,7 +6020,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 98,
+            funcId: 113,
             port: port_,
           );
         },
@@ -5361,7 +6061,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 99,
+            funcId: 114,
             port: port_,
           );
         },
@@ -5403,7 +6103,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 100,
+            funcId: 115,
             port: port_,
           );
         },
@@ -5445,7 +6145,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 101,
+            funcId: 116,
             port: port_,
           );
         },
@@ -5486,7 +6186,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 102,
+            funcId: 117,
             port: port_,
           );
         },
@@ -5519,7 +6219,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 103,
+            funcId: 118,
             port: port_,
           );
         },
@@ -5555,7 +6255,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 104,
+            funcId: 119,
             port: port_,
           );
         },
@@ -5592,7 +6292,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 105,
+            funcId: 120,
             port: port_,
           );
         },
@@ -5634,7 +6334,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 106,
+            funcId: 121,
             port: port_,
           );
         },
@@ -5677,7 +6377,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 107,
+            funcId: 122,
             port: port_,
           );
         },
@@ -5719,7 +6419,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 108,
+            funcId: 123,
             port: port_,
           );
         },
@@ -5760,7 +6460,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 109,
+            funcId: 124,
             port: port_,
           );
         },
@@ -5803,7 +6503,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 110,
+            funcId: 125,
             port: port_,
           );
         },
@@ -5847,7 +6547,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 111,
+            funcId: 126,
             port: port_,
           );
         },
@@ -5891,7 +6591,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 112,
+            funcId: 127,
             port: port_,
           );
         },
@@ -5934,7 +6634,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 113,
+            funcId: 128,
             port: port_,
           );
         },
@@ -5977,7 +6677,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 114,
+            funcId: 129,
             port: port_,
           );
         },
@@ -6013,7 +6713,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 115,
+            funcId: 130,
             port: port_,
           );
         },
@@ -6054,7 +6754,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 116,
+            funcId: 131,
             port: port_,
           );
         },
@@ -6095,7 +6795,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 117,
+            funcId: 132,
             port: port_,
           );
         },
@@ -6136,7 +6836,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 118,
+            funcId: 133,
             port: port_,
           );
         },
@@ -6175,7 +6875,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 119,
+            funcId: 134,
             port: port_,
           );
         },
@@ -6220,7 +6920,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 120,
+            funcId: 135,
             port: port_,
           );
         },
@@ -6258,7 +6958,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 121,
+            funcId: 136,
             port: port_,
           );
         },
@@ -6294,7 +6994,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 122,
+            funcId: 137,
             port: port_,
           );
         },
@@ -6330,7 +7030,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 123,
+            funcId: 138,
             port: port_,
           );
         },
@@ -6371,7 +7071,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 124,
+            funcId: 139,
             port: port_,
           );
         },
@@ -6411,7 +7111,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 125,
+            funcId: 140,
             port: port_,
           );
         },
@@ -6449,7 +7149,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 126,
+            funcId: 141,
             port: port_,
           );
         },
@@ -6487,7 +7187,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 127,
+            funcId: 142,
             port: port_,
           );
         },
@@ -6523,7 +7223,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 128,
+            funcId: 143,
             port: port_,
           );
         },
@@ -6562,7 +7262,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 129,
+            funcId: 144,
             port: port_,
           );
         },
@@ -6601,7 +7301,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 130,
+            funcId: 145,
             port: port_,
           );
         },
@@ -6636,7 +7336,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 131,
+            funcId: 146,
             port: port_,
           );
         },
@@ -6684,7 +7384,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 132,
+            funcId: 147,
             port: port_,
           );
         },
@@ -6721,7 +7421,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 133,
+            funcId: 148,
             port: port_,
           );
         },
@@ -6762,7 +7462,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 134,
+            funcId: 149,
             port: port_,
           );
         },
@@ -6798,7 +7498,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 135,
+            funcId: 150,
             port: port_,
           );
         },
@@ -6837,7 +7537,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 136,
+            funcId: 151,
             port: port_,
           );
         },
@@ -6877,7 +7577,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 137,
+            funcId: 152,
             port: port_,
           );
         },
@@ -6922,7 +7622,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 138,
+            funcId: 153,
             port: port_,
           );
         },
@@ -6972,7 +7672,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 139,
+            funcId: 154,
             port: port_,
           );
         },
@@ -7017,7 +7717,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 140,
+            funcId: 155,
             port: port_,
           );
         },
@@ -7053,7 +7753,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 141,
+            funcId: 156,
           )!;
         },
         codec: SseCodec(
@@ -7090,7 +7790,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 142,
+            funcId: 157,
           )!;
         },
         codec: SseCodec(
@@ -7127,7 +7827,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 143,
+            funcId: 158,
           )!;
         },
         codec: SseCodec(
@@ -7163,7 +7863,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 144,
+            funcId: 159,
           )!;
         },
         codec: SseCodec(
@@ -7197,7 +7897,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 145,
+            funcId: 160,
           )!;
         },
         codec: SseCodec(
@@ -7232,7 +7932,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 146,
+            funcId: 161,
             port: port_,
           );
         },
@@ -7268,7 +7968,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 147,
+            funcId: 162,
             port: port_,
           );
         },
@@ -7304,7 +8004,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 148,
+            funcId: 163,
             port: port_,
           );
         },
@@ -7340,7 +8040,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 149,
+            funcId: 164,
             port: port_,
           );
         },
@@ -7379,7 +8079,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 150,
+            funcId: 165,
             port: port_,
           );
         },
@@ -7415,7 +8115,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 151,
+            funcId: 166,
             port: port_,
           );
         },
@@ -7453,7 +8153,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 152,
+            funcId: 167,
             port: port_,
           );
         },
@@ -7494,7 +8194,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 153,
+            funcId: 168,
             port: port_,
           );
         },
@@ -7538,7 +8238,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 154,
+            funcId: 169,
             port: port_,
           );
         },
@@ -7582,7 +8282,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 155,
+            funcId: 170,
             port: port_,
           );
         },
@@ -7625,7 +8325,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 156,
+            funcId: 171,
             port: port_,
           );
         },
@@ -7667,7 +8367,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 157,
+            funcId: 172,
             port: port_,
           );
         },
@@ -7712,7 +8412,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 158,
+            funcId: 173,
             port: port_,
           );
         },
@@ -7755,7 +8455,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 159,
+            funcId: 174,
             port: port_,
           );
         },
@@ -7796,7 +8496,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 160,
+            funcId: 175,
             port: port_,
           );
         },
@@ -7842,7 +8542,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 161,
+            funcId: 176,
             port: port_,
           );
         },
@@ -7885,7 +8585,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 162,
+            funcId: 177,
             port: port_,
           );
         },
@@ -7925,7 +8625,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 163,
+            funcId: 178,
             port: port_,
           );
         },
@@ -7966,7 +8666,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 164,
+            funcId: 179,
             port: port_,
           );
         },
@@ -8010,7 +8710,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 165,
+            funcId: 180,
             port: port_,
           );
         },
@@ -8054,7 +8754,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 166,
+            funcId: 181,
             port: port_,
           );
         },
@@ -8096,7 +8796,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 167,
+            funcId: 182,
             port: port_,
           );
         },
@@ -8140,7 +8840,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 168,
+            funcId: 183,
             port: port_,
           );
         },
@@ -8180,7 +8880,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 169,
+            funcId: 184,
             port: port_,
           );
         },
@@ -8221,7 +8921,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 170,
+            funcId: 185,
             port: port_,
           );
         },
@@ -8261,7 +8961,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 171,
+            funcId: 186,
             port: port_,
           );
         },
@@ -8303,7 +9003,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 172,
+            funcId: 187,
             port: port_,
           );
         },
@@ -8345,7 +9045,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 173,
+            funcId: 188,
             port: port_,
           );
         },
@@ -8384,7 +9084,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 174,
+            funcId: 189,
             port: port_,
           );
         },
@@ -8425,7 +9125,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 175,
+            funcId: 190,
             port: port_,
           );
         },
@@ -8466,7 +9166,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 176,
+            funcId: 191,
             port: port_,
           );
         },
@@ -8506,7 +9206,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 177,
+            funcId: 192,
             port: port_,
           );
         },
@@ -8549,7 +9249,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 178,
+            funcId: 193,
             port: port_,
           );
         },
@@ -8592,7 +9292,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 179,
+            funcId: 194,
             port: port_,
           );
         },
@@ -8640,7 +9340,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 180,
+            funcId: 195,
             port: port_,
           );
         },
@@ -8685,7 +9385,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 181,
+            funcId: 196,
             port: port_,
           );
         },
@@ -8729,7 +9429,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 182,
+            funcId: 197,
             port: port_,
           );
         },
@@ -8779,7 +9479,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 183,
+            funcId: 198,
             port: port_,
           );
         },
@@ -8819,7 +9519,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 184,
+            funcId: 199,
             port: port_,
           );
         },
@@ -8857,7 +9557,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 185,
+            funcId: 200,
             port: port_,
           );
         },
@@ -8902,7 +9602,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 186,
+            funcId: 201,
             port: port_,
           );
         },
@@ -8943,7 +9643,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 187,
+            funcId: 202,
             port: port_,
           );
         },
@@ -8995,7 +9695,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 188,
+            funcId: 203,
             port: port_,
           );
         },
@@ -9034,7 +9734,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 189,
+            funcId: 204,
             port: port_,
           );
         },
@@ -9071,7 +9771,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 190,
+            funcId: 205,
             port: port_,
           );
         },
@@ -9109,7 +9809,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 191,
+            funcId: 206,
           )!;
         },
         codec: SseCodec(
@@ -9146,7 +9846,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 192,
+            funcId: 207,
           )!;
         },
         codec: SseCodec(
@@ -9183,7 +9883,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 193,
+            funcId: 208,
           )!;
         },
         codec: SseCodec(
@@ -9204,6 +9904,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
       );
 
   @override
+  Future<BridgeTeachingWeekRule> crateApiAgendaAgendaTeachingWeekRule({
+    required BridgeTeachingWeekInput input,
+  }) {
+    return handler.executeNormal(
+      NormalTask(
+        callFfi: (port_) {
+          final serializer = SseSerializer(generalizedFrbRustBinding);
+          sse_encode_box_autoadd_bridge_teaching_week_input(input, serializer);
+          pdeCallFfi(
+            generalizedFrbRustBinding,
+            serializer,
+            funcId: 209,
+            port: port_,
+          );
+        },
+        codec: SseCodec(
+          decodeSuccessData: sse_decode_bridge_teaching_week_rule,
+          decodeErrorData: sse_decode_bridge_agenda_error,
+        ),
+        constMeta: kCrateApiAgendaAgendaTeachingWeekRuleConstMeta,
+        argValues: [input],
+        apiImpl: this,
+      ),
+    );
+  }
+
+  TaskConstMeta get kCrateApiAgendaAgendaTeachingWeekRuleConstMeta =>
+      const TaskConstMeta(
+        debugName: "agenda_teaching_week_rule",
+        argNames: ["input"],
+      );
+
+  @override
   String crateApiSimpleBridgeHello() {
     return handler.executeSync(
       SyncTask(
@@ -9212,7 +9945,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           return pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 194,
+            funcId: 210,
           )!;
         },
         codec: SseCodec(
@@ -9239,7 +9972,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 195,
+            funcId: 211,
             port: port_,
           );
         },
@@ -9272,7 +10005,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 196,
+            funcId: 212,
             port: port_,
           );
         },
@@ -9304,7 +10037,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
           pdeCallFfi(
             generalizedFrbRustBinding,
             serializer,
-            funcId: 197,
+            funcId: 213,
             port: port_,
           );
         },
@@ -9321,6 +10054,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   TaskConstMeta get kCrateApiSimpleInitAppConstMeta =>
       const TaskConstMeta(debugName: "init_app", argNames: []);
+
+  RustArcIncrementStrongCountFnType
+  get rust_arc_increment_strong_count_BridgeAgendaStore => wire
+      .rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore;
+
+  RustArcDecrementStrongCountFnType
+  get rust_arc_decrement_strong_count_BridgeAgendaStore => wire
+      .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore;
 
   RustArcIncrementStrongCountFnType
   get rust_arc_increment_strong_count_BridgeCaptchaChallenge => wire
@@ -9425,6 +10166,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   RustArcDecrementStrongCountFnType
   get rust_arc_decrement_strong_count_BridgeSpocScan => wire
       .rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeSpocScan;
+
+  @protected
+  BridgeAgendaStore
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeAgendaStoreImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
 
   @protected
   BridgeCaptchaChallenge
@@ -9556,6 +10306,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeAgendaStore
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeAgendaStoreImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
   BridgeCaptchaChallenge
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(
     dynamic raw,
@@ -9682,6 +10441,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return BridgeSpocScanImpl.frbInternalDcoDecode(raw as List<dynamic>);
+  }
+
+  @protected
+  BridgeAgendaStore
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeAgendaStoreImpl.frbInternalDcoDecode(raw as List<dynamic>);
   }
 
   @protected
@@ -9851,6 +10619,70 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   bool dco_decode_box_autoadd_bool(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return raw as bool;
+  }
+
+  @protected
+  BridgeAgendaContent dco_decode_box_autoadd_bridge_agenda_content(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_agenda_content(raw);
+  }
+
+  @protected
+  BridgeAgendaDraft dco_decode_box_autoadd_bridge_agenda_draft(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_agenda_draft(raw);
+  }
+
+  @protected
+  BridgeAgendaItem dco_decode_box_autoadd_bridge_agenda_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_agenda_item(raw);
+  }
+
+  @protected
+  BridgeAgendaOccurrence dco_decode_box_autoadd_bridge_agenda_occurrence(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_agenda_occurrence(raw);
+  }
+
+  @protected
+  BridgeAgendaOverlay dco_decode_box_autoadd_bridge_agenda_overlay(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_agenda_overlay(raw);
+  }
+
+  @protected
+  BridgeAgendaOverlayDraft dco_decode_box_autoadd_bridge_agenda_overlay_draft(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_agenda_overlay_draft(raw);
+  }
+
+  @protected
+  BridgeAgendaQuery dco_decode_box_autoadd_bridge_agenda_query(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_agenda_query(raw);
+  }
+
+  @protected
+  BridgeAgendaSubmission dco_decode_box_autoadd_bridge_agenda_submission(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_agenda_submission(raw);
+  }
+
+  @protected
+  BridgeAgendaTime dco_decode_box_autoadd_bridge_agenda_time(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_agenda_time(raw);
   }
 
   @protected
@@ -10367,10 +11199,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeSchoolAgendaItem dco_decode_box_autoadd_bridge_school_agenda_item(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_school_agenda_item(raw);
+  }
+
+  @protected
+  BridgeSchoolAgendaKey dco_decode_box_autoadd_bridge_school_agenda_key(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_school_agenda_key(raw);
+  }
+
+  @protected
   BridgeSigninPerformRequest
   dco_decode_box_autoadd_bridge_signin_perform_request(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dco_decode_bridge_signin_perform_request(raw);
+  }
+
+  @protected
+  BridgeTeachingWeekInput dco_decode_box_autoadd_bridge_teaching_week_input(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return dco_decode_bridge_teaching_week_input(raw);
   }
 
   @protected
@@ -10535,6 +11391,367 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeActionEligibility dco_decode_bridge_action_eligibility(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return BridgeActionEligibility.values[raw as int];
+  }
+
+  @protected
+  BridgeAgendaCacheKind dco_decode_bridge_agenda_cache_kind(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeAgendaCacheKind.values[raw as int];
+  }
+
+  @protected
+  BridgeAgendaCacheScope dco_decode_bridge_agenda_cache_scope(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 11)
+      throw Exception('unexpected arr length: expect 11 but see ${arr.length}');
+    return BridgeAgendaCacheScope(
+      route: dco_decode_bridge_connection_mode(arr[0]),
+      kind: dco_decode_bridge_agenda_cache_kind(arr[1]),
+      term: dco_decode_opt_String(arr[2]),
+      week: dco_decode_opt_box_autoadd_i_32(arr[3]),
+      date: dco_decode_opt_String(arr[4]),
+      page: dco_decode_opt_box_autoadd_i_32(arr[5]),
+      size: dco_decode_opt_box_autoadd_i_32(arr[6]),
+      includeExpired: dco_decode_opt_box_autoadd_bool(arr[7]),
+      classifyId: dco_decode_opt_box_autoadd_i_32(arr[8]),
+      termId: dco_decode_opt_box_autoadd_i_32(arr[9]),
+      weekStart: dco_decode_opt_String(arr[10]),
+    );
+  }
+
+  @protected
+  BridgeAgendaCompleteness dco_decode_bridge_agenda_completeness(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeAgendaCompleteness.values[raw as int];
+  }
+
+  @protected
+  BridgeAgendaCompletion dco_decode_bridge_agenda_completion(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeAgendaCompletion(
+      recurrenceId: dco_decode_String(arr[0]),
+      completedAt: dco_decode_opt_box_autoadd_bridge_agenda_time(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeAgendaContent dco_decode_bridge_agenda_content(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return BridgeAgendaContent(
+      kind: dco_decode_bridge_agenda_kind(arr[0]),
+      title: dco_decode_String(arr[1]),
+      location: dco_decode_opt_String(arr[2]),
+      notes: dco_decode_opt_String(arr[3]),
+      color: dco_decode_opt_String(arr[4]),
+      start: dco_decode_opt_box_autoadd_bridge_agenda_time(arr[5]),
+      end: dco_decode_opt_box_autoadd_bridge_agenda_time(arr[6]),
+      allDay: dco_decode_bool(arr[7]),
+      due: dco_decode_opt_box_autoadd_bridge_agenda_time(arr[8]),
+    );
+  }
+
+  @protected
+  BridgeAgendaDraft dco_decode_bridge_agenda_draft(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeAgendaDraft(
+      content: dco_decode_bridge_agenda_content(arr[0]),
+      rrule: dco_decode_opt_String(arr[1]),
+      exdates: dco_decode_list_bridge_agenda_time(arr[2]),
+    );
+  }
+
+  @protected
+  BridgeAgendaEditScope dco_decode_bridge_agenda_edit_scope(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeAgendaEditScope.values[raw as int];
+  }
+
+  @protected
+  BridgeAgendaEntry dco_decode_bridge_agenda_entry(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 8)
+      throw Exception('unexpected arr length: expect 8 but see ${arr.length}');
+    return BridgeAgendaEntry(
+      local: dco_decode_opt_box_autoadd_bridge_agenda_occurrence(arr[0]),
+      school: dco_decode_opt_box_autoadd_bridge_school_agenda_item(arr[1]),
+      timing: dco_decode_bridge_agenda_timing(arr[2]),
+      sortTime: dco_decode_opt_box_autoadd_bridge_agenda_time(arr[3]),
+      soon: dco_decode_bool(arr[4]),
+      completed: dco_decode_bool(arr[5]),
+      hidden: dco_decode_bool(arr[6]),
+      note: dco_decode_opt_String(arr[7]),
+    );
+  }
+
+  @protected
+  BridgeAgendaError dco_decode_bridge_agenda_error(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 1)
+      throw Exception('unexpected arr length: expect 1 but see ${arr.length}');
+    return BridgeAgendaError(failure: dco_decode_bridge_agenda_failure(arr[0]));
+  }
+
+  @protected
+  BridgeAgendaFailure dco_decode_bridge_agenda_failure(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeAgendaFailure.values[raw as int];
+  }
+
+  @protected
+  BridgeAgendaFeature dco_decode_bridge_agenda_feature(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeAgendaFeature.values[raw as int];
+  }
+
+  @protected
+  BridgeAgendaItem dco_decode_bridge_agenda_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    return BridgeAgendaItem(
+      id: dco_decode_String(arr[0]),
+      content: dco_decode_bridge_agenda_content(arr[1]),
+      rrule: dco_decode_opt_String(arr[2]),
+      exdates: dco_decode_list_bridge_agenda_time(arr[3]),
+      overrides: dco_decode_list_bridge_agenda_override(arr[4]),
+      completions: dco_decode_list_bridge_agenda_completion(arr[5]),
+      createdAt: dco_decode_bridge_agenda_time(arr[6]),
+      updatedAt: dco_decode_bridge_agenda_time(arr[7]),
+      deletedAt: dco_decode_opt_box_autoadd_bridge_agenda_time(arr[8]),
+      locallyModified: dco_decode_bool(arr[9]),
+    );
+  }
+
+  @protected
+  BridgeAgendaKind dco_decode_bridge_agenda_kind(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeAgendaKind.values[raw as int];
+  }
+
+  @protected
+  BridgeAgendaNavigation dco_decode_bridge_agenda_navigation(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 16)
+      throw Exception('unexpected arr length: expect 16 but see ${arr.length}');
+    return BridgeAgendaNavigation(
+      feature: dco_decode_bridge_agenda_feature(arr[0]),
+      term: dco_decode_opt_String(arr[1]),
+      week: dco_decode_opt_box_autoadd_i_32(arr[2]),
+      courseCode: dco_decode_opt_String(arr[3]),
+      serial: dco_decode_opt_String(arr[4]),
+      day: dco_decode_opt_box_autoadd_i_32(arr[5]),
+      section: dco_decode_opt_box_autoadd_i_32(arr[6]),
+      courseId: dco_decode_opt_String(arr[7]),
+      bykcCourseId: dco_decode_opt_box_autoadd_i_64(arr[8]),
+      assignmentId: dco_decode_opt_String(arr[9]),
+      orderId: dco_decode_opt_box_autoadd_i_32(arr[10]),
+      taskId: dco_decode_opt_String(arr[11]),
+      courseNo: dco_decode_opt_String(arr[12]),
+      courseName: dco_decode_opt_String(arr[13]),
+      date: dco_decode_opt_String(arr[14]),
+      startTime: dco_decode_opt_String(arr[15]),
+    );
+  }
+
+  @protected
+  BridgeAgendaObservation dco_decode_bridge_agenda_observation(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return BridgeAgendaObservation(
+      scope: dco_decode_bridge_agenda_cache_scope(arr[0]),
+      fetchedAt: dco_decode_i_64(arr[1]),
+      lastVerifiedAt: dco_decode_i_64(arr[2]),
+      lastAttemptAt: dco_decode_i_64(arr[3]),
+      lastAttemptSucceeded: dco_decode_bool(arr[4]),
+      completeness: dco_decode_bridge_agenda_completeness(arr[5]),
+    );
+  }
+
+  @protected
+  BridgeAgendaOccurrence dco_decode_bridge_agenda_occurrence(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeAgendaOccurrence(
+      itemId: dco_decode_String(arr[0]),
+      recurrenceId: dco_decode_String(arr[1]),
+      content: dco_decode_bridge_agenda_content(arr[2]),
+      completedAt: dco_decode_opt_box_autoadd_bridge_agenda_time(arr[3]),
+      overridden: dco_decode_bool(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeAgendaOverlay dco_decode_bridge_agenda_overlay(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 4)
+      throw Exception('unexpected arr length: expect 4 but see ${arr.length}');
+    return BridgeAgendaOverlay(
+      value: dco_decode_bridge_agenda_overlay_draft(arr[0]),
+      updatedAt: dco_decode_bridge_agenda_time(arr[1]),
+      deletedAt: dco_decode_opt_box_autoadd_bridge_agenda_time(arr[2]),
+      locallyModified: dco_decode_bool(arr[3]),
+    );
+  }
+
+  @protected
+  BridgeAgendaOverlayDraft dco_decode_bridge_agenda_overlay_draft(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeAgendaOverlayDraft(
+      key: dco_decode_bridge_school_agenda_key(arr[0]),
+      completedAt: dco_decode_opt_box_autoadd_bridge_agenda_time(arr[1]),
+      completionOverride: dco_decode_bool(arr[2]),
+      hidden: dco_decode_bool(arr[3]),
+      note: dco_decode_opt_String(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeAgendaOverride dco_decode_bridge_agenda_override(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeAgendaOverride(
+      recurrenceId: dco_decode_String(arr[0]),
+      content: dco_decode_bridge_agenda_content(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeAgendaQuery dco_decode_bridge_agenda_query(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return BridgeAgendaQuery(
+      route: dco_decode_bridge_connection_mode(arr[0]),
+      term: dco_decode_String(arr[1]),
+      from: dco_decode_String(arr[2]),
+      to: dco_decode_String(arr[3]),
+      now: dco_decode_bridge_agenda_time(arr[4]),
+      includeHidden: dco_decode_bool(arr[5]),
+      ygdkEnabled: dco_decode_bool(arr[6]),
+      ygdkWeekDone: dco_decode_bool(arr[7]),
+      ygdkTermDone: dco_decode_bool(arr[8]),
+    );
+  }
+
+  @protected
+  BridgeAgendaQueryResult dco_decode_bridge_agenda_query_result(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeAgendaQueryResult(
+      entries: dco_decode_list_bridge_agenda_entry(arr[0]),
+      sources: dco_decode_list_bridge_agenda_source(arr[1]),
+      schoolCacheFailure: dco_decode_opt_box_autoadd_bridge_cache_failure(
+        arr[2],
+      ),
+    );
+  }
+
+  @protected
+  BridgeAgendaSource dco_decode_bridge_agenda_source(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 5)
+      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    return BridgeAgendaSource(
+      feature: dco_decode_bridge_agenda_feature(arr[0]),
+      observations: dco_decode_list_bridge_agenda_observation(arr[1]),
+      missingScopes: dco_decode_list_bridge_agenda_cache_scope(arr[2]),
+      semesterImported: dco_decode_opt_box_autoadd_bool(arr[3]),
+      unprojectableCount: dco_decode_u_32(arr[4]),
+    );
+  }
+
+  @protected
+  BridgeAgendaSubmission dco_decode_bridge_agenda_submission(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeAgendaSubmission.values[raw as int];
+  }
+
+  @protected
+  BridgeAgendaTime dco_decode_bridge_agenda_time(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeAgendaTime(
+      rfc3339: dco_decode_String(arr[0]),
+      timezone: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
+  BridgeAgendaTiming dco_decode_bridge_agenda_timing(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
+    return BridgeAgendaTiming(
+      kind: dco_decode_bridge_agenda_timing_kind(arr[0]),
+      start: dco_decode_opt_box_autoadd_bridge_agenda_time(arr[1]),
+      end: dco_decode_opt_box_autoadd_bridge_agenda_time(arr[2]),
+      due: dco_decode_opt_box_autoadd_bridge_agenda_time(arr[3]),
+      from: dco_decode_opt_String(arr[4]),
+      to: dco_decode_opt_String(arr[5]),
+    );
+  }
+
+  @protected
+  BridgeAgendaTimingKind dco_decode_bridge_agenda_timing_kind(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeAgendaTimingKind.values[raw as int];
+  }
+
+  @protected
+  BridgeAgendaUpstreamStatus dco_decode_bridge_agenda_upstream_status(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 14)
+      throw Exception('unexpected arr length: expect 14 but see ${arr.length}');
+    return BridgeAgendaUpstreamStatus(
+      feature: dco_decode_bridge_agenda_feature(arr[0]),
+      completed: dco_decode_bool(arr[1]),
+      beginTime: dco_decode_opt_String(arr[2]),
+      endTime: dco_decode_opt_String(arr[3]),
+      examStatus: dco_decode_opt_box_autoadd_i_32(arr[4]),
+      checkin: dco_decode_opt_box_autoadd_i_32(arr[5]),
+      pass: dco_decode_opt_box_autoadd_i_32(arr[6]),
+      submission: dco_decode_opt_box_autoadd_bridge_agenda_submission(arr[7]),
+      text: dco_decode_opt_String(arr[8]),
+      orderStatus: dco_decode_opt_box_autoadd_i_32(arr[9]),
+      checkStatus: dco_decode_opt_box_autoadd_i_32(arr[10]),
+      signStatus: dco_decode_opt_box_autoadd_i_32(arr[11]),
+      weekCount: dco_decode_opt_box_autoadd_i_32(arr[12]),
+      termCount: dco_decode_opt_box_autoadd_i_32(arr[13]),
+    );
   }
 
   @protected
@@ -14396,6 +15613,38 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeSchoolAgendaItem dco_decode_bridge_school_agenda_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 10)
+      throw Exception('unexpected arr length: expect 10 but see ${arr.length}');
+    return BridgeSchoolAgendaItem(
+      key: dco_decode_bridge_school_agenda_key(arr[0]),
+      timing: dco_decode_bridge_agenda_timing(arr[1]),
+      sortTime: dco_decode_opt_box_autoadd_bridge_agenda_time(arr[2]),
+      title: dco_decode_String(arr[3]),
+      subtitle: dco_decode_String(arr[4]),
+      location: dco_decode_opt_String(arr[5]),
+      statusLabel: dco_decode_String(arr[6]),
+      upstreamStatus: dco_decode_bridge_agenda_upstream_status(arr[7]),
+      navigation: dco_decode_bridge_agenda_navigation(arr[8]),
+      homeTodo: dco_decode_bool(arr[9]),
+    );
+  }
+
+  @protected
+  BridgeSchoolAgendaKey dco_decode_bridge_school_agenda_key(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 2)
+      throw Exception('unexpected arr length: expect 2 but see ${arr.length}');
+    return BridgeSchoolAgendaKey(
+      source: dco_decode_String(arr[0]),
+      upstreamId: dco_decode_String(arr[1]),
+    );
+  }
+
+  @protected
   BridgeSectionTime dco_decode_bridge_section_time(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
@@ -14533,6 +15782,46 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return BridgeSpocSubmissionStatus.values[raw as int];
+  }
+
+  @protected
+  BridgeTeachingWeekInput dco_decode_bridge_teaching_week_input(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 9)
+      throw Exception('unexpected arr length: expect 9 but see ${arr.length}');
+    return BridgeTeachingWeekInput(
+      monday: dco_decode_String(arr[0]),
+      first: dco_decode_u_32(arr[1]),
+      last: dco_decode_u_32(arr[2]),
+      pattern: dco_decode_bridge_teaching_week_pattern(arr[3]),
+      weekday: dco_decode_u_32(arr[4]),
+      hour: dco_decode_u_32(arr[5]),
+      minute: dco_decode_u_32(arr[6]),
+      second: dco_decode_u_32(arr[7]),
+      skips: dco_decode_list_String(arr[8]),
+    );
+  }
+
+  @protected
+  BridgeTeachingWeekPattern dco_decode_bridge_teaching_week_pattern(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return BridgeTeachingWeekPattern.values[raw as int];
+  }
+
+  @protected
+  BridgeTeachingWeekRule dco_decode_bridge_teaching_week_rule(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    final arr = raw as List<dynamic>;
+    if (arr.length != 3)
+      throw Exception('unexpected arr length: expect 3 but see ${arr.length}');
+    return BridgeTeachingWeekRule(
+      start: dco_decode_bridge_agenda_time(arr[0]),
+      rrule: dco_decode_String(arr[1]),
+      exdates: dco_decode_list_bridge_agenda_time(arr[2]),
+    );
   }
 
   @protected
@@ -14864,6 +16153,64 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   List<String> dco_decode_list_String(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return (raw as List<dynamic>).map(dco_decode_String).toList();
+  }
+
+  @protected
+  List<BridgeAgendaCacheScope> dco_decode_list_bridge_agenda_cache_scope(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_agenda_cache_scope)
+        .toList();
+  }
+
+  @protected
+  List<BridgeAgendaCompletion> dco_decode_list_bridge_agenda_completion(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_agenda_completion)
+        .toList();
+  }
+
+  @protected
+  List<BridgeAgendaEntry> dco_decode_list_bridge_agenda_entry(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_agenda_entry).toList();
+  }
+
+  @protected
+  List<BridgeAgendaObservation> dco_decode_list_bridge_agenda_observation(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_agenda_observation)
+        .toList();
+  }
+
+  @protected
+  List<BridgeAgendaOverride> dco_decode_list_bridge_agenda_override(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>)
+        .map(dco_decode_bridge_agenda_override)
+        .toList();
+  }
+
+  @protected
+  List<BridgeAgendaSource> dco_decode_list_bridge_agenda_source(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_agenda_source).toList();
+  }
+
+  @protected
+  List<BridgeAgendaTime> dco_decode_list_bridge_agenda_time(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return (raw as List<dynamic>).map(dco_decode_bridge_agenda_time).toList();
   }
 
   @protected
@@ -15452,6 +16799,48 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeAgendaItem? dco_decode_opt_box_autoadd_bridge_agenda_item(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_bridge_agenda_item(raw);
+  }
+
+  @protected
+  BridgeAgendaOccurrence? dco_decode_opt_box_autoadd_bridge_agenda_occurrence(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_agenda_occurrence(raw);
+  }
+
+  @protected
+  BridgeAgendaOverlay? dco_decode_opt_box_autoadd_bridge_agenda_overlay(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_agenda_overlay(raw);
+  }
+
+  @protected
+  BridgeAgendaSubmission? dco_decode_opt_box_autoadd_bridge_agenda_submission(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_agenda_submission(raw);
+  }
+
+  @protected
+  BridgeAgendaTime? dco_decode_opt_box_autoadd_bridge_agenda_time(dynamic raw) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null ? null : dco_decode_box_autoadd_bridge_agenda_time(raw);
+  }
+
+  @protected
   BridgeBykcCourseAttendanceDisplay?
   dco_decode_opt_box_autoadd_bridge_bykc_course_attendance_display(
     dynamic raw,
@@ -16011,6 +17400,16 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeSchoolAgendaItem? dco_decode_opt_box_autoadd_bridge_school_agenda_item(
+    dynamic raw,
+  ) {
+    // Codec=Dco (DartCObject based), see doc to use other codecs
+    return raw == null
+        ? null
+        : dco_decode_box_autoadd_bridge_school_agenda_item(raw);
+  }
+
+  @protected
   BridgeUserProfile? dco_decode_opt_box_autoadd_bridge_user_profile(
     dynamic raw,
   ) {
@@ -16113,6 +17512,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BigInt dco_decode_usize(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     return dcoDecodeU64(raw);
+  }
+
+  @protected
+  BridgeAgendaStore
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return BridgeAgendaStoreImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
   }
 
   @protected
@@ -16272,6 +17683,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeAgendaStore
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return BridgeAgendaStoreImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
   BridgeCaptchaChallenge
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(
     SseDeserializer deserializer,
@@ -16422,6 +17845,18 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return BridgeSpocScanImpl.frbInternalSseDecode(
+      sse_decode_usize(deserializer),
+      sse_decode_i_32(deserializer),
+    );
+  }
+
+  @protected
+  BridgeAgendaStore
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return BridgeAgendaStoreImpl.frbInternalSseDecode(
       sse_decode_usize(deserializer),
       sse_decode_i_32(deserializer),
     );
@@ -16622,6 +18057,78 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   bool sse_decode_box_autoadd_bool(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_bool(deserializer));
+  }
+
+  @protected
+  BridgeAgendaContent sse_decode_box_autoadd_bridge_agenda_content(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_agenda_content(deserializer));
+  }
+
+  @protected
+  BridgeAgendaDraft sse_decode_box_autoadd_bridge_agenda_draft(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_agenda_draft(deserializer));
+  }
+
+  @protected
+  BridgeAgendaItem sse_decode_box_autoadd_bridge_agenda_item(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_agenda_item(deserializer));
+  }
+
+  @protected
+  BridgeAgendaOccurrence sse_decode_box_autoadd_bridge_agenda_occurrence(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_agenda_occurrence(deserializer));
+  }
+
+  @protected
+  BridgeAgendaOverlay sse_decode_box_autoadd_bridge_agenda_overlay(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_agenda_overlay(deserializer));
+  }
+
+  @protected
+  BridgeAgendaOverlayDraft sse_decode_box_autoadd_bridge_agenda_overlay_draft(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_agenda_overlay_draft(deserializer));
+  }
+
+  @protected
+  BridgeAgendaQuery sse_decode_box_autoadd_bridge_agenda_query(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_agenda_query(deserializer));
+  }
+
+  @protected
+  BridgeAgendaSubmission sse_decode_box_autoadd_bridge_agenda_submission(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_agenda_submission(deserializer));
+  }
+
+  @protected
+  BridgeAgendaTime sse_decode_box_autoadd_bridge_agenda_time(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_agenda_time(deserializer));
   }
 
   @protected
@@ -17230,12 +18737,36 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeSchoolAgendaItem sse_decode_box_autoadd_bridge_school_agenda_item(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_school_agenda_item(deserializer));
+  }
+
+  @protected
+  BridgeSchoolAgendaKey sse_decode_box_autoadd_bridge_school_agenda_key(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_school_agenda_key(deserializer));
+  }
+
+  @protected
   BridgeSigninPerformRequest
   sse_decode_box_autoadd_bridge_signin_perform_request(
     SseDeserializer deserializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return (sse_decode_bridge_signin_perform_request(deserializer));
+  }
+
+  @protected
+  BridgeTeachingWeekInput sse_decode_box_autoadd_bridge_teaching_week_input(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    return (sse_decode_bridge_teaching_week_input(deserializer));
   }
 
   @protected
@@ -17423,6 +18954,505 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
     return BridgeActionEligibility.values[inner];
+  }
+
+  @protected
+  BridgeAgendaCacheKind sse_decode_bridge_agenda_cache_kind(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeAgendaCacheKind.values[inner];
+  }
+
+  @protected
+  BridgeAgendaCacheScope sse_decode_bridge_agenda_cache_scope(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_route = sse_decode_bridge_connection_mode(deserializer);
+    var var_kind = sse_decode_bridge_agenda_cache_kind(deserializer);
+    var var_term = sse_decode_opt_String(deserializer);
+    var var_week = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_date = sse_decode_opt_String(deserializer);
+    var var_page = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_size = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_includeExpired = sse_decode_opt_box_autoadd_bool(deserializer);
+    var var_classifyId = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_termId = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_weekStart = sse_decode_opt_String(deserializer);
+    return BridgeAgendaCacheScope(
+      route: var_route,
+      kind: var_kind,
+      term: var_term,
+      week: var_week,
+      date: var_date,
+      page: var_page,
+      size: var_size,
+      includeExpired: var_includeExpired,
+      classifyId: var_classifyId,
+      termId: var_termId,
+      weekStart: var_weekStart,
+    );
+  }
+
+  @protected
+  BridgeAgendaCompleteness sse_decode_bridge_agenda_completeness(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeAgendaCompleteness.values[inner];
+  }
+
+  @protected
+  BridgeAgendaCompletion sse_decode_bridge_agenda_completion(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_recurrenceId = sse_decode_String(deserializer);
+    var var_completedAt = sse_decode_opt_box_autoadd_bridge_agenda_time(
+      deserializer,
+    );
+    return BridgeAgendaCompletion(
+      recurrenceId: var_recurrenceId,
+      completedAt: var_completedAt,
+    );
+  }
+
+  @protected
+  BridgeAgendaContent sse_decode_bridge_agenda_content(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_kind = sse_decode_bridge_agenda_kind(deserializer);
+    var var_title = sse_decode_String(deserializer);
+    var var_location = sse_decode_opt_String(deserializer);
+    var var_notes = sse_decode_opt_String(deserializer);
+    var var_color = sse_decode_opt_String(deserializer);
+    var var_start = sse_decode_opt_box_autoadd_bridge_agenda_time(deserializer);
+    var var_end = sse_decode_opt_box_autoadd_bridge_agenda_time(deserializer);
+    var var_allDay = sse_decode_bool(deserializer);
+    var var_due = sse_decode_opt_box_autoadd_bridge_agenda_time(deserializer);
+    return BridgeAgendaContent(
+      kind: var_kind,
+      title: var_title,
+      location: var_location,
+      notes: var_notes,
+      color: var_color,
+      start: var_start,
+      end: var_end,
+      allDay: var_allDay,
+      due: var_due,
+    );
+  }
+
+  @protected
+  BridgeAgendaDraft sse_decode_bridge_agenda_draft(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_content = sse_decode_bridge_agenda_content(deserializer);
+    var var_rrule = sse_decode_opt_String(deserializer);
+    var var_exdates = sse_decode_list_bridge_agenda_time(deserializer);
+    return BridgeAgendaDraft(
+      content: var_content,
+      rrule: var_rrule,
+      exdates: var_exdates,
+    );
+  }
+
+  @protected
+  BridgeAgendaEditScope sse_decode_bridge_agenda_edit_scope(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeAgendaEditScope.values[inner];
+  }
+
+  @protected
+  BridgeAgendaEntry sse_decode_bridge_agenda_entry(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_local = sse_decode_opt_box_autoadd_bridge_agenda_occurrence(
+      deserializer,
+    );
+    var var_school = sse_decode_opt_box_autoadd_bridge_school_agenda_item(
+      deserializer,
+    );
+    var var_timing = sse_decode_bridge_agenda_timing(deserializer);
+    var var_sortTime = sse_decode_opt_box_autoadd_bridge_agenda_time(
+      deserializer,
+    );
+    var var_soon = sse_decode_bool(deserializer);
+    var var_completed = sse_decode_bool(deserializer);
+    var var_hidden = sse_decode_bool(deserializer);
+    var var_note = sse_decode_opt_String(deserializer);
+    return BridgeAgendaEntry(
+      local: var_local,
+      school: var_school,
+      timing: var_timing,
+      sortTime: var_sortTime,
+      soon: var_soon,
+      completed: var_completed,
+      hidden: var_hidden,
+      note: var_note,
+    );
+  }
+
+  @protected
+  BridgeAgendaError sse_decode_bridge_agenda_error(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_failure = sse_decode_bridge_agenda_failure(deserializer);
+    return BridgeAgendaError(failure: var_failure);
+  }
+
+  @protected
+  BridgeAgendaFailure sse_decode_bridge_agenda_failure(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeAgendaFailure.values[inner];
+  }
+
+  @protected
+  BridgeAgendaFeature sse_decode_bridge_agenda_feature(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeAgendaFeature.values[inner];
+  }
+
+  @protected
+  BridgeAgendaItem sse_decode_bridge_agenda_item(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_id = sse_decode_String(deserializer);
+    var var_content = sse_decode_bridge_agenda_content(deserializer);
+    var var_rrule = sse_decode_opt_String(deserializer);
+    var var_exdates = sse_decode_list_bridge_agenda_time(deserializer);
+    var var_overrides = sse_decode_list_bridge_agenda_override(deserializer);
+    var var_completions = sse_decode_list_bridge_agenda_completion(
+      deserializer,
+    );
+    var var_createdAt = sse_decode_bridge_agenda_time(deserializer);
+    var var_updatedAt = sse_decode_bridge_agenda_time(deserializer);
+    var var_deletedAt = sse_decode_opt_box_autoadd_bridge_agenda_time(
+      deserializer,
+    );
+    var var_locallyModified = sse_decode_bool(deserializer);
+    return BridgeAgendaItem(
+      id: var_id,
+      content: var_content,
+      rrule: var_rrule,
+      exdates: var_exdates,
+      overrides: var_overrides,
+      completions: var_completions,
+      createdAt: var_createdAt,
+      updatedAt: var_updatedAt,
+      deletedAt: var_deletedAt,
+      locallyModified: var_locallyModified,
+    );
+  }
+
+  @protected
+  BridgeAgendaKind sse_decode_bridge_agenda_kind(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeAgendaKind.values[inner];
+  }
+
+  @protected
+  BridgeAgendaNavigation sse_decode_bridge_agenda_navigation(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_feature = sse_decode_bridge_agenda_feature(deserializer);
+    var var_term = sse_decode_opt_String(deserializer);
+    var var_week = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_courseCode = sse_decode_opt_String(deserializer);
+    var var_serial = sse_decode_opt_String(deserializer);
+    var var_day = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_section = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_courseId = sse_decode_opt_String(deserializer);
+    var var_bykcCourseId = sse_decode_opt_box_autoadd_i_64(deserializer);
+    var var_assignmentId = sse_decode_opt_String(deserializer);
+    var var_orderId = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_taskId = sse_decode_opt_String(deserializer);
+    var var_courseNo = sse_decode_opt_String(deserializer);
+    var var_courseName = sse_decode_opt_String(deserializer);
+    var var_date = sse_decode_opt_String(deserializer);
+    var var_startTime = sse_decode_opt_String(deserializer);
+    return BridgeAgendaNavigation(
+      feature: var_feature,
+      term: var_term,
+      week: var_week,
+      courseCode: var_courseCode,
+      serial: var_serial,
+      day: var_day,
+      section: var_section,
+      courseId: var_courseId,
+      bykcCourseId: var_bykcCourseId,
+      assignmentId: var_assignmentId,
+      orderId: var_orderId,
+      taskId: var_taskId,
+      courseNo: var_courseNo,
+      courseName: var_courseName,
+      date: var_date,
+      startTime: var_startTime,
+    );
+  }
+
+  @protected
+  BridgeAgendaObservation sse_decode_bridge_agenda_observation(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_scope = sse_decode_bridge_agenda_cache_scope(deserializer);
+    var var_fetchedAt = sse_decode_i_64(deserializer);
+    var var_lastVerifiedAt = sse_decode_i_64(deserializer);
+    var var_lastAttemptAt = sse_decode_i_64(deserializer);
+    var var_lastAttemptSucceeded = sse_decode_bool(deserializer);
+    var var_completeness = sse_decode_bridge_agenda_completeness(deserializer);
+    return BridgeAgendaObservation(
+      scope: var_scope,
+      fetchedAt: var_fetchedAt,
+      lastVerifiedAt: var_lastVerifiedAt,
+      lastAttemptAt: var_lastAttemptAt,
+      lastAttemptSucceeded: var_lastAttemptSucceeded,
+      completeness: var_completeness,
+    );
+  }
+
+  @protected
+  BridgeAgendaOccurrence sse_decode_bridge_agenda_occurrence(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_itemId = sse_decode_String(deserializer);
+    var var_recurrenceId = sse_decode_String(deserializer);
+    var var_content = sse_decode_bridge_agenda_content(deserializer);
+    var var_completedAt = sse_decode_opt_box_autoadd_bridge_agenda_time(
+      deserializer,
+    );
+    var var_overridden = sse_decode_bool(deserializer);
+    return BridgeAgendaOccurrence(
+      itemId: var_itemId,
+      recurrenceId: var_recurrenceId,
+      content: var_content,
+      completedAt: var_completedAt,
+      overridden: var_overridden,
+    );
+  }
+
+  @protected
+  BridgeAgendaOverlay sse_decode_bridge_agenda_overlay(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_value = sse_decode_bridge_agenda_overlay_draft(deserializer);
+    var var_updatedAt = sse_decode_bridge_agenda_time(deserializer);
+    var var_deletedAt = sse_decode_opt_box_autoadd_bridge_agenda_time(
+      deserializer,
+    );
+    var var_locallyModified = sse_decode_bool(deserializer);
+    return BridgeAgendaOverlay(
+      value: var_value,
+      updatedAt: var_updatedAt,
+      deletedAt: var_deletedAt,
+      locallyModified: var_locallyModified,
+    );
+  }
+
+  @protected
+  BridgeAgendaOverlayDraft sse_decode_bridge_agenda_overlay_draft(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_key = sse_decode_bridge_school_agenda_key(deserializer);
+    var var_completedAt = sse_decode_opt_box_autoadd_bridge_agenda_time(
+      deserializer,
+    );
+    var var_completionOverride = sse_decode_bool(deserializer);
+    var var_hidden = sse_decode_bool(deserializer);
+    var var_note = sse_decode_opt_String(deserializer);
+    return BridgeAgendaOverlayDraft(
+      key: var_key,
+      completedAt: var_completedAt,
+      completionOverride: var_completionOverride,
+      hidden: var_hidden,
+      note: var_note,
+    );
+  }
+
+  @protected
+  BridgeAgendaOverride sse_decode_bridge_agenda_override(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_recurrenceId = sse_decode_String(deserializer);
+    var var_content = sse_decode_bridge_agenda_content(deserializer);
+    return BridgeAgendaOverride(
+      recurrenceId: var_recurrenceId,
+      content: var_content,
+    );
+  }
+
+  @protected
+  BridgeAgendaQuery sse_decode_bridge_agenda_query(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_route = sse_decode_bridge_connection_mode(deserializer);
+    var var_term = sse_decode_String(deserializer);
+    var var_from = sse_decode_String(deserializer);
+    var var_to = sse_decode_String(deserializer);
+    var var_now = sse_decode_bridge_agenda_time(deserializer);
+    var var_includeHidden = sse_decode_bool(deserializer);
+    var var_ygdkEnabled = sse_decode_bool(deserializer);
+    var var_ygdkWeekDone = sse_decode_bool(deserializer);
+    var var_ygdkTermDone = sse_decode_bool(deserializer);
+    return BridgeAgendaQuery(
+      route: var_route,
+      term: var_term,
+      from: var_from,
+      to: var_to,
+      now: var_now,
+      includeHidden: var_includeHidden,
+      ygdkEnabled: var_ygdkEnabled,
+      ygdkWeekDone: var_ygdkWeekDone,
+      ygdkTermDone: var_ygdkTermDone,
+    );
+  }
+
+  @protected
+  BridgeAgendaQueryResult sse_decode_bridge_agenda_query_result(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_entries = sse_decode_list_bridge_agenda_entry(deserializer);
+    var var_sources = sse_decode_list_bridge_agenda_source(deserializer);
+    var var_schoolCacheFailure =
+        sse_decode_opt_box_autoadd_bridge_cache_failure(deserializer);
+    return BridgeAgendaQueryResult(
+      entries: var_entries,
+      sources: var_sources,
+      schoolCacheFailure: var_schoolCacheFailure,
+    );
+  }
+
+  @protected
+  BridgeAgendaSource sse_decode_bridge_agenda_source(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_feature = sse_decode_bridge_agenda_feature(deserializer);
+    var var_observations = sse_decode_list_bridge_agenda_observation(
+      deserializer,
+    );
+    var var_missingScopes = sse_decode_list_bridge_agenda_cache_scope(
+      deserializer,
+    );
+    var var_semesterImported = sse_decode_opt_box_autoadd_bool(deserializer);
+    var var_unprojectableCount = sse_decode_u_32(deserializer);
+    return BridgeAgendaSource(
+      feature: var_feature,
+      observations: var_observations,
+      missingScopes: var_missingScopes,
+      semesterImported: var_semesterImported,
+      unprojectableCount: var_unprojectableCount,
+    );
+  }
+
+  @protected
+  BridgeAgendaSubmission sse_decode_bridge_agenda_submission(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeAgendaSubmission.values[inner];
+  }
+
+  @protected
+  BridgeAgendaTime sse_decode_bridge_agenda_time(SseDeserializer deserializer) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_rfc3339 = sse_decode_String(deserializer);
+    var var_timezone = sse_decode_String(deserializer);
+    return BridgeAgendaTime(rfc3339: var_rfc3339, timezone: var_timezone);
+  }
+
+  @protected
+  BridgeAgendaTiming sse_decode_bridge_agenda_timing(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_kind = sse_decode_bridge_agenda_timing_kind(deserializer);
+    var var_start = sse_decode_opt_box_autoadd_bridge_agenda_time(deserializer);
+    var var_end = sse_decode_opt_box_autoadd_bridge_agenda_time(deserializer);
+    var var_due = sse_decode_opt_box_autoadd_bridge_agenda_time(deserializer);
+    var var_from = sse_decode_opt_String(deserializer);
+    var var_to = sse_decode_opt_String(deserializer);
+    return BridgeAgendaTiming(
+      kind: var_kind,
+      start: var_start,
+      end: var_end,
+      due: var_due,
+      from: var_from,
+      to: var_to,
+    );
+  }
+
+  @protected
+  BridgeAgendaTimingKind sse_decode_bridge_agenda_timing_kind(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeAgendaTimingKind.values[inner];
+  }
+
+  @protected
+  BridgeAgendaUpstreamStatus sse_decode_bridge_agenda_upstream_status(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_feature = sse_decode_bridge_agenda_feature(deserializer);
+    var var_completed = sse_decode_bool(deserializer);
+    var var_beginTime = sse_decode_opt_String(deserializer);
+    var var_endTime = sse_decode_opt_String(deserializer);
+    var var_examStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_checkin = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_pass = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_submission = sse_decode_opt_box_autoadd_bridge_agenda_submission(
+      deserializer,
+    );
+    var var_text = sse_decode_opt_String(deserializer);
+    var var_orderStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_checkStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_signStatus = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_weekCount = sse_decode_opt_box_autoadd_i_32(deserializer);
+    var var_termCount = sse_decode_opt_box_autoadd_i_32(deserializer);
+    return BridgeAgendaUpstreamStatus(
+      feature: var_feature,
+      completed: var_completed,
+      beginTime: var_beginTime,
+      endTime: var_endTime,
+      examStatus: var_examStatus,
+      checkin: var_checkin,
+      pass: var_pass,
+      submission: var_submission,
+      text: var_text,
+      orderStatus: var_orderStatus,
+      checkStatus: var_checkStatus,
+      signStatus: var_signStatus,
+      weekCount: var_weekCount,
+      termCount: var_termCount,
+    );
   }
 
   @protected
@@ -21811,6 +23841,52 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeSchoolAgendaItem sse_decode_bridge_school_agenda_item(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_key = sse_decode_bridge_school_agenda_key(deserializer);
+    var var_timing = sse_decode_bridge_agenda_timing(deserializer);
+    var var_sortTime = sse_decode_opt_box_autoadd_bridge_agenda_time(
+      deserializer,
+    );
+    var var_title = sse_decode_String(deserializer);
+    var var_subtitle = sse_decode_String(deserializer);
+    var var_location = sse_decode_opt_String(deserializer);
+    var var_statusLabel = sse_decode_String(deserializer);
+    var var_upstreamStatus = sse_decode_bridge_agenda_upstream_status(
+      deserializer,
+    );
+    var var_navigation = sse_decode_bridge_agenda_navigation(deserializer);
+    var var_homeTodo = sse_decode_bool(deserializer);
+    return BridgeSchoolAgendaItem(
+      key: var_key,
+      timing: var_timing,
+      sortTime: var_sortTime,
+      title: var_title,
+      subtitle: var_subtitle,
+      location: var_location,
+      statusLabel: var_statusLabel,
+      upstreamStatus: var_upstreamStatus,
+      navigation: var_navigation,
+      homeTodo: var_homeTodo,
+    );
+  }
+
+  @protected
+  BridgeSchoolAgendaKey sse_decode_bridge_school_agenda_key(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_source = sse_decode_String(deserializer);
+    var var_upstreamId = sse_decode_String(deserializer);
+    return BridgeSchoolAgendaKey(
+      source: var_source,
+      upstreamId: var_upstreamId,
+    );
+  }
+
+  @protected
   BridgeSectionTime sse_decode_bridge_section_time(
     SseDeserializer deserializer,
   ) {
@@ -21986,6 +24062,57 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     var inner = sse_decode_i_32(deserializer);
     return BridgeSpocSubmissionStatus.values[inner];
+  }
+
+  @protected
+  BridgeTeachingWeekInput sse_decode_bridge_teaching_week_input(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_monday = sse_decode_String(deserializer);
+    var var_first = sse_decode_u_32(deserializer);
+    var var_last = sse_decode_u_32(deserializer);
+    var var_pattern = sse_decode_bridge_teaching_week_pattern(deserializer);
+    var var_weekday = sse_decode_u_32(deserializer);
+    var var_hour = sse_decode_u_32(deserializer);
+    var var_minute = sse_decode_u_32(deserializer);
+    var var_second = sse_decode_u_32(deserializer);
+    var var_skips = sse_decode_list_String(deserializer);
+    return BridgeTeachingWeekInput(
+      monday: var_monday,
+      first: var_first,
+      last: var_last,
+      pattern: var_pattern,
+      weekday: var_weekday,
+      hour: var_hour,
+      minute: var_minute,
+      second: var_second,
+      skips: var_skips,
+    );
+  }
+
+  @protected
+  BridgeTeachingWeekPattern sse_decode_bridge_teaching_week_pattern(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var inner = sse_decode_i_32(deserializer);
+    return BridgeTeachingWeekPattern.values[inner];
+  }
+
+  @protected
+  BridgeTeachingWeekRule sse_decode_bridge_teaching_week_rule(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    var var_start = sse_decode_bridge_agenda_time(deserializer);
+    var var_rrule = sse_decode_String(deserializer);
+    var var_exdates = sse_decode_list_bridge_agenda_time(deserializer);
+    return BridgeTeachingWeekRule(
+      start: var_start,
+      rrule: var_rrule,
+      exdates: var_exdates,
+    );
   }
 
   @protected
@@ -22406,6 +24533,104 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var ans_ = <String>[];
     for (var idx_ = 0; idx_ < len_; ++idx_) {
       ans_.add(sse_decode_String(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeAgendaCacheScope> sse_decode_list_bridge_agenda_cache_scope(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeAgendaCacheScope>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_agenda_cache_scope(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeAgendaCompletion> sse_decode_list_bridge_agenda_completion(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeAgendaCompletion>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_agenda_completion(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeAgendaEntry> sse_decode_list_bridge_agenda_entry(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeAgendaEntry>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_agenda_entry(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeAgendaObservation> sse_decode_list_bridge_agenda_observation(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeAgendaObservation>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_agenda_observation(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeAgendaOverride> sse_decode_list_bridge_agenda_override(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeAgendaOverride>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_agenda_override(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeAgendaSource> sse_decode_list_bridge_agenda_source(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeAgendaSource>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_agenda_source(deserializer));
+    }
+    return ans_;
+  }
+
+  @protected
+  List<BridgeAgendaTime> sse_decode_list_bridge_agenda_time(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    var len_ = sse_decode_i_32(deserializer);
+    var ans_ = <BridgeAgendaTime>[];
+    for (var idx_ = 0; idx_ < len_; ++idx_) {
+      ans_.add(sse_decode_bridge_agenda_time(deserializer));
     }
     return ans_;
   }
@@ -23370,6 +25595,71 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeAgendaItem? sse_decode_opt_box_autoadd_bridge_agenda_item(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_agenda_item(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeAgendaOccurrence? sse_decode_opt_box_autoadd_bridge_agenda_occurrence(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_agenda_occurrence(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeAgendaOverlay? sse_decode_opt_box_autoadd_bridge_agenda_overlay(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_agenda_overlay(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeAgendaSubmission? sse_decode_opt_box_autoadd_bridge_agenda_submission(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_agenda_submission(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
+  BridgeAgendaTime? sse_decode_opt_box_autoadd_bridge_agenda_time(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_agenda_time(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   BridgeBykcCourseAttendanceDisplay?
   sse_decode_opt_box_autoadd_bridge_bykc_course_attendance_display(
     SseDeserializer deserializer,
@@ -24280,6 +26570,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  BridgeSchoolAgendaItem? sse_decode_opt_box_autoadd_bridge_school_agenda_item(
+    SseDeserializer deserializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    if (sse_decode_bool(deserializer)) {
+      return (sse_decode_box_autoadd_bridge_school_agenda_item(deserializer));
+    } else {
+      return null;
+    }
+  }
+
+  @protected
   BridgeUserProfile? sse_decode_opt_box_autoadd_bridge_user_profile(
     SseDeserializer deserializer,
   ) {
@@ -24429,6 +26732,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BigInt sse_decode_usize(SseDeserializer deserializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     return deserializer.buffer.getBigUint64();
+  }
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    BridgeAgendaStore self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as BridgeAgendaStoreImpl).frbInternalSseEncode(move: true),
+      serializer,
+    );
   }
 
   @protected
@@ -24602,6 +26918,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    BridgeAgendaStore self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as BridgeAgendaStoreImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(
     BridgeCaptchaChallenge self,
     SseSerializer serializer,
@@ -24767,6 +27096,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_usize(
       (self as BridgeSpocScanImpl).frbInternalSseEncode(move: false),
+      serializer,
+    );
+  }
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    BridgeAgendaStore self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_usize(
+      (self as BridgeAgendaStoreImpl).frbInternalSseEncode(move: null),
       serializer,
     );
   }
@@ -24982,6 +27324,87 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   void sse_encode_box_autoadd_bool(bool self, SseSerializer serializer) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_bool(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_content(
+    BridgeAgendaContent self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_content(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_draft(
+    BridgeAgendaDraft self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_draft(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_item(
+    BridgeAgendaItem self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_item(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_occurrence(
+    BridgeAgendaOccurrence self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_occurrence(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_overlay(
+    BridgeAgendaOverlay self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_overlay(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_overlay_draft(
+    BridgeAgendaOverlayDraft self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_overlay_draft(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_query(
+    BridgeAgendaQuery self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_query(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_submission(
+    BridgeAgendaSubmission self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_submission(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_time(
+    BridgeAgendaTime self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_time(self, serializer);
   }
 
   @protected
@@ -25624,12 +28047,39 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_box_autoadd_bridge_school_agenda_item(
+    BridgeSchoolAgendaItem self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_school_agenda_item(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_school_agenda_key(
+    BridgeSchoolAgendaKey self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_school_agenda_key(self, serializer);
+  }
+
+  @protected
   void sse_encode_box_autoadd_bridge_signin_perform_request(
     BridgeSigninPerformRequest self,
     SseSerializer serializer,
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_bridge_signin_perform_request(self, serializer);
+  }
+
+  @protected
+  void sse_encode_box_autoadd_bridge_teaching_week_input(
+    BridgeTeachingWeekInput self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_teaching_week_input(self, serializer);
   }
 
   @protected
@@ -25783,6 +28233,360 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_cache_kind(
+    BridgeAgendaCacheKind self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_cache_scope(
+    BridgeAgendaCacheScope self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_connection_mode(self.route, serializer);
+    sse_encode_bridge_agenda_cache_kind(self.kind, serializer);
+    sse_encode_opt_String(self.term, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.week, serializer);
+    sse_encode_opt_String(self.date, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.page, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.size, serializer);
+    sse_encode_opt_box_autoadd_bool(self.includeExpired, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.classifyId, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.termId, serializer);
+    sse_encode_opt_String(self.weekStart, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_completeness(
+    BridgeAgendaCompleteness self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_completion(
+    BridgeAgendaCompletion self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.recurrenceId, serializer);
+    sse_encode_opt_box_autoadd_bridge_agenda_time(self.completedAt, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_content(
+    BridgeAgendaContent self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_kind(self.kind, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_opt_String(self.location, serializer);
+    sse_encode_opt_String(self.notes, serializer);
+    sse_encode_opt_String(self.color, serializer);
+    sse_encode_opt_box_autoadd_bridge_agenda_time(self.start, serializer);
+    sse_encode_opt_box_autoadd_bridge_agenda_time(self.end, serializer);
+    sse_encode_bool(self.allDay, serializer);
+    sse_encode_opt_box_autoadd_bridge_agenda_time(self.due, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_draft(
+    BridgeAgendaDraft self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_content(self.content, serializer);
+    sse_encode_opt_String(self.rrule, serializer);
+    sse_encode_list_bridge_agenda_time(self.exdates, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_edit_scope(
+    BridgeAgendaEditScope self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_entry(
+    BridgeAgendaEntry self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_opt_box_autoadd_bridge_agenda_occurrence(self.local, serializer);
+    sse_encode_opt_box_autoadd_bridge_school_agenda_item(
+      self.school,
+      serializer,
+    );
+    sse_encode_bridge_agenda_timing(self.timing, serializer);
+    sse_encode_opt_box_autoadd_bridge_agenda_time(self.sortTime, serializer);
+    sse_encode_bool(self.soon, serializer);
+    sse_encode_bool(self.completed, serializer);
+    sse_encode_bool(self.hidden, serializer);
+    sse_encode_opt_String(self.note, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_error(
+    BridgeAgendaError self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_failure(self.failure, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_failure(
+    BridgeAgendaFailure self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_feature(
+    BridgeAgendaFeature self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_item(
+    BridgeAgendaItem self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.id, serializer);
+    sse_encode_bridge_agenda_content(self.content, serializer);
+    sse_encode_opt_String(self.rrule, serializer);
+    sse_encode_list_bridge_agenda_time(self.exdates, serializer);
+    sse_encode_list_bridge_agenda_override(self.overrides, serializer);
+    sse_encode_list_bridge_agenda_completion(self.completions, serializer);
+    sse_encode_bridge_agenda_time(self.createdAt, serializer);
+    sse_encode_bridge_agenda_time(self.updatedAt, serializer);
+    sse_encode_opt_box_autoadd_bridge_agenda_time(self.deletedAt, serializer);
+    sse_encode_bool(self.locallyModified, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_kind(
+    BridgeAgendaKind self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_navigation(
+    BridgeAgendaNavigation self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_feature(self.feature, serializer);
+    sse_encode_opt_String(self.term, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.week, serializer);
+    sse_encode_opt_String(self.courseCode, serializer);
+    sse_encode_opt_String(self.serial, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.day, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.section, serializer);
+    sse_encode_opt_String(self.courseId, serializer);
+    sse_encode_opt_box_autoadd_i_64(self.bykcCourseId, serializer);
+    sse_encode_opt_String(self.assignmentId, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.orderId, serializer);
+    sse_encode_opt_String(self.taskId, serializer);
+    sse_encode_opt_String(self.courseNo, serializer);
+    sse_encode_opt_String(self.courseName, serializer);
+    sse_encode_opt_String(self.date, serializer);
+    sse_encode_opt_String(self.startTime, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_observation(
+    BridgeAgendaObservation self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_cache_scope(self.scope, serializer);
+    sse_encode_i_64(self.fetchedAt, serializer);
+    sse_encode_i_64(self.lastVerifiedAt, serializer);
+    sse_encode_i_64(self.lastAttemptAt, serializer);
+    sse_encode_bool(self.lastAttemptSucceeded, serializer);
+    sse_encode_bridge_agenda_completeness(self.completeness, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_occurrence(
+    BridgeAgendaOccurrence self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.itemId, serializer);
+    sse_encode_String(self.recurrenceId, serializer);
+    sse_encode_bridge_agenda_content(self.content, serializer);
+    sse_encode_opt_box_autoadd_bridge_agenda_time(self.completedAt, serializer);
+    sse_encode_bool(self.overridden, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_overlay(
+    BridgeAgendaOverlay self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_overlay_draft(self.value, serializer);
+    sse_encode_bridge_agenda_time(self.updatedAt, serializer);
+    sse_encode_opt_box_autoadd_bridge_agenda_time(self.deletedAt, serializer);
+    sse_encode_bool(self.locallyModified, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_overlay_draft(
+    BridgeAgendaOverlayDraft self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_school_agenda_key(self.key, serializer);
+    sse_encode_opt_box_autoadd_bridge_agenda_time(self.completedAt, serializer);
+    sse_encode_bool(self.completionOverride, serializer);
+    sse_encode_bool(self.hidden, serializer);
+    sse_encode_opt_String(self.note, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_override(
+    BridgeAgendaOverride self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.recurrenceId, serializer);
+    sse_encode_bridge_agenda_content(self.content, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_query(
+    BridgeAgendaQuery self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_connection_mode(self.route, serializer);
+    sse_encode_String(self.term, serializer);
+    sse_encode_String(self.from, serializer);
+    sse_encode_String(self.to, serializer);
+    sse_encode_bridge_agenda_time(self.now, serializer);
+    sse_encode_bool(self.includeHidden, serializer);
+    sse_encode_bool(self.ygdkEnabled, serializer);
+    sse_encode_bool(self.ygdkWeekDone, serializer);
+    sse_encode_bool(self.ygdkTermDone, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_query_result(
+    BridgeAgendaQueryResult self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_list_bridge_agenda_entry(self.entries, serializer);
+    sse_encode_list_bridge_agenda_source(self.sources, serializer);
+    sse_encode_opt_box_autoadd_bridge_cache_failure(
+      self.schoolCacheFailure,
+      serializer,
+    );
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_source(
+    BridgeAgendaSource self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_feature(self.feature, serializer);
+    sse_encode_list_bridge_agenda_observation(self.observations, serializer);
+    sse_encode_list_bridge_agenda_cache_scope(self.missingScopes, serializer);
+    sse_encode_opt_box_autoadd_bool(self.semesterImported, serializer);
+    sse_encode_u_32(self.unprojectableCount, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_submission(
+    BridgeAgendaSubmission self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_time(
+    BridgeAgendaTime self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.rfc3339, serializer);
+    sse_encode_String(self.timezone, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_timing(
+    BridgeAgendaTiming self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_timing_kind(self.kind, serializer);
+    sse_encode_opt_box_autoadd_bridge_agenda_time(self.start, serializer);
+    sse_encode_opt_box_autoadd_bridge_agenda_time(self.end, serializer);
+    sse_encode_opt_box_autoadd_bridge_agenda_time(self.due, serializer);
+    sse_encode_opt_String(self.from, serializer);
+    sse_encode_opt_String(self.to, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_timing_kind(
+    BridgeAgendaTimingKind self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_agenda_upstream_status(
+    BridgeAgendaUpstreamStatus self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_feature(self.feature, serializer);
+    sse_encode_bool(self.completed, serializer);
+    sse_encode_opt_String(self.beginTime, serializer);
+    sse_encode_opt_String(self.endTime, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.examStatus, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.checkin, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.pass, serializer);
+    sse_encode_opt_box_autoadd_bridge_agenda_submission(
+      self.submission,
+      serializer,
+    );
+    sse_encode_opt_String(self.text, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.orderStatus, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.checkStatus, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.signStatus, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.weekCount, serializer);
+    sse_encode_opt_box_autoadd_i_32(self.termCount, serializer);
   }
 
   @protected
@@ -29077,6 +31881,34 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_bridge_school_agenda_item(
+    BridgeSchoolAgendaItem self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_school_agenda_key(self.key, serializer);
+    sse_encode_bridge_agenda_timing(self.timing, serializer);
+    sse_encode_opt_box_autoadd_bridge_agenda_time(self.sortTime, serializer);
+    sse_encode_String(self.title, serializer);
+    sse_encode_String(self.subtitle, serializer);
+    sse_encode_opt_String(self.location, serializer);
+    sse_encode_String(self.statusLabel, serializer);
+    sse_encode_bridge_agenda_upstream_status(self.upstreamStatus, serializer);
+    sse_encode_bridge_agenda_navigation(self.navigation, serializer);
+    sse_encode_bool(self.homeTodo, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_school_agenda_key(
+    BridgeSchoolAgendaKey self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.source, serializer);
+    sse_encode_String(self.upstreamId, serializer);
+  }
+
+  @protected
   void sse_encode_bridge_section_time(
     BridgeSectionTime self,
     SseSerializer serializer,
@@ -29197,6 +32029,43 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   ) {
     // Codec=Sse (Serialization based), see doc to use other codecs
     sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_teaching_week_input(
+    BridgeTeachingWeekInput self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_String(self.monday, serializer);
+    sse_encode_u_32(self.first, serializer);
+    sse_encode_u_32(self.last, serializer);
+    sse_encode_bridge_teaching_week_pattern(self.pattern, serializer);
+    sse_encode_u_32(self.weekday, serializer);
+    sse_encode_u_32(self.hour, serializer);
+    sse_encode_u_32(self.minute, serializer);
+    sse_encode_u_32(self.second, serializer);
+    sse_encode_list_String(self.skips, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_teaching_week_pattern(
+    BridgeTeachingWeekPattern self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.index, serializer);
+  }
+
+  @protected
+  void sse_encode_bridge_teaching_week_rule(
+    BridgeTeachingWeekRule self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_bridge_agenda_time(self.start, serializer);
+    sse_encode_String(self.rrule, serializer);
+    sse_encode_list_bridge_agenda_time(self.exdates, serializer);
   }
 
   @protected
@@ -29497,6 +32366,90 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_i_32(self.length, serializer);
     for (final item in self) {
       sse_encode_String(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_agenda_cache_scope(
+    List<BridgeAgendaCacheScope> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_agenda_cache_scope(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_agenda_completion(
+    List<BridgeAgendaCompletion> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_agenda_completion(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_agenda_entry(
+    List<BridgeAgendaEntry> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_agenda_entry(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_agenda_observation(
+    List<BridgeAgendaObservation> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_agenda_observation(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_agenda_override(
+    List<BridgeAgendaOverride> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_agenda_override(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_agenda_source(
+    List<BridgeAgendaSource> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_agenda_source(item, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_list_bridge_agenda_time(
+    List<BridgeAgendaTime> self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    sse_encode_i_32(self.length, serializer);
+    for (final item in self) {
+      sse_encode_bridge_agenda_time(item, serializer);
     }
   }
 
@@ -30345,6 +33298,71 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_bridge_agenda_item(
+    BridgeAgendaItem? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_agenda_item(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_agenda_occurrence(
+    BridgeAgendaOccurrence? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_agenda_occurrence(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_agenda_overlay(
+    BridgeAgendaOverlay? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_agenda_overlay(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_agenda_submission(
+    BridgeAgendaSubmission? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_agenda_submission(self, serializer);
+    }
+  }
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_agenda_time(
+    BridgeAgendaTime? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_agenda_time(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_bridge_bykc_course_attendance_display(
     BridgeBykcCourseAttendanceDisplay? self,
     SseSerializer serializer,
@@ -31174,6 +34192,19 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   }
 
   @protected
+  void sse_encode_opt_box_autoadd_bridge_school_agenda_item(
+    BridgeSchoolAgendaItem? self,
+    SseSerializer serializer,
+  ) {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+
+    sse_encode_bool(self != null, serializer);
+    if (self != null) {
+      sse_encode_box_autoadd_bridge_school_agenda_item(self, serializer);
+    }
+  }
+
+  @protected
   void sse_encode_opt_box_autoadd_bridge_user_profile(
     BridgeUserProfile? self,
     SseSerializer serializer,
@@ -31322,6 +34353,195 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     // Codec=Sse (Serialization based), see doc to use other codecs
     serializer.buffer.putBigUint64(self);
   }
+}
+
+@sealed
+class BridgeAgendaStoreImpl extends RustOpaque implements BridgeAgendaStore {
+  // Not to be used by end users
+  BridgeAgendaStoreImpl.frbInternalDcoDecode(List<dynamic> wire)
+    : super.frbInternalDcoDecode(wire, _kStaticData);
+
+  // Not to be used by end users
+  BridgeAgendaStoreImpl.frbInternalSseDecode(
+    BigInt ptr,
+    int externalSizeOnNative,
+  ) : super.frbInternalSseDecode(ptr, externalSizeOnNative, _kStaticData);
+
+  static final _kStaticData = RustArcStaticData(
+    rustArcIncrementStrongCount:
+        RustLib.instance.api.rust_arc_increment_strong_count_BridgeAgendaStore,
+    rustArcDecrementStrongCount:
+        RustLib.instance.api.rust_arc_decrement_strong_count_BridgeAgendaStore,
+    rustArcDecrementStrongCountPtr: RustLib
+        .instance
+        .api
+        .rust_arc_decrement_strong_count_BridgeAgendaStorePtr,
+  );
+
+  /// 重新开放当前账号的日程访问。
+  ///
+  /// # Errors
+  /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
+  Future<void> activate() =>
+      RustLib.instance.api.crateApiAgendaBridgeAgendaStoreActivate(that: this);
+
+  /// 显式清除本账号日程，返回未同步记录数。
+  ///
+  /// # Errors
+  /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
+  Future<int> clearLocalData() => RustLib.instance.api
+      .crateApiAgendaBridgeAgendaStoreClearLocalData(that: this);
+
+  /// 清除覆盖并保留待同步删除标记。
+  ///
+  /// # Errors
+  /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
+  Future<void> clearOverlay({
+    required BridgeSchoolAgendaKey key,
+    required BridgeAgendaTime now,
+  }) => RustLib.instance.api.crateApiAgendaBridgeAgendaStoreClearOverlay(
+    that: this,
+    key: key,
+    now: now,
+  );
+
+  /// 完成或重新挂起原始发生。
+  ///
+  /// # Errors
+  /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
+  Future<void> complete({
+    required String itemId,
+    BridgeAgendaTime? at,
+    required bool completed,
+    required BridgeAgendaTime now,
+  }) => RustLib.instance.api.crateApiAgendaBridgeAgendaStoreComplete(
+    that: this,
+    itemId: itemId,
+    at: at,
+    completed: completed,
+    now: now,
+  );
+
+  /// 创建并返回新事项，失败时不产生记录。
+  ///
+  /// # Errors
+  /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
+  Future<BridgeAgendaItem> create({
+    required BridgeAgendaDraft draft,
+    required BridgeAgendaTime now,
+  }) => RustLib.instance.api.crateApiAgendaBridgeAgendaStoreCreate(
+    that: this,
+    draft: draft,
+    now: now,
+  );
+
+  /// 关闭当前账号的日程访问，保留文件。
+  ///
+  /// # Errors
+  /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
+  Future<void> deactivate() => RustLib.instance.api
+      .crateApiAgendaBridgeAgendaStoreDeactivate(that: this);
+
+  /// 按指定范围排除发生或写入删除标记。
+  ///
+  /// # Errors
+  /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
+  Future<void> delete({
+    required String itemId,
+    required BridgeAgendaEditScope scope,
+    BridgeAgendaTime? at,
+    required BridgeAgendaTime now,
+  }) => RustLib.instance.api.crateApiAgendaBridgeAgendaStoreDelete(
+    that: this,
+    itemId: itemId,
+    scope: scope,
+    at: at,
+    now: now,
+  );
+
+  /// 按原始发生时间修改指定范围，返回后续系列的新 UUID。
+  ///
+  /// # Errors
+  /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
+  Future<String?> edit({
+    required String itemId,
+    required BridgeAgendaEditScope scope,
+    BridgeAgendaTime? at,
+    required BridgeAgendaContent content,
+    String? rrule,
+    required BridgeAgendaTime now,
+  }) => RustLib.instance.api.crateApiAgendaBridgeAgendaStoreEdit(
+    that: this,
+    itemId: itemId,
+    scope: scope,
+    at: at,
+    content: content,
+    rrule: rrule,
+    now: now,
+  );
+
+  /// 读取原始事项，包含删除标记。
+  ///
+  /// # Errors
+  /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
+  Future<BridgeAgendaItem?> get_({required String itemId}) => RustLib
+      .instance
+      .api
+      .crateApiAgendaBridgeAgendaStoreGet(that: this, itemId: itemId);
+
+  /// 读取覆盖和删除标记。
+  ///
+  /// # Errors
+  /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
+  Future<BridgeAgendaOverlay?> overlay({required BridgeSchoolAgendaKey key}) =>
+      RustLib.instance.api.crateApiAgendaBridgeAgendaStoreOverlay(
+        that: this,
+        key: key,
+      );
+
+  /// 学校缓存未打开时查询本地日程和学校来源缺失状态。
+  ///
+  /// # Errors
+  /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
+  Future<BridgeAgendaQueryResult> queryLocal({
+    required BridgeAgendaQuery query,
+  }) => RustLib.instance.api.crateApiAgendaBridgeAgendaStoreQueryLocal(
+    that: this,
+    query: query,
+  );
+
+  /// 合并同账号、明确路线的学校缓存，缓存故障时返回本地事项。
+  ///
+  /// # Errors
+  /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
+  Future<BridgeAgendaQueryResult> queryWithCache({
+    required BridgeOfflineCache cache,
+    required BridgeAgendaQuery query,
+  }) => RustLib.instance.api.crateApiAgendaBridgeAgendaStoreQueryWithCache(
+    that: this,
+    cache: cache,
+    query: query,
+  );
+
+  /// 设置学校事项的本地覆盖，不改变学校数据。
+  ///
+  /// # Errors
+  /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
+  Future<void> setOverlay({
+    required BridgeAgendaOverlayDraft overlay,
+    required BridgeAgendaTime now,
+  }) => RustLib.instance.api.crateApiAgendaBridgeAgendaStoreSetOverlay(
+    that: this,
+    overlay: overlay,
+    now: now,
+  );
+
+  /// 查询未同步记录数，包括删除标记。
+  ///
+  /// # Errors
+  /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
+  Future<int> unsyncedCount() => RustLib.instance.api
+      .crateApiAgendaBridgeAgendaStoreUnsyncedCount(that: this);
 }
 
 @sealed

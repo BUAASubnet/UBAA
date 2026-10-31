@@ -27,6 +27,7 @@
 
 // Section: imports
 
+use crate::api::agenda::*;
 use crate::api::client::*;
 use crate::api::interactive_auth::*;
 use crate::api::judge_refresh::details::*;
@@ -51,7 +52,7 @@ flutter_rust_bridge::frb_generated_boilerplate!(
     default_rust_auto_opaque = RustAutoOpaqueMoi,
 );
 pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_VERSION: &str = "2.13.0";
-pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = -237898554;
+pub(crate) const FLUTTER_RUST_BRIDGE_CODEGEN_CONTENT_HASH: i32 = 1664281412;
 
 // Section: executor
 
@@ -59,6 +60,941 @@ flutter_rust_bridge::frb_generated_default_handler!();
 
 // Section: wire_funcs
 
+fn wire__crate__api__agenda__BridgeAgendaStore_activate_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeAgendaStore_activate",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok =
+                            crate::api::agenda::BridgeAgendaStore::activate(&*api_that_guard)
+                                .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__agenda__BridgeAgendaStore_clear_local_data_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeAgendaStore_clear_local_data",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::agenda::BridgeAgendaStore::clear_local_data(
+                            &*api_that_guard,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__agenda__BridgeAgendaStore_clear_overlay_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeAgendaStore_clear_overlay",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>,
+            >>::sse_decode(&mut deserializer);
+            let api_key =
+                <crate::api::agenda::models::BridgeSchoolAgendaKey>::sse_decode(&mut deserializer);
+            let api_now =
+                <crate::api::agenda::models::BridgeAgendaTime>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::agenda::BridgeAgendaStore::clear_overlay(
+                            &*api_that_guard,
+                            api_key,
+                            api_now,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__agenda__BridgeAgendaStore_complete_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeAgendaStore_complete",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>,
+            >>::sse_decode(&mut deserializer);
+            let api_item_id = <String>::sse_decode(&mut deserializer);
+            let api_at = <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(
+                &mut deserializer,
+            );
+            let api_completed = <bool>::sse_decode(&mut deserializer);
+            let api_now =
+                <crate::api::agenda::models::BridgeAgendaTime>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::agenda::BridgeAgendaStore::complete(
+                            &*api_that_guard,
+                            api_item_id,
+                            api_at,
+                            api_completed,
+                            api_now,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__agenda__BridgeAgendaStore_create_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeAgendaStore_create",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>,
+            >>::sse_decode(&mut deserializer);
+            let api_draft =
+                <crate::api::agenda::models::BridgeAgendaDraft>::sse_decode(&mut deserializer);
+            let api_now =
+                <crate::api::agenda::models::BridgeAgendaTime>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::agenda::BridgeAgendaStore::create(
+                            &*api_that_guard,
+                            api_draft,
+                            api_now,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__agenda__BridgeAgendaStore_deactivate_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeAgendaStore_deactivate",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok =
+                            crate::api::agenda::BridgeAgendaStore::deactivate(&*api_that_guard)
+                                .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__agenda__BridgeAgendaStore_delete_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeAgendaStore_delete",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>,
+            >>::sse_decode(&mut deserializer);
+            let api_item_id = <String>::sse_decode(&mut deserializer);
+            let api_scope =
+                <crate::api::agenda::models::BridgeAgendaEditScope>::sse_decode(&mut deserializer);
+            let api_at = <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(
+                &mut deserializer,
+            );
+            let api_now =
+                <crate::api::agenda::models::BridgeAgendaTime>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::agenda::BridgeAgendaStore::delete(
+                            &*api_that_guard,
+                            api_item_id,
+                            api_scope,
+                            api_at,
+                            api_now,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__agenda__BridgeAgendaStore_edit_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeAgendaStore_edit",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>,
+            >>::sse_decode(&mut deserializer);
+            let api_item_id = <String>::sse_decode(&mut deserializer);
+            let api_scope =
+                <crate::api::agenda::models::BridgeAgendaEditScope>::sse_decode(&mut deserializer);
+            let api_at = <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(
+                &mut deserializer,
+            );
+            let api_content =
+                <crate::api::agenda::models::BridgeAgendaContent>::sse_decode(&mut deserializer);
+            let api_rrule = <Option<String>>::sse_decode(&mut deserializer);
+            let api_now =
+                <crate::api::agenda::models::BridgeAgendaTime>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::agenda::BridgeAgendaStore::edit(
+                            &*api_that_guard,
+                            api_item_id,
+                            api_scope,
+                            api_at,
+                            api_content,
+                            api_rrule,
+                            api_now,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__agenda__BridgeAgendaStore_get_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeAgendaStore_get",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>,
+            >>::sse_decode(&mut deserializer);
+            let api_item_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::agenda::BridgeAgendaStore::get(
+                            &*api_that_guard,
+                            api_item_id,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__agenda__BridgeAgendaStore_open_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeAgendaStore_open",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_config_dir = <String>::sse_decode(&mut deserializer);
+            let api_account_id = <String>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let output_ok = crate::api::agenda::BridgeAgendaStore::open(
+                            api_config_dir,
+                            api_account_id,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__agenda__BridgeAgendaStore_overlay_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeAgendaStore_overlay",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>,
+            >>::sse_decode(&mut deserializer);
+            let api_key =
+                <crate::api::agenda::models::BridgeSchoolAgendaKey>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::agenda::BridgeAgendaStore::overlay(
+                            &*api_that_guard,
+                            api_key,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__agenda__BridgeAgendaStore_query_local_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeAgendaStore_query_local",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>,
+            >>::sse_decode(&mut deserializer);
+            let api_query =
+                <crate::api::agenda::school::BridgeAgendaQuery>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::agenda::BridgeAgendaStore::query_local(
+                            &*api_that_guard,
+                            api_query,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__agenda__BridgeAgendaStore_query_with_cache_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeAgendaStore_query_with_cache",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>,
+            >>::sse_decode(&mut deserializer);
+            let api_cache = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeOfflineCache>,
+            >>::sse_decode(&mut deserializer);
+            let api_query =
+                <crate::api::agenda::school::BridgeAgendaQuery>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let mut api_cache_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![
+                                    flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                        &api_that, 0, false,
+                                    ),
+                                    flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                        &api_cache, 1, false,
+                                    ),
+                                ],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                1 => {
+                                    api_cache_guard =
+                                        Some(api_cache.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let api_cache_guard = api_cache_guard.unwrap();
+                        let output_ok = crate::api::agenda::BridgeAgendaStore::query_with_cache(
+                            &*api_that_guard,
+                            &*api_cache_guard,
+                            api_query,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__agenda__BridgeAgendaStore_set_overlay_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeAgendaStore_set_overlay",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>,
+            >>::sse_decode(&mut deserializer);
+            let api_overlay = <crate::api::agenda::models::BridgeAgendaOverlayDraft>::sse_decode(
+                &mut deserializer,
+            );
+            let api_now =
+                <crate::api::agenda::models::BridgeAgendaTime>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok = crate::api::agenda::BridgeAgendaStore::set_overlay(
+                            &*api_that_guard,
+                            api_overlay,
+                            api_now,
+                        )
+                        .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
+fn wire__crate__api__agenda__BridgeAgendaStore_unsynced_count_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "BridgeAgendaStore_unsynced_count",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_that = <RustOpaqueMoi<
+                flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>,
+            >>::sse_decode(&mut deserializer);
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let mut api_that_guard = None;
+                        let decode_indices_ =
+                            flutter_rust_bridge::for_generated::lockable_compute_decode_order(
+                                vec![flutter_rust_bridge::for_generated::LockableOrderInfo::new(
+                                    &api_that, 0, false,
+                                )],
+                            );
+                        for i in decode_indices_ {
+                            match i {
+                                0 => {
+                                    api_that_guard =
+                                        Some(api_that.lockable_decode_async_ref().await)
+                                }
+                                _ => unreachable!(),
+                            }
+                        }
+                        let api_that_guard = api_that_guard.unwrap();
+                        let output_ok =
+                            crate::api::agenda::BridgeAgendaStore::unsynced_count(&*api_that_guard)
+                                .await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__interactive_auth__BridgeCaptchaChallenge_cancel_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -12412,6 +13348,45 @@ fn wire__crate__api__offline_home__spoc_scan__BridgeSpocScan_cancel_impl(
         },
     )
 }
+fn wire__crate__api__agenda__agenda_teaching_week_rule_impl(
+    port_: flutter_rust_bridge::for_generated::MessagePort,
+    ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
+    rust_vec_len_: i32,
+    data_len_: i32,
+) {
+    FLUTTER_RUST_BRIDGE_HANDLER.wrap_async::<flutter_rust_bridge::for_generated::SseCodec, _, _, _>(
+        flutter_rust_bridge::for_generated::TaskInfo {
+            debug_name: "agenda_teaching_week_rule",
+            port: Some(port_),
+            mode: flutter_rust_bridge::for_generated::FfiCallMode::Normal,
+        },
+        move || {
+            let message = unsafe {
+                flutter_rust_bridge::for_generated::Dart2RustMessageSse::from_wire(
+                    ptr_,
+                    rust_vec_len_,
+                    data_len_,
+                )
+            };
+            let mut deserializer =
+                flutter_rust_bridge::for_generated::SseDeserializer::new(message);
+            let api_input = <crate::api::agenda::models::BridgeTeachingWeekInput>::sse_decode(
+                &mut deserializer,
+            );
+            deserializer.end();
+            move |context| async move {
+                transform_result_sse::<_, crate::api::agenda::models::BridgeAgendaError>(
+                    (move || async move {
+                        let output_ok =
+                            crate::api::agenda::agenda_teaching_week_rule(api_input).await?;
+                        std::result::Result::Ok(output_ok)
+                    })()
+                    .await,
+                )
+            }
+        },
+    )
+}
 fn wire__crate__api__simple__bridge_hello_impl(
     ptr_: flutter_rust_bridge::for_generated::PlatformGeneralizedUint8ListPtr,
     rust_vec_len_: i32,
@@ -12547,6 +13522,9 @@ fn wire__crate__api__simple__init_app_impl(
 // Section: related_funcs
 
 flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
+    flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>
+);
+flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
     flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeCaptchaChallenge>
 );
 flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
@@ -12587,6 +13565,16 @@ flutter_rust_bridge::frb_generated_moi_arc_impl_value!(
 );
 
 // Section: dart2rust
+
+impl SseDecode for BridgeAgendaStore {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <RustOpaqueMoi<
+            flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>,
+        >>::sse_decode(deserializer);
+        return flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(inner);
+    }
+}
 
 impl SseDecode for BridgeCaptchaChallenge {
     // Codec=Sse (Serialization based), see doc to use other codecs
@@ -12715,6 +13703,16 @@ impl SseDecode for BridgeSpocScan {
             flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeSpocScan>,
         >>::sse_decode(deserializer);
         return flutter_rust_bridge::for_generated::rust_auto_opaque_decode_owned(inner);
+    }
+}
+
+impl SseDecode
+    for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>>
+{
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <usize>::sse_decode(deserializer);
+        return decode_rust_opaque_moi(inner);
     }
 }
 
@@ -12991,6 +13989,565 @@ impl SseDecode for crate::api::read::BridgeActionEligibility {
             1 => crate::api::read::BridgeActionEligibility::Denied,
             2 => crate::api::read::BridgeActionEligibility::Unknown,
             _ => unreachable!("Invalid variant for BridgeActionEligibility: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::school::BridgeAgendaCacheKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::agenda::school::BridgeAgendaCacheKind::BykcChosen,
+            1 => crate::api::agenda::school::BridgeAgendaCacheKind::SpocSelection,
+            2 => crate::api::agenda::school::BridgeAgendaCacheKind::SpocTerm,
+            3 => crate::api::agenda::school::BridgeAgendaCacheKind::JudgeSummaries,
+            4 => crate::api::agenda::school::BridgeAgendaCacheKind::CgyyOrders,
+            5 => crate::api::agenda::school::BridgeAgendaCacheKind::SigninToday,
+            6 => crate::api::agenda::school::BridgeAgendaCacheKind::Exams,
+            7 => crate::api::agenda::school::BridgeAgendaCacheKind::YgdkOverviewSelection,
+            8 => crate::api::agenda::school::BridgeAgendaCacheKind::YgdkOverviewPeriod,
+            9 => crate::api::agenda::school::BridgeAgendaCacheKind::ScheduleWeeks,
+            10 => crate::api::agenda::school::BridgeAgendaCacheKind::ScheduleWeek,
+            11 => crate::api::agenda::school::BridgeAgendaCacheKind::ImportedSchedules,
+            12 => crate::api::agenda::school::BridgeAgendaCacheKind::Unknown,
+            _ => unreachable!("Invalid variant for BridgeAgendaCacheKind: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::school::BridgeAgendaCacheScope {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_route = <crate::api::client::BridgeConnectionMode>::sse_decode(deserializer);
+        let mut var_kind =
+            <crate::api::agenda::school::BridgeAgendaCacheKind>::sse_decode(deserializer);
+        let mut var_term = <Option<String>>::sse_decode(deserializer);
+        let mut var_week = <Option<i32>>::sse_decode(deserializer);
+        let mut var_date = <Option<String>>::sse_decode(deserializer);
+        let mut var_page = <Option<i32>>::sse_decode(deserializer);
+        let mut var_size = <Option<i32>>::sse_decode(deserializer);
+        let mut var_includeExpired = <Option<bool>>::sse_decode(deserializer);
+        let mut var_classifyId = <Option<i32>>::sse_decode(deserializer);
+        let mut var_termId = <Option<i32>>::sse_decode(deserializer);
+        let mut var_weekStart = <Option<String>>::sse_decode(deserializer);
+        return crate::api::agenda::school::BridgeAgendaCacheScope {
+            route: var_route,
+            kind: var_kind,
+            term: var_term,
+            week: var_week,
+            date: var_date,
+            page: var_page,
+            size: var_size,
+            include_expired: var_includeExpired,
+            classify_id: var_classifyId,
+            term_id: var_termId,
+            week_start: var_weekStart,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::school::BridgeAgendaCompleteness {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::agenda::school::BridgeAgendaCompleteness::Complete,
+            1 => crate::api::agenda::school::BridgeAgendaCompleteness::Partial,
+            _ => unreachable!("Invalid variant for BridgeAgendaCompleteness: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeAgendaCompletion {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_recurrenceId = <String>::sse_decode(deserializer);
+        let mut var_completedAt =
+            <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        return crate::api::agenda::models::BridgeAgendaCompletion {
+            recurrence_id: var_recurrenceId,
+            completed_at: var_completedAt,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeAgendaContent {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_kind = <crate::api::agenda::models::BridgeAgendaKind>::sse_decode(deserializer);
+        let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_location = <Option<String>>::sse_decode(deserializer);
+        let mut var_notes = <Option<String>>::sse_decode(deserializer);
+        let mut var_color = <Option<String>>::sse_decode(deserializer);
+        let mut var_start =
+            <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        let mut var_end =
+            <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        let mut var_allDay = <bool>::sse_decode(deserializer);
+        let mut var_due =
+            <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        return crate::api::agenda::models::BridgeAgendaContent {
+            kind: var_kind,
+            title: var_title,
+            location: var_location,
+            notes: var_notes,
+            color: var_color,
+            start: var_start,
+            end: var_end,
+            all_day: var_allDay,
+            due: var_due,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeAgendaDraft {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_content =
+            <crate::api::agenda::models::BridgeAgendaContent>::sse_decode(deserializer);
+        let mut var_rrule = <Option<String>>::sse_decode(deserializer);
+        let mut var_exdates =
+            <Vec<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        return crate::api::agenda::models::BridgeAgendaDraft {
+            content: var_content,
+            rrule: var_rrule,
+            exdates: var_exdates,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeAgendaEditScope {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::agenda::models::BridgeAgendaEditScope::This,
+            1 => crate::api::agenda::models::BridgeAgendaEditScope::ThisAndFuture,
+            2 => crate::api::agenda::models::BridgeAgendaEditScope::All,
+            _ => unreachable!("Invalid variant for BridgeAgendaEditScope: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::school::BridgeAgendaEntry {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_local =
+            <Option<crate::api::agenda::models::BridgeAgendaOccurrence>>::sse_decode(deserializer);
+        let mut var_school =
+            <Option<crate::api::agenda::school::BridgeSchoolAgendaItem>>::sse_decode(deserializer);
+        let mut var_timing =
+            <crate::api::agenda::school::BridgeAgendaTiming>::sse_decode(deserializer);
+        let mut var_sortTime =
+            <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        let mut var_soon = <bool>::sse_decode(deserializer);
+        let mut var_completed = <bool>::sse_decode(deserializer);
+        let mut var_hidden = <bool>::sse_decode(deserializer);
+        let mut var_note = <Option<String>>::sse_decode(deserializer);
+        return crate::api::agenda::school::BridgeAgendaEntry {
+            local: var_local,
+            school: var_school,
+            timing: var_timing,
+            sort_time: var_sortTime,
+            soon: var_soon,
+            completed: var_completed,
+            hidden: var_hidden,
+            note: var_note,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeAgendaError {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_failure =
+            <crate::api::agenda::models::BridgeAgendaFailure>::sse_decode(deserializer);
+        return crate::api::agenda::models::BridgeAgendaError {
+            failure: var_failure,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeAgendaFailure {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::agenda::models::BridgeAgendaFailure::Unavailable,
+            1 => crate::api::agenda::models::BridgeAgendaFailure::InvalidInput,
+            2 => crate::api::agenda::models::BridgeAgendaFailure::Corrupt,
+            3 => crate::api::agenda::models::BridgeAgendaFailure::UnsupportedVersion,
+            4 => crate::api::agenda::models::BridgeAgendaFailure::Inactive,
+            5 => crate::api::agenda::models::BridgeAgendaFailure::Superseded,
+            6 => crate::api::agenda::models::BridgeAgendaFailure::Capacity,
+            _ => unreachable!("Invalid variant for BridgeAgendaFailure: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::school::BridgeAgendaFeature {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::agenda::school::BridgeAgendaFeature::Bykc,
+            1 => crate::api::agenda::school::BridgeAgendaFeature::Spoc,
+            2 => crate::api::agenda::school::BridgeAgendaFeature::Judge,
+            3 => crate::api::agenda::school::BridgeAgendaFeature::Cgyy,
+            4 => crate::api::agenda::school::BridgeAgendaFeature::Signin,
+            5 => crate::api::agenda::school::BridgeAgendaFeature::Exam,
+            6 => crate::api::agenda::school::BridgeAgendaFeature::Ygdk,
+            7 => crate::api::agenda::school::BridgeAgendaFeature::Schedule,
+            _ => unreachable!("Invalid variant for BridgeAgendaFeature: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeAgendaItem {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_id = <String>::sse_decode(deserializer);
+        let mut var_content =
+            <crate::api::agenda::models::BridgeAgendaContent>::sse_decode(deserializer);
+        let mut var_rrule = <Option<String>>::sse_decode(deserializer);
+        let mut var_exdates =
+            <Vec<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        let mut var_overrides =
+            <Vec<crate::api::agenda::models::BridgeAgendaOverride>>::sse_decode(deserializer);
+        let mut var_completions =
+            <Vec<crate::api::agenda::models::BridgeAgendaCompletion>>::sse_decode(deserializer);
+        let mut var_createdAt =
+            <crate::api::agenda::models::BridgeAgendaTime>::sse_decode(deserializer);
+        let mut var_updatedAt =
+            <crate::api::agenda::models::BridgeAgendaTime>::sse_decode(deserializer);
+        let mut var_deletedAt =
+            <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        let mut var_locallyModified = <bool>::sse_decode(deserializer);
+        return crate::api::agenda::models::BridgeAgendaItem {
+            id: var_id,
+            content: var_content,
+            rrule: var_rrule,
+            exdates: var_exdates,
+            overrides: var_overrides,
+            completions: var_completions,
+            created_at: var_createdAt,
+            updated_at: var_updatedAt,
+            deleted_at: var_deletedAt,
+            locally_modified: var_locallyModified,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeAgendaKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::agenda::models::BridgeAgendaKind::Event,
+            1 => crate::api::agenda::models::BridgeAgendaKind::Task,
+            _ => unreachable!("Invalid variant for BridgeAgendaKind: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::school::BridgeAgendaNavigation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_feature =
+            <crate::api::agenda::school::BridgeAgendaFeature>::sse_decode(deserializer);
+        let mut var_term = <Option<String>>::sse_decode(deserializer);
+        let mut var_week = <Option<i32>>::sse_decode(deserializer);
+        let mut var_courseCode = <Option<String>>::sse_decode(deserializer);
+        let mut var_serial = <Option<String>>::sse_decode(deserializer);
+        let mut var_day = <Option<i32>>::sse_decode(deserializer);
+        let mut var_section = <Option<i32>>::sse_decode(deserializer);
+        let mut var_courseId = <Option<String>>::sse_decode(deserializer);
+        let mut var_bykcCourseId = <Option<i64>>::sse_decode(deserializer);
+        let mut var_assignmentId = <Option<String>>::sse_decode(deserializer);
+        let mut var_orderId = <Option<i32>>::sse_decode(deserializer);
+        let mut var_taskId = <Option<String>>::sse_decode(deserializer);
+        let mut var_courseNo = <Option<String>>::sse_decode(deserializer);
+        let mut var_courseName = <Option<String>>::sse_decode(deserializer);
+        let mut var_date = <Option<String>>::sse_decode(deserializer);
+        let mut var_startTime = <Option<String>>::sse_decode(deserializer);
+        return crate::api::agenda::school::BridgeAgendaNavigation {
+            feature: var_feature,
+            term: var_term,
+            week: var_week,
+            course_code: var_courseCode,
+            serial: var_serial,
+            day: var_day,
+            section: var_section,
+            course_id: var_courseId,
+            bykc_course_id: var_bykcCourseId,
+            assignment_id: var_assignmentId,
+            order_id: var_orderId,
+            task_id: var_taskId,
+            course_no: var_courseNo,
+            course_name: var_courseName,
+            date: var_date,
+            start_time: var_startTime,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::school::BridgeAgendaObservation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_scope =
+            <crate::api::agenda::school::BridgeAgendaCacheScope>::sse_decode(deserializer);
+        let mut var_fetchedAt = <i64>::sse_decode(deserializer);
+        let mut var_lastVerifiedAt = <i64>::sse_decode(deserializer);
+        let mut var_lastAttemptAt = <i64>::sse_decode(deserializer);
+        let mut var_lastAttemptSucceeded = <bool>::sse_decode(deserializer);
+        let mut var_completeness =
+            <crate::api::agenda::school::BridgeAgendaCompleteness>::sse_decode(deserializer);
+        return crate::api::agenda::school::BridgeAgendaObservation {
+            scope: var_scope,
+            fetched_at: var_fetchedAt,
+            last_verified_at: var_lastVerifiedAt,
+            last_attempt_at: var_lastAttemptAt,
+            last_attempt_succeeded: var_lastAttemptSucceeded,
+            completeness: var_completeness,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeAgendaOccurrence {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_itemId = <String>::sse_decode(deserializer);
+        let mut var_recurrenceId = <String>::sse_decode(deserializer);
+        let mut var_content =
+            <crate::api::agenda::models::BridgeAgendaContent>::sse_decode(deserializer);
+        let mut var_completedAt =
+            <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        let mut var_overridden = <bool>::sse_decode(deserializer);
+        return crate::api::agenda::models::BridgeAgendaOccurrence {
+            item_id: var_itemId,
+            recurrence_id: var_recurrenceId,
+            content: var_content,
+            completed_at: var_completedAt,
+            overridden: var_overridden,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeAgendaOverlay {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_value =
+            <crate::api::agenda::models::BridgeAgendaOverlayDraft>::sse_decode(deserializer);
+        let mut var_updatedAt =
+            <crate::api::agenda::models::BridgeAgendaTime>::sse_decode(deserializer);
+        let mut var_deletedAt =
+            <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        let mut var_locallyModified = <bool>::sse_decode(deserializer);
+        return crate::api::agenda::models::BridgeAgendaOverlay {
+            value: var_value,
+            updated_at: var_updatedAt,
+            deleted_at: var_deletedAt,
+            locally_modified: var_locallyModified,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeAgendaOverlayDraft {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_key =
+            <crate::api::agenda::models::BridgeSchoolAgendaKey>::sse_decode(deserializer);
+        let mut var_completedAt =
+            <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        let mut var_completionOverride = <bool>::sse_decode(deserializer);
+        let mut var_hidden = <bool>::sse_decode(deserializer);
+        let mut var_note = <Option<String>>::sse_decode(deserializer);
+        return crate::api::agenda::models::BridgeAgendaOverlayDraft {
+            key: var_key,
+            completed_at: var_completedAt,
+            completion_override: var_completionOverride,
+            hidden: var_hidden,
+            note: var_note,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeAgendaOverride {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_recurrenceId = <String>::sse_decode(deserializer);
+        let mut var_content =
+            <crate::api::agenda::models::BridgeAgendaContent>::sse_decode(deserializer);
+        return crate::api::agenda::models::BridgeAgendaOverride {
+            recurrence_id: var_recurrenceId,
+            content: var_content,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::school::BridgeAgendaQuery {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_route = <crate::api::client::BridgeConnectionMode>::sse_decode(deserializer);
+        let mut var_term = <String>::sse_decode(deserializer);
+        let mut var_from = <String>::sse_decode(deserializer);
+        let mut var_to = <String>::sse_decode(deserializer);
+        let mut var_now = <crate::api::agenda::models::BridgeAgendaTime>::sse_decode(deserializer);
+        let mut var_includeHidden = <bool>::sse_decode(deserializer);
+        let mut var_ygdkEnabled = <bool>::sse_decode(deserializer);
+        let mut var_ygdkWeekDone = <bool>::sse_decode(deserializer);
+        let mut var_ygdkTermDone = <bool>::sse_decode(deserializer);
+        return crate::api::agenda::school::BridgeAgendaQuery {
+            route: var_route,
+            term: var_term,
+            from: var_from,
+            to: var_to,
+            now: var_now,
+            include_hidden: var_includeHidden,
+            ygdk_enabled: var_ygdkEnabled,
+            ygdk_week_done: var_ygdkWeekDone,
+            ygdk_term_done: var_ygdkTermDone,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::school::BridgeAgendaQueryResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_entries =
+            <Vec<crate::api::agenda::school::BridgeAgendaEntry>>::sse_decode(deserializer);
+        let mut var_sources =
+            <Vec<crate::api::agenda::school::BridgeAgendaSource>>::sse_decode(deserializer);
+        let mut var_schoolCacheFailure =
+            <Option<crate::api::offline::BridgeCacheFailure>>::sse_decode(deserializer);
+        return crate::api::agenda::school::BridgeAgendaQueryResult {
+            entries: var_entries,
+            sources: var_sources,
+            school_cache_failure: var_schoolCacheFailure,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::school::BridgeAgendaSource {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_feature =
+            <crate::api::agenda::school::BridgeAgendaFeature>::sse_decode(deserializer);
+        let mut var_observations =
+            <Vec<crate::api::agenda::school::BridgeAgendaObservation>>::sse_decode(deserializer);
+        let mut var_missingScopes =
+            <Vec<crate::api::agenda::school::BridgeAgendaCacheScope>>::sse_decode(deserializer);
+        let mut var_semesterImported = <Option<bool>>::sse_decode(deserializer);
+        let mut var_unprojectableCount = <u32>::sse_decode(deserializer);
+        return crate::api::agenda::school::BridgeAgendaSource {
+            feature: var_feature,
+            observations: var_observations,
+            missing_scopes: var_missingScopes,
+            semester_imported: var_semesterImported,
+            unprojectable_count: var_unprojectableCount,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::school::BridgeAgendaSubmission {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::agenda::school::BridgeAgendaSubmission::Submitted,
+            1 => crate::api::agenda::school::BridgeAgendaSubmission::Partial,
+            2 => crate::api::agenda::school::BridgeAgendaSubmission::Unsubmitted,
+            3 => crate::api::agenda::school::BridgeAgendaSubmission::Unknown,
+            _ => unreachable!("Invalid variant for BridgeAgendaSubmission: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeAgendaTime {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_rfc3339 = <String>::sse_decode(deserializer);
+        let mut var_timezone = <String>::sse_decode(deserializer);
+        return crate::api::agenda::models::BridgeAgendaTime {
+            rfc3339: var_rfc3339,
+            timezone: var_timezone,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::school::BridgeAgendaTiming {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_kind =
+            <crate::api::agenda::school::BridgeAgendaTimingKind>::sse_decode(deserializer);
+        let mut var_start =
+            <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        let mut var_end =
+            <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        let mut var_due =
+            <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        let mut var_from = <Option<String>>::sse_decode(deserializer);
+        let mut var_to = <Option<String>>::sse_decode(deserializer);
+        return crate::api::agenda::school::BridgeAgendaTiming {
+            kind: var_kind,
+            start: var_start,
+            end: var_end,
+            due: var_due,
+            from: var_from,
+            to: var_to,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::school::BridgeAgendaTimingKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::agenda::school::BridgeAgendaTimingKind::Period,
+            1 => crate::api::agenda::school::BridgeAgendaTimingKind::Deadline,
+            2 => crate::api::agenda::school::BridgeAgendaTimingKind::AllDay,
+            3 => crate::api::agenda::school::BridgeAgendaTimingKind::Undated,
+            _ => unreachable!("Invalid variant for BridgeAgendaTimingKind: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::school::BridgeAgendaUpstreamStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_feature =
+            <crate::api::agenda::school::BridgeAgendaFeature>::sse_decode(deserializer);
+        let mut var_completed = <bool>::sse_decode(deserializer);
+        let mut var_beginTime = <Option<String>>::sse_decode(deserializer);
+        let mut var_endTime = <Option<String>>::sse_decode(deserializer);
+        let mut var_examStatus = <Option<i32>>::sse_decode(deserializer);
+        let mut var_checkin = <Option<i32>>::sse_decode(deserializer);
+        let mut var_pass = <Option<i32>>::sse_decode(deserializer);
+        let mut var_submission =
+            <Option<crate::api::agenda::school::BridgeAgendaSubmission>>::sse_decode(deserializer);
+        let mut var_text = <Option<String>>::sse_decode(deserializer);
+        let mut var_orderStatus = <Option<i32>>::sse_decode(deserializer);
+        let mut var_checkStatus = <Option<i32>>::sse_decode(deserializer);
+        let mut var_signStatus = <Option<i32>>::sse_decode(deserializer);
+        let mut var_weekCount = <Option<i32>>::sse_decode(deserializer);
+        let mut var_termCount = <Option<i32>>::sse_decode(deserializer);
+        return crate::api::agenda::school::BridgeAgendaUpstreamStatus {
+            feature: var_feature,
+            completed: var_completed,
+            begin_time: var_beginTime,
+            end_time: var_endTime,
+            exam_status: var_examStatus,
+            checkin: var_checkin,
+            pass: var_pass,
+            submission: var_submission,
+            text: var_text,
+            order_status: var_orderStatus,
+            check_status: var_checkStatus,
+            sign_status: var_signStatus,
+            week_count: var_weekCount,
+            term_count: var_termCount,
         };
     }
 }
@@ -17540,6 +19097,51 @@ impl SseDecode for crate::api::schedule_import::BridgeScheduleImportProgress {
     }
 }
 
+impl SseDecode for crate::api::agenda::school::BridgeSchoolAgendaItem {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_key =
+            <crate::api::agenda::models::BridgeSchoolAgendaKey>::sse_decode(deserializer);
+        let mut var_timing =
+            <crate::api::agenda::school::BridgeAgendaTiming>::sse_decode(deserializer);
+        let mut var_sortTime =
+            <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        let mut var_title = <String>::sse_decode(deserializer);
+        let mut var_subtitle = <String>::sse_decode(deserializer);
+        let mut var_location = <Option<String>>::sse_decode(deserializer);
+        let mut var_statusLabel = <String>::sse_decode(deserializer);
+        let mut var_upstreamStatus =
+            <crate::api::agenda::school::BridgeAgendaUpstreamStatus>::sse_decode(deserializer);
+        let mut var_navigation =
+            <crate::api::agenda::school::BridgeAgendaNavigation>::sse_decode(deserializer);
+        let mut var_homeTodo = <bool>::sse_decode(deserializer);
+        return crate::api::agenda::school::BridgeSchoolAgendaItem {
+            key: var_key,
+            timing: var_timing,
+            sort_time: var_sortTime,
+            title: var_title,
+            subtitle: var_subtitle,
+            location: var_location,
+            status_label: var_statusLabel,
+            upstream_status: var_upstreamStatus,
+            navigation: var_navigation,
+            home_todo: var_homeTodo,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeSchoolAgendaKey {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_source = <String>::sse_decode(deserializer);
+        let mut var_upstreamId = <String>::sse_decode(deserializer);
+        return crate::api::agenda::models::BridgeSchoolAgendaKey {
+            source: var_source,
+            upstream_id: var_upstreamId,
+        };
+    }
+}
+
 impl SseDecode for crate::api::read::BridgeSectionTime {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -17709,6 +19311,62 @@ impl SseDecode for crate::api::read::BridgeSpocSubmissionStatus {
             1 => crate::api::read::BridgeSpocSubmissionStatus::Unsubmitted,
             2 => crate::api::read::BridgeSpocSubmissionStatus::Unknown,
             _ => unreachable!("Invalid variant for BridgeSpocSubmissionStatus: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeTeachingWeekInput {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_monday = <String>::sse_decode(deserializer);
+        let mut var_first = <u32>::sse_decode(deserializer);
+        let mut var_last = <u32>::sse_decode(deserializer);
+        let mut var_pattern =
+            <crate::api::agenda::models::BridgeTeachingWeekPattern>::sse_decode(deserializer);
+        let mut var_weekday = <u32>::sse_decode(deserializer);
+        let mut var_hour = <u32>::sse_decode(deserializer);
+        let mut var_minute = <u32>::sse_decode(deserializer);
+        let mut var_second = <u32>::sse_decode(deserializer);
+        let mut var_skips = <Vec<String>>::sse_decode(deserializer);
+        return crate::api::agenda::models::BridgeTeachingWeekInput {
+            monday: var_monday,
+            first: var_first,
+            last: var_last,
+            pattern: var_pattern,
+            weekday: var_weekday,
+            hour: var_hour,
+            minute: var_minute,
+            second: var_second,
+            skips: var_skips,
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeTeachingWeekPattern {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut inner = <i32>::sse_decode(deserializer);
+        return match inner {
+            0 => crate::api::agenda::models::BridgeTeachingWeekPattern::Every,
+            1 => crate::api::agenda::models::BridgeTeachingWeekPattern::Odd,
+            2 => crate::api::agenda::models::BridgeTeachingWeekPattern::Even,
+            _ => unreachable!("Invalid variant for BridgeTeachingWeekPattern: {}", inner),
+        };
+    }
+}
+
+impl SseDecode for crate::api::agenda::models::BridgeTeachingWeekRule {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut var_start =
+            <crate::api::agenda::models::BridgeAgendaTime>::sse_decode(deserializer);
+        let mut var_rrule = <String>::sse_decode(deserializer);
+        let mut var_exdates =
+            <Vec<crate::api::agenda::models::BridgeAgendaTime>>::sse_decode(deserializer);
+        return crate::api::agenda::models::BridgeTeachingWeekRule {
+            start: var_start,
+            rrule: var_rrule,
+            exdates: var_exdates,
         };
     }
 }
@@ -18133,6 +19791,100 @@ impl SseDecode for Vec<String> {
         let mut ans_ = Vec::with_capacity(len_ as usize);
         for idx_ in 0..len_ {
             ans_.push(<String>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::agenda::school::BridgeAgendaCacheScope> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::api::agenda::school::BridgeAgendaCacheScope>::sse_decode(deserializer),
+            );
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::agenda::models::BridgeAgendaCompletion> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::api::agenda::models::BridgeAgendaCompletion>::sse_decode(deserializer),
+            );
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::agenda::school::BridgeAgendaEntry> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::agenda::school::BridgeAgendaEntry>::sse_decode(
+                deserializer,
+            ));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::agenda::school::BridgeAgendaObservation> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(
+                <crate::api::agenda::school::BridgeAgendaObservation>::sse_decode(deserializer),
+            );
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::agenda::models::BridgeAgendaOverride> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::agenda::models::BridgeAgendaOverride>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::agenda::school::BridgeAgendaSource> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::agenda::school::BridgeAgendaSource>::sse_decode(deserializer));
+        }
+        return ans_;
+    }
+}
+
+impl SseDecode for Vec<crate::api::agenda::models::BridgeAgendaTime> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        let mut len_ = <i32>::sse_decode(deserializer);
+        let mut ans_ = Vec::with_capacity(len_ as usize);
+        for idx_ in 0..len_ {
+            ans_.push(<crate::api::agenda::models::BridgeAgendaTime>::sse_decode(
+                deserializer,
+            ));
         }
         return ans_;
     }
@@ -19076,6 +20828,71 @@ impl SseDecode for Option<bool> {
     }
 }
 
+impl SseDecode for Option<crate::api::agenda::models::BridgeAgendaItem> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::agenda::models::BridgeAgendaItem>::sse_decode(
+                deserializer,
+            ));
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::agenda::models::BridgeAgendaOccurrence> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::api::agenda::models::BridgeAgendaOccurrence>::sse_decode(deserializer),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::agenda::models::BridgeAgendaOverlay> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::api::agenda::models::BridgeAgendaOverlay>::sse_decode(deserializer),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::agenda::school::BridgeAgendaSubmission> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::api::agenda::school::BridgeAgendaSubmission>::sse_decode(deserializer),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
+impl SseDecode for Option<crate::api::agenda::models::BridgeAgendaTime> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(<crate::api::agenda::models::BridgeAgendaTime>::sse_decode(
+                deserializer,
+            ));
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::api::read::BridgeBykcCourseAttendanceDisplay> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -19889,6 +21706,19 @@ impl SseDecode for Option<crate::api::client::BridgeSafeError> {
     }
 }
 
+impl SseDecode for Option<crate::api::agenda::school::BridgeSchoolAgendaItem> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
+        if (<bool>::sse_decode(deserializer)) {
+            return Some(
+                <crate::api::agenda::school::BridgeSchoolAgendaItem>::sse_decode(deserializer),
+            );
+        } else {
+            return None;
+        }
+    }
+}
+
 impl SseDecode for Option<crate::api::client::BridgeUserProfile> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_decode(deserializer: &mut flutter_rust_bridge::for_generated::SseDeserializer) -> Self {
@@ -20051,1073 +21881,1162 @@ fn pde_ffi_dispatcher_primary_impl(
 ) {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        3 => wire__crate__api__client__BridgeClient_academic_classrooms_cached_impl(
+        1 => wire__crate__api__agenda__BridgeAgendaStore_activate_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        4 => wire__crate__api__client__BridgeClient_academic_exams_cached_impl(
+        2 => wire__crate__api__agenda__BridgeAgendaStore_clear_local_data_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        5 => wire__crate__api__client__BridgeClient_academic_grades_cached_impl(
+        3 => wire__crate__api__agenda__BridgeAgendaStore_clear_overlay_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        6 => wire__crate__api__client__BridgeClient_academic_terms_cached_impl(
+        4 => wire__crate__api__agenda__BridgeAgendaStore_complete_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        7 => wire__crate__api__client__BridgeClient_academic_week_cached_impl(
+        5 => wire__crate__api__agenda__BridgeAgendaStore_create_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        8 => wire__crate__api__client__BridgeClient_academic_weeks_cached_impl(
+        6 => wire__crate__api__agenda__BridgeAgendaStore_deactivate_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        9 => wire__crate__api__client__BridgeClient_auth_status_impl(
+        7 => wire__crate__api__agenda__BridgeAgendaStore_delete_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        10 => wire__crate__api__client__BridgeClient_begin_evaluation_online_impl(
+        8 => {
+            wire__crate__api__agenda__BridgeAgendaStore_edit_impl(port, ptr, rust_vec_len, data_len)
+        }
+        9 => {
+            wire__crate__api__agenda__BridgeAgendaStore_get_impl(port, ptr, rust_vec_len, data_len)
+        }
+        10 => {
+            wire__crate__api__agenda__BridgeAgendaStore_open_impl(port, ptr, rust_vec_len, data_len)
+        }
+        11 => wire__crate__api__agenda__BridgeAgendaStore_overlay_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        11 => wire__crate__api__client__BridgeClient_begin_evaluation_scan_impl(
+        12 => wire__crate__api__agenda__BridgeAgendaStore_query_local_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        13 => wire__crate__api__client__BridgeClient_begin_judge_details_impl(
+        13 => wire__crate__api__agenda__BridgeAgendaStore_query_with_cache_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        14 => wire__crate__api__client__BridgeClient_begin_judge_online_impl(
+        14 => wire__crate__api__agenda__BridgeAgendaStore_set_overlay_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        15 => wire__crate__api__client__BridgeClient_begin_judge_refresh_impl(
+        15 => wire__crate__api__agenda__BridgeAgendaStore_unsynced_count_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        16 => wire__crate__api__client__BridgeClient_begin_judge_scan_impl(
+        18 => wire__crate__api__client__BridgeClient_academic_classrooms_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        17 => wire__crate__api__client__BridgeClient_begin_schedule_import_impl(
+        19 => wire__crate__api__client__BridgeClient_academic_exams_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        18 => wire__crate__api__client__BridgeClient_begin_spoc_detail_online_impl(
+        20 => wire__crate__api__client__BridgeClient_academic_grades_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        19 => wire__crate__api__client__BridgeClient_begin_spoc_detail_scan_impl(
+        21 => wire__crate__api__client__BridgeClient_academic_terms_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        20 => wire__crate__api__client__BridgeClient_begin_spoc_online_impl(
+        22 => wire__crate__api__client__BridgeClient_academic_week_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        21 => wire__crate__api__client__BridgeClient_begin_spoc_scan_impl(
+        23 => wire__crate__api__client__BridgeClient_academic_weeks_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        22 => wire__crate__api__client__BridgeClient_bykc_catalog_cached_impl(
+        24 => wire__crate__api__client__BridgeClient_auth_status_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        23 => wire__crate__api__client__BridgeClient_bykc_chosen_cached_impl(
+        25 => wire__crate__api__client__BridgeClient_begin_evaluation_online_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        24 => wire__crate__api__client__BridgeClient_bykc_chosen_courses_impl(
+        26 => wire__crate__api__client__BridgeClient_begin_evaluation_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        25 => wire__crate__api__client__BridgeClient_bykc_chosen_courses_on_route_impl(
+        28 => wire__crate__api__client__BridgeClient_begin_judge_details_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        26 => wire__crate__api__client__BridgeClient_bykc_course_catalog_impl(
+        29 => wire__crate__api__client__BridgeClient_begin_judge_online_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        27 => wire__crate__api__client__BridgeClient_bykc_course_detail_impl(
+        30 => wire__crate__api__client__BridgeClient_begin_judge_refresh_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        28 => wire__crate__api__client__BridgeClient_bykc_course_full_detail_impl(
+        31 => wire__crate__api__client__BridgeClient_begin_judge_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        29 => wire__crate__api__client__BridgeClient_bykc_courses_impl(
+        32 => wire__crate__api__client__BridgeClient_begin_schedule_import_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        30 => wire__crate__api__client__BridgeClient_bykc_courses_cached_impl(
+        33 => wire__crate__api__client__BridgeClient_begin_spoc_detail_online_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        31 => wire__crate__api__client__BridgeClient_bykc_detail_cached_impl(
+        34 => wire__crate__api__client__BridgeClient_begin_spoc_detail_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        32 => wire__crate__api__client__BridgeClient_bykc_full_detail_cached_impl(
+        35 => wire__crate__api__client__BridgeClient_begin_spoc_online_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        33 => wire__crate__api__client__BridgeClient_bykc_profile_impl(
+        36 => wire__crate__api__client__BridgeClient_begin_spoc_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        34 => wire__crate__api__client__BridgeClient_bykc_profile_cached_impl(
+        37 => wire__crate__api__client__BridgeClient_bykc_catalog_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        35 => wire__crate__api__client__BridgeClient_bykc_statistics_impl(
+        38 => wire__crate__api__client__BridgeClient_bykc_chosen_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        36 => wire__crate__api__client__BridgeClient_bykc_statistics_cached_impl(
+        39 => wire__crate__api__client__BridgeClient_bykc_chosen_courses_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        37 => wire__crate__api__client__BridgeClient_campus_cached_impl(
+        40 => wire__crate__api__client__BridgeClient_bykc_chosen_courses_on_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        38 => wire__crate__api__client__BridgeClient_campus_metrics_impl(
+        41 => wire__crate__api__client__BridgeClient_bykc_course_catalog_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        40 => wire__crate__api__client__BridgeClient_cgyy_day_cached_impl(
+        42 => wire__crate__api__client__BridgeClient_bykc_course_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        41 => wire__crate__api__client__BridgeClient_cgyy_day_info_impl(
+        43 => wire__crate__api__client__BridgeClient_bykc_course_full_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        42 => wire__crate__api__client__BridgeClient_cgyy_detail_cached_impl(
+        44 => wire__crate__api__client__BridgeClient_bykc_courses_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        43 => wire__crate__api__client__BridgeClient_cgyy_lock_code_impl(
+        45 => wire__crate__api__client__BridgeClient_bykc_courses_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        44 => wire__crate__api__client__BridgeClient_cgyy_order_detail_impl(
+        46 => wire__crate__api__client__BridgeClient_bykc_detail_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        45 => wire__crate__api__client__BridgeClient_cgyy_order_detail_on_route_impl(
+        47 => wire__crate__api__client__BridgeClient_bykc_full_detail_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        46 => wire__crate__api__client__BridgeClient_cgyy_orders_impl(
+        48 => wire__crate__api__client__BridgeClient_bykc_profile_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        47 => wire__crate__api__client__BridgeClient_cgyy_orders_cached_impl(
+        49 => wire__crate__api__client__BridgeClient_bykc_profile_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        48 => wire__crate__api__client__BridgeClient_cgyy_orders_on_route_impl(
+        50 => wire__crate__api__client__BridgeClient_bykc_statistics_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        49 => wire__crate__api__client__BridgeClient_cgyy_purpose_types_impl(
+        51 => wire__crate__api__client__BridgeClient_bykc_statistics_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        50 => wire__crate__api__client__BridgeClient_cgyy_purposes_cached_impl(
+        52 => wire__crate__api__client__BridgeClient_campus_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        51 => wire__crate__api__client__BridgeClient_cgyy_sites_impl(
+        53 => wire__crate__api__client__BridgeClient_campus_metrics_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        52 => wire__crate__api__client__BridgeClient_cgyy_sites_cached_impl(
+        55 => wire__crate__api__client__BridgeClient_cgyy_day_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        53 => wire__crate__api__client__BridgeClient_classroom_search_impl(
+        56 => wire__crate__api__client__BridgeClient_cgyy_day_info_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        54 => wire__crate__api__client__BridgeClient_commit_write_impl(
+        57 => wire__crate__api__client__BridgeClient_cgyy_detail_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        55 => wire__crate__api__client__BridgeClient_commit_write_cached_impl(
+        58 => wire__crate__api__client__BridgeClient_cgyy_lock_code_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        56 => wire__crate__api__client__BridgeClient_continue_interactive_login_impl(
+        59 => wire__crate__api__client__BridgeClient_cgyy_order_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        58 => wire__crate__api__client__BridgeClient_discard_write_intent_impl(
+        60 => wire__crate__api__client__BridgeClient_cgyy_order_detail_on_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        59 => {
+        61 => wire__crate__api__client__BridgeClient_cgyy_orders_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        62 => wire__crate__api__client__BridgeClient_cgyy_orders_cached_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        63 => wire__crate__api__client__BridgeClient_cgyy_orders_on_route_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        64 => wire__crate__api__client__BridgeClient_cgyy_purpose_types_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        65 => wire__crate__api__client__BridgeClient_cgyy_purposes_cached_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        66 => wire__crate__api__client__BridgeClient_cgyy_sites_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        67 => wire__crate__api__client__BridgeClient_cgyy_sites_cached_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        68 => wire__crate__api__client__BridgeClient_classroom_search_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        69 => wire__crate__api__client__BridgeClient_commit_write_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        70 => wire__crate__api__client__BridgeClient_commit_write_cached_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        71 => wire__crate__api__client__BridgeClient_continue_interactive_login_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        73 => wire__crate__api__client__BridgeClient_discard_write_intent_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        74 => {
             wire__crate__api__client__BridgeClient_dispose_impl(port, ptr, rust_vec_len, data_len)
         }
-        60 => wire__crate__api__client__BridgeClient_evaluation_all_impl(
+        75 => wire__crate__api__client__BridgeClient_evaluation_all_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        61 => wire__crate__api__client__BridgeClient_evaluation_all_on_route_impl(
+        76 => wire__crate__api__client__BridgeClient_evaluation_all_on_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        62 => wire__crate__api__client__BridgeClient_evaluation_cached_impl(
+        77 => wire__crate__api__client__BridgeClient_evaluation_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        63 => wire__crate__api__client__BridgeClient_exam_arrangement_impl(
+        78 => wire__crate__api__client__BridgeClient_exam_arrangement_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        64 => wire__crate__api__client__BridgeClient_grades_impl(port, ptr, rust_vec_len, data_len),
-        65 => wire__crate__api__client__BridgeClient_home_signin_cached_impl(
+        79 => wire__crate__api__client__BridgeClient_grades_impl(port, ptr, rust_vec_len, data_len),
+        80 => wire__crate__api__client__BridgeClient_home_signin_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        66 => wire__crate__api__client__BridgeClient_home_spoc_cached_impl(
+        81 => wire__crate__api__client__BridgeClient_home_spoc_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        67 => wire__crate__api__client__BridgeClient_home_spoc_detail_cached_impl(
+        82 => wire__crate__api__client__BridgeClient_home_spoc_detail_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        68 => wire__crate__api__client__BridgeClient_home_ygdk_cached_impl(
+        83 => wire__crate__api__client__BridgeClient_home_ygdk_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        69 => wire__crate__api__client__BridgeClient_ihome_config_impl(
+        84 => wire__crate__api__client__BridgeClient_ihome_config_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        70 => wire__crate__api__client__BridgeClient_ihome_detail_impl(
+        85 => wire__crate__api__client__BridgeClient_ihome_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        71 => wire__crate__api__client__BridgeClient_ihome_notice_impl(
+        86 => wire__crate__api__client__BridgeClient_ihome_notice_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        72 => wire__crate__api__client__BridgeClient_ihome_notices_impl(
+        87 => wire__crate__api__client__BridgeClient_ihome_notices_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        73 => wire__crate__api__client__BridgeClient_ihome_page_impl(
+        88 => wire__crate__api__client__BridgeClient_ihome_page_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        74 => wire__crate__api__client__BridgeClient_ihome_set_reaction_impl(
+        89 => wire__crate__api__client__BridgeClient_ihome_set_reaction_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        75 => wire__crate__api__client__BridgeClient_judge_assignment_impl(
+        90 => wire__crate__api__client__BridgeClient_judge_assignment_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        76 => wire__crate__api__client__BridgeClient_judge_assignment_details_impl(
+        91 => wire__crate__api__client__BridgeClient_judge_assignment_details_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        77 => wire__crate__api__client__BridgeClient_judge_assignments_impl(
+        92 => wire__crate__api__client__BridgeClient_judge_assignments_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        78 => wire__crate__api__client__BridgeClient_judge_assignments_cached_impl(
+        93 => wire__crate__api__client__BridgeClient_judge_assignments_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        79 => wire__crate__api__client__BridgeClient_libbook_area_detail_impl(
+        94 => wire__crate__api__client__BridgeClient_libbook_area_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        80 => wire__crate__api__client__BridgeClient_libbook_area_detail_cached_impl(
+        95 => wire__crate__api__client__BridgeClient_libbook_area_detail_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        81 => wire__crate__api__client__BridgeClient_libbook_area_schedule_impl(
+        96 => wire__crate__api__client__BridgeClient_libbook_area_schedule_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        82 => wire__crate__api__client__BridgeClient_libbook_areas_impl(
+        97 => wire__crate__api__client__BridgeClient_libbook_areas_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        83 => wire__crate__api__client__BridgeClient_libbook_areas_cached_impl(
+        98 => wire__crate__api__client__BridgeClient_libbook_areas_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        84 => wire__crate__api__client__BridgeClient_libbook_bookings_impl(
+        99 => wire__crate__api__client__BridgeClient_libbook_bookings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        85 => wire__crate__api__client__BridgeClient_libbook_bookings_cached_impl(
+        100 => wire__crate__api__client__BridgeClient_libbook_bookings_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        86 => wire__crate__api__client__BridgeClient_libbook_bookings_on_route_impl(
+        101 => wire__crate__api__client__BridgeClient_libbook_bookings_on_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        87 => wire__crate__api__client__BridgeClient_libbook_libraries_impl(
+        102 => wire__crate__api__client__BridgeClient_libbook_libraries_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        88 => wire__crate__api__client__BridgeClient_libbook_libraries_cached_impl(
+        103 => wire__crate__api__client__BridgeClient_libbook_libraries_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        89 => wire__crate__api__client__BridgeClient_libbook_seats_impl(
+        104 => wire__crate__api__client__BridgeClient_libbook_seats_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        90 => wire__crate__api__client__BridgeClient_libbook_seats_cached_impl(
+        105 => wire__crate__api__client__BridgeClient_libbook_seats_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        91 => wire__crate__api__client__BridgeClient_login_impl(port, ptr, rust_vec_len, data_len),
-        92 => wire__crate__api__client__BridgeClient_login_required_route_impl(
+        106 => wire__crate__api__client__BridgeClient_login_impl(port, ptr, rust_vec_len, data_len),
+        107 => wire__crate__api__client__BridgeClient_login_required_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        93 => wire__crate__api__client__BridgeClient_logout_impl(port, ptr, rust_vec_len, data_len),
-        94 => wire__crate__api__client__BridgeClient_network_usage_impl(
+        108 => {
+            wire__crate__api__client__BridgeClient_logout_impl(port, ptr, rust_vec_len, data_len)
+        }
+        109 => wire__crate__api__client__BridgeClient_network_usage_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        95 => wire__crate__api__client__BridgeClient_next_evaluation_scan_impl(
+        110 => wire__crate__api__client__BridgeClient_next_evaluation_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        96 => wire__crate__api__client__BridgeClient_next_judge_details_impl(
+        111 => wire__crate__api__client__BridgeClient_next_judge_details_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        97 => wire__crate__api__client__BridgeClient_next_judge_online_impl(
+        112 => wire__crate__api__client__BridgeClient_next_judge_online_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        98 => wire__crate__api__client__BridgeClient_next_judge_refresh_impl(
+        113 => wire__crate__api__client__BridgeClient_next_judge_refresh_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        99 => wire__crate__api__client__BridgeClient_next_judge_scan_impl(
+        114 => wire__crate__api__client__BridgeClient_next_judge_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        100 => wire__crate__api__client__BridgeClient_next_schedule_import_impl(
+        115 => wire__crate__api__client__BridgeClient_next_schedule_import_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        101 => wire__crate__api__client__BridgeClient_next_spoc_detail_scan_impl(
+        116 => wire__crate__api__client__BridgeClient_next_spoc_detail_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        102 => wire__crate__api__client__BridgeClient_next_spoc_scan_impl(
+        117 => wire__crate__api__client__BridgeClient_next_spoc_scan_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        103 => wire__crate__api__client__BridgeClient_open_impl(port, ptr, rust_vec_len, data_len),
-        104 => wire__crate__api__client__BridgeClient_open_cgyy_lock_display_impl(
+        118 => wire__crate__api__client__BridgeClient_open_impl(port, ptr, rust_vec_len, data_len),
+        119 => wire__crate__api__client__BridgeClient_open_cgyy_lock_display_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        105 => wire__crate__api__client__BridgeClient_portal_profile_impl(
+        120 => wire__crate__api__client__BridgeClient_portal_profile_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        106 => wire__crate__api__client__BridgeClient_prepare_bykc_deselect_course_impl(
+        121 => wire__crate__api__client__BridgeClient_prepare_bykc_deselect_course_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        107 => wire__crate__api__client__BridgeClient_prepare_bykc_select_course_impl(
+        122 => wire__crate__api__client__BridgeClient_prepare_bykc_select_course_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        108 => wire__crate__api__client__BridgeClient_prepare_bykc_sign_course_impl(
+        123 => wire__crate__api__client__BridgeClient_prepare_bykc_sign_course_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        109 => wire__crate__api__client__BridgeClient_prepare_cgyy_cancel_order_impl(
+        124 => wire__crate__api__client__BridgeClient_prepare_cgyy_cancel_order_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        110 => wire__crate__api__client__BridgeClient_prepare_cgyy_submit_reservation_impl(
+        125 => wire__crate__api__client__BridgeClient_prepare_cgyy_submit_reservation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        111 => wire__crate__api__client__BridgeClient_prepare_evaluation_submit_courses_impl(
+        126 => wire__crate__api__client__BridgeClient_prepare_evaluation_submit_courses_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        112 => wire__crate__api__client__BridgeClient_prepare_interactive_login_impl(
+        127 => wire__crate__api__client__BridgeClient_prepare_interactive_login_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        113 => wire__crate__api__client__BridgeClient_prepare_libbook_cancel_booking_impl(
+        128 => wire__crate__api__client__BridgeClient_prepare_libbook_cancel_booking_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        114 => wire__crate__api__client__BridgeClient_prepare_libbook_reserve_impl(
+        129 => wire__crate__api__client__BridgeClient_prepare_libbook_reserve_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        115 => wire__crate__api__client__BridgeClient_prepare_login_impl(
+        130 => wire__crate__api__client__BridgeClient_prepare_login_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        116 => wire__crate__api__client__BridgeClient_prepare_signin_perform_impl(
+        131 => wire__crate__api__client__BridgeClient_prepare_signin_perform_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        117 => wire__crate__api__client__BridgeClient_prepare_ygdk_submit_impl(
+        132 => wire__crate__api__client__BridgeClient_prepare_ygdk_submit_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        118 => wire__crate__api__client__BridgeClient_read_cgyy_lock_display_impl(
+        133 => wire__crate__api__client__BridgeClient_read_cgyy_lock_display_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        119 => wire__crate__api__client__BridgeClient_recover_required_session_impl(
+        134 => wire__crate__api__client__BridgeClient_recover_required_session_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        120 => wire__crate__api__client__BridgeClient_refresh_interactive_captcha_impl(
+        135 => wire__crate__api__client__BridgeClient_refresh_interactive_captcha_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        121 => wire__crate__api__client__BridgeClient_route_settings_impl(
+        136 => wire__crate__api__client__BridgeClient_route_settings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        122 => wire__crate__api__client__BridgeClient_schedule_terms_impl(
+        137 => wire__crate__api__client__BridgeClient_schedule_terms_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        123 => wire__crate__api__client__BridgeClient_schedule_today_impl(
+        138 => wire__crate__api__client__BridgeClient_schedule_today_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        124 => wire__crate__api__client__BridgeClient_schedule_today_cached_impl(
+        139 => wire__crate__api__client__BridgeClient_schedule_today_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        125 => wire__crate__api__client__BridgeClient_schedule_week_impl(
+        140 => wire__crate__api__client__BridgeClient_schedule_week_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        126 => wire__crate__api__client__BridgeClient_schedule_weeks_impl(
+        141 => wire__crate__api__client__BridgeClient_schedule_weeks_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        127 => wire__crate__api__client__BridgeClient_set_default_route_policy_impl(
+        142 => wire__crate__api__client__BridgeClient_set_default_route_policy_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        128 => wire__crate__api__client__BridgeClient_signin_today_impl(
+        143 => wire__crate__api__client__BridgeClient_signin_today_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        129 => wire__crate__api__client__BridgeClient_signin_today_on_route_impl(
+        144 => wire__crate__api__client__BridgeClient_signin_today_on_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        130 => wire__crate__api__client__BridgeClient_spoc_assignment_impl(
+        145 => wire__crate__api__client__BridgeClient_spoc_assignment_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        131 => wire__crate__api__client__BridgeClient_spoc_assignments_impl(
+        146 => wire__crate__api__client__BridgeClient_spoc_assignments_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        132 => wire__crate__api__client__BridgeClient_submit_interactive_login_impl(
+        147 => wire__crate__api__client__BridgeClient_submit_interactive_login_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        133 => {
+        148 => {
             wire__crate__api__client__BridgeClient_user_info_impl(port, ptr, rust_vec_len, data_len)
         }
-        134 => wire__crate__api__client__BridgeClient_user_info_cached_impl(
+        149 => wire__crate__api__client__BridgeClient_user_info_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        135 => wire__crate__api__client__BridgeClient_ygdk_overview_impl(
+        150 => wire__crate__api__client__BridgeClient_ygdk_overview_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        136 => wire__crate__api__client__BridgeClient_ygdk_overview_on_route_impl(
+        151 => wire__crate__api__client__BridgeClient_ygdk_overview_on_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        137 => wire__crate__api__client__BridgeClient_ygdk_records_impl(
+        152 => wire__crate__api__client__BridgeClient_ygdk_records_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        138 => wire__crate__api__client__BridgeClient_ygdk_records_cached_impl(
+        153 => wire__crate__api__client__BridgeClient_ygdk_records_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        139 => wire__crate__api__client__BridgeClient_ygdk_records_for_overview_cached_impl(
+        154 => wire__crate__api__client__BridgeClient_ygdk_records_for_overview_cached_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        140 => wire__crate__api__client__BridgeClient_ygdk_records_on_route_impl(
+        155 => wire__crate__api__client__BridgeClient_ygdk_records_on_route_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        146 => wire__crate__api__judge_scan__BridgeJudgeScan_courses_impl(
+        161 => wire__crate__api__judge_scan__BridgeJudgeScan_courses_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        147 => wire__crate__api__offline__BridgeOfflineCache_activate_impl(
+        162 => wire__crate__api__offline__BridgeOfflineCache_activate_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        148 => wire__crate__api__offline__BridgeOfflineCache_clear_impl(
+        163 => wire__crate__api__offline__BridgeOfflineCache_clear_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        149 => wire__crate__api__offline__BridgeOfflineCache_clear_and_reopen_impl(
+        164 => wire__crate__api__offline__BridgeOfflineCache_clear_and_reopen_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        150 => wire__crate__api__offline__BridgeOfflineCache_clear_or_rebuild_impl(
+        165 => wire__crate__api__offline__BridgeOfflineCache_clear_or_rebuild_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        151 => wire__crate__api__offline__BridgeOfflineCache_deactivate_impl(
+        166 => wire__crate__api__offline__BridgeOfflineCache_deactivate_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        152 => wire__crate__api__offline__BridgeOfflineCache_dismiss_write_readback_impl(
+        167 => wire__crate__api__offline__BridgeOfflineCache_dismiss_write_readback_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        153 => wire__crate__api__offline__BridgeOfflineCache_open_impl(
+        168 => wire__crate__api__offline__BridgeOfflineCache_open_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        154 => wire__crate__api__offline__BridgeOfflineCache_read_academic_classrooms_impl(
+        169 => wire__crate__api__offline__BridgeOfflineCache_read_academic_classrooms_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        155 => wire__crate__api__offline__BridgeOfflineCache_read_academic_exams_impl(
+        170 => wire__crate__api__offline__BridgeOfflineCache_read_academic_exams_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        156 => wire__crate__api__offline__BridgeOfflineCache_read_academic_grades_impl(
+        171 => wire__crate__api__offline__BridgeOfflineCache_read_academic_grades_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        157 => wire__crate__api__offline__BridgeOfflineCache_read_academic_terms_impl(
+        172 => wire__crate__api__offline__BridgeOfflineCache_read_academic_terms_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        158 => wire__crate__api__offline__BridgeOfflineCache_read_academic_week_impl(
+        173 => wire__crate__api__offline__BridgeOfflineCache_read_academic_week_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        159 => wire__crate__api__offline__BridgeOfflineCache_read_academic_weeks_impl(
+        174 => wire__crate__api__offline__BridgeOfflineCache_read_academic_weeks_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        160 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_chosen_impl(
+        175 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_chosen_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        161 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_courses_impl(
+        176 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_courses_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        162 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_detail_impl(
+        177 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        163 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_profile_impl(
+        178 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_profile_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        164 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_statistics_impl(
+        179 => wire__crate__api__offline__BridgeOfflineCache_read_bykc_statistics_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        165 => wire__crate__api__offline__BridgeOfflineCache_read_campus_impl(
+        180 => wire__crate__api__offline__BridgeOfflineCache_read_campus_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        166 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_day_impl(
+        181 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_day_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        167 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_detail_impl(
+        182 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        168 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_orders_impl(
+        183 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_orders_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        169 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_purposes_impl(
+        184 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_purposes_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        170 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_sites_impl(
+        185 => wire__crate__api__offline__BridgeOfflineCache_read_cgyy_sites_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        171 => wire__crate__api__offline__BridgeOfflineCache_read_evaluation_impl(
+        186 => wire__crate__api__offline__BridgeOfflineCache_read_evaluation_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        172 => wire__crate__api__offline__BridgeOfflineCache_read_grade_score_baseline_impl(
+        187 => wire__crate__api__offline__BridgeOfflineCache_read_grade_score_baseline_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        173 => wire__crate__api__offline__BridgeOfflineCache_read_home_signin_impl(
+        188 => wire__crate__api__offline__BridgeOfflineCache_read_home_signin_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        174 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_impl(
+        189 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        175 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_detail_impl(
+        190 => wire__crate__api__offline__BridgeOfflineCache_read_home_spoc_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        176 => wire__crate__api__offline__BridgeOfflineCache_read_home_ygdk_impl(
+        191 => wire__crate__api__offline__BridgeOfflineCache_read_home_ygdk_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        177 => wire__crate__api__offline__BridgeOfflineCache_read_judge_impl(
+        192 => wire__crate__api__offline__BridgeOfflineCache_read_judge_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        178 => wire__crate__api__offline__BridgeOfflineCache_read_judge_detail_impl(
+        193 => wire__crate__api__offline__BridgeOfflineCache_read_judge_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        179 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_area_detail_impl(
+        194 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_area_detail_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        180 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_areas_impl(
+        195 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_areas_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        181 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_bookings_impl(
+        196 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_bookings_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        182 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_libraries_impl(
+        197 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_libraries_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        183 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_seats_impl(
+        198 => wire__crate__api__offline__BridgeOfflineCache_read_libbook_seats_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        184 => wire__crate__api__offline__BridgeOfflineCache_read_profile_impl(
+        199 => wire__crate__api__offline__BridgeOfflineCache_read_profile_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        185 => wire__crate__api__offline__BridgeOfflineCache_read_today_impl(
+        200 => wire__crate__api__offline__BridgeOfflineCache_read_today_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        186 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_impl(
+        201 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        187 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_selection_impl(
+        202 => wire__crate__api__offline__BridgeOfflineCache_read_ygdk_records_selection_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        188 => wire__crate__api__offline__BridgeOfflineCache_update_grade_score_baseline_impl(
+        203 => wire__crate__api__offline__BridgeOfflineCache_update_grade_score_baseline_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        189 => wire__crate__api__offline__BridgeOfflineCache_usage_impl(
+        204 => wire__crate__api__offline__BridgeOfflineCache_usage_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        190 => wire__crate__api__offline__BridgeOfflineCache_write_readback_hints_impl(
+        205 => wire__crate__api__offline__BridgeOfflineCache_write_readback_hints_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        195 => wire__crate__api__judge_scan__online__bridge_judge_online_options_default_impl(
+        209 => wire__crate__api__agenda__agenda_teaching_week_rule_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        196 => wire__crate__api__judge_refresh__bridge_judge_refresh_options_default_impl(
+        211 => wire__crate__api__judge_scan__online__bridge_judge_online_options_default_impl(
             port,
             ptr,
             rust_vec_len,
             data_len,
         ),
-        197 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
+        212 => wire__crate__api__judge_refresh__bridge_judge_refresh_options_default_impl(
+            port,
+            ptr,
+            rust_vec_len,
+            data_len,
+        ),
+        213 => wire__crate__api__simple__init_app_impl(port, ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
@@ -21130,75 +23049,90 @@ fn pde_ffi_dispatcher_sync_impl(
 ) -> flutter_rust_bridge::for_generated::WireSyncRust2DartSse {
     // Codec=Pde (Serialization + dispatch), see doc to use other codecs
     match func_id {
-        1 => wire__crate__api__interactive_auth__BridgeCaptchaChallenge_cancel_impl(
+        16 => wire__crate__api__interactive_auth__BridgeCaptchaChallenge_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        2 => wire__crate__api__sensitive__BridgeCgyyLockDisplayLease_cancel_impl(
+        17 => wire__crate__api__sensitive__BridgeCgyyLockDisplayLease_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        12 => wire__crate__api__client__BridgeClient_begin_interactive_login_impl(
+        27 => wire__crate__api__client__BridgeClient_begin_interactive_login_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        39 => wire__crate__api__client__BridgeClient_cancel_interactive_login_impl(
+        54 => wire__crate__api__client__BridgeClient_cancel_interactive_login_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        57 => wire__crate__api__client__BridgeClient_contract_version_impl(
+        72 => wire__crate__api__client__BridgeClient_contract_version_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        141 => wire__crate__api__offline_evaluation__scan__BridgeEvaluationScan_cancel_impl(
+        156 => wire__crate__api__offline_evaluation__scan__BridgeEvaluationScan_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        142 => wire__crate__api__judge_refresh__details__BridgeJudgeDetailsTask_cancel_impl(
+        157 => wire__crate__api__judge_refresh__details__BridgeJudgeDetailsTask_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        143 => wire__crate__api__judge_scan__online__BridgeJudgeOnlineTask_cancel_impl(
+        158 => wire__crate__api__judge_scan__online__BridgeJudgeOnlineTask_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        144 => wire__crate__api__judge_refresh__BridgeJudgeRefreshTask_cancel_impl(
+        159 => wire__crate__api__judge_refresh__BridgeJudgeRefreshTask_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        145 => {
+        160 => {
             wire__crate__api__judge_scan__BridgeJudgeScan_cancel_impl(ptr, rust_vec_len, data_len)
         }
-        191 => wire__crate__api__schedule_import__BridgeScheduleImportTask_cancel_impl(
+        206 => wire__crate__api__schedule_import__BridgeScheduleImportTask_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        192 => wire__crate__api__offline_home__spoc_scan__detail__BridgeSpocDetailScan_cancel_impl(
+        207 => wire__crate__api__offline_home__spoc_scan__detail__BridgeSpocDetailScan_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        193 => wire__crate__api__offline_home__spoc_scan__BridgeSpocScan_cancel_impl(
+        208 => wire__crate__api__offline_home__spoc_scan__BridgeSpocScan_cancel_impl(
             ptr,
             rust_vec_len,
             data_len,
         ),
-        194 => wire__crate__api__simple__bridge_hello_impl(ptr, rust_vec_len, data_len),
+        210 => wire__crate__api__simple__bridge_hello_impl(ptr, rust_vec_len, data_len),
         _ => unreachable!(),
     }
 }
 
 // Section: rust2dart
+
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for FrbWrapper<BridgeAgendaStore> {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self.0)
+            .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive for FrbWrapper<BridgeAgendaStore> {}
+
+impl flutter_rust_bridge::IntoIntoDart<FrbWrapper<BridgeAgendaStore>> for BridgeAgendaStore {
+    fn into_into_dart(self) -> FrbWrapper<BridgeAgendaStore> {
+        self.into()
+    }
+}
 
 // Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for FrbWrapper<BridgeCaptchaChallenge> {
@@ -21599,6 +23533,680 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeActionEligibility
     for crate::api::read::BridgeActionEligibility
 {
     fn into_into_dart(self) -> crate::api::read::BridgeActionEligibility {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::school::BridgeAgendaCacheKind {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::BykcChosen => 0.into_dart(),
+            Self::SpocSelection => 1.into_dart(),
+            Self::SpocTerm => 2.into_dart(),
+            Self::JudgeSummaries => 3.into_dart(),
+            Self::CgyyOrders => 4.into_dart(),
+            Self::SigninToday => 5.into_dart(),
+            Self::Exams => 6.into_dart(),
+            Self::YgdkOverviewSelection => 7.into_dart(),
+            Self::YgdkOverviewPeriod => 8.into_dart(),
+            Self::ScheduleWeeks => 9.into_dart(),
+            Self::ScheduleWeek => 10.into_dart(),
+            Self::ImportedSchedules => 11.into_dart(),
+            Self::Unknown => 12.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::school::BridgeAgendaCacheKind
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::school::BridgeAgendaCacheKind>
+    for crate::api::agenda::school::BridgeAgendaCacheKind
+{
+    fn into_into_dart(self) -> crate::api::agenda::school::BridgeAgendaCacheKind {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::school::BridgeAgendaCacheScope {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.route.into_into_dart().into_dart(),
+            self.kind.into_into_dart().into_dart(),
+            self.term.into_into_dart().into_dart(),
+            self.week.into_into_dart().into_dart(),
+            self.date.into_into_dart().into_dart(),
+            self.page.into_into_dart().into_dart(),
+            self.size.into_into_dart().into_dart(),
+            self.include_expired.into_into_dart().into_dart(),
+            self.classify_id.into_into_dart().into_dart(),
+            self.term_id.into_into_dart().into_dart(),
+            self.week_start.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::school::BridgeAgendaCacheScope
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::school::BridgeAgendaCacheScope>
+    for crate::api::agenda::school::BridgeAgendaCacheScope
+{
+    fn into_into_dart(self) -> crate::api::agenda::school::BridgeAgendaCacheScope {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::school::BridgeAgendaCompleteness {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Complete => 0.into_dart(),
+            Self::Partial => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::school::BridgeAgendaCompleteness
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::school::BridgeAgendaCompleteness>
+    for crate::api::agenda::school::BridgeAgendaCompleteness
+{
+    fn into_into_dart(self) -> crate::api::agenda::school::BridgeAgendaCompleteness {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeAgendaCompletion {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.recurrence_id.into_into_dart().into_dart(),
+            self.completed_at.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeAgendaCompletion
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeAgendaCompletion>
+    for crate::api::agenda::models::BridgeAgendaCompletion
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeAgendaCompletion {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeAgendaContent {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.kind.into_into_dart().into_dart(),
+            self.title.into_into_dart().into_dart(),
+            self.location.into_into_dart().into_dart(),
+            self.notes.into_into_dart().into_dart(),
+            self.color.into_into_dart().into_dart(),
+            self.start.into_into_dart().into_dart(),
+            self.end.into_into_dart().into_dart(),
+            self.all_day.into_into_dart().into_dart(),
+            self.due.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeAgendaContent
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeAgendaContent>
+    for crate::api::agenda::models::BridgeAgendaContent
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeAgendaContent {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeAgendaDraft {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.content.into_into_dart().into_dart(),
+            self.rrule.into_into_dart().into_dart(),
+            self.exdates.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeAgendaDraft
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeAgendaDraft>
+    for crate::api::agenda::models::BridgeAgendaDraft
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeAgendaDraft {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeAgendaEditScope {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::This => 0.into_dart(),
+            Self::ThisAndFuture => 1.into_dart(),
+            Self::All => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeAgendaEditScope
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeAgendaEditScope>
+    for crate::api::agenda::models::BridgeAgendaEditScope
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeAgendaEditScope {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::school::BridgeAgendaEntry {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.local.into_into_dart().into_dart(),
+            self.school.into_into_dart().into_dart(),
+            self.timing.into_into_dart().into_dart(),
+            self.sort_time.into_into_dart().into_dart(),
+            self.soon.into_into_dart().into_dart(),
+            self.completed.into_into_dart().into_dart(),
+            self.hidden.into_into_dart().into_dart(),
+            self.note.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::school::BridgeAgendaEntry
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::school::BridgeAgendaEntry>
+    for crate::api::agenda::school::BridgeAgendaEntry
+{
+    fn into_into_dart(self) -> crate::api::agenda::school::BridgeAgendaEntry {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeAgendaError {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [self.failure.into_into_dart().into_dart()].into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeAgendaError
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeAgendaError>
+    for crate::api::agenda::models::BridgeAgendaError
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeAgendaError {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeAgendaFailure {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Unavailable => 0.into_dart(),
+            Self::InvalidInput => 1.into_dart(),
+            Self::Corrupt => 2.into_dart(),
+            Self::UnsupportedVersion => 3.into_dart(),
+            Self::Inactive => 4.into_dart(),
+            Self::Superseded => 5.into_dart(),
+            Self::Capacity => 6.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeAgendaFailure
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeAgendaFailure>
+    for crate::api::agenda::models::BridgeAgendaFailure
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeAgendaFailure {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::school::BridgeAgendaFeature {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Bykc => 0.into_dart(),
+            Self::Spoc => 1.into_dart(),
+            Self::Judge => 2.into_dart(),
+            Self::Cgyy => 3.into_dart(),
+            Self::Signin => 4.into_dart(),
+            Self::Exam => 5.into_dart(),
+            Self::Ygdk => 6.into_dart(),
+            Self::Schedule => 7.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::school::BridgeAgendaFeature
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::school::BridgeAgendaFeature>
+    for crate::api::agenda::school::BridgeAgendaFeature
+{
+    fn into_into_dart(self) -> crate::api::agenda::school::BridgeAgendaFeature {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeAgendaItem {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.id.into_into_dart().into_dart(),
+            self.content.into_into_dart().into_dart(),
+            self.rrule.into_into_dart().into_dart(),
+            self.exdates.into_into_dart().into_dart(),
+            self.overrides.into_into_dart().into_dart(),
+            self.completions.into_into_dart().into_dart(),
+            self.created_at.into_into_dart().into_dart(),
+            self.updated_at.into_into_dart().into_dart(),
+            self.deleted_at.into_into_dart().into_dart(),
+            self.locally_modified.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeAgendaItem
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeAgendaItem>
+    for crate::api::agenda::models::BridgeAgendaItem
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeAgendaItem {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeAgendaKind {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Event => 0.into_dart(),
+            Self::Task => 1.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeAgendaKind
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeAgendaKind>
+    for crate::api::agenda::models::BridgeAgendaKind
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeAgendaKind {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::school::BridgeAgendaNavigation {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.feature.into_into_dart().into_dart(),
+            self.term.into_into_dart().into_dart(),
+            self.week.into_into_dart().into_dart(),
+            self.course_code.into_into_dart().into_dart(),
+            self.serial.into_into_dart().into_dart(),
+            self.day.into_into_dart().into_dart(),
+            self.section.into_into_dart().into_dart(),
+            self.course_id.into_into_dart().into_dart(),
+            self.bykc_course_id.into_into_dart().into_dart(),
+            self.assignment_id.into_into_dart().into_dart(),
+            self.order_id.into_into_dart().into_dart(),
+            self.task_id.into_into_dart().into_dart(),
+            self.course_no.into_into_dart().into_dart(),
+            self.course_name.into_into_dart().into_dart(),
+            self.date.into_into_dart().into_dart(),
+            self.start_time.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::school::BridgeAgendaNavigation
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::school::BridgeAgendaNavigation>
+    for crate::api::agenda::school::BridgeAgendaNavigation
+{
+    fn into_into_dart(self) -> crate::api::agenda::school::BridgeAgendaNavigation {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::school::BridgeAgendaObservation {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.scope.into_into_dart().into_dart(),
+            self.fetched_at.into_into_dart().into_dart(),
+            self.last_verified_at.into_into_dart().into_dart(),
+            self.last_attempt_at.into_into_dart().into_dart(),
+            self.last_attempt_succeeded.into_into_dart().into_dart(),
+            self.completeness.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::school::BridgeAgendaObservation
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::school::BridgeAgendaObservation>
+    for crate::api::agenda::school::BridgeAgendaObservation
+{
+    fn into_into_dart(self) -> crate::api::agenda::school::BridgeAgendaObservation {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeAgendaOccurrence {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.item_id.into_into_dart().into_dart(),
+            self.recurrence_id.into_into_dart().into_dart(),
+            self.content.into_into_dart().into_dart(),
+            self.completed_at.into_into_dart().into_dart(),
+            self.overridden.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeAgendaOccurrence
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeAgendaOccurrence>
+    for crate::api::agenda::models::BridgeAgendaOccurrence
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeAgendaOccurrence {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeAgendaOverlay {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.value.into_into_dart().into_dart(),
+            self.updated_at.into_into_dart().into_dart(),
+            self.deleted_at.into_into_dart().into_dart(),
+            self.locally_modified.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeAgendaOverlay
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeAgendaOverlay>
+    for crate::api::agenda::models::BridgeAgendaOverlay
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeAgendaOverlay {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeAgendaOverlayDraft {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.key.into_into_dart().into_dart(),
+            self.completed_at.into_into_dart().into_dart(),
+            self.completion_override.into_into_dart().into_dart(),
+            self.hidden.into_into_dart().into_dart(),
+            self.note.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeAgendaOverlayDraft
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeAgendaOverlayDraft>
+    for crate::api::agenda::models::BridgeAgendaOverlayDraft
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeAgendaOverlayDraft {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeAgendaOverride {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.recurrence_id.into_into_dart().into_dart(),
+            self.content.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeAgendaOverride
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeAgendaOverride>
+    for crate::api::agenda::models::BridgeAgendaOverride
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeAgendaOverride {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::school::BridgeAgendaQuery {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.route.into_into_dart().into_dart(),
+            self.term.into_into_dart().into_dart(),
+            self.from.into_into_dart().into_dart(),
+            self.to.into_into_dart().into_dart(),
+            self.now.into_into_dart().into_dart(),
+            self.include_hidden.into_into_dart().into_dart(),
+            self.ygdk_enabled.into_into_dart().into_dart(),
+            self.ygdk_week_done.into_into_dart().into_dart(),
+            self.ygdk_term_done.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::school::BridgeAgendaQuery
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::school::BridgeAgendaQuery>
+    for crate::api::agenda::school::BridgeAgendaQuery
+{
+    fn into_into_dart(self) -> crate::api::agenda::school::BridgeAgendaQuery {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::school::BridgeAgendaQueryResult {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.entries.into_into_dart().into_dart(),
+            self.sources.into_into_dart().into_dart(),
+            self.school_cache_failure.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::school::BridgeAgendaQueryResult
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::school::BridgeAgendaQueryResult>
+    for crate::api::agenda::school::BridgeAgendaQueryResult
+{
+    fn into_into_dart(self) -> crate::api::agenda::school::BridgeAgendaQueryResult {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::school::BridgeAgendaSource {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.feature.into_into_dart().into_dart(),
+            self.observations.into_into_dart().into_dart(),
+            self.missing_scopes.into_into_dart().into_dart(),
+            self.semester_imported.into_into_dart().into_dart(),
+            self.unprojectable_count.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::school::BridgeAgendaSource
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::school::BridgeAgendaSource>
+    for crate::api::agenda::school::BridgeAgendaSource
+{
+    fn into_into_dart(self) -> crate::api::agenda::school::BridgeAgendaSource {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::school::BridgeAgendaSubmission {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Submitted => 0.into_dart(),
+            Self::Partial => 1.into_dart(),
+            Self::Unsubmitted => 2.into_dart(),
+            Self::Unknown => 3.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::school::BridgeAgendaSubmission
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::school::BridgeAgendaSubmission>
+    for crate::api::agenda::school::BridgeAgendaSubmission
+{
+    fn into_into_dart(self) -> crate::api::agenda::school::BridgeAgendaSubmission {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeAgendaTime {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.rfc3339.into_into_dart().into_dart(),
+            self.timezone.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeAgendaTime
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeAgendaTime>
+    for crate::api::agenda::models::BridgeAgendaTime
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeAgendaTime {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::school::BridgeAgendaTiming {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.kind.into_into_dart().into_dart(),
+            self.start.into_into_dart().into_dart(),
+            self.end.into_into_dart().into_dart(),
+            self.due.into_into_dart().into_dart(),
+            self.from.into_into_dart().into_dart(),
+            self.to.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::school::BridgeAgendaTiming
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::school::BridgeAgendaTiming>
+    for crate::api::agenda::school::BridgeAgendaTiming
+{
+    fn into_into_dart(self) -> crate::api::agenda::school::BridgeAgendaTiming {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::school::BridgeAgendaTimingKind {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Period => 0.into_dart(),
+            Self::Deadline => 1.into_dart(),
+            Self::AllDay => 2.into_dart(),
+            Self::Undated => 3.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::school::BridgeAgendaTimingKind
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::school::BridgeAgendaTimingKind>
+    for crate::api::agenda::school::BridgeAgendaTimingKind
+{
+    fn into_into_dart(self) -> crate::api::agenda::school::BridgeAgendaTimingKind {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::school::BridgeAgendaUpstreamStatus {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.feature.into_into_dart().into_dart(),
+            self.completed.into_into_dart().into_dart(),
+            self.begin_time.into_into_dart().into_dart(),
+            self.end_time.into_into_dart().into_dart(),
+            self.exam_status.into_into_dart().into_dart(),
+            self.checkin.into_into_dart().into_dart(),
+            self.pass.into_into_dart().into_dart(),
+            self.submission.into_into_dart().into_dart(),
+            self.text.into_into_dart().into_dart(),
+            self.order_status.into_into_dart().into_dart(),
+            self.check_status.into_into_dart().into_dart(),
+            self.sign_status.into_into_dart().into_dart(),
+            self.week_count.into_into_dart().into_dart(),
+            self.term_count.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::school::BridgeAgendaUpstreamStatus
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::school::BridgeAgendaUpstreamStatus>
+    for crate::api::agenda::school::BridgeAgendaUpstreamStatus
+{
+    fn into_into_dart(self) -> crate::api::agenda::school::BridgeAgendaUpstreamStatus {
         self
     }
 }
@@ -27844,6 +30452,56 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::schedule_import::BridgeSchedu
     }
 }
 // Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::school::BridgeSchoolAgendaItem {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.key.into_into_dart().into_dart(),
+            self.timing.into_into_dart().into_dart(),
+            self.sort_time.into_into_dart().into_dart(),
+            self.title.into_into_dart().into_dart(),
+            self.subtitle.into_into_dart().into_dart(),
+            self.location.into_into_dart().into_dart(),
+            self.status_label.into_into_dart().into_dart(),
+            self.upstream_status.into_into_dart().into_dart(),
+            self.navigation.into_into_dart().into_dart(),
+            self.home_todo.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::school::BridgeSchoolAgendaItem
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::school::BridgeSchoolAgendaItem>
+    for crate::api::agenda::school::BridgeSchoolAgendaItem
+{
+    fn into_into_dart(self) -> crate::api::agenda::school::BridgeSchoolAgendaItem {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeSchoolAgendaKey {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.source.into_into_dart().into_dart(),
+            self.upstream_id.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeSchoolAgendaKey
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeSchoolAgendaKey>
+    for crate::api::agenda::models::BridgeSchoolAgendaKey
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeSchoolAgendaKey {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
 impl flutter_rust_bridge::IntoDart for crate::api::read::BridgeSectionTime {
     fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
         [
@@ -28061,6 +30719,78 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeSpocSubmissionSta
     for crate::api::read::BridgeSpocSubmissionStatus
 {
     fn into_into_dart(self) -> crate::api::read::BridgeSpocSubmissionStatus {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeTeachingWeekInput {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.monday.into_into_dart().into_dart(),
+            self.first.into_into_dart().into_dart(),
+            self.last.into_into_dart().into_dart(),
+            self.pattern.into_into_dart().into_dart(),
+            self.weekday.into_into_dart().into_dart(),
+            self.hour.into_into_dart().into_dart(),
+            self.minute.into_into_dart().into_dart(),
+            self.second.into_into_dart().into_dart(),
+            self.skips.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeTeachingWeekInput
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeTeachingWeekInput>
+    for crate::api::agenda::models::BridgeTeachingWeekInput
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeTeachingWeekInput {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeTeachingWeekPattern {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        match self {
+            Self::Every => 0.into_dart(),
+            Self::Odd => 1.into_dart(),
+            Self::Even => 2.into_dart(),
+            _ => unreachable!(),
+        }
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeTeachingWeekPattern
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeTeachingWeekPattern>
+    for crate::api::agenda::models::BridgeTeachingWeekPattern
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeTeachingWeekPattern {
+        self
+    }
+}
+// Codec=Dco (DartCObject based), see doc to use other codecs
+impl flutter_rust_bridge::IntoDart for crate::api::agenda::models::BridgeTeachingWeekRule {
+    fn into_dart(self) -> flutter_rust_bridge::for_generated::DartAbi {
+        [
+            self.start.into_into_dart().into_dart(),
+            self.rrule.into_into_dart().into_dart(),
+            self.exdates.into_into_dart().into_dart(),
+        ]
+        .into_dart()
+    }
+}
+impl flutter_rust_bridge::for_generated::IntoDartExceptPrimitive
+    for crate::api::agenda::models::BridgeTeachingWeekRule
+{
+}
+impl flutter_rust_bridge::IntoIntoDart<crate::api::agenda::models::BridgeTeachingWeekRule>
+    for crate::api::agenda::models::BridgeTeachingWeekRule
+{
+    fn into_into_dart(self) -> crate::api::agenda::models::BridgeTeachingWeekRule {
         self
     }
 }
@@ -28550,6 +31280,13 @@ impl flutter_rust_bridge::IntoIntoDart<crate::api::read::BridgeYgdkTermSummary>
     }
 }
 
+impl SseEncode for BridgeAgendaStore {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>>>::sse_encode(flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self), serializer);
+    }
+}
+
 impl SseEncode for BridgeCaptchaChallenge {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -28683,6 +31420,17 @@ impl SseEncode for BridgeSpocScan {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
         <RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeSpocScan>>>::sse_encode(flutter_rust_bridge::for_generated::rust_auto_opaque_encode::<_, MoiArc<_>>(self), serializer);
+    }
+}
+
+impl SseEncode
+    for RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>>
+{
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        let (ptr, size) = self.sse_encode_raw();
+        <usize>::sse_encode(ptr, serializer);
+        <i32>::sse_encode(size, serializer);
     }
 }
 
@@ -28931,6 +31679,440 @@ impl SseEncode for crate::api::read::BridgeActionEligibility {
             },
             serializer,
         );
+    }
+}
+
+impl SseEncode for crate::api::agenda::school::BridgeAgendaCacheKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::agenda::school::BridgeAgendaCacheKind::BykcChosen => 0,
+                crate::api::agenda::school::BridgeAgendaCacheKind::SpocSelection => 1,
+                crate::api::agenda::school::BridgeAgendaCacheKind::SpocTerm => 2,
+                crate::api::agenda::school::BridgeAgendaCacheKind::JudgeSummaries => 3,
+                crate::api::agenda::school::BridgeAgendaCacheKind::CgyyOrders => 4,
+                crate::api::agenda::school::BridgeAgendaCacheKind::SigninToday => 5,
+                crate::api::agenda::school::BridgeAgendaCacheKind::Exams => 6,
+                crate::api::agenda::school::BridgeAgendaCacheKind::YgdkOverviewSelection => 7,
+                crate::api::agenda::school::BridgeAgendaCacheKind::YgdkOverviewPeriod => 8,
+                crate::api::agenda::school::BridgeAgendaCacheKind::ScheduleWeeks => 9,
+                crate::api::agenda::school::BridgeAgendaCacheKind::ScheduleWeek => 10,
+                crate::api::agenda::school::BridgeAgendaCacheKind::ImportedSchedules => 11,
+                crate::api::agenda::school::BridgeAgendaCacheKind::Unknown => 12,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::agenda::school::BridgeAgendaCacheScope {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::client::BridgeConnectionMode>::sse_encode(self.route, serializer);
+        <crate::api::agenda::school::BridgeAgendaCacheKind>::sse_encode(self.kind, serializer);
+        <Option<String>>::sse_encode(self.term, serializer);
+        <Option<i32>>::sse_encode(self.week, serializer);
+        <Option<String>>::sse_encode(self.date, serializer);
+        <Option<i32>>::sse_encode(self.page, serializer);
+        <Option<i32>>::sse_encode(self.size, serializer);
+        <Option<bool>>::sse_encode(self.include_expired, serializer);
+        <Option<i32>>::sse_encode(self.classify_id, serializer);
+        <Option<i32>>::sse_encode(self.term_id, serializer);
+        <Option<String>>::sse_encode(self.week_start, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::school::BridgeAgendaCompleteness {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::agenda::school::BridgeAgendaCompleteness::Complete => 0,
+                crate::api::agenda::school::BridgeAgendaCompleteness::Partial => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeAgendaCompletion {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.recurrence_id, serializer);
+        <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(
+            self.completed_at,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeAgendaContent {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::agenda::models::BridgeAgendaKind>::sse_encode(self.kind, serializer);
+        <String>::sse_encode(self.title, serializer);
+        <Option<String>>::sse_encode(self.location, serializer);
+        <Option<String>>::sse_encode(self.notes, serializer);
+        <Option<String>>::sse_encode(self.color, serializer);
+        <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(self.start, serializer);
+        <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(self.end, serializer);
+        <bool>::sse_encode(self.all_day, serializer);
+        <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(self.due, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeAgendaDraft {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::agenda::models::BridgeAgendaContent>::sse_encode(self.content, serializer);
+        <Option<String>>::sse_encode(self.rrule, serializer);
+        <Vec<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(self.exdates, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeAgendaEditScope {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::agenda::models::BridgeAgendaEditScope::This => 0,
+                crate::api::agenda::models::BridgeAgendaEditScope::ThisAndFuture => 1,
+                crate::api::agenda::models::BridgeAgendaEditScope::All => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::agenda::school::BridgeAgendaEntry {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Option<crate::api::agenda::models::BridgeAgendaOccurrence>>::sse_encode(
+            self.local, serializer,
+        );
+        <Option<crate::api::agenda::school::BridgeSchoolAgendaItem>>::sse_encode(
+            self.school,
+            serializer,
+        );
+        <crate::api::agenda::school::BridgeAgendaTiming>::sse_encode(self.timing, serializer);
+        <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(
+            self.sort_time,
+            serializer,
+        );
+        <bool>::sse_encode(self.soon, serializer);
+        <bool>::sse_encode(self.completed, serializer);
+        <bool>::sse_encode(self.hidden, serializer);
+        <Option<String>>::sse_encode(self.note, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeAgendaError {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::agenda::models::BridgeAgendaFailure>::sse_encode(self.failure, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeAgendaFailure {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::agenda::models::BridgeAgendaFailure::Unavailable => 0,
+                crate::api::agenda::models::BridgeAgendaFailure::InvalidInput => 1,
+                crate::api::agenda::models::BridgeAgendaFailure::Corrupt => 2,
+                crate::api::agenda::models::BridgeAgendaFailure::UnsupportedVersion => 3,
+                crate::api::agenda::models::BridgeAgendaFailure::Inactive => 4,
+                crate::api::agenda::models::BridgeAgendaFailure::Superseded => 5,
+                crate::api::agenda::models::BridgeAgendaFailure::Capacity => 6,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::agenda::school::BridgeAgendaFeature {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::agenda::school::BridgeAgendaFeature::Bykc => 0,
+                crate::api::agenda::school::BridgeAgendaFeature::Spoc => 1,
+                crate::api::agenda::school::BridgeAgendaFeature::Judge => 2,
+                crate::api::agenda::school::BridgeAgendaFeature::Cgyy => 3,
+                crate::api::agenda::school::BridgeAgendaFeature::Signin => 4,
+                crate::api::agenda::school::BridgeAgendaFeature::Exam => 5,
+                crate::api::agenda::school::BridgeAgendaFeature::Ygdk => 6,
+                crate::api::agenda::school::BridgeAgendaFeature::Schedule => 7,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeAgendaItem {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.id, serializer);
+        <crate::api::agenda::models::BridgeAgendaContent>::sse_encode(self.content, serializer);
+        <Option<String>>::sse_encode(self.rrule, serializer);
+        <Vec<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(self.exdates, serializer);
+        <Vec<crate::api::agenda::models::BridgeAgendaOverride>>::sse_encode(
+            self.overrides,
+            serializer,
+        );
+        <Vec<crate::api::agenda::models::BridgeAgendaCompletion>>::sse_encode(
+            self.completions,
+            serializer,
+        );
+        <crate::api::agenda::models::BridgeAgendaTime>::sse_encode(self.created_at, serializer);
+        <crate::api::agenda::models::BridgeAgendaTime>::sse_encode(self.updated_at, serializer);
+        <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(
+            self.deleted_at,
+            serializer,
+        );
+        <bool>::sse_encode(self.locally_modified, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeAgendaKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::agenda::models::BridgeAgendaKind::Event => 0,
+                crate::api::agenda::models::BridgeAgendaKind::Task => 1,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::agenda::school::BridgeAgendaNavigation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::agenda::school::BridgeAgendaFeature>::sse_encode(self.feature, serializer);
+        <Option<String>>::sse_encode(self.term, serializer);
+        <Option<i32>>::sse_encode(self.week, serializer);
+        <Option<String>>::sse_encode(self.course_code, serializer);
+        <Option<String>>::sse_encode(self.serial, serializer);
+        <Option<i32>>::sse_encode(self.day, serializer);
+        <Option<i32>>::sse_encode(self.section, serializer);
+        <Option<String>>::sse_encode(self.course_id, serializer);
+        <Option<i64>>::sse_encode(self.bykc_course_id, serializer);
+        <Option<String>>::sse_encode(self.assignment_id, serializer);
+        <Option<i32>>::sse_encode(self.order_id, serializer);
+        <Option<String>>::sse_encode(self.task_id, serializer);
+        <Option<String>>::sse_encode(self.course_no, serializer);
+        <Option<String>>::sse_encode(self.course_name, serializer);
+        <Option<String>>::sse_encode(self.date, serializer);
+        <Option<String>>::sse_encode(self.start_time, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::school::BridgeAgendaObservation {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::agenda::school::BridgeAgendaCacheScope>::sse_encode(self.scope, serializer);
+        <i64>::sse_encode(self.fetched_at, serializer);
+        <i64>::sse_encode(self.last_verified_at, serializer);
+        <i64>::sse_encode(self.last_attempt_at, serializer);
+        <bool>::sse_encode(self.last_attempt_succeeded, serializer);
+        <crate::api::agenda::school::BridgeAgendaCompleteness>::sse_encode(
+            self.completeness,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeAgendaOccurrence {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.item_id, serializer);
+        <String>::sse_encode(self.recurrence_id, serializer);
+        <crate::api::agenda::models::BridgeAgendaContent>::sse_encode(self.content, serializer);
+        <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(
+            self.completed_at,
+            serializer,
+        );
+        <bool>::sse_encode(self.overridden, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeAgendaOverlay {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::agenda::models::BridgeAgendaOverlayDraft>::sse_encode(self.value, serializer);
+        <crate::api::agenda::models::BridgeAgendaTime>::sse_encode(self.updated_at, serializer);
+        <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(
+            self.deleted_at,
+            serializer,
+        );
+        <bool>::sse_encode(self.locally_modified, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeAgendaOverlayDraft {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::agenda::models::BridgeSchoolAgendaKey>::sse_encode(self.key, serializer);
+        <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(
+            self.completed_at,
+            serializer,
+        );
+        <bool>::sse_encode(self.completion_override, serializer);
+        <bool>::sse_encode(self.hidden, serializer);
+        <Option<String>>::sse_encode(self.note, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeAgendaOverride {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.recurrence_id, serializer);
+        <crate::api::agenda::models::BridgeAgendaContent>::sse_encode(self.content, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::school::BridgeAgendaQuery {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::client::BridgeConnectionMode>::sse_encode(self.route, serializer);
+        <String>::sse_encode(self.term, serializer);
+        <String>::sse_encode(self.from, serializer);
+        <String>::sse_encode(self.to, serializer);
+        <crate::api::agenda::models::BridgeAgendaTime>::sse_encode(self.now, serializer);
+        <bool>::sse_encode(self.include_hidden, serializer);
+        <bool>::sse_encode(self.ygdk_enabled, serializer);
+        <bool>::sse_encode(self.ygdk_week_done, serializer);
+        <bool>::sse_encode(self.ygdk_term_done, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::school::BridgeAgendaQueryResult {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <Vec<crate::api::agenda::school::BridgeAgendaEntry>>::sse_encode(self.entries, serializer);
+        <Vec<crate::api::agenda::school::BridgeAgendaSource>>::sse_encode(self.sources, serializer);
+        <Option<crate::api::offline::BridgeCacheFailure>>::sse_encode(
+            self.school_cache_failure,
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::agenda::school::BridgeAgendaSource {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::agenda::school::BridgeAgendaFeature>::sse_encode(self.feature, serializer);
+        <Vec<crate::api::agenda::school::BridgeAgendaObservation>>::sse_encode(
+            self.observations,
+            serializer,
+        );
+        <Vec<crate::api::agenda::school::BridgeAgendaCacheScope>>::sse_encode(
+            self.missing_scopes,
+            serializer,
+        );
+        <Option<bool>>::sse_encode(self.semester_imported, serializer);
+        <u32>::sse_encode(self.unprojectable_count, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::school::BridgeAgendaSubmission {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::agenda::school::BridgeAgendaSubmission::Submitted => 0,
+                crate::api::agenda::school::BridgeAgendaSubmission::Partial => 1,
+                crate::api::agenda::school::BridgeAgendaSubmission::Unsubmitted => 2,
+                crate::api::agenda::school::BridgeAgendaSubmission::Unknown => 3,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeAgendaTime {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.rfc3339, serializer);
+        <String>::sse_encode(self.timezone, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::school::BridgeAgendaTiming {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::agenda::school::BridgeAgendaTimingKind>::sse_encode(self.kind, serializer);
+        <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(self.start, serializer);
+        <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(self.end, serializer);
+        <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(self.due, serializer);
+        <Option<String>>::sse_encode(self.from, serializer);
+        <Option<String>>::sse_encode(self.to, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::school::BridgeAgendaTimingKind {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::agenda::school::BridgeAgendaTimingKind::Period => 0,
+                crate::api::agenda::school::BridgeAgendaTimingKind::Deadline => 1,
+                crate::api::agenda::school::BridgeAgendaTimingKind::AllDay => 2,
+                crate::api::agenda::school::BridgeAgendaTimingKind::Undated => 3,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::agenda::school::BridgeAgendaUpstreamStatus {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::agenda::school::BridgeAgendaFeature>::sse_encode(self.feature, serializer);
+        <bool>::sse_encode(self.completed, serializer);
+        <Option<String>>::sse_encode(self.begin_time, serializer);
+        <Option<String>>::sse_encode(self.end_time, serializer);
+        <Option<i32>>::sse_encode(self.exam_status, serializer);
+        <Option<i32>>::sse_encode(self.checkin, serializer);
+        <Option<i32>>::sse_encode(self.pass, serializer);
+        <Option<crate::api::agenda::school::BridgeAgendaSubmission>>::sse_encode(
+            self.submission,
+            serializer,
+        );
+        <Option<String>>::sse_encode(self.text, serializer);
+        <Option<i32>>::sse_encode(self.order_status, serializer);
+        <Option<i32>>::sse_encode(self.check_status, serializer);
+        <Option<i32>>::sse_encode(self.sign_status, serializer);
+        <Option<i32>>::sse_encode(self.week_count, serializer);
+        <Option<i32>>::sse_encode(self.term_count, serializer);
     }
 }
 
@@ -32006,6 +35188,39 @@ impl SseEncode for crate::api::schedule_import::BridgeScheduleImportProgress {
     }
 }
 
+impl SseEncode for crate::api::agenda::school::BridgeSchoolAgendaItem {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::agenda::models::BridgeSchoolAgendaKey>::sse_encode(self.key, serializer);
+        <crate::api::agenda::school::BridgeAgendaTiming>::sse_encode(self.timing, serializer);
+        <Option<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(
+            self.sort_time,
+            serializer,
+        );
+        <String>::sse_encode(self.title, serializer);
+        <String>::sse_encode(self.subtitle, serializer);
+        <Option<String>>::sse_encode(self.location, serializer);
+        <String>::sse_encode(self.status_label, serializer);
+        <crate::api::agenda::school::BridgeAgendaUpstreamStatus>::sse_encode(
+            self.upstream_status,
+            serializer,
+        );
+        <crate::api::agenda::school::BridgeAgendaNavigation>::sse_encode(
+            self.navigation,
+            serializer,
+        );
+        <bool>::sse_encode(self.home_todo, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeSchoolAgendaKey {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.source, serializer);
+        <String>::sse_encode(self.upstream_id, serializer);
+    }
+}
+
 impl SseEncode for crate::api::read::BridgeSectionTime {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -32127,6 +35342,50 @@ impl SseEncode for crate::api::read::BridgeSpocSubmissionStatus {
             },
             serializer,
         );
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeTeachingWeekInput {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <String>::sse_encode(self.monday, serializer);
+        <u32>::sse_encode(self.first, serializer);
+        <u32>::sse_encode(self.last, serializer);
+        <crate::api::agenda::models::BridgeTeachingWeekPattern>::sse_encode(
+            self.pattern,
+            serializer,
+        );
+        <u32>::sse_encode(self.weekday, serializer);
+        <u32>::sse_encode(self.hour, serializer);
+        <u32>::sse_encode(self.minute, serializer);
+        <u32>::sse_encode(self.second, serializer);
+        <Vec<String>>::sse_encode(self.skips, serializer);
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeTeachingWeekPattern {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(
+            match self {
+                crate::api::agenda::models::BridgeTeachingWeekPattern::Every => 0,
+                crate::api::agenda::models::BridgeTeachingWeekPattern::Odd => 1,
+                crate::api::agenda::models::BridgeTeachingWeekPattern::Even => 2,
+                _ => {
+                    unimplemented!("");
+                }
+            },
+            serializer,
+        );
+    }
+}
+
+impl SseEncode for crate::api::agenda::models::BridgeTeachingWeekRule {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <crate::api::agenda::models::BridgeAgendaTime>::sse_encode(self.start, serializer);
+        <String>::sse_encode(self.rrule, serializer);
+        <Vec<crate::api::agenda::models::BridgeAgendaTime>>::sse_encode(self.exdates, serializer);
     }
 }
 
@@ -32420,6 +35679,76 @@ impl SseEncode for Vec<String> {
         <i32>::sse_encode(self.len() as _, serializer);
         for item in self {
             <String>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::agenda::school::BridgeAgendaCacheScope> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::agenda::school::BridgeAgendaCacheScope>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::agenda::models::BridgeAgendaCompletion> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::agenda::models::BridgeAgendaCompletion>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::agenda::school::BridgeAgendaEntry> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::agenda::school::BridgeAgendaEntry>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::agenda::school::BridgeAgendaObservation> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::agenda::school::BridgeAgendaObservation>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::agenda::models::BridgeAgendaOverride> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::agenda::models::BridgeAgendaOverride>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::agenda::school::BridgeAgendaSource> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::agenda::school::BridgeAgendaSource>::sse_encode(item, serializer);
+        }
+    }
+}
+
+impl SseEncode for Vec<crate::api::agenda::models::BridgeAgendaTime> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <i32>::sse_encode(self.len() as _, serializer);
+        for item in self {
+            <crate::api::agenda::models::BridgeAgendaTime>::sse_encode(item, serializer);
         }
     }
 }
@@ -33122,6 +36451,56 @@ impl SseEncode for Option<bool> {
     }
 }
 
+impl SseEncode for Option<crate::api::agenda::models::BridgeAgendaItem> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::agenda::models::BridgeAgendaItem>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::agenda::models::BridgeAgendaOccurrence> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::agenda::models::BridgeAgendaOccurrence>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::agenda::models::BridgeAgendaOverlay> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::agenda::models::BridgeAgendaOverlay>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::agenda::school::BridgeAgendaSubmission> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::agenda::school::BridgeAgendaSubmission>::sse_encode(value, serializer);
+        }
+    }
+}
+
+impl SseEncode for Option<crate::api::agenda::models::BridgeAgendaTime> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::agenda::models::BridgeAgendaTime>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::api::read::BridgeBykcCourseAttendanceDisplay> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -33764,6 +37143,16 @@ impl SseEncode for Option<crate::api::client::BridgeSafeError> {
     }
 }
 
+impl SseEncode for Option<crate::api::agenda::school::BridgeSchoolAgendaItem> {
+    // Codec=Sse (Serialization based), see doc to use other codecs
+    fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
+        <bool>::sse_encode(self.is_some(), serializer);
+        if let Some(value) = self {
+            <crate::api::agenda::school::BridgeSchoolAgendaItem>::sse_encode(value, serializer);
+        }
+    }
+}
+
 impl SseEncode for Option<crate::api::client::BridgeUserProfile> {
     // Codec=Sse (Serialization based), see doc to use other codecs
     fn sse_encode(self, serializer: &mut flutter_rust_bridge::for_generated::SseSerializer) {
@@ -33908,6 +37297,7 @@ mod io {
     // Section: imports
 
     use super::*;
+    use crate::api::agenda::*;
     use crate::api::client::*;
     use crate::api::interactive_auth::*;
     use crate::api::judge_refresh::details::*;
@@ -33929,6 +37319,20 @@ mod io {
     // Section: boilerplate
 
     flutter_rust_bridge::frb_generated_boilerplate_io!();
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_ubaa_bindings_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+        ptr: *const std::ffi::c_void,
+    ) {
+        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>>::increment_strong_count(ptr as _);
+    }
+
+    #[unsafe(no_mangle)]
+    pub extern "C" fn frbgen_ubaa_bindings_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+        ptr: *const std::ffi::c_void,
+    ) {
+        MoiArc::<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeAgendaStore>>::decrement_strong_count(ptr as _);
+    }
 
     #[unsafe(no_mangle)]
     pub extern "C" fn frbgen_ubaa_bindings_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(
