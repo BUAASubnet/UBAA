@@ -215,7 +215,7 @@ impl AgendaStore {
             Ok(())
         })
     }
-    /// 清理严格超过 180 天的事项及覆盖层删除标记，包含未同步标记。
+    /// 只清理已同步且严格超过 180 天的事项及覆盖层删除标记。
     ///
     /// # Errors
     /// 时间无效、账号关闭或事务失败时保留原数据。
@@ -229,10 +229,12 @@ impl AgendaStore {
             .ok_or(CacheError::InvalidInput)?;
         self.access(true, true, |d| {
             let n = d.items.len() + d.overlays.len();
-            d.items
-                .retain(|_, v| v.deleted_at.is_none_or(|t| t.datetime >= cutoff));
-            d.overlays
-                .retain(|_, v| v.deleted_at.is_none_or(|t| t.datetime >= cutoff));
+            d.items.retain(|_, v| {
+                v.locally_modified || v.deleted_at.is_none_or(|t| t.datetime >= cutoff)
+            });
+            d.overlays.retain(|_, v| {
+                v.locally_modified || v.deleted_at.is_none_or(|t| t.datetime >= cutoff)
+            });
             Ok(n - d.items.len() - d.overlays.len())
         })
     }

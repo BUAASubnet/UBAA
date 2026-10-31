@@ -223,15 +223,36 @@ fn overlay_reopen_uses_local_incomplete_and_clear_is_tombstone() {
     assert!(value.effective_completed(true));
 }
 #[test]
-fn purge_only_strictly_older_than_180_days() {
+fn tombstones_keep_unsynced_and_purge_only_synced_after_180_days() {
     let store = opened();
-    let item = event();
-    let id = item.id;
-    store.create(item).unwrap();
     let deleted = t("2026-02-01T00:00:00+08:00");
-    store
-        .delete(id, AgendaEditScope::All, None, deleted)
-        .unwrap();
+    for synced in [false, true] {
+        let item = event();
+        let id = item.id;
+        store.create(item).unwrap();
+        store
+            .delete(id, AgendaEditScope::All, None, deleted)
+            .unwrap();
+        let key = SchoolAgendaKey {
+            source: "spoc".into(),
+            upstream_id: format!("synthetic-{synced}"),
+        };
+        store.clear_overlay(&key, deleted).unwrap();
+        if synced {
+            // 同步确认尚无生产入口，仅在合成存储中准备已确认状态。
+            store
+                .access(true, true, |data| {
+                    data.items.get_mut(&id).unwrap().locally_modified = false;
+                    for overlay in data.overlays.values_mut() {
+                        if overlay.key == key {
+                            overlay.locally_modified = false;
+                        }
+                    }
+                    Ok(())
+                })
+                .unwrap();
+        }
+    }
     let cutoff = AgendaTime::new(deleted.datetime + chrono::Duration::days(180));
     assert_eq!(store.purge_tombstones(cutoff).unwrap(), 0);
     assert_eq!(
@@ -240,9 +261,32 @@ fn purge_only_strictly_older_than_180_days() {
                 cutoff.datetime + chrono::Duration::seconds(1)
             ))
             .unwrap(),
-        1
+        2
     );
-    assert!(store.get(id).unwrap().is_none());
+    assert_eq!(store.unsynced_count().unwrap(), 2);
+    assert_eq!(
+        store
+            .purge_tombstones(t("2030-01-01T00:00:00+08:00"))
+            .unwrap(),
+        0
+    );
+    store
+        .access(true, false, |data| {
+            assert_eq!(data.items.len(), 1);
+            assert_eq!(data.overlays.len(), 1);
+            assert!(
+                data.items
+                    .values()
+                    .all(|v| v.locally_modified && v.deleted_at.is_some())
+            );
+            assert!(
+                data.overlays
+                    .values()
+                    .all(|v| v.locally_modified && v.deleted_at.is_some())
+            );
+            Ok(())
+        })
+        .unwrap();
 }
 #[test]
 fn accounts_routes_logout_and_cache_rebuild_are_independent() {
