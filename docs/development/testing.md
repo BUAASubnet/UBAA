@@ -1,6 +1,6 @@
 # 测试策略与日常入口
 
-当前合同：CLI JSON schema v12；Flutter bridge contract v44。CLI 验证 human/JSON schema v12，版本常量、JSON Schema、Dart 接受版本与现行文档由 `just contract-version-check` 同步检查。旧升级流水见[历史指南](../migration/history/testing-before-2026-10-07.md)。
+当前合同：CLI JSON schema v12；Flutter bridge contract v45。CLI 验证 human/JSON schema v12，版本常量、JSON Schema、Dart 接受版本与现行文档由 `just contract-version-check` 同步检查。旧升级流水见[历史指南](../migration/history/testing-before-2026-10-07.md)。
 
 ## 检查入口
 
@@ -33,3 +33,9 @@
 关于、照片和 iPad 方向测试保留截图元数据。需要保存 iOS 截图时，显式使用 `test_driver/ui_render.dart`，将 UBAA_UI_EVIDENCE_DIR 设为 `.ubaa_local/` 中本次运行的空子目录；安全校验由共享 evidence_directory 和单元测试保护。软键盘专用驱动已删除。方向用例需要唯一 UBAA_ROTATION_RUN_ID 和外部系统方向握手，不能用修改 Widget 尺寸替代。
 
 Golden 保留既有 macOS 基准，变更基准必须审阅实际差异。`ubaa_ui` 的 `flutter_test_config.dart` 允许不超过 0.2% 的像素差异，吸收 CI 与本机的字体抗锯齿差别，可见的颜色、间距和布局变化仍会失败；测试里的固定时钟使用带 `+08:00` 的校园时刻，不随运行机器时区变化。运行媒体遵守 [AGENTS 安全边界](../../AGENTS.md#安全边界)。offline_startup/analyze.py 只保留历史测量材料分析，不再提供已删除 driver 的测量启动器。
+
+## 首页投影覆盖的归属
+
+1c-b 移除 Domain 中按来源筛选、排序和判断紧迫的实现。原 `home_todo_test.dart` 的九组学校来源预期迁到原生 `synthetic/cache/home_todo_probe.dart`，通过生产 App 字段适配与真实 FFI 调用 Core。原 `home_calendar_test.dart` 的格式化和 48 小时判断中，业务边界由 Core `agenda::school_tests` 保留，格式化在原生预期中核对。Domain 继续保留课程日历测试。
+
+Core 新增无缓存七来源等价、输入逐组到达顺序、本地完成/隐藏/清除/重新挂起及已退出库失败用例。App 验证日程打开不阻塞学校投影、覆盖失败与缓存保存失败分列、迟到结果与错误撤销、实际考试学期保留及无缓存签到跨校园午夜拒绝。Widget 测试只接收合成的已投影结果，继续验证首页预览、展开、时间刷新触发、签到流程和原功能导航，不维护学校筛选算法。
