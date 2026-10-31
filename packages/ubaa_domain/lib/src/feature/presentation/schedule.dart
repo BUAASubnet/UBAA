@@ -101,7 +101,8 @@ final class ScheduleSectionTime {
   final String? start, end;
 }
 
-/// 明确作息及课程边界优先；缺失时间按用户提供的 2026—2027 校历补齐。
+/// 第 1–14 节固定使用学校校历作息（2026—2027 学年），不随周次、接口作息或
+/// 课程时间变化；超出校历的节次才按接口作息或课程边界补齐。
 List<ScheduleSectionTime> scheduleSectionTimes({
   required Iterable<ScheduleCoursePresentation> courses,
   List<ScheduleSectionTime> explicit = const [],
@@ -150,6 +151,13 @@ List<ScheduleSectionTime> scheduleSectionTimes({
   return List.unmodifiable(
     List.generate(count, (index) {
       final section = index + 1;
+      if (index < standard.length) {
+        return ScheduleSectionTime(
+          section,
+          standard[index].$1,
+          standard[index].$2,
+        );
+      }
       final known = times.where((t) => t.section == section).toList();
       return ScheduleSectionTime(
         section,
@@ -158,12 +166,12 @@ List<ScheduleSectionTime> scheduleSectionTimes({
           courses
               .where((c) => c.beginSection == section)
               .map((c) => c.beginTime),
-          index < standard.length ? standard[index].$1 : null,
+          null,
         ),
         boundary(
           known.map((t) => t.end),
           courses.where((c) => c.endSection == section).map((c) => c.endTime),
-          index < standard.length ? standard[index].$2 : null,
+          null,
         ),
       );
     }),

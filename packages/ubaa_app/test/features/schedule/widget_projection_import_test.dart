@@ -17,6 +17,15 @@ void main() {
     final weeks = value.semesters.single['weeks']! as List;
     expect(weeks, hasLength(2));
     expect((weeks.last as Map)['courses'], isEmpty);
+    expect(
+      ((weeks.first as Map)['courses'] as List).first['startTime'],
+      '09:00',
+    );
+    for (final week in weeks.cast<Map>()) {
+      final times = week['times'] as List;
+      expect(times.first['start'], '08:00');
+      expect(times.last['end'], '22:15');
+    }
     expect(value.toJson().toString(), contains('合成课程'));
     expect(
       ((weeks.first as Map)['courses'] as List).first['weeksAndTeachers'],
@@ -120,7 +129,7 @@ class _Cache implements OfflineQueryBackend {
                     dayOfWeek: 1,
                     beginSection: 1,
                     endSection: 2,
-                    beginTime: '08:00',
+                    beginTime: '09:00',
                     endTime: '09:35',
                     place: '合成教室',
                     weeksAndTeachers: '1–2周 合成教师',

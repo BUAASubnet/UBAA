@@ -74,34 +74,4 @@ void main() {
       expect(tester.takeException(), isNull);
     });
   }
-  test('本科旧缓存补齐14节，明确时间优先且冲突不猜', () {
-    final legacy = scheduleSectionTimes(code: 'fixture-student', courses: []);
-    expect(legacy.length, 14);
-    expect(legacy.last.end, '22:15');
-    final conflict = scheduleSectionTimes(
-      code: '20261',
-      courses: const [
-        ScheduleCoursePresentation(
-          courseCode: 'demo',
-          beginSection: 1,
-          endSection: 2,
-          beginTime: '09:00',
-          endTime: '09:35',
-        ),
-      ],
-    );
-    expect(conflict.length, 14);
-    expect(conflict[9].end, '18:15');
-    expect(conflict.first.start, '09:00');
-    final explicit = scheduleSectionTimes(
-      code: '20261',
-      courses: [],
-      explicit: const [
-        ScheduleSectionTime(1, '08:00', '08:45'),
-        ScheduleSectionTime(1, '08:10', '08:45'),
-      ],
-    );
-    expect(explicit.first.start, isNull);
-    expect(explicit.first.end, '08:45');
-  });
 }

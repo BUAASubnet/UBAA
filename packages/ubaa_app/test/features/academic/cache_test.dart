@@ -213,8 +213,8 @@ class _Cache implements BridgeOfflineCache {
     return BridgeCachedAcademicWeek(
       data: const BridgeWeeklySchedule(
         sectionTimes: [
-          BridgeSectionTime(section: 1, start: "08:00", end: "08:45"),
-          BridgeSectionTime(section: 14, start: "21:30", end: "22:15"),
+          BridgeSectionTime(section: 1, start: "09:00", end: "09:45"),
+          BridgeSectionTime(section: 14, start: "22:00", end: "22:45"),
         ],
         arrangedList: [BridgeCourseClass(courseCode: 'C', courseName: '合成课程')],
         code: 'response-code',
