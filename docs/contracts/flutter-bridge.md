@@ -267,7 +267,7 @@ DTO 字段保持与 facade 稳定类型一一对应，但只允许以下字段�
 类型，不把字符串 ID 自动转数字，不把可选字段默认成空字符串或零。
 
 共享应用层的 `FeatureQuery` 只携带已证明的 typed 查询参数。除学期、日期、校区、周次和分页
-外，Bykc、图书馆、阳光打卡、场馆预约、SPOC 和 Judge 详情使用封闭的 `FeatureQueryView` 与公开
+外，Bykc、图书馆、阳光打卡、研讨室预约、SPOC 和 Judge 详情使用封闭的 `FeatureQueryView` 与公开
 ID/分页字段：
 
 支持分页的查询结果在应用层以封闭 `FeaturePagination` 投影 Core 返回的 `page`、`size`、`total`、
@@ -315,13 +315,13 @@ ID/分页字段：
 缺少必填 ID、时段或批量键时由 bridge 返回 `invalid_input`；Dart 不拼接 URL、JSON 或 Cookie。Judge
 批量键在 UI 中使用每行 `课程编号/作业编号` 的公开编号格式解析为 typed 列表，不把该文本作为 raw
 payload 传递。查询结果
-仍只映射到白名单 `FeatureDetail`，预约 ID、座位 ID、区域 ID、场馆站点 ID 和订单 ID 仅作为
+仍只映射到白名单 `FeatureDetail`，预约 ID、座位 ID、区域 ID、研讨室站点 ID 和订单 ID 仅作为
 用户选择后再次查询的公开标识，不进入日志或遥测。Cgyy 用途结果始终携带 `source`，UI 必须
 明示 `staticFallback`，不得将冻结回退伪称为上游成功；门锁结果只允许展示 `available`。
 图书馆预约详情将 nullable `status`、`cancelEligibility/cancelTarget` 一并投影；UI 只消费 typed action
-决定取消入口，`statusName` 和“状态码”只供展示，不参与资格推断。场馆订单列表/详情可投影冻结
+决定取消入口，`statusName` 和“状态码”只供展示，不参与资格推断。研讨室订单列表/详情可投影冻结
 `checkStatus` 为“审核状态”，仅供展示；这些字段均不是令牌、交易号或内部正文，不改变 Core 的最终取消资格校验。
-场馆订单同时提供由冻结状态码派生的“订单状态说明/审核状态说明”，仅作为稳定中文展示文本；Dart 不据此拼接
+研讨室订单同时提供由冻结状态码派生的“订单状态说明/审核状态说明”，仅作为稳定中文展示文本；Dart 不据此拼接
 请求或改变 Core 的取消资格。`BridgeCallerPinnedCgyyOrders` 与
 `BridgeCallerPinnedCgyyOrder` 只包含 `{data,pinnedRoute}`；它们表示 Core 实际使用了调用方指定的
 已认证路线，不伪造 `RouteDecision`，不执行 Auto 探测或跨路线回退。
@@ -447,16 +447,16 @@ Evaluation commit 的 `evaluationResult` 固定为
 不得改变任何提交 outcome、自动重发或重新 Auto/fallback。
 
 照片通过 `BridgePhoto {bytes,fileName,mimeType}` 一次传入；Debug 只记录字节数与 MIME 类型。
-场馆 challenge 由 Core typed 流程内部完成，bridge 不公开图片、secret key、point JSON、token
+研讨室 challenge 由 Core typed 流程内部完成，bridge 不公开图片、secret key、point JSON、token
 或 verification。`evaluationSubmit` 的原始字符串 payload 不生成到 Dart。
 
-Flutter domain/app 的场馆预约提交只接受读取结果产生的 `CgyyReserveAction` 与表单字段，不再开放站点、
+Flutter domain/app 的研讨室预约提交只接受读取结果产生的 `CgyyReserveAction` 与表单字段，不再开放站点、
 日期、空间或时段的 primitive 覆盖入口。一至两个 action 必须全部为 `allowed`，具有正站点/空间/时段、
 非空日期、`null` 或正空间组以及非负 raw ordinal，并且同站点、日期、空间和空间组，时段 ID 与 ordinal
 各自唯一；两个 action 的 raw ordinal 必须相邻。AppController 和生产 BridgeBackend 共用该 fail-closed
 校验；Bridge 只在最末 adapter 将已验证 action 投影为 FRB primitive 请求，Core 仍是最终权威。
 
-场馆预约的 Bridge prepare 调用 Core fresh preflight，要求日期响应精确一致且目标唯一，随后只保存 Core
+研讨室预约的 Bridge prepare 调用 Core fresh preflight，要求日期响应精确一致且目标唯一，随后只保存 Core
 规范化的目标。commit 原子消费 intent 后，Core 再执行同一 fresh authority 复核；资格为 `denied`、
 `unknown`、target 缺失或身份不一致时均在最终写请求前拒绝。验证码获取/校验最多重试三次且只发生在最终
 提交之前；最终 reservation submit 使用单次 non-idempotent 发送边界，越过边界后无法确定结果时只返回
@@ -464,23 +464,23 @@ Flutter domain/app 的场馆预约提交只接受读取结果产生的 `CgyyRese
 `{orderId,venueSiteId?,reservationDate?,orderStatus?}` 安全收据；验证码、完整订单、电话、主题、参与人、
 活动正文、上游 raw message 和其它个人信息不得进入写结果或错误。
 
-场馆取消 prepare 只接受读取结果产生的 `CgyyCancelAction`；App 要求 eligibility 为
+研讨室取消 prepare 只接受读取结果产生的 `CgyyCancelAction`；App 要求 eligibility 为
 `allowed`、canonical 正数 `orderId` 与 `cancelTarget.orderId` 严格一致，并只在最末 adapter 构造
 `{orderId}`。Bridge prepare 与 commit 均由 Core fresh GET `/api/orders/{id}` 复核同 ID 资格与
 上海时区的开始前四小时截止点。commit 在 Core 内只解析一次路线，仅当结果与 intent
 的 `resolvedRoute` 一致时，才使用该同一 runtime 读详情并越过一次最终 POST 发送边界；路线变化在
-网络写入前映射为 `operationConflict`。成功结果固定为 `success=true/场馆订单已取消`；
+网络写入前映射为 `operationConflict`。成功结果固定为 `success=true/研讨室订单已取消`；
 Core 若返回矛盾的 `success=false`，Bridge 失败关闭为 `upstreamChanged`，不得当作普通成功。
 
-场馆取消确定成功或 `outcomeUnknown` 后，App 依次调用
+研讨室取消确定成功或 `outcomeUnknown` 后，App 依次调用
 `cgyyOrdersOnRoute(route,page=0,size=20)` 与 `cgyyOrderDetailOnRoute(route,id)`；两次回读都必须
 使用 intent 原路线，不重新执行路线策略。证明只消费本次两个局部结果，两者各自必须唯一
 匹配同 ID 且 `cancelledTarget.orderId` 一致；旧 snapshot、展示字段、单一列表或单一详情都不能标记
 已核对。列表结果可在 generation 未变且路线一致时最佳努力刷新 UI，但 snapshot 绝不参与证明；
 任一回读失败均只保持“未核对”，不重发取消。
 
-场馆预约的本地表单门禁还要求联系电话、主题、活动内容和参与人文本非空，用途编号与参与人数为正；
-这只约束产品 typed 请求，不改变 Core 上游协议。阳光打卡和场馆预约的 `request_digest` 只对非敏感形状做
+研讨室预约的本地表单门禁还要求联系电话、主题、活动内容和参与人文本非空，用途编号与参与人数为正；
+这只约束产品 typed 请求，不改变 Core 上游协议。阳光打卡和研讨室预约的 `request_digest` 只对非敏感形状做
 规范化（结构 ID、文本存在/长度、照片字节数/MIME、布尔值），不写入或哈希返回电话、主题、参与人、
 活动正文、地点、照片文件名和照片字节，避免敏感材料穿过 intent 投影；对应回归记录在
 `docs/migration/source-parity.md`。
@@ -503,7 +503,7 @@ bridge 只调用这些已对照 facade 方法，不拥有重定向、Cookie、He
 
 - Rust：每个映射的字段快照、错误映射、dispose、串行锁、panic 归约、intent 过期/重复、登录/注销/
   `authStatus`/重开失效、Core Session 冲突、路线失效、outcome unknown 和 typed 请求测试。
-- Dart：生成 API schema 快照（包括场馆订单、场馆时段和博雅已选课程内部字段禁曝断言）、`evaluationAll` 待评派生、ID/可选字段、错误映射和
+- Dart：生成 API schema 快照（包括研讨室订单、研讨室时段和博雅已选课程内部字段禁曝断言）、`evaluationAll` 待评派生、ID/可选字段、错误映射和
   `BridgeClient` isolate 重建测试；宿主通过 `BackendFactory` 创建新的 opaque
   backend 后，应用重新读取持久化路线与认证状态，不复用已 dispose 的 handle。
 - FRB：`just flutter-codegen-check` 二次生成零漂移；生成目录禁止手改。
@@ -536,7 +536,7 @@ P1 只有全部方法、DTO、写 intent、测试与生成绑定同时完成后�
 - `AppController.rebuildBackend()` 为 isolate/宿主生命周期重建提供显式安全入口：只有新
   backend 创建成功后才释放旧实例，清空旧用户、路线投影和功能快照，再重新执行初始化；没有
   `BackendFactory` 或正在登录/重建时返回失败，不伪造恢复成功。
-- panic 归约、跨进程 Session 锁、路线/会话失效 intent 和场馆订单敏感字段禁曝快照已有实现与
+- panic 归约、跨进程 Session 锁、路线/会话失效 intent 和研讨室订单敏感字段禁曝快照已有实现与
   回归；Dart schema 快照覆盖全部公开读取 DTO 和十项写入口，应用层已有 dispose、后台恢复和
   代次丢弃的确定性测试，`just flutter-codegen-check` 报告零漂移。上述代码/合同门禁满足当时的
   无签名 P1；原生设备上的 isolate 重建、内存泄漏观测和真实跨平台生命周期仍留待后置设备验证。
@@ -731,7 +731,7 @@ UI入口恢复“查看密码”，首次fresh读取、手动与30秒刷新singl
 
 Core 的 WriteBoundaryObservation 与原收尾标记分开：请求交给 transport 即记录可能发送，普通收尾和 panic 展开都不擦除本轮观察。发送前已知错误保持原分类；发送后未分类 panic 返回 OutcomeUnknown、原确认路线，不重试。Dart 未分类提交异常保留相同语义，诊断另记异常类别。
 
-博雅已选、图书馆预约记录、今日课堂补充 caller-pinned 回读，场馆预约复用已有指定路线订单入口。取消、打卡和评教沿原专用回读；所有生产提交后核对均消费 intent.resolvedRoute，不通过改写全局偏好固定路线。
+博雅已选、图书馆预约记录、今日课堂补充 caller-pinned 回读，研讨室预约复用已有指定路线订单入口。取消、打卡和评教沿原专用回读；所有生产提交后核对均消费 intent.resolvedRoute，不通过改写全局偏好固定路线。
 
 
 ## v42：iHome 校园服务

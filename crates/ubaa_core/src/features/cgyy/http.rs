@@ -29,7 +29,7 @@ pub(super) fn signed_request(
     }
     let signature = sign(path, &params, timestamp);
     let mut direct =
-        url::Url::parse(&format!("{BASE_URL}{path}")).map_err(|_| error("场馆请求地址无效"))?;
+        url::Url::parse(&format!("{BASE_URL}{path}")).map_err(|_| error("研讨室请求地址无效"))?;
     if method == HttpMethod::Get {
         direct.query_pairs_mut().extend_pairs(
             params
@@ -113,7 +113,7 @@ pub(super) fn check_business_response(response: &HttpResponse, feature: &str) ->
     });
     if code != Some(200) {
         warn!(target: "ubaa::cgyy", feature = "cgyy", response_status = response.status, business_code = ?code, "Cgyy 业务 code 非成功值");
-        return Err(error("场馆预约请求失败"));
+        return Err(error("研讨室预约请求失败"));
     }
     debug!(target: "ubaa::cgyy", feature = "cgyy", response_status = response.status, business_code = 200, "Cgyy 业务响应通过");
     Ok(())

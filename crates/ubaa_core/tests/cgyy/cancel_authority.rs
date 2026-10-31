@@ -407,7 +407,7 @@ fn 场馆取消提交经非幂等边界只发送一次空表单并返回固定�
         .data;
 
     assert!(result.success);
-    assert_eq!(result.message, "场馆预约订单已取消");
+    assert_eq!(result.message, "研讨室预约订单已取消");
     for fragment in ["secret", "private", "学号", "token", "\n"] {
         assert!(
             !result.message.contains(fragment),
@@ -523,7 +523,7 @@ fn 场馆取消发送后所有歧义统一为不可重试_outcome_unknown_且不
             "{case}"
         );
         assert_eq!(
-            error.message, "场馆取消请求已发送，结果未知，请刷新订单后再决定是否重试",
+            error.message, "研讨室取消请求已发送，结果未知，请刷新订单后再决定是否重试",
             "{case}"
         );
         for fragment in ["secret", "private", "学号", "token", "系统繁忙", "\n"] {
@@ -546,7 +546,7 @@ fn 场馆取消详情核对错误使用固定安全文案且不越过写边界()
             Scenario::new([r#"{"code":500,"message":"学号=private token=secret\n失败"}"#.into()]),
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
-            "场馆取消资格核对响应无效",
+            "研讨室取消资格核对响应无效",
             1,
             1,
         ),
@@ -555,7 +555,7 @@ fn 场馆取消详情核对错误使用固定安全文案且不越过写边界()
             Scenario::with_detail_replies([DetailReply::TransportError]),
             ErrorCode::NetworkError,
             ErrorKind::Network,
-            "场馆取消资格核对暂时不可用",
+            "研讨室取消资格核对暂时不可用",
             1,
             1,
         ),
@@ -567,7 +567,7 @@ fn 场馆取消详情核对错误使用固定安全文案且不越过写边界()
             ]),
             ErrorCode::AuthenticationRequired,
             ErrorKind::Authentication,
-            "场馆取消资格核对需要重新认证",
+            "研讨室取消资格核对需要重新认证",
             2,
             2,
         ),

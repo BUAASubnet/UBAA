@@ -128,7 +128,7 @@ cargo clippy --locked -p ubaa-flutter-bridge --all-targets --all-features -- -D 
 
 任何失败要保留安全的错误类别、工具版本和阶段，不保留凭据、个人数据或原始上游响应。
 
-取消写入口的跨层边界：`BridgeBackend` 可以把图书馆状态名和场馆订单/审核状态投影为公开展示字段，
+取消写入口的跨层边界：`BridgeBackend` 可以把图书馆状态名和研讨室订单/审核状态投影为公开展示字段，
 但共享 UI 只消费 Core 派生的 typed `cancelEligibility/cancelTarget`，不按展示状态、中文文案或时间截止规则自行
 判断。缺失、格式未知或目标不一致时入口默认关闭；Core prepare/commit 负责最终资格、时区、会话和上游错误判定。
 取消仍沿用一次性 `WriteIntent`，不增加后台重试或跨路线切换。
@@ -220,13 +220,13 @@ iOS simulator、Android APK 全部成功，macOS 另通过宿主 integration smo
 （提交 `993f5a2`）的三个 job 全部成功。两条 run 均为无签名确定性证据，不替代 OHOS 签名、实体设备
 或正式发布门禁。
 
-历史提交 `5dc6dcf` 的 UI 增量保持当时平台边界不变：博雅状态门禁只消费 bridge 白名单字段，场馆多时段只在
+历史提交 `5dc6dcf` 的 UI 增量保持当时平台边界不变：博雅状态门禁只消费 bridge 白名单字段，研讨室多时段只在
 同站点/日期/空间内组合 typed 选择，避免呈现桥接合同必拒绝的跨空间组合，最终资格和冲突仍由 Core prepare 校验。该变化由 `ubaa_ui` 42 项测试和
 `just flutter-check` 覆盖，不增加原生 handler、凭据、权限或签名要求；平台矩阵仍按无签名 Debug/静态证据
 与实体设备后置 `BLOCKED` 分开记录。
 
 上述历史 UI 规则已由 Phase 11 的 Core typed eligibility、稳定 action 和单次发送合同收口；展示字段不再
-决定写资格，场馆选择另受一至两个相邻时段约束，现行规则见 [UI 规格](../design/flutter-ui-spec.md)。
+决定写资格，研讨室选择另受一至两个相邻时段约束，现行规则见 [UI 规格](../design/flutter-ui-spec.md)。
 
 
 照片适配当前经 [media.dart](../../packages/ubaa_platform/lib/src/media.dart) 定义能力边界，[PluginPhotoPicker](../../packages/ubaa_platform/lib/src/media/plugin_photo.dart) 使用 image_picker 选择/拍摄照片，[DesktopFilePhotoPicker](../../packages/ubaa_platform/lib/src/media/desktop_photo.dart) 使用 file_selector。共享读取校验限制图片为 10 MiB 内的可解码内容；只将受限内存字节、展示名与 MIME 交给 Host，不暴露插件路径。Android 相机请求沿现有插件限制预览尺寸与质量，跨进程遗失结果只清理，不附回新账号。平台默认能力的选择以 [defaults.dart](../../packages/ubaa_platform/lib/src/defaults.dart) 为准，插件注册成功仍需对应平台验收。

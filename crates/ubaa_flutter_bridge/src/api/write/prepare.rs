@@ -392,12 +392,12 @@ impl BridgeClient {
                     crate::api::client::BridgeErrorCode::UpstreamChanged,
                     crate::api::client::BridgeErrorKind::Upstream,
                     false,
-                    "场馆预约资格缺少权威目标",
+                    "研讨室预约资格缺少权威目标",
                 )
             })?;
             let reservation_date = safe_summary_label(&current.data.reservation_date, "预约日期");
             let target_summary = format!(
-                "场馆 {} · 日期 {} · 空间 {} · 时段 {}",
+                "研讨室 {} · 日期 {} · 空间 {} · 时段 {}",
                 current.data.venue_site_id, reservation_date, first.space_id, times,
             );
             let canonical = cgyy_canonical(&request);
@@ -435,7 +435,7 @@ impl BridgeClient {
                     crate::api::client::BridgeErrorCode::UpstreamChanged,
                     crate::api::client::BridgeErrorKind::Upstream,
                     false,
-                    "场馆订单取消目标与请求不一致",
+                    "研讨室订单取消目标与请求不一致",
                 ));
             }
             let start = safe_optional_summary(current.data.reservation_start_date.as_deref());
@@ -444,7 +444,7 @@ impl BridgeClient {
                 BridgeWriteOperation::CgyyCancelOrder,
                 format!("order_id={}", request.order_id),
                 format!(
-                    "场馆订单 {} · 状态 {}/{} · 预约 {} 至 {}",
+                    "研讨室订单 {} · 状态 {}/{} · 预约 {} 至 {}",
                     request.order_id,
                     current.data.order_status,
                     current.data.check_status,

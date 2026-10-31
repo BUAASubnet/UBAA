@@ -1,16 +1,16 @@
 use clap::{Args, Subcommand};
 
-/// 场馆预约命令组。
+/// 研讨室预约命令组。
 #[derive(Debug, Args)]
 pub struct CgyyArgs {
     #[command(subcommand)]
     pub command: CgyyCommand,
 }
 
-/// 场馆预约只读操作。
+/// 研讨室预约只读操作。
 #[derive(Debug, Subcommand)]
 pub enum CgyyCommand {
-    /// 查询场馆站点。
+    /// 查询研讨室站点。
     Sites,
     /// 查询预约用途。
     Purposes,
@@ -42,7 +42,7 @@ pub enum CgyyCommand {
         #[arg(long = "confirm-write")]
         confirm_write: bool,
     },
-    /// 提交场馆预约；敏感请求从标准输入读取。
+    /// 提交研讨室预约；敏感请求从标准输入读取。
     Submit {
         #[arg(long)]
         request_stdin: bool,

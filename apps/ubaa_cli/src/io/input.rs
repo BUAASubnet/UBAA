@@ -49,23 +49,23 @@ pub(crate) fn read_cgyy_request_stdin() -> Result<CgyyReservationSubmitRequest> 
     let mut input = String::new();
     std::io::stdin()
         .read_to_string(&mut input)
-        .map_err(|_| invalid_input("无法读取场馆预约请求"))?;
+        .map_err(|_| invalid_input("无法读取研讨室预约请求"))?;
     parse_cgyy_request(&input)
 }
 
 pub(crate) fn parse_cgyy_request(input: &str) -> Result<CgyyReservationSubmitRequest> {
     let value: Value =
-        serde_json::from_str(input).map_err(|_| invalid_input("场馆预约请求必须是 JSON 对象"))?;
+        serde_json::from_str(input).map_err(|_| invalid_input("研讨室预约请求必须是 JSON 对象"))?;
     if value.as_object().is_some_and(|object| {
         CGYY_PRIVATE_CAPTCHA_FIELDS
             .iter()
             .any(|field| object.contains_key(*field))
     }) {
         return Err(invalid_input(
-            "场馆预约请求不得包含由 Core 内部管理的验证码字段",
+            "研讨室预约请求不得包含由 Core 内部管理的验证码字段",
         ));
     }
-    serde_json::from_value(value).map_err(|_| invalid_input("场馆预约请求必须是 JSON 对象"))
+    serde_json::from_value(value).map_err(|_| invalid_input("研讨室预约请求必须是 JSON 对象"))
 }
 
 const CGYY_PRIVATE_CAPTCHA_FIELDS: [&str; 12] = [
@@ -424,7 +424,7 @@ mod tests {
             assert_eq!(error.code, ErrorCode::InvalidInput);
             assert_eq!(
                 error.message,
-                "场馆预约请求不得包含由 Core 内部管理的验证码字段"
+                "研讨室预约请求不得包含由 Core 内部管理的验证码字段"
             );
             assert!(!error.message.contains(field));
             assert!(!error.message.contains("PRIVATE-CAPTCHA-VALUE"));

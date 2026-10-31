@@ -1,4 +1,4 @@
-# P4-D 图书馆与场馆展示来源和接入计划
+# P4-D 图书馆与研讨室展示来源和接入计划
 
 > 本页保留原审查时点的路径、行号与缺口。当前 Dart 适配位于 [bridge/features](../../packages/ubaa_app/lib/src/bridge/features/)，UI 位于 [features](../../packages/ubaa_ui/lib/src/features/)，完整定位见[文档索引](../index.md#按修改内容定位)。表内旧路径仅用于结合原提交追溯，不能作为当前源码入口。
 
@@ -6,7 +6,7 @@
 
 ## 总体裁决
 
-保留图书馆5个只读视图：馆列表、馆区列表、分区详情、座位查询、预约记录；保留场馆6个只读视图：站点、用途、日期空间、订单列表、订单详情、门锁状态。楼层作为馆列表中的typed嵌套选择，不虚构额外上游API。所有现有手输ID/日期/时间/时段/页码/容量入口保留；typed选择只填草稿，显式应用才请求。可另提供实体上的“查看馆区/详情”typed导航，明确其会发起读取，与填草稿区别开。
+保留图书馆5个只读视图：馆列表、馆区列表、分区详情、座位查询、预约记录；保留研讨室6个只读视图：站点、用途、日期空间、订单列表、订单详情、门锁状态。楼层作为馆列表中的typed嵌套选择，不虚构额外上游API。所有现有手输ID/日期/时间/时段/页码/容量入口保留；typed选择只填草稿，显式应用才请求。可另提供实体上的“查看馆区/详情”typed导航，明确其会发起读取，与填草稿区别开。
 
 P4-D仅改变公开DTO到App presentation/UI的投影，不更改Bridge v9、Core参数、状态、资格、写入流程。父层搜索、草稿、分页与返回栈按已实现typed导航合同保留。无网络或真实写入授权由本计划推导。
 
@@ -19,13 +19,13 @@ P4-D仅改变公开DTO到App presentation/UI的投影，不更改Bridge v9、Cor
 | 分区详情 | App只拼availableDates和slot.label，丢slot.id/start/end | AreaDetail id/name/availableDates/timeSlots(id/start/end/label)；原顺序、原字符串，不从label切出时间。不新增座位平面坐标。 |
 | 座位 | App座位分支已有完整LibbookReserveAction，但正文仍通用fields | Seat id/name/no/status?/statusName +本次query的areaId/day/segment/startTime/endTime。action独立保留，不从id或状态文案重建reserveTarget。无目标也可展示未知座位。 |
 | 预约记录 | App已有LibbookCancelAction和服务器pagination | Booking id/nameMerge/areaName/seatNo/day/beginTime/endTime/status?/statusName；独立资格/target及原page/limit/total。没有公开预约详情API，不能虚构网络详情入口。 |
-| 场馆站点 | `packages/ubaa_app/lib/src/bridge/read/cgyy.dart` summary通用fields，UI从“站点 ID”反推 | Site id/siteName/venueName/campusName/seatCount?/reservationSpaceCount?/openStartDate?/openEndDate?/siteTelephone?；电话是场馆公开联系方式，可放更多信息，不变成用户资料。日期空间导航siteId；开放区间只展示，不自行裁定资格或构造可预约日期。 |
+| 研讨室站点 | `packages/ubaa_app/lib/src/bridge/read/cgyy.dart` summary通用fields，UI从“站点 ID”反推 | Site id/siteName/venueName/campusName/seatCount?/reservationSpaceCount?/openStartDate?/openEndDate?/siteTelephone?；电话是研讨室公开联系方式，可放更多信息，不变成用户资料。日期空间导航siteId；开放区间只展示，不自行裁定资格或构造可预约日期。 |
 | 用途 | App已有source文案，未保留typed key | Purpose key/name+来源Upstream/StaticFallback；保留独立只读入口和表单typed选择，不能以用途名称当key，不能隐藏冻结回退来源。 |
 | 日期空间 | App cgyyDayInfo循环中会continue丢弃所有非allowed/坏目标；只剩“可预约时段” | DayInfo venueSiteId/reservationDate/availableDates/reservationTotalNum? +timeSlots(id/beginTime/endTime/label) +spaces(spaceId/spaceName/venueSiteId/venueSpaceGroupId?/slots)。每slot保留timeId/reservationStatus?/startDate?/endDate?/eligibility与独立target。显示所有公开slot，包括denied/unknown，不能把结果计数称为全部可预约时段。 |
 | 订单及详情 | App `_mapCgyyOrdersResult/_mapCgyyOrderDetailResult`通用fields；UI从“订单编号”反推 | Order id/venueSiteId?/reservationDate?/reservationDateDetail?/venueSpaceName?/campusName?/venueName?/siteName?/reservationStartDate?/reservationEndDate?/orderStatus?/checkStatus?/theme?/purposeTypeName?/joinerNum?；独立取消资格、cancelTarget、cancelledTarget。列表点击用正整数typed id→orderDetail；保留原分页number/size/totalElements/totalPages。 |
 | 门锁 | App cgyyLockCode仅available | 仅available布尔与成功/错误状态；不得补锁码、token、二维码或复制敏感值入口。 |
 
-公共字段位置：`crates/ubaa_flutter_bridge/src/api/read/mod.rs:345`(馆)、`:353`(楼层)、`:360`(区域)、`:370`(时段)、`:377`(详情)、`:384`(座位)、`:394`(预约)、`:408`(分页)；场馆`:487`(站点)、`:499`/`:509`(用途及来源)、`:514`(时段)、`:521`(预约target)、`:530`(slot)、`:539`(space)、`:547`(day)、`:560`(order)、`:581`(page)、`:601`(lock)。这些是本轮字段上限，Core中更多内部字段不等于Host可公开字段。
+公共字段位置：`crates/ubaa_flutter_bridge/src/api/read/mod.rs:345`(馆)、`:353`(楼层)、`:360`(区域)、`:370`(时段)、`:377`(详情)、`:384`(座位)、`:394`(预约)、`:408`(分页)；研讨室`:487`(站点)、`:499`/`:509`(用途及来源)、`:514`(时段)、`:521`(预约target)、`:530`(slot)、`:539`(space)、`:547`(day)、`:560`(order)、`:581`(page)、`:601`(lock)。这些是本轮字段上限，Core中更多内部字段不等于Host可公开字段。
 
 ## 日期与时段：必须保留的边界
 
@@ -37,12 +37,12 @@ Core内部 `parse_area_detail_for_day`（同parser`:193`）能从原始响应唯
 
 明确手输仍保留areaId/date/start/end/segment；“需核对该日期时段”的说明不修改原校验。Libbook座位读取方法参数为area/day/start/end，segment不参与座位读取但参与reserveAction，不能省略或拿显示label替代。选择slot若可确认，原slot.id/start/end同时回填；任何父馆/楼层/分区/日期变化应清空联动产生的旧slot/座位/action，不能用新日期悄悄重标旧action。手工草稿与已应用query分别保留，返回旧缓存须恢复其原上下文。
 
-场馆DayInfo有明确reservationDate和venueSiteId，可以按它的availableDates选择后重新query该site/date；旧时段不直接迁移给新日期。timeSlot按唯一timeId关联，重复/缺失映射显示“时段信息不完整”，不能采用first匹配构造authority。reservationTarget中的timeOrdinal是当前fresh响应顺序，不是timeId排序、不是时间字符串推算；多选仅沿同站点/日期/space/group的typed target及已有连续性校验。
+研讨室DayInfo有明确reservationDate和venueSiteId，可以按它的availableDates选择后重新query该site/date；旧时段不直接迁移给新日期。timeSlot按唯一timeId关联，重复/缺失映射显示“时段信息不完整”，不能采用first匹配构造authority。reservationTarget中的timeOrdinal是当前fresh响应顺序，不是timeId排序、不是时间字符串推算；多选仅沿同站点/日期/space/group的typed target及已有连续性校验。
 
 ## 状态、动作来源
 
 - 图书馆：`features/libbook/parser.rs:267` seat status1+非空目标allowed，2/3+目标denied，其它unknown；`:320` booking status1+目标allowed，6/8+目标denied，其它unknown。statusName仅展示，不授予资格。action定义 `packages/ubaa_domain/lib/src/write/actions.dart:136`及`:267`，保留prepare→确认→commit→固定查询readback与unknown停止边界。没有target不生成action，仍展示短原因。
-- 场馆：`features/cgyy/parser.rs:417` 除reservationStatus，还检查身份、timeOrdinal及内部tradeNo/orderId/takeUp有效性；status1且未占用才allowed，其它已知状态denied，缺失/畸形/身份不完整unknown。因此**不能把denied一概显示“已占用”**，应以公开原始状态给保守文案并另显示不可预约；内部字段被Bridge有意剔除，不得补曝光来“解释原因”。
+- 研讨室：`features/cgyy/parser.rs:417` 除reservationStatus，还检查身份、timeOrdinal及内部tradeNo/orderId/takeUp有效性；status1且未占用才allowed，其它已知状态denied，缺失/畸形/身份不完整unknown。因此**不能把denied一概显示“已占用”**，应以公开原始状态给保守文案并另显示不可预约；内部字段被Bridge有意剔除，不得补曝光来“解释原因”。
 - App现只给allowed有效target生成CgyyReserveAction；P4-D保留此权威，不因显示denied/unknown而新增可点写入。现UI `_isUsableCgyyReserveAction/_cgyyReserveCandidates` 位于 `features/cgyy.dart`，按同site/date/space/group筛选并以typed timeOrdinal排序；不得从新presentation/FeatureField猜target。
 - 取消：CgyyCancelAction定义`actions.dart:198`及hasCanonicalTarget`:220`，同时保留cancelTarget与cancelledTarget（已取消的幂等/回读语义），不是“订单ID存在就可取消”。订单状态和审核状态沿App既有 `_cgyyOrderStatusText/_cgyyCheckStatusText` 映射，并保留未知数值；显示理由不重算资格。
 - 成功读取但无允许时段，不等于没有任何空间；新只读投影不能继续用allowed过滤造成假空。网络/解析错误不可替换为empty；stale显示旧数据及原query，不把旧action绑定到新筛选。
@@ -52,18 +52,18 @@ Core内部 `parse_area_detail_for_day`（同parser`:193`）能从原始响应唯
 | 领域 | 冻结API/DTO/本地实现/测试 | examples与已有parity列 |
 |---|---|---|
 | 图书馆 | old `shared/.../api/feature/LibBookApi.kt:23`、`:25`、`:31`、`:33`、`:42`五读；`model/dto/LibBook.kt:7`、`:16`、`:24`、`:35`、`:43`、`:51`、`:84`、`:92`；`api/local/LocalLibBookApi.kt:54`、`:57`、`:66`、`:69`、`:109`及`:466`日期投影；`shared/src/commonTest/.../LocalLibBookApiBackendTest.kt:68`含单日期times脱敏例，`:307`取消已结束错误；LibBookBookingStatusTest与LibBookReserveScreenLogicTest供状态/选择交叉来源 | 固定examples/buaa-api没有booking.lib/v4等价模块；不借其它预约API。`docs/migration/source-parity.md:264`九列覆盖基址、CAS跳转、独立token、五POST JSON方法参数、headers、只读无AES、DTO、缓存、错误；写入AES与preflight沿已有写合同，不重做无关协议。 |
-| 场馆 | old `api/feature/CgyyApi.kt`、`model/dto/Cgyy.kt`；`api/local/LocalCgyyApi.kt:58`站点、`:63`用途、`:69`日期空间、`:182`订单、`:194`详情、`:207`锁；`:339`slot状态、`:477`day请求；对应LocalCgyyApiBackendTest、CgyyOrderDateDisplayTest、CgyyOrderCancellationTest、CgyyOrderStatusTest | examples/buaa-api无venue-zhjs-server等价实现；已有HAR说明是历史受控证据，本文未读取HAR/响应。`source-parity.md:594`逐操作九列覆盖站点/用途/日期空间/订单/详情/锁；`:278`及写批次矩阵描述提交边界；`:590`Bridge禁止交易号/内部占用审计等公开。不得由旧DTO含字段就向Host加字段。 |
+| 研讨室 | old `api/feature/CgyyApi.kt`、`model/dto/Cgyy.kt`；`api/local/LocalCgyyApi.kt:58`站点、`:63`用途、`:69`日期空间、`:182`订单、`:194`详情、`:207`锁；`:339`slot状态、`:477`day请求；对应LocalCgyyApiBackendTest、CgyyOrderDateDisplayTest、CgyyOrderCancellationTest、CgyyOrderStatusTest | examples/buaa-api无venue-zhjs-server等价实现；已有HAR说明是历史受控证据，本文未读取HAR/响应。`source-parity.md:594`逐操作九列覆盖站点/用途/日期空间/订单/详情/锁；`:278`及写批次矩阵描述提交边界；`:590`Bridge禁止交易号/内部占用审计等公开。不得由旧DTO含字段就向Host加字段。 |
 
 ## 实施顺序与关键RED（尚未执行）
 
 1. App/domain增最小typed presentation，保留原FeatureField兼容与actions，不动协议。RED用“展示假ID vs typed真实ID”证明馆/楼层/分区/站点/订单导航来自DTO；各种异域presentation注入同FeatureId仍回退通用展示，不能cast崩溃或丢项。
 2. 图书馆父选择与返回栈：同名不同ID楼馆/楼层隔离；返回保留父搜索和分页；换馆不能继续选旧storey，换分区日期不能沿旧segment/action；epoch变化伴新loading后success能补新选项，旧/迟到快照不能复活；仅填草稿不增加readContext，请求后精确检查其参数。
 3. 日期关联RED：两日期不同times不能复制；首项空日期+times与第二日期不能错配；顶层times回退无来源不得自动确认；缺id/start/end或空列表只读保留；手输完整原值仍走既有query。该组是首日自动选择是否有证据的前置门槛，不得靠最后Core拒绝过关。
-4. 场馆全状态RED：allowed/denied/unknown三slot都可读，只有allowed规范target可写；显示“可预约”字符串但unknown无target不能写；重复timeId不随意关联；同space名跨site/date不混组，timeId非顺序数仍按target.timeOrdinal；切日期后必须重新read，不能复用旧动作。
+4. 研讨室全状态RED：allowed/denied/unknown三slot都可读，只有allowed规范target可写；显示“可预约”字符串但unknown无target不能写；重复timeId不随意关联；同space名跨site/date不混组，timeId非顺序数仍按target.timeOrdinal；切日期后必须重新read，不能复用旧动作。
 5. 订单/用途/门锁RED：正整数typed orderId导航；列表页1/2真实服务器元数据和固定路线回读不变；取消资格unknown/denied/已取消target状态不被展示status覆盖；用途fallback来源保留；门锁仅available，禁止新增原始data输出。
 6. 手输兼容、600/1000断点、1.3长名称、手机键盘滚动与完整按钮可达；列表/详情筛选恢复。原生图由主代理冻结候选后独立执行；本计划不制作伪viewport或已通过截图证据。
 
-最小文件范围建议：`ubaa_domain/.../presentation`新图书馆/场馆模型；App `bridge/read/libbook.dart`、`cgyy.dart`；UI `features/libbook.dart`、`cgyy.dart`及新领域内容part；`common/query_controls.dart`必要typed输入/缓存；沿既有FeatureReadNavigation与shell栈。保留所有原读视图与手填控制，不把领域展示改为通用字段表。完整跨日期自动图书馆时段关联维持阻塞，不改Core/Bridge v9。
+最小文件范围建议：`ubaa_domain/.../presentation`新图书馆/研讨室模型；App `bridge/read/libbook.dart`、`cgyy.dart`；UI `features/libbook.dart`、`cgyy.dart`及新领域内容part；`common/query_controls.dart`必要typed输入/缓存；沿既有FeatureReadNavigation与shell栈。保留所有原读视图与手填控制，不把领域展示改为通用字段表。完整跨日期自动图书馆时段关联维持阻塞，不改Core/Bridge v9。
 
 
 ## D1图书馆执行补记

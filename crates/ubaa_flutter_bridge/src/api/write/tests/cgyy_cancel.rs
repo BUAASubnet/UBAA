@@ -28,7 +28,7 @@ fn 场馆取消core意外返回false时bridge固定失败关闭() {
     assert_eq!(error.code, BridgeErrorCode::UpstreamChanged);
     assert_eq!(error.kind, BridgeErrorKind::Upstream);
     assert!(!error.retryable);
-    assert_eq!(error.message, "场馆订单取消响应未确认成功");
+    assert_eq!(error.message, "研讨室订单取消响应未确认成功");
     assert_eq!(error.resolved_route, Some(BridgeConnectionMode::Direct));
 }
 
@@ -44,7 +44,7 @@ fn 场馆取消错误在bridge边界保持发送阶段并固定脱敏文案() {
         resolution: None,
     });
     assert_eq!(authority.code, BridgeErrorCode::UpstreamChanged);
-    assert_eq!(authority.message, "场馆订单取消资格核对响应无效");
+    assert_eq!(authority.message, "研讨室订单取消资格核对响应无效");
 
     let pre_send = map_commit_error(
         BridgeWriteOperation::CgyyCancelOrder,
@@ -269,7 +269,7 @@ async fn 场馆取消commit重新fresh复核后恰好发送一次且意图只消
         .expect("明确成功应返回安全结果");
 
     assert!(result.success);
-    assert_eq!(result.message, "场馆订单已取消");
+    assert_eq!(result.message, "研讨室订单已取消");
     assert!(!result.outcome_unknown);
     assert_eq!(result.resolved_route, Some(BridgeConnectionMode::Direct));
     assert!(result.cgyy_receipt.is_none());

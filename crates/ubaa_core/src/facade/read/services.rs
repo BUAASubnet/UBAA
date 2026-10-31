@@ -1,4 +1,4 @@
-//! 用户、博雅、场馆、评教、图书馆与阳光打卡只读入口。
+//! 用户、博雅、研讨室、评教、图书馆与阳光打卡只读入口。
 
 use crate::domain::{
     BykcChosenCourse, BykcCourse, BykcCoursePage, BykcStatistics, BykcUserProfile, CgyyDayInfo,
@@ -104,7 +104,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// 查询场馆站点。
+    /// 查询研讨室站点。
     ///
     /// # Errors
     ///
@@ -116,7 +116,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// 查询场馆用途类型。
+    /// 查询研讨室用途类型。
     ///
     /// # Errors
     ///
@@ -129,7 +129,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// 查询场馆用途并保留上游或静态回退来源诊断。
+    /// 查询研讨室用途并保留上游或静态回退来源诊断。
     ///
     /// # Errors
     ///
@@ -145,7 +145,7 @@ impl UbaaClient {
         )
     }
 
-    /// 查询场馆日期可用性。
+    /// 查询研讨室日期可用性。
     ///
     /// # Errors
     ///
@@ -155,7 +155,7 @@ impl UbaaClient {
         self.log_cgyy_route(resolution, "day.info");
         if site_id <= 0 || date.trim().is_empty() {
             return Err(routed_error(
-                invalid_input("场馆站点和日期不能为空"),
+                invalid_input("研讨室站点和日期不能为空"),
                 resolution,
             ));
         }
@@ -165,7 +165,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// 查询我的场馆订单。
+    /// 查询我的研讨室订单。
     ///
     /// # Errors
     ///
@@ -181,7 +181,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// 在调用方显式固定的已认证路线查询我的场馆订单，不执行策略解析或 Auto 回退。
+    /// 在调用方显式固定的已认证路线查询我的研讨室订单，不执行策略解析或 Auto 回退。
     ///
     /// # Errors
     ///
@@ -201,7 +201,7 @@ impl UbaaClient {
         self.finish_caller_pinned(route, result)
     }
 
-    /// 查询场馆订单详情。
+    /// 查询研讨室订单详情。
     ///
     /// # Errors
     ///
@@ -220,7 +220,7 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// 在调用方显式固定的已认证路线查询场馆订单详情，不执行策略解析或 Auto 回退。
+    /// 在调用方显式固定的已认证路线查询研讨室订单详情，不执行策略解析或 Auto 回退。
     ///
     /// # Errors
     ///
@@ -239,7 +239,7 @@ impl UbaaClient {
         self.finish_caller_pinned(route, result)
     }
 
-    /// 查询场馆订单锁码。
+    /// 查询研讨室订单锁码。
     ///
     /// # Errors
     ///

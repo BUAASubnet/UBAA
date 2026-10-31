@@ -162,17 +162,17 @@ fn 场馆订单实际序列化保持strict证明与兼容id一致() {
 #[test]
 fn 场馆取消结果只接受成功布尔与固定安全消息() {
     let validator = definition_validator("cgyyCancelOrderResult");
-    let success = json!({"success": true, "message": "场馆订单已取消"});
+    let success = json!({"success": true, "message": "研讨室订单已取消"});
     assert!(validator.is_valid(&success), "安全结果应有效：{success}");
 
     for invalid in [
         json!({"success": true}),
-        json!({"message": "场馆订单已取消"}),
-        json!({"success": false, "message": "场馆订单取消未完成"}),
+        json!({"message": "研讨室订单已取消"}),
+        json!({"success": false, "message": "研讨室订单取消未完成"}),
         json!({"success": true, "message": "RAW-UPSTREAM"}),
-        json!({"success": true, "message": "场馆订单已取消", "order": canonical_order()}),
-        json!({"success": true, "message": "场馆订单已取消", "phone": "PRIVATE"}),
-        json!({"success": true, "message": "场馆订单已取消", "tradeNo": "PRIVATE"}),
+        json!({"success": true, "message": "研讨室订单已取消", "order": canonical_order()}),
+        json!({"success": true, "message": "研讨室订单已取消", "phone": "PRIVATE"}),
+        json!({"success": true, "message": "研讨室订单已取消", "tradeNo": "PRIVATE"}),
     ] {
         assert!(
             !validator.is_valid(&invalid),
@@ -232,7 +232,7 @@ async fn 场馆取消路由后端只调用一次并固定安全成功结果() {
     assert_eq!(value["schemaVersion"], 12);
     assert_eq!(value["ok"], true);
     assert_eq!(value["data"]["success"], true);
-    assert_eq!(value["data"]["message"], "场馆订单已取消");
+    assert_eq!(value["data"]["message"], "研讨室订单已取消");
     assert_eq!(value["meta"]["feature"], "cgyy");
     assert_eq!(backend.cgyy_cancel_calls, 1);
     assert_eq!(
@@ -270,7 +270,7 @@ async fn 场馆取消outcome_unknown退出5且只调用一次并隐藏原始正�
     assert_eq!(value["error"]["retryable"], false);
     assert_eq!(
         value["error"]["message"],
-        "场馆订单取消结果未知，请刷新订单列表与详情核对后再操作"
+        "研讨室订单取消结果未知，请刷新订单列表与详情核对后再操作"
     );
     assert_eq!(backend.cgyy_cancel_calls, 1);
     for forbidden in ["RAW-UPSTREAM", "PRIVATE", "phone", "token", "Set-Cookie"] {
@@ -296,7 +296,7 @@ async fn 场馆取消发送前结构变化使用固定安全错误且只调用�
     assert_eq!(exit, 6);
     assert_cli_schema(&value);
     assert_eq!(value["error"]["code"], "upstream_changed");
-    assert_eq!(value["error"]["message"], "场馆订单取消资格核对响应无效");
+    assert_eq!(value["error"]["message"], "研讨室订单取消资格核对响应无效");
     assert_eq!(backend.cgyy_cancel_calls, 1);
     for forbidden in ["RAW-UPSTREAM", "PRIVATE", "phone", "token"] {
         assert!(!serialized.contains(forbidden));
@@ -337,7 +337,7 @@ async fn 固定路线场馆取消同样校验typed请求且只调用一次() {
 
     assert_eq!(exit, 0);
     assert_cli_schema(&value);
-    assert_eq!(value["data"]["message"], "场馆订单已取消");
+    assert_eq!(value["data"]["message"], "研讨室订单已取消");
     assert_eq!(backend.cgyy_cancel_calls, 1);
     assert_eq!(
         backend
@@ -357,13 +357,13 @@ async fn 固定路线场馆取消错误也固定脱敏且只调用一次() {
             CgyyCancelFixtureResult::OutcomeUnknown,
             5,
             "outcome_unknown",
-            "场馆订单取消结果未知，请刷新订单列表与详情核对后再操作",
+            "研讨室订单取消结果未知，请刷新订单列表与详情核对后再操作",
         ),
         (
             CgyyCancelFixtureResult::PreSendChanged,
             6,
             "upstream_changed",
-            "场馆订单取消资格核对响应无效",
+            "研讨室订单取消资格核对响应无效",
         ),
     ] {
         let cli = Cli::try_parse_from(cancel_arguments(42, true)).unwrap();

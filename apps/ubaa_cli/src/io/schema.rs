@@ -54,7 +54,7 @@ pub enum CliFeature {
     Bykc,
     /// 阳光打卡查询。
     Ygdk,
-    /// 场馆预约查询。
+    /// 研讨室预约查询。
     Cgyy,
     /// 教学评教查询。
     Evaluation,

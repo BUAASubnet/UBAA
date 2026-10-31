@@ -36,12 +36,13 @@ pub(super) async fn ensure_login(runtime: &mut ClientRuntime) -> Result<String> 
     }
     debug!(target: "ubaa::cgyy", operation = "business_login.sso", route = ?runtime.mode(), bootstrap_url = %safe_url(LOGIN_URL), "请求 Cgyy SSO 引导");
     let response =
-        super::super::get_with_redirects(runtime, runtime.url(LOGIN_URL)?, &[], "场馆预约").await?;
+        super::super::get_with_redirects(runtime, runtime.url(LOGIN_URL)?, &[], "研讨室预约")
+            .await?;
     log_response(runtime, "business_login.sso", &response);
-    super::super::check_response(&response, "场馆预约")?;
+    super::super::check_response(&response, "研讨室预约")?;
     let Some(sso_token) = get_sso_token(runtime).await? else {
         warn!(target: "ubaa::cgyy", operation = "business_login.sso", route = ?runtime.mode(), sso_cookie_present = false, "Cgyy SSO 响应未写入令牌 Cookie");
-        return Err(authentication_error("未获取到场馆预约 SSO 令牌"));
+        return Err(authentication_error("未获取到研讨室预约 SSO 令牌"));
     };
     debug!(target: "ubaa::cgyy", operation = "business_login.sso", sso_cookie_present = true, sso_cookie_len = sso_token.len(), "已取得 Cgyy SSO Cookie");
     let mut request = signed_request(
@@ -61,14 +62,14 @@ pub(super) async fn ensure_login(runtime: &mut ClientRuntime) -> Result<String> 
     );
     let response = runtime.request(request).await?;
     log_response(runtime, "business_login.api", &response);
-    super::super::check_response(&response, "场馆预约")?;
+    super::super::check_response(&response, "研讨室预约")?;
     let value = data(&super::super::body(&response))?;
     let token = value
         .get("token")
         .and_then(Value::as_object)
         .and_then(|token| string(token, "access_token"))
         .filter(|token| !token.is_empty())
-        .ok_or_else(|| authentication_error("场馆预约登录未返回访问令牌"))?;
+        .ok_or_else(|| authentication_error("研讨室预约登录未返回访问令牌"))?;
     state.cgyy.set(token.clone());
     info!(target: "ubaa::cgyy", operation = "business_login", access_token_len = token.len(), "Cgyy 业务会话建立完成");
     Ok(token)
@@ -117,7 +118,7 @@ pub(super) async fn business_request(
         );
         let response = runtime.request(request).await?;
         log_response(runtime, operation, &response);
-        match check_business_response(&response, "场馆预约") {
+        match check_business_response(&response, "研讨室预约") {
             Ok(()) => {
                 info!(target: "ubaa::cgyy", feature = "cgyy", operation, attempt = attempt + 1, elapsed_ms = elapsed_millis(started), "Cgyy 请求成功");
                 return Ok(super::super::body(&response));
@@ -153,7 +154,7 @@ fn elapsed_millis(started: Instant) -> u64 {
 /// Core 不执行网页脚本，因此在 `WebVPN` 路线显式重放这个只读同步请求。令牌只在
 /// 当前请求内存中流转，不写入 Core 会话、日志或文件。
 async fn get_sso_token(runtime: &mut ClientRuntime) -> Result<Option<String>> {
-    // Cookie 的路径按实际场馆服务根目录匹配；不能使用 WebVPN 前端别名路径，
+    // Cookie 的路径按实际研讨室服务根目录匹配；不能使用 WebVPN 前端别名路径，
     // 否则上游返回 `Path=/venue-zhjs-server/` 时会被错误过滤。
     if let Some(token) = runtime.cookie_value(SSO_COOKIE, LOGIN_URL)? {
         return Ok((!token.is_empty()).then_some(token));

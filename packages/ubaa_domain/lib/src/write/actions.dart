@@ -158,7 +158,7 @@ class LibbookReserveAction extends FeatureAction {
   WriteOperation get operation => WriteOperation.libbookReserve;
 }
 
-/// 单个场馆时段的 Core 已核对预约目标。
+/// 单个研讨室时段的 Core 已核对预约目标。
 ///
 /// [timeOrdinal] 是时段在当次 fresh day-info 中的顺序，只用于校验
 /// 两个选择是否相邻；最终上游表单不携带该字段。
@@ -188,7 +188,7 @@ class CgyyReserveAction extends FeatureAction {
   WriteOperation get operation => WriteOperation.cgyySubmitReservation;
 }
 
-/// 单条场馆订单的 typed 取消能力。
+/// 单条研讨室订单的 typed 取消能力。
 ///
 /// [orderId]、[orderStatus] 和 [checkStatus] 仅用于兼容展示；只有
 /// [eligibility] 为 [ActionEligibility.allowed] 时 Core 才会给出

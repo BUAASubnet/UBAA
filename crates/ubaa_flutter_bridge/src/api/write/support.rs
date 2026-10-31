@@ -107,7 +107,7 @@ pub(super) fn map_cgyy_preflight_error(error: domain::RoutedError) -> BridgeErro
             BridgeErrorCode::OperationConflict,
             BridgeErrorKind::Input,
             true,
-            "场馆预约资格已变化，请刷新后重新准备",
+            "研讨室预约资格已变化，请刷新后重新准备",
         );
     }
     if error.error.code == domain::ErrorCode::UpstreamChanged {
@@ -116,7 +116,7 @@ pub(super) fn map_cgyy_preflight_error(error: domain::RoutedError) -> BridgeErro
             BridgeErrorCode::UpstreamChanged,
             BridgeErrorKind::Upstream,
             false,
-            "场馆预约资格核对响应无效",
+            "研讨室预约资格核对响应无效",
         );
     }
     BridgeError::from_routed(error)
@@ -138,7 +138,7 @@ pub(super) fn map_cgyy_cancel_preflight_error(error: domain::RoutedError) -> Bri
             BridgeErrorCode::OperationConflict,
             BridgeErrorKind::Input,
             true,
-            "场馆订单取消资格已变化，请刷新后重新准备",
+            "研讨室订单取消资格已变化，请刷新后重新准备",
         );
     }
     if error.error.code == domain::ErrorCode::UpstreamChanged {
@@ -147,7 +147,7 @@ pub(super) fn map_cgyy_cancel_preflight_error(error: domain::RoutedError) -> Bri
             BridgeErrorCode::UpstreamChanged,
             BridgeErrorKind::Upstream,
             false,
-            "场馆订单取消资格核对响应无效",
+            "研讨室订单取消资格核对响应无效",
         );
     }
     BridgeError::from_routed(error)
@@ -226,8 +226,8 @@ pub(super) fn map_commit_error(
                 "图书馆预约取消资格已变化，请刷新后重新准备"
             }
             BridgeWriteOperation::YgdkSubmit => "阳光打卡资格已变化，请刷新后重新准备",
-            BridgeWriteOperation::CgyySubmitReservation => "场馆预约资格已变化，请刷新后重新准备",
-            BridgeWriteOperation::CgyyCancelOrder => "场馆订单取消资格已变化，请刷新后重新准备",
+            BridgeWriteOperation::CgyySubmitReservation => "研讨室预约资格已变化，请刷新后重新准备",
+            BridgeWriteOperation::CgyyCancelOrder => "研讨室订单取消资格已变化，请刷新后重新准备",
             BridgeWriteOperation::EvaluationSubmitCourses => {
                 "教学评教资格已变化，请刷新课程后重新准备"
             }
@@ -260,7 +260,7 @@ pub(super) fn map_commit_error(
             BridgeErrorCode::UpstreamChanged,
             BridgeErrorKind::Upstream,
             false,
-            "场馆订单取消资格核对响应无效",
+            "研讨室订单取消资格核对响应无效",
         );
     }
     if matches!(operation, BridgeWriteOperation::YgdkSubmit)
@@ -289,7 +289,7 @@ pub(super) fn map_commit_error(
         let kind = error.error.kind.into();
         let message = match operation {
             BridgeWriteOperation::CgyyCancelOrder => {
-                "场馆订单取消结果未知，请刷新订单列表与详情核对后再操作"
+                "研讨室订单取消结果未知，请刷新订单列表与详情核对后再操作"
             }
             BridgeWriteOperation::YgdkSubmit => "阳光打卡结果未知，请刷新概览与记录后再操作",
             BridgeWriteOperation::EvaluationSubmitCourses => "教学评教结果未知，请刷新课程后核对",

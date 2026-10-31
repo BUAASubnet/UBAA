@@ -446,7 +446,7 @@ async fn 场馆取消显式确认后才调用后端() {
     assert_cli_schema(&value);
     assert_eq!(value["ok"], true);
     assert_eq!(value["data"]["success"], true);
-    assert_eq!(value["data"]["message"], "场馆订单已取消");
+    assert_eq!(value["data"]["message"], "研讨室订单已取消");
     assert_eq!(value["meta"]["feature"], "cgyy");
     assert_eq!(value["meta"]["resolvedRoute"], "direct");
     assert_eq!(backend.cgyy_cancel_calls, 1);

@@ -1,4 +1,4 @@
-//! 单路线诊断客户端的场馆查询与预约入口。
+//! 单路线诊断客户端的研讨室查询与预约入口。
 
 use crate::domain::{
     CgyyCancelOrderPreflight, CgyyCancelOrderRequest, CgyyCancelOrderResult, CgyyDayInfo,
@@ -11,7 +11,7 @@ use crate::error::Result;
 use super::{RouteClient, invalid_input};
 
 impl RouteClient {
-    /// 查询场馆站点。
+    /// 查询研讨室站点。
     ///
     /// # Errors
     ///
@@ -23,7 +23,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// 查询场馆用途类型；上游不可用时由 feature 保留冻结静态回退。
+    /// 查询研讨室用途类型；上游不可用时由 feature 保留冻结静态回退。
     ///
     /// # Errors
     ///
@@ -35,7 +35,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// 查询场馆用途并保留上游或静态回退来源诊断。
+    /// 查询研讨室用途并保留上游或静态回退来源诊断。
     ///
     /// # Errors
     ///
@@ -55,7 +55,7 @@ impl RouteClient {
         ))
     }
 
-    /// 查询场馆日期可用性。
+    /// 查询研讨室日期可用性。
     ///
     /// # Errors
     ///
@@ -67,14 +67,14 @@ impl RouteClient {
     ) -> Result<FeatureResult<CgyyDayInfo>> {
         self.guard_session_ownership()?;
         if site_id <= 0 || date.trim().is_empty() {
-            return Err(invalid_input("场馆站点和日期不能为空"));
+            return Err(invalid_input("研讨室站点和日期不能为空"));
         }
         let result = crate::features::cgyy::get_day_info(&mut self.runtime, site_id, date).await;
         let day_info = self.finish_readonly_operation(result)?;
         Ok(crate::features::feature_result(&self.runtime, day_info))
     }
 
-    /// 查询场馆订单分页。
+    /// 查询研讨室订单分页。
     ///
     /// # Errors
     ///
@@ -93,7 +93,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// 查询场馆订单详情。
+    /// 查询研讨室订单详情。
     ///
     /// # Errors
     ///
@@ -108,7 +108,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// 查询场馆预约锁码。
+    /// 查询研讨室预约锁码。
     ///
     /// # Errors
     ///
@@ -120,7 +120,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// 只读复核场馆预约订单的 typed 取消资格。
+    /// 只读复核研讨室预约订单的 typed 取消资格。
     ///
     /// # Errors
     ///
@@ -136,7 +136,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// 取消场馆预约订单。
+    /// 取消研讨室预约订单。
     ///
     /// # Errors
     ///
@@ -152,7 +152,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// 只读复核场馆预约的当前日期和唯一 typed 槽位目标。
+    /// 只读复核研讨室预约的当前日期和唯一 typed 槽位目标。
     ///
     /// # Errors
     ///
@@ -167,7 +167,7 @@ impl RouteClient {
         Ok(crate::features::feature_result(&self.runtime, data))
     }
 
-    /// 提交场馆预约；验证码材料可由调用方提供或由 Core 自动获取并校验。
+    /// 提交研讨室预约；验证码材料可由调用方提供或由 Core 自动获取并校验。
     ///
     /// # Errors
     ///

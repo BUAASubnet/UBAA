@@ -24,7 +24,7 @@ pub struct CgyyPurposeType {
     pub name: String,
 }
 
-/// 场馆用途来源，用于把上游读取和冻结静态回退区分开。
+/// 研讨室用途来源，用于把上游读取和冻结静态回退区分开。
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum CgyyPurposeSource {
@@ -35,7 +35,7 @@ pub enum CgyyPurposeSource {
     StaticFallback,
 }
 
-/// 场馆用途及其安全来源诊断。
+/// 研讨室用途及其安全来源诊断。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyPurposeTypes {
@@ -126,7 +126,7 @@ pub struct CgyyOrder {
     pub cancelled_target: Option<CgyyCancelOrderTarget>,
 }
 
-/// 场馆订单列表分页。
+/// 研讨室订单列表分页。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyOrdersPage {
@@ -137,7 +137,7 @@ pub struct CgyyOrdersPage {
     pub number: i32,
 }
 
-/// 场馆预约提交结果。
+/// 研讨室预约提交结果。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyReservationResult {
@@ -146,7 +146,7 @@ pub struct CgyyReservationResult {
     pub receipt: Option<CgyyReservationReceipt>,
 }
 
-/// 场馆门锁码的安全摘要。
+/// 研讨室门锁码的安全摘要。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyLockCode {
@@ -154,7 +154,7 @@ pub struct CgyyLockCode {
     pub available: bool,
 }
 
-/// 场馆预约提交时选择的空间及时段。
+/// 研讨室预约提交时选择的空间及时段。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyReservationSelection {
@@ -163,7 +163,7 @@ pub struct CgyyReservationSelection {
     pub venue_space_group_id: Option<i32>,
 }
 
-/// 场馆预约槽位的稳定写目标。
+/// 研讨室预约槽位的稳定写目标。
 ///
 /// `time_ordinal` 是该时段在上游完整 `spaceTimeInfo` 列表中的零基位置，
 /// 只用于本地 fresh authority 与相邻性判断，不进入最终上游表单。
@@ -178,7 +178,7 @@ pub struct CgyyReservationTarget {
     pub time_ordinal: i32,
 }
 
-/// 场馆预约 prepare 阶段的安全权威摘要。
+/// 研讨室预约 prepare 阶段的安全权威摘要。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyReservationPreflight {
@@ -187,7 +187,7 @@ pub struct CgyyReservationPreflight {
     pub targets: Vec<CgyyReservationTarget>,
 }
 
-/// 场馆预约成功后的安全收据。
+/// 研讨室预约成功后的安全收据。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyReservationReceipt {
@@ -197,21 +197,21 @@ pub struct CgyyReservationReceipt {
     pub order_status: Option<i32>,
 }
 
-/// 场馆订单取消请求；订单标识必须为 canonical 正整数。
+/// 研讨室订单取消请求；订单标识必须为 canonical 正整数。
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyCancelOrderRequest {
     pub order_id: i32,
 }
 
-/// 由 Core 从 fresh 详情派生的场馆订单取消目标。
+/// 由 Core 从 fresh 详情派生的研讨室订单取消目标。
 #[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyCancelOrderTarget {
     pub order_id: i32,
 }
 
-/// 场馆订单取消前的安全权威摘要。
+/// 研讨室订单取消前的安全权威摘要。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyCancelOrderPreflight {
@@ -222,7 +222,7 @@ pub struct CgyyCancelOrderPreflight {
     pub reservation_end_date: Option<String>,
 }
 
-/// 场馆订单取消的固定安全结果。
+/// 研讨室订单取消的固定安全结果。
 #[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyCancelOrderResult {
@@ -230,7 +230,7 @@ pub struct CgyyCancelOrderResult {
     pub message: String,
 }
 
-/// 场馆预约提交请求。
+/// 研讨室预约提交请求。
 #[derive(Clone, Default, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct CgyyReservationSubmitRequest {

@@ -867,7 +867,7 @@
       "required": ["success", "message"],
       "properties": {
         "success": { "const": true },
-        "message": { "const": "场馆订单已取消" }
+        "message": { "const": "研讨室订单已取消" }
       },
       "additionalProperties": false
     },

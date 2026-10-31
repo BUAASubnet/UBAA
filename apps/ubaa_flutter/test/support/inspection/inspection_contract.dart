@@ -85,7 +85,7 @@ void registerInspectionBackendTests() {
     }
   });
 
-  test('巡检场馆目标保留站点与日期', () async {
+  test('巡检研讨室目标保留站点与日期', () async {
     final backend = await ready();
     for (final site in [3, 7]) {
       final result = await backend.loadFeatureQuery(
@@ -132,7 +132,7 @@ void registerInspectionBackendTests() {
     expect(bykc.pagination?.total, 40);
   });
 
-  test('巡检场馆订单沿用用户可见的一基页码', () async {
+  test('巡检研讨室订单沿用用户可见的一基页码', () async {
     final backend = await ready(state: 'many');
     final first = await backend.loadFeatureQuery(
       FeatureId.cgyy,

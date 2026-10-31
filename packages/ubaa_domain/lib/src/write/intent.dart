@@ -83,7 +83,7 @@ class WriteIntent {
 /// 研讨室预约提交后用于只读核对的非敏感订单收据。
 ///
 /// 不包含交易号、手机号、主题、参与人或活动正文；完整订单仍通过受控的
-/// 场馆订单详情读取接口获取并按页面白名单投影。
+/// 研讨室订单详情读取接口获取并按页面白名单投影。
 @immutable
 class CgyyReservationReceipt {
   const CgyyReservationReceipt({

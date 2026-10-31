@@ -1,4 +1,4 @@
-//! 场馆验证码凭据的冻结 AES-ECB/PKCS#7 编码。
+//! 研讨室验证码凭据的冻结 AES-ECB/PKCS#7 编码。
 
 use aes::{Aes128, Aes192, Aes256};
 use base64::Engine as _;

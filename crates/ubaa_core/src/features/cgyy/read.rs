@@ -1,4 +1,4 @@
-//! 场馆站点、用途、日期、订单与锁码只读操作。
+//! 研讨室站点、用途、日期、订单与锁码只读操作。
 
 use std::collections::BTreeMap;
 
@@ -114,7 +114,7 @@ pub(crate) async fn get_order_detail(runtime: &mut ClientRuntime, id: i32) -> Re
         tracing::debug!(target: "ubaa::cgyy", operation = "orders.detail",
             response_identity_present = order.id > 0, identity_matches = false,
             "订单详情响应缺少匹配的目标身份");
-        return Err(super::parser::error("场馆订单详情缺失或与请求目标不符"));
+        return Err(super::parser::error("研讨室订单详情缺失或与请求目标不符"));
     }
     Ok(order)
 }
@@ -128,7 +128,7 @@ fn wrapped_order_detail(
     let raw = data
         .get("orderInfo")
         .and_then(serde_json::Value::as_object)
-        .ok_or_else(|| super::parser::error("场馆订单详情包装结构无效"))?;
+        .ok_or_else(|| super::parser::error("研讨室订单详情包装结构无效"))?;
     let mut order = super::parser::parse_order_at(raw, now);
     if requested_id <= 0
         || (raw.contains_key("id") && order.id != requested_id)
@@ -139,7 +139,7 @@ fn wrapped_order_detail(
         || order.venue_site_id.is_none_or(|value| value <= 0)
         || order.order_status.is_none()
     {
-        return Err(super::parser::error("场馆订单详情缺少订单依据或身份不符"));
+        return Err(super::parser::error("研讨室订单详情缺少订单依据或身份不符"));
     }
     order.id = requested_id;
     if let Some(venue) = data

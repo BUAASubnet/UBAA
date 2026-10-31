@@ -31,7 +31,7 @@ compare-exchange。发生冲突时，当前 facade 清除内存 Cookie、待处�
 注销仍在本地清理前尽力执行；聚合持久化清理只进行一次双槽 CAS，删除前绝不采用更新的
 revision。
 
-场馆预约（Cgyy）属于扩展功能，公共读写入口同样由 facade 解析路线并绑定对应 runtime。WebVPN 的 Cgyy 业务登录在 SSO 重定向后按当前 HAR 证据读取 `d.buaa.edu.cn/wengine-vpn/cookie` 的纯文本快照，仅在当前请求内存中取得 `sso_buaa_zhjs_token`，不会把业务令牌写入会话文件。冻结 `ubaa_old` 与固定 `examples/buaa-api` 对该 WebVPN 网关同步没有等价实现；具体证据和边界记录在 `docs/migration/source-parity.md` 与决策日志中。
+研讨室预约（Cgyy）属于扩展功能，公共读写入口同样由 facade 解析路线并绑定对应 runtime。WebVPN 的 Cgyy 业务登录在 SSO 重定向后按当前 HAR 证据读取 `d.buaa.edu.cn/wengine-vpn/cookie` 的纯文本快照，仅在当前请求内存中取得 `sso_buaa_zhjs_token`，不会把业务令牌写入会话文件。冻结 `ubaa_old` 与固定 `examples/buaa-api` 对该 WebVPN 网关同步没有等价实现；具体证据和边界记录在 `docs/migration/source-parity.md` 与决策日志中。
 
 CLI JSON Schema 的标识为 `urn:ubaa:cli:json:schema:12`，消费者从受跟踪的 [Schema 文件](cli-json.schema.json)加载定义。URN 表示该版本的身份，不是网络下载地址；Schema 内的局部 `$ref` 继续在同一文件解析。
 

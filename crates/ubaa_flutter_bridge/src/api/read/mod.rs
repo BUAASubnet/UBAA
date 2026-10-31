@@ -667,13 +667,13 @@ pub struct BridgeCgyyOrdersPage {
     pub size: i32,
     pub number: i32,
 }
-/// 调用方固定路线的场馆订单列表结果；不表示 Core 重新执行了 Auto 探测。
+/// 调用方固定路线的研讨室订单列表结果；不表示 Core 重新执行了 Auto 探测。
 #[derive(Clone, Debug)]
 pub struct BridgeCallerPinnedCgyyOrders {
     pub data: BridgeCgyyOrdersPage,
     pub pinned_route: super::client::BridgeConnectionMode,
 }
-/// 调用方固定路线的场馆订单详情结果；不表示 Core 重新执行了 Auto 探测。
+/// 调用方固定路线的研讨室订单详情结果；不表示 Core 重新执行了 Auto 探测。
 #[derive(Clone, Debug)]
 pub struct BridgeCallerPinnedCgyyOrder {
     pub data: BridgeCgyyOrder,

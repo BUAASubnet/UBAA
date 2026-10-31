@@ -88,7 +88,7 @@ pub enum Command {
     Ygdk(YgdkArgs),
     /// 博雅课程只读操作。
     Bykc(BykcArgs),
-    /// 场馆预约只读操作。
+    /// 研讨室预约只读操作。
     Cgyy(CgyyArgs),
     /// 教学评教查询与 typed 批量提交操作。
     Evaluation(EvaluationArgs),

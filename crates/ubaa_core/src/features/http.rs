@@ -46,7 +46,7 @@ pub(crate) async fn get_with_redirects(
         }
         let response = runtime.request(request).await?;
         if !(300..400).contains(&response.status) {
-            if feature == "场馆预约" {
+            if feature == "研讨室预约" {
                 tracing::debug!(
                     target: "ubaa::cgyy",
                     feature = "cgyy",
@@ -65,7 +65,7 @@ pub(crate) async fn get_with_redirects(
             .ok_or_else(|| feature_redirect_error(feature))?;
         let next =
             resolve_feature_redirect(&response.final_url, location, runtime.mode(), feature)?;
-        if feature == "场馆预约" {
+        if feature == "研讨室预约" {
             tracing::debug!(
                 target: "ubaa::cgyy",
                 feature = "cgyy",

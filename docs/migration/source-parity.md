@@ -76,7 +76,7 @@ Cgyy 的站点/日期/时段/同房间/必填文本/正数约束与 `crates/ubaa
 本轮没有真实账号写入、验证码材料或照片上传。
 
 2026-09-01 Cgyy 提交收据边界复核：冻结 `LocalCgyyApi.submitReservation` 的成功结果可带订单对象，
-Core 已按冻结 DTO 映射；`examples/buaa-api` 仍无同一场馆协议，因此未借用其字段。Flutter bridge
+Core 已按冻结 DTO 映射；`examples/buaa-api` 仍无同一研讨室预约协议，因此未借用其字段。Flutter bridge
 只把订单编号、站点编号、预约日期和订单状态投影为 `CgyyReservationReceipt`，明确排除交易号、电话、
 主题、参与人和活动正文；成功后 App 优先按同一路线刷新 `cgyyOrders`，收据或刷新缺失不被视为最终核对。
 `BridgeBackend 保留场馆提交的非敏感订单收据用于结果核对` 与 `场馆写入成功优先刷新订单列表用于核对`
@@ -723,7 +723,7 @@ Ygdk 原语文本补充：冻结 `LocalYgdkApi.kt` 的 `JsonObject.string` 使�
 `statusName` 中的中文结束词共同用于 UI 判断；该历史实现只能证明旧产品行为，Phase 11F 已明确改为 canonical
 整数状态 typed 资格，`statusName` 只展示。订单列表的审核说明与图书馆预约的状态名称均不改变 Core 最终校验、
 取消 URL、签名、会话或写入次数。`examples/buaa-api` 没有等价的 Cgyy/LibBook 取消协议，未借用其字段或错误语义。
-场馆订单同时将冻结状态码映射为公开的“订单状态说明/审核状态说明”，只用于用户理解当前状态；原始内部字段仍不跨 facade。
+研讨室订单同时将冻结状态码映射为公开的“订单状态说明/审核状态说明”，只用于用户理解当前状态；原始内部字段仍不跨 facade。
 
 Evaluation 原语文本补充：冻结评教本地实现同样通过 `JsonPrimitive.contentOrNull` 读取文本字段；Core `string` 现支持字符串、整数、浮点和布尔原语，避免合法的非字符串课程/问卷字段被误判为缺失。
 
@@ -781,7 +781,7 @@ ClassroomPresentation追加可空queryDate/campus，仅由实际classroomSearch�
 
 ### P4-D 实施前预约领域展示核对
 
-[图书馆与场馆增补](source-parity-ui-reservations.md)逐项列出11个只读视图、DTO与动作来源、日期关联不可证边界及测试计划。馆区详情过滤空日期后首项与原第一项时段可能不同，顶层回退也没有来源标记，不能仅凭两个非空列表自动绑定首日。此项仍是展示设计边界，不更改Core/Bridge参数或当前手填查询。
+[图书馆与研讨室增补](source-parity-ui-reservations.md)逐项列出11个只读视图、DTO与动作来源、日期关联不可证边界及测试计划。馆区详情过滤空日期后首项与原第一项时段可能不同，顶层回退也没有来源标记，不能仅凭两个非空列表自动绑定首日。此项仍是展示设计边界，不更改Core/Bridge参数或当前手填查询。
 
 
 ### P4-A 实施前账号资料白名单核对

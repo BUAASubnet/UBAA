@@ -196,9 +196,9 @@ impl BridgeClient {
                     .map(|r| {
                         let success = r.data.success;
                         let message = if success {
-                            safe_message("场馆预约已提交")
+                            safe_message("研讨室预约已提交")
                         } else {
-                            safe_message("场馆预约未完成")
+                            safe_message("研讨室预约未完成")
                         };
                         (
                             r.resolution,
@@ -220,9 +220,9 @@ impl BridgeClient {
                     .map(|r| {
                         let success = r.data.success;
                         let message = if success {
-                            safe_message("场馆订单已取消")
+                            safe_message("研讨室订单已取消")
                         } else {
-                            safe_message("场馆订单取消未完成")
+                            safe_message("研讨室订单取消未完成")
                         };
                         (r.resolution, success, message, None, None, None)
                     }),
@@ -339,7 +339,7 @@ pub(super) fn finish_commit_success(
             code: BridgeErrorCode::UpstreamChanged,
             kind: BridgeErrorKind::Upstream,
             retryable: false,
-            message: "场馆订单取消响应未确认成功".to_owned(),
+            message: "研讨室订单取消响应未确认成功".to_owned(),
             resolved_route: Some(resolved_route),
         });
     }

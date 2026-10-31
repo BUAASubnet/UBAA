@@ -149,7 +149,7 @@ final class _AllWritesIntegrationBackend
       ],
       FeatureId.cgyy => const <FeatureDetail>[
         FeatureDetail(
-          title: '集成场馆时段',
+          title: '集成研讨室时段',
           fields: <FeatureField>[
             FeatureField(label: '站点 ID', value: '3'),
             FeatureField(label: '日期', value: '2026-09-03'),
@@ -171,7 +171,7 @@ final class _AllWritesIntegrationBackend
           ],
         ),
         FeatureDetail(
-          title: '集成场馆订单',
+          title: '集成研讨室订单',
           fields: <FeatureField>[
             FeatureField(label: '订单编号', value: '17'),
             FeatureField(label: '订单状态', value: '1'),
@@ -294,11 +294,11 @@ final class _AllWritesIntegrationBackend
       ifAbsent: () => 1,
     );
     return FeatureResult.success(
-      summary: '集成场馆取消回读',
+      summary: '集成研讨室取消回读',
       resolvedRoute: route,
       details: <FeatureDetail>[
         FeatureDetail(
-          title: '已取消场馆订单',
+          title: '已取消研讨室订单',
           actions: <FeatureAction>[
             CgyyCancelAction(
               orderId: orderId,

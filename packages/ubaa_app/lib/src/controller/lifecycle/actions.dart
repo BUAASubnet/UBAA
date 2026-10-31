@@ -435,7 +435,7 @@ mixin ControllerActions on ControllerState {
     return writer.prepareSigninPerform(courseId: normalized);
   }
 
-  /// 准备场馆取消的一次性意图；只接受 Core 给出的 typed 目标。
+  /// 准备研讨室取消的一次性意图；只接受 Core 给出的 typed 目标。
   Future<WriteIntent> prepareCgyyCancelWrite(CgyyCancelAction action) async {
     final backend = internalBackend;
     if (backend is! CancellationWriteBackend) {
@@ -561,7 +561,7 @@ mixin ControllerActions on ControllerState {
     FeatureQuery? readbackQuery,
   ]) => internalRefreshAfterWrite(operation, readbackQuery);
 
-  /// 在场馆订单刷新完成后，仅按公开订单编号匹配提交收据。
+  /// 在研讨室订单刷新完成后，仅按公开订单编号匹配提交收据。
   ///
   /// 该方法不发起额外请求，调用方必须先等待 [refreshAfterWrite]；读取失败、
   /// 空结果或不匹配均返回 `false`，绝不把写入结果升级为已核对。
@@ -579,7 +579,7 @@ mixin ControllerActions on ControllerState {
     );
   }
 
-  /// 在 intent 的实际路线上执行场馆取消列表+详情双回读。
+  /// 在 intent 的实际路线上执行研讨室取消列表+详情双回读。
   Future<bool> verifyCgyyCancellation({
     required int orderId,
     required ConnectionMode expectedRoute,

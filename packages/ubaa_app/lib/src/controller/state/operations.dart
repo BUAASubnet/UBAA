@@ -47,13 +47,13 @@ abstract class ControllerOperations extends ChangeNotifier {
     FeatureQuery? readbackQuery,
   ]);
 
-  /// 在场馆订单刷新完成后，仅按公开订单编号匹配提交收据。
+  /// 在研讨室订单刷新完成后，仅按公开订单编号匹配提交收据。
   ///
   /// 该方法不发起额外请求，调用方必须先等待 [refreshAfterWrite]；读取失败、
   /// 空结果或不匹配均返回 `false`，绝不把写入结果升级为已核对。
   Future<bool> matchesCgyyReceipt(CgyyReservationReceipt receipt);
 
-  /// 在 intent 的实际路线上执行场馆取消列表+详情双回读。
+  /// 在 intent 的实际路线上执行研讨室取消列表+详情双回读。
   Future<bool> verifyCgyyCancellation({
     required int orderId,
     required ConnectionMode expectedRoute,

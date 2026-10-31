@@ -324,7 +324,7 @@ fn 场馆取消写链发送签名路径和订单标识() {
         .block_on(client.cgyy_cancel_order(CgyyCancelOrderRequest { order_id: 77 }))
         .unwrap()
         .data;
-    assert_eq!(result.message, "场馆预约订单已取消");
+    assert_eq!(result.message, "研讨室预约订单已取消");
     let requests = requests.lock().unwrap();
     assert_eq!(requests.len(), 4);
     let cancel = &requests[3];

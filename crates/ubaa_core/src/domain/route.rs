@@ -35,7 +35,7 @@ pub enum ReadonlyFeature {
     Ihome,
     /// 博雅课程只读查询。
     Bykc,
-    /// 场馆预约只读查询。
+    /// 研讨室预约只读查询。
     Cgyy,
     /// 图书馆座位只读查询。
     LibBook,

@@ -115,7 +115,7 @@ pub trait CliBackend {
         &mut self,
         _request: BykcSignRequest,
     ) -> Result<FeatureResult<BykcActionResult>>;
-    /// 查询场馆站点。
+    /// 查询研讨室站点。
     async fn cgyy_sites(&mut self) -> Result<FeatureResult<Vec<CgyyVenueSite>>>;
     async fn cgyy_lock_code(&mut self) -> Result<FeatureResult<CgyyLockCode>>;
     /// 查询预约用途。
@@ -335,7 +335,7 @@ pub trait RoutedCliBackend {
         &mut self,
         _request: BykcSignRequest,
     ) -> RoutedResult<BykcActionResult>;
-    /// 通过 Core 路由查询场馆站点。
+    /// 通过 Core 路由查询研讨室站点。
     async fn cgyy_sites(&mut self) -> RoutedResult<Vec<CgyyVenueSite>>;
     async fn cgyy_lock_code(&mut self) -> RoutedResult<CgyyLockCode>;
     /// 通过 Core 路由查询预约用途。

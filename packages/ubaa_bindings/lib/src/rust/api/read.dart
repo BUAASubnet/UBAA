@@ -568,7 +568,7 @@ class BridgeBykcUserProfile {
           collegeName == other.collegeName;
 }
 
-/// 调用方固定路线的场馆订单详情结果；不表示 Core 重新执行了 Auto 探测。
+/// 调用方固定路线的研讨室订单详情结果；不表示 Core 重新执行了 Auto 探测。
 class BridgeCallerPinnedCgyyOrder {
   final BridgeCgyyOrder data;
   final BridgeConnectionMode pinnedRoute;
@@ -590,7 +590,7 @@ class BridgeCallerPinnedCgyyOrder {
           pinnedRoute == other.pinnedRoute;
 }
 
-/// 调用方固定路线的场馆订单列表结果；不表示 Core 重新执行了 Auto 探测。
+/// 调用方固定路线的研讨室订单列表结果；不表示 Core 重新执行了 Auto 探测。
 class BridgeCallerPinnedCgyyOrders {
   final BridgeCgyyOrdersPage data;
   final BridgeConnectionMode pinnedRoute;

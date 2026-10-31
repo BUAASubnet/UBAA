@@ -1,4 +1,4 @@
-//! 场馆预约业务边界。
+//! 研讨室预约业务边界。
 #![allow(clippy::missing_errors_doc)]
 
 mod auth;

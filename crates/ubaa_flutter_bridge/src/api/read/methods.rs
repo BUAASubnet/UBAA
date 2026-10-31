@@ -533,7 +533,7 @@ impl BridgeClient {
             .await?;
         Ok(BridgeRoutedCgyyOrders { data, route })
     }
-    /// 在调用方指定的已认证路线读取场馆订单，不执行 Auto 探测或回退。
+    /// 在调用方指定的已认证路线读取研讨室订单，不执行 Auto 探测或回退。
     pub async fn cgyy_orders_on_route(
         &self,
         route: BridgeConnectionMode,
@@ -562,7 +562,7 @@ impl BridgeClient {
             .await?;
         Ok(BridgeRoutedCgyyOrder { data, route })
     }
-    /// 在调用方指定的已认证路线读取场馆订单详情，不执行 Auto 探测或回退。
+    /// 在调用方指定的已认证路线读取研讨室订单详情，不执行 Auto 探测或回退。
     pub async fn cgyy_order_detail_on_route(
         &self,
         route: BridgeConnectionMode,

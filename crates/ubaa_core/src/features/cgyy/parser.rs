@@ -1,4 +1,4 @@
-//! 场馆预约响应信封、站点、用途、日期和订单解析。
+//! 研讨室预约响应信封、站点、用途、日期和订单解析。
 
 use std::collections::HashMap;
 
@@ -68,11 +68,11 @@ pub(super) fn error(message: impl Into<String>) -> UbaaError {
 }
 
 pub(super) fn object(body: &str) -> Result<Map<String, Value>> {
-    let value: Value = serde_json::from_str(body).map_err(|_| error("场馆预约响应无法解析"))?;
+    let value: Value = serde_json::from_str(body).map_err(|_| error("研讨室预约响应无法解析"))?;
     value
         .as_object()
         .cloned()
-        .ok_or_else(|| error("场馆预约响应结构无效"))
+        .ok_or_else(|| error("研讨室预约响应结构无效"))
 }
 
 fn success_root(body: &str) -> Result<Map<String, Value>> {
@@ -83,7 +83,7 @@ fn success_root(body: &str) -> Result<Map<String, Value>> {
             .or_else(|| value.as_str()?.parse::<i64>().ok())
     });
     if code != Some(200) {
-        return Err(error("场馆预约请求失败"));
+        return Err(error("研讨室预约请求失败"));
     }
     Ok(root)
 }
@@ -110,7 +110,7 @@ fn int(map: &Map<String, Value>, key: &str) -> Option<i32> {
         .and_then(|value| i32::try_from(value).ok())
 }
 
-/// 解析场馆站点列表。
+/// 解析研讨室站点列表。
 pub fn parse_sites(body: &str) -> Result<Vec<CgyyVenueSite>> {
     let value = data(body)?;
     let values = value
@@ -121,7 +121,7 @@ pub fn parse_sites(body: &str) -> Result<Vec<CgyyVenueSite>> {
                 .and_then(|map| map.get("content"))
                 .and_then(Value::as_array)
         })
-        .ok_or_else(|| error("场馆站点响应结构无效"))?;
+        .ok_or_else(|| error("研讨室站点响应结构无效"))?;
     let mut flattened = Vec::new();
     for item in values {
         let Some(map) = item.as_object() else {
@@ -230,7 +230,7 @@ pub(super) fn parse_day_context(
         .get("data")
         .and_then(Value::as_object)
         .cloned()
-        .ok_or_else(|| error("场馆日期响应结构无效"))?;
+        .ok_or_else(|| error("研讨室日期响应结构无效"))?;
     let parsed_time_slots = parse_time_slots(&root);
     let time_slots = parsed_time_slots
         .iter()
@@ -529,7 +529,7 @@ pub(super) fn parse_orders_at(body: &str, now: NaiveDateTime) -> Result<CgyyOrde
         .as_object()
         .cloned()
         .or_else(|| value.is_null().then(Map::new))
-        .ok_or_else(|| error("场馆订单响应结构无效"))?;
+        .ok_or_else(|| error("研讨室订单响应结构无效"))?;
     Ok(CgyyOrdersPage {
         content: root
             .get("content")
@@ -591,7 +591,7 @@ pub(super) fn parse_order_detail_at(body: &str, now: NaiveDateTime) -> Result<Cg
         .cloned()
         .or_else(|| value.is_null().then(Map::new))
         .map(|root| parse_order_at(&root, now))
-        .ok_or_else(|| error("场馆订单详情结构无效"))
+        .ok_or_else(|| error("研讨室订单详情结构无效"))
 }
 
 pub(super) fn parse_order_at(raw: &Map<String, Value>, now: NaiveDateTime) -> CgyyOrder {
@@ -650,10 +650,10 @@ pub(super) fn parse_cancel_order_authority(
     let value = data(body)?;
     let raw = value
         .as_object()
-        .ok_or_else(|| error("场馆取消详情必须是唯一对象"))?;
+        .ok_or_else(|| error("研讨室取消详情必须是唯一对象"))?;
     let fields = cancel_fields(raw, now);
     let Some(order_id) = fields.order_id.filter(|id| *id == expected_order_id) else {
-        return Err(error("场馆取消详情订单标识无效或不一致"));
+        return Err(error("研讨室取消详情订单标识无效或不一致"));
     };
     Ok(CgyyCancelOrderAuthority {
         order_id,

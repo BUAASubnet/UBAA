@@ -1,4 +1,4 @@
-//! 场馆预约 handler。
+//! 研讨室预约 handler。
 
 use crate::io::schema::CliFeature;
 use ubaa_core::facade::{
@@ -175,7 +175,7 @@ pub(in crate::execute) async fn run_routed_cgyy<B: RoutedCliBackend + Send>(
 
 fn normalize_cancel_request(order_id: i32) -> Result<CgyyCancelOrderRequest> {
     if order_id <= 0 {
-        return Err(invalid_input("场馆订单编号必须为正整数"));
+        return Err(invalid_input("研讨室订单编号必须为正整数"));
     }
     Ok(CgyyCancelOrderRequest { order_id })
 }
@@ -186,12 +186,12 @@ fn safe_cancel_result(result: &CgyyCancelOrderResult) -> Result<CgyyCancelOrderR
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
             false,
-            "场馆订单取消资格核对响应无效",
+            "研讨室订单取消资格核对响应无效",
         ));
     }
     Ok(CgyyCancelOrderResult {
         success: true,
-        message: "场馆订单已取消".to_owned(),
+        message: "研讨室订单已取消".to_owned(),
     })
 }
 
@@ -201,7 +201,7 @@ fn sanitize_cancel_error(error: UbaaError) -> UbaaError {
             ErrorCode::UpstreamChanged,
             ErrorKind::Upstream,
             false,
-            "场馆订单取消资格核对响应无效",
+            "研讨室订单取消资格核对响应无效",
         ),
         ErrorCode::OutcomeUnknown => UbaaError::new(
             ErrorCode::OutcomeUnknown,
@@ -276,16 +276,16 @@ mod tests {
             ErrorCode::OutcomeUnknown,
             ErrorKind::Upstream,
             false,
-            "场馆订单取消结果未知，请刷新订单列表与详情核对后再操作",
+            "研讨室订单取消结果未知，请刷新订单列表与详情核对后再操作",
         )));
 
         assert_eq!(
             cancel["error"]["message"],
-            "场馆订单取消结果未知，请刷新订单列表与详情核对后再操作"
+            "研讨室订单取消结果未知，请刷新订单列表与详情核对后再操作"
         );
         assert_eq!(
             reservation["error"]["message"],
-            "场馆写入结果未知，请稍后查询预约记录确认"
+            "研讨室写入结果未知，请稍后查询预约记录确认"
         );
         assert!(!cancel.to_string().contains("RAW-CANCEL"));
         assert!(!cancel.to_string().contains("PRIVATE"));

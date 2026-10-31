@@ -158,7 +158,7 @@ fn routed_primary_success_representatives() -> Vec<(CliFeature, serde_json::Valu
             CliFeature::Cgyy,
             serde_json::to_value(CgyyCancelOrderResult {
                 success: true,
-                message: "场馆订单已取消".into(),
+                message: "研讨室订单已取消".into(),
             })
             .unwrap(),
         ),

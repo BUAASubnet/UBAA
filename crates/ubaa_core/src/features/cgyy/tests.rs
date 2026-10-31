@@ -46,7 +46,7 @@ fn 场馆三百零二跳转到统一认证时识别为认证失效() {
         "location".into(),
         vec!["https://sso.buaa.edu.cn/login".into()],
     );
-    let error = check_business_response(&response, "场馆预约").expect_err("应识别认证跳转");
+    let error = check_business_response(&response, "研讨室预约").expect_err("应识别认证跳转");
     assert_eq!(error.code, crate::error::ErrorCode::AuthenticationRequired);
 }
 

@@ -43,18 +43,18 @@ typedef LibbookCancelPreparer =
 typedef LibbookCancelStarter =
     Future<void> Function(LibbookCancelAction action);
 
-/// 场馆取消准备回调；保留 Core 给出的 canonical 订单观察、资格与目标。
+/// 研讨室取消准备回调；保留 Core 给出的 canonical 订单观察、资格与目标。
 typedef CgyyCancelPreparer =
     Future<WriteIntent> Function(CgyyCancelAction action);
 
-/// 场馆取消启动回调；不得从展示字段重建编号、状态或时间。
+/// 研讨室取消启动回调；不得从展示字段重建编号、状态或时间。
 typedef CgyyCancelStarter = Future<void> Function(CgyyCancelAction action);
 
 /// 研讨室预约提交后，用收据匹配只读订单列表的核对回调。
 typedef CgyyReceiptVerifier =
     Future<bool> Function(CgyyReservationReceipt receipt);
 
-/// 场馆取消后的列表+详情只读核对回调。
+/// 研讨室取消后的列表+详情只读核对回调。
 typedef CgyyCancellationVerifier =
     Future<bool> Function({
       required int orderId,

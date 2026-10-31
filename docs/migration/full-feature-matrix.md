@@ -21,7 +21,7 @@
 | 阳光打卡查询 | `ygdk overview`、`ygdk records` | 概览、记录分页、图片数量白名单 | 两路线 Core-live；图片 URL 不跨 FFI |
 | 图书馆查询 | `libbook` 楼馆、分区、详情、座位、预约记录 | 分区/时段/座位/记录 typed 查询 | 两路线 Core-live；分区详情只在每日 08:30–23:00 营业窗口判定 |
 | 博雅课程查询 | `bykc` 资料、课程、详情、已选、统计 | 课程/详情/已选/统计 typed 页面 | 两路线 Core-live；空父列表详情可带依据 N/A |
-| 场馆预约查询 | `cgyy` 站点、用途、日期、订单、详情、锁码 | 场地/时段/订单 typed 页面 | 两路线逐操作 Core-live；用途 `static_fallback` 不冒充上游成功 |
+| 研讨室预约查询 | `cgyy` 站点、用途、日期、订单、详情、锁码 | 场地/时段/订单 typed 页面 | 两路线逐操作 Core-live；用途 `static_fallback` 不冒充上游成功 |
 | 教学评教查询 | `evaluation all/pending` | 全部/待评本地派生视图 | 两路线 Core-live 与 schema/UI 测试 |
 
 ## 写入能力
@@ -34,7 +34,7 @@ CLI 默认拒绝并要求 `--confirm-write`；Flutter 必须由用户主动进�
 | 领域 | 用户操作 | 确定性实现 | 真实边界 |
 |---|---|---|---|
 | 博雅 | 选课、退选、签到/签退 | Core typed eligibility/action、fresh authority、冻结加密/请求向量、一次性确认与读取刷新；未知资格默认拒绝 | 当前周期未真实执行；中文展示字段不再决定写资格 |
-| 场馆 | 预约、取消 | typed 时段/取消目标、fresh authority、单次最终发送、安全收据及原路线取消证明；验证码重试只在最终写入前 | 2026-08-29 有一次独立授权的历史 Direct 预约/取消证据；不自动证明当前提交或后续授权 |
+| 研讨室 | 预约、取消 | typed 时段/取消目标、fresh authority、单次最终发送、安全收据及原路线取消证明；验证码重试只在最终写入前 | 2026-08-29 有一次独立授权的历史 Direct 预约/取消证据；不自动证明当前提交或后续授权 |
 | 教学评教 | 提交待评课程 | typed targets、Core 内部 fresh 问卷链、批量四态结果、unknown 后停止与 caller-pinned 回读 | 当前周期仅 Fixture/Mock/宿主 fake |
 | 图书馆 | 预约、取消 | typed 座位/时段/取消目标、fresh authority、单次发送、取消同页记录刷新 | 当前周期仅 Fixture/Mock/宿主 fake |
 | 课堂签到 | 执行签到 | 可空状态、typed 安排目标、当天唯一 authority、冻结表单、严格结果与状态刷新 | 当前周期仅 Fixture/Mock/宿主 fake |

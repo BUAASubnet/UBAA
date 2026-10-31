@@ -1,4 +1,4 @@
-//! 场馆与图书馆预约写入口。
+//! 研讨室与图书馆预约写入口。
 
 use crate::connection::RouteResolution;
 use crate::domain::{
@@ -13,11 +13,11 @@ use super::super::routing::{invalid_input, routed_error};
 use super::super::types::{Operation, RoutedError, RoutedResult};
 
 impl UbaaClient {
-    /// 只读复核场馆预约订单的 typed 取消资格。
+    /// 只读复核研讨室预约订单的 typed 取消资格。
     ///
     /// # Errors
     ///
-    /// 会话所有权失效、订单标识无效、场馆路线不可用或资格不足时返回带路线信息的错误。
+    /// 会话所有权失效、订单标识无效、研讨室路线不可用或资格不足时返回带路线信息的错误。
     pub async fn preflight_cgyy_cancel(
         &mut self,
         request: &CgyyCancelOrderRequest,
@@ -34,11 +34,11 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// 取消场馆预约订单。
+    /// 取消研讨室预约订单。
     ///
     /// # Errors
     ///
-    /// 会话所有权失效、订单标识无效、场馆路线不可用或取消失败时返回带路线信息的错误。
+    /// 会话所有权失效、订单标识无效、研讨室路线不可用或取消失败时返回带路线信息的错误。
     pub async fn cgyy_cancel_order(
         &mut self,
         request: CgyyCancelOrderRequest,
@@ -49,13 +49,13 @@ impl UbaaClient {
         self.cgyy_cancel_order_resolved(request, resolution).await
     }
 
-    /// 仅当本次唯一权威路线解析仍与调用方预期一致时取消场馆预约订单。
+    /// 仅当本次唯一权威路线解析仍与调用方预期一致时取消研讨室预约订单。
     ///
     /// 路线不一致会在读取订单详情或发送取消请求之前拒绝，并在错误中携带本次实际解析结果。
     ///
     /// # Errors
     ///
-    /// 会话所有权失效、解析路线与预期不一致、场馆路线不可用或取消失败时返回带路线信息的错误。
+    /// 会话所有权失效、解析路线与预期不一致、研讨室路线不可用或取消失败时返回带路线信息的错误。
     pub async fn cgyy_cancel_order_if_route_matches(
         &mut self,
         request: CgyyCancelOrderRequest,
@@ -65,7 +65,7 @@ impl UbaaClient {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
         if resolution.mode != expected_route {
             return Err(routed_error(
-                invalid_input("场馆订单取消路线已变化，请重新确认"),
+                invalid_input("研讨室订单取消路线已变化，请重新确认"),
                 resolution,
             ));
         }
@@ -86,7 +86,7 @@ impl UbaaClient {
         self.finish_routed_write(resolution, result)
     }
 
-    /// 只读复核场馆预约的当前日期和唯一 typed 槽位目标。
+    /// 只读复核研讨室预约的当前日期和唯一 typed 槽位目标。
     ///
     /// # Errors
     ///
@@ -106,11 +106,11 @@ impl UbaaClient {
         self.finish_routed(resolution, result)
     }
 
-    /// 提交场馆预约；验证码材料可由调用方提供或由 Core 自动获取并校验。
+    /// 提交研讨室预约；验证码材料可由调用方提供或由 Core 自动获取并校验。
     ///
     /// # Errors
     ///
-    /// 会话所有权失效、场馆路线不可用或预约提交失败时返回带路线信息的错误。
+    /// 会话所有权失效、研讨室路线不可用或预约提交失败时返回带路线信息的错误。
     pub async fn cgyy_submit_reservation(
         &mut self,
         request: CgyyReservationSubmitRequest,

@@ -332,7 +332,7 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<BridgeRoutedCgyyOrder> cgyyOrderDetail({required int id});
 
-  /// 在调用方指定的已认证路线读取场馆订单详情，不执行 Auto 探测或回退。
+  /// 在调用方指定的已认证路线读取研讨室订单详情，不执行 Auto 探测或回退。
   Future<BridgeCallerPinnedCgyyOrder> cgyyOrderDetailOnRoute({
     required BridgeConnectionMode route,
     required int id,
@@ -353,7 +353,7 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required int size,
   });
 
-  /// 在调用方指定的已认证路线读取场馆订单，不执行 Auto 探测或回退。
+  /// 在调用方指定的已认证路线读取研讨室订单，不执行 Auto 探测或回退。
   Future<BridgeCallerPinnedCgyyOrders> cgyyOrdersOnRoute({
     required BridgeConnectionMode route,
     required int page,

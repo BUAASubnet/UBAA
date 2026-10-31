@@ -1,4 +1,4 @@
-//! 场馆只读持久范围不恢复学校写资格，静态用途回退不替换旧动态结果。
+//! 研讨室只读持久范围不恢复学校写资格，静态用途回退不替换旧动态结果。
 use super::{
     CachePayload, CacheQuery, CacheScope, CgyyDayInfo, CgyyOrder, CgyyOrdersPage,
     CgyyPurposeSource, CgyyPurposeTypes, CgyyVenueSite, ConnectionMode, OfflineCache,

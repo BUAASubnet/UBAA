@@ -24,7 +24,7 @@ mixin ControllerReadbackDispatch on ControllerState {
       }
     }
     if (operation == WriteOperation.cgyySubmitReservation) {
-      // 订单列表是场馆写入的唯一稳定核对入口；若后端不支持筛选查询，
+      // 订单列表是研讨室写入的唯一稳定核对入口；若后端不支持筛选查询，
       // 保留旧的领域刷新兼容路径，不伪造核对成功。
       if (internalBackend is FeatureQueryBackend) {
         internalCacheLifecycle.invalidateReads();
@@ -36,7 +36,7 @@ mixin ControllerReadbackDispatch on ControllerState {
       }
     }
     if (operation == WriteOperation.cgyyCancelOrder) {
-      // 场馆取消必须由 verifyCgyyCancellation 独占执行列表+详情双回读；
+      // 研讨室取消必须由 verifyCgyyCancellation 独占执行列表+详情双回读；
       // 此通用入口不做单列表降级，也不会触发写入重试。
       return Future<void>.value();
     }

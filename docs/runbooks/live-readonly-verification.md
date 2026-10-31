@@ -20,7 +20,7 @@ just verify-live feature=cgyy route=direct
 just verify-live feature=cgyy route=webvpn
 ```
 
-`feature=all` 会在一个客户端内依次检查认证、用户、课表/考试/成绩、教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、场馆和评教读取。依赖数据缺失必须输出 `NOT_APPLICABLE`，依赖请求失败必须输出 `BLOCKED`，独立操作继续执行；任何 `FAIL` 或 `BLOCKED` 都使该路线退出非零。真实写操作（选课、签到、预约、取消、评教、上传）不在 Core-live 白名单中。
+`feature=all` 会在一个客户端内依次检查认证、用户、课表/考试/成绩、教室、SPOC、Judge、签到、阳光打卡、图书馆、博雅、研讨室和评教读取。依赖数据缺失必须输出 `NOT_APPLICABLE`，依赖请求失败必须输出 `BLOCKED`，独立操作继续执行；任何 `FAIL` 或 `BLOCKED` 都使该路线退出非零。真实写操作（选课、签到、预约、取消、评教、上传）不在 Core-live 白名单中。
 
 图书馆分区详情依赖上游营业窗口：每日 08:30–23:00（`Asia/Shanghai`）。应在该窗口内执行
 `libbook/area_detail` 的实时验收；窗口外若出现 HTTP 200、业务 `code=500` 且缺少 `data`，

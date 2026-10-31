@@ -1,4 +1,4 @@
-//! 场馆预约、取消与提交表单构造。
+//! 研讨室预约、取消与提交表单构造。
 
 use std::collections::BTreeMap;
 
@@ -50,11 +50,11 @@ pub(crate) async fn preflight_cancel_order(
         ActionEligibility::Allowed => {}
         ActionEligibility::Denied => {
             return Err(unavailable(
-                "该场馆预约订单当前不可取消，请刷新订单后重新准备",
+                "该研讨室预约订单当前不可取消，请刷新订单后重新准备",
             ));
         }
         ActionEligibility::Unknown => {
-            return Err(authority_changed("场馆取消资格缺少必要字段"));
+            return Err(authority_changed("研讨室取消资格缺少必要字段"));
         }
     }
     let order_status = authority
@@ -74,7 +74,7 @@ pub(crate) async fn preflight_cancel_order(
     })
 }
 
-/// 重新读取取消资格后，只发送一次场馆取消请求。
+/// 重新读取取消资格后，只发送一次研讨室取消请求。
 pub(crate) async fn cancel_order(
     runtime: &mut ClientRuntime,
     request: CgyyCancelOrderRequest,
@@ -107,7 +107,7 @@ pub(crate) async fn cancel_order(
     }
     Ok(CgyyCancelOrderResult {
         success: true,
-        message: "场馆预约订单已取消".into(),
+        message: "研讨室预约订单已取消".into(),
     })
 }
 
@@ -125,11 +125,11 @@ fn sanitize_cancel_authority_error(error: &UbaaError) -> UbaaError {
         ErrorCode::AuthenticationRequired
         | ErrorCode::InvalidCredentials
         | ErrorCode::PasswordRiskConfirmationFailed
-        | ErrorCode::PermissionDenied => "场馆取消资格核对需要重新认证",
+        | ErrorCode::PermissionDenied => "研讨室取消资格核对需要重新认证",
         ErrorCode::NetworkError | ErrorCode::Timeout | ErrorCode::UpstreamUnavailable => {
-            "场馆取消资格核对暂时不可用"
+            "研讨室取消资格核对暂时不可用"
         }
-        _ => "场馆取消资格核对响应无效",
+        _ => "研讨室取消资格核对响应无效",
     };
     UbaaError::new(error.code, error.kind, error.retryable, message)
 }
@@ -185,7 +185,7 @@ pub fn build_submit_form(
     form
 }
 
-/// 提交场馆预约；验证码材料可由调用方提供或由 Core 自动获取并校验。
+/// 提交研讨室预约；验证码材料可由调用方提供或由 Core 自动获取并校验。
 pub(crate) async fn submit_reservation(
     runtime: &mut ClientRuntime,
     request: CgyyReservationSubmitRequest,
@@ -244,12 +244,12 @@ async fn reservation_authority(
     let request = normalize_submit_request(request)?;
     let day = get_day_context(runtime, request.venue_site_id, &request.reservation_date).await?;
     if !day.requested_date_exact || day.info.reservation_date != request.reservation_date {
-        return Err(authority_changed("场馆预约日期响应与请求不一致"));
+        return Err(authority_changed("研讨室预约日期响应与请求不一致"));
     }
     let reservation_token = day
         .reservation_token
         .filter(|token| !token.trim().is_empty())
-        .ok_or_else(|| authority_changed("场馆预约上下文缺少必要令牌"))?;
+        .ok_or_else(|| authority_changed("研讨室预约上下文缺少必要令牌"))?;
 
     let requested_space_id = request.selections[0].space_id;
     let matching_spaces = day
@@ -259,7 +259,7 @@ async fn reservation_authority(
         .filter(|space| space.space_id == requested_space_id)
         .collect::<Vec<_>>();
     let [space] = matching_spaces.as_slice() else {
-        return Err(authority_changed("场馆预约空间身份不唯一或已变化"));
+        return Err(authority_changed("研讨室预约空间身份不唯一或已变化"));
     };
 
     let mut targets = Vec::with_capacity(request.selections.len());
@@ -270,22 +270,22 @@ async fn reservation_authority(
             .filter(|slot| slot.time_id == selection.time_id)
             .collect::<Vec<_>>();
         let [slot] = matching_slots.as_slice() else {
-            return Err(authority_changed("场馆预约时段身份不唯一或已变化"));
+            return Err(authority_changed("研讨室预约时段身份不唯一或已变化"));
         };
         match slot.reservation_eligibility {
             ActionEligibility::Allowed => {}
             ActionEligibility::Denied => {
-                return Err(unavailable("场馆预约时段当前不可预约，请刷新后重试"));
+                return Err(unavailable("研讨室预约时段当前不可预约，请刷新后重试"));
             }
             ActionEligibility::Unknown => {
-                return Err(authority_changed("场馆预约时段资格缺少必要字段"));
+                return Err(authority_changed("研讨室预约时段资格缺少必要字段"));
             }
         }
         let target = slot
             .reservation_target
             .as_ref()
             .filter(|target| target_matches_request(target, &request, selection))
-            .ok_or_else(|| authority_changed("场馆预约目标与请求不一致"))?;
+            .ok_or_else(|| authority_changed("研讨室预约目标与请求不一致"))?;
         targets.push(target.clone());
     }
     targets.sort_by_key(|target| target.time_ordinal);
@@ -369,7 +369,7 @@ async fn submit_order(
 
 pub(super) fn validate_submit_request(request: &CgyyReservationSubmitRequest) -> Result<()> {
     if request.venue_site_id <= 0 || request.reservation_date.trim().is_empty() {
-        return Err(invalid_input("场馆站点和预约日期不能为空"));
+        return Err(invalid_input("研讨室站点和预约日期不能为空"));
     }
     if !(1..=2).contains(&request.selections.len())
         || request.selections.iter().any(|item| {
@@ -380,7 +380,7 @@ pub(super) fn validate_submit_request(request: &CgyyReservationSubmitRequest) ->
                     .is_some_and(|group_id| group_id <= 0)
         })
     {
-        return Err(invalid_input("场馆预约必须选择一至两个有效时段"));
+        return Err(invalid_input("研讨室预约必须选择一至两个有效时段"));
     }
     let first = &request.selections[0];
     if request.selections.iter().any(|selection| {
@@ -399,7 +399,7 @@ pub(super) fn validate_submit_request(request: &CgyyReservationSubmitRequest) ->
         || request.purpose_type <= 0
         || request.joiner_num <= 0
     {
-        return Err(invalid_input("场馆预约必填字段不完整"));
+        return Err(invalid_input("研讨室预约必填字段不完整"));
     }
     let has_external = !request.captcha_verification.trim().is_empty()
         || !request.captcha_point_json.trim().is_empty();
@@ -550,7 +550,7 @@ fn submit_rejected() -> UbaaError {
         ErrorCode::UpstreamChanged,
         ErrorKind::Upstream,
         false,
-        "场馆预约提交未被确认",
+        "研讨室预约提交未被确认",
     )
 }
 
@@ -559,7 +559,7 @@ fn write_outcome_unknown() -> UbaaError {
         ErrorCode::OutcomeUnknown,
         ErrorKind::Upstream,
         false,
-        "场馆预约请求已发送，结果未知，请先刷新订单后再决定是否重试",
+        "研讨室预约请求已发送，结果未知，请先刷新订单后再决定是否重试",
     )
 }
 
@@ -568,7 +568,7 @@ fn cancel_outcome_unknown() -> UbaaError {
         ErrorCode::OutcomeUnknown,
         ErrorKind::Upstream,
         false,
-        "场馆取消请求已发送，结果未知，请刷新订单后再决定是否重试",
+        "研讨室取消请求已发送，结果未知，请刷新订单后再决定是否重试",
     )
 }
 
