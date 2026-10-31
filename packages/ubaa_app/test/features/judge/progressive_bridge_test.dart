@@ -23,7 +23,7 @@ void main() {
     expect(batch.result.evidence, isNull);
     task.cancel();
   });
-  test('生产逐批投影保留旧时间、待更新标题、局部失败与完整刷新参数', () async {
+  test('生产逐批投影以作业列表时间为准，保留待更新标题、局部失败与完整刷新参数', () async {
     final client = _Client();
     final backend = BridgeBackend(client, configDirectory: '/synthetic');
     await backend.openOfflineAccount(
@@ -38,7 +38,8 @@ void main() {
     expect(client.options!.fullRefresh, isTrue);
     final first = await task.next();
     expect(first.finished, isFalse);
-    expect(first.result.evidence!.fetchedAt.millisecondsSinceEpoch, 100000);
+    // 更新时间只对作业列表负责：沿用旧摘要（100）不拉低本次列表时间（200）。
+    expect(first.result.evidence!.fetchedAt.millisecondsSinceEpoch, 200000);
     expect(first.result.evidence!.origin, DataOrigin.mixed);
     expect(first.result.details.map((item) => item.title), contains('新标题待核实'));
     final pending = first.result.details.singleWhere(
@@ -53,6 +54,7 @@ void main() {
     expect(finalBatch.result.details.length, 2);
     expect(finalBatch.result.error?.code, UbaaErrorCode.networkError);
     expect(finalBatch.result.evidence!.complete, isFalse);
+    expect(finalBatch.result.evidence!.fetchedAt.millisecondsSinceEpoch, 200000);
     expect(finalBatch.result.details.expand((item) => item.actions), isEmpty);
     task.cancel();
     expect(client.task.cancelled, isTrue);
@@ -152,7 +154,7 @@ class _Client implements BridgeClient {
       ],
       summaryFetchedAt: 100,
       summaryHasCached: true,
-      sourceFetchedAt: 200,
+      sourceFetchedAt: first ? 200 : 150,
       reused: false,
     );
   }

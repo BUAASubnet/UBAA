@@ -34,7 +34,8 @@ void main() {
         final snapshot = snapshots[FeatureId.judge]!;
         expect(snapshot.details.map((d) => d.title), ['旧详情', '旧范围', '新项']);
         expect(snapshot.evidence!.origin, DataOrigin.mixed);
-        expect(snapshot.evidence!.fetchedAt, DateTime.utc(2026, 9, 20));
+        // 更新时间只对作业列表负责：沿用的旧详情不拉低本次列表的取得时间。
+        expect(snapshot.evidence!.fetchedAt, DateTime.utc(2026, 9, 23));
         expect(snapshot.evidence!.complete, isFalse);
         expect(snapshot.evidence!.savedForOffline, isFalse);
         expect(

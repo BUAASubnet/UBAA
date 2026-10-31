@@ -110,6 +110,10 @@ final class _JudgeFeatureTask implements FeatureReadTask {
   UiError? _warning;
   bool _cancelled = false;
 
+  /// 本轮作业列表批次中最新的取得时间。首页与功能页的更新时间只对作业列表负责，
+  /// 沿用的旧摘要或详情不拉低它。
+  int? _listFetchedAt;
+
   @override
   void cancel() {
     if (_cancelled) return;
@@ -133,6 +137,9 @@ final class _JudgeFeatureTask implements FeatureReadTask {
       if (query.view == FeatureQueryView.judgeBatchDetails)
         return _batchDetails(progress);
       if (progress.batch.kind == BridgeJudgeScanKind.assignments) {
+        final at = progress.sourceFetchedAt?.toInt();
+        if (at != null && (_listFetchedAt == null || at > _listFetchedAt!))
+          _listFetchedAt = at;
         _pending.removeWhere((key, _) => key.$1 == progress.batch.courseId);
         for (final item in progress.batch.assignments) {
           _pending[(item.courseId, item.assignmentId)] = item;
@@ -172,7 +179,9 @@ final class _JudgeFeatureTask implements FeatureReadTask {
               origin: progress.summaryHasCached
                   ? DataOrigin.mixed
                   : DataOrigin.online,
-              fetchedAt: bridgeCacheTime(progress.summaryFetchedAt.toInt()),
+              fetchedAt: bridgeCacheTime(
+                _listFetchedAt ?? progress.summaryFetchedAt.toInt(),
+              ),
               complete: progress.batch.complete,
               cacheFailure:
                   cacheFailure ??

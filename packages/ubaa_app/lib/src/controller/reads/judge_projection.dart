@@ -39,9 +39,8 @@ FeatureResult controllerRetainJudgePartial(
                   current.origin == DataOrigin.online
               ? DataOrigin.online
               : DataOrigin.mixed,
-          fetchedAt: prior.fetchedAt.isBefore(current.fetchedAt)
-              ? prior.fetchedAt
-              : current.fetchedAt,
+          // 更新时间只对作业列表负责；沿用的旧详情不拉低本次列表的取得时间。
+          fetchedAt: current.fetchedAt,
           complete: false,
           savedForOffline: false,
           cacheFailure: current.cacheFailure ?? prior.cacheFailure,
