@@ -33,12 +33,11 @@ fn 本机日程命令独立于学校会话() {
 
 #[cfg(target_os = "macos")]
 mod native {
-    use super::*;
     use crate::support::*;
     use serde_json::{Value, json};
     use sha2::{Digest, Sha256};
     use std::process::Command;
-    use ubaa_cli::local_agenda::AgendaAccess;
+
     use ubaa_core::facade::{
         AgendaStore, CacheKey, CacheLimits, CachePayload, CacheQuery, CacheScope, ConnectionMode,
     };
@@ -47,38 +46,24 @@ mod native {
         format!("{:x}", Sha256::digest(root.as_os_str().as_encoded_bytes()))
     }
     fn native_read(scope: &str) -> Vec<u8> {
-        let output = Command::new("/usr/bin/security")
-            .args(["find-generic-password", "-s", SERVICE, "-a", scope, "-w"])
+        let output = Command::new(env!("CARGO_BIN_EXE_ubaa"))
+            .args(["--internal-keychain-worker", "read", scope])
             .output()
             .unwrap();
         assert!(output.status.success());
-        let mut data = output.stdout;
-        if data.last() == Some(&b'\n') {
-            data.pop();
-        }
-        data
+        assert!(output.stderr.is_empty());
+        output.stdout
     }
     fn native_write(scope: &str, data: &[u8]) {
         use std::io::Write;
-        let command = format!(
-            "add-generic-password -U -s '{}' -a '{}' -w '{}'\n",
-            SERVICE,
-            scope,
-            std::str::from_utf8(data).unwrap().replace('\'', "'\\''")
-        );
-        let mut child = Command::new("/usr/bin/security")
-            .args(["-q", "-i"])
+        let mut child = Command::new(env!("CARGO_BIN_EXE_ubaa"))
+            .args(["--internal-keychain-worker", "write", scope])
             .stdin(std::process::Stdio::piped())
             .stdout(std::process::Stdio::null())
             .stderr(std::process::Stdio::null())
             .spawn()
             .unwrap();
-        child
-            .stdin
-            .take()
-            .unwrap()
-            .write_all(command.as_bytes())
-            .unwrap();
+        child.stdin.take().unwrap().write_all(data).unwrap();
         assert!(child.wait().unwrap().success());
         assert_eq!(native_read(scope), data);
     }
@@ -121,54 +106,70 @@ mod native {
         index: Value,
         calls: std::sync::Arc<std::sync::atomic::AtomicUsize>,
         before: usize,
+        _cleanup: SyntheticMaterial,
+    }
+    struct SyntheticMaterial(String);
+    impl Drop for SyntheticMaterial {
+        fn drop(&mut self) {
+            let _ = Command::new("/usr/bin/security")
+                .args(["delete-generic-password", "-s", SERVICE, "-a", &self.0])
+                .output();
+        }
     }
     async fn seed() -> Fixture {
+        use std::io::Write;
+        use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
         let root = root();
         let scope = scope(&root);
 
-        let mut access = AgendaAccess::open(&root).unwrap();
-        access.revoke().unwrap();
+        let cleanup = SyntheticMaterial(scope.clone());
+        // 创建、更新、重开均由同一真实 CLI 执行，使用系统默认 ACL。
+        native_write(&scope, b"\0\r\n\xff\\\"'");
+        let anchor = uuid::Uuid::new_v4().simple().to_string();
+        let mut lock = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .mode(0o600)
+            .open(root.join("cli-accounts.lock"))
+            .unwrap();
+        lock.write_all(anchor.as_bytes()).unwrap();
+        lock.sync_all().unwrap();
+        let metadata = std::fs::metadata(&root).unwrap();
+        let mut index = json!({"version":1,"anchor":anchor,"directory":format!("{}:{}",metadata.dev(),metadata.ino()),"accounts":{"fixture-a":{"alias":uuid::Uuid::new_v4().simple().to_string(),"cache_key":null}},"active":"fixture-a","epoch":uuid::Uuid::new_v4().simple().to_string()});
+        for n in 0..64 {
+            index["accounts"][format!("{n:08}")] =
+                json!({"alias":uuid::Uuid::new_v4().simple().to_string(),"cache_key":null});
+        }
+        for id in [
+            "fixture\"quote",
+            "fixture'quote",
+            "fixture\\slash",
+            "中文合成账号",
+        ] {
+            index["accounts"][id] = json!({"alias":uuid::Uuid::new_v4().simple().to_string(),"cache_key":vec![19_u8;32]});
+        }
+        let encoded = serde_json::to_vec(&index).unwrap();
+        assert!(encoded.len() > 4096);
+        native_write(&scope, &encoded);
+        // 超过既有 1 MiB 读取边界的输入在原生更新前拒绝，旧值完整保留。
+        let mut rejected = Command::new(env!("CARGO_BIN_EXE_ubaa"))
+            .args(["--internal-keychain-worker", "write", &scope])
+            .stdin(std::process::Stdio::piped())
+            .stdout(std::process::Stdio::null())
+            .stderr(std::process::Stdio::null())
+            .spawn()
+            .unwrap();
+        rejected
+            .stdin
+            .take()
+            .unwrap()
+            .write_all(&vec![b'x'; 1_048_577])
+            .unwrap();
+        assert_eq!(rejected.wait().unwrap().code(), Some(7));
+        assert_eq!(native_read(&scope), encoded);
         let (mut c, calls) = client(&root, Some("fixture-a"), Some("fixture-a"));
-        assert!(c.take_verified_login_identity().is_err());
-        let _ = login(&mut c, "fixture-a").await;
-        let cli = Cli::try_parse_from([
-            "ubaa",
-            "--json",
-            "auth",
-            "login",
-            "--username",
-            "fixture-a",
-            "--password-stdin",
-        ])
-        .unwrap();
-        let mut stdout = Vec::new();
-        let mut stderr = Vec::new();
-        assert_eq!(
-            ubaa_cli::run_dual_login_with_agenda(
-                cli,
-                &mut c,
-                &mut std::io::Cursor::new(b"synthetic-only\n"),
-                &mut stdout,
-                &mut stderr,
-                &mut access
-            )
-            .await,
-            0
-        );
-        let output: Value = serde_json::from_slice(&stdout).unwrap();
-        assert_eq!(output["agendaRegistration"]["state"], "ready");
-        let schema: Value =
-            serde_json::from_str(include_str!("../../../docs/contracts/cli-json.schema.json"))
-                .unwrap();
-        assert!(
-            jsonschema::validator_for(&schema)
-                .unwrap()
-                .is_valid(&output)
-        );
-        let current = native_read(&scope);
+        login(&mut c, "fixture-a").await;
         let before = calls.load(std::sync::atomic::Ordering::SeqCst);
-        // 仅检查本测试刚创建的隔离命名空间，不读取用户历史材料。
-        let index: Value = serde_json::from_slice(&current).unwrap();
         let alias = index["accounts"]["fixture-a"]["alias"]
             .as_str()
             .unwrap()
@@ -178,7 +179,7 @@ mod native {
         let id = item.id;
         store.create(item).unwrap();
         drop(store);
-        drop(access);
+
         std::fs::write(
             root.join("config.toml"),
             b"synthetic invalid school configuration",
@@ -197,6 +198,7 @@ mod native {
             index,
             calls,
             before,
+            _cleanup: cleanup,
         }
     }
     fn verify_local(fixture: &Fixture) {
@@ -339,9 +341,14 @@ mod native {
     fn verify_exit(fixture: &Fixture) {
         let root = fixture.root.clone();
         let scope = fixture.scope.clone();
-        let mut access = AgendaAccess::open(&root).unwrap();
-        access.revoke().unwrap();
-        drop(access);
+        let mut index = fixture.index.clone();
+        index["active"] = Value::Null;
+        index["epoch"] = json!(uuid::Uuid::new_v4().simple().to_string());
+        native_write(&scope, &serde_json::to_vec(&index).unwrap());
+        AgendaStore::open(&root, &fixture.alias)
+            .unwrap()
+            .deactivate()
+            .unwrap();
         let output = binary(&root, &["--json", "agenda", "unsynced"]);
         assert_eq!(output.status.code(), Some(3));
         assert_eq!(valid(&output)["error"]["code"], "registration_required");

@@ -10,8 +10,14 @@ use ubaa_cli::{
 use ubaa_core::facade::{ErrorCode, ErrorKind, UbaaError};
 use ubaa_core::facade::{RouteClient, UbaaClient};
 
+fn main() {
+    if let Some(code) = ubaa_cli::local_agenda::keychain_worker() {
+        std::process::exit(code);
+    }
+    async_main();
+}
 #[tokio::main]
-async fn main() {
+async fn async_main() {
     init_logging();
     let json_requested = std::env::args_os().any(|argument| argument == "--json");
     let cli = match Cli::try_parse() {

@@ -20,14 +20,41 @@ fn access(root: &Path, material: &MemoryMaterial) -> AgendaAccess {
     AgendaAccess::with_material(root, Box::new(material.clone())).unwrap()
 }
 async fn register(access: &mut AgendaAccess, client: &mut UbaaClient, id: &str) {
+    use clap::Parser;
     access.revoke().unwrap();
-    assert_ne!(
-        login(client, id).await.readiness,
-        ubaa_core::facade::LoginReadiness::NoneReady
-    );
-    let token = client.take_verified_login_identity().unwrap();
-    access.register(client, &token).unwrap();
+    let cli = crate::Cli::try_parse_from([
+        "ubaa",
+        "--json",
+        "auth",
+        "login",
+        "--username",
+        id,
+        "--password-stdin",
+    ])
+    .unwrap();
+    let (mut stdout, mut stderr) = (Vec::new(), Vec::new());
+    let exit = crate::run_dual_login_with_agenda(
+        cli,
+        client,
+        &mut std::io::Cursor::new(b"synthetic-only\n"),
+        &mut stdout,
+        &mut stderr,
+        access,
+    )
+    .await;
+    assert!(stderr.is_empty());
+    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+    assert_eq!(value["agendaRegistration"]["state"], "ready");
+    if value["data"]["readiness"] == "all_ready" {
+        assert_eq!(exit, 0);
+    }
+    let schema: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../docs/contracts/cli-json.schema.json"
+    ))
+    .unwrap();
+    assert!(jsonschema::validator_for(&schema).unwrap().is_valid(&value));
 }
+
 #[tokio::test]
 async fn 首登跨路线同账号复用退出恢复与账号隔离() {
     let root = root();
@@ -280,7 +307,7 @@ async fn 部分成功不能认领失败路线保留的旧账号槽位() {
     let root = root();
     let (mut old, calls) = client(&root, Some("fixture-a"), Some("fixture-a"));
     login(&mut old, "fixture-a").await;
-    let mut c = UbaaClient::with_transports(
+    let mut c = UbaaClient::with_routing(
         LoginMock {
             identity: Some("fixture-b"),
             calls: calls.clone(),
@@ -292,6 +319,8 @@ async fn 部分成功不能认领失败路线保留的旧账号槽位() {
             failure_status: 503,
         },
         ubaa_test_support::FileSessionStore::new(&root).unwrap(),
+        ubaa_test_support::RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
+        NeverProbe,
     )
     .unwrap();
     assert_eq!(
@@ -329,13 +358,15 @@ async fn 学校状态成功但会话持久化失败不能登记() {
         calls,
         failure_status: 401,
     };
-    let mut c = UbaaClient::with_transports(
+    let mut c = UbaaClient::with_routing(
         SessionWriteFailure {
             root: root.clone(),
             inner: mock.clone(),
         },
         mock,
         ubaa_test_support::FileSessionStore::new(&root).unwrap(),
+        ubaa_test_support::RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
+        NeverProbe,
     )
     .unwrap();
     let _ = c
@@ -350,4 +381,175 @@ async fn 学校状态成功但会话持久化失败不能登记() {
         Err(LocalError::RegistrationRequired)
     ));
     assert!(memory.0.lock().unwrap().is_none());
+}
+
+struct UnsupportedMaterial;
+impl Material for UnsupportedMaterial {
+    fn supported(&self) -> bool {
+        false
+    }
+    fn read(&self, _: &str) -> LocalResult<Option<Vec<u8>>> {
+        Err(LocalError::MaterialUnavailable)
+    }
+    fn write(&self, _: &str, _: &[u8]) -> LocalResult<()> {
+        Err(LocalError::MaterialUnavailable)
+    }
+}
+#[tokio::test]
+async fn 未登记平台材料不可用仍可进入原有认证() {
+    use clap::Parser;
+    let root = root();
+    let mut access = AgendaAccess::with_material(&root, Box::new(UnsupportedMaterial)).unwrap();
+    access.revoke().expect("未启用日程不能阻断原有认证");
+    let (mut client, calls) = client(&root, Some("fixture-a"), Some("fixture-a"));
+    let cli = crate::Cli::try_parse_from([
+        "ubaa",
+        "--json",
+        "auth",
+        "login",
+        "--username",
+        "fixture-a",
+        "--password-stdin",
+    ])
+    .unwrap();
+    let (mut out, mut err) = (Vec::new(), Vec::new());
+    assert_eq!(
+        crate::run_dual_login_with_agenda(
+            cli,
+            &mut client,
+            &mut std::io::Cursor::new(b"synthetic-only\n"),
+            &mut out,
+            &mut err,
+            &mut access
+        )
+        .await,
+        7
+    );
+    let value: serde_json::Value = serde_json::from_slice(&out).unwrap();
+    assert_eq!(value["ok"], true);
+    assert_eq!(
+        value["agendaRegistration"]["error"]["code"],
+        "material_unavailable"
+    );
+    assert!(calls.load(std::sync::atomic::Ordering::SeqCst) > 0);
+    assert!(!root.join("agenda").exists());
+    assert!(access.anchor().unwrap().is_empty());
+    // 同一隔离目录已有旧认证双槽，退出仍可到达 Mock backend。
+    access.revoke().unwrap();
+    client.logout().await.unwrap();
+    assert!(client.active_routes().is_empty());
+    access.revoke().unwrap();
+    let mut diagnostic = ubaa_core::facade::RouteClient::with_transport(
+        ubaa_core::facade::ConnectionMode::Direct,
+        LoginMock {
+            identity: Some("fixture-a"),
+            calls: calls.clone(),
+            failure_status: 401,
+        },
+        ubaa_test_support::FileSessionStore::new(&root).unwrap(),
+    )
+    .unwrap();
+    let cli = crate::Cli::try_parse_from([
+        "ubaa",
+        "--json",
+        "auth",
+        "login",
+        "--mode",
+        "direct",
+        "--username",
+        "fixture-a",
+        "--password-stdin",
+    ])
+    .unwrap();
+    let (mut out, mut err) = (Vec::new(), Vec::new());
+    assert_eq!(
+        crate::run_with_backend(
+            cli,
+            &mut diagnostic,
+            &mut std::io::Cursor::new(b"synthetic-only\n"),
+            &mut out,
+            &mut err
+        )
+        .await,
+        0
+    );
+    assert!(access.anchor().unwrap().is_empty());
+}
+
+#[test]
+fn 不支持材料时所有已有日程痕迹均失败关闭() {
+    for name in ["anchor", "cli-accounts.pending", "agenda", "business-cache"] {
+        let root = root();
+        let mut access = AgendaAccess::with_material(&root, Box::new(UnsupportedMaterial)).unwrap();
+        if name == "anchor" {
+            let mut file = access.paths.lock.try_clone().unwrap();
+            file.write_all(b"broken-or-managed-anchor").unwrap();
+        } else if name.ends_with("pending") {
+            std::fs::write(root.join(name), []).unwrap();
+        } else {
+            std::fs::create_dir(root.join(name)).unwrap();
+        }
+        assert_eq!(access.revoke(), Err(LocalError::MaterialUnavailable));
+    }
+}
+
+#[derive(Clone)]
+struct LimitedMaterial {
+    memory: MemoryMaterial,
+    limit: Arc<std::sync::atomic::AtomicUsize>,
+}
+impl Material for LimitedMaterial {
+    fn read(&self, scope: &str) -> LocalResult<Option<Vec<u8>>> {
+        self.memory.read(scope)
+    }
+    fn write(&self, scope: &str, data: &[u8]) -> LocalResult<()> {
+        self.check_write(data)?;
+        self.memory.write(scope, data)
+    }
+    fn check_write(&self, data: &[u8]) -> LocalResult<()> {
+        if data.len() > self.limit.load(std::sync::atomic::Ordering::SeqCst) {
+            Err(LocalError::MaterialUnavailable)
+        } else {
+            Ok(())
+        }
+    }
+}
+#[tokio::test]
+async fn 索引容量预检在过渡前拒绝且保留旧映射与密钥() {
+    let root = root();
+    let memory = MemoryMaterial::default();
+    let limit = Arc::new(std::sync::atomic::AtomicUsize::new(usize::MAX));
+    let mut a = AgendaAccess::with_material(
+        &root,
+        Box::new(LimitedMaterial {
+            memory: memory.clone(),
+            limit: limit.clone(),
+        }),
+    )
+    .unwrap();
+    let (mut c, _) = client(&root, Some("fixture-a"), Some("fixture-a"));
+    register(&mut a, &mut c, "fixture-a").await;
+    let mut index = a.active().unwrap();
+    index.accounts.get_mut("fixture-a").unwrap().cache_key = Some(vec![19; 32]);
+    a.save(&index).unwrap();
+    a.revoke().unwrap();
+    let before = memory.0.lock().unwrap().clone().unwrap();
+    limit.store(before.len(), std::sync::atomic::Ordering::SeqCst);
+    let (mut b, _) = client(&root, Some("fixture-b"), Some("fixture-b"));
+    login(&mut b, "fixture-b").await;
+    let token = b.take_verified_login_identity().unwrap();
+    assert_eq!(
+        a.register(&mut b, &token),
+        Err(LocalError::MaterialUnavailable)
+    );
+    assert_eq!(memory.0.lock().unwrap().as_deref(), Some(before.as_slice()));
+    assert!(!root.join("cli-accounts.pending").exists());
+    assert_eq!(
+        a.load().unwrap().unwrap().accounts["fixture-a"].cache_key,
+        Some(vec![19; 32])
+    );
+    assert_eq!(
+        PlatformMaterial.check_write(&vec![0; material::MAX_DATA + 1]),
+        Err(LocalError::MaterialUnavailable)
+    );
 }

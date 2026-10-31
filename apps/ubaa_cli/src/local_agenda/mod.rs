@@ -7,6 +7,8 @@ mod read;
 mod tests;
 
 use fs2::FileExt;
+#[doc(hidden)]
+pub use material::keychain_worker;
 use material::{Material, PlatformMaterial};
 use paths::Paths;
 pub use read::run_agenda;
@@ -179,9 +181,14 @@ impl AgendaAccess {
             _ => Err(LocalError::MaterialCorrupt),
         }
     }
+    fn check_index(&self, index: &Index) -> LocalResult<()> {
+        self.material
+            .check_write(&serde_json::to_vec(index).map_err(|_| LocalError::MaterialCorrupt)?)
+    }
     fn save(&self, index: &Index) -> LocalResult<()> {
         self.paths.validate()?;
         let data = serde_json::to_vec(index).map_err(|_| LocalError::MaterialCorrupt)?;
+        self.material.check_write(&data)?;
         self.material.write(&self.scope, &data)?;
         // 写后核对，不能将不可确认的持久化称为激活成功。
         if self.material.read(&self.scope)?.as_deref() != Some(data.as_slice()) {
@@ -223,12 +230,26 @@ impl AgendaAccess {
     /// # Errors
     /// 持久化撤销失败或日程不能关闭时失败，不继续认证和切号。
     pub fn revoke(&mut self) -> LocalResult<()> {
+        if !self.material.supported() {
+            self.paths.validate()?;
+            if !self.anchor()?.is_empty() {
+                return Err(LocalError::MaterialUnavailable);
+            }
+            for name in ["cli-accounts.pending", "agenda", "business-cache"] {
+                match self.paths.root.join(name).symlink_metadata() {
+                    Err(error) if error.kind() == std::io::ErrorKind::NotFound => (),
+                    _ => return Err(LocalError::MaterialUnavailable),
+                }
+            }
+            return Ok(());
+        }
         let Some(mut index) = self.load()? else {
             return Ok(());
         };
-        self.begin_transition()?;
         let old = index.active.take();
         index.epoch = random();
+        self.check_index(&index)?;
+        self.begin_transition()?;
         self.save(&index)?;
         if let Some(id) = old {
             self.agenda(&index.accounts[&id])?
@@ -246,6 +267,9 @@ impl AgendaAccess {
         client: &mut UbaaClient,
         identity: &VerifiedLoginIdentity,
     ) -> LocalResult<()> {
+        if !self.material.supported() {
+            return Err(LocalError::MaterialUnavailable);
+        }
         let id = client
             .validate_login_identity(identity)
             .map_err(|_| LocalError::StaleIdentity)?
@@ -254,12 +278,16 @@ impl AgendaAccess {
         if index.active.is_some() {
             return Err(LocalError::StaleIdentity);
         }
-        self.begin_transition()?;
         index.accounts.entry(id.clone()).or_insert_with(|| Account {
             alias: random(),
             cache_key: None,
         });
         index.epoch = random();
+        self.check_index(&index)?;
+        index.active = Some(id.clone());
+        self.check_index(&index)?;
+        index.active = None;
+        self.begin_transition()?;
         // 先持久保存稳定映射和 inactive 状态，避免日程创建后映射写失败。
         self.save(&index)?;
         let store = self.agenda(&index.accounts[&id])?;

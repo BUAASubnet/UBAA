@@ -27,6 +27,9 @@ ubaa-core = { path = "../../crates/ubaa_core" }
 [target.'cfg(unix)'.dependencies]
 libc = "0.2.189"
 
+[target.'cfg(target_os = "macos")'.dependencies]
+security-framework = { version = "=3.7.0", default-features = false }
+
 [dev-dependencies]
 jsonschema.workspace = true
 ubaa-test-support = { path = "../../crates/ubaa_test_support" }

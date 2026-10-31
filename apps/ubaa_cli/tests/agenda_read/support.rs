@@ -52,7 +52,7 @@ impl HttpTransport for LoginMock {
 }
 pub fn root() -> PathBuf {
     let root = Path::new(env!("CARGO_MANIFEST_DIR"))
-        .join("../../.ubaa_local/agenda_cli_read")
+        .join("../../.ubaa_local/agenda_cli_a_fix")
         .join(Uuid::new_v4().simple().to_string());
     std::fs::create_dir_all(&root).unwrap();
     #[cfg(unix)]
@@ -69,7 +69,7 @@ pub fn client(
 ) -> (UbaaClient, Arc<AtomicUsize>) {
     let calls = Arc::new(AtomicUsize::new(0));
     (
-        UbaaClient::with_transports(
+        UbaaClient::with_routing(
             LoginMock {
                 identity: direct,
                 failure_status: 401,
@@ -81,6 +81,8 @@ pub fn client(
                 calls: calls.clone(),
             },
             FileSessionStore::new(root).unwrap(),
+            ubaa_test_support::RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
+            NeverProbe,
         )
         .unwrap(),
         calls,
@@ -112,4 +114,11 @@ pub fn item(title: &str) -> AgendaItem {
         },
         now,
     )
+}
+
+pub struct NeverProbe;
+impl ubaa_test_support::GatewayProbe for NeverProbe {
+    fn probe(&self, _: std::time::Duration) -> ubaa_core::facade::NetworkState {
+        panic!("固定路线不得探测学校网络")
+    }
 }

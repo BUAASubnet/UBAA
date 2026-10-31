@@ -12,59 +12,55 @@ pub(super) struct Paths {
 }
 impl Paths {
     pub fn open(path: &Path) -> LocalResult<Self> {
-        #[cfg(not(unix))]
-        {
-            let _ = path;
-            return Err(LocalError::MaterialUnavailable);
+        let absolute = if path.is_absolute() {
+            path.to_owned()
+        } else {
+            std::env::current_dir()
+                .map_err(|_| LocalError::Storage)?
+                .join(path)
+        };
+        inspect_components(&absolute)?;
+        if !absolute.exists() {
+            let mut builder = fs::DirBuilder::new();
+            builder.recursive(true);
+            #[cfg(unix)]
+            {
+                use std::os::unix::fs::DirBuilderExt;
+                builder.mode(0o700);
+            }
+            builder.create(&absolute).map_err(|_| LocalError::Storage)?;
         }
+        inspect_components(&absolute)?;
+        let root = fs::canonicalize(&absolute).map_err(|_| LocalError::Storage)?;
+        private(&root, true)?;
+        let root_handle = Handle::from_path(&root).map_err(|_| LocalError::Storage)?;
+        let lock_path = root.join("cli-accounts.lock");
+        let mut options = OpenOptions::new();
+        options.read(true).write(true).create(true);
         #[cfg(unix)]
         {
-            use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
-            let absolute = if path.is_absolute() {
-                path.to_owned()
-            } else {
-                std::env::current_dir()
-                    .map_err(|_| LocalError::Storage)?
-                    .join(path)
-            };
-            inspect_components(&absolute)?;
-            if !absolute.exists() {
-                let mut builder = fs::DirBuilder::new();
-                builder.recursive(true).mode(0o700);
-                builder.create(&absolute).map_err(|_| LocalError::Storage)?;
-            }
-            inspect_components(&absolute)?;
-            let root = fs::canonicalize(&absolute).map_err(|_| LocalError::Storage)?;
-            private(&root, true)?;
-            let root_handle = Handle::from_path(&root).map_err(|_| LocalError::Storage)?;
-            let lock_path = root.join("cli-accounts.lock");
-            let mut options = OpenOptions::new();
-            options
-                .read(true)
-                .write(true)
-                .create(true)
-                .mode(0o600)
-                .custom_flags(libc::O_NOFOLLOW);
-            // 路径先后检查与同一文件身份比较，符号链接不能被接受为锁。
-            if lock_path.symlink_metadata().is_ok() {
-                private(&lock_path, false)?;
-            }
-            let lock = options.open(&lock_path).map_err(|_| LocalError::Storage)?;
-            private(&lock_path, false)?;
-            let lock_handle = Handle::from_file(lock.try_clone().map_err(|_| LocalError::Storage)?)
-                .map_err(|_| LocalError::Storage)?;
-            if lock_handle != Handle::from_path(&lock_path).map_err(|_| LocalError::Storage)? {
-                return Err(LocalError::Storage);
-            }
-            let result = Self {
-                root,
-                lock,
-                root_handle,
-                lock_handle,
-            };
-            result.validate()?;
-            Ok(result)
+            use std::os::unix::fs::OpenOptionsExt;
+            options.mode(0o600).custom_flags(libc::O_NOFOLLOW);
         }
+        // 路径先后检查与同一文件身份比较，符号链接不能被接受为锁。
+        if lock_path.symlink_metadata().is_ok() {
+            private(&lock_path, false)?;
+        }
+        let lock = options.open(&lock_path).map_err(|_| LocalError::Storage)?;
+        private(&lock_path, false)?;
+        let lock_handle = Handle::from_file(lock.try_clone().map_err(|_| LocalError::Storage)?)
+            .map_err(|_| LocalError::Storage)?;
+        if lock_handle != Handle::from_path(&lock_path).map_err(|_| LocalError::Storage)? {
+            return Err(LocalError::Storage);
+        }
+        let result = Self {
+            root,
+            lock,
+            root_handle,
+            lock_handle,
+        };
+        result.validate()?;
+        Ok(result)
     }
     pub fn validate(&self) -> LocalResult<()> {
         inspect_components(&self.root)?;

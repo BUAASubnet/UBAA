@@ -3438,6 +3438,7 @@ dependencies = [
  "libc",
  "rpassword",
  "same-file",
+ "security-framework",
  "serde",
  "serde_json",
  "sha2",
