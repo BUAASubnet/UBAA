@@ -1,4 +1,7 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_test_support/ubaa_test_support.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -24,12 +27,22 @@ void main() {
   });
   testWidgets('个人页主题选择在本次宿主运行中保持且导航重建不查询', (tester) async {
     _setSize(tester);
+    const channel = MethodChannel('cn.edu.buaa.ubaa/appearance');
+    final nativeModes = <Object?>[];
+    final messenger = tester.binding.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      expect(call.method, 'setThemeMode');
+      nativeModes.add(call.arguments);
+      return null;
+    });
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
     final backend = _CountingBackend();
     final vault = MemoryCredentialVault();
     Future<void> mount() async {
       await tester.pumpWidget(
         UbaaAppHost(
           key: const ValueKey<String>('same-host'),
+          nativeThemeSync: NativeThemeSync(enabled: true),
           backend: backend,
           credentialVault: vault,
         ),
@@ -76,9 +89,10 @@ void main() {
     await _choose(tester, '跟随系统');
     expect(_mode(tester), ThemeMode.system);
     expect(backend.featureLoads, calls);
+    expect(nativeModes, ['system', 'dark', 'light', 'system']);
   });
 
-  testWidgets('销毁并创建全新宿主后恢复设备主题', (tester) async {
+  testWidgets('设备主题跨宿主恢复，迟到读取不能覆盖用户选择或通知原生旧值', (tester) async {
     _setSize(tester);
     final preferences = MemoryPreferenceValues();
     await tester.pumpWidget(
@@ -119,6 +133,35 @@ void main() {
           .single,
       ThemeMode.dark,
     );
+    await tester.pumpWidget(const SizedBox.shrink());
+    // 在同一个测试时钟内继续验证恢复与用户选择的竞争。
+    {
+      const channel = MethodChannel('cn.edu.buaa.ubaa/appearance');
+      final modes = <Object?>[];
+      final messenger = tester.binding.defaultBinaryMessenger;
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        modes.add(call.arguments);
+        return null;
+      });
+      addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+      final preferences = _DelayedThemePreferences();
+      await tester.pumpWidget(
+        UbaaAppHost(
+          backend: _CountingBackend(),
+          credentialVault: MemoryCredentialVault(),
+          preferenceValues: preferences,
+          nativeThemeSync: NativeThemeSync(enabled: true),
+        ),
+      );
+      await tester.pumpAndSettle();
+      await _login(tester);
+      await _profile(tester);
+      await _choose(tester, '深色');
+      preferences.theme.complete('light');
+      await tester.pumpAndSettle();
+      expect(_mode(tester), ThemeMode.dark);
+      expect(modes, ['dark']);
+    }
   });
 }
 
@@ -166,4 +209,16 @@ Future<void> _profile(WidgetTester tester) async {
 Future<void> _choose(WidgetTester tester, String label) async {
   await tester.tap(find.text(label).last);
   await tester.pumpAndSettle();
+}
+
+class _DelayedThemePreferences implements PreferenceValues {
+  final theme = Completer<String?>();
+  final other = MemoryPreferenceValues();
+  @override
+  Future<String?> read(String key) =>
+      key == 'flutter.ubaa.preferences.theme' ? theme.future : other.read(key);
+  @override
+  Future<void> write(String key, String value) => other.write(key, value);
+  @override
+  Future<void> remove(String key) => other.remove(key);
 }

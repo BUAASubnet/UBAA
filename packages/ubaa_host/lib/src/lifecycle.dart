@@ -26,17 +26,22 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   int _themeRevision = 0;
   ThemeMode _themeMode = ThemeMode.system;
 
+  late final _nativeTheme = widget.nativeThemeSync ?? NativeThemeSync();
+
   void _setThemeMode(ThemeMode value) {
     _themeRevision++;
     setState(() => _themeMode = value);
     unawaited(_themeStore.write(value.name).catchError((Object _) {}));
+    unawaited(_nativeTheme.apply(value.name));
   }
 
   Future<void> _restoreTheme() async {
     final revision = _themeRevision;
     final mode = await _themeStore.read();
     if (mounted && revision == _themeRevision) {
-      setState(() => _themeMode = ThemeMode.values.byName(mode));
+      final value = ThemeMode.values.byName(mode);
+      if (value != _themeMode) setState(() => _themeMode = value);
+      unawaited(_nativeTheme.apply(mode));
     }
   }
 
@@ -118,6 +123,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   @override
   void initState() {
     super.initState();
+    _themeMode = widget.initialThemeMode;
     _wasBackgrounded = switch (WidgetsBinding.instance.lifecycleState) {
       AppLifecycleState.paused ||
       AppLifecycleState.hidden ||

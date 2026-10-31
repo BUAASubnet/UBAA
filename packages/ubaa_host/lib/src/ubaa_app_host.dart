@@ -26,10 +26,13 @@ Future<void> bootstrapUbaaHost({
   required String Function() debugHello,
   required Future<PlatformCapabilities> Function() createCapabilities,
   required void Function(Widget app) runApplication,
+  Future<ThemeMode> Function()? readThemeMode,
 }) async {
   ensureFlutterInitialized();
+  // 首帧前有限等待保存的主题，启动页与宿主使用同一初值。
+  final themeMode = await _readStartupThemeMode(readThemeMode);
   // 先画启动页再做 SDK 与钥匙串等初始化，避免原生启动图长时间停留。
-  runApplication(const UbaaBootSplash());
+  runApplication(UbaaBootSplash(themeMode: themeMode));
   var stage = 'SDK 初始化';
   try {
     await initializeSdk();
@@ -46,6 +49,7 @@ Future<void> bootstrapUbaaHost({
         photoPicker: capabilities.photoPicker,
         permissionGateway: capabilities.permissionGateway,
         locationProvider: capabilities.locationProvider,
+        initialThemeMode: themeMode,
       ),
     );
   } on Object catch (error, stackTrace) {
@@ -63,6 +67,7 @@ Future<void> bootstrapUbaaHost({
     );
     runApplication(
       _startupApplication(
+        themeMode: themeMode,
         home: _StartupFailure(
           error: failure,
           stage: stage,
@@ -74,7 +79,25 @@ Future<void> bootstrapUbaaHost({
   }
 }
 
-/// 平台初始化完成前跟随系统主题，宿主读取设备偏好后使用保存的主题。
+/// 有限等待偏好读取；超时或失败时跟随系统，继续启动首帧。
+Future<ThemeMode> _readStartupThemeMode(
+  Future<ThemeMode> Function()? read,
+) async {
+  try {
+    return await Future<ThemeMode>.sync(
+      read ??
+          () async =>
+              ThemeMode.values.byName(await ThemePreferenceStore().read()),
+    ).timeout(
+      const Duration(milliseconds: 300),
+      onTimeout: () => ThemeMode.system,
+    );
+  } on Object {
+    return ThemeMode.system;
+  }
+}
+
+/// 启动页使用首帧前读出的主题，与宿主保持一致。
 class UbaaBootSplash extends StatelessWidget {
   const UbaaBootSplash({super.key, this.themeMode = ThemeMode.system});
   final ThemeMode themeMode;
@@ -99,6 +122,8 @@ class UbaaAppHost extends StatefulWidget {
     this.permissionGateway,
     this.locationProvider,
     this.initialDestination = UiDestination.home,
+    this.initialThemeMode = ThemeMode.system,
+    this.nativeThemeSync,
     this.telemetry,
     this.reminderStore,
     this.gradeScoreStore,
@@ -128,6 +153,10 @@ class UbaaAppHost extends StatefulWidget {
   final PlatformPermissionGateway? permissionGateway;
   final PlatformLocationProvider? locationProvider;
   final UiDestination initialDestination;
+
+  /// 启动时已读出的主题；宿主随后仍会从偏好复核。
+  final ThemeMode initialThemeMode;
+  final NativeThemeSync? nativeThemeSync;
   final TelemetryClient? telemetry;
   final YgdkReminderStore? reminderStore;
   final GradeScoreStore? gradeScoreStore;

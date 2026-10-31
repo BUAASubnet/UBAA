@@ -322,3 +322,11 @@ Direct 实测统一认证成功后，阳光 OAuth 依次经过 app 的 `/uc/wap/
 ## 2026-10-31：模拟器构建按 lipo 能力选择架构
 
 Xcode 27.2 的 `lipo /usr/bin/true -verify_arch x86_64 arm64e` 返回参数解析错误，锁定 Flutter 3.41.9 的 `thinFramework` 同样一次传入两个架构，因此把参数错误报告为缺少架构。构建入口只对这个明确诊断设置本机架构，保留显式环境覆盖，不修改 SDK 或跳过真实架构校验。正常工具链和无关错误保持原行为。代价是触发回退时的产物只适用于所选架构，跨架构模拟器仍需分别构建。
+
+## 2026-10-31：启动主题与 Android 应用外观同步
+
+共享 bootstrap 在启动 Flutter 页面前最多等待主题偏好 300ms，读取失败或超时回落系统主题。启动页、初始化失败页和宿主使用同一初值，宿主后续恢复仍用代次检查保护用户的新选择。OHOS 使用现有偏好插件分支，Android 外观通道仅在 Android 启用。
+
+Android 12+ 使用 `setApplicationNightMode` 保存应用外观，使下次系统启动画面采用相同主题。该调用也改变当前 Activity 的 `uiMode`，Flutter 会把配置变化传入 `platformBrightness`；显式深浅主题由 `ThemeMode` 决定，不根据亮度回写偏好。切回系统主题时传入 `MODE_NIGHT_AUTO`，AOSP 在这个应用级 API 中把它映射为 `UI_MODE_NIGHT_UNDEFINED`，清除应用覆盖。该行为与全局 `setNightMode` 的自动昼夜计算不同，依据见 [AOSP 实现](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/android15-release/services/core/java/com/android/server/UiModeManagerService.java)。Manifest 已声明处理 `uiMode`，由 Flutter 接收配置变化。
+
+macOS 在首帧前从标准 UserDefaults 读取 `flutter.ubaa.preferences.theme` 并设置窗口和 FlutterViewController 底色。键由 ThemePreferenceStore 完整提供，SharedPreferencesAsync 不追加前缀。iOS 原生启动图仍跟随系统，Flutter 首帧使用应用偏好；Android 12 以下原生背景同样跟随系统资源，应用偏好在 Flutter 页面生效。

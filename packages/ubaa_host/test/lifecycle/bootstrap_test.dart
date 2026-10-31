@@ -16,6 +16,7 @@ void _registerBootstrapTests() {
     Widget? launched;
 
     await bootstrapUbaaHost(
+      readThemeMode: () async => ThemeMode.system,
       ensureFlutterInitialized: () => events.add('binding'),
       initializeSdk: () async {
         events.add('sdk:start');
@@ -66,6 +67,7 @@ void _registerBootstrapTests() {
 
     await expectLater(
       bootstrapUbaaHost(
+        readThemeMode: () async => ThemeMode.system,
         ensureFlutterInitialized: () => events.add('binding'),
         initializeSdk: () async {
           events.add('sdk');
@@ -91,6 +93,7 @@ void _registerBootstrapTests() {
 
     await expectLater(
       bootstrapUbaaHost(
+        readThemeMode: () async => ThemeMode.system,
         ensureFlutterInitialized: () => events.add('binding'),
         initializeSdk: () async => events.add('sdk'),
         debugHello: () {
@@ -116,6 +119,7 @@ void main() {
     Widget? current;
     var capabilities = 0;
     final pending = bootstrapUbaaHost(
+      readThemeMode: () async => ThemeMode.system,
       ensureFlutterInitialized: () {},
       initializeSdk: () => gate.future,
       debugHello: () => 'UBAA FRB 2.13.0 ready',
@@ -125,6 +129,7 @@ void main() {
       },
       runApplication: (app) => current = app,
     );
+    await tester.pump();
     await tester.pumpWidget(current!);
     expect(find.byType(UbaaSplashView), findsOneWidget);
     expect(capabilities, 0);
@@ -139,6 +144,7 @@ void main() {
       final apps = <Widget>[];
       await expectLater(
         bootstrapUbaaHost(
+          readThemeMode: () async => ThemeMode.system,
           ensureFlutterInitialized: () {},
           initializeSdk: () async {
             if (phase == 'SDK 初始化') throw failure;

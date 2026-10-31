@@ -16,6 +16,7 @@ export 'src/bykc_filters.dart';
 export 'src/infrastructure/cgyy_defaults.dart';
 export 'src/recent_features.dart';
 export 'src/app_information.dart';
+export 'src/infrastructure/appearance.dart';
 export 'src/secure_material.dart';
 export 'src/local_accounts.dart';
 export 'src/schedule_widgets.dart';
