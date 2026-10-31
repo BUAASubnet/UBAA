@@ -85,7 +85,7 @@ pub(super) fn publish(
         Ok((scope, publication))
     })
 }
-pub(super) fn read(
+pub(in crate::facade) fn read(
     cache: &OfflineCache,
     route: ConnectionMode,
     now: i64,

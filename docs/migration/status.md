@@ -4,7 +4,7 @@
 
 ## 当前实现
 
-日程一期 1a 已增加 Rust Core 自建事项、标准重复展开、教学周规则转换、账号独立加密持久化和学校事项本地覆盖层，入口见[日程 Core 合同](../contracts/agenda.md)。日程 schema v1 不随只读缓存淘汰或重建，退出后保留，同账号登录后显式激活。学校来源投影、CLI、Bridge、Flutter、导出与同步尚未接入，既有 CLI v12 与 Bridge v43 保持原合同。
+日程一期 1a、1b 已增加 Rust Core 自建事项、标准重复展开、教学周规则转换、账号独立加密持久化、八类学校来源投影、课程逐节展开和本地合并查询，入口见[日程 Core 合同](../contracts/agenda.md)。日程 schema v1 不随只读缓存淘汰或重建，退出后保留，同账号登录后显式激活。学校投影沿现有首页规则并保留原始状态，合并查询叠加本地完成、隐藏与备注，返回各缓存范围时间和缺失信息。未同步删除标记一律保留。CLI、Bridge、Flutter、导出与同步尚未接入，既有 CLI v12 与 Bridge v43 保持原合同。日程明文 SQLite 的逐条存储转换已决定，安排在 1b 后独立实施；当前日程存储架构和只读缓存加密保持原实现。
 
 Rust Core 统一拥有认证、Direct/WebVPN/Auto 路线、会话、校园领域读写和加密缓存。CLI 与 Bridge 通过 facade 使用 Core，Flutter/OHOS 宿主通过 Bridge 与共享 Dart/UI 接线。当前公开合同为 CLI JSON schema v12 与 Flutter bridge contract v43，独立于 Session v2、配置 v1、业务缓存 v7。产品展示版本与合同版本分别治理，取值与发布规则见[版本约定](../development/conventions.md#版本号与依赖)。
 
@@ -47,6 +47,8 @@ iOS simulator 的 `debug_unpack_ios` 架构误报已修复。构建入口仅在�
 - 最终逐项 UI/设备、异常生命周期、离线性能和发布验收仍有缺口；历史真实只读结果仅属于对应候选，不能继承为当前验收或真实写入授权。
 
 ## 最近一次完整验证
+
+2026-10-31 日程一期 1b 以 `1b3c253c` 为基线完成 `just check-changed base=1b3c253c mode=full`，退出码 0。严格 Rust/CLI/脚本检查、八包 Flutter 的 1,587 项测试（含六张 golden）、macOS 五项原生集成和 FRB 生成零漂移全部通过。Core 单元测试通过 467 项，保留 1 项既有手动性能基准为 ignored；日程聚焦 56 项在 `TZ=UTC` 通过。静态分析保留 692 项 info，无 error/warning。macOS 运行器仍报告窗口置前失败，五项断言均完成。完整证据位于被忽略的 `.ubaa_local/agenda_1b/resume_full.log`，退出状态位于同目录 `resume_full.exit`。先前中断日志未计为完整成功。
 
 2026-10-31 日程一期 1a 以 `dec8097d` 为基线执行 `just check-changed mode=full`，严格 Rust/CLI/脚本检查、八包 Flutter 的 1,587 项测试（含六张 golden）、macOS 五项原生集成和 FRB 生成零漂移全部通过。日程聚焦测试 25 项在普通环境与 `TZ=UTC` 均通过，独立 facade 编译夹具已同步锁文件并通过。依赖审计的 advisories、licenses、bans、sources 全部通过，保留既有 allo-isolate 缺少 manifest 许可证字段的警告。八包格式检查通过，静态分析为 692 项 info，无 error/warning。macOS 运行器未能将窗口置前，但五项断言均完成，未据此记录新增目视验收。
 

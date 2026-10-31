@@ -239,7 +239,7 @@ impl AgendaStore {
         })
     }
 }
-fn overlay_key(key: &SchoolAgendaKey) -> CacheResult<String> {
+pub(super) fn overlay_key(key: &SchoolAgendaKey) -> CacheResult<String> {
     if [&key.source, &key.upstream_id]
         .iter()
         .any(|s| s.trim().is_empty() || s.len() > 4096)

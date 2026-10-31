@@ -38,8 +38,12 @@ pub(crate) fn begin_refresh(
 pub struct OfflineCache {
     repository: Arc<Mutex<Option<OfflineRepository>>>,
     expected_identity: Arc<str>,
+    account_alias: Arc<str>,
 }
 impl OfflineCache {
+    pub(super) fn account_alias(&self) -> &str {
+        &self.account_alias
+    }
     /// 打开已由安全账号索引确认归属的私有缓存。
     ///
     /// # Errors
@@ -59,6 +63,7 @@ impl OfflineCache {
                 root, account_id, key, limits,
             )?))),
             expected_identity: Arc::from(expected_identity.trim()),
+            account_alias: Arc::from(account_id.to_ascii_lowercase()),
         })
     }
     /// 用户确认后清理或重建当前账号业务副本；不处理认证材料。
@@ -80,6 +85,7 @@ impl OfflineCache {
             recovery.repository.map(|repository| Self {
                 repository: Arc::new(Mutex::new(Some(repository))),
                 expected_identity: Arc::from(expected_identity.trim()),
+                account_alias: Arc::from(account_id.to_ascii_lowercase()),
             }),
             recovery.report,
         ))
@@ -206,6 +212,7 @@ impl OfflineCache {
             Self {
                 repository: Arc::new(Mutex::new(Some(repository))),
                 expected_identity: Arc::clone(&self.expected_identity),
+                account_alias: Arc::clone(&self.account_alias),
             },
             report,
         ))

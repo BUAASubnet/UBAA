@@ -12,9 +12,9 @@ pub enum HomeQuery {
     SpocDetail { assignment_id: String },
     YgdkOverview,
 }
-mod spoc;
+pub(super) mod spoc;
 mod spoc_scan;
-mod ygdk;
+pub(super) mod ygdk;
 pub use spoc_scan::{
     SpocDetailScan, SpocDetailScanBatch, SpocScan, SpocScanBatch, SpocScanCancellation,
 };

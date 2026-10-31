@@ -186,3 +186,16 @@ impl PartialOrd for AgendaTime {
         Some(self.cmp(other))
     }
 }
+
+mod projection;
+pub use projection::*;
+pub(crate) fn campus_midnight(date: chrono::NaiveDate) -> AgendaTime {
+    use chrono::TimeZone;
+    AgendaTime::new(
+        Shanghai
+            .from_local_datetime(&date.and_time(chrono::NaiveTime::MIN))
+            .single()
+            .expect("校园日期零点")
+            .fixed_offset(),
+    )
+}

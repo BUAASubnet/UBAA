@@ -1,0 +1,125 @@
+{
+  "now": "2026-03-24T12:00:00+08:00",
+  "records": [
+    {
+      "payload": {
+        "BykcChosen": {
+          "semester_start": "2026-03-01",
+          "semester_end": "2026-07-01",
+          "courses": [
+            {
+              "id": 1,
+              "course_id": 101,
+              "course_name": "合成博雅",
+              "course_start_date": "2026-03-24 11:00",
+              "course_end_date": "2026-03-24 13:00"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "payload": {
+        "SpocAssignments": {
+          "termCode": "synthetic-term",
+          "assignments": [
+            {
+              "assignmentId": "s-a",
+              "courseId": "s-c",
+              "courseName": "合成课",
+              "title": "合成 SPOC",
+              "dueTime": "2026-03-24 12:30",
+              "submissionStatus": "UNSUBMITTED",
+              "submissionStatusText": "未提交"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "payload": {
+        "JudgeSummaries": [
+          {
+            "courseId": "j-c",
+            "courseName": "合成课",
+            "assignmentId": "j-a",
+            "title": "合成希冀",
+            "dueTime": "2026-03-24 12:20",
+            "totalProblems": 2,
+            "submittedCount": 1,
+            "submissionStatus": "PARTIAL",
+            "submissionStatusText": "部分完成"
+          }
+        ]
+      }
+    },
+    {
+      "payload": {
+        "CgyyOrders": {
+          "content": [
+            {
+              "id": 1,
+              "venue_name": "合成楼",
+              "venue_space_name": "合成房间",
+              "reservation_start_date": "2026-03-24 13:30",
+              "reservation_end_date": "2026-03-24 15:00",
+              "order_status": 1,
+              "check_status": 2
+            }
+          ],
+          "total_elements": 1,
+          "size": 20,
+          "number": 0,
+          "total_pages": 1
+        }
+      }
+    },
+    {
+      "payload": {
+        "SigninToday": [
+          {
+            "courseId": "s1",
+            "courseName": "合成签到",
+            "classBeginTime": "11:55",
+            "classEndTime": "12:45",
+            "signStatus": 0
+          }
+        ]
+      }
+    },
+    {
+      "payload": {
+        "Exams": {
+          "arranged": [
+            {
+              "courseName": "明天考试",
+              "examDate": "2026-03-25",
+              "startTime": "09:00",
+              "endTime": "11:00",
+              "examPlace": "合成考场",
+              "examSeatNo": "12",
+              "taskId": "exam-a"
+            }
+          ],
+          "notArranged": []
+        }
+      }
+    },
+    {
+      "payload": {
+        "YgdkOverview": {
+          "summary": {
+            "termId": 1,
+            "termCount": 15,
+            "weekCount": 3
+          },
+          "classifyId": 3,
+          "classifyName": "合成体育",
+          "defaultItemId": 1,
+          "defaultItemName": "合成项目",
+          "items": []
+        }
+      }
+    }
+  ]
+}

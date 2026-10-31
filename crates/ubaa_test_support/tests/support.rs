@@ -76,6 +76,7 @@ fn auth_fixtures_are_synthetic_and_sanitized() {
 #[test]
 fn readonly_fixtures_are_synthetic_and_sanitized() {
     let names = [
+        "agenda_school.json",
         "schedule-terms.json",
         "schedule-weeks.json",
         "schedule-week.json",

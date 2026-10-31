@@ -9,7 +9,7 @@ pub(super) fn term_scope(route: ConnectionMode, term: &str) -> CacheScope {
         query: CacheQuery::SpocTerm { term: term.into() },
     }
 }
-pub(super) fn read(
+pub(in crate::facade) fn read(
     cache: &OfflineCache,
     route: ConnectionMode,
     now: i64,

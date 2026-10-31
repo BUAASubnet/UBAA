@@ -128,8 +128,16 @@ pub use campus_cache::{CampusCacheQuery, CampusMetricsRead, CampusReadData, Camp
 mod schedule_import;
 pub use schedule_import::{ScheduleImport, ScheduleImportBatch, ScheduleImportCancellation};
 
-pub use crate::agenda::{AgendaStore, expand_agenda, teaching_week_rule};
+mod agenda;
+pub use crate::agenda::{
+    AgendaStore, SchoolAgendaContext, expand_agenda, project_school_agenda, teaching_week_rule,
+};
 pub use crate::domain::agenda::{
-    AgendaContent, AgendaEditScope, AgendaItem, AgendaKind, AgendaOccurrence, AgendaTime,
-    SchoolAgendaKey, SchoolAgendaOverlay, TeachingWeekPattern, TeachingWeekRule,
+    AgendaContent, AgendaEditScope, AgendaEntry, AgendaEntryItem, AgendaItem, AgendaKind,
+    AgendaNavigation, AgendaOccurrence, AgendaTime, AgendaTiming, SchoolAgendaItem,
+    SchoolAgendaKey, SchoolAgendaOverlay, SchoolAgendaStatus, TeachingWeekPattern,
+    TeachingWeekRule, YgdkAgendaSettings,
+};
+pub use agenda::{
+    AgendaCacheObservation, AgendaQuery, AgendaQueryResult, AgendaSourceAvailability,
 };

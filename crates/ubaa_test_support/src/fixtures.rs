@@ -14,6 +14,9 @@ pub fn auth_fixture(name: &str) -> Option<&'static str> {
 #[must_use]
 pub fn readonly_fixture(name: &str) -> Option<&'static str> {
     match name {
+        "agenda_school.json" => Some(include_str!(
+            "../../../fixtures/readonly/agenda_school.json"
+        )),
         "schedule-terms.json" => Some(include_str!(
             "../../../fixtures/readonly/schedule-terms.json"
         )),

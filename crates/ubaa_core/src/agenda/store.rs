@@ -27,6 +27,7 @@ struct Repository {
 #[derive(Clone)]
 pub struct AgendaStore {
     repository: Arc<Mutex<Repository>>,
+    account_alias: Arc<str>,
 }
 impl AgendaStore {
     /// 打开按随机账号别名隔离的私有密文库，首次打开激活，后续保留退出状态。
@@ -80,7 +81,11 @@ impl AgendaStore {
         tx.commit()?;
         Ok(Self {
             repository: Arc::new(Mutex::new(Repository { db, crypto, aad })),
+            account_alias: Arc::from(account.to_ascii_lowercase()),
         })
+    }
+    pub(crate) fn account_alias(&self) -> &str {
+        &self.account_alias
     }
     pub(super) fn access<T>(
         &self,
