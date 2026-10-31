@@ -3462,6 +3462,7 @@ name = "ubaa_flutter_bridge"
 version = "0.1.0"
 dependencies = [
  "async-trait",
+ "chrono",
  "flutter_rust_bridge",
  "futures-util",
  "jni",
@@ -3473,6 +3474,7 @@ dependencies = [
  "tracing-subscriber",
  "ubaa-core",
  "ubaa-test-support",
+ "uuid",
 ]
 
 [[package]]

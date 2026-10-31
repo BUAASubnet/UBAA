@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'agenda/lifecycle.dart';
 import 'state/types.dart' show AppPhase;
 import 'features/ihome/service.dart';
 import 'features/campus/service.dart';
@@ -68,6 +69,7 @@ class AppController extends ControllerState
         ControllerDiagnostics,
         ControllerOfflineStartup,
         ControllerOfflineCache,
+        ControllerAgenda,
         ControllerLocalData,
         ControllerLogout,
         ControllerCacheManagement,

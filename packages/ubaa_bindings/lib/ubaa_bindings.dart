@@ -44,3 +44,7 @@ export 'src/rust/api/initialization.dart';
 
 export 'src/rust/api/ihome.dart';
 export 'src/rust/api/campus.dart';
+
+export 'src/rust/api/agenda.dart';
+export 'src/rust/api/agenda/models.dart';
+export 'src/rust/api/agenda/school.dart';

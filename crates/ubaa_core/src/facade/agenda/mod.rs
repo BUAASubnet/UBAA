@@ -86,7 +86,45 @@ pub struct AgendaQueryResult {
     pub entries: Vec<AgendaEntry>,
     pub sources: Vec<AgendaSourceAvailability>,
 }
+impl AgendaStore {
+    /// 学校缓存未打开时仍可查询本机日程。空学期表示宿主尚不知道学期。
+    /// 每个学校来源均返回无缓存状态，不推断学校内容或补造时间。
+    ///
+    /// # Errors
+    /// 时间或范围无效、日程已退出、展开超限或日程文件损坏时返回本地错误。
+    pub fn query_local_agenda(&self, query: &AgendaQuery) -> CacheResult<AgendaQueryResult> {
+        if !query.now.valid() {
+            return Err(CacheError::InvalidInput);
+        }
+        let entries = self.merge_school(query.from, query.to, Vec::new(), query.include_hidden)?;
+        let sources = [
+            ReadonlyFeature::Bykc,
+            ReadonlyFeature::Spoc,
+            ReadonlyFeature::Judge,
+            ReadonlyFeature::Cgyy,
+            ReadonlyFeature::Signin,
+            ReadonlyFeature::Exam,
+            ReadonlyFeature::Ygdk,
+            ReadonlyFeature::Schedule,
+        ]
+        .into_iter()
+        .map(|feature| AgendaSourceAvailability {
+            feature,
+            observations: Vec::new(),
+            missing_scopes: Vec::new(),
+            semester_imported: (feature == ReadonlyFeature::Schedule).then_some(false),
+            unprojectable_count: 0,
+        })
+        .collect();
+        Ok(AgendaQueryResult { entries, sources })
+    }
+}
 impl OfflineCache {
+    /// 仅比较本机随机账号别名，供宿主在学校缓存降级前排除串号。
+    #[must_use]
+    pub fn matches_agenda_account(&self, agenda: &AgendaStore) -> bool {
+        self.account_alias() == agenda.account_alias()
+    }
     /// 只读本地业务缓存与同账号日程，返回日期范围内的统一条目和逐范围缓存时间。
     ///
     /// # Errors

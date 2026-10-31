@@ -117,7 +117,7 @@ class _ScopedBackend extends startup.FakeRecoveryBackend
   @override
   Future<void> deactivateOfflineAccount() async {}
   @override
-  Future<void> clearOfflineAccount() async {}
+  Future<void> clearOfflineAccount({required String accountId}) async {}
 }
 
 class _Task implements FeatureReadTask {

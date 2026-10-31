@@ -163,7 +163,7 @@ class ProfileView extends StatelessWidget {
                   color: Theme.of(context).colorScheme.error,
                 ),
                 title: Text(
-                  '退出并清除本机账号',
+                  '退出并清除登录材料',
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
                 onTap: () => _confirmClearAccount(context),
@@ -179,9 +179,9 @@ class ProfileView extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('清除本机账号？'),
+        title: const Text('清除登录材料与缓存？'),
         content: const Text(
-          '这会退出登录，清除本机账号、保存的密码、缓存、成绩变化记录及提醒设置；学校服务器上的数据不会被删除。',
+          '这会退出登录，清除保存的密码、可清除的学校缓存、成绩变化记录及提醒设置。本机日程和账号关联会保留，学校服务器上的数据不会被删除。',
         ),
         actions: <Widget>[
           TextButton(

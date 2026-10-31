@@ -72,7 +72,9 @@ void main() {
     expect(await recents.read('other'), [FeatureId.exam]);
     expect((await defaults.read('other'))?.theme, '合成主题');
     expect(grades.cleared, isNot(contains('other')));
-    expect((await accounts.read())!.account, isNull);
+    final retained = await accounts.read();
+    expect(retained!.account!.username, 'fixture-user');
+    expect(retained.canRestore, isFalse);
     await tester.pumpWidget(const SizedBox());
   });
 
@@ -96,7 +98,7 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  for (final failure in ['index', 'key', 'cache', 'session', 'credential']) {
+  for (final failure in ['index', 'cache', 'session', 'credential']) {
     testWidgets('$failure清理失败向上传播且不跳过独立偏好清理', (tester) async {
       final shell = await mount(tester);
       materials.failWrite = failure == 'index';
@@ -116,6 +118,17 @@ void main() {
       await tester.pumpWidget(const SizedBox());
     });
   }
+
+  testWidgets('清除登录材料保留原密钥与账号别名，不调用密钥删除', (tester) async {
+    final shell = await mount(tester);
+    final account = (await accounts.read())!.account!;
+    final key = await accounts.cacheKey(account);
+    materials.failDelete = true;
+    await shell.onLogoutAndClearAccount();
+    expect((await accounts.read())!.account!.id, account.id);
+    expect(await accounts.cacheKey(account), key);
+    await tester.pumpWidget(const SizedBox());
+  });
 
   testWidgets('普通退出保留提醒，但旧保存和清除回调均失效', (tester) async {
     final shell = await mount(tester);
@@ -209,7 +222,7 @@ class _Backend extends base.Backend {
   Future<FeatureResult> loadFeature(FeatureId feature) async =>
       const FeatureResult.empty();
   @override
-  Future<void> clearOfflineAccount() async {
+  Future<void> clearOfflineAccount({required String accountId}) async {
     if (failCache) throw StateError('合成缓存清理失败');
   }
 

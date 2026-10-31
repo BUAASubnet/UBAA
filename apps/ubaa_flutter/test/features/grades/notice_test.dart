@@ -32,7 +32,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
-    final button = find.text('退出并清除本机账号');
+    final button = find.text('退出并清除登录材料');
     await tester.scrollUntilVisible(
       button,
       300,

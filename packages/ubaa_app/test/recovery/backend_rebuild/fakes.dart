@@ -51,7 +51,7 @@ class Backend extends support.FakeRecoveryBackend
   @override
   Future<void> deactivateOfflineAccount() async {}
   @override
-  Future<void> clearOfflineAccount() async {}
+  Future<void> clearOfflineAccount({required String accountId}) async {}
   @override
   Future<void> discardWriteIntent(String intentId) async {}
   @override
@@ -64,7 +64,7 @@ class Backend extends support.FakeRecoveryBackend
 
 class DisposedClient implements BridgeClient {
   @override
-  int contractVersion() => 43;
+  int contractVersion() => 44;
   @override
   Future<BridgeLoginOutcome> authStatus() async => throw const BridgeError(
     code: BridgeErrorCode.clientDisposed,

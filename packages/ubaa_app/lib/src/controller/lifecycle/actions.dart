@@ -697,13 +697,20 @@ mixin ControllerActions on ControllerState {
   Future<void> internalDisposeBackendOnce(UbaaBackend backend) {
     final existing = internalBackendDisposals[backend];
     if (existing != null) return existing;
-    if (backend is! BackendLifecycle) return Future<void>.value();
-    final lifecycle = backend as BackendLifecycle;
+    final lifecycle = backend is BackendLifecycle
+        ? backend as BackendLifecycle
+        : null;
+    final agenda = backend is AgendaProvider
+        ? (backend as AgendaProvider).agenda
+        : null;
 
     final completer = Completer<void>();
     internalBackendDisposals[backend] = completer.future;
     try {
-      lifecycle.dispose().then<void>(
+      Future.wait<void>([
+        if (agenda != null) agenda.dispose(),
+        if (lifecycle != null) lifecycle.dispose(),
+      ]).then<void>(
         (_) => completer.complete(),
         onError: (Object error, StackTrace stackTrace) {
           completer.completeError(error, stackTrace);

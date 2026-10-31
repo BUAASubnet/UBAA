@@ -1,6 +1,6 @@
 # 日程 Core 合同
 
-日程一期 1a、1b 提供本机自建事项、标准重复展开、学校事项投影与本地覆盖层，以及本地合并查询。所有生产入口从 `ubaa_core::facade` 导出，不调用学校网络。同步、导出、CLI、Bridge 和宿主接线留给后续任务。[设计稿](../design/agenda.md)描述完整产品目标，[明文存储决定](../migration/decision-log.md#2026-10-31日程改为逐记录明文-sqlite)记录本期取舍。
+日程一期 1a、1b 提供本机自建事项、标准重复展开、学校事项投影与本地覆盖层，以及本地合并查询。所有生产入口从 `ubaa_core::facade` 导出，不调用学校网络。1c-a 通过独立 typed Bridge 和 Dart 服务接入账号生命周期，首页切换、同步、导出和 CLI 留给后续任务。[设计稿](../design/agenda.md)描述完整产品目标，[明文存储决定](../migration/decision-log.md#2026-10-31日程改为逐记录明文-sqlite)记录本期取舍。
 
 ## 时间与事项
 
@@ -24,7 +24,7 @@
 
 所有本地修改写入 `updated_at` 和未同步标记，发生错误时事务回滚。调用方传入当前校园时间，早于原记录修改时间的写入会被拒绝。`unsynced_count` 包含事项、覆盖和删除标记。`clear_local_data` 显式删除当前账号全部日程并返回清除前未同步记录数，宿主可先查询数量再展示确认。`purge_tombstones` 仅移除已同步且严格超过 180 天的删除标记；所有未同步删除标记均保留。同步确认和跨设备合并属于后续任务，本期没有清除未同步标记的公开入口。
 
-日程磁盘 schema 为 2：`agenda_meta` 单行保存 schema、账号别名与持久 `active`，`agenda_items` 按 UUID 每项一行，`agenda_overlays` 按来源/上游标识的 JSON 元组每项一行。两类记录的 `body` 是可直接读取的 UTF-8 JSON，重复例外及完成记录仍属于对应事项。`PRAGMA user_version` 与元数据版本均须匹配。只读缓存磁盘版本仍为 7，CLI schema v12 和 Bridge v43 保持原合同。
+日程磁盘 schema 为 2：`agenda_meta` 单行保存 schema、账号别名与持久 `active`，`agenda_items` 按 UUID 每项一行，`agenda_overlays` 按来源/上游标识的 JSON 元组每项一行。两类记录的 `body` 是可直接读取的 UTF-8 JSON，重复例外及完成记录仍属于对应事项。`PRAGMA user_version` 与元数据版本均须匹配。只读缓存磁盘版本仍为 7，CLI schema v12 保持不变，独立日程通道使用 Bridge v44。
 
 写操作在 SQLite IMMEDIATE 事务内读取最新记录、执行既有领域操作、比较前后状态，只 INSERT/UPDATE/DELETE 实际变化的行。系列拆分、完成、覆盖、删除和清理均在同一事务内提交，任一步失败整体回滚，跨连接写入不会覆盖另一连接已提交的记录。读取使用同一快照事务。当前操作仍会在内存加载账号全部记录，这次没有改成按操作选择记录。
 
@@ -68,3 +68,9 @@
 `sources` 固定返回八个来源，每项包含已读取范围的 `observations`、缺失的 `missing_scopes`、无法投影数量，课表另有 `semester_imported`。每条观察保留实际取得时间、最近校验/尝试时间、尝试结果和完整性，`is_fresh(now, ttl_seconds)` 复用原缓存新鲜度条件，由宿主选择提示阈值。空列表与无缓存通过这些字段区分。未导入整学期时只投影有教学周元数据和周缓存的课程，并返回 `semester_imported = false`；完整导入后备用原有 `read_imported_schedule`，保留原学期、周的取得时间。零散周不会变成整学期导入证明。
 
 SPOC 与阳光沿现有“当前选择”缓存指针读取。签到只读调用时的上海当天。希冀沿首页 `include_expired = false` 范围，因此历史日程无法补出此范围已过滤的作业。研讨室沿首页每页 20 条的零基分页，从第 0 页读取已知页，缺页逐项返回，超过 1,000 页返回 Capacity；其他分页尺寸的缓存不冒充该范围。完整日程只能显示已缓存的公开结果，缺失来源需要宿主在独立刷新流程中补齐。
+
+## 无学校缓存查询与宿主生命周期
+
+`AgendaStore.query_local_agenda(&AgendaQuery)` 返回仅自建事项的统一列表，允许学期为空。查询仍校验校园时间、日期范围、退出状态和展开限制。八个学校来源都返回空 `observations` 和空 `missing_scopes`，课表的 `semester_imported` 为 false，表示没有取得可用缓存观察，不代表上游没有事项。`OfflineCache.matches_agenda_account` 只比较本机别名，供 Bridge 在缓存降级前排除串号。
+
+Bridge v44 的输入与输出、日程独立错误和 Dart 服务见 [Bridge 合同](flutter-bridge.md#v44独立本机日程通道)。宿主只依据安全索引中的已核实账号打开日程，不扫描目录、计算账号哈希、认领旧库或创建新别名绕过异常索引。日程不依赖业务缓存密钥。退出或换号关闭服务并拒绝迟到结果，同账号重新登录重新激活，Direct/WebVPN 共用日程。清理登录材料及学校缓存保留账号别名和原缓存密钥，不调用日程清除。

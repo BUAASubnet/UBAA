@@ -169,7 +169,7 @@ void main() {
       await tester.tap(find.byIcon(Icons.settings_outlined));
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(
-        find.text('退出并清除本机账号'),
+        find.text('退出并清除登录材料'),
         300,
         scrollable: find.descendant(
           of: find.byKey(const ValueKey<String>('feature-pages')),
@@ -177,7 +177,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.text('退出并清除本机账号'));
+      await tester.tap(find.text('退出并清除登录材料'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('退出并清除'));
       await tester.pumpAndSettle();
@@ -455,7 +455,7 @@ Future<void> _confirmClearFromSettings(WidgetTester tester) async {
   await tester.tap(find.byIcon(Icons.settings_outlined));
   await tester.pumpAndSettle();
   await tester.scrollUntilVisible(
-    find.text('退出并清除本机账号'),
+    find.text('退出并清除登录材料'),
     300,
     scrollable: find.descendant(
       of: find.byKey(const ValueKey<String>('feature-pages')),
@@ -463,7 +463,7 @@ Future<void> _confirmClearFromSettings(WidgetTester tester) async {
     ),
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.text('退出并清除本机账号'));
+  await tester.tap(find.text('退出并清除登录材料'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('退出并清除'));
   await tester.pump();

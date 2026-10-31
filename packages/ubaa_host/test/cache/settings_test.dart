@@ -75,7 +75,7 @@ class _Backend extends DemoBackend
   @override
   Future<void> deactivateOfflineAccount() async {}
   @override
-  Future<void> clearOfflineAccount() async {}
+  Future<void> clearOfflineAccount({required String accountId}) async {}
   @override
   Future<CacheUsageSummary> cacheUsage({required String accountId}) async =>
       CacheUsageSummary(

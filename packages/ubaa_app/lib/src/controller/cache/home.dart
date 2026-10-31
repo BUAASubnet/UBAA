@@ -11,6 +11,7 @@ import '../state/types.dart' show AppPhase, SessionRecoveryStatus;
 mixin ControllerOfflineCache on ControllerState {
   @internal
   Future<void> internalRestoreCachedHome(LocalAccount account) async {
+    internalOpenAgenda(account);
     final backend = internalBackend;
     if (backend is! OfflineCacheBackend) return;
     final offline = backend as OfflineCacheBackend;
@@ -141,14 +142,20 @@ mixin ControllerOfflineCache on ControllerState {
   Future<void> internalCloseOfflineAccount({bool remove = false}) async {
     internalCacheLifecycle.invalidateOffline();
     final backend = internalBackend;
-    if (backend is OfflineCacheBackend) {
-      final offline = backend as OfflineCacheBackend;
-      await offline.deactivateOfflineAccount();
-      if (remove) await offline.clearOfflineAccount();
-    }
-    final account = internalLocalAccount;
-    if (remove && account != null)
-      await internalLocalAccountStore?.removeAccount(account.id);
+    // 退出同步撤销日程访问，缓存关闭失败也要完成日程关闭。
+    await Future.wait<void>([
+      internalCloseAgenda(),
+      () async {
+        if (backend is! OfflineCacheBackend) return;
+        final offline = backend as OfflineCacheBackend;
+        await offline.deactivateOfflineAccount();
+        final account = internalLocalAccount;
+        if (remove && account != null) {
+          await offline.clearOfflineAccount(accountId: account.id);
+        }
+      }(),
+    ]);
+    // 清理登录材料与缓存保留账号别名和原缓存密钥，避免失去日程身份。
   }
 
   @internal

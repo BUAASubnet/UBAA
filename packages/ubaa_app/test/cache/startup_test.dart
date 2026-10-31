@@ -335,7 +335,7 @@ class _CachedBackend extends support.FakeRecoveryBackend
   }
 
   @override
-  Future<void> clearOfflineAccount() async {}
+  Future<void> clearOfflineAccount({required String accountId}) async {}
   @override
   Future<FeatureResult> loadFeature(FeatureId feature) async =>
       await readGate?.future ??

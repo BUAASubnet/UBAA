@@ -217,6 +217,25 @@ abstract class ControllerState extends ControllerOperations {
 
   @internal
   Future<void> internalOfflineOpenFuture = Future<void>.value();
+  @internal
+  Future<void> internalAgendaOpenFuture = Future<void>.value();
+  @internal
+  int internalAgendaEpoch = 0;
+  @internal
+  AgendaFailure? internalAgendaFailure;
+  AgendaFailure? get localAgendaFailure => internalAgendaFailure;
+  AgendaService? get agenda {
+    final backend = internalBackend;
+    if (internalDisposed ||
+        internalIsSigningOut ||
+        internalRebuildingBackend ||
+        internalPhase != AppPhase.home ||
+        internalLocalAccount == null ||
+        backend is! AgendaProvider)
+      return null;
+    final service = (backend as AgendaProvider).agenda;
+    return service.accountId == internalLocalAccount!.id ? service : null;
+  }
 
   @internal
   int get internalOfflineAccountEpoch => internalCacheLifecycle.offlineEpoch;

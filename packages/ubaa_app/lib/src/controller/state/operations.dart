@@ -365,6 +365,10 @@ abstract class ControllerOperations extends ChangeNotifier {
   });
   @internal
   Future<void> internalRestoreCachedHome(LocalAccount account);
+  @internal
+  void internalOpenAgenda(LocalAccount account);
+  @internal
+  Future<void> internalCloseAgenda();
 
   @internal
   Future<void> internalCloseOfflineAccount({bool remove = false});

@@ -10,6 +10,8 @@ version.workspace = true
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
+chrono.workspace = true
+uuid.workspace = true
 futures-util.workspace = true
 flutter_rust_bridge.workspace = true
 # Bridge 保留重构前的 rand 0.10 依赖系列，与 Core 的 rand 0.8 分开声明。

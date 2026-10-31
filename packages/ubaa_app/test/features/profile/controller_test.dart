@@ -244,7 +244,7 @@ class _Backend extends support.FakeRecoveryBackend
   }
 
   @override
-  Future<void> clearOfflineAccount() async {}
+  Future<void> clearOfflineAccount({required String accountId}) async {}
   @override
   Future<OfflineProfileRead> readCachedProfile(RoutePolicy policy) async {
     final id = account!.id;

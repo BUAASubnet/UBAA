@@ -2,6 +2,31 @@ use super::*;
 use crate::facade::*;
 use std::path::PathBuf;
 const ACCOUNT: &str = "00000000000000000000000000000001";
+#[test]
+fn no_school_cache_still_queries_known_account_local_agenda() {
+    let (root, cache, agenda) = opened(ACCOUNT);
+    local(&agenda);
+    drop(cache);
+    let mut q = query();
+    q.term.clear();
+    let result = agenda.query_local_agenda(&q).unwrap();
+    assert!(!result.entries.is_empty());
+    assert!(
+        result
+            .entries
+            .iter()
+            .all(|e| matches!(e.item, AgendaEntryItem::Local(_)))
+    );
+    assert_eq!(result.sources.len(), 8);
+    assert!(result.sources.iter().all(|s| s.observations.is_empty()));
+    assert_eq!(
+        result.sources.last().unwrap().semester_imported,
+        Some(false)
+    );
+    agenda.deactivate().unwrap();
+    assert_eq!(agenda.query_local_agenda(&q), Err(CacheError::Inactive));
+    std::fs::remove_dir_all(root).unwrap();
+}
 fn t(raw: &str) -> AgendaTime {
     AgendaTime::new(raw.parse().unwrap())
 }

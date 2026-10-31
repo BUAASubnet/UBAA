@@ -30,3 +30,5 @@ pub mod sensitive;
 pub mod ihome;
 
 pub mod campus;
+
+pub mod agenda;

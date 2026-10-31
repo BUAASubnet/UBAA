@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'agenda/backend.dart';
 import 'ihome/service.dart';
 import 'campus/service.dart';
 import 'write/pinned_readback.dart';
@@ -71,7 +72,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 43;
+const _supportedBridgeContractVersion = 44;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -81,6 +82,7 @@ const _supportedBridgeContractVersion = 43;
 class BridgeBackend
     implements
         UbaaBackend,
+        AgendaProvider,
         IhomeBackend,
         CampusAccountBackend,
         PinnedWriteReadbackBackend,
@@ -140,6 +142,10 @@ class BridgeBackend
 
   final BridgeContext _context;
   @override
+  late final AgendaService agenda = AgendaService(
+    BridgeAgendaBackend(_context),
+  );
+  @override
   late final IhomeService ihome = BridgeIhomeService(_context.client);
   @override
   late final CampusAccountService campusAccount = BridgeCampusAccountService(
@@ -194,11 +200,18 @@ class BridgeBackend
   }
 
   @override
-  Future<void> clearOfflineAccount() {
+  Future<void> clearOfflineAccount({required String accountId}) {
     _context.cache.generation++;
     _context.cache.targetAccountId = null;
     return bridgeOfflineSerial(_context, () async {
-      await _context.cache.handle?.clear();
+      final handle = _context.cache.handle;
+      if (handle == null || _context.cache.account?.id != accountId) {
+        throw const BackendException(
+          UbaaErrorCode.internalError,
+          cacheFailure: CacheMaintenanceFailure.unavailable,
+        );
+      }
+      await handle.clear();
       _context.cache.handle = null;
       _context.cache.account = null;
     });
@@ -393,7 +406,13 @@ class BridgeBackend
   }) => bridgeLoadEvaluationOnRoute(_context, route: route);
 
   @override
-  Future<void> dispose() => bridgeDispose(_context);
+  Future<void> dispose() async {
+    try {
+      await agenda.dispose();
+    } finally {
+      await bridgeDispose(_context);
+    }
+  }
 
   @override
   Future<GradeScoreBaseline?> updateGradeScoreBaseline({

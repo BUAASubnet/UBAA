@@ -66,7 +66,7 @@ void _registerFeatureRenderingTests() {
     await tester.pumpAndSettle();
     expect(find.text('直连'), findsWidgets);
     await tester.scrollUntilVisible(
-      find.text('退出并清除本机账号'),
+      find.text('退出并清除登录材料'),
       200,
       scrollable: find.descendant(
         of: find.byType(ListView),
@@ -74,15 +74,15 @@ void _registerFeatureRenderingTests() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('退出并清除本机账号'));
+    await tester.tap(find.text('退出并清除登录材料'));
     await tester.pumpAndSettle();
-    expect(find.text('清除本机账号？'), findsOneWidget);
+    expect(find.text('清除登录材料与缓存？'), findsOneWidget);
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
     expect(clearedAccount, isFalse);
-    await tester.ensureVisible(find.text('退出并清除本机账号'));
+    await tester.ensureVisible(find.text('退出并清除登录材料'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('退出并清除本机账号'));
+    await tester.tap(find.text('退出并清除登录材料'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('退出并清除'));
     await tester.pumpAndSettle();

@@ -7,6 +7,7 @@ import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../support/rust_library.dart';
+import 'agenda_probe.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -23,8 +24,9 @@ void main() {
     BridgeOfflineCache? second;
     BridgeClient? client;
     try {
+      await probeAgenda(directory.path);
       client = await BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 43);
+      expect(client.contractVersion(), 44);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),

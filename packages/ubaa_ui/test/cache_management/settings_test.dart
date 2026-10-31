@@ -58,7 +58,7 @@ void main() {
     await tap(tester, '确认清理');
     expect(calls, 1);
     expect(find.text('内容已清除，空间回收暂未完成。'), findsOneWidget);
-    expect(find.text('退出并清除本机账号'), findsOneWidget);
+    expect(find.text('退出并清除登录材料'), findsOneWidget);
   });
   testWidgets('事务失败不显示成功且保留重试入口', (tester) async {
     await mount(tester, onClear: (_) async => throw StateError('合成失败'));

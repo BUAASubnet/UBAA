@@ -7,7 +7,7 @@ abstract interface class OfflineCacheBackend {
   Future<void> openOfflineAccount(LocalAccount account, List<int> key);
   Future<OfflineHomeRead> readCachedHome(RoutePolicy policy);
   Future<void> deactivateOfflineAccount();
-  Future<void> clearOfflineAccount();
+  Future<void> clearOfflineAccount({required String accountId});
 }
 
 /// 本地范围可部分可用；单条损坏不能遮蔽其他已保存内容。
