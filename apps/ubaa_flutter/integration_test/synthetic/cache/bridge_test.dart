@@ -8,6 +8,7 @@ import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../support/rust_library.dart';
 import 'agenda_probe.dart';
+import 'agenda_write_probe.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -25,6 +26,7 @@ void main() {
     BridgeClient? client;
     try {
       await probeAgenda(directory.path);
+      await probeAgendaWriteFence(directory.path);
       client = await BridgeClient.open(configDir: directory.path);
       expect(client.contractVersion(), 44);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);

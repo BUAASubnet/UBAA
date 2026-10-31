@@ -365,3 +365,71 @@ fn private_permissions_and_symlink_rejection_protect_plaintext_files() {
         Some(CacheError::Unavailable)
     );
 }
+
+#[test]
+fn entered_transaction_commits_or_rolls_back_before_deactivation() {
+    use std::sync::mpsc;
+    use std::time::Duration;
+    for fail in [false, true] {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../.ubaa_local/agenda_1c_a_write_fence/core_tests")
+            .join(uuid::Uuid::new_v4().to_string());
+        std::fs::create_dir_all(&root).unwrap();
+        let root = root.canonicalize().unwrap();
+        let store = open(&root);
+        let item = event();
+        let id = item.id;
+        let writer = store.clone();
+        let (entered_tx, entered_rx) = mpsc::channel();
+        let (release_tx, release_rx) = mpsc::channel();
+        let writing = std::thread::spawn(move || {
+            // access 的闭包只在 IMMEDIATE 事务取得锁并校验 active 后调用。
+            writer.access(true, true, |data| {
+                entered_tx.send(()).unwrap();
+                release_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+                data.items.insert(id, item);
+                if fail {
+                    Err(CacheError::Unavailable)
+                } else {
+                    Ok(())
+                }
+            })
+        });
+        entered_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+        let closer = store.clone();
+        let (started_tx, started_rx) = mpsc::channel();
+        let (closed_tx, closed_rx) = mpsc::channel();
+        let closing = std::thread::spawn(move || {
+            started_tx.send(()).unwrap();
+            let result = closer.deactivate();
+            closed_tx.send(()).unwrap();
+            result
+        });
+        started_rx.recv_timeout(Duration::from_secs(10)).unwrap();
+        assert!(matches!(
+            closed_rx.try_recv(),
+            Err(mpsc::TryRecvError::Empty)
+        ));
+        release_tx.send(()).unwrap();
+        assert_eq!(writing.join().unwrap().is_err(), fail);
+        closing.join().unwrap().unwrap();
+        assert!(matches!(store.get(id), Err(CacheError::Inactive)));
+        drop(store);
+        // 独立连接检查实际事务提交或回滚，以及持久退出标记。
+        let db = Connection::open(path(&root)).unwrap();
+        let rows: i64 = db
+            .query_row("SELECT count(*) FROM agenda_items", [], |r| r.get(0))
+            .unwrap();
+        let active: i64 = db
+            .query_row("SELECT active FROM agenda_meta", [], |r| r.get(0))
+            .unwrap();
+        assert_eq!(rows, i64::from(!fail));
+        assert_eq!(active, 0);
+        drop(db);
+        let reopened = open(&root);
+        reopened.activate().unwrap();
+        assert_eq!(reopened.get(id).unwrap().is_some(), !fail);
+        drop(reopened);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}

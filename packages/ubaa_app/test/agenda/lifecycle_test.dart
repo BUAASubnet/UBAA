@@ -8,6 +8,80 @@ import 'package:ubaa_test_support/recovery.dart' as support;
 import '../recovery/backend_rebuild/fakes.dart' as rebuild;
 
 void main() {
+  test('退出等待旧写入时安全索引先禁止恢复', () async {
+    final accounts = await support.savedAccounts();
+    final backend = _Backend();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: accounts,
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await backend.agenda.unsyncedCount();
+    backend.data.writeGate = Completer<void>();
+    final writing = expectLater(
+      backend.agenda.clearLocalData(),
+      throwsA(isA<AgendaException>()),
+    );
+    await backend.data.writeStarted.future;
+    var done = false;
+    final signingOut = controller.logout().then((_) => done = true);
+    try {
+      // read 与 signOut 共用索引串行存储，读取会排在退出写入之后。
+      expect((await accounts.read())!.canRestore, isFalse);
+      expect(backend.data.rows, 5);
+      expect(done, isFalse);
+      await expectLater(
+        backend.agenda.unsyncedCount(),
+        throwsA(isA<AgendaException>()),
+      );
+    } finally {
+      backend.data.writeGate!.complete();
+      await writing;
+      await signingOut;
+    }
+    expect(backend.data.rows, 0);
+    expect(backend.data.active, isFalse);
+  });
+
+  test('后端工厂等待旧日程写入收尾后才建立继任服务', () async {
+    final first = _RebuildBackend()..dead = true;
+    final next = _RebuildBackend();
+    var built = false;
+    final controller = AppController(
+      backend: first,
+      backendFactory: () {
+        built = true;
+        return next;
+      },
+      localAccountStore: await support.savedAccounts(),
+    );
+    addTearDown(controller.dispose);
+    await rebuild.cachedHome(controller, first);
+    await first.agenda.unsyncedCount();
+    first.data.writeGate = Completer<void>();
+    final writing = expectLater(
+      first.agenda.clearLocalData(),
+      throwsA(isA<AgendaException>()),
+    );
+    await first.data.writeStarted.future;
+    final recovering = controller.resumeSession();
+    try {
+      await Future<void>(() {});
+      expect(first.agenda.accountId, isNull);
+      expect(built, isFalse);
+      expect(first.data.rows, 5);
+    } finally {
+      first.data.writeGate!.complete();
+      await writing;
+      await recovering;
+    }
+    expect(first.data.rows, 0);
+    expect(built, isTrue);
+    expect(controller.agenda, same(next.agenda));
+    expect(first.data.active, isFalse);
+  });
+
   test('日程停用尚未返回也先持久禁止账号自动恢复', () async {
     final accounts = _MissingKey(await support.savedAccounts());
     final backend = _Backend();
@@ -261,6 +335,18 @@ class _Agenda implements AgendaBackend {
   Completer<void>? openGate;
   bool active = false;
   Completer<void>? deactivateGate;
+  Completer<void>? writeGate;
+  final writeStarted = Completer<void>();
+  int rows = 5;
+  @override
+  Future<int> clearLocalData() async {
+    if (!writeStarted.isCompleted) writeStarted.complete();
+    await writeGate?.future;
+    final count = rows;
+    rows = 0;
+    return count;
+  }
+
   @override
   Future<void> openAccount(String id) async {
     accounts.add(id);
