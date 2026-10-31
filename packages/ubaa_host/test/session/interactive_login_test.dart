@@ -29,7 +29,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey<String>('tab-校园服务')));
+    await tester.tap(find.byKey(const ValueKey<String>('tab-校园')));
     await tester.pumpAndSettle();
     await tester.tap(find.byTooltip('完成登录'));
     await tester.pumpAndSettle();

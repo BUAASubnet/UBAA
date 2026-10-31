@@ -81,7 +81,7 @@ void main() {
         expect(rail.extended, isFalse);
         expect(rail.labelType, NavigationRailLabelType.none);
       } else {
-        expect(find.widgetWithText(ListTile, '校园服务'), findsOneWidget);
+        expect(find.widgetWithText(ListTile, '校园'), findsOneWidget);
       }
       expect(tester.takeException(), isNull);
     }

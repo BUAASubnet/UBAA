@@ -160,3 +160,14 @@ class _UiSyncStatusState extends State<UiSyncStatus> {
     );
   }
 }
+
+/// 多个独立来源共同展示时，取最早的有效更新时间。
+DateTime? uiOldestUpdate(Iterable<DateTime?> times) {
+  DateTime? result;
+  for (final time in times) {
+    if (time != null && (result == null || time.isBefore(result))) {
+      result = time;
+    }
+  }
+  return result;
+}

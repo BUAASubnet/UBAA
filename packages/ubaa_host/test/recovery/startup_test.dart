@@ -48,7 +48,7 @@ void main() {
     expect(find.byType(UbaaLoginView), findsNothing);
     expect(
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-      1,
+      UiDestination.academic.index,
     );
     expect(find.byType(UbaaMainShell), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());

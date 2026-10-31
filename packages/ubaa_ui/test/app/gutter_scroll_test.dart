@@ -66,12 +66,12 @@ void main() {
       expect(tester.getRect(settings), settingsRect);
       expect(tester.getRect(about), aboutRect);
       final campus = width < 1000
-          ? find.byTooltip('校园服务')
-          : find.widgetWithText(ListTile, '校园服务');
+          ? find.byTooltip('校园')
+          : find.widgetWithText(ListTile, '校园');
       await tester.ensureVisible(campus);
       await tester.tap(campus);
       await tester.pumpAndSettle();
-      expect(find.widgetWithText(AppBar, '校园服务'), findsOneWidget);
+      expect(find.widgetWithText(AppBar, '校园'), findsOneWidget);
       expect(tester.takeException(), isNull);
     });
   }

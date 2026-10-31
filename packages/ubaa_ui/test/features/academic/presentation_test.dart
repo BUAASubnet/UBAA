@@ -306,7 +306,7 @@ Future<void> _show(
         child: child!,
       ),
       home: UbaaMainShell(
-        initialDestination: UiDestination.academic,
+        initialDestination: UiDestination.forFeature(feature),
         user: const UserSummary(username: 'fixture-student'),
         snapshots: {
           for (final id in FeatureId.values)

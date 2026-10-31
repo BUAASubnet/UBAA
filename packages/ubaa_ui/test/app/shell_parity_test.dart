@@ -2,8 +2,110 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_ui/src/app/home.dart' show HomeView;
 
 void main() {
+  testWidgets('功能页点另一底栏后内容与选中项一致，滑动继续沿该页切换', (tester) async {
+    await mount(tester, tab: UiDestination.academic);
+    await openGrade(tester);
+    await tester.tap(
+      find.byType(NavigationDestination).at(UiDestination.campus.index),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.widgetWithText(Card, FeatureId.cgyy.title).hitTestable(),
+      findsOneWidget,
+    );
+    await tester.drag(find.byType(PageView), const Offset(350, 0));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, '学业'), findsOneWidget);
+    expect(
+      find.widgetWithText(Card, FeatureId.grades.title).hitTestable(),
+      findsOneWidget,
+    );
+  });
+  testWidgets('从独立设置页回到底栏，宽窄切换后仍显示所选分组', (tester) async {
+    await mount(tester, tab: UiDestination.settings);
+    await tester.tap(
+      find.byType(NavigationDestination).at(UiDestination.campus.index),
+    );
+    await tester.pumpAndSettle();
+    expect(
+      find.widgetWithText(Card, FeatureId.cgyy.title).hitTestable(),
+      findsOneWidget,
+    );
+    tester.view.physicalSize = const Size(1000, 874);
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(ListTile, '学业'));
+    await tester.pumpAndSettle();
+    tester.view.physicalSize = const Size(402, 874);
+    await tester.pumpAndSettle();
+    expect(
+      find.widgetWithText(Card, FeatureId.grades.title).hitTestable(),
+      findsOneWidget,
+    );
+  });
+  testWidgets('滑出首页保留 State 并停用可见性与 Ticker，滑回恢复', (tester) async {
+    await mount(tester);
+    final home = find.byType(HomeView, skipOffstage: false);
+    final state = tester.state(home);
+    await tester.drag(find.byType(PageView), const Offset(-350, 0));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, '课程'), findsOneWidget);
+    expect(tester.state(home), same(state));
+    expect(tester.widget<HomeView>(home).visible, isFalse);
+    expect(TickerMode.of(tester.element(home)), isFalse);
+    await tester.drag(find.byType(PageView), const Offset(350, 0));
+    await tester.pumpAndSettle();
+    expect(tester.state(home), same(state));
+    expect(tester.widget<HomeView>(home).visible, isTrue);
+    expect(TickerMode.of(tester.element(home)), isTrue);
+  });
+  testWidgets('写入期间底栏与滑动均保留当前分组', (tester) async {
+    await mount(
+      tester,
+      tab: UiDestination.coursework,
+      writeState: WriteState(
+        phase: WritePhase.committing,
+        intent: WriteIntent(
+          intentId: 'synthetic',
+          operation: WriteOperation.bykcSelectCourse,
+          targetSummary: '合成课程',
+          resolvedRoute: ConnectionMode.direct,
+          warnings: const [],
+          expiresAt: DateTime(2099),
+          requestDigest: 'synthetic',
+        ),
+      ),
+    );
+    await tester.drag(find.byType(PageView), const Offset(-350, 0));
+    await tester.pumpAndSettle();
+    await tester.tap(
+      find.byType(NavigationDestination).at(UiDestination.campus.index),
+    );
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, '课程'), findsOneWidget);
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      UiDestination.coursework.index,
+    );
+  });
+  testWidgets('换账号清除页面状态后，底栏与分页仍保持同一分组', (tester) async {
+    await mount(tester);
+    await tester.tap(
+      find.byType(NavigationDestination).at(UiDestination.campus.index),
+    );
+    await tester.pumpAndSettle();
+    await mount(tester, username: 'second-synthetic');
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      UiDestination.campus.index,
+    );
+    expect(
+      find.widgetWithText(Card, FeatureId.cgyy.title).hitTestable(),
+      findsOneWidget,
+    );
+  });
   testWidgets('短错误说明按内容收缩并保留重试操作', (tester) async {
     var retried = false;
     await tester.pumpWidget(
@@ -40,9 +142,9 @@ void main() {
     expect(find.widgetWithText(AppBar, '学业'), findsOneWidget);
     expect(find.byTooltip('返回'), findsNothing);
   });
-  testWidgets('主分组切换进入校园服务后可打开研讨室并返回', (tester) async {
+  testWidgets('主分组切换进入校园后可打开研讨室并返回', (tester) async {
     await mount(tester);
-    await tester.tap(find.text('校园服务'));
+    await tester.tap(find.text('校园'));
     await tester.pumpAndSettle();
     final entry = find.widgetWithText(Card, FeatureId.cgyy.title);
     await tester.ensureVisible(entry);
@@ -51,7 +153,7 @@ void main() {
     expect(find.text('预约研讨室'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, '校园服务'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, '校园'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
   testWidgets('手机底栏展示五项入口和首页标题', (tester) async {
@@ -60,7 +162,7 @@ void main() {
       tester
           .widgetList<NavigationDestination>(find.byType(NavigationDestination))
           .map((item) => item.label),
-      ['首页', '学业', '课程与作业', '校园服务', '我的'],
+      ['首页', '课程', '学业', '校园', '我的'],
     );
     expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
   });
@@ -123,6 +225,8 @@ Future<void> openGrade(WidgetTester tester) async {
 Future<void> mount(
   WidgetTester tester, {
   UiDestination tab = UiDestination.home,
+  String username = 'synthetic',
+  WriteState writeState = const WriteState.idle(),
   List<FeatureQuery>? queries,
   ValueChanged<RoutePolicy>? onRoutePolicyChanged,
 }) async {
@@ -134,8 +238,9 @@ Future<void> mount(
     MaterialApp(
       theme: UbaaTheme.light(),
       home: UbaaMainShell(
-        user: const UserSummary(username: 'synthetic'),
+        user: UserSummary(username: username),
         initialDestination: tab,
+        writeState: writeState,
         snapshots: {
           for (final id in FeatureId.values)
             id: FeatureSnapshot(

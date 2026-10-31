@@ -39,7 +39,7 @@ void main() {
       expect(backend.authCalls, 2);
       expect(
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-        1,
+        UiDestination.academic.index,
       );
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();

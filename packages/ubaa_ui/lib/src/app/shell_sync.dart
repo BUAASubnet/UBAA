@@ -16,16 +16,6 @@ extension UbaaShellSync on _UbaaMainShellState {
           ? '刷新'
           : '刷新当前查询',
     );
-    DateTime? oldest(Iterable<DateTime?> times) {
-      DateTime? result;
-      for (final time in times) {
-        if (time != null && (result == null || time.isBefore(result))) {
-          result = time;
-        }
-      }
-      return result;
-    }
-
     if (_openedFeature case final feature?) {
       return ValueListenableBuilder<(FeatureSnapshot, String)?>(
         valueListenable: _visiblePage,
@@ -53,7 +43,7 @@ extension UbaaShellSync on _UbaaMainShellState {
         'me',
         o != null &&
             (o.identity.loading || o.metrics.loading || o.network.loading),
-        oldest([
+        uiOldestUpdate([
           o?.identity.data?.fetchedAt,
           o?.network.data?.fetchedAt,
           for (final metric in [

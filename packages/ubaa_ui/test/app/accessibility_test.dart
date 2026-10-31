@@ -38,7 +38,7 @@ void _registerResponsiveAccessibilityTests() {
             snapshots: snapshots,
             routePolicy: RoutePolicy.auto,
             activeRoutes: const <ConnectionMode>[ConnectionMode.direct],
-            initialDestination: UiDestination.academic,
+            initialDestination: UiDestination.coursework,
             telemetryEnabled: false,
             onRefresh: () async {},
             onRetryFeature: (_) async {},
@@ -110,7 +110,7 @@ void _registerFeatureCardSemanticsTest() {
       MaterialApp(
         theme: UbaaTheme.light(),
         home: coordinatedShell(
-          initialDestination: UiDestination.academic,
+          initialDestination: UiDestination.coursework,
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,

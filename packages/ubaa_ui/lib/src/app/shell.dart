@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../shared/tab_navigation.dart' show TabPager, CompactNavigationBar;
 import '../features/ihome/view.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
@@ -7,7 +8,8 @@ import '../shared/place_memory.dart' show UiPlaceMemory, UiPlaceKeys;
 import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
-import '../shared/sync_status.dart' show UiSyncStatus, uiIsTouchPlatform;
+import '../shared/sync_status.dart'
+    show UiSyncStatus, uiIsTouchPlatform, uiOldestUpdate;
 import '../features/cgyy/reservation_flow.dart' show CgyySlotLegend;
 import '../shared/feedback.dart';
 import '../shared/refresh.dart' show PullToRefresh;
@@ -256,6 +258,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   }
 
   late int _selectedIndex;
+  late PageController _tabPager;
   FeatureId? _openedFeature;
   String? _utilityPage;
   final _visiblePage = ValueNotifier<(FeatureSnapshot, String)?>(null);
@@ -302,6 +305,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   void initState() {
     super.initState();
     _selectedIndex = widget.initialDestination.index;
+    _tabPager = PageController(keepPage: false);
     unawaited(_loadReminderSettings());
     unawaited(_loadBykcFilters());
     unawaited(_loadRecentFeatures());
@@ -340,6 +344,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       _readPageKeys[FeatureId.bykc]?.currentState?.cancelBykcCourseWrite();
     }
     if (accountChanged) {
+      _tabPager.dispose();
+      _tabPager = PageController(initialPage: _selectedIndex, keepPage: false);
       _accountGeneration++;
       _reminderSettings = null;
       _reminderError = null;
@@ -482,6 +488,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   void dispose() {
     _visiblePage.dispose();
     _appBarSlot.dispose();
+    _tabPager.dispose();
     super.dispose();
   }
 
@@ -693,7 +700,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         ),
         bottomNavigationBar: wide
             ? null
-            : _CompactNavigationBar(
+            : CompactNavigationBar(
                 child: NavigationBar(
                   height:
                       56 +
@@ -852,121 +859,100 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     ),
   );
 
-  Widget _buildTab(BuildContext context) => _utilityPage != null
-      ? _utilityPage == 'iHome'
-            ? IhomeView(
-                key: ValueKey(
-                  widget.cacheAccountId ?? widget.user?.accountScope,
-                ),
-                service: widget.ihomeService,
-              )
-            : _utilityPage == '关于'
-            ? AboutView(
-                loadVersion: widget.onLoadAppVersion,
-                openLink: widget.onOpenAppLink,
-              )
-            : _buildProfile()
-      : switch (_selectedIndex) {
-          0 => HomeView(
-            key: _homeKey,
-            onPullRefresh: _pull,
-            deferSupplements: widget.connecting,
-            onSyncStatus: (busy, updatedAt) {
-              if (mounted) setState(() => _homeSync = (busy, updatedAt));
-            },
-            homeClock: widget.homeClock,
-            recentFeatures: _recentFeatures,
-            user: widget.user,
-            snapshots: widget.homeSnapshots ?? widget.snapshots,
-            visible: _openedFeature == null && widget.writeState.intent == null,
-            cacheEpoch: widget.readCacheEpoch,
-            businessCacheEpoch: widget.businessCacheEpoch,
-            onLoadSupplement: widget.onLoadHomeSupplement,
-            onLoadDaySchedule: widget.onLoadHomeDaySchedule,
-            onTodoTap: _openHomeTodo,
-            writeReadbackNotice:
-                widget.writeReadbacks.isEmpty &&
-                    widget.writeReadbackError == null
-                ? null
-                : WriteReadbackNotice(
-                    key: ValueKey(
-                      '${widget.cacheAccountId}:${widget.readCacheEpoch}',
-                    ),
-                    hints: widget.writeReadbacks,
-                    error: widget.writeReadbackError,
-                    onDismiss: widget.onDismissWriteReadback,
-                    onRefresh: widget.onRefreshWriteReadbacks,
-                    onOpenFeature: (feature) {
-                      setState(() => _openedFeature = feature);
-                      _recordFeatureVisit(feature);
-                    },
-                  ),
-            gradeScoreNotice: widget.gradeScoreNotice,
-            gradeCheckRoute: widget.gradeCheckRoute,
-            onCheckGradeUpdates: widget.onCheckGradeUpdates,
-            onOpenGradeNotice: _openGradeNotice,
-            onDismissGradeNotice: widget.onConsumeGradeNotice,
-            onSignin: _hasWriteCommands && widget.onPrepareSigninWrite != null
-                ? _performHomeSignin
-                : null,
-            reminderSettings: _reminderSettings,
-            onObserveProgress: _observeHomeProgress,
-            onFeatureTap: _openFeatureList,
-            onRetryFeature: widget.onRetryFeature,
-            onRefresh: () => _joinRefresh('home-core', widget.onRefresh),
-          ),
-          1 || 2 || 3 => FeatureGridView(
-            onOpenIhome: _selectedIndex == UiDestination.campus.index
-                ? () => _openUtility('iHome')
-                : null,
-            features: _tabs[_selectedIndex].features,
-            snapshots: widget.snapshots,
-            onFeatureTap: _openFeatureList,
-            onRetryFeature: widget.onRetryFeature,
-          ),
-          4 => PullToRefresh(
-            onRefresh: () => _pull(_refreshCampusAccount),
-            enabled:
-                widget.campusAccountService != null &&
-                widget.writeState.intent == null,
-            child: MeView(
-              user: widget.user,
-              overview: _campusOverview,
-              showShortcuts: MediaQuery.sizeOf(context).width < 600,
-              onOpenProfile: () => _openUtility('我的资料'),
-              onOpenSettings: () => _openUtility(UiDestination.settings.label),
-              onOpenAbout: () => _openUtility('关于'),
-              onLogout: _logout,
-            ),
-          ),
-          5 => _buildProfile(),
-          _ => const SizedBox.shrink(),
-        };
+  Widget _buildTabPager(BuildContext context) {
+    // 设置页及宽屏会卸载分页，重新挂载时以当前选中项为准。
+    if (!_tabPager.hasClients && _tabPager.initialPage != _selectedIndex) {
+      _tabPager.dispose();
+      _tabPager = PageController(initialPage: _selectedIndex, keepPage: false);
+    }
+    return TabPager(
+      controller: _tabPager,
+      selectedIndex: _selectedIndex,
+      enabled: widget.writeState.intent == null,
+      itemCount: UiDestination.settings.index,
+      onSelected: (index) => _selectTab(index, fromSwipe: true),
+      itemBuilder: _buildTabPage,
+    );
+  }
 
-  Widget _buildProfile() => ProfileView(
-    cacheAccountId: widget.cacheAccountId,
-    canClearBusinessCache: widget.canClearBusinessCache,
-    onReadCacheUsage: widget.onReadCacheUsage,
-    onClearBusinessCache: widget.onClearBusinessCache,
-    settingsOnly:
-        _utilityPage == '设置' ||
-        (_utilityPage == null &&
-            _selectedIndex == UiDestination.settings.index),
-    onOpenProfile: () => _selectTab(UiDestination.me.index),
-    onOpenAbout: () => _openUtility('关于'),
-    user: widget.user,
-    routePolicy: widget.routePolicy,
-    telemetryEnabled: widget.telemetryEnabled,
-    telemetryAvailable: widget.telemetryAvailable,
-    onRoutePolicyChanged: widget.onRoutePolicyChanged,
-    onTelemetryChanged: widget.onTelemetryChanged,
-    onLogout: widget.onLogout,
-    onLogoutAndClearAccount: widget.onLogoutAndClearAccount,
-    activeRoutes: widget.activeRoutes,
-    onReadDiagnostics: widget.onReadDiagnostics,
-    themeMode: widget.themeMode,
-    onThemeModeChanged: widget.onThemeModeChanged,
-  );
+  Widget _buildTabPage(BuildContext context, int index) => switch (index) {
+    0 => HomeView(
+      key: _homeKey,
+      onPullRefresh: _pull,
+      deferSupplements: widget.connecting,
+      onSyncStatus: (busy, updatedAt) {
+        if (mounted) setState(() => _homeSync = (busy, updatedAt));
+      },
+      homeClock: widget.homeClock,
+      recentFeatures: _recentFeatures,
+      user: widget.user,
+      snapshots: widget.homeSnapshots ?? widget.snapshots,
+      visible:
+          _openedFeature == null &&
+          _utilityPage == null &&
+          _selectedIndex == 0 &&
+          widget.writeState.intent == null,
+      cacheEpoch: widget.readCacheEpoch,
+      businessCacheEpoch: widget.businessCacheEpoch,
+      onLoadSupplement: widget.onLoadHomeSupplement,
+      onLoadDaySchedule: widget.onLoadHomeDaySchedule,
+      onTodoTap: _openHomeTodo,
+      writeReadbackNotice:
+          widget.writeReadbacks.isEmpty && widget.writeReadbackError == null
+          ? null
+          : WriteReadbackNotice(
+              key: ValueKey(
+                '${widget.cacheAccountId}:${widget.readCacheEpoch}',
+              ),
+              hints: widget.writeReadbacks,
+              error: widget.writeReadbackError,
+              onDismiss: widget.onDismissWriteReadback,
+              onRefresh: widget.onRefreshWriteReadbacks,
+              onOpenFeature: (feature) {
+                setState(() => _openedFeature = feature);
+                _recordFeatureVisit(feature);
+              },
+            ),
+      gradeScoreNotice: widget.gradeScoreNotice,
+      gradeCheckRoute: widget.gradeCheckRoute,
+      onCheckGradeUpdates: widget.onCheckGradeUpdates,
+      onOpenGradeNotice: _openGradeNotice,
+      onDismissGradeNotice: widget.onConsumeGradeNotice,
+      onSignin: _hasWriteCommands && widget.onPrepareSigninWrite != null
+          ? _performHomeSignin
+          : null,
+      reminderSettings: _reminderSettings,
+      onObserveProgress: _observeHomeProgress,
+      onFeatureTap: _openFeatureList,
+      onRetryFeature: widget.onRetryFeature,
+      onRefresh: () => _joinRefresh('home-core', widget.onRefresh),
+    ),
+    1 || 2 || 3 => FeatureGridView(
+      onOpenIhome: index == UiDestination.campus.index
+          ? () => _openUtility('iHome')
+          : null,
+      features: _tabs[index].features,
+      snapshots: widget.snapshots,
+      onFeatureTap: _openFeatureList,
+      onRetryFeature: widget.onRetryFeature,
+    ),
+    4 => PullToRefresh(
+      onRefresh: () => _pull(_refreshCampusAccount),
+      enabled:
+          widget.campusAccountService != null &&
+          widget.writeState.intent == null,
+      child: MeView(
+        user: widget.user,
+        overview: _campusOverview,
+        showShortcuts: MediaQuery.sizeOf(context).width < 600,
+        onOpenProfile: () => _openUtility('我的资料'),
+        onOpenSettings: () => _openUtility(UiDestination.settings.label),
+        onOpenAbout: () => _openUtility('关于'),
+        onLogout: _logout,
+      ),
+    ),
+    _ => _buildProfile(),
+  };
 
   void _openUtility(String page) {
     if (widget.writeState.intent != null) return;
@@ -981,13 +967,24 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     });
   }
 
-  void _selectTab(int index) {
-    if (widget.writeState.intent != null) return;
+  void _selectTab(int index, {bool fromSwipe = false}) {
+    if (widget.writeState.intent != null) {
+      // 写入进行中不能换页；滑动已移动的页面退回原位。
+      if (fromSwipe && _tabPager.hasClients) {
+        _tabPager.jumpToPage(_selectedIndex);
+      }
+      return;
+    }
     setState(() {
       _selectedIndex = index;
       _utilityPage = null;
       _openedFeature = null;
     });
+    if (!fromSwipe &&
+        index < UiDestination.settings.index &&
+        _tabPager.hasClients) {
+      _tabPager.jumpToPage(index);
+    }
     if (index == UiDestination.me.index) _ensureCampusAccountLoaded();
   }
 }

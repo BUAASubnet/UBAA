@@ -2,6 +2,52 @@ part of 'shell.dart';
 
 /// 自适应导航的展示；页面与写入状态由 Shell 持有。
 extension UbaaShellNavigation on _UbaaMainShellState {
+  /// 手机上首页、三个分类与“我的”可左右滑动切换；各页保留状态。
+  Widget _buildTab(BuildContext context) => _utilityPage != null
+      ? _utilityPage == 'iHome'
+            ? IhomeView(
+                key: ValueKey(
+                  widget.cacheAccountId ?? widget.user?.accountScope,
+                ),
+                service: widget.ihomeService,
+              )
+            : _utilityPage == '关于'
+            ? AboutView(
+                loadVersion: widget.onLoadAppVersion,
+                openLink: widget.onOpenAppLink,
+              )
+            : _buildProfile()
+      : _selectedIndex == UiDestination.settings.index
+      ? _buildProfile()
+      : MediaQuery.sizeOf(context).width >= 600
+      ? _buildTabPage(context, _selectedIndex)
+      : _buildTabPager(context);
+
+  Widget _buildProfile() => ProfileView(
+    cacheAccountId: widget.cacheAccountId,
+    canClearBusinessCache: widget.canClearBusinessCache,
+    onReadCacheUsage: widget.onReadCacheUsage,
+    onClearBusinessCache: widget.onClearBusinessCache,
+    settingsOnly:
+        _utilityPage == '设置' ||
+        (_utilityPage == null &&
+            _selectedIndex == UiDestination.settings.index),
+    onOpenProfile: () => _selectTab(UiDestination.me.index),
+    onOpenAbout: () => _openUtility('关于'),
+    user: widget.user,
+    routePolicy: widget.routePolicy,
+    telemetryEnabled: widget.telemetryEnabled,
+    telemetryAvailable: widget.telemetryAvailable,
+    onRoutePolicyChanged: widget.onRoutePolicyChanged,
+    onTelemetryChanged: widget.onTelemetryChanged,
+    onLogout: widget.onLogout,
+    onLogoutAndClearAccount: widget.onLogoutAndClearAccount,
+    activeRoutes: widget.activeRoutes,
+    onReadDiagnostics: widget.onReadDiagnostics,
+    themeMode: widget.themeMode,
+    onThemeModeChanged: widget.onThemeModeChanged,
+  );
+
   Widget _buildRail(BuildContext context) => ScrollConfiguration(
     behavior: ScrollConfiguration.of(context).copyWith(
       // 导航只在内容溢出时滚动，边界不随触摸板回弹。
@@ -252,38 +298,4 @@ extension UbaaShellNavigation on _UbaaMainShellState {
           await page?.refreshCurrent();
         }
       });
-}
-
-/// 底栏顶部留白 8pt，底部安全区最多保留 20pt，仍避开 Home 指示条。
-class _CompactNavigationBar extends StatelessWidget {
-  const _CompactNavigationBar({required this.child});
-
-  static const double _topGap = 8;
-  static const double _maxBottomInset = 20;
-
-  final Widget child;
-
-  @override
-  Widget build(BuildContext context) {
-    final media = MediaQuery.of(context);
-    final theme = Theme.of(context);
-    return ColoredBox(
-      color:
-          theme.navigationBarTheme.backgroundColor ??
-          theme.colorScheme.surfaceContainer,
-      child: Padding(
-        padding: const EdgeInsets.only(top: _topGap),
-        child: MediaQuery(
-          data: media.copyWith(
-            padding: media.padding.copyWith(
-              bottom: media.padding.bottom > _maxBottomInset
-                  ? _maxBottomInset
-                  : media.padding.bottom,
-            ),
-          ),
-          child: child,
-        ),
-      ),
-    );
-  }
 }
