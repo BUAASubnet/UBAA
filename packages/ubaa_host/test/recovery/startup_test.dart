@@ -26,12 +26,8 @@ void main() {
     await tester.pump();
     expect(find.byType(UbaaMainShell), findsOneWidget);
     expect(backend.authCalls, 1);
-    expect(find.byTooltip('完成登录'), findsOneWidget);
-    await tester.tap(find.byTooltip('完成登录'));
-    await tester.pump(const Duration(milliseconds: 350));
-    expect(find.byType(UbaaLoginView), findsOneWidget);
-    Navigator.of(tester.element(find.byType(UbaaLoginView))).pop();
-    await tester.pump(const Duration(milliseconds: 350));
+    // 恢复中静默进行，不提供登录入口；确认需要登录后才出现。
+    expect(find.byTooltip('完成登录'), findsNothing);
     expect(find.byType(UbaaSplashView), findsNothing);
     await tester.tap(find.byKey(const ValueKey<String>('tab-学业')));
     await tester.pump();

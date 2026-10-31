@@ -118,11 +118,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           : null,
       onReconnect: () => unawaited(_controller.recoverSession()),
       onCompleteLogin:
-          _controller.usesLocalRecovery &&
-              _controller.sessionRecoveryStatus !=
-                  SessionRecoveryStatus.ready &&
-              _controller.sessionRecoveryStatus !=
-                  SessionRecoveryStatus.signedOut
+          _controller.sessionRecoveryStatus == SessionRecoveryStatus.needsLogin
           ? _showInPlaceLogin
           : null,
       onLoadAppVersion: appInformation.version,

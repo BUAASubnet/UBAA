@@ -20,7 +20,6 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(backend.authCalls, 1);
-    expect(find.byTooltip('完成登录'), findsOneWidget);
     expect(events.hasListener, isTrue);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     await tester.pump();
