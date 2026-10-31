@@ -330,3 +330,21 @@ Xcode 27.2 的 `lipo /usr/bin/true -verify_arch x86_64 arm64e` 返回参数解�
 Android 12+ 使用 `setApplicationNightMode` 保存应用外观，使下次系统启动画面采用相同主题。该调用也改变当前 Activity 的 `uiMode`，Flutter 会把配置变化传入 `platformBrightness`；显式深浅主题由 `ThemeMode` 决定，不根据亮度回写偏好。切回系统主题时传入 `MODE_NIGHT_AUTO`，AOSP 在这个应用级 API 中把它映射为 `UI_MODE_NIGHT_UNDEFINED`，清除应用覆盖。该行为与全局 `setNightMode` 的自动昼夜计算不同，依据见 [AOSP 实现](https://android.googlesource.com/platform/frameworks/base/+/refs/heads/android15-release/services/core/java/com/android/server/UiModeManagerService.java)。Manifest 已声明处理 `uiMode`，由 Flutter 接收配置变化。
 
 macOS 在首帧前从标准 UserDefaults 读取 `flutter.ubaa.preferences.theme` 并设置窗口和 FlutterViewController 底色。键由 ThemePreferenceStore 完整提供，SharedPreferencesAsync 不追加前缀。iOS 原生启动图仍跟随系统，Flutter 首帧使用应用偏好；Android 12 以下原生背景同样跟随系统资源，应用偏好在 Flutter 页面生效。
+
+## 2026-10-31：日程使用独立账号密文库与标准重复规则
+
+[日程设计](../design/agenda.md)的子任务 1a 只实现 Rust Core 本机自建事项与学校事项覆盖层。学校投影和同步均未接入，冻结来源协议对照不适用于这些纯本地操作，本轮不读取冻结来源内容，不执行学校请求。
+
+日程不能随只读缓存淘汰、退出或重建而丢失。现有 `CacheScope` 必须带 Direct/WebVPN 路线，`CachePayload` 是只读投影白名单，缓存重建还会替换账号库。因此选择独立的 `agenda/<随机账号别名>.sqlite`，复用现有私有路径检查、SQLite、`CacheKey` 和 AES-256-GCM 实现，使用独立 `ubaa.agenda.v1` AAD 绑定账号和格式。日程 schema v1 与缓存 v7 独立。将日程加入原缓存表会扩大清理与恢复的影响范围，本期不采用。
+
+一期将账号的事项和覆盖层组成一个加密状态行，内容、UUID、学校来源键、时间、完成记录和未同步标记全部位于密文内。SQLite 的 IMMEDIATE 事务包住读取、修改、加密和写回，跨连接修改不会相互覆盖，错误时整体回滚。优点是没有明文业务索引，系列拆分和覆盖修改天然原子。代价是每次修改需要重封整个账号状态，单行损坏会阻断整个账号的日程读取并保留原文件。暂定密文 16 MiB 上限，达到上限明确报错且保留原数据，绝不淘汰日程。后续规模需要逐条存储时应升级独立 schema，并保持账号和 AAD 隔离。
+
+宿主按已核实的账号索引交付随机别名和安全存储中的密钥，日程密钥随日程数据保留，不受只读缓存密钥轮换影响。退出时调用 `deactivate`，同账号重新登录后调用 `activate`。退出状态持久保存并作用于其他连接，普通打开不会重新激活。显式 `clear_local_data` 清除事项和覆盖层，返回清除前未同步条目数，另提供 `unsynced_count` 供宿主确认前查询。每条本地写入维护 `updated_at` 和 `locally_modified`，删除使用 `deleted_at`。按设计，严格超过 180 天的删除标记可显式清理，包含未同步标记；长期不联网设备在此期限之外的合并需要后续同步任务处理。
+
+重复规则采用 [rrule 0.14.0](https://docs.rs/crate/rrule/0.14.0)，2026-10-31 核对 crates.io API 的最新稳定版为 0.14.0，发布于 2025-04-20，未撤回，许可证 MIT OR Apache-2.0。[上游仓库](https://github.com/fmeringdal/rust-rrule)仍开放维护，但发版间隔较长，不能据此假定所有 RFC 边界都已修复。精确锁定版本，禁用可选 CLI/serde_with 功能。该依赖使用 chrono 0.4 与 chrono-tz 0.10，与工作区现有版本统一，没有新增时区实现。标准库无法替代 RFC 5545 的规则解析和展开，不自行实现第二套重复语法。UUID 使用精确锁定的 [uuid 1.29.0](https://docs.rs/crate/uuid/1.29.0)，crates.io 最新稳定版发布于 2026-10-23，许可证 Apache-2.0 OR MIT，仅启用标准 UUID v4 和 serde。随机源复用已有 getrandom 0.4，新增两个包，未升级既有依赖；chrono/chrono-tz 为时间值启用 serde。两者均为 Rust 库，未新增平台原生库；本轮只在本机完整入口验证，OHOS 交叉编译留给宿主接入。`icalendar` 留给导出任务。
+
+时间值保留 RFC 3339 偏移量和 `Asia/Shanghai` 标识，精确到秒。RECURRENCE-ID 使用规范化的原始发生时间字符串，移动单次事项后原键保持不变，无日期待办使用 `undated`。日期查询使用左闭右开区间，时段按相交关系返回，全天结束为不包含的次日零点，无日期待办每次查询均返回。展开达到库内迭代限制或 65,535 次发生时返回 Capacity，不返回部分成功。为避免无界查询，单次日期跨度最多 3,660 天。
+
+仅此次修改保留原 RECURRENCE-ID，单次删除写 EXDATE。「此次及以后」在同一事务中截断旧规则并新建 UUID，原系列首项拆分时旧系列写删除标记。相同规则的 COUNT 按未排除前的发生次数扣减，平移时同步平移 UNTIL、EXDATE、覆盖键和完成键，完成操作的实际时间保持原值。整体替换规则后，已不属于新规则的例外移除。覆盖层采用来源和上游稳定标识的结构化键，避免拼接分隔符碰撞；设计稿只有 `completed_at`，无法区分只加备注和明确取消完成，因此保守补充 `completion_override` 布尔字段。仅在完成覆盖启用且记录未删除时，`completed_at = null` 才表示本地重新挂起；只加备注、隐藏或清除覆盖继续沿用上游完成状态。
+
+公开入口经 facade 显式导出，沿用本地仓库的 `CacheResult/CacheError` 稳定错误类别。此次只增加 Core API，未改变 CLI JSON schema v12、Bridge v43 或其 DTO，也不改 FRB 生成输入。日程本地清除与学校写入无关。公共使用规则见[日程 Core 合同](../contracts/agenda.md)。
