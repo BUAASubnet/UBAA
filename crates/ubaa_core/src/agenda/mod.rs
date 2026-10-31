@@ -28,3 +28,6 @@ mod sqlite;
 
 mod home;
 pub use home::{HomeAgendaRead, project_home_agenda};
+
+mod export;
+pub use export::{AgendaExportOptions, AgendaExportResult};

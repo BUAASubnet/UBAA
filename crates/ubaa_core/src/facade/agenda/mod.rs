@@ -2,10 +2,13 @@
 use super::{
     AgendaEntry, AgendaStore, AgendaTime, CacheCompleteness, CacheError, CachePayload, CacheQuery,
     CacheRecord, CacheResult, CacheScope, ConnectionMode, OfflineCache, ReadonlyFeature,
-    SchoolAgendaContext, Week, YgdkAgendaSettings,
+    SchoolAgendaContext, SchoolAgendaItem, Week, YgdkAgendaSettings,
 };
 use crate::cache::CachedSemesterSchedule;
 use chrono::{Datelike, Duration, NaiveDate};
+
+mod export;
+pub use export::AgendaCachedExportResult;
 
 #[derive(Clone, Debug)]
 pub struct AgendaQuery {
@@ -134,11 +137,21 @@ impl OfflineCache {
         agenda: &AgendaStore,
         query: &AgendaQuery,
     ) -> CacheResult<AgendaQueryResult> {
+        if self.account_alias() != agenda.account_alias() {
+            return Err(CacheError::InvalidInput);
+        }
+        let (school, sources) = self.school_agenda(query)?;
+        let entries = agenda.merge_school(query.from, query.to, school, query.include_hidden)?;
+        Ok(AgendaQueryResult { entries, sources })
+    }
+    fn school_agenda(
+        &self,
+        query: &AgendaQuery,
+    ) -> CacheResult<(Vec<SchoolAgendaItem>, Vec<AgendaSourceAvailability>)> {
         if !query.now.valid()
             || query.from >= query.to
             || (query.to - query.from).num_days() > 3660
             || query.term.trim().is_empty()
-            || self.account_alias() != agenda.account_alias()
         {
             return Err(CacheError::InvalidInput);
         }
@@ -179,8 +192,7 @@ impl OfflineCache {
         for state in &mut sources {
             state.unprojectable_count += unavailable.get(&state.feature).copied().unwrap_or(0);
         }
-        let entries = agenda.merge_school(query.from, query.to, school, query.include_hidden)?;
-        Ok(AgendaQueryResult { entries, sources })
+        Ok((school, sources))
     }
     fn agenda_source(
         &self,

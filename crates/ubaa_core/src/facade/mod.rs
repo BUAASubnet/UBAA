@@ -142,4 +142,6 @@ pub use agenda::{
     AgendaCacheObservation, AgendaQuery, AgendaQueryResult, AgendaSourceAvailability,
 };
 
+pub use crate::agenda::{AgendaExportOptions, AgendaExportResult};
 pub use crate::agenda::{HomeAgendaRead, project_home_agenda};
+pub use agenda::AgendaCachedExportResult;

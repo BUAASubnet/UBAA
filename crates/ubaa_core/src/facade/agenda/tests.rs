@@ -1,4 +1,58 @@
 use super::*;
+
+#[test]
+fn cached_export_uses_existing_projection_and_preserves_route_evidence() {
+    let (root, cache, agenda) = opened(ACCOUNT);
+    fixture(&cache);
+    local(&agenda);
+    let q = query();
+    let queried = cache.query_agenda(&agenda, &q).unwrap();
+    let result = cache.export_agenda_ics(&agenda, &q, true).unwrap();
+    assert_eq!(result.sources, queried.sources);
+    assert!(
+        result
+            .sources
+            .iter()
+            .flat_map(|s| &s.observations)
+            .all(|o| o.scope.route == ConnectionMode::Direct)
+    );
+    assert_eq!(
+        result.snapshot.exported_count + result.snapshot.skipped_unknown_time_count,
+        queried.entries.len()
+    );
+    assert!(result.snapshot.exported_count > 1);
+    assert!(
+        result
+            .sources
+            .iter()
+            .flat_map(|s| &s.observations)
+            .any(|o| !o.is_fresh(q.now.datetime.timestamp(), 0))
+    );
+    let mut other_route = q.clone();
+    other_route.route = ConnectionMode::WebVpn;
+    let missing = cache
+        .export_agenda_ics(&agenda, &other_route, true)
+        .unwrap();
+    assert_eq!(missing.snapshot.exported_count, 2);
+    assert!(missing.sources.iter().all(|s| s.observations.is_empty()));
+    cache.deactivate().unwrap();
+    assert!(cache.export_agenda_ics(&agenda, &q, true).is_err());
+    // 缓存失效不影响独立本机导出。
+    assert_eq!(
+        agenda
+            .export_local_ics(&crate::facade::AgendaExportOptions {
+                from: q.from,
+                to: q.to,
+                generated_at: q.now,
+                include_hidden: false,
+                include_completed: true,
+            })
+            .unwrap()
+            .exported_count,
+        2
+    );
+    std::fs::remove_dir_all(root).unwrap();
+}
 use crate::facade::*;
 use std::path::PathBuf;
 const ACCOUNT: &str = "00000000000000000000000000000001";
