@@ -455,6 +455,17 @@ CLI 的认证输出继续表达学校双路线结果，新增 `agendaRegistratio
 
 CLI 选择按规范化配置目录建立独立 Keychain 命名空间和排他文件锁。锁覆盖打开会话、登录、登记、撤销、日程读操作及输出，避免旧操作跨退出和重新激活交付。初始化标记与索引相互核对，目录节点身份也必须匹配。登记和撤销先持久化 pending 标记，中断后保留现场并拒绝访问。本阶段没有自动恢复或替代别名路径。生产只有 macOS provider，缺少平台能力时明确不可用。
 
-macOS provider 调用固定的 `/usr/bin/security` 操作 Keychain，所有记录由同一系统工具创建和读取，使 CLI 不同进程可重开。材料正文只经 stdin 交付，完全不通过 shell 或 argv，不输出子进程 stdout/stderr。每次调用有五秒期限，stdout 限 1 MiB、stderr 限 16 KiB，工具缺失、权限拒绝、超时或读回不一致均返回不可用。索引保留 Keychain 的用户访问边界；本机日程正文仍为私有明文文件。没有引入新的第三方包或升级锁定版本，CLI 只增加现有 fs2、sha2、uuid、chrono 和 libc 的直接引用。依赖审计结果写本阶段提交说明。
+初始 macOS provider 调用固定的 `/usr/bin/security` 操作 Keychain，所有记录由同一系统工具创建和读取，使 CLI 不同进程可重开。材料正文只经 stdin 交付，完全不通过 shell 或 argv，不输出子进程 stdout/stderr。每次调用有五秒期限，stdout 限 1 MiB、stderr 限 16 KiB，工具缺失、权限拒绝、超时或读回不一致均返回不可用。索引保留 Keychain 的用户访问边界；本机日程正文仍为私有明文文件。没有引入新的第三方包或升级锁定版本，CLI 只增加现有 fs2、sha2、uuid、chrono 和 libc 的直接引用。依赖审计结果写本阶段提交说明。
 
 CLI local envelope 增加新的错误命名空间和本机元数据，因此提升 CLI schema 为 v13。Bridge v45、日程 v2、业务缓存 v7、会话 v2 保持。只读命令不创建网络客户端，显式学校缓存合并只读取同账号既有库。CLI 尚无业务缓存预取流水线，CacheKey 缺失只影响显式学校缓存合并。下一阶段继续全部本机修改、完成、覆盖、原子 compare-and-clear 和 .ics 文件安全交付。
+
+
+## 2026-11-01：CLI-a 身份代次与原生 Keychain 材料接口
+
+CLI-a 独立审查发现交互式换号和所需路线明确失效后仍可使用旧身份票据，以及非 macOS 原认证被可选日程 provider 阻断的问题。票据现在绑定双路线运行时的认证代次，清会话时更换代次，正常活动刷新不更换。新交互准备独立撤销旧票据，保留当前交互句柄。不支持日程 provider 时，仅无登记痕迹的作用域继续原认证，登记独立报告不可用；已管理或异常作用域继续失败关闭。
+
+材料写入停止使用 `security -i`，因为其交互分词规则会破坏 JSON 引号与反斜杠，4096 字节行缓冲还会将正常多账号索引拆成额外命令。复用锁文件已有的 [security-framework 3.7.0](https://docs.rs/security-framework/3.7.0/security_framework/) 安全 Rust 接口，macOS 条件依赖关闭默认 features，保留 MIT OR Apache-2.0 许可。来源为 [rust-security-framework 上游](https://github.com/kornelski/rust-security-framework)，本地核对发布包 manifest、许可证与源码，Cargo.lock 只增加 CLI 到现有包的依赖边，不新增版本或 registry 节点，不引入自有 unsafe 或修改 registry。
+
+索引通过 SecItemAdd/SecItemUpdate 的 CFData 字节参数和 SecItemCopyMatching 完整往返，避免命令字符串解析。[Apple 的更新接口](https://developer.apple.com/documentation/security/secitemupdate(_:_:))定义查询匹配的条目更新。原生调用放在同一真实 CLI 的短命子进程中，正文仅经管道传递，父进程限时五秒。[禁用 Keychain 交互](https://developer.apple.com/documentation/security/seckeychainsetuserinteractionallowed(_:))只作用于工作进程，拒绝访问返回固定 unavailable。创建沿系统默认 ACL，更新保留已有权限，不给所有应用授权，也不自动修改旧条目权限。旧 security 工具创建的条目若拒绝当前 CLI，保留原材料并报告 unavailable，本轮不自动迁移权限。
+
+既有 1 MiB 读取容量边界现在也在索引过渡前检查，超限不写 pending、不更新材料、不删账号，不改变原 service、scope、alias、CacheKey 或 schema。已进入持久过渡后结果不明仍保留 pending。合成原生测试由同一 CLI 创建、更新、跨进程读取，采用默认 ACL，清理只按本次私有目录派生的专用 scope 删除，本轮未读取或修改真实用户材料。其他平台使用不支持 provider 的确定性模拟，尚无 native 验收。

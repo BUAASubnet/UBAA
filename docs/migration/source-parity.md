@@ -978,3 +978,15 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 | 独立安全索引、随机别名、代次、学校缓存读取 | 不适用：没有同等日程 CLI 协议 | 不适用：没有同等日程 CLI 协议 | 新增宿主本地机制，只消费 Core 已核实能力及现有 AgendaStore/OfflineCache facade，不类比新增学校 URL/字段。只读缓存仍 schema7，日程仍 schema2 |
 
 来源没有跨宿主离线身份票据。CLI 索引保存于独立平台安全材料命名空间，与规范化 config-dir 绑定；普通 profile、JSON、用户名与旧会话均不能建立登记。真实 Direct/WebVPN 认证及读取在本会话未获授权，保留未运行状态，确定性验证使用合成账号和 Mock transport。
+
+
+### CLI-a 审查修复的实施前对照（2026-11-01）
+
+本轮重读上述固定来源的 `LocalConnectionAuth.kt` 中 validateLocalConnectionSession、authStatus、logout 与 `UserInfo.kt`，以及 buaa-api 的 `api/user/auth.rs`、`api/user/opt.rs`。旧版明确区分无效认证与 5xx 临时错误，活动时间刷新保留原 authenticatedAt；buaa-api 沿 UC status 和既有 Cookie/凭据工作，不提供本机身份能力。两者均无 CLI 日程材料接口，平台材料、原生 Keychain 和身份票据绑定对此记为不适用。
+
+| 操作 | CAS/service、重定向、最终 URL、Cookie/Session/Token | 方法、参数、头、编码、加密/签名 | DTO、缓存、并发、重试、错误与产品语义 |
+|---|---|---|---|
+| 交互式准备 | 沿既有双路线认证，旧来源没有离线能力 | 完全复用既有请求，不新增学校参数或常量 | 新交互意图立即撤销旧票据，保留当前句柄；成功、失败、验证码状态均适用 |
+| 所需路线恢复与读取收尾 | 沿既有 UC 失效判断和清槽行为 | status/userinfo 请求与解析字段不变 | 票据绑定双路线认证代次，任何依赖会话清理后失效；同身份正常刷新与临时错误保留原行为 |
+| 不支持日程 provider 的原认证 | 普通聚合/诊断登录和退出继续走既有 Core | 请求、重试与错误不变 | 只允许无日程登记痕迹的作用域继续，登记独立报告不可用；已有或异常材料继续失败关闭 |
+| Keychain 索引写读 | 两冻结来源不适用，无学校网络 | 无学校请求或加密变更 | 保留原 service、scope、alias、CacheKey 与索引格式，替换交互命令解析接口；完整字节写读、容量预检与中断栅栏继续生效 |

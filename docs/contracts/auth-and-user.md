@@ -48,7 +48,7 @@ version 保留普通文本行为。无效参数文本会归约为安全的 `inva
 
 稳定退出类别为：0 表示调用成功完成，2 表示输入无效，3 表示认证失败（包括拒绝密码风险继续），5 表示网络/可用性错误，6 表示上游合同或解析变化，7 表示内部失败。课堂签到的确定业务拒绝以外层 `ok=true`、退出码 0 和内层 `data.success=false` 表达；调用方不得只凭退出码认定签到成功。发送后不确定性使用 `outcome_unknown` 和退出码 5。`docs/contracts/cli-json.schema.json` 已通过实际 dispatcher 序列化的签到 true/false/unknown、其它成功和失败 envelope 验证。
 
-本机日程通过独立的 `agenda list/show/unsynced` 入口执行，不创建网络客户端、不解析学校配置或会话，也不隐式调用 `auth_status`。普通显式聚合登录在学校认证完成后，才使用 Core 不可构造的已核实身份能力登记 CLI 独立随机别名。`agendaRegistration` 与原有认证 `ok/data/error` 分开：学校认证成功而登记失败时，认证结果保留，登记状态为 failed，进程退出非零。固定路线诊断登录不产生登记。身份核对、跨进程锁、材料中断、macOS Keychain provider、缓存缺口与本地错误码见[日程 CLI 合同](agenda.md#cli-a-的身份与离线访问)。
+本机日程通过独立的 `agenda list/show/unsynced` 入口执行，不创建网络客户端、不解析学校配置或会话，也不隐式调用 `auth_status`。普通显式聚合登录在学校认证完成后，才使用 Core 不可构造的已核实身份能力登记 CLI 独立随机别名。`agendaRegistration` 与原有认证 `ok/data/error` 分开：学校认证成功而登记失败时，认证结果保留，登记状态为 failed，进程退出非零。固定路线诊断登录不产生登记。不支持日程 provider 的平台，在没有日程登记痕迹时继续原有认证流程；已有材料无法安全撤销时继续拒绝。Core 身份能力绑定双路线认证代次，新交互意图或依赖会话清理立即使旧能力失效，正常活动刷新和临时错误保持原行为。身份核对、跨进程锁、材料中断、macOS Keychain provider、缓存缺口与本地错误码见[日程 CLI 合同](agenda.md#cli-a-的身份与离线访问)。
 
 ## 手动交互验证码
 
