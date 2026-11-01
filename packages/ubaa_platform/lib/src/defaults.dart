@@ -41,10 +41,15 @@ final class SessionPlatformCapabilities {
       : SecureLocalAccountStore(secureMaterials!);
 }
 
-Future<SessionPlatformCapabilities>
-createDefaultSessionPlatformCapabilities() async {
+Future<SessionPlatformCapabilities> createDefaultSessionPlatformCapabilities({
+  MaterialCoordinator? coordinator,
+  SecureMaterialTransport? transport,
+}) async {
   await initializePrivateDirectory();
-  final materials = SecureMaterialStore();
+  final materials = SecureMaterialStore(
+    coordinator: coordinator,
+    transport: transport,
+  );
   await materials.probe();
   return SessionPlatformCapabilities(
     credentialVault: PlatformCredentialVault(
@@ -54,8 +59,14 @@ createDefaultSessionPlatformCapabilities() async {
   );
 }
 
-Future<PlatformCapabilities> createDefaultPlatformCapabilities() async {
-  final session = await createDefaultSessionPlatformCapabilities();
+Future<PlatformCapabilities> createDefaultPlatformCapabilities({
+  MaterialCoordinator? coordinator,
+  SecureMaterialTransport? transport,
+}) async {
+  final session = await createDefaultSessionPlatformCapabilities(
+    coordinator: coordinator,
+    transport: transport,
+  );
   final photos = await createDefaultPhotoCapabilities();
   const locationProvider = UnavailableLocationProvider();
   return PlatformCapabilities(

@@ -55,3 +55,10 @@ final class PrivateConfigDirectory {
     return path;
   }
 }
+
+/// 材料协调独立于业务数据目录覆盖；移动端采用原生应用私有目录。
+Future<Directory> mobileMaterialCoordinationDirectory() async {
+  final native = PrivateConfigDirectory(environment: const {});
+  await native.initialize();
+  return Directory('${native.resolve()}/material_coordination_v1');
+}

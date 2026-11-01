@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -5,6 +6,16 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  late Directory coordination;
+  setUp(() async {
+    coordination = await Directory.systemTemp.createTemp(
+      'ubaa_synthetic_factory_',
+    );
+  });
+  tearDown(() async {
+    await coordination.delete(recursive: true);
+  });
+
   test('最小工厂隔离图片与位置初始化，GUI沿用同一账号和缓存密钥', () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.android;
     final messenger =
@@ -54,7 +65,12 @@ void main() {
         messenger.setMockMethodCallHandler(channel, null);
       }
     });
-    final minimal = await createDefaultSessionPlatformCapabilities();
+    final minimal = await createDefaultSessionPlatformCapabilities(
+      coordinator: MaterialCoordinator(directory: coordination),
+      transport: const PlatformSecureMaterialTransport(
+        operatingSystem: "macos",
+      ),
+    );
     expect(photoCalls, 0);
     expect(locationCalls, 0);
     const saved = Credential(
@@ -69,7 +85,12 @@ void main() {
       retainSession: true,
     )).account!;
     final key = await accounts.cacheKey(before);
-    final gui = await createDefaultPlatformCapabilities();
+    final gui = await createDefaultPlatformCapabilities(
+      coordinator: MaterialCoordinator(directory: coordination),
+      transport: const PlatformSecureMaterialTransport(
+        operatingSystem: "macos",
+      ),
+    );
     expect(photoCalls, 1);
     expect(locationCalls, 0);
     expect(gui.locationProvider.isAvailable, isFalse);

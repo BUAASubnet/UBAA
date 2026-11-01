@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -6,6 +7,16 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
+  late Directory coordination;
+  setUp(() async {
+    coordination = await Directory.systemTemp.createTemp(
+      'ubaa_synthetic_factory_',
+    );
+  });
+  tearDown(() async {
+    await coordination.delete(recursive: true);
+  });
+
   test('生产凭据与缓存材料共用插件，旧通道即使宣称可用也不得选中', () async {
     debugDefaultTargetPlatformOverride = TargetPlatform.macOS;
     const legacy = MethodChannel('cn.edu.buaa.ubaa/platform');
@@ -48,7 +59,12 @@ void main() {
       messenger.setMockMethodCallHandler(legacy, null);
       messenger.setMockMethodCallHandler(plugin, null);
     });
-    final capabilities = await createDefaultPlatformCapabilities();
+    final capabilities = await createDefaultPlatformCapabilities(
+      coordinator: MaterialCoordinator(directory: coordination),
+      transport: const PlatformSecureMaterialTransport(
+        operatingSystem: "macos",
+      ),
+    );
     expect(legacyCalls, isEmpty);
     expect(capabilities.credentialVault.isAvailable, isTrue);
     expect(await capabilities.credentialVault.read(), isNull);

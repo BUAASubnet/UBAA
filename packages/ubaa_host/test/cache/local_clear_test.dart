@@ -1,3 +1,4 @@
+import 'package:ubaa_test_support/materials.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -26,7 +27,7 @@ void main() {
   late SecureLocalAccountStore accounts;
   Future<UbaaMainShell> mount(WidgetTester tester) async {
     materials = _Materials();
-    final secure = SecureMaterialStore(transport: materials);
+    final secure = syntheticMaterials(materials, tester: tester);
     await secure.probe();
     accounts = SecureLocalAccountStore(secure);
     await accounts.retain('fixture-user', retainSession: true);
@@ -52,148 +53,182 @@ void main() {
         cgyyDefaultsStore: defaults,
       ),
     );
-    await tester.pumpAndSettle();
+    await support.pumpRecoveryUntil(
+      tester,
+      () =>
+          find.byType(UbaaMainShell).evaluate().isNotEmpty &&
+          tester
+                  .widget<UbaaMainShell>(find.byType(UbaaMainShell))
+                  .user
+                  ?.schoolId ==
+              'fixture-school',
+    );
     return tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
   }
 
   testWidgets('清除当前已核实账号各别名的提醒和基线，保留其他账号', (tester) async {
-    final shell = await mount(tester);
-    await shell.onLogoutAndClearAccount();
-    expect(grades.cleared, containsAll(['fixture-user', 'fixture-school']));
-    for (final key in ['fixture-user', 'fixture-school']) {
-      final saved = await reminders.read(key);
-      expect(await recents.read(key), isEmpty);
-      expect(await defaults.read(key), isNull);
-      expect(saved.enabled, isTrue);
-      expect(saved.weekDoneKey, isNull);
-      expect(saved.termDoneKey, isNull);
-    }
-    expect((await reminders.read('other')).weekDoneKey, 'synthetic-week');
-    expect(await recents.read('other'), [FeatureId.exam]);
-    expect((await defaults.read('other'))?.theme, '合成主题');
-    expect(grades.cleared, isNot(contains('other')));
-    final retained = await accounts.read();
-    expect(retained!.account!.username, 'fixture-user');
-    expect(retained.canRestore, isFalse);
-    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      final shell = await mount(tester);
+      await shell.onLogoutAndClearAccount();
+      expect(grades.cleared, containsAll(['fixture-user', 'fixture-school']));
+      for (final key in ['fixture-user', 'fixture-school']) {
+        final saved = await reminders.read(key);
+        expect(await recents.read(key), isEmpty);
+        expect(await defaults.read(key), isNull);
+        expect(saved.enabled, isTrue);
+        expect(saved.weekDoneKey, isNull);
+        expect(saved.termDoneKey, isNull);
+      }
+      expect((await reminders.read('other')).weekDoneKey, 'synthetic-week');
+      expect(await recents.read('other'), [FeatureId.exam]);
+      expect((await defaults.read('other'))?.theme, '合成主题');
+      expect(grades.cleared, isNot(contains('other')));
+      final retained = await accounts.read();
+      expect(retained!.account!.username, 'fixture-user');
+      expect(retained.canRestore, isFalse);
+      await tester.pumpWidget(const SizedBox());
+    });
   });
 
   testWidgets('基线清理失败仍尝试提醒清理，错误传回调用方', (tester) async {
-    final shell = await mount(tester);
-    grades.fail = true;
-    await expectLater(shell.onLogoutAndClearAccount(), throwsA(isA<UiError>()));
-    expect((await reminders.read('fixture-school')).enabled, isTrue);
-    expect((await reminders.read('fixture-user')).enabled, isTrue);
-    expect(vault.clears, 1);
-    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      final shell = await mount(tester);
+      grades.fail = true;
+      await expectLater(
+        shell.onLogoutAndClearAccount(),
+        throwsA(isA<UiError>()),
+      );
+      expect((await reminders.read('fixture-school')).enabled, isTrue);
+      expect((await reminders.read('fixture-user')).enabled, isTrue);
+      expect(vault.clears, 1);
+      await tester.pumpWidget(const SizedBox());
+    });
   });
 
   testWidgets('提醒清理失败不能完成，其他本机清理仍执行', (tester) async {
-    final shell = await mount(tester);
-    reminders.failClear = true;
-    await expectLater(shell.onLogoutAndClearAccount(), throwsA(isA<UiError>()));
-    expect(grades.cleared, containsAll(['fixture-user', 'fixture-school']));
-    expect(backend.logouts, 1);
-    expect(vault.clears, 1);
-    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      final shell = await mount(tester);
+      reminders.failClear = true;
+      await expectLater(
+        shell.onLogoutAndClearAccount(),
+        throwsA(isA<UiError>()),
+      );
+      expect(grades.cleared, containsAll(['fixture-user', 'fixture-school']));
+      expect(backend.logouts, 1);
+      expect(vault.clears, 1);
+      await tester.pumpWidget(const SizedBox());
+    });
   });
 
   for (final failure in ['index', 'cache', 'session', 'credential']) {
     testWidgets('$failure清理失败向上传播且不跳过独立偏好清理', (tester) async {
-      final shell = await mount(tester);
-      materials.failWrite = failure == 'index';
-      materials.failDelete = failure == 'key';
-      backend.failCache = failure == 'cache';
-      backend.failLogout = failure == 'session';
-      vault.fail = failure == 'credential';
-      await expectLater(
-        shell.onLogoutAndClearAccount(),
-        throwsA(isA<Object>()),
-      );
-      expect((await reminders.read('fixture-school')).enabled, isTrue);
-      expect(grades.cleared, contains('fixture-user'));
-      expect(vault.clears, 1);
-      await tester.pumpAndSettle();
-      expect(find.byType(UbaaLoginView), findsOneWidget);
-      await tester.pumpWidget(const SizedBox());
+      await tester.runAsync(() async {
+        final shell = await mount(tester);
+        materials.failWrite = failure == 'index';
+        materials.failDelete = failure == 'key';
+        backend.failCache = failure == 'cache';
+        backend.failLogout = failure == 'session';
+        vault.fail = failure == 'credential';
+        await expectLater(
+          shell.onLogoutAndClearAccount(),
+          throwsA(isA<Object>()),
+        );
+        expect((await reminders.read('fixture-school')).enabled, isTrue);
+        expect(grades.cleared, contains('fixture-user'));
+        expect(vault.clears, 1);
+        await tester.pumpAndSettle();
+        expect(find.byType(UbaaLoginView), findsOneWidget);
+        await tester.pumpWidget(const SizedBox());
+      });
     });
   }
 
   testWidgets('清除登录材料保留原密钥与账号别名，不调用密钥删除', (tester) async {
-    final shell = await mount(tester);
-    final account = (await accounts.read())!.account!;
-    final key = await accounts.cacheKey(account);
-    materials.failDelete = true;
-    await shell.onLogoutAndClearAccount();
-    expect((await accounts.read())!.account!.id, account.id);
-    expect(await accounts.cacheKey(account), key);
-    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      final shell = await mount(tester);
+      final account = (await accounts.read())!.account!;
+      final key = await accounts.cacheKey(account);
+      materials.failDelete = true;
+      await shell.onLogoutAndClearAccount();
+      expect((await accounts.read())!.account!.id, account.id);
+      expect(await accounts.cacheKey(account), key);
+      await tester.pumpWidget(const SizedBox());
+    });
   });
 
   testWidgets('普通退出保留提醒，但旧保存和清除回调均失效', (tester) async {
-    final shell = await mount(tester);
-    await shell.onLogout();
-    expect((await reminders.read('fixture-school')).enabled, isFalse);
-    await expectLater(
-      shell.onSaveYgdkReminder!(const YgdkReminderSettings()),
-      throwsA(isA<BackendException>()),
-    );
-    await expectLater(
-      shell.onLogoutAndClearAccount(),
-      throwsA(isA<BackendException>()),
-    );
-    expect((await reminders.read('fixture-school')).enabled, isFalse);
-    expect(grades.cleared, isEmpty);
-    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      final shell = await mount(tester);
+      await shell.onLogout();
+      expect((await reminders.read('fixture-school')).enabled, isFalse);
+      await expectLater(
+        shell.onSaveYgdkReminder!(const YgdkReminderSettings()),
+        throwsA(isA<BackendException>()),
+      );
+      await expectLater(
+        shell.onLogoutAndClearAccount(),
+        throwsA(isA<BackendException>()),
+      );
+      expect((await reminders.read('fixture-school')).enabled, isFalse);
+      expect(grades.cleared, isEmpty);
+      await tester.pumpWidget(const SizedBox());
+    });
   });
 
   testWidgets('提醒读取在退出后返回时不交付旧值', (tester) async {
-    final shell = await mount(tester);
-    reminders.readGate = Completer<void>();
-    final reading = shell.onLoadYgdkReminder!();
-    final rejected = expectLater(reading, throwsA(isA<BackendException>()));
-    await shell.onLogoutAndClearAccount();
-    reminders.readGate!.complete();
-    await rejected;
-    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      final shell = await mount(tester);
+      reminders.readGate = Completer<void>();
+      final reading = shell.onLoadYgdkReminder!();
+      final rejected = expectLater(reading, throwsA(isA<BackendException>()));
+      await shell.onLogoutAndClearAccount();
+      reminders.readGate!.complete();
+      await rejected;
+      await tester.pumpWidget(const SizedBox());
+    });
   });
 
   testWidgets('本机清理未结束时阻止重新登录，重登后旧回调仍失效', (tester) async {
-    final shell = await mount(tester);
-    grades.gate = Completer<void>();
-    final clearing = shell.onLogoutAndClearAccount();
-    await tester.pumpAndSettle();
-    final login = tester.widget<UbaaLoginView>(find.byType(UbaaLoginView));
-    login.onUsernameChanged('fixture-user');
-    login.onPasswordChanged('synthetic');
-    login.onSubmit();
-    await tester.pumpAndSettle();
-    expect(backend.loginCalls, 0);
-    grades.gate!.complete();
-    await clearing;
-    await tester.pumpAndSettle();
-    final next = tester.widget<UbaaLoginView>(find.byType(UbaaLoginView));
-    next.onUsernameChanged('fixture-user');
-    next.onPasswordChanged('synthetic');
-    next.onSubmit();
-    await tester.pumpAndSettle();
-    expect(backend.loginCalls, 1);
-    expect(find.byType(UbaaMainShell), findsOneWidget);
-    await expectLater(shell.onLogout(), throwsA(isA<BackendException>()));
-    await expectLater(
-      shell.onSaveRecentFeatures!([FeatureId.spoc]),
-      throwsA(isA<BackendException>()),
-    );
-    await expectLater(
-      shell.onSaveYgdkReminder!(_settings),
-      throwsA(isA<BackendException>()),
-    );
-    await expectLater(
-      shell.onLogoutAndClearAccount(),
-      throwsA(isA<BackendException>()),
-    );
-    expect(backend.logouts, 1);
-    await tester.pumpWidget(const SizedBox());
+    await tester.runAsync(() async {
+      final shell = await mount(tester);
+      grades.gate = Completer<void>();
+      final clearing = shell.onLogoutAndClearAccount();
+      await tester.pumpAndSettle();
+      final login = tester.widget<UbaaLoginView>(find.byType(UbaaLoginView));
+      login.onUsernameChanged('fixture-user');
+      login.onPasswordChanged('synthetic');
+      login.onSubmit();
+      await tester.pumpAndSettle();
+      expect(backend.loginCalls, 0);
+      grades.gate!.complete();
+      await clearing;
+      await tester.pumpAndSettle();
+      final next = tester.widget<UbaaLoginView>(find.byType(UbaaLoginView));
+      next.onUsernameChanged('fixture-user');
+      next.onPasswordChanged('synthetic');
+      next.onSubmit();
+      await support.pumpRecoveryUntil(
+        tester,
+        () => find.byType(UbaaMainShell).evaluate().isNotEmpty,
+      );
+      expect(backend.loginCalls, 1);
+      expect(find.byType(UbaaMainShell), findsOneWidget);
+      await expectLater(shell.onLogout(), throwsA(isA<BackendException>()));
+      await expectLater(
+        shell.onSaveRecentFeatures!([FeatureId.spoc]),
+        throwsA(isA<BackendException>()),
+      );
+      await expectLater(
+        shell.onSaveYgdkReminder!(_settings),
+        throwsA(isA<BackendException>()),
+      );
+      await expectLater(
+        shell.onLogoutAndClearAccount(),
+        throwsA(isA<BackendException>()),
+      );
+      expect(backend.logouts, 1);
+      await tester.pumpWidget(const SizedBox());
+    });
   });
 }
 

@@ -12,8 +12,8 @@ void main() {
   testWidgets('宿主从本地账号发布组件且退出立即撤销，不等待线上认证', (tester) async {
     final backend = _Backend()..gate = Completer<AuthStatus>();
     final gateway = _Gateway();
-    final accounts = await startup.savedAccounts();
-    final owner = (await accounts.read())!.account!.id;
+    final accounts = await startup.widgetAccounts(tester);
+    final owner = (await tester.runAsync(accounts.read))!.account!.id;
     await tester.pumpWidget(
       UbaaAppHost(
         backend: backend,
@@ -21,9 +21,7 @@ void main() {
         scheduleWidgetGateway: gateway,
       ),
     );
-    for (var i = 0; i < 20 && gateway.published.isEmpty; i++) {
-      await tester.pump();
-    }
+    await accounts.settle(tester);
     expect(gateway.owners, contains(owner));
     expect(gateway.published, [owner]);
     expect(backend.queries, 1);
@@ -33,6 +31,7 @@ void main() {
     await tester.pump();
     expect(gateway.owners.last, isNull);
     backend.gate!.complete(AuthStatus.signedOut);
+    await accounts.settle(tester);
     await tester.pumpAndSettle();
     await logout;
     expect(gateway.published, [owner]);

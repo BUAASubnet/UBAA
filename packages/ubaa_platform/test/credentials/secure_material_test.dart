@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
@@ -23,14 +24,37 @@ void main() {
       expect(options.containsKey('accessibility'), isFalse);
       return null;
     });
-    await const PlatformSecureMaterialTransport().read(
-      'ubaa.material.v2.capability',
+    await const PlatformSecureMaterialTransport(
+      operatingSystem: 'macos',
+    ).read('ubaa.material.v2.capability');
+  });
+
+  test('Windows 生产分支只调用保留式后端，读取不触发旧凭据迁移通道', () async {
+    const channel = MethodChannel(
+      'plugins.it_nomads.com/flutter_secure_storage',
     );
+    final messenger =
+        TestDefaultBinaryMessengerBinding.instance.defaultBinaryMessenger;
+    messenger.setMockMethodCallHandler(channel, (_) async => fail('不得访问旧迁移通道'));
+    addTearDown(() => messenger.setMockMethodCallHandler(channel, null));
+    final backend = _Transport();
+    backend.values['synthetic-existing'] = 'synthetic-original';
+    final transport = PlatformSecureMaterialTransport(
+      operatingSystem: 'windows',
+      windowsTransport: backend,
+    );
+    expect(await transport.read('synthetic-existing'), 'synthetic-original');
+    await transport.write('synthetic-new', 'synthetic-value');
+    await transport.delete('synthetic-new');
+    expect(backend.values, {'synthetic-existing': 'synthetic-original'});
   });
 
   test('凭据与缓存材料使用独立安全键且不进入错误文本', () async {
     final transport = _Transport();
-    final store = SecureMaterialStore(transport: transport);
+    final store = SecureMaterialStore(
+      coordinator: _syntheticCoordinator(),
+      transport: transport,
+    );
     await store.probe();
     expect(store.isAvailable, isTrue);
     final credentials = MaterialCredentialStore(store);
@@ -60,7 +84,10 @@ void main() {
 
   test('安全能力不可用不会退回明文或伪造成功', () async {
     final transport = _Transport()..fail = true;
-    final store = SecureMaterialStore(transport: transport);
+    final store = SecureMaterialStore(
+      coordinator: _syntheticCoordinator(),
+      transport: transport,
+    );
     await store.probe();
     expect(store.isAvailable, isFalse);
     await expectLater(
@@ -71,14 +98,20 @@ void main() {
   });
 
   test('只能读取但不能写入时不报告安全材料可用', () async {
-    final store = SecureMaterialStore(transport: _ReadOnlyTransport());
+    final store = SecureMaterialStore(
+      coordinator: _syntheticCoordinator(),
+      transport: _ReadOnlyTransport(),
+    );
     await store.probe();
     expect(store.isAvailable, isFalse);
   });
 
   test('损坏凭据不悄悄变成没有保存的密码', () async {
     final transport = _Transport();
-    final store = SecureMaterialStore(transport: transport);
+    final store = SecureMaterialStore(
+      coordinator: _syntheticCoordinator(),
+      transport: transport,
+    );
     await store.probe();
     await store.write('credentials.com.buaa.ubaa.credentials.v1', '{broken');
     await expectLater(
@@ -125,4 +158,13 @@ final class _ReadOnlyTransport implements SecureMaterialTransport {
 
   @override
   Future<void> delete(String key) async {}
+}
+
+MaterialCoordinator _syntheticCoordinator() {
+  final directory = Directory.systemTemp.createTempSync(
+    'ubaa_synthetic_materials_',
+  );
+  // 普通异步用例已等待全部账号/材料操作，此时真实文件锁已释放。
+  addTearDown(() => directory.delete(recursive: true));
+  return MaterialCoordinator(directory: directory);
 }

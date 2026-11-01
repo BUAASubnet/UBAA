@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'dart:convert';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
@@ -5,7 +6,10 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 void main() {
   test('账号索引可重开，缓存密钥与密码分离，退出不会自动恢复', () async {
     final transport = _MemoryTransport();
-    final materials = SecureMaterialStore(transport: transport);
+    final materials = SecureMaterialStore(
+      coordinator: _syntheticCoordinator(),
+      transport: transport,
+    );
     await materials.probe();
     final accounts = SecureLocalAccountStore(materials);
     expect(await accounts.read(), isNull);
@@ -26,7 +30,10 @@ void main() {
   });
 
   test('换账号不共用密钥，清除账号保留禁止恢复标记', () async {
-    final materials = SecureMaterialStore(transport: _MemoryTransport());
+    final materials = SecureMaterialStore(
+      coordinator: _syntheticCoordinator(),
+      transport: _MemoryTransport(),
+    );
     await materials.probe();
     final accounts = SecureLocalAccountStore(materials);
     final a = await accounts.retain('fixture-a', retainSession: true);
@@ -53,7 +60,10 @@ void main() {
 
   test('已知账号失去缓存密钥仍保留同一日程身份，缓存拒绝生成替代密钥', () async {
     final transport = _MemoryTransport();
-    final materials = SecureMaterialStore(transport: transport);
+    final materials = SecureMaterialStore(
+      coordinator: _syntheticCoordinator(),
+      transport: transport,
+    );
     await materials.probe();
     final accounts = SecureLocalAccountStore(materials);
     final a = await accounts.retain('fixture-a', retainSession: true);
@@ -77,7 +87,10 @@ void main() {
 
   test('首次保留账号只建立身份，缓存密钥延后到业务缓存打开时创建', () async {
     final transport = _MemoryTransport();
-    final materials = SecureMaterialStore(transport: transport);
+    final materials = SecureMaterialStore(
+      coordinator: _syntheticCoordinator(),
+      transport: transport,
+    );
     await materials.probe();
     final accounts = SecureLocalAccountStore(materials);
     final saved = await accounts.retain('fixture-a', retainSession: true);
@@ -91,7 +104,10 @@ void main() {
   });
   test('旧版索引缺少密钥不会被识别为首次建密钥，也不会换别名', () async {
     final transport = _MemoryTransport();
-    final materials = SecureMaterialStore(transport: transport);
+    final materials = SecureMaterialStore(
+      coordinator: _syntheticCoordinator(),
+      transport: transport,
+    );
     await materials.probe();
     const alias = '00000000000000000000000000000001';
     await materials.write(
@@ -139,4 +155,13 @@ class _MemoryTransport implements SecureMaterialTransport {
   Future<void> delete(String key) async {
     values.remove(key);
   }
+}
+
+MaterialCoordinator _syntheticCoordinator() {
+  final directory = Directory.systemTemp.createTempSync(
+    'ubaa_synthetic_materials_',
+  );
+  // 普通异步用例已等待全部账号/材料操作，此时真实文件锁已释放。
+  addTearDown(() => directory.delete(recursive: true));
+  return MaterialCoordinator(directory: directory);
 }
