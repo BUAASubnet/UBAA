@@ -27,6 +27,7 @@ import 'offline_ygdk.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 import 'recovery.dart';
+import 'recovery/control.dart';
 import 'schedule_import.dart';
 import 'sensitive.dart';
 import 'write.dart';
@@ -621,6 +622,17 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String password,
   });
 
+  /// 只向已明确的目标路线提交获准凭据，期限和取消覆盖锁排队。
+  ///
+  /// # Errors
+  /// 保留原认证和写资格冲突，取消不重放或注销共享会话。
+  Future<BridgeRequiredSession> loginRequiredRouteControlled({
+    required BridgeConnectionMode route,
+    required String username,
+    required String password,
+    required BridgeRequiredRecoveryControl control,
+  });
+
   /// 清理 Core Session 并执行尽力远端注销。
   ///
   /// # Errors
@@ -775,6 +787,15 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 原路线校验失败、已有学校写意图或客户端失效时返回稳定错误。
   Future<BridgeRequiredSession> recoverRequiredSession({
     required BridgeRecoveryFeature feature,
+  });
+
+  /// 在单次控制范围内校验任务所需路线。
+  ///
+  /// # Errors
+  /// 原校验错误、取消、超时或重复使用均返回安全错误。
+  Future<BridgeRequiredSession> recoverRequiredSessionControlled({
+    required BridgeRecoveryFeature feature,
+    required BridgeRequiredRecoveryControl control,
   });
 
   /// 只刷新所选路线的当前挑战，不使用密码。
