@@ -1006,3 +1006,16 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 | 所需路线恢复与读取收尾 | 沿既有 UC 失效判断和清槽行为 | status/userinfo 请求与解析字段不变 | 票据绑定双路线认证代次，任何依赖会话清理后失效；同身份正常刷新与临时错误保留原行为 |
 | 不支持日程 provider 的原认证 | 普通聚合/诊断登录和退出继续走既有 Core | 请求、重试与错误不变 | 只允许无日程登记痕迹的作用域继续，登记独立报告不可用；已有或异常材料继续失败关闭 |
 | Keychain 索引写读 | 两冻结来源不适用，无学校网络 | 无学校请求或加密变更 | 保留原 service、scope、alias、CacheKey 与索引格式，替换交互命令解析接口；完整字节写读、容量预检与中断栅栏继续生效 |
+
+
+## 2026-11-01：H2-common-a 命令实现抽取
+
+冻结引用仍为 `ubaa_old@1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 和 `buaa-api@a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。实施前核对旧版 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/CgyyApi.kt`、`api/local/LocalConnectionAuth.kt`、`model/dto/UserInfo.kt`，以及 buaa-api `src/api/user/{auth,opt}.rs`，并沿用本索引各业务的逐操作记录。
+
+| 操作 | 两来源适用性 | 本次处理 |
+|---|---|---|
+| 既有各业务认证、读取和学校写入 | 沿用各操作已有来源记录 | backend/facade 调用机械迁移，业务 CAS/service、重定向/最终 URL、Cookie/Session/Token、方法/精确参数、头/编码、加密签名常量、DTO 类型、缓存/并发/重试均不改 |
+| 命令计划、执行结果暂存和最终渲染 | 两者无同等 App 命令运行时，均不适用 | 分类不按 HTTP 方法推断，仅 readonly 明确认证过期且有路线时暴露 AuthExpired；本单元不实际恢复或重跑 |
+| 研讨室 stdin 注入、短写与 flush、命令取消和期限 | 两者无同等终端接口，均不适用 | 既有 typed JSON 校验和写确认顺序保留，修复宿主输入绕过；停止投影沿 v13，见[决定](decision-log.md#2026-11-01h2-命令骨架平台分发与停止规则) |
+
+不新增学校协议，也不依据来源缺失补猜参数。验证仅用合成输入、Mock transport 和 NeverProbe；真实 Direct/WebVPN 本轮均不运行。
