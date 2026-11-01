@@ -1,5 +1,13 @@
 # 协议来源对照与专项索引
 
+## H1-b3a：持久恢复 scope 与客户端继任
+
+生产修改前重新读取冻结旧版 `1f4b8f8` 的 `api/storage/CredentialStore.kt`、`api/local/LocalConnectionAuth.kt`，以及冻结 buaa-api `a63712fa` 的 `src/store/{cred,cookies}.rs`、`src/api/user/auth.rs`。所需路线校验、凭据登录仍逐操作沿用下方 H1-b1 的协议列，CAS/service、重定向与最终 URL、Cookie/Session/Token 作用域、方法和精确参数、请求头与编码、加密常量和 DTO 解析均无变化。
+
+持久 scope 捕获与核对、恢复操作锁、连续身份代次、恢复发布、结果交付和客户端重建是本机协调操作，两源没有等价操作，上游协议各列均不适用。账号索引继续使用原材料键、alias 和 CacheKey。恢复发布只推进 generation，显式登录、退出、切号和撤销许可同时改变连续身份代次。旧索引首次更新时以原 generation 建立连续身份代次。网络期间仅持有独立恢复操作锁，材料锁只覆盖短事务。等待者重新核对身份与许可，并先验证当前会话，再决定是否提交密码。Core 外部 revision 冲突仍是旧客户端终态，继任在应用服务边界创建。旧写资格不得通过恢复续接。凭据被拒时只用密码提交所属快照条件撤销持久许可，旧失败不得重新捕获新快照后撤销。
+
+本单元只运行合成材料和固定路线 Mock，不进行真实学校请求。普通消费者关闭、缓存/日程句柄和写资格完整生命周期继续由 b3b 处理。
+
 ## H1-b2：同机账号与安全材料协调
 
 生产修改前核对冻结旧版 `1f4b8f8` 的 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/storage/CredentialStore.kt`、`api/local/LocalConnectionAuth.kt`，以及冻结 buaa-api `a63712fa` 的 `src/store/cred.rs`、`src/store/cookies.rs`。旧版保存记住密码与自动登录偏好，关闭记住密码会清除密码并关闭自动登录。buaa-api保存 API 凭据期限与 Cookie，没有本机随机 alias、CacheKey 或跨进程恢复许可协议。
