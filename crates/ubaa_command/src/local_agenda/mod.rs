@@ -3,7 +3,7 @@ mod material;
 mod paths;
 mod read;
 #[cfg(all(test, unix))]
-#[path = "../../tests/agenda_read/internal.rs"]
+#[path = "../../../../apps/ubaa_cli/tests/agenda_read/internal.rs"]
 mod tests;
 
 use fs2::FileExt;

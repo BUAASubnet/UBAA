@@ -3444,6 +3444,31 @@ dependencies = [
  "sha2",
  "tokio",
  "tracing-subscriber",
+ "ubaa-command",
+ "ubaa-core",
+ "ubaa-test-support",
+ "uuid",
+]
+
+[[package]]
+name = "ubaa-command"
+version = "0.1.0"
+dependencies = [
+ "async-trait",
+ "chrono",
+ "clap",
+ "directories",
+ "fs2",
+ "jsonschema",
+ "libc",
+ "rpassword",
+ "same-file",
+ "security-framework",
+ "serde",
+ "serde_json",
+ "sha2",
+ "tokio",
+ "tracing-subscriber",
  "ubaa-core",
  "ubaa-test-support",
  "uuid",
