@@ -1,6 +1,10 @@
 # 当前实现与验证状态
 
-2026-11-01 日程 CLI-a 已实现方案 A 独立账号登记和 list/show/unsynced。独立审查提出的五项平台、身份生命周期与 Keychain 写入问题已修复，新候选完整本地验收通过，等待主聊天独立复核。CLI JSON schema v13、Bridge v45、日程 schema2、业务缓存 schema7 和 Session v2 保持。Core 身份能力绑定双路线认证代次，新交互意图和会话清理使旧能力失效，正常活动刷新及临时错误保留既定行为。不支持日程 provider 时，无登记痕迹的作用域继续原有聚合登录、固定路线诊断登录和退出；已管理或异常材料仍失败关闭。CLI-b 的 CRUD、完成、覆盖、原子 compare-and-clear 和 .ics 安全文件交付等待本次复核通过。
+2026-11-01 用户已确认[App 命令模式与共享服务计划](../design/desktop-shared-state.md)：三平台桌面共用凭据、会话、缓存、日程和无感恢复，Linux 另支持 SSH 无图形运行。当前进入 H0 运行路线与最小样机阶段，新执行会话使用 `gpt-6.1-sol / ultra`。本次仅更新方案，正式入口、共同服务、命令迁移及独立 Rust CLI 退役尚未实现。
+
+旧 CLI-a 方案已有独立账号登记和 list/show/unsynced 代码。`9835653c` 的后续独立审查又发现材料 worker 可直接调用、派生认证失效未传播两项问题，因此旧方案未最终放行。后续未提交修复尚未完整回归，按清单保留取舍；旧 worker 不再作为独立开发目标。用户反馈 App 钥匙串问题已解决，后续复用现有能力，发现实际回归再修复。Core 导出最后独立放行点为 `de797fce`。CLI schema v13、Bridge v45、日程 schema2、业务缓存 schema7 和 Session v2 当前保持。
+
+以下 CLI-a 验收数字属于既有候选的历史证据，不能用于证明新命令模式或共享服务已完成。
 
 CLI-a 审查修复以 `3dab915046f6111bffe0a3ea0b6596b7ee1cdb55` 为基线完成 `just check-changed base=3dab9150 mode=full`，退出码 0。Core 单元测试 497 项通过、1 项既有手动基准忽略，CLI 库 31 项、身份生命周期 6 项、日程二进制 2 项和原有合同回归通过。八包 Flutter 1,635 项、macOS 原生五项及 FRB 生成零漂移通过，静态分析为既有 692 项 info，无 error/warning。依赖审计 advisories/licenses/bans/sources 全部通过，保留既有 allo-isolate manifest 许可证字段警告。
 

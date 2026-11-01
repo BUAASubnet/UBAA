@@ -424,6 +424,8 @@ Bridge v44 用独立 `BridgeAgendaStore` 直接包装 facade，不持有网络�
 
 ## 2026-11-01：日程 CLI 独立安全材料方案 A 已选定
 
+后续决定：本节方案 A 已被[统一 App 命令模式](#2026-11-01统一-app-命令模式与无感恢复)替代。保留本节解释旧实现，不再按独立 CLI 索引和 worker 继续扩展。
+
 本轮检查 `apps/ubaa_cli/src/main.rs`：默认目录由 `ProjectDirs::from("org", "BUAASubnet", "UBAA").config_dir()` 决定，`--config-dir` 可覆盖，所有现有执行路径先构造 `UbaaClient` 或隐藏诊断 `RouteClient`。`UbaaClient::open` 只加载路线配置与双槽会话；公开 `active_routes` 仅返回槽位路线。`facade/auth.rs::auth_status` 会调用各路线的用户中心验证。会话 schema v2 明确不持久化用户名，因此仅凭会话存在不能在离线 CLI 恢复账号身份。
 
 `AgendaStore::open` 要求宿主提供已核实账号的随机别名。`OfflineCache::open` 额外要求已核实 identity 与 CacheKey。Flutter 的别名索引及密钥属于平台安全材料，由 Flutter 自身目录和生命周期管理。两个宿主的默认目录不同，不能称为自动共用。CLI 暂无对应索引、平台材料提供者或公开的离线已核实账号能力。此次只完成可独立的 Core 导出与[命令/模型设计](../contracts/agenda.md#cli-命令与输入模型方案-a-已选定待实施)，保留 CLI 执行停止点，不解析 Core 私有 session，不读取 Flutter 钥匙串或扫描数据库。
@@ -469,3 +471,15 @@ CLI-a 独立审查发现交互式换号和所需路线明确失效后仍可使�
 索引通过 SecItemAdd/SecItemUpdate 的 CFData 字节参数和 SecItemCopyMatching 完整往返，避免命令字符串解析。[Apple 的更新接口](https://developer.apple.com/documentation/security/secitemupdate(_:_:))定义查询匹配的条目更新。原生调用放在同一真实 CLI 的短命子进程中，正文仅经管道传递，父进程限时五秒。[禁用 Keychain 交互](https://developer.apple.com/documentation/security/seckeychainsetuserinteractionallowed(_:))只作用于工作进程，拒绝访问返回固定 unavailable。创建沿系统默认 ACL，更新保留已有权限，不给所有应用授权，也不自动修改旧条目权限。旧 security 工具创建的条目若拒绝当前 CLI，保留原材料并报告 unavailable，本轮不自动迁移权限。
 
 既有 1 MiB 读取容量边界现在也在索引过渡前检查，超限不写 pending、不更新材料、不删账号，不改变原 service、scope、alias、CacheKey 或 schema。已进入持久过渡后结果不明仍保留 pending。合成原生测试由同一 CLI 创建、更新、跨进程读取，采用默认 ACL，清理只按本次私有目录派生的专用 scope 删除，本轮未读取或修改真实用户材料。其他平台使用不支持 provider 的确定性模拟，尚无 native 验收。
+
+## 2026-11-01：统一 App 命令模式与无感恢复
+
+用户明确确认同机 CLI 与 App 共享凭据、会话、缓存和日程，进一步选择把命令行并入 App，最终取消独立 Rust CLI 宿主。macOS、Windows 按桌面环境设计，Linux 同时考虑 SSH 服务器；命令登录过期后应与 App 一样无感恢复。执行模型改为 `gpt-6.1-sol / ultra`，主聊天规划审查，每个独立单元使用新上下文。用户允许根据证据自主选择技术接线，包括用 Docker 验证 Linux。
+
+选择提取现有界面之外的应用服务，GUI 和命令入口共用恢复、账号和数据生命周期，通过 facade/Bridge 复用 Rust Core。命令定义、JSON、退出码及测试保留一份；Rust 命令库可以迁移复用，不以删除 Rust 语言代码为目标。`core-live` 先迁出为开发工具，再退役独立 `ubaa` 宿主和专属材料体系。Linux 服务器运行也不得重新建立另一套账号逻辑。
+
+优先复用 App 现有安全材料、原随机别名和缓存密钥。用户反馈 App 钥匙串问题已解决，停止旧 worker 专项，不将其作为共享工作的前置。正常会话过期按保存的自动登录选择恢复，主动退出或关闭自动登录仍有效；可能已到达上游的学校写入不因重新认证自动重放。业务缓存加密、日程明文及网盘同步既定规则保留。
+
+Mac App Store 并非已确认的强制分发渠道，当前沙箱配置不作为跨平台架构前提。是否调整由运行样机与旧数据连续性证据决定，不能隐含签名、发布或真实材料迁移。Linux 需验证无图形会话、进程重开和非交互恢复，可使用私有合成容器。当前仅有架构选择与阶段安排，尚未完成平台接入或退役。
+
+具体阶段、失败用例和接续顺序见[实施计划](../design/desktop-shared-state.md)。旧工作区改动和审查证据私有保留，逐项取舍，不重置未知来源改动，不将旧候选通过结果继承为新架构验收。

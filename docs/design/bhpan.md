@@ -6,7 +6,7 @@
 
 架构：Core 负责认证、路线、文件与分享操作及传输状态。Bridge 只投影稳定类型，平台层提供文件选择和保存能力，App 负责交互编排。日程同步调用 Core 网盘接口，不另行处理 Token、拼接 URL 或维护上传协议。
 
-依据：[日程设计](agenda.md)、[冻结参考](../migration/references.md)、[工程规范](../development/engineering-standards.md)和[开发命令](../development/commands.md)。执行沿用用户确定的分工：主聊天设计、拆分和审查，Codex `gpt-6.1-sol / xhigh` 实现、测试和本地提交。
+依据：[日程设计](agenda.md)、[冻结参考](../migration/references.md)、[工程规范](../development/engineering-standards.md)和[开发命令](../development/commands.md)。执行沿用用户确定的分工：主聊天设计、拆分和审查，Codex `gpt-6.1-sol / ultra` 实现、测试和本地提交。
 
 具体协议与缺口见[来源对照](../migration/source-parity-bhpan.md)，宿主和 Core 的实现边界见[设计合同](../contracts/bhpan.md)。未决协议问题按来源对照逐项处理，源码核对完成不表示真实服务已经验收。
 
@@ -122,6 +122,6 @@ CLI 命令包括 `roots`、`list`、`stat`、`mkdir`、`rename`、`move`、`copy
 
 ## 执行与验收
 
-当前继续日程明文存储任务，网盘来源审计可同时只读进行。生产代码按依赖顺序安排，避免多个任务同时修改共用 facade、Bridge 版本或生成物。日程 1c、1d 与网盘接入分别提交；日程列表、CLI 和导出不依赖同步完成。
+当前先执行[统一 App 命令模式与共享服务计划](desktop-shared-state.md)，随后接续日程界面和网盘 B1—B5。B0 来源审计已完成，生产能力仍须逐操作实施。网盘命令使用同一应用服务与无感恢复，Linux 覆盖 SSH 场景。源码及生成物修改串行，每个独立单元使用新执行会话；日程列表、命令和导出不依赖同步完成。
 
 缓存加密不修改。本设计不新增真实账号认证、读取、写入或发布授权；真实测试遵守 [AGENTS](../../AGENTS.md#真实账号与验收范围)。每个协议、存储与跨语言任务先保留失败反例，再完成[完整相关验收](../development/commands.md#检查选择与完成条件)。Flutter、原生和生成命令串行。确定性测试、真实 Direct/WebVPN、平台设备和远端 CI 结果分别报告。
