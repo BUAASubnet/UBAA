@@ -1,5 +1,6 @@
 import 'dart:async';
 import '../../services/session_recovery.dart';
+import '../../contracts/session_recovery.dart';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -102,6 +103,10 @@ abstract class ControllerState extends ControllerOperations {
 
   @internal
   LocalAccount? internalLocalAccount;
+  @internal
+  LocalAccountSnapshot? internalSharedAccountSnapshot;
+  @internal
+  RecoveryScope? internalSharedRecoveryScope;
 
   @internal
   bool get internalIsSigningOut => internalSessionLifecycle.signingOut;

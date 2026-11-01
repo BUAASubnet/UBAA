@@ -230,6 +230,7 @@ void main() {
     addTearDown(controller.dispose);
     await controller.initialize();
     await controller.recoverSession();
+    await backend.firstStarted.future;
     expect(backend.features, [FeatureId.schedule]);
     expect(backend.authCalls, 0);
     expect(backend.profileCalls, 0);
@@ -441,6 +442,7 @@ void main() {
       refreshHomeAfter: false,
     );
     expect(identical(target, sameTarget), isTrue);
+    await backend.firstStarted.future;
     expect(backend.features, [FeatureId.schedule]);
     backend.firstGate!.complete();
     await Future.wait([first, target]);
@@ -452,6 +454,7 @@ class _Backend extends support.FakeRecoveryBackend
     implements RequiredSessionBackend {
   final features = <FeatureId>[];
   final events = <String>[];
+  final firstStarted = Completer<void>();
   @override
   Future<FeatureResult> loadFeature(FeatureId feature) async {
     events.add('读取${feature.name}');
@@ -474,6 +477,7 @@ class _Backend extends support.FakeRecoveryBackend
     FeatureId feature,
   ) async {
     features.add(feature);
+    if (!firstStarted.isCompleted) firstStarted.complete();
     events.add('恢复${feature.name}');
     if (features.length == 1) await firstGate?.future;
     if (requiredError case final error?) throw error;

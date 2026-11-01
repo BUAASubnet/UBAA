@@ -37,6 +37,37 @@ final class MaterialCoordinator {
     }
   }
 
+  /// 恢复操作独占锁与材料事务锁分离。只按 recovery → materials 顺序取锁。
+  /// 网络期间保留此 fd，退出或崩溃由 OS 释放，不留下持久的在途许可。
+  Future<T> recovery<T>(
+    Future<T> Function() action, {
+    required bool Function() isCurrent,
+  }) async {
+    if (Zone.current[_zoneKey] != null)
+      throw const MaterialCoordinationException(false);
+    final directory = await _resolve();
+    await directory.create(recursive: true);
+    final root = Directory(await directory.resolveSymbolicLinks());
+    if (!Platform.isWindows) _UnixLock.chmod(root.path, 448);
+    final file = File('${root.path}/recovery.lock');
+    final type = await FileSystemEntity.type(file.path, followLinks: false);
+    if (type != FileSystemEntityType.notFound &&
+        type != FileSystemEntityType.file) {
+      throw const MaterialCoordinationException(false);
+    }
+    final release = await _acquire(
+      file,
+      isCurrent: isCurrent,
+      limit: const Duration(minutes: 2),
+    );
+    try {
+      if (!isCurrent()) throw const MaterialCoordinationException(false);
+      return await action();
+    } finally {
+      await release();
+    }
+  }
+
   Future<T> run<T>(Future<T> Function() action) async {
     final borrowed = Zone.current[_zoneKey];
     if (borrowed is _Lease) {
@@ -128,13 +159,19 @@ final class MaterialCoordinator {
     await lease.start;
   }
 
-  Future<Future<void> Function()> _acquire(File lock) async {
+  Future<Future<void> Function()> _acquire(
+    File lock, {
+    bool Function()? isCurrent,
+    Duration? limit,
+  }) async {
     final watch = Stopwatch()..start();
     if (!Platform.isWindows) {
       final fd = _UnixLock(lock.path);
       try {
         while (!fd.tryLock()) {
-          if (watch.elapsed >= waitLimit)
+          if (isCurrent != null && !isCurrent())
+            throw const MaterialCoordinationException(false);
+          if (watch.elapsed >= (limit ?? waitLimit))
             throw const MaterialCoordinationException(false);
           await Future<void>.delayed(const Duration(milliseconds: 10));
         }
@@ -149,13 +186,15 @@ final class MaterialCoordinator {
     final handle = await lock.open(mode: FileMode.append);
     try {
       while (true) {
+        if (isCurrent != null && !isCurrent())
+          throw const MaterialCoordinationException(false);
         try {
           await handle.lock(FileLock.exclusive, 0, 1);
           return () async {
             await handle.close();
           };
         } on FileSystemException {
-          if (watch.elapsed >= waitLimit)
+          if (watch.elapsed >= (limit ?? waitLimit))
             throw const MaterialCoordinationException(false);
           await Future<void>.delayed(const Duration(milliseconds: 10));
         }

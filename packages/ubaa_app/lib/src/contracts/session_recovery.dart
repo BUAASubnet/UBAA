@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'backend.dart';
+import 'package:ubaa_platform/shared_accounts.dart';
 import 'recovery.dart';
 
 /// 当前消费者已核实的本机身份与许可。代次由组合根维护。
@@ -8,17 +9,138 @@ final class RecoveryScope {
   const RecoveryScope({
     required this.accountAlias,
     required this.expectedUsername,
-    required this.accountGeneration,
+    required int accountGeneration,
     required this.routeGeneration,
     required this.backendGeneration,
     required this.credentialGeneration,
     required this.routePolicy,
     required this.allowAutomaticLogin,
     required bool Function() isCurrent,
-  }) : _isCurrent = isCurrent;
+    PersistentRecoveryScope? persistent,
+  }) : _accountGeneration = accountGeneration,
+       _isCurrent = isCurrent,
+       _persistent = persistent;
+
+  /// 只能从安全索引捕获身份和许可，调用者不能用裸 alias 构造持久作用域。
+  static Future<RecoveryScope> capture({
+    required SecureLocalAccountStore accounts,
+    LocalAccountSnapshot? snapshot,
+    required int routeGeneration,
+    required int backendGeneration,
+    required int credentialGeneration,
+    required RoutePolicy routePolicy,
+    required bool allowAutomaticLogin,
+    required bool Function() isCurrent,
+  }) async {
+    snapshot ??= await accounts.capture();
+    if (!isCurrent() ||
+        snapshot == null ||
+        !snapshot.state.canRestore ||
+        snapshot.state.account == null) {
+      throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+    }
+    final account = snapshot.state.account!;
+    return RecoveryScope(
+      accountAlias: account.id,
+      expectedUsername: account.username,
+      accountGeneration: snapshot.state.generation,
+      routeGeneration: routeGeneration,
+      backendGeneration: backendGeneration,
+      credentialGeneration: credentialGeneration,
+      routePolicy: routePolicy,
+      allowAutomaticLogin: allowAutomaticLogin,
+      isCurrent: isCurrent,
+      persistent: PersistentRecoveryScope._(accounts, snapshot),
+    );
+  }
+
+  final PersistentRecoveryScope? _persistent;
+  bool get isShared => _persistent != null;
+  LocalAccountSnapshot? get sharedSnapshot => _persistent?.snapshot;
+  Future<void> validateSharedState() async {
+    final persistent = _persistent;
+    if (persistent != null &&
+        !await persistent.accounts.validate(persistent.snapshot)) {
+      throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+    }
+  }
+
+  Future<void> validatePersistent() async {
+    if (!isCurrent ||
+        (_persistent != null &&
+            !await _persistent.accounts.validate(_persistent.snapshot))) {
+      throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+    }
+    if (!isCurrent)
+      throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+  }
+
+  Future<T> coordinateRecovery<T>(
+    Future<T> Function() action,
+    bool Function() active,
+  ) async {
+    final persistent = _persistent;
+    if (persistent == null) return action();
+    return persistent.accounts.materials.coordinator.recovery(
+      action,
+      isCurrent: active,
+    );
+  }
+
+  /// 仅在恢复操作锁内的客户端重建边界调用。学校写资格不得使用此续接接口。
+  Future<bool> adoptRecoverySuccessor() async {
+    final persistent = _persistent;
+    if (persistent == null) return false;
+    final next = await persistent.accounts.recoverySuccessor(
+      persistent.snapshot,
+    );
+    final changed =
+        next.state.generation != persistent.snapshot.state.generation;
+    persistent.snapshot = next;
+    return changed;
+  }
+
+  /// 被拒凭据只撤销提交时的快照；旧失败不能取得新快照再撤销许可。
+  Future<void> revokeRejectedCredentials() async {
+    final persistent = _persistent;
+    if (persistent != null) {
+      try {
+        await persistent.accounts.revokeIfCurrent(persistent.snapshot);
+      } on LocalAccountConflict {
+        throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+      }
+    }
+  }
+
+  Future<void> publishRecovery() async {
+    final persistent = _persistent;
+    if (persistent != null)
+      persistent.snapshot = await persistent.accounts.refreshIfCurrent(
+        persistent.snapshot,
+      );
+  }
+
+  Future<void> commitDelivery(void Function() deliver) async {
+    final persistent = _persistent;
+    if (persistent == null) {
+      if (isCurrent)
+        deliver();
+      else
+        throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+    } else {
+      await persistent.accounts.commitIfCurrent(persistent.snapshot, () {
+        if (!isCurrent)
+          throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+        deliver();
+      });
+    }
+  }
+
   final String accountAlias;
   final String expectedUsername;
-  final int accountGeneration;
+  final int _accountGeneration;
+  int get accountGeneration =>
+      _persistent?.snapshot.state.generation ?? _accountGeneration;
   final int routeGeneration;
   final int backendGeneration;
   final int credentialGeneration;
@@ -30,7 +152,7 @@ final class RecoveryScope {
   Object get key => (
     accountAlias,
     expectedUsername,
-    accountGeneration,
+    _accountGeneration,
     routeGeneration,
     backendGeneration,
     credentialGeneration,
@@ -38,7 +160,7 @@ final class RecoveryScope {
     allowAutomaticLogin,
   );
   Object get credentialKey =>
-      (accountAlias, accountGeneration, credentialGeneration);
+      (accountAlias, _accountGeneration, credentialGeneration);
   bool accepts(UserSummary profile) =>
       profile.username == expectedUsername ||
       profile.schoolId == expectedUsername;
@@ -54,7 +176,14 @@ final class RecoveryScope {
 enum RecoveryDisposition { reused, reauthenticated }
 
 final class RecoveryResult {
-  const RecoveryResult(this.session, this.disposition);
+  const RecoveryResult(
+    this.session,
+    this.disposition, {
+    this.scope,
+    this.backend,
+  });
+  final RecoveryScope? scope;
+  final RequiredSessionBackend? backend;
   final RecoveredRouteSession session;
   final RecoveryDisposition disposition;
 }
@@ -121,4 +250,11 @@ final class RecoveryCloseResult {
   const RecoveryCloseResult(this.pendingOperations);
   final int pendingOperations;
   bool get settled => pendingOperations == 0;
+}
+
+/// 持久绑定只由 RecoveryScope.capture 创建，代次变更只用于恢复继任。
+final class PersistentRecoveryScope {
+  PersistentRecoveryScope._(this.accounts, this.snapshot);
+  final SecureLocalAccountStore accounts;
+  LocalAccountSnapshot snapshot;
 }

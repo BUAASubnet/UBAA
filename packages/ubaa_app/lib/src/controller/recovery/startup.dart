@@ -37,6 +37,16 @@ mixin ControllerOfflineStartup on ControllerState {
         internalSetPhase(AppPhase.login);
         return true;
       }
+      if (store is SecureLocalAccountStore) {
+        final shared = await store.capture();
+        if (shared == null ||
+            shared.state.generation != index.generation ||
+            internalDisposed ||
+            epoch != internalLifecycleEpoch) {
+          throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+        }
+        internalSharedAccountSnapshot = shared;
+      }
       internalLocalAccount = index.account;
       internalUser = UserSummary(username: index.account!.username);
       internalLoginForm = internalLoginForm.copyWith(
@@ -176,7 +186,9 @@ mixin ControllerOfflineStartup on ControllerState {
       StackTrace stackTrace = caughtStackTrace;
       if (!internalRecoveryIsCurrent(epoch)) return;
       if (error is RecoveryInterrupted) {
-        internalSessionRecoveryStatus = SessionRecoveryStatus.idle;
+        internalSessionRecoveryStatus = internalAutomaticCredentialBlocked
+            ? SessionRecoveryStatus.needsLogin
+            : SessionRecoveryStatus.idle;
         return;
       }
       if (allowRebuild && error is BackendException && error.clientDisposed) {
@@ -259,6 +271,14 @@ mixin ControllerOfflineStartup on ControllerState {
     try {
       final index = await store.retain(username, retainSession: retainSession);
       if (!scope.isCurrent) return;
+      if (store is SecureLocalAccountStore) {
+        final shared = await store.capture();
+        if (!scope.isCurrent) return;
+        if (shared == null || shared.state.generation != index.generation) {
+          throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+        }
+        internalSharedAccountSnapshot = shared;
+      }
       internalLocalAccount = index.account;
       internalUsesLocalRecovery = true;
       if (index.account != null) {

@@ -135,7 +135,7 @@ void main() {
   });
 
   test('核实新账号后等待旧索引关闭时不交付旧日程结果', () async {
-    final accounts = _SlowSignOut(await support.savedAccounts());
+    final accounts = _SlowSignOut(await support.savedAccounts(), skipCalls: 1);
     final backend = _Backend();
     final controller = AppController(
       backend: backend,
@@ -415,12 +415,19 @@ class _RebuildBackend extends rebuild.Backend implements AgendaProvider {
 }
 
 class _SlowSignOut extends _MissingKey {
-  _SlowSignOut(super.delegate);
+  _SlowSignOut(super.delegate, {this.skipCalls = 0});
+  final int skipCalls;
+  int calls = 0;
   final gate = Completer<void>();
   final started = Completer<void>();
   @override
   Future<void> signOut() async {
-    started.complete();
+    // 新的登录前撤销已完成后，门控仍针对原用例的身份核实后关闭索引。
+    if (calls++ < skipCalls) {
+      await super.signOut();
+      return;
+    }
+    if (!started.isCompleted) started.complete();
     await gate.future;
     await super.signOut();
   }

@@ -57,7 +57,10 @@ void main() {
       await tester.pumpAndSettle();
       await tester.ensureVisible(find.widgetWithText(FilledButton, '登录'));
       await tester.tap(find.widgetWithText(FilledButton, '登录'));
-      await tester.pumpAndSettle();
+      await offline.pumpRecoveryUntil(
+        tester,
+        () => find.text('WebVPN 验证码').evaluate().isNotEmpty,
+      );
       expect(find.byType(UbaaMainShell), findsOneWidget);
       expect(backend.beginCalls, 1);
       expect(find.text('WebVPN 验证码'), findsOneWidget);

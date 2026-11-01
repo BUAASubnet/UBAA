@@ -1,14 +1,23 @@
 import 'dart:async';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'package:ubaa_platform/credentials.dart';
 import '../contracts/backend.dart';
+import 'package:ubaa_platform/shared_accounts.dart';
 import '../contracts/recovery.dart';
 import '../contracts/session_recovery.dart';
 
 /// GUI 与无 Engine 消费者共用的恢复编排。不持有页面或业务写入闭包。
 final class RequiredSessionRecovery {
-  RequiredSessionRecovery({required this.backend, required this.credentials});
-  final RequiredSessionBackend backend;
+  RequiredSessionRecovery({
+    required RequiredSessionBackend backend,
+    required this.credentials,
+    this.rebuildBackend,
+  }) : _backend = backend;
+  RequiredSessionBackend _backend;
+  RequiredSessionBackend get backend => _backend;
+
+  /// 工厂须释放旧客户端能力、撤销旧写资格，并返回同资料空间的新客户端。
+  final Future<RequiredSessionBackend> Function(RecoveryScope scope)?
+  rebuildBackend;
   final CredentialVault credentials;
   final _jobs = <Object, _RecoveryJob>{};
   final _draining = <_RecoveryJob>{};
@@ -16,6 +25,7 @@ final class RequiredSessionRecovery {
   final _completedLogins =
       <(Object, ConnectionMode), (int, RecoveredRouteSession)>{};
   int _loginRevision = 0;
+  (String, int)? _publishedAccount;
   final _logins = <Object, _SharedLogin>{};
   bool _closed = false;
   int get pendingOperations => _draining.length;
@@ -138,6 +148,9 @@ final class _RecoveryJob {
   Timer? watcher;
   bool started = false;
   bool revoked = false;
+  bool inBoundary = false;
+  bool checking = false;
+  Future<void>? validation;
 
   void validate() {
     for (final consumer in consumers.toList()) {
@@ -166,13 +179,31 @@ final class _RecoveryJob {
     }
   }
 
+  Future<void> checkpoint() async {
+    check();
+    for (final consumer in consumers.toList()) {
+      try {
+        await consumer.scope.validatePersistent();
+      } on Object {
+        stop(consumer, RecoveryStopReason.superseded);
+      }
+    }
+    check();
+  }
+
   void start() {
     if (started) return;
     started = true;
-    watcher = Timer.periodic(
-      const Duration(milliseconds: 20),
-      (_) => validate(),
-    );
+    watcher = Timer.periodic(const Duration(milliseconds: 20), (_) {
+      validate();
+      if (inBoundary && !checking) {
+        checking = true;
+        validation = checkpoint()
+            .catchError((Object _) {})
+            .whenComplete(() => checking = false);
+        unawaited(validation);
+      }
+    });
     unawaited(run());
   }
 
@@ -195,20 +226,73 @@ final class _RecoveryJob {
   }
 
   Future<void> run() async {
+    try {
+      if (!scope.isShared) {
+        await execute();
+      } else {
+        await scope.coordinateRecovery(() async {
+          check();
+          final changed = await scope.adoptRecoverySuccessor();
+          check();
+          await checkpoint();
+          final state = scope.sharedSnapshot?.state;
+          if (changed &&
+              owner._publishedAccount !=
+                  (state?.account?.id, state?.generation))
+            await rebuild();
+          inBoundary = true;
+          await execute();
+        }, () => !revoked && !owner._closed && consumers.isNotEmpty);
+      }
+    } on Object catch (error, stack) {
+      for (final consumer in consumers.toList()) {
+        consumer.release();
+        consumer.completion.completeError(
+          error is LocalAccountConflict ||
+                  error is MaterialCoordinationException
+              ? const RecoveryInterrupted(RecoveryStopReason.superseded)
+              : error,
+          stack,
+        );
+        consumers.remove(consumer);
+      }
+    } finally {
+      login?.leave(this);
+      consumers.clear();
+      watcher?.cancel();
+      if (identical(owner._jobs[key], this)) owner._jobs.remove(key);
+      owner._draining.remove(this);
+      owner._completedLogins.removeWhere(
+        (key, _) => !owner._draining.any((job) => job.scope.key == key.$1),
+      );
+      settled.complete();
+    }
+  }
+
+  Future<void> rebuild() async {
+    await checkpoint();
+    final factory = owner.rebuildBackend;
+    if (factory == null)
+      throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+    owner._backend = await factory(scope);
+    await checkpoint();
+  }
+
+  Future<RecoveredRouteSession> recover() => invoke(
+    (backend) =>
+        backend.startRequiredRecovery(feature, const Duration(minutes: 2)),
+    () => owner.backend.recoverRequiredSession(feature),
+  );
+
+  Future<void> execute() async {
     final checkedRevision = owner._loginRevision;
     try {
       var disposition = RecoveryDisposition.reused;
       RecoveredRouteSession recovered;
       try {
-        recovered = await invoke(
-          (backend) => backend.startRequiredRecovery(
-            feature,
-            const Duration(minutes: 2),
-          ),
-          () => owner.backend.recoverRequiredSession(feature),
-        );
+        recovered = await recover();
       } on BackendException catch (error) {
-        check();
+        await checkpoint();
         final route = error.resolvedRoute;
         if (error.code != UbaaErrorCode.authenticationRequired ||
             route == null ||
@@ -233,12 +317,12 @@ final class _RecoveryJob {
           login = shared;
           recovered = await shared.join(this);
         }
-        check();
+        await checkpoint();
         if (recovered.route != route)
           throw const BackendException(UbaaErrorCode.upstreamChanged);
         disposition = RecoveryDisposition.reauthenticated;
       }
-      check();
+      await checkpoint();
       if (!scope.acceptsRoute(recovered.route))
         throw const BackendException(UbaaErrorCode.upstreamChanged);
       if (!scope.accepts(recovered.profile)) {
@@ -247,26 +331,44 @@ final class _RecoveryJob {
           accountMismatch: true,
         );
       }
+      inBoundary = false;
+      await validation;
+      check();
+      await scope.publishRecovery();
+      final published = scope.sharedSnapshot?.state;
+      if (published != null)
+        owner._publishedAccount = (scope.accountAlias, published.generation);
+      check();
       for (final consumer in consumers.toList()) {
-        consumer.release();
-        consumer.completion.complete(RecoveryResult(recovered, disposition));
+        if (!identical(consumer.scope, scope))
+          await consumer.scope.adoptRecoverySuccessor();
+        check();
+        await consumer.scope.commitDelivery(() {
+          check();
+          consumer.release();
+          consumer.completion.complete(
+            RecoveryResult(
+              recovered,
+              disposition,
+              scope: consumer.scope,
+              backend: owner.backend,
+            ),
+          );
+          consumers.remove(consumer);
+        });
       }
     } on Object catch (error, stack) {
       validate();
       for (final consumer in consumers.toList()) {
         consumer.release();
-        consumer.completion.completeError(error, stack);
+        consumer.completion.completeError(
+          error is LocalAccountConflict
+              ? const RecoveryInterrupted(RecoveryStopReason.superseded)
+              : error,
+          stack,
+        );
+        consumers.remove(consumer);
       }
-    } finally {
-      login?.leave(this);
-      consumers.clear();
-      watcher?.cancel();
-      if (identical(owner._jobs[key], this)) owner._jobs.remove(key);
-      owner._draining.remove(this);
-      owner._completedLogins.removeWhere(
-        (key, _) => !owner._draining.any((job) => job.scope.key == key.$1),
-      );
-      settled.complete();
     }
   }
 }
@@ -294,13 +396,18 @@ final class _SharedLogin {
     }
   }
 
-  RecoveryScope check() {
+  Future<RecoveryScope> check() async {
     for (final job in members.toList()) {
       job.validate();
     }
     if (owner._closed || members.isEmpty) {
       throw const RecoveryInterrupted(RecoveryStopReason.superseded);
     }
+    for (final job in members.toList()) {
+      await job.checkpoint();
+    }
+    if (members.isEmpty)
+      throw const RecoveryInterrupted(RecoveryStopReason.superseded);
     final scope = members.first.consumers.first.scope;
     if (owner._blockedCredentials.containsKey(scope.credentialKey)) {
       throw BackendException(
@@ -312,9 +419,9 @@ final class _SharedLogin {
   }
 
   Future<RecoveredRouteSession> run() async {
-    final scope = check();
+    final scope = await check();
     final saved = await owner.credentials.read();
-    check();
+    await check();
     if (saved == null ||
         !saved.isUsable ||
         !saved.autoLogin ||
@@ -332,8 +439,13 @@ final class _SharedLogin {
       autoLogin: true,
       routePolicy: scope.routePolicy,
     );
-    check();
+    await check();
     try {
+      for (final job in members.toList()) {
+        job.check();
+      }
+      if (owner._closed || members.isEmpty)
+        throw const RecoveryInterrupted(RecoveryStopReason.superseded);
       final backend = owner.backend;
       RecoveredRouteSession recovered;
       if (backend is! ControlledRequiredSessionBackend) {
@@ -352,7 +464,7 @@ final class _SharedLogin {
           current.dispose();
         }
       }
-      final currentScope = check();
+      final currentScope = await check();
       if (recovered.route != route)
         throw const BackendException(UbaaErrorCode.upstreamChanged);
       if (!currentScope.accepts(recovered.profile)) {
@@ -367,11 +479,18 @@ final class _SharedLogin {
       );
       return recovered;
     } on BackendException catch (error) {
-      check();
+      await check();
       if (error.accountMismatch ||
           error.code == UbaaErrorCode.invalidCredentials ||
           error.code == UbaaErrorCode.upstreamChanged ||
           error.code == UbaaErrorCode.passwordRiskConfirmationFailed) {
+        // 先排空已开始的核对，再由失败所属快照条件撤销持久许可。
+        for (final job in members.toList()) {
+          job.inBoundary = false;
+          await job.validation;
+        }
+        final rejectedScope = await check();
+        await rejectedScope.revokeRejectedCredentials();
         owner._blockCredentials(
           members
               .expand((job) => job.consumers)
