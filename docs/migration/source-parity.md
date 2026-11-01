@@ -1,5 +1,23 @@
 # 协议来源对照与专项索引
 
+## H1-b2：同机账号与安全材料协调
+
+生产修改前核对冻结旧版 `1f4b8f8` 的 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/storage/CredentialStore.kt`、`api/local/LocalConnectionAuth.kt`，以及冻结 buaa-api `a63712fa` 的 `src/store/cred.rs`、`src/store/cookies.rs`。旧版保存记住密码与自动登录偏好，关闭记住密码会清除密码并关闭自动登录。buaa-api保存 API 凭据期限与 Cookie，没有本机随机 alias、CacheKey 或跨进程恢复许可协议。
+
+本单元逐操作涉及索引读取、保留已核实账号、取得待建密钥、退出、删除账号、凭据读写/清除、能力探测及持久代次条件校验。两源均无这些 UBAA2 安全材料操作的等价协议，因此 CAS/service、重定向/最终 URL、HTTP 方法/参数、请求头/正文编码、上游加密/签名和 DTO 字段全部不适用，不新增或推断学校字段。Cookie/Session/Token 的既有路线与作用域保持。仅调整本机锁、失败阻断和代次：索引/凭据继续保存于既有安全后端，禁止网络期间持有材料锁，写入不自动重试。退出先撤销许可，普通句柄释放不改共享许可。H1-a scope 的跨进程接线留给 b3。本轮仅合成材料，学校请求与真实材料访问为零。
+
+Windows 接续核对纠正：锁定 `flutter_secure_storage 10.0.0` 的 `WindowsOptions.defaultOptions` 默认 `useBackwardCompatibility=false`，门面 `_selectOptions` 实际传入该值，当前 App 没有开启 legacy Credential Manager 迁移。本轮不新增迁移能力。插件内部省略选项时的迁移路径不能作为当前默认缺陷。实际缺口是锁定 `flutter_secure_storage_windows 4.1.0` 的 `DpapiJsonFileMapStorage.load` 在 DPAPI、UTF-8、JSON 或非对象错误时删除原件，并把读取异常解释为空 map；后续写入还会无限重试。
+
+当前本地候选为 Windows 增加同路径的文件适配，保留 `getApplicationSupportDirectory`、`flutter_secure_storage.dat`、用户级 DPAPI（无 entropy、flags=0）和全部材料键。读取不写入或迁移，严格拒绝损坏及未知条目，只有明确的 OS 文件不存在错误允许空 map。写入先生成同目录临时密文，已有目标使用带备份的 `ReplaceFileW(flags=0)` 保留原安全描述符，失败保留备份与未完成标记，不自动重试。目标查询使用 `GetFileAttributesW` 并立即保留错误码，只有明确不存在的错误 2/3 才允许首次创建。首次创建使用不带覆盖标志的 `MoveFileExW(WRITE_THROUGH)`，查询后出现目标时直接失败。查询失败、目录或重解析点均阻断，不自动回退。实际文件层、协调器和账号参与合成回归，原生查询与替换通过回调注入。Windows DPAPI、DACL、共享冲突、原生替换和替换中途崩溃尚未原生运行。
+
+锁域候选的纯 Dart 桌面解析器改用系统用户目录接口，忽略 HOME/USERPROFILE/XDG/config 覆盖，macOS 纯 Dart 环境变量反例已转绿。当前 macOS 宿主启用 App Sandbox，因此 Flutter 默认材料工厂继续通过原生应用支持目录接口选择沙箱可达目录，避免把 GUI 锁移到 POSIX 用户 home 的容器外目录。macOS 正式命令路线与 GUI 使用同一 App 的 Flutter Engine。私有 Bundle ID 样机复用候选目录代码和生产相同的 Sandbox entitlement，实际 GUI/无窗口 Engine 取得相同 support/material 路径，分别采用两个业务目录覆盖，并完成随机合成子目录双向读写、清理及正常退出。GUI 有窗口和 Dart view，无窗口 Engine 原生窗口数为 0、viewController 为空，但仍有默认 Dart view。样机只包含目录插件，不访问钥匙串，因此原有安全材料连续性和 Windows 跨入口后端路径连续性仍待验证。
+
+事务入口直接读取 `transaction.v1`，仅明确不存在的 OS 错误 2（Windows 另含 3）允许初始化。存在查询吞掉错误后的读取失败、空 OS 错误和 UTF-8 损坏均以 `uncertain` 阻断。实际协调决策的失败反例与修复回归检查业务回调和材料变更次数为零，原 B 标记保持，错误消失后仍阻断。嵌套、迟到写和进程恢复覆盖保留。
+
+Linux Debian arm64 在 `ubaa-h0:validated` 固定镜像、nobody、断网、无显示、无特权及只读容器中，通过当前精确源码副本的 35 项纯 Dart 测试和 9 组 AOT 组合验证，覆盖同/异账号、并发 probe、四种外部状态变更后的旧快照拒绝、kill 解锁和密钥写入后崩溃阻断。仅私有 tmpfs 运行目录允许执行 AOT，输入为只读挂载，50 个纯 Dart 依赖按当前锁定版本离线解算。材料后端使用实际 Windows 文件层加合成 codec，没有访问真实材料或学校。该结果不填补 Windows 原生及移动/OHOS 缺口。本节仍为 H1-b2 候选，H1-a scope 的持久代次接线留 b3。
+
+原生测试原先只替换锁域，Windows/Linux 整 map 后端仍可能访问默认材料。合成默认域预置 B 且旧 target 移至备份时，实际测试组合的失败反例确认默认 target 被创建。测试组合现同时隔离数据与协调域，默认传输构造次数为零，原 target（存在或缺失）、backup 和 B 保持不变。Windows 私有文件保留真实 DPAPI/替换函数，Apple 使用独立 Keychain service，Android 使用独立 Debug 应用 `cn.edu.ubaa.synthetic.materials`，在访问安全存储前核对设备报告的实际包名，Linux 原生材料转由专用隔离 Secret Service 入口执行。macOS 真实材料与凭据专项共 4 项通过，Linux 专用入口的实际原生运行和 Windows 原生运行仍待验。遗漏 await 的子写落地后失败回归另确认：根事务返回 uncertain，子 Future 独立报告异常，B 保留且后续访问阻断，未改写异常吞并规则。Android 锁定插件 10.0.0 仍使用固定配置、包装 key 和按应用包名生成的 Keystore alias，因此仅更换 preferences 名称不足以隔离。实际旧辅助的合成反例触发 3 次插件调用并写入固定配置标记，修复后的 7 项聚焦用例通过，独立 Debug APK 的实际包名与 debuggable 校验通过。设备清单为空，私有 AVD 创建未能识别已安装镜像，Android 原生正向读写尚待执行。完整相关分段验收与本地主题提交已完成，P2 候选等待监督最终复核。
+
 ## 2026-11-01 H1-b1：派生读取与登录身份撤销
 
 已用 `just refs` 核对当前两个固定来源。旧版路径前缀为 `examples/ubaa_old/shared/src/`，提交 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`；示例路径前缀为 `examples/buaa-api/src/`，提交 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。
