@@ -12,6 +12,9 @@ use std::sync::{
 };
 use std::time::{Duration, Instant};
 
+#[path = "cleanup_tests.rs"]
+mod cleanup;
+
 const PROFILE: &[u8] = include_bytes!(concat!(
     env!("CARGO_MANIFEST_DIR"),
     "/../../fixtures/auth/userinfo-success.json"

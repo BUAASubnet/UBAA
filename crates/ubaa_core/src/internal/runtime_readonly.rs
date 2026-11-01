@@ -8,11 +8,20 @@ use std::sync::{Arc, Weak};
 pub(super) struct ReadonlyOwner {
     state: Weak<RouteFeatureState>,
     generation: u64,
+    #[cfg(test)]
+    invalidate_hook: Option<Arc<dyn Fn() + Send + Sync>>,
 }
 impl ReadonlyOwner {
     pub(super) fn invalidate(&self) {
-        if let Some(state) = self.state.upgrade() {
-            state.clear();
+        if let Some(state) = self.state.upgrade()
+            && state.lifecycle_generation() == self.generation
+        {
+            #[cfg(test)]
+            if let Some(hook) = &self.invalidate_hook {
+                hook();
+            }
+            // 前面的快照仅用于跳过已过期归属；最终比较与完整清理必须共用锁。
+            state.clear_if_generation(self.generation);
         }
     }
     fn current(&self) -> bool {
@@ -28,10 +37,17 @@ impl ClientRuntime {
         child.readonly_generation = Some(ReadonlyOwner {
             state: Arc::downgrade(&self.feature_state),
             generation: self.feature_state.lifecycle_generation(),
+            #[cfg(test)]
+            invalidate_hook: None,
         });
         // Token 可能依赖业务 Cookie；两者一起留在同组，主写客户端独立激活。
         child.feature_state = Arc::new(RouteFeatureState::default());
         child
+    }
+
+    #[cfg(test)]
+    pub(crate) fn set_readonly_invalidate_hook(&mut self, hook: Arc<dyn Fn() + Send + Sync>) {
+        self.readonly_generation.as_mut().unwrap().invalidate_hook = Some(hook);
     }
 
     pub(crate) fn synchronize_readonly(&mut self, parent: &Self) -> bool {

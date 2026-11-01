@@ -27,6 +27,7 @@ pub(crate) struct ClientRuntime {
     account_name: Option<String>,
     session_revision: u64,
     authentication_generation: uuid::Uuid,
+    authentication_revoked: Arc<AtomicBool>,
     feature_state: Arc<RouteFeatureState>,
     /// 仅属于本客户端的希冀选课上下文；代次失效后不可复用。
     pub(crate) judge_selected_course: Option<(u64, String)>,
@@ -100,6 +101,7 @@ impl ClientRuntime {
             account_name: None,
             session_revision,
             authentication_generation: uuid::Uuid::new_v4(),
+            authentication_revoked: Arc::new(AtomicBool::new(false)),
             feature_state: Arc::new(RouteFeatureState::default()),
             judge_selected_course: None,
             non_idempotent_boundary_crossed: false,
@@ -144,6 +146,7 @@ impl ClientRuntime {
             account_name: self.account_name.clone(),
             session_revision: self.session_revision,
             authentication_generation: self.authentication_generation,
+            authentication_revoked: Arc::clone(&self.authentication_revoked),
             feature_state: Arc::clone(&self.feature_state),
             judge_selected_course: None,
             non_idempotent_boundary_crossed: false,
@@ -396,8 +399,19 @@ impl ClientRuntime {
         self.authentication_generation
     }
 
-    pub(crate) fn clear_memory(&mut self) {
+    pub(crate) fn authentication_revoked(&self) -> bool {
+        self.authentication_revoked.load(Ordering::Acquire)
+    }
+
+    /// 同代派生共享撤销，新登录使用独立标记，旧响应不能撤销后续登录。
+    pub(crate) fn renew_authentication_generation(&mut self) {
+        self.authentication_revoked.store(true, Ordering::Release);
+        self.authentication_revoked = Arc::new(AtomicBool::new(false));
         self.authentication_generation = uuid::Uuid::new_v4();
+    }
+
+    pub(crate) fn clear_memory(&mut self) {
+        self.renew_authentication_generation();
         self.judge_selected_course = None;
         self.jar = CookieJar::default();
         self.authenticated_at = None;

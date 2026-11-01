@@ -1,10 +1,16 @@
 # 当前实现与验证状态
 
-2026-11-01 [App 命令模式 H0](../design/desktop-shared-state.md#h0-运行路线与样机证据)候选 `fa5b8133` 已通过主监督与新只读上下文审查，接续 H1-a 共同无感恢复：macOS 原生入口分流、真实 Flutter GUI 与命令双向启动及合成日程共享读取通过；Linux Debian 12 arm64 Docker 在无 DISPLAY/Wayland/Xvfb、运行期断网条件下通过 Dart AOT→FRB→Rust 日程读取，并通过锁定插件 libsecret 后端的合成材料保存与服务重开读回。macOS/Windows 选择无 view Engine，Linux 选择同一 Dart 服务的 AOT 运行组件。Windows 只完成锁定源码核对，原生环境待验。H1-a 文件与恢复接口已收敛，H0 只提交文档。正式入口、公共账号/恢复服务、命令迁移及独立 Rust CLI 退役仍分阶段实施。继承 13 项实验保持，未混入 H0 提交。
+2026-11-01 [App 命令模式 H0](../design/desktop-shared-state.md#h0-运行路线与样机证据)候选 `fa5b8133` 已通过主监督与新只读上下文审查，H1-a 共同无感恢复现已通过主监督最终验收（`64840201`），接续 H1-b1 共享 Core 身份撤销：macOS 原生入口分流、真实 Flutter GUI 与命令双向启动及合成日程共享读取通过；Linux Debian 12 arm64 Docker 在无 DISPLAY/Wayland/Xvfb、运行期断网条件下通过 Dart AOT→FRB→Rust 日程读取，并通过锁定插件 libsecret 后端的合成材料保存与服务重开读回。macOS/Windows 选择无 view Engine，Linux 选择同一 Dart 服务的 AOT 运行组件。Windows 只完成锁定源码核对，原生环境待验。H1-a 文件与恢复接口已收敛，H0 只提交文档。正式入口、公共账号/恢复服务、命令迁移及独立 Rust CLI 退役仍分阶段实施。继承 13 项实验保持，未混入 H0 提交。
 
+
+H1-b 分为三个独立单元：b1 先修复同代派生认证失效传播与旧派生迟到隔离；b2 再统一同机账号索引、恢复许可、持久代次和跨进程原子更新；b3 最后接入 H1-a scope、外部会话更新后的客户端重建、普通关闭与全局退出，以及缓存/日程和写资格生命周期。当前只实施 b1，后两项与 H2 平台入口尚未完成。
+
+H1-b1 候选已实现按认证代次共享内存撤销，以及按父功能代次条件清理。新增门控反例证明旧只读组在比较后迟到清理会重复推进 Direct 代次，继而阻断新组合法 WebVPN 读取并误清 WebVPN。路线生命周期锁现覆盖代次快照、条件比较、推进与全部业务清理，普通清理使用同一规则。修复后该反例通过，身份回归 7 项、runtime 回归 4 项、H1-a 控制及新反例共 11 项通过。身份测试的前五项遍历 Direct/WebVPN，普通关闭/公开嵌套拒绝及取消/期限两项仅覆盖 Direct；兄弟组回归在前组失效完成后启动后组。新增并发反例专门覆盖 Direct 旧清理与 WebVPN 新读取的交错，没有穷举双路线全部组合。父认证/学校写入与子请求互斥的公开约定保持。
+
+H1-b1 已在独立验证检出以 `64840201` 为固定基线完成 `mode=full`，完整入口退出 0：严格 Rust/CLI/脚本、版本、文档、布局、关闭/开启 test-contract 合同及生产编译通过，Core 单元 510 项、Bridge 单元 169 项、八包 Flutter 1,667 项和 macOS 原生集成 5 项通过，保留 Core 1 项及 Bridge 2 项既有忽略。Flutter 分析有 708 条 info，无 warning/error；FRB 生成检查零漂移。先前退出 143 的监督交接中断及本轮首次完整入口退出 1 的原日志分别保留。后者在 Clippy 发现 Bridge 两个测试初始化 future 达到 16 KiB，仅将这两个测试调用改用 `Box::pin` 后完成本轮完整验收。两份定向只读复核已确认 P2 反例时序、同步边界和锁顺序，本地候选待最终监督复核。学校 HTTP 均为固定路线 Mock，真实学校与材料访问为零；其他平台原生、远端 CI 和发布验收未执行。
 旧 CLI-a 方案已有独立账号登记和 list/show/unsynced 代码。`9835653c` 的后续独立审查又发现材料 worker 可直接调用、派生认证失效未传播两项问题，因此旧方案未最终放行。后续未提交修复尚未完整回归，按清单保留取舍；旧 worker 不再作为独立开发目标。用户反馈 App 钥匙串问题已解决，后续复用现有能力，发现实际回归再修复。Core 导出最后独立放行点为 `de797fce`。CLI schema v13、Bridge v46、日程 schema2、业务缓存 schema7 和 Session v2 当前保持。
 
-H1-a 的恢复操作控制前置单元已完成本地分段验收：Core/Bridge 增加独立的单次控制柄、单调期限、请求前后检查和中断收尾。Bridge 锁等待与永挂 transport 可取消，清目标 pending 与旧计划，保留已保存会话。所有权检查成功时保留另一条合法路线的内存状态，检查失败时沿用既有的失败关闭规则。原始工作区未修改，候选在独立检出验证。共同纯 Dart 恢复服务与 GUI 接线现已实现：先合并同功能校验，再合并同 scope、同实际路线的登录。消费者独立取消或到期，最后消费者退出才撤销共享操作，关闭保管仍在收尾的数量。相同材料被拒后，其他路线的迟到读取与未发送排队登录失去提交资格，其他材料和有效会话复用继续执行。legacy authStatus 挂起期间切号的基线既有缺口已补公开行为回归。纯 Dart 行为 21 项通过，完整相关检查已按下述分段补齐，H1-a 共同服务单元尚待最终监督复核。具体范围与返回预算见[Bridge v46](../contracts/flutter-bridge.md#v46所需路线恢复的按操作控制)。
+H1-a 的恢复操作控制前置单元已完成本地分段验收：Core/Bridge 增加独立的单次控制柄、单调期限、请求前后检查和中断收尾。Bridge 锁等待与永挂 transport 可取消，清目标 pending 与旧计划，保留已保存会话。所有权检查成功时保留另一条合法路线的内存状态，检查失败时沿用既有的失败关闭规则。原始工作区未修改，候选在独立检出验证。共同纯 Dart 恢复服务与 GUI 接线现已实现：先合并同功能校验，再合并同 scope、同实际路线的登录。消费者独立取消或到期，最后消费者退出才撤销共享操作，关闭保管仍在收尾的数量。相同材料被拒后，其他路线的迟到读取与未发送排队登录失去提交资格，其他材料和有效会话复用继续执行。legacy authStatus 挂起期间切号的基线既有缺口已补公开行为回归。纯 Dart 行为 21 项通过，完整相关检查已按下述分段补齐，H1-a 共同服务单元已通过主监督最终验收。具体范围与返回预算见[Bridge v46](../contracts/flutter-bridge.md#v46所需路线恢复的按操作控制)。
 
 本单元以 `9d7fcbdd` 为基线。最后一轮 `just check-changed mode=full` 的严格 Rust/CLI/脚本、版本、文档、布局、feature-on/off 和生产编译通过，Core 507 项、Bridge 169 项、八包 Flutter 1,635 项通过，保留 Core 1 项和 Bridge 2 项既有忽略。静态分析为 692 项既有 info，无 warning/error。该完整入口在 macOS Cargokit 构建失败，退出码 1 保留。后续定位到当前 Apple linker 在 macOS 12.0 与 `strip=debuginfo` 组合下生成的 proc-macro dylib 字符串池未对齐，dyld 拒绝加载。仅本轮低符号验证环境增加 `CARGO_PROFILE_DEV_STRIP=none`，保留 Debug 断言和 macOS 12.0 部署目标，原 staticlib 命令与 `just integration-test` 均退出 0。五项真实 macOS 集成包含新增恢复控制 FFI probe，最终 `just flutter-codegen-check` 也退出 0 且零漂移。原生运行器保留既有应用置前失败提示，五项断言均完成。
 

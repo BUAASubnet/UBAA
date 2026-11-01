@@ -1,5 +1,8 @@
 use super::*;
 
+#[path = "recovery/identity.rs"]
+mod identity;
+
 #[test]
 fn required_session_recovers_only_the_requested_feature_route() {
     for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {

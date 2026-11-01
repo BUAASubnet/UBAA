@@ -1,5 +1,21 @@
 # 协议来源对照与专项索引
 
+## 2026-11-01 H1-b1：派生读取与登录身份撤销
+
+已用 `just refs` 核对当前两个固定来源。旧版路径前缀为 `examples/ubaa_old/shared/src/`，提交 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`；示例路径前缀为 `examples/buaa-api/src/`，提交 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。
+
+旧版读取 `commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt` 的会话校验、资料查询、登录成功及退出，`api/auth/AuthApi.kt`、`model/dto/UserInfo.kt` 和 `commonTest/kotlin/cn/edu/ubaa/api/LocalAuthSessionStoreTest.kt`。示例读取 `api/user/{auth,opt,mod}.rs`、`request.rs`、`store/cred.rs`，其用户接口返回原始文本、各 API 组共享上下文与 Cookie。逐操作结论如下，所有请求协议均继续使用现有 Core 实现。
+
+| 操作 | CAS/service、重定向与最终 URL | Cookie/Session/Token | 方法与精确参数 | 请求头与编码 | 加密/签名 | DTO 与解析 | 缓存/并发/重试 | 错误/退出与产品语义 |
+|---|---|---|---|---|---|---|---|---|
+| 校验所需路线与正常活动时间刷新 | 旧版直接 GET UC `/api/uc/status`，无 service；示例加 `selfTimestamp`，激活使用 UC `/api/login?target=…`。沿用现有 Core URL 与最终地址分类，不增加引导 | 旧版按 Direct/WebVPN 隔离 Cookie 与会话；示例共享上下文。Core 双槽 CAS 保持 | 旧 GET 无参数；示例 GET 时间戳参数。沿用当前无参数 GET | 旧 Accept JSON 与 XHR；示例默认 UA。保持 Core 既有头，无新正文 | 无新增 | 旧 `code=0`、`data.schoolid/username/name`；示例原始文本。保持 Core 白名单解析 | 旧校验成功保存活动时间，5xx 保留会话；示例刷新凭据过期时间。正常刷新不撤销能力，不增加重试 | 仅沿当前已分类 `AuthenticationRequired` 清理路径传播撤销，503 保持临时错误 |
+| 显式登录成功后签发身份、退出后撤销 | 沿现有 SSO/UC 激活与校验；旧退出 GET SSO `/logout`。本次不改 URL/service 或跳转 | 保留路线隔离、双槽所有权与本机身份校验；成功登录建立新认证代次 | 沿现有登录表单与退出 GET，无新增参数 | 沿现有表单编码、请求头 | 沿既有 SSO/WebVPN，无新增常量 | 沿当前一致 `school_id` 身份能力规则；旧 DTO 和示例没有该不可伪造能力 | 成功登录更新认证代次；退出撤销旧代次，不恢复旧票据 | 两源均无 UBAA2 身份能力，能力签发/验证本地规则不适用协议类比；退出仍走既有清理 |
+| 派生读取同代失效传播、旧派生迟到、普通句柄释放 | 两源没有等价的派生身份能力协议，不适用，无 HTTP 新增 | 仅同一认证代次共享内存撤销标记；旧代次与新登录分离，不写持久会话 | 不适用，本机检查 | 不适用 | 不适用 | 不适用，不添加上游字段 | 并行/嵌套派生共享认证归属；业务状态保留既有隔离，迟到清理检查原功能代次，释放句柄不等于退出 | 同代明确失效阻断父已取/未取能力；不扩大网络错误语义。共享账号索引和跨进程代次留 H1-b2/b3 |
+
+当前基线 `64840201` 的新 Mock 反例与修复验证保存在实施检出私有 `.ubaa_local/command_mode_h1b_identity/`。固定 Direct/WebVPN、`NeverProbe`、合成身份和 Mock HTTP，学校请求与真实材料访问均为零。旧主仓库实验只作四个 Core 候选的审查输入，未整体迁入旧 CLI 补丁。
+
+条件清理并发补充：再次核对旧版 `LocalConnectionAuth.kt` 的会话失效分类与 `buaa-api` 的 `api/user/{auth,opt}.rs`、`store/cred.rs`，两者均没有 Core 只读组的父功能代次与条件清理协议，因此此本机同步操作不适用上游协议类比，表内 HTTP 各列保持。受支持反例仅重叠派生读取：A 观察 Direct 代次 G 后暂停，B 清理到 G+1，C 经公开 fork 捕获 (G+1, W)，A 继续清理。原候选实际把 Direct 推进到 G+2，使 C 的 WebVPN 读取在双路线所有权检查中失败并误清 WebVPN。修复让代次读取、条件比较、推进与全部业务清理共用路线生命周期锁，普通清理遵守相同规则。父认证及学校写入与子请求互斥的公开约定保持。
+
 ## 门户资料、账户指标与网费流量
 
 身份、学院、五项账户指标和三项流量的接入方案、双来源适用性及逐操作协议见[校园账户查询](source-parity-campus.md)。云盘指标按用户确认表示剩余空间。
