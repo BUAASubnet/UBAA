@@ -2,7 +2,7 @@
 use super::{LocalError, LocalResult};
 // 沿用既有读取上限；在任何过渡标记或材料修改前预检完整索引。
 pub(super) const MAX_DATA: usize = 1_048_576;
-pub(super) trait Material {
+pub(super) trait Material: Send {
     fn supported(&self) -> bool {
         true
     }

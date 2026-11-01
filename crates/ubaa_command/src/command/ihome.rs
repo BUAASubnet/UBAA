@@ -1,12 +1,12 @@
 //! iHome 只读命令。
 use clap::{Args, Subcommand, ValueEnum};
 use ubaa_core::facade::{IhomeFilter, IhomeQuery, IhomeScope};
-#[derive(Debug, Args)]
+#[derive(Clone, Debug, Args)]
 pub struct IhomeArgs {
     #[command(subcommand)]
     pub command: IhomeCommand,
 }
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum IhomeCommand {
     /// 查询诉求分页。
     List {

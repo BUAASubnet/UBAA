@@ -19,6 +19,7 @@ use crate::io::schema::{CommandOutput, readonly};
 pub(in crate::execute) async fn run_cgyy<B: CliBackend + Send>(
     arguments: CgyyArgs,
     backend: &mut B,
+    input: &mut impl std::io::BufRead,
 ) -> Result<CommandOutput> {
     match arguments.command {
         CgyyCommand::Sites => backend
@@ -80,7 +81,7 @@ pub(in crate::execute) async fn run_cgyy<B: CliBackend + Send>(
                     "预约请求含敏感字段，必须显式指定 --request-stdin",
                 ));
             }
-            let request = read_cgyy_request_stdin()?;
+            let request = read_cgyy_request_stdin(input)?;
             backend
                 .cgyy_submit_reservation(request)
                 .await
@@ -93,6 +94,7 @@ pub(in crate::execute) async fn run_cgyy<B: CliBackend + Send>(
 pub(in crate::execute) async fn run_routed_cgyy<B: RoutedCliBackend + Send>(
     arguments: CgyyArgs,
     backend: &mut B,
+    input: &mut impl std::io::BufRead,
 ) -> RoutedResult<CommandOutput> {
     match arguments.command {
         CgyyCommand::Sites => routed_readonly(backend.cgyy_sites().await, CliFeature::Cgyy),
@@ -160,7 +162,7 @@ pub(in crate::execute) async fn run_routed_cgyy<B: RoutedCliBackend + Send>(
                     resolution: None,
                 });
             }
-            let request = read_cgyy_request_stdin().map_err(|error| RoutedError {
+            let request = read_cgyy_request_stdin(input).map_err(|error| RoutedError {
                 error,
                 resolution: None,
             })?;

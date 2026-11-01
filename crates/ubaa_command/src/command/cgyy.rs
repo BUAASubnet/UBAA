@@ -1,14 +1,14 @@
 use clap::{Args, Subcommand};
 
 /// 研讨室预约命令组。
-#[derive(Debug, Args)]
+#[derive(Clone, Debug, Args)]
 pub struct CgyyArgs {
     #[command(subcommand)]
     pub command: CgyyCommand,
 }
 
 /// 研讨室预约只读操作。
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum CgyyCommand {
     /// 查询研讨室站点。
     Sites,

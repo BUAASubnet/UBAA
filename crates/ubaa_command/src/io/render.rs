@@ -206,7 +206,7 @@ fn render_resolved_error<O: Write, E: Write>(
 }
 
 /// 在后端构造前展示错误，并保持 JSON 标准输出约束。
-pub fn render_startup_error<O: Write, E: Write>(
+fn render_startup_error_unflushed<O: Write, E: Write>(
     json_mode: bool,
     feature: CliFeature,
     error: UbaaError,
@@ -243,4 +243,16 @@ fn write_readonly<W: Write>(
         }
     }
     Ok(())
+}
+
+/// 在构造后端之前交付既有启动错误并刷新两条流。
+pub fn render_startup_error<O: Write, E: Write>(
+    json_mode: bool,
+    feature: CliFeature,
+    error: UbaaError,
+    stdout: &mut O,
+    stderr: &mut E,
+) -> i32 {
+    let code = render_startup_error_unflushed(json_mode, feature, error, stdout, stderr);
+    crate::runtime::finish_output(code, stdout, stderr)
 }

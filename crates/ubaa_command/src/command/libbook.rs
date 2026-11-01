@@ -1,14 +1,14 @@
 use clap::{Args, Subcommand};
 
 /// 图书馆座位命令组。
-#[derive(Debug, Args)]
+#[derive(Clone, Debug, Args)]
 pub struct LibBookArgs {
     #[command(subcommand)]
     pub command: LibBookCommand,
 }
 
 /// 图书馆座位操作。
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum LibBookCommand {
     /// 查询楼馆及楼层列表。
     Libraries {

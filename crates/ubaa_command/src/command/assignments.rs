@@ -3,14 +3,14 @@
 use clap::{Args, Subcommand};
 
 /// SPOC 命令组。
-#[derive(Debug, Args)]
+#[derive(Clone, Debug, Args)]
 pub struct SpocArgs {
     #[command(subcommand)]
     pub command: SpocCommand,
 }
 
 /// SPOC 操作。
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum SpocCommand {
     /// 列出作业。
     Assignments,
@@ -25,7 +25,7 @@ pub enum SpocCommand {
 }
 
 /// SPOC 作业子命令。
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum SpocAssignmentCommand {
     /// 显示作业详情。
     Show {
@@ -35,14 +35,14 @@ pub enum SpocAssignmentCommand {
 }
 
 /// 希冀作业命令组。
-#[derive(Debug, Args)]
+#[derive(Clone, Debug, Args)]
 pub struct JudgeArgs {
     #[command(subcommand)]
     pub command: JudgeCommand,
 }
 
 /// 希冀作业操作。
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum JudgeCommand {
     /// 列出作业。
     Assignments {
@@ -63,7 +63,7 @@ pub enum JudgeCommand {
 }
 
 /// 希冀作业详情子命令。
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum JudgeAssignmentCommand {
     /// 显示一项详情。
     Show {
@@ -80,14 +80,14 @@ pub enum JudgeAssignmentCommand {
 }
 
 /// 课堂签到命令组。
-#[derive(Debug, Args)]
+#[derive(Clone, Debug, Args)]
 pub struct SigninArgs {
     #[command(subcommand)]
     pub command: SigninCommand,
 }
 
 /// 课堂签到操作。
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum SigninCommand {
     /// 列出今日课程及其签到状态。
     Today,

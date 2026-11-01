@@ -1,14 +1,14 @@
 use clap::{Args, Subcommand};
 
 /// 博雅课程命令组。
-#[derive(Debug, Args)]
+#[derive(Clone, Debug, Args)]
 pub struct BykcArgs {
     #[command(subcommand)]
     pub command: BykcCommand,
 }
 
 /// 博雅课程操作。
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum BykcCommand {
     /// 查询用户资料。
     Profile,

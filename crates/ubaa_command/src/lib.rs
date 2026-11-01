@@ -47,3 +47,10 @@ mod tests {
         assert_eq!(value, json!({"available": true}));
     }
 }
+
+pub mod runtime;
+pub use runtime::{
+    AttemptOutcome, CommandClass, CommandControl, CommandPlan, CommandRequirements,
+    PreparedCommand, RecoveryTarget, ResultHandle, StopReason, execute_attempt,
+    execute_auth_attempt, execute_fixed_attempt, execute_local_attempt, parse, prepare_input,
+};

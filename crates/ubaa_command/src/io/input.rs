@@ -45,12 +45,14 @@ pub(crate) fn read_secret_line<R: BufRead>(input: &mut R, missing_message: &str)
     }
 }
 
-pub(crate) fn read_cgyy_request_stdin() -> Result<CgyyReservationSubmitRequest> {
-    let mut input = String::new();
-    std::io::stdin()
-        .read_to_string(&mut input)
+pub(crate) fn read_cgyy_request_stdin(
+    input: &mut impl BufRead,
+) -> Result<CgyyReservationSubmitRequest> {
+    let mut text = String::new();
+    input
+        .read_to_string(&mut text)
         .map_err(|_| invalid_input("无法读取研讨室预约请求"))?;
-    parse_cgyy_request(&input)
+    parse_cgyy_request(&text)
 }
 
 pub(crate) fn parse_cgyy_request(input: &str) -> Result<CgyyReservationSubmitRequest> {

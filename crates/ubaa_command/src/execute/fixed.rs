@@ -5,7 +5,7 @@ use std::io::{BufRead, Write};
 use crate::backend::CliBackend;
 use crate::command::{AuthArgs, AuthCommand, Cli, Command, LoginArgs, UserArgs, UserCommand};
 use crate::io::human::{redacted_profile, redacted_status};
-use crate::io::input::{internal_error, invalid_input, prompt_line, read_secret_line};
+use crate::io::input::{invalid_input, prompt_line, read_secret_line};
 use crate::io::render::render_result;
 use crate::io::schema::CommandOutput;
 use crate::routing::ReadonlyRouteContext;
@@ -65,7 +65,22 @@ where
 {
     let mode = backend.mode();
     let feature = command_feature(&cli.command);
-    let result = match cli.command {
+    let json = cli.json;
+    let result = execute_fixed(cli, backend, input, stderr).await;
+    crate::runtime::finish_output(
+        render_result(json, mode, feature, route_context, result, stdout, stderr),
+        stdout,
+        stderr,
+    )
+}
+
+pub(crate) async fn execute_fixed<B: CliBackend + Send, R: BufRead, E: Write>(
+    cli: Cli,
+    backend: &mut B,
+    input: &mut R,
+    stderr: &mut E,
+) -> Result<CommandOutput> {
+    match cli.command {
         Command::Agenda(_) => Err(crate::io::input::invalid_input(
             "本机日程应使用独立执行入口",
         )),
@@ -101,21 +116,11 @@ where
         Command::Signin(arguments) => run_signin(arguments, backend).await,
         Command::Libbook(arguments) => run_libbook(arguments, backend).await,
         Command::Bykc(arguments) => run_bykc(arguments, backend).await,
-        Command::Cgyy(arguments) => run_cgyy(arguments, backend).await,
+        Command::Cgyy(arguments) => run_cgyy(arguments, backend, input).await,
         Command::Ihome(arguments) => super::features::ihome::run_ihome(arguments, backend).await,
         Command::Ygdk(arguments) => run_ygdk(arguments, backend).await,
         Command::Evaluation(arguments) => run_evaluation(arguments, backend).await,
-    };
-
-    render_result(
-        cli.json,
-        mode,
-        feature,
-        route_context,
-        result,
-        stdout,
-        stderr,
-    )
+    }
 }
 
 async fn run_login<B, R, E>(
@@ -152,7 +157,7 @@ where
     } else if json_mode {
         return Err(invalid_input("JSON 模式必须提供 --password-stdin"));
     } else {
-        rpassword::prompt_password("密码：").map_err(|_| internal_error("无法安全读取密码"))?
+        prompt_line(input, stderr, "密码：")?
     };
 
     backend

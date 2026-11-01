@@ -1,7 +1,7 @@
 //! 本机账号登记与日程访问共用配置作用域排他锁，锁持有至结果交付结束。
 mod material;
 mod paths;
-mod read;
+pub(crate) mod read;
 #[cfg(all(test, unix))]
 #[path = "../../../../apps/ubaa_cli/tests/agenda_read/internal.rs"]
 mod tests;

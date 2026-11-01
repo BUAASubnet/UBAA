@@ -22,7 +22,7 @@ impl From<CliConnectionMode> for ConnectionMode {
 }
 
 /// 登录参数。
-#[derive(Args)]
+#[derive(Clone, Args)]
 pub struct LoginArgs {
     /// 每个请求使用的网络路由；省略时复用已保存的模式。
     #[arg(long, value_enum, hide = true)]
@@ -54,14 +54,14 @@ impl std::fmt::Debug for LoginArgs {
 }
 
 /// 认证命令组。
-#[derive(Debug, Args)]
+#[derive(Clone, Debug, Args)]
 pub struct AuthArgs {
     #[command(subcommand)]
     pub command: AuthCommand,
 }
 
 /// 认证操作。
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum AuthCommand {
     /// 通过 SSO 登录并持久化会话。
     Login(LoginArgs),
@@ -72,14 +72,14 @@ pub enum AuthCommand {
 }
 
 /// 用户中心命令组。
-#[derive(Debug, Args)]
+#[derive(Clone, Debug, Args)]
 pub struct UserArgs {
     #[command(subcommand)]
     pub command: UserCommand,
 }
 
 /// 用户中心操作。
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum UserCommand {
     /// 显示已认证的用户中心资料。
     Show,

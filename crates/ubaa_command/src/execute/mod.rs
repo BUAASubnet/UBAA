@@ -7,10 +7,10 @@ use crate::command::command_feature;
 use crate::io::input::internal_error;
 use crate::io::schema::{CliFeature, CommandOutput};
 
-mod aggregate;
+pub(crate) mod aggregate;
 mod features;
-mod fixed;
-mod routed;
+pub(crate) mod fixed;
+pub(crate) mod routed;
 
 pub use aggregate::{run_dual_login, run_dual_login_with_agenda, run_dual_logout, run_dual_status};
 pub use fixed::{run_with_backend, run_with_backend_with_route};

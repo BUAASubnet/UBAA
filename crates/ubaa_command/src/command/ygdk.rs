@@ -4,14 +4,14 @@ use std::path::PathBuf;
 use clap::{Args, Subcommand};
 
 /// 阳光打卡命令组。
-#[derive(Args)]
+#[derive(Clone, Args)]
 pub struct YgdkArgs {
     #[command(subcommand)]
     pub command: YgdkCommand,
 }
 
 /// 阳光打卡操作。
-#[derive(Subcommand)]
+#[derive(Clone, Subcommand)]
 pub enum YgdkCommand {
     /// 查询阳光打卡概览。
     Overview,

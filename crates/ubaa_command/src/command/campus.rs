@@ -1,13 +1,13 @@
 //! 门户资料、账户指标和网费流量命令。
 use clap::{Args, Subcommand};
 
-#[derive(Debug, Args)]
+#[derive(Clone, Debug, Args)]
 pub struct PortalArgs {
     #[command(subcommand)]
     pub command: PortalCommand,
 }
 
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum PortalCommand {
     /// 查询门户身份与学院。
     Profile,
@@ -15,13 +15,13 @@ pub enum PortalCommand {
     Metrics,
 }
 
-#[derive(Debug, Args)]
+#[derive(Clone, Debug, Args)]
 pub struct NetworkArgs {
     #[command(subcommand)]
     pub command: NetworkCommand,
 }
 
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum NetworkCommand {
     /// 查询已用流量、免费和计费剩余流量。
     Usage,

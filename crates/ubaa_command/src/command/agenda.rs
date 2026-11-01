@@ -4,12 +4,12 @@ use chrono::NaiveDate;
 use clap::{Args, Subcommand};
 use uuid::Uuid;
 
-#[derive(Debug, Args)]
+#[derive(Clone, Debug, Args)]
 pub struct AgendaArgs {
     #[command(subcommand)]
     pub command: AgendaCommand,
 }
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum AgendaCommand {
     /// 列出校园日期范围 [from, to) 的本机事项。
     List {

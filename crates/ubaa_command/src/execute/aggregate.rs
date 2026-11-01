@@ -9,7 +9,7 @@ use ubaa_core::facade::{Result, UbaaError};
 use crate::command::{AuthArgs, AuthCommand, Cli, Command, LoginArgs};
 use crate::io::exit_code::{ExitCode, safe_error_exit_code};
 use crate::io::human::{redacted_profile, write_profile};
-use crate::io::input::{internal_error, invalid_input, prompt_line, read_secret_line, write_json};
+use crate::io::input::{invalid_input, prompt_line, read_secret_line, write_json};
 use crate::io::render::render_startup_error;
 use crate::io::schema::{AggregateJsonEnvelope, CliFeature};
 
@@ -26,7 +26,8 @@ where
     O: Write,
     E: Write,
 {
-    run_dual_login_impl(cli, backend, input, stdout, stderr, None).await
+    let code = run_dual_login_impl(cli, backend, input, stdout, stderr, None).await;
+    crate::runtime::finish_output(code, stdout, stderr)
 }
 
 /// 生产 CLI 在同一配置作用域锁内完成登录登记后再输出结果。
@@ -38,7 +39,8 @@ pub async fn run_dual_login_with_agenda<R: BufRead, O: Write, E: Write>(
     stderr: &mut E,
     agenda: &mut crate::local_agenda::AgendaAccess,
 ) -> i32 {
-    run_dual_login_impl(cli, backend, input, stdout, stderr, Some(agenda)).await
+    let code = run_dual_login_impl(cli, backend, input, stdout, stderr, Some(agenda)).await;
+    crate::runtime::finish_output(code, stdout, stderr)
 }
 async fn run_dual_login_impl<R: BufRead, O: Write, E: Write>(
     cli: Cli,
@@ -48,23 +50,31 @@ async fn run_dual_login_impl<R: BufRead, O: Write, E: Write>(
     stderr: &mut E,
     agenda: Option<&mut crate::local_agenda::AgendaAccess>,
 ) -> i32 {
+    let cli_json = cli.json;
+    execute_login(cli, backend, input, stderr, agenda)
+        .await
+        .render(cli_json, stdout, stderr)
+}
+
+pub(crate) async fn execute_login<R: BufRead, E: Write>(
+    cli: Cli,
+    backend: &mut UbaaClient,
+    input: &mut R,
+    stderr: &mut E,
+    agenda: Option<&mut crate::local_agenda::AgendaAccess>,
+) -> AggregateResult {
     let json_mode = cli.json;
     let route_policy = backend.default_route_policy();
     let Command::Auth(AuthArgs {
         command: AuthCommand::Login(arguments),
     }) = cli.command
     else {
-        return render_aggregate_input_error(
-            json_mode,
-            invalid_input("聚合登录必须先执行 auth login"),
-            stdout,
-            stderr,
-        );
+        return AggregateResult::Error(invalid_input("聚合登录必须先执行 auth login"));
     };
     let (username, password) = match read_dual_credentials(json_mode, &arguments, input, stderr) {
         Ok(credentials) => credentials,
         Err(error) => {
-            return render_aggregate_input_error(json_mode, error, stdout, stderr);
+            return AggregateResult::Error(error);
         }
     };
     let mut outcome = match backend
@@ -76,7 +86,7 @@ async fn run_dual_login_impl<R: BufRead, O: Write, E: Write>(
     {
         Ok(outcome) => outcome,
         Err(error) => {
-            return render_aggregate_input_error(json_mode, error, stdout, stderr);
+            return AggregateResult::Error(error);
         }
     };
     let registration = agenda
@@ -88,18 +98,15 @@ async fn run_dual_login_impl<R: BufRead, O: Write, E: Write>(
                 .and_then(|identity| agenda.register(backend, &identity))
         });
     outcome.profile = outcome.profile.map(redacted_profile);
-    render_dual_outcome(
-        json_mode,
-        outcome,
+    AggregateResult::Auth {
+        outcome: Box::new(outcome),
         route_policy,
-        stdout,
-        stderr,
         registration,
-    )
+    }
 }
 
 /// 执行普通聚合认证状态流程。
-pub async fn run_dual_status<O, E>(
+async fn run_dual_status_unflushed<O, E>(
     cli: Cli,
     backend: &mut UbaaClient,
     stdout: &mut O,
@@ -109,17 +116,14 @@ where
     O: Write,
     E: Write,
 {
-    let route_policy = backend.default_route_policy();
-    let mut outcome = match backend.auth_status().await {
-        Ok(outcome) => outcome,
-        Err(error) => return render_aggregate_input_error(cli.json, error, stdout, stderr),
-    };
-    outcome.profile = outcome.profile.map(redacted_profile);
-    render_dual_outcome(cli.json, outcome, route_policy, stdout, stderr, None)
+    let json = cli.json;
+    execute_auth(cli, backend, &mut std::io::empty())
+        .await
+        .render(json, stdout, stderr)
 }
 
 /// 使用固定的聚合路由元数据退出两个路由槽位。
-pub async fn run_dual_logout<O, E>(
+async fn run_dual_logout_unflushed<O, E>(
     cli: Cli,
     backend: &mut UbaaClient,
     stdout: &mut O,
@@ -129,22 +133,10 @@ where
     O: Write,
     E: Write,
 {
-    let route_policy = backend.default_route_policy();
-    let result = backend.logout().await;
-    match result {
-        Ok(()) => {
-            if cli.json {
-                let envelope = AggregateJsonEnvelope::logout_success(route_policy);
-                if write_json(stdout, &envelope).is_err() {
-                    return ExitCode::Internal as i32;
-                }
-            } else if writeln!(stdout, "已退出登录。").is_err() {
-                return ExitCode::Internal as i32;
-            }
-            ExitCode::Success as i32
-        }
-        Err(error) => render_startup_error(cli.json, CliFeature::Auth, error, stdout, stderr),
-    }
+    let json = cli.json;
+    execute_auth(cli, backend, &mut std::io::empty())
+        .await
+        .render(json, stdout, stderr)
 }
 
 fn read_dual_credentials<R: BufRead, E: Write>(
@@ -175,7 +167,7 @@ fn read_dual_credentials<R: BufRead, E: Write>(
     } else if json_mode {
         return Err(invalid_input("JSON 模式必须提供 --password-stdin"));
     } else {
-        rpassword::prompt_password("密码：").map_err(|_| internal_error("无法安全读取密码"))?
+        prompt_line(input, stderr, "密码：")?
     };
     Ok((username, password))
 }
@@ -223,7 +215,9 @@ fn render_dual_outcome<O: Write, E: Write>(
         }
     } else {
         for route in &outcome.routes {
-            let _ = writeln!(stdout, "{:?}: {:?}", route.route, route.state);
+            if writeln!(stdout, "{:?}: {:?}", route.route, route.state).is_err() {
+                return 7;
+            }
         }
         if outcome
             .profile
@@ -232,20 +226,28 @@ fn render_dual_outcome<O: Write, E: Write>(
         {
             return ExitCode::Internal as i32;
         }
-        if let Some(error) = error {
-            let _ = writeln!(stderr, "错误：{}", error.message);
+        if let Some(error) = error
+            && writeln!(stderr, "错误：{}", error.message).is_err()
+        {
+            return 7;
         }
         if let Some(result) = registration {
             match result {
                 Ok(()) => {
-                    let _ = writeln!(stdout, "本机日程账号已登记。");
+                    if writeln!(stdout, "本机日程账号已登记。").is_err() {
+                        return 7;
+                    }
                 }
                 Err(error) => {
-                    let _ = writeln!(
+                    if writeln!(
                         stderr,
                         "学校认证已完成，本机日程登记失败：{}",
                         error.message()
-                    );
+                    )
+                    .is_err()
+                    {
+                        return 7;
+                    }
                 }
             }
         }
@@ -290,4 +292,106 @@ fn render_aggregate_input_error<O: Write, E: Write>(
     stderr: &mut E,
 ) -> i32 {
     render_startup_error(json_mode, CliFeature::Auth, error, stdout, stderr)
+}
+
+/// 聚合认证状态复用原结果，交付前刷新两条流。
+pub async fn run_dual_status<O: Write, E: Write>(
+    cli: Cli,
+    backend: &mut UbaaClient,
+    stdout: &mut O,
+    stderr: &mut E,
+) -> i32 {
+    let code = run_dual_status_unflushed(cli, backend, stdout, stderr).await;
+    crate::runtime::finish_output(code, stdout, stderr)
+}
+/// 聚合退出不重放，交付前刷新两条流。
+pub async fn run_dual_logout<O: Write, E: Write>(
+    cli: Cli,
+    backend: &mut UbaaClient,
+    stdout: &mut O,
+    stderr: &mut E,
+) -> i32 {
+    let code = run_dual_logout_unflushed(cli, backend, stdout, stderr).await;
+    crate::runtime::finish_output(code, stdout, stderr)
+}
+
+pub(crate) enum AggregateResult {
+    Auth {
+        outcome: Box<ubaa_core::facade::LoginOutcome>,
+        route_policy: RoutePolicy,
+        registration: Option<std::result::Result<(), crate::local_agenda::LocalError>>,
+    },
+    Logout {
+        result: Result<()>,
+        route_policy: RoutePolicy,
+    },
+    Error(UbaaError),
+}
+impl AggregateResult {
+    pub(crate) fn render(
+        self,
+        json: bool,
+        stdout: &mut impl Write,
+        stderr: &mut impl Write,
+    ) -> i32 {
+        match self {
+            Self::Auth {
+                outcome,
+                route_policy,
+                registration,
+            } => render_dual_outcome(json, *outcome, route_policy, stdout, stderr, registration),
+            Self::Error(error) => render_aggregate_input_error(json, error, stdout, stderr),
+            Self::Logout {
+                result,
+                route_policy,
+            } => match result {
+                Ok(()) => {
+                    let result = if json {
+                        write_json(stdout, &AggregateJsonEnvelope::logout_success(route_policy))
+                    } else {
+                        writeln!(stdout, "已退出登录。")
+                    };
+                    if result.is_err() { 7 } else { 0 }
+                }
+                Err(error) => render_aggregate_input_error(json, error, stdout, stderr),
+            },
+        }
+    }
+}
+pub(crate) async fn execute_auth(
+    cli: Cli,
+    backend: &mut UbaaClient,
+    input: &mut impl BufRead,
+) -> AggregateResult {
+    match cli.command {
+        Command::Auth(AuthArgs {
+            command: AuthCommand::Login(_),
+        }) => execute_login(cli, backend, input, &mut std::io::sink(), None).await,
+        Command::Auth(AuthArgs {
+            command: AuthCommand::Status,
+        }) => {
+            let route_policy = backend.default_route_policy();
+            match backend.auth_status().await {
+                Ok(mut outcome) => {
+                    outcome.profile = outcome.profile.map(redacted_profile);
+                    AggregateResult::Auth {
+                        outcome: Box::new(outcome),
+                        route_policy,
+                        registration: None,
+                    }
+                }
+                Err(error) => AggregateResult::Error(error),
+            }
+        }
+        Command::Auth(AuthArgs {
+            command: AuthCommand::Logout,
+        }) => {
+            let route_policy = backend.default_route_policy();
+            AggregateResult::Logout {
+                result: backend.logout().await,
+                route_policy,
+            }
+        }
+        _ => AggregateResult::Error(invalid_input("聚合认证入口只接受 auth 命令")),
+    }
 }

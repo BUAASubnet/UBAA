@@ -35,8 +35,22 @@ where
     O: Write,
     E: Write,
 {
-    let json_mode = cli.json;
-    let (feature, result) = match cli.command {
+    let json = cli.json;
+    let feature = cli.feature();
+    let result = execute_routed(cli, backend, &mut std::io::empty()).await;
+    crate::runtime::finish_output(
+        render_routed_result(json, feature, result, stdout, stderr),
+        stdout,
+        stderr,
+    )
+}
+
+pub(crate) async fn execute_routed<B: RoutedCliBackend + Send>(
+    cli: Cli,
+    backend: &mut B,
+    input: &mut impl std::io::BufRead,
+) -> ubaa_core::facade::RoutedResult<CommandOutput> {
+    let (_feature, result) = match cli.command {
         Command::Portal(arguments) => (
             CliFeature::Portal,
             super::features::campus::routed_portal(arguments, backend).await,
@@ -80,7 +94,10 @@ where
             run_routed_libbook(arguments, backend).await,
         ),
         Command::Bykc(arguments) => (CliFeature::Bykc, run_routed_bykc(arguments, backend).await),
-        Command::Cgyy(arguments) => (CliFeature::Cgyy, run_routed_cgyy(arguments, backend).await),
+        Command::Cgyy(arguments) => (
+            CliFeature::Cgyy,
+            run_routed_cgyy(arguments, backend, input).await,
+        ),
         Command::Ihome(arguments) => (
             CliFeature::Ihome,
             super::features::ihome::run_routed_ihome(arguments, backend).await,
@@ -106,5 +123,5 @@ where
         ),
     };
 
-    render_routed_result(json_mode, feature, result, stdout, stderr)
+    result
 }

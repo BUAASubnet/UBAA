@@ -37,7 +37,7 @@ pub use libbook::{LibBookArgs, LibBookCommand};
 pub use ygdk::{YgdkArgs, YgdkCommand};
 
 /// UBAA 命令行接口。
-#[derive(Debug, Parser)]
+#[derive(Clone, Debug, Parser)]
 #[command(name = "ubaa", version, about = "北航统一认证命令行客户端")]
 pub struct Cli {
     /// 在标准输出中生成带版本号的 JSON 信封。
@@ -58,7 +58,7 @@ pub struct Cli {
 }
 
 /// 顶层命令组。
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum Command {
     /// 本机日程只读操作，不隐式认证或刷新学校来源。
     Agenda(AgendaArgs),

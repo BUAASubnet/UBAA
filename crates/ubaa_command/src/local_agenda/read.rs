@@ -152,22 +152,64 @@ pub fn run_agenda<O: Write, E: Write>(
     stdout: &mut O,
     stderr: &mut E,
 ) -> i32 {
+    execute_local(cli, root).render(cli.json, stdout, stderr)
+}
+pub(crate) struct LocalAttempt {
+    operation: String,
+    result: LocalResult<Value>,
+    // 原兼容入口的作用域锁保持到交付完成。
+    _access: Option<AgendaAccess>,
+}
+pub(crate) fn execute_local(cli: &Cli, root: &std::path::Path) -> LocalAttempt {
     let Command::Agenda(arguments) = &cli.command else {
-        return 2;
+        return LocalAttempt {
+            operation: "list".into(),
+            result: Err(LocalError::InvalidInput),
+            _access: None,
+        };
     };
     let access = AgendaAccess::open(root);
     let result = access
         .as_ref()
         .map_err(|e| *e)
         .and_then(|a| a.read_command(&arguments.command));
-    render(
-        cli.json,
-        arguments.command.operation(),
+    LocalAttempt {
+        operation: arguments.command.operation().into(),
         result,
-        stdout,
-        stderr,
-    )
+        _access: access.ok(),
+    }
 }
+impl LocalAttempt {
+    pub(crate) fn render(
+        self,
+        json: bool,
+        stdout: &mut impl Write,
+        stderr: &mut impl Write,
+    ) -> i32 {
+        render(json, &self.operation, self.result, stdout, stderr)
+    }
+}
+pub(crate) fn render_stop(
+    cli: &Cli,
+    reason: crate::StopReason,
+    stdout: &mut impl Write,
+    stderr: &mut impl Write,
+) -> i32 {
+    let Command::Agenda(arguments) = &cli.command else {
+        return 7;
+    };
+    if writeln!(stderr, "{}", reason.message()).is_err() {
+        return 7;
+    }
+    if cli.json {
+        let value = json!({"schemaVersion":CLI_JSON_SCHEMA_VERSION,"ok":false,"error":{"code":"storage","kind":"local","retryable":false,"message":reason.message()},"meta":{"feature":"agenda","operation":arguments.command.operation(),"accountState":"unavailable"}});
+        if serde_json::to_writer(&mut *stdout, &value).is_err() || writeln!(stdout).is_err() {
+            return 7;
+        }
+    }
+    crate::runtime::finish_output(7, stdout, stderr)
+}
+
 fn render<O: Write, E: Write>(
     json_mode: bool,
     operation: &str,
@@ -215,7 +257,7 @@ fn render<O: Write, E: Write>(
             }
         }
     }
-    exit
+    crate::runtime::finish_output(exit, stdout, stderr)
 }
 
 fn human_list<O: Write>(data: &Value, stdout: &mut O) -> i32 {

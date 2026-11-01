@@ -1,14 +1,14 @@
 use clap::{Args, Subcommand};
 
 /// 教学评教命令组。
-#[derive(Debug, Args)]
+#[derive(Clone, Debug, Args)]
 pub struct EvaluationArgs {
     #[command(subcommand)]
     pub command: EvaluationCommand,
 }
 
 /// 教学评教操作。
-#[derive(Debug, Subcommand)]
+#[derive(Clone, Debug, Subcommand)]
 pub enum EvaluationCommand {
     /// 查询全部评教课程及进度。
     All,
