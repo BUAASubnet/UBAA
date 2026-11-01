@@ -15,6 +15,7 @@ import '../support/mapping.dart'
         bridgeToBridgePolicy,
         bridgeToConnectionMode,
         bridgeToRoutePolicy;
+import 'required_session.dart';
 part 'recovery.dart';
 part 'interactive.dart';
 

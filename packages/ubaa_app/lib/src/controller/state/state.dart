@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../../services/session_recovery.dart';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -90,6 +91,10 @@ abstract class ControllerState extends ControllerOperations {
   final BackendFactory? internalBackendFactory;
 
   @internal
+  final internalRequiredRecoveryServices =
+      <UbaaBackend, RequiredSessionRecovery>{};
+
+  @internal
   final CredentialVault internalCredentialVault;
 
   @internal
@@ -174,6 +179,7 @@ abstract class ControllerState extends ControllerOperations {
 
   @internal
   bool internalAutomaticCredentialBlocked = false;
+  bool internalAutomaticLoginDisabled = false;
 
   @internal
   GuardedLockDisplaySession? internalLockDisplay;

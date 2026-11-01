@@ -7,6 +7,7 @@ import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/profile.dart';
 import 'package:ubaa_app/src/contracts/routing.dart';
 import 'package:ubaa_app/src/contracts/recovery.dart';
+import '../../contracts/session_recovery.dart';
 import 'retry.dart' show controllerTemporaryRecoveryFailure;
 import '../state/models.dart' show RecoveryRequest;
 import '../state/state.dart' show ControllerState;
@@ -174,6 +175,10 @@ mixin ControllerOfflineStartup on ControllerState {
       Object error = caughtError;
       StackTrace stackTrace = caughtStackTrace;
       if (!internalRecoveryIsCurrent(epoch)) return;
+      if (error is RecoveryInterrupted) {
+        internalSessionRecoveryStatus = SessionRecoveryStatus.idle;
+        return;
+      }
       if (allowRebuild && error is BackendException && error.clientDisposed) {
         try {
           if (await internalRebuildDuringRecovery(request)) {
@@ -185,6 +190,10 @@ mixin ControllerOfflineStartup on ControllerState {
           stackTrace = replacementTrace;
         }
         if (!internalRecoveryIsCurrent(request.epoch)) return;
+      }
+      if (error is BackendException && error.accountMismatch) {
+        await internalRejectMismatchedAccount();
+        return;
       }
       request.transientFailure = controllerTemporaryRecoveryFailure(error);
       if (error is BackendException &&

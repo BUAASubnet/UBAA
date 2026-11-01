@@ -8,6 +8,9 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/backend.dart';
 import 'package:ubaa_app/src/bridge/context.dart';
+import '../../runtime.dart'
+    show ControlledRequiredSessionBackend, RequiredRecoveryOperation;
+import 'auth/required_session.dart';
 import 'auth/session.dart'
     show
         bridgeAuthStatus,
@@ -105,7 +108,7 @@ class BridgeBackend
         CgyyWriteBackend,
         EvaluationWriteBackend,
         RouteSettingsBackend,
-        RequiredSessionBackend,
+        ControlledRequiredSessionBackend,
         OfflineCacheBackend,
         ProfileCacheBackend,
         CacheManagementBackend,
@@ -248,6 +251,21 @@ class BridgeBackend
   Future<FeatureResult> readSigninAfterWrite() =>
       bridgeLoadSigninHome(_context, const FeatureQuery(), useCache: false);
 
+  @override
+  RequiredRecoveryOperation startRequiredRecovery(
+    FeatureId feature,
+    Duration limit,
+  ) => BridgeRequiredSessionBackend(
+    _context.client,
+  ).startRequiredRecovery(feature, limit);
+  @override
+  RequiredRecoveryOperation startRequiredLogin(
+    ConnectionMode route,
+    LoginInput input,
+    Duration limit,
+  ) => BridgeRequiredSessionBackend(
+    _context.client,
+  ).startRequiredLogin(route, input, limit);
   @override
   Future<RecoveredRouteSession> recoverRequiredSession(FeatureId feature) =>
       bridgeRecoverRequiredSession(_context, feature);

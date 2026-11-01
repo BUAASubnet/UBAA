@@ -5,6 +5,7 @@ import 'package:integration_test/integration_test.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
+import 'package:ubaa_app/runtime.dart' show RequiredRecoveryOperation;
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_test_support/recovery.dart' as fixtures;
@@ -72,16 +73,32 @@ class _ObservedBridgeBackend extends BridgeBackend {
   BackendException? recoveryFailure;
 
   @override
-  Future<RecoveredRouteSession> recoverRequiredSession(
+  RequiredRecoveryOperation startRequiredRecovery(
     FeatureId feature,
-  ) async {
-    try {
-      return await super.recoverRequiredSession(feature);
-    } on BackendException catch (error) {
-      recoveryFailure = error;
-      rethrow;
-    } finally {
-      if (!firstRecovery.isCompleted) firstRecovery.complete();
-    }
+    Duration limit,
+  ) {
+    final operation = super.startRequiredRecovery(feature, limit);
+    final result = () async {
+      try {
+        return await operation.result;
+      } on BackendException catch (error) {
+        recoveryFailure = error;
+        rethrow;
+      } finally {
+        if (!firstRecovery.isCompleted) firstRecovery.complete();
+      }
+    }();
+    return _ObservedOperation(operation, result);
   }
+}
+
+class _ObservedOperation implements RequiredRecoveryOperation {
+  _ObservedOperation(this.operation, this.result);
+  final RequiredRecoveryOperation operation;
+  @override
+  final Future<RecoveredRouteSession> result;
+  @override
+  void cancel() => operation.cancel();
+  @override
+  void dispose() => operation.dispose();
 }

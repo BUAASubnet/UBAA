@@ -1,11 +1,226 @@
 import 'dart:async';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
+import 'package:ubaa_app/runtime.dart'
+    show RecoveryScope, RecoveryInterrupted, RecoveryStopReason;
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/recovery.dart' as support;
 
 void main() {
+  test('legacy authStatus 挂起时切号，不提交保存账号的密码（基线既有缺口）', () async {
+    final backend = support.FakeRecoveryBackend();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: await support.savedAccounts(),
+      credentialVault: MemoryCredentialVault(
+        initial: const Credential(
+          username: 'fixture-user',
+          password: 'synthetic',
+          autoLogin: true,
+        ),
+      ),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    controller.setAutoLogin(true);
+    backend.gate = Completer<AuthStatus>();
+    final calls = backend.authCalls;
+    final recovering = controller.recoverSession(refreshHomeAfter: false);
+    await Future<void>.delayed(Duration.zero);
+    expect(backend.authCalls, calls + 1);
+    controller.setUsername('other-user');
+    backend.gate!.complete(AuthStatus.signedOut);
+    await recovering;
+    expect(backend.loginCalls, 0);
+    expect(controller.loginForm.username, 'other-user');
+  });
+  for (final option in ['autoLogin', 'rememberPassword']) {
+    test('legacy 凭据挂起后关闭 $option 撤销旧许可', () async {
+      final backend = support.FakeRecoveryBackend()..signedIn = false;
+      final entered = Completer<void>(), gate = Completer<Credential?>();
+      var armed = false;
+      final controller = AppController(
+        backend: backend,
+        localAccountStore: await support.savedAccounts(),
+        credentialVault: CallbackCredentialVault(
+          loader: () {
+            if (!armed) return Future.value(null);
+            if (!entered.isCompleted) entered.complete();
+            return gate.future;
+          },
+          saver: (_) async {},
+          clearer: () async {},
+        ),
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      controller.setAutoLogin(true);
+      armed = true;
+      final recovering = controller.recoverSession(refreshHomeAfter: false);
+      await entered.future;
+      if (option == 'autoLogin')
+        controller.setAutoLogin(false);
+      else
+        controller.setRememberPassword(false);
+      gate.complete(
+        const Credential(
+          username: 'fixture-user',
+          password: 'synthetic',
+          autoLogin: true,
+        ),
+      );
+      await recovering;
+      expect(backend.loginCalls, 0);
+    });
+  }
+  test('替换后端关闭并移除旧恢复服务，继任服务可用', () async {
+    final first = _Backend(), next = _Backend();
+    final controller = AppController(
+      backend: first,
+      backendFactory: () => next,
+      localAccountStore: await support.savedAccounts(),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await controller.recoverSession(refreshHomeAfter: false);
+    final old = controller.internalRequiredRecoveryServices[first]!;
+    await controller.rebuildBackend();
+    expect(
+      controller.internalRequiredRecoveryServices.containsKey(first),
+      isFalse,
+    );
+    await expectLater(
+      old.ensureRequiredSession(
+        feature: FeatureId.schedule,
+        scope: RecoveryScope(
+          accountAlias: 'synthetic',
+          expectedUsername: 'fixture-user',
+          accountGeneration: 1,
+          routeGeneration: 1,
+          backendGeneration: 1,
+          credentialGeneration: 1,
+          routePolicy: RoutePolicy.direct,
+          allowAutomaticLogin: false,
+          isCurrent: () => true,
+        ),
+        deadline: DateTime.now().add(const Duration(seconds: 1)),
+      ),
+      throwsA(
+        isA<RecoveryInterrupted>().having(
+          (e) => e.reason,
+          '已关闭',
+          RecoveryStopReason.closed,
+        ),
+      ),
+    );
+    await controller.recoverSession(refreshHomeAfter: false);
+    expect(next.features, isNotEmpty);
+  });
+  for (final change in [
+    'route',
+    'autoLogin',
+    'autoLoginDefault',
+    'rememberPassword',
+  ]) {
+    test('凭据挂起后修改 $change，旧恢复不登录且不覆盖新界面', () async {
+      final backend = _Backend()
+        ..requiredError = const BackendException(
+          UbaaErrorCode.authenticationRequired,
+          resolvedRoute: ConnectionMode.direct,
+        );
+      final entered = Completer<void>(), gate = Completer<Credential?>();
+      var armed = false;
+      final vault = CallbackCredentialVault(
+        loader: () {
+          if (!armed) return Future.value(null);
+          if (!entered.isCompleted) entered.complete();
+          return gate.future;
+        },
+        saver: (_) async {},
+        clearer: () async {},
+      );
+      final controller = AppController(
+        backend: backend,
+        localAccountStore: await support.savedAccounts(),
+        credentialVault: vault,
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      if (change != 'autoLoginDefault') controller.setAutoLogin(true);
+      armed = true;
+      final recovering = controller.recoverSession(refreshHomeAfter: false);
+      await entered.future;
+      if (change == 'route')
+        await controller.setRoutePolicy(RoutePolicy.webvpn);
+      if (change.startsWith('autoLogin')) controller.setAutoLogin(false);
+      if (change == 'rememberPassword') controller.setRememberPassword(false);
+      gate.complete(
+        const Credential(
+          username: 'fixture-user',
+          password: 'synthetic',
+          autoLogin: true,
+        ),
+      );
+      await recovering;
+      expect(backend.loginRoutes, isEmpty);
+      expect(
+        controller.sessionRecoveryStatus,
+        isNot(SessionRecoveryStatus.needsLogin),
+      );
+      if (change == 'route')
+        expect(controller.loginForm.routePolicy, RoutePolicy.webvpn);
+      else {
+        await controller.recoverSession(
+          feature: FeatureId.signin,
+          refreshHomeAfter: false,
+        );
+        expect(backend.loginRoutes, isEmpty);
+      }
+    });
+  }
+  test('恢复读取凭据挂起时销毁，消费者及时结束且迟到材料不登录', () async {
+    final backend = _Backend()
+      ..requiredError = const BackendException(
+        UbaaErrorCode.authenticationRequired,
+        resolvedRoute: ConnectionMode.direct,
+      );
+    final gate = Completer<Credential?>();
+    final entered = Completer<void>();
+    var armed = false;
+    final vault = CallbackCredentialVault(
+      loader: () {
+        if (!armed) return Future.value(null);
+        if (!entered.isCompleted) entered.complete();
+        return gate.future;
+      },
+      saver: (_) async {},
+      clearer: () async {},
+    );
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: await support.savedAccounts(),
+      credentialVault: vault,
+    );
+    await controller.initialize();
+    armed = true;
+    final recovering = controller.recoverSession();
+    await entered.future;
+    controller.dispose();
+    try {
+      await recovering.timeout(const Duration(milliseconds: 500));
+    } finally {
+      gate.complete(
+        const Credential(
+          username: 'fixture-user',
+          password: 'synthetic',
+          autoLogin: true,
+        ),
+      );
+      await recovering;
+    }
+    expect(backend.loginRoutes, isEmpty);
+  });
   test('首页恢复只调用所需路线合同，直接使用已验证身份而不再双路线校验', () async {
     final backend = _Backend();
     final controller = AppController(
