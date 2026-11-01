@@ -34,6 +34,7 @@ pub(crate) struct ClientRuntime {
     write_observer: Option<Weak<AtomicBool>>,
     clock: Arc<dyn Fn() -> SystemTime + Send + Sync>,
     interactive_login_scope: Option<InteractiveLoginHandle>,
+    required_recovery_scope: Option<crate::domain::RequiredRecoveryControl>,
     readonly_generation: Option<ReadonlyOwner>,
 }
 
@@ -105,6 +106,7 @@ impl ClientRuntime {
             write_observer: None,
             clock,
             interactive_login_scope: None,
+            required_recovery_scope: None,
             readonly_generation: None,
         })
     }
@@ -148,6 +150,7 @@ impl ClientRuntime {
             write_observer: None,
             clock: Arc::clone(&self.clock),
             interactive_login_scope: None,
+            required_recovery_scope: None,
             readonly_generation: self.readonly_generation.clone(),
         }
     }
@@ -178,7 +181,19 @@ impl ClientRuntime {
         self.interactive_login_scope = scope;
     }
 
-    fn check_interactive_login_scope(&self) -> Result<()> {
+    pub(crate) fn set_required_recovery_scope(
+        &mut self,
+        scope: Option<crate::domain::RequiredRecoveryControl>,
+    ) {
+        self.required_recovery_scope = scope;
+    }
+
+    fn check_authentication_scope(&self) -> Result<()> {
+        if let Some(scope) = &self.required_recovery_scope {
+            scope.check()?;
+            self.ensure_session_revision()?;
+            scope.check()?;
+        }
         if let Some(scope) = &self.interactive_login_scope {
             scope.ensure_active()?;
             self.ensure_session_revision()?;
@@ -256,7 +271,7 @@ impl ClientRuntime {
             request.headers.insert("Cookie".into(), cookie);
         }
         pre_send_check(self)?;
-        self.check_interactive_login_scope()?;
+        self.check_authentication_scope()?;
         if self.readonly_generation.is_some() {
             self.ensure_session_revision()?;
         }
@@ -265,7 +280,7 @@ impl ClientRuntime {
         if self.readonly_generation.is_some() {
             self.ensure_session_revision()?;
         }
-        self.check_interactive_login_scope()?;
+        self.check_authentication_scope()?;
         self.jar.store_response(&response, &request_url, now)?;
         Ok(response)
     }
@@ -323,7 +338,7 @@ impl ClientRuntime {
         &mut self,
         clear_workflow: &mut (dyn FnMut() + Send),
     ) -> Result<(i64, i64)> {
-        self.check_interactive_login_scope()?;
+        self.check_authentication_scope()?;
         let now = now_seconds_at(self.now())?;
         let authenticated_at = self.authenticated_at.unwrap_or(now);
         self.authenticated_at = Some(authenticated_at);
