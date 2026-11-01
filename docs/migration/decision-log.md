@@ -1,5 +1,13 @@
 # 决策记录
 
+## 2026-11-01：命令运行时按平台分流，共用无界面服务
+
+H0 按锁定 Flutter `3.41.9`、Dart `3.11.5` 和 FRB `2.13.0` 的实际源码及私有样机，选择 macOS/Windows 的无 view Engine 路线和 Linux 的纯 Dart AOT＋同一生成 FRB 路线。Linux 锁定 public headless API 没有公开启动接口，独立 Dart 路线已经在无显示器、断网 Docker 中实际调用 Rust 日程库。Linux 的安全材料沿用 libsecret/Secret Service，私有 Dart FFI 试验复用锁定插件原生后端，材料服务重开后可读回合成值。生产材料适配和原 item 连续性仍待平台接入验证。
+
+所有原生入口均在窗口及 GUI 单实例逻辑前分流。GUI 只识别 GUI 角色，避免命令运行期间阻止用户启动窗口。命令的输出通道独立于 Engine 日志，保留继承管道和实际退出码。Linux AOT 只改变运行组件，不新增账号索引或业务状态。账号、目录、凭据许可和恢复规则在同一公共服务中维护，旧 alias、CacheKey、业务缓存加密及日程明文继续保留。
+
+H1-a 先在现有 `ubaa_app` 提供纯 Dart 窄入口，提取所需路线恢复服务和最小 Bridge 适配，保留 GUI 的调度、写入等待与展示。跨进程代次、锁和全局退出在 H1-b 单独验证。Windows 本机没有可用运行环境，平台源码核对不计为原生通过。完整路线、样机范围、失败结果与下一单元文件见[实施计划](../design/desktop-shared-state.md#h0-运行路线与样机证据)。本轮只提交文档，继承的旧 CLI worker 与公共身份修复实验保持原样，逐项去向写入私有交接。
+
 ## 2026-10-31：缓存预读与博雅首屏分页
 
 本轮冻结参考为旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 和 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。旧版 `LocalBykcApi.kt::getCourses/queryStudentSemesterCourseByPage`、DTO `Bykc.kt` 和 `LocalBykcApiBackendTest.kt` 将调用方的页码、条数传入上游；旧 UI `BykcViewModel.kt` 默认 20 条。buaa-api `api/boya/opt.rs::query_courses` 同样传入 `pageNumber/pageSize`，并未要求固定 20 条。请求、登录、加密和错误继续遵守[博雅逐操作对照](source-parity.md#博雅课程只读查询)的九列规则。

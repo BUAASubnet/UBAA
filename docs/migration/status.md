@@ -1,6 +1,6 @@
 # 当前实现与验证状态
 
-2026-11-01 用户已确认[App 命令模式与共享服务计划](../design/desktop-shared-state.md)：三平台桌面共用凭据、会话、缓存、日程和无感恢复，Linux 另支持 SSH 无图形运行。当前进入 H0 运行路线与最小样机阶段，新执行会话使用 `gpt-6.1-sol / ultra`。本次仅更新方案，正式入口、共同服务、命令迁移及独立 Rust CLI 退役尚未实现。
+2026-11-01 [App 命令模式 H0](../design/desktop-shared-state.md#h0-运行路线与样机证据)已取得私有样机证据，等待独立审查：macOS 原生入口分流、真实 Flutter GUI 与命令双向启动及合成日程共享读取通过；Linux Debian 12 arm64 Docker 在无 DISPLAY/Wayland/Xvfb、运行期断网条件下通过 Dart AOT→FRB→Rust 日程读取，并通过锁定插件 libsecret 后端的合成材料保存与服务重开读回。macOS/Windows 选择无 view Engine，Linux 选择同一 Dart 服务的 AOT 运行组件。Windows 只完成锁定源码核对，原生环境待验。H1-a 文件与恢复接口已收敛，本轮只提交文档，正式入口、公共账号/恢复服务、命令迁移及独立 Rust CLI 退役尚未实现。继承 13 项实验保持，未混入本轮提交。
 
 旧 CLI-a 方案已有独立账号登记和 list/show/unsynced 代码。`9835653c` 的后续独立审查又发现材料 worker 可直接调用、派生认证失效未传播两项问题，因此旧方案未最终放行。后续未提交修复尚未完整回归，按清单保留取舍；旧 worker 不再作为独立开发目标。用户反馈 App 钥匙串问题已解决，后续复用现有能力，发现实际回归再修复。Core 导出最后独立放行点为 `de797fce`。CLI schema v13、Bridge v45、日程 schema2、业务缓存 schema7 和 Session v2 当前保持。
 
