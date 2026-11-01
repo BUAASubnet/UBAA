@@ -1,8 +1,14 @@
 # 当前实现与验证状态
 
-2026-11-01 [App 命令模式 H0](../design/desktop-shared-state.md#h0-运行路线与样机证据)候选 `fa5b8133` 已通过主监督与新只读上下文审查，接续 H1-a 共同无感恢复：macOS 原生入口分流、真实 Flutter GUI 与命令双向启动及合成日程共享读取通过；Linux Debian 12 arm64 Docker 在无 DISPLAY/Wayland/Xvfb、运行期断网条件下通过 Dart AOT→FRB→Rust 日程读取，并通过锁定插件 libsecret 后端的合成材料保存与服务重开读回。macOS/Windows 选择无 view Engine，Linux 选择同一 Dart 服务的 AOT 运行组件。Windows 只完成锁定源码核对，原生环境待验。H1-a 文件与恢复接口已收敛，本轮只提交文档，正式入口、公共账号/恢复服务、命令迁移及独立 Rust CLI 退役尚未实现。继承 13 项实验保持，未混入本轮提交。
+2026-11-01 [App 命令模式 H0](../design/desktop-shared-state.md#h0-运行路线与样机证据)候选 `fa5b8133` 已通过主监督与新只读上下文审查，接续 H1-a 共同无感恢复：macOS 原生入口分流、真实 Flutter GUI 与命令双向启动及合成日程共享读取通过；Linux Debian 12 arm64 Docker 在无 DISPLAY/Wayland/Xvfb、运行期断网条件下通过 Dart AOT→FRB→Rust 日程读取，并通过锁定插件 libsecret 后端的合成材料保存与服务重开读回。macOS/Windows 选择无 view Engine，Linux 选择同一 Dart 服务的 AOT 运行组件。Windows 只完成锁定源码核对，原生环境待验。H1-a 文件与恢复接口已收敛，H0 只提交文档。正式入口、公共账号/恢复服务、命令迁移及独立 Rust CLI 退役仍分阶段实施。继承 13 项实验保持，未混入 H0 提交。
 
-旧 CLI-a 方案已有独立账号登记和 list/show/unsynced 代码。`9835653c` 的后续独立审查又发现材料 worker 可直接调用、派生认证失效未传播两项问题，因此旧方案未最终放行。后续未提交修复尚未完整回归，按清单保留取舍；旧 worker 不再作为独立开发目标。用户反馈 App 钥匙串问题已解决，后续复用现有能力，发现实际回归再修复。Core 导出最后独立放行点为 `de797fce`。CLI schema v13、Bridge v45、日程 schema2、业务缓存 schema7 和 Session v2 当前保持。
+旧 CLI-a 方案已有独立账号登记和 list/show/unsynced 代码。`9835653c` 的后续独立审查又发现材料 worker 可直接调用、派生认证失效未传播两项问题，因此旧方案未最终放行。后续未提交修复尚未完整回归，按清单保留取舍；旧 worker 不再作为独立开发目标。用户反馈 App 钥匙串问题已解决，后续复用现有能力，发现实际回归再修复。Core 导出最后独立放行点为 `de797fce`。CLI schema v13、Bridge v46、日程 schema2、业务缓存 schema7 和 Session v2 当前保持。
+
+H1-a 的恢复操作控制前置单元已完成本地分段验收：Core/Bridge 增加独立的单次控制柄、单调期限、请求前后检查和中断收尾。Bridge 锁等待与永挂 transport 可取消，清目标 pending 与旧计划，保留已保存会话。所有权检查成功时保留另一条合法路线的内存状态，检查失败时沿用既有的失败关闭规则。原始工作区未修改，候选在独立检出验证。共同纯 Dart 服务、GUI 接线、消费者合并及纯 Dart 实际运行仍待下一单元，H1-a 整体尚未完成。具体范围与返回预算见[Bridge v46](../contracts/flutter-bridge.md#v46所需路线恢复的按操作控制)。
+
+本单元以 `9d7fcbdd` 为基线。最后一轮 `just check-changed mode=full` 的严格 Rust/CLI/脚本、版本、文档、布局、feature-on/off 和生产编译通过，Core 507 项、Bridge 169 项、八包 Flutter 1,635 项通过，保留 Core 1 项和 Bridge 2 项既有忽略。静态分析为 692 项既有 info，无 warning/error。该完整入口在 macOS Cargokit 构建失败，退出码 1 保留。后续定位到当前 Apple linker 在 macOS 12.0 与 `strip=debuginfo` 组合下生成的 proc-macro dylib 字符串池未对齐，dyld 拒绝加载。仅本轮低符号验证环境增加 `CARGO_PROFILE_DEV_STRIP=none`，保留 Debug 断言和 macOS 12.0 部署目标，原 staticlib 命令与 `just integration-test` 均退出 0。五项真实 macOS 集成包含新增恢复控制 FFI probe，最终 `just flutter-codegen-check` 也退出 0 且零漂移。原生运行器保留既有应用置前失败提示，五项断言均完成。
+
+上述结果复用同一生产与测试代码的既有通过段，再补齐原生和生成检查。完整失败日志与新增分段命令、环境、tree 和退出码保存在被忽略的 `.ubaa_local/command_mode_h1a/`。本轮只使用合成材料、固定路线和 Mock 学校 HTTP，没有真实账号、学校请求、其他平台设备、远端 CI 或发布验收。
 
 以下 CLI-a 验收数字属于既有候选的历史证据，不能用于证明新命令模式或共享服务已完成。
 
@@ -18,7 +24,7 @@ macOS 材料改用已锁定 security-framework 3.7.0 的原生字节接口，同
 
 日程一期 1a、1b 已增加 Rust Core 自建事项、标准重复展开、教学周规则转换、账号独立持久化、八类学校来源投影、课程逐节展开和本地合并查询，入口见[日程 Core 合同](../contracts/agenda.md)。日程 schema v2 使用逐记录明文 SQLite，无需密钥，不随只读缓存淘汰或重建，退出后保留，同账号登录后显式激活。学校投影沿现有首页规则并保留原始状态，合并查询叠加本地完成、隐藏与备注，返回各缓存范围时间和缺失信息。未同步删除标记一律保留。1c-a 已接入独立 typed Bridge、Dart 服务及账号生命周期。1c-b 已将首页七类学校待办切到 Core 统一纯投影，在线结果不依赖缓存或日程打开成功，离线沿用原快照证据，覆盖失败单独提示。Core 范围快照 `.ics` 已实现，本机导出与同账号指定路线缓存导出均不联网。CLI-a 已接入独立安全登记和三个本机只读命令，CLI v13；本机修改、导出文件和同步继续保留为后续阶段。日程已改为事项/覆盖各一行，仅更新变化记录并去除整账号密文上限。旧版、未知版和损坏库拒绝且保留，不自动迁移或重建。只读缓存继续加密，缓存 schema v7 及加密保持不变。已知账号身份与缓存密钥读取解耦，清除登录材料及缓存保留随机别名和原密钥。日程错误与可重建业务缓存错误分列，缓存不可用仍可操作本机日程。日程持久写操作与打开、关闭共用串行尾链。关闭请求立即撤销访问，已交付写入在关闭完成前收尾，旧代次排队写入在进入后端前拒绝，同账号重新打开不能越过旧写入。读取不阻塞关闭，安全索引禁止恢复独立启动。
 
-Rust Core 统一拥有认证、Direct/WebVPN/Auto 路线、会话、校园领域读写和加密缓存。CLI 与 Bridge 通过 facade 使用 Core，Flutter/OHOS 宿主通过 Bridge 与共享 Dart/UI 接线。当前公开合同为 CLI JSON schema v13 与 Flutter bridge contract v45，独立于 Session v2、配置 v1、业务缓存 v7。产品展示版本与合同版本分别治理，取值与发布规则见[版本约定](../development/conventions.md#版本号与依赖)。
+Rust Core 统一拥有认证、Direct/WebVPN/Auto 路线、会话、校园领域读写和加密缓存。CLI 与 Bridge 通过 facade 使用 Core，Flutter/OHOS 宿主通过 Bridge 与共享 Dart/UI 接线。当前公开合同为 CLI JSON schema v13 与 Flutter bridge contract v46，独立于 Session v2、配置 v1、业务缓存 v7。产品展示版本与合同版本分别治理，取值与发布规则见[版本约定](../development/conventions.md#版本号与依赖)。
 
 Core 与 CLI 已增加门户身份/学院、五项账户指标和网络流量在线查询，云盘指标明确为剩余空间。此前三个 facade 方法和 `portal profile`、`portal metrics`、`network usage` 命令已在 Direct/WebVPN 两条路线实测成功，并验证网络业务会话在 CLI 进程重开后复用。单项指标失败保留其他结果，金额采用十进制字符串，免费与计费剩余流量分别保留“不含套餐”的含义。精确范围见[门户与网费接入](source-parity-campus.md)。Bridge v43 已提供这三项类型化读取，移动端底栏新增“我的”页展示身份、账户指标与流量，先显示本机快照再后台在线刷新，并支持下拉刷新；三组数据按账号与路线保存快照，指标逐项保留最近成功值，App 内真实账号读取尚未单独验收。iOS 最低版本已按 Xcode 27.2 统一为 15.0。
 

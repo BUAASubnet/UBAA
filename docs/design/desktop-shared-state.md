@@ -121,6 +121,8 @@ H0 只提交设计、决策和状态文档，未修改生产认证、读取、�
 
 H1-a 提取现有 App 无感恢复：主要修改 `packages/ubaa_app/lib/src/controller/recovery/`、必要公共服务目录、backend 合同与 GUI 接线。复用 Core 的 `recover_required_session` 和 `login_required_route`，不复制协议实现。
 
+H1-a 先独立验收按操作取消的底层前置单元，再提取共同 Dart 服务。当前 Bridge 恢复持有客户端排他锁，`dispose` 也等待该锁。单请求超时不能限制锁排队；直接丢弃登录 Future 还会遗留准备页面和 execution，因此需要 Core 请求前检查与有限的中断收尾。前置单元只增加 Core/Bridge 控制能力及生成绑定。纯 Dart 服务、GUI 接线与消费者合并仍须随后完成，不能由前置单元通过推导 H1-a 整体完成。
+
 H0 将 H1-a 收敛为以下文件与接口，下一单元从新的固定基线开始：
 
 | 文件 | 责任 |
