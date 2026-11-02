@@ -51,7 +51,7 @@ just setup
 
 环境准备后的检查方式见[命令说明](commands.md)和[测试说明](testing.md)。FRB 生成检查单独执行；2026-10-29 阶段 1 验证使用锁定生成器 2.13.0，生成零漂移，审计记录的漂移未复现。当前验证范围见[迁移状态](../migration/status.md)。完整 Flutter golden 测试使用 macOS 渲染基准。
 
-Cargokit 使用 `crates/ubaa_flutter_bridge/cargokit.yaml` 中各构建模式的精确 Rust 版本。该文件采用 JSON 兼容的 YAML，`just tool-version-check` 会逐模式核对 `rust-toolchain.toml`，修改 Rust 锁定版本时必须同步配置。当前 vendored Cargokit 在上游通道配置基础上增加了精确版本支持，改动范围登记在 `packages/ubaa_bindings/cargokit/UPSTREAM.json`。Cargokit 回归可在其 `build_tool` 目录通过根 justfile 的 `dart test/toolchain_test.dart` 入口直接运行。
+Cargokit 使用 `crates/ubaa_flutter_bridge/cargokit.yaml` 中各构建模式的精确 Rust 版本。该文件采用 JSON 兼容的 YAML，`just tool-version-check` 会逐模式核对 `rust-toolchain.toml`，修改 Rust 锁定版本时必须同步配置。工具链主机遵循 `rustup show` 的 `Default host`，与 Cargo 的 `--target` 编译目标分别处理。安装检测、安装后重查和目标组件操作均使用补全后的完整工具链名称。当前 vendored Cargokit 在上游通道配置基础上增加了精确版本支持，改动范围登记在 `packages/ubaa_bindings/cargokit/UPSTREAM.json`。Cargokit 回归可在其 `build_tool` 目录通过根 justfile 的 `dart test/toolchain_test.dart` 入口直接运行。
 
 Windows runner 的 MSVC 目标在 CMake 中设置 `/utf-8`。Windows 构建无须再设置 `CL=/utf-8`。本机有多套 Visual Studio 时，仍需选择包含 ATL 的实例。
 

@@ -17,6 +17,7 @@ void main() {
       calls.add(args.arguments);
       return TestRunCommandResult(
           stdout: switch (args.arguments) {
+        ['show'] => 'Default host: x86_64-pc-windows-msvc\n',
         ['toolchain', 'list'] => 'stable-x86_64-pc-windows-msvc (default)\n'
             '1.95.0-x86_64-pc-windows-msvc\n',
         ['target', 'list', '--toolchain', _, '--installed'] =>

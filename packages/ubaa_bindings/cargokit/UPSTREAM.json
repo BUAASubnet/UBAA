@@ -72,6 +72,11 @@
       "commit": null,
       "path": "build_tool/lib/src/{options,builder,rustup}.dart",
       "summary": "允许 cargo.*.toolchain 使用精确 x.y.z 版本，并识别已安装版本工具链。Bridge 的 cargokit.yaml 与 rust-toolchain.toml 由工具版本检查逐模式核对。"
+    },
+    {
+      "commit": null,
+      "path": "build_tool/lib/src/rustup.dart",
+      "summary": "省略主机的通道和精确版本按 rustup show 的默认主机补全，按完整名称检测、安装后重查和选择目标组件，避免同版本其他ABI或架构被首个前缀匹配误选。"
     }
   ]
 }
