@@ -5,6 +5,99 @@ use clap::Parser;
 use std::io::{self, Cursor, Write};
 use ubaa_cli::{Cli, run_with_backend};
 
+struct LineLimitedInput {
+    bytes: Cursor<Vec<u8>>,
+    readable: usize,
+    extra_reads: usize,
+}
+impl LineLimitedInput {
+    fn new(bytes: &[u8], readable: usize) -> Self {
+        Self {
+            bytes: Cursor::new(bytes.to_vec()),
+            readable,
+            extra_reads: 0,
+        }
+    }
+}
+impl io::Read for LineLimitedInput {
+    fn read(&mut self, buffer: &mut [u8]) -> io::Result<usize> {
+        let available = io::BufRead::fill_buf(self)?;
+        let count = available.len().min(buffer.len());
+        buffer[..count].copy_from_slice(&available[..count]);
+        io::BufRead::consume(self, count);
+        Ok(count)
+    }
+}
+impl io::BufRead for LineLimitedInput {
+    fn fill_buf(&mut self) -> io::Result<&[u8]> {
+        if self.readable == 0 {
+            self.extra_reads += 1;
+            return Err(io::Error::other("合成输入尚未提供后续行或 EOF"));
+        }
+        let available = io::BufRead::fill_buf(&mut self.bytes)?;
+        Ok(&available[..available.len().min(self.readable)])
+    }
+    fn consume(&mut self, count: usize) {
+        assert!(count <= self.readable);
+        self.readable -= count;
+        io::BufRead::consume(&mut self.bytes, count);
+    }
+}
+
+async fn assert_invalid_stdin_username(first_line: &[u8], message: &str) {
+    let argv = [
+        "ubaa",
+        "--json",
+        "auth",
+        "login",
+        "--username-stdin",
+        "--password-stdin",
+    ];
+    let bytes = [first_line, b"synthetic-password\nnext-command\n"].concat();
+    let mut input = LineLimitedInput::new(&bytes, first_line.len());
+    let mut backend = common::FakeBackend::default();
+    let mut stdout = Vec::new();
+    assert_eq!(
+        run_with_backend(
+            Cli::try_parse_from(argv).unwrap(),
+            &mut backend,
+            &mut input,
+            &mut stdout,
+            &mut Vec::new(),
+        )
+        .await,
+        2,
+    );
+    assert_eq!(backend.login_calls, 0);
+    assert_eq!(input.bytes.position(), first_line.len() as u64);
+    assert_eq!(input.extra_reads, 0);
+    let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+    assert_eq!(value["error"]["message"], message);
+    common::assert_cli_schema(&value);
+
+    let mut input = LineLimitedInput::new(&bytes, first_line.len());
+    let error = prepare_input(parse(argv).unwrap(), &mut input, &CommandControl::default())
+        .err()
+        .expect("无效用户名必须立即失败");
+    assert_eq!(error.code, ubaa_core::facade::ErrorCode::InvalidInput);
+    assert_eq!(error.message, message);
+    assert_eq!(input.bytes.position(), first_line.len() as u64);
+    assert_eq!(input.extra_reads, 0, "用户名失败后不得尝试读取密码");
+}
+
+#[tokio::test]
+async fn 空_stdin_用户名不读取密码() {
+    assert_invalid_stdin_username(b"\n", "标准输入中缺少用户名").await;
+}
+#[tokio::test]
+async fn 全空白_stdin_用户名不读取密码() {
+    assert_invalid_stdin_username(" \t\u{3000}\r\n".as_bytes(), "用户名不能为空").await;
+}
+#[tokio::test]
+async fn 无效_utf8_stdin_用户名不读取密码() {
+    assert_invalid_stdin_username(b"\xff\n", "标准输入中缺少用户名").await;
+}
+
 #[derive(Default)]
 struct FlushFailure(Vec<u8>);
 impl Write for FlushFailure {
@@ -308,22 +401,46 @@ async fn stopped_result_can_deliver_one_bounded_timeout_envelope() {
     collect_err.join().unwrap();
 }
 
-#[test]
-fn login_snapshot_reads_required_lines_without_waiting_for_eof() {
+#[tokio::test]
+async fn login_snapshot_reads_required_lines_without_waiting_for_eof() {
     let control = CommandControl::default();
-    let plan = parse([
-        "ubaa",
-        "--json",
-        "auth",
-        "login",
-        "--username",
-        "synthetic",
-        "--password-stdin",
-    ])
-    .unwrap();
-    let mut input = Cursor::new(b"synthetic-password\nnext-command\n");
-    prepare_input(plan, &mut input, &control).unwrap();
-    assert_eq!(input.position(), 19);
+    for (username_args, credentials) in [
+        (vec!["--username", "synthetic"], "synthetic-password\n"),
+        (
+            vec!["--username-stdin"],
+            " synthetic \r\nsynthetic-password\n",
+        ),
+    ] {
+        let plan = parse(
+            ["ubaa", "--json", "auth", "login"]
+                .into_iter()
+                .chain(username_args)
+                .chain(["--password-stdin"]),
+        )
+        .unwrap();
+        let bytes = format!("{credentials}next-command\n");
+        let mut input = LineLimitedInput::new(bytes.as_bytes(), credentials.len());
+        let prepared = prepare_input(plan, &mut input, &control).unwrap();
+        assert_eq!(input.bytes.position(), credentials.len() as u64);
+        assert_eq!(input.extra_reads, 0, "凭据齐全后不得等待额外 EOF");
+        let mut backend = common::FakeBackend::default();
+        let result = execute_fixed_attempt(&prepared, &mut backend, &control).await;
+        let mut stdout = Vec::new();
+        assert_eq!(
+            result
+                .into_result()
+                .render(&control, &mut stdout, &mut Vec::new()),
+            0
+        );
+        assert_eq!(backend.login_calls, 1);
+        let value: serde_json::Value = serde_json::from_slice(&stdout).unwrap();
+        common::assert_cli_schema(&value);
+        assert!(
+            !String::from_utf8(stdout)
+                .unwrap()
+                .contains("synthetic-password")
+        );
+    }
 }
 
 #[test]

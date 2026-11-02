@@ -184,10 +184,16 @@ pub fn prepare_input(
         } else {
             usize::from(args.username_stdin || args.username.is_none()) + 1
         };
-        for _ in 0..lines {
-            input
-                .read_until(b'\n', &mut bytes)
-                .map_err(|_| crate::io::input::invalid_input("无法读取登录输入"))?;
+        for line in 0..lines {
+            if line == 0 && args.username_stdin {
+                let username = crate::io::input::read_username_stdin(input)?;
+                bytes.extend_from_slice(username.as_bytes());
+                bytes.push(b'\n');
+            } else {
+                input
+                    .read_until(b'\n', &mut bytes)
+                    .map_err(|_| crate::io::input::invalid_input("无法读取登录输入"))?;
+            }
             control.check().map_err(stop_error)?;
         }
     } else if plan.requirements().stdin {

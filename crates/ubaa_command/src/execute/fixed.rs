@@ -5,7 +5,7 @@ use std::io::{BufRead, Write};
 use crate::backend::CliBackend;
 use crate::command::{AuthArgs, AuthCommand, Cli, Command, LoginArgs, UserArgs, UserCommand};
 use crate::io::human::{redacted_profile, redacted_status};
-use crate::io::input::{invalid_input, prompt_line, read_secret_line};
+use crate::io::input::{invalid_input, prompt_line, read_secret_line, read_username_stdin};
 use crate::io::render::render_result;
 use crate::io::schema::CommandOutput;
 use crate::routing::ReadonlyRouteContext;
@@ -139,11 +139,7 @@ where
         if arguments.username.is_some() {
             return Err(invalid_input("--username 与 --username-stdin 不能同时使用"));
         }
-        let username = read_secret_line(input, "标准输入中缺少用户名")?;
-        if username.trim().is_empty() {
-            return Err(invalid_input("用户名不能为空"));
-        }
-        username
+        read_username_stdin(input)?
     } else {
         match arguments.username {
             Some(username) if !username.trim().is_empty() => username,

@@ -9,7 +9,9 @@ use ubaa_core::facade::{Result, UbaaError};
 use crate::command::{AuthArgs, AuthCommand, Cli, Command, LoginArgs};
 use crate::io::exit_code::{ExitCode, safe_error_exit_code};
 use crate::io::human::{redacted_profile, write_profile};
-use crate::io::input::{invalid_input, prompt_line, read_secret_line, write_json};
+use crate::io::input::{
+    invalid_input, prompt_line, read_secret_line, read_username_stdin, write_json,
+};
 use crate::io::render::render_startup_error;
 use crate::io::schema::{AggregateJsonEnvelope, CliFeature};
 
@@ -149,11 +151,7 @@ fn read_dual_credentials<R: BufRead, E: Write>(
         if arguments.username.is_some() {
             return Err(invalid_input("--username 与 --username-stdin 不能同时使用"));
         }
-        let username = read_secret_line(input, "标准输入中缺少用户名")?;
-        if username.trim().is_empty() {
-            return Err(invalid_input("用户名不能为空"));
-        }
-        username
+        read_username_stdin(input)?
     } else {
         match arguments.username.as_deref() {
             Some(username) if !username.trim().is_empty() => username.to_owned(),

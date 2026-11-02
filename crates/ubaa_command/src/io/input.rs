@@ -32,6 +32,14 @@ pub(crate) fn prompt_line<R: BufRead, E: Write>(
     }
 }
 
+pub(crate) fn read_username_stdin(input: &mut impl BufRead) -> Result<String> {
+    let username = read_secret_line(input, "标准输入中缺少用户名")?;
+    if username.trim().is_empty() {
+        return Err(invalid_input("用户名不能为空"));
+    }
+    Ok(username)
+}
+
 pub(crate) fn read_secret_line<R: BufRead>(input: &mut R, missing_message: &str) -> Result<String> {
     let mut value = String::new();
     input

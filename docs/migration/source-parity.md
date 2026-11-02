@@ -1019,3 +1019,11 @@ E3b课表旧网格与详情实施前逐操作对照见 [课表旧界面](source-
 | 研讨室 stdin 注入、短写与 flush、命令取消和期限 | 两者无同等终端接口，均不适用 | 既有 typed JSON 校验和写确认顺序保留，修复宿主输入绕过；停止投影沿 v13，见[决定](decision-log.md#2026-11-01h2-命令骨架平台分发与停止规则) |
 
 不新增学校协议，也不依据来源缺失补猜参数。验证仅用合成输入、Mock transport 和 NeverProbe；真实 Direct/WebVPN 本轮均不运行。
+
+2026-11-02 补充本地登录输入审查：按上述固定提交重读旧版 `LocalConnectionAuth.kt` 的 login、`model/dto/Auth.kt` 的 LoginRequest、`storage/CredentialStore.kt` 及 `LocalAuthServiceBackendTest.kt`、`AuthServiceTest.kt`，以及 buaa-api 的 `src/api/sso/auth.rs`、`src/api/user/auth.rs`、`src/store/cred.rs`。旧版接收完整用户名和密码，buaa-api 从凭据存储依次取用户名和密码，两者均无终端 stdin 快照接口。该接口的读取顺序、UTF-8 错误与退出码对两冻结来源均不适用，依据本项目已有固定路线与聚合登录输入实现保持兼容。
+
+| 操作 | CAS/service、重定向、最终 URL、Cookie/Session/Token | 方法、精确参数、头、编码、加密/签名 | DTO、缓存、并发、重试、错误与产品语义 |
+|---|---|---|---|
+| 登录 stdin 输入快照 | 只调整本地输入准备，上游各项沿用既有认证来源记录 | 无学校请求变化，无新增字段或常量 | 复用既有用户名读取与校验后才读取密码；空行、全空白与无效 UTF-8 首行立即返回原 InvalidInput，退出码保持 2，正常输入只读所需行；CLI schema 保持 v13，缓存、并发、重试与凭据存储不变 |
+
+三项合成失败回归先证明准备入口读取后续密码时的错误遮蔽。修复与验收仅使用合成材料和 Mock，本次本地输入变化不发起学校请求。
