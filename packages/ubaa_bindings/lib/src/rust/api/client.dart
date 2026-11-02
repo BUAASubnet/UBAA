@@ -30,6 +30,7 @@ import 'recovery.dart';
 import 'recovery/control.dart';
 import 'schedule_import.dart';
 import 'sensitive.dart';
+import 'shared_account.dart';
 import 'write.dart';
 import 'write/cache.dart';
 
@@ -197,6 +198,11 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// # Errors
   /// 原身份、会话、已退出仓库与待确认写意图失败保持稳定分类。
   Future<BridgeSpocScan> beginSpocScan({required BridgeOfflineCache cache});
+
+  ///
+  /// # Errors
+  /// 身份版本已撤销、输入非法或本地存储不可用时返回稳定错误。
+  Future<void> bindSharedAccount({required BridgeSharedAccount scope});
 
   /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
   ///
@@ -640,6 +646,12 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 客户端已销毁或 Core 注销失败时返回安全错误。
   Future<void> logout();
 
+  /// 仅在此退出调用内使用条件撤销票据，结束后恢复旧归属，不能继承为普通写资格。
+  ///
+  /// # Errors
+  /// 票据已被另一登录取代、客户端已关闭或本地退出失败时返回稳定错误。
+  Future<void> logoutWithSharedAccount({required BridgeSharedAccount scope});
+
   /// 在线读取网络产品流量，保留原始单位。
   Future<BridgeNetworkUsageResult> networkUsage();
 
@@ -807,6 +819,12 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeInteractiveLogin login,
     required BridgeConnectionMode route,
   });
+
+  /// 仅供显式登录开始使用，先丢弃旧写意图与派生读取。
+  ///
+  /// # Errors
+  /// 身份版本已撤销、输入非法或本地存储不可用时返回稳定错误。
+  Future<void> releaseSharedAccountForLogin();
 
   /// 读取全局路线策略与已认证槽位。
   ///
