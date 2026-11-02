@@ -15,7 +15,7 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dart_sources import SourceClosure, workspace_for
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
-from toolchain import load_environment
+from toolchain import bash_command, load_environment, sdk_executable
 
 
 from repo import ROOT
@@ -191,7 +191,7 @@ def main():
     flutter_root = os.environ.get("UBAA_FLUTTER_HOME", "")
     if not flutter_root or not Path(flutter_root).is_absolute():
         raise ValueError("请设置 UBAA_FLUTTER_HOME 为锁定官方 Flutter SDK 的绝对路径")
-    flutter = Path(flutter_root) / "bin" / "flutter"
+    flutter = sdk_executable(flutter_root, "flutter")
     environment = os.environ.copy()
     # 即使从带账号的终端发起，常规回归也不会继承真实配置入口。
     for name in ("UBAA_CONFIG_DIR", "UBAA_LIVE_MATERIAL_SCOPE", "UBAA_TEST_USERNAME",
@@ -212,7 +212,7 @@ def main():
         command = build_command(entry, flutter, args.platform, args.device)
         commands.append((command, entry_environment))
     if not args.dry_run:
-        subprocess.run(["bash", str(ROOT / "scripts/check/flutter-toolchains.sh"), "official"],
+        subprocess.run(bash_command(ROOT / "scripts/check/flutter-toolchains.sh", "official", environment=environment),
                        cwd=ROOT, env=environment, check=True)
     aggregate_dir = TEST_ROOT / AGGREGATE_DIR
     try:

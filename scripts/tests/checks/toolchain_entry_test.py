@@ -6,11 +6,68 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+import sys
+from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'lib'))
+import toolchain
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
 class ToolchainEntryTest(unittest.TestCase):
+    def test_Windows执行文件及Bash参数保留空格中文(self):
+        environment = {'PATH': '测试进程的PATH'}
+        script = r'D:\项目 空格\scripts\check.sh'
+        with patch.object(toolchain.sys, 'platform', 'win32'), patch.object(
+                toolchain.shutil, 'which', return_value=r'C:\Program Files\Git\bin\bash.exe') as which:
+            self.assertEqual(toolchain.bash_command(script, 'official', environment=environment),
+                             [r'C:\Program Files\Git\bin\bash.exe', 'D:/项目 空格/scripts/check.sh', 'official'])
+            which.assert_called_with('bash', path=environment['PATH'])
+            self.assertEqual(toolchain.sdk_executable(Path('/SDK 空格'), 'flutter').name, 'flutter.bat')
+            self.assertEqual(toolchain.sdk_executable(Path('/SDK 空格'), 'dart').name, 'dart.bat')
+            self.assertEqual(toolchain.venv_python(Path('/质量 工具')).parts[-2:], ('Scripts', 'python.exe'))
+        with patch.object(toolchain.sys, 'platform', 'linux'):
+            self.assertEqual(toolchain.sdk_executable(Path('/sdk'), 'flutter'), Path('/sdk/bin/flutter'))
+            self.assertEqual(toolchain.venv_python(Path('/quality')), Path('/quality/bin/python'))
+            self.assertEqual(toolchain.bash_command('/项目 空格/check.sh', environment={}),
+                             ['bash', '/项目 空格/check.sh'])
+
+    def test_setup与质量环境接受盘符路径并拒绝相对路径(self):
+        self.configure()
+        for name in ('scripts/bootstrap/setup.sh', 'scripts/lib/repo.sh', 'scripts/lib/versions.sh',
+                     'scripts/tools/versions.env', 'scripts/tools/environment.sh', 'scripts/tools/requirements.txt'):
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / name, target)
+        fakebin = self.root / 'fakebin'
+        fakebin.mkdir()
+        for name, source in {
+            'cygpath': '#!/bin/sh\nprintf "%s\\n" "$TEST_ABSOLUTE_ROOT"\n',
+            'git': '#!/bin/sh\necho synthetic-wrong-commit\n',
+        }.items():
+            program = fakebin / name
+            program.write_text(source)
+            program.chmod(0o755)
+        absolute = self.root / '工具 空格'
+        absolute.mkdir()
+        env = {**self.environment, 'PATH': str(fakebin) + os.pathsep + self.environment['PATH'],
+               'TEST_ABSOLUTE_ROOT': str(absolute)}
+        for root in ('D:/工具 空格', r'D:\工具 空格', str(absolute), 'relative/path', r'D:relative'):
+            accepted = root not in ('relative/path', r'D:relative')
+            with self.subTest(root=root):
+                current = {**env, 'UBAA_FLUTTER_HOME': root, 'UBAA_QUALITY_TOOLS_DIR': root}
+                result = subprocess.run(['bash', 'scripts/bootstrap/setup.sh'], cwd=self.root,
+                                        env=current, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 1 if accepted else 2, result.stderr)
+                if accepted:
+                    self.assertIn('不会改写已有 SDK', result.stderr)
+                result = subprocess.run(['bash', '-euc', 'source scripts/tools/environment.sh; printf %s "$quality_root"'],
+                                        cwd=self.root, env=current, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0 if accepted else 2, result.stderr)
+                if accepted:
+                    self.assertEqual(result.stdout, str(absolute))
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)

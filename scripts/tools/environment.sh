@@ -15,10 +15,10 @@ print(f'py{sys.version_info.major}.{sys.version_info.minor}-{digest}')
 PY
 )
 quality_root=${UBAA_QUALITY_TOOLS_DIR:-${XDG_CACHE_HOME:-$HOME/.cache}/ubaa2-quality/$quality_key}
-if [[ "$quality_root" != /* ]]; then
+if ! quality_root=$(ubaa_toolchain_absolute_path "$quality_root"); then
   printf '%s\n' 'error: UBAA_QUALITY_TOOLS_DIR 必须是绝对路径' >&2
   exit 2
 fi
 # 由 source 本文件的执行入口消费。
 # shellcheck disable=SC2034
-quality_python="$quality_root/bin/python"
+quality_python=$(python3 "$quality_script_dir/../lib/toolchain.py" venv-python "$quality_root")
