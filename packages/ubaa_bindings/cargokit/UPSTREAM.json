@@ -67,6 +67,11 @@
       "commit": null,
       "path": "cmake/cargokit.cmake",
       "summary": "OHOS 打包保留 Rust 动态库原名，使 HAP 文件名与 Dart 加载名称一致，并在复制前创建目标目录。"
+    },
+    {
+      "commit": null,
+      "path": "build_tool/lib/src/{options,builder,rustup}.dart",
+      "summary": "允许 cargo.*.toolchain 使用精确 x.y.z 版本，并识别已安装版本工具链。Bridge 的 cargokit.yaml 与 rust-toolchain.toml 由工具版本检查逐模式核对。"
     }
   ]
 }

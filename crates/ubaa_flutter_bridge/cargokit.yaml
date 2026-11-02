@@ -1,0 +1,22 @@
+{
+  "cargo": {
+    "debug": {
+      "toolchain": "1.95.0",
+      "extra_flags": [
+        "--locked"
+      ]
+    },
+    "profile": {
+      "toolchain": "1.95.0",
+      "extra_flags": [
+        "--locked"
+      ]
+    },
+    "release": {
+      "toolchain": "1.95.0",
+      "extra_flags": [
+        "--locked"
+      ]
+    }
+  }
+}

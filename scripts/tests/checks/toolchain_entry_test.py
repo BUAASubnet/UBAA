@@ -16,6 +16,29 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class ToolchainEntryTest(unittest.TestCase):
+    def test_Cargokit所有模式必须与Rust锁定文件一致(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('tool_versions', ROOT / 'scripts/check/tool_versions.py')
+        versions = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(versions)
+        config = self.root / 'crates/ubaa_flutter_bridge/cargokit.yaml'
+        config.parent.mkdir(parents=True)
+        valid = {'cargo': {mode: {'toolchain': '1.95.0', 'extra_flags': ['--locked']}
+                           for mode in ('debug', 'profile', 'release')}}
+        config.write_text(json.dumps(valid))
+        versions.check_cargokit_toolchains(self.root, '1.95.0')
+        for mode in ('debug', 'profile', 'release'):
+            for invalid in ('stable', '1.99.1', None):
+                with self.subTest(mode=mode, invalid=invalid):
+                    changed = json.loads(json.dumps(valid))
+                    if invalid is None:
+                        del changed['cargo'][mode]
+                    else:
+                        changed['cargo'][mode]['toolchain'] = invalid
+                    config.write_text(json.dumps(changed))
+                    with self.assertRaises(ValueError):
+                        versions.check_cargokit_toolchains(self.root, '1.95.0')
+
     def test_POSIX无转换器时盘符在安装前被拒绝(self):
         self.configure()
         for name in ('scripts/bootstrap/setup.sh', 'scripts/bootstrap/quality-tools.sh',
