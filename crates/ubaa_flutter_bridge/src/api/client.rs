@@ -18,7 +18,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 46;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 47;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -95,7 +95,13 @@ impl BridgeError {
         resolved_route: Option<BridgeConnectionMode>,
     ) -> Self {
         Self {
-            code: error.code.into(),
+            code: if error.is_client_closed() {
+                BridgeErrorCode::ClientDisposed
+            } else if error.is_shared_account_conflict() {
+                BridgeErrorCode::OperationConflict
+            } else {
+                error.code.into()
+            },
             kind: error.kind.into(),
             retryable: error.retryable,
             message: error.message,
@@ -249,6 +255,7 @@ pub struct BridgeRoutedUserProfile {
 /// FRB opaque client。内部 Core、Session 和路线 runtime 不对 Dart 可见。
 pub struct BridgeClient {
     config_dir: PathBuf,
+    close_control: ubaa_core::facade::ClientCloseControl,
     pub(crate) inner: super::read_pool::ClientPool,
     pub(crate) write_intents: tokio::sync::Mutex<HashMap<String, super::write::PendingEntry>>,
     pub(crate) auth_control: RwLock<ubaa_core::facade::InteractiveLoginCancellation>,
@@ -265,6 +272,7 @@ impl BridgeClient {
     ) -> Result<Self, super::initialization::BridgeInitializationError> {
         let client = super::initialization::open(&config_dir)?;
         Ok(Self {
+            close_control: client.close_control(),
             config_dir: PathBuf::from(config_dir),
             auth_control: RwLock::new(client.interactive_login_cancellation()),
             is_disposed: AtomicBool::new(false),
@@ -287,6 +295,7 @@ impl BridgeClient {
     /// 当前实现不会返回错误；保留 `Result` 以便未来生命周期清理失败时维持稳定 ABI。
     pub async fn dispose(&self) -> Result<(), BridgeError> {
         self.is_disposed.store(true, Ordering::SeqCst);
+        self.close_control.close();
         self.cancel_interactive_login();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
@@ -646,7 +655,7 @@ mod tests {
         let path = std::env::temp_dir().join(format!("ubaa-bridge-client-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&path);
         let client = BridgeClient::open(path.to_string_lossy().into_owned()).expect("open client");
-        assert_eq!(client.contract_version(), 46);
+        assert_eq!(client.contract_version(), 47);
         client.dispose().await.expect("dispose client");
         client.dispose().await.expect("dispose client twice");
         let error = client.auth_status().await.expect_err("disposed client");
@@ -667,7 +676,7 @@ mod tests {
         old.dispose().await.expect("dispose old client");
 
         let rebuilt = BridgeClient::open(config_dir).expect("reopen after isolate rebuild");
-        assert_eq!(rebuilt.contract_version(), 46);
+        assert_eq!(rebuilt.contract_version(), 47);
         assert_eq!(
             old.route_settings()
                 .await

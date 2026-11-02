@@ -112,6 +112,13 @@ final class RecoveryScope {
     }
   }
 
+  Future<SharedAccountBinding?> sharedBinding() async {
+    final persistent = _persistent;
+    return persistent == null
+        ? null
+        : persistent.accounts.bindSnapshot(persistent.snapshot);
+  }
+
   Future<void> publishRecovery() async {
     final persistent = _persistent;
     if (persistent != null)

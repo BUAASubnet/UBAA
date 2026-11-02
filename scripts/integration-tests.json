@@ -161,6 +161,23 @@
         "UBAA_SECURE_STORAGE_AVAILABLE=true",
         "UBAA_SYNTHETIC_SECRET_SERVICE=true"
       ]
+    },
+    {
+      "path": "synthetic/cache/shared_lifecycle_test.dart",
+      "kind": "synthetic",
+      "domain": "shared-account",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": true,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     }
   ]
 }

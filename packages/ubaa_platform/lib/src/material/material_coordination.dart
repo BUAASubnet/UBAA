@@ -68,6 +68,40 @@ final class MaterialCoordinator {
     }
   }
 
+  /// 在已持有材料独占事务时发布只用于撤销的公开版本，不保存身份或凭据。
+  Future<void> publishAccountGeneration(int generation) async {
+    final lease = Zone.current[_zoneKey];
+    if (lease is! _Lease || !lease.active || generation < 1)
+      throw const MaterialCoordinationException(true);
+    await beforeMutation();
+    await lease.persistFile(
+      File('${lease.state.parent.path}/account-generation.v1'),
+      'UBAA1:$generation',
+    );
+  }
+
+  /// 调用方须先在同一事务中核对权威安全索引；仅缺失版本记录允许首次建立。
+  Future<String> accountGenerationDirectory(int generation) async {
+    final lease = Zone.current[_zoneKey];
+    if (lease is! _Lease || !lease.active)
+      throw const MaterialCoordinationException(true);
+    final file = File('${lease.state.parent.path}/account-generation.v1');
+    try {
+      final type = await FileSystemEntity.type(file.path, followLinks: false);
+      if (type != FileSystemEntityType.file &&
+          type != FileSystemEntityType.notFound)
+        throw const MaterialCoordinationException(true);
+      if (await file.readAsString() != 'UBAA1:$generation')
+        throw const MaterialCoordinationException(true);
+    } on FileSystemException catch (error) {
+      if (error.osError?.errorCode != 2 &&
+          !(Platform.isWindows && error.osError?.errorCode == 3))
+        rethrow;
+      await publishAccountGeneration(generation);
+    }
+    return lease.state.parent.path;
+  }
+
   Future<T> run<T>(Future<T> Function() action) async {
     final borrowed = Zone.current[_zoneKey];
     if (borrowed is _Lease) {
@@ -218,16 +252,21 @@ class _Lease {
   bool dirty = false;
   bool failed = false;
   Future<void>? start;
-  Future<void> persist(String value) async {
+  Future<void> persist(String value) => persistFile(state, value);
+  Future<void> persistFile(File file, String value) async {
+    final type = await FileSystemEntity.type(file.path, followLinks: false);
+    if (type != FileSystemEntityType.notFound &&
+        type != FileSystemEntityType.file)
+      throw const MaterialCoordinationException(true);
     // 不替换 inode。先 flush 未完成标记，再允许任何外部材料变更。
-    final handle = await state.open(mode: FileMode.write);
+    final handle = await file.open(mode: FileMode.write);
     try {
       await handle.writeString(value);
       await handle.flush();
     } finally {
       await handle.close();
     }
-    if (!Platform.isWindows) _UnixLock.chmod(state.path, 384);
+    if (!Platform.isWindows) _UnixLock.chmod(file.path, 384);
   }
 }
 

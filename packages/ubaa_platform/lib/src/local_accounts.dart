@@ -50,6 +50,31 @@ final class LocalAccountSnapshot {
   String toString() => 'LocalAccountSnapshot(generation: ${state.generation})';
 }
 
+/// 只能从安全索引捕获的本机版本，不能从裸 alias 或用户名构造。
+final class SharedAccountBinding {
+  SharedAccountBinding._(
+    this.accounts,
+    this.snapshot,
+    this.directory, {
+    this.isRevocation = false,
+  });
+  final SecureLocalAccountStore accounts;
+  final LocalAccountSnapshot snapshot;
+  final String directory;
+  final bool isRevocation;
+  int get generation => snapshot.state.generation;
+  LocalAccount get account => snapshot.state.account!;
+  Future<void> validate() async {
+    if (!await accounts.validate(snapshot, requireRestore: false))
+      throw const LocalAccountConflict();
+  }
+
+  Future<void> commit(void Function() deliver) =>
+      accounts.commitIfCurrent(snapshot, deliver, requireRestore: false);
+  @override
+  String toString() => 'SharedAccountBinding([REDACTED])';
+}
+
 final class LocalAccountConflict extends SecureMaterialException {
   const LocalAccountConflict();
   @override
@@ -71,6 +96,20 @@ final class SecureLocalAccountStore implements LocalAccountStore {
     return index == null
         ? null
         : LocalAccountSnapshot._(materials, index.state, index.continuity);
+  });
+
+  /// 在权威索引事务内捕获本机撤销版本，不签发学校身份。
+  Future<SharedAccountBinding> bindSnapshot(
+    LocalAccountSnapshot snapshot, {
+    bool requireRestore = true,
+  }) => _serial(() async {
+    if (!_matches(await _load(), snapshot, requireRestore) ||
+        snapshot.state.account == null)
+      throw const LocalAccountConflict();
+    final directory = await materials.coordinator.accountGenerationDirectory(
+      snapshot.state.generation,
+    );
+    return SharedAccountBinding._(this, snapshot, directory);
   });
 
   bool _matches(
@@ -121,11 +160,32 @@ final class SecureLocalAccountStore implements LocalAccountStore {
   /// 结果交付的短提交边界；回调同步执行，不允许在材料锁内进行网络或管道等待。
   Future<void> commitIfCurrent(
     LocalAccountSnapshot snapshot,
-    void Function() commit,
-  ) => _serial(() async {
-    if (!_matches(await _load(), snapshot, true))
+    void Function() commit, {
+    bool requireRestore = true,
+  }) => _serial(() async {
+    if (!_matches(await _load(), snapshot, requireRestore))
       throw const LocalAccountConflict();
     commit();
+  });
+
+  /// 显式退出只撤销原快照，返回本次撤销所属的固定版本供受限清理。
+  Future<SharedAccountBinding> revokeBinding(
+    LocalAccountSnapshot snapshot,
+  ) => _serial(() async {
+    final index = await _load();
+    if (!_matches(index, snapshot, false)) throw const LocalAccountConflict();
+    index!.canRestore = false;
+    index.advanceIdentity();
+    await _save(index);
+    final revoked = LocalAccountSnapshot._(
+      materials,
+      index.state,
+      index.continuity,
+    );
+    final directory = await materials.coordinator.accountGenerationDirectory(
+      index.generation,
+    );
+    return SharedAccountBinding._(this, revoked, directory, isRevocation: true);
   });
 
   Future<LocalAccountState> revokeIfCurrent(LocalAccountSnapshot snapshot) =>
@@ -256,24 +316,27 @@ final class SecureLocalAccountStore implements LocalAccountStore {
     }
   }
 
-  Future<void> _save(_AccountIndex index) => materials.write(
-    _indexKey,
-    jsonEncode({
-      'version': 3,
-      'continuity': index.continuity,
-      'generation': index.generation,
-      'activeId': index.activeId,
-      'canRestore': index.canRestore,
-      'accounts': [
-        for (final account in index.accounts)
-          {
-            'id': account.id,
-            'username': account.username,
-            'cacheKeyPending': index.pendingCacheKeys.contains(account.id),
-          },
-      ],
-    }),
-  );
+  Future<void> _save(_AccountIndex index) async {
+    await materials.write(
+      _indexKey,
+      jsonEncode({
+        'version': 3,
+        'continuity': index.continuity,
+        'generation': index.generation,
+        'activeId': index.activeId,
+        'canRestore': index.canRestore,
+        'accounts': [
+          for (final account in index.accounts)
+            {
+              'id': account.id,
+              'username': account.username,
+              'cacheKeyPending': index.pendingCacheKeys.contains(account.id),
+            },
+        ],
+      }),
+    );
+    await materials.coordinator.publishAccountGeneration(index.generation);
+  }
 }
 
 class _AccountIndex {

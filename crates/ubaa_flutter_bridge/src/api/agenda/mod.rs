@@ -1,5 +1,5 @@
 //! 本机日程独立于网络客户端、业务缓存密钥和学校操作资格。
-mod convert;
+pub(crate) mod convert;
 mod evidence;
 pub mod home;
 mod home_input;
@@ -21,7 +21,7 @@ use std::path::Path;
 use ubaa_core::facade as core;
 
 pub struct BridgeAgendaStore {
-    store: core::AgendaStore,
+    pub(crate) store: core::AgendaStore,
 }
 async fn task<T: Send + 'static>(
     f: impl FnOnce() -> Result<T, BridgeAgendaError> + Send + 'static,

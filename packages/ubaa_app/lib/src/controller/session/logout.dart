@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
+import 'package:ubaa_app/src/contracts/lifecycle.dart';
 import '../state/state.dart' show ControllerState, LocalDataOwnerScope;
 import '../state/types.dart'
     show AppPhase, LoginFormState, SessionRecoveryStatus;
@@ -56,9 +57,25 @@ mixin ControllerLogout on ControllerState {
 
     // 先同步撤销日程代次，不能等待安全索引或后端工厂后才拒绝旧结果。
     final agendaClosed = attempt(internalCloseAgenda);
-    final indexClosed = attempt(
-      () async => internalLocalAccountStore?.signOut(),
-    );
+    var ownsCleanup = true;
+    SharedAccountBinding? revokedBinding;
+    LocalAccountSnapshot? cleanupSnapshot;
+    final indexClosed = attempt(() async {
+      final accounts = internalLocalAccountStore;
+      final backend = internalBackend;
+      final snapshot = internalSharedAccountSnapshot;
+      if (accounts is SecureLocalAccountStore &&
+          backend is SharedAccountBackend) {
+        ownsCleanup = false;
+        if (snapshot == null) throw const LocalAccountConflict();
+        final revoked = await accounts.revokeBinding(snapshot);
+        revokedBinding = revoked;
+        internalSharedAccountSnapshot = revoked.snapshot;
+        ownsCleanup = true;
+      } else {
+        await accounts?.signOut();
+      }
+    });
     try {
       await indexClosed;
       await internalBackendRebuildCompletion?.future;
@@ -70,27 +87,69 @@ mixin ControllerLogout on ControllerState {
         return;
       }
       await agendaClosed;
-      // 账号别名与原缓存密钥保留，只清除可确认清除的缓存内容。
-      await attempt(
-        () => internalCloseOfflineAccount(remove: clearSavedCredential),
-      );
-      await attempt(internalBackend.logout);
-      if (clearSavedCredential) {
+      final backend = internalBackend;
+      final revoked = revokedBinding;
+      if (ownsCleanup &&
+          revoked != null &&
+          backend is SharedAccountLogoutBackend) {
+        await attempt(
+          () => (backend as SharedAccountLogoutBackend).logoutSharedAccount(
+            revoked,
+            clearCache: clearSavedCredential,
+          ),
+        );
+      } else {
+        await attempt(
+          () => internalCloseOfflineAccount(
+            remove: clearSavedCredential && ownsCleanup,
+          ),
+        );
+        if (ownsCleanup) await attempt(internalBackend.logout);
+      }
+      if (clearSavedCredential && ownsCleanup) {
         if (internalDisposed)
           throw const CredentialVaultException(
             CredentialVaultErrorCode.storageFailure,
           );
         await attempt(
-          () => internalMutateCredential(
-            internalLifecycleEpoch,
-            internalCredentialVault.clear,
-          ),
+          () => internalMutateCredential(internalLifecycleEpoch, () async {
+            final accounts = internalLocalAccountStore;
+            final snapshot = revokedBinding?.snapshot;
+            if (accounts is SecureLocalAccountStore &&
+                internalBackend is SharedAccountBackend) {
+              if (snapshot == null) throw const LocalAccountConflict();
+              await accounts.materials.coordinate(() async {
+                if (!await accounts.validate(snapshot, requireRestore: false))
+                  throw const LocalAccountConflict();
+                await internalCredentialVault.clear();
+                cleanupSnapshot = await accounts.capture();
+              });
+            } else {
+              await internalCredentialVault.clear();
+            }
+          }),
         );
         if (internalDisposed)
           throw const CredentialVaultException(
             CredentialVaultErrorCode.storageFailure,
           );
-        if (clearLocalData != null) await attempt(clearLocalData);
+        if (clearLocalData != null)
+          await attempt(() async {
+            final accounts = internalLocalAccountStore;
+            final snapshot = cleanupSnapshot;
+            if (accounts is SecureLocalAccountStore &&
+                internalBackend is SharedAccountBackend) {
+              if (snapshot == null) throw const LocalAccountConflict();
+              // Core 缓存已在前段清理；这里仅执行账号固定的本机偏好回调。
+              await accounts.materials.coordinate(() async {
+                if (!await accounts.validate(snapshot, requireRestore: false))
+                  throw const LocalAccountConflict();
+                await clearLocalData();
+              });
+            } else {
+              await clearLocalData();
+            }
+          });
       }
       if (!internalDisposed) {
         internalUser = null;

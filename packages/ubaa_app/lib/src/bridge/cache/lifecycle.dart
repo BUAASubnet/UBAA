@@ -9,6 +9,22 @@ import '../support/mapping.dart'
 part 'rebuild.dart';
 part 'account.dart';
 
+Future<void> bridgeValidateSharedBinding(SharedAccountBinding? binding) async {
+  try {
+    await binding?.validate();
+  } on LocalAccountConflict {
+    throw const BackendException(UbaaErrorCode.operationConflict);
+  }
+}
+
+Future<void> bridgeCommitSharedBinding(SharedAccountBinding? binding) async {
+  try {
+    await binding?.commit(() {});
+  } on LocalAccountConflict {
+    throw const BackendException(UbaaErrorCode.operationConflict);
+  }
+}
+
 // Zone 只携带代际值，不建立错误 Zone；Core 仍负责事务内的持久化屏障。
 Future<T> bridgeWithOfflineRead<T>(
   BridgeContext backend,
@@ -18,8 +34,18 @@ Future<T> bridgeWithOfflineRead<T>(
       Zone.current[backend.cache.scopeKey] as int? ?? backend.cache.generation;
   return runZoned(() async {
     bridgeCheckOfflineGeneration(backend, generation);
+    final binding = backend.sharedAccount;
+    if (binding != null) await bridgeValidateSharedBinding(binding);
+    bridgeCheckOfflineGeneration(backend, generation);
     try {
-      return await read();
+      final value = await read();
+      try {
+        if (binding != null) await bridgeCommitSharedBinding(binding);
+        return value;
+      } on Object {
+        if (value is FeatureReadTask) value.cancel();
+        rethrow;
+      }
     } finally {
       // 迟到的成功或错误均不属于新一代，避免旧认证错误干扰当前账号。
       bridgeCheckOfflineGeneration(backend, generation);
@@ -28,7 +54,7 @@ Future<T> bridgeWithOfflineRead<T>(
 }
 
 void bridgeCheckOfflineGeneration(BridgeContext backend, int generation) {
-  if (backend.cache.generation != generation) {
+  if (backend.closed || backend.cache.generation != generation) {
     throw const BackendException(UbaaErrorCode.operationConflict);
   }
 }
@@ -78,6 +104,7 @@ Future<CacheClearOutcome> bridgeClearBusinessCache(
       final old = bridgeManagementCache(backend, accountId);
       final reset = await old.clearAndReopen();
       backend.cache.handle = reset.cache;
+      await bridgeCommitSharedBinding(backend.sharedAccount);
       return bridgeCacheClearOutcome(reset.report, accountId);
     } on BridgeError catch (error) {
       throw bridgeMapError(error);

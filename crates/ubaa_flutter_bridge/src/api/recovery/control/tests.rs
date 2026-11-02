@@ -86,7 +86,7 @@ impl Drop for Fixture {
 #[tokio::test]
 async fn 锁排队期间取消和期限到达都零网络返回() {
     for deadline in [false, true] {
-        let fixture = Fixture::new().await;
+        let fixture = Box::pin(Fixture::new()).await;
         let held = fixture.bridge.inner.lock().await;
         let control = BridgeRequiredRecoveryControl::new(if deadline { 40 } else { 2000 }).unwrap();
         let mut call = Box::pin(
@@ -122,7 +122,7 @@ async fn 锁排队期间取消和期限到达都零网络返回() {
 
 #[tokio::test]
 async fn 取消永挂传输后恢复和销毁均有界且传输确实释放() {
-    let fixture = Fixture::new().await;
+    let fixture = Box::pin(Fixture::new()).await;
     let control = BridgeRequiredRecoveryControl::new(2000).unwrap();
     let mut call = Box::pin(
         fixture
@@ -150,7 +150,7 @@ async fn 取消永挂传输后恢复和销毁均有界且传输确实释放() {
 #[tokio::test]
 async fn 受控恢复保留写意图冲突且控制柄不能重复使用() {
     use crate::api::write::{BridgeBykcCourseRequest, PendingEntry, PendingWrite};
-    let fixture = Fixture::new().await;
+    let fixture = Box::pin(Fixture::new()).await;
     fixture.bridge.write_intents.lock().await.insert(
         "synthetic".into(),
         PendingEntry {

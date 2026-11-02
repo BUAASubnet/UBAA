@@ -30,6 +30,26 @@ pub struct UbaaClient {
 }
 
 impl UbaaClient {
+    /// 本客户端及其派生任务的本进程关闭控制，不注销共享账号。
+    #[must_use]
+    pub fn close_control(&self) -> super::ClientCloseControl {
+        super::ClientCloseControl {
+            direct: self.direct_runtime.consumer_closed.clone(),
+            webvpn: self.webvpn_runtime.consumer_closed.clone(),
+        }
+    }
+
+    /// 当前固定共享归属，供受限退出在同一客户端锁内临时替换并恢复。
+    #[must_use]
+    pub fn shared_account_guard(&self) -> Option<super::SharedAccountGuard> {
+        self.direct_runtime.shared_account.clone()
+    }
+    /// 绑定已捕获的本机撤销版本，不采用或恢复新会话。
+    pub fn bind_shared_account(&mut self, guard: Option<super::SharedAccountGuard>) {
+        self.direct_runtime.shared_account.clone_from(&guard);
+        self.webvpn_runtime.shared_account = guard;
+    }
+
     /// 基于一个双槽位会话文件打开生产 Direct 和 `WebVPN` 运行时。
     ///
     /// # Errors

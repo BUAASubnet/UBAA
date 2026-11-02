@@ -8,6 +8,8 @@ pub use crate::domain::{
 mod verified_identity;
 pub use verified_identity::VerifiedLoginIdentity;
 mod client;
+mod shared_account;
+pub use shared_account::{ClientCloseControl, SharedAccountGuard};
 mod diagnostic;
 mod judge_refresh;
 mod judge_scan;

@@ -81,7 +81,99 @@ class _PausingClear implements PlatformSecureCredentialStore {
   }
 }
 
+class _ScopedLogoutBackend extends _Backend
+    implements SharedAccountBackend, SharedAccountLogoutBackend {
+  _ScopedLogoutBackend(super.root, this.external);
+  final SecureLocalAccountStore external;
+  LocalAccountState? fresh;
+  @override
+  Future<void> bindSharedAccount(SharedAccountBinding binding) =>
+      binding.validate();
+  @override
+  Future<void> logoutSharedAccount(
+    SharedAccountBinding revoked, {
+    required bool clearCache,
+  }) async {
+    await revoked.validate();
+    // 模拟本次撤销后、凭据清理前另一进程完成同 alias 显式登录。
+    fresh = await external.retain(profile.username, retainSession: true);
+  }
+}
+
 void main() {
+  test('退出凭据清理被新登录拒绝后，不得无归属执行本机偏好回调', () async {
+    final root = await probe.fixture();
+    final accounts = await probe.openAccounts(root);
+    final external = await probe.openAccounts(root);
+    final vault = MemoryCredentialVault(initial: saved);
+    final backend = _ScopedLogoutBackend(root, external);
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: accounts,
+      credentialVault: vault,
+    );
+    var clears = 0;
+    try {
+      await controller.initialize();
+      await expectLater(
+        controller.logout(
+          clearSavedCredential: true,
+          clearLocalData: () async {
+            clears++;
+          },
+        ),
+        throwsA(isA<LocalAccountConflict>()),
+      );
+      expect(backend.fresh, isNotNull);
+      expect(clears, 0);
+      expect((await vault.read())!.password, saved.password);
+      expect((await accounts.read())!.generation, backend.fresh!.generation);
+      expect((await accounts.read())!.canRestore, isTrue);
+    } finally {
+      controller.dispose();
+      await controller.internalDisposeBackendOnce(backend);
+      await root.delete(recursive: true);
+    }
+  });
+
+  test('共享后端没有所属快照时，退出不能撤销另一消费者的新登录', () async {
+    final root = await probe.fixture();
+    final accounts = await probe.openAccounts(root);
+    final external = await probe.openAccounts(root);
+    final vault = MemoryCredentialVault(initial: saved);
+    final backend = _ScopedLogoutBackend(root, external);
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: accounts,
+      credentialVault: vault,
+    );
+    var clears = 0;
+    try {
+      // 未 initialize 的消费者没有所属快照，不能使用外部最新账号作为退出目标。
+      final fresh = await external.retain(
+        profile.username,
+        retainSession: true,
+      );
+      await expectLater(
+        controller.logout(
+          clearSavedCredential: true,
+          clearLocalData: () async {
+            clears++;
+          },
+        ),
+        throwsA(isA<LocalAccountConflict>()),
+      );
+      expect((await accounts.read())!.generation, fresh.generation);
+      expect((await accounts.read())!.canRestore, isTrue);
+      expect((await vault.read())!.password, saved.password);
+      expect(clears, 0);
+    } finally {
+      controller.dispose();
+      await controller.internalDisposeBackendOnce(backend);
+      await root.delete(recursive: true);
+    }
+  });
+
   for (final action in ['退出', '退出重登', '切号', '撤销许可']) {
     test('最终路线设置 await 期间退出，外部操作=$action，旧恢复不得发布 ready', () async {
       final root = await probe.fixture();

@@ -37,6 +37,8 @@ pub(crate) struct ClientRuntime {
     interactive_login_scope: Option<InteractiveLoginHandle>,
     required_recovery_scope: Option<crate::domain::RequiredRecoveryControl>,
     readonly_generation: Option<ReadonlyOwner>,
+    pub(crate) consumer_closed: Arc<AtomicBool>,
+    pub(crate) shared_account: Option<crate::facade::SharedAccountGuard>,
 }
 
 impl ClientRuntime {
@@ -110,6 +112,8 @@ impl ClientRuntime {
             interactive_login_scope: None,
             required_recovery_scope: None,
             readonly_generation: None,
+            shared_account: None,
+            consumer_closed: Arc::new(AtomicBool::new(false)),
         })
     }
 
@@ -155,6 +159,8 @@ impl ClientRuntime {
             interactive_login_scope: None,
             required_recovery_scope: None,
             readonly_generation: self.readonly_generation.clone(),
+            shared_account: self.shared_account.clone(),
+            consumer_closed: self.consumer_closed.clone(),
         }
     }
 
@@ -191,7 +197,14 @@ impl ClientRuntime {
         self.required_recovery_scope = scope;
     }
 
+    fn check_consumer(&self) -> Result<()> {
+        if self.consumer_closed.load(Ordering::SeqCst) {
+            return Err(UbaaError::client_closed());
+        }
+        Ok(())
+    }
     fn check_authentication_scope(&self) -> Result<()> {
+        self.check_consumer()?;
         if let Some(scope) = &self.required_recovery_scope {
             scope.check()?;
             self.ensure_session_revision()?;
@@ -220,6 +233,10 @@ impl ClientRuntime {
     ///
     /// 只比较单调 CAS 修订，不重新采用外部快照；发现变化后由上层清理内存并拒绝操作。
     pub(crate) fn ensure_session_revision(&self) -> Result<()> {
+        self.check_consumer()?;
+        if let Some(scope) = &self.shared_account {
+            scope.check()?;
+        }
         self.ensure_readonly_generation()?;
         if !self.store.is_revision_current(self.session_revision)? {
             return Err(session_conflict());
@@ -278,8 +295,18 @@ impl ClientRuntime {
         if self.readonly_generation.is_some() {
             self.ensure_session_revision()?;
         }
+        let permit = self
+            .shared_account
+            .as_ref()
+            .map(crate::facade::SharedAccountGuard::acquire)
+            .transpose()?;
         let request_url = request.url.clone();
-        let response = self.transport.execute(request).await?;
+        let pending = self.transport.execute(request);
+        drop(permit);
+        let response = pending.await?;
+        if let Some(scope) = &self.shared_account {
+            scope.check()?;
+        }
         if self.readonly_generation.is_some() {
             self.ensure_session_revision()?;
         }
@@ -322,15 +349,22 @@ impl ClientRuntime {
         self.ensure_session_revision()?;
         pre_send_check(self)?;
         let request_url = request.url.clone();
+        let permit = self
+            .shared_account
+            .as_ref()
+            .map(crate::facade::SharedAccountGuard::acquire)
+            .transpose()?;
         self.non_idempotent_boundary_crossed = true;
         if let Some(observer) = self.write_observer.as_ref().and_then(Weak::upgrade) {
             observer.store(true, Ordering::SeqCst);
         }
-        let response = self
-            .transport
-            .execute(request)
-            .await
-            .map_err(|_| write_outcome_unknown())?;
+        let pending = self.transport.execute(request);
+        drop(permit);
+        let response = pending.await.map_err(|_| write_outcome_unknown())?;
+        self.check_consumer().map_err(|_| write_outcome_unknown())?;
+        if let Some(scope) = &self.shared_account {
+            scope.check().map_err(|_| write_outcome_unknown())?;
+        }
         self.jar
             .store_response(&response, &request_url, now)
             .map_err(|_| write_outcome_unknown())?;
@@ -356,6 +390,11 @@ impl ClientRuntime {
             authenticated_at,
             last_activity: now,
         };
+        let _permit = self
+            .shared_account
+            .as_ref()
+            .map(crate::facade::SharedAccountGuard::acquire)
+            .transpose()?;
         let mutation = match self
             .store
             .compare_exchange(self.session_revision, Some(&snapshot))
@@ -386,6 +425,11 @@ impl ClientRuntime {
         if self.readonly_generation.is_some() {
             return Ok(());
         }
+        let _permit = self
+            .shared_account
+            .as_ref()
+            .map(crate::facade::SharedAccountGuard::acquire)
+            .transpose()?;
         match self.store.compare_exchange(self.session_revision, None)? {
             SessionMutation::Applied { revision } => {
                 self.session_revision = revision;
@@ -867,3 +911,7 @@ mod tests {
         let _ = std::fs::remove_dir_all(root);
     }
 }
+
+#[cfg(test)]
+#[path = "runtime/shared_tests.rs"]
+mod shared_tests;

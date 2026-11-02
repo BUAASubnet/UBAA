@@ -178,6 +178,11 @@ class _Api extends RustLibApi {
 }
 
 class _Handle implements BridgeAgendaStore {
+  @override
+  void dispose() {
+    active = false;
+  }
+
   bool active = false;
   BridgeAgendaError? getFailure;
   Completer<BridgeAgendaQueryResult>? cacheGate;
@@ -233,13 +238,19 @@ class _Handle implements BridgeAgendaStore {
 
 class _Cache implements BridgeOfflineCache {
   @override
+  Future<void> close() async {}
+
+  @override
+  void dispose() {}
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _Client implements BridgeClient {
   int unexpectedCalls = 0;
   @override
-  int contractVersion() => 46;
+  int contractVersion() => 47;
   @override
   Future<void> dispose() async {}
   @override

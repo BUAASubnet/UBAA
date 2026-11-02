@@ -7,3 +7,6 @@ export 'src/contracts/recovery.dart';
 export 'src/contracts/session_recovery.dart';
 export 'src/services/session_recovery.dart';
 export 'src/bridge/auth/required_session.dart';
+
+export 'src/contracts/lifecycle.dart';
+export 'src/services/shared_consumer.dart';

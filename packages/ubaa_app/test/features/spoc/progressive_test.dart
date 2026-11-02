@@ -141,6 +141,12 @@ class SpocCacheApi implements RustLibApi {
 }
 
 class SpocCache implements BridgeOfflineCache {
+  @override
+  Future<void> close() async {}
+
+  @override
+  void dispose() {}
+
   BridgeCachedHomeSpoc? value;
   BridgeCachedHomeSpocDetail? detailValue;
   @override
@@ -223,7 +229,7 @@ class SpocClient implements BridgeClient {
   Completer<BridgeSpocScan>? beginGate;
   Completer<BridgeSpocScanBatch>? gate;
   @override
-  int contractVersion() => 46;
+  int contractVersion() => 47;
   @override
   Future<BridgeSpocScan> beginSpocOnline({String? expectedIdentity}) async {
     this.expectedIdentity = expectedIdentity;

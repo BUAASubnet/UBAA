@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
+import 'package:ubaa_app/src/contracts/lifecycle.dart';
 import 'package:ubaa_app/src/contracts/profile.dart';
 import 'package:ubaa_app/src/contracts/routing.dart';
 import 'package:ubaa_app/src/contracts/recovery.dart';
@@ -46,6 +47,9 @@ mixin ControllerOfflineStartup on ControllerState {
           throw const RecoveryInterrupted(RecoveryStopReason.superseded);
         }
         internalSharedAccountSnapshot = shared;
+        if (internalBackend case final SharedAccountBackend backend) {
+          await backend.bindSharedAccount(await store.bindSnapshot(shared));
+        }
       }
       internalLocalAccount = index.account;
       internalUser = UserSummary(username: index.account!.username);
@@ -300,6 +304,11 @@ mixin ControllerOfflineStartup on ControllerState {
           throw const RecoveryInterrupted(RecoveryStopReason.superseded);
         }
         internalSharedAccountSnapshot = shared;
+        if (internalBackend case final SharedAccountBackend backend) {
+          await backend.bindSharedAccount(
+            await store.bindSnapshot(shared, requireRestore: false),
+          );
+        }
       }
       internalLocalAccount = index.account;
       internalUsesLocalRecovery = true;

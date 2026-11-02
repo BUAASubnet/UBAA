@@ -32,3 +32,5 @@ pub mod ihome;
 pub mod campus;
 
 pub mod agenda;
+
+pub mod shared_account;

@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../contracts/backend.dart';
+import '../contracts/lifecycle.dart';
 import 'package:ubaa_platform/shared_accounts.dart';
 import '../contracts/recovery.dart';
 import '../contracts/session_recovery.dart';
@@ -29,6 +30,14 @@ final class RequiredSessionRecovery {
   final _logins = <Object, _SharedLogin>{};
   bool _closed = false;
   int get pendingOperations => _draining.length;
+
+  /// 关闭之后仍由服务持有的实际任务；有界 close 返回后可继续等待排空。
+  Future<void> get settlement {
+    if (!_closed) throw StateError('须先关闭恢复服务');
+    return Future.wait<void>(
+      _draining.map((job) => job.settled.future),
+    ).then((_) {});
+  }
 
   Future<RecoveryResult> ensureRequiredSession({
     required FeatureId feature,
@@ -254,6 +263,10 @@ final class _RecoveryJob {
               owner._publishedAccount !=
                   (state?.account?.id, state?.generation))
             await rebuild();
+          if (owner.backend case final SharedAccountBackend backend) {
+            final binding = await scope.sharedBinding();
+            if (binding != null) await backend.bindSharedAccount(binding);
+          }
           inBoundary = true;
           await execute();
         }, () => !revoked && !owner._closed && consumers.isNotEmpty);
@@ -350,6 +363,10 @@ final class _RecoveryJob {
       await validation;
       check();
       await scope.publishRecovery();
+      if (owner.backend case final SharedAccountBackend backend) {
+        final binding = await scope.sharedBinding();
+        if (binding != null) await backend.bindSharedAccount(binding);
+      }
       final published = scope.sharedSnapshot?.state;
       if (published != null)
         owner._publishedAccount = (scope.accountAlias, published.generation);

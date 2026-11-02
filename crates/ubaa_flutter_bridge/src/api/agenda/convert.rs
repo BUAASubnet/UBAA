@@ -7,7 +7,7 @@ use super::models::{
 use chrono::{DateTime, NaiveDate, Timelike};
 use ubaa_core::facade as core;
 use uuid::Uuid;
-pub(super) fn error(e: core::CacheError) -> BridgeAgendaError {
+pub(crate) fn error(e: core::CacheError) -> BridgeAgendaError {
     BridgeAgendaError {
         failure: match e {
             core::CacheError::Unavailable => BridgeAgendaFailure::Unavailable,

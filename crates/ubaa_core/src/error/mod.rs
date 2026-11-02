@@ -71,6 +71,8 @@ pub struct UbaaError {
 #[derive(Clone, Copy, Eq, PartialEq)]
 enum ErrorCause {
     SessionConflict,
+    SharedAccountConflict,
+    ClientClosed,
     Initialization(InitializationFailure),
 }
 
@@ -201,6 +203,39 @@ impl UbaaError {
                 "local session changed in another process",
             )
         }
+    }
+
+    pub(crate) fn client_closed() -> Self {
+        Self {
+            cause: Some(ErrorCause::ClientClosed),
+            ..Self::new(
+                ErrorCode::InternalError,
+                ErrorKind::Internal,
+                false,
+                "client handle is closed",
+            )
+        }
+    }
+    /// 此错误是否由本进程句柄普通关闭产生。
+    #[must_use]
+    pub fn is_client_closed(&self) -> bool {
+        self.cause == Some(ErrorCause::ClientClosed)
+    }
+    pub(crate) fn shared_account_conflict() -> Self {
+        Self {
+            cause: Some(ErrorCause::SharedAccountConflict),
+            ..Self::new(
+                ErrorCode::InternalError,
+                ErrorKind::Internal,
+                false,
+                "shared account authority was revoked",
+            )
+        }
+    }
+    /// 此错误是否由本机共享身份的固定版本检查产生。
+    #[must_use]
+    pub fn is_shared_account_conflict(&self) -> bool {
+        self.cause == Some(ErrorCause::SharedAccountConflict)
     }
 
     /// 此错误是否由当前 Core 的 Session 修订冲突产生。
