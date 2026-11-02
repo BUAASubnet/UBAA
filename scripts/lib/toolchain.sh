@@ -13,8 +13,12 @@ ubaa_toolchain_absolute_path() {
     *) return 2 ;;
   esac
   if command -v cygpath >/dev/null 2>&1; then
-    cygpath -u "$1"
+    local converted
+    converted=$(cygpath -u "$1") || return
+    [[ "$converted" == /* ]] || return 2
+    printf '%s\n' "$converted"
   else
+    [[ "$1" == /* ]] || return 2
     printf '%s\n' "$1"
   fi
 }

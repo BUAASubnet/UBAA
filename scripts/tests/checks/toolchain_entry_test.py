@@ -16,6 +16,71 @@ ROOT = Path(__file__).resolve().parents[3]
 
 
 class ToolchainEntryTest(unittest.TestCase):
+    def test_POSIX无转换器时盘符在安装前被拒绝(self):
+        self.configure()
+        for name in ('scripts/bootstrap/setup.sh', 'scripts/bootstrap/quality-tools.sh',
+                     'scripts/lib/repo.sh', 'scripts/lib/versions.sh', 'scripts/tools/versions.env',
+                     'scripts/tools/environment.sh', 'scripts/tools/requirements.txt'):
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / name, target)
+        fakebin = self.root / 'isolated-bin'
+        fakebin.mkdir()
+        for name in ('bash', 'dirname'):
+            (fakebin / name).symlink_to(shutil.which(name))
+        marker = self.root / 'installation-calls'
+        (fakebin / 'git').write_text('#!/bin/sh\nprintf git >> "$INSTALLATION_CALLS"\nexit 73\n')
+        (fakebin / 'python3').write_text(
+            f'#!{sys.executable}\nimport os,sys\nfrom pathlib import Path\n'
+            'if sys.argv[1:3] == ["-m", "venv"]:\n'
+            '    Path(os.environ["INSTALLATION_CALLS"]).write_text("venv")\n'
+            '    sys.exit(73)\n'
+            'os.execv(sys.executable, [sys.executable, *sys.argv[1:]])\n')
+        for name in ('git', 'python3'):
+            (fakebin / name).chmod(0o755)
+        environment = {**self.environment, 'PATH': str(fakebin), 'INSTALLATION_CALLS': str(marker)}
+        self.assertIsNone(shutil.which('cygpath', path=environment['PATH']))
+        self.assertFalse((Path.home() / '.cargo/bin/cygpath').exists())
+        for root in ('Z:/工具 空格', r'Z:\工具 空格'):
+            for script in ('setup.sh', 'quality-tools.sh'):
+                with self.subTest(root=root, script=script):
+                    marker.unlink(missing_ok=True)
+                    result = subprocess.run(['bash', f'scripts/bootstrap/{script}'], cwd=self.root,
+                                            env={**environment, 'UBAA_FLUTTER_HOME': root,
+                                                 'UBAA_QUALITY_TOOLS_DIR': root},
+                                            capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                    self.assertFalse(marker.exists(), '拒绝盘符路径前不得调用 Git 或创建 venv')
+
+    def test_绝对路径转换结果必须可供POSIX消费者使用(self):
+        fakebin = self.root / 'converter-bin'
+        fakebin.mkdir()
+        converter = fakebin / 'cygpath'
+        converter.write_text('#!/bin/sh\nprintf "%s\\n" "$TEST_CONVERTED_PATH"\nexit "$TEST_CONVERT_EXIT"\n')
+        converter.chmod(0o755)
+        command = ['bash', '-euc', 'source scripts/lib/toolchain.sh; ubaa_toolchain_absolute_path "$1"', 'probe']
+        environment = {**self.environment, 'PATH': str(fakebin) + os.pathsep + self.environment['PATH']}
+        for converted, converter_status, expected in [
+            ('/d/工具 空格', 0, 0), ('//server/share/工具 空格', 0, 0),
+            ('relative/path', 0, 2), ('D:/工具 空格', 0, 2), ('', 0, 2),
+            ('/d/工具 空格', 73, 73),
+        ]:
+            with self.subTest(converted=converted, converter_status=converter_status):
+                result = subprocess.run([*command, r'D:\工具 空格'], cwd=self.root,
+                                        env={**environment, 'TEST_CONVERTED_PATH': converted,
+                                             'TEST_CONVERT_EXIT': str(converter_status)},
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode, expected, result.stderr)
+                self.assertEqual(result.stdout, converted + '\n' if expected == 0 else '')
+        converter.unlink()
+        self.assertIsNone(shutil.which('cygpath', path=environment['PATH']))
+        for root in ('/工具 空格', '/d/工具 空格', '//server/share/工具 空格'):
+            with self.subTest(root=root):
+                result = subprocess.run([*command, root], cwd=self.root, env=environment,
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, root + '\n')
+
     def test_Windows执行文件及Bash参数保留空格中文(self):
         environment = {'PATH': '测试进程的PATH'}
         script = r'D:\项目 空格\scripts\check.sh'
