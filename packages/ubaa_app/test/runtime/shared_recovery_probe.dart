@@ -165,10 +165,21 @@ final cases = <String, Future<void> Function()>{
       final pending = failure(ensure(recovery, await capture(a)));
       await entered.future;
       await b.signOut();
+      final freshCredentials = MaterialCredentialStore(b.materials);
+      const namespace = 'com.buaa.ubaa.credentials.v1';
+      await freshCredentials.write(
+        namespace,
+        saved.copyWith(password: 'synthetic-new-only'),
+      );
       await b.retain(profile.username, retainSession: true);
       release.complete();
       check(await pending is RecoveryInterrupted, '旧失败必须停止');
       check((await b.read())!.canRestore, '新登录许可必须保留');
+      check(
+        (await freshCredentials.read(namespace))?.password ==
+            'synthetic-new-only',
+        '旧失败必须保留新登录的凭据',
+      );
     } finally {
       if (!release.isCompleted) release.complete();
       await recovery.close();

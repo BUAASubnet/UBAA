@@ -135,6 +135,7 @@ mixin ControllerOfflineStartup on ControllerState {
     bool allowRebuild = true,
   }) async {
     final epoch = request.epoch;
+    var usesSharedRecovery = false;
     try {
       if (internalBackend case final RouteSettingsBackend settings) {
         final result = await settings.routeSettings();
@@ -142,6 +143,9 @@ mixin ControllerOfflineStartup on ControllerState {
         internalApplyRouteSettings(result);
       }
       final backend = internalBackend;
+      usesSharedRecovery =
+          backend is RequiredSessionBackend &&
+          internalLocalAccountStore is SecureLocalAccountStore;
       final profile = backend is RequiredSessionBackend
           ? await internalRecoverRequiredProfile(
               backend as RequiredSessionBackend,
@@ -162,14 +166,30 @@ mixin ControllerOfflineStartup on ControllerState {
         await internalRejectMismatchedAccount();
         return;
       }
+      final deliveryScope = backend is RequiredSessionBackend
+          ? internalSharedRecoveryScope
+          : null;
       await internalRefreshRouteSettings();
-      if (!internalRecoveryIsCurrent(epoch)) return;
-      internalUser = profile;
-      internalError = null;
-      internalSessionRecoveryStatus = SessionRecoveryStatus.ready;
+      void publish() {
+        if (!internalRecoveryIsCurrent(epoch))
+          throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+        internalUser = profile;
+        internalError = null;
+        internalSessionRecoveryStatus = SessionRecoveryStatus.ready;
+        internalInvalidateReadPlansAfterLogin(request);
+      }
+
+      if (deliveryScope == null) {
+        publish();
+      } else {
+        // 最后一个 await 后仍须核对实际持久身份，条件核对与发布同步执行。
+        await deliveryScope.commitDelivery(publish);
+      }
+      if (!internalRecoveryIsCurrent(epoch) ||
+          (deliveryScope != null && !deliveryScope.isCurrent))
+        return;
       unawaited(internalQueueProfileRefresh());
       unawaited(internalLoadWriteReadbacks());
-      internalInvalidateReadPlansAfterLogin(request);
       internalNotify();
       for (final entry in request.queriesAfterRebuild.entries) {
         if (!internalRecoveryIsCurrent(epoch)) return;
@@ -185,7 +205,7 @@ mixin ControllerOfflineStartup on ControllerState {
       Object error = caughtError;
       StackTrace stackTrace = caughtStackTrace;
       if (!internalRecoveryIsCurrent(epoch)) return;
-      if (error is RecoveryInterrupted) {
+      if (error is RecoveryInterrupted || error is LocalAccountConflict) {
         internalSessionRecoveryStatus = internalAutomaticCredentialBlocked
             ? SessionRecoveryStatus.needsLogin
             : SessionRecoveryStatus.idle;
@@ -214,7 +234,9 @@ mixin ControllerOfflineStartup on ControllerState {
         internalAutomaticCredentialBlocked = true;
       }
       if (error is BackendException &&
-          error.code == UbaaErrorCode.invalidCredentials) {
+          error.code == UbaaErrorCode.invalidCredentials &&
+          !usesSharedRecovery) {
+        // 共享恢复已按原快照撤销许可，重复 clear 会误删另一进程的新登录。
         try {
           await internalCredentialVault.clear();
         } on Object {

@@ -159,6 +159,10 @@ final class _RecoveryJob {
     }
   }
 
+  void stopAccepting() {
+    if (identical(owner._jobs[key], this)) owner._jobs.remove(key);
+  }
+
   void stop(_Consumer consumer, RecoveryStopReason reason) {
     if (!consumers.remove(consumer)) return;
     consumer.release();
@@ -166,7 +170,7 @@ final class _RecoveryJob {
     if (consumers.isEmpty) {
       revoked = true;
       watcher?.cancel();
-      if (identical(owner._jobs[key], this)) owner._jobs.remove(key);
+      stopAccepting();
       operation?.cancel();
       login?.leave(this);
     }
@@ -177,6 +181,16 @@ final class _RecoveryJob {
     if (revoked || owner._closed || consumers.isEmpty) {
       throw const RecoveryInterrupted(RecoveryStopReason.superseded);
     }
+  }
+
+  bool acceptsDelivery(_Consumer consumer) {
+    if (!consumers.contains(consumer) || consumer.completion.isCompleted)
+      return false;
+    if (!consumer.scope.isCurrent) {
+      stop(consumer, RecoveryStopReason.superseded);
+      return false;
+    }
+    return true;
   }
 
   Future<void> checkpoint() async {
@@ -245,6 +259,7 @@ final class _RecoveryJob {
         }, () => !revoked && !owner._closed && consumers.isNotEmpty);
       }
     } on Object catch (error, stack) {
+      stopAccepting();
       for (final consumer in consumers.toList()) {
         consumer.release();
         consumer.completion.completeError(
@@ -260,7 +275,7 @@ final class _RecoveryJob {
       login?.leave(this);
       consumers.clear();
       watcher?.cancel();
-      if (identical(owner._jobs[key], this)) owner._jobs.remove(key);
+      stopAccepting();
       owner._draining.remove(this);
       owner._completedLogins.removeWhere(
         (key, _) => !owner._draining.any((job) => job.scope.key == key.$1),
@@ -339,25 +354,42 @@ final class _RecoveryJob {
       if (published != null)
         owner._publishedAccount = (scope.accountAlias, published.generation);
       check();
+      // 首次交付会唤醒调用方；重入请求必须创建独立任务。
+      stopAccepting();
       for (final consumer in consumers.toList()) {
-        if (!identical(consumer.scope, scope))
-          await consumer.scope.adoptRecoverySuccessor();
-        check();
-        await consumer.scope.commitDelivery(() {
-          check();
+        try {
+          if (!acceptsDelivery(consumer)) continue;
+          if (!identical(consumer.scope, scope))
+            await consumer.scope.adoptRecoverySuccessor();
+          if (!acceptsDelivery(consumer)) continue;
+          await consumer.scope.commitDelivery(() {
+            // 材料读取可能等待，取消、期限和局部失效只结束所属消费者。
+            if (!acceptsDelivery(consumer)) return;
+            check();
+            consumer.release();
+            consumer.completion.complete(
+              RecoveryResult(
+                recovered,
+                disposition,
+                scope: consumer.scope,
+                backend: owner.backend,
+              ),
+            );
+            consumers.remove(consumer);
+          });
+        } on Object catch (error, stack) {
+          if (!consumers.remove(consumer)) continue;
           consumer.release();
-          consumer.completion.complete(
-            RecoveryResult(
-              recovered,
-              disposition,
-              scope: consumer.scope,
-              backend: owner.backend,
-            ),
+          consumer.completion.completeError(
+            error is LocalAccountConflict
+                ? const RecoveryInterrupted(RecoveryStopReason.superseded)
+                : error,
+            stack,
           );
-          consumers.remove(consumer);
-        });
+        }
       }
     } on Object catch (error, stack) {
+      stopAccepting();
       validate();
       for (final consumer in consumers.toList()) {
         consumer.release();
