@@ -1,5 +1,11 @@
 # 协议来源对照与专项索引
 
+## H1-b3b：共享句柄关闭与持久身份撤销
+
+改生产代码前核对冻结旧版 `1f4b8f8` 的 `api/storage/CredentialStore.kt`、`api/local/LocalConnectionAuth.kt`、`GradeScoreCacheStore.kt` 及其测试，以及冻结 buaa-api `a63712fa` 的 `src/store/{cred,cookies}.rs`、`src/api/user/auth.rs`。普通句柄释放、跨进程缓存/日程事务和交付、持久写资格撤销均为本机操作，两源没有同等协议。因此这些操作的 CAS/service、重定向和最终 URL、Cookie/Session/Token、HTTP 方法和参数、请求头和编码、上游加密/签名、DTO 各列不适用。已有学校认证、读取和写入继续沿用本索引各领域的逐操作对照，URL、参数、路线与错误语义保持。
+
+本机并发与错误语义：普通关闭释放本进程句柄，显式退出与换号撤销共享旧身份。旧本地操作在提交和结果交付边界核对捕获的身份，已交付事务按实际提交或回滚记账。学校写入不恢复、不换客户端、不自动重试，发送后不能确认的结果保留 OutcomeUnknown。协议回归使用固定路线 Mock。新增原生全局退出红灯曾误入生产 SSO logout GET 路径，使用新 UUID 合成目录和空学校会话，日志无法确认请求是否发送或到达学校。该路径已停止，后续原生通过客户端 RPC 白名单工厂隔离远端调用，生产受限注销 RPC 另由 Rust Mock 验证。标准完整验收另获授权运行既有真实 Keychain 合成回归，仅操作本次新 UUID 目录派生的精确 account 并删除该条目，不访问已有真实账号或凭据。
+
 ## H1-b3a：持久恢复 scope 与客户端继任
 
 生产修改前重新读取冻结旧版 `1f4b8f8` 的 `api/storage/CredentialStore.kt`、`api/local/LocalConnectionAuth.kt`，以及冻结 buaa-api `a63712fa` 的 `src/store/{cred,cookies}.rs`、`src/api/user/auth.rs`。所需路线校验、凭据登录仍逐操作沿用下方 H1-b1 的协议列，CAS/service、重定向与最终 URL、Cookie/Session/Token 作用域、方法和精确参数、请求头与编码、加密常量和 DTO 解析均无变化。

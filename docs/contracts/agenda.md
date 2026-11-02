@@ -75,9 +75,9 @@ SPOC 与阳光沿现有“当前选择”缓存指针读取。签到只读调用
 
 Bridge v44 的输入与输出、日程独立错误和 Dart 服务见 [Bridge 合同](flutter-bridge.md#v44独立本机日程通道)。宿主只依据安全索引中的已核实账号打开日程，不扫描目录、计算账号哈希、认领旧库或创建新别名绕过异常索引。日程不依赖业务缓存密钥。退出或换号关闭服务并拒绝迟到结果，同账号重新登录重新激活，Direct/WebVPN 共用日程。清理登录材料及学校缓存保留账号别名和原缓存密钥，不调用日程清除。
 
-`AgendaService` 的所有持久写操作与打开、关闭共用串行尾链。关闭请求立即推进账号代次并撤销新访问，尚未交给后端的旧代次写操作在执行前返回 `superseded`。已经交给后端的写操作，包括尚在 Bridge 队列或预处理阶段的调用，可以在关闭等待期间提交或失败；服务等待后端返回，再停用持久库。后续打开必须等待上述收尾，因此关闭完成后旧写入不能借同账号重登继续修改数据。已进入 SQLite 事务的操作按原事务提交或回滚。写入失败不阻断关闭和后续打开，也不自动重试。调用方收到 `superseded` 时不能据此推断该写入没有在关闭完成前提交。
+`AgendaService` 的所有持久写操作与打开、关闭共用串行尾链。关闭请求立即推进账号代次并撤销新访问，尚未交给后端的旧代次写操作在执行前返回 `superseded`。已经交给后端的写操作，包括尚在 Bridge 队列或预处理阶段的调用，可以在关闭等待期间提交或失败；服务等待后端返回，再释放本进程句柄。后续打开必须等待上述收尾，因此关闭完成后旧写入不能借同账号重登继续修改数据。已进入 SQLite 事务的操作按原事务提交或回滚。写入失败不阻断关闭和后续打开，也不自动重试。调用方收到 `superseded` 时不能据此推断该写入没有在关闭完成前提交。
 
-读取不加入写入尾链，挂起查询不会阻塞关闭，迟到结果继续按代次拒绝。退出时日程关闭与安全索引禁止自动恢复独立启动，索引关闭不等待写入收尾。后端重建先等待旧日程关闭，再建立继任服务；销毁永久拒绝再次打开。以上顺序只约束由同一生产服务管理的操作，直接使用 Core/Bridge 的调用方仍须自行保证停用与重新激活之间没有未收尾写入。
+读取不加入写入尾链，挂起查询不会阻塞关闭，迟到结果继续按代次拒绝。退出时日程关闭与安全索引禁止自动恢复独立启动，索引关闭不等待写入收尾。后端重建先等待旧日程关闭，再建立继任服务；销毁永久拒绝再次打开。以上顺序只约束由同一生产服务管理的操作，未绑定共享身份而直接使用原始 Core/Bridge activate/deactivate 的调用方，仍须自行保证停用与重新激活之间没有未收尾写入。
 
 ## 首页学校待办
 
@@ -158,3 +158,5 @@ ubaa --json agenda list --from 2026-11-01 --to 2026-11-08 --school-cache --route
 list 范围为校园日期 `[from,to)`。默认仅本机，sources 为空且 schoolCacheIncluded=false，完全不打开会话、路由配置或网络客户端。显式合并缓存时复用同账号 OfflineCache，不预取和写入学校缓存。缺 CacheKey 返回 cache_key_missing，缺数据库返回 cache_missing，坏缓存返回 cache_corrupt 并整体失败。已有库缺范围通过 missingScopes 返回，过期记录仍可展示，observations.fresh 使用五分钟提示阈值，同时保留原取得/验证时间和完整性。生产 CLI 当前没有学校缓存预取流水线，因此缓存可用路径仅由合成夹具验证。
 
 CLI v13 新增 local envelope，meta 仅包含 feature=agenda、operation=list/show/unsynced、accountState=active/unavailable，没有 resolvedRoute 或学校写入元数据。list 返回 entries/sources/from/to/schoolCacheIncluded，show 返回 Core 公开原始 item，unsynced 返回 count。JSON 仅写 stdout，human 错误写 stderr。错误 code 为 registration_required、material_unavailable、material_corrupt、storage、stale_identity、cache_key_missing、cache_missing、cache_corrupt、agenda_corrupt、invalid_input、not_found，不包含原生存储详细错误。参数错误退出 2，缺登记/旧能力退出 3，其余本地失败退出 7。聚合登录保留既有 ok/data/error 的认证语义，额外 agendaRegistration 独立报告本机登记；登记失败退出 7 或身份失效退出 3。无法安全撤销旧活动账号时，在认证前停止并返回固定启动错误。真实学校 Direct/WebVPN 本阶段均未运行。
+
+共享账号接线使用 [Bridge v47](flutter-bridge.md#v47共享账号的事务与句柄生命期)。普通 `AgendaService.close/dispose` 保留数据库和其他独立消费者的访问。显式退出或换号通过共享持久身份撤销旧句柄，Core 的原始 deactivate/activate 继续保留旧显式持久库接口语义。实际写事务持有材料共享锁，退出的版本变更等待该事务提交或回滚。Dart 结果交付再次核对原快照，已提交效果与迟到结果拒绝分别报告。

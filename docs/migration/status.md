@@ -1,9 +1,9 @@
 # 当前实现与验证状态
 
-2026-11-02 [App 命令模式 H0](../design/desktop-shared-state.md#h0-运行路线与样机证据)候选 `fa5b8133` 已通过主监督与新只读上下文审查，H1-a 共同无感恢复现已通过主监督最终验收（`64840201`），H1-b1 已提交为 `01e2b6f3`，当前接续 H1-b3a 持久恢复 scope 与客户端继任：macOS 原生入口分流、真实 Flutter GUI 与命令双向启动及合成日程共享读取通过；Linux Debian 12 arm64 Docker 在无 DISPLAY/Wayland/Xvfb、运行期断网条件下通过 Dart AOT→FRB→Rust 日程读取，并通过锁定插件 libsecret 后端的合成材料保存与服务重开读回。macOS/Windows 选择无 view Engine，Linux 选择同一 Dart 服务的 AOT 运行组件。Windows 只完成锁定源码核对，原生环境待验。H1-a 文件与恢复接口已收敛，H0 只提交文档。正式入口、公共账号/恢复服务、命令迁移及独立 Rust CLI 退役仍分阶段实施。继承 13 项实验保持，未混入 H0 提交。
+2026-11-02 [App 命令模式 H0](../design/desktop-shared-state.md#h0-运行路线与样机证据)候选 `fa5b8133` 已通过主监督与新只读上下文审查，H1-a 共同无感恢复现已通过主监督最终验收（`64840201`），H1-b1 已提交为 `01e2b6f3`，当前接续 H1-b3b 共享句柄和全局退出生命周期：macOS 原生入口分流、真实 Flutter GUI 与命令双向启动及合成日程共享读取通过；Linux Debian 12 arm64 Docker 在无 DISPLAY/Wayland/Xvfb、运行期断网条件下通过 Dart AOT→FRB→Rust 日程读取，并通过锁定插件 libsecret 后端的合成材料保存与服务重开读回。macOS/Windows 选择无 view Engine，Linux 选择同一 Dart 服务的 AOT 运行组件。Windows 只完成锁定源码核对，原生环境待验。H1-a 文件与恢复接口已收敛，H0 只提交文档。正式入口、公共账号/恢复服务、命令迁移及独立 Rust CLI 退役仍分阶段实施。继承 13 项实验保持，未混入 H0 提交。
 
 
-H1-b 分为三个独立单元：b1 修复同代派生认证失效传播与旧派生迟到隔离；b2 统一同机账号索引、恢复许可、持久代次和跨进程原子更新；b3 接入 H1-a scope、外部会话更新后的客户端重建、普通关闭与全局退出，以及缓存/日程和写资格生命周期。b1 与 b2 已有本地主题提交。b3a 当前实现持久恢复 scope 与客户端继任，b3b 的普通关闭、缓存/日程句柄和写资格生命周期留下一单元。H2 在另一写入线推进，当前检出不实现命令入口。
+H1-b 分为三个独立单元：b1 修复同代派生认证失效传播与旧派生迟到隔离；b2 统一同机账号索引、恢复许可、持久代次和跨进程原子更新；b3 接入 H1-a scope、外部会话更新后的客户端重建、普通关闭与全局退出，以及缓存/日程和写资格生命周期。b1 与 b2 已有本地主题提交。b3a 的持久恢复 scope 与客户端继任已通过监督审查，b3b 候选已完成普通关闭、缓存/日程句柄和写资格生命周期的实现与本地相关验收，待独立复审。H2 在另一写入线推进，当前检出不实现命令入口。
 
 H1-b3a 以 `f0a365f2` 为基线，`RecoveryScope.capture` 只从安全索引取得身份、持久代次与恢复许可。账号索引内部版本升至 3，增加连续身份代次，原材料键、alias 和 CacheKey 保持。恢复发布只推进 generation，显式登录开始前先撤销恢复许可，退出、切号、重登和许可撤销都会结束旧连续身份。凭据被拒时按提交所属快照撤销持久许可，阻止另一消费者重复提交，旧失败保留新登录的许可。恢复操作持有独立 OS 锁，网络期间不持有材料事务锁。等待者在安全边界只接受同连续身份的恢复更新，重新取得客户端并先检查现有会话。Core revision/CAS 的旧客户端终态检查保持，旧写资格不能通过此入口续接。服务在异步关键点重查持久状态，并在短材料事务内提交结果。GUI 复用既有读取计划与写协调器撤销流程重建，工厂前后及旧实例释放后再次核对持久状态。
 
@@ -11,9 +11,13 @@ H1-b3a 以 `f0a365f2` 为基线，`RecoveryScope.capture` 只从安全索引取�
 
 H1-b3a 审查修复覆盖四项并发与身份边界：任务在成功或失败交付前停止接受合并，立即重入建立独立任务；每个消费者在材料等待后重新核对归属和有效性，取消、期限或局部失效不会破坏其他消费者；共享恢复按原快照撤销被拒凭据的许可后，GUI 不再追加无归属清理；最终路线设置等待结束后，profile/ready 通过原恢复 scope 的条件事务发布，退出、同 alias 重登、切号和撤销许可均拒绝旧结果。后续资料刷新、回读和读取计划仍沿用原请求与进程内代次。
 
-本轮审查修复以 `503c9456` 为基线执行 `just check-changed mode=full`，单次完整入口退出 0。严格 Rust/CLI/脚本段通过，其中 Rust 测试累计 1,281 次通过、3 项既有 ignored，八包 Flutter 共 1,750 项、默认 macOS 原生 5 项通过，FRB 生成零漂移。810 个 Dart 文件格式零漂移，静态分析 758 条 info、无 warning/error。最终恢复目录 132 项通过，其中新增 10 项正式回归覆盖交付重入、消费者交付等待和 GUI 身份边界。旧凭据拒绝晚到的现有回归同时断言新凭据与新许可保持。完整验收的生产与测试输入和提交内容相同，后续仅补本文验收事实。原生应用置前失败提示与既有 Rust helper 警告保留。真实学校、Keychain、Windows/Linux 原生、远端 CI 与发布均无本轮新增证据。
+本轮审查修复以 `503c9456` 为基线执行 `just check-changed mode=full`，单次完整入口退出 0。严格 Rust/CLI/脚本段通过，其中 Rust 测试累计 1,281 次通过、3 项既有 ignored，八包 Flutter 共 1,750 项、默认 macOS 原生 5 项通过，FRB 生成零漂移。810 个 Dart 文件格式零漂移，静态分析 758 条 info、无 warning/error。最终恢复目录 132 项通过，其中新增 10 项正式回归覆盖交付重入、消费者交付等待和 GUI 身份边界。旧凭据拒绝晚到的现有回归同时断言新凭据与新许可保持。完整验收的生产与测试输入和提交内容相同，后续仅补本文验收事实。原生应用置前失败提示与既有 Rust helper 警告保留。真实学校、Windows/Linux 原生、远端 CI 与发布均无本轮新增证据。原“无 Keychain 访问”表述已更正：标准完整入口实际包含真实用户 Keychain 的既有合成回归，仅操作新 UUID 目录派生的精确 account 并删除该条目。
 
-H1-b3a 的完整相关验收已按相同生产输入分段补齐。三次 `just check-changed base=f0a365f2 mode=full` 的退出 1 分别保留：第一次格式漂移，第二次新增测试未使用 import，第三次 Host 交互登录测试错误等待真实 I/O。修复后严格 Rust/CLI/脚本累计 1,281 次通过、3 项既有 ignored，八包 Flutter 共 1,740 项通过，默认 macOS 原生 5 项通过，FRB 生成零漂移。静态分析 753 条 info，无 warning/error，Host 补跑分析为 10 条 info。第三次完整输入到最终代码仅一处 Host 测试等待方式变化，生产代码与其他成功段输入相同。原有 Checkbox tap missed、原生应用置前失败提示和 Rust 测试 helper 的 dead_code 警告保留，均与断言结果分列。原生与生成段使用机器锁串行。b3b 尚未开始。
+H1-b3a 的完整相关验收已按相同生产输入分段补齐。三次 `just check-changed base=f0a365f2 mode=full` 的退出 1 分别保留：第一次格式漂移，第二次新增测试未使用 import，第三次 Host 交互登录测试错误等待真实 I/O。修复后严格 Rust/CLI/脚本累计 1,281 次通过、3 项既有 ignored，八包 Flutter 共 1,740 项通过，默认 macOS 原生 5 项通过，FRB 生成零漂移。静态分析 753 条 info，无 warning/error，Host 补跑分析为 10 条 info。第三次完整输入到最终代码仅一处 Host 测试等待方式变化，生产代码与其他成功段输入相同。原有 Checkbox tap missed、原生应用置前失败提示和 Rust 测试 helper 的 dead_code 警告保留，均与断言结果分列。原生与生成段使用机器锁串行。b3b 已按下述单元继续实现。
+
+H1-b3b 候选已增加固定持久版本绑定。平台安全索引与版本记录在同一材料独占事务内更新，Core 本地事务持材料共享锁后进入仓库和 SQLite，结果交付再核对原快照。普通关闭保留其他独立消费者，显式退出、换号、同 alias 重登或许可撤销使旧能力失效。已提交事务效果保留，发送后的学校写入仍按 OutcomeUnknown 处理，不恢复或自动重放。无界面消费者通过公共纯 Dart 生命周期接口接线，关闭有界返回并保管实际收尾 Future。受限注销票据只在指定 Bridge RPC 内临时使用，成功、错误、panic 和取消都恢复原归属。Bridge 合同提升为 v47，业务缓存 v7、日程 v2、账号索引 v3 和原 alias/CacheKey 保持。
+
+该单元的原生全局退出红灯误入生产 SSO logout GET 路径，测试使用新合成目录与空学校会话，现有日志无法确认是否实际发送或到达学校。已保留原证据、停止该真实路径并向监督报告。后续原生使用 RPC 白名单工厂隔离远端调用，继续验证真实安全材料和 Core/Bridge 本地库，生产受限注销另以 Rust Mock transport 验证。标准完整验收的既有真实 Keychain 合成回归获当前会话明确例外授权，只操作并精确删除本次条目。本地完整相关验收已按输入差异补齐：以 de3d6f21 为基线的 full3 严格脚本、Rust/Core/CLI、默认生产构建和文档通过，Rust 累计 1,293 次测试执行通过、3 项既有 ignored。full3 在 App 的 4 项异步时序回归处退出 1，修复后再按实际差异完成相关验收。最终八包 Flutter 合计 1,757 项通过，其中独立 Domain/Platform 复用相同输入的 64/144 项，Bindings 的 20 项按仅有生成注释差异的输入关系复用，App/UI/Host/Flutter/TestSupport 最终通过 796/510/121/98/4 项。最终五包格式 645 文件零漂移，分析 738 条 info、无 warning/error；先前完整八包分析为 793 条 info、无 warning/error。默认 macOS 原生 12 项通过，FRB 在同一源码目录临时检出的 refs/wip 最终候选上于正式提交前通过零漂移，生成前后所有候选文件哈希一致。中间 App 795 过/1 败的合成目录清理竞争保留原日志，修复只为原测试等待恢复和资源排空，业务断言保持。最终输入及结果对应见私有 .ubaa_local/command_mode_h1b3b/。Windows/Linux 及其他平台本单元原生、远端 CI、实体设备和发布验收尚未运行。
 
 H1-b2 本地候选已将账号索引、凭据、恢复许可和持久代次纳入同材料域短事务，保留原 alias/CacheKey。事务入口先用实际决策反例证明存在查询错误会跳过已有 B，再改为直接读取，仅明确不存在允许初始化，其他读取/格式错误以 `uncertain` 阻断并保持回调和材料变更为零。macOS 聚焦纯 Dart 回归 35 项及 Flutter 独立实例回归 3 项通过。私有同 App Sandbox GUI/无窗口 Engine 复用已建产物完成 support/material 一致、业务目录分离、随机合成标记双向写读、清理及退出验证。无窗口 Engine 原生窗口数为 0、viewController 为空，Dart 仍提供默认 view。样机不包含安全存储或 FRB。
 
@@ -44,13 +48,13 @@ macOS 材料改用已锁定 security-framework 3.7.0 的原生字节接口，同
 
 本轮失败反例、聚焦结果、依赖审计及完整日志与退出码位于被忽略的 `.ubaa_local/agenda_cli_a_fix/`。`red_identity.log` 为固定 Direct、NeverProbe 与 Mock HTTP 的三项实际失败，`red_platform.log` 为未登记平台阻断失败，`red_keychain_parser.log` 仅用本机 security help 复现旧分词与行长故障。聚焦和完整记录分别为 `focused_final.log/.exit`、`full.log/.exit`。成功登记 JSON 断言补回后的 CLI 库回归另见 `registration_json.log/.exit`，最终完整重跑也包含这些断言。首轮完整入口因 Core 过期票据测试构造器遗漏代次字段失败，修正后完整重跑通过，原失败保留为 `full_first.log/.exit`。macOS 运行器仍报告应用置前提示，五项断言均完成。其他平台仅用不支持 provider 的确定性模拟，Linux/Windows 未原生运行。本轮没有读取真实凭据或会话，没有学校认证、读取或写入，没有远端 CI、实体设备或发布验收。旧 Keychain 条目若被系统 ACL 拒绝，保持材料并报告固定 unavailable，本轮不自动迁移权限。
 
-更新：2026-11-01。本文只维护当前快照，不记录单轮验证流水。整改阶段 1–7、Rust Core 精简、审查修复与签名配置的逐轮记录见[状态流水](history/2026-10-30-status-log-through-signing.md)，更早的时间线见[阶段 4 整理前状态](history/2026-10-30-status-before-quality-phase4.md)，历史决定见[决策索引](decision-log.md)。[阶段目标](../../goal.md)定义本轮范围，门禁清单只在[开发命令](../development/commands.md#检查选择与完成条件)维护。
+更新：2026-11-02。本文只维护当前快照，不记录单轮验证流水。整改阶段 1–7、Rust Core 精简、审查修复与签名配置的逐轮记录见[状态流水](history/2026-10-30-status-log-through-signing.md)，更早的时间线见[阶段 4 整理前状态](history/2026-10-30-status-before-quality-phase4.md)，历史决定见[决策索引](decision-log.md)。[阶段目标](../../goal.md)定义本轮范围，门禁清单只在[开发命令](../development/commands.md#检查选择与完成条件)维护。
 
 ## 当前实现
 
 日程一期 1a、1b 已增加 Rust Core 自建事项、标准重复展开、教学周规则转换、账号独立持久化、八类学校来源投影、课程逐节展开和本地合并查询，入口见[日程 Core 合同](../contracts/agenda.md)。日程 schema v2 使用逐记录明文 SQLite，无需密钥，不随只读缓存淘汰或重建，退出后保留，同账号登录后显式激活。学校投影沿现有首页规则并保留原始状态，合并查询叠加本地完成、隐藏与备注，返回各缓存范围时间和缺失信息。未同步删除标记一律保留。1c-a 已接入独立 typed Bridge、Dart 服务及账号生命周期。1c-b 已将首页七类学校待办切到 Core 统一纯投影，在线结果不依赖缓存或日程打开成功，离线沿用原快照证据，覆盖失败单独提示。Core 范围快照 `.ics` 已实现，本机导出与同账号指定路线缓存导出均不联网。CLI-a 已接入独立安全登记和三个本机只读命令，CLI v13；本机修改、导出文件和同步继续保留为后续阶段。日程已改为事项/覆盖各一行，仅更新变化记录并去除整账号密文上限。旧版、未知版和损坏库拒绝且保留，不自动迁移或重建。只读缓存继续加密，缓存 schema v7 及加密保持不变。已知账号身份与缓存密钥读取解耦，清除登录材料及缓存保留随机别名和原密钥。日程错误与可重建业务缓存错误分列，缓存不可用仍可操作本机日程。日程持久写操作与打开、关闭共用串行尾链。关闭请求立即撤销访问，已交付写入在关闭完成前收尾，旧代次排队写入在进入后端前拒绝，同账号重新打开不能越过旧写入。读取不阻塞关闭，安全索引禁止恢复独立启动。
 
-Rust Core 统一拥有认证、Direct/WebVPN/Auto 路线、会话、校园领域读写和加密缓存。CLI 与 Bridge 通过 facade 使用 Core，Flutter/OHOS 宿主通过 Bridge 与共享 Dart/UI 接线。当前公开合同为 CLI JSON schema v13 与 Flutter bridge contract v46，独立于 Session v2、配置 v1、业务缓存 v7。产品展示版本与合同版本分别治理，取值与发布规则见[版本约定](../development/conventions.md#版本号与依赖)。
+Rust Core 统一拥有认证、Direct/WebVPN/Auto 路线、会话、校园领域读写和加密缓存。CLI 与 Bridge 通过 facade 使用 Core，Flutter/OHOS 宿主通过 Bridge 与共享 Dart/UI 接线。当前公开合同为 CLI JSON schema v13 与 Flutter bridge contract v47，独立于 Session v2、配置 v1、业务缓存 v7。产品展示版本与合同版本分别治理，取值与发布规则见[版本约定](../development/conventions.md#版本号与依赖)。
 
 Core 与 CLI 已增加门户身份/学院、五项账户指标和网络流量在线查询，云盘指标明确为剩余空间。此前三个 facade 方法和 `portal profile`、`portal metrics`、`network usage` 命令已在 Direct/WebVPN 两条路线实测成功，并验证网络业务会话在 CLI 进程重开后复用。单项指标失败保留其他结果，金额采用十进制字符串，免费与计费剩余流量分别保留“不含套餐”的含义。精确范围见[门户与网费接入](source-parity-campus.md)。Bridge v43 已提供这三项类型化读取，移动端底栏新增“我的”页展示身份、账户指标与流量，先显示本机快照再后台在线刷新，并支持下拉刷新；三组数据按账号与路线保存快照，指标逐项保留最近成功值，App 内真实账号读取尚未单独验收。iOS 最低版本已按 Xcode 27.2 统一为 15.0。
 
