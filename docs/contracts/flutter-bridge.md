@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `47`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `48`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -39,7 +39,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=47` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=48` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
 组间最多八个完整批次在途（每个读取组各一个，首页全部来源可同时开始）。每组的只读 Core 实例复用连接池，独立保存业务 Cookie、Token 和缓存，
@@ -794,3 +794,17 @@ Bridge v45 不改变 CLI v12、业务缓存 schema v7 或独立日程 schema v2�
 无界面调用方使用 `SharedAccountConsumer`、`SharedAccountBackend` 和 `SharedAccountLogoutBackend`，无需完整 GUI Controller。写准备、提交和原目标只读核对放入同一次 `schoolWrite`，期间禁止恢复、换绑或换客户端。只读回读沿原路线，不自动准备或提交。`logout` 只使用消费者原快照取得清理票据。`close(grace)` 同步停止接受新操作，并有界等待恢复任务、已经接受的 bind/写单元/logout 和资源释放。超时返回未完成状态，`settlement` 等待实际收尾并交付资源错误，业务操作保留各自 Future 的结果和原错误。
 
 GUI 清除凭据时，原快照校验和凭据删除共用短材料事务。Core 缓存清理在受限调用中执行。宿主后续 `clearLocalData` 回调仅处理当前账号本机偏好，不得在持材料事务时进入 Core 或网络。
+
+## v48：App 命令计划与交付
+
+`BridgeCommand` 从完整 argv 产生一次不透明计划。`requirements` 只投影所需能力，`input_request` 逐次请求行、隐藏密码或正文。help、解析错误、登录参数冲突、无效资料路径和缺少写入确认在材料初始化前交付。准备后的输入快照由公共 Rust 命令库持有，Dart 不解析业务参数。
+
+只读尝试返回最终结果、明确过期路线或真实共享会话冲突。宿主使用共同恢复服务核对持久身份，并且至多完整重跑一次。User、Portal、Network、Ihome 和原十二个恢复目标均有明确映射。User 使用 `Operation::User`。剩余期限传入每一次受控校验或登录，不为恢复重新开始两分钟预算。
+
+学校写 backend 复用 GUI 的准备意图、一次性消费、固定路线 fresh commit、发送观察和缓存影响处理。取消、期限或 Future 丢弃发生在发送后时，保留 `outcome_unknown`、原路线和本机核对提示，并使关联旧缓存失效。确定结果完整交付后才清除本次提示，断管保留提示。普通退出仅关闭本进程 Core/缓存/日程资源。
+
+`BridgeCommandResult` 是可共享引用的一次性正文。stdout/stderr 各至多保留四个 64 KiB 块，包含在途块。消费方在实际写入和刷新成功后确认，失败后停止交付。输出块保持完整 UTF-8 字符，生产和消费边界均核对固定共享代次，撤销后拒绝排队正文。原生强制收尾保持在线期限退出5、本机期限或取消退出7。
+
+显式聚合登录由 Core 签发 `BridgeCommandLoginIdentity`，宿主在共享材料事务中核实并一次消费后保留原 alias 和 CacheKey。`registration_succeeded/failed` 独立报告 v13 的 `agendaRegistration`。受限退出票据只用于本次显式注销，不装入后续普通句柄。
+
+命令 `prepare` 在取得账号材料前核对密码内容和阳光打卡参数，并保存阳光请求与照片字节。后续执行消费输入快照，不再次打开照片。学校写入的会话恢复和重新绑定完成后取得当前客户端，再开始写资格准备。恢复停止按具体原因映射为取消、超时或账号失效。

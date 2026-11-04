@@ -62,23 +62,25 @@ fn requests() -> Vec<PendingWrite> {
             page: 1,
             limit: 10,
         }),
-        PendingWrite::CgyyReserve(BridgeCgyySubmitReservationRequest {
-            venue_site_id: 4,
-            reservation_date: "2026-10-07".into(),
-            selections: vec![BridgeCgyyReservationSelection {
-                space_id: 6,
-                time_id: 101,
-                venue_space_group_id: Some(9),
-            }],
-            phone: "010-00000000".into(),
-            theme: "合成主题".into(),
-            purpose_type: 1,
-            joiner_num: 1,
-            activity_content: "合成内容".into(),
-            joiners: "合成参与者".into(),
-            is_philosophy_social_sciences: false,
-            is_off_school_joiner: false,
-        }),
+        PendingWrite::CgyyReserve(crate::api::write::support::map_cgyy_request(
+            BridgeCgyySubmitReservationRequest {
+                venue_site_id: 4,
+                reservation_date: "2026-10-07".into(),
+                selections: vec![BridgeCgyyReservationSelection {
+                    space_id: 6,
+                    time_id: 101,
+                    venue_space_group_id: Some(9),
+                }],
+                phone: "010-00000000".into(),
+                theme: "合成主题".into(),
+                purpose_type: 1,
+                joiner_num: 1,
+                activity_content: "合成内容".into(),
+                joiners: "合成参与者".into(),
+                is_philosophy_social_sciences: false,
+                is_off_school_joiner: false,
+            },
+        )),
         PendingWrite::CgyyCancel(BridgeCgyyCancelOrderRequest { order_id: 42 }),
         PendingWrite::Ygdk(core::YgdkClockinSubmitRequest {
             target: core::YgdkSubmitTarget {
@@ -134,6 +136,7 @@ async fn seed_intent(client: &BridgeClient, request: PendingWrite) {
             request,
             expires_at: i64::MAX,
             resolved_route: BridgeConnectionMode::Direct,
+            resolution: command_direct_resolution(),
             conflict_key: "fixture-target".into(),
         },
     );

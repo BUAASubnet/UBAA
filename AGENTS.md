@@ -74,7 +74,7 @@ Dart/Flutter 命令一律使用 `just dart`、`just flutter`，OHOS 使用 `just
 | `crates/ubaa_core` | 领域、认证、会话、路线、上游协议、解析、缓存与 facade |
 | `crates/ubaa_flutter_bridge` | facade 到 FRB 的稳定 typed 投影 |
 | `crates/ubaa_test_support`、`fixtures/auth`、`fixtures/readonly` | 脱敏夹具与确定性 transport 支持 |
-| `apps/ubaa_cli` | human/JSON CLI 与 Core-live 只读入口 |
+| `crates/ubaa_command`、`tools/core_live` | 公共命令定义、执行与输出；独立只读协议开发工具 |
 | `apps/ubaa_flutter`、`apps/ubaa_ohos` | 官方五平台及 OHOS 薄宿主 |
 | `packages/ubaa_domain`、`packages/ubaa_app`、`packages/ubaa_host` | Dart 模型、应用状态/写协调和共享宿主接线 |
 | `packages/ubaa_platform`、`packages/ubaa_ui`、`packages/ubaa_bindings` | 平台能力、共享界面及 FRB/Cargokit |

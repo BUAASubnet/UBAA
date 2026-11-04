@@ -446,7 +446,7 @@ Bridge v44 用独立 `BridgeAgendaStore` 直接包装 facade，不持有网络�
 
 本轮检查 `apps/ubaa_cli/src/main.rs`：默认目录由 `ProjectDirs::from("org", "BUAASubnet", "UBAA").config_dir()` 决定，`--config-dir` 可覆盖，所有现有执行路径先构造 `UbaaClient` 或隐藏诊断 `RouteClient`。`UbaaClient::open` 只加载路线配置与双槽会话；公开 `active_routes` 仅返回槽位路线。`facade/auth.rs::auth_status` 会调用各路线的用户中心验证。会话 schema v2 明确不持久化用户名，因此仅凭会话存在不能在离线 CLI 恢复账号身份。
 
-`AgendaStore::open` 要求宿主提供已核实账号的随机别名。`OfflineCache::open` 额外要求已核实 identity 与 CacheKey。Flutter 的别名索引及密钥属于平台安全材料，由 Flutter 自身目录和生命周期管理。两个宿主的默认目录不同，不能称为自动共用。CLI 暂无对应索引、平台材料提供者或公开的离线已核实账号能力。此次只完成可独立的 Core 导出与[命令/模型设计](../contracts/agenda.md#cli-命令与输入模型方案-a-已选定待实施)，保留 CLI 执行停止点，不解析 Core 私有 session，不读取 Flutter 钥匙串或扫描数据库。
+`AgendaStore::open` 要求宿主提供已核实账号的随机别名。`OfflineCache::open` 额外要求已核实 identity 与 CacheKey。Flutter 的别名索引及密钥属于平台安全材料，由 Flutter 自身目录和生命周期管理。两个宿主的默认目录不同，不能称为自动共用。CLI 暂无对应索引、平台材料提供者或公开的离线已核实账号能力。此次只完成可独立的 Core 导出与[命令/模型设计](../contracts/agenda.md#app-日程命令)，保留 CLI 执行停止点，不解析 Core 私有 session，不读取 Flutter 钥匙串或扫描数据库。
 
 主聊天已在用户授权的 CLI 日程开发范围内选定方案 A，实施安排是在本次 Core 导出提交复核后，由新会话为 CLI 增加独立的平台安全材料适配，采用独立命名空间与 `--config-dir` 作用域。在既有显式登录成功后，以 Core 已验证的 profile 身份建立稳定关联，复用同一随机别名，离线日程命令只读这份登记。Core 应提供不可由任意用户名兑换的已核实身份票据/登记入口，并把登录、退出、切号及会话冲突与账号激活代次关联起来。身份字段缺失或冲突时拒绝登记。退出撤销活动选择并保留账号映射及日程，重新登录同账号恢复原库；索引缺失或不可读失败关闭，不能另造别名绕过。缓存密钥单独管理，缺失仅影响学校缓存。此方案需要新增 CLI 安全材料适配及生命周期合同，属于后续实现单元，当前尚未实现。
 
@@ -525,3 +525,11 @@ Core 不读取宿主安全索引或凭据，只接收平台在材料事务内捕
 - macOS Release 目标为本机命令热启动 P95≤0.5 秒、冷启动 P95≤1.5 秒、峰值 RSS≤150 MiB。超出先定位并报告 AOT 评估，超出两倍以上阻塞平台放行。
 
 本单元只迁移命令实现与本地输入/输出边界，不修改学校 URL、参数、重定向、Cookie/Session/Token、请求编码、签名常量、DTO 或 Core 重试。旧材料 worker 和独立索引原样保留为兼容适配，H4 再退役。任意同步输入/存储的强制中断由后续宿主的可取消适配和进程收尾负责，不能把 Rust Mock 结果当作平台证据。
+
+## 2026-11-05：统一 App 命令入口与材料共享
+
+公共 Rust 命令库拥有唯一 parser、输入快照、schema v13 和输出，Dart 调度共享账号、恢复与句柄。学校写入复用 GUI 的一次性 prepare/commit、发送观察、缓存失效和核对提示。恢复发生在写资格准备前，准备、提交和回读期间保持固定归属。
+
+macOS 命令使用无窗口 Engine，GUI 单实例锁只适用于 GUI。为支持终端指定的正常文件路径，桌面 App 关闭 Sandbox；目录解析优先沿用已有容器或非容器资料，两份同时存在时停止，不复制数据库、WAL 或材料。旧签名包与真实材料的访问连续性另行验证。
+
+Linux GUI 与 AOT 使用同一 Secret Service 适配，保留锁定插件的 account、schema、JSON item 和材料键。命令运行包与 GUI 同版本交付，无服务、锁定或需要 Prompt 时明确失败。旧 Rust CLI 宿主与材料 worker 删除，开发工具迁入 `tools/core_live`，保留覆盖登记在测试策略中；Windows 原生运行仍须补验。

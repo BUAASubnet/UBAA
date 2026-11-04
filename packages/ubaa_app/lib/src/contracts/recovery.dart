@@ -15,3 +15,35 @@ abstract interface class RequiredSessionBackend {
     LoginInput input,
   );
 }
+
+/// 命令与 GUI 共用的恢复目标，覆盖不在底栏菜单中的只读服务。
+enum RecoveryTarget {
+  user,
+  portal,
+  network,
+  ihome,
+  schedule,
+  exam,
+  grades,
+  classroom,
+  spoc,
+  judge,
+  signin,
+  libbook,
+  bykc,
+  cgyy,
+  ygdk,
+  evaluation;
+
+  static RecoveryTarget fromFeature(FeatureId feature) =>
+      RecoveryTarget.values.byName(feature.name);
+  FeatureId? get feature => switch (this) {
+    user || portal || network || ihome => null,
+    _ => FeatureId.values.byName(name),
+  };
+}
+
+abstract interface class RequiredTargetSessionBackend
+    implements RequiredSessionBackend {
+  Future<RecoveredRouteSession> recoverTargetSession(RecoveryTarget target);
+}

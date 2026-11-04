@@ -1,5 +1,18 @@
 # 协议来源对照与专项索引
 
+## App 命令与共享本机服务
+
+当前冻结引用仍为旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 和 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。共享恢复与账号生命期沿用下方 H1 的逐操作来源。命令层重新核对旧版 `LocalBykcApi/LocalSigninApi/LocalLibBookApi/LocalYgdkApi/LocalCgyyApi/LocalEvaluationService`，以及 buaa-api 的 `api/boya/opt.rs`、`api/tes/opt.rs`、`request.rs`。现有来源冲突和不适用项继续按各领域专项处理。
+
+| 操作 | 协议与 DTO | 本机执行与错误语义 |
+|---|---|---|
+| 用户及各只读功能的所需路线校验 | CAS/service、重定向、Cookie/Session/Token、方法/参数、请求头/编码、加密常量和字段均复用既有 Core facade。User 使用原用户操作，其他目标使用各自功能配置。 | 命令核实安全索引中的实际账号；仅明确认证过期或受支持的同账号会话继任允许一次完整重跑。网络错误和异账号不提交密码。 |
+| 十类学校写入 | 原 facade 的 fresh authority、精确请求和 typed 回执保持。Cgyy 内部验证码仍由 Core 管理，CLI 输入拒绝这些字段。 | GUI 与命令共享同一准备、一次性意图、固定路线提交和回读。发送后取消或 Future 丢弃保留未知结果和核对提示，不重放请求。 |
+| 共享日程、数量比较清除和 ICS 文件交付 | 两个来源没有同等本机协议，CAS/service、重定向、会话作用域、HTTP、编码、签名和学校 DTO 列不适用。 | 保留原 alias、CacheKey 和明文日程 schema。比较数量与清除在同一写事务完成，交付文件和排队正文均核对固定共享代次。 |
+| 原生入口和系统材料传输 | 两个来源没有 Flutter Engine、Dart AOT 或跨进程系统材料适配，各 HTTP 列不适用。 | macOS/Windows 分离 GUI 角色与命令消费者；Linux 复用锁定插件的 account/JSON item，直接连接 Secret Service，不使用明文材料或 portal 降级。 |
+
+来源支持的学校 URL、请求参数和解析器没有通过命令层复制。确定性证据使用固定路线 Mock、NeverProbe 和独立合成材料。真实账号、真实学校读写和默认真实材料连续性分别按授权与平台证据记录。
+
 ## H1-b3b：共享句柄关闭与持久身份撤销
 
 改生产代码前核对冻结旧版 `1f4b8f8` 的 `api/storage/CredentialStore.kt`、`api/local/LocalConnectionAuth.kt`、`GradeScoreCacheStore.kt` 及其测试，以及冻结 buaa-api `a63712fa` 的 `src/store/{cred,cookies}.rs`、`src/api/user/auth.rs`。普通句柄释放、跨进程缓存/日程事务和交付、持久写资格撤销均为本机操作，两源没有同等协议。因此这些操作的 CAS/service、重定向和最终 URL、Cookie/Session/Token、HTTP 方法和参数、请求头和编码、上游加密/签名、DTO 各列不适用。已有学校认证、读取和写入继续沿用本索引各领域的逐操作对照，URL、参数、路线与错误语义保持。

@@ -7,7 +7,10 @@ use clap::{Parser, Subcommand};
 use ubaa_core::facade::ConnectionMode;
 
 mod agenda;
-pub use agenda::{AgendaArgs, AgendaCommand};
+pub use agenda::{
+    AgendaArgs, AgendaCommand, AgendaCompletion, AgendaCompletionOverride, AgendaOverlayCommand,
+    AgendaScope,
+};
 mod academic;
 mod campus;
 pub use campus::{NetworkArgs, NetworkCommand, PortalArgs, PortalCommand};
@@ -60,7 +63,7 @@ pub struct Cli {
 /// 顶层命令组。
 #[derive(Clone, Debug, Subcommand)]
 pub enum Command {
-    /// 本机日程只读操作，不隐式认证或刷新学校来源。
+    /// 本机日程操作，不隐式认证或刷新学校来源。
     Agenda(AgendaArgs),
     /// 门户身份及校园账户只读查询。
     Portal(PortalArgs),

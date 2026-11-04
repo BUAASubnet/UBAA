@@ -19,7 +19,7 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 - Direct 与 WebVPN 的历史真实证据只覆盖对应提交的 Core-live 只读矩阵，不代表本轮真实 App 账号链路或真实写入；
 - 系统安全材料与统一加密缓存已接入，原生运行按平台分别验收；实体设备、签名、公证、商店上传和真实业务写入均不由模拟器或只读结果证明。
 
-当前公开合同版本为 CLI JSON schema v13 与 Flutter bridge contract v47；这两个版本都与磁盘
+当前公开合同版本为 CLI JSON schema v13 与 Flutter bridge contract v48；这两个版本都与磁盘
 `session.json` schema v2、`config.toml` 版本 1、业务缓存 schema v7 相互独立。
 
 产品代际名 UBAA 2 与包的 SemVer、平台构建号和合同版本相互独立，发布规则见[版本约定](docs/development/conventions.md#版本号与依赖)。
@@ -49,7 +49,8 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 | `crates/ubaa_core` | 领域、认证、路线、会话、协议、解析、读写与 facade |
 | `crates/ubaa_flutter_bridge` | facade 到 FRB 的稳定 typed 投影；不暴露内部协议状态 |
 | `crates/ubaa_test_support` | 脱敏 fixture、Mock transport 与确定性集成支持 |
-| `apps/ubaa_cli` | human/JSON schema v13 命令行宿主与只读 Core-live 入口 |
+| `crates/ubaa_command` | 公共命令树、输入、执行与 human/JSON schema v13 输出 |
+| `tools/core_live` | 单路线只读协议开发工具 |
 | `apps/ubaa_flutter` | Windows/macOS/Linux/Android/iOS 官方 Flutter 薄宿主 |
 | `apps/ubaa_ohos` | HarmonyOS/OHOS fork 薄宿主与 API26 runner |
 | `packages/ubaa_domain` | Dart 稳定领域模型 |
@@ -75,40 +76,45 @@ UI 的[应用页面](packages/ubaa_ui/lib/src/app/)、[领域组件](packages/ub
 
 常用入口：`just source-files` 定位源码；`just flutter-test ubaa_app test/features/grades` 执行领域回归。完整验证见[测试策略](docs/development/testing.md)。
 
-## CLI 快速开始
+## App 命令模式
+
+桌面命令与 GUI 使用同一个账号索引、会话、缓存和日程。macOS/Windows 命令启动独立的无窗口 Flutter Engine，Linux 使用同一 Dart 服务的 AOT 程序。命令结束只释放本进程资源。
 
 ```bash
-just refs-bootstrap # 仅首次缺少冻结引用时运行；允许联网创建
-just quality-tools-bootstrap # 显式准备固定的开发质量工具依赖
+just refs-bootstrap # 仅首次缺少冻结引用时运行
+just quality-tools-bootstrap
 just refs
-cargo build --locked --workspace
-cargo run --locked -p ubaa-cli -- --help
+just command-build platform=host mode=debug
 ```
 
-普通登录会同时准备内部 Direct 与 WebVPN 路线；密码只通过不回显输入或 stdin 读取，不能放入 argv。
+| 平台 | 构建后的命令入口 |
+|---|---|
+| macOS | `build/command/macos/ubaa`，或 App 内 `Contents/MacOS/ubaa_flutter --command` |
+| Windows | Flutter bundle 中的 `ubaa.exe`，与 `ubaa_flutter.exe`、`data/` 和 DLL 一同保留 |
+| Linux | `build/command/linux/ubaa`，与旁边的 `lib/` 一同保留；GUI bundle 也包含该入口 |
+
+macOS 在 `~/.local/bin/ubaa` 放置启动脚本，以安装后的 App 路径执行 `Contents/MacOS/ubaa_flutter --command "$@"`，并将 `~/.local/bin` 加入 PATH。Windows 将 App bundle 目录加入 PATH。Linux 将 bundle 的 `ubaa` 链接到 PATH 中的目录，动态库仍从实际 bundle 加载。升级时保留 App 与命令组件的版本一致。
 
 ```bash
-cargo run --locked -p ubaa-cli -- auth login --username YOUR_USERNAME
-cargo run --locked -p ubaa-cli -- auth status
-cargo run --locked -p ubaa-cli -- user show
-cargo run --locked -p ubaa-cli -- schedule terms
-cargo run --locked -p ubaa-cli -- grades list --term 2025-2026-1
-cargo run --locked -p ubaa-cli -- auth logout
+ubaa --help
+ubaa auth login --username YOUR_USERNAME
+ubaa auth status
+ubaa user show
+ubaa schedule terms
+ubaa grades list --term 2025-2026-1
+ubaa --json agenda unsynced
+ubaa agenda list --from 2026-11-01 --to 2026-11-08
+ubaa agenda export --from 2026-11-01 --to 2026-11-08 --output ./agenda.ics
+ubaa auth logout
 ```
 
-已通过显式登录登记的 CLI 账号可离线读取本机日程。当前安全材料 provider 只支持 macOS Keychain，CLI 与 Flutter 使用独立材料和默认目录。命令不校验学校会话或刷新学校来源：
+密码只通过不回显输入或 stdin 提供。在线只读命令按已有自动登录设置恢复会话，最多重跑一次完整命令。学校写入需要 `--confirm-write`，可能发送后的取消和期限保留 `outcome_unknown`，不自动重放。本机日程修改使用独立的 `--confirm-local-write`。日程的输入字段、重复范围和导出见[日程命令合同](docs/contracts/agenda.md#app-日程命令)。
 
-```bash
-cargo run --locked -p ubaa-cli --bin ubaa -- agenda list --from 2026-11-01 --to 2026-11-08
-cargo run --locked -p ubaa-cli --bin ubaa -- --json agenda unsynced
-```
+`UBAA_CONFIG_DIR` 或 `--config-dir` 覆盖业务资料目录，系统安全材料仍属于当前系统用户。隔离验证需要同时注入独立材料传输和协调目录。Linux SSH 使用已配置且解锁的 Secret Service，不依赖 DISPLAY、Wayland 或 GUI；服务不可用或锁定时明确失败。
 
-show、显式学校缓存合并、错误码与下一阶段保留范围见[日程 CLI 合同](docs/contracts/agenda.md#cli-a-的身份与离线访问)。
+JSON 成功或失败只输出一个 schema-v13 信封，Engine 日志进入 stderr。合同见[认证与用户合同](docs/contracts/auth-and-user.md)和[CLI JSON Schema](docs/contracts/cli-json.schema.json)。当前 Flutter bridge contract 为 v48。协议开发继续使用 `just core-live`，真实账号授权和操作范围见[只读验证手册](docs/runbooks/live-readonly-verification.md)。
 
-默认 Session 位于操作系统的用户私有配置目录；隔离测试可使用 `--config-dir <path>`。CLI 每次 JSON 成功或
-失败只输出一个 schema-v13 信封，合同见[认证与用户合同](docs/contracts/auth-and-user.md)和
-[CLI JSON Schema](docs/contracts/cli-json.schema.json)。该输出版本独立于磁盘存储合同；当前 Flutter bridge contract 为 v47。
-图书馆、场馆、阳光与教学评教的 typed 资格、prepare/commit、单次发送、未知结果和原路线回读规则，统一见 [Bridge 写入合同](docs/contracts/flutter-bridge.md#6-写-intent)。CLI、Bridge 与缓存格式的兼容边界分别见对应合同。
+Windows 原生命令和正式签名分发的验收状态见[当前状态](docs/migration/status.md)，本地 Debug 构建不承担发布验收。
 
 ## 开发与验证
 

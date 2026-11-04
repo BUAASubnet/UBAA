@@ -18,6 +18,7 @@ use crate::io::schema::{CommandOutput, readonly};
 pub(in crate::execute) async fn run_ygdk<B: CliBackend + Send>(
     arguments: YgdkArgs,
     backend: &mut B,
+    prepared: Option<ubaa_core::facade::YgdkClockinSubmitRequest>,
 ) -> Result<CommandOutput> {
     match arguments.command {
         YgdkCommand::Overview => backend
@@ -47,14 +48,19 @@ pub(in crate::execute) async fn run_ygdk<B: CliBackend + Send>(
             confirm_write,
         } => {
             if confirm_write {
-                let request = build_ygdk_request(
-                    classify_id,
-                    item_id,
-                    start_time,
-                    end_time,
-                    place,
-                    &photo,
-                    share_to_square,
+                let request = prepared.map_or_else(
+                    || {
+                        build_ygdk_request(
+                            classify_id,
+                            item_id,
+                            start_time,
+                            end_time,
+                            place,
+                            &photo,
+                            share_to_square,
+                        )
+                    },
+                    Ok,
                 )?;
                 let result = backend
                     .ygdk_submit(request)
@@ -85,6 +91,7 @@ pub(in crate::execute) async fn run_ygdk<B: CliBackend + Send>(
 pub(in crate::execute) async fn run_routed_ygdk<B: RoutedCliBackend + Send>(
     arguments: YgdkArgs,
     backend: &mut B,
+    prepared: Option<ubaa_core::facade::YgdkClockinSubmitRequest>,
 ) -> RoutedResult<CommandOutput> {
     match arguments.command {
         YgdkCommand::Overview => routed_readonly(
@@ -115,14 +122,19 @@ pub(in crate::execute) async fn run_routed_ygdk<B: RoutedCliBackend + Send>(
             confirm_write,
         } => {
             let result = if confirm_write {
-                match build_ygdk_request(
-                    classify_id,
-                    item_id,
-                    start_time,
-                    end_time,
-                    place,
-                    &photo,
-                    share_to_square,
+                match prepared.map_or_else(
+                    || {
+                        build_ygdk_request(
+                            classify_id,
+                            item_id,
+                            start_time,
+                            end_time,
+                            place,
+                            &photo,
+                            share_to_square,
+                        )
+                    },
+                    Ok,
                 ) {
                     Ok(request) => backend
                         .ygdk_submit(request)

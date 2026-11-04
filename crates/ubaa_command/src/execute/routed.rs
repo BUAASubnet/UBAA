@@ -37,7 +37,7 @@ where
 {
     let json = cli.json;
     let feature = cli.feature();
-    let result = execute_routed(cli, backend, &mut std::io::empty()).await;
+    let result = execute_routed(cli, backend, &mut std::io::empty(), None).await;
     crate::runtime::finish_output(
         render_routed_result(json, feature, result, stdout, stderr),
         stdout,
@@ -49,6 +49,7 @@ pub(crate) async fn execute_routed<B: RoutedCliBackend + Send>(
     cli: Cli,
     backend: &mut B,
     input: &mut impl std::io::BufRead,
+    prepared_ygdk: Option<ubaa_core::facade::YgdkClockinSubmitRequest>,
 ) -> ubaa_core::facade::RoutedResult<CommandOutput> {
     let (_feature, result) = match cli.command {
         Command::Portal(arguments) => (
@@ -102,7 +103,10 @@ pub(crate) async fn execute_routed<B: RoutedCliBackend + Send>(
             CliFeature::Ihome,
             super::features::ihome::run_routed_ihome(arguments, backend).await,
         ),
-        Command::Ygdk(arguments) => (CliFeature::Ygdk, run_routed_ygdk(arguments, backend).await),
+        Command::Ygdk(arguments) => (
+            CliFeature::Ygdk,
+            run_routed_ygdk(arguments, backend, prepared_ygdk).await,
+        ),
         Command::Evaluation(arguments) => (
             CliFeature::Evaluation,
             run_routed_evaluation(arguments, backend).await,

@@ -178,6 +178,39 @@
       "runner": "test",
       "environment": [],
       "defines": []
+    },
+    {
+      "path": "synthetic/command/entry.dart",
+      "kind": "synthetic",
+      "domain": "command",
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "run",
+      "environment": [
+        "UBAA_COMMAND_EVIDENCE_DIR"
+      ],
+      "defines": []
+    },
+    {
+      "path": "synthetic/command/input_test.dart",
+      "kind": "synthetic",
+      "domain": "command",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux",
+        "ios",
+        "android"
+      ],
+      "ci": true,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     }
   ]
 }

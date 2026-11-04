@@ -5,6 +5,7 @@
 
 import '../frb_generated.dart';
 import 'campus.dart';
+import 'command.dart';
 import 'ihome.dart';
 import 'initialization.dart';
 import 'interactive_auth.dart';
@@ -392,6 +393,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String date,
   });
 
+  /// # Errors
+  /// 身份凭证已消费或不属于当前认证代次时返回错误。
+  /// # Panics
+  /// 命令状态锁被其他线程的 panic 污染时终止。
+  Future<String> commandLoginUsername({
+    required BridgeCommandLoginIdentity identity,
+  });
+
   Future<BridgeWriteCommitResult> commitWrite({required String intentId});
 
   /// 复用原意图消费、实时资格与单次发送；释放原客户端锁前完成关联本地失效。
@@ -401,6 +410,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeCachedWriteCommit> commitWriteCached({
     required BridgeOfflineCache cache,
     required String intentId,
+  });
+
+  /// # Errors
+  /// 身份凭证已消费或认证代次已变化时返回错误。
+  /// # Panics
+  /// 命令状态锁被其他线程的 panic 污染时终止。
+  Future<void> consumeCommandLoginIdentity({
+    required BridgeCommandLoginIdentity identity,
   });
 
   /// 明确进入已就绪路线；Core 原子保存所需策略，保留真实认证槽位。
@@ -445,6 +462,30 @@ abstract class BridgeClient implements RustOpaqueInterface {
   });
 
   Future<BridgeRoutedExamArrangement> examArrangement({required String term});
+
+  /// # Errors
+  /// 客户端或缓存不可用、次数已用尽或命令已停止时返回错误。
+  Future<BridgeCommandAttempt> executeCachedCommand({
+    required BridgeCommand command,
+    required String expectedIdentity,
+    required BridgeOfflineCache cache,
+  });
+
+  /// 每次读取借用当前 Core；学校写入使用共享的一次性意图，最多重跑一次只读命令。
+  /// # Errors
+  /// 客户端已关闭、次数已用尽或命令已停止时返回错误。
+  Future<BridgeCommandAttempt> executeCommand({
+    required BridgeCommand command,
+    String? expectedIdentity,
+  });
+
+  /// 条件撤销票据只供本次显式退出，结束后恢复原固定归属。
+  /// # Errors
+  /// 计划不是退出、撤销票据不可用或客户端已关闭时返回错误。
+  Future<BridgeCommandAttempt> executeCommandLogout({
+    required BridgeCommand command,
+    required BridgeSharedAccount scope,
+  });
 
   Future<BridgeRoutedGrades> grades({required String term});
 
@@ -884,6 +925,10 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String password,
     required List<BridgeCaptchaAnswer> answers,
   });
+
+  /// # Errors
+  /// 本次认证没有可交付的身份凭证时返回错误。
+  Future<BridgeCommandLoginIdentity> takeCommandLoginIdentity();
 
   /// 获取必要的用户资料。
   ///

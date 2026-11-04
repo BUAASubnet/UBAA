@@ -66,3 +66,13 @@ fi
     *) printf 'error: 未知平台：%s\n' "$platform" >&2; exit 2 ;;
   esac
 )
+
+# Linux GUI bundle 同时交付无图形会话命令，复用 Cargokit 已构建的同一 Rust 库。
+if [[ "$platform" == linux || ( "$platform" == host && "$(uname -s)" == Linux ) ]]; then
+  case "$(uname -m)" in
+    aarch64|arm64) command_arch=arm64 ;;
+    x86_64) command_arch=x64 ;;
+    *) printf '%s\n' 'Linux 命令不支持当前构建架构' >&2; exit 2 ;;
+  esac
+  python3 "$script_dir/command.py" linux-bundle "$mode" "$app_root/build/linux/$command_arch/$mode/bundle"
+fi

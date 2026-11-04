@@ -51,19 +51,24 @@ final class SharedAccountConsumer {
 
   Future<void> bind(
     SecureLocalAccountStore store,
-    LocalAccountSnapshot snapshot,
-  ) => _track(() => _bind(store, snapshot));
+    LocalAccountSnapshot snapshot, {
+    bool requireRestore = true,
+  }) => _track(() => _bind(store, snapshot, requireRestore));
 
   Future<void> _bind(
     SecureLocalAccountStore store,
     LocalAccountSnapshot snapshot,
+    bool requireRestore,
   ) async {
     if (_closed) throw const RecoveryInterrupted(RecoveryStopReason.closed);
     if (_writes != 0 || _bindingBusy)
       throw const RecoveryInterrupted(RecoveryStopReason.superseded);
     _bindingBusy = true;
     try {
-      final binding = await store.bindSnapshot(snapshot);
+      final binding = await store.bindSnapshot(
+        snapshot,
+        requireRestore: requireRestore,
+      );
       if (_closed) throw const RecoveryInterrupted(RecoveryStopReason.closed);
       await accounts.bindSharedAccount(binding);
       if (_closed) throw const RecoveryInterrupted(RecoveryStopReason.closed);

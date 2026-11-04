@@ -57,8 +57,10 @@ impl BridgeClient {
                 error = control.inner.interrupted() => return Err(control_error(control, error, None)),
                 allowed = self.ensure_recovery_allowed() => allowed?,
             }
-            let recovered = client.recover_required_session_controlled(feature.into(), operation)
-                .await.map_err(|error| {
+            let recovered = match feature.feature() {
+                Some(feature) => client.recover_required_session_controlled(feature, operation).await,
+                None => client.recover_user_session_controlled(operation).await,
+            }.map_err(|error| {
                     let route = error.resolution.map(|resolution| resolution.mode.into());
                     control_error(control, error.error, route)
                 })?;

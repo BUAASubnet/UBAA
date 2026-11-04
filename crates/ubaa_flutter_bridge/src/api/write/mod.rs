@@ -7,8 +7,11 @@
 )]
 
 pub mod cache;
+pub(crate) mod command;
 mod commit;
+pub(crate) mod dispatch;
 mod lifecycle;
+pub(crate) mod preparation_error;
 mod prepare;
 pub mod readback;
 mod support;
@@ -198,7 +201,7 @@ pub(crate) enum PendingWrite {
     LibbookReserve(BridgeLibbookReserveRequest),
     LibbookCancel(BridgeLibbookCancelBookingRequest),
     Ygdk(ubaa_core::facade::YgdkClockinSubmitRequest),
-    CgyyReserve(BridgeCgyySubmitReservationRequest),
+    CgyyReserve(ubaa_core::facade::CgyyReservationSubmitRequest),
     CgyyCancel(BridgeCgyyCancelOrderRequest),
     Evaluation(ubaa_core::facade::EvaluationSubmitCoursesRequest),
 }
@@ -208,6 +211,7 @@ pub(crate) enum PendingWrite {
 pub(crate) struct PendingEntry {
     pub request: PendingWrite,
     pub expires_at: i64,
+    pub(crate) resolution: ubaa_core::facade::RouteResolution,
     pub resolved_route: BridgeConnectionMode,
     pub conflict_key: String,
 }
@@ -315,3 +319,21 @@ fn evaluation_target_conflict_key(target: &ubaa_core::facade::EvaluationSubmitTa
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+pub(crate) fn testing_resolution(
+    route: BridgeConnectionMode,
+) -> ubaa_core::facade::RouteResolution {
+    use ubaa_core::facade::{
+        ConnectionMode, NetworkState, RouteDiagnostic, RoutePolicy, RouteResolution,
+    };
+    let mode = route.into();
+    RouteResolution {
+        mode,
+        policy: match mode {
+            ConnectionMode::Direct => RoutePolicy::Direct,
+            ConnectionMode::WebVpn => RoutePolicy::WebVpn,
+        },
+        diagnostic: RouteDiagnostic::new(NetworkState::Unknown, mode),
+    }
+}

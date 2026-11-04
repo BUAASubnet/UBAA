@@ -1,6 +1,6 @@
 # App 命令模式设计
 
-日期：2026-11-01。本文记录 H2 的正式设计与平台验收条件。用户决定和监督裁定已纳入本文。整体阶段关系见[桌面共享服务计划](desktop-shared-state.md)。H2-common-a 提供 Rust 命令骨架；正式共享接线依赖 H1-b3 放行，由 H2-common-b 和三个平台单元继续实施。本文中的平台目标不表示平台已经通过验收。
+日期：2026-11-05。本文说明统一 App 命令链路和平台运行条件。整体产品安排见[桌面共享服务计划](desktop-shared-state.md)，候选、平台证据和未验证项见[当前状态](../migration/status.md)。
 
 ## 公共链路与模块责任
 
@@ -23,13 +23,13 @@ parse(argv) -> CommandPlan
 CommandPlan.requirements() -> CommandRequirements
 prepare_input(plan, input, control) -> PreparedCommand
 execute_attempt(prepared, backend, control) -> AttemptOutcome
-AttemptOutcome = Completed(ResultHandle) | AuthExpired(target, route, result)
+AttemptOutcome = Completed(ResultHandle) | AuthExpired(target, route, result) | SharedStateChanged(target, result)
 ResultHandle.render(control, stdout, stderr) -> exitCode
 ```
 
 固定路线、显式聚合认证和本机日程提供各自的执行适配。`ResultHandle` 不允许宿主自行构造成功正文。`PreparedCommand` 保留一次输入快照，业务重跑不再次消费 stdin。命令分类为 `Local`、`Readonly`、`ExplicitAuth`、`SchoolWrite`，按具体操作判断。Signin perform、LibBook reserve/cancel、Bykc select/deselect/sign、Cgyy submit/cancel、Ygdk submit 和 Evaluation submit-pending 均属于学校写入。
 
-H2-common-a 暂时保留迁入命令库的旧 `local_agenda` 适配、独立账号索引和材料 worker，并仅由旧宿主启动 worker。这些兼容实现不提供 App 的正式共享身份。H4 才删除旧宿主及其专有材料路径。有效集成测试保留在旧 CLI 测试目录，通过兼容导出验证同一个命令实现。
+生产命令使用 App 共享材料和当前账号。旧独立 Rust 宿主、专用账号索引及材料 worker 已从候选源码删除。公共协议和命令回归迁到 `crates/ubaa_command/tests`，`core-live` 迁到独立的 `tools/core_live`。完整退役验收仍包含三个桌面平台的新入口行为，覆盖归属见[测试策略](../development/testing.md#命令宿主替换后的覆盖)。
 
 ## 身份、本机数据与恢复
 
@@ -37,7 +37,7 @@ H1-b3 的命令工厂从安全索引捕获不可自行构造的活动账号快�
 
 `Local` 计划只取得合法本机账号和 AgendaStore。仅显式 `--school-cache` 才取得同账号已有缓存，不创建网络客户端、不探测网关、不调用认证状态或恢复服务。缺索引、坏库、缺 CacheKey 或冲突时保留原件并失败，不新造 alias 或密钥。关闭自动登录不阻止合法本机日程访问。业务缓存继续加密，日程保持独立明文 SQLite，缓存清理不删除日程。
 
-恢复目标独立于 UI 菜单，覆盖十五个功能及 user。H2-common-b 为 Bridge/Dart 补齐 `RecoveryTarget`，Core 增加 user 的受控恢复 facade，复用原 `Operation::User`，不能借课表路线替代用户路线。旧 feature API 可作兼容包装。scope 的跨进程有效性依赖 H1-b3 的异步持久校验和本进程撤销通知，内存布尔值不能替代持久代次核对。
+恢复目标独立于 UI 菜单，覆盖十五个功能及 user。Bridge/Dart 的 `RecoveryTarget` 与 Core user 受控恢复 facade 逐项映射，user 复用 `Operation::User`。旧 feature API 可作兼容包装。scope 的跨进程有效性依赖 H1-b3 的异步持久校验和本进程撤销通知，内存布尔值不能替代持久代次核对。
 
 网络前后、提交凭据前、学校写入前及交付前均核对 scope。材料锁只覆盖短本机事务，不跨网络、交互和慢管道持有。恢复前释放本次尝试的读取 guard，恢复完成后只使用 H1-b3 确认的合法继任 scope/客户端，不放宽 Core revision/CAS。
 
@@ -49,7 +49,7 @@ H1-b3 的命令工厂从安全索引捕获不可自行构造的活动账号快�
 4. 同账号外部会话更新，只有 H1-b3 确认可以续接时才重建客户端重读，并消耗同一重跑额度。退出后重新登录、切号和许可撤销均停止旧命令。
 5. 显式登录、退出和聚合状态走认证服务。学校写入只可在准备资格前恢复；准备或提交后的过期、冲突、取消均终止该写意图，不自动重新准备或提交。
 
-写请求可能已经发送时保留 `outcome_unknown`，只按明确目标和原路线只读核对。未查到结果不能触发重发。H3 将命令写 backend 接入共同 prepare/commit/readback 服务，保留资格目标、摘要、路线、120 秒有效期和单次消费规则。
+写请求可能已经发送时保留 `outcome_unknown`，只按明确目标和原路线只读核对。未查到结果不能触发重发。命令写 backend 与 GUI 共用 prepare/commit/readback 服务，保留资格目标、摘要、路线、120 秒有效期和单次消费规则。
 
 ## 输入、输出、期限与退出码
 
@@ -118,18 +118,10 @@ Release 性能目标：热启动本机命令 P95≤0.5 秒、正常冷启动 P95
 
 使用已登录桌面的 `ssh windows` 原生 Release 验证 cmd、PowerShell 5.1、PowerShell 7.4+ 等待与退出码、GUI 双向启动、两个命令、Unicode/引号/尾反斜杠、EOF、慢管道/断管、Ctrl+C 和 DPAPI 连续性。分别测进程 UTF-8 字节与 shell 重定向文件，旧 PowerShell 可能转码。H0 的 Windows 源码审查不能替代原生证据。
 
-## 单元与验收
+## 验收
 
-| 单元 | 交付与前置 |
-|---|---|
-| H2-common-a | Rust 命令库、旧二进制委托、输入输出/期限接口、原合同保留；可先于 H1-b3 机械实施 |
-| H2-common-b | 纯 Dart runtime、恢复目标、Bridge 命令和生成物、本机日程及一个在线代表命令；正式共享依赖 H1-b3 |
-| H2-macos | 入口/角色锁、entitlement、目录和材料迁移、PATH、Release 性能与原生终端矩阵 |
-| H2-linux | AOT 薄入口、Secret Service、构建打包、发行版及实际 SSH/PAM |
-| H2-windows | 控制台 target、消息循环、标准流、共享资源与 Windows 原生矩阵 |
+公共命令、共享服务、平台入口和旧宿主迁出按同一产品结果验收。旧命令合同、输入顺序、身份生命周期和只读开发工具覆盖已迁入公共库及 `tools/core_live`，具体映射见[测试策略](../development/testing.md)。原生进程验证检查实际标准流、退出码、共享材料和普通关闭行为。
 
-common-a 保留先失败后修复证据：注入 stdin 被绕开、输出 flush 失败仍返回 0、认证错误提前输出后又成功、队列停止不能唤醒。原 `tests/cli_contract/*`、agenda_read、binary_e2e 和 core-live 覆盖保留；移动测试逐项登记，不能靠删除或放宽断言通过。
+共享运行时用 barrier 验证第二页过期完整重跑一次、第二轮再过期、503/无路线、两消费者取消一个、持久代次变化、凭据/HTTP/输出阻塞和迟到结果。断言密码提交数、业务调用数、学校写次数、交付次数及总期限。本机学校请求和网关探测必须为零。公共和平台单元还覆盖 GUI 开关、双向启动、两个命令、普通关闭后 GUI 继续使用，以及外部退出/切号/会话更新。
 
-common-b 用 barrier 验证第二页过期完整重跑一次、第二轮再过期、503/无路线、两消费者取消一个、持久代次变化、凭据/HTTP/输出阻塞和迟到结果。断言密码提交数、业务调用数、学校写次数、交付次数及总期限。本机学校请求和网关探测必须为零。公共和平台单元还覆盖 GUI 开关、双向启动、两个命令、普通关闭后 GUI 继续使用，以及外部退出/切号/会话更新。
-
-H3 继续逐操作迁移全部认证、查询、学校写入与日程 CRUD/compare-and-clear/export 文件交付。H4 迁出 core-live 并退役旧宿主、索引和 worker。每单元固定基线，先聚焦后按 `mode=full` 验收，重检查及生成串行。真实账号和学校写入需要当前会话具体授权，设计中的验收矩阵不自行提供授权。
+全部认证、查询、学校写入与本机日程命令共用上述链路。`core-live` 独立保留为开发工具，旧宿主与材料 worker 的删除单独提交。使用固定基线按 `mode=full` 验收，重检查与生成串行；Windows 原生未通过时保留完整退役验收缺口。真实账号和学校写入遵循当前会话授权。

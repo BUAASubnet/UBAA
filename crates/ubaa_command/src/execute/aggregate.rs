@@ -28,32 +28,19 @@ where
     O: Write,
     E: Write,
 {
-    let code = run_dual_login_impl(cli, backend, input, stdout, stderr, None).await;
+    let code = run_dual_login_impl(cli, backend, input, stdout, stderr).await;
     crate::runtime::finish_output(code, stdout, stderr)
 }
 
-/// 生产 CLI 在同一配置作用域锁内完成登录登记后再输出结果。
-pub async fn run_dual_login_with_agenda<R: BufRead, O: Write, E: Write>(
-    cli: Cli,
-    backend: &mut UbaaClient,
-    input: &mut R,
-    stdout: &mut O,
-    stderr: &mut E,
-    agenda: &mut crate::local_agenda::AgendaAccess,
-) -> i32 {
-    let code = run_dual_login_impl(cli, backend, input, stdout, stderr, Some(agenda)).await;
-    crate::runtime::finish_output(code, stdout, stderr)
-}
 async fn run_dual_login_impl<R: BufRead, O: Write, E: Write>(
     cli: Cli,
     backend: &mut UbaaClient,
     input: &mut R,
     stdout: &mut O,
     stderr: &mut E,
-    agenda: Option<&mut crate::local_agenda::AgendaAccess>,
 ) -> i32 {
     let cli_json = cli.json;
-    execute_login(cli, backend, input, stderr, agenda)
+    execute_login(cli, backend, input, stderr)
         .await
         .render(cli_json, stdout, stderr)
 }
@@ -63,7 +50,6 @@ pub(crate) async fn execute_login<R: BufRead, E: Write>(
     backend: &mut UbaaClient,
     input: &mut R,
     stderr: &mut E,
-    agenda: Option<&mut crate::local_agenda::AgendaAccess>,
 ) -> AggregateResult {
     let json_mode = cli.json;
     let route_policy = backend.default_route_policy();
@@ -91,14 +77,7 @@ pub(crate) async fn execute_login<R: BufRead, E: Write>(
             return AggregateResult::Error(error);
         }
     };
-    let registration = agenda
-        .filter(|_| outcome.readiness != LoginReadiness::NoneReady)
-        .map(|agenda| {
-            backend
-                .take_verified_login_identity()
-                .map_err(|_| crate::local_agenda::LocalError::StaleIdentity)
-                .and_then(|identity| agenda.register(backend, &identity))
-        });
+    let registration = None;
     outcome.profile = outcome.profile.map(redacted_profile);
     AggregateResult::Auth {
         outcome: Box::new(outcome),
@@ -141,12 +120,33 @@ where
         .render(json, stdout, stderr)
 }
 
-fn read_dual_credentials<R: BufRead, E: Write>(
+pub(crate) fn validate_login_arguments(json: bool, args: &LoginArgs) -> Result<()> {
+    if args.username_stdin && args.username.is_some() {
+        return Err(invalid_input("--username 与 --username-stdin 不能同时使用"));
+    }
+    if args
+        .username
+        .as_ref()
+        .is_some_and(|name| name.trim().is_empty())
+    {
+        return Err(invalid_input("用户名不能为空"));
+    }
+    if json && args.username.is_none() && !args.username_stdin {
+        return Err(invalid_input("JSON 模式必须提供 --username"));
+    }
+    if json && !args.password_stdin {
+        return Err(invalid_input("JSON 模式必须提供 --password-stdin"));
+    }
+    Ok(())
+}
+
+pub(crate) fn read_dual_credentials<R: BufRead, E: Write>(
     json_mode: bool,
     arguments: &LoginArgs,
     input: &mut R,
     stderr: &mut E,
 ) -> Result<(String, String)> {
+    validate_login_arguments(json_mode, arguments)?;
     let username = if arguments.username_stdin {
         if arguments.username.is_some() {
             return Err(invalid_input("--username 与 --username-stdin 不能同时使用"));
@@ -176,7 +176,7 @@ fn render_dual_outcome<O: Write, E: Write>(
     route_policy: RoutePolicy,
     stdout: &mut O,
     stderr: &mut E,
-    registration: Option<std::result::Result<(), crate::local_agenda::LocalError>>,
+    registration: Option<std::result::Result<(), crate::agenda::LocalError>>,
 ) -> i32 {
     let error = aggregate_error(&outcome);
     let exit_code = registration
@@ -317,7 +317,7 @@ pub(crate) enum AggregateResult {
     Auth {
         outcome: Box<ubaa_core::facade::LoginOutcome>,
         route_policy: RoutePolicy,
-        registration: Option<std::result::Result<(), crate::local_agenda::LocalError>>,
+        registration: Option<std::result::Result<(), crate::agenda::LocalError>>,
     },
     Logout {
         result: Result<()>,
@@ -364,7 +364,7 @@ pub(crate) async fn execute_auth(
     match cli.command {
         Command::Auth(AuthArgs {
             command: AuthCommand::Login(_),
-        }) => execute_login(cli, backend, input, &mut std::io::sink(), None).await,
+        }) => execute_login(cli, backend, input, &mut std::io::sink()).await,
         Command::Auth(AuthArgs {
             command: AuthCommand::Status,
         }) => {

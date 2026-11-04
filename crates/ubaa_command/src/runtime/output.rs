@@ -7,6 +7,27 @@ use std::{
 };
 const CHUNK: usize = 64 * 1024;
 const CAPACITY: usize = 4;
+#[cfg(test)]
+#[test]
+fn 长中文输出块保留完整_utf8_字符() {
+    let (mut writer, mut reader) = bounded_output(CommandControl::default());
+    let bytes = "日".repeat(22000).into_bytes();
+    let expected = bytes.clone();
+    let producer = std::thread::spawn(move || {
+        writer.write_all(&bytes).unwrap();
+        writer.flush().unwrap();
+    });
+    let mut received = Vec::new();
+    let mut valid = true;
+    while let Some(chunk) = reader.read().unwrap() {
+        valid &= std::str::from_utf8(&chunk.bytes).is_ok();
+        received.extend(chunk.bytes);
+        reader.acknowledge();
+    }
+    producer.join().unwrap();
+    assert_eq!(received, expected);
+    assert!(valid, "每块都必须可直接写入 Unicode 控制台");
+}
 #[derive(PartialEq)]
 enum ProducerState {
     Open,
@@ -25,6 +46,7 @@ struct Shared {
     state: Mutex<State>,
     changed: Condvar,
     control: CommandControl,
+    scope: Mutex<Option<ubaa_core::facade::SharedAccountGuard>>,
 }
 /// 每次只允许一个尚未确认的块，块上限 64 KiB。
 pub struct OutputChunk {
@@ -45,16 +67,26 @@ pub fn bounded_output(control: CommandControl) -> (OutputWriter, OutputReader) {
             cleanup: None,
             read_grace: None,
         }),
+        scope: Mutex::new(None),
         changed: Condvar::new(),
         control,
     });
     (OutputWriter(shared.clone()), OutputReader(shared))
+}
+impl Shared {
+    fn check_scope(&self) -> io::Result<()> {
+        if let Some(scope) = self.scope.lock().map_err(|_| failure())?.as_ref() {
+            scope.check().map_err(|_| failure())?;
+        }
+        Ok(())
+    }
 }
 fn failure() -> io::Error {
     io::Error::other("输出已停止或消费端已断开")
 }
 impl Write for OutputWriter {
     fn write(&mut self, bytes: &[u8]) -> io::Result<usize> {
+        self.0.check_scope()?;
         let mut state = self.0.state.lock().map_err(|_| failure())?;
         while state.chunks.len() + usize::from(state.in_flight) >= CAPACITY && !state.failed {
             state
@@ -79,7 +111,14 @@ impl Write for OutputWriter {
             .unwrap_or(&self.0.control)
             .check()
             .map_err(|_| failure())?;
-        let count = bytes.len().min(CHUNK);
+        let limit = bytes.len().min(CHUNK);
+        let count = match std::str::from_utf8(&bytes[..limit]) {
+            Err(error) if error.error_len().is_none() && error.valid_up_to() > 0 => {
+                error.valid_up_to()
+            }
+            _ => limit,
+        };
+        self.0.check_scope()?;
         if count > 0 {
             state.published = true;
             state.chunks.push_back(bytes[..count].to_vec());
@@ -110,6 +149,21 @@ impl Write for OutputWriter {
             .check()
             .map_err(|_| failure())?;
         if state.failed { Err(failure()) } else { Ok(()) }
+    }
+}
+impl OutputWriter {
+    /// 输出仍绑定本次执行的固定共享身份，排队后再次核对。
+    /// # Panics
+    /// 共享身份锁被其他线程的 panic 污染时终止。
+    pub fn bind_shared_account(&mut self, scope: Option<ubaa_core::facade::SharedAccountGuard>) {
+        *self.0.scope.lock().unwrap() = scope;
+    }
+    /// 只用于已停止命令的错误交付，沿用停止时刻后的两秒总收尾预算。
+    /// # Errors
+    /// 收尾期限已到达或输出通道已损坏时失败。
+    pub fn allow_cleanup(&mut self) -> io::Result<()> {
+        let cleanup = self.0.control.cleanup();
+        self.begin_cleanup(&cleanup)
     }
 }
 impl Drop for OutputWriter {
@@ -147,6 +201,7 @@ impl OutputReader {
             if state.failed {
                 return Err(failure());
             }
+            self.0.check_scope()?;
             if let Some(bytes) = state.chunks.pop_front() {
                 state.in_flight = true;
                 return Ok(Some(OutputChunk { bytes }));
@@ -208,4 +263,31 @@ impl OutputWriter {
         self.0.changed.notify_all();
         Ok(())
     }
+}
+
+#[cfg(test)]
+#[test]
+fn 已排队正文在消费者取得前仍核对固定共享代次() {
+    let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+        .join("../../.ubaa_local/command_delivery/output_tests")
+        .join(uuid::Uuid::new_v4().to_string());
+    std::fs::create_dir_all(&root).unwrap();
+    for (name, value) in [
+        ("materials.lock", ""),
+        ("transaction.v1", "UBAA1:C"),
+        ("account-generation.v1", "UBAA1:1"),
+    ] {
+        std::fs::write(root.join(name), value).unwrap();
+    }
+    let scope = ubaa_core::facade::SharedAccountGuard::new(&root, 1).unwrap();
+    let (mut writer, mut reader) = bounded_output(CommandControl::default());
+    writer.bind_shared_account(Some(scope));
+    writer.write_all(b"private-before-revocation").unwrap();
+    std::fs::write(root.join("account-generation.v1"), "UBAA1:2").unwrap();
+    assert!(
+        reader.read().is_err(),
+        "已经排队但尚未交付的旧正文必须被拒绝"
+    );
+    drop((writer, reader));
+    std::fs::remove_dir_all(root).unwrap();
 }

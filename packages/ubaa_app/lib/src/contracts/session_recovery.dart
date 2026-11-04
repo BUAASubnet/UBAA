@@ -265,3 +265,12 @@ final class PersistentRecoveryScope {
   final SecureLocalAccountStore accounts;
   LocalAccountSnapshot snapshot;
 }
+
+/// 完整恢复目标沿用相同的期限、取消和单次控制柄。
+abstract interface class ControlledRequiredTargetSessionBackend
+    implements ControlledRequiredSessionBackend, RequiredTargetSessionBackend {
+  RequiredRecoveryOperation startTargetRecovery(
+    RecoveryTarget target,
+    Duration limit,
+  );
+}

@@ -1,5 +1,6 @@
 //! 写入意图的准备、路线解析与一次性保存。
 
+use super::preparation_error::{PreparationError, catch_preparation_panic};
 use super::support::{
     bykc_sign_canonical, cgyy_canonical, digest, ensure_bykc_course_target,
     ensure_bykc_deselect_allowed, ensure_bykc_select_allowed, map_bykc_sign_preflight_error,
@@ -15,9 +16,7 @@ use super::{
     BridgeLibbookCancelBookingRequest, BridgeLibbookReserveRequest, BridgeSigninPerformRequest,
     BridgeWriteIntent, BridgeWriteOperation, BridgeYgdkSubmitRequest, PendingEntry, PendingWrite,
 };
-use crate::api::client::{
-    BridgeClient, BridgeConnectionMode, BridgeError, catch_panic, disposed_error,
-};
+use crate::api::client::{BridgeClient, BridgeConnectionMode, BridgeError, disposed_error};
 use ubaa_core::facade as domain;
 
 impl BridgeClient {
@@ -28,8 +27,9 @@ impl BridgeClient {
         target_summary: String,
         warnings: Vec<String>,
         pending: PendingWrite,
-        resolved_route: BridgeConnectionMode,
+        resolution: domain::RouteResolution,
     ) -> Result<BridgeWriteIntent, BridgeError> {
+        let resolved_route = resolution.mode.into();
         let intent_id = random_id();
         let request_digest = digest(&canonical);
         let now = now_seconds();
@@ -53,6 +53,7 @@ impl BridgeClient {
                 request: pending,
                 expires_at,
                 resolved_route,
+                resolution,
                 conflict_key,
             },
         );
@@ -71,14 +72,22 @@ impl BridgeClient {
         &self,
         request: BridgeBykcCourseRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
+        self.prepare_bykc_select_course_scoped(request)
+            .await
+            .map_err(PreparationError::into_bridge)
+    }
+    pub(crate) async fn prepare_bykc_select_course_scoped(
+        &self,
+        request: BridgeBykcCourseRequest,
+    ) -> Result<BridgeWriteIntent, PreparationError> {
         validate_id(request.course_id)?;
-        catch_panic(async {
+        catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             let current = client
                 .bykc_course_detail(request.course_id)
                 .await
-                .map_err(BridgeError::from_routed)?;
+                .map_err(PreparationError::from_routed)?;
             ensure_bykc_course_target(request.course_id, current.data.id)?;
             ensure_bykc_select_allowed(current.data.select_eligibility)?;
             let target_summary = bykc_select_summary(&current.data);
@@ -88,9 +97,10 @@ impl BridgeClient {
                 target_summary,
                 vec!["提交后请刷新已选课程确认结果".to_owned()],
                 PendingWrite::BykcSelect(request),
-                current.resolution.mode.into(),
+                current.resolution,
             )
             .await
+            .map_err(PreparationError::from)
         })
         .await
     }
@@ -98,14 +108,22 @@ impl BridgeClient {
         &self,
         request: BridgeBykcCourseRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
+        self.prepare_bykc_deselect_course_scoped(request)
+            .await
+            .map_err(PreparationError::into_bridge)
+    }
+    pub(crate) async fn prepare_bykc_deselect_course_scoped(
+        &self,
+        request: BridgeBykcCourseRequest,
+    ) -> Result<BridgeWriteIntent, PreparationError> {
         validate_id(request.course_id)?;
-        catch_panic(async {
+        catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             let current = client
                 .bykc_course_detail(request.course_id)
                 .await
-                .map_err(BridgeError::from_routed)?;
+                .map_err(PreparationError::from_routed)?;
             ensure_bykc_course_target(request.course_id, current.data.id)?;
             ensure_bykc_deselect_allowed(current.data.deselect_eligibility)?;
             let target_summary = bykc_deselect_summary(&current.data);
@@ -115,9 +133,10 @@ impl BridgeClient {
                 target_summary,
                 vec!["请确认课程与退选截止时间".to_owned()],
                 PendingWrite::BykcDeselect(request),
-                current.resolution.mode.into(),
+                current.resolution,
             )
             .await
+            .map_err(PreparationError::from)
         })
         .await
     }
@@ -125,8 +144,16 @@ impl BridgeClient {
         &self,
         request: BridgeBykcSignCourseRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
+        self.prepare_bykc_sign_course_scoped(request)
+            .await
+            .map_err(PreparationError::into_bridge)
+    }
+    pub(crate) async fn prepare_bykc_sign_course_scoped(
+        &self,
+        request: BridgeBykcSignCourseRequest,
+    ) -> Result<BridgeWriteIntent, PreparationError> {
         validate_bykc_sign_request(&request)?;
-        catch_panic(async {
+        catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             let current = client
@@ -137,7 +164,7 @@ impl BridgeClient {
                     sign_type: request.sign_type,
                 })
                 .await
-                .map_err(map_bykc_sign_preflight_error)?;
+                .map_err(|error| PreparationError::mapped(error, map_bykc_sign_preflight_error))?;
             let action = if request.sign_type == 1 {
                 "签到"
             } else {
@@ -164,25 +191,34 @@ impl BridgeClient {
                     "提交前将再次复核当前学期、考勤状态与时间窗".to_owned(),
                 ],
                 PendingWrite::BykcSign(request),
-                current.resolution.mode.into(),
+                current.resolution,
             )
             .await
+            .map_err(PreparationError::from)
         })
         .await
     }
     pub async fn prepare_signin_perform(
         &self,
-        mut request: BridgeSigninPerformRequest,
+        request: BridgeSigninPerformRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
+        self.prepare_signin_perform_scoped(request)
+            .await
+            .map_err(PreparationError::into_bridge)
+    }
+    pub(crate) async fn prepare_signin_perform_scoped(
+        &self,
+        mut request: BridgeSigninPerformRequest,
+    ) -> Result<BridgeWriteIntent, PreparationError> {
         request.course_id = request.course_id.trim().to_owned();
         validate_text(&request.course_id)?;
-        catch_panic(async {
+        catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             let current = client
                 .preflight_signin_perform(&request.course_id)
                 .await
-                .map_err(BridgeError::from_routed)?;
+                .map_err(PreparationError::from_routed)?;
             let course_name = safe_summary_label(&current.data.course_name, "课堂签到课程");
             let schedule_id = safe_summary_label(&request.course_id, "未知安排");
             let begin = safe_summary_label(&current.data.class_begin_time, "时间未知");
@@ -195,16 +231,25 @@ impl BridgeClient {
                 target_summary,
                 vec!["提交后请刷新今日签到状态确认结果".to_owned()],
                 PendingWrite::Signin(request),
-                current.resolution.mode.into(),
+                current.resolution,
             )
             .await
+            .map_err(PreparationError::from)
         })
         .await
     }
     pub async fn prepare_libbook_reserve(
         &self,
-        mut request: BridgeLibbookReserveRequest,
+        request: BridgeLibbookReserveRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
+        self.prepare_libbook_reserve_scoped(request)
+            .await
+            .map_err(PreparationError::into_bridge)
+    }
+    pub(crate) async fn prepare_libbook_reserve_scoped(
+        &self,
+        mut request: BridgeLibbookReserveRequest,
+    ) -> Result<BridgeWriteIntent, PreparationError> {
         request.area_id = request.area_id.trim().to_owned();
         request.seat_id = request.seat_id.trim().to_owned();
         request.day = request.day.trim().to_owned();
@@ -226,7 +271,7 @@ impl BridgeClient {
             request.start_time,
             request.end_time
         );
-        catch_panic(async {
+        catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             let current = client
@@ -239,7 +284,7 @@ impl BridgeClient {
                     end_time: request.end_time.clone(),
                 })
                 .await
-                .map_err(map_libbook_preflight_error)?;
+                .map_err(|error|PreparationError::mapped(error,map_libbook_preflight_error))?;
             let seat_name = safe_summary_label(&current.data.seat_name, "图书馆座位");
             let seat_no = safe_summary_label(&current.data.seat_no, "座位号未知");
             let area_id = safe_summary_label(&request.area_id, "分区未知");
@@ -256,16 +301,24 @@ impl BridgeClient {
                 ),
                 vec!["提交后将通过预约记录核对状态".to_owned()],
                 PendingWrite::LibbookReserve(request),
-                current.resolution.mode.into(),
+                current.resolution,
             )
-            .await
+            .await.map_err(PreparationError::from)
         })
         .await
     }
     pub async fn prepare_libbook_cancel_booking(
         &self,
-        mut request: BridgeLibbookCancelBookingRequest,
+        request: BridgeLibbookCancelBookingRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
+        self.prepare_libbook_cancel_booking_scoped(request)
+            .await
+            .map_err(PreparationError::into_bridge)
+    }
+    pub(crate) async fn prepare_libbook_cancel_booking_scoped(
+        &self,
+        mut request: BridgeLibbookCancelBookingRequest,
+    ) -> Result<BridgeWriteIntent, PreparationError> {
         request.id = request.id.trim().to_owned();
         validate_text(&request.id)?;
         validate_id_i32(request.page)?;
@@ -274,7 +327,7 @@ impl BridgeClient {
             "id={};page={};limit={}",
             request.id, request.page, request.limit
         );
-        catch_panic(async {
+        catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             let current = client
@@ -284,14 +337,14 @@ impl BridgeClient {
                     limit: request.limit,
                 })
                 .await
-                .map_err(map_libbook_cancel_preflight_error)?;
+                .map_err(|error|PreparationError::mapped(error,map_libbook_cancel_preflight_error))?;
             if current.data.booking_id.trim() != request.id {
-                return Err(BridgeError::local(
+                return Err((BridgeError::local(
                     crate::api::client::BridgeErrorCode::UpstreamChanged,
                     crate::api::client::BridgeErrorKind::Upstream,
                     false,
                     "图书馆预约取消目标与请求不一致",
-                ));
+                )).into());
             }
             let booking_name = safe_summary_label(&current.data.booking_name, "图书馆预约");
             let area_name = safe_summary_label(&current.data.area_name, "分区未知");
@@ -311,9 +364,9 @@ impl BridgeClient {
                     "提交后请刷新预约记录确认结果".to_owned(),
                 ],
                 PendingWrite::LibbookCancel(request),
-                current.resolution.mode.into(),
+                current.resolution,
             )
-            .await
+            .await.map_err(PreparationError::from)
         })
         .await
     }
@@ -321,16 +374,24 @@ impl BridgeClient {
         &self,
         request: BridgeYgdkSubmitRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
+        self.prepare_ygdk_submit_scoped(request)
+            .await
+            .map_err(PreparationError::into_bridge)
+    }
+    pub(crate) async fn prepare_ygdk_submit_scoped(
+        &self,
+        request: BridgeYgdkSubmitRequest,
+    ) -> Result<BridgeWriteIntent, PreparationError> {
         validate_ygdk_request(&request)?;
         let canonical = ygdk_canonical(&request);
         let domain_request = map_ygdk_request(request);
-        catch_panic(async {
+        catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             let current = client
                 .preflight_ygdk_submit(&domain_request)
                 .await
-                .map_err(map_ygdk_preflight_error)?;
+                .map_err(|error| PreparationError::mapped(error, map_ygdk_preflight_error))?;
             let target = current.data.request.target;
             let item_name = safe_summary_label(&current.data.item_name, "阳光打卡项目");
             self.store_write_intent(
@@ -345,30 +406,45 @@ impl BridgeClient {
                     "提交后将固定原路线刷新概览与记录，回读不替代结果确认".to_owned(),
                 ],
                 PendingWrite::Ygdk(current.data.request),
-                current.resolution.mode.into(),
+                current.resolution,
             )
             .await
+            .map_err(PreparationError::from)
         })
         .await
     }
     pub async fn prepare_cgyy_submit_reservation(
         &self,
-        mut request: BridgeCgyySubmitReservationRequest,
+        request: BridgeCgyySubmitReservationRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
-        validate_cgyy_request(&request)?;
-        catch_panic(async {
+        self.prepare_cgyy_submit_reservation_scoped(request)
+            .await
+            .map_err(PreparationError::into_bridge)
+    }
+    pub(crate) async fn prepare_cgyy_submit_reservation_scoped(
+        &self,
+        request: BridgeCgyySubmitReservationRequest,
+    ) -> Result<BridgeWriteIntent, PreparationError> {
+        self.prepare_cgyy_payload(map_cgyy_request(request)).await
+    }
+    pub(crate) async fn prepare_cgyy_payload(
+        &self,
+        mut request: domain::CgyyReservationSubmitRequest,
+    ) -> Result<BridgeWriteIntent, PreparationError> {
+        validate_cgyy_request(&super::command::reservation_selection(&request))?;
+        catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
-            let domain_request = map_cgyy_request(request.clone());
+            let domain_request = request.clone();
             let current = client
                 .preflight_cgyy_reservation(&domain_request)
                 .await
-                .map_err(map_cgyy_preflight_error)?;
+                .map_err(|error| PreparationError::mapped(error, map_cgyy_preflight_error))?;
             request.selections = current
                 .data
                 .targets
                 .iter()
-                .map(|target| super::BridgeCgyyReservationSelection {
+                .map(|target| domain::CgyyReservationSelection {
                     space_id: target.space_id,
                     time_id: target.time_id,
                     venue_space_group_id: target.venue_space_group_id,
@@ -400,7 +476,7 @@ impl BridgeClient {
                 "研讨室 {} · 日期 {} · 空间 {} · 时段 {}",
                 current.data.venue_site_id, reservation_date, first.space_id, times,
             );
-            let canonical = cgyy_canonical(&request);
+            let canonical = cgyy_canonical(&super::command::reservation_selection(&request));
             self.store_write_intent(
                 BridgeWriteOperation::CgyySubmitReservation,
                 canonical,
@@ -410,9 +486,10 @@ impl BridgeClient {
                     "提交后必须查询订单核对结果".to_owned(),
                 ],
                 PendingWrite::CgyyReserve(request),
-                current.resolution.mode.into(),
+                current.resolution,
             )
             .await
+            .map_err(PreparationError::from)
         })
         .await
     }
@@ -420,8 +497,16 @@ impl BridgeClient {
         &self,
         request: BridgeCgyyCancelOrderRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
+        self.prepare_cgyy_cancel_order_scoped(request)
+            .await
+            .map_err(PreparationError::into_bridge)
+    }
+    pub(crate) async fn prepare_cgyy_cancel_order_scoped(
+        &self,
+        request: BridgeCgyyCancelOrderRequest,
+    ) -> Result<BridgeWriteIntent, PreparationError> {
         validate_id_i32(request.order_id)?;
-        catch_panic(async {
+        catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             let current = client
@@ -429,14 +514,17 @@ impl BridgeClient {
                     order_id: request.order_id,
                 })
                 .await
-                .map_err(map_cgyy_cancel_preflight_error)?;
+                .map_err(|error| {
+                    PreparationError::mapped(error, map_cgyy_cancel_preflight_error)
+                })?;
             if current.data.target.order_id != request.order_id {
-                return Err(BridgeError::local(
+                return Err((BridgeError::local(
                     crate::api::client::BridgeErrorCode::UpstreamChanged,
                     crate::api::client::BridgeErrorKind::Upstream,
                     false,
                     "研讨室订单取消目标与请求不一致",
-                ));
+                ))
+                .into());
             }
             let start = safe_optional_summary(current.data.reservation_start_date.as_deref());
             let end = safe_optional_summary(current.data.reservation_end_date.as_deref());
@@ -456,9 +544,10 @@ impl BridgeClient {
                     "提交后请刷新订单列表与详情核对结果".to_owned(),
                 ],
                 PendingWrite::CgyyCancel(request),
-                current.resolution.mode.into(),
+                current.resolution,
             )
             .await
+            .map_err(PreparationError::from)
         })
         .await
     }
@@ -466,14 +555,24 @@ impl BridgeClient {
         &self,
         request: BridgeEvaluationSubmitCoursesRequest,
     ) -> Result<BridgeWriteIntent, BridgeError> {
+        self.prepare_evaluation_submit_courses_scoped(request)
+            .await
+            .map_err(PreparationError::into_bridge)
+    }
+    pub(crate) async fn prepare_evaluation_submit_courses_scoped(
+        &self,
+        request: BridgeEvaluationSubmitCoursesRequest,
+    ) -> Result<BridgeWriteIntent, PreparationError> {
         let request = map_evaluation_request(request)?;
-        catch_panic(async {
+        catch_preparation_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             let routed = client
                 .preflight_evaluation_submit_courses(&request)
                 .await
-                .map_err(|error| map_evaluation_preflight_error(&error))?;
+                .map_err(|error| {
+                    PreparationError::mapped(error, |e| map_evaluation_preflight_error(&e))
+                })?;
             let route: BridgeConnectionMode = routed.resolution.mode.into();
             let preflight = routed.data;
             let courses_match = preflight.targets == request.targets
@@ -498,14 +597,15 @@ impl BridgeClient {
                                 )
                     });
             if !courses_match {
-                return Err(BridgeError {
+                return Err((BridgeError {
                     cache_failure: None,
                     code: crate::api::client::BridgeErrorCode::UpstreamChanged,
                     kind: crate::api::client::BridgeErrorKind::Upstream,
                     retryable: false,
                     message: "教学评教资格核对响应无效".to_owned(),
                     resolved_route: Some(route),
-                });
+                })
+                .into());
             }
             let count = preflight.targets.len();
             let pending = PendingWrite::Evaluation(domain::EvaluationSubmitCoursesRequest {
@@ -518,9 +618,10 @@ impl BridgeClient {
                 format!("提交 {count} 门课程的教学评教"),
                 vec!["评教提交后不可撤销，请确认课程数量".to_owned()],
                 pending,
-                route,
+                routed.resolution,
             )
             .await
+            .map_err(PreparationError::from)
         })
         .await
     }

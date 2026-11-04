@@ -159,6 +159,7 @@ async fn spoc_生产共享锁在页间可用_确认写意图阻止推进_缓存�
                 request: PendingWrite::BykcSelect(BridgeBykcCourseRequest { course_id: 1 }),
                 expires_at: i64::MAX,
                 resolved_route: BridgeConnectionMode::Direct,
+                resolution: crate::api::write::testing_resolution(BridgeConnectionMode::Direct),
                 conflict_key: "synthetic".into(),
             },
         );
@@ -235,6 +236,7 @@ async fn spoc_详情前置释放共享锁_写意图期间不读取正文_完成�
                 request: PendingWrite::BykcSelect(BridgeBykcCourseRequest { course_id: 1 }),
                 expires_at: i64::MAX,
                 resolved_route: BridgeConnectionMode::Direct,
+                resolution: crate::api::write::testing_resolution(BridgeConnectionMode::Direct),
                 conflict_key: "synthetic".into(),
             },
         );

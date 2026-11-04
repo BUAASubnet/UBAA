@@ -7,17 +7,22 @@ import '../support/mapping.dart';
 
 /// 只借用客户端，不拥有 logout 或客户端 dispose 的权限。
 final class BridgeRequiredSessionBackend
-    implements ControlledRequiredSessionBackend {
+    implements ControlledRequiredTargetSessionBackend {
   const BridgeRequiredSessionBackend(this.client);
   final BridgeClient client;
   @override
   RequiredRecoveryOperation startRequiredRecovery(
     FeatureId feature,
     Duration limit,
+  ) => startTargetRecovery(RecoveryTarget.fromFeature(feature), limit);
+  @override
+  RequiredRecoveryOperation startTargetRecovery(
+    RecoveryTarget target,
+    Duration limit,
   ) => _start(
     limit,
     (control) => client.recoverRequiredSessionControlled(
-      feature: _feature(feature),
+      feature: _target(target),
       control: control,
     ),
   );
@@ -38,6 +43,9 @@ final class BridgeRequiredSessionBackend
   @override
   Future<RecoveredRouteSession> recoverRequiredSession(FeatureId feature) =>
       _finish(startRequiredRecovery(feature, const Duration(minutes: 2)));
+  @override
+  Future<RecoveredRouteSession> recoverTargetSession(RecoveryTarget target) =>
+      _finish(startTargetRecovery(target, const Duration(minutes: 2)));
   @override
   Future<RecoveredRouteSession> loginRequiredRoute(
     ConnectionMode route,
@@ -93,17 +101,21 @@ final class _BridgeOperation implements RequiredRecoveryOperation {
   void dispose() => control.dispose();
 }
 
-BridgeRecoveryFeature _feature(FeatureId feature) => switch (feature) {
-  FeatureId.schedule => BridgeRecoveryFeature.schedule,
-  FeatureId.exam => BridgeRecoveryFeature.exam,
-  FeatureId.grades => BridgeRecoveryFeature.grades,
-  FeatureId.classroom => BridgeRecoveryFeature.classroom,
-  FeatureId.spoc => BridgeRecoveryFeature.spoc,
-  FeatureId.judge => BridgeRecoveryFeature.judge,
-  FeatureId.signin => BridgeRecoveryFeature.signin,
-  FeatureId.bykc => BridgeRecoveryFeature.bykc,
-  FeatureId.libbook => BridgeRecoveryFeature.libBook,
-  FeatureId.cgyy => BridgeRecoveryFeature.cgyy,
-  FeatureId.ygdk => BridgeRecoveryFeature.ygdk,
-  FeatureId.evaluation => BridgeRecoveryFeature.evaluation,
+BridgeRecoveryFeature _target(RecoveryTarget target) => switch (target) {
+  RecoveryTarget.user => BridgeRecoveryFeature.user,
+  RecoveryTarget.portal => BridgeRecoveryFeature.portal,
+  RecoveryTarget.network => BridgeRecoveryFeature.network,
+  RecoveryTarget.ihome => BridgeRecoveryFeature.ihome,
+  RecoveryTarget.schedule => BridgeRecoveryFeature.schedule,
+  RecoveryTarget.exam => BridgeRecoveryFeature.exam,
+  RecoveryTarget.grades => BridgeRecoveryFeature.grades,
+  RecoveryTarget.classroom => BridgeRecoveryFeature.classroom,
+  RecoveryTarget.spoc => BridgeRecoveryFeature.spoc,
+  RecoveryTarget.judge => BridgeRecoveryFeature.judge,
+  RecoveryTarget.signin => BridgeRecoveryFeature.signin,
+  RecoveryTarget.libbook => BridgeRecoveryFeature.libBook,
+  RecoveryTarget.bykc => BridgeRecoveryFeature.bykc,
+  RecoveryTarget.cgyy => BridgeRecoveryFeature.cgyy,
+  RecoveryTarget.ygdk => BridgeRecoveryFeature.ygdk,
+  RecoveryTarget.evaluation => BridgeRecoveryFeature.evaluation,
 };

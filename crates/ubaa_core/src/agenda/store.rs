@@ -142,6 +142,26 @@ impl AgendaStore {
             Ok(n)
         })
     }
+    /// 在同一 `SQLite` 写事务中核对未同步数量并清除全部本机记录。
+    ///
+    /// # Errors
+    /// 数量变化、账号失效或存储失败时保留全部记录。
+    pub fn clear_local_data_if_unsynced(&self, expected: usize) -> CacheResult<usize> {
+        self.access(true, true, |data| {
+            let count = data.items.values().filter(|v| v.locally_modified).count()
+                + data
+                    .overlays
+                    .values()
+                    .filter(|v| v.locally_modified)
+                    .count();
+            if count != expected {
+                return Err(CacheError::InvalidInput);
+            }
+            data.items.clear();
+            data.overlays.clear();
+            Ok(count)
+        })
+    }
     /// 关闭账号的日程读取与修改，数据保持原样。
     ///
     /// # Errors

@@ -1,0 +1,22 @@
+[package]
+name = "ubaa-core-live"
+autobins = false
+description = "Core 单路线只读开发验证工具"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+clap.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread"] }
+tracing-subscriber = { workspace = true, features = ["env-filter", "fmt"] }
+ubaa-core = { path = "../../crates/ubaa_core" }
+
+[[bin]]
+name = "core-live"
+path = "src/main.rs"
+
+[lints]
+workspace = true

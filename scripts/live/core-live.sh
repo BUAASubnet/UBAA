@@ -75,7 +75,7 @@ trap 'exit 143' TERM
 trap 'exit 129' HUP
 
 if [[ ! -x "$binary" || ${UBAA_CORE_LIVE_BUILD:-yes} == yes ]]; then
-  cargo build --locked --quiet --manifest-path "$repo_root/Cargo.toml" -p ubaa-cli --bin core-live
+  cargo build --locked --quiet --manifest-path "$repo_root/Cargo.toml" -p ubaa-core-live --bin core-live
 fi
 
 if "$binary" \

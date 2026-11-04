@@ -5,7 +5,7 @@ mod output;
 mod plan;
 pub use attempt::{
     AttemptOutcome, PreparedCommand, ResultHandle, execute_attempt, execute_auth_attempt,
-    execute_fixed_attempt, execute_local_attempt, prepare_input,
+    execute_fixed_attempt, preflight_failure, prepare_input,
 };
 pub use control::{CommandControl, StopReason};
 pub use output::{OutputChunk, OutputReader, OutputWriter, bounded_output};

@@ -155,7 +155,7 @@ case "$UBAA_TEST_ENTITLEMENTS" in
     cat <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
-<key>com.apple.security.app-sandbox</key><true/>
+<key>com.apple.security.app-sandbox</key><false/>
 <key>com.apple.security.network.client</key><true/>
 </dict></plist>
 PLIST
@@ -164,15 +164,15 @@ PLIST
     cat <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
-<key>com.apple.security.app-sandbox</key><true/>
+<key>com.apple.security.app-sandbox</key><false/>
 </dict></plist>
 PLIST
     ;;
-  sandbox-disabled)
+  sandbox-enabled)
     cat <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
-<key>com.apple.security.app-sandbox</key><false/>
+<key>com.apple.security.app-sandbox</key><true/>
 <key>com.apple.security.network.client</key><true/>
 </dict></plist>
 PLIST
@@ -190,7 +190,7 @@ PLIST
     cat <<'PLIST'
 <?xml version="1.0" encoding="UTF-8"?>
 <plist version="1.0"><dict>
-<key>com.apple.security.app-sandbox</key><true/>
+<key>com.apple.security.app-sandbox</key><false/>
 <key>com.apple.security.network.client</key><string>true</string>
 </dict></plist>
 PLIST
@@ -318,8 +318,8 @@ set -e
 pass '正式 artifact CLI 忽略工具环境覆盖'
 
 valid_status=$(run_entitlements_helper valid "$test_root/macos-valid.out")
-[[ $valid_status -eq 0 ]] || fail '具备 Sandbox 与 network.client 的 macOS 产物被拒绝'
-grep -F 'macOS 产物实际签名权限通过：Sandbox=true network.client=true' \
+[[ $valid_status -eq 0 ]] || fail '命令模式的非沙箱 macOS 产物被拒绝'
+grep -F 'macOS 产物实际签名权限通过：Sandbox=false network.client=true' \
   "$test_root/macos-valid.out" >/dev/null || fail 'macOS checker 未输出实际签名权限通过证据'
 grep -Fx -- "--display --entitlements - --xml $macos_artifact" "$test_root/codesign.log" >/dev/null || \
   fail 'macOS checker 未以只读参数提取实际签名权限'
@@ -339,10 +339,10 @@ expect_macos_rejected() {
 expect_macos_rejected missing-network 'com.apple.security.network.client 必须为 true'
 pass 'macOS checker 拒绝缺少客户端联网权限的产物'
 
-expect_macos_rejected sandbox-disabled 'com.apple.security.app-sandbox 必须为 true'
-pass 'macOS checker 拒绝关闭沙箱的产物'
+expect_macos_rejected sandbox-enabled 'com.apple.security.app-sandbox 必须为 false'
+pass 'macOS checker 拒绝限制正式命令文件访问的沙箱产物'
 
-expect_macos_rejected string-sandbox 'com.apple.security.app-sandbox 必须为 true'
+expect_macos_rejected string-sandbox 'com.apple.security.app-sandbox 必须为 false'
 pass 'macOS checker 拒绝字符串型沙箱权限'
 
 expect_macos_rejected string-network 'com.apple.security.network.client 必须为 true'

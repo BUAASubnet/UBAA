@@ -48,6 +48,7 @@ async fn 无缓存逐批共享锁可让位_意图保护及取消不发出后续�
             request: PendingWrite::BykcSelect(BridgeBykcCourseRequest { course_id: 1 }),
             expires_at: i64::MAX,
             resolved_route: BridgeConnectionMode::Direct,
+            resolution: crate::api::write::testing_resolution(BridgeConnectionMode::Direct),
             conflict_key: "synthetic".into(),
         },
     );

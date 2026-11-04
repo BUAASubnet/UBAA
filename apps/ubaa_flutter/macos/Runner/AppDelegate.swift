@@ -1,12 +1,13 @@
 import Cocoa
+import Darwin
 import FlutterMacOS
 
-@main
 class AppDelegate: FlutterAppDelegate {
-  override init() {
-    // 应用只允许单实例：同一用户已有实例时唤起它并退出，不再创建引擎。
-    AppDelegate.yieldToRunningInstance()
-    super.init()
+  override func applicationDidFinishLaunching(_ notification: Notification) {
+    super.applicationDidFinishLaunching(notification)
+    DistributedNotificationCenter.default().addObserver(
+      self, selector: #selector(activateGUI),
+      name: Notification.Name("cn.edu.ubaa.activate_gui"), object: String(geteuid()))
   }
 
   override func applicationShouldTerminateAfterLastWindowClosed(_ sender: NSApplication) -> Bool {
@@ -17,14 +18,8 @@ class AppDelegate: FlutterAppDelegate {
     return true
   }
 
-  private static func yieldToRunningInstance() {
-    guard let bundleIdentifier = Bundle.main.bundleIdentifier else { return }
-    let current = ProcessInfo.processInfo.processIdentifier
-    let other = NSRunningApplication.runningApplications(
-      withBundleIdentifier: bundleIdentifier
-    ).first { $0.processIdentifier != current && !$0.isTerminated }
-    guard let other else { return }
-    other.activate(options: [.activateAllWindows])
-    exit(EXIT_SUCCESS)
+  @objc private func activateGUI() {
+    NSApp.activate(ignoringOtherApps: true)
+    NSApp.windows.first?.makeKeyAndOrderFront(nil)
   }
 }

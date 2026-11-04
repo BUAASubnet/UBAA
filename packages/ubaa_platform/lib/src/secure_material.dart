@@ -3,6 +3,7 @@ import 'package:path/path.dart' as paths;
 import 'package:path_provider/path_provider.dart';
 import 'material/windows_materials.dart';
 import 'material/windows_dpapi.dart';
+import 'material/linux_secret_service.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:flutter_secure_storage_platform_interface/flutter_secure_storage_platform_interface.dart';
 import 'material/secure_material_core.dart' as core;
@@ -57,6 +58,8 @@ final class PlatformSecureMaterialTransport implements SecureMaterialTransport {
   bool get _isOhos => (operatingSystem ?? Platform.operatingSystem) == 'ohos';
   bool get _isWindows =>
       (operatingSystem ?? Platform.operatingSystem) == 'windows';
+  bool get _isLinux => (operatingSystem ?? Platform.operatingSystem) == 'linux';
+  static final _linux = LinuxSecretServiceTransport();
   static final _windows = WindowsFileMaterials(
     file: () async => File(
       paths.canonicalize(
@@ -73,6 +76,8 @@ final class PlatformSecureMaterialTransport implements SecureMaterialTransport {
   @override
   Future<String?> read(String key) => _isWindows
       ? (windowsTransport ?? _windows).read(key)
+      : _isLinux
+      ? _linux.read(key)
       : _isOhos
       ? FlutterSecureStoragePlatform.instance.read(
           key: key,
@@ -82,6 +87,8 @@ final class PlatformSecureMaterialTransport implements SecureMaterialTransport {
   @override
   Future<void> write(String key, String value) => _isWindows
       ? (windowsTransport ?? _windows).write(key, value)
+      : _isLinux
+      ? _linux.write(key, value)
       : _isOhos
       ? FlutterSecureStoragePlatform.instance.write(
           key: key,
@@ -92,6 +99,8 @@ final class PlatformSecureMaterialTransport implements SecureMaterialTransport {
   @override
   Future<void> delete(String key) => _isWindows
       ? (windowsTransport ?? _windows).delete(key)
+      : _isLinux
+      ? _linux.delete(key)
       : _isOhos
       ? FlutterSecureStoragePlatform.instance.delete(
           key: key,

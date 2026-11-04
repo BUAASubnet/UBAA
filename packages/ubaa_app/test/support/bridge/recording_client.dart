@@ -47,7 +47,7 @@ class FixtureCharacterizationBridgeClient implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 47;
+  int contractVersion() => 48;
 
   @override
   dynamic noSuchMethod(Invocation invocation) {

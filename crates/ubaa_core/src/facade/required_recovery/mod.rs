@@ -16,12 +16,45 @@ impl UbaaClient {
         feature: ReadonlyFeature,
         operation: RequiredRecoveryOperation,
     ) -> RoutedResult<AuthStatus> {
+        self.recover_operation_session_controlled(
+            super::types::Operation::Feature(feature),
+            operation,
+        )
+        .await
+    }
+
+    /// 按用户资料操作解析路线，在相同控制范围内校验会话。
+    ///
+    /// # Errors
+    /// 保留用户路线解析、认证、取消与期限错误。
+    pub async fn recover_user_session_controlled(
+        &mut self,
+        operation: RequiredRecoveryOperation,
+    ) -> RoutedResult<AuthStatus> {
+        self.recover_operation_session_controlled(super::types::Operation::User, operation)
+            .await
+    }
+
+    /// 校验用户资料所需路线，不提交密码。
+    ///
+    /// # Errors
+    /// 路线不可用或会话过期时保留原错误。
+    pub async fn recover_user_session(&mut self) -> RoutedResult<AuthStatus> {
+        let resolution = self.resolve_operation(super::types::Operation::User)?;
+        self.recover_resolved_session(resolution).await
+    }
+
+    async fn recover_operation_session_controlled(
+        &mut self,
+        target: super::types::Operation,
+        operation: RequiredRecoveryOperation,
+    ) -> RoutedResult<AuthStatus> {
         let control = operation.control;
         control.check().map_err(|error| super::RoutedError {
             error,
             resolution: None,
         })?;
-        let resolved = self.resolve_operation(super::types::Operation::Feature(feature));
+        let resolved = self.resolve_operation(target);
         let known_resolution = match &resolved {
             Ok(resolution) => Some(*resolution),
             Err(error) => error.resolution,

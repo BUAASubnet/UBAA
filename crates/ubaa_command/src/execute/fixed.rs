@@ -66,7 +66,7 @@ where
     let mode = backend.mode();
     let feature = command_feature(&cli.command);
     let json = cli.json;
-    let result = execute_fixed(cli, backend, input, stderr).await;
+    let result = execute_fixed(cli, backend, input, stderr, None).await;
     crate::runtime::finish_output(
         render_result(json, mode, feature, route_context, result, stdout, stderr),
         stdout,
@@ -79,6 +79,7 @@ pub(crate) async fn execute_fixed<B: CliBackend + Send, R: BufRead, E: Write>(
     backend: &mut B,
     input: &mut R,
     stderr: &mut E,
+    prepared_ygdk: Option<ubaa_core::facade::YgdkClockinSubmitRequest>,
 ) -> Result<CommandOutput> {
     match cli.command {
         Command::Agenda(_) => Err(crate::io::input::invalid_input(
@@ -118,7 +119,7 @@ pub(crate) async fn execute_fixed<B: CliBackend + Send, R: BufRead, E: Write>(
         Command::Bykc(arguments) => run_bykc(arguments, backend).await,
         Command::Cgyy(arguments) => run_cgyy(arguments, backend, input).await,
         Command::Ihome(arguments) => super::features::ihome::run_ihome(arguments, backend).await,
-        Command::Ygdk(arguments) => run_ygdk(arguments, backend).await,
+        Command::Ygdk(arguments) => run_ygdk(arguments, backend, prepared_ygdk).await,
         Command::Evaluation(arguments) => run_evaluation(arguments, backend).await,
     }
 }

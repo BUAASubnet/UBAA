@@ -44,6 +44,10 @@ impl CommandControl {
         self.cancelled.get_or_init(Instant::now);
         self.notify.notify_waiters();
     }
+    #[must_use]
+    pub fn remaining(&self) -> Duration {
+        self.deadline.saturating_duration_since(Instant::now())
+    }
     /// # Errors
     /// 返回取消或期限到达。
     pub fn check(&self) -> Result<(), StopReason> {
@@ -73,7 +77,10 @@ impl CommandControl {
             other.clone()
         }
     }
-    pub(crate) async fn run<T>(&self, work: impl Future<Output = T>) -> Result<T, StopReason> {
+    /// 在整条命令的剩余预算内执行；停止时丢弃本次等待。
+    /// # Errors
+    /// 取消或期限到达时返回停止原因。
+    pub async fn run<T>(&self, work: impl Future<Output = T>) -> Result<T, StopReason> {
         let cancelled = self.notify.notified();
         tokio::pin!(cancelled);
         cancelled.as_mut().enable();

@@ -104,7 +104,7 @@ impl CommandPlan {
                     confirm_write: true
                 }
             })
-        );
+        ) || matches!(&self.cli.command, Command::Agenda(args) if crate::agenda::confirmed(&args.command) && crate::agenda::input_path(&args.command).is_some_and(|p| p==std::path::Path::new("-")));
         CommandRequirements {
             class,
             recovery_target,
@@ -116,6 +116,98 @@ impl CommandPlan {
                 })
             ),
             config_dir: self.cli.config_dir.clone(),
+        }
+    }
+    /// 在读取密码前核对指定资料路径，不创建目录或读取账号材料。
+    /// # Errors
+    /// 指定路径及其既有父路径不可用时返回本机启动错误。
+    pub fn validate_configuration(&self) -> ubaa_core::facade::Result<()> {
+        let Some(mut path) = self.cli.config_dir.as_deref() else {
+            return Ok(());
+        };
+        loop {
+            if path.as_os_str().is_empty() {
+                return Ok(());
+            }
+            match std::fs::metadata(path) {
+                Ok(value) if value.is_dir() => return Ok(()),
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => {
+                    if let Some(parent) = path.parent() {
+                        path = parent;
+                        continue;
+                    }
+                }
+                _ => {}
+            }
+            return Err(UbaaError::new(
+                ErrorCode::InternalError,
+                ErrorKind::Internal,
+                false,
+                "本机资料目录不可用",
+            ));
+        }
+    }
+    /// 核对不依赖账号或网络的参数，避免为无效命令读取密码和本机材料。
+    /// # Errors
+    /// 登录输入方式或写入确认不完整时返回参数错误。
+    pub fn validate_local_arguments(&self) -> ubaa_core::facade::Result<()> {
+        if let Command::Agenda(args) = &self.cli.command {
+            crate::agenda::validate_arguments(&args.command)
+                .map_err(|error| crate::io::input::invalid_input(error.message()))?;
+        }
+        if !self.school_write_confirmed() {
+            return Err(crate::io::input::invalid_input(
+                "学校写入需要 --confirm-write",
+            ));
+        }
+        if let Command::Auth(AuthArgs {
+            command: AuthCommand::Login(args),
+        }) = &self.cli.command
+        {
+            crate::execute::aggregate::validate_login_arguments(self.cli.json, args)?;
+        }
+        if let Command::Cgyy(CgyyArgs {
+            command:
+                CgyyCommand::Submit {
+                    request_stdin: false,
+                    ..
+                },
+        }) = self.cli.command
+        {
+            return Err(crate::io::input::invalid_input(
+                "研讨室预约需要 --request-stdin",
+            ));
+        }
+        Ok(())
+    }
+    pub(crate) fn school_write_confirmed(&self) -> bool {
+        match &self.cli.command {
+            Command::Signin(SigninArgs {
+                command: SigninCommand::Perform { confirm_write, .. },
+            })
+            | Command::Libbook(LibBookArgs {
+                command:
+                    LibBookCommand::Reserve { confirm_write, .. }
+                    | LibBookCommand::Cancel { confirm_write, .. },
+            })
+            | Command::Bykc(BykcArgs {
+                command:
+                    BykcCommand::Select { confirm_write, .. }
+                    | BykcCommand::Deselect { confirm_write, .. }
+                    | BykcCommand::Sign { confirm_write, .. },
+            })
+            | Command::Cgyy(CgyyArgs {
+                command:
+                    CgyyCommand::Submit { confirm_write, .. }
+                    | CgyyCommand::Cancel { confirm_write, .. },
+            })
+            | Command::Ygdk(YgdkArgs {
+                command: YgdkCommand::Submit { confirm_write, .. },
+            })
+            | Command::Evaluation(EvaluationArgs {
+                command: EvaluationCommand::SubmitPending { confirm_write, .. },
+            }) => *confirm_write,
+            _ => true,
         }
     }
     #[must_use]
@@ -178,6 +270,74 @@ where
     let argv: Vec<OsString> = argv.into_iter().map(Into::into).collect();
     let json = argv.iter().any(|s| s == "--json");
     Cli::try_parse_from(argv)
+        .and_then(|cli| {
+            if cli.json
+                && matches!(
+                    cli.command,
+                    Command::Agenda(crate::AgendaArgs {
+                        command: crate::AgendaCommand::Export { stdout: true, .. }
+                    })
+                )
+            {
+                Err(clap::Error::raw(
+                    clap::error::ErrorKind::ArgumentConflict,
+                    "--stdout 不能与 --json 同时使用",
+                ))
+            } else {
+                Ok(cli)
+            }
+        })
         .map(CommandPlan::from)
         .map_err(|error| ParseFailure { error, json })
+}
+
+#[cfg(test)]
+mod agenda_delivery_tests {
+    use super::parse;
+    #[test]
+    fn 日程本地修改与导出由统一命令树解析() {
+        for arguments in [
+            vec!["create", "--input", "-", "--confirm-local-write"],
+            vec!["clear", "--expected-unsynced", "0", "--confirm-local-write"],
+            vec![
+                "export",
+                "--from",
+                "2026-11-01",
+                "--to",
+                "2026-11-02",
+                "--stdout",
+            ],
+        ] {
+            let mut argv = vec!["ubaa", "agenda"];
+            argv.extend(arguments);
+            assert!(parse(argv.clone()).is_ok(), "命令应可用：{argv:?}");
+        }
+    }
+    #[test]
+    fn stdout导出与_json在材料初始化前拒绝() {
+        assert!(
+            parse([
+                "ubaa",
+                "--json",
+                "agenda",
+                "export",
+                "--from",
+                "2026-12-01",
+                "--to",
+                "2026-12-02",
+                "--stdout"
+            ])
+            .is_err()
+        );
+    }
+    #[test]
+    fn 未确认学校写入在准备阶段拒绝且不读取输入() {
+        let plan = parse(["ubaa", "bykc", "select", "--course-id", "42"]).unwrap();
+        let mut input = std::io::Cursor::new("不得读取".as_bytes());
+        let error = crate::prepare_input(plan, &mut input, &crate::CommandControl::default())
+            .err()
+            .expect("准备阶段应拒绝缺少确认的写操作");
+        assert_eq!(error.code, ubaa_core::facade::ErrorCode::InvalidInput);
+        assert_eq!(input.position(), 0);
+    }
 }

@@ -24,6 +24,7 @@ use ubaa_test_support::{ExpectedRequest, MockTransport};
 mod bykc;
 mod cgyy_cancel;
 mod cgyy_reservation;
+mod command;
 mod contract;
 mod evaluation;
 mod libbook;
@@ -275,3 +276,12 @@ fn test_root(label: &str) -> PathBuf {
 }
 
 mod cached_commit;
+
+fn command_direct_resolution() -> ubaa_core::facade::RouteResolution {
+    use ubaa_core::facade::{ConnectionMode, RouteDiagnostic, RoutePolicy, RouteResolution};
+    RouteResolution {
+        mode: ConnectionMode::Direct,
+        policy: RoutePolicy::Direct,
+        diagnostic: RouteDiagnostic::new(NetworkState::Unknown, ConnectionMode::Direct),
+    }
+}

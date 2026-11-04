@@ -7,9 +7,9 @@ use super::{
 use std::path::Path;
 use ubaa_core::facade as core;
 
-struct LogoutRestore<'a> {
-    client: &'a mut core::UbaaClient,
-    previous: Option<core::SharedAccountGuard>,
+pub(crate) struct LogoutRestore<'a> {
+    pub(crate) client: &'a mut core::UbaaClient,
+    pub(crate) previous: Option<core::SharedAccountGuard>,
 }
 impl Drop for LogoutRestore<'_> {
     fn drop(&mut self) {
@@ -18,7 +18,7 @@ impl Drop for LogoutRestore<'_> {
 }
 
 pub struct BridgeSharedAccount {
-    guard: core::SharedAccountGuard,
+    pub(crate) guard: core::SharedAccountGuard,
 }
 impl BridgeSharedAccount {
     /// 只绑定固定本机版本，任何后续检查失败后永久失效。

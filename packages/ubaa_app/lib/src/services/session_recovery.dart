@@ -44,6 +44,18 @@ final class RequiredSessionRecovery {
     required RecoveryScope scope,
     required DateTime deadline,
     RecoveryCancellation? cancellation,
+  }) => ensureTargetSession(
+    target: RecoveryTarget.fromFeature(feature),
+    scope: scope,
+    deadline: deadline,
+    cancellation: cancellation,
+  );
+
+  Future<RecoveryResult> ensureTargetSession({
+    required RecoveryTarget target,
+    required RecoveryScope scope,
+    required DateTime deadline,
+    RecoveryCancellation? cancellation,
   }) {
     if (_closed)
       return Future.error(const RecoveryInterrupted(RecoveryStopReason.closed));
@@ -65,13 +77,13 @@ final class RequiredSessionRecovery {
       blocked.removeWhere((scope) => !scope.isCurrent);
       return blocked.isEmpty;
     });
-    final key = (feature, scope.key);
+    final key = (target, scope.key);
     final job = _jobs.putIfAbsent(key, () {
-      final created = _RecoveryJob(this, key, feature, scope);
+      final created = _RecoveryJob(this, key, target, scope);
       _draining.add(created);
       return created;
     });
-    final consumer = _Consumer(scope);
+    final consumer = _Consumer(scope, deadline);
     job.consumers.add(consumer);
     consumer.timer = Timer(
       remaining,
@@ -133,8 +145,9 @@ final class RequiredSessionRecovery {
 }
 
 final class _Consumer {
-  _Consumer(this.scope);
+  _Consumer(this.scope, this.deadline);
   final RecoveryScope scope;
+  final DateTime deadline;
   final completion = Completer<RecoveryResult>();
   Timer? timer;
   void Function()? unlisten;
@@ -148,7 +161,7 @@ final class _RecoveryJob {
   _RecoveryJob(this.owner, this.key, this.feature, this.scope);
   final RequiredSessionRecovery owner;
   final Object key;
-  final FeatureId feature;
+  final RecoveryTarget feature;
   final RecoveryScope scope;
   final consumers = <_Consumer>{};
   final settled = Completer<void>();
@@ -306,10 +319,36 @@ final class _RecoveryJob {
     await checkpoint();
   }
 
+  Duration get remaining {
+    final deadlines = consumers.map((consumer) => consumer.deadline);
+    final latest = deadlines.reduce((a, b) => a.isAfter(b) ? a : b);
+    final value = latest.difference(DateTime.now());
+    return value.isNegative
+        ? Duration.zero
+        : value > const Duration(minutes: 2)
+        ? const Duration(minutes: 2)
+        : value;
+  }
+
   Future<RecoveredRouteSession> recover() => invoke(
-    (backend) =>
-        backend.startRequiredRecovery(feature, const Duration(minutes: 2)),
-    () => owner.backend.recoverRequiredSession(feature),
+    (backend) {
+      if (backend is ControlledRequiredTargetSessionBackend) {
+        return backend.startTargetRecovery(feature, remaining);
+      }
+      final menuFeature = feature.feature;
+      if (menuFeature == null)
+        throw const BackendException(UbaaErrorCode.invalidInput);
+      return backend.startRequiredRecovery(menuFeature, remaining);
+    },
+    () {
+      final backend = owner.backend;
+      if (backend is RequiredTargetSessionBackend)
+        return backend.recoverTargetSession(feature);
+      final menuFeature = feature.feature;
+      if (menuFeature == null)
+        throw const BackendException(UbaaErrorCode.invalidInput);
+      return backend.recoverRequiredSession(menuFeature);
+    },
   );
 
   Future<void> execute() async {
@@ -503,7 +542,7 @@ final class _SharedLogin {
         final current = backend.startRequiredLogin(
           route,
           input,
-          const Duration(minutes: 2),
+          members.map((job) => job.remaining).reduce((a, b) => a > b ? a : b),
         );
         operation = current;
         try {

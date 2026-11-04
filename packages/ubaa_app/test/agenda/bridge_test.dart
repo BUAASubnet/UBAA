@@ -250,7 +250,7 @@ class _Cache implements BridgeOfflineCache {
 class _Client implements BridgeClient {
   int unexpectedCalls = 0;
   @override
-  int contractVersion() => 47;
+  int contractVersion() => 48;
   @override
   Future<void> dispose() async {}
   @override

@@ -4,7 +4,7 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 
 void main() {
-  test('macOS 各构建配置保留沙箱并允许主动联网', () {
+  test('macOS 各构建配置支持命令文件访问并允许主动联网', () {
     for (final configuration in ['DebugProfile', 'Release']) {
       final result = Process.runSync('/usr/bin/plutil', [
         '-convert',
@@ -17,8 +17,8 @@ void main() {
       final entitlements = jsonDecode(result.stdout as String) as Map;
       expect(
         entitlements['com.apple.security.app-sandbox'],
-        isTrue,
-        reason: '$configuration 必须保留 App Sandbox',
+        isFalse,
+        reason: '$configuration 必须支持终端指定的文件路径',
       );
       expect(
         entitlements['com.apple.security.network.client'],

@@ -1,11 +1,12 @@
 //! UBAA Core 的命令行解析与输出展示。
 
+pub mod agenda;
 mod backend;
-pub mod local_agenda;
 pub use backend::{CliBackend, RoutedCliBackend};
 mod command;
 pub use command::{
-    AgendaArgs, AgendaCommand, AuthArgs, AuthCommand, BykcArgs, BykcCommand, CgyyArgs, CgyyCommand,
+    AgendaArgs, AgendaCommand, AgendaCompletion, AgendaCompletionOverride, AgendaOverlayCommand,
+    AgendaScope, AuthArgs, AuthCommand, BykcArgs, BykcCommand, CgyyArgs, CgyyCommand,
     ClassroomArgs, ClassroomCommand, Cli, CliConnectionMode, Command, EvaluationArgs,
     EvaluationCommand, ExamArgs, ExamCommand, GradesArgs, GradesCommand, JudgeArgs,
     JudgeAssignmentCommand, JudgeCommand, LibBookArgs, LibBookCommand, LoginArgs, ScheduleArgs,
@@ -15,7 +16,7 @@ pub use command::{
 pub use command::{NetworkArgs, NetworkCommand, PortalArgs, PortalCommand};
 mod execute;
 pub use execute::{
-    run_dual_login, run_dual_login_with_agenda, run_dual_logout, run_dual_status, run_with_backend,
+    run_dual_login, run_dual_logout, run_dual_status, run_with_backend,
     run_with_backend_with_route, run_with_routed_backend,
 };
 mod io;
@@ -52,5 +53,17 @@ pub mod runtime;
 pub use runtime::{
     AttemptOutcome, CommandClass, CommandControl, CommandPlan, CommandRequirements,
     PreparedCommand, RecoveryTarget, ResultHandle, StopReason, execute_attempt,
-    execute_auth_attempt, execute_fixed_attempt, execute_local_attempt, parse, prepare_input,
+    execute_auth_attempt, execute_fixed_attempt, parse, prepare_input,
 };
+
+/// 渲染已知路线的执行错误，保持公共 JSON 和退出码。
+pub fn render_operation_error<O: std::io::Write, E: std::io::Write>(
+    json: bool,
+    feature: CliFeature,
+    error: ubaa_core::facade::RoutedError,
+    stdout: &mut O,
+    stderr: &mut E,
+) -> i32 {
+    let code = io::render::render_routed_result(json, feature, Err(error), stdout, stderr);
+    runtime::finish_output(code, stdout, stderr)
+}

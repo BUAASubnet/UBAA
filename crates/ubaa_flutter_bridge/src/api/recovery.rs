@@ -12,6 +12,10 @@ pub use control::BridgeRequiredRecoveryControl;
 /// 当前任务需要校验的业务路线；Auto 仍由 Core 功能矩阵决定。
 #[derive(Clone, Copy, Debug)]
 pub enum BridgeRecoveryFeature {
+    User,
+    Portal,
+    Network,
+    Ihome,
     Schedule,
     Exam,
     Grades,
@@ -25,22 +29,26 @@ pub enum BridgeRecoveryFeature {
     Ygdk,
     Evaluation,
 }
-impl From<BridgeRecoveryFeature> for ReadonlyFeature {
-    fn from(value: BridgeRecoveryFeature) -> Self {
-        match value {
-            BridgeRecoveryFeature::Schedule => Self::Schedule,
-            BridgeRecoveryFeature::Exam => Self::Exam,
-            BridgeRecoveryFeature::Grades => Self::Grades,
-            BridgeRecoveryFeature::Classroom => Self::Classroom,
-            BridgeRecoveryFeature::Spoc => Self::Spoc,
-            BridgeRecoveryFeature::Judge => Self::Judge,
-            BridgeRecoveryFeature::Signin => Self::Signin,
-            BridgeRecoveryFeature::Bykc => Self::Bykc,
-            BridgeRecoveryFeature::LibBook => Self::LibBook,
-            BridgeRecoveryFeature::Cgyy => Self::Cgyy,
-            BridgeRecoveryFeature::Ygdk => Self::Ygdk,
-            BridgeRecoveryFeature::Evaluation => Self::Evaluation,
-        }
+impl BridgeRecoveryFeature {
+    pub(crate) fn feature(self) -> Option<ReadonlyFeature> {
+        Some(match self {
+            Self::User => return None,
+            Self::Portal => ReadonlyFeature::Portal,
+            Self::Network => ReadonlyFeature::Network,
+            Self::Ihome => ReadonlyFeature::Ihome,
+            BridgeRecoveryFeature::Schedule => ReadonlyFeature::Schedule,
+            BridgeRecoveryFeature::Exam => ReadonlyFeature::Exam,
+            BridgeRecoveryFeature::Grades => ReadonlyFeature::Grades,
+            BridgeRecoveryFeature::Classroom => ReadonlyFeature::Classroom,
+            BridgeRecoveryFeature::Spoc => ReadonlyFeature::Spoc,
+            BridgeRecoveryFeature::Judge => ReadonlyFeature::Judge,
+            BridgeRecoveryFeature::Signin => ReadonlyFeature::Signin,
+            BridgeRecoveryFeature::Bykc => ReadonlyFeature::Bykc,
+            BridgeRecoveryFeature::LibBook => ReadonlyFeature::LibBook,
+            BridgeRecoveryFeature::Cgyy => ReadonlyFeature::Cgyy,
+            BridgeRecoveryFeature::Ygdk => ReadonlyFeature::Ygdk,
+            BridgeRecoveryFeature::Evaluation => ReadonlyFeature::Evaluation,
+        })
     }
 }
 
@@ -64,10 +72,11 @@ impl BridgeClient {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;
             self.ensure_recovery_allowed().await?;
-            let recovered = client
-                .recover_required_session(feature.into())
-                .await
-                .map_err(BridgeError::from_routed)?;
+            let recovered = match feature.feature() {
+                Some(feature) => client.recover_required_session(feature).await,
+                None => client.recover_user_session().await,
+            }
+            .map_err(BridgeError::from_routed)?;
             Ok(BridgeRequiredSession {
                 route: recovered.resolution.mode.into(),
                 profile: map_profile(recovered.data.user),
@@ -214,6 +223,7 @@ mod tests {
                 request: PendingWrite::BykcSelect(BridgeBykcCourseRequest { course_id: 1 }),
                 expires_at: i64::MAX,
                 resolved_route: BridgeConnectionMode::Direct,
+                resolution: crate::api::write::testing_resolution(BridgeConnectionMode::Direct),
                 conflict_key: "synthetic".into(),
             },
         );

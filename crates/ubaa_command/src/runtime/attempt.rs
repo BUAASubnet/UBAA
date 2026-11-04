@@ -10,9 +10,11 @@ use ubaa_core::facade::{
 };
 
 /// 输入快照在尝试之间保持不变，不包含可重放的写资格。
+#[derive(Clone)]
 pub struct PreparedCommand {
-    plan: CommandPlan,
-    input: Vec<u8>,
+    pub(crate) plan: CommandPlan,
+    pub(crate) input: Vec<u8>,
+    ygdk_request: Option<ubaa_core::facade::YgdkClockinSubmitRequest>,
 }
 /// 保留 typed 执行结果，调用者不能构造成功正文。
 pub struct ResultHandle {
@@ -22,13 +24,10 @@ pub struct ResultHandle {
     fixed: Option<(ConnectionMode, ReadonlyRouteContext)>,
     stop: Option<StopReason>,
     extra: Option<ExtraResult>,
-    local: Option<crate::Cli>,
     school_write: bool,
 }
 enum ExtraResult {
     Auth(Box<crate::execute::aggregate::AggregateResult>),
-    Local(crate::local_agenda::read::LocalAttempt),
-    LocalStop,
 }
 /// 只有明确路线的只读认证过期才允许上层安排一次恢复。
 pub enum AttemptOutcome {
@@ -38,16 +37,68 @@ pub enum AttemptOutcome {
         route: ConnectionMode,
         result: ResultHandle,
     },
+    SharedStateChanged {
+        target: RecoveryTarget,
+        result: ResultHandle,
+    },
 }
 impl AttemptOutcome {
     #[must_use]
     pub fn into_result(self) -> ResultHandle {
         match self {
-            Self::Completed(r) | Self::AuthExpired { result: r, .. } => r,
+            Self::Completed(r)
+            | Self::AuthExpired { result: r, .. }
+            | Self::SharedStateChanged { result: r, .. } => r,
         }
     }
 }
 impl ResultHandle {
+    #[must_use]
+    pub fn authentication_succeeded(&self) -> bool {
+        matches!(&self.extra,Some(ExtraResult::Auth(value)) if matches!(value.as_ref(),crate::execute::aggregate::AggregateResult::Auth{outcome,..} if outcome.readiness!=ubaa_core::facade::LoginReadiness::NoneReady))
+    }
+    /// 只有完整交付的确定结果才清除本次学校写入的核对提示。
+    #[must_use]
+    pub fn write_result_known(&self) -> bool {
+        self.stop.is_none()
+            && match &self.result {
+                Err(error) => error.error.code != ErrorCode::OutcomeUnknown,
+                Ok(value) => {
+                    !matches!(&value.data,CommandOutput::EvaluationBatch{data,..} if data.items.iter().any(|v|v.outcome==ubaa_core::facade::EvaluationCourseOutcome::OutcomeUnknown))
+                }
+            }
+    }
+    #[must_use]
+    pub fn registration_succeeded(mut self) -> Self {
+        if let Some(ExtraResult::Auth(value)) = &mut self.extra
+            && let crate::execute::aggregate::AggregateResult::Auth { registration, .. } =
+                value.as_mut()
+        {
+            *registration = Some(Ok(()));
+        }
+        self
+    }
+    /// 恢复失败保留原命令与已知路线，只替换错误结果，不交付原正文。
+    #[must_use]
+    pub fn replace_error(mut self, error: UbaaError) -> Self {
+        let resolution = match &self.result {
+            Ok(value) => Some(value.resolution),
+            Err(error) => error.resolution,
+        };
+        self.result = Err(RoutedError { error, resolution });
+        self.extra = None;
+        self
+    }
+    #[must_use]
+    pub fn registration_failed(mut self) -> Self {
+        if let Some(ExtraResult::Auth(value)) = &mut self.extra
+            && let crate::execute::aggregate::AggregateResult::Auth { registration, .. } =
+                value.as_mut()
+        {
+            *registration = Some(Err(crate::agenda::LocalError::MaterialUnavailable));
+        }
+        self
+    }
     /// 交付开始后失败仅停止后续输出，不追加第二个 JSON 或重跑业务。
     pub fn render_bounded(
         self,
@@ -80,10 +131,19 @@ impl ResultHandle {
         stdout: &mut impl Write,
         stderr: &mut impl Write,
     ) -> i32 {
-        if let (Some(cli), Some(reason)) = (&self.local, stop) {
-            return crate::local_agenda::read::render_stop(cli, reason, stdout, stderr);
-        }
         if let Some(reason) = stop {
+            if self.school_write
+                && let Err(error) = &self.result
+                && error.error.code == ErrorCode::OutcomeUnknown
+            {
+                return crate::render_operation_error(
+                    self.json,
+                    self.feature,
+                    error.clone(),
+                    stdout,
+                    stderr,
+                );
+            }
             if writeln!(stderr, "{}", reason.message()).is_err() {
                 return 7;
             }
@@ -97,7 +157,6 @@ impl ResultHandle {
 
             return crate::render_startup_error(self.json, self.feature, error, stdout, stderr);
         }
-        let local = self.local.is_some();
         let mut guarded_stdout = GuardedWriter {
             writer: stdout,
             control,
@@ -111,8 +170,6 @@ impl ResultHandle {
         let code = if let Some(extra) = self.extra {
             match extra {
                 ExtraResult::Auth(result) => result.render(self.json, stdout, stderr),
-                ExtraResult::Local(result) => result.render(self.json, stdout, stderr),
-                ExtraResult::LocalStop => 7,
             }
         } else if let Some((mode, context)) = self.fixed {
             render_result(
@@ -129,13 +186,7 @@ impl ResultHandle {
         };
         let code = super::finish_output(code, stdout, stderr);
         match control.check() {
-            Err(StopReason::Deadline) => {
-                if local {
-                    7
-                } else {
-                    5
-                }
-            }
+            Err(StopReason::Deadline) => 5,
             Err(StopReason::Cancelled) => 7,
             Ok(()) => code,
         }
@@ -157,7 +208,7 @@ fn stop_error(reason: StopReason) -> UbaaError {
         reason.message(),
     )
 }
-/// 按计划消费所需 stdin，help、只读和本机计划均不读取输入。
+/// 按计划消费所需 stdin。help 与只读计划不读取输入，本机写入按具体操作读取快照。
 /// 宿主必须提供受同一 control 约束的读取适配器，不能传无限阻塞的全局输入。
 /// # Errors
 /// 输入读取失败或命令停止。
@@ -168,22 +219,12 @@ pub fn prepare_input(
 ) -> ubaa_core::facade::Result<PreparedCommand> {
     control.check().map_err(stop_error)?;
     let mut bytes = Vec::new();
+    plan.validate_local_arguments()?;
     if let crate::Command::Auth(crate::AuthArgs {
         command: crate::AuthCommand::Login(args),
     }) = &plan.cli.command
     {
-        let invalid = (args.username_stdin && args.username.is_some())
-            || (plan.cli.json
-                && (!args.password_stdin || (args.username.is_none() && !args.username_stdin)))
-            || args
-                .username
-                .as_ref()
-                .is_some_and(|name| name.trim().is_empty());
-        let lines = if invalid {
-            0
-        } else {
-            usize::from(args.username_stdin || args.username.is_none()) + 1
-        };
+        let lines = usize::from(args.username_stdin || args.username.is_none()) + 1;
         for line in 0..lines {
             if line == 0 && args.username_stdin {
                 let username = crate::io::input::read_username_stdin(input)?;
@@ -196,13 +237,91 @@ pub fn prepare_input(
             }
             control.check().map_err(stop_error)?;
         }
+    } else if let crate::Command::Agenda(arguments) = &plan.cli.command {
+        if !crate::agenda::confirmed(&arguments.command)
+            && !matches!(arguments.command, crate::AgendaCommand::Clear { .. })
+        {
+            return Err(crate::io::input::invalid_input(
+                "修改本机日程需要 --confirm-local-write",
+            ));
+        }
+        if let Some(path) = crate::agenda::input_path(&arguments.command) {
+            use std::io::Read;
+            if path == std::path::Path::new("-") {
+                input.take(1_048_577).read_to_end(&mut bytes)
+            } else {
+                std::fs::File::open(path)
+                    .and_then(|file| file.take(1_048_577).read_to_end(&mut bytes))
+            }
+            .map_err(|_| crate::io::input::invalid_input("无法读取本机日程输入"))?;
+            if bytes.len() > 1_048_576 {
+                return Err(crate::io::input::invalid_input("本机日程输入过大"));
+            }
+        }
     } else if plan.requirements().stdin {
         input
             .read_to_end(&mut bytes)
             .map_err(|_| crate::io::input::invalid_input("无法读取命令输入"))?;
     }
+    let ygdk_request = validate_prepared_input(&plan, &bytes)?;
     control.check().map_err(stop_error)?;
-    Ok(PreparedCommand { plan, input: bytes })
+    Ok(PreparedCommand {
+        plan,
+        input: bytes,
+        ygdk_request,
+    })
+}
+fn validate_prepared_input(
+    plan: &CommandPlan,
+    bytes: &[u8],
+) -> ubaa_core::facade::Result<Option<ubaa_core::facade::YgdkClockinSubmitRequest>> {
+    match &plan.cli.command {
+        crate::Command::Auth(crate::AuthArgs {
+            command: crate::AuthCommand::Login(args),
+        }) => {
+            crate::execute::aggregate::read_dual_credentials(
+                plan.cli.json,
+                args,
+                &mut Cursor::new(bytes),
+                &mut std::io::sink(),
+            )?;
+        }
+        crate::Command::Cgyy(crate::CgyyArgs {
+            command: crate::CgyyCommand::Submit { .. },
+        }) => {
+            crate::io::input::read_cgyy_request_stdin(&mut Cursor::new(bytes))?;
+        }
+        crate::Command::Agenda(args) => {
+            crate::agenda::validate_input(&args.command, bytes)
+                .map_err(|error| crate::io::input::invalid_input(error.message()))?;
+        }
+        crate::Command::Ygdk(crate::YgdkArgs {
+            command:
+                crate::YgdkCommand::Submit {
+                    classify_id,
+                    item_id,
+                    start_time,
+                    end_time,
+                    place,
+                    photo,
+                    share_to_square,
+                    ..
+                },
+        }) => {
+            return crate::io::input::build_ygdk_request(
+                *classify_id,
+                *item_id,
+                start_time.clone(),
+                end_time.clone(),
+                place.clone(),
+                photo,
+                *share_to_square,
+            )
+            .map(Some);
+        }
+        _ => {}
+    }
+    Ok(None)
 }
 /// 执行一次完整聚合路由尝试；本函数不接触任何输出通道。
 pub async fn execute_attempt<B: RoutedCliBackend + Send>(
@@ -216,6 +335,7 @@ pub async fn execute_attempt<B: RoutedCliBackend + Send>(
             cli,
             backend,
             &mut Cursor::new(&prepared.input),
+            prepared.ygdk_request.clone(),
         ))
         .await;
     outcome(prepared, result, None)
@@ -235,6 +355,7 @@ pub async fn execute_fixed_attempt<B: CliBackend + Send>(
             backend,
             &mut Cursor::new(&prepared.input),
             &mut std::io::sink(),
+            prepared.ygdk_request.clone(),
         ))
         .await;
     outcome(
@@ -275,6 +396,11 @@ fn outcome(
     } else {
         None
     };
+    let shared_changed = requirements.class == CommandClass::Readonly
+        && result
+            .as_ref()
+            .err()
+            .is_some_and(|e| e.error.is_session_conflict() || e.error.is_shared_account_conflict());
     let handle = ResultHandle {
         json: prepared.plan.cli.json,
         feature: prepared.plan.cli.feature(),
@@ -282,10 +408,14 @@ fn outcome(
         fixed,
         stop,
         extra: None,
-        local: None,
         school_write: requirements.class == CommandClass::SchoolWrite,
     };
-    if let (Some(route), Some(target)) = (retry, requirements.recovery_target) {
+    if shared_changed && let Some(target) = requirements.recovery_target {
+        AttemptOutcome::SharedStateChanged {
+            target,
+            result: handle,
+        }
+    } else if let (Some(route), Some(target)) = (retry, requirements.recovery_target) {
         AttemptOutcome::AuthExpired {
             target,
             route,
@@ -295,6 +425,11 @@ fn outcome(
         AttemptOutcome::Completed(handle)
     }
 }
+/// 本机已核实账号的会话检查失败沿用相同命令元数据和恢复分类。
+#[must_use]
+pub fn preflight_failure(prepared: &PreparedCommand, error: RoutedError) -> AttemptOutcome {
+    outcome(prepared, Ok(Err(error)), None)
+}
 
 /// 显式聚合认证沿自身语义执行，不进入认证过期重跑器。
 pub async fn execute_auth_attempt(
@@ -302,6 +437,49 @@ pub async fn execute_auth_attempt(
     backend: &mut ubaa_core::facade::UbaaClient,
     control: &CommandControl,
 ) -> AttemptOutcome {
+    if let crate::Command::Auth(crate::AuthArgs {
+        command: crate::AuthCommand::Login(arguments),
+    }) = &prepared.plan.cli.command
+        && let Some(mode) = arguments.mode
+    {
+        let mode = mode.into();
+        let context = ReadonlyRouteContext::explicit(mode);
+        let credentials = crate::execute::aggregate::read_dual_credentials(
+            prepared.plan.cli.json,
+            arguments,
+            &mut Cursor::new(&prepared.input),
+            &mut std::io::sink(),
+        );
+        let result = control
+            .run(async {
+                let (username, password) = credentials?;
+                backend
+                    .login_required_route(
+                        mode,
+                        ubaa_core::facade::LoginInput {
+                            username,
+                            password: ubaa_core::facade::SecretValue::new(password),
+                        },
+                    )
+                    .await
+                    .map(|v| CommandOutput::Profile(crate::io::human::redacted_profile(v.data)))
+            })
+            .await;
+        return outcome(
+            prepared,
+            result.map(|v| {
+                v.map(|data| ubaa_core::facade::Routed {
+                    data,
+                    resolution: context.resolution(mode),
+                })
+                .map_err(|error| RoutedError {
+                    error,
+                    resolution: Some(context.resolution(mode)),
+                })
+            }),
+            Some((mode, context)),
+        );
+    }
     let result = control
         .run(crate::execute::aggregate::execute_auth(
             prepared.plan.cli.clone(),
@@ -311,31 +489,12 @@ pub async fn execute_auth_attempt(
         .await;
     extra_outcome(prepared, result.map(|r| ExtraResult::Auth(Box::new(r))))
 }
-/// 旧本机账号适配的独立执行入口，不创建网络客户端。
-/// 任意同步存储调用的中断由宿主工作线程与进程收尾上限负责。
-#[must_use]
-pub fn execute_local_attempt(
-    prepared: &PreparedCommand,
-    root: &std::path::Path,
-    control: &CommandControl,
-) -> AttemptOutcome {
-    let result = control.check().map(|()| {
-        ExtraResult::Local(crate::local_agenda::read::execute_local(
-            &prepared.plan.cli,
-            root,
-        ))
-    });
-    let result = result.and_then(|r| control.check().map(|()| r));
-    extra_outcome(prepared, result)
-}
 fn extra_outcome(
     prepared: &PreparedCommand,
     result: Result<ExtraResult, StopReason>,
 ) -> AttemptOutcome {
     let stop = result.as_ref().err().copied();
-    let extra = result.ok().or_else(|| {
-        (prepared.plan.requirements().class == CommandClass::Local).then(|| ExtraResult::LocalStop)
-    });
+    let extra = result.ok();
     AttemptOutcome::Completed(ResultHandle {
         json: prepared.plan.cli.json,
         feature: prepared.plan.cli.feature(),
@@ -346,8 +505,6 @@ fn extra_outcome(
         fixed: None,
         stop,
         extra,
-        local: (prepared.plan.requirements().class == CommandClass::Local)
-            .then(|| prepared.plan.cli.clone()),
         school_write: false,
     })
 }
@@ -368,5 +525,61 @@ impl<W: Write> Write for GuardedWriter<'_, W> {
             .check()
             .map_err(|_| std::io::Error::other("命令交付已停止"))?;
         self.writer.flush()
+    }
+}
+
+#[cfg(test)]
+mod delivery_tests {
+    use super::*;
+    fn assert_unknown(control: &CommandControl) {
+        let prepared = prepare_input(
+            crate::parse([
+                "ubaa",
+                "--json",
+                "bykc",
+                "select",
+                "--course-id",
+                "42",
+                "--confirm-write",
+            ])
+            .unwrap(),
+            &mut Cursor::new([]),
+            &CommandControl::default(),
+        )
+        .unwrap();
+        let result = preflight_failure(
+            &prepared,
+            RoutedError {
+                error: UbaaError::new(
+                    ErrorCode::OutcomeUnknown,
+                    ErrorKind::Network,
+                    false,
+                    "学校写入结果未知，请先只读核对",
+                ),
+                resolution: Some(
+                    ReadonlyRouteContext::explicit(ConnectionMode::WebVpn)
+                        .resolution(ConnectionMode::WebVpn),
+                ),
+            },
+        )
+        .into_result();
+        let (mut out, mut err) = (vec![], vec![]);
+        assert_eq!(result.render(control, &mut out, &mut err), 5);
+        let value: serde_json::Value = serde_json::from_slice(&out).unwrap();
+        assert_eq!(value["error"]["code"], "outcome_unknown");
+        assert_eq!(value["meta"]["resolvedRoute"], "webvpn");
+    }
+    #[test]
+    fn 未知写结果在交付前取消仍保留原错误与路线() {
+        let control = CommandControl::default();
+        control.cancel();
+        assert_unknown(&control);
+    }
+    #[test]
+    fn 未知写结果在交付前到期仍保留原错误与路线() {
+        assert_unknown(&CommandControl::new(
+            std::time::Instant::now(),
+            std::time::Duration::ZERO,
+        ));
     }
 }
