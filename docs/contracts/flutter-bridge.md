@@ -1,8 +1,8 @@
 # Flutter Bridge 合同
 
-状态：当前合同 v46。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
+状态：当前合同 v47。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
 
-业务缓存持久格式当前为 schema v7，独立于 Bridge v46。旧开发格式不迁移，普通打开拒绝并保留原库，用户明确清理后才能重建。下文各阶段的缓存版本与迁移说明保留历史事实，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
+业务缓存持久格式当前为 schema v7，独立于 Bridge v47。旧开发格式不迁移，普通打开拒绝并保留原库，用户明确清理后才能重建。下文各阶段的缓存版本与迁移说明保留历史事实，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `46`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `47`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -39,7 +39,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=46` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=47` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
 组间最多八个完整批次在途（每个读取组各一个，首页全部来源可同时开始）。每组的只读 Core 实例复用连接池，独立保存业务 Cookie、Token 和缓存，
@@ -780,3 +780,11 @@ Bridge v45 不改变 CLI v12、业务缓存 schema v7 或独立日程 schema v2�
 Dart 的 `AgendaExportBackend` 和 `AgendaDraftBackend` 由生产日程适配器实现，服务继续检查账号代次，并将持久写入排队。UI 在账号、路线、缓存范围或服务变化后撤销旧页面和未交付导出结果。文件选择与实际保存由平台能力承担，提交边界见[平台说明](../../packages/ubaa_platform/README.md#日历文件保存)。
 
 导航为首页、学习、日程、校园、我的。首页保留四项预览，“查看全部”进入日程待办筛选。日程本机操作不生成学校写资格。CLI v13、业务缓存 schema v7、日程 schema v2 和 Session v2 保持。
+
+## v47：北航云盘
+
+`BridgeClient.bhpan*` 使用 Core 的不透明对象、分享与一次性确认句柄，提供文档库、目录、属性、名称建议、回收站和分享管理。个人授权与接收分享授权分开保存在 Core，密码只作为专用输入，普通 DTO 不返回业务 Token、签名 URL、授权头值或原始响应。
+
+网盘写入通过 App 原有的 `WriteCoordinator` 准备、确认、单次提交与丢弃。确认绑定账号、认证生命周期和路线，发送后的不确定结果保持不可重试的 `outcome_unknown`。创建结果与分享历史保留完整 item 关联并支持更新，单项分享记录缺少关联时暂不开放更新。
+
+`BridgeBhpanTransfer` 只投影进度与取消，查询和取消不等待主客户端网络锁。个人秒传使用 Core 的有界文件读取与协议摘要，未匹配时停止，普通和分片上传仍待对象存储证据。下载准备只返回方法、主机、端口和头名称，不访问签名地址。内容下载、打包传输、WebVPN 与固定文件条件覆盖仍有未决协议问题，详见[云盘来源对照](../migration/source-parity-bhpan.md)。

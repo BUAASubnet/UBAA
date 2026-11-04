@@ -75,3 +75,9 @@ MethodChannel 定义 Dart/原生的稳定边界；各能力是否完成以对应
 选择期间作用域变化返回 `superseded`，不会提交日历内容。Android 系统文档提供器可能已经建立一个空文件。OHOS API26 设置 `autoCreateEmptyFile=false`，在写入时创建。iOS 在所选目录中使用原文件名，同名时追加序号。写入开始后作用域变化返回 `savedBeforeScopeChange`，表示文件已保存到原选择位置；宿主丢弃旧页面结果，文件仍然存在。取消返回 `cancelled`，写入完成返回 `saved`，系统或写入错误返回 `AgendaFileException`，不能自动重试或推断文件不存在。
 
 平台依据为 [Android 存储访问框架](https://developer.android.com/training/data-storage/shared/documents-files)、[iOS 文件夹授权](https://developer.apple.com/documentation/uikit/providing-access-to-directories)和 [OHOS 文件保存](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/file-management/save-user-file.md)。各平台构建与实际设备结果见[当前状态](../../docs/migration/status.md)。
+
+## 北航云盘文件选择
+
+`SystemBhpanFilePicker` 使用既有 `file_selector` 选择一个本机文件，取消返回空结果，平台不可用或选择失败返回安全错误。平台只向网盘服务交付路径和文件名，文件内容由 Core 用有界缓冲读取，不复制到 Dart 状态或普通 Bridge DTO。
+
+目前选择器接入个人秒传。普通/分片上传和下载保存仍有协议缺口，各平台实际选择面板与文件访问权限单独验收，不能据 Widget 或构建结果宣布系统面板已通过。

@@ -1,6 +1,6 @@
 # 北航云盘设计与实施安排
 
-更新：2026-11-04。状态：完整接入范围保留，冻结来源已逐操作核对，生产功能尚未实现。当前先交付[日程界面](agenda.md)，网盘作为后续独立产品能力。
+更新：2026-11-05。状态：完整接入范围保留。当前候选已贯通 Direct 元数据、文件与分享管理、个人秒传和 Flutter 入口，正式公共命令等待整合。普通/分片上传、内容下载、WebVPN 与固定文件条件覆盖仍缺协议证据，实际验证见状态页。
 
 目标：把 bhpan 接入为独立的「北航云盘」功能，Flutter 和 CLI 均可使用，日程同步复用同一套 Core 能力。功能范围覆盖固定 buaa-api Cloud 模块提供的全部操作，按独立可验收的任务逐步交付。
 
@@ -50,7 +50,7 @@
 | `crates/ubaa_core/src/domain/bhpan/` | 文件、目录、分享设置、读取范围、传输状态与稳定错误类型，不含秘密字段 |
 | `crates/ubaa_core/src/features/bhpan/` | 分离认证、目录、文件写操作、分享和传输协议，复用现有 transport、路线与会话边界 |
 | `crates/ubaa_core/src/facade/bhpan/` | 生产宿主的读取、操作准备、单次提交、传输观察与取消入口 |
-| `apps/ubaa_cli/src/command/bhpan.rs` 及执行、输出模块 | `ubaa bhpan` 命令族，支持 human/JSON 与现有 CLI 确认规则 |
+| 公共 App 命令库及最终入口 | `ubaa bhpan` 命令族，支持 human/JSON 与现有 CLI 确认规则 |
 | `crates/ubaa_flutter_bridge/src/api/bhpan/` | 类型化读取、操作和传输投影，按合同规则更新版本与生成物 |
 | `packages/ubaa_domain`、`packages/ubaa_app` | 展示模型、账号与路线代次、状态恢复和交互编排，复用现有写协调规则 |
 | `packages/ubaa_platform`、`packages/ubaa_host` | 文件选择、私有暂存、保存和打开能力，逐平台实现与验证 |
@@ -122,7 +122,7 @@ CLI 命令包括 `roots`、`list`、`stat`、`mkdir`、`rename`、`move`、`copy
 
 ## 执行与验收
 
-当前先交付日程界面，网盘后续按用户流程逐步贯通 Core、Bridge 和 GUI，保留全部 25 项业务操作及登录范围。旧 CLI 退役不构成网盘 GUI 的前置条件；网盘命令接入[统一 App 命令服务](desktop-shared-state.md)，复用恢复和账号规则，Linux 继续覆盖 SSH。
+当前以已完成日程的固定基础继续贯通网盘 Core、Bridge、GUI 和公共命令，保留全部 25 项业务操作及登录范围。旧 CLI 退役不构成网盘 GUI 的前置条件；网盘命令接入[统一 App 命令服务](desktop-shared-state.md)，复用恢复和账号规则，Linux 继续覆盖 SSH。
 
 日程同步只依赖所需的网盘读写能力与并发更新证据，无需等待分享和回收站全部交付。同名更新及双设备覆盖的协议问题应在网盘读写实现时核实，证据不足时继续保留为同步阻塞。日程列表、编辑和导出可以独立使用。
 
