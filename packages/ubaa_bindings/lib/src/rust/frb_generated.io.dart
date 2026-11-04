@@ -1132,6 +1132,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeBhpanDownloadReceipt dco_decode_bridge_bhpan_download_receipt(
+    dynamic raw,
+  );
+
+  @protected
   BridgeBhpanItem dco_decode_bridge_bhpan_item(dynamic raw);
 
   @protected
@@ -4249,6 +4254,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeBhpanDownloadPreparation sse_decode_bridge_bhpan_download_preparation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanDownloadReceipt sse_decode_bridge_bhpan_download_receipt(
     SseDeserializer deserializer,
   );
 
@@ -8119,6 +8129,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_bhpan_download_preparation(
     BridgeBhpanDownloadPreparation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_download_receipt(
+    BridgeBhpanDownloadReceipt self,
     SseSerializer serializer,
   );
 

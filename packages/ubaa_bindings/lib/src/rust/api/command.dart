@@ -70,6 +70,9 @@ abstract class BridgeCommand implements RustOpaqueInterface {
   Future<void> prepare({required List<int> input});
 
   BridgeCommandRequirements requirements();
+
+  /// 安全进度仅包含阶段与字节数，供有界终端通道写入 stderr。
+  String? transferProgressLine();
 }
 
 // Rust type: RustOpaqueMoi<flutter_rust_bridge::for_generated::RustAutoOpaqueInner<BridgeCommandAttempt>>
@@ -160,6 +163,7 @@ class BridgeCommandRequirements {
   final BridgeCommandAuth? auth;
   final String? configDirectory;
   final bool schoolCache;
+  final bool hasTransfer;
   final BridgeRecoveryFeature? recoveryTarget;
 
   const BridgeCommandRequirements({
@@ -167,6 +171,7 @@ class BridgeCommandRequirements {
     this.auth,
     this.configDirectory,
     required this.schoolCache,
+    required this.hasTransfer,
     this.recoveryTarget,
   });
 
@@ -176,6 +181,7 @@ class BridgeCommandRequirements {
       auth.hashCode ^
       configDirectory.hashCode ^
       schoolCache.hashCode ^
+      hasTransfer.hashCode ^
       recoveryTarget.hashCode;
 
   @override
@@ -187,5 +193,6 @@ class BridgeCommandRequirements {
           auth == other.auth &&
           configDirectory == other.configDirectory &&
           schoolCache == other.schoolCache &&
+          hasTransfer == other.hasTransfer &&
           recoveryTarget == other.recoveryTarget;
 }

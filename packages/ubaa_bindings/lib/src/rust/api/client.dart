@@ -208,6 +208,15 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   Future<void> bhpanDiscard({required String handle});
 
+  /// 完整下载到宿主选定文件，签名地址和授权头不跨过 Bridge。
+  Future<BridgeBhpanDownloadReceipt> bhpanDownload({
+    required List<String> handles,
+    required String name,
+    required String path,
+    required bool overwrite,
+    required BridgeBhpanTransfer transfer,
+  });
+
   Future<BridgeBhpanDownloadPreparation> bhpanDownloadPreparation({
     required List<String> handles,
     required String name,
@@ -218,6 +227,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeBhpanPrepared> bhpanPrepare({required BridgeBhpanWrite request});
 
   Future<BridgeBhpanPrepared> bhpanPrepareFastUpload({
+    required String parent,
+    required String path,
+    required String name,
+    required BridgeBhpanTransfer transfer,
+  });
+
+  /// 普通或分片上传共用一次性写确认，文件字节留在 Core。
+  Future<BridgeBhpanPrepared> bhpanPrepareUpload({
     required String parent,
     required String path,
     required String name,
