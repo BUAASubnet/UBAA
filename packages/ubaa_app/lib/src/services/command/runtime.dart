@@ -52,6 +52,7 @@ final class CommandRuntime {
   Future<void> get stopped => _stopped.future;
   int get stoppedExitCode => _deadline && !_local ? 5 : 7;
   void expire() {
+    if (_closed || _stopped.isCompleted) return;
     _deadline = true;
     cancel();
   }
@@ -71,6 +72,17 @@ final class CommandRuntime {
       ),
     ),
   ]);
+
+  BridgeCommandFailure _stopFailure(RecoveryStopReason reason) =>
+      switch (reason) {
+        RecoveryStopReason.deadline => BridgeCommandFailure.timeout,
+        RecoveryStopReason.cancelled =>
+          _deadline
+              ? BridgeCommandFailure.timeout
+              : BridgeCommandFailure.cancelled,
+        RecoveryStopReason.closed => BridgeCommandFailure.cancelled,
+        RecoveryStopReason.superseded => BridgeCommandFailure.authentication,
+      };
 
   Future<int> run(
     List<String> argv, {
@@ -275,6 +287,10 @@ final class CommandRuntime {
         try {
           await restore(requirements.recoveryTarget!);
           await _wait(consumer.bind(accounts, backend.binding!.snapshot));
+        } on RecoveryInterrupted catch (error) {
+          return await _deliver(
+            await command.failure(failure: _stopFailure(error.reason)),
+          );
         } on BackendException catch (error) {
           return await _deliver(
             await command.failure(failure: _recoveryFailure(error)),
@@ -426,14 +442,6 @@ BridgeCommandFailure _recoveryFailure(
   UbaaErrorCode.parseError => BridgeCommandFailure.upstreamChanged,
   _ => BridgeCommandFailure.storage,
 };
-
-BridgeCommandFailure _stopFailure(RecoveryStopReason reason) =>
-    switch (reason) {
-      RecoveryStopReason.deadline => BridgeCommandFailure.timeout,
-      RecoveryStopReason.cancelled ||
-      RecoveryStopReason.closed => BridgeCommandFailure.cancelled,
-      RecoveryStopReason.superseded => BridgeCommandFailure.authentication,
-    };
 
 final class _LocalFailure implements Exception {
   const _LocalFailure(this.failure);

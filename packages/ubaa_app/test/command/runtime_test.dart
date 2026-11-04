@@ -375,57 +375,73 @@ void main() {
       await fixture.root.delete(recursive: true);
     }
   });
-  for (final reason in [
-    RecoveryStopReason.cancelled,
-    RecoveryStopReason.deadline,
-    RecoveryStopReason.superseded,
+  for (final (kind, label) in [
+    (BridgeCommandClass.readonly, '只读'),
+    (BridgeCommandClass.schoolWrite, '学校写入'),
   ]) {
-    test('只读恢复按停止原因返回 ${reason.name} 且不重跑业务', () async {
-      final fixture = await _fixture();
-      final client = _WaitingRecoveryClient();
-      final io = _IO();
-      final runtime = CommandRuntime(
-        io: io,
-        parse: ({required argv, required remainingMillis}) =>
-            _Command(BridgeCommandClass.readonly),
-        openMaterials: (_) async => fixture.environment,
-        openClient: ({required configDir}) async => client,
-      );
-      try {
-        final done = runtime.run([
-          'ubaa',
-          'user',
-          'show',
-        ], budget: const Duration(seconds: 5));
-        await client.entered.future;
-        if (reason == RecoveryStopReason.cancelled) {
-          runtime.cancel();
-        } else {
-          client.release.completeError(RecoveryInterrupted(reason));
-        }
-        expect(
-          await done,
-          reason == RecoveryStopReason.cancelled
-              ? 7
-              : reason == RecoveryStopReason.deadline
-              ? 5
-              : 3,
-        );
-        expect(client.attempts, 1);
-        expect(client.recoveries, 1);
-        expect(utf8.decode(io.out), isNot(contains('expired')));
-      } finally {
-        if (!client.release.isCompleted)
-          client.release.complete(
-            const BridgeRequiredSession(
-              route: BridgeConnectionMode.direct,
-              profile: BridgeUserProfile(username: 'synthetic-a'),
-            ),
+    for (final (reason, expire) in [
+      (RecoveryStopReason.cancelled, false),
+      (RecoveryStopReason.deadline, false),
+      (RecoveryStopReason.superseded, false),
+      (RecoveryStopReason.deadline, true),
+    ]) {
+      test(
+        '$label恢复按${expire ? '总期限' : '停止原因'}返回 ${reason.name} 且不重跑业务',
+        () async {
+          final fixture = await _fixture();
+          final client = _WaitingRecoveryClient();
+          final io = _IO();
+          final runtime = CommandRuntime(
+            io: io,
+            parse: ({required argv, required remainingMillis}) =>
+                _Command(kind),
+            openMaterials: (_) async => fixture.environment,
+            openClient: ({required configDir}) async => client,
           );
-        await client.finished.future;
-        await fixture.root.delete(recursive: true);
-      }
-    });
+          try {
+            final done = runtime.run(
+              kind == BridgeCommandClass.readonly
+                  ? ['ubaa', 'user', 'show']
+                  : ['ubaa', 'signin', 'perform'],
+              budget: const Duration(seconds: 5),
+            );
+            await client.entered.future;
+            if (expire) {
+              runtime.expire();
+            } else if (reason == RecoveryStopReason.cancelled) {
+              runtime.cancel();
+              runtime.expire();
+            } else {
+              client.release.completeError(RecoveryInterrupted(reason));
+            }
+            expect(
+              await done,
+              reason == RecoveryStopReason.cancelled
+                  ? 7
+                  : reason == RecoveryStopReason.deadline
+                  ? 5
+                  : 3,
+            );
+            expect(
+              client.attempts,
+              kind == BridgeCommandClass.readonly ? 1 : 0,
+            );
+            expect(client.recoveries, 1);
+            expect(utf8.decode(io.out), isNot(contains('expired')));
+          } finally {
+            if (!client.release.isCompleted)
+              client.release.complete(
+                const BridgeRequiredSession(
+                  route: BridgeConnectionMode.direct,
+                  profile: BridgeUserProfile(username: 'synthetic-a'),
+                ),
+              );
+            await client.finished.future;
+            await fixture.root.delete(recursive: true);
+          }
+        },
+      );
+    }
   }
   test('help 直接交付且不初始化材料或网络客户端', () async {
     final command = _Command(BridgeCommandClass.early, early: _Result('help'));
