@@ -22,6 +22,8 @@
 
 公共 API 使用真实 import 与静态签名编译，不检查手写名字清单长度。`WriteOperation` 原有固定数量与首尾断言由 Domain 动作映射、App 写入核对矩阵及云盘 typed 准备/提交回归覆盖替代，写协调器继续检查单次提交和未知结果不重发。写入流程合同由 `WriteCoordinator` 的测试覆盖。行为文件独立注册，共享夹具放 test/support；UI 点击前滚动并确认可命中，不能调用内部 State 跳过入口，也不能依赖前一用例留下的大窗口。golden 字节保持原基线。
 
+云盘 Bridge 回归使用显式持锁和逐次轮询 Future 固定排队顺序，分别核对释放后的文件与分享提交零发送，以及已经发送请求的确定或未知结果。单文件分享 Widget 回归通过实际点击核对刷新、选择个人目的目录、另存回读、明确切库和授权失败的请求序列。
+
 ## 原生能力与覆盖边界
 
 原生测试保留 `integration_test/platform/`、`synthetic/cache/` 和一个 `synthetic/app/` 宿主 smoke：真实安全存储、私有目录、网络、照片、包信息、系统方向、真实 Rust FFI 的离线启动与缺会话处理和缓存。替身后端驱动的登录到首页流程由 `apps/ubaa_flutter/test/app/smoke_test.dart` 覆盖：原生集成绑定不注册测试输入法，应用未取得前台时文本输入不可靠。入口、平台、前提和 CI 归属集中在 `scripts/integration-tests.json`，用 `just integration-list` 查看，用 `just integration-test` 执行默认集合：运行时按清单生成被忽略的聚合入口，各入口在同一应用进程中依次运行，合并 Dart define 与持锁夹具，冲突时拒绝；`suite=ci-isolated` 逐文件构建运行，用于排查入口间的状态影响。其他能力选择清单中的精确路径，不对整个目录通配执行。
