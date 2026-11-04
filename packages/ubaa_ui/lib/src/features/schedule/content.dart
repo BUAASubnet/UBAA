@@ -8,6 +8,7 @@ import 'colors.dart' show ScheduleCourseColors;
 import '../../shared/schedule_values.dart' show uiScheduled;
 import '../../shared/text.dart' show uiNonBlank;
 import '../../theme.dart' show UbaaTheme;
+import '../../shared/seven_day_grid.dart';
 
 /// 冻结旧版的七日节次网格；时间缺失或冲突不造成课程丢失。
 class ScheduleContent extends StatefulWidget {
@@ -188,85 +189,69 @@ class _ScheduleContentState extends State<ScheduleContent> {
                             padding: const EdgeInsets.symmetric(vertical: 12),
                             child: Center(child: Text(widget.emptyMessage)),
                           ),
-                        SizedBox(
-                          height: periodHeight * periods,
-                          child: Stack(
-                            children: [
-                              Positioned.fill(
-                                child: CustomPaint(
-                                  painter: _ScheduleLines(
-                                    periods: periods,
-                                    rowHeight: periodHeight,
-                                    axisWidth: axisWidth,
-                                    days: dayCount,
-                                    today: today,
-                                    todayColor: accent.withValues(alpha: .06),
-                                    color: Theme.of(context)
-                                        .colorScheme
-                                        .onSurface
-                                        .withValues(alpha: .1),
-                                  ),
-                                ),
-                              ),
-                              for (final (index, group) in groups.indexed)
-                                Positioned(
-                                  key: ValueKey('schedule-block-$index'),
-                                  left:
-                                      axisWidth + (group.day - 1) * columnWidth,
-                                  top: (group.begin - 1) * periodHeight,
-                                  width: columnWidth,
-                                  height:
-                                      (group.end - group.begin + 1) *
-                                      periodHeight,
-                                  child: _ScheduleCell(
-                                    group: group,
-                                    background: colors.background(
-                                      group.details.first,
-                                      Theme.of(context).brightness,
-                                    ),
-                                  ),
-                                ),
-                              if (today != null && nowOffset != null)
-                                Positioned(
-                                  key: const ValueKey('schedule-now-line'),
-                                  left: axisWidth + today * columnWidth - 4,
-                                  top: nowOffset - 4,
-                                  width: columnWidth + 4,
-                                  height: 8,
-                                  child: IgnorePointer(
-                                    child: Row(
-                                      children: [
-                                        Container(
-                                          width: 8,
-                                          height: 8,
-                                          decoration: BoxDecoration(
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.error,
-                                            shape: BoxShape.circle,
-                                          ),
-                                        ),
-                                        Expanded(
-                                          child: Container(
-                                            height: 2,
-                                            color: Theme.of(
-                                              context,
-                                            ).colorScheme.error,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              _SchedulePinnedAxis(
-                                controller: _horizontal,
-                                width: axisWidth,
-                                rowHeight: periodHeight,
-                                periods: periods,
-                                times: times,
-                              ),
-                            ],
+                        SevenDayTimeGrid(
+                          rows: periods,
+                          rowHeight: periodHeight,
+                          axisWidth: axisWidth,
+                          today: today,
+                          axis: _SchedulePinnedAxis(
+                            controller: _horizontal,
+                            width: axisWidth,
+                            rowHeight: periodHeight,
+                            periods: periods,
+                            times: times,
                           ),
+                          children: [
+                            for (final (index, group) in groups.indexed)
+                              Positioned(
+                                key: ValueKey('schedule-block-$index'),
+                                left: axisWidth + (group.day - 1) * columnWidth,
+                                top: (group.begin - 1) * periodHeight,
+                                width: columnWidth,
+                                height:
+                                    (group.end - group.begin + 1) *
+                                    periodHeight,
+                                child: _ScheduleCell(
+                                  group: group,
+                                  background: colors.background(
+                                    group.details.first,
+                                    Theme.of(context).brightness,
+                                  ),
+                                ),
+                              ),
+                            if (today != null && nowOffset != null)
+                              Positioned(
+                                key: const ValueKey('schedule-now-line'),
+                                left: axisWidth + today * columnWidth - 4,
+                                top: nowOffset - 4,
+                                width: columnWidth + 4,
+                                height: 8,
+                                child: IgnorePointer(
+                                  child: Row(
+                                    children: [
+                                      Container(
+                                        width: 8,
+                                        height: 8,
+                                        decoration: BoxDecoration(
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.error,
+                                          shape: BoxShape.circle,
+                                        ),
+                                      ),
+                                      Expanded(
+                                        child: Container(
+                                          height: 2,
+                                          color: Theme.of(
+                                            context,
+                                          ).colorScheme.error,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                          ],
                         ),
                         if (unknown.isNotEmpty)
                           Align(
@@ -333,61 +318,56 @@ class _ScheduleContentState extends State<ScheduleContent> {
   );
 }
 
-class _SchedulePinnedAxis extends AnimatedWidget {
+class _SchedulePinnedAxis extends StatelessWidget {
   const _SchedulePinnedAxis({
     required this.controller,
     required this.width,
     required this.rowHeight,
     required this.periods,
     required this.times,
-  }) : super(listenable: controller);
+  });
   final ScrollController controller;
   final List<ScheduleSectionTime> times;
   final double width, rowHeight;
   final int periods;
   @override
-  Widget build(BuildContext context) => Positioned(
-    left: controller.hasClients ? controller.offset : 0,
-    top: 0,
-    bottom: 0,
+  Widget build(BuildContext context) => PinnedWeekAxis(
+    controller: controller,
     width: width,
-    child: ColoredBox(
-      color: Theme.of(context).colorScheme.surface,
-      child: Column(
-        children: [
-          for (var section = 1; section <= periods; section++)
-            SizedBox(
-              height: rowHeight,
-              child: Center(
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Text(
-                      '$section',
-                      style: const TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w500,
-                      ),
+    child: Column(
+      children: [
+        for (var section = 1; section <= periods; section++)
+          SizedBox(
+            height: rowHeight,
+            child: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '$section',
+                    style: const TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
                     ),
-                    // 时间段：开始与结束上下排列。
-                    Text(
-                      section <= times.length
-                          ? '${times[section - 1].start ?? '--:--'}\n'
-                                '${times[section - 1].end ?? '--:--'}'
-                          : '--:--',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 10,
-                        height: 1.3,
-                        color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      ),
+                  ),
+                  // 时间段：开始与结束上下排列。
+                  Text(
+                    section <= times.length
+                        ? '${times[section - 1].start ?? '--:--'}\n'
+                              '${times[section - 1].end ?? '--:--'}'
+                        : '--:--',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      fontSize: 10,
+                      height: 1.3,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
                     ),
-                  ],
-                ),
+                  ),
+                ],
               ),
             ),
-        ],
-      ),
+          ),
+      ],
     ),
   );
 }
@@ -468,59 +448,6 @@ class _ScheduleCell extends StatelessWidget {
       ),
     );
   }
-}
-
-class _ScheduleLines extends CustomPainter {
-  _ScheduleLines({
-    required this.periods,
-    required this.rowHeight,
-    required this.axisWidth,
-    required this.color,
-    this.days = 7,
-    this.today,
-    this.todayColor = const Color(0x00000000),
-  });
-  final int periods, days;
-  final int? today;
-  final Color todayColor;
-  final double rowHeight, axisWidth;
-  final Color color;
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = color
-      ..strokeWidth = 1;
-    final column = (size.width - axisWidth) / days;
-    if (today case final index?) {
-      canvas.drawRect(
-        Rect.fromLTWH(axisWidth + index * column, 0, column, size.height),
-        Paint()..color = todayColor,
-      );
-    }
-    for (var day = 0; day <= days; day++) {
-      final x = axisWidth + day * column;
-      canvas.drawLine(Offset(x, 0), Offset(x, size.height), paint);
-    }
-    for (var row = 1; row < periods; row++) {
-      for (var x = axisWidth; x < size.width; x += 10) {
-        canvas.drawLine(
-          Offset(x, row * rowHeight),
-          Offset(math.min(x + 5, size.width), row * rowHeight),
-          paint,
-        );
-      }
-    }
-  }
-
-  @override
-  bool shouldRepaint(_ScheduleLines old) =>
-      periods != old.periods ||
-      days != old.days ||
-      today != old.today ||
-      todayColor != old.todayColor ||
-      rowHeight != old.rowHeight ||
-      axisWidth != old.axisWidth ||
-      color != old.color;
 }
 
 /// 当前时刻在节次网格中的纵向位置；不在任何节次或课间范围内时不画。
