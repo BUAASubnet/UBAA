@@ -39,8 +39,49 @@ pub struct OfflineCache {
     repository: Arc<Mutex<Option<OfflineRepository>>>,
     expected_identity: Arc<str>,
     account_alias: Arc<str>,
+    guard: Option<super::SharedAccountGuard>,
 }
 impl OfflineCache {
+    /// 在固定共享身份的短提交边界内打开缓存。
+    ///
+    /// # Errors
+    /// 原持久身份已撤销或存储不可用时返回稳定本地错误。
+    pub fn open_shared(
+        root: &Path,
+        account: &str,
+        identity: &str,
+        key: CacheKey,
+        limits: CacheLimits,
+        guard: super::SharedAccountGuard,
+    ) -> CacheResult<Self> {
+        let permit = guard.acquire().map_err(|_| CacheError::Superseded)?;
+        let cache = Self::open(root, account, identity, key, limits)?;
+        drop(permit);
+        Ok(cache.with_shared_account(guard))
+    }
+    /// 显式维护也必须在真实持久提交前核对原身份。
+    ///
+    /// # Errors
+    /// 原持久身份已撤销或存储不可用时返回稳定本地错误。
+    pub fn clear_or_rebuild_shared(
+        root: &Path,
+        account: &str,
+        identity: &str,
+        key: CacheKey,
+        limits: CacheLimits,
+        guard: super::SharedAccountGuard,
+    ) -> CacheResult<(Option<Self>, super::CacheClearReport)> {
+        let permit = guard.acquire().map_err(|_| CacheError::Superseded)?;
+        let (cache, report) = Self::clear_or_rebuild(root, account, identity, key, limits)?;
+        drop(permit);
+        Ok((cache.map(|cache| cache.with_shared_account(guard)), report))
+    }
+    /// 返回绑定固定共享代次的新句柄，原句柄保持原归属。
+    #[must_use]
+    pub fn with_shared_account(mut self, guard: super::SharedAccountGuard) -> Self {
+        self.guard = Some(guard);
+        self
+    }
     pub(super) fn account_alias(&self) -> &str {
         &self.account_alias
     }
@@ -64,6 +105,7 @@ impl OfflineCache {
             )?))),
             expected_identity: Arc::from(expected_identity.trim()),
             account_alias: Arc::from(account_id.to_ascii_lowercase()),
+            guard: None,
         })
     }
     /// 用户确认后清理或重建当前账号业务副本；不处理认证材料。
@@ -86,9 +128,21 @@ impl OfflineCache {
                 repository: Arc::new(Mutex::new(Some(repository))),
                 expected_identity: Arc::from(expected_identity.trim()),
                 account_alias: Arc::from(account_id.to_ascii_lowercase()),
+                guard: None,
             }),
             recovery.report,
         ))
+    }
+    /// 释放当前句柄及其 clone 的本进程仓库，保留数据库与其他进程句柄。
+    ///
+    /// # Errors
+    /// 本地同步锁不可用时返回存储错误。
+    pub fn close(&self) -> CacheResult<()> {
+        self.repository
+            .lock()
+            .map_err(|_| CacheError::Unavailable)?
+            .take();
+        Ok(())
     }
     /// 本地精确范围读取，不校验网络认证也不获取客户端锁。
     ///
@@ -199,6 +253,12 @@ impl OfflineCache {
     /// # Errors
     /// 清除事务失败时保留原句柄；提交后维护结果独立报告。
     pub fn clear_and_reopen(&self) -> CacheResult<(Self, super::CacheClearReport)> {
+        let _permit = self
+            .guard
+            .as_ref()
+            .map(crate::facade::SharedAccountGuard::acquire)
+            .transpose()
+            .map_err(|_| CacheError::Superseded)?;
         let mut slot = self
             .repository
             .lock()
@@ -213,6 +273,7 @@ impl OfflineCache {
                 repository: Arc::new(Mutex::new(Some(repository))),
                 expected_identity: Arc::clone(&self.expected_identity),
                 account_alias: Arc::clone(&self.account_alias),
+                guard: self.guard.clone(),
             },
             report,
         ))
@@ -228,6 +289,12 @@ impl OfflineCache {
         &self,
         operation: impl FnOnce(&mut OfflineRepository) -> CacheResult<T>,
     ) -> CacheResult<T> {
+        let _permit = self
+            .guard
+            .as_ref()
+            .map(crate::facade::SharedAccountGuard::acquire)
+            .transpose()
+            .map_err(|_| CacheError::Superseded)?;
         let mut repository = self
             .repository
             .lock()

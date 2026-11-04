@@ -74,6 +74,15 @@ mixin ControllerInteractiveAuthentication on ControllerState {
     internalError = null;
     internalSetInteractivePhase(AppPhase.loggingIn);
     try {
+      if (beginning) {
+        await internalLocalAccountStore?.signOut();
+        if (!internalIsCurrentInteractive(
+          backend,
+          generation,
+          credentialRevision,
+        ))
+          return;
+      }
       final result = beginning
           ? await backend.beginInteractiveLogin(internalInteractiveInput(form))
           : await backend.submitInteractiveLogin(

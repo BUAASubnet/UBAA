@@ -8,6 +8,10 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/backend.dart';
 import 'package:ubaa_app/src/bridge/context.dart';
+import '../../runtime.dart'
+    show ControlledRequiredSessionBackend, RequiredRecoveryOperation;
+import 'auth/required_session.dart';
+import 'auth/shared_logout.dart';
 import 'auth/session.dart'
     show
         bridgeAuthStatus,
@@ -72,7 +76,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 45;
+const _supportedBridgeContractVersion = 47;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -105,7 +109,7 @@ class BridgeBackend
         CgyyWriteBackend,
         EvaluationWriteBackend,
         RouteSettingsBackend,
-        RequiredSessionBackend,
+        ControlledRequiredSessionBackend,
         OfflineCacheBackend,
         ProfileCacheBackend,
         CacheManagementBackend,
@@ -118,7 +122,9 @@ class BridgeBackend
         ConcurrentReadBackend,
         AccountScopedProgressiveReadBackend,
         ScheduleImportBackend,
-        BackendLifecycle {
+        BackendLifecycle,
+        SharedAccountBackend,
+        SharedAccountLogoutBackend {
   BridgeBackend(BridgeClient client, {String? configDirectory})
     : _context = BridgeContext(client, configDirectory: configDirectory) {
     final contractVersion = client.contractVersion();
@@ -141,10 +147,82 @@ class BridgeBackend
         configDirectory: configDirectory,
       );
 
+  @override
+  Future<void> bindSharedAccount(SharedAccountBinding binding) async {
+    void check() {
+      if (_context.closed)
+        throw const BackendException(
+          UbaaErrorCode.operationConflict,
+          clientDisposed: true,
+        );
+    }
+
+    check();
+    if (binding.isRevocation)
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    await binding.validate();
+    check();
+    final reopened = agenda.accountId != null;
+    await agenda.close();
+    check();
+    _context.cache.generation++;
+    await _context.cache.tail;
+    check();
+    final native = await BridgeSharedAccount.capture(
+      directory: binding.directory,
+      generation: BigInt.from(binding.generation),
+    );
+    var adopted = false;
+    try {
+      check();
+      await client.bindSharedAccount(scope: native);
+      check();
+      await binding.validate();
+      check();
+      final oldCache = _context.cache.handle;
+      BridgeOfflineCache? nextCache;
+      if (oldCache != null &&
+          _context.cache.account?.id == binding.account.id) {
+        nextCache = await oldCache.withSharedAccount(scope: native);
+        if (_context.closed) {
+          nextCache.dispose();
+          check();
+        }
+      } else if (oldCache != null) {
+        await oldCache.close();
+        check();
+        _context.cache.account = null;
+        _context.cache.targetAccountId = null;
+      }
+      final oldNative = _context.nativeAccount;
+      _context.sharedAccount = binding;
+      _context.nativeAccount = native;
+      _context.cache.handle = nextCache;
+      adopted = true;
+      oldCache?.dispose();
+      oldNative?.dispose();
+      if (reopened) await agenda.openAccount(binding.account.id);
+    } finally {
+      if (!adopted) native.dispose();
+    }
+  }
+
+  @override
+  Future<void> logoutSharedAccount(
+    SharedAccountBinding revoked, {
+    required bool clearCache,
+  }) async {
+    await agenda.close();
+    return bridgeSharedLogout(_context, revoked, clearCache: clearCache);
+  }
+
   final BridgeContext _context;
   @override
   Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request) =>
-      _homeAgenda.projectHomeTodos(request);
+      bridgeWithOfflineRead(
+        _context,
+        () => _homeAgenda.projectHomeTodos(request),
+      );
   late final BridgeAgendaBackend _homeAgenda = BridgeAgendaBackend(_context);
   @override
   late final AgendaService agenda = AgendaService(_homeAgenda);
@@ -198,7 +276,9 @@ class BridgeBackend
   Future<void> deactivateOfflineAccount() {
     _context.cache.generation++;
     return bridgeOfflineSerial(_context, () async {
-      await _context.cache.handle?.deactivate();
+      if (_context.sharedAccount == null)
+        await _context.cache.handle?.deactivate();
+      _context.cache.targetAccountId = null;
     });
   }
 
@@ -248,6 +328,21 @@ class BridgeBackend
   Future<FeatureResult> readSigninAfterWrite() =>
       bridgeLoadSigninHome(_context, const FeatureQuery(), useCache: false);
 
+  @override
+  RequiredRecoveryOperation startRequiredRecovery(
+    FeatureId feature,
+    Duration limit,
+  ) => BridgeRequiredSessionBackend(
+    _context.client,
+  ).startRequiredRecovery(feature, limit);
+  @override
+  RequiredRecoveryOperation startRequiredLogin(
+    ConnectionMode route,
+    LoginInput input,
+    Duration limit,
+  ) => BridgeRequiredSessionBackend(
+    _context.client,
+  ).startRequiredLogin(route, input, limit);
   @override
   Future<RecoveredRouteSession> recoverRequiredSession(FeatureId feature) =>
       bridgeRecoverRequiredSession(_context, feature);
@@ -408,13 +503,28 @@ class BridgeBackend
     required ConnectionMode route,
   }) => bridgeLoadEvaluationOnRoute(_context, route: route);
 
+  Future<void>? _closing;
   @override
-  Future<void> dispose() async {
-    try {
-      await agenda.dispose();
-    } finally {
-      await bridgeDispose(_context);
-    }
+  Future<void> dispose() {
+    if (_closing != null) return _closing!;
+    _context.closed = true;
+    _context.cache.generation++;
+    _context.cache.targetAccountId = null;
+    final agendaClosed = agenda.dispose();
+    final clientClosed = bridgeDispose(_context);
+    final cacheClosed = bridgeOfflineSerial(_context, () async {
+      await _context.cache.handle?.close();
+      _context.cache.handle?.dispose();
+      _context.cache.handle = null;
+      _context.cache.account = null;
+      _context.nativeAccount?.dispose();
+      _context.nativeAccount = null;
+    });
+    return _closing = Future.wait([
+      agendaClosed,
+      clientClosed,
+      cacheClosed,
+    ]).then((_) {});
   }
 
   @override

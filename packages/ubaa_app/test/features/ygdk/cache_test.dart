@@ -188,6 +188,12 @@ const overview = BridgeYgdkOverview(
 );
 
 class _Cache implements BridgeOfflineCache {
+  @override
+  Future<void> close() async {}
+
+  @override
+  void dispose() {}
+
   bool failRead = false;
   @override
   Future<BridgeCacheReset> clearAndReopen() async => BridgeCacheReset(
@@ -293,7 +299,7 @@ class _Client implements BridgeClient {
   int cachedCalls = 0;
   final pinned = <BridgeConnectionMode>[];
   @override
-  int contractVersion() => 45;
+  int contractVersion() => 47;
   @override
   Future<BridgeYgdkRecordsRefresh> ygdkRecordsCached({
     required BridgeOfflineCache cache,

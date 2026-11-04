@@ -95,6 +95,12 @@ class _Api implements RustLibApi {
 
 class _Cache implements BridgeOfflineCache {
   @override
+  Future<void> close() async {}
+
+  @override
+  void dispose() {}
+
+  @override
   Future<void> activate() async {}
   @override
   Future<void> deactivate() async {}
@@ -118,7 +124,7 @@ class _Client implements BridgeClient {
   Completer<BridgeScheduleImportProgress>? pending;
   BridgeScheduleImportProgress result = _progress();
   @override
-  int contractVersion() => 45;
+  int contractVersion() => 47;
   @override
   Future<BridgeScheduleImportTask> beginScheduleImport({
     required BridgeOfflineCache cache,

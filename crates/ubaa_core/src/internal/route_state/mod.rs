@@ -20,7 +20,7 @@ pub(crate) use credentials::{
 /// 仅由一条路线/一个客户端的运行时和读取工作线程共享的状态。
 #[derive(Debug, Default)]
 pub(crate) struct RouteFeatureState {
-    lifecycle_generation: std::sync::atomic::AtomicU64,
+    lifecycle_generation: std::sync::Mutex<u64>,
     pub(crate) graduate_schedule: std::sync::atomic::AtomicU64,
     pub(crate) bykc: BykcState,
     pub(crate) cgyy: CgyyState,
@@ -35,12 +35,26 @@ pub(crate) struct RouteFeatureState {
 
 impl RouteFeatureState {
     pub(crate) fn lifecycle_generation(&self) -> u64 {
-        self.lifecycle_generation
-            .load(std::sync::atomic::Ordering::Acquire)
+        *self.lifecycle_lock()
     }
     pub(crate) fn clear(&self) {
+        self.clear_locked(&mut self.lifecycle_lock());
+    }
+    pub(crate) fn clear_if_generation(&self, expected: u64) {
+        let mut generation = self.lifecycle_lock();
+        if *generation == expected {
+            self.clear_locked(&mut generation);
+        }
+    }
+    fn lifecycle_lock(&self) -> std::sync::MutexGuard<'_, u64> {
         self.lifecycle_generation
-            .fetch_add(1, std::sync::atomic::Ordering::AcqRel);
+            .lock()
+            .unwrap_or_else(std::sync::PoisonError::into_inner)
+    }
+    // 先取路线生命周期锁，再取业务私有同步锁；清理期间不等待网络或异步锁。
+    // 代次快照也取生命周期锁，避免新读取组在业务清理尚未完成时捕获新代次。
+    fn clear_locked(&self, generation: &mut std::sync::MutexGuard<'_, u64>) {
+        **generation = generation.wrapping_add(1);
         self.graduate_schedule
             .store(0, std::sync::atomic::Ordering::Release);
         self.bykc.clear();

@@ -27,7 +27,7 @@ pub struct BridgeCacheRecovery {
     pub cache: Option<BridgeOfflineCache>,
     pub report: BridgeCacheClearReport,
 }
-fn map_report(report: &core::CacheClearReport) -> BridgeCacheClearReport {
+pub(super) fn map_report(report: &core::CacheClearReport) -> BridgeCacheClearReport {
     BridgeCacheClearReport {
         usage: report.usage.map(map_usage),
         compacted: report.compacted,

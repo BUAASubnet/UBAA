@@ -1,5 +1,55 @@
 # 协议来源对照与专项索引
 
+## H1-b3b：共享句柄关闭与持久身份撤销
+
+改生产代码前核对冻结旧版 `1f4b8f8` 的 `api/storage/CredentialStore.kt`、`api/local/LocalConnectionAuth.kt`、`GradeScoreCacheStore.kt` 及其测试，以及冻结 buaa-api `a63712fa` 的 `src/store/{cred,cookies}.rs`、`src/api/user/auth.rs`。普通句柄释放、跨进程缓存/日程事务和交付、持久写资格撤销均为本机操作，两源没有同等协议。因此这些操作的 CAS/service、重定向和最终 URL、Cookie/Session/Token、HTTP 方法和参数、请求头和编码、上游加密/签名、DTO 各列不适用。已有学校认证、读取和写入继续沿用本索引各领域的逐操作对照，URL、参数、路线与错误语义保持。
+
+本机并发与错误语义：普通关闭释放本进程句柄，显式退出与换号撤销共享旧身份。旧本地操作在提交和结果交付边界核对捕获的身份，已交付事务按实际提交或回滚记账。学校写入不恢复、不换客户端、不自动重试，发送后不能确认的结果保留 OutcomeUnknown。协议回归使用固定路线 Mock。新增原生全局退出红灯曾误入生产 SSO logout GET 路径，使用新 UUID 合成目录和空学校会话，日志无法确认请求是否发送或到达学校。该路径已停止，后续原生通过客户端 RPC 白名单工厂隔离远端调用，生产受限注销 RPC 另由 Rust Mock 验证。标准完整验收另获授权运行既有真实 Keychain 合成回归，仅操作本次新 UUID 目录派生的精确 account 并删除该条目，不访问已有真实账号或凭据。
+
+## H1-b3a：持久恢复 scope 与客户端继任
+
+生产修改前重新读取冻结旧版 `1f4b8f8` 的 `api/storage/CredentialStore.kt`、`api/local/LocalConnectionAuth.kt`，以及冻结 buaa-api `a63712fa` 的 `src/store/{cred,cookies}.rs`、`src/api/user/auth.rs`。所需路线校验、凭据登录仍逐操作沿用下方 H1-b1 的协议列，CAS/service、重定向与最终 URL、Cookie/Session/Token 作用域、方法和精确参数、请求头与编码、加密常量和 DTO 解析均无变化。
+
+持久 scope 捕获与核对、恢复操作锁、连续身份代次、恢复发布、结果交付和客户端重建是本机协调操作，两源没有等价操作，上游协议各列均不适用。账号索引继续使用原材料键、alias 和 CacheKey。恢复发布只推进 generation，显式登录、退出、切号和撤销许可同时改变连续身份代次。旧索引首次更新时以原 generation 建立连续身份代次。网络期间仅持有独立恢复操作锁，材料锁只覆盖短事务。等待者重新核对身份与许可，并先验证当前会话，再决定是否提交密码。Core 外部 revision 冲突仍是旧客户端终态，继任在应用服务边界创建。旧写资格不得通过恢复续接。凭据被拒时只用密码提交所属快照条件撤销持久许可，旧失败不得重新捕获新快照后撤销。
+
+审查修复前再次核对上述两源凭据存储、旧版 `LocalConnectionAuth.kt` 和示例 `api/user/auth.rs`。交付停止合并、单消费者取消隔离、GUI 最终状态发布与被拒凭据的后续清理均为本机协调操作，两源无对应的跨进程身份协议，上游协议各列不适用。学校认证、读取、路线与 Cookie 规则继续沿用下方 H1-b1 对照表。共享恢复已按提交所属快照撤销许可，GUI 不再追加无归属的凭据清理。最终 profile/ready 在最后一次路线设置等待后，通过原恢复 scope 的短材料事务核对身份和许可再发布。
+
+本单元只运行合成材料和固定路线 Mock，不进行真实学校请求。普通消费者关闭、缓存/日程句柄和写资格完整生命周期继续由 b3b 处理。
+
+## H1-b2：同机账号与安全材料协调
+
+生产修改前核对冻结旧版 `1f4b8f8` 的 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/storage/CredentialStore.kt`、`api/local/LocalConnectionAuth.kt`，以及冻结 buaa-api `a63712fa` 的 `src/store/cred.rs`、`src/store/cookies.rs`。旧版保存记住密码与自动登录偏好，关闭记住密码会清除密码并关闭自动登录。buaa-api保存 API 凭据期限与 Cookie，没有本机随机 alias、CacheKey 或跨进程恢复许可协议。
+
+本单元逐操作涉及索引读取、保留已核实账号、取得待建密钥、退出、删除账号、凭据读写/清除、能力探测及持久代次条件校验。两源均无这些 UBAA2 安全材料操作的等价协议，因此 CAS/service、重定向/最终 URL、HTTP 方法/参数、请求头/正文编码、上游加密/签名和 DTO 字段全部不适用，不新增或推断学校字段。Cookie/Session/Token 的既有路线与作用域保持。仅调整本机锁、失败阻断和代次：索引/凭据继续保存于既有安全后端，禁止网络期间持有材料锁，写入不自动重试。退出先撤销许可，普通句柄释放不改共享许可。H1-a scope 的跨进程接线留给 b3。本轮仅合成材料，学校请求与真实材料访问为零。
+
+Windows 接续核对纠正：锁定 `flutter_secure_storage 10.0.0` 的 `WindowsOptions.defaultOptions` 默认 `useBackwardCompatibility=false`，门面 `_selectOptions` 实际传入该值，当前 App 没有开启 legacy Credential Manager 迁移。本轮不新增迁移能力。插件内部省略选项时的迁移路径不能作为当前默认缺陷。实际缺口是锁定 `flutter_secure_storage_windows 4.1.0` 的 `DpapiJsonFileMapStorage.load` 在 DPAPI、UTF-8、JSON 或非对象错误时删除原件，并把读取异常解释为空 map；后续写入还会无限重试。
+
+当前本地候选为 Windows 增加同路径的文件适配，保留 `getApplicationSupportDirectory`、`flutter_secure_storage.dat`、用户级 DPAPI（无 entropy、flags=0）和全部材料键。读取不写入或迁移，严格拒绝损坏及未知条目，只有明确的 OS 文件不存在错误允许空 map。写入先生成同目录临时密文，已有目标使用带备份的 `ReplaceFileW(flags=0)` 保留原安全描述符，失败保留备份与未完成标记，不自动重试。目标查询使用 `GetFileAttributesW` 并立即保留错误码，只有明确不存在的错误 2/3 才允许首次创建。首次创建使用不带覆盖标志的 `MoveFileExW(WRITE_THROUGH)`，查询后出现目标时直接失败。查询失败、目录或重解析点均阻断，不自动回退。实际文件层、协调器和账号参与合成回归，原生查询与替换通过回调注入。Windows DPAPI、DACL、共享冲突、原生替换和替换中途崩溃尚未原生运行。
+
+锁域候选的纯 Dart 桌面解析器改用系统用户目录接口，忽略 HOME/USERPROFILE/XDG/config 覆盖，macOS 纯 Dart 环境变量反例已转绿。当前 macOS 宿主启用 App Sandbox，因此 Flutter 默认材料工厂继续通过原生应用支持目录接口选择沙箱可达目录，避免把 GUI 锁移到 POSIX 用户 home 的容器外目录。macOS 正式命令路线与 GUI 使用同一 App 的 Flutter Engine。私有 Bundle ID 样机复用候选目录代码和生产相同的 Sandbox entitlement，实际 GUI/无窗口 Engine 取得相同 support/material 路径，分别采用两个业务目录覆盖，并完成随机合成子目录双向读写、清理及正常退出。GUI 有窗口和 Dart view，无窗口 Engine 原生窗口数为 0、viewController 为空，但仍有默认 Dart view。样机只包含目录插件，不访问钥匙串，因此原有安全材料连续性和 Windows 跨入口后端路径连续性仍待验证。
+
+事务入口直接读取 `transaction.v1`，仅明确不存在的 OS 错误 2（Windows 另含 3）允许初始化。存在查询吞掉错误后的读取失败、空 OS 错误和 UTF-8 损坏均以 `uncertain` 阻断。实际协调决策的失败反例与修复回归检查业务回调和材料变更次数为零，原 B 标记保持，错误消失后仍阻断。嵌套、迟到写和进程恢复覆盖保留。
+
+Linux Debian arm64 在 `ubaa-h0:validated` 固定镜像、nobody、断网、无显示、无特权及只读容器中，通过当前精确源码副本的 35 项纯 Dart 测试和 9 组 AOT 组合验证，覆盖同/异账号、并发 probe、四种外部状态变更后的旧快照拒绝、kill 解锁和密钥写入后崩溃阻断。仅私有 tmpfs 运行目录允许执行 AOT，输入为只读挂载，50 个纯 Dart 依赖按当前锁定版本离线解算。材料后端使用实际 Windows 文件层加合成 codec，没有访问真实材料或学校。该结果不填补 Windows 原生及移动/OHOS 缺口。本节仍为 H1-b2 候选，H1-a scope 的持久代次接线留 b3。
+
+原生测试原先只替换锁域，Windows/Linux 整 map 后端仍可能访问默认材料。合成默认域预置 B 且旧 target 移至备份时，实际测试组合的失败反例确认默认 target 被创建。测试组合现同时隔离数据与协调域，默认传输构造次数为零，原 target（存在或缺失）、backup 和 B 保持不变。Windows 私有文件保留真实 DPAPI/替换函数，Apple 使用独立 Keychain service，Android 使用独立 Debug 应用 `cn.edu.ubaa.synthetic.materials`，在访问安全存储前核对设备报告的实际包名，Linux 原生材料转由专用隔离 Secret Service 入口执行。macOS 真实材料与凭据专项共 4 项通过，Linux 专用入口的实际原生运行和 Windows 原生运行仍待验。遗漏 await 的子写落地后失败回归另确认：根事务返回 uncertain，子 Future 独立报告异常，B 保留且后续访问阻断，未改写异常吞并规则。Android 锁定插件 10.0.0 仍使用固定配置、包装 key 和按应用包名生成的 Keystore alias，因此仅更换 preferences 名称不足以隔离。实际旧辅助的合成反例触发 3 次插件调用并写入固定配置标记，修复后的 7 项聚焦用例通过，独立 Debug APK 的实际包名与 debuggable 校验通过。设备清单为空，私有 AVD 创建未能识别已安装镜像，Android 原生正向读写尚待执行。完整相关分段验收与本地主题提交已完成，P2 候选等待监督最终复核。
+
+## 2026-11-01 H1-b1：派生读取与登录身份撤销
+
+已用 `just refs` 核对当前两个固定来源。旧版路径前缀为 `examples/ubaa_old/shared/src/`，提交 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`；示例路径前缀为 `examples/buaa-api/src/`，提交 `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。
+
+旧版读取 `commonMain/kotlin/cn/edu/ubaa/api/local/LocalConnectionAuth.kt` 的会话校验、资料查询、登录成功及退出，`api/auth/AuthApi.kt`、`model/dto/UserInfo.kt` 和 `commonTest/kotlin/cn/edu/ubaa/api/LocalAuthSessionStoreTest.kt`。示例读取 `api/user/{auth,opt,mod}.rs`、`request.rs`、`store/cred.rs`，其用户接口返回原始文本、各 API 组共享上下文与 Cookie。逐操作结论如下，所有请求协议均继续使用现有 Core 实现。
+
+| 操作 | CAS/service、重定向与最终 URL | Cookie/Session/Token | 方法与精确参数 | 请求头与编码 | 加密/签名 | DTO 与解析 | 缓存/并发/重试 | 错误/退出与产品语义 |
+|---|---|---|---|---|---|---|---|---|
+| 校验所需路线与正常活动时间刷新 | 旧版直接 GET UC `/api/uc/status`，无 service；示例加 `selfTimestamp`，激活使用 UC `/api/login?target=…`。沿用现有 Core URL 与最终地址分类，不增加引导 | 旧版按 Direct/WebVPN 隔离 Cookie 与会话；示例共享上下文。Core 双槽 CAS 保持 | 旧 GET 无参数；示例 GET 时间戳参数。沿用当前无参数 GET | 旧 Accept JSON 与 XHR；示例默认 UA。保持 Core 既有头，无新正文 | 无新增 | 旧 `code=0`、`data.schoolid/username/name`；示例原始文本。保持 Core 白名单解析 | 旧校验成功保存活动时间，5xx 保留会话；示例刷新凭据过期时间。正常刷新不撤销能力，不增加重试 | 仅沿当前已分类 `AuthenticationRequired` 清理路径传播撤销，503 保持临时错误 |
+| 显式登录成功后签发身份、退出后撤销 | 沿现有 SSO/UC 激活与校验；旧退出 GET SSO `/logout`。本次不改 URL/service 或跳转 | 保留路线隔离、双槽所有权与本机身份校验；成功登录建立新认证代次 | 沿现有登录表单与退出 GET，无新增参数 | 沿现有表单编码、请求头 | 沿既有 SSO/WebVPN，无新增常量 | 沿当前一致 `school_id` 身份能力规则；旧 DTO 和示例没有该不可伪造能力 | 成功登录更新认证代次；退出撤销旧代次，不恢复旧票据 | 两源均无 UBAA2 身份能力，能力签发/验证本地规则不适用协议类比；退出仍走既有清理 |
+| 派生读取同代失效传播、旧派生迟到、普通句柄释放 | 两源没有等价的派生身份能力协议，不适用，无 HTTP 新增 | 仅同一认证代次共享内存撤销标记；旧代次与新登录分离，不写持久会话 | 不适用，本机检查 | 不适用 | 不适用 | 不适用，不添加上游字段 | 并行/嵌套派生共享认证归属；业务状态保留既有隔离，迟到清理检查原功能代次，释放句柄不等于退出 | 同代明确失效阻断父已取/未取能力；不扩大网络错误语义。共享账号索引和跨进程代次留 H1-b2/b3 |
+
+当前基线 `64840201` 的新 Mock 反例与修复验证保存在实施检出私有 `.ubaa_local/command_mode_h1b_identity/`。固定 Direct/WebVPN、`NeverProbe`、合成身份和 Mock HTTP，学校请求与真实材料访问均为零。旧主仓库实验只作四个 Core 候选的审查输入，未整体迁入旧 CLI 补丁。
+
+条件清理并发补充：再次核对旧版 `LocalConnectionAuth.kt` 的会话失效分类与 `buaa-api` 的 `api/user/{auth,opt}.rs`、`store/cred.rs`，两者均没有 Core 只读组的父功能代次与条件清理协议，因此此本机同步操作不适用上游协议类比，表内 HTTP 各列保持。受支持反例仅重叠派生读取：A 观察 Direct 代次 G 后暂停，B 清理到 G+1，C 经公开 fork 捕获 (G+1, W)，A 继续清理。原候选实际把 Direct 推进到 G+2，使 C 的 WebVPN 读取在双路线所有权检查中失败并误清 WebVPN。修复让代次读取、条件比较、推进与全部业务清理共用路线生命周期锁，普通清理遵守相同规则。父认证及学校写入与子请求互斥的公开约定保持。
+
 ## 门户资料、账户指标与网费流量
 
 身份、学院、五项账户指标和三项流量的接入方案、双来源适用性及逐操作协议见[校园账户查询](source-parity-campus.md)。云盘指标按用户确认表示剩余空间。

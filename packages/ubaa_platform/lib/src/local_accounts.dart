@@ -1,9 +1,8 @@
-import 'dart:async';
 import 'dart:convert';
 import 'dart:math';
 import 'dart:typed_data';
 
-import 'secure_material.dart';
+import 'material/secure_material_core.dart';
 
 /// 随机内部别名与已核实的账号；只保存在系统安全材料层。
 final class LocalAccount {
@@ -29,7 +28,7 @@ final class LocalAccountState {
       'LocalAccountState(canRestore: $canRestore, generation: $generation)';
 }
 
-/// 由一个宿主拥有的本机账号索引；不得将业务快照保存在这里。
+/// 同一材料域共用的本机账号索引；不得将业务快照保存在这里。
 abstract interface class LocalAccountStore {
   Future<LocalAccountState?> read();
   Future<LocalAccountState> retain(
@@ -41,23 +40,170 @@ abstract interface class LocalAccountStore {
   Future<void> removeAccount(String accountId);
 }
 
+/// 持久代次快照只能由安全索引捕获；不接受文件或命令参数构造身份。
+final class LocalAccountSnapshot {
+  LocalAccountSnapshot._(this._owner, this.state, this._continuity);
+  final int _continuity;
+  final SecureMaterialStore _owner;
+  final LocalAccountState state;
+  @override
+  String toString() => 'LocalAccountSnapshot(generation: ${state.generation})';
+}
+
+/// 只能从安全索引捕获的本机版本，不能从裸 alias 或用户名构造。
+final class SharedAccountBinding {
+  SharedAccountBinding._(
+    this.accounts,
+    this.snapshot,
+    this.directory, {
+    this.isRevocation = false,
+  });
+  final SecureLocalAccountStore accounts;
+  final LocalAccountSnapshot snapshot;
+  final String directory;
+  final bool isRevocation;
+  int get generation => snapshot.state.generation;
+  LocalAccount get account => snapshot.state.account!;
+  Future<void> validate() async {
+    if (!await accounts.validate(snapshot, requireRestore: false))
+      throw const LocalAccountConflict();
+  }
+
+  Future<void> commit(void Function() deliver) =>
+      accounts.commitIfCurrent(snapshot, deliver, requireRestore: false);
+  @override
+  String toString() => 'SharedAccountBinding([REDACTED])';
+}
+
+final class LocalAccountConflict extends SecureMaterialException {
+  const LocalAccountConflict();
+  @override
+  String toString() => '本机账号状态已变化';
+}
+
 /// 安全索引与随机缓存密钥分开保存；失去密钥不生成替代密钥覆盖旧数据。
 final class SecureLocalAccountStore implements LocalAccountStore {
   SecureLocalAccountStore(this.materials);
   final SecureMaterialStore materials;
-  Future<void> _tail = Future<void>.value();
   static const _indexKey = 'account-index.v1';
 
-  Future<T> _serial<T>(Future<T> Function() action) {
-    final next = _tail.then((_) => action());
-    _tail = next.then<void>((_) {}, onError: (Object _) {});
-    return next;
-  }
+  Future<T> _serial<T>(Future<T> Function() action) =>
+      materials.coordinate(action);
+
+  /// 仅捕获本机状态，不签发已核实的 Core 身份或学校写资格。
+  Future<LocalAccountSnapshot?> capture() => _serial(() async {
+    final index = await _load();
+    return index == null
+        ? null
+        : LocalAccountSnapshot._(materials, index.state, index.continuity);
+  });
+
+  /// 在权威索引事务内捕获本机撤销版本，不签发学校身份。
+  Future<SharedAccountBinding> bindSnapshot(
+    LocalAccountSnapshot snapshot, {
+    bool requireRestore = true,
+  }) => _serial(() async {
+    if (!_matches(await _load(), snapshot, requireRestore) ||
+        snapshot.state.account == null)
+      throw const LocalAccountConflict();
+    final directory = await materials.coordinator.accountGenerationDirectory(
+      snapshot.state.generation,
+    );
+    return SharedAccountBinding._(this, snapshot, directory);
+  });
+
+  bool _matches(
+    _AccountIndex? index,
+    LocalAccountSnapshot snapshot,
+    bool requireRestore,
+  ) =>
+      identical(snapshot._owner, materials) &&
+      index != null &&
+      index.generation == snapshot.state.generation &&
+      index.state.account?.id == snapshot.state.account?.id &&
+      index.canRestore == snapshot.state.canRestore &&
+      (!requireRestore || index.state.canRestore);
+
+  Future<bool> validate(
+    LocalAccountSnapshot snapshot, {
+    bool requireRestore = true,
+  }) => _serial(() async => _matches(await _load(), snapshot, requireRestore));
+
+  /// 只延续已允许恢复的同一账号；失效快照不能开启许可或切换账号。
+  Future<LocalAccountSnapshot> refreshIfCurrent(
+    LocalAccountSnapshot snapshot,
+  ) => _serial(() async {
+    final index = await _load();
+    if (!_matches(index, snapshot, true)) throw const LocalAccountConflict();
+    index!.advance();
+    await _save(index);
+    return LocalAccountSnapshot._(materials, index.state, index.continuity);
+  });
+
+  /// 仅恢复发布产生的同一连续身份可以续接；显式登录和退出永久撤销旧快照。
+  Future<LocalAccountSnapshot> recoverySuccessor(
+    LocalAccountSnapshot snapshot,
+  ) => _serial(() async {
+    final index = await _load();
+    if (!identical(snapshot._owner, materials) ||
+        index == null ||
+        !index.state.canRestore ||
+        index.continuity != snapshot._continuity ||
+        index.generation < snapshot.state.generation ||
+        index.state.account?.id != snapshot.state.account?.id ||
+        index.state.account?.username != snapshot.state.account?.username) {
+      throw const LocalAccountConflict();
+    }
+    return LocalAccountSnapshot._(materials, index.state, index.continuity);
+  });
+
+  /// 结果交付的短提交边界；回调同步执行，不允许在材料锁内进行网络或管道等待。
+  Future<void> commitIfCurrent(
+    LocalAccountSnapshot snapshot,
+    void Function() commit, {
+    bool requireRestore = true,
+  }) => _serial(() async {
+    if (!_matches(await _load(), snapshot, requireRestore))
+      throw const LocalAccountConflict();
+    commit();
+  });
+
+  /// 显式退出只撤销原快照，返回本次撤销所属的固定版本供受限清理。
+  Future<SharedAccountBinding> revokeBinding(
+    LocalAccountSnapshot snapshot,
+  ) => _serial(() async {
+    final index = await _load();
+    if (!_matches(index, snapshot, false)) throw const LocalAccountConflict();
+    index!.canRestore = false;
+    index.advanceIdentity();
+    await _save(index);
+    final revoked = LocalAccountSnapshot._(
+      materials,
+      index.state,
+      index.continuity,
+    );
+    final directory = await materials.coordinator.accountGenerationDirectory(
+      index.generation,
+    );
+    return SharedAccountBinding._(this, revoked, directory, isRevocation: true);
+  });
+
+  Future<LocalAccountState> revokeIfCurrent(LocalAccountSnapshot snapshot) =>
+      _serial(() async {
+        final index = await _load();
+        if (!_matches(index, snapshot, false))
+          throw const LocalAccountConflict();
+        index!.canRestore = false;
+        index.advanceIdentity();
+        await _save(index);
+        return index.state;
+      });
 
   @override
   Future<LocalAccountState?> read() =>
       _serial(() async => (await _load())?.state);
 
+  /// 仅供显式登录验证身份后的宿主调用。恢复流程使用代次条件接口。
   @override
   Future<LocalAccountState> retain(
     String username, {
@@ -87,7 +233,7 @@ final class SecureLocalAccountStore implements LocalAccountStore {
     }
     index.activeId = account.id;
     index.canRestore = retainSession;
-    index.generation++;
+    index.advanceIdentity();
     await _save(index);
     return index.state;
   });
@@ -127,7 +273,7 @@ final class SecureLocalAccountStore implements LocalAccountStore {
   Future<void> signOut() => _serial(() async {
     final index = await _load() ?? _AccountIndex();
     index.canRestore = false;
-    index.generation++;
+    index.advanceIdentity();
     await _save(index);
   });
 
@@ -139,7 +285,7 @@ final class SecureLocalAccountStore implements LocalAccountStore {
     if (!_AccountIndex.validId(accountId))
       throw const SecureMaterialException();
     index.canRestore = false;
-    index.generation++;
+    index.advanceIdentity();
     await _save(index);
     await materials.delete('cache-key.$accountId');
     index.accounts.removeWhere((item) => item.id == accountId);
@@ -170,23 +316,27 @@ final class SecureLocalAccountStore implements LocalAccountStore {
     }
   }
 
-  Future<void> _save(_AccountIndex index) => materials.write(
-    _indexKey,
-    jsonEncode({
-      'version': 2,
-      'generation': index.generation,
-      'activeId': index.activeId,
-      'canRestore': index.canRestore,
-      'accounts': [
-        for (final account in index.accounts)
-          {
-            'id': account.id,
-            'username': account.username,
-            'cacheKeyPending': index.pendingCacheKeys.contains(account.id),
-          },
-      ],
-    }),
-  );
+  Future<void> _save(_AccountIndex index) async {
+    await materials.write(
+      _indexKey,
+      jsonEncode({
+        'version': 3,
+        'continuity': index.continuity,
+        'generation': index.generation,
+        'activeId': index.activeId,
+        'canRestore': index.canRestore,
+        'accounts': [
+          for (final account in index.accounts)
+            {
+              'id': account.id,
+              'username': account.username,
+              'cacheKeyPending': index.pendingCacheKeys.contains(account.id),
+            },
+        ],
+      }),
+    );
+    await materials.coordinator.publishAccountGeneration(index.generation);
+  }
 }
 
 class _AccountIndex {
@@ -195,6 +345,17 @@ class _AccountIndex {
   String? activeId;
   bool canRestore = false;
   int generation = 0;
+  int continuity = 0;
+  void advanceIdentity() {
+    advance();
+    continuity = generation;
+  }
+
+  void advance() {
+    if (generation == 0x7fffffffffffffff) throw const SecureMaterialException();
+    generation++;
+  }
+
   static bool validId(String value) =>
       RegExp(r'^[a-f0-9]{32}$').hasMatch(value);
   LocalAccountState get state {
@@ -211,10 +372,16 @@ class _AccountIndex {
 
   static _AccountIndex decode(dynamic value) {
     if (value is! Map<String, dynamic> ||
-        (value['version'] != 1 && value['version'] != 2) ||
+        (value['version'] != 1 &&
+            value['version'] != 2 &&
+            value['version'] != 3) ||
         value['generation'] is! int ||
         (value['generation'] as int) < 0 ||
         value['canRestore'] is! bool ||
+        (value['version'] == 3 &&
+            (value['continuity'] is! int ||
+                (value['continuity'] as int) < 0 ||
+                (value['continuity'] as int) > (value['generation'] as int))) ||
         value['accounts'] is! List ||
         (value['accounts'] as List).length > 16 ||
         (value['activeId'] != null && value['activeId'] is! String)) {
@@ -222,11 +389,14 @@ class _AccountIndex {
     }
     final index = _AccountIndex()
       ..generation = value['generation'] as int
+      ..continuity =
+          (value['version'] == 3 ? value['continuity'] : value['generation'])
+              as int
       ..canRestore = value['canRestore'] as bool
       ..activeId = value['activeId'] as String?;
     for (final item in value['accounts'] as List) {
       if (item is! Map<String, dynamic> ||
-          (value['version'] == 2 && item['cacheKeyPending'] is! bool) ||
+          (value['version'] != 1 && item['cacheKeyPending'] is! bool) ||
           item['id'] is! String ||
           !validId(item['id'] as String) ||
           item['username'] is! String ||
@@ -237,7 +407,7 @@ class _AccountIndex {
           )) {
         throw const SecureMaterialException();
       }
-      if (value['version'] == 2 && item['cacheKeyPending'] == true) {
+      if (value['version'] != 1 && item['cacheKeyPending'] == true) {
         index.pendingCacheKeys.add(item['id'] as String);
       }
       index.accounts.add(

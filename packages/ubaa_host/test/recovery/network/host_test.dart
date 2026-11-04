@@ -9,15 +9,17 @@ import 'package:ubaa_test_support/recovery.dart' as fixtures;
 void main() {
   testWidgets('宿主网络提示唤醒失败恢复，后台停订阅，销毁后不再回调', (tester) async {
     final events = StreamController<void>.broadcast();
+    final accounts = await fixtures.widgetAccounts(tester);
     final backend = fixtures.FakeRecoveryBackend()
       ..authError = const BackendException(UbaaErrorCode.networkError);
     await tester.pumpWidget(
       UbaaAppHost(
         backend: backend,
-        localAccountStore: await fixtures.savedAccounts(),
+        localAccountStore: accounts,
         networkChanges: events.stream,
       ),
     );
+    await accounts.settle(tester);
     await tester.pumpAndSettle();
     expect(backend.authCalls, 1);
     expect(events.hasListener, isTrue);
@@ -29,17 +31,20 @@ void main() {
     await tester.pump(const Duration(minutes: 1));
     expect(backend.authCalls, 1);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await accounts.settle(tester);
     await tester.pumpAndSettle();
     expect(backend.authCalls, 2);
     expect(events.hasListener, isTrue);
     backend.authError = const BackendException(UbaaErrorCode.networkError);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.paused);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await accounts.settle(tester);
     await tester.pumpAndSettle();
     expect(backend.authCalls, 3);
     backend.authError = null;
     events.add(null);
     events.add(null);
+    await accounts.settle(tester);
     await tester.pumpAndSettle();
     expect(backend.authCalls, 4);
     expect(backend.loginCalls, 0);

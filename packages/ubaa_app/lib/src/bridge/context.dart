@@ -7,6 +7,9 @@ class BridgeContext {
   BridgeContext(this.client, {this.configDirectory});
   final BridgeClient client;
   final String? configDirectory;
+  SharedAccountBinding? sharedAccount;
+  BridgeSharedAccount? nativeAccount;
+  bool closed = false;
   final cache = BridgeCacheState();
   final authentication = BridgeAuthenticationState();
 }

@@ -3,11 +3,12 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_test_support/recovery.dart' as fixtures;
+import '../../support/controller/clock_accounts.dart';
 
 Future<AppController> start(fixtures.FakeRecoveryBackend backend) async {
   final controller = AppController(
     backend: backend,
-    localAccountStore: await fixtures.savedAccounts(),
+    localAccountStore: ClockAccounts(),
   );
   await controller.initialize();
   controller.onHomeFirstFrame();

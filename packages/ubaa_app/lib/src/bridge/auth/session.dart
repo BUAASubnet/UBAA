@@ -15,6 +15,7 @@ import '../support/mapping.dart'
         bridgeToBridgePolicy,
         bridgeToConnectionMode,
         bridgeToRoutePolicy;
+import 'required_session.dart';
 part 'recovery.dart';
 part 'interactive.dart';
 
@@ -61,6 +62,8 @@ Future<void> bridgePrepareLogin(
 ) async {
   _interruptInteractiveLogin(backend);
   try {
+    if (backend.sharedAccount != null)
+      await backend.client.releaseSharedAccountForLogin();
     await setPolicy(policy);
     await backend.client.prepareLogin();
   } on BridgeError catch (error) {
@@ -108,6 +111,8 @@ Future<void> bridgeLogin(BridgeContext backend, LoginInput input) async {
     await backend.client.setDefaultRoutePolicy(
       policy: bridgeToBridgePolicy(input.routePolicy),
     );
+    if (backend.sharedAccount != null)
+      await backend.client.releaseSharedAccountForLogin();
     final outcome = await backend.client.login(
       username: input.username.trim(),
       password: input.password,

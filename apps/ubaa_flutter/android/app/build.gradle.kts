@@ -1,5 +1,6 @@
 import groovy.json.JsonSlurper
 import java.util.Properties
+import java.util.Base64
 
 plugins {
     id("com.android.application")
@@ -7,6 +8,11 @@ plugins {
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id("dev.flutter.flutter-gradle-plugin")
 }
+
+// 仅专用合成材料Debug入口选择独立沙箱，普通构建保留生产applicationId。
+val syntheticAndroidMaterials = providers.gradleProperty("dart-defines").orNull
+    ?.split(",")?.map { String(Base64.getDecoder().decode(it), Charsets.UTF_8) }
+    ?.contains("UBAA_SYNTHETIC_ANDROID_MATERIALS=true") == true
 
 // 使用 Cargo.lock 实际选中的 Android 证书组件版本，不隐式更新依赖。
 val verifierMetadata = providers.exec {
@@ -96,6 +102,11 @@ android {
     }
 
     buildTypes {
+        debug {
+            if (syntheticAndroidMaterials) {
+                applicationIdSuffix = ".synthetic.materials"
+            }
+        }
         release {
             if (hasReleaseSigning) {
                 signingConfig = signingConfigs.getByName("release")

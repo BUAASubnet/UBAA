@@ -1,3 +1,4 @@
+import 'package:ubaa_platform/shared_accounts.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../context.dart';
@@ -14,7 +15,17 @@ final class BridgeAgendaBackend implements AgendaBackend {
   bool _opened = false;
   Future<T> _call<T>(Future<T> Function() action) async {
     try {
-      return await action();
+      final binding = context.sharedAccount;
+      if (context.closed) throw const AgendaException(AgendaFailure.inactive);
+      await binding?.validate();
+      if (context.closed) throw const AgendaException(AgendaFailure.inactive);
+      final result = await action();
+      await binding?.commit(() {});
+      if (!identical(binding, context.sharedAccount))
+        throw const AgendaException(AgendaFailure.superseded);
+      return result;
+    } on LocalAccountConflict {
+      throw const AgendaException(AgendaFailure.superseded);
     } on BridgeAgendaError catch (e) {
       throw AgendaException(switch (e.failure) {
         BridgeAgendaFailure.unavailable => AgendaFailure.unavailable,
@@ -37,10 +48,20 @@ final class BridgeAgendaBackend implements AgendaBackend {
     if (directory == null) {
       throw const AgendaException(AgendaFailure.unavailable);
     }
-    final handle = await BridgeAgendaStore.open(
-      configDir: directory,
-      accountId: accountId,
-    );
+    if (context.sharedAccount != null &&
+        context.sharedAccount!.account.id != accountId)
+      throw const AgendaException(AgendaFailure.superseded);
+    final native = context.nativeAccount;
+    final handle = native == null
+        ? await BridgeAgendaStore.open(
+            configDir: directory,
+            accountId: accountId,
+          )
+        : await BridgeAgendaStore.openShared(
+            configDir: directory,
+            accountId: accountId,
+            scope: native,
+          );
     // 即使 activate 失败，后续关闭也能触达已经打开的句柄。
     _handle = handle;
     _account = accountId;
@@ -48,13 +69,14 @@ final class BridgeAgendaBackend implements AgendaBackend {
     _opened = true;
   });
   @override
-  Future<void> deactivate() => _call(() async {
+  Future<void> deactivate() async {
     _opened = false;
     final handle = _handle;
-    await handle?.deactivate();
+    handle?.dispose();
     _handle = null;
     _account = null;
-  });
+  }
+
   @override
   Future<AgendaQueryResult> query(AgendaQuery query) => _call(() async {
     final handle = _store;

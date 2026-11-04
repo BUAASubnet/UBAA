@@ -23,6 +23,10 @@ mixin ControllerBackendRecovery on ControllerState {
         internalWriteTransitions != 1 ||
         internalWriteCoordinator.hasPendingOperation)
       return false;
+    final shared = internalSharedRecoveryScope;
+    await shared?.validateSharedState();
+    if (!internalRecoveryIsCurrent(request.epoch) || internalIsSigningOut)
+      return false;
     internalSessionLifecycle.beginRebuild();
     final previous = internalBackend;
     final previousAccount = internalLocalAccount;
@@ -38,7 +42,14 @@ mixin ControllerBackendRecovery on ControllerState {
           );
         }
       }
+      await shared?.validateSharedState();
       final replacement = await factory();
+      try {
+        await shared?.validateSharedState();
+      } on Object {
+        await internalDisposeBackendOnce(replacement);
+        rethrow;
+      }
       if (replacement is UnavailableBackend) {
         throw InitializationException(replacement.failure);
       }
@@ -74,6 +85,18 @@ mixin ControllerBackendRecovery on ControllerState {
       }
       // 释放旧实例期间页面仍可操作；此时新排队的查询也须交给继任实例。
       internalInvalidateReadsForRebuild(request);
+      try {
+        await shared?.validateSharedState();
+      } on Object {
+        await internalDisposeBackendOnce(replacement);
+        rethrow;
+      }
+      if (!internalRecoveryIsCurrent(request.epoch) || internalIsSigningOut) {
+        await internalDisposeBackendOnce(replacement);
+        return false;
+      }
+      if (shared?.sharedSnapshot != null)
+        internalSharedAccountSnapshot = shared!.sharedSnapshot;
       internalSessionLifecycle.replaceBackend(replacement);
       internalReplaceWriteCoordinator(replacement);
       internalProfileRefreshedEpoch = -1;

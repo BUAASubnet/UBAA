@@ -5,6 +5,7 @@ import 'package:flutter/foundation.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+import '../../../test/support/platform/native_materials.dart';
 
 import '../../../test/support/platform/system_version.dart';
 
@@ -12,7 +13,11 @@ void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
 
   testWidgets('macOS 通用插件的真实凭据读写重开与清理', (tester) async {
-    final materials = SecureMaterialStore();
+    final coordination = await Directory.systemTemp.createTemp(
+      'ubaa_synthetic_native_',
+    );
+    addTearDown(() async => coordination.delete(recursive: true));
+    final materials = await createNativeTestMaterials(domain: coordination);
     await materials.probe();
     expect(materials.isAvailable, isTrue);
     final first = MaterialCredentialStore(materials);
@@ -35,7 +40,9 @@ void main() {
       await first.write(namespace, original);
 
       // 新建适配器重新查询系统存储，不能依赖 Dart 实例内缓存。
-      final reopenedMaterials = SecureMaterialStore();
+      final reopenedMaterials = await createNativeTestMaterials(
+        domain: coordination,
+      );
       await reopenedMaterials.probe();
       expect(reopenedMaterials.isAvailable, isTrue);
       final restored = MaterialCredentialStore(reopenedMaterials);

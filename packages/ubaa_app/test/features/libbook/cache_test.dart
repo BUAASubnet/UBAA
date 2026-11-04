@@ -196,6 +196,12 @@ class _Api implements RustLibApi {
 
 class _Cache implements BridgeOfflineCache {
   @override
+  Future<void> close() async {}
+
+  @override
+  void dispose() {}
+
+  @override
   Future<void> activate() async {}
   static List<String>? parameters, areaParameters;
   static bool hasBookings = true;
@@ -344,7 +350,7 @@ class _Client implements BridgeClient {
   }
 
   @override
-  int contractVersion() => 45;
+  int contractVersion() => 47;
   @override
   Future<BridgeLibBookBookingsRefresh> libbookBookingsCached({
     required BridgeOfflineCache cache,

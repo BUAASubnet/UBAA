@@ -8,6 +8,7 @@ export 'src/rust/api/write.dart';
 export 'src/rust/frb_generated.dart' show RustLib;
 export 'src/rust/api/offline.dart';
 export 'src/rust/api/recovery.dart';
+export 'src/rust/api/recovery/control.dart';
 export 'src/rust/api/judge_scan.dart';
 export 'src/rust/api/judge_scan/online.dart';
 export 'src/rust/api/judge_refresh.dart';
@@ -50,3 +51,5 @@ export 'src/rust/api/agenda/models.dart';
 export 'src/rust/api/agenda/school.dart';
 
 export 'src/rust/api/agenda/home.dart';
+
+export 'src/rust/api/shared_account.dart';

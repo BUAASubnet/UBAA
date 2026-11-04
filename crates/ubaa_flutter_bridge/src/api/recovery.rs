@@ -6,6 +6,9 @@ use super::client::{
 };
 use ubaa_core::facade::{self as core, ReadonlyFeature};
 
+pub mod control;
+pub use control::BridgeRequiredRecoveryControl;
+
 /// 当前任务需要校验的业务路线；Auto 仍由 Core 功能矩阵决定。
 #[derive(Clone, Copy, Debug)]
 pub enum BridgeRecoveryFeature {

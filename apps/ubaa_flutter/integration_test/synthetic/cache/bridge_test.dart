@@ -10,6 +10,7 @@ import '../../support/rust_library.dart';
 import 'agenda_probe.dart';
 import 'home_todo_probe.dart';
 import 'agenda_write_probe.dart';
+import 'recovery_control_probe.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -30,7 +31,8 @@ void main() {
       await probeAgenda(directory.path);
       await probeAgendaWriteFence(directory.path);
       client = await BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 45);
+      expect(client.contractVersion(), 47);
+      await probeRecoveryControl(client);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),

@@ -174,6 +174,12 @@ class _Api implements RustLibApi {
 }
 
 class _Cache implements BridgeOfflineCache {
+  @override
+  Future<void> close() async {}
+
+  @override
+  void dispose() {}
+
   final acknowledged = <String>[];
   bool failAcknowledgement = false;
   @override
@@ -202,7 +208,7 @@ class _Client implements BridgeClient {
   BridgeCachedWriteCommit value = BridgeCachedWriteCommit(result: _success());
   Completer<BridgeCachedWriteCommit>? pending;
   @override
-  int contractVersion() => 45;
+  int contractVersion() => 47;
   @override
   Future<BridgeCachedWriteCommit> commitWriteCached({
     required BridgeOfflineCache cache,

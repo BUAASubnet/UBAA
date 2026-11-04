@@ -2,6 +2,7 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 
 import 'credentials.dart';
+import 'local_accounts.dart';
 import 'secure_material.dart';
 import 'location.dart';
 import 'media.dart';
@@ -27,18 +28,52 @@ final class PlatformCapabilities {
   final PlatformLocationProvider locationProvider;
 }
 
-Future<PlatformCapabilities> createDefaultPlatformCapabilities() async {
+/// 命令与 GUI 共用的最小账号能力，不初始化图片、位置或首页。
+final class SessionPlatformCapabilities {
+  const SessionPlatformCapabilities({
+    required this.credentialVault,
+    required this.secureMaterials,
+  });
+  final CredentialVault credentialVault;
+  final SecureMaterialStore? secureMaterials;
+  LocalAccountStore? createAccountStore() => secureMaterials == null
+      ? null
+      : SecureLocalAccountStore(secureMaterials!);
+}
+
+Future<SessionPlatformCapabilities> createDefaultSessionPlatformCapabilities({
+  MaterialCoordinator? coordinator,
+  SecureMaterialTransport? transport,
+}) async {
   await initializePrivateDirectory();
-  final materials = SecureMaterialStore();
+  final materials = SecureMaterialStore(
+    coordinator: coordinator,
+    transport: transport,
+  );
   await materials.probe();
-  final credentialStore = MaterialCredentialStore(materials);
+  return SessionPlatformCapabilities(
+    credentialVault: PlatformCredentialVault(
+      store: MaterialCredentialStore(materials),
+    ),
+    secureMaterials: materials.isAvailable ? materials : null,
+  );
+}
+
+Future<PlatformCapabilities> createDefaultPlatformCapabilities({
+  MaterialCoordinator? coordinator,
+  SecureMaterialTransport? transport,
+}) async {
+  final session = await createDefaultSessionPlatformCapabilities(
+    coordinator: coordinator,
+    transport: transport,
+  );
   final photos = await createDefaultPhotoCapabilities();
   const locationProvider = UnavailableLocationProvider();
   return PlatformCapabilities(
-    credentialVault: PlatformCredentialVault(store: credentialStore),
+    credentialVault: session.credentialVault,
     // 探测失败时不把不可用的句柄交给宿主，避免宿主把它误当成可用
     // 的本地账号仓库，随后所有加密缓存写入才会统一返回 unavailable。
-    secureMaterials: materials.isAvailable ? materials : null,
+    secureMaterials: session.secureMaterials,
     photoPicker: photos.picker,
     permissionGateway: photos.permissions,
     locationProvider: locationProvider,

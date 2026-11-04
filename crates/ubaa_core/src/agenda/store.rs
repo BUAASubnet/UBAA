@@ -24,6 +24,7 @@ struct Repository {
 pub struct AgendaStore {
     repository: Arc<Mutex<Repository>>,
     account_alias: Arc<str>,
+    guard: Option<crate::facade::SharedAccountGuard>,
 }
 impl AgendaStore {
     /// 打开按随机账号别名隔离的私有明文库，首次打开激活，后续保留退出状态。
@@ -36,7 +37,28 @@ impl AgendaStore {
         Ok(Self {
             repository: Arc::new(Mutex::new(Repository { db })),
             account_alias: Arc::from(account),
+            guard: None,
         })
+    }
+    /// 在固定共享身份的短提交边界内打开库。
+    ///
+    /// # Errors
+    /// 原持久身份已撤销或存储不可用时返回稳定本地错误。
+    pub fn open_shared(
+        root: &Path,
+        account: &str,
+        guard: crate::facade::SharedAccountGuard,
+    ) -> CacheResult<Self> {
+        let permit = guard.acquire().map_err(|_| CacheError::Superseded)?;
+        let store = Self::open(root, account)?;
+        drop(permit);
+        Ok(store.with_shared_account(guard))
+    }
+    /// 返回绑定固定共享代次的新句柄，原句柄保持原归属。
+    #[must_use]
+    pub fn with_shared_account(mut self, guard: crate::facade::SharedAccountGuard) -> Self {
+        self.guard = Some(guard);
+        self
     }
     pub(crate) fn account_alias(&self) -> &str {
         &self.account_alias
@@ -47,6 +69,12 @@ impl AgendaStore {
         write: bool,
         f: impl FnOnce(&mut AgendaData) -> CacheResult<T>,
     ) -> CacheResult<T> {
+        let _permit = self
+            .guard
+            .as_ref()
+            .map(crate::facade::SharedAccountGuard::acquire)
+            .transpose()
+            .map_err(|_| CacheError::Superseded)?;
         let mut repository = self
             .repository
             .lock()

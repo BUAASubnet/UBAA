@@ -1,9 +1,15 @@
 //! CLI 与未来绑定层使用的稳定 facade。
 mod auth;
+mod required_recovery;
+pub use crate::domain::{
+    RequiredRecoveryControl, RequiredRecoveryInterruption, RequiredRecoveryOperation,
+};
 #[path = "auth/verified_identity.rs"]
 mod verified_identity;
 pub use verified_identity::VerifiedLoginIdentity;
 mod client;
+mod shared_account;
+pub use shared_account::{ClientCloseControl, SharedAccountGuard};
 mod diagnostic;
 mod judge_refresh;
 mod judge_scan;

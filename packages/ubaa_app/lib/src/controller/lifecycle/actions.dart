@@ -250,6 +250,8 @@ mixin ControllerActions on ControllerState {
 
   void setRememberPassword(bool value) {
     if (!internalCanEditLoginOptions) return;
+    internalLoginCredentialRevision++;
+    if (!value) internalAutomaticLoginDisabled = true;
     internalLoginFormRevision++;
     internalLoginForm = internalLoginForm.copyWith(
       rememberPassword: value,
@@ -260,6 +262,8 @@ mixin ControllerActions on ControllerState {
 
   void setAutoLogin(bool value) {
     if (!internalCanEditLoginOptions) return;
+    internalLoginCredentialRevision++;
+    internalAutomaticLoginDisabled = !value;
     internalLoginFormRevision++;
     internalLoginForm = internalLoginForm.copyWith(
       autoLogin: value,
@@ -687,6 +691,9 @@ mixin ControllerActions on ControllerState {
   @internal
   void internalNotify() {
     internalLockDisplay?.validate();
+    for (final service in internalRequiredRecoveryServices.values) {
+      service.validateScopes();
+    }
     internalSyncRecoveryRetries();
     internalDrainDeferredRecovery();
     internalPumpReadTasks();
@@ -697,6 +704,7 @@ mixin ControllerActions on ControllerState {
   Future<void> internalDisposeBackendOnce(UbaaBackend backend) {
     final existing = internalBackendDisposals[backend];
     if (existing != null) return existing;
+    final recovery = internalRequiredRecoveryServices.remove(backend);
     final lifecycle = backend is BackendLifecycle
         ? backend as BackendLifecycle
         : null;
@@ -708,6 +716,7 @@ mixin ControllerActions on ControllerState {
     internalBackendDisposals[backend] = completer.future;
     try {
       Future.wait<void>([
+        if (recovery != null) recovery.close().then<void>((_) {}),
         if (agenda != null) agenda.dispose(),
         if (lifecycle != null) lifecycle.dispose(),
       ]).then<void>(
@@ -732,6 +741,9 @@ mixin ControllerActions on ControllerState {
     internalInteractiveInPlace = false;
     internalLockDisplay?.cancel();
     internalSessionLifecycle.dispose();
+    for (final service in internalRequiredRecoveryServices.values) {
+      unawaited(service.close());
+    }
     for (final scope in internalReadScopes.toList()) {
       scope.cancel();
     }

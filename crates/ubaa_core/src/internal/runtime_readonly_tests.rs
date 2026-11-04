@@ -159,3 +159,54 @@ fn 主会话失效后在途响应不能返回为成功() {
     });
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[test]
+fn 内部嵌套派生撤销同认证代次且不跨路线() {
+    let root = std::env::temp_dir().join(format!("ubaa-nested-{}", uuid::Uuid::new_v4()));
+    let mut direct = ClientRuntime::new(
+        ConnectionMode::Direct,
+        Transport(Arc::default()),
+        FileSessionStore::new(root.join("direct")).unwrap(),
+    )
+    .unwrap();
+    let webvpn = ClientRuntime::new(
+        ConnectionMode::WebVpn,
+        Transport(Arc::default()),
+        FileSessionStore::new(root.join("vpn")).unwrap(),
+    )
+    .unwrap();
+    let generation = direct.authentication_generation();
+    let mut child = direct.fork_parallel_readonly();
+    let mut nested = child.fork_for_readonly_with_cookie_filter(|_| true);
+    nested.clear_memory();
+    assert!(direct.authentication_revoked());
+    assert!(child.authentication_revoked());
+    assert!(!webvpn.authentication_revoked());
+    assert_eq!(direct.authentication_generation(), generation);
+    assert!(child.ensure_session_revision().is_err());
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn 旧派生清理不清新登录的业务凭据() {
+    let root = std::env::temp_dir().join(format!("ubaa-old-child-{}", uuid::Uuid::new_v4()));
+    let mut parent = ClientRuntime::new(
+        ConnectionMode::Direct,
+        Transport(Arc::default()),
+        FileSessionStore::new(&root).unwrap(),
+    )
+    .unwrap();
+    let mut old = parent.fork_parallel_readonly();
+    parent.renew_authentication_generation();
+    parent.clear_feature_state();
+    parent.feature_state().cgyy.set("fresh-synthetic".into());
+    let generation = parent.feature_state().lifecycle_generation();
+    old.clear_memory();
+    assert!(!parent.authentication_revoked());
+    assert_eq!(parent.feature_state().lifecycle_generation(), generation);
+    assert_eq!(
+        parent.feature_state().cgyy.token().as_deref(),
+        Some("fresh-synthetic")
+    );
+    std::fs::remove_dir_all(root).unwrap();
+}

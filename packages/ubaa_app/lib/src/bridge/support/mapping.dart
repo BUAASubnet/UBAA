@@ -1,6 +1,6 @@
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'package:ubaa_app/src/backend.dart';
+import 'package:ubaa_app/src/contracts/backend.dart';
 part 'cache_failures.dart';
 part 'time.dart';
 

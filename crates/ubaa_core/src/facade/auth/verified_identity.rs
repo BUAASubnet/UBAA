@@ -26,7 +26,10 @@ impl UbaaClient {
         )
     }
     fn guard_login_generations(&mut self) {
-        if self.verified_login_generations != Some(self.login_generations()) {
+        if self.direct_runtime.authentication_revoked()
+            || self.webvpn_runtime.authentication_revoked()
+            || self.verified_login_generations != Some(self.login_generations())
+        {
             self.verified_login = None;
         }
     }

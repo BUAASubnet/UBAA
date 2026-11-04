@@ -9,7 +9,7 @@ import '../recovery/backend_rebuild/fakes.dart' as rebuild;
 
 void main() {
   test('退出等待旧写入时安全索引先禁止恢复', () async {
-    final accounts = await support.savedAccounts();
+    final accounts = _ObservedAccounts(await support.savedAccounts());
     final backend = _Backend();
     final controller = AppController(
       backend: backend,
@@ -27,7 +27,8 @@ void main() {
     var done = false;
     final signingOut = controller.logout().then((_) => done = true);
     try {
-      // read 与 signOut 共用索引串行存储，读取会排在退出写入之后。
+      // 文件锁不保证根事务 FIFO；等待真实退出持久化，日程写入仍保持挂起。
+      await accounts.signedOut.future;
       expect((await accounts.read())!.canRestore, isFalse);
       expect(backend.data.rows, 5);
       expect(done, isFalse);
@@ -93,11 +94,12 @@ void main() {
     await controller.initialize();
     await backend.agenda.unsyncedCount();
     backend.data.deactivateGate = Completer<void>();
-    final signingOut = controller.logout();
-    await Future<void>.delayed(Duration.zero);
-    await Future<void>.delayed(Duration.zero);
+    var done = false;
+    final signingOut = controller.logout().then((_) => done = true);
+    await accounts.signedOut.future;
     try {
       expect((await accounts.read())!.canRestore, isFalse);
+      expect(done, isFalse);
     } finally {
       backend.data.deactivateGate!.complete();
       await signingOut;
@@ -133,7 +135,7 @@ void main() {
   });
 
   test('核实新账号后等待旧索引关闭时不交付旧日程结果', () async {
-    final accounts = _SlowSignOut(await support.savedAccounts());
+    final accounts = _SlowSignOut(await support.savedAccounts(), skipCalls: 1);
     final backend = _Backend();
     final controller = AppController(
       backend: backend,
@@ -371,8 +373,8 @@ class _Agenda implements AgendaBackend {
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
-class _MissingKey implements LocalAccountStore {
-  _MissingKey(this.delegate);
+class _ObservedAccounts implements LocalAccountStore {
+  _ObservedAccounts(this.delegate);
   final LocalAccountStore delegate;
   int removals = 0;
   @override
@@ -383,15 +385,27 @@ class _MissingKey implements LocalAccountStore {
     required bool retainSession,
   }) => delegate.retain(username, retainSession: retainSession);
   @override
-  Future<Uint8List> cacheKey(LocalAccount account) async =>
-      throw const SecureMaterialException();
+  Future<Uint8List> cacheKey(LocalAccount account) =>
+      delegate.cacheKey(account);
+  final signedOut = Completer<void>();
   @override
-  Future<void> signOut() => delegate.signOut();
+  Future<void> signOut() async {
+    await delegate.signOut();
+    if (!signedOut.isCompleted) signedOut.complete();
+  }
+
   @override
   Future<void> removeAccount(String id) async {
     removals++;
     await delegate.removeAccount(id);
   }
+}
+
+class _MissingKey extends _ObservedAccounts {
+  _MissingKey(super.delegate);
+  @override
+  Future<Uint8List> cacheKey(LocalAccount account) async =>
+      throw const SecureMaterialException();
 }
 
 class _RebuildBackend extends rebuild.Backend implements AgendaProvider {
@@ -401,12 +415,19 @@ class _RebuildBackend extends rebuild.Backend implements AgendaProvider {
 }
 
 class _SlowSignOut extends _MissingKey {
-  _SlowSignOut(super.delegate);
+  _SlowSignOut(super.delegate, {this.skipCalls = 0});
+  final int skipCalls;
+  int calls = 0;
   final gate = Completer<void>();
   final started = Completer<void>();
   @override
   Future<void> signOut() async {
-    started.complete();
+    // 新的登录前撤销已完成后，门控仍针对原用例的身份核实后关闭索引。
+    if (calls++ < skipCalls) {
+      await super.signOut();
+      return;
+    }
+    if (!started.isCompleted) started.complete();
     await gate.future;
     await super.signOut();
   }

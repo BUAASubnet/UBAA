@@ -18,6 +18,7 @@ import 'offline_profile.dart';
 import 'offline_ygdk.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
+import 'shared_account.dart';
 import 'write.dart';
 import 'write/readback.dart';
 
@@ -60,6 +61,30 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
     key: key,
   );
 
+  ///
+  /// # Errors
+  /// 身份版本已撤销、输入非法或本地存储不可用时返回稳定错误。
+  static Future<BridgeCacheRecovery> clearOrRebuildShared({
+    required String configDir,
+    required String accountId,
+    required String expectedIdentity,
+    required List<int> key,
+    required BridgeSharedAccount scope,
+  }) => RustLib.instance.api
+      .crateApiOfflineBridgeOfflineCacheClearOrRebuildShared(
+        configDir: configDir,
+        accountId: accountId,
+        expectedIdentity: expectedIdentity,
+        key: key,
+        scope: scope,
+      );
+
+  /// 仅释放本进程仓库，等待已交付事务收尾，不停用共享库。
+  ///
+  /// # Errors
+  /// 身份版本已撤销、输入非法或本地存储不可用时返回稳定错误。
+  Future<void> close();
+
   /// 关闭本地账号的在途回写资格。
   ///
   /// # Errors
@@ -83,6 +108,23 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
     accountId: accountId,
     expectedIdentity: expectedIdentity,
     key: key,
+  );
+
+  ///
+  /// # Errors
+  /// 身份版本已撤销、输入非法或本地存储不可用时返回稳定错误。
+  static Future<BridgeOfflineCache> openShared({
+    required String configDir,
+    required String accountId,
+    required String expectedIdentity,
+    required List<int> key,
+    required BridgeSharedAccount scope,
+  }) => RustLib.instance.api.crateApiOfflineBridgeOfflineCacheOpenShared(
+    configDir: configDir,
+    accountId: accountId,
+    expectedIdentity: expectedIdentity,
+    key: key,
+    scope: scope,
   );
 
   /// 只访问独立本地仓库，不获取网络客户端锁。
@@ -406,6 +448,10 @@ abstract class BridgeOfflineCache implements RustOpaqueInterface {
   /// # Errors
   /// 已退出、旧句柄和存储故障保持稳定错误。
   Future<BridgeCacheUsage> usage();
+
+  Future<BridgeOfflineCache> withSharedAccount({
+    required BridgeSharedAccount scope,
+  });
 
   /// 本地核对提示不检查学校会话，也不产生写意图。
   Future<List<BridgeWriteReadbackHint>> writeReadbackHints();

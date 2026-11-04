@@ -36,6 +36,7 @@ void main() {
     final two = controller.resumeSession();
     expect(identical(one, two), isTrue);
     await Future.wait([one, two]);
+    await next.cached.future;
     expect(created, 1);
     expect(first.disposed, 1);
     expect(next.authCalls, 1);

@@ -4,19 +4,19 @@ import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/recovery.dart' as support;
+import '../support/controller/clock_accounts.dart';
 
 void main() {
   testWidgets('首页磁盘挂起时等待预算届满进入首页，迟到缓存仍可补入', (tester) async {
     final backend = _CachedBackend()..diskGate = Completer<void>();
     final controller = AppController(
       backend: backend,
-      localAccountStore: await support.savedAccounts(),
+      localAccountStore: ClockAccounts(),
     );
     addTearDown(controller.dispose);
     unawaited(controller.initialize());
-    for (var i = 0; i < 10; i++) {
-      await tester.pump();
-    }
+    await tester.pump();
+    expect(backend.cacheRead.isCompleted, isTrue);
     expect(controller.phase, AppPhase.checkingSession);
     await tester.pump(const Duration(milliseconds: 799));
     expect(controller.phase, AppPhase.checkingSession);

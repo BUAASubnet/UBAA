@@ -7,6 +7,8 @@ Future<LoginVerificationState> bridgeBeginInteractiveLogin(
   bridgeCancelInteractiveLogin(backend);
   final generation = backend.authentication.generation;
   try {
+    if (backend.sharedAccount != null)
+      await backend.client.releaseSharedAccountForLogin();
     // 只有新手动登录可走旧策略重开入口；当前交互的刷新与继续绝不走这里。
     await backend.client.setDefaultRoutePolicy(
       policy: bridgeToBridgePolicy(input.routePolicy),

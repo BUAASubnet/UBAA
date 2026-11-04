@@ -57,3 +57,10 @@ version 保留普通文本行为。无效参数文本会归约为安全的 `inva
 Flutter手动登录可使用Bridge v38专用交互facade，提供受限像素图、当前路线答案提交、刷新、取消与就绪路线继续。服务器challenge id、execution、URL、Cookie及token仍只留Core。句柄绑定实例、账号、路线、会话修订和单调期限；提交前保留冻结旧版GET复核，轮换时零POST并返回新挑战。普通CLI、自动恢复和旧认证方法不获得验证码图像或答案接口。
 
 原位登录保留离线页面，挑战等待不产生写资格；隐藏、返回、账号变化、退出与销毁撤销上下文，迟到结果不再发布。固定路线就绪后复用该结果进入；Auto继续保留既有解析规则，需要切换固定路线时由用户明确选择。细节与证据见[整合来源](../migration/source-parity-interactive-integration-2026-10-02.md)与[阶段验证](../migration/evidence/project-interactive-auth-2026-10-02.md)。
+
+
+## H1-a 的恢复操作控制前置单元
+
+Core/Bridge 增加独立的单次恢复控制，期限从构造时按单调时钟计算，最大两分钟。控制覆盖 Bridge 锁排队与 Core 请求边界，取消不依赖 `dispose` 取得网络锁。中断清理目标路线的准备状态并拒绝后续请求，保留已原子保存的会话，不执行共享注销。具体接口和错误分类见[Bridge v46 合同](flutter-bridge.md#v46所需路线恢复的按操作控制)。
+
+本单元仅为共同无感恢复提供底层能力。共同 Dart 服务、GUI 与命令消费者接入、自动登录许可核对和跨进程协调仍按[共享服务计划](../design/desktop-shared-state.md)分阶段完成。原凭据策略、账号别名、CacheKey、业务缓存加密和日程明文规则保持。

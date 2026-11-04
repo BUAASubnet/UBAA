@@ -1,3 +1,4 @@
+import 'package:ubaa_test_support/materials.dart';
 import 'dart:async';
 
 import 'package:flutter_test/flutter_test.dart';
@@ -8,7 +9,7 @@ import 'package:ubaa_test_support/recovery.dart';
 
 void main() {
   test('无本机账号且旧凭据读取失败时先登录，手动认证成功后才能进入首页', () async {
-    final materials = SecureMaterialStore(transport: MemoryMaterials());
+    final materials = syntheticMaterials(MemoryMaterials());
     await materials.probe();
     final backend = FakeRecoveryBackend()..signedIn = false;
     final controller = AppController(
@@ -33,7 +34,7 @@ void main() {
   });
 
   test('首次无本机账号且无有效会话时进入登录页，不读取首页', () async {
-    final materials = SecureMaterialStore(transport: MemoryMaterials());
+    final materials = syntheticMaterials(MemoryMaterials());
     await materials.probe();
     final backend = FakeRecoveryBackend()..signedIn = false;
     final controller = AppController(
@@ -50,7 +51,7 @@ void main() {
 
   test('本机账号索引损坏时停在登录页，不恢复未知账号或启动首页读取', () async {
     final transport = MemoryMaterials();
-    final materials = SecureMaterialStore(transport: transport);
+    final materials = syntheticMaterials(transport);
     await materials.probe();
     final accounts = SecureLocalAccountStore(materials);
     await accounts.retain('fixture-user', retainSession: true);

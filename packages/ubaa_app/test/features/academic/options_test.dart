@@ -12,7 +12,15 @@ void main() {
       backend: backend,
       localAccountStore: await support.savedAccounts(),
     );
-    addTearDown(controller.dispose);
+    addTearDown(() async {
+      final recoveries = controller.internalRequiredRecoveryServices.values
+          .toList();
+      controller.dispose();
+      await controller.internalDisposeBackendOnce(backend);
+      for (final recovery in recoveries) {
+        await recovery.settlement;
+      }
+    });
     await controller.initialize();
     FeatureResult? result;
     unawaited(controller.loadCgyyPurposes().then((value) => result = value));
@@ -31,7 +39,15 @@ void main() {
       backend: backend,
       localAccountStore: await support.savedAccounts(),
     );
-    addTearDown(controller.dispose);
+    addTearDown(() async {
+      final recoveries = controller.internalRequiredRecoveryServices.values
+          .toList();
+      controller.dispose();
+      await controller.internalDisposeBackendOnce(backend);
+      for (final recovery in recoveries) {
+        await recovery.settlement;
+      }
+    });
     await controller.initialize();
     FeatureResult? terms;
     unawaited(controller.loadAcademicTerms().then((value) => terms = value));

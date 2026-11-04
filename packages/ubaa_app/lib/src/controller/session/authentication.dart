@@ -173,6 +173,8 @@ mixin ControllerAuthentication on ControllerState {
       internalSetPhase(AppPhase.loggingIn);
     }
     try {
+      await internalLocalAccountStore?.signOut();
+      if (!current()) return;
       await internalBackend.login(input);
       if (!current()) return;
       await internalRefreshRouteSettings();
