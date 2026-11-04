@@ -12,14 +12,14 @@ use crate::facade::testing::{
 use std::collections::VecDeque;
 use std::sync::{Arc, Mutex};
 
-struct NeverProbe;
+pub(super) struct NeverProbe;
 impl GatewayProbe for NeverProbe {
     fn probe(&self, _: std::time::Duration) -> NetworkState {
         panic!("固定路线不能探测网关")
     }
 }
 #[derive(Clone, Default)]
-struct Script {
+pub(super) struct Script {
     steps: Arc<Mutex<VecDeque<Step>>>,
 }
 struct Step {
@@ -71,7 +71,7 @@ impl HttpTransport for Script {
         );
         if let Some(body) = step.body {
             let mut actual = serde_json::from_slice::<serde_json::Value>(&request.body).unwrap();
-            if step.path.ends_with("/dupload") {
+            if step.path.ends_with("/dupload") || step.path.ends_with("/osbeginupload") {
                 assert!(
                     actual
                         .get("client_mtime")
@@ -86,7 +86,7 @@ impl HttpTransport for Script {
     }
 }
 impl Script {
-    fn add(
+    pub(super) fn add(
         &self,
         method: HttpMethod,
         path: &'static str,
@@ -106,7 +106,18 @@ impl Script {
             )),
         });
     }
-    fn done(&self) {
+    pub(super) fn status(&self, status: u16) {
+        self.steps
+            .lock()
+            .unwrap()
+            .back_mut()
+            .unwrap()
+            .response
+            .as_mut()
+            .unwrap()
+            .status = status;
+    }
+    pub(super) fn done(&self) {
         assert!(self.steps.lock().unwrap().is_empty());
     }
 }
@@ -138,7 +149,7 @@ fn client(script: Script) -> (UbaaClient, std::path::PathBuf) {
     client.bhpan.token = Some(SecretValue::new("personal-fixture"));
     (client, root)
 }
-fn item(client: &mut UbaaClient, scope: BhpanScope) -> BhpanItem {
+pub(super) fn item(client: &mut UbaaClient, scope: BhpanScope) -> BhpanItem {
     client.bhpan.publish(Authority {
         item: parse::Item {
             id: "gns://fixture/target".into(),
@@ -467,6 +478,22 @@ fn 重复刷新同一对象不会累积旧目标或旧分享() {
     }
     assert_eq!(client.bhpan.items.len(), 1);
     assert_eq!(client.bhpan.item(&first.handle).unwrap().item.name, "目录");
+    drop(client);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
+fn 当次动态授权允许_direct对象传输且保留_web_vpn未验证() {
+    let (client, root) = client(Script::default());
+    let capabilities = client.bhpan_capabilities();
+    assert_eq!(
+        capabilities.object_transfer,
+        crate::domain::bhpan::BhpanCapability::Available
+    );
+    assert_eq!(
+        capabilities.webvpn,
+        crate::domain::bhpan::BhpanCapability::Unverified
+    );
     drop(client);
     std::fs::remove_dir_all(root).unwrap();
 }

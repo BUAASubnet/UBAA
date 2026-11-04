@@ -37,6 +37,8 @@ pub(in crate::facade) struct BhpanState {
     item_handles: HashMap<ItemKey, String>,
     pub(super) shares: HashMap<String, (parse::Share, bool)>,
     share_handles: HashMap<String, String>,
+    pub(super) versions: HashMap<String, (crate::domain::bhpan::BhpanFileVersion, Authority)>,
+    pub(super) version_handles: HashMap<(String, String), String>,
     pub(super) pending: HashMap<String, super::write::Mutation>,
 }
 #[derive(Hash, Eq, PartialEq)]

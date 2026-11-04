@@ -13,6 +13,7 @@ test-contract = []
 
 [dependencies]
 async-trait.workspace = true
+futures-util.workspace = true
 aes.workspace = true
 base64.workspace = true
 cipher.workspace = true
@@ -31,13 +32,13 @@ md-5.workspace = true
 crc32fast = "=1.5.3"
 regex = "1.12.2"
 rand.workspace = true
-reqwest.workspace = true
+reqwest = { workspace = true, features = ["stream"] }
 rsa.workspace = true
 scraper.workspace = true
 serde.workspace = true
 serde_json = { workspace = true, features = ["arbitrary_precision"] }
 sha1.workspace = true
-tokio = { workspace = true, features = ["macros", "rt", "sync", "time"] }
+tokio = { workspace = true, features = ["macros", "rt", "sync", "time", "fs", "io-util"] }
 toml.workspace = true
 tracing.workspace = true
 url.workspace = true

@@ -1,4 +1,6 @@
-use super::*;
+use super::{
+    ClientRuntime, HttpRequest, HttpResponse, Ordering, Result, Weak, write_outcome_unknown,
+};
 
 impl ClientRuntime {
     /// 显式 Bearer API 使用独立 Cookie 边界，不接收或发送浏览器导航 Cookie。
@@ -17,7 +19,7 @@ impl ClientRuntime {
         pre_send: F,
     ) -> Result<HttpResponse>
     where
-        F: FnOnce(&Self) -> Result<()>,
+        F: Fn(&Self) -> Result<()>,
     {
         if write {
             self.ensure_primary_client()?;
@@ -31,6 +33,7 @@ impl ClientRuntime {
             .map(crate::facade::SharedAccountGuard::acquire)
             .transpose()?;
         self.check_operation_controls()?;
+        pre_send(self)?;
         if write {
             self.non_idempotent_boundary_crossed = true;
             if let Some(observer) = self.write_observer.as_ref().and_then(Weak::upgrade) {

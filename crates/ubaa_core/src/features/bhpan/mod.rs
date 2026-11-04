@@ -1,6 +1,8 @@
 //! 冻结 Cloud 模块的协议实现，业务 Token 与原始响应仅在 Core 内流动。
 pub(crate) mod auth;
 pub(crate) mod download;
+pub(crate) mod multipart;
+pub(crate) mod object;
 pub(crate) mod parse;
 pub(crate) mod read;
 pub(crate) mod share;

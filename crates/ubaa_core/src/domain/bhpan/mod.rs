@@ -193,6 +193,9 @@ pub enum BhpanTransferPhase {
     Failed,
     OutcomeUnknown,
     Blocked,
+    Uploading,
+    Downloading,
+    Finalizing,
 }
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct BhpanTransferProgress {
@@ -209,3 +212,13 @@ pub enum BhpanCapability {
     Unverified,
     Unavailable,
 }
+
+/// 文件已完整写入用户选择的位置，不包含下载授权。
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct BhpanDownloadReceipt {
+    pub bytes: u64,
+    pub batch: bool,
+}
+
+mod version;
+pub use version::*;

@@ -1,6 +1,8 @@
 //! 协议和会话代码使用的可注入宿主端口。
 
+mod object_transfer;
 mod reqwest_transport;
+pub use object_transfer::{HttpFileRange, HttpTransferObserver};
 
 pub use reqwest_transport::ReqwestTransport;
 
@@ -139,6 +141,24 @@ impl HttpResponse {
 pub trait HttpTransport: Send + Sync {
     /// 恰好执行一次请求并返回原始响应。
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse>;
+    /// 独立对象授权请求，只发送一次并以有界缓冲读取文件区间。
+    async fn upload(
+        &self,
+        _request: HttpRequest,
+        _body: Option<HttpFileRange>,
+        _observer: std::sync::Arc<dyn HttpTransferObserver>,
+    ) -> Result<HttpResponse> {
+        Err(object_transfer::unavailable())
+    }
+    /// 下载成功正文直接写入调用者持有的临时文件，不跨出 Core。
+    async fn download(
+        &self,
+        _request: HttpRequest,
+        _destination: std::fs::File,
+        _observer: std::sync::Arc<dyn HttpTransferObserver>,
+    ) -> Result<HttpResponse> {
+        Err(object_transfer::unavailable())
+    }
 }
 
 fn redacted_header_names(headers: &BTreeMap<String, String>) -> Vec<&str> {
@@ -147,6 +167,14 @@ fn redacted_header_names(headers: &BTreeMap<String, String>) -> Vec<&str> {
 
 fn redacted_header_names_vec(headers: &BTreeMap<String, Vec<String>>) -> Vec<&str> {
     headers.keys().map(String::as_str).collect()
+}
+
+/// URL 解析会移除默认端口；只比较地址，不改写签名请求。
+pub(crate) fn same_url(left: &str, right: &str) -> bool {
+    match (url::Url::parse(left), url::Url::parse(right)) {
+        (Ok(left), Ok(right)) => left == right,
+        _ => false,
+    }
 }
 
 #[cfg(test)]

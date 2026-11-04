@@ -1,10 +1,15 @@
 //! 独立北航云盘入口，句柄、授权和单次写入状态由客户端拥有。
 mod download;
+mod download_file;
+mod object_upload;
 mod upload;
+mod versions;
 pub use crate::features::bhpan::transfer::BhpanTransfer;
 pub(in crate::facade) mod state;
 #[cfg(all(test, feature = "test-contract"))]
 mod tests;
+#[cfg(all(test, feature = "test-contract"))]
+mod transfer_tests;
 mod write;
 use crate::domain::{
     ConnectionMode, SecretValue,
@@ -62,11 +67,10 @@ impl UbaaClient {
             direct_metadata: BhpanCapability::Available,
             fast_upload: BhpanCapability::Available,
             webvpn: BhpanCapability::Unverified,
-            object_transfer: BhpanCapability::Unverified,
+            object_transfer: BhpanCapability::Available,
             conditional_replace: BhpanCapability::Unverified,
             limitations: vec![
                 "WebVPN 云盘链路尚缺证据".into(),
-                "对象存储目标规则尚缺部署证据".into(),
                 "同名条件覆盖尚缺协议证据".into(),
                 "列表完整性未知，回收站仅首批 100 项".into(),
                 "分享记录缺少目标关联时，需从分享历史管理更新".into(),

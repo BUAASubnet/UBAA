@@ -2,7 +2,7 @@ use super::*;
 use std::sync::atomic::AtomicUsize;
 
 #[derive(Clone)]
-struct BearerTransport(Arc<AtomicUsize>);
+pub(super) struct BearerTransport(pub(super) Arc<AtomicUsize>);
 #[async_trait::async_trait]
 impl HttpTransport for BearerTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
@@ -17,7 +17,7 @@ impl HttpTransport for BearerTransport {
     }
 }
 
-async fn stopped_while_waiting(write: bool, cancel: bool) {
+async fn stopped_while_waiting(write: bool, cancel: bool, transfer_cancel: bool) {
     let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
         .join("../../.ubaa_local/bhpan_delivery/integration/runtime_tests")
         .join(uuid::Uuid::new_v4().to_string());
@@ -39,6 +39,8 @@ async fn stopped_while_waiting(write: bool, cancel: bool) {
     runtime
         .set_scoped_cookie("NAV=private; Path=/; Secure", "https://synthetic.invalid")
         .unwrap();
+    let transfer = crate::features::bhpan::transfer::BhpanTransfer::new();
+    let stop_transfer = transfer.clone();
     let closed = runtime.consumer_closed.clone();
     let control =
         crate::domain::RequiredRecoveryControl::new(std::time::Duration::from_secs(30)).unwrap();
@@ -64,7 +66,9 @@ async fn stopped_while_waiting(write: bool, cancel: bool) {
     let mut guard = crate::facade::SharedAccountGuard::new(&root, 1).unwrap();
     guard.wait_hook = Some(Arc::new(move || {
         if !hook.swap(true, Ordering::SeqCst) {
-            if cancel {
+            if transfer_cancel {
+                stop_transfer.cancel();
+            } else if cancel {
                 control.cancel();
             } else {
                 closed.store(true, Ordering::SeqCst);
@@ -73,14 +77,17 @@ async fn stopped_while_waiting(write: bool, cancel: bool) {
         }
     }));
     runtime.shared_account = Some(guard);
+    let started_once = AtomicBool::new(false);
     let result = runtime
         .request_bearer_only_checked(
             HttpRequest::get("https://synthetic.invalid/bearer"),
             write,
             |_| {
-                start.send(()).unwrap();
-                wait_locked.recv().unwrap();
-                Ok(())
+                if !started_once.swap(true, Ordering::SeqCst) {
+                    start.send(()).unwrap();
+                    wait_locked.recv().unwrap();
+                }
+                transfer.ensure_active()
             },
         )
         .await;
@@ -103,15 +110,15 @@ async fn stopped_while_waiting(write: bool, cancel: bool) {
 
 #[tokio::test]
 async fn bearer读取等待材料锁后关闭保持零发送() {
-    stopped_while_waiting(false, false).await;
+    stopped_while_waiting(false, false, false).await;
 }
 #[tokio::test]
 async fn bearer写入等待材料锁后关闭保持零发送() {
-    stopped_while_waiting(true, false).await;
+    stopped_while_waiting(true, false, false).await;
 }
 #[tokio::test]
 async fn bearer写入等待材料锁后取消保持零发送() {
-    stopped_while_waiting(true, true).await;
+    stopped_while_waiting(true, true, false).await;
 }
 
 #[tokio::test]
@@ -151,4 +158,9 @@ async fn bearer请求隔离导航cookie且已到期写入零发送() {
     assert!(!runtime.take_non_idempotent_boundary_crossed());
     drop(runtime);
     std::fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test]
+async fn bearer等待材料锁时取消文件任务必须在发送前重新核对() {
+    stopped_while_waiting(true, false, true).await;
 }

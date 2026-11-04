@@ -62,10 +62,11 @@ impl UbaaClient {
             Some(json!({"slice_md5":source.slice_md5,"length":source.length})),
             None,
         )?;
-        let bytes = wire::read_checked(&mut self.direct_runtime, request, |_| {
-            transfer.ensure_active()
-        })
-        .await?;
+        let bytes = tokio::select! {
+            biased;
+            error=transfer.cancelled()=>return Err(error),
+            result=wire::read_checked(&mut self.direct_runtime,request,|_|transfer.ensure_active())=>result?,
+        };
         transfer.ensure_active()?;
         let response: serde_json::Value = parse::json(&bytes)?;
         if !response
@@ -77,7 +78,7 @@ impl UbaaClient {
                 crate::error::ErrorCode::PermissionDenied,
                 crate::error::ErrorKind::Input,
                 false,
-                "该文件不支持秒传，普通与分片上传尚缺对象存储目标证据",
+                "该文件不支持秒传，请改用普通上传",
             ));
         }
         transfer.ensure_active()?;

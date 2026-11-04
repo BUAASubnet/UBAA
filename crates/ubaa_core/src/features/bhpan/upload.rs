@@ -19,14 +19,14 @@ fn local() -> UbaaError {
     UbaaError::invalid_input("本机文件不可读或选择后已变化，请重新选择")
 }
 impl FileSnapshot {
-    pub(crate) fn open(path: PathBuf, transfer: &BhpanTransfer) -> Result<Self> {
+    pub(crate) fn select(path: PathBuf, transfer: &BhpanTransfer) -> Result<Self> {
         transfer.ensure_active()?;
         let file = File::open(&path).map_err(|_| local())?;
         let metadata = file.metadata().map_err(|_| local())?;
         if !metadata.is_file() {
             return Err(local());
         }
-        let mut source = Self {
+        let source = Self {
             file,
             path,
             length: metadata.len(),
@@ -35,6 +35,10 @@ impl FileSnapshot {
             md5: String::new(),
             crc32: String::new(),
         };
+        Ok(source)
+    }
+    pub(crate) fn open(path: PathBuf, transfer: &BhpanTransfer) -> Result<Self> {
+        let mut source = Self::select(path, transfer)?;
         transfer.set(
             BhpanTransferPhase::HashingMini,
             0,
@@ -84,6 +88,20 @@ impl FileSnapshot {
         self.crc32 = format!("{:08x}", crc.finalize());
         self.verify()?;
         Ok(self)
+    }
+    pub(crate) fn range(&self, offset: u64, length: u64) -> Result<crate::ports::HttpFileRange> {
+        self.verify()?;
+        if offset
+            .checked_add(length)
+            .is_none_or(|end| end > self.length)
+        {
+            return Err(local());
+        }
+        Ok(crate::ports::HttpFileRange {
+            file: self.file.try_clone().map_err(|_| local())?,
+            offset,
+            length,
+        })
     }
     pub(crate) fn verify(&self) -> Result<()> {
         let current = self.file.metadata().map_err(|_| local())?;

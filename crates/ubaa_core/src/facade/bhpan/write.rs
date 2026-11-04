@@ -18,6 +18,7 @@ pub(super) struct Mutation {
     receipt: Receipt,
     created_at: std::time::Instant,
     upload: Option<PendingUpload>,
+    object_upload: Option<Box<super::object_upload::PendingObjectUpload>>,
 }
 enum Receipt {
     Empty,
@@ -36,6 +37,29 @@ impl Drop for PendingUpload {
     }
 }
 impl Mutation {
+    pub(super) fn take_object_upload(
+        mut self,
+    ) -> Option<(
+        Box<super::object_upload::PendingObjectUpload>,
+        std::time::Instant,
+    )> {
+        self.object_upload
+            .take()
+            .map(|upload| (upload, self.created_at))
+    }
+    pub(super) fn object_upload(upload: super::object_upload::PendingObjectUpload) -> Self {
+        Self {
+            method: HttpMethod::Post,
+            path: String::new(),
+            body: None,
+            secondary: None,
+            receipt: Receipt::Empty,
+            created_at: std::time::Instant::now(),
+            upload: None,
+            object_upload: Some(Box::new(upload)),
+        }
+    }
+
     pub(super) fn fast_upload(
         body: Value,
         source: crate::features::bhpan::upload::FileSnapshot,
@@ -49,6 +73,7 @@ impl Mutation {
             receipt: Receipt::FastUpload,
             created_at: std::time::Instant::now(),
             upload: Some(PendingUpload { source, transfer }),
+            object_upload: None,
         }
     }
 }
@@ -206,6 +231,7 @@ fn files(
             receipt,
             created_at: std::time::Instant::now(),
             upload: None,
+            object_upload: None,
         },
         description,
     ))
@@ -258,6 +284,7 @@ fn relocate(
             receipt,
             created_at: std::time::Instant::now(),
             upload: None,
+            object_upload: None,
         },
         description,
     ))
@@ -338,6 +365,7 @@ fn shares(
             receipt,
             created_at: std::time::Instant::now(),
             upload: None,
+            object_upload: None,
         },
         description,
     ))
@@ -380,7 +408,7 @@ impl UbaaClient {
     /// 发送前拒绝保持明确失败，发送后的不确定收据返回不可重试的结果未知。
     pub async fn bhpan_commit_write(&mut self, handle: &str) -> Result<BhpanWriteReceipt> {
         self.bhpan_scope()?;
-        let m = self
+        let mut m = self
             .bhpan
             .pending
             .remove(handle)
@@ -389,6 +417,9 @@ impl UbaaClient {
             return Err(UbaaError::invalid_input(
                 "云盘确认已过期，请刷新目标后重新确认",
             ));
+        }
+        if let Some(upload) = m.object_upload.take() {
+            return self.commit_object_upload(upload).await;
         }
         let token = self.bhpan_ready().await?;
         let request = wire::request(&token, m.method, &m.path, m.body, m.secondary.as_ref())?;

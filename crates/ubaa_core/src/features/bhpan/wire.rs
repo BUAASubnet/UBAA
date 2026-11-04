@@ -53,7 +53,7 @@ pub(crate) async fn read_checked<F>(
     pre_send: F,
 ) -> Result<Vec<u8>>
 where
-    F: FnOnce(&ClientRuntime) -> Result<()>,
+    F: Fn(&ClientRuntime) -> Result<()>,
 {
     let url = request.url.clone();
     let response = runtime
@@ -67,7 +67,7 @@ pub(crate) async fn write_checked<F>(
     pre_send: F,
 ) -> Result<Vec<u8>>
 where
-    F: FnOnce(&ClientRuntime) -> Result<()>,
+    F: Fn(&ClientRuntime) -> Result<()>,
 {
     let url = request.url.clone();
     let response = runtime
@@ -75,7 +75,7 @@ where
         .await?;
     finish(&url, response, true)
 }
-fn finish(url: &str, response: HttpResponse, write: bool) -> Result<Vec<u8>> {
+pub(crate) fn finish(url: &str, response: HttpResponse, write: bool) -> Result<Vec<u8>> {
     if response.final_url != url {
         return Err(if write { unknown() } else { parse::invalid() });
     }

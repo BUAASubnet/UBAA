@@ -16,6 +16,10 @@ mod diagnostic;
 #[path = "reqwest_transport_compression_tests.rs"]
 mod compression_tests;
 
+#[cfg(test)]
+#[path = "reqwest_object_tests.rs"]
+mod object_tests;
+
 /// 完整缓冲认证和用户中心响应的保守上限。
 ///
 /// 这是实现安全预算，不是上游协议大小声明。更大的业务载荷应使用独立流式端口，
@@ -26,6 +30,7 @@ const MAX_RESPONSE_BODY_BYTES: usize = 8 * 1024 * 1024;
 #[derive(Clone, Debug)]
 pub struct ReqwestTransport {
     client: reqwest::Client,
+    object_client: reqwest::Client,
 }
 
 impl ReqwestTransport {
@@ -51,12 +56,46 @@ impl ReqwestTransport {
                     "无法构造 HTTP 客户端",
                 )
             })?;
-        Ok(Self { client })
+        let object_client = reqwest::Client::builder()
+            .redirect(reqwest::redirect::Policy::none())
+            .gzip(false)
+            .connect_timeout(std::time::Duration::from_secs(10))
+            .timeout(std::time::Duration::from_mins(10))
+            .build()
+            .map_err(|_| {
+                UbaaError::new(
+                    ErrorCode::InternalError,
+                    ErrorKind::Internal,
+                    false,
+                    "无法构造对象传输客户端",
+                )
+            })?;
+        Ok(Self {
+            client,
+            object_client,
+        })
     }
 }
 
 #[async_trait]
 impl HttpTransport for ReqwestTransport {
+    async fn upload(
+        &self,
+        request: HttpRequest,
+        body: Option<super::HttpFileRange>,
+        observer: std::sync::Arc<dyn super::HttpTransferObserver>,
+    ) -> Result<HttpResponse> {
+        self.upload_object(request, body, observer).await
+    }
+    async fn download(
+        &self,
+        request: HttpRequest,
+        destination: std::fs::File,
+        observer: std::sync::Arc<dyn super::HttpTransferObserver>,
+    ) -> Result<HttpResponse> {
+        self.download_object(request, destination, observer).await
+    }
+
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         let started = Instant::now();
         let method = match request.method {
@@ -285,6 +324,12 @@ mod tests {
 
     fn direct_test_transport() -> ReqwestTransport {
         ReqwestTransport {
+            object_client: reqwest::Client::builder()
+                .no_proxy()
+                .redirect(reqwest::redirect::Policy::none())
+                .gzip(false)
+                .build()
+                .unwrap(),
             client: reqwest::Client::builder()
                 .no_proxy()
                 .build()
@@ -612,3 +657,6 @@ mod tests {
         server.join().unwrap();
     }
 }
+
+#[path = "reqwest_object.rs"]
+mod object;

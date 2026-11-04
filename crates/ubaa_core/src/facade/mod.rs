@@ -9,12 +9,16 @@ mod verified_identity;
 pub use verified_identity::VerifiedLoginIdentity;
 pub mod bhpan;
 mod client;
+#[path = "client/operation_control.rs"]
+pub(crate) mod operation_control;
 pub use crate::domain::bhpan::{
-    BhpanCapabilities, BhpanCapability, BhpanDownloadPreparation, BhpanItem, BhpanItemKind,
-    BhpanListRange, BhpanPage, BhpanPermission, BhpanPreparedWrite, BhpanRootKind, BhpanScope,
-    BhpanShare, BhpanShareSettings, BhpanSize, BhpanTransferPhase, BhpanTransferProgress,
-    BhpanWriteIntent, BhpanWriteReceipt,
+    BhpanCapabilities, BhpanCapability, BhpanDownloadPreparation, BhpanDownloadReceipt,
+    BhpanFileVersion, BhpanItem, BhpanItemKind, BhpanListRange, BhpanPage, BhpanPathLookup,
+    BhpanPermission, BhpanPreparedWrite, BhpanRootKind, BhpanScope, BhpanShare, BhpanShareSettings,
+    BhpanSize, BhpanTransferPhase, BhpanTransferProgress, BhpanVersionDownloadReceipt,
+    BhpanVersionUploadOutcome, BhpanWriteIntent, BhpanWriteReceipt,
 };
+pub use operation_control::with_operation_control;
 mod shared_account;
 pub use shared_account::{ClientCloseControl, SharedAccountGuard};
 mod diagnostic;

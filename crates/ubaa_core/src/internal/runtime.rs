@@ -218,6 +218,7 @@ impl ClientRuntime {
     }
 
     fn check_operation_controls(&self) -> Result<()> {
+        crate::facade::operation_control::check()?;
         self.check_consumer()?;
         if let Some(scope) = &self.required_recovery_scope {
             scope.check()?;
@@ -946,3 +947,6 @@ mod bearer_tests;
 
 #[path = "runtime/bearer.rs"]
 mod bearer;
+
+#[path = "runtime/object.rs"]
+mod object;
