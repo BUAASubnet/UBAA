@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::fmt;
 use std::future::Future;
 use std::panic::AssertUnwindSafe;
-use std::path::PathBuf;
 use std::sync::{
     RwLock,
     atomic::{AtomicBool, Ordering},
@@ -14,11 +13,11 @@ use ubaa_core::facade::{
     RoutePolicy, SafeError, UserProfile,
 };
 use ubaa_core::facade::{
-    ErrorCode, ErrorKind, NetworkState, RouteResolution, RoutedError, UbaaClient, UbaaError,
+    ErrorCode, ErrorKind, NetworkState, RouteResolution, RoutedError, UbaaError,
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 47;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 49;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -95,7 +94,13 @@ impl BridgeError {
         resolved_route: Option<BridgeConnectionMode>,
     ) -> Self {
         Self {
-            code: error.code.into(),
+            code: if error.is_client_closed() {
+                BridgeErrorCode::ClientDisposed
+            } else if error.is_shared_account_conflict() {
+                BridgeErrorCode::OperationConflict
+            } else {
+                error.code.into()
+            },
             kind: error.kind.into(),
             retryable: error.retryable,
             message: error.message,
@@ -248,7 +253,7 @@ pub struct BridgeRoutedUserProfile {
 
 /// FRB opaque client。内部 Core、Session 和路线 runtime 不对 Dart 可见。
 pub struct BridgeClient {
-    config_dir: PathBuf,
+    pub(super) close_control: ubaa_core::facade::ClientCloseControl,
     pub(crate) inner: super::read_pool::ClientPool,
     pub(crate) write_intents: tokio::sync::Mutex<HashMap<String, super::write::PendingEntry>>,
     pub(crate) auth_control: RwLock<ubaa_core::facade::InteractiveLoginCancellation>,
@@ -261,12 +266,13 @@ impl BridgeClient {
     ///
     /// # Errors
     /// 配置、会话、资源忙或组件故障返回不含原始材料的初始化分类。
+    #[allow(clippy::needless_pass_by_value)]
     pub fn open(
         config_dir: String,
     ) -> Result<Self, super::initialization::BridgeInitializationError> {
         let client = super::initialization::open(&config_dir)?;
         Ok(Self {
-            config_dir: PathBuf::from(config_dir),
+            close_control: client.close_control(),
             auth_control: RwLock::new(client.interactive_login_cancellation()),
             is_disposed: AtomicBool::new(false),
             bhpan_transfers: std::sync::Mutex::new(Vec::new()),
@@ -289,6 +295,7 @@ impl BridgeClient {
     /// 当前实现不会返回错误；保留 `Result` 以便未来生命周期清理失败时维持稳定 ABI。
     pub async fn dispose(&self) -> Result<(), BridgeError> {
         self.is_disposed.store(true, Ordering::SeqCst);
+        self.close_control.close();
         self.cancel_bhpan_transfers();
         self.cancel_interactive_login();
         catch_panic(async {
@@ -465,7 +472,7 @@ impl BridgeClient {
                 .set_default_route_policy(policy.into())
                 .map_err(|error| BridgeError::from_core(error, None))?;
             let reopened =
-                std::panic::catch_unwind(AssertUnwindSafe(|| UbaaClient::open(&self.config_dir)))
+                std::panic::catch_unwind(AssertUnwindSafe(|| client.reopen_for_route_policy()))
                     .map_err(|_| panic_error())?
                     .map_err(|error| BridgeError::from_core(error, None))?;
             *self

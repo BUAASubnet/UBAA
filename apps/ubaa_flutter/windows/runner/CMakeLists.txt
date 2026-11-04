@@ -20,6 +20,11 @@ add_executable(${BINARY_NAME} WIN32
 # that need different build settings.
 apply_standard_settings(${BINARY_NAME})
 
+# 项目源码包含中文，MSVC 必须按 UTF-8 读取并生成字符串常量。
+if(MSVC)
+  target_compile_options(${BINARY_NAME} PRIVATE /utf-8)
+endif()
+
 # Add preprocessor definitions for the build version.
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION=\"${FLUTTER_VERSION}\"")
 target_compile_definitions(${BINARY_NAME} PRIVATE "FLUTTER_VERSION_MAJOR=${FLUTTER_VERSION_MAJOR}")
@@ -38,3 +43,17 @@ target_include_directories(${BINARY_NAME} PRIVATE "${CMAKE_SOURCE_DIR}")
 
 # Run the Flutter tool portions of the build. This must not be removed.
 add_dependencies(${BINARY_NAME} flutter_assemble)
+
+add_executable(ubaa_command "command_main.cpp" "Runner.rc" "runner.exe.manifest")
+set_target_properties(ubaa_command PROPERTIES OUTPUT_NAME "ubaa")
+apply_standard_settings(ubaa_command)
+target_compile_options(ubaa_command PRIVATE /utf-8)
+target_compile_definitions(ubaa_command PRIVATE NOMINMAX
+  "FLUTTER_VERSION=\"${FLUTTER_VERSION}\""
+  "FLUTTER_VERSION_MAJOR=${FLUTTER_VERSION_MAJOR}"
+  "FLUTTER_VERSION_MINOR=${FLUTTER_VERSION_MINOR}"
+  "FLUTTER_VERSION_PATCH=${FLUTTER_VERSION_PATCH}"
+  "FLUTTER_VERSION_BUILD=${FLUTTER_VERSION_BUILD}")
+target_link_libraries(ubaa_command PRIVATE flutter flutter_wrapper_app)
+target_include_directories(ubaa_command PRIVATE "${CMAKE_SOURCE_DIR}")
+add_dependencies(ubaa_command flutter_assemble)

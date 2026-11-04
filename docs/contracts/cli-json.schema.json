@@ -10,6 +10,315 @@
     { "$ref": "#/$defs/agendaEnvelope" }
   ],
   "$defs": {
+      "bhpanEntry": {
+        "type": "object",
+        "required": [
+          "locator",
+          "name",
+          "kind",
+          "scope",
+          "bytes",
+          "created_at",
+          "modified_at"
+        ],
+        "properties": {
+          "locator": {
+            "type": "string"
+          },
+          "name": {
+            "type": "string"
+          },
+          "kind": {
+            "enum": [
+              "file",
+              "folder"
+            ]
+          },
+          "scope": {
+            "enum": [
+              "personal",
+              "received_share",
+              "recycle"
+            ]
+          },
+          "bytes": {
+            "anyOf": [
+              {
+                "type": "integer",
+                "minimum": 0
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "created_at": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "modified_at": {
+            "anyOf": [
+              {
+                "type": "integer"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "additionalProperties": false
+      },
+      "bhpanShare": {
+        "type": "object",
+        "required": [
+          "link",
+          "title",
+          "expires_at",
+          "password_required",
+          "limited_times",
+          "permissions",
+          "can_update"
+        ],
+        "properties": {
+          "link": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "expires_at": {
+            "type": "string"
+          },
+          "password_required": {
+            "type": "boolean"
+          },
+          "limited_times": {
+            "type": "integer"
+          },
+          "permissions": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "create",
+                "modify",
+                "download",
+                "preview",
+                "display"
+              ]
+            }
+          },
+          "can_update": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "bhpanData": {
+        "oneOf": [
+          {
+            "type": "object",
+            "required": [
+              "operation"
+            ],
+            "properties": {
+              "operation": {
+                "const": "login"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "items",
+              "range"
+            ],
+            "properties": {
+              "operation": {
+                "const": "entries"
+              },
+              "items": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/bhpanEntry"
+                }
+              },
+              "range": {
+                "enum": [
+                  "unknown",
+                  "first_hundred"
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "item",
+              "size"
+            ],
+            "properties": {
+              "operation": {
+                "const": "stat"
+              },
+              "item": {
+                "$ref": "#/$defs/bhpanEntry"
+              },
+              "size": {
+                "type": "object",
+                "required": [
+                  "folders",
+                  "files",
+                  "bytes"
+                ],
+                "properties": {
+                  "folders": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "files": {
+                    "type": "integer",
+                    "minimum": 0
+                  },
+                  "bytes": {
+                    "type": "integer",
+                    "minimum": 0
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "name"
+            ],
+            "properties": {
+              "operation": {
+                "const": "suggested_name"
+              },
+              "name": {
+                "type": "string"
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "shares"
+            ],
+            "properties": {
+              "operation": {
+                "const": "shares"
+              },
+              "shares": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/$defs/bhpanShare"
+                }
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "item",
+              "share"
+            ],
+            "properties": {
+              "operation": {
+                "const": "write"
+              },
+              "item": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/bhpanEntry"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "share": {
+                "anyOf": [
+                  {
+                    "$ref": "#/$defs/bhpanShare"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "preparation"
+            ],
+            "properties": {
+              "operation": {
+                "const": "download_preparation"
+              },
+              "preparation": {
+                "type": "object",
+                "required": [
+                  "host",
+                  "port",
+                  "method",
+                  "header_names",
+                  "batch",
+                  "destination_verified"
+                ],
+                "properties": {
+                  "host": {
+                    "type": "string"
+                  },
+                  "port": {
+                    "const": 443
+                  },
+                  "method": {
+                    "const": "GET"
+                  },
+                  "header_names": {
+                    "type": "array",
+                    "items": {
+                      "type": "string"
+                    }
+                  },
+                  "batch": {
+                    "type": "boolean"
+                  },
+                  "destination_verified": {
+                    "const": false
+                  }
+                },
+                "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          }
+        ]
+      },
     "campusAmount": {
       "type": "object",
       "required": [
@@ -238,7 +547,7 @@
       ]
     },
     "feature": {
-      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "libbook", "ygdk", "bykc", "cgyy", "evaluation", "ihome", "portal", "network"]
+      "enum": ["cli", "auth", "user", "schedule", "exam", "grades", "classroom", "spoc", "judge", "signin", "libbook", "ygdk", "bykc", "cgyy", "evaluation", "bhpan", "ihome", "portal", "network"]
     },
     "route": {
       "enum": ["direct", "webvpn"]
@@ -1469,6 +1778,12 @@
                 "properties": {
                   "meta": { "properties": { "feature": { "const": "evaluation" } }, "required": ["feature"] },
                   "data": { "$ref": "#/$defs/evaluationRoutedData" }
+                }
+              },
+              {
+                "properties": {
+                  "meta": { "properties": { "feature": { "const": "bhpan" } }, "required": ["feature"] },
+                  "data": { "$ref": "#/$defs/bhpanData" }
                 }
               }
             ]

@@ -74,6 +74,12 @@ set_target_properties(${BINARY_NAME}
 # them to the application.
 include(flutter/generated_plugins.cmake)
 
+pkg_check_modules(COMMAND_SECRET REQUIRED IMPORTED_TARGET libsecret-1>=0.18.4)
+add_library(ubaa_command_materials SHARED
+  "../../../packages/ubaa_platform/native/linux/command_materials.cc")
+target_link_libraries(ubaa_command_materials PRIVATE PkgConfig::COMMAND_SECRET)
+target_compile_features(ubaa_command_materials PRIVATE cxx_std_17)
+
 
 # === Installation ===
 # By default, "installing" just makes a relocatable bundle in the build
@@ -90,6 +96,8 @@ install(CODE "
 
 set(INSTALL_BUNDLE_DATA_DIR "${CMAKE_INSTALL_PREFIX}/data")
 set(INSTALL_BUNDLE_LIB_DIR "${CMAKE_INSTALL_PREFIX}/lib")
+install(TARGETS ubaa_command_materials LIBRARY DESTINATION "${INSTALL_BUNDLE_LIB_DIR}"
+  COMPONENT Runtime)
 
 install(TARGETS ${BINARY_NAME} RUNTIME DESTINATION "${CMAKE_INSTALL_PREFIX}"
   COMPONENT Runtime)

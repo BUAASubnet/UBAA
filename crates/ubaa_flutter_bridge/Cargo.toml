@@ -10,6 +10,7 @@ version.workspace = true
 crate-type = ["cdylib", "staticlib"]
 
 [dependencies]
+async-trait.workspace = true
 chrono.workspace = true
 uuid.workspace = true
 futures-util.workspace = true
@@ -21,13 +22,13 @@ tokio = { workspace = true, features = ["macros", "rt", "sync"] }
 tracing.workspace = true
 tracing-subscriber = { workspace = true, features = ["fmt"] }
 ubaa-core = { path = "../ubaa_core" }
+ubaa-command = { path = "../ubaa_command" }
 
 [target.'cfg(target_os = "android")'.dependencies]
 jni.workspace = true
 rustls-platform-verifier.workspace = true
 
 [dev-dependencies]
-async-trait.workspace = true
 ubaa-test-support = { path = "../ubaa_test_support" }
 
 [lints.rust]

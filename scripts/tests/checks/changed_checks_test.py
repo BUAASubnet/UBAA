@@ -58,7 +58,7 @@ class ChangedChecksTest(unittest.TestCase):
 
     def test_root_documents_and_scripts_have_lightweight_tiers(self):
         for path in ['AGENTS.md', 'SECURITY.md', 'UBAA2.md', 'crates/ubaa_core/README.md',
-                     'apps/ubaa_cli/README.md', 'packages/package_info_plus_ohos/README.md']:
+                     'crates/ubaa_command/README.md', 'packages/package_info_plus_ohos/README.md']:
             with self.subTest(path=path):
                 plan = self.plan(path)
                 self.assertFalse(plan['rust'])
@@ -103,7 +103,7 @@ class ChangedChecksTest(unittest.TestCase):
         self.assertNotIn(gates.CODEGEN, plan['extra'])
 
     def test_regular_rust_does_not_regenerate_bindings_or_run_flutter(self):
-        plan = self.plan('apps/ubaa_cli/src/render/tables.rs')
+        plan = self.plan('crates/ubaa_command/src/render/tables.rs')
         self.assertTrue(plan['rust'])
         self.assertEqual(plan['packages'], [])
         self.assertEqual(plan['extra'], [])
@@ -121,7 +121,7 @@ class ChangedChecksTest(unittest.TestCase):
                      'packages/ubaa_ui/lib/src/write_callbacks.dart',
                      'packages/ubaa_ui/lib/src/app/shell_write.dart',
                      'packages/ubaa_domain/lib/src/feature/cached_feature.dart',
-                     'apps/ubaa_cli/src/io/input.rs',
+                     'crates/ubaa_command/src/io/input.rs',
                      'scripts/lib/environment.py',
                      'scripts/release/macos-entitlements.sh',
                      'apps/ubaa_flutter/macos/Runner/Release.entitlements',
@@ -175,7 +175,7 @@ class ChangedChecksTest(unittest.TestCase):
 
     def test_mixed_paths_merge_without_repeating_common_checks(self):
         plan = self.plan('AGENTS.md', 'scripts/check/changed_checks.py',
-                         'apps/ubaa_cli/src/render/tables.rs')
+                         'crates/ubaa_command/src/render/tables.rs')
         commands = gates.commands(plan)
         self.assertEqual(commands.count(['just', 'check']), 1)
         self.assertNotIn(['just', 'script-check'], commands)
@@ -241,7 +241,7 @@ version = "0.1.0"
 dependencies = ["serde"]
 
 [[package]]
-name = "ubaa-cli"
+name = "ubaa-core-live"
 version = "0.1.0"
 dependencies = ["clap", "ubaa-core"]
 
@@ -258,7 +258,7 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "bb"
 """
 MANIFEST = """[workspace]
-members = ["apps/ubaa_cli", "crates/ubaa_core", "crates/ubaa_flutter_bridge"]
+members = ["tools/core_live", "crates/ubaa_core", "crates/ubaa_flutter_bridge"]
 
 [workspace.dependencies]
 clap = "CLAP"
@@ -302,8 +302,11 @@ class RustManifestTierTest(unittest.TestCase):
         self.assertIn(['just', 'integration-test'], gates.commands(plan))
         self.assertIn(gates.CODEGEN, plan['extra'])
 
-    def test_CLI清单只做Rust严格检查(self):
-        self.assert_rust_only(gates.select_checks(ROOT, ['apps/ubaa_cli/Cargo.toml']))
+    def test_Core_live清单只做Rust严格检查(self):
+        self.assert_rust_only(gates.select_checks(ROOT, ['tools/core_live/Cargo.toml']))
+
+    def test_公共命令清单影响Bridge并执行完整验收(self):
+        self.assert_full(gates.select_checks(ROOT, ['crates/ubaa_command/Cargo.toml']))
 
     def test_只升级CLI依赖的锁文件不运行原生检查(self):
         self.assert_rust_only(self.plan('Cargo.lock', {}, {'CLAP': '4.1.0'}))

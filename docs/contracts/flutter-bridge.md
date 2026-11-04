@@ -1,8 +1,8 @@
 # Flutter Bridge 合同
 
-状态：当前合同 v47。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
+状态：当前合同 v49。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
 
-业务缓存持久格式当前为 schema v7，独立于 Bridge v47。旧开发格式不迁移，普通打开拒绝并保留原库，用户明确清理后才能重建。下文各阶段的缓存版本与迁移说明保留历史事实，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
+业务缓存持久格式当前为 schema v7，独立于 Bridge v49。旧开发格式不迁移，普通打开拒绝并保留原库，用户明确清理后才能重建。下文各阶段的缓存版本与迁移说明保留历史事实，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `47`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `49`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -39,7 +39,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=47` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=49` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
 组间最多八个完整批次在途（每个读取组各一个，首页全部来源可同时开始）。每组的只读 Core 实例复用连接池，独立保存业务 Cookie、Token 和缓存，
@@ -788,3 +788,45 @@ Dart 的 `AgendaExportBackend` 和 `AgendaDraftBackend` 由生产日程适配器
 网盘写入通过 App 原有的 `WriteCoordinator` 准备、确认、单次提交与丢弃。确认绑定账号、认证生命周期和路线，发送后的不确定结果保持不可重试的 `outcome_unknown`。创建结果与分享历史保留完整 item 关联并支持更新，单项分享记录缺少关联时暂不开放更新。
 
 `BridgeBhpanTransfer` 只投影进度与取消，查询和取消不等待主客户端网络锁。个人秒传使用 Core 的有界文件读取与协议摘要，未匹配时停止，普通和分片上传仍待对象存储证据。下载准备只返回方法、主机、端口和头名称，不访问签名地址。内容下载、打包传输、WebVPN 与固定文件条件覆盖仍有未决协议问题，详见[云盘来源对照](../migration/source-parity-bhpan.md)。
+
+## v46：所需路线恢复的按操作控制
+
+`BridgeRequiredRecoveryControl` 为一次所需路线校验或固定路线登录提供独立控制范围。同步构造接收 `timeoutMillis`，使用单调时钟计算从构造开始的期限，范围为 0 至 120000 毫秒，零立即到期。同步 `cancel()` 撤销该操作，不等待客户端网络锁。控制柄只能用于一次调用，恢复校验和随后获准登录分别创建控制柄。
+
+`recoverRequiredSessionControlled(feature, control)` 和 `loginRequiredRouteControlled(route, username, password, control)` 保留原 typed 返回值。控制范围覆盖客户端排他锁排队、写意图检查和 Core 请求。Core 在请求发送前、响应交付后和认证会话发布前重查控制范围。取消返回现有 `operation_conflict`，到期返回 `timeout`，两者均不自动重试。既有无控制接口和双路线认证 API 保持原语义。
+
+中断会释放正在等待的 transport Future，并在归还排他锁前完成同步收尾。这里的构造期限限制异步等待和后续操作资格。已有同步路线解析与文件系统操作需要先返回，才能执行取消分支，因此不把期限解释为严格的墙钟返回时刻。生产 Auto 网关探测已有 500 毫秒预算，会话文件两级锁共用每次两秒的预算。登录前置所有权检查与中断收尾分别最多检查两条路线，因此取消恰好遇到前置同步检查时，文件锁额外等待的保守总预算为八秒。该预算不包含操作系统调度和同步文件 I/O 的设备延迟。登录页、execution 和目标路线旧业务准备资格需要撤销，已原子保存的会话继续保留。取消不能证明上游认证回滚，控制入口不执行远端注销、不删除共享会话，也不重放学校业务写入。另一条路线不使用该操作的控制信号。
+
+中断收尾在会话所有权检查成功时保留另一条路线的内存状态。检查因会话文件锁超时等原因失败时，沿用既有的失败关闭规则，清除当前客户端的双路线内存会话和业务准备状态，保留持久化会话。普通网络或认证错误继续使用原有收尾流程，不触发取消清理。
+
+该版本提供 H1-a 共同恢复服务的底层前置能力。共同 Dart 服务、GUI 接线、消费者合并与独立取消仍按[共享服务计划](../design/desktop-shared-state.md)继续实施。普通服务关闭应撤销自身操作，不能使用全局 `logout` 代替消费者关闭。
+
+## v47：共享账号的事务与句柄生命期
+
+`BridgeSharedAccount` 绑定由平台安全索引捕获的固定本机代次。版本记录只用于撤销已有能力，不签发学校身份、凭据提交许可或写资格。平台在材料独占事务内发布 `account-generation.v1`，Core 在实际本地事务与 transport 交付边界取得同一材料文件锁的共享锁，并核对原代次和 `transaction.v1` 的完成状态。锁顺序为 recovery → materials → Core 仓库 → SQLite。缺失、损坏、未完成事务与版本变化均拒绝旧能力，网络 await 期间释放材料锁。
+
+`BridgeAgendaStore.openShared`、`BridgeOfflineCache.openShared` 和 `clearOrRebuildShared` 在实际打开或维护前核对固定版本。事务已经提交后，Dart 层的结果交付还要核对原快照。外层返回 superseded 时，已经提交的效果可能仍存在，不能自动重放。
+
+普通 close 只释放本进程资源。缓存 `close` 使当前逻辑句柄及其 clone 失效，独立打开的另一进程仓库保持。客户端 dispose 同步撤销未发送请求，已交付请求的后续失败保留 OutcomeUnknown。显式全局退出先按原快照条件撤销共享许可。`revokeBinding` 返回专用清理票据，普通 `bindSharedAccount` 拒绝此票据。`logoutWithSharedAccount` 只在当前 RPC 持客户端锁期间临时使用票据，并用 RAII（通过作用域析构执行收尾）在成功、错误、panic 或 Future 取消时恢复原归属。普通客户端、缓存和日程不能继承清理票据。另一登录推进版本后，旧清理立即失效，调用方不能重新捕获另一登录的版本继续清理。
+
+无界面调用方使用 `SharedAccountConsumer`、`SharedAccountBackend` 和 `SharedAccountLogoutBackend`，无需完整 GUI Controller。写准备、提交和原目标只读核对放入同一次 `schoolWrite`，期间禁止恢复、换绑或换客户端。只读回读沿原路线，不自动准备或提交。`logout` 只使用消费者原快照取得清理票据。`close(grace)` 同步停止接受新操作，并有界等待恢复任务、已经接受的 bind/写单元/logout 和资源释放。超时返回未完成状态，`settlement` 等待实际收尾并交付资源错误，业务操作保留各自 Future 的结果和原错误。
+
+GUI 清除凭据时，原快照校验和凭据删除共用短材料事务。Core 缓存清理在受限调用中执行。宿主后续 `clearLocalData` 回调仅处理当前账号本机偏好，不得在持材料事务时进入 Core 或网络。
+
+## v48：App 命令计划与交付
+
+`BridgeCommand` 从完整 argv 产生一次不透明计划。`requirements` 只投影所需能力，`input_request` 逐次请求行、隐藏密码或正文。help、解析错误、登录参数冲突、无效资料路径和缺少写入确认在材料初始化前交付。准备后的输入快照由公共 Rust 命令库持有，Dart 不解析业务参数。
+
+只读尝试返回最终结果、明确过期路线或真实共享会话冲突。宿主使用共同恢复服务核对持久身份，并且至多完整重跑一次。User、Portal、Network、Ihome 和原十二个恢复目标均有明确映射。User 使用 `Operation::User`。剩余期限传入每一次受控校验或登录，不为恢复重新开始两分钟预算。
+
+学校写 backend 复用 GUI 的准备意图、一次性消费、固定路线 fresh commit、发送观察和缓存影响处理。取消、期限或 Future 丢弃发生在发送后时，保留 `outcome_unknown`、原路线和本机核对提示，并使关联旧缓存失效。确定结果完整交付后才清除本次提示，断管保留提示。普通退出仅关闭本进程 Core/缓存/日程资源。
+
+`BridgeCommandResult` 是可共享引用的一次性正文。stdout/stderr 各至多保留四个 64 KiB 块，包含在途块。消费方在实际写入和刷新成功后确认，失败后停止交付。输出块保持完整 UTF-8 字符，生产和消费边界均核对固定共享代次，撤销后拒绝排队正文。原生强制收尾保持在线期限退出5、本机期限或取消退出7。
+
+显式聚合登录由 Core 签发 `BridgeCommandLoginIdentity`，宿主在共享材料事务中核实并一次消费后保留原 alias 和 CacheKey。`registration_succeeded/failed` 独立报告 v13 的 `agendaRegistration`。受限退出票据只用于本次显式注销，不装入后续普通句柄。
+
+命令 `prepare` 在取得账号材料前核对密码内容和阳光打卡参数，并保存阳光请求与照片字节。后续执行消费输入快照，不再次打开照片。学校写入的会话恢复和重新绑定完成后取得当前客户端，再开始写资格准备。恢复停止按具体原因映射为取消、超时或账号失效。
+
+## 日程、云盘与统一命令组合
+
+合同 v49 同时保留日程 `edit_draft`、本机导出、云盘 typed API 与传输控制，以及统一命令的输入准备、恢复和有界输出。`BridgeRecoveryFeature::Bhpan` 使用 Core 云盘专用路线能力判断。Core 路线重开继承共享账号归属和本消费者关闭控制。云盘 Bearer 请求等待材料锁后重新检查关闭、取消和期限，发送与响应均保持导航 Cookie 隔离。

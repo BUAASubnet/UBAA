@@ -85,6 +85,7 @@ async fn 导入批次释放共享锁_待确认写意图阻止后续读取且不�
             request: PendingWrite::BykcSelect(BridgeBykcCourseRequest { course_id: 1 }),
             expires_at: i64::MAX,
             resolved_route: BridgeConnectionMode::Direct,
+            resolution: crate::api::write::testing_resolution(BridgeConnectionMode::Direct),
             conflict_key: "synthetic".into(),
         },
     );

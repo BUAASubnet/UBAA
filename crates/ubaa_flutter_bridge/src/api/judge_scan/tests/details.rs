@@ -58,6 +58,7 @@ async fn 批量持久详情逐批让位且写意图不被清除_结果可离线�
             request: PendingWrite::BykcSelect(BridgeBykcCourseRequest { course_id: 1 }),
             expires_at: i64::MAX,
             resolved_route: BridgeConnectionMode::Direct,
+            resolution: crate::api::write::testing_resolution(BridgeConnectionMode::Direct),
             conflict_key: "synthetic".into(),
         },
     );

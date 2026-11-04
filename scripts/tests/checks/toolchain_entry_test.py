@@ -6,11 +6,156 @@ import shutil
 import subprocess
 import tempfile
 import unittest
+import sys
+from unittest.mock import patch
+
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / 'lib'))
+import toolchain
 
 ROOT = Path(__file__).resolve().parents[3]
 
 
 class ToolchainEntryTest(unittest.TestCase):
+    def test_Cargokit所有模式必须与Rust锁定文件一致(self):
+        import importlib.util
+        spec = importlib.util.spec_from_file_location('tool_versions', ROOT / 'scripts/check/tool_versions.py')
+        versions = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(versions)
+        config = self.root / 'crates/ubaa_flutter_bridge/cargokit.yaml'
+        config.parent.mkdir(parents=True)
+        valid = {'cargo': {mode: {'toolchain': '1.95.0', 'extra_flags': ['--locked']}
+                           for mode in ('debug', 'profile', 'release')}}
+        config.write_text(json.dumps(valid))
+        versions.check_cargokit_toolchains(self.root, '1.95.0')
+        for mode in ('debug', 'profile', 'release'):
+            for invalid in ('stable', '1.99.1', None):
+                with self.subTest(mode=mode, invalid=invalid):
+                    changed = json.loads(json.dumps(valid))
+                    if invalid is None:
+                        del changed['cargo'][mode]
+                    else:
+                        changed['cargo'][mode]['toolchain'] = invalid
+                    config.write_text(json.dumps(changed))
+                    with self.assertRaises(ValueError):
+                        versions.check_cargokit_toolchains(self.root, '1.95.0')
+
+    def test_POSIX无转换器时盘符在安装前被拒绝(self):
+        self.configure()
+        for name in ('scripts/bootstrap/setup.sh', 'scripts/bootstrap/quality-tools.sh',
+                     'scripts/lib/repo.sh', 'scripts/lib/versions.sh', 'scripts/tools/versions.env',
+                     'scripts/tools/environment.sh', 'scripts/tools/requirements.txt'):
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / name, target)
+        fakebin = self.root / 'isolated-bin'
+        fakebin.mkdir()
+        for name in ('bash', 'dirname'):
+            (fakebin / name).symlink_to(shutil.which(name))
+        marker = self.root / 'installation-calls'
+        (fakebin / 'git').write_text('#!/bin/sh\nprintf git >> "$INSTALLATION_CALLS"\nexit 73\n')
+        (fakebin / 'python3').write_text(
+            f'#!{sys.executable}\nimport os,sys\nfrom pathlib import Path\n'
+            'if sys.argv[1:3] == ["-m", "venv"]:\n'
+            '    Path(os.environ["INSTALLATION_CALLS"]).write_text("venv")\n'
+            '    sys.exit(73)\n'
+            'os.execv(sys.executable, [sys.executable, *sys.argv[1:]])\n')
+        for name in ('git', 'python3'):
+            (fakebin / name).chmod(0o755)
+        environment = {**self.environment, 'PATH': str(fakebin), 'INSTALLATION_CALLS': str(marker)}
+        self.assertIsNone(shutil.which('cygpath', path=environment['PATH']))
+        self.assertFalse((Path.home() / '.cargo/bin/cygpath').exists())
+        for root in ('Z:/工具 空格', r'Z:\工具 空格'):
+            for script in ('setup.sh', 'quality-tools.sh'):
+                with self.subTest(root=root, script=script):
+                    marker.unlink(missing_ok=True)
+                    result = subprocess.run(['bash', f'scripts/bootstrap/{script}'], cwd=self.root,
+                                            env={**environment, 'UBAA_FLUTTER_HOME': root,
+                                                 'UBAA_QUALITY_TOOLS_DIR': root},
+                                            capture_output=True, text=True)
+                    self.assertEqual(result.returncode, 2, result.stdout + result.stderr)
+                    self.assertFalse(marker.exists(), '拒绝盘符路径前不得调用 Git 或创建 venv')
+
+    def test_绝对路径转换结果必须可供POSIX消费者使用(self):
+        fakebin = self.root / 'converter-bin'
+        fakebin.mkdir()
+        converter = fakebin / 'cygpath'
+        converter.write_text('#!/bin/sh\nprintf "%s\\n" "$TEST_CONVERTED_PATH"\nexit "$TEST_CONVERT_EXIT"\n')
+        converter.chmod(0o755)
+        command = ['bash', '-euc', 'source scripts/lib/toolchain.sh; ubaa_toolchain_absolute_path "$1"', 'probe']
+        environment = {**self.environment, 'PATH': str(fakebin) + os.pathsep + self.environment['PATH']}
+        for converted, converter_status, expected in [
+            ('/d/工具 空格', 0, 0), ('//server/share/工具 空格', 0, 0),
+            ('relative/path', 0, 2), ('D:/工具 空格', 0, 2), ('', 0, 2),
+            ('/d/工具 空格', 73, 73),
+        ]:
+            with self.subTest(converted=converted, converter_status=converter_status):
+                result = subprocess.run([*command, r'D:\工具 空格'], cwd=self.root,
+                                        env={**environment, 'TEST_CONVERTED_PATH': converted,
+                                             'TEST_CONVERT_EXIT': str(converter_status)},
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode, expected, result.stderr)
+                self.assertEqual(result.stdout, converted + '\n' if expected == 0 else '')
+        converter.unlink()
+        self.assertIsNone(shutil.which('cygpath', path=environment['PATH']))
+        for root in ('/工具 空格', '/d/工具 空格', '//server/share/工具 空格'):
+            with self.subTest(root=root):
+                result = subprocess.run([*command, root], cwd=self.root, env=environment,
+                                        capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0, result.stderr)
+                self.assertEqual(result.stdout, root + '\n')
+
+    def test_Windows执行文件及Bash参数保留空格中文(self):
+        environment = {'PATH': '测试进程的PATH'}
+        script = r'D:\项目 空格\scripts\check.sh'
+        with patch.object(toolchain.sys, 'platform', 'win32'), patch.object(
+                toolchain.shutil, 'which', return_value=r'C:\Program Files\Git\bin\bash.exe') as which:
+            self.assertEqual(toolchain.bash_command(script, 'official', environment=environment),
+                             [r'C:\Program Files\Git\bin\bash.exe', 'D:/项目 空格/scripts/check.sh', 'official'])
+            which.assert_called_with('bash', path=environment['PATH'])
+            self.assertEqual(toolchain.sdk_executable(Path('/SDK 空格'), 'flutter').name, 'flutter.bat')
+            self.assertEqual(toolchain.sdk_executable(Path('/SDK 空格'), 'dart').name, 'dart.bat')
+            self.assertEqual(toolchain.venv_python(Path('/质量 工具')).parts[-2:], ('Scripts', 'python.exe'))
+        with patch.object(toolchain.sys, 'platform', 'linux'):
+            self.assertEqual(toolchain.sdk_executable(Path('/sdk'), 'flutter'), Path('/sdk/bin/flutter'))
+            self.assertEqual(toolchain.venv_python(Path('/quality')), Path('/quality/bin/python'))
+            self.assertEqual(toolchain.bash_command('/项目 空格/check.sh', environment={}),
+                             ['bash', '/项目 空格/check.sh'])
+
+    def test_setup与质量环境接受盘符路径并拒绝相对路径(self):
+        self.configure()
+        for name in ('scripts/bootstrap/setup.sh', 'scripts/lib/repo.sh', 'scripts/lib/versions.sh',
+                     'scripts/tools/versions.env', 'scripts/tools/environment.sh', 'scripts/tools/requirements.txt'):
+            target = self.root / name
+            target.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copyfile(ROOT / name, target)
+        fakebin = self.root / 'fakebin'
+        fakebin.mkdir()
+        for name, source in {
+            'cygpath': '#!/bin/sh\nprintf "%s\\n" "$TEST_ABSOLUTE_ROOT"\n',
+            'git': '#!/bin/sh\necho synthetic-wrong-commit\n',
+        }.items():
+            program = fakebin / name
+            program.write_text(source)
+            program.chmod(0o755)
+        absolute = self.root / '工具 空格'
+        absolute.mkdir()
+        env = {**self.environment, 'PATH': str(fakebin) + os.pathsep + self.environment['PATH'],
+               'TEST_ABSOLUTE_ROOT': str(absolute)}
+        for root in ('D:/工具 空格', r'D:\工具 空格', str(absolute), 'relative/path', r'D:relative'):
+            accepted = root not in ('relative/path', r'D:relative')
+            with self.subTest(root=root):
+                current = {**env, 'UBAA_FLUTTER_HOME': root, 'UBAA_QUALITY_TOOLS_DIR': root}
+                result = subprocess.run(['bash', 'scripts/bootstrap/setup.sh'], cwd=self.root,
+                                        env=current, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 1 if accepted else 2, result.stderr)
+                if accepted:
+                    self.assertIn('不会改写已有 SDK', result.stderr)
+                result = subprocess.run(['bash', '-euc', 'source scripts/tools/environment.sh; printf %s "$quality_root"'],
+                                        cwd=self.root, env=current, capture_output=True, text=True)
+                self.assertEqual(result.returncode, 0 if accepted else 2, result.stderr)
+                if accepted:
+                    self.assertEqual(result.stdout, str(absolute))
+
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()
         self.addCleanup(self.temporary.cleanup)

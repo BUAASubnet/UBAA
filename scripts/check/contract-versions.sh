@@ -44,7 +44,7 @@ require_literal() {
 
 cli_version=
 if read_single_version \
-  'apps/ubaa_cli/src/io/schema.rs' \
+  'crates/ubaa_command/src/io/schema.rs' \
   's/.*pub const CLI_JSON_SCHEMA_VERSION: u32 = ([0-9]+);.*/\1/p' \
   'CLI_JSON_SCHEMA_VERSION'; then
   cli_version=$extracted_version

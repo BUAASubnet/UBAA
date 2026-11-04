@@ -1,11 +1,8 @@
 //! 一次性写入意图的消费、提交前复核与 Core 写分派。
 
+use super::BridgeWriteCommitResult;
 use super::cache::{BridgeCachedWriteCommit, finish_cached_commit};
-use super::support::{
-    invalid_input, map_cgyy_receipt, map_cgyy_request, map_commit_error, map_evaluation_batch,
-    map_ygdk_receipt, now_seconds, safe_message,
-};
-use super::{BridgeWriteCommitResult, PendingWrite};
+use super::support::{invalid_input, map_commit_error, now_seconds};
 use crate::api::client::{
     BridgeClient, BridgeConnectionMode, BridgeError, BridgeErrorCode, BridgeErrorKind,
     disposed_error, panic_error,
@@ -16,6 +13,36 @@ use std::panic::AssertUnwindSafe;
 use ubaa_core::facade as domain;
 
 impl BridgeClient {
+    pub(crate) async fn take_write_entry(
+        &self,
+        intent_id: &str,
+    ) -> Result<super::PendingEntry, BridgeError> {
+        if intent_id.trim().is_empty() {
+            return Err(invalid_input("intent id is required"));
+        }
+        let entry = self
+            .write_intents
+            .lock()
+            .await
+            .remove(intent_id)
+            .ok_or_else(|| {
+                BridgeError::local(
+                    BridgeErrorCode::IntentExpired,
+                    BridgeErrorKind::Input,
+                    false,
+                    "write intent is expired or already used",
+                )
+            })?;
+        if now_seconds() >= entry.expires_at {
+            return Err(BridgeError::local(
+                BridgeErrorCode::IntentExpired,
+                BridgeErrorKind::Input,
+                false,
+                "write intent is expired",
+            ));
+        }
+        Ok(entry)
+    }
     pub async fn commit_write(
         &self,
         intent_id: String,
@@ -41,25 +68,7 @@ impl BridgeClient {
             // 所有会清理写意图的路径都先持有 Core 锁；这样重新登录或重开路线
             // 不会在本次提交等待 Core 锁时失效后，仍让旧意图继续执行。
             let mut guard = self.inner.lock().await;
-            let entry = {
-                let mut intents = self.write_intents.lock().await;
-                intents.remove(&intent_id).ok_or_else(|| {
-                    BridgeError::local(
-                        BridgeErrorCode::IntentExpired,
-                        BridgeErrorKind::Input,
-                        false,
-                        "write intent is expired or already used",
-                    )
-                })?
-            };
-            if now_seconds() >= entry.expires_at {
-                return Err(BridgeError::local(
-                    BridgeErrorCode::IntentExpired,
-                    BridgeErrorKind::Input,
-                    false,
-                    "write intent is expired",
-                ));
-            }
+            let entry = self.take_write_entry(&intent_id).await?;
             let pending = entry.request;
             let operation = pending.operation();
             let impact = pending.cache_impact();
@@ -73,193 +82,8 @@ impl BridgeClient {
                 super::readback::begin_hint(cache, operation, expected_route).await;
             hint = started_hint;
             hint_start_error = start_error;
-            let result = match pending {
-                PendingWrite::BykcSelect(request) => client
-                    .bykc_select_course_if_route_matches(request.course_id, expected_route.into())
-                    .await
-                    .map(|r| {
-                        (
-                            r.resolution,
-                            true,
-                            safe_message("博雅选课已提交"),
-                            None,
-                            None,
-                            None,
-                        )
-                    }),
-                PendingWrite::BykcDeselect(request) => client
-                    .bykc_deselect_course_if_route_matches(request.course_id, expected_route.into())
-                    .await
-                    .map(|r| {
-                        (
-                            r.resolution,
-                            true,
-                            safe_message("博雅退选已提交"),
-                            None,
-                            None,
-                            None,
-                        )
-                    }),
-                PendingWrite::BykcSign(request) => {
-                    let message = if request.sign_type == 1 {
-                        "博雅签到已提交"
-                    } else {
-                        "博雅签退已提交"
-                    };
-                    client
-                        .bykc_sign_course_if_route_matches(
-                            domain::BykcSignRequest {
-                                course_id: request.course_id,
-                                lat: request.lat,
-                                lng: request.lng,
-                                sign_type: request.sign_type,
-                            },
-                            expected_route.into(),
-                        )
-                        .await
-                        .map(|r| (r.resolution, true, safe_message(message), None, None, None))
-                }
-                PendingWrite::Signin(request) => client
-                    .signin_perform_if_route_matches(&request.course_id, expected_route.into())
-                    .await
-                    .map(|r| {
-                        let success = r.data.success;
-                        let message = if success {
-                            safe_message("签到成功")
-                        } else {
-                            safe_message("签到未完成")
-                        };
-                        (r.resolution, success, message, None, None, None)
-                    }),
-                PendingWrite::LibbookReserve(request) => client
-                    .libbook_reserve_if_route_matches(
-                        domain::LibBookReserveRequest {
-                            area_id: request.area_id,
-                            seat_id: request.seat_id,
-                            day: request.day,
-                            segment: request.segment,
-                            start_time: request.start_time,
-                            end_time: request.end_time,
-                        },
-                        expected_route.into(),
-                    )
-                    .await
-                    .map(|r| {
-                        let success = r.data.success;
-                        let message = if success {
-                            safe_message("图书馆预约已提交")
-                        } else {
-                            safe_message("图书馆预约未完成")
-                        };
-                        (r.resolution, success, message, None, None, None)
-                    }),
-                PendingWrite::LibbookCancel(request) => client
-                    .libbook_cancel_booking_if_route_matches(
-                        domain::LibBookCancelRequest {
-                            booking_id: request.id,
-                            page: request.page,
-                            limit: request.limit,
-                        },
-                        expected_route.into(),
-                    )
-                    .await
-                    .map(|r| {
-                        let success = r.data.success;
-                        let message = if success {
-                            safe_message("图书馆预约已取消")
-                        } else {
-                            safe_message("图书馆预约取消未完成")
-                        };
-                        (r.resolution, success, message, None, None, None)
-                    }),
-                PendingWrite::Ygdk(request) => client
-                    .ygdk_submit_if_route_matches(request, expected_route.into())
-                    .await
-                    .map(|r| {
-                        let success = r.data.success;
-                        let receipt = map_ygdk_receipt(r.data.record_id);
-                        (
-                            r.resolution,
-                            success,
-                            safe_message("阳光打卡已提交"),
-                            None,
-                            receipt,
-                            None,
-                        )
-                    }),
-                PendingWrite::CgyyReserve(request) => client
-                    .cgyy_submit_reservation_if_route_matches(
-                        map_cgyy_request(request),
-                        expected_route.into(),
-                    )
-                    .await
-                    .map(|r| {
-                        let success = r.data.success;
-                        let message = if success {
-                            safe_message("研讨室预约已提交")
-                        } else {
-                            safe_message("研讨室预约未完成")
-                        };
-                        (
-                            r.resolution,
-                            success,
-                            message,
-                            r.data.receipt.map(map_cgyy_receipt),
-                            None,
-                            None,
-                        )
-                    }),
-                PendingWrite::CgyyCancel(request) => client
-                    .cgyy_cancel_order_if_route_matches(
-                        domain::CgyyCancelOrderRequest {
-                            order_id: request.order_id,
-                        },
-                        expected_route.into(),
-                    )
-                    .await
-                    .map(|r| {
-                        let success = r.data.success;
-                        let message = if success {
-                            safe_message("研讨室订单已取消")
-                        } else {
-                            safe_message("研讨室订单取消未完成")
-                        };
-                        (r.resolution, success, message, None, None, None)
-                    }),
-                PendingWrite::Evaluation(request) => client
-                    .evaluation_submit_courses_if_route_matches(request, expected_route.into())
-                    .await
-                    .map(|r| {
-                        let batch = map_evaluation_batch(r.data);
-                        (
-                            r.resolution,
-                            batch.success,
-                            safe_message(evaluation_commit_message(&batch)),
-                            None,
-                            None,
-                            Some(batch),
-                        )
-                    }),
-            };
-            let result = match result {
-                Ok((
-                    resolution,
-                    success,
-                    message,
-                    cgyy_receipt,
-                    ygdk_receipt,
-                    evaluation_result,
-                )) => finish_commit_success(
-                    operation,
-                    resolution.mode.into(),
-                    success,
-                    message,
-                    cgyy_receipt,
-                    ygdk_receipt,
-                    evaluation_result,
-                ),
-                Err(error) => Err(map_dispatch_error(operation, expected_route, error)),
-            };
+            let raw = super::dispatch::dispatch(client, pending, expected_route.into()).await;
+            let result = project_dispatch_result(raw, operation, expected_route);
             // 跨过发送边界后，提示必须等 Dart 投影成功才能清理。
             let sent = panic_scope
                 .as_ref()
@@ -387,4 +211,27 @@ fn map_dispatch_error(
         };
     }
     map_commit_error(operation, error)
+}
+
+pub(crate) fn project_dispatch_result(
+    result: domain::RoutedResult<super::dispatch::WriteReceipt>,
+    operation: super::BridgeWriteOperation,
+    expected: BridgeConnectionMode,
+) -> Result<BridgeWriteCommitResult, BridgeError> {
+    match result {
+        Ok(value) => {
+            let (resolution, success, message, cgyy, ygdk, evaluation) =
+                super::dispatch::project(value, operation);
+            finish_commit_success(
+                operation,
+                resolution.mode.into(),
+                success,
+                message,
+                cgyy,
+                ygdk,
+                evaluation,
+            )
+        }
+        Err(error) => Err(map_dispatch_error(operation, expected, error)),
+    }
 }

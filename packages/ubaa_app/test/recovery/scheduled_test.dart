@@ -5,11 +5,25 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_test_support/recovery.dart' as support;
 
-Future<void> until(bool Function() ready) async {
-  for (var i = 0; i < 150 && !ready(); i++) {
-    await Future<void>.delayed(Duration.zero);
+Future<void> until(
+  AppController controller,
+  _Backend backend,
+  bool Function() ready,
+) async {
+  final done = Completer<void>();
+  void observe() {
+    if (ready() && !done.isCompleted) done.complete();
   }
-  expect(ready(), isTrue);
+
+  controller.addListener(observe);
+  final subscription = backend.changed.stream.listen((_) => observe());
+  try {
+    observe();
+    await done.future;
+  } finally {
+    controller.removeListener(observe);
+    await subscription.cancel();
+  }
 }
 
 void main() {
@@ -31,6 +45,8 @@ void main() {
       await controller.initialize();
       await controller.recoverSession();
       await until(
+        controller,
+        backend,
         () => backend.tasks.isNotEmpty && backend.tasks.first.calls == 2,
       );
       backend.missing.add(FeatureId.signin);
@@ -45,6 +61,8 @@ void main() {
       expect(backend.tasks.first.cancelled, route == ConnectionMode.webvpn);
       backend.gate.complete();
       await until(
+        controller,
+        backend,
         () =>
             controller.homeSnapshots[FeatureId.judge]!.status !=
             FeatureLoadStatus.loading,
@@ -91,8 +109,10 @@ void main() {
       addTearDown(controller.dispose);
       await controller.initialize();
       await controller.recoverSession();
-      await until(() => backend.tasks.length == 2);
+      await until(controller, backend, () => backend.tasks.length == 2);
       await until(
+        controller,
+        backend,
         () =>
             controller.homeSnapshots[FeatureId.judge]!.status !=
             FeatureLoadStatus.loading,
@@ -119,7 +139,11 @@ void main() {
     addTearDown(controller.dispose);
     await controller.initialize();
     await controller.recoverSession();
-    await until(() => backend.events.contains('read:ygdk'));
+    await until(
+      controller,
+      backend,
+      () => backend.events.contains('read:ygdk'),
+    );
     expect(
       backend.events.indexOf('read:schedule'),
       lessThan(backend.events.indexOf('auth:signin')),
@@ -150,7 +174,11 @@ void main() {
     addTearDown(controller.dispose);
     await controller.initialize();
     await controller.recoverSession();
-    await until(() => controller.snapshots[FeatureId.judge]!.error != null);
+    await until(
+      controller,
+      backend,
+      () => controller.snapshots[FeatureId.judge]!.error != null,
+    );
     expect(backend.events, isNot(contains('read:judge')));
     await controller.refreshHome(only: [FeatureId.schedule]);
     expect(
@@ -175,7 +203,11 @@ void main() {
     addTearDown(controller.dispose);
     await controller.initialize();
     await controller.recoverSession();
-    await until(() => backend.events.contains('read:judge'));
+    await until(
+      controller,
+      backend,
+      () => backend.events.contains('read:judge'),
+    );
     expect(backend.logins, [ConnectionMode.webvpn]);
     expect(controller.homeSnapshots[FeatureId.judge]!.error, isNull);
   });
@@ -187,6 +219,8 @@ class _Backend
         FeatureQueryBackend,
         ProgressiveReadBackend,
         RequiredSessionBackend {
+  final changed = StreamController<void>.broadcast(sync: true);
+  void signal() => changed.add(null);
   final events = <String>[];
   final missing = <FeatureId>{};
   final logins = <ConnectionMode>[];
@@ -205,6 +239,7 @@ class _Backend
     FeatureId feature,
   ) async {
     events.add('auth:${feature.name}');
+    signal();
     if (missing.contains(feature))
       throw const BackendException(
         UbaaErrorCode.authenticationRequired,
@@ -237,6 +272,7 @@ class _Backend
   @override
   Future<FeatureResult> loadFeature(FeatureId feature) async {
     events.add('read:${feature.name}');
+    signal();
     return FeatureResult.success(summary: feature.name);
   }
 
@@ -261,6 +297,7 @@ class _ExpiringBackend extends _Backend {
     if (feature != FeatureId.judge) return null;
     final task = _ExpiringTask(this, tasks.isEmpty || persistentFailure);
     tasks.add(task);
+    signal();
     return task;
   }
 }
@@ -304,6 +341,7 @@ class _PausedBackend extends _Backend {
     if (feature != FeatureId.judge) return null;
     final task = _PausedTask(this, tasks.isNotEmpty);
     tasks.add(task);
+    signal();
     return task;
   }
 }
@@ -319,6 +357,7 @@ class _PausedTask implements FeatureReadTask {
   @override
   Future<FeatureReadBatch> next() async {
     calls++;
+    backend.signal();
     if (!restarted && calls == 2) await backend.gate.future;
     return FeatureReadBatch(
       FeatureResult.success(

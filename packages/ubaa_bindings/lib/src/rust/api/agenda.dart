@@ -12,6 +12,7 @@ import 'client.dart';
 import 'offline.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
+import 'shared_account.dart';
 
 // These functions are ignored because they are not marked as `pub`: `task`
 // These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `try_from`
@@ -146,6 +147,19 @@ abstract class BridgeAgendaStore implements RustOpaqueInterface {
     accountId: accountId,
   );
 
+  ///
+  /// # Errors
+  /// 身份版本已撤销、输入非法或本地存储不可用时返回稳定错误。
+  static Future<BridgeAgendaStore> openShared({
+    required String configDir,
+    required String accountId,
+    required BridgeSharedAccount scope,
+  }) => RustLib.instance.api.crateApiAgendaBridgeAgendaStoreOpenShared(
+    configDir: configDir,
+    accountId: accountId,
+    scope: scope,
+  );
+
   /// 读取覆盖和删除标记。
   ///
   /// # Errors
@@ -192,4 +206,8 @@ abstract class BridgeAgendaStore implements RustOpaqueInterface {
   /// # Errors
   /// 输入非法、账号已关闭或本地存储不可用时返回稳定日程错误。
   Future<int> unsyncedCount();
+
+  Future<BridgeAgendaStore> withSharedAccount({
+    required BridgeSharedAccount scope,
+  });
 }

@@ -2,12 +2,17 @@ import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:integration_test/integration_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+import '../../../test/support/platform/native_materials.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   testWidgets('Linux 真实安全存储会话可用性与合成材料闭环', (tester) async {
     const expected = bool.fromEnvironment('UBAA_SECURE_STORAGE_AVAILABLE');
-    final materials = SecureMaterialStore();
+    final coordination = await Directory.systemTemp.createTemp(
+      'ubaa_synthetic_native_',
+    );
+    addTearDown(() async => coordination.delete(recursive: true));
+    final materials = await createNativeTestMaterials(domain: coordination);
     await materials.probe().timeout(const Duration(seconds: 15));
     expect(materials.isAvailable, expected);
     final key = 'linux-test-${DateTime.now().microsecondsSinceEpoch}';
@@ -20,7 +25,7 @@ void main() {
     }
     try {
       await materials.write(key, 'synthetic-value');
-      final reopened = SecureMaterialStore();
+      final reopened = await createNativeTestMaterials(domain: coordination);
       await reopened.probe();
       expect(await reopened.read(key), 'synthetic-value');
       await reopened.delete(key);

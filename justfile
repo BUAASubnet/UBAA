@@ -109,7 +109,7 @@ _rust-shell-contracts:
     just core-test-contract
     cargo test --locked --workspace --exclude ubaa-core
     # 生产宿主各自按默认 feature 链接；--workspace 会被测试辅助 crate 统一打开 test-contract。
-    cargo build --locked -p ubaa-cli
+    cargo build --locked -p ubaa-core-live
     cargo build --locked -p ubaa_flutter_bridge
     cargo doc --locked --workspace --no-deps
 
@@ -219,6 +219,10 @@ module-check:
 [positional-arguments]
 flutter-build *args:
     @python3 scripts/lib/recipe.py flutter-build "$@"
+
+# 构建桌面命令入口，Linux 产物不依赖图形会话。
+command-build platform="host" mode="release":
+    python3 scripts/build/command.py {{platform}} {{mode}}
 
 # 只读显示仓库内各类构建缓存占用；不删除任何文件。
 cache:

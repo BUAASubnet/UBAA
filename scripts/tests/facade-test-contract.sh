@@ -33,7 +33,8 @@ if ! grep -Eq 'could not find `?testing`? in `?facade`?|no `?testing`? in `?faca
 fi
 
 # 不能让 workspace 测试依赖的 feature 合并掩盖生产宿主误用测试构造器。
-cargo check --locked -p ubaa-cli --lib --bins
+cargo check --locked -p ubaa-command --lib
+cargo check --locked -p ubaa-core-live --bins
 cargo check --locked -p ubaa_flutter_bridge --lib
 
 printf '%s\n' 'facade test-contract compile gate passed'

@@ -47,7 +47,7 @@ async fn 发送后panic保持结果未知且确认不可复用() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../.ubaa_local/bhpan_delivery/bridge_tests")
         .join(uuid::Uuid::new_v4().to_string());
-    let bridge = BridgeClient::open(root.to_string_lossy().into_owned()).unwrap();
+    let mut bridge = BridgeClient::open(root.to_string_lossy().into_owned()).unwrap();
     let store = FileSessionStore::new(&root).unwrap();
     store
         .save_dual(&DualSessionSnapshot::new(
@@ -69,6 +69,7 @@ async fn 发送后panic保持结果未知且确认不可复用() {
         NeverProbe,
     )
     .unwrap();
+    bridge.close_control = core.close_control();
     *bridge.inner.lock().await = Some(core);
     let page = bridge
         .bhpan_read(BridgeBhpanQuery {
@@ -131,7 +132,7 @@ async fn dispose在等待读取时取消旧上传准备() {
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../.ubaa_local/bhpan_delivery/bridge_tests")
         .join(uuid::Uuid::new_v4().to_string());
-    let bridge = Arc::new(BridgeClient::open(root.to_string_lossy().into_owned()).unwrap());
+    let mut bridge = Arc::new(BridgeClient::open(root.to_string_lossy().into_owned()).unwrap());
     let store = FileSessionStore::new(&root).unwrap();
     store
         .save_dual(&DualSessionSnapshot::new(
@@ -160,6 +161,7 @@ async fn dispose在等待读取时取消旧上传准备() {
         NeverProbe,
     )
     .unwrap();
+    Arc::get_mut(&mut bridge).unwrap().close_control = core.close_control();
     *bridge.inner.lock().await = Some(core);
     let root_item = bridge
         .bhpan_read(BridgeBhpanQuery {
@@ -255,7 +257,7 @@ async fn pending_commit(
     let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
         .join("../../.ubaa_local/bhpan_delivery/bridge_tests")
         .join(uuid::Uuid::new_v4().to_string());
-    let bridge = BridgeClient::open(root.to_string_lossy().into_owned()).unwrap();
+    let mut bridge = BridgeClient::open(root.to_string_lossy().into_owned()).unwrap();
     let store = FileSessionStore::new(&root).unwrap();
     store
         .save_dual(&DualSessionSnapshot::new(
@@ -272,14 +274,15 @@ async fn pending_commit(
         writes: writes.clone(),
         gate,
     };
-    let core = UbaaClient::with_routing(
+    std::fs::write(root.join("config.toml"), "[route]\ndefault = \"direct\"\n").unwrap();
+    let core = ubaa_core::facade::testing::with_routing_in_config_directory(
         transport.clone(),
         transport,
-        store,
-        RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
+        &root,
         NeverProbe,
     )
     .unwrap();
+    bridge.close_control = core.close_control();
     *bridge.inner.lock().await = Some(core);
     let item = bridge
         .bhpan_read(BridgeBhpanQuery {
@@ -371,6 +374,68 @@ async fn dispose不覆盖已经发送的确定或未知结果() {
             result.unwrap();
         }
         drop(bridge);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[tokio::test]
+async fn 云盘准备在外部退出换号与路线重开后均不得发送() {
+    for change in ["退出", "换号", "路线重开"] {
+        let (bridge, root, handle, writes) =
+            Box::pin(pending_commit(BridgeBhpanMutationKind::Recycle, None)).await;
+        for (name, value) in [
+            ("materials.lock", ""),
+            ("transaction.v1", "UBAA1:C"),
+            ("account-generation.v1", "UBAA1:1"),
+        ] {
+            std::fs::write(root.join(name), value).unwrap();
+        }
+        let scope = crate::api::shared_account::BridgeSharedAccount::capture(
+            root.to_string_lossy().into(),
+            1,
+        )
+        .unwrap();
+        bridge.bind_shared_account(&scope).await.unwrap();
+        match change {
+            "退出" => std::fs::write(root.join("account-generation.v1"), "UBAA1:2").unwrap(),
+            "换号" => {
+                FileSessionStore::new(&root)
+                    .unwrap()
+                    .save_dual(&DualSessionSnapshot::new(
+                        Some(RouteSessionSnapshot {
+                            cookies: vec![],
+                            authenticated_at: 2000,
+                            last_activity: 2001,
+                        }),
+                        None,
+                    ))
+                    .unwrap();
+            }
+            _ => {
+                bridge
+                    .set_default_route_policy(crate::api::client::BridgeRoutePolicy::Direct)
+                    .await
+                    .unwrap();
+            }
+        }
+        let error = bridge.bhpan_commit(handle).await.unwrap_err();
+        assert_ne!(error.code, BridgeErrorCode::OutcomeUnknown);
+        assert_eq!(writes.load(Ordering::SeqCst), 0);
+        if change == "路线重开" {
+            std::fs::write(root.join("account-generation.v1"), "UBAA1:2").unwrap();
+            let current = bridge.inner.lock().await;
+            assert!(
+                current
+                    .as_ref()
+                    .unwrap()
+                    .shared_account_guard()
+                    .unwrap()
+                    .check()
+                    .is_err()
+            );
+        }
+        bridge.dispose().await.unwrap();
+        drop((bridge, scope));
         std::fs::remove_dir_all(root).unwrap();
     }
 }

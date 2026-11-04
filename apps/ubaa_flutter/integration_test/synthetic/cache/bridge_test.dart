@@ -12,6 +12,7 @@ import 'home_todo_probe.dart';
 import 'agenda_write_probe.dart';
 import 'agenda_delivery_probe.dart';
 import 'agenda_repeat_probe.dart';
+import 'recovery_control_probe.dart';
 
 void main() {
   IntegrationTestWidgetsFlutterBinding.ensureInitialized();
@@ -34,7 +35,8 @@ void main() {
       await probeAgendaRepeat(tester, directory.path);
       await probeAgendaWriteFence(directory.path);
       client = await BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 47);
+      expect(client.contractVersion(), 49);
+      await probeRecoveryControl(client);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       final cloud = await client.bhpanCapabilities();
       expect(cloud.directMetadata, BridgeBhpanCapability.available);

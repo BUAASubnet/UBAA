@@ -38,3 +38,8 @@ pub use judge::*;
 
 pub mod agenda;
 pub mod bhpan;
+
+mod required_recovery;
+pub use required_recovery::{
+    RequiredRecoveryControl, RequiredRecoveryInterruption, RequiredRecoveryOperation,
+};

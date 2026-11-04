@@ -24,6 +24,37 @@ use serde_json::json;
 use state::Authority;
 
 impl UbaaClient {
+    /// 解析云盘专用能力与实际路线，在任何云盘或恢复业务请求前拒绝未支持路线。
+    /// # Errors
+    /// 保留实际路线、会话与共享身份错误。
+    pub fn resolve_bhpan_route(&mut self) -> super::RoutedResult<()> {
+        let resolution = self.resolve_operation(Operation::Bhpan)?;
+        Ok(super::Routed {
+            data: (),
+            resolution,
+        })
+    }
+    /// 校验本机名称，与 GUI 和实际写入共用规则。
+    /// # Errors
+    /// 名称为空或包含路径分隔符时拒绝。
+    pub fn validate_bhpan_name(name: &str) -> Result<()> {
+        write::name(name)
+    }
+    /// 校验分享草稿，不访问账号或网络。
+    /// # Errors
+    /// 标题、有效期、次数或权限无效时拒绝。
+    pub fn validate_bhpan_share_settings(
+        settings: &crate::domain::bhpan::BhpanShareSettings,
+    ) -> Result<()> {
+        write::settings(settings)
+    }
+    /// 只读定位值来自本客户端本次读取的对象，输入定位值不能签发操作句柄。
+    /// # Errors
+    /// 句柄已失效时拒绝。
+    pub fn bhpan_item_locator(&mut self, handle: &str) -> Result<String> {
+        self.bhpan_scope()?;
+        Ok(self.bhpan.item(handle)?.item.id)
+    }
     /// 返回已实现的能力和仍缺证据的协议边界。
     #[must_use]
     pub fn bhpan_capabilities(&self) -> BhpanCapabilities {
@@ -45,7 +76,7 @@ impl UbaaClient {
     fn bhpan_scope(&mut self) -> Result<()> {
         self.direct_runtime.ensure_primary_client()?;
         let resolution = self
-            .resolve_operation(Operation::User)
+            .resolve_operation(Operation::Bhpan)
             .map_err(|e| e.error)?;
         if resolution.mode != ConnectionMode::Direct {
             return Err(auth::unavailable());

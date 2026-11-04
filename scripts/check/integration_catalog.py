@@ -15,7 +15,7 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from dart_sources import SourceClosure, workspace_for
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "lib"))
-from toolchain import load_environment
+from toolchain import bash_command, load_environment, sdk_executable
 
 
 from repo import ROOT
@@ -30,6 +30,12 @@ ENVIRONMENT_NAME = re.compile(r"^[A-Za-z_][A-Za-z0-9_]*$")
 # Flutter 只把 integration_test/ 下的文件当作集成测试；点目录不参与登记、格式化和分析。
 AGGREGATE_DIR = ".ci_suite"
 AGGREGATE_PATH = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_/]*\.dart$")
+DEVICE_PLATFORMS = {
+    "android": "android", "android-arm": "android", "android-arm64": "android",
+    "android-x64": "android", "darwin": "macos", "ios": "ios",
+    "linux-x64": "linux", "linux-arm64": "linux",
+    "windows-x64": "windows", "windows-arm64": "windows",
+}
 
 
 def source_closure(path, root, seen=None):
@@ -71,7 +77,48 @@ def build_command(entry, flutter, platform, device=None):
         if not separator or not key or any(character in define for character in "\x00\r\n"):
             raise ValueError(f"入口 {entry['path']} 的 Dart define 无效：{define!r}")
         command.append(f"--dart-define={define}")
+    if platform == "android" and entry["path"] == "platform/credentials/material_test.dart":
+        return [sys.executable, str(ROOT / "scripts/tests/platform/android_materials.py"),
+                "--device", device or platform]
     return command
+
+
+def material_device(platform, device, environment):
+    """安装材料测试前确认实际平台，后续只传唯一完整 ID。"""
+    try:
+        result = subprocess.run(
+            ["just", "--justfile", str(ROOT / "justfile"), "flutter", "devices", "--machine"],
+            cwd=APP, env=environment, check=True, capture_output=True, text=True, timeout=60)
+    except (OSError, subprocess.SubprocessError) as error:
+        raise ValueError("无法发现材料测试设备，拒绝安装和启动") from error
+    try:
+        devices = json.loads(result.stdout)
+    except (ValueError, TypeError) as error:
+        raise ValueError("无法解析材料测试设备身份，拒绝安装和启动") from error
+    if not isinstance(devices, list) or any(
+            not isinstance(item, dict) or not isinstance(item.get("id"), str)
+            or not item["id"].strip() for item in devices):
+        raise ValueError("材料测试设备清单无效，拒绝安装和启动")
+
+    def actual_platform(item):
+        target = item.get("targetPlatform")
+        return DEVICE_PLATFORMS.get(target) if isinstance(target, str) else None
+
+    # 不使用 Flutter 的名称或前缀匹配；省略 ID 时要求所选平台恰好一个设备。
+    candidates = [item for item in devices if item["id"] == device] if device else [
+        item for item in devices if actual_platform(item) == platform]
+    if len(candidates) != 1:
+        raise ValueError("无法唯一确认材料测试设备，请指定已连接设备的完整 ID")
+    selected = candidates[0]
+    identity = selected["id"]
+    # Flutter 同时按 ID 和名称忽略大小写匹配，冲突时也不能传给后续安装。
+    matches = [item for item in devices if identity.lower() in (
+        item["id"].lower(), str(item.get("name", "")).lower())]
+    if identity.lower() == "all" or len(matches) != 1:
+        raise ValueError("材料测试设备 ID 存在歧义，拒绝安装和启动")
+    if selected.get("isSupported") is not True or actual_platform(selected) != platform:
+        raise ValueError("材料测试设备不受支持或实际平台与声明平台不符，拒绝安装和启动")
+    return identity
 
 
 def validate(entries, root=TEST_ROOT):
@@ -191,7 +238,7 @@ def main():
     flutter_root = os.environ.get("UBAA_FLUTTER_HOME", "")
     if not flutter_root or not Path(flutter_root).is_absolute():
         raise ValueError("请设置 UBAA_FLUTTER_HOME 为锁定官方 Flutter SDK 的绝对路径")
-    flutter = Path(flutter_root) / "bin" / "flutter"
+    flutter = sdk_executable(flutter_root, "flutter")
     environment = os.environ.copy()
     # 即使从带账号的终端发起，常规回归也不会继承真实配置入口。
     for name in ("UBAA_CONFIG_DIR", "UBAA_LIVE_MATERIAL_SCOPE", "UBAA_TEST_USERNAME",
@@ -200,6 +247,9 @@ def main():
     # 任一入口前提缺失时不启动任何命令，也不生成聚合入口。
     for entry in selected:
         environment_for_entry(entry, environment)
+    device = args.device
+    if any(entry["path"].startswith("platform/credentials/") for entry in selected):
+        device = material_device(args.platform, device, environment)
     runs, generated = selected, None
     if args.suite == "ci" and len(selected) > 1:
         # 每个入口文件都会触发一次原生构建和应用启动，默认集合合并为一次。
@@ -209,10 +259,10 @@ def main():
     commands = []
     for entry in runs:
         entry_environment = environment_for_entry(entry, environment)
-        command = build_command(entry, flutter, args.platform, args.device)
+        command = build_command(entry, flutter, args.platform, device)
         commands.append((command, entry_environment))
     if not args.dry_run:
-        subprocess.run(["bash", str(ROOT / "scripts/check/flutter-toolchains.sh"), "official"],
+        subprocess.run(bash_command(ROOT / "scripts/check/flutter-toolchains.sh", "official", environment=environment),
                        cwd=ROOT, env=environment, check=True)
     aggregate_dir = TEST_ROOT / AGGREGATE_DIR
     try:

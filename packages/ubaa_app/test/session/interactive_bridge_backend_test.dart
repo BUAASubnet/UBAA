@@ -171,7 +171,7 @@ class _Client implements BridgeClient {
       );
 
   @override
-  int contractVersion() => 47;
+  int contractVersion() => 49;
   @override
   void cancelInteractiveLogin() {}
   @override

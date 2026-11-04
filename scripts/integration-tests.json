@@ -151,11 +151,66 @@
       "inspection": false,
       "runner": "test",
       "environment": [
-        "DBUS_SESSION_BUS_ADDRESS"
+        "DBUS_SESSION_BUS_ADDRESS",
+        "UBAA_SYNTHETIC_SECRET_SERVICE_ROOT",
+        "XDG_DATA_HOME",
+        "XDG_CONFIG_HOME",
+        "XDG_RUNTIME_DIR"
       ],
       "defines": [
-        "UBAA_SECURE_STORAGE_AVAILABLE=true"
+        "UBAA_SECURE_STORAGE_AVAILABLE=true",
+        "UBAA_SYNTHETIC_SECRET_SERVICE=true"
       ]
+    },
+    {
+      "path": "synthetic/cache/shared_lifecycle_test.dart",
+      "kind": "synthetic",
+      "domain": "shared-account",
+      "platforms": [
+        "macos",
+        "ios",
+        "android",
+        "linux",
+        "windows"
+      ],
+      "ci": true,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
+    },
+    {
+      "path": "synthetic/command/entry.dart",
+      "kind": "synthetic",
+      "domain": "command",
+      "platforms": [
+        "macos",
+        "windows"
+      ],
+      "ci": false,
+      "inspection": false,
+      "runner": "run",
+      "environment": [
+        "UBAA_COMMAND_EVIDENCE_DIR"
+      ],
+      "defines": []
+    },
+    {
+      "path": "synthetic/command/input_test.dart",
+      "kind": "synthetic",
+      "domain": "command",
+      "platforms": [
+        "macos",
+        "windows",
+        "linux",
+        "ios",
+        "android"
+      ],
+      "ci": true,
+      "inspection": false,
+      "runner": "test",
+      "environment": [],
+      "defines": []
     }
   ]
 }

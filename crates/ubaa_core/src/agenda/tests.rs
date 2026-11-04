@@ -7,6 +7,31 @@ pub(super) fn t(raw: &str) -> AgendaTime {
 fn d(raw: &str) -> NaiveDate {
     raw.parse().unwrap()
 }
+#[test]
+fn 清除在同一事务核对另一句柄新增的未同步数量() {
+    let root = std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+        .join("../../.ubaa_local/command_delivery/tests")
+        .join(uuid::Uuid::new_v4().to_string());
+    std::fs::create_dir_all(&root).unwrap();
+    let alias = "0123456789abcdef0123456789abcdef";
+    let one = AgendaStore::open(&root, alias).unwrap();
+    let two = AgendaStore::open(&root, alias).unwrap();
+    let first = event();
+    let second = event();
+    one.create(first.clone()).unwrap();
+    let observed = one.unsynced_count().unwrap();
+    two.create(second.clone()).unwrap();
+    assert_eq!(
+        one.clear_local_data_if_unsynced(observed),
+        Err(crate::cache::CacheError::InvalidInput)
+    );
+    assert!(one.get(first.id).unwrap().is_some());
+    assert!(two.get(second.id).unwrap().is_some());
+    assert_eq!(one.clear_local_data_if_unsynced(2).unwrap(), 2);
+    assert_eq!(two.unsynced_count().unwrap(), 0);
+    drop((one, two));
+    std::fs::remove_dir_all(root).unwrap();
+}
 pub(super) fn event() -> AgendaItem {
     AgendaItem::new(
         AgendaContent {

@@ -17,6 +17,35 @@ void main() {
     api.handle = _Handle();
     api.accounts.clear();
   });
+  test('独立日程查询与完成直接使用本机句柄且学校入口零调用', () async {
+    final client = _Client();
+    final backend = BridgeAgendaBackend(
+      BridgeContext(client, configDirectory: '/synthetic'),
+    );
+    await backend.openAccount(_alias);
+    final now = AgendaTime(
+      rfc3339: '2026-11-01T12:00:00+08:00',
+      timezone: 'Asia/Shanghai',
+    );
+    final query = AgendaQuery(
+      route: ConnectionMode.direct,
+      term: 'synthetic',
+      from: '2026-11-01',
+      to: '2026-11-02',
+      now: now,
+      includeHidden: false,
+      ygdkEnabled: false,
+      ygdkWeekDone: false,
+      ygdkTermDone: false,
+    );
+    await backend.query(query);
+    await backend.complete('synthetic-task', null, true, now);
+    await backend.query(query);
+    expect(api.handle.localQueries, 2);
+    expect(api.handle.completions, [('synthetic-task', true)]);
+    expect(client.unexpectedCalls, 0);
+    await backend.deactivate();
+  });
   test('生产后端日程独立打开，日程损坏不映射为可重建缓存故障', () async {
     final backend = BridgeBackend(_Client(), configDirectory: '/synthetic');
     await backend.agenda.openAccount(_alias);
@@ -196,6 +225,11 @@ class _Api extends RustLibApi {
 }
 
 class _Handle implements BridgeAgendaStore {
+  @override
+  void dispose() {
+    active = false;
+  }
+
   bool active = false;
   BridgeAgendaError? getFailure;
   Completer<BridgeAgendaQueryResult>? cacheGate;
@@ -225,6 +259,17 @@ class _Handle implements BridgeAgendaStore {
       exportedCount: 2,
       skippedUnknownTimeCount: 0,
     );
+  }
+
+  final completions = <(String, bool)>[];
+  @override
+  Future<void> complete({
+    required String itemId,
+    BridgeAgendaTime? at,
+    required bool completed,
+    required BridgeAgendaTime now,
+  }) async {
+    completions.add((itemId, completed));
   }
 
   @override
@@ -266,14 +311,24 @@ class _Handle implements BridgeAgendaStore {
 
 class _Cache implements BridgeOfflineCache {
   @override
+  Future<void> close() async {}
+
+  @override
+  void dispose() {}
+
+  @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _Client implements BridgeClient {
+  int unexpectedCalls = 0;
   @override
-  int contractVersion() => 47;
+  int contractVersion() => 49;
   @override
   Future<void> dispose() async {}
   @override
-  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+  dynamic noSuchMethod(Invocation invocation) {
+    unexpectedCalls++;
+    throw StateError('本机日程不得调用学校客户端 ${invocation.memberName}');
+  }
 }

@@ -1,17 +1,29 @@
 import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:meta/meta.dart';
+import 'package:ubaa_platform/shared_accounts.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
 import 'package:ubaa_app/src/contracts/recovery.dart';
+import '../../contracts/session_recovery.dart';
+import '../../services/session_recovery.dart';
 import '../state/state.dart' show ControllerState;
 
 mixin ControllerRequiredRecovery on ControllerState {
   @internal
   Future<LoginInput?> internalApprovedRecoveryInput(int epoch) async {
-    if (internalAutomaticCredentialBlocked) return null;
+    if (internalManualAuthenticationRequired ||
+        internalAutomaticCredentialBlocked ||
+        internalAutomaticLoginDisabled)
+      return null;
+    final revision = internalLoginCredentialRevision;
     final saved = await internalCredentialVault.read();
-    if (!internalRecoveryIsCurrent(epoch)) return null;
+    if (!internalRecoveryIsCurrent(epoch) ||
+        revision != internalLoginCredentialRevision ||
+        internalManualAuthenticationRequired ||
+        internalAutomaticCredentialBlocked ||
+        internalAutomaticLoginDisabled)
+      return null;
     if (saved == null ||
         !saved.isUsable ||
         !saved.autoLogin ||
@@ -38,26 +50,80 @@ mixin ControllerRequiredRecovery on ControllerState {
     FeatureId feature,
     int epoch,
   ) async {
-    RecoveredRouteSession recovered;
-    try {
-      recovered = await backend.recoverRequiredSession(feature);
-    } on BackendException catch (error) {
-      if (!internalRecoveryIsCurrent(epoch)) return null;
-      // 只使用 Core 已返回的目标；无路线或临时故障不能尝试提交密码。
-      if (error.code != UbaaErrorCode.authenticationRequired ||
-          error.resolvedRoute == null)
-        rethrow;
-      final input = await internalApprovedRecoveryInput(epoch);
-      if (!internalRecoveryIsCurrent(epoch)) return null;
-      if (input == null) rethrow;
-      recovered = await backend.loginRequiredRoute(error.resolvedRoute!, input);
-      if (recovered.route != error.resolvedRoute)
-        throw const BackendException(UbaaErrorCode.upstreamChanged);
-      internalActiveRecovery?.replacedRoute = recovered.route;
+    final session = internalCaptureSessionScope();
+    final account = internalLocalAccount;
+    final expected =
+        account?.username ?? internalUser?.schoolId ?? internalUser?.username;
+    if (expected == null) return null;
+    final routeGeneration = internalRoutePolicyGeneration;
+    final credentials = internalLoginCredentialRevision;
+    final service = internalRequiredRecoveryServices.putIfAbsent(
+      session.backend,
+      () => RequiredSessionRecovery(
+        backend: backend,
+        credentials: internalCredentialVault,
+        rebuildBackend: internalLocalAccountStore is SecureLocalAccountStore
+            ? (_) async => throw const BackendException(
+                UbaaErrorCode.operationConflict,
+                clientDisposed: true,
+              )
+            : null,
+      ),
+    );
+    bool current() =>
+        session.isCurrent &&
+        internalRecoveryIsCurrent(epoch) &&
+        internalLocalAccount?.id == account?.id &&
+        routeGeneration == internalRoutePolicyGeneration &&
+        credentials == internalLoginCredentialRevision &&
+        !internalRoutePolicyInFlight;
+    final store = internalLocalAccountStore;
+    final scope = store is SecureLocalAccountStore
+        ? await RecoveryScope.capture(
+            accounts: store,
+            snapshot: internalSharedAccountSnapshot,
+            routeGeneration: routeGeneration,
+            backendGeneration: epoch,
+            credentialGeneration: credentials,
+            routePolicy: internalLoginForm.routePolicy,
+            allowAutomaticLogin:
+                account != null &&
+                !internalAutomaticCredentialBlocked &&
+                !internalAutomaticLoginDisabled &&
+                !internalManualAuthenticationRequired,
+            isCurrent: current,
+          )
+        : RecoveryScope(
+            accountAlias: account?.id ?? '',
+            expectedUsername: expected,
+            accountGeneration: epoch,
+            routeGeneration: routeGeneration,
+            backendGeneration: epoch,
+            credentialGeneration: credentials,
+            routePolicy: internalLoginForm.routePolicy,
+            allowAutomaticLogin:
+                account != null &&
+                !internalAutomaticCredentialBlocked &&
+                !internalAutomaticLoginDisabled &&
+                !internalManualAuthenticationRequired,
+            isCurrent: current,
+          );
+    if (scope.accountAlias != (account?.id ?? ''))
+      throw const RecoveryInterrupted(RecoveryStopReason.superseded);
+    internalSharedRecoveryScope = scope;
+    final result = await service.ensureRequiredSession(
+      feature: feature,
+      scope: scope,
+      deadline: DateTime.now().add(const Duration(minutes: 2)),
+    );
+    await scope.validatePersistent();
+    if (!scope.isCurrent) return null;
+    internalSharedAccountSnapshot = scope.sharedSnapshot;
+    if (result.disposition == RecoveryDisposition.reauthenticated) {
+      internalActiveRecovery?.replacedRoute = result.session.route;
     }
-    if (!internalRecoveryIsCurrent(epoch)) return null;
-    internalRecoveredRoute = recovered.route;
-    return recovered.profile;
+    internalRecoveredRoute = result.session.route;
+    return result.session.profile;
   }
 
   @internal

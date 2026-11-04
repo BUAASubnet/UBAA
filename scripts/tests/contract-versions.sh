@@ -30,7 +30,7 @@ new_fixture() {
   local name=$1
   local fixture="$test_root/$name"
   mkdir -p \
-    "$fixture/apps/ubaa_cli/src/io" \
+    "$fixture/crates/ubaa_command/src/io" \
     "$fixture/crates/ubaa_flutter_bridge/src/api" \
     "$fixture/packages/ubaa_app/lib/src/bridge" \
     "$fixture/packages/ubaa_platform" \
@@ -44,7 +44,7 @@ new_fixture() {
   chmod +x "$fixture/scripts/check/contract-versions.sh"
 
   printf '%s\n' 'pub const CLI_JSON_SCHEMA_VERSION: u32 = 10;' \
-    >"$fixture/apps/ubaa_cli/src/io/schema.rs"
+    >"$fixture/crates/ubaa_command/src/io/schema.rs"
   printf '%s\n' 'pub const BRIDGE_CONTRACT_VERSION: u32 = 9;' \
     >"$fixture/crates/ubaa_flutter_bridge/src/api/client.rs"
   printf '%s\n' 'const _supportedBridgeContractVersion = 9;' \

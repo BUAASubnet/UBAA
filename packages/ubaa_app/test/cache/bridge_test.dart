@@ -152,12 +152,18 @@ class _Api implements RustLibApi {
 
 class _Client implements BridgeClient {
   @override
-  int contractVersion() => 47;
+  int contractVersion() => 49;
   @override
   dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }
 
 class _Cache implements BridgeOfflineCache {
+  @override
+  Future<void> close() async {}
+
+  @override
+  void dispose() {}
+
   @override
   Future<BridgeCachedAcademicTerms?> readAcademicTerms({
     required BridgeConnectionMode route,

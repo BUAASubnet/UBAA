@@ -10,11 +10,12 @@ void main() {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     final events = StreamController<void>.broadcast();
     final opened = Completer<UbaaBackend>();
+    final accounts = await fixtures.widgetAccounts(tester);
     final backend = fixtures.FakeRecoveryBackend();
     await tester.pumpWidget(
       UbaaAppHost(
         backendFactory: () => opened.future,
-        localAccountStore: await fixtures.savedAccounts(),
+        localAccountStore: accounts,
         networkChanges: events.stream,
       ),
     );
@@ -27,11 +28,13 @@ void main() {
     expect(backend.readCalls, 0);
 
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await accounts.settle(tester);
     await tester.pumpAndSettle();
     expect(events.hasListener, isTrue);
     expect(backend.authCalls, 1);
     expect(backend.readCalls, greaterThan(0));
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    await accounts.settle(tester);
     await tester.pumpAndSettle();
     expect(backend.authCalls, 1);
     await tester.pumpWidget(const SizedBox());
@@ -41,16 +44,18 @@ void main() {
   testWidgets('本地首页首帧前的恢复事件与启动恢复合并', (tester) async {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     final opened = Completer<UbaaBackend>();
+    final accounts = await fixtures.widgetAccounts(tester);
     final backend = fixtures.FakeRecoveryBackend();
     await tester.pumpWidget(
       UbaaAppHost(
         backendFactory: () => opened.future,
-        localAccountStore: await fixtures.savedAccounts(),
+        localAccountStore: accounts,
       ),
     );
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.hidden);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     opened.complete(backend);
+    await accounts.settle(tester);
     await tester.pumpAndSettle();
     expect(backend.authCalls, 1);
     expect(backend.loginCalls, 0);
@@ -61,14 +66,16 @@ void main() {
     testWidgets('$hidden 后窗口可见但未获焦点，恢复订阅与读取且获焦点不重复恢复', (tester) async {
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       final events = StreamController<void>.broadcast();
+      final accounts = await fixtures.widgetAccounts(tester);
       final backend = fixtures.FakeRecoveryBackend();
       await tester.pumpWidget(
         UbaaAppHost(
           backend: backend,
-          localAccountStore: await fixtures.savedAccounts(),
+          localAccountStore: accounts,
           networkChanges: events.stream,
         ),
       );
+      await accounts.settle(tester);
       await tester.pumpAndSettle();
       expect(backend.authCalls, 1);
       final reads = backend.readCalls;
@@ -77,11 +84,13 @@ void main() {
       await Future<void>.microtask(() {});
       expect(events.hasListener, isFalse);
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+      await accounts.settle(tester);
       await tester.pumpAndSettle();
       expect(events.hasListener, isTrue);
       expect(backend.authCalls, 2);
       expect(backend.readCalls, greaterThan(reads));
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+      await accounts.settle(tester);
       await tester.pumpAndSettle();
       expect(backend.authCalls, 2);
       expect(backend.loginCalls, 0);
@@ -93,15 +102,15 @@ void main() {
 
   testWidgets('仅窗口焦点变化不重启恢复，在途恢复跨隐藏与重新可见仍合并', (tester) async {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final accounts = await fixtures.widgetAccounts(tester);
     final backend = fixtures.FakeRecoveryBackend();
     await tester.pumpWidget(
-      UbaaAppHost(
-        backend: backend,
-        localAccountStore: await fixtures.savedAccounts(),
-      ),
+      UbaaAppHost(backend: backend, localAccountStore: accounts),
     );
+    await accounts.settle(tester);
     await tester.pumpAndSettle();
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
+    await accounts.settle(tester);
     await tester.pumpAndSettle();
     expect(backend.authCalls, 1);
     backend.gate = Completer<AuthStatus>();
@@ -115,6 +124,7 @@ void main() {
     await tester.pump();
     expect(backend.authCalls, 2);
     backend.gate!.complete(AuthStatus.signedIn);
+    await accounts.settle(tester);
     await tester.pumpAndSettle();
     expect(backend.authCalls, 2);
     expect(backend.loginCalls, 0);

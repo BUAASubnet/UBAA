@@ -163,6 +163,12 @@ impl UbaaClient {
         self.webvpn_runtime.clear_memory();
         self.direct_auth.clear();
         self.webvpn_auth.clear();
+        let _permit = self
+            .direct_runtime
+            .shared_account
+            .as_ref()
+            .map(super::SharedAccountGuard::acquire)
+            .transpose()?;
         let revisions = self.sessions.clear_both()?;
         self.direct_runtime.set_session_revision(revisions.direct);
         self.webvpn_runtime.set_session_revision(revisions.webvpn);

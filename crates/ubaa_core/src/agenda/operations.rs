@@ -82,6 +82,13 @@ impl AgendaStore {
         self.access(true, true, |data| {
             let item = data.items.get_mut(&id).ok_or(CacheError::InvalidInput)?;
             touch(item, now)?;
+            let exdates = exdates.filter(|dates| {
+                dates
+                    .iter()
+                    .copied()
+                    .collect::<std::collections::BTreeSet<_>>()
+                    != item.exdates
+            });
             let mut successor = match scope {
                 AgendaEditScope::This => {
                     let key = occurrence_key(item, at)?;

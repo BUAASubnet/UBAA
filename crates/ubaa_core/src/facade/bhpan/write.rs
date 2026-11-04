@@ -63,7 +63,7 @@ pub(super) fn name(name: &str) -> Result<()> {
         Ok(())
     }
 }
-fn settings(s: &BhpanShareSettings) -> Result<()> {
+pub(super) fn settings(s: &BhpanShareSettings) -> Result<()> {
     if s.title.trim().is_empty()
         || s.limited_times < -1
         || s.limited_times == 0

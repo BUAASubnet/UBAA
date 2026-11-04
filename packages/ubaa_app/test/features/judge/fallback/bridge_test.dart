@@ -148,6 +148,12 @@ class Api implements RustLibApi {
 
 class Cache implements BridgeOfflineCache {
   @override
+  Future<void> close() async {}
+
+  @override
+  void dispose() {}
+
+  @override
   Future<void> activate() async {}
   @override
   Future<void> deactivate() async {}

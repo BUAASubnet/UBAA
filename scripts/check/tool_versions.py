@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """检查必须在工具自身声明的版本镜像，避免出现第二套维护值。"""
 from pathlib import Path
+import json
 import re
 import sys
 import tomllib
@@ -10,10 +11,21 @@ from environment import read_values
 from repo import ROOT
 
 
+def check_cargokit_toolchains(root, rust):
+    # JSON 是 YAML 的子集，标准库与 Cargokit 读取同一份配置。
+    config = json.loads((root / 'crates/ubaa_flutter_bridge/cargokit.yaml').read_text())
+    cargo = config.get('cargo', {}) if isinstance(config, dict) else {}
+    for mode in ('debug', 'profile', 'release'):
+        options = cargo.get(mode, {})
+        if not isinstance(options, dict) or options.get('toolchain') != rust:
+            raise ValueError(f'Cargokit {mode} 工具链未同步 rust-toolchain.toml')
+
+
 def main():
     values = read_values(ROOT / 'scripts/tools/versions.env')
     edition = tomllib.loads((ROOT / 'Cargo.toml').read_text())['workspace']['package']['edition']
     rust = tomllib.loads((ROOT / 'rust-toolchain.toml').read_text())['toolchain']['channel']
+    check_cargokit_toolchains(ROOT, rust)
     bridge = tomllib.loads((ROOT / 'crates/ubaa_flutter_bridge/Cargo.toml').read_text())
     frb = bridge['dependencies']['flutter_rust_bridge']
     if isinstance(frb, dict):

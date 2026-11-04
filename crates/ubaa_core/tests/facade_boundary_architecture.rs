@@ -44,10 +44,11 @@ const FEATURE_TEST_TARGETS: [(&str, &str); 14] = [
 ];
 
 #[test]
-fn cli_与_bridge_生产源码只能通过_facade_引用_core() {
+fn 命令与_bridge_生产源码只能通过_facade_引用_core() {
     let repository = repository_root();
     let hosts = [
-        ("CLI", repository.join("apps/ubaa_cli/src")),
+        ("公共命令", repository.join("crates/ubaa_command/src")),
+        ("Core-live", repository.join("tools/core_live/src")),
         (
             "Flutter bridge",
             repository.join("crates/ubaa_flutter_bridge/src"),
@@ -142,7 +143,8 @@ fn test_contract_是关闭默认值且仅由测试支持显式启用() {
     let repository = repository_root();
     let core = parse_manifest(&manifest_dir().join("Cargo.toml"));
     let test_support = parse_manifest(&repository.join("crates/ubaa_test_support/Cargo.toml"));
-    let cli = parse_manifest(&repository.join("apps/ubaa_cli/Cargo.toml"));
+    let command = parse_manifest(&repository.join("crates/ubaa_command/Cargo.toml"));
+    let core_live = parse_manifest(&repository.join("tools/core_live/Cargo.toml"));
     let bridge = parse_manifest(&repository.join("crates/ubaa_flutter_bridge/Cargo.toml"));
     let mut violations = Vec::new();
 
@@ -179,7 +181,11 @@ fn test_contract_是关闭默认值且仅由测试支持显式启用() {
         }
     }
 
-    for (host, manifest) in [("ubaa-cli", &cli), ("ubaa-flutter-bridge", &bridge)] {
+    for (host, manifest) in [
+        ("ubaa-command", &command),
+        ("ubaa-core-live", &core_live),
+        ("ubaa-flutter-bridge", &bridge),
+    ] {
         let dependencies = dependency_declarations(manifest, "ubaa-core");
         if dependencies.is_empty() {
             violations.push(format!("{host} manifest 必须显式声明 ubaa-core 生产依赖"));

@@ -7,6 +7,7 @@ import '../frb_generated.dart';
 import 'bhpan.dart';
 import 'bhpan/models.dart';
 import 'campus.dart';
+import 'command.dart';
 import 'ihome.dart';
 import 'initialization.dart';
 import 'interactive_auth.dart';
@@ -29,8 +30,10 @@ import 'offline_ygdk.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 import 'read.dart';
 import 'recovery.dart';
+import 'recovery/control.dart';
 import 'schedule_import.dart';
 import 'sensitive.dart';
+import 'shared_account.dart';
 import 'write.dart';
 import 'write/cache.dart';
 
@@ -234,6 +237,11 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String name,
   });
 
+  ///
+  /// # Errors
+  /// 身份版本已撤销、输入非法或本地存储不可用时返回稳定错误。
+  Future<void> bindSharedAccount({required BridgeSharedAccount scope});
+
   /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
   ///
   /// # Errors
@@ -422,6 +430,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String date,
   });
 
+  /// # Errors
+  /// 身份凭证已消费或不属于当前认证代次时返回错误。
+  /// # Panics
+  /// 命令状态锁被其他线程的 panic 污染时终止。
+  Future<String> commandLoginUsername({
+    required BridgeCommandLoginIdentity identity,
+  });
+
   Future<BridgeWriteCommitResult> commitWrite({required String intentId});
 
   /// 复用原意图消费、实时资格与单次发送；释放原客户端锁前完成关联本地失效。
@@ -431,6 +447,14 @@ abstract class BridgeClient implements RustOpaqueInterface {
   Future<BridgeCachedWriteCommit> commitWriteCached({
     required BridgeOfflineCache cache,
     required String intentId,
+  });
+
+  /// # Errors
+  /// 身份凭证已消费或认证代次已变化时返回错误。
+  /// # Panics
+  /// 命令状态锁被其他线程的 panic 污染时终止。
+  Future<void> consumeCommandLoginIdentity({
+    required BridgeCommandLoginIdentity identity,
   });
 
   /// 明确进入已就绪路线；Core 原子保存所需策略，保留真实认证槽位。
@@ -475,6 +499,30 @@ abstract class BridgeClient implements RustOpaqueInterface {
   });
 
   Future<BridgeRoutedExamArrangement> examArrangement({required String term});
+
+  /// # Errors
+  /// 客户端或缓存不可用、次数已用尽或命令已停止时返回错误。
+  Future<BridgeCommandAttempt> executeCachedCommand({
+    required BridgeCommand command,
+    required String expectedIdentity,
+    required BridgeOfflineCache cache,
+  });
+
+  /// 每次读取借用当前 Core；学校写入使用共享的一次性意图，最多重跑一次只读命令。
+  /// # Errors
+  /// 客户端已关闭、次数已用尽或命令已停止时返回错误。
+  Future<BridgeCommandAttempt> executeCommand({
+    required BridgeCommand command,
+    String? expectedIdentity,
+  });
+
+  /// 条件撤销票据只供本次显式退出，结束后恢复原固定归属。
+  /// # Errors
+  /// 计划不是退出、撤销票据不可用或客户端已关闭时返回错误。
+  Future<BridgeCommandAttempt> executeCommandLogout({
+    required BridgeCommand command,
+    required BridgeSharedAccount scope,
+  });
 
   Future<BridgeRoutedGrades> grades({required String term});
 
@@ -658,12 +706,29 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String password,
   });
 
+  /// 只向已明确的目标路线提交获准凭据，期限和取消覆盖锁排队。
+  ///
+  /// # Errors
+  /// 保留原认证和写资格冲突，取消不重放或注销共享会话。
+  Future<BridgeRequiredSession> loginRequiredRouteControlled({
+    required BridgeConnectionMode route,
+    required String username,
+    required String password,
+    required BridgeRequiredRecoveryControl control,
+  });
+
   /// 清理 Core Session 并执行尽力远端注销。
   ///
   /// # Errors
   ///
   /// 客户端已销毁或 Core 注销失败时返回安全错误。
   Future<void> logout();
+
+  /// 仅在此退出调用内使用条件撤销票据，结束后恢复旧归属，不能继承为普通写资格。
+  ///
+  /// # Errors
+  /// 票据已被另一登录取代、客户端已关闭或本地退出失败时返回稳定错误。
+  Future<void> logoutWithSharedAccount({required BridgeSharedAccount scope});
 
   /// 在线读取网络产品流量，保留原始单位。
   Future<BridgeNetworkUsageResult> networkUsage();
@@ -814,6 +879,15 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeRecoveryFeature feature,
   });
 
+  /// 在单次控制范围内校验任务所需路线。
+  ///
+  /// # Errors
+  /// 原校验错误、取消、超时或重复使用均返回安全错误。
+  Future<BridgeRequiredSession> recoverRequiredSessionControlled({
+    required BridgeRecoveryFeature feature,
+    required BridgeRequiredRecoveryControl control,
+  });
+
   /// 只刷新所选路线的当前挑战，不使用密码。
   ///
   /// # Errors
@@ -823,6 +897,12 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required BridgeInteractiveLogin login,
     required BridgeConnectionMode route,
   });
+
+  /// 仅供显式登录开始使用，先丢弃旧写意图与派生读取。
+  ///
+  /// # Errors
+  /// 身份版本已撤销、输入非法或本地存储不可用时返回稳定错误。
+  Future<void> releaseSharedAccountForLogin();
 
   /// 读取全局路线策略与已认证槽位。
   ///
@@ -882,6 +962,10 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String password,
     required List<BridgeCaptchaAnswer> answers,
   });
+
+  /// # Errors
+  /// 本次认证没有可交付的身份凭证时返回错误。
+  Future<BridgeCommandLoginIdentity> takeCommandLoginIdentity();
 
   /// 获取必要的用户资料。
   ///

@@ -108,8 +108,8 @@ def bridge_closure(lock_text):
 
 def rust_only_manifest(root, path, previous):
     """Rust 清单改动能否证明不影响 Bridge 原生产物与 FRB 生成；不能证明时返回 False。"""
-    if path == 'apps/ubaa_cli/Cargo.toml':
-        # CLI 清单只影响 CLI 自身；依赖版本变化会体现在 Cargo.lock 或根清单，另行判断。
+    if path == 'tools/core_live/Cargo.toml':
+        # 开发工具清单只影响 Core-live；依赖版本变化由锁文件和根清单另行判断。
         return True
     if path not in {'Cargo.lock', 'Cargo.toml'} or previous is None:
         return False
@@ -150,9 +150,10 @@ BOUNDARIES = (
     'packages/ubaa_host/lib/', 'packages/ubaa_domain/lib/',
     'packages/ubaa_ui/lib/src/write', 'packages/ubaa_ui/lib/src/app/shell_write.dart',
     'packages/ubaa_ui/lib/src/app/cache_settings.dart',
-    'apps/ubaa_cli/src/execute/', 'apps/ubaa_cli/src/backend/',
-    'apps/ubaa_cli/src/bin/core_live/', 'apps/ubaa_cli/src/command/',
-    'apps/ubaa_cli/src/io/input.rs', 'apps/ubaa_cli/src/routing.rs',
+    'crates/ubaa_command/src/execute/', 'crates/ubaa_command/src/backend/',
+    'tools/core_live/src/', 'crates/ubaa_command/src/command/',
+    'crates/ubaa_command/src/runtime/', 'crates/ubaa_command/src/agenda/',
+    'crates/ubaa_command/src/io/input.rs', 'crates/ubaa_command/src/routing.rs',
     'scripts/live/', 'scripts/check/sensitive', 'scripts/lib/sensitive',
     'scripts/lib/environment.py', 'scripts/lib/live-features.sh',
     'scripts/release/macos-entitlements.sh',
@@ -162,7 +163,7 @@ MANIFESTS = {'pubspec.yaml', 'pubspec.lock', 'Cargo.toml', 'Cargo.lock', 'rust-t
              'flutter_rust_bridge.yaml'}
 OHOS = ('apps/ubaa_ohos/', 'packages/flutter_secure_storage_ohos/',
         'packages/connectivity_plus_ohos/', 'packages/package_info_plus_ohos/')
-DOCUMENT_ROOTS = ('docs/', 'scripts/', '.github/', 'apps/ubaa_cli/',
+DOCUMENT_ROOTS = ('docs/', 'scripts/', '.github/', 'crates/ubaa_command/', 'tools/core_live/',
                   'crates/ubaa_core/', 'crates/ubaa_flutter_bridge/', 'crates/ubaa_test_support/',
                   *OHOS, *(folder + '/' for folder in PACKAGES.values()))
 SCRIPT_EXTENSIONS = {'.py', '.sh', '.cjs', '.js', '.ts', '.pl', '.yml', '.yaml', '.json', '.txt', '.env'}
@@ -228,7 +229,7 @@ def select_checks(root, paths, mode='commit', previous=None):
                 production.add(owner)
             else:
                 full = codegen = True
-        elif path.startswith('apps/ubaa_cli/') and Path(path).suffix == '.rs':
+        elif path.startswith(('crates/ubaa_command/', 'tools/core_live/')) and Path(path).suffix == '.rs':
             rust = True
         elif path == 'analysis_options.yaml':
             selected.update(PACKAGES)

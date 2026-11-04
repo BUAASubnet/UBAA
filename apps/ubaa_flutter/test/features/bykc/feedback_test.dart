@@ -5,6 +5,7 @@ import 'package:ubaa_flutter/main.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_test_support/navigation.dart';
+import 'package:ubaa_test_support/recovery.dart' as startup;
 import '../../support/bykc/feedback_backend.dart';
 
 void main() {
@@ -128,10 +129,10 @@ Future<void> _open(WidgetTester tester, BoyaFeedbackBackend backend) async {
   tester.view.physicalSize = const Size(402, 874);
   addTearDown(tester.view.resetDevicePixelRatio);
   addTearDown(tester.view.resetPhysicalSize);
-  final materials = SecureMaterialStore(transport: _MemoryMaterials());
-  await materials.probe();
-  final accounts = SecureLocalAccountStore(materials);
-  await accounts.retain('coursework-fixture', retainSession: true);
+  final accounts = await startup.widgetAccounts(
+    tester,
+    username: 'coursework-fixture',
+  );
   await tester.pumpWidget(
     UbaaFlutterApp(
       backend: backend,
@@ -140,21 +141,7 @@ Future<void> _open(WidgetTester tester, BoyaFeedbackBackend backend) async {
       initialDestination: UiDestination.study,
     ),
   );
+  await accounts.settle(tester);
   await tester.pumpAndSettle();
   await tapVisible(tester, find.widgetWithText(Card, FeatureId.bykc.title));
-}
-
-class _MemoryMaterials implements SecureMaterialTransport {
-  final values = <String, String>{};
-  @override
-  Future<String?> read(String key) async => values[key];
-  @override
-  Future<void> write(String key, String value) async {
-    values[key] = value;
-  }
-
-  @override
-  Future<void> delete(String key) async {
-    values.remove(key);
-  }
 }

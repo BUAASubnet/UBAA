@@ -1,3 +1,4 @@
+import 'package:ubaa_test_support/materials.dart';
 import 'dart:async';
 import 'dart:typed_data';
 
@@ -12,57 +13,86 @@ import 'package:ubaa_test_support/recovery.dart' as offline;
 
 void main() {
   testWidgets('离线首页原位完成验证码保留导航并绑定可恢复账号', (tester) async {
-    tester.view.physicalSize = const Size(390, 844);
-    tester.view.devicePixelRatio = 1;
-    addTearDown(tester.view.resetPhysicalSize);
-    addTearDown(tester.view.resetDevicePixelRatio);
-    final materials = SecureMaterialStore(transport: offline.MemoryMaterials());
-    await materials.probe();
-    final accounts = SecureLocalAccountStore(materials);
-    await accounts.retain('synthetic-account', retainSession: true);
-    final backend = _InteractiveBackend();
-    await tester.pumpWidget(
-      UbaaAppHost(
-        backend: backend,
-        localAccountStore: accounts,
-        credentialVault: MemoryCredentialVault(),
-      ),
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey<String>('tab-校园')));
-    await tester.pumpAndSettle();
-    await tester.tap(find.byTooltip('完成登录'));
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, '密码'),
-      'synthetic-password',
-    );
-    await tester.tap(find.text('记住密码'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.widgetWithText(FilledButton, '登录'));
-    await tester.tap(find.widgetWithText(FilledButton, '登录'));
-    await tester.pumpAndSettle();
-    expect(find.byType(UbaaMainShell), findsOneWidget);
-    expect(backend.beginCalls, 1);
-    expect(find.text('WebVPN 验证码'), findsOneWidget);
-    await tester.enterText(
-      find.byKey(const ValueKey('captcha-answer-webvpn')),
-      'synthetic-answer',
-    );
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.widgetWithText(FilledButton, '登录'));
-    await tester.tap(find.widgetWithText(FilledButton, '登录'));
-    await tester.pumpAndSettle();
-    expect(find.byType(UbaaLoginView), findsNothing);
-    expect(find.byType(UbaaMainShell), findsOneWidget);
-    expect(
-      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-      UiDestination.campus.index,
-    );
-    expect((await accounts.read())!.canRestore, isTrue);
-    expect((await accounts.read())!.account!.username, 'synthetic-account');
-    expect(backend.legacyCalls, 0);
-    expect(tester.takeException(), isNull);
+    // 文件协调使用真实事件循环，避免 Widget FakeAsync 阻止文件 I/O 完成。
+    await tester.runAsync(() async {
+      tester.view.physicalSize = const Size(390, 844);
+      tester.view.devicePixelRatio = 1;
+      addTearDown(tester.view.resetPhysicalSize);
+      addTearDown(tester.view.resetDevicePixelRatio);
+      final materials = syntheticMaterials(
+        offline.MemoryMaterials(),
+        tester: tester,
+      );
+      await materials.probe();
+      final accounts = SecureLocalAccountStore(materials);
+      final before = await accounts.retain(
+        'synthetic-account',
+        retainSession: true,
+      );
+      final originalKey = await accounts.cacheKey(before.account!);
+      final vault = PlatformCredentialVault(
+        store: MaterialCredentialStore(materials),
+      );
+      final backend = _InteractiveBackend();
+      await tester.pumpWidget(
+        UbaaAppHost(
+          backend: backend,
+          localAccountStore: accounts,
+          credentialVault: vault,
+        ),
+      );
+      await offline.pumpRecoveryUntil(
+        tester,
+        () => find.byTooltip('完成登录').evaluate().isNotEmpty,
+      );
+      await tester.tap(find.byKey(const ValueKey<String>('tab-校园')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byTooltip('完成登录'));
+      await tester.pumpAndSettle();
+      await tester.enterText(
+        find.widgetWithText(TextField, '密码'),
+        'synthetic-password',
+      );
+      await tester.tap(find.text('记住密码'));
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.widgetWithText(FilledButton, '登录'));
+      await tester.tap(find.widgetWithText(FilledButton, '登录'));
+      await offline.pumpRecoveryUntil(
+        tester,
+        () => find.text('WebVPN 验证码').evaluate().isNotEmpty,
+      );
+      expect(find.byType(UbaaMainShell), findsOneWidget);
+      expect(backend.beginCalls, 1);
+      expect(find.text('WebVPN 验证码'), findsOneWidget);
+      await tester.enterText(
+        find.byKey(const ValueKey('captcha-answer-webvpn')),
+        'synthetic-answer',
+      );
+      await tester.pumpAndSettle();
+      await tester.ensureVisible(find.widgetWithText(FilledButton, '登录'));
+      await tester.tap(find.widgetWithText(FilledButton, '登录'));
+      await offline.pumpRecoveryUntil(
+        tester,
+        () => find.byType(UbaaLoginView).evaluate().isEmpty,
+      );
+      expect(find.byType(UbaaLoginView), findsNothing);
+      expect(find.byType(UbaaMainShell), findsOneWidget);
+      expect(
+        tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+        UiDestination.campus.index,
+      );
+      expect((await accounts.read())!.canRestore, isTrue);
+      expect((await accounts.read())!.account!.username, 'synthetic-account');
+      expect((await accounts.read())!.account!.id, before.account!.id);
+      expect(await accounts.cacheKey(before.account!), originalKey);
+      expect(
+        (await accounts.read())!.generation,
+        greaterThan(before.generation),
+      );
+      expect((await vault.read())!.username, 'synthetic-account');
+      expect(backend.legacyCalls, 0);
+      expect(tester.takeException(), isNull);
+    });
   });
 
   testWidgets('实际 Host 刷新先清答案，保留输入并按当前选项完成保存', (tester) async {

@@ -7,11 +7,16 @@ import '../frb_generated.dart';
 import 'client.dart';
 import 'package:flutter_rust_bridge/flutter_rust_bridge_for_generated.dart';
 
-// These functions are ignored because they are not marked as `pub`: `ensure_recovery_allowed`
-// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `fmt`, `fmt`, `from`
+// These functions are ignored because they are not marked as `pub`: `ensure_recovery_allowed`, `feature`
+// These function are ignored because they are on traits that is not defined in current crate (put an empty `#[frb]` on it to unignore): `clone`, `clone`, `fmt`, `fmt`
 
 /// 当前任务需要校验的业务路线；Auto 仍由 Core 功能矩阵决定。
 enum BridgeRecoveryFeature {
+  bhpan,
+  user,
+  portal,
+  network,
+  ihome,
   schedule,
   exam,
   grades,

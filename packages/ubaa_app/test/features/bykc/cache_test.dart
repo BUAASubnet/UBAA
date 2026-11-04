@@ -152,6 +152,12 @@ class _Api implements RustLibApi {
 
 class _Cache implements BridgeOfflineCache {
   @override
+  Future<void> close() async {}
+
+  @override
+  void dispose() {}
+
+  @override
   Future<BridgeCachedAcademicTerms?> readAcademicTerms({
     required BridgeConnectionMode route,
   }) async => null;
@@ -310,7 +316,7 @@ class _Client implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 47;
+  int contractVersion() => 49;
   @override
   Future<BridgeBykcCatalogRefresh> bykcCatalogCached({
     required BridgeOfflineCache cache,

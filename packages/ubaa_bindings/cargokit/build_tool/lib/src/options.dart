@@ -54,7 +54,7 @@ enum Toolchain {
 }
 
 class CargoBuildOptions {
-  final Toolchain toolchain;
+  final String toolchain;
   final List<String> flags;
 
   CargoBuildOptions({
@@ -62,24 +62,24 @@ class CargoBuildOptions {
     required this.flags,
   });
 
-  static Toolchain _toolchainFromNode(YamlNode node) {
+  static String _toolchainFromNode(YamlNode node) {
     if (node case YamlScalar(value: String name)) {
       final toolchain =
           Toolchain.values.firstWhereOrNull((element) => element.name == name);
-      if (toolchain != null) {
-        return toolchain;
+      // UBAA：精确版本交给 rustup，保留上游的三个通道。
+      if (toolchain != null || RegExp(r'^\d+\.\d+\.\d+$').hasMatch(name)) {
+        return name;
       }
     }
     throw SourceSpanException(
-        'Unknown toolchain. Must be one of ${Toolchain.values.map((e) => e.name)}.',
-        node.span);
+        '工具链必须为 stable、beta、nightly 或精确版本 x.y.z。', node.span);
   }
 
   static CargoBuildOptions parse(YamlNode node) {
     if (node is! YamlMap) {
       throw SourceSpanException('Cargo options must be a map', node.span);
     }
-    Toolchain toolchain = Toolchain.stable;
+    String toolchain = 'stable';
     List<String> flags = [];
     for (final MapEntry(:key, :value) in node.nodes.entries) {
       if (key case YamlScalar(value: 'toolchain')) {

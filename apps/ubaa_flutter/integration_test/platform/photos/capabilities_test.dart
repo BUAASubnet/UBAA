@@ -11,17 +11,17 @@ void main() {
   final binding = IntegrationTestWidgetsFlutterBinding.ensureInitialized();
   WidgetController.hitTestWarningShouldBeFatal = true;
   testWidgets('生产原生照片选择能力已注册', (tester) async {
-    final capabilities = await createDefaultPlatformCapabilities();
-    expect(capabilities.photoPicker.isAvailable, isTrue);
+    final capabilities = await createDefaultPhotoCapabilities();
+    expect(capabilities.picker.isAvailable, isTrue);
     expect(
-      await capabilities.permissionGateway.request(PlatformPermission.photos),
+      await capabilities.permissions.request(PlatformPermission.photos),
       PlatformPermissionStatus.granted,
     );
     // 仅确认系统选择器可被请求，不读取任何照片或学校业务。
   });
   for (final brightness in Brightness.values) {
     testWidgets('原生平台能力贯通独立表单 ${brightness.name}', (tester) async {
-      final capabilities = await createDefaultPlatformCapabilities();
+      final capabilities = await createDefaultPhotoCapabilities();
       final backend = SportsWriteBackend('success');
       tester.platformDispatcher.platformBrightnessTestValue = brightness;
       addTearDown(tester.platformDispatcher.clearPlatformBrightnessTestValue);
@@ -29,8 +29,8 @@ void main() {
         UbaaFlutterApp(
           backend: backend,
           credentialVault: MemoryCredentialVault(),
-          photoPicker: capabilities.photoPicker,
-          permissionGateway: capabilities.permissionGateway,
+          photoPicker: capabilities.picker,
+          permissionGateway: capabilities.permissions,
           initialDestination: UiDestination.campus,
         ),
       );

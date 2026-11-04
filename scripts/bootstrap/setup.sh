@@ -15,11 +15,12 @@ if [[ ! -f .env.toolchain ]]; then
   printf '%s\n' '已从模板创建 .env.toolchain；请填写 UBAA_FLUTTER_HOME 等 SDK 位置后重新运行 just setup' >&2
   exit 2
 fi
-eval "$(python3 scripts/lib/toolchain.py shell)"
+# shellcheck source=../lib/toolchain.sh
+source "$script_dir/../lib/toolchain.sh"
 export PATH="$HOME/.cargo/bin:$PATH"
 
 flutter_root=${UBAA_FLUTTER_HOME:-}
-if [[ -z "$flutter_root" || "$flutter_root" != /* || "$flutter_root" == *'<'* ]]; then
+if [[ "$flutter_root" == *'<'* ]] || ! flutter_root=$(ubaa_toolchain_absolute_path "$flutter_root"); then
   printf '%s\n' 'error: 请在 .env.toolchain 中把 UBAA_FLUTTER_HOME 设为绝对路径' >&2
   exit 2
 fi

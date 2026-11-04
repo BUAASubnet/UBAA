@@ -87,7 +87,7 @@ async fn 评教生产_bridge_课程批次间共享锁可用且写意图阻止推
             std::process::id()
         ));
         let _ = std::fs::remove_dir_all(&root);
-        let (bridge, cache, transport) = setup(&root).await;
+        let (bridge, cache, transport) = Box::pin(setup(&root)).await;
         let task = if persistent {
             bridge.begin_evaluation_scan(&cache).await.unwrap()
         } else {
@@ -122,6 +122,7 @@ async fn 评教生产_bridge_课程批次间共享锁可用且写意图阻止推
                 request: PendingWrite::BykcSelect(BridgeBykcCourseRequest { course_id: 1 }),
                 expires_at: i64::MAX,
                 resolved_route: BridgeConnectionMode::Direct,
+                resolution: crate::api::write::testing_resolution(BridgeConnectionMode::Direct),
                 conflict_key: "synthetic".into(),
             },
         );

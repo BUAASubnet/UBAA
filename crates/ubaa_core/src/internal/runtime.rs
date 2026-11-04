@@ -27,6 +27,7 @@ pub(crate) struct ClientRuntime {
     account_name: Option<String>,
     session_revision: u64,
     authentication_generation: uuid::Uuid,
+    authentication_revoked: Arc<AtomicBool>,
     feature_state: Arc<RouteFeatureState>,
     /// 仅属于本客户端的希冀选课上下文；代次失效后不可复用。
     pub(crate) judge_selected_course: Option<(u64, String)>,
@@ -34,7 +35,10 @@ pub(crate) struct ClientRuntime {
     write_observer: Option<Weak<AtomicBool>>,
     clock: Arc<dyn Fn() -> SystemTime + Send + Sync>,
     interactive_login_scope: Option<InteractiveLoginHandle>,
+    required_recovery_scope: Option<crate::domain::RequiredRecoveryControl>,
     readonly_generation: Option<ReadonlyOwner>,
+    pub(crate) consumer_closed: Arc<AtomicBool>,
+    pub(crate) shared_account: Option<crate::facade::SharedAccountGuard>,
 }
 
 impl ClientRuntime {
@@ -99,13 +103,17 @@ impl ClientRuntime {
             account_name: None,
             session_revision,
             authentication_generation: uuid::Uuid::new_v4(),
+            authentication_revoked: Arc::new(AtomicBool::new(false)),
             feature_state: Arc::new(RouteFeatureState::default()),
             judge_selected_course: None,
             non_idempotent_boundary_crossed: false,
             write_observer: None,
             clock,
             interactive_login_scope: None,
+            required_recovery_scope: None,
             readonly_generation: None,
+            shared_account: None,
+            consumer_closed: Arc::new(AtomicBool::new(false)),
         })
     }
 
@@ -142,13 +150,17 @@ impl ClientRuntime {
             account_name: self.account_name.clone(),
             session_revision: self.session_revision,
             authentication_generation: self.authentication_generation,
+            authentication_revoked: Arc::clone(&self.authentication_revoked),
             feature_state: Arc::clone(&self.feature_state),
             judge_selected_course: None,
             non_idempotent_boundary_crossed: false,
             write_observer: None,
             clock: Arc::clone(&self.clock),
             interactive_login_scope: None,
+            required_recovery_scope: None,
             readonly_generation: self.readonly_generation.clone(),
+            shared_account: self.shared_account.clone(),
+            consumer_closed: self.consumer_closed.clone(),
         }
     }
 
@@ -178,10 +190,40 @@ impl ClientRuntime {
         self.interactive_login_scope = scope;
     }
 
-    fn check_interactive_login_scope(&self) -> Result<()> {
+    pub(crate) fn set_required_recovery_scope(
+        &mut self,
+        scope: Option<crate::domain::RequiredRecoveryControl>,
+    ) {
+        self.required_recovery_scope = scope;
+    }
+
+    fn check_consumer(&self) -> Result<()> {
+        if self.consumer_closed.load(Ordering::SeqCst) {
+            return Err(UbaaError::client_closed());
+        }
+        Ok(())
+    }
+    fn check_authentication_scope(&self) -> Result<()> {
+        self.check_operation_controls()?;
+        if let Some(scope) = &self.required_recovery_scope {
+            scope.check()?;
+            self.ensure_session_revision()?;
+            scope.check()?;
+        }
         if let Some(scope) = &self.interactive_login_scope {
             scope.ensure_active()?;
             self.ensure_session_revision()?;
+        }
+        Ok(())
+    }
+
+    fn check_operation_controls(&self) -> Result<()> {
+        self.check_consumer()?;
+        if let Some(scope) = &self.required_recovery_scope {
+            scope.check()?;
+        }
+        if let Some(scope) = &self.interactive_login_scope {
+            scope.ensure_active()?;
         }
         Ok(())
     }
@@ -213,6 +255,10 @@ impl ClientRuntime {
     ///
     /// 只比较单调 CAS 修订，不重新采用外部快照；发现变化后由上层清理内存并拒绝操作。
     pub(crate) fn ensure_session_revision(&self) -> Result<()> {
+        self.check_consumer()?;
+        if let Some(scope) = &self.shared_account {
+            scope.check()?;
+        }
         self.ensure_readonly_generation()?;
         if !self.store.is_revision_current(self.session_revision)? {
             return Err(session_conflict());
@@ -267,16 +313,27 @@ impl ClientRuntime {
             request.headers.insert("Cookie".into(), cookie);
         }
         pre_send_check(self)?;
-        self.check_interactive_login_scope()?;
+        self.check_authentication_scope()?;
         if self.readonly_generation.is_some() {
             self.ensure_session_revision()?;
         }
+        let permit = self
+            .shared_account
+            .as_ref()
+            .map(crate::facade::SharedAccountGuard::acquire)
+            .transpose()?;
+        self.check_operation_controls()?;
         let request_url = request.url.clone();
-        let response = self.transport.execute(request).await?;
+        let pending = self.transport.execute(request);
+        drop(permit);
+        let response = pending.await?;
+        if let Some(scope) = &self.shared_account {
+            scope.check()?;
+        }
         if self.readonly_generation.is_some() {
             self.ensure_session_revision()?;
         }
-        self.check_interactive_login_scope()?;
+        self.check_authentication_scope()?;
         self.jar.store_response(&response, &request_url, now)?;
         Ok(response)
     }
@@ -292,50 +349,6 @@ impl ClientRuntime {
     ) -> Result<HttpResponse> {
         self.request_non_idempotent_with_pre_send_check(request, |_| Ok(()))
             .await
-    }
-
-    /// 显式 Bearer API 使用独立 Cookie 边界，不接收或发送浏览器导航 Cookie。
-    pub(crate) async fn request_bearer_only(
-        &mut self,
-        request: HttpRequest,
-        write: bool,
-    ) -> Result<HttpResponse> {
-        self.request_bearer_only_checked(request, write, |_| Ok(()))
-            .await
-    }
-    pub(crate) async fn request_bearer_only_checked<F>(
-        &mut self,
-        request: HttpRequest,
-        write: bool,
-        pre_send: F,
-    ) -> Result<HttpResponse>
-    where
-        F: FnOnce(&Self) -> Result<()>,
-    {
-        if write {
-            self.ensure_primary_client()?;
-        }
-        self.ensure_session_revision()?;
-        self.check_interactive_login_scope()?;
-        pre_send(self)?;
-        if write {
-            self.non_idempotent_boundary_crossed = true;
-            if let Some(observer) = self.write_observer.as_ref().and_then(Weak::upgrade) {
-                observer.store(true, Ordering::SeqCst);
-            }
-        }
-        let result = self.transport.execute(request).await;
-        if write {
-            let response = result.map_err(|_| write_outcome_unknown())?;
-            self.ensure_session_revision()
-                .map_err(|_| write_outcome_unknown())?;
-            Ok(response)
-        } else {
-            let response = result?;
-            self.ensure_session_revision()?;
-            self.check_interactive_login_scope()?;
-            Ok(response)
-        }
     }
 
     /// 在非幂等发送边界紧前执行调用方检查。
@@ -359,15 +372,23 @@ impl ClientRuntime {
         self.ensure_session_revision()?;
         pre_send_check(self)?;
         let request_url = request.url.clone();
+        let permit = self
+            .shared_account
+            .as_ref()
+            .map(crate::facade::SharedAccountGuard::acquire)
+            .transpose()?;
+        self.check_operation_controls()?;
         self.non_idempotent_boundary_crossed = true;
         if let Some(observer) = self.write_observer.as_ref().and_then(Weak::upgrade) {
             observer.store(true, Ordering::SeqCst);
         }
-        let response = self
-            .transport
-            .execute(request)
-            .await
-            .map_err(|_| write_outcome_unknown())?;
+        let pending = self.transport.execute(request);
+        drop(permit);
+        let response = pending.await.map_err(|_| write_outcome_unknown())?;
+        self.check_consumer().map_err(|_| write_outcome_unknown())?;
+        if let Some(scope) = &self.shared_account {
+            scope.check().map_err(|_| write_outcome_unknown())?;
+        }
         self.jar
             .store_response(&response, &request_url, now)
             .map_err(|_| write_outcome_unknown())?;
@@ -378,7 +399,7 @@ impl ClientRuntime {
         &mut self,
         clear_workflow: &mut (dyn FnMut() + Send),
     ) -> Result<(i64, i64)> {
-        self.check_interactive_login_scope()?;
+        self.check_authentication_scope()?;
         let now = now_seconds_at(self.now())?;
         let authenticated_at = self.authenticated_at.unwrap_or(now);
         self.authenticated_at = Some(authenticated_at);
@@ -393,6 +414,11 @@ impl ClientRuntime {
             authenticated_at,
             last_activity: now,
         };
+        let _permit = self
+            .shared_account
+            .as_ref()
+            .map(crate::facade::SharedAccountGuard::acquire)
+            .transpose()?;
         let mutation = match self
             .store
             .compare_exchange(self.session_revision, Some(&snapshot))
@@ -423,6 +449,11 @@ impl ClientRuntime {
         if self.readonly_generation.is_some() {
             return Ok(());
         }
+        let _permit = self
+            .shared_account
+            .as_ref()
+            .map(crate::facade::SharedAccountGuard::acquire)
+            .transpose()?;
         match self.store.compare_exchange(self.session_revision, None)? {
             SessionMutation::Applied { revision } => {
                 self.session_revision = revision;
@@ -436,8 +467,19 @@ impl ClientRuntime {
         self.authentication_generation
     }
 
-    pub(crate) fn clear_memory(&mut self) {
+    pub(crate) fn authentication_revoked(&self) -> bool {
+        self.authentication_revoked.load(Ordering::Acquire)
+    }
+
+    /// 同代派生共享撤销，新登录使用独立标记，旧响应不能撤销后续登录。
+    pub(crate) fn renew_authentication_generation(&mut self) {
+        self.authentication_revoked.store(true, Ordering::Release);
+        self.authentication_revoked = Arc::new(AtomicBool::new(false));
         self.authentication_generation = uuid::Uuid::new_v4();
+    }
+
+    pub(crate) fn clear_memory(&mut self) {
+        self.renew_authentication_generation();
         self.judge_selected_course = None;
         self.jar = CookieJar::default();
         self.authenticated_at = None;
@@ -893,3 +935,14 @@ mod tests {
         let _ = std::fs::remove_dir_all(root);
     }
 }
+
+#[cfg(test)]
+#[path = "runtime/shared_tests.rs"]
+mod shared_tests;
+
+#[cfg(test)]
+#[path = "runtime/bearer_tests.rs"]
+mod bearer_tests;
+
+#[path = "runtime/bearer.rs"]
+mod bearer;

@@ -1,3 +1,4 @@
+import 'dart:io';
 import 'package:flutter/widgets.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_flutter/main.dart';
@@ -51,7 +52,10 @@ void main() {
   });
 
   test('安全材料不可用时不把本地账号仓库接入宿主', () async {
-    final materials = SecureMaterialStore(transport: _UnavailableTransport());
+    final materials = SecureMaterialStore(
+      coordinator: _syntheticCoordinator(),
+      transport: _UnavailableTransport(),
+    );
     await materials.probe();
     expect(materials.isAvailable, isFalse);
     final capabilities = PlatformCapabilities(
@@ -86,4 +90,13 @@ final class _UnavailableTransport implements SecureMaterialTransport {
 
   @override
   Future<void> delete(String key) async => _fail();
+}
+
+MaterialCoordinator _syntheticCoordinator() {
+  final directory = Directory.systemTemp.createTempSync(
+    'ubaa_synthetic_materials_',
+  );
+  // 普通异步用例已等待全部账号/材料操作，此时真实文件锁已释放。
+  addTearDown(() => directory.delete(recursive: true));
+  return MaterialCoordinator(directory: directory);
 }

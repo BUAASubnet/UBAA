@@ -62,23 +62,25 @@ fn requests() -> Vec<PendingWrite> {
             page: 1,
             limit: 10,
         }),
-        PendingWrite::CgyyReserve(BridgeCgyySubmitReservationRequest {
-            venue_site_id: 4,
-            reservation_date: "2026-10-07".into(),
-            selections: vec![BridgeCgyyReservationSelection {
-                space_id: 6,
-                time_id: 101,
-                venue_space_group_id: Some(9),
-            }],
-            phone: "010-00000000".into(),
-            theme: "合成主题".into(),
-            purpose_type: 1,
-            joiner_num: 1,
-            activity_content: "合成内容".into(),
-            joiners: "合成参与者".into(),
-            is_philosophy_social_sciences: false,
-            is_off_school_joiner: false,
-        }),
+        PendingWrite::CgyyReserve(crate::api::write::support::map_cgyy_request(
+            BridgeCgyySubmitReservationRequest {
+                venue_site_id: 4,
+                reservation_date: "2026-10-07".into(),
+                selections: vec![BridgeCgyyReservationSelection {
+                    space_id: 6,
+                    time_id: 101,
+                    venue_space_group_id: Some(9),
+                }],
+                phone: "010-00000000".into(),
+                theme: "合成主题".into(),
+                purpose_type: 1,
+                joiner_num: 1,
+                activity_content: "合成内容".into(),
+                joiners: "合成参与者".into(),
+                is_philosophy_social_sciences: false,
+                is_off_school_joiner: false,
+            },
+        )),
         PendingWrite::CgyyCancel(BridgeCgyyCancelOrderRequest { order_id: 42 }),
         PendingWrite::Ygdk(core::YgdkClockinSubmitRequest {
             target: core::YgdkSubmitTarget {
@@ -134,6 +136,7 @@ async fn seed_intent(client: &BridgeClient, request: PendingWrite) {
             request,
             expires_at: i64::MAX,
             resolved_route: BridgeConnectionMode::Direct,
+            resolution: command_direct_resolution(),
             conflict_key: "fixture-target".into(),
         },
     );
@@ -148,7 +151,13 @@ async fn 十类写入提交只解析一次路线且不能跨探测窗口转路()
         let direct = MockTransport::new([]);
         let webvpn = MockTransport::new([]);
         let probe = SequenceProbe::new([NetworkState::Campus, NetworkState::OffCampus]);
-        let client = client_with_probe(&root, direct.clone(), webvpn.clone(), probe.clone()).await;
+        let client = Box::pin(client_with_probe(
+            &root,
+            direct.clone(),
+            webvpn.clone(),
+            probe.clone(),
+        ))
+        .await;
         seed_intent(&client, request).await;
         // 第一条 authority 请求就确定性停止；不需要复制十套上游协议来检查共同边界。
         let _ = client.commit_write("fixture-intent".into()).await;
@@ -172,7 +181,13 @@ async fn 十类写入路线变化时在任何业务请求前拒绝且消费意�
         let direct = MockTransport::new([]);
         let webvpn = MockTransport::new([]);
         let probe = SequenceProbe::new([NetworkState::OffCampus]);
-        let client = client_with_probe(&root, direct.clone(), webvpn.clone(), probe).await;
+        let client = Box::pin(client_with_probe(
+            &root,
+            direct.clone(),
+            webvpn.clone(),
+            probe,
+        ))
+        .await;
         seed_intent(&client, request).await;
         let error = client
             .commit_write("fixture-intent".into())
@@ -226,7 +241,13 @@ async fn 博雅选课真实准备提交链不因后续探测变化写到另一�
         NetworkState::Campus,
         NetworkState::OffCampus,
     ]);
-    let client = client_with_probe(&root, direct.clone(), webvpn.clone(), probe.clone()).await;
+    let client = Box::pin(client_with_probe(
+        &root,
+        direct.clone(),
+        webvpn.clone(),
+        probe.clone(),
+    ))
+    .await;
     let intent = client
         .prepare_bykc_select_course(BridgeBykcCourseRequest { course_id: 42 })
         .await

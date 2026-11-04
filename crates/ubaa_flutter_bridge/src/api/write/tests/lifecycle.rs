@@ -210,6 +210,7 @@ async fn expired_intent_is_consumed_and_cannot_be_retried() {
             request: PendingWrite::BykcSelect(BridgeBykcCourseRequest { course_id: 1 }),
             expires_at: 0,
             resolved_route: BridgeConnectionMode::Direct,
+            resolution: command_direct_resolution(),
             conflict_key: "bykc-select:1".to_owned(),
         },
     );
@@ -225,4 +226,75 @@ async fn expired_intent_is_consumed_and_cannot_be_retried() {
     assert_eq!(second.code, BridgeErrorCode::IntentExpired);
     client.dispose().await.expect("dispose client");
     let _ = std::fs::remove_dir_all(path);
+}
+
+#[tokio::test]
+async fn 外部共享代次撤销后旧意图不发送且原路线回读不恢复() {
+    let root = test_root("shared-generation");
+    let _ = std::fs::remove_dir_all(&root);
+    let store = seed_sessions(&root, true, false);
+    let materials = root.join("synthetic-materials");
+    std::fs::create_dir_all(&materials).unwrap();
+    for (name, value) in [
+        ("materials.lock", ""),
+        ("transaction.v1", "UBAA1:C"),
+        ("account-generation.v1", "UBAA1:1"),
+    ] {
+        std::fs::write(materials.join(name), value).unwrap();
+    }
+    let direct = MockTransport::new([bykc_login_request(), eligible_bykc_detail_request()]);
+    let webvpn = MockTransport::new([]);
+    let client = BridgeClient::open(root.to_string_lossy().into()).unwrap();
+    install_core(
+        &client,
+        store,
+        "[route]\ndefault = \"direct\"\n",
+        direct.clone(),
+        webvpn.clone(),
+    )
+    .await;
+    let scope = crate::api::shared_account::BridgeSharedAccount::capture(
+        materials.to_string_lossy().into(),
+        1,
+    )
+    .unwrap();
+    client.bind_shared_account(&scope).await.unwrap();
+    let intent = client
+        .prepare_bykc_select_course(BridgeBykcCourseRequest { course_id: 42 })
+        .await
+        .unwrap();
+    let count = direct.requests().unwrap().len();
+    let lock = std::fs::OpenOptions::new()
+        .read(true)
+        .write(true)
+        .open(materials.join("materials.lock"))
+        .unwrap();
+    lock.lock().unwrap();
+    std::fs::write(materials.join("account-generation.v1"), "UBAA1:2").unwrap();
+    drop(lock);
+    let error = client
+        .commit_write(intent.intent_id.clone())
+        .await
+        .unwrap_err();
+    assert_eq!(error.code, BridgeErrorCode::OperationConflict);
+    assert_eq!(
+        client
+            .commit_write(intent.intent_id)
+            .await
+            .unwrap_err()
+            .code,
+        BridgeErrorCode::IntentExpired
+    );
+    assert_eq!(
+        client
+            .bykc_chosen_courses_on_route(BridgeConnectionMode::Direct)
+            .await
+            .unwrap_err()
+            .code,
+        BridgeErrorCode::AuthenticationRequired
+    );
+    assert_eq!(direct.requests().unwrap().len(), count);
+    assert!(webvpn.requests().unwrap().is_empty());
+    client.dispose().await.unwrap();
+    std::fs::remove_dir_all(root).unwrap();
 }

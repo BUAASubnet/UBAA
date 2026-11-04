@@ -11,7 +11,7 @@ import 'package:ubaa_test_support/navigation.dart' show openFeature;
 void main() {
   testWidgets('直接选课只调用一次脱敏提交，回读和同步失败仍撤下旧动作', (tester) async {
     final backend = fixtures.SyntheticWriteCacheBackend()..failRefresh = true;
-    final accounts = await startup.savedAccounts();
+    final accounts = await startup.widgetAccounts(tester);
     await tester.pumpWidget(
       UbaaAppHost(
         backend: backend,
@@ -19,18 +19,20 @@ void main() {
         initialDestination: UiDestination.study,
       ),
     );
+    await accounts.settle(tester);
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.bykc);
     expect(find.widgetWithText(OutlinedButton, '选课'), findsOneWidget);
     await tester.tap(find.widgetWithText(OutlinedButton, '选课'));
     await tester.pump();
     expect(backend.prepares, 1);
-    for (var i = 0; i < 20 && backend.readbacks == 0; i++) {
-      await tester.pump();
-    }
+    await accounts.settle(tester);
     expect(backend.cachedCommits, 1);
     expect(backend.ordinaryCommits, 0);
-    expect(backend.account, (await accounts.read())!.account!.id);
+    expect(
+      backend.account,
+      (await tester.runAsync(accounts.read))!.account!.id,
+    );
     await tester.pump();
     var shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
     expect(shell.snapshots[FeatureId.bykc]!.details.single.actions, isEmpty);
@@ -48,6 +50,7 @@ void main() {
     backend.readback.completeError(
       const BackendException(UbaaErrorCode.networkError),
     );
+    await accounts.settle(tester);
     await tester.pumpAndSettle();
     expect(backend.cachedCommits, 1);
     expect(backend.postCommitQueries, greaterThan(0));

@@ -1,0 +1,27 @@
+[package]
+name = "ubaa-command"
+autobins = false
+description = "UBAA 公共命令定义、执行与输出"
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+rust-version.workspace = true
+version.workspace = true
+
+[dependencies]
+async-trait.workspace = true
+clap.workspace = true
+uuid.workspace = true
+chrono.workspace = true
+same-file.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+tokio = { workspace = true, features = ["macros", "rt-multi-thread", "sync", "time"] }
+ubaa-core = { path = "../ubaa_core" }
+
+[dev-dependencies]
+jsonschema.workspace = true
+ubaa-test-support = { path = "../ubaa_test_support" }
+
+[lints]
+workspace = true

@@ -113,7 +113,9 @@ impl UbaaClient {
                 resolution: None,
             })?;
         let (policy, row) = match operation {
-            Operation::User => (self.config.default, FeatureRouteConfig::SAFE_DEFAULT),
+            Operation::User | Operation::Bhpan => {
+                (self.config.default, FeatureRouteConfig::SAFE_DEFAULT)
+            }
             Operation::Feature(feature) => (
                 self.config.feature(feature),
                 FeatureRouteConfig::for_feature(feature),
@@ -131,6 +133,12 @@ impl UbaaClient {
                 resolution.diagnostic.mode = alternate;
                 resolution.diagnostic.used_fallback = true;
             }
+        }
+        if matches!(operation, Operation::Bhpan) && resolution.mode != ConnectionMode::Direct {
+            return Err(routed_error(
+                crate::features::bhpan::auth::unavailable(),
+                resolution,
+            ));
         }
         if !self.route_is_ready(resolution.mode) {
             return Err(routed_error(authentication_required(), resolution));

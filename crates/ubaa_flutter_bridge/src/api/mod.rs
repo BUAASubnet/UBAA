@@ -1,4 +1,5 @@
 pub mod client;
+pub mod command;
 #[path = "client/initialization.rs"]
 pub mod initialization;
 pub mod interactive_auth;
@@ -33,3 +34,9 @@ pub mod campus;
 
 pub mod agenda;
 pub mod bhpan;
+
+pub mod shared_account;
+
+#[cfg(test)]
+#[path = "client/lifecycle_tests.rs"]
+mod client_lifecycle_tests;

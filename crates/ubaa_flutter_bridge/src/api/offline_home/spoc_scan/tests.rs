@@ -127,7 +127,7 @@ async fn spoc_生产共享锁在页间可用_确认写意图阻止推进_缓存�
             std::process::id()
         ));
         let _ = std::fs::remove_dir_all(&root);
-        let (bridge, cache, transport) = setup(&root, false).await;
+        let (bridge, cache, transport) = Box::pin(setup(&root, false)).await;
         let task = if persistent {
             bridge.begin_spoc_scan(&cache).await.unwrap()
         } else {
@@ -159,6 +159,7 @@ async fn spoc_生产共享锁在页间可用_确认写意图阻止推进_缓存�
                 request: PendingWrite::BykcSelect(BridgeBykcCourseRequest { course_id: 1 }),
                 expires_at: i64::MAX,
                 resolved_route: BridgeConnectionMode::Direct,
+                resolution: crate::api::write::testing_resolution(BridgeConnectionMode::Direct),
                 conflict_key: "synthetic".into(),
             },
         );
@@ -202,7 +203,7 @@ async fn spoc_详情前置释放共享锁_写意图期间不读取正文_完成�
             std::process::id()
         ));
         let _ = std::fs::remove_dir_all(&root);
-        let (bridge, cache, transport) = setup(&root, true).await;
+        let (bridge, cache, transport) = Box::pin(setup(&root, true)).await;
         let task = if persistent {
             bridge
                 .begin_spoc_detail_scan(&cache, "a1".into())
@@ -235,6 +236,7 @@ async fn spoc_详情前置释放共享锁_写意图期间不读取正文_完成�
                 request: PendingWrite::BykcSelect(BridgeBykcCourseRequest { course_id: 1 }),
                 expires_at: i64::MAX,
                 resolved_route: BridgeConnectionMode::Direct,
+                resolution: crate::api::write::testing_resolution(BridgeConnectionMode::Direct),
                 conflict_key: "synthetic".into(),
             },
         );

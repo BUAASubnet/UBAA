@@ -6,7 +6,7 @@ verify_macos_entitlements() (
   local artifact=${1:-}
   local codesign_bin=${2:-}
   local plist_buddy_bin=${3:-}
-  local entitlements_file key value_xml
+  local entitlements_file key value_xml expected
 
   if [[ -z "$artifact" || -z "$codesign_bin" || -z "$plist_buddy_bin" ]]; then
     printf '%s\n' 'error: macOS 实际签名权限检查参数不完整' >&2
@@ -36,16 +36,18 @@ verify_macos_entitlements() (
   for key in \
     com.apple.security.app-sandbox \
     com.apple.security.network.client; do
+    expected=true
+    if [[ "$key" == com.apple.security.app-sandbox ]]; then expected=false; fi
     if ! value_xml=$("$plist_buddy_bin" -x -c "Print :$key" "$entitlements_file" 2>/dev/null); then
-      printf 'error: macOS 产物实际签名权限 %s 必须为 true\n' "$key" >&2
+      printf 'error: macOS 产物实际签名权限 %s 必须为 %s\n' "$key" "$expected" >&2
       return 1
     fi
     value_xml=$(LC_ALL=C tr -d '[:space:]' <<<"$value_xml")
-    if [[ "$value_xml" != *'<plistversion="1.0"><true/></plist>' ]]; then
-      printf 'error: macOS 产物实际签名权限 %s 必须为 true\n' "$key" >&2
+    if [[ "$value_xml" != *"<plistversion=\"1.0\"><$expected/></plist>" ]]; then
+      printf 'error: macOS 产物实际签名权限 %s 必须为 %s\n' "$key" "$expected" >&2
       return 1
     fi
   done
 
-  printf '%s\n' 'macOS 产物实际签名权限通过：Sandbox=true network.client=true'
+  printf '%s\n' 'macOS 产物实际签名权限通过：Sandbox=false network.client=true'
 )

@@ -31,6 +31,48 @@ pub struct UbaaClient {
 }
 
 impl UbaaClient {
+    /// 本客户端及其派生任务的本进程关闭控制，不注销共享账号。
+    #[must_use]
+    pub fn close_control(&self) -> super::ClientCloseControl {
+        super::ClientCloseControl {
+            direct: self.direct_runtime.consumer_closed.clone(),
+            webvpn: self.webvpn_runtime.consumer_closed.clone(),
+        }
+    }
+
+    /// 当前固定共享归属，供受限退出在同一客户端锁内临时替换并恢复。
+    #[must_use]
+    pub fn shared_account_guard(&self) -> Option<super::SharedAccountGuard> {
+        self.direct_runtime.shared_account.clone()
+    }
+    /// 绑定已捕获的本机撤销版本，不采用或恢复新会话。
+    pub fn bind_shared_account(&mut self, guard: Option<super::SharedAccountGuard>) {
+        self.direct_runtime.shared_account.clone_from(&guard);
+        self.webvpn_runtime.shared_account = guard;
+    }
+
+    /// 在路线配置更新后重开，保留本消费者的关闭标记与固定共享归属。
+    ///
+    /// # Errors
+    /// 客户端没有持久目录、已关闭、共享归属失效或重开失败时拒绝。
+    pub fn reopen_for_route_policy(&self) -> Result<Self> {
+        let directory = self.config_dir.as_ref().ok_or_else(|| {
+            UbaaError::new(
+                ErrorCode::InvalidInput,
+                ErrorKind::Input,
+                false,
+                "客户端没有持久配置目录",
+            )
+        })?;
+        let mut reopened = Self::open(directory)?;
+        reopened.direct_runtime.consumer_closed = self.direct_runtime.consumer_closed.clone();
+        reopened.webvpn_runtime.consumer_closed = self.webvpn_runtime.consumer_closed.clone();
+        reopened.bind_shared_account(self.shared_account_guard());
+        reopened.direct_runtime.ensure_session_revision()?;
+        reopened.webvpn_runtime.ensure_session_revision()?;
+        Ok(reopened)
+    }
+
     /// 基于一个双槽位会话文件打开生产 Direct 和 `WebVPN` 运行时。
     ///
     /// # Errors

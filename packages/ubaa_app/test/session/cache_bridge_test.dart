@@ -1,9 +1,16 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
+import 'package:ubaa_bindings/src/rust/frb_generated.dart' show RustLibApi;
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 void main() {
+  final api = _Api();
+  setUpAll(() => RustLib.initMock(api: api));
+  setUp(() => api.controls.clear());
+  tearDown(() {
+    expect(api.controls.every((control) => control.disposals == 1), isTrue);
+  });
   test('聚合认证的网络失败不能被投影成可自动提交密码的会话失效', () async {
     final backend = BridgeBackend(_Client('network_error'));
     await expectLater(
@@ -27,6 +34,7 @@ void main() {
       const LoginInput(username: 'fixture-user', password: 'synthetic'),
     );
     expect(client.loginRoute, BridgeConnectionMode.webVpn);
+    expect(api.controls.length, 2);
   });
   test('状态只提供已核实学号时仍可作为恢复身份，不能借用本机资料填空', () async {
     final client = _RequiredClient()
@@ -49,7 +57,7 @@ class _Client implements BridgeClient {
   _Client(this.code);
   final String code;
   @override
-  int contractVersion() => 47;
+  int contractVersion() => 49;
   @override
   Future<BridgeLoginOutcome> authStatus() async => BridgeLoginOutcome(
     readiness: BridgeLoginReadiness.noneReady,
@@ -88,15 +96,17 @@ class _RequiredClient extends _Client {
   @override
   Future<BridgeLoginOutcome> authStatus() => throw StateError('该路径禁止聚合认证');
   @override
-  Future<BridgeRequiredSession> recoverRequiredSession({
+  Future<BridgeRequiredSession> recoverRequiredSessionControlled({
     required BridgeRecoveryFeature feature,
+    required BridgeRequiredRecoveryControl control,
   }) async {
     this.feature = feature;
     return _session;
   }
 
   @override
-  Future<BridgeRequiredSession> loginRequiredRoute({
+  Future<BridgeRequiredSession> loginRequiredRouteControlled({
+    required BridgeRequiredRecoveryControl control,
     required BridgeConnectionMode route,
     required String username,
     required String password,
@@ -109,4 +119,33 @@ class _RequiredClient extends _Client {
     route: BridgeConnectionMode.webVpn,
     profile: profile,
   );
+}
+
+class _Api implements RustLibApi {
+  final controls = <_Control>[];
+  @override
+  BridgeRequiredRecoveryControl
+  crateApiRecoveryControlBridgeRequiredRecoveryControlNew({
+    required int timeoutMillis,
+  }) {
+    final control = _Control();
+    controls.add(control);
+    return control;
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _Control implements BridgeRequiredRecoveryControl {
+  int disposals = 0;
+  @override
+  void dispose() {
+    disposals++;
+  }
+
+  @override
+  void cancel() {}
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
 }

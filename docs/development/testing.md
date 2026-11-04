@@ -1,6 +1,6 @@
 # 测试策略与日常入口
 
-当前合同：CLI JSON schema v13；Flutter bridge contract v47。CLI 验证 human/JSON schema v13，版本常量、JSON Schema、Dart 接受版本与现行文档由 `just contract-version-check` 同步检查。旧升级流水见[历史指南](../migration/history/testing-before-2026-10-07.md)。
+当前合同：CLI JSON schema v13；Flutter bridge contract v49。CLI 验证 human/JSON schema v13，版本常量、JSON Schema、Dart 接受版本与现行文档由 `just contract-version-check` 同步检查。旧升级流水见[历史指南](../migration/history/testing-before-2026-10-07.md)。
 
 ## 检查入口
 
@@ -11,7 +11,9 @@
 | 层级 | 入口 | 保护 |
 |---|---|---|
 | Core/Fixture/Mock | Core src、tests、ubaa-test-support | 精确请求、解析、加密、认证、路线、缓存与并发 |
-| CLI 及二进制 E2E | apps/ubaa_cli/tests | 参数、真实进程输出、schema、退出码与脱敏 |
+| 公共命令 | crates/ubaa_command/tests、src/agenda | 参数、schema、退出码、协议 Mock 与共享日程 |
+| App 命令调度 | packages/ubaa_app/test/command | 输入边界、恢复预算、一次完整重跑、账号变化、断管和关闭 |
+| Core-live | tools/core_live/tests | 独立开发工具的子进程与只读边界 |
 | FRB/Bindings | Rust Bridge、ubaa_bindings/test、codegen checker | typed DTO、错误、版本、句柄与生成零漂移 |
 | App/Domain/Platform | 各包 test 下的领域、session、recovery、write | 边界、账号代次、恢复和单次写入 |
 | UI | features、query、navigation、visual | 可点击入口、状态、草稿、响应式与 golden |
@@ -24,9 +26,11 @@
 
 云盘 Bridge 回归使用显式持锁和逐次轮询 Future 固定排队顺序，分别核对释放后的文件与分享提交零发送，以及已经发送请求的确定或未知结果。单文件分享 Widget 回归通过实际点击核对刷新、选择个人目的目录、另存回读、明确切库和授权失败的请求序列。
 
+业务时钟测试必须让 Timer 保持在 FakeAsync 中。App 的启动预算和恢复退避用例使用专用合成账号接口，真实账号文件锁继续由其他 App、Host 与 Platform 集成覆盖。真实文件 I/O 应从 `tester.runAsync` 内发起并等待，不能在 FakeAsync 中创建 Future 后只靠 `pumpAndSettle` 等待。独立执行的缓存恢复使用明确的完成事件同步，不能假设会话恢复返回时磁盘任务已经完成。 Host 与 Flutter 宿主需要同时覆盖真实账号集成和虚拟业务时钟时，复用 `widgetAccounts`：在 `runAsync` 中创建真实账号，顶层账号操作在捕获的真实 Zone 内执行，按已发起的 Future 排空 I/O 后用零时长 pump 衔接界面。直接读取账号结果仍在 `runAsync` 中等待。材料事务内部保留原协调器 Zone，避免丢失借锁上下文。私有合成材料在卸载宿主或使控制器失效后等待全部在途事务结束，再删除独占目录。
+
 ## 原生能力与覆盖边界
 
-原生测试保留 `integration_test/platform/`、`synthetic/cache/` 和一个 `synthetic/app/` 宿主 smoke：真实安全存储、私有目录、网络、照片、包信息、系统方向、真实 Rust FFI 的离线启动与缺会话处理和缓存。替身后端驱动的登录到首页流程由 `apps/ubaa_flutter/test/app/smoke_test.dart` 覆盖：原生集成绑定不注册测试输入法，应用未取得前台时文本输入不可靠。入口、平台、前提和 CI 归属集中在 `scripts/integration-tests.json`，用 `just integration-list` 查看，用 `just integration-test` 执行默认集合：运行时按清单生成被忽略的聚合入口，各入口在同一应用进程中依次运行，合并 Dart define 与持锁夹具，冲突时拒绝；`suite=ci-isolated` 逐文件构建运行，用于排查入口间的状态影响。其他能力选择清单中的精确路径，不对整个目录通配执行。
+原生测试保留 `integration_test/platform/`、`synthetic/cache/` 、`synthetic/command/` 的真实 FRB 输入边界和一个 `synthetic/app/` 宿主 smoke：真实安全存储、私有目录、网络、照片、包信息、系统方向、真实 Rust FFI 的离线启动与缺会话处理和缓存。替身后端驱动的登录到首页流程由 `apps/ubaa_flutter/test/app/smoke_test.dart` 覆盖：原生集成绑定不注册测试输入法，应用未取得前台时文本输入不可靠。原生材料测试同时隔离数据域和锁域：Windows 使用私有文件与真实 DPAPI/替换函数，Apple 使用独立 Keychain service，Android 使用独立 Debug 应用 `cn.edu.ubaa.synthetic.materials`，在访问安全存储前核对设备报告的实际包名。Android 专用入口 `scripts/tests/platform/android_materials.py` 先核对 APK 实际包名和 debuggable 属性，再启动真实插件用例，普通构建的生产 ID 和 Release 签名逻辑保持原实现。Linux 通用材料入口仅保留目录验证，整 map 的真实写读保留在 `scripts/tests/linux-secure-storage.sh` 创建的独立 D-Bus、Secret Service 和 XDG 目录中。缺少专用入口标记或目录前提时先拒绝，不探测默认会话。原生适配的合成保护回归覆盖默认域 B、原目标和备份不变，真实原生写读仍由对应平台入口承担。入口、平台、前提和 CI 归属集中在 `scripts/integration-tests.json`，用 `just integration-list` 查看，用 `just integration-test` 执行默认集合：运行时按清单生成被忽略的聚合入口，各入口在同一应用进程中依次运行，合并 Dart define 与持锁夹具，冲突时拒绝；`suite=ci-isolated` 逐文件构建运行，用于排查入口间的状态影响。其他能力选择清单中的精确路径，不对整个目录通配执行。
 
 宿主 smoke 分别验证真实 Bridge/Core 的本地错误传播和替身的正向登录，不包含真实登录、查询及写入的完整链路。原生缓存入口还核对云盘能力 DTO、同步进度与取消句柄，以及固定 Direct 缺会话时在网络前返回认证错误，不请求学校。合成全流程、软键盘专项、真实账号 UI 和常驻预览已按用户决定删除。被普通测试引用的合成数据位于 `apps/ubaa_flutter/test/support/`，不再由单元测试导入原生入口。删除项、保留覆盖与自动化缺口见[范围决定](../migration/history/2026-10-30-decisions-through-quality-phase3.md#2026-10-29原生集成只保留真实原生能力)。Fixture、Widget 和构建成功不能代替真实原生能力或学校协议证据。
 
@@ -45,3 +49,21 @@ Golden 保留既有 macOS 基准，变更基准必须审阅实际差异。`ubaa_
 1c-b 移除 Domain 中按来源筛选、排序和判断紧迫的实现。原 `home_todo_test.dart` 的九组学校来源预期迁到原生 `synthetic/cache/home_todo_probe.dart`，通过生产 App 字段适配与真实 FFI 调用 Core。原 `home_calendar_test.dart` 的格式化和 48 小时判断中，业务边界由 Core `agenda::school_tests` 保留，格式化在原生预期中核对。Domain 继续保留课程日历测试。
 
 Core 新增无缓存七来源等价、输入逐组到达顺序、本地完成/隐藏/清除/重新挂起及已退出库失败用例。App 验证日程打开不阻塞学校投影、覆盖失败与缓存保存失败分列、迟到结果与错误撤销、实际考试学期保留及无缓存签到跨校园午夜拒绝。Widget 测试只接收合成的已投影结果，继续验证首页预览、展开、时间刷新触发、签到流程和原功能导航，不维护学校筛选算法。
+
+## 命令宿主替换后的覆盖
+
+`cli_contract`、`command_boundary` 和 `identity_lifecycle` 迁到公共命令 crate，保留全部协议 Mock、JSON/退出码、输入顺序、照片文件变化和身份能力回归。Core-live 的参数、子进程与源码分层检查迁到 `tools/core_live`。无效 Cgyy 内部验证码输入改在公共准备阶段验证，并继续检查安全 JSON 和敏感字段拒绝。
+
+| 删除的旧入口或测试 | 保留覆盖 |
+|---|---|
+| Rust 二进制宿主的 help、参数、stdin 和进程输出用例 | 公共 parser/prepare 和输出队列测试，Dart 命令调度，以及 macOS Engine/Linux AOT 的真实进程验收 |
+| 旧 CLI 独立索引、Keychain worker、路径锁与登记测试 | Platform 共享账号/材料事务的进程测试，Core 身份能力测试，Bridge 固定共享代次和生命周期测试 |
+| 旧本机取消适配 | `agenda::tests::本机取消与期限均保留_v13_storage退出码` |
+| 旧原生 Keychain 索引加本机日程读取 | 独立合成材料的 GUI/命令进程互通，实际平台安全材料测试分别报告 |
+| 旧宿主自行拥有路线和 Session 的结构断言 | 公共命令使用 facade 的分层检查、固定路线协议 Mock 和受限注销能力测试 |
+
+原生进程验收覆盖普通关闭、外部撤销、两个进程修改同库、重复范围和 ICS 文件交付。Linux 专用隔离 Secret Service 另验证原插件和新传输双向兼容、无显示运行、无服务及锁定失败。Windows 原生运行和真实已有材料连续性单独登记，合成进程通过不填补这些缺口。
+
+隔离命令 target 位于 `apps/ubaa_flutter/integration_test/synthetic/command/entry.dart`。构建必须提供私有 `UBAA_COMMAND_EVIDENCE_DIR`，材料、协调锁和业务数据库都位于该目录。普通 `--config-dir` 只覆盖业务目录，不能代替材料隔离。运行日志与媒体继续放 `.ubaa_local/`。
+
+命令输入边界通过真实 parser/prepare 和生产 Runtime 核对空密码、错误阳光时间及缺失照片，材料工厂和学校客户端调用均为零。阳光照片准备后删除原文件的回归继续使用已准备的字节。恢复调度覆盖同账号外部继任后的新客户端单次执行，以及 cancelled、deadline、superseded 的独立结果。

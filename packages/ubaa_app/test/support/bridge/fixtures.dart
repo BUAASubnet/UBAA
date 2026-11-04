@@ -23,7 +23,7 @@ class FixtureContractVersionClient implements BridgeClient {
 
 abstract class FixtureCompatibleBridgeClient implements BridgeClient {
   @override
-  int contractVersion() => 47;
+  int contractVersion() => 49;
 }
 
 class FixtureFakeClassroomClient extends FixtureCompatibleBridgeClient {
