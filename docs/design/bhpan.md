@@ -1,14 +1,14 @@
 # 北航云盘设计与实施安排
 
-日期：2026-10-31。状态：用户已确定完整接入方向，冻结来源已逐操作核对，生产功能尚未实现。
+更新：2026-11-04。状态：完整接入范围保留，冻结来源已逐操作核对，生产功能尚未实现。当前先交付[日程界面](agenda.md)，网盘作为后续独立产品能力。
 
 目标：把 bhpan 接入为独立的「北航云盘」功能，Flutter 和 CLI 均可使用，日程同步复用同一套 Core 能力。功能范围覆盖固定 buaa-api Cloud 模块提供的全部操作，按独立可验收的任务逐步交付。
 
 架构：Core 负责认证、路线、文件与分享操作及传输状态。Bridge 只投影稳定类型，平台层提供文件选择和保存能力，App 负责交互编排。日程同步调用 Core 网盘接口，不另行处理 Token、拼接 URL 或维护上传协议。
 
-依据：[日程设计](agenda.md)、[冻结参考](../migration/references.md)、[工程规范](../development/engineering-standards.md)和[开发命令](../development/commands.md)。执行沿用用户确定的分工：主聊天设计、拆分和审查，Codex `gpt-6.1-sol / ultra` 实现、测试和本地提交。
+依据：[日程设计](agenda.md)、[冻结参考](../migration/references.md)、[工程规范](../development/engineering-standards.md)和[开发命令](../development/commands.md)。
 
-具体协议与缺口见[来源对照](../migration/source-parity-bhpan.md)，宿主和 Core 的实现边界见[设计合同](../contracts/bhpan.md)。未决协议问题按来源对照逐项处理，源码核对完成不表示真实服务已经验收。
+具体协议与缺口见[来源对照](../migration/source-parity-bhpan.md)，宿主和 Core 的实现边界见[设计合同](../contracts/bhpan.md)。未决协议问题按来源对照逐项处理，源码核对完成不表示真实服务已经验收。下文 B0—B5 用于定位既有技术范围和证据，对外按浏览、文件管理、传输、分享和同步等用户流程验收。
 
 ## 范围与来源
 
@@ -122,6 +122,8 @@ CLI 命令包括 `roots`、`list`、`stat`、`mkdir`、`rename`、`move`、`copy
 
 ## 执行与验收
 
-当前先执行[统一 App 命令模式与共享服务计划](desktop-shared-state.md)，随后接续日程界面和网盘 B1—B5。B0 来源审计已完成，生产能力仍须逐操作实施。网盘命令使用同一应用服务与无感恢复，Linux 覆盖 SSH 场景。源码及生成物修改串行，每个独立单元使用新执行会话；日程列表、命令和导出不依赖同步完成。
+当前先交付日程界面，网盘后续按用户流程逐步贯通 Core、Bridge 和 GUI，保留全部 25 项业务操作及登录范围。旧 CLI 退役不构成网盘 GUI 的前置条件；网盘命令接入[统一 App 命令服务](desktop-shared-state.md)，复用恢复和账号规则，Linux 继续覆盖 SSH。
+
+日程同步只依赖所需的网盘读写能力与并发更新证据，无需等待分享和回收站全部交付。同名更新及双设备覆盖的协议问题应在网盘读写实现时核实，证据不足时继续保留为同步阻塞。日程列表、编辑和导出可以独立使用。
 
 缓存加密不修改。本设计不新增真实账号认证、读取、写入或发布授权；真实测试遵守 [AGENTS](../../AGENTS.md#真实账号与验收范围)。每个协议、存储与跨语言任务先保留失败反例，再完成[完整相关验收](../development/commands.md#检查选择与完成条件)。Flutter、原生和生成命令串行。确定性测试、真实 Direct/WebVPN、平台设备和远端 CI 结果分别报告。

@@ -10,32 +10,31 @@ UBAA 2 的目标不是继续扩展现有 KMP 工程，而是将 UBAA 重构为�
 
 - 移动端：Android、iOS、HarmonyOS
 - 桌面 GUI：Windows、Linux、macOS
-- 桌面 CLI：Windows、Linux、macOS
+- 桌面命令模式：随 Windows、Linux、macOS App 提供，与 GUI 共用应用服务和本机数据；Linux 同时支持无图形 SSH 环境
 - SDK：可被 Rust、Flutter/Dart、Node.js，以及后续 Kotlin、Swift、ArkTS 应用依赖
 - Agent 集成：作为 MCP Server 被本地 Agent 调用
 - 网络模式：最终只保留直连和 WebVPN，移除服务器中转模式及旧 Ktor Server
 
 最终产品形态应当由同一个 Rust 核心驱动，而不是由某个 UI 框架承载业务逻辑。
 
+多语言 SDK 和 MCP 属于长期扩展方向。近期产品交付集中在日程、统一命令模式和北航云盘，具体范围见下文。
+
 ## 2. 目标架构
 
 ```text
-                         +----------------------+
-                         |      UBAA Core       |
-                         | Rust library/crates  |
-                         +----------+-----------+
-                                    |
-       +----------------------------+-----------------------------+
-       |                            |                              |
- +-----v------+              +------v------+                 +-----v------+
- | Flutter UI |              |   CLI       |                 | MCP Server |
- | 5 targets  |              | Rust binary |                 | stdio/HTTP |
- +-----+------+              +-------------+                 +------------+
-       |
- +-----v-------------------------+
- | Flutter OpenHarmony host      |
- | ArkTS/native plugins as needed|
- +-------------------------------+
+Flutter GUI / OHOS GUI      桌面命令入口
+          \                   /
+           共享的无界面应用服务
+         账号、恢复、日程与用例编排
+                    |
+             typed Bridge / FRB
+                    |
+              Rust Core facade <--- SDK / MCP（后续）
+                    |
+          协议、业务、会话、缓存与存储
+
+平台能力提供：安全材料、目录、文件选择与保存
+公共命令库提供：参数、human/JSON 输出与退出码
 ```
 
 ### 2.1 Rust Core
@@ -63,9 +62,9 @@ Flutter 负责界面、导航、交互和平台展示：
 
 OpenHarmony Flutter 不是 Google Flutter 主仓库的标准目标，必须锁定 Flutter OH、HarmonyOS SDK、DevEco Studio 和插件版本，并维护独立的兼容性清单。
 
-### 2.3 CLI
+### 2.3 App 命令模式
 
-CLI 直接调用 Rust Core，不依赖 Flutter：
+桌面命令入口与 GUI 复用同一套无界面应用服务，经 Bridge/facade 使用 Rust Core。同机同用户共用账号、凭据、会话、缓存和日程，命令不要求 GUI 窗口预先打开，也不需要后台常驻服务：
 
 ```text
 ubaa auth login
@@ -75,7 +74,9 @@ ubaa judge assignments
 ubaa classroom search --date 2026-09-01
 ```
 
-CLI 既是用户工具，也是跨平台协议回归和故障诊断工具。所有 CLI 命令必须支持结构化 JSON 输出，方便脚本和 Agent 使用。
+命令保留 human/JSON 输出、管道、退出码、超时和取消。参数与序列化实现可以继续复用 Rust 命令库。macOS/Windows 采用无窗口 Engine，Linux 使用同一 Dart 服务的 AOT 运行组件，SSH 运行不依赖显示服务。具体运行依据见[共享设计](docs/design/desktop-shared-state.md)。
+
+现有独立 Rust CLI 仍在主线。新入口覆盖既有命令和必要平台行为后退役旧宿主，`core-live` 迁出并保留为协议验证工具。统一命令模式的实现状态见[当前状态](docs/migration/status.md)。
 
 ### 2.4 MCP Server
 
@@ -96,3 +97,16 @@ Agent -> stdio -> ubaa-mcp -> Rust Core -> 直连/WebVPN
 - `get_announcements`
 
 选课、签到、预约、评教提交等有副作用的能力必须单独设计确认机制，不能默认允许 Agent 执行。
+
+## 3. 产品交付顺序
+
+| 交付 | 用户结果 | 依赖 |
+|---|---|---|
+| 当前：日程界面 | 汇总学校与自建事项，查看、编辑、完成和导出 `.ics` | 复用已有 Core、Bridge 与日程服务，补齐 GUI 与文件保存 |
+| 后续：统一命令模式 | GUI 与终端使用同一账号和数据，按保存设置恢复会话 | 收尾共享生命周期候选并整合，再完成三桌面入口和命令接线 |
+| 后续：北航云盘 | 浏览、管理、上传下载、分享与回收站 | 逐操作协议证据、Core 能力、文件适配及界面；无需等待旧 CLI 清理 |
+| 后续：日程同步 | 多设备合并自建事项和本地覆盖，失败显示待同步 | 网盘所需读写能力、同名更新及并发覆盖证据；不依赖全部分享功能 |
+
+日程周/月视图、冲突提示和宽屏布局沿用既有设计，可独立于同步推进。本地通知、自然语言添加、多语言 SDK 与 MCP 留在后续范围。
+
+产品计划以可操作验收的结果划分。内部的实现步骤、缺陷修复、平台验证和独立审查不递归扩展成产品阶段。每项功能分别记录主线实现、候选状态和验证范围，完成条件沿用[开发命令](docs/development/commands.md#检查选择与完成条件)。

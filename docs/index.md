@@ -7,6 +7,7 @@
 - [Agent 长期规则](../AGENTS.md)、[当前阶段目标](../goal.md)、[长期路线图](../UBAA2.md)
 - [贡献指南](../CONTRIBUTING.md)、[安全策略](../SECURITY.md)
 - [当前实现与验证状态](migration/status.md)
+- [当前日程交付](design/agenda.md)、[桌面命令与共享服务](design/desktop-shared-state.md)、[北航云盘](design/bhpan.md)
 - [项目概览](../README.md)
 - [现行代码组织](architecture/code-organization.md)
 - [架构与协议边界](architecture/overview.md)
@@ -77,7 +78,7 @@
 | 位置 | 维护内容 |
 |---|---|
 | architecture / contracts / development / runbooks | 现行架构、兼容行为、工程规则与操作入口。 |
-| design | 持续维护的界面、配色与首页规格，历史设计和执行清单归档。 |
+| design | 产品行为、交付场景与持续维护的界面规格，历史候选证据明确标记。 |
 | migration | 当前状态、来源对照、决策入口及按候选登记的专项结果。 |
 | migration/history | 已取代的目标、快照、设计、审计和计划，含原 superpowers 内容；见[历史说明](migration/history/README.md)。 |
 | migration/evidence | 迁移、协议和阶段验收的脱敏文字证据与映射。 |
