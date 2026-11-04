@@ -304,6 +304,9 @@ impl BridgeClient {
         let mut observation = None;
         let result = AssertUnwindSafe(async {
             let mut g = self.inner.lock().await;
+            if self.is_disposed.load(std::sync::atomic::Ordering::Acquire) {
+                return Err(disposed_error());
+            }
             let client = g.as_mut().ok_or_else(disposed_error)?;
             observation = Some(client.observe_write_boundary());
             let r = client.bhpan_commit_write(&handle).await.map_err(error)?;

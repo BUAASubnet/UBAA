@@ -357,7 +357,6 @@ class _BhpanViewState extends State<BhpanView> {
     final expected = _generation + 1;
     await _load();
     if (!_current(expected)) return;
-    _query = const BhpanRead(BhpanReadView.personalRoot);
     final items = _page?.items;
     if (items != null && items.length == 1 && items.first.isFolder)
       await _open(items.first);
