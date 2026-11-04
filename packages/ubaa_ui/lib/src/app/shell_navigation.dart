@@ -2,6 +2,35 @@ part of 'shell.dart';
 
 /// 自适应导航的展示；页面与写入状态由 Shell 持有。
 extension UbaaShellNavigation on _UbaaMainShellState {
+  void _openUtility(String page) {
+    if (widget.writeState.intent != null) return;
+    if (page == UiDestination.settings.label &&
+        MediaQuery.sizeOf(context).width >= 600) {
+      _selectTab(UiDestination.settings.index);
+      return;
+    }
+    _changeNavigation(() {
+      _openedFeature = null;
+      _utilityPage = page;
+    });
+  }
+
+  void _openHomeNavigation(FeatureReadNavigation target) {
+    final page = _readPageKeys[target.feature]?.currentState;
+    _changeNavigation(() {
+      _openedFeature = target.feature;
+      if (page == null) _pendingHomeTarget = target;
+    });
+    _recordFeatureVisit(target.feature);
+    if (page != null) {
+      unawaited(page.openFromHome(target));
+    } else {
+      WidgetsBinding.instance.addPostFrameCallback(
+        (_) => _pendingHomeTarget = null,
+      );
+    }
+  }
+
   void _openHomeTodo(HomeTodo item) {
     final target = item.navigation;
     if (target == null) return;
@@ -203,70 +232,12 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     BuildContext context,
     bool extended, {
     VoidCallback? onTap,
-  }) {
-    final theme = Theme.of(context);
-    final iconWidget = ClipRRect(
-      borderRadius: BorderRadius.circular(8),
-      child: Image.asset(
-        'assets/icons/app_icon.png',
-        package: 'ubaa_ui',
-        width: 36,
-        height: 36,
-        fit: BoxFit.cover,
-        errorBuilder: (_, __, ___) => CircleAvatar(
-          radius: 18,
-          child: Text((widget.user?.preferredName ?? 'U').characters.first),
-        ),
-      ),
-    );
-
-    final name = widget.user?.preferredName ?? '用户';
-    final username = widget.user?.username ?? '';
-
-    return InkWell(
-      borderRadius: BorderRadius.circular(12),
-      onTap: onTap ?? () => _selectTab(UiDestination.me.index),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
-        child: extended
-            ? Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  iconWidget,
-                  const SizedBox(width: 10),
-                  Flexible(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          name,
-                          style: theme.textTheme.titleSmall?.copyWith(
-                            fontWeight: FontWeight.bold,
-                          ),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                        ),
-                        if (username.isNotEmpty && username != name) ...[
-                          const SizedBox(height: 2),
-                          Text(
-                            username,
-                            style: theme.textTheme.bodySmall?.copyWith(
-                              color: theme.colorScheme.onSurfaceVariant,
-                            ),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                          ),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
-              )
-            : iconWidget,
-      ),
-    );
-  }
+  }) => uiRailIdentity(
+    context,
+    extended,
+    user: widget.user,
+    onTap: onTap ?? () => _selectTab(UiDestination.me.index),
+  );
 
   void _logout() {
     if (widget.writeState.intent != null) return;

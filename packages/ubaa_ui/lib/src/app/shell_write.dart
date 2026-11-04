@@ -14,31 +14,6 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       widget.onCommitWrite != null &&
       widget.onDiscardWriteIntent != null;
 
-  /// 不可撤销的写操作先用系统弹窗确认；其余操作点击即提交。
-  Future<bool> _confirmIrreversible({
-    required String title,
-    required String message,
-    required String action,
-  }) async =>
-      await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(title),
-          content: Text(message),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: const Text('再想想'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: Text(action),
-            ),
-          ],
-        ),
-      ) ==
-      true;
-
   bool get _writeBusy =>
       _directWriteActive != null ||
       _bykcWriteActive != null ||
@@ -64,7 +39,8 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
         }.contains(operation))
       return;
     if (operation == WriteOperation.bykcDeselectCourse &&
-        !await _confirmIrreversible(
+        !await uiConfirmIrreversible(
+          context,
           title: '退选这门课程？',
           message: '退选后名额可能被他人选走，无法保证再次选上。',
           action: '确认退选',
@@ -176,7 +152,8 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
   Future<void> _startCgyyCancelWrite(CgyyCancelAction action) async {
     final prepare = widget.onPrepareCgyyCancelWrite;
     if (prepare == null || _writeBusy) return;
-    if (!await _confirmIrreversible(
+    if (!await uiConfirmIrreversible(
+      context,
       title: '取消这条研讨室预约？',
       message: '取消后时段可能被他人预约，无法恢复。',
       action: '确认取消',
@@ -202,7 +179,8 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
   Future<void> _startLibbookCancelWrite(LibbookCancelAction action) async {
     final prepare = widget.onPrepareLibbookCancelWrite;
     if (prepare == null || _writeBusy) return;
-    if (!await _confirmIrreversible(
+    if (!await uiConfirmIrreversible(
+      context,
       title: '取消这个座位预约？',
       message: '取消后座位可能被他人预约，无法恢复。',
       action: '确认取消',
@@ -218,7 +196,8 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
   Future<void> _startEvaluation(List<EvaluationSubmitTarget> targets) async {
     final prepare = widget.onPrepareEvaluationWrite;
     if (prepare == null || targets.isEmpty || _writeBusy) return;
-    if (!await _confirmIrreversible(
+    if (!await uiConfirmIrreversible(
+      context,
       title: targets.length == 1 ? '提交评教？' : '提交 ${targets.length} 门课程的评教？',
       message: '评教提交后不可修改。',
       action: '确认提交',

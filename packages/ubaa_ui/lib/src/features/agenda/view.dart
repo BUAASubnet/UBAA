@@ -4,7 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/feedback.dart';
 import 'editor.dart';
 import 'format.dart';
-import 'scope_boundary.dart';
+import '../../shared/dialogs/scope_boundary.dart';
 import 'cache_status.dart';
 part 'details.dart';
 part 'export.dart';
@@ -102,7 +102,7 @@ class AgendaViewState extends State<AgendaView> {
   }
 
   Widget bound(Widget child) =>
-      AgendaScopeBoundary(generation: generation, child: child);
+      UiScopeBoundary(generation: generation, child: child);
   AgendaQuery query({DateTime? start, DateTime? end, bool? hidden}) =>
       AgendaQuery(
         route: widget.route,

@@ -2,8 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 
 /// 账号或路线退出当前作用域时，关闭该作用域打开的编辑器和弹窗。
-class AgendaScopeBoundary extends StatefulWidget {
-  const AgendaScopeBoundary({
+class UiScopeBoundary extends StatefulWidget {
+  const UiScopeBoundary({
     super.key,
     required this.generation,
     required this.child,
@@ -11,10 +11,10 @@ class AgendaScopeBoundary extends StatefulWidget {
   final ValueListenable<int> generation;
   final Widget child;
   @override
-  State<AgendaScopeBoundary> createState() => _AgendaScopeBoundaryState();
+  State<UiScopeBoundary> createState() => _UiScopeBoundaryState();
 }
 
-class _AgendaScopeBoundaryState extends State<AgendaScopeBoundary> {
+class _UiScopeBoundaryState extends State<UiScopeBoundary> {
   @override
   void initState() {
     super.initState();

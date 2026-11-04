@@ -1,4 +1,6 @@
 import 'dart:async';
+import '../shared/rail_identity.dart';
+import '../shared/dialogs/confirmation.dart';
 import '../features/agenda/view.dart';
 import '../features/agenda/format.dart' show campusDate, AgendaAccess;
 import '../shared/tab_navigation.dart'
@@ -296,6 +298,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   int _campusRevision = 0;
   void _setCampusOverview(CampusAccountOverview value) =>
       setState(() => _campusOverview = value);
+  void _changeNavigation(VoidCallback change) => setState(change);
   int _lockRefreshRevision = 0;
   void _refreshLockDisplay() => setState(() => _lockRefreshRevision++);
   final Map<FeatureId, GlobalKey<FeatureReadNavigatorState>> _readPageKeys = {};
@@ -446,22 +449,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         _readPageKeys[feature]?.currentState?.openList();
       }
     });
-  }
-
-  void _openHomeNavigation(FeatureReadNavigation target) {
-    final page = _readPageKeys[target.feature]?.currentState;
-    setState(() {
-      _openedFeature = target.feature;
-      if (page == null) _pendingHomeTarget = target;
-    });
-    _recordFeatureVisit(target.feature);
-    if (page != null) {
-      unawaited(page.openFromHome(target));
-    } else {
-      WidgetsBinding.instance.addPostFrameCallback(
-        (_) => _pendingHomeTarget = null,
-      );
-    }
   }
 
   @override
@@ -960,19 +947,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     ),
     _ => _buildProfile(),
   };
-
-  void _openUtility(String page) {
-    if (widget.writeState.intent != null) return;
-    if (page == UiDestination.settings.label &&
-        MediaQuery.sizeOf(context).width >= 600) {
-      _selectTab(UiDestination.settings.index);
-      return;
-    }
-    setState(() {
-      _openedFeature = null;
-      _utilityPage = page;
-    });
-  }
 
   void _selectTab(int index, {bool fromSwipe = false}) {
     if (widget.writeState.intent != null) {
