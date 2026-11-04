@@ -9,6 +9,7 @@ rust-version.workspace = true
 version.workspace = true
 
 [dependencies]
+ubaa-command = { path = "../../crates/ubaa_command" }
 async-trait.workspace = true
 clap.workspace = true
 directories.workspace = true

@@ -2,6 +2,7 @@
 members = [
   "apps/ubaa_cli",
   "crates/ubaa_core",
+  "crates/ubaa_command",
   "crates/ubaa_flutter_bridge",
   "crates/ubaa_test_support",
 ]

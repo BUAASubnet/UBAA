@@ -10,7 +10,7 @@ sys.dont_write_bytecode = True
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / 'lib'))
 from environment import read_values
 from repo import ROOT
-from toolchain import deveco_environment, load_environment
+from toolchain import bash_command, deveco_environment, load_environment
 
 
 def run(command, cwd=ROOT, env=None):
@@ -64,7 +64,11 @@ def collect(environment, pins):
     rust_actual = pins['RUST_VERSION'] if rust and re.search(
         rf'^{re.escape(pins["RUST_VERSION"])}-', rust, re.M) else None
     node = version_of(find('node', environment), r'v(\d+)\.')
-    quality = run(['bash', str(ROOT / 'scripts/tools/python.sh'), '-c', 'pass'], env=environment)
+    try:
+        quality = run(bash_command(ROOT / 'scripts/tools/python.sh', '-c', 'pass', environment=environment),
+                      env=environment)
+    except ValueError:
+        quality = None
     short = lambda commit: commit[:12] if commit else None
     rows = [
         ('just', True, pins['JUST_VERSION'], version_of(find('just', environment), r'just (\S+)')),

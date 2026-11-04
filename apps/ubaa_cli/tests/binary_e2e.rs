@@ -249,6 +249,7 @@ fn cli_production_sources_use_only_facade_for_core_internals() {
     ];
     let mut files = Vec::new();
     collect_source_files(&root, &mut files);
+    collect_source_files(&root.join("../../../crates/ubaa_command/src"), &mut files);
     for path in files {
         let source = std::fs::read_to_string(&path)
             .unwrap_or_else(|_| panic!("could not read CLI source {}", path.display()));
@@ -275,6 +276,10 @@ fn core_does_not_own_cli_output_or_exit_policy() {
         &mut cli_sources,
     );
 
+    collect_source_files(
+        &repository_root.join("crates/ubaa_command/src"),
+        &mut cli_sources,
+    );
     let mut violations = Vec::new();
     for source in [
         "use ubaa_core::output::CliFeature;",

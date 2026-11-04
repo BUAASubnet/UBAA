@@ -24,6 +24,20 @@ android_spec.loader.exec_module(android_runner)
 
 
 class CatalogTest(unittest.TestCase):
+    def test_实际集成入口共用Bash及平台SDK执行文件(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            entries = self.write_entries(root, self.entry())
+            command = ['测试Bash', 'D:/项目 空格/check.sh', 'official']
+            flutter = Path('/SDK 空格/bin/flutter.bat')
+            with patch.object(catalog, 'bash_command', return_value=command) as bash, \
+                    patch.object(catalog, 'sdk_executable', return_value=flutter) as sdk:
+                _, run = self.run_main([], entries, root)
+            sdk.assert_called_once_with('/sdk', 'flutter')
+            self.assertEqual(run.call_args_list[0].args[0], command)
+            self.assertEqual(run.call_args_list[1].args[0][0], str(flutter))
+            self.assertEqual(bash.call_args.args, (catalog.ROOT / 'scripts/check/flutter-toolchains.sh', 'official'))
+
     def test_执行预览也要求显式SDK路径(self):
         with tempfile.TemporaryDirectory() as directory, patch.object(catalog, "ROOT", Path(directory)), patch.dict(catalog.os.environ, {}, clear=True), patch.object(
             catalog.sys, "argv", [str(SCRIPT), "run", "--dry-run"]
