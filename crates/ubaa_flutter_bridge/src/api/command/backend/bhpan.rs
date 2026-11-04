@@ -23,6 +23,17 @@ pub(super) async fn execute(
         })?;
         *command.sent.lock().unwrap() = Some((observation.clone(), resolution));
     }
+    let controlled;
+    let input = if args.command.is_transfer() {
+        let transfer = core::bhpan::BhpanTransfer::new();
+        if let Some(command) = backend.command {
+            *command.transfer.lock().unwrap() = Some(transfer.clone());
+        }
+        controlled = input.with_transfer(transfer);
+        &controlled
+    } else {
+        input
+    };
     std::panic::AssertUnwindSafe(ubaa_command::bhpan::execute_bhpan(client, args, input))
         .catch_unwind()
         .await

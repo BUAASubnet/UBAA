@@ -29,7 +29,16 @@ BhpanPage page(List<BhpanItem> items) => BhpanPage(
 
 class Files implements BhpanService {
   @override
-  BhpanTransferTask createTransfer() => _Transfer();
+  Future<BhpanDownloadReceipt> download(
+    List<String> handles,
+    String name,
+    String path,
+    bool overwrite,
+    BhpanTransferTask transfer,
+  ) async => throw UnimplementedError();
+
+  @override
+  BhpanTransferTask createTransfer() => Transfer();
   @override
   Future<BhpanDownloadPreparation> downloadPreparation(
     List<String> handles,
@@ -51,7 +60,7 @@ class Files implements BhpanService {
   Future<BhpanCapabilities> capabilities() async => const BhpanCapabilities(
     directMetadata: BhpanCapability.available,
     webvpn: BhpanCapability.unverified,
-    objectTransfer: BhpanCapability.unverified,
+    objectTransfer: BhpanCapability.available,
     conditionalReplace: BhpanCapability.unverified,
     limitations: [],
   );
@@ -72,13 +81,23 @@ class Files implements BhpanService {
       throw UnimplementedError();
 }
 
-class _Transfer implements BhpanTransferTask {
+class Transfer implements BhpanTransferTask {
+  bool cancelled = false;
+  int reads = 0;
   @override
-  void cancel() {}
+  void cancel() {
+    cancelled = true;
+  }
+
   @override
-  Future<BhpanTransferProgress> progress() async => const BhpanTransferProgress(
-    phase: BhpanTransferPhase.queued,
-    bytes: 0,
-    total: 0,
-  );
+  Future<BhpanTransferProgress> progress() async {
+    reads++;
+    return BhpanTransferProgress(
+      phase: cancelled
+          ? BhpanTransferPhase.cancelled
+          : BhpanTransferPhase.queued,
+      bytes: 0,
+      total: 0,
+    );
+  }
 }

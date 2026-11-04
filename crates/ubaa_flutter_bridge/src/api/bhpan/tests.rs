@@ -1,6 +1,7 @@
-use super::models::BridgeBhpanMutationKind;
+use super::models::{BridgeBhpanMutationKind, BridgeBhpanTransferPhase};
 use super::*;
 use crate::api::client::BridgeErrorCode;
+use std::future::Future;
 use std::sync::{
     Arc,
     atomic::{AtomicUsize, Ordering},
@@ -436,6 +437,62 @@ async fn 云盘准备在外部退出换号与路线重开后均不得发送() {
         }
         bridge.dispose().await.unwrap();
         drop((bridge, scope));
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[tokio::test]
+async fn 普通上传秒传和下载在客户端锁排队期间取消立即结束() {
+    for kind in 0..3 {
+        let root = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+            .join("../../.ubaa_local/bhpan_delivery/bridge_tests")
+            .join(uuid::Uuid::new_v4().to_string());
+        let bridge = BridgeClient::open(root.to_string_lossy().into_owned()).unwrap();
+        let guard = bridge.inner.lock().await;
+        let transfer = BridgeBhpanTransfer::new();
+        let mut pending = Box::pin(async {
+            match kind {
+                0 => bridge
+                    .bhpan_prepare_upload(
+                        "parent".into(),
+                        "unused".into(),
+                        "notes.txt".into(),
+                        &transfer,
+                    )
+                    .await
+                    .map(|_| ()),
+                1 => bridge
+                    .bhpan_prepare_fast_upload(
+                        "parent".into(),
+                        "unused".into(),
+                        "notes.txt".into(),
+                        &transfer,
+                    )
+                    .await
+                    .map(|_| ()),
+                _ => bridge
+                    .bhpan_download(
+                        vec!["file".into()],
+                        "notes".into(),
+                        "unused".into(),
+                        false,
+                        &transfer,
+                    )
+                    .await
+                    .map(|_| ()),
+            }
+        });
+        let mut context = std::task::Context::from_waker(std::task::Waker::noop());
+        assert!(pending.as_mut().poll(&mut context).is_pending());
+        transfer.cancel();
+        assert!(matches!(
+            pending.as_mut().poll(&mut context),
+            std::task::Poll::Ready(Err(_))
+        ));
+        drop(pending);
+        drop(guard);
+        bridge.dispose().await.unwrap();
+        drop(bridge);
         std::fs::remove_dir_all(root).unwrap();
     }
 }

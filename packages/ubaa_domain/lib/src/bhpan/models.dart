@@ -24,6 +24,7 @@ enum BhpanMutationKind {
   updateShare,
   cancelShare,
   uploadFast,
+  upload,
 }
 
 final class BhpanItem {
@@ -130,8 +131,16 @@ final class BhpanMutation {
 }
 
 final class BhpanLocalFile {
-  const BhpanLocalFile({required this.path, required this.name});
+  const BhpanLocalFile({
+    required this.path,
+    required this.name,
+    Future<void> Function()? release,
+  }) : _release = release;
   final String path, name;
+  final Future<void> Function()? _release;
+  Future<void> release() async {
+    await _release?.call();
+  }
 }
 
 enum BhpanTransferPhase {
@@ -146,6 +155,9 @@ enum BhpanTransferPhase {
   failed,
   outcomeUnknown,
   blocked,
+  uploading,
+  downloading,
+  finalizing,
 }
 
 final class BhpanTransferProgress {
@@ -202,3 +214,17 @@ final class BhpanDownloadPreparation {
 }
 
 enum BhpanCapability { available, unverified, unavailable }
+
+final class BhpanDownloadReceipt {
+  const BhpanDownloadReceipt({required this.bytes, required this.batch});
+  final int bytes;
+  final bool batch;
+}
+
+/// 系统面板选定的位置或本机暂存文件，正文由 Core 和原生文件通道流式交付。
+abstract interface class BhpanDownloadDestination {
+  String get path;
+  bool get overwrite;
+  Future<void> deliver(bool Function() isCurrent);
+  Future<void> discard();
+}

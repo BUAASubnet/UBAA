@@ -137,3 +137,29 @@ enums!(
     Unverified,
     Unavailable
 );
+
+pub(crate) fn progress(p: &c::BhpanTransferProgress) -> super::models::BridgeBhpanTransferProgress {
+    use super::models::BridgeBhpanTransferPhase as B;
+    use c::BhpanTransferPhase as C;
+    let phase = match p.phase {
+        C::Queued => B::Queued,
+        C::HashingMini => B::HashingMini,
+        C::HashingFull => B::HashingFull,
+        C::Checking => B::Checking,
+        C::AwaitingConfirmation => B::AwaitingConfirmation,
+        C::Submitting => B::Submitting,
+        C::Completed => B::Completed,
+        C::Cancelled => B::Cancelled,
+        C::Failed => B::Failed,
+        C::OutcomeUnknown => B::OutcomeUnknown,
+        C::Blocked => B::Blocked,
+        C::Uploading => B::Uploading,
+        C::Downloading => B::Downloading,
+        C::Finalizing => B::Finalizing,
+    };
+    super::models::BridgeBhpanTransferProgress {
+        phase,
+        bytes: p.bytes,
+        total: p.total,
+    }
+}

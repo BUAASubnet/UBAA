@@ -35,6 +35,7 @@ pub struct BridgeCommandRequirements {
     pub auth: Option<BridgeCommandAuth>,
     pub config_directory: Option<String>,
     pub school_cache: bool,
+    pub has_transfer: bool,
     pub recovery_target: Option<super::recovery::BridgeRecoveryFeature>,
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -71,6 +72,7 @@ pub struct BridgeCommand {
     prepared: tokio::sync::Mutex<Option<command::PreparedCommand>>,
     pub(crate) control: command::CommandControl,
     attempts: AtomicUsize,
+    pub(crate) transfer: Mutex<Option<core::bhpan::BhpanTransfer>>,
     close: RwLock<Option<core::ClientCloseControl>>,
     pub(crate) sent: Mutex<Option<(Arc<core::WriteBoundaryObservation>, core::RouteResolution)>>,
 }
@@ -123,6 +125,7 @@ impl BridgeCommand {
             prepared: tokio::sync::Mutex::new(None),
             control,
             attempts: AtomicUsize::new(0),
+            transfer: Mutex::new(None),
             close: RwLock::new(None),
             sent: Mutex::new(None),
         };
@@ -143,6 +146,7 @@ impl BridgeCommand {
                 auth: None,
                 config_directory: None,
                 school_cache: false,
+                has_transfer: false,
                 recovery_target: None,
             };
         };
@@ -178,6 +182,7 @@ impl BridgeCommand {
             config_directory: req.config_dir.map(|p| p.to_string_lossy().into()),
             school_cache,
             recovery_target: req.recovery_target.map(target_to_bridge),
+            has_transfer: req.has_transfer,
         }
     }
     /// 原生每次只读取所请求的输入；无效用户名不能提前消耗密码。
@@ -374,9 +379,21 @@ impl BridgeCommand {
     #[flutter_rust_bridge::frb(sync)]
     pub fn cancel(&self) {
         self.control.cancel();
+        if let Some(transfer) = self.transfer.lock().unwrap().as_ref() {
+            transfer.cancel();
+        }
         if let Some(close) = self.close.read().unwrap().as_ref() {
             close.close();
         }
+    }
+    /// 安全进度仅包含阶段与字节数，供有界终端通道写入 stderr。
+    #[flutter_rust_bridge::frb(sync)]
+    pub fn transfer_progress_line(&self) -> Option<String> {
+        self.transfer
+            .lock()
+            .unwrap()
+            .as_ref()
+            .map(|transfer| ubaa_command::bhpan::progress_line(&transfer.progress()))
     }
     /// 本机命令独立于学校客户端，使用同账号的现有日程与可选加密缓存。
     /// # Errors
@@ -597,7 +614,7 @@ impl BridgeClient {
         let prepared = prepared.as_ref().ok_or_else(stopped)?;
         let (outcome, scope, hints) = command
             .control
-            .run(async {
+            .run(Box::pin(async {
                 let mut inner = self.inner.lock().await;
                 let client = inner.as_mut().ok_or_else(disposed_error)?;
                 *command.close.write().unwrap() = Some(client.close_control());
@@ -650,7 +667,7 @@ impl BridgeClient {
                 let outcome =
                     command::execute_attempt(prepared, &mut backend, &command.control).await;
                 Ok::<_, BridgeError>((outcome, scope, backend.hints))
-            })
+            }))
             .await
             .map_err(|_| stopped())??;
         let (target, route, result) = match outcome {

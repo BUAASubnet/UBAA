@@ -58,6 +58,7 @@ class UbaaMainShell extends StatefulWidget {
     this.campusAccountService,
     this.bhpanService,
     this.onPickBhpanFile,
+    this.onPickBhpanDownload,
     this.connecting = false,
     this.homeClock,
     this.connectionStatus,
@@ -177,6 +178,8 @@ class UbaaMainShell extends StatefulWidget {
   final CampusAccountService? campusAccountService;
   final BhpanService? bhpanService;
   final Future<BhpanLocalFile?> Function()? onPickBhpanFile;
+  final Future<BhpanDownloadDestination?> Function(String, bool Function())?
+  onPickBhpanDownload;
 
   /// 会话正在恢复；与页面刷新一起显示在标题栏右侧，不单独显示图标。
   final bool connecting;

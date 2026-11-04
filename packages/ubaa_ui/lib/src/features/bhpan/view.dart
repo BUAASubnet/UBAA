@@ -3,13 +3,25 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'dialogs.dart';
+import 'format.dart';
+import 'transfer_view.dart';
 import '../../shared/dialogs/scope_boundary.dart';
 
 class BhpanAccess {
-  const BhpanAccess({this.service, this.runWrite, this.pickFile});
+  const BhpanAccess({
+    this.service,
+    this.runWrite,
+    this.pickFile,
+    this.pickDownload,
+  });
   final BhpanService? service;
   final Future<WriteOutcome?> Function(BhpanMutation)? runWrite;
   final Future<BhpanLocalFile?> Function()? pickFile;
+  final Future<BhpanDownloadDestination?> Function(
+    String name,
+    bool Function() isCurrent,
+  )?
+  pickDownload;
 }
 
 /// 校园与空间指标共用的云盘页面。
@@ -224,7 +236,7 @@ class _BhpanViewState extends State<BhpanView> {
         return null;
       }
       if (action == '下载') {
-        await _transferLimit();
+        await _download([item]);
         return null;
       }
       if (action == '重命名') {
@@ -382,70 +394,150 @@ class _BhpanViewState extends State<BhpanView> {
     );
   }
 
-  Future<void> _upload() async {
+  Future<void> Function() _track(BhpanTransferTask transfer) {
+    _transfer = transfer;
+    Future<void> update() async {
+      try {
+        final progress = await transfer.progress();
+        if (mounted && identical(_transfer, transfer))
+          setState(() => _progress = progress);
+      } on Object catch (error) {
+        transfer.cancel();
+        if (mounted && identical(_transfer, transfer))
+          setState(() => _notice = _message(error));
+      }
+    }
+
+    _progressTimer?.cancel();
+    _progressTimer = Timer.periodic(
+      const Duration(milliseconds: 150),
+      (_) => unawaited(update()),
+    );
+    return update;
+  }
+
+  Future<void> _upload({bool fast = false}) async {
     final service = _service, pick = widget.access.pickFile;
     if (service == null ||
         pick == null ||
         _trail.isEmpty ||
-        _trail.last.scope != BhpanScope.personal) {
-      await _transferLimit();
+        !_trail.last.isFolder ||
+        _trail.last.scope == BhpanScope.recycle)
       return;
-    }
+    if (fast && _trail.last.scope != BhpanScope.personal) return;
     final generation = _generation, parent = _trail.last;
-    Timer? timer;
+    BhpanTransferTask? task;
+    BhpanLocalFile? selected;
+    Future<void> Function()? refresh;
     try {
       final source = await pick();
+      selected = source;
       if (!_current(generation) || source == null) return;
       final transfer = service.createTransfer();
-      _transfer = transfer;
-      Future<void> update() async {
-        final progress = await transfer.progress();
-        if (mounted && identical(_transfer, transfer))
-          setState(() => _progress = progress);
-      }
-
-      _progressTimer?.cancel();
-      timer = Timer.periodic(
-        const Duration(milliseconds: 150),
-        (_) => unawaited(update()),
-      );
-      _progressTimer = timer;
+      task = transfer;
+      // 同一个控制柄贯穿准备、确认和提交。
+      refresh = _track(transfer);
       await _mutate(
         BhpanMutation(
-          BhpanMutationKind.uploadFast,
+          fast ? BhpanMutationKind.uploadFast : BhpanMutationKind.upload,
           target: parent.handle,
           source: source,
           transfer: transfer,
         ),
       );
-      await update();
-    } on Object catch (e) {
+      await refresh();
+    } on Object catch (error) {
       if (mounted && identical(service, _service))
-        setState(() => _notice = _message(e));
+        setState(() => _notice = _message(error));
     } finally {
-      timer?.cancel();
-      if (identical(_progressTimer, timer)) _progressTimer = null;
+      try {
+        await selected?.release();
+      } on Object catch (error) {
+        if (_current(generation)) setState(() => _notice = _message(error));
+      }
+      task?.cancel();
+      await refresh?.call();
+      if (identical(_transfer, task)) {
+        _progressTimer?.cancel();
+        _progressTimer = null;
+      }
     }
   }
 
-  Future<void> _transferLimit() async {
-    await showDialog<void>(
-      context: context,
-      builder: (c) => _dialogScope(
-        AlertDialog(
-          title: const Text('文件传输能力'),
-          content: const Text(
-            '当前版本仅支持个人目录中可秒传的文件。普通与分片上传、文件内容下载、目录和多项打包下载暂不可用，分享上传也暂不可用。',
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(c),
-              child: const Text('关闭'),
-            ),
-          ],
-        ),
-      ),
-    );
+  Future<void> _download(List<BhpanItem> items) async {
+    final service = _service, pick = widget.access.pickDownload;
+    if (service == null ||
+        pick == null ||
+        items.isEmpty ||
+        _working ||
+        _loading)
+      return;
+    final generation = _generation, activity = Object();
+    final base = items.length == 1
+        ? items.single.name.replaceAll(RegExp(r'[\\/\r\n]'), '_')
+        : '北航云盘下载';
+    final batch = items.length != 1 || items.single.isFolder;
+    final name = base.trim().isEmpty ? '北航云盘下载' : base;
+    final suggested = batch ? '$name.zip' : name;
+    BhpanDownloadDestination? destination;
+    BhpanTransferTask? task;
+    Future<void> Function()? refresh;
+    setState(() {
+      _working = true;
+      _mutationActivity = activity;
+      _notice = null;
+    });
+    try {
+      destination = await pick(
+        suggested,
+        () => _current(generation) && identical(service, _service),
+      );
+      if (destination == null || !_current(generation)) return;
+      final transfer = service.createTransfer();
+      task = transfer;
+      refresh = _track(transfer);
+      final receipt = await service.download(
+        items.map((item) => item.handle).toList(),
+        name,
+        destination.path,
+        destination.overwrite,
+        transfer,
+      );
+      if (!_current(generation)) return;
+      await destination.deliver(
+        () => _current(generation) && identical(service, _service),
+      );
+      await refresh();
+      if (_current(generation))
+        setState(() {
+          _notice = '已保存 $suggested（${bhpanBytes(receipt.bytes)}）';
+          _progress = BhpanTransferProgress(
+            phase: BhpanTransferPhase.completed,
+            bytes: receipt.bytes,
+            total: receipt.bytes,
+          );
+        });
+    } on Object catch (error) {
+      if (_current(generation)) setState(() => _notice = _message(error));
+    } finally {
+      task?.cancel();
+      if (identical(_transfer, task)) {
+        if (_progress?.phase != BhpanTransferPhase.completed)
+          await refresh?.call();
+        _progressTimer?.cancel();
+        _progressTimer = null;
+      }
+      try {
+        await destination?.discard();
+      } on Object catch (error) {
+        if (_current(generation)) setState(() => _notice = _message(error));
+      }
+      if (mounted && identical(_mutationActivity, activity))
+        setState(() {
+          _working = false;
+          _mutationActivity = null;
+        });
+    }
   }
 
   Future<void> _batch(String action) async {
@@ -555,11 +647,22 @@ class _BhpanViewState extends State<BhpanView> {
                   label: const Text('新建'),
                 ),
               OutlinedButton.icon(
-                onPressed: _loading || _working ? null : _upload,
+                onPressed:
+                    _loading ||
+                        _working ||
+                        _trail.isEmpty ||
+                        !_trail.last.isFolder ||
+                        _trail.last.scope == BhpanScope.recycle
+                    ? null
+                    : _upload,
                 icon: const Icon(Icons.upload_file),
                 label: const Text('上传'),
               ),
-              TextButton(onPressed: _transferLimit, child: const Text('传输')),
+              if (_trail.isNotEmpty && _trail.last.scope == BhpanScope.personal)
+                TextButton(
+                  onPressed: _writable ? () => _upload(fast: true) : null,
+                  child: const Text('秒传'),
+                ),
             ],
           ),
         ),
@@ -622,43 +725,22 @@ class _BhpanViewState extends State<BhpanView> {
                   onPressed: _writable ? () => _batch('永久删除') : null,
                   child: const Text('逐项永久删除'),
                 ),
-              TextButton(onPressed: _transferLimit, child: const Text('打包下载')),
+              if (_query.view != BhpanReadView.recycle)
+                TextButton(
+                  onPressed: _working || _loading
+                      ? null
+                      : () => _download(
+                          _page!.items
+                              .where((item) => _selected.contains(item.handle))
+                              .toList(),
+                        ),
+                  child: const Text('打包下载'),
+                ),
             ],
           ),
         if (_loading || _working) const LinearProgressIndicator(),
         if (_progress case final progress?)
-          ListTile(
-            leading: const Icon(Icons.swap_vert),
-            title: Text(switch (progress.phase) {
-              BhpanTransferPhase.queued => '排队',
-              BhpanTransferPhase.hashingMini => '计算秒传检查摘要',
-              BhpanTransferPhase.hashingFull => '计算完整文件摘要',
-              BhpanTransferPhase.checking => '检查秒传',
-              BhpanTransferPhase.awaitingConfirmation => '等待上传确认',
-              BhpanTransferPhase.submitting => '正在提交',
-              BhpanTransferPhase.completed => '上传完成',
-              BhpanTransferPhase.cancelled => '任务已取消',
-              BhpanTransferPhase.failed => '任务失败',
-              BhpanTransferPhase.outcomeUnknown => '上传结果待核对',
-              BhpanTransferPhase.blocked => '传输协议尚缺证据',
-            }),
-            subtitle: Text(
-              '${bhpanBytes(progress.bytes)} / ${bhpanBytes(progress.total)}',
-            ),
-            trailing: TextButton(
-              onPressed:
-                  const {
-                    BhpanTransferPhase.queued,
-                    BhpanTransferPhase.hashingMini,
-                    BhpanTransferPhase.hashingFull,
-                    BhpanTransferPhase.checking,
-                    BhpanTransferPhase.awaitingConfirmation,
-                  }.contains(progress.phase)
-                  ? () => _transfer?.cancel()
-                  : null,
-              child: const Text('取消任务'),
-            ),
-          ),
+          BhpanProgressTile(progress: progress, onCancel: _transfer?.cancel),
         if (_batchResults.isNotEmpty)
           ConstrainedBox(
             constraints: const BoxConstraints(maxHeight: 120),
@@ -755,10 +837,15 @@ class _BhpanViewState extends State<BhpanView> {
           ? null
           : () => item.isFolder && !recycle ? _open(item) : _action('属性', item),
       trailing: PopupMenuButton<String>(
-        enabled: _writable,
+        enabled: !_working && !_loading,
         onSelected: (a) => _action(a, item),
         itemBuilder: (_) => [
-          for (final a in actions) PopupMenuItem(value: a, child: Text(a)),
+          for (final a in actions)
+            PopupMenuItem(
+              value: a,
+              enabled: const {'属性', '下载', '分享记录'}.contains(a) || _writable,
+              child: Text(a),
+            ),
         ],
       ),
     );
@@ -792,17 +879,4 @@ class _BhpanViewState extends State<BhpanView> {
               ),
           ],
         );
-}
-
-String bhpanBytes(int bytes) {
-  if (bytes < 1024) return '$bytes B';
-  if (bytes < 1024 * 1024) return '${(bytes / 1024).toStringAsFixed(1)} KiB';
-  if (bytes < 1024 * 1024 * 1024)
-    return '${(bytes / 1024 / 1024).toStringAsFixed(1)} MiB';
-  return '${(bytes / 1024 / 1024 / 1024).toStringAsFixed(2)} GiB';
-}
-
-String bhpanDate(DateTime time) {
-  final d = time.toUtc().add(const Duration(hours: 8));
-  return '${d.year}-${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')} ${d.hour.toString().padLeft(2, '0')}:${d.minute.toString().padLeft(2, '0')}';
 }

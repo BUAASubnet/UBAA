@@ -6,6 +6,14 @@ final class GuardedBhpanService implements BhpanService {
   final BhpanService delegate;
   final bool Function() current;
   @override
+  Future<BhpanDownloadReceipt> download(
+    List<String> handles,
+    String name,
+    String path,
+    bool overwrite,
+    BhpanTransferTask transfer,
+  ) => _run(() => delegate.download(handles, name, path, overwrite, transfer));
+  @override
   Future<BhpanDownloadPreparation> downloadPreparation(
     List<String> handles,
     String name,

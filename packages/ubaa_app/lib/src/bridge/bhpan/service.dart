@@ -11,6 +11,29 @@ final class BridgeBhpanService implements BhpanService {
   BridgeBhpanService(this.context);
   final BridgeContext context;
   @override
+  Future<BhpanDownloadReceipt> download(
+    List<String> handles,
+    String name,
+    String path,
+    bool overwrite,
+    BhpanTransferTask transfer,
+  ) => _run(() async {
+    if (transfer is! BridgeBhpanTransferTask ||
+        !identical(transfer.client, context.client))
+      throw const BackendException(UbaaErrorCode.invalidInput);
+    final receipt = await context.client.bhpanDownload(
+      handles: handles,
+      name: name,
+      path: path,
+      overwrite: overwrite,
+      transfer: transfer.control,
+    );
+    return BhpanDownloadReceipt(
+      bytes: receipt.bytes.toInt(),
+      batch: receipt.batch,
+    );
+  });
+  @override
   Future<BhpanDownloadPreparation> downloadPreparation(
     List<String> handles,
     String name,
@@ -88,18 +111,26 @@ final class BridgeBhpanService implements BhpanService {
       _run(() => context.client.bhpanShareLink(share: share));
   @override
   Future<WriteIntent> prepare(BhpanMutation r) => _run(() async {
-    if (r.kind == BhpanMutationKind.uploadFast) {
+    if (r.kind == BhpanMutationKind.uploadFast ||
+        r.kind == BhpanMutationKind.upload) {
       final source = r.source, transfer = r.transfer;
       if (source == null ||
           transfer is! BridgeBhpanTransferTask ||
           !identical(transfer.client, context.client))
         throw const BackendException(UbaaErrorCode.invalidInput);
-      final p = await context.client.bhpanPrepareFastUpload(
-        parent: r.target,
-        path: source.path,
-        name: source.name,
-        transfer: transfer.control,
-      );
+      final p = r.kind == BhpanMutationKind.uploadFast
+          ? await context.client.bhpanPrepareFastUpload(
+              parent: r.target,
+              path: source.path,
+              name: source.name,
+              transfer: transfer.control,
+            )
+          : await context.client.bhpanPrepareUpload(
+              parent: r.target,
+              path: source.path,
+              name: source.name,
+              transfer: transfer.control,
+            );
       return _intent(p);
     }
     final input = BridgeBhpanWrite(

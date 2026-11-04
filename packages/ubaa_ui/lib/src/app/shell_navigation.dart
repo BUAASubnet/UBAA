@@ -45,6 +45,7 @@ extension UbaaShellNavigation on _UbaaMainShellState {
                 access: BhpanAccess(
                   service: widget.bhpanService,
                   pickFile: widget.onPickBhpanFile,
+                  pickDownload: widget.onPickBhpanDownload,
                   runWrite: _hasWriteCommands ? _runBhpanWrite : null,
                 ),
               )

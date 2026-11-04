@@ -59,7 +59,9 @@ class _IO implements CommandIO {
   Future<void> configure({required bool local}) async {}
   final out = <int>[];
   final err = <int>[];
-  bool failOutput = false;
+  bool failOutput = false, failProgress = false;
+  Completer<void>? progressGate;
+  final progressWritten = Completer<void>();
   @override
   Future<List<int>?> readLine({required bool secret}) =>
       throw StateError('此命令不得读取 stdin');
@@ -73,6 +75,9 @@ class _IO implements CommandIO {
 
   @override
   Future<void> writeStderr(List<int> bytes) async {
+    if (!progressWritten.isCompleted) progressWritten.complete();
+    if (failProgress) throw const FileSystemException('合成进度断管');
+    if (progressGate != null) await progressGate!.future;
     err.addAll(bytes);
   }
 }
@@ -133,13 +138,17 @@ class _Attempt extends _Opaque implements BridgeCommandAttempt {
 }
 
 class _Command extends _Opaque implements BridgeCommand {
-  _Command(this.kind, {this.early, this.auth});
+  _Command(this.kind, {this.early, this.auth, this.hasTransfer = false});
+  final bool hasTransfer;
+  @override
+  String? transferProgressLine() => hasTransfer ? "正在下载 12 / 120 字节\n" : null;
   final BridgeCommandAuth? auth;
   final BridgeCommandClass kind;
   final _Result? early;
   int cancellations = 0;
   @override
   BridgeCommandRequirements requirements() => BridgeCommandRequirements(
+    hasTransfer: hasTransfer,
     class_: kind,
     auth: auth,
     schoolCache: false,
@@ -634,4 +643,65 @@ void main() {
       await fixture.root.delete(recursive: true);
     }
   });
+  test('传输进度只写stderr且正文仍只交付一次JSON', () async {
+    final fixture = await _fixture();
+    final io = _IO();
+    final command = _Command(BridgeCommandClass.readonly, hasTransfer: true);
+    final gate = Completer<BridgeCommandAttempt>();
+    final client = _Client((_) => gate.future);
+    try {
+      final runtime = CommandRuntime(
+        io: io,
+        parse: ({required argv, required remainingMillis}) => command,
+        openMaterials: (_) async => fixture.environment,
+        openClient: ({required configDir}) async => client,
+      );
+      final running = runtime.run([
+        'ubaa',
+        'bhpan',
+        'download',
+      ], budget: const Duration(seconds: 5));
+      await io.progressWritten.future.timeout(const Duration(seconds: 3));
+      gate.complete(_Attempt(_Result('downloaded')));
+      expect(await running, 0);
+      expect(jsonDecode(utf8.decode(io.out)), {'result': 'downloaded'});
+      expect(utf8.decode(io.err), contains('正在下载'));
+      expect(client.attempts, 1);
+    } finally {
+      await fixture.root.delete(recursive: true);
+    }
+  });
+  for (final deadline in [false, true]) {
+    test(deadline ? '进度输出等待不延长期限并保留超时退出码' : '进度stderr断管取消同一命令且不重跑', () async {
+      final fixture = await _fixture();
+      final io = _IO()..failProgress = !deadline;
+      if (deadline) io.progressGate = Completer<void>();
+      final command = _Command(BridgeCommandClass.readonly, hasTransfer: true);
+      final gate = Completer<BridgeCommandAttempt>();
+      final client = _Client((_) => gate.future);
+      try {
+        final runtime = CommandRuntime(
+          io: io,
+          parse: ({required argv, required remainingMillis}) => command,
+          openMaterials: (_) async => fixture.environment,
+          openClient: ({required configDir}) async => client,
+        );
+        final running = runtime.run([
+          'ubaa',
+          'bhpan',
+          'download',
+        ], budget: const Duration(milliseconds: 850));
+        await io.progressWritten.future.timeout(const Duration(seconds: 3));
+        expect(await running, deadline ? 5 : 7);
+        expect(command.cancellations, greaterThan(0));
+        expect(client.attempts, 1);
+        gate.complete(_Attempt(_Result('late')));
+        io.progressGate?.complete();
+        await Future<void>.delayed(Duration.zero);
+        expect(utf8.decode(io.out), isNot(contains('late')));
+      } finally {
+        await fixture.root.delete(recursive: true);
+      }
+    });
+  }
 }

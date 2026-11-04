@@ -2,6 +2,14 @@ import 'models.dart';
 import '../write/intent.dart';
 
 abstract interface class BhpanService {
+  Future<BhpanDownloadReceipt> download(
+    List<String> handles,
+    String name,
+    String path,
+    bool overwrite,
+    BhpanTransferTask transfer,
+  );
+
   Future<BhpanDownloadPreparation> downloadPreparation(
     List<String> handles,
     String name,

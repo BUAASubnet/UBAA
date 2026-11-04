@@ -49,6 +49,7 @@ final class CommandRuntime {
   bool _closed = false;
   bool _deadline = false;
   bool _local = false;
+  bool _progressOutputFailed = false;
   Future<void> get stopped => _stopped.future;
   int get stoppedExitCode => _deadline && !_local ? 5 : 7;
   void expire() {
@@ -308,17 +309,22 @@ final class CommandRuntime {
       } on BridgeError {
         if (requirements.class_ == BridgeCommandClass.schoolWrite) rethrow;
       }
-      Future<BridgeCommandAttempt> execute(BridgeClient current) =>
-          onlineCache == null
-          ? current.executeCommand(
-              command: command,
-              expectedIdentity: backend!.binding!.account.username,
-            )
-          : current.executeCachedCommand(
-              command: command,
-              expectedIdentity: backend!.binding!.account.username,
-              cache: onlineCache,
-            );
+      Future<BridgeCommandAttempt> execute(BridgeClient current) {
+        final work = onlineCache == null
+            ? current.executeCommand(
+                command: command,
+                expectedIdentity: backend!.binding!.account.username,
+              )
+            : current.executeCachedCommand(
+                command: command,
+                expectedIdentity: backend!.binding!.account.username,
+                cache: onlineCache,
+              );
+        return requirements.hasTransfer
+            ? _withTransferProgress(command, work)
+            : work;
+      }
+
       BridgeCommandAttempt attempt;
       if (requirements.class_ == BridgeCommandClass.schoolWrite) {
         attempt = await _wait(
@@ -395,6 +401,43 @@ final class CommandRuntime {
     }
   }
 
+  Future<T> _withTransferProgress<T>(
+    BridgeCommand command,
+    Future<T> work,
+  ) async {
+    final finished = Completer<void>();
+    Future<void> report() async {
+      String? previous;
+      try {
+        while (!finished.isCompleted && !_stopped.isCompleted) {
+          await Future.any([
+            Future<void>.delayed(const Duration(milliseconds: 500)),
+            finished.future,
+          ]);
+          if (finished.isCompleted || _stopped.isCompleted) return;
+          final line = command.transferProgressLine();
+          if (line != null && line != previous) {
+            previous = line;
+            await _wait(io.writeStderr(utf8.encode(line)));
+          }
+        }
+      } on RecoveryInterrupted {
+        // 原命令保留首次取消或期限原因。
+      } on Object {
+        _progressOutputFailed = true;
+        cancel();
+      }
+    }
+
+    final reporting = report();
+    try {
+      return await work;
+    } finally {
+      finished.complete();
+      await reporting;
+    }
+  }
+
   Future<int> _deliver(BridgeCommandResult result) async {
     final delivery = await result.deliver();
     Future<void> copy(bool output) async {
@@ -418,7 +461,8 @@ final class CommandRuntime {
 
     try {
       await Future.wait([copy(true), copy(false)]);
-      return await delivery.finish();
+      final code = await delivery.finish();
+      return _progressOutputFailed ? 7 : code;
     } on Object {
       return 7;
     }

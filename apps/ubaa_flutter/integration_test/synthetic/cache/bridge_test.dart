@@ -40,11 +40,31 @@ void main() {
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
       final cloud = await client.bhpanCapabilities();
       expect(cloud.directMetadata, BridgeBhpanCapability.available);
-      expect(cloud.objectTransfer, BridgeBhpanCapability.unverified);
+      expect(cloud.objectTransfer, BridgeBhpanCapability.available);
+      expect(cloud.conditionalReplace, BridgeBhpanCapability.unverified);
       final transfer = BridgeBhpanTransfer();
       expect(transfer.progress().phase, BridgeBhpanTransferPhase.queued);
       transfer.cancel();
       expect(transfer.progress().phase, BridgeBhpanTransferPhase.cancelled);
+      await expectLater(
+        client.bhpanPrepareUpload(
+          parent: 'unused',
+          path: 'unused',
+          name: 'notes.txt',
+          transfer: transfer,
+        ),
+        throwsA(isA<BridgeError>()),
+      );
+      await expectLater(
+        client.bhpanDownload(
+          handles: ['unused'],
+          name: 'notes',
+          path: 'unused',
+          overwrite: false,
+          transfer: transfer,
+        ),
+        throwsA(isA<BridgeError>()),
+      );
       await expectLater(
         client.bhpanRead(
           query: const BridgeBhpanQuery(view: BridgeBhpanReadView.personalRoot),

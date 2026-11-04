@@ -143,6 +143,9 @@ pub enum BridgeBhpanTransferPhase {
     Failed,
     OutcomeUnknown,
     Blocked,
+    Uploading,
+    Downloading,
+    Finalizing,
 }
 #[derive(Clone, Debug)]
 pub struct BridgeBhpanTransferProgress {
@@ -166,4 +169,10 @@ pub enum BridgeBhpanCapability {
     Available,
     Unverified,
     Unavailable,
+}
+
+#[derive(Clone, Debug)]
+pub struct BridgeBhpanDownloadReceipt {
+    pub bytes: u64,
+    pub batch: bool,
 }

@@ -1,13 +1,14 @@
 //! 云盘操作借用现有主客户端锁，退出和路线重开会撤销 Core 句柄。
 #![allow(clippy::missing_errors_doc)]
-mod convert;
+pub(crate) mod convert;
 pub mod models;
+mod transfer;
 use crate::api::client::{BridgeClient, BridgeError, catch_panic, disposed_error};
 use futures_util::FutureExt;
 use models::{
     BridgeBhpanCapabilities, BridgeBhpanDownloadPreparation, BridgeBhpanPage, BridgeBhpanPrepared,
     BridgeBhpanQuery, BridgeBhpanReadView, BridgeBhpanReceipt, BridgeBhpanShare, BridgeBhpanSize,
-    BridgeBhpanTransferPhase, BridgeBhpanTransferProgress, BridgeBhpanWrite,
+    BridgeBhpanTransferProgress, BridgeBhpanWrite,
 };
 use std::panic::AssertUnwindSafe;
 use ubaa_core::facade as c;
@@ -31,27 +32,7 @@ impl BridgeBhpanTransfer {
     #[flutter_rust_bridge::frb(sync)]
     #[must_use]
     pub fn progress(&self) -> BridgeBhpanTransferProgress {
-        let p = self.control.progress();
-        let phase = match p.phase {
-            c::BhpanTransferPhase::Queued => BridgeBhpanTransferPhase::Queued,
-            c::BhpanTransferPhase::HashingMini => BridgeBhpanTransferPhase::HashingMini,
-            c::BhpanTransferPhase::HashingFull => BridgeBhpanTransferPhase::HashingFull,
-            c::BhpanTransferPhase::Checking => BridgeBhpanTransferPhase::Checking,
-            c::BhpanTransferPhase::AwaitingConfirmation => {
-                BridgeBhpanTransferPhase::AwaitingConfirmation
-            }
-            c::BhpanTransferPhase::Submitting => BridgeBhpanTransferPhase::Submitting,
-            c::BhpanTransferPhase::Completed => BridgeBhpanTransferPhase::Completed,
-            c::BhpanTransferPhase::Cancelled => BridgeBhpanTransferPhase::Cancelled,
-            c::BhpanTransferPhase::Failed => BridgeBhpanTransferPhase::Failed,
-            c::BhpanTransferPhase::OutcomeUnknown => BridgeBhpanTransferPhase::OutcomeUnknown,
-            c::BhpanTransferPhase::Blocked => BridgeBhpanTransferPhase::Blocked,
-        };
-        BridgeBhpanTransferProgress {
-            phase,
-            bytes: p.bytes,
-            total: p.total,
-        }
+        convert::progress(&self.control.progress())
     }
 }
 impl Default for BridgeBhpanTransfer {
@@ -130,7 +111,11 @@ impl BridgeClient {
     ) -> Result<BridgeBhpanPrepared, BridgeError> {
         self.register_bhpan_transfer(transfer.control.clone())?;
         catch_panic(async {
-            let mut g = self.inner.lock().await;
+            let mut g=tokio::select! {
+                biased;
+                interruption=transfer.control.cancelled()=>return Err(if self.is_disposed.load(std::sync::atomic::Ordering::SeqCst){disposed_error()}else{error(interruption)}),
+                guard=self.inner.lock()=>guard,
+            };
             let p = g
                 .as_mut()
                 .ok_or_else(disposed_error)?
