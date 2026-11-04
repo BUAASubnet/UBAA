@@ -23,3 +23,5 @@ export 'src/schedule_widgets.dart';
 export 'src/infrastructure/preferences.dart';
 export 'src/infrastructure/network_monitor.dart';
 export 'src/infrastructure/place_preferences.dart';
+
+export 'src/infrastructure/agenda_file.dart';

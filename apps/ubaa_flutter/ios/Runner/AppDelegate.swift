@@ -12,6 +12,8 @@ import UIKit
 
   func didInitializeImplicitFlutterEngine(_ engineBridge: FlutterImplicitEngineBridge) {
     GeneratedPluginRegistrant.register(with: engineBridge.pluginRegistry)
-
+    if let registrar = engineBridge.pluginRegistry.registrar(forPlugin: "AgendaFilePlugin") {
+      AgendaFilePlugin.register(with: registrar)
+    }
   }
 }
