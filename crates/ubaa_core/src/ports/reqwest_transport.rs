@@ -62,6 +62,8 @@ impl HttpTransport for ReqwestTransport {
         let method = match request.method {
             HttpMethod::Get => reqwest::Method::GET,
             HttpMethod::Post => reqwest::Method::POST,
+            HttpMethod::Put => reqwest::Method::PUT,
+            HttpMethod::Delete => reqwest::Method::DELETE,
         };
         tracing::debug!(target: "ubaa::transport", method = ?method, "HTTP 请求发送");
         let mut builder = self.client.request(method, &request.url);

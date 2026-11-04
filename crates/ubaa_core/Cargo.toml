@@ -28,6 +28,7 @@ hex.workspace = true
 image.workspace = true
 icalendar.workspace = true
 md-5.workspace = true
+crc32fast = "=1.5.3"
 regex = "1.12.2"
 rand.workspace = true
 reqwest.workspace = true

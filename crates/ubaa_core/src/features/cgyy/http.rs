@@ -41,6 +41,11 @@ pub(super) fn signed_request(
     let mut request = match method {
         HttpMethod::Get => HttpRequest::get(request_url),
         HttpMethod::Post => HttpRequest::post(request_url, Vec::new()),
+        HttpMethod::Put | HttpMethod::Delete => {
+            return Err(crate::error::UbaaError::invalid_input(
+                "研讨室请求方法不受支持",
+            ));
+        }
     };
     request
         .headers
@@ -139,6 +144,8 @@ pub(super) const fn method_name_value(method: HttpMethod) -> &'static str {
     match method {
         HttpMethod::Get => "GET",
         HttpMethod::Post => "POST",
+        HttpMethod::Put => "PUT",
+        HttpMethod::Delete => "DELETE",
     }
 }
 

@@ -248,6 +248,7 @@ impl UbaaClient {
     }
 
     pub(super) fn clear_all_memory(&mut self) {
+        *self.bhpan = super::bhpan::state::BhpanState::default();
         self.clear_interactive_context();
         self.direct_runtime.clear_memory();
         self.webvpn_runtime.clear_memory();

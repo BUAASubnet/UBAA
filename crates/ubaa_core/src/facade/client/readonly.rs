@@ -27,6 +27,7 @@ impl UbaaClient {
             webvpn_auth: AuthWorkflow::default(),
             sessions: self.sessions.clone(),
             interactive: super::interactive_auth::state::InteractiveAuthState::default(),
+            bhpan: Box::default(),
         })
     }
 

@@ -27,6 +27,7 @@ pub struct UbaaClient {
     pub(super) webvpn_auth: AuthWorkflow,
     pub(super) sessions: DualSessionCoordinator,
     pub(super) interactive: super::interactive_auth::state::InteractiveAuthState,
+    pub(super) bhpan: Box<super::bhpan::state::BhpanState>,
 }
 
 impl UbaaClient {
@@ -191,6 +192,7 @@ impl UbaaClient {
             webvpn_auth: AuthWorkflow::default(),
             sessions,
             interactive: super::interactive_auth::state::InteractiveAuthState::default(),
+            bhpan: Box::default(),
         })
     }
 
@@ -233,6 +235,7 @@ impl UbaaClient {
         })?;
         replacement.save(config_dir)?;
         self.route_generation = generation;
+        *self.bhpan = super::bhpan::state::BhpanState::default();
         self.config = replacement;
         self.clear_interactive_context();
         Ok(())

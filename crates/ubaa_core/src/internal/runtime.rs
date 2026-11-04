@@ -190,6 +190,17 @@ impl ClientRuntime {
         self.jar.cookie_value_for_url(name, request_url, self.now())
     }
 
+    /// 只供已审阅协议设置或清除其固定作用域的临时 Cookie。
+    pub(crate) fn set_scoped_cookie(&mut self, raw: &str, origin: &str) -> Result<()> {
+        let response = HttpResponse {
+            status: 200,
+            final_url: origin.into(),
+            headers: std::collections::BTreeMap::from([("Set-Cookie".into(), vec![raw.into()])]),
+            body: Vec::new(),
+        };
+        self.jar.store_response(&response, origin, self.now())
+    }
+
     pub(crate) fn clear_feature_state(&self) {
         self.feature_state.clear();
     }
@@ -281,6 +292,50 @@ impl ClientRuntime {
     ) -> Result<HttpResponse> {
         self.request_non_idempotent_with_pre_send_check(request, |_| Ok(()))
             .await
+    }
+
+    /// 显式 Bearer API 使用独立 Cookie 边界，不接收或发送浏览器导航 Cookie。
+    pub(crate) async fn request_bearer_only(
+        &mut self,
+        request: HttpRequest,
+        write: bool,
+    ) -> Result<HttpResponse> {
+        self.request_bearer_only_checked(request, write, |_| Ok(()))
+            .await
+    }
+    pub(crate) async fn request_bearer_only_checked<F>(
+        &mut self,
+        request: HttpRequest,
+        write: bool,
+        pre_send: F,
+    ) -> Result<HttpResponse>
+    where
+        F: FnOnce(&Self) -> Result<()>,
+    {
+        if write {
+            self.ensure_primary_client()?;
+        }
+        self.ensure_session_revision()?;
+        self.check_interactive_login_scope()?;
+        pre_send(self)?;
+        if write {
+            self.non_idempotent_boundary_crossed = true;
+            if let Some(observer) = self.write_observer.as_ref().and_then(Weak::upgrade) {
+                observer.store(true, Ordering::SeqCst);
+            }
+        }
+        let result = self.transport.execute(request).await;
+        if write {
+            let response = result.map_err(|_| write_outcome_unknown())?;
+            self.ensure_session_revision()
+                .map_err(|_| write_outcome_unknown())?;
+            Ok(response)
+        } else {
+            let response = result?;
+            self.ensure_session_revision()?;
+            self.check_interactive_login_scope()?;
+            Ok(response)
+        }
     }
 
     /// 在非幂等发送边界紧前执行调用方检查。

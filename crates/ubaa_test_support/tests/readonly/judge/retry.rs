@@ -147,6 +147,9 @@ impl HttpTransport for AggregateJudgeInvalidationTransport {
                     self.sso_posts.fetch_add(1, Ordering::SeqCst);
                     Ok(response(503, &request.url, ""))
                 }
+                HttpMethod::Put | HttpMethod::Delete => {
+                    panic!("SSO 测试只接受 GET 和 POST")
+                }
             };
         }
         if self.mode == ConnectionMode::Direct && request.url == JUDGE_LOGIN_URL {

@@ -2621,6 +2621,7 @@ dependencies = [
  "chrono-tz",
  "cipher",
  "cookie_store",
+ "crc32fast",
  "ecb",
  "fs2",
  "hex",

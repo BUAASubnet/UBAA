@@ -3,7 +3,14 @@ mod auth;
 #[path = "auth/verified_identity.rs"]
 mod verified_identity;
 pub use verified_identity::VerifiedLoginIdentity;
+pub mod bhpan;
 mod client;
+pub use crate::domain::bhpan::{
+    BhpanCapabilities, BhpanCapability, BhpanDownloadPreparation, BhpanItem, BhpanItemKind,
+    BhpanListRange, BhpanPage, BhpanPermission, BhpanPreparedWrite, BhpanRootKind, BhpanScope,
+    BhpanShare, BhpanShareSettings, BhpanSize, BhpanTransferPhase, BhpanTransferProgress,
+    BhpanWriteIntent, BhpanWriteReceipt,
+};
 mod diagnostic;
 mod judge_refresh;
 mod judge_scan;
