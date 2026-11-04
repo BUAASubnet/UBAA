@@ -2,6 +2,7 @@ import 'dart:async';
 import 'agenda/backend.dart';
 import 'ihome/service.dart';
 import 'campus/service.dart';
+import 'bhpan/service.dart';
 import 'write/pinned_readback.dart';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -72,7 +73,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 46;
+const _supportedBridgeContractVersion = 47;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -86,6 +87,7 @@ class BridgeBackend
         HomeTodoBackend,
         IhomeBackend,
         CampusAccountBackend,
+        BhpanProvider,
         PinnedWriteReadbackBackend,
         InteractiveLoginBackend,
         CgyyLockDisplayBackend,
@@ -150,6 +152,8 @@ class BridgeBackend
   late final AgendaService agenda = AgendaService(_homeAgenda);
   @override
   late final IhomeService ihome = BridgeIhomeService(_context.client);
+  @override
+  late final BhpanService bhpan = BridgeBhpanService(_context);
   @override
   late final CampusAccountService campusAccount = BridgeCampusAccountService(
     _context,

@@ -1,6 +1,41 @@
 part of 'shell.dart';
 
 extension UbaaShellWriteActions on _UbaaMainShellState {
+  Future<WriteOutcome?> _runBhpanWrite(BhpanMutation request) async {
+    final run = widget.onRunWritePrepare,
+        confirm = widget.onConfirmWrite,
+        cancel = widget.onCancelWrite,
+        service = widget.bhpanService;
+    if (run == null ||
+        confirm == null ||
+        cancel == null ||
+        service == null ||
+        _writeBusy)
+      return null;
+    final generation = _accountGeneration, policy = widget.routePolicy;
+    _setDirectWriteActive(WriteOperation.bhpan);
+    try {
+      return await runBhpanWriteFlow(
+        context: context,
+        request: request,
+        service: service,
+        generation: _bhpanModalScope,
+        run: run,
+        confirm: confirm,
+        cancel: cancel,
+        state: () => widget.writeState,
+        isCurrent: () =>
+            mounted &&
+            generation == _accountGeneration &&
+            policy == widget.routePolicy &&
+            identical(service, widget.bhpanService) &&
+            _utilityPage == '北航云盘',
+      );
+    } finally {
+      if (mounted) _setDirectWriteActive(null);
+    }
+  }
+
   bool get _hasWriteCommands =>
       widget.onRunWritePrepare != null &&
       widget.onCancelWrite != null &&

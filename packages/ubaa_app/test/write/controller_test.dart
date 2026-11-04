@@ -532,7 +532,7 @@ void _registerWriteTests() {
     controller.dispose();
   });
 
-  test('十项写操作成功后都只进入对应读取核对入口', () async {
+  test('写操作成功后进入各自的读取核对入口', () async {
     final backend = FixtureRefreshMatrixBackend();
     final controller = AppController(backend: backend);
 
@@ -547,7 +547,8 @@ void _registerWriteTests() {
         expect(backend.queries.single.$2.view, FeatureQueryView.cgyyOrders);
       } else if (operation == WriteOperation.cgyyCancelOrder ||
           operation == WriteOperation.ygdkSubmit ||
-          operation == WriteOperation.evaluationSubmitCourses) {
+          operation == WriteOperation.evaluationSubmitCourses ||
+          operation == WriteOperation.bhpan) {
         expect(backend.loadedFeatures, isEmpty);
         expect(backend.queries, isEmpty);
       } else if (operation == WriteOperation.libbookReserve ||
@@ -904,9 +905,8 @@ FeatureId _expectedFeature(WriteOperation operation) => switch (operation) {
   WriteOperation.ygdkSubmit => FeatureId.ygdk,
   WriteOperation.cgyySubmitReservation ||
   WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
-  WriteOperation.evaluationSubmitCourses => throw StateError(
-    '评教使用调用方固定路线回读，不走通用刷新',
-  ),
+  WriteOperation.evaluationSubmitCourses ||
+  WriteOperation.bhpan => throw StateError('功能使用自己的读取核对入口，不走通用刷新'),
 };
 
 void main() {

@@ -71,7 +71,9 @@ class _WriteReadbackNoticeState extends State<WriteReadbackNotice> {
             spacing: 8,
             children: [
               TextButton(
-                onPressed: () => widget.onOpenFeature(hint.feature),
+                onPressed: hint.feature == null
+                    ? null
+                    : () => widget.onOpenFeature(hint.feature!),
                 child: const Text('查看相关记录'),
               ),
               TextButton(

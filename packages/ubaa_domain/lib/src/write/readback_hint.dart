@@ -17,7 +17,7 @@ class WriteReadbackHint {
   final ConnectionMode route;
   final DateTime startedAt;
 
-  FeatureId get feature => switch (operation) {
+  FeatureId? get feature => switch (operation) {
     WriteOperation.bykcSelectCourse ||
     WriteOperation.bykcDeselectCourse ||
     WriteOperation.bykcSignCourse => FeatureId.bykc,
@@ -28,5 +28,6 @@ class WriteReadbackHint {
     WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
     WriteOperation.ygdkSubmit => FeatureId.ygdk,
     WriteOperation.evaluationSubmitCourses => FeatureId.evaluation,
+    WriteOperation.bhpan => null,
   };
 }

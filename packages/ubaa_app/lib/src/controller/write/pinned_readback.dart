@@ -11,6 +11,7 @@ Future<void> controllerPinnedWriteReadback(
   FeatureQuery? query,
   ConnectionMode route,
 ) async {
+  if (operation == WriteOperation.bhpan) return;
   final backend = controller.internalBackend;
   if (backend is! PinnedWriteReadbackBackend) return;
   final feature = switch (operation) {

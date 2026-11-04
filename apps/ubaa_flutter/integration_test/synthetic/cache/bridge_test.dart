@@ -34,8 +34,27 @@ void main() {
       await probeAgendaRepeat(tester, directory.path);
       await probeAgendaWriteFence(directory.path);
       client = await BridgeClient.open(configDir: directory.path);
-      expect(client.contractVersion(), 46);
+      expect(client.contractVersion(), 47);
       await client.setDefaultRoutePolicy(policy: BridgeRoutePolicy.direct);
+      final cloud = await client.bhpanCapabilities();
+      expect(cloud.directMetadata, BridgeBhpanCapability.available);
+      expect(cloud.objectTransfer, BridgeBhpanCapability.unverified);
+      final transfer = BridgeBhpanTransfer();
+      expect(transfer.progress().phase, BridgeBhpanTransferPhase.queued);
+      transfer.cancel();
+      expect(transfer.progress().phase, BridgeBhpanTransferPhase.cancelled);
+      await expectLater(
+        client.bhpanRead(
+          query: const BridgeBhpanQuery(view: BridgeBhpanReadView.personalRoot),
+        ),
+        throwsA(
+          isA<BridgeError>().having(
+            (error) => error.code,
+            '云盘缺会话在网络前拒绝',
+            BridgeErrorCode.authenticationRequired,
+          ),
+        ),
+      );
       await expectLater(
         client.recoverRequiredSession(feature: BridgeRecoveryFeature.schedule),
         throwsA(

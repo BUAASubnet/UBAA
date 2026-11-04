@@ -1,10 +1,11 @@
 import 'package:meta/meta.dart';
+import '../bhpan/models.dart';
 
 import '../common/route.dart';
 import '../common/cache_management.dart';
 import '../feature/query.dart';
 
-/// 与 bridge 一一对应的封闭写操作枚举。
+/// 应用写操作。各 typed Bridge 共用同一个写入协调器。
 enum WriteOperation {
   bykcSelectCourse,
   bykcDeselectCourse,
@@ -16,6 +17,7 @@ enum WriteOperation {
   cgyySubmitReservation,
   cgyyCancelOrder,
   evaluationSubmitCourses,
+  bhpan,
 }
 
 extension WriteOperationText on WriteOperation {
@@ -30,6 +32,7 @@ extension WriteOperationText on WriteOperation {
     WriteOperation.cgyySubmitReservation => '研讨室预约',
     WriteOperation.cgyyCancelOrder => '取消研讨室订单',
     WriteOperation.evaluationSubmitCourses => '教学评教',
+    WriteOperation.bhpan => '北航云盘',
   };
 
   bool get isIrreversible => switch (this) {
@@ -192,6 +195,7 @@ class WriteCommitResult {
     this.ygdkReceipt,
     this.evaluationResult,
     this.cacheFailure,
+    this.bhpanReceipt,
   });
 
   final WriteOperation operation;
@@ -205,6 +209,7 @@ class WriteCommitResult {
 
   /// 本地关联内容处理失败不改变学校提交的确定性和结果。
   final CacheMaintenanceFailure? cacheFailure;
+  final BhpanReceipt? bhpanReceipt;
 
   /// 本地收尾失败仅追加材料状态，不覆盖已投影的学校结果。
   WriteCommitResult withCacheFailure(CacheMaintenanceFailure? failure) =>
@@ -218,5 +223,6 @@ class WriteCommitResult {
         ygdkReceipt: ygdkReceipt,
         evaluationResult: evaluationResult,
         cacheFailure: failure,
+        bhpanReceipt: bhpanReceipt,
       );
 }

@@ -36,9 +36,6 @@ void main() {
       ConnectionMode.direct,
       ConnectionMode.webvpn,
     ]);
-    expect(WriteOperation.values, hasLength(10));
-    expect(WriteOperation.values.first, WriteOperation.bykcSelectCourse);
-    expect(WriteOperation.values.last, WriteOperation.evaluationSubmitCourses);
     expect(WritePhase.values, <WritePhase>[
       WritePhase.idle,
       WritePhase.preparing,

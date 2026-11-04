@@ -1,6 +1,9 @@
 /// UBAA 客户端共享领域模型。
 library;
 
+export 'src/bhpan/models.dart';
+export 'src/bhpan/service.dart';
+
 export 'src/models.dart';
 
 export 'src/app_link.dart';

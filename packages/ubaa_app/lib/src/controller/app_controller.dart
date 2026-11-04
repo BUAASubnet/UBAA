@@ -3,6 +3,7 @@ import 'agenda/lifecycle.dart';
 import 'state/types.dart' show AppPhase;
 import 'features/ihome/service.dart';
 import 'features/campus/service.dart';
+import 'features/bhpan/service.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
@@ -181,6 +182,30 @@ class AppController extends ControllerState
   }
 
   CampusAccountService? _campusService;
+  BhpanService? _bhpanService;
+  UbaaBackend? _bhpanBackend;
+  int? _bhpanEpoch;
+  BhpanService? get bhpanService {
+    final backend = internalBackend;
+    if (backend is! BhpanProvider) return null;
+    final epoch = internalLifecycleEpoch;
+    if (!identical(backend, _bhpanBackend) || epoch != _bhpanEpoch) {
+      _bhpanBackend = backend;
+      _bhpanEpoch = epoch;
+      _bhpanService = GuardedBhpanService(
+        (backend as BhpanProvider).bhpan,
+        () =>
+            !internalDisposed &&
+            !internalIsSigningOut &&
+            !internalInteractiveEngaged &&
+            internalPhase == AppPhase.home &&
+            internalLifecycleEpoch == epoch &&
+            identical(internalBackend, backend),
+      );
+    }
+    return _bhpanService;
+  }
+
   UbaaBackend? _campusBackend;
   int? _campusEpoch;
 

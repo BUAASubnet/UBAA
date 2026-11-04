@@ -62,7 +62,9 @@ mixin ControllerReadbackDispatch on ControllerState {
       WriteOperation.evaluationSubmitCourses => throw StateError(
         '评教使用调用方固定路线回读',
       ),
+      WriteOperation.bhpan => null,
     };
+    if (feature == null) return Future<void>.value();
     return internalRefreshHome(only: <FeatureId>[feature], writeReadback: true);
   }
 }

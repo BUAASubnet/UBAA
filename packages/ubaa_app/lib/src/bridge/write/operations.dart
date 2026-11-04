@@ -1,4 +1,5 @@
 import 'dart:async';
+import '../bhpan/service.dart' show bridgeBhpanCommit;
 import 'dart:typed_data';
 import 'package:ubaa_bindings/ubaa_bindings.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -31,6 +32,8 @@ Future<WriteCommitResult> bridgeCommitWrite(
   String intentId, {
   String? cacheAccountId,
 }) async {
+  if (intentId.startsWith('bhpan:'))
+    return bridgeBhpanCommit(backend, intentId);
   // 写入结果不能由返回时的本地代次覆盖；仓库仅使用调用开始时的原账号句柄。
   final cache =
       cacheAccountId != null &&

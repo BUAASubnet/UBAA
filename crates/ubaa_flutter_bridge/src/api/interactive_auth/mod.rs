@@ -131,6 +131,7 @@ impl BridgeClient {
         &self,
         username: String,
     ) -> Result<BridgeInteractiveLogin, BridgeError> {
+        self.cancel_bhpan_transfers();
         if self.is_disposed.load(Ordering::SeqCst) {
             return Err(disposed_error());
         }
@@ -197,6 +198,7 @@ impl BridgeClient {
         password: String,
         answers: Vec<BridgeCaptchaAnswer>,
     ) -> Result<BridgeInteractiveLoginOutcome, BridgeError> {
+        self.cancel_bhpan_transfers();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;

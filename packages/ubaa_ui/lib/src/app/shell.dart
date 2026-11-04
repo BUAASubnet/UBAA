@@ -1,6 +1,8 @@
 import 'dart:async';
 import '../shared/rail_identity.dart';
 import '../shared/dialogs/confirmation.dart';
+import '../features/bhpan/write_flow.dart';
+import '../features/bhpan/view.dart';
 import '../features/agenda/view.dart';
 import '../features/agenda/format.dart' show campusDate, AgendaAccess;
 import '../shared/tab_navigation.dart'
@@ -54,6 +56,8 @@ class UbaaMainShell extends StatefulWidget {
     required this.onTelemetryChanged,
     this.initialDestination = UiDestination.home,
     this.campusAccountService,
+    this.bhpanService,
+    this.onPickBhpanFile,
     this.connecting = false,
     this.homeClock,
     this.connectionStatus,
@@ -171,6 +175,8 @@ class UbaaMainShell extends StatefulWidget {
 
   /// “我的”页面的门户资料、账户指标与流量读取；为空时页面显示占位。
   final CampusAccountService? campusAccountService;
+  final BhpanService? bhpanService;
+  final Future<BhpanLocalFile?> Function()? onPickBhpanFile;
 
   /// 会话正在恢复；与页面刷新一起显示在标题栏右侧，不单独显示图标。
   final bool connecting;
@@ -278,6 +284,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   bool _cgyyOnlyAvailable = true;
   final Set<FeatureId> _visitedFeatures = <FeatureId>{};
   int _accountGeneration = 0;
+  final _bhpanModalScope = ValueNotifier<int>(0);
   final _homeKey = GlobalKey<HomeViewState>();
 
   /// 进行中的下拉刷新数；大于零时标题栏只显示更新时间。
@@ -335,6 +342,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         (oldWidget.user?.accountScope ?? oldWidget.user?.username) !=
         (widget.user?.accountScope ?? widget.user?.username);
     _updatePlaces(oldWidget, accountChanged);
+    if (accountChanged ||
+        oldWidget.routePolicy != widget.routePolicy ||
+        !identical(oldWidget.bhpanService, widget.bhpanService))
+      _bhpanModalScope.value++;
     if (accountChanged ||
         oldWidget.routePolicy != widget.routePolicy ||
         oldWidget.businessCacheEpoch != widget.businessCacheEpoch ||
@@ -453,6 +464,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
 
   @override
   void dispose() {
+    _bhpanModalScope.value++;
+    _bhpanModalScope.dispose();
     _visiblePage.dispose();
     _appBarSlot.dispose();
     _tabPager.dispose();
@@ -922,6 +935,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onSaveFile: widget.agenda.saveFile,
     ),
     1 || 3 => FeatureGridView(
+      onOpenBhpan: index == UiDestination.campus.index
+          ? () => _openUtility('北航云盘')
+          : null,
       onOpenIhome: index == UiDestination.campus.index
           ? () => _openUtility('iHome')
           : null,
@@ -936,6 +952,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           widget.campusAccountService != null &&
           widget.writeState.intent == null,
       child: MeView(
+        onOpenBhpan: () => _openUtility('北航云盘'),
         user: widget.user,
         overview: _campusOverview,
         showShortcuts: MediaQuery.sizeOf(context).width < 600,

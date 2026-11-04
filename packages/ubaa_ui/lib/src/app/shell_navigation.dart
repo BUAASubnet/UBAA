@@ -39,7 +39,16 @@ extension UbaaShellNavigation on _UbaaMainShellState {
 
   /// 手机上首页、三个分类与“我的”可左右滑动切换；各页保留状态。
   Widget _buildTab(BuildContext context) => _utilityPage != null
-      ? _utilityPage == 'iHome'
+      ? _utilityPage == '北航云盘'
+            ? BhpanView(
+                key: ValueKey((widget.cacheAccountId, widget.routePolicy)),
+                access: BhpanAccess(
+                  service: widget.bhpanService,
+                  pickFile: widget.onPickBhpanFile,
+                  runWrite: _hasWriteCommands ? _runBhpanWrite : null,
+                ),
+              )
+            : _utilityPage == 'iHome'
             ? IhomeView(
                 key: ValueKey(
                   widget.cacheAccountId ?? widget.user?.accountScope,

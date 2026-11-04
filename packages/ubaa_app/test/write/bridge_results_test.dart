@@ -44,7 +44,7 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
     expect(invalid.ygdkReceipt, isNull);
   });
 
-  test('十项写准备提交收据结果和完整错误映射保持安全闭包', () async {
+  test('学校写准备、提交收据和完整错误映射保持安全闭包', () async {
     final client = FixtureCharacterizationBridgeClient();
     final backend = BridgeBackend(client);
     final intents = <WriteIntent>[
@@ -125,7 +125,9 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
 
     expect(
       intents.map((intent) => intent.operation).toList(growable: false),
-      WriteOperation.values,
+      WriteOperation.values.where(
+        (operation) => operation != WriteOperation.bhpan,
+      ),
     );
     final course =
         client.writeRequests[#prepareBykcSelectCourse]

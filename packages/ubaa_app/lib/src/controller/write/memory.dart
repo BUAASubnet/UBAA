@@ -89,7 +89,9 @@ mixin ControllerWriteCache on ControllerState {
       WriteOperation.cgyyCancelOrder => FeatureId.cgyy,
       WriteOperation.ygdkSubmit => FeatureId.ygdk,
       WriteOperation.evaluationSubmitCourses => FeatureId.evaluation,
+      WriteOperation.bhpan => null,
     };
+    if (feature == null) return;
     // 只清返回帧的旧副本与关联领域的旧动作，业务数据不按全库清除。
     internalCacheLifecycle.invalidateReads();
     final generation = ++internalReadRequestRevision;

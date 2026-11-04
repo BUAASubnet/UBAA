@@ -44,7 +44,7 @@ void main() {
     controller.dispose();
   });
 
-  test('十项写操作均经过一次性确认且不会自动重复提交', () async {
+  test('写操作均经过一次性确认且不会自动重复提交', () async {
     for (final operation in WriteOperation.values) {
       var calls = 0;
       final id = 'intent-${operation.name}';

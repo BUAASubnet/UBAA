@@ -1,5 +1,8 @@
 library;
 
+export 'src/rust/api/bhpan/models.dart';
+export 'src/rust/api/bhpan.dart';
+
 export 'src/rust/api/simple.dart';
 export 'src/rust/api/client.dart';
 export 'src/rust/api/interactive_auth.dart';

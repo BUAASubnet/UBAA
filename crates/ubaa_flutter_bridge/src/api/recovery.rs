@@ -91,6 +91,7 @@ impl BridgeClient {
                 "用户名和密码不能为空",
             ));
         }
+        self.cancel_bhpan_transfers();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
             let client = guard.as_mut().ok_or_else(disposed_error)?;

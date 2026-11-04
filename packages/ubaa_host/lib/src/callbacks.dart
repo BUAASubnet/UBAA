@@ -127,6 +127,8 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
           : (key, value) => _savePlace(localOwner, key, value),
       ihomeService: _controller.ihomeService,
       campusAccountService: _controller.campusAccountService,
+      bhpanService: _controller.bhpanService,
+      onPickBhpanFile: widget.bhpanFilePicker.pick,
       connectionStatus: _connectionStatus,
       connecting:
           _controller.usesLocalRecovery &&

@@ -17,6 +17,7 @@ class MeView extends StatelessWidget {
     this.onOpenSettings,
     this.onOpenAbout,
     this.onLogout,
+    this.onOpenBhpan,
   });
 
   final UserSummary? user;
@@ -25,6 +26,7 @@ class MeView extends StatelessWidget {
   /// 窄屏没有侧边栏，在页尾提供设置、关于和退出。
   final bool showShortcuts;
   final VoidCallback? onOpenProfile, onOpenSettings, onOpenAbout, onLogout;
+  final VoidCallback? onOpenBhpan;
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +43,7 @@ class MeView extends StatelessWidget {
         ),
         const SizedBox(height: 24),
         const UiSectionTitle('校园账户'),
-        _MetricsPanel(section: overview.metrics),
+        _MetricsPanel(section: overview.metrics, onOpenBhpan: onOpenBhpan),
         const SizedBox(height: 24),
         const UiSectionTitle('校园网流量'),
         _NetworkPanel(section: overview.network),
@@ -211,8 +213,9 @@ String _decimal(String raw, {bool fixed = false}) {
 }
 
 class _MetricsPanel extends StatelessWidget {
-  const _MetricsPanel({required this.section});
+  const _MetricsPanel({required this.section, this.onOpenBhpan});
   final CampusSection<CampusMetrics> section;
+  final VoidCallback? onOpenBhpan;
 
   _TileValue _amount(CampusMetric<CampusAmount>? metric, {bool money = false}) {
     return switch (metric) {
@@ -275,11 +278,14 @@ class _MetricsPanel extends StatelessWidget {
         label: '待还图书',
         value: _count(metrics?.borrowedBooks, '本'),
       ),
-      _MetricTile(
-        key: const ValueKey('me-metric-cloud'),
-        icon: Icons.cloud_outlined,
-        label: '云盘剩余',
-        value: _amount(metrics?.cloudStorageRemaining),
+      InkWell(
+        onTap: onOpenBhpan,
+        child: _MetricTile(
+          key: const ValueKey('me-metric-cloud'),
+          icon: Icons.cloud_outlined,
+          label: '云盘剩余',
+          value: _amount(metrics?.cloudStorageRemaining),
+        ),
       ),
     ];
     Widget row(List<Widget> tiles) => IntrinsicHeight(

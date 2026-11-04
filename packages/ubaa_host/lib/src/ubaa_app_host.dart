@@ -123,6 +123,7 @@ class UbaaAppHost extends StatefulWidget {
     this.locationProvider,
     this.initialDestination = UiDestination.home,
     this.agendaFileSaver = const SystemAgendaFileSaver(),
+    this.bhpanFilePicker = const SystemBhpanFilePicker(),
     this.initialThemeMode = ThemeMode.system,
     this.nativeThemeSync,
     this.telemetry,
@@ -155,6 +156,7 @@ class UbaaAppHost extends StatefulWidget {
   final PlatformLocationProvider? locationProvider;
   final UiDestination initialDestination;
   final AgendaFileSaver agendaFileSaver;
+  final BhpanFilePicker bhpanFilePicker;
 
   /// 启动时已读出的主题；宿主随后仍会从偏好复核。
   final ThemeMode initialThemeMode;

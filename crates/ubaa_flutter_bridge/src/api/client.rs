@@ -18,7 +18,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 46;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 47;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -253,6 +253,7 @@ pub struct BridgeClient {
     pub(crate) write_intents: tokio::sync::Mutex<HashMap<String, super::write::PendingEntry>>,
     pub(crate) auth_control: RwLock<ubaa_core::facade::InteractiveLoginCancellation>,
     pub(crate) is_disposed: AtomicBool,
+    pub(crate) bhpan_transfers: std::sync::Mutex<Vec<ubaa_core::facade::bhpan::BhpanTransfer>>,
 }
 
 impl BridgeClient {
@@ -268,6 +269,7 @@ impl BridgeClient {
             config_dir: PathBuf::from(config_dir),
             auth_control: RwLock::new(client.interactive_login_cancellation()),
             is_disposed: AtomicBool::new(false),
+            bhpan_transfers: std::sync::Mutex::new(Vec::new()),
             inner: super::read_pool::ClientPool::new(client),
             write_intents: tokio::sync::Mutex::new(HashMap::new()),
         })
@@ -287,6 +289,7 @@ impl BridgeClient {
     /// 当前实现不会返回错误；保留 `Result` 以便未来生命周期清理失败时维持稳定 ABI。
     pub async fn dispose(&self) -> Result<(), BridgeError> {
         self.is_disposed.store(true, Ordering::SeqCst);
+        self.cancel_bhpan_transfers();
         self.cancel_interactive_login();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
@@ -304,6 +307,7 @@ impl BridgeClient {
     ///
     /// 客户端已销毁或 Core 无法准备路线时返回安全错误。
     pub async fn prepare_login(&self) -> Result<BridgeLoginPreparation, BridgeError> {
+        self.cancel_bhpan_transfers();
         self.cancel_interactive_login();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
@@ -323,6 +327,7 @@ impl BridgeClient {
         username: String,
         password: String,
     ) -> Result<BridgeLoginOutcome, BridgeError> {
+        self.cancel_bhpan_transfers();
         self.cancel_interactive_login();
         if username.trim().is_empty() || password.is_empty() {
             return Err(BridgeError::local(
@@ -402,6 +407,7 @@ impl BridgeClient {
     ///
     /// 客户端已销毁或 Core 注销失败时返回安全错误。
     pub async fn logout(&self) -> Result<(), BridgeError> {
+        self.cancel_bhpan_transfers();
         self.cancel_interactive_login();
         catch_panic(async {
             let mut guard = self.inner.lock().await;
@@ -443,6 +449,7 @@ impl BridgeClient {
         &self,
         policy: BridgeRoutePolicy,
     ) -> Result<BridgeRouteSettings, BridgeError> {
+        self.cancel_bhpan_transfers();
         self.cancel_interactive_login();
         catch_panic(async {
             let mut guard = self.inner.try_lock().map_err(|_| {

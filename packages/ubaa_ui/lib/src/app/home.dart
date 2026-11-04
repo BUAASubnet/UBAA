@@ -876,12 +876,14 @@ class FeatureGridView extends StatelessWidget {
     required this.onRetryFeature,
     required this.features,
     this.onOpenIhome,
+    this.onOpenBhpan,
   });
   final Map<FeatureId, FeatureSnapshot> snapshots;
   final ValueChanged<FeatureId> onFeatureTap;
   final Future<void> Function(FeatureId) onRetryFeature;
   final List<FeatureId> features;
   final VoidCallback? onOpenIhome;
+  final VoidCallback? onOpenBhpan;
 
   @override
   Widget build(BuildContext context) => CustomScrollView(
@@ -900,6 +902,16 @@ class FeatureGridView extends StatelessWidget {
                   icon: Icons.forum_outlined,
                   subtitle: '校园诉求、回复与公告',
                   onTap: onOpenIhome!,
+                ),
+              ),
+            if (onOpenBhpan != null)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 8),
+                child: UiEntryCard(
+                  title: '北航云盘',
+                  icon: Icons.cloud_outlined,
+                  subtitle: '文档库、文件管理、分享与回收站',
+                  onTap: onOpenBhpan!,
                 ),
               ),
             for (final feature in features)
