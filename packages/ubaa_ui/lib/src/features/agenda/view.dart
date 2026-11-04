@@ -286,20 +286,18 @@ class AgendaViewState extends State<AgendaView> {
   }
 
   void move(int offset) {
-    if (customRange) {
-      setState(() {
+    setState(() {
+      focusDate = mode == AgendaViewMode.month
+          ? agendaShiftMonth(focusDate, offset)
+          : focusDate.add(Duration(days: offset * 7));
+      if (customRange) {
         from = from.add(Duration(days: offset * 7));
         to = to.add(Duration(days: offset * 7));
-        focusDate = focusDate.add(Duration(days: offset * 7));
-      });
-      unawaited(load());
-    } else {
-      goDate(
-        mode == AgendaViewMode.month
-            ? agendaShiftMonth(focusDate, offset)
-            : focusDate.add(Duration(days: offset * 7)),
-      );
-    }
+      } else {
+        alignRange();
+      }
+    });
+    unawaited(load());
   }
 
   Widget filters() => Column(
@@ -563,6 +561,7 @@ class AgendaViewState extends State<AgendaView> {
               ...notices(),
               if (result != null && mode == AgendaViewMode.week)
                 SizedBox(
+                  key: const ValueKey('agenda-week-content'),
                   height: math.max(440, constraints.maxHeight * .78),
                   child: AgendaWeekContent(
                     date: focusDate,

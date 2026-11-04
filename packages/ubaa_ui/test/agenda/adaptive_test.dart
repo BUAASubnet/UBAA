@@ -63,8 +63,48 @@ void main() {
     await tester.drag(grid, const Offset(500, 0));
     await tester.pumpAndSettle();
     expect(find.text('合成课程时段').hitTestable(), findsNothing);
+    final horizontal = find
+        .ancestor(
+          of: grid,
+          matching: find.byWidgetPredicate(
+            (widget) =>
+                widget is Scrollable &&
+                widget.axisDirection == AxisDirection.right,
+          ),
+        )
+        .first;
+    final scrolledDate = tester
+        .state<ScrollableState>(horizontal)
+        .position
+        .pixels;
+    final vertical = find
+        .descendant(of: grid, matching: find.byType(Scrollable))
+        .first;
+    final previousTime = tester
+        .state<ScrollableState>(vertical)
+        .position
+        .pixels;
+    await tester.dragFrom(
+      tester
+          .getRect(grid)
+          .intersect(
+            tester.getRect(find.byKey(const ValueKey('agenda-main-scroll'))),
+          )
+          .center,
+      const Offset(0, -140),
+    );
+    await tester.pumpAndSettle();
+    final scrolledTime = tester
+        .state<ScrollableState>(vertical)
+        .position
+        .pixels;
+    expect(scrolledTime, greaterThan(previousTime));
+    final snapshot = await backend.query(backend.lastQuery!);
+    backend.gate = Completer<AgendaQueryResult>();
     await reveal(tester, find.text('刷新本机数据'), fromTop: true);
     await tester.tap(find.text('刷新本机数据'));
+    await tester.pump();
+    backend.gate!.complete(snapshot);
     await tester.pumpAndSettle();
     await tester.drag(
       find.byKey(const ValueKey('agenda-main-scroll')),
@@ -72,6 +112,16 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(find.text('合成课程时段').hitTestable(), findsNothing);
+    expect(
+      tester.state<ScrollableState>(horizontal).position.pixels,
+      closeTo(scrolledDate, .01),
+      reason: '查询等待前后的日期滚动位置保持不变',
+    );
+    expect(
+      tester.state<ScrollableState>(vertical).position.pixels,
+      closeTo(scrolledTime, .01),
+      reason: '查询等待前后的时间滚动位置保持不变',
+    );
   });
 
   testWidgets('宽屏详情栏编辑备注，刷新保留选择，路线变化清除旧详情', (tester) async {

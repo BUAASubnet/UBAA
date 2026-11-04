@@ -32,6 +32,69 @@ void main() {
       entry,
     ]);
   });
+  test('学校日期占位不作确定冲突，已知预约时段仍与课程比较', () {
+    AgendaEntry school(AgendaFeature feature, AgendaTiming timing) =>
+        AgendaEntry(
+          school: SchoolAgendaItem(
+            key: SchoolAgendaKey(
+              source: feature.name,
+              upstreamId: 'synthetic-time',
+            ),
+            timing: timing,
+            title: '合成学校事项',
+            subtitle: '',
+            statusLabel: '已缓存',
+            upstreamStatus: AgendaUpstreamStatus(
+              feature: feature,
+              completed: false,
+            ),
+            navigation: AgendaNavigation(feature: feature),
+            homeTodo: false,
+          ),
+          timing: timing,
+          soon: false,
+          completed: false,
+          hidden: false,
+        );
+    final placeholder = AgendaTiming(
+      kind: AgendaTimingKind.allDay,
+      from: '2026-11-05',
+      to: '2026-11-06',
+    );
+    final unknownCourse = school(AgendaFeature.schedule, placeholder);
+    expect(
+      agendaContentConflicts(event(at(5, 18), at(5, 19)), [unknownCourse]),
+      isEmpty,
+    );
+    final booking = school(
+      AgendaFeature.cgyy,
+      AgendaTiming(
+        kind: AgendaTimingKind.period,
+        start: at(5, 10),
+        end: at(5, 11),
+      ),
+    );
+    expect(agendaEntryConflicts(booking, [unknownCourse]), isEmpty);
+    expect(agendaEntryConflicts(booking, [entry]), [entry]);
+    final invalidCourse = school(
+      AgendaFeature.schedule,
+      AgendaTiming(
+        kind: AgendaTimingKind.period,
+        start: at(5, 11),
+        end: at(5, 10),
+      ),
+    );
+    expect(
+      agendaContentConflicts(event(at(5, 9), at(5, 12)), [invalidCourse]),
+      isEmpty,
+    );
+    expect(agendaEntryConflicts(booking, [invalidCourse]), isEmpty);
+    expect(
+      agendaEntryConflicts(school(AgendaFeature.cgyy, placeholder), [entry]),
+      isEmpty,
+    );
+  });
+
   test('跨午夜事项覆盖两天，结束日期不包含在全天范围内', () {
     final overnight = AgendaEntry(
       timing: AgendaTiming(

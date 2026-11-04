@@ -6,6 +6,38 @@ import 'view_modes_test.dart' show at, course, reveal;
 import 'support.dart';
 
 void main() {
+  testWidgets('列表翻周保留范围内其他日期的事项，选日筛选仍可单独开启', (tester) async {
+    final backend = MemoryAgenda();
+    final service = await opened(backend);
+    await service.create(
+      AgendaDraft(
+        content: AgendaContent(
+          kind: AgendaKind.task,
+          title: '十三日待办',
+          allDay: false,
+          due: at(13, 18),
+        ),
+        exdates: [],
+      ),
+      at(1, 9),
+    );
+    await tester.pumpWidget(app(service));
+    await tester.pumpAndSettle();
+    expect(find.text('十三日待办'), findsOneWidget);
+    await tester.tap(find.byTooltip('下一周'));
+    await tester.pumpAndSettle();
+    expect(find.text('十三日待办'), findsOneWidget);
+    await tester.tap(find.byTooltip('上一周'));
+    await tester.pumpAndSettle();
+    expect(find.text('十三日待办'), findsOneWidget);
+    await tester.tap(find.widgetWithText(ChoiceChip, '四\n11/5'));
+    await tester.pumpAndSettle();
+    expect(find.text('十三日待办'), findsNothing);
+    await tester.tap(find.text('显示全部日期'));
+    await tester.pumpAndSettle();
+    expect(find.text('十三日待办'), findsOneWidget);
+  });
+
   testWidgets('周视图顶部的全天事项也显示课程冲突', (tester) async {
     final backend = MemoryAgenda()..school.add(course());
     final service = await opened(backend);

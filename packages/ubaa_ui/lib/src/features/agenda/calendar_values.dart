@@ -53,10 +53,13 @@ List<AgendaEntry> agendaContentConflicts(
     return [];
   return [
     for (final entry in entries)
-      if (entry.school?.navigation.feature == AgendaFeature.schedule)
+      if (entry.school?.navigation.feature == AgendaFeature.schedule &&
+          entry.timing.kind == AgendaTimingKind.period)
         if (agendaStart(entry) case final courseStart?)
           if (agendaEnd(entry) case final courseEnd?)
-            if (agendaOverlaps(start, end, courseStart, courseEnd)) entry,
+            if (courseEnd.isAfter(courseStart) &&
+                agendaOverlaps(start, end, courseStart, courseEnd))
+              entry,
   ];
 }
 
@@ -66,14 +69,19 @@ List<AgendaEntry> agendaEntryConflicts(
 ) {
   if (entry.local case final local?)
     return agendaContentConflicts(local.content, entries);
-  if (entry.school?.navigation.feature != AgendaFeature.cgyy) return [];
+  if (entry.school?.navigation.feature != AgendaFeature.cgyy ||
+      entry.timing.kind != AgendaTimingKind.period)
+    return [];
   final start = agendaStart(entry), end = agendaEnd(entry);
-  if (start == null || end == null) return [];
+  if (start == null || end == null || !end.isAfter(start)) return [];
   return [
     for (final course in entries)
-      if (course.school?.navigation.feature == AgendaFeature.schedule)
+      if (course.school?.navigation.feature == AgendaFeature.schedule &&
+          course.timing.kind == AgendaTimingKind.period)
         if (agendaStart(course) case final courseStart?)
           if (agendaEnd(course) case final courseEnd?)
-            if (agendaOverlaps(start, end, courseStart, courseEnd)) course,
+            if (courseEnd.isAfter(courseStart) &&
+                agendaOverlaps(start, end, courseStart, courseEnd))
+              course,
   ];
 }
