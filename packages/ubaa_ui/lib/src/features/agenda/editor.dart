@@ -13,6 +13,8 @@ class AgendaEditor extends StatefulWidget {
     this.occurrence,
     this.scope = AgendaEditScope.all,
     required this.now,
+    required this.boundary,
+    this.findConflicts,
   });
   final AgendaService service;
   final bool Function() isCurrent;
@@ -20,6 +22,8 @@ class AgendaEditor extends StatefulWidget {
   final AgendaOccurrence? occurrence;
   final AgendaEditScope scope;
   final DateTime now;
+  final Widget Function(Widget) boundary;
+  final Future<List<AgendaEntry>> Function(AgendaContent)? findConflicts;
   @override
   State<AgendaEditor> createState() => _AgendaEditorState();
 }
@@ -198,6 +202,46 @@ class _AgendaEditorState extends State<AgendaEditor> {
         exdates: exclusions,
       );
       if (!widget.isCurrent()) return;
+      final conflicts =
+          await widget.findConflicts?.call(content) ?? <AgendaEntry>[];
+      if (!mounted || !widget.isCurrent()) return;
+      if (conflicts.isNotEmpty) {
+        final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (dialog) => widget.boundary(
+            AlertDialog(
+              title: const Text('与已缓存课程重叠'),
+              content: SingleChildScrollView(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('当前发生与以下课程重叠，是否继续保存？'),
+                    for (final course in conflicts)
+                      Padding(
+                        padding: const EdgeInsets.only(top: 8),
+                        child: Text(
+                          '${agendaTitle(course)} · ${agendaWhen(course)}',
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(dialog, false),
+                  child: const Text('返回修改'),
+                ),
+                FilledButton(
+                  onPressed: () => Navigator.pop(dialog, true),
+                  child: const Text('仍然保存'),
+                ),
+              ],
+            ),
+          ),
+        );
+        if (!mounted || !widget.isCurrent() || confirmed != true) return;
+      }
       if (widget.item == null) {
         await widget.service.create(
           draft,
