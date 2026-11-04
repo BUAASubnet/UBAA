@@ -30,7 +30,7 @@ void main() {
         ),
       );
       await tester.pumpAndSettle();
-      await tester.tap(find.byKey(const ValueKey<String>('tab-学业')));
+      await tester.tap(find.byKey(const ValueKey<String>('tab-学习')));
       await tester.pumpAndSettle();
       await cycle(tester, background);
       await tester.pumpAndSettle();
@@ -39,7 +39,7 @@ void main() {
       expect(backend.authCalls, 2);
       expect(
         tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-        UiDestination.academic.index,
+        UiDestination.study.index,
       );
       tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
       await tester.pumpAndSettle();

@@ -99,7 +99,7 @@ void _visual(
 
 Widget _menu() => UbaaMainShell(
   user: const UserSummary(username: 'synthetic', displayName: '测试同学'),
-  initialDestination: UiDestination.academic,
+  initialDestination: UiDestination.study,
   snapshots: {
     for (final feature in FeatureId.values)
       feature: FeatureSnapshot(feature: feature),

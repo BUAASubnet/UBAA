@@ -16,7 +16,7 @@ void main() {
       UbaaAppHost(
         backend: backend,
         localAccountStore: accounts,
-        initialDestination: UiDestination.academic,
+        initialDestination: UiDestination.study,
       ),
     );
     await tester.pumpAndSettle();

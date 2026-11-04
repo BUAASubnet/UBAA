@@ -8,13 +8,14 @@ import '../../app/shell_parity_test.dart' as shell;
 
 void main() {
   for (final width in [1100.0, 390.0]) {
-    testWidgets('首页待办预览随页面滚动，展开后可打开末尾任务并收起，宽度 $width', (tester) async {
+    testWidgets('首页待办预览随页面滚动，查看全部进入日程且保留四项预览，宽度 $width', (tester) async {
       tester.view.physicalSize = Size(width, 400);
       tester.view.devicePixelRatio = 1;
       addTearDown(tester.view.resetPhysicalSize);
       addTearDown(tester.view.resetDevicePixelRatio);
       HomeTodo? opened;
       var refreshes = 0;
+      var viewedAll = false;
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
@@ -56,6 +57,7 @@ void main() {
                 refreshes++;
               },
               onTodoTap: (item) => opened = item,
+              onViewAllTodos: () => viewedAll = true,
             ),
           ),
         ),
@@ -81,19 +83,12 @@ void main() {
       expect(find.text('任务4'), findsNothing, reason: '首页先展示时间最临近的四项');
       await tester.tap(toggle);
       await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.text('任务11').hitTestable(),
-        200,
-        scrollable: outer,
-      );
-      await tester.tap(find.text('任务11'));
-      expect(opened?.title, '任务11');
-      await tester.ensureVisible(toggle);
-      await tester.pumpAndSettle();
-      await tester.tap(toggle);
-      await tester.pumpAndSettle();
+      expect(viewedAll, isTrue);
       expect(find.text('任务4'), findsNothing);
-      expect(find.text('任务3'), findsOneWidget);
+      await tester.ensureVisible(find.text('任务3'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.text('任务3'));
+      expect(opened?.title, '任务3');
       position.jumpTo(0);
       await tester.pumpAndSettle();
       await tester.drag(find.text('任务0'), const Offset(0, 400));
@@ -208,7 +203,7 @@ void main() {
   testWidgets('常用功能按最近访问排序，再次访问置顶且不重复', (tester) async {
     await shell.mount(tester);
     Future<void> visit(FeatureId id) async {
-      await tester.tap(find.text('学业'));
+      await tester.tap(find.text('学习'));
       await tester.pumpAndSettle();
       final card = find.widgetWithText(Card, id.title);
       await tester.ensureVisible(card);

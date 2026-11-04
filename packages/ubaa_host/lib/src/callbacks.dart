@@ -97,7 +97,30 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
         _controller.hasEvaluationSubmissionBackendCapabilities;
     final localOwner = _controller.localDataOwnerScope;
     final appInformation = widget.appInformation ?? SystemAppInformation();
+    final schedule = _controller.homeSnapshots[FeatureId.schedule]?.overview;
+    final agendaTerm = schedule is WeekPresentation
+        ? (schedule as WeekPresentation).responseTerm
+        : '';
     return UbaaMainShell(
+      agenda: AgendaAccess(
+        service: _controller.agenda,
+        failure: _controller.localAgendaFailure,
+        term: agendaTerm,
+        onChanged: _controller.notifyAgendaChanged,
+        saveFile: (result, name, current) async {
+          final saved = await widget.agendaFileSaver.save(
+            result.ics,
+            name,
+            current,
+          );
+          return switch (saved) {
+            AgendaFileResult.saved => '日历文件已保存',
+            AgendaFileResult.cancelled => '已取消保存',
+            AgendaFileResult.superseded => null,
+            AgendaFileResult.savedBeforeScopeChange => null,
+          };
+        },
+      ),
       placePreferences: _placePreferences,
       onSavePlacePreference: localOwner.accountKey.isEmpty
           ? null

@@ -36,6 +36,7 @@ class HomeView extends StatefulWidget {
     this.writeReadbackNotice,
     this.homeClock,
     this.onProjectTodos,
+    this.onViewAllTodos,
     this.agendaEpoch = 0,
     this.recentFeatures = const [],
     this.onSyncStatus,
@@ -44,6 +45,7 @@ class HomeView extends StatefulWidget {
   });
   final Clock? homeClock;
   final HomeTodoReader? onProjectTodos;
+  final VoidCallback? onViewAllTodos;
   final int agendaEpoch;
   final List<FeatureId> recentFeatures;
 
@@ -152,7 +154,6 @@ class HomeViewState extends State<HomeView> {
     });
   }
 
-  bool _showAllTodos = false;
   String? _signingTodo;
   final _completedSignins = <String>{};
   final _uncertainSignins = <String>{};
@@ -238,7 +239,7 @@ class HomeViewState extends State<HomeView> {
     if (old.businessCacheEpoch != widget.businessCacheEpoch) {
       // 本机缓存被清理：在途结果和已显示内容都作废。
       _generation++;
-      _showAllTodos = false;
+
       _supplements.clear();
       _loading.clear();
       _pending.clear();
@@ -570,8 +571,8 @@ class HomeViewState extends State<HomeView> {
                 style: TextButton.styleFrom(
                   padding: const EdgeInsets.symmetric(horizontal: 4),
                 ),
-                onPressed: () => setState(() => _showAllTodos = !_showAllTodos),
-                child: Text(_showAllTodos ? '收起' : '查看全部（${tasks.length}）'),
+                onPressed: widget.onViewAllTodos,
+                child: Text('查看全部（${tasks.length}）'),
               ),
           ],
         ),
@@ -579,7 +580,7 @@ class HomeViewState extends State<HomeView> {
         HomeTodoGrid(
           key: const ValueKey('home-todos'),
           children: [
-            for (final task in _showAllTodos ? tasks : tasks.take(4))
+            for (final task in tasks.take(4))
               _HomeTodoCard(
                 item: task,
                 now: campusNow,

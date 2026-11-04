@@ -172,7 +172,7 @@ Future<void> _mount(
   ValueNotifier<FeatureSnapshot> state, {
   double scale = 1,
   List<FeatureQuery>? queries,
-  UiDestination initialDestination = UiDestination.academic,
+  UiDestination initialDestination = UiDestination.study,
   ThemeMode themeMode = ThemeMode.light,
 }) async {
   await tester.pumpWidget(

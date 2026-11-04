@@ -696,8 +696,14 @@ void _registerSharedStateTests() {
               matching: find.byIcon(unselectedIcon),
             );
       await tester.tap(tabFinder.first);
-      await tester.pump();
-      final target = find.text(feature.title).first;
+      await tester.pumpAndSettle();
+      final grid = find.descendant(
+        of: find.byType(CustomScrollView),
+        matching: find.byType(Scrollable),
+      );
+      await tester.drag(grid, const Offset(0, 2000));
+      await tester.pumpAndSettle();
+      final target = find.widgetWithText(Card, feature.title);
       await tester.scrollUntilVisible(
         target,
         240,

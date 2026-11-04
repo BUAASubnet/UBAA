@@ -399,3 +399,52 @@ fn school_cache(root: &std::path::Path) -> BridgeOfflineCache {
         .unwrap(),
     }
 }
+
+#[tokio::test]
+async fn export_snapshot_preserves_occurrences_and_rejects_logout() {
+    let (root, h) = open().await;
+    h.create(draft(), now()).await.unwrap();
+    let result = h.export_ics(q(), true).await.unwrap();
+    assert_eq!(result.exported_count, 3);
+    assert!(result.ics.contains("BEGIN:VEVENT\r\n"));
+    let cache = school_cache(&root);
+    assert_eq!(
+        h.export_with_cache(&cache, q(), true)
+            .await
+            .unwrap()
+            .exported_count,
+        4
+    );
+    assert_eq!(
+        h.export_with_cache(&cache, q(), false)
+            .await
+            .unwrap()
+            .exported_count,
+        3
+    );
+    let mut vpn = q();
+    vpn.route = crate::api::client::BridgeConnectionMode::WebVpn;
+    assert_eq!(
+        h.export_with_cache(&cache, vpn, true)
+            .await
+            .unwrap()
+            .exported_count,
+        3
+    );
+    cache.cache.deactivate().unwrap();
+    assert_eq!(
+        h.export_with_cache(&cache, q(), true)
+            .await
+            .unwrap_err()
+            .failure,
+        BridgeAgendaFailure::Inactive
+    );
+    drop(cache);
+    h.deactivate().await.unwrap();
+    assert_eq!(
+        h.export_ics(q(), true).await.unwrap_err().failure,
+        BridgeAgendaFailure::Inactive
+    );
+    drop(h);
+    std::fs::remove_dir_all(root).unwrap();
+}

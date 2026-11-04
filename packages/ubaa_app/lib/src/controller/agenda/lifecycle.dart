@@ -5,6 +5,12 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 import '../state/state.dart';
 
 mixin ControllerAgenda on ControllerState {
+  /// 本机修改完成后使首页本地覆盖投影重新计算，不刷新学校来源。
+  void notifyAgendaChanged() {
+    internalAgendaEpoch++;
+    internalNotify();
+  }
+
   @override
   @internal
   void internalOpenAgenda(LocalAccount account) {

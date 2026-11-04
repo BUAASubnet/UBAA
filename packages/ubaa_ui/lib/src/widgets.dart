@@ -5,3 +5,5 @@ export 'app/splash.dart' show UbaaSplashView;
 export 'common/error_card.dart' show FriendlyErrorCard;
 export 'features/cgyy/lock_display.dart' show UbaaCgyyLockDisplayView;
 export 'write/confirmation.dart' show WriteConfirmationView;
+
+export 'features/agenda/format.dart' show AgendaAccess;

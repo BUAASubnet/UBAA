@@ -93,7 +93,7 @@ Future<BoyaBackend> _open(WidgetTester tester, {bool chosen = true}) async {
     UbaaFlutterApp(
       backend: backend,
       credentialVault: MemoryCredentialVault(),
-      initialDestination: UiDestination.coursework,
+      initialDestination: UiDestination.study,
     ),
   );
   await tester.pumpAndSettle();

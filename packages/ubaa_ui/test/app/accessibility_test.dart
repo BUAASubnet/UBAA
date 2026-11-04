@@ -38,7 +38,7 @@ void _registerResponsiveAccessibilityTests() {
             snapshots: snapshots,
             routePolicy: RoutePolicy.auto,
             activeRoutes: const <ConnectionMode>[ConnectionMode.direct],
-            initialDestination: UiDestination.coursework,
+            initialDestination: UiDestination.study,
             telemetryEnabled: false,
             onRefresh: () async {},
             onRetryFeature: (_) async {},
@@ -57,7 +57,10 @@ void _registerResponsiveAccessibilityTests() {
         await tester.scrollUntilVisible(
           find.text(feature.title),
           300,
-          scrollable: find.byType(Scrollable).first,
+          scrollable: find.descendant(
+            of: find.byType(CustomScrollView),
+            matching: find.byType(Scrollable),
+          ),
         );
         expect(
           find.bySemanticsLabel(RegExp('^${feature.title}：')),
@@ -66,13 +69,17 @@ void _registerResponsiveAccessibilityTests() {
       }
     }
 
-    for (final destination in [
-      UiDestination.academic,
-      UiDestination.coursework,
-      UiDestination.campus,
-    ]) {
+    for (final destination in [UiDestination.study, UiDestination.campus]) {
       await tester.tap(
         find.byKey(ValueKey<String>('tab-${destination.label}')),
+      );
+      await tester.pumpAndSettle();
+      await tester.drag(
+        find.descendant(
+          of: find.byType(CustomScrollView),
+          matching: find.byType(Scrollable),
+        ),
+        const Offset(0, 2000),
       );
       await tester.pumpAndSettle();
       await checkSemantics(destination.features);
@@ -85,7 +92,7 @@ void _registerResponsiveAccessibilityTests() {
     expect(back, findsOneWidget);
     await tester.tap(back);
     await tester.pumpAndSettle();
-    await tester.tap(find.byKey(const ValueKey<String>('tab-学业')));
+    await tester.tap(find.byKey(const ValueKey<String>('tab-学习')));
     await tester.pumpAndSettle();
     await tester.sendKeyEvent(LogicalKeyboardKey.tab);
     expect(FocusManager.instance.primaryFocus?.hasFocus, isTrue);
@@ -110,7 +117,7 @@ void _registerFeatureCardSemanticsTest() {
       MaterialApp(
         theme: UbaaTheme.light(),
         home: coordinatedShell(
-          initialDestination: UiDestination.coursework,
+          initialDestination: UiDestination.study,
           user: const UserSummary(username: 'student'),
           snapshots: snapshots,
           routePolicy: RoutePolicy.auto,

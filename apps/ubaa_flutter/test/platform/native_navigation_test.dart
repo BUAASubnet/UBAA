@@ -27,7 +27,7 @@ void main() {
           backend: CourseworkBackend()..signedIn = true,
           credentialVault: MemoryCredentialVault(),
           appInformation: _Information(),
-          initialDestination: UiDestination.coursework,
+          initialDestination: UiDestination.study,
         ),
       );
       await tester.pumpAndSettle();

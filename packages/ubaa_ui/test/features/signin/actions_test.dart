@@ -110,7 +110,7 @@ Future<void> _pumpSigninResult(
       ),
     ),
   );
-  await tester.tap(find.byIcon(UiDestination.coursework.icon));
+  await tester.tap(find.byIcon(UiDestination.study.icon));
   await tester.pumpAndSettle();
   await openFeature(tester, FeatureId.signin);
   await tester.pumpAndSettle();

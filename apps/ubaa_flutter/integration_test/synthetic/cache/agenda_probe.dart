@@ -11,17 +11,18 @@ Future<void> probeAgenda(String directory) async {
   AgendaTime time(String value) =>
       AgendaTime(rfc3339: value, timezone: 'Asia/Shanghai');
   final now = time('2026-03-24T12:00:00+08:00');
-  AgendaQuery query(ConnectionMode route) => AgendaQuery(
-    route: route,
-    term: 'synthetic',
-    from: '2026-03-24',
-    to: '2026-03-30',
-    now: now,
-    includeHidden: false,
-    ygdkEnabled: true,
-    ygdkWeekDone: false,
-    ygdkTermDone: false,
-  );
+  AgendaQuery query(ConnectionMode route, {String term = 'synthetic'}) =>
+      AgendaQuery(
+        route: route,
+        term: term,
+        from: '2026-03-24',
+        to: '2026-03-30',
+        now: now,
+        includeHidden: false,
+        ygdkEnabled: true,
+        ygdkWeekDone: false,
+        ygdkTermDone: false,
+      );
   try {
     await agenda.openAccount(alias);
     final item = await agenda.create(
@@ -79,6 +80,16 @@ Future<void> probeAgenda(String directory) async {
       const LocalAccount(id: alias, username: 'synthetic'),
       List.filled(32, 9),
     );
+    for (final route in ConnectionMode.values) {
+      final localQuery = query(route, term: '');
+      expect(
+        (await agenda.query(localQuery)).entries.single.local!.itemId,
+        item.id,
+      );
+      final file = await agenda.exportIcs(localQuery, includeCompleted: true);
+      expect(file.exportedCount, 1);
+      expect(file.ics, contains('SUMMARY:合成全天事项'));
+    }
     await backend.clearBusinessCache(accountId: alias);
     expect((await agenda.get(item.id))!.content.title, '合成全天事项');
     await backend.clearOrRebuildBusinessCache(

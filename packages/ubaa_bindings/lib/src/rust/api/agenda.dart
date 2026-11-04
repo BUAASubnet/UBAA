@@ -4,6 +4,7 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'agenda/export.dart';
 import 'agenda/home.dart';
 import 'agenda/models.dart';
 import 'agenda/school.dart';
@@ -94,6 +95,37 @@ abstract class BridgeAgendaStore implements RustOpaqueInterface {
     required BridgeAgendaContent content,
     String? rrule,
     required BridgeAgendaTime now,
+  });
+
+  /// 原子保存内容、重复规则与假期排除日期。
+  ///
+  /// # Errors
+  /// 输入、账号或存储无效时保留原事项。
+  Future<String?> editDraft({
+    required String itemId,
+    required BridgeAgendaEditScope scope,
+    BridgeAgendaTime? at,
+    required BridgeAgendaDraft draft,
+    required BridgeAgendaTime now,
+  });
+
+  /// 导出选定日期范围的本机快照。
+  ///
+  /// # Errors
+  /// 日期、内容或存储无效及账号关闭时返回稳定日程错误。
+  Future<BridgeAgendaExport> exportIcs({
+    required BridgeAgendaQuery query,
+    required bool includeCompleted,
+  });
+
+  /// 导出同账号、指定路线的学校缓存及本机日程，缓存错误明确失败。
+  ///
+  /// # Errors
+  /// 身份、范围、缓存或日程无效时返回稳定日程错误，不生成残缺成功文件。
+  Future<BridgeAgendaExport> exportWithCache({
+    required BridgeOfflineCache cache,
+    required BridgeAgendaQuery query,
+    required bool includeCompleted,
   });
 
   /// 读取原始事项，包含删除标记。

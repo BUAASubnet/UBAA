@@ -6,7 +6,8 @@ import 'school.dart';
 import '../home/agenda.dart';
 
 /// 只按安全索引提供的别名打开日程，不读取缓存密钥，也不触发学校请求。
-final class BridgeAgendaBackend implements AgendaBackend {
+final class BridgeAgendaBackend
+    implements AgendaBackend, AgendaExportBackend, AgendaDraftBackend {
   BridgeAgendaBackend(this.context);
   final BridgeContext context;
   BridgeAgendaStore? _handle;
@@ -78,6 +79,34 @@ final class BridgeAgendaBackend implements AgendaBackend {
     }
     return fromAgendaQueryResult(value);
   });
+  @override
+  Future<AgendaExportResult> exportIcs(
+    AgendaQuery query,
+    bool includeCompleted,
+  ) => _call(() async {
+    final handle = _store;
+    final generation = context.cache.generation;
+    final cache = context.cache.account?.id == _account
+        ? context.cache.handle
+        : null;
+    final value = cache == null || query.term.trim().isEmpty
+        ? await handle.exportIcs(
+            query: toAgendaQuery(query),
+            includeCompleted: includeCompleted,
+          )
+        : await handle.exportWithCache(
+            cache: cache,
+            query: toAgendaQuery(query),
+            includeCompleted: includeCompleted,
+          );
+    if (generation != context.cache.generation)
+      throw const AgendaException(AgendaFailure.superseded);
+    return AgendaExportResult(
+      ics: value.ics,
+      exportedCount: value.exportedCount,
+      skippedUnknownTimeCount: value.skippedUnknownTimeCount,
+    );
+  });
   Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request) async {
     final values = bridgeHomeAgendaInputs(request);
     final ctx = bridgeHomeAgendaContext(request);
@@ -108,6 +137,22 @@ final class BridgeAgendaBackend implements AgendaBackend {
     final v = await _store.get_(itemId: itemId);
     return v == null ? null : fromAgendaItem(v);
   });
+  @override
+  Future<String?> editDraft(
+    String id,
+    AgendaEditScope scope,
+    AgendaTime? at,
+    AgendaDraft draft,
+    AgendaTime now,
+  ) => _call(
+    () => _store.editDraft(
+      itemId: id,
+      scope: toAgendaEditScope(scope),
+      at: at == null ? null : toAgendaTime(at),
+      draft: toAgendaDraft(draft),
+      now: toAgendaTime(now),
+    ),
+  );
   @override
   Future<String?> edit(
     String itemId,

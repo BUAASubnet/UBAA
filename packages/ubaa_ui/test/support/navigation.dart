@@ -10,16 +10,30 @@ Future<void> openFeature(WidgetTester tester, FeatureId feature) async {
   if (nav.evaluate().isNotEmpty) {
     await tester.tap(find.byType(NavigationDestination).at(destination.index));
   } else {
-    final selected = find.byIcon(destination.selectedIcon);
-    final target = selected.evaluate().isNotEmpty
+    final rail = find.byType(NavigationRail);
+    final selected = find.descendant(
+      of: rail,
+      matching: find.byIcon(destination.selectedIcon),
+    );
+    final target = rail.evaluate().isEmpty
+        ? find.widgetWithText(ListTile, destination.label)
+        : selected.evaluate().isNotEmpty
         ? selected
-        : find.byIcon(destination.icon);
+        : find.descendant(of: rail, matching: find.byIcon(destination.icon));
     await tester.ensureVisible(target.first);
     await tester.tap(target.first);
   }
   await tester.pumpAndSettle();
   final card = find.widgetWithText(Card, feature.title);
   if (card.evaluate().isEmpty) {
+    await tester.drag(
+      find.descendant(
+        of: find.byType(CustomScrollView),
+        matching: find.byType(Scrollable),
+      ),
+      const Offset(0, 2400),
+    );
+    await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       card,
       200,

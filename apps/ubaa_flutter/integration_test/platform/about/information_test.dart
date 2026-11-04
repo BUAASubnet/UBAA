@@ -36,7 +36,7 @@ Widget _app(PlatformAppInformation information) => UbaaFlutterApp(
   backend: CourseworkBackend()..signedIn = true,
   credentialVault: MemoryCredentialVault(),
   appInformation: information,
-  initialDestination: UiDestination.academic,
+  initialDestination: UiDestination.study,
 );
 
 void main() {

@@ -4,6 +4,7 @@
 // ignore_for_file: unused_import, unused_element, unnecessary_import, duplicate_ignore, invalid_use_of_internal_member, annotate_overrides, non_constant_identifier_names, curly_braces_in_flow_control_structures, prefer_const_literals_to_create_immutables, unused_field
 
 import 'api/agenda.dart';
+import 'api/agenda/export.dart';
 import 'api/agenda/home.dart';
 import 'api/agenda/models.dart';
 import 'api/agenda/school.dart';
@@ -832,6 +833,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeAgendaError dco_decode_bridge_agenda_error(dynamic raw);
+
+  @protected
+  BridgeAgendaExport dco_decode_bridge_agenda_export(dynamic raw);
 
   @protected
   BridgeAgendaFailure dco_decode_bridge_agenda_failure(dynamic raw);
@@ -3579,6 +3583,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeAgendaError sse_decode_bridge_agenda_error(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaExport sse_decode_bridge_agenda_export(
     SseDeserializer deserializer,
   );
 
@@ -7001,6 +7010,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_agenda_error(
     BridgeAgendaError self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_export(
+    BridgeAgendaExport self,
     SseSerializer serializer,
   );
 

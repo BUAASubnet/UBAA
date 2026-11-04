@@ -216,7 +216,7 @@ Future<void> _open(
     MaterialApp(
       home: StatefulBuilder(
         builder: (context, update) => coordinatedShell(
-          initialDestination: UiDestination.coursework,
+          initialDestination: UiDestination.study,
           user: const UserSummary(username: 'synthetic'),
           snapshots: {
             for (final id in FeatureId.values)

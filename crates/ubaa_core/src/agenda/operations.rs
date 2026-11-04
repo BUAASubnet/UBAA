@@ -45,10 +45,44 @@ impl AgendaStore {
         rrule: Option<String>,
         now: AgendaTime,
     ) -> CacheResult<Option<Uuid>> {
+        self.edit_internal(id, scope, at, content, (rrule, None), now)
+    }
+    /// 原子修改事项与排除日期，单次修改保留系列规则和其他发生。
+    ///
+    /// # Errors
+    /// 内容、重复规则、排除日期或存储无效时整体回滚。
+    pub fn edit_draft(
+        &self,
+        id: Uuid,
+        scope: AgendaEditScope,
+        at: Option<AgendaTime>,
+        content: AgendaContent,
+        recurrence: (Option<String>, Vec<AgendaTime>),
+        now: AgendaTime,
+    ) -> CacheResult<Option<Uuid>> {
+        self.edit_internal(
+            id,
+            scope,
+            at,
+            content,
+            (recurrence.0, Some(recurrence.1)),
+            now,
+        )
+    }
+    fn edit_internal(
+        &self,
+        id: Uuid,
+        scope: AgendaEditScope,
+        at: Option<AgendaTime>,
+        content: AgendaContent,
+        recurrence: (Option<String>, Option<Vec<AgendaTime>>),
+        now: AgendaTime,
+    ) -> CacheResult<Option<Uuid>> {
+        let (rrule, exdates) = recurrence;
         self.access(true, true, |data| {
             let item = data.items.get_mut(&id).ok_or(CacheError::InvalidInput)?;
             touch(item, now)?;
-            let successor = match scope {
+            let mut successor = match scope {
                 AgendaEditScope::This => {
                     let key = occurrence_key(item, at)?;
                     if item.rrule.is_none() {
@@ -86,6 +120,17 @@ impl AgendaStore {
                     Some(super::split::split(item, at, content, rrule, now)?)
                 }
             };
+            if let Some(exdates) = exdates {
+                match scope {
+                    AgendaEditScope::This if item.rrule.is_some() => {}
+                    AgendaEditScope::ThisAndFuture => {
+                        if let Some(next) = &mut successor {
+                            next.exdates = exdates.into_iter().collect();
+                        }
+                    }
+                    _ => item.exdates = exdates.into_iter().collect(),
+                }
+            }
             validate_item(item)?;
             if let Some(next) = successor {
                 validate_item(&next)?;

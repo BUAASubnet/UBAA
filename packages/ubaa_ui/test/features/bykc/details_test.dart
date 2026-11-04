@@ -579,9 +579,7 @@ Future<_Scenario> _mount(WidgetTester tester, {bool home = false}) async {
         builder: (context, update) {
           state.update = update;
           return coordinatedShell(
-            initialDestination: home
-                ? UiDestination.home
-                : UiDestination.coursework,
+            initialDestination: home ? UiDestination.home : UiDestination.study,
             onLoadHomeSupplement: home
                 ? (source, _) async => FeatureResult.success(
                     summary: '合成首页来源',

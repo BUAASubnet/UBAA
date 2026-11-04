@@ -7,7 +7,7 @@ import 'package:ubaa_ui/src/app/home.dart' show HomeView;
 
 void main() {
   testWidgets('功能页点另一底栏后内容与选中项一致，滑动继续沿该页切换', (tester) async {
-    await mount(tester, tab: UiDestination.academic);
+    await mount(tester, tab: UiDestination.study);
     await openGrade(tester);
     await tester.tap(
       find.byType(NavigationDestination).at(UiDestination.campus.index),
@@ -19,7 +19,10 @@ void main() {
     );
     await tester.drag(find.byType(PageView), const Offset(350, 0));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, '学业'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, '日程'), findsOneWidget);
+    await tester.drag(find.byType(PageView), const Offset(350, 0));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AppBar, '学习'), findsOneWidget);
     expect(
       find.widgetWithText(Card, FeatureId.grades.title).hitTestable(),
       findsOneWidget,
@@ -37,7 +40,7 @@ void main() {
     );
     tester.view.physicalSize = const Size(1000, 874);
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListTile, '学业'));
+    await tester.tap(find.widgetWithText(ListTile, '学习'));
     await tester.pumpAndSettle();
     tester.view.physicalSize = const Size(402, 874);
     await tester.pumpAndSettle();
@@ -52,7 +55,7 @@ void main() {
     final state = tester.state(home);
     await tester.drag(find.byType(PageView), const Offset(-350, 0));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, '课程'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, '学习'), findsOneWidget);
     expect(tester.state(home), same(state));
     expect(tester.widget<HomeView>(home).visible, isFalse);
     expect(TickerMode.of(tester.element(home)), isFalse);
@@ -65,7 +68,7 @@ void main() {
   testWidgets('写入期间底栏与滑动均保留当前分组', (tester) async {
     await mount(
       tester,
-      tab: UiDestination.coursework,
+      tab: UiDestination.study,
       writeState: WriteState(
         phase: WritePhase.committing,
         intent: WriteIntent(
@@ -85,10 +88,10 @@ void main() {
       find.byType(NavigationDestination).at(UiDestination.campus.index),
     );
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, '课程'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, '学习'), findsOneWidget);
     expect(
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-      UiDestination.coursework.index,
+      UiDestination.study.index,
     );
   });
   testWidgets('换账号清除页面状态后，底栏与分页仍保持同一分组', (tester) async {
@@ -136,11 +139,11 @@ void main() {
     expect(retried, isTrue);
   });
   testWidgets('系统返回沿当前领域父层回到分组', (tester) async {
-    await mount(tester, tab: UiDestination.academic);
+    await mount(tester, tab: UiDestination.study);
     await openGrade(tester);
     await tester.binding.handlePopRoute();
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, '学业'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, '学习'), findsOneWidget);
     expect(find.byTooltip('返回'), findsNothing);
   });
   testWidgets('主分组切换进入校园后可打开研讨室并返回', (tester) async {
@@ -163,7 +166,7 @@ void main() {
       tester
           .widgetList<NavigationDestination>(find.byType(NavigationDestination))
           .map((item) => item.label),
-      ['首页', '课程', '学业', '校园', '我的'],
+      ['首页', '学习', '日程', '校园', '我的'],
     );
     expect(find.widgetWithText(AppBar, '首页'), findsOneWidget);
   });
@@ -173,7 +176,7 @@ void main() {
     expect(find.text('待办区'), findsOneWidget);
   });
   testWidgets('手机功能页保留全局底栏与父层返回', (tester) async {
-    await mount(tester, tab: UiDestination.academic);
+    await mount(tester, tab: UiDestination.study);
     await openGrade(tester);
     expect(find.byType(NavigationBar), findsOneWidget);
     expect(find.byTooltip('返回'), findsOneWidget);
@@ -199,7 +202,7 @@ void main() {
     expect(changed, [RoutePolicy.webvpn]);
   });
   testWidgets('少量查询条件按内容展开而不固定占据大半屏', (tester) async {
-    await mount(tester, tab: UiDestination.academic);
+    await mount(tester, tab: UiDestination.study);
     await openGrade(tester);
     await tester.tap(
       find.byKey(const ValueKey<String>('feature-filter-button')),

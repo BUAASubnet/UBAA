@@ -89,3 +89,10 @@ class _KeepAlivePageState extends State<_KeepAlivePage>
     return widget.child;
   }
 }
+
+/// 设置页及宽屏卸载分页后，以当前选中项重建分页控制器。
+PageController currentTabPager(PageController current, int index) {
+  if (current.hasClients || current.initialPage == index) return current;
+  current.dispose();
+  return PageController(initialPage: index, keepPage: false);
+}

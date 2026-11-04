@@ -1,8 +1,8 @@
 # Flutter Bridge 合同
 
-状态：当前合同 v45。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
+状态：当前合同 v46。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
 
-业务缓存持久格式当前为 schema v7，独立于 Bridge v45。旧开发格式不迁移，普通打开拒绝并保留原库，用户明确清理后才能重建。下文各阶段的缓存版本与迁移说明保留历史事实，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
+业务缓存持久格式当前为 schema v7，独立于 Bridge v46。旧开发格式不迁移，普通打开拒绝并保留原库，用户明确清理后才能重建。下文各阶段的缓存版本与迁移说明保留历史事实，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `45`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `46`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -39,7 +39,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=45` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=46` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
 组间最多八个完整批次在途（每个读取组各一个，首页全部来源可同时开始）。每组的只读 Core 实例复用连接池，独立保存业务 Cookie、Token 和缓存，
@@ -769,3 +769,14 @@ Dart `AgendaBackend/AgendaService` 和不可变领域值由 `ubaa_domain` 定义
 路线切换记录当时的读取修订号。切换收尾后，固定路线继续过滤其他路线来源；Auto 或回滚允许重新展示的旧签到来源去除动作，只有修订号晚于该边界的新读取可以继续交由既有在线资格关联规则判断。新路线的合法在线签到入口保留，本地覆盖和缓存均不能绕过这条规则。
 
 Bridge v45 不改变 CLI v12、业务缓存 schema v7 或独立日程 schema v2。
+
+
+## v46：日程编辑与范围文件导出
+
+`BridgeAgendaStore.editDraft(itemId, scope, at, draft, now)` 在同一事务中保存内容、重复规则和排除日期。仅此次保留系列规则和其它发生；此次及以后只为继任系列设置新排除日期；全部替换整个系列的规则和排除日期。旧 `edit` 入口继续保留原有语义。
+
+`exportIcs(query, includeCompleted)` 导出本机事项；`exportWithCache(cache, query, includeCompleted)` 同时读取同账号、指定路线的学校缓存。两个入口均返回 `BridgeAgendaExport { ics, exportedCount, skippedUnknownTimeCount }`，复用 Core 的范围快照、CRLF 和 UTF-8 折行。学校缓存不可读时导出失败，缺失来源保持既有缓存语义，文件不通过网络补齐。
+
+Dart 的 `AgendaExportBackend` 和 `AgendaDraftBackend` 由生产日程适配器实现，服务继续检查账号代次，并将持久写入排队。UI 在账号、路线、缓存范围或服务变化后撤销旧页面和未交付导出结果。文件选择与实际保存由平台能力承担，提交边界见[平台说明](../../packages/ubaa_platform/README.md#日历文件保存)。
+
+导航为首页、学习、日程、校园、我的。首页保留四项预览，“查看全部”进入日程待办筛选。日程本机操作不生成学校写资格。CLI v13、业务缓存 schema v7、日程 schema v2 和 Session v2 保持。

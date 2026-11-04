@@ -50,3 +50,4 @@ export 'src/rust/api/agenda/models.dart';
 export 'src/rust/api/agenda/school.dart';
 
 export 'src/rust/api/agenda/home.dart';
+export 'src/rust/api/agenda/export.dart';

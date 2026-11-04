@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'models.dart';
 import 'school.dart';
+import 'export.dart';
 
 /// 日程文件不属于可丢弃的学校缓存，宿主应单独展示错误并保留文件。
 final class AgendaException implements Exception {
@@ -133,11 +134,32 @@ final class AgendaService {
     return write ? _serial(invoke) : invoke();
   }
 
+  Future<AgendaExportResult> exportIcs(
+    AgendaQuery query, {
+    bool includeCompleted = false,
+  }) => _run(() {
+    final backend = _backend;
+    if (backend is! AgendaExportBackend)
+      throw const AgendaException(AgendaFailure.unavailable);
+    return (backend as AgendaExportBackend).exportIcs(query, includeCompleted);
+  });
   Future<AgendaQueryResult> query(AgendaQuery query) =>
       _run(() => _backend.query(query));
   Future<AgendaItem> create(AgendaDraft draft, AgendaTime now) =>
       _run(() => _backend.create(draft, now), write: true);
   Future<AgendaItem?> get(String itemId) => _run(() => _backend.get(itemId));
+  Future<String?> editDraft(
+    String id,
+    AgendaEditScope scope,
+    AgendaTime? at,
+    AgendaDraft draft,
+    AgendaTime now,
+  ) => _run(() {
+    final backend = _backend;
+    if (backend is! AgendaDraftBackend)
+      throw const AgendaException(AgendaFailure.unavailable);
+    return (backend as AgendaDraftBackend).editDraft(id, scope, at, draft, now);
+  }, write: true);
   Future<String?> edit(
     String itemId,
     AgendaEditScope scope,

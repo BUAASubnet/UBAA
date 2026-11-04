@@ -6,11 +6,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 
 final _featureGroups = {
-  for (final destination in [
-    UiDestination.academic,
-    UiDestination.coursework,
-    UiDestination.campus,
-  ])
+  for (final destination in [UiDestination.study, UiDestination.campus])
     destination: destination.features,
 };
 

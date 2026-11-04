@@ -7,8 +7,8 @@ import '../../support/home/backend.dart';
 import '../../support/home/scroll.dart';
 
 void main() {
-  testWidgets('首页恢复六来源并按旧今日课程时间排序，点击待办直达原作业', (tester) async {
-    final backend = HomeBackend();
+  testWidgets('首页四项预览保留签到与作业导航，今日课程按时间排序', (tester) async {
+    final backend = _PreviewBackend();
     await tester.pumpWidget(
       UbaaFlutterApp(
         backend: backend,
@@ -16,18 +16,11 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    for (final title in [
-      '合成签到待办',
-      '合成博雅待办',
-      '合成SPOC待办',
-      '合成希冀待办',
-      '合成研讨室待办',
-      '本周阳光打卡未达标',
-    ]) {
+    for (final title in ['合成签到待办', '合成博雅待办', '合成SPOC待办', '本周阳光打卡未达标']) {
       await ensureHomeTodo(tester, find.text(title));
       expect(find.text(title), findsOneWidget);
     }
-    // 恢复外层首页位置；待办预览、展开和主滚动由窗口专项用例覆盖。
+    // 恢复首页位置，核对课程顺序和详情返回后的页面。
     tester
         .state<ScrollableState>(
           find
@@ -63,7 +56,7 @@ void main() {
     expect(backend.homeQueries.length, requestsBeforeBack);
     expect(find.byTooltip('返回'), findsNothing);
     expect(find.text('合成SPOC待办'), findsOneWidget);
-    // 恢复外层首页位置；待办预览、展开和主滚动由窗口专项用例覆盖。
+    // 恢复首页位置，核对课程顺序和详情返回后的页面。
     tester
         .state<ScrollableState>(
           find
@@ -81,7 +74,7 @@ void main() {
     expect(backend.commitCalls, 0);
   });
   testWidgets('首页课堂签到使用原typed目标直接提交，未知结果保留待办且阳光提醒可关闭', (tester) async {
-    final backend = HomeBackend();
+    final backend = _PreviewBackend();
     await tester.pumpWidget(
       UbaaFlutterApp(
         backend: backend,
@@ -116,4 +109,23 @@ void main() {
     expect(find.text('本周阳光打卡未达标'), findsNothing);
     expect(backend.homeQueries, hasLength(count));
   });
+}
+
+/// 固定预览顺序，分别验收首页的签到操作、提醒设置和作业详情。
+class _PreviewBackend extends HomeBackend {
+  @override
+  Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request) async {
+    final value = await super.projectHomeTodos(request);
+    const preview = [
+      FeatureId.signin,
+      FeatureId.ygdk,
+      FeatureId.spoc,
+      FeatureId.bykc,
+    ];
+    return HomeTodoProjection([
+      for (final feature in preview)
+        ...value.todos.where((t) => t.feature == feature),
+      ...value.todos.where((t) => !preview.contains(t.feature)),
+    ]);
+  }
 }

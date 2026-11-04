@@ -19,7 +19,7 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 - Direct 与 WebVPN 的历史真实证据只覆盖对应提交的 Core-live 只读矩阵，不代表本轮真实 App 账号链路或真实写入；
 - 系统安全材料与统一加密缓存已接入，原生运行按平台分别验收；实体设备、签名、公证、商店上传和真实业务写入均不由模拟器或只读结果证明。
 
-当前公开合同版本为 CLI JSON schema v13 与 Flutter bridge contract v45；这两个版本都与磁盘
+当前公开合同版本为 CLI JSON schema v13 与 Flutter bridge contract v46；这两个版本都与磁盘
 `session.json` schema v2、`config.toml` 版本 1、业务缓存 schema v7 相互独立。
 
 产品代际名 UBAA 2 与包的 SemVer、平台构建号和合同版本相互独立，发布规则见[版本约定](docs/development/conventions.md#版本号与依赖)。
@@ -75,6 +75,14 @@ UI 的[应用页面](packages/ubaa_ui/lib/src/app/)、[领域组件](packages/ub
 
 常用入口：`just source-files` 定位源码；`just flutter-test ubaa_app test/features/grades` 执行领域回归。完整验证见[测试策略](docs/development/testing.md)。
 
+## App 本机日程
+
+底栏“学习”保留课表、签到、作业、博雅、考试、成绩和评教，“日程”汇总本机事项与当前路线的学校缓存。首页保留四项待办预览，“查看全部”打开日程待办筛选。
+
+日程支持日程/待办、全天和无日期待办，以及重复规则、教学周和假期排除。重复事项可选择仅此次、此次及以后或全部进行编辑和删除。学校事项的完成、隐藏和备注只保存在本机，学校原状态和原功能入口继续保留。没有学校缓存时仍可编辑本机事项。
+
+“导出日历”选择日期范围及是否包含已完成事项，再通过系统面板保存 `.ics` 快照。iOS 选择保存文件夹，其它平台选择文件位置；具体平台行为与写入边界见[平台说明](packages/ubaa_platform/README.md#日历文件保存)，实际验证见[当前状态](docs/migration/status.md)。
+
 ## CLI 快速开始
 
 ```bash
@@ -107,7 +115,7 @@ show、显式学校缓存合并、错误码与下一阶段保留范围见[日程
 
 默认 Session 位于操作系统的用户私有配置目录；隔离测试可使用 `--config-dir <path>`。CLI 每次 JSON 成功或
 失败只输出一个 schema-v13 信封，合同见[认证与用户合同](docs/contracts/auth-and-user.md)和
-[CLI JSON Schema](docs/contracts/cli-json.schema.json)。该输出版本独立于磁盘存储合同；当前 Flutter bridge contract 为 v45。
+[CLI JSON Schema](docs/contracts/cli-json.schema.json)。该输出版本独立于磁盘存储合同；当前 Flutter bridge contract 为 v46。
 图书馆、场馆、阳光与教学评教的 typed 资格、prepare/commit、单次发送、未知结果和原路线回读规则，统一见 [Bridge 写入合同](docs/contracts/flutter-bridge.md#6-写-intent)。CLI、Bridge 与缓存格式的兼容边界分别见对应合同。
 
 ## 开发与验证

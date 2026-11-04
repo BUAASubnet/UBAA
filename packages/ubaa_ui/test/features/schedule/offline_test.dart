@@ -86,7 +86,7 @@ Future<void> _show(
       home: StatefulBuilder(
         builder: (context, update) => UbaaMainShell(
           user: const UserSummary(username: 'synthetic'),
-          initialDestination: UiDestination.coursework,
+          initialDestination: UiDestination.study,
           snapshots: {
             for (final feature in FeatureId.values)
               feature: feature == FeatureId.schedule

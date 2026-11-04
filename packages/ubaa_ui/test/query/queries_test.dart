@@ -40,7 +40,7 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(UiDestination.coursework.icon));
+    await tester.tap(find.byIcon(UiDestination.study.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.signin);
     await openQueryPanel(tester);
@@ -98,7 +98,7 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(UiDestination.coursework.icon));
+    await tester.tap(find.byIcon(UiDestination.study.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.signin);
     await tester.pumpAndSettle();
@@ -162,7 +162,7 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(UiDestination.coursework.icon));
+    await tester.tap(find.byIcon(UiDestination.study.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.signin);
     await tester.pumpAndSettle();
@@ -293,7 +293,7 @@ void _registerQueryTests() {
         ),
       ),
     );
-    await tester.tap(find.byIcon(UiDestination.academic.icon));
+    await tester.tap(find.byIcon(UiDestination.study.icon));
     await tester.pumpAndSettle();
     await openFeature(tester, FeatureId.evaluation);
     await openQueryPanel(tester);

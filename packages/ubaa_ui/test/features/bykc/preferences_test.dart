@@ -198,7 +198,7 @@ Future<void> _mount(WidgetTester tester, _Scenario state) async {
                   details: feature == FeatureId.bykc ? _courses : const [],
                 ),
             },
-            initialDestination: UiDestination.coursework,
+            initialDestination: UiDestination.study,
             readCacheEpoch: state.epoch,
             onLoadBykcFilters: () {
               state.loads++;

@@ -29,7 +29,7 @@ void main() {
     // 恢复中静默进行，不提供登录入口；确认需要登录后才出现。
     expect(find.byTooltip('完成登录'), findsNothing);
     expect(find.byType(UbaaSplashView), findsNothing);
-    await tester.tap(find.byKey(const ValueKey<String>('tab-学业')));
+    await tester.tap(find.byKey(const ValueKey<String>('tab-学习')));
     await tester.pump();
     expect(find.byType(UbaaMainShell), findsOneWidget);
     backend.gate.complete(AuthStatus.signedOut);
@@ -48,7 +48,7 @@ void main() {
     expect(find.byType(UbaaLoginView), findsNothing);
     expect(
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
-      UiDestination.academic.index,
+      UiDestination.study.index,
     );
     expect(find.byType(UbaaMainShell), findsOneWidget);
     await tester.pumpWidget(const SizedBox.shrink());

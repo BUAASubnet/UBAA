@@ -1,5 +1,8 @@
 import 'dart:async';
-import '../shared/tab_navigation.dart' show TabPager, CompactNavigationBar;
+import '../features/agenda/view.dart';
+import '../features/agenda/format.dart' show campusDate, AgendaAccess;
+import '../shared/tab_navigation.dart'
+    show TabPager, CompactNavigationBar, currentTabPager;
 import '../features/ihome/view.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
@@ -17,6 +20,7 @@ import '../shared/scroll_gutters.dart' show ScrollGutters;
 import 'about.dart' show AboutView;
 import 'home.dart' show FeatureGridView, HomeView, HomeViewState;
 import 'destination.dart';
+import '../features/home/shell_helpers.dart';
 import '../theme.dart';
 import 'account/me.dart' show MeView;
 import 'profile.dart' show ProfileView;
@@ -85,6 +89,7 @@ class UbaaMainShell extends StatefulWidget {
     this.homeSnapshots,
     this.onProjectHomeTodos,
     this.agendaEpoch = 0,
+    this.agenda = const AgendaAccess(),
     this.onLoadHomeSupplement,
     this.onLoadHomeDaySchedule,
     this.onLoadYgdkReminder,
@@ -135,6 +140,7 @@ class UbaaMainShell extends StatefulWidget {
   final Map<FeatureId, FeatureSnapshot>? homeSnapshots;
   final HomeTodoReader? onProjectHomeTodos;
   final int agendaEpoch;
+  final AgendaAccess agenda;
   final Future<FeatureResult> Function(HomeSupplement source, bool force)?
   onLoadHomeSupplement;
   final Future<FeatureResult> Function(String date, bool force)?
@@ -144,7 +150,6 @@ class UbaaMainShell extends StatefulWidget {
   final Future<BykcCourseFilters?> Function()? onLoadBykcFilters;
   final Future<void> Function(BykcCourseFilters)? onSaveBykcFilters;
 
-  /// 空教室、图书馆最后一次选择的校区/楼层/分区；键见 [UiPlaceKeys]。
   final Map<String, String> placePreferences;
   final Future<void> Function(String key, String value)? onSavePlacePreference;
   final Future<List<FeatureId>> Function()? onLoadRecentFeatures;
@@ -185,7 +190,6 @@ class UbaaMainShell extends StatefulWidget {
   final Future<CacheUsageSummary> Function(String)? onReadCacheUsage;
   final Future<CacheClearOutcome> Function(String)? onClearBusinessCache;
 
-  /// 用户打开学期选择器后读取独立选项，不改写课表结果页。
   final Future<FeatureResult> Function(bool forceRefresh)? onLoadAcademicTerms;
   final Future<FeatureResult> Function(String term, bool forceRefresh)?
   onLoadAcademicWeeks;
@@ -362,7 +366,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       _utilityPage = null;
       _visiblePage.value = null;
     }
-    // 学校标识变化只重新绑定偏好，不改变既有资料页的导航行为。
     if (accountChanged || oldWidget.user?.schoolId != widget.user?.schoolId) {
       _recentRevision++;
       _recentFeatures = [];
@@ -421,38 +424,15 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   }
 
   void _observeHomeProgress(WeekPresentation week, YgdkOverview overview) {
-    final current = _reminderSettings;
-    if (current == null ||
-        !current.enabled ||
-        !week.current ||
-        week.responseTerm.trim().isEmpty)
-      return;
-    final weekKey = '${week.responseTerm}:${week.number}';
-    final weekDone =
-        (overview.weekCount ?? -1) >= 4 && current.weekDoneKey != weekKey;
-    final termDone =
-        overview.termCount >= 16 && current.termDoneKey != week.responseTerm;
-    if (!weekDone && !termDone) return;
-    unawaited(
-      _saveReminderSettings(
-        current.copyWith(
-          weekDoneKey: weekDone ? weekKey : null,
-          termDoneKey: termDone ? week.responseTerm : null,
-        ),
-      ),
-    );
+    final next = observedReminderProgress(_reminderSettings, week, overview);
+    if (next != null) unawaited(_saveReminderSettings(next));
   }
 
   void _openGradeNotice() {
     final notice = widget.gradeScoreNotice;
     if (notice == null) return;
     widget.onConsumeGradeNotice?.call();
-    _openHomeNavigation(
-      FeatureReadNavigation(
-        feature: FeatureId.grades,
-        query: FeatureQuery(term: notice.termCode),
-      ),
-    );
+    _openHomeNavigation(gradeNoticeTarget(notice));
   }
 
   void _openFeatureList(FeatureId feature) {
@@ -469,8 +449,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   }
 
   void _openHomeNavigation(FeatureReadNavigation target) {
-    // 已打开过的页面在同一帧切到目标；首次打开由页面初始化直接显示目标，
-    // 都不会先闪一帧功能列表。
     final page = _readPageKeys[target.feature]?.currentState;
     setState(() {
       _openedFeature = target.feature;
@@ -494,6 +472,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     super.dispose();
   }
 
+  int _agendaTodoRequest = 0;
   static const _tabs = UiDestination.values;
 
   @override
@@ -502,7 +481,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     const maxContentWidth = UbaaTheme.pageMaxWidth;
     if (_openedFeature case final feature?) _visitedFeatures.add(feature);
     final pages = _visitedFeatures.toList(growable: false);
-    // 只保留已访问页面的 State；每次 build 都读取当前快照和回调。
     final body = IndexedStack(
       key: ValueKey<int>(_accountGeneration),
       index: _openedFeature == null ? 0 : pages.indexOf(_openedFeature!) + 1,
@@ -512,7 +490,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           TickerMode(
             key: ValueKey<FeatureId>(feature),
             enabled: _openedFeature == feature,
-            // 页面状态继续保留，但提示浮层不能随停用的 ticker 冻结在其他页面。
             child: TooltipVisibility(
               visible: _openedFeature == feature,
               child: _buildFeaturePage(feature),
@@ -520,7 +497,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           ),
       ],
     );
-    // 手机用下拉刷新；桌面鼠标无法下拉，保留按钮与快捷键。
     final touchRefresh = uiIsTouchPlatform(context);
     final refreshPage = _openedFeature != null
         ? () => _refreshFeature(_openedFeature!)
@@ -865,11 +841,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   );
 
   Widget _buildTabPager(BuildContext context) {
-    // 设置页及宽屏会卸载分页，重新挂载时以当前选中项为准。
-    if (!_tabPager.hasClients && _tabPager.initialPage != _selectedIndex) {
-      _tabPager.dispose();
-      _tabPager = PageController(initialPage: _selectedIndex, keepPage: false);
-    }
+    _tabPager = currentTabPager(_tabPager, _selectedIndex);
     return TabPager(
       controller: _tabPager,
       selectedIndex: _selectedIndex,
@@ -902,6 +874,10 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onLoadSupplement: widget.onLoadHomeSupplement,
       onLoadDaySchedule: widget.onLoadHomeDaySchedule,
       onTodoTap: _openHomeTodo,
+      onViewAllTodos: () {
+        setState(() => _agendaTodoRequest++);
+        _selectTab(UiDestination.agenda.index);
+      },
       onProjectTodos: widget.onProjectHomeTodos,
       agendaEpoch: widget.agendaEpoch,
       writeReadbackNotice:
@@ -934,7 +910,31 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       onRetryFeature: widget.onRetryFeature,
       onRefresh: () => _joinRefresh('home-core', widget.onRefresh),
     ),
-    1 || 2 || 3 => FeatureGridView(
+    2 => AgendaView(
+      service: widget.agenda.service,
+      failure: widget.agenda.failure,
+      scopeKey: (
+        widget.cacheAccountId,
+        widget.readCacheEpoch,
+        widget.businessCacheEpoch,
+        widget.routePolicy,
+        widget.agendaEpoch,
+      ),
+      route: agendaRoute(widget.routePolicy, widget.activeRoutes),
+      term: widget.agenda.term,
+      todoRequest: _agendaTodoRequest,
+      visible:
+          _selectedIndex == UiDestination.agenda.index &&
+          _openedFeature == null,
+      now: widget.homeClock == null
+          ? null
+          : campusDate(widget.homeClock!.now()),
+      reminder: _reminderSettings,
+      onOpenSchool: _openHomeNavigation,
+      onChanged: widget.agenda.onChanged,
+      onSaveFile: widget.agenda.saveFile,
+    ),
+    1 || 3 => FeatureGridView(
       onOpenIhome: index == UiDestination.campus.index
           ? () => _openUtility('iHome')
           : null,

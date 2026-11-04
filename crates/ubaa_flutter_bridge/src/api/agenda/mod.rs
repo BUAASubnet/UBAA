@@ -1,6 +1,7 @@
 //! 本机日程独立于网络客户端、业务缓存密钥和学校操作资格。
 mod convert;
 mod evidence;
+pub mod export;
 pub mod home;
 mod home_input;
 pub mod models;
@@ -125,6 +126,39 @@ impl BridgeAgendaStore {
                     now.try_into()?,
                 )
                 .map(|v| v.map(|id| id.to_string()))
+                .map_err(error)
+        })
+        .await
+    }
+    /// 原子保存内容、重复规则与假期排除日期。
+    ///
+    /// # Errors
+    /// 输入、账号或存储无效时保留原事项。
+    pub async fn edit_draft(
+        &self,
+        item_id: String,
+        scope: BridgeAgendaEditScope,
+        at: Option<BridgeAgendaTime>,
+        draft: BridgeAgendaDraft,
+        now: BridgeAgendaTime,
+    ) -> Result<Option<String>, BridgeAgendaError> {
+        let store = self.store.clone();
+        task(move || {
+            let exclusions = draft
+                .exdates
+                .into_iter()
+                .map(TryInto::try_into)
+                .collect::<Result<Vec<_>, _>>()?;
+            store
+                .edit_draft(
+                    id(&item_id)?,
+                    scope.into(),
+                    time(at)?,
+                    draft.content.try_into()?,
+                    (draft.rrule, exclusions),
+                    now.try_into()?,
+                )
+                .map(|value| value.map(|id| id.to_string()))
                 .map_err(error)
         })
         .await

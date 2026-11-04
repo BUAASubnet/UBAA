@@ -16,14 +16,10 @@ void main() {
     }
   });
 
-  testWidgets('三个业务分组完整覆盖十二领域', (tester) async {
+  testWidgets('学习与校园完整覆盖十二领域', (tester) async {
     await _mount(tester);
     for (final group in <(String, List<FeatureId>)>[
-      for (final group in [
-        UiDestination.academic,
-        UiDestination.coursework,
-        UiDestination.campus,
-      ])
+      for (final group in [UiDestination.study, UiDestination.campus])
         (group.label, group.features),
     ]) {
       final destination = find.widgetWithText(NavigationDestination, group.$1);

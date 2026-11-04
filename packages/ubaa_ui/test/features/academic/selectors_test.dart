@@ -177,7 +177,7 @@ Future<void> _show(
         valueListenable: revisions,
         builder: (_, revision, __) => UbaaMainShell(
           readCacheEpoch: revision,
-          initialDestination: UiDestination.academic,
+          initialDestination: UiDestination.study,
           user: const UserSummary(username: 'fixture-student'),
           snapshots: {
             for (final id in FeatureId.values)

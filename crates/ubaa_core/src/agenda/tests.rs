@@ -901,3 +901,42 @@ fn unknown_schema_rejects_open_handles_and_does_not_change_journal_mode() {
         .unwrap();
     assert_eq!(mode, "wal");
 }
+
+#[test]
+fn edited_recurrence_holidays_are_atomic_and_preserve_other_occurrences() {
+    let root = root();
+    let store = AgendaStore::open(&root, ACCOUNT).unwrap();
+    let mut item = event();
+    item.rrule = Some("FREQ=DAILY;COUNT=3".into());
+    store.create(item.clone()).unwrap();
+    store
+        .edit_draft(
+            item.id,
+            AgendaEditScope::All,
+            None,
+            item.content.clone(),
+            (item.rrule.clone(), vec![t("2026-02-01T09:00:00+08:00")]),
+            t("2026-01-02T00:00:00+08:00"),
+        )
+        .unwrap();
+    assert_eq!(
+        store.query(d("2026-01-30"), d("2026-02-04")).unwrap().len(),
+        2
+    );
+    let before = store.get(item.id).unwrap();
+    assert!(
+        store
+            .edit_draft(
+                item.id,
+                AgendaEditScope::All,
+                None,
+                item.content,
+                (Some("invalid".into()), vec![]),
+                t("2026-01-03T00:00:00+08:00")
+            )
+            .is_err()
+    );
+    assert_eq!(store.get(item.id).unwrap(), before);
+    drop(store);
+    std::fs::remove_dir_all(root).unwrap();
+}

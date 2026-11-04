@@ -40,7 +40,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, '登录'));
     await tester.pumpAndSettle();
     Future<void> openSchedule() async {
-      await tester.tap(uiDestinationFinder(tester, UiDestination.academic));
+      await tester.tap(uiDestinationFinder(tester, UiDestination.study));
       await tester.pumpAndSettle();
       final card = find.widgetWithText(Card, FeatureId.schedule.title);
       await tester.ensureVisible(card);
@@ -135,13 +135,13 @@ void main() {
       final width = physical.width / ratio;
       if (width >= 1000) {
         final destination = tester.widget<ListTile>(
-          uiDestinationFinder(tester, UiDestination.academic),
+          uiDestinationFinder(tester, UiDestination.study),
         );
         expect(destination.selected, isTrue);
         expect(destination.onTap, isNotNull);
       } else {
         final rail = tester.widget<NavigationRail>(find.byType(NavigationRail));
-        expect(rail.selectedIndex, UiDestination.academic.index);
+        expect(rail.selectedIndex, UiDestination.study.index);
         expect(rail.onDestinationSelected, isNotNull);
       }
       expect(

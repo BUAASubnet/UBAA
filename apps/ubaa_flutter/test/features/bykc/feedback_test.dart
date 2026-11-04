@@ -137,7 +137,7 @@ Future<void> _open(WidgetTester tester, BoyaFeedbackBackend backend) async {
       backend: backend,
       credentialVault: MemoryCredentialVault(),
       localAccountStore: accounts,
-      initialDestination: UiDestination.coursework,
+      initialDestination: UiDestination.study,
     ),
   );
   await tester.pumpAndSettle();

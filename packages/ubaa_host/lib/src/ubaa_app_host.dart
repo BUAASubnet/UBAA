@@ -122,6 +122,7 @@ class UbaaAppHost extends StatefulWidget {
     this.permissionGateway,
     this.locationProvider,
     this.initialDestination = UiDestination.home,
+    this.agendaFileSaver = const SystemAgendaFileSaver(),
     this.initialThemeMode = ThemeMode.system,
     this.nativeThemeSync,
     this.telemetry,
@@ -153,6 +154,7 @@ class UbaaAppHost extends StatefulWidget {
   final PlatformPermissionGateway? permissionGateway;
   final PlatformLocationProvider? locationProvider;
   final UiDestination initialDestination;
+  final AgendaFileSaver agendaFileSaver;
 
   /// 启动时已读出的主题；宿主随后仍会从偏好复核。
   final ThemeMode initialThemeMode;

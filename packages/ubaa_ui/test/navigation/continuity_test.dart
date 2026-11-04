@@ -117,7 +117,7 @@ Future<void> _mount(
       theme: UbaaTheme.light(),
       home: UbaaMainShell(
         user: UserSummary(username: username),
-        initialDestination: UiDestination.academic,
+        initialDestination: UiDestination.study,
         snapshots: <FeatureId, FeatureSnapshot>{
           for (final feature in FeatureId.values)
             feature: FeatureSnapshot(

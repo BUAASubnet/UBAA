@@ -90,6 +90,53 @@ void main() {
     expect(api.handle.localQueries, 1);
     await backend.deactivate();
   });
+  test('缓存已打开但无学期时导出本机事项，有学期的缓存故障继续失败', () async {
+    final context = BridgeContext(_Client(), configDirectory: '/synthetic');
+    final backend = BridgeAgendaBackend(context);
+    await backend.openAccount(_alias);
+    context.cache.account = const LocalAccount(
+      id: _alias,
+      username: 'synthetic',
+    );
+    context.cache.handle = _Cache();
+    AgendaQuery query(String term) => AgendaQuery(
+      route: ConnectionMode.direct,
+      term: term,
+      from: '2026-11-01',
+      to: '2026-11-12',
+      now: AgendaTime(
+        rfc3339: '2026-11-05T09:00:00+08:00',
+        timezone: 'Asia/Shanghai',
+      ),
+      includeHidden: false,
+      ygdkEnabled: false,
+      ygdkWeekDone: false,
+      ygdkTermDone: false,
+    );
+    expect((await backend.exportIcs(query(''), true)).exportedCount, 1);
+    expect(
+      (await backend.exportIcs(query('synthetic'), true)).exportedCount,
+      2,
+    );
+    for (final failure in [
+      BridgeAgendaFailure.corrupt,
+      BridgeAgendaFailure.inactive,
+      BridgeAgendaFailure.invalidInput,
+    ]) {
+      api.handle.exportFailure = BridgeAgendaError(failure: failure);
+      await expectLater(
+        backend.exportIcs(query('synthetic'), true),
+        throwsA(
+          isA<AgendaException>().having(
+            (e) => e.failure.name,
+            '缓存错误保留',
+            failure.name,
+          ),
+        ),
+      );
+    }
+    await backend.deactivate();
+  });
   test('不完整时间、原始完成状态和跳转字段逐字段保留，集合不可变', () {
     final timing = fromAgendaTiming(
       const BridgeAgendaTiming(
@@ -154,6 +201,32 @@ class _Handle implements BridgeAgendaStore {
   Completer<BridgeAgendaQueryResult>? cacheGate;
   BridgeAgendaQuery? request;
   int localQueries = 0;
+  BridgeAgendaError? exportFailure;
+  @override
+  Future<BridgeAgendaExport> exportIcs({
+    required BridgeAgendaQuery query,
+    required bool includeCompleted,
+  }) async => const BridgeAgendaExport(
+    ics: '本机快照',
+    exportedCount: 1,
+    skippedUnknownTimeCount: 0,
+  );
+  @override
+  Future<BridgeAgendaExport> exportWithCache({
+    required BridgeOfflineCache cache,
+    required BridgeAgendaQuery query,
+    required bool includeCompleted,
+  }) async {
+    if (query.term.isEmpty)
+      throw const BridgeAgendaError(failure: BridgeAgendaFailure.invalidInput);
+    if (exportFailure != null) throw exportFailure!;
+    return const BridgeAgendaExport(
+      ics: '学校与本机快照',
+      exportedCount: 2,
+      skippedUnknownTimeCount: 0,
+    );
+  }
+
   @override
   Future<void> activate() async {
     active = true;
@@ -198,7 +271,7 @@ class _Cache implements BridgeOfflineCache {
 
 class _Client implements BridgeClient {
   @override
-  int contractVersion() => 45;
+  int contractVersion() => 46;
   @override
   Future<void> dispose() async {}
   @override
