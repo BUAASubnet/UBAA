@@ -4,6 +4,8 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'bhpan.dart';
+import 'bhpan/models.dart';
 import 'campus.dart';
 import 'ihome.dart';
 import 'initialization.dart';
@@ -196,6 +198,41 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// # Errors
   /// 原身份、会话、已退出仓库与待确认写意图失败保持稳定分类。
   Future<BridgeSpocScan> beginSpocScan({required BridgeOfflineCache cache});
+
+  Future<BridgeBhpanCapabilities> bhpanCapabilities();
+
+  Future<BridgeBhpanReceipt> bhpanCommit({required String handle});
+
+  Future<void> bhpanDiscard({required String handle});
+
+  Future<BridgeBhpanDownloadPreparation> bhpanDownloadPreparation({
+    required List<String> handles,
+    required String name,
+  });
+
+  Future<void> bhpanLogin();
+
+  Future<BridgeBhpanPrepared> bhpanPrepare({required BridgeBhpanWrite request});
+
+  Future<BridgeBhpanPrepared> bhpanPrepareFastUpload({
+    required String parent,
+    required String path,
+    required String name,
+    required BridgeBhpanTransfer transfer,
+  });
+
+  Future<BridgeBhpanPage> bhpanRead({required BridgeBhpanQuery query});
+
+  Future<String> bhpanShareLink({required String share});
+
+  Future<List<BridgeBhpanShare>> bhpanShares({String? item});
+
+  Future<BridgeBhpanSize> bhpanSize({required String item});
+
+  Future<String> bhpanSuggestName({
+    required String parent,
+    required String name,
+  });
 
   /// 原在线查询及只读持久化；待确认写意图阻止隐式恢复。
   ///

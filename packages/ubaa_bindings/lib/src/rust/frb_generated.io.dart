@@ -8,6 +8,8 @@ import 'api/agenda/export.dart';
 import 'api/agenda/home.dart';
 import 'api/agenda/models.dart';
 import 'api/agenda/school.dart';
+import 'api/bhpan.dart';
+import 'api/bhpan/models.dart';
 import 'api/cache_management.dart';
 import 'api/campus.dart';
 import 'api/client.dart';
@@ -56,6 +58,10 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_BridgeAgendaStorePtr => wire
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStorePtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_BridgeBhpanTransferPtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransferPtr;
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_BridgeCaptchaChallengePtr => wire
@@ -112,6 +118,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeAgendaStore
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeBhpanTransfer
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
     dynamic raw,
   );
 
@@ -200,6 +212,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeBhpanTransfer
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
+    dynamic raw,
+  );
+
+  @protected
   BridgeCaptchaChallenge
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(
     dynamic raw,
@@ -280,6 +298,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeAgendaStore
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeBhpanTransfer
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
     dynamic raw,
   );
 
@@ -414,6 +438,28 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeAgendaTime dco_decode_box_autoadd_bridge_agenda_time(dynamic raw);
+
+  @protected
+  BridgeBhpanItem dco_decode_box_autoadd_bridge_bhpan_item(dynamic raw);
+
+  @protected
+  BridgeBhpanQuery dco_decode_box_autoadd_bridge_bhpan_query(dynamic raw);
+
+  @protected
+  BridgeBhpanRootKind dco_decode_box_autoadd_bridge_bhpan_root_kind(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeBhpanShare dco_decode_box_autoadd_bridge_bhpan_share(dynamic raw);
+
+  @protected
+  BridgeBhpanShareSettings dco_decode_box_autoadd_bridge_bhpan_share_settings(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeBhpanWrite dco_decode_box_autoadd_bridge_bhpan_write(dynamic raw);
 
   @protected
   BridgeBykcCourseAttendanceDisplay
@@ -775,6 +821,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int dco_decode_box_autoadd_u_32(dynamic raw);
 
   @protected
+  BigInt dco_decode_box_autoadd_u_64(dynamic raw);
+
+  @protected
   BridgeAcademicClassroomsRefresh dco_decode_bridge_academic_classrooms_refresh(
     dynamic raw,
   );
@@ -892,6 +941,73 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeAgendaUpstreamStatus dco_decode_bridge_agenda_upstream_status(
     dynamic raw,
   );
+
+  @protected
+  BridgeBhpanCapabilities dco_decode_bridge_bhpan_capabilities(dynamic raw);
+
+  @protected
+  BridgeBhpanCapability dco_decode_bridge_bhpan_capability(dynamic raw);
+
+  @protected
+  BridgeBhpanDownloadPreparation dco_decode_bridge_bhpan_download_preparation(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeBhpanItem dco_decode_bridge_bhpan_item(dynamic raw);
+
+  @protected
+  BridgeBhpanItemKind dco_decode_bridge_bhpan_item_kind(dynamic raw);
+
+  @protected
+  BridgeBhpanListRange dco_decode_bridge_bhpan_list_range(dynamic raw);
+
+  @protected
+  BridgeBhpanMutationKind dco_decode_bridge_bhpan_mutation_kind(dynamic raw);
+
+  @protected
+  BridgeBhpanPage dco_decode_bridge_bhpan_page(dynamic raw);
+
+  @protected
+  BridgeBhpanPermission dco_decode_bridge_bhpan_permission(dynamic raw);
+
+  @protected
+  BridgeBhpanPrepared dco_decode_bridge_bhpan_prepared(dynamic raw);
+
+  @protected
+  BridgeBhpanQuery dco_decode_bridge_bhpan_query(dynamic raw);
+
+  @protected
+  BridgeBhpanReadView dco_decode_bridge_bhpan_read_view(dynamic raw);
+
+  @protected
+  BridgeBhpanReceipt dco_decode_bridge_bhpan_receipt(dynamic raw);
+
+  @protected
+  BridgeBhpanRootKind dco_decode_bridge_bhpan_root_kind(dynamic raw);
+
+  @protected
+  BridgeBhpanScope dco_decode_bridge_bhpan_scope(dynamic raw);
+
+  @protected
+  BridgeBhpanShare dco_decode_bridge_bhpan_share(dynamic raw);
+
+  @protected
+  BridgeBhpanShareSettings dco_decode_bridge_bhpan_share_settings(dynamic raw);
+
+  @protected
+  BridgeBhpanSize dco_decode_bridge_bhpan_size(dynamic raw);
+
+  @protected
+  BridgeBhpanTransferPhase dco_decode_bridge_bhpan_transfer_phase(dynamic raw);
+
+  @protected
+  BridgeBhpanTransferProgress dco_decode_bridge_bhpan_transfer_progress(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeBhpanWrite dco_decode_bridge_bhpan_write(dynamic raw);
 
   @protected
   BridgeBykcCatalogRefresh dco_decode_bridge_bykc_catalog_refresh(dynamic raw);
@@ -2091,6 +2207,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   List<BridgeAgendaTime> dco_decode_list_bridge_agenda_time(dynamic raw);
 
   @protected
+  List<BridgeBhpanItem> dco_decode_list_bridge_bhpan_item(dynamic raw);
+
+  @protected
+  List<BridgeBhpanPermission> dco_decode_list_bridge_bhpan_permission(
+    dynamic raw,
+  );
+
+  @protected
+  List<BridgeBhpanShare> dco_decode_list_bridge_bhpan_share(dynamic raw);
+
+  @protected
   List<BridgeBykcChosenCourse> dco_decode_list_bridge_bykc_chosen_course(
     dynamic raw,
   );
@@ -2406,6 +2533,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeAgendaTime? dco_decode_opt_box_autoadd_bridge_agenda_time(dynamic raw);
 
   @protected
+  BridgeBhpanItem? dco_decode_opt_box_autoadd_bridge_bhpan_item(dynamic raw);
+
+  @protected
+  BridgeBhpanRootKind? dco_decode_opt_box_autoadd_bridge_bhpan_root_kind(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeBhpanShare? dco_decode_opt_box_autoadd_bridge_bhpan_share(dynamic raw);
+
+  @protected
+  BridgeBhpanShareSettings?
+  dco_decode_opt_box_autoadd_bridge_bhpan_share_settings(dynamic raw);
+
+  @protected
   BridgeBykcCourseAttendanceDisplay?
   dco_decode_opt_box_autoadd_bridge_bykc_course_attendance_display(dynamic raw);
 
@@ -2706,11 +2848,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int? dco_decode_opt_box_autoadd_u_32(dynamic raw);
 
   @protected
+  BigInt? dco_decode_opt_box_autoadd_u_64(dynamic raw);
+
+  @protected
   List<String>? dco_decode_opt_list_String(dynamic raw);
 
   @protected
   List<BridgeJudgeAssignmentKey>?
   dco_decode_opt_list_bridge_judge_assignment_key(dynamic raw);
+
+  @protected
+  int dco_decode_u_16(dynamic raw);
 
   @protected
   int dco_decode_u_32(dynamic raw);
@@ -2730,6 +2878,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeAgendaStore
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanTransfer
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
     SseDeserializer deserializer,
   );
 
@@ -2818,6 +2972,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeBhpanTransfer
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeCaptchaChallenge
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(
     SseDeserializer deserializer,
@@ -2898,6 +3058,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeAgendaStore
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanTransfer
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
     SseDeserializer deserializer,
   );
 
@@ -3042,6 +3208,36 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeAgendaTime sse_decode_box_autoadd_bridge_agenda_time(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanItem sse_decode_box_autoadd_bridge_bhpan_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanQuery sse_decode_box_autoadd_bridge_bhpan_query(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanRootKind sse_decode_box_autoadd_bridge_bhpan_root_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanShare sse_decode_box_autoadd_bridge_bhpan_share(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanShareSettings sse_decode_box_autoadd_bridge_bhpan_share_settings(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanWrite sse_decode_box_autoadd_bridge_bhpan_write(
     SseDeserializer deserializer,
   );
 
@@ -3507,6 +3703,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int sse_decode_box_autoadd_u_32(SseDeserializer deserializer);
 
   @protected
+  BigInt sse_decode_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
   BridgeAcademicClassroomsRefresh sse_decode_bridge_academic_classrooms_refresh(
     SseDeserializer deserializer,
   );
@@ -3674,6 +3873,97 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   BridgeAgendaUpstreamStatus sse_decode_bridge_agenda_upstream_status(
     SseDeserializer deserializer,
   );
+
+  @protected
+  BridgeBhpanCapabilities sse_decode_bridge_bhpan_capabilities(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanCapability sse_decode_bridge_bhpan_capability(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanDownloadPreparation sse_decode_bridge_bhpan_download_preparation(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanItem sse_decode_bridge_bhpan_item(SseDeserializer deserializer);
+
+  @protected
+  BridgeBhpanItemKind sse_decode_bridge_bhpan_item_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanListRange sse_decode_bridge_bhpan_list_range(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanMutationKind sse_decode_bridge_bhpan_mutation_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanPage sse_decode_bridge_bhpan_page(SseDeserializer deserializer);
+
+  @protected
+  BridgeBhpanPermission sse_decode_bridge_bhpan_permission(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanPrepared sse_decode_bridge_bhpan_prepared(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanQuery sse_decode_bridge_bhpan_query(SseDeserializer deserializer);
+
+  @protected
+  BridgeBhpanReadView sse_decode_bridge_bhpan_read_view(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanReceipt sse_decode_bridge_bhpan_receipt(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanRootKind sse_decode_bridge_bhpan_root_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanScope sse_decode_bridge_bhpan_scope(SseDeserializer deserializer);
+
+  @protected
+  BridgeBhpanShare sse_decode_bridge_bhpan_share(SseDeserializer deserializer);
+
+  @protected
+  BridgeBhpanShareSettings sse_decode_bridge_bhpan_share_settings(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanSize sse_decode_bridge_bhpan_size(SseDeserializer deserializer);
+
+  @protected
+  BridgeBhpanTransferPhase sse_decode_bridge_bhpan_transfer_phase(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanTransferProgress sse_decode_bridge_bhpan_transfer_progress(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanWrite sse_decode_bridge_bhpan_write(SseDeserializer deserializer);
 
   @protected
   BridgeBykcCatalogRefresh sse_decode_bridge_bykc_catalog_refresh(
@@ -5233,6 +5523,21 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  List<BridgeBhpanItem> sse_decode_list_bridge_bhpan_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeBhpanPermission> sse_decode_list_bridge_bhpan_permission(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  List<BridgeBhpanShare> sse_decode_list_bridge_bhpan_share(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   List<BridgeBykcChosenCourse> sse_decode_list_bridge_bykc_chosen_course(
     SseDeserializer deserializer,
   );
@@ -5616,6 +5921,27 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeAgendaTime? sse_decode_opt_box_autoadd_bridge_agenda_time(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanItem? sse_decode_opt_box_autoadd_bridge_bhpan_item(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanRootKind? sse_decode_opt_box_autoadd_bridge_bhpan_root_kind(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanShare? sse_decode_opt_box_autoadd_bridge_bhpan_share(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeBhpanShareSettings?
+  sse_decode_opt_box_autoadd_bridge_bhpan_share_settings(
     SseDeserializer deserializer,
   );
 
@@ -6012,11 +6338,17 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   int? sse_decode_opt_box_autoadd_u_32(SseDeserializer deserializer);
 
   @protected
+  BigInt? sse_decode_opt_box_autoadd_u_64(SseDeserializer deserializer);
+
+  @protected
   List<String>? sse_decode_opt_list_String(SseDeserializer deserializer);
 
   @protected
   List<BridgeJudgeAssignmentKey>?
   sse_decode_opt_list_bridge_judge_assignment_key(SseDeserializer deserializer);
+
+  @protected
+  int sse_decode_u_16(SseDeserializer deserializer);
 
   @protected
   int sse_decode_u_32(SseDeserializer deserializer);
@@ -6037,6 +6369,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
     BridgeAgendaStore self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
+    BridgeBhpanTransfer self,
     SseSerializer serializer,
   );
 
@@ -6140,6 +6479,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
+    BridgeBhpanTransfer self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeCaptchaChallenge(
     BridgeCaptchaChallenge self,
     SseSerializer serializer,
@@ -6233,6 +6579,13 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
     BridgeAgendaStore self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
+    BridgeBhpanTransfer self,
     SseSerializer serializer,
   );
 
@@ -6401,6 +6754,42 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_agenda_time(
     BridgeAgendaTime self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bhpan_item(
+    BridgeBhpanItem self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bhpan_query(
+    BridgeBhpanQuery self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bhpan_root_kind(
+    BridgeBhpanRootKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bhpan_share(
+    BridgeBhpanShare self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bhpan_share_settings(
+    BridgeBhpanShareSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_bhpan_write(
+    BridgeBhpanWrite self,
     SseSerializer serializer,
   );
 
@@ -6918,6 +7307,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_box_autoadd_u_32(int self, SseSerializer serializer);
 
   @protected
+  void sse_encode_box_autoadd_u_64(BigInt self, SseSerializer serializer);
+
+  @protected
   void sse_encode_bridge_academic_classrooms_refresh(
     BridgeAcademicClassroomsRefresh self,
     SseSerializer serializer,
@@ -7124,6 +7516,132 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_agenda_upstream_status(
     BridgeAgendaUpstreamStatus self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_capabilities(
+    BridgeBhpanCapabilities self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_capability(
+    BridgeBhpanCapability self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_download_preparation(
+    BridgeBhpanDownloadPreparation self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_item(
+    BridgeBhpanItem self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_item_kind(
+    BridgeBhpanItemKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_list_range(
+    BridgeBhpanListRange self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_mutation_kind(
+    BridgeBhpanMutationKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_page(
+    BridgeBhpanPage self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_permission(
+    BridgeBhpanPermission self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_prepared(
+    BridgeBhpanPrepared self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_query(
+    BridgeBhpanQuery self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_read_view(
+    BridgeBhpanReadView self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_receipt(
+    BridgeBhpanReceipt self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_root_kind(
+    BridgeBhpanRootKind self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_scope(
+    BridgeBhpanScope self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_share(
+    BridgeBhpanShare self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_share_settings(
+    BridgeBhpanShareSettings self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_size(
+    BridgeBhpanSize self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_transfer_phase(
+    BridgeBhpanTransferPhase self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_transfer_progress(
+    BridgeBhpanTransferProgress self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_bhpan_write(
+    BridgeBhpanWrite self,
     SseSerializer serializer,
   );
 
@@ -9039,6 +9557,24 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_list_bridge_bhpan_item(
+    List<BridgeBhpanItem> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_bhpan_permission(
+    List<BridgeBhpanPermission> self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_list_bridge_bhpan_share(
+    List<BridgeBhpanShare> self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_list_bridge_bykc_chosen_course(
     List<BridgeBykcChosenCourse> self,
     SseSerializer serializer,
@@ -9524,6 +10060,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  void sse_encode_opt_box_autoadd_bridge_bhpan_item(
+    BridgeBhpanItem? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_bhpan_root_kind(
+    BridgeBhpanRootKind? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_bhpan_share(
+    BridgeBhpanShare? self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_opt_box_autoadd_bridge_bhpan_share_settings(
+    BridgeBhpanShareSettings? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_bridge_bykc_course_attendance_display(
     BridgeBykcCourseAttendanceDisplay? self,
     SseSerializer serializer,
@@ -9941,6 +10501,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_box_autoadd_u_32(int? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_u_64(BigInt? self, SseSerializer serializer);
+
+  @protected
   void sse_encode_opt_list_String(List<String>? self, SseSerializer serializer);
 
   @protected
@@ -9948,6 +10511,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
     List<BridgeJudgeAssignmentKey>? self,
     SseSerializer serializer,
   );
+
+  @protected
+  void sse_encode_u_16(int self, SseSerializer serializer);
 
   @protected
   void sse_encode_u_32(int self, SseSerializer serializer);
@@ -10011,6 +10577,40 @@ class RustLibWire implements BaseWire {
       );
   late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore =
       _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStorePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransferPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransferPtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransferPtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransferPtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void
