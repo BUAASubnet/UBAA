@@ -11,6 +11,16 @@ pub async fn execute_bhpan(
     args: &BhpanArgs,
     input: &BhpanPreparedInput,
 ) -> RoutedResult<BhpanOutput> {
+    if args.command.confirmation() == Some(false) {
+        return Err(RoutedError {
+            error: ubaa_core::facade::UbaaError::invalid_input("学校写入需要 --confirm-write"),
+            resolution: None,
+        });
+    }
+    args.command.validate().map_err(|error| RoutedError {
+        error,
+        resolution: None,
+    })?;
     let resolution = client.resolve_bhpan_route()?.resolution;
     input.check_file().map_err(|error| RoutedError {
         error,
@@ -180,11 +190,54 @@ async fn execute(
                 destination: n::personal_path(client, args, destination).await?.handle,
             },
         },
+        C::Upload {
+            parent,
+            file,
+            name,
+            share_link,
+            ..
+        } => {
+            let task = TransferTask(input.transfer());
+            let parent = match share_link {
+                Some(link) => n::shared_path(client, link, parent, input.password.clone()).await?,
+                None => n::personal_path(client, args, parent).await?,
+            };
+            let prepared = client
+                .bhpan_prepare_upload(&parent.handle, file.clone(), name, task.0.clone())
+                .await?;
+            return receipt(client, &prepared.handle).await;
+        }
+        C::Download {
+            paths,
+            output,
+            overwrite,
+            name,
+            share_link,
+            ..
+        } => {
+            let task = TransferTask(input.transfer());
+            let root = match share_link {
+                Some(link) => n::shared_path(client, link, "/", input.password.clone()).await?,
+                None => n::root(client, args).await?,
+            };
+            let mut handles = vec![];
+            for path in paths {
+                handles.push(n::descend(client, root.clone(), path).await?.handle);
+            }
+            let receipt = client
+                .bhpan_download(&handles, name, output.clone(), *overwrite, task.0.clone())
+                .await?;
+            return Ok(BhpanOutput::Downloaded {
+                bytes: receipt.bytes,
+                batch: receipt.batch,
+                destination: output.to_string_lossy().into_owned(),
+            });
+        }
         C::UploadFast {
             parent, file, name, ..
         } => {
             let parent = n::personal_path(client, args, parent).await?;
-            let transfer = TransferTask(ubaa_core::facade::bhpan::BhpanTransfer::new());
+            let transfer = TransferTask(input.transfer());
             let prepared = client
                 .bhpan_prepare_fast_upload(&parent.handle, file.clone(), name, transfer.0.clone())
                 .await?;

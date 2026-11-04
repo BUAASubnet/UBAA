@@ -44,6 +44,57 @@ struct Transport {
 }
 #[async_trait::async_trait]
 impl HttpTransport for Transport {
+    async fn upload(
+        &self,
+        request: HttpRequest,
+        source: Option<ubaa_core::facade::testing::HttpFileRange>,
+        observer: Arc<dyn ubaa_core::facade::testing::HttpTransferObserver>,
+    ) -> ubaa_core::facade::Result<HttpResponse> {
+        use std::io::{Read, Seek};
+        assert!(!request.headers.contains_key("Cookie"));
+        assert_eq!(
+            request.headers.get("authorization").map(String::as_str),
+            Some("object-only")
+        );
+        self.calls.lock().unwrap().push(request.clone());
+        if let Some(mut source) = source {
+            source
+                .file
+                .seek(std::io::SeekFrom::Start(source.offset))
+                .unwrap();
+            let mut remaining = source.length;
+            let mut buffer = vec![0; 64 * 1024];
+            while remaining > 0 {
+                observer.check()?;
+                let length = usize::try_from(remaining.min(buffer.len() as u64)).unwrap();
+                source.file.read_exact(&mut buffer[..length]).unwrap();
+                observer.advance(length as u64);
+                remaining -= length as u64;
+            }
+        }
+        Ok(HttpResponse::new(200, request.url, vec![]))
+    }
+    async fn download(
+        &self,
+        request: HttpRequest,
+        mut destination: std::fs::File,
+        observer: Arc<dyn ubaa_core::facade::testing::HttpTransferObserver>,
+    ) -> ubaa_core::facade::Result<HttpResponse> {
+        use std::io::Write;
+        assert!(!request.headers.contains_key("Cookie"));
+        assert!(
+            request.headers.is_empty()
+                || request
+                    .headers
+                    .values()
+                    .all(|value| value != "Bearer synthetic")
+        );
+        self.calls.lock().unwrap().push(request.clone());
+        observer.check()?;
+        destination.write_all(b"hello").unwrap();
+        observer.advance(5);
+        Ok(HttpResponse::new(200, request.url, vec![]))
+    }
     async fn execute(&self, r: HttpRequest) -> ubaa_core::facade::Result<HttpResponse> {
         let url = r.url.clone();
         self.calls.lock().unwrap().push(r.clone());
@@ -72,6 +123,10 @@ impl HttpTransport for Transport {
             response.body = br#"{"name":"new (1).txt"}"#.to_vec();
         } else if url.ends_with("/osdownload") {
             response.body=br#"{"authrequest":["GET","https://object.synthetic.invalid/file?signature=private","Authorization: private"]}"#.to_vec();
+        } else if url.ends_with("/osbeginupload") {
+            response.body=br#"{"docid":"gns://fixture/uploaded","rev":"u","authrequest":["PUT","https://object.synthetic.invalid/upload?signature=private","Authorization: object-only"]}"#.to_vec();
+        } else if url.ends_with("/osendupload") {
+            response.body = b"{}".to_vec();
         } else if url.ends_with("/file/delete") {
             assert_eq!(
                 serde_json::from_slice::<Value>(&r.body).unwrap(),
@@ -288,4 +343,122 @@ async fn 秒传文件自输入准备后变化时不发起业务网络() {
     assert_eq!(result.render(&control, &mut vec![], &mut vec![]), 2);
     assert!(fixture.transport.calls.lock().unwrap().is_empty());
     fixture.finish();
+}
+
+#[tokio::test]
+async fn 公开聚合执行入口同样拒绝未确认云盘写入() {
+    let mut fixture = Fixture::new(Transport::default(), "direct");
+    let cli = ubaa_command::parse(["ubaa", "--json", "bhpan", "delete", "/notes.txt"])
+        .unwrap()
+        .into_cli();
+    let code =
+        ubaa_command::run_with_routed_backend(cli, &mut fixture.client, &mut vec![], &mut vec![])
+            .await;
+    assert_eq!(code, 2);
+    assert!(fixture.transport.calls.lock().unwrap().is_empty());
+    fixture.finish();
+}
+
+#[tokio::test]
+async fn 公共上传下载命令交付实际文件且不输出对象授权() {
+    let mut fixture = Fixture::new(Transport::default(), "direct");
+    let source = fixture.root.join("input.txt");
+    std::fs::write(&source, b"hello").unwrap();
+    let (code, value) = fixture
+        .run(&[
+            "upload",
+            "/",
+            source.to_str().unwrap(),
+            "notes.txt",
+            "--confirm-write",
+        ])
+        .await;
+    assert_eq!(code, 0);
+    assert!(!value.to_string().contains("private"));
+    let output = fixture.root.join("downloaded.txt");
+    let (code, value) = fixture
+        .run(&[
+            "download",
+            "/notes.txt",
+            "--output",
+            output.to_str().unwrap(),
+        ])
+        .await;
+    assert_eq!(code, 0);
+    assert_eq!(std::fs::read(output).unwrap(), b"hello");
+    assert_eq!(value["data"]["operation"], "downloaded");
+    assert!(!value.to_string().contains("signature"));
+    fixture.finish();
+}
+
+#[tokio::test]
+async fn 命令等待材料锁跨过绝对期限后不发送云盘写入() {
+    use std::time::{Duration, Instant};
+    let mut f = Fixture::new(Transport::default(), "direct");
+    let parent = f
+        .client
+        .bhpan_personal_root()
+        .await
+        .unwrap()
+        .items
+        .remove(0);
+    let file = f
+        .client
+        .bhpan_list(&parent.handle)
+        .await
+        .unwrap()
+        .items
+        .into_iter()
+        .find(|item| item.name == "notes.txt")
+        .unwrap();
+    let prepared = f
+        .client
+        .bhpan_prepare_write(ubaa_core::facade::BhpanWriteIntent::Recycle { item: file.handle })
+        .await
+        .unwrap();
+    let materials = f.root.join("materials");
+    std::fs::create_dir_all(&materials).unwrap();
+    for (name, value) in [
+        ("materials.lock", ""),
+        ("transaction.v1", "UBAA1:C"),
+        ("account-generation.v1", "UBAA1:1"),
+    ] {
+        std::fs::write(materials.join(name), value).unwrap();
+    }
+    f.client.bind_shared_account(Some(
+        ubaa_core::facade::SharedAccountGuard::new(&materials, 1).unwrap(),
+    ));
+    let control = CommandControl::new(Instant::now(), Duration::from_secs(1));
+    let wait = control.clone();
+    let (locked, ready) = std::sync::mpsc::sync_channel(0);
+    let worker = std::thread::spawn(move || {
+        let file = std::fs::OpenOptions::new()
+            .read(true)
+            .write(true)
+            .open(materials.join("materials.lock"))
+            .unwrap();
+        file.lock().unwrap();
+        locked.send(()).unwrap();
+        while !wait.remaining().is_zero() {
+            std::thread::sleep(Duration::from_millis(10));
+        }
+        assert!(wait.check().is_err());
+        drop(file);
+    });
+    ready.recv().unwrap();
+    // 锁释放前期限一定已到达，取消不能仅依赖异步定时器抢占本次轮询。
+    let result = control
+        .run(f.client.bhpan_commit_write(&prepared.handle))
+        .await;
+    worker.join().unwrap();
+    assert!(result.is_err());
+    assert!(
+        !f.transport
+            .calls
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|request| request.url.ends_with("/file/delete"))
+    );
+    f.finish();
 }

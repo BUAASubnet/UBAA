@@ -43,6 +43,7 @@ pub struct CommandRequirements {
     pub recovery_target: Option<RecoveryTarget>,
     pub stdin: bool,
     pub file_input: bool,
+    pub has_transfer: bool,
     pub config_dir: Option<PathBuf>,
 }
 #[derive(Clone)]
@@ -112,6 +113,7 @@ impl CommandPlan {
         ) || matches!(&self.cli.command, Command::Bhpan(args) if args.command.password_stdin())
             || matches!(&self.cli.command, Command::Agenda(args) if crate::agenda::confirmed(&args.command) && crate::agenda::input_path(&args.command).is_some_and(|p| p==std::path::Path::new("-")));
         CommandRequirements {
+            has_transfer: matches!(&self.cli.command,Command::Bhpan(args) if args.command.is_transfer()),
             class,
             recovery_target,
             stdin,

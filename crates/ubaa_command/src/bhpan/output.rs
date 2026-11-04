@@ -56,6 +56,11 @@ impl BhpanShareEntry {
 #[derive(Clone, Debug, Serialize)]
 #[serde(tag = "operation", rename_all = "snake_case")]
 pub enum BhpanOutput {
+    Downloaded {
+        bytes: u64,
+        batch: bool,
+        destination: String,
+    },
     Login,
     Entries {
         items: Vec<BhpanEntry>,

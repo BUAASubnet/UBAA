@@ -297,7 +297,7 @@ fn 本机取消与期限均保留_v13_storage退出码() {
 #[test]
 fn 命令编辑复用完整草稿并平移未改排除日期() {
     let fixture = Fixture::new();
-    let original = DRAFT.replace("}", ",\"exdates\":[\"2026-12-02T09:00:00+08:00\"]}");
+    let original = DRAFT.replace('}', ",\"exdates\":[\"2026-12-02T09:00:00+08:00\"]}");
     let (_, value, _) = fixture.run(
         &["create", "--input", "-", "--confirm-local-write"],
         &original,

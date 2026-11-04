@@ -85,6 +85,24 @@ impl CommandControl {
         tokio::pin!(cancelled);
         cancelled.as_mut().enable();
         self.check()?;
+        let control = self.clone();
+        let work = ubaa_core::facade::with_operation_control(
+            move || {
+                control.check().map_err(|reason| {
+                    ubaa_core::facade::UbaaError::new(
+                        if reason == StopReason::Deadline {
+                            ubaa_core::facade::ErrorCode::Timeout
+                        } else {
+                            ubaa_core::facade::ErrorCode::InternalError
+                        },
+                        ubaa_core::facade::ErrorKind::Input,
+                        false,
+                        reason.message(),
+                    )
+                })
+            },
+            work,
+        );
         tokio::select! { biased;
             () = cancelled => Err(self.check().err().unwrap_or(StopReason::Cancelled)),
             () = tokio::time::sleep_until(self.deadline.into()) => Err(StopReason::Deadline),
