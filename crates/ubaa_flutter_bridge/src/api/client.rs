@@ -2,7 +2,6 @@ use std::collections::HashMap;
 use std::fmt;
 use std::future::Future;
 use std::panic::AssertUnwindSafe;
-use std::path::PathBuf;
 use std::sync::{
     RwLock,
     atomic::{AtomicBool, Ordering},
@@ -14,7 +13,7 @@ use ubaa_core::facade::{
     RoutePolicy, SafeError, UserProfile,
 };
 use ubaa_core::facade::{
-    ErrorCode, ErrorKind, NetworkState, RouteResolution, RoutedError, UbaaClient, UbaaError,
+    ErrorCode, ErrorKind, NetworkState, RouteResolution, RoutedError, UbaaError,
 };
 
 /// FRB 合同版本。
@@ -254,7 +253,6 @@ pub struct BridgeRoutedUserProfile {
 
 /// FRB opaque client。内部 Core、Session 和路线 runtime 不对 Dart 可见。
 pub struct BridgeClient {
-    config_dir: PathBuf,
     close_control: ubaa_core::facade::ClientCloseControl,
     pub(crate) inner: super::read_pool::ClientPool,
     pub(crate) write_intents: tokio::sync::Mutex<HashMap<String, super::write::PendingEntry>>,
@@ -267,13 +265,13 @@ impl BridgeClient {
     ///
     /// # Errors
     /// 配置、会话、资源忙或组件故障返回不含原始材料的初始化分类。
+    #[allow(clippy::needless_pass_by_value)]
     pub fn open(
         config_dir: String,
     ) -> Result<Self, super::initialization::BridgeInitializationError> {
         let client = super::initialization::open(&config_dir)?;
         Ok(Self {
             close_control: client.close_control(),
-            config_dir: PathBuf::from(config_dir),
             auth_control: RwLock::new(client.interactive_login_cancellation()),
             is_disposed: AtomicBool::new(false),
             inner: super::read_pool::ClientPool::new(client),
@@ -467,7 +465,7 @@ impl BridgeClient {
                 .set_default_route_policy(policy.into())
                 .map_err(|error| BridgeError::from_core(error, None))?;
             let reopened =
-                std::panic::catch_unwind(AssertUnwindSafe(|| UbaaClient::open(&self.config_dir)))
+                std::panic::catch_unwind(AssertUnwindSafe(|| client.reopen_for_route_policy()))
                     .map_err(|_| panic_error())?
                     .map_err(|error| BridgeError::from_core(error, None))?;
             *self

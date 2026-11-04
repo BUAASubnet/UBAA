@@ -204,7 +204,7 @@ impl ClientRuntime {
         Ok(())
     }
     fn check_authentication_scope(&self) -> Result<()> {
-        self.check_consumer()?;
+        self.check_operation_controls()?;
         if let Some(scope) = &self.required_recovery_scope {
             scope.check()?;
             self.ensure_session_revision()?;
@@ -213,6 +213,17 @@ impl ClientRuntime {
         if let Some(scope) = &self.interactive_login_scope {
             scope.ensure_active()?;
             self.ensure_session_revision()?;
+        }
+        Ok(())
+    }
+
+    fn check_operation_controls(&self) -> Result<()> {
+        self.check_consumer()?;
+        if let Some(scope) = &self.required_recovery_scope {
+            scope.check()?;
+        }
+        if let Some(scope) = &self.interactive_login_scope {
+            scope.ensure_active()?;
         }
         Ok(())
     }
@@ -300,6 +311,7 @@ impl ClientRuntime {
             .as_ref()
             .map(crate::facade::SharedAccountGuard::acquire)
             .transpose()?;
+        self.check_operation_controls()?;
         let request_url = request.url.clone();
         let pending = self.transport.execute(request);
         drop(permit);
@@ -354,6 +366,7 @@ impl ClientRuntime {
             .as_ref()
             .map(crate::facade::SharedAccountGuard::acquire)
             .transpose()?;
+        self.check_operation_controls()?;
         self.non_idempotent_boundary_crossed = true;
         if let Some(observer) = self.write_observer.as_ref().and_then(Weak::upgrade) {
             observer.store(true, Ordering::SeqCst);

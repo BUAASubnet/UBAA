@@ -62,8 +62,6 @@ Future<void> bridgePrepareLogin(
 ) async {
   _interruptInteractiveLogin(backend);
   try {
-    if (backend.sharedAccount != null)
-      await backend.client.releaseSharedAccountForLogin();
     await setPolicy(policy);
     await backend.client.prepareLogin();
   } on BridgeError catch (error) {
@@ -108,11 +106,11 @@ Future<BackendRouteSettings> bridgeRouteSettings(BridgeContext backend) async {
 Future<void> bridgeLogin(BridgeContext backend, LoginInput input) async {
   _interruptInteractiveLogin(backend);
   try {
+    if (backend.sharedAccount != null)
+      await backend.client.releaseSharedAccountForLogin();
     await backend.client.setDefaultRoutePolicy(
       policy: bridgeToBridgePolicy(input.routePolicy),
     );
-    if (backend.sharedAccount != null)
-      await backend.client.releaseSharedAccountForLogin();
     final outcome = await backend.client.login(
       username: input.username.trim(),
       password: input.password,

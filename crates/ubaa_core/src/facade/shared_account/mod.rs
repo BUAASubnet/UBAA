@@ -16,6 +16,8 @@ pub struct SharedAccountGuard {
     directory: Arc<PathBuf>,
     expected: Arc<str>,
     revoked: Arc<AtomicBool>,
+    #[cfg(test)]
+    pub(crate) wait_hook: Option<Arc<dyn Fn() + Send + Sync>>,
 }
 
 /// 仅覆盖同步本地事务或 transport 交付，不允许跨网络 await 持有。
@@ -41,6 +43,8 @@ impl SharedAccountGuard {
             directory: Arc::new(directory.to_owned()),
             expected: Arc::from(format!("UBAA1:{generation}")),
             revoked: Arc::new(AtomicBool::new(false)),
+            #[cfg(test)]
+            wait_hook: None,
         })
     }
     /// 核对原版本，不采用外部更新。
@@ -49,6 +53,14 @@ impl SharedAccountGuard {
     /// 版本变化、材料事务未完成、损坏或不可用均永久拒绝当前能力。
     pub fn check(&self) -> Result<()> {
         self.acquire().map(drop)
+    }
+    /// 在已核对的固定共享身份下提交短本机操作，不跨异步等待持锁。
+    ///
+    /// # Errors
+    /// 原身份已撤销或材料不可用时不执行操作。
+    pub fn with_current<T>(&self, operation: impl FnOnce() -> T) -> Result<T> {
+        let _permit = self.acquire()?;
+        Ok(operation())
     }
     pub(crate) fn acquire(&self) -> Result<SharedAccountPermit> {
         if self.revoked.load(Ordering::SeqCst) {
@@ -71,6 +83,10 @@ impl SharedAccountGuard {
         let file = open_regular(&root.join("materials.lock"))?;
         let deadline = Instant::now() + Duration::from_secs(5);
         while !try_shared(&file)? {
+            #[cfg(test)]
+            if let Some(hook) = &self.wait_hook {
+                hook();
+            }
             if Instant::now() >= deadline {
                 return Err(UbaaError::shared_account_conflict());
             }

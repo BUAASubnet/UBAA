@@ -34,3 +34,7 @@ pub mod campus;
 pub mod agenda;
 
 pub mod shared_account;
+
+#[cfg(test)]
+#[path = "client/lifecycle_tests.rs"]
+mod client_lifecycle_tests;
