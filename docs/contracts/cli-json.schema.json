@@ -294,7 +294,9 @@
                     "type": "string"
                   },
                   "port": {
-                    "const": 443
+                    "type": "integer",
+                    "minimum": 1,
+                    "maximum": 65535
                   },
                   "method": {
                     "const": "GET"
@@ -313,6 +315,31 @@
                   }
                 },
                 "additionalProperties": false
+              }
+            },
+            "additionalProperties": false
+          },
+          {
+            "type": "object",
+            "required": [
+              "operation",
+              "bytes",
+              "batch",
+              "destination"
+            ],
+            "properties": {
+              "operation": {
+                "const": "downloaded"
+              },
+              "bytes": {
+                "type": "integer",
+                "minimum": 0
+              },
+              "batch": {
+                "type": "boolean"
+              },
+              "destination": {
+                "type": "string"
               }
             },
             "additionalProperties": false

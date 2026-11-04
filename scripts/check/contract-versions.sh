@@ -75,18 +75,43 @@ schema_path='docs/contracts/cli-json.schema.json'
 if [[ ! -f "$contract_root/$schema_path" ]]; then
   report_error "缺少 ${schema_path}"
 elif [[ -n $cli_version ]]; then
-  schema_versions=$(LC_ALL=C sed -nE \
-    's/.*"schemaVersion"[[:space:]]*:[[:space:]]*\{[[:space:]]*"const"[[:space:]]*:[[:space:]]*([0-9]+).*/\1/p' \
-    "$contract_root/$schema_path")
-  if [[ -z $schema_versions ]]; then
-    report_error "${schema_path} 未声明 schemaVersion const"
-  else
+  if schema_versions=$(python3 - "$contract_root/$schema_path" <<'JSON'
+import json
+from pathlib import Path
+import sys
+
+
+def versions(value):
+    if isinstance(value, dict):
+        for key, item in value.items():
+            if key == "schemaVersion":
+                if not isinstance(item, dict) or type(item.get("const")) is not int:
+                    raise ValueError("schemaVersion 必须声明整数 const")
+                yield item["const"]
+            else:
+                yield from versions(item)
+    elif isinstance(value, list):
+        for item in value:
+            yield from versions(item)
+
+
+try:
+    found = list(versions(json.loads(Path(sys.argv[1]).read_text())))
+    if not found:
+        raise ValueError("缺少 schemaVersion const")
+except (OSError, ValueError):
+    sys.exit("JSON Schema 无法读取或缺少有效的 schemaVersion const")
+print("\n".join(map(str, found)))
+JSON
+  ); then
     while IFS= read -r schema_version; do
       if [[ $schema_version != "$cli_version" ]]; then
         report_error \
           "${schema_path} 含 v${schema_version}，但 CLI_JSON_SCHEMA_VERSION 为 v${cli_version}"
       fi
     done <<<"$schema_versions"
+  else
+    report_error "${schema_path} 未声明有效 schemaVersion const"
   fi
 fi
 

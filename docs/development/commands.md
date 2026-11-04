@@ -95,7 +95,7 @@ just check-changed base=<阶段开始提交> mode=full
 | `just flutter-test ubaa_app test/features/grades` | 固定 SDK 的包内普通测试，不解析依赖或选择设备 |
 | `cargo test --locked -p ubaa-command --all-targets` | 公共命令、输入、JSON/退出码与共享日程回归 |
 | `cargo test --locked -p ubaa-core-live --all-targets` | Core-live 参数、真实子进程拒绝路径与 facade 分层 |
-| `just command-build platform=host mode=debug` | 构建桌面命令；Linux AOT 只需 Dart、Rust 与 libsecret 开发依赖 |
+| `just command-build host debug` | 构建桌面命令；Linux AOT 只需 Dart、Rust 与 libsecret 开发依赖 |
 | `just core-test-contract` | 默认 Core 编译/Rustdoc、启用 test-contract 的全目标测试，以及注入关闭时的预期编译失败合同 |
 | `just test` / `just fmt` | 前者执行 Core test-contract 合同及其余 workspace 测试；后者仅执行 Cargo 格式检查，不写文件 |
 | `just module-check` | 自有源码完整依赖闭包、环、library 聚合尺寸与 part 归属 |

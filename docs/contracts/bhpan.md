@@ -1,6 +1,6 @@
 # 北航云盘边界合同
 
-状态：**Core、Bridge 与 GUI 本地候选，待独立审查与整合**。Direct 元数据、文件与分享管理和个人秒传已接线，普通/分片上传、文件内容下载、WebVPN 和条件覆盖仍待协议证据。本文约定独立北航云盘功能对 Core、CLI、Bridge、Flutter 和日程同步的边界，不声明任何协议、真实账号、平台或设备验收通过。实施安排见[北航云盘设计](../design/bhpan.md)，逐操作事实与未决问题见[来源对照](../migration/source-parity-bhpan.md)。
+状态：**Core、Bridge 与 GUI 本地候选，待独立审查与整合**。Direct 元数据、文件与分享管理、秒传、普通/分片上传、单文件和目录/多项打包下载已接入 Core、公共命令与 GUI。WebVPN 和北航部署的条件覆盖能力待验证。本文约定独立北航云盘功能对 Core、CLI、Bridge、Flutter 和日程同步的边界，不声明任何协议、真实账号、平台或设备验收通过。实施安排见[北航云盘设计](../design/bhpan.md)，逐操作事实与未决问题见[来源对照](../migration/source-parity-bhpan.md)。
 
 ## 范围与所有权
 
@@ -53,12 +53,12 @@ Direct 与 WebVPN 的能力分别表达为可用、不可用或待验证，并�
 | 路径 | 必须区分的阶段 | 结果边界 |
 |---|---|---|
 | 秒传 | 只读哈希探测、创建提交 | 探测成功不授权自动创建，也不保证创建成功；创建提交按一次写入处理。 |
-| 普通上传 | 开始授权、对象存储 PUT、最终登记 | 对象字节上传成功不能直接报告业务文件完成。开始或最终登记响应未知时保留对应阶段。 |
+| 普通上传 | 开始授权、对象存储 PUT、最终登记 | 首条开始请求的明确业务拒绝保留原错误。初始化成功后发生错误或结果不明时保留未知；取得的 docid/U 用于定向只读核对。只有正文完整传输及最终登记均成功才完成。 |
 | 分块上传 | 初始化、分块授权、逐块 PUT、提交分块信息、对象存储合并、最终登记 | 块传输、对象合并和文件登记分别核对。保存已知阶段，不因后续失败自动重新初始化或重发块。 |
 
 单次用户确认可以绑定确定的多阶段上传流程，但各阶段均至多发送一次；进入结果未知后不得继续后续写阶段。取消只保证停止尚未发送的阶段和本机工作。来源没有远端回滚、取消上传或断点恢复证据，取消后已经到达服务端的结果仍须如实表达。取消、退出或换账号发生在发送后时不能把未知结果写成“已取消且无远端变化”。
 
-`ondup=1` 和上传返回的 rev 尚未证明条件写入、原子覆盖或幂等性。任何依赖同名更新的日程固定文件同步都须先解决来源对照中的阻塞。不得默认使用先删后传，也不得把读取后提交视为原子的比较后写。
+首次创建保持 `ondup=1`。版本 facade 按官方字段区分基版 R 与本次上传的新版本 U：固定版本下载传 R，普通/分片开始和最终登记均传 `editedrev=R`，最终登记的 `rev` 传 U。北航部署的原子比较与首次同名不覆盖尚待验证，`conditional_replace` 保持 `Unverified`，真实自动同步须等待对应能力证据。
 
 ## 外部地址、请求头与传输
 
@@ -96,4 +96,8 @@ Core 的 `UbaaClient::bhpan_*` 提供登录、文档库与个人根、目录、�
 
 `bhpan_prepare_fast_upload` 接收平台选择的文件路径、父目录句柄和 `BhpanTransfer`。进度与取消不携带文件内容，计算摘要使用 64 KiB 缓冲。秒传检查未匹配时返回明确不可用结果，不自动初始化普通或分片上传。任务丢弃、账号变化或客户端释放后，未发送阶段停止。
 
-`bhpan_download_preparation` 只请求下载授权并返回脱敏目标摘要。`destination_verified=false` 表示尚未访问或核实对象地址，不可作为内容下载完成的收据。能力字段使用 `Available/Unverified/Unavailable` 分开表达实现与证据状态。正式公共命令接入后复用相同 App 服务，旧 CLI 不新增网盘身份实现。
+`bhpan_prepare_upload` 选择普通或分片上传，超过 100 MiB 使用 20 MiB 分片。`bhpan_download` 实际消费当次授权并交付单文件或 ZIP。对象传输使用 64 KiB 流块，正文不跨过 Bridge。桌面保存面板确认同名处理，Core 在同目录私有暂存后交付；移动端通过原生文件通道消费私有文件路径并清理暂存。
+
+`bhpan_download_preparation` 只请求下载授权并返回脱敏目标摘要。`destination_verified=false` 表示尚未访问或核实对象地址，不可作为内容下载完成的收据。能力字段使用 `Available/Unverified/Unavailable` 分开表达实现与证据状态。公共命令通过同一个 Core 及 App 材料和恢复服务执行。`upload`、`upload-fast` 要求 `--confirm-write`，`download` 要求 `--output`，已有文件另需 `--overwrite`。进度只写 stderr，stdout 保持单份 human/JSON 结果。命令原有绝对期限贯穿材料锁后的各发送边界与对象流块，停止后不重发写入。
+
+`bhpan_lookup_personal_path` 保留 Found/Missing/Unknown 类型；当前读取范围无完整性证明，未找到时返回 Unknown。`bhpan_file_version` 签发绑定本客户端、同对象及非空 R 的快照；`bhpan_download_file_version` 固定 R；`bhpan_prepare_version_upload` 与 `bhpan_commit_upload_version` 返回成功或 unknown，并保留已经取得的 U。版本快照不能跨客户端恢复写权限。

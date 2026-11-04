@@ -138,6 +138,31 @@ expect_rejected() {
 fixture=$(new_fixture matching)
 expect_pass '源码、schema 与当前文档版本一致时通过' "$fixture"
 
+fixture=$(new_fixture multiline-schema)
+python3 - "$fixture/docs/contracts/cli-json.schema.json" <<'JSON'
+import json, sys
+from pathlib import Path
+path = Path(sys.argv[1])
+path.write_text(json.dumps(json.loads(path.read_text()), indent=2) + "\n")
+JSON
+expect_pass '多行 JSON Schema 的版本常量一致时通过' "$fixture"
+
+fixture=$(new_fixture multiline-wrong-version)
+printf '%s\n' '{"properties":{"schemaVersion":{"const":9}}}' \
+  >"$fixture/docs/contracts/cli-json.schema.json"
+python3 - "$fixture/docs/contracts/cli-json.schema.json" <<'JSON'
+import json, sys
+from pathlib import Path
+path = Path(sys.argv[1])
+path.write_text(json.dumps(json.loads(path.read_text()), indent=2) + "\n")
+JSON
+expect_rejected '多行 JSON Schema 的错误版本必须拒绝' "$fixture" 'docs/contracts/cli-json.schema.json'
+
+fixture=$(new_fixture mixed-versions)
+printf '%s\n' '{"oneOf":[{"properties":{"schemaVersion":{"const":10}}},{"properties":{"schemaVersion":{"const":9}}}]}' \
+  >"$fixture/docs/contracts/cli-json.schema.json"
+expect_rejected '同一 Schema 含不同信封版本时拒绝' "$fixture" 'docs/contracts/cli-json.schema.json'
+
 fixture=$(new_fixture dart-mismatch)
 printf '%s\n' 'const _supportedBridgeContractVersion = 8;' \
   >"$fixture/packages/ubaa_app/lib/src/bridge/bridge_backend.dart"
