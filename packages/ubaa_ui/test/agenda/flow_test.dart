@@ -16,6 +16,7 @@ Widget app(
   AgendaService service, {
   Object scope = 1,
   String term = 'synthetic',
+  TextScaler? textScaler,
   Future<String?> Function(AgendaExportResult, String, bool Function())?
   saveFile,
 }) => MaterialApp(
@@ -23,6 +24,12 @@ Widget app(
   localizationsDelegates: UbaaTheme.localizationsDelegates,
   supportedLocales: UbaaTheme.supportedLocales,
   locale: UbaaTheme.locale,
+  builder: textScaler == null
+      ? null
+      : (context, child) => MediaQuery(
+          data: MediaQuery.of(context).copyWith(textScaler: textScaler),
+          child: child!,
+        ),
   home: Scaffold(
     body: AgendaView(
       service: service,
