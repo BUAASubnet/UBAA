@@ -21,16 +21,18 @@ class MemoryAgenda
     return AgendaQueryResult(
       entries: [
         for (final value in school)
-          AgendaEntry(
-            school: value,
-            timing: value.timing,
-            sortTime: value.sortTime,
-            soon: false,
-            completed:
-                overlays[value.key.upstreamId]?.value.completedAt != null,
-            hidden: overlays[value.key.upstreamId]?.value.hidden ?? false,
-            note: overlays[value.key.upstreamId]?.value.note,
-          ),
+          if (q.includeHidden ||
+              overlays[value.key.upstreamId]?.value.hidden != true)
+            AgendaEntry(
+              school: value,
+              timing: value.timing,
+              sortTime: value.sortTime,
+              soon: false,
+              completed:
+                  overlays[value.key.upstreamId]?.value.completedAt != null,
+              hidden: overlays[value.key.upstreamId]?.value.hidden ?? false,
+              note: overlays[value.key.upstreamId]?.value.note,
+            ),
         for (final item in items.values)
           if (item.deletedAt == null)
             AgendaEntry(
@@ -46,8 +48,18 @@ class MemoryAgenda
               ),
               timing: AgendaTiming(
                 kind: item.content.kind == AgendaKind.task
-                    ? AgendaTimingKind.deadline
-                    : AgendaTimingKind.period,
+                    ? (item.content.due == null
+                          ? AgendaTimingKind.undated
+                          : AgendaTimingKind.deadline)
+                    : (item.content.allDay
+                          ? AgendaTimingKind.allDay
+                          : AgendaTimingKind.period),
+                from: item.content.allDay
+                    ? item.content.start?.rfc3339.substring(0, 10)
+                    : null,
+                to: item.content.allDay
+                    ? item.content.end?.rfc3339.substring(0, 10)
+                    : null,
                 start: item.content.start,
                 end: item.content.end,
                 due: item.content.due,

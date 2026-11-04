@@ -1,5 +1,5 @@
 import 'dart:async';
-import '../shared/rail_identity.dart';
+import '../shared/layout/rail_identity.dart';
 import '../shared/dialogs/confirmation.dart';
 import '../features/bhpan/write_flow.dart';
 import '../features/bhpan/view.dart';

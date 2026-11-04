@@ -59,175 +59,121 @@ extension AgendaDetails on AgendaViewState {
     }
   }
 
-  Future<void> details(AgendaEntry entry) async {
+  Future<void> editEntry(AgendaEntry entry) async {
     final token = revision;
-    final local = entry.local;
-    final school = entry.school;
-    var note = entry.note ?? local?.content.notes ?? '';
+    final item = await detailItem(entry.local!.itemId, token);
+    if (!current(token) || item == null) return;
+    final scope = item.rrule == null
+        ? AgendaEditScope.all
+        : await chooseScope();
+    if (scope != null && current(token))
+      await edit(item: item, occurrence: entry.local, scope: scope);
+  }
+
+  Future<void> deleteEntry(AgendaEntry entry) async {
+    final token = revision;
+    final item = await detailItem(entry.local!.itemId, token);
+    if (!current(token) || item == null) return;
+    final scope = item.rrule != null
+        ? await chooseScope()
+        : await showDialog<AgendaEditScope>(
+            context: context,
+            builder: (dialog) => bound(
+              AlertDialog(
+                title: const Text('删除事项？'),
+                content: Text(item.content.title),
+                actions: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(dialog),
+                    child: const Text('取消'),
+                  ),
+                  FilledButton(
+                    onPressed: () => Navigator.pop(dialog, AgendaEditScope.all),
+                    child: const Text('删除'),
+                  ),
+                ],
+              ),
+            ),
+          );
+    if (scope != null && current(token))
+      await change(
+        () => service.delete(
+          item.id,
+          scope,
+          recurrenceAt(entry.local!),
+          agendaTime(campusDate(DateTime.now())),
+        ),
+      );
+  }
+
+  Future<void> saveNote(AgendaEntry entry, String note) async {
+    final token = revision;
+    await change(() async {
+      final old = await service.overlay(entry.school!.key);
+      if (!current(token)) return;
+      await service.setOverlay(
+        AgendaOverlayDraft(
+          key: entry.school!.key,
+          completedAt: old?.value.completedAt,
+          completionOverride: old?.value.completionOverride ?? false,
+          hidden: entry.hidden,
+          note: note,
+        ),
+        agendaTime(campusDate(DateTime.now())),
+      );
+    });
+  }
+
+  Future<void> toggleHidden(AgendaEntry entry) async {
+    final token = revision;
+    await change(() async {
+      final old = await service.overlay(entry.school!.key);
+      if (!current(token)) return;
+      await service.setOverlay(
+        AgendaOverlayDraft(
+          key: entry.school!.key,
+          completedAt: old?.value.completedAt,
+          completionOverride: old?.value.completionOverride ?? false,
+          hidden: !entry.hidden,
+          note: old?.value.note ?? entry.note,
+        ),
+        agendaTime(campusDate(DateTime.now())),
+      );
+    });
+  }
+
+  Widget detailContent(AgendaEntry entry, VoidCallback close) {
+    final token = revision;
+    void action(VoidCallback run) {
+      if (!current(token)) return;
+      close();
+      run();
+    }
+
+    return AgendaDetailContent(
+      key: ValueKey('${agendaEntryKey(entry)}:${entry.note}'),
+      entry: entry,
+      conflicts: agendaEntryConflicts(entry, result?.entries ?? []),
+      busy: busy,
+      onClose: close,
+      onEdit: () => action(() => unawaited(editEntry(entry))),
+      onDelete: () => action(() => unawaited(deleteEntry(entry))),
+      onComplete: () =>
+          action(() => unawaited(complete(entry, !entry.completed))),
+      onSaveNote: (note) => action(() => unawaited(saveNote(entry, note))),
+      onHide: () => action(() => unawaited(toggleHidden(entry))),
+      onOpenSchool: () => action(
+        () => widget.onOpenSchool(agendaNavigation(entry.school!.navigation)),
+      ),
+    );
+  }
+
+  Future<void> details(AgendaEntry entry) async {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
       builder: (sheet) => bound(
-        SafeArea(
-          child: SingleChildScrollView(
-            padding: EdgeInsets.fromLTRB(
-              20,
-              20,
-              20,
-              MediaQuery.viewInsetsOf(sheet).bottom + 20,
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.stretch,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  agendaTitle(entry),
-                  style: Theme.of(sheet).textTheme.titleLarge,
-                ),
-                const SizedBox(height: 8),
-                Text('${agendaSource(entry)} · ${agendaWhen(entry)}'),
-                Text(
-                  entry.timing.from ??
-                      (entry.timing.start ?? entry.timing.due)?.rfc3339
-                          .substring(0, 10) ??
-                      '无日期',
-                ),
-                if (school != null) ...[
-                  Text('学校状态：${school.statusLabel}'),
-                  Text(school.subtitle),
-                  const Text('完成、隐藏与备注只保存在本机，不改变学校数据。'),
-                  TextFormField(
-                    initialValue: note,
-                    onChanged: (value) => note = value,
-                    maxLines: 3,
-                    decoration: const InputDecoration(labelText: '本地备注'),
-                  ),
-                  FilledButton(
-                    onPressed: () async {
-                      if (!current(token)) return;
-                      final savedNote = note;
-                      Navigator.pop(sheet);
-                      await change(() async {
-                        final old = await service.overlay(school.key);
-                        if (!current(token)) return;
-                        await service.setOverlay(
-                          AgendaOverlayDraft(
-                            key: school.key,
-                            completedAt: old?.value.completedAt,
-                            completionOverride:
-                                old?.value.completionOverride ?? false,
-                            hidden: entry.hidden,
-                            note: savedNote,
-                          ),
-                          agendaTime(campusDate(DateTime.now())),
-                        );
-                      });
-                    },
-                    child: const Text('保存备注'),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      if (!current(token)) return;
-                      Navigator.pop(sheet);
-                      widget.onOpenSchool(agendaNavigation(school.navigation));
-                    },
-                    child: const Text('打开原功能'),
-                  ),
-                  TextButton(
-                    onPressed: () async {
-                      if (!current(token)) return;
-                      Navigator.pop(sheet);
-                      await change(() async {
-                        final old = await service.overlay(school.key);
-                        if (!current(token)) return;
-                        await service.setOverlay(
-                          AgendaOverlayDraft(
-                            key: school.key,
-                            completedAt: old?.value.completedAt,
-                            completionOverride:
-                                old?.value.completionOverride ?? false,
-                            hidden: !entry.hidden,
-                            note: old?.value.note ?? entry.note,
-                          ),
-                          agendaTime(campusDate(DateTime.now())),
-                        );
-                      });
-                    },
-                    child: Text(entry.hidden ? '恢复显示' : '隐藏事项'),
-                  ),
-                ] else ...[
-                  if (local?.content.notes case final notes?) Text(notes),
-                  TextButton(
-                    onPressed: () async {
-                      if (!current(token)) return;
-                      Navigator.pop(sheet);
-                      final item = await detailItem(local!.itemId, token);
-                      if (!current(token) || item == null) return;
-                      final scope = item.rrule == null
-                          ? AgendaEditScope.all
-                          : await chooseScope();
-                      if (scope != null && current(token))
-                        await edit(item: item, occurrence: local, scope: scope);
-                    },
-                    child: const Text('编辑事项'),
-                  ),
-                  TextButton(
-                    onPressed: () async {
-                      if (!current(token)) return;
-                      Navigator.pop(sheet);
-                      final item = await detailItem(local!.itemId, token);
-                      if (!current(token) || item == null) return;
-                      final scope = item.rrule != null
-                          ? await chooseScope()
-                          : await showDialog<AgendaEditScope>(
-                              context: context,
-                              builder: (dialog) => bound(
-                                AlertDialog(
-                                  title: const Text('删除事项？'),
-                                  content: Text(item.content.title),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () => Navigator.pop(dialog),
-                                      child: const Text('取消'),
-                                    ),
-                                    FilledButton(
-                                      onPressed: () => Navigator.pop(
-                                        dialog,
-                                        AgendaEditScope.all,
-                                      ),
-                                      child: const Text('删除'),
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                      if (scope != null && current(token))
-                        await change(
-                          () => service.delete(
-                            local.itemId,
-                            scope,
-                            recurrenceAt(local),
-                            agendaTime(campusDate(DateTime.now())),
-                          ),
-                        );
-                    },
-                    child: const Text('删除事项'),
-                  ),
-                ],
-                if (school?.navigation.feature != AgendaFeature.schedule &&
-                    school?.navigation.feature != AgendaFeature.exam)
-                  OutlinedButton(
-                    onPressed: () {
-                      if (!current(token)) return;
-                      Navigator.pop(sheet);
-                      unawaited(complete(entry, !entry.completed));
-                    },
-                    child: Text(entry.completed ? '重新挂起' : '标记完成'),
-                  ),
-              ],
-            ),
-          ),
-        ),
+        SafeArea(child: detailContent(entry, () => Navigator.pop(sheet))),
       ),
     );
   }
