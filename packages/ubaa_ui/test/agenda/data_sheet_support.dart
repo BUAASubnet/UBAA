@@ -7,6 +7,6 @@ Future<void> openAgendaDataSheet(WidgetTester tester) async {
 }
 
 Future<void> closeAgendaDataSheet(WidgetTester tester) async {
-  Navigator.of(tester.element(find.text('数据与同步'))).pop();
+  await tester.tap(find.byTooltip('关闭'));
   await tester.pumpAndSettle();
 }

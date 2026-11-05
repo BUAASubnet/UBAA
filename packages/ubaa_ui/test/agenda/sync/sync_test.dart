@@ -76,13 +76,13 @@ void main() {
     expect(backend.calls, isEmpty);
     await openAgendaDataSheet(tester);
     expect(find.text('日程仅保存在本机'), findsOneWidget);
-    await tester.tap(find.widgetWithText(TextButton, '启用云端同步'));
+    await tester.tap(find.widgetWithText(FilledButton, '启用云端同步'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(TextButton, '取消'));
     await tester.pumpAndSettle();
     expect(service.syncEnabled, isFalse);
     expect(backend.calls, isEmpty);
-    await tester.tap(find.widgetWithText(TextButton, '启用云端同步'));
+    await tester.tap(find.widgetWithText(FilledButton, '启用云端同步'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(FilledButton, '确认启用'));
     await tester.pumpAndSettle();
@@ -116,7 +116,7 @@ void main() {
     expect(backend.calls, [AgendaSyncAction.pull]);
     await openAgendaDataSheet(tester);
     expect(find.text('上次云端操作结果待核对，2 条修改待同步'), findsOneWidget);
-    await tester.tap(find.widgetWithText(TextButton, '核对云端'));
+    await tester.tap(find.widgetWithText(FilledButton, '核对云端'));
     await tester.pumpAndSettle();
     expect(backend.calls, [AgendaSyncAction.pull, AgendaSyncAction.pull]);
     await tester.pumpAndSettle();
@@ -130,12 +130,12 @@ void main() {
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
     await openAgendaDataSheet(tester);
-    await tester.tap(find.widgetWithText(TextButton, '创建云端日程'));
+    await tester.tap(find.widgetWithText(FilledButton, '创建云端日程'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(TextButton, '取消'));
     await tester.pumpAndSettle();
     expect(backend.calls, [AgendaSyncAction.pull]);
-    await tester.tap(find.widgetWithText(TextButton, '创建云端日程'));
+    await tester.tap(find.widgetWithText(FilledButton, '创建云端日程'));
     await tester.pumpAndSettle();
     backend.result = done;
     await tester.tap(find.widgetWithText(FilledButton, '确认创建'));
@@ -162,7 +162,7 @@ void main() {
     expect(find.text('云端同步暂不可用，3 条修改保存在本机'), findsOneWidget);
     expect(
       tester
-          .widget<TextButton>(find.widgetWithText(TextButton, '同步'))
+          .widget<ButtonStyleButton>(find.widgetWithText(FilledButton, '同步'))
           .onPressed,
       isNull,
     );

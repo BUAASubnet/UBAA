@@ -84,6 +84,9 @@ class AgendaViewState extends State<AgendaView> {
   final searchField = TextEditingController();
   int revision = 0;
   final generation = ValueNotifier<int>(0);
+
+  /// 每次日程页重建后递增，供打开中的底部面板同步刷新。
+  final sheetTick = ValueNotifier<int>(0);
   StreamSubscription<AgendaSyncState>? _syncSubscription;
   Object? _lastSyncKey;
   late Object _scope;
@@ -209,6 +212,7 @@ class AgendaViewState extends State<AgendaView> {
   @override
   void dispose() {
     generation.value++;
+    sheetTick.dispose();
     unawaited(_syncSubscription?.cancel());
     searchField.dispose();
     super.dispose();
@@ -449,10 +453,18 @@ class AgendaViewState extends State<AgendaView> {
     }
   }
 
+  bool schoolRefreshing = false;
+
   Future<void> refreshSchool() async {
     if (widget.onRefreshSchool case final action?) {
-      await action();
-      if (mounted) await load();
+      if (schoolRefreshing) return;
+      setState(() => schoolRefreshing = true);
+      try {
+        await action();
+        if (mounted) await load();
+      } finally {
+        if (mounted) setState(() => schoolRefreshing = false);
+      }
     } else {
       importSchedule();
     }
@@ -520,7 +532,14 @@ class AgendaViewState extends State<AgendaView> {
   ];
 
   @override
-  Widget build(BuildContext context) => Focus(
+  Widget build(BuildContext context) {
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) sheetTick.value++;
+    });
+    return _buildView(context);
+  }
+
+  Widget _buildView(BuildContext context) => Focus(
     autofocus: widget.visible,
     canRequestFocus: widget.visible,
     skipTraversal: true,

@@ -6,67 +6,140 @@ extension _AgendaDataSheet on AgendaViewState {
     isScrollControlled: true,
     showDragHandle: true,
     builder: (context) => bound(
-      SafeArea(
-        top: false,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('数据与同步', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 12),
-              if (available && service.supportsSync) _syncStatusCard(),
-              if (result case final data?) ...[
-                AgendaCacheStatus(
-                  sources: data.sources,
-                  route: widget.route,
-                  now: agendaTime(now),
+      // 跟随日程页重建，刷新完成后面板内容同步更新。
+      ValueListenableBuilder<int>(
+        valueListenable: sheetTick,
+        builder: (context, _, _) {
+          final theme = Theme.of(context);
+          final colors = theme.colorScheme;
+          Widget section(String text) => Padding(
+            padding: const EdgeInsets.fromLTRB(4, 8, 4, 8),
+            child: Text(
+              text,
+              style: theme.textTheme.labelMedium?.copyWith(
+                color: colors.onSurfaceVariant,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          );
+          Widget note(IconData icon, String text) => Padding(
+            padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Icon(icon, size: 16, color: colors.onSurfaceVariant),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: Text(
+                    text,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
                 ),
-                if (data.schoolCacheFailure != null ||
-                    data.sources.any((s) => s.missingScopes.isNotEmpty))
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 8),
-                    child: Text('部分来源待补全，已有事项仍可查看。'),
-                  ),
-                if (data.sources.any((s) => s.unprojectableCount > 0))
-                  const Padding(
-                    padding: EdgeInsets.only(bottom: 8),
-                    child: Text('部分学校事项缺少必要字段，未加入时间线。'),
-                  ),
               ],
-              const SizedBox(height: 8),
-              Row(
+            ),
+          );
+          final data = result;
+          return SafeArea(
+            top: false,
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.fromLTRB(16, 0, 16, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Expanded(
-                    child: FilledButton.tonalIcon(
-                      onPressed: available
-                          ? () {
-                              Navigator.pop(context);
-                              unawaited(refreshSchool());
-                            }
-                          : null,
-                      icon: const Icon(Icons.refresh, size: 18),
-                      label: const Text('刷新学校日程'),
-                    ),
+                  Row(
+                    children: [
+                      const SizedBox(width: 4),
+                      Expanded(
+                        child: Text(
+                          '数据与同步',
+                          style: theme.textTheme.titleLarge?.copyWith(
+                            fontWeight: FontWeight.w700,
+                          ),
+                        ),
+                      ),
+                      IconButton(
+                        tooltip: '关闭',
+                        onPressed: () => Navigator.pop(context),
+                        icon: const Icon(Icons.close),
+                      ),
+                    ],
                   ),
-                  const SizedBox(width: 8),
-                  Expanded(
-                    child: OutlinedButton(
-                      onPressed: available
-                          ? () {
-                              Navigator.pop(context);
-                              importSchedule();
-                            }
-                          : null,
-                      child: const Text('导入整学期课表'),
+                  if (available && service.supportsSync) ...[
+                    section('云端同步'),
+                    _syncStatusCard(),
+                  ],
+                  if (data != null) ...[
+                    const SizedBox(height: 4),
+                    AgendaCacheStatus(
+                      sources: data.sources,
+                      route: widget.route,
+                      now: agendaTime(now),
                     ),
+                    if (data.schoolCacheFailure != null ||
+                        data.sources.any(
+                          (s) =>
+                              s.feature != AgendaFeature.schedule &&
+                              s.missingScopes.isNotEmpty,
+                        ))
+                      note(Icons.info_outline, '部分来源待补全，已有事项仍可查看。'),
+                    if (data.sources.any(
+                      (s) =>
+                          s.feature == AgendaFeature.schedule &&
+                          (s.missingScopes.isNotEmpty ||
+                              s.semesterImported != true),
+                    ))
+                      note(
+                        Icons.calendar_month_outlined,
+                        '目前只缓存了已查看周的课表，导入整学期课表后可查看全部周。',
+                      ),
+                    if (data.sources.any((s) => s.unprojectableCount > 0))
+                      note(Icons.info_outline, '部分学校事项缺少必要字段，未加入时间线。'),
+                  ],
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: FilledButton.icon(
+                          onPressed: available && !schoolRefreshing
+                              ? () => unawaited(refreshSchool())
+                              : null,
+                          icon: schoolRefreshing
+                              ? const SizedBox.square(
+                                  dimension: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Icon(Icons.refresh, size: 18),
+                          label: Text(schoolRefreshing ? '正在刷新' : '刷新学校日程'),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: OutlinedButton.icon(
+                          onPressed: available
+                              ? () {
+                                  Navigator.pop(context);
+                                  importSchedule();
+                                }
+                              : null,
+                          icon: const Icon(
+                            Icons.calendar_month_outlined,
+                            size: 18,
+                          ),
+                          label: const Text('导入整学期课表'),
+                        ),
+                      ),
+                    ],
                   ),
                 ],
               ),
-            ],
-          ),
-        ),
+            ),
+          );
+        },
       ),
     ),
   );
@@ -78,10 +151,15 @@ extension _AgendaDataSheet on AgendaViewState {
     final syncOn = available && service.supportsSync && service.syncEnabled;
     final noSchool =
         data != null && data.sources.every((s) => s.observations.isEmpty);
+    // 课表其他周未缓存属于正常情况，提示导入整学期而不是警告。
     final partial =
         data != null &&
         (data.schoolCacheFailure != null ||
-            data.sources.any((s) => s.missingScopes.isNotEmpty));
+            data.sources.any(
+              (s) =>
+                  s.feature != AgendaFeature.schedule &&
+                  s.missingScopes.isNotEmpty,
+            ));
     final semester =
         data != null &&
         data.sources.any(

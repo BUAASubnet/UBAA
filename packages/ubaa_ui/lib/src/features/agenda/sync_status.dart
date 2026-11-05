@@ -100,53 +100,119 @@ class AgendaSyncStatusCard extends StatelessWidget {
               null => service.syncEnabled ? '日程云端同步' : '日程仅保存在本机',
             };
       final reconcile = status == AgendaSyncStatus.outcomeUnknown;
-      return Padding(
-        padding: const EdgeInsets.only(bottom: 12),
-        child: Card(
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-            child: Wrap(
-              spacing: 12,
-              runSpacing: 8,
-              crossAxisAlignment: WrapCrossAlignment.center,
-              children: [
-                Icon(
-                  state.running
-                      ? Icons.sync
-                      : status == AgendaSyncStatus.upToDate
-                      ? Icons.cloud_done_outlined
-                      : Icons.cloud_queue,
-                ),
-                Text(text),
-                TextButton(
-                  onPressed:
-                      state.running ||
-                          status == AgendaSyncStatus.unverified &&
-                              !refreshBeforeCreate
-                      ? null
-                      : () => _run(
-                          context,
-                          create
-                              ? AgendaSyncAction.createConfirmed
-                              : reconcile || refreshBeforeCreate
-                              ? AgendaSyncAction.pull
-                              : AgendaSyncAction.push,
-                        ),
-                  child: Text(
-                    refreshBeforeCreate
-                        ? '重新拉取'
-                        : enable
-                        ? '启用云端同步'
-                        : create
-                        ? '创建云端日程'
-                        : reconcile
-                        ? '核对云端'
-                        : '同步',
-                  ),
-                ),
-              ],
-            ),
+      final theme = Theme.of(context);
+      final colors = theme.colorScheme;
+      final ok =
+          status == AgendaSyncStatus.upToDate &&
+          service.syncEnabled &&
+          state.error == null;
+      final warn =
+          state.error != null ||
+          status == AgendaSyncStatus.failed ||
+          status == AgendaSyncStatus.conflict ||
+          status == AgendaSyncStatus.outcomeUnknown ||
+          status == AgendaSyncStatus.unverified;
+      final Color tone = ok
+          ? const Color(0xFF2E7D4F)
+          : warn
+          ? colors.tertiary
+          : service.syncEnabled
+          ? colors.primary
+          : colors.onSurfaceVariant;
+      final IconData icon = state.running
+          ? Icons.sync
+          : ok
+          ? Icons.cloud_done_rounded
+          : warn
+          ? Icons.cloud_sync_outlined
+          : service.syncEnabled
+          ? Icons.cloud_upload_outlined
+          : Icons.cloud_off_outlined;
+      final hint = state.running
+          ? '正在与个人云盘交换自建事项'
+          : ok
+          ? '自建事项与本机标记已保存到个人云盘'
+          : enable
+          ? '在个人云盘保存自建事项，换设备也能看到'
+          : warn
+          ? '修改已保存在本机，可稍后重试'
+          : '修改后会自动同步，也可立即同步';
+      final label = refreshBeforeCreate
+          ? '重新拉取'
+          : enable
+          ? '启用云端同步'
+          : create
+          ? '创建云端日程'
+          : reconcile
+          ? '核对云端'
+          : '同步';
+      final onPressed =
+          state.running ||
+              status == AgendaSyncStatus.unverified && !refreshBeforeCreate
+          ? null
+          : () => _run(
+              context,
+              create
+                  ? AgendaSyncAction.createConfirmed
+                  : reconcile || refreshBeforeCreate
+                  ? AgendaSyncAction.pull
+                  : AgendaSyncAction.push,
+            );
+      return Container(
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.fromLTRB(14, 12, 10, 12),
+        decoration: BoxDecoration(
+          color: Color.alphaBlend(
+            tone.withValues(alpha: .08),
+            colors.surfaceContainerLow,
           ),
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Row(
+          children: [
+            Container(
+              width: 40,
+              height: 40,
+              decoration: BoxDecoration(
+                color: tone.withValues(alpha: .15),
+                shape: BoxShape.circle,
+              ),
+              child: state.running
+                  ? Padding(
+                      padding: const EdgeInsets.all(10),
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2.4,
+                        color: tone,
+                      ),
+                    )
+                  : Icon(icon, color: tone, size: 22),
+            ),
+            const SizedBox(width: 12),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    text,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    hint,
+                    style: theme.textTheme.bodySmall?.copyWith(
+                      color: colors.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(width: 8),
+            enable || create
+                ? FilledButton(onPressed: onPressed, child: Text(label))
+                : FilledButton.tonal(onPressed: onPressed, child: Text(label)),
+          ],
         ),
       );
     },

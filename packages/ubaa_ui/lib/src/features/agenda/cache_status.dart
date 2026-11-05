@@ -96,46 +96,157 @@ class AgendaCacheStatus extends StatelessWidget {
     ].join(' · ');
   }
 
+  IconData icon(AgendaFeature feature) => switch (feature) {
+    AgendaFeature.schedule => Icons.menu_book_outlined,
+    AgendaFeature.exam => Icons.edit_note_outlined,
+    AgendaFeature.bykc => Icons.theater_comedy_outlined,
+    AgendaFeature.spoc => Icons.assignment_outlined,
+    AgendaFeature.judge => Icons.code_rounded,
+    AgendaFeature.signin => Icons.how_to_reg_outlined,
+    AgendaFeature.cgyy => Icons.meeting_room_outlined,
+    AgendaFeature.ygdk => Icons.directions_run_rounded,
+  };
+
   @override
   Widget build(BuildContext context) {
     final observations = sources.expand((s) => s.observations).toList();
     if (observations.isEmpty) return const SizedBox.shrink();
     final summary = friendly(observations);
-    return ExpansionTile(
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    const good = Color(0xFF2E7D4F);
+    final amber = colors.tertiary;
+    return Container(
       key: const ValueKey('agenda-cache-status'),
-      tilePadding: EdgeInsets.zero,
-      title: Text('学校数据（${route == ConnectionMode.direct ? '直连' : 'WebVPN'}）'),
-      subtitle: Text(summary),
-      children: [
-        for (final source in sources)
-          if (source.observations.isNotEmpty)
-            ExpansionTile(
-              key: ValueKey('agenda-cache-${source.feature.name}'),
-              tilePadding: EdgeInsets.zero,
-              title: Text(
-                [
-                  name(source.feature),
-                  status(source.observations),
-                ].where((s) => s.isNotEmpty).join(' · '),
-              ),
-              subtitle: Text(
-                '保存 ${range(source.observations.map((o) => o.fetchedAt))}\n核验 ${range(source.observations.map((o) => o.lastVerifiedAt))}',
-              ),
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerLow,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      clipBehavior: Clip.antiAlias,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(16, 14, 16, 6),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                for (final observation in source.observations)
-                  ListTile(
-                    title: Text(
-                      scope(observation.scope).isEmpty
-                          ? '当前范围'
-                          : scope(observation.scope),
-                    ),
-                    subtitle: Text(
-                      '保存 ${time(observation.fetchedAt)}\n核验 ${time(observation.lastVerifiedAt)}\n尝试 ${time(observation.lastAttemptAt)} · ${status([observation]).isEmpty ? '完整结果' : status([observation])}',
-                    ),
+                Text(
+                  '学校数据（${route == ConnectionMode.direct ? '直连' : 'WebVPN'}）',
+                  style: theme.textTheme.titleSmall?.copyWith(
+                    fontWeight: FontWeight.w600,
                   ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  summary,
+                  style: theme.textTheme.bodySmall?.copyWith(
+                    color: colors.onSurfaceVariant,
+                  ),
+                ),
               ],
             ),
-      ],
+          ),
+          for (final source in sources)
+            if (source.observations.isNotEmpty)
+              Builder(
+                builder: (context) {
+                  final issue = source.observations.any(
+                    (o) =>
+                        !o.lastAttemptSucceeded ||
+                        o.completeness == AgendaCompleteness.partial,
+                  );
+                  final latest = source.observations
+                      .map((o) => o.lastVerifiedAt)
+                      .reduce((a, b) => a > b ? a : b);
+                  final tone = issue ? amber : good;
+                  return Theme(
+                    data: theme.copyWith(dividerColor: Colors.transparent),
+                    child: ExpansionTile(
+                      key: ValueKey('agenda-cache-${source.feature.name}'),
+                      tilePadding: const EdgeInsets.symmetric(horizontal: 16),
+                      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                      dense: true,
+                      leading: Icon(
+                        icon(source.feature),
+                        size: 20,
+                        color: colors.onSurfaceVariant,
+                      ),
+                      title: Text(
+                        name(source.feature),
+                        style: theme.textTheme.bodyMedium,
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Container(
+                            width: 7,
+                            height: 7,
+                            decoration: BoxDecoration(
+                              color: tone,
+                              shape: BoxShape.circle,
+                            ),
+                          ),
+                          const SizedBox(width: 6),
+                          Text(
+                            issue ? '待补全' : '${ago(latest)}更新',
+                            style: theme.textTheme.labelSmall?.copyWith(
+                              color: issue ? amber : colors.onSurfaceVariant,
+                            ),
+                          ),
+                          const SizedBox(width: 2),
+                          Icon(
+                            Icons.expand_more,
+                            size: 18,
+                            color: colors.outline,
+                          ),
+                        ],
+                      ),
+                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Text(
+                          [
+                            name(source.feature),
+                            status(source.observations),
+                          ].where((s) => s.isNotEmpty).join(' · '),
+                          style: theme.textTheme.labelMedium,
+                        ),
+                        Text(
+                          '保存 ${range(source.observations.map((o) => o.fetchedAt))}\n核验 ${range(source.observations.map((o) => o.lastVerifiedAt))}',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: colors.onSurfaceVariant,
+                          ),
+                        ),
+                        for (final observation in source.observations)
+                          Padding(
+                            padding: const EdgeInsets.only(top: 6),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  scope(observation.scope).isEmpty
+                                      ? '当前范围'
+                                      : scope(observation.scope),
+                                  style: theme.textTheme.labelMedium,
+                                ),
+                                Text(
+                                  '保存 ${time(observation.fetchedAt)}\n核验 ${time(observation.lastVerifiedAt)}\n尝试 ${time(observation.lastAttemptAt)} · ${status([observation]).isEmpty ? '完整结果' : status([observation])}',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                      ],
+                    ),
+                  );
+                },
+              ),
+          const SizedBox(height: 6),
+        ],
+      ),
     );
   }
 }

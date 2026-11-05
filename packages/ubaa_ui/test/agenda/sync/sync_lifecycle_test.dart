@@ -113,7 +113,7 @@ void main() {
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
     await openAgendaDataSheet(tester);
-    await tester.tap(find.widgetWithText(TextButton, '创建云端日程'));
+    await tester.tap(find.widgetWithText(FilledButton, '创建云端日程'));
     await tester.pumpAndSettle();
     expect(find.text('确认创建'), findsNothing);
     expect(find.text('客户端忙，请稍后再试'), findsOneWidget);
@@ -134,11 +134,11 @@ void main() {
       throwsStateError,
     );
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(TextButton, '创建云端日程'), findsNothing);
+    expect(find.widgetWithText(FilledButton, '创建云端日程'), findsNothing);
     backend.pullError = null;
-    await tester.tap(find.widgetWithText(TextButton, '重新拉取'));
+    await tester.tap(find.widgetWithText(FilledButton, '重新拉取'));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(TextButton, '创建云端日程'), findsOneWidget);
+    expect(find.widgetWithText(FilledButton, '创建云端日程'), findsOneWidget);
     expect(
       backend.calls.map((call) => call.$2),
       List.filled(3, AgendaSyncAction.pull),
@@ -167,7 +167,7 @@ void main() {
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
     await openAgendaDataSheet(tester);
-    await tester.tap(find.widgetWithText(TextButton, '同步'));
+    await tester.tap(find.widgetWithText(FilledButton, '同步'));
     await tester.pumpAndSettle();
     await closeAgendaDataSheet(tester);
     expect(find.text('上传失败前已合并的事项').hitTestable(), findsOneWidget);
@@ -184,7 +184,7 @@ void main() {
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
     await openAgendaDataSheet(tester);
-    await tester.tap(find.widgetWithText(TextButton, '创建云端日程'));
+    await tester.tap(find.widgetWithText(FilledButton, '创建云端日程'));
     await tester.pumpAndSettle();
     expect(find.text('确认创建'), findsOneWidget);
     await service.close();
@@ -208,7 +208,7 @@ void main() {
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
     await openAgendaDataSheet(tester);
-    await tester.tap(find.widgetWithText(TextButton, '创建云端日程'));
+    await tester.tap(find.widgetWithText(FilledButton, '创建云端日程'));
     await tester.pumpAndSettle();
     expect(find.text('确认创建'), findsOneWidget);
     await tester.pumpWidget(app(service, route: ConnectionMode.webvpn));

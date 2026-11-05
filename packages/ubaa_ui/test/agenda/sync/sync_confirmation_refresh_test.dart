@@ -3,6 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_ui/src/features/agenda/sync_status.dart';
 
 import 'sync_lifecycle_test.dart' show Backend, app, size;
 import '../data_sheet_support.dart';
@@ -60,9 +61,9 @@ void main() {
     await tester.pumpWidget(app(service, route: ConnectionMode.webvpn));
     await tester.pumpAndSettle();
     await openAgendaDataSheet(tester);
-    await tester.tap(find.widgetWithText(TextButton, '启用云端同步'));
+    await tester.tap(find.widgetWithText(FilledButton, '启用云端同步'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(TextButton, '重新拉取'));
+    await tester.tap(find.widgetWithText(FilledButton, '重新拉取'));
     await tester.pumpAndSettle();
     expect(service.syncState.report?.status, AgendaSyncStatus.unverified);
     expect(service.syncEnabled, isFalse);
@@ -74,12 +75,18 @@ void main() {
     await tester.pumpAndSettle();
     expect(backend.calls.map((call) => call.$2), [AgendaSyncAction.pull]);
     await openAgendaDataSheet(tester);
-    final refresh = find.widgetWithText(TextButton, '重新拉取');
+    final refresh = find.widgetWithText(FilledButton, '重新拉取');
     expect(refresh, findsOneWidget);
-    expect(tester.widget<TextButton>(refresh).onPressed, isNotNull);
+    expect(tester.widget<ButtonStyleButton>(refresh).onPressed, isNotNull);
     await tester.tap(refresh);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
     expect(backend.confirmations, 1);
+    expect(backend.calls.map((call) => call.$2), [
+      AgendaSyncAction.pull,
+      AgendaSyncAction.pull,
+    ]);
+    expectRefreshRunning(tester, actionLabel: '重新拉取');
     expect(find.byType(AlertDialog), findsNothing);
     backend.refresh.complete(
       const AgendaSyncReport(
@@ -90,7 +97,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(service.syncEnabled, isFalse);
-    await tester.tap(find.widgetWithText(TextButton, '启用云端同步'));
+    await tester.tap(find.widgetWithText(FilledButton, '启用云端同步'));
     await tester.pumpAndSettle();
     expect(backend.confirmations, 2);
     await tester.tap(find.widgetWithText(FilledButton, '确认启用'));
@@ -115,25 +122,22 @@ void main() {
     expect(backend.calls, isEmpty);
 
     await openAgendaDataSheet(tester);
-    await tester.tap(find.widgetWithText(TextButton, '启用云端同步'));
+    await tester.tap(find.widgetWithText(FilledButton, '启用云端同步'));
     await tester.pumpAndSettle();
     expect(backend.confirmations, 1);
     expect(backend.calls, isEmpty);
     expect(find.byType(AlertDialog), findsNothing);
 
-    final refresh = find.widgetWithText(TextButton, '重新拉取');
+    final refresh = find.widgetWithText(FilledButton, '重新拉取');
     expect(refresh, findsOneWidget);
     await tester.tap(refresh);
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
     expect(backend.calls.map((call) => call.$2), [AgendaSyncAction.pull]);
     expect(service.syncEnabled, isFalse);
     expect(find.byType(AlertDialog), findsNothing);
-    expect(
-      tester
-          .widget<TextButton>(find.widgetWithText(TextButton, '启用云端同步'))
-          .onPressed,
-      isNull,
-    );
+    expect(backend.confirmations, 1);
+    expectRefreshRunning(tester, actionLabel: '启用云端同步');
 
     backend.refresh.complete(
       const AgendaSyncReport(
@@ -144,7 +148,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(service.syncEnabled, isFalse);
-    await tester.tap(find.widgetWithText(TextButton, '启用云端同步'));
+    await tester.tap(find.widgetWithText(FilledButton, '启用云端同步'));
     await tester.pumpAndSettle();
     expect(backend.confirmations, 2);
     expect(find.byType(AlertDialog), findsOneWidget);
@@ -160,4 +164,23 @@ void main() {
     await tester.pumpWidget(const SizedBox());
     await service.dispose();
   });
+}
+
+void expectRefreshRunning(WidgetTester tester, {required String actionLabel}) {
+  final card = find.byType(AgendaSyncStatusCard);
+  Finder within(Finder matching) =>
+      find.descendant(of: card, matching: matching);
+  expect(within(find.text('正在同步日程')).hitTestable(), findsOneWidget);
+  expect(within(find.text('正在与个人云盘交换自建事项')), findsOneWidget);
+  final progress = within(find.byType(CircularProgressIndicator));
+  expect(progress.hitTestable(), findsOneWidget);
+  expect(tester.widget<CircularProgressIndicator>(progress).value, isNull);
+  expect(
+    tester
+        .widget<FilledButton>(
+          within(find.widgetWithText(FilledButton, actionLabel)),
+        )
+        .onPressed,
+    isNull,
+  );
 }
