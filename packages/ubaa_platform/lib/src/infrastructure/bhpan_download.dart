@@ -11,7 +11,7 @@ abstract interface class BhpanFileSaver {
   );
 }
 
-/// 桌面直接选择文件位置，移动端由原生通道从 Core 暂存文件流式交付。
+/// 桌面直接选择文件位置，移动端通过系统授权交付 Core 暂存文件。
 final class SystemBhpanFileSaver implements BhpanFileSaver {
   const SystemBhpanFileSaver({
     this.operatingSystem,
@@ -56,6 +56,7 @@ final class SystemBhpanFileSaver implements BhpanFileSaver {
             '${folder.path}/download',
             folder,
             selection,
+            os == 'ohos',
           );
         } on Object {
           await channel.invokeMethod<void>('discard', {'selection': selection});
@@ -92,28 +93,35 @@ final class _DesktopDestination implements BhpanDownloadDestination {
 }
 
 final class _NativeDestination implements BhpanDownloadDestination {
-  _NativeDestination(this.path, this.folder, this.selection);
+  _NativeDestination(this.path, this.folder, this.selection, this.ohos);
   @override
   final String path;
   final Directory folder;
   final String selection;
+  final bool ohos;
+  static const _sessionChanged = UiError(
+    code: UbaaErrorCode.operationConflict,
+    title: '会话已变化',
+    message: '账号或路线已变化，文件未交付',
+  );
   bool consumed = false;
   @override
   bool get overwrite => false;
   @override
   Future<void> deliver(bool Function() current) async {
-    if (!current())
-      throw const UiError(
-        code: UbaaErrorCode.operationConflict,
-        title: '会话已变化',
-        message: '账号或路线已变化，文件未交付',
-      );
+    if (!current()) throw _sessionChanged;
     consumed = true;
     try {
-      await SystemBhpanFileSaver.channel.invokeMethod<void>('writeFile', {
-        'selection': selection,
-        'path': path,
-      });
+      if (ohos) {
+        await _deliverOhos(current);
+      } else {
+        await SystemBhpanFileSaver.channel.invokeMethod<void>('writeFile', {
+          'selection': selection,
+          'path': path,
+        });
+      }
+    } on UiError {
+      rethrow;
     } on PlatformException catch (error) {
       throw UiError(
         code: error.code == 'unsupported_destination'
@@ -133,6 +141,35 @@ final class _NativeDestination implements BhpanDownloadDestination {
         title: '文件未保存',
         message: '文件未完成保存，请检查所选位置与权限',
       );
+    }
+  }
+
+  Future<void> _deliverOhos(bool Function() current) async {
+    final target = await SystemBhpanFileSaver.channel.invokeMethod<String>(
+      'resolveFile',
+      {'selection': selection},
+    );
+    if (target == null)
+      throw PlatformException(code: 'unsupported_destination');
+    if (!current()) throw _sessionChanged;
+    final output = File(target);
+    try {
+      await output.create(exclusive: true);
+    } on PathExistsException {
+      throw PlatformException(code: 'exists');
+    }
+    try {
+      if (!current()) throw _sessionChanged;
+      await File(path).copy(target);
+    } on Object {
+      try {
+        await output.delete();
+      } on PathNotFoundException {
+        // 系统复制失败后可能已删除目标。
+      } on FileSystemException {
+        throw PlatformException(code: 'cleanup_failed');
+      }
+      rethrow;
     }
   }
 

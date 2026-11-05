@@ -38,7 +38,7 @@ export default class AgendaFilePlugin implements FlutterPlugin, MethodCallHandle
       this.select(args.get('name') as string, args.get('kind') === 'binary', result);
       return;
     }
-    if (call.method !== 'write' && call.method !== 'writeFile' && call.method !== 'discard') {
+    if (call.method !== 'write' && call.method !== 'resolveFile' && call.method !== 'discard') {
       result.notImplemented(); return;
     }
     if (this.target === null || args.get('selection') !== this.selection.toString()) {
@@ -46,8 +46,8 @@ export default class AgendaFilePlugin implements FlutterPlugin, MethodCallHandle
     }
     const uri = this.target;
     this.target = null;
-    if (call.method === 'writeFile') {
-      this.writeFile(args.get('path') as string, uri, result);
+    if (call.method === 'resolveFile') {
+      this.resolveFile(uri, result);
       return;
     }
     try {
@@ -88,33 +88,15 @@ export default class AgendaFilePlugin implements FlutterPlugin, MethodCallHandle
       this.selecting = false;
     }
   }
-  private async writeFile(path: string, uri: string, result: MethodResult): Promise<void> {
-    let destination: fileIo.File | null = null;
-    let targetPath = '';
-    let created = false;
+  private resolveFile(uri: string, result: MethodResult): void {
     try {
       const selected = new fileUri.FileUri(uri);
       if (selected.scheme !== 'file' || selected.authority !== 'docs' || selected.isRemoteUri()) {
         result.error('unsupported_destination', '请选择本机文件保存位置', null); return;
       }
-      targetPath = selected.path;
-      if (await fileIo.access(targetPath)) {
-        result.error('exists', '所选位置已有文件，请选择其他名称', null); return;
-      }
-      destination = await fileIo.open(uri, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
-      created = true;
-      await fileIo.copyFile(path, destination.fd);
-      const completed = destination;
-      destination = null;
-      fileIo.closeSync(completed);
-      result.success(null);
+      result.success(selected.path);
     } catch (_) {
-      if (destination !== null) {try {fileIo.closeSync(destination);} catch (_) {}}
-      if (created) {
-        try {fileIo.unlinkSync(targetPath);}
-        catch (_) {result.error('cleanup_failed', '保存失败，部分文件未能清理，请在所选位置删除', null); return;}
-      }
-      result.error('write_failed', '文件未保存', null);
+      result.error('unsupported_destination', '请选择本机文件保存位置', null);
     }
   }
   private async select(name: string, binary: boolean, result: MethodResult): Promise<void> {

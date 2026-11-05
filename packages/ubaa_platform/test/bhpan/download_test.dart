@@ -4,6 +4,24 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
+class _PartialCopy implements File {
+  _PartialCopy(this.target);
+  final File target;
+  bool wrote = false;
+
+  @override
+  Future<File> copy(String newPath) async {
+    expect(newPath, target.path);
+    expect(await target.exists(), true);
+    await target.writeAsString('syn');
+    wrote = true;
+    throw const FileSystemException('合成复制中断');
+  }
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
 void main() {
   TestWidgetsFlutterBinding.ensureInitialized();
   const channel = MethodChannel('cn.edu.buaa.ubaa/agenda-file');
@@ -121,7 +139,7 @@ void main() {
     ]) {
       messenger.setMockMethodCallHandler(channel, (call) async {
         if (call.method == 'select') return 'selection';
-        if (call.method == 'writeFile') throw PlatformException(code: code);
+        if (call.method == 'resolveFile') throw PlatformException(code: code);
         return null;
       });
       final folder = await root.createTemp('body_');
@@ -146,4 +164,61 @@ void main() {
       expect(await folder.exists(), false);
     }
   });
+  for (final mode in ['success', 'collision', 'partial', 'superseded']) {
+    test('OHOS 在授权路径独占创建和交付：$mode', () async {
+      final target = File('${root.path}/报告.txt');
+      final folder = await root.createTemp('body_');
+      var current = true;
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'select') return 'selection';
+        if (call.method != 'resolveFile') {
+          fail('OHOS 下载应使用系统授权的本机路径');
+        }
+        expect(call.arguments, {'selection': 'selection'});
+        if (mode == 'collision') await target.writeAsString('existing');
+        if (mode == 'superseded') current = false;
+        return target.path;
+      });
+      final destination = (await SystemBhpanFileSaver(
+        operatingSystem: 'ohos',
+        stagingDirectory: () async => folder,
+      ).select('报告.txt', () => current))!;
+      await File(destination.path).writeAsString('synthetic body');
+      try {
+        if (mode == 'success') {
+          await destination.deliver(() => current);
+          expect(await target.readAsString(), 'synthetic body');
+        } else if (mode == 'partial') {
+          final source = _PartialCopy(target);
+          await IOOverrides.runZoned(
+            () => expectLater(
+              destination.deliver(() => current),
+              throwsA(isA<UiError>()),
+            ),
+            createFile: (path) => path == destination.path
+                ? source
+                : path == target.path
+                ? target
+                : throw StateError('意外文件路径'),
+          );
+          expect(source.wrote, true);
+          expect(await target.exists(), false);
+        } else {
+          await expectLater(
+            destination.deliver(() => current),
+            throwsA(isA<UiError>()),
+          );
+          if (mode == 'collision') {
+            expect(await target.readAsString(), 'existing');
+          } else {
+            expect(current, false);
+            expect(await target.exists(), false);
+          }
+        }
+      } finally {
+        await destination.discard();
+      }
+      expect(await folder.exists(), false);
+    });
+  }
 }

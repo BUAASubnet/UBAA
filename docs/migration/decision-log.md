@@ -563,4 +563,6 @@ Core 持有明文同步文档、按记录合并和 SQLite 事务。记录按修�
 
 OHOS 保存使用 `DocumentSaveOptions.autoCreateEmptyFile=false`，由应用在用户确认位置后创建文件。官方[保存用户文件](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/file-management/save-user-file.md)说明该 URI 同时具备临时读写、创建和删除权限。[FileUri 实现](https://github.com/openharmony/filemanagement_app_file_service/blob/master/interfaces/innerkits/native/file_uri/src/file_uri.cpp)中，本机 `docs` URI 的实际路径与 `FileUri.path` 一致，远端 URI 使用另一份映射路径。
 
-当前文件交付只创建本机 `docs` URI 指向的新目标。调用前检查文件不存在，已有目标要求另选名称，远端或其他 URI 返回不可用原因。复制失败时先关闭 FD，再清理本次创建的目标，清理失败明确提示残留。成功回调在复制和关闭完成后交付。这些操作的正式回归直接执行 ArkTS 源码，覆盖部分复制失败、完整成功、既有文件保留和清理失败；设备文件面板与外部文件提供方按平台单独验收。
+[OpenHarmony 文件打开实现](https://github.com/openharmony/filemanagement_file_api/blob/master/interfaces/kits/js/src/mod_fs/properties/open.cpp)对尚不存在的 `docs` URI 使用 DataShare，创建标志不会传给 DataShare。[ArkTS 标志转换](https://github.com/openharmony/filemanagement_file_api/blob/master/interfaces/kits/js/src/mod_fs/common_func.cpp)也没有独占创建模式。ArkTS 消费一次性选择并返回本机 `docs` 的解码路径。Dart 对该路径调用 `File.create(exclusive: true)`；[Dart 文件实现](https://github.com/dart-lang/sdk/blob/3.11.5/runtime/bin/file_linux.cc)使用 `O_CREAT | O_EXCL`。已有同名文件时保留原文件。成功创建后由 Dart 的文件接口调用系统复制，失败只清理本次创建的目标，清理失败明确提示残留。
+
+ArkTS 源码回归覆盖路径解码、一次性选择和远端 URI 拒绝。平台测试覆盖实际文件复制、同名目标保留、部分复制失败清理和选择过期。设备文件面板与外部文件提供方按平台单独验收。
