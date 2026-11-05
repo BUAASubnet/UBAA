@@ -296,6 +296,48 @@ async fn webvpn同步在发送前返回未验证能力() {
 }
 
 #[tokio::test]
+async fn webvpn首次创建返回未验证且不启用同步() {
+    let (root, store, mut client) = fixture();
+    client
+        .set_default_route_policy(RoutePolicy::WebVpn)
+        .unwrap();
+    let scratch = root.join("scratch");
+    let mut service = AgendaSyncService::new(store.clone(), scratch.clone());
+    let result = service
+        .run(&mut client, AgendaSyncAction::CreateConfirmed, now())
+        .await;
+    assert!(!store.sync_enabled().unwrap());
+    assert!(!scratch.exists());
+    assert!(
+        matches!(result, Ok(report)
+            if report.status == crate::facade::AgendaSyncStatus::Unverified
+                && report.pending_count == 0 && report.changed_count == 0),
+        "首次创建的不支持路线须返回未验证能力"
+    );
+    drop((service, store, client));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test]
+async fn 切换webvpn后旧创建确认仍然失效() {
+    let (root, store, mut client) = fixture();
+    let scope = client.agenda_sync_scope().unwrap();
+    client
+        .set_default_route_policy(RoutePolicy::WebVpn)
+        .unwrap();
+    let scratch = root.join("scratch");
+    let mut service = AgendaSyncService::new(store.clone(), scratch.clone());
+    assert!(matches!(
+        service.run_confirmed(&mut client, &scope, now()).await,
+        Err(AgendaSyncError::Local(CacheError::Superseded))
+    ));
+    assert!(!store.sync_enabled().unwrap());
+    assert!(!scratch.exists());
+    drop((service, store, client));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test]
 async fn auto校外同步返回未验证能力且只观察一次路线() {
     use std::{sync::atomic::Ordering::SeqCst, time::Duration};
     let (root, store, original) = fixture();

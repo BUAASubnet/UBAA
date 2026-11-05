@@ -134,7 +134,9 @@ impl AgendaSyncService {
         {
             return Err(crate::cache::CacheError::Superseded.into());
         }
-        if action == AgendaSyncAction::CreateConfirmed {
+        if action == AgendaSyncAction::CreateConfirmed
+            && client.default_route_policy() != RoutePolicy::WebVpn
+        {
             client.agenda_sync_scope()?;
             // 明确确认已进入当前客户端和账号作用域，网络失败也保留用户许可。
             self.store.enable_sync()?;
