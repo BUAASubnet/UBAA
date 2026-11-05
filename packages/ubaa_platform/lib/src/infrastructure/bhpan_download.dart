@@ -160,16 +160,34 @@ final class _NativeDestination implements BhpanDownloadDestination {
     }
     try {
       if (!current()) throw _sessionChanged;
-      await File(path).copy(target);
+      await _writeOhosFile(output);
     } on Object {
       try {
         await output.delete();
       } on PathNotFoundException {
-        // 系统复制失败后可能已删除目标。
+        // 目标已不存在，无需清理。
       } on FileSystemException {
         throw PlatformException(code: 'cleanup_failed');
       }
       rethrow;
+    }
+  }
+
+  Future<void> _writeOhosFile(File output) async {
+    final source = await File(path).open();
+    try {
+      final writer = await output.open(mode: FileMode.writeOnly);
+      try {
+        while (true) {
+          final chunk = await source.read(64 * 1024);
+          if (chunk.isEmpty) break;
+          await writer.writeFrom(chunk);
+        }
+      } finally {
+        await writer.close();
+      }
+    } finally {
+      await source.close();
     }
   }
 

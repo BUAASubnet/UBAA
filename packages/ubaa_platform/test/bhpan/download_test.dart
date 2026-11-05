@@ -1,21 +1,70 @@
+import 'dart:async';
 import 'dart:io';
+import 'dart:typed_data';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
-class _PartialCopy implements File {
-  _PartialCopy(this.target);
-  final File target;
-  bool wrote = false;
+class _InterruptedSource implements File {
+  _InterruptedSource(this.reader);
+  final _InterruptedReader reader;
 
   @override
-  Future<File> copy(String newPath) async {
-    expect(newPath, target.path);
-    expect(await target.exists(), true);
-    await target.writeAsString('syn');
-    wrote = true;
+  Future<RandomAccessFile> open({FileMode mode = FileMode.read}) async =>
+      reader;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _InterruptedReader implements RandomAccessFile {
+  _InterruptedReader(this.target);
+  final File target;
+  bool _first = true;
+  bool interrupted = false;
+  bool closed = false;
+
+  @override
+  Future<Uint8List> read(int count) async {
+    if (_first) {
+      _first = false;
+      return Uint8List.fromList([115, 121, 110]);
+    }
+    expect(await target.readAsString(), 'syn');
+    interrupted = true;
     throw const FileSystemException('合成复制中断');
+  }
+
+  @override
+  Future<void> close() async => closed = true;
+
+  @override
+  dynamic noSuchMethod(Invocation invocation) => super.noSuchMethod(invocation);
+}
+
+class _PausedCleanup implements File {
+  _PausedCleanup(this.target);
+  final File target;
+  final removed = Completer<void>();
+  final finish = Completer<void>();
+  late RandomAccessFile _writer;
+
+  @override
+  Future<File> create({bool recursive = false, bool exclusive = false}) =>
+      target.create(recursive: recursive, exclusive: exclusive);
+
+  @override
+  Future<RandomAccessFile> open({FileMode mode = FileMode.read}) async =>
+      _writer = await target.open(mode: mode);
+
+  @override
+  Future<FileSystemEntity> delete({bool recursive = false}) async {
+    await expectLater(_writer.position(), throwsA(isA<FileSystemException>()));
+    final deleted = await target.delete(recursive: recursive);
+    removed.complete();
+    await finish.future;
+    return deleted;
   }
 
   @override
@@ -183,13 +232,15 @@ void main() {
         operatingSystem: 'ohos',
         stagingDirectory: () async => folder,
       ).select('报告.txt', () => current))!;
-      await File(destination.path).writeAsString('synthetic body');
+      final body = List<int>.generate(128 * 1024 + 3, (index) => index % 251);
+      await File(destination.path).writeAsBytes(body);
       try {
         if (mode == 'success') {
           await destination.deliver(() => current);
-          expect(await target.readAsString(), 'synthetic body');
+          expect(await target.readAsBytes(), body);
         } else if (mode == 'partial') {
-          final source = _PartialCopy(target);
+          final reader = _InterruptedReader(target);
+          final source = _InterruptedSource(reader);
           await IOOverrides.runZoned(
             () => expectLater(
               destination.deliver(() => current),
@@ -201,7 +252,7 @@ void main() {
                 ? target
                 : throw StateError('意外文件路径'),
           );
-          expect(source.wrote, true);
+          expect(reader.interrupted && reader.closed, true);
           expect(await target.exists(), false);
         } else {
           await expectLater(
@@ -221,4 +272,50 @@ void main() {
       expect(await folder.exists(), false);
     });
   }
+
+  test('OHOS 旧保存失败返回时保留已经完成的后继同名文件', () async {
+    final target = File('${root.path}/报告.txt');
+    var selection = 0;
+    messenger.setMockMethodCallHandler(channel, (call) async {
+      if (call.method == 'select') return '${++selection}';
+      if (call.method == 'resolveFile') return target.path;
+      return null;
+    });
+    final saver = SystemBhpanFileSaver(
+      operatingSystem: 'ohos',
+      stagingDirectory: () => root.createTemp('body_'),
+    );
+    final first = (await saver.select('报告.txt', () => true))!;
+    await File(first.path).writeAsString('first document');
+    final reader = _InterruptedReader(target);
+    final cleanup = _PausedCleanup(target);
+    final failed = expectLater(
+      IOOverrides.runZoned(
+        () => first.deliver(() => true),
+        createFile: (path) => path == first.path
+            ? _InterruptedSource(reader)
+            : path == target.path
+            ? cleanup
+            : throw StateError('意外文件路径'),
+      ),
+      throwsA(isA<UiError>()),
+    );
+    try {
+      await cleanup.removed.future.timeout(const Duration(seconds: 3));
+      expect(reader.interrupted && reader.closed, true);
+      final next = (await saver.select('报告.txt', () => true))!;
+      try {
+        await File(next.path).writeAsString('second document');
+        await next.deliver(() => true);
+      } finally {
+        await next.discard();
+      }
+      expect(await target.readAsString(), 'second document');
+    } finally {
+      cleanup.finish.complete();
+      await failed;
+      await first.discard();
+    }
+    expect(await target.readAsString(), 'second document');
+  });
 }

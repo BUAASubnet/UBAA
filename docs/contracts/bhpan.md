@@ -98,7 +98,7 @@ Core 的 `UbaaClient::bhpan_*` 提供登录、文档库与个人根、目录、�
 
 `bhpan_prepare_upload` 选择普通或分片上传，超过 100 MiB 使用 20 MiB 分片。公共命令在准备阶段记录本机文件的长度和修改时间，Core 打开实际上传源时核对这份快照。文件在目录或分享查询期间变化时，普通、共享和秒传上传均拒绝继续。`bhpan_download` 实际消费当次授权并交付单文件或 ZIP。对象传输使用 64 KiB 流块，正文不跨过 Bridge。桌面保存面板确认同名处理，Core 在同目录私有暂存后交付；移动端使用系统授权交付私有暂存文件。
 
-OHOS 将用户选择的本机文档 URI 解析为授权路径，通过独占创建避免覆盖同名目标。远端 URI 返回不可用。系统复制完成并关闭文件后才报告成功；失败时清理本次创建的目标，清理失败时提示残留文件。平台依据见[OHOS 文件交付](../migration/decision-log.md#2026-11-05ohos-下载文件交付)。
+OHOS 将用户选择的本机文档 URI 解析为授权路径，通过独占创建避免覆盖同名目标。远端 URI 返回不可用。交付以 64 KiB 为上限逐块读写，关闭文件后才报告成功。失败时关闭文件，再清理一次本次创建的目标；清理失败时提示残留文件。平台依据见[OHOS 文件交付](../migration/decision-log.md#2026-11-05ohos-下载文件交付)。
 
 `bhpan_download_preparation` 只请求下载授权并返回脱敏目标摘要。`destination_verified=false` 表示尚未访问或核实对象地址，不可作为内容下载完成的收据。能力字段使用 `Available/Unverified/Unavailable` 分开表达实现与证据状态。公共命令通过同一个 Core 及 App 材料和恢复服务执行。`upload`、`upload-fast` 要求 `--confirm-write`，`download` 要求 `--output`，已有文件另需 `--overwrite`。分享链接格式在打开材料前校验；更新与取消仍使用本次历史读取中唯一匹配的完整链接。指定 `--password-stdin` 时须提供一行非空密码。进度只写 stderr，stdout 保持单份 human/JSON 结果。总期限贯穿材料锁后的各发送边界、对象流块与输出收尾，停止后不重发写入。
 
