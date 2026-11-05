@@ -1,5 +1,5 @@
 //! 压缩响应必须保持解析输入和解压后的正文上限。
-use super::{HttpRequest, HttpTransport, MAX_RESPONSE_BODY_BYTES, ReqwestTransport};
+use super::{HttpMethod, HttpRequest, HttpTransport, MAX_RESPONSE_BODY_BYTES, ReqwestTransport};
 use crate::error::ErrorCode;
 use std::io::{Read, Write};
 use std::net::TcpListener;
@@ -49,6 +49,44 @@ fn read(body: Vec<u8>) -> (crate::error::Result<super::HttpResponse>, String, St
     (result, server.join().unwrap(), url)
 }
 
+fn read_at(
+    body: Vec<u8>,
+    host: &str,
+    path: &str,
+    method: HttpMethod,
+) -> crate::error::Result<super::HttpResponse> {
+    let (local_url, server) = serve(body);
+    let local_url = url::Url::parse(&local_url).unwrap();
+    let address = local_url.socket_addrs(|| None).unwrap()[0];
+    let client = reqwest::Client::builder()
+        .no_proxy()
+        .redirect(reqwest::redirect::Policy::none())
+        .gzip(true)
+        .resolve(host, address)
+        .build()
+        .unwrap();
+    let transport = ReqwestTransport {
+        object_client: client.clone(),
+        client,
+    };
+    let mut request = HttpRequest::get(format!("http://{host}:{}{path}", address.port()));
+    request.method = method;
+    let runtime = tokio::runtime::Builder::new_current_thread()
+        .enable_all()
+        .build()
+        .unwrap();
+    let result = runtime.block_on(transport.execute(request));
+    server.join().unwrap();
+    result
+}
+
+fn code_detail(bytes: usize) -> Vec<u8> {
+    let mut body = b"<html><body><pre>".to_vec();
+    body.resize(bytes - b"</pre></body></html>".len(), b'x');
+    body.extend_from_slice(b"</pre></body></html>");
+    body
+}
+
 #[test]
 fn gzip正文解压后保留地址状态及多值会话头() {
     let body = "<html>合成作业详情与成绩</html>".as_bytes();
@@ -75,6 +113,104 @@ fn gzip压缩体很小时仍拒绝解压后超限的正文() {
     let error = result.expect_err("压缩不能绕过正文上限");
     assert_eq!(error.code, ErrorCode::UpstreamChanged);
     assert_eq!(error.message, "上游响应体超过允许大小");
+}
+
+#[test]
+fn 希冀详情允许超过通用上限的大段代码正文() {
+    let body = code_detail(10_875_793);
+    assert!(body.len() > MAX_RESPONSE_BODY_BYTES);
+    let response = read_at(
+        gzip(&body),
+        "judge.buaa.edu.cn",
+        "/assignment/index.jsp?assignID=101",
+        HttpMethod::Get,
+    )
+    .expect("受支持的作业详情必须完整交付");
+    assert!(response.body == body);
+}
+
+#[test]
+fn 希冀详情仍拒绝解压后超过独立预算的正文() {
+    let error = read_at(
+        gzip(&code_detail(16 * 1024 * 1024 + 1)),
+        "judge.buaa.edu.cn",
+        "/assignment/index.jsp?assignID=101",
+        HttpMethod::Get,
+    )
+    .expect_err("独立详情预算仍须在解压过程中执行");
+    assert_eq!(error.code, ErrorCode::UpstreamChanged);
+    assert_eq!(error.message, "上游响应体超过允许大小");
+}
+
+#[test]
+fn 普通响应和希冀索引及非读取请求保留通用正文上限() {
+    let body = gzip(&code_detail(MAX_RESPONSE_BODY_BYTES + 1));
+    for (host, path, method) in [
+        ("uc.buaa.edu.cn", "/api/uc/status", HttpMethod::Get),
+        (
+            "judge.buaa.edu.cn",
+            "/assignment/index.jsp",
+            HttpMethod::Get,
+        ),
+        (
+            "judge.buaa.edu.cn",
+            "/assignment/index.jsp?assignID=101",
+            HttpMethod::Post,
+        ),
+    ] {
+        let error =
+            read_at(body.clone(), host, path, method).expect_err("其余操作继续使用通用正文预算");
+        assert_eq!(error.code, ErrorCode::UpstreamChanged);
+        assert_eq!(error.message, "上游响应体超过允许大小");
+    }
+}
+
+#[test]
+fn 两条路线只为希冀作业详情选择独立正文预算() {
+    for (method, direct_url, expected) in [
+        (
+            HttpMethod::Get,
+            "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=101",
+            16 * 1024 * 1024,
+        ),
+        (
+            HttpMethod::Get,
+            "https://judge.buaa.edu.cn/assignment/index.jsp",
+            MAX_RESPONSE_BODY_BYTES,
+        ),
+        (
+            HttpMethod::Get,
+            "https://judge.buaa.edu.cn/courselist.jsp?courseID=101",
+            MAX_RESPONSE_BODY_BYTES,
+        ),
+        (
+            HttpMethod::Get,
+            "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=",
+            MAX_RESPONSE_BODY_BYTES,
+        ),
+        (
+            HttpMethod::Get,
+            "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=abc",
+            MAX_RESPONSE_BODY_BYTES,
+        ),
+        (
+            HttpMethod::Get,
+            "https://uc.buaa.edu.cn/assignment/index.jsp?assignID=101",
+            MAX_RESPONSE_BODY_BYTES,
+        ),
+        (
+            HttpMethod::Post,
+            "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=101",
+            MAX_RESPONSE_BODY_BYTES,
+        ),
+    ] {
+        for url in [
+            direct_url.to_owned(),
+            crate::connection::to_webvpn_url(direct_url).unwrap(),
+        ] {
+            assert_eq!(super::response_body_limit(method, &url), expected);
+        }
+    }
 }
 
 #[test]

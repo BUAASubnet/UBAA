@@ -79,7 +79,8 @@ impl ReqwestTransport {
             .await
             .map_err(|error| transport_error(&error))?;
         let mut result = metadata(&response);
-        result.body = collect_response_body(&mut response, started).await?;
+        result.body =
+            collect_response_body(&mut response, started, super::MAX_RESPONSE_BODY_BYTES).await?;
         Ok(result)
     }
     pub(in crate::ports) async fn download_object(

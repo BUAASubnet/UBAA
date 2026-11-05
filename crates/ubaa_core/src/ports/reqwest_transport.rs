@@ -20,11 +20,12 @@ mod compression_tests;
 #[path = "reqwest_object_tests.rs"]
 mod object_tests;
 
-/// 完整缓冲认证和用户中心响应的保守上限。
+/// 完整缓冲 HTTP 正文的默认上限。
 ///
-/// 这是实现安全预算，不是上游协议大小声明。更大的业务载荷应使用独立流式端口，
-/// 不应全局提高此上限。
+/// 希冀详情中的长代码文本使用单独预算，文件对象使用专用流式端口。
+/// 这些是本机资源预算，不是上游协议大小声明。
 const MAX_RESPONSE_BODY_BYTES: usize = 8 * 1024 * 1024;
+const MAX_JUDGE_DETAIL_BODY_BYTES: usize = 16 * 1024 * 1024;
 
 /// 启用 TLS 校验且禁用重定向的生产传输。
 #[derive(Clone, Debug)]
@@ -98,6 +99,7 @@ impl HttpTransport for ReqwestTransport {
 
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
         let started = Instant::now();
+        let body_limit = response_body_limit(request.method, &request.url);
         let method = match request.method {
             HttpMethod::Get => reqwest::Method::GET,
             HttpMethod::Post => reqwest::Method::POST,
@@ -137,7 +139,7 @@ impl HttpTransport for ReqwestTransport {
                     .push(value.to_string());
             }
         }
-        let body = collect_response_body(&mut response, started).await?;
+        let body = collect_response_body(&mut response, started, body_limit).await?;
         tracing::debug!(
             target: "ubaa::transport",
             status = status,
@@ -154,13 +156,33 @@ impl HttpTransport for ReqwestTransport {
     }
 }
 
+fn response_body_limit(method: HttpMethod, request_url: &str) -> usize {
+    if method == HttpMethod::Get {
+        let direct_url = crate::connection::from_webvpn_url(request_url)
+            .unwrap_or_else(|_| request_url.to_owned());
+        if url::Url::parse(&direct_url).ok().is_some_and(|url| {
+            url.host_str() == Some("judge.buaa.edu.cn")
+                && url.path() == "/assignment/index.jsp"
+                && url.query_pairs().any(|(key, value)| {
+                    key == "assignID"
+                        && !value.is_empty()
+                        && value.bytes().all(|byte| byte.is_ascii_digit())
+                })
+        }) {
+            return MAX_JUDGE_DETAIL_BODY_BYTES;
+        }
+    }
+    MAX_RESPONSE_BODY_BYTES
+}
+
 async fn collect_response_body(
     response: &mut reqwest::Response,
     started: Instant,
+    limit: usize,
 ) -> Result<Vec<u8>> {
     if response
         .content_length()
-        .is_some_and(|length| length > MAX_RESPONSE_BODY_BYTES as u64)
+        .is_some_and(|length| length > limit as u64)
     {
         diagnostic::record_known_failure(
             diagnostic::TransportStage::Receive,
@@ -183,7 +205,7 @@ async fn collect_response_body(
         let Some(chunk) = chunk else {
             break;
         };
-        if let Err(error) = append_bounded(&mut body, &chunk, MAX_RESPONSE_BODY_BYTES) {
+        if let Err(error) = append_bounded(&mut body, &chunk, limit) {
             diagnostic::record_known_failure(
                 diagnostic::TransportStage::Receive,
                 diagnostic::FailureReason::ResponseTooLarge,

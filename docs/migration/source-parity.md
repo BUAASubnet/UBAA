@@ -1,5 +1,16 @@
 # 协议来源对照与专项索引
 
+## 希冀作业详情正文预算
+
+2026-11-05 核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `JudgeApi.kt`、`model/dto/Judge.kt`、`LocalJudgeApi.kt`、`LocalJudgeApiBackendTest.kt`，以及 `LocalConnectionAuth.kt` 与平台 `ApiClient`。旧版通过 `bodyAsText()` 完整读取详情，上述客户端没有设置应用层响应字节上限。固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `src/api.rs` 无 Judge 模块；另核对最邻近 `api/spoc/{core,data}.rs`、`api/sso/auth.rs`、`request.rs` 和 `store/{cred,cookies}.rs`，其 token/AES/JSON 协议不适用于 Judge。
+
+| 操作 | CAS/service 与引导 | 重定向与最终 URL | Cookie/Session/Token | 方法与精确参数 | 请求头与正文编码 | 加密/签名 | DTO 与解析 | 缓存/并发/重试 | 错误与产品语义 |
+|---|---|---|---|---|---|---|---|---|---|
+| 课程目录与作业索引 | 沿用[希冀来源裁决](source-parity-judge-2026-10-23.md)的 HTTPS service | 原路线内重定向，目录 `courselist.jsp?courseID=0`，选课后 `assignment/index.jsp` | 原账号、路线与 worker 隔离 | GET；先选 `courseID`，无服务端分页；`includeExpired` 仅本地筛选 | 旧版浏览器头与空正文保持 | 无新增 | 原课程与数字作业锚点解析 | 原索引缓存、选课及分段重准备保持；批量 Direct 最多四个课程 worker，WebVPN 串行 | 仍使用默认 8 MiB 解压正文预算；固定 buaa-api 各协议列不适用 |
+| 作业详情 | 同上，不新增认证操作 | 选课后 `assignment/index.jsp?assignID=<数字编号>`；WebVPN 按既有规则还原端点 | 同上，不复制或扩大 Cookie 作用域 | GET，参数保持 | 浏览器头、HTML 编码和空请求正文保持 | 无新增 | 旧版全文解析时间、分数、题目和纯文本；Core DTO 与解析保持 | 原缓存、分段继续、认证重激活及 Partial 保旧保持 | 本机按精确 Judge 主机、详情路径和数字 `assignID` 将解压正文预算设为 16 MiB；超限仍失败。固定 buaa-api 各协议列不适用 |
+
+本会话 Direct 只读观察中，登录与主会话核验成功，一项作业详情返回 HTTP 200、解压正文 10,875,793 字节，其中大量内容为 `pre` 代码文本。生产传输在接收阶段触发原 8 MiB 上限，随后该课程产生 `CourseFailure`，最终缓存为 Partial 并保留旧核验时间。逐批诊断完整读取 6 门课程、96 项作业，未发现该课程权限或解析错误。16 MiB 是覆盖此正常 HTML 的本机预算，不作为上游最大值；其他请求继续使用 8 MiB。原始响应仅保存在私有任务目录。WebVPN 本会话未授权，真实路线证据待获得该路线授权后补验。
+
 ## 首页读取与日程学校缓存
 
 2026-11-05 核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/ScheduleApi.kt`、`api/local/{LocalScheduleApi,LocalSigninApi}.kt`、`api/storage/CredentialStore.kt` 和 `model/dto/Schedule.kt`，以及冻结 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `src/api/aas/{core,opt,data}.rs`、`src/api/class/data.rs`、`src/store/{cred,cookies}.rs`。当前操作沿用既有 Core 协议，逐操作差异如下。
