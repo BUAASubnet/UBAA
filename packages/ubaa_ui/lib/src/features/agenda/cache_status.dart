@@ -66,18 +66,46 @@ class AgendaCacheStatus extends StatelessWidget {
     if (scope.kind == AgendaCacheKind.scheduleWeeks) '教学周索引',
   ].join(' · ');
 
+  String ago(int seconds) {
+    final diff =
+        DateTime.parse(now.rfc3339).millisecondsSinceEpoch ~/ 1000 - seconds;
+    if (diff < 60) return '刚刚';
+    if (diff < 3600) return '${diff ~/ 60} 分钟前';
+    if (diff < 86400) return '${diff ~/ 3600} 小时前';
+    return time(seconds);
+  }
+
+  /// 面向用户的概要：最近更新时间与需要关注的来源；技术细节在展开项中。
+  String friendly(List<AgendaObservation> observations) {
+    final latest = observations
+        .map((o) => o.lastVerifiedAt)
+        .reduce((a, b) => a > b ? a : b);
+    // 「尝试未成功」也可能只是本次结果不完整，不能据此断言请求失败。
+    final pending = [
+      for (final source in sources)
+        if (source.observations.any(
+          (o) =>
+              !o.lastAttemptSucceeded ||
+              o.completeness == AgendaCompleteness.partial,
+        ))
+          name(source.feature),
+    ];
+    return [
+      '${ago(latest)}更新',
+      if (pending.isNotEmpty) '${pending.join('、')}待补全',
+    ].join(' · ');
+  }
+
   @override
   Widget build(BuildContext context) {
     final observations = sources.expand((s) => s.observations).toList();
     if (observations.isEmpty) return const SizedBox.shrink();
-    final summary = status(observations);
+    final summary = friendly(observations);
     return ExpansionTile(
       key: const ValueKey('agenda-cache-status'),
       tilePadding: EdgeInsets.zero,
-      title: Text(
-        '学校缓存 · ${route == ConnectionMode.direct ? '直连' : 'WebVPN'} · 北京时间',
-      ),
-      subtitle: Text(summary.isEmpty ? '查看各来源的保存与核验时间' : summary),
+      title: Text('学校数据（${route == ConnectionMode.direct ? '直连' : 'WebVPN'}）'),
+      subtitle: Text(summary),
       children: [
         for (final source in sources)
           if (source.observations.isNotEmpty)

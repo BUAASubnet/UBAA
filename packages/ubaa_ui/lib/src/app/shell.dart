@@ -943,7 +943,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           : campusDate(widget.homeClock!.now()),
       reminder: _reminderSettings,
       onOpenSchool: _openHomeNavigation,
-      onRefreshSchool: _refreshHome,
+      onRefreshSchool: () => _joinRefresh('home-core', widget.onRefresh),
       onImportSchedule: _importAgendaSchedule,
       onChanged: widget.agenda.onChanged,
       onSaveFile: widget.agenda.saveFile,

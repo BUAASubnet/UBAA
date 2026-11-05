@@ -27,7 +27,7 @@ extension _AgendaDataSheet on AgendaViewState {
                     data.sources.any((s) => s.missingScopes.isNotEmpty))
                   const Padding(
                     padding: EdgeInsets.only(bottom: 8),
-                    child: Text('部分学校缓存缺失，已有事项仍可查看。'),
+                    child: Text('部分来源待补全，已有事项仍可查看。'),
                   ),
                 if (data.sources.any((s) => s.unprojectableCount > 0))
                   const Padding(
@@ -94,7 +94,7 @@ extension _AgendaDataSheet on AgendaViewState {
       if (noSchool)
         '学校事项待刷新'
       else if (partial)
-        '部分学校缓存缺失'
+        '部分来源待补全'
       else if (semester)
         '可导入整学期课表'
       else if (data != null)
