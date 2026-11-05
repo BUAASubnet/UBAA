@@ -51,6 +51,7 @@ fn cached_export_uses_existing_projection_and_preserves_route_evidence() {
             .exported_count,
         2
     );
+    drop((agenda, cache));
     std::fs::remove_dir_all(root).unwrap();
 }
 use crate::facade::*;
@@ -79,6 +80,7 @@ fn no_school_cache_still_queries_known_account_local_agenda() {
     );
     agenda.deactivate().unwrap();
     assert_eq!(agenda.query_local_agenda(&q), Err(CacheError::Inactive));
+    drop(agenda);
     std::fs::remove_dir_all(root).unwrap();
 }
 fn t(raw: &str) -> AgendaTime {
