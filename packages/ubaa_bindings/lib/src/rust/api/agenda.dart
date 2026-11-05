@@ -201,6 +201,11 @@ abstract class BridgeAgendaStore implements RustOpaqueInterface {
     required BridgeAgendaTime now,
   });
 
+  /// 读取本机账号已保存的 GUI 自动同步许可，不访问云盘。
+  /// # Errors
+  /// 账号失效或本机存储不可用时返回日程错误。
+  Future<bool> syncEnabled();
+
   /// 查询未同步记录数，包括删除标记。
   ///
   /// # Errors
