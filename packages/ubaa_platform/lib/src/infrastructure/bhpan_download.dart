@@ -114,6 +114,19 @@ final class _NativeDestination implements BhpanDownloadDestination {
         'selection': selection,
         'path': path,
       });
+    } on PlatformException catch (error) {
+      throw UiError(
+        code: error.code == 'unsupported_destination'
+            ? UbaaErrorCode.unsupported
+            : UbaaErrorCode.invalidInput,
+        title: '文件未保存',
+        message: switch (error.code) {
+          'exists' => '所选位置已有同名文件，请选择其他名称',
+          'cleanup_failed' => '保存失败，部分文件未能清理，请在所选位置删除',
+          'unsupported_destination' => '请选择本机文件保存位置',
+          _ => '文件未完成保存，请检查所选位置与权限',
+        },
+      );
     } on Object {
       throw const UiError(
         code: UbaaErrorCode.invalidInput,

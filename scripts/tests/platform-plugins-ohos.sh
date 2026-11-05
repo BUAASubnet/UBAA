@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# 对社区网络插件适配运行真实源码的合成系统边界测试。
+# 对网络插件与文件交付运行真实源码的合成系统边界测试。
 set -euo pipefail
 script_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
 # shellcheck source=../lib/repo.sh
@@ -18,3 +18,5 @@ if [[ ! -x "$node_bin" || ! -f "$typescript" ]]; then
 fi
 export UBAA_TYPESCRIPT="$typescript"
 "$node_bin" "$repo_root/packages/connectivity_plus_ohos/test/native/contracts.cjs"
+
+"$node_bin" --test "$repo_root/apps/ubaa_ohos/test/native/agenda_file.test.cjs"

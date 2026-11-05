@@ -113,4 +113,37 @@ void main() {
     await file.release();
     expect(calls, ['pickFile', 'releaseFile']);
   });
+  test('原生交付拒绝后清理私有正文并保留不可用错误分类', () async {
+    for (final code in [
+      'exists',
+      'cleanup_failed',
+      'unsupported_destination',
+    ]) {
+      messenger.setMockMethodCallHandler(channel, (call) async {
+        if (call.method == 'select') return 'selection';
+        if (call.method == 'writeFile') throw PlatformException(code: code);
+        return null;
+      });
+      final folder = await root.createTemp('body_');
+      final destination = (await SystemBhpanFileSaver(
+        operatingSystem: 'ohos',
+        stagingDirectory: () async => folder,
+      ).select('report.txt', () => true))!;
+      await File(destination.path).writeAsString('synthetic body');
+      await expectLater(
+        destination.deliver(() => true),
+        throwsA(
+          isA<UiError>().having(
+            (error) => error.code,
+            '错误分类',
+            code == 'unsupported_destination'
+                ? UbaaErrorCode.unsupported
+                : UbaaErrorCode.invalidInput,
+          ),
+        ),
+      );
+      await destination.discard();
+      expect(await folder.exists(), false);
+    }
+  });
 }

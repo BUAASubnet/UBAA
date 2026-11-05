@@ -90,12 +90,32 @@ export default class AgendaFilePlugin implements FlutterPlugin, MethodCallHandle
   }
   private async writeFile(path: string, uri: string, result: MethodResult): Promise<void> {
     let destination: fileIo.File | null = null;
+    let targetPath = '';
+    let created = false;
     try {
-      destination = await fileIo.open(uri, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE | fileIo.OpenMode.TRUNC);
+      const selected = new fileUri.FileUri(uri);
+      if (selected.scheme !== 'file' || selected.authority !== 'docs' || selected.isRemoteUri()) {
+        result.error('unsupported_destination', '请选择本机文件保存位置', null); return;
+      }
+      targetPath = selected.path;
+      if (await fileIo.access(targetPath)) {
+        result.error('exists', '所选位置已有文件，请选择其他名称', null); return;
+      }
+      destination = await fileIo.open(uri, fileIo.OpenMode.READ_WRITE | fileIo.OpenMode.CREATE);
+      created = true;
       await fileIo.copyFile(path, destination.fd);
+      const completed = destination;
+      destination = null;
+      fileIo.closeSync(completed);
       result.success(null);
-    } catch (_) { result.error('write_failed', '文件未保存', null); }
-    finally { if (destination !== null) fileIo.closeSync(destination); }
+    } catch (_) {
+      if (destination !== null) {try {fileIo.closeSync(destination);} catch (_) {}}
+      if (created) {
+        try {fileIo.unlinkSync(targetPath);}
+        catch (_) {result.error('cleanup_failed', '保存失败，部分文件未能清理，请在所选位置删除', null); return;}
+      }
+      result.error('write_failed', '文件未保存', null);
+    }
   }
   private async select(name: string, binary: boolean, result: MethodResult): Promise<void> {
     if (this.selecting || this.target !== null) {

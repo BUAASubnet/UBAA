@@ -557,3 +557,10 @@ buaa-api `cloud/opt.rs:374–387` 从 osdownload 的 QUERY_STRING 授权提取�
 [官方接口文档](https://developers.aishutech.com/napi/documents/307)的检索正文补充了 `metadata/osdownload.rev` 和上传开始、初始化、最终登记的 `editedrev`。直接页面读取超时，北航部署尚未验证。两份冻结实现没有完整版本条件，逐操作差异见[来源对照](source-parity-bhpan.md#日程固定文件的版本条件)。同步读取基版 R 的内容，开始与最终登记均以 R 为条件，新上传版本 U 只用于最终登记的 rev 和读回。路径定位区分存在、明确缺失和范围未知，未知列表不证明缺失。首次启用已明确确认创建时，可用 `ondup=1` 尝试创建，冲突后只读重定位，无须为此新增分页；部署能力仍保持未验证。unknown 先只读核对，不删旧文件或自动重发。现有能力状态继续表达“未验证”，文档依据不开放真实自动同步。
 
 Core 持有明文同步文档、按记录合并和 SQLite 事务。记录按修改时间和设备标识排序，同设备同秒的连续修改使用持久递增序号区分。完整版本键相同但内容不同则报告冲突并保留本机记录，不按输入顺序取胜。回执逐记录比较原快照，网络等待期间的新编辑保持待同步，确认不使用内容哈希。设备标识与记录序号保存在同一个账号库，GUI 和命令共用。为现有已知 schema 2 增加同步元数据时采用一次性原子升级，旧版本及损坏库的拒绝规则继续保留，不引入通用迁移框架。
+
+
+## 2026-11-05：OHOS 下载文件交付
+
+OHOS 保存使用 `DocumentSaveOptions.autoCreateEmptyFile=false`，由应用在用户确认位置后创建文件。官方[保存用户文件](https://github.com/openharmony/docs/blob/master/zh-cn/application-dev/file-management/save-user-file.md)说明该 URI 同时具备临时读写、创建和删除权限。[FileUri 实现](https://github.com/openharmony/filemanagement_app_file_service/blob/master/interfaces/innerkits/native/file_uri/src/file_uri.cpp)中，本机 `docs` URI 的实际路径与 `FileUri.path` 一致，远端 URI 使用另一份映射路径。
+
+当前文件交付只创建本机 `docs` URI 指向的新目标。调用前检查文件不存在，已有目标要求另选名称，远端或其他 URI 返回不可用原因。复制失败时先关闭 FD，再清理本次创建的目标，清理失败明确提示残留。成功回调在复制和关闭完成后交付。这些操作的正式回归直接执行 ArkTS 源码，覆盖部分复制失败、完整成功、既有文件保留和清理失败；设备文件面板与外部文件提供方按平台单独验收。
