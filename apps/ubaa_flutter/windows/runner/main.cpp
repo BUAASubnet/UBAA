@@ -9,7 +9,7 @@ namespace {
 
 constexpr const wchar_t kSingleInstanceMutex[] = L"Local\\cn.edu.ubaa.single_instance";
 constexpr const wchar_t kWindowClassName[] = L"FLUTTER_RUNNER_WIN32_WINDOW";
-constexpr const wchar_t kWindowTitle[] = L"ubaa_flutter";
+constexpr const wchar_t kWindowTitle[] = L"UBAA";
 
 // 已有实例时唤起它的窗口；窗口尚未创建时只退出当前进程。
 void ActivateRunningInstance() {

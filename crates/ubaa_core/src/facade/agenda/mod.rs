@@ -13,7 +13,8 @@ pub use export::AgendaCachedExportResult;
 #[derive(Clone, Debug)]
 pub struct AgendaQuery {
     pub route: ConnectionMode,
-    /// 课表与考试的明确学期；SPOC 和阳光沿现有缓存的当前选择。
+    /// 课表与考试的明确学期；为空时只跳过这两个来源。
+    /// 其他来源仍使用同账号、同路线缓存，SPOC 和阳光沿现有缓存的当前选择。
     pub term: String,
     pub from: NaiveDate,
     pub to: NaiveDate,
@@ -148,10 +149,7 @@ impl OfflineCache {
         &self,
         query: &AgendaQuery,
     ) -> CacheResult<(Vec<SchoolAgendaItem>, Vec<AgendaSourceAvailability>)> {
-        if !query.now.valid()
-            || query.from >= query.to
-            || (query.to - query.from).num_days() > 3660
-            || query.term.trim().is_empty()
+        if !query.now.valid() || query.from >= query.to || (query.to - query.from).num_days() > 3660
         {
             return Err(CacheError::InvalidInput);
         }
@@ -223,7 +221,13 @@ impl OfflineCache {
                     records,
                 );
             }
-            ReadonlyFeature::Schedule => self.agenda_schedule(q, state, records)?,
+            ReadonlyFeature::Schedule => {
+                if q.term.trim().is_empty() {
+                    state.semester_imported = Some(false);
+                } else {
+                    self.agenda_schedule(q, state, records)?;
+                }
+            }
             ReadonlyFeature::Cgyy => {
                 let first_scope = scope(CacheQuery::CgyyOrders { page: 0, size: 20 });
                 let first = self.read(&first_scope, now)?;
@@ -252,6 +256,7 @@ impl OfflineCache {
                     ReadonlyFeature::Signin => CacheQuery::SigninToday {
                         date: q.now.datetime.format("%Y%m%d").to_string(),
                     },
+                    ReadonlyFeature::Exam if q.term.trim().is_empty() => return Ok(()),
                     ReadonlyFeature::Exam => CacheQuery::Exams {
                         term: q.term.clone(),
                     },

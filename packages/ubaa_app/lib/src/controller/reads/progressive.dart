@@ -187,36 +187,53 @@ mixin ControllerProgressive on ControllerState {
         ordinary,
         writeReadback: true,
       );
-    var restarted = false;
+    var authenticationRetried = false;
     while (scope.valid) {
       scope.restartRequested = false;
-      final start = await internalScheduledRead(
-        feature,
-        priority,
-        () => scope.valid,
-        () async {
-          final account = internalLocalAccount;
-          final task =
-              backend is AccountScopedProgressiveReadBackend && account != null
-              ? await (backend as AccountScopedProgressiveReadBackend)
-                    .beginAccountFeatureRead(feature, query, account)
-              : await (backend as ProgressiveReadBackend).beginFeatureRead(
-                  feature,
-                  query,
-                );
-          return task == null
-              ? FeatureReadStart(result: await ordinary())
-              : FeatureReadStart(task: task);
-        },
-        discard: (start) => start.task?.cancel(),
-      );
-      final task = start.task;
-      if (task == null) return start.result!;
-      scope.task = task;
-      // 首次结果之前允许少量准备步骤连续执行，避免空白作业区等待慢来源。
-      // 预算耗尽或已发布首批后让位，不能让异常计划一直占用首页队列。
-      var homeBootstrapBatches = 3;
+      FeatureReadTask? task;
       try {
+        final start = await internalScheduledRead(
+          feature,
+          priority,
+          () => scope.valid,
+          () async {
+            scope.preparing = true;
+            try {
+              final account = internalLocalAccount;
+              final prepared =
+                  backend is AccountScopedProgressiveReadBackend &&
+                      account != null
+                  ? await (backend as AccountScopedProgressiveReadBackend)
+                        .beginAccountFeatureRead(feature, query, account)
+                  : await (backend as ProgressiveReadBackend).beginFeatureRead(
+                      feature,
+                      query,
+                    );
+              if (scope.restartRequested) {
+                prepared?.cancel();
+                throw const ReadPlanRestart();
+              }
+              scope.task = prepared;
+              return prepared == null
+                  ? FeatureReadStart(result: await ordinary())
+                  : FeatureReadStart(task: prepared);
+            } on BackendException catch (error) {
+              if (scope.restartRequested && !error.accountMismatch)
+                throw const ReadPlanRestart();
+              rethrow;
+            } finally {
+              scope.preparing = false;
+            }
+          },
+          discard: (start) => start.task?.cancel(),
+        );
+        final activeTask = start.task;
+        task = activeTask;
+        if (activeTask == null) return start.result!;
+        scope.task = activeTask;
+        // 首次结果之前允许少量准备步骤连续执行，避免空白作业区等待慢来源。
+        // 预算耗尽或已发布首批后让位，不能让异常计划一直占用首页队列。
+        var homeBootstrapBatches = 3;
         while (scope.valid) {
           final homeBootstrap = query == null && homeBootstrapBatches > 0;
           final batchPriority = query == null && !homeBootstrap
@@ -237,18 +254,19 @@ mixin ControllerProgressive on ControllerState {
               () => scope.valid,
               () {
                 if (scope.restartRequested) throw const ReadPlanRestart();
-                return task.next();
+                return activeTask.next();
               },
               continuation: homeBootstrap,
               lane: controllerReadLane(backend, feature),
             );
           } on BackendException catch (error) {
+            if (error.accountMismatch) rethrow;
             if (scope.restartRequested) throw const ReadPlanRestart();
-            if (restarted ||
-                error.accountMismatch ||
+            if (authenticationRetried ||
                 error.code != UbaaErrorCode.authenticationRequired ||
                 !internalHasScheduledTargetRecovery)
               rethrow;
+            authenticationRetried = true;
             internalFeatureRecoveryStates[feature] =
                 SessionRecoveryStatus.needsLogin;
             await internalScheduleReadAuthentication(
@@ -267,14 +285,9 @@ mixin ControllerProgressive on ControllerState {
         }
         throw const ReadCancelled();
       } on ReadPlanRestart {
-        if (restarted)
-          throw const BackendException(
-            UbaaErrorCode.operationConflict,
-            retryable: true,
-          );
-        restarted = true;
+        // 仅已核验登录替换或本次认证恢复可请求重建；新登录各自使旧计划失效。
       } finally {
-        task.cancel();
+        task?.cancel();
         scope.task = null;
       }
     }

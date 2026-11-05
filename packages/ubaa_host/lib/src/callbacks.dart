@@ -97,15 +97,12 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
         _controller.hasEvaluationSubmissionBackendCapabilities;
     final localOwner = _controller.localDataOwnerScope;
     final appInformation = widget.appInformation ?? SystemAppInformation();
-    final schedule = _controller.homeSnapshots[FeatureId.schedule]?.overview;
-    final agendaTerm = schedule is WeekPresentation
-        ? (schedule as WeekPresentation).responseTerm
-        : '';
     return UbaaMainShell(
+      agendaSchoolRoute: _controller.currentAgendaRoute,
       agenda: AgendaAccess(
         service: _controller.agenda,
         failure: _controller.localAgendaFailure,
-        term: agendaTerm,
+        term: _controller.currentAgendaTerm,
         onChanged: _controller.notifyAgendaChanged,
         saveFile: (result, name, current) async {
           final saved = await widget.agendaFileSaver.save(

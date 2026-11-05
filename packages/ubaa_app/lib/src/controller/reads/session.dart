@@ -144,13 +144,15 @@ mixin ControllerScheduledSession on ControllerState {
   void internalInvalidateReadPlansAfterLogin(RecoveryRequest request) {
     if (!request.replacedAllRoutes && request.replacedRoute == null) return;
     for (final scope in internalReadScopes) {
-      if (scope.task != null &&
+      if ((scope.task != null || scope.preparing) &&
           scope.valid &&
-          (request.replacedAllRoutes ||
+          (internalBackend is ConcurrentReadBackend ||
+              request.replacedAllRoutes ||
               scope.route == null ||
               scope.route == request.replacedRoute)) {
+        // 并行读取组共享双路线 worker，任一路线登录都会替换整个读取实例。
         scope.restartRequested = true;
-        scope.task!.cancel();
+        scope.task?.cancel();
       }
     }
   }

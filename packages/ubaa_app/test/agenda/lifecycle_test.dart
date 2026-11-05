@@ -294,6 +294,24 @@ void main() {
     );
     expect(backend.data.accounts, hasLength(1));
   });
+  test('学校缓存投影更新不遮蔽仍在打开的日程错误', () async {
+    final backend = _Backend()
+      ..data.openGate = Completer<void>()
+      ..data.openError = const AgendaException(AgendaFailure.corrupt);
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: await support.savedAccounts(),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    final epoch = controller.agendaProjectionEpoch;
+    await controller.recoverSession(refreshHomeAfter: false);
+    await controller.refreshHome(only: [FeatureId.signin]);
+    expect(controller.agendaProjectionEpoch, greaterThan(epoch));
+    backend.data.openGate!.complete();
+    await controller.internalAgendaOpenFuture;
+    expect(controller.localAgendaFailure, AgendaFailure.corrupt);
+  });
   test('销毁后迟到打开会关闭，旧服务不能重新激活', () async {
     final backend = _Backend()..data.openGate = Completer<void>();
     final controller = AppController(

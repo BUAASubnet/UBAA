@@ -107,8 +107,10 @@ mixin ControllerHomeSources on ControllerState {
           entry.completer.complete(internalAcademicTermsConflict());
           return;
         }
-        if (terms.error != null) {
+        if (terms.error != null || terms.evidence?.complete == false) {
           entry.completer.complete(terms);
+          internalAgendaEpoch++;
+          internalNotify();
           return;
         }
         final selected = terms.details
@@ -120,6 +122,8 @@ mixin ControllerHomeSources on ControllerState {
           entry.completer.complete(
             FeatureResult.empty(resolvedRoute: terms.resolvedRoute),
           );
+          internalAgendaEpoch++;
+          internalNotify();
           return;
         }
         final term = selected.single.code;
@@ -127,7 +131,7 @@ mixin ControllerHomeSources on ControllerState {
           term,
           forceRefresh: forceRefresh,
         );
-        if (result.error == null) {
+        if (result.error == null && result.evidence?.complete != false) {
           final weeks = result.details.where((d) {
             final p = d.presentation;
             return p is WeekPresentation &&
@@ -140,8 +144,12 @@ mixin ControllerHomeSources on ControllerState {
               ? FeatureResult.success(
                   details: List.unmodifiable(weeks),
                   resolvedRoute: result.resolvedRoute,
+                  evidence: result.evidence,
                 )
-              : FeatureResult.empty(resolvedRoute: result.resolvedRoute);
+              : FeatureResult.empty(
+                  resolvedRoute: result.resolvedRoute,
+                  evidence: result.evidence,
+                );
         }
       } else {
         result = await internalScheduleAuxiliaryRead(
@@ -174,23 +182,41 @@ mixin ControllerHomeSources on ControllerState {
           ),
         );
       } else {
-        entry.completer.complete(
-          result.isEmpty
-              ? FeatureResult.empty(
-                  resolvedRoute: result.resolvedRoute,
-                  pagination: result.pagination,
-                  overview: result.overview,
-                  evidence: result.evidence,
-                )
-              : FeatureResult.success(
-                  summary: result.summary,
-                  overview: result.overview,
-                  evidence: result.evidence,
-                  details: List.unmodifiable(result.details),
-                  resolvedRoute: result.resolvedRoute,
-                  pagination: result.pagination,
-                ),
-        );
+        final stable = result.isEmpty
+            ? FeatureResult.empty(
+                resolvedRoute: result.resolvedRoute,
+                pagination: result.pagination,
+                overview: result.overview,
+                evidence: result.evidence,
+              )
+            : FeatureResult.success(
+                summary: result.summary,
+                overview: result.overview,
+                evidence: result.evidence,
+                details: List.unmodifiable(result.details),
+                resolvedRoute: result.resolvedRoute,
+                pagination: result.pagination,
+              );
+        entry.result = stable;
+        entry.completer.complete(stable);
+        internalAgendaEpoch++;
+        internalNotify();
+        if (source == HomeSupplement.currentWeek &&
+            stable.evidence?.complete != false &&
+            stable.details.length == 1) {
+          final week = stable.details.single.presentation;
+          if (week is WeekPresentation) {
+            unawaited(
+              _cacheHomeWeek(
+                this,
+                week,
+                stable.resolvedRoute,
+                forceRefresh,
+                current,
+              ),
+            );
+          }
+        }
       }
     } on Object catch (error, stackTrace) {
       entry.completer.complete(

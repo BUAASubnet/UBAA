@@ -96,6 +96,7 @@ class UbaaMainShell extends StatefulWidget {
     this.homeSnapshots,
     this.onProjectHomeTodos,
     this.agendaEpoch = 0,
+    this.agendaSchoolRoute,
     this.agenda = const AgendaAccess(),
     this.onLoadHomeSupplement,
     this.onLoadHomeDaySchedule,
@@ -147,6 +148,7 @@ class UbaaMainShell extends StatefulWidget {
   final Map<FeatureId, FeatureSnapshot>? homeSnapshots;
   final HomeTodoReader? onProjectHomeTodos;
   final int agendaEpoch;
+  final ConnectionMode? agendaSchoolRoute;
   final AgendaAccess agenda;
   final Future<FeatureResult> Function(HomeSupplement source, bool force)?
   onLoadHomeSupplement;
@@ -654,14 +656,17 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                   key: const ValueKey<String>('feature-pages'),
                   child: Column(
                     children: [
-                      Center(
-                        child: ConstrainedBox(
-                          constraints: BoxConstraints(
-                            maxWidth: maxContentWidth,
+                      if (_selectedIndex != UiDestination.agenda.index ||
+                          _openedFeature != null ||
+                          _utilityPage != null)
+                        Center(
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(
+                              maxWidth: maxContentWidth,
+                            ),
+                            child: header,
                           ),
-                          child: header,
                         ),
-                      ),
                       Expanded(
                         child: ScrollGutters(
                           maxWidth: maxContentWidth,
@@ -923,7 +928,11 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
         widget.businessCacheEpoch,
         widget.agendaEpoch,
       ),
-      route: agendaRoute(widget.routePolicy, widget.activeRoutes),
+      route: agendaRoute(
+        widget.routePolicy,
+        widget.activeRoutes,
+        schoolRoute: widget.agendaSchoolRoute,
+      ),
       term: widget.agenda.term,
       todoRequest: _agendaTodoRequest,
       visible:
@@ -934,6 +943,8 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           : campusDate(widget.homeClock!.now()),
       reminder: _reminderSettings,
       onOpenSchool: _openHomeNavigation,
+      onRefreshSchool: _refreshHome,
+      onImportSchedule: _importAgendaSchedule,
       onChanged: widget.agenda.onChanged,
       onSaveFile: widget.agenda.saveFile,
     ),
@@ -967,25 +978,4 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     ),
     _ => _buildProfile(),
   };
-
-  void _selectTab(int index, {bool fromSwipe = false}) {
-    if (widget.writeState.intent != null) {
-      // 写入进行中不能换页；滑动已移动的页面退回原位。
-      if (fromSwipe && _tabPager.hasClients) {
-        _tabPager.jumpToPage(_selectedIndex);
-      }
-      return;
-    }
-    setState(() {
-      _selectedIndex = index;
-      _utilityPage = null;
-      _openedFeature = null;
-    });
-    if (!fromSwipe &&
-        index < UiDestination.settings.index &&
-        _tabPager.hasClients) {
-      _tabPager.jumpToPage(index);
-    }
-    if (index == UiDestination.me.index) _ensureCampusAccountLoaded();
-  }
 }

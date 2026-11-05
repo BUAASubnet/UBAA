@@ -237,9 +237,43 @@ abstract class ControllerState extends ControllerOperations {
   @internal
   int internalAgendaEpoch = 0;
   @internal
+  int internalAgendaOpenEpoch = 0;
+  @internal
   AgendaFailure? internalAgendaFailure;
   int get agendaProjectionEpoch => internalAgendaEpoch;
   AgendaFailure? get localAgendaFailure => internalAgendaFailure;
+
+  /// 只使用当前账号、路线与读取代次已确认的当前教学周。
+  String get currentAgendaTerm {
+    final cache = internalReadCaches.home;
+    if (internalDisposed ||
+        internalReadTransitionBlocked ||
+        internalPhase != AppPhase.home ||
+        cache == null ||
+        !identical(cache.backend, internalBackend) ||
+        cache.lifecycle != internalLifecycleEpoch ||
+        cache.epoch != internalReadCacheEpoch)
+      return '';
+    final result = cache.entries[HomeSupplement.currentWeek]?.result;
+    if (result == null ||
+        result.error != null ||
+        result.evidence?.complete == false)
+      return '';
+    final weeks = result.details
+        .map((d) => d.presentation)
+        .whereType<WeekPresentation>()
+        .toList();
+    return weeks.length == 1 ? weeks.single.responseTerm : '';
+  }
+
+  ConnectionMode? get currentAgendaRoute => currentAgendaTerm.isEmpty
+      ? null
+      : internalReadCaches
+            .home
+            ?.entries[HomeSupplement.currentWeek]
+            ?.result
+            ?.resolvedRoute;
+
   AgendaService? get agenda {
     final backend = internalBackend;
     if (internalDisposed ||

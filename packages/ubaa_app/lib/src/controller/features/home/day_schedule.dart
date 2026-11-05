@@ -155,11 +155,16 @@ Future<FeatureResult> _homeCalendarRead(
   ControllerState owner,
   FeatureQuery query,
   bool force,
-  bool Function() current,
-) async {
+  bool Function() current, {
+  ConnectionMode? cacheRoute,
+}) async {
   final backend = owner.internalBackend;
   final account = owner.internalLocalAccount;
-  final policy = owner.internalLoginForm.routePolicy;
+  final policy = switch (cacheRoute) {
+    ConnectionMode.direct => RoutePolicy.direct,
+    ConnectionMode.webvpn => RoutePolicy.webvpn,
+    null => owner.internalLoginForm.routePolicy,
+  };
   Future<FeatureResult?> saved() async {
     if (backend is! OfflineQueryBackend || account == null) return null;
     try {
@@ -239,4 +244,47 @@ Future<FeatureResult> _homeCalendarRead(
   if (!current()) return owner.internalAcademicTermsConflict();
   // 强制刷新失败保持失败语义，用户可以重试；正常打开可使用完整本地课表。
   return result;
+}
+
+/// 今日摘要没有课程标识。后台补读明确教学周的完整课表，供日程复用稳定课程键。
+Future<void> _cacheHomeWeek(
+  ControllerState owner,
+  WeekPresentation week,
+  ConnectionMode? route,
+  bool force,
+  bool Function() current,
+) async {
+  try {
+    final result = await _homeCalendarRead(
+      owner,
+      FeatureQuery(
+        view: FeatureQueryView.scheduleWeek,
+        term: week.responseTerm,
+        week: week.number,
+      ),
+      force,
+      current,
+      cacheRoute: route,
+    );
+    if (!current()) return;
+    if (result.error case final error?) {
+      owner.internalRecordFailure(
+        error,
+        DiagnosticOperation.read,
+        feature: FeatureId.schedule,
+      );
+      return;
+    }
+    if (route != null && result.resolvedRoute != route) return;
+    owner.internalAgendaEpoch++;
+    owner.internalNotify();
+  } on Object catch (error, stack) {
+    if (current())
+      owner.internalRecordFailure(
+        error,
+        DiagnosticOperation.read,
+        feature: FeatureId.schedule,
+        stackTrace: stack,
+      );
+  }
 }

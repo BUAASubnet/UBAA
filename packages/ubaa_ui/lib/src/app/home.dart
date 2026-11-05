@@ -94,7 +94,7 @@ class HomeViewState extends State<HomeView> {
   ];
   (bool, DateTime?)? _reportedSync;
 
-  /// 下拉、标题栏按钮或快捷键刷新：应用层来源与两个补充来源一起强制重读。
+  /// 下拉、标题栏按钮或快捷键刷新：应用层来源、待办补充来源和当前周一起强制重读。
   /// 主来源先推进读取代次，再发出补充请求，避免新请求立即被旧代次取消。
   ///
   /// 全部来源都拿到可显示结果（只剩希冀等后台补全细节）即视为刷新完成，
@@ -107,6 +107,7 @@ class HomeViewState extends State<HomeView> {
     final supplements = Future.wait([
       _load(HomeSupplement.bykcChosen, force: true),
       _load(HomeSupplement.cgyyOrders, force: true),
+      _load(HomeSupplement.currentWeek, force: true),
     ]);
     return Future.wait([
       supplements,
@@ -333,8 +334,9 @@ class HomeViewState extends State<HomeView> {
     if (result.error != null && epoch != widget.cacheEpoch) {
       // 读取代次在途中变化导致的取消或失败不显示，直接按新代次重读。
       setState(() => _loading.remove(source));
-      if (widget.visible && !widget.deferSupplements) {
-        await _readSupplement(source, force: force);
+      if ((widget.visible || _refreshSettled != null) &&
+          !widget.deferSupplements) {
+        await _readSupplement(source, force: force || _refreshSettled != null);
       }
       return;
     }
@@ -620,8 +622,43 @@ class HomeViewState extends State<HomeView> {
         if (failed.isNotEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 8),
-            child: Text(
-              '部分内容加载失败：${failed.map(_homeLabel).join('、')}，已显示其余待办。',
+            child: Material(
+              key: const ValueKey('home-source-warning'),
+              color: Theme.of(context).colorScheme.surfaceContainerLow,
+              borderRadius: BorderRadius.circular(12),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 12, right: 4),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 20,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        '${failed.map(_homeLabel).join('、')}暂未加载',
+                        style: Theme.of(context).textTheme.bodyMedium,
+                      ),
+                    ),
+                    TextButton(
+                      style: TextButton.styleFrom(
+                        minimumSize: const Size(44, 44),
+                      ),
+                      onPressed: () => Future.wait([
+                        for (final feature in failed)
+                          feature == FeatureId.bykc
+                              ? _load(HomeSupplement.bykcChosen, force: true)
+                              : feature == FeatureId.cgyy
+                              ? _load(HomeSupplement.cgyyOrders, force: true)
+                              : widget.onRetryFeature(feature),
+                      ]),
+                      child: const Text('重试'),
+                    ),
+                  ],
+                ),
+              ),
             ),
           ),
         for (final feature in features)
@@ -645,21 +682,6 @@ class HomeViewState extends State<HomeView> {
                 child: const Text('重试'),
               ),
             ],
-          ),
-        for (final feature in failed)
-          ListTile(
-            dense: true,
-            title: Text(
-              '${_homeLabel(feature)}：${_homeSummary(sources[feature]!)}',
-            ),
-            trailing: TextButton(
-              onPressed: () => feature == FeatureId.bykc
-                  ? _load(HomeSupplement.bykcChosen, force: true)
-                  : feature == FeatureId.cgyy
-                  ? _load(HomeSupplement.cgyyOrders, force: true)
-                  : widget.onRetryFeature(feature),
-              child: const Text('重试'),
-            ),
           ),
       ],
     );
@@ -709,9 +731,6 @@ String uiCacheReadFailureText(CacheMaintenanceFailure failure) =>
     failure == CacheMaintenanceFailure.capacity
     ? '本机空间不足，在线内容已显示，暂未保存到本机。'
     : '在线内容已显示，暂未保存到本机。';
-
-String _homeSummary(FeatureSnapshot snapshot) =>
-    snapshot.error?.message ?? '加载失败，请重试';
 
 class _HomeTodoCard extends StatelessWidget {
   const _HomeTodoCard({

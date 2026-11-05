@@ -74,6 +74,142 @@ void main() {
       );
     });
   }
+  for (final preparing in [false, true]) {
+    test('并行读取组在其他路线登录后重新准备，准备中=$preparing', () async {
+      final backend = _PoolBackend(preparing: preparing);
+      final controller = AppController(
+        backend: backend,
+        localAccountStore: await support.savedAccounts(),
+        credentialVault: MemoryCredentialVault(
+          initial: const Credential(
+            username: 'fixture-user',
+            password: 'synthetic',
+            autoLogin: true,
+          ),
+        ),
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      await controller.recoverSession();
+      await until(
+        controller,
+        backend,
+        () =>
+            backend.tasks.isNotEmpty &&
+            (preparing || backend.tasks.first.calls == 2),
+      );
+      backend.missing.add(FeatureId.signin);
+      await controller.recoverSession(
+        feature: FeatureId.signin,
+        refreshHomeAfter: false,
+      );
+      backend.gate.complete();
+      await until(
+        controller,
+        backend,
+        () =>
+            controller.homeSnapshots[FeatureId.judge]!.status !=
+            FeatureLoadStatus.loading,
+      );
+      final snapshot = controller.homeSnapshots[FeatureId.judge]!;
+      expect(snapshot.error, isNull);
+      expect(snapshot.details.single.title, '新计划内容');
+      expect(backend.tasks, hasLength(2));
+      expect(backend.tasks.first.cancelled, isTrue);
+      expect(backend.logins, [ConnectionMode.webvpn]);
+    });
+  }
+
+  test('同一读取先后遇到两个已核验登录时分别重新准备', () async {
+    final backend = _RevisionBackend();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: await support.savedAccounts(),
+      credentialVault: MemoryCredentialVault(
+        initial: const Credential(
+          username: 'fixture-user',
+          password: 'synthetic',
+          autoLogin: true,
+        ),
+      ),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await controller.recoverSession();
+    for (var revision = 0; revision < 2; revision++) {
+      await until(
+        controller,
+        backend,
+        () =>
+            backend.tasks.length > revision &&
+            backend.tasks[revision].calls == 2,
+      );
+      final feature = revision == 0 ? FeatureId.signin : FeatureId.cgyy;
+      backend.missing.add(feature);
+      await controller.recoverSession(
+        feature: feature,
+        refreshHomeAfter: false,
+      );
+      backend.gates[revision].complete();
+    }
+    await until(
+      controller,
+      backend,
+      () =>
+          controller.homeSnapshots[FeatureId.judge]!.status !=
+          FeatureLoadStatus.loading,
+    );
+    final snapshot = controller.homeSnapshots[FeatureId.judge]!;
+    expect(snapshot.error, isNull);
+    expect(snapshot.details.single.title, '修订2结果');
+    expect(backend.tasks, hasLength(3));
+    expect(backend.logins, [ConnectionMode.webvpn, ConnectionMode.webvpn]);
+  });
+
+  for (final mismatch in [false, true]) {
+    test('没有已知登录替换时不重试${mismatch ? '异账号' : '操作冲突'}', () async {
+      final backend = _ConflictBackend(mismatch);
+      final controller = AppController(
+        backend: backend,
+        localAccountStore: await support.savedAccounts(),
+      );
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      await controller.recoverSession(refreshHomeAfter: false);
+      await controller.refreshHome(only: [FeatureId.judge]);
+      expect(backend.started, 1);
+      expect(backend.logins, isEmpty);
+      expect(controller.homeSnapshots[FeatureId.judge]!.details, isEmpty);
+      if (mismatch) {
+        expect(controller.phase, AppPhase.login);
+        expect(controller.cacheAccountId, isNull);
+      } else {
+        expect(
+          controller.homeSnapshots[FeatureId.judge]!.error?.code,
+          UbaaErrorCode.operationConflict,
+        );
+      }
+    });
+  }
+
+  test('真实路线切换丢弃准备中的旧计划且不自动重建', () async {
+    final backend = _RoutePoolBackend();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: await support.savedAccounts(),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await controller.recoverSession();
+    await until(controller, backend, () => backend.tasks.isNotEmpty);
+    await controller.setRoutePolicy(RoutePolicy.webvpn);
+    backend.gate.complete();
+    await until(controller, backend, () => backend.tasks.first.cancelled);
+    expect(backend.tasks, hasLength(1));
+    expect(backend.logins, isEmpty);
+    expect(controller.homeSnapshots[FeatureId.judge]!.details, isEmpty);
+  });
+
   test('预约辅助查询先恢复自己的路线且不被恢复过程误取消', () async {
     final backend = _Backend();
     final controller = AppController(
@@ -353,12 +489,19 @@ class _PausedTask implements FeatureReadTask {
   int calls = 0;
   bool cancelled = false;
   @override
-  void cancel() => cancelled = true;
+  void cancel() {
+    cancelled = true;
+    backend.signal();
+  }
+
   @override
   Future<FeatureReadBatch> next() async {
     calls++;
     backend.signal();
     if (!restarted && calls == 2) await backend.gate.future;
+    if (!restarted && backend is _PoolBackend && backend.logins.isNotEmpty) {
+      throw const BackendException(UbaaErrorCode.operationConflict);
+    }
     return FeatureReadBatch(
       FeatureResult.success(
         details: [
@@ -375,4 +518,94 @@ class _PausedTask implements FeatureReadTask {
       finished: restarted || calls == 2,
     );
   }
+}
+
+// 生产读取池的任一路线登录都会替换双路线 worker，旧计划随之失效。
+class _PoolBackend extends _PausedBackend implements ConcurrentReadBackend {
+  _PoolBackend({required this.preparing}) : super(ConnectionMode.direct);
+  final bool preparing;
+  @override
+  Future<FeatureReadTask?> beginFeatureRead(
+    FeatureId feature,
+    FeatureQuery? query,
+  ) async {
+    final task = await super.beginFeatureRead(feature, query);
+    if (task != null && preparing && tasks.length == 1) {
+      await gate.future;
+    }
+    return task;
+  }
+}
+
+class _RevisionBackend extends _Backend implements ConcurrentReadBackend {
+  final tasks = <_RevisionTask>[];
+  final gates = [Completer<void>(), Completer<void>()];
+  @override
+  Future<FeatureReadTask?> beginFeatureRead(
+    FeatureId feature,
+    FeatureQuery? query,
+  ) async {
+    if (feature != FeatureId.judge) return null;
+    final task = _RevisionTask(this, logins.length);
+    tasks.add(task);
+    signal();
+    return task;
+  }
+}
+
+class _RevisionTask implements FeatureReadTask {
+  _RevisionTask(this.backend, this.revision);
+  final _RevisionBackend backend;
+  final int revision;
+  int calls = 0;
+  @override
+  void cancel() {}
+  @override
+  Future<FeatureReadBatch> next() async {
+    calls++;
+    backend.signal();
+    if (revision < 2 && calls == 2) await backend.gates[revision].future;
+    if (revision != backend.logins.length) {
+      throw const BackendException(UbaaErrorCode.operationConflict);
+    }
+    return FeatureReadBatch(
+      FeatureResult.success(
+        details: [FeatureDetail(title: '修订$revision结果')],
+        resolvedRoute: ConnectionMode.webvpn,
+      ),
+      finished: revision == 2,
+    );
+  }
+}
+
+class _ConflictBackend extends _Backend implements ConcurrentReadBackend {
+  _ConflictBackend(this.mismatch);
+  final bool mismatch;
+  int started = 0;
+  @override
+  Future<FeatureReadTask?> beginFeatureRead(
+    FeatureId feature,
+    FeatureQuery? query,
+  ) async {
+    if (feature != FeatureId.judge) return null;
+    started++;
+    throw BackendException(
+      mismatch
+          ? UbaaErrorCode.authenticationRequired
+          : UbaaErrorCode.operationConflict,
+      accountMismatch: mismatch,
+    );
+  }
+}
+
+class _RoutePoolBackend extends _PoolBackend implements RouteSettingsBackend {
+  _RoutePoolBackend() : super(preparing: true);
+  RoutePolicy policy = RoutePolicy.direct;
+  @override
+  Future<void> prepareLogin(RoutePolicy value) async => policy = value;
+  @override
+  Future<BackendRouteSettings> routeSettings() async => BackendRouteSettings(
+    defaultPolicy: policy,
+    activeRoutes: ConnectionMode.values,
+  );
 }

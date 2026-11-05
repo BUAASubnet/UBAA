@@ -58,6 +58,7 @@ final class ProgressiveScope {
   final FeatureQuery? query;
   final bool Function() current;
   FeatureReadTask? task;
+  bool preparing = false;
   ConnectionMode? route;
   bool restartRequested = false;
   final completion = Completer<void>();
@@ -124,6 +125,7 @@ final class HomeSupplementCache {
 final class HomeSupplementEntry {
   final completer = Completer<FeatureResult>();
   bool pending = true;
+  FeatureResult? result;
 }
 
 final class GradesReadCache {

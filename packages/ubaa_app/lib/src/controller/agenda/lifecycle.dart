@@ -17,13 +17,14 @@ mixin ControllerAgenda on ControllerState {
     final backend = internalBackend;
     if (backend is! AgendaProvider) return;
     final service = (backend as AgendaProvider).agenda;
-    final generation = ++internalAgendaEpoch;
+    internalAgendaEpoch++;
+    final generation = ++internalAgendaOpenEpoch;
     internalAgendaFailure = null;
     internalAgendaOpenFuture = () async {
       try {
         await service.openAccount(account.id);
       } on Object catch (error) {
-        if (generation != internalAgendaEpoch ||
+        if (generation != internalAgendaOpenEpoch ||
             internalDisposed ||
             !identical(backend, internalBackend) ||
             internalLocalAccount?.id != account.id) {
@@ -33,7 +34,7 @@ mixin ControllerAgenda on ControllerState {
             ? error.failure
             : AgendaFailure.unavailable;
       }
-      if (generation == internalAgendaEpoch && !internalDisposed) {
+      if (generation == internalAgendaOpenEpoch && !internalDisposed) {
         internalAgendaEpoch++;
         internalNotify();
       }
@@ -43,6 +44,7 @@ mixin ControllerAgenda on ControllerState {
   @override
   @internal
   Future<void> internalCloseAgenda() {
+    internalAgendaOpenEpoch++;
     internalAgendaEpoch++;
     internalAgendaFailure = null;
     final backend = internalBackend;

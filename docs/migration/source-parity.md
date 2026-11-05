@@ -1,5 +1,19 @@
 # 协议来源对照与专项索引
 
+## 首页读取与日程学校缓存
+
+2026-11-05 核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/ScheduleApi.kt`、`api/local/{LocalScheduleApi,LocalSigninApi}.kt`、`api/storage/CredentialStore.kt` 和 `model/dto/Schedule.kt`，以及冻结 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `src/api/aas/{core,opt,data}.rs`、`src/api/class/data.rs`、`src/store/{cred,cookies}.rs`。当前操作沿用既有 Core 协议，逐操作差异如下。
+
+| 操作 | CAS/service 与引导 | 重定向与最终 URL | Cookie/Session/Token | 方法与精确参数 | 请求头与正文编码 | 加密/签名 | DTO 与解析 | 缓存/并发/重试 | 错误与产品语义 |
+|---|---|---|---|---|---|---|---|---|---|
+| 当前学期与教学周 | 旧版本科教务和既有研究生分支；示例 AAS 通过 `currentUser.do` 取得当前配置，不能替代旧版学期索引 | 保留现有 Core 教务跳转及最终地址校验 | 保留账号和 Direct/WebVPN 隔离，示例共享 Cookie 不作为放宽依据 | 旧版 GET `schoolCalendars.do`，GET `getTermWeeks.do` 携带 `termCode`；不借用示例配置字段补齐学期 | 沿用教务请求头，无新正文 | 无新增 | 唯一 `selected` 学期和同学期唯一 `current` 周；保留现有 DTO | 复用首页补充读取和缓存，不把今日摘要当作周课表 | 缺学期仍可查询签到等独立缓存来源 |
+| 当前周完整课表 | 沿用上述教务会话；无新引导 | 沿用 Core 校验 | 同账号、路线及读取代次 | 旧版 POST `student/getMyScheduleDetail.do`，表单 `termCode`、`type=week`、`week`；示例另带 `campusCode`，本次不借用 | 旧版 `applyScheduleHeaders` 与表单编码，保持现有 Core 实现 | 无新增 | 使用完整周表课程身份、时间和教学周索引；`TodayClass` 摘要缺少稳定身份，不构造学校事项键 | 当前周补充读取成功后通过现有调度和缓存入口取得周表，保留完整学期导入标记的独立含义 | 周表失败不隐藏首页已读结果；成功保存后刷新日程投影 |
+| 签到等已缓存待办与日程合并 | 本机操作，两源无对应上游协议，不适用 | 不适用 | 缓存账号别名必须与日程一致，查询范围继续绑定路线 | 不适用，无新增学校请求 | 不适用 | 不适用 | 复用现有公开缓存 DTO 和 Core 学校投影，不生成签到写资格 | 未知学期不阻断独立日期来源；缓存发布后使旧日程投影失效 | 本地标记、损坏分类、退出及账号切换隔离保持 |
+
+自动路线的日程查询采用当前代教学周实际读取路线，双路线均已登录时也不改选 Direct；固定 Direct/WebVPN 策略继续使用明确指定的路线，每次投影只查询一个路线范围。
+
+首页分段读取另核对旧版 `api/local/{LocalConnectionAuth,LocalSpocApi,LocalJudgeApi}.kt`、`shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalAuthSessionStoreTest.kt`，以及示例 `src/api/user/{auth,opt}.rs`、`src/request.rs` 和 `src/store/cred.rs`。SPOC、希冀和认证各自的 CAS/service、重定向与最终 URL、Cookie/Session/Token、HTTP 方法与参数、请求头与编码、加密常量、DTO 和错误解析沿用现有逐操作对照。本次仅在当前恢复范围已核验、成功重新登录后重新准备本机读取计划；两源均无 UBAA2 双路线读取池和分段计划，因此该本机操作的上游协议列不适用。读取池绑定双路线修订，任一路线登录替换读取池时，准备中和已准备的分段计划均重新准备。已知登录事件引起的重建不占用鉴权失败最多恢复一次的次数；普通 `operation_conflict` 不自动重试，账号、路线策略和生命周期变化仍取消旧读取，Core 修订校验保持。
+
 ## 日程界面与文件导出
 
 实施前核对冻结旧版 `1f4b8f8` 的 `ScheduleApi.kt`、课表保存实现及 `CredentialStore.kt`，以及冻结 buaa-api `a63712fa` 的 `api/class/{core,opt,data}.rs` 与存储实现。学校课程与待办读取沿既有来源对照和 Core 缓存投影，本任务不新增上游请求。自建事项 CRUD、重复规则、本地覆盖、范围快照导出与系统文件保存均无相同上游协议，两个来源在这些操作上的 CAS/service、重定向/最终 URL、Cookie/Session/Token、HTTP 方法/参数、请求头/编码、加密常量和 DTO 各列均不适用。本机 SQLite、Core 重复展开及 RFC 5545 序列化继续复用；界面只传 typed 输入。账号退出按既有日程代次撤销，路线改变使旧学校查询与未完成交付失效；文件保存取消、权限拒绝和写入失败不报告成功。本地操作没有学校写入或自动网络重试。

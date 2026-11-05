@@ -58,6 +58,46 @@ use crate::facade::*;
 use std::path::PathBuf;
 const ACCOUNT: &str = "00000000000000000000000000000001";
 #[test]
+fn unknown_term_keeps_date_scoped_school_cache_and_route_isolation() {
+    let (root, cache, agenda) = opened(ACCOUNT);
+    fixture(&cache);
+    let mut q = query();
+    q.term.clear();
+    let result = cache.query_agenda(&agenda, &q).unwrap();
+    assert!(
+        result
+            .entries
+            .iter()
+            .any(|entry| entry.title() == "合成签到")
+    );
+    assert!(
+        result
+            .sources
+            .iter()
+            .find(|s| s.feature == ReadonlyFeature::Signin)
+            .unwrap()
+            .observations
+            .len()
+            == 1
+    );
+    assert!(
+        result
+            .sources
+            .iter()
+            .find(|s| s.feature == ReadonlyFeature::Exam)
+            .unwrap()
+            .observations
+            .is_empty()
+    );
+    q.route = ConnectionMode::WebVpn;
+    let other = cache.query_agenda(&agenda, &q).unwrap();
+    assert!(other.entries.is_empty());
+    assert!(other.sources.iter().all(|s| s.observations.is_empty()));
+    drop((agenda, cache));
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[test]
 fn no_school_cache_still_queries_known_account_local_agenda() {
     let (root, cache, agenda) = opened(ACCOUNT);
     local(&agenda);

@@ -17,6 +17,16 @@ void main() {
     return controller;
   }
 
+  test('从日程发起整学期导入成功后刷新日程投影', () async {
+    final backend = _Backend();
+    final controller = await setup(backend);
+    final epoch = controller.agendaProjectionEpoch;
+    final importing = controller.saveScheduleSemester('selected');
+    await until(() => backend.task.pending.isNotEmpty);
+    backend.task.release(finished: true);
+    await importing;
+    expect(controller.agendaProjectionEpoch, greaterThan(epoch));
+  });
   test('重复导入合并，逐批让位紧急读取且不改当前查询', () async {
     final backend = _Backend();
     final controller = await setup(backend);

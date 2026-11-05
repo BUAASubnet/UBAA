@@ -2,6 +2,27 @@ part of 'shell.dart';
 
 /// 自适应导航的展示；页面与写入状态由 Shell 持有。
 extension UbaaShellNavigation on _UbaaMainShellState {
+  void _selectTab(int index, {bool fromSwipe = false}) {
+    if (widget.writeState.intent != null) {
+      // 写入进行中不能换页；滑动已移动的页面退回原位。
+      if (fromSwipe && _tabPager.hasClients) {
+        _tabPager.jumpToPage(_selectedIndex);
+      }
+      return;
+    }
+    _changeNavigation(() {
+      _selectedIndex = index;
+      _utilityPage = null;
+      _openedFeature = null;
+    });
+    if (!fromSwipe &&
+        index < UiDestination.settings.index &&
+        _tabPager.hasClients) {
+      _tabPager.jumpToPage(index);
+    }
+    if (index == UiDestination.me.index) _ensureCampusAccountLoaded();
+  }
+
   void _openUtility(String page) {
     if (widget.writeState.intent != null) return;
     if (page == UiDestination.settings.label &&
@@ -254,21 +275,21 @@ extension UbaaShellNavigation on _UbaaMainShellState {
     unawaited(widget.onLogout());
   }
 
-  Future<void> _joinRefresh(Object key, Future<void> Function() action) {
-    final pending = _refreshes[key];
-    if (pending != null) return pending;
-    late final Future<void> refresh;
-    refresh = Future<void>.sync(action).whenComplete(() {
-      if (identical(_refreshes[key], refresh)) _refreshes.remove(key);
-    });
-    _refreshes[key] = refresh;
-    return refresh;
-  }
+  Future<void> _joinRefresh(Object key, Future<void> Function() action) =>
+      joinUiRefresh(_refreshes, key, action);
 
   /// 标题栏按钮与快捷键走首页自身的刷新，补充来源一起重读。
   Future<void> _refreshHome() => _joinRefresh(
     'home',
     () => _homeKey.currentState?.refresh() ?? widget.onRefresh(),
+  );
+
+  Future<void> _importAgendaSchedule() => importAgendaSchedule(
+    context,
+    widget.agenda.term,
+    widget.onSaveScheduleSemester,
+    () => _openFeatureList(FeatureId.schedule),
+    (save) => _joinRefresh('agenda-semester', save),
   );
 
   Future<void> _refreshFeature(FeatureId feature) =>

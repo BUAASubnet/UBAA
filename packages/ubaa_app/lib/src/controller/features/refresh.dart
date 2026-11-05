@@ -352,6 +352,7 @@ mixin ControllerRefresh on ControllerState {
       );
       completed = true;
       outcome = result.error;
+      if (scope.valid && result.error == null) internalAgendaEpoch++;
       if (query == null &&
           internalIsHomeDefaultCurrent(feature, generation, lifecycleEpoch)) {
         internalAcceptHomeDefault(

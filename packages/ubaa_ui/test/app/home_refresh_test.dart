@@ -5,6 +5,93 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/app/home.dart';
 
 void main() {
+  testWidgets('隐藏首页刷新遇到旧代周次在途取消时，继续读取新代周次', (tester) async {
+    final key = GlobalKey<HomeViewState>();
+    final gate = Completer<FeatureResult>();
+    var epoch = 0, weekReads = 0;
+    final forced = <bool>[];
+    var visible = true;
+    Future<void> mount() => tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeView(
+            key: key,
+            user: null,
+            visible: visible,
+            cacheEpoch: epoch,
+            snapshots: {
+              for (final f in FeatureId.values) f: FeatureSnapshot(feature: f),
+            },
+            onFeatureTap: (_) {},
+            onTodoTap: (_) {},
+            onRetryFeature: (_) async {},
+            onRefresh: () async => epoch++,
+            onLoadSupplement: (source, force) async {
+              if (source != HomeSupplement.currentWeek) {
+                return const FeatureResult.empty();
+              }
+              forced.add(force);
+              return ++weekReads == 1
+                  ? gate.future
+                  : const FeatureResult.empty();
+            },
+          ),
+        ),
+      ),
+    );
+    await mount();
+    await tester.pump();
+    visible = false;
+    await mount();
+    final refresh = key.currentState!.refresh();
+    await mount();
+    gate.complete(
+      const FeatureResult.failure(
+        UiError(
+          code: UbaaErrorCode.operationConflict,
+          title: '读取已取消',
+          message: '合成旧代取消',
+        ),
+      ),
+    );
+    await tester.pump();
+    await refresh;
+    expect(weekReads, 2);
+    expect(forced, [false, true]);
+    await tester.pumpWidget(const SizedBox());
+  });
+
+  testWidgets('日程页刷新保活首页时强制重读当前周，不依赖首页可见', (tester) async {
+    final key = GlobalKey<HomeViewState>();
+    final calls = <(HomeSupplement, bool)>[];
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeView(
+            key: key,
+            user: null,
+            visible: false,
+            cacheEpoch: 0,
+            snapshots: {
+              for (final f in FeatureId.values) f: FeatureSnapshot(feature: f),
+            },
+            onFeatureTap: (_) {},
+            onTodoTap: (_) {},
+            onRetryFeature: (_) async {},
+            onRefresh: () async {},
+            onLoadSupplement: (source, force) async {
+              calls.add((source, force));
+              return const FeatureResult.empty();
+            },
+          ),
+        ),
+      ),
+    );
+    await key.currentState!.refresh();
+    expect(calls, contains((HomeSupplement.currentWeek, true)));
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('读取代次变化保留在途补充来源且不会整轮重发', (tester) async {
     final gate = Completer<FeatureResult>();
     final calls = <HomeSupplement, int>{};

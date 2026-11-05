@@ -72,7 +72,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('合成课程1'), findsOneWidget);
     expect(find.text('合成教学第4周'), findsOneWidget);
-    // 首页后台元数据与课表入口各自读取索引；这里只核对实际课程目标。
+    // 首页后台日程缓存与课表入口读取同一周，索引不进入可见查询。
     expect(
       backend.calls,
       containsAllInOrder([
@@ -81,8 +81,10 @@ void main() {
         FeatureQueryView.scheduleWeek,
       ]),
     );
-    expect(backend.scheduleReads.single.term, '2026-2027-1');
-    expect(backend.scheduleReads.single.week, 4);
+    expect(backend.scheduleReads.map((q) => (q.term, q.week)), [
+      ('2026-2027-1', 4),
+      ('2026-2027-1', 4),
+    ]);
     final before = backend.calls.length;
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
@@ -134,6 +136,9 @@ void main() {
     await tester.tap(find.widgetWithText(TextButton, '取消'));
     await tester.pumpAndSettle();
     expect(find.text('合成课程1'), findsOneWidget);
-    expect(backend.scheduleReads.single.week, 4);
+    expect(backend.scheduleReads.map((q) => (q.term, q.week)), [
+      ('2026-2027-1', 4),
+      ('2026-2027-1', 4),
+    ]);
   });
 }

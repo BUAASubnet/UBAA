@@ -3,6 +3,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../support/controller/fakes.dart' show FixtureQueryBackend;
+import 'package:ubaa_test_support/recovery.dart' as recovery;
 
 void _registerHomeSourceTests() {
   test('历史学期考试查询与首页当前学期读取互不覆盖', () async {
@@ -142,6 +143,104 @@ void _registerHomeSourceTests() {
     );
     expect(backend.queries, hasLength(2));
   });
+  test('首页周次先交付，后台补取同周课表完成后使日程重新投影', () async {
+    final backend = _HomeSourcesBackend()
+      ..weekGate = Completer<FeatureResult>();
+    final controller = AppController(backend: backend);
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    final week = await controller.loadHomeSupplement(
+      HomeSupplement.currentWeek,
+    );
+    expect(week.details.single.presentation, isA<WeekPresentation>());
+    expect(controller.currentAgendaTerm, 'synthetic-term');
+    await Future<void>.delayed(Duration.zero);
+    expect(backend.queries.last.view, FeatureQueryView.scheduleWeek);
+    expect(backend.queries.last.term, 'synthetic-term');
+    expect(backend.queries.last.week, 12);
+    final epoch = controller.agendaProjectionEpoch;
+    backend.weekGate!.complete(
+      const FeatureResult.success(
+        resolvedRoute: ConnectionMode.direct,
+        details: [FeatureDetail(title: '合成周课表')],
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.agendaProjectionEpoch, greaterThan(epoch));
+  });
+  test('当前周完整缓存已存在时后台投影复用缓存，不额外请求周表', () async {
+    final accounts = await recovery.savedAccounts();
+    final backend = _CachedWeekBackend()
+      ..owner = (await accounts.read())!.account!.id;
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: accounts,
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await controller.recoverSession(refreshHomeAfter: false);
+    await controller.loadHomeSupplement(HomeSupplement.currentWeek);
+    await Future<void>.delayed(Duration.zero);
+    expect(backend.cachedWeeks, 1);
+    expect(
+      backend.queries.where((q) => q.view == FeatureQueryView.scheduleWeek),
+      isEmpty,
+    );
+    expect(controller.currentAgendaTerm, 'synthetic-term');
+  });
+  test('Auto模式后台周表仅复用当前教学周的实际路线缓存', () async {
+    final accounts = await recovery.savedAccounts();
+    final backend = _CachedWeekBackend()
+      ..owner = (await accounts.read())!.account!.id
+      ..cachedRoute = ConnectionMode.webvpn;
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: accounts,
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await controller.recoverSession(refreshHomeAfter: false);
+    await controller.loadHomeSupplement(HomeSupplement.currentWeek);
+    await Future<void>.delayed(Duration.zero);
+    expect(controller.currentAgendaRoute, ConnectionMode.direct);
+    expect(backend.cachePolicies.last, RoutePolicy.direct);
+    expect(
+      backend.queries.where((q) => q.view == FeatureQueryView.scheduleWeek),
+      hasLength(1),
+    );
+  });
+  for (final transition in ['换路线', '退出']) {
+    test('后台完整周课表$transition后完成不能刷新新日程投影', () async {
+      final backend = _HomeSourcesBackend()
+        ..weekGate = Completer<FeatureResult>();
+      final controller = AppController(backend: backend);
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      await controller.loadHomeSupplement(HomeSupplement.currentWeek);
+      await Future<void>.delayed(Duration.zero);
+      expect(backend.queries.last.view, FeatureQueryView.scheduleWeek);
+      if (transition == '换路线') {
+        await controller.setRoutePolicy(RoutePolicy.webvpn);
+      } else {
+        await controller.logout();
+      }
+      final epoch = controller.agendaProjectionEpoch;
+      backend.weekGate!.complete(
+        const FeatureResult.success(resolvedRoute: ConnectionMode.direct),
+      );
+      await Future<void>.delayed(Duration.zero);
+      expect(controller.agendaProjectionEpoch, epoch);
+      expect(controller.currentAgendaTerm, isEmpty);
+    });
+  }
+  test('首页学校来源完成后使已打开日程重新查询学校缓存', () async {
+    final controller = AppController(backend: _HomeSourcesBackend());
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    final epoch = controller.agendaProjectionEpoch;
+    await controller.refreshHome(only: [FeatureId.signin]);
+    expect(controller.agendaProjectionEpoch, greaterThan(epoch));
+  });
   test('首页周次使用明确当前学期，未标当前周不能猜第一周', () async {
     final backend = _HomeSourcesBackend();
     final controller = AppController(backend: backend);
@@ -181,6 +280,7 @@ class _HomeSourcesBackend extends FixtureQueryBackend {
   final queries = <FeatureQuery>[];
   Completer<FeatureResult>? pending;
   bool noCurrentWeek = false;
+  Completer<FeatureResult>? weekGate;
   @override
   Future<FeatureResult> loadFeatureQuery(
     FeatureId feature,
@@ -188,6 +288,8 @@ class _HomeSourcesBackend extends FixtureQueryBackend {
   ) async {
     queries.add(query);
     if (pending case final gate?) return gate.future;
+    if (query.view == FeatureQueryView.scheduleWeek && weekGate != null)
+      return weekGate!.future;
     if (query.view == FeatureQueryView.scheduleTerms)
       return const FeatureResult.success(
         details: [
@@ -224,4 +326,37 @@ class _HomeSourcesBackend extends FixtureQueryBackend {
 
 void main() {
   _registerHomeSourceTests();
+}
+
+class _CachedWeekBackend extends _HomeSourcesBackend
+    implements OfflineQueryBackend {
+  late String owner;
+  int cachedWeeks = 0;
+  ConnectionMode cachedRoute = ConnectionMode.direct;
+  final cachePolicies = <RoutePolicy>[];
+  @override
+  Future<UserSummary?> userInfo() async =>
+      const UserSummary(username: 'fixture-user');
+  @override
+  Future<OfflineQueryRead> readCachedQuery(
+    FeatureId feature,
+    FeatureQuery query,
+    RoutePolicy policy,
+  ) async {
+    if (query.view != FeatureQueryView.scheduleWeek)
+      return OfflineQueryRead(null);
+    cachedWeeks++;
+    cachePolicies.add(policy);
+    return OfflineQueryRead(
+      CachedFeatureProjection(
+        feature: FeatureId.schedule,
+        query: query,
+        accountId: owner,
+        route: cachedRoute,
+        fetchedAt: DateTime(2026, 3, 24),
+        complete: true,
+        details: const [FeatureDetail(title: '本地周课表')],
+      ),
+    );
+  }
 }

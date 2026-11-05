@@ -111,8 +111,11 @@ mixin ControllerScheduleImport on ControllerState {
         );
         internalNotify();
         if (progress.finished) {
-          if (progress.saved)
+          if (progress.saved && scope.valid) {
+            internalAgendaEpoch++;
+            internalNotify();
             await _publishImportedWeek(term, scope, progress.route);
+          }
           break;
         }
       }
