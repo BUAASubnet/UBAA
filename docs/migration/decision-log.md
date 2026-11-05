@@ -567,3 +567,13 @@ OHOS 保存使用 `DocumentSaveOptions.autoCreateEmptyFile=false`，由应用在
 [OpenHarmony 文件打开实现](https://github.com/openharmony/filemanagement_file_api/blob/master/interfaces/kits/js/src/mod_fs/properties/open.cpp)对尚不存在的 `docs` URI 使用 DataShare，创建标志不会传给 DataShare。[ArkTS 标志转换](https://github.com/openharmony/filemanagement_file_api/blob/master/interfaces/kits/js/src/mod_fs/common_func.cpp)也没有独占创建模式。ArkTS 消费一次性选择并返回本机 `docs` 的解码路径。Dart 对该路径调用 `File.create(exclusive: true)`；[Dart 文件实现](https://github.com/dart-lang/sdk/blob/3.11.5/runtime/bin/file_linux.cc)使用 `O_CREAT | O_EXCL`。已有同名文件时保留原文件。成功创建后用文件句柄逐块读写。交付层在关闭句柄后统一清理失败目标，避免系统复制和应用分别按同一个路径删除。清理失败明确提示残留。
 
 ArkTS 源码回归覆盖路径解码、一次性选择和远端 URI 拒绝。平台测试覆盖多块文件交付、同名目标保留、部分复制失败清理、后继同名文件保留和选择过期。设备文件面板与外部文件提供方按平台单独验收。
+
+## 2026-11-05：日程采用设备独立的不可变快照
+
+独立复核的 Direct 证据确认：同一 docid、同一 R 的两次并发最终登记使用不同 U，均返回 HTTP 200 与相同的成功元数据形状，Core 均交付各自 Committed。当前接口不能向调用方提供同 R 至多一方明确成功的保证，因此停止把它作为共同 agenda.json 的条件覆盖前提。该判断不推断服务端内部写入顺序，也不以旧 U 可下载补成发布证明。
+
+同步改为设备 UUID 与持久发布序号命名的新文件，复用普通创建上传、当前版本读取、原记录排序和本机发送事务。官方分页结束与路径编码、新文件在最终登记前后的可见性仍须独立验证；验证前生产能力保持未验证，不复用 conditional_replace 的状态开放新方案。未知结果只核对原发布，不自动重传。旧单文件协议从未启用，无云端迁移或清理任务。
+
+本机库采用一次 schema 4 升级，新增发布序号、自动同步许可与无正文的删除摘要。180 天继续控制已同步的本机完整删除记录，摘要保留以拒绝旧版本。云端不可变快照暂不自动删除，允许历史内容与存储增长；后续若增加清理，另以明确的记录覆盖证明设计，不先增加远端垃圾回收框架。本机清除不改变云端，不把本机缺失发布成删除。
+
+CLI 本机命令仍不访问学校。原服务仅由未验证能力提前返回阻止自动网络，未保存 GUI 启用许可；新方案在账号库内保存默认关闭的明确许可，只在原首次确认之后允许 GUI 自动拉取或上传。详细规则、可证伪反例和必要验收见[日程设计](../design/agenda.md#bhpan-同步)与[合同](../contracts/agenda.md#跨设备同步)。
