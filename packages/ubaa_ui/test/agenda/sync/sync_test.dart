@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'flow_test.dart' show app, opened;
-import 'support.dart';
+import '../flow_test.dart' show app, opened;
+import '../support.dart';
+import '../data_sheet_support.dart';
 
 const unknown = AgendaSyncReport(
   status: AgendaSyncStatus.outcomeUnknown,
@@ -61,6 +62,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
+    await openAgendaDataSheet(tester);
     expect(find.text('1 条修改仅保存在本机'), findsOneWidget);
     expect(backend.calls, isEmpty);
     await tester.pumpWidget(const SizedBox());
@@ -72,6 +74,7 @@ void main() {
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
     expect(backend.calls, isEmpty);
+    await openAgendaDataSheet(tester);
     expect(find.text('日程仅保存在本机'), findsOneWidget);
     await tester.tap(find.widgetWithText(TextButton, '启用云端同步'));
     await tester.pumpAndSettle();
@@ -111,6 +114,7 @@ void main() {
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
     expect(backend.calls, [AgendaSyncAction.pull]);
+    await openAgendaDataSheet(tester);
     expect(find.text('上次云端操作结果待核对，2 条修改待同步'), findsOneWidget);
     await tester.tap(find.widgetWithText(TextButton, '核对云端'));
     await tester.pumpAndSettle();
@@ -125,6 +129,7 @@ void main() {
     final service = await opened(backend);
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
+    await openAgendaDataSheet(tester);
     await tester.tap(find.widgetWithText(TextButton, '创建云端日程'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(TextButton, '取消'));
@@ -153,6 +158,7 @@ void main() {
     final service = await opened(backend);
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
+    await openAgendaDataSheet(tester);
     expect(find.text('云端同步暂不可用，3 条修改保存在本机'), findsOneWidget);
     expect(
       tester

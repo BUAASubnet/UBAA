@@ -5,6 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 import 'sync_lifecycle_test.dart' show Backend, app, size;
+import '../data_sheet_support.dart';
 
 class RefreshBackend extends Backend {
   RefreshBackend() {
@@ -58,6 +59,7 @@ void main() {
     await service.openAccount('fixture-a');
     await tester.pumpWidget(app(service, route: ConnectionMode.webvpn));
     await tester.pumpAndSettle();
+    await openAgendaDataSheet(tester);
     await tester.tap(find.widgetWithText(TextButton, '启用云端同步'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(TextButton, '重新拉取'));
@@ -71,6 +73,7 @@ void main() {
     await tester.pumpWidget(app(service, route: ConnectionMode.direct));
     await tester.pumpAndSettle();
     expect(backend.calls.map((call) => call.$2), [AgendaSyncAction.pull]);
+    await openAgendaDataSheet(tester);
     final refresh = find.widgetWithText(TextButton, '重新拉取');
     expect(refresh, findsOneWidget);
     expect(tester.widget<TextButton>(refresh).onPressed, isNotNull);
@@ -111,6 +114,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(backend.calls, isEmpty);
 
+    await openAgendaDataSheet(tester);
     await tester.tap(find.widgetWithText(TextButton, '启用云端同步'));
     await tester.pumpAndSettle();
     expect(backend.confirmations, 1);

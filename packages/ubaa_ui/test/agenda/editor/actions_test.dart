@@ -1,30 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'flow_test.dart' show app, opened;
-import 'support.dart';
+import '../flow_test.dart' show app, opened;
+import '../support.dart';
+import 'pickers_support.dart';
 
 AgendaTime time(String value) =>
     AgendaTime(rfc3339: value, timezone: 'Asia/Shanghai');
 final fixed = time('2026-11-05T09:00:00+08:00');
 
-Future<void> saveEditor(WidgetTester tester) async {
-  FocusManager.instance.primaryFocus?.unfocus();
-  await tester.pumpAndSettle();
-  await tester.scrollUntilVisible(
-    find.text('保存事项'),
-    250,
-    scrollable: find
-        .descendant(
-          of: find.byKey(const ValueKey('agenda-editor-list')),
-          matching: find.byType(Scrollable),
-        )
-        .first,
-  );
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('保存事项'));
-  await tester.pumpAndSettle();
-}
+Future<void> saveEditor(WidgetTester tester) => saveAgendaEditor(tester);
 
 void main() {
   testWidgets('明确修改跳过日期时替换系列排除日期', (tester) async {
@@ -52,7 +37,16 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(SimpleDialogOption, '全部'));
     await tester.pumpAndSettle();
-    await tester.ensureVisible(find.byKey(const ValueKey('agenda-skips')));
+    await tester.scrollUntilVisible(
+      find.byKey(const ValueKey('agenda-skips')),
+      200,
+      scrollable: find
+          .descendant(
+            of: find.byKey(const ValueKey('agenda-editor-list')),
+            matching: find.byType(Scrollable),
+          )
+          .first,
+    );
     await tester.enterText(
       find.byKey(const ValueKey('agenda-skips')),
       '2026-11-07',
@@ -100,7 +94,24 @@ void main() {
       backend.failWrite = true;
       await saveEditor(tester);
       expect(backend.items.values.single.content.title, '重复合成事项');
-      expect(find.text('保存失败，原事项保持，请重试'), findsOneWidget);
+      expect(
+        tester
+            .widget<TextFormField>(find.byKey(const ValueKey('agenda-title')))
+            .controller!
+            .text,
+        '范围修改',
+      );
+      await tester.scrollUntilVisible(
+        find.text('保存失败，原事项保持，请重试'),
+        200,
+        scrollable: find
+            .descendant(
+              of: find.byKey(const ValueKey('agenda-editor-list')),
+              matching: find.byType(Scrollable),
+            )
+            .first,
+      );
+      expect(find.text('保存失败，原事项保持，请重试').hitTestable(), findsOneWidget);
       backend.failWrite = false;
       await saveEditor(tester);
       expect(backend.lastEdit, scope.key);
@@ -158,8 +169,17 @@ void main() {
     await tester.tap(find.text('隐藏事项'));
     await tester.pumpAndSettle();
     expect(backend.overlays.values.single.value.hidden, isTrue);
-    expect(find.text('合成学校作业'), findsNothing);
-    await tester.tap(find.text('显示已隐藏'));
+    await tester.tap(find.byTooltip('筛选日程'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(SwitchListTile, '显示已隐藏'));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<SwitchListTile>(find.widgetWithText(SwitchListTile, '显示已隐藏'))
+          .value,
+      isTrue,
+    );
+    await tester.tap(find.widgetWithText(FilledButton, '完成'));
     await tester.pumpAndSettle();
     expect(find.text('合成学校作业'), findsOneWidget);
     expect(backend.school.single.upstreamStatus.completed, isFalse);

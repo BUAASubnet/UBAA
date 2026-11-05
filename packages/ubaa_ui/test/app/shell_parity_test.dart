@@ -4,6 +4,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_ui/src/app/home.dart' show HomeView;
+import 'package:ubaa_ui/src/features/agenda/view.dart';
 
 void main() {
   testWidgets('功能页点另一底栏后内容与选中项一致，滑动继续沿该页切换', (tester) async {
@@ -19,7 +20,16 @@ void main() {
     );
     await tester.drag(find.byType(PageView), const Offset(350, 0));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, '日程'), findsOneWidget);
+    expect(
+      find
+          .descendant(of: find.byType(AgendaView), matching: find.text('日程'))
+          .hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      UiDestination.agenda.index,
+    );
     await tester.drag(find.byType(PageView), const Offset(350, 0));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, '学习'), findsOneWidget);

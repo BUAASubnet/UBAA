@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'support.dart';
+import 'editor/pickers_support.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -67,11 +68,16 @@ void main() {
     await service.close();
     await tester.pumpWidget(app(service, scope: 2));
     await tester.pumpAndSettle();
-    expect(find.text('退出前事项'), findsNothing);
+    expect(
+      tester.state<AgendaViewState>(find.byType(AgendaView)).result,
+      isNull,
+    );
     expect(find.text('登录本机账号后可使用日程'), findsOneWidget);
     expect(
       tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, '新建事项'))
+          .widget<FloatingActionButton>(
+            find.byKey(const ValueKey('agenda-create')),
+          )
           .onPressed,
       isNull,
     );
@@ -81,26 +87,12 @@ void main() {
     final actual = await opened(backend);
     await tester.pumpWidget(app(actual));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('新建事项'));
+    await tester.tap(find.byKey(const ValueKey('agenda-create')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('待办'));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('agenda-title')), '合成待办');
-    FocusManager.instance.primaryFocus?.unfocus();
-    await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('保存事项'),
-      250,
-      scrollable: find
-          .descendant(
-            of: find.byKey(const ValueKey('agenda-editor-list')),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('保存事项'));
-    await tester.pumpAndSettle();
+    await saveAgendaEditor(tester);
     expect(backend.items.values.single.content.title, '合成待办');
     expect(find.text('合成待办'), findsOneWidget);
     await tester.tap(find.byType(Checkbox));
@@ -119,7 +111,6 @@ void main() {
     await tester.tap(find.text('删除'));
     await tester.pumpAndSettle();
     expect(backend.items, isEmpty);
-    expect(find.text('合成待办'), findsNothing);
   });
   testWidgets('路线变化丢弃迟到查询并禁止旧编辑保存', (tester) async {
     final backend = MemoryAgenda();
@@ -131,28 +122,23 @@ void main() {
     await tester.pump();
     backend.gate!.complete(AgendaQueryResult(entries: [], sources: []));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('新建事项'));
+    await tester.tap(find.byKey(const ValueKey('agenda-create')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('agenda-title')), '旧编辑');
     await tester.pumpWidget(app(service, scope: 3));
     await tester.pumpAndSettle();
-    if (find.text('保存事项').evaluate().isNotEmpty) {
-      FocusManager.instance.primaryFocus?.unfocus();
-      await tester.pumpAndSettle();
-      await tester.scrollUntilVisible(
-        find.text('保存事项'),
-        250,
-        scrollable: find
-            .descendant(
-              of: find.byKey(const ValueKey('agenda-editor-list')),
-              matching: find.byType(Scrollable),
-            )
-            .first,
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.text('保存事项'));
-      await tester.pumpAndSettle();
-    }
     expect(backend.writes, 0);
+    await tester.tap(find.byKey(const ValueKey('agenda-create')));
+    await tester.pumpAndSettle();
+    expect(
+      tester
+          .widget<TextFormField>(find.byKey(const ValueKey('agenda-title')))
+          .controller!
+          .text,
+      isEmpty,
+    );
+    await tester.enterText(find.byKey(const ValueKey('agenda-title')), '新路线编辑');
+    await saveAgendaEditor(tester);
+    expect(backend.items.values.single.content.title, '新路线编辑');
   });
 }

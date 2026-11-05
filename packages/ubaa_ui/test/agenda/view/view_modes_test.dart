@@ -2,9 +2,10 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'flow_test.dart' show app, opened;
-import 'actions_test.dart' show saveEditor;
-import 'support.dart';
+import '../flow_test.dart' show app, opened;
+import '../editor/actions_test.dart' show saveEditor;
+import '../support.dart';
+import '../editor/pickers_support.dart';
 
 AgendaTime at(int day, int hour, [int minute = 0]) => AgendaTime(
   rfc3339:
@@ -48,7 +49,9 @@ Future<void> reveal(
     tester.state<ScrollableState>(scroll).position.jumpTo(0);
     await tester.pumpAndSettle();
   }
-  await tester.scrollUntilVisible(target, 180, scrollable: scroll);
+  if (target.hitTestable().evaluate().isEmpty) {
+    await tester.scrollUntilVisible(target, 180, scrollable: scroll);
+  }
   await tester.pumpAndSettle();
 }
 
@@ -117,7 +120,14 @@ void main() {
     expect(find.byKey(const ValueKey('agenda-week-grid')), findsOneWidget);
     expect(find.text('合成课程时段'), findsOneWidget);
     expect(find.text('六日安排'), findsOneWidget);
-    await reveal(tester, find.widgetWithText(ChoiceChip, '我的'), fromTop: true);
+    await tester.scrollUntilVisible(
+      find.widgetWithText(ChoiceChip, '我的'),
+      180,
+      scrollable: find.descendant(
+        of: find.byKey(const ValueKey('agenda-quick-filters')),
+        matching: find.byType(Scrollable),
+      ),
+    );
     await tester.tap(find.widgetWithText(ChoiceChip, '我的'));
     await tester.pumpAndSettle();
     expect(find.text('合成课程时段'), findsNothing);
@@ -134,20 +144,14 @@ void main() {
     final service = await opened(backend);
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('新建事项'));
+    await tester.tap(find.byKey(const ValueKey('agenda-create')));
     await tester.pumpAndSettle();
     await tester.enterText(
       find.byKey(const ValueKey('agenda-title')),
       '合成重叠安排',
     );
-    await tester.enterText(
-      find.byKey(const ValueKey('agenda-start')),
-      '2026-11-05 10:15',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('agenda-end')),
-      '2026-11-05 10:45',
-    );
+    await setEditorTime(tester, 'start', 10, 15);
+    await setEditorTime(tester, 'end', 10, 45);
     await saveEditor(tester);
     expect(backend.writes, 0, reason: '用户确认冲突前不得保存事项');
     expect(find.widgetWithText(AlertDialog, '与已缓存课程重叠'), findsOneWidget);

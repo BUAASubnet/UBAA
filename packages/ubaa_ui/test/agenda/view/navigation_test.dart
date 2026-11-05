@@ -2,11 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_ui/src/features/agenda/view.dart';
 import 'package:clock/clock.dart';
-import '../app/shell_parity_test.dart' show mount;
-import '../support/home_todos.dart';
-import 'flow_test.dart' show opened;
-import 'support.dart';
+import '../../app/shell_parity_test.dart' show mount;
+import '../../support/home_todos.dart';
+import '../flow_test.dart' show opened;
+import '../support.dart';
 
 void main() {
   testWidgets('首页查看全部进入日程待办，末尾学校事项从原详情单层返回', (tester) async {
@@ -125,25 +126,35 @@ void main() {
     await tester.ensureVisible(all);
     await tester.tap(all);
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, '日程'), findsOneWidget);
     expect(
-      tester.widget<FilterChip>(find.widgetWithText(FilterChip, '待办')).selected,
+      find
+          .descendant(of: find.byType(AgendaView), matching: find.text('日程'))
+          .hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      UiDestination.agenda.index,
+    );
+    expect(
+      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '待办')).selected,
       isTrue,
     );
-    expect(find.text('本地日程'), findsNothing);
-    await tester.tap(find.widgetWithText(FilterChip, '待办'));
+    expect(find.text('任务4').hitTestable(), findsOneWidget);
+    await tester.tap(find.widgetWithText(ChoiceChip, '待办'));
     await tester.pumpAndSettle();
     expect(
-      tester.widget<FilterChip>(find.widgetWithText(FilterChip, '待办')).selected,
+      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '待办')).selected,
       isFalse,
     );
+    expect(find.text('本地日程').hitTestable(), findsOneWidget);
     await tester.tap(find.widgetWithText(NavigationDestination, '首页'));
     await tester.pumpAndSettle();
     await tester.ensureVisible(all);
     await tester.tap(all);
     await tester.pumpAndSettle();
     expect(
-      tester.widget<FilterChip>(find.widgetWithText(FilterChip, '待办')).selected,
+      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '待办')).selected,
       isTrue,
       reason: '每次首页查看全部都应重新启用待办筛选',
     );
@@ -157,9 +168,18 @@ void main() {
     expect(find.byTooltip('返回'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, '日程'), findsOneWidget);
     expect(
-      tester.widget<FilterChip>(find.widgetWithText(FilterChip, '待办')).selected,
+      find
+          .descendant(of: find.byType(AgendaView), matching: find.text('日程'))
+          .hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      UiDestination.agenda.index,
+    );
+    expect(
+      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '待办')).selected,
       isTrue,
     );
   });
@@ -167,7 +187,14 @@ void main() {
     await mount(tester);
     await tester.tap(find.widgetWithText(NavigationDestination, '日程'));
     await tester.pumpAndSettle();
-    expect(find.text('新建事项'), findsOneWidget);
+    expect(
+      find.byKey(const ValueKey('agenda-create')).hitTestable(),
+      findsOneWidget,
+    );
+    expect(
+      tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
+      UiDestination.agenda.index,
+    );
     await tester.tap(find.widgetWithText(NavigationDestination, '学习'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(Card, FeatureId.schedule.title), findsOneWidget);

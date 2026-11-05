@@ -16,6 +16,9 @@ import 'sync_status.dart';
 import 'detail_content.dart';
 part 'details.dart';
 part 'export.dart';
+part 'filters.dart';
+part 'toolbar.dart';
+part 'data_sheet.dart';
 
 enum AgendaViewMode { list, week, month }
 
@@ -36,6 +39,8 @@ class AgendaView extends StatefulWidget {
     this.reminder,
     this.now,
     this.failure,
+    this.onRefreshSchool,
+    this.onImportSchedule,
   });
   final AgendaService? service;
   final Object scopeKey;
@@ -56,6 +61,8 @@ class AgendaView extends StatefulWidget {
   final YgdkReminderSettings? reminder;
   final DateTime? now;
   final AgendaFailure? failure;
+  final Future<void> Function()? onRefreshSchool;
+  final VoidCallback? onImportSchedule;
   @override
   State<AgendaView> createState() => AgendaViewState();
 }
@@ -72,6 +79,7 @@ class AgendaViewState extends State<AgendaView> {
   late DateTime from, to, focusDate;
   AgendaViewMode mode = AgendaViewMode.list;
   bool dayOnly = false, customRange = false;
+  bool searchVisible = false, noticesDismissed = false;
   String? selectedKey;
   final searchField = TextEditingController();
   int revision = 0;
@@ -351,7 +359,7 @@ class AgendaViewState extends State<AgendaView> {
 
   void alignRange() {
     if (mode == AgendaViewMode.list) {
-      from = focusDate.subtract(const Duration(days: 7));
+      from = focusDate;
       to = from.add(const Duration(days: 38));
     } else if (mode == AgendaViewMode.week) {
       from = agendaWeekStart(focusDate);
@@ -396,68 +404,100 @@ class AgendaViewState extends State<AgendaView> {
     unawaited(load());
   }
 
-  Widget filters() => Column(
-    crossAxisAlignment: CrossAxisAlignment.stretch,
-    children: [
-      TextField(
-        controller: searchField,
-        decoration: const InputDecoration(
-          prefixIcon: Icon(Icons.search),
-          labelText: '搜索日程',
-          border: OutlineInputBorder(),
+  int get selectedFilterCount =>
+      (filter == '全部' ? 0 : 1) +
+      (todos ? 1 : 0) +
+      (includeCompleted ? 0 : 1) +
+      (includeHidden ? 1 : 0);
+
+  Widget filters({VoidCallback? onUpdate}) => _buildFilters(onUpdate: onUpdate);
+
+  Future<void> showFilters() => _showFilters();
+
+  Future<void> syncSettings() => showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (context) => bound(
+      SafeArea(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              Text('云端同步', style: Theme.of(context).textTheme.titleLarge),
+              const SizedBox(height: 12),
+              _syncStatusCard(),
+              const Text('学校事项来自本机缓存；自建事项和本机标记可同步到个人云盘。'),
+            ],
+          ),
         ),
-        onChanged: (v) => setState(() => search = v),
       ),
-      const SizedBox(height: 12),
-      Wrap(
-        spacing: 6,
-        children: [
-          for (final source in [
-            '全部',
-            '课程',
-            '作业',
-            '博雅',
-            '考试',
-            '研讨室',
-            '签到',
-            '阳光提醒',
-            '我的',
-          ])
-            ChoiceChip(
-              label: Text(source),
-              selected: filter == source,
-              onSelected: (_) => setState(() => filter = source),
-            ),
-        ],
-      ),
-      Wrap(
-        spacing: 8,
-        children: [
-          FilterChip(
-            label: const Text('待办'),
-            selected: todos,
-            onSelected: (v) => setState(() => todos = v),
-          ),
-          FilterChip(
-            label: const Text('显示已完成'),
-            selected: includeCompleted,
-            onSelected: (v) => setState(() => includeCompleted = v),
-          ),
-          FilterChip(
-            label: const Text('显示已隐藏'),
-            selected: includeHidden,
-            onSelected: (v) {
-              setState(() => includeHidden = v);
-              unawaited(load());
-            },
-          ),
-        ],
-      ),
-    ],
+    ),
   );
 
+  void importSchedule() {
+    if (widget.onImportSchedule case final action?) {
+      action();
+    } else {
+      widget.onOpenSchool(
+        FeatureReadNavigation(
+          feature: FeatureId.schedule,
+          query: FeatureQuery(term: widget.term),
+        ),
+      );
+    }
+  }
+
+  Future<void> refreshSchool() async {
+    if (widget.onRefreshSchool case final action?) {
+      await action();
+      if (mounted) await load();
+    } else {
+      importSchedule();
+    }
+  }
+
+  Widget toolbar() => _buildToolbar();
+
+  String get rangeLabel {
+    if (mode == AgendaViewMode.month)
+      return '${focusDate.year}年${focusDate.month}月';
+    final start = customRange ? from : agendaWeekStart(focusDate);
+    final end = customRange
+        ? to.subtract(const Duration(days: 1))
+        : start.add(const Duration(days: 6));
+    return '${start.month}月${start.day}日–${start.month == end.month ? '' : '${end.month}月'}${end.day}日';
+  }
+
+  bool get _onToday => mode == AgendaViewMode.month
+      ? focusDate.year == agendaDay(now).year &&
+            focusDate.month == agendaDay(now).month
+      : agendaWeekStart(focusDate) == agendaWeekStart(agendaDay(now)) &&
+            (mode == AgendaViewMode.week || focusDate == agendaDay(now));
+
+  Widget viewControls() => _buildViewControls();
+
+  static const _quickFilters = [
+    '全部',
+    '待办',
+    '课程',
+    '作业',
+    '考试',
+    '博雅',
+    '研讨室',
+    '签到',
+    '阳光提醒',
+    '我的',
+  ];
+
+  Widget quickFilters() => _buildQuickFilters();
+
+  Future<void> dataSheet() => _showDataSheet();
+
+  Widget statusLine() => _buildStatusLine();
+
   List<Widget> notices() => [
-    if (loading) const LinearProgressIndicator(),
     if (!available)
       Padding(
         padding: const EdgeInsets.all(24),
@@ -466,37 +506,17 @@ class AgendaViewState extends State<AgendaView> {
         ),
       ),
     if (error != null)
-      Column(
-        children: [
-          Text(error!),
-          TextButton(onPressed: load, child: const Text('重试读取')),
-        ],
-      ),
-    if (result case final data?) ...[
-      if (data.sources.every((s) => s.observations.isEmpty))
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 8),
-          child: Text('尚无学校缓存，本机事项可继续使用。学校数据请到原功能读取。'),
-        )
-      else if (data.schoolCacheFailure != null ||
-          data.sources.any((s) => s.missingScopes.isNotEmpty))
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 8),
-          child: Text('部分学校缓存缺失，本机事项可继续使用。学校数据请到原功能读取。'),
+      Padding(
+        padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+        child: Row(
+          children: [
+            const Icon(Icons.info_outline, size: 18),
+            const SizedBox(width: 8),
+            Expanded(child: Text(error!)),
+            TextButton(onPressed: load, child: const Text('重试读取')),
+          ],
         ),
-      if (data.sources.any(
-        (s) =>
-            s.feature == AgendaFeature.schedule && s.semesterImported != true,
-      ))
-        const Text('尚未导入整学期课表，仅展示已缓存的教学周；可在课表中导入。'),
-      AgendaCacheStatus(
-        sources: data.sources,
-        route: widget.route,
-        now: agendaTime(now),
       ),
-      if (data.sources.any((s) => s.unprojectableCount > 0))
-        const Text('部分学校事项缺少必要字段，未加入时间线。'),
-    ],
   ];
 
   @override
@@ -561,177 +581,175 @@ class AgendaViewState extends State<AgendaView> {
         final selected = (mode == AgendaViewMode.week ? visible : list)
             .where((e) => agendaEntryKey(e) == selectedKey)
             .firstOrNull;
-        final content = RefreshIndicator(
-          onRefresh: load,
-          child: ListView(
-            key: const ValueKey('agenda-main-scroll'),
-            padding: const EdgeInsets.all(16),
-            children: [
-              if (available && service.supportsSync) _syncStatusCard(),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                children: [
-                  FilledButton.icon(
-                    onPressed: !available || busy ? null : () => edit(),
-                    icon: const Icon(Icons.add),
-                    label: const Text('新建事项'),
-                  ),
-                  OutlinedButton.icon(
-                    onPressed: !available || busy ? null : export,
-                    icon: const Icon(Icons.ios_share),
-                    label: const Text('导出日历'),
-                  ),
-                  TextButton.icon(
-                    onPressed: loading ? null : load,
-                    icon: const Icon(Icons.refresh),
-                    label: const Text('刷新本机数据'),
-                  ),
-                ],
-              ),
-              const SizedBox(height: 12),
-              Wrap(
-                spacing: 8,
-                runSpacing: 8,
-                crossAxisAlignment: WrapCrossAlignment.center,
-                children: [
-                  SegmentedButton<AgendaViewMode>(
-                    segments: const [
-                      ButtonSegment(
-                        value: AgendaViewMode.list,
-                        label: Text('列表'),
-                      ),
-                      ButtonSegment(
-                        value: AgendaViewMode.week,
-                        label: Text('周'),
-                      ),
-                      ButtonSegment(
-                        value: AgendaViewMode.month,
-                        label: Text('月'),
-                      ),
-                    ],
-                    selected: {mode},
-                    onSelectionChanged: (v) => goMode(v.single),
-                  ),
-                  TextButton(
-                    onPressed: () => goDate(agendaDay(now)),
-                    child: const Text('今天'),
-                  ),
-                  if (dayOnly && mode == AgendaViewMode.list)
-                    TextButton(
-                      onPressed: () => setState(() => dayOnly = false),
-                      child: const Text('显示全部日期'),
+        final header = Column(
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            if (searchVisible)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
+                child: SearchBar(
+                  key: const ValueKey('agenda-search'),
+                  controller: searchField,
+                  autoFocus: true,
+                  hintText: '搜索标题、备注或地点',
+                  elevation: const WidgetStatePropertyAll(0),
+                  leading: const Icon(Icons.search),
+                  trailing: [
+                    IconButton(
+                      tooltip: '清除搜索',
+                      onPressed: () {
+                        searchField.clear();
+                        setState(() => search = '');
+                      },
+                      icon: const Icon(Icons.close),
                     ),
-                ],
+                  ],
+                  onChanged: (value) => setState(() => search = value),
+                ),
               ),
-              Row(
-                children: [
-                  IconButton(
-                    tooltip: mode == AgendaViewMode.month ? '上一月' : '上一周',
-                    onPressed: () => move(-1),
-                    icon: const Icon(Icons.chevron_left),
-                  ),
-                  Expanded(
-                    child: TextButton(
-                      onPressed: range,
-                      child: Text(
-                        mode == AgendaViewMode.month
-                            ? '${focusDate.year}年${focusDate.month}月'
-                            : '${agendaDate(from)} 至 ${agendaDate(to.subtract(const Duration(days: 1)))}',
-                      ),
-                    ),
-                  ),
-                  IconButton(
-                    tooltip: mode == AgendaViewMode.month ? '下一月' : '下一周',
-                    onPressed: () => move(1),
-                    icon: const Icon(Icons.chevron_right),
-                  ),
-                ],
-              ),
-              if (!wide && mode == AgendaViewMode.list)
-                AgendaDateStrip(
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              child: viewControls(),
+            ),
+            if (!wide && mode == AgendaViewMode.list)
+              Padding(
+                padding: const EdgeInsets.fromLTRB(8, 2, 8, 4),
+                child: AgendaDateStrip(
                   date: focusDate,
+                  today: agendaDay(now),
                   entries: filtered,
                   onSelected: goDate,
+                  onSwipe: move,
+                  colorOf: (e) =>
+                      agendaSourceColor(e, Theme.of(context).colorScheme),
                 ),
-              if (!wide) ...[filters(), const SizedBox(height: 8)],
-              ...notices(),
+              ),
+            if (!wide) quickFilters(),
+            if (available) statusLine(),
+            ...notices(),
+            const SizedBox(height: 6),
+            SizedBox(
+              height: 2,
+              child: loading ? const LinearProgressIndicator() : null,
+            ),
+          ],
+        );
+        final content = RefreshIndicator(
+          onRefresh: load,
+          child: CustomScrollView(
+            key: const ValueKey('agenda-main-scroll'),
+            physics: const AlwaysScrollableScrollPhysics(),
+            slivers: [
               if (result != null && mode == AgendaViewMode.week)
-                SizedBox(
-                  key: const ValueKey('agenda-week-content'),
-                  height: math.max(440, constraints.maxHeight * .78),
-                  child: AgendaWeekContent(
-                    date: focusDate,
-                    entries: visible,
-                    allEntries: all,
-                    onOpen: open,
-                    onDate: goDate,
+                SliverPadding(
+                  padding: const EdgeInsets.symmetric(horizontal: 16),
+                  sliver: SliverToBoxAdapter(
+                    child: SizedBox(
+                      key: const ValueKey('agenda-week-content'),
+                      height: math.max(440, constraints.maxHeight * .7),
+                      child: AgendaWeekContent(
+                        date: focusDate,
+                        entries: visible,
+                        allEntries: all,
+                        onOpen: open,
+                        onDate: goDate,
+                      ),
+                    ),
                   ),
                 )
               else if (result != null) ...[
                 if (mode == AgendaViewMode.month && !wide)
-                  AgendaMonthCalendar(
-                    date: focusDate,
-                    entries: filtered,
-                    onSelected: goDate,
-                  ),
-                if (mode == AgendaViewMode.month || dayOnly)
-                  Padding(
-                    padding: const EdgeInsets.only(top: 12),
-                    child: Text(
-                      '${agendaDate(focusDate)} 的事项',
-                      key: const ValueKey('agenda-selected-day'),
-                      style: Theme.of(context).textTheme.titleMedium,
+                  SliverPadding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    sliver: SliverToBoxAdapter(
+                      child: AgendaMonthCalendar(
+                        date: focusDate,
+                        entries: filtered,
+                        onSelected: goDate,
+                      ),
                     ),
                   ),
-                AgendaListContent(
+                ...agendaListSlivers(
+                  context: context,
                   entries: list,
                   allEntries: all,
                   now: now,
                   busy: busy,
                   onOpen: open,
                   onComplete: (e, v) => unawaited(complete(e, v)),
+                  onCreate: available && !busy ? () => edit() : null,
                 ),
               ],
+              const SliverToBoxAdapter(child: SizedBox(height: 88)),
             ],
           ),
         );
-        return Row(
-          crossAxisAlignment: CrossAxisAlignment.stretch,
+        return Column(
           children: [
-            if (wide) ...[
-              SizedBox(
-                width: 280 * scale,
-                key: const ValueKey('agenda-sidebar'),
-                child: ListView(
-                  padding: const EdgeInsets.all(16),
-                  children: [
-                    AgendaMonthCalendar(
-                      date: focusDate,
-                      entries: filtered,
-                      onSelected: goDate,
-                    ),
-                    const SizedBox(height: 16),
-                    filters(),
-                  ],
-                ),
-              ),
-              const VerticalDivider(width: 1),
-            ],
-            Expanded(child: content),
-            if (detailPane) ...[
-              const VerticalDivider(width: 1),
-              SizedBox(
-                width: 320 * scale,
-                key: const ValueKey('agenda-detail-pane'),
-                child: selected == null
-                    ? const Center(child: Text('选择事项查看详情'))
-                    : detailContent(
-                        selected,
-                        () => setState(() => selectedKey = null),
+            toolbar(),
+            Expanded(
+              child: Stack(
+                children: [
+                  Row(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      if (wide) ...[
+                        SizedBox(
+                          width: 280 * scale,
+                          key: const ValueKey('agenda-sidebar'),
+                          child: ListView(
+                            padding: const EdgeInsets.all(16),
+                            children: [
+                              AgendaMonthCalendar(
+                                date: focusDate,
+                                entries: filtered,
+                                onSelected: goDate,
+                              ),
+                              const SizedBox(height: 16),
+                              filters(),
+                            ],
+                          ),
+                        ),
+                        const VerticalDivider(width: 1),
+                      ],
+                      Expanded(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
+                          children: [
+                            header,
+                            Expanded(child: content),
+                          ],
+                        ),
                       ),
+                      if (detailPane) ...[
+                        const VerticalDivider(width: 1),
+                        SizedBox(
+                          width: 320 * scale,
+                          key: const ValueKey('agenda-detail-pane'),
+                          child: selected == null
+                              ? const Center(child: Text('选择事项查看详情'))
+                              : detailContent(
+                                  selected,
+                                  () => setState(() => selectedKey = null),
+                                ),
+                        ),
+                      ],
+                    ],
+                  ),
+                  Positioned(
+                    right: 16,
+                    bottom: 16,
+                    child: FloatingActionButton.extended(
+                      key: const ValueKey('agenda-create'),
+                      tooltip: '新建事项',
+                      onPressed: !available || busy ? null : () => edit(),
+                      icon: const Icon(Icons.add),
+                      label: const Text('新建'),
+                    ),
+                  ),
+                ],
               ),
-            ],
+            ),
           ],
         );
       },

@@ -85,3 +85,46 @@ List<AgendaEntry> agendaEntryConflicts(
               course,
   ];
 }
+
+/// 同一天同名同地点的课程，若前一节结束到后一节开始不超过 20 分钟，界面合并为一段显示。
+bool agendaCourseContinues(
+  AgendaEntry a,
+  DateTime aEnd,
+  AgendaEntry b,
+  DateTime bStart,
+) {
+  if (a.school?.navigation.feature != AgendaFeature.schedule ||
+      b.school?.navigation.feature != AgendaFeature.schedule) {
+    return false;
+  }
+  if (a.school!.title != b.school!.title ||
+      (a.school!.location ?? '') != (b.school!.location ?? '')) {
+    return false;
+  }
+  final gap = bStart.difference(aEnd);
+  return !gap.isNegative &&
+      gap <= const Duration(minutes: 20) &&
+      agendaDay(aEnd) == agendaDay(bStart);
+}
+
+/// 将已按开始时间排序的条目中连续课程合并，返回（条目，显示结束时间）。
+/// 中间夹有签到等其他条目时同样合并。
+List<(AgendaEntry, DateTime?)> agendaMergeCourses(List<AgendaEntry> sorted) {
+  final out = <(AgendaEntry, DateTime?)>[];
+  outer:
+  for (final e in sorted) {
+    final start = agendaStart(e);
+    if (start != null &&
+        e.school?.navigation.feature == AgendaFeature.schedule) {
+      for (var k = out.length - 1; k >= 0; k--) {
+        final (prev, prevEnd) = out[k];
+        if (prevEnd != null && agendaCourseContinues(prev, prevEnd, e, start)) {
+          out[k] = (prev, agendaEnd(e) ?? prevEnd);
+          continue outer;
+        }
+      }
+    }
+    out.add((e, agendaEnd(e)));
+  }
+  return out;
+}

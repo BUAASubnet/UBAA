@@ -3,6 +3,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_ui/src/features/agenda/view.dart';
 import '../support/write_harness.dart';
 import '../support/navigation.dart';
 
@@ -148,78 +149,100 @@ void _registerLayoutMatrix() {
   for (final width in <double>[320, 390, 600, 768, 1024, 1440]) {
     for (final scale in <double>[1, 2]) {
       testWidgets('窗口${width}大字$scale可切换全部分组并操作主题', (tester) async {
-        tester.view.physicalSize = Size(width, 900);
-        tester.view.devicePixelRatio = 1;
-        addTearDown(tester.view.resetPhysicalSize);
-        addTearDown(tester.view.resetDevicePixelRatio);
-        final changes = <ThemeMode>[];
-        await tester.pumpWidget(
-          MaterialApp(
-            theme: scale == 2 ? UbaaTheme.dark() : UbaaTheme.light(),
-            builder: (context, child) => MediaQuery(
-              data: MediaQuery.of(context).copyWith(
-                textScaler: TextScaler.linear(scale),
-                disableAnimations: true,
+        final semantics = tester.ensureSemantics();
+        try {
+          tester.view.physicalSize = Size(width, 900);
+          tester.view.devicePixelRatio = 1;
+          addTearDown(tester.view.resetPhysicalSize);
+          addTearDown(tester.view.resetDevicePixelRatio);
+          final changes = <ThemeMode>[];
+          await tester.pumpWidget(
+            MaterialApp(
+              theme: scale == 2 ? UbaaTheme.dark() : UbaaTheme.light(),
+              builder: (context, child) => MediaQuery(
+                data: MediaQuery.of(context).copyWith(
+                  textScaler: TextScaler.linear(scale),
+                  disableAnimations: true,
+                ),
+                child: child!,
               ),
-              child: child!,
+              home: UbaaMainShell(
+                user: const UserSummary(username: 'synthetic-layout'),
+                snapshots: {
+                  for (final feature in FeatureId.values)
+                    feature: FeatureSnapshot(
+                      feature: feature,
+                      status: FeatureLoadStatus.empty,
+                    ),
+                },
+                routePolicy: RoutePolicy.auto,
+                telemetryEnabled: false,
+                onRefresh: () async => fail('布局切换不能刷新'),
+                onRetryFeature: (_) async => fail('布局切换不能重新读取'),
+                onLogout: () async {},
+                onLogoutAndClearAccount: () async {},
+                onRoutePolicyChanged: (_) {},
+                onTelemetryChanged: (_) {},
+                onThemeModeChanged: changes.add,
+              ),
             ),
-            home: UbaaMainShell(
-              user: const UserSummary(username: 'synthetic-layout'),
-              snapshots: {
-                for (final feature in FeatureId.values)
-                  feature: FeatureSnapshot(
-                    feature: feature,
-                    status: FeatureLoadStatus.empty,
-                  ),
-              },
-              routePolicy: RoutePolicy.auto,
-              telemetryEnabled: false,
-              onRefresh: () async => fail('布局切换不能刷新'),
-              onRetryFeature: (_) async => fail('布局切换不能重新读取'),
-              onLogout: () async {},
-              onLogoutAndClearAccount: () async {},
-              onRoutePolicyChanged: (_) {},
-              onTelemetryChanged: (_) {},
-              onThemeModeChanged: changes.add,
-            ),
-          ),
-        );
-        await tester.pumpAndSettle();
-        for (final destination in UiDestination.values) {
-          final Finder target;
-          if (destination == UiDestination.me ||
-              (width < 600 && destination == UiDestination.settings)) {
-            await openUtility(tester, destination.label);
-            expect(
-              find.widgetWithText(AppBar, destination.label),
-              findsOneWidget,
-            );
-            expect(tester.takeException(), isNull);
-            continue;
-          }
-          if (width < 600) {
-            target = find.byType(NavigationDestination).at(destination.index);
-          } else if (width < 1000) {
-            target = find.byTooltip(destination.label);
-          } else {
-            target = find.widgetWithText(ListTile, destination.label);
-          }
-          await tester.ensureVisible(target);
-          await tester.tap(target);
-          await tester.pumpAndSettle();
-          expect(
-            find.widgetWithText(AppBar, destination.label),
-            findsOneWidget,
           );
-          final failure = tester.takeException();
-          expect(failure, isNull, reason: destination.label);
+          await tester.pumpAndSettle();
+          for (final destination in UiDestination.values) {
+            final Finder target;
+            if (destination == UiDestination.me ||
+                (width < 600 && destination == UiDestination.settings)) {
+              await openUtility(tester, destination.label);
+              expect(
+                find.widgetWithText(AppBar, destination.label),
+                findsOneWidget,
+              );
+              expect(tester.takeException(), isNull);
+              continue;
+            }
+            if (width < 600) {
+              target = find.byType(NavigationDestination).at(destination.index);
+            } else if (width < 1000) {
+              target = find.byTooltip(destination.label);
+            } else {
+              target = find.widgetWithText(ListTile, destination.label);
+            }
+            await tester.ensureVisible(target);
+            await tester.tap(target);
+            await tester.pumpAndSettle();
+            if (destination == UiDestination.agenda) {
+              final title = find.descendant(
+                of: find.byType(AgendaView),
+                matching: find.text('日程'),
+              );
+              expect(title.hitTestable(), findsOneWidget);
+              final titleSemantics = tester
+                  .getSemantics(title)
+                  .getSemanticsData();
+              expect(titleSemantics.label.split('\n'), contains('日程'));
+              expect(titleSemantics.flagsCollection.isHeader, isTrue);
+              expect(
+                tester.widget<AgendaView>(find.byType(AgendaView)).visible,
+                isTrue,
+              );
+            } else {
+              expect(
+                find.widgetWithText(AppBar, destination.label),
+                findsOneWidget,
+              );
+            }
+            final failure = tester.takeException();
+            expect(failure, isNull, reason: destination.label);
+          }
+          final theme = find.byType(SegmentedButton<ThemeMode>);
+          await tester.ensureVisible(theme);
+          await tester.tap(find.text('深色').last);
+          await tester.pumpAndSettle();
+          expect(changes, [ThemeMode.dark]);
+          expect(tester.takeException(), isNull);
+        } finally {
+          semantics.dispose();
         }
-        final theme = find.byType(SegmentedButton<ThemeMode>);
-        await tester.ensureVisible(theme);
-        await tester.tap(find.text('深色').last);
-        await tester.pumpAndSettle();
-        expect(changes, [ThemeMode.dark]);
-        expect(tester.takeException(), isNull);
       });
     }
   }

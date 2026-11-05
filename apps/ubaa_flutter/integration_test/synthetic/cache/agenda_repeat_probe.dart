@@ -110,15 +110,24 @@ Future<void> probeAgendaRepeat(WidgetTester tester, String directory) async {
       await tester.pumpAndSettle();
       await tester.tap(find.widgetWithText(SimpleDialogOption, label));
       await tester.pumpAndSettle();
-      final day = scope == AgendaEditScope.all ? '06' : '07';
-      await tester.enterText(
-        find.byKey(const ValueKey('agenda-start')),
-        '2026-11-$day 09:00',
-      );
-      await tester.enterText(
-        find.byKey(const ValueKey('agenda-end')),
-        '2026-11-$day 10:00',
-      );
+      final day = scope == AgendaEditScope.all ? 6 : 7;
+      for (final field in ['start', 'end']) {
+        final target = find.byKey(ValueKey('agenda-$field-date'));
+        await tester.ensureVisible(target);
+        await tester.tap(target);
+        await tester.pumpAndSettle();
+        final dialog = find.byType(DatePickerDialog);
+        await tester.tap(
+          find.descendant(of: dialog, matching: find.text('$day')),
+        );
+        final confirm = MaterialLocalizations.of(
+          tester.element(dialog),
+        ).okButtonLabel;
+        await tester.tap(
+          find.descendant(of: dialog, matching: find.text(confirm)),
+        );
+        await tester.pumpAndSettle();
+      }
       FocusManager.instance.primaryFocus?.unfocus();
       await tester.pumpAndSettle();
       await tester.scrollUntilVisible(

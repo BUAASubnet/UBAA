@@ -2,12 +2,12 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'flow_test.dart' show app, opened;
-import 'support.dart';
+import '../flow_test.dart' show app, opened;
+import '../support.dart';
+import 'view_support.dart';
 
 Future<void> chooseExport(WidgetTester tester) async {
-  await tester.tap(find.text('导出日历'));
-  await tester.pumpAndSettle();
+  await selectAgendaMenu(tester, '导出日历');
   await tester.tap(find.text('保存'));
   await tester.pumpAndSettle();
   await tester.tap(find.text('包含已完成事项'));
@@ -30,8 +30,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('导出日历'));
-    await tester.pumpAndSettle();
+    await selectAgendaMenu(tester, '导出日历');
     await tester.tap(find.text('保存'));
     await tester.pumpAndSettle();
     expect(find.text('尚无学校学期信息，本次仅导出已选日期内的本机事项。'), findsOneWidget);
@@ -95,8 +94,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     expect(calls, 0);
-    await tester.tap(find.text('导出日历'));
-    await tester.pumpAndSettle();
+    await selectAgendaMenu(tester, '导出日历');
     expect(find.byType(DateRangePickerDialog), findsOneWidget);
     await tester.pumpWidget(app(service, scope: 3, saveFile: save));
     await tester.pumpAndSettle();

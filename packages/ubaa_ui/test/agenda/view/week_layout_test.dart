@@ -1,41 +1,47 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'flow_test.dart' show app, opened;
+import 'package:ubaa_ui/src/features/agenda/week_content.dart';
+import '../flow_test.dart' show app, opened;
 import 'view_modes_test.dart' show at, course, reveal;
-import 'support.dart';
+import '../support.dart';
 
 void main() {
   testWidgets('列表翻周保留范围内其他日期的事项，选日筛选仍可单独开启', (tester) async {
-    final backend = MemoryAgenda();
-    final service = await opened(backend);
-    await service.create(
-      AgendaDraft(
-        content: AgendaContent(
-          kind: AgendaKind.task,
-          title: '十三日待办',
-          allDay: false,
-          due: at(13, 18),
+    final semantics = tester.ensureSemantics();
+    try {
+      final backend = MemoryAgenda();
+      final service = await opened(backend);
+      await service.create(
+        AgendaDraft(
+          content: AgendaContent(
+            kind: AgendaKind.task,
+            title: '十三日待办',
+            allDay: false,
+            due: at(13, 18),
+          ),
+          exdates: [],
         ),
-        exdates: [],
-      ),
-      at(1, 9),
-    );
-    await tester.pumpWidget(app(service));
-    await tester.pumpAndSettle();
-    expect(find.text('十三日待办'), findsOneWidget);
-    await tester.tap(find.byTooltip('下一周'));
-    await tester.pumpAndSettle();
-    expect(find.text('十三日待办'), findsOneWidget);
-    await tester.tap(find.byTooltip('上一周'));
-    await tester.pumpAndSettle();
-    expect(find.text('十三日待办'), findsOneWidget);
-    await tester.tap(find.widgetWithText(ChoiceChip, '四\n11/5'));
-    await tester.pumpAndSettle();
-    expect(find.text('十三日待办'), findsNothing);
-    await tester.tap(find.text('显示全部日期'));
-    await tester.pumpAndSettle();
-    expect(find.text('十三日待办'), findsOneWidget);
+        at(1, 9),
+      );
+      await tester.pumpWidget(app(service));
+      await tester.pumpAndSettle();
+      expect(find.text('十三日待办'), findsOneWidget);
+      await tester.tap(find.byTooltip('下一周'));
+      await tester.pumpAndSettle();
+      expect(find.text('十三日待办'), findsOneWidget);
+      await tester.tap(find.byTooltip('上一周'));
+      await tester.pumpAndSettle();
+      expect(find.text('十三日待办'), findsOneWidget);
+      await tester.tap(find.bySemanticsLabel('周四 11月5日'));
+      await tester.pumpAndSettle();
+      expect(find.text('十三日待办'), findsNothing);
+      await tester.tap(find.text('显示全部日期'));
+      await tester.pumpAndSettle();
+      expect(find.text('十三日待办'), findsOneWidget);
+    } finally {
+      semantics.dispose();
+    }
   });
 
   testWidgets('周视图顶部的全天事项也显示课程冲突', (tester) async {
@@ -160,5 +166,61 @@ void main() {
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
     expect(find.text('后续周的待办'), findsOneWidget);
+  });
+
+  testWidgets('窄屏周视图七列完整可见且无需横向滚动，每天均可点选', (tester) async {
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    final selected = <DateTime>[];
+    final semantics = tester.ensureSemantics();
+    try {
+      for (final width in [320.0, 402.0]) {
+        tester.view.physicalSize = Size(width, 874);
+        await tester.pumpWidget(
+          MaterialApp(
+            home: Scaffold(
+              body: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 16),
+                child: AgendaWeekContent(
+                  date: DateTime.utc(2026, 11, 5),
+                  entries: const [],
+                  allEntries: const [],
+                  onOpen: (_) {},
+                  onDate: selected.add,
+                ),
+              ),
+            ),
+          ),
+        );
+        await tester.pumpAndSettle();
+        final bounds = tester.getRect(find.byType(AgendaWeekContent));
+        for (var index = 0; index < 7; index++) {
+          final day = DateTime.utc(2026, 11, 2 + index);
+          final header = find.bySemanticsLabel(
+            '周${['一', '二', '三', '四', '五', '六', '日'][index]} 11月${day.day}日',
+          );
+          final rect = tester.getRect(header);
+          expect(rect.left, greaterThanOrEqualTo(bounds.left));
+          expect(rect.right, lessThanOrEqualTo(bounds.right + .001));
+          expect(rect.width, closeTo((bounds.width - 40) / 7, .001));
+          await tester.tap(header);
+          expect(selected.last, day);
+        }
+        for (final scrollable in tester.stateList<ScrollableState>(
+          find.descendant(
+            of: find.byType(AgendaWeekContent),
+            matching: find.byType(Scrollable),
+          ),
+        )) {
+          if (scrollable.position.axis == Axis.horizontal) {
+            expect(scrollable.position.maxScrollExtent, 0);
+          }
+        }
+        expect(tester.takeException(), isNull);
+      }
+    } finally {
+      semantics.dispose();
+    }
   });
 }

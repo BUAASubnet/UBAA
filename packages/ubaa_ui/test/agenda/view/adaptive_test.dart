@@ -3,10 +3,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'flow_test.dart' show app, opened;
-import 'actions_test.dart' show saveEditor;
+import '../flow_test.dart' show app, opened;
+import '../editor/actions_test.dart' show saveEditor;
 import 'view_modes_test.dart' show course, reveal;
-import 'support.dart';
+import '../support.dart';
+import 'view_support.dart';
+import '../editor/pickers_support.dart';
 
 void viewport(WidgetTester tester, Size size) {
   tester.view.physicalSize = size;
@@ -21,7 +23,7 @@ void main() {
     final actual = await opened(backend);
     await tester.pumpWidget(app(actual));
     await tester.pumpAndSettle();
-    final search = find.widgetWithText(TextField, '搜索日程');
+    final search = await openAgendaSearch(tester);
     await reveal(tester, search);
     await tester.enterText(search, '课程 安排');
     final original = backend.lastQuery!.to;
@@ -31,8 +33,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(backend.lastQuery!.to, original, reason: '编辑搜索文字时保留平台的词语导航');
     FocusManager.instance.primaryFocus?.unfocus();
-    await reveal(tester, find.text('今天'), fromTop: true);
-    Focus.of(tester.element(find.text('今天'))).requestFocus();
+    final next = find.byTooltip('下一周');
+    Focus.of(tester.element(next)).requestFocus();
     await tester.pumpAndSettle();
     await tester.sendKeyDownEvent(LogicalKeyboardKey.altLeft);
     await tester.sendKeyEvent(LogicalKeyboardKey.arrowRight);
@@ -41,7 +43,7 @@ void main() {
     expect(backend.lastQuery!.to, isNot(original));
   });
 
-  testWidgets('手机周视图初始显示焦点日期，刷新不夺回手动滚动位置', (tester) async {
+  testWidgets('手机周视图七天完整显示，刷新保留手动时间滚动位置', (tester) async {
     viewport(tester, const Size(360, 850));
     final backend = MemoryAgenda()..school.add(course());
     final service = await opened(backend);
@@ -50,11 +52,6 @@ void main() {
     await tester.tap(find.text('周'));
     await tester.pumpAndSettle();
     final grid = find.byKey(const ValueKey('agenda-week-grid'));
-    await tester.drag(
-      find.byKey(const ValueKey('agenda-main-scroll')),
-      const Offset(0, -500),
-    );
-    await tester.pumpAndSettle();
     expect(
       find.text('合成课程时段').hitTestable(),
       findsOneWidget,
@@ -62,7 +59,6 @@ void main() {
     );
     await tester.drag(grid, const Offset(500, 0));
     await tester.pumpAndSettle();
-    expect(find.text('合成课程时段').hitTestable(), findsNothing);
     final horizontal = find
         .ancestor(
           of: grid,
@@ -73,6 +69,10 @@ void main() {
           ),
         )
         .first;
+    expect(
+      tester.state<ScrollableState>(horizontal).position.maxScrollExtent,
+      0,
+    );
     final scrolledDate = tester
         .state<ScrollableState>(horizontal)
         .position
@@ -101,17 +101,12 @@ void main() {
     expect(scrolledTime, greaterThan(previousTime));
     final snapshot = await backend.query(backend.lastQuery!);
     backend.gate = Completer<AgendaQueryResult>();
-    await reveal(tester, find.text('刷新本机数据'), fromTop: true);
+    await tester.tap(find.byTooltip('更多日程操作'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('刷新本机数据'));
     await tester.pump();
     backend.gate!.complete(snapshot);
     await tester.pumpAndSettle();
-    await tester.drag(
-      find.byKey(const ValueKey('agenda-main-scroll')),
-      const Offset(0, -500),
-    );
-    await tester.pumpAndSettle();
-    expect(find.text('合成课程时段').hitTestable(), findsNothing);
     expect(
       tester.state<ScrollableState>(horizontal).position.pixels,
       closeTo(scrolledDate, .01),
@@ -137,8 +132,7 @@ void main() {
       find.descendant(of: pane, matching: find.text('学校状态：已缓存')),
       findsOneWidget,
     );
-    await tester.tap(find.text('刷新本机数据'));
-    await tester.pumpAndSettle();
+    await selectAgendaMenu(tester, '刷新本机数据');
     expect(
       find.descendant(of: pane, matching: find.text('学校状态：已缓存')),
       findsOneWidget,
@@ -177,7 +171,7 @@ void main() {
       app(service, textScaler: const TextScaler.linear(1.8)),
     );
     await tester.pumpAndSettle();
-    final search = find.widgetWithText(TextField, '搜索日程');
+    final search = await openAgendaSearch(tester);
     await reveal(tester, search);
     expect(MediaQuery.textScalerOf(tester.element(search)).scale(10), 18);
     await tester.enterText(search, '合成课程');
@@ -195,11 +189,18 @@ void main() {
     await tester.pumpAndSettle();
     await reveal(tester, search, fromTop: true);
     expect(tester.widget<TextField>(search).controller!.text, '合成课程');
+    final contentBeforeKeyboard = tester.getRect(
+      find.byKey(const ValueKey('agenda-main-scroll')),
+    );
     tester.view.viewInsets = const FakeViewPadding(bottom: 280);
     addTearDown(tester.view.resetViewInsets);
     await tester.pumpAndSettle();
     expect(
       tester.getSize(find.byKey(const ValueKey('agenda-main-scroll'))).height,
+      contentBeforeKeyboard.height - 280,
+    );
+    expect(
+      tester.getRect(find.byKey(const ValueKey('agenda-main-scroll'))).bottom,
       570,
     );
     expect(tester.takeException(), isNull);
@@ -210,23 +211,23 @@ void main() {
     final service = await opened(backend);
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('新建事项'));
+    await tester.tap(find.byKey(const ValueKey('agenda-create')));
     await tester.pumpAndSettle();
     await tester.enterText(find.byKey(const ValueKey('agenda-title')), '旧路线安排');
-    await tester.enterText(
-      find.byKey(const ValueKey('agenda-start')),
-      '2026-11-05 10:00',
-    );
-    await tester.enterText(
-      find.byKey(const ValueKey('agenda-end')),
-      '2026-11-05 11:00',
-    );
+    await setEditorTime(tester, 'start', 10, 0);
+    await setEditorTime(tester, 'end', 11, 0);
     await saveEditor(tester);
     expect(find.text('与已缓存课程重叠'), findsOneWidget);
     await tester.pumpWidget(app(service, scope: 2));
     await tester.pumpAndSettle();
-    expect(find.text('仍然保存'), findsNothing);
-    expect(find.text('保存事项'), findsNothing);
+    expect(
+      tester
+          .widget<FloatingActionButton>(
+            find.byKey(const ValueKey('agenda-create')),
+          )
+          .onPressed,
+      isNotNull,
+    );
     expect(backend.writes, 0);
   });
 }

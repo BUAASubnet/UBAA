@@ -23,20 +23,26 @@ class AgendaMonthCalendar extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           Padding(
-            padding: const EdgeInsets.symmetric(vertical: 12),
-            child: Text(
-              '${date.year}年${date.month}月',
-              style: Theme.of(context).textTheme.titleMedium,
+            padding: const EdgeInsets.only(top: 4, bottom: 4),
+            child: Row(
+              children: [
+                for (final label in ['一', '二', '三', '四', '五', '六', '日'])
+                  Expanded(
+                    child: Center(
+                      child: Text(
+                        label,
+                        style: Theme.of(context).textTheme.labelSmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
             ),
-          ),
-          Row(
-            children: [
-              for (final label in ['一', '二', '三', '四', '五', '六', '日'])
-                Expanded(child: Center(child: Text(label))),
-            ],
           ),
           GridView.builder(
             key: const ValueKey('agenda-month-calendar'),
+            padding: EdgeInsets.zero,
             shrinkWrap: true,
             primary: false,
             physics: const NeverScrollableScrollPhysics(),
@@ -44,7 +50,12 @@ class AgendaMonthCalendar extends StatelessWidget {
               crossAxisCount: 7,
               mainAxisExtent: math.max(48, 44 * scale),
             ),
-            itemCount: 42,
+            itemCount:
+                7 *
+                ((DateTime.utc(date.year, date.month).difference(first).inDays +
+                        DateUtils.getDaysInMonth(date.year, date.month) +
+                        6) ~/
+                    7),
             itemBuilder: (context, index) {
               final day = first.add(Duration(days: index));
               final count = entries.where((e) => agendaOnDay(e, day)).length;
@@ -77,7 +88,7 @@ class AgendaMonthCalendar extends StatelessWidget {
                                   ? colors.onPrimaryContainer
                                   : day.month == date.month
                                   ? colors.onSurface
-                                  : colors.onSurfaceVariant,
+                                  : colors.outlineVariant,
                               fontWeight: selected ? FontWeight.bold : null,
                             ),
                           ),
@@ -116,33 +127,139 @@ class AgendaDateStrip extends StatelessWidget {
     required this.date,
     required this.entries,
     required this.onSelected,
+    this.today,
+    this.onSwipe,
+    this.colorOf,
   });
   final DateTime date;
+  final DateTime? today;
   final List<AgendaEntry> entries;
   final ValueChanged<DateTime> onSelected;
+  final ValueChanged<int>? onSwipe;
+  final Color Function(AgendaEntry)? colorOf;
+  static const _weekdays = ['一', '二', '三', '四', '五', '六', '日'];
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
     final monday = agendaWeekStart(date);
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
+    return GestureDetector(
+      behavior: HitTestBehavior.translucent,
+      onHorizontalDragEnd: onSwipe == null
+          ? null
+          : (details) {
+              final v = details.primaryVelocity ?? 0;
+              if (v.abs() > 200) onSwipe!(v < 0 ? 1 : -1);
+            },
       child: Row(
         children: [
           for (var i = 0; i < 7; i++)
-            Builder(
-              builder: (context) {
-                final day = monday.add(Duration(days: i));
-                final selected = agendaDay(date) == day;
-                return Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 2),
-                  child: ChoiceChip(
-                    label: Text(
-                      '${['一', '二', '三', '四', '五', '六', '日'][i]}\n${day.month}/${day.day}${entries.any((e) => agendaOnDay(e, day)) ? ' ·' : ''}',
-                    ),
+            Expanded(
+              child: Builder(
+                builder: (context) {
+                  final day = monday.add(Duration(days: i));
+                  final selected = agendaDay(date) == day;
+                  final isToday = today != null && agendaDay(today!) == day;
+                  final dayEntries = entries
+                      .where((e) => agendaOnDay(e, day))
+                      .take(3)
+                      .toList();
+                  final weekend = i >= 5;
+                  final Color circle = isToday
+                      ? colors.primary
+                      : selected
+                      ? colors.primaryContainer
+                      : Colors.transparent;
+                  final Color number = isToday
+                      ? colors.onPrimary
+                      : selected
+                      ? colors.onPrimaryContainer
+                      : weekend
+                      ? colors.onSurfaceVariant
+                      : colors.onSurface;
+                  return Semantics(
+                    button: true,
                     selected: selected,
-                    onSelected: (_) => onSelected(day),
-                  ),
-                );
-              },
+                    label:
+                        '周${_weekdays[i]} ${day.month}月${day.day}日${dayEntries.isEmpty ? '' : '，有事项'}',
+                    excludeSemantics: true,
+                    child: InkWell(
+                      borderRadius: BorderRadius.circular(16),
+                      onTap: () => onSelected(day),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 6),
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              _weekdays[i],
+                              style: theme.textTheme.labelSmall?.copyWith(
+                                color: isToday
+                                    ? colors.primary
+                                    : colors.onSurfaceVariant,
+                                fontWeight: isToday
+                                    ? FontWeight.w700
+                                    : FontWeight.w500,
+                              ),
+                            ),
+                            const SizedBox(height: 6),
+                            AnimatedContainer(
+                              duration: const Duration(milliseconds: 180),
+                              width: 36,
+                              height: 36,
+                              alignment: Alignment.center,
+                              decoration: BoxDecoration(
+                                color: circle,
+                                shape: BoxShape.circle,
+                                border: selected && isToday
+                                    ? Border.all(
+                                        color: colors.primaryContainer,
+                                        width: 3,
+                                      )
+                                    : null,
+                              ),
+                              child: Text(
+                                '${day.day}',
+                                style: theme.textTheme.titleMedium?.copyWith(
+                                  color: number,
+                                  fontWeight: isToday || selected
+                                      ? FontWeight.w700
+                                      : FontWeight.w500,
+                                  fontFeatures: const [
+                                    FontFeature.tabularFigures(),
+                                  ],
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 5),
+                            SizedBox(
+                              height: 5,
+                              child: Row(
+                                mainAxisAlignment: MainAxisAlignment.center,
+                                children: [
+                                  for (final e in dayEntries)
+                                    Container(
+                                      width: 5,
+                                      height: 5,
+                                      margin: const EdgeInsets.symmetric(
+                                        horizontal: 1.5,
+                                      ),
+                                      decoration: BoxDecoration(
+                                        shape: BoxShape.circle,
+                                        color:
+                                            colorOf?.call(e) ?? colors.primary,
+                                      ),
+                                    ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  );
+                },
+              ),
             ),
         ],
       ),

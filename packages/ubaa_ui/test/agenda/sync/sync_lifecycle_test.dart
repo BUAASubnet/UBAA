@@ -3,7 +3,8 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/features/agenda/view.dart';
-import 'support.dart';
+import '../support.dart';
+import '../data_sheet_support.dart';
 
 const merged = AgendaSyncReport(
   status: AgendaSyncStatus.upToDate,
@@ -111,6 +112,7 @@ void main() {
     await service.openAccount('fixture-a');
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
+    await openAgendaDataSheet(tester);
     await tester.tap(find.widgetWithText(TextButton, '创建云端日程'));
     await tester.pumpAndSettle();
     expect(find.text('确认创建'), findsNothing);
@@ -125,6 +127,7 @@ void main() {
     await service.openAccount('fixture-a');
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
+    await openAgendaDataSheet(tester);
     backend.pullError = StateError('合成路线不可用');
     await expectLater(
       service.sync(AgendaSyncAction.pull, time),
@@ -163,9 +166,11 @@ void main() {
     };
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
+    await openAgendaDataSheet(tester);
     await tester.tap(find.widgetWithText(TextButton, '同步'));
     await tester.pumpAndSettle();
-    expect(find.text('上传失败前已合并的事项'), findsOneWidget);
+    await closeAgendaDataSheet(tester);
+    expect(find.text('上传失败前已合并的事项').hitTestable(), findsOneWidget);
     expect(backend.calls.map((call) => call.$2), [
       AgendaSyncAction.pull,
       AgendaSyncAction.push,
@@ -178,6 +183,7 @@ void main() {
     await service.openAccount('fixture-a');
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
+    await openAgendaDataSheet(tester);
     await tester.tap(find.widgetWithText(TextButton, '创建云端日程'));
     await tester.pumpAndSettle();
     expect(find.text('确认创建'), findsOneWidget);
@@ -201,6 +207,7 @@ void main() {
     await service.openAccount('fixture-a');
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
+    await openAgendaDataSheet(tester);
     await tester.tap(find.widgetWithText(TextButton, '创建云端日程'));
     await tester.pumpAndSettle();
     expect(find.text('确认创建'), findsOneWidget);
@@ -259,7 +266,7 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('新建事项'));
+    await tester.tap(find.byKey(const ValueKey('agenda-create')));
     await tester.pumpAndSettle();
     await tester.tap(find.text('待办'));
     await tester.pumpAndSettle();
@@ -272,17 +279,7 @@ void main() {
     expect(tester.widget<TextFormField>(title).controller!.text, '未保存的合成草稿');
     FocusManager.instance.primaryFocus?.unfocus();
     await tester.pumpAndSettle();
-    await tester.scrollUntilVisible(
-      find.text('保存事项'),
-      250,
-      scrollable: find
-          .descendant(
-            of: find.byKey(const ValueKey('agenda-editor-list')),
-            matching: find.byType(Scrollable),
-          )
-          .first,
-    );
-    await tester.tap(find.text('保存事项'));
+    await tester.tap(find.byKey(const ValueKey('agenda-editor-save')));
     await tester.pumpAndSettle();
     expect(backend.items.values.single.content.title, '未保存的合成草稿');
   });

@@ -105,6 +105,124 @@ class _AgendaEditorState extends State<AgendaEditor> {
           : null,
     ),
   );
+  static const _weekdays = ['一', '二', '三', '四', '五', '六', '日'];
+
+  /// 日期/时间选择行：点按胶囊打开系统选择器，结果写回原有文本控制器，沿用既有解析与校验。
+  Widget timeField(
+    String key,
+    String label,
+    String initial, {
+    bool dateOnly = false,
+  }) {
+    final controller = field(key, initial);
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    DateTime current() =>
+        DateTime.tryParse(controller.text.trim().replaceFirst(' ', 'T')) ??
+        widget.now;
+    void write(DateTime v) =>
+        setState(() => controller.text = initialTime(null, v));
+    Future<void> pickDate() async {
+      final c = current();
+      final picked = await showDatePicker(
+        context: context,
+        initialDate: c,
+        firstDate: DateTime(2000),
+        lastDate: DateTime(2100),
+        builder: (_, child) => widget.boundary(child!),
+      );
+      if (picked == null || !mounted || !widget.isCurrent()) return;
+      write(DateTime(picked.year, picked.month, picked.day, c.hour, c.minute));
+    }
+
+    Future<void> pickTime() async {
+      final c = current();
+      final picked = await showTimePicker(
+        context: context,
+        initialTime: TimeOfDay(hour: c.hour, minute: c.minute),
+        builder: (context, child) => widget.boundary(
+          MediaQuery(
+            data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true),
+            child: child!,
+          ),
+        ),
+      );
+      if (picked == null || !mounted || !widget.isCurrent()) return;
+      write(DateTime(c.year, c.month, c.day, picked.hour, picked.minute));
+    }
+
+    Widget pill(String text, VoidCallback? onTap, String semantics, Key key) =>
+        Semantics(
+          button: true,
+          label: '$label$semantics',
+          excludeSemantics: true,
+          child: Material(
+            color: colors.surfaceContainerHighest,
+            borderRadius: BorderRadius.circular(10),
+            child: InkWell(
+              key: key,
+              borderRadius: BorderRadius.circular(10),
+              onTap: onTap,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 12,
+                  vertical: 10,
+                ),
+                child: Text(
+                  text,
+                  style: theme.textTheme.bodyLarge?.copyWith(
+                    fontFeatures: const [FontFeature.tabularFigures()],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        );
+    final v = current();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 6),
+      child: OverflowBar(
+        alignment: MainAxisAlignment.spaceBetween,
+        overflowAlignment: OverflowBarAlignment.end,
+        spacing: 12,
+        overflowSpacing: 8,
+        children: [
+          Text(label, style: theme.textTheme.bodyLarge),
+          Wrap(
+            alignment: WrapAlignment.end,
+            spacing: 8,
+            runSpacing: 8,
+            children: [
+              pill(
+                '${v.month}月${v.day}日 周${_weekdays[v.weekday - 1]}',
+                _busy ? null : pickDate,
+                '日期',
+                ValueKey('agenda-$key-date'),
+              ),
+              if (!dateOnly)
+                pill(
+                  '${v.hour.toString().padLeft(2, '0')}:${v.minute.toString().padLeft(2, '0')}',
+                  _busy ? null : pickTime,
+                  '时间',
+                  ValueKey('agenda-$key-time'),
+                ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget section(List<Widget> children) => Container(
+    margin: const EdgeInsets.only(bottom: 16),
+    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+    decoration: BoxDecoration(
+      color: Theme.of(context).colorScheme.surfaceContainerLow,
+      borderRadius: BorderRadius.circular(16),
+    ),
+    child: Column(children: children),
+  );
+
   Future<void> save() async {
     if (!_form.currentState!.validate() || _busy || !widget.isCurrent()) return;
     setState(() {
@@ -295,7 +413,10 @@ class _AgendaEditorState extends State<AgendaEditor> {
         widget.item?.rrule != null &&
         widget.scope == AgendaEditScope.thisOccurrence;
     return Scaffold(
-      appBar: AppBar(title: Text(widget.item == null ? '新建事项' : '编辑事项')),
+      appBar: AppBar(
+        title: Text(widget.item == null ? '新建事项' : '编辑事项'),
+        centerTitle: false,
+      ),
       body: Form(
         key: _form,
         child: ListView(
@@ -314,35 +435,48 @@ class _AgendaEditorState extends State<AgendaEditor> {
             ),
             const SizedBox(height: 20),
             text('title', '标题', content?.title ?? '', required: true),
-            if (_kind == AgendaKind.event) ...[
-              SwitchListTile(
-                title: const Text('全天'),
-                value: _allDay,
-                onChanged: _busy ? null : (v) => setState(() => _allDay = v),
-              ),
-              text(
-                'start',
-                '开始时间（YYYY-MM-DD HH:mm）',
-                initialTime(content?.start, now),
-              ),
-              text(
-                'end',
-                '结束时间（全天为次日零点）',
-                initialTime(content?.end, now.add(const Duration(hours: 1))),
-              ),
-            ] else ...[
-              SwitchListTile(
-                title: const Text('无日期待办'),
-                value: _undated,
-                onChanged: _busy ? null : (v) => setState(() => _undated = v),
-              ),
-              if (!_undated)
-                text(
-                  'due',
-                  '截止时间（YYYY-MM-DD HH:mm）',
-                  initialTime(content?.due, now.add(const Duration(hours: 1))),
+            if (_kind == AgendaKind.event)
+              section([
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('全天'),
+                  value: _allDay,
+                  onChanged: _busy ? null : (v) => setState(() => _allDay = v),
                 ),
-            ],
+                const Divider(height: 1),
+                timeField(
+                  'start',
+                  '开始',
+                  initialTime(content?.start, now),
+                  dateOnly: _allDay,
+                ),
+                timeField(
+                  'end',
+                  _allDay ? '结束（次日零点）' : '结束',
+                  initialTime(content?.end, now.add(const Duration(hours: 1))),
+                  dateOnly: _allDay,
+                ),
+              ])
+            else
+              section([
+                SwitchListTile.adaptive(
+                  contentPadding: EdgeInsets.zero,
+                  title: const Text('无日期待办'),
+                  value: _undated,
+                  onChanged: _busy ? null : (v) => setState(() => _undated = v),
+                ),
+                if (!_undated) ...[
+                  const Divider(height: 1),
+                  timeField(
+                    'due',
+                    '截止',
+                    initialTime(
+                      content?.due,
+                      now.add(const Duration(hours: 1)),
+                    ),
+                  ),
+                ],
+              ]),
             if (!single) ...[
               DropdownButtonFormField<String>(
                 initialValue: _repeat,
@@ -437,12 +571,22 @@ class _AgendaEditorState extends State<AgendaEditor> {
                 _error!,
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
-            FilledButton(
-              onPressed: _busy ? null : save,
-              child: Text(_busy ? '保存中…' : '保存事项'),
+            Text(
+              '所有时间均为北京时间。重复事项按校园时区展开。',
+              style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                color: Theme.of(context).colorScheme.onSurfaceVariant,
+              ),
             ),
-            const Text('所有时间均为北京时间。重复事项按校园时区展开。'),
           ],
+        ),
+      ),
+      bottomNavigationBar: SafeArea(
+        minimum: const EdgeInsets.fromLTRB(20, 8, 20, 12),
+        child: FilledButton(
+          key: const ValueKey('agenda-editor-save'),
+          style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(50)),
+          onPressed: _busy ? null : save,
+          child: Text(_busy ? '保存中…' : '保存事项'),
         ),
       ),
     );

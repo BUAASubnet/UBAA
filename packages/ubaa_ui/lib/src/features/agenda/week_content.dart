@@ -64,35 +64,56 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
             '${agendaTitle(entry)} · ${agendaWhen(entry)}${conflict ? ' · 与课程重叠' : ''}',
         child: Material(
           color: color,
-          borderRadius: BorderRadius.circular(6),
+          borderRadius: BorderRadius.circular(5),
           clipBehavior: Clip.antiAlias,
           child: InkWell(
             onTap: () => widget.onOpen(entry),
-            child: Padding(
-              padding: const EdgeInsets.all(4),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Flexible(
-                    child: Text(
-                      agendaTitle(entry),
-                      maxLines: 3,
-                      overflow: TextOverflow.ellipsis,
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: 12,
-                        fontWeight: FontWeight.w600,
-                        color:
-                            ThemeData.estimateBrightnessForColor(color) ==
-                                Brightness.dark
-                            ? Colors.white
-                            : Colors.black87,
+            child: Builder(
+              builder: (context) {
+                final fg =
+                    ThemeData.estimateBrightnessForColor(color) ==
+                        Brightness.dark
+                    ? Colors.white
+                    : Colors.black87;
+                final place =
+                    entry.local?.content.location ?? entry.school?.location;
+                return Padding(
+                  padding: const EdgeInsets.fromLTRB(3, 3, 2, 2),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Flexible(
+                        child: Text(
+                          agendaTitle(entry),
+                          maxLines: 4,
+                          overflow: TextOverflow.ellipsis,
+                          style: TextStyle(
+                            fontSize: 10.5,
+                            height: 1.2,
+                            fontWeight: FontWeight.w600,
+                            color: fg,
+                          ),
+                        ),
                       ),
-                    ),
+                      if (place?.isNotEmpty == true)
+                        Flexible(
+                          child: Text(
+                            '@$place',
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: TextStyle(
+                              fontSize: 9.5,
+                              height: 1.2,
+                              color: fg.withValues(alpha: .85),
+                            ),
+                          ),
+                        ),
+                      if (conflict)
+                        Icon(Icons.event_busy_outlined, size: 12, color: fg),
+                    ],
                   ),
-                  if (conflict) const Icon(Icons.event_busy_outlined, size: 14),
-                ],
-              ),
+                );
+              },
             ),
           ),
         ),
@@ -129,6 +150,24 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
         ));
       }
       slots.sort((a, b) => a.start.compareTo(b.start));
+      for (var k = slots.length - 1; k > 0; k--) {
+        final prev = slots[k - 1], next = slots[k];
+        if (!agendaCourseContinues(
+          prev.entry,
+          prev.end,
+          next.entry,
+          next.start,
+        ))
+          continue;
+        final minimum = prev.start.add(const Duration(minutes: 30));
+        slots[k - 1] = (
+          entry: prev.entry,
+          start: prev.start,
+          end: next.end,
+          displayEnd: minimum.isAfter(next.end) ? minimum : next.end,
+        );
+        slots.removeAt(k);
+      }
       var cursor = 0;
       while (cursor < slots.length) {
         final group = <_Slot>[slots[cursor++]];
@@ -179,11 +218,8 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
   Widget build(BuildContext context) => LayoutBuilder(
     builder: (context, constraints) {
       final scale = MediaQuery.textScalerOf(context).scale(12) / 12;
-      final width = math.max(
-        constraints.maxWidth,
-        7 * 112 * scale + 54 * scale,
-      );
-      final axis = 54 * scale, hourHeight = 64 * scale;
+      final axis = 40 * scale, hourHeight = 56 * scale;
+      final width = constraints.maxWidth;
       final column = (width - axis) / 7;
       if (lastViewport != constraints.maxWidth || lastColumn != column) {
         focusPositioned = false;
@@ -273,13 +309,17 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
                           for (var i = 0; i < 7; i++)
                             SizedBox(
                               width: column,
-                              child: TextButton(
-                                onPressed: () => widget.onDate(
+                              child: _WeekHeaderDay(
+                                day: monday.add(Duration(days: i)),
+                                index: i,
+                                selected:
+                                    agendaDay(widget.date) ==
+                                    monday.add(Duration(days: i)),
+                                today:
+                                    agendaDay(campusToday()) ==
+                                    monday.add(Duration(days: i)),
+                                onTap: () => widget.onDate(
                                   monday.add(Duration(days: i)),
-                                ),
-                                child: Text(
-                                  '周${['一', '二', '三', '四', '五', '六', '日'][i]}\n${monday.add(Duration(days: i)).month}/${monday.add(Duration(days: i)).day}',
-                                  textAlign: TextAlign.center,
                                 ),
                               ),
                             ),
@@ -338,4 +378,75 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
       );
     },
   );
+}
+
+DateTime campusToday() => agendaDay(campusDate(DateTime.now()));
+
+class _WeekHeaderDay extends StatelessWidget {
+  const _WeekHeaderDay({
+    required this.day,
+    required this.index,
+    required this.selected,
+    required this.today,
+    required this.onTap,
+  });
+  final DateTime day;
+  final int index;
+  final bool selected, today;
+  final VoidCallback onTap;
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    return Semantics(
+      button: true,
+      selected: selected,
+      label:
+          '周${['一', '二', '三', '四', '五', '六', '日'][index]} ${day.month}月${day.day}日',
+      excludeSemantics: true,
+      child: InkWell(
+        borderRadius: BorderRadius.circular(10),
+        onTap: onTap,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(vertical: 4),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                ['一', '二', '三', '四', '五', '六', '日'][index],
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: today ? colors.primary : colors.onSurfaceVariant,
+                ),
+              ),
+              const SizedBox(height: 2),
+              Container(
+                width: 28,
+                height: 28,
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  color: today
+                      ? colors.primary
+                      : selected
+                      ? colors.primaryContainer
+                      : null,
+                ),
+                child: Text(
+                  '${day.day}',
+                  style: theme.textTheme.labelLarge?.copyWith(
+                    fontWeight: FontWeight.w700,
+                    color: today
+                        ? colors.onPrimary
+                        : selected
+                        ? colors.onPrimaryContainer
+                        : colors.onSurface,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
 }
