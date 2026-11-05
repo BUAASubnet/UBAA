@@ -15,6 +15,16 @@ pub(super) struct AgendaData {
     pub items: BTreeMap<Uuid, AgendaItem>,
     pub overlays: BTreeMap<String, SchoolAgendaOverlay>,
     pub(super) active: bool,
+    pub(super) sync: super::sync::SyncState,
+}
+impl AgendaData {
+    fn clear_local_rows(&mut self) -> CacheResult<()> {
+        self.sync.advance_epoch()?;
+        self.sync.pending = None;
+        self.items.clear();
+        self.overlays.clear();
+        Ok(())
+    }
 }
 struct Repository {
     db: Connection,
@@ -63,6 +73,15 @@ impl AgendaStore {
     pub(crate) fn account_alias(&self) -> &str {
         &self.account_alias
     }
+    pub(crate) fn matches_sync_guard(
+        &self,
+        guard: Option<&crate::facade::SharedAccountGuard>,
+    ) -> bool {
+        self.guard
+            .as_ref()
+            .zip(guard)
+            .is_some_and(|(left, right)| left.same_scope(right))
+    }
     pub(super) fn access<T>(
         &self,
         require_active: bool,
@@ -92,6 +111,7 @@ impl AgendaStore {
         }
         let result = f(&mut data)?;
         if let Some(before) = before {
+            super::sync::track_local_changes(&before, &mut data)?;
             super::sqlite::save(&tx, &before, &data)?;
         }
         tx.commit()?;
@@ -137,8 +157,7 @@ impl AgendaStore {
         self.access(true, true, |d| {
             let n = d.items.values().filter(|v| v.locally_modified).count()
                 + d.overlays.values().filter(|v| v.locally_modified).count();
-            d.items.clear();
-            d.overlays.clear();
+            d.clear_local_rows()?;
             Ok(n)
         })
     }
@@ -157,8 +176,7 @@ impl AgendaStore {
             if count != expected {
                 return Err(CacheError::InvalidInput);
             }
-            data.items.clear();
-            data.overlays.clear();
+            data.clear_local_rows()?;
             Ok(count)
         })
     }

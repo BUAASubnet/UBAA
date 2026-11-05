@@ -90,12 +90,17 @@ impl UbaaClient {
     }
     fn bhpan_scope(&mut self) -> Result<()> {
         self.direct_runtime.ensure_primary_client()?;
-        let resolution = self
-            .resolve_operation(Operation::Bhpan)
-            .map_err(|e| e.error)?;
-        if resolution.mode != ConnectionMode::Direct {
-            return Err(auth::unavailable());
+        let result = self.resolve_operation(Operation::Bhpan);
+        if let Some(expected) = super::agenda_sync::confirmed_agenda_route() {
+            let actual = match &result {
+                Ok(resolution) => Some(resolution.mode),
+                Err(error) => error.resolution.map(|resolution| resolution.mode),
+            };
+            if actual.is_some_and(|actual| actual != expected) {
+                return Err(UbaaError::agenda_creation_route_changed());
+            }
         }
+        result.map_err(|error| error.error)?;
         let binding = self.bhpan_binding();
         if self.bhpan.binding.as_ref() != Some(&binding) {
             *self.bhpan = state::BhpanState::default();

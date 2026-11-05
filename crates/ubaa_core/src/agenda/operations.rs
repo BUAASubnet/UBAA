@@ -279,16 +279,7 @@ impl AgendaStore {
             .datetime
             .checked_sub_signed(Duration::days(180))
             .ok_or(CacheError::InvalidInput)?;
-        self.access(true, true, |d| {
-            let n = d.items.len() + d.overlays.len();
-            d.items.retain(|_, v| {
-                v.locally_modified || v.deleted_at.is_none_or(|t| t.datetime >= cutoff)
-            });
-            d.overlays.retain(|_, v| {
-                v.locally_modified || v.deleted_at.is_none_or(|t| t.datetime >= cutoff)
-            });
-            Ok(n - d.items.len() - d.overlays.len())
-        })
+        self.access(true, true, |d| Ok(purge_before(d, cutoff)))
     }
 }
 pub(super) fn overlay_key(key: &SchoolAgendaKey) -> CacheResult<String> {
@@ -321,4 +312,18 @@ fn occurrence_key(item: &AgendaItem, at: Option<AgendaTime>) -> CacheResult<Stri
     let key = at.recurrence_id();
     parse_id(&key)?;
     Ok(key)
+}
+
+pub(super) fn purge_before(
+    data: &mut super::store::AgendaData,
+    cutoff: chrono::DateTime<chrono::FixedOffset>,
+) -> usize {
+    let count = data.items.len() + data.overlays.len();
+    data.items.retain(|_, value| {
+        value.locally_modified || value.deleted_at.is_none_or(|time| time.datetime >= cutoff)
+    });
+    data.overlays.retain(|_, value| {
+        value.locally_modified || value.deleted_at.is_none_or(|time| time.datetime >= cutoff)
+    });
+    count - data.items.len() - data.overlays.len()
 }

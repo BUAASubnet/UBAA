@@ -73,6 +73,7 @@ enum ErrorCause {
     SessionConflict,
     SharedAccountConflict,
     ClientClosed,
+    AgendaCreationRouteChanged,
     Initialization(InitializationFailure),
 }
 
@@ -191,6 +192,16 @@ impl UbaaError {
             message: message.into(),
             cause: None,
         }
+    }
+
+    pub(crate) fn agenda_creation_route_changed() -> Self {
+        let mut error = Self::invalid_input("日程同步路线已变化，请重新拉取并确认");
+        error.cause = Some(ErrorCause::AgendaCreationRouteChanged);
+        error
+    }
+
+    pub(crate) const fn is_agenda_creation_route_changed(&self) -> bool {
+        matches!(self.cause, Some(ErrorCause::AgendaCreationRouteChanged))
     }
 
     pub(crate) fn session_conflict() -> Self {

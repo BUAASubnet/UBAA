@@ -31,3 +31,8 @@ pub use home::{HomeAgendaRead, project_home_agenda};
 
 mod export;
 pub use export::{AgendaExportOptions, AgendaExportResult};
+
+pub(crate) mod sync;
+pub use sync::{AgendaSyncDocument, AgendaSyncItem, AgendaSyncOverlay, AgendaSyncSnapshot};
+
+pub use sync::{AgendaSyncAction, AgendaSyncReport, AgendaSyncStatus};

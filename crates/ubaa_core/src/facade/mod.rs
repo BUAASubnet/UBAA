@@ -7,7 +7,10 @@ pub use crate::domain::{
 #[path = "auth/verified_identity.rs"]
 mod verified_identity;
 pub use verified_identity::VerifiedLoginIdentity;
+mod agenda_sync;
 pub mod bhpan;
+pub use crate::agenda::sync::AgendaSyncError;
+pub use agenda_sync::{AgendaSyncScope, AgendaSyncService};
 mod client;
 #[path = "client/operation_control.rs"]
 pub(crate) mod operation_control;
@@ -165,3 +168,9 @@ pub use agenda::{
 pub use crate::agenda::{AgendaExportOptions, AgendaExportResult};
 pub use crate::agenda::{HomeAgendaRead, project_home_agenda};
 pub use agenda::AgendaCachedExportResult;
+
+pub use crate::agenda::{
+    AgendaSyncDocument, AgendaSyncItem, AgendaSyncOverlay, AgendaSyncSnapshot,
+};
+
+pub use crate::agenda::{AgendaSyncAction, AgendaSyncReport, AgendaSyncStatus};

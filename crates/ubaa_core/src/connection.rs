@@ -40,6 +40,12 @@ pub trait GatewayProbe: Send + Sync {
     fn probe(&self, budget: Duration) -> NetworkState;
 }
 
+impl GatewayProbe for Box<dyn GatewayProbe> {
+    fn probe(&self, budget: Duration) -> NetworkState {
+        self.as_ref().probe(budget)
+    }
+}
+
 /// 探测 `gw.buaa.edu.cn:80` 的 TCP 可达性；只尝试解析到 `10.0.0.0/8` 的 IPv4 地址。
 #[derive(Clone, Copy, Debug, Default)]
 pub struct SystemGatewayProbe;
@@ -138,6 +144,12 @@ impl<P> CachingGatewayProbe<P> {
         }
     }
 
+    /// 只读取仍可供下一次路线解析复用的观察，不等待正在进行的探测。
+    pub(crate) fn cached_network(&self) -> Option<NetworkState> {
+        let (at, state) = (*self.cached.try_lock().ok()?)?;
+        (at.elapsed() < self.ttl).then_some(state)
+    }
+
     /// 使用合同规定的 60 秒 TTL 构造缓存。
     #[must_use]
     pub fn with_default_ttl(inner: P) -> Self {
@@ -225,6 +237,20 @@ pub(crate) fn resolve_route<P: GatewayProbe + ?Sized>(
         policy: effective_policy,
         diagnostic: RouteDiagnostic::new(network, mode),
     }
+}
+
+pub(crate) fn resolve_route_from_network(
+    effective_policy: RoutePolicy,
+    row: FeatureRouteConfig,
+    network: NetworkState,
+) -> RouteResolution {
+    struct ObservedNetwork(NetworkState);
+    impl GatewayProbe for ObservedNetwork {
+        fn probe(&self, _: Duration) -> NetworkState {
+            self.0
+        }
+    }
+    resolve_route(effective_policy, row, &ObservedNetwork(network))
 }
 
 /// 冻结 SSO/用户中心认证流程中观察到的主机。

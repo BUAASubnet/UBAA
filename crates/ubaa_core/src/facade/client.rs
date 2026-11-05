@@ -20,7 +20,7 @@ pub struct UbaaClient {
     pub(super) config: RouteConfig,
     pub(super) verified_login_generations: Option<(uuid::Uuid, uuid::Uuid)>,
     pub(super) route_generation: u64,
-    pub(super) probe: Arc<dyn GatewayProbe>,
+    pub(super) probe: Arc<CachingGatewayProbe<Box<dyn GatewayProbe>>>,
     pub(super) direct_runtime: ClientRuntime,
     pub(super) webvpn_runtime: ClientRuntime,
     pub(super) direct_auth: AuthWorkflow,
@@ -174,7 +174,7 @@ impl UbaaClient {
             webvpn_transport,
             store,
             config,
-            Box::new(CachingGatewayProbe::new(probe, probe_ttl)),
+            CachingGatewayProbe::new(Box::new(probe), probe_ttl),
         )
     }
 
@@ -195,7 +195,7 @@ impl UbaaClient {
             webvpn_transport,
             store,
             config,
-            Box::new(CachingGatewayProbe::with_default_ttl(probe)),
+            CachingGatewayProbe::with_default_ttl(Box::new(probe)),
         )
     }
 
@@ -204,7 +204,7 @@ impl UbaaClient {
         webvpn_transport: TWebVpn,
         store: FileSessionStore,
         config: RouteConfig,
-        probe: Box<dyn GatewayProbe>,
+        probe: CachingGatewayProbe<Box<dyn GatewayProbe>>,
     ) -> Result<Self>
     where
         TDirect: HttpTransport + 'static,
@@ -219,7 +219,7 @@ impl UbaaClient {
             verified_login_generations: None,
             route_generation: 0,
             config,
-            probe: probe.into(),
+            probe: Arc::new(probe),
             direct_runtime: ClientRuntime::new(
                 ConnectionMode::Direct,
                 direct_transport,

@@ -1,4 +1,4 @@
-//! 日程 schema 2：逐记录明文；首次创建与已有文件严格分开，不迁移或重建旧库。
+//! 日程 schema 3：逐记录明文与同步版本；只对已知有效 schema 2 原子升级。
 use super::{operations::overlay_key, recurrence::validate_item, store::AgendaData};
 use crate::{
     cache::{CacheError, CacheResult},
@@ -14,7 +14,7 @@ use std::{
     time::Duration,
 };
 use uuid::Uuid;
-pub(super) const SCHEMA: i64 = 2;
+pub(super) const SCHEMA: i64 = 3;
 const RECORD_LIMIT: usize = 16 * 1024 * 1024;
 
 pub(super) fn open(root: &Path, account: &str) -> CacheResult<Connection> {
@@ -26,7 +26,7 @@ pub(super) fn open(root: &Path, account: &str) -> CacheResult<Connection> {
             Connection::open_with_flags(&path, flags | OpenFlags::SQLITE_OPEN_READ_ONLY)?;
         check.busy_timeout(Duration::from_millis(250))?;
         let tx = check.transaction_with_behavior(TransactionBehavior::Deferred)?;
-        load(&tx, account)?;
+        load_existing(&tx, account)?;
         let result: String = tx
             .query_row("PRAGMA quick_check(1)", [], |r| r.get(0))
             .map_err(|e| read_error(&e))?;
@@ -46,11 +46,22 @@ pub(super) fn open(root: &Path, account: &str) -> CacheResult<Connection> {
             "INSERT INTO agenda_meta VALUES(1,?1,?2,1)",
             params![SCHEMA, account],
         )?;
+        super::sync::sqlite::initialize(&tx, &AgendaData::default())?;
         tx.pragma_update(None, "user_version", SCHEMA)?;
         tx.commit()?;
     } else {
         // 重新检查打开窗口内的替换或版本变化；仍未执行持久配置。
-        let tx = db.transaction_with_behavior(TransactionBehavior::Deferred)?;
+        let tx = db.transaction_with_behavior(TransactionBehavior::Immediate)?;
+        let version: i64 = tx.pragma_query_value(None, "user_version", |r| r.get(0))?;
+        if version == 2 {
+            let legacy = load_version(&tx, account, 2)?;
+            super::sync::sqlite::initialize(&tx, &legacy)?;
+            tx.execute(
+                "UPDATE agenda_meta SET schema_version=?1 WHERE id=1",
+                [SCHEMA],
+            )?;
+            tx.pragma_update(None, "user_version", SCHEMA)?;
+        }
         load(&tx, account)?;
         tx.commit()?;
     }
@@ -59,10 +70,25 @@ pub(super) fn open(root: &Path, account: &str) -> CacheResult<Connection> {
     Ok(db)
 }
 pub(super) fn load(tx: &Transaction<'_>, account: &str) -> CacheResult<AgendaData> {
+    let mut data = load_version(tx, account, SCHEMA)?;
+    super::sync::sqlite::load(tx, &mut data)?;
+    Ok(data)
+}
+fn load_existing(tx: &Transaction<'_>, account: &str) -> CacheResult<AgendaData> {
     let version: i64 = tx
         .pragma_query_value(None, "user_version", |r| r.get(0))
         .map_err(|e| read_error(&e))?;
-    if version != SCHEMA {
+    if version == 2 {
+        load_version(tx, account, 2)
+    } else {
+        load(tx, account)
+    }
+}
+fn load_version(tx: &Transaction<'_>, account: &str, expected: i64) -> CacheResult<AgendaData> {
+    let version: i64 = tx
+        .pragma_query_value(None, "user_version", |r| r.get(0))
+        .map_err(|e| read_error(&e))?;
+    if version != expected {
         return Err(CacheError::UnsupportedVersion);
     }
     let metadata: Option<(i64, String, i64)> = tx
@@ -77,7 +103,7 @@ pub(super) fn load(tx: &Transaction<'_>, account: &str) -> CacheResult<AgendaDat
     let count: i64 = tx
         .query_row("SELECT count(*) FROM agenda_meta", [], |r| r.get(0))
         .map_err(|e| read_error(&e))?;
-    if schema != SCHEMA || alias != account || !matches!(active, 0 | 1) || count != 1 {
+    if schema != expected || alias != account || !matches!(active, 0 | 1) || count != 1 {
         return Err(CacheError::Corrupt);
     }
     let mut data = AgendaData {
@@ -169,6 +195,7 @@ pub(super) fn save(
             [i64::from(after.active)],
         )?;
     }
+    super::sync::sqlite::save(tx, &before.sync, &after.sync)?;
     Ok(())
 }
 fn save_rows<K: Ord, V: Eq + serde::Serialize>(
@@ -194,7 +221,7 @@ fn save_rows<K: Ord, V: Eq + serde::Serialize>(
     }
     Ok(())
 }
-fn valid_overlay(v: &SchoolAgendaOverlay) -> bool {
+pub(super) fn valid_overlay(v: &SchoolAgendaOverlay) -> bool {
     v.updated_at.valid()
         && v.deleted_at.is_none_or(AgendaTime::valid)
         && v.completed_at.is_none_or(AgendaTime::valid)

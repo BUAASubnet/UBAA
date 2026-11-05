@@ -31,6 +31,9 @@ impl Drop for SharedAccountPermit {
     }
 }
 impl SharedAccountGuard {
+    pub(crate) fn same_scope(&self, other: &Self) -> bool {
+        self.directory == other.directory && self.expected == other.expected
+    }
     /// 参数必须来自同材料域已核对的持久快照；版本仅能缩短既有能力的生命期。
     ///
     /// # Errors
