@@ -81,6 +81,7 @@ async fn 目录打包使用本次_api返回地址并以_get完整交付() {
         length: Some(0),
         bytes: b"synthetic zip body".to_vec(),
     });
+    let transfer = BhpanTransfer::new();
     let receipt = f
         .client
         .bhpan_download(
@@ -88,11 +89,16 @@ async fn 目录打包使用本次_api返回地址并以_get完整交付() {
             "bundle",
             path.clone(),
             false,
-            BhpanTransfer::new(),
+            transfer.clone(),
         )
         .await
         .unwrap();
     assert!(receipt.batch);
+    assert_eq!(transfer.progress().total, 0);
+    assert_eq!(
+        transfer.progress().bytes,
+        b"synthetic zip body".len() as u64
+    );
     assert_eq!(std::fs::read(path).unwrap(), b"synthetic zip body");
     f.finish();
 }

@@ -61,9 +61,9 @@ async fn stops_after_materials(stop: Stop) {
     });
     ready.recv().unwrap();
     let mut guard = crate::facade::SharedAccountGuard::new(&root, 1).unwrap();
-    let observed = AtomicBool::new(false);
+    let release_sent = AtomicBool::new(false);
     guard.wait_hook = Some(Arc::new(move || {
-        if !observed.swap(true, Ordering::SeqCst) {
+        if !release_sent.swap(true, Ordering::SeqCst) {
             release.send(()).unwrap();
         }
     }));

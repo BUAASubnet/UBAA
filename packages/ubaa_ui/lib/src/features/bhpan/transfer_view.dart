@@ -36,7 +36,11 @@ class BhpanProgressTile extends StatelessWidget {
       subtitle: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          Text('${bhpanBytes(progress.bytes)} / ${bhpanBytes(progress.total)}'),
+          Text(
+            progress.total > 0
+                ? '${bhpanBytes(progress.bytes)} / ${bhpanBytes(progress.total)}'
+                : '已传输 ${bhpanBytes(progress.bytes)}',
+          ),
           if (active)
             LinearProgressIndicator(
               value: progress.total > 0

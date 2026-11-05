@@ -144,7 +144,9 @@ impl HttpTransport for Transport {
             assert_eq!(request.headers["authorization"], "object-only");
         }
         if step.status == 200 {
-            observer.set_total(step.bytes.len() as u64);
+            if step.length != Some(0) {
+                observer.set_total(step.bytes.len() as u64);
+            }
             for block in step.bytes.chunks(64 * 1024) {
                 observer.check()?;
                 destination.write_all(block).unwrap();

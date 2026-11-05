@@ -83,8 +83,12 @@ pub fn progress_line(progress: &ubaa_core::facade::BhpanTransferProgress) -> Str
         P::Downloading => "正在下载",
         P::Finalizing => "完成登记",
     };
-    format!(
-        "北航云盘：{phase}，{} / {} 字节\n",
-        progress.bytes, progress.total
-    )
+    if progress.total == 0 {
+        format!("北航云盘：{phase}，已传输 {} 字节\n", progress.bytes)
+    } else {
+        format!(
+            "北航云盘：{phase}，{} / {} 字节\n",
+            progress.bytes, progress.total
+        )
+    }
 }

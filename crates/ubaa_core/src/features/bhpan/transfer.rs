@@ -121,6 +121,9 @@ impl BhpanTransfer {
             .progress
             .lock()
             .unwrap_or_else(std::sync::PoisonError::into_inner);
-        p.bytes = p.bytes.saturating_add(bytes).min(p.total);
+        p.bytes = p.bytes.saturating_add(bytes);
+        if p.total > 0 {
+            p.bytes = p.bytes.min(p.total);
+        }
     }
 }
