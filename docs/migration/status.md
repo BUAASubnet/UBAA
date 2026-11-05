@@ -11,8 +11,8 @@
 | 校园基础功能 | Core、CLI、Bridge 与 Flutter 已接入认证、课表、考试、成绩、作业、签到、图书馆、博雅、研讨室、评教和阳光打卡等能力，详见[功能矩阵](full-feature-matrix.md) | 当前 App 真实账号完整流程、各平台设备及发布验收仍有缺口 |
 | 日程 | 基础交付 `fb98234d` 和视图完善 `f217e264` 已接通列表、周/月、详情、编辑、重复范围、本地标记、冲突提示、宽屏和文件交付，均已通过独立复审 | 已进入整合分支；其他平台系统保存面板设备验收和日程同步仍待完成 |
 | 共享账号与恢复 | 统一命令交付已整合共同恢复、共享索引、持久代次、客户端继任及关闭与退出，三个原生命周期问题已修复并通过回归与复审 | 已进入整合分支；真实旧材料连续性和部分设备验收仍待完成 |
-| 公共命令与 App 入口 | Rust 命令定义、计划、输入和输出已接入 App，复用账号和恢复服务；macOS、Linux 原生命令验收通过 | Windows 入口已有代码，原生与安装行为待环境恢复后验收 |
-| Windows 工具链 | 工具入口、字符集、锁定版本与主机选择修复已随统一命令整合 | 历史 Debug 构建和插件结果不包含新命令宿主 |
+| 公共命令与 App 入口 | Rust 命令定义、计划、输入和输出已接入 App，复用账号和恢复服务；macOS、Windows、Linux 原生命令的合成验收通过 | 真实旧材料连续性、安装升级和发布验收仍待完成 |
+| Windows 工具链 | 锁定 Flutter、Visual Studio 及 Rust 工具链已构建 GUI 和独立的 `ubaa.exe`，详见下表 | 当前验证范围为 Windows 11 x64 Debug |
 | 北航云盘 | 已整合的 `a0af9a34` 接通 Direct OAuth、文档库、文件与回收站、分享与另存、秒传、普通/分片上传、单文件及目录/多项下载。GUI 从校园页和账户空间指标进入，CLI 复用 App 账号和恢复服务 | 本地确定性和桌面合成验收见下表。真实学校 Direct、WebVPN、系统文件面板实机及北航部署的条件覆盖能力待验收 |
 | 日程同步 | 隔离组合已接通逐记录合并、同库发送快照、创建确认与结果核对，GUI 和 App 命令共用 Core 服务 | 同步差异已通过独立复审，正式验收结果随对应候选提交记录。同名创建与并发条件覆盖尚缺北航部署证据，自动同步未启用 |
 
@@ -22,7 +22,7 @@
 
 日程视图 `f217e264` 从 `fb98234d` 继续，列表、周、月共用焦点日期和筛选，复用课表网格并保留发生身份。冲突判断包含隐藏课程，只使用起止明确的有效学校时段。异步刷新保留横纵滚动，普通翻周保留原日期筛选，宽屏清除范围外详情。相关五包 1481 项、日程 30 项、最终 UI 补验 539 项通过，针对复审另独立通过 16 项。Core、Bridge、存储和平台文件通道输入不变。日程复审与分段证据分别保存在主目录私有 `agenda_review` 和日程执行检出的 `agenda_delivery` 中。
 
-北航云盘在 `e090b271` 公共命令和 `29cf104c` 日程视图基础上使用 CLI JSON schema v13、Flutter bridge contract v49。传输使用 Core 的有界缓冲，Bridge 只交付进度、结果与本机路径。版本 facade 保留基版 R、已取得的新版本 U 和未知结果，条件覆盖能力保持 `Unverified`。Linux 在 Debian 12 arm64 容器验证 AOT 命令与 Secret Service；macOS 验证 GUI 与命令双进程以及正式 Debug 命令。Windows 主机不可达，原生验收待恢复。
+北航云盘在 `e090b271` 公共命令和 `29cf104c` 日程视图基础上使用 CLI JSON schema v13、Flutter bridge contract v49。传输使用 Core 的有界缓冲，Bridge 只交付进度、结果与本机路径。版本 facade 保留基版 R、已取得的新版本 U 和未知结果，条件覆盖能力保持 `Unverified`。Linux 在 Debian 12 arm64 容器验证 AOT 命令与 Secret Service；macOS 验证 GUI 与命令双进程以及正式 Debug 命令。Windows 原生命令的本机验证见下表。
 
 ## 统一 App 命令模式
 
@@ -32,9 +32,9 @@
 - 公共 Rust 命令库保留 CLI JSON schema v13，Flutter bridge contract v48 提供计划、输入、执行、身份交付与有界输出。Dart 复用共享账号及恢复服务，只读命令最多完整重跑一次，学校写入只在准备资格前恢复。
 - 本机日程支持新建、重复范围编辑与删除、完成、本地覆盖、数量比较清除和原子 `.ics` 文件交付。编辑排除日期已通过日程界面的 `edit_draft` 接口统一接入。
 - macOS 无窗口 Engine 与 Linux AOT 已有隔离合成材料的原生进程证据。Linux Secret Service 适配保留原插件的 schema、account、JSON item 与材料键，双向互通及锁定拒绝通过。
-- 旧独立 Rust 宿主和材料 worker 已迁出，`core-live` 保留在 `tools/core_live`。有效覆盖去向见[测试策略](../development/testing.md)。Windows 新命令宿主尚未原生验证，完整退役验收仍有缺口。
+- 旧独立 Rust 宿主和材料 worker 已迁出，`core-live` 保留在 `tools/core_live`。有效覆盖去向见[测试策略](../development/testing.md)。Windows 新命令宿主已通过本机原生验证。
 
-本机验收使用合成账号与材料。Linux SSH/PAM 已在隔离 Debian 12 arm64 环境验证。Windows 主机暂不可连接；macOS 真实旧材料连续性、签名 Release、Linux 实际部署和其他架构仍待验收。
+本机验收使用合成账号与材料。Linux SSH/PAM 已在隔离 Debian 12 arm64 环境验证，Windows 已在真实 Windows 11 x64 交互桌面验证。桌面旧材料连续性、签名 Release、Linux 实际部署和其他架构仍待验收。
 
 ## 共享服务生命周期
 
@@ -59,11 +59,11 @@
 | 日程基础 | `fb98234d` 的八包 1654 项、macOS 原生 5 项、FRB 零漂移和独立复审通过 | 其他平台保存面板设备结果仍待补齐 |
 | 日程视图 | `f217e264` 相关五包 1481 项、日程聚焦 30 项和独立针对复审 16 项通过；macOS 真实本机 Core/SQLite 与合成学校投影完成布局目视检查 | 已进入整合分支；手机视口不包含 iOS/Android 设备或软键盘验收 |
 | 北航云盘组合 | `a0af9a34` 的 `mode=full` 退出 0。Core 全目标 910 项、Core 文档 3 项、其余 Rust workspace 470 项、八个 Flutter 包 1845 项、macOS 原生 13 项和 FRB 生成零漂移通过。同一对象的 OHOS 无签名 Debug HAP 与 arm64 Rust 动态库门禁通过 | iOS Simulator 和 Android Debug 有先前分段编译记录。当前无云盘文件面板设备实测、真实学校请求、远端 CI 或发布验收 |
-| 北航云盘桌面命令 | `dd202754` 的 macOS 合成双进程和正式 Debug 命令、Linux Debian 12 arm64 AOT 与 Secret Service 通过。两平台的真实命令进程在访问材料前拒绝无效链接和空密码输入 | 该记录对应固定输入。Linux SSH/PAM 见下表；Windows 原生与其他架构待验收 |
+| 北航云盘桌面命令 | `dd202754` 的 macOS 合成双进程和正式 Debug 命令、Linux Debian 12 arm64 AOT 与 Secret Service 通过。两平台的真实命令进程在访问材料前拒绝无效链接和空密码输入 | 该记录对应固定输入。Linux SSH/PAM 与 Windows 命令宿主证据见下表 |
 | 北航云盘早期候选 | `a0a9e5fb` 的 `mode=full` 退出 0，Core 全目标 847 项、文档 3 项、其余 Rust workspace 435 项、八包 Flutter 1666 项、macOS 原生 5 项及 FRB 零漂移通过 | 对应当时的读写与秒传范围 |
 | 共享服务 | 三个生命周期问题的正式回归与独立复审通过，完整组合包含共享服务代码 | 原候选 `full/full2/full3` 失败记录保留；通过依据使用后续组合输入 |
-| Windows 工具链与命令入口 | 工具链已有本地验收和复审；新命令入口已进入组合源码 | Windows 原生构建、完整终端和安装行为待验收 |
-| Windows Agenda | 2026-11-02 已记录两项 Core 测试在删除目录时报 Win32 32，独立重跑仍失败 | 整合候选是否仍存在句柄占用问题待验证 |
+| Windows 工具链与命令入口 | `a06d3a34` 基于 `ea9a475f`，通过 Windows 11 x64 Debug 构建。无 view Engine 使用原生目录插件，cmd 和 PowerShell 保留 Unicode、空参数、引号和反斜杠。JSON 与诊断分流，验证了 EOF、重定向、大输出的管道背压与取消。Ctrl+Break 恢复终端回显并退出 7，120 秒期限返回 JSON 并退出 5 | 签名 Release、安装升级、真实旧材料和其他架构未在本次验证 |
+| Windows Agenda | 隔离 GUI 与命令使用真实 DPAPI、FRB 和 SQLite，双向写入读回、两种启动顺序及关闭 GUI 后的读取和 ICS 导出通过。两项 Core 测试在释放 SQLite 消费者后均能删除临时目录 | 本机验证使用合成账号，未访问学校或默认材料 |
 | Linux SSH/PAM | `726fc7f8` 的正式 Dart AOT 在禁网 Debian 12 arm64 容器通过回环 SSH 验收，复用 `dd202754` 的 Rust Bridge 和材料动态库。双会话日程读写、退出后连续性与 ICS、密码 PAM 解锁均通过。锁定或缺少服务时日程命令返回 `material_unavailable`、退出 7，保持原已提交标记 | 验证范围限于合成用户、OpenSSH、同用户 D-Bus 和 GNOME Keyring。部署安装、旧真实材料连续性及其他架构待验收 |
 | 移动端与 OHOS | 历史 iOS simulator、Android Debug、macOS Debug、OHOS 分析与无签名 Debug HAP 构建，以及 OHOS 模拟器合成 HUKS 流程通过 | 当前候选实体设备、真实账号、异常恢复与发布验收未完成 |
 | 签名与版本 | Android 曾构建并校验签名 Release APK | 未安装运行或对照旧正式包；OHOS `1.0.0/1000000` 与 Flutter `0.1.0+1` 仍需发布前统一核对 |

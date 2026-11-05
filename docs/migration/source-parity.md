@@ -41,7 +41,7 @@
 
 Windows 接续核对纠正：锁定 `flutter_secure_storage 10.0.0` 的 `WindowsOptions.defaultOptions` 默认 `useBackwardCompatibility=false`，门面 `_selectOptions` 实际传入该值，当前 App 没有开启 legacy Credential Manager 迁移。本轮不新增迁移能力。插件内部省略选项时的迁移路径不能作为当前默认缺陷。实际缺口是锁定 `flutter_secure_storage_windows 4.1.0` 的 `DpapiJsonFileMapStorage.load` 在 DPAPI、UTF-8、JSON 或非对象错误时删除原件，并把读取异常解释为空 map；后续写入还会无限重试。
 
-当前本地候选为 Windows 增加同路径的文件适配，保留 `getApplicationSupportDirectory`、`flutter_secure_storage.dat`、用户级 DPAPI（无 entropy、flags=0）和全部材料键。读取不写入或迁移，严格拒绝损坏及未知条目，只有明确的 OS 文件不存在错误允许空 map。写入先生成同目录临时密文，已有目标使用带备份的 `ReplaceFileW(flags=0)` 保留原安全描述符，失败保留备份与未完成标记，不自动重试。目标查询使用 `GetFileAttributesW` 并立即保留错误码，只有明确不存在的错误 2/3 才允许首次创建。首次创建使用不带覆盖标志的 `MoveFileExW(WRITE_THROUGH)`，查询后出现目标时直接失败。查询失败、目录或重解析点均阻断，不自动回退。实际文件层、协调器和账号参与合成回归，原生查询与替换通过回调注入。Windows DPAPI、DACL、共享冲突、原生替换和替换中途崩溃尚未原生运行。
+Windows 文件适配保留 `getApplicationSupportDirectory`、`flutter_secure_storage.dat`、用户级 DPAPI（无 entropy、flags=0）和全部材料键。读取不写入或迁移，严格拒绝损坏及未知条目，只有明确的 OS 文件不存在错误允许空 map。写入先生成同目录临时密文，已有目标使用带备份的 `ReplaceFileW(flags=0)` 保留原安全描述符，失败保留备份与未完成标记，不自动重试。`GetFileAttributesW` 查询失败时，通过 Dart I/O 只读打开目标取得系统错误。只有明确不存在的错误 2/3 才允许使用不带覆盖标志的 `MoveFileExW(WRITE_THROUGH)` 首次创建，目标后来出现时直接失败。其他查询错误、目录或重解析点均阻断。Windows 11 x64 已用合成材料验证真实 DPAPI、首次创建、替换、删除与读回；真实旧材料连续性、DACL、原生共享冲突与替换中途崩溃仍待专项验收。
 
 锁域候选的纯 Dart 桌面解析器改用系统用户目录接口，忽略 HOME/USERPROFILE/XDG/config 覆盖，macOS 纯 Dart 环境变量反例已转绿。当前 macOS 宿主启用 App Sandbox，因此 Flutter 默认材料工厂继续通过原生应用支持目录接口选择沙箱可达目录，避免把 GUI 锁移到 POSIX 用户 home 的容器外目录。macOS 正式命令路线与 GUI 使用同一 App 的 Flutter Engine。私有 Bundle ID 样机复用候选目录代码和生产相同的 Sandbox entitlement，实际 GUI/无窗口 Engine 取得相同 support/material 路径，分别采用两个业务目录覆盖，并完成随机合成子目录双向读写、清理及正常退出。GUI 有窗口和 Dart view，无窗口 Engine 原生窗口数为 0、viewController 为空，但仍有默认 Dart view。样机只包含目录插件，不访问钥匙串，因此原有安全材料连续性和 Windows 跨入口后端路径连续性仍待验证。
 
