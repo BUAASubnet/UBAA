@@ -11,6 +11,16 @@
 
 本会话 Direct 只读观察中，登录与主会话核验成功，一项作业详情返回 HTTP 200、解压正文 10,875,793 字节，其中大量内容为 `pre` 代码文本。生产传输在接收阶段触发原 8 MiB 上限，随后该课程产生 `CourseFailure`，最终缓存为 Partial 并保留旧核验时间。逐批诊断完整读取 6 门课程、96 项作业，未发现该课程权限或解析错误。16 MiB 是覆盖此正常 HTML 的本机预算，不作为上游最大值；其他请求继续使用 8 MiB。原始响应仅保存在私有任务目录。WebVPN 本会话未授权，真实路线证据待获得该路线授权后补验。
 
+### App 与 core-live 的刷新路径
+
+2026-11-05 对照同一冻结旧版的 `LocalJudgeApi.kt` 与 `LocalConnectionAuth.kt`：旧版按课程最多四路并发，课程内逐项读取，列表与详情的 TTL 分别为五分钟、两分钟。TTL 仅决定缓存复用，不会中断已取得列表的遍历。单请求期限为 30 秒，连接期限为 10 秒。旧版没有整体刷新期限、服务端分页或读取完整度 Partial；DTO 中的 `PARTIAL` 表示作业提交状态。固定 buaa-api 没有 Judge 模块，最邻近 SPOC 的 token/AES/JSON 各协议列仍不适用。
+
+课程目录、索引与详情的九列协议规则沿用上表。App 的学校日程刷新调用首页来源刷新，经 `BridgeBackend`、FRB 的 `begin_judge_refresh`／`next_judge_refresh` 和 Core facade 逐批读取；相同查询可加入首页在途计划。Judge 组内串行，跨业务最多八组并行，首批后降低调度优先级仍继续读取。core-live 的一次性批量接口在 Direct 最多并发四门课程。两者共用 16 MiB 详情预算及 30 秒单请求期限，没有额外的 App 总刷新期限或分页上限。App 普通持久详情可复用两分钟，历史详情七天，满足修订与复查条件的历史课程索引一天；强制完整刷新禁用这些复用。
+
+Core 在扫描期间保存索引与单项详情，完整范围的摘要及日程观察元数据在最终批次发布。非致命读取错误形成 `CourseFailure`，最终失败课程数大于零时为 Partial，并保留已有摘要的来源与核验时间。扫描期间看到旧 Partial 不能确定本轮读取失败。确定性 App 测试覆盖学校刷新新建计划、加入首页在途计划、详情推进与完整收尾，Rust 既有扫描测试覆盖逐批保存、来源时间和 Partial 保旧。
+
+同日 iOS Simulator 已安装库的详情预算分支为 16,777,216 字节。运行中 App 的日程结果显示希冀保存/核验时间为 21:49:20，完成尝试为 21:50:09，完整度 Complete、尝试成功；打开中的数据面板仍持有保存/核验 19:15:45、失败尝试 21:26:53 的旧 Partial 来源对象。生产传输的独立 Direct 只读 worker 使用默认渐进计划读取 6 门课程、96 项详情，失败课程为零、最终 Complete。数据面板持有旧对象属于展示刷新问题，学校请求与缓存结果已完成；已打开的面板需要重新打开才能取得当前来源状态。
+
 ## 首页读取与日程学校缓存
 
 2026-11-05 核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `shared/src/commonMain/kotlin/cn/edu/ubaa/api/feature/ScheduleApi.kt`、`api/local/{LocalScheduleApi,LocalSigninApi}.kt`、`api/storage/CredentialStore.kt` 和 `model/dto/Schedule.kt`，以及冻结 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `src/api/aas/{core,opt,data}.rs`、`src/api/class/data.rs`、`src/store/{cred,cookies}.rs`。当前操作沿用既有 Core 协议，逐操作差异如下。
