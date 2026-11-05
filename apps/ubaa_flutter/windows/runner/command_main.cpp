@@ -141,7 +141,7 @@ int wmain(int argc,wchar_t* argv[]) {
   flutter::DartProject project(L"data");
   project.set_dart_entrypoint_arguments(std::move(arguments));
   flutter::FlutterEngine engine(project);
-  flutter::MethodChannel<Value> channel(engine.messenger(),"cn.edu.ubaa/command",flutter::StandardMethodCodec::GetInstance());
+  flutter::MethodChannel<Value> channel(engine.messenger(),"cn.edu.ubaa/command",&flutter::StandardMethodCodec::GetInstance());
   bool finished=false;bool local_command=false;int exit_code=7;
   channel.SetMethodCallHandler([&](const auto& call,std::unique_ptr<Result> owned){
     auto result=std::shared_ptr<Result>(std::move(owned));
@@ -156,7 +156,7 @@ int wmain(int argc,wchar_t* argv[]) {
     }
     if(method=="complete"){
       if(auto code=std::get_if<int32_t>(call.arguments()))exit_code=*code;
-      else if(auto code=std::get_if<int64_t>(call.arguments()))exit_code=static_cast<int>(*code);
+      else if(auto wide_code=std::get_if<int64_t>(call.arguments()))exit_code=static_cast<int>(*wide_code);
       restore_terminal();result->Success();finished=true;return;
     }
     if(method=="stdout"||method=="stderr"){

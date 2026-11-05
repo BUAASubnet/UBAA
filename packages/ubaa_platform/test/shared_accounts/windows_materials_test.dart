@@ -18,6 +18,21 @@ void main() {
   });
   tearDown(() async => root.delete(recursive: true));
 
+  test('原生 Windows DPAPI 首次创建后可替换和读取密文', () async {
+    final native = WindowsFileMaterials(
+      file: () async => file,
+      codec: const WindowsDpapiCodec(),
+      replace: replaceWindowsMaterial,
+    );
+    expect(await native.read('fixture'), isNull);
+    await native.write('fixture', '合成材料');
+    expect(await native.read('fixture'), '合成材料');
+    await native.write('fixture', '更新后的合成材料');
+    expect(await native.read('fixture'), '更新后的合成材料');
+    await native.delete('fixture');
+    expect(await native.read('fixture'), isNull);
+  }, skip: !Platform.isWindows);
+
   test('Windows 查询失败必须保留原材料并阻断首次创建', () async {
     await file.writeAsString('synthetic-original');
     final pending = File('${file.path}.synthetic.pending');

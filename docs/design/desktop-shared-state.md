@@ -1,6 +1,6 @@
 # 桌面命令模式与共享应用服务
 
-更新：2026-11-05。GUI 与终端使用同一账号和本机数据。统一命令模式、[日程界面](agenda.md)和北航云盘已进入产品整合分支。macOS 命令与 GUI 的双进程验收和 Linux AOT 命令的容器验收已通过，Windows 原生验收等待环境恢复。具体提交与验证范围见[当前状态](../migration/status.md)。
+更新：2026-11-05。GUI 与终端使用同一账号和本机数据。统一命令模式、[日程界面](agenda.md)和北航云盘已进入产品整合分支。macOS 和 Windows 已通过隔离合成材料的命令与 GUI 双进程验收，Linux AOT 命令已通过隔离 SSH/PAM 验收。具体提交与验证范围见[当前状态](../migration/status.md)。
 
 ## 产品结果
 
@@ -46,7 +46,7 @@ macOS、Windows 无需支持未登录桌面的服务器运行。Linux SSH 是正
 
 - 整合分支包含 Core 日程、学校投影、独立 Bridge/Dart 服务和范围快照导出。业务缓存继续加密，日程继续逐记录明文 SQLite。
 - 共享服务负责恢复、账号索引、持久代次和关闭与退出。路线重开继承共享账号绑定和关闭控制；发送请求前在材料锁等待结束后重新检查发送条件。
-- 公共 Rust 命令库、Windows 工具链和三平台命令入口已接入统一运行时。Windows 新命令入口的原生验收仍待环境恢复。
+- 公共 Rust 命令库、Windows 工具链和三平台命令入口已接入统一运行时。Windows 已验证原生目录与网络插件、控制台输入输出、双进程共享和正常关闭。
 - 主目录旧 CLI 的 13 项未提交实验保留。整合分支保留原有效测试覆盖，独立宿主及专属材料路径已迁出。
 
 客户端重开必须让账号绑定、取消和关闭控制与当前 Core 保持一致。普通关闭只释放本进程资源，全局退出撤销共享账号访问。已发送的学校写请求继续按未知结果规则收尾，不因恢复会话自动重放。
@@ -56,7 +56,7 @@ macOS、Windows 无需支持未登录桌面的服务器运行。Linux SSH 是正
 | 平台 | 目标运行方式 | 仍需交付 |
 |---|---|---|
 | macOS | 原生入口在窗口与 GUI 单实例检查前分流，无 view Flutter Engine 复用平台插件 | 真实旧材料连续性与签名 Release 行为 |
-| Windows | 原生入口在 GUI mutex 和窗口创建前分流，无 view Engine | 命令运行、控制台与管道、参数和退出行为；现有 Debug 构建证据仅覆盖 GUI 与工具链 |
+| Windows | 独立的 `ubaa.exe` 使用无 view Flutter Engine，GUI 的单实例锁只约束 GUI。Windows 11 x64 Debug 验证了 cmd、PowerShell、Unicode、流与退出码，以及 DPAPI 和本机日程共享 | 签名 Release、安装升级与真实旧材料连续性 |
 | Linux | 同一 Dart 服务编译为 AOT，直接加载生成 FRB 与 Rust 库，复用 App 材料键和账号索引。Debian 12 arm64 实际 SSH/PAM 已通过 | 其他架构、发行包安装和实际部署验证 |
 
 macOS 分发、平台目录与旧材料连续性沿用已有决定，具体事实见[状态页](../migration/status.md)和[决策记录](../migration/decision-log.md)。不因平台入口调整而隐含迁移真实材料、签名或发布。
