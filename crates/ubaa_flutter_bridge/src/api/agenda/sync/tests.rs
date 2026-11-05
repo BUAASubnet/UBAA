@@ -17,7 +17,7 @@ struct NeverNetwork;
 #[async_trait]
 impl HttpTransport for NeverNetwork {
     async fn execute(&self, _: HttpRequest) -> core::Result<HttpResponse> {
-        panic!("未验证同步不得请求学校");
+        panic!("缺少学校会话时不得请求云盘");
     }
 }
 struct NeverProbe;
@@ -71,7 +71,7 @@ fn shared_owner(root: &Path) -> BridgeSharedAccount {
 }
 
 #[tokio::test]
-async fn gui与命令共用日程记录并保留未验证状态和待同步数量() {
+async fn gui与命令未登录时保留日程并返回认证错误() {
     let root = root();
     let directory = root.join("core");
     let bridge = bridge_client(&directory, core::RoutePolicy::Direct);
@@ -109,9 +109,13 @@ async fn gui与命令共用日程记录并保留未验证状态和待同步数�
     let report = bridge
         .sync_agenda(&service, BridgeAgendaSyncAction::Pull, now())
         .await
-        .unwrap();
-    assert_eq!(report.status, BridgeAgendaSyncStatus::Unverified);
-    assert_eq!(report.pending_count, 1);
+        .unwrap_err();
+    assert_eq!(
+        report.remote.unwrap().code,
+        BridgeErrorCode::AuthenticationRequired
+    );
+    assert_eq!(agenda.unsynced_count().await.unwrap(), 1);
+    assert!(!agenda.sync_enabled().await.unwrap());
     let command = BridgeCommand::parse(
         ["ubaa", "--json", "agenda", "sync", "--confirm-write"]
             .into_iter()
@@ -124,6 +128,10 @@ async fn gui与命令共用日程记录并保留未验证状态和待同步数�
         .execute_agenda_sync(&bridge, &agenda, &owner, directory.to_string_lossy().into())
         .await
         .unwrap();
+    assert!(
+        command.sent.lock().unwrap().is_some(),
+        "新快照作业应记录写入边界以供取消时核对"
+    );
     let delivery = result.deliver().await;
     let mut bytes = vec![];
     while let Some(chunk) = delivery.next_stdout().await.unwrap() {
@@ -133,10 +141,10 @@ async fn gui与命令共用日程记录并保留未验证状态和待同步数�
     while delivery.next_stderr().await.unwrap().is_some() {
         delivery.acknowledge_stderr().unwrap();
     }
-    assert_eq!(delivery.finish().await, 6);
+    assert_eq!(delivery.finish().await, 3);
     let output = String::from_utf8(bytes).unwrap();
-    assert!(output.contains("\"status\":\"unverified\""));
-    assert!(output.contains("\"pendingCount\":1"));
+    assert!(output.contains("\"code\":\"authentication_required\""));
+    assert!(!agenda.sync_enabled().await.unwrap());
     assert!(
         command
             .execute_agenda_sync(&bridge, &agenda, &owner, directory.to_string_lossy().into())
@@ -205,8 +213,12 @@ async fn 旧创建作用域在客户端锁后拒绝换路线和同路线重开()
             let result = bridge
                 .create_agenda_sync_confirmed(&service, now(), &fresh)
                 .await
-                .unwrap();
-            assert_eq!(result.status, BridgeAgendaSyncStatus::Unverified);
+                .unwrap_err();
+            assert_eq!(
+                result.remote.unwrap().code,
+                BridgeErrorCode::AuthenticationRequired
+            );
+            assert!(agenda.sync_enabled().await.unwrap());
         } else {
             assert!(matches!(
                 bridge.capture_agenda_sync_scope(),

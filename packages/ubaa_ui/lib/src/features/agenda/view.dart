@@ -135,7 +135,11 @@ class AgendaViewState extends State<AgendaView> {
   }
 
   void _pullSync() {
-    if (!widget.visible || !available || !service.supportsSync) return;
+    if (!widget.visible ||
+        !available ||
+        !service.supportsSync ||
+        !service.syncEnabled)
+      return;
     final key = (
       widget.service,
       service.accountGeneration,

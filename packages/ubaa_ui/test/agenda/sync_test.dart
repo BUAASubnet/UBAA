@@ -21,6 +21,11 @@ const done = AgendaSyncReport(
 );
 
 class SyncAgenda extends MemoryAgenda implements AgendaSyncBackend {
+  bool enabled = true;
+  @override
+  Future<bool> syncEnabled() async => enabled;
+  @override
+  Future<int> unsyncedCount() async => items.length + overlays.length;
   final calls = <AgendaSyncAction>[];
   AgendaSyncReport result = unknown;
   @override
@@ -28,12 +33,61 @@ class SyncAgenda extends MemoryAgenda implements AgendaSyncBackend {
       () => sync(action, now);
 
   Future<AgendaSyncReport> sync(AgendaSyncAction action, AgendaTime now) async {
+    if (action == AgendaSyncAction.createConfirmed) enabled = true;
     calls.add(action);
     return result;
   }
 }
 
 void main() {
+  testWidgets('未启用时打开与本机保存只更新待同步数量', (tester) async {
+    final backend = SyncAgenda()..enabled = false;
+    final service = await opened(backend);
+    await tester.pumpWidget(app(service));
+    await tester.pumpAndSettle();
+    final draft = AgendaDraft(
+      content: AgendaContent(
+        kind: AgendaKind.task,
+        title: '尚未启用同步的本机事项',
+        allDay: false,
+      ),
+      exdates: [],
+    );
+    await service.create(
+      draft,
+      AgendaTime(
+        rfc3339: '2026-11-05T09:00:00+08:00',
+        timezone: 'Asia/Shanghai',
+      ),
+    );
+    await tester.pumpAndSettle();
+    expect(find.text('1 条修改仅保存在本机'), findsOneWidget);
+    expect(backend.calls, isEmpty);
+    await tester.pumpWidget(const SizedBox());
+    await service.dispose();
+  });
+  testWidgets('未启用页面保持离线，取消确认不打开自动同步', (tester) async {
+    final backend = SyncAgenda()..enabled = false;
+    final service = await opened(backend);
+    await tester.pumpWidget(app(service));
+    await tester.pumpAndSettle();
+    expect(backend.calls, isEmpty);
+    expect(find.text('日程仅保存在本机'), findsOneWidget);
+    await tester.tap(find.widgetWithText(TextButton, '启用云端同步'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(TextButton, '取消'));
+    await tester.pumpAndSettle();
+    expect(service.syncEnabled, isFalse);
+    expect(backend.calls, isEmpty);
+    await tester.tap(find.widgetWithText(TextButton, '启用云端同步'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.widgetWithText(FilledButton, '确认启用'));
+    await tester.pumpAndSettle();
+    expect(backend.calls, [AgendaSyncAction.createConfirmed]);
+    expect(service.syncEnabled, isTrue);
+    await tester.pumpWidget(const SizedBox());
+    await service.dispose();
+  });
   testWidgets('本机投影刷新不再次拉取，同账号重新登录才使用新的同步作业', (tester) async {
     final backend = SyncAgenda()..result = done;
     final service = await opened(backend);

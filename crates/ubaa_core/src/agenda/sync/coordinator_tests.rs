@@ -1,6 +1,6 @@
 mod reconciliation;
 
-use super::{coordinator::*, tests::root};
+use super::{coordinator::*, publication::Publication, tests::root};
 use crate::{
     agenda::{
         AgendaStore,
@@ -9,27 +9,32 @@ use crate::{
     domain::agenda::AgendaEditScope,
 };
 use async_trait::async_trait;
-use std::sync::{
-    Arc, Mutex,
-    atomic::{AtomicU64, Ordering},
+use std::{
+    collections::BTreeMap,
+    sync::{
+        Arc, Mutex,
+        atomic::{AtomicU64, Ordering},
+    },
 };
+use uuid::Uuid;
+
 #[derive(Clone, Debug, Eq, PartialEq)]
 struct Version {
-    object: u64,
+    identity: Publication,
     revision: u64,
 }
 #[derive(Default)]
+#[allow(clippy::struct_excessive_bools)]
 struct Server {
     directory_missing: bool,
     directory_creates: usize,
-    document: Option<Vec<u8>>,
-    revision: u64,
+    files: BTreeMap<Publication, (Version, Vec<u8>)>,
     reads: Vec<Version>,
-    bases: Vec<Option<Version>>,
+    published: Vec<Publication>,
     lookups: usize,
     unknown: bool,
-    unregistered_revision_readable: bool,
-    history: std::collections::BTreeMap<u64, Vec<u8>>,
+    unknown_directory: bool,
+    fail_readback: bool,
 }
 struct Gate {
     entered: tokio::sync::Notify,
@@ -42,6 +47,7 @@ struct Remote {
     unverified: bool,
     readback_gate: Option<Arc<Gate>>,
     publish_gate: Option<Arc<Gate>>,
+    after_send_gate: Option<Arc<Gate>>,
     unknown_location: bool,
     fail_read: bool,
 }
@@ -57,104 +63,97 @@ impl SyncRemote for Remote {
             Ok(())
         }
     }
-    fn same_object(&self, a: &Version, b: &Version) -> bool {
-        a.object == b.object
+    fn publication(&self, v: &Version) -> Publication {
+        v.identity
     }
-    fn object_key(&self, version: &Version) -> String {
-        version.object.to_string()
+    fn same_version(&self, a: &Version, b: &Version) -> bool {
+        a == b
     }
-    async fn locate(&mut self) -> Result<RemoteLocation<Version>, RemoteError> {
-        let mut server = self.server.lock().unwrap();
-        server.lookups += 1;
+    fn object_key(&self, v: &Version) -> String {
+        format!("{}:{}", v.identity.file_name(), v.revision)
+    }
+    async fn locate(&mut self) -> Result<RemoteLocation<Vec<Version>>, RemoteError> {
+        let mut s = self.server.lock().unwrap();
+        s.lookups += 1;
         Ok(if self.unknown_location {
             RemoteLocation::Unknown
-        } else if server.document.is_some() {
-            RemoteLocation::Found(Version {
-                object: 1,
-                revision: server.revision,
-            })
-        } else {
+        } else if s.directory_missing {
             RemoteLocation::Missing
+        } else {
+            RemoteLocation::Found(s.files.values().rev().map(|(v, _)| v.clone()).collect())
         })
     }
-    fn needs_directory(&self) -> bool {
-        self.server.lock().unwrap().directory_missing
+    fn directory_target(&self) -> Option<String> {
+        Some("合成同步目录".into())
     }
     async fn create_directory_once(
         &mut self,
-        before_commit: BeforeCommit<'_>,
+        before: BeforeCommit<'_>,
     ) -> Result<bool, RemoteError> {
-        before_commit()?;
-        let mut server = self.server.lock().unwrap();
-        server.directory_missing = false;
-        server.directory_creates += 1;
-        Ok(false)
-    }
-    async fn directory_exists(&mut self) -> Result<bool, RemoteError> {
-        Ok(!self.server.lock().unwrap().directory_missing)
-    }
-    async fn read_version(&mut self, version: &Version) -> Result<Vec<u8>, RemoteError> {
-        if version.revision > 0
-            && let Some(gate) = self.readback_gate.take()
-        {
+        before()?;
+        let confirmed = {
+            let mut s = self.server.lock().unwrap();
+            s.directory_missing = false;
+            s.directory_creates += 1;
+            !s.unknown_directory
+        };
+        if let Some(gate) = self.after_send_gate.take() {
             gate.entered.notify_one();
             gate.released.notified().await;
         }
-        let mut server = self.server.lock().unwrap();
-        server.reads.push(version.clone());
-        if self.fail_read || version.object != 1 {
+        Ok(confirmed)
+    }
+    async fn directory_exists(&mut self, target: &str) -> Result<bool, RemoteError> {
+        assert_eq!(target, "合成同步目录");
+        Ok(!self.server.lock().unwrap().directory_missing)
+    }
+    async fn read_version(&mut self, v: &Version) -> Result<Vec<u8>, RemoteError> {
+        if let Some(gate) = self.readback_gate.take() {
+            gate.entered.notify_one();
+            gate.released.notified().await;
+        }
+        let mut s = self.server.lock().unwrap();
+        s.reads.push(v.clone());
+        if self.fail_read || s.fail_readback && !s.published.is_empty() {
             return Err(RemoteError::Failed);
         }
-        if version.revision == server.revision {
-            server.document.clone()
-        } else {
-            server.history.get(&version.revision).cloned()
-        }
-        .ok_or(RemoteError::Failed)
+        s.files
+            .get(&v.identity)
+            .filter(|(stored, _)| stored == v)
+            .map(|(_, body)| body.clone())
+            .ok_or(RemoteError::Failed)
     }
     async fn publish_once(
         &mut self,
-        base: Option<&Version>,
+        identity: Publication,
         body: &[u8],
-        before_commit: BeforeCommit<'_>,
+        before: BeforeCommit<'_>,
     ) -> Result<RemoteCommit<Version>, RemoteError> {
         if let Some(gate) = self.publish_gate.take() {
             gate.entered.notify_one();
             gate.released.notified().await;
         }
-        before_commit()?;
-        let mut server = self.server.lock().unwrap();
-        server.bases.push(base.cloned());
-        let matches = match base {
-            Some(v) => server.document.is_some() && v.object == 1 && v.revision == server.revision,
-            None => server.document.is_none(),
+        before()?;
+        let result = {
+            let mut s = self.server.lock().unwrap();
+            assert!(!s.files.contains_key(&identity), "不可重放同一发布身份");
+            let v = Version {
+                identity,
+                revision: 1,
+            };
+            s.files.insert(identity, (v.clone(), body.to_vec()));
+            s.published.push(identity);
+            if s.unknown {
+                RemoteCommit::OutcomeUnknown(Some(v))
+            } else {
+                RemoteCommit::Committed(v)
+            }
         };
-        if !matches {
-            return Ok(RemoteCommit::Conflict);
+        if let Some(gate) = self.after_send_gate.take() {
+            gate.entered.notify_one();
+            gate.released.notified().await;
         }
-        if server.unregistered_revision_readable {
-            let revision = server.revision + 1;
-            server.history.insert(revision, body.to_vec());
-            return Ok(RemoteCommit::OutcomeUnknown(Some(Version {
-                object: 1,
-                revision,
-            })));
-        }
-        if let Some(previous) = server.document.clone() {
-            let revision = server.revision;
-            server.history.insert(revision, previous);
-        }
-        server.revision += 1;
-        server.document = Some(body.to_vec());
-        let version = Version {
-            object: 1,
-            revision: server.revision,
-        };
-        Ok(if server.unknown {
-            RemoteCommit::OutcomeUnknown(Some(version))
-        } else {
-            RemoteCommit::Committed(version)
-        })
+        Ok(result)
     }
 }
 fn runtime() -> tokio::runtime::Runtime {
@@ -163,74 +162,92 @@ fn runtime() -> tokio::runtime::Runtime {
         .build()
         .unwrap()
 }
-fn setup() -> (AgendaStore, Remote, Arc<Mutex<Server>>) {
-    let store = AgendaStore::open(&root(), ACCOUNT).unwrap();
-    let server = Arc::new(Mutex::new(Server::default()));
-    let remote = Remote {
-        server: server.clone(),
+fn remote_for(server: Arc<Mutex<Server>>) -> Remote {
+    Remote {
+        server,
         generation: Arc::new(AtomicU64::new(0)),
         expected: 0,
         unverified: false,
         readback_gate: None,
         publish_gate: None,
+        after_send_gate: None,
         unknown_location: false,
         fail_read: false,
-    };
-    (store, remote, server)
+    }
+}
+fn setup() -> (AgendaStore, Remote, Arc<Mutex<Server>>) {
+    let store = AgendaStore::open(&root(), ACCOUNT).unwrap();
+    let server = Arc::new(Mutex::new(Server::default()));
+    (store, remote_for(server.clone()), server)
 }
 fn now() -> crate::domain::agenda::AgendaTime {
     t("2026-03-01T00:00:00+08:00")
 }
+fn gate() -> Arc<Gate> {
+    Arc::new(Gate {
+        entered: tokio::sync::Notify::new(),
+        released: tokio::sync::Notify::new(),
+    })
+}
+fn insert_snapshot(server: &Arc<Mutex<Server>>, store: &AgendaStore, sequence: u64) -> Publication {
+    let sent = store.sync_snapshot().unwrap();
+    let identity = Publication {
+        publisher: sent.device_id,
+        sequence,
+    };
+    let v = Version {
+        identity,
+        revision: 1,
+    };
+    server
+        .lock()
+        .unwrap()
+        .files
+        .insert(identity, (v, identity.encode(sent.document()).unwrap()));
+    identity
+}
+
 #[test]
-fn unverified_automatic_sync_performs_no_remote_operation() {
+fn unverified_sync_performs_no_remote_operation() {
     runtime().block_on(async {
         let (store, mut remote, server) = setup();
         store.create(event()).unwrap();
         remote.unverified = true;
-        let result = SyncCoordinator::new(store.clone(), remote)
+        let report = SyncCoordinator::new(store, remote)
             .run(AgendaSyncAction::Pull, now())
             .await
             .unwrap();
-        assert_eq!(result.status, AgendaSyncStatus::Unverified);
-        assert_eq!(result.pending_count, 1);
-        let server = server.lock().unwrap();
-        assert_eq!(server.lookups, 0);
-        assert!(server.bases.is_empty());
+        assert_eq!(report.status, AgendaSyncStatus::Unverified);
+        assert_eq!(report.pending_count, 1);
+        let s = server.lock().unwrap();
+        assert_eq!(s.lookups, 0);
+        assert!(s.published.is_empty());
     });
 }
 #[test]
-fn opening_only_pulls_and_confirmed_creation_reads_back_the_new_version() {
+fn opening_only_pulls_and_confirmed_creation_reads_back_the_publication() {
     runtime().block_on(async {
         let (store, remote, server) = setup();
         store.create(event()).unwrap();
-        let mut driver = SyncCoordinator::new(store.clone(), remote);
+        server.lock().unwrap().directory_missing = true;
+        let mut d = SyncCoordinator::new(store.clone(), remote);
         assert_eq!(
-            driver
-                .run(AgendaSyncAction::Pull, now())
-                .await
-                .unwrap()
-                .status,
+            d.run(AgendaSyncAction::Pull, now()).await.unwrap().status,
             AgendaSyncStatus::NeedsCreation
         );
-        assert!(server.lock().unwrap().bases.is_empty());
+        assert!(server.lock().unwrap().published.is_empty());
         assert_eq!(
-            driver
-                .run(AgendaSyncAction::CreateConfirmed, now())
+            d.run(AgendaSyncAction::CreateConfirmed, now())
                 .await
                 .unwrap()
                 .status,
             AgendaSyncStatus::UpToDate
         );
         assert_eq!(store.unsynced_count().unwrap(), 0);
-        let server = server.lock().unwrap();
-        assert_eq!(server.bases, vec![None]);
-        assert_eq!(
-            server.reads,
-            vec![Version {
-                object: 1,
-                revision: 1
-            }]
-        );
+        let s = server.lock().unwrap();
+        assert_eq!(s.directory_creates, 1);
+        assert_eq!(s.published.len(), 1);
+        assert_eq!(s.reads.len(), 1);
     });
 }
 #[test]
@@ -241,10 +258,7 @@ fn local_edit_during_readback_is_not_acknowledged_by_the_old_upload() {
         let id = item.id;
         let time = item.updated_at;
         store.create(item.clone()).unwrap();
-        let gate = Arc::new(Gate {
-            entered: tokio::sync::Notify::new(),
-            released: tokio::sync::Notify::new(),
-        });
+        let gate = gate();
         remote.readback_gate = Some(gate.clone());
         let writer = store.clone();
         let edit = tokio::spawn(async move {
@@ -257,7 +271,7 @@ fn local_edit_during_readback_is_not_acknowledged_by_the_old_upload() {
             gate.released.notify_one();
         });
         let result = SyncCoordinator::new(store.clone(), remote)
-            .run(AgendaSyncAction::CreateConfirmed, now())
+            .run(AgendaSyncAction::Push, now())
             .await
             .unwrap();
         edit.await.unwrap();
@@ -267,99 +281,68 @@ fn local_edit_during_readback_is_not_acknowledged_by_the_old_upload() {
             store.get(id).unwrap().unwrap().content.title,
             "上传等待时的同秒修改"
         );
-        assert_eq!(server.lock().unwrap().bases.len(), 1);
+        assert_eq!(server.lock().unwrap().published.len(), 1);
     });
 }
 #[test]
-fn unknown_upload_is_only_reconciled_on_the_next_trigger_without_reupload() {
+fn visible_unknown_publication_stays_dirty_without_reupload_even_after_reopen() {
     runtime().block_on(async {
         let (store, remote, server) = setup();
         store.create(event()).unwrap();
         server.lock().unwrap().unknown = true;
-        let mut driver = SyncCoordinator::new(store.clone(), remote);
+        let mut d = SyncCoordinator::new(store.clone(), remote);
         assert_eq!(
-            driver
-                .run(AgendaSyncAction::CreateConfirmed, now())
-                .await
-                .unwrap()
-                .status,
+            d.run(AgendaSyncAction::Push, now()).await.unwrap().status,
             AgendaSyncStatus::OutcomeUnknown
         );
+        for _ in 0..2 {
+            let mut next = SyncCoordinator::new(store.clone(), remote_for(server.clone()));
+            assert_eq!(
+                next.run(AgendaSyncAction::Push, now())
+                    .await
+                    .unwrap()
+                    .status,
+                AgendaSyncStatus::OutcomeUnknown
+            );
+        }
         assert_eq!(store.unsynced_count().unwrap(), 1);
-        assert_eq!(
-            driver
-                .run(AgendaSyncAction::Push, now())
-                .await
-                .unwrap()
-                .status,
-            AgendaSyncStatus::UpToDate
-        );
-        assert_eq!(store.unsynced_count().unwrap(), 0);
-        assert_eq!(server.lock().unwrap().bases.len(), 1);
+        assert_eq!(server.lock().unwrap().published.len(), 1);
     });
 }
-
 #[test]
 fn confirmed_snapshot_is_not_uploaded_again_without_any_change() {
     runtime().block_on(async {
         let (store, remote, server) = setup();
         store.create(event()).unwrap();
-        let mut driver = SyncCoordinator::new(store, remote);
-        driver
-            .run(AgendaSyncAction::CreateConfirmed, now())
-            .await
-            .unwrap();
+        let mut d = SyncCoordinator::new(store, remote);
+        d.run(AgendaSyncAction::Push, now()).await.unwrap();
         assert_eq!(
-            driver
-                .run(AgendaSyncAction::Push, now())
-                .await
-                .unwrap()
-                .status,
+            d.run(AgendaSyncAction::Push, now()).await.unwrap().status,
             AgendaSyncStatus::UpToDate
         );
-        assert_eq!(server.lock().unwrap().bases.len(), 1);
+        assert_eq!(server.lock().unwrap().published.len(), 1);
     });
 }
 #[test]
-fn unknown_location_requires_confirmation_and_confirmed_creation_never_overwrites() {
+fn unknown_location_does_not_create_or_publish_even_when_confirmed() {
     runtime().block_on(async {
         let (store, mut remote, server) = setup();
         store.create(event()).unwrap();
         remote.unknown_location = true;
-        let other = AgendaStore::open(&root(), ACCOUNT).unwrap();
-        other.create(event()).unwrap();
-        let existing = other.sync_snapshot().unwrap().document().encode().unwrap();
-        server.lock().unwrap().document = Some(existing.clone());
-        let mut driver = SyncCoordinator::new(store.clone(), remote);
-        assert_eq!(
-            driver
-                .run(AgendaSyncAction::Pull, now())
-                .await
-                .unwrap()
-                .status,
-            AgendaSyncStatus::LocationUnknown
-        );
-        assert_eq!(
-            driver
-                .run(AgendaSyncAction::Push, now())
-                .await
-                .unwrap()
-                .status,
-            AgendaSyncStatus::LocationUnknown
-        );
-        assert!(server.lock().unwrap().bases.is_empty());
-        assert_eq!(
-            driver
-                .run(AgendaSyncAction::CreateConfirmed, now())
-                .await
-                .unwrap()
-                .status,
-            AgendaSyncStatus::Conflict
-        );
-        let server = server.lock().unwrap();
-        assert_eq!(server.bases, vec![None]);
-        assert_eq!(server.document.as_ref(), Some(&existing));
-        assert_eq!(store.unsynced_count().unwrap(), 1);
+        let mut d = SyncCoordinator::new(store, remote);
+        for action in [
+            AgendaSyncAction::Pull,
+            AgendaSyncAction::Push,
+            AgendaSyncAction::CreateConfirmed,
+        ] {
+            assert_eq!(
+                d.run(action, now()).await.unwrap().status,
+                AgendaSyncStatus::LocationUnknown
+            );
+        }
+        let s = server.lock().unwrap();
+        assert!(s.published.is_empty());
+        assert_eq!(s.directory_creates, 0);
     });
 }
 #[test]
@@ -374,20 +357,13 @@ fn route_change_or_same_account_relogin_during_read_does_not_merge_or_publish() 
             let incoming = event();
             let remote_id = incoming.id;
             other.create(incoming).unwrap();
-            {
-                let mut server = server.lock().unwrap();
-                server.revision = 1;
-                server.document = Some(other.sync_snapshot().unwrap().document().encode().unwrap());
-            }
-            let gate = Arc::new(Gate {
-                entered: tokio::sync::Notify::new(),
-                released: tokio::sync::Notify::new(),
-            });
+            insert_snapshot(&server, &other, 1);
+            let gate = gate();
             remote.readback_gate = Some(gate.clone());
             remote.fail_read = route;
             let generation = remote.generation.clone();
             let moved = store.clone();
-            let change = tokio::spawn(async move {
+            let task = tokio::spawn(async move {
                 gate.entered.notified().await;
                 if route {
                     generation.store(1, Ordering::SeqCst);
@@ -400,7 +376,7 @@ fn route_change_or_same_account_relogin_during_read_does_not_merge_or_publish() 
             let result = SyncCoordinator::new(store.clone(), remote)
                 .run(AgendaSyncAction::Push, now())
                 .await;
-            change.await.unwrap();
+            task.await.unwrap();
             assert!(matches!(
                 result,
                 Err(super::AgendaSyncError::Local(
@@ -409,293 +385,91 @@ fn route_change_or_same_account_relogin_during_read_does_not_merge_or_publish() 
             ));
             assert!(store.get(id).unwrap().is_some());
             assert!(store.get(remote_id).unwrap().is_none());
-            assert!(server.lock().unwrap().bases.is_empty());
-            assert_eq!(store.unsynced_count().unwrap(), 1);
+            assert!(server.lock().unwrap().published.is_empty());
         }
     });
 }
 #[test]
-fn two_devices_with_the_same_base_conflict_without_retry_then_merge_on_new_trigger() {
+fn two_devices_publish_independently_and_merge_both_changes() {
     runtime().block_on(async {
         let (first, mut remote, server) = setup();
-        let first_item = event();
-        let first_id = first_item.id;
-        first.create(first_item).unwrap();
-        server.lock().unwrap().document =
-            Some(super::AgendaSyncDocument::default().encode().unwrap());
-        let gate = Arc::new(Gate {
-            entered: tokio::sync::Notify::new(),
-            released: tokio::sync::Notify::new(),
-        });
-        remote.publish_gate = Some(gate.clone());
+        let item = event();
+        let first_id = item.id;
+        first.create(item).unwrap();
         let second = AgendaStore::open(&root(), ACCOUNT).unwrap();
-        let second_item = event();
-        let second_id = second_item.id;
-        second.create(second_item).unwrap();
-        let other_remote = Remote {
-            server: server.clone(),
-            generation: Arc::new(AtomicU64::new(0)),
-            expected: 0,
-            unverified: false,
-            readback_gate: None,
-            publish_gate: None,
-            unknown_location: false,
-            fail_read: false,
-        };
+        let item = event();
+        let second_id = item.id;
+        second.create(item).unwrap();
+        let gate = gate();
+        remote.publish_gate = Some(gate.clone());
+        let other = remote_for(server.clone());
+        let second_clone = second.clone();
         let peer = tokio::spawn(async move {
             gate.entered.notified().await;
-            let result = SyncCoordinator::new(second, other_remote)
+            let report = SyncCoordinator::new(second_clone, other)
                 .run(AgendaSyncAction::Push, now())
                 .await
                 .unwrap();
             gate.released.notify_one();
-            result
+            report
         });
-        let mut driver = SyncCoordinator::new(first.clone(), remote);
+        let mut d = SyncCoordinator::new(first.clone(), remote);
         assert_eq!(
-            driver
-                .run(AgendaSyncAction::Push, now())
-                .await
-                .unwrap()
-                .status,
-            AgendaSyncStatus::Conflict
+            d.run(AgendaSyncAction::Push, now()).await.unwrap().status,
+            AgendaSyncStatus::UpToDate
         );
         assert_eq!(peer.await.unwrap().status, AgendaSyncStatus::UpToDate);
-        assert_eq!(first.unsynced_count().unwrap(), 1);
-        {
-            let server = server.lock().unwrap();
-            assert_eq!(server.bases.len(), 2);
-            assert!(
-                server
-                    .bases
-                    .iter()
-                    .all(|v| v.as_ref().unwrap().revision == 0)
-            );
-        }
-        assert_eq!(
-            driver
-                .run(AgendaSyncAction::Push, now())
-                .await
-                .unwrap()
-                .status,
-            AgendaSyncStatus::UpToDate
-        );
-        let server = server.lock().unwrap();
-        assert_eq!(server.bases.len(), 3);
-        assert_eq!(server.bases[2].as_ref().unwrap().revision, 1);
-        let merged = super::AgendaSyncDocument::decode(server.document.as_ref().unwrap()).unwrap();
-        assert_eq!(merged.items.len(), 2);
-        assert!(merged.items.iter().any(|v| v.item.id == first_id));
-        assert!(merged.items.iter().any(|v| v.item.id == second_id));
+        assert!(first.get(first_id).unwrap().is_some());
+        assert!(first.get(second_id).unwrap().is_some());
+        let mut peer = SyncCoordinator::new(second.clone(), remote_for(server.clone()));
+        peer.run(AgendaSyncAction::Pull, now()).await.unwrap();
+        assert!(second.get(first_id).unwrap().is_some());
+        assert!(second.get(second_id).unwrap().is_some());
+        let s = server.lock().unwrap();
+        assert_eq!(s.published.len(), 2);
+        assert_ne!(s.published[0].publisher, s.published[1].publisher);
     });
 }
-
 #[test]
-fn readable_upload_version_without_current_metadata_publication_stays_unknown_and_dirty() {
+fn stopping_after_possible_send_preserves_read_only_reconciliation() {
     runtime().block_on(async {
-        let (store, remote, server) = setup();
+        let (store, mut remote, server) = setup();
         store.create(event()).unwrap();
-        {
-            let mut state = server.lock().unwrap();
-            state.document = Some(super::AgendaSyncDocument::default().encode().unwrap());
-            state.unregistered_revision_readable = true;
-        }
-        let mut driver = SyncCoordinator::new(store.clone(), remote);
-        assert_eq!(
-            driver
+        let gate = gate();
+        remote.after_send_gate = Some(gate.clone());
+        let moved = store.clone();
+        let task = tokio::spawn(async move {
+            SyncCoordinator::new(moved, remote)
                 .run(AgendaSyncAction::Push, now())
                 .await
-                .unwrap()
-                .status,
-            AgendaSyncStatus::OutcomeUnknown
-        );
-        let checked = driver.run(AgendaSyncAction::Push, now()).await.unwrap();
+        });
+        gate.entered.notified().await;
+        assert!(store.restore_sync_attempt().unwrap().is_some());
+        task.abort();
+        assert!(task.await.unwrap_err().is_cancelled());
+        let mut next = SyncCoordinator::new(store.clone(), remote_for(server.clone()));
         assert_eq!(
-            store.unsynced_count().unwrap(),
-            1,
-            "只有U正文证据时不得确认本机快照"
-        );
-        assert_eq!(checked.status, AgendaSyncStatus::OutcomeUnknown);
-        assert_eq!(
-            driver
-                .run(AgendaSyncAction::Push, now())
-                .await
-                .unwrap()
-                .status,
-            AgendaSyncStatus::OutcomeUnknown
-        );
-        {
-            let mut state = server.lock().unwrap();
-            assert_eq!(state.revision, 0);
-            assert_eq!(state.bases.len(), 1);
-            assert!(state.reads.iter().all(|v| v.revision == 0));
-            state.document = state.history.get(&1).cloned();
-            state.revision = 1;
-        }
-        assert_eq!(
-            driver
-                .run(AgendaSyncAction::Push, now())
-                .await
-                .unwrap()
-                .status,
-            AgendaSyncStatus::UpToDate
-        );
-        assert_eq!(store.unsynced_count().unwrap(), 0);
-        assert_eq!(server.lock().unwrap().bases.len(), 1);
-    });
-}
-
-#[test]
-fn reopening_the_same_account_after_unknown_only_reconciles_without_reupload() {
-    runtime().block_on(async {
-        let (_, remote, server) = setup();
-        let directory = root();
-        let store = AgendaStore::open(&directory, ACCOUNT).unwrap();
-        store.create(event()).unwrap();
-        {
-            let mut state = server.lock().unwrap();
-            state.document = Some(super::AgendaSyncDocument::default().encode().unwrap());
-            state.unregistered_revision_readable = true;
-        }
-        let mut first = SyncCoordinator::new(store.clone(), remote);
-        assert_eq!(
-            first
-                .run(AgendaSyncAction::Push, now())
-                .await
-                .unwrap()
-                .status,
-            AgendaSyncStatus::OutcomeUnknown
-        );
-        drop(first);
-        let second = AgendaStore::open(&directory, ACCOUNT).unwrap();
-        let remote = Remote {
-            server: server.clone(),
-            generation: Arc::new(AtomicU64::new(0)),
-            expected: 0,
-            unverified: false,
-            readback_gate: None,
-            publish_gate: None,
-            unknown_location: false,
-            fail_read: false,
-        };
-        let mut second = SyncCoordinator::new(second, remote);
-        assert_eq!(
-            second
-                .run(AgendaSyncAction::Push, now())
+            next.run(AgendaSyncAction::Push, now())
                 .await
                 .unwrap()
                 .status,
             AgendaSyncStatus::OutcomeUnknown
         );
         assert_eq!(store.unsynced_count().unwrap(), 1);
-        assert_eq!(
-            server.lock().unwrap().bases.len(),
-            1,
-            "新消费者必须保留结果未知的只读核对状态"
-        );
-    });
-}
-
-struct StopAfterSend {
-    inner: Remote,
-    gate: Arc<Gate>,
-}
-#[async_trait]
-impl SyncRemote for StopAfterSend {
-    type Version = Version;
-    fn check_current(&self) -> Result<(), RemoteError> {
-        self.inner.check_current()
-    }
-    fn same_object(&self, a: &Version, b: &Version) -> bool {
-        self.inner.same_object(a, b)
-    }
-    fn object_key(&self, version: &Version) -> String {
-        self.inner.object_key(version)
-    }
-    async fn locate(&mut self) -> Result<RemoteLocation<Version>, RemoteError> {
-        self.inner.locate().await
-    }
-    async fn read_version(&mut self, version: &Version) -> Result<Vec<u8>, RemoteError> {
-        self.inner.read_version(version).await
-    }
-    async fn publish_once(
-        &mut self,
-        base: Option<&Version>,
-        body: &[u8],
-        before_commit: BeforeCommit<'_>,
-    ) -> Result<RemoteCommit<Version>, RemoteError> {
-        let result = self.inner.publish_once(base, body, before_commit).await;
-        self.gate.entered.notify_one();
-        self.gate.released.notified().await;
-        result
-    }
-}
-#[test]
-fn stopping_after_a_possible_send_before_returning_outcome_preserves_read_only_reconciliation() {
-    runtime().block_on(async {
-        for unregistered in [true, false] {
-            let (_, remote, server) = setup();
-            let directory = root();
-            let store = AgendaStore::open(&directory, ACCOUNT).unwrap();
-            store.create(event()).unwrap();
-            {
-                let mut state = server.lock().unwrap();
-                state.document = Some(super::AgendaSyncDocument::default().encode().unwrap());
-                state.unregistered_revision_readable = unregistered;
-            }
-            let gate = Arc::new(Gate {
-                entered: tokio::sync::Notify::new(),
-                released: tokio::sync::Notify::new(),
-            });
-            let mut driver = SyncCoordinator::new(
-                store.clone(),
-                StopAfterSend {
-                    inner: remote,
-                    gate: gate.clone(),
-                },
-            );
-            let task = tokio::spawn(async move { driver.run(AgendaSyncAction::Push, now()).await });
-            gate.entered.notified().await;
-            assert!(store.restore_sync_attempt().unwrap().is_some());
-            task.abort();
-            assert!(task.await.unwrap_err().is_cancelled());
-            let reopened = AgendaStore::open(&directory, ACCOUNT).unwrap();
-            let (_, mut remote, _) = setup();
-            remote.server = server.clone();
-            let report = SyncCoordinator::new(reopened, remote)
-                .run(AgendaSyncAction::Push, now())
-                .await
-                .unwrap();
-            assert_eq!(
-                report.status,
-                if unregistered {
-                    AgendaSyncStatus::OutcomeUnknown
-                } else {
-                    AgendaSyncStatus::UpToDate
-                }
-            );
-            assert_eq!(server.lock().unwrap().bases.len(), 1);
-            assert_eq!(store.unsynced_count().unwrap(), usize::from(unregistered));
-        }
+        assert_eq!(server.lock().unwrap().published.len(), 1);
     });
 }
 #[test]
 fn failure_to_persist_attempt_stops_before_the_first_remote_write() {
     runtime().block_on(async {
-        let (_,remote,server)=setup();
-        let directory=root();
-        let store=AgendaStore::open(&directory,ACCOUNT).unwrap();
-        store.create(event()).unwrap();
-        server.lock().unwrap().document=Some(super::AgendaSyncDocument::default().encode().unwrap());
+        let directory=root(); let store=AgendaStore::open(&directory,ACCOUNT).unwrap(); store.create(event()).unwrap(); let (_,remote,server)=setup();
         let db=rusqlite::Connection::open(directory.join("agenda").join(format!("{ACCOUNT}.sqlite"))).unwrap();
         db.execute_batch("CREATE TRIGGER reject_attempt BEFORE INSERT ON agenda_sync_pending BEGIN SELECT RAISE(FAIL,'合成写入失败'); END;").unwrap();
-        let mut driver=SyncCoordinator::new(store.clone(),remote);
-        assert!(matches!(driver.run(AgendaSyncAction::Push,now()).await,Err(super::AgendaSyncError::Local(_))));
-        assert!(server.lock().unwrap().bases.is_empty());
-        assert!(store.restore_sync_attempt().unwrap().is_none());
-        assert_eq!(store.unsynced_count().unwrap(),1);
+        let mut d=SyncCoordinator::new(store.clone(),remote);
+        assert!(matches!(d.run(AgendaSyncAction::Push,now()).await,Err(super::AgendaSyncError::Local(_))));
+        assert!(server.lock().unwrap().published.is_empty()); assert!(store.restore_sync_attempt().unwrap().is_none()); assert_eq!(store.unsynced_count().unwrap(),1);
         db.execute_batch("DROP TRIGGER reject_attempt").unwrap();
-        assert_eq!(driver.run(AgendaSyncAction::Push,now()).await.unwrap().status,AgendaSyncStatus::UpToDate);
-        assert_eq!(server.lock().unwrap().bases.len(),1);
+        assert_eq!(d.run(AgendaSyncAction::Push,now()).await.unwrap().status,AgendaSyncStatus::UpToDate);
+        assert_eq!(server.lock().unwrap().published.len(),1);
     });
 }

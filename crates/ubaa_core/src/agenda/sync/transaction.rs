@@ -17,6 +17,14 @@ pub struct AgendaSyncSnapshot {
     pub(super) epoch: u64,
     pub(super) document: AgendaSyncDocument,
     pub(super) attempt: Option<Uuid>,
+    pub(super) publication: Option<u64>,
+}
+pub(super) struct RestoredAttempt {
+    pub snapshot: AgendaSyncSnapshot,
+    pub step: SyncStep,
+    pub object: Option<String>,
+    pub body_retained: bool,
+    pub registered: bool,
 }
 impl AgendaSyncSnapshot {
     #[must_use]
@@ -25,22 +33,38 @@ impl AgendaSyncSnapshot {
     }
 }
 impl AgendaStore {
-    pub(super) fn restore_sync_attempt(
-        &self,
-    ) -> CacheResult<Option<(AgendaSyncSnapshot, SyncStep, Option<String>)>> {
+    /// 当前账号是否已明确许可 GUI 自动同步。
+    ///
+    /// # Errors
+    /// 账号停用或存储失败时拒绝读取。
+    pub fn sync_enabled(&self) -> CacheResult<bool> {
+        self.access(true, false, |data| Ok(data.sync.enabled))
+    }
+    /// 在用户确认后保存当前账号的自动同步许可。
+    ///
+    /// # Errors
+    /// 账号停用、代次失效或事务失败时不修改许可。
+    pub fn enable_sync(&self) -> CacheResult<()> {
+        self.access(true, true, |data| {
+            data.sync.enabled = true;
+            Ok(())
+        })
+    }
+    pub(super) fn restore_sync_attempt(&self) -> CacheResult<Option<RestoredAttempt>> {
         self.access(true, false, |data| {
-            Ok(data.sync.pending.as_ref().map(|pending| {
-                (
-                    AgendaSyncSnapshot {
-                        account_alias: self.account_alias().into(),
-                        device_id: data.sync.device_id,
-                        epoch: data.sync.epoch,
-                        document: pending.document.clone(),
-                        attempt: Some(pending.id),
-                    },
-                    pending.step,
-                    pending.object.clone(),
-                )
+            Ok(data.sync.pending.as_ref().map(|pending| RestoredAttempt {
+                snapshot: AgendaSyncSnapshot {
+                    account_alias: self.account_alias().into(),
+                    device_id: data.sync.device_id,
+                    epoch: data.sync.epoch,
+                    document: pending.document.clone().unwrap_or_default(),
+                    attempt: Some(pending.id),
+                    publication: pending.publication,
+                },
+                step: pending.step,
+                object: pending.object.clone(),
+                body_retained: pending.document.is_some(),
+                registered: pending.registered,
             }))
         })
     }
@@ -51,26 +75,40 @@ impl AgendaStore {
         object: Option<String>,
     ) -> CacheResult<Uuid> {
         let id = Uuid::new_v4();
-        self.access(true, true, |data| {
+        let publication = self.access(true, true, |data| {
             self.check_sync_scope(sent, data)?;
             if data.sync.pending.is_some() {
                 return Err(CacheError::Superseded);
             }
+            let publication = if step == SyncStep::File {
+                let value = data.sync.next_publication;
+                data.sync.next_publication = value
+                    .checked_add(1)
+                    .filter(|value| i64::try_from(*value).is_ok())
+                    .ok_or(CacheError::Capacity)?;
+                Some(value)
+            } else {
+                None
+            };
             data.sync.pending = Some(StoredPending {
                 id,
                 step,
-                document: sent.document.clone(),
+                document: Some(sent.document.clone()),
+                publication,
                 object,
+                registered: false,
             });
-            Ok(())
+            Ok(publication)
         })?;
         sent.attempt = Some(id);
+        sent.publication = publication;
         Ok(id)
     }
     pub(super) fn update_sync_attempt(
         &self,
         sent: &AgendaSyncSnapshot,
         object: Option<String>,
+        registered: bool,
     ) -> CacheResult<()> {
         self.access(true, true, |data| {
             self.check_sync_scope(sent, data)?;
@@ -81,6 +119,7 @@ impl AgendaStore {
                 .filter(|pending| Some(pending.id) == sent.attempt)
                 .ok_or(CacheError::Superseded)?;
             pending.object = object;
+            pending.registered = registered;
             Ok(())
         })
     }
@@ -105,12 +144,11 @@ impl AgendaStore {
         })
     }
     fn require_sync_attempt(sent: &AgendaSyncSnapshot, data: &AgendaData) -> CacheResult<()> {
-        if data
-            .sync
-            .pending
-            .as_ref()
-            .is_some_and(|pending| Some(pending.id) == sent.attempt)
-        {
+        if data.sync.pending.as_ref().is_some_and(|pending| {
+            Some(pending.id) == sent.attempt
+                && pending.publication == sent.publication
+                && pending.document.as_ref() == Some(&sent.document)
+        }) {
             Ok(())
         } else {
             Err(CacheError::Superseded)
@@ -128,6 +166,7 @@ impl AgendaStore {
                 epoch: data.sync.epoch,
                 document: document(data)?,
                 attempt: None,
+                publication: None,
             })
         })
     }
@@ -173,9 +212,16 @@ impl AgendaStore {
                 .iter()
                 .map(|v| Ok((overlay_key(&v.overlay.key)?, v)))
                 .collect::<CacheResult<_>>()?;
-            let mut changed = 0;
+            let mut changed = super::deletions::merge_into(data, &merged, &remote)?;
             for record in merged.items {
                 let key = record.item.id;
+                if data.sync.item_deletions.get(&key).is_some_and(|deleted| {
+                    let version = (record.item.updated_at, record.device_id, record.sequence);
+                    deleted.version() > version
+                        || deleted.version() == version && record.item.deleted_at.is_none()
+                }) {
+                    continue;
+                }
                 let remote = remote_items.get(&key).copied();
                 let known = remote == Some(&record)
                     || remote.is_none()
@@ -189,7 +235,12 @@ impl AgendaStore {
                 };
                 imported_sequence(&mut data.sync, stamp)?;
                 let mut item = record.item;
-                item.locally_modified = !known;
+                item.locally_modified = !known
+                    || data.sync.pending.is_some()
+                        && data.sync.items.get(&key) == Some(&stamp)
+                        && data.items.get(&key).is_some_and(|old| {
+                            old.locally_modified && super::state::same_item(old, &item)
+                        });
                 changed += usize::from(
                     data.items.get(&key) != Some(&item)
                         || data.sync.items.get(&key) != Some(&stamp),
@@ -199,6 +250,19 @@ impl AgendaStore {
             }
             for record in merged.overlays {
                 let key = overlay_key(&record.overlay.key)?;
+                if data
+                    .sync
+                    .overlay_deletions
+                    .get(&key)
+                    .is_some_and(|deleted| {
+                        let version =
+                            (record.overlay.updated_at, record.device_id, record.sequence);
+                        deleted.version() > version
+                            || deleted.version() == version && record.overlay.deleted_at.is_none()
+                    })
+                {
+                    continue;
+                }
                 let remote = remote_overlays.get(&key).copied();
                 let known = remote == Some(&record)
                     || remote.is_none()
@@ -212,7 +276,12 @@ impl AgendaStore {
                 };
                 imported_sequence(&mut data.sync, stamp)?;
                 let mut overlay = record.overlay;
-                overlay.locally_modified = !known;
+                overlay.locally_modified = !known
+                    || data.sync.pending.is_some()
+                        && data.sync.overlays.get(&key) == Some(&stamp)
+                        && data.overlays.get(&key).is_some_and(|old| {
+                            old.locally_modified && super::state::same_overlay(old, &overlay)
+                        });
                 changed += usize::from(
                     data.overlays.get(&key) != Some(&overlay)
                         || data.sync.overlays.get(&key) != Some(&stamp),
@@ -244,7 +313,7 @@ impl AgendaStore {
             if sent.attempt.is_some() {
                 Self::require_sync_attempt(sent, data)?;
             }
-            let mut confirmed = 0;
+            let mut confirmed = super::deletions::confirm(data, &sent.document)?;
             for record in &sent.document.items {
                 let stamp = Stamp {
                     device_id: record.device_id,
@@ -289,17 +358,6 @@ impl AgendaStore {
                     .count())
         })
     }
-    pub(super) fn purge_sync_tombstones(
-        &self,
-        scope: &AgendaSyncSnapshot,
-        now: crate::domain::agenda::AgendaTime,
-    ) -> CacheResult<usize> {
-        let cutoff = tombstone_cutoff(now)?;
-        self.access(true, true, |data| {
-            self.check_sync_scope(scope, data)?;
-            Ok(crate::agenda::operations::purge_before(data, cutoff))
-        })
-    }
     fn check_sync_scope(&self, scope: &AgendaSyncSnapshot, data: &AgendaData) -> CacheResult<()> {
         if scope.account_alias != self.account_alias()
             || scope.device_id != data.sync.device_id
@@ -318,7 +376,7 @@ fn tombstone_cutoff(now: AgendaTime) -> CacheResult<chrono::DateTime<chrono::Fix
         .checked_sub_signed(chrono::Duration::days(180))
         .ok_or(CacheError::InvalidInput)
 }
-fn imported_sequence(state: &mut SyncState, stamp: Stamp) -> CacheResult<()> {
+pub(super) fn imported_sequence(state: &mut SyncState, stamp: Stamp) -> CacheResult<()> {
     if stamp.device_id == state.device_id && stamp.sequence >= state.next_sequence {
         state.next_sequence = stamp
             .sequence
@@ -331,6 +389,9 @@ fn imported_sequence(state: &mut SyncState, stamp: Stamp) -> CacheResult<()> {
 fn document(data: &AgendaData) -> CacheResult<AgendaSyncDocument> {
     let mut result = AgendaSyncDocument::default();
     for (key, value) in &data.items {
+        if value.deleted_at.is_some() {
+            continue;
+        }
         let stamp = data.sync.items.get(key).ok_or(CacheError::Corrupt)?;
         let mut item = value.clone();
         item.locally_modified = false;
@@ -341,6 +402,9 @@ fn document(data: &AgendaData) -> CacheResult<AgendaSyncDocument> {
         });
     }
     for (key, value) in &data.overlays {
+        if value.deleted_at.is_some() {
+            continue;
+        }
         let stamp = data.sync.overlays.get(key).ok_or(CacheError::Corrupt)?;
         let mut overlay = value.clone();
         overlay.locally_modified = false;
@@ -350,5 +414,6 @@ fn document(data: &AgendaData) -> CacheResult<AgendaSyncDocument> {
             overlay,
         });
     }
-    Ok(result)
+    super::deletions::append(data, &mut result)?;
+    result.normalized()
 }

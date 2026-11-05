@@ -1,7 +1,7 @@
 use crate::{
     agenda::store::AgendaData,
     cache::{CacheError, CacheResult},
-    domain::agenda::{AgendaItem, SchoolAgendaOverlay},
+    domain::agenda::{AgendaItem, AgendaTime, SchoolAgendaOverlay},
 };
 use std::collections::BTreeMap;
 use uuid::Uuid;
@@ -14,17 +14,34 @@ pub(crate) struct Stamp {
 pub(crate) struct SyncState {
     pub device_id: Uuid,
     pub next_sequence: u64,
+    pub next_publication: u64,
+    pub enabled: bool,
     pub epoch: u64,
     pub items: BTreeMap<Uuid, Stamp>,
     pub overlays: BTreeMap<String, Stamp>,
+    pub item_deletions: BTreeMap<Uuid, Deletion>,
+    pub overlay_deletions: BTreeMap<String, Deletion>,
     pub pending: Option<StoredPending>,
+}
+#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+pub(crate) struct Deletion {
+    pub deleted_at: AgendaTime,
+    pub updated_at: AgendaTime,
+    pub stamp: Stamp,
+}
+impl Deletion {
+    pub(super) fn version(self) -> (AgendaTime, Uuid, u64) {
+        (self.updated_at, self.stamp.device_id, self.stamp.sequence)
+    }
 }
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub(crate) struct StoredPending {
     pub id: Uuid,
     pub(super) step: SyncStep,
-    pub document: super::AgendaSyncDocument,
+    pub document: Option<super::AgendaSyncDocument>,
+    pub publication: Option<u64>,
     pub object: Option<String>,
+    pub registered: bool,
 }
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) enum SyncStep {
@@ -36,6 +53,7 @@ impl SyncState {
         Self {
             device_id: Uuid::new_v4(),
             next_sequence: 1,
+            next_publication: 1,
             ..Self::default()
         }
     }
@@ -93,7 +111,48 @@ pub(crate) fn track_local_changes(before: &AgendaData, after: &mut AgendaData) -
             after.sync.overlays.insert(key.clone(), stamp);
         }
     }
+    remember_deletions(after);
     Ok(())
+}
+pub(super) fn remember_deletions(data: &mut AgendaData) {
+    for (key, item) in &data.items {
+        if let Some(deleted_at) = item.deleted_at
+            && let Some(stamp) = data.sync.items.get(key)
+        {
+            remember(
+                &mut data.sync.item_deletions,
+                *key,
+                Deletion {
+                    deleted_at,
+                    updated_at: item.updated_at,
+                    stamp: *stamp,
+                },
+            );
+        }
+    }
+    for (key, overlay) in &data.overlays {
+        if let Some(deleted_at) = overlay.deleted_at
+            && let Some(stamp) = data.sync.overlays.get(key)
+        {
+            remember(
+                &mut data.sync.overlay_deletions,
+                key.clone(),
+                Deletion {
+                    deleted_at,
+                    updated_at: overlay.updated_at,
+                    stamp: *stamp,
+                },
+            );
+        }
+    }
+}
+fn remember<K: Ord>(map: &mut BTreeMap<K, Deletion>, key: K, value: Deletion) {
+    if map
+        .get(&key)
+        .is_none_or(|old| value.version() > old.version())
+    {
+        map.insert(key, value);
+    }
 }
 pub(super) fn same_item(a: &AgendaItem, b: &AgendaItem) -> bool {
     a.id == b.id

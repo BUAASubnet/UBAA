@@ -1,4 +1,4 @@
-//! 日程 schema 3：逐记录明文与同步版本；只对已知有效 schema 2 原子升级。
+//! 日程 schema 4：逐记录明文、发布身份、启用许可与删除摘要。
 use super::{operations::overlay_key, recurrence::validate_item, store::AgendaData};
 use crate::{
     cache::{CacheError, CacheResult},
@@ -14,7 +14,7 @@ use std::{
     time::Duration,
 };
 use uuid::Uuid;
-pub(super) const SCHEMA: i64 = 3;
+pub(super) const SCHEMA: i64 = 4;
 const RECORD_LIMIT: usize = 16 * 1024 * 1024;
 
 pub(super) fn open(root: &Path, account: &str) -> CacheResult<Connection> {
@@ -61,6 +61,14 @@ pub(super) fn open(root: &Path, account: &str) -> CacheResult<Connection> {
                 [SCHEMA],
             )?;
             tx.pragma_update(None, "user_version", SCHEMA)?;
+        } else if version == 3 {
+            let mut legacy = load_version(&tx, account, 3)?;
+            super::sync::sqlite::upgrade(&tx, &mut legacy)?;
+            tx.execute(
+                "UPDATE agenda_meta SET schema_version=?1 WHERE id=1",
+                [SCHEMA],
+            )?;
+            tx.pragma_update(None, "user_version", SCHEMA)?;
         }
         load(&tx, account)?;
         tx.commit()?;
@@ -80,6 +88,10 @@ fn load_existing(tx: &Transaction<'_>, account: &str) -> CacheResult<AgendaData>
         .map_err(|e| read_error(&e))?;
     if version == 2 {
         load_version(tx, account, 2)
+    } else if version == 3 {
+        let mut data = load_version(tx, account, 3)?;
+        super::sync::sqlite::load_legacy(tx, &mut data)?;
+        Ok(data)
     } else {
         load(tx, account)
     }

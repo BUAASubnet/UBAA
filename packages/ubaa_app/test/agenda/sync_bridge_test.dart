@@ -148,6 +148,11 @@ class Api extends RustLibApi {
 }
 
 class StoreHandle implements BridgeAgendaStore {
+  bool enabled = false;
+  @override
+  Future<bool> syncEnabled() async => enabled;
+  @override
+  Future<int> unsyncedCount() async => 0;
   @override
   Future<void> activate() async {}
   @override

@@ -58,7 +58,7 @@ fn sqlite_stores_each_item_and_overlay_as_readable_plaintext_rows() {
             |r| Ok((r.get(0)?, r.get(1)?)),
         )
         .unwrap();
-    assert_eq!((schema, active), (3, 1));
+    assert_eq!((schema, active), (4, 1));
 }
 #[test]
 fn existing_version_zero_database_is_rejected_without_initialization() {

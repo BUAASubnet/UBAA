@@ -1,3 +1,4 @@
+use super::deletions::{self, AgendaSyncItemDeletion, AgendaSyncOverlayDeletion};
 use crate::{
     agenda::{operations::overlay_key, recurrence::validate_item},
     cache::{CacheError, CacheResult},
@@ -6,7 +7,7 @@ use crate::{
 use serde::{Deserialize, Serialize};
 use std::{cmp::Ordering, collections::BTreeMap, io::Write};
 use uuid::Uuid;
-const DOCUMENT_LIMIT: usize = 32 * 1024 * 1024;
+pub(super) const DOCUMENT_LIMIT: usize = 32 * 1024 * 1024;
 
 /// 单次事项版本。序号在同一设备持久递增，区分同秒编辑。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -24,19 +25,23 @@ pub struct AgendaSyncOverlay {
     #[serde(with = "super::values::OverlayValue")]
     pub overlay: SchoolAgendaOverlay,
 }
-/// 个人 UBAA/agenda.json 的明文内容，独立于本机数据库格式。
+/// 不可变快照中的记录与紧凑删除摘要，独立于本机数据库格式。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct AgendaSyncDocument {
     pub schema: u32,
     pub items: Vec<AgendaSyncItem>,
     pub overlays: Vec<AgendaSyncOverlay>,
+    pub item_deletions: Vec<AgendaSyncItemDeletion>,
+    pub overlay_deletions: Vec<AgendaSyncOverlayDeletion>,
 }
 impl Default for AgendaSyncDocument {
     fn default() -> Self {
         Self {
-            schema: 1,
+            schema: 2,
             items: vec![],
             overlays: vec![],
+            item_deletions: vec![],
+            overlay_deletions: vec![],
         }
     }
 }
@@ -48,8 +53,8 @@ impl AgendaSyncDocument {
     pub fn merge(&self, other: &Self) -> CacheResult<Self> {
         let left = self.normalized()?;
         let right = other.normalized()?;
-        Ok(Self {
-            schema: 1,
+        let value = Self {
+            schema: 2,
             items: merge_records(
                 left.items,
                 right.items,
@@ -62,7 +67,22 @@ impl AgendaSyncDocument {
                 |v| overlay_key(&v.overlay.key),
                 |v| (v.overlay.updated_at, v.device_id, v.sequence),
             )?,
-        })
+            item_deletions: merge_records(
+                left.item_deletions,
+                right.item_deletions,
+                |v| Ok(v.id),
+                AgendaSyncItemDeletion::version,
+            )?,
+            overlay_deletions: merge_records(
+                left.overlay_deletions,
+                right.overlay_deletions,
+                |v| overlay_key(&v.key),
+                AgendaSyncOverlayDeletion::version,
+            )?,
+        }
+        .normalized()?;
+        value.encode()?;
+        Ok(value)
     }
     /// 解析并验证同步正文。
     ///
@@ -81,12 +101,10 @@ impl AgendaSyncDocument {
     /// 文档不合法或超过正文预算时失败。
     pub fn encode(&self) -> CacheResult<Vec<u8>> {
         let value = self.normalized()?;
-        let mut writer = DocumentWriter { bytes: Vec::new() };
-        serde_json::to_writer(&mut writer, &value).map_err(|_| CacheError::Capacity)?;
-        Ok(writer.bytes)
+        encode_value(&value)
     }
     pub(super) fn normalized(&self) -> CacheResult<Self> {
-        if self.schema != 1 {
+        if self.schema != 2 {
             return Err(CacheError::UnsupportedVersion);
         }
         let mut value = self.clone();
@@ -95,6 +113,9 @@ impl AgendaSyncDocument {
             valid_version(record.device_id, record.sequence)?;
             record.item.locally_modified = false;
             validate_item(&record.item).map_err(|_| CacheError::Corrupt)?;
+            if record.item.deleted_at.is_some() {
+                return Err(CacheError::Corrupt);
+            }
         }
         if value
             .items
@@ -108,17 +129,24 @@ impl AgendaSyncDocument {
             valid_version(record.device_id, record.sequence)?;
             record.overlay.locally_modified = false;
             let key = overlay_key(&record.overlay.key).map_err(|_| CacheError::Corrupt)?;
-            if !crate::agenda::sqlite::valid_overlay(&record.overlay)
+            if record.overlay.deleted_at.is_some()
+                || !crate::agenda::sqlite::valid_overlay(&record.overlay)
                 || overlays.insert(key, record).is_some()
             {
                 return Err(CacheError::Corrupt);
             }
         }
         value.overlays = overlays.into_values().collect();
+        deletions::normalize(&mut value)?;
         Ok(value)
     }
 }
-fn valid_version(device_id: Uuid, sequence: u64) -> CacheResult<()> {
+pub(super) fn encode_value(value: &impl Serialize) -> CacheResult<Vec<u8>> {
+    let mut writer = DocumentWriter { bytes: Vec::new() };
+    serde_json::to_writer(&mut writer, value).map_err(|_| CacheError::Capacity)?;
+    Ok(writer.bytes)
+}
+pub(super) fn valid_version(device_id: Uuid, sequence: u64) -> CacheResult<()> {
     if device_id.is_nil() || sequence == 0 || sequence > i64::MAX as u64 {
         return Err(CacheError::Corrupt);
     }

@@ -77,7 +77,7 @@ fn valid_schema2_upgrade_preserves_actual_rows_and_shared_same_second_sequence()
     let version: i64 = db
         .pragma_query_value(None, "user_version", |r| r.get(0))
         .unwrap();
-    assert_eq!(version, 3);
+    assert_eq!(version, 4);
     let sent = first.sync_snapshot().unwrap();
     let second = AgendaStore::open(&root, ACCOUNT).unwrap();
     let mut value = item.content.clone();
@@ -101,6 +101,159 @@ fn valid_schema2_upgrade_preserves_actual_rows_and_shared_same_second_sequence()
     first.confirm_sync(&sent, sent.document()).unwrap();
     assert_eq!(second.get(item.id).unwrap().unwrap().content, value);
     assert_eq!(second.unsynced_count().unwrap(), 1);
+}
+
+fn schema3(root: &Path) -> (PathBuf, Connection, AgendaItem) {
+    let (path, db, item, _) = legacy(root, true);
+    db.execute_batch("CREATE TABLE agenda_sync_meta(id INTEGER PRIMARY KEY CHECK(id=1),device_id TEXT NOT NULL,next_sequence INTEGER NOT NULL CHECK(next_sequence>0),epoch INTEGER NOT NULL CHECK(epoch>=0)); CREATE TABLE agenda_sync_stamps(kind INTEGER NOT NULL CHECK(kind IN (1,2)),key TEXT NOT NULL,device_id TEXT NOT NULL,sequence INTEGER NOT NULL CHECK(sequence>0),PRIMARY KEY(kind,key)); CREATE TABLE agenda_sync_pending(id INTEGER PRIMARY KEY CHECK(id=1),attempt TEXT NOT NULL,step INTEGER NOT NULL CHECK(step IN (1,2)),document BLOB NOT NULL,object TEXT); INSERT INTO agenda_sync_meta VALUES(1,'11111111-1111-4111-8111-111111111111',3,7); INSERT INTO agenda_sync_stamps SELECT 1,id,'11111111-1111-4111-8111-111111111111',1 FROM agenda_items; INSERT INTO agenda_sync_stamps SELECT 2,key,'11111111-1111-4111-8111-111111111111',2 FROM agenda_overlays; UPDATE agenda_meta SET schema_version=3; PRAGMA user_version=3;").unwrap();
+    (path, db, item)
+}
+
+#[test]
+fn schema3_upgrade_keeps_identity_rows_and_defaults_sync_to_off() {
+    let root = root();
+    let (_, db, item) = schema3(&root);
+    let store = AgendaStore::open(&root, ACCOUNT).unwrap();
+    assert_eq!(store.get(item.id).unwrap(), Some(item));
+    let snapshot = store.sync_snapshot().unwrap();
+    assert_eq!(
+        snapshot.device_id.to_string(),
+        "11111111-1111-4111-8111-111111111111"
+    );
+    assert_eq!(snapshot.epoch, 7);
+    assert_eq!(snapshot.document.items[0].sequence, 1);
+    assert!(!store.sync_enabled().unwrap());
+    let counters: (i64, i64) = db
+        .query_row(
+            "SELECT next_sequence,next_publication FROM agenda_sync_meta",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(counters, (3, 1));
+    store.enable_sync().unwrap();
+    assert!(
+        AgendaStore::open(&root, ACCOUNT)
+            .unwrap()
+            .sync_enabled()
+            .unwrap()
+    );
+}
+
+#[test]
+fn schema3_unknown_attempt_or_failed_upgrade_preserves_the_original_database() {
+    let root = root();
+    let (path, db, _) = schema3(&root);
+    db.execute_batch("INSERT INTO agenda_sync_pending VALUES(1,'22222222-2222-4222-8222-222222222222',2,X'7B7D',NULL);").unwrap();
+    let before = std::fs::read(&path).unwrap();
+    assert!(AgendaStore::open(&root, ACCOUNT).is_err());
+    assert_eq!(std::fs::read(&path).unwrap(), before);
+    db.execute_batch("DELETE FROM agenda_sync_pending; CREATE TRIGGER fail_upgrade BEFORE UPDATE OF schema_version ON agenda_meta BEGIN SELECT RAISE(ABORT,'合成升级写入失败'); END;").unwrap();
+    assert!(AgendaStore::open(&root, ACCOUNT).is_err());
+    assert_eq!(
+        db.pragma_query_value::<i64, _>(None, "user_version", |r| r.get(0))
+            .unwrap(),
+        3
+    );
+    assert!(
+        db.prepare("SELECT next_publication FROM agenda_sync_meta")
+            .is_err()
+    );
+    assert_eq!(
+        db.query_row::<i64, _, _>(
+            "SELECT COUNT(*) FROM sqlite_master WHERE name='agenda_sync_deletions'",
+            [],
+            |r| r.get(0)
+        )
+        .unwrap(),
+        0
+    );
+}
+
+#[test]
+fn deletion_summary_survives_purge_and_reopen_without_retaining_personal_content() {
+    let root = root();
+    let store = AgendaStore::open(&root, ACCOUNT).unwrap();
+    let item = event();
+    let id = item.id;
+    store.create(item).unwrap();
+    let stale = store.sync_snapshot().unwrap().document;
+    store
+        .delete(
+            id,
+            AgendaEditScope::All,
+            None,
+            t("2026-03-01T00:00:00+08:00"),
+        )
+        .unwrap();
+    let sent = store.sync_snapshot().unwrap();
+    store.confirm_sync(&sent, sent.document()).unwrap();
+    assert_eq!(
+        store
+            .purge_tombstones(t("2026-09-02T00:00:00+08:00"))
+            .unwrap(),
+        1
+    );
+    drop(store);
+    let store = AgendaStore::open(&root, ACCOUNT).unwrap();
+    let scope = store.sync_snapshot().unwrap();
+    store.merge_sync(&scope, &stale).unwrap();
+    assert!(store.get(id).unwrap().is_none());
+    let db = Connection::open(root.join("agenda").join(format!("{ACCOUNT}.sqlite"))).unwrap();
+    let count: i64 = db
+        .query_row("SELECT COUNT(*) FROM agenda_sync_deletions", [], |r| {
+            r.get(0)
+        })
+        .unwrap();
+    assert_eq!(count, 1);
+    assert_eq!(
+        db.query_row::<i64, _, _>("SELECT COUNT(*) FROM agenda_items", [], |r| r.get(0))
+            .unwrap(),
+        0
+    );
+    assert!(
+        db.prepare("SELECT title,notes FROM agenda_sync_deletions")
+            .is_err()
+    );
+}
+
+#[test]
+fn clear_local_keeps_device_publication_and_consent_but_scrubs_deletion_summary() {
+    let root = root();
+    let store = AgendaStore::open(&root, ACCOUNT).unwrap();
+    let item = event();
+    let id = item.id;
+    store.create(item).unwrap();
+    store
+        .delete(
+            id,
+            AgendaEditScope::All,
+            None,
+            t("2026-03-01T00:00:00+08:00"),
+        )
+        .unwrap();
+    store.enable_sync().unwrap();
+    let db = Connection::open(root.join("agenda").join(format!("{ACCOUNT}.sqlite"))).unwrap();
+    db.execute("UPDATE agenda_sync_meta SET next_publication=8", [])
+        .unwrap();
+    let before = store.sync_snapshot().unwrap();
+    assert_eq!(store.clear_local_data().unwrap(), 1);
+    let after = store.sync_snapshot().unwrap();
+    assert_eq!(after.device_id, before.device_id);
+    assert!(store.sync_enabled().unwrap());
+    assert_eq!(
+        db.query_row::<i64, _, _>("SELECT next_publication FROM agenda_sync_meta", [], |r| r
+            .get(0))
+            .unwrap(),
+        8
+    );
+    assert_eq!(
+        db.query_row::<i64, _, _>("SELECT COUNT(*) FROM agenda_sync_deletions", [], |r| r
+            .get(0))
+            .unwrap(),
+        0
+    );
+    assert!(store.confirm_sync(&before, before.document()).is_err());
 }
 #[test]
 fn upgrade_write_failure_rolls_back_new_tables_metadata_and_existing_records() {
@@ -152,4 +305,32 @@ fn inactive_schema2_upgrade_retains_logout_and_corrupt_schema2_is_untouched() {
         .pragma_query_value(None, "user_version", |r| r.get(0))
         .unwrap();
     assert_eq!(version, 2);
+}
+
+#[test]
+fn purged_item_uuid_cannot_be_recreated_while_its_deletion_summary_exists() {
+    let root = root();
+    let store = AgendaStore::open(&root, ACCOUNT).unwrap();
+    let item = event();
+    let id = item.id;
+    store.create(item.clone()).unwrap();
+    store
+        .delete(
+            id,
+            AgendaEditScope::All,
+            None,
+            t("2026-03-01T00:00:00+08:00"),
+        )
+        .unwrap();
+    let snapshot = store.sync_snapshot().unwrap();
+    store.confirm_sync(&snapshot, snapshot.document()).unwrap();
+    store
+        .purge_tombstones(t("2026-09-02T00:00:00+08:00"))
+        .unwrap();
+    assert!(store.get(id).unwrap().is_none());
+    assert!(matches!(
+        store.create(item),
+        Err(crate::cache::CacheError::InvalidInput)
+    ));
+    assert!(store.get(id).unwrap().is_none());
 }

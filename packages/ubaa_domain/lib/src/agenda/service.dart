@@ -63,9 +63,17 @@ final class AgendaService {
   Stream<AgendaSyncState> get syncUpdates => _syncUpdates.stream;
   Future<void> _syncTail = Future<void>.value();
   bool get supportsSync => _backend is AgendaSyncBackend;
+  bool _syncEnabled = false;
+  bool get syncEnabled => _syncEnabled;
   void _setSync(AgendaSyncState state) {
-    _syncState = state;
-    if (!_disposed && !_syncUpdates.isClosed) _syncUpdates.add(state);
+    _syncState = AgendaSyncState(
+      report: state.report,
+      running: state.running,
+      error: state.error,
+      localPendingCount:
+          state.localPendingCount ?? _syncState.localPendingCount,
+    );
+    if (!_disposed && !_syncUpdates.isClosed) _syncUpdates.add(_syncState);
   }
 
   Future<AgendaSyncReport> sync(AgendaSyncAction action, AgendaTime now) =>
@@ -100,10 +108,38 @@ final class AgendaService {
         return _run(() async {
           _setSync(AgendaSyncState(report: _syncState.report, running: true));
           try {
-            final report = await work();
+            Future<void> refreshPermission() async {
+              if (action != AgendaSyncAction.createConfirmed ||
+                  generation != _generation ||
+                  _disposed)
+                return;
+              final enabled = await (backend as AgendaSyncBackend)
+                  .syncEnabled();
+              if (generation == _generation && !_disposed)
+                _syncEnabled = enabled;
+            }
+
+            final AgendaSyncReport report;
+            try {
+              report = await work();
+            } on Object {
+              // 许可核对失败不能掩盖原云端操作的错误。
+              try {
+                await refreshPermission();
+              } on Object {
+                /* 保留原错误。 */
+              }
+              rethrow;
+            }
+            await refreshPermission();
             if (generation != _generation || _disposed)
               throw const AgendaException(AgendaFailure.superseded);
-            _setSync(AgendaSyncState(report: report));
+            _setSync(
+              AgendaSyncState(
+                report: report,
+                localPendingCount: report.pendingCount,
+              ),
+            );
             return report;
           } on Object catch (error) {
             if (generation == _generation && !_disposed)
@@ -121,11 +157,31 @@ final class AgendaService {
 
   void _syncAfterWrite(AgendaTime now) {
     if (!supportsSync) return;
+    if (!_syncEnabled) {
+      unawaited(
+        _refreshLocalPendingCount().then<void>((_) {}, onError: (Object _) {}),
+      );
+      return;
+    }
     unawaited(
       sync(
         AgendaSyncAction.push,
         now,
       ).then<void>((_) {}, onError: (Object _) {}),
+    );
+  }
+
+  Future<void> _refreshLocalPendingCount() async {
+    final generation = _generation;
+    final count = await _backend.unsyncedCount();
+    if (generation != _generation || _disposed) return;
+    _setSync(
+      AgendaSyncState(
+        report: _syncState.report,
+        running: _syncState.running,
+        error: _syncState.error,
+        localPendingCount: count,
+      ),
     );
   }
 
@@ -148,7 +204,8 @@ final class AgendaService {
     }
     final generation = ++_generation;
     _syncTail = Future<void>.value();
-    _setSync(const AgendaSyncState());
+    _syncEnabled = false;
+    _setSync(const AgendaSyncState(localPendingCount: 0));
     _account = accountId;
     final opened = _serial(() async {
       await _backend.deactivate();
@@ -156,6 +213,14 @@ final class AgendaService {
         throw const AgendaException(AgendaFailure.superseded);
       }
       await _backend.openAccount(accountId);
+      final backend = _backend;
+      if (backend is AgendaSyncBackend) {
+        final enabled = await (backend as AgendaSyncBackend).syncEnabled();
+        if (generation != _generation || _disposed)
+          throw const AgendaException(AgendaFailure.superseded);
+        _syncEnabled = enabled;
+        await _refreshLocalPendingCount();
+      }
       if (generation != _generation || _disposed) {
         await _backend.deactivate();
         throw const AgendaException(AgendaFailure.superseded);
@@ -170,8 +235,9 @@ final class AgendaService {
   Future<void> close() {
     _generation++;
     _account = null;
+    _syncEnabled = false;
     _syncTail = Future<void>.value();
-    _setSync(const AgendaSyncState());
+    _setSync(const AgendaSyncState(localPendingCount: 0));
     return _serial(_backend.deactivate);
   }
 
@@ -292,7 +358,24 @@ final class AgendaService {
   Future<void> clearOverlay(SchoolAgendaKey key, AgendaTime now) =>
       _run(() => _backend.clearOverlay(key, now), write: true, syncNow: now);
   Future<int> unsyncedCount() => _run(_backend.unsyncedCount);
-  Future<int> clearLocalData() => _run(_backend.clearLocalData, write: true);
+  Future<int> clearLocalData() {
+    final generation = _generation;
+    return _run(() async {
+      final count = await _backend.clearLocalData();
+      if (generation == _generation && !_disposed) {
+        _setSync(
+          AgendaSyncState(
+            report: _syncState.report,
+            running: _syncState.running,
+            error: _syncState.error,
+            localPendingCount: 0,
+          ),
+        );
+      }
+      return count;
+    }, write: true);
+  }
+
   Future<TeachingWeekRule> teachingWeekRule(TeachingWeekInput input) =>
       _run(() => _backend.teachingWeekRule(input));
 }

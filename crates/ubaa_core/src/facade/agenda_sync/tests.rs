@@ -1,5 +1,4 @@
 use super::*;
-use crate::facade::AgendaSyncStatus;
 use crate::{
     agenda::sync::coordinator::{
         BeforeCommit, RemoteCommit, RemoteError, RemoteLocation, SyncCoordinator, SyncRemote,
@@ -64,27 +63,20 @@ fn fixture() -> (PathBuf, AgendaStore, UbaaClient) {
     client.config_dir = Some(root.clone());
     (root, store, client)
 }
-#[tokio::test]
-async fn 部署未验证时打开上传及确认创建均不读取远端或建立正文文件() {
-    let (root, store, mut client) = fixture();
+#[test]
+fn 独立快照使用本身作用域而旧共享条件覆盖能力保持关闭() {
+    let (root, _store, mut client) = fixture();
     let scratch = root.join("scratch");
-    let mut service = AgendaSyncService::new(store, scratch.clone());
-    for action in [
-        AgendaSyncAction::Pull,
-        AgendaSyncAction::Push,
-        AgendaSyncAction::CreateConfirmed,
-    ] {
-        let report = service.run(&mut client, action, now()).await.unwrap();
-        assert_eq!(report.status, AgendaSyncStatus::Unverified);
-        assert_eq!(report.pending_count, 0);
-        assert!(!scratch.exists());
-    }
-    client.set_default_route_policy(RoutePolicy::Auto).unwrap();
-    let report = service
-        .run(&mut client, AgendaSyncAction::Pull, now())
-        .await
-        .unwrap();
-    assert_eq!(report.status, AgendaSyncStatus::Unverified);
+    assert_eq!(
+        client.bhpan_capabilities().conditional_replace,
+        crate::domain::bhpan::BhpanCapability::Unverified
+    );
+    let binding = Binding::capture(&client);
+    let remote = remote::BhpanRemote::new(&mut client, binding, &scratch);
+    assert!(remote.check_current().is_ok());
+    assert!(!scratch.exists());
+    drop(remote);
+    drop(client);
     std::fs::remove_dir_all(root).unwrap();
 }
 #[test]
@@ -109,13 +101,16 @@ impl SyncRemote for ErrorRemote {
     fn check_current(&self) -> std::result::Result<(), RemoteError> {
         Err(RemoteError::Core(self.0.clone()))
     }
-    fn same_object(&self, (): &(), (): &()) -> bool {
+    fn same_version(&self, (): &(), (): &()) -> bool {
         true
+    }
+    fn publication(&self, (): &()) -> crate::agenda::sync::publication::Publication {
+        unreachable!()
     }
     fn object_key(&self, (): &()) -> String {
         "fixture".into()
     }
-    async fn locate(&mut self) -> std::result::Result<RemoteLocation<()>, RemoteError> {
+    async fn locate(&mut self) -> std::result::Result<RemoteLocation<Vec<()>>, RemoteError> {
         unreachable!()
     }
     async fn read_version(&mut self, (): &()) -> std::result::Result<Vec<u8>, RemoteError> {
@@ -123,7 +118,7 @@ impl SyncRemote for ErrorRemote {
     }
     async fn publish_once(
         &mut self,
-        _: Option<&()>,
+        _: crate::agenda::sync::publication::Publication,
         _: &[u8],
         _: BeforeCommit<'_>,
     ) -> std::result::Result<RemoteCommit<()>, RemoteError> {
@@ -149,27 +144,21 @@ async fn 同步保留云盘原始类型错误供命令映射退出码() {
 }
 
 #[tokio::test]
-async fn 同账号新路线触发重新捕获当前作用域() {
+async fn 同账号新路线使旧确认失效并允许重新捕获当前作用域() {
     let (root, store, mut client) = fixture();
     let mut service = AgendaSyncService::new(store, root.join("scratch"));
-    assert_eq!(
-        service
-            .run(&mut client, AgendaSyncAction::Pull, now())
-            .await
-            .unwrap()
-            .status,
-        AgendaSyncStatus::Unverified
-    );
+    let original = client.agenda_sync_scope().unwrap();
     client
         .set_default_route_policy(RoutePolicy::Direct)
         .unwrap();
-    let result = service
-        .run(&mut client, AgendaSyncAction::Pull, now())
-        .await;
-    assert!(
-        matches!(result, Ok(report) if report.status == AgendaSyncStatus::Unverified),
-        "新的明确触发应使用当前路线，旧作业仍由等待后的检查拒绝"
-    );
+    let current = client.agenda_sync_scope().unwrap();
+    assert!(original.binding != current.binding);
+    assert!(matches!(
+        service.run_confirmed(&mut client, &original, now()).await,
+        Err(AgendaSyncError::Local(CacheError::Superseded))
+    ));
+    drop(service);
+    drop(client);
     std::fs::remove_dir_all(root).unwrap();
 }
 

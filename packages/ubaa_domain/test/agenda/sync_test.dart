@@ -12,8 +12,56 @@ const unknown = AgendaSyncReport(
   changedCount: 0,
 );
 void main() {
-  test('本机修改触发一次上传，unknown 保留状态且不自行重试', () async {
+  test('准备和取消启用作业不保存许可，确认执行后才允许后续自动同步', () async {
     final backend = Backend();
+    final service = AgendaService(backend);
+    await service.openAccount('same-account');
+    service.prepareSync(AgendaSyncAction.createConfirmed, now);
+    expect(backend.enabled, isFalse);
+    expect(service.syncEnabled, isFalse);
+    expect(backend.calls, isEmpty);
+    await service.sync(AgendaSyncAction.push, now);
+    expect(service.syncEnabled, isFalse);
+    await service.sync(AgendaSyncAction.createConfirmed, now);
+    expect(service.syncEnabled, isTrue);
+    await service.complete('item', null, true, now);
+    await Future<void>.delayed(Duration.zero);
+    expect(backend.calls, [
+      AgendaSyncAction.push,
+      AgendaSyncAction.createConfirmed,
+      AgendaSyncAction.push,
+    ]);
+    await service.dispose();
+  });
+  test('未启用同步时本机保存不准备云端作业', () async {
+    final backend = Backend();
+    final service = AgendaService(backend);
+    await service.openAccount('same-account');
+    try {
+      await service.complete('item', null, true, now);
+      await Future<void>.delayed(Duration.zero);
+      expect(backend.localWrites, 1);
+      expect(backend.calls, isEmpty);
+    } finally {
+      await service.dispose();
+    }
+  });
+  test('显式只读拉取不启用本机保存后的自动同步', () async {
+    final backend = Backend();
+    final service = AgendaService(backend);
+    await service.openAccount('same-account');
+    try {
+      await service.sync(AgendaSyncAction.pull, now);
+      await service.complete('item', null, true, now);
+      await Future<void>.delayed(Duration.zero);
+      expect(backend.localWrites, 1);
+      expect(backend.calls, [AgendaSyncAction.pull]);
+    } finally {
+      await service.dispose();
+    }
+  });
+  test('本机修改触发一次上传，unknown 保留状态且不自行重试', () async {
+    final backend = Backend()..enabled = true;
     final service = AgendaService(backend);
     await service.openAccount('same-account');
     await service.complete('item', null, true, now);
@@ -67,6 +115,21 @@ void main() {
     expect(backend.calls, [AgendaSyncAction.push]);
     await service.dispose();
   });
+  test('确认同步失败后读取许可失败仍交付原同步错误', () async {
+    final failure = StateError('合成上传失败');
+    final backend = Backend();
+    final service = AgendaService(backend);
+    await service.openAccount('same-account');
+    backend.failure = failure;
+    backend.preferenceFailure = StateError('合成本机读取失败');
+    await expectLater(
+      service.sync(AgendaSyncAction.createConfirmed, now),
+      throwsA(same(failure)),
+    );
+    expect(service.syncState.error, same(failure));
+    expect(backend.calls, [AgendaSyncAction.createConfirmed]);
+    await service.dispose();
+  });
   test('清除本机资料不触发云端上传', () async {
     final backend = Backend();
     final service = AgendaService(backend);
@@ -79,10 +142,18 @@ void main() {
 }
 
 class Backend implements AgendaBackend, AgendaSyncBackend {
+  bool enabled = false;
+  @override
+  Future<bool> syncEnabled() async {
+    if (preferenceFailure != null) throw preferenceFailure!;
+    return enabled;
+  }
+
   final calls = <AgendaSyncAction>[];
   final started = Completer<void>();
   Completer<AgendaSyncReport>? gate;
   Object? failure;
+  Object? preferenceFailure;
   int localWrites = 0;
   @override
   Future<void> openAccount(String accountId) async {}
@@ -101,10 +172,13 @@ class Backend implements AgendaBackend, AgendaSyncBackend {
   @override
   Future<int> clearLocalData() async => 0;
   @override
+  Future<int> unsyncedCount() async => localWrites;
+  @override
   AgendaSyncJob prepareSync(AgendaSyncAction action, AgendaTime now) =>
       () => sync(action, now);
 
   Future<AgendaSyncReport> sync(AgendaSyncAction action, AgendaTime now) async {
+    if (action == AgendaSyncAction.createConfirmed) enabled = true;
     calls.add(action);
     if (!started.isCompleted) started.complete();
     if (failure != null) throw failure!;

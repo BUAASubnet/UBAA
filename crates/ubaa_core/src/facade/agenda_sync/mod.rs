@@ -96,7 +96,8 @@ impl AgendaSyncService {
         scope: &AgendaSyncScope,
         now: AgendaTime,
     ) -> Result<AgendaSyncReport, AgendaSyncError> {
-        if scope.binding != Binding::capture(client) {
+        let current = client.agenda_sync_scope()?;
+        if scope.binding != current.binding || scope.mode != current.mode {
             return Err(CacheError::Superseded.into());
         }
         let result = CONFIRMED_AGENDA_ROUTE
@@ -132,6 +133,11 @@ impl AgendaSyncService {
             .matches_sync_guard(client.shared_account_guard().as_ref())
         {
             return Err(crate::cache::CacheError::Superseded.into());
+        }
+        if action == AgendaSyncAction::CreateConfirmed {
+            client.agenda_sync_scope()?;
+            // 明确确认已进入当前客户端和账号作用域，网络失败也保留用户许可。
+            self.store.enable_sync()?;
         }
         if self.binding.as_ref().is_some_and(|old| old != &binding) {
             self.committed = None;

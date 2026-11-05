@@ -160,7 +160,7 @@ class _Client implements BridgeClient {
   int cachedCalls = 0;
   final pinnedCalls = <BridgeConnectionMode>[];
   @override
-  int contractVersion() => 50;
+  int contractVersion() => 51;
   @override
   Future<BridgeEvaluationRefresh> evaluationCached({
     required BridgeOfflineCache cache,

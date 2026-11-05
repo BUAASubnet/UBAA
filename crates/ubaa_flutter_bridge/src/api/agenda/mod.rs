@@ -8,6 +8,7 @@ pub mod models;
 mod projection;
 pub mod school;
 pub mod sync;
+mod sync_preference;
 #[cfg(test)]
 mod tests;
 use crate::api::offline::BridgeOfflineCache;

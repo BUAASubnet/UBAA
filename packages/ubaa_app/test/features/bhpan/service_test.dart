@@ -195,7 +195,7 @@ class _Client implements BridgeClient {
   BridgeBhpanWrite? write;
   String? committed, discarded;
   @override
-  int contractVersion() => 50;
+  int contractVersion() => 51;
   @override
   Future<BridgeBhpanPage> bhpanRead({required BridgeBhpanQuery query}) async {
     this.query = query;

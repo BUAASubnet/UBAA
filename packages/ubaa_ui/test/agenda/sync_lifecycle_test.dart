@@ -26,6 +26,11 @@ final time = AgendaTime(
 );
 
 class Backend extends MemoryAgenda implements AgendaSyncBackend {
+  bool enabled = true;
+  @override
+  Future<bool> syncEnabled() async => enabled;
+  @override
+  Future<int> unsyncedCount() async => items.length + overlays.length;
   String? account;
   final calls = <(String?, AgendaSyncAction)>[];
   Completer<AgendaSyncReport>? first;
@@ -53,6 +58,7 @@ class Backend extends MemoryAgenda implements AgendaSyncBackend {
   }
 
   Future<AgendaSyncReport> sync(AgendaSyncAction action, AgendaTime now) async {
+    if (action == AgendaSyncAction.createConfirmed) enabled = true;
     calls.add((account, action));
     if (calls.length == 1 && first != null) return first!.future;
     if (action == AgendaSyncAction.push && push != null) return push!();

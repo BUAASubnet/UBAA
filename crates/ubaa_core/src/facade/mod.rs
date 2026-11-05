@@ -172,5 +172,6 @@ pub use agenda::AgendaCachedExportResult;
 pub use crate::agenda::{
     AgendaSyncDocument, AgendaSyncItem, AgendaSyncOverlay, AgendaSyncSnapshot,
 };
+pub use crate::agenda::{AgendaSyncItemDeletion, AgendaSyncOverlayDeletion};
 
 pub use crate::agenda::{AgendaSyncAction, AgendaSyncReport, AgendaSyncStatus};

@@ -34,5 +34,6 @@ pub use export::{AgendaExportOptions, AgendaExportResult};
 
 pub(crate) mod sync;
 pub use sync::{AgendaSyncDocument, AgendaSyncItem, AgendaSyncOverlay, AgendaSyncSnapshot};
+pub use sync::{AgendaSyncItemDeletion, AgendaSyncOverlayDeletion};
 
 pub use sync::{AgendaSyncAction, AgendaSyncReport, AgendaSyncStatus};

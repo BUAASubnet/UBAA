@@ -226,6 +226,10 @@ class _Api extends RustLibApi {
 
 class _Handle implements BridgeAgendaStore {
   @override
+  Future<bool> syncEnabled() async => false;
+  @override
+  Future<int> unsyncedCount() async => 0;
+  @override
   void dispose() {
     active = false;
   }
@@ -323,7 +327,7 @@ class _Cache implements BridgeOfflineCache {
 class _Client implements BridgeClient {
   int unexpectedCalls = 0;
   @override
-  int contractVersion() => 50;
+  int contractVersion() => 51;
   @override
   Future<void> dispose() async {}
   @override

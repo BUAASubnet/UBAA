@@ -33,9 +33,9 @@ class AgendaSyncStatusCard extends StatelessWidget {
         context: context,
         builder: (context) => boundary(
           AlertDialog(
-            title: const Text('创建云端日程'),
+            title: Text(service.syncEnabled ? '创建云端日程' : '启用云端同步'),
             content: const Text(
-              '将在个人云盘创建 UBAA/agenda.json，保存自建事项与学校事项的本机备注、完成和隐藏状态。创建操作保留已有同名文件。',
+              '将在个人云盘的 UBAA 日程目录保存自建事项和本机备注、完成与隐藏状态。启用后，打开日程页会拉取云端，修改后自动同步。云端保留历史快照。',
             ),
             actions: [
               TextButton(
@@ -44,7 +44,7 @@ class AgendaSyncStatusCard extends StatelessWidget {
               ),
               FilledButton(
                 onPressed: () => Navigator.pop(context, true),
-                child: const Text('确认创建'),
+                child: Text(service.syncEnabled ? '确认创建' : '确认启用'),
               ),
             ],
           ),
@@ -67,18 +67,24 @@ class AgendaSyncStatusCard extends StatelessWidget {
       final state = snapshot.data ?? service.syncState;
       final report = state.report;
       final status = report?.status;
-      final count = report?.pendingCount ?? 0;
+      final enable =
+          !service.syncEnabled && status != AgendaSyncStatus.outcomeUnknown;
+      final count = state.localPendingCount ?? report?.pendingCount ?? 0;
       final mayCreate =
           status == AgendaSyncStatus.needsCreation ||
           status == AgendaSyncStatus.locationUnknown;
       final refreshBeforeCreate = mayCreate && state.error != null;
-      final create = mayCreate && !refreshBeforeCreate;
+      final create = enable || mayCreate && !refreshBeforeCreate;
       final text = state.running
           ? '正在同步日程'
           : refreshBeforeCreate
           ? '请重新拉取日程，再确认是否创建'
           : state.error != null
           ? '同步未完成，修改已保存在本机'
+          : !service.syncEnabled && status != AgendaSyncStatus.outcomeUnknown
+          ? count > 0
+                ? '$count 条修改仅保存在本机'
+                : '日程仅保存在本机'
           : switch (status) {
               AgendaSyncStatus.upToDate => '日程已同步',
               AgendaSyncStatus.pending => '$count 条修改待同步',
@@ -89,7 +95,7 @@ class AgendaSyncStatusCard extends StatelessWidget {
               AgendaSyncStatus.failed => '同步未完成，$count 条修改保存在本机',
               AgendaSyncStatus.conflict => '云端日程已更新，$count 条修改待同步',
               AgendaSyncStatus.outcomeUnknown => '上次云端操作结果待核对，$count 条修改待同步',
-              null => '日程云端同步',
+              null => service.syncEnabled ? '日程云端同步' : '日程仅保存在本机',
             };
       final reconcile = status == AgendaSyncStatus.outcomeUnknown;
       return Padding(
@@ -123,7 +129,9 @@ class AgendaSyncStatusCard extends StatelessWidget {
                               : AgendaSyncAction.push,
                         ),
                   child: Text(
-                    create
+                    enable
+                        ? '启用云端同步'
+                        : create
                         ? '创建云端日程'
                         : refreshBeforeCreate
                         ? '重新拉取'

@@ -47,13 +47,18 @@ impl BridgeCommand {
         }
         let client = guard.as_mut().ok_or_else(disposed_error)?;
         *self.close.write().unwrap() = Some(client.close_control());
-        if client.bhpan_capabilities().conditional_replace == core::BhpanCapability::Available {
-            let resolution = client
-                .resolve_bhpan_route()
-                .map_err(BridgeError::from_routed)?
-                .resolution;
-            *self.sent.lock().unwrap() =
-                Some((Arc::new(client.observe_write_boundary()), resolution));
+        let capabilities = client.bhpan_capabilities();
+        if capabilities.direct_metadata == core::BhpanCapability::Available
+            && capabilities.object_transfer == core::BhpanCapability::Available
+        {
+            let resolution = match client.resolve_bhpan_route() {
+                Ok(routed) => Some(routed.resolution),
+                Err(error) => error.resolution,
+            };
+            if let Some(resolution) = resolution {
+                *self.sent.lock().unwrap() =
+                    Some((Arc::new(client.observe_write_boundary()), resolution));
+            }
         }
         let store = agenda.store.clone();
         let mut service =

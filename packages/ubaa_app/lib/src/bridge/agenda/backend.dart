@@ -50,6 +50,8 @@ final class BridgeAgendaBackend
   BridgeAgendaStore get _store =>
       _handle ?? (throw const AgendaException(AgendaFailure.inactive));
   @override
+  Future<bool> syncEnabled() => _call(() => _store.syncEnabled());
+  @override
   Future<void> openAccount(String accountId) => _call(() async {
     final directory = context.configDirectory;
     if (directory == null) {

@@ -20,7 +20,17 @@ pub(super) struct AgendaData {
 impl AgendaData {
     fn clear_local_rows(&mut self) -> CacheResult<()> {
         self.sync.advance_epoch()?;
-        self.sync.pending = None;
+        // 目录创建没有待发布正文，只有文件发布保留无正文的未决身份。
+        self.sync.pending = self
+            .sync
+            .pending
+            .take()
+            .filter(|pending| pending.publication.is_some());
+        if let Some(pending) = &mut self.sync.pending {
+            pending.document = None;
+        }
+        self.sync.item_deletions.clear();
+        self.sync.overlay_deletions.clear();
         self.items.clear();
         self.overlays.clear();
         Ok(())
@@ -125,7 +135,8 @@ impl AgendaStore {
         item.locally_modified = true;
         validate_item(&item)?;
         self.access(true, true, |data| {
-            if data.items.contains_key(&item.id) {
+            if data.items.contains_key(&item.id) || data.sync.item_deletions.contains_key(&item.id)
+            {
                 return Err(CacheError::InvalidInput);
             }
             data.items.insert(item.id, item);

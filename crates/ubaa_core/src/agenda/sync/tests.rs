@@ -114,11 +114,10 @@ fn snapshot_roundtrip_preserves_repeat_exceptions_overlay_and_deletion() {
     let sent = store.sync_snapshot().unwrap();
     let received = AgendaSyncDocument::decode(&sent.document().encode().unwrap()).unwrap();
     assert_eq!(&received, sent.document());
-    assert!(received.items[0].item.deleted_at.is_some());
-    assert_eq!(
-        received.items[0].item.completions.get(&at.recurrence_id()),
-        Some(&None)
-    );
+    assert!(received.items.is_empty());
+    assert_eq!(received.item_deletions[0].id, id);
+    let local = store.get(id).unwrap().unwrap();
+    assert_eq!(local.completions.get(&at.recurrence_id()), Some(&None));
     assert!(received.overlays[0].overlay.hidden);
 }
 
@@ -243,4 +242,183 @@ fn mismatching_readback_or_schema_does_not_acknowledge_or_replace_local_records(
     ));
     assert_eq!(store.get(id).unwrap().unwrap(), item);
     assert_eq!(store.unsynced_count().unwrap(), 1);
+}
+
+#[test]
+fn purged_synced_deletion_rejects_an_old_device_snapshot() {
+    let store = open();
+    let item = event();
+    let id = item.id;
+    store.create(item).unwrap();
+    let old_device = store.sync_snapshot().unwrap().document().clone();
+    store
+        .delete(
+            id,
+            AgendaEditScope::All,
+            None,
+            t("2026-03-01T00:00:00+08:00"),
+        )
+        .unwrap();
+    let sent = store.sync_snapshot().unwrap();
+    store.confirm_sync(&sent, sent.document()).unwrap();
+    assert_eq!(
+        store
+            .purge_tombstones(t("2026-09-02T00:00:00+08:00"))
+            .unwrap(),
+        1
+    );
+    assert!(store.get(id).unwrap().is_none());
+    let current = store.sync_snapshot().unwrap();
+    store.merge_sync(&current, &old_device).unwrap();
+    assert!(
+        store
+            .get(id)
+            .unwrap()
+            .is_none_or(|item| item.deleted_at.is_some()),
+        "清理完整删除记录后仍须保留版本摘要，不能复活旧设备记录"
+    );
+}
+
+#[test]
+fn clear_during_finalization_keeps_one_bodyless_attempt_and_rejects_late_confirmation() {
+    use std::sync::{Arc, Barrier};
+    let root = root();
+    let store = AgendaStore::open(&root, ACCOUNT).unwrap();
+    let db =
+        rusqlite::Connection::open(root.join("agenda").join(format!("{ACCOUNT}.sqlite"))).unwrap();
+    db.execute("UPDATE agenda_sync_meta SET next_publication=6", [])
+        .unwrap();
+    let x = event();
+    let id = x.id;
+    store.create(x).unwrap();
+    let mut p6 = store.sync_snapshot().unwrap();
+    store
+        .begin_sync_attempt(&mut p6, super::state::SyncStep::File, None)
+        .unwrap();
+    assert_eq!(p6.publication, Some(6));
+    store.confirm_sync(&p6, p6.document()).unwrap();
+    store
+        .delete(
+            id,
+            AgendaEditScope::All,
+            None,
+            t("2026-03-01T00:00:00+08:00"),
+        )
+        .unwrap();
+    let mut p7 = store.sync_snapshot().unwrap();
+    store
+        .begin_sync_attempt(
+            &mut p7,
+            super::state::SyncStep::File,
+            Some("合成对象p7".into()),
+        )
+        .unwrap();
+    assert_eq!(p7.publication, Some(7));
+    let entered = Arc::new(Barrier::new(2));
+    let released = Arc::new(Barrier::new(2));
+    let late = {
+        let root = root.clone();
+        let entered = entered.clone();
+        let released = released.clone();
+        std::thread::spawn(move || {
+            let peer = AgendaStore::open(&root, ACCOUNT).unwrap();
+            peer.check_sync_attempt(&p7).unwrap();
+            entered.wait();
+            released.wait();
+            assert!(matches!(
+                peer.confirm_sync(&p7, p7.document()),
+                Err(CacheError::Superseded)
+            ));
+        })
+    };
+    entered.wait();
+    store.clear_local_data().unwrap();
+    let mut y = event();
+    y.id = Uuid::new_v4();
+    y.content.title = "清除后新建Y".into();
+    store.create(y.clone()).unwrap();
+    let scope = store.sync_snapshot().unwrap();
+    store.merge_sync(&scope, p6.document()).unwrap();
+    let mut p8 = store.sync_snapshot().unwrap();
+    let blocked = store.begin_sync_attempt(&mut p8, super::state::SyncStep::File, None);
+    released.wait();
+    late.join().unwrap();
+    assert!(
+        matches!(blocked, Err(CacheError::Superseded)),
+        "清除不能移除可能已发送的p7限制并允许更高发布"
+    );
+    let db =
+        rusqlite::Connection::open(root.join("agenda").join(format!("{ACCOUNT}.sqlite"))).unwrap();
+    let retained: (i64, Option<Vec<u8>>) = db
+        .query_row(
+            "SELECT COUNT(*),document FROM agenda_sync_pending",
+            [],
+            |r| Ok((r.get(0)?, r.get(1)?)),
+        )
+        .unwrap();
+    assert_eq!(retained, (1, None));
+    assert_eq!(store.get(y.id).unwrap().unwrap(), y);
+}
+
+#[test]
+fn compact_deletion_document_excludes_full_content() {
+    let store = open();
+    let mut item = event();
+    item.content.notes = Some("已经删除的完整备注".into());
+    let id = item.id;
+    store.create(item).unwrap();
+    store
+        .delete(
+            id,
+            AgendaEditScope::All,
+            None,
+            t("2026-03-01T00:00:00+08:00"),
+        )
+        .unwrap();
+    let document: serde_json::Value =
+        serde_json::from_slice(&store.sync_snapshot().unwrap().document().encode().unwrap())
+            .unwrap();
+    assert!(
+        document["items"].as_array().unwrap().is_empty(),
+        "删除的事项只能发布紧凑摘要"
+    );
+    assert_eq!(document["item_deletions"][0]["id"], id.to_string());
+    let fields = document["item_deletions"][0].as_object().unwrap();
+    assert!(fields.keys().all(|key| {
+        ["id", "deleted_at", "updated_at", "device_id", "sequence"].contains(&key.as_str())
+    }));
+}
+
+#[test]
+fn compact_deletion_propagates_after_purge_and_prevents_another_device_reviving_old_data() {
+    let source = open();
+    let item = event();
+    let id = item.id;
+    source.create(item).unwrap();
+    let old = source.sync_snapshot().unwrap().document;
+    source
+        .delete(
+            id,
+            AgendaEditScope::All,
+            None,
+            t("2026-03-01T00:00:00+08:00"),
+        )
+        .unwrap();
+    let sent = source.sync_snapshot().unwrap();
+    source.confirm_sync(&sent, sent.document()).unwrap();
+    source
+        .purge_tombstones(t("2026-09-02T00:00:00+08:00"))
+        .unwrap();
+    let deletion = source.sync_snapshot().unwrap().document;
+    let peer = open();
+    let scope = peer.sync_snapshot().unwrap();
+    peer.merge_sync(&scope, &deletion).unwrap();
+    let scope = peer.sync_snapshot().unwrap();
+    peer.merge_sync(&scope, &old).unwrap();
+    assert!(
+        peer.get(id)
+            .unwrap()
+            .is_none_or(|item| item.deleted_at.is_some()),
+        "新设备必须从快照取得清理后的删除版本"
+    );
 }
