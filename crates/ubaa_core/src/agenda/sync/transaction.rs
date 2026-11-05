@@ -75,11 +75,17 @@ impl AgendaStore {
         object: Option<String>,
     ) -> CacheResult<Uuid> {
         let id = Uuid::new_v4();
-        let publication = self.access(true, true, |data| {
+        let (publication, document) = self.access(true, true, |data| {
             self.check_sync_scope(sent, data)?;
             if data.sync.pending.is_some() {
                 return Err(CacheError::Superseded);
             }
+            // 正文与发布序号在同一 IMMEDIATE 事务中确定，包含其他进程已提交的修改。
+            let document = if step == SyncStep::File {
+                document(data)?
+            } else {
+                sent.document.clone()
+            };
             let publication = if step == SyncStep::File {
                 let value = data.sync.next_publication;
                 data.sync.next_publication = value
@@ -93,13 +99,14 @@ impl AgendaStore {
             data.sync.pending = Some(StoredPending {
                 id,
                 step,
-                document: Some(sent.document.clone()),
+                document: Some(document.clone()),
                 publication,
                 object,
                 registered: false,
             });
-            Ok(publication)
+            Ok((publication, document))
         })?;
+        sent.document = document;
         sent.attempt = Some(id);
         sent.publication = publication;
         Ok(id)

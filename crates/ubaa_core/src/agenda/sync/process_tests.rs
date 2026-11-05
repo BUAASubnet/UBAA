@@ -110,3 +110,57 @@ fn two_processes_allocate_only_one_durable_publication_and_clear_keeps_the_limit
         2
     );
 }
+
+#[test]
+fn delayed_process_publication_preserves_another_process_completed_deletion() {
+    let path = root();
+    let store = AgendaStore::open(&path, ACCOUNT).unwrap();
+    let item = event();
+    let id = item.id;
+    store.create(item).unwrap();
+    let mut held = start(&path);
+    store
+        .delete(
+            id,
+            crate::domain::agenda::AgendaEditScope::All,
+            None,
+            crate::agenda::tests::t("2026-03-01T00:00:00+08:00"),
+        )
+        .unwrap();
+    let mut newer = store.sync_snapshot().unwrap();
+    store
+        .begin_sync_attempt(&mut newer, SyncStep::File, None)
+        .unwrap();
+    store.confirm_sync(&newer, newer.document()).unwrap();
+    held.child
+        .stdin
+        .as_mut()
+        .unwrap()
+        .write_all("发送\n".as_bytes())
+        .unwrap();
+    held.child.stdin.as_mut().unwrap().flush().unwrap();
+    let mut output = String::new();
+    held.output.read_to_string(&mut output).unwrap();
+    assert!(held.child.wait().unwrap().success());
+    let accepted = store.restore_sync_attempt().unwrap().unwrap();
+    assert!(accepted.snapshot.publication > newer.publication);
+    let document = accepted.snapshot.document();
+    assert!(
+        document.item_deletions.iter().any(|v| v.id == id),
+        "较高发布序号须包含另一进程已确认的删除"
+    );
+    assert!(document.items.iter().all(|v| v.item.id != id));
+    let replica = AgendaStore::open(&root(), ACCOUNT).unwrap();
+    let scope = replica.sync_snapshot().unwrap();
+    replica.merge_sync(&scope, document).unwrap();
+    assert!(replica.sync_snapshot().unwrap().document().items.is_empty());
+    assert!(
+        replica
+            .sync_snapshot()
+            .unwrap()
+            .document()
+            .item_deletions
+            .iter()
+            .any(|v| v.id == id)
+    );
+}
