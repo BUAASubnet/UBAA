@@ -108,6 +108,16 @@ pub(crate) fn track_local_changes(before: &AgendaData, after: &mut AgendaData) -
                 .is_none_or(|old| !same_overlay(old, value))
         {
             let stamp = after.sync.next()?;
+            if after
+                .sync
+                .overlay_deletions
+                .get(key)
+                .is_some_and(|deleted| {
+                    (value.updated_at, stamp.device_id, stamp.sequence) <= deleted.version()
+                })
+            {
+                return Err(CacheError::InvalidInput);
+            }
             after.sync.overlays.insert(key.clone(), stamp);
         }
     }

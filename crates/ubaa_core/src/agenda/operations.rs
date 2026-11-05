@@ -206,7 +206,7 @@ impl AgendaStore {
     /// 设置完整本地覆盖；未完成标记优先于学校提交状态，清除旧删除标记。
     ///
     /// # Errors
-    /// 键、时间或内容非法、时间倒退或本机事务失败时保留原记录。
+    /// 键、时间或内容非法、新版本未超过删除摘要或本机事务失败时保留原记录。
     pub fn set_overlay(
         &self,
         mut overlay: SchoolAgendaOverlay,
@@ -241,7 +241,7 @@ impl AgendaStore {
     /// 清除本地覆盖并写入删除标记；原来没有覆盖时也生成标记供后续合并。
     ///
     /// # Errors
-    /// 键无效、时间倒退、账号关闭或事务失败时返回稳定错误。
+    /// 键无效、时间倒退、新版本未超过删除摘要、账号关闭或事务失败时返回稳定错误。
     pub fn clear_overlay(&self, key: &SchoolAgendaKey, now: AgendaTime) -> CacheResult<()> {
         let index = overlay_key(key)?;
         if !now.valid() {

@@ -240,3 +240,7 @@ pub(super) fn confirm(data: &mut AgendaData, sent: &AgendaSyncDocument) -> Cache
     }
     Ok(confirmed)
 }
+
+#[cfg(test)]
+#[path = "deletion_write_tests.rs"]
+mod write_tests;
