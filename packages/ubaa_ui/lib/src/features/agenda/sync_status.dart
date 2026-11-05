@@ -73,8 +73,10 @@ class AgendaSyncStatusCard extends StatelessWidget {
       final mayCreate =
           status == AgendaSyncStatus.needsCreation ||
           status == AgendaSyncStatus.locationUnknown;
-      final refreshBeforeCreate = mayCreate && state.error != null;
-      final create = enable || mayCreate && !refreshBeforeCreate;
+      final refreshBeforeCreate =
+          (enable || mayCreate) &&
+          (state.error != null || status == AgendaSyncStatus.unverified);
+      final create = (enable || mayCreate) && !refreshBeforeCreate;
       final text = state.running
           ? '正在同步日程'
           : refreshBeforeCreate
@@ -118,7 +120,9 @@ class AgendaSyncStatusCard extends StatelessWidget {
                 Text(text),
                 TextButton(
                   onPressed:
-                      state.running || status == AgendaSyncStatus.unverified
+                      state.running ||
+                          status == AgendaSyncStatus.unverified &&
+                              !refreshBeforeCreate
                       ? null
                       : () => _run(
                           context,
@@ -129,12 +133,12 @@ class AgendaSyncStatusCard extends StatelessWidget {
                               : AgendaSyncAction.push,
                         ),
                   child: Text(
-                    enable
+                    refreshBeforeCreate
+                        ? '重新拉取'
+                        : enable
                         ? '启用云端同步'
                         : create
                         ? '创建云端日程'
-                        : refreshBeforeCreate
-                        ? '重新拉取'
                         : reconcile
                         ? '核对云端'
                         : '同步',
