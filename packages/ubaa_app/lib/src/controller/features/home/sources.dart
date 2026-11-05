@@ -207,13 +207,16 @@ mixin ControllerHomeSources on ControllerState {
               );
         entry.result = stable;
         entry.completer.complete(stable);
-        internalAgendaEpoch++;
-        internalNotify();
         if (source == HomeSupplement.currentWeek &&
             stable.evidence?.complete != false &&
             stable.details.length == 1) {
           final week = stable.details.single.presentation;
           if (week is WeekPresentation) {
+            internalAgendaSchoolScope = (
+              scope: internalCaptureSessionScope(),
+              term: week.responseTerm,
+              route: stable.resolvedRoute,
+            );
             entry.schoolCacheCompletion = _cacheHomeWeek(
               this,
               week,
@@ -223,6 +226,8 @@ mixin ControllerHomeSources on ControllerState {
             );
           }
         }
+        internalAgendaEpoch++;
+        internalNotify();
       }
     } on Object catch (error, stackTrace) {
       entry.completer.complete(

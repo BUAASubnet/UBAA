@@ -5,6 +5,67 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../support/controller/fakes.dart';
 
 void main() {
+  for (final source in ['学校日程', '首页', '当前教学周']) {
+    test('$source刷新等待学期查询时保留已知日程学期和路线', () async {
+      final backend = _Backend();
+      final controller = AppController(backend: backend);
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      await controller.loadHomeSupplement(HomeSupplement.currentWeek);
+      expect(controller.currentAgendaTerm, 'synthetic-term');
+      expect(controller.currentAgendaRoute, ConnectionMode.direct);
+      final observed = <(String, ConnectionMode?)>[];
+      controller.addListener(() {
+        observed.add((
+          controller.currentAgendaTerm,
+          controller.currentAgendaRoute,
+        ));
+      });
+      backend.termsGate = Completer<void>();
+      final refresh = switch (source) {
+        '学校日程' => controller.refreshSchoolAgenda(),
+        '首页' => controller.refreshHome(only: [FeatureId.signin]).then((
+          _,
+        ) async {
+          await controller.loadHomeSupplement(HomeSupplement.currentWeek);
+        }),
+        _ =>
+          controller
+              .loadHomeSupplement(
+                HomeSupplement.currentWeek,
+                forceRefresh: true,
+              )
+              .then((_) {}),
+      };
+      expect(controller.currentAgendaTerm, 'synthetic-term');
+      await backend.termsStarted.future;
+      expect(controller.currentAgendaTerm, 'synthetic-term');
+      expect(controller.currentAgendaRoute, ConnectionMode.direct);
+      backend.termsGate!.complete();
+      await refresh;
+      expect(controller.currentAgendaTerm, 'synthetic-term');
+      expect(observed, everyElement(('synthetic-term', ConnectionMode.direct)));
+    });
+  }
+
+  test('学期读取失败保留已知日程学期，确认新学期后更新', () async {
+    final backend = _Backend();
+    final controller = AppController(backend: backend);
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await controller.loadHomeSupplement(HomeSupplement.currentWeek);
+    backend.failTerms = true;
+    await controller.refreshSchoolAgenda();
+    expect(controller.currentAgendaTerm, 'synthetic-term');
+    expect(controller.currentAgendaRoute, ConnectionMode.direct);
+    backend
+      ..failTerms = false
+      ..term = 'synthetic-next-term';
+    await controller.refreshSchoolAgenda();
+    expect(controller.currentAgendaTerm, 'synthetic-next-term');
+    expect(controller.currentAgendaRoute, ConnectionMode.direct);
+  });
+
   test('完整学校刷新与同代首页补充合并，周表完成后才结束', () async {
     final backend = _Backend()
       ..chosenGate = Completer<FeatureResult>()
@@ -133,8 +194,12 @@ class _Backend extends FixtureQueryBackend {
   final weekStarted = Completer<void>();
   final secondPageStarted = Completer<void>();
   final failedPage = Completer<void>();
+  final termsStarted = Completer<void>();
   Completer<FeatureResult>? chosenGate, weekGate, orderPageGate;
+  Completer<void>? termsGate;
   bool noTerm = false, failSpoc = false, failOrderPage = false;
+  bool failTerms = false;
+  String term = 'synthetic-term';
   List<int> get orderPages => queries
       .where((q) => q.view == FeatureQueryView.cgyyOrders)
       .map((q) => q.page)
@@ -160,6 +225,13 @@ class _Backend extends FixtureQueryBackend {
     FeatureQuery query,
   ) async {
     queries.add(query);
+    if (query.view == FeatureQueryView.scheduleTerms) {
+      if (termsGate != null) {
+        if (!termsStarted.isCompleted) termsStarted.complete();
+        await termsGate!.future;
+      }
+      if (failTerms) throw const BackendException(UbaaErrorCode.networkError);
+    }
     if (query.view == FeatureQueryView.bykcChosenCourses && chosenGate != null)
       return chosenGate!.future;
     if (query.view == FeatureQueryView.scheduleWeek) {
@@ -190,28 +262,27 @@ class _Backend extends FixtureQueryBackend {
       );
     }
     return switch (query.view) {
-      FeatureQueryView.scheduleTerms when !noTerm =>
-        const FeatureResult.success(
-          resolvedRoute: ConnectionMode.direct,
-          details: [
-            FeatureDetail(
-              title: '合成学期',
-              presentation: TermPresentation(
-                code: 'synthetic-term',
-                selected: true,
-                index: 0,
-              ),
+      FeatureQueryView.scheduleTerms when !noTerm => FeatureResult.success(
+        resolvedRoute: ConnectionMode.direct,
+        details: [
+          FeatureDetail(
+            title: '合成学期',
+            presentation: TermPresentation(
+              code: term,
+              selected: true,
+              index: 0,
             ),
-          ],
-        ),
-      FeatureQueryView.scheduleWeeks => const FeatureResult.success(
+          ),
+        ],
+      ),
+      FeatureQueryView.scheduleWeeks => FeatureResult.success(
         resolvedRoute: ConnectionMode.direct,
         details: [
           FeatureDetail(
             title: '合成教学周',
             presentation: WeekPresentation(
-              requestTerm: 'synthetic-term',
-              responseTerm: 'synthetic-term',
+              requestTerm: term,
+              responseTerm: term,
               number: 10,
               current: true,
               startDate: '2026-11-02',

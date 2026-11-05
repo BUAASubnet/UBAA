@@ -243,36 +243,24 @@ abstract class ControllerState extends ControllerOperations {
   int get agendaProjectionEpoch => internalAgendaEpoch;
   AgendaFailure? get localAgendaFailure => internalAgendaFailure;
 
-  /// 只使用当前账号、路线与读取代次已确认的当前教学周。
+  @internal
+  ({SessionScope scope, String term, ConnectionMode? route})?
+  internalAgendaSchoolScope;
+
+  /// 保留当前会话最后确认的学期，普通刷新不改变日程作用域。
   String get currentAgendaTerm {
-    final cache = internalReadCaches.home;
+    final school = internalAgendaSchoolScope;
     if (internalDisposed ||
         internalReadTransitionBlocked ||
         internalPhase != AppPhase.home ||
-        cache == null ||
-        !identical(cache.backend, internalBackend) ||
-        cache.lifecycle != internalLifecycleEpoch ||
-        cache.epoch != internalReadCacheEpoch)
+        school == null ||
+        !school.scope.isCurrent)
       return '';
-    final result = cache.entries[HomeSupplement.currentWeek]?.result;
-    if (result == null ||
-        result.error != null ||
-        result.evidence?.complete == false)
-      return '';
-    final weeks = result.details
-        .map((d) => d.presentation)
-        .whereType<WeekPresentation>()
-        .toList();
-    return weeks.length == 1 ? weeks.single.responseTerm : '';
+    return school.term;
   }
 
-  ConnectionMode? get currentAgendaRoute => currentAgendaTerm.isEmpty
-      ? null
-      : internalReadCaches
-            .home
-            ?.entries[HomeSupplement.currentWeek]
-            ?.result
-            ?.resolvedRoute;
+  ConnectionMode? get currentAgendaRoute =>
+      currentAgendaTerm.isEmpty ? null : internalAgendaSchoolScope?.route;
 
   AgendaService? get agenda {
     final backend = internalBackend;
