@@ -76,7 +76,11 @@ void _registerCallbackTests() {
       FeatureId.ygdk,
       FeatureId.exam,
     ]);
-    expect(backend.queryCalls, isEmpty);
+    expect(backend.queryCalls.map((call) => (call.feature, call.query.view)), [
+      (FeatureId.bykc, FeatureQueryView.bykcChosenCourses),
+      (FeatureId.cgyy, FeatureQueryView.cgyyOrders),
+      (FeatureId.schedule, FeatureQueryView.scheduleTerms),
+    ]);
 
     backend.resetReadCalls();
     await shell.onRetryFeature(FeatureId.judge);

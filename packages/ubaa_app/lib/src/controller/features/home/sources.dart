@@ -15,6 +15,14 @@ part 'day_schedule.dart';
 
 mixin ControllerHomeSources on ControllerState {
   @internal
+  Future<void> internalWaitHomeSchoolCache() async {
+    await internalReadCaches
+        .home
+        ?.entries[HomeSupplement.currentWeek]
+        ?.schoolCacheCompletion;
+  }
+
+  @internal
   Future<FeatureResult> internalLoadHomeDaySchedule(
     String date, {
     required bool forceRefresh,
@@ -206,14 +214,12 @@ mixin ControllerHomeSources on ControllerState {
             stable.details.length == 1) {
           final week = stable.details.single.presentation;
           if (week is WeekPresentation) {
-            unawaited(
-              _cacheHomeWeek(
-                this,
-                week,
-                stable.resolvedRoute,
-                forceRefresh,
-                current,
-              ),
+            entry.schoolCacheCompletion = _cacheHomeWeek(
+              this,
+              week,
+              stable.resolvedRoute,
+              forceRefresh,
+              current,
             );
           }
         }

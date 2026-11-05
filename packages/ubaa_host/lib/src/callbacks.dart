@@ -219,7 +219,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       initialDestination: widget.initialDestination,
       telemetryEnabled: _controller.telemetryEnabled,
       telemetryAvailable: _controller.telemetryAvailable,
-      onRefresh: _controller.refreshHome,
+      onRefresh: _controller.refreshSchoolAgenda,
       onRetryFeature: _controller.retryFeature,
       onOpenLockDisplay: _controller.openLockDisplay,
       onFeatureQuery: (feature, query) {

@@ -1,5 +1,7 @@
 use super::*;
 
+mod school_refresh;
+
 #[test]
 fn cached_export_uses_existing_projection_and_preserves_route_evidence() {
     let (root, cache, agenda) = opened(ACCOUNT);

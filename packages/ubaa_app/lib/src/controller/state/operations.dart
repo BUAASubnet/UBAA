@@ -102,6 +102,8 @@ abstract class ControllerOperations extends ChangeNotifier {
     bool writeReadback = false,
   });
   @internal
+  Future<void> internalWaitHomeSchoolCache();
+  @internal
   /// 对支持 [FeatureQueryBackend] 的生产实现执行单领域筛选读取。
   ///
   /// 不支持查询的 fake backend 明确报 unsupported，不会在 Dart 端拼接请求。

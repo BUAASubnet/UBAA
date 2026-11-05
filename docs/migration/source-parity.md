@@ -12,6 +12,12 @@
 
 自动路线的日程查询采用当前代教学周实际读取路线，双路线均已登录时也不改选 Direct；固定 Direct/WebVPN 策略继续使用明确指定的路线，每次投影只查询一个路线范围。
 
+日程学校刷新在 App 编排六个主来源、博雅已选、研讨室预约和当前教学周，宿主的刷新回调直接接入该入口。宽屏日程不依赖首页挂载。App 入口先推进读取代次，再合并同代补充请求，等待当前周完整课表缓存和研讨室后续页读取结束。普通首页补充查询仍先交付周次和预约第一页。窄屏保活首页时，现有界面可能在主来源首批可显示后结束指示器，后台缓存完成仍会刷新日程投影；日程界面需直接等待完整刷新回调。Auto 各次读取可能选择不同路线，投影按原有精确路线范围报告缺口。
+
+本机刷新编排另核对上述冻结旧版 `ScheduleApi.kt`、`LocalScheduleApi.kt`，以及 `LocalBykcApi.kt` 的当前学期已选列表、`LocalCgyyApi.kt` 的 `getOrders(page,size)`。固定 buaa-api 的 `src/api/aas/{core,opt,data}.rs` 提供现有周表证据，`src/api/boya/opt.rs` 提供已选列表证据，没有相同研讨室协议，研讨室对此来源记为不适用。各来源继续使用既有 Core 的 CAS/service、重定向和最终 URL、路线隔离的 Cookie/Session/Token、请求头、编码、加密与 DTO；周表沿用 `termCode/type=week/week`，研讨室沿用零基 `page` 和 `size=20`，不借用示例的额外字段。刷新等待、请求合并及生命周期检查是本机操作，两源无同等协议，其余协议列不适用。不增加认证重试或学校写入。
+
+日程按来源和范围读取缓存。完整空集合表示读取成功；未读取的学期、周、日期、路线或分页表示缓存缺口。SPOC 可选课程信息、希冀部分课程、阳光可选统计缺失时保留现有 Partial 语义。`lastAttemptSucceeded=false` 同时覆盖请求失败与结果不完整，单凭此字段不能确定失败原因；核验时间保留实际来源时间。
+
 首页分段读取另核对旧版 `api/local/{LocalConnectionAuth,LocalSpocApi,LocalJudgeApi}.kt`、`shared/src/commonTest/kotlin/cn/edu/ubaa/api/LocalAuthSessionStoreTest.kt`，以及示例 `src/api/user/{auth,opt}.rs`、`src/request.rs` 和 `src/store/cred.rs`。SPOC、希冀和认证各自的 CAS/service、重定向与最终 URL、Cookie/Session/Token、HTTP 方法与参数、请求头与编码、加密常量、DTO 和错误解析沿用现有逐操作对照。本次仅在当前恢复范围已核验、成功重新登录后重新准备本机读取计划；两源均无 UBAA2 双路线读取池和分段计划，因此该本机操作的上游协议列不适用。读取池绑定双路线修订，任一路线登录替换读取池时，准备中和已准备的分段计划均重新准备。已知登录事件引起的重建不占用鉴权失败最多恢复一次的次数；普通 `operation_conflict` 不自动重试，账号、路线策略和生命周期变化仍取消旧读取，Core 修订校验保持。
 
 ## 日程界面与文件导出

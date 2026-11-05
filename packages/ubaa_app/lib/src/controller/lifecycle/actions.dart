@@ -16,6 +16,7 @@ import 'package:ubaa_app/src/write/ygdk_validation.dart';
 import 'package:ubaa_app/src/controller/error_mapper.dart';
 import '../state/state.dart' show ControllerState;
 import '../state/types.dart' show AppPhase, SessionRecoveryStatus;
+import '../agenda/school_refresh.dart' show controllerRefreshSchoolAgenda;
 import '../write/cgyy_readback.dart' show controllerVerifyCgyyCancellation;
 import '../write/evaluation_readback.dart'
     show
@@ -354,6 +355,9 @@ mixin ControllerActions on ControllerState {
 
   Future<void> refreshHome({Iterable<FeatureId>? only}) =>
       internalRefreshHome(only: only);
+
+  /// 刷新日程学校来源，不依赖首页是否仍挂在界面中。
+  Future<void> refreshSchoolAgenda() => controllerRefreshSchoolAgenda(this);
 
   Future<void> retryFeature(FeatureId feature) {
     final query = internalSnapshots[feature]?.readContext?.query;

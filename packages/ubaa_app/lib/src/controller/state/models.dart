@@ -126,6 +126,7 @@ final class HomeSupplementEntry {
   final completer = Completer<FeatureResult>();
   bool pending = true;
   FeatureResult? result;
+  Future<void>? schoolCacheCompletion;
 }
 
 final class GradesReadCache {
