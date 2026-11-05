@@ -1,6 +1,6 @@
 # 北航云盘边界合同
 
-状态：**Core、Bridge 与 GUI 本地候选，待独立审查与整合**。Direct 元数据、文件与分享管理、秒传、普通/分片上传、单文件和目录/多项打包下载已接入 Core、公共命令与 GUI。WebVPN 和北航部署的条件覆盖能力待验证。本文约定独立北航云盘功能对 Core、CLI、Bridge、Flutter 和日程同步的边界，不声明任何协议、真实账号、平台或设备验收通过。实施安排见[北航云盘设计](../design/bhpan.md)，逐操作事实与未决问题见[来源对照](../migration/source-parity-bhpan.md)。
+Direct 元数据、文件与分享管理、秒传、普通/分片上传、单文件和目录/多项打包下载已接入 Core、公共命令与 GUI。WebVPN 和北航部署的条件覆盖能力待验证。实施安排见[北航云盘设计](../design/bhpan.md)，逐操作证据见[来源对照](../migration/source-parity-bhpan.md)，候选验收结果见[迁移状态](../migration/status.md#验证与未解决事项)。
 
 ## 范围与所有权
 
@@ -103,3 +103,14 @@ OHOS 将用户选择的本机文档 URI 解析为授权路径，通过独占创�
 `bhpan_download_preparation` 只请求下载授权并返回脱敏目标摘要。`destination_verified=false` 表示尚未访问或核实对象地址，不可作为内容下载完成的收据。能力字段使用 `Available/Unverified/Unavailable` 分开表达实现与证据状态。公共命令通过同一个 Core 及 App 材料和恢复服务执行。`upload`、`upload-fast` 要求 `--confirm-write`，`download` 要求 `--output`，已有文件另需 `--overwrite`。分享链接格式在打开材料前校验；更新与取消仍使用本次历史读取中唯一匹配的完整链接。指定 `--password-stdin` 时须提供一行非空密码。进度只写 stderr，stdout 保持单份 human/JSON 结果。总期限贯穿材料锁后的各发送边界、对象流块与输出收尾，停止后不重发写入。
 
 `bhpan_lookup_personal_path` 保留 Found/Missing/Unknown 类型；当前读取范围无完整性证明，未找到时返回 Unknown。`bhpan_file_version` 签发绑定本客户端、同对象及非空 R 的快照；`bhpan_download_file_version` 固定 R；`bhpan_prepare_version_upload` 与 `bhpan_commit_upload_version` 返回成功或 unknown，并保留已经取得的 U。版本快照不能跨客户端恢复写权限。
+
+## 公共命令示例
+
+```sh
+ubaa bhpan list
+ubaa bhpan upload /课程资料 ./实验报告.pdf 实验报告.pdf --confirm-write
+ubaa bhpan download /课程资料/实验报告.pdf --output ./实验报告.pdf
+ubaa bhpan download /课程资料 /说明.txt --name 备份 --output ./备份.zip
+```
+
+上传的三个位置参数依次是云盘父目录、本机文件和云盘文件名。个人秒传使用相同参数，将 `upload` 换成 `upload-fast` 即可。下载参数中，`--name` 设置云盘打包名，`--output` 指定本机保存路径。已有本机文件只有显式指定 `--overwrite` 才能覆盖。
