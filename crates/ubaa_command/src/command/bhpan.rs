@@ -282,14 +282,12 @@ impl BhpanCommand {
             _ => false,
         }
     }
-    /// # Errors
-    /// 路径、文件、名称或分享设置无效时拒绝。
-    pub fn validate(&self) -> Result<()> {
+    fn validate_share_link(&self) -> Result<()> {
         match self {
             Self::Share {
                 command:
                     BhpanShareCommand::Update { link, .. } | BhpanShareCommand::Cancel { link, .. },
-            } => UbaaClient::validate_bhpan_share_link(link, true)?,
+            } => UbaaClient::validate_bhpan_share_link(link, true),
             Self::Share {
                 command: BhpanShareCommand::Open { link, .. } | BhpanShareCommand::Save { link, .. },
             }
@@ -300,11 +298,14 @@ impl BhpanCommand {
             | Self::Download {
                 share_link: Some(link),
                 ..
-            } => {
-                UbaaClient::validate_bhpan_share_link(link, false)?;
-            }
-            _ => {}
+            } => UbaaClient::validate_bhpan_share_link(link, false),
+            _ => Ok(()),
         }
+    }
+    /// # Errors
+    /// 路径、文件、名称、链接或分享设置无效时拒绝。
+    pub fn validate(&self) -> Result<()> {
+        self.validate_share_link()?;
         let paths: Vec<&str> = match self {
             Self::List { path }
             | Self::Stat { path }
