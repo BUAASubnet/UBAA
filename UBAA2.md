@@ -74,9 +74,9 @@ ubaa judge assignments
 ubaa classroom search --date 2026-09-01
 ```
 
-命令保留 human/JSON 输出、管道、退出码、超时和取消。参数与序列化实现可以继续复用 Rust 命令库。macOS/Windows 采用无窗口 Engine，Linux 使用同一 Dart 服务的 AOT 运行组件，SSH 运行不依赖显示服务。具体运行依据见[共享设计](docs/design/desktop-shared-state.md)。
+命令保留 human/JSON 输出、管道、退出码、超时和取消。参数与序列化由公共 Rust 命令库维护。macOS/Windows 采用无窗口 Engine，Linux 使用同一 Dart 服务的 AOT 运行组件，Linux 命令入口不加载显示服务。平台运行依据与验收范围见[共享设计](docs/design/desktop-shared-state.md)。
 
-现有独立 Rust CLI 仍在主线。新入口覆盖既有命令和必要平台行为后退役旧宿主，`core-live` 迁出并保留为协议验证工具。统一命令模式的实现状态见[当前状态](docs/migration/status.md)。
+独立 Rust CLI 宿主已从产品整合分支迁出，原有效测试覆盖保留在统一命令实现中。`core-live` 作为独立协议验证工具保留。统一命令模式的实现状态见[当前状态](docs/migration/status.md)。
 
 ### 2.4 MCP Server
 
