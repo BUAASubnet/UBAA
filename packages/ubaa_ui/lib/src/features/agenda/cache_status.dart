@@ -75,11 +75,27 @@ class AgendaCacheStatus extends StatelessWidget {
     return time(seconds);
   }
 
+  /// 最近一次成功检查的时间：复用缓存时核验时间不变，但检查已完成。
+  int checkedAt(Iterable<AgendaObservation> observations) => observations
+      .map(
+        (o) => o.lastAttemptSucceeded && o.lastAttemptAt > o.lastVerifiedAt
+            ? o.lastAttemptAt
+            : o.lastVerifiedAt,
+      )
+      .reduce((a, b) => a > b ? a : b);
+
+  int verifiedAt(Iterable<AgendaObservation> observations) =>
+      observations.map((o) => o.lastVerifiedAt).reduce((a, b) => a > b ? a : b);
+
+  /// 「检查」表示已向学校确认但内容沿用缓存；「更新」表示取得了新内容。
+  String freshness(Iterable<AgendaObservation> observations) {
+    final checked = checkedAt(observations),
+        verified = verifiedAt(observations);
+    return checked - verified > 60 ? '${ago(checked)}检查' : '${ago(verified)}更新';
+  }
+
   /// 面向用户的概要：最近更新时间与需要关注的来源；技术细节在展开项中。
   String friendly(List<AgendaObservation> observations) {
-    final latest = observations
-        .map((o) => o.lastVerifiedAt)
-        .reduce((a, b) => a > b ? a : b);
     // 「尝试未成功」也可能只是本次结果不完整，不能据此断言请求失败。
     final pending = [
       for (final source in sources)
@@ -91,7 +107,7 @@ class AgendaCacheStatus extends StatelessWidget {
           name(source.feature),
     ];
     return [
-      '${ago(latest)}更新',
+      freshness(observations),
       if (pending.isNotEmpty) '${pending.join('、')}待补全',
     ].join(' · ');
   }
@@ -157,9 +173,6 @@ class AgendaCacheStatus extends StatelessWidget {
                         !o.lastAttemptSucceeded ||
                         o.completeness == AgendaCompleteness.partial,
                   );
-                  final latest = source.observations
-                      .map((o) => o.lastVerifiedAt)
-                      .reduce((a, b) => a > b ? a : b);
                   final tone = issue ? amber : good;
                   return Theme(
                     data: theme.copyWith(dividerColor: Colors.transparent),
@@ -190,7 +203,7 @@ class AgendaCacheStatus extends StatelessWidget {
                           ),
                           const SizedBox(width: 6),
                           Text(
-                            issue ? '待补全' : '${ago(latest)}更新',
+                            issue ? '待补全' : freshness(source.observations),
                             style: theme.textTheme.labelSmall?.copyWith(
                               color: issue ? amber : colors.onSurfaceVariant,
                             ),
