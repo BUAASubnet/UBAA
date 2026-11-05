@@ -2,6 +2,8 @@
 use super::{ConnectionMode, SecretValue};
 use serde::{Deserialize, Serialize};
 
+pub(crate) mod transfer;
+
 /// 可浏览的文档库分类。
 #[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]

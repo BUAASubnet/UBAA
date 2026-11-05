@@ -39,7 +39,7 @@ async fn stopped_while_waiting(write: bool, cancel: bool, transfer_cancel: bool)
     runtime
         .set_scoped_cookie("NAV=private; Path=/; Secure", "https://synthetic.invalid")
         .unwrap();
-    let transfer = crate::features::bhpan::transfer::BhpanTransfer::new();
+    let transfer = crate::domain::bhpan::transfer::BhpanTransfer::new();
     let stop_transfer = transfer.clone();
     let closed = runtime.consumer_closed.clone();
     let control =

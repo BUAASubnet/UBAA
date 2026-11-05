@@ -2,7 +2,7 @@ use super::{
     Arc, AtomicBool, ClientRuntime, HttpRequest, HttpResponse, Ordering, Result, SessionStore,
     UbaaError, Weak, session_conflict, write_outcome_unknown,
 };
-use crate::features::bhpan::transfer::BhpanTransfer;
+use crate::domain::bhpan::transfer::BhpanTransfer;
 use crate::ports::{HttpFileRange, HttpTransferObserver};
 
 struct Observer {

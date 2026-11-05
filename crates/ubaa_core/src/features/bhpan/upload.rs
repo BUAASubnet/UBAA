@@ -1,5 +1,5 @@
-use super::transfer::BhpanTransfer;
 use crate::domain::bhpan::BhpanTransferPhase;
+use crate::domain::bhpan::transfer::BhpanTransfer;
 use crate::error::{Result, UbaaError};
 use md5::{Digest, Md5};
 use std::fs::{File, Metadata};

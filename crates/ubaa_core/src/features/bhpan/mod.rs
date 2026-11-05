@@ -8,7 +8,6 @@ pub(crate) mod read;
 pub(crate) mod share;
 #[cfg(test)]
 mod tests;
-pub(crate) mod transfer;
 pub(crate) mod upload;
 pub(crate) mod wire;
 

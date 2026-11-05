@@ -1,4 +1,4 @@
-use crate::domain::bhpan::{BhpanTransferPhase, BhpanTransferProgress};
+use super::{BhpanTransferPhase, BhpanTransferProgress};
 use crate::error::{Result, UbaaError};
 use std::sync::{
     Arc, Mutex,

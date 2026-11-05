@@ -4,7 +4,7 @@ mod download_file;
 mod object_upload;
 mod upload;
 mod versions;
-pub use crate::features::bhpan::transfer::BhpanTransfer;
+pub use crate::domain::bhpan::transfer::BhpanTransfer;
 pub(in crate::facade) mod state;
 #[cfg(all(test, feature = "test-contract"))]
 mod tests;
