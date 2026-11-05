@@ -61,6 +61,8 @@ class _IO implements CommandIO {
   final err = <int>[];
   bool failOutput = false, failProgress = false;
   Completer<void>? progressGate;
+  Completer<void>? stdoutGate;
+  final stdoutWritten = Completer<void>();
   final progressWritten = Completer<void>();
   @override
   Future<List<int>?> readLine({required bool secret}) =>
@@ -70,6 +72,8 @@ class _IO implements CommandIO {
   @override
   Future<void> writeStdout(List<int> bytes) async {
     if (failOutput) throw const FileSystemException('合成断管');
+    if (!stdoutWritten.isCompleted) stdoutWritten.complete();
+    if (stdoutGate != null) await stdoutGate!.future;
     out.addAll(bytes);
   }
 
@@ -89,10 +93,15 @@ class _Delivery extends _Opaque implements BridgeCommandDelivery {
   int reads = 0;
   bool acknowledged = false;
   bool failed = false;
+  bool Function()? outputStopped;
   @override
-  Future<Uint8List?> nextStdout() async => reads++ == 0
-      ? Uint8List.fromList(utf8.encode(jsonEncode({'result': label})))
-      : null;
+  Future<Uint8List?> nextStdout() async {
+    if (outputStopped?.call() == true) throw StateError('输出队列已停止');
+    return reads++ == 0
+        ? Uint8List.fromList(utf8.encode(jsonEncode({'result': label})))
+        : null;
+  }
+
   @override
   Future<Uint8List?> nextStderr() async => null;
   @override
@@ -671,6 +680,42 @@ void main() {
       await fixture.root.delete(recursive: true);
     }
   });
+  for (final deadline in [true, false]) {
+    test(deadline ? 'stdout 背压结束后仍保留总期限退出码' : 'stdout 背压期间用户取消仍退出 7', () async {
+      final fixture = await _fixture();
+      final io = _IO()..stdoutGate = Completer<void>();
+      final command = _Command(BridgeCommandClass.readonly, hasTransfer: true);
+      final result = _Result('downloaded');
+      result.delivery.outputStopped = () => command.cancellations > 0;
+      final client = _Client((_) async => _Attempt(result));
+      try {
+        final runtime = CommandRuntime(
+          io: io,
+          parse: ({required argv, required remainingMillis}) => command,
+          openMaterials: (_) async => fixture.environment,
+          openClient: ({required configDir}) async => client,
+        );
+        final running = runtime.run([
+          'ubaa',
+          'bhpan',
+          'download',
+        ], budget: const Duration(seconds: 5));
+        await io.stdoutWritten.future.timeout(const Duration(seconds: 3));
+        if (deadline) {
+          runtime.expire();
+        } else {
+          runtime.cancel();
+        }
+        io.stdoutGate!.complete();
+        expect(await running, deadline ? 5 : 7);
+        expect(result.delivery.failed, true);
+        expect(jsonDecode(utf8.decode(io.out)), {'result': 'downloaded'});
+        expect(client.attempts, 1);
+      } finally {
+        await fixture.root.delete(recursive: true);
+      }
+    });
+  }
   for (final deadline in [false, true]) {
     test(deadline ? '进度输出等待不延长期限并保留超时退出码' : '进度stderr断管取消同一命令且不重跑', () async {
       final fixture = await _fixture();

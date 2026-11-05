@@ -198,12 +198,13 @@ async fn execute(
             ..
         } => {
             let task = TransferTask(input.transfer());
+            let source = input.upload_source(file)?;
             let parent = match share_link {
                 Some(link) => n::shared_path(client, link, parent, input.password.clone()).await?,
                 None => n::personal_path(client, args, parent).await?,
             };
             let prepared = client
-                .bhpan_prepare_upload(&parent.handle, file.clone(), name, task.0.clone())
+                .bhpan_prepare_upload(&parent.handle, source, name, task.0.clone())
                 .await?;
             return receipt(client, &prepared.handle).await;
         }
@@ -236,10 +237,11 @@ async fn execute(
         C::UploadFast {
             parent, file, name, ..
         } => {
+            let source = input.upload_source(file)?;
             let parent = n::personal_path(client, args, parent).await?;
             let transfer = TransferTask(input.transfer());
             let prepared = client
-                .bhpan_prepare_fast_upload(&parent.handle, file.clone(), name, transfer.0.clone())
+                .bhpan_prepare_fast_upload(&parent.handle, source, name, transfer.0.clone())
                 .await?;
             return receipt(client, &prepared.handle).await;
         }

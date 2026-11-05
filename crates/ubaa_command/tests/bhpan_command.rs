@@ -39,6 +39,7 @@ impl GatewayProbe for NeverProbe {
 #[derive(Clone, Default)]
 struct Transport {
     calls: Arc<Mutex<Vec<HttpRequest>>>,
+    rewrite_during_lookup: Arc<Mutex<Option<std::path::PathBuf>>>,
     duplicate: bool,
     lost: bool,
 }
@@ -112,7 +113,18 @@ impl HttpTransport for Transport {
                 vec!["client.oauth2_token=synthetic; Path=/; Secure".into()],
             );
         } else if url.ends_with("/owned-doc-lib") || url.contains("/entry-doc-lib?") {
+            self.rewrite_source();
             response.body = br#"[{"id":"gns://fixture/root","name":"root"}]"#.to_vec();
+        } else if url.ends_with("/links/synthetic-share") {
+            self.rewrite_source();
+            response.body = br#"{"password_required":false}"#.to_vec();
+        } else if url.ends_with("/link/synthetic-share") {
+            response.headers.insert(
+                "Set-Cookie".into(),
+                vec!["link_token:synthetic-share=synthetic; Path=/; Secure".into()],
+            );
+        } else if url.ends_with("/entry-item") {
+            response.body = br#"[{"id":"gns://share/root","name":"shared","created_at":"2026-11-05T00:00:00Z","modified_at":"2026-11-05T00:00:00Z"}]"#.to_vec();
         } else if url.ends_with("/dir/list") || url.ends_with("/recycle/list") {
             let file =
                 json!({"docid":"gns://fixture/file","name":"notes.txt","size":5,"modified":0});
@@ -127,6 +139,8 @@ impl HttpTransport for Transport {
             response.body=br#"{"docid":"gns://fixture/uploaded","rev":"u","authrequest":["PUT","https://object.synthetic.invalid/upload?signature=private","Authorization: object-only"]}"#.to_vec();
         } else if url.ends_with("/osendupload") {
             response.body = b"{}".to_vec();
+        } else if url.ends_with("/predupload") {
+            response.body = br#"{"match":false}"#.to_vec();
         } else if url.ends_with("/file/delete") {
             assert_eq!(
                 serde_json::from_slice::<Value>(&r.body).unwrap(),
@@ -144,6 +158,13 @@ impl HttpTransport for Transport {
             panic!("未安排的合成请求：{url}");
         }
         Ok(response)
+    }
+}
+impl Transport {
+    fn rewrite_source(&self) {
+        if let Some(path) = self.rewrite_during_lookup.lock().unwrap().take() {
+            std::fs::write(path, b"changed during lookup").unwrap();
+        }
     }
 }
 struct Fixture {
@@ -343,6 +364,133 @@ async fn 秒传文件自输入准备后变化时不发起业务网络() {
     assert_eq!(result.render(&control, &mut vec![], &mut vec![]), 2);
     assert!(fixture.transport.calls.lock().unwrap().is_empty());
     fixture.finish();
+}
+
+#[test]
+fn 显式分享密码拒绝空输入但仍允许省略密码参数() {
+    let argv = [
+        "ubaa",
+        "bhpan",
+        "share",
+        "create",
+        "/notes.txt",
+        "--title",
+        "合成",
+        "--expires-at",
+        "2027-01-01T00:00:00+08:00",
+        "--allow",
+        "download",
+        "--confirm-write",
+    ];
+    let prepare = |explicit, bytes: &[u8]| {
+        let mut arguments = argv.to_vec();
+        if explicit {
+            arguments.push("--password-stdin");
+        }
+        prepare_input(
+            parse(arguments).unwrap(),
+            &mut Cursor::new(bytes),
+            &CommandControl::default(),
+        )
+    };
+    assert!(prepare(false, b"").is_ok());
+    assert!(prepare(true, b"synthetic\n").is_ok());
+    for bytes in [b"".as_slice(), b"\n", b"\r\n"] {
+        let result = prepare(true, bytes);
+        assert!(matches!(result, Err(error) if error.code == ErrorCode::InvalidInput));
+    }
+}
+
+#[test]
+fn 无效分享链接在全部公共入口的准备阶段拒绝且不回显原值() {
+    let fixture = Fixture::new(Transport::default(), "direct");
+    let source = fixture.root.join("source");
+    let output = fixture.root.join("output");
+    std::fs::write(&source, b"content").unwrap();
+    let link = "https://synthetic.invalid/link/do-not-echo";
+    for arguments in [
+        vec!["share", "open", link],
+        vec!["share", "save", link, "/", "/", "--confirm-write"],
+        vec![
+            "share",
+            "update",
+            link,
+            "--title",
+            "合成",
+            "--expires-at",
+            "2027-01-01T00:00:00+08:00",
+            "--allow",
+            "download",
+            "--confirm-write",
+        ],
+        vec!["share", "cancel", link, "--confirm-write"],
+        vec![
+            "upload",
+            "/",
+            source.to_str().unwrap(),
+            "file",
+            "--share-link",
+            link,
+            "--confirm-write",
+        ],
+        vec![
+            "download",
+            "/",
+            "--share-link",
+            link,
+            "--output",
+            output.to_str().unwrap(),
+        ],
+    ] {
+        let mut argv = vec!["ubaa", "bhpan"];
+        argv.extend(&arguments);
+        let result = prepare_input(
+            parse(argv).unwrap(),
+            &mut Cursor::new([]),
+            &CommandControl::default(),
+        );
+        let Err(error) = result else {
+            panic!("应在材料前拒绝：{}", arguments[..2].join(" "));
+        };
+        assert_eq!(error.code, ErrorCode::InvalidInput);
+        assert!(!error.message.contains("do-not-echo"));
+    }
+    fixture.finish();
+}
+
+#[tokio::test]
+async fn 目标查询期间改写文件阻止普通共享和秒传上传() {
+    for (command, shared) in [("upload", false), ("upload", true), ("upload-fast", false)] {
+        let mut fixture = Fixture::new(Transport::default(), "direct");
+        let source = fixture.root.join("source");
+        std::fs::write(&source, b"before").unwrap();
+        *fixture.transport.rewrite_during_lookup.lock().unwrap() = Some(source.clone());
+        let mut args = vec![
+            command,
+            "/",
+            source.to_str().unwrap(),
+            "notes.txt",
+            "--confirm-write",
+        ];
+        if shared {
+            args.extend(["--share-link", "synthetic-share"]);
+        }
+        let (code, _) = fixture.run(&args).await;
+        assert_eq!(std::fs::read(source).unwrap(), b"changed during lookup");
+        let sent_transfer = fixture
+            .transport
+            .calls
+            .lock()
+            .unwrap()
+            .iter()
+            .any(|r| r.url.ends_with("/osbeginupload") || r.url.ends_with("/predupload"));
+        fixture.finish();
+        assert!(
+            !sent_transfer,
+            "变更后不得发起文件传输：{command}，共享={shared}"
+        );
+        assert_eq!(code, 2);
+    }
 }
 
 #[tokio::test]

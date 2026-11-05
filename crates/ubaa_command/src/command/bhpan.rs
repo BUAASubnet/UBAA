@@ -204,7 +204,7 @@ pub struct BhpanShareOptions {
     pub limited_times: i64,
     #[arg(long, value_enum, value_delimiter = ',', required = true)]
     pub allow: Vec<BhpanAllow>,
-    /// 从标准输入读取分享密码。省略表示空密码。
+    /// 从标准输入读取一行非空分享密码。省略表示不设置密码。
     #[arg(long)]
     pub password_stdin: bool,
 }
@@ -285,6 +285,26 @@ impl BhpanCommand {
     /// # Errors
     /// 路径、文件、名称或分享设置无效时拒绝。
     pub fn validate(&self) -> Result<()> {
+        match self {
+            Self::Share {
+                command:
+                    BhpanShareCommand::Update { link, .. } | BhpanShareCommand::Cancel { link, .. },
+            } => UbaaClient::validate_bhpan_share_link(link, true)?,
+            Self::Share {
+                command: BhpanShareCommand::Open { link, .. } | BhpanShareCommand::Save { link, .. },
+            }
+            | Self::Upload {
+                share_link: Some(link),
+                ..
+            }
+            | Self::Download {
+                share_link: Some(link),
+                ..
+            } => {
+                UbaaClient::validate_bhpan_share_link(link, false)?;
+            }
+            _ => {}
+        }
         let paths: Vec<&str> = match self {
             Self::List { path }
             | Self::Stat { path }
@@ -330,7 +350,7 @@ impl BhpanCommand {
                     .and_then(|file| file.metadata())
                     .is_ok_and(|m| m.is_file())
                 {
-                    return Err(UbaaError::invalid_input("秒传文件不可读"));
+                    return Err(UbaaError::invalid_input("上传文件不可读"));
                 }
             }
             Self::Download {

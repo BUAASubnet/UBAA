@@ -6,6 +6,8 @@ mod output;
 use crate::{BhpanArgs, BhpanCommand, bhpan_password};
 pub use execute::execute_bhpan;
 pub use output::{BhpanEntry, BhpanOutput, BhpanShareEntry};
+use std::path::Path;
+use ubaa_core::facade::bhpan::BhpanUploadSource;
 use ubaa_core::facade::{Result, SecretValue, UbaaError};
 
 /// 准备阶段捕获输入，恢复不会重新读取密码或接受已变化的本机文件。
@@ -13,30 +15,33 @@ use ubaa_core::facade::{Result, SecretValue, UbaaError};
 pub struct BhpanPreparedInput {
     pub(crate) password: SecretValue,
     transfer: Option<ubaa_core::facade::bhpan::BhpanTransfer>,
-    file: Option<(std::path::PathBuf, u64, std::time::SystemTime)>,
+    file: Option<BhpanUploadSource>,
 }
 impl BhpanPreparedInput {
     /// 在账号材料初始化前读取本机元数据。
     /// # Errors
     /// 密码格式或文件不可读时拒绝。
     pub fn capture(args: &BhpanArgs, bytes: &[u8]) -> Result<Self> {
+        let password = if args.command.password_stdin() {
+            let password = bhpan_password(bytes)?;
+            if password.expose_secret().is_empty() {
+                return Err(UbaaError::invalid_input(
+                    "--password-stdin 需要一行非空密码",
+                ));
+            }
+            password
+        } else {
+            SecretValue::new("")
+        };
         let file = if let BhpanCommand::UploadFast { file, .. }
         | BhpanCommand::Upload { file, .. } = &args.command
         {
-            let metadata =
-                std::fs::metadata(file).map_err(|_| UbaaError::invalid_input("上传文件不可读"))?;
-            Some((
-                file.clone(),
-                metadata.len(),
-                metadata
-                    .modified()
-                    .map_err(|_| UbaaError::invalid_input("无法读取文件修改时间"))?,
-            ))
+            Some(BhpanUploadSource::capture(file.clone())?)
         } else {
             None
         };
         Ok(Self {
-            password: bhpan_password(bytes)?,
+            password,
             file,
             transfer: None,
         })
@@ -52,14 +57,17 @@ impl BhpanPreparedInput {
         self.transfer.clone().unwrap_or_default()
     }
     pub(crate) fn check_file(&self) -> Result<()> {
-        if let Some((path, length, modified)) = &self.file {
-            let current =
-                std::fs::metadata(path).map_err(|_| UbaaError::invalid_input("上传文件不可读"))?;
-            if current.len() != *length || current.modified().ok() != Some(*modified) {
-                return Err(UbaaError::invalid_input("上传文件自输入准备后已变化"));
-            }
+        if let Some(file) = &self.file {
+            file.verify_current()?;
         }
         Ok(())
+    }
+    pub(crate) fn upload_source(&self, path: &Path) -> Result<BhpanUploadSource> {
+        self.file
+            .as_ref()
+            .filter(|file| file.path() == path)
+            .cloned()
+            .ok_or_else(|| UbaaError::invalid_input("本机上传源与准备时不一致"))
     }
 }
 

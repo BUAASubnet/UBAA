@@ -25,7 +25,12 @@ impl BridgeClient {
             let p = guard
                 .as_mut()
                 .ok_or_else(disposed_error)?
-                .bhpan_prepare_upload(&parent, path.into(), &name, transfer.control.clone())
+                .bhpan_prepare_upload(
+                    &parent,
+                    std::path::PathBuf::from(path),
+                    &name,
+                    transfer.control.clone(),
+                )
                 .await
                 .map_err(error)?;
             Ok(BridgeBhpanPrepared {

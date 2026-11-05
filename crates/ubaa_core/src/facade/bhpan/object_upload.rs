@@ -1,4 +1,4 @@
-use super::{BhpanTransfer, UbaaClient, parse, state::Authority, wire};
+use super::{BhpanTransfer, BhpanUploadSource, UbaaClient, parse, state::Authority, wire};
 use crate::{
     domain::{
         ConnectionMode, SecretValue,
@@ -9,7 +9,6 @@ use crate::{
     ports::{HttpMethod, HttpRequest},
 };
 use serde_json::{Value, json};
-use std::path::PathBuf;
 
 pub(super) struct PendingObjectUpload {
     pub(super) source: FileSnapshot,
@@ -32,7 +31,7 @@ impl UbaaClient {
     pub async fn bhpan_prepare_upload(
         &mut self,
         parent: &str,
-        path: PathBuf,
+        source: impl Into<BhpanUploadSource>,
         name: &str,
         transfer: BhpanTransfer,
     ) -> Result<BhpanPreparedWrite> {
@@ -44,20 +43,20 @@ impl UbaaClient {
         if parent.scope == crate::domain::bhpan::BhpanScope::Recycle {
             return Err(UbaaError::invalid_input("回收站不能上传文件"));
         }
-        self.prepare_object_upload(parent, path, name, transfer, None)
+        self.prepare_object_upload(parent, source.into(), name, transfer, None)
             .await
     }
     pub(super) async fn prepare_object_upload(
         &mut self,
         parent: Authority,
-        path: PathBuf,
+        selection: BhpanUploadSource,
         name: &str,
         transfer: BhpanTransfer,
         base: Option<crate::domain::bhpan::BhpanFileVersion>,
     ) -> Result<BhpanPreparedWrite> {
         let binding = self.bhpan_binding();
         let control = transfer.clone();
-        let source = tokio::task::spawn_blocking(move || FileSnapshot::select(path, &control))
+        let source = tokio::task::spawn_blocking(move || FileSnapshot::select(selection, &control))
             .await
             .map_err(|_| UbaaError::invalid_input("本机文件读取任务未完成"))??;
         self.bhpan_scope()?;

@@ -227,7 +227,7 @@ impl UbaaClient {
         authority.personal()?;
         self.prepare_object_upload(
             authority,
-            path,
+            path.into(),
             &version.name,
             transfer,
             Some(version.clone()),

@@ -464,7 +464,7 @@ final class CommandRuntime {
       final code = await delivery.finish();
       return _progressOutputFailed ? 7 : code;
     } on Object {
-      return 7;
+      return stoppedExitCode;
     }
   }
 }

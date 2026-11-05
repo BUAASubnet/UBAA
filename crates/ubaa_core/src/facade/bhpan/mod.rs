@@ -5,6 +5,7 @@ mod object_upload;
 mod upload;
 mod versions;
 pub use crate::domain::bhpan::transfer::BhpanTransfer;
+pub use crate::features::bhpan::upload::BhpanUploadSource;
 pub(in crate::facade) mod state;
 #[cfg(all(test, feature = "test-contract"))]
 mod tests;
@@ -44,6 +45,16 @@ impl UbaaClient {
     /// 名称为空或包含路径分隔符时拒绝。
     pub fn validate_bhpan_name(name: &str) -> Result<()> {
         write::name(name)
+    }
+    /// 使用云盘协议规则校验分享输入，不读取账号或网络。
+    /// # Errors
+    /// 格式无效，或管理操作未使用分享历史中的完整链接时拒绝。
+    pub fn validate_bhpan_share_link(input: &str, require_full_link: bool) -> Result<()> {
+        let id = share::id(input)?;
+        if require_full_link && input != format!("{}/link/{id}", wire::ORIGIN) {
+            return Err(UbaaError::invalid_input("请使用分享历史中的完整链接"));
+        }
+        Ok(())
     }
     /// 校验分享草稿，不访问账号或网络。
     /// # Errors

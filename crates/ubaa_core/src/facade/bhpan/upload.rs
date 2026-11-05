@@ -1,10 +1,9 @@
-use super::{BhpanTransfer, UbaaClient, wire};
+use super::{BhpanTransfer, BhpanUploadSource, UbaaClient, wire};
 use crate::domain::bhpan::{BhpanPreparedWrite, BhpanTransferPhase};
 use crate::error::{Result, UbaaError};
 use crate::features::bhpan::{parse, upload::FileSnapshot};
 use crate::ports::HttpMethod;
 use serde_json::json;
-use std::path::PathBuf;
 
 impl UbaaClient {
     /// 使用有界缓冲计算协议所需摘要，匹配时准备一次秒传确认。
@@ -13,13 +12,13 @@ impl UbaaClient {
     pub async fn bhpan_prepare_fast_upload(
         &mut self,
         parent: &str,
-        path: PathBuf,
+        source: impl Into<BhpanUploadSource>,
         name: &str,
         transfer: BhpanTransfer,
     ) -> Result<BhpanPreparedWrite> {
         transfer.claim()?;
         let result = self
-            .bhpan_prepare_fast_upload_inner(parent, path, name, &transfer)
+            .bhpan_prepare_fast_upload_inner(parent, source.into(), name, &transfer)
             .await;
         if let Err(error) = &result {
             let phase = if transfer.progress().phase == BhpanTransferPhase::Cancelled {
@@ -37,7 +36,7 @@ impl UbaaClient {
     async fn bhpan_prepare_fast_upload_inner(
         &mut self,
         parent: &str,
-        path: PathBuf,
+        selection: BhpanUploadSource,
         name: &str,
         transfer: &BhpanTransfer,
     ) -> Result<BhpanPreparedWrite> {
@@ -49,7 +48,7 @@ impl UbaaClient {
         super::write::name(name)?;
         transfer.ensure_active()?;
         let control = transfer.clone();
-        let source = tokio::task::spawn_blocking(move || FileSnapshot::open(path, &control))
+        let source = tokio::task::spawn_blocking(move || FileSnapshot::open(selection, &control))
             .await
             .map_err(|_| UbaaError::invalid_input("本机文件读取任务未完成"))??;
         let token = self.bhpan_ready().await?;

@@ -4,7 +4,59 @@ use crate::error::{Result, UbaaError};
 use md5::{Digest, Md5};
 use std::fs::{File, Metadata};
 use std::io::{Read, Seek};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
+use std::time::SystemTime;
+
+/// 本机上传源。公共命令可在解析目标前记录用户选择的文件版本。
+#[derive(Clone)]
+pub struct BhpanUploadSource {
+    path: PathBuf,
+    expected: Option<(u64, SystemTime)>,
+}
+impl From<PathBuf> for BhpanUploadSource {
+    fn from(path: PathBuf) -> Self {
+        Self {
+            path,
+            expected: None,
+        }
+    }
+}
+impl BhpanUploadSource {
+    /// 记录文件长度及修改时间，不读取正文。
+    /// # Errors
+    /// 无法打开普通文件或读取其修改时间时拒绝。
+    pub fn capture(path: PathBuf) -> Result<Self> {
+        let metadata = File::open(&path)
+            .and_then(|file| file.metadata())
+            .map_err(|_| local())?;
+        if !metadata.is_file() {
+            return Err(local());
+        }
+        let expected = Some((metadata.len(), metadata.modified().map_err(|_| local())?));
+        Ok(Self { path, expected })
+    }
+    /// 返回用户选择的本机路径。
+    #[must_use]
+    pub fn path(&self) -> &Path {
+        &self.path
+    }
+    /// 在开始查找远端目标前拒绝已经变化的文件。
+    /// # Errors
+    /// 文件不可读或版本变化时拒绝。
+    pub fn verify_current(&self) -> Result<()> {
+        self.check(&std::fs::metadata(&self.path).map_err(|_| local())?)
+    }
+    fn check(&self, metadata: &Metadata) -> Result<()> {
+        if !metadata.is_file()
+            || self.expected.is_some_and(|(length, modified)| {
+                metadata.len() != length || metadata.modified().ok() != Some(modified)
+            })
+        {
+            return Err(local());
+        }
+        Ok(())
+    }
+}
 
 pub(crate) struct FileSnapshot {
     file: File,
@@ -19,16 +71,14 @@ fn local() -> UbaaError {
     UbaaError::invalid_input("本机文件不可读或选择后已变化，请重新选择")
 }
 impl FileSnapshot {
-    pub(crate) fn select(path: PathBuf, transfer: &BhpanTransfer) -> Result<Self> {
+    pub(crate) fn select(selection: BhpanUploadSource, transfer: &BhpanTransfer) -> Result<Self> {
         transfer.ensure_active()?;
-        let file = File::open(&path).map_err(|_| local())?;
+        let file = File::open(&selection.path).map_err(|_| local())?;
         let metadata = file.metadata().map_err(|_| local())?;
-        if !metadata.is_file() {
-            return Err(local());
-        }
+        selection.check(&metadata)?;
         let source = Self {
             file,
-            path,
+            path: selection.path,
             length: metadata.len(),
             metadata,
             slice_md5: String::new(),
@@ -37,8 +87,8 @@ impl FileSnapshot {
         };
         Ok(source)
     }
-    pub(crate) fn open(path: PathBuf, transfer: &BhpanTransfer) -> Result<Self> {
-        let mut source = Self::select(path, transfer)?;
+    pub(crate) fn open(selection: BhpanUploadSource, transfer: &BhpanTransfer) -> Result<Self> {
+        let mut source = Self::select(selection, transfer)?;
         transfer.set(
             BhpanTransferPhase::HashingMini,
             0,
