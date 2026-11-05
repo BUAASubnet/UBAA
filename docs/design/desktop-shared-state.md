@@ -57,7 +57,7 @@ macOS、Windows 无需支持未登录桌面的服务器运行。Linux SSH 是正
 |---|---|---|
 | macOS | 原生入口在窗口与 GUI 单实例检查前分流，无 view Flutter Engine 复用平台插件 | 真实旧材料连续性与签名 Release 行为 |
 | Windows | 原生入口在 GUI mutex 和窗口创建前分流，无 view Engine | 命令运行、控制台与管道、参数和退出行为；现有 Debug 构建证据仅覆盖 GUI 与工具链 |
-| Linux | 同一 Dart 服务编译为 AOT，直接加载生成 FRB 与 Rust 库 | 实际 SSH/PAM、其他架构与发行包，复用 App 的材料键与账号索引 |
+| Linux | 同一 Dart 服务编译为 AOT，直接加载生成 FRB 与 Rust 库，复用 App 材料键和账号索引。Debian 12 arm64 实际 SSH/PAM 已通过 | 其他架构、发行包安装和实际部署验证 |
 
 macOS 分发、平台目录与旧材料连续性沿用已有决定，具体事实见[状态页](../migration/status.md)和[决策记录](../migration/decision-log.md)。不因平台入口调整而隐含迁移真实材料、签名或发布。
 
@@ -97,7 +97,9 @@ Docker 基础为 `rust:1.95.0-bookworm`，架构 `aarch64`，镜像 digest 为 `
 
 实际通过了 Dart AOT→既有 FRB→Rust Core→SQLite 的读取。另将锁定 `flutter_secure_storage_linux 3.0.3` 的 `Secret.hpp` 原生后端接到私有 Dart FFI 适配，在两个独立 D-Bus 会话和 Secret Service 进程之间保存、读回合成值。缺少服务时返回 `material_unavailable` 和退出码 7。该试验证明后端可以脱离图形显示运行，尚未实现生产 `SecureMaterialTransport`，也未验证当前 App keyring item 的原位连续性。H2 必须保留原 schema、label、account 属性及材料键，不能直接采用样机合成 schema。
 
-Linux 正式命令材料适配使用同一用户的 D-Bus Secret Service/libsecret，复用 App 材料数据，账号索引只有一份。SSH 部署需要可非交互取得已保存材料的用户服务：例如登录时由 PAM 解锁的 keyring，或由部署环境安全交付解锁材料的用户服务。样机用 stdin 中的非空合成密码解锁两次，证明重开服务可读取加密 keyring。真实部署的启动、解锁和锁定诊断留到 H2 验证，不把合成密码固化进程序，不降级到明文凭据或明文业务缓存。无服务、材料锁定或解锁需要交互时，命令明确失败，不要求先启动 GUI。
+Linux 正式命令材料适配使用同一用户的 D-Bus Secret Service/libsecret，复用 App 材料数据，账号索引只有一份。SSH 部署需要能在无图形环境下提供已保存材料的用户服务。Debian 12 arm64 的实际验收使用同一用户的 D-Bus 和 GNOME Keyring，由 OpenSSH 密码登录经 PAM 解锁 `login` 集合。两个无图形 SSH 会话可读写同一日程，关闭一个会话后，另一个仍可读取并导出 ICS。公钥登录没有提供解锁密码，集合仍锁定时日程命令返回 `material_unavailable`、退出 7；D-Bus 上没有 Secret Service 时返回相同结果。
+
+材料探测在同一材料锁内先读探测键，读失败时保持原事务状态。读成功后才标记并执行可能写入的探测操作。写入结果不明时仍保留未完成标记并阻止后续访问。实际 SSH 验收中，锁定和缺少服务均未改变已提交标记；密码登录解锁后，命令恢复并读取原日程。验证只使用隔离容器中的合成用户和材料，部署安装、旧真实材料连续性和其他架构仍需验收。
 
 目录服务也必须脱离 GUI。Linux 目录插件在没有 application ID 时回退为可执行文件名，macOS 使用 bundle ID，Windows 使用 EXE 的 CompanyName/ProductName，直接套用另一可执行文件的默认目录会分裂资料。公共目录解析接口固定当前 App 的资料空间，再将同一绝对目录交给消费者，保留 `UBAA_CONFIG_DIR`、原随机 alias、CacheKey 和旧路径冲突检查。
 
@@ -107,6 +109,6 @@ macOS AOT 的成功、非法参数和缺失动态库分别返回 0、2、7，std
 
 新进程启动观察只用于路线选择：macOS AOT 首次普通查询约 22ms，私有 App 原生分流首次调用约 2.06s，后续创建约 120ms；无窗口 Engine 新进程首次约 2.3–2.7s，后续约 0.37–0.80s。单次计时观察为 AOT macOS 约 0.12s、RSS 31.1MB，无窗口 Debug Engine 约 0.43s、RSS 272.9MB，Linux AOT 约 0.00–0.01s、RSS 30–31MiB。macOS 选择 Engine 以复用现有平台插件，接受当前样机观察到的启动和内存开销，生产 Release 仍需另测。Rust 动态库为 Debug，文件系统缓存未清空，未测登录和完整生产启动，不能据此制定性能保证。
 
-Windows 待验项目为：原生构建、无 view Engine 和插件事件循环、GUI 开/关及反向启动、cmd.exe/PowerShell、重定向与管道、Unicode/空参数/引号/反斜杠、stdin EOF、取消/期限、真实子进程退出码。macOS/Linux 的成功不填补这些项目。macOS 生产沙箱、旧目录与 keyring 连续性，Linux 实际 SSH 用户服务、旧材料连续性和 x86_64，同样留到 H2。
+Windows 待验项目为：原生构建、无 view Engine 和插件事件循环、GUI 开/关及反向启动、cmd.exe/PowerShell、重定向与管道、Unicode/空参数/引号/反斜杠、stdin EOF、取消/期限、真实子进程退出码。macOS/Linux 的成功不填补这些项目。macOS 生产沙箱、旧目录与 keyring 连续性，以及 Linux 旧真实材料连续性和 x86_64 仍待验收。
 
 H0 只提交设计、决策和状态文档，未修改生产认证、读取、存储或跨语言入口。继承 13 项实验逐项登记在私有 `handoff.md`，原补丁和新文件哈希保持，未混入 H0 提交。派生身份失效回归及四个 Core 修复候选留 H1-b 独立审查，旧 worker 与对应依赖/测试留 H3/H4 迁移或删除时登记覆盖。

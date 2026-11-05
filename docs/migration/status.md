@@ -34,7 +34,7 @@
 - macOS 无窗口 Engine 与 Linux AOT 已有隔离合成材料的原生进程证据。Linux Secret Service 适配保留原插件的 schema、account、JSON item 与材料键，双向互通及锁定拒绝通过。
 - 旧独立 Rust 宿主和材料 worker 已迁出，`core-live` 保留在 `tools/core_live`。有效覆盖去向见[测试策略](../development/testing.md)。Windows 新命令宿主尚未原生验证，完整退役验收仍有缺口。
 
-当前证据限于合成材料、固定路线和 Mock。Windows 主机暂不可连接；macOS 真实旧材料连续性、签名 Release、Linux 实际 SSH/PAM 与其他架构尚未验证。完整确定性验收结果随候选提交记录。
+本机验收使用合成账号与材料。Linux SSH/PAM 已在隔离 Debian 12 arm64 环境验证。Windows 主机暂不可连接；macOS 真实旧材料连续性、签名 Release、Linux 实际部署和其他架构仍待验收。
 
 ## 共享服务生命周期
 
@@ -59,12 +59,12 @@
 | 日程基础 | `fb98234d` 的八包 1654 项、macOS 原生 5 项、FRB 零漂移和独立复审通过 | 其他平台保存面板设备结果仍待补齐 |
 | 日程视图 | `f217e264` 相关五包 1481 项、日程聚焦 30 项和独立针对复审 16 项通过；macOS 真实本机 Core/SQLite 与合成学校投影完成布局目视检查 | 已进入整合分支；手机视口不包含 iOS/Android 设备或软键盘验收 |
 | 北航云盘组合 | `a0af9a34` 的 `mode=full` 退出 0。Core 全目标 910 项、Core 文档 3 项、其余 Rust workspace 470 项、八个 Flutter 包 1845 项、macOS 原生 13 项和 FRB 生成零漂移通过。同一对象的 OHOS 无签名 Debug HAP 与 arm64 Rust 动态库门禁通过 | iOS Simulator 和 Android Debug 有先前分段编译记录。当前无云盘文件面板设备实测、真实学校请求、远端 CI 或发布验收 |
-| 北航云盘桌面命令 | `dd202754` 的 macOS 合成双进程和正式 Debug 命令、Linux Debian 12 arm64 AOT 与 Secret Service 通过。两平台的真实命令进程在访问材料前拒绝无效链接和空密码输入 | 后续生产差异限于 OHOS 文件交付。Windows 原生、Linux 实际 SSH/PAM 和其他架构待验收 |
+| 北航云盘桌面命令 | `dd202754` 的 macOS 合成双进程和正式 Debug 命令、Linux Debian 12 arm64 AOT 与 Secret Service 通过。两平台的真实命令进程在访问材料前拒绝无效链接和空密码输入 | 该记录对应固定输入。Linux SSH/PAM 见下表；Windows 原生与其他架构待验收 |
 | 北航云盘早期候选 | `a0a9e5fb` 的 `mode=full` 退出 0，Core 全目标 847 项、文档 3 项、其余 Rust workspace 435 项、八包 Flutter 1666 项、macOS 原生 5 项及 FRB 零漂移通过 | 对应当时的读写与秒传范围 |
 | 共享服务 | 三个生命周期问题的正式回归与独立复审通过，完整组合包含共享服务代码 | 原候选 `full/full2/full3` 失败记录保留；通过依据使用后续组合输入 |
 | Windows 工具链与命令入口 | 工具链已有本地验收和复审；新命令入口已进入组合源码 | Windows 原生构建、完整终端和安装行为待验收 |
 | Windows Agenda | 2026-11-02 已记录两项 Core 测试在删除目录时报 Win32 32，独立重跑仍失败 | 整合候选是否仍存在句柄占用问题待验证 |
-| Linux SSH | `dd202754` 的 Debian 12 arm64 容器通过正式 AOT 命令、Secret Service 适配和双进程日程合成验收 | 实际 SSH/PAM、部署安装及其他架构待验收 |
+| Linux SSH/PAM | `726fc7f8` 的正式 Dart AOT 在禁网 Debian 12 arm64 容器通过回环 SSH 验收，复用 `dd202754` 的 Rust Bridge 和材料动态库。双会话日程读写、退出后连续性与 ICS、密码 PAM 解锁均通过。锁定或缺少服务时日程命令返回 `material_unavailable`、退出 7，保持原已提交标记 | 验证范围限于合成用户、OpenSSH、同用户 D-Bus 和 GNOME Keyring。部署安装、旧真实材料连续性及其他架构待验收 |
 | 移动端与 OHOS | 历史 iOS simulator、Android Debug、macOS Debug、OHOS 分析与无签名 Debug HAP 构建，以及 OHOS 模拟器合成 HUKS 流程通过 | 当前候选实体设备、真实账号、异常恢复与发布验收未完成 |
 | 签名与版本 | Android 曾构建并校验签名 Release APK | 未安装运行或对照旧正式包；OHOS `1.0.0/1000000` 与 Flutter `0.1.0+1` 仍需发布前统一核对 |
 | 远端与发布 | 本地提交与历史本机证据保留 | 本轮无推送、远端 CI、签名或发布验收 |
