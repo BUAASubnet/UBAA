@@ -1,6 +1,6 @@
 # 测试策略与日常入口
 
-当前合同：CLI JSON schema v13；Flutter bridge contract v50。CLI 验证 human/JSON schema v13，版本常量、JSON Schema、Dart 接受版本与现行文档由 `just contract-version-check` 同步检查。旧升级流水见[历史指南](../migration/history/testing-before-2026-10-07.md)。
+当前合同：CLI JSON schema v13；Flutter bridge contract v51。CLI 验证 human/JSON schema v13，版本常量、JSON Schema、Dart 接受版本与现行文档由 `just contract-version-check` 同步检查。旧升级流水见[历史指南](../migration/history/testing-before-2026-10-07.md)。
 
 ## 检查入口
 
@@ -67,3 +67,5 @@ Core 新增无缓存七来源等价、输入逐组到达顺序、本地完成/�
 隔离命令 target 位于 `apps/ubaa_flutter/integration_test/synthetic/command/entry.dart`。构建必须提供私有 `UBAA_COMMAND_EVIDENCE_DIR`，材料、协调锁和业务数据库都位于该目录。普通 `--config-dir` 只覆盖业务目录，不能代替材料隔离。运行日志与媒体继续放 `.ubaa_local/`。
 
 命令输入边界通过真实 parser/prepare 和生产 Runtime 核对空密码、错误阳光时间及缺失照片，材料工厂和学校客户端调用均为零。阳光照片准备后删除原文件的回归继续使用已准备的字节。恢复调度覆盖同账号外部继任后的新客户端单次执行，以及 cancelled、deadline、superseded 的独立结果。
+
+日程独立快照的协调器覆盖保留账号关闭、路线变化、取消、同秒编辑、持久化失败、本机清除和删除防复活。旧共享文件的基版竞争覆盖改由双设备独立发布与逐记录合并覆盖，未知结果只读冻结。新增最高发布序号选择、坏快照整轮失败、跨进程唯一发布、持久成功回执和清除后的无正文在途覆盖。
