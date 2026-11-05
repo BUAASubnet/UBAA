@@ -89,6 +89,29 @@ void main() {
     expect(transport.values, isEmpty);
     expect(await state.readAsBytes(), [0xff, 0xfe]);
   });
+
+  test('探测前安全材料不可读时不留下写入标记，恢复后可读取原材料', () async {
+    await material.write('fixture-business', 'synthetic-business');
+    final state = File('${root.path}/transaction.v1');
+    final mutations = transport.mutations;
+    expect(await state.readAsString(), 'UBAA1:C');
+
+    transport.unavailable = true;
+    await material.probe();
+    expect(material.isAvailable, isFalse);
+    expect(await state.readAsString(), 'UBAA1:C');
+    expect(transport.mutations, mutations);
+
+    transport.unavailable = false;
+    final reopened = SecureMaterialStore(
+      transport: transport,
+      coordinator: MaterialCoordinator(directory: root),
+    );
+    await reopened.probe();
+    expect(reopened.isAvailable, isTrue);
+    expect(await reopened.read('fixture-business'), 'synthetic-business');
+  });
+
   test('probe写后异常仅清自身随机键，原业务材料保留且后续阻断', () async {
     await material.write('fixture-business', 'synthetic-business');
     transport.failAfterProbeWrite = true;
@@ -398,12 +421,18 @@ class _Materials implements SecureMaterialTransport {
   String? failAfterWrite;
   bool failDelete = false;
   bool failAfterProbeWrite = false;
+  bool unavailable = false;
   Future<void> Function()? delayWrite;
   @override
-  Future<String?> read(String key) async => values[key];
+  Future<String?> read(String key) async {
+    if (unavailable) throw const SecureMaterialException();
+    return values[key];
+  }
+
   @override
   Future<void> write(String key, String value) async {
     mutations++;
+    if (unavailable) throw const SecureMaterialException();
     if (delayWrite != null) await delayWrite!();
     if (failWrite != null && key.endsWith(failWrite!))
       throw StateError('synthetic');
@@ -418,6 +447,7 @@ class _Materials implements SecureMaterialTransport {
   @override
   Future<void> delete(String key) async {
     mutations++;
+    if (unavailable) throw const SecureMaterialException();
     if (failDelete) throw StateError('synthetic');
     values.remove(key);
   }

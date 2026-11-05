@@ -53,7 +53,7 @@ class SecureMaterialStore {
 
   static const _capabilityValue = 'probe-ok';
 
-  /// 用专用非敏感键闭环验证写入、读回和删除，不枚举或读取用户凭据。
+  /// 用专用非敏感键验证材料读取、写入和删除。
   Future<void> probe() async {
     final suffix = List.generate(
       16,
@@ -62,6 +62,8 @@ class SecureMaterialStore {
     final capabilityKey = '${_prefix}capability.$suffix';
     try {
       await coordinate(() async {
+        // 读取失败时没有发出写入，不应留下未完成的事务标记。
+        await _transport.read(capabilityKey);
         await coordinator.beforeMutation();
         try {
           await _transport.write(capabilityKey, _capabilityValue);
