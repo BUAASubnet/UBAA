@@ -57,6 +57,9 @@ fn 未验证及未知结果输出失败和待同步数量且匹配合同() {
         );
         let value: serde_json::Value = serde_json::from_slice(&out).unwrap();
         assert_eq!(value["ok"], exit == 0);
+        if status == AgendaSyncStatus::Unverified {
+            assert_eq!(value["error"]["code"], "sync_unverified");
+        }
         assert_eq!(value["data"]["pendingCount"], pending_count);
         assert!(
             validator.is_valid(&value),

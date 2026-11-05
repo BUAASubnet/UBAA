@@ -16,6 +16,14 @@ use crate::{
 use async_trait::async_trait;
 use std::path::{Path, PathBuf};
 
+fn core_error(error: crate::error::UbaaError) -> RemoteError {
+    if error.is_bhpan_route_unverified() {
+        RemoteError::Unverified
+    } else {
+        RemoteError::Core(error)
+    }
+}
+
 const COMPONENTS: [&str; 2] = ["UBAA", "agenda_snapshots"];
 pub(super) struct BhpanRemote<'a> {
     client: &'a mut UbaaClient,
@@ -49,14 +57,14 @@ impl<'a> BhpanRemote<'a> {
             .client
             .bhpan_prepare_upload(folder, path, &identity.file_name(), BhpanTransfer::new())
             .await
-            .map_err(RemoteError::Core)?;
+            .map_err(core_error)?;
         self.check_current()?;
         before_commit()?;
         let outcome = self
             .client
             .bhpan_commit_upload_version(&prepared.handle)
             .await
-            .map_err(RemoteError::Core)?;
+            .map_err(core_error)?;
         self.check_current()?;
         Ok(match outcome {
             BhpanVersionUploadOutcome::Committed { version } => RemoteCommit::Committed(version),
@@ -73,7 +81,7 @@ impl SyncRemote for BhpanRemote<'_> {
         self.client
             .direct_runtime
             .ensure_primary_client()
-            .map_err(RemoteError::Core)?;
+            .map_err(core_error)?;
         if Binding::capture(self.client) != self.binding {
             return Err(RemoteError::Superseded);
         }
@@ -102,7 +110,7 @@ impl SyncRemote for BhpanRemote<'_> {
             .client
             .bhpan_lookup_personal_path_complete(&COMPONENTS.map(str::to_owned))
             .await
-            .map_err(RemoteError::Core)?;
+            .map_err(core_error)?;
         self.check_current()?;
         match result {
             BhpanPathLookup::Found(item) => {
@@ -113,7 +121,7 @@ impl SyncRemote for BhpanRemote<'_> {
                     .client
                     .bhpan_list_complete(&item.handle)
                     .await
-                    .map_err(RemoteError::Core)?;
+                    .map_err(core_error)?;
                 self.check_current()?;
                 let mut versions = Vec::with_capacity(files.len());
                 for file in files {
@@ -125,7 +133,7 @@ impl SyncRemote for BhpanRemote<'_> {
                         .client
                         .bhpan_file_version(&file.handle, None)
                         .await
-                        .map_err(RemoteError::Core)?;
+                        .map_err(core_error)?;
                     self.check_current()?;
                     if version.name != file.name {
                         return Err(RemoteError::Failed);
@@ -163,7 +171,7 @@ impl SyncRemote for BhpanRemote<'_> {
                 name,
             })
             .await
-            .map_err(RemoteError::Core)?;
+            .map_err(core_error)?;
         self.check_current()?;
         before_commit()?;
         let receipt = self.client.bhpan_commit_write(&prepared.handle).await;
@@ -171,7 +179,7 @@ impl SyncRemote for BhpanRemote<'_> {
         match receipt {
             Ok(receipt) => Ok(receipt.item.is_some()),
             Err(error) if error.code == crate::error::ErrorCode::OutcomeUnknown => Ok(false),
-            Err(error) => Err(RemoteError::Core(error)),
+            Err(error) => Err(core_error(error)),
         }
     }
     async fn directory_exists(&mut self, target: &str) -> Result<bool, RemoteError> {
@@ -191,7 +199,7 @@ impl SyncRemote for BhpanRemote<'_> {
             .bhpan_lookup_personal_path_complete(&components)
             .await;
         self.check_current()?;
-        Ok(matches!(result.map_err(RemoteError::Core)?,
+        Ok(matches!(result.map_err(core_error)?,
             BhpanPathLookup::Found(item) if item.kind == BhpanItemKind::Folder))
     }
     async fn read_version(&mut self, version: &Self::Version) -> Result<Vec<u8>, RemoteError> {
@@ -200,12 +208,12 @@ impl SyncRemote for BhpanRemote<'_> {
                 "日程同步正文超过容量上限",
             )));
         }
-        let scratch = Scratch::new(self.scratch_root).map_err(RemoteError::Core)?;
+        let scratch = Scratch::new(self.scratch_root).map_err(core_error)?;
         let receipt = self
             .client
             .bhpan_download_file_version(version, scratch.path(), false, BhpanTransfer::new())
             .await
-            .map_err(RemoteError::Core)?;
+            .map_err(core_error)?;
         self.check_current()?;
         if receipt.version != *version {
             return Err(RemoteError::Failed);
@@ -218,8 +226,8 @@ impl SyncRemote for BhpanRemote<'_> {
         body: &[u8],
         before_commit: BeforeCommit<'_>,
     ) -> Result<RemoteCommit<Self::Version>, RemoteError> {
-        let scratch = Scratch::new(self.scratch_root).map_err(RemoteError::Core)?;
-        let path = scratch.write(body).map_err(RemoteError::Core)?;
+        let scratch = Scratch::new(self.scratch_root).map_err(core_error)?;
+        let path = scratch.write(body).map_err(core_error)?;
         match self.upload(identity, path, before_commit).await {
             Err(RemoteError::Core(error))
                 if error.code == crate::error::ErrorCode::OutcomeUnknown =>
@@ -228,5 +236,32 @@ impl SyncRemote for BhpanRemote<'_> {
             }
             result => result,
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::error::UbaaError;
+
+    #[test]
+    fn 云盘未验证路线按内部原因归约且真实权限错误保持原类型() {
+        let mut unavailable = crate::features::bhpan::auth::unavailable();
+        let actual_permission = UbaaError::new(
+            unavailable.code,
+            unavailable.kind,
+            unavailable.retryable,
+            unavailable.message.clone(),
+        );
+        let external: UbaaError =
+            serde_json::from_value(serde_json::to_value(&unavailable).unwrap()).unwrap();
+        unavailable.message = "合成的新展示文案".into();
+        assert!(matches!(core_error(unavailable), RemoteError::Unverified));
+        assert!(
+            matches!(core_error(actual_permission.clone()), RemoteError::Core(error) if error == actual_permission)
+        );
+        assert!(
+            matches!(core_error(external.clone()), RemoteError::Core(error) if error == external)
+        );
     }
 }

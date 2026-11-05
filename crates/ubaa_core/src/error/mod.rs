@@ -74,6 +74,7 @@ enum ErrorCause {
     SharedAccountConflict,
     ClientClosed,
     AgendaCreationRouteChanged,
+    BhpanRouteUnverified,
     Initialization(InitializationFailure),
 }
 
@@ -202,6 +203,22 @@ impl UbaaError {
 
     pub(crate) const fn is_agenda_creation_route_changed(&self) -> bool {
         matches!(self.cause, Some(ErrorCause::AgendaCreationRouteChanged))
+    }
+
+    pub(crate) fn bhpan_route_unverified() -> Self {
+        Self {
+            cause: Some(ErrorCause::BhpanRouteUnverified),
+            ..Self::new(
+                ErrorCode::PermissionDenied,
+                ErrorKind::Input,
+                false,
+                "北航云盘 WebVPN 完整链路尚缺协议证据，请选择 Direct 路线",
+            )
+        }
+    }
+
+    pub(crate) const fn is_bhpan_route_unverified(&self) -> bool {
+        matches!(self.cause, Some(ErrorCause::BhpanRouteUnverified))
     }
 
     pub(crate) fn session_conflict() -> Self {

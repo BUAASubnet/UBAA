@@ -139,10 +139,5 @@ pub(crate) fn checked(raw: &str) -> Result<Url> {
     if valid { Ok(u) } else { Err(parse::invalid()) }
 }
 pub(crate) fn unavailable() -> UbaaError {
-    UbaaError::new(
-        crate::error::ErrorCode::PermissionDenied,
-        crate::error::ErrorKind::Input,
-        false,
-        "北航云盘 WebVPN 完整链路尚缺协议证据，请选择 Direct 路线",
-    )
+    UbaaError::bhpan_route_unverified()
 }

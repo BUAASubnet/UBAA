@@ -131,6 +131,12 @@ async fn 同步保留云盘原始类型错误供命令映射退出码() {
     for error in [
         UbaaError::new(ErrorCode::Timeout, ErrorKind::Network, true, "合成超时"),
         UbaaError::authentication_required("合成认证要求"),
+        UbaaError::new(
+            ErrorCode::PermissionDenied,
+            ErrorKind::Authentication,
+            false,
+            "合成账号权限不足",
+        ),
         UbaaError::client_closed(),
         UbaaError::shared_account_conflict(),
     ] {
@@ -263,6 +269,110 @@ async fn auto确认由实际云盘路线解析拒绝且不再选择路线() {
     assert_eq!(ordinary.code, ErrorCode::PermissionDenied);
     assert!(!ordinary.is_agenda_creation_route_changed());
     assert_eq!(network.calls.load(SeqCst), 3, "普通 Auto 保留原解析");
+    drop(client);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test]
+async fn webvpn同步在发送前返回未验证能力() {
+    for action in [AgendaSyncAction::Pull, AgendaSyncAction::Push] {
+        let (root, store, mut client) = fixture();
+        client
+            .set_default_route_policy(RoutePolicy::WebVpn)
+            .unwrap();
+        let scratch = root.join("scratch");
+        let mut service = AgendaSyncService::new(store, scratch.clone());
+        let result = service.run(&mut client, action, now()).await;
+        assert!(
+            matches!(result, Ok(report)
+            if report.status == crate::facade::AgendaSyncStatus::Unverified),
+            "不支持的 WebVPN 路线须返回未验证能力"
+        );
+        assert!(!scratch.exists());
+        drop(service);
+        drop(client);
+        std::fs::remove_dir_all(root).unwrap();
+    }
+}
+
+#[tokio::test]
+async fn auto校外同步返回未验证能力且只观察一次路线() {
+    use std::{sync::atomic::Ordering::SeqCst, time::Duration};
+    let (root, store, original) = fixture();
+    let (mut client, network) = auto_client(&root, false, Duration::from_mins(1));
+    client.bind_shared_account(original.shared_account_guard());
+    drop(original);
+    let mut service = AgendaSyncService::new(store, root.join("scratch"));
+    let result = service
+        .run(&mut client, AgendaSyncAction::Pull, now())
+        .await;
+    assert!(matches!(result, Ok(report)
+        if report.status == crate::facade::AgendaSyncStatus::Unverified));
+    assert_eq!(network.calls.load(SeqCst), 1);
+    drop(service);
+    drop(client);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test]
+async fn direct同步缺少认证时保留认证错误() {
+    let (root, store, mut client) = fixture();
+    let mut service = AgendaSyncService::new(store, root.join("scratch"));
+    let result = service
+        .run(&mut client, AgendaSyncAction::Pull, now())
+        .await;
+    assert!(matches!(result, Err(AgendaSyncError::Remote(error))
+        if error.code == ErrorCode::AuthenticationRequired));
+    drop(service);
+    drop(client);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test]
+async fn 目录未知结果在webvpn核对前返回未验证能力() {
+    let (root, _store, mut client) = fixture();
+    client
+        .set_default_route_policy(RoutePolicy::WebVpn)
+        .unwrap();
+    let binding = Binding::capture(&client);
+    let scratch = root.join("scratch");
+    let mut remote = remote::BhpanRemote::new(&mut client, binding, &scratch);
+    let result = remote.directory_exists(r#"["UBAA"]"#).await;
+    assert!(matches!(result, Err(RemoteError::Unverified)));
+    assert!(!scratch.exists());
+    drop(remote);
+    drop(client);
+    std::fs::remove_dir_all(root).unwrap();
+}
+
+#[tokio::test]
+async fn auto路线观察过期转为webvpn后读取版本返回未验证能力() {
+    use std::{sync::atomic::Ordering::SeqCst, time::Duration};
+    let root = root();
+    let (mut client, network) = auto_client(&root, true, Duration::ZERO);
+    assert_eq!(
+        client.resolve_bhpan_route().unwrap().resolution.mode,
+        ConnectionMode::Direct
+    );
+    network.campus.store(false, SeqCst);
+    let binding = Binding::capture(&client);
+    let scratch = root.join("scratch");
+    let mut remote = remote::BhpanRemote::new(&mut client, binding, &scratch);
+    let version = crate::domain::bhpan::BhpanFileVersion {
+        handle: "synthetic-version".into(),
+        docid: "gns://synthetic/snapshot".into(),
+        rev: "synthetic-r1".into(),
+        name: "synthetic.json".into(),
+        bytes: 1,
+    };
+    let result = remote.read_version(&version).await;
+    assert!(
+        matches!(result, Err(RemoteError::Unverified)),
+        "版本读取须按本次实际路线归约未验证能力：{result:?}"
+    );
+    assert_eq!(network.calls.load(SeqCst), 2);
+    assert_eq!(std::fs::read_dir(&scratch).unwrap().count(), 0);
+    drop(remote);
     drop(client);
     std::fs::remove_dir_all(root).unwrap();
 }
