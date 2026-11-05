@@ -110,7 +110,7 @@ List<Widget> agendaListSlivers({
           label: day == '逾期待办' || day == '无日期'
               ? day
               : agendaDayLabel(DateTime.parse(day), now),
-          count: agendaMergeCourses(groups[day]!).length,
+          count: agendaAttachSignins(agendaMergeCourses(groups[day]!)).length,
           overdue: day == '逾期待办',
           today: day == todayKey,
           colors: colors,
@@ -122,21 +122,25 @@ List<Widget> agendaListSlivers({
         padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
         sliver: SliverList.list(
           children: [
-            for (final (entry, end) in agendaMergeCourses(
-              groups[day]!..sort((a, b) {
-                final allA = a.timing.kind == AgendaTimingKind.allDay,
-                    allB = b.timing.kind == AgendaTimingKind.allDay;
-                return allA != allB
-                    ? (allA ? -1 : 1)
-                    : (agendaEntryDate(a)?.toIso8601String() ?? '').compareTo(
-                        agendaEntryDate(b)?.toIso8601String() ?? '',
-                      );
-              }),
+            for (final (entry, end, signin) in agendaAttachSignins(
+              agendaMergeCourses(
+                groups[day]!..sort((a, b) {
+                  final allA = a.timing.kind == AgendaTimingKind.allDay,
+                      allB = b.timing.kind == AgendaTimingKind.allDay;
+                  return allA != allB
+                      ? (allA ? -1 : 1)
+                      : (agendaEntryDate(a)?.toIso8601String() ?? '').compareTo(
+                          agendaEntryDate(b)?.toIso8601String() ?? '',
+                        );
+                }),
+              ),
             ))
               AgendaEntryTile(
                 entry: entry,
                 now: now,
                 displayEnd: end,
+                signin: signin,
+                onOpenSignin: signin == null ? null : () => onOpen(signin),
                 conflicts: agendaEntryConflicts(entry, allEntries),
                 onOpen: () => onOpen(entry),
                 busy: busy,
@@ -268,6 +272,8 @@ class AgendaEntryTile extends StatelessWidget {
     this.conflicts = const [],
     this.busy = false,
     this.displayEnd,
+    this.signin,
+    this.onOpenSignin,
   });
   final AgendaEntry entry;
   final DateTime? now;
@@ -278,6 +284,10 @@ class AgendaEntryTile extends StatelessWidget {
 
   /// 合并连续课程后的显示结束时间。
   final DateTime? displayEnd;
+
+  /// 归入本课程的签到条目。
+  final AgendaEntry? signin;
+  final VoidCallback? onOpenSignin;
 
   String _hm(DateTime v) =>
       '${v.hour.toString().padLeft(2, '0')}:${v.minute.toString().padLeft(2, '0')}';
@@ -441,7 +451,15 @@ class AgendaEntryTile extends StatelessWidget {
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              if (checkable)
+                              if (signin case final s?)
+                                Padding(
+                                  padding: const EdgeInsets.only(right: 8),
+                                  child: _SigninPill(
+                                    signin: s,
+                                    onTap: onOpenSignin,
+                                  ),
+                                )
+                              else if (checkable)
                                 Checkbox(
                                   value: entry.completed,
                                   shape: const CircleBorder(),
@@ -493,4 +511,55 @@ class _StatusPill extends StatelessWidget {
       ),
     ),
   );
+}
+
+class _SigninPill extends StatelessWidget {
+  const _SigninPill({required this.signin, this.onTap});
+  final AgendaEntry signin;
+  final VoidCallback? onTap;
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final done =
+        signin.completed || signin.school?.upstreamStatus.completed == true;
+    final status = signin.school?.statusLabel ?? '';
+    final label = done ? '已签到' : (status.contains('签到') ? status : '签到');
+    final fg = done ? const Color(0xFF2E7D4F) : colors.primary;
+    return Semantics(
+      button: true,
+      label: '课程签到：$label',
+      excludeSemantics: true,
+      child: Material(
+        color: fg.withValues(alpha: .12),
+        borderRadius: BorderRadius.circular(999),
+        child: InkWell(
+          key: ValueKey('agenda-signin-${agendaEntryKey(signin)}'),
+          borderRadius: BorderRadius.circular(999),
+          onTap: onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Icon(
+                  done ? Icons.check_circle : Icons.how_to_reg_outlined,
+                  size: 14,
+                  color: fg,
+                ),
+                const SizedBox(width: 4),
+                Text(
+                  label,
+                  style: theme.textTheme.labelSmall?.copyWith(
+                    color: fg,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
 }

@@ -150,6 +150,16 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
         ));
       }
       slots.sort((a, b) => a.start.compareTo(b.start));
+      slots.removeWhere(
+        (signin) => slots.any(
+          (course) => agendaSigninMatches(
+            signin.entry,
+            course.entry,
+            course.start,
+            course.end,
+          ),
+        ),
+      );
       for (var k = slots.length - 1; k > 0; k--) {
         final prev = slots[k - 1], next = slots[k];
         if (!agendaCourseContinues(

@@ -128,3 +128,50 @@ List<(AgendaEntry, DateTime?)> agendaMergeCourses(List<AgendaEntry> sorted) {
   }
   return out;
 }
+
+/// 与课程同名且时段重叠的签到条目归入该课程，返回（条目，显示结束时间，签到）。
+List<(AgendaEntry, DateTime?, AgendaEntry?)> agendaAttachSignins(
+  List<(AgendaEntry, DateTime?)> merged,
+) {
+  final attached = <AgendaEntry>{};
+  final out = <(AgendaEntry, DateTime?, AgendaEntry?)>[];
+  for (final (entry, end) in merged) {
+    AgendaEntry? signin;
+    final start = agendaStart(entry);
+    if (entry.school?.navigation.feature == AgendaFeature.schedule &&
+        start != null &&
+        end != null) {
+      for (final (other, _) in merged) {
+        if (attached.contains(other) ||
+            !agendaSigninMatches(other, entry, start, end))
+          continue;
+        signin = other;
+        attached.add(other);
+        break;
+      }
+    }
+    out.add((entry, end, signin));
+  }
+  return [
+    for (final item in out)
+      if (!attached.contains(item.$1)) item,
+  ];
+}
+
+bool agendaSigninMatches(
+  AgendaEntry signin,
+  AgendaEntry course,
+  DateTime start,
+  DateTime end,
+) {
+  if (signin.school?.navigation.feature != AgendaFeature.signin ||
+      signin.school!.title != course.school?.title) {
+    return false;
+  }
+  final s = agendaStart(signin), e = agendaEnd(signin) ?? s;
+  return s != null &&
+      e != null &&
+      s.isBefore(end) &&
+      !e.isBefore(start) &&
+      agendaDay(s) == agendaDay(start);
+}

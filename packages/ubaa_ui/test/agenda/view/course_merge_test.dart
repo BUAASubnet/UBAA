@@ -100,4 +100,43 @@ void main() {
     );
     expect(agendaMergeCourses([first, moved, other, late]).length, 4);
   });
+
+  test('同名且时段重叠的签到归入课程，其余签到保留', () {
+    final first = _school(
+      AgendaFeature.schedule,
+      'a',
+      '合成课程',
+      at(5, 19),
+      at(5, 19, 45),
+      location: 'F1',
+    );
+    final second = _school(
+      AgendaFeature.schedule,
+      'b',
+      '合成课程',
+      at(5, 19, 50),
+      at(5, 20, 35),
+      location: 'F1',
+    );
+    final signin = _school(
+      AgendaFeature.signin,
+      's',
+      '合成课程',
+      at(5, 19),
+      at(5, 20, 35),
+    );
+    final stray = _school(
+      AgendaFeature.signin,
+      't',
+      '其他课程',
+      at(5, 19),
+      at(5, 20, 35),
+    );
+    final result = agendaAttachSignins(
+      agendaMergeCourses([signin, stray, first, second]),
+    );
+    expect(result.map((e) => e.$1).toList(), [stray, first]);
+    expect(result.last.$3, signin);
+    expect(result.last.$2, agendaEnd(second));
+  });
 }
