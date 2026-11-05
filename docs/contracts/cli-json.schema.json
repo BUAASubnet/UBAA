@@ -7,9 +7,150 @@
     { "$ref": "#/$defs/unresolvedRoutedFailure" },
     { "$ref": "#/$defs/aggregateAuthEnvelope" },
     { "$ref": "#/$defs/aggregateLogoutEnvelope" },
-    { "$ref": "#/$defs/agendaEnvelope" }
+    { "$ref": "#/$defs/agendaEnvelope" },
+    { "$ref": "#/$defs/agendaSyncEnvelope" }
   ],
   "$defs": {
+    "agendaSyncEnvelope": {
+      "type": "object",
+      "required": [
+        "schemaVersion",
+        "ok",
+        "data",
+        "meta"
+      ],
+      "properties": {
+        "schemaVersion": {
+          "const": 13
+        },
+        "ok": {
+          "type": "boolean"
+        },
+        "data": {
+          "oneOf": [
+            {
+              "type": "null"
+            },
+            {
+              "type": "object",
+              "required": [
+                "status",
+                "pendingCount",
+                "changedCount"
+              ],
+              "properties": {
+                "status": {
+                  "enum": [
+                    "up_to_date",
+                    "pending",
+                    "needs_creation",
+                    "location_unknown",
+                    "unverified",
+                    "failed",
+                    "conflict",
+                    "outcome_unknown"
+                  ]
+                },
+                "pendingCount": {
+                  "type": "integer",
+                  "minimum": 0
+                },
+                "changedCount": {
+                  "type": "integer",
+                  "minimum": 0
+                }
+              },
+              "additionalProperties": false
+            }
+          ]
+        },
+        "meta": {
+          "type": "object",
+          "required": [
+            "feature",
+            "operation"
+          ],
+          "properties": {
+            "feature": {
+              "const": "agenda"
+            },
+            "operation": {
+              "const": "sync"
+            }
+          },
+          "additionalProperties": false
+        },
+        "error": {
+          "type": "object",
+          "required": [
+            "code",
+            "kind",
+            "retryable",
+            "message"
+          ],
+          "properties": {
+            "code": {
+              "type": "string"
+            },
+            "kind": {
+              "enum": [
+                "local",
+                "input",
+                "authentication",
+                "network",
+                "upstream",
+                "parse",
+                "internal"
+              ]
+            },
+            "retryable": {
+              "type": "boolean"
+            },
+            "message": {
+              "type": "string"
+            }
+          },
+          "additionalProperties": false
+        }
+      },
+      "allOf": [
+        {
+          "if": {
+            "properties": {
+              "ok": {
+                "const": true
+              }
+            }
+          },
+          "then": {
+            "not": {
+              "required": [
+                "error"
+              ]
+            },
+            "properties": {
+              "data": {
+                "type": "object",
+                "properties": {
+                  "status": {
+                    "enum": [
+                      "up_to_date",
+                      "pending"
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "else": {
+            "required": [
+              "error"
+            ]
+          }
+        }
+      ],
+      "additionalProperties": false
+    },
       "bhpanEntry": {
         "type": "object",
         "required": [

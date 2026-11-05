@@ -134,7 +134,7 @@ const _route = BridgeRouteDecision(
 
 class _DetailClient implements BridgeClient {
   @override
-  int contractVersion() => 49;
+  int contractVersion() => 50;
   _DetailClient({
     this.selected,
     this.failFull = false,

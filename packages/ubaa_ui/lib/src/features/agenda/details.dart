@@ -21,7 +21,7 @@ extension AgendaDetails on AgendaViewState {
     ),
   );
   Future<void> complete(AgendaEntry entry, bool value) {
-    final token = revision;
+    final token = generation.value;
     return change(() async {
       final local = entry.local;
       final time = agendaTime(campusDate(DateTime.now()));
@@ -60,7 +60,7 @@ extension AgendaDetails on AgendaViewState {
   }
 
   Future<void> editEntry(AgendaEntry entry) async {
-    final token = revision;
+    final token = generation.value;
     final item = await detailItem(entry.local!.itemId, token);
     if (!current(token) || item == null) return;
     final scope = item.rrule == null
@@ -71,7 +71,7 @@ extension AgendaDetails on AgendaViewState {
   }
 
   Future<void> deleteEntry(AgendaEntry entry) async {
-    final token = revision;
+    final token = generation.value;
     final item = await detailItem(entry.local!.itemId, token);
     if (!current(token) || item == null) return;
     final scope = item.rrule != null
@@ -107,7 +107,7 @@ extension AgendaDetails on AgendaViewState {
   }
 
   Future<void> saveNote(AgendaEntry entry, String note) async {
-    final token = revision;
+    final token = generation.value;
     await change(() async {
       final old = await service.overlay(entry.school!.key);
       if (!current(token)) return;
@@ -125,7 +125,7 @@ extension AgendaDetails on AgendaViewState {
   }
 
   Future<void> toggleHidden(AgendaEntry entry) async {
-    final token = revision;
+    final token = generation.value;
     await change(() async {
       final old = await service.overlay(entry.school!.key);
       if (!current(token)) return;
@@ -143,7 +143,7 @@ extension AgendaDetails on AgendaViewState {
   }
 
   Widget detailContent(AgendaEntry entry, VoidCallback close) {
-    final token = revision;
+    final token = generation.value;
     void action(VoidCallback run) {
       if (!current(token)) return;
       close();

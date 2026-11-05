@@ -8,6 +8,7 @@ import 'api/agenda/export.dart';
 import 'api/agenda/home.dart';
 import 'api/agenda/models.dart';
 import 'api/agenda/school.dart';
+import 'api/agenda/sync.dart';
 import 'api/bhpan.dart';
 import 'api/bhpan/models.dart';
 import 'api/cache_management.dart';
@@ -62,6 +63,14 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_BridgeAgendaStorePtr => wire
       ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStorePtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_BridgeAgendaSyncScopePtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScopePtr;
+
+  CrossPlatformFinalizerArg
+  get rust_arc_decrement_strong_count_BridgeAgendaSyncServicePtr => wire
+      ._rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncServicePtr;
 
   CrossPlatformFinalizerArg
   get rust_arc_decrement_strong_count_BridgeBhpanTransferPtr => wire
@@ -150,6 +159,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeAgendaStore
   dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAgendaSyncScope
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAgendaSyncService
+  dco_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
     dynamic raw,
   );
 
@@ -292,6 +313,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeAgendaSyncScope
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAgendaSyncService
+  dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
+    dynamic raw,
+  );
+
+  @protected
   BridgeBhpanTransfer
   dco_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
     dynamic raw,
@@ -420,6 +453,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeAgendaStore
   dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAgendaSyncScope
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope(
+    dynamic raw,
+  );
+
+  @protected
+  BridgeAgendaSyncService
+  dco_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
     dynamic raw,
   );
 
@@ -581,6 +626,9 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeAgendaDraft dco_decode_box_autoadd_bridge_agenda_draft(dynamic raw);
+
+  @protected
+  BridgeAgendaFailure dco_decode_box_autoadd_bridge_agenda_failure(dynamic raw);
 
   @protected
   BridgeAgendaItem dco_decode_box_autoadd_bridge_agenda_item(dynamic raw);
@@ -1105,6 +1153,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeAgendaSubmission dco_decode_bridge_agenda_submission(dynamic raw);
+
+  @protected
+  BridgeAgendaSyncAction dco_decode_bridge_agenda_sync_action(dynamic raw);
+
+  @protected
+  BridgeAgendaSyncError dco_decode_bridge_agenda_sync_error(dynamic raw);
+
+  @protected
+  BridgeAgendaSyncReport dco_decode_bridge_agenda_sync_report(dynamic raw);
+
+  @protected
+  BridgeAgendaSyncStatus dco_decode_bridge_agenda_sync_status(dynamic raw);
 
   @protected
   BridgeAgendaTime dco_decode_bridge_agenda_time(dynamic raw);
@@ -2719,6 +2779,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool? dco_decode_opt_box_autoadd_bool(dynamic raw);
 
   @protected
+  BridgeAgendaFailure? dco_decode_opt_box_autoadd_bridge_agenda_failure(
+    dynamic raw,
+  );
+
+  @protected
   BridgeAgendaItem? dco_decode_opt_box_autoadd_bridge_agenda_item(dynamic raw);
 
   @protected
@@ -3102,6 +3167,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeAgendaSyncScope
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaSyncService
+  sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeBhpanTransfer
   sse_decode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
     SseDeserializer deserializer,
@@ -3240,6 +3317,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   );
 
   @protected
+  BridgeAgendaSyncScope
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaSyncService
+  sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeBhpanTransfer
   sse_decode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
     SseDeserializer deserializer,
@@ -3368,6 +3457,18 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   BridgeAgendaStore
   sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaSyncScope
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaSyncService
+  sse_decode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
     SseDeserializer deserializer,
   );
 
@@ -3531,6 +3632,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeAgendaDraft sse_decode_box_autoadd_bridge_agenda_draft(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaFailure sse_decode_box_autoadd_bridge_agenda_failure(
     SseDeserializer deserializer,
   );
 
@@ -4221,6 +4327,26 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   BridgeAgendaSubmission sse_decode_bridge_agenda_submission(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaSyncAction sse_decode_bridge_agenda_sync_action(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaSyncError sse_decode_bridge_agenda_sync_error(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaSyncReport sse_decode_bridge_agenda_sync_report(
+    SseDeserializer deserializer,
+  );
+
+  @protected
+  BridgeAgendaSyncStatus sse_decode_bridge_agenda_sync_status(
     SseDeserializer deserializer,
   );
 
@@ -6309,6 +6435,11 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   bool? sse_decode_opt_box_autoadd_bool(SseDeserializer deserializer);
 
   @protected
+  BridgeAgendaFailure? sse_decode_opt_box_autoadd_bridge_agenda_failure(
+    SseDeserializer deserializer,
+  );
+
+  @protected
   BridgeAgendaItem? sse_decode_opt_box_autoadd_bridge_agenda_item(
     SseDeserializer deserializer,
   );
@@ -6796,6 +6927,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope(
+    BridgeAgendaSyncScope self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
+    BridgeAgendaSyncService self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Owned_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
     BridgeBhpanTransfer self,
     SseSerializer serializer,
@@ -6957,6 +7102,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
 
   @protected
   void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope(
+    BridgeAgendaSyncScope self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
+    BridgeAgendaSyncService self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
   sse_encode_Auto_Ref_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeBhpanTransfer(
     BridgeBhpanTransfer self,
     SseSerializer serializer,
@@ -7106,6 +7265,20 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void
   sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore(
     BridgeAgendaStore self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope(
+    BridgeAgendaSyncScope self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void
+  sse_encode_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
+    BridgeAgendaSyncService self,
     SseSerializer serializer,
   );
 
@@ -7295,6 +7468,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_box_autoadd_bridge_agenda_draft(
     BridgeAgendaDraft self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_box_autoadd_bridge_agenda_failure(
+    BridgeAgendaFailure self,
     SseSerializer serializer,
   );
 
@@ -8087,6 +8266,30 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   @protected
   void sse_encode_bridge_agenda_submission(
     BridgeAgendaSubmission self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_sync_action(
+    BridgeAgendaSyncAction self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_sync_error(
+    BridgeAgendaSyncError self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_sync_report(
+    BridgeAgendaSyncReport self,
+    SseSerializer serializer,
+  );
+
+  @protected
+  void sse_encode_bridge_agenda_sync_status(
+    BridgeAgendaSyncStatus self,
     SseSerializer serializer,
   );
 
@@ -10674,6 +10877,12 @@ abstract class RustLibApiImplPlatform extends BaseApiImpl<RustLibWire> {
   void sse_encode_opt_box_autoadd_bool(bool? self, SseSerializer serializer);
 
   @protected
+  void sse_encode_opt_box_autoadd_bridge_agenda_failure(
+    BridgeAgendaFailure? self,
+    SseSerializer serializer,
+  );
+
+  @protected
   void sse_encode_opt_box_autoadd_bridge_agenda_item(
     BridgeAgendaItem? self,
     SseSerializer serializer,
@@ -11239,6 +11448,74 @@ class RustLibWire implements BaseWire {
       );
   late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStore =
       _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaStorePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScopePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScopePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScopePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScope =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncScopePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncServicePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService',
+      );
+  late final _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService =
+      _rust_arc_increment_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncServicePtr
+          .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
+
+  void
+  rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
+    ffi.Pointer<ffi.Void> ptr,
+  ) {
+    return _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService(
+      ptr,
+    );
+  }
+
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncServicePtr =
+      _lookup<ffi.NativeFunction<ffi.Void Function(ffi.Pointer<ffi.Void>)>>(
+        'frbgen_ubaa_bindings_rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService',
+      );
+  late final _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncService =
+      _rust_arc_decrement_strong_count_RustOpaque_flutter_rust_bridgefor_generatedRustAutoOpaqueInnerBridgeAgendaSyncServicePtr
           .asFunction<void Function(ffi.Pointer<ffi.Void>)>();
 
   void

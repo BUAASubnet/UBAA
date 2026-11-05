@@ -9,12 +9,20 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_ui/src/features/agenda/view.dart';
 import 'package:ubaa_ui/src/features/agenda/format.dart'
     show agendaTime, campusDate;
+import '../../../../../packages/ubaa_app/test/runtime/shared_recovery_probe.dart'
+    show openAccounts;
 
 /// 真实 FFI、明文日程库与文件写出。只使用独立别名和合成内容。
 Future<void> probeAgendaDelivery(WidgetTester tester, String directory) async {
-  final backend = await BridgeBackend.open('$directory/delivery');
+  final root = await Directory('$directory/delivery').create(recursive: true);
+  final accounts = await openAccounts(root);
+  final account = await accounts.retain(
+    'synthetic-agenda-delivery',
+    retainSession: true,
+  );
+  final alias = account.account!.id;
+  final backend = await BridgeBackend.open(root.path);
   final service = backend.agenda;
-  const alias = '00000000000000000000000000000004';
   AgendaTime at(int day, [int hour = 9]) => AgendaTime(
     rfc3339:
         '2026-11-${day.toString().padLeft(2, '0')}T${hour.toString().padLeft(2, '0')}:00:00+08:00',
@@ -40,6 +48,10 @@ Future<void> probeAgendaDelivery(WidgetTester tester, String directory) async {
     ygdkTermDone: false,
   );
   try {
+    await backend.setDefaultRoutePolicy(RoutePolicy.direct);
+    await backend.bindSharedAccount(
+      await accounts.bindSnapshot((await accounts.capture())!),
+    );
     await service.openAccount(alias);
     final item = await service.create(
       AgendaDraft(

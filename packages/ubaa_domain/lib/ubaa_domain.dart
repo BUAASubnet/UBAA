@@ -16,5 +16,6 @@ export 'src/feature/schedule/home.dart';
 export 'src/agenda/models.dart';
 export 'src/agenda/school.dart';
 export 'src/agenda/service.dart';
+export 'src/agenda/sync.dart';
 
 export 'src/agenda/export.dart';

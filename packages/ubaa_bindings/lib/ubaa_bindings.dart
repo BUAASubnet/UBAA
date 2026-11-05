@@ -55,6 +55,7 @@ export 'src/rust/api/agenda/school.dart';
 
 export 'src/rust/api/agenda/home.dart';
 export 'src/rust/api/agenda/export.dart';
+export 'src/rust/api/agenda/sync.dart';
 
 export 'src/rust/api/shared_account.dart';
 export 'src/rust/api/command.dart';

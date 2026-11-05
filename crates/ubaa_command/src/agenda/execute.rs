@@ -259,6 +259,7 @@ fn execute(
         return Err(LocalError::InvalidInput);
     }
     match command {
+        AgendaCommand::Sync { .. } => Err(LocalError::InvalidInput),
         AgendaCommand::Unsynced => Ok(json!({"count":store.unsynced_count().map_err(error)?})),
         AgendaCommand::Show { id } => {
             Ok(json!({"item":store.get(*id).map_err(error)?.ok_or(LocalError::NotFound)?}))

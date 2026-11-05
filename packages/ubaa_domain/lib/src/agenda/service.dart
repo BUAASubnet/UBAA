@@ -2,6 +2,7 @@ import 'dart:async';
 import 'models.dart';
 import 'school.dart';
 import 'export.dart';
+import 'sync.dart';
 
 /// 日程文件不属于可丢弃的学校缓存，宿主应单独展示错误并保留文件。
 final class AgendaException implements Exception {
@@ -56,10 +57,83 @@ abstract interface class AgendaBackend {
 final class AgendaService {
   AgendaService(this._backend);
   final AgendaBackend _backend;
+  AgendaSyncState _syncState = const AgendaSyncState();
+  AgendaSyncState get syncState => _syncState;
+  final _syncUpdates = StreamController<AgendaSyncState>.broadcast();
+  Stream<AgendaSyncState> get syncUpdates => _syncUpdates.stream;
+  Future<void> _syncTail = Future<void>.value();
+  bool get supportsSync => _backend is AgendaSyncBackend;
+  void _setSync(AgendaSyncState state) {
+    _syncState = state;
+    if (!_disposed && !_syncUpdates.isClosed) _syncUpdates.add(state);
+  }
+
+  Future<AgendaSyncReport> sync(AgendaSyncAction action, AgendaTime now) =>
+      Future.sync(() => prepareSync(action, now)());
+
+  /// 在进入确认和排队之前固定账号代次与后端作用域。
+  AgendaSyncJob prepareSync(AgendaSyncAction action, AgendaTime now) {
+    final backend = _backend;
+    if (backend is! AgendaSyncBackend) {
+      throw const AgendaException(AgendaFailure.unavailable);
+    }
+    final generation = _generation;
+    AgendaSyncJob work;
+    try {
+      work = (backend as AgendaSyncBackend).prepareSync(action, now);
+    } on AgendaException catch (error) {
+      if (action == AgendaSyncAction.createConfirmed &&
+          error.failure == AgendaFailure.superseded) {
+        _setSync(AgendaSyncState(report: _syncState.report, error: error));
+      }
+      rethrow;
+    }
+    var started = false;
+    return () {
+      if (started) {
+        return Future.error(const AgendaException(AgendaFailure.superseded));
+      }
+      started = true;
+      final result = _syncTail.then((_) {
+        if (generation != _generation || _disposed)
+          throw const AgendaException(AgendaFailure.superseded);
+        return _run(() async {
+          _setSync(AgendaSyncState(report: _syncState.report, running: true));
+          try {
+            final report = await work();
+            if (generation != _generation || _disposed)
+              throw const AgendaException(AgendaFailure.superseded);
+            _setSync(AgendaSyncState(report: report));
+            return report;
+          } on Object catch (error) {
+            if (generation == _generation && !_disposed)
+              _setSync(
+                AgendaSyncState(report: _syncState.report, error: error),
+              );
+            rethrow;
+          }
+        });
+      });
+      _syncTail = result.then<void>((_) {}, onError: (Object _) {});
+      return result;
+    };
+  }
+
+  void _syncAfterWrite(AgendaTime now) {
+    if (!supportsSync) return;
+    unawaited(
+      sync(
+        AgendaSyncAction.push,
+        now,
+      ).then<void>((_) {}, onError: (Object _) {}),
+    );
+  }
+
   int _generation = 0;
   bool _disposed = false;
   String? _account;
   String? get accountId => _account;
+  int get accountGeneration => _generation;
   Future<void> _tail = Future<void>.value();
   Future<void> _ready = Future<void>.value();
   Future<T> _serial<T>(Future<T> Function() action) {
@@ -73,6 +147,8 @@ final class AgendaService {
       return Future.error(const AgendaException(AgendaFailure.inactive));
     }
     final generation = ++_generation;
+    _syncTail = Future<void>.value();
+    _setSync(const AgendaSyncState());
     _account = accountId;
     final opened = _serial(() async {
       await _backend.deactivate();
@@ -94,16 +170,22 @@ final class AgendaService {
   Future<void> close() {
     _generation++;
     _account = null;
+    _syncTail = Future<void>.value();
+    _setSync(const AgendaSyncState());
     return _serial(_backend.deactivate);
   }
 
   Future<void>? _disposal;
   Future<void> dispose() {
     _disposed = true;
-    return _disposal ??= close();
+    return _disposal ??= close().then((_) => _syncUpdates.close());
   }
 
-  Future<T> _run<T>(Future<T> Function() action, {bool write = false}) {
+  Future<T> _run<T>(
+    Future<T> Function() action, {
+    bool write = false,
+    AgendaTime? syncNow,
+  }) {
     if (_disposed || _account == null) {
       return Future.error(const AgendaException(AgendaFailure.inactive));
     }
@@ -122,6 +204,7 @@ final class AgendaService {
         check();
         final value = await action();
         check();
+        if (syncNow != null) _syncAfterWrite(syncNow);
         return value;
       } on Object {
         check();
@@ -146,7 +229,7 @@ final class AgendaService {
   Future<AgendaQueryResult> query(AgendaQuery query) =>
       _run(() => _backend.query(query));
   Future<AgendaItem> create(AgendaDraft draft, AgendaTime now) =>
-      _run(() => _backend.create(draft, now), write: true);
+      _run(() => _backend.create(draft, now), write: true, syncNow: now);
   Future<AgendaItem?> get(String itemId) => _run(() => _backend.get(itemId));
   Future<String?> editDraft(
     String id,
@@ -154,12 +237,22 @@ final class AgendaService {
     AgendaTime? at,
     AgendaDraft draft,
     AgendaTime now,
-  ) => _run(() {
-    final backend = _backend;
-    if (backend is! AgendaDraftBackend)
-      throw const AgendaException(AgendaFailure.unavailable);
-    return (backend as AgendaDraftBackend).editDraft(id, scope, at, draft, now);
-  }, write: true);
+  ) => _run(
+    () {
+      final backend = _backend;
+      if (backend is! AgendaDraftBackend)
+        throw const AgendaException(AgendaFailure.unavailable);
+      return (backend as AgendaDraftBackend).editDraft(
+        id,
+        scope,
+        at,
+        draft,
+        now,
+      );
+    },
+    write: true,
+    syncNow: now,
+  );
   Future<String?> edit(
     String itemId,
     AgendaEditScope scope,
@@ -170,25 +263,34 @@ final class AgendaService {
   ) => _run(
     () => _backend.edit(itemId, scope, at, content, rrule, now),
     write: true,
+    syncNow: now,
   );
   Future<void> delete(
     String itemId,
     AgendaEditScope scope,
     AgendaTime? at,
     AgendaTime now,
-  ) => _run(() => _backend.delete(itemId, scope, at, now), write: true);
+  ) => _run(
+    () => _backend.delete(itemId, scope, at, now),
+    write: true,
+    syncNow: now,
+  );
   Future<void> complete(
     String itemId,
     AgendaTime? at,
     bool completed,
     AgendaTime now,
-  ) => _run(() => _backend.complete(itemId, at, completed, now), write: true);
+  ) => _run(
+    () => _backend.complete(itemId, at, completed, now),
+    write: true,
+    syncNow: now,
+  );
   Future<void> setOverlay(AgendaOverlayDraft value, AgendaTime now) =>
-      _run(() => _backend.setOverlay(value, now), write: true);
+      _run(() => _backend.setOverlay(value, now), write: true, syncNow: now);
   Future<AgendaOverlay?> overlay(SchoolAgendaKey key) =>
       _run(() => _backend.overlay(key));
   Future<void> clearOverlay(SchoolAgendaKey key, AgendaTime now) =>
-      _run(() => _backend.clearOverlay(key, now), write: true);
+      _run(() => _backend.clearOverlay(key, now), write: true, syncNow: now);
   Future<int> unsyncedCount() => _run(_backend.unsyncedCount);
   Future<int> clearLocalData() => _run(_backend.clearLocalData, write: true);
   Future<TeachingWeekRule> teachingWeekRule(TeachingWeekInput input) =>

@@ -1,8 +1,8 @@
 # Flutter Bridge 合同
 
-状态：当前合同 v49。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
+状态：当前合同 v50。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
 
-业务缓存持久格式当前为 schema v7，独立于 Bridge v49。旧开发格式不迁移，普通打开拒绝并保留原库，用户明确清理后才能重建。下文各阶段的缓存版本与迁移说明保留历史事实，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
+业务缓存持久格式当前为 schema v7，独立于 Bridge v50。旧开发格式不迁移，普通打开拒绝并保留原库，用户明确清理后才能重建。下文各阶段的缓存版本与迁移说明保留历史事实，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `49`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `50`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -39,7 +39,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=49` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=50` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
 组间最多八个完整批次在途（每个读取组各一个，首页全部来源可同时开始）。每组的只读 Core 实例复用连接池，独立保存业务 Cookie、Token 和缓存，
@@ -830,3 +830,9 @@ GUI 清除凭据时，原快照校验和凭据删除共用短材料事务。Core
 ## 日程、云盘与统一命令组合
 
 合同 v49 同时保留日程 `edit_draft`、本机导出、云盘 typed API 与传输控制，以及统一命令的输入准备、恢复和有界输出。`BridgeRecoveryFeature::Bhpan` 使用 Core 云盘专用路线能力判断。Core 路线重开继承共享账号归属和本消费者关闭控制。云盘 Bearer 请求等待材料锁后重新检查关闭、取消和期限，发送与响应均保持导航 Cookie 隔离。
+
+## 日程同步通道
+
+合同 v50 增加 `BridgeAgendaSyncService` 与 `BridgeClient.sync_agenda`，统一 App 命令的 `execute_agenda_sync` 使用同一个 Core 服务。日程本机句柄保持独立，只有显式同步调用才取得网络客户端锁。同步报告包含状态、待同步数量和合并变化数量，错误分别投影本机日程类别与原云盘 typed 错误。Bridge 不接收同步正文、对象授权或第二份凭据。
+
+打开页拉取一次，本机保存后触发一次上传。未验证状态显示本机待同步数量，unknown 先读取当前 metadata 及固定版本。首次创建调用 `create_agenda_sync_confirmed`，并提交由 `capture_agenda_sync_scope` 在打开确认前取得的 opaque 作用域。Bridge 取得实际执行客户端后核对原作用域，并在 Core 采用云盘路线时核对确认路线。Auto 捕获只读取未过期的网关观察。无法取得创建路线时重新拉取，客户端忙时立即反馈。切号、关闭或同路线重开均不能延续旧确认。服务内各次等待仍核对共享账号和路线。发送前持久快照与读回确认由 Core 的同一 SQLite 事务维护，完整规则见[日程合同](agenda.md#跨设备同步)。

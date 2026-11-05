@@ -255,6 +255,19 @@ final class CommandRuntime {
       }
       final client = await _wait(backend.ensureClient());
 
+      if (requirements.agendaSync) {
+        final agenda = await _wait(backend.openAgenda());
+        final result = await _wait(
+          command.executeAgendaSync(
+            client: client,
+            agenda: agenda,
+            scope: backend.native!,
+            configDir: environment.directory,
+          ),
+        );
+        return await _deliver(result);
+      }
+
       Future<void> restore(BridgeRecoveryFeature target) async {
         final settings = await _wait(client.routeSettings());
         final scope = await _wait(

@@ -12,6 +12,7 @@ import 'calendar_values.dart';
 import 'month_calendar.dart';
 import 'week_content.dart';
 import 'list_content.dart';
+import 'sync_status.dart';
 import 'detail_content.dart';
 part 'details.dart';
 part 'export.dart';
@@ -23,6 +24,8 @@ class AgendaView extends StatefulWidget {
     super.key,
     this.service,
     required this.scopeKey,
+    this.projectionKey,
+    this.syncScopeKey,
     required this.route,
     required this.term,
     required this.onOpenSchool,
@@ -36,6 +39,8 @@ class AgendaView extends StatefulWidget {
   });
   final AgendaService? service;
   final Object scopeKey;
+  final Object? projectionKey;
+  final Object? syncScopeKey;
   final ConnectionMode route;
   final String term;
   final ValueChanged<FeatureReadNavigation> onOpenSchool;
@@ -71,6 +76,81 @@ class AgendaViewState extends State<AgendaView> {
   final searchField = TextEditingController();
   int revision = 0;
   final generation = ValueNotifier<int>(0);
+  StreamSubscription<AgendaSyncState>? _syncSubscription;
+  Object? _lastSyncKey;
+  late Object _scope;
+  bool _projectionDirty = false;
+
+  Object get _liveScope => (
+    widget.service,
+    widget.service?.accountGeneration,
+    widget.scopeKey,
+    widget.syncScopeKey,
+    widget.route,
+    widget.term,
+  );
+
+  bool _refreshScope() {
+    final next = _liveScope;
+    if (_scope == next) return false;
+    _scope = next;
+    generation.value++;
+    selectedKey = null;
+    revision++;
+    result = null;
+    error = null;
+    loading = false;
+    busy = false;
+    _projectionDirty = true;
+    return true;
+  }
+
+  void _invalidateProjection() {
+    _projectionDirty = true;
+    if (widget.visible) {
+      unawaited(load());
+    } else {
+      revision++;
+    }
+  }
+
+  void _listenSync() {
+    unawaited(_syncSubscription?.cancel());
+    final watched = widget.service;
+    _syncSubscription = watched?.syncUpdates.listen((state) {
+      if (!mounted || !identical(watched, widget.service)) return;
+      if (_refreshScope()) {
+        if (widget.visible) unawaited(load());
+        _pullSync();
+        return;
+      }
+      // 上传失败时，前面的只读合并也可能已落库。
+      if (available &&
+          !state.running &&
+          (state.error != null || (state.report?.changedCount ?? 0) > 0)) {
+        widget.onChanged?.call();
+        _invalidateProjection();
+      }
+    });
+  }
+
+  void _pullSync() {
+    if (!widget.visible || !available || !service.supportsSync) return;
+    final key = (
+      widget.service,
+      service.accountGeneration,
+      widget.syncScopeKey,
+      widget.route,
+    );
+    if (_lastSyncKey == key) return;
+    _lastSyncKey = key;
+    unawaited(
+      service
+          .sync(AgendaSyncAction.pull, agendaTime(now))
+          .then<void>((_) {}, onError: (Object _) {}),
+    );
+  }
+
   DateTime get now {
     final value = widget.now ?? campusDate(DateTime.now());
     return DateTime.utc(
@@ -85,46 +165,55 @@ class AgendaViewState extends State<AgendaView> {
 
   AgendaService get service => widget.service!;
   bool get available => widget.service?.accountId != null;
-  bool current(int token) => mounted && token == revision && available;
+  bool current(int token) =>
+      mounted && token == generation.value && available && _scope == _liveScope;
   @override
   void initState() {
     super.initState();
     todos = widget.todoRequest > 0;
     focusDate = agendaDay(now);
     alignRange();
+    _scope = _liveScope;
+    _listenSync();
     if (widget.visible) unawaited(load());
+    _pullSync();
   }
 
   @override
   void didUpdateWidget(covariant AgendaView oldWidget) {
     super.didUpdateWidget(oldWidget);
-    if (oldWidget.scopeKey != widget.scopeKey ||
-        oldWidget.route != widget.route ||
-        oldWidget.term != widget.term ||
-        oldWidget.service != widget.service) {
-      generation.value++;
-      selectedKey = null;
-      revision++;
-      result = null;
-      error = null;
-      loading = false;
-      busy = false;
-      if (widget.visible) unawaited(load());
-    } else if (!oldWidget.visible && widget.visible && result == null) {
+    final becameVisible = !oldWidget.visible && widget.visible;
+    if (becameVisible) _lastSyncKey = null;
+    if (oldWidget.service != widget.service) _listenSync();
+    if (_refreshScope() || oldWidget.projectionKey != widget.projectionKey) {
+      _invalidateProjection();
+    } else if (becameVisible && (_projectionDirty || result == null)) {
       unawaited(load());
     }
     if (oldWidget.todoRequest != widget.todoRequest) todos = true;
+    _pullSync();
   }
 
   @override
   void dispose() {
     generation.value++;
+    unawaited(_syncSubscription?.cancel());
     searchField.dispose();
     super.dispose();
   }
 
   Widget bound(Widget child) =>
       UiScopeBoundary(generation: generation, child: child);
+  Widget _syncStatusCard() {
+    final token = generation.value;
+    return AgendaSyncStatusCard(
+      service: service,
+      now: agendaTime(now),
+      boundary: bound,
+      isCurrent: () => current(token),
+    );
+  }
+
   AgendaQuery query({DateTime? start, DateTime? end, bool? hidden}) =>
       AgendaQuery(
         route: widget.route,
@@ -140,6 +229,9 @@ class AgendaViewState extends State<AgendaView> {
   void update(VoidCallback action) => setState(action);
   Future<void> load() async {
     final token = ++revision;
+    final scopeToken = generation.value;
+    bool queryCurrent() => current(scopeToken) && token == revision;
+    _projectionDirty = false;
     if (!available) {
       setState(() {
         result = null;
@@ -166,21 +258,21 @@ class AgendaViewState extends State<AgendaView> {
                 hidden: true,
               ),
       );
-      if (current(token)) setState(() => result = value);
+      if (queryCurrent()) setState(() => result = value);
     } on Object {
-      if (current(token))
+      if (queryCurrent())
         setState(() {
           result = null;
           error = '日程读取失败，原数据已保留';
         });
     } finally {
-      if (mounted && token == revision) setState(() => loading = false);
+      if (queryCurrent()) setState(() => loading = false);
     }
   }
 
   Future<void> change(Future<void> Function() action) async {
     if (busy || !available) return;
-    final token = revision;
+    final token = generation.value;
     setState(() => busy = true);
     try {
       await action();
@@ -191,7 +283,7 @@ class AgendaViewState extends State<AgendaView> {
       if (current(token))
         UbaaFeedback.show(context, '操作未完成，请重试', kind: UbaaFeedbackKind.error);
     } finally {
-      if (mounted) setState(() => busy = false);
+      if (current(token)) setState(() => busy = false);
     }
   }
 
@@ -201,7 +293,7 @@ class AgendaViewState extends State<AgendaView> {
     AgendaEditScope scope = AgendaEditScope.all,
   }) async {
     if (busy || !available) return;
-    final token = revision;
+    final token = generation.value;
     final done = await Navigator.of(context).push<bool>(
       MaterialPageRoute(
         builder: (_) => bound(
@@ -471,6 +563,7 @@ class AgendaViewState extends State<AgendaView> {
             key: const ValueKey('agenda-main-scroll'),
             padding: const EdgeInsets.all(16),
             children: [
+              if (available && service.supportsSync) _syncStatusCard(),
               Wrap(
                 spacing: 8,
                 runSpacing: 8,
@@ -642,7 +735,7 @@ class AgendaViewState extends State<AgendaView> {
   );
 
   Future<void> range() async {
-    final token = revision;
+    final token = generation.value;
     final selected = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2000),

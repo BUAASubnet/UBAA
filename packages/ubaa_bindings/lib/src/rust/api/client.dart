@@ -4,6 +4,8 @@
 // ignore_for_file: invalid_use_of_internal_member, unused_import, unnecessary_import
 
 import '../frb_generated.dart';
+import 'agenda/models.dart';
+import 'agenda/sync.dart';
 import 'bhpan.dart';
 import 'bhpan/models.dart';
 import 'campus.dart';
@@ -366,6 +368,11 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 立即撤销当前交互，永不排队等待 Core 网络锁。
   void cancelInteractiveLogin();
 
+  /// 立即捕获当前作用域；客户端忙时拒绝，避免等待到另一个客户端。
+  /// # Errors
+  /// 客户端忙或已关闭时不建立创建确认。
+  BridgeAgendaSyncScope captureAgendaSyncScope();
+
   /// 原查询与只读保存；待确认写意图阻止隐式恢复。
   ///
   /// # Errors
@@ -487,6 +494,15 @@ abstract class BridgeClient implements RustOpaqueInterface {
 
   /// 返回 bridge 合同版本。
   int contractVersion();
+
+  /// 在实际执行客户端锁内校验原确认作用域后，尝试首次创建。
+  /// # Errors
+  /// 作用域已改变、客户端已关闭或同步失败时返回对应错误。
+  Future<BridgeAgendaSyncReport> createAgendaSyncConfirmed({
+    required BridgeAgendaSyncService service,
+    required BridgeAgendaTime now,
+    required BridgeAgendaSyncScope scope,
+  });
 
   /// 放弃一个尚未提交的写入意图。
   ///
@@ -978,6 +994,15 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String username,
     required String password,
     required List<BridgeCaptchaAnswer> answers,
+  });
+
+  /// 执行一次读取或更新触发。首次创建必须提交原确认作用域。
+  /// # Errors
+  /// 分别保留本机日程故障与云盘错误，关闭后不交付旧结果。
+  Future<BridgeAgendaSyncReport> syncAgenda({
+    required BridgeAgendaSyncService service,
+    required BridgeAgendaSyncAction action,
+    required BridgeAgendaTime now,
   });
 
   /// # Errors

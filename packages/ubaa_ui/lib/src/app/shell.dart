@@ -915,12 +915,12 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     ),
     2 => AgendaView(
       service: widget.agenda.service,
+      syncScopeKey: widget.routePolicy,
       failure: widget.agenda.failure,
-      scopeKey: (
-        widget.cacheAccountId,
+      scopeKey: (widget.cacheAccountId, widget.routePolicy),
+      projectionKey: (
         widget.readCacheEpoch,
         widget.businessCacheEpoch,
-        widget.routePolicy,
         widget.agendaEpoch,
       ),
       route: agendaRoute(widget.routePolicy, widget.activeRoutes),

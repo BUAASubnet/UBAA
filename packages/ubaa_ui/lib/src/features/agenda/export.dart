@@ -2,7 +2,7 @@ part of 'view.dart';
 
 extension AgendaFileExport on AgendaViewState {
   Future<void> export() async {
-    final token = revision;
+    final token = generation.value;
     final selected = await showDateRangePicker(
       context: context,
       firstDate: DateTime(2000),

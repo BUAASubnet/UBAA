@@ -1,5 +1,8 @@
 //! 使用宿主已捕获的共享日程和缓存句柄，不接触账号材料或网络客户端。
 pub(crate) mod format;
+pub mod sync;
+#[cfg(test)]
+mod sync_tests;
 #[cfg(test)]
 mod tests;
 use serde::Serialize;

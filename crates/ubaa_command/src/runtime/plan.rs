@@ -54,12 +54,14 @@ impl CommandPlan {
     #[must_use]
     pub fn requirements(&self) -> CommandRequirements {
         let class = match &self.cli.command {
-            Command::Agenda(_) => CommandClass::Local,
             Command::Bhpan(args) if args.command.confirmation().is_some() => {
                 CommandClass::SchoolWrite
             }
             Command::Auth(_) => CommandClass::ExplicitAuth,
-            Command::Signin(SigninArgs {
+            Command::Agenda(crate::AgendaArgs {
+                command: crate::AgendaCommand::Sync { .. },
+            })
+            | Command::Signin(SigninArgs {
                 command: SigninCommand::Perform { .. },
             })
             | Command::Libbook(LibBookArgs {
@@ -78,6 +80,7 @@ impl CommandPlan {
             | Command::Evaluation(EvaluationArgs {
                 command: EvaluationCommand::SubmitPending { .. },
             }) => CommandClass::SchoolWrite,
+            Command::Agenda(_) => CommandClass::Local,
             _ => CommandClass::Readonly,
         };
         let recovery_target = match self.cli.feature() {
@@ -193,6 +196,14 @@ impl CommandPlan {
     }
     pub(crate) fn school_write_confirmed(&self) -> bool {
         match &self.cli.command {
+            Command::Agenda(crate::AgendaArgs {
+                command:
+                    crate::AgendaCommand::Sync {
+                        pull,
+                        confirm_write,
+                        ..
+                    },
+            }) => *pull || *confirm_write,
             Command::Bhpan(args) => args.command.confirmation().unwrap_or(true),
             Command::Signin(SigninArgs {
                 command: SigninCommand::Perform { confirm_write, .. },

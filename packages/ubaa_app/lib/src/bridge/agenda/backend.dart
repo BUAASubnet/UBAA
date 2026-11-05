@@ -5,13 +5,19 @@ import '../context.dart';
 import 'models.dart';
 import 'school.dart';
 import '../home/agenda.dart';
+import '../support/mapping.dart' show bridgeMapError;
 
 /// 只按安全索引提供的别名打开日程，不读取缓存密钥，也不触发学校请求。
 final class BridgeAgendaBackend
-    implements AgendaBackend, AgendaExportBackend, AgendaDraftBackend {
+    implements
+        AgendaBackend,
+        AgendaExportBackend,
+        AgendaDraftBackend,
+        AgendaSyncBackend {
   BridgeAgendaBackend(this.context);
   final BridgeContext context;
   BridgeAgendaStore? _handle;
+  BridgeAgendaSyncService? _syncHandle;
   String? _account;
   bool _opened = false;
   Future<T> _call<T>(Future<T> Function() action) async {
@@ -72,10 +78,78 @@ final class BridgeAgendaBackend
   @override
   Future<void> deactivate() async {
     _opened = false;
+    _syncHandle?.dispose();
+    _syncHandle = null;
     final handle = _handle;
     handle?.dispose();
     _handle = null;
     _account = null;
+  }
+
+  @override
+  AgendaSyncJob prepareSync(AgendaSyncAction action, AgendaTime now) {
+    final confirmed = action == AgendaSyncAction.createConfirmed;
+    final confirmedStore = _handle;
+    final confirmedBinding = context.sharedAccount;
+    final BridgeAgendaSyncScope? scope;
+    try {
+      scope = confirmed ? context.client.captureAgendaSyncScope() : null;
+    } on BridgeAgendaSyncError catch (error) {
+      _throwSyncError(error);
+    }
+    return () => _call(() async {
+      if (confirmed &&
+          (!identical(confirmedStore, _handle) ||
+              !identical(confirmedBinding, context.sharedAccount))) {
+        throw const AgendaException(AgendaFailure.superseded);
+      }
+
+      final store = _store;
+      var handle = _syncHandle;
+      if (handle == null) {
+        final opened = await BridgeAgendaSyncService.open(
+          agenda: store,
+          configDir: context.configDirectory!,
+        );
+        if (!identical(store, _handle) || context.closed) {
+          opened.dispose();
+          throw const AgendaException(AgendaFailure.superseded);
+        }
+        _syncHandle = handle = opened;
+      }
+      try {
+        final client = context.client;
+        final time = toAgendaTime(now);
+        final result = scope == null
+            ? await client.syncAgenda(
+                service: handle,
+                action: BridgeAgendaSyncAction.values.byName(action.name),
+                now: time,
+              )
+            : await client.createAgendaSyncConfirmed(
+                service: handle,
+                now: time,
+                scope: scope,
+              );
+        if (!identical(store, _handle) || context.closed)
+          throw const AgendaException(AgendaFailure.superseded);
+        return AgendaSyncReport(
+          status: AgendaSyncStatus.values.byName(result.status.name),
+          pendingCount: result.pendingCount,
+          changedCount: result.changedCount,
+        );
+      } on BridgeAgendaSyncError catch (error) {
+        _throwSyncError(error);
+      }
+    });
+  }
+
+  Never _throwSyncError(BridgeAgendaSyncError error) {
+    if (error.local != null) {
+      throw AgendaException(AgendaFailure.values.byName(error.local!.name));
+    }
+    if (error.remote != null) throw bridgeMapError(error.remote!);
+    throw const AgendaException(AgendaFailure.unavailable);
   }
 
   @override

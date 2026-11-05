@@ -161,6 +161,7 @@ class _Command extends _Opaque implements BridgeCommand {
     class_: kind,
     auth: auth,
     schoolCache: false,
+    agendaSync: false,
     recoveryTarget: kind == BridgeCommandClass.schoolWrite
         ? BridgeRecoveryFeature.signin
         : null,
@@ -205,6 +206,28 @@ class _LocalCommand extends _Command {
     required BridgeAgendaStore agenda,
     required BridgeSharedAccount scope,
   }) async => _Result('local');
+}
+
+class _SyncCommand extends _Command {
+  _SyncCommand() : super(BridgeCommandClass.schoolWrite);
+  int calls = 0;
+  @override
+  BridgeCommandRequirements requirements() => const BridgeCommandRequirements(
+    class_: BridgeCommandClass.schoolWrite,
+    schoolCache: false,
+    agendaSync: true,
+    hasTransfer: false,
+  );
+  @override
+  Future<BridgeCommandResult> executeAgendaSync({
+    required BridgeClient client,
+    required BridgeAgendaStore agenda,
+    required BridgeSharedAccount scope,
+    required String configDir,
+  }) async {
+    calls++;
+    return _Result('sync-unverified', code: 6);
+  }
 }
 
 class _BodyCommand extends _Command {
@@ -361,6 +384,30 @@ void main() {
   final api = _Api();
   setUpAll(() => RustLib.initMock(api: api));
   setUp(() => api.timeouts.clear());
+  test('日程同步使用独立一次作业，未验证保持失败且不进入认证恢复或普通命令重跑', () async {
+    final fixture = await _fixture();
+    final client = _Client((_) async => throw StateError('日程同步不能进入普通命令尝试'));
+    final command = _SyncCommand();
+    final io = _IO();
+    try {
+      final runtime = CommandRuntime(
+        io: io,
+        parse: ({required argv, required remainingMillis}) => command,
+        openMaterials: (_) async => fixture.environment,
+        openClient: ({required configDir}) async => client,
+      );
+      expect(
+        await runtime.run(['ubaa', 'agenda', 'sync', '--confirm-write']),
+        6,
+      );
+      expect(command.calls, 1);
+      expect(client.attempts, 0);
+      expect(client.recoveries, 0);
+      expect(jsonDecode(utf8.decode(io.out)), {'result': 'sync-unverified'});
+    } finally {
+      await fixture.root.delete(recursive: true);
+    }
+  });
   test('同账号外部恢复继任后学校操作只使用当前客户端一次', () async {
     final fixture = await _fixture();
     final previous = (await fixture.accounts.capture())!;

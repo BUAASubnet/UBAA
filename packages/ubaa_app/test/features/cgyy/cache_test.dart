@@ -392,7 +392,7 @@ class _Client implements BridgeClient {
   );
 
   @override
-  int contractVersion() => 49;
+  int contractVersion() => 50;
   @override
   Future<BridgeCgyyOrdersRefresh> cgyyOrdersCached({
     required BridgeOfflineCache cache,

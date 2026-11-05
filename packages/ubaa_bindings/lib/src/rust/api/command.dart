@@ -32,6 +32,18 @@ abstract class BridgeCommand implements RustOpaqueInterface {
     required BridgeSharedAccount scope,
   });
 
+  /// 复用 GUI 的 Core 同步服务，作业内不进入会话恢复重跑器。
+  /// # Errors
+  /// 计划已消费或客户端已关闭时拒绝，业务结果由统一命令输出交付。
+  /// # Panics
+  /// 命令状态锁被其他线程的 panic 污染时终止。
+  Future<BridgeCommandResult> executeAgendaSync({
+    required BridgeClient client,
+    required BridgeAgendaStore agenda,
+    required BridgeSharedAccount scope,
+    required String configDir,
+  });
+
   /// # Errors
   /// 计划已消费、缓存或日程句柄不可用时返回错误。
   Future<BridgeCommandResult> executeCachedAgenda({
@@ -163,6 +175,7 @@ class BridgeCommandRequirements {
   final BridgeCommandAuth? auth;
   final String? configDirectory;
   final bool schoolCache;
+  final bool agendaSync;
   final bool hasTransfer;
   final BridgeRecoveryFeature? recoveryTarget;
 
@@ -171,6 +184,7 @@ class BridgeCommandRequirements {
     this.auth,
     this.configDirectory,
     required this.schoolCache,
+    required this.agendaSync,
     required this.hasTransfer,
     this.recoveryTarget,
   });
@@ -181,6 +195,7 @@ class BridgeCommandRequirements {
       auth.hashCode ^
       configDirectory.hashCode ^
       schoolCache.hashCode ^
+      agendaSync.hashCode ^
       hasTransfer.hashCode ^
       recoveryTarget.hashCode;
 
@@ -193,6 +208,7 @@ class BridgeCommandRequirements {
           auth == other.auth &&
           configDirectory == other.configDirectory &&
           schoolCache == other.schoolCache &&
+          agendaSync == other.agendaSync &&
           hasTransfer == other.hasTransfer &&
           recoveryTarget == other.recoveryTarget;
 }

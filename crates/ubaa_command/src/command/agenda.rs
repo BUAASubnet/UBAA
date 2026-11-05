@@ -33,6 +33,15 @@ pub enum AgendaCommand {
     },
     /// 查询本机待同步记录数。
     Unsynced,
+    /// 同步个人云盘日程；上传需要明确确认，首次创建另外确认。
+    Sync {
+        #[arg(long, conflicts_with_all = ["confirm_write", "create"])]
+        pull: bool,
+        #[arg(long, requires = "confirm_write")]
+        create: bool,
+        #[arg(long)]
+        confirm_write: bool,
+    },
     /// 创建本机日程；输入只含可编辑内容和重复规则。
     Create {
         #[arg(long)]
@@ -111,6 +120,7 @@ impl AgendaCommand {
             Self::List { .. } => "list",
             Self::Show { .. } => "show",
             Self::Unsynced => "unsynced",
+            Self::Sync { .. } => "sync",
             Self::Create { .. } => "create",
             Self::Edit { .. } => "edit",
             Self::Delete { .. } => "delete",

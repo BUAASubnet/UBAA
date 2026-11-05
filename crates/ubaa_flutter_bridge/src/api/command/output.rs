@@ -34,6 +34,9 @@ impl BridgeCommandResult {
                 return 7;
             }
             match body {
+                Some(Body::AgendaSync { json, result }) => {
+                    result.render(json, &control, &mut out, &mut err)
+                }
                 Some(Body::Result(result)) => result.render_bounded(&control, &mut out, &mut err),
                 Some(Body::Parse(error)) => error.render(&mut out, &mut err),
                 Some(Body::Error {

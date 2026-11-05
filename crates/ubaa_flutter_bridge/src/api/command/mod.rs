@@ -35,6 +35,7 @@ pub struct BridgeCommandRequirements {
     pub auth: Option<BridgeCommandAuth>,
     pub config_directory: Option<String>,
     pub school_cache: bool,
+    pub agenda_sync: bool,
     pub has_transfer: bool,
     pub recovery_target: Option<super::recovery::BridgeRecoveryFeature>,
 }
@@ -77,6 +78,10 @@ pub struct BridgeCommand {
     pub(crate) sent: Mutex<Option<(Arc<core::WriteBoundaryObservation>, core::RouteResolution)>>,
 }
 pub(super) enum Body {
+    AgendaSync {
+        json: bool,
+        result: command::agenda::sync::AgendaSyncCommandResult,
+    },
     Result(command::ResultHandle),
     Parse(command::runtime::ParseFailure),
     Error {
@@ -146,6 +151,7 @@ impl BridgeCommand {
                 auth: None,
                 config_directory: None,
                 school_cache: false,
+                agenda_sync: false,
                 has_transfer: false,
                 recovery_target: None,
             };
@@ -181,6 +187,12 @@ impl BridgeCommand {
             auth,
             config_directory: req.config_dir.map(|p| p.to_string_lossy().into()),
             school_cache,
+            agenda_sync: matches!(
+                &plan.cli().command,
+                command::Command::Agenda(command::AgendaArgs {
+                    command: command::AgendaCommand::Sync { .. }
+                })
+            ),
             recovery_target: req.recovery_target.map(target_to_bridge),
             has_transfer: req.has_transfer,
         }
@@ -305,6 +317,15 @@ impl BridgeCommand {
     }
     fn set_error(&self, error: UbaaError) {
         if let Some(plan) = &self.plan {
+            if self.requirements().agenda_sync {
+                *self.early.lock().unwrap() = Some(Body::AgendaSync {
+                    json: plan.cli().json,
+                    result: command::agenda::sync::AgendaSyncCommandResult(Err(
+                        core::AgendaSyncError::Remote(error),
+                    )),
+                });
+                return;
+            }
             let body = if let command::Command::Agenda(args) = &plan.cli().command {
                 Body::LocalError {
                     json: plan.cli().json,
@@ -336,7 +357,8 @@ impl BridgeCommand {
     /// # Panics
     /// 命令状态锁被其他线程的 panic 污染时终止。
     pub fn failure(&self, failure: BridgeCommandFailure) -> BridgeCommandResult {
-        if let Some(plan) = &self.plan
+        if !self.requirements().agenda_sync
+            && let Some(plan) = &self.plan
             && let command::Command::Agenda(args) = &plan.cli().command
         {
             use command::agenda::LocalError as E;
@@ -369,6 +391,14 @@ impl BridgeCommand {
             resolution = Some(*known);
         }
         let plan = self.plan.as_ref();
+        if self.requirements().agenda_sync {
+            return self.result(Body::AgendaSync {
+                json: plan.is_some_and(|p| p.cli().json),
+                result: command::agenda::sync::AgendaSyncCommandResult(Err(
+                    core::AgendaSyncError::Remote(error),
+                )),
+            });
+        }
         self.result(Body::Error {
             json: plan.is_some_and(|p| p.cli().json),
             feature: plan.map_or(command::CliFeature::Cli, |p| p.cli().feature()),
@@ -455,6 +485,7 @@ impl BridgeCommand {
         Ok(result)
     }
 }
+mod agenda_sync;
 impl BridgeCommandResult {
     /// # Panics
     /// 命令状态锁被其他线程的 panic 污染时终止。
