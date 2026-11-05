@@ -2,6 +2,8 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'chrome.dart';
+import 'toolbar.dart';
 import 'dialogs.dart';
 import 'format.dart';
 import 'transfer_view.dart';
@@ -39,6 +41,8 @@ class _BhpanViewState extends State<BhpanView> {
   List<BhpanShare>? _shares;
   String? _error, _notice;
   String _filter = '';
+  BhpanRootKind _rootKind = BhpanRootKind.personal;
+  bool _searchVisible = false;
   bool _loading = false, _working = false;
   int _generation = 0;
   final _scope = ValueNotifier<int>(0);
@@ -570,175 +574,256 @@ class _BhpanViewState extends State<BhpanView> {
     if (mounted) setState(() {});
   }
 
+  static const _rootNames = {
+    BhpanRootKind.all: '全部文档库',
+    BhpanRootKind.personal: '个人文档库',
+    BhpanRootKind.shared: '共享文档库',
+    BhpanRootKind.department: '部门文档库',
+    BhpanRootKind.group: '群组文档库',
+  };
+
+  bool get _busy => _loading || _working;
+  bool get _inRecycle => _query.view == BhpanReadView.recycle;
+  bool get _canUpload =>
+      !_busy &&
+      widget.access.pickFile != null &&
+      widget.access.runWrite != null &&
+      _shares == null &&
+      _trail.isNotEmpty &&
+      _trail.last.isFolder &&
+      _trail.last.scope != BhpanScope.recycle;
+  bool get _personalFolder =>
+      _trail.isNotEmpty &&
+      _trail.last.scope == BhpanScope.personal &&
+      _shares == null &&
+      _query.view == BhpanReadView.directory;
+
+  String get _viewLabel => _shares != null
+      ? '分享管理'
+      : _inRecycle
+      ? '回收站'
+      : _rootNames[_rootKind]!;
+
+  void _openRecycle() {
+    _trail.clear();
+    _selected.clear();
+    _query = const BhpanRead(BhpanReadView.recycle);
+    _load();
+  }
+
+  Widget _toolbar() => BhpanToolbar(
+    label: _viewLabel,
+    icon: _shares != null
+        ? Icons.link
+        : _inRecycle
+        ? Icons.delete_outline
+        : Icons.folder_shared_outlined,
+    rootNames: _rootNames,
+    current: _shares == null && !_inRecycle ? _rootKind : null,
+    busy: _busy,
+    showSearch: _shares == null,
+    searchVisible: _searchVisible,
+    showHome: _shares != null || _inRecycle,
+    showFast: _personalFolder && widget.access.pickFile != null,
+    fastEnabled: _writable,
+    onRoot: (kind) {
+      setState(() {
+        _rootKind = kind;
+        _selected.clear();
+      });
+      _root(kind);
+    },
+    onToggleSearch: () => setState(() {
+      _searchVisible = !_searchVisible;
+      if (!_searchVisible) _filter = '';
+    }),
+    onRefresh: () => _load(shares: _shares != null),
+    onMenu: (value) {
+      switch (value) {
+        case 'recycle':
+          _openRecycle();
+        case 'shares':
+          _selected.clear();
+          _load(shares: true);
+        case 'received':
+          _receivedShare();
+        case 'fast':
+          _upload(fast: true);
+        case 'home':
+          setState(() => _rootKind = BhpanRootKind.personal);
+          _root(BhpanRootKind.personal);
+      }
+    },
+  );
+
+  Widget _selectionBar() {
+    final colors = Theme.of(context).colorScheme;
+    final selectedItems =
+        _page?.items.where((i) => _selected.contains(i.handle)).toList() ??
+        const <BhpanItem>[];
+    return Material(
+      color: colors.secondaryContainer,
+      child: SafeArea(
+        top: false,
+        child: Padding(
+          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+          child: Row(
+            children: [
+              IconButton(
+                tooltip: '取消选择',
+                onPressed: () => setState(_selected.clear),
+                icon: const Icon(Icons.close),
+              ),
+              Expanded(
+                child: Text(
+                  '已选 ${_selected.length} 项',
+                  style: TextStyle(
+                    color: colors.onSecondaryContainer,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
+              ),
+              TextButton(
+                onPressed: () => setState(() {
+                  final all =
+                      _page?.items.map((i) => i.handle) ?? const <String>[];
+                  if (_selected.length == all.length) {
+                    _selected.clear();
+                  } else {
+                    _selected.addAll(all);
+                  }
+                }),
+                child: const Text('全选'),
+              ),
+              if (!_inRecycle)
+                IconButton(
+                  tooltip: '打包下载',
+                  onPressed: _busy ? null : () => _download(selectedItems),
+                  icon: const Icon(Icons.download_outlined),
+                ),
+              if (_inRecycle)
+                IconButton(
+                  tooltip: '逐项恢复',
+                  onPressed: _writable ? () => _batch('恢复') : null,
+                  icon: const Icon(Icons.restore),
+                ),
+              IconButton(
+                tooltip: _inRecycle ? '逐项永久删除' : '逐项移入回收站',
+                onPressed: _writable
+                    ? () => _batch(_inRecycle ? '永久删除' : '移入回收站')
+                    : null,
+                icon: Icon(
+                  _inRecycle
+                      ? Icons.delete_forever_outlined
+                      : Icons.delete_outline,
+                  color: colors.error,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  Future<void> _createSheet() async {
+    final choice = await showModalBottomSheet<String>(
+      context: context,
+      showDragHandle: true,
+      builder: (context) => _dialogScope(
+        SafeArea(
+          top: false,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.upload_file),
+                title: const Text('上传文件'),
+                subtitle: const Text('从本机选择文件上传到当前文件夹'),
+                enabled: _canUpload,
+                onTap: () => Navigator.pop(context, 'upload'),
+              ),
+              if (_personalFolder) ...[
+                ListTile(
+                  leading: const Icon(Icons.create_new_folder_outlined),
+                  title: const Text('新建文件夹'),
+                  enabled: _writable,
+                  onTap: () => Navigator.pop(context, 'folder'),
+                ),
+                ListTile(
+                  leading: const Icon(Icons.bolt_outlined),
+                  title: const Text('秒传'),
+                  subtitle: const Text('云端已有相同文件时免上传内容'),
+                  enabled: _writable,
+                  onTap: () => Navigator.pop(context, 'fast'),
+                ),
+              ],
+              const SizedBox(height: 8),
+            ],
+          ),
+        ),
+      ),
+    );
+    if (!mounted) return;
+    switch (choice) {
+      case 'upload':
+        await _upload();
+      case 'folder':
+        await _newFolder();
+      case 'fast':
+        await _upload(fast: true);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    if (_service == null) return const Center(child: Text('当前客户端未提供北航云盘能力'));
+    if (_service == null) {
+      return const BhpanStatePanel(
+        icon: Icons.cloud_off_outlined,
+        text: '当前客户端未提供北航云盘能力',
+      );
+    }
     final items =
         _page?.items
             .where((i) => i.name.toLowerCase().contains(_filter.toLowerCase()))
             .toList() ??
         [];
-    return Column(
+    final selecting = _selected.isNotEmpty;
+    final body = Column(
+      crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        Padding(
-          padding: const EdgeInsets.all(12),
-          child: Wrap(
-            spacing: 8,
-            runSpacing: 8,
-            crossAxisAlignment: WrapCrossAlignment.center,
-            children: [
-              PopupMenuButton<BhpanRootKind>(
-                enabled: !_loading && !_working,
-                onSelected: _root,
-                itemBuilder: (_) => [
-                  for (final kind in BhpanRootKind.values)
-                    PopupMenuItem(
-                      value: kind,
-                      child: Text(switch (kind) {
-                        BhpanRootKind.all => '全部文档库',
-                        BhpanRootKind.personal => '个人文档库',
-                        BhpanRootKind.shared => '共享文档库',
-                        BhpanRootKind.department => '部门文档库',
-                        BhpanRootKind.group => '群组文档库',
-                      }),
-                    ),
-                ],
-                child: const Padding(
-                  padding: EdgeInsets.all(8),
-                  child: Text('文档库 ▾'),
-                ),
-              ),
-              TextButton.icon(
-                onPressed: _loading || _working
-                    ? null
-                    : () {
-                        _trail.clear();
-                        _query = const BhpanRead(BhpanReadView.recycle);
-                        _load();
-                      },
-                icon: const Icon(Icons.delete_outline),
-                label: const Text('回收站'),
-              ),
-              TextButton.icon(
-                onPressed: _loading || _working
-                    ? null
-                    : () => _load(shares: true),
-                icon: const Icon(Icons.link),
-                label: const Text('分享管理'),
-              ),
-              TextButton(
-                onPressed: _loading || _working ? null : _receivedShare,
-                child: const Text('接收分享'),
-              ),
-              IconButton(
-                tooltip: '刷新',
-                onPressed: _loading || _working
-                    ? null
-                    : () => _load(shares: _shares != null),
-                icon: const Icon(Icons.refresh),
-              ),
-              if (_trail.isNotEmpty &&
-                  _trail.last.scope == BhpanScope.personal &&
-                  _shares == null &&
-                  _query.view == BhpanReadView.directory)
-                FilledButton.tonalIcon(
-                  onPressed: _writable ? _newFolder : null,
-                  icon: const Icon(Icons.create_new_folder_outlined),
-                  label: const Text('新建'),
-                ),
-              OutlinedButton.icon(
-                onPressed:
-                    _loading ||
-                        _working ||
-                        _trail.isEmpty ||
-                        !_trail.last.isFolder ||
-                        _trail.last.scope == BhpanScope.recycle
-                    ? null
-                    : _upload,
-                icon: const Icon(Icons.upload_file),
-                label: const Text('上传'),
-              ),
-              if (_trail.isNotEmpty && _trail.last.scope == BhpanScope.personal)
-                TextButton(
-                  onPressed: _writable ? () => _upload(fast: true) : null,
-                  child: const Text('秒传'),
-                ),
-            ],
-          ),
-        ),
+        _toolbar(),
         if (_trail.isNotEmpty && _shares == null)
-          SingleChildScrollView(
-            scrollDirection: Axis.horizontal,
-            child: Row(
-              children: [
-                TextButton(
-                  onPressed: _loading || _working
-                      ? null
-                      : () => _root(BhpanRootKind.personal),
-                  child: const Text('文档库'),
-                ),
-                for (final (index, folder) in _trail.indexed)
-                  TextButton(
-                    onPressed: _loading || _working
-                        ? null
-                        : () {
-                            _trail.removeRange(index + 1, _trail.length);
-                            _query = BhpanRead(
-                              BhpanReadView.directory,
-                              target: folder.handle,
-                            );
-                            _load();
-                          },
-                    child: Text('› ${folder.name}'),
-                  ),
-              ],
-            ),
+          BhpanBreadcrumb(
+            rootLabel: _rootNames[_rootKind]!,
+            names: [for (final f in _trail) f.name],
+            enabled: !_busy,
+            onRoot: () => _root(_rootKind),
+            onIndex: (index) {
+              _trail.removeRange(index + 1, _trail.length);
+              _selected.clear();
+              _query = BhpanRead(
+                BhpanReadView.directory,
+                target: _trail[index].handle,
+              );
+              _load();
+            },
           ),
-        if (_shares == null)
+        if (_shares == null && (_searchVisible || _filter.isNotEmpty))
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            child: TextField(
-              decoration: const InputDecoration(
-                labelText: '筛选当前已加载名称',
-                prefixIcon: Icon(Icons.filter_list),
-              ),
+            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            child: SearchBar(
+              autoFocus: true,
+              hintText: '筛选当前已加载的名称',
+              elevation: const WidgetStatePropertyAll(0),
+              leading: const Icon(Icons.search),
               onChanged: (v) => setState(() => _filter = v),
             ),
           ),
-        if (_selected.isNotEmpty)
-          Wrap(
-            spacing: 8,
-            children: [
-              Text('已选择 ${_selected.length} 项'),
-              TextButton(
-                onPressed: _writable
-                    ? () => _batch(
-                        _query.view == BhpanReadView.recycle ? '恢复' : '移入回收站',
-                      )
-                    : null,
-                child: Text(
-                  _query.view == BhpanReadView.recycle ? '逐项恢复' : '逐项移入回收站',
-                ),
-              ),
-              if (_query.view == BhpanReadView.recycle)
-                TextButton(
-                  onPressed: _writable ? () => _batch('永久删除') : null,
-                  child: const Text('逐项永久删除'),
-                ),
-              if (_query.view != BhpanReadView.recycle)
-                TextButton(
-                  onPressed: _working || _loading
-                      ? null
-                      : () => _download(
-                          _page!.items
-                              .where((item) => _selected.contains(item.handle))
-                              .toList(),
-                        ),
-                  child: const Text('打包下载'),
-                ),
-            ],
-          ),
-        if (_loading || _working) const LinearProgressIndicator(),
+        SizedBox(
+          height: 2,
+          child: _busy ? const LinearProgressIndicator() : null,
+        ),
         if (_progress case final progress?)
           BhpanProgressTile(progress: progress, onCancel: _transfer?.cancel),
         if (_batchResults.isNotEmpty)
@@ -746,108 +831,128 @@ class _BhpanViewState extends State<BhpanView> {
             constraints: const BoxConstraints(maxHeight: 120),
             child: ListView(
               shrinkWrap: true,
+              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
               children: [
                 for (final (name, status) in _batchResults)
-                  Text('$name：$status'),
+                  Text(
+                    '$name：$status',
+                    style: Theme.of(context).textTheme.bodySmall,
+                  ),
               ],
             ),
           ),
         if (_notice case final notice?)
-          Padding(padding: const EdgeInsets.all(12), child: Text(notice)),
-        if (_error case final error?)
           Padding(
-            padding: const EdgeInsets.all(16),
-            child: Column(
+            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
+            child: Row(
               children: [
-                Text(error),
-                TextButton(
-                  onPressed: _loading ? null : () => _load(reconnect: true),
-                  child: const Text('重新连接个人网盘'),
-                ),
+                const Icon(Icons.info_outline, size: 18),
+                const SizedBox(width: 8),
+                Expanded(child: Text(notice)),
               ],
             ),
           ),
         Expanded(
-          child: _shares != null
+          child: _error != null && items.isEmpty
+              ? BhpanStatePanel(
+                  icon: Icons.cloud_off_outlined,
+                  text: _error!,
+                  action: '重新连接个人网盘',
+                  onAction: _loading ? null : () => _load(reconnect: true),
+                )
+              : _shares != null
               ? _shareList()
               : items.isEmpty && !_loading
-              ? Center(
-                  child: Text(
-                    _error != null
-                        ? '未取得目录内容'
-                        : _filter.isNotEmpty
-                        ? '已加载列表中没有匹配名称'
-                        : '当前已读取范围没有条目',
-                  ),
+              ? BhpanStatePanel(
+                  icon: _filter.isNotEmpty
+                      ? Icons.search_off
+                      : Icons.folder_open_outlined,
+                  text: _filter.isNotEmpty ? '已加载列表中没有匹配名称' : '这个文件夹是空的',
                 )
-              : ListView.builder(
-                  itemCount: items.length,
-                  itemBuilder: (c, index) => _row(items[index]),
+              : RefreshIndicator(
+                  onRefresh: () => _load(shares: _shares != null),
+                  child: ListView.builder(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: EdgeInsets.only(bottom: selecting ? 16 : 96),
+                    itemCount: items.length + 1,
+                    itemBuilder: (c, index) => index == items.length
+                        ? _footer(items.length)
+                        : _row(items[index], selecting),
+                  ),
                 ),
         ),
-        if (_page case final page?)
-          Padding(
-            padding: const EdgeInsets.all(8),
-            child: Text(
-              page.range == BhpanListRange.firstHundred
-                  ? '回收站首批最多 100 项，完整范围待验证'
-                  : '显示已读取范围，完整列表范围未知',
-              style: Theme.of(context).textTheme.bodySmall,
+        if (selecting) _selectionBar(),
+      ],
+    );
+    final showFab =
+        !selecting &&
+        _shares == null &&
+        (_canUpload || (_personalFolder && widget.access.runWrite != null));
+    return Stack(
+      children: [
+        Positioned.fill(child: body),
+        if (showFab)
+          Positioned(
+            right: 16,
+            bottom: 16,
+            child: FloatingActionButton(
+              key: const ValueKey('bhpan-create'),
+              tooltip: '上传或新建',
+              onPressed: _busy ? null : _createSheet,
+              child: const Icon(Icons.add),
             ),
           ),
       ],
     );
   }
 
-  Widget _row(BhpanItem item) {
+  Widget _footer(int count) {
+    final page = _page;
+    if (page == null) return const SizedBox.shrink();
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 16),
+      child: Text(
+        page.range == BhpanListRange.firstHundred
+            ? '回收站仅显示前 100 项'
+            : '已加载 $count 项',
+        textAlign: TextAlign.center,
+        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+          color: Theme.of(context).colorScheme.outline,
+        ),
+      ),
+    );
+  }
+
+  Widget _row(BhpanItem item, bool selecting) {
     final recycle = item.scope == BhpanScope.recycle;
     final actions = recycle
         ? ['恢复', '永久删除']
         : item.scope == BhpanScope.receivedShare
         ? ['属性', '下载', '另存到网盘']
         : ['属性', '重命名', '移动', '复制', '下载', '分享', '分享记录', '移入回收站'];
-    return ListTile(
-      leading: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          Checkbox(
-            value: _selected.contains(item.handle),
-            onChanged: _loading || _working
-                ? null
-                : (v) => setState(() {
-                    if (v == true) {
-                      _selected.add(item.handle);
-                    } else {
-                      _selected.remove(item.handle);
-                    }
-                  }),
-          ),
-          Icon(
-            item.isFolder
-                ? Icons.folder_outlined
-                : Icons.insert_drive_file_outlined,
-          ),
-        ],
-      ),
-      title: Text(item.name),
-      subtitle: Text(
-        '${item.isFolder ? '文件夹' : bhpanBytes(item.bytes ?? 0)}${item.modifiedAt == null ? '' : ' · ${bhpanDate(item.modifiedAt!)}'}',
-      ),
-      onTap: _loading || _working
-          ? null
+    void toggle() => setState(() {
+      if (!_selected.remove(item.handle)) _selected.add(item.handle);
+    });
+    return BhpanItemTile(
+      item: item,
+      selecting: selecting,
+      selected: _selected.contains(item.handle),
+      enabled: !_busy,
+      onTap: selecting
+          ? toggle
           : () => item.isFolder && !recycle ? _open(item) : _action('属性', item),
-      trailing: PopupMenuButton<String>(
-        enabled: !_working && !_loading,
-        onSelected: (a) => _action(a, item),
-        itemBuilder: (_) => [
-          for (final a in actions)
-            PopupMenuItem(
-              value: a,
-              enabled: const {'属性', '下载', '分享记录'}.contains(a) || _writable,
-              child: Text(a),
-            ),
-        ],
-      ),
+      onLongPress: toggle,
+      onMore: () async {
+        final action = await bhpanActionSheet(
+          context,
+          title: item.name,
+          item: item,
+          actions: actions,
+          enabled: (a) => const {'属性', '下载', '分享记录'}.contains(a) || _writable,
+          boundary: _dialogScope,
+        );
+        if (action != null && mounted) await _action(action, item);
+      },
     );
   }
 

@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_ui/src/features/bhpan/chrome.dart';
 import 'support.dart';
 
 Future<void> mount(
@@ -27,20 +28,54 @@ Future<void> mount(
   await tester.pumpAndSettle();
 }
 
+Future<void> openNewFolder(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('bhpan-create')));
+  await tester.pumpAndSettle();
+  await tester.tap(find.text('新建文件夹'));
+  await tester.pumpAndSettle();
+}
+
 void main() {
   testWidgets('个人目录自动打开，当前名称筛选和面包屑返回保留可用目录', (tester) async {
     final files = Files();
     await mount(tester, files, run: (_) async => null);
     expect(find.text('报告.txt'), findsOneWidget);
-    await tester.enterText(find.byType(TextField), '课程');
+    final readsBeforeFilter = files.reads.length;
+    await tester.tap(find.byTooltip('筛选名称'));
+    await tester.pumpAndSettle();
+    final search = find.descendant(
+      of: find.byType(SearchBar),
+      matching: find.byType(TextField),
+    );
+    expect(
+      tester.widget<SearchBar>(find.byType(SearchBar)).hintText,
+      '筛选当前已加载的名称',
+    );
+    await tester.enterText(search, '课程');
     await tester.pump();
     expect(find.text('报告.txt'), findsNothing);
     expect(find.text('课程资料'), findsOneWidget);
-    await tester.enterText(find.byType(TextField), '');
+    expect(files.reads.length, readsBeforeFilter);
+    await tester.tap(find.byTooltip('筛选名称'));
+    await tester.pumpAndSettle();
+    expect(find.text('报告.txt'), findsOneWidget);
     await tester.tap(find.text('课程资料'));
     await tester.pumpAndSettle();
-    expect(find.text('当前已读取范围没有条目'), findsOneWidget);
-    await tester.tap(find.text('› 个人文档库'));
+    expect(files.reads.last.target, 'folder');
+    expect(find.text('这个文件夹是空的'), findsOneWidget);
+    final breadcrumb = find.byType(BhpanBreadcrumb);
+    final current = find.descendant(
+      of: breadcrumb,
+      matching: find.text('课程资料'),
+    );
+    final currentCrumb = find.ancestor(
+      of: current,
+      matching: find.byType(InkWell),
+    );
+    expect(tester.widget<InkWell>(currentCrumb).onTap, isNull);
+    await tester.tap(
+      find.descendant(of: breadcrumb, matching: find.text('个人文档库')).first,
+    );
     await tester.pumpAndSettle();
     expect(find.text('报告.txt'), findsOneWidget);
     expect(files.reads.last.target, 'root');
@@ -56,8 +91,7 @@ void main() {
         return null;
       },
     );
-    await tester.tap(find.text('新建'));
-    await tester.pumpAndSettle();
+    await openNewFolder(tester);
     await tester.enterText(find.widgetWithText(TextField, '名称'), '实验材料');
     await tester.tap(find.text('继续'));
     await tester.pumpAndSettle();
@@ -84,20 +118,18 @@ void main() {
         );
       },
     );
-    for (final name in ['课程资料', '报告.txt']) {
-      final row = find.ancestor(
-        of: find.text(name),
-        matching: find.byType(ListTile),
-      );
-      await tester.tap(
-        find.descendant(of: row, matching: find.byType(Checkbox)),
-      );
-      await tester.pump();
-    }
-    await tester.tap(find.text('逐项移入回收站'));
+    await tester.longPress(find.text('课程资料'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('报告.txt'));
+    await tester.pumpAndSettle();
+    expect(find.text('已选 2 项'), findsOneWidget);
+    await tester.tap(find.byTooltip('逐项移入回收站'));
     await tester.pumpAndSettle();
     expect(requests.map((r) => r.target), ['folder']);
+    expect(requests.single.kind, BhpanMutationKind.recycle);
     expect(find.text('提交结果不确定，请先刷新核对'), findsOneWidget);
+    expect(find.text('课程资料：结果待核对'), findsOneWidget);
+    expect(find.text('报告.txt：尚未执行'), findsOneWidget);
   });
   testWidgets('账号服务替换后迟到目录不能进入新账号页面', (tester) async {
     final old = Files()..gate = Completer<BhpanPage>();
@@ -121,13 +153,12 @@ void main() {
     old.gate!.complete(page([file]));
     await tester.pumpAndSettle();
     expect(find.text('报告.txt'), findsNothing);
-    expect(find.text('当前已读取范围没有条目'), findsOneWidget);
+    expect(find.text('这个文件夹是空的'), findsOneWidget);
   });
   testWidgets('账号服务替换关闭旧账号已经打开的编辑弹窗', (tester) async {
     final old = Files();
     await mount(tester, old, run: (_) async => null);
-    await tester.tap(find.text('新建'));
-    await tester.pumpAndSettle();
+    await openNewFolder(tester);
     expect(find.text('新建文件夹'), findsOneWidget);
     final next = Files()..contents = [];
     await tester.pumpWidget(

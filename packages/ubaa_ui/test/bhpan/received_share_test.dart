@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_ui/src/features/bhpan/chrome.dart';
 import 'support.dart';
 
 const received = BhpanItem(
@@ -51,6 +52,8 @@ Future<void> openReceived(
     ),
   );
   await tester.pumpAndSettle();
+  await tester.tap(find.byTooltip('更多云盘操作'));
+  await tester.pumpAndSettle();
   await tester.tap(find.text('接收分享'));
   await tester.pumpAndSettle();
   await tester.enterText(
@@ -81,9 +84,11 @@ void main() {
     expect(files.reads.last.link, 'fixture-share');
     expect(files.reads.last.password, 'fixture-password');
     final switching = files.reads.length;
-    await tester.tap(find.text('文档库 ▾'));
+    await tester.tap(find.byTooltip('切换文档库'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('个人文档库'));
+    await tester.tap(
+      find.widgetWithText(CheckedPopupMenuItem<BhpanRootKind>, '个人文档库'),
+    );
     await tester.pumpAndSettle();
     expect(files.reads.skip(switching).map((q) => q.view), [
       BhpanReadView.personalRoot,
@@ -116,15 +121,15 @@ void main() {
     final start = files.reads.length;
     final row = find.ancestor(
       of: find.text('分享文件.txt'),
-      matching: find.byType(ListTile),
+      matching: find.byType(BhpanItemTile),
     );
     await tester.tap(
-      find.descendant(of: row, matching: find.byType(PopupMenuButton<String>)),
+      find.descendant(of: row, matching: find.byTooltip('更多操作')),
     );
     await tester.pumpAndSettle();
     await tester.tap(find.text('另存到网盘'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('个人文档库'));
+    await tester.tap(find.widgetWithText(ListTile, '个人文档库'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('选择此目录'));
     await tester.pumpAndSettle();
@@ -152,6 +157,12 @@ void main() {
     expect(files.reads.skip(start).map((q) => q.view), [
       BhpanReadView.receivedShare,
     ]);
-    expect(find.text('接收分享'), findsOneWidget);
+    expect(files.reads.last.link, 'fixture-share');
+    expect(files.reads.last.password, 'fixture-password');
+    await tester.tap(find.byTooltip('更多云盘操作'));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('接收分享'));
+    await tester.pumpAndSettle();
+    expect(find.widgetWithText(AlertDialog, '接收分享'), findsOneWidget);
   });
 }

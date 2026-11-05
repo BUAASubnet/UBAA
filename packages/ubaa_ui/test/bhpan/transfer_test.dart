@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_ui/src/features/bhpan/chrome.dart';
 import 'support.dart';
 
 class Destination implements BhpanDownloadDestination {
@@ -61,11 +62,9 @@ Future<void> show(WidgetTester tester, BhpanAccess access) async {
 Future<void> clickDownload(WidgetTester tester, {bool settle = true}) async {
   final row = find.ancestor(
     of: find.text('报告.txt'),
-    matching: find.byType(ListTile),
+    matching: find.byType(BhpanItemTile),
   );
-  await tester.tap(
-    find.descendant(of: row, matching: find.byType(PopupMenuButton<String>)),
-  );
+  await tester.tap(find.descendant(of: row, matching: find.byTooltip('更多操作')));
   await tester.pumpAndSettle();
   await tester.tap(find.text('下载'));
   if (settle) {
@@ -114,9 +113,13 @@ void main() {
         },
       ),
     );
-    await tester.tap(find.text('上传'));
+    await tester.tap(find.byKey(const ValueKey('bhpan-create')));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('上传文件'));
     await tester.pumpAndSettle();
     expect(request!.kind, BhpanMutationKind.upload);
+    expect(request!.target, 'root');
+    expect(request!.source!.path, '/synthetic/input');
     expect(request!.source!.name, 'notes.txt');
     expect(request!.transfer, isNotNull);
   });
@@ -156,17 +159,13 @@ void main() {
         },
       ),
     );
-    for (final name in ['课程资料', '报告.txt']) {
-      final row = find.ancestor(
-        of: find.text(name),
-        matching: find.byType(ListTile),
-      );
-      await tester.tap(
-        find.descendant(of: row, matching: find.byType(Checkbox)),
-      );
-      await tester.pump();
-    }
-    await tester.tap(find.text('打包下载'));
+    await tester.longPress(find.text('课程资料'));
+    await tester.pumpAndSettle();
+    expect(find.text('已选 1 项'), findsOneWidget);
+    await tester.tap(find.text('报告.txt'));
+    await tester.pumpAndSettle();
+    expect(find.text('已选 2 项'), findsOneWidget);
+    await tester.tap(find.byTooltip('打包下载'));
     await tester.pumpAndSettle();
     expect(files.downloads.single, ['folder', 'file']);
     expect(suggested, endsWith('.zip'));
