@@ -50,12 +50,24 @@ pub(super) fn reusable(
     let CachePayload::JudgeDetail(detail) = &record.payload else {
         return false;
     };
+    // 列表只证明这些字段；截止、评分和提交状态来自详情，按下方期限复查。
+    let fingerprint = (
+        assignment.course_id.as_str(),
+        assignment.assignment_id.as_str(),
+        assignment.course_name.as_str(),
+        assignment.title.as_str(),
+    );
+    let cached_fingerprint = (
+        detail.course_id.as_str(),
+        detail.assignment_id.as_str(),
+        detail.course_name.as_str(),
+        detail.title.as_str(),
+    );
     if options.full_refresh
         || options.current_assignment.as_ref().is_some_and(|key| {
             key.course_id == assignment.course_id && key.assignment_id == assignment.assignment_id
         })
-        || detail.title != assignment.title
-        || detail.course_name != assignment.course_name
+        || fingerprint != cached_fingerprint
     {
         return false;
     }
@@ -63,8 +75,11 @@ pub(super) fn reusable(
         now,
         if historical(detail, now) {
             7 * 86400
+        } else if timestamp(detail.due_time.as_deref()).is_none_or(|due| now.abs_diff(due) <= 86400)
+        {
+            15 * 60
         } else {
-            120
+            6 * 3600
         },
     )
 }

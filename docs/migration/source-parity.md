@@ -1,5 +1,33 @@
 # 协议来源对照与专项索引
 
+## 作业列表字段与详情复用
+
+2026-11-05 核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `api/feature/{JudgeApi,SpocApi}.kt`、`api/local/{LocalJudgeApi,LocalSpocApi,LocalSpocSupport,LocalConnectionAuth}.kt`、`model/dto/{Judge,Spoc}.kt` 和 `LocalJudgeApiBackendTest`、`LocalSpocApiBackendTest`。固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 对照 `src/api.rs`、`api/spoc/{core,opt,data}.rs`、`api/sso/auth.rs`、`request.rs`、`store/{cred,cookies}.rs`。当前实现对照 Core `features/judge/{parser,service,scan}.rs`、`facade/judge_refresh/`、`features/spoc/{list,parser,detail,scan}.rs` 与 `facade/home_cache/spoc_scan/`。
+
+| 操作 | CAS/service 与引导 | 重定向与最终 URL | Cookie/Session/Token | 方法与精确参数 | 请求头与正文编码 | 加密/签名 | DTO 与解析 | 缓存/并发/重试 | 错误与产品语义 |
+|---|---|---|---|---|---|---|---|---|---|
+| Judge 课程与作业索引 | 沿用[希冀来源裁决](source-parity-judge-2026-10-23.md)的 HTTPS service；固定 buaa-api 无 Judge，各协议列不适用 | GET `courselist.jsp?courseID=0` 取得课程，选课后 GET `assignment/index.jsp`；保持原路线内跳转 | 旧版按用户、路线缓存；Core 按账号、路线与代次隔离，Direct worker 独立 Cookie | GET，无正文；选课参数 `courseID`；无服务端分页 | 沿用旧版浏览器 Accept、Accept-Language、User-Agent | 无 | 课程链接支持 `courseID` 与名称；作业链接支持数字 `assignID` 与锚点标题，排除 `problemContent`、`judgeDetails`，按作业 ID 去重 | 旧版列表 TTL 五分钟且不缓存空列表；Core 学校渐进刷新强制取得当前索引，保留历史课程索引复查规则 | 原索引错误、认证重激活、课程失败保旧保持；列表消失的作业从该课程摘要移除 |
+| Judge 单项详情与批量补全 | 沿用同一 Judge 激活；固定 buaa-api 不适用 | 选课后 GET `assignment/index.jsp?assignID=<列表作业编号>` | 同一账号、路线、课程与作业范围；不扩大 Cookie 作用域 | GET，精确参数 `assignID`，无正文 | 同上，HTML 全文解析；详情解压预算 16 MiB | 无 | 开始/截止时间、最高分/本人分数、题目数量、提交数量、提交状态、题目表与纯文本来自详情；列表 DTO 中这些摘要字段由详情投影 | 旧版详情 TTL 两分钟；最多四门课程 worker，课程内串行，WebVPN 保持选课与读取互斥；Core 保留现有认证重激活及取消/代次检查 | 完整范围包含复用详情仍可为 Complete；详情复用保留原详情来源与核验时间，列表读取成功只更新索引时间 |
+| SPOC 当前学期全局列表 | 旧版 `/spocnewht/cas` 获取 token，再 POST `/sys/casLogin` 初始化角色；示例省略旧版角色初始化，继续采用旧版流程 | 原路线内有界 CAS 跳转，当前学期 POST `/inco/ht/queryOne`，可选课程 GET `/jxkj/queryKclb`，权威列表 POST `/inco/ht/queryListByPage` | 旧版及 Core 使用路线内 token、RoleCode 与 Cookie；示例共享 `Spoc` credential 不作为放宽依据 | 课程参数 `kcmc=""`、`xnxq`；列表明文 `pageSize=15,pageNum,sqlid=1713252980496efac7d5d9985e81693116d3e8a52ebf2b,xnxq,kcid="",yzwz=""`；示例按课程 GET `/kczy/queryXsZyList?flag=1&sflx=2&sskcid=...` 不等价 | 旧版及 Core JSON `{param}`、XHR、`Token: Inco-…`、`RoleCode`；示例仅设置 Token | 旧版 AES-128-CBC 零填充、Base64；密钥 `inco12345678ocni`、IV `ocni12345678inco`；示例对齐明文填充差异仍按既有裁决处理 | 全局列表必需字符串 `zyid/zymc`，可选字符串 `sskcid/xnxq/tjzt/mf/kcmc/zykssj/zyjzsj`；教师来自可选课程元数据；示例 `id/sfzysjn` 不加入全局列表解析 | 分页直到既有终止条件；课程失败仍读全局列表；学校首页和日程刷新只推进此列表，不遍历全部 SPOC 详情 | 保持缺失分页回显、课程元数据和其他读取完整度规则；解析错误不重放，真实全局空页按既有规则发布 |
+| SPOC 显式单项详情及提交补充 | 沿用上述认证，无新引导 | 必需 GET `/kczy/queryKczyInfoByid?id=<作业编号>`，可选 GET `/kczy/queryXsSubmitKczyInfo?kczyid=<作业编号>`；示例仅实现同一正文端点，提交查询只有注释 | 同一路线 token、RoleCode 与 Cookie | GET，无正文，先由完整列表确认目标 | 旧版及 Core XHR、Token、RoleCode；示例仅 Token | GET 不加密 | 必需详情 `id/zymc`，可选 `zynr/zyfs/zykssj/zyjzsj/sskcid`；提交补充 `tjzt/tjsj`；Core 校验详情 ID 等于目标 | 旧版每次显式详情先读列表，再读正文和提交状态；当前分段入口复用已扫描列表，学校列表刷新不调用此入口 | 正文失败保旧，补充失败保留 Partial；缺目标失败；沿用现有状态合并和主会话仲裁 |
+
+Judge 可用于列表变化比较的有据字段为 `(course_id, assignment_id, course_name, title)`。冻结解析器 `LocalJudgeHtmlParsers.parseAssignments` 和 Core `parse_assignment_list` 均只从链接取得这些字段；两者未证明列表存在截止时间、提交状态、分数或更新时间。因此不能将详情投影出的摘要字段当作本轮列表观察，也不能推断列表不变即可证明正文、截止或提交结果不变。
+
+SPOC 的全局列表可观察身份、标题、课程、开始/截止时间、提交状态和 `mf`，但两冻结来源均未提供正文修订时间或正文版本。`mf` 在冻结夹具中为“满分:…”文本，不能推断为本人得分。SPOC 学校刷新已经只读取分页列表，本次“列表后逐项详情”的性能问题集中在 Judge；显式打开 SPOC 详情继续读取正文及提交状态。
+
+Judge 增量比较使用上述字段的直接相等关系，避免另存重复摘要或计算无用途的散列。详情复用必须同时满足现有缓存范围、完整度、成功状态与时效要求。新作业或列表字段变化时读取该项详情；列表未变时按下列详情时效复用。
+
+| 详情范围 | 复查期限 | 本机依据 |
+|---|---|---|
+| 普通作业，截止时间可解析且不在截止前后一天内 | 六小时 | 列表持续发现新项及改名；以后台刷新预算限制重复下载大正文，同时将列表不可见的正文、截止及评分变化延迟限制在六小时内 |
+| 截止前后 24 小时内，包含两个边界；或截止时间缺失、无法解析 | 15 分钟 | 临近截止时提交状态更影响待办；缺少可用截止时间时采用同一较短复查期限 |
+| 满足原有历史判据的已提交作业 | 七天 | 沿用原历史策略：开始早于六个月前且截止早于 14 天前；避免历史大正文反复下载 |
+| 显式打开的目标详情、`full_refresh` | 立即读取 | 用户明确要求核对当前详情时取得新正文和提交状态 |
+
+六小时、15 分钟和截止前后一天均为本机刷新取舍，不是上游缓存协议或正文不变证明。它们针对已观察到单项详情超过 10 MiB 的重复下载成本，并保留对列表不可见变化的定期复查。复用详情不得刷新其 `fetched_at/last_verified_at`，最终摘要时间由所包含详情的实际来源时间保守汇总；成功取得当前完整列表并覆盖全部项时，复用本身不降低完整度。
+
+本次真实只读验收仅获 Direct 授权，凭据只读自 `.env.local`，本机材料保存在被忽略且权限为 700 的 `.ubaa_local/judge_incremental/`。WebVPN 真实路线验收待该路线授权后重跑，固定 Fixture/Mock 与 Direct 结果不替代该路线证据。
+
 ## 希冀作业详情正文预算
 
 2026-11-05 核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `JudgeApi.kt`、`model/dto/Judge.kt`、`LocalJudgeApi.kt`、`LocalJudgeApiBackendTest.kt`，以及 `LocalConnectionAuth.kt` 与平台 `ApiClient`。旧版通过 `bodyAsText()` 完整读取详情，上述客户端没有设置应用层响应字节上限。固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `src/api.rs` 无 Judge 模块；另核对最邻近 `api/spoc/{core,data}.rs`、`api/sso/auth.rs`、`request.rs` 和 `store/{cred,cookies}.rs`，其 token/AES/JSON 协议不适用于 Judge。
@@ -15,7 +43,7 @@
 
 2026-11-05 对照同一冻结旧版的 `LocalJudgeApi.kt` 与 `LocalConnectionAuth.kt`：旧版按课程最多四路并发，课程内逐项读取，列表与详情的 TTL 分别为五分钟、两分钟。TTL 仅决定缓存复用，不会中断已取得列表的遍历。单请求期限为 30 秒，连接期限为 10 秒。旧版没有整体刷新期限、服务端分页或读取完整度 Partial；DTO 中的 `PARTIAL` 表示作业提交状态。固定 buaa-api 没有 Judge 模块，最邻近 SPOC 的 token/AES/JSON 各协议列仍不适用。
 
-课程目录、索引与详情的九列协议规则沿用上表。App 的学校日程刷新调用首页来源刷新，经 `BridgeBackend`、FRB 的 `begin_judge_refresh`／`next_judge_refresh` 和 Core facade 逐批读取；相同查询可加入首页在途计划。Judge 组内串行，跨业务最多八组并行，首批后降低调度优先级仍继续读取。core-live 的一次性批量接口在 Direct 最多并发四门课程。两者共用 16 MiB 详情预算及 30 秒单请求期限，没有额外的 App 总刷新期限或分页上限。App 普通持久详情可复用两分钟，历史详情七天，满足修订与复查条件的历史课程索引一天；强制完整刷新禁用这些复用。
+课程目录、索引与详情的九列协议规则沿用上表。App 的学校日程刷新调用首页来源刷新，经 `BridgeBackend`、FRB 的 `begin_judge_refresh`／`next_judge_refresh` 和 Core facade 逐批读取；相同查询可加入首页在途计划。Judge 组内串行，跨业务最多八组并行，首批后降低调度优先级仍继续读取。core-live 的一次性批量接口在 Direct 最多并发四门课程。两者共用 16 MiB 详情预算及 30 秒单请求期限，没有额外的 App 总刷新期限或分页上限。App 持久详情按本页“作业列表字段与详情复用”的六小时、15 分钟和七天规则复查，满足修订与复查条件的历史课程索引一天；强制完整刷新禁用这些复用。
 
 Core 在扫描期间保存索引与单项详情，完整范围的摘要及日程观察元数据在最终批次发布。非致命读取错误形成 `CourseFailure`，最终失败课程数大于零时为 Partial，并保留已有摘要的来源与核验时间。扫描期间看到旧 Partial 不能确定本轮读取失败。确定性 App 测试覆盖学校刷新新建计划、加入首页在途计划、详情推进与完整收尾，Rust 既有扫描测试覆盖逐批保存、来源时间和 Partial 保旧。
 

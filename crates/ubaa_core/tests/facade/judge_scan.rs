@@ -883,5 +883,7 @@ fn progressive_summary_time_tracks_remaining_old_items_instead_of_latest_batch_t
 mod activation;
 #[path = "judge_scan/details.rs"]
 mod details;
+#[path = "judge_scan/incremental.rs"]
+mod incremental;
 #[path = "judge_scan/online.rs"]
 mod online;
