@@ -40,15 +40,23 @@ Future<void> replaceWindowsMaterial(
   if (await backup.exists()) await backup.delete();
 }
 
-({int attributes, int errorCode}) _queryWindowsMaterial(File target) =>
-    using((arena) {
-      final attributes = GetFileAttributes(
-        target.path.toNativeUtf16(allocator: arena),
-      );
-      // 必须在其他原生调用（含 arena 释放）之前保存错误码。
-      final errorCode = attributes == 0xffffffff ? GetLastError() : 0;
-      return (attributes: attributes, errorCode: errorCode);
-    });
+({int attributes, int errorCode}) _queryWindowsMaterial(File target) {
+  final attributes = using(
+    (arena) => GetFileAttributes(target.path.toNativeUtf16(allocator: arena)),
+  );
+  if (attributes != 0xffffffff) return (attributes: attributes, errorCode: 0);
+
+  // Dart FFI 的两次调用之间可能丢失 Win32 错误码。用只读打开获取
+  // Dart I/O 保留的系统错误；属性查询失败时仍不允许替换现有文件。
+  final RandomAccessFile handle;
+  try {
+    handle = target.openSync();
+  } on FileSystemException catch (error) {
+    return (attributes: attributes, errorCode: error.osError?.errorCode ?? 0);
+  }
+  handle.closeSync();
+  return (attributes: attributes, errorCode: 0);
+}
 
 int _moveWindowsMaterial(File pending, File target, int flags) => using(
   (arena) => MoveFileEx(
