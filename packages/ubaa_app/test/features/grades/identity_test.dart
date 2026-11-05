@@ -4,7 +4,6 @@ import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'aggregate_test.dart' as fixtures;
 import 'package:ubaa_test_support/recovery.dart' as startup;
-import '../../cache/query_test.dart' show until;
 
 void main() {
   test('未保留本机账号的宿主遇身份冲突后也不能准备学校写入', () async {
@@ -60,9 +59,12 @@ void main() {
     await controller.initialize();
     await controller.recoverSession(refreshHomeAfter: false);
     final pending = controller.loadGradeTerm('a');
-    await until(() => backend.started);
-    await controller.setRoutePolicy(RoutePolicy.webvpn);
-    backend.gate!.complete();
+    try {
+      await backend.started.future.timeout(const Duration(seconds: 5));
+      await controller.setRoutePolicy(RoutePolicy.webvpn);
+    } finally {
+      backend.gate!.complete();
+    }
     await pending;
     expect(controller.phase, AppPhase.home);
     expect((await accounts.read())!.canRestore, isTrue);
@@ -74,7 +76,7 @@ class _Backend extends fixtures.GradesBackend {
   _Backend(this.target);
   final FeatureId target;
   Completer<void>? gate;
-  bool started = false;
+  final started = Completer<void>();
   int closed = 0;
   @override
   Future<FeatureResult> loadFeatureQuery(
@@ -82,7 +84,7 @@ class _Backend extends fixtures.GradesBackend {
     FeatureQuery query,
   ) async {
     if (feature == target) {
-      started = true;
+      if (!started.isCompleted) started.complete();
       await gate?.future;
       throw const BackendException(
         UbaaErrorCode.authenticationRequired,
