@@ -139,7 +139,7 @@ class GradeSummaryCard extends StatelessWidget {
               ),
             ],
             if (onRetry != null)
-              TextButton(onPressed: onRetry, child: const Text('重试统计')),
+              TextButton(onPressed: onRetry, child: const Text('重试')),
           ],
         ),
       ),

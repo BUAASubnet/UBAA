@@ -327,7 +327,7 @@ class HomeViewState extends State<HomeView> {
       result = const FeatureResult.failure(
         UiError(
           code: UbaaErrorCode.internalError,
-          title: '加载失败',
+          title: '读取失败',
           message: '待办来源读取失败',
         ),
       );
@@ -824,9 +824,7 @@ class _HomeTodoCard extends StatelessWidget {
                       item.timeLabel,
                       style: theme.textTheme.labelLarge?.copyWith(
                         color: item.soon
-                            ? (theme.brightness == Brightness.dark
-                                  ? const Color(0xFFFFBD75)
-                                  : const Color(0xFF9A4D00))
+                            ? UbaaTheme.warning(theme.colorScheme)
                             : theme.colorScheme.onPrimaryContainer,
                       ),
                     ),

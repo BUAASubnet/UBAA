@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/feedback.dart';
+import '../../theme.dart' show UbaaTheme;
 
 class AgendaSyncStatusCard extends StatelessWidget {
   const AgendaSyncStatusCard({
@@ -22,9 +23,9 @@ class AgendaSyncStatusCard extends StatelessWidget {
     } on Object catch (error) {
       final failure = error is AgendaException ? error.failure : null;
       UbaaFeedback.show(context, switch (failure) {
-        AgendaFailure.unavailable => '客户端忙，请稍后再试',
+        AgendaFailure.unavailable => '客户端忙，请稍后重试',
         AgendaFailure.superseded => '当前路线不能确认创建，请重新拉取日程',
-        _ => '无法准备日程同步，请稍后再试',
+        _ => '无法准备日程同步，请稍后重试',
       }, kind: UbaaFeedbackKind.warning);
       return;
     }
@@ -113,9 +114,9 @@ class AgendaSyncStatusCard extends StatelessWidget {
           status == AgendaSyncStatus.outcomeUnknown ||
           status == AgendaSyncStatus.unverified;
       final Color tone = ok
-          ? const Color(0xFF2E7D4F)
+          ? UbaaTheme.success(colors)
           : warn
-          ? colors.tertiary
+          ? UbaaTheme.warning(colors)
           : service.syncEnabled
           ? colors.primary
           : colors.onSurfaceVariant;

@@ -270,7 +270,7 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
             if (!loading &&
                 (_page?.errorCode != null || widget.snapshot.error != null))
               UiInlineRetry(
-                message: '打卡记录加载失败',
+                message: '打卡记录读取失败',
                 onRetry: () => _load(widget.query),
               )
             else if (_page == null && !loading)

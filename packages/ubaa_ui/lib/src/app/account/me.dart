@@ -366,7 +366,7 @@ class _MetricTile extends StatelessWidget {
           maxLines: 1,
         ),
       _TileFailed() => Text(
-        '获取失败',
+        '读取失败',
         style: theme.textTheme.bodyMedium?.copyWith(color: scheme.error),
       ),
       _TilePending(:final loading) => Text(

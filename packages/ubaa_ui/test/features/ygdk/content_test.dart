@@ -40,7 +40,7 @@ void main() {
       ),
     );
     expect(find.text('合成历史运动'), findsNothing);
-    expect(find.text('打卡记录加载失败'), findsOneWidget);
+    expect(find.text('打卡记录读取失败'), findsOneWidget);
   });
   testWidgets('首次记录刷新失败仍展示持久缓存中的同分类内容', (tester) async {
     await _open(
@@ -61,14 +61,14 @@ void main() {
       ),
     );
     expect(find.text('合成历史运动'), findsOneWidget);
-    expect(find.text('打卡记录加载失败'), findsOneWidget);
+    expect(find.text('打卡记录读取失败'), findsOneWidget);
   });
 
   testWidgets('部分统计不显示默认零且不冒称记录加载失败', (tester) async {
     await _open(tester, partial: true);
     expect(find.text('统计尚未确认'), findsNothing);
     expect(find.text('本学期认定次数 0 次'), findsNothing);
-    expect(find.text('打卡记录加载失败'), findsNothing);
+    expect(find.text('打卡记录读取失败'), findsNothing);
     expect(find.text('合成历史运动'), findsOneWidget);
   });
 
@@ -114,7 +114,7 @@ void main() {
       ),
     );
     expect(find.text('本学期认定次数 0 次'), findsOneWidget);
-    expect(find.text('打卡记录加载失败'), findsOneWidget);
+    expect(find.text('打卡记录读取失败'), findsOneWidget);
     expect(find.text('暂无打卡记录'), findsNothing);
     expect(find.text('重试'), findsOneWidget);
   });

@@ -18,6 +18,17 @@ class UbaaTheme {
   static const double cardRadius = 16;
   static const double controlRadius = 12;
 
+  /// 成功与临近截止的语义色；Material 配色没有这两类，统一在此定义。
+  static Color success(ColorScheme colors) =>
+      colors.brightness == Brightness.dark
+      ? const Color(0xFF8BD5A8)
+      : const Color(0xFF2E7D4F);
+
+  static Color warning(ColorScheme colors) =>
+      colors.brightness == Brightness.dark
+      ? const Color(0xFFFFBD75)
+      : const Color(0xFF9A4D00);
+
   static double pagePadding(double width) => width < 600
       ? 16
       : width < 1000

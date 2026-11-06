@@ -480,7 +480,9 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
             if (_panelOpen)
               Positioned.fill(
                 child: ModalBarrier(
-                  color: Colors.black26,
+                  color: Theme.of(
+                    context,
+                  ).colorScheme.scrim.withValues(alpha: .26),
                   onDismiss: togglePanel,
                   semanticsLabel: '关闭筛选',
                 ),
@@ -763,7 +765,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                 widget.snapshot.error ??
                 const UiError(
                   code: UbaaErrorCode.internalError,
-                  title: '加载失败',
+                  title: '读取失败',
                   message: '暂时无法加载该功能，请稍后重试。',
                   retryable: true,
                 ),

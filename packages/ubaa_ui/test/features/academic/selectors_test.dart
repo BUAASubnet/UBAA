@@ -137,7 +137,7 @@ void main() {
       return const FeatureResult.failure(
         UiError(
           code: UbaaErrorCode.networkError,
-          title: '获取失败',
+          title: '读取失败',
           message: '暂时无法获取学期',
           retryable: true,
         ),

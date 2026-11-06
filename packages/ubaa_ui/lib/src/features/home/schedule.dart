@@ -100,7 +100,7 @@ class _HomeScheduleSectionState extends State<HomeScheduleSection> {
       result = const FeatureResult.failure(
         UiError(
           code: UbaaErrorCode.networkError,
-          title: '课表加载失败',
+          title: '课表读取失败',
           message: '请稍后重试',
           retryable: true,
         ),
@@ -232,7 +232,7 @@ class _HomeScheduleSectionState extends State<HomeScheduleSection> {
               leading: const Icon(Icons.calendar_today),
               title: Text(
                 error != null
-                    ? '课表加载失败，请重试'
+                    ? '课表读取失败，请重试'
                     : remote
                     ? widget.onLoadDay == null
                           ? '暂无今日课表'

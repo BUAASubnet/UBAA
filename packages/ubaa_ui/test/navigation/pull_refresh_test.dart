@@ -158,7 +158,7 @@ Future<void> mount(
               error: id == feature && status == FeatureLoadStatus.failure
                   ? const UiError(
                       code: UbaaErrorCode.networkError,
-                      title: '加载失败',
+                      title: '读取失败',
                       message: '合成失败',
                       retryable: true,
                     )

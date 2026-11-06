@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../theme.dart' show UbaaTheme;
 
 /// 保留各来源和查询范围的缓存状态，时间统一显示为北京时间。
 class AgendaCacheStatus extends StatelessWidget {
@@ -130,8 +131,8 @@ class AgendaCacheStatus extends StatelessWidget {
     final summary = friendly(observations);
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
-    const good = Color(0xFF2E7D4F);
-    final amber = colors.tertiary;
+    final good = UbaaTheme.success(colors);
+    final amber = UbaaTheme.warning(colors);
     return Container(
       key: const ValueKey('agenda-cache-status'),
       margin: const EdgeInsets.only(bottom: 12),

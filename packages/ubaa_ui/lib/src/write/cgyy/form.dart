@@ -151,7 +151,7 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
       result = const FeatureResult.failure(
         UiError(
           code: UbaaErrorCode.networkError,
-          title: '活动类型加载失败',
+          title: '活动类型读取失败',
           message: '请稍后重试。',
         ),
       );

@@ -116,7 +116,7 @@ void main() {
     await tester.tap(find.widgetWithText(FilledButton, '创建云端日程'));
     await tester.pumpAndSettle();
     expect(find.text('确认创建'), findsNothing);
-    expect(find.text('客户端忙，请稍后再试'), findsOneWidget);
+    expect(find.text('客户端忙，请稍后重试'), findsOneWidget);
     expect(backend.calls.map((call) => call.$2), [AgendaSyncAction.pull]);
   });
 

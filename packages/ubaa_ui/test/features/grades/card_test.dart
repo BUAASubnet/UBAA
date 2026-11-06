@@ -47,7 +47,7 @@ void main() {
     );
     expect(find.text('本学期'), findsOneWidget);
     expect(find.text('--'), findsNWidgets(3));
-    await tester.tap(find.text('重试统计'));
+    await tester.tap(find.text('重试'));
     expect(retries, 1);
   });
 }

@@ -187,7 +187,7 @@ void main() {
     );
     final fee = find.byKey(const ValueKey('me-metric-network-fee'));
     expect(
-      find.descendant(of: fee, matching: find.text('获取失败')),
+      find.descendant(of: fee, matching: find.text('读取失败')),
       findsOneWidget,
     );
     expect(find.text('合成网络产品'), findsOneWidget);
@@ -257,7 +257,7 @@ void main() {
     );
     final card = find.byKey(const ValueKey('me-metric-card'));
     expect(
-      find.descendant(of: card, matching: find.text('获取失败')),
+      find.descendant(of: card, matching: find.text('读取失败')),
       findsNothing,
     );
 
