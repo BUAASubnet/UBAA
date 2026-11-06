@@ -10,6 +10,12 @@
 
 UBAA v1 的冻结来源为 [BUAASubnet/UBAA](https://github.com/BUAASubnet/UBAA)，提交 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3`。认证、WebVPN、会话和 DTO 的对照范围见[冻结引用记录](docs/migration/references.md)。Android 桌面课表的 `widgets/WidgetRenderer.kt`、`schedule_widget` 布局、背景和组件元数据移植自该版本，并适配当前只读模型与日期类型。Copyright (c) 2026 BUAASubnet，MIT 全文见 [ubaa-old-MIT.txt](docs/licenses/ubaa-old-MIT.txt)。
 
+## 本地图像识别模型
+
+`crates/ubaa_core/assets/captcha/` 使用 [sml2h3/ddddocr](https://github.com/sml2h3/ddddocr) 的 PyPI `ddddocr==1.6.1` 所附 `common_old.onnx` 和对应字符集。许可证原文见 [ddddocr-MIT.txt](docs/licenses/ddddocr-MIT.txt)。模型不包含本项目用户的验证码或个人数据。
+
+随应用保存的模型将原模型的 Microsoft `DynamicQuantizeLSTM` 权重按原比例和零点还原，转置为标准 ONNX `LSTM` 布局，其余算子及权重保留。输出形状元数据改为序列长度、批量和字符类别三个维度，模型使用确定性的 gzip 压缩。[转换脚本](scripts/build/convert_captcha_model.py)使用 `ddddocr==1.6.1` 和 `onnx==1.23.2`，通过 `--output-dir` 指定输出目录。转换用于同一套 Rust 推理代码覆盖官方宿主与 OHOS，不依赖用户设备上的 Python 或另行安装的 ONNX Runtime 动态库。推理采用普通 Cargo 依赖 `tract-onnx`，许可证与完整依赖以 Cargo.lock 为准。
+
 ## 随仓库保留的源码
 
 | 组件与位置 | 来源与版本依据 | 许可证及声明 |
