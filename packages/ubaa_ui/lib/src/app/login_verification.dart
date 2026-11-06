@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../theme.dart' show UbaaTheme;
 import 'login_captcha.dart' show CaptchaPixels;
+import '../shared/loading.dart';
 
 /// 仅在需要人工处理时显示的登录验证窗口。
 class UbaaCaptchaDialog extends StatefulWidget {
@@ -86,10 +87,7 @@ class _UbaaCaptchaDialogState extends State<UbaaCaptchaDialog> {
                       ),
                     ),
                     child: value.isRefreshing
-                        ? const SizedBox.square(
-                            dimension: 20,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          )
+                        ? const LoadingGlyph(dimension: 20)
                         : value.hasUsableFrame
                         ? CaptchaPixels(frame: value.frame!)
                         : const Text('图片暂不可用，点击刷新'),
@@ -136,10 +134,7 @@ class _UbaaCaptchaDialogState extends State<UbaaCaptchaDialog> {
               ? widget.onSubmit
               : null,
           child: widget.isLoading
-              ? const SizedBox.square(
-                  dimension: 18,
-                  child: CircularProgressIndicator(strokeWidth: 2),
-                )
+              ? const LoadingGlyph(dimension: 18)
               : const Text('验证'),
         ),
       ],

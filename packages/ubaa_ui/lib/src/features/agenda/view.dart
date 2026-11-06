@@ -15,6 +15,8 @@ import 'list_content.dart';
 import 'sync_status.dart';
 import 'detail_content.dart';
 import '../../shared/create_button.dart';
+import '../../shared/loading.dart';
+import '../../shared/refresh.dart';
 part 'details.dart';
 part 'export.dart';
 part 'filters.dart';
@@ -72,6 +74,7 @@ class AgendaViewState extends State<AgendaView> {
   AgendaQueryResult? result;
   String? error;
   bool loading = false,
+      pulling = false,
       busy = false,
       includeCompleted = true,
       includeHidden = false;
@@ -648,14 +651,24 @@ class AgendaViewState extends State<AgendaView> {
             if (available) statusLine(),
             ...notices(),
             const SizedBox(height: 6),
+            // 只有首次读取在页面内提示；刷新进度显示在标题栏右侧。
             SizedBox(
               height: 2,
-              child: loading ? const LinearProgressIndicator() : null,
+              child: loading && result == null
+                  ? const LinearProgressIndicator()
+                  : null,
             ),
           ],
         );
-        final content = RefreshIndicator(
-          onRefresh: load,
+        final content = PullToRefresh(
+          onRefresh: () async {
+            setState(() => pulling = true);
+            try {
+              await load();
+            } finally {
+              if (mounted) setState(() => pulling = false);
+            }
+          },
           child: CustomScrollView(
             key: const ValueKey('agenda-main-scroll'),
             physics: const AlwaysScrollableScrollPhysics(),

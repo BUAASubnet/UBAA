@@ -1,5 +1,6 @@
 import 'dart:async';
 import '../../shared/loading.dart' show LoadingGlyph;
+import '../../shared/refresh.dart' show PullToRefresh;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
@@ -136,10 +137,9 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
     final value = _value;
     final theme = Theme.of(context);
     final code = value?.code;
-    return RefreshIndicator(
+    return PullToRefresh(
       onRefresh: _refresh,
       child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
         padding: const EdgeInsets.all(16),
         children: [
           Row(

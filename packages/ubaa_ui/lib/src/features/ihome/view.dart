@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../shared/loading.dart';
+import '../../shared/refresh.dart';
 import '../../theme.dart';
 part 'detail.dart';
 part 'filters.dart';
@@ -183,10 +185,10 @@ class _IhomeViewState extends State<IhomeView> {
   Widget build(BuildContext context) {
     if (widget.service == null)
       return const Center(child: Text('当前客户端暂不支持 iHome'));
-    return RefreshIndicator(
+    final empty = _notices ? _announcements.isEmpty : _entries.isEmpty;
+    return PullToRefresh(
       onRefresh: () => _load(),
       child: ListView(
-        physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.all(
           UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
         ),
@@ -240,16 +242,15 @@ class _IhomeViewState extends State<IhomeView> {
                   onPressed: _loading || _busy.isNotEmpty
                       ? null
                       : () => _load(),
-                  icon: const Icon(Icons.refresh),
+                  icon: _loading && !empty
+                      ? const LoadingGlyph()
+                      : const Icon(Icons.refresh),
                 ),
             ],
           ),
           if (!_notices) ..._filters(),
-          if (_loading)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 12),
-              child: LinearProgressIndicator(),
-            ),
+          // 只有首次读取在页面内占位；刷新保留原内容。
+          if (_loading && empty) const LoadingPlaceholder(compact: true),
           if (_error != null)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
@@ -267,9 +268,7 @@ class _IhomeViewState extends State<IhomeView> {
                 TextButton(onPressed: _loadConfig, child: const Text('重试')),
               ],
             ),
-          if (!_loading &&
-              _error == null &&
-              (_notices ? _announcements.isEmpty : _entries.isEmpty))
+          if (!_loading && _error == null && empty)
             const Padding(
               padding: EdgeInsets.all(32),
               child: Center(child: Text('暂无内容')),
@@ -284,9 +283,14 @@ class _IhomeViewState extends State<IhomeView> {
           if (!_notices)
             for (final entry in _entries) _appealCard(context, entry),
           if (_hasMore)
-            TextButton(
-              onPressed: _loading ? null : () => _load(more: true),
-              child: const Text('加载更多'),
+            Center(
+              child: OutlinedButton.icon(
+                onPressed: _loading ? null : () => _load(more: true),
+                icon: _loading
+                    ? const LoadingGlyph()
+                    : const Icon(Icons.expand_more),
+                label: const Text('加载更多'),
+              ),
             ),
         ],
       ),

@@ -8,10 +8,7 @@ extension BykcDetailActions on _FeatureDetailListState {
 
   Widget _bykcWriteIcon(WriteOperation operation, int courseId) =>
       widget.bykcPendingCourseId == courseId
-      ? const SizedBox.square(
-          dimension: 18,
-          child: CircularProgressIndicator(strokeWidth: 2),
-        )
+      ? const LoadingGlyph(dimension: 18)
       : Icon(
           operation == WriteOperation.bykcSelectCourse
               ? Icons.add_circle_outline

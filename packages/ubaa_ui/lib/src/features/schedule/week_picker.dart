@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/error_card.dart' show FriendlyErrorCard;
+import '../../shared/loading.dart';
 
 /// 保留原教学周顺序，重复编号全部待确认，不静默挑一个当权威值。
 List<FeatureDetail> uiUniqueWeekOptions(FeatureResult result, String term) {
@@ -63,7 +64,7 @@ class _AcademicWeekDialogState extends State<AcademicWeekDialog> {
               if (snapshot.connectionState != ConnectionState.done)
                 return const SizedBox(
                   height: 64,
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(child: LoadingGlyph(dimension: 32)),
                 );
               if (snapshot.data?.error case final error?)
                 return FriendlyErrorCard(error: error, onRetry: _reload);

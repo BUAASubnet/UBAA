@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../../shared/dialogs/scope_boundary.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../shared/loading.dart';
 
 Future<String?> bhpanText(
   BuildContext context, {
@@ -385,7 +386,7 @@ class _DestinationState extends State<_Destination> {
                       ),
                     )
                   : folders == null
-                  ? const Center(child: CircularProgressIndicator())
+                  ? const LoadingPlaceholder()
                   : folders.isEmpty
                   ? Center(
                       child: Text(

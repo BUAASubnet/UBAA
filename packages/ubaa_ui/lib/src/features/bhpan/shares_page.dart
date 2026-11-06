@@ -9,6 +9,7 @@ import 'write_flow.dart';
 import '../../shared/dialogs/scope_boundary.dart';
 import '../../shared/feedback.dart';
 import '../../shared/refresh.dart';
+import '../../shared/loading.dart';
 
 /// 有效期的展示文字；过期时第二项为 true。
 (String, bool) bhpanShareExpiry(
@@ -323,12 +324,7 @@ class _ShareSheetState extends State<_ShareSheet> {
                             )
                           : const Align(
                               alignment: Alignment.centerLeft,
-                              child: SizedBox.square(
-                                dimension: 18,
-                                child: CircularProgressIndicator(
-                                  strokeWidth: 2,
-                                ),
-                              ),
+                              child: LoadingGlyph(dimension: 18),
                             ),
                     ),
                     IconButton(

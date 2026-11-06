@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../common/detail_fields.dart' show DetailField;
 import '../common/error_card.dart' show FriendlyErrorCard;
+import '../shared/loading.dart';
 
 /// 所有写操作共用的二次确认组件。
 ///
@@ -183,12 +184,7 @@ class _WriteConfirmationViewState extends State<WriteConfirmationView> {
                           ? const Row(
                               mainAxisSize: MainAxisSize.min,
                               children: <Widget>[
-                                SizedBox.square(
-                                  dimension: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                ),
+                                LoadingGlyph(dimension: 16),
                                 SizedBox(width: 8),
                                 Text('正在取消'),
                               ],
@@ -200,10 +196,7 @@ class _WriteConfirmationViewState extends State<WriteConfirmationView> {
                           ? null
                           : () => widget.onConfirm(),
                       icon: isSubmitting && !isDiscarding
-                          ? const SizedBox.square(
-                              dimension: 16,
-                              child: CircularProgressIndicator(strokeWidth: 2),
-                            )
+                          ? const LoadingGlyph(dimension: 16)
                           : const Icon(Icons.check),
                       label: Text(expired ? '确认已过期' : '确认提交'),
                     ),

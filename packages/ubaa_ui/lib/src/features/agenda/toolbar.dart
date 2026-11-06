@@ -23,6 +23,12 @@ extension _AgendaToolbar on AgendaViewState {
               ),
             ),
           ),
+          // 刷新进度：下拉期间已有下拉指示器，不重复显示。
+          if (loading && result != null && !pulling)
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 8),
+              child: LoadingGlyph(),
+            ),
           IconButton(
             tooltip: '搜索日程',
             isSelected: searchVisible,

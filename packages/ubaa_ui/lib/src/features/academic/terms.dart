@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/error_card.dart' show FriendlyErrorCard;
+import '../../shared/loading.dart';
 
 class AcademicTermDialog extends StatefulWidget {
   const AcademicTermDialog({required this.loader, required this.selected});
@@ -42,7 +43,7 @@ class _AcademicTermDialogState extends State<AcademicTermDialog> {
               if (snapshot.connectionState != ConnectionState.done) {
                 return const SizedBox(
                   height: 64,
-                  child: Center(child: CircularProgressIndicator()),
+                  child: Center(child: LoadingGlyph(dimension: 32)),
                 );
               }
               final result = snapshot.data;

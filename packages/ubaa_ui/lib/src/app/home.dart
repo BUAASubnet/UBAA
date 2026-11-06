@@ -10,6 +10,7 @@ import '../features/home/todo_grid.dart';
 import '../shared/loading.dart' show LoadingPlaceholder;
 import '../features/grades/notice.dart' show GradeScoreBanner;
 import '../shared/feature_icons.dart' show uiFeatureIcon;
+import '../shared/refresh.dart' show PullToRefresh;
 
 class HomeView extends StatefulWidget {
   const HomeView({
@@ -691,11 +692,10 @@ class HomeViewState extends State<HomeView> {
           ),
       ],
     );
-    return RefreshIndicator(
+    return PullToRefresh(
       onRefresh: () => widget.onPullRefresh?.call(refresh) ?? refresh(),
       child: ListView(
         key: const ValueKey('home-scroll'),
-        physics: const AlwaysScrollableScrollPhysics(),
         padding: EdgeInsets.all(
           UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
         ),

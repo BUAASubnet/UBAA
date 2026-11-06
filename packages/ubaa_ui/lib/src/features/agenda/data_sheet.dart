@@ -168,12 +168,7 @@ extension _AgendaDataSheet on AgendaViewState {
                               ? () => unawaited(refreshSchool())
                               : null,
                           icon: schoolRefreshing
-                              ? const SizedBox.square(
-                                  dimension: 16,
-                                  child: CircularProgressIndicator(
-                                    strokeWidth: 2,
-                                  ),
-                                )
+                              ? const LoadingGlyph(dimension: 16)
                               : const Icon(Icons.refresh, size: 18),
                           label: Text(schoolRefreshing ? '正在刷新' : '刷新学校日程'),
                         ),

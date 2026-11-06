@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'chrome.dart';
 import 'format.dart';
+import '../../shared/loading.dart';
 
 /// 条目可执行的操作；标签与图标只在这里维护。
 enum BhpanAction {
@@ -326,10 +327,7 @@ class _DetailsSheetState extends State<_DetailsSheet> {
                       ? text('暂时无法统计')
                       : const Align(
                           alignment: Alignment.centerLeft,
-                          child: SizedBox.square(
-                            dimension: 16,
-                            child: CircularProgressIndicator(strokeWidth: 2),
-                          ),
+                          child: LoadingGlyph(dimension: 16),
                         ),
                 ),
               ),
