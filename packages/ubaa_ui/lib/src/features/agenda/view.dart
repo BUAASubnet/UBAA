@@ -426,6 +426,7 @@ class AgendaViewState extends State<AgendaView> {
   Future<void> syncSettings() => showModalBottomSheet<void>(
     context: context,
     showDragHandle: true,
+    isScrollControlled: true,
     builder: (context) => bound(
       SafeArea(
         child: Padding(

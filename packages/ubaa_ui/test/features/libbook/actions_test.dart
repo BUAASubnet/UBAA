@@ -213,7 +213,7 @@ void _registerLibbookCancellationWriteTest() {
     await tester.pumpAndSettle();
     expect(prepareCalls, 0);
     expect(commitCalls, 0);
-    await tester.tap(find.text('再想想'));
+    await tester.tap(find.text('保留预约'));
     await tester.pumpAndSettle();
     expect(prepareCalls, 0);
     expect(commitCalls, 0);

@@ -114,9 +114,9 @@ void _registerCgyyCancellationWriteTest() {
     await tester.pumpAndSettle();
     expect(find.text('取消这条研讨室预约？'), findsOneWidget);
     expect(find.text('确认取消').hitTestable(), findsOneWidget);
-    expect(find.text('再想想').hitTestable(), findsOneWidget);
+    expect(find.text('保留预约').hitTestable(), findsOneWidget);
     expect(tester.takeException(), isNull);
-    await tester.tap(find.text('再想想'));
+    await tester.tap(find.text('保留预约'));
     await tester.pumpAndSettle();
     expect(discards, 0);
     expect(prepares, 0);

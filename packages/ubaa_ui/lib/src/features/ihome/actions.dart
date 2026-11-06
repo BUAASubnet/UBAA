@@ -75,7 +75,7 @@ extension _IhomeActions on _IhomeViewState {
           actions: [
             TextButton(
               onPressed: () => Navigator.pop(context, false),
-              child: const Text('返回'),
+              child: Text(enabled ? '取消' : '保留'),
             ),
             FilledButton(
               onPressed: () => Navigator.pop(context, true),

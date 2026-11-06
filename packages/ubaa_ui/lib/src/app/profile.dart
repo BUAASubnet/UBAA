@@ -7,6 +7,7 @@ import '../common/section.dart';
 import 'cache_settings.dart' show CacheSettings;
 import 'profile_details.dart' show ProfileIdentityCard;
 import '../common/error_card.dart' show uiShowDiagnosticsDialog;
+import '../shared/dialogs/confirmation.dart' show uiDangerButtonStyle;
 
 class ProfileView extends StatelessWidget {
   const ProfileView({
@@ -189,6 +190,7 @@ class ProfileView extends StatelessWidget {
             child: const Text('取消'),
           ),
           FilledButton(
+            style: uiDangerButtonStyle(context),
             onPressed: () => Navigator.of(context).pop(true),
             child: const Text('退出并清除'),
           ),

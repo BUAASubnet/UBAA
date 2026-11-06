@@ -175,7 +175,7 @@ void _registerInitialWriteTests() {
     await tester.tap(find.text('退选'));
     await tester.pumpAndSettle();
     expect(find.byType(AlertDialog), findsOneWidget);
-    await tester.tap(find.text('再想想'));
+    await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
     expect(deselectCalls, 0);
     expect(commitCalls, 3);

@@ -172,6 +172,7 @@ extension AgendaDetails on AgendaViewState {
     await showModalBottomSheet<void>(
       context: context,
       isScrollControlled: true,
+      showDragHandle: true,
       builder: (sheet) => bound(
         SafeArea(child: detailContent(entry, () => Navigator.pop(sheet))),
       ),

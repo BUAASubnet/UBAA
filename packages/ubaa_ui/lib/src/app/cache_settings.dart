@@ -2,6 +2,7 @@ import '../shared/loading.dart' show LoadingGlyph;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../shared/dialogs/confirmation.dart' show uiDangerButtonStyle;
 
 class CacheSettings extends StatefulWidget {
   const CacheSettings({
@@ -71,6 +72,7 @@ class _CacheSettingsState extends State<CacheSettings> {
             child: const Text('取消'),
           ),
           FilledButton(
+            style: uiDangerButtonStyle(context),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('确认清理'),
           ),

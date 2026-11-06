@@ -53,12 +53,7 @@ extension _AgendaDataSheet on AgendaViewState {
                     children: [
                       const SizedBox(width: 4),
                       Expanded(
-                        child: Text(
-                          '数据与同步',
-                          style: theme.textTheme.titleLarge?.copyWith(
-                            fontWeight: FontWeight.w700,
-                          ),
-                        ),
+                        child: Text('数据与同步', style: theme.textTheme.titleLarge),
                       ),
                       IconButton(
                         tooltip: '关闭',

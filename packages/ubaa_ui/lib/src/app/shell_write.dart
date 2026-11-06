@@ -83,6 +83,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
           title: '退选这门课程？',
           message: '退选后名额可能被他人选走，无法保证再次选上。',
           action: '确认退选',
+          danger: true,
         ))
       return;
     if (!mounted || _writeBusy) return;
@@ -196,6 +197,8 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       title: '取消这条研讨室预约？',
       message: '取消后时段可能被他人预约，无法恢复。',
       action: '确认取消',
+      danger: true,
+      dismiss: '保留预约',
     ))
       return;
     await _runDirectWrite(
@@ -223,6 +226,8 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       title: '取消这个座位预约？',
       message: '取消后座位可能被他人预约，无法恢复。',
       action: '确认取消',
+      danger: true,
+      dismiss: '保留预约',
     ))
       return;
     await _runDirectWrite(
