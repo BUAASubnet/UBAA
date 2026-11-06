@@ -511,7 +511,7 @@ fn 共享文档库拒绝秒传且不发送探测请求() {
 }
 
 #[test]
-fn All入口核实个人根后允许秒传() {
+fn all_entry_verifies_personal_root_before_fast_upload() {
     executor().block_on(async {
         let script = Script::default();
         script.add(
