@@ -11,6 +11,18 @@ DateTime campusDate(DateTime value) =>
     value.toUtc().add(const Duration(hours: 8));
 String agendaDate(DateTime value) =>
     '${value.year.toString().padLeft(4, '0')}-${value.month.toString().padLeft(2, '0')}-${value.day.toString().padLeft(2, '0')}';
+const agendaWeekdays = ['一', '二', '三', '四', '五', '六', '日'];
+
+/// 「11月8日」，列表、日历与详情共用。
+String agendaMonthDay(DateTime value) => '${value.month}月${value.day}日';
+
+/// 「11月8日 周日」，列表分组标题与详情共用。
+String agendaMonthDayWeek(DateTime value) =>
+    '${agendaMonthDay(value)} 周${agendaWeekdays[value.weekday - 1]}';
+
+/// 「09:50」，使用已换算到北京时间的值。
+String agendaHm(DateTime value) =>
+    '${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}';
 AgendaTime agendaTime(DateTime value) => AgendaTime(
   rfc3339:
       '${agendaDate(value)}T${value.hour.toString().padLeft(2, '0')}:${value.minute.toString().padLeft(2, '0')}:00+08:00',

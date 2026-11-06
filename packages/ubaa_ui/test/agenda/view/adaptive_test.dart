@@ -129,15 +129,18 @@ void main() {
     await tester.pumpAndSettle();
     final pane = find.byKey(const ValueKey('agenda-detail-pane'));
     expect(
-      find.descendant(of: pane, matching: find.text('学校状态：已缓存')),
+      find.descendant(of: pane, matching: find.text('已缓存')),
       findsOneWidget,
     );
     await selectAgendaMenu(tester, '刷新本机数据');
     expect(
-      find.descendant(of: pane, matching: find.text('学校状态：已缓存')),
+      find.descendant(of: pane, matching: find.text('已缓存')),
       findsOneWidget,
     );
+    await tester.tap(find.text('添加备注'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, '本地备注'), '宽屏备注');
+    await tester.pump();
     await tester.tap(find.text('保存备注'));
     await tester.pumpAndSettle();
     expect(backend.overlays.values.single.value.note, '宽屏备注');

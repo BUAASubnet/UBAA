@@ -34,6 +34,9 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
   bool positioned = false;
   bool focusPositioned = false;
   double? lastViewport, lastColumn;
+
+  /// 本周已排入网格的最早时刻（距当天零点的小时数），用于首屏定位。
+  double? earliestHour;
   @override
   void dispose() {
     horizontal.dispose();
@@ -128,6 +131,7 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
     double hourHeight,
   ) {
     final widgets = <Widget>[];
+    earliestHour = null;
     for (var i = 0; i < 7; i++) {
       final day = monday.add(Duration(days: i)),
           tomorrow = monday.add(Duration(days: i + 1));
@@ -139,6 +143,11 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
         final rawStart = agendaStart(entry), rawEnd = agendaEnd(entry);
         if (rawStart == null || rawEnd == null || !rawEnd.isAfter(rawStart))
           continue;
+        // 跨午夜的后半段从零点画起，但不参与首屏定位。
+        if (!rawStart.isBefore(day)) {
+          final hour = rawStart.difference(day).inSeconds / 3600;
+          if (earliestHour == null || hour < earliestHour!) earliestHour = hour;
+        }
         final start = rawStart.isBefore(day) ? day : rawStart;
         final end = rawEnd.isAfter(tomorrow) ? tomorrow : rawEnd;
         final minimum = start.add(const Duration(minutes: 30));
@@ -258,16 +267,11 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
                 agendaEnd(e) == null,
           )
           .toList();
+      final placed = blocks(monday, column, axis, hourHeight);
       if (!positioned) {
         positioned = true;
-        var firstHour = 7;
-        final times = widget.entries
-            .where((e) => e.timing.kind == AgendaTimingKind.period)
-            .map(agendaStart)
-            .whereType<DateTime>()
-            .toList();
-        if (times.isNotEmpty)
-          firstHour = times.map((t) => t.hour).reduce(math.min);
+        // 最早事项略低于顶部，留出上一整点刻度；无事项时从 08:00 开始。
+        final firstHour = math.max(0.0, (earliestHour ?? 8.25) - .25);
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && vertical.hasClients)
             vertical.jumpTo(
@@ -292,7 +296,7 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
                       padding: const EdgeInsets.only(right: 6),
                       child: ActionChip(
                         label: Text(
-                          '${agendaEntryDate(entry) == null ? '无日期' : agendaDate(agendaEntryDate(entry)!).substring(5)} ${agendaWhen(entry)} · ${agendaTitle(entry)}${agendaEntryConflicts(entry, widget.allEntries).isEmpty ? '' : ' · 与课程重叠'}',
+                          '${agendaEntryDate(entry) == null ? '无日期' : agendaMonthDay(agendaEntryDate(entry)!)} ${agendaWhen(entry)} · ${agendaTitle(entry)}${agendaEntryConflicts(entry, widget.allEntries).isEmpty ? '' : ' · 与课程重叠'}',
                         ),
                         onPressed: () => widget.onOpen(entry),
                       ),
@@ -368,12 +372,7 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
                                   ],
                                 ),
                               ),
-                              children: blocks(
-                                monday,
-                                column,
-                                axis,
-                                hourHeight,
-                              ),
+                              children: placed,
                             ),
                           ],
                         ),

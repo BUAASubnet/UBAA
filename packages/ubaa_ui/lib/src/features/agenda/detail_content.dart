@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'calendar_values.dart';
 import 'format.dart';
+import '../../common/tag.dart';
 
 /// 窄屏面板与宽屏详情栏共用操作和本地备注输入。
 class AgendaDetailContent extends StatefulWidget {
@@ -16,8 +18,12 @@ class AgendaDetailContent extends StatefulWidget {
     required this.onHide,
     required this.onOpenSchool,
     this.busy = false,
+    this.displayEnd,
   });
   final AgendaEntry entry;
+
+  /// 连续课程合并后的结束时间，与列表显示一致。
+  final DateTime? displayEnd;
   final List<AgendaEntry> conflicts;
   final VoidCallback onClose,
       onEdit,
@@ -32,16 +38,65 @@ class AgendaDetailContent extends StatefulWidget {
 }
 
 class _AgendaDetailContentState extends State<AgendaDetailContent> {
-  late String note =
-      widget.entry.note ?? widget.entry.local?.content.notes ?? '';
+  late final String savedNote = widget.entry.note ?? '';
+  late String note = savedNote;
+  late bool editingNote = savedNote.isNotEmpty;
+
+  String when(AgendaEntry entry) {
+    final start = agendaStart(entry),
+        end = widget.displayEnd ?? agendaEnd(entry);
+    if (entry.timing.kind != AgendaTimingKind.period || start == null)
+      return agendaWhen(entry);
+    return '${agendaHm(start)} — ${end == null ? '结束待更新' : agendaHm(end)}';
+  }
+
+  Widget row(String label, String value) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 3),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: 44,
+            child: Text(
+              label,
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ),
+          Expanded(child: Text(value, style: theme.textTheme.bodyMedium)),
+        ],
+      ),
+    );
+  }
+
+  /// 课程说明形如「2-3周,5-9周[实验]/杨海燕[主讲]」时拆为周次与教师。
+  List<Widget> subtitleRows(SchoolAgendaItem school) {
+    final text = school.subtitle.trim();
+    if (text.isEmpty) return const [];
+    final parts = text.split('/');
+    if (school.navigation.feature == AgendaFeature.schedule &&
+        parts.length == 2 &&
+        parts.first.contains('周') &&
+        parts.every((p) => p.trim().isNotEmpty)) {
+      return [row('周次', parts.first.trim()), row('教师', parts.last.trim())];
+    }
+    return [row('说明', text)];
+  }
+
   @override
   Widget build(BuildContext context) {
     final entry = widget.entry, school = entry.school;
+    final theme = Theme.of(context);
+    final date = agendaEntryDate(entry);
+    final location = entry.local?.content.location ?? school?.location;
     return SingleChildScrollView(
       padding: EdgeInsets.fromLTRB(
         20,
-        16,
-        20,
+        8,
+        12,
         MediaQuery.viewInsetsOf(context).bottom + 20,
       ),
       child: Column(
@@ -49,12 +104,11 @@ class _AgendaDetailContentState extends State<AgendaDetailContent> {
         mainAxisSize: MainAxisSize.min,
         children: [
           Row(
-            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Expanded(
                 child: Text(
                   agendaTitle(entry),
-                  style: Theme.of(context).textTheme.titleLarge,
+                  style: theme.textTheme.titleLarge,
                 ),
               ),
               IconButton(
@@ -64,42 +118,67 @@ class _AgendaDetailContentState extends State<AgendaDetailContent> {
               ),
             ],
           ),
-          Text('${agendaSource(entry)} · ${agendaWhen(entry)}'),
-          Text(
-            entry.timing.from ??
-                (entry.timing.start ?? entry.timing.due)?.rfc3339.substring(
-                  0,
-                  10,
-                ) ??
-                '无日期',
+          const SizedBox(height: 4),
+          Align(
+            alignment: AlignmentDirectional.centerStart,
+            child: UiTag(agendaSource(entry)),
           ),
-          if (entry.local?.content.location ?? school?.location
-              case final location?)
-            Text(location),
+          const SizedBox(height: 10),
+          row('日期', date == null ? '无日期' : agendaMonthDayWeek(date)),
+          row('时间', when(entry)),
+          if (location != null && location.isNotEmpty) row('地点', location),
+          if (school != null) ...[
+            if (school.statusLabel != agendaSource(entry))
+              row('状态', school.statusLabel),
+            ...subtitleRows(school),
+          ],
           if (widget.conflicts.isNotEmpty)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
               child: Text(
                 '与课程重叠：${widget.conflicts.map((e) => '${agendaTitle(e)} ${agendaWhen(e)}').join('、')}',
-                style: TextStyle(color: Theme.of(context).colorScheme.error),
+                style: TextStyle(color: theme.colorScheme.error),
               ),
             ),
           if (school != null) ...[
             const SizedBox(height: 12),
-            Text('学校状态：${school.statusLabel}'),
-            Text(school.subtitle),
-            const Text('完成、隐藏与备注只保存在本机，不改变学校数据。'),
-            const SizedBox(height: 12),
-            TextFormField(
-              initialValue: note,
-              onChanged: (value) => note = value,
-              maxLines: 3,
-              decoration: const InputDecoration(labelText: '本地备注'),
+            if (editingNote) ...[
+              TextFormField(
+                initialValue: note,
+                autofocus: savedNote.isEmpty,
+                onChanged: (value) => setState(() => note = value),
+                maxLines: 3,
+                minLines: 1,
+                decoration: const InputDecoration(labelText: '本地备注'),
+              ),
+              if (note != savedNote)
+                Align(
+                  alignment: AlignmentDirectional.centerEnd,
+                  child: FilledButton(
+                    onPressed: widget.busy
+                        ? null
+                        : () => widget.onSaveNote(note),
+                    child: const Text('保存备注'),
+                  ),
+                ),
+            ] else
+              Align(
+                alignment: AlignmentDirectional.centerStart,
+                child: TextButton.icon(
+                  onPressed: widget.busy
+                      ? null
+                      : () => setState(() => editingNote = true),
+                  icon: const Icon(Icons.edit_note_outlined),
+                  label: const Text('添加备注'),
+                ),
+              ),
+            Text(
+              '完成、隐藏与备注只保存在本机，不改变学校数据。',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
-            FilledButton(
-              onPressed: widget.busy ? null : () => widget.onSaveNote(note),
-              child: const Text('保存备注'),
-            ),
+            const SizedBox(height: 8),
             TextButton(
               onPressed: widget.busy ? null : widget.onOpenSchool,
               child: const Text('打开原功能'),
@@ -109,7 +188,12 @@ class _AgendaDetailContentState extends State<AgendaDetailContent> {
               child: Text(entry.hidden ? '恢复显示' : '隐藏事项'),
             ),
           ] else ...[
-            if (entry.local?.content.notes case final notes?) Text(notes),
+            if (entry.local?.content.notes case final notes?
+                when notes.isNotEmpty)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text(notes),
+              ),
             TextButton(
               onPressed: widget.busy ? null : widget.onEdit,
               child: const Text('编辑事项'),

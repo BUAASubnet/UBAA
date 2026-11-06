@@ -153,6 +153,7 @@ extension AgendaDetails on AgendaViewState {
     return AgendaDetailContent(
       key: ValueKey('${agendaEntryKey(entry)}:${entry.note}'),
       entry: entry,
+      displayEnd: agendaDisplayEnd(entry, result?.entries ?? []),
       conflicts: agendaEntryConflicts(entry, result?.entries ?? []),
       busy: busy,
       onClose: close,

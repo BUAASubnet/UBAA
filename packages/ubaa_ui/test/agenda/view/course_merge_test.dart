@@ -1,6 +1,8 @@
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/features/agenda/calendar_values.dart';
+import '../flow_test.dart' show app, opened;
+import '../support.dart';
 import 'view_modes_test.dart' show at;
 
 AgendaEntry _school(
@@ -138,5 +140,33 @@ void main() {
     expect(result.map((e) => e.$1).toList(), [stray, first]);
     expect(result.last.$3, signin);
     expect(result.last.$2, agendaEnd(second));
+  });
+
+  testWidgets('连续小节课程的详情显示与列表相同的起止时间', (tester) async {
+    final backend = MemoryAgenda();
+    for (final (id, start, end) in [
+      ('p3', at(5, 9, 50), at(5, 10, 35)),
+      ('p4', at(5, 10, 40), at(5, 11, 25)),
+      ('p5', at(5, 11, 30), at(5, 12, 15)),
+    ]) {
+      backend.school.add(
+        _school(
+          AgendaFeature.schedule,
+          id,
+          '合成连堂课',
+          start,
+          end,
+          location: 'F1',
+        ).school!,
+      );
+    }
+    final service = await opened(backend);
+    await tester.pumpWidget(app(service));
+    await tester.pumpAndSettle();
+    expect(find.text('12:15'), findsOneWidget);
+    await tester.tap(find.text('合成连堂课'));
+    await tester.pumpAndSettle();
+    expect(find.text('09:50 — 12:15'), findsOneWidget);
+    expect(find.text('09:50 — 10:35'), findsNothing);
   });
 }

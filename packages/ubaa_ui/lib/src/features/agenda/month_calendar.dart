@@ -10,10 +10,14 @@ class AgendaMonthCalendar extends StatelessWidget {
     required this.date,
     required this.entries,
     required this.onSelected,
+    this.today,
+    this.colorOf,
   });
   final DateTime date;
+  final DateTime? today;
   final List<AgendaEntry> entries;
   final ValueChanged<DateTime> onSelected;
+  final Color Function(AgendaEntry)? colorOf;
   @override
   Widget build(BuildContext context) {
     final first = agendaWeekStart(DateTime.utc(date.year, date.month));
@@ -58,8 +62,12 @@ class AgendaMonthCalendar extends StatelessWidget {
                     7),
             itemBuilder: (context, index) {
               final day = first.add(Duration(days: index));
-              final count = entries.where((e) => agendaOnDay(e, day)).length;
+              final dayEntries = entries
+                  .where((e) => agendaOnDay(e, day))
+                  .toList();
+              final count = dayEntries.length;
               final selected = day == agendaDay(date);
+              final isToday = today != null && agendaDay(today!) == day;
               final colors = Theme.of(context).colorScheme;
               return Semantics(
                 label: '${agendaDate(day)}，$count项',
@@ -74,6 +82,9 @@ class AgendaMonthCalendar extends StatelessWidget {
                     decoration: BoxDecoration(
                       borderRadius: BorderRadius.circular(12),
                       color: selected ? colors.primaryContainer : null,
+                      border: isToday && !selected
+                          ? Border.all(color: colors.primary, width: 1.5)
+                          : null,
                     ),
                     child: Column(
                       mainAxisAlignment: MainAxisAlignment.center,
@@ -84,29 +95,39 @@ class AgendaMonthCalendar extends StatelessWidget {
                             '${day.day}',
                             maxLines: 1,
                             style: TextStyle(
-                              color: selected
+                              color: isToday
+                                  ? colors.primary
+                                  : selected
                                   ? colors.onPrimaryContainer
                                   : day.month == date.month
                                   ? colors.onSurface
                                   : colors.outlineVariant,
-                              fontWeight: selected ? FontWeight.bold : null,
+                              fontWeight: selected || isToday
+                                  ? FontWeight.bold
+                                  : null,
                             ),
                           ),
                         ),
                         const SizedBox(height: 3),
                         SizedBox(
                           height: 5,
-                          child: count == 0
-                              ? null
-                              : Container(
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              for (final e in dayEntries.take(3))
+                                Container(
                                   width: 5,
+                                  height: 5,
+                                  margin: const EdgeInsets.symmetric(
+                                    horizontal: 1,
+                                  ),
                                   decoration: BoxDecoration(
                                     shape: BoxShape.circle,
-                                    color: selected
-                                        ? colors.onPrimaryContainer
-                                        : colors.primary,
+                                    color: colorOf?.call(e) ?? colors.primary,
                                   ),
                                 ),
+                            ],
+                          ),
                         ),
                       ],
                     ),

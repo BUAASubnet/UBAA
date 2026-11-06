@@ -175,3 +175,23 @@ bool agendaSigninMatches(
       !e.isBefore(start) &&
       agendaDay(s) == agendaDay(start);
 }
+
+/// 详情与列表一致：课程按同日连续小节合并后的显示结束时间。
+DateTime? agendaDisplayEnd(AgendaEntry entry, Iterable<AgendaEntry> entries) {
+  final start = agendaStart(entry);
+  if (start == null ||
+      entry.school?.navigation.feature != AgendaFeature.schedule) {
+    return agendaEnd(entry);
+  }
+  final sameDay = [
+    for (final e in entries)
+      if (e.school?.navigation.feature == AgendaFeature.schedule)
+        if (agendaStart(e) case final s? when agendaDay(s) == agendaDay(start))
+          e,
+  ]..sort((a, b) => agendaStart(a)!.compareTo(agendaStart(b)!));
+  final key = agendaEntryKey(entry);
+  for (final (e, end) in agendaMergeCourses(sameDay)) {
+    if (agendaEntryKey(e) == key) return end;
+  }
+  return agendaEnd(entry);
+}

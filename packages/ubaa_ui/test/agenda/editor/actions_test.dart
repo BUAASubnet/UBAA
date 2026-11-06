@@ -157,8 +157,14 @@ void main() {
     expect(backend.overlays.values.single.value.completedAt, isNotNull);
     await tester.tap(find.text('合成学校作业'));
     await tester.pumpAndSettle();
-    expect(find.text('学校状态：未提交'), findsOneWidget);
+    expect(
+      find.descendant(of: find.byType(BottomSheet), matching: find.text('未提交')),
+      findsOneWidget,
+    );
+    await tester.tap(find.text('添加备注'));
+    await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, '本地备注'), '本机计划');
+    await tester.pump();
     await tester.tap(find.text('保存备注'));
     await tester.pumpAndSettle();
     expect(backend.overlays.values.single.value.note, '本机计划');

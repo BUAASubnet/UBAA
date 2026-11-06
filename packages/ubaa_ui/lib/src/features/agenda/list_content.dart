@@ -5,13 +5,11 @@ import 'format.dart';
 import '../../common/state_panel.dart';
 import '../../common/tag.dart';
 
-const _weekdays = ['一', '二', '三', '四', '五', '六', '日'];
-
 /// 列表分组标题：今天/明天/昨天优先，其余显示「11月5日 周四」。
 String agendaDayLabel(DateTime day, DateTime now) {
   final today = agendaDay(now);
   final diff = agendaDay(day).difference(today).inDays;
-  final date = '${day.month}月${day.day}日 周${_weekdays[day.weekday - 1]}';
+  final date = agendaMonthDayWeek(day);
   return switch (diff) {
     0 => '今天 · $date',
     1 => '明天 · $date',
@@ -29,9 +27,27 @@ List<Widget> agendaListSlivers({
   required void Function(AgendaEntry, bool) onComplete,
   VoidCallback? onCreate,
   bool busy = false,
+
+  /// 月视图选中某天时，空日只显示一行说明，新建入口由悬浮按钮承担。
+  String? compactEmpty,
 }) {
   final theme = Theme.of(context);
   final colors = theme.colorScheme;
+  if (entries.isEmpty && compactEmpty != null) {
+    return [
+      SliverPadding(
+        padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
+        sliver: SliverToBoxAdapter(
+          child: Text(
+            compactEmpty,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: colors.onSurfaceVariant,
+            ),
+          ),
+        ),
+      ),
+    ];
+  }
   if (entries.isEmpty) {
     return [
       SliverFillRemaining(
@@ -260,9 +276,6 @@ class AgendaEntryTile extends StatelessWidget {
   final AgendaEntry? signin;
   final VoidCallback? onOpenSignin;
 
-  String _hm(DateTime v) =>
-      '${v.hour.toString().padLeft(2, '0')}:${v.minute.toString().padLeft(2, '0')}';
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -289,8 +302,11 @@ class AgendaEntryTile extends StatelessWidget {
             entry.school?.navigation.feature == AgendaFeature.exam);
     final (String top, String? bottom) = switch (entry.timing.kind) {
       AgendaTimingKind.allDay => ('全天', null),
-      AgendaTimingKind.deadline when due != null => (_hm(due), '截止'),
-      _ when start != null => (_hm(start), end == null ? null : _hm(end)),
+      AgendaTimingKind.deadline when due != null => (agendaHm(due), '截止'),
+      _ when start != null => (
+        agendaHm(start),
+        end == null ? null : agendaHm(end),
+      ),
       _ => ('—', null),
     };
     final meta = [

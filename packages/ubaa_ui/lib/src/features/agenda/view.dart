@@ -210,8 +210,23 @@ class AgendaViewState extends State<AgendaView> {
     } else if (becameVisible && (_projectionDirty || result == null)) {
       unawaited(load());
     }
-    if (oldWidget.todoRequest != widget.todoRequest) todos = true;
+    if (oldWidget.todoRequest != widget.todoRequest) _showAllTodos();
     _pullSync();
+  }
+
+  /// 首页「查看全部」：清除遗留筛选与搜索，回到列表并显示全部待办。
+  void _showAllTodos() {
+    todos = true;
+    filter = '全部';
+    search = '';
+    searchField.clear();
+    searchVisible = false;
+    dayOnly = false;
+    customRange = false;
+    mode = AgendaViewMode.list;
+    focusDate = agendaDay(now);
+    alignRange();
+    if (widget.visible) unawaited(load());
   }
 
   @override
@@ -247,7 +262,16 @@ class AgendaViewState extends State<AgendaView> {
         ygdkWeekDone: false,
         ygdkTermDone: widget.reminder?.termDoneKey == widget.term,
       );
-  void update(VoidCallback action) => setState(action);
+  void update(VoidCallback action) {
+    final wasTodos = todos;
+    setState(action);
+    // 待办列表的范围更长，切换时重新对齐并读取。
+    if (wasTodos != todos && mode == AgendaViewMode.list && !customRange) {
+      setState(alignRange);
+      unawaited(load());
+    }
+  }
+
   Future<void> load() async {
     final token = ++revision;
     final scopeToken = generation.value;
@@ -369,7 +393,8 @@ class AgendaViewState extends State<AgendaView> {
   void alignRange() {
     if (mode == AgendaViewMode.list) {
       from = focusDate;
-      to = from.add(const Duration(days: 38));
+      // 只看待办时覆盖首页待办可能出现的远期截止，与首页数量一致。
+      to = from.add(Duration(days: todos ? 180 : 38));
     } else if (mode == AgendaViewMode.week) {
       from = agendaWeekStart(focusDate);
       to = from.add(const Duration(days: 7));
@@ -694,6 +719,9 @@ class AgendaViewState extends State<AgendaView> {
                         date: focusDate,
                         entries: filtered,
                         onSelected: goDate,
+                        today: agendaDay(now),
+                        colorOf: (e) =>
+                            agendaSourceColor(e, Theme.of(context).colorScheme),
                       ),
                     ),
                   ),
@@ -706,6 +734,9 @@ class AgendaViewState extends State<AgendaView> {
                   onOpen: open,
                   onComplete: (e, v) => unawaited(complete(e, v)),
                   onCreate: available && !busy ? () => edit() : null,
+                  compactEmpty: mode == AgendaViewMode.month
+                      ? '${agendaMonthDay(focusDate)} 没有安排'
+                      : null,
                 ),
               ],
               const SliverToBoxAdapter(child: SizedBox(height: 88)),
@@ -732,6 +763,11 @@ class AgendaViewState extends State<AgendaView> {
                                 date: focusDate,
                                 entries: filtered,
                                 onSelected: goDate,
+                                today: agendaDay(now),
+                                colorOf: (e) => agendaSourceColor(
+                                  e,
+                                  Theme.of(context).colorScheme,
+                                ),
                               ),
                               const SizedBox(height: 16),
                               filters(),
