@@ -14,6 +14,7 @@ import 'week_content.dart';
 import 'list_content.dart';
 import 'sync_status.dart';
 import 'detail_content.dart';
+import '../../shared/create_button.dart';
 part 'details.dart';
 part 'export.dart';
 part 'filters.dart';
@@ -755,16 +756,10 @@ class AgendaViewState extends State<AgendaView> {
                       ],
                     ],
                   ),
-                  Positioned(
-                    right: 16,
-                    bottom: 16,
-                    child: FloatingActionButton.extended(
-                      key: const ValueKey('agenda-create'),
-                      tooltip: '新建事项',
-                      onPressed: !available || busy ? null : () => edit(),
-                      icon: const Icon(Icons.add),
-                      label: const Text('新建'),
-                    ),
+                  ubaaPositionedCreateButton(
+                    key: const ValueKey('agenda-create'),
+                    tooltip: '新建事项',
+                    onPressed: !available || busy ? null : () => edit(),
                   ),
                 ],
               ),

@@ -71,7 +71,7 @@ List<Widget> agendaListSlivers({
               FilledButton.tonalIcon(
                 onPressed: onCreate,
                 icon: const Icon(Icons.add),
-                label: const Text('新建日程'),
+                label: const Text('新建事项'),
               ),
             ],
           ),

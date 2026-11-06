@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../shared/create_button.dart';
 
 /// 「+」按钮：点开后在上方展开「上传文件」「新建文件夹」，点空白处收起。
 class BhpanCreateMenu extends StatefulWidget {
@@ -77,8 +78,8 @@ class _BhpanCreateMenuState extends State<BhpanCreateMenu>
               ),
             ),
           Positioned(
-            right: 16,
-            bottom: 16,
+            right: ubaaCreateButtonMargin,
+            bottom: ubaaCreateButtonMargin,
             child: Column(
               mainAxisSize: MainAxisSize.min,
               crossAxisAlignment: CrossAxisAlignment.end,
@@ -112,15 +113,11 @@ class _BhpanCreateMenuState extends State<BhpanCreateMenu>
                       ),
                     ),
                   ),
-                FloatingActionButton(
+                ubaaCreateButton(
                   key: const ValueKey('bhpan-create'),
-                  heroTag: null,
                   tooltip: _open ? '收起' : '上传或新建',
                   onPressed: widget.enabled ? _toggle : null,
-                  child: RotationTransition(
-                    turns: Tween(begin: 0.0, end: .125).animate(curve),
-                    child: const Icon(Icons.add),
-                  ),
+                  open: curve,
                 ),
               ],
             ),

@@ -8,6 +8,7 @@ import 'record_card.dart' show YgdkRecordCard, uiYgdkRecordSearchValues;
 import 'summary.dart' show YgdkSummary;
 import '../../write/ygdk/draft.dart' show YgdkFormContext;
 import '../../write/ygdk/form.dart' show uiCollectYgdkForm;
+import '../../shared/create_button.dart';
 
 /// 旧版阳光首页：概要在前、记录在后，运动项目收在新增流程。
 class YgdkHomeFlow extends StatefulWidget {
@@ -311,28 +312,23 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
           ],
         ),
         if (widget.onSubmit != null)
-          Positioned(
-            right: 16,
-            bottom: 16,
-            child: FloatingActionButton(
-              tooltip: '新增打卡',
-              onPressed:
-                  loading ||
-                      !_items.any(
-                        (item) =>
-                            item.action<YgdkSubmitAction>()?.eligibility ==
-                            ActionEligibility.allowed,
-                      ) ||
-                      (widget.snapshot.status != FeatureLoadStatus.success &&
-                          !(widget.snapshot.status == FeatureLoadStatus.stale &&
-                              widget.snapshot.evidence != null &&
-                              widget.snapshot.evidence?.origin !=
-                                  DataOrigin.persisted &&
-                              widget.snapshot.error == null))
-                  ? null
-                  : _add,
-              child: const Icon(Icons.add),
-            ),
+          ubaaPositionedCreateButton(
+            tooltip: '新增打卡',
+            onPressed:
+                loading ||
+                    !_items.any(
+                      (item) =>
+                          item.action<YgdkSubmitAction>()?.eligibility ==
+                          ActionEligibility.allowed,
+                    ) ||
+                    (widget.snapshot.status != FeatureLoadStatus.success &&
+                        !(widget.snapshot.status == FeatureLoadStatus.stale &&
+                            widget.snapshot.evidence != null &&
+                            widget.snapshot.evidence?.origin !=
+                                DataOrigin.persisted &&
+                            widget.snapshot.error == null))
+                ? null
+                : _add,
           ),
       ],
     );
