@@ -38,6 +38,7 @@ class BhpanAccess {
   )?
   pickDownload;
 
+  /// 系统预览：宿主提供应用私有临时位置，`deliver` 调起系统预览，`discard` 清理临时文件。
   final Future<BhpanDownloadDestination?> Function(
     String name,
     bool Function() isCurrent,
@@ -45,57 +46,17 @@ class BhpanAccess {
   previewFile;
 }
 
-/// 点文件时直接预览的大小上限。
-const bhpanPreviewLimit = 20 * 1024 * 1024;
-
-const _previewable = {
-  'pdf',
-  'doc',
-  'docx',
-  'ppt',
-  'pptx',
-  'xls',
-  'xlsx',
-  'csv',
-  'rtf',
-  'key',
-  'numbers',
-  'pages',
-  'txt',
-  'md',
-  'html',
-  'png',
-  'jpg',
-  'jpeg',
-  'gif',
-  'heic',
-  'webp',
-  'bmp',
-  'tiff',
-  'mp4',
-  'mov',
-  'm4v',
-  'mp3',
-  'm4a',
-  'wav',
-  'aac',
-};
-
-bool bhpanPreviewable(BhpanItem item) {
-  if (item.isFolder) return false;
-  final name = item.name.toLowerCase();
-  final dot = name.lastIndexOf('.');
-  return dot >= 0 && _previewable.contains(name.substring(dot + 1));
-}
-
+/// 外壳的返回按钮和系统返回先交给云盘处理：逐级回到上一层，到顶后才退出。
 class BhpanBackHandle {
   bool Function()? _handler;
 
+  /// 云盘消费了这次返回时为 true。
   bool handleBack() => _handler?.call() ?? false;
 }
 
 enum BhpanSortKey { name, modified, size }
 
+/// 校园与空间指标共用的云盘页面。
 class BhpanView extends StatefulWidget {
   const BhpanView({required this.access, this.backHandle, super.key});
   final BhpanAccess access;
@@ -105,11 +66,13 @@ class BhpanView extends StatefulWidget {
 }
 
 class _BhpanViewState extends State<BhpanView> {
+  /// 当前位置的根：个人文档库、某类文档库列表或收到的分享。
   BhpanRead _base = const BhpanRead(BhpanReadView.personalRoot);
   BhpanRead _query = const BhpanRead(BhpanReadView.personalRoot);
   BhpanRootKind _rootKind = BhpanRootKind.personal;
   final _trail = <BhpanItem>[];
 
+  /// 个人文档库自动进入唯一根目录，该层不显示在路径里，也不能再向上返回。
   int _baseDepth = 0;
   BhpanPage? _page;
   Object? _error;
@@ -205,6 +168,7 @@ class _BhpanViewState extends State<BhpanView> {
     _search.clear();
   }
 
+  /// [keep] 为 true 时保留当前列表（刷新、写入后回读），否则显示骨架。
   Future<void> _load({bool reconnect = false, bool keep = false}) async {
     final service = _service;
     if (service == null) return;
@@ -396,6 +360,7 @@ class _BhpanViewState extends State<BhpanView> {
 
   String get _rootLabel => _received ? '收到的分享' : bhpanLibraryNames[_rootKind]!;
 
+  /// 详细信息里的位置：根名称加上已进入的目录。
   String get _locationText =>
       [_rootLabel, for (final f in _trail.skip(_baseDepth)) f.name].join(' / ');
 
