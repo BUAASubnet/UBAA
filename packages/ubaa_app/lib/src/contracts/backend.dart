@@ -14,6 +14,7 @@ class BackendException implements Exception {
     this.issueId,
     this.accountMismatch = false,
     this.clientDisposed = false,
+    this.captchaRequired = false,
     this.cacheFailure,
   });
 
@@ -38,6 +39,9 @@ class BackendException implements Exception {
 
   /// 仅对应 Bridge 明确已释放的客户端，不从通用错误或消息推断。
   final bool clientDisposed;
+
+  /// Core 已完成有限自动尝试，当前账号需要专用人工验证码窗口。
+  final bool captchaRequired;
 
   /// 与学校错误分列的本地缓存处理故障。
   final CacheMaintenanceFailure? cacheFailure;

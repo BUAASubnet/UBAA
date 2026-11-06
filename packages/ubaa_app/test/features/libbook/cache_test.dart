@@ -350,7 +350,7 @@ class _Client implements BridgeClient {
   }
 
   @override
-  int contractVersion() => 51;
+  int contractVersion() => 52;
   @override
   Future<BridgeLibBookBookingsRefresh> libbookBookingsCached({
     required BridgeOfflineCache cache,

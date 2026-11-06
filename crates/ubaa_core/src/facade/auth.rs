@@ -44,7 +44,8 @@ impl UbaaClient {
     ) -> Result<super::types::CallerPinned<UserProfile>> {
         self.verified_login = None;
         self.guard_latest_session_ownership()?;
-        let result = self.login_route(route, input).await;
+        let (runtime, auth) = self.route_parts_for(route);
+        let result = auth.login_automatically(runtime, input).await;
         self.clear_on_session_conflict()?;
         result.map(|data| super::types::CallerPinned {
             data,

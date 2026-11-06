@@ -12,6 +12,39 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_test_support/recovery.dart' as offline;
 
 void main() {
+  testWidgets('静默登录进行中只显示普通加载，最终需人工处理才弹窗', (tester) async {
+    await tester.binding.setSurfaceSize(const Size(950, 1300));
+    addTearDown(() => tester.binding.setSurfaceSize(null));
+    final backend = _InteractiveBackend();
+    final gate = Completer<LoginVerificationState>();
+    backend.beginGate = gate;
+    await tester.pumpWidget(
+      UbaaAppHost(backend: backend, credentialVault: _Vault()),
+    );
+    await tester.pumpAndSettle();
+    await tester.enterText(
+      find.widgetWithText(TextField, '学号'),
+      'synthetic-account',
+    );
+    await tester.enterText(
+      find.widgetWithText(TextField, '密码'),
+      'synthetic-password',
+    );
+    await tester.pump();
+    await tester.ensureVisible(find.widgetWithText(FilledButton, '登录'));
+    await tester.tap(find.widgetWithText(FilledButton, '登录'));
+    await tester.pump();
+    expect(backend.beginCalls, 1);
+    expect(find.byKey(const ValueKey('captcha-dialog')), findsNothing);
+    expect(
+      tester.widget<UbaaLoginView>(find.byType(UbaaLoginView)).isLoading,
+      isTrue,
+    );
+    gate.complete(backend.waiting());
+    await tester.pumpAndSettle();
+    expect(find.byKey(const ValueKey('captcha-dialog')), findsOneWidget);
+    expect(tester.takeException(), isNull);
+  });
   testWidgets('离线首页原位完成验证码保留导航并绑定可恢复账号', (tester) async {
     // 文件协调使用真实事件循环，避免 Widget FakeAsync 阻止文件 I/O 完成。
     await tester.runAsync(() async {
@@ -59,18 +92,18 @@ void main() {
       await tester.tap(find.widgetWithText(FilledButton, '登录'));
       await offline.pumpRecoveryUntil(
         tester,
-        () => find.text('WebVPN 验证码').evaluate().isNotEmpty,
+        () =>
+            find.byKey(const ValueKey('captcha-dialog')).evaluate().isNotEmpty,
       );
       expect(find.byType(UbaaMainShell), findsOneWidget);
       expect(backend.beginCalls, 1);
-      expect(find.text('WebVPN 验证码'), findsOneWidget);
+      expect(find.byKey(const ValueKey('captcha-dialog')), findsOneWidget);
       await tester.enterText(
         find.byKey(const ValueKey('captcha-answer-webvpn')),
         'synthetic-answer',
       );
       await tester.pumpAndSettle();
-      await tester.ensureVisible(find.widgetWithText(FilledButton, '登录'));
-      await tester.tap(find.widgetWithText(FilledButton, '登录'));
+      await tester.tap(find.byKey(const ValueKey('captcha-submit')));
       await offline.pumpRecoveryUntil(
         tester,
         () => find.byType(UbaaLoginView).evaluate().isEmpty,
@@ -95,10 +128,10 @@ void main() {
     });
   });
 
-  testWidgets('实际 Host 刷新先清答案，保留输入并按当前选项完成保存', (tester) async {
+  testWidgets('实际 Host 刷新先清答案，保留账号输入并遵守登录保存选项', (tester) async {
     final backend = _InteractiveBackend();
     final vault = _Vault();
-    await _openWaiting(tester, backend, vault: vault);
+    await _openWaiting(tester, backend, vault: vault, rememberPassword: false);
     await tester.enterText(
       find.byKey(const ValueKey('captcha-answer-webvpn')),
       'synthetic-old-answer',
@@ -122,7 +155,7 @@ void main() {
           .text,
       'synthetic-password',
     );
-    expect(tester.widget<Checkbox>(find.byType(Checkbox).first).value, isTrue);
+    expect(tester.widget<Checkbox>(find.byType(Checkbox).first).value, isFalse);
     gate.complete(backend.waiting());
     await tester.pumpAndSettle();
     expect(backend.refreshes, <ConnectionMode>[ConnectionMode.webvpn]);
@@ -130,10 +163,8 @@ void main() {
       find.byKey(const ValueKey('captcha-answer-webvpn')),
       'synthetic-new-answer',
     );
-    await tester.tap(find.text('记住密码'));
-    await tester.pumpAndSettle();
-    await tester.ensureVisible(find.widgetWithText(FilledButton, '登录'));
-    await tester.tap(find.widgetWithText(FilledButton, '登录'));
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('captcha-submit')));
     await tester.pumpAndSettle();
     expect(find.byType(UbaaMainShell), findsOneWidget);
     expect(backend.answers, <ConnectionMode, String>{
@@ -155,12 +186,12 @@ void main() {
       const BackendException(UbaaErrorCode.networkError),
     );
     await tester.pumpAndSettle();
-    expect(find.text('WebVPN 验证码'), findsOneWidget);
+    expect(find.byKey(const ValueKey('captcha-dialog')), findsOneWidget);
     expect(find.text('图片暂不可用，点击刷新'), findsOneWidget);
     expect(_field(tester, 'captcha-answer-webvpn').enabled, isFalse);
     expect(
       tester
-          .widget<FilledButton>(find.widgetWithText(FilledButton, '登录'))
+          .widget<FilledButton>(find.byKey(const ValueKey('captcha-submit')))
           .onPressed,
       isNull,
     );
@@ -257,22 +288,23 @@ void main() {
     expect(tester.takeException(), isNull);
   });
 
-  testWidgets('inactive 保留仍可见的验证码，Auto 显式改用按钮走专用继续', (tester) async {
-    final backend = _InteractiveBackend()..rejectAutoContinue = true;
+  testWidgets('inactive 保留验证窗口，人工完成后保持 Auto 策略', (tester) async {
+    final backend = _InteractiveBackend();
     await _openWaiting(tester, backend);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.inactive);
     await tester.pump();
-    expect(find.text('WebVPN 验证码'), findsOneWidget);
+    expect(find.byKey(const ValueKey('captcha-dialog')), findsOneWidget);
     expect(backend.cancelCalls, 0);
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
-    await tester.tap(find.text('保持自动连接并继续'));
-    await tester.pumpAndSettle();
-    expect(find.byType(UbaaLoginView), findsOneWidget);
-    expect(find.text('自动连接暂未就绪'), findsOneWidget);
-    await tester.tap(find.text('改用直连并继续'));
+    await tester.enterText(
+      find.byKey(const ValueKey('captcha-answer-webvpn')),
+      'synthetic-answer',
+    );
+    await tester.pump();
+    await tester.tap(find.byKey(const ValueKey('captcha-submit')));
     await tester.pumpAndSettle();
     expect(find.byType(UbaaMainShell), findsOneWidget);
-    expect(backend.pinChoices, <bool>[false, true]);
+    expect(backend.pinChoices, <bool>[false]);
     expect(backend.beginCalls, 1);
     expect(backend.legacyCalls, 0);
   });
@@ -285,6 +317,7 @@ Future<void> _openWaiting(
   WidgetTester tester,
   _InteractiveBackend backend, {
   CredentialVault? vault,
+  bool rememberPassword = true,
 }) async {
   tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
   await tester.binding.setSurfaceSize(const Size(950, 1300));
@@ -304,11 +337,11 @@ Future<void> _openWaiting(
     find.widgetWithText(TextField, '密码'),
     'synthetic-password',
   );
-  await tester.tap(find.text('记住密码'));
+  if (rememberPassword) await tester.tap(find.text('记住密码'));
   await tester.pumpAndSettle();
   await tester.tap(find.widgetWithText(FilledButton, '登录'));
   await tester.pumpAndSettle();
-  expect(find.text('WebVPN 验证码'), findsOneWidget);
+  expect(find.byKey(const ValueKey('captcha-dialog')), findsOneWidget);
 }
 
 class _Vault extends MemoryCredentialVault {
@@ -337,6 +370,7 @@ class _InteractiveBackend
   final discards = <ConnectionMode>[];
   Map<ConnectionMode, String> answers = <ConnectionMode, String>{};
   Completer<LoginVerificationState>? refreshGate;
+  Completer<LoginVerificationState>? beginGate;
   bool rejectAutoContinue = false;
   final pinChoices = <bool>[];
 
@@ -388,7 +422,7 @@ class _InteractiveBackend
   @override
   Future<LoginVerificationState> beginInteractiveLogin(LoginInput input) async {
     beginCalls++;
-    return waiting();
+    return beginGate?.future ?? Future.value(waiting());
   }
 
   @override

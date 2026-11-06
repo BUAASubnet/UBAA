@@ -9,21 +9,6 @@ extension _UbaaAppHostSession on _UbaaAppHostState {
     password: _controller.loginForm.password,
     captcha: _controller.loginForm.captcha,
     verification: _controller.loginVerification,
-    onCaptchaAnswerChanged: _controller.setCaptchaAnswer,
-    onRefreshCaptcha: (route) => unawaited(_controller.refreshCaptcha(route)),
-    onContinueReady: (route) => unawaited(
-      _completeLoginInteraction(
-        _controller.continueReadyLogin(route),
-        onAuthenticated,
-      ),
-    ),
-    onContinueFixedReady: (route) => unawaited(
-      _completeLoginInteraction(
-        _controller.continueWithFixedReadyRoute(route),
-        onAuthenticated,
-      ),
-    ),
-    onCancelVerification: _controller.cancelLoginVerification,
     rememberPassword: _controller.loginForm.rememberPassword,
     autoLogin: _controller.loginForm.autoLogin,
     routePolicy: _controller.loginForm.routePolicy,
@@ -46,16 +31,6 @@ extension _UbaaAppHostSession on _UbaaAppHostState {
     }()),
   );
 
-  Future<void> _completeLoginInteraction(
-    Future<void> task,
-    VoidCallback? onAuthenticated,
-  ) async {
-    await task;
-    if (!_disposed &&
-        _controller.sessionRecoveryStatus == SessionRecoveryStatus.ready)
-      onAuthenticated?.call();
-  }
-
   void _showInPlaceLogin(BuildContext context) {
     unawaited(
       showModalBottomSheet<void>(
@@ -63,19 +38,101 @@ extension _UbaaAppHostSession on _UbaaAppHostState {
         isScrollControlled: true,
         useSafeArea: true,
         showDragHandle: true,
-        builder: (sheetContext) => FractionallySizedBox(
-          heightFactor: 0.95,
-          child: AnimatedBuilder(
-            animation: _controller,
-            builder: (_, _) => _buildLoginView(
-              inPlace: true,
-              onAuthenticated: () {
-                if (sheetContext.mounted) Navigator.of(sheetContext).pop();
-              },
+        builder: (sheetContext) {
+          _loginSheetRoute = ModalRoute.of(sheetContext);
+          return FractionallySizedBox(
+            heightFactor: 0.95,
+            child: AnimatedBuilder(
+              animation: _controller,
+              builder: (_, _) => _buildLoginView(
+                inPlace: true,
+                onAuthenticated: () {
+                  if (sheetContext.mounted) Navigator.of(sheetContext).pop();
+                },
+              ),
             ),
-          ),
-        ),
-      ).whenComplete(_controller.cancelLoginVerification),
+          );
+        },
+      ).whenComplete(() {
+        _loginSheetRoute = null;
+        _controller.cancelLoginVerification();
+      }),
     );
+  }
+
+  void _syncCaptchaDialog() {
+    if (_disposed || _readyController == null) return;
+    final state = _controller.loginVerification;
+    if (_wasBackgrounded || state == null || !state.hasCaptcha) {
+      final route = _captchaDialogRoute;
+      if (route != null) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (route.isActive) route.navigator?.removeRoute(route);
+        });
+      }
+      return;
+    }
+    if (_controller.isLoggingIn ||
+        _captchaDialogRoute != null ||
+        _captchaDialogScheduled)
+      return;
+    _captchaDialogScheduled = true;
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _captchaDialogScheduled = false;
+      if (_disposed ||
+          _wasBackgrounded ||
+          _controller.isLoggingIn ||
+          !(_controller.loginVerification?.hasCaptcha ?? false) ||
+          _captchaDialogRoute != null)
+        return;
+      final navigator = _navigatorKey.currentState;
+      if (navigator == null) return;
+      final route = DialogRoute<void>(
+        context: navigator.context,
+        builder: (_) => AnimatedBuilder(
+          animation: _controller,
+          builder: (_, _) {
+            final state = _controller.loginVerification;
+            final pending = state?.routes
+                .where(
+                  (item) =>
+                      item.status ==
+                      LoginRouteVerificationStatus.captchaRequired,
+                )
+                .firstOrNull;
+            if (pending == null) return const SizedBox.shrink();
+            return UbaaCaptchaDialog(
+              verification: pending,
+              isLoading: _controller.isLoggingIn,
+              onAnswerChanged: (answer) =>
+                  _controller.setCaptchaAnswer(pending.route, answer),
+              onRefresh: () =>
+                  unawaited(_controller.refreshCaptcha(pending.route)),
+              onCancel: _controller.cancelLoginVerification,
+              onSubmit: () => unawaited(_submitCaptcha()),
+            );
+          },
+        ),
+      );
+      _captchaDialogRoute = route;
+      unawaited(
+        navigator.push(route).whenComplete(() {
+          if (identical(_captchaDialogRoute, route)) _captchaDialogRoute = null;
+          if (!_disposed &&
+              (_controller.loginVerification?.hasCaptcha ?? false)) {
+            _controller.cancelLoginVerification();
+          }
+        }),
+      );
+    });
+  }
+
+  Future<void> _submitCaptcha() async {
+    await _controller.submitLogin(preserveHome: true);
+    if (_disposed ||
+        _controller.sessionRecoveryStatus != SessionRecoveryStatus.ready)
+      return;
+    final sheet = _loginSheetRoute;
+    if (sheet != null && sheet.isActive) sheet.navigator?.removeRoute(sheet);
   }
 }

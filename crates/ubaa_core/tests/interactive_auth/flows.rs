@@ -29,6 +29,7 @@ pub(super) struct Scenario {
     pub(super) image: Vec<u8>,
     pub(super) image_final_url: Option<String>,
     pub(super) post_body: String,
+    pub(super) post_status: u16,
     pub(super) username: String,
     pub(super) redirect_with_cookie: bool,
     pub(super) image_gate: Option<Arc<Gate>>,
@@ -43,6 +44,7 @@ impl ScenarioTransport {
                 image: synthetic_image(ImageFormat::Png),
                 image_final_url: None,
                 post_body: "synthetic-authenticated".into(),
+                post_status: 200,
                 username: SYNTHETIC_USERNAME.into(),
                 redirect_with_cookie: false,
                 image_gate: None,
@@ -75,6 +77,9 @@ impl HttpTransport for ScenarioTransport {
                 _ => panic!("出现未授权的合成测试路径"),
             };
             let mut response = HttpResponse::new(200, request.url.clone(), body);
+            if path == "/login" && request.method == HttpMethod::Post {
+                response.status = scenario.post_status;
+            }
             if path == "/login" && request.method == HttpMethod::Get {
                 response.headers.insert(
                     "Set-Cookie".into(),
@@ -195,7 +200,7 @@ pub(super) fn run(future: impl std::future::Future<Output = ()>) {
 }
 
 #[test]
-fn eight_fields_pre_submit_get_and_route_local_cookies_are_exact() {
+fn eight_fields_prepared_page_and_route_local_cookies_are_exact() {
     run(async {
         let mut fixture = Fixture::new(RoutePolicy::Auto);
         let prepared = fixture
@@ -221,11 +226,7 @@ fn eight_fields_pre_submit_get_and_route_local_cookies_are_exact() {
             .enumerate()
             .find(|(_, request)| request.method == HttpMethod::Post)
             .unwrap();
-        assert_eq!(requests[post_index - 1].method, HttpMethod::Get);
-        assert_eq!(
-            requests[post_index - 1].url,
-            "https://sso.buaa.edu.cn/login"
-        );
+        assert_eq!(post_index, 4, "准备两条路线后直接提交，不重新读取登录页");
         assert_exact_captcha_form(post);
         for image in requests
             .iter()
@@ -307,7 +308,7 @@ fn assert_exact_captcha_form(post: &HttpRequest) {
 }
 
 #[test]
-fn rotated_execution_or_id_returns_new_challenge_without_post() {
+fn rejected_submission_replaces_challenge_and_refuses_the_old_handle() {
     run(async {
         for replace in ["execution", "captcha"] {
             let mut fixture = Fixture::new(RoutePolicy::Auto);
@@ -317,22 +318,30 @@ fn rotated_execution_or_id_returns_new_challenge_without_post() {
                 .await
                 .unwrap();
             let old = prepared.routes[0].challenge.as_ref().unwrap();
-            fixture.direct.state.lock().unwrap().page = SYNTHETIC_PAGE.replace(
+            let next_page = SYNTHETIC_PAGE.replace(
                 &format!("synthetic-{replace}-1"),
                 &format!("synthetic-{replace}-2"),
             );
+            {
+                let mut scenario = fixture.direct.state.lock().unwrap();
+                scenario.post_status = 401;
+                scenario.post_body =
+                    format!("{next_page}<div id=\"errorDiv\"><p>用户名或密码错误。</p></div>");
+            }
             let rotated = fixture
                 .client
                 .submit_interactive_login(&prepared.login, input(), vec![answer(old)])
                 .await
                 .unwrap();
-            assert!(
+            assert_eq!(
                 fixture
                     .requests
                     .lock()
                     .unwrap()
                     .iter()
-                    .all(|request| request.method != HttpMethod::Post)
+                    .filter(|request| request.method == HttpMethod::Post)
+                    .count(),
+                1
             );
             assert_ne!(
                 old.revision(),
@@ -347,6 +356,11 @@ fn rotated_execution_or_id_returns_new_challenge_without_post() {
                     .is_err()
             );
             assert_eq!(fixture.count(), before);
+            {
+                let mut scenario = fixture.direct.state.lock().unwrap();
+                scenario.post_status = 200;
+                scenario.post_body = "synthetic-authenticated".into();
+            }
             let result = fixture
                 .client
                 .submit_interactive_login(

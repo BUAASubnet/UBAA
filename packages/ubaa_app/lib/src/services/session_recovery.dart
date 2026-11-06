@@ -568,6 +568,15 @@ final class _SharedLogin {
       return recovered;
     } on BackendException catch (error) {
       await check();
+      if (error.captchaRequired) {
+        // 人工验证码交接只暂停本次材料的自动尝试，保存的密码与自动登录许可保留。
+        owner._blockCredentials(
+          members
+              .expand((job) => job.consumers)
+              .map((consumer) => consumer.scope),
+        );
+        rethrow;
+      }
       if (error.accountMismatch ||
           error.code == UbaaErrorCode.invalidCredentials ||
           error.code == UbaaErrorCode.upstreamChanged ||

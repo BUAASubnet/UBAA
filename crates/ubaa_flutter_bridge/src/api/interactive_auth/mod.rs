@@ -97,6 +97,7 @@ pub struct BridgeInteractiveLoginOutcome {
     pub routes: Vec<BridgeInteractiveRouteResult>,
     pub readiness: BridgeLoginReadiness,
     pub profile: Option<BridgeUserProfile>,
+    pub required_route: Option<BridgeConnectionMode>,
 }
 
 impl fmt::Debug for BridgeInteractiveLoginOutcome {
@@ -121,6 +122,71 @@ impl fmt::Debug for BridgeInteractiveLoginCompletion {
 }
 
 impl BridgeClient {
+    /// 在普通登录状态中完成所需路线的有限自动认证，仅返回最终结果。
+    ///
+    /// # Errors
+    /// 无效输入、取消、会话冲突和网络错误按既有 typed 错误返回。
+    pub async fn login_quietly(
+        &self,
+        login: &BridgeInteractiveLogin,
+        username: String,
+        password: String,
+    ) -> Result<BridgeInteractiveLoginOutcome, BridgeError> {
+        self.cancel_bhpan_transfers();
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            client
+                .prepare_quiet_login_for(&login.inner)
+                .await
+                .map_err(|error| BridgeError::from_core(error, None))?;
+            let result = client
+                .submit_quiet_login(
+                    &login.inner,
+                    DualLoginInput {
+                        username,
+                        password: SecretValue::new(password),
+                    },
+                )
+                .await
+                .map(map_interactive_outcome)
+                .map_err(|error| BridgeError::from_core(error, None));
+            self.write_intents.lock().await.clear();
+            client.discard_cancelled_interactive_login();
+            if !login.inner.is_active() {
+                return Err(cancelled_login_error());
+            }
+            result
+        })
+        .await
+    }
+
+    /// 接续自动会话恢复留下的人工验证码，不重发自动登录或重开共享账号。
+    ///
+    /// # Errors
+    /// 账号意图、原路线挑战或会话所有权不匹配时拒绝。
+    pub async fn resume_required_captcha(
+        &self,
+        login: &BridgeInteractiveLogin,
+        route: BridgeConnectionMode,
+    ) -> Result<BridgeInteractiveLoginOutcome, BridgeError> {
+        catch_panic(async {
+            let mut guard = self.inner.lock().await;
+            let client = guard.as_mut().ok_or_else(disposed_error)?;
+            let result = client
+                .resume_required_captcha(&login.inner, route.into())
+                .await
+                .map(map_interactive_outcome)
+                .map_err(|error| BridgeError::from_core(error, Some(route)));
+            client.discard_cancelled_interactive_login();
+            if !login.inner.is_active() {
+                return Err(cancelled_login_error());
+            }
+            result
+        })
+        .await
+    }
+
     /// 同步登记用户的新手动登录，取消动作可在异步准备排队期间撤销它。
     ///
     /// # Errors
@@ -325,6 +391,7 @@ fn map_interactive_outcome(outcome: InteractiveLoginOutcome) -> BridgeInteractiv
             LoginReadiness::NoneReady => BridgeLoginReadiness::NoneReady,
         },
         profile: outcome.profile.map(map_profile),
+        required_route: outcome.required_route.map(Into::into),
     }
 }
 

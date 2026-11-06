@@ -250,4 +250,6 @@ pub struct InteractiveLoginOutcome {
     pub routes: [InteractiveRouteResult; 2],
     pub readiness: LoginReadiness,
     pub profile: Option<UserProfile>,
+    /// Core 为本次登录选择的所需路线；旧双路线交互入口为空。
+    pub required_route: Option<ConnectionMode>,
 }

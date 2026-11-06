@@ -1,5 +1,20 @@
 # 协议来源对照与专项索引
 
+## SSO 图像验证码静默处理
+
+2026-11-06 实现前核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalConnectionAuth.kt`、`AuthApi.kt`、`model/dto/Auth.kt` 及 `LocalAuthServiceBackendTest.kt`，固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/sso/auth.rs`、`request.rs`、`store/{cookies,cred}.rs` 与 `error.rs`。基础协议九列沿用[交互验证码来源对照](source-parity-ui-sensitive-displays.md)和[SSO 传输对照](source-parity-auth-2026-10-21.md)。buaa-api 无同协议图像验证码操作，该分支不适用，不能从普通 SSO 推断验证码字段或错误分类。
+
+| 操作 | 引导、路线、跳转与会话 | 方法、精确参数、编码与加密 | 解析、缓存、重试及错误 |
+|---|---|---|---|
+| 准备图像验证码 | 沿用 HTTPS SSO `/login`，Direct 和 WebVPN 各自使用原路线 Cookie；不复制会话或修改 service | GET，无凭据正文，无新增签名或加密；保留既有 TLS 与重定向规则 | 旧版解析 `config.captcha {type,id}` 和 execution。真实页面定义配置后使用 `config.captcha.id` 生成图片地址，配置引用不构成第二个挑战。实际表单的 `execution/type/_eventId` 未写 input type，按已知协议字段处理；未知额外验证仍拒绝 |
+| 获取或刷新图片 | 同路线 `/captcha`，挑战标识只留 Core | GET，业务参数 `captchaId`；浏览器另附随机 `r/t`，不据此引入新的业务字段 | HAR 中相同 captchaId 的重复 GET 返回不同图片。图片和答案只保留当前内存引用，不按 captchaId 缓存或复用；刷新后旧答案失效 |
+| 提交验证码 | 同一路线 SSO `/login`，成功后沿用 UC 激活及身份校验 | POST，沿冻结旧版八字段 `username/password/captcha/captchaResponse/execution/_eventId/submit/type`，`application/x-www-form-urlencoded`，不增加密码加密 | 真实 WebVPN 每次 GET 都轮换 captchaId 和 execution，浏览器直接提交取图时的 execution。按[来源裁决](decision-log.md#2026-11-06sso-图像验证码按当前准备状态直接提交)取消提交前 GET，保留本地代次、账号、取消和有效期检查。自动识别使用本地模型，不上传验证码图片 |
+| 拒绝与下一次尝试 | 用户提供的 WebVPN HAR 第 39 项登录 POST 返回 401，仍为原 SSO 登录页，并带新的 captchaId 和 execution | 拒绝后重新取得该路线的当前挑战，不复用原 POST；网络异常或未知响应不按验证码拒绝自动重放 | `#errorDiv p` 为“用户名或密码错误。”，验证码失败也使用此文案，无法据此判定密码无效。用户明确允许带图像验证码的已证统一拒绝最多自动提交三次，包含首次；保留保存的凭据，耗尽后转人工输入 |
+
+用户确定的界面行为是：手动登录、已开启的自动登录和会话恢复均可静默处理验证码，期间只显示普通登录或恢复状态，失败后才显示人工输入窗口。两路线独立计数、独立挑战；当前所需路线就绪后不因另一条路线的验证码阻塞使用。Auto 在校园网内只准备和认证 Direct；校外允许保留 Direct 与 WebVPN 两套会话，具体功能的优先路线另经真实校外只读验证确定。
+
+HAR 只包含 WebVPN，Direct 使用同一 SSO 解析与提交实现，真实双路线验收分别记录。原 HAR、验证码、Cookie、凭据与原始响应不进入仓库；只保存脱敏协议事实和合成回归用例。
+
 ## 作业列表字段与详情复用
 
 2026-11-05 核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `api/feature/{JudgeApi,SpocApi}.kt`、`api/local/{LocalJudgeApi,LocalSpocApi,LocalSpocSupport,LocalConnectionAuth}.kt`、`model/dto/{Judge,Spoc}.kt` 和 `LocalJudgeApiBackendTest`、`LocalSpocApiBackendTest`。固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 对照 `src/api.rs`、`api/spoc/{core,opt,data}.rs`、`api/sso/auth.rs`、`request.rs`、`store/{cred,cookies}.rs`。当前实现对照 Core `features/judge/{parser,service,scan}.rs`、`facade/judge_refresh/`、`features/spoc/{list,parser,detail,scan}.rs` 与 `facade/home_cache/spoc_scan/`。

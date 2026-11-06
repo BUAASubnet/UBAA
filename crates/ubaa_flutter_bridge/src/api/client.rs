@@ -17,7 +17,7 @@ use ubaa_core::facade::{
 };
 
 /// FRB 合同版本。
-pub const BRIDGE_CONTRACT_VERSION: u32 = 51;
+pub const BRIDGE_CONTRACT_VERSION: u32 = 52;
 
 /// Core 与 bridge 共用的机器错误码。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -25,6 +25,7 @@ pub enum BridgeErrorCode {
     CacheIdentityMismatch,
     InvalidInput,
     AuthenticationRequired,
+    CaptchaRequired,
     InvalidCredentials,
     PasswordRiskConfirmationFailed,
     PermissionDenied,
@@ -96,6 +97,8 @@ impl BridgeError {
         Self {
             code: if error.is_client_closed() {
                 BridgeErrorCode::ClientDisposed
+            } else if error.is_captcha_required() {
+                BridgeErrorCode::CaptchaRequired
             } else if error.is_shared_account_conflict() {
                 BridgeErrorCode::OperationConflict
             } else {

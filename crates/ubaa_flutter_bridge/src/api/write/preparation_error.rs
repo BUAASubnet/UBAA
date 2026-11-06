@@ -40,7 +40,7 @@ impl From<BridgeError> for PreparationError {
 }
 pub(crate) fn routed_bridge_error(error: BridgeError) -> core::RoutedError {
     let code = match error.code {
-        B::AuthenticationRequired => core::ErrorCode::AuthenticationRequired,
+        B::AuthenticationRequired | B::CaptchaRequired => core::ErrorCode::AuthenticationRequired,
         B::InvalidCredentials => core::ErrorCode::InvalidCredentials,
         B::PasswordRiskConfirmationFailed => core::ErrorCode::PasswordRiskConfirmationFailed,
         B::PermissionDenied | B::CacheIdentityMismatch => core::ErrorCode::PermissionDenied,

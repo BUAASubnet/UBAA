@@ -301,6 +301,7 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
       BridgeErrorCode.invalidInput: UbaaErrorCode.invalidInput,
       BridgeErrorCode.authenticationRequired:
           UbaaErrorCode.authenticationRequired,
+      BridgeErrorCode.captchaRequired: UbaaErrorCode.authenticationRequired,
       BridgeErrorCode.invalidCredentials: UbaaErrorCode.invalidCredentials,
       BridgeErrorCode.passwordRiskConfirmationFailed:
           UbaaErrorCode.passwordRiskConfirmationFailed,
@@ -331,6 +332,10 @@ void registerBridgeBackendWriteAndErrorCharacterization() {
         entry.key == BridgeErrorCode.cacheIdentityMismatch,
       );
       expect(exception.detail, isNull);
+      expect(
+        exception.captchaRequired,
+        entry.key == BridgeErrorCode.captchaRequired,
+      );
     }
 
     final safe160 = List<String>.filled(160, '安').join();

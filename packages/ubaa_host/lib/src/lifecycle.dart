@@ -17,6 +17,10 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   }
 
   final _messengerKey = GlobalKey<ScaffoldMessengerState>();
+  final _navigatorKey = GlobalKey<NavigatorState>();
+  DialogRoute<void>? _captchaDialogRoute;
+  ModalRoute<dynamic>? _loginSheetRoute;
+  bool _captchaDialogScheduled = false;
   UiError? _scheduledHomeFeedback;
   late PlacePreferenceStore _placeStore;
   late ThemePreferenceStore _themeStore;
@@ -205,6 +209,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _controller.addListener(_syncPlaces);
     _controller.addListener(_retryPendingRecovery);
     _controller.addListener(_showHomeFeedback);
+    _controller.addListener(_syncCaptchaDialog);
     final widgetGateway =
         widget.scheduleWidgetGateway ??
         (Platform.isAndroid &&
@@ -237,6 +242,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     _controller.removeListener(_syncPlaces);
     _controller.removeListener(_retryPendingRecovery);
     _controller.removeListener(_showHomeFeedback);
+    _controller.removeListener(_syncCaptchaDialog);
     _controller.removeListener(_syncScheduleWidgets);
     _scheduleWidgetPublisher?.dispose();
     _gradeWatch.dispose();

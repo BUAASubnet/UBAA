@@ -231,6 +231,18 @@ mixin ControllerOfflineStartup on ControllerState {
         await internalRejectMismatchedAccount();
         return;
       }
+      if (error is BackendException &&
+          error.captchaRequired &&
+          error.resolvedRoute != null) {
+        final input = await internalApprovedRecoveryInput(request.epoch);
+        if (!internalRecoveryIsCurrent(request.epoch)) return;
+        internalAutomaticCredentialBlocked = true;
+        internalSessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
+        if (input != null) {
+          await internalResumeRequiredCaptcha(input, error.resolvedRoute!);
+          return;
+        }
+      }
       request.transientFailure = controllerTemporaryRecoveryFailure(error);
       if (error is BackendException &&
           (error.code == UbaaErrorCode.invalidCredentials ||

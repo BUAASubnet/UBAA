@@ -4,6 +4,7 @@ import 'package:meta/meta.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_app/src/contracts/backend.dart';
+import 'package:ubaa_app/src/contracts/interactive_auth.dart';
 import 'package:ubaa_app/src/contracts/routing.dart';
 import 'package:ubaa_app/src/controller/error_mapper.dart';
 import '../state/state.dart' show ControllerState;
@@ -86,10 +87,14 @@ mixin ControllerAuthentication on ControllerState {
             autoLogin: saved.autoLogin,
             rememberPassword: true,
           );
-          // 手动恢复仅供遮罩表单使用；自动登录只尝试一次，成功或失败
-          // 都释放表单中的密码，账号变化和销毁也会使本次恢复失效。
+          // 已授权的自动登录可将耗尽的验证码交给当前表单；完成、取消、
+          // 账号变化和销毁都会释放密码，等待人工答案期间保留当前输入。
           if (saved.autoLogin) {
-            await internalSubmitLoginController();
+            if (internalBackend case final InteractiveLoginBackend backend) {
+              await internalSubmitInteractiveLogin(backend);
+            } else {
+              await internalSubmitLoginController();
+            }
             return;
           }
         }

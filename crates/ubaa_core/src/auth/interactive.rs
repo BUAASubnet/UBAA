@@ -22,7 +22,7 @@ pub(crate) enum InteractivePreparation {
 
 pub(crate) enum InteractiveSubmission {
     Complete(UserProfile),
-    Reprepared(InteractivePreparation),
+    Rejected(ImageCaptchaPage),
 }
 
 impl AuthWorkflow {
@@ -61,15 +61,16 @@ impl AuthWorkflow {
         answer: &str,
         before_post: impl FnOnce() -> Result<()>,
     ) -> Result<InteractiveSubmission> {
-        // 冻结旧版每次提交前先 GET；轮换时旧答案绝不进入 POST。
-        let preparation = self.prepare_interactive(runtime).await?;
-        let InteractivePreparation::Image(current) = preparation else {
-            return Ok(InteractiveSubmission::Reprepared(preparation));
-        };
+        // 登录页 GET 会轮换挑战，答案必须直接对应取图时的准备页。
+        let current = self
+            .state
+            .page()
+            .map(parse_image_captcha)
+            .transpose()?
+            .flatten()
+            .ok_or_else(|| upstream_changed("验证状态已失效，请刷新后重试"))?;
         if current.id != expected.id || current.execution != expected.execution {
-            return Ok(InteractiveSubmission::Reprepared(
-                InteractivePreparation::Image(current),
-            ));
+            return Err(upstream_changed("验证状态已变化，请刷新后重试"));
         }
         before_post()?;
         let form = BTreeMap::from([
@@ -88,6 +89,15 @@ impl AuthWorkflow {
                     .with_header("Content-Type", "application/x-www-form-urlencoded"),
             )
             .await?;
+        let body = body_text(&response);
+        // 真实 SSO 对验证码失败使用同一凭据拒绝文案，且返回下一次图像挑战。
+        if response.status == 401
+            && crate::upstream::find_login_error(&body).as_deref() == Some("用户名或密码错误。")
+            && let Some(page) = parse_image_captcha(&body)?
+        {
+            self.state.remember(body, page.execution.clone());
+            return Ok(InteractiveSubmission::Rejected(page));
+        }
         follow_login_response(runtime, response)
             .await
             .map_err(|error| {

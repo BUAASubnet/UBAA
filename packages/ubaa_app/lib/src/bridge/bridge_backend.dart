@@ -26,6 +26,7 @@ import 'auth/session.dart'
         bridgeLogout,
         bridgePrepareLogin,
         bridgeRecoverRequiredSession,
+        bridgeResumeRequiredCaptcha,
         bridgeRefreshInteractiveCaptcha,
         bridgeRouteSettings,
         bridgeSetDefaultRoutePolicy,
@@ -77,7 +78,7 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 51;
+const _supportedBridgeContractVersion = 52;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -94,6 +95,7 @@ class BridgeBackend
         BhpanProvider,
         PinnedWriteReadbackBackend,
         InteractiveLoginBackend,
+        ManualCaptchaBackend,
         CgyyLockDisplayBackend,
         FeatureQueryBackend,
         SigninReadbackBackend,
@@ -358,6 +360,11 @@ class BridgeBackend
   @override
   Future<LoginVerificationState> beginInteractiveLogin(LoginInput input) =>
       bridgeBeginInteractiveLogin(_context, input);
+  @override
+  Future<LoginVerificationState> resumeRequiredCaptcha(
+    LoginInput input,
+    ConnectionMode route,
+  ) => bridgeResumeRequiredCaptcha(_context, input, route);
   @override
   Future<LoginVerificationState> submitInteractiveLogin(
     LoginInput input,

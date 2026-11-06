@@ -16,6 +16,9 @@ use crate::upstream::{
 
 const MAX_REDIRECTS: usize = 10;
 
+pub(crate) mod automatic;
+mod captcha;
+pub(crate) mod captcha_image;
 pub(crate) mod interactive;
 
 /// 绑定到单个客户端实例的待处理登录页面。
@@ -70,7 +73,13 @@ impl LoginState {
 #[derive(Default)]
 pub(crate) struct AuthWorkflow {
     state: LoginState,
+    pub(crate) manual_captcha: Option<automatic::PendingManualCaptcha>,
+    #[cfg(feature = "test-contract")]
+    pub(crate) captcha_recognizer: Option<std::sync::Arc<CaptchaRecognizer>>,
 }
+
+#[cfg(feature = "test-contract")]
+type CaptchaRecognizer = dyn Fn(&crate::domain::CaptchaFrame) -> Option<String> + Send + Sync;
 
 impl AuthWorkflow {
     pub(crate) async fn prepare_login(&mut self, runtime: &mut ClientRuntime) -> Result<()> {
@@ -149,6 +158,7 @@ impl AuthWorkflow {
         runtime: &mut ClientRuntime,
         profile: UserProfile,
     ) -> UserProfile {
+        self.manual_captcha = None;
         runtime.renew_authentication_generation();
         runtime.clear_feature_state();
         runtime.remember_account_name(profile.school_id.as_deref().or(profile.username.as_deref()));
@@ -170,6 +180,7 @@ impl AuthWorkflow {
 
     pub(crate) fn clear(&mut self) {
         self.state.clear();
+        self.manual_captcha = None;
     }
 
     pub(crate) fn has_pending_login(&self) -> bool {

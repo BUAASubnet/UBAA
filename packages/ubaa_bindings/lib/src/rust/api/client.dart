@@ -729,6 +729,16 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required String password,
   });
 
+  /// 在普通登录状态中完成所需路线的有限自动认证，仅返回最终结果。
+  ///
+  /// # Errors
+  /// 无效输入、取消、会话冲突和网络错误按既有 typed 错误返回。
+  Future<BridgeInteractiveLoginOutcome> loginQuietly({
+    required BridgeInteractiveLogin login,
+    required String username,
+    required String password,
+  });
+
   /// 仅向刚校验为缺少认证的目标路线提交获准材料。
   ///
   /// # Errors
@@ -937,6 +947,15 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 身份版本已撤销、输入非法或本地存储不可用时返回稳定错误。
   Future<void> releaseSharedAccountForLogin();
 
+  /// 接续自动会话恢复留下的人工验证码，不重发自动登录或重开共享账号。
+  ///
+  /// # Errors
+  /// 账号意图、原路线挑战或会话所有权不匹配时拒绝。
+  Future<BridgeInteractiveLoginOutcome> resumeRequiredCaptcha({
+    required BridgeInteractiveLogin login,
+    required BridgeConnectionMode route,
+  });
+
   /// 读取全局路线策略与已认证槽位。
   ///
   /// # Errors
@@ -1116,6 +1135,7 @@ enum BridgeErrorCode {
   cacheIdentityMismatch,
   invalidInput,
   authenticationRequired,
+  captchaRequired,
   invalidCredentials,
   passwordRiskConfirmationFailed,
   permissionDenied,

@@ -106,6 +106,13 @@ fn has_unsupported_login_controls(html: &str, image_captcha: bool) -> bool {
         {
             return true;
         }
+        if image_captcha
+            && input_type.is_empty()
+            && matches!(name.as_str(), "execution" | "type" | "_eventid")
+            && value.attr("value").is_some_and(|field| !field.is_empty())
+        {
+            return false;
+        }
         if !image_captcha
             && input_type.is_empty()
             && value.attr("value").is_some_and(|field| !field.is_empty())

@@ -12,6 +12,67 @@ import '../state/types.dart'
 
 mixin ControllerInteractiveAuthentication on ControllerState {
   @internal
+  Future<void> internalResumeRequiredCaptcha(
+    LoginInput input,
+    ConnectionMode route,
+  ) async {
+    final backend = internalBackend;
+    if (backend is! ManualCaptchaBackend ||
+        backend is! InteractiveLoginBackend ||
+        internalDisposed ||
+        internalIsSigningOut ||
+        internalWriteCoordinator.hasPendingOperation) {
+      return;
+    }
+    final manual = backend as ManualCaptchaBackend;
+    final interactive = backend as InteractiveLoginBackend;
+    internalInteractiveGeneration++;
+    internalLoginCredentialRevision++;
+    final generation = internalInteractiveGeneration;
+    final revision = internalLoginCredentialRevision;
+    internalInteractiveEngaged = true;
+    internalInteractiveInPlace = internalPhase == AppPhase.home;
+    internalManualAuthenticationRequired = true;
+    internalCredentialRestoreAllowed = false;
+    internalLoginForm = internalLoginForm.copyWith(
+      username: input.username,
+      password: input.password,
+      rememberPassword: input.rememberPassword,
+      autoLogin: input.autoLogin,
+    );
+    internalSessionRecoveryStatus = SessionRecoveryStatus.needsLogin;
+    internalBeginWriteTransition();
+    try {
+      final outcome = await manual.resumeRequiredCaptcha(input, route);
+      if (!internalIsCurrentInteractive(interactive, generation, revision)) {
+        outcome.releaseFrames();
+        return;
+      }
+      internalError = null;
+      internalAdoptVerification(outcome);
+      if (outcome.readyRoutes.contains(route)) {
+        await internalFinishInteractiveLogin(interactive, route, generation);
+      } else {
+        internalSetInteractivePhase(AppPhase.login);
+      }
+    } on Object catch (error, stackTrace) {
+      if (!internalIsCurrentInteractive(interactive, generation, revision))
+        return;
+      internalClearVerificationState();
+      interactive.cancelInteractiveLogin();
+      internalReleaseLoginSecret();
+      internalError = internalRecordFailure(
+        error,
+        DiagnosticOperation.login,
+        stackTrace: stackTrace,
+      );
+      internalSetInteractivePhase(AppPhase.login);
+    } finally {
+      internalEndWriteTransition();
+    }
+  }
+
+  @internal
   bool internalIsCurrentInteractiveGeneration(int generation) =>
       !internalDisposed &&
       !internalIsSigningOut &&
@@ -108,7 +169,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
       final preferred = switch (form.routePolicy) {
         RoutePolicy.direct => ConnectionMode.direct,
         RoutePolicy.webvpn => ConnectionMode.webvpn,
-        RoutePolicy.auto => null,
+        RoutePolicy.auto => result.requiredRoute,
       };
       if (result.readyRoutes.length == 2 ||
           (preferred != null && result.readyRoutes.contains(preferred))) {
@@ -206,6 +267,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
     internalLoginVerification = LoginVerificationState(
       routes: routes,
       profile: incoming.profile,
+      requiredRoute: incoming.requiredRoute,
     );
     internalActiveRoutes = List<ConnectionMode>.unmodifiable(
       incoming.readyRoutes,
@@ -220,6 +282,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
       return;
     internalLoginVerification = LoginVerificationState(
       profile: current.profile,
+      requiredRoute: current.requiredRoute,
       routes: <LoginRouteVerification>[
         for (final value in current.routes)
           value.route == route ? value.withAnswer(answer) : value,
@@ -241,6 +304,7 @@ mixin ControllerInteractiveAuthentication on ControllerState {
     }
     internalLoginVerification = LoginVerificationState(
       profile: current.profile,
+      requiredRoute: current.requiredRoute,
       routes: <LoginRouteVerification>[
         for (final value in current.routes)
           value.route == route

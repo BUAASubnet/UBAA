@@ -26,7 +26,7 @@ pub(crate) fn parse_image_captcha(html: &str) -> Result<Option<ImageCaptchaPage>
         )
         .expect("固定验证码配置正则")
     });
-    if lower.matches("config.captcha").count() != 1 {
+    if pattern.captures_iter(html).count() != 1 {
         return Err(unsupported());
     }
     let found = pattern.captures(html).ok_or_else(unsupported)?;
@@ -44,7 +44,8 @@ pub(crate) fn parse_image_captcha(html: &str) -> Result<Option<ImageCaptchaPage>
     if executions.next().is_some() || execution.trim().is_empty() || execution.len() > 4096 {
         return Err(unsupported());
     }
-    let without_config = pattern.replace(html, "");
+    // 当前 SSO 页面读取 id 生成刷新地址；引用不代表额外的验证步骤。
+    let without_config = pattern.replace(html, "").replace("config.captcha.id", "");
     if super::has_unsupported_login_controls(&without_config, true) {
         return Err(unsupported());
     }
@@ -70,6 +71,34 @@ mod tests {
             .expect("应存在图像挑战");
         assert_eq!(parsed.id, "synthetic-id");
         assert_eq!(parsed.execution, "synthetic-execution");
+    }
+
+    #[test]
+    fn 图片刷新读取配置标识不构成第二个挑战() {
+        let page = r#"<form id="fm1"><input type="hidden" name="execution" value="synthetic-execution"></form>
+            <script>config.captcha = { type: 'image', id: 'synthetic-id' };
+            function captchaUrl() { return 'captcha?captchaId=' + config.captcha.id + '&r=' + Math.random().toString().slice(2,7); }</script>"#;
+        let parsed = parse_image_captcha(page)
+            .expect("已证图片刷新代码应允许读取当前挑战标识")
+            .expect("应保留图像挑战");
+        assert_eq!(parsed.id, "synthetic-id");
+    }
+
+    #[test]
+    fn 已证登录表单接受未声明类型的协议字段() {
+        let page = r#"<form id="loginForm" action="login" method="post">
+            <input type="text" name="username"><input type="password" name="password">
+            <input type="submit" name="submit" value="登录">
+            <input name="type" value="username_password">
+            <input name="execution" value="synthetic-execution">
+            <input name="_eventId" value="submit"></form>
+            <div id="errorDiv"><p>用户名或密码错误。</p></div>
+            <script>config.captcha = { type: 'image', id: 'synthetic-id' };</script>"#;
+        let parsed = parse_image_captcha(page)
+            .expect("已证 CAS 字段不应作为额外验证控件拒绝")
+            .expect("应保留拒绝后返回的新图像挑战");
+        assert_eq!(parsed.execution, "synthetic-execution");
+        assert!(parse_image_captcha(&page.replace("name=\"type\"", "name=\"otp\"")).is_err());
     }
 
     #[test]

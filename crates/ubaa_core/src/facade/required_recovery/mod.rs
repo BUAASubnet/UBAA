@@ -101,7 +101,7 @@ impl UbaaClient {
     /// 在单次控制范围内只登录明确指定的路线。
     ///
     /// # Errors
-    /// 保留原认证错误，不自动重试凭据或注销共享会话。
+    /// 图像验证码统一拒绝最多自动尝试三次；其它认证错误不重放凭据或注销共享会话。
     pub async fn login_required_route_controlled(
         &mut self,
         route: ConnectionMode,

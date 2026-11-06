@@ -2,11 +2,9 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../theme.dart' show UbaaTheme;
-import 'login_captcha.dart' show CaptchaPixels;
 import '../common/app_links.dart' show uiShowAppLinkFailure;
 import '../common/error_card.dart'
     show FriendlyErrorCard, uiShowDiagnosticsDialog;
-part 'login_verification.dart';
 
 /// 登录表单。状态由应用协调器持有，组件本身不保存密码。
 class UbaaLoginView extends StatefulWidget {
@@ -29,11 +27,6 @@ class UbaaLoginView extends StatefulWidget {
     this.onReadDiagnostics,
     this.onOpenAppLink,
     this.verification,
-    this.onCaptchaAnswerChanged,
-    this.onRefreshCaptcha,
-    this.onContinueReady,
-    this.onContinueFixedReady,
-    this.onCancelVerification,
     super.key,
   });
 
@@ -55,36 +48,24 @@ class UbaaLoginView extends StatefulWidget {
   final String Function()? onReadDiagnostics;
   final Future<bool> Function(AppLink)? onOpenAppLink;
   final LoginVerificationState? verification;
-  final void Function(ConnectionMode, String)? onCaptchaAnswerChanged;
-  final ValueChanged<ConnectionMode>? onRefreshCaptcha;
-  final ValueChanged<ConnectionMode>? onContinueReady;
-  final ValueChanged<ConnectionMode>? onContinueFixedReady;
-  final VoidCallback? onCancelVerification;
 
   @override
   State<UbaaLoginView> createState() => _UbaaLoginViewState();
 }
 
-class _UbaaLoginViewState extends State<UbaaLoginView>
-    with WidgetsBindingObserver {
+class _UbaaLoginViewState extends State<UbaaLoginView> {
   late final TextEditingController _usernameController;
   late final TextEditingController _passwordController;
   late final TextEditingController _captchaController;
   bool _obscurePassword = true;
   bool _openingProject = false;
-  final Map<ConnectionMode, TextEditingController> _answerControllers =
-      <ConnectionMode, TextEditingController>{};
-  bool _verificationVisible = true;
-  bool _appHidden = false;
 
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
     _usernameController = TextEditingController(text: widget.username);
     _passwordController = TextEditingController(text: widget.password);
     _captchaController = TextEditingController(text: widget.captcha);
-    _syncVerificationInputs();
   }
 
   @override
@@ -93,50 +74,6 @@ class _UbaaLoginViewState extends State<UbaaLoginView>
     _syncController(_usernameController, oldWidget.username, widget.username);
     _syncController(_passwordController, oldWidget.password, widget.password);
     _syncController(_captchaController, oldWidget.captcha, widget.captcha);
-    final fresh =
-        widget.verification?.routes.any(
-          (route) =>
-              route.hasUsableFrame &&
-              oldWidget.verification?.forRoute(route.route)?.revision !=
-                  route.revision,
-        ) ??
-        false;
-    if (fresh && !_appHidden) _verificationVisible = true;
-    _syncVerificationInputs();
-  }
-
-  void _syncVerificationInputs() {
-    final routes =
-        widget.verification?.routes ?? const <LoginRouteVerification>[];
-    for (final route in routes) {
-      final controller = _answerControllers.putIfAbsent(
-        route.route,
-        () => TextEditingController(),
-      );
-      _syncController(controller, controller.text, route.answer);
-    }
-    for (final route in _answerControllers.keys.toList()) {
-      if (!routes.any((value) => value.route == route)) {
-        _answerControllers.remove(route)?.dispose();
-      }
-    }
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.hidden ||
-        state == AppLifecycleState.paused ||
-        state == AppLifecycleState.detached) {
-      _appHidden = true;
-      widget.verification?.releaseFrames();
-      for (final controller in _answerControllers.values) {
-        controller.clear();
-      }
-      if (mounted) setState(() => _verificationVisible = false);
-      widget.onCancelVerification?.call();
-    } else if (state == AppLifecycleState.resumed) {
-      _appHidden = false;
-    }
   }
 
   void _syncController(
@@ -154,12 +91,6 @@ class _UbaaLoginViewState extends State<UbaaLoginView>
 
   @override
   void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    widget.verification?.releaseFrames();
-    widget.onCancelVerification?.call();
-    for (final controller in _answerControllers.values) {
-      controller.dispose();
-    }
     _usernameController.dispose();
     _passwordController.dispose();
     _captchaController.dispose();
@@ -258,9 +189,6 @@ class _UbaaLoginViewState extends State<UbaaLoginView>
                               onSubmitted: (_) => _submitFromKeyboard(),
                             ),
                           ],
-                          if (_verificationVisible &&
-                              widget.verification != null)
-                            ..._buildVerificationControls(),
                           const SizedBox(height: 8),
                           _LoginOptions(
                             rememberPassword: widget.rememberPassword,

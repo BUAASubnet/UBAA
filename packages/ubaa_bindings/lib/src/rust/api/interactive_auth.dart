@@ -90,17 +90,23 @@ class BridgeInteractiveLoginOutcome {
   final List<BridgeInteractiveRouteResult> routes;
   final BridgeLoginReadiness readiness;
   final BridgeUserProfile? profile;
+  final BridgeConnectionMode? requiredRoute;
 
   const BridgeInteractiveLoginOutcome({
     required this.login,
     required this.routes,
     required this.readiness,
     this.profile,
+    this.requiredRoute,
   });
 
   @override
   int get hashCode =>
-      login.hashCode ^ routes.hashCode ^ readiness.hashCode ^ profile.hashCode;
+      login.hashCode ^
+      routes.hashCode ^
+      readiness.hashCode ^
+      profile.hashCode ^
+      requiredRoute.hashCode;
 
   @override
   bool operator ==(Object other) =>
@@ -110,7 +116,8 @@ class BridgeInteractiveLoginOutcome {
           login == other.login &&
           routes == other.routes &&
           readiness == other.readiness &&
-          profile == other.profile;
+          profile == other.profile &&
+          requiredRoute == other.requiredRoute;
 }
 
 /// 每路线状态；revision 是本地帧替换标识，与上游 id 无关。

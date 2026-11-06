@@ -18,22 +18,36 @@ Future<LoginVerificationState> bridgeBeginInteractiveLogin(
       username: input.username.trim(),
     );
     backend.authentication.login = login;
-    final prepared = await backend.client.prepareInteractiveLogin(login: login);
+    final completed = await backend.client.loginQuietly(
+      login: login,
+      username: input.username.trim(),
+      password: input.password,
+    );
     _checkInteractiveGeneration(backend, generation);
-    var state = _acceptInteractiveOutcome(backend, prepared);
-    if (state.routes.any(
-      (route) => route.status == LoginRouteVerificationStatus.prepared,
-    )) {
-      final submitted = await backend.client.submitInteractiveLogin(
-        login: login,
-        username: input.username.trim(),
-        password: input.password,
-        answers: const <BridgeCaptchaAnswer>[],
-      );
-      _checkInteractiveGeneration(backend, generation);
-      state = _acceptInteractiveOutcome(backend, submitted);
-    }
-    return state;
+    return _acceptInteractiveOutcome(backend, completed);
+  } on BridgeError catch (error) {
+    throw bridgeMapError(error);
+  }
+}
+
+Future<LoginVerificationState> bridgeResumeRequiredCaptcha(
+  BridgeContext backend,
+  LoginInput input,
+  ConnectionMode route,
+) async {
+  bridgeCancelInteractiveLogin(backend);
+  final generation = backend.authentication.generation;
+  try {
+    final login = backend.client.beginInteractiveLogin(
+      username: input.username.trim(),
+    );
+    backend.authentication.login = login;
+    final outcome = await backend.client.resumeRequiredCaptcha(
+      login: login,
+      route: bridgeToBridgeConnectionMode(route),
+    );
+    _checkInteractiveGeneration(backend, generation);
+    return _acceptInteractiveOutcome(backend, outcome);
   } on BridgeError catch (error) {
     throw bridgeMapError(error);
   }
@@ -196,6 +210,9 @@ LoginVerificationState _acceptInteractiveOutcome(
   }
   final state = LoginVerificationState(
     routes: routes,
+    requiredRoute: outcome.requiredRoute == null
+        ? null
+        : bridgeToConnectionMode(outcome.requiredRoute!),
     profile: outcome.profile == null
         ? null
         : _interactiveProfile(outcome.profile!),

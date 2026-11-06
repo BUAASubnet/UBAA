@@ -5,8 +5,42 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
+import 'package:ubaa_test_support/recovery.dart' as recovery;
 
 void main() {
+  test('会话恢复验证码耗尽后原位交接人工，完成时保留保存凭据与 Auto', () async {
+    final accounts = await recovery.savedAccounts();
+    await accounts.retain('synthetic-account', retainSession: true);
+    final vault = MemoryCredentialVault(
+      initial: const Credential(
+        username: 'synthetic-account',
+        password: 'synthetic-password',
+        autoLogin: true,
+      ),
+    );
+    final backend = _RecoveryCaptchaBackend();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: accounts,
+      credentialVault: vault,
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await controller.recoverSession(refreshHomeAfter: false);
+    expect(controller.phase, AppPhase.home);
+    expect(controller.loginVerification!.hasCaptcha, isTrue);
+    expect(backend.resumes, 1);
+    expect(backend.beginCalls, 0);
+    expect(backend.requiredLogins, 1);
+    expect((await vault.read())!.autoLogin, isTrue);
+    controller.setCaptchaAnswer(ConnectionMode.webvpn, 'synthetic-answer');
+    await controller.submitLogin(preserveHome: true);
+    expect(controller.loginVerification, isNull);
+    expect(controller.sessionRecoveryStatus, SessionRecoveryStatus.ready);
+    expect(controller.loginForm.routePolicy, RoutePolicy.auto);
+    expect((await vault.read())!.autoLogin, isTrue);
+    expect(backend.requiredLogins, 1);
+  });
   test('明确WebVPN已就绪时进入首页，不要求另一条路线的验证码', () async {
     final backend = _WebVpnReadyBackend();
     final controller = await _controller(backend);
@@ -211,25 +245,24 @@ void main() {
     expect(backend.disposed, isTrue);
   });
 
-  test('自动登录保持非交互，遇验证不取图且释放恢复密码', () async {
+  test('自动登录复用静默认证，需要人工输入时保留当前密码和保存的凭据', () async {
     final backend = _InteractiveBackend();
-    final controller = AppController(
-      backend: backend,
-      credentialVault: MemoryCredentialVault(
-        initial: const Credential(
-          username: 'synthetic-account',
-          password: 'synthetic-password',
-          autoLogin: true,
-        ),
+    final vault = MemoryCredentialVault(
+      initial: const Credential(
+        username: 'synthetic-account',
+        password: 'synthetic-password',
+        autoLogin: true,
       ),
     );
+    final controller = AppController(backend: backend, credentialVault: vault);
     addTearDown(controller.dispose);
     await controller.initialize();
-    expect(backend.legacyLogins, 1);
-    expect(backend.beginCalls, 0);
+    expect(backend.legacyLogins, 0);
+    expect(backend.beginCalls, 1);
     expect(controller.phase, AppPhase.login);
-    expect(controller.loginForm.password, isEmpty);
-    expect(controller.loginVerification, isNull);
+    expect(controller.loginForm.password, 'synthetic-password');
+    expect(controller.loginVerification!.hasCaptcha, isTrue);
+    expect((await vault.read())!.password, 'synthetic-password');
   });
 
   test('验证码提交途中退出后，迟到成功不能保存凭据或恢复页面', () async {
@@ -505,6 +538,49 @@ class _WebVpnReadyBackend extends _InteractiveBackend {
         defaultPolicy: RoutePolicy.webvpn,
         activeRoutes: [ConnectionMode.webvpn],
       ),
+    );
+  }
+}
+
+class _RecoveryCaptchaBackend extends _InteractiveBackend
+    implements RequiredSessionBackend, ManualCaptchaBackend {
+  int resumes = 0, requiredLogins = 0;
+  @override
+  Future<RecoveredRouteSession> recoverRequiredSession(
+    FeatureId feature,
+  ) async {
+    throw const BackendException(
+      UbaaErrorCode.authenticationRequired,
+      resolvedRoute: ConnectionMode.webvpn,
+    );
+  }
+
+  @override
+  Future<RecoveredRouteSession> loginRequiredRoute(
+    ConnectionMode route,
+    LoginInput input,
+  ) async {
+    requiredLogins++;
+    throw const BackendException(
+      UbaaErrorCode.authenticationRequired,
+      captchaRequired: true,
+      resolvedRoute: ConnectionMode.webvpn,
+    );
+  }
+
+  @override
+  Future<LoginVerificationState> resumeRequiredCaptcha(
+    LoginInput input,
+    ConnectionMode route,
+  ) async {
+    resumes++;
+    expect(route, ConnectionMode.webvpn);
+    expect(input.password, 'synthetic-password');
+    final waiting = _waiting(1);
+    return LoginVerificationState(
+      routes: waiting.routes,
+      profile: waiting.profile,
+      requiredRoute: route,
     );
   }
 }

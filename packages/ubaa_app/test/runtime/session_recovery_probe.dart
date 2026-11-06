@@ -206,6 +206,26 @@ final class QueuedBackend extends Backend {
 }
 
 final cases = <String, Future<void> Function()>{
+  '验证码耗尽交接人工，保留凭据且后续功能不重复自动提交': () async {
+    final backend = Backend()
+      ..error = expired
+      ..loginError = const BackendException(
+        UbaaErrorCode.authenticationRequired,
+        captchaRequired: true,
+        resolvedRoute: ConnectionMode.direct,
+      );
+    final vault = Vault();
+    final service = RequiredSessionRecovery(
+      backend: backend,
+      credentials: vault,
+    );
+    final error = await failure(ensure(service, scope()));
+    check(error is BackendException && error.captchaRequired, '未交付人工验证码状态');
+    check(await vault.read() == saved, '验证码失败撤销了保存凭据');
+    await failure(ensure(service, scope(), feature: FeatureId.signin));
+    check(backend.logins == 1, '其它功能重新启动了自动验证码尝试');
+    await service.close();
+  },
   '跨路线材料读取挂起后被拒，另一条路线不提交密码': () async {
     for (final code in [
       UbaaErrorCode.invalidCredentials,

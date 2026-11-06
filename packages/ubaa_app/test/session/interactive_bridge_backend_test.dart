@@ -171,7 +171,7 @@ class _Client implements BridgeClient {
       );
 
   @override
-  int contractVersion() => 51;
+  int contractVersion() => 52;
   @override
   void cancelInteractiveLogin() {}
   @override
@@ -192,6 +192,17 @@ class _Client implements BridgeClient {
   BridgeInteractiveLogin beginInteractiveLogin({required String username}) {
     beginCalls++;
     return loginHandle;
+  }
+
+  @override
+  Future<BridgeInteractiveLoginOutcome> loginQuietly({
+    required BridgeInteractiveLogin login,
+    required String username,
+    required String password,
+  }) async {
+    prepareCalls++;
+    phase = 1;
+    return outcome(frame: true);
   }
 
   @override

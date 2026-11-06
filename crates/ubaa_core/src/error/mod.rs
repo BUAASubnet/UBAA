@@ -75,6 +75,7 @@ enum ErrorCause {
     ClientClosed,
     AgendaCreationRouteChanged,
     BhpanRouteUnverified,
+    CaptchaRequired,
     Initialization(InitializationFailure),
 }
 
@@ -132,6 +133,19 @@ impl UbaaError {
             false,
             message,
         )
+    }
+
+    pub(crate) fn captcha_required() -> Self {
+        Self {
+            cause: Some(ErrorCause::CaptchaRequired),
+            ..Self::authentication_required("请填写验证码完成登录")
+        }
+    }
+
+    /// 当前认证已转交专用人工验证码流程，不表示保存的密码已被判定无效。
+    #[must_use]
+    pub const fn is_captcha_required(&self) -> bool {
+        matches!(self.cause, Some(ErrorCause::CaptchaRequired))
     }
 
     /// 构造可重试的上游不可用错误。

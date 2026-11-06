@@ -9,7 +9,7 @@ use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
 use crate::ports::HttpRequest;
 use crate::runtime::ClientRuntime;
 
-pub(super) async fn fetch_captcha_frame(
+pub(crate) async fn fetch_captcha_frame(
     runtime: &mut ClientRuntime,
     id: &str,
 ) -> Result<CaptchaFrame> {

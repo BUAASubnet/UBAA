@@ -203,7 +203,7 @@ impl ClientRuntime {
         }
         Ok(())
     }
-    fn check_authentication_scope(&self) -> Result<()> {
+    pub(crate) fn check_authentication_scope(&self) -> Result<()> {
         self.check_operation_controls()?;
         if let Some(scope) = &self.required_recovery_scope {
             scope.check()?;

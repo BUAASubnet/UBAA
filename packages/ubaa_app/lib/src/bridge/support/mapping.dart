@@ -142,6 +142,7 @@ BackendException bridgeMapError(BridgeError error) => BackendException(
   cacheFailure: bridgeCacheMaintenanceFailure(error.cacheFailure),
   accountMismatch: error.code == BridgeErrorCode.cacheIdentityMismatch,
   clientDisposed: error.code == BridgeErrorCode.clientDisposed,
+  captchaRequired: error.code == BridgeErrorCode.captchaRequired,
   kind: _typedErrorKind(error.kind),
   retryable: error.retryable,
   resolvedRoute: error.resolvedRoute == null
@@ -152,6 +153,7 @@ BackendException bridgeMapError(BridgeError error) => BackendException(
 UbaaErrorCode bridgeTypedErrorCode(BridgeErrorCode code) => switch (code) {
   BridgeErrorCode.invalidInput => UbaaErrorCode.invalidInput,
   BridgeErrorCode.cacheIdentityMismatch ||
+  BridgeErrorCode.captchaRequired ||
   BridgeErrorCode.authenticationRequired =>
     UbaaErrorCode.authenticationRequired,
   BridgeErrorCode.invalidCredentials => UbaaErrorCode.invalidCredentials,

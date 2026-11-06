@@ -1,105 +1,148 @@
-part of 'login.dart';
+import 'package:flutter/material.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
+import '../theme.dart' show UbaaTheme;
+import 'login_captcha.dart' show CaptchaPixels;
 
-extension LoginVerificationControls on _UbaaLoginViewState {
-  List<Widget> _buildVerificationControls() => <Widget>[
-    for (final route in widget.verification!.routes) ...<Widget>[
-      if (route.status ==
-          LoginRouteVerificationStatus.captchaRequired) ...<Widget>[
-        const SizedBox(height: 16),
-        Text('${route.route.label} 验证码'),
-        const SizedBox(height: 8),
-        Semantics(
-          button: true,
-          label: '${route.route.label} 验证码，点击刷新',
-          child: Stack(
+/// 仅在需要人工处理时显示的登录验证窗口。
+class UbaaCaptchaDialog extends StatefulWidget {
+  const UbaaCaptchaDialog({
+    required this.verification,
+    required this.isLoading,
+    required this.onAnswerChanged,
+    required this.onRefresh,
+    required this.onSubmit,
+    required this.onCancel,
+    super.key,
+  });
+
+  final LoginRouteVerification verification;
+  final bool isLoading;
+  final ValueChanged<String> onAnswerChanged;
+  final VoidCallback onRefresh;
+  final VoidCallback onSubmit;
+  final VoidCallback onCancel;
+
+  @override
+  State<UbaaCaptchaDialog> createState() => _UbaaCaptchaDialogState();
+}
+
+class _UbaaCaptchaDialogState extends State<UbaaCaptchaDialog> {
+  late final _answer = TextEditingController(text: widget.verification.answer);
+
+  @override
+  void didUpdateWidget(covariant UbaaCaptchaDialog oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (_answer.text != widget.verification.answer) {
+      _answer.value = TextEditingValue(
+        text: widget.verification.answer,
+        selection: TextSelection.collapsed(
+          offset: widget.verification.answer.length,
+        ),
+      );
+    }
+  }
+
+  @override
+  void dispose() {
+    _answer.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final value = widget.verification;
+    final enabled =
+        !widget.isLoading && value.hasUsableFrame && !value.isRefreshing;
+    return AlertDialog(
+      key: const ValueKey('captcha-dialog'),
+      title: const Text('登录验证'),
+      content: SizedBox(
+        width: 320,
+        child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              Container(
-                height: 80,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  border: Border.all(
-                    color: Theme.of(context).colorScheme.outlineVariant,
-                  ),
+              const Text('请输入图片中的验证码，继续完成登录。'),
+              const SizedBox(height: 16),
+              Semantics(
+                button: true,
+                label: '验证码图片，点击刷新',
+                child: InkWell(
+                  key: ValueKey('captcha-image-${value.route.name}'),
+                  onTap: widget.isLoading || value.isRefreshing
+                      ? null
+                      : widget.onRefresh,
                   borderRadius: BorderRadius.circular(UbaaTheme.controlRadius),
-                ),
-                child: route.isRefreshing
-                    ? const SizedBox.square(
-                        dimension: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2),
-                      )
-                    : route.hasUsableFrame
-                    ? CaptchaPixels(frame: route.frame!)
-                    : const Text('图片暂不可用，点击刷新'),
-              ),
-              // 图片位于墨水层下方，避免反馈被不透明像素遮挡。
-              Positioned.fill(
-                child: Material(
-                  type: MaterialType.transparency,
-                  borderRadius: BorderRadius.circular(UbaaTheme.controlRadius),
-                  clipBehavior: Clip.antiAlias,
-                  child: InkWell(
-                    key: ValueKey<String>('captcha-image-${route.route.name}'),
-                    onTap: widget.isLoading || widget.onRefreshCaptcha == null
-                        ? null
-                        : () => widget.onRefreshCaptcha!(route.route),
+                  child: Container(
+                    height: 80,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      border: Border.all(
+                        color: Theme.of(context).colorScheme.outlineVariant,
+                      ),
+                      borderRadius: BorderRadius.circular(
+                        UbaaTheme.controlRadius,
+                      ),
+                    ),
+                    child: value.isRefreshing
+                        ? const SizedBox.square(
+                            dimension: 20,
+                            child: CircularProgressIndicator(strokeWidth: 2),
+                          )
+                        : value.hasUsableFrame
+                        ? CaptchaPixels(frame: value.frame!)
+                        : const Text('图片暂不可用，点击刷新'),
                   ),
                 ),
               ),
+              const SizedBox(height: 6),
+              Text('点击图片刷新', style: Theme.of(context).textTheme.bodySmall),
+              const SizedBox(height: 12),
+              TextField(
+                key: ValueKey('captcha-answer-${value.route.name}'),
+                controller: _answer,
+                enabled: enabled,
+                autofocus: true,
+                autocorrect: false,
+                enableSuggestions: false,
+                enableIMEPersonalizedLearning: false,
+                enableInteractiveSelection: false,
+                contextMenuBuilder: (_, _) => const SizedBox.shrink(),
+                textInputAction: TextInputAction.done,
+                decoration: const InputDecoration(labelText: '验证码'),
+                onChanged: widget.onAnswerChanged,
+                onSubmitted: (_) {
+                  if (enabled && _answer.text.trim().isNotEmpty)
+                    widget.onSubmit();
+                },
+              ),
+              if (value.error case final error?) ...[
+                const SizedBox(height: 8),
+                Text(
+                  error.message,
+                  style: TextStyle(color: Theme.of(context).colorScheme.error),
+                ),
+              ],
             ],
           ),
         ),
-        const SizedBox(height: 6),
-        Text('点击图片刷新', style: Theme.of(context).textTheme.bodySmall),
-        const SizedBox(height: 8),
-        TextField(
-          key: ValueKey<String>('captcha-answer-${route.route.name}'),
-          controller: _answerControllers[route.route],
-          enabled: !widget.isLoading && route.hasUsableFrame,
-          autocorrect: false,
-          enableSuggestions: false,
-          enableIMEPersonalizedLearning: false,
-          enableInteractiveSelection: false,
-          contextMenuBuilder: (_, _) => const SizedBox.shrink(),
-          decoration: InputDecoration(labelText: '${route.route.label} 验证码答案'),
-          onChanged: (value) =>
-              widget.onCaptchaAnswerChanged?.call(route.route, value),
-          onSubmitted: (_) {
-            if (_canSubmit) widget.onSubmit();
-          },
+      ),
+      actions: [
+        TextButton(onPressed: widget.onCancel, child: const Text('取消')),
+        FilledButton(
+          key: const ValueKey('captcha-submit'),
+          onPressed: enabled && _answer.text.trim().isNotEmpty
+              ? widget.onSubmit
+              : null,
+          child: widget.isLoading
+              ? const SizedBox.square(
+                  dimension: 18,
+                  child: CircularProgressIndicator(strokeWidth: 2),
+                )
+              : const Text('验证'),
         ),
-        if (route.error case final error?) ...<Widget>[
-          const SizedBox(height: 6),
-          Text(
-            error.message,
-            style: TextStyle(color: Theme.of(context).colorScheme.error),
-          ),
-        ],
       ],
-      if (route.status == LoginRouteVerificationStatus.ready) ...<Widget>[
-        const SizedBox(height: 12),
-        OutlinedButton.icon(
-          onPressed: widget.isLoading || widget.onContinueReady == null
-              ? null
-              : () => widget.onContinueReady!(route.route),
-          icon: const Icon(Icons.check_circle_outline),
-          label: Text(
-            widget.routePolicy == RoutePolicy.auto
-                ? '保持自动连接并继续'
-                : '使用已就绪的${route.route.label}',
-          ),
-        ),
-        if (widget.routePolicy == RoutePolicy.auto)
-          OutlinedButton(
-            onPressed: widget.isLoading || widget.onContinueFixedReady == null
-                ? null
-                : () => widget.onContinueFixedReady!(route.route),
-            child: Text('改用${route.route.label}并继续'),
-          ),
-      ],
-      if (route.status == LoginRouteVerificationStatus.failed) ...<Widget>[
-        const SizedBox(height: 8),
-        Text('${route.route.label} 暂未就绪'),
-      ],
-    ],
-  ];
+    );
+  }
 }

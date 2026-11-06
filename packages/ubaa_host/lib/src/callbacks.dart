@@ -52,6 +52,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
     builder: (context, _) => MaterialApp(
       title: 'UBAA',
       scaffoldMessengerKey: _messengerKey,
+      navigatorKey: _navigatorKey,
       locale: UbaaTheme.locale,
       supportedLocales: UbaaTheme.supportedLocales,
       localizationsDelegates: UbaaTheme.localizationsDelegates,

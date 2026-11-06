@@ -11,6 +11,16 @@ pub use crate::session::{
     VersionedDualSession, VersionedSession,
 };
 
+/// 为两条独立认证流程注入合成验证码识别结果，不读取真实图像或模型。
+pub fn set_captcha_recognizer(
+    client: &mut super::UbaaClient,
+    recognize: impl Fn(&crate::domain::CaptchaFrame) -> Option<String> + Send + Sync + 'static,
+) {
+    let recognize = std::sync::Arc::new(recognize);
+    client.direct_auth.captcha_recognizer = Some(recognize.clone());
+    client.webvpn_auth.captcha_recognizer = Some(recognize);
+}
+
 /// 在合成配置目录中使用可注入传输和探测器，验证原子策略保存。
 ///
 /// # Errors

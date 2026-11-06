@@ -41,6 +41,7 @@ pub(crate) struct StoredRoute {
     pub(crate) pending: Option<PendingCaptcha>,
     pub(crate) error: Option<SafeError>,
     pub(crate) profile: Option<UserProfile>,
+    pub(crate) automatic_attempted: bool,
 }
 
 impl Default for StoredRoute {
@@ -50,6 +51,7 @@ impl Default for StoredRoute {
             pending: None,
             error: None,
             profile: None,
+            automatic_attempted: false,
         }
     }
 }
@@ -57,6 +59,8 @@ impl Default for StoredRoute {
 pub(crate) struct InteractiveContext {
     pub(crate) login: InteractiveLoginHandle,
     pub(crate) routes: [StoredRoute; 2],
+    pub(crate) required_route: Option<ConnectionMode>,
+    pub(crate) keep_route_policy: bool,
 }
 
 impl InteractiveContext {
@@ -92,6 +96,7 @@ impl InteractiveContext {
                 _ => LoginReadiness::NoneReady,
             },
             profile: self.routes.iter().find_map(|route| route.profile.clone()),
+            required_route: self.required_route,
         }
     }
 }
@@ -114,6 +119,6 @@ pub(super) const fn route_index(route: ConnectionMode) -> usize {
 pub(super) fn safe_interactive_error(error: &UbaaError) -> SafeError {
     let mut safe = super::super::auth::safe_error(error);
     // 不保留上游认证错误文本，防止其中回显答案、execution 或完整 HTML。
-    safe.message = "此路线的登录验证未完成，请重试".into();
+    safe.message = "登录验证未完成，请重试。".into();
     safe
 }

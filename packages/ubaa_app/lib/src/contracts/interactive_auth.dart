@@ -35,3 +35,11 @@ abstract interface class InteractiveLoginBackend {
 
   void cancelInteractiveLogin();
 }
+
+/// 接续同账号的自动恢复，保留现有会话与当前页面。
+abstract interface class ManualCaptchaBackend {
+  Future<LoginVerificationState> resumeRequiredCaptcha(
+    LoginInput input,
+    ConnectionMode route,
+  );
+}

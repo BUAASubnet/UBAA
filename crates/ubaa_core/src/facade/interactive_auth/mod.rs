@@ -1,6 +1,7 @@
 //! 与普通序列化登录合同隔离的当前页面交互流程。
 
-mod image;
+use crate::auth::captcha_image as image;
+mod quiet;
 pub(crate) mod state;
 
 use super::UbaaClient;
@@ -47,6 +48,14 @@ impl UbaaClient {
         &mut self,
         login: &InteractiveLoginHandle,
     ) -> Result<InteractiveLoginOutcome> {
+        self.prepare_interactive_routes(login, None).await
+    }
+
+    async fn prepare_interactive_routes(
+        &mut self,
+        login: &InteractiveLoginHandle,
+        required_route: Option<ConnectionMode>,
+    ) -> Result<InteractiveLoginOutcome> {
         self.verified_login = None;
         self.direct_runtime.ensure_primary_client()?;
         login.ensure_owner(&self.interactive.cancellation)?;
@@ -66,9 +75,14 @@ impl UbaaClient {
         let mut context = InteractiveContext {
             login: login.clone(),
             routes: std::array::from_fn(|_| StoredRoute::default()),
+            required_route,
+            keep_route_policy: false,
         };
         let mut frames = [None, None];
         for (index, frame) in frames.iter_mut().enumerate() {
+            if required_route.is_some_and(|route| route != route_at(index)) {
+                continue;
+            }
             self.ensure_interactive_active(&context.login)?;
             *frame = self.prepare_interactive_route(&mut context, index).await?;
         }
@@ -160,10 +174,19 @@ impl UbaaClient {
                         Ok(InteractiveSubmission::Complete(profile)) => {
                             self.record_interactive_profile(&mut context, index, profile)?;
                         }
-                        Ok(InteractiveSubmission::Reprepared(page)) => {
+                        Ok(InteractiveSubmission::Rejected(page)) => {
                             frames[index] = self
-                                .apply_interactive_preparation(&mut context, index, page)
+                                .apply_interactive_preparation(
+                                    &mut context,
+                                    index,
+                                    InteractivePreparation::Image(page),
+                                )
                                 .await?;
+                            if context.routes[index].error.is_none() {
+                                context.routes[index].error = Some(safe_interactive_error(
+                                    &UbaaError::authentication_required("登录验证未通过"),
+                                ));
+                            }
                         }
                         Err(error) => {
                             context.routes[index].error = Some(safe_interactive_error(&error));
@@ -263,7 +286,11 @@ impl UbaaClient {
             return Err(invalid_interaction());
         }
         let state = context.outcome([None, None], (self.interactive.clock)());
-        if self.default_route_policy() == RoutePolicy::Auto && !pin_ready_route {
+        let keep_route_policy = context.keep_route_policy;
+        if self.default_route_policy() == RoutePolicy::Auto
+            && !pin_ready_route
+            && !keep_route_policy
+        {
             self.resolve_operation(super::types::Operation::User)
                 .map_err(|failure| failure.error)?;
         }
@@ -281,7 +308,9 @@ impl UbaaClient {
             }),
             profile: state.profile,
         };
-        let required_policy = if pin_ready_route {
+        let required_policy = if keep_route_policy {
+            None
+        } else if pin_ready_route {
             let fixed = match selected_route {
                 ConnectionMode::Direct => RoutePolicy::Direct,
                 ConnectionMode::WebVpn => RoutePolicy::WebVpn,

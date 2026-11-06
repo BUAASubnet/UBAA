@@ -17,6 +17,12 @@ mod flows;
 #[path = "interactive_auth/lifecycle.rs"]
 mod lifecycle;
 
+#[path = "interactive_auth/automatic.rs"]
+mod automatic;
+
+#[path = "interactive_auth/quiet.rs"]
+mod quiet;
+
 #[derive(Clone)]
 struct SyntheticTransport {
     requests: Arc<Mutex<Vec<HttpRequest>>>,

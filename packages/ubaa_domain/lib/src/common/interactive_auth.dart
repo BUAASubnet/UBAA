@@ -82,10 +82,12 @@ class LoginVerificationState {
   LoginVerificationState({
     required Iterable<LoginRouteVerification> routes,
     this.profile,
+    this.requiredRoute,
   }) : routes = List<LoginRouteVerification>.unmodifiable(routes);
 
   final List<LoginRouteVerification> routes;
   final UserSummary? profile;
+  final ConnectionMode? requiredRoute;
 
   List<ConnectionMode> get readyRoutes => <ConnectionMode>[
     for (final route in routes)

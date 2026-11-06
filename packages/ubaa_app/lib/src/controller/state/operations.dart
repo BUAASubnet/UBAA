@@ -506,6 +506,15 @@ abstract class ControllerOperations extends ChangeNotifier {
   Future<void> internalSubmitInteractiveLogin(InteractiveLoginBackend backend);
 
   @internal
+  Future<void> internalResumeRequiredCaptcha(
+    LoginInput input,
+    ConnectionMode route,
+  );
+
+  @internal
+  Future<LoginInput?> internalApprovedRecoveryInput(int epoch);
+
+  @internal
   void internalSetCaptchaAnswer(ConnectionMode route, String answer);
 
   @internal
