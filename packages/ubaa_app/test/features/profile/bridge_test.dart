@@ -19,7 +19,7 @@ void main() {
   });
 
   setUpAll(() => RustLib.initMock(api: _Api()));
-  test('资料本地通道按路线择新且不借遮罩值建立身份', () async {
+  test('资料本地通道跨路线共用最新记录且不借遮罩值建立身份', () async {
     final backend = await open(_Client());
     final result = await backend.readCachedProfile(RoutePolicy.auto);
     final value = result.profile!;
@@ -31,7 +31,7 @@ void main() {
     expect(display.phone, isNull);
     expect(display.email, isNull);
     final direct = await backend.readCachedProfile(RoutePolicy.direct);
-    expect(direct.profile!.fetchedAt.millisecondsSinceEpoch, 100000);
+    expect(direct.profile!.fetchedAt.millisecondsSinceEpoch, 200000);
   });
   test('在线缓存刷新保留原资料且原userInfo不隐式改为恢复入口', () async {
     final client = _Client();
@@ -89,8 +89,8 @@ class _Cache implements BridgeOfflineCache {
       maskedName: '合***名',
       maskedSchoolId: 'T***1',
     ),
-    sourceRoute: route,
-    fetchedAt: route == BridgeConnectionMode.direct ? 100 : 200,
+    sourceRoute: BridgeConnectionMode.webVpn,
+    fetchedAt: 200,
     complete: true,
   );
   @override

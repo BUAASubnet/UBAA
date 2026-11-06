@@ -207,10 +207,7 @@ async fn successful_primary_login_invalidates_the_cached_spoc_credential() {
     let courses = "https://spoc.buaa.edu.cn/spocnewht/jxkj/queryKclb?kcmc=&xnxq=2025-20262";
     let assignments = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryListByPage";
     let primary_login = "https://sso.buaa.edu.cn/login";
-    let activate =
-        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
-    let status = "https://uc.buaa.edu.cn/api/uc/status";
-    let userinfo = "https://uc.buaa.edu.cn/api/uc/userinfo";
+    let status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
     let profile = r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#;
     let term_body = r#"{"code":200,"content":{"dqxq":"Spring","mrxq":"2025-20262"}}"#;
     let empty_courses = r#"{"code":200,"content":[]}"#;
@@ -231,9 +228,7 @@ async fn successful_primary_login_invalidates_the_cached_spoc_credential() {
             primary_login.into(),
             redirect_from(primary_login, "/already-authenticated"),
         ),
-        (activate.into(), response(200, activate, "")),
         (status.into(), response(200, status, profile)),
-        (userinfo.into(), response(200, userinfo, profile)),
         (
             cas.into(),
             redirect("https://spoc.buaa.edu.cn/spocnew/cas?token=second-token"),

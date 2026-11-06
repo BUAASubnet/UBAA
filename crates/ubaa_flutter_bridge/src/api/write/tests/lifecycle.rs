@@ -5,8 +5,9 @@ async fn 准备后路线变化在无新增请求下消费意图() {
     let root = test_root("route-change");
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, true);
-    let direct = MockTransport::new([bykc_login_request(), eligible_bykc_detail_request()]);
-    let webvpn = MockTransport::new([]);
+    let direct =
+        MockTransport::with_sso_checks([bykc_login_request(), eligible_bykc_detail_request()]);
+    let webvpn = MockTransport::with_sso_checks([]);
     let client = BridgeClient::open(root.to_string_lossy().into_owned()).expect("打开 bridge");
     install_core(
         &client,
@@ -57,8 +58,9 @@ async fn 准备后会话修订过期在无新增请求下归约为操作冲突()
     let root = test_root("stale-session");
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, false);
-    let direct = MockTransport::new([bykc_login_request(), eligible_bykc_detail_request()]);
-    let webvpn = MockTransport::new([]);
+    let direct =
+        MockTransport::with_sso_checks([bykc_login_request(), eligible_bykc_detail_request()]);
+    let webvpn = MockTransport::with_sso_checks([]);
     let client = BridgeClient::open(root.to_string_lossy().into_owned()).expect("打开 bridge");
     install_core(
         &client,
@@ -103,14 +105,14 @@ async fn 认证状态刷新会话后立即失效已准备意图() {
     let root = test_root("auth-status-invalidates-intent");
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, false);
-    let status_url = "https://uc.buaa.edu.cn/api/uc/status";
-    let direct = MockTransport::new([
+    let status_url = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
+    let direct = MockTransport::with_sso_checks([
         bykc_login_request(),
         eligible_bykc_detail_request(),
         ExpectedRequest::new(
             HttpMethod::Get,
             status_url,
-            HttpResponse::new(
+            ubaa_core::facade::testing::sso_fixture_response(
                 200,
                 status_url,
                 br#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#
@@ -124,7 +126,7 @@ async fn 认证状态刷新会话后立即失效已准备意图() {
         store,
         "[route]\ndefault = \"direct\"\n",
         direct.clone(),
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
     )
     .await;
     let intent = client
@@ -149,8 +151,9 @@ async fn 重新登录在提交等待_core_锁时仍能失效旧意图() {
     let root = test_root("intent-lock-order");
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, false);
-    let direct = MockTransport::new([bykc_login_request(), eligible_bykc_detail_request()]);
-    let webvpn = MockTransport::new([]);
+    let direct =
+        MockTransport::with_sso_checks([bykc_login_request(), eligible_bykc_detail_request()]);
+    let webvpn = MockTransport::with_sso_checks([]);
     let client = BridgeClient::open(root.to_string_lossy().into_owned()).expect("打开 bridge");
     install_core(
         &client,
@@ -242,8 +245,9 @@ async fn 外部共享代次撤销后旧意图不发送且原路线回读不恢�
     ] {
         std::fs::write(materials.join(name), value).unwrap();
     }
-    let direct = MockTransport::new([bykc_login_request(), eligible_bykc_detail_request()]);
-    let webvpn = MockTransport::new([]);
+    let direct =
+        MockTransport::with_sso_checks([bykc_login_request(), eligible_bykc_detail_request()]);
+    let webvpn = MockTransport::with_sso_checks([]);
     let client = BridgeClient::open(root.to_string_lossy().into()).unwrap();
     install_core(
         &client,

@@ -23,13 +23,17 @@ impl UbaaClient {
                 resolution,
             ));
         }
-        let result = crate::features::bykc::get_course_catalog(
-            self.runtime_for(resolution.mode),
-            page,
-            size,
-            all,
-        )
-        .await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::bykc::get_course_catalog(
+                self.runtime_for(resolution.mode),
+                page,
+                size,
+                all,
+            )
+            .await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -45,9 +49,12 @@ impl UbaaClient {
                 resolution,
             ));
         }
-        let result =
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
             crate::features::bykc::get_course_full_detail(self.runtime_for(resolution.mode), id)
-                .await;
+                .await
+        );
         self.finish_routed(resolution, result)
     }
 }

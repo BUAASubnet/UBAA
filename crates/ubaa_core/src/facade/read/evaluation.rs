@@ -13,7 +13,11 @@ impl UbaaClient {
     /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
     pub async fn evaluation_all(&mut self) -> RoutedResult<EvaluationCoursesResponse> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Evaluation))?;
-        let result = crate::features::evaluation::get_all(self.runtime_for(resolution.mode)).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::evaluation::get_all(self.runtime_for(resolution.mode)).await
+        );
         self.finish_routed(resolution, result)
     }
 

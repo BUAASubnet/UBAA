@@ -47,7 +47,7 @@ pub(super) async fn cache(root: &Path) -> (BridgeOfflineCache, OfflineRepository
     (cache, repo)
 }
 #[tokio::test]
-async fn 单次提交成功或未知时失效原路线关联内容_不自动重发() {
+async fn 单次提交成功或未知时失效两路线共享内容_不自动重发() {
     for unknown in [false, true] {
         let root = test_root("cache-commit");
         let store = seed_sessions(&root, true, false);
@@ -133,7 +133,7 @@ async fn 单次提交成功或未知时失效原路线关联内容_不自动重�
         assert!(
             repo.read(&scope(ConnectionMode::WebVpn, 42), 200)
                 .unwrap()
-                .is_some()
+                .is_none()
         );
         assert!(repo.validate_read(&stale).is_err());
         assert_eq!(
@@ -209,7 +209,7 @@ async fn 本地缓存失效失败不改变学校提交成功且仍只消费一�
 }
 
 #[tokio::test]
-async fn 缓存失效采用提交结果实际路线_不以意图路线改写来源() {
+async fn 提交结果保留实际路线且失效同一份业务缓存() {
     let root = test_root("cache-actual-route");
     let _store = seed_sessions(&root, true, false);
     let (cache, mut repo) = cache(&root).await;
@@ -234,7 +234,7 @@ async fn 缓存失效采用提交结果实际路线_不以意图路线改写来�
     assert!(
         repo.read(&scope(ConnectionMode::Direct, 42), 200)
             .unwrap()
-            .is_some()
+            .is_none()
     );
     assert!(
         repo.read(&scope(ConnectionMode::WebVpn, 42), 200)

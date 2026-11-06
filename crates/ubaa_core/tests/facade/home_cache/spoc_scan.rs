@@ -175,7 +175,7 @@ fn spoc_逐页读取之间可读取签到_精确页和学期持久化_部分新�
             cache
                 .read_home(ConnectionMode::WebVpn, &HomeQuery::SpocAssignments)
                 .unwrap()
-                .is_none()
+                .is_some()
         );
     });
     drop(cache);

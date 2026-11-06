@@ -5,8 +5,8 @@ use crate::api::{
     write::{BridgeBykcCourseRequest, PendingEntry, PendingWrite},
 };
 use ubaa_test_support::{
-    ExpectedRequest, FileSessionStore, GatewayProbe, HttpMethod, HttpResponse, MockTransport,
-    RouteConfig, SessionSnapshot, SessionStore,
+    ExpectedRequest, FileSessionStore, GatewayProbe, HttpMethod, MockTransport, RouteConfig,
+    SessionSnapshot, SessionStore,
 };
 struct NoProbe;
 impl GatewayProbe for NoProbe {
@@ -18,19 +18,19 @@ fn response(method: HttpMethod, url: &str, body: &str) -> ExpectedRequest {
     ExpectedRequest::new(
         method,
         url,
-        HttpResponse::new(200, url, body.as_bytes().to_vec()),
+        ubaa_core::facade::testing::sso_fixture_response(200, url, body.as_bytes().to_vec()),
     )
 }
 fn status() -> ExpectedRequest {
     response(
         HttpMethod::Get,
-        "https://uc.buaa.edu.cn/api/uc/status",
+        "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON",
         include_str!("../../../../../../fixtures/auth/userinfo-success.json"),
     )
 }
 fn bootstrap() -> ExpectedRequest {
     let url = "https://spoc.buaa.edu.cn/spocnewht/cas";
-    let mut result = HttpResponse::new(302, url, Vec::new());
+    let mut result = ubaa_core::facade::testing::sso_fixture_response(302, url, Vec::new());
     result.headers.insert(
         "Location".into(),
         vec!["https://spoc.buaa.edu.cn/spocnew/cas?token=synthetic".into()],
@@ -98,11 +98,11 @@ async fn setup(
             ),
         ]);
     }
-    let transport = MockTransport::new(expected);
+    let transport = MockTransport::with_sso_checks(expected);
     *bridge.inner.lock().await = Some(
         core::UbaaClient::with_routing(
             transport.clone(),
-            MockTransport::new([]),
+            MockTransport::with_sso_checks([]),
             store,
             RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
             NoProbe,

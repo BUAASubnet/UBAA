@@ -11,6 +11,7 @@ use std::sync::{
     Arc, Weak,
     atomic::{AtomicBool, Ordering},
 };
+mod routing;
 
 /// 取消只阻止后续批次和迟到返回；不会中断已经发送的 HTTP 请求。
 #[derive(Clone)]
@@ -107,13 +108,13 @@ impl UbaaClient {
                 cache_error: cache.deactivate().err(),
             });
         }
-        let ticket = cache
+        let mut ticket = cache
             .begin(CacheScope {
                 route: resolution.mode,
                 query: CacheQuery::JudgeSummaries { include_expired },
             })
             .map_err(OfflineReadError::Cache)?;
-        let course_ticket = if force_fresh {
+        let mut course_ticket = if force_fresh {
             Some(
                 cache
                     .begin(CacheScope {
@@ -125,14 +126,22 @@ impl UbaaClient {
         } else {
             None
         };
-        let mut activated = false;
-        let read = scan::courses(
-            self.runtime_for(resolution.mode),
-            &mut activated,
-            force_fresh,
-        )
-        .await;
-        let mut courses = match self.finish_routed(resolution, read.result) {
+        let mut activated;
+        let (resolution, read) = crate::facade::routing::read_with_fallback!(self, resolution, {
+            activated = false;
+            scan::courses(
+                self.runtime_for(resolution.mode),
+                &mut activated,
+                force_fresh,
+            )
+            .await
+            .result
+        });
+        ticket.set_source_route(resolution.mode);
+        if let Some(ticket) = &mut course_ticket {
+            ticket.set_source_route(resolution.mode);
+        }
+        let mut courses = match self.finish_routed(resolution, read) {
             Ok(result) => result.data,
             Err(error) => {
                 if force_fresh {
@@ -205,37 +214,30 @@ impl UbaaClient {
         };
         if let Some(course) = plan.courses.get(plan.course_index).cloned() {
             batch.course_id = Some(course.course_id.clone());
-            let (result, fatal) = if let Some(assignments) = &plan.assignments {
-                let read = scan::detail(
-                    self.runtime_for(plan.resolution.mode),
-                    &assignments[plan.detail_index],
-                    &mut plan.activated,
-                    plan.force_fresh,
-                )
-                .await;
-                (
-                    read.result.map(|detail| {
-                        batch.kind = JudgeScanKind::Detail;
-                        batch.detail = Some(detail);
-                    }),
-                    read.fatal,
-                )
-            } else {
-                let read = scan::assignments(
-                    self.runtime_for(plan.resolution.mode),
+            let (resolution, read, activated) = self
+                .read_judge_batch(
+                    plan.resolution,
                     &course,
-                    &mut plan.activated,
+                    plan.assignments
+                        .as_ref()
+                        .map(|items| &items[plan.detail_index]),
+                    plan.activated,
                     plan.force_fresh,
                 )
                 .await;
-                (
-                    read.result.map(|assignments| {
-                        batch.kind = JudgeScanKind::Assignments;
-                        batch.assignments = assignments;
-                    }),
-                    read.fatal,
-                )
-            };
+            if resolution.mode != plan.resolution.mode {
+                let owner = self.runtime_for(resolution.mode).feature_state();
+                plan.owner = Arc::downgrade(&owner);
+                plan.generation = owner.judge.generation();
+                plan.ticket.set_source_route(resolution.mode);
+                if let Some(ticket) = &mut plan.course_ticket {
+                    ticket.set_source_route(resolution.mode);
+                }
+            }
+            plan.resolution = resolution;
+            plan.activated = activated;
+            let fatal = read.fatal;
+            let result = read.result.map(|data| data.apply(&mut batch));
             let result = self.finish_routed(plan.resolution, result);
             // 认证收尾本身会递增会话代次，必须保留其原始错误供宿主恢复。
             let result = match result {

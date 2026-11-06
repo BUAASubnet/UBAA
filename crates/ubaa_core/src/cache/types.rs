@@ -16,7 +16,7 @@ use crate::domain::{NetworkUsage, PortalProfile};
 use serde::{Deserialize, Serialize};
 
 /// 独立于 Session 和 Bridge 的业务缓存版本。
-pub const CACHE_SCHEMA_VERSION: u32 = 7;
+pub const CACHE_SCHEMA_VERSION: u32 = 8;
 
 /// 精确业务查询；日期使用既有校园日期，不在读取时替换成今天。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -149,7 +149,7 @@ pub enum CacheQuery {
     NetworkUsage,
 }
 
-/// 一个账号库内的实际来源和精确查询，不使用 Auto 作为数据来源。
+/// 一个账号库内的精确查询及最近成功来源；路线不参与业务缓存键。
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
 pub struct CacheScope {
     pub route: ConnectionMode,
@@ -308,6 +308,9 @@ pub struct CacheReadTicket {
 }
 
 impl CacheReadTicket {
+    pub(crate) fn set_source_route(&mut self, route: ConnectionMode) {
+        self.scope.route = route;
+    }
     pub(crate) fn scope(&self) -> &CacheScope {
         &self.scope
     }

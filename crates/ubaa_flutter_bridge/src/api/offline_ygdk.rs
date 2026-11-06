@@ -309,7 +309,7 @@ mod tests {
                 .read_ygdk_records(BridgeConnectionMode::WebVpn, 2, 2, 5)
                 .await
                 .unwrap()
-                .is_none()
+                .is_some()
         );
         drop(guard);
         client.write_intents.lock().await.insert(

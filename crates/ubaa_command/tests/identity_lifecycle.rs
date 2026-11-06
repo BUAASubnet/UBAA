@@ -18,10 +18,13 @@ mod tests {
     #[async_trait]
     impl HttpTransport for 合成传输 {
         async fn execute(&self, req: HttpRequest) -> ubaa_core::facade::Result<HttpResponse> {
+            if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&req) {
+                return Ok(response);
+            }
             let url = from_webvpn_url(&req.url).unwrap_or_else(|_| req.url.clone());
             let mode = *self.0.lock().unwrap();
             if url.contains("/captcha?") {
-                return Ok(HttpResponse::new(
+                return Ok(ubaa_core::facade::testing::sso_fixture_response(
                     200,
                     req.url,
                     vec![
@@ -34,25 +37,37 @@ mod tests {
             }
             if url.ends_with("/login") && url.contains("sso.buaa.edu.cn") {
                 if mode == Some("challenge") {
-                    return Ok(HttpResponse::new(200, req.url, br#"<form id="fm1"><input type="hidden" name="execution" value="synthetic-execution-1"></form><script>config.captcha = { type: 'image', id: 'synthetic-captcha-1' }</script>"#.to_vec()));
+                    return Ok(ubaa_core::facade::testing::sso_fixture_response(200, req.url, br#"<form id="fm1"><input type="hidden" name="execution" value="synthetic-execution-1"></form><script>config.captcha = { type: 'image', id: 'synthetic-captcha-1' }</script>"#.to_vec()));
                 }
                 if mode == Some("failure") {
-                    return Ok(HttpResponse::new(503, req.url, Vec::new()));
+                    return Ok(ubaa_core::facade::testing::sso_fixture_response(
+                        503,
+                        req.url,
+                        Vec::new(),
+                    ));
                 }
-                return Ok(HttpResponse::new(302, req.url, Vec::new()));
+                return Ok(ubaa_core::facade::testing::sso_fixture_response(
+                    302,
+                    req.url,
+                    Vec::new(),
+                ));
             }
-            if url.contains("/api/uc/status") || url.contains("/api/uc/userinfo") {
+            if url.contains("/serviceValidate?") || url.contains("/api/uc/userinfo") {
                 return Ok(match *self.0.lock().unwrap() {
-                    Some("transient") => HttpResponse::new(503, req.url, Vec::new()),
-                    Some(id) => HttpResponse::new(200, req.url, serde_json::to_vec(&serde_json::json!({"code":0,"data":{"schoolid":id,"username":id,"name":"合成账号"}})).unwrap()),
-                    None => HttpResponse::new(401, req.url, Vec::new()),
+                    Some("transient") => ubaa_core::facade::testing::sso_fixture_response(503, req.url, Vec::new()),
+                    Some(id) => ubaa_core::facade::testing::sso_fixture_response(200, req.url, serde_json::to_vec(&serde_json::json!({"code":0,"data":{"schoolid":id,"username":id,"name":"合成账号"}})).unwrap()),
+                    None => ubaa_core::facade::testing::sso_fixture_response(401, req.url, Vec::new()),
                 });
             }
             if url.contains("/api/login")
                 || url.contains("/wengine-vpn/cookie")
                 || url.ends_with("/logout")
             {
-                return Ok(HttpResponse::new(200, req.url, Vec::new()));
+                return Ok(ubaa_core::facade::testing::sso_fixture_response(
+                    200,
+                    req.url,
+                    Vec::new(),
+                ));
             }
             panic!("合成传输收到未登记路径");
         }

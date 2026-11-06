@@ -11,7 +11,7 @@ use crate::config::FeatureRouteConfig;
 use crate::connection::resolve_route;
 
 impl UbaaClient {
-    /// 按当前网络和显式策略准备本次实际需要的路线，不触发另一条路线认证。
+    /// 校园网只准备 Direct，校外 Auto 准备两条独立路线。
     ///
     /// # Errors
     /// 账号意图、会话所有权或准备流程失效时返回安全错误。
@@ -19,13 +19,19 @@ impl UbaaClient {
         &mut self,
         login: &InteractiveLoginHandle,
     ) -> Result<InteractiveLoginOutcome> {
-        let route = resolve_route(
+        let resolution = resolve_route(
             self.config.default,
             FeatureRouteConfig::SAFE_DEFAULT,
             self.probe.as_ref(),
-        )
-        .mode;
-        self.prepare_interactive_routes(login, Some(route)).await
+        );
+        let required = if resolution.policy == crate::domain::RoutePolicy::Auto
+            && resolution.diagnostic.network == crate::connection::NetworkState::OffCampus
+        {
+            None
+        } else {
+            Some(resolution.mode)
+        };
+        self.prepare_interactive_routes(login, required).await
     }
 
     /// 在当前账号意图内完成有界自动认证，只将最终人工输入状态投影给宿主。
@@ -47,40 +53,49 @@ impl UbaaClient {
             .take()
             .ok_or_else(invalid_interaction)?;
         let mut frames = [None, None];
-        for (index, frame) in frames.iter_mut().enumerate() {
-            if context.routes[index].automatic_attempted
+        let mut enabled = [false; 2];
+        for (index, route) in context.routes.iter_mut().enumerate() {
+            if route.automatic_attempted
                 || !matches!(
-                    context.routes[index].state,
+                    route.state,
                     InteractiveRouteState::Prepared | InteractiveRouteState::CaptchaRequired
                 )
             {
                 continue;
             }
-            context.routes[index].automatic_attempted = true;
-            self.ensure_interactive_active(login)?;
-            if let Some(pending) = context.routes[index].pending.take() {
+            route.automatic_attempted = true;
+            if let Some(pending) = route.pending.take() {
                 pending.handle.consume();
             }
-            let route = route_at(index);
-            let (runtime, auth) = self.route_parts_for(route);
-            runtime.set_interactive_login_scope(Some(login.clone()));
-            let result = auth
-                .login_automatically(
-                    runtime,
-                    LoginInput {
-                        username: input.username.trim().to_owned(),
-                        password: input.password.clone(),
-                    },
-                )
-                .await;
-            runtime.set_interactive_login_scope(None);
-            let manual = auth.manual_captcha.take();
-            self.ensure_interactive_active(login)?;
+            enabled[index] = true;
+        }
+        self.ensure_interactive_active(login)?;
+        let (direct, webvpn) = tokio::join!(
+            authenticate(
+                &mut self.direct_runtime,
+                &mut self.direct_auth,
+                login,
+                &input,
+                enabled[0]
+            ),
+            authenticate(
+                &mut self.webvpn_runtime,
+                &mut self.webvpn_auth,
+                login,
+                &input,
+                enabled[1]
+            ),
+        );
+        self.ensure_interactive_active(login)?;
+        for (index, completed) in [direct, webvpn].into_iter().enumerate() {
+            let Some((result, manual)) = completed else {
+                continue;
+            };
             match result {
                 Ok(profile) => self.record_interactive_profile(&mut context, index, profile)?,
                 Err(error) if error.is_captcha_required() => {
                     let manual = manual.ok_or_else(invalid_interaction)?;
-                    *frame = Some(self.adopt_manual_captcha(&mut context, index, manual)?);
+                    frames[index] = Some(self.adopt_manual_captcha(&mut context, index, manual)?);
                 }
                 Err(error) => {
                     context.routes[index].state = InteractiveRouteState::Failed;
@@ -154,4 +169,31 @@ impl UbaaClient {
         });
         Ok(pending.frame)
     }
+}
+
+async fn authenticate(
+    runtime: &mut crate::runtime::ClientRuntime,
+    auth: &mut crate::auth::AuthWorkflow,
+    login: &InteractiveLoginHandle,
+    input: &DualLoginInput,
+    enabled: bool,
+) -> Option<(
+    Result<crate::domain::UserProfile>,
+    Option<PendingManualCaptcha>,
+)> {
+    if !enabled {
+        return None;
+    }
+    runtime.set_interactive_login_scope(Some(login.clone()));
+    let result = auth
+        .login_automatically(
+            runtime,
+            LoginInput {
+                username: input.username.trim().to_owned(),
+                password: input.password.clone(),
+            },
+        )
+        .await;
+    runtime.set_interactive_login_scope(None);
+    Some((result, auth.manual_captcha.take()))
 }

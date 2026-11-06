@@ -134,10 +134,13 @@ pub(super) fn apply(
     {
         return Ok(());
     }
-    let progress = refresh
+    let mut progress = refresh
         .history
         .take()
         .ok_or(OfflineReadError::Cache(CacheError::Corrupt))?;
+    progress
+        .ticket
+        .set_source_route(refresh.scan.resolution.mode);
     let result = if step.batch.kind == JudgeScanKind::CourseFailure {
         refresh.scan.cache.repository(|repository| {
             repository.record_failure_guarded(&progress.ticket, &refresh.scan.ticket, now)

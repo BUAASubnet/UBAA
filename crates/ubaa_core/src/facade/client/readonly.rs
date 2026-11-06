@@ -15,6 +15,7 @@ impl UbaaClient {
         self.direct_runtime.ensure_primary_client()?;
         self.guard_latest_session_ownership()?;
         Ok(Self {
+            domain_routes: Arc::clone(&self.domain_routes),
             verified_login: None,
             verified_login_generations: None,
             config_dir: None,

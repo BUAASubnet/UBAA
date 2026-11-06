@@ -107,20 +107,22 @@ impl UbaaClient {
         let cache_query = query
             .cache_query(began_at)
             .map_err(OfflineReadError::Cache)?;
-        let refresh = self
+        let mut refresh = self
             .prepare_cached_refresh(cache, query.feature(), cache_query.clone())
             .await?;
         let resolution = refresh.resolution;
-        let runtime = self.runtime_for(resolution.mode);
-        let read = if let CacheQuery::SigninToday { date } = cache_query {
-            crate::features::signin::get_today_for_date(runtime, &date)
-                .await
-                .map(|data| (HomeReadData::Signin(data), true))
-        } else {
-            crate::features::ygdk::get_overview_observed(runtime)
-                .await
-                .map(|(data, complete)| (HomeReadData::YgdkOverview(data), complete))
-        };
+        let (resolution, read) = crate::facade::routing::read_with_fallback!(self, resolution, {
+            let runtime = self.runtime_for(resolution.mode);
+            if let CacheQuery::SigninToday { date } = cache_query.clone() {
+                crate::features::signin::get_today_for_date(runtime, &date)
+                    .await
+                    .map(|data| (HomeReadData::Signin(data), true))
+            } else {
+                crate::features::ygdk::get_overview_observed(runtime)
+                    .await
+                    .map(|(data, complete)| (HomeReadData::YgdkOverview(data), complete))
+            }
+        });
         let (data, mut complete) = refresh.read_result(self.finish_routed(resolution, read))?;
         if let HomeReadData::YgdkOverview(value) = &data {
             complete &= value.summary.term_id.is_some_and(|id| id > 0);

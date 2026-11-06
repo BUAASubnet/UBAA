@@ -389,10 +389,10 @@ async fn 场馆取消commit路线变化由core在任何http前拒绝并返回实
 }
 
 #[tokio::test]
-async fn 场馆取消双回读在auto已转路后仍只命中intent固定路线() {
+async fn 场馆取消双回读在策略转路后仍只命中intent固定路线() {
     let root = test_root("cgyy-cancel-pinned-readback");
     let _ = std::fs::remove_dir_all(&root);
-    let store = seed_sessions(&root, true, true);
+    seed_sessions(&root, true, true);
     let direct = CgyyCancelTransport::new(
         [
             allowed_detail_body(),
@@ -402,17 +402,15 @@ async fn 场馆取消双回读在auto已转路后仍只命中intent固定路线(
         [(200, success_body())],
     );
     let webvpn = MockTransport::new([]);
-    let probe = MutableProbe::new(NetworkState::Campus);
+    let probe = CampusProbe;
     let client = BridgeClient::open(root.to_string_lossy().into_owned()).expect("打开 bridge");
-    let core = UbaaClient::with_routing_and_probe_ttl(
+    let core = ubaa_core::facade::testing::with_routing_in_config_directory(
         direct.clone(),
         webvpn.clone(),
-        store,
-        RouteConfig::parse("[route]\ndefault = \"auto\"\n").expect("解析 Auto 路线"),
-        probe.clone(),
-        Duration::ZERO,
+        &root,
+        probe,
     )
-    .expect("创建可控 TTL 的测试 Core client");
+    .expect("创建可保存策略的测试 Core client");
     *client.inner.lock().await = Some(core);
     let intent = client
         .prepare_cgyy_cancel_order(cancel_request())
@@ -422,7 +420,14 @@ async fn 场馆取消双回读在auto已转路后仍只命中intent固定路线(
         .commit_write(intent.intent_id)
         .await
         .expect("Campus 下在 Direct 完成取消");
-    probe.set(NetworkState::OffCampus);
+    client
+        .inner
+        .lock()
+        .await
+        .as_mut()
+        .unwrap()
+        .set_default_route_policy(ubaa_core::facade::RoutePolicy::WebVpn)
+        .unwrap();
     let current_auto_route = {
         let mut guard = client.inner.lock().await;
         guard
@@ -730,25 +735,9 @@ impl GatewayProbe for SequenceProbe {
     }
 }
 
-#[derive(Clone)]
-struct MutableProbe {
-    state: Arc<Mutex<NetworkState>>,
-}
-
-impl MutableProbe {
-    fn new(state: NetworkState) -> Self {
-        Self {
-            state: Arc::new(Mutex::new(state)),
-        }
-    }
-
-    fn set(&self, state: NetworkState) {
-        *self.state.lock().expect("锁定可变路线探测状态") = state;
-    }
-}
-
-impl GatewayProbe for MutableProbe {
+struct CampusProbe;
+impl GatewayProbe for CampusProbe {
     fn probe(&self, _budget: Duration) -> NetworkState {
-        *self.state.lock().expect("锁定可变路线探测状态")
+        NetworkState::Campus
     }
 }

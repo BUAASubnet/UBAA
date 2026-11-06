@@ -10,27 +10,47 @@ use crate::features::ihome;
 impl UbaaClient {
     pub async fn ihome_page(&mut self, query: IhomeQuery) -> RoutedResult<IhomePage> {
         let route = self.resolve_operation(Operation::Feature(ReadonlyFeature::Ihome))?;
-        let result = ihome::get_page(self.runtime_for(route.mode), &query).await;
+        let (route, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            route,
+            ihome::get_page(self.runtime_for(route.mode), &query).await
+        );
         self.finish_routed(route, result)
     }
     pub async fn ihome_detail(&mut self, id: i64, mine: bool) -> RoutedResult<IhomeAppeal> {
         let route = self.resolve_operation(Operation::Feature(ReadonlyFeature::Ihome))?;
-        let result = ihome::get_detail(self.runtime_for(route.mode), id, mine).await;
+        let (route, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            route,
+            ihome::get_detail(self.runtime_for(route.mode), id, mine).await
+        );
         self.finish_routed(route, result)
     }
     pub async fn ihome_config(&mut self) -> RoutedResult<IhomeConfig> {
         let route = self.resolve_operation(Operation::Feature(ReadonlyFeature::Ihome))?;
-        let result = ihome::get_config(self.runtime_for(route.mode)).await;
+        let (route, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            route,
+            ihome::get_config(self.runtime_for(route.mode)).await
+        );
         self.finish_routed(route, result)
     }
     pub async fn ihome_notices(&mut self) -> RoutedResult<Vec<IhomeNotice>> {
         let route = self.resolve_operation(Operation::Feature(ReadonlyFeature::Ihome))?;
-        let result = ihome::get_notices(self.runtime_for(route.mode)).await;
+        let (route, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            route,
+            ihome::get_notices(self.runtime_for(route.mode)).await
+        );
         self.finish_routed(route, result)
     }
     pub async fn ihome_notice(&mut self, id: i64) -> RoutedResult<IhomeNotice> {
         let route = self.resolve_operation(Operation::Feature(ReadonlyFeature::Ihome))?;
-        let result = ihome::get_notice(self.runtime_for(route.mode), id).await;
+        let (route, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            route,
+            ihome::get_notice(self.runtime_for(route.mode), id).await
+        );
         self.finish_routed(route, result)
     }
     /// 用户确认后固定路线，提交一次并回读目标状态；结果未知不重试。

@@ -259,7 +259,7 @@ impl UbaaClient {
         auth.login(runtime, input).await
     }
 
-    async fn auth_status_route(&mut self, route: ConnectionMode) -> Result<AuthStatus> {
+    pub(super) async fn auth_status_route(&mut self, route: ConnectionMode) -> Result<AuthStatus> {
         let (runtime, auth) = self.route_parts_for(route);
         let mut clear_workflow = || auth.clear();
         user::auth_status(runtime, &mut clear_workflow).await

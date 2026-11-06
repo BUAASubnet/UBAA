@@ -7,7 +7,7 @@ use ubaa_core::facade::{
     ConnectionMode, DualLoginInput, ErrorCode, ErrorKind, LoginReadiness, Result, RouteClient,
     RouteLoginState, SecretValue, UbaaClient, UbaaError,
 };
-use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport, auth_fixture};
+use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport};
 
 use crate::common::{
     basic_direct_transport, login_input, login_page, persisted_store, redirect, response,
@@ -18,18 +18,9 @@ use crate::common::{
 async fn prepared_existing_session_is_consumed_without_reentering_sso() {
     let login = "https://sso.buaa.edu.cn/login";
     let landing = "https://uc.buaa.edu.cn/landing";
-    let activate =
-        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
-    let status = "https://uc.buaa.edu.cn/api/uc/status";
-    let userinfo = "https://uc.buaa.edu.cn/api/uc/userinfo";
-    let fixture = auth_fixture("userinfo-success.json").unwrap();
-    let direct_transport = MockTransport::new([
+    let status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
+    let direct_transport = MockTransport::with_sso_checks([
         ExpectedRequest::new(HttpMethod::Get, login, redirect(login, landing)),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            activate,
-            response(200, activate, Vec::new()),
-        ),
         ExpectedRequest::new(
             HttpMethod::Get,
             status,
@@ -39,10 +30,9 @@ async fn prepared_existing_session_is_consumed_without_reentering_sso() {
                 r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#,
             ),
         ),
-        ExpectedRequest::new(HttpMethod::Get, userinfo, response(200, userinfo, fixture)),
     ]);
     let direct_observer = direct_transport.clone();
-    let webvpn_transport = MockTransport::new([]);
+    let webvpn_transport = MockTransport::with_sso_checks([]);
     let root = std::env::temp_dir().join(format!(
         "ubaa-dual-existing-session-prepare-{}",
         std::process::id()
@@ -76,7 +66,7 @@ async fn prepared_existing_session_is_consumed_without_reentering_sso() {
         Some("Fixture User")
     );
     let direct_requests = direct_observer.requests().unwrap();
-    assert_eq!(direct_requests.len(), 4);
+    assert_eq!(direct_requests.len(), 3);
     assert_eq!(
         direct_requests
             .iter()
@@ -95,7 +85,7 @@ async fn prepared_existing_session_is_consumed_without_reentering_sso() {
 
 #[tokio::test]
 async fn user_info_without_local_session_makes_zero_requests() {
-    let transport = MockTransport::new([]);
+    let transport = MockTransport::with_sso_checks([]);
     let observer = transport.clone();
     let mut client =
         RouteClient::with_transport(ConnectionMode::Direct, transport, MemorySessionStore::new())
@@ -110,7 +100,7 @@ async fn user_info_without_local_session_makes_zero_requests() {
 #[tokio::test]
 async fn prepared_login_cookies_do_not_authorize_user_requests() {
     let login = "https://sso.buaa.edu.cn/login";
-    let transport = MockTransport::new([ExpectedRequest::new(
+    let transport = MockTransport::with_sso_checks([ExpectedRequest::new(
         HttpMethod::Get,
         login,
         set_cookie(
@@ -146,13 +136,13 @@ async fn persistence_error_after_status_clears_uncommitted_authentication() {
 
     assert_eq!(persistence_error.code, ErrorCode::InternalError);
     assert_eq!(profile_error.code, ErrorCode::AuthenticationRequired);
-    assert_eq!(observer.requests().unwrap().len(), 5);
+    assert_eq!(observer.requests().unwrap().len(), 4);
 }
 
 #[tokio::test]
 async fn invalid_status_clears_session_but_server_error_keeps_it() {
-    let status = "https://uc.buaa.edu.cn/api/uc/status";
-    let invalid_transport = MockTransport::new([ExpectedRequest::new(
+    let status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
+    let invalid_transport = MockTransport::with_sso_checks([ExpectedRequest::new(
         HttpMethod::Get,
         status,
         response(401, status, Vec::new()),
@@ -168,7 +158,7 @@ async fn invalid_status_clears_session_but_server_error_keeps_it() {
     assert_eq!(error.code, ErrorCode::AuthenticationRequired);
     assert!(invalid_store.snapshot().unwrap().is_none());
 
-    let server_transport = MockTransport::new([ExpectedRequest::new(
+    let server_transport = MockTransport::with_sso_checks([ExpectedRequest::new(
         HttpMethod::Get,
         status,
         response(503, status, Vec::new()),
@@ -186,7 +176,7 @@ async fn invalid_status_clears_session_but_server_error_keeps_it() {
 }
 
 #[tokio::test]
-async fn html_and_non_json_status_responses_clear_persisted_session() {
+async fn 未知验票正文保留会话并报告解析错误() {
     for body in [
         "<!DOCTYPE html><html>统一身份认证</html>",
         "<!doctype html><HTML><body>signed out</body></HTML>",
@@ -195,8 +185,8 @@ async fn html_and_non_json_status_responses_clear_persisted_session() {
         "<HtMl><body>signed out</body></HtMl>",
         "temporarily not json",
     ] {
-        let status = "https://uc.buaa.edu.cn/api/uc/status";
-        let transport = MockTransport::new([ExpectedRequest::new(
+        let status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
+        let transport = MockTransport::with_sso_checks([ExpectedRequest::new(
             HttpMethod::Get,
             status,
             response(200, status, body),
@@ -207,13 +197,13 @@ async fn html_and_non_json_status_responses_clear_persisted_session() {
 
         let error = client.auth_status().await.unwrap_err();
 
-        assert_eq!(error.code, ErrorCode::AuthenticationRequired);
-        assert!(store.snapshot().unwrap().is_none());
+        assert_eq!(error.code, ErrorCode::ParseError);
+        assert!(store.snapshot().unwrap().is_some());
     }
 }
 
 #[tokio::test]
-async fn html_userinfo_response_clears_session_and_logout_always_clears_local_state() {
+async fn uc资料失败保留主会话且显式退出始终清理本地状态() {
     let userinfo = "https://uc.buaa.edu.cn/api/uc/userinfo";
     for body in [
         "<!DOCTYPE html><html>统一身份认证</html>",
@@ -222,23 +212,38 @@ async fn html_userinfo_response_clears_session_and_logout_always_clears_local_st
         "<HTML><body>signed out</body></HTML>",
         "<HtMl><body>signed out</body></HtMl>",
     ] {
-        let transport = MockTransport::new([ExpectedRequest::new(
-            HttpMethod::Get,
-            userinfo,
-            response(200, userinfo, body),
-        )]);
+        let activate = "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
+        let status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
+        let transport = MockTransport::with_sso_checks([
+            ExpectedRequest::new(HttpMethod::Get, userinfo, response(200, userinfo, body)),
+            ExpectedRequest::new(
+                HttpMethod::Get,
+                activate,
+                response(200, activate, Vec::new()),
+            ),
+            ExpectedRequest::new(HttpMethod::Get, userinfo, response(200, userinfo, body)),
+            ExpectedRequest::new(
+                HttpMethod::Get,
+                status,
+                response(
+                    200,
+                    status,
+                    r#"{"code":0,"data":{"username":"fixture-user","schoolid":"TEST-0001"}}"#,
+                ),
+            ),
+        ]);
         let store = persisted_store();
         let mut client =
             RouteClient::with_transport(ConnectionMode::Direct, transport, store.clone()).unwrap();
         let error = client.get_user_info().await.unwrap_err();
-        assert_eq!(error.code, ErrorCode::AuthenticationRequired);
-        assert!(store.snapshot().unwrap().is_none());
+        assert_eq!(error.code, ErrorCode::ParseError);
+        assert!(store.snapshot().unwrap().is_some());
     }
 
     let logout_store = persisted_store();
     let mut logout_client = RouteClient::with_transport(
         ConnectionMode::Direct,
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
         logout_store.clone(),
     )
     .unwrap();

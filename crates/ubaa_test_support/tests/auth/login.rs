@@ -1,6 +1,6 @@
 use ubaa_core::facade::testing::{HttpMethod, from_webvpn_url, to_webvpn_url};
 use ubaa_core::facade::{ConnectionMode, ErrorCode, RouteClient};
-use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport, auth_fixture};
+use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport};
 
 use crate::common::{
     basic_direct_transport, login_input, login_page, persisted_store, redirect, response,
@@ -14,7 +14,7 @@ fn public_client_facade_is_concrete_and_accepts_injected_ports() {
 
     let client = RouteClient::with_transport(
         ConnectionMode::Direct,
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
         MemorySessionStore::new(),
     )
     .unwrap();
@@ -52,7 +52,7 @@ async fn direct_login_follows_cas_and_returns_userinfo_profile() {
 async fn captcha_marker_is_rejected_without_fetching_image_or_posting_credentials() {
     let login = "https://sso.buaa.edu.cn/login";
     let page = r#"<form id="fm1"><input type="hidden" name="execution" value="e-captcha"><input name="username"><input name="password"></form><script>config.captcha = { type: 'image', id: 'captcha-fixture' }</script>"#;
-    let transport = MockTransport::new([ExpectedRequest::new(
+    let transport = MockTransport::with_sso_checks([ExpectedRequest::new(
         HttpMethod::Get,
         login,
         response(200, login, page),
@@ -87,7 +87,7 @@ async fn nonstandard_interactive_login_control_is_rejected_without_posting_crede
         <input type="text" name="verificationCode">
       </form>
     "#;
-    let transport = MockTransport::new([ExpectedRequest::new(
+    let transport = MockTransport::with_sso_checks([ExpectedRequest::new(
         HttpMethod::Get,
         login,
         response(200, login, page),
@@ -122,7 +122,7 @@ async fn nameless_input_and_button_login_controls_are_rejected_without_posting_c
         <button type="button">验证</button>
       </form>
     "#;
-    let transport = MockTransport::new([ExpectedRequest::new(
+    let transport = MockTransport::with_sso_checks([ExpectedRequest::new(
         HttpMethod::Get,
         login,
         response(200, login, page),
@@ -149,22 +149,12 @@ async fn nameless_input_and_button_login_controls_are_rejected_without_posting_c
 async fn password_risk_page_is_continued_once_with_new_execution() {
     let login = "https://sso.buaa.edu.cn/login";
     let landing = "https://uc.buaa.edu.cn/landing";
-    let activate =
-        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
-    let status = "https://uc.buaa.edu.cn/api/uc/status";
-    let userinfo = "https://uc.buaa.edu.cn/api/uc/userinfo";
-    let fixture = auth_fixture("userinfo-success.json").unwrap();
+    let status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
     let warning = r#"<form id="continueForm"><input type="hidden" name="execution" value="e-risk"><div>账号存在安全风险，请修改密码</div><button name="_eventId" value="ignoreAndContinue">继续</button></form>"#;
-    let transport = MockTransport::new([
+    let transport = MockTransport::with_sso_checks([
         ExpectedRequest::new(HttpMethod::Get, login, response(200, login, login_page())),
         ExpectedRequest::new(HttpMethod::Post, login, response(200, login, warning)),
         ExpectedRequest::new(HttpMethod::Post, login, redirect(login, landing)),
-        ExpectedRequest::new(HttpMethod::Get, landing, response(200, landing, Vec::new())),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            activate,
-            response(200, activate, Vec::new()),
-        ),
         ExpectedRequest::new(
             HttpMethod::Get,
             status,
@@ -174,7 +164,6 @@ async fn password_risk_page_is_continued_once_with_new_execution() {
                 r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#,
             ),
         ),
-        ExpectedRequest::new(HttpMethod::Get, userinfo, response(200, userinfo, fixture)),
     ]);
     let observer = transport.clone();
     let mut client =
@@ -194,7 +183,7 @@ async fn password_risk_page_is_continued_once_with_new_execution() {
 async fn repeated_password_risk_page_fails_after_one_continuation() {
     let login = "https://sso.buaa.edu.cn/login";
     let warning = r#"<form id="continueForm"><input name="execution" value="e-risk"><button value="ignoreAndContinue">Continue</button></form>"#;
-    let transport = MockTransport::new([
+    let transport = MockTransport::with_sso_checks([
         ExpectedRequest::new(HttpMethod::Get, login, response(200, login, login_page())),
         ExpectedRequest::new(HttpMethod::Post, login, response(200, login, warning)),
         ExpectedRequest::new(HttpMethod::Post, login, response(200, login, warning)),
@@ -212,29 +201,13 @@ async fn repeated_password_risk_page_fails_after_one_continuation() {
 async fn webvpn_login_uses_gateway_for_every_auth_request() {
     let direct_login = "https://sso.buaa.edu.cn/login";
     let direct_landing = "https://uc.buaa.edu.cn/landing";
-    let direct_activate =
-        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
-    let direct_status = "https://uc.buaa.edu.cn/api/uc/status";
-    let direct_userinfo = "https://uc.buaa.edu.cn/api/uc/userinfo";
+    let direct_status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
     let login = to_webvpn_url(direct_login).unwrap();
     let landing = to_webvpn_url(direct_landing).unwrap();
-    let activate = to_webvpn_url(direct_activate).unwrap();
     let status = to_webvpn_url(direct_status).unwrap();
-    let userinfo = to_webvpn_url(direct_userinfo).unwrap();
-    let fixture = auth_fixture("userinfo-success.json").unwrap();
-    let transport = MockTransport::new([
+    let transport = MockTransport::with_sso_checks([
         ExpectedRequest::new(HttpMethod::Get, &login, response(200, &login, login_page())),
         ExpectedRequest::new(HttpMethod::Post, &login, redirect(&login, &landing)),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            &landing,
-            response(200, &landing, Vec::new()),
-        ),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            &activate,
-            response(200, &activate, Vec::new()),
-        ),
         ExpectedRequest::new(
             HttpMethod::Get,
             &status,
@@ -243,11 +216,6 @@ async fn webvpn_login_uses_gateway_for_every_auth_request() {
                 &status,
                 r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#,
             ),
-        ),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            &userinfo,
-            response(200, &userinfo, fixture),
         ),
     ]);
     let observer = transport.clone();
@@ -270,19 +238,12 @@ async fn webvpn_login_uses_gateway_for_every_auth_request() {
 #[tokio::test]
 async fn existing_sso_cookie_activates_and_validates_user_center_without_password_submission() {
     let login = "https://sso.buaa.edu.cn/login";
-    let activate =
-        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
-    let status = "https://uc.buaa.edu.cn/api/uc/status";
-    let transport = MockTransport::new([
+    let status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
+    let transport = MockTransport::with_sso_checks([
         ExpectedRequest::new(
             HttpMethod::Get,
             login,
             redirect(login, "/already-authenticated"),
-        ),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            activate,
-            response(200, activate, Vec::new()),
         ),
         ExpectedRequest::new(
             HttpMethod::Get,

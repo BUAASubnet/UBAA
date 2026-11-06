@@ -6,7 +6,6 @@ use url::Url;
 
 use crate::domain::{LoginInput, UserProfile};
 use crate::error::{ErrorCode, ErrorKind, Result, UbaaError};
-use crate::features::user;
 use crate::ports::{HttpRequest, HttpResponse};
 use crate::runtime::ClientRuntime;
 use crate::upstream::{
@@ -19,14 +18,16 @@ const MAX_REDIRECTS: usize = 10;
 pub(crate) mod automatic;
 mod captcha;
 pub(crate) mod captcha_image;
+mod gateway;
 pub(crate) mod interactive;
+pub(crate) mod sso_identity;
 
 /// 绑定到单个客户端实例的待处理登录页面。
 #[derive(Clone, Default)]
 pub(crate) struct LoginState {
     page: Option<String>,
     execution: Option<String>,
-    authenticated_ready: bool,
+    authenticated_profile: Option<UserProfile>,
 }
 
 impl std::fmt::Debug for LoginState {
@@ -35,7 +36,10 @@ impl std::fmt::Debug for LoginState {
             .debug_struct("LoginState")
             .field("page", &self.page.as_ref().map(|_| "[REDACTED]"))
             .field("execution", &self.execution.as_ref().map(|_| "[REDACTED]"))
-            .field("authenticated_ready", &self.authenticated_ready)
+            .field(
+                "authenticated_profile",
+                &self.authenticated_profile.as_ref().map(|_| "[REDACTED]"),
+            )
             .finish()
     }
 }
@@ -44,12 +48,12 @@ impl LoginState {
     pub(crate) fn remember(&mut self, page: String, execution: String) {
         self.page = Some(page);
         self.execution = Some(execution);
-        self.authenticated_ready = false;
+        self.authenticated_profile = None;
     }
 
-    pub(crate) fn remember_authenticated(&mut self) {
+    pub(crate) fn remember_authenticated(&mut self, profile: UserProfile) {
         self.clear();
-        self.authenticated_ready = true;
+        self.authenticated_profile = Some(profile);
     }
 
     pub(crate) fn page(&self) -> Option<&str> {
@@ -61,7 +65,7 @@ impl LoginState {
     }
 
     pub(crate) const fn authenticated_ready(&self) -> bool {
-        self.authenticated_ready
+        self.authenticated_profile.is_some()
     }
 
     pub(crate) fn clear(&mut self) {
@@ -89,9 +93,8 @@ impl AuthWorkflow {
             .request(HttpRequest::get(runtime.url(SSO_LOGIN_URL)?))
             .await?;
         if is_redirect(response.status) {
-            activate_user_center(runtime).await?;
-            self.validate_status(runtime).await?;
-            self.state.remember_authenticated();
+            let profile = self.validate_status(runtime).await?;
+            self.state.remember_authenticated(profile);
             return Ok(());
         }
         if response.status != 200 {
@@ -122,13 +125,13 @@ impl AuthWorkflow {
             ));
         }
         if self.state.authenticated_ready() {
-            let profile = self.get_user_info(runtime).await?;
+            let profile = self.state.authenticated_profile.take().expect("已验证身份");
             return Ok(self.finish_successful_login(runtime, profile));
         }
         if self.state.page().is_none() {
             self.prepare_login(runtime).await?;
             if self.state.authenticated_ready() {
-                let profile = self.get_user_info(runtime).await?;
+                let profile = self.state.authenticated_profile.take().expect("已验证身份");
                 return Ok(self.finish_successful_login(runtime, profile));
             }
         }
@@ -147,9 +150,7 @@ impl AuthWorkflow {
             .with_header("Content-Type", "application/x-www-form-urlencoded");
         let response = runtime.request(request).await?;
         follow_login_response(runtime, response).await?;
-        activate_user_center(runtime).await?;
-        self.validate_status(runtime).await?;
-        let profile = self.get_user_info(runtime).await?;
+        let profile = self.validate_status(runtime).await?;
         Ok(self.finish_successful_login(runtime, profile))
     }
 
@@ -187,16 +188,12 @@ impl AuthWorkflow {
         self.state.page().is_some() || self.state.authenticated_ready()
     }
 
-    async fn validate_status(&mut self, runtime: &mut ClientRuntime) -> Result<()> {
+    async fn validate_status(&mut self, runtime: &mut ClientRuntime) -> Result<UserProfile> {
+        gateway::activate(runtime).await?;
         let mut clear_workflow = || self.state.clear();
-        user::validate_status(runtime, &mut clear_workflow).await?;
+        let status = sso_identity::validate_status(runtime, &mut clear_workflow).await?;
         runtime.clear_feature_state();
-        Ok(())
-    }
-
-    async fn get_user_info(&mut self, runtime: &mut ClientRuntime) -> Result<UserProfile> {
-        let mut clear_workflow = || self.state.clear();
-        user::get_user_info(runtime, &mut clear_workflow).await
+        Ok(status.user)
     }
 }
 
@@ -216,6 +213,10 @@ async fn follow_login_response(
                 .ok_or_else(|| upstream_changed("SSO 重定向缺少 Location"))?;
             let next =
                 crate::connection::resolve_redirect(&response.final_url, location, runtime.mode())?;
+            let direct = crate::connection::from_webvpn_url(&next)?;
+            if Url::parse(&direct).is_ok_and(|url| url.host_str() == Some("uc.buaa.edu.cn")) {
+                return Ok(());
+            }
             response = runtime.request(HttpRequest::get(next)).await?;
         }
         let body = body_text(&response);
@@ -262,7 +263,7 @@ async fn follow_login_response(
     }
 }
 
-async fn activate_user_center(runtime: &mut ClientRuntime) -> Result<()> {
+pub(crate) async fn activate_user_center(runtime: &mut ClientRuntime) -> Result<()> {
     let mut response = runtime
         .request(HttpRequest::get(runtime.url(UC_ACTIVATE_URL)?))
         .await?;

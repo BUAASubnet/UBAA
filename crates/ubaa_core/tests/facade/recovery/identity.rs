@@ -18,9 +18,12 @@ struct Gate {
 #[async_trait]
 impl HttpTransport for 合成传输 {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         let url = ubaa_core::facade::testing::from_webvpn_url(&request.url)
             .unwrap_or_else(|_| request.url.clone());
-        let status = if url.contains("/api/uc/") {
+        let status = if url.contains("/serviceValidate?") {
             *self.status.lock().unwrap()
         } else if url.starts_with("https://sso.buaa.edu.cn/login") {
             302
@@ -32,7 +35,7 @@ impl HttpTransport for 合成传输 {
             );
             200
         };
-        let gate = if url.contains("/api/uc/") {
+        let gate = if url.contains("/serviceValidate?") {
             self.gate.lock().unwrap().take()
         } else {
             None
@@ -41,7 +44,7 @@ impl HttpTransport for 合成传输 {
             gate.started.notify_one();
             gate.finish.notified().await;
         }
-        Ok(HttpResponse::new(status, request.url, br#"{"code":0,"data":{"schoolid":"fixture-a","username":"fixture-a","name":"synthetic"}}"#.to_vec()))
+        Ok(ubaa_core::facade::testing::sso_fixture_response(status, request.url, br#"{"code":0,"data":{"schoolid":"fixture-a","username":"fixture-a","name":"synthetic"}}"#.to_vec()))
     }
 }
 

@@ -30,8 +30,7 @@ Future<OfflineQueryRead> bridgeReadCachedJudgeBatch(
         complete = false;
         continue;
       }
-      if (record.sourceRoute != route ||
-          record.data.courseId != key.courseId ||
+      if (record.data.courseId != key.courseId ||
           record.data.assignmentId != key.assignmentId)
         throw const BackendException(
           UbaaErrorCode.internalError,

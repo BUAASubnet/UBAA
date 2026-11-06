@@ -227,8 +227,7 @@ pub(crate) fn resolve_route<P: GatewayProbe + ?Sized>(
         RoutePolicy::Direct => ConnectionMode::Direct,
         RoutePolicy::WebVpn => ConnectionMode::WebVpn,
         RoutePolicy::Auto => row.auto_route_override.unwrap_or(match network {
-            NetworkState::Campus => ConnectionMode::Direct,
-            NetworkState::OffCampus => ConnectionMode::WebVpn,
+            NetworkState::Campus | NetworkState::OffCampus => ConnectionMode::Direct,
             NetworkState::Unknown => row.unknown_default,
         }),
     };

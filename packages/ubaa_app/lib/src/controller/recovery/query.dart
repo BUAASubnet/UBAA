@@ -49,12 +49,7 @@ mixin ControllerOfflineQuery on ControllerState {
           internalLoginForm.routePolicy != policy ||
           projection.accountId != account.id ||
           projection.feature != feature ||
-          !projection.readContext.hasSameQuery(query) ||
-          !(policy == RoutePolicy.auto ||
-              (policy == RoutePolicy.direct &&
-                  projection.route == ConnectionMode.direct) ||
-              (policy == RoutePolicy.webvpn &&
-                  projection.route == ConnectionMode.webvpn)))
+          !projection.readContext.hasSameQuery(query))
         return null;
       return projection.toSnapshot();
     } on Object {
@@ -132,11 +127,6 @@ mixin ControllerOfflineQuery on ControllerState {
           projection.accountId == account.id &&
           projection.feature == feature &&
           projection.readContext.hasSameQuery(query) &&
-          (policy == RoutePolicy.auto ||
-              (policy == RoutePolicy.direct &&
-                  projection.route == ConnectionMode.direct) ||
-              (policy == RoutePolicy.webvpn &&
-                  projection.route == ConnectionMode.webvpn)) &&
           (previous.evidence == null ||
               previous.evidence!.origin == DataOrigin.persisted) &&
           previous.status != FeatureLoadStatus.success &&

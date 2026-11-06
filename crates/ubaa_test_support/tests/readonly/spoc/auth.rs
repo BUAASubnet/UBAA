@@ -288,7 +288,7 @@ async fn spoc_second_business_authentication_failure_preserves_a_valid_primary_s
     let fresh_token_url = "https://spoc.buaa.edu.cn/spocnew/cas?token=fresh-token";
     let login_url = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
     let term_url = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
-    let status_url = "https://uc.buaa.edu.cn/api/uc/status";
+    let status_url = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
     let profile = r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#;
     let transport = SpocTransport::new([
         (cas.into(), redirect(first_token_url)),
@@ -348,7 +348,7 @@ async fn spoc_second_business_authentication_failure_clears_an_invalid_primary_s
     let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
     let login = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
     let term = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
-    let status = "https://uc.buaa.edu.cn/api/uc/status";
+    let status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
     let transport = SpocTransport::new([
         (
             cas.into(),
@@ -404,7 +404,7 @@ async fn spoc_invalid_primary_session_clears_only_the_selected_route_slot() {
     let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
     let login = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
     let term = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
-    let status = "https://uc.buaa.edu.cn/api/uc/status";
+    let status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
     let direct = SpocTransport::new([
         (
             cas.into(),
@@ -489,7 +489,7 @@ async fn spoc_second_business_authentication_failure_preserves_session_when_uc_i
     let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
     let login = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
     let term = "https://spoc.buaa.edu.cn/spocnewht/inco/ht/queryOne";
-    let status = "https://uc.buaa.edu.cn/api/uc/status";
+    let status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
     let transport = SpocTransport::new([
         (
             cas.into(),
@@ -584,7 +584,7 @@ async fn spoc_malformed_json_with_token_text_is_not_retried_as_authentication() 
 async fn spoc_cas_login_auth_shapes_validate_the_primary_session_before_classification() {
     let cas = "https://spoc.buaa.edu.cn/spocnewht/cas";
     let login = "https://spoc.buaa.edu.cn/spocnewht/sys/casLogin";
-    let status = "https://uc.buaa.edu.cn/api/uc/status";
+    let status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
     let profile = r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#;
     let cases = [
         redirect_from(login, "https://sso.buaa.edu.cn/login?service=fixture"),

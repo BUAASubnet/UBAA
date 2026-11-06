@@ -81,7 +81,7 @@ impl OfflineRepository {
     /// # Errors
     /// 账号关闭、较新请求取代或存储故障时返回稳定错误。
     pub fn validate_read(&mut self, ticket: &CacheReadTicket) -> CacheResult<()> {
-        let key = self.crypto.index(&(&self.account, &ticket.scope))?;
+        let key = self.crypto.index(&(&self.account, &ticket.scope.query))?;
         let tx = self.db.transaction().map_err(CacheError::from)?;
         validate_ticket(
             &tx,
@@ -99,7 +99,7 @@ impl OfflineRepository {
     /// # Errors
     /// 原票据失效、账号关闭或事务失败时保持原票据不变。
     pub fn renew_read(&mut self, ticket: &mut CacheReadTicket) -> CacheResult<()> {
-        let key = self.crypto.index(&(&self.account, &ticket.scope))?;
+        let key = self.crypto.index(&(&self.account, &ticket.scope.query))?;
         let tx = self
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -154,7 +154,7 @@ impl OfflineRepository {
         parent: Option<&CacheReadTicket>,
     ) -> CacheResult<CacheReadTicket> {
         scope.validate()?;
-        let key = self.crypto.index(&(&self.account, &scope))?;
+        let key = self.crypto.index(&(&self.account, &scope.query))?;
         let tx = self
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -162,7 +162,7 @@ impl OfflineRepository {
         let mut control = load_current_control(&tx, &self.crypto, &self.account, self.generation)?;
         require_active(&control)?;
         if let Some(parent) = parent {
-            let parent_key = self.crypto.index(&(&self.account, &parent.scope))?;
+            let parent_key = self.crypto.index(&(&self.account, &parent.scope.query))?;
             validate_ticket(
                 &tx,
                 &self.crypto,
@@ -201,7 +201,7 @@ impl OfflineRepository {
     /// 账号已退出、查询非法、单条损坏或存储故障时返回错误。
     pub fn read(&mut self, scope: &CacheScope, now: i64) -> CacheResult<Option<CacheRecord>> {
         scope.validate()?;
-        let key = self.crypto.index(&(&self.account, scope))?;
+        let key = self.crypto.index(&(&self.account, &scope.query))?;
         let tx = self
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -219,7 +219,7 @@ impl OfflineRepository {
             .crypto
             .open::<CacheRecord>(&body, &key)
             .and_then(|record| {
-                if record.scope == *scope && record.payload.matches(&scope.query) {
+                if record.scope.query == scope.query && record.payload.matches(&scope.query) {
                     Ok(record)
                 } else {
                     Err(CacheError::Corrupt)
@@ -308,7 +308,7 @@ impl OfflineRepository {
         completeness: CacheCompleteness,
     ) -> CacheResult<CachePublication> {
         let now = observation.attempted_at;
-        let key = self.crypto.index(&(&self.account, &ticket.scope))?;
+        let key = self.crypto.index(&(&self.account, &ticket.scope.query))?;
         let tx = self
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -322,7 +322,7 @@ impl OfflineRepository {
             self.generation,
         )?;
         if let Some(parent) = parent {
-            let parent_key = self.crypto.index(&(&self.account, &parent.scope))?;
+            let parent_key = self.crypto.index(&(&self.account, &parent.scope.query))?;
             validate_ticket(
                 &tx,
                 &self.crypto,
@@ -404,7 +404,7 @@ impl OfflineRepository {
         parent: Option<&CacheReadTicket>,
         now: i64,
     ) -> CacheResult<()> {
-        let key = self.crypto.index(&(&self.account, &ticket.scope))?;
+        let key = self.crypto.index(&(&self.account, &ticket.scope.query))?;
         let tx = self
             .db
             .transaction_with_behavior(TransactionBehavior::Immediate)
@@ -418,7 +418,7 @@ impl OfflineRepository {
             self.generation,
         )?;
         if let Some(parent) = parent {
-            let parent_key = self.crypto.index(&(&self.account, &parent.scope))?;
+            let parent_key = self.crypto.index(&(&self.account, &parent.scope.query))?;
             validate_ticket(
                 &tx,
                 &self.crypto,
@@ -545,7 +545,7 @@ fn validate_ticket(
     }
     let (_, body) = request.ok_or(CacheError::Superseded)?;
     let scope: CacheScope = crypto.open(&body, &invalidation::scope_aad(key))?;
-    if scope != ticket.scope {
+    if scope.query != ticket.scope.query {
         return Err(CacheError::Corrupt);
     }
     Ok(())

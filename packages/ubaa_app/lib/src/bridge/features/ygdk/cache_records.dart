@@ -10,8 +10,6 @@ Future<CachedFeatureProjection?> bridgeCachedYgdkRecordsProjection(
   if (classifyId == null) {
     final selection = await cache.readYgdkRecordsSelection(route: route);
     if (selection == null) return null;
-    if (selection.sourceRoute != route)
-      throw const BackendException(UbaaErrorCode.operationConflict);
     classifyId = selection.data.classifyId;
   }
   final page = query.page <= 0 ? 1 : query.page;
@@ -23,20 +21,19 @@ Future<CachedFeatureProjection?> bridgeCachedYgdkRecordsProjection(
     size: size,
   );
   if (value == null) return null;
-  if (value.sourceRoute != route ||
-      value.classifyId != classifyId ||
+  if (value.classifyId != classifyId ||
       value.data.page != page ||
       value.data.size != size) {
     throw const BackendException(UbaaErrorCode.operationConflict);
   }
   final result = bridgeMapYgdkRecordsResult(
     value.data,
-    bridgeToConnectionMode(route),
+    bridgeToConnectionMode(value.sourceRoute),
   );
   return CachedFeatureProjection(
     feature: FeatureId.ygdk,
     accountId: account.id,
-    route: bridgeToConnectionMode(route),
+    route: bridgeToConnectionMode(value.sourceRoute),
     query: query,
     fetchedAt: bridgeCacheTime(value.fetchedAt.toInt()),
     complete: value.complete,

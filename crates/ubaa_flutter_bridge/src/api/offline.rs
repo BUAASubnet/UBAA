@@ -449,7 +449,7 @@ mod tests {
 mod judge_tests {
     use super::*;
     #[tokio::test]
-    async fn 详情缓存同时隔离路线课程作业且不等待网络锁() {
+    async fn 详情缓存跨路线共享并隔离课程作业且不等待网络锁() {
         let root = std::env::temp_dir().join(format!("ubaa-detail-cache-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
@@ -509,12 +509,13 @@ mod judge_tests {
             (BridgeConnectionMode::Direct, "13", "101"),
             (BridgeConnectionMode::Direct, "12", "102"),
         ] {
-            assert!(
+            assert_eq!(
                 cache
                     .read_judge_detail(route, course.into(), assignment.into())
                     .await
                     .unwrap()
-                    .is_none()
+                    .is_some(),
+                course == "12" && assignment == "101"
             );
         }
         cache.deactivate().await.unwrap();

@@ -151,10 +151,10 @@ mod tests {
     use crate::api::write::{BridgeBykcCourseRequest, PendingEntry, PendingWrite};
 
     #[tokio::test]
-    async fn required_recovery_returns_profile_after_one_target_status_request() {
+    async fn 所需路线恢复通过取票验票返回资料且不访问另一会话() {
         use ubaa_test_support::{
-            ExpectedRequest, FileSessionStore, GatewayProbe, HttpMethod, HttpResponse,
-            MockTransport, RouteConfig, SessionSnapshot, SessionStore,
+            ExpectedRequest, FileSessionStore, GatewayProbe, HttpMethod, MockTransport,
+            RouteConfig, SessionSnapshot, SessionStore,
         };
         struct NoProbe;
         impl GatewayProbe for NoProbe {
@@ -174,17 +174,17 @@ mod tests {
                 last_activity: 1001,
             })
             .unwrap();
-        let url = "https://uc.buaa.edu.cn/api/uc/status";
-        let target = MockTransport::new([ExpectedRequest::new(
+        let url = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
+        let target = MockTransport::with_sso_checks([ExpectedRequest::new(
             HttpMethod::Get,
             url,
-            HttpResponse::new(
+            ubaa_core::facade::testing::sso_fixture_response(
                 200,
                 url,
                 include_bytes!("../../../../fixtures/auth/userinfo-success.json").to_vec(),
             ),
         )]);
-        let sibling = MockTransport::new([]);
+        let sibling = MockTransport::with_sso_checks([]);
         *client.inner.lock().await = Some(
             core::UbaaClient::with_routing(
                 target.clone(),
@@ -201,7 +201,7 @@ mod tests {
             .unwrap();
         assert_eq!(result.route, BridgeConnectionMode::Direct);
         assert_eq!(result.profile.username.as_deref(), Some("fixture-user"));
-        assert_eq!(target.requests().unwrap().len(), 1);
+        assert_eq!(target.requests().unwrap().len(), 2);
         assert!(sibling.requests().unwrap().is_empty());
         client.dispose().await.unwrap();
         let _ = std::fs::remove_dir_all(root);

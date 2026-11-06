@@ -12,39 +12,49 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_test_support/recovery.dart' as offline;
 
 void main() {
-  testWidgets('静默登录进行中只显示普通加载，最终需人工处理才弹窗', (tester) async {
-    await tester.binding.setSurfaceSize(const Size(950, 1300));
-    addTearDown(() => tester.binding.setSurfaceSize(null));
-    final backend = _InteractiveBackend();
-    final gate = Completer<LoginVerificationState>();
-    backend.beginGate = gate;
-    await tester.pumpWidget(
-      UbaaAppHost(backend: backend, credentialVault: _Vault()),
+  for (final required in [true, false]) {
+    testWidgets(
+      required ? '所需路线静默尝试耗尽后显示人工验证' : 'Auto 已有可用路线时直接进入且不显示另一条路线验证码',
+      (tester) async {
+        await tester.binding.setSurfaceSize(const Size(950, 1300));
+        addTearDown(() => tester.binding.setSurfaceSize(null));
+        final backend = _InteractiveBackend()
+          ..requiredRoute = required ? ConnectionMode.webvpn : null;
+        final gate = Completer<LoginVerificationState>();
+        backend.beginGate = gate;
+        await tester.pumpWidget(
+          UbaaAppHost(backend: backend, credentialVault: _Vault()),
+        );
+        await tester.pumpAndSettle();
+        await tester.enterText(
+          find.widgetWithText(TextField, '学号'),
+          'synthetic-account',
+        );
+        await tester.enterText(
+          find.widgetWithText(TextField, '密码'),
+          'synthetic-password',
+        );
+        await tester.pump();
+        await tester.ensureVisible(find.widgetWithText(FilledButton, '登录'));
+        await tester.tap(find.widgetWithText(FilledButton, '登录'));
+        await tester.pump();
+        expect(backend.beginCalls, 1);
+        expect(find.byKey(const ValueKey('captcha-dialog')), findsNothing);
+        expect(
+          tester.widget<UbaaLoginView>(find.byType(UbaaLoginView)).isLoading,
+          isTrue,
+        );
+        gate.complete(backend.waiting());
+        await tester.pumpAndSettle();
+        expect(
+          find.byKey(const ValueKey('captcha-dialog')),
+          required ? findsOneWidget : findsNothing,
+        );
+        if (!required) expect(find.byType(UbaaMainShell), findsOneWidget);
+        expect(tester.takeException(), isNull);
+      },
     );
-    await tester.pumpAndSettle();
-    await tester.enterText(
-      find.widgetWithText(TextField, '学号'),
-      'synthetic-account',
-    );
-    await tester.enterText(
-      find.widgetWithText(TextField, '密码'),
-      'synthetic-password',
-    );
-    await tester.pump();
-    await tester.ensureVisible(find.widgetWithText(FilledButton, '登录'));
-    await tester.tap(find.widgetWithText(FilledButton, '登录'));
-    await tester.pump();
-    expect(backend.beginCalls, 1);
-    expect(find.byKey(const ValueKey('captcha-dialog')), findsNothing);
-    expect(
-      tester.widget<UbaaLoginView>(find.byType(UbaaLoginView)).isLoading,
-      isTrue,
-    );
-    gate.complete(backend.waiting());
-    await tester.pumpAndSettle();
-    expect(find.byKey(const ValueKey('captcha-dialog')), findsOneWidget);
-    expect(tester.takeException(), isNull);
-  });
+  }
   testWidgets('离线首页原位完成验证码保留导航并绑定可恢复账号', (tester) async {
     // 文件协调使用真实事件循环，避免 Widget FakeAsync 阻止文件 I/O 完成。
     await tester.runAsync(() async {
@@ -372,9 +382,11 @@ class _InteractiveBackend
   Completer<LoginVerificationState>? refreshGate;
   Completer<LoginVerificationState>? beginGate;
   bool rejectAutoContinue = false;
+  ConnectionMode? requiredRoute = ConnectionMode.webvpn;
   final pinChoices = <bool>[];
 
   LoginVerificationState waiting() => LoginVerificationState(
+    requiredRoute: requiredRoute,
     profile: const UserSummary(username: 'synthetic-account'),
     routes: <LoginRouteVerification>[
       const LoginRouteVerification(

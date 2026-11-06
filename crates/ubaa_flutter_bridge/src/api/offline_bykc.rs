@@ -629,7 +629,7 @@ mod tests {
                 .read_bykc_courses(BridgeConnectionMode::WebVpn, 1, 20, true)
                 .await
                 .unwrap()
-                .is_none()
+                .is_some()
         );
         drop(guard);
         check_pending(&client, &cache).await;

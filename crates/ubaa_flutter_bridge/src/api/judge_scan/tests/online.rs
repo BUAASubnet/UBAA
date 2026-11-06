@@ -86,7 +86,7 @@ async fn 无缓存逐批共享锁可让位_意图保护及取消不发出后续�
 }
 
 pub(super) fn scripted_transport() -> MockTransport {
-    MockTransport::new([
+    MockTransport::with_sso_checks([
         status(),
         activation(),
         get("https://judge.buaa.edu.cn/", b"<html>ready</html>".to_vec()),

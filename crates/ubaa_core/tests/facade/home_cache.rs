@@ -1,4 +1,5 @@
 use super::*;
+use ubaa_core::facade::testing::{sso_fixture_response, sso_fixture_ticket};
 use ubaa_core::facade::{
     CacheCompleteness, CacheKey, CacheLimits, CachePayload, CacheQuery, HomeQuery, HomeReadData,
     OfflineCache,
@@ -12,39 +13,42 @@ struct HomeTransport {
 #[async_trait]
 impl HttpTransport for HomeTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         self.requests.lock().unwrap().push(request.clone());
         let path = url::Url::parse(&request.url).unwrap().path().to_owned();
         let mode = self.mode.load(Ordering::SeqCst);
-        let failed = (mode & 1 != 0 && path.ends_with("queryKclb"))
-            || (mode & 2 != 0 && path.ends_with("queryXsSubmitKczyInfo"))
-            || (mode & 4 != 0 && path.ends_with("getCount"))
-            || (mode & 8 != 0 && path.ends_with("Term/get"))
-            || (mode & 16 != 0 && path.ends_with("queryListByPage"));
+        let failed = expected_failure(mode, &path);
         if mode & 128 != 0 && path.ends_with("queryListByPage") {
-            return Ok(HttpResponse::new(200, request.url, br#"{"code":200,"content":{"pageNum":2,"pageSize":15,"pages":2,"hasNextPage":false,"list":[]}}"#.to_vec()));
+            return Ok(sso_fixture_response(200, request.url, br#"{"code":200,"content":{"pageNum":2,"pageSize":15,"pages":2,"hasNextPage":false,"list":[]}}"#.to_vec()));
         }
         if mode & 256 != 0 && path.ends_with("queryListByPage") {
-            return Ok(HttpResponse::new(
+            return Ok(sso_fixture_response(
                 200,
                 request.url,
                 br#"{"code":200,"content":{}}"#.to_vec(),
             ));
         }
         if mode & 32 != 0 && path.ends_with("queryListByPage") {
-            return Ok(HttpResponse::new(200, request.url, br#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":2,"hasNextPage":true,"list":[]}}"#.to_vec()));
+            return Ok(sso_fixture_response(200, request.url, br#"{"code":200,"content":{"pageNum":1,"pageSize":15,"pages":2,"hasNextPage":true,"list":[]}}"#.to_vec()));
         }
         if mode & 64 != 0 && path.ends_with("getCount") {
-            return Ok(HttpResponse::new(
+            return Ok(sso_fixture_response(
                 200,
                 request.url,
                 br#"{"code":1,"result":{}}"#.to_vec(),
             ));
         }
         if failed {
-            return Ok(HttpResponse::new(503, request.url, b"synthetic".to_vec()));
+            return Ok(sso_fixture_response(
+                503,
+                request.url,
+                b"synthetic".to_vec(),
+            ));
         }
         if path.ends_with("/spocnewht/cas") {
-            let mut response = HttpResponse::new(302, request.url, Vec::new());
+            let mut response = sso_fixture_response(302, request.url, Vec::new());
             response.headers.insert(
                 "Location".into(),
                 vec!["https://spoc.buaa.edu.cn/spocnew/cas?token=synthetic".into()],
@@ -52,9 +56,9 @@ impl HttpTransport for HomeTransport {
             return Ok(response);
         }
         let body = match path.as_str() {
-            "/api/uc/status" => include_str!("../../../../fixtures/auth/userinfo-success.json"),
+            "/serviceValidate" => include_str!("../../../../fixtures/auth/userinfo-success.json"),
             "/" => {
-                return Ok(HttpResponse::new(
+                return Ok(sso_fixture_response(
                     200,
                     "https://iclass.buaa.edu.cn:8346/?loginName=synthetic",
                     Vec::new(),
@@ -83,7 +87,7 @@ impl HttpTransport for HomeTransport {
                 r#"{"code":200,"content":{"tjzt":"已提交","tjsj":"2026-09-01 08:00:00"}}"#
             }
             "/uc/api/oauth/index" => {
-                return Ok(HttpResponse::new(
+                return Ok(sso_fixture_response(
                     200,
                     "https://ygdk.buaa.edu.cn/#/home?code=synthetic",
                     Vec::new(),
@@ -104,13 +108,21 @@ impl HttpTransport for HomeTransport {
             }
             _ => panic!("出现未授权的合成请求"),
         };
-        Ok(HttpResponse::new(
+        Ok(sso_fixture_response(
             200,
             request.url,
             body.as_bytes().to_vec(),
         ))
     }
 }
+fn expected_failure(mode: usize, path: &str) -> bool {
+    (mode & 1 != 0 && path.ends_with("queryKclb"))
+        || (mode & 2 != 0 && path.ends_with("queryXsSubmitKczyInfo"))
+        || (mode & 4 != 0 && path.ends_with("getCount"))
+        || (mode & 8 != 0 && path.ends_with("Term/get"))
+        || (mode & 16 != 0 && path.ends_with("queryListByPage"))
+}
+
 fn setup(
     root: &std::path::Path,
     transport: impl HttpTransport + 'static,
@@ -285,7 +297,7 @@ fn 首页可选步骤失败不能覆盖原完整缓存() {
         cache
             .read_home(ConnectionMode::WebVpn, &HomeQuery::YgdkOverview)
             .unwrap()
-            .is_none()
+            .is_some()
     );
     drop(cache);
     drop(client);

@@ -20,11 +20,11 @@ impl UbaaClient {
     /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
     pub async fn get_user_info(&mut self) -> RoutedResult<UserProfile> {
         let resolution = self.resolve_operation(Operation::User)?;
-        let result = {
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(self, resolution, {
             let (runtime, auth) = self.route_parts_for(resolution.mode);
             let mut clear_workflow = || auth.clear();
             user::get_user_info(runtime, &mut clear_workflow).await
-        };
+        });
         self.finish_routed(resolution, result)
     }
 
@@ -35,7 +35,11 @@ impl UbaaClient {
     /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
     pub async fn bykc_profile(&mut self) -> RoutedResult<BykcUserProfile> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
-        let result = crate::features::bykc::get_profile(self.runtime_for(resolution.mode)).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::bykc::get_profile(self.runtime_for(resolution.mode)).await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -57,9 +61,12 @@ impl UbaaClient {
                 resolution,
             ));
         }
-        let result =
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
             crate::features::bykc::get_courses(self.runtime_for(resolution.mode), page, size, all)
-                .await;
+                .await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -76,8 +83,11 @@ impl UbaaClient {
                 resolution,
             ));
         }
-        let result =
-            crate::features::bykc::get_course_detail(self.runtime_for(resolution.mode), id).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::bykc::get_course_detail(self.runtime_for(resolution.mode), id).await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -88,8 +98,11 @@ impl UbaaClient {
     /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
     pub async fn bykc_chosen_courses(&mut self) -> RoutedResult<Vec<BykcChosenCourse>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
-        let result =
-            crate::features::bykc::get_chosen_courses(self.runtime_for(resolution.mode)).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::bykc::get_chosen_courses(self.runtime_for(resolution.mode)).await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -100,7 +113,11 @@ impl UbaaClient {
     /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
     pub async fn bykc_statistics(&mut self) -> RoutedResult<BykcStatistics> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Bykc))?;
-        let result = crate::features::bykc::get_statistics(self.runtime_for(resolution.mode)).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::bykc::get_statistics(self.runtime_for(resolution.mode)).await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -112,7 +129,11 @@ impl UbaaClient {
     pub async fn cgyy_sites(&mut self) -> RoutedResult<Vec<CgyyVenueSite>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
         self.log_cgyy_route(resolution, "sites.list");
-        let result = crate::features::cgyy::get_sites(self.runtime_for(resolution.mode)).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::cgyy::get_sites(self.runtime_for(resolution.mode)).await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -124,8 +145,11 @@ impl UbaaClient {
     pub async fn cgyy_purpose_types(&mut self) -> RoutedResult<Vec<CgyyPurposeType>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
         self.log_cgyy_route(resolution, "purposes.list");
-        let result =
-            crate::features::cgyy::get_purpose_types(self.runtime_for(resolution.mode)).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::cgyy::get_purpose_types(self.runtime_for(resolution.mode)).await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -159,9 +183,12 @@ impl UbaaClient {
                 resolution,
             ));
         }
-        let result =
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
             crate::features::cgyy::get_day_info(self.runtime_for(resolution.mode), site_id, date)
-                .await;
+                .await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -176,8 +203,11 @@ impl UbaaClient {
         if page < 0 || size <= 0 {
             return Err(routed_error(invalid_input("分页参数无效"), resolution));
         }
-        let result =
-            crate::features::cgyy::get_orders(self.runtime_for(resolution.mode), page, size).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::cgyy::get_orders(self.runtime_for(resolution.mode), page, size).await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -215,8 +245,11 @@ impl UbaaClient {
                 resolution,
             ));
         }
-        let result =
-            crate::features::cgyy::get_order_detail(self.runtime_for(resolution.mode), id).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::cgyy::get_order_detail(self.runtime_for(resolution.mode), id).await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -247,7 +280,11 @@ impl UbaaClient {
     pub async fn cgyy_lock_code(&mut self) -> RoutedResult<CgyyLockCode> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Cgyy))?;
         self.log_cgyy_route(resolution, "orders.lock_code");
-        let result = crate::features::cgyy::get_lock_code(self.runtime_for(resolution.mode)).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::cgyy::get_lock_code(self.runtime_for(resolution.mode)).await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -258,8 +295,11 @@ impl UbaaClient {
     /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
     pub async fn libbook_libraries(&mut self, day: &str) -> RoutedResult<Vec<LibBookLibrary>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
-        let result =
-            crate::features::libbook::get_libraries(self.runtime_for(resolution.mode), day).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::libbook::get_libraries(self.runtime_for(resolution.mode), day).await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -275,13 +315,17 @@ impl UbaaClient {
         day: &str,
     ) -> RoutedResult<Vec<LibBookArea>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
-        let result = crate::features::libbook::get_areas(
-            self.runtime_for(resolution.mode),
-            premises_id,
-            storey_id,
-            day,
-        )
-        .await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::libbook::get_areas(
+                self.runtime_for(resolution.mode),
+                premises_id,
+                storey_id,
+                day,
+            )
+            .await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -292,9 +336,12 @@ impl UbaaClient {
     /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
     pub async fn libbook_area_detail(&mut self, area_id: &str) -> RoutedResult<LibBookAreaDetail> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
-        let result =
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
             crate::features::libbook::get_area_detail(self.runtime_for(resolution.mode), area_id)
-                .await;
+                .await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -308,9 +355,12 @@ impl UbaaClient {
         area_id: &str,
     ) -> RoutedResult<LibBookAreaSchedule> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
-        let result =
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
             crate::features::libbook::get_area_schedule(self.runtime_for(resolution.mode), area_id)
-                .await;
+                .await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -327,14 +377,18 @@ impl UbaaClient {
         end_time: &str,
     ) -> RoutedResult<Vec<LibBookSeat>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
-        let result = crate::features::libbook::get_seats(
-            self.runtime_for(resolution.mode),
-            area_id,
-            day,
-            start_time,
-            end_time,
-        )
-        .await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::libbook::get_seats(
+                self.runtime_for(resolution.mode),
+                area_id,
+                day,
+                start_time,
+                end_time,
+            )
+            .await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -349,9 +403,12 @@ impl UbaaClient {
         limit: i32,
     ) -> RoutedResult<LibBookBookingsPage> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::LibBook))?;
-        let result =
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
             crate::features::libbook::get_bookings(self.runtime_for(resolution.mode), page, limit)
-                .await;
+                .await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -362,7 +419,11 @@ impl UbaaClient {
     /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
     pub async fn ygdk_overview(&mut self) -> RoutedResult<YgdkOverview> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Ygdk))?;
-        let result = crate::features::ygdk::get_overview(self.runtime_for(resolution.mode)).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::ygdk::get_overview(self.runtime_for(resolution.mode)).await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -387,8 +448,11 @@ impl UbaaClient {
     /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
     pub async fn ygdk_records(&mut self, page: i32, size: i32) -> RoutedResult<YgdkRecordsPage> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Ygdk))?;
-        let result =
-            crate::features::ygdk::get_records(self.runtime_for(resolution.mode), page, size).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::ygdk::get_records(self.runtime_for(resolution.mode), page, size).await
+        );
         self.finish_routed(resolution, result)
     }
 

@@ -12,14 +12,20 @@ struct ProfileTransport {
 #[async_trait]
 impl HttpTransport for ProfileTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         self.calls.fetch_add(1, Ordering::SeqCst);
         let url = url::Url::parse(&request.url).unwrap();
+        if url.path() == "/api/login" {
+            return Ok(HttpResponse::new(200, request.url, Vec::new()));
+        }
         assert_eq!(request.method, ubaa_core::facade::testing::HttpMethod::Get);
         assert!(request.body.is_empty());
-        assert!(url.query().is_none());
+        assert!(url.path() == "/serviceValidate" || url.query().is_none());
         let mode = self.mode.load(Ordering::SeqCst);
         let info = url.path() == "/api/uc/userinfo";
-        assert!(info || url.path() == "/api/uc/status");
+        assert!(info || url.path() == "/serviceValidate");
         if info && let Some(cache) = self.close.lock().unwrap().take() {
             cache.deactivate().unwrap();
         }
@@ -32,7 +38,7 @@ impl HttpTransport for ProfileTransport {
         } else {
             include_str!("../../../../../fixtures/auth/userinfo-success.json")
         };
-        Ok(HttpResponse::new(
+        Ok(ubaa_core::facade::testing::sso_fixture_response(
             if info && mode == 1 {
                 503
             } else if info && mode == 6 {
@@ -113,7 +119,7 @@ fn 资料缓存仅保存遮罩字段且失败保留成功范围() {
             cache
                 .read_profile(ConnectionMode::WebVpn)
                 .unwrap()
-                .is_none()
+                .is_some()
         );
         transport.mode.store(1, Ordering::SeqCst);
         assert!(client.refresh_cached_profile(&cache).await.is_err());
@@ -134,8 +140,9 @@ fn 资料缓存仅保存遮罩字段且失败保留成功范围() {
         assert_eq!(value.masked_school_id(), None);
         transport.mode.store(6, Ordering::SeqCst);
         let failure = client.refresh_cached_profile(&cache).await;
-        assert!(matches!(failure, Err(OfflineReadError::Read(error)) if error.error.code == ErrorCode::AuthenticationRequired));
+        assert!(matches!(failure, Err(OfflineReadError::Read(error)) if error.error.code == ErrorCode::UpstreamChanged));
         assert!(cache.read_profile(ConnectionMode::Direct).unwrap().is_some());
+        assert_eq!(client.active_routes(), vec![ConnectionMode::Direct]);
         let _ = std::fs::remove_dir_all(root);
     });
 }

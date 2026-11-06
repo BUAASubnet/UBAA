@@ -1,3 +1,4 @@
+use ubaa_core::facade::testing::{sso_fixture_response, sso_fixture_ticket};
 const PORTAL_READY: &[u8] = br#"{"code":"0","datas":{"userId":"synthetic-user"}}"#;
 
 use super::*;
@@ -19,32 +20,35 @@ struct ScanTransport {
 #[async_trait]
 impl HttpTransport for ScanTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         self.requests.lock().unwrap().push(request.clone());
         let parsed = url::Url::parse(&request.url).unwrap();
         let query = parsed
             .query_pairs()
             .collect::<std::collections::HashMap<_, _>>();
-        let response = if request.url.ends_with("/api/uc/status") {
+        let response = if request.url.contains("/serviceValidate?") {
             if self.expire_primary.load(Ordering::SeqCst)
                 && self.reject_detail.load(Ordering::SeqCst)
             {
-                return Ok(HttpResponse::new(401, request.url.clone(), Vec::new()));
+                return Ok(sso_fixture_response(401, request.url.clone(), Vec::new()));
             }
-            HttpResponse::new(
+            sso_fixture_response(
                 200,
                 request.url.clone(),
                 include_bytes!("../../../../fixtures/auth/userinfo-success.json").to_vec(),
             )
         } else if parsed.host_str() == Some("sso.buaa.edu.cn") {
-            let mut value = HttpResponse::new(302, request.url.clone(), Vec::new());
+            let mut value = sso_fixture_response(302, request.url.clone(), Vec::new());
             value
                 .headers
                 .insert("Location".into(), vec!["https://judge.buaa.edu.cn/".into()]);
             value
         } else if parsed.path() == "/" {
-            HttpResponse::new(200, request.url.clone(), b"<html>ready</html>".to_vec())
+            sso_fixture_response(200, request.url.clone(), b"<html>ready</html>".to_vec())
         } else if parsed.path() == "/courselist.jsp" {
-            HttpResponse::new(200, request.url.clone(), br"<a href='courselist.jsp?courseID=12'>Course A</a><a href='courselist.jsp?courseID=13'>Course B</a>".to_vec())
+            sso_fixture_response(200, request.url.clone(), br"<a href='courselist.jsp?courseID=12'>Course A</a><a href='courselist.jsp?courseID=13'>Course B</a>".to_vec())
         } else if parsed.path() == "/assignment/index.jsp" {
             let cookie = request
                 .headers
@@ -52,20 +56,7 @@ impl HttpTransport for ScanTransport {
                 .find(|(key, _)| key.eq_ignore_ascii_case("cookie"))
                 .map_or("", |(_, value)| value.as_str());
             if let Some(id) = query.get("assignID") {
-                if let Some(cache) = self.clear_on_detail.lock().unwrap().take() {
-                    cache.clear().unwrap();
-                }
-                if let Some(cancel) = self.cancel_on_detail.lock().unwrap().take() {
-                    cancel.cancel();
-                }
-                if self.reject_detail.load(Ordering::SeqCst) {
-                    return Err(ubaa_core::facade::UbaaError::new(
-                        ubaa_core::facade::ErrorCode::AuthenticationRequired,
-                        ubaa_core::facade::ErrorKind::Authentication,
-                        false,
-                        "合成业务认证失效",
-                    ));
-                }
+                self.prepare_detail()?;
                 if self.fail_detail.load(Ordering::SeqCst) && id.as_ref() == "101" {
                     return Err(ubaa_core::facade::UbaaError::new(
                         ubaa_core::facade::ErrorCode::NetworkError,
@@ -81,9 +72,9 @@ impl HttpTransport for ScanTransport {
                 };
                 assert!(cookie.contains(expected), "详情前必须显式选择本课程");
                 if self.historical_details.load(Ordering::SeqCst) && id.as_ref() != "103" {
-                    return Ok(HttpResponse::new(200, request.url.clone(), "<html><body>作业满分：1，共 1 道题，得分：1。作业时间：2000-01-01 00:00 至 2000-02-01 00:00</body></html>".as_bytes().to_vec()));
+                    return Ok(sso_fixture_response(200, request.url.clone(), "<html><body>作业满分：1，共 1 道题，得分：1。作业时间：2000-01-01 00:00 至 2000-02-01 00:00</body></html>".as_bytes().to_vec()));
                 }
-                HttpResponse::new(
+                sso_fixture_response(
                     200,
                     request.url.clone(),
                     include_bytes!("../../../../fixtures/readonly/judge-detail.html").to_vec(),
@@ -103,12 +94,12 @@ impl HttpTransport for ScanTransport {
                 } else {
                     body.to_owned()
                 };
-                HttpResponse::new(200, request.url.clone(), body.as_bytes().to_vec())
+                sso_fixture_response(200, request.url.clone(), body.as_bytes().to_vec())
             }
         } else if request.url.contains("currentUser.do") {
-            HttpResponse::new(200, request.url.clone(), PORTAL_READY.to_vec())
+            sso_fixture_response(200, request.url.clone(), PORTAL_READY.to_vec())
         } else if request.url.contains("teachingSchedule/detail.do") {
-            HttpResponse::new(
+            sso_fixture_response(
                 200,
                 request.url.clone(),
                 include_bytes!("../../../../fixtures/readonly/schedule-today.json").to_vec(),
@@ -119,6 +110,26 @@ impl HttpTransport for ScanTransport {
         Ok(with_selection(response, &parsed))
     }
 }
+impl ScanTransport {
+    fn prepare_detail(&self) -> Result<()> {
+        if let Some(cache) = self.clear_on_detail.lock().unwrap().take() {
+            cache.clear().unwrap();
+        }
+        if let Some(cancel) = self.cancel_on_detail.lock().unwrap().take() {
+            cancel.cancel();
+        }
+        if self.reject_detail.load(Ordering::SeqCst) {
+            return Err(ubaa_core::facade::UbaaError::new(
+                ubaa_core::facade::ErrorCode::AuthenticationRequired,
+                ubaa_core::facade::ErrorKind::Authentication,
+                false,
+                "合成业务认证失效",
+            ));
+        }
+        Ok(())
+    }
+}
+
 fn with_selection(mut response: HttpResponse, parsed: &url::Url) -> HttpResponse {
     if parsed.host_str() == Some("judge.buaa.edu.cn") {
         let selected = if parsed.path() == "/" {
@@ -887,3 +898,5 @@ mod details;
 mod incremental;
 #[path = "judge_scan/online.rs"]
 mod online;
+#[path = "judge_scan/routes.rs"]
+mod routes;

@@ -202,12 +202,32 @@ impl UbaaClient {
             let result = cache.repository(|repo| repo.renew_read(ticket));
             plan.storage(result)?;
         }
-        let result = plan
-            .cursor
-            .advance(self.runtime_for(plan.resolution.mode))
-            .await;
-        self.finish_routed(plan.resolution, result)
-            .map_err(OfflineReadError::Read)?;
+        let original = plan.cursor.clone();
+        let resolution = plan.resolution;
+        let initial_route = resolution.mode;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(self, resolution, {
+            let mut cursor = original.clone();
+            cursor
+                .advance(
+                    self.runtime_for(resolution.mode),
+                    resolution.mode != initial_route,
+                )
+                .await
+                .map(|()| cursor)
+        });
+        if resolution.mode != plan.resolution.mode {
+            let owner = self.runtime_for(resolution.mode).feature_state();
+            plan.owner = Arc::downgrade(&owner);
+            plan.generation = owner.lifecycle_generation();
+            if let Some(ticket) = &mut plan.ticket {
+                ticket.set_source_route(resolution.mode);
+            }
+        }
+        plan.resolution = resolution;
+        plan.cursor = self
+            .finish_routed(resolution, result)
+            .map_err(OfflineReadError::Read)?
+            .data;
         self.validate_evaluation_scan(plan, false)?;
         let data = plan.cursor.data();
         let complete = plan.cursor.complete();

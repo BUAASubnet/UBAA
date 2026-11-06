@@ -6,7 +6,7 @@ use ubaa_core::facade::{
     ConnectionMode, DualLoginInput, ErrorCode, LoginReadiness, Result, RouteClient,
     RouteLoginState, SecretValue, UbaaClient,
 };
-use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport, auth_fixture};
+use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport};
 
 use crate::common::{
     basic_direct_transport, login_input, login_page, persisted_store, redirect, response,
@@ -16,17 +16,11 @@ use crate::common::{
 fn basic_webvpn_transport() -> MockTransport {
     let direct_login = "https://sso.buaa.edu.cn/login";
     let direct_landing = "https://uc.buaa.edu.cn/landing";
-    let direct_activate =
-        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
-    let direct_status = "https://uc.buaa.edu.cn/api/uc/status";
-    let direct_userinfo = "https://uc.buaa.edu.cn/api/uc/userinfo";
+    let direct_status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
     let login = to_webvpn_url(direct_login).unwrap();
     let landing = to_webvpn_url(direct_landing).unwrap();
-    let activate = to_webvpn_url(direct_activate).unwrap();
     let status = to_webvpn_url(direct_status).unwrap();
-    let userinfo = to_webvpn_url(direct_userinfo).unwrap();
-    let fixture = auth_fixture("userinfo-success.json").unwrap();
-    MockTransport::new([
+    MockTransport::with_sso_checks([
         ExpectedRequest::new(
             HttpMethod::Get,
             &login,
@@ -38,27 +32,12 @@ fn basic_webvpn_transport() -> MockTransport {
         ExpectedRequest::new(HttpMethod::Post, &login, redirect(&login, &landing)),
         ExpectedRequest::new(
             HttpMethod::Get,
-            &landing,
-            response(200, &landing, Vec::new()),
-        ),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            &activate,
-            response(200, &activate, Vec::new()),
-        ),
-        ExpectedRequest::new(
-            HttpMethod::Get,
             &status,
             response(
                 200,
                 &status,
                 r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#,
             ),
-        ),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            &userinfo,
-            response(200, &userinfo, fixture),
         ),
     ])
 }
@@ -85,7 +64,11 @@ fn mode_mismatch_does_not_clear_a_session_replaced_after_loading() {
         replacement: newer.clone(),
     };
 
-    let result = RouteClient::with_transport(ConnectionMode::Direct, MockTransport::new([]), store);
+    let result = RouteClient::with_transport(
+        ConnectionMode::Direct,
+        MockTransport::with_sso_checks([]),
+        store,
+    );
     let Err(error) = result else {
         panic!("a stale mode-mismatch clear unexpectedly succeeded");
     };
@@ -101,9 +84,12 @@ async fn dual_login_keeps_direct_slot_when_webvpn_route_fails() {
     let root = std::env::temp_dir().join(format!("ubaa-dual-login-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&root);
     let file_store = FileSessionStore::new(&root).unwrap();
-    let mut client =
-        UbaaClient::with_transports(direct_transport, MockTransport::new([]), file_store.clone())
-            .unwrap();
+    let mut client = UbaaClient::with_transports(
+        direct_transport,
+        MockTransport::with_sso_checks([]),
+        file_store.clone(),
+    )
+    .unwrap();
 
     let outcome = client
         .login(DualLoginInput {
@@ -191,8 +177,8 @@ async fn stale_aggregate_logout_preserves_both_newer_slots() {
     let store = FileSessionStore::new(&root).unwrap();
     store.save_dual(&dual_snapshot("initial")).unwrap();
     let mut client = UbaaClient::with_transports(
-        MockTransport::new([]),
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
+        MockTransport::with_sso_checks([]),
         store.clone(),
     )
     .unwrap();
@@ -216,8 +202,8 @@ async fn aggregate_logout_opened_empty_rejects_a_later_external_session() {
     let _ = std::fs::remove_dir_all(&root);
     let store = FileSessionStore::new(&root).unwrap();
     let mut client = UbaaClient::with_transports(
-        MockTransport::new([]),
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
+        MockTransport::with_sso_checks([]),
         store.clone(),
     )
     .unwrap();
@@ -241,13 +227,13 @@ async fn aggregate_logout_without_slots_attempts_both_remote_routes() {
     let _ = std::fs::remove_dir_all(&root);
     let direct_url = "https://sso.buaa.edu.cn/logout";
     let webvpn_url = to_webvpn_url(direct_url).unwrap();
-    let direct = MockTransport::new([ExpectedRequest::new(
+    let direct = MockTransport::with_sso_checks([ExpectedRequest::new(
         HttpMethod::Get,
         direct_url,
         response(503, direct_url, Vec::new()),
     )]);
     let direct_observer = direct.clone();
-    let webvpn = MockTransport::new([ExpectedRequest::new(
+    let webvpn = MockTransport::with_sso_checks([ExpectedRequest::new(
         HttpMethod::Get,
         &webvpn_url,
         response(503, &webvpn_url, Vec::new()),
@@ -276,8 +262,8 @@ async fn successful_aggregate_logout_advances_revision_once() {
     store.save_dual(&dual_snapshot("initial")).unwrap();
     let initial_revision = store.load_dual_versioned().unwrap().revision;
     let mut client = UbaaClient::with_transports(
-        MockTransport::new([]),
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
+        MockTransport::with_sso_checks([]),
         store.clone(),
     )
     .unwrap();
@@ -297,8 +283,8 @@ async fn aggregate_status_conflict_clears_both_routes_and_stops_sibling_io() {
     let _ = std::fs::remove_dir_all(&root);
     let store = FileSessionStore::new(&root).unwrap();
     store.save_dual(&dual_snapshot("initial")).unwrap();
-    let direct_status = "https://uc.buaa.edu.cn/api/uc/status";
-    let direct_transport = MockTransport::new([ExpectedRequest::new(
+    let direct_status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
+    let direct_transport = MockTransport::with_sso_checks([ExpectedRequest::new(
         HttpMethod::Get,
         direct_status,
         response(
@@ -308,7 +294,7 @@ async fn aggregate_status_conflict_clears_both_routes_and_stops_sibling_io() {
         ),
     )]);
     let direct_observer = direct_transport.clone();
-    let webvpn_transport = MockTransport::new([]);
+    let webvpn_transport = MockTransport::with_sso_checks([]);
     let webvpn_observer = webvpn_transport.clone();
     let mut client =
         UbaaClient::with_transports(direct_transport, webvpn_transport, store.clone()).unwrap();
@@ -319,7 +305,7 @@ async fn aggregate_status_conflict_clears_both_routes_and_stops_sibling_io() {
 
     assert_eq!(error.code, ErrorCode::InternalError);
     assert!(error.retryable);
-    assert_eq!(direct_observer.requests().unwrap().len(), 1);
+    assert_eq!(direct_observer.requests().unwrap().len(), 2);
     assert!(webvpn_observer.requests().unwrap().is_empty());
     assert!(client.active_routes().is_empty());
     assert_eq!(store.load_dual().unwrap(), Some(newer));
@@ -344,7 +330,7 @@ async fn aggregate_status_conflict_clears_both_routes_and_stops_sibling_io() {
     assert_eq!(repeated.code, ErrorCode::InternalError);
     let repeated_logout = client.logout().await.unwrap_err();
     assert_eq!(repeated_logout.code, ErrorCode::InternalError);
-    assert_eq!(direct_observer.requests().unwrap().len(), 1);
+    assert_eq!(direct_observer.requests().unwrap().len(), 2);
     assert!(webvpn_observer.requests().unwrap().is_empty());
     let _ = std::fs::remove_dir_all(root);
 }
@@ -371,7 +357,7 @@ fn dual_snapshot(label: &str) -> DualSessionSnapshot {
 async fn persistence_conflict_clears_pending_login_workflow_state() {
     let login = "https://sso.buaa.edu.cn/login";
     let page = r#"<form id="fm1"><input type="hidden" name="execution" value="e-cap"><input name="username"><input name="password"></form>"#;
-    let transport = MockTransport::new([
+    let transport = MockTransport::with_sso_checks([
         ExpectedRequest::new(HttpMethod::Get, login, response(200, login, page)),
         ExpectedRequest::new(HttpMethod::Get, login, response(503, login, Vec::new())),
     ]);
@@ -394,8 +380,8 @@ async fn persistence_conflict_clears_pending_login_workflow_state() {
 
 #[tokio::test]
 async fn stale_client_cannot_recreate_a_session_cleared_by_another_process() {
-    let status = "https://uc.buaa.edu.cn/api/uc/status";
-    let transport = MockTransport::new([ExpectedRequest::new(
+    let status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
+    let transport = MockTransport::with_sso_checks([ExpectedRequest::new(
         HttpMethod::Get,
         status,
         response(
@@ -428,7 +414,7 @@ async fn stale_logout_cannot_clear_a_newer_persisted_session() {
     let store = persisted_store();
     let mut stale_client = RouteClient::with_transport(
         ConnectionMode::Direct,
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
         store.clone(),
     )
     .unwrap();

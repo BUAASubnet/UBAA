@@ -11,16 +11,22 @@ struct Transport {
 #[async_trait]
 impl HttpTransport for Transport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         self.calls.fetch_add(1, Ordering::SeqCst);
         let url = url::Url::parse(&request.url).unwrap();
-        assert!(matches!(url.path(), "/api/uc/status" | "/api/uc/userinfo"));
+        assert!(matches!(
+            url.path(),
+            "/serviceValidate" | "/api/uc/userinfo"
+        ));
         if self.reset.swap(false, Ordering::SeqCst) {
-            assert_eq!(url.path(), "/api/uc/status");
+            assert_eq!(url.path(), "/serviceValidate");
             let (next, report) = self.old.clear_and_reopen().unwrap();
             assert_eq!(report.usage.unwrap().entry_count, 0);
             *self.next.lock().unwrap() = Some(next);
         }
-        Ok(HttpResponse::new(
+        Ok(ubaa_core::facade::testing::sso_fixture_response(
             200,
             request.url,
             include_bytes!("../../../../../fixtures/auth/userinfo-success.json").to_vec(),

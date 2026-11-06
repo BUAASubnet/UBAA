@@ -18,11 +18,18 @@ struct ImportTransport {
 #[async_trait]
 impl HttpTransport for ImportTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         self.requests.lock().unwrap().push(request.clone());
         if request.url.contains("/gsapp/sys/wdkbapp/") {
-            return Ok(HttpResponse::new(503, request.url, Vec::new()));
+            return Ok(ubaa_core::facade::testing::sso_fixture_response(
+                503,
+                request.url,
+                Vec::new(),
+            ));
         }
-        let mut body = if request.url.ends_with("/api/uc/status") {
+        let mut body = if request.url.contains("/serviceValidate?") {
             include_bytes!("../../../../../fixtures/auth/userinfo-success.json").to_vec()
         } else if request.url.contains("currentUser.do") {
             br#"{"code":"0","datas":{"userId":"synthetic-user"}}"#.to_vec()
@@ -93,7 +100,11 @@ impl HttpTransport for ImportTransport {
             value["code"] = serde_json::json!("unconfirmed");
             body = serde_json::to_vec(&value).unwrap();
         }
-        Ok(HttpResponse::new(200, request.url, body))
+        Ok(ubaa_core::facade::testing::sso_fixture_response(
+            200,
+            request.url,
+            body,
+        ))
     }
 }
 fn setup(
@@ -367,7 +378,7 @@ fn facade精确读取已导入的周次与日期_不发送网络() {
                 }
             )
             .unwrap()
-            .is_none()
+            .is_some()
     );
     let value = cache
         .read_academic(
@@ -501,7 +512,7 @@ fn 今日精确快照缺失时仅从已覆盖的完整导入恢复() {
     });
     let before = transport.requests.lock().unwrap().len();
     assert!(cache.read_today(ConnectionMode::Direct).unwrap().is_some());
-    assert!(cache.read_today(ConnectionMode::WebVpn).unwrap().is_none());
+    assert!(cache.read_today(ConnectionMode::WebVpn).unwrap().is_some());
     assert_eq!(transport.requests.lock().unwrap().len(), before);
     drop((client, cache));
     let _ = std::fs::remove_dir_all(root);

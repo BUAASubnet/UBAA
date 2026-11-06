@@ -21,10 +21,10 @@ fn posts(fixture: &Fixture) -> usize {
 }
 
 #[tokio::test]
-async fn 自动登录只处理当前网络实际需要的路线() {
+async fn 校园网仅认证直连而校外同时建立两套会话() {
     for (network, route) in [
         (NetworkState::Campus, ConnectionMode::Direct),
-        (NetworkState::OffCampus, ConnectionMode::WebVpn),
+        (NetworkState::OffCampus, ConnectionMode::Direct),
     ] {
         let mut fixture = Fixture::with_network(RoutePolicy::Auto, network);
         set_captcha_recognizer(&mut fixture.client, |_| Some("a2b3c4".into()));
@@ -43,22 +43,36 @@ async fn 自动登录只处理当前网络实际需要的路线() {
             .submit_quiet_login(&login, input())
             .await
             .unwrap();
-        assert_eq!(outcome.required_route, Some(route));
+        assert_eq!(
+            outcome.required_route,
+            (network == NetworkState::Campus).then_some(route)
+        );
         assert_eq!(
             outcome
                 .routes
                 .iter()
                 .filter(|r| r.state == InteractiveRouteState::Ready)
                 .count(),
-            1
+            if network == NetworkState::Campus {
+                1
+            } else {
+                2
+            }
         );
         fixture
             .client
             .continue_interactive_login(&login, route, false)
             .unwrap();
-        assert!(fixture.requests.lock().unwrap().iter().all(|r| {
-            r.url.starts_with("https://d.buaa.edu.cn/") == (route == ConnectionMode::WebVpn)
-        }));
+        if network == NetworkState::Campus {
+            assert!(
+                fixture
+                    .requests
+                    .lock()
+                    .unwrap()
+                    .iter()
+                    .all(|r| !r.url.starts_with("https://d.buaa.edu.cn/"))
+            );
+        }
         assert_eq!(fixture.client.default_route_policy(), RoutePolicy::Auto);
     }
 }
@@ -104,6 +118,50 @@ async fn 三次失败后交给人工且重复调用不能重置自动次数() {
         .unwrap();
     assert_eq!(done.routes[0].state, InteractiveRouteState::Ready);
     assert_eq!(posts(&fixture), 4);
+}
+
+#[tokio::test]
+async fn 校外任一路线已就绪即可继续且另一条验证码不强制切换策略() {
+    for failed in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+        let mut fixture = Fixture::with_network(RoutePolicy::Auto, NetworkState::OffCampus);
+        if failed == ConnectionMode::Direct {
+            refuse(&fixture.direct);
+        } else {
+            refuse(&fixture.webvpn);
+        }
+        set_captcha_recognizer(&mut fixture.client, |_| Some("a2b3c4".into()));
+        let login = fixture
+            .client
+            .interactive_login_cancellation()
+            .begin(SYNTHETIC_USERNAME)
+            .unwrap();
+        fixture
+            .client
+            .prepare_quiet_login_for(&login)
+            .await
+            .unwrap();
+        let outcome = fixture
+            .client
+            .submit_quiet_login(&login, input())
+            .await
+            .unwrap();
+        let ready = outcome
+            .routes
+            .iter()
+            .find(|route| route.state == InteractiveRouteState::Ready)
+            .unwrap()
+            .route;
+        assert_ne!(ready, failed);
+        assert!(
+            outcome.routes.iter().any(|route| route.route == failed
+                && route.state == InteractiveRouteState::CaptchaRequired)
+        );
+        fixture
+            .client
+            .continue_interactive_login(&login, ready, false)
+            .unwrap();
+        assert_eq!(fixture.client.default_route_policy(), RoutePolicy::Auto);
+    }
 }
 
 #[tokio::test]

@@ -16,7 +16,7 @@ use ubaa_test_support::MemorySessionStore;
 use super::{JUDGE_LOGIN_URL, UnknownGatewayProbe};
 use crate::common::{SpocTransport, redirect_from, response, session_store_with};
 
-const UC_STATUS_URL: &str = "https://uc.buaa.edu.cn/api/uc/status";
+const UC_STATUS_URL: &str = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
 #[derive(Clone)]
 struct JudgeRetryTransport {
     course_requests: Arc<AtomicUsize>,
@@ -48,6 +48,9 @@ impl JudgeRetryTransport {
 #[async_trait]
 impl HttpTransport for JudgeRetryTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         if request.url == JUDGE_LOGIN_URL {
             self.activation_requests.fetch_add(1, Ordering::SeqCst);
             return Ok(redirect_from(&request.url, "https://judge.buaa.edu.cn/"));
@@ -126,6 +129,9 @@ impl AggregateJudgeInvalidationTransport {
 #[async_trait]
 impl HttpTransport for AggregateJudgeInvalidationTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         let sso_url = match self.mode {
             ConnectionMode::Direct => "https://sso.buaa.edu.cn/login".to_string(),
             ConnectionMode::WebVpn => {
@@ -449,10 +455,7 @@ async fn successful_primary_login_invalidates_route_owned_judge_caches() {
     let assignments_url = "https://judge.buaa.edu.cn/assignment/index.jsp";
     let detail_url = "https://judge.buaa.edu.cn/assignment/index.jsp?assignID=101";
     let primary_login = "https://sso.buaa.edu.cn/login";
-    let activate =
-        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
-    let status = "https://uc.buaa.edu.cn/api/uc/status";
-    let userinfo = "https://uc.buaa.edu.cn/api/uc/userinfo";
+    let status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
     let profile = r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#;
     let courses = r#"<a href="courselist.jsp?courseID=1">Course 1</a>"#;
     let assignments = r#"<a href="assignment/index.jsp?assignID=101">Assignment</a>"#;
@@ -480,9 +483,7 @@ async fn successful_primary_login_invalidates_route_owned_judge_caches() {
                     primary_login.into(),
                     redirect_from(primary_login, "/already-authenticated"),
                 ),
-                (activate.into(), response(200, activate, "")),
                 (status.into(), response(200, status, profile)),
-                (userinfo.into(), response(200, userinfo, profile)),
             ])
             .chain(one_judge_read()),
     );

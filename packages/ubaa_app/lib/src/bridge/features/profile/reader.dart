@@ -19,42 +19,29 @@ Future<OfflineProfileRead> bridgeReadCachedProfile(
   await bridgeAwaitOfflineScope(backend);
   final cache = backend.cache.handle, account = backend.cache.account;
   if (cache == null || account == null) return const OfflineProfileRead(null);
-  final routes = switch (policy) {
-    RoutePolicy.direct => [BridgeConnectionMode.direct],
-    RoutePolicy.webvpn => [BridgeConnectionMode.webVpn],
-    RoutePolicy.auto => [
-      BridgeConnectionMode.direct,
-      BridgeConnectionMode.webVpn,
-    ],
-  };
-  CachedProfile? newest;
+  CachedProfile? projection;
   BackendException? failure;
-  for (final route in routes) {
-    try {
-      final value = await cache.readProfile(route: route);
-      if (value == null) continue;
-      if (value.sourceRoute != route)
-        throw const BackendException(UbaaErrorCode.operationConflict);
-      final projection = CachedProfile(
+  try {
+    final value = await cache.readProfile(route: BridgeConnectionMode.direct);
+    if (value != null) {
+      projection = CachedProfile(
         accountId: account.id,
-        route: bridgeToConnectionMode(route),
+        route: bridgeToConnectionMode(value.sourceRoute),
         fetchedAt: bridgeCacheTime(value.fetchedAt.toInt()),
         complete: value.complete,
         maskedUsername: value.data.maskedUsername,
         maskedName: value.data.maskedName,
         maskedSchoolId: value.data.maskedSchoolId,
       );
-      if (newest == null || projection.fetchedAt.isAfter(newest.fetchedAt))
-        newest = projection;
-    } on BridgeError catch (error) {
-      failure ??= bridgeMapError(error);
-    } on BackendException catch (error) {
-      failure ??= error;
     }
+  } on BridgeError catch (error) {
+    failure = bridgeMapError(error);
+  } on BackendException catch (error) {
+    failure = error;
   }
   if (backend.cache.account?.id != account.id)
     throw const BackendException(UbaaErrorCode.operationConflict);
-  return OfflineProfileRead(newest, error: failure);
+  return OfflineProfileRead(projection, error: failure);
 }
 
 Future<ProfileRefresh> bridgeRefreshProfile(

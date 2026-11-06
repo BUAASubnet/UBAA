@@ -307,6 +307,17 @@ impl UbaaClient {
         }
         result
     }
+    fn rebind_spoc_route(&mut self, plan: &mut SpocScan, resolution: RouteResolution) {
+        if plan.resolution.mode != resolution.mode {
+            let owner = self.runtime_for(resolution.mode).feature_state();
+            plan.owner = Arc::downgrade(&owner);
+            plan.generation = owner.lifecycle_generation();
+            if let Some(ticket) = &mut plan.ticket {
+                ticket.set_source_route(resolution.mode);
+            }
+        }
+        plan.resolution = resolution;
+    }
     async fn advance_spoc_scan(
         &mut self,
         plan: &mut SpocScan,
@@ -319,7 +330,13 @@ impl UbaaClient {
         let mut publication = None;
         match plan.stage {
             Stage::Term => {
-                let result = scan::term(self.runtime_for(plan.resolution.mode)).await;
+                let resolution = plan.resolution;
+                let (resolution, result) = crate::facade::routing::read_with_fallback!(
+                    self,
+                    resolution,
+                    scan::term(self.runtime_for(resolution.mode)).await
+                );
+                self.rebind_spoc_route(plan, resolution);
                 plan.data = self
                     .finish_routed(plan.resolution, result)
                     .map_err(OfflineReadError::Read)?
@@ -328,9 +345,13 @@ impl UbaaClient {
                 plan.stage = Stage::Courses;
             }
             Stage::Courses => {
-                let result =
-                    scan::courses(self.runtime_for(plan.resolution.mode), &plan.data.term_code)
-                        .await;
+                let resolution = plan.resolution;
+                let (resolution, result) = crate::facade::routing::read_with_fallback!(
+                    self,
+                    resolution,
+                    scan::courses(self.runtime_for(resolution.mode), &plan.data.term_code).await
+                );
+                self.rebind_spoc_route(plan, resolution);
                 match self.finish_routed(plan.resolution, result) {
                     Ok(value) => plan.courses = value.data,
                     Err(error)
@@ -346,13 +367,19 @@ impl UbaaClient {
                 plan.stage = Stage::Page;
             }
             Stage::Page => {
-                let result = scan::page(
-                    self.runtime_for(plan.resolution.mode),
-                    &plan.data,
-                    plan.next_page,
-                    &plan.courses,
-                )
-                .await;
+                let resolution = plan.resolution;
+                let (resolution, result) = crate::facade::routing::read_with_fallback!(
+                    self,
+                    resolution,
+                    scan::page(
+                        self.runtime_for(resolution.mode),
+                        &plan.data,
+                        plan.next_page,
+                        &plan.courses,
+                    )
+                    .await
+                );
+                self.rebind_spoc_route(plan, resolution);
                 let page = self
                     .finish_routed(plan.resolution, result)
                     .map_err(OfflineReadError::Read)?

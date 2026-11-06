@@ -435,19 +435,13 @@ pub struct FeatureRouteConfig {
     pub auto_route_override: Option<crate::domain::ConnectionMode>,
     /// 网关可达性未知时使用的回退路线。
     pub unknown_default: crate::domain::ConnectionMode,
-    /// 发送请求前是否可以使用另一条已就绪路线。
-    pub allow_ready_route_fallback: bool,
-    /// 出现列入允许清单的网络错误时，是否可以在另一条路线重放请求。
-    pub allow_network_fallback: bool,
 }
 
 impl FeatureRouteConfig {
-    /// 禁止跨路线回退的统一默认矩阵行。
+    /// 首次尝试 Direct 的统一初始矩阵行。
     pub(crate) const SAFE_DEFAULT: Self = Self {
         auto_route_override: None,
         unknown_default: crate::domain::ConnectionMode::Direct,
-        allow_ready_route_fallback: false,
-        allow_network_fallback: false,
     };
 
     /// 返回只读功能有证据支持的初始矩阵行。

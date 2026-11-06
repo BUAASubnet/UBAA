@@ -377,10 +377,7 @@ fn zero_ready_and_failed_policy_save_leave_no_false_home_or_reauthentication() {
 #[test]
 fn unavailable_auto_continue_is_rejected_until_explicit_ready_route_selection() {
     run(async {
-        for (network, ready) in [
-            (NetworkState::Campus, ConnectionMode::WebVpn),
-            (NetworkState::OffCampus, ConnectionMode::Direct),
-        ] {
+        for (network, ready) in [(NetworkState::Campus, ConnectionMode::WebVpn)] {
             let mut fixture = Fixture::with_network(RoutePolicy::Auto, network);
             match ready {
                 ConnectionMode::Direct => {

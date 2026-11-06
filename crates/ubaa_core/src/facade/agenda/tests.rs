@@ -35,8 +35,22 @@ fn cached_export_uses_existing_projection_and_preserves_route_evidence() {
     let missing = cache
         .export_agenda_ics(&agenda, &other_route, true)
         .unwrap();
-    assert_eq!(missing.snapshot.exported_count, 2);
-    assert!(missing.sources.iter().all(|s| s.observations.is_empty()));
+    assert_eq!(
+        missing.snapshot.exported_count,
+        result.snapshot.exported_count
+    );
+    assert_eq!(
+        missing
+            .sources
+            .iter()
+            .map(|source| &source.observations)
+            .collect::<Vec<_>>(),
+        result
+            .sources
+            .iter()
+            .map(|source| &source.observations)
+            .collect::<Vec<_>>()
+    );
     cache.deactivate().unwrap();
     assert!(cache.export_agenda_ics(&agenda, &q, true).is_err());
     // 缓存失效不影响独立本机导出。
@@ -60,7 +74,7 @@ use crate::facade::*;
 use std::path::PathBuf;
 const ACCOUNT: &str = "00000000000000000000000000000001";
 #[test]
-fn unknown_term_keeps_date_scoped_school_cache_and_route_isolation() {
+fn 未知学期保留按日期的学校缓存且跨路线共享() {
     let (root, cache, agenda) = opened(ACCOUNT);
     fixture(&cache);
     let mut q = query();
@@ -93,8 +107,8 @@ fn unknown_term_keeps_date_scoped_school_cache_and_route_isolation() {
     );
     q.route = ConnectionMode::WebVpn;
     let other = cache.query_agenda(&agenda, &q).unwrap();
-    assert!(other.entries.is_empty());
-    assert!(other.sources.iter().all(|s| s.observations.is_empty()));
+    assert_eq!(other.entries, result.entries);
+    assert_eq!(other.sources, result.sources);
     drop((agenda, cache));
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -351,7 +365,7 @@ fn submitted_school_item_can_reopen_locally_without_changing_upstream() {
     );
 }
 #[test]
-fn query_rejects_cross_account_logout_and_bad_ranges_and_keeps_routes_separate() {
+fn 日程查询隔离账号退出与日期范围并跨路线共享() {
     let (root, cache, agenda) = opened(ACCOUNT);
     fixture(&cache);
     local(&agenda);
@@ -363,8 +377,20 @@ fn query_rejects_cross_account_logout_and_bad_ranges_and_keeps_routes_separate()
     let mut q = query();
     q.route = ConnectionMode::WebVpn;
     let result = cache.query_agenda(&agenda, &q).unwrap();
-    assert_eq!(result.entries.len(), 2);
-    assert!(result.sources.iter().all(|s| s.observations.is_empty()));
+    let direct = cache.query_agenda(&agenda, &query()).unwrap();
+    assert_eq!(result.entries, direct.entries);
+    assert_eq!(
+        result
+            .sources
+            .iter()
+            .map(|source| &source.observations)
+            .collect::<Vec<_>>(),
+        direct
+            .sources
+            .iter()
+            .map(|source| &source.observations)
+            .collect::<Vec<_>>()
+    );
     q.from = q.to;
     assert_eq!(
         cache.query_agenda(&agenda, &q),

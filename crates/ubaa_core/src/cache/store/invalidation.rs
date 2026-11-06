@@ -149,7 +149,7 @@ impl OfflineRepository {
     /// 已退出、旧句柄、参数/密文损坏或事务失败时原数据和读取票据均保持。
     pub fn invalidate(
         &mut self,
-        route: ConnectionMode,
+        _route: ConnectionMode,
         impact: &CacheInvalidation,
     ) -> CacheResult<CacheInvalidationReport> {
         let tx = self
@@ -174,10 +174,10 @@ impl OfflineRepository {
             let Ok(record) = self.crypto.open::<StoredScope>(&body, &key) else {
                 continue;
             };
-            if self.crypto.index(&(&self.account, &record.scope))? != key {
+            if self.crypto.index(&(&self.account, &record.scope.query))? != key {
                 continue;
             }
-            if record.scope.route == route && impact.affects(&record.scope.query) {
+            if impact.affects(&record.scope.query) {
                 tx.execute("DELETE FROM entries WHERE key=?1", [&key])
                     .map_err(CacheError::from)?;
                 report.removed_entries += 1;
@@ -185,10 +185,10 @@ impl OfflineRepository {
         }
         for (key, body) in requests {
             let scope: CacheScope = self.crypto.open(&body, &scope_aad(&key))?;
-            if self.crypto.index(&(&self.account, &scope))? != key {
+            if self.crypto.index(&(&self.account, &scope.query))? != key {
                 return Err(CacheError::Corrupt);
             }
-            if scope.route == route && impact.affects(&scope.query) {
+            if impact.affects(&scope.query) {
                 tx.execute("DELETE FROM requests WHERE key=?1", [&key])
                     .map_err(CacheError::from)?;
                 report.cancelled_reads += 1;

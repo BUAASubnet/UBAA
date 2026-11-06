@@ -52,35 +52,43 @@ impl UbaaClient {
         cache: &OfflineCache,
         query: AcademicQuery,
     ) -> Result<OfflineRefresh<CachePayload>, OfflineReadError> {
-        let refresh = self
+        let mut refresh = self
             .prepare_cached_refresh(cache, query.feature(), query.cache_query())
             .await?;
         let resolution = refresh.resolution;
-        let runtime = self.runtime_for(resolution.mode);
-        let result = match query {
-            AcademicQuery::Terms => crate::features::schedule::get_terms(runtime)
-                .await
-                .map(CachePayload::Terms),
-            AcademicQuery::Weeks { term } => crate::features::schedule::get_weeks(runtime, &term)
-                .await
-                .map(CachePayload::Weeks),
-            AcademicQuery::Week { term, week } => {
-                crate::features::schedule::get_week(runtime, &term, week)
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(self, resolution, {
+            let runtime = self.runtime_for(resolution.mode);
+            match query.clone() {
+                AcademicQuery::Terms => crate::features::schedule::get_terms(runtime)
                     .await
-                    .map(CachePayload::Week)
+                    .map(CachePayload::Terms),
+                AcademicQuery::Weeks { term } => {
+                    crate::features::schedule::get_weeks(runtime, &term)
+                        .await
+                        .map(CachePayload::Weeks)
+                }
+                AcademicQuery::Week { term, week } => {
+                    crate::features::schedule::get_week(runtime, &term, week)
+                        .await
+                        .map(CachePayload::Week)
+                }
+                AcademicQuery::Exams { term } => {
+                    crate::features::schedule::get_exam(runtime, &term)
+                        .await
+                        .map(CachePayload::Exams)
+                }
+                AcademicQuery::Grades { term } => {
+                    crate::features::grades::get_grades(runtime, &term)
+                        .await
+                        .map(CachePayload::Grades)
+                }
+                AcademicQuery::Classrooms { campus, date } => {
+                    crate::features::classroom::search(runtime, campus, &date)
+                        .await
+                        .map(CachePayload::Classrooms)
+                }
             }
-            AcademicQuery::Exams { term } => crate::features::schedule::get_exam(runtime, &term)
-                .await
-                .map(CachePayload::Exams),
-            AcademicQuery::Grades { term } => crate::features::grades::get_grades(runtime, &term)
-                .await
-                .map(CachePayload::Grades),
-            AcademicQuery::Classrooms { campus, date } => {
-                crate::features::classroom::search(runtime, campus, &date)
-                    .await
-                    .map(CachePayload::Classrooms)
-            }
-        };
+        });
         let data = refresh.read_result(self.finish_routed(resolution, result))?;
         refresh
             .finish(data, true, Clone::clone)

@@ -10,8 +10,7 @@ use crate::upstream::interactive_auth::{ImageCaptchaPage, parse_image_captcha};
 use crate::upstream::{SSO_LOGIN_URL, encode_form, extract_execution};
 
 use super::{
-    AuthWorkflow, activate_user_center, body_text, follow_login_response, is_redirect,
-    status_error, upstream_changed,
+    AuthWorkflow, body_text, follow_login_response, is_redirect, status_error, upstream_changed,
 };
 
 pub(crate) enum InteractivePreparation {
@@ -35,9 +34,7 @@ impl AuthWorkflow {
             .request(HttpRequest::get(runtime.url(SSO_LOGIN_URL)?))
             .await?;
         if is_redirect(response.status) {
-            activate_user_center(runtime).await?;
-            self.validate_status(runtime).await?;
-            let profile = self.get_user_info(runtime).await?;
+            let profile = self.validate_status(runtime).await?;
             return Ok(InteractivePreparation::Ready(
                 self.finish_successful_login(runtime, profile),
             ));
@@ -108,9 +105,7 @@ impl AuthWorkflow {
                     error
                 }
             })?;
-        activate_user_center(runtime).await?;
-        self.validate_status(runtime).await?;
-        let profile = self.get_user_info(runtime).await?;
+        let profile = self.validate_status(runtime).await?;
         Ok(InteractiveSubmission::Complete(
             self.finish_successful_login(runtime, profile),
         ))

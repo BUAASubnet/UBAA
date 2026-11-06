@@ -67,7 +67,7 @@ fn 批量详情逐项保存且只读目标课程_重开后可离线访问() {
         reopened
             .read_judge_detail(ConnectionMode::WebVpn, "12".into(), "102".into())
             .unwrap()
-            .is_none()
+            .is_some()
     );
     drop(reopened);
     std::fs::remove_dir_all(root).unwrap();

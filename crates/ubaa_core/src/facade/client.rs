@@ -15,6 +15,7 @@ use crate::runtime::ClientRuntime;
 use crate::session::{DualSessionCoordinator, FileSessionStore};
 
 pub struct UbaaClient {
+    pub(super) domain_routes: Arc<std::sync::Mutex<super::routing::domains::DomainRoutes>>,
     pub(super) config_dir: Option<PathBuf>,
     pub(super) verified_login: Option<(String, uuid::Uuid, bool, std::time::Instant)>,
     pub(super) config: RouteConfig,
@@ -99,6 +100,9 @@ impl UbaaClient {
         )
         .map_err(|error| error.with_initialization_failure(InitializationFailure::Session))?;
         client.config_dir = Some(config_dir.to_path_buf());
+        client.domain_routes = Arc::new(std::sync::Mutex::new(
+            super::routing::domains::DomainRoutes::load(config_dir),
+        ));
         Ok(client)
     }
 
@@ -214,6 +218,7 @@ impl UbaaClient {
         let direct_store = sessions.route_store(ConnectionMode::Direct);
         let webvpn_store = sessions.route_store(ConnectionMode::WebVpn);
         Ok(Self {
+            domain_routes: Arc::default(),
             config_dir: None,
             verified_login: None,
             verified_login_generations: None,

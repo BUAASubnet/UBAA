@@ -55,7 +55,7 @@ class BridgeCampusAccountService implements CampusAccountService {
       for (final route in BridgeConnectionMode.values) {
         try {
           final value = await cache.readCampus(route: route, query: query);
-          if (value == null || value.sourceRoute != route) continue;
+          if (value == null) continue;
           if (best == null || value.fetchedAt > best.fetchedAt) best = value;
         } on BridgeError {
           // 单个范围损坏只放弃该快照，不影响在线刷新。

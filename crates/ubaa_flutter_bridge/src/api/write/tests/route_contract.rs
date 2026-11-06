@@ -175,7 +175,7 @@ async fn 十类写入提交只解析一次路线且不能跨探测窗口转路()
 }
 
 #[tokio::test]
-async fn 十类写入路线变化时在任何业务请求前拒绝且消费意图() {
+async fn 十类写入确认路线与当前路线不符时零请求拒绝且消费意图() {
     for request in requests() {
         let root = test_root("changed-route-matrix");
         let direct = MockTransport::new([]);
@@ -189,6 +189,12 @@ async fn 十类写入路线变化时在任何业务请求前拒绝且消费意�
         ))
         .await;
         seed_intent(&client, request).await;
+        {
+            let mut intents = client.write_intents.lock().await;
+            let intent = intents.get_mut("fixture-intent").unwrap();
+            intent.resolved_route = BridgeConnectionMode::WebVpn;
+            intent.resolution = crate::api::write::testing_resolution(BridgeConnectionMode::WebVpn);
+        }
         let error = client
             .commit_write("fixture-intent".into())
             .await

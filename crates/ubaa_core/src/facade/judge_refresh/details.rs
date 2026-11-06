@@ -145,10 +145,11 @@ impl UbaaClient {
         let progress = self.next_judge_online(&mut plan.scan).await?;
         plan.validate()?;
         if let Some(detail) = &progress.batch.detail {
-            let ticket = plan
+            let mut ticket = plan
                 .pending
                 .remove(&(detail.course_id.clone(), detail.assignment_id.clone()))
                 .ok_or(OfflineReadError::Cache(CacheError::InvalidInput))?;
+            ticket.set_source_route(progress.resolution.mode);
             remember_save(
                 &mut plan.save_error,
                 plan.cache.publish(

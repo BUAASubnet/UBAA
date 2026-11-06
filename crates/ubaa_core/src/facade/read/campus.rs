@@ -10,7 +10,11 @@ impl UbaaClient {
     /// 路线、会话、业务登录、网络或解析错误时返回安全错误。
     pub async fn portal_profile(&mut self) -> RoutedResult<PortalProfile> {
         let route = self.resolve_operation(Operation::Feature(ReadonlyFeature::Portal))?;
-        let result = crate::features::campus::get_profile(self.runtime_for(route.mode)).await;
+        let (route, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            route,
+            crate::features::campus::get_profile(self.runtime_for(route.mode)).await
+        );
         self.finish_routed(route, result)
     }
 
@@ -20,7 +24,11 @@ impl UbaaClient {
     /// 公共配置、业务登录、会话所有权或路线失败时返回整体错误。
     pub async fn campus_metrics(&mut self) -> RoutedResult<CampusMetrics> {
         let route = self.resolve_operation(Operation::Feature(ReadonlyFeature::Portal))?;
-        let result = crate::features::campus::get_metrics(self.runtime_for(route.mode)).await;
+        let (route, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            route,
+            crate::features::campus::get_metrics(self.runtime_for(route.mode)).await
+        );
         self.finish_routed(route, result)
     }
 
@@ -30,7 +38,11 @@ impl UbaaClient {
     /// 路线、会话、业务登录、网络或 HTML 结构错误时返回安全错误。
     pub async fn network_usage(&mut self) -> RoutedResult<NetworkUsage> {
         let route = self.resolve_operation(Operation::Feature(ReadonlyFeature::Network))?;
-        let result = crate::features::campus::get_usage(self.runtime_for(route.mode)).await;
+        let (route, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            route,
+            crate::features::campus::get_usage(self.runtime_for(route.mode)).await
+        );
         self.finish_routed(route, result)
     }
 }

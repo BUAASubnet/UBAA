@@ -14,12 +14,12 @@ async fn direct_and_webvpn_classroom_sync_state_is_route_local() {
     let direct_query = format!("{CLASSROOM_URL}?xqid=1&floorid=&date=2026-04-20");
     let webvpn_sync = to_webvpn_url(direct_sync).unwrap();
     let webvpn_query = to_webvpn_url(&direct_query).unwrap();
-    let direct_transport = MockTransport::new([
+    let direct_transport = MockTransport::with_sso_checks([
         expected_get(direct_sync, ""),
         expected_get(&direct_query, readonly_fixture("classroom.json").unwrap()),
         expected_get(&direct_query, readonly_fixture("classroom.json").unwrap()),
     ]);
-    let webvpn_transport = MockTransport::new([
+    let webvpn_transport = MockTransport::with_sso_checks([
         expected_get(&webvpn_sync, ""),
         expected_get(&webvpn_query, readonly_fixture("classroom.json").unwrap()),
         expected_get(&webvpn_query, readonly_fixture("classroom.json").unwrap()),
@@ -71,12 +71,9 @@ async fn successful_login_replacement_clears_classroom_sync_state() {
     let sync = CLASSROOM_SYNC_URL;
     let query = format!("{CLASSROOM_URL}?xqid=1&floorid=&date=2026-04-20");
     let login = "https://sso.buaa.edu.cn/login";
-    let activate =
-        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
-    let status = "https://uc.buaa.edu.cn/api/uc/status";
-    let userinfo = "https://uc.buaa.edu.cn/api/uc/userinfo";
+    let status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
     let profile = r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#;
-    let transport = MockTransport::new([
+    let transport = MockTransport::with_sso_checks([
         expected_get(sync, ""),
         expected_get(&query, readonly_fixture("classroom.json").unwrap()),
         ExpectedRequest::new(
@@ -84,9 +81,7 @@ async fn successful_login_replacement_clears_classroom_sync_state() {
             login,
             redirect_from(login, "/already-authenticated"),
         ),
-        expected_get(activate, ""),
         ExpectedRequest::new(HttpMethod::Get, status, response(200, status, profile)),
-        ExpectedRequest::new(HttpMethod::Get, userinfo, response(200, userinfo, profile)),
         expected_get(sync, ""),
         expected_get(&query, readonly_fixture("classroom.json").unwrap()),
     ]);
@@ -122,7 +117,7 @@ async fn successful_login_replacement_clears_classroom_sync_state() {
 async fn classroom_uses_verified_sync_headers_and_sanitized_fixture() {
     let sync_url = CLASSROOM_SYNC_URL;
     let query_url = format!("{CLASSROOM_URL}?xqid=1&floorid=&date=2026-04-20");
-    let transport = MockTransport::new([
+    let transport = MockTransport::with_sso_checks([
         expected_get(sync_url, ""),
         expected_get(&query_url, readonly_fixture("classroom.json").unwrap()),
         expected_get(&query_url, readonly_fixture("classroom.json").unwrap()),
@@ -168,7 +163,7 @@ async fn classroom_uses_verified_sync_headers_and_sanitized_fixture() {
 async fn classroom_sync_failure_is_best_effort_and_retried_later() {
     let sync_url = CLASSROOM_SYNC_URL;
     let query_url = format!("{CLASSROOM_URL}?xqid=1&floorid=&date=2026-04-20");
-    let transport = MockTransport::new([
+    let transport = MockTransport::with_sso_checks([
         ExpectedRequest::new(HttpMethod::Get, sync_url, response(503, sync_url, "")),
         expected_get(&query_url, readonly_fixture("classroom.json").unwrap()),
         expected_get(sync_url, ""),
@@ -198,7 +193,7 @@ async fn classroom_sync_failure_is_best_effort_and_retried_later() {
 async fn classroom_query_does_not_follow_sso_redirect_and_clears_the_route_session() {
     let sync_url = CLASSROOM_SYNC_URL;
     let query_url = format!("{CLASSROOM_URL}?xqid=1&floorid=&date=2026-04-20");
-    let transport = MockTransport::new([
+    let transport = MockTransport::with_sso_checks([
         expected_get(sync_url, ""),
         ExpectedRequest::new(
             HttpMethod::Get,
@@ -237,7 +232,7 @@ async fn classroom_unauthorized_and_login_html_clear_the_route_session() {
             "<!DOCTYPE html><html><input name=\"execution\"><title>fixture</title></html>",
         ),
     ] {
-        let transport = MockTransport::new([
+        let transport = MockTransport::with_sso_checks([
             expected_get(sync_url, ""),
             ExpectedRequest::new(HttpMethod::Get, &query_url, query_response),
         ]);

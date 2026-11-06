@@ -370,7 +370,7 @@ impl UbaaClient {
         cache: &OfflineCache,
         include_expired: bool,
     ) -> Result<OfflineRefresh<Vec<crate::domain::JudgeAssignmentSummary>>, OfflineReadError> {
-        let refresh = self
+        let mut refresh = self
             .prepare_cached_refresh(
                 cache,
                 ReadonlyFeature::Judge,
@@ -378,11 +378,15 @@ impl UbaaClient {
             )
             .await?;
         let resolution = refresh.resolution;
-        let read = crate::features::judge::get_assignments(
-            self.runtime_for(resolution.mode),
-            include_expired,
-        )
-        .await;
+        let (resolution, read) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::judge::get_assignments(
+                self.runtime_for(resolution.mode),
+                include_expired,
+            )
+            .await
+        );
         let data = refresh.read_result(self.finish_routed(resolution, read))?;
         refresh
             .finish(data, true, |data| {
@@ -400,7 +404,7 @@ impl UbaaClient {
         cache: &OfflineCache,
     ) -> Result<OfflineRefresh<Vec<TodayClass>>, OfflineReadError> {
         let campus_date = crate::time::shanghai_date(std::time::SystemTime::now());
-        let refresh = self
+        let mut refresh = self
             .prepare_cached_refresh(
                 cache,
                 ReadonlyFeature::Schedule,
@@ -410,11 +414,15 @@ impl UbaaClient {
             )
             .await?;
         let resolution = refresh.resolution;
-        let read = crate::features::schedule::get_today_for_date(
-            self.runtime_for(resolution.mode),
-            &campus_date,
-        )
-        .await;
+        let (resolution, read) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::schedule::get_today_for_date(
+                self.runtime_for(resolution.mode),
+                &campus_date,
+            )
+            .await
+        );
         let data = refresh.read_result(self.finish_routed(resolution, read))?;
         refresh
             .finish(data, true, |data| CachePayload::Today(data.clone()))

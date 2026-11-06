@@ -14,7 +14,8 @@ pub(crate) use crate::internal::route_state::YgdkCredential;
 #[allow(unused_imports)]
 pub use parser::{parse_envelope, parse_items, parse_overview, parse_records};
 pub(crate) use read::{
-    get_overview, get_overview_context, get_overview_observed, get_records, get_records_in_context,
+    YgdkOverviewContext, get_overview, get_overview_context, get_overview_observed, get_records,
+    get_records_in_context,
 };
 pub(crate) use write::{preflight_submit, submit_clockin, validate_submit_request};
 

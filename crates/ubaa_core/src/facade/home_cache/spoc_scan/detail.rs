@@ -165,11 +165,19 @@ impl UbaaClient {
                     ),
                 })
             })?;
-        let result = crate::features::spoc::get_assignment_detail_for_base(
-            self.runtime_for(resolution.mode),
-            base,
-        )
-        .await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::spoc::get_assignment_detail_for_base(
+                self.runtime_for(resolution.mode),
+                base,
+            )
+            .await
+        );
+        self.rebind_spoc_route(&mut plan.list, resolution);
+        if let Some(ticket) = &mut plan.ticket {
+            ticket.set_source_route(resolution.mode);
+        }
         let (data, detail_complete) = self
             .finish_routed(resolution, result)
             .map_err(OfflineReadError::Read)?

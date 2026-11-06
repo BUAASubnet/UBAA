@@ -42,7 +42,45 @@ fn seed(repo: &mut OfflineRepository, route: ConnectionMode, id: i64) {
         .unwrap();
 }
 #[test]
-fn 写后精确失效阻止无旧条目的迟到结果_保留其他目标路线和账号() {
+fn 两条路线读取同一业务缓存且任一路线写后失效同时生效() {
+    let (root, mut repo) = fixture();
+    seed(&mut repo, ConnectionMode::Direct, 42);
+    let saved = repo
+        .read(&scope(ConnectionMode::WebVpn, 42), 101)
+        .unwrap()
+        .expect("两条路线共用账号业务缓存");
+    assert_eq!(saved.payload, payload(42));
+    assert_eq!(saved.scope.route, ConnectionMode::Direct);
+    let old = repo.begin_read(scope(ConnectionMode::Direct, 42)).unwrap();
+    let current = repo.begin_read(scope(ConnectionMode::WebVpn, 42)).unwrap();
+    assert!(matches!(
+        repo.validate_read(&old),
+        Err(CacheError::Superseded)
+    ));
+    repo.publish(&current, payload(42), 102, CacheCompleteness::Complete)
+        .unwrap();
+    assert_eq!(
+        repo.read(&scope(ConnectionMode::Direct, 42), 103)
+            .unwrap()
+            .unwrap()
+            .scope
+            .route,
+        ConnectionMode::WebVpn
+    );
+    repo.invalidate(
+        ConnectionMode::Direct,
+        &CacheInvalidation::Bykc { course_id: 42 },
+    )
+    .unwrap();
+    assert!(
+        repo.read(&scope(ConnectionMode::WebVpn, 42), 104)
+            .unwrap()
+            .is_none()
+    );
+    let _ = std::fs::remove_dir_all(root);
+}
+#[test]
+fn 写后精确失效阻止两路线迟到结果并保留其他目标和账号() {
     let (root, mut repo) = fixture();
     let mut other = OfflineRepository::open(
         &root,
@@ -87,7 +125,7 @@ fn 写后精确失效阻止无旧条目的迟到结果_保留其他目标路线�
     assert!(
         repo.read(&scope(ConnectionMode::WebVpn, 1), 200)
             .unwrap()
-            .is_some()
+            .is_none()
     );
     assert!(matches!(
         other.validate_read(&unseen),
@@ -147,7 +185,7 @@ fn 持久失效事务失败保留条目和未发送读取资格() {
 }
 
 #[test]
-fn 各领域失效只撤销相关范围_另一路线和无关日期继续可发布() {
+fn 各领域失效同时撤销两路线相关范围并保留无关日期() {
     for (impact, affected, unaffected) in impact_cases() {
         let (root, mut repo) = fixture();
         let old = repo
@@ -182,7 +220,10 @@ fn 各领域失效只撤销相关范围_另一路线和无关日期继续可发�
             Err(CacheError::Superseded)
         ));
         repo.validate_read(&other).unwrap();
-        repo.validate_read(&route).unwrap();
+        assert!(matches!(
+            repo.validate_read(&route),
+            Err(CacheError::Superseded)
+        ));
         drop(repo);
         std::fs::remove_dir_all(root).unwrap();
     }
@@ -329,7 +370,7 @@ fn 无关损坏条目不阻断可识别目标失效_坏条目仍由原单条读�
     seed(&mut repo, ConnectionMode::Direct, 2);
     let key = repo
         .crypto
-        .index(&(&repo.account, &scope(ConnectionMode::Direct, 2)))
+        .index(&(&repo.account, &scope(ConnectionMode::Direct, 2).query))
         .unwrap();
     repo.db
         .execute(

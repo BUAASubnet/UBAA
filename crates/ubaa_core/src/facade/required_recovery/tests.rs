@@ -66,14 +66,17 @@ impl HttpTransport for Transport {
         if let Some(control) = &self.cancel_on_reply {
             control.cancel();
         }
+        if let Some(response) = crate::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         let body = if request.url.ends_with("/login") && request.method == HttpMethod::Get {
             format!("<form id=\"fm1\"><input name=\"execution\" value=\"synthetic-execution-{index}\"></form>").into_bytes()
-        } else if request.url.contains("/api/uc/") {
+        } else if request.url.contains("/serviceValidate?") {
             PROFILE.to_vec()
         } else {
             b"ok".to_vec()
         };
-        Ok(HttpResponse::new(
+        Ok(crate::facade::testing::sso_fixture_response(
             self.response_status.load(Ordering::SeqCst),
             request.url,
             body,
@@ -145,7 +148,7 @@ fn input() -> LoginInput {
 
 #[tokio::test]
 async fn 每个登录阶段取消都中止传输并清除准备状态且允许后续恢复() {
-    for stage in 1..=5 {
+    for stage in 1..=4 {
         let mut fixture = Fixture::new(stage, false, None);
         let control = RequiredRecoveryControl::new(Duration::from_secs(2)).unwrap();
         let sibling_snapshot = fixture
@@ -346,7 +349,7 @@ async fn 控制柄单次使用且零期限在网络前拒绝() {
         .recover_required_session_controlled(ReadonlyFeature::Schedule, next.claim().unwrap())
         .await
         .unwrap();
-    assert_eq!(fixture.transport.requests.lock().unwrap().len(), 2);
+    assert_eq!(fixture.transport.requests.lock().unwrap().len(), 4);
     assert!(RequiredRecoveryControl::new(Duration::from_millis(120_001)).is_err());
 }
 
@@ -412,7 +415,7 @@ async fn 丢弃受控登录也解除范围并在下一次请求新execution() {
 
 #[tokio::test]
 async fn 登录各阶段到期都中止请求且不发布迟到结果() {
-    for stage in 1..=5 {
+    for stage in 1..=4 {
         let mut fixture = Fixture::new(stage, false, None);
         // 先确认目标请求已挂起，再验证自然到期；为完整并行回归保留准备预算。
         let control = RequiredRecoveryControl::new(Duration::from_secs(2)).unwrap();

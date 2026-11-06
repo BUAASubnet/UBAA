@@ -18,6 +18,8 @@ mod readonly;
 use readonly::ReadonlyOwner;
 
 pub(crate) struct ClientRuntime {
+    pub(crate) network_failure_domain: Option<String>,
+    pub(crate) reached_domains: std::collections::BTreeSet<String>,
     mode: ConnectionMode,
     transport: Arc<dyn HttpTransport>,
     store: Arc<dyn SessionStore>,
@@ -94,6 +96,8 @@ impl ClientRuntime {
             }
         }
         Ok(Self {
+            network_failure_domain: None,
+            reached_domains: std::collections::BTreeSet::default(),
             mode,
             transport,
             store,
@@ -141,6 +145,8 @@ impl ClientRuntime {
                 .collect(),
         );
         Self {
+            network_failure_domain: None,
+            reached_domains: std::collections::BTreeSet::default(),
             mode: self.mode,
             transport: Arc::clone(&self.transport),
             store: Arc::clone(&self.store),
@@ -297,6 +303,11 @@ impl ClientRuntime {
         self.request_with_pre_send_check(request, |_| Ok(())).await
     }
 
+    pub(crate) fn reset_network_observation(&mut self) {
+        self.network_failure_domain = None;
+        self.reached_domains.clear();
+    }
+
     /// 在把请求交给 transport 的同一同步边界执行调用方检查。
     ///
     /// 检查发生在 Cookie 构造之后、transport 调用之前；检查失败时不会发送请求。
@@ -327,7 +338,23 @@ impl ClientRuntime {
         let request_url = request.url.clone();
         let pending = self.transport.execute(request);
         drop(permit);
-        let response = pending.await?;
+        let result = pending.await;
+        let domain = crate::connection::from_webvpn_url(&request_url)
+            .ok()
+            .and_then(|url| url::Url::parse(&url).ok())
+            .and_then(|url| url.host_str().map(str::to_owned));
+        match (&result, domain) {
+            (Err(error), Some(domain))
+                if matches!(error.code, ErrorCode::NetworkError | ErrorCode::Timeout) =>
+            {
+                self.network_failure_domain = Some(domain);
+            }
+            (Ok(_), Some(domain)) => {
+                self.reached_domains.insert(domain);
+            }
+            _ => {}
+        }
+        let response = result?;
         if let Some(scope) = &self.shared_account {
             scope.check()?;
         }

@@ -107,7 +107,7 @@ fn 完整导入重开保留各学期与原时间_普通周查询不能成为整�
             300
         )
         .unwrap()
-        .is_none()
+        .is_some()
     );
     assert!(
         repo.read_imported_schedule(

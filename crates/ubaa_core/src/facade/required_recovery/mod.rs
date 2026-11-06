@@ -48,8 +48,11 @@ impl UbaaClient {
         &mut self,
         operation: RequiredRecoveryOperation,
     ) -> RoutedResult<AuthStatus> {
-        self.recover_operation_session_controlled(super::types::Operation::User, operation)
-            .await
+        self.recover_operation_session_controlled(
+            super::types::Operation::Authentication,
+            operation,
+        )
+        .await
     }
 
     /// 校验用户资料所需路线，不提交密码。
@@ -57,7 +60,7 @@ impl UbaaClient {
     /// # Errors
     /// 路线不可用或会话过期时保留原错误。
     pub async fn recover_user_session(&mut self) -> RoutedResult<AuthStatus> {
-        let resolution = self.resolve_operation(super::types::Operation::User)?;
+        let resolution = self.resolve_operation(super::types::Operation::Authentication)?;
         self.recover_resolved_session(resolution).await
     }
 

@@ -116,12 +116,15 @@ impl UbaaClient {
         cache: &OfflineCache,
         query: LibBookCacheQuery,
     ) -> Result<LibBookRefresh, OfflineReadError> {
-        let refresh = self
+        let mut refresh = self
             .prepare_cached_refresh(cache, ReadonlyFeature::LibBook, query.cache_query())
             .await?;
         let resolution = refresh.resolution;
-        let runtime = self.runtime_for(resolution.mode);
-        let read = query.read(runtime).await;
+        let (resolution, read) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            query.clone().read(self.runtime_for(resolution.mode)).await
+        );
         let (data, complete) = refresh.read_result(self.finish_routed(resolution, read))?;
         refresh.finish(data, complete, LibBookReadData::readonly_payload)
     }

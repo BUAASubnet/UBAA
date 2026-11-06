@@ -169,7 +169,13 @@ mixin ControllerInteractiveAuthentication on ControllerState {
       final preferred = switch (form.routePolicy) {
         RoutePolicy.direct => ConnectionMode.direct,
         RoutePolicy.webvpn => ConnectionMode.webvpn,
-        RoutePolicy.auto => result.requiredRoute,
+        RoutePolicy.auto =>
+          result.requiredRoute ??
+              (result.readyRoutes.contains(ConnectionMode.direct)
+                  ? ConnectionMode.direct
+                  : result.readyRoutes.contains(ConnectionMode.webvpn)
+                  ? ConnectionMode.webvpn
+                  : null),
       };
       if (result.readyRoutes.length == 2 ||
           (preferred != null && result.readyRoutes.contains(preferred))) {

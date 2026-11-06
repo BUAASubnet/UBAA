@@ -78,7 +78,7 @@ fn encrypted_content_survives_reopen_without_network_or_plaintext() {
 }
 
 #[test]
-fn exact_date_route_account_and_query_are_isolated() {
+fn 日期账号查询保持隔离且两条路线共用数据() {
     let root = root();
     let mut repo = open(&root);
     let ticket = repo.begin_read(scope()).unwrap();
@@ -91,7 +91,10 @@ fn exact_date_route_account_and_query_are_isolated() {
     .unwrap();
     let mut other = scope();
     other.route = ConnectionMode::WebVpn;
-    assert!(repo.read(&other, 101).unwrap().is_none());
+    assert_eq!(
+        repo.read(&other, 101).unwrap().unwrap().payload,
+        payload("合成课程")
+    );
     other = scope();
     other.query = CacheQuery::ScheduleToday {
         date: "2026-09-18".into(),
@@ -751,7 +754,7 @@ fn 首页持久投影从类型层面剥离学校写资格与目标() {
 }
 
 #[test]
-fn 博雅缓存按页大小筛选路线隔离且不持久化写资格与位置结果() {
+fn 博雅缓存按页大小筛选隔离并跨路线共享且不持久化写资格与位置结果() {
     use crate::domain::{ActionEligibility, BykcCourse, BykcCoursePage};
     let root = root();
     let mut repository = open(&root);
@@ -789,7 +792,7 @@ fn 博雅缓存按页大小筛选路线隔离且不持久化写资格与位置�
         (1, 20, true, ConnectionMode::Direct),
         (1, 20, false, ConnectionMode::WebVpn),
     ] {
-        assert!(
+        assert_eq!(
             repository
                 .read(
                     &CacheScope {
@@ -799,7 +802,8 @@ fn 博雅缓存按页大小筛选路线隔离且不持久化写资格与位置�
                     124
                 )
                 .unwrap()
-                .is_none()
+                .is_some(),
+            route == ConnectionMode::WebVpn
         );
     }
     let record = repository.read(&query, 124).unwrap().unwrap();

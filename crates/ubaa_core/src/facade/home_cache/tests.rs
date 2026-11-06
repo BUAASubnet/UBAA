@@ -52,7 +52,7 @@ fn save(
     ygdk::publish(cache, &parent, data, at, at, complete).unwrap()
 }
 #[test]
-fn 阳光概览按已观察学期分类路线与校园日历周独立保存() {
+fn 阳光概览按学期分类与校园日历周保存且跨路线共用当前选择() {
     let (root, cache) = cache();
     let monday = now("2026-09-21T00:00:00+08:00");
     let next = now("2026-09-28T00:00:00+08:00");
@@ -78,8 +78,8 @@ fn 阳光概览按已观察学期分类路线与校园日历周独立保存() {
     assert_ne!(third, second);
     assert!(cache.read(&other, next).unwrap().is_some());
     let current = ygdk::read(&cache, direct, monday + 2).unwrap().unwrap();
-    assert_eq!(current.scope, second);
-    assert_eq!(current.fetched_at, monday + 1);
+    assert_eq!(current.scope, other);
+    assert_eq!(current.fetched_at, monday);
     drop(cache);
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -173,7 +173,7 @@ fn 阳光迟到父票据与写后失效不能重建旧周期或撤销新读取()
         .unwrap();
     assert!(cache.read(&scope, at).unwrap().is_none());
     assert!(ygdk::read(&cache, route, at).unwrap().is_none());
-    assert!(cache.read(&other, at).unwrap().is_some());
+    assert!(cache.read(&other, at).unwrap().is_none());
     assert!(matches!(
         cache.validate_read(&newer),
         Err(CacheError::Superseded)

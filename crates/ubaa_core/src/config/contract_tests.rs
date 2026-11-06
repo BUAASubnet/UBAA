@@ -33,8 +33,6 @@ fn feature_route_config_has_explicit_unknown_default_and_fallback_flags() {
     let row = FeatureRouteConfig::for_feature(ReadonlyFeature::Classroom);
     assert_eq!(row.auto_route_override, None);
     assert_eq!(row.unknown_default, ConnectionMode::Direct);
-    assert!(!row.allow_ready_route_fallback);
-    assert!(!row.allow_network_fallback);
 
     let judge = FeatureRouteConfig::for_feature(ReadonlyFeature::Judge);
     assert_eq!(judge.auto_route_override, None);

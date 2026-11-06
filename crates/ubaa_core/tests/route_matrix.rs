@@ -1,4 +1,4 @@
-//! 聚合门面的路线选择、诊断和禁止跨路线回退合同。
+//! 聚合门面的路线选择、诊断和写入不跨路线重放合同。
 
 #[path = "route_matrix/atomic_write.rs"]
 mod atomic_write;
@@ -48,12 +48,12 @@ const WEBVPN_RESOLUTION: RouteResolution = RouteResolution {
 };
 
 const AUTO_OFF_CAMPUS_RESOLUTION: RouteResolution = RouteResolution {
-    mode: ConnectionMode::WebVpn,
+    mode: ConnectionMode::Direct,
     policy: RoutePolicy::Auto,
     diagnostic: RouteDiagnostic {
         network: NetworkState::OffCampus,
-        initial_route: ConnectionMode::WebVpn,
-        mode: ConnectionMode::WebVpn,
+        initial_route: ConnectionMode::Direct,
+        mode: ConnectionMode::Direct,
         used_fallback: false,
     },
 };
@@ -101,19 +101,19 @@ const WEBVPN_REQUEST: &[MatrixEvent] = &[
     MatrixEvent::Http(ConnectionMode::WebVpn),
 ];
 const WEBVPN_FAILURE: &[MatrixEvent] = &[MatrixEvent::Http(ConnectionMode::WebVpn)];
-const AUTO_WEBVPN_REQUEST: &[MatrixEvent] = &[
+const AUTO_OFF_CAMPUS_DIRECT_REQUEST: &[MatrixEvent] = &[
     MatrixEvent::Probe(NetworkState::OffCampus),
-    MatrixEvent::Http(ConnectionMode::WebVpn),
-    MatrixEvent::Http(ConnectionMode::WebVpn),
-    MatrixEvent::Http(ConnectionMode::WebVpn),
-    MatrixEvent::Http(ConnectionMode::WebVpn),
-    MatrixEvent::Http(ConnectionMode::WebVpn),
-    MatrixEvent::Http(ConnectionMode::WebVpn),
-    MatrixEvent::Http(ConnectionMode::WebVpn),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
+    MatrixEvent::Http(ConnectionMode::Direct),
 ];
-const AUTO_WEBVPN_FAILURE: &[MatrixEvent] = &[
+const AUTO_OFF_CAMPUS_DIRECT_FAILURE: &[MatrixEvent] = &[
     MatrixEvent::Probe(NetworkState::OffCampus),
-    MatrixEvent::Http(ConnectionMode::WebVpn),
+    MatrixEvent::Http(ConnectionMode::Direct),
 ];
 const AUTO_OFF_CAMPUS_WITHOUT_REQUEST: &[MatrixEvent] =
     &[MatrixEvent::Probe(NetworkState::OffCampus)];
@@ -246,7 +246,7 @@ const CASES: [RouteMatrixCase; 20] = [
         scripted_outcome: ScriptedOutcome::Success,
         expected_result: ExpectedResult::Success,
         expected_resolution: AUTO_OFF_CAMPUS_RESOLUTION,
-        expected_events: AUTO_WEBVPN_REQUEST,
+        expected_events: AUTO_OFF_CAMPUS_DIRECT_REQUEST,
     },
     RouteMatrixCase {
         name: "auto-off-campus-ready-failure",
@@ -257,13 +257,13 @@ const CASES: [RouteMatrixCase; 20] = [
         scripted_outcome: ScriptedOutcome::NetworkFailure,
         expected_result: ExpectedResult::Error(ErrorCode::NetworkError),
         expected_resolution: AUTO_OFF_CAMPUS_RESOLUTION,
-        expected_events: AUTO_WEBVPN_FAILURE,
+        expected_events: AUTO_OFF_CAMPUS_DIRECT_FAILURE,
     },
     RouteMatrixCase {
         name: "auto-off-campus-not-ready-success",
         config: "[route]\ndefault = \"auto\"\n",
         probe_state: NetworkState::OffCampus,
-        direct_ready: true,
+        direct_ready: false,
         webvpn_ready: false,
         scripted_outcome: ScriptedOutcome::Success,
         expected_result: ExpectedResult::Error(ErrorCode::AuthenticationRequired),
@@ -274,7 +274,7 @@ const CASES: [RouteMatrixCase; 20] = [
         name: "auto-off-campus-not-ready-failure",
         config: "[route]\ndefault = \"auto\"\n",
         probe_state: NetworkState::OffCampus,
-        direct_ready: true,
+        direct_ready: false,
         webvpn_ready: false,
         scripted_outcome: ScriptedOutcome::NetworkFailure,
         expected_result: ExpectedResult::Error(ErrorCode::AuthenticationRequired),
@@ -352,7 +352,7 @@ const CASES: [RouteMatrixCase; 20] = [
         config: "[route]\ndefault = \"auto\"\n",
         probe_state: NetworkState::Unknown,
         direct_ready: false,
-        webvpn_ready: true,
+        webvpn_ready: false,
         scripted_outcome: ScriptedOutcome::Success,
         expected_result: ExpectedResult::Error(ErrorCode::AuthenticationRequired),
         expected_resolution: AUTO_UNKNOWN_RESOLUTION,
@@ -363,7 +363,7 @@ const CASES: [RouteMatrixCase; 20] = [
         config: "[route]\ndefault = \"auto\"\n",
         probe_state: NetworkState::Unknown,
         direct_ready: false,
-        webvpn_ready: true,
+        webvpn_ready: false,
         scripted_outcome: ScriptedOutcome::NetworkFailure,
         expected_result: ExpectedResult::Error(ErrorCode::AuthenticationRequired),
         expected_resolution: AUTO_UNKNOWN_RESOLUTION,
@@ -492,7 +492,7 @@ impl HttpTransport for MatrixTransport {
 }
 
 #[test]
-fn 聚合门面路线矩阵保持调用顺序完整诊断且禁止跨路线回退() {
+fn 写入路线矩阵保留直连优先和完整诊断且禁止网络失败后重放() {
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()

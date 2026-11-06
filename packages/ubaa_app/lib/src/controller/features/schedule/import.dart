@@ -179,7 +179,6 @@ mixin ControllerScheduleImport on ControllerState {
           projection.complete &&
           projection.feature == FeatureId.schedule &&
           projection.accountId == account.id &&
-          projection.route == route &&
           projection.readContext.hasSameQuery(query)) {
         internalSnapshots[FeatureId.schedule] = projection
             .toSnapshot()

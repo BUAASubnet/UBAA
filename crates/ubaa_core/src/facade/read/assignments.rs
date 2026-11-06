@@ -17,7 +17,11 @@ impl UbaaClient {
     /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
     pub async fn signin_today(&mut self) -> RoutedResult<Vec<SigninClass>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Signin))?;
-        let result = crate::features::signin::get_today(self.runtime_for(resolution.mode)).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::signin::get_today(self.runtime_for(resolution.mode)).await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -28,8 +32,11 @@ impl UbaaClient {
     /// 路线解析、会话校验、上游请求或响应解析失败时返回错误。
     pub async fn spoc_assignments(&mut self) -> RoutedResult<SpocAssignments> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Spoc))?;
-        let result =
-            crate::features::spoc::get_assignments(self.runtime_for(resolution.mode)).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::spoc::get_assignments(self.runtime_for(resolution.mode)).await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -42,9 +49,12 @@ impl UbaaClient {
         &mut self,
     ) -> RoutedResult<SpocAssignmentsDiagnostics> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Spoc))?;
-        let result =
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
             crate::features::spoc::get_assignments_diagnostics(self.runtime_for(resolution.mode))
-                .await;
+                .await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -58,11 +68,15 @@ impl UbaaClient {
         assignment_id: &str,
     ) -> RoutedResult<SpocAssignmentDetail> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Spoc))?;
-        let result = crate::features::spoc::get_assignment_detail(
-            self.runtime_for(resolution.mode),
-            assignment_id,
-        )
-        .await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::spoc::get_assignment_detail(
+                self.runtime_for(resolution.mode),
+                assignment_id,
+            )
+            .await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -76,11 +90,15 @@ impl UbaaClient {
         include_expired: bool,
     ) -> RoutedResult<Vec<JudgeAssignmentSummary>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Judge))?;
-        let result = crate::features::judge::get_assignments(
-            self.runtime_for(resolution.mode),
-            include_expired,
-        )
-        .await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::judge::get_assignments(
+                self.runtime_for(resolution.mode),
+                include_expired,
+            )
+            .await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -94,11 +112,15 @@ impl UbaaClient {
         include_expired: bool,
     ) -> RoutedResult<JudgeAssignmentsDiagnostics> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Judge))?;
-        let result = crate::features::judge::get_assignments_diagnostics(
-            self.runtime_for(resolution.mode),
-            include_expired,
-        )
-        .await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::judge::get_assignments_diagnostics(
+                self.runtime_for(resolution.mode),
+                include_expired,
+            )
+            .await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -113,12 +135,16 @@ impl UbaaClient {
         assignment_id: &str,
     ) -> RoutedResult<JudgeAssignmentDetail> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Judge))?;
-        let result = crate::features::judge::get_assignment_detail(
-            self.runtime_for(resolution.mode),
-            course_id,
-            assignment_id,
-        )
-        .await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::judge::get_assignment_detail(
+                self.runtime_for(resolution.mode),
+                course_id,
+                assignment_id,
+            )
+            .await
+        );
         self.finish_routed(resolution, result)
     }
 
@@ -132,9 +158,12 @@ impl UbaaClient {
         keys: &[JudgeAssignmentKey],
     ) -> RoutedResult<Vec<JudgeAssignmentDetail>> {
         let resolution = self.resolve_operation(Operation::Feature(ReadonlyFeature::Judge))?;
-        let result =
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
             crate::features::judge::get_assignment_details(self.runtime_for(resolution.mode), keys)
-                .await;
+                .await
+        );
         self.finish_routed(resolution, result)
     }
 }

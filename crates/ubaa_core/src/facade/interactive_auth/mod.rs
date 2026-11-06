@@ -291,7 +291,7 @@ impl UbaaClient {
             && !pin_ready_route
             && !keep_route_policy
         {
-            self.resolve_operation(super::types::Operation::User)
+            self.resolve_operation(super::types::Operation::Authentication)
                 .map_err(|failure| failure.error)?;
         }
         self.ensure_interactive_active(login)?;

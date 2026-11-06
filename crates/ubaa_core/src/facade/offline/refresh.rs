@@ -67,15 +67,24 @@ impl UbaaClient {
 
 impl CacheRefresh<'_> {
     pub(in crate::facade) fn read_result<T>(
-        &self,
+        &mut self,
         result: RoutedResult<T>,
     ) -> Result<T, OfflineReadError> {
-        result.map(|result| result.data).map_err(|error| {
-            if let Some(ticket) = &self.ticket {
-                self.cache.failure(ticket, chrono::Utc::now().timestamp());
-            }
-            OfflineReadError::Read(error)
-        })
+        result
+            .map(|result| {
+                self.resolution = result.resolution;
+                self.scope.route = result.resolution.mode;
+                if let Some(ticket) = &mut self.ticket {
+                    ticket.set_source_route(result.resolution.mode);
+                }
+                result.data
+            })
+            .map_err(|error| {
+                if let Some(ticket) = &self.ticket {
+                    self.cache.failure(ticket, chrono::Utc::now().timestamp());
+                }
+                OfflineReadError::Read(error)
+            })
     }
 
     pub(in crate::facade) fn finish<T>(

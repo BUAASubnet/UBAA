@@ -28,6 +28,12 @@
 
 业务时钟测试必须让 Timer 保持在 FakeAsync 中。App 的启动预算和恢复退避用例使用专用合成账号接口，真实账号文件锁继续由其他 App、Host 与 Platform 集成覆盖。真实文件 I/O 应从 `tester.runAsync` 内发起并等待，不能在 FakeAsync 中创建 Future 后只靠 `pumpAndSettle` 等待。独立执行的缓存恢复使用明确的完成事件同步，不能假设会话恢复返回时磁盘任务已经完成。 Host 与 Flutter 宿主需要同时覆盖真实账号集成和虚拟业务时钟时，复用 `widgetAccounts`：在 `runAsync` 中创建真实账号，顶层账号操作在捕获的真实 Zone 内执行，按已发起的 Future 排空 I/O 后用零时长 pump 衔接界面。直接读取账号结果仍在 `runAsync` 中等待。材料事务内部保留原协调器 Zone，避免丢失借锁上下文。私有合成材料在卸载宿主或使控制器失效后等待全部在途事务结束，再删除独占目录。
 
+## SSO、域名回退与共享缓存覆盖
+
+主认证的 UC 必经链用例调整为 SSO 取票验票、无 UC 请求、票据拒绝和 WebVPN 网关独立认证。UC 的 HTTP SSO 升级、嵌套 service 编码、Cookie 路径和重定向预算仍由按需资料读取用例覆盖。未知验票正文保留会话，明确 SSO 失效清理会话；UC 资料失败不能单独注销主会话。
+
+原校外一律 WebVPN 的断言改为 Direct 优先、按域名网络失败回退、24 小时期限、显式路线及写入不重放。原跨路线缓存缺失断言改为共用记录、跨路线替代旧读取和共同失效；账号、日期、分页和查询隔离继续保留。日程投影共用业务内容并保留真实来源，缺失范围仍带当前请求路线。普通所需路线的验证码等待用例明确指定所需路线，另测 Auto 部分成功直接进入并释放多余图片。旧 Auto 校外云盘拒绝用例改为 Direct 可用和显式 WebVPN 未验证能力，写入确认过期、路线变化与零发送保护保留。
+
 ## 原生能力与覆盖边界
 
 原生测试保留 `integration_test/platform/`、`synthetic/cache/` 、`synthetic/command/` 的真实 FRB 输入边界和一个 `synthetic/app/` 宿主 smoke：真实安全存储、私有目录、网络、照片、包信息、系统方向、真实 Rust FFI 的离线启动与缺会话处理和缓存。替身后端驱动的登录到首页流程由 `apps/ubaa_flutter/test/app/smoke_test.dart` 覆盖：原生集成绑定不注册测试输入法，应用未取得前台时文本输入不可靠。原生材料测试同时隔离数据域和锁域：Windows 使用私有文件与真实 DPAPI/替换函数，Apple 使用独立 Keychain service，Android 使用独立 Debug 应用 `cn.edu.ubaa.synthetic.materials`，在访问安全存储前核对设备报告的实际包名。Android 专用入口 `scripts/tests/platform/android_materials.py` 先核对 APK 实际包名和 debuggable 属性，再启动真实插件用例，普通构建的生产 ID 和 Release 签名逻辑保持原实现。Linux 通用材料入口仅保留目录验证，整 map 的真实写读保留在 `scripts/tests/linux-secure-storage.sh` 创建的独立 D-Bus、Secret Service 和 XDG 目录中。缺少专用入口标记或目录前提时先拒绝，不探测默认会话。原生适配的合成保护回归覆盖默认域 B、原目标和备份不变，真实原生写读仍由对应平台入口承担。入口、平台、前提和 CI 归属集中在 `scripts/integration-tests.json`，用 `just integration-list` 查看，用 `just integration-test` 执行默认集合：运行时按清单生成被忽略的聚合入口，各入口在同一应用进程中依次运行，合并 Dart define 与持锁夹具，冲突时拒绝；`suite=ci-isolated` 逐文件构建运行，用于排查入口间的状态影响。其他能力选择清单中的精确路径，不对整个目录通配执行。

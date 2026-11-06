@@ -1,5 +1,20 @@
 # 协议来源对照与专项索引
 
+## SSO 身份核验与 UC 解耦
+
+冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalConnectionAuth.kt`、`AuthApi.kt`、`UserInfo.kt` 和认证/Cookie 测试以 UC 激活及 status 作为主会话依据。固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/sso/auth.rs`、`api/user/{auth,opt}.rs`、`api/aas/core.rs`、`request.rs`、`store/{cookies,cred}.rs` 将 SSO 与 UC 分成两项操作，但 SSO 登录依赖默认落地页的 HTTP 成功。两份来源均没有直接验票操作，其验票 URL、参数和 DTO 列不适用。新行为依据本会话真实 SSO 响应及 [CAS 协议](https://apereo.github.io/cas/development/protocol/CAS-Protocol-Specification.html)，冲突取舍见[决策记录](decision-log.md#2026-11-06sso-直接验票与域名路线缓存)。
+
+| 操作 | CAS/service 与重定向 | 方法、参数、请求头与编码 | Cookie、加密、DTO、缓存与错误 |
+| --- | --- | --- | --- |
+| 准备及提交登录 | 保留 SSO `/login`；默认 UC 落地跳转停止在请求 UC 之前，随后独立取票验票。 | GET 准备，POST 保留已证六字段或验证码八字段及 URL 表单编码。 | 仍使用当前路线 Cookie，密码不持久化；保持密码风险继续和三次验证码预算。302 和 Cookie 存在不授予本地身份。 |
+| 取票与会话检查 | SSO `/login` 使用既有教务 service `https://byxt.buaa.edu.cn/jwapp/sys/homeapp/index.do?contextPath=/jwapp`。只读取精确 service 回调 Location 中一次性 ticket，不请求教务服务器。 | GET，service 与冻结 `api/aas/core.rs` 的生产地址一致。 | 已有会话和刚提交凭据使用相同流程。登录页表示会话失效；未知响应按协议变化处理。 |
+| 验票 | SSO `/serviceValidate`，service 必须与取票请求完全一致。 | GET 参数 `service`、`ticket`、`format=JSON`；TLS 校验开启，验票响应不跟随重定向。 | 2026-11-06 校外 Direct 和 WebVPN 实测返回 HTTP 200、顶层 `user` 字符串及 `attributes.name/type/employeeNumber` 字符串数组。`user` 和唯一 `employeeNumber` 与登录账号一致。仅成功解析后保存路线会话；失败响应不能授予身份。票据只使用一次，网络错误不重放。原始材料只保留在私有目录。 |
+| UC 资料读取 | 原 UC 激活链及 userinfo 地址不变，按需激活 UC。 | 保留原 GET、service、重定向和参数。 | UC 不可达只影响资料读取。UC 自身失效不直接注销 SSO；SSO 状态通过独立验票确认。 |
+| WebVPN 网关认证 | 固定 buaa-api `api/sso/auth.rs::login_vpn` 的 service 为 `https://d.buaa.edu.cn/login?cas_login=true`，验证落地为网关根地址。旧版通过 UC 链间接完成网关激活，没有独立等价入口。 | 在已有 WebVPN 路线 SSO Cookie 下 GET 同一 service，不重新提交密码。2026-11-06 真实链依次返回包装后的网关 `/login`、`/wengine-vpn-token-login`、网关 `/token-login`。 | 网关自指回调保留真实 Location 的 WebVPN 包装路径。网关 token 回调写入 Cookie 后可能跳回此前业务地址。主登录改为读取网关根地址确认，不依赖该业务站点；随后 SSO 验票确认账号并保存该路线会话。网关 Cookie 与 SSO Cookie 仍保留各自路径，不复制到 Direct。 |
+
+域名路线记录、24 小时期限及业务缓存去除路线分区是本机编排规则，两份冻结参考没有相同操作，CAS、方法、请求参数、加密和 DTO 列不适用。业务请求继续使用本索引各功能已有的逐操作协议；回退只重放读取及其必要业务认证，不改变参数、日期和分页，不重放业务写入。旧版 `LocalWebVpnSupport.kt`、`LocalConnectionAuth.kt` 与固定 buaa-api `api/sso/auth.rs`、`utils/net.rs`、`store/cookies.rs` 分别提供 URL 包装、独立 SSO 和校园网探测依据。路线记录按实际失败的上游域名保存，仅在同域名 WebVPN 读取成功后生效；同域名功能共用记录。
+
+
 ## SSO 图像验证码静默处理
 
 2026-11-06 实现前核对冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalConnectionAuth.kt`、`AuthApi.kt`、`model/dto/Auth.kt` 及 `LocalAuthServiceBackendTest.kt`，固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/sso/auth.rs`、`request.rs`、`store/{cookies,cred}.rs` 与 `error.rs`。基础协议九列沿用[交互验证码来源对照](source-parity-ui-sensitive-displays.md)和[SSO 传输对照](source-parity-auth-2026-10-21.md)。buaa-api 无同协议图像验证码操作，该分支不适用，不能从普通 SSO 推断验证码字段或错误分类。
@@ -8,10 +23,10 @@
 |---|---|---|---|
 | 准备图像验证码 | 沿用 HTTPS SSO `/login`，Direct 和 WebVPN 各自使用原路线 Cookie；不复制会话或修改 service | GET，无凭据正文，无新增签名或加密；保留既有 TLS 与重定向规则 | 旧版解析 `config.captcha {type,id}` 和 execution。真实页面定义配置后使用 `config.captcha.id` 生成图片地址，配置引用不构成第二个挑战。实际表单的 `execution/type/_eventId` 未写 input type，按已知协议字段处理；未知额外验证仍拒绝 |
 | 获取或刷新图片 | 同路线 `/captcha`，挑战标识只留 Core | GET，业务参数 `captchaId`；浏览器另附随机 `r/t`，不据此引入新的业务字段 | HAR 中相同 captchaId 的重复 GET 返回不同图片。图片和答案只保留当前内存引用，不按 captchaId 缓存或复用；刷新后旧答案失效 |
-| 提交验证码 | 同一路线 SSO `/login`，成功后沿用 UC 激活及身份校验 | POST，沿冻结旧版八字段 `username/password/captcha/captchaResponse/execution/_eventId/submit/type`，`application/x-www-form-urlencoded`，不增加密码加密 | 真实 WebVPN 每次 GET 都轮换 captchaId 和 execution，浏览器直接提交取图时的 execution。按[来源裁决](decision-log.md#2026-11-06sso-图像验证码按当前准备状态直接提交)取消提交前 GET，保留本地代次、账号、取消和有效期检查。自动识别使用本地模型，不上传验证码图片 |
+| 提交验证码 | 同一路线 SSO `/login`，成功后执行本页的网关激活与 SSO 身份校验 | POST，沿冻结旧版八字段 `username/password/captcha/captchaResponse/execution/_eventId/submit/type`，`application/x-www-form-urlencoded`，不增加密码加密 | 真实 WebVPN 每次 GET 都轮换 captchaId 和 execution，浏览器直接提交取图时的 execution。按[来源裁决](decision-log.md#2026-11-06sso-图像验证码按当前准备状态直接提交)取消提交前 GET，保留本地代次、账号、取消和有效期检查。自动识别使用本地模型，不上传验证码图片 |
 | 拒绝与下一次尝试 | 用户提供的 WebVPN HAR 第 39 项登录 POST 返回 401，仍为原 SSO 登录页，并带新的 captchaId 和 execution | 拒绝后重新取得该路线的当前挑战，不复用原 POST；网络异常或未知响应不按验证码拒绝自动重放 | `#errorDiv p` 为“用户名或密码错误。”，验证码失败也使用此文案，无法据此判定密码无效。用户明确允许带图像验证码的已证统一拒绝最多自动提交三次，包含首次；保留保存的凭据，耗尽后转人工输入 |
 
-用户确定的界面行为是：手动登录、已开启的自动登录和会话恢复均可静默处理验证码，期间只显示普通登录或恢复状态，失败后才显示人工输入窗口。两路线独立计数、独立挑战；当前所需路线就绪后不因另一条路线的验证码阻塞使用。Auto 在校园网内只准备和认证 Direct；校外允许保留 Direct 与 WebVPN 两套会话，具体功能的优先路线另经真实校外只读验证确定。
+用户确定的界面行为是：手动登录、已开启的自动登录和会话恢复均可静默处理验证码，期间只显示普通登录或恢复状态，失败后才显示人工输入窗口。两路线独立计数、独立挑战；当前所需路线就绪后不因另一条路线的验证码阻塞使用。Auto 在校园网内只准备和认证 Direct；校外允许保留 Direct 与 WebVPN 两套会话，业务默认 Direct，按照本页域名回退规则记录当前网络可达性。
 
 HAR 只包含 WebVPN，Direct 使用同一 SSO 解析与提交实现，真实双路线验收分别记录。原 HAR、验证码、Cookie、凭据与原始响应不进入仓库；只保存脱敏协议事实和合成回归用例。
 

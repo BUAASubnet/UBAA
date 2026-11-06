@@ -80,7 +80,7 @@ fn aggregate_facade_owns_one_cached_auto_probe() {
         assert_eq!(error.error.code, ErrorCode::AuthenticationRequired);
         let resolution = error.resolution.expect("auto route was resolved");
         assert_eq!(resolution.policy, RoutePolicy::Auto);
-        assert_eq!(resolution.mode, ConnectionMode::WebVpn);
+        assert_eq!(resolution.mode, ConnectionMode::Direct);
         assert_eq!(resolution.diagnostic.network, NetworkState::OffCampus);
     }
     assert_eq!(calls.load(Ordering::SeqCst), 1);

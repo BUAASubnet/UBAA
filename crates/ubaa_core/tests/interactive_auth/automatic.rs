@@ -25,6 +25,9 @@ fn page(generation: usize, rejected: bool) -> String {
 #[async_trait]
 impl HttpTransport for AutomaticTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         self.requests.lock().unwrap().push(request.clone());
         let direct = from_webvpn_url(&request.url).unwrap();
         let url = url::Url::parse(&direct).unwrap();
@@ -44,13 +47,17 @@ impl HttpTransport for AutomaticTransport {
                 }
             }
             (_, "/api/login") => Vec::new(),
-            (_, "/api/uc/status" | "/api/uc/userinfo") => format!(
+            (_, "/serviceValidate" | "/api/uc/userinfo") => format!(
                 r#"{{"code":0,"data":{{"username":"{SYNTHETIC_USERNAME}","schoolid":"{SYNTHETIC_USERNAME}","name":"合成用户"}}}}"#
             )
             .into_bytes(),
             _ => panic!("出现未授权的合成测试路径"),
         };
-        Ok(HttpResponse::new(status, request.url, body))
+        Ok(ubaa_core::facade::testing::sso_fixture_response(
+            status,
+            request.url,
+            body,
+        ))
     }
 }
 
@@ -152,6 +159,9 @@ struct RotatingPages {
 #[async_trait]
 impl HttpTransport for RotatingPages {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         let is_login_get = request.method == HttpMethod::Get
             && url::Url::parse(&from_webvpn_url(&request.url).unwrap())
                 .unwrap()
@@ -213,6 +223,9 @@ struct LostResponse(AutomaticTransport);
 #[async_trait]
 impl HttpTransport for LostResponse {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         let posted = request.method == HttpMethod::Post;
         let response = self.0.execute(request).await?;
         if posted {

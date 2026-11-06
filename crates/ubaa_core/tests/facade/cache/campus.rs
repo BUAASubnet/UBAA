@@ -6,9 +6,14 @@ struct CampusTransport(Arc<AtomicUsize>);
 #[async_trait]
 impl HttpTransport for CampusTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         let path = url::Url::parse(&request.url).unwrap().path().to_owned();
         let body = match path.as_str() {
-            "/api/uc/status" => include_str!("../../../../../fixtures/auth/userinfo-success.json"),
+            "/serviceValidate" => {
+                include_str!("../../../../../fixtures/auth/userinfo-success.json")
+            }
             "/personal/frontend/data/info" if self.0.load(Ordering::SeqCst) == 0 => {
                 include_str!("../../../../../fixtures/readonly/campus/profile.json")
             }
@@ -16,7 +21,7 @@ impl HttpTransport for CampusTransport {
             "/home" => include_str!("../../../../../fixtures/readonly/campus/network.html"),
             _ => panic!("出现未预期请求：{path}"),
         };
-        Ok(HttpResponse::new(
+        Ok(ubaa_core::facade::testing::sso_fixture_response(
             200,
             request.url,
             body.as_bytes().to_vec(),
@@ -76,7 +81,7 @@ fn 校园快照端到端保留成功值且拒绝错误账号与退出后读取()
                     cache
                         .read_campus(ConnectionMode::WebVpn, query)
                         .unwrap()
-                        .is_none()
+                        .is_some()
                 );
             }
             let previous = cache

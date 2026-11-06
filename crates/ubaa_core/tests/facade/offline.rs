@@ -96,7 +96,14 @@ fn 学业缓存按精确参数保存完整结果且磁盘重开不发送网络()
         assert_eq!(record.payload, result.data);
         let mut other = result.scope.clone();
         other.route = ConnectionMode::WebVpn;
-        assert!(reopened.read(&other, result.fetched_at).unwrap().is_none());
+        assert_eq!(
+            reopened
+                .read(&other, result.fetched_at)
+                .unwrap()
+                .unwrap()
+                .payload,
+            result.data
+        );
     }
     assert_eq!(before, requests.lock().unwrap().len());
     drop(reopened);
@@ -179,7 +186,7 @@ fn mismatched_account_never_reads_or_caches_school_business_data() {
             .lock()
             .unwrap()
             .iter()
-            .all(|r| r.url.ends_with("/api/uc/status"))
+            .all(|r| r.url.contains("/serviceValidate?"))
     );
     drop(cache);
     let _ = std::fs::remove_dir_all(root);
@@ -264,6 +271,9 @@ struct LateCacheTransport {
 #[async_trait]
 impl HttpTransport for LateCacheTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         let query = if self.judge && request.url.ends_with("assignment/index.jsp") {
             Some(ubaa_core::facade::CacheQuery::JudgeSummaries {
                 include_expired: true,
@@ -375,18 +385,26 @@ struct OfflineTransport(Arc<std::sync::Mutex<Vec<HttpRequest>>>);
 #[async_trait]
 impl HttpTransport for OfflineTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         self.0.lock().unwrap().push(request.clone());
         if request.url.starts_with("https://sso.buaa.edu.cn/login?") {
-            let mut response = HttpResponse::new(302, request.url, Vec::new());
+            let mut response =
+                ubaa_core::facade::testing::sso_fixture_response(302, request.url, Vec::new());
             response
                 .headers
                 .insert("Location".into(), vec!["https://judge.buaa.edu.cn/".into()]);
             return Ok(response);
         }
         if request.url.contains("/gsapp/sys/wdkbapp/") {
-            return Ok(HttpResponse::new(503, request.url, Vec::new()));
+            return Ok(ubaa_core::facade::testing::sso_fixture_response(
+                503,
+                request.url,
+                Vec::new(),
+            ));
         }
-        let body = if request.url.ends_with("/api/uc/status") {
+        let body = if request.url.contains("/serviceValidate?") {
             include_bytes!("../../../../fixtures/auth/userinfo-success.json").to_vec()
         } else if request.url.contains("currentUser.do") {
             br#"{"code":"0","datas":{"userId":"synthetic-user"}}"#.to_vec()
@@ -423,7 +441,11 @@ impl HttpTransport for OfflineTransport {
         } else {
             panic!("未预期的合成请求");
         };
-        Ok(HttpResponse::new(200, request.url, body))
+        Ok(ubaa_core::facade::testing::sso_fixture_response(
+            200,
+            request.url,
+            body,
+        ))
     }
 }
 
@@ -436,11 +458,14 @@ struct ControlledAcademicTransport {
 #[async_trait]
 impl HttpTransport for ControlledAcademicTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         if request.url.contains("getMyScheduleDetail.do") {
             match self.mode.load(Ordering::SeqCst) {
-                1 => return Ok(HttpResponse::new(503, request.url, b"synthetic".to_vec())),
+                1 => return Ok(ubaa_core::facade::testing::sso_fixture_response(503, request.url, b"synthetic".to_vec())),
                 2 => self.cache.deactivate().unwrap(),
-                3 => return Ok(HttpResponse::new(200, request.url, br#"{"code":"0","datas":{"arrangedList":[],"code":"response-code","name":"synthetic"}}"#.to_vec())),
+                3 => return Ok(ubaa_core::facade::testing::sso_fixture_response(200, request.url, br#"{"code":"0","datas":{"arrangedList":[],"code":"response-code","name":"synthetic"}}"#.to_vec())),
                 _ => {}
             }
         }
@@ -563,7 +588,7 @@ fn 学业非法范围在认证前拒绝且错账号不读取业务() {
             .lock()
             .unwrap()
             .iter()
-            .all(|request| request.url.ends_with("/api/uc/status"))
+            .all(|request| request.url.contains("/serviceValidate?"))
     );
     drop(cache);
     drop(client);

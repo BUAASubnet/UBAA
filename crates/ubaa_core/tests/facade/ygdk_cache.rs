@@ -10,20 +10,23 @@ struct CacheTransport {
 #[async_trait]
 impl HttpTransport for CacheTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         self.calls.fetch_add(1, Ordering::SeqCst);
         let url = url::Url::parse(&request.url).unwrap();
         let path = url.path();
         let mode = self.mode.load(Ordering::SeqCst);
         let classify = if mode == 3 { 2 } else { 1 };
         if path == "/uc/api/oauth/index" {
-            return Ok(HttpResponse::new(
+            return Ok(ubaa_core::facade::testing::sso_fixture_response(
                 200,
                 "https://ygdk.buaa.edu.cn/#/home?code=synthetic",
                 Vec::new(),
             ));
         }
         let body = match path {
-            "/api/uc/status" => include_str!("../../../../fixtures/auth/userinfo-success.json").to_owned(),
+            "/serviceValidate" => include_str!("../../../../fixtures/auth/userinfo-success.json").to_owned(),
             "/api/Front/Clockin/User/campusAppLogin" => r#"{"code":1,"result":{"uid":1,"token":"synthetic"}}"#.into(),
             "/api/Front/Clockin/Classify/getList" => serde_json::json!({"code":1,"result":{"list":[{"classify_id":classify,"name":"合成体育"}]}}).to_string(),
             "/api/Front/Clockin/Item/getList" => r#"{"code":1,"result":{"list":[{"item_id":2,"name":"合成跑步"}]}}"#.into(),
@@ -43,14 +46,18 @@ impl HttpTransport for CacheTransport {
                 for key in ["page", "limit", "classify_id", "user_id"] { assert_eq!(query.get(key), form.get(key)); }
                 assert_eq!(query.get("classify_id").unwrap(), &classify.to_string());
                 assert!(!query.contains_key("token"));
-                if mode == 1 || mode == 7 { return Ok(HttpResponse::new(503, request.url, Vec::new())); }
+                if mode == 1 || mode == 7 { return Ok(ubaa_core::facade::testing::sso_fixture_response(503, request.url, Vec::new())); }
                 if mode == 2 { r#"{"code":1,"result":{}}"#.into() }
                 else if mode == 4 { r#"{"code":1,"result":{"list":[],"total":0}}"#.into() }
                 else { r#"{"code":1,"result":{"list":[{"record_id":11,"item_id":2,"place":"合成操场","images":["https://synthetic.invalid/photo"]}],"total":30}}"#.into() }
             }
             _ => panic!("出现非只读合成请求"),
         };
-        Ok(HttpResponse::new(200, request.url, body.into_bytes()))
+        Ok(ubaa_core::facade::testing::sso_fixture_response(
+            200,
+            request.url,
+            body.into_bytes(),
+        ))
     }
 }
 fn setup(root: &std::path::Path) -> (UbaaClient, OfflineCache, CacheTransport) {
@@ -125,7 +132,7 @@ fn 阳光记录按分类页码隔离且失败不抹旧记录或保存照片地�
         cache
             .read_ygdk_records(ConnectionMode::WebVpn, 1, 2, 5)
             .unwrap()
-            .is_none()
+            .is_some()
     );
     transport.mode.store(1, Ordering::SeqCst);
     assert!(

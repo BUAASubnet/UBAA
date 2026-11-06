@@ -217,7 +217,7 @@ fn auto确认只复用未过期且支持创建的实际路线观察() {
     use std::{sync::atomic::Ordering::SeqCst, time::Duration};
     for (campus, ttl, allowed) in [
         (true, Duration::from_mins(1), true),
-        (false, Duration::from_mins(1), false),
+        (false, Duration::from_mins(1), true),
         (true, Duration::ZERO, false),
     ] {
         let root = root();
@@ -247,28 +247,27 @@ fn auto确认只复用未过期且支持创建的实际路线观察() {
 }
 
 #[tokio::test]
-async fn auto确认由实际云盘路线解析拒绝且不再选择路线() {
+async fn 显式切换webvpn后确认按实际云盘路线拒绝且不探测网络() {
     use std::{sync::atomic::Ordering::SeqCst, time::Duration};
     let root = root();
     let (mut client, network) = auto_client(&root, true, Duration::ZERO);
     let original = client.resolve_bhpan_route().unwrap().resolution.mode;
     assert_eq!(original, ConnectionMode::Direct);
     // 零 TTL 模拟确认发起后，原 Direct 观察已经过期。
-    network.campus.store(false, SeqCst);
+    client.config_dir = Some(root.clone());
+    client
+        .set_default_route_policy(RoutePolicy::WebVpn)
+        .unwrap();
     let error = CONFIRMED_AGENDA_ROUTE
         .scope(original, client.bhpan_personal_root())
         .await
         .unwrap_err();
     assert!(error.is_agenda_creation_route_changed());
-    assert_eq!(
-        network.calls.load(SeqCst),
-        2,
-        "确认检查复用云盘本次实际解析"
-    );
+    assert_eq!(network.calls.load(SeqCst), 1, "显式路线不增加网络探测");
     let ordinary = client.bhpan_personal_root().await.unwrap_err();
     assert_eq!(ordinary.code, ErrorCode::PermissionDenied);
     assert!(!ordinary.is_agenda_creation_route_changed());
-    assert_eq!(network.calls.load(SeqCst), 3, "普通 Auto 保留原解析");
+    assert_eq!(network.calls.load(SeqCst), 1, "显式路线始终不探测");
     drop(client);
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -338,20 +337,19 @@ async fn 切换webvpn后旧创建确认仍然失效() {
 }
 
 #[tokio::test]
-async fn auto校外同步返回未验证能力且只观察一次路线() {
+async fn auto校外云盘使用直连且创建确认复用同一次路线观察() {
     use std::{sync::atomic::Ordering::SeqCst, time::Duration};
-    let (root, store, original) = fixture();
+    let root = root();
     let (mut client, network) = auto_client(&root, false, Duration::from_mins(1));
-    client.bind_shared_account(original.shared_account_guard());
-    drop(original);
-    let mut service = AgendaSyncService::new(store, root.join("scratch"));
-    let result = service
-        .run(&mut client, AgendaSyncAction::Pull, now())
-        .await;
-    assert!(matches!(result, Ok(report)
-        if report.status == crate::facade::AgendaSyncStatus::Unverified));
+    assert_eq!(
+        client.resolve_bhpan_route().unwrap().resolution.mode,
+        ConnectionMode::Direct
+    );
+    assert_eq!(
+        client.agenda_sync_scope().unwrap().mode,
+        ConnectionMode::Direct
+    );
     assert_eq!(network.calls.load(SeqCst), 1);
-    drop(service);
     drop(client);
     std::fs::remove_dir_all(root).unwrap();
 }
@@ -388,7 +386,7 @@ async fn 目录未知结果在webvpn核对前返回未验证能力() {
 }
 
 #[tokio::test]
-async fn auto路线观察过期转为webvpn后读取版本返回未验证能力() {
+async fn 显式转为webvpn后读取旧直连版本返回未验证能力() {
     use std::{sync::atomic::Ordering::SeqCst, time::Duration};
     let root = root();
     let (mut client, network) = auto_client(&root, true, Duration::ZERO);
@@ -396,7 +394,10 @@ async fn auto路线观察过期转为webvpn后读取版本返回未验证能力(
         client.resolve_bhpan_route().unwrap().resolution.mode,
         ConnectionMode::Direct
     );
-    network.campus.store(false, SeqCst);
+    client.config_dir = Some(root.clone());
+    client
+        .set_default_route_policy(RoutePolicy::WebVpn)
+        .unwrap();
     let binding = Binding::capture(&client);
     let scratch = root.join("scratch");
     let mut remote = remote::BhpanRemote::new(&mut client, binding, &scratch);
@@ -412,7 +413,7 @@ async fn auto路线观察过期转为webvpn后读取版本返回未验证能力(
         matches!(result, Err(RemoteError::Unverified)),
         "版本读取须按本次实际路线归约未验证能力：{result:?}"
     );
-    assert_eq!(network.calls.load(SeqCst), 2);
+    assert_eq!(network.calls.load(SeqCst), 1);
     assert_eq!(std::fs::read_dir(&scratch).unwrap().count(), 0);
     drop(remote);
     drop(client);

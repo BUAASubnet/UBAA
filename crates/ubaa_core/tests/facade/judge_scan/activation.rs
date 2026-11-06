@@ -9,7 +9,8 @@ fn activation_count(transport: &ScanTransport) -> usize {
         .unwrap()
         .iter()
         .filter(|request| {
-            url::Url::parse(&request.url).unwrap().host_str() == Some("sso.buaa.edu.cn")
+            request.url
+                == "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fjudge.buaa.edu.cn%2F"
         })
         .count()
 }

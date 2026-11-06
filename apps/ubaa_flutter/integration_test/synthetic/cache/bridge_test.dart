@@ -688,13 +688,11 @@ Future<void> _checkGradeBaseline(
     );
     expect(saved!.scores.single.score, '89');
     expect(saved.scores.single.courseName, '合成成绩课程');
-    expect(
-      await reopened.readGradeScoreBaseline(
-        route: BridgeConnectionMode.webVpn,
-        term: term,
-      ),
-      isNull,
+    final shared = await reopened.readGradeScoreBaseline(
+      route: BridgeConnectionMode.webVpn,
+      term: term,
     );
+    expect(shared!.scores.single.score, saved.scores.single.score);
     expect(
       await reopened.readGradeScoreBaseline(route: route, term: '2026-2027-2'),
       isNull,

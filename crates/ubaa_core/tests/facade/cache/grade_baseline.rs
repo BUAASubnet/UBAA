@@ -73,7 +73,7 @@ fn 成绩基线重开按账号路线学期隔离且磁盘无正文() {
         cache
             .read_grade_score_baseline(ConnectionMode::WebVpn, TERM)
             .unwrap()
-            .is_none()
+            .is_some()
     );
     assert!(
         cache

@@ -22,6 +22,8 @@ mod campus;
 mod cgyy;
 #[path = "facade/cgyy_cache.rs"]
 mod cgyy_cache;
+#[path = "facade/domain_routes.rs"]
+mod domain_routes;
 #[path = "facade/cache/grade_baseline.rs"]
 mod grade_baseline;
 #[path = "facade/home_cache.rs"]
@@ -34,6 +36,8 @@ mod offline;
 mod recovery;
 #[path = "facade/routing.rs"]
 mod routing;
+#[path = "facade/sso_identity.rs"]
+mod sso_identity;
 #[path = "facade/ygdk.rs"]
 mod ygdk;
 

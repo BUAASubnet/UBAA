@@ -54,7 +54,7 @@ fn 旧组比较后迟到清理不能再次推进代次或误伤新组另一条�
         ConnectionMode::Direct
     );
     assert_eq!(direct.lifecycle_generation(), initial + 1);
-    assert_eq!(fixture.transport.requests.lock().unwrap().len(), 2);
+    assert_eq!(fixture.transport.requests.lock().unwrap().len(), 4);
 
     // B 已完成清理。C 经公开 fork 捕获 (G+1, W)，尚未调用任何路线解析。
     let mut current = fixture.client.fork_parallel_readonly().unwrap();
@@ -86,7 +86,7 @@ fn 旧组比较后迟到清理不能再次推进代次或误伤新组另一条�
         actual,
         (
             Some(ConnectionMode::WebVpn),
-            3,
+            6,
             initial + 1,
             webvpn_generation,
             false,

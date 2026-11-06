@@ -60,6 +60,7 @@ impl std::error::Error for RoutedError {
 #[derive(Clone, Copy)]
 pub(super) enum Operation {
     Bhpan,
+    Authentication,
     User,
     Feature(ReadonlyFeature),
 }

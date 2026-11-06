@@ -1,5 +1,7 @@
 use super::*;
 use ubaa_core::facade::{CacheKey, CacheLimits, CachePayload, CachePublication, OfflineCache};
+#[path = "evaluation_cache/routes.rs"]
+mod routes;
 #[derive(Clone)]
 struct CacheTransport {
     mode: Arc<AtomicUsize>,
@@ -9,6 +11,9 @@ struct CacheTransport {
 #[async_trait]
 impl HttpTransport for CacheTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         self.calls.fetch_add(1, Ordering::SeqCst);
         let url = url::Url::parse(&request.url).unwrap();
         let path = url.path();
@@ -20,7 +25,7 @@ impl HttpTransport for CacheTransport {
         let mode = self.mode.load(Ordering::SeqCst);
         let query: std::collections::HashMap<_, _> = url.query_pairs().collect();
         let body = match path {
-            "/api/uc/status" => {
+            "/serviceValidate" => {
                 let mut value: serde_json::Value = serde_json::from_str(include_str!(
                     "../../../../fixtures/auth/userinfo-success.json"
                 ))
@@ -75,7 +80,7 @@ impl HttpTransport for CacheTransport {
             "/pjxt/evaluationMethodSix/getRequiredReviewsData" => {
                 assert!(matches!(query.get("wjid").unwrap().as_ref(), "wj1" | "wj2"));
                 if matches!(mode, 10 | 11) {
-                    return Ok(HttpResponse::new(200, request.url, br#"{"code":200,"result":[{"kcdm":"kc1","kcmc":"synthetic-course","bpmc":"synthetic-teacher","ypjcs":0,"sxz":"1","pjrdm":"synthetic","pjrmc":"synthetic","rwh":"synthetic","xn":"2026","xq":"1","xnxq":"2026-20271","yxsfktjst":"0"}]}"#.to_vec()));
+                    return Ok(ubaa_core::facade::testing::sso_fixture_response(200, request.url, br#"{"code":200,"result":[{"kcdm":"kc1","kcmc":"synthetic-course","bpmc":"synthetic-teacher","ypjcs":0,"sxz":"1","pjrdm":"synthetic","pjrmc":"synthetic","rwh":"synthetic","xn":"2026","xq":"1","xnxq":"2026-20271","yxsfktjst":"0"}]}"#.to_vec()));
                 }
                 serde_json::json!({"code":200,"result":[{"kcdm":"kc1","kcmc":"合成评教课程","bpmc":"合成教师","ypjcs": if mode == 7 {serde_json::Value::Null} else {serde_json::json!(1)}}]}).to_string()
             }
@@ -91,7 +96,11 @@ impl HttpTransport for CacheTransport {
         } else {
             200
         };
-        Ok(HttpResponse::new(status, request.url, body.into_bytes()))
+        Ok(ubaa_core::facade::testing::sso_fixture_response(
+            status,
+            request.url,
+            body.into_bytes(),
+        ))
     }
 }
 fn setup(root: &std::path::Path) -> (UbaaClient, OfflineCache, CacheTransport) {
@@ -165,7 +174,7 @@ fn 评教持久快照剥离资格且部分失败不清空旧课程() {
         cache
             .read_evaluation(ConnectionMode::WebVpn)
             .unwrap()
-            .is_none()
+            .is_some()
     );
     for mode in [1, 3, 4, 5, 7, 9] {
         transport.mode.store(mode, Ordering::SeqCst);

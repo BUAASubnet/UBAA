@@ -41,16 +41,20 @@ impl UbaaClient {
             .await
             .map_err(OfflineReadError::Read)?;
         verify_identity(cache, &authenticated.data.user, resolution)?;
-        let scope = CacheScope {
+        let mut scope = CacheScope {
             route: resolution.mode,
             query: CacheQuery::MaskedProfile,
         };
-        let (ticket, mut save_error) = super::begin_refresh(cache, scope.clone())?;
-        let read = {
+        let (mut ticket, mut save_error) = super::begin_refresh(cache, scope.clone())?;
+        let (resolution, read) = crate::facade::routing::read_with_fallback!(self, resolution, {
             let (runtime, auth) = self.route_parts_for(resolution.mode);
             let mut clear_workflow = || auth.clear();
             crate::features::user::get_user_info(runtime, &mut clear_workflow).await
-        };
+        });
+        scope.route = resolution.mode;
+        if let Some(ticket) = &mut ticket {
+            ticket.set_source_route(resolution.mode);
+        }
         let fetched_at = chrono::Utc::now().timestamp();
         let read = match self.finish_routed(resolution, read) {
             Ok(value) => value,

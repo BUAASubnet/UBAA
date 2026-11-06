@@ -27,16 +27,7 @@ Future<OfflineHomeRead> bridgeReadCachedHome(
   final cache = backend.cache.handle;
   final account = backend.cache.account;
   if (cache == null || account == null) return OfflineHomeRead(const []);
-  final routes = switch (policy) {
-    RoutePolicy.direct => [BridgeConnectionMode.direct],
-    RoutePolicy.webvpn => [BridgeConnectionMode.webVpn],
-    RoutePolicy.auto => [
-      BridgeConnectionMode.direct,
-      BridgeConnectionMode.webVpn,
-    ],
-  };
-  BridgeCachedToday? newest;
-  BridgeCachedJudge? newestJudge;
+  const route = BridgeConnectionMode.direct;
   BackendException? failure;
   Future<T?> readPart<T>(Future<T?> Function() read) async {
     try {
@@ -47,19 +38,10 @@ Future<OfflineHomeRead> bridgeReadCachedHome(
     }
   }
 
-  for (final route in routes) {
-    final record = await readPart(() => cache.readToday(route: route));
-    if (record != null &&
-        (newest == null || record.fetchedAt.toInt() > newest.fetchedAt.toInt()))
-      newest = record;
-    final judge = await readPart(
-      () => cache.readJudge(route: route, includeExpired: false),
-    );
-    if (judge != null &&
-        (newestJudge == null ||
-            judge.fetchedAt.toInt() > newestJudge.fetchedAt.toInt()))
-      newestJudge = judge;
-  }
+  final today = await readPart(() => cache.readToday(route: route));
+  final judge = await readPart(
+    () => cache.readJudge(route: route, includeExpired: false),
+  );
   final additional = <CachedFeatureProjection>[];
   for (final feature in [
     FeatureId.signin,
@@ -107,27 +89,24 @@ Future<OfflineHomeRead> bridgeReadCachedHome(
     if (bykc.projection != null) bykc.projection!,
     if (cgyy.projection != null) cgyy.projection!,
     ...additional,
-    if (newest != null)
+    if (today != null)
       CachedFeatureProjection(
         feature: FeatureId.schedule,
         accountId: account.id,
-        route: bridgeToConnectionMode(newest.sourceRoute),
-        fetchedAt: bridgeCacheTime(newest.fetchedAt.toInt()),
-        complete: newest.complete,
-        scopeDate: newest.date,
-        details: newest.data.map(bridgeTodayDetail),
+        route: bridgeToConnectionMode(today.sourceRoute),
+        fetchedAt: bridgeCacheTime(today.fetchedAt.toInt()),
+        complete: today.complete,
+        scopeDate: today.date,
+        details: today.data.map(bridgeTodayDetail),
       ),
-    if (newestJudge != null)
+    if (judge != null)
       CachedFeatureProjection(
         feature: FeatureId.judge,
         accountId: account.id,
-        route: bridgeToConnectionMode(newestJudge.sourceRoute),
-        fetchedAt: bridgeCacheTime(newestJudge.fetchedAt.toInt()),
-        complete: newestJudge.complete,
-        details: bridgeJudgeSummaryDetails(
-          newestJudge.data,
-          includeExpired: false,
-        ),
+        route: bridgeToConnectionMode(judge.sourceRoute),
+        fetchedAt: bridgeCacheTime(judge.fetchedAt.toInt()),
+        complete: judge.complete,
+        details: bridgeJudgeSummaryDetails(judge.data, includeExpired: false),
       ),
   ], error: failure);
 }

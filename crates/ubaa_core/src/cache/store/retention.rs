@@ -1,10 +1,8 @@
 //! 容量压力下重新计算保留价值；业务时间不写入明文索引列。
 use super::{
-    CacheError, CacheLimits, CachePayload, CacheRecord, CacheResult, CacheScope, Connection,
-    Crypto, load_body,
+    CacheError, CacheLimits, CachePayload, CacheRecord, CacheResult, Connection, Crypto, load_body,
 };
 use crate::cache::CacheQuery;
-use crate::domain::ConnectionMode;
 use chrono::{DateTime, FixedOffset, NaiveDate, NaiveDateTime, TimeZone, Utc};
 
 const DAY: i64 = 86_400;
@@ -20,7 +18,7 @@ pub(super) enum Priority {
 }
 #[derive(Default)]
 pub(super) struct Context {
-    terms: Vec<(ConnectionMode, String)>,
+    terms: Vec<String>,
 }
 impl Context {
     pub(super) fn load(
@@ -30,21 +28,12 @@ impl Context {
         now: i64,
     ) -> CacheResult<Self> {
         let mut result = Self::default();
-        for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
-            let scope = CacheScope {
-                route,
-                query: CacheQuery::ScheduleTerms,
-            };
-            let key = crypto.index(&(account, &scope))?;
-            let Some(body) = load_body(db, &key)? else {
-                continue;
-            };
-            let Ok(record) = crypto.open::<CacheRecord>(&body, &key) else {
-                continue;
-            };
-            if record.scope == scope {
-                result.observe(&record, now);
-            }
+        let key = crypto.index(&(account, &CacheQuery::ScheduleTerms))?;
+        if let Some(body) = load_body(db, &key)?
+            && let Ok(record) = crypto.open::<CacheRecord>(&body, &key)
+            && record.scope.query == CacheQuery::ScheduleTerms
+        {
+            result.observe(&record, now);
         }
         Ok(result)
     }
@@ -52,20 +41,19 @@ impl Context {
         if record.scope.query != CacheQuery::ScheduleTerms {
             return;
         }
-        let route = record.scope.route;
-        self.terms.retain(|(r, _)| *r != route);
+        self.terms.clear();
         if !record.is_fresh(now, DAY) {
             return;
         }
         if let CachePayload::Terms(terms) = &record.payload {
             let selected: Vec<_> = terms.iter().filter(|v| v.selected).collect();
             if selected.len() == 1 && !selected[0].item_code.is_empty() {
-                self.terms.push((route, selected[0].item_code.clone()));
+                self.terms.push(selected[0].item_code.clone());
             }
         }
     }
-    fn academic(&self, route: ConnectionMode, term: &str) -> Priority {
-        if self.terms.iter().any(|(r, t)| *r == route && t == term) {
+    fn academic(&self, term: &str) -> Priority {
+        if self.terms.iter().any(|value| value == term) {
             Priority::Active
         } else {
             Priority::Stable
@@ -184,7 +172,7 @@ pub(super) fn classify(record: &CacheRecord, context: &Context, now: i64) -> Pri
 fn query_priority(record: &CacheRecord, context: &Context, today: NaiveDate) -> Option<Priority> {
     match &record.scope.query {
         CacheQuery::ScheduleWeek { term, .. } => {
-            return Some(context.academic(record.scope.route, term));
+            return Some(context.academic(term));
         }
         CacheQuery::ScheduleToday { date } => {
             return Some(if day(date).is_some_and(|date| date >= today) {
@@ -203,7 +191,7 @@ fn query_priority(record: &CacheRecord, context: &Context, today: NaiveDate) -> 
             }));
         }
         CacheQuery::Exams { term } => {
-            let mut priority = context.academic(record.scope.route, term);
+            let mut priority = context.academic(term);
             if let CachePayload::Exams(value) = &record.payload
                 && value.arranged.iter().any(|exam| {
                     exam.exam_date

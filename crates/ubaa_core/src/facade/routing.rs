@@ -9,6 +9,48 @@ use crate::runtime::ClientRuntime;
 
 use super::client::UbaaClient;
 use super::types::{CallerPinned, Operation, Routed, RoutedError, RoutedResult};
+pub(super) mod domains;
+
+/// 同一个只读表达式最多执行两次，每次使用独立路线运行时。
+macro_rules! read_with_fallback {
+    ($client:ident, $resolution:ident, $read:expr) => {{
+        let mut $resolution = $resolution;
+        let initial_resolution = $resolution;
+        $client
+            .runtime_for($resolution.mode)
+            .reset_network_observation();
+        let result = $read;
+        match $client.prepare_read_fallback($resolution, &result).await {
+            Ok(Some(domain)) => {
+                $resolution.mode = crate::domain::ConnectionMode::WebVpn;
+                $resolution.diagnostic.mode = $resolution.mode;
+                $resolution.diagnostic.used_fallback = true;
+                $client
+                    .runtime_for($resolution.mode)
+                    .reset_network_observation();
+                let fallback_result = $read;
+                if fallback_result.is_err() && result.is_ok() {
+                    (initial_resolution, result)
+                } else {
+                    $client.remember_read_fallback(&domain, &fallback_result);
+                    ($resolution, fallback_result)
+                }
+            }
+            Ok(None) => ($resolution, result),
+            Err(error) => {
+                if result.is_ok() {
+                    (initial_resolution, result)
+                } else {
+                    $resolution.mode = crate::domain::ConnectionMode::WebVpn;
+                    $resolution.diagnostic.mode = $resolution.mode;
+                    $resolution.diagnostic.used_fallback = true;
+                    ($resolution, Err(error))
+                }
+            }
+        }
+    }};
+}
+pub(super) use read_with_fallback;
 
 /// 已选定路线的会话检查与操作收尾，两种 facade 共用此实现。
 pub(super) struct RouteExecution<'a> {
@@ -64,6 +106,73 @@ impl<'a> RouteExecution<'a> {
 }
 
 impl UbaaClient {
+    pub(super) async fn prepare_read_fallback<T>(
+        &mut self,
+        resolution: RouteResolution,
+        result: &Result<T>,
+    ) -> Result<Option<String>> {
+        if resolution.policy != RoutePolicy::Auto
+            || resolution.diagnostic.network == crate::connection::NetworkState::Campus
+            || resolution.mode != ConnectionMode::Direct
+            || result.as_ref().is_err_and(|error| {
+                !matches!(error.code, ErrorCode::NetworkError | ErrorCode::Timeout)
+            })
+        {
+            return Ok(None);
+        }
+        let Some(domain) = self
+            .direct_runtime
+            .network_failure_domain
+            .clone()
+            .filter(|domain| domains::allowed(domain))
+        else {
+            return Ok(None);
+        };
+        self.guard_latest_session_ownership()?;
+        if !self.webvpn_runtime.has_local_session() {
+            return Err(authentication_required());
+        }
+        let expected = match self.direct_runtime.account_name() {
+            Some(value) => value.to_owned(),
+            None => self
+                .auth_status_route(ConnectionMode::Direct)
+                .await?
+                .user
+                .school_id
+                .ok_or_else(authentication_required)?,
+        };
+        let actual = self.auth_status_route(ConnectionMode::WebVpn).await?;
+        if actual.user.school_id.as_deref() != Some(expected.as_str()) {
+            return Err(UbaaError::new(
+                ErrorCode::PermissionDenied,
+                ErrorKind::Authentication,
+                false,
+                "两条路线的账号不一致，请重新登录",
+            ));
+        }
+        Ok(Some(domain))
+    }
+
+    pub(super) fn remember_read_fallback<T>(&mut self, domain: &str, result: &Result<T>) {
+        if result.is_ok()
+            && self.webvpn_runtime.reached_domains.contains(domain)
+            && self.webvpn_runtime.network_failure_domain.as_deref() != Some(domain)
+        {
+            self.domain_routes
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner)
+                .remember(domain.to_owned(), self.route_now());
+        }
+    }
+
+    fn route_now(&self) -> i64 {
+        self.direct_runtime
+            .now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |duration| {
+                i64::try_from(duration.as_secs()).unwrap_or(i64::MAX)
+            })
+    }
     /// 为 typed 读取/写入准备解析本次实际路线，不发起业务请求。
     ///
     /// # Errors
@@ -113,7 +222,7 @@ impl UbaaClient {
                 resolution: None,
             })?;
         let (policy, row) = match operation {
-            Operation::User | Operation::Bhpan => {
+            Operation::Authentication | Operation::User | Operation::Bhpan => {
                 (self.config.default, FeatureRouteConfig::SAFE_DEFAULT)
             }
             Operation::Feature(feature) => (
@@ -122,10 +231,25 @@ impl UbaaClient {
             ),
         };
         let mut resolution = resolve_route(policy, row, self.probe.as_ref());
+        if policy == RoutePolicy::Auto {
+            let mut domains = self
+                .domain_routes
+                .lock()
+                .unwrap_or_else(std::sync::PoisonError::into_inner);
+            if resolution.diagnostic.network == crate::connection::NetworkState::Campus {
+                domains.campus();
+            } else if domains.prefers_webvpn(operation, self.route_now()) {
+                resolution.mode = ConnectionMode::WebVpn;
+                resolution.diagnostic.mode = ConnectionMode::WebVpn;
+                resolution.diagnostic.used_fallback = true;
+            }
+        }
         let initial_route = resolution.mode;
-        if !self.route_is_ready(initial_route)
+        if initial_route == ConnectionMode::Direct
+            && !self.route_is_ready(initial_route)
             && policy == RoutePolicy::Auto
-            && row.allow_ready_route_fallback
+            && resolution.diagnostic.network != crate::connection::NetworkState::Campus
+            && !matches!(operation, Operation::Bhpan)
         {
             let alternate = alternate_route(initial_route);
             if self.route_is_ready(alternate) {

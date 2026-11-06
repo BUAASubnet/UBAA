@@ -133,7 +133,7 @@ fn ygdk_caller_pinned_readback_ignores_current_auto_route_without_fallback() {
     let current = client
         .resolve_route_for_feature(ReadonlyFeature::Ygdk)
         .expect("Auto 路线应可解析");
-    assert_eq!(current.mode, ConnectionMode::WebVpn);
+    assert_eq!(current.mode, ConnectionMode::Direct);
     let runtime = tokio::runtime::Builder::new_current_thread()
         .enable_all()
         .build()

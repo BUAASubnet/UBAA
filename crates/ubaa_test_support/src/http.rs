@@ -43,6 +43,7 @@ pub struct MockTransport {
 }
 
 struct MockState {
+    sso_checks: bool,
     expected: Mutex<VecDeque<ExpectedRequest>>,
     requests: Mutex<Vec<HttpRequest>>,
 }
@@ -70,10 +71,40 @@ impl fmt::Debug for MockTransport {
 }
 
 impl MockTransport {
+    /// 业务测试声明验票响应时同时加入标准取票步骤，实际请求仍按顺序严格匹配。
+    /// # Panics
+    /// 内置合成 SSO 地址无法转换时触发测试失败。
+    pub fn with_sso_checks(expectations: impl IntoIterator<Item = ExpectedRequest>) -> Self {
+        let mut steps = Vec::new();
+        for expected in expectations {
+            let direct =
+                ubaa_core::facade::testing::from_webvpn_url(&expected.url).unwrap_or_default();
+            if direct.starts_with("https://sso.buaa.edu.cn/serviceValidate?") {
+                let login = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp";
+                let login = if expected.url.starts_with("https://d.buaa.edu.cn/") {
+                    ubaa_core::facade::testing::to_webvpn_url(login).unwrap()
+                } else {
+                    login.into()
+                };
+                let request = HttpRequest::get(&login);
+                let response = ubaa_core::facade::testing::sso_fixture_ticket(&request)
+                    .expect("固定合成取票请求");
+                steps.push(ExpectedRequest::new(HttpMethod::Get, login, response));
+            }
+            steps.push(expected);
+        }
+        Self::build(steps, true)
+    }
+
     /// 根据脚本化期望构造传输实现。
     pub fn new(expectations: impl IntoIterator<Item = ExpectedRequest>) -> Self {
+        Self::build(expectations, false)
+    }
+
+    fn build(expectations: impl IntoIterator<Item = ExpectedRequest>, sso_checks: bool) -> Self {
         Self {
             state: Arc::new(MockState {
+                sso_checks,
                 expected: Mutex::new(expectations.into_iter().collect()),
                 requests: Mutex::new(Vec::new()),
             }),
@@ -116,6 +147,17 @@ impl MockTransport {
 #[async_trait]
 impl HttpTransport for MockTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if self.state.sso_checks
+            && (request.url.contains("cas_login%3Dtrue") || request.url == "https://d.buaa.edu.cn/")
+            && let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request)
+        {
+            self.state
+                .requests
+                .lock()
+                .map_err(|_| mock_error("mock lock poisoned"))?
+                .push(request);
+            return Ok(response);
+        }
         self.state
             .requests
             .lock()

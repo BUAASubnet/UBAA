@@ -12,7 +12,7 @@ async fn 图书馆取消读取投影只从canonical状态产生typed资格() {
     let root = test_root("read-libbook-cancel-eligibility");
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, false);
-    let direct = MockTransport::new([
+    let direct = MockTransport::with_sso_checks([
         libbook_cancel_cas_request(),
         libbook_cancel_login_request(),
         libbook_bookings_request(bookings_matrix_body()),
@@ -23,7 +23,7 @@ async fn 图书馆取消读取投影只从canonical状态产生typed资格() {
         store,
         "[route]\ndefault = \"direct\"\n",
         direct.clone(),
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
     )
     .await;
 
@@ -67,7 +67,7 @@ async fn 图书馆取消准备读取fresh同页权威并完整保存安全请求
     let root = test_root("prepare-libbook-cancel");
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, false);
-    let direct = MockTransport::new([
+    let direct = MockTransport::with_sso_checks([
         libbook_cancel_cas_request(),
         libbook_cancel_login_request(),
         allowed_bookings_request(),
@@ -78,7 +78,7 @@ async fn 图书馆取消准备读取fresh同页权威并完整保存安全请求
         store,
         "[route]\ndefault = \"direct\"\n",
         direct.clone(),
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
     )
     .await;
 
@@ -136,8 +136,8 @@ async fn 图书馆取消本地非法输入在任何网络前拒绝且不保存�
     let root = test_root("invalid-libbook-cancel");
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, false);
-    let direct = MockTransport::new([]);
-    let webvpn = MockTransport::new([]);
+    let direct = MockTransport::with_sso_checks([]);
+    let webvpn = MockTransport::with_sso_checks([]);
     let client = BridgeClient::open(root.to_string_lossy().into_owned()).expect("打开 bridge");
     install_core(
         &client,
@@ -211,7 +211,7 @@ async fn 图书馆取消准备只为明确allowed且唯一目标保存意图() {
         let root = test_root(label);
         let _ = std::fs::remove_dir_all(&root);
         let store = seed_sessions(&root, true, false);
-        let direct = MockTransport::new([
+        let direct = MockTransport::with_sso_checks([
             libbook_cancel_cas_request(),
             libbook_cancel_login_request(),
             libbook_bookings_request(body),
@@ -222,7 +222,7 @@ async fn 图书馆取消准备只为明确allowed且唯一目标保存意图() {
             store,
             "[route]\ndefault = \"direct\"\n",
             direct.clone(),
-            MockTransport::new([]),
+            MockTransport::with_sso_checks([]),
         )
         .await;
 
@@ -248,7 +248,7 @@ async fn 图书馆取消准备与提交的预约列表错误不跨越_bridge_边
     let root = test_root("prepare-libbook-cancel-unsafe-member-message");
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, false);
-    let direct = MockTransport::new([
+    let direct = MockTransport::with_sso_checks([
         libbook_cancel_cas_request(),
         libbook_cancel_login_request(),
         libbook_bookings_request(unsafe_body.clone()),
@@ -259,7 +259,7 @@ async fn 图书馆取消准备与提交的预约列表错误不跨越_bridge_边
         store,
         "[route]\ndefault = \"direct\"\n",
         direct.clone(),
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
     )
     .await;
     let error = client
@@ -278,7 +278,7 @@ async fn 图书馆取消准备与提交的预约列表错误不跨越_bridge_边
     let root = test_root("commit-libbook-cancel-unsafe-member-message");
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, false);
-    let direct = MockTransport::new([
+    let direct = MockTransport::with_sso_checks([
         libbook_cancel_cas_request(),
         libbook_cancel_login_request(),
         allowed_bookings_request(),
@@ -290,7 +290,7 @@ async fn 图书馆取消准备与提交的预约列表错误不跨越_bridge_边
         store,
         "[route]\ndefault = \"direct\"\n",
         direct.clone(),
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
     )
     .await;
     let intent = client
@@ -318,7 +318,7 @@ async fn 图书馆取消提交前资格漂移会消费意图且不发送_cancel(
     let root = test_root("commit-libbook-cancel-drift");
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, false);
-    let direct = MockTransport::new([
+    let direct = MockTransport::with_sso_checks([
         libbook_cancel_cas_request(),
         libbook_cancel_login_request(),
         allowed_bookings_request(),
@@ -330,7 +330,7 @@ async fn 图书馆取消提交前资格漂移会消费意图且不发送_cancel(
         store,
         "[route]\ndefault = \"direct\"\n",
         direct.clone(),
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
     )
     .await;
     let intent = client
@@ -363,7 +363,7 @@ async fn 图书馆取消成功使用固定文案且重复commit不会重发() {
     let root = test_root("commit-libbook-cancel-once");
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, false);
-    let direct = MockTransport::new([
+    let direct = MockTransport::with_sso_checks([
         libbook_cancel_cas_request(),
         libbook_cancel_login_request(),
         allowed_bookings_request(),
@@ -376,7 +376,7 @@ async fn 图书馆取消成功使用固定文案且重复commit不会重发() {
         store,
         "[route]\ndefault = \"direct\"\n",
         direct.clone(),
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
     )
     .await;
     let intent = client
@@ -411,7 +411,7 @@ async fn 图书馆取消确定业务false保持失败并隐藏上游文案() {
     let root = test_root("commit-libbook-cancel-business-false");
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, false);
-    let direct = MockTransport::new([
+    let direct = MockTransport::with_sso_checks([
         libbook_cancel_cas_request(),
         libbook_cancel_login_request(),
         allowed_bookings_request(),
@@ -424,7 +424,7 @@ async fn 图书馆取消确定业务false保持失败并隐藏上游文案() {
         store,
         "[route]\ndefault = \"direct\"\n",
         direct.clone(),
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
     )
     .await;
     let intent = client
@@ -452,7 +452,7 @@ async fn 图书馆取消发送后歧义透传core分类且绝不重放() {
     let root = test_root("commit-libbook-cancel-unknown");
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, false);
-    let direct = MockTransport::new([
+    let direct = MockTransport::with_sso_checks([
         libbook_cancel_cas_request(),
         libbook_cancel_login_request(),
         allowed_bookings_request(),
@@ -465,7 +465,7 @@ async fn 图书馆取消发送后歧义透传core分类且绝不重放() {
         store,
         "[route]\ndefault = \"direct\"\n",
         direct.clone(),
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
     )
     .await;
     let intent = client
@@ -494,15 +494,15 @@ async fn 图书馆取消意图跨越认证状态刷新后失效() {
     let root = test_root("libbook-cancel-auth-lifecycle");
     let _ = std::fs::remove_dir_all(&root);
     let store = seed_sessions(&root, true, false);
-    let status_url = "https://uc.buaa.edu.cn/api/uc/status";
-    let direct = MockTransport::new([
+    let status_url = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
+    let direct = MockTransport::with_sso_checks([
         libbook_cancel_cas_request(),
         libbook_cancel_login_request(),
         allowed_bookings_request(),
         ExpectedRequest::new(
             HttpMethod::Get,
             status_url,
-            HttpResponse::new(
+            ubaa_core::facade::testing::sso_fixture_response(
                 200,
                 status_url,
                 br#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#
@@ -516,7 +516,7 @@ async fn 图书馆取消意图跨越认证状态刷新后失效() {
         store,
         "[route]\ndefault = \"direct\"\n",
         direct.clone(),
-        MockTransport::new([]),
+        MockTransport::with_sso_checks([]),
     )
     .await;
     let intent = client
@@ -634,7 +634,7 @@ fn libbook_cancel_cas_request() -> ExpectedRequest {
     ExpectedRequest::new(
         HttpMethod::Get,
         url,
-        HttpResponse::new(
+        ubaa_core::facade::testing::sso_fixture_response(
             200,
             "https://booking.lib.buaa.edu.cn/h5/index.html#/cas/?cas=cas-safe",
             Vec::new(),
@@ -647,7 +647,7 @@ fn libbook_cancel_login_request() -> ExpectedRequest {
     ExpectedRequest::new(
         HttpMethod::Post,
         url,
-        HttpResponse::new(
+        ubaa_core::facade::testing::sso_fixture_response(
             200,
             url,
             br#"{"code":0,"data":{"member":{"token":"token-safe"}}}"#.to_vec(),
@@ -669,7 +669,7 @@ fn libbook_bookings_request(body: String) -> ExpectedRequest {
     ExpectedRequest::new(
         HttpMethod::Post,
         url,
-        HttpResponse::new(200, url, body.into_bytes()),
+        ubaa_core::facade::testing::sso_fixture_response(200, url, body.into_bytes()),
     )
 }
 
@@ -678,7 +678,7 @@ fn libbook_cancel_write_request(status: u16, body: &'static str) -> ExpectedRequ
     ExpectedRequest::new(
         HttpMethod::Post,
         url,
-        HttpResponse::new(status, url, body.as_bytes().to_vec()),
+        ubaa_core::facade::testing::sso_fixture_response(status, url, body.as_bytes().to_vec()),
     )
 }
 

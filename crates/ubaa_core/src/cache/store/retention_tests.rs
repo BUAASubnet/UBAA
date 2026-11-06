@@ -141,7 +141,7 @@ fn 规范时间边界未知日期和旧开始时间不等于已结束() {
     }
 }
 #[test]
-fn 当前学期只使用同路线唯一新鲜选择且索引不因旧课程而降为过期() {
+fn 当前学期使用账号唯一新鲜选择且索引不因旧课程而降为过期() {
     use super::retention::{Context, Priority, classify};
     let (root, mut repo) = repository();
     let now = timestamp("2026-09-22T04:00:00Z");
@@ -172,7 +172,7 @@ fn 当前学期只使用同路线唯一新鲜选择且索引不因旧课程而�
     assert_eq!(classify(&record, &context, now), Priority::Active);
     let mut other = record.clone();
     other.scope.route = ConnectionMode::WebVpn;
-    assert_eq!(classify(&other, &context, now), Priority::Stable);
+    assert_eq!(classify(&other, &context, now), Priority::Active);
     let stale = Context::load(&repo.db, &repo.crypto, ACCOUNT, now + 86401).unwrap();
     assert_eq!(classify(&record, &stale, now + 86401), Priority::Stable);
     other.scope = scope(super::super::CacheQuery::JudgeCourseReview {

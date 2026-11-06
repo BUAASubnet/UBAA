@@ -1,12 +1,26 @@
 # 当前实现与验证状态
 
-更新：2026-11-06。SSO 静默验证码接入共享 Core/Bridge，真实双路线认证及平台范围见下文。产品组合 `11832957` 已整合日程界面、统一 App 命令模式、北航云盘、日程同步本机实现及 Windows/Linux 原生命令验收结果。日程每设备独立快照已完成完整确定性验收及修复后的真实 Direct 回归，WebVPN 与其他平台实机待验收。范围见[目标](../../goal.md)。本页区分整合代码、主目录旧工作区及各次验收对应的提交。
+更新：2026-11-06。主登录改用 SSO 独立验票，校外 Auto 双路线认证、按域名回退及共享业务缓存已接入，真实网络结果见下文。产品组合 `11832957` 已整合日程界面、统一 App 命令模式、北航云盘、日程同步本机实现及 Windows/Linux 原生命令验收结果。日程每设备独立快照已完成完整确定性验收及修复后的真实 Direct 回归，WebVPN 与其他平台实机待验收。范围见[目标](../../goal.md)。本页区分整合代码、主目录旧工作区及各次验收对应的提交。
 
 ## 主线与候选
 
+主登录和会话状态不再请求 UC。Direct 与 WebVPN 都使用同一既有 service 取票，并向 SSO 验证身份；WebVPN 单独完成网关 CAS 登录。校外 Auto 并发认证两条路线，任一路线就绪即可进入。校园网仅使用 Direct。普通读取优先 Direct，网络不可达或超时后在独立 WebVPN 会话重读；同域名读取成功后保存 24 小时偏好，到期重新尝试 Direct。HTTP、业务和解析错误不触发该回退。
+
+2026-11-06 校外真实账号验证使用生产 Core，Direct 与 WebVPN 独立认证、SSO 身份核验均通过。全新 Auto 会话中两条路线均就绪，未要求人工输入。课表使用 Direct；希冀首次得到 6 门课程，签到、iHome、信息门户与 UC 资料均在 Direct 网络失败后通过 WebVPN。真实缓存刷新后，两种路线参数读取相同业务数据；关闭重开后复用域名记录，手动使测试目录内记录过期后再次执行 Direct 探测并成功回退。实际记录域名为 `judge.buaa.edu.cn`、`iclass.buaa.edu.cn`、`i.buaa.edu.cn`、`it.buaa.edu.cn` 和 `uc.buaa.edu.cn`。
+
+| 本次校外读取 | 观察结果 |
+| --- | --- |
+| 课表、考试、成绩、空教室、SPOC、阳光打卡、图书馆预约查询、博雅课程、场馆查询、评教查询、网费流量、北航云盘 | Direct 读取通过 |
+| 希冀、课堂签到、iHome、信息门户、UC 资料 | Direct 网络失败，WebVPN 读取通过 |
+
+最终代码的 WebVPN 固定路线复核覆盖 16 个功能组，79 条认证或只读检查全部通过。这些结果描述当前校外网络，不作为永久域名名单。业务写入未执行。业务缓存升级为 schema v8，按账号与精确查询共用，来源路线仍保留。会话、Cookie、Token、写资格及待核实提示继续按路线隔离。来源和取舍见[SSO 对照](source-parity.md#sso-身份核验与-uc-解耦)及[路线合同](../contracts/route-policy.md)。
+
+
+本轮按 `mode=full` 清单完成严格 Rust/脚本、八个 Flutter 包、macOS 原生集成和生成检查：Core 1018 项单元/集成/文档测试、其余 Rust workspace 477 项、Flutter 1939 项及 macOS 原生 13 项通过。生产 Core-live、Bridge 和 macOS 集成应用构建通过，FRB 生成零漂移。平台实测范围为当前 macOS；本轮未运行其他平台实机、远端 CI 或签名发布。schema v8 不迁移旧开发缓存，已有旧库可在设置中重建业务缓存。
+
 SSO 图像验证码使用内置 ddddocr 默认模型、左右各 5 像素留白与纯 Rust 推理。Direct/WebVPN 手动登录、已开启的自动登录和会话恢复均最多自动尝试三次，耗尽后显示人工验证弹窗，保存凭据与自动登录许可保留。普通加载期间不显示识别过程；Auto 在校园网内只认证 Direct。WebVPN 每次读取登录页都会轮换挑战，当前直接提交取图时对应的 execution，来源与错误分类见[对照记录](source-parity.md#sso-图像验证码静默处理)。
 
-2026-11-06 校园网真实账号通过生产 Core 完成 Direct 与强制 WebVPN 登录，身份均一致。Direct 未出现验证码，耗时 616 毫秒；WebVPN 实际出现图像验证码，内置模型完成识别并登录，耗时 3336 毫秒，没有进入人工输入。iOS Simulator arm64、Android arm64 与 OHOS arm64 已通过 Rust Core/Bridge 编译检查；这些结果未覆盖三个平台的 App 打包、设备运行或本轮 Windows/Linux 编译。校外逐功能路线验证按用户安排另行执行。
+2026-11-06 校园网真实账号通过生产 Core 完成 Direct 与强制 WebVPN 登录，身份均一致。Direct 未出现验证码，耗时 616 毫秒；WebVPN 实际出现图像验证码，内置模型完成识别并登录，耗时 3336 毫秒，没有进入人工输入。iOS Simulator arm64、Android arm64 与 OHOS arm64 已通过 Rust Core/Bridge 编译检查；这些结果未覆盖三个平台的 App 打包、设备运行或本轮 Windows/Linux 编译。校外逐功能路线结果见本节当前记录。
 
 验证码组合 `35f31d9d` 执行 `just check-changed base=382d7a2ea83453dd0bee9b7896bae6a21e01fa52 mode=full` 退出 0，通过 Clippy、Core 的 1009 项单元/集成/文档测试、其余 Rust workspace 的 477 项测试、八个 Flutter 包的 1937 项测试及 macOS 原生 13 项。生产 Core-live、Bridge 和 macOS Debug App 构建通过，FRB 生成零漂移。模型转换脚本可复现随应用分发的模型与字符集。真实 Direct 当前未触发验证码，Direct 图像分支使用确定性协议测试覆盖；本轮未执行远端 CI、签名发布或校外功能路线验证。
 

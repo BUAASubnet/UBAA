@@ -96,7 +96,7 @@ void main() {
   }
 
   for (final invalid in ['账号', '路线', '查询', '完整度', '读取失败']) {
-    test('导入完成后拒绝$invalid异常投影，保留可见课表', () async {
+    test('导入完成后核对$invalid及缓存内容', () async {
       final backend = _Backend();
       final controller = await setup(backend);
       const query = FeatureQuery(
@@ -121,12 +121,19 @@ void main() {
                 week: 4,
               )
             : query,
-        details: const [FeatureDetail(title: '不可采用的课程')],
+        details: const [FeatureDetail(title: '合成缓存课程')],
       );
       backend.failCache = invalid == '读取失败';
       backend.task.release(finished: true);
       await importing;
-      expect(controller.snapshots[FeatureId.schedule], same(previous));
+      if (invalid == '路线') {
+        expect(
+          controller.snapshots[FeatureId.schedule]!.details.single.title,
+          '合成缓存课程',
+        );
+      } else {
+        expect(controller.snapshots[FeatureId.schedule], same(previous));
+      }
       expect(
         controller.scheduleImports['selected']!.status,
         ScheduleImportStatus.saved,

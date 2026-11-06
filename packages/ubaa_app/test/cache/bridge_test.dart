@@ -9,8 +9,8 @@ import 'package:ubaa_platform/ubaa_platform.dart';
 void main() {
   final api = _Api();
   setUpAll(() => RustLib.initMock(api: api));
-  test('详情精确传递双标识，Auto 选择最新来源且单路线损坏不遮蔽其他记录', () async {
-    final cache = _Cache()..damagedDirectDetail = true;
+  test('详情精确传递双标识且三种路线策略共用同一业务记录', () async {
+    final cache = _Cache()..damagedDetail = true;
     api.cache = cache;
     final backend = BridgeBackend(_Client(), configDirectory: '/synthetic');
     await backend.openOfflineAccount(
@@ -28,16 +28,10 @@ void main() {
       query,
       RoutePolicy.auto,
     );
-    expect(cache.detailReads, [
-      (BridgeConnectionMode.direct, '12', '101'),
-      (BridgeConnectionMode.webVpn, '12', '101'),
-    ]);
+    expect(cache.detailReads, [(BridgeConnectionMode.direct, '12', '101')]);
     expect(read.error, isNotNull);
-    expect(read.projection!.route, ConnectionMode.webvpn);
-    expect(read.projection!.readContext.hasSameQuery(query), isTrue);
-    expect(read.projection!.fetchedAt.millisecondsSinceEpoch, 200000);
-    expect(read.projection!.details.single.actions, isEmpty);
-    cache.damagedDirectDetail = false;
+    expect(read.projection, isNull);
+    cache.damagedDetail = false;
     final latest = await backend.readCachedQuery(
       FeatureId.judge,
       query,
@@ -49,8 +43,9 @@ void main() {
       query,
       RoutePolicy.direct,
     );
-    expect(direct.projection!.route, ConnectionMode.direct);
-    expect(direct.projection!.fetchedAt.millisecondsSinceEpoch, 100000);
+    expect(direct.projection!.route, ConnectionMode.webvpn);
+    expect(direct.projection!.fetchedAt.millisecondsSinceEpoch, 200000);
+    expect(direct.projection!.details.single.actions, isEmpty);
   });
   test('查询缓存不会拿今日替代周课表，详情错配拒绝投影', () async {
     final cache = _Cache()..wrongDetail = true;
@@ -94,7 +89,7 @@ void main() {
       List.filled(32, 1),
     );
     final records = await backend.readCachedHome(RoutePolicy.webvpn);
-    expect(cache.reads, [BridgeConnectionMode.webVpn]);
+    expect(cache.reads, [BridgeConnectionMode.direct]);
     final schedule = records.singleWhere(
       (record) => record.feature == FeatureId.schedule,
     );
@@ -204,7 +199,7 @@ class _Cache implements BridgeOfflineCache {
   final reads = <BridgeConnectionMode>[];
   final detailReads = <(BridgeConnectionMode, String, String)>[];
   final expiredReads = <bool>[];
-  bool damagedDirectDetail = false;
+  bool damagedDetail = false;
   bool wrongDetail = false;
   @override
   Future<BridgeCachedJudgeDetail?> readJudgeDetail({
@@ -213,7 +208,7 @@ class _Cache implements BridgeOfflineCache {
     required String assignmentId,
   }) async {
     detailReads.add((route, courseId, assignmentId));
-    if (damagedDirectDetail && route == BridgeConnectionMode.direct)
+    if (damagedDetail)
       throw const BridgeError(
         code: BridgeErrorCode.internalError,
         kind: BridgeErrorKind.internal,
@@ -232,8 +227,8 @@ class _Cache implements BridgeOfflineCache {
         submissionStatusText: '未提交',
         problems: const [],
       ),
-      sourceRoute: route,
-      fetchedAt: route == BridgeConnectionMode.direct ? 100 : 200,
+      sourceRoute: BridgeConnectionMode.webVpn,
+      fetchedAt: 200,
       complete: true,
     );
   }
@@ -266,7 +261,7 @@ class _Cache implements BridgeOfflineCache {
       );
     return BridgeCachedToday(
       data: const [BridgeTodayClass(bizName: '合成课表', time: '08:00')],
-      sourceRoute: route,
+      sourceRoute: BridgeConnectionMode.webVpn,
       date: '2026-09-21',
       fetchedAt: 1700000000,
       complete: true,
@@ -292,7 +287,7 @@ class _Cache implements BridgeOfflineCache {
           submissionStatusText: '进行中',
         ),
       ],
-      sourceRoute: route,
+      sourceRoute: BridgeConnectionMode.webVpn,
       includeExpired: includeExpired,
       fetchedAt: 1700000000,
       complete: true,

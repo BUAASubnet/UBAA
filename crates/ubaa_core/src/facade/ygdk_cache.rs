@@ -4,6 +4,7 @@ use super::{
     CacheScope, CachedYgdkRecordsPage, CachedYgdkRecordsSelection, ConnectionMode, OfflineCache,
     OfflineReadError, OfflineRefresh, ReadonlyFeature, UbaaClient, YgdkRecordsPage,
 };
+mod routing;
 #[derive(Debug)]
 pub struct YgdkRecordsRefresh {
     pub result: OfflineRefresh<YgdkRecordsPage>,
@@ -112,21 +113,20 @@ impl UbaaClient {
             .ygdk_records_session(expected.map(|value| value.0))
             .await?;
         let resolution = authenticated.resolution;
-        if !cache.matches(&authenticated.data.user) {
-            return Err(OfflineReadError::IdentityMismatch {
-                resolution,
-                cache_error: cache.deactivate().err(),
-            });
-        }
-        let (selection_ticket, mut save_error) = super::begin_refresh(
+        verify_identity(cache, &authenticated)?;
+        let (mut selection_ticket, mut save_error) = super::begin_refresh(
             cache,
             CacheScope {
                 route: resolution.mode,
                 query: CacheQuery::YgdkRecordsSelection,
             },
         )?;
-        let context =
-            crate::features::ygdk::get_overview_context(self.runtime_for(resolution.mode)).await;
+        let (resolution, context) = self
+            .ygdk_records_context(resolution, expected.is_some())
+            .await;
+        if let Some(ticket) = &mut selection_ticket {
+            ticket.set_source_route(resolution.mode);
+        }
         let context = match self.finish_routed(resolution, context) {
             Ok(context) => context.data,
             Err(error) => {
@@ -143,17 +143,17 @@ impl UbaaClient {
         if expected.is_some_and(|(_, classify_id)| classify_id != selection.classify_id) {
             return Err(OfflineReadError::Cache(CacheError::Superseded));
         }
-        let scope = records_scope(resolution.mode, selection.classify_id, page, size);
+        let mut scope = records_scope(resolution.mode, selection.classify_id, page, size);
         scope.validate().map_err(OfflineReadError::Cache)?;
-        let (ticket, page_error) = super::begin_refresh(cache, scope.clone())?;
+        let (mut ticket, page_error) = super::begin_refresh(cache, scope.clone())?;
         save_error = page_error.or(save_error);
-        let result = crate::features::ygdk::get_records_in_context(
-            self.runtime_for(resolution.mode),
-            &context,
-            page,
-            size,
-        )
-        .await;
+        let (resolution, result) = self
+            .ygdk_records_page(resolution, &context, page, size, expected.is_some())
+            .await;
+        scope.route = resolution.mode;
+        for ticket in [&mut selection_ticket, &mut ticket].into_iter().flatten() {
+            ticket.set_source_route(resolution.mode);
+        }
         let fetched_at = chrono::Utc::now().timestamp();
         let (data, complete) = match self.finish_routed(resolution, result) {
             Ok(result) => result.data,
@@ -199,6 +199,20 @@ impl UbaaClient {
             complete,
             publication,
             selection_saved,
+        })
+    }
+}
+
+fn verify_identity(
+    cache: &OfflineCache,
+    authenticated: &super::Routed<super::AuthStatus>,
+) -> Result<(), OfflineReadError> {
+    if cache.matches(&authenticated.data.user) {
+        Ok(())
+    } else {
+        Err(OfflineReadError::IdentityMismatch {
+            resolution: authenticated.resolution,
+            cache_error: cache.deactivate().err(),
         })
     }
 }

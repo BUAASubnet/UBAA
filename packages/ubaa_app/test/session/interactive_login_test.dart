@@ -54,6 +54,19 @@ void main() {
     expect(backend.unneededFrame!.isReleased, isTrue);
   });
 
+  test('Auto 有可用直连会话时直接进入首页并释放另一条路线验证码', () async {
+    final backend = _AutoReadyBackend();
+    final controller = await _controller(backend);
+    addTearDown(controller.dispose);
+    await controller.submitLogin();
+    expect(controller.phase, AppPhase.home);
+    expect(controller.loginVerification, isNull);
+    expect(controller.loginForm.routePolicy, RoutePolicy.auto);
+    expect(backend.continued, [(ConnectionMode.direct, false)]);
+    expect(backend.submissions, 0);
+    expect(backend.frame!.isReleased, isTrue);
+  });
+
   test('待确认写意图存在时不发起手动验证码认证或丢弃原确认', () async {
     final backend = _InteractiveBackend()..restoredSignedIn = true;
     final controller = await _controller(backend);
@@ -330,7 +343,11 @@ Future<AppController> _controller(
   return controller;
 }
 
-LoginVerificationState _waiting(int revision) => LoginVerificationState(
+LoginVerificationState _waiting(
+  int revision, {
+  ConnectionMode? requiredRoute = ConnectionMode.webvpn,
+}) => LoginVerificationState(
+  requiredRoute: requiredRoute,
   profile: const UserSummary(username: 'synthetic-account'),
   routes: <LoginRouteVerification>[
     const LoginRouteVerification(
@@ -582,5 +599,16 @@ class _RecoveryCaptchaBackend extends _InteractiveBackend
       profile: waiting.profile,
       requiredRoute: route,
     );
+  }
+}
+
+class _AutoReadyBackend extends _InteractiveBackend {
+  CaptchaPixelFrame? frame;
+  @override
+  Future<LoginVerificationState> beginInteractiveLogin(LoginInput input) async {
+    beginCalls++;
+    final state = _waiting(1, requiredRoute: null);
+    frame = state.forRoute(ConnectionMode.webvpn)!.frame;
+    return state;
   }
 }

@@ -59,10 +59,6 @@ mixin ControllerOfflineCache on ControllerState {
                 projection.readContext.query?.view ==
                     FeatureQueryView.cgyyOrders);
         if (projection.accountId != account.id ||
-            (policy == RoutePolicy.direct &&
-                projection.route != ConnectionMode.direct) ||
-            (policy == RoutePolicy.webvpn &&
-                projection.route != ConnectionMode.webvpn) ||
             (!controllerHomeDefaultFeatures.contains(projection.feature) &&
                 !supplement))
           continue;

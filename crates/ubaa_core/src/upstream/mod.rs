@@ -16,8 +16,6 @@ pub const SSO_LOGOUT_URL: &str = "https://sso.buaa.edu.cn/logout";
 /// 冻结的用户中心激活地址。
 pub const UC_ACTIVATE_URL: &str =
     "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
-/// 冻结的用户中心状态地址。
-pub const UC_STATUS_URL: &str = "https://uc.buaa.edu.cn/api/uc/status";
 /// 冻结的用户中心资料地址。
 pub const UC_USERINFO_URL: &str = "https://uc.buaa.edu.cn/api/uc/userinfo";
 

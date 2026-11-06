@@ -10,17 +10,21 @@ struct CacheTransport {
 #[async_trait]
 impl HttpTransport for CacheTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         self.calls.fetch_add(1, Ordering::SeqCst);
         let path = url::Url::parse(&request.url).unwrap().path().to_owned();
-        if path == "/api/uc/status" {
-            return Ok(HttpResponse::new(
+        if path == "/serviceValidate" {
+            return Ok(ubaa_core::facade::testing::sso_fixture_response(
                 200,
                 request.url,
                 include_bytes!("../../../../fixtures/auth/userinfo-success.json").to_vec(),
             ));
         }
         if path == "/login" {
-            let mut response = HttpResponse::new(302, request.url, Vec::new());
+            let mut response =
+                ubaa_core::facade::testing::sso_fixture_response(302, request.url, Vec::new());
             response.headers.insert(
                 "Location".into(),
                 vec!["https://booking.lib.buaa.edu.cn/v4/login/cas?cas=synthetic".into()],
@@ -28,7 +32,7 @@ impl HttpTransport for CacheTransport {
             return Ok(response);
         }
         if path == "/v4/login/user" {
-            return Ok(HttpResponse::new(
+            return Ok(ubaa_core::facade::testing::sso_fixture_response(
                 200,
                 request.url,
                 br#"{"code":0,"data":{"member":{"token":"synthetic"}}}"#.to_vec(),
@@ -70,7 +74,7 @@ impl HttpTransport for CacheTransport {
             },
             _ => panic!("出现未授权的合成请求"),
         };
-        Ok(HttpResponse::new(
+        Ok(ubaa_core::facade::testing::sso_fixture_response(
             if mode == 1 { 503 } else { 200 },
             request.url,
             body.as_bytes().to_vec(),
@@ -151,7 +155,7 @@ fn 图书馆五范围失败保留错页拒绝且合法空页替换() {
             cache
                 .read_libbook(ConnectionMode::WebVpn, &query)
                 .unwrap()
-                .is_none()
+                .is_some()
         );
         transport.mode.store(1, Ordering::SeqCst);
         assert!(

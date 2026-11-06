@@ -1,4 +1,6 @@
 //! 仅供 workspace 测试支持使用的最小注入合同。
+mod sso;
+pub use sso::{sso_fixture_response, sso_fixture_ticket};
 
 pub use crate::config::RouteConfig;
 pub use crate::connection::{GatewayProbe, from_webvpn_url, to_webvpn_url};
@@ -46,5 +48,8 @@ where
         probe,
     )?;
     client.config_dir = Some(directory.to_path_buf());
+    client.domain_routes = std::sync::Arc::new(std::sync::Mutex::new(
+        super::routing::domains::DomainRoutes::load(directory),
+    ));
     Ok(client)
 }

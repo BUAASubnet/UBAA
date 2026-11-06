@@ -111,6 +111,20 @@ impl ScheduleImport {
     }
 }
 impl UbaaClient {
+    fn rebind_schedule_import_route(
+        &mut self,
+        plan: &mut ScheduleImport,
+        resolution: RouteResolution,
+    ) {
+        if plan.resolution.mode != resolution.mode {
+            let owner = self.runtime_for(resolution.mode).feature_state();
+            plan.owner = Arc::downgrade(&owner);
+            plan.generation = owner.lifecycle_generation();
+            plan.ticket.set_source_route(resolution.mode);
+        }
+        plan.resolution = resolution;
+    }
+
     /// 核实账号并登记导入；学期必须由调用方明确选择，不猜测默认项。
     ///
     /// # Errors
@@ -205,9 +219,13 @@ impl UbaaClient {
         match plan.stage {
             Stage::Terms => {
                 let ticket = plan.begin_query(CacheQuery::ScheduleTerms)?;
-                let result =
-                    crate::features::schedule::get_terms(self.runtime_for(plan.resolution.mode))
-                        .await;
+                let resolution = plan.resolution;
+                let (resolution, result) = crate::facade::routing::read_with_fallback!(
+                    self,
+                    resolution,
+                    crate::features::schedule::get_terms(self.runtime_for(resolution.mode)).await
+                );
+                self.rebind_schedule_import_route(plan, resolution);
                 let result = self
                     .finish_routed(plan.resolution, result)
                     .map_err(OfflineReadError::Read)?;
@@ -230,11 +248,17 @@ impl UbaaClient {
                 let ticket = plan.begin_query(CacheQuery::ScheduleWeeks {
                     term: plan.term.clone(),
                 })?;
-                let result = crate::features::schedule::get_weeks_for_import(
-                    self.runtime_for(plan.resolution.mode),
-                    &plan.term,
-                )
-                .await;
+                let resolution = plan.resolution;
+                let (resolution, result) = crate::facade::routing::read_with_fallback!(
+                    self,
+                    resolution,
+                    crate::features::schedule::get_weeks_for_import(
+                        self.runtime_for(resolution.mode),
+                        &plan.term,
+                    )
+                    .await
+                );
+                self.rebind_schedule_import_route(plan, resolution);
                 let result = self
                     .finish_routed(plan.resolution, result)
                     .map_err(OfflineReadError::Read)?;
@@ -245,38 +269,52 @@ impl UbaaClient {
                     Some((chrono::Utc::now().timestamp(), ticket.request_revision()));
                 plan.stage = Stage::Week;
             }
-            Stage::Week => {
-                let week = plan
-                    .weeks
-                    .get(plan.schedules.len())
-                    .ok_or(OfflineReadError::Cache(CacheError::InvalidInput))?
-                    .serial_number;
-                let ticket = plan.begin_query(CacheQuery::ScheduleWeek {
-                    term: plan.term.clone(),
-                    week,
-                })?;
-                let result = crate::features::schedule::get_week_for_import(
-                    self.runtime_for(plan.resolution.mode),
-                    &plan.term,
-                    week,
-                )
-                .await;
-                let result = self
-                    .finish_routed(plan.resolution, result)
-                    .map_err(OfflineReadError::Read)?;
-                self.validate_schedule_import(plan)?;
-                plan.schedules.insert(week, result.data);
-                plan.observations.insert(
-                    week,
-                    (chrono::Utc::now().timestamp(), ticket.request_revision()),
-                );
-                if plan.schedules.len() == plan.weeks.len() {
-                    return Ok(Routed {
-                        data: plan.finish()?,
-                        resolution: plan.resolution,
-                    });
-                }
-            }
+            Stage::Week => return self.read_schedule_import_week(plan).await,
+        }
+        Ok(Routed {
+            data: plan.batch(None),
+            resolution: plan.resolution,
+        })
+    }
+    async fn read_schedule_import_week(
+        &mut self,
+        plan: &mut ScheduleImport,
+    ) -> Result<Routed<ScheduleImportBatch>, OfflineReadError> {
+        let week = plan
+            .weeks
+            .get(plan.schedules.len())
+            .ok_or(OfflineReadError::Cache(CacheError::InvalidInput))?
+            .serial_number;
+        let ticket = plan.begin_query(CacheQuery::ScheduleWeek {
+            term: plan.term.clone(),
+            week,
+        })?;
+        let resolution = plan.resolution;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            crate::features::schedule::get_week_for_import(
+                self.runtime_for(resolution.mode),
+                &plan.term,
+                week,
+            )
+            .await
+        );
+        self.rebind_schedule_import_route(plan, resolution);
+        let result = self
+            .finish_routed(plan.resolution, result)
+            .map_err(OfflineReadError::Read)?;
+        self.validate_schedule_import(plan)?;
+        plan.schedules.insert(week, result.data);
+        plan.observations.insert(
+            week,
+            (chrono::Utc::now().timestamp(), ticket.request_revision()),
+        );
+        if plan.schedules.len() == plan.weeks.len() {
+            return Ok(Routed {
+                data: plan.finish()?,
+                resolution: plan.resolution,
+            });
         }
         Ok(Routed {
             data: plan.batch(None),

@@ -4,10 +4,10 @@ use ubaa_core::facade::testing::{
     HttpMethod, HttpResponse, SessionSnapshot, SessionStore, StoredCookie,
 };
 use ubaa_core::facade::{ConnectionMode, LoginInput, SecretValue};
-use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport, auth_fixture};
+use ubaa_test_support::{ExpectedRequest, MemorySessionStore, MockTransport};
 
 pub(crate) fn response(status: u16, url: &str, body: impl Into<Vec<u8>>) -> HttpResponse {
-    HttpResponse::new(status, url, body.into())
+    ubaa_core::facade::testing::sso_fixture_response(status, url, body.into())
 }
 
 pub(crate) fn redirect(url: &str, location: &str) -> HttpResponse {
@@ -53,12 +53,8 @@ pub(crate) fn login_page() -> String {
 pub(crate) fn basic_direct_transport() -> (MockTransport, MemorySessionStore) {
     let login = "https://sso.buaa.edu.cn/login";
     let landing = "https://uc.buaa.edu.cn/landing";
-    let activate =
-        "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin";
-    let status = "https://uc.buaa.edu.cn/api/uc/status";
-    let userinfo = "https://uc.buaa.edu.cn/api/uc/userinfo";
-    let fixture = auth_fixture("userinfo-success.json").unwrap();
-    let transport = MockTransport::new([
+    let status = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
+    let transport = MockTransport::with_sso_checks([
         ExpectedRequest::new(
             HttpMethod::Get,
             login,
@@ -75,15 +71,6 @@ pub(crate) fn basic_direct_transport() -> (MockTransport, MemorySessionStore) {
                 "CASTGC=fixture; Domain=sso.buaa.edu.cn; Path=/; Secure",
             ),
         ),
-        ExpectedRequest::new(HttpMethod::Get, landing, response(200, landing, Vec::new())),
-        ExpectedRequest::new(
-            HttpMethod::Get,
-            activate,
-            set_cookie(
-                response(200, activate, Vec::new()),
-                "JSESSIONID=fixture; Domain=uc.buaa.edu.cn; Path=/; Secure",
-            ),
-        ),
         ExpectedRequest::new(
             HttpMethod::Get,
             status,
@@ -93,7 +80,6 @@ pub(crate) fn basic_direct_transport() -> (MockTransport, MemorySessionStore) {
                 r#"{"code":0,"data":{"name":"Fixture User","schoolid":"TEST-0001","username":"fixture-user"}}"#,
             ),
         ),
-        ExpectedRequest::new(HttpMethod::Get, userinfo, response(200, userinfo, fixture)),
     ]);
     (transport, MemorySessionStore::new())
 }

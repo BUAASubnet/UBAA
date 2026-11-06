@@ -118,7 +118,7 @@ mod tests {
     use crate::api::{client::*, offline::BridgeOfflineCache};
     use ubaa_core::facade as core;
     #[tokio::test]
-    async fn 评教本地缓存独立网络锁且路线和退出隔离() {
+    async fn 评教本地缓存独立网络锁且跨路线共享且退出后拒绝() {
         let root =
             std::env::temp_dir().join(format!("ubaa-evaluation-cache-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
@@ -182,7 +182,7 @@ mod tests {
                 .read_evaluation(BridgeConnectionMode::WebVpn)
                 .await
                 .unwrap()
-                .is_none()
+                .is_some()
         );
         drop(guard);
         client.write_intents.lock().await.insert(

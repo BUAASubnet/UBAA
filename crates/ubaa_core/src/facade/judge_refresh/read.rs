@@ -63,7 +63,7 @@ impl UbaaClient {
             self.validate_judge_scan(&refresh.scan)?;
             return reuse(&mut refresh.scan, record);
         }
-        let child = scope
+        let mut child = scope
             .map(|scope| refresh.scan.cache.begin(scope))
             .transpose()
             .map_err(OfflineReadError::Cache)?;
@@ -85,6 +85,9 @@ impl UbaaClient {
         let index_revision = (batch.kind == JudgeScanKind::Assignments)
             .then(|| child.as_ref().map(CacheReadTicket::revision))
             .flatten();
+        if let Some(child) = &mut child {
+            child.set_source_route(refresh.scan.resolution.mode);
+        }
         Ok(Step {
             batch,
             reused: false,

@@ -59,6 +59,9 @@ impl ScenarioTransport {
 #[async_trait]
 impl HttpTransport for ScenarioTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         self.requests.lock().unwrap().push(request.clone());
         let direct = from_webvpn_url(&request.url).unwrap_or_else(|_| request.url.clone());
         let path = url::Url::parse(&direct).unwrap().path().to_owned();
@@ -68,7 +71,7 @@ impl HttpTransport for ScenarioTransport {
                 (HttpMethod::Get, "/login") => scenario.page.as_bytes().to_vec(),
                 (HttpMethod::Get, "/captcha") => scenario.image.clone(),
                 (HttpMethod::Post, "/login") => scenario.post_body.as_bytes().to_vec(),
-                (_, "/api/uc/status" | "/api/uc/userinfo") => format!(
+                (_, "/serviceValidate" | "/api/uc/userinfo") => format!(
                     r#"{{"code":0,"data":{{"username":"{}","schoolid":"{}","name":"合成用户"}}}}"#,
                     scenario.username, scenario.username
                 )
@@ -76,7 +79,8 @@ impl HttpTransport for ScenarioTransport {
                 (_, "/api/login" | "/logout") => Vec::new(),
                 _ => panic!("出现未授权的合成测试路径"),
             };
-            let mut response = HttpResponse::new(200, request.url.clone(), body);
+            let mut response =
+                ubaa_core::facade::testing::sso_fixture_response(200, request.url.clone(), body);
             if path == "/login" && request.method == HttpMethod::Post {
                 response.status = scenario.post_status;
             }

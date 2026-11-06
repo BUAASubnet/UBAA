@@ -157,7 +157,7 @@ fn auto_route_maps_three_gateway_states_and_exposes_diagnostic() {
         row,
         &ProbeResult(NetworkState::OffCampus),
     );
-    assert_eq!(off_campus.mode, ConnectionMode::WebVpn);
+    assert_eq!(off_campus.mode, ConnectionMode::Direct);
 
     let unknown = resolve_route(RoutePolicy::Auto, row, &ProbeResult(NetworkState::Unknown));
     assert_eq!(unknown.mode, ConnectionMode::Direct);
@@ -191,7 +191,7 @@ fn effective_策略只在_auto_时调用网关探针() {
         let (mode, network, expected_calls) = match effective {
             RoutePolicy::Direct => (ConnectionMode::Direct, NetworkState::Unknown, 0),
             RoutePolicy::WebVpn => (ConnectionMode::WebVpn, NetworkState::Unknown, 0),
-            RoutePolicy::Auto => (ConnectionMode::WebVpn, NetworkState::OffCampus, 1),
+            RoutePolicy::Auto => (ConnectionMode::Direct, NetworkState::OffCampus, 1),
         };
         assert_eq!(resolved.policy, effective);
         assert_eq!(resolved.mode, mode);
@@ -238,7 +238,7 @@ fn judge_auto_follows_the_common_gateway_route_contract_after_direct_revalidatio
     let row = FeatureRouteConfig::for_feature(ReadonlyFeature::Judge);
     let cases = [
         (NetworkState::Campus, ConnectionMode::Direct),
-        (NetworkState::OffCampus, ConnectionMode::WebVpn),
+        (NetworkState::OffCampus, ConnectionMode::Direct),
         (NetworkState::Unknown, ConnectionMode::Direct),
     ];
     for (network, expected_mode) in cases {

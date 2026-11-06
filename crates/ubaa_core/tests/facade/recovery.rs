@@ -18,9 +18,9 @@ fn required_session_recovers_only_the_requested_feature_route() {
             .unwrap();
         let calls = Arc::new(AtomicUsize::new(0));
         let other = Arc::new(AtomicUsize::new(0));
-        let response = HttpResponse::new(
+        let response = ubaa_core::facade::testing::sso_fixture_response(
             200,
-            "https://uc.buaa.edu.cn/api/uc/status",
+            "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON",
             include_bytes!("../../../../fixtures/auth/userinfo-success.json").to_vec(),
         );
         let policy = if route == ConnectionMode::Direct {
@@ -103,9 +103,14 @@ struct RecoveryTransport {
 #[async_trait]
 impl HttpTransport for RecoveryTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
-        assert!(request.url.ends_with("/api/uc/status"));
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
+        assert!(request.url.contains("/serviceValidate?"));
         self.calls.fetch_add(1, Ordering::SeqCst);
-        Ok(self.response.clone())
+        let mut response = self.response.clone();
+        response.final_url = request.url;
+        Ok(response)
     }
 }
 
@@ -169,11 +174,11 @@ fn required_session_auto_preserves_core_feature_route_without_guessing() {
         .unwrap();
     let probe_calls = Arc::new(AtomicUsize::new(0));
     let mut client = UbaaClient::with_routing(
-        StaticTransport(HttpResponse::new(
+        RecoveryTransport { calls: Arc::default(), response: ubaa_core::facade::testing::sso_fixture_response(
             200,
-            "https://uc.buaa.edu.cn/api/uc/status",
+            "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON",
             include_bytes!("../../../../fixtures/auth/userinfo-success.json").to_vec(),
-        )),
+        ) },
         CountingTransport(Arc::new(AtomicUsize::new(0))),
         store,
         RouteConfig::default(),
@@ -184,14 +189,12 @@ fn required_session_auto_preserves_core_feature_route_without_guessing() {
         .enable_all()
         .build()
         .unwrap();
-    let error = runtime
+    let recovered = runtime
         .block_on(client.recover_required_session(ReadonlyFeature::Signin))
-        .unwrap_err();
-    assert_eq!(error.error.code, ErrorCode::AuthenticationRequired);
-    let resolution = error.resolution.unwrap();
-    assert_eq!(resolution.policy, RoutePolicy::Auto);
-    assert_eq!(resolution.mode, ConnectionMode::WebVpn);
-    assert!(!resolution.diagnostic.used_fallback);
+        .unwrap();
+    assert_eq!(recovered.resolution.policy, RoutePolicy::Auto);
+    assert_eq!(recovered.resolution.mode, ConnectionMode::Direct);
+    assert!(!recovered.resolution.diagnostic.used_fallback);
     assert_eq!(probe_calls.load(Ordering::SeqCst), 1);
     let _ = std::fs::remove_dir_all(root);
 }
@@ -251,15 +254,25 @@ struct ExistingSsoTransport(Arc<std::sync::Mutex<Vec<HttpRequest>>>);
 #[async_trait]
 impl HttpTransport for ExistingSsoTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         self.0.lock().unwrap().push(request.clone());
         assert_eq!(request.method, ubaa_core::facade::testing::HttpMethod::Get);
         let response = match request.url.as_str() {
-            "https://sso.buaa.edu.cn/login" => HttpResponse::new(302, request.url, Vec::new()),
-            "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin" => {
-                HttpResponse::new(200, request.url, b"ready".to_vec())
+            "https://sso.buaa.edu.cn/login" => {
+                ubaa_core::facade::testing::sso_fixture_response(302, request.url, Vec::new())
             }
-            "https://uc.buaa.edu.cn/api/uc/status" | "https://uc.buaa.edu.cn/api/uc/userinfo" => {
-                HttpResponse::new(
+            "https://uc.buaa.edu.cn/api/login?target=https%3A%2F%2Fuc.buaa.edu.cn%2F%23%2Fuser%2Flogin" => {
+                ubaa_core::facade::testing::sso_fixture_response(
+                    200,
+                    request.url,
+                    b"ready".to_vec(),
+                )
+            }
+            "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON"
+            | "https://uc.buaa.edu.cn/api/uc/userinfo" => {
+                ubaa_core::facade::testing::sso_fixture_response(
                     200,
                     request.url,
                     include_bytes!("../../../../fixtures/auth/userinfo-success.json").to_vec(),
@@ -299,7 +312,7 @@ fn required_route_login_reuses_valid_sso_and_returns_the_pinned_profile() {
     assert_eq!(result.pinned_route, ConnectionMode::Direct);
     assert_eq!(result.data.username.as_deref(), Some("fixture-user"));
     assert_eq!(sibling.load(Ordering::SeqCst), 0);
-    assert_eq!(requests.lock().unwrap().len(), 4);
+    assert_eq!(requests.lock().unwrap().len(), 2);
     assert_eq!(client.active_routes(), vec![ConnectionMode::Direct]);
     let _ = std::fs::remove_dir_all(root);
 }

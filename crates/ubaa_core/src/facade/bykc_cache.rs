@@ -77,12 +77,15 @@ impl UbaaClient {
         cache: &OfflineCache,
         query: BykcCacheQuery,
     ) -> Result<OfflineRefresh<BykcReadData>, OfflineReadError> {
-        let refresh = self
+        let mut refresh = self
             .prepare_cached_refresh(cache, ReadonlyFeature::Bykc, query.cache_query())
             .await?;
         let resolution = refresh.resolution;
-        let runtime = self.runtime_for(resolution.mode);
-        let result = query.read(runtime).await;
+        let (resolution, result) = crate::facade::routing::read_with_fallback!(
+            self,
+            resolution,
+            query.clone().read(self.runtime_for(resolution.mode)).await
+        );
         let data = refresh.read_result(self.finish_routed(resolution, result))?;
         refresh
             .finish(data, true, BykcReadData::readonly_payload)

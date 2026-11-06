@@ -11,17 +11,21 @@ struct CacheTransport {
 #[async_trait]
 impl HttpTransport for CacheTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         self.calls.fetch_add(1, Ordering::SeqCst);
         let path = url::Url::parse(&request.url).unwrap().path().to_owned();
-        if path == "/api/uc/status" {
-            return Ok(HttpResponse::new(
+        if path == "/serviceValidate" {
+            return Ok(ubaa_core::facade::testing::sso_fixture_response(
                 200,
                 request.url,
                 include_bytes!("../../../../fixtures/auth/userinfo-success.json").to_vec(),
             ));
         }
         if path.ends_with("/sso/manageLogin") {
-            let mut response = HttpResponse::new(200, request.url, Vec::new());
+            let mut response =
+                ubaa_core::facade::testing::sso_fixture_response(200, request.url, Vec::new());
             response.headers.insert(
                 "Set-Cookie".into(),
                 vec!["sso_buaa_zhjs_token=synthetic; Path=/".into()],
@@ -29,7 +33,7 @@ impl HttpTransport for CacheTransport {
             return Ok(response);
         }
         if path.ends_with("/api/login") {
-            return Ok(HttpResponse::new(
+            return Ok(ubaa_core::facade::testing::sso_fixture_response(
                 200,
                 request.url,
                 br#"{"code":200,"data":{"token":{"access_token":"synthetic"}}}"#.to_vec(),
@@ -67,9 +71,13 @@ impl HttpTransport for CacheTransport {
             _ => panic!("出现未授权的合成请求"),
         };
         if mode == 2 || (mode == 1 && path.ends_with("/api/codes")) {
-            return Ok(HttpResponse::new(503, request.url, b"synthetic".to_vec()));
+            return Ok(ubaa_core::facade::testing::sso_fixture_response(
+                503,
+                request.url,
+                b"synthetic".to_vec(),
+            ));
         }
-        Ok(HttpResponse::new(
+        Ok(ubaa_core::facade::testing::sso_fixture_response(
             200,
             request.url,
             body.as_bytes().to_vec(),
@@ -140,7 +148,7 @@ fn 研讨室五范围持久化且错日期与失败不覆盖() {
             cache
                 .read_cgyy(ConnectionMode::WebVpn, &query)
                 .unwrap()
-                .is_none()
+                .is_some()
         );
         if query != CgyyCacheQuery::Purposes {
             transport.mode.store(2, Ordering::SeqCst);

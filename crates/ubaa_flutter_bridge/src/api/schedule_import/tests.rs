@@ -4,8 +4,8 @@ use crate::api::recovery::BridgeRecoveryFeature;
 use crate::api::write::{BridgeBykcCourseRequest, PendingEntry, PendingWrite};
 use ubaa_core::facade as core;
 use ubaa_test_support::{
-    ExpectedRequest, FileSessionStore, GatewayProbe, HttpMethod, HttpResponse, MockTransport,
-    RouteConfig, SessionSnapshot, SessionStore,
+    ExpectedRequest, FileSessionStore, GatewayProbe, HttpMethod, MockTransport, RouteConfig,
+    SessionSnapshot, SessionStore,
 };
 struct NoProbe;
 impl GatewayProbe for NoProbe {
@@ -14,11 +14,15 @@ impl GatewayProbe for NoProbe {
     }
 }
 fn get(url: &str, body: Vec<u8>) -> ExpectedRequest {
-    ExpectedRequest::new(HttpMethod::Get, url, HttpResponse::new(200, url, body))
+    ExpectedRequest::new(
+        HttpMethod::Get,
+        url,
+        ubaa_core::facade::testing::sso_fixture_response(200, url, body),
+    )
 }
 fn status() -> ExpectedRequest {
     get(
-        "https://uc.buaa.edu.cn/api/uc/status",
+        "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON",
         include_bytes!("../../../../../fixtures/auth/userinfo-success.json").to_vec(),
     )
 }
@@ -35,7 +39,7 @@ async fn 导入批次释放共享锁_待确认写意图阻止后续读取且不�
             last_activity: 1001,
         })
         .unwrap();
-    let transport = MockTransport::new([
+    let transport = MockTransport::with_sso_checks([
         status(),
         get(
             "https://byxt.buaa.edu.cn/jwapp/sys/homeapp/api/home/currentUser.do",
@@ -50,7 +54,7 @@ async fn 导入批次释放共享锁_待确认写意图阻止后续读取且不�
     *bridge.inner.lock().await = Some(
         core::UbaaClient::with_routing(
             transport.clone(),
-            MockTransport::new([]),
+            MockTransport::with_sso_checks([]),
             store,
             RouteConfig::parse("[route]\ndefault=\"direct\"\n").unwrap(),
             NoProbe,

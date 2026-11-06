@@ -9,7 +9,7 @@ use crate::{
     runtime::ClientRuntime,
 };
 use serde_json::Value;
-#[derive(Default)]
+#[derive(Clone, Default)]
 enum Stage {
     #[default]
     Activation,
@@ -17,7 +17,7 @@ enum Stage {
     Questionnaires,
     Courses,
 }
-#[derive(Default)]
+#[derive(Clone, Default)]
 pub(crate) struct Cursor {
     stage: Stage,
     tasks: Vec<String>,
@@ -62,8 +62,15 @@ impl Cursor {
             self.finish();
         }
     }
-    pub async fn advance(&mut self, runtime: &mut ClientRuntime) -> Result<()> {
+    pub async fn advance(
+        &mut self,
+        runtime: &mut ClientRuntime,
+        changed_route: bool,
+    ) -> Result<()> {
         super::super::require_session(runtime)?;
+        if changed_route && !matches!(self.stage, Stage::Activation) {
+            read::activate(runtime).await?;
+        }
         match self.stage {
             Stage::Activation => match read::activate(runtime).await {
                 Ok(()) => self.stage = Stage::Tasks,

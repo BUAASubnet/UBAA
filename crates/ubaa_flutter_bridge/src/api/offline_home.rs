@@ -485,7 +485,7 @@ mod tests {
                 .read_home_spoc(BridgeConnectionMode::WebVpn)
                 .await
                 .unwrap()
-                .is_none()
+                .is_some()
         );
         drop(guard);
         client.write_intents.lock().await.insert(

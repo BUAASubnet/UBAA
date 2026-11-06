@@ -23,9 +23,9 @@ Ygdk typed 提交资格、请求、安全结果和 caller-pinned 回读，v10 �
 `session.json` 仍为 schema v2。密码绝不会
 进入持久化会话或普通输出。
 
-公共 facade 暴露认证、标准只读功能和扩展功能，同时将传输、会话存储、单路线客户端及上游解析器保持在 Core 内部。`open` 负责加载配置；每个普通方法都在 Core 内解析策略和路线，并返回安全路线诊断及稳定 DTO。宿主不得检查存储细节、运行探测或自行计算路线。SPOC/Judge 诊断 facade 方法仅供确定性测试和实时验证使用，复用普通读取链，只附带安全的页数/数量元数据。`RouteClient` 仅用于 core-live 和测试，已标记为隐藏文档 API，不属于 SDK 或普通宿主的稳定边界。`auth` 模块负责 CAS 表单、一次性密码风险继续、激活、重定向、不支持交互式验证的拒绝和远程注销；`features/user` 负责用户中心状态/资料及失效分类。各功能模块负责其冻结协议要求的额外 CAS/引导激活，例如本科课表读取前的 AAS 服务激活。`WebVPN` 模式会把所有认证请求和重定向转换到 WebVPN 路线。
+公共 facade 暴露认证、标准只读功能和扩展功能，同时将传输、会话存储、单路线客户端及上游解析器保持在 Core 内部。`open` 负责加载配置；每个普通方法都在 Core 内解析策略和路线，并返回安全路线诊断及稳定 DTO。宿主不得检查存储细节、运行探测或自行计算路线。SPOC/Judge 诊断 facade 方法仅供确定性测试和实时验证使用，复用普通读取链，只附带安全的页数/数量元数据。`RouteClient` 仅用于 core-live 和测试，已标记为隐藏文档 API，不属于 SDK 或普通宿主的稳定边界。`auth` 模块负责 CAS 表单、一次性密码风险继续、SSO 取票验票、网关激活、重定向和注销；`features/user` 负责按需读取 UC 资料。主会话状态由 SSO 独立验票确认。各功能模块负责其冻结协议要求的额外 CAS/引导激活，例如本科课表读取前的 AAS 服务激活。`WebVPN` 模式会把所有认证请求和重定向转换到 WebVPN 路线。
 
-认证及业务跳转先还原 WebVPN 包装并核对各自的上游白名单，只将精确 SSO 主机的默认 HTTP 端口升级到 HTTPS，再按固定路线包装。嵌套 service 编码保持；SSO 302、门户 HTML 200 都不代表登录完成。主登录仍需 UC status 校验，本科教务还需 homeapp currentUser 返回字符串 `code="0"` 与有效 `datas.userId`，不增加学校写入或自动重放凭据。
+认证及业务跳转先还原 WebVPN 包装并核对各自的上游白名单，只将精确 SSO 主机的默认 HTTP 端口升级到 HTTPS，再按固定路线包装。嵌套 service 编码保持；SSO 302、门户 HTML 200 都不代表登录完成。主登录使用既有教务 service 取得一次性票据，再向 SSO `/serviceValidate` 验证账号，不请求 UC 或教务落地页。WebVPN 另外使用网关自己的 CAS service 建立网关会话，验证网关根地址后再保存该路线。UC 只在读取资料时激活，UC 失败不直接撤销 SSO 会话。本科教务还需 homeapp currentUser 返回字符串 `code="0"` 与有效 `datas.userId`，不增加学校写入或自动重放凭据。
 
 每次持久化变更都经过同一个双路线会话协调器，并且只对其持有的 revision 执行一次
 compare-exchange。发生冲突时，当前 facade 清除内存 Cookie、待处理登录和路线功能状态，保留
@@ -45,8 +45,7 @@ CLI JSON Schema 的标识为 `urn:ubaa:cli:json:schema:13`，消费者从受跟�
 version 保留普通文本行为。无效参数文本会归约为安全的 `invalid_input` envelope，不回显调用
 方提供的值。手机号和证件号在人工或 JSON 渲染前会脱敏。`--config-dir` 选择包含
 `config.toml`、`session.json` 及其锁文件的目录；未指定时使用平台用户配置目录。需要认证的
-命令在发起网络请求前拒绝缺少本地会话；`auth status` 仍会向用户中心校验已有会话后再报告
-成功。
+命令在发起网络请求前拒绝缺少本地会话；`auth status` 向 SSO 取得新票据并验证身份后再报告成功。
 
 稳定退出类别为：0 表示调用成功完成，2 表示输入无效，3 表示认证失败（包括拒绝密码风险继续），5 表示网络/可用性错误，6 表示上游合同或解析变化，7 表示内部失败。课堂签到的确定业务拒绝以外层 `ok=true`、退出码 0 和内层 `data.success=false` 表达；调用方不得只凭退出码认定签到成功。发送后不确定性使用 `outcome_unknown` 和退出码 5。`docs/contracts/cli-json.schema.json` 已通过实际 dispatcher 序列化的签到 true/false/unknown、其它成功和失败 envelope 验证。
 
@@ -56,7 +55,7 @@ version 保留普通文本行为。无效参数文本会归约为安全的 `inva
 
 Flutter 手动登录、已授权的自动登录与会话恢复使用 Bridge v52 静默验证码流程。本地模型最多尝试三次，耗尽后提供当前路线的受限像素图、答案提交、刷新与取消。服务器 challenge id、execution、URL、Cookie 及 token 只留 Core。句柄绑定实例、账号、路线、会话修订和单调期限，直接提交当前取图页的 execution，拒绝后使用新挑战。协议依据见[来源裁决](../migration/decision-log.md#2026-11-06sso-图像验证码按当前准备状态直接提交)。旧非交互 Core-live/CLI 入口保持交互拒绝，App 命令模式的恢复可使用相同自动识别，耗尽后要求在界面完成验证。
 
-原位登录保留离线页面，挑战等待不产生写资格；隐藏、返回、账号变化、退出与销毁撤销上下文，迟到结果不再发布。固定路线就绪后复用该结果进入；Auto继续保留既有解析规则，需要切换固定路线时由用户明确选择。细节与证据见[整合来源](../migration/source-parity-interactive-integration-2026-10-02.md)与[阶段验证](../migration/evidence/project-interactive-auth-2026-10-02.md)。
+原位登录保留离线页面，挑战等待不产生写资格；隐藏、返回、账号变化、退出与销毁撤销上下文，迟到结果不再发布。固定路线就绪后复用该结果进入；Auto 在校园网只认证 Direct，校外并发认证两条独立路线。校外任一路线就绪即可进入应用，不因另一条路线的验证码阻塞；业务按[域名路线规则](route-policy.md)选择。细节与证据见[整合来源](../migration/source-parity-interactive-integration-2026-10-02.md)与[阶段验证](../migration/evidence/project-interactive-auth-2026-10-02.md)。
 
 
 ## H1-a 的恢复操作控制前置单元

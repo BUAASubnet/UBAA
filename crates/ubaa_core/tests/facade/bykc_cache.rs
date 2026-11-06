@@ -11,17 +11,21 @@ struct BykcCacheTransport {
 #[async_trait]
 impl HttpTransport for BykcCacheTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         self.calls.fetch_add(1, Ordering::SeqCst);
         let path = url::Url::parse(&request.url).unwrap().path().to_owned();
-        if path == "/api/uc/status" {
-            return Ok(HttpResponse::new(
+        if path == "/serviceValidate" {
+            return Ok(ubaa_core::facade::testing::sso_fixture_response(
                 200,
                 request.url,
                 include_bytes!("../../../../fixtures/auth/userinfo-success.json").to_vec(),
             ));
         }
         if path == "/sscv/cas/login" {
-            let mut response = HttpResponse::new(302, request.url, Vec::new());
+            let mut response =
+                ubaa_core::facade::testing::sso_fixture_response(302, request.url, Vec::new());
             response.headers.insert(
                 "Location".into(),
                 vec!["https://bykc.buaa.edu.cn/cas-login?token=synthetic".into()],
@@ -59,7 +63,11 @@ impl HttpTransport for BykcCacheTransport {
         } else {
             format!(r#"{{"status":"0","data":{data}}}"#)
         };
-        Ok(HttpResponse::new(200, request.url, body.into_bytes()))
+        Ok(ubaa_core::facade::testing::sso_fixture_response(
+            200,
+            request.url,
+            body.into_bytes(),
+        ))
     }
 }
 #[test]
@@ -115,7 +123,7 @@ fn 博雅五类在线结果与只读持久结果分离并保护旧数据() {
             cache
                 .read_bykc(ConnectionMode::WebVpn, &query)
                 .unwrap()
-                .is_none()
+                .is_some()
         );
         fail.store(1, Ordering::SeqCst);
         assert!(

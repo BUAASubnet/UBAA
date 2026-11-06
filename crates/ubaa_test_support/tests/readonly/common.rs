@@ -40,6 +40,9 @@ impl SpocTransport {
 #[async_trait]
 impl HttpTransport for SpocTransport {
     async fn execute(&self, request: HttpRequest) -> Result<HttpResponse> {
+        if let Some(response) = ubaa_core::facade::testing::sso_fixture_ticket(&request) {
+            return Ok(response);
+        }
         let (expected_url, response) = self
             .responses
             .lock()
@@ -56,12 +59,7 @@ impl HttpTransport for SpocTransport {
 }
 
 pub(crate) fn response(status: u16, final_url: &str, body: &str) -> HttpResponse {
-    HttpResponse {
-        status,
-        final_url: final_url.into(),
-        headers: BTreeMap::new(),
-        body: body.as_bytes().to_vec(),
-    }
+    ubaa_core::facade::testing::sso_fixture_response(status, final_url, body.as_bytes().to_vec())
 }
 
 pub(crate) fn redirect(location: &str) -> HttpResponse {

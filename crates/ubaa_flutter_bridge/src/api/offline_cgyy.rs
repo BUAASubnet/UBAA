@@ -522,7 +522,7 @@ mod tests {
     use crate::api::{client::*, offline::BridgeOfflineCache};
     use ubaa_core::facade as core;
     #[tokio::test]
-    async fn 研讨室本地订单读取不等待网络且分页路线隔离() {
+    async fn 研讨室本地订单读取不等待网络且分页隔离且跨路线共享() {
         let root = std::env::temp_dir().join(format!("ubaa-cgyy-cache-{}", std::process::id()));
         let _ = std::fs::remove_dir_all(&root);
         std::fs::create_dir_all(&root).unwrap();
@@ -590,7 +590,7 @@ mod tests {
                 .read_cgyy_orders(BridgeConnectionMode::WebVpn, 0, 20)
                 .await
                 .unwrap()
-                .is_none()
+                .is_some()
         );
         drop(guard);
         check_pending(&client, &cache).await;

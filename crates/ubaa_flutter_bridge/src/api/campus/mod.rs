@@ -671,7 +671,10 @@ mod tests {
                 BridgeCampusCacheQuery::Profile,
             ),
         ] {
-            assert!(cache.read_campus(route, query).await.unwrap().is_none());
+            assert_eq!(
+                cache.read_campus(route, query).await.unwrap().is_some(),
+                matches!(query, BridgeCampusCacheQuery::Metrics)
+            );
         }
         let _ = std::fs::remove_dir_all(root);
     }

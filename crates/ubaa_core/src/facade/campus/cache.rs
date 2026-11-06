@@ -4,7 +4,7 @@ use super::{
     NetworkUsage, OfflineCache, OfflineReadError, PortalProfile, ReadonlyFeature, UbaaClient,
 };
 
-/// 三个固定范围，按实际路线分别保存。
+/// 三个固定范围，同账号跨路线共用。
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum CampusCacheQuery {
     Profile,
@@ -73,14 +73,17 @@ impl UbaaClient {
         cache: &OfflineCache,
         query: CampusCacheQuery,
     ) -> Result<CampusRefresh, OfflineReadError> {
-        let refresh = self
+        let mut refresh = self
             .prepare_cached_refresh(cache, query.feature(), query.cache_query())
             .await?;
         let resolution = refresh.resolution;
-        let runtime = self.runtime_for(resolution.mode);
         match query {
             CampusCacheQuery::Profile => {
-                let read = crate::features::campus::get_profile(runtime).await;
+                let (resolution, read) = crate::facade::routing::read_with_fallback!(
+                    self,
+                    resolution,
+                    crate::features::campus::get_profile(self.runtime_for(resolution.mode)).await
+                );
                 let data = refresh.read_result(self.finish_routed(resolution, read))?;
                 refresh.finish(CampusReadData::Profile(data), true, |data| match data {
                     CampusReadData::Profile(value) => CachePayload::CampusProfile(value.clone()),
@@ -88,7 +91,11 @@ impl UbaaClient {
                 })
             }
             CampusCacheQuery::NetworkUsage => {
-                let read = crate::features::campus::get_usage(runtime).await;
+                let (resolution, read) = crate::facade::routing::read_with_fallback!(
+                    self,
+                    resolution,
+                    crate::features::campus::get_usage(self.runtime_for(resolution.mode)).await
+                );
                 let data = refresh.read_result(self.finish_routed(resolution, read))?;
                 refresh.finish(
                     CampusReadData::NetworkUsage(data),
@@ -102,7 +109,11 @@ impl UbaaClient {
                 )
             }
             CampusCacheQuery::Metrics => {
-                let read = crate::features::campus::get_metrics(runtime).await;
+                let (resolution, read) = crate::facade::routing::read_with_fallback!(
+                    self,
+                    resolution,
+                    crate::features::campus::get_metrics(self.runtime_for(resolution.mode)).await
+                );
                 let online = refresh.read_result(self.finish_routed(resolution, read))?;
                 // 旧快照读取失败时按无旧值处理，只影响逐项回退，不阻断在线结果。
                 let previous = cache

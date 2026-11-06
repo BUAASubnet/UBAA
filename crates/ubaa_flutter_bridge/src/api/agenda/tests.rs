@@ -429,7 +429,7 @@ async fn export_snapshot_preserves_occurrences_and_rejects_logout() {
             .await
             .unwrap()
             .exported_count,
-        3
+        4
     );
     cache.cache.deactivate().unwrap();
     assert_eq!(

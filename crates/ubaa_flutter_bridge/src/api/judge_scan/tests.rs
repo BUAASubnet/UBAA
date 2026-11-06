@@ -4,8 +4,8 @@ use crate::api::client::{BridgeConnectionMode, BridgeErrorCode};
 use crate::api::recovery::BridgeRecoveryFeature;
 use crate::api::write::{BridgeBykcCourseRequest, PendingEntry, PendingWrite};
 use ubaa_test_support::{
-    ExpectedRequest, FileSessionStore, GatewayProbe, HttpMethod, HttpResponse, MockTransport,
-    RouteConfig, SessionSnapshot, SessionStore,
+    ExpectedRequest, FileSessionStore, GatewayProbe, HttpMethod, MockTransport, RouteConfig,
+    SessionSnapshot, SessionStore,
 };
 
 struct NoProbe;
@@ -15,18 +15,22 @@ impl GatewayProbe for NoProbe {
     }
 }
 fn status() -> ExpectedRequest {
-    let url = "https://uc.buaa.edu.cn/api/uc/status";
+    let url = "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON";
     get(
         url,
         include_bytes!("../../../../../fixtures/auth/userinfo-success.json").to_vec(),
     )
 }
 fn get(url: &str, body: Vec<u8>) -> ExpectedRequest {
-    ExpectedRequest::new(HttpMethod::Get, url, HttpResponse::new(200, url, body))
+    ExpectedRequest::new(
+        HttpMethod::Get,
+        url,
+        ubaa_core::facade::testing::sso_fixture_response(200, url, body),
+    )
 }
 fn activation() -> ExpectedRequest {
     let url = "https://sso.buaa.edu.cn/login?service=https%3A%2F%2Fjudge.buaa.edu.cn%2F";
-    let mut response = HttpResponse::new(302, url, Vec::new());
+    let mut response = ubaa_core::facade::testing::sso_fixture_response(302, url, Vec::new());
     response
         .headers
         .insert("Location".into(), vec!["https://judge.buaa.edu.cn/".into()]);
@@ -45,7 +49,7 @@ async fn batches_release_client_lock_and_protect_pending_writes() {
             last_activity: 1001,
         })
         .unwrap();
-    let transport = MockTransport::new([
+    let transport = MockTransport::with_sso_checks([
         status(),
         activation(),
         get("https://judge.buaa.edu.cn/", b"<html>ready</html>".to_vec()),
@@ -66,7 +70,7 @@ async fn batches_release_client_lock_and_protect_pending_writes() {
     *bridge.inner.lock().await = Some(
         core::UbaaClient::with_routing(
             transport.clone(),
-            MockTransport::new([]),
+            MockTransport::with_sso_checks([]),
             store,
             RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
             NoProbe,
@@ -143,7 +147,7 @@ async fn persistent_refresh_delivers_index_then_saved_summary_through_bridge() {
             last_activity: 1001,
         })
         .unwrap();
-    let transport = MockTransport::new([
+    let transport = MockTransport::with_sso_checks([
         status(),
         activation(),
         get("https://judge.buaa.edu.cn/", b"<html>ready</html>".to_vec()),
@@ -167,7 +171,7 @@ async fn persistent_refresh_delivers_index_then_saved_summary_through_bridge() {
     *bridge.inner.lock().await = Some(
         core::UbaaClient::with_routing(
             transport.clone(),
-            MockTransport::new([]),
+            MockTransport::with_sso_checks([]),
             store,
             RouteConfig::parse("[route]\ndefault = \"direct\"\n").unwrap(),
             NoProbe,
