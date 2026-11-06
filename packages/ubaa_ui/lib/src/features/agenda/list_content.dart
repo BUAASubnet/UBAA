@@ -3,6 +3,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'calendar_values.dart';
 import 'format.dart';
 import '../../common/state_panel.dart';
+import '../../common/tag.dart';
 
 const _weekdays = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -467,20 +468,7 @@ class _StatusPill extends StatelessWidget {
   final String label;
   final Color color;
   @override
-  Widget build(BuildContext context) => Container(
-    padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-    decoration: BoxDecoration(
-      color: color.withValues(alpha: .12),
-      borderRadius: BorderRadius.circular(999),
-    ),
-    child: Text(
-      label,
-      style: Theme.of(context).textTheme.labelSmall?.copyWith(
-        color: color,
-        fontWeight: FontWeight.w600,
-      ),
-    ),
-  );
+  Widget build(BuildContext context) => UiTag(label, color: color);
 }
 
 class _SigninPill extends StatelessWidget {
@@ -495,17 +483,21 @@ class _SigninPill extends StatelessWidget {
         signin.completed || signin.school?.upstreamStatus.completed == true;
     final status = signin.school?.statusLabel ?? '';
     final label = done ? '已签到' : (status.contains('签到') ? status : '签到');
-    final fg = done ? const Color(0xFF2E7D4F) : colors.primary;
+    final (fg, bg) = UiTag.colorsOf(
+      context,
+      tone: done ? UiTagTone.primary : UiTagTone.neutral,
+      color: done ? null : colors.primary,
+    );
     return Semantics(
       button: true,
       label: '课程签到：$label',
       excludeSemantics: true,
       child: Material(
-        color: fg.withValues(alpha: .12),
-        borderRadius: BorderRadius.circular(999),
+        color: bg,
+        borderRadius: BorderRadius.circular(UiTag.radius),
         child: InkWell(
           key: ValueKey('agenda-signin-${agendaEntryKey(signin)}'),
-          borderRadius: BorderRadius.circular(999),
+          borderRadius: BorderRadius.circular(UiTag.radius),
           onTap: onTap,
           child: Padding(
             padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
@@ -520,10 +512,7 @@ class _SigninPill extends StatelessWidget {
                 const SizedBox(width: 4),
                 Text(
                   label,
-                  style: theme.textTheme.labelSmall?.copyWith(
-                    color: fg,
-                    fontWeight: FontWeight.w600,
-                  ),
+                  style: theme.textTheme.labelMedium?.copyWith(color: fg),
                 ),
               ],
             ),

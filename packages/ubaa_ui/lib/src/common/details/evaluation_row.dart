@@ -22,19 +22,7 @@ extension EvaluationCourseRows on _FeatureDetailListState {
         Flexible(child: Text(uiNonBlank(detail.subtitle) ?? '教师未提供')),
         if (reason != null) ...[
           const SizedBox(width: 8),
-          Container(
-            padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 1),
-            decoration: BoxDecoration(
-              color: theme.colorScheme.errorContainer,
-              borderRadius: BorderRadius.circular(4),
-            ),
-            child: Text(
-              '不可评',
-              style: theme.textTheme.labelSmall?.copyWith(
-                color: theme.colorScheme.onErrorContainer,
-              ),
-            ),
-          ),
+          const UiTag('不可评', tone: UiTagTone.error),
         ],
       ],
     );

@@ -5,6 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/text.dart' show uiNonBlank;
 import '../../shared/when.dart'
     show uiCampusNow, uiDeadlineHint, uiParseCampusTime, uiShortDateTime;
+import '../../common/tag.dart';
 
 bool uiSupportsAssignmentContent(
   FeatureId feature,
@@ -143,23 +144,11 @@ class AssignmentCard extends StatelessWidget {
       AssignmentSubmissionStatus.unsubmitted => '未提交',
       AssignmentSubmissionStatus.unknown => uiNonBlank(status),
     };
-    final (tagFg, tagBg) = switch (state) {
-      AssignmentSubmissionStatus.submitted => (
-        scheme.onPrimaryContainer,
-        scheme.primaryContainer,
-      ),
-      AssignmentSubmissionStatus.partial => (
-        scheme.onTertiaryContainer,
-        scheme.tertiaryContainer,
-      ),
-      AssignmentSubmissionStatus.unsubmitted => (
-        scheme.onErrorContainer,
-        scheme.errorContainer,
-      ),
-      AssignmentSubmissionStatus.unknown => (
-        scheme.onSurfaceVariant,
-        scheme.surfaceContainerHighest,
-      ),
+    final tone = switch (state) {
+      AssignmentSubmissionStatus.submitted => UiTagTone.primary,
+      AssignmentSubmissionStatus.partial => UiTagTone.warning,
+      AssignmentSubmissionStatus.unsubmitted => UiTagTone.error,
+      AssignmentSubmissionStatus.unknown => UiTagTone.neutral,
     };
     final deadline = uiParseCampusTime(due);
     final hint = deadline == null ? null : uiDeadlineHint(deadline);
@@ -216,22 +205,7 @@ class AssignmentCard extends StatelessWidget {
                   ),
                   if (label != null) ...[
                     const SizedBox(width: 12),
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 8,
-                        vertical: 3,
-                      ),
-                      decoration: BoxDecoration(
-                        color: tagBg,
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        label,
-                        style: theme.textTheme.labelMedium?.copyWith(
-                          color: tagFg,
-                        ),
-                      ),
-                    ),
+                    UiTag(label, tone: tone),
                   ],
                 ],
               ),

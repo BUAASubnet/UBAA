@@ -8,6 +8,7 @@ import '../../shared/text.dart' show uiHiddenAcademicField;
 import '../../shared/when.dart'
     show uiCampusNow, uiClock, uiParseCampusTime, uiShortRange;
 import '../../theme.dart' show UbaaTheme;
+import '../../common/tag.dart';
 
 bool uiSupportsParticipationContent(
   FeatureId feature,
@@ -150,19 +151,8 @@ class _SigninCourseCard extends StatelessWidget {
     final canSignNow = !done && window.phase == _SigninPhase.open;
     final theme = Theme.of(context);
     final scheme = theme.colorScheme;
-    Widget tag(String text, Color fg, Color bg) => Container(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
-      decoration: BoxDecoration(
-        color: bg,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        text,
-        style: theme.textTheme.labelMedium?.copyWith(color: fg),
-      ),
-    );
     final Widget? trailing = done
-        ? tag('已签到', scheme.onPrimaryContainer, scheme.primaryContainer)
+        ? const UiTag('已签到', tone: UiTagTone.primary)
         : canSignNow && onSignin != null && action != null
         ? FilledButton(
             onPressed: writesEnabled && allowed
@@ -171,16 +161,8 @@ class _SigninCourseCard extends StatelessWidget {
             child: const Text('签到'),
           )
         : switch (window.phase) {
-            _SigninPhase.upcoming => tag(
-              '${uiClock(window.opensAt!)} 起可签',
-              scheme.onSurfaceVariant,
-              scheme.surfaceContainerHighest,
-            ),
-            _SigninPhase.ended => tag(
-              '未签到',
-              scheme.onSurfaceVariant,
-              scheme.surfaceContainerHighest,
-            ),
+            _SigninPhase.upcoming => UiTag('${uiClock(window.opensAt!)} 起可签'),
+            _SigninPhase.ended => const UiTag('未签到'),
             _ => null,
           };
     final time =

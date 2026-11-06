@@ -5,6 +5,7 @@ import '../../shared/loading.dart';
 import '../../shared/schedule_values.dart';
 import '../../shared/text.dart';
 import '../../common/state_panel.dart';
+import '../../common/tag.dart';
 
 typedef HomeScheduleRoute = ({String label, ConnectionMode? route});
 
@@ -298,25 +299,9 @@ class _CourseCard extends StatelessWidget {
                   ),
                 ),
                 const SizedBox(width: 12),
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 8,
-                    vertical: 4,
-                  ),
-                  decoration: BoxDecoration(
-                    color: active
-                        ? theme.colorScheme.primaryContainer
-                        : theme.colorScheme.surfaceContainerHigh,
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Text(
-                    status,
-                    style: theme.textTheme.labelSmall?.copyWith(
-                      color: active
-                          ? theme.colorScheme.onPrimaryContainer
-                          : theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
+                UiTag(
+                  status,
+                  tone: active ? UiTagTone.primary : UiTagTone.neutral,
                 ),
               ],
             ),

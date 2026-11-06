@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/when.dart' show uiDay;
+import '../../common/tag.dart';
 
 String uiBykcStatusLabel(BykcCourseStatus status) => switch (status) {
   BykcCourseStatus.preview => '预告',
@@ -135,30 +136,14 @@ class BykcStatusChip extends StatelessWidget {
   const BykcStatusChip(this.status);
   final BykcCourseStatus status;
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final emphasized =
+  Widget build(BuildContext context) => UiTag(
+    uiBykcStatusLabel(status),
+    tone:
         status == BykcCourseStatus.available ||
-        status == BykcCourseStatus.selected;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: emphasized
-            ? colors.primaryContainer
-            : colors.surfaceContainerHighest,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Text(
-        uiBykcStatusLabel(status),
-        style: theme.textTheme.labelMedium?.copyWith(
-          color: emphasized
-              ? colors.onPrimaryContainer
-              : colors.onSurfaceVariant,
-        ),
-      ),
-    );
-  }
+            status == BykcCourseStatus.selected
+        ? UiTagTone.primary
+        : UiTagTone.neutral,
+  );
 }
 
 List<String> uiBykcSearchValues(FeaturePresentation? value) => switch (value) {

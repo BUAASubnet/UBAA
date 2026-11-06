@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../common/tag.dart';
 
 class BykcCardTags extends StatelessWidget {
   const BykcCardTags({
@@ -40,35 +41,11 @@ class _Tag extends StatelessWidget {
   final IconData? icon;
 
   @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    final foreground = icon == null ? colors.onSurfaceVariant : colors.primary;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-      decoration: BoxDecoration(
-        color: icon == null
-            ? colors.surfaceContainerHighest
-            : colors.primaryContainer,
-        borderRadius: BorderRadius.circular(8),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (icon != null) ...[
-            Icon(icon, size: 14, color: foreground),
-            const SizedBox(width: 4),
-          ],
-          Flexible(
-            child: Text(
-              label,
-              style: theme.textTheme.labelMedium?.copyWith(color: foreground),
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget build(BuildContext context) => UiTag(
+    label,
+    icon: icon,
+    tone: icon == null ? UiTagTone.neutral : UiTagTone.primary,
+  );
 }
 
 /// 教师与地点合为一行，时间一行，选课/退选时间一行。

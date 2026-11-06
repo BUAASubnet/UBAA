@@ -11,6 +11,7 @@ import '../shared/loading.dart' show LoadingPlaceholder;
 import '../features/grades/notice.dart' show GradeScoreBanner;
 import '../shared/feature_icons.dart' show uiFeatureIcon;
 import '../shared/refresh.dart' show PullToRefresh;
+import '../common/tag.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({
@@ -858,39 +859,15 @@ class _HomeTodoCard extends StatelessWidget {
     );
   }
 
-  Widget _homeChip(BuildContext context, String text, {bool accented = false}) {
-    final theme = Theme.of(context);
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-      decoration: BoxDecoration(
-        color: accented
-            ? theme.colorScheme.primaryContainer
-            : theme.colorScheme.surfaceContainerHigh,
-        borderRadius: BorderRadius.circular(6),
-      ),
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          if (accented) ...[
-            Icon(
-              uiFeatureIcon(item.feature),
-              size: 16,
-              color: theme.colorScheme.onPrimaryContainer,
-            ),
-            const SizedBox(width: 4),
-          ],
-          Text(
-            text,
-            style: theme.textTheme.labelSmall?.copyWith(
-              color: accented
-                  ? theme.colorScheme.onPrimaryContainer
-                  : theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
+  Widget _homeChip(
+    BuildContext context,
+    String text, {
+    bool accented = false,
+  }) => UiTag(
+    text,
+    icon: accented ? uiFeatureIcon(item.feature) : null,
+    tone: accented ? UiTagTone.primary : UiTagTone.neutral,
+  );
 }
 
 class FeatureGridView extends StatelessWidget {

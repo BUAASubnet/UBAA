@@ -47,6 +47,7 @@ import '../../write/cgyy/form.dart'
 import '../../write/ygdk/draft.dart' show YgdkFormContext;
 import '../../write/ygdk/form.dart' show uiCollectYgdkForm;
 import '../../shared/loading.dart' show LoadingGlyph;
+import '../tag.dart';
 
 part 'assignments.dart';
 part 'evaluation_row.dart';
