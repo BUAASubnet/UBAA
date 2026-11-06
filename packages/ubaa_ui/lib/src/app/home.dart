@@ -602,7 +602,13 @@ class HomeViewState extends State<HomeView> {
               ),
           ],
         ),
-        if (tasks.isEmpty && loading.isNotEmpty)
+        // 首次加载才占位；刷新时保留已有结果，进度只在标题栏右侧显示。
+        if (tasks.isEmpty &&
+            loading.isNotEmpty &&
+            loading.every(
+              (f) =>
+                  sources[f]?.updatedAt == null && sources[f]?.evidence == null,
+            ))
           const LoadingPlaceholder(compact: true)
         else if (tasks.isEmpty &&
             features.any((f) => sources[f]?.status == FeatureLoadStatus.idle))

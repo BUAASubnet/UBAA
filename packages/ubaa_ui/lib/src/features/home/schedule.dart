@@ -171,9 +171,9 @@ class _HomeScheduleSectionState extends State<HomeScheduleSection> {
             day,
           );
     final error = remote ? result?.error : original.error;
+    // 只有从未拿到结果时才在页面内占位；刷新期间保留原内容，进度由标题栏显示。
     final loading = remote
-        ? widget.onLoadDay != null &&
-              (result == null || _pending.contains(date))
+        ? widget.onLoadDay != null && result == null
         : original.status == FeatureLoadStatus.loading &&
               (original.evidence?.complete == false ||
                   (original.evidence == null && original.updatedAt == null));
