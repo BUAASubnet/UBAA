@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 
-/// 随正文自然增高的分区标题。
+/// 页面内分区标题；页面顶层标题用 headlineSmall 粗体，卡片标题用 titleMedium。
 class UiSectionTitle extends StatelessWidget {
   const UiSectionTitle(this.title, {super.key, this.action});
   final String title;
@@ -14,10 +14,9 @@ class UiSectionTitle extends StatelessWidget {
         Expanded(
           child: Text(
             title,
-            style: Theme.of(context).textTheme.titleMedium?.copyWith(
-              fontSize: 18,
-              fontWeight: FontWeight.w600,
-            ),
+            style: Theme.of(
+              context,
+            ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600),
           ),
         ),
         if (action != null) action!,

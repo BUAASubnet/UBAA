@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme.dart' show UbaaTheme;
 import 'package:flutter/foundation.dart' show setEquals;
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'format.dart';
@@ -421,7 +422,9 @@ class _AgendaEditorState extends State<AgendaEditor> {
         key: _form,
         child: ListView(
           key: const ValueKey('agenda-editor-list'),
-          padding: const EdgeInsets.all(20),
+          padding: EdgeInsets.all(
+            UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+          ),
           children: [
             SegmentedButton<AgendaKind>(
               segments: const [

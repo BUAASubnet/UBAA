@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../theme.dart' show UbaaTheme;
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/loading.dart' show LoadingGlyph;
 import '../../shared/text.dart' show uiNonBlank;
@@ -170,7 +171,7 @@ class GradeCard extends StatelessWidget {
     return Card.outlined(
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(UbaaTheme.cardRadius),
         side: BorderSide(color: theme.colorScheme.outlineVariant),
       ),
       // 课程名、分数、绩点和学分已全部在卡片上，不再弹详情。

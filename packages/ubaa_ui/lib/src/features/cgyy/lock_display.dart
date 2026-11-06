@@ -3,6 +3,8 @@ import '../../shared/loading.dart' show LoadingGlyph;
 import '../../shared/refresh.dart' show PullToRefresh;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../common/section.dart' show UiSectionTitle;
+import '../../theme.dart';
 
 /// 旧版查看密码页；敏感材料不加入导航快照或通用字段。
 class UbaaCgyyLockDisplayView extends StatefulWidget {
@@ -140,17 +142,17 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
     return PullToRefresh(
       onRefresh: _refresh,
       child: ListView(
-        padding: const EdgeInsets.all(16),
+        padding: EdgeInsets.all(
+          UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
+        ),
         children: [
-          Row(
-            children: [
-              Expanded(child: Text('密码状态', style: theme.textTheme.titleLarge)),
-              IconButton(
-                tooltip: '刷新密码',
-                onPressed: _busy ? null : _refresh,
-                icon: _busy ? const LoadingGlyph() : const Icon(Icons.refresh),
-              ),
-            ],
+          UiSectionTitle(
+            '密码状态',
+            action: IconButton(
+              tooltip: '刷新密码',
+              onPressed: _busy ? null : _refresh,
+              icon: _busy ? const LoadingGlyph() : const Icon(Icons.refresh),
+            ),
           ),
           if (_error != null)
             Padding(
@@ -193,7 +195,7 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
           ),
           if (value != null) ...[
             const SizedBox(height: 12),
-            Text('预约信息', style: theme.textTheme.titleMedium),
+            const UiSectionTitle('预约信息'),
             for (final entry in <(String, String?)>[
               ('预约单号', value.reservationReference),
               ('场地', value.venueText),

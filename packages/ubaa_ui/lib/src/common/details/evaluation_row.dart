@@ -74,9 +74,7 @@ extension EvaluationCourseRows on _FeatureDetailListState {
     );
     return Card(
       margin: const EdgeInsets.only(bottom: 8),
-      color: selected
-          ? theme.colorScheme.primaryContainer
-          : theme.colorScheme.surfaceContainerHigh,
+      color: selected ? theme.colorScheme.primaryContainer : null,
       child: target != null && widget.onEvaluationWrite != null
           ? CheckboxListTile(
               key: ValueKey<String>('evaluation-${target.selectionKey}'),

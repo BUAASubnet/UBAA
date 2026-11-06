@@ -190,7 +190,7 @@ class AssignmentCard extends StatelessWidget {
     return Card.outlined(
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(UbaaTheme.cardRadius),
         side: BorderSide(color: scheme.outlineVariant),
       ),
       clipBehavior: Clip.antiAlias,

@@ -173,11 +173,6 @@ class _GradesFlowState extends State<GradesFlow> {
           ),
         if (widget.loader != null || hasTerms) ...[
           Card(
-            elevation: 0,
-            color: theme.colorScheme.surfaceContainerLow,
-            shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(12),
-            ),
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
               child: Row(

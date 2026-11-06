@@ -6,6 +6,7 @@ import 'package:ubaa_ui/src/theme.dart';
 import '../academic/card.dart' show uiShowAcademicDetails;
 import '../classroom/content.dart' show uiClassroomCampusName;
 import '../../shared/text.dart' show uiNonBlank, uiTimeRange;
+import '../../common/section.dart' show UiSectionTitle;
 
 class ExamTimeline extends StatefulWidget {
   const ExamTimeline({required this.details});
@@ -75,15 +76,7 @@ class _ExamTimelineState extends State<ExamTimeline> {
     );
   }
 
-  Widget _heading(BuildContext context, String text) => Padding(
-    padding: const EdgeInsets.only(bottom: 16, top: 4),
-    child: Text(
-      text,
-      style: Theme.of(context).textTheme.titleMedium?.copyWith(
-        color: Theme.of(context).colorScheme.primary,
-      ),
-    ),
-  );
+  Widget _heading(BuildContext context, String text) => UiSectionTitle(text);
 
   List<Widget> _groups(List<FeatureDetail> items, {bool finished = false}) {
     final groups = <DateTime?, List<FeatureDetail>>{};

@@ -10,6 +10,7 @@ import '../../write/ygdk/draft.dart' show YgdkFormContext;
 import '../../write/ygdk/form.dart' show uiCollectYgdkForm;
 import '../../shared/create_button.dart';
 import '../../common/state_panel.dart';
+import '../../common/section.dart' show UiSectionTitle;
 
 /// 旧版阳光首页：概要在前、记录在后，运动项目收在新增流程。
 class YgdkHomeFlow extends StatefulWidget {
@@ -236,7 +237,6 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
           padding: UbaaTheme.pageInsets(context, top: 16, bottom: 96),
           children: [
             Card(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
               child: Padding(
                 padding: const EdgeInsets.all(16),
                 child: Column(
@@ -264,13 +264,7 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
                       : widget.onReminderChanged,
                 ),
               ),
-            Text(
-              '打卡记录',
-              style: Theme.of(
-                context,
-              ).textTheme.titleMedium?.copyWith(fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 12),
+            const UiSectionTitle('打卡记录'),
             if (loading && visible.isEmpty && _page == null)
               const LoadingPlaceholder(compact: true),
             if (!loading &&

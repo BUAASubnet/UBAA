@@ -762,7 +762,6 @@ class _HomeTodoCard extends StatelessWidget {
         ? '结果待确认'
         : item.statusLabel;
     return Card(
-      color: theme.colorScheme.surfaceContainerLow,
       clipBehavior: Clip.antiAlias,
       child: InkWell(
         onTap: item.feature == FeatureId.signin

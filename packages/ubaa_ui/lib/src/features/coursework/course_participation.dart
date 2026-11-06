@@ -194,7 +194,7 @@ class _SigninCourseCard extends StatelessWidget {
     return Card.outlined(
       margin: EdgeInsets.zero,
       shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
+        borderRadius: BorderRadius.circular(UbaaTheme.cardRadius),
         side: BorderSide(
           color: canSignNow && !done ? scheme.primary : scheme.outlineVariant,
         ),
