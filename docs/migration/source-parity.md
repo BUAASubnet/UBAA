@@ -497,6 +497,8 @@ DTO/解析器只解码 `WeeklyScheduleResponse.datas`，不要求两者相等。
 
 当前实现证据：UBAA2 Core 已完成五类图书馆只读查询及独立路线内 token 会话，CLI 已接入五个对应子命令，并有 Mock/CAS 回归测试。预约、取消现已接入 Core/CLI，并以冻结 golden 向量覆盖日期派生 AES-128-CBC、PKCS#7 和固定 IV；CLI 写入口要求显式确认，verify-live 永不调用。`examples/buaa-api` 没有等价实现。历史 Direct 与 WebVPN `feature=libbook` 只读验证曾成功并返回 2 个馆区；分区详情的当前实时验收必须在每日 08:30–23:00（`Asia/Shanghai`）开放窗口内进行，非营业时间的 `code=500` 不作为协议变化结论。
 
+2026-11-07 来源对照补充：冻结旧版 `LocalLibBookApi` 对非 0/1 业务码仅作通用异常映射，没有非预约时段专用错误或时段文案；固定 `examples/buaa-api` 没有图书馆等价模块，相关协议字段和状态码不适用。历史脱敏实时证据记录 HTTP 200、业务 `code=500` 且无 `data` 的非开放时段形态。本次用户说明将当前可展示时段限定为 `8:00–20:00`，该数字不是冻结来源推导值。Core 仅将 `code=500` 且 `data` 缺失或为 null 的图书馆响应映射为 `business_unavailable`，返回 `retryable=true` 与固定文案“当前不在预约时段（8:00–20:00）”；其他非 0/1 响应继续按原错误语义处理。该读取错误允许稍后刷新，不发起真实学校请求。
+
 补充证据（`24acd8b`）：`crates/ubaa_core/tests/libbook.rs` 的 Mock 端到端测试按冻结顺序调用预约确认和取消接口，断言 `aesjson` 非空、取消请求携带预约标识，并复用路线内 bearer 会话。测试仅使用合成会话与脱敏响应，不产生真实预约或取消。
 
 ## 变更审查规则

@@ -247,7 +247,8 @@ fn sanitize_authority_error(error: UbaaError) -> UbaaError {
         ErrorCode::AuthenticationRequired | ErrorCode::InternalError | ErrorCode::InvalidInput => {
             return error;
         }
-        ErrorCode::InvalidCredentials
+        ErrorCode::BusinessUnavailable
+        | ErrorCode::InvalidCredentials
         | ErrorCode::PasswordRiskConfirmationFailed
         | ErrorCode::PermissionDenied => return error,
     };

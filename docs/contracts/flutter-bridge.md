@@ -1,8 +1,8 @@
 # Flutter Bridge 合同
 
-状态：当前合同 v53。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
+状态：当前合同 v54。v9 的 Phase 11J/11K 是 typed 写入和单一协调器的历史基线；当前版本及生成一致性按[统一门禁](../development/commands.md)核验，原生/真实 App 的实际结果见[迁移状态](../migration/status.md)。实体设备与正式发布单独记录，当前阶段目标不定义稳定合同。
 
-业务缓存持久格式当前为 schema v8，独立于 Bridge v53。旧开发格式不迁移，普通打开拒绝并保留原库，用户明确清理后才能重建。下文各阶段的缓存版本与迁移说明保留历史事实，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
+业务缓存持久格式当前为 schema v8，独立于 Bridge v54。旧开发格式不迁移，普通打开拒绝并保留原库，用户明确清理后才能重建。下文各阶段的缓存版本与迁移说明保留历史事实，当前规则见[缓存合同](offline-cache-and-recovery.md#版本和所有权)。
 
 本合同固定 Flutter/FRB 与 Rust Core facade 之间的唯一生产边界。上游 URL、Cookie、
 Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和诊断方法均不得穿过此边界。
@@ -11,7 +11,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 
 ## 1. 版本与命名
 
-- 合同版本为 `53`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
+- 合同版本为 `54`；FRB、runtime、codegen 和 Cargokit 固定为 `2.13.0`。历史版本 3 将课堂签到
   `signStatus` 改为可空并新增 typed eligibility/target；版本 4 又将 LibBook 座位 `status` 改为
   可空整数，以 typed `reserveEligibility/reserveTarget` 取代 `isAvailable`。版本 5 将 LibBook booking
   `status` 改为可空整数并新增 typed `cancelEligibility/cancelTarget`，同时让取消请求携带本地
@@ -39,7 +39,7 @@ Session 内容、业务 token、签名、验证码材料、原始 HTML/JSON 和�
 |---|---|---|---|
 | `BridgeClient.open` | `configDir: String` | `Future<BridgeClient>` | 异步工作线程打开；只接受绝对应用私有目录；调用 `UbaaClient::open`；不返回或扫描目录内容 |
 | `dispose` | 无 | `void` | 幂等；使全部 intent 失效；等待当前持锁操作结束后销毁 Core client |
-| `contractVersion` | 无 | `u32=53` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
+| `contractVersion` | 无 | `u32=54` | sync、无 I/O；宿主必须与同一次 codegen 产物配套 |
 
 同一 client 按教务、签到、SPOC、希冀、阳光、博雅、研讨室及用户资料分组读取，组内串行，
 组间最多八个完整批次在途（每个读取组各一个，首页全部来源可同时开始）。每组的只读 Core 实例复用连接池，独立保存业务 Cookie、Token 和缓存，
@@ -93,7 +93,8 @@ Flutter 宿主必须继续保留这里定义的 code、kind、retryable 和 reso
 
 Core 错误码逐一映射：`invalid_input`、`authentication_required`、`invalid_credentials`、
 `password_risk_confirmation_failed`、`permission_denied`、`network_error`、`timeout`、
-`upstream_unavailable`、`outcome_unknown`、`upstream_changed`、`parse_error`、`internal_error`。
+`upstream_unavailable`、`business_unavailable`、`outcome_unknown`、`upstream_changed`、`parse_error`、`internal_error`。
+`business_unavailable` 仅用于已确认的业务时段或状态不可用；图书馆收到业务 `code=500` 且无有效 `data` 时返回该码、`retryable=true` 和安全消息“当前不在预约时段（8:00–20:00）”。
 博雅签到、课堂签到、LibBook 预约/取消、Cgyy 预约/取消、Ygdk 与 Evaluation 提交合同都只允许在非幂等写请求越过
 发送边界后产生 `outcome_unknown`；其余写操作暂时保留既有的 commit 阶段保守映射，可能把业务登录或
 预检中的网络类失败也归入结果未知，必须在后续来源对照阶段逐项收窄。LibBook 的 `outcome_unknown`

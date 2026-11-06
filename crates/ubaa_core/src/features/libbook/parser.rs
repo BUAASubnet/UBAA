@@ -92,6 +92,11 @@ pub(super) fn response_data(mut value: Value) -> Result<Value> {
                 "图书馆业务会话已失效",
             ));
         }
+        if code == Some(500) && object.get("data").is_none_or(serde_json::Value::is_null) {
+            return Err(UbaaError::business_unavailable(
+                "当前不在预约时段（8:00–20:00）",
+            ));
+        }
         Err(error(if message.is_empty() {
             "图书馆请求失败".to_owned()
         } else {

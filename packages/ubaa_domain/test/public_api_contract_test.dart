@@ -18,7 +18,7 @@ void main() {
     expect(FeatureId.values, hasLength(12));
     expect(FeatureId.values.first, FeatureId.schedule);
     expect(FeatureId.values.last, FeatureId.evaluation);
-    expect(UbaaErrorCode.values, hasLength(16));
+    expect(UbaaErrorCode.values, hasLength(17));
     expect(UbaaErrorCode.values.first, UbaaErrorCode.invalidInput);
     expect(UbaaErrorCode.values.last, UbaaErrorCode.outcomeUnknown);
     expect(FeatureLoadStatus.values, <FeatureLoadStatus>[

@@ -24,6 +24,8 @@ pub enum ErrorCode {
     Timeout,
     /// 上游服务暂时不可用。
     UpstreamUnavailable,
+    /// 上游业务当前不在可用时段或状态。
+    BusinessUnavailable,
     /// 非幂等写请求可能已到达上游，但无法确定最终业务结果。
     OutcomeUnknown,
     /// 上游协议不再符合已验证合同。
@@ -152,6 +154,16 @@ impl UbaaError {
     pub fn upstream_unavailable(message: impl Into<String>) -> Self {
         Self::new(
             ErrorCode::UpstreamUnavailable,
+            ErrorKind::Upstream,
+            true,
+            message,
+        )
+    }
+
+    /// 构造可重试的上游业务不可用错误。
+    pub fn business_unavailable(message: impl Into<String>) -> Self {
+        Self::new(
+            ErrorCode::BusinessUnavailable,
             ErrorKind::Upstream,
             true,
             message,
@@ -368,6 +380,15 @@ mod tests {
             UbaaError::upstream_unavailable("x"),
             UbaaError::new(
                 ErrorCode::UpstreamUnavailable,
+                ErrorKind::Upstream,
+                true,
+                "x"
+            )
+        );
+        assert_eq!(
+            UbaaError::business_unavailable("x"),
+            UbaaError::new(
+                ErrorCode::BusinessUnavailable,
                 ErrorKind::Upstream,
                 true,
                 "x"

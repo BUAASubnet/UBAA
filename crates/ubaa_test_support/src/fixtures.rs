@@ -45,6 +45,9 @@ pub fn readonly_fixture(name: &str) -> Option<&'static str> {
         "cgyy-sites.json" => Some(include_str!("../../../fixtures/readonly/cgyy-sites.json")),
         "cgyy-day.json" => Some(include_str!("../../../fixtures/readonly/cgyy-day.json")),
         "cgyy-orders.json" => Some(include_str!("../../../fixtures/readonly/cgyy-orders.json")),
+        "libbook-offhours.json" => Some(include_str!(
+            "../../../fixtures/readonly/libbook-offhours.json"
+        )),
         _ => None,
     }
 }

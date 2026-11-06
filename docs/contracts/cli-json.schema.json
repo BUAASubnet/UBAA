@@ -736,6 +736,7 @@
         "network_error",
         "timeout",
         "upstream_unavailable",
+        "business_unavailable",
         "outcome_unknown",
         "upstream_changed",
         "parse_error",

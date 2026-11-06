@@ -1142,6 +1142,7 @@ enum BridgeErrorCode {
   networkError,
   timeout,
   upstreamUnavailable,
+  businessUnavailable,
   upstreamChanged,
   parseError,
   internalError,

@@ -78,7 +78,8 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 53;
+const _supportedBridgeContractVersion = 54;
+const _previousBridgeContractVersion = 53;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -132,7 +133,8 @@ class BridgeBackend
   BridgeBackend(BridgeClient client, {String? configDirectory})
     : _context = BridgeContext(client, configDirectory: configDirectory) {
     final contractVersion = client.contractVersion();
-    if (contractVersion != _supportedBridgeContractVersion) {
+    if (contractVersion != _supportedBridgeContractVersion &&
+        contractVersion != _previousBridgeContractVersion) {
       _disposeIncompatibleBridgeClient(client);
       throw const InitializationException(
         InitializationFailure.bridgeIncompatible,

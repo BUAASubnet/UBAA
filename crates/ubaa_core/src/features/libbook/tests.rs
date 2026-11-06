@@ -1,6 +1,7 @@
 //! 图书馆 parser 与冻结加密向量单元合同。
 
 use super::crypto::encrypt_reserve_request;
+use super::parser::envelope;
 use super::test_response::{
     parse_area_detail_for, parse_area_detail_for_day, parse_bookings_for_request, parse_libraries,
     parse_seats,
@@ -123,6 +124,17 @@ const SEAT_STATUS_CASES: &[SeatStatusCase] = &[
         None,
     ),
 ];
+
+#[test]
+fn 非预约时段响应不应被归为接口变化() {
+    let error = envelope(include_str!(
+        "../../../../../fixtures/readonly/libbook-offhours.json"
+    ))
+    .expect_err("非预约时段响应应返回业务错误");
+    assert_eq!(error.code, ErrorCode::BusinessUnavailable);
+    assert!(error.retryable);
+    assert_eq!(error.message, "当前不在预约时段（8:00–20:00）");
+}
 
 #[test]
 fn 解析图书馆楼层和座位状态() {

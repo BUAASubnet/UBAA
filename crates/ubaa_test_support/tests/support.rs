@@ -93,6 +93,7 @@ fn readonly_fixtures_are_synthetic_and_sanitized() {
         "cgyy-sites.json",
         "cgyy-day.json",
         "cgyy-orders.json",
+        "libbook-offhours.json",
     ];
     let expected = names
         .iter()

@@ -163,6 +163,7 @@ UbaaErrorCode bridgeTypedErrorCode(BridgeErrorCode code) => switch (code) {
   BridgeErrorCode.networkError => UbaaErrorCode.networkError,
   BridgeErrorCode.timeout => UbaaErrorCode.timeout,
   BridgeErrorCode.upstreamUnavailable => UbaaErrorCode.upstreamUnavailable,
+  BridgeErrorCode.businessUnavailable => UbaaErrorCode.businessUnavailable,
   BridgeErrorCode.upstreamChanged => UbaaErrorCode.upstreamChanged,
   BridgeErrorCode.parseError => UbaaErrorCode.parseError,
   BridgeErrorCode.internalError ||
@@ -205,6 +206,8 @@ UbaaErrorCode bridgeErrorCode(String? code) => switch (code) {
   'timeout' => UbaaErrorCode.timeout,
   'upstreamUnavailable' ||
   'upstream_unavailable' => UbaaErrorCode.upstreamUnavailable,
+  'businessUnavailable' ||
+  'business_unavailable' => UbaaErrorCode.businessUnavailable,
   'upstreamChanged' || 'upstream_changed' => UbaaErrorCode.upstreamChanged,
   'parseError' || 'parse_error' => UbaaErrorCode.parseError,
   'clientDisposed' || 'client_disposed' => UbaaErrorCode.internalError,

@@ -493,7 +493,8 @@ BridgeCommandFailure _recoveryFailure(
   UbaaErrorCode.invalidCredentials => BridgeCommandFailure.invalidCredentials,
   UbaaErrorCode.permissionDenied => BridgeCommandFailure.permissionDenied,
   UbaaErrorCode.networkError ||
-  UbaaErrorCode.upstreamUnavailable => BridgeCommandFailure.network,
+  UbaaErrorCode.upstreamUnavailable ||
+  UbaaErrorCode.businessUnavailable => BridgeCommandFailure.network,
   UbaaErrorCode.timeout => BridgeCommandFailure.timeout,
   UbaaErrorCode.upstreamChanged ||
   UbaaErrorCode.parseError => BridgeCommandFailure.upstreamChanged,

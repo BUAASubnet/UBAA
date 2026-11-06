@@ -106,7 +106,7 @@ class _Client implements BridgeClient {
   int calls = 0;
   bool allFailed = false;
   @override
-  int contractVersion() => 53;
+  int contractVersion() => 54;
   @override
   Future<BridgeJudgeRefreshTask> beginJudgeRefresh({
     required BridgeOfflineCache cache,
