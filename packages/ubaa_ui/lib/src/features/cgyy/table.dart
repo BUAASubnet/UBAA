@@ -116,10 +116,10 @@ extension CgyyReservationTable on CgyyReservationFlowState {
     final eligible = _eligibleActions;
     bool open(CgyySpacePresentation space, CgyyTimePresentation time) =>
         eligible.containsKey(_slotKey(space, time));
-    final spaces = widget.onlyAvailable
+    final spaces = _onlyAvailable
         ? day.spaces.where((s) => allTimes.any((t) => open(s, t))).toList()
         : day.spaces;
-    final times = widget.onlyAvailable
+    final times = _onlyAvailable
         ? allTimes.where((t) => spaces.any((s) => open(s, t))).toList()
         : allTimes;
     return Column(
@@ -134,8 +134,7 @@ extension CgyyReservationTable on CgyyReservationFlowState {
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   const Text('这一天该楼层没有可预约时段'),
-                  if (widget.onShowAll case final showAll?)
-                    TextButton(onPressed: showAll, child: const Text('显示全部时段')),
+                  TextButton(onPressed: _showAll, child: const Text('显示全部时段')),
                 ],
               ),
             ),

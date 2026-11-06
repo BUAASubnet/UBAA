@@ -6,12 +6,12 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/theme.dart';
 import '../common/section.dart';
 import '../features/home/schedule.dart';
+import '../features/home/todo_card.dart';
 import '../features/home/todo_grid.dart';
 import '../shared/loading.dart' show LoadingPlaceholder;
 import '../features/grades/notice.dart' show GradeScoreBanner;
 import '../shared/feature_icons.dart' show uiFeatureIcon;
 import '../shared/refresh.dart' show PullToRefresh;
-import '../common/tag.dart';
 
 class HomeView extends StatefulWidget {
   const HomeView({
@@ -585,7 +585,7 @@ class HomeViewState extends State<HomeView> {
           key: const ValueKey('home-todos'),
           children: [
             for (final task in tasks.take(4))
-              _HomeTodoCard(
+              HomeTodoCard(
                 item: task,
                 now: campusNow,
                 onTap: () => widget.onTodoTap(task),
@@ -646,7 +646,7 @@ class HomeViewState extends State<HomeView> {
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
-                        '${failed.map(_homeLabel).join('、')}暂未加载',
+                        '${failed.map(uiHomeFeatureLabel).join('、')}暂未加载',
                         style: Theme.of(context).textTheme.bodyMedium,
                       ),
                     ),
@@ -676,7 +676,7 @@ class HomeViewState extends State<HomeView> {
             Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
-                '${_homeLabel(feature)}：${uiCacheReadFailureText(failure)}',
+                '${uiHomeFeatureLabel(feature)}：${uiCacheReadFailureText(failure)}',
               ),
             ),
         if (_supplements[HomeSupplement.currentWeek] case final result?
@@ -723,150 +723,10 @@ class HomeViewState extends State<HomeView> {
   }
 }
 
-String _homeLabel(FeatureId feature) => switch (feature) {
-  FeatureId.exam => '考试',
-  FeatureId.bykc => '博雅',
-  FeatureId.spoc => 'SPOC',
-  FeatureId.judge => '希冀',
-  FeatureId.cgyy => '研讨室',
-  FeatureId.signin => '签到',
-  FeatureId.ygdk => '阳光打卡',
-  _ => feature.title,
-};
-
 String uiCacheReadFailureText(CacheMaintenanceFailure failure) =>
     failure == CacheMaintenanceFailure.capacity
     ? '本机空间不足，在线内容已显示，暂未保存到本机。'
     : '在线内容已显示，暂未保存到本机。';
-
-class _HomeTodoCard extends StatelessWidget {
-  const _HomeTodoCard({
-    required this.item,
-    required this.now,
-    required this.onTap,
-    this.onSignin,
-    this.onRefreshSignin,
-    this.signing = false,
-    this.signinUncertain = false,
-  });
-  final HomeTodo item;
-  final DateTime now;
-  final VoidCallback onTap;
-  final Future<void> Function()? onSignin, onRefreshSignin;
-  final bool signing, signinUncertain;
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final status = item.feature == FeatureId.signin && signing
-        ? '签到处理中'
-        : signinUncertain
-        ? '结果待确认'
-        : item.statusLabel;
-    return Card(
-      clipBehavior: Clip.antiAlias,
-      child: InkWell(
-        onTap: item.feature == FeatureId.signin
-            ? (signing ? null : onSignin ?? onRefreshSignin)
-            : item.navigation == null
-            ? null
-            : onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(16),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: [
-                    Column(
-                      mainAxisSize: MainAxisSize.min,
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // 类型标签与标题同一行；“待××”与时间信息重复，不再单独显示。
-                        Row(
-                          children: [
-                            _homeChip(
-                              context,
-                              _homeLabel(item.feature),
-                              accented: true,
-                            ),
-                            const SizedBox(width: 8),
-                            Flexible(
-                              child: Text(
-                                item.title,
-                                maxLines: 2,
-                                overflow: TextOverflow.ellipsis,
-                                style: theme.textTheme.titleMedium?.copyWith(
-                                  fontWeight: FontWeight.bold,
-                                ),
-                              ),
-                            ),
-                            // 状态紧跟标题；“待××”与时间信息重复，不显示。
-                            if (!status.startsWith('待')) ...[
-                              const SizedBox(width: 6),
-                              _homeChip(context, status),
-                            ],
-                          ],
-                        ),
-                        const SizedBox(height: 6),
-                        Text(
-                          item.subtitle,
-                          style: theme.textTheme.bodyMedium?.copyWith(
-                            color: theme.colorScheme.onSurfaceVariant,
-                          ),
-                        ),
-                        const SizedBox(height: 6),
-                      ],
-                    ),
-                    Text(
-                      item.timeLabel,
-                      style: theme.textTheme.labelLarge?.copyWith(
-                        color: item.soon
-                            ? UbaaTheme.warning(theme.colorScheme)
-                            : theme.colorScheme.onPrimaryContainer,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              if (item.feature == FeatureId.signin) ...[
-                const SizedBox(width: 8),
-                Center(
-                  child: FilledButton(
-                    onPressed: signing ? null : onSignin ?? onRefreshSignin,
-                    child: Text(
-                      signing
-                          ? '处理中…'
-                          : onSignin != null
-                          ? '签到'
-                          : '刷新状态',
-                    ),
-                  ),
-                ),
-              ] else if (item.navigation != null)
-                Icon(
-                  Icons.chevron_right,
-                  color: theme.colorScheme.onSurfaceVariant,
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _homeChip(
-    BuildContext context,
-    String text, {
-    bool accented = false,
-  }) => UiTag(
-    text,
-    icon: accented ? uiFeatureIcon(item.feature) : null,
-    tone: accented ? UiTagTone.primary : UiTagTone.neutral,
-  );
-}
 
 class FeatureGridView extends StatelessWidget {
   const FeatureGridView({

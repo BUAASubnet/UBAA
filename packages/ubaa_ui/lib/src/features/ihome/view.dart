@@ -74,6 +74,18 @@ class _IhomeViewState extends State<IhomeView> {
     super.dispose();
   }
 
+  void _selectScope(IhomeScope scope) {
+    setState(() {
+      _scope = scope;
+      _notices = false;
+      _filter = scope == IhomeScope.mine ? IhomeFilter.newest : IhomeFilter.all;
+      _keyword = '';
+      _search.clear();
+      _category = null;
+    });
+    unawaited(_load(reset: true));
+  }
+
   void _setFilter(IhomeFilter value) => setState(() => _filter = value);
   void _setCategory(int? value) =>
       setState(() => _category = value == 0 ? null : value);
@@ -194,44 +206,40 @@ class _IhomeViewState extends State<IhomeView> {
           UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
         ),
         children: [
-          Wrap(
-            spacing: 8,
-            runSpacing: 8,
+          Row(
             children: [
-              for (final item in const [
-                (IhomeScope.public, '诉求广场'),
-                (IhomeScope.mine, '我的诉求'),
-                (IhomeScope.followed, '我的关注'),
-                (IhomeScope.appraised, '我的评价'),
-              ])
-                ChoiceChip(
-                  label: Text(item.$2),
-                  selected: !_notices && _scope == item.$1,
-                  onSelected: _busy.isNotEmpty
-                      ? null
-                      : (_) {
-                          setState(() {
-                            _scope = item.$1;
-                            _notices = false;
-                            _filter = item.$1 == IhomeScope.mine
-                                ? IhomeFilter.newest
-                                : IhomeFilter.all;
-                            _keyword = '';
-                            _search.clear();
-                            _category = null;
-                          });
-                          unawaited(_load(reset: true));
-                        },
+              Expanded(
+                child: SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  child: Row(
+                    spacing: 8,
+                    children: [
+                      for (final item in const [
+                        (IhomeScope.public, '诉求广场'),
+                        (IhomeScope.mine, '我的诉求'),
+                        (IhomeScope.followed, '我的关注'),
+                        (IhomeScope.appraised, '我的评价'),
+                      ])
+                        ChoiceChip(
+                          label: Text(item.$2),
+                          selected: !_notices && _scope == item.$1,
+                          onSelected: _busy.isNotEmpty
+                              ? null
+                              : (_) => _selectScope(item.$1),
+                        ),
+                      ChoiceChip(
+                        label: const Text('公告'),
+                        selected: _notices,
+                        onSelected: _busy.isNotEmpty
+                            ? null
+                            : (_) {
+                                setState(() => _notices = true);
+                                unawaited(_load(reset: true));
+                              },
+                      ),
+                    ],
+                  ),
                 ),
-              ChoiceChip(
-                label: const Text('公告'),
-                selected: _notices,
-                onSelected: _busy.isNotEmpty
-                    ? null
-                    : (_) {
-                        setState(() => _notices = true);
-                        unawaited(_load(reset: true));
-                      },
               ),
               if (Theme.of(context).platform
                   case TargetPlatform.macOS ||

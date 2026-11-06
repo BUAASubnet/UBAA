@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../theme.dart' show UbaaTheme;
 
 /// 标签色调：中性说明、强调状态、需要留意、错误限制；另可按来源颜色淡染。
 enum UiTagTone { neutral, primary, warning, error }
@@ -33,9 +34,10 @@ class UiTag extends StatelessWidget {
         colors.surfaceContainerHighest,
       ),
       UiTagTone.primary => (colors.onPrimaryContainer, colors.primaryContainer),
+      // 需要留意统一为橙色系，与临近截止的提示同色。
       UiTagTone.warning => (
-        colors.onTertiaryContainer,
-        colors.tertiaryContainer,
+        UbaaTheme.warning(colors),
+        UbaaTheme.warning(colors).withValues(alpha: .15),
       ),
       UiTagTone.error => (colors.onErrorContainer, colors.errorContainer),
     };

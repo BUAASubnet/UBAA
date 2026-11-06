@@ -7,7 +7,7 @@ import '../shared/refresh.dart' show RefreshViewport;
 import '../app/home.dart' show uiCacheReadFailureText;
 import 'details/detail_list.dart' show FeatureDetailList;
 import 'error_card.dart' show FriendlyErrorCard;
-import 'landing_menu.dart' show FeatureLandingMenu, FeatureTabsBar;
+import 'landing_menu.dart' show FeatureTabsBar;
 import 'filters/feature_filters.dart'
     show FeatureFilterControls, FeatureFilterKind, uiFeatureFilterKind;
 import '../theme.dart' show UbaaTheme;
@@ -225,10 +225,27 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
       FeatureId.classroom => view == FeatureQueryView.summary,
       FeatureId.libbook => view == FeatureQueryView.libbookBookings,
       FeatureId.cgyy => view == FeatureQueryView.cgyyOrders,
-      FeatureId.ygdk =>
-        view == FeatureQueryView.summary ||
-            view == FeatureQueryView.ygdkRecords,
+      // 阳光首页的搜索只筛选记录，由首页放在“打卡记录”标题下。
+      FeatureId.ygdk => view == FeatureQueryView.ygdkRecords,
     };
+  }
+
+  /// 读取失败或功能本身没有条目时不提供搜索与筛选；条件导致的空结果保留入口。
+  bool get _hasNothingToFilter {
+    final snapshot = widget.snapshot;
+    if (snapshot.details.isNotEmpty) return false;
+    if (snapshot.status == FeatureLoadStatus.failure) return true;
+    // 已确认空结果的刷新期间仍显示空状态，搜索栏不能来回出现。
+    final empty =
+        snapshot.status == FeatureLoadStatus.empty ||
+        (snapshot.status == FeatureLoadStatus.loading &&
+            snapshot.updatedAt != null);
+    if (!empty) return false;
+    final kind = _filterKind;
+    final query = widget.query;
+    return (kind == null || _filterControls(kind).activeCount == 0) &&
+        query?.term == null &&
+        _searchController.text.isEmpty;
   }
 
   String get _searchHint => switch (widget.feature) {
@@ -286,91 +303,89 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
             widget.snapshot.status == FeatureLoadStatus.stale ||
             widget.snapshot.status == FeatureLoadStatus.loading) &&
         widget.snapshot.details.isNotEmpty;
-    final defaultContent = widget.isLanding
-        ? FeatureLandingMenu(
-            feature: widget.feature,
-            onOpen: widget.onNavigate!,
-          )
-        : Column(
-            children: [
-              if (widget.bykcFilterError case final message?
-                  when widget.feature == FeatureId.bykc)
-                Semantics(
-                  liveRegion: true,
-                  child: Padding(
-                    padding: const EdgeInsets.all(12),
-                    child: Text(message),
-                  ),
-                ),
-              if (widget.snapshot.evidence?.cacheFailure case final failure?
-                  when widget.snapshot.status != FeatureLoadStatus.loading)
-                Padding(
-                  padding: const EdgeInsets.all(12),
-                  child: Text(uiCacheReadFailureText(failure)),
-                ),
-              if (widget.snapshot.status == FeatureLoadStatus.stale &&
-                  widget.snapshot.error != null)
-                MaterialBanner(
-                  content: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [Text(widget.snapshot.error!.message)],
-                  ),
-                  leading: const Icon(Icons.sync_problem),
-                  actions: [
-                    TextButton(
-                      onPressed: () => widget.onRetry(),
-                      child: const Text('重试'),
-                    ),
-                  ],
-                ),
-              if (widget.snapshot.overview case final overview?
-                  when overview is! GradesTermOverview &&
-                      overview is! ScheduleWeekOverview &&
-                      // 博雅已选的查询范围、SPOC 学期编码属于查询参数，不单独占卡片。
-                      overview is! BykcChosenOverview &&
-                      overview is! SpocTermOverview &&
-                      (widget.snapshot.status == FeatureLoadStatus.success ||
-                          widget.snapshot.status == FeatureLoadStatus.empty ||
-                          widget.snapshot.status == FeatureLoadStatus.stale ||
-                          widget.snapshot.status == FeatureLoadStatus.loading))
-                CourseworkOverview(
-                  overview: overview,
-                  complete: widget.snapshot.evidence?.complete ?? true,
-                ),
-              Expanded(
-                key: const ValueKey<String>('stable-detail-list'),
-                child: Stack(
-                  fit: StackFit.expand,
-                  children: [
-                    // 同一列表始终保留State；明确空结果仍将details更新为空。
-                    ExcludeFocus(
-                      excluding: !showDetails,
-                      child: TickerMode(
-                        enabled: showDetails,
-                        child: Offstage(
-                          offstage: !showDetails,
-                          child: _details(context),
-                        ),
-                      ),
-                    ),
-                    if (!showDetails)
-                      switch (widget.snapshot.status) {
-                        FeatureLoadStatus.loading
-                            when widget.snapshot.evidence?.complete != false &&
-                                (uiReadableCachedContent(widget.snapshot) ||
-                                    widget.snapshot.updatedAt != null) =>
-                          _empty(context),
-                        FeatureLoadStatus.loading || FeatureLoadStatus.idle =>
-                          const RefreshViewport(child: LoadingPlaceholder()),
-                        FeatureLoadStatus.failure => _error(context),
-                        _ => _empty(context),
-                      },
-                  ],
-                ),
+    final defaultContent = Column(
+      children: [
+        if (widget.bykcFilterError case final message?
+            when widget.feature == FeatureId.bykc)
+          Semantics(
+            liveRegion: true,
+            child: Padding(
+              padding: const EdgeInsets.all(12),
+              child: Text(message),
+            ),
+          ),
+        if (widget.snapshot.evidence?.cacheFailure case final failure?
+            when widget.snapshot.status != FeatureLoadStatus.loading)
+          Padding(
+            padding: const EdgeInsets.all(12),
+            child: Text(uiCacheReadFailureText(failure)),
+          ),
+        if (widget.snapshot.status == FeatureLoadStatus.stale &&
+            widget.snapshot.error != null)
+          MaterialBanner(
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [Text(widget.snapshot.error!.message)],
+            ),
+            leading: const Icon(Icons.sync_problem),
+            actions: [
+              TextButton(
+                onPressed: () => widget.onRetry(),
+                child: const Text('重试'),
               ),
             ],
-          );
+          ),
+        if (widget.snapshot.overview case final overview?
+            when overview is! GradesTermOverview &&
+                overview is! ScheduleWeekOverview &&
+                // 博雅已选的查询范围、SPOC 学期编码属于查询参数，不单独占卡片。
+                overview is! BykcChosenOverview &&
+                overview is! SpocTermOverview &&
+                // 没有任何评教课程时只保留空状态，不显示 0/0 进度。
+                !(overview is EvaluationProgressOverview &&
+                    overview.totalCourses == 0) &&
+                (widget.snapshot.status == FeatureLoadStatus.success ||
+                    widget.snapshot.status == FeatureLoadStatus.empty ||
+                    widget.snapshot.status == FeatureLoadStatus.stale ||
+                    widget.snapshot.status == FeatureLoadStatus.loading))
+          CourseworkOverview(
+            overview: overview,
+            complete: widget.snapshot.evidence?.complete ?? true,
+          ),
+        Expanded(
+          key: const ValueKey<String>('stable-detail-list'),
+          child: Stack(
+            fit: StackFit.expand,
+            children: [
+              // 同一列表始终保留State；明确空结果仍将details更新为空。
+              ExcludeFocus(
+                excluding: !showDetails,
+                child: TickerMode(
+                  enabled: showDetails,
+                  child: Offstage(
+                    offstage: !showDetails,
+                    child: _details(context),
+                  ),
+                ),
+              ),
+              if (!showDetails)
+                switch (widget.snapshot.status) {
+                  FeatureLoadStatus.loading
+                      when widget.snapshot.evidence?.complete != false &&
+                          (uiReadableCachedContent(widget.snapshot) ||
+                              widget.snapshot.updatedAt != null) =>
+                    _empty(context),
+                  FeatureLoadStatus.loading || FeatureLoadStatus.idle =>
+                    const RefreshViewport(child: LoadingPlaceholder()),
+                  FeatureLoadStatus.failure => _error(context),
+                  _ => _empty(context),
+                },
+            ],
+          ),
+        ),
+      ],
+    );
     final content =
         !widget.isLanding &&
             widget.feature == FeatureId.libbook &&
@@ -416,6 +431,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
             query: widget.query ?? const FeatureQuery(),
             cacheEpoch: widget.readCacheEpoch,
             filter: _searchController.text,
+            searchField: _searchField(context),
             fallback: defaultContent,
             onQuery: widget.onQuery,
             onSubmit: widget.onYgdkSubmitWrite,
@@ -455,16 +471,31 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
         : defaultContent;
     final kind = _filterKind;
     final switchView = widget.onSwitchView;
-    final body = _showsToolbar || switchView != null
+    final showsToolbar = _showsToolbar && !_hasNothingToFilter;
+    final body = showsToolbar || switchView != null
         ? Column(
             children: [
               if (switchView != null)
                 FeatureTabsBar(
                   feature: widget.feature,
                   query: widget.query,
-                  onSelect: switchView,
+                  // 门锁密码叠在当前页之上打开，返回时回到原分段。
+                  onSelect: (view) =>
+                      view == FeatureQueryView.cgyyLockCode &&
+                          widget.onNavigate != null
+                      ? unawaited(
+                          widget.onNavigate!(
+                            FeatureReadNavigation(
+                              feature: widget.feature,
+                              query: const FeatureQuery(
+                                view: FeatureQueryView.cgyyLockCode,
+                              ),
+                            ),
+                          ),
+                        )
+                      : switchView(view),
                 ),
-              if (_showsToolbar) _toolbar(context, kind),
+              if (showsToolbar) _toolbar(context, kind),
               Expanded(child: content),
             ],
           )
@@ -565,32 +596,7 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
       padding: UbaaTheme.pageInsets(context, top: 12, bottom: 4),
       child: Row(
         children: [
-          Expanded(
-            child: TextField(
-              key: const ValueKey<String>('feature-search-field'),
-              controller: _searchController,
-              textInputAction: TextInputAction.search,
-              onChanged: (_) => setState(() {}),
-              onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
-              onTapOutside: (_) =>
-                  FocusManager.instance.primaryFocus?.unfocus(),
-              decoration: InputDecoration(
-                isDense: true,
-                hintText: _searchHint,
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: _searchController.text.isEmpty
-                    ? null
-                    : IconButton(
-                        tooltip: '清除搜索',
-                        onPressed: _clearSearch,
-                        icon: const Icon(Icons.close),
-                      ),
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(UbaaTheme.controlRadius),
-                ),
-              ),
-            ),
-          ),
+          Expanded(child: _searchField(context)),
           if (kind != null) ...[
             const SizedBox(width: 8),
             Badge(
@@ -616,6 +622,30 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
       ),
     );
   }
+
+  Widget _searchField(BuildContext context) => TextField(
+    key: const ValueKey<String>('feature-search-field'),
+    controller: _searchController,
+    textInputAction: TextInputAction.search,
+    onChanged: (_) => setState(() {}),
+    onSubmitted: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+    onTapOutside: (_) => FocusManager.instance.primaryFocus?.unfocus(),
+    decoration: InputDecoration(
+      isDense: true,
+      hintText: _searchHint,
+      prefixIcon: const Icon(Icons.search),
+      suffixIcon: _searchController.text.isEmpty
+          ? null
+          : IconButton(
+              tooltip: '清除搜索',
+              onPressed: _clearSearch,
+              icon: const Icon(Icons.close),
+            ),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(UbaaTheme.controlRadius),
+      ),
+    ),
+  );
 
   bool get _isLibraryReservation =>
       !widget.isLanding &&
@@ -746,13 +776,27 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                 ? '暂时无法显示这条选课记录'
                 : widget.snapshot.evidence?.complete == false
                 ? '暂时没有可显示的内容'
-                : '暂无${widget.feature.title}数据',
+                : switch (widget.feature) {
+                    FeatureId.signin => '今天没有需要签到的课程',
+                    FeatureId.evaluation when _noEvaluationCourses =>
+                      '当前没有评教任务',
+                    _ => '暂无${widget.feature.title}数据',
+                  },
             detail: switch (widget.snapshot.summary) {
+              _ when _noEvaluationCourses => null,
               final summary? when summary.trim().isNotEmpty => summary,
               _ => null,
             },
           ),
         );
+
+  /// 评教总数为 0（或未提供进度）时，空状态不再重复“已评 0/0 门”。
+  bool get _noEvaluationCourses =>
+      widget.feature == FeatureId.evaluation &&
+      switch (widget.snapshot.overview) {
+        EvaluationProgressOverview p => p.totalCourses == 0,
+        _ => true,
+      };
 
   Widget _error(BuildContext context) => RefreshViewport(
     child: Center(

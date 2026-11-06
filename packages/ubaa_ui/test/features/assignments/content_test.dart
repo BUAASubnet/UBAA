@@ -172,6 +172,37 @@ void main() {
     expect(find.text('待评 0 门'), findsOneWidget);
     expect(find.text('暂无${FeatureId.evaluation.title}数据'), findsOneWidget);
   });
+  testWidgets('没有评教课程时只显示空状态，不显示 0/0 进度和搜索', (tester) async {
+    await showFeature(
+      tester,
+      FeatureId.evaluation,
+      [],
+      [],
+      overview: const EvaluationProgressOverview(
+        totalCourses: 0,
+        evaluatedCourses: 0,
+        pendingCourses: 0,
+      ),
+    );
+    expect(find.text('当前没有评教任务'), findsOneWidget);
+    expect(find.text('评教进度'), findsNothing);
+    expect(find.textContaining('已评'), findsNothing);
+    expect(searchField, findsNothing);
+  });
+  testWidgets('课堂签到没有课程时隐藏搜索，筛选导致的空结果保留入口', (tester) async {
+    await showFeature(tester, FeatureId.signin, [], []);
+    expect(find.text('今天没有需要签到的课程'), findsOneWidget);
+    expect(searchField, findsNothing);
+    await tester.pumpWidget(const SizedBox());
+    await showFeature(
+      tester,
+      FeatureId.signin,
+      [],
+      [],
+      query: const FeatureQuery(view: FeatureQueryView.signinCompleted),
+    );
+    expect(searchField, findsOneWidget);
+  });
   testWidgets('批量题目归属正确且可按题名筛选', (tester) async {
     await showFeature(
       tester,

@@ -788,7 +788,14 @@ void _registerSharedStateTests() {
           case FeatureLoadStatus.loading:
             expect(find.bySemanticsLabel('正在加载'), findsWidgets);
           case FeatureLoadStatus.empty:
-            expect(find.text('暂无${feature.title}数据'), findsOneWidget);
+            expect(
+              find.text(switch (feature) {
+                FeatureId.signin => '今天没有需要签到的课程',
+                FeatureId.evaluation => '当前没有评教任务',
+                _ => '暂无${feature.title}数据',
+              }),
+              findsOneWidget,
+            );
           case FeatureLoadStatus.failure:
             expect(find.text('测试读取失败'), findsOneWidget);
             await tester.tap(find.text('重试').last);

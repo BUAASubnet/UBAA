@@ -13,6 +13,7 @@ import '../../features/bykc/chosen_card.dart' show BykcChosenCard;
 import '../../features/bykc/course_card.dart' show BykcCourseCard;
 import '../../features/bykc/display.dart'
     show
+        uiSortBykcCourses,
         BykcInfoLine,
         BykcStatusChip,
         uiBykcCheckinLabel,
@@ -47,6 +48,7 @@ import '../../write/cgyy/form.dart'
 import '../../write/ygdk/draft.dart' show YgdkFormContext;
 import '../../write/ygdk/form.dart' show uiCollectYgdkForm;
 import '../../shared/loading.dart' show LoadingGlyph;
+import '../../shared/when.dart' show uiShortDateTime;
 import '../tag.dart';
 
 part 'assignments.dart';
@@ -171,19 +173,22 @@ class _FeatureDetailListState extends State<FeatureDetailList> {
     final query = widget.filter.trim().toLowerCase();
     final candidates = widget.feature != FeatureId.bykc
         ? widget.details
-        : widget.details
-              .where(
-                (detail) =>
-                    detail.presentation is! BykcCoursePresentation ||
-                    (detail.presentation! as BykcCoursePresentation).isDetail ||
-                    uiMatchesBykcFilters(
-                      detail.presentation! as BykcCoursePresentation,
-                      widget.bykcStatuses,
-                      widget.bykcCategories,
-                      widget.bykcCampuses,
-                    ),
-              )
-              .toList();
+        : uiSortBykcCourses(
+            widget.details
+                .where(
+                  (detail) =>
+                      detail.presentation is! BykcCoursePresentation ||
+                      (detail.presentation! as BykcCoursePresentation)
+                          .isDetail ||
+                      uiMatchesBykcFilters(
+                        detail.presentation! as BykcCoursePresentation,
+                        widget.bykcStatuses,
+                        widget.bykcCategories,
+                        widget.bykcCampuses,
+                      ),
+                )
+                .toList(),
+          );
     final details = query.isEmpty
         ? candidates
         : candidates

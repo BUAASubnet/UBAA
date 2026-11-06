@@ -97,6 +97,28 @@ void main() {
     );
     expect(queries, isEmpty);
   });
+  testWidgets('博雅课程列表按上课时间升序', (tester) async {
+    FeatureDetail course(int id, String name, String start) => FeatureDetail(
+      title: name,
+      presentation: BykcCoursePresentation(
+        id: id,
+        courseName: name,
+        status: BykcCourseStatus.available,
+        courseStartDate: start,
+      ),
+    );
+    await _open(tester, [
+      course(1, '较晚博雅', '2026-11-25 18:00:00'),
+      course(2, '较早博雅', '2026-11-20 18:00:00'),
+      course(3, '中间博雅', '2026-11-22 18:00:00'),
+    ]);
+    final order = [
+      '较早博雅',
+      '中间博雅',
+      '较晚博雅',
+    ].map((name) => tester.getTopLeft(find.text(name)).dy).toList();
+    expect(order, [...order]..sort());
+  });
   testWidgets('博雅卡片正文仍进入详情且列表显示选课入口', (tester) async {
     final queries = <FeatureQuery>[];
     await _open(tester, const [

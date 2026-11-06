@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../bykc/display.dart' show BykcInfoLine;
+import '../../shared/text.dart' show uiNonBlank;
+import '../../shared/when.dart' show uiShortDateTime, uiShortRange;
 
 List<String> uiYgdkRecordSearchValues(YgdkRecordPresentation p) => [
   '记录编号',
@@ -24,17 +26,13 @@ List<String> uiYgdkRecordSearchValues(YgdkRecordPresentation p) => [
   ].whereType<String>(),
 ];
 
-String _ygdkRecordTime(YgdkRecordPresentation record) {
-  final start = record.startTime?.trim();
-  final end = record.endTime?.trim();
-  if (start == null || start.isEmpty) return end ?? '时间待定';
-  if (end == null || end.isEmpty) return start;
-  final sameDay =
-      start.length >= 11 &&
-      end.length >= 11 &&
-      start.substring(0, 10) == end.substring(0, 10);
-  return '$start–${sameDay ? end.substring(11) : end}';
-}
+/// 列表统一为“9月9日 23:30–00:30”，跨天时两端都带日期。
+String _ygdkRecordTime(YgdkRecordPresentation record) =>
+    uiShortRange(uiNonBlank(record.startTime), uiNonBlank(record.endTime)) ??
+    '时间待定';
+
+String? _ygdkTime(String? raw) =>
+    uiNonBlank(raw) == null ? null : uiShortDateTime(raw!);
 
 class YgdkRecordCard extends StatelessWidget {
   const YgdkRecordCard(this.record);
@@ -56,8 +54,8 @@ class YgdkRecordCard extends StatelessWidget {
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
                   BykcInfoLine('项目', p.itemName),
-                  BykcInfoLine('开始时间', p.startTime),
-                  BykcInfoLine('结束时间', p.endTime),
+                  BykcInfoLine('开始时间', _ygdkTime(p.startTime)),
+                  BykcInfoLine('结束时间', _ygdkTime(p.endTime)),
                   BykcInfoLine('地点', p.place),
                   BykcInfoLine('图片数量', '${p.imageCount}'),
                   BykcInfoLine('分享状态', p.isOpen ? '已分享' : '未分享'),

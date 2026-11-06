@@ -22,32 +22,17 @@ void main() {
     await tester.pumpAndSettle();
     expect(state.queries, hasLength(1));
   });
-  for (final entry in <FeatureId, List<String>>{
-    FeatureId.cgyy: ['预约研讨室', '我的预约', '查看密码'],
-  }.entries) {
-    testWidgets('${entry.key.title}沿旧版先显示子菜单', (tester) async {
-      final state = await _open(tester, entry.key);
-      for (final title in entry.value) {
-        expect(find.widgetWithText(Card, title), findsOneWidget);
-      }
-      expect(find.text('合成预载结果'), findsNothing);
-      expect(find.byType(TextField), findsNothing);
-      expect(find.byType(NavigationBar), findsOneWidget);
-      expect(state.queries, isEmpty);
-    });
-  }
-  for (final feature in [FeatureId.bykc, FeatureId.libbook]) {
+  for (final feature in [FeatureId.bykc, FeatureId.libbook, FeatureId.cgyy]) {
     testWidgets('${feature.title}进入第一页，分段替换页面，返回退出功能', (tester) async {
       final state = await _open(tester, feature);
       expect(find.text('合成预载结果'), findsOneWidget);
       await tester.tap(find.text(feature == FeatureId.bykc ? '已选' : '我的预约'));
       await tester.pumpAndSettle();
-      expect(
-        state.queries.single.view,
-        feature == FeatureId.bykc
-            ? FeatureQueryView.bykcChosenCourses
-            : FeatureQueryView.libbookBookings,
-      );
+      expect(state.queries.single.view, switch (feature) {
+        FeatureId.bykc => FeatureQueryView.bykcChosenCourses,
+        FeatureId.libbook => FeatureQueryView.libbookBookings,
+        _ => FeatureQueryView.cgyyOrders,
+      });
       expect(find.text('合成子结果'), findsOneWidget);
       await tester.tap(find.byTooltip('返回'));
       await tester.pumpAndSettle();
@@ -55,42 +40,23 @@ void main() {
       expect(find.text('合成子结果'), findsNothing);
     });
   }
-  testWidgets('研讨室子页返回菜单保留读取次数', (tester) async {
+  testWidgets('研讨室分段旁的查看密码打开门锁页', (tester) async {
     final state = await _open(tester, FeatureId.cgyy);
-    await tester.tap(find.widgetWithText(Card, '我的预约'));
+    expect(
+      find.byKey(ValueKey(('feature-landing', FeatureId.cgyy))),
+      findsNothing,
+    );
+    expect(find.widgetWithText(AppBar, FeatureId.cgyy.title), findsOneWidget);
+    await tester.tap(find.byTooltip('查看密码'));
     await tester.pumpAndSettle();
-    expect(state.queries.single.view, FeatureQueryView.cgyyOrders);
-    expect(find.widgetWithText(AppBar, '我的预约'), findsOneWidget);
-    await tester.tap(find.byTooltip('返回'));
-    await tester.pumpAndSettle();
-    expect(find.widgetWithText(AppBar, '研讨室预约'), findsOneWidget);
-    expect(state.queries, hasLength(1));
+    expect(find.widgetWithText(AppBar, '查看密码'), findsOneWidget);
+    expect(find.byType(UbaaCgyyLockDisplayView), findsOneWidget);
+    // 门锁密码不走业务列表读取。
+    expect(state.queries, isEmpty);
   });
-  for (final feature in [FeatureId.cgyy]) {
-    testWidgets('${feature.title}再次点击功能入口先回子菜单', (tester) async {
-      final state = await _open(tester, feature);
-      await tester.tap(find.widgetWithText(Card, '我的预约'));
-      await tester.pumpAndSettle();
-      await tester.tap(
-        find.byType(NavigationDestination).at(UiDestination.campus.index),
-      );
-      await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(Card, feature.title));
-      await tester.pumpAndSettle();
-      expect(
-        find.byKey(ValueKey(('feature-landing', feature))),
-        findsOneWidget,
-      );
-      expect(state.queries, hasLength(1));
-      await tester.tap(find.widgetWithText(Card, '我的预约'));
-      await tester.pumpAndSettle();
-      expect(find.text('合成子结果'), findsOneWidget);
-      expect(state.queries, hasLength(2));
-    });
-  }
-  testWidgets('当前预约记录失效后重读首批，等待期间保留返回菜单路径', (tester) async {
+  testWidgets('当前预约记录失效后重读首批，等待期间仍可返回退出', (tester) async {
     final state = await _open(tester, FeatureId.cgyy);
-    await tester.tap(find.widgetWithText(Card, '我的预约'));
+    await tester.tap(find.text('我的预约'));
     await tester.pumpAndSettle();
     state.pending = Completer<void>();
     state.invalidate();
@@ -103,35 +69,30 @@ void main() {
     expect(find.text('暂无研讨室预约数据'), findsNothing);
     await tester.tap(find.byTooltip('返回'));
     await tester.pump();
-    expect(find.widgetWithText(Card, '预约研讨室'), findsOneWidget);
+    expect(find.widgetWithText(Card, FeatureId.cgyy.title), findsOneWidget);
     state.pending!.complete();
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(Card, '预约研讨室'), findsOneWidget);
+    expect(find.widgetWithText(Card, FeatureId.cgyy.title), findsOneWidget);
     expect(find.text('合成子结果'), findsNothing);
   });
-  testWidgets('后台预约记录失效不自动读取，重新进入菜单后读取恢复', (tester) async {
+  testWidgets('后台预约记录失效不自动读取，重新进入后分段读取恢复', (tester) async {
     final state = await _open(tester, FeatureId.cgyy);
-    await tester.tap(find.widgetWithText(Card, '我的预约'));
+    await tester.tap(find.text('我的预约'));
     await tester.pumpAndSettle();
-    await tester.tap(
-      find.byType(NavigationDestination).at(UiDestination.campus.index),
-    );
+    await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     state.invalidate();
     await tester.pumpAndSettle();
     expect(state.queries, hasLength(1));
     await tester.tap(find.widgetWithText(Card, FeatureId.cgyy.title));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(Card, '预约研讨室'), findsOneWidget);
-    expect(state.queries, hasLength(1));
-    await tester.tap(find.widgetWithText(Card, '我的预约'));
-    await tester.pumpAndSettle();
-    expect(find.text('合成子结果'), findsOneWidget);
     expect(state.queries, hasLength(2));
+    expect(state.queries.last.view, FeatureQueryView.cgyyOrders);
+    expect(find.text('合成子结果'), findsOneWidget);
   });
   testWidgets('失效重读失败显示真实错误且只在手动重试后再次读取', (tester) async {
     final state = await _open(tester, FeatureId.cgyy);
-    await tester.tap(find.widgetWithText(Card, '我的预约'));
+    await tester.tap(find.text('我的预约'));
     await tester.pumpAndSettle();
     state.failRead = true;
     state.invalidate();
@@ -142,7 +103,7 @@ void main() {
     await tester.pump(const Duration(seconds: 2));
     expect(state.queries, hasLength(2));
     state.failRead = false;
-    await tester.tap(find.widgetWithText(TextButton, '重试'));
+    await tester.tap(find.widgetWithText(FilledButton, '重试'));
     await tester.pumpAndSettle();
     expect(state.queries, hasLength(3));
     expect(state.queries.last.page, 0);

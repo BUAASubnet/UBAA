@@ -406,12 +406,17 @@ void main() {
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
     await mount(tester, service);
+    // 窄屏页签单行横向滚动，末尾的“公告”需先滚入视野。
+    await tester.ensureVisible(find.text('公告'));
+    await tester.pumpAndSettle();
     await tester.tap(find.text('公告'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('通知'));
     await tester.pumpAndSettle();
     expect(find.text('公告正文'), findsOneWidget);
     await tester.tap(find.text('通知'));
+    await tester.pumpAndSettle();
+    await tester.ensureVisible(find.text('诉求广场'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('诉求广场'));
     await tester.pumpAndSettle();

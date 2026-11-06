@@ -120,7 +120,7 @@ void main() {
   });
   testWidgets('阳光记录低频编号与未知状态进详情，跨天结束日期不丢失', (tester) async {
     await _open(tester);
-    expect(find.textContaining('2026-09-10 00:30'), findsOneWidget);
+    expect(find.textContaining('9月10日 00:30'), findsOneWidget);
     expect(find.text('记录编号'), findsNothing);
     await tester.tap(find.widgetWithText(Card, '合成历史运动'));
     await tester.pumpAndSettle();

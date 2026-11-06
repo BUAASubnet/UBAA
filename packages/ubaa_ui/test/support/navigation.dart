@@ -52,7 +52,6 @@ Future<void> openFeature(WidgetTester tester, FeatureId feature) async {
     final title = switch (feature) {
       FeatureId.bykc => '选择课程',
       FeatureId.libbook => '预约座位',
-      FeatureId.cgyy => '预约研讨室',
       _ => throw StateError('意外子菜单'),
     };
     await tester.tap(

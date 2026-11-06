@@ -164,7 +164,8 @@ void main() {
     await tester.ensureVisible(entry);
     await tester.tap(entry);
     await tester.pumpAndSettle();
-    expect(find.text('预约研讨室'), findsOneWidget);
+    expect(find.widgetWithText(AppBar, FeatureId.cgyy.title), findsOneWidget);
+    expect(find.text('我的预约'), findsOneWidget);
     await tester.tap(find.byTooltip('返回'));
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, '校园'), findsOneWidget);

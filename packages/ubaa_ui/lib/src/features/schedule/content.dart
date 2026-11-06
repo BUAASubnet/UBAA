@@ -123,7 +123,22 @@ class _ScheduleContentState extends State<ScheduleContent> {
                     height: 56 * scale,
                     child: Row(
                       children: [
-                        SizedBox(width: axisWidth),
+                        // 七列放不下“11月2日”：月份放在左上角，列内只写“2日”。
+                        SizedBox(
+                          width: axisWidth,
+                          child: Center(
+                            child: Text(
+                              _scheduleHeaderMonth(dates) ?? '',
+                              style: TextStyle(
+                                fontSize: 12,
+                                fontWeight: FontWeight.w500,
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
+                            ),
+                          ),
+                        ),
                         for (final (index, label) in const [
                           '周一',
                           '周二',
@@ -161,7 +176,7 @@ class _ScheduleContentState extends State<ScheduleContent> {
                                     ),
                                     if (dates?[index] case final date?)
                                       Text(
-                                        date,
+                                        _scheduleHeaderDay(date),
                                         style: TextStyle(
                                           fontSize: 11,
                                           color: index == today
@@ -473,3 +488,22 @@ double? _nowOffset(
   }
   return null;
 }
+
+/// 表头日期来自“月-日”；解析失败时原样显示。
+(int, int)? _monthDay(String? label) {
+  final match = RegExp(r'^(\d{1,2})-(\d{1,2})$').firstMatch(label ?? '');
+  return match == null ? null : (int.parse(match[1]!), int.parse(match[2]!));
+}
+
+String? _scheduleHeaderMonth(List<String?>? dates) =>
+    switch (_monthDay(dates?.firstOrNull)) {
+      (final month, _) => '$month月',
+      null => null,
+    };
+
+/// 每月 1 日改写月份，跨月的一周也能看出换月。
+String _scheduleHeaderDay(String label) => switch (_monthDay(label)) {
+  (final month, 1) => '$month月',
+  (_, final day) => '$day日',
+  null => label,
+};

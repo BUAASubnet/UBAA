@@ -6,7 +6,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/app/home.dart';
 
 void main() {
-  testWidgets('待考试隐藏且考试中保留，类型标题状态同行排列', (tester) async {
+  testWidgets('待考试隐藏且考试中保留，类型与状态位于标题上方的元信息行', (tester) async {
     tester.view.physicalSize = const Size(390, 1000);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -60,14 +60,22 @@ void main() {
       final type = find.descendant(of: card, matching: find.text('考试'));
       final titleRect = tester.getRect(find.text(title));
       final typeRect = tester.getRect(type);
-      expect(typeRect.center.dy, closeTo(titleRect.center.dy, 1));
-      expect(typeRect.right, lessThan(titleRect.left));
+      expect(typeRect.bottom, lessThanOrEqualTo(titleRect.top));
     }
     expect(find.text('待考试'), findsNothing);
     final status = tester.getRect(find.text('考试中'));
-    final title = tester.getRect(find.text('当前考试'));
-    expect(status.center.dy, closeTo(title.center.dy, 1));
-    expect(status.left, greaterThan(title.right));
+    final type = tester.getRect(
+      find.descendant(
+        of: find.widgetWithText(Card, '当前考试'),
+        matching: find.text('考试'),
+      ),
+    );
+    expect(status.center.dy, closeTo(type.center.dy, 1));
+    expect(status.left, greaterThan(type.right));
+    expect(
+      status.bottom,
+      lessThanOrEqualTo(tester.getRect(find.text('当前考试')).top),
+    );
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox.shrink());
   });

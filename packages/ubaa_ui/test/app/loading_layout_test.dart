@@ -325,8 +325,8 @@ void main() {
         status: FeatureLoadStatus.empty,
       ),
     );
-    expect(find.text('暂无课堂签到数据'), findsOneWidget);
-    final emptyPosition = tester.getTopLeft(find.text('暂无课堂签到数据'));
+    expect(find.text('今天没有需要签到的课程'), findsOneWidget);
+    final emptyPosition = tester.getTopLeft(find.text('今天没有需要签到的课程'));
     await mount(
       FeatureSnapshot(
         feature: FeatureId.signin,
@@ -334,7 +334,7 @@ void main() {
         updatedAt: DateTime(2026, 10, 20),
       ),
     );
-    expect(tester.getTopLeft(find.text('暂无课堂签到数据')), emptyPosition);
+    expect(tester.getTopLeft(find.text('今天没有需要签到的课程')), emptyPosition);
   });
 
   testWidgets('成绩分期返回与同查询刷新不推移统计卡', (tester) async {

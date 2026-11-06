@@ -94,7 +94,7 @@ class ProfileView extends StatelessWidget {
                 ListTile(
                   key: ValueKey<String>('route-policy-${policy.wireName}'),
                   leading: Icon(switch (policy) {
-                    RoutePolicy.auto => Icons.tune,
+                    RoutePolicy.auto => Icons.auto_mode,
                     RoutePolicy.direct => Icons.lan_outlined,
                     RoutePolicy.webvpn => Icons.vpn_lock_outlined,
                   }),
@@ -109,13 +109,28 @@ class ProfileView extends StatelessWidget {
                       : () => onRoutePolicyChanged(policy),
                 ),
               const Divider(height: 1),
-              ListTile(
-                leading: const Icon(Icons.verified_user_outlined),
-                title: const Text('已认证路线'),
-                subtitle: Text(
-                  activeRoutes.isEmpty
-                      ? '暂无已认证路线'
-                      : activeRoutes.map((route) => route.label).join('、'),
+              // 当前状态说明，不是可选项：小字、无点按反馈。
+              Padding(
+                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.info_outline,
+                      size: 16,
+                      color: Theme.of(context).colorScheme.onSurfaceVariant,
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        activeRoutes.isEmpty
+                            ? '暂无已认证路线'
+                            : '已认证路线：${activeRoutes.map((route) => route.label).join('、')}',
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],

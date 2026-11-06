@@ -146,7 +146,7 @@ void main() {
     await tester.tap(find.text('当前学期'));
     await tester.pumpAndSettle();
     expect(find.text('暂时无法获取学期'), findsOneWidget);
-    await tester.tap(find.widgetWithText(TextButton, '重试'));
+    await tester.tap(find.widgetWithText(FilledButton, '重试'));
     await tester.pumpAndSettle();
     expect(loads, [false, true]);
     await tester.tap(find.text('取消'));

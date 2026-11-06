@@ -47,6 +47,20 @@ void main() {
     expect(find.text('已保存考试'), findsWidgets);
   });
 
+  testWidgets('只有已结束考试时先说明暂无即将进行的考试', (tester) async {
+    await showFeature(tester, FeatureId.exam, const [
+      FeatureDetail(
+        title: '已结束考试一',
+        presentation: ExamPresentation(arranged: true, date: '2020-01-01'),
+      ),
+    ], []);
+    expect(find.text('暂无即将进行的考试'), findsOneWidget);
+    expect(
+      tester.getTopLeft(find.text('暂无即将进行的考试')).dy,
+      lessThan(tester.getTopLeft(find.text('已结束考试 (1)')).dy),
+    );
+  });
+
   testWidgets('考试跨本地20条分组，结束默认收起且未来先于待定', (tester) async {
     final queries = <FeatureQuery>[];
     await showFeature(tester, FeatureId.exam, [

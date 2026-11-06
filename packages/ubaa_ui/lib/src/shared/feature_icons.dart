@@ -11,7 +11,7 @@ IconData uiFeatureIcon(FeatureId feature) => switch (feature) {
   FeatureId.judge => Icons.code,
   FeatureId.libbook => Icons.event_seat,
   FeatureId.signin => Icons.how_to_reg,
-  FeatureId.cgyy => Icons.date_range,
+  FeatureId.cgyy => Icons.groups_outlined,
   FeatureId.ygdk => Icons.wb_sunny,
-  FeatureId.evaluation => Icons.assignment_turned_in,
+  FeatureId.evaluation => Icons.rate_review_outlined,
 };

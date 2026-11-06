@@ -45,8 +45,9 @@ class UiEntryCard extends StatelessWidget {
     return Card(
       child: InkWell(
         onTap: onTap,
+        // 紧凑内边距：手机单列时学习页八个入口无需滚动即可看全。
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
           child: Row(
             children: [
               Container(
@@ -70,7 +71,7 @@ class UiEntryCard extends StatelessWidget {
                       ),
                     ),
                     if (subtitle != null) ...[
-                      const SizedBox(height: 4),
+                      const SizedBox(height: 2),
                       Text(
                         subtitle!,
                         style: theme.textTheme.bodyMedium?.copyWith(

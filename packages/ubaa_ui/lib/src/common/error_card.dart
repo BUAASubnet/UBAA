@@ -13,7 +13,10 @@ class FriendlyErrorCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final colors = Theme.of(context).colorScheme;
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final fg = colors.onErrorContainer;
+    final message = error.message.trim();
     return Card(
       color: colors.errorContainer,
       child: Padding(
@@ -21,7 +24,7 @@ class FriendlyErrorCard extends StatelessWidget {
         child: Row(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
-            Icon(Icons.error_outline, color: colors.onErrorContainer),
+            Icon(Icons.error_outline, color: fg),
             const SizedBox(width: 12),
             Expanded(
               child: Column(
@@ -30,40 +33,27 @@ class FriendlyErrorCard extends StatelessWidget {
                 children: <Widget>[
                   Text(
                     error.title,
-                    style: TextStyle(
-                      color: colors.onErrorContainer,
+                    style: theme.textTheme.titleSmall?.copyWith(
+                      color: fg,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  if (error.message.isNotEmpty &&
-                      error.message != error.title) ...[
+                  if (!uiErrorMessageRestatesTitle(error.title, message)) ...[
                     const SizedBox(height: 4),
                     Text(
-                      error.message,
-                      style: TextStyle(color: colors.onErrorContainer),
+                      message,
+                      style: theme.textTheme.bodyMedium?.copyWith(color: fg),
                     ),
                   ],
-                  if (_safeIssueId != null) ...<Widget>[
-                    const SizedBox(height: 8),
-                    ExpansionTile(
-                      tilePadding: EdgeInsets.zero,
-                      childrenPadding: EdgeInsets.zero,
-                      expandedCrossAxisAlignment: CrossAxisAlignment.start,
-                      title: const Text('错误详情'),
-                      children: [
-                        SelectableText('错误编号：$_safeIssueId'),
-                        SelectableText('错误代码：${error.code.wireName}'),
-                        TextButton.icon(
-                          onPressed: () => _copyError(context),
-                          icon: const Icon(Icons.copy_outlined),
-                          label: const Text('复制错误信息'),
-                        ),
-                      ],
+                  if (_safeIssueId case final id?)
+                    _ErrorDetails(
+                      issueId: id,
+                      code: error.code.wireName,
+                      onCopy: () => _copyError(context),
                     ),
-                  ],
                   if (error.retryable && onRetry != null) ...<Widget>[
-                    const SizedBox(height: 8),
-                    TextButton(
+                    const SizedBox(height: 12),
+                    FilledButton.tonal(
                       onPressed: onRetry,
                       child: Text(error.actionLabel ?? '重试'),
                     ),
@@ -92,6 +82,72 @@ class FriendlyErrorCard extends StatelessWidget {
       if (error.resolvedRoute != null) '实际路线：${error.resolvedRoute!.name}',
     ].join('\n');
     await _copyDiagnosticText(context, summary);
+  }
+}
+
+/// 说明只是换一种说法重复标题时（“暂/暂时”、结尾“请稍后重试”）不再显示。
+bool uiErrorMessageRestatesTitle(String title, String message) {
+  String core(String text) => text
+      .trim()
+      .replaceAll(RegExp(r'[，,。.！!\s]*请稍后(再)?重试[。.！!]*$'), '')
+      .replaceAll(RegExp(r'[。.！!]+$'), '')
+      .replaceAll('暂时', '暂');
+  final body = core(message);
+  return body.isEmpty || body == core(title);
+}
+
+/// 错误编号默认收起；展开后以小字列出并提供复制。
+class _ErrorDetails extends StatefulWidget {
+  const _ErrorDetails({
+    required this.issueId,
+    required this.code,
+    required this.onCopy,
+  });
+  final String issueId, code;
+  final VoidCallback onCopy;
+
+  @override
+  State<_ErrorDetails> createState() => _ErrorDetailsState();
+}
+
+class _ErrorDetailsState extends State<_ErrorDetails> {
+  bool _open = false;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final fg = theme.colorScheme.onErrorContainer;
+    final small = theme.textTheme.bodySmall?.copyWith(color: fg);
+    final compact = TextButton.styleFrom(
+      foregroundColor: fg,
+      padding: EdgeInsets.zero,
+      minimumSize: const Size(0, 32),
+      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+      visualDensity: VisualDensity.compact,
+      textStyle: theme.textTheme.labelMedium,
+    );
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 4),
+        TextButton.icon(
+          style: compact,
+          onPressed: () => setState(() => _open = !_open),
+          icon: Icon(_open ? Icons.expand_less : Icons.expand_more, size: 18),
+          label: const Text('错误详情'),
+        ),
+        if (_open) ...[
+          SelectableText('错误编号：${widget.issueId}', style: small),
+          SelectableText('错误代码：${widget.code}', style: small),
+          TextButton.icon(
+            style: compact,
+            onPressed: widget.onCopy,
+            icon: const Icon(Icons.copy_outlined, size: 16),
+            label: const Text('复制错误信息'),
+          ),
+        ],
+      ],
+    );
   }
 }
 

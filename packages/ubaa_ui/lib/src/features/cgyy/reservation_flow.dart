@@ -32,7 +32,7 @@ class CgyyReservationFlow extends StatefulWidget {
     this.onShowAll,
   });
 
-  /// 由顶栏开关控制，切换日期或楼层时保持。
+  /// 初始值；页面内的“只看可预约”开关在切换日期或楼层时保持。
   final bool onlyAvailable;
   final VoidCallback? onShowAll;
   final FeatureSnapshot snapshot;
@@ -61,6 +61,12 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
   final _headerTimes = ScrollController();
   final _bodyTimes = ScrollController();
   bool _syncingTimes = false;
+  late bool _onlyAvailable = widget.onlyAvailable;
+
+  void _showAll() {
+    _change(() => _onlyAvailable = false);
+    widget.onShowAll?.call();
+  }
 
   void _syncTimes(ScrollController source, ScrollController target) {
     if (_syncingTimes || !source.hasClients || !target.hasClients) return;
@@ -100,6 +106,9 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
   @override
   void didUpdateWidget(covariant CgyyReservationFlow oldWidget) {
     super.didUpdateWidget(oldWidget);
+    if (oldWidget.onlyAvailable != widget.onlyAvailable) {
+      _onlyAvailable = widget.onlyAvailable;
+    }
     if (oldWidget.cacheEpoch != widget.cacheEpoch) {
       _sites = [];
       _site = null;
@@ -323,7 +332,7 @@ class CgyyReservationFlowState extends State<CgyyReservationFlow> {
       : 99;
 }
 
-/// 时段格子图例，供顶栏弹出说明使用。
+/// 时段格子图例，供筛选行的说明按钮弹出。
 class CgyySlotLegend extends StatelessWidget {
   const CgyySlotLegend({super.key});
 

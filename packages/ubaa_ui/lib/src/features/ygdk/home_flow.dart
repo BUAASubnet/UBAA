@@ -29,6 +29,7 @@ class YgdkHomeFlow extends StatefulWidget {
     this.reminderSettings,
     this.reminderError,
     this.onReminderChanged,
+    this.searchField,
   });
   final FeatureSnapshot snapshot;
   final YgdkFormContext formContext;
@@ -39,6 +40,9 @@ class YgdkHomeFlow extends StatefulWidget {
   final FeatureQuery query;
   final int cacheEpoch;
   final String filter;
+
+  /// 只筛选打卡记录，因此放在“打卡记录”标题下而非页面顶部。
+  final Widget? searchField;
   final Widget fallback;
   final Future<void> Function(FeatureQuery)? onQuery;
   final YgdkSubmitStarter? onSubmit;
@@ -265,6 +269,10 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
                 ),
               ),
             const UiSectionTitle('打卡记录'),
+            if (widget.searchField case final field?) ...[
+              field,
+              const SizedBox(height: 12),
+            ],
             if (loading && visible.isEmpty && _page == null)
               const LoadingPlaceholder(compact: true),
             if (!loading &&

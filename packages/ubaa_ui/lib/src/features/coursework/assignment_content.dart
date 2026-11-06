@@ -144,19 +144,24 @@ class AssignmentCard extends StatelessWidget {
       AssignmentSubmissionStatus.unsubmitted => '未提交',
       AssignmentSubmissionStatus.unknown => uiNonBlank(status),
     };
+    final deadline = uiParseCampusTime(due);
+    final hint = deadline == null ? null : uiDeadlineHint(deadline);
+    final now = uiCampusNow();
+    final pending = state != AssignmentSubmissionStatus.submitted;
+    // 已过截止仍未提交用错误色；三天内到期用警示橙色。
+    final overdue = deadline != null && pending && !deadline.isAfter(now);
+    final dueSoon =
+        deadline != null &&
+        pending &&
+        deadline.isAfter(now) &&
+        deadline.difference(now) <= const Duration(days: 3);
     final tone = switch (state) {
       AssignmentSubmissionStatus.submitted => UiTagTone.primary,
       AssignmentSubmissionStatus.partial => UiTagTone.warning,
-      AssignmentSubmissionStatus.unsubmitted => UiTagTone.error,
+      AssignmentSubmissionStatus.unsubmitted =>
+        overdue || dueSoon ? UiTagTone.error : UiTagTone.neutral,
       AssignmentSubmissionStatus.unknown => UiTagTone.neutral,
     };
-    final deadline = uiParseCampusTime(due);
-    final hint = deadline == null ? null : uiDeadlineHint(deadline);
-    final urgent =
-        deadline != null &&
-        state != AssignmentSubmissionStatus.submitted &&
-        deadline.isAfter(uiCampusNow()) &&
-        deadline.difference(uiCampusNow()) <= const Duration(days: 3);
     final muted = theme.textTheme.bodySmall?.copyWith(
       color: scheme.onSurfaceVariant,
     );
@@ -168,11 +173,12 @@ class AssignmentCard extends StatelessWidget {
       ],
       JudgeAssignmentPresentation p => [
         if (p.totalProblems > 0) '已交 ${p.submittedCount}/${p.totalProblems} 题',
-        if (uiNonBlank(p.myScore) case final s?)
-          '得分 $s${uiNonBlank(p.maxScore) == null ? '' : '/${p.maxScore}'}'
-        else if (uiNonBlank(p.maxScore) case final m?
-            when (double.tryParse(m) ?? 1) > 0)
-          '满分 $m',
+        // 满分为 0 的题集没有计分意义，不显示“得分 0/0”。
+        if (_scored(p.maxScore))
+          if (uiNonBlank(p.myScore) case final s?)
+            '得分 $s${uiNonBlank(p.maxScore) == null ? '' : '/${p.maxScore}'}'
+          else if (uiNonBlank(p.maxScore) case final m?)
+            '满分 $m',
       ],
       _ => const <String>[],
     };
@@ -221,9 +227,11 @@ class AssignmentCard extends StatelessWidget {
                     if (hint != null)
                       TextSpan(
                         text: ' · $hint',
-                        style: urgent
+                        style: overdue || dueSoon
                             ? TextStyle(
-                                color: scheme.error,
+                                color: overdue
+                                    ? scheme.error
+                                    : UbaaTheme.warning(scheme),
                                 fontWeight: FontWeight.w600,
                               )
                             : null,
@@ -350,7 +358,7 @@ class _AssignmentDetail extends StatelessWidget {
           if (p is JudgeAssignmentPresentation) ...[
             if (p.totalProblems > 0)
               Text('进度：${p.submittedCount}/${p.totalProblems}'),
-            if (uiNonBlank(p.maxScore) case final score?)
+            if (uiNonBlank(p.maxScore) case final score? when _scored(score))
               Text('分数：${uiNonBlank(p.myScore) ?? '无'} / $score'),
           ],
         ]),
@@ -374,6 +382,10 @@ class _AssignmentDetail extends StatelessWidget {
     );
   }
 }
+
+/// 未提供满分时仍展示得分；明确为 0 时视为不计分。
+bool _scored(String? maxScore) =>
+    (double.tryParse(uiNonBlank(maxScore) ?? '') ?? 1) > 0;
 
 Widget _assignmentLine(BuildContext context, String text) => Text(
   text,

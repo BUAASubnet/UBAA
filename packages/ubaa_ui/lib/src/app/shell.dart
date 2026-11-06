@@ -17,7 +17,6 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../shared/sync_status.dart'
     show UiSyncStatus, uiIsTouchPlatform, uiOldestUpdate;
-import '../features/cgyy/reservation_flow.dart' show CgyySlotLegend;
 import '../shared/feedback.dart';
 import '../shared/refresh.dart' show PullToRefresh;
 import '../shared/scroll_gutters.dart' show ScrollGutters;
@@ -572,35 +571,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
               );
               if (retry == true && mounted) widget.onReconnect?.call();
             },
-          ),
-        if (_openedFeature == FeatureId.cgyy)
-          ValueListenableBuilder<(FeatureSnapshot, String)?>(
-            valueListenable: _visiblePage,
-            builder: (context, page, _) => page?.$2 != '预约研讨室'
-                ? const SizedBox.shrink()
-                : Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      FilterChip(
-                        key: const ValueKey('cgyy-only-available'),
-                        label: const Text('只看可预约'),
-                        selected: _cgyyOnlyAvailable,
-                        visualDensity: VisualDensity.compact,
-                        onSelected: (value) =>
-                            setState(() => _cgyyOnlyAvailable = value),
-                      ),
-                      PopupMenuButton<void>(
-                        tooltip: '图例',
-                        icon: const Icon(Icons.info_outline),
-                        itemBuilder: (_) => [
-                          const PopupMenuItem<void>(
-                            // 点按即关闭；保持可用状态以免图例颜色被调淡。
-                            child: CgyySlotLegend(),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
           ),
         if (_openedFeature case final feature?)
           ValueListenableBuilder<Map<FeatureId, Widget>>(

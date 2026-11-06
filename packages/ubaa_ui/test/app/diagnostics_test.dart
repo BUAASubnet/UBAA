@@ -3,6 +3,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
+import 'package:ubaa_ui/src/common/error_card.dart'
+    show uiErrorMessageRestatesTitle;
 
 void main() {
   testWidgets('错误卡按需展开诊断并只复制安全字段', (tester) async {
@@ -51,5 +53,10 @@ void main() {
     expect(copied, contains('UBAA-fixture-1'));
     expect(copied, contains('webvpn'));
     expect(copied, isNot(contains('原始内容')));
+  });
+
+  test('错误说明只是重复标题时不再显示', () {
+    expect(uiErrorMessageRestatesTitle('服务暂不可用', '服务暂时不可用，请稍后重试'), isTrue);
+    expect(uiErrorMessageRestatesTitle('读取失败', '请检查网络后重试'), isFalse);
   });
 }

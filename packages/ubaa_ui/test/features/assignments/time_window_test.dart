@@ -4,6 +4,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/features/coursework/course_participation.dart';
 import 'package:ubaa_ui/src/features/coursework/assignment_content.dart';
+import 'package:ubaa_ui/src/common/tag.dart';
+import 'package:ubaa_ui/src/theme.dart';
 
 void main() {
   for (final sample in [
@@ -138,7 +140,7 @@ void main() {
   });
   for (final days in [2, 3, 4]) {
     testWidgets(
-      '作业剩余 $days 天与三天标红边界',
+      '作业剩余 $days 天与三天标橙边界',
       (tester) => withClock(
         Clock.fixed(DateTime.utc(2026, 10, 28, 0)),
         () async {
@@ -171,9 +173,14 @@ void main() {
           final deadline = find.textContaining('还有 $days 天');
           expect(deadline, findsOneWidget);
           final text = tester.widget<Text>(deadline);
-          final error = Theme.of(tester.element(deadline)).colorScheme.error;
+          final warning = UbaaTheme.warning(
+            Theme.of(tester.element(deadline)).colorScheme,
+          );
           final hint = (text.textSpan! as TextSpan).children!.last as TextSpan;
-          expect(hint.style?.color, days <= 3 ? error : isNot(error));
+          expect(hint.style?.color, days <= 3 ? warning : isNull);
+          // 未临近截止的“未提交”只是中性提示，三天内才用错误色。
+          final tag = tester.widget<UiTag>(find.byType(UiTag));
+          expect(tag.tone, days <= 3 ? UiTagTone.error : UiTagTone.neutral);
         },
       ),
     );

@@ -45,27 +45,25 @@ class _ExamTimelineState extends State<ExamTimeline> {
             ),
         ],
         if (finished.isNotEmpty) ...[
+          if (upcoming.isEmpty)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: _ExamOutlinedCard(
+                child: ListTile(
+                  leading: const Icon(Icons.event_available_outlined),
+                  title: const Text('暂无即将进行的考试'),
+                ),
+              ),
+            ),
           Padding(
             padding: const EdgeInsets.only(bottom: 12, top: 4),
-            child: Material(
-              color: Theme.of(context).colorScheme.surfaceContainerHighest,
-              borderRadius: BorderRadius.circular(8),
-              child: InkWell(
-                borderRadius: BorderRadius.circular(8),
+            child: _ExamOutlinedCard(
+              child: ListTile(
                 onTap: () => setState(() => _showFinished = !_showFinished),
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                  child: Row(
-                    children: [
-                      Expanded(child: Text('已结束考试 (${finished.length})')),
-                      Icon(
-                        _showFinished ? Icons.expand_less : Icons.expand_more,
-                      ),
-                    ],
-                  ),
+                leading: const Icon(Icons.history),
+                title: Text('已结束考试 (${finished.length})'),
+                trailing: Icon(
+                  _showFinished ? Icons.expand_less : Icons.expand_more,
                 ),
               ),
             ),
@@ -129,9 +127,7 @@ class _ExamTimelineRow extends StatelessWidget {
               children: [
                 if (showDate) ...[
                   Text(
-                    d == null
-                        ? '待定'
-                        : '${d.month.toString().padLeft(2, '0')}-${d.day.toString().padLeft(2, '0')}',
+                    d == null ? '待定' : '${d.month}月${d.day}日',
                     style: Theme.of(context).textTheme.labelMedium?.copyWith(
                       color: color,
                       fontWeight: FontWeight.bold,
@@ -170,6 +166,21 @@ class _ExamTimelineRow extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 与考试卡片一致的描边卡片，用于分组入口和提示行。
+class _ExamOutlinedCard extends StatelessWidget {
+  const _ExamOutlinedCard({required this.child});
+  final Widget child;
+  @override
+  Widget build(BuildContext context) => Card.outlined(
+    clipBehavior: Clip.antiAlias,
+    shape: RoundedRectangleBorder(
+      borderRadius: BorderRadius.circular(UbaaTheme.cardRadius),
+      side: BorderSide(color: Theme.of(context).colorScheme.outlineVariant),
+    ),
+    child: child,
+  );
 }
 
 class _ExamCompactCard extends StatelessWidget {

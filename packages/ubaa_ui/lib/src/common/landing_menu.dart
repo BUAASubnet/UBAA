@@ -1,13 +1,11 @@
-import 'dart:async';
-import 'section.dart';
 import '../theme.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
-bool uiHasLandingMenu(FeatureId feature) =>
-    const {FeatureId.cgyy}.contains(feature);
+/// 所有功能都已改为进入即显示第一页；保留入口供导航判断。
+bool uiHasLandingMenu(FeatureId feature) => false;
 
-/// 博雅与图书馆不再有二级菜单：进入即显示第一页，顶部分段切换同级页面。
+/// 博雅、图书馆与研讨室不再有二级菜单：进入即显示第一页，顶部分段切换同级页面。
 List<(String, FeatureQueryView)> uiFeatureTabs(FeatureId feature) =>
     switch (feature) {
       FeatureId.bykc => const [
@@ -19,14 +17,21 @@ List<(String, FeatureQueryView)> uiFeatureTabs(FeatureId feature) =>
         ('预约座位', FeatureQueryView.summary),
         ('我的预约', FeatureQueryView.libbookBookings),
       ],
+      FeatureId.cgyy => const [
+        ('预约', FeatureQueryView.summary),
+        ('我的预约', FeatureQueryView.cgyyOrders),
+      ],
       _ => const [],
     };
 
-/// 页面内部读取（图书馆的楼层、分区、座位）仍属于第一个分段。
+/// 页面内部读取（图书馆的楼层、分区、座位，研讨室的日表）仍属于第一个分段。
 FeatureQueryView uiFeatureTabView(FeatureId feature, FeatureQuery? query) {
   final view = query?.view ?? FeatureQueryView.summary;
   if (feature == FeatureId.libbook &&
       view != FeatureQueryView.libbookBookings) {
+    return FeatureQueryView.summary;
+  }
+  if (feature == FeatureId.cgyy && view == FeatureQueryView.cgyyDayInfo) {
     return FeatureQueryView.summary;
   }
   return view;
@@ -52,23 +57,35 @@ class FeatureTabsBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final current = uiFeatureTabView(feature, query);
+    final tabs = SegmentedButton<FeatureQueryView>(
+      key: ValueKey(('feature-tabs', feature)),
+      showSelectedIcon: false,
+      segments: [
+        for (final tab in uiFeatureTabs(feature))
+          ButtonSegment(value: tab.$2, label: Text(tab.$1)),
+      ],
+      selected: {current},
+      onSelectionChanged: (value) {
+        if (value.single != current) onSelect(value.single);
+      },
+    );
     return Padding(
       padding: UbaaTheme.pageInsets(context, top: 8, bottom: 4),
-      child: SizedBox(
-        width: double.infinity,
-        child: SegmentedButton<FeatureQueryView>(
-          key: ValueKey(('feature-tabs', feature)),
-          showSelectedIcon: false,
-          segments: [
-            for (final tab in uiFeatureTabs(feature))
-              ButtonSegment(value: tab.$2, label: Text(tab.$1)),
-          ],
-          selected: {current},
-          onSelectionChanged: (value) {
-            if (value.single != current) onSelect(value.single);
-          },
-        ),
-      ),
+      child: feature == FeatureId.cgyy
+          // 研讨室门锁密码是低频动作，放在分段右侧而不是单独一级菜单。
+          ? Row(
+              children: [
+                Expanded(child: tabs),
+                const SizedBox(width: 8),
+                IconButton.outlined(
+                  key: const ValueKey('cgyy-lock-code'),
+                  tooltip: '查看密码',
+                  onPressed: () => onSelect(FeatureQueryView.cgyyLockCode),
+                  icon: const Icon(Icons.lock_outline),
+                ),
+              ],
+            )
+          : SizedBox(width: double.infinity, child: tabs),
     );
   }
 }
@@ -86,54 +103,12 @@ String uiReadPageTitle(FeatureId feature, FeatureQuery? query, bool landing) {
         when query.courseId != null =>
       '课程详情',
     (FeatureId.bykc, FeatureQueryView.bykcProfile) => '博雅资料',
-    (FeatureId.cgyy, FeatureQueryView.cgyyOrders) => '我的预约',
     (FeatureId.cgyy, FeatureQueryView.cgyyOrderDetail) => '预约详情',
     (FeatureId.cgyy, FeatureQueryView.cgyyLockCode) => '查看密码',
     (FeatureId.cgyy, FeatureQueryView.cgyyPurposeTypes) => '用途类型',
-    (FeatureId.cgyy, _) => '预约研讨室',
     (FeatureId.spoc, FeatureQueryView.spocDetail) ||
     (FeatureId.judge, FeatureQueryView.judgeDetail) => '作业详情',
     (FeatureId.judge, FeatureQueryView.judgeBatchDetails) => '所选作业详情',
     _ => feature.title,
   };
-}
-
-class FeatureLandingMenu extends StatelessWidget {
-  const FeatureLandingMenu({required this.feature, required this.onOpen});
-  final FeatureId feature;
-  final Future<void> Function(FeatureReadNavigation) onOpen;
-
-  @override
-  Widget build(BuildContext context) {
-    final entries = switch (feature) {
-      FeatureId.cgyy => [
-        ('预约研讨室', Icons.date_range, FeatureQueryView.summary),
-        ('我的预约', Icons.history, FeatureQueryView.cgyyOrders),
-        ('查看密码', Icons.lock_outline, FeatureQueryView.cgyyLockCode),
-      ],
-      _ => throw StateError('此领域没有子菜单'),
-    };
-    return ListView(
-      key: ValueKey(('feature-landing', feature)),
-      padding: EdgeInsets.all(
-        UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width),
-      ),
-      children: [
-        for (final item in entries)
-          Padding(
-            padding: const EdgeInsets.only(bottom: 8),
-            child: UiEntryCard(
-              title: item.$1,
-              icon: item.$2,
-              onTap: () => onOpen(
-                FeatureReadNavigation(
-                  feature: feature,
-                  query: FeatureQuery(view: item.$3),
-                ),
-              ),
-            ),
-          ),
-      ],
-    );
-  }
 }

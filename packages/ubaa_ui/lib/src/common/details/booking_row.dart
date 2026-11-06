@@ -65,7 +65,9 @@ extension LibbookBookingRows on _FeatureDetailListState {
                 ),
               ],
             ),
-            Text('${booking.day} ${booking.beginTime}–${booking.endTime}'),
+            Text(
+              '${uiShortDateTime(booking.day)} ${booking.beginTime}–${booking.endTime}',
+            ),
             const SizedBox(height: 4),
             Text(
               '${booking.areaName} · 座位 ${booking.seatNumber}',
