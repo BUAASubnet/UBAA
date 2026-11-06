@@ -21,6 +21,35 @@ void main() {
       expect(error.technicalDetail, isNull);
     });
 
+    test('上游协议变化使用统一的稍后重试文案', () {
+      final error = mapCoreError(
+        code: 'upstream_changed',
+        kind: 'upstream',
+        retryable: false,
+        message: 'ignored upstream detail',
+      );
+
+      expect(error.title, '服务需要更新');
+      expect(error.message, '服务接口发生变化，请稍后重试');
+      expect(error.actionLabel, isNull);
+      expect(error.retryable, isFalse);
+    });
+
+    test('图书馆非预约时段保留安全文案并允许重试', () {
+      final error = mapCoreError(
+        code: 'business_unavailable',
+        kind: 'upstream',
+        retryable: true,
+        message: 'ignored upstream detail',
+      );
+
+      expect(error.code, UbaaErrorCode.businessUnavailable);
+      expect(error.title, '预约暂不可用');
+      expect(error.message, '当前不在预约时段（8:00–20:00）');
+      expect(error.actionLabel, '重试');
+      expect(error.retryable, isTrue);
+    });
+
     test('结果未知缺少重试标记时仍默认禁止重试', () {
       final error = mapCoreError(code: 'outcome_unknown');
 

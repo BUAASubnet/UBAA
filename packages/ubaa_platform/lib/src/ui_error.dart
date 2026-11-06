@@ -255,6 +255,7 @@ UiErrorKind _parseKind(String? raw, String code) {
     UbaaErrorCode.networkError ||
     UbaaErrorCode.timeout ||
     UbaaErrorCode.upstreamUnavailable ||
+    UbaaErrorCode.businessUnavailable ||
     UbaaErrorCode.outcomeUnknown => UiErrorKind.network,
     UbaaErrorCode.upstreamChanged => UiErrorKind.upstream,
     UbaaErrorCode.parseError => UiErrorKind.parse,
@@ -266,7 +267,8 @@ UiErrorKind _parseKind(String? raw, String code) {
 bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
   UbaaErrorCode.networkError ||
   UbaaErrorCode.timeout ||
-  UbaaErrorCode.upstreamUnavailable => true,
+  UbaaErrorCode.upstreamUnavailable ||
+  UbaaErrorCode.businessUnavailable => true,
   UbaaErrorCode.invalidInput ||
   UbaaErrorCode.authenticationRequired ||
   UbaaErrorCode.invalidCredentials ||
@@ -325,9 +327,14 @@ bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
     message: '服务暂时不可用，请稍后重试',
     actionLabel: '重试',
   ),
+  UbaaErrorCode.businessUnavailable => (
+    title: '预约暂不可用',
+    message: '当前不在预约时段（8:00–20:00）',
+    actionLabel: '重试',
+  ),
   UbaaErrorCode.upstreamChanged => (
     title: '服务需要更新',
-    message: '服务接口发生变化，请稍后再试',
+    message: '服务接口发生变化，请稍后重试',
     actionLabel: null,
   ),
   UbaaErrorCode.parseError => (
