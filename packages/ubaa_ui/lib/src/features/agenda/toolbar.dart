@@ -65,9 +65,20 @@ extension _AgendaToolbar on AgendaViewState {
                   importSchedule();
                 case 'sync':
                   unawaited(syncSettings());
+                case 'data':
+                  unawaited(dataSheet());
               }
             },
             itemBuilder: (_) => [
+              PopupMenuItem(
+                key: const ValueKey('agenda-data-menu'),
+                value: 'data',
+                enabled: available,
+                child: const ListTile(
+                  leading: Icon(Icons.storage_outlined),
+                  title: Text('数据与同步'),
+                ),
+              ),
               PopupMenuItem(
                 value: 'export',
                 enabled: available && !busy,

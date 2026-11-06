@@ -199,7 +199,6 @@ extension _AgendaDataSheet on AgendaViewState {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     final data = result;
-    final syncOn = available && service.supportsSync && service.syncEnabled;
     final noSchool =
         data != null && data.sources.every((s) => s.observations.isEmpty);
     // 课表其他周未缓存属于正常情况，提示导入整学期而不是警告。
@@ -211,30 +210,14 @@ extension _AgendaDataSheet on AgendaViewState {
                   s.feature != AgendaFeature.schedule &&
                   s.missingScopes.isNotEmpty,
             ));
-    final semester =
-        data != null &&
-        data.sources.any(
-          (s) =>
-              s.feature == AgendaFeature.schedule && s.semesterImported != true,
-        );
+    // 正常状态不占位；只有学校事项需要处理时提示，详情在「数据与同步」里。
     final warn = noSchool || partial;
-    final text = [
-      syncOn ? '已开启云端同步' : '仅保存在本机',
-      if (noSchool)
-        '学校事项待刷新'
-      else if (partial)
-        '部分来源待补全'
-      else if (semester)
-        '可导入整学期课表'
-      else if (data != null)
-        '学校事项来自缓存',
-    ].join(' · ');
+    if (!warn) return const SizedBox.shrink();
+    final text = noSchool ? '学校事项待刷新' : '部分来源待补全';
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       child: Material(
-        color: warn
-            ? colors.tertiaryContainer.withValues(alpha: .55)
-            : colors.surfaceContainerHighest.withValues(alpha: .6),
+        color: colors.tertiaryContainer.withValues(alpha: .55),
         borderRadius: BorderRadius.circular(10),
         child: InkWell(
           key: const ValueKey('agenda-data-notice'),
@@ -245,11 +228,9 @@ extension _AgendaDataSheet on AgendaViewState {
             child: Row(
               children: [
                 Icon(
-                  syncOn ? Icons.cloud_done_outlined : Icons.phone_iphone,
+                  Icons.info_outline,
                   size: 16,
-                  color: warn
-                      ? colors.onTertiaryContainer
-                      : colors.onSurfaceVariant,
+                  color: colors.onTertiaryContainer,
                 ),
                 const SizedBox(width: 8),
                 Expanded(
@@ -258,9 +239,7 @@ extension _AgendaDataSheet on AgendaViewState {
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: theme.textTheme.bodySmall?.copyWith(
-                      color: warn
-                          ? colors.onTertiaryContainer
-                          : colors.onSurfaceVariant,
+                      color: colors.onTertiaryContainer,
                     ),
                   ),
                 ),

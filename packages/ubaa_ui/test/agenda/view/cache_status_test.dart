@@ -197,13 +197,8 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(
-      find.descendant(
-        of: find.byKey(const ValueKey('agenda-data-notice')),
-        matching: find.text('仅保存在本机 · 可导入整学期课表'),
-      ),
-      findsOneWidget,
-    );
+    // 正常状态不显示数据提示条，入口在更多菜单。
+    expect(find.byKey(const ValueKey('agenda-data-notice')), findsNothing);
     await openAgendaDataSheet(tester);
     expect(find.text('目前只缓存了已查看周的课表，导入整学期课表后可查看全部周。'), findsOneWidget);
     expect(
