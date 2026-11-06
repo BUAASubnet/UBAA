@@ -900,3 +900,6 @@ mod incremental;
 mod online;
 #[path = "judge_scan/routes.rs"]
 mod routes;
+
+#[path = "judge_scan/concurrent.rs"]
+mod concurrent;

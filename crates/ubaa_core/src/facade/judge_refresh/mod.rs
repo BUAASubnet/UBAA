@@ -5,6 +5,7 @@ pub use details::{JudgeDetailsRead, JudgeDetailsReadBatch};
 pub(super) mod policy;
 mod progress;
 mod read;
+mod recovery;
 use super::{
     CacheCompleteness, CacheError, CachePayload, CacheQuery, CacheReadTicket, CacheScope,
     JudgeAssignmentKey, JudgeAssignmentSummary, JudgeScan, JudgeScanBatch, JudgeScanCancellation,
@@ -66,8 +67,17 @@ impl UbaaClient {
         cache: &OfflineCache,
         options: JudgeRefreshOptions,
     ) -> Result<JudgeRefresh, OfflineReadError> {
+        self.begin_judge_refresh_with_ticket(cache, options, None)
+            .await
+    }
+    async fn begin_judge_refresh_with_ticket(
+        &mut self,
+        cache: &OfflineCache,
+        options: JudgeRefreshOptions,
+        ticket: Option<CacheReadTicket>,
+    ) -> Result<JudgeRefresh, OfflineReadError> {
         let mut scan = self
-            .begin_judge_scan_with_freshness(
+            .begin_judge_scan_with_ticket(
                 cache,
                 options.include_expired,
                 options
@@ -76,6 +86,7 @@ impl UbaaClient {
                     .map(|key| key.course_id.as_str())
                     .or(options.preferred_course.as_deref()),
                 true,
+                ticket,
             )
             .await?;
         let now = chrono::Utc::now().timestamp();
@@ -138,6 +149,17 @@ impl UbaaClient {
     /// # Errors
     /// 账号/路线、较新扫描、取消或主会话失败终止计划，不发布迟到内容。
     pub async fn next_judge_refresh(
+        &mut self,
+        refresh: &mut JudgeRefresh,
+    ) -> Result<JudgeRefreshBatch, OfflineReadError> {
+        match self.advance_judge_refresh(refresh).await {
+            Err(OfflineReadError::Cache(CacheError::Superseded)) => {
+                self.recover_judge_refresh(refresh).await
+            }
+            result => result,
+        }
+    }
+    async fn advance_judge_refresh(
         &mut self,
         refresh: &mut JudgeRefresh,
     ) -> Result<JudgeRefreshBatch, OfflineReadError> {

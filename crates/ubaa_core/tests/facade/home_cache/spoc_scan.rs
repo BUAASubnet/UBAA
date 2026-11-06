@@ -223,8 +223,8 @@ fn spoc_中途网络失败不清空_错学期错页大小拒绝_矛盾页尾只�
     std::fs::remove_dir_all(root).unwrap();
 }
 #[test]
-fn spoc_新请求取消退出清理和客户端替换拒绝旧计划且不发新页() {
-    for reason in 0..5 {
+fn spoc_取消退出清理和客户端替换拒绝旧计划且不发新页() {
+    for reason in 1..5 {
         let root = test_root(&format!("spoc-stale-{reason}"));
         let transport = Pages::default();
         let (mut client, cache) = setup(&root, transport.clone());
@@ -233,9 +233,6 @@ fn spoc_新请求取消退出清理和客户端替换拒绝旧计划且不发新
             client.next_spoc_scan(&mut plan).await.unwrap();
             client.next_spoc_scan(&mut plan).await.unwrap();
             match reason {
-                0 => {
-                    let _newer = client.begin_spoc_scan(Some(&cache), None).await.unwrap();
-                }
                 1 => plan.cancellation().cancel(),
                 2 => cache.clear().unwrap(),
                 3 => cache.deactivate().unwrap(),
@@ -303,3 +300,6 @@ fn spoc_请求期间取消拒绝回写_无缓存仍核对身份并按页返回()
 
 #[path = "spoc_detail.rs"]
 mod detail;
+
+#[path = "spoc_scan/concurrent.rs"]
+mod concurrent;

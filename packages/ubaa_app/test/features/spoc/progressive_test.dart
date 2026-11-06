@@ -37,6 +37,30 @@ void main() {
     task.cancel();
     expect(client.task.cancelled, isTrue);
   });
+  test('直接复用同键完整结果时零新页仍交付终态', () async {
+    final client = SpocClient()..calls = 3;
+    final complete = client.batch(3);
+    client.gate = Completer<BridgeSpocScanBatch>()
+      ..complete(
+        BridgeSpocScanBatch(
+          result: complete.result,
+          state: complete.state,
+          completedPages: 0,
+          finished: true,
+        ),
+      );
+    final backend = BridgeBackend(client);
+    final task = (await backend.beginAccountFeatureRead(
+      FeatureId.spoc,
+      null,
+      account,
+    ))!;
+    final batch = await task.next();
+    expect(batch.finished, isTrue);
+    expect(batch.publish, isTrue);
+    expect(batch.result.details.length, 2);
+    expect(batch.result.evidence!.complete, isTrue);
+  });
   test('分页途中同学期保留完整旧集合和原时间，完整后替换', () async {
     api.cache.value = saved('term-a');
     final client = SpocClient();

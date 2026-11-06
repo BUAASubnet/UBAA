@@ -586,6 +586,11 @@ fn load_current_control(
 #[cfg(test)]
 mod retention_tests;
 
+#[cfg(test)]
+mod recovery_tests;
+
+mod recovery;
+
 mod retention;
 
 #[cfg(test)]

@@ -200,6 +200,15 @@ impl UbaaClient {
         cache: Option<&OfflineCache>,
         expected_identity: Option<&str>,
     ) -> Result<SpocScan, OfflineReadError> {
+        self.begin_spoc_scan_with_ticket(cache, expected_identity, None)
+            .await
+    }
+    async fn begin_spoc_scan_with_ticket(
+        &mut self,
+        cache: Option<&OfflineCache>,
+        expected_identity: Option<&str>,
+        ticket: Option<CacheReadTicket>,
+    ) -> Result<SpocScan, OfflineReadError> {
         if expected_identity.is_some_and(|id| id.trim().is_empty() || id.len() > 128) {
             return Err(OfflineReadError::Cache(CacheError::InvalidInput));
         }
@@ -256,10 +265,17 @@ impl UbaaClient {
         if save_error.is_none()
             && let Some(cache) = cache
         {
-            plan.ticket = plan.storage(cache.begin(CacheScope {
-                route: resolution.mode,
-                query: CacheQuery::SpocSelection,
-            }))?;
+            plan.ticket = if let Some(ticket) = ticket {
+                cache
+                    .validate_read(&ticket)
+                    .map_err(OfflineReadError::Cache)?;
+                Some(ticket)
+            } else {
+                plan.storage(cache.begin(CacheScope {
+                    route: resolution.mode,
+                    query: CacheQuery::SpocSelection,
+                }))?
+            };
         }
         Ok(plan)
     }
@@ -298,7 +314,12 @@ impl UbaaClient {
         &mut self,
         plan: &mut SpocScan,
     ) -> Result<SpocScanBatch, OfflineReadError> {
-        let result = self.advance_spoc_scan(plan).await;
+        let result = match self.advance_spoc_scan(plan).await {
+            Err(OfflineReadError::Cache(CacheError::Superseded)) if !plan.finished => {
+                self.recover_spoc_scan(plan).await
+            }
+            result => result,
+        };
         if result.is_err() {
             plan.cancellation.cancel();
             if let (Some(cache), Some(ticket)) = (&plan.cache, &plan.ticket) {
@@ -397,3 +418,5 @@ impl UbaaClient {
 
 mod detail;
 pub use detail::{SpocDetailScan, SpocDetailScanBatch};
+
+mod recovery;

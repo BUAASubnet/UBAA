@@ -52,7 +52,7 @@ pub struct JudgeScan {
     pub(super) assignments: Option<Vec<Assignment>>,
     pub(super) detail_index: usize,
     pub(super) failed_courses: usize,
-    cancellation: JudgeScanCancellation,
+    pub(super) cancellation: JudgeScanCancellation,
     force_fresh: bool,
     // 仅复用本计划的业务激活；选课仍在每个网络批次内重新执行。
     activated: bool,
@@ -94,6 +94,23 @@ impl UbaaClient {
         preferred_course: Option<&str>,
         force_fresh: bool,
     ) -> Result<JudgeScan, OfflineReadError> {
+        self.begin_judge_scan_with_ticket(
+            cache,
+            include_expired,
+            preferred_course,
+            force_fresh,
+            None,
+        )
+        .await
+    }
+    pub(super) async fn begin_judge_scan_with_ticket(
+        &mut self,
+        cache: &OfflineCache,
+        include_expired: bool,
+        preferred_course: Option<&str>,
+        force_fresh: bool,
+        ticket: Option<CacheReadTicket>,
+    ) -> Result<JudgeScan, OfflineReadError> {
         cache
             .check_read_generation()
             .map_err(OfflineReadError::Cache)?;
@@ -108,18 +125,30 @@ impl UbaaClient {
                 cache_error: cache.deactivate().err(),
             });
         }
-        let mut ticket = cache
-            .begin(CacheScope {
-                route: resolution.mode,
-                query: CacheQuery::JudgeSummaries { include_expired },
-            })
-            .map_err(OfflineReadError::Cache)?;
+        let mut ticket = if let Some(ticket) = ticket {
+            cache
+                .validate_read(&ticket)
+                .map_err(OfflineReadError::Cache)?;
+            ticket
+        } else {
+            cache
+                .begin(CacheScope {
+                    route: resolution.mode,
+                    query: CacheQuery::JudgeSummaries { include_expired },
+                })
+                .map_err(OfflineReadError::Cache)?
+        };
         let mut course_ticket = if force_fresh {
             Some(
                 cache
-                    .begin(CacheScope {
-                        route: resolution.mode,
-                        query: CacheQuery::JudgeCourses,
+                    .repository(|repo| {
+                        repo.begin_read_guarded(
+                            CacheScope {
+                                route: resolution.mode,
+                                query: CacheQuery::JudgeCourses,
+                            },
+                            &ticket,
+                        )
                     })
                     .map_err(OfflineReadError::Cache)?,
             )
@@ -179,7 +208,10 @@ impl UbaaClient {
             cancellation: JudgeScanCancellation(Arc::new(AtomicBool::new(false))),
         })
     }
-    pub(super) fn validate_judge_scan(&mut self, plan: &JudgeScan) -> Result<(), OfflineReadError> {
+    pub(super) fn validate_judge_owner(
+        &mut self,
+        plan: &JudgeScan,
+    ) -> Result<(), OfflineReadError> {
         self.guard_latest_routed().map_err(OfflineReadError::Read)?;
         let owner = self.runtime_for(plan.resolution.mode).feature_state();
         if plan.cancellation.0.load(Ordering::Acquire)
@@ -189,6 +221,10 @@ impl UbaaClient {
         {
             return Err(OfflineReadError::Cache(CacheError::Superseded));
         }
+        Ok(())
+    }
+    pub(super) fn validate_judge_scan(&mut self, plan: &JudgeScan) -> Result<(), OfflineReadError> {
+        self.validate_judge_owner(plan)?;
         plan.cache
             .validate_read(&plan.ticket)
             .map_err(OfflineReadError::Cache)

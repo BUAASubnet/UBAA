@@ -79,7 +79,7 @@ final class _SpocFeatureTask implements FeatureReadTask {
     try {
       final batch = await backend.client.nextSpocScan(task: task);
       _validate();
-      if (batch.completedPages == 0) {
+      if (batch.completedPages == 0 && !batch.finished) {
         return const FeatureReadBatch(
           FeatureResult.success(summary: '正在核实作业学期'),
           finished: false,
