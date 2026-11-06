@@ -5,6 +5,7 @@ import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_platform/ubaa_platform.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import '../support/host/recording_backend.dart' show FixtureRecordingBackend;
+import '../support/host/fakes.dart' show FixtureHostReadOnlyBackend;
 
 void _registerCallbackTests() {
   testWidgets('共享宿主完整连接登录页与主界面回调', (tester) async {
@@ -65,6 +66,7 @@ void _registerCallbackTests() {
     expect(vault.saveCount, 1);
 
     var shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
+    expect(shell.onPreviewBhpanFile, isNull);
     expect(shell.initialDestination, UiDestination.campus);
     backend.resetReadCalls();
     await shell.onRefresh();
@@ -464,4 +466,39 @@ void _registerCallbackTests() {
 
 void main() {
   _registerCallbackTests();
+
+  testWidgets('宿主只为支持预览的平台连接云盘预览回调', (tester) async {
+    final previewer = _Previewer();
+    await tester.pumpWidget(
+      UbaaAppHost(
+        backend: FixtureHostReadOnlyBackend(),
+        bhpanFilePreviewer: previewer,
+      ),
+    );
+    await tester.pumpAndSettle();
+    final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
+    var current = true;
+    expect(await shell.onPreviewBhpanFile!('报告.pdf', () => current), isNull);
+    expect(previewer.name, '报告.pdf');
+    current = false;
+    expect(previewer.current!(), false);
+  });
+}
+
+class _Previewer implements BhpanFilePreviewer {
+  String? name;
+  bool Function()? current;
+
+  @override
+  bool get isAvailable => true;
+
+  @override
+  Future<BhpanDownloadDestination?> select(
+    String name,
+    bool Function() current,
+  ) async {
+    this.name = name;
+    this.current = current;
+    return null;
+  }
 }

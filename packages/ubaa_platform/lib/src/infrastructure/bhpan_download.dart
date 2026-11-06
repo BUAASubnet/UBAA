@@ -11,6 +11,109 @@ abstract interface class BhpanFileSaver {
   );
 }
 
+/// 在支持系统预览的平台上，把 Core 下载的临时文件交给系统预览器。
+abstract interface class BhpanFilePreviewer {
+  bool get isAvailable;
+  Future<BhpanDownloadDestination?> select(
+    String name,
+    bool Function() isCurrent,
+  );
+}
+
+/// iOS 使用 Quick Look 预览文件；其它平台保持空回调，由界面显示下载操作。
+final class SystemBhpanFilePreviewer implements BhpanFilePreviewer {
+  const SystemBhpanFilePreviewer({this.operatingSystem, this.stagingDirectory});
+
+  final String? operatingSystem;
+  final Future<Directory> Function()? stagingDirectory;
+  static const channel = MethodChannel('cn.edu.buaa.ubaa/bhpan-preview');
+
+  @override
+  bool get isAvailable =>
+      (operatingSystem ?? Platform.operatingSystem) == 'ios';
+
+  @override
+  Future<BhpanDownloadDestination?> select(
+    String name,
+    bool Function() isCurrent,
+  ) async {
+    if (!isAvailable || !isCurrent()) return null;
+    Directory? folder;
+    try {
+      folder = stagingDirectory == null
+          ? await (await getTemporaryDirectory()).createTemp(
+              'ubaa-bhpan-preview-',
+            )
+          : await stagingDirectory!();
+      if (!isCurrent()) {
+        await folder.delete(recursive: true);
+        return null;
+      }
+      final safeName = name.replaceAll(RegExp(r'[\\/\r\n]'), '_').trim();
+      final path = '${folder.path}/${safeName.isEmpty ? 'preview' : safeName}';
+      return _PreviewDestination(path, folder);
+    } on Object {
+      if (folder != null && await folder.exists()) {
+        await folder.delete(recursive: true);
+      }
+      throw const UiError(
+        code: UbaaErrorCode.unsupported,
+        title: '文件预览不可用',
+        message: '无法准备系统预览，请检查本机存储权限',
+      );
+    }
+  }
+}
+
+final class _PreviewDestination implements BhpanDownloadDestination {
+  _PreviewDestination(this.path, this.folder);
+
+  @override
+  final String path;
+  final Directory folder;
+
+  @override
+  bool get overwrite => true;
+
+  @override
+  Future<void> deliver(bool Function() isCurrent) async {
+    if (!isCurrent()) throw _previewSessionChanged;
+    try {
+      await SystemBhpanFilePreviewer.channel.invokeMethod<void>('preview', {
+        'path': path,
+      });
+      if (!isCurrent()) throw _previewSessionChanged;
+    } on UiError {
+      rethrow;
+    } on PlatformException catch (error) {
+      throw UiError(
+        code: error.code == 'unsupported'
+            ? UbaaErrorCode.unsupported
+            : UbaaErrorCode.invalidInput,
+        title: '文件预览失败',
+        message: '无法打开系统预览，请稍后重试',
+      );
+    } on Object {
+      throw const UiError(
+        code: UbaaErrorCode.invalidInput,
+        title: '文件预览失败',
+        message: '无法打开系统预览，请稍后重试',
+      );
+    }
+  }
+
+  @override
+  Future<void> discard() async {
+    if (await folder.exists()) await folder.delete(recursive: true);
+  }
+}
+
+const _previewSessionChanged = UiError(
+  code: UbaaErrorCode.operationConflict,
+  title: '会话已变化',
+  message: '账号或路线已变化，文件未交付',
+);
+
 /// 桌面直接选择文件位置，移动端通过系统授权交付 Core 暂存文件。
 final class SystemBhpanFileSaver implements BhpanFileSaver {
   const SystemBhpanFileSaver({

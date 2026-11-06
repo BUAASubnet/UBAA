@@ -80,4 +80,6 @@ MethodChannel 定义 Dart/原生的稳定边界；各能力是否完成以对应
 
 `SystemBhpanFilePicker` 使用既有 `file_selector` 选择一个本机文件，取消返回空结果，平台不可用或选择失败返回安全错误。平台只向网盘服务交付路径和文件名，文件内容由 Core 用有界缓冲读取，不复制到 Dart 状态或普通 Bridge DTO。
 
+iOS 的 `SystemBhpanFilePreviewer` 在应用临时目录创建可覆盖目标，并通过 Quick Look 打开下载文件。预览界面关闭后 `deliver` 才完成，随后宿主清理临时目录。其它平台不提供预览回调，界面只保留下载操作。
+
 目前选择器接入个人秒传。普通/分片上传和下载保存仍有协议缺口，各平台实际选择面板与文件访问权限单独验收，不能据 Widget 或构建结果宣布系统面板已通过。

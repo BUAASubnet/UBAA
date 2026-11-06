@@ -128,6 +128,9 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       bhpanService: _controller.bhpanService,
       onPickBhpanFile: widget.bhpanFilePicker.pick,
       onPickBhpanDownload: widget.bhpanFileSaver.select,
+      onPreviewBhpanFile: widget.bhpanFilePreviewer.isAvailable
+          ? widget.bhpanFilePreviewer.select
+          : null,
       connectionStatus: _connectionStatus,
       connecting:
           _controller.usesLocalRecovery &&
