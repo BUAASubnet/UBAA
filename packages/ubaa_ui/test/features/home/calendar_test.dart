@@ -6,8 +6,59 @@ import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/app/home.dart';
+import 'package:ubaa_ui/src/shared/loading.dart';
 
 void main() {
+  testWidgets('明日空课表刷新期间保留已有空态', (tester) async {
+    final firstRead = Completer<FeatureResult>();
+    final refreshRead = Completer<FeatureResult>();
+    final reads = <Completer<FeatureResult>>[firstRead, refreshRead];
+    Future<FeatureResult> read(String date, bool force) =>
+        reads.removeAt(0).future;
+
+    await calendar(tester, DateTime(2026, 10, 25, 20), read, settle: false);
+    await tester.pump();
+    expect(find.byType(LoadingPlaceholder), findsOneWidget);
+
+    firstRead.complete(emptyDayResult('2026-10-26'));
+    await tester.pumpAndSettle();
+    expect(find.text('明天没有课程安排'), findsOneWidget);
+    expect(find.byType(LoadingPlaceholder), findsNothing);
+
+    await calendar(
+      tester,
+      DateTime(2026, 10, 25, 20),
+      read,
+      epoch: 1,
+      settle: false,
+    );
+    await tester.pump();
+    expect(find.text('明天没有课程安排'), findsOneWidget);
+    expect(find.byType(LoadingPlaceholder), findsNothing);
+
+    refreshRead.complete(dayResult('2026-10-26', '明日更新课程'));
+    await tester.pumpAndSettle();
+    expect(find.text('明日更新课程'), findsOneWidget);
+    expect(find.byType(LoadingPlaceholder), findsNothing);
+  });
+
+  testWidgets('首次进入明日课表尚无结果显示加载占位', (tester) async {
+    final gate = Completer<FeatureResult>();
+    await calendar(
+      tester,
+      DateTime(2026, 10, 25, 20),
+      (date, force) => gate.future,
+      settle: false,
+    );
+    await tester.pump();
+    expect(find.byType(LoadingPlaceholder), findsOneWidget);
+
+    gate.complete(emptyDayResult('2026-10-26'));
+    await tester.pumpAndSettle();
+    expect(find.text('明天没有课程安排'), findsOneWidget);
+    expect(find.byType(LoadingPlaceholder), findsNothing);
+  });
+
   testWidgets('明日课表路线反映实际日程来源，午夜后保留同日路线', (tester) async {
     final routes = <HomeScheduleRoute>[];
     Future<FeatureResult> read(String date, bool force) async =>
@@ -151,6 +202,20 @@ FeatureResult dayResult(
       presentation: const TodayCoursePresentation(time: '08:00-09:35'),
     ),
   ],
+  overview: HomeScheduleOverview(
+    date: date,
+    week: const WeekPresentation(
+      requestTerm: 'term',
+      responseTerm: 'term',
+      number: 8,
+      current: false,
+      startDate: '2026-10-26',
+      endDate: '2026-11-01',
+    ),
+  ),
+);
+
+FeatureResult emptyDayResult(String date) => FeatureResult.empty(
   overview: HomeScheduleOverview(
     date: date,
     week: const WeekPresentation(

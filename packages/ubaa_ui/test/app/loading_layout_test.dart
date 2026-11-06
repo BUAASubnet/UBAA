@@ -11,6 +11,90 @@ import 'package:ubaa_ui/src/app/home.dart';
 import 'package:ubaa_ui/src/shared/loading.dart';
 
 void main() {
+  for (final (label, metadata) in [
+    (
+      '更新时间',
+      FeatureSnapshot(
+        feature: FeatureId.spoc,
+        status: FeatureLoadStatus.success,
+        updatedAt: DateTime(2026, 10, 20),
+      ),
+    ),
+    (
+      '证据',
+      FeatureSnapshot(
+        feature: FeatureId.spoc,
+        status: FeatureLoadStatus.success,
+        evidence: DataEvidence(
+          accountId: 'synthetic',
+          origin: DataOrigin.online,
+          fetchedAt: DateTime(2026, 10, 20),
+          complete: true,
+          savedForOffline: true,
+        ),
+      ),
+    ),
+  ]) {
+    testWidgets('待办为空时带$label的来源刷新保留空态', (tester) async {
+      Future<void> mount(FeatureSnapshot spoc) => tester.pumpWidget(
+        MaterialApp(
+          home: Scaffold(
+            body: HomeView(
+              onProjectTodos: (_) async => HomeTodoProjection(const []),
+              user: null,
+              visible: true,
+              cacheEpoch: 0,
+              homeClock: Clock.fixed(DateTime(2026, 10, 20)),
+              snapshots: _emptyTodoSnapshots(spoc),
+              onFeatureTap: (_) {},
+              onRetryFeature: (_) async {},
+              onRefresh: () async {},
+              onTodoTap: (_) {},
+            ),
+          ),
+        ),
+      );
+
+      await mount(metadata);
+      await tester.pumpAndSettle();
+      expect(find.text('当前没有待办'), findsOneWidget);
+      expect(find.byType(LoadingPlaceholder), findsNothing);
+
+      await mount(metadata.copyWith(status: FeatureLoadStatus.loading));
+      await tester.pump();
+      expect(find.text('当前没有待办'), findsOneWidget);
+      expect(find.byType(LoadingPlaceholder), findsNothing);
+    });
+  }
+
+  testWidgets('待办为空时来源首次加载显示占位', (tester) async {
+    await tester.pumpWidget(
+      MaterialApp(
+        home: Scaffold(
+          body: HomeView(
+            onProjectTodos: (_) async => HomeTodoProjection(const []),
+            user: null,
+            visible: true,
+            cacheEpoch: 0,
+            homeClock: Clock.fixed(DateTime(2026, 10, 20)),
+            snapshots: _emptyTodoSnapshots(
+              const FeatureSnapshot(
+                feature: FeatureId.spoc,
+                status: FeatureLoadStatus.loading,
+              ),
+            ),
+            onFeatureTap: (_) {},
+            onRetryFeature: (_) async {},
+            onRefresh: () async {},
+            onTodoTap: (_) {},
+          ),
+        ),
+      ),
+    );
+    await tester.pump();
+    expect(find.byType(LoadingPlaceholder), findsOneWidget);
+  });
+
   testWidgets('首页来源逐一结束不会移动已显示的待办', (tester) async {
     tester.view.physicalSize = const Size(390, 844);
     tester.view.devicePixelRatio = 1;
@@ -309,4 +393,46 @@ void main() {
     await mount(ready.copyWith(status: FeatureLoadStatus.loading));
     expect(tester.getTopLeft(find.text('本学期')), before);
   });
+}
+
+Map<FeatureId, FeatureSnapshot> _emptyTodoSnapshots(FeatureSnapshot spoc) {
+  final evidence = DataEvidence(
+    accountId: 'synthetic',
+    origin: DataOrigin.online,
+    fetchedAt: DateTime(2026, 10, 20),
+    complete: true,
+    savedForOffline: true,
+  );
+  return {
+    for (final feature in FeatureId.values)
+      feature: FeatureSnapshot(
+        feature: feature,
+        status: FeatureLoadStatus.empty,
+      ),
+    FeatureId.schedule: const FeatureSnapshot(
+      feature: FeatureId.schedule,
+      status: FeatureLoadStatus.success,
+    ),
+    FeatureId.bykc: FeatureSnapshot(
+      feature: FeatureId.bykc,
+      status: FeatureLoadStatus.success,
+      updatedAt: DateTime(2026, 10, 20),
+      evidence: evidence,
+      readContext: FeatureReadContext(
+        requestRevision: 0,
+        query: const FeatureQuery(view: FeatureQueryView.bykcChosenCourses),
+      ),
+    ),
+    FeatureId.cgyy: FeatureSnapshot(
+      feature: FeatureId.cgyy,
+      status: FeatureLoadStatus.success,
+      updatedAt: DateTime(2026, 10, 20),
+      evidence: evidence,
+      readContext: FeatureReadContext(
+        requestRevision: 0,
+        query: const FeatureQuery(view: FeatureQueryView.cgyyOrders),
+      ),
+    ),
+    FeatureId.spoc: spoc,
+  };
 }
