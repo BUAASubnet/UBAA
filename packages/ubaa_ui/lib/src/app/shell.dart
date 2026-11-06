@@ -139,11 +139,9 @@ class UbaaMainShell extends StatefulWidget {
   });
   final UserSummary? user;
 
-  /// 原生合成日期场景可显式传入时钟，避免引擎帧跨 Zone 丢失测试时间。
   final Clock? homeClock;
   final Map<FeatureId, FeatureSnapshot> snapshots;
 
-  /// 仅用于呈现原协调器已完成的固定路线记录回读，不触发新读取。
   final FeatureSnapshot? ygdkRecordsReadback;
   final Map<FeatureId, FeatureSnapshot>? homeSnapshots;
   final HomeTodoReader? onProjectHomeTodos;
@@ -172,21 +170,17 @@ class UbaaMainShell extends StatefulWidget {
   final ValueChanged<RoutePolicy> onRoutePolicyChanged;
   final ValueChanged<bool> onTelemetryChanged;
 
-  /// 供宿主恢复上次导航位置或集成测试从指定功能分组启动。
   final UiDestination initialDestination;
 
-  /// “我的”页面的门户资料、账户指标与流量读取；为空时页面显示占位。
   final CampusAccountService? campusAccountService;
   final BhpanService? bhpanService;
   final Future<BhpanLocalFile?> Function()? onPickBhpanFile;
   final Future<BhpanDownloadDestination?> Function(String, bool Function())?
   onPickBhpanDownload;
 
-  /// 云盘系统预览的临时位置；`deliver` 在预览关闭后才完成。
   final Future<BhpanDownloadDestination?> Function(String, bool Function())?
   onPreviewBhpanFile;
 
-  /// 会话正在恢复；与页面刷新一起显示在标题栏右侧，不单独显示图标。
   final bool connecting;
   final String? connectionStatus;
   final List<WriteReadbackHint> writeReadbacks;
@@ -198,7 +192,6 @@ class UbaaMainShell extends StatefulWidget {
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
 
-  /// 应用读取生命周期改变时使父返回缓存失效，当前页面草稿仍由页面持有。
   final int readCacheEpoch;
   final int businessCacheEpoch;
   final String? cacheAccountId;
@@ -224,7 +217,6 @@ class UbaaMainShell extends StatefulWidget {
   final VoidCallback? onConsumeGradeNotice;
   final List<ConnectionMode> activeRoutes;
 
-  /// 宿主提供本轮允许字段的脱敏报告，不读取账号或业务数据。
   final String Function()? onReadDiagnostics;
   final Future<CgyyLockDisplaySession> Function()? onOpenLockDisplay;
   final WriteState writeState;
@@ -249,10 +241,8 @@ class UbaaMainShell extends StatefulWidget {
   final Future<WriteCommitResult> Function(String intentId)? onCommitWrite;
   final WriteSuccessHandler? onWriteSuccess;
 
-  /// 在 [onWriteSuccess] 刷新研讨室订单后，用提交收据匹配只读订单编号。
   final CgyyReceiptVerifier? onVerifyCgyyReceipt;
   final CgyyCancellationVerifier? onVerifyCgyyCancellation;
-  // 按已确认意图的路线执行一次评教只读回读。
   final EvaluationSubmissionRefresher? onRefreshEvaluationAfterWrite;
   final YgdkSubmissionRefresher? onRefreshYgdkAfterWrite;
 
@@ -295,7 +285,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   final _bhpanBack = BhpanBackHandle();
   final _homeKey = GlobalKey<HomeViewState>();
 
-  /// 进行中的下拉刷新数；大于零时标题栏只显示更新时间。
   int _pulling = 0;
   Future<void> _pull(Future<void> Function() refresh) async {
     setState(() => _pulling++);
@@ -318,7 +307,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   void _refreshLockDisplay() => setState(() => _lockRefreshRevision++);
   final Map<FeatureId, GlobalKey<FeatureReadNavigatorState>> _readPageKeys = {};
   bool _homeSigninActive = false;
-  // 一点即完成的写操作进行中；期间忽略其他写入点击。
   WriteOperation? _directWriteActive;
   void _setDirectWriteActive(WriteOperation? operation) =>
       setState(() => _directWriteActive = operation);
