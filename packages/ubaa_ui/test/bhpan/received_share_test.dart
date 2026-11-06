@@ -3,6 +3,8 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_ui/src/features/bhpan/chrome.dart';
+import 'package:ubaa_ui/src/features/bhpan/location.dart';
+import 'interaction/support.dart';
 import 'support.dart';
 
 const received = BhpanItem(
@@ -35,7 +37,7 @@ class ReceivedFiles extends Files {
 Future<void> openReceived(
   WidgetTester tester,
   ReceivedFiles files, {
-  Future<WriteOutcome?> Function(BhpanMutation)? run,
+  Future<WriteOutcome?> Function(BhpanMutation, [BhpanWriteStyle])? run,
 }) async {
   tester.view.physicalSize = const Size(1000, 1000);
   tester.view.devicePixelRatio = 1;
@@ -52,19 +54,13 @@ Future<void> openReceived(
     ),
   );
   await tester.pumpAndSettle();
-  await tester.tap(find.byTooltip('更多云盘操作'));
-  await tester.pumpAndSettle();
-  await tester.tap(find.text('接收分享'));
-  await tester.pumpAndSettle();
+  await openPlace(tester, '打开分享链接');
   await tester.enterText(
-    find.widgetWithText(TextField, '北航云盘分享链接或标识'),
-    'fixture-share',
+    find.widgetWithText(TextField, '分享链接'),
+    'https://bhpan.synthetic/share/fixture 提取码：fixturepassword',
   );
-  await tester.enterText(
-    find.widgetWithText(TextField, '提取密码（如有）'),
-    'fixture-password',
-  );
-  await tester.tap(find.text('打开分享'));
+  await tester.tap(find.widgetWithText(TextField, '提取码（没有可不填）'));
+  await tester.testTextInput.receiveAction(TextInputAction.done);
   await tester.pumpAndSettle();
   expect(find.text('分享文件.txt'), findsOneWidget);
 }
@@ -74,22 +70,23 @@ void main() {
     final files = ReceivedFiles();
     await openReceived(tester, files);
     final start = files.reads.length;
-    await tester.tap(find.byTooltip('刷新'));
-    await tester.pumpAndSettle();
+    await pullToRefresh(tester, find.text('分享文件.txt'));
     expect(find.text('分享文件.txt'), findsOneWidget);
     expect(find.text('报告.txt'), findsNothing);
+    expect(
+      find.descendant(
+        of: find.byType(BhpanLocationBar),
+        matching: find.text('收到的分享'),
+      ),
+      findsOneWidget,
+    );
     expect(files.reads.skip(start).map((q) => q.view), [
       BhpanReadView.receivedShare,
     ]);
-    expect(files.reads.last.link, 'fixture-share');
-    expect(files.reads.last.password, 'fixture-password');
+    expect(files.reads.last.link, 'https://bhpan.synthetic/share/fixture');
+    expect(files.reads.last.password, 'fixturepassword');
     final switching = files.reads.length;
-    await tester.tap(find.byTooltip('切换文档库'));
-    await tester.pumpAndSettle();
-    await tester.tap(
-      find.widgetWithText(CheckedPopupMenuItem<BhpanRootKind>, '个人文档库'),
-    );
-    await tester.pumpAndSettle();
+    await openPlace(tester, '个人文档库');
     expect(files.reads.skip(switching).map((q) => q.view), [
       BhpanReadView.personalRoot,
       BhpanReadView.directory,
@@ -104,7 +101,7 @@ void main() {
     await openReceived(
       tester,
       files,
-      run: (request) async {
+      run: (request, [_ = const BhpanWriteStyle()]) async {
         mutations.add(request);
         return const WriteOutcome(
           operation: WriteOperation.bhpan,
@@ -127,11 +124,9 @@ void main() {
       find.descendant(of: row, matching: find.byTooltip('更多操作')),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('另存到网盘'));
+    await tester.tap(find.text('保存到我的网盘'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(ListTile, '个人文档库'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('选择此目录'));
+    await tester.tap(find.text('保存到此处'));
     await tester.pumpAndSettle();
     expect(mutations.single.kind, BhpanMutationKind.copy);
     expect(mutations.single.target, 'received-file');
@@ -150,19 +145,16 @@ void main() {
     await openReceived(tester, files);
     files.denied = true;
     final start = files.reads.length;
-    await tester.tap(find.byTooltip('刷新'));
-    await tester.pumpAndSettle();
+    await pullToRefresh(tester, find.text('分享文件.txt'));
     expect(find.text('分享授权不可用，请检查密码、有效期和权限'), findsOneWidget);
     expect(find.text('报告.txt'), findsNothing);
     expect(files.reads.skip(start).map((q) => q.view), [
       BhpanReadView.receivedShare,
     ]);
-    expect(files.reads.last.link, 'fixture-share');
-    expect(files.reads.last.password, 'fixture-password');
-    await tester.tap(find.byTooltip('更多云盘操作'));
+    expect(files.reads.last.link, 'https://bhpan.synthetic/share/fixture');
+    expect(files.reads.last.password, 'fixturepassword');
+    await tester.tap(find.text('重新输入链接'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('接收分享'));
-    await tester.pumpAndSettle();
-    expect(find.widgetWithText(AlertDialog, '接收分享'), findsOneWidget);
+    expect(find.widgetWithText(AlertDialog, '打开分享链接'), findsOneWidget);
   });
 }

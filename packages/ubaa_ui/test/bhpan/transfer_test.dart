@@ -98,7 +98,7 @@ void main() {
     expect(destination.discards, 1);
     expect(find.textContaining('已保存'), findsOneWidget);
   });
-  testWidgets('普通上传将文件和同一个传输控制交给公共写协调', (tester) async {
+  testWidgets('个人秒传将文件和同一个传输控制交给公共写协调', (tester) async {
     final files = Files();
     BhpanMutation? request;
     await show(
@@ -107,7 +107,7 @@ void main() {
         service: files,
         pickFile: () async =>
             const BhpanLocalFile(path: '/synthetic/input', name: 'notes.txt'),
-        runWrite: (value) async {
+        runWrite: (value, [_ = const BhpanWriteStyle()]) async {
           request = value;
           return null;
         },
@@ -117,7 +117,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('上传文件'));
     await tester.pumpAndSettle();
-    expect(request!.kind, BhpanMutationKind.upload);
+    expect(request!.kind, BhpanMutationKind.uploadFast);
     expect(request!.target, 'root');
     expect(request!.source!.path, '/synthetic/input');
     expect(request!.source!.name, 'notes.txt');
@@ -132,7 +132,7 @@ void main() {
       BhpanAccess(service: files, pickDownload: (_, __) async => destination),
     );
     await clickDownload(tester, settle: false);
-    await tester.tap(find.text('取消任务'));
+    await tester.tap(find.byTooltip('取消任务'));
     expect(files.transfer.cancelled, true);
     files.completion!.completeError(
       const UiError(
@@ -165,7 +165,7 @@ void main() {
     await tester.tap(find.text('报告.txt'));
     await tester.pumpAndSettle();
     expect(find.text('已选 2 项'), findsOneWidget);
-    await tester.tap(find.byTooltip('打包下载'));
+    await tester.tap(find.byKey(const ValueKey('bhpan-batch-download')));
     await tester.pumpAndSettle();
     expect(files.downloads.single, ['folder', 'file']);
     expect(suggested, endsWith('.zip'));

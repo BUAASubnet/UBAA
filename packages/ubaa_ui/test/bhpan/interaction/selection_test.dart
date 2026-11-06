@@ -32,7 +32,7 @@ void main() {
     final files = Files();
     await mountBhpan(
       tester,
-      BhpanAccess(service: files, runWrite: (_) async => null),
+      BhpanAccess(service: files, runWrite: (_, [_ = const BhpanWriteStyle()]) async => null),
     );
     final reads = files.reads.length;
     expect(find.byType(Checkbox), findsNothing);
@@ -52,12 +52,8 @@ void main() {
     );
     expect(
       tester
-          .widget<IconButton>(
-            find.byWidgetPredicate(
-              (widget) => widget is IconButton && widget.tooltip == '逐项移入回收站',
-            ),
-          )
-          .onPressed,
+          .widget<InkWell>(find.byKey(const ValueKey('bhpan-batch-recycle')))
+          .onTap,
       isNotNull,
     );
     await tester.tap(find.text('报告.txt'));
@@ -81,7 +77,7 @@ void main() {
     await tester.tap(find.text('全选'));
     await tester.pumpAndSettle();
     expect(find.text('已选 2 项'), findsOneWidget);
-    await tester.tap(find.text('全选'));
+    await tester.tap(find.text('取消全选'));
     await tester.pumpAndSettle();
     expect(find.byTooltip('取消选择'), findsNothing);
     expect(find.byType(Checkbox), findsNothing);
@@ -96,17 +92,17 @@ void main() {
   });
 
   for (final action in [
-    ('逐项恢复', BhpanMutationKind.restore),
-    ('逐项永久删除', BhpanMutationKind.deleteForever),
+    ('restore', BhpanMutationKind.restore),
+    ('deleteForever', BhpanMutationKind.deleteForever),
   ]) {
-    testWidgets('回收站多选通过底部${action.$1}依次交付每个句柄', (tester) async {
+    testWidgets('回收站独立页面多选 ${action.$2.name} 依次交付每个句柄', (tester) async {
       final files = RecycleFiles();
       final requests = <BhpanMutation>[];
       await mountBhpan(
         tester,
         BhpanAccess(
           service: files,
-          runWrite: (request) async {
+          runWrite: (request, [_ = const BhpanWriteStyle()]) async {
             requests.add(request);
             return const WriteOutcome(
               operation: WriteOperation.bhpan,
@@ -121,16 +117,20 @@ void main() {
           },
         ),
       );
-      await openCloudMenu(tester, '回收站');
-      expect(find.text('回收站仅显示前 100 项'), findsOneWidget);
+      await openPlace(tester, '回收站');
+      expect(find.text('仅显示最近 100 项'), findsOneWidget);
       expect(find.byKey(const ValueKey('bhpan-create')), findsNothing);
       await tester.longPress(find.text('课程资料'));
       await tester.pumpAndSettle();
       await tester.tap(find.text('全选'));
       await tester.pumpAndSettle();
       expect(find.text('已选 2 项'), findsOneWidget);
-      expect(find.byTooltip('打包下载'), findsNothing);
-      await tester.tap(find.byTooltip(action.$1));
+      expect(find.byKey(const ValueKey('bhpan-batch-download')), findsNothing);
+      await tester.tap(find.byKey(ValueKey('bhpan-batch-${action.$1}')));
+      await tester.pumpAndSettle();
+      await tester.tap(find.widgetWithText(FilledButton, action.$2 == BhpanMutationKind.restore ? '恢复' : '永久删除'));
+      await tester.pumpAndSettle();
+      await tester.tap(find.byKey(const ValueKey('bhpan-batch-results')));
       await tester.pumpAndSettle();
       expect(requests.map((request) => request.kind), [action.$2, action.$2]);
       expect(requests.map((request) => request.target), [

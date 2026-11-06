@@ -3,11 +3,23 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'chrome.dart';
-import 'toolbar.dart';
 import 'dialogs.dart';
 import 'format.dart';
+import 'location.dart';
+import 'recycle_page.dart';
+import 'selection.dart';
+import 'share_form.dart';
+import 'shares_page.dart';
+import 'sheets.dart';
 import 'transfer_view.dart';
+import 'write_flow.dart';
+import 'create_menu.dart';
 import '../../shared/dialogs/scope_boundary.dart';
+import '../../shared/feedback.dart';
+import '../../shared/refresh.dart';
+import '../../shared/sync_status.dart';
+
+part 'view_transfer.dart';
 
 class BhpanAccess {
   const BhpanAccess({
@@ -15,55 +27,110 @@ class BhpanAccess {
     this.runWrite,
     this.pickFile,
     this.pickDownload,
+    this.previewFile,
   });
   final BhpanService? service;
-  final Future<WriteOutcome?> Function(BhpanMutation)? runWrite;
+  final BhpanWriteRunner? runWrite;
   final Future<BhpanLocalFile?> Function()? pickFile;
   final Future<BhpanDownloadDestination?> Function(
     String name,
     bool Function() isCurrent,
   )?
   pickDownload;
+
+  /// 系统预览：宿主提供应用私有临时位置，`deliver` 调起系统预览，`discard` 清理临时文件。
+  final Future<BhpanDownloadDestination?> Function(
+    String name,
+    bool Function() isCurrent,
+  )?
+  previewFile;
 }
+
+/// 点文件时直接预览的大小上限。
+const bhpanPreviewLimit = 20 * 1024 * 1024;
+
+const _previewable = {
+  'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'csv', 'rtf', 'key',
+  'numbers', 'pages', 'txt', 'md', 'html', 'png', 'jpg', 'jpeg', 'gif',
+  'heic', 'webp', 'bmp', 'tiff', 'mp4', 'mov', 'm4v', 'mp3', 'm4a', 'wav',
+  'aac',
+};
+
+/// 系统预览能打开的常见类型，仅按扩展名判断展示行为。
+bool bhpanPreviewable(BhpanItem item) {
+  if (item.isFolder) return false;
+  final name = item.name.toLowerCase();
+  final dot = name.lastIndexOf('.');
+  return dot >= 0 && _previewable.contains(name.substring(dot + 1));
+}
+
+/// 外壳的返回按钮和系统返回先交给云盘处理：逐级回到上一层，到顶后才退出。
+class BhpanBackHandle {
+  bool Function()? _handler;
+
+  /// 云盘消费了这次返回时为 true。
+  bool handleBack() => _handler?.call() ?? false;
+}
+
+enum BhpanSortKey { name, modified, size }
 
 /// 校园与空间指标共用的云盘页面。
 class BhpanView extends StatefulWidget {
-  const BhpanView({required this.access, super.key});
+  const BhpanView({required this.access, this.backHandle, super.key});
   final BhpanAccess access;
+  final BhpanBackHandle? backHandle;
   @override
   State<BhpanView> createState() => _BhpanViewState();
 }
 
 class _BhpanViewState extends State<BhpanView> {
+  /// 当前位置的根：个人文档库、某类文档库列表或收到的分享。
+  BhpanRead _base = const BhpanRead(BhpanReadView.personalRoot);
   BhpanRead _query = const BhpanRead(BhpanReadView.personalRoot);
-  final _trail = <BhpanItem>[];
-  BhpanPage? _page;
-  List<BhpanShare>? _shares;
-  String? _error, _notice;
-  String _filter = '';
   BhpanRootKind _rootKind = BhpanRootKind.personal;
+  final _trail = <BhpanItem>[];
+
+  /// 个人文档库自动进入唯一根目录，该层不显示在路径里，也不能再向上返回。
+  int _baseDepth = 0;
+  BhpanPage? _page;
+  Object? _error;
+  String _filter = '';
+  final _search = TextEditingController();
   bool _searchVisible = false;
   bool _loading = false, _working = false;
+  BhpanSortKey _sort = BhpanSortKey.name;
+  bool _ascending = true;
   int _generation = 0;
   final _scope = ValueNotifier<int>(0);
   Object? _mutationActivity;
   final _selected = <String>{};
-  final _batchResults = <(String, String)>[];
+  List<(String, BhpanBatchStatus)>? _batchResults;
   BhpanTransferTask? _transfer;
   BhpanTransferProgress? _progress;
-  Timer? _progressTimer;
+  String? _progressLabel;
+  bool _progressUpload = true;
+  Timer? _progressTimer, _progressHide;
   BhpanService? get _service => widget.access.service;
   bool get _writable =>
       widget.access.runWrite != null && !_working && !_loading;
+  bool get _busy => _loading || _working;
+  bool get _received => _base.view == BhpanReadView.receivedShare;
+
   @override
   void initState() {
     super.initState();
+    widget.backHandle?._handler = _handleBack;
     unawaited(_load());
   }
 
   @override
   void didUpdateWidget(covariant BhpanView old) {
     super.didUpdateWidget(old);
+    if (!identical(old.backHandle, widget.backHandle)) {
+      if (identical(old.backHandle?._handler, _handleBack))
+        old.backHandle?._handler = null;
+      widget.backHandle?._handler = _handleBack;
+    }
     if (!identical(old.access.service, _service)) {
       _scope.value++;
       _mutationActivity = null;
@@ -72,32 +139,52 @@ class _BhpanViewState extends State<BhpanView> {
       _progressTimer?.cancel();
       _transfer = null;
       _progress = null;
-      _batchResults.clear();
+      _batchResults = null;
       _generation++;
       _page = null;
-      _shares = null;
       _trail.clear();
       _selected.clear();
-      _query = const BhpanRead(BhpanReadView.personalRoot);
+      _clearSearch();
+      _rootKind = BhpanRootKind.personal;
+      _base = _query = const BhpanRead(BhpanReadView.personalRoot);
       unawaited(_load());
     }
   }
 
   @override
   void dispose() {
+    if (identical(widget.backHandle?._handler, _handleBack))
+      widget.backHandle?._handler = null;
     _scope.value++;
     _scope.dispose();
+    _search.dispose();
     _transfer?.cancel();
     _progressTimer?.cancel();
+    _progressHide?.cancel();
     _generation++;
     super.dispose();
+  }
+
+  void _update(VoidCallback change) {
+    if (mounted) setState(change);
   }
 
   Widget _dialogScope(Widget child) =>
       UiScopeBoundary(generation: _scope, child: child);
   bool _current(int generation) => mounted && generation == _generation;
   String _message(Object e) => e is UiError ? e.message : '云盘操作未完成，请检查连接后重试';
-  Future<void> _load({bool reconnect = false, bool shares = false}) async {
+  void _notify(String message, [UbaaFeedbackKind kind = UbaaFeedbackKind.info]) {
+    if (mounted) UbaaFeedback.show(context, message, kind: kind);
+  }
+
+  void _clearSearch() {
+    _searchVisible = false;
+    _filter = '';
+    _search.clear();
+  }
+
+  /// [keep] 为 true 时保留当前列表（刷新、写入后回读），否则显示骨架。
+  Future<void> _load({bool reconnect = false, bool keep = false}) async {
     final service = _service;
     if (service == null) return;
     final generation = ++_generation;
@@ -105,67 +192,148 @@ class _BhpanViewState extends State<BhpanView> {
       _loading = true;
       _error = null;
       _selected.clear();
+      if (!keep) _page = null;
     });
     try {
       if (reconnect) {
         await service.login();
         _trail.clear();
-        _query = const BhpanRead(BhpanReadView.personalRoot);
+        _query = _base;
       }
       if (!_current(generation)) return;
-      if (shares) {
-        final result = await service.shares();
-        if (_current(generation))
-          setState(() {
-            _shares = result;
-            _page = null;
-          });
-      } else {
-        var result = await service.read(_query);
-        if (!_current(generation)) return;
-        if (_query.view == BhpanReadView.personalRoot &&
-            result.items.length == 1) {
+      var result = await service.read(_query);
+      if (!_current(generation)) return;
+      if (_query.view == BhpanReadView.personalRoot) {
+        _baseDepth = 0;
+        if (result.items.length == 1) {
           final root = result.items.single;
           _trail
             ..clear()
             ..add(root);
+          _baseDepth = 1;
           _query = BhpanRead(BhpanReadView.directory, target: root.handle);
           result = await service.read(_query);
         }
-        if (_current(generation))
-          setState(() {
-            _page = result;
-            _shares = null;
-          });
       }
+      if (_current(generation)) setState(() => _page = result);
     } on Object catch (e) {
       if (_current(generation))
         setState(() {
-          _error = _message(e);
+          _error = e;
           _page = null;
-          _shares = null;
         });
     } finally {
       if (_current(generation)) setState(() => _loading = false);
     }
   }
 
+  Future<void> _refresh() => _load(keep: true);
+
   Future<void> _open(BhpanItem item) async {
     if (!item.isFolder || item.scope == BhpanScope.recycle) return;
     _trail.add(item);
     _query = BhpanRead(BhpanReadView.directory, target: item.handle);
+    _clearSearch();
     await _load();
   }
 
-  Future<void> _root(BhpanRootKind kind) async {
+  Future<void> _goTo(int trailIndex) async {
+    _trail.removeRange(trailIndex + 1, _trail.length);
+    _query = BhpanRead(BhpanReadView.directory, target: _trail.last.handle);
+    _clearSearch();
+    await _load();
+  }
+
+  Future<void> _goRoot() async {
+    if (_baseDepth > 0 && _trail.isNotEmpty) return _goTo(_baseDepth - 1);
     _trail.clear();
-    _query = kind == BhpanRootKind.personal
+    _query = _base;
+    _clearSearch();
+    await _load();
+  }
+
+  bool _handleBack() {
+    if (_selected.isNotEmpty) {
+      setState(_selected.clear);
+      return true;
+    }
+    if (_searchVisible) {
+      setState(_clearSearch);
+      return true;
+    }
+    if (_trail.length <= _baseDepth) return false;
+    unawaited(_trail.length >= 2 ? _goTo(_trail.length - 2) : _goRoot());
+    return true;
+  }
+
+  Future<void> _switchLibrary(BhpanRootKind kind) async {
+    _rootKind = kind;
+    _trail.clear();
+    _baseDepth = 0;
+    _base = _query = kind == BhpanRootKind.personal
         ? const BhpanRead(BhpanReadView.personalRoot)
         : BhpanRead(BhpanReadView.roots, root: kind);
+    _clearSearch();
     await _load();
   }
 
-  Future<WriteOutcome?> _mutate(BhpanMutation request) async {
+  Future<void> _places() async {
+    final choice = await showBhpanPlaces(
+      context,
+      current: _received ? null : _rootKind,
+      boundary: _dialogScope,
+    );
+    if (!mounted || choice == null) return;
+    switch (choice) {
+      case BhpanLibraryChoice(:final kind):
+        await _switchLibrary(kind);
+      case BhpanToolChoice(tool: BhpanTool.shares):
+        await _openShares();
+      case BhpanToolChoice(tool: BhpanTool.recycle):
+        await _openRecycle();
+      case BhpanToolChoice(tool: BhpanTool.openLink):
+        await _receivedShare();
+    }
+  }
+
+  Future<void> _push(Widget page) async {
+    final generation = _generation;
+    await Navigator.of(
+      context,
+    ).push(MaterialPageRoute<void>(builder: (_) => _dialogScope(page)));
+    if (_current(generation)) await _refresh();
+  }
+
+  Future<void> _openShares({BhpanItem? item}) async {
+    final service = _service;
+    if (service == null) return;
+    await _push(
+      BhpanSharesPage(
+        service: service,
+        runWrite: widget.access.runWrite,
+        scope: _scope,
+        item: item,
+      ),
+    );
+  }
+
+  Future<void> _openRecycle() async {
+    final service = _service;
+    if (service == null) return;
+    await _push(
+      BhpanRecyclePage(
+        service: service,
+        runWrite: widget.access.runWrite,
+        scope: _scope,
+      ),
+    );
+  }
+
+  Future<WriteOutcome?> _mutate(
+    BhpanMutation request, [
+    BhpanWriteStyle style = const BhpanWriteStyle(),
+    bool rethrowErrors = false,
+  ]) async {
     final run = widget.access.runWrite;
     if (run == null || _working) return null;
     final generation = _generation;
@@ -173,26 +341,28 @@ class _BhpanViewState extends State<BhpanView> {
     _mutationActivity = activity;
     setState(() => _working = true);
     try {
-      final result = await run(request);
+      final result = await run(request, style);
       if (!_current(generation) || result == null) return null;
-      setState(() => _notice = result.message);
+      UbaaFeedback.showOutcome(context, result);
       final share = result.result?.bhpanReceipt?.share;
       if (share != null) {
-        setState(() {
-          _shares = [
-            share,
-            ...?_shares?.where((old) => old.handle != share.handle),
-          ];
-          _page = null;
-        });
-        await _showShare(share);
+        await bhpanShowShareLink(
+          context,
+          service: _service!,
+          share: share,
+          boundary: _dialogScope,
+          isCurrent: () => _current(generation),
+        );
       } else if (result.error == null ||
           result.error?.code == UbaaErrorCode.outcomeUnknown) {
-        await _load(shares: _shares != null);
+        _mutationActivity = null;
+        _working = false;
+        await _load(keep: true);
       }
       return result;
     } on Object catch (e) {
-      if (_current(generation)) setState(() => _notice = _message(e));
+      if (rethrowErrors) rethrow;
+      if (_current(generation)) _notify(_message(e), UbaaFeedbackKind.error);
       return null;
     } finally {
       if (mounted && identical(_mutationActivity, activity))
@@ -203,161 +373,164 @@ class _BhpanViewState extends State<BhpanView> {
     }
   }
 
-  Future<WriteOutcome?> _action(String action, BhpanItem item) async {
+  String get _rootLabel =>
+      _received ? '收到的分享' : bhpanLibraryNames[_rootKind]!;
+
+  /// 详细信息里的位置：根名称加上已进入的目录。
+  String get _locationText => [
+    _rootLabel,
+    for (final f in _trail.skip(_baseDepth)) f.name,
+  ].join(' / ');
+
+  List<BhpanAction> _actionsFor(BhpanItem item) =>
+      item.scope == BhpanScope.receivedShare
+      ? const [
+          BhpanAction.download,
+          BhpanAction.saveToMine,
+          BhpanAction.details,
+        ]
+      : const [
+          BhpanAction.download,
+          BhpanAction.share,
+          BhpanAction.move,
+          BhpanAction.rename,
+          BhpanAction.copy,
+          BhpanAction.details,
+          BhpanAction.shareRecords,
+          BhpanAction.recycle,
+        ];
+
+  bool _actionEnabled(BhpanAction a) => switch (a) {
+    BhpanAction.details || BhpanAction.shareRecords => !_busy,
+    BhpanAction.download =>
+      !_busy && widget.access.pickDownload != null,
+    BhpanAction.view => !_busy && widget.access.previewFile != null,
+    _ => _writable,
+  };
+
+  Future<WriteOutcome?> _action(
+    BhpanAction action,
+    BhpanItem item, {
+    BhpanWriteStyle style = const BhpanWriteStyle(),
+  }) async {
     final service = _service;
     if (service == null) return null;
     final generation = _generation;
     try {
-      if (action == '属性') {
-        final s = await service.size(item.handle);
-        if (!_current(generation)) return null;
-        await showDialog<void>(
-          context: context,
-          builder: (c) => _dialogScope(
-            AlertDialog(
-              title: Text(item.name),
-              content: Text(
-                '${s.folders} 个文件夹 · ${s.files} 个文件\n${bhpanBytes(s.bytes)}',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(c),
-                  child: const Text('关闭'),
-                ),
-              ],
+      switch (action) {
+        case BhpanAction.details:
+          await _showDetails(item);
+          return null;
+        case BhpanAction.shareRecords:
+          await _openShares(item: item);
+          return null;
+        case BhpanAction.download:
+          await _download([item]);
+          return null;
+        case BhpanAction.rename:
+          final name = await bhpanText(
+            context,
+            scope: _scope,
+            title: '重命名',
+            label: '新名称',
+            initial: item.name,
+            action: '重命名',
+          );
+          if (!_current(generation) || name == null || name == item.name)
+            return null;
+          return _mutate(
+            BhpanMutation(
+              BhpanMutationKind.rename,
+              target: item.handle,
+              name: name,
             ),
-          ),
-        );
-        return null;
+            const BhpanWriteStyle(confirmed: true),
+          );
+        case BhpanAction.move ||
+            BhpanAction.copy ||
+            BhpanAction.saveToMine:
+          final verb = action == BhpanAction.move ? '移动' : action == BhpanAction.copy ? '复制' : '保存';
+          final dest = await bhpanDestination(
+            context,
+            service,
+            scope: _scope,
+            title: '$verb「${item.name}」到…',
+            action: '$verb到此处',
+            exclude: {item.handle},
+            start: action == BhpanAction.saveToMine ? null : _personalStart,
+            disabledTarget: action == BhpanAction.move
+                ? _trail.lastOrNull?.handle
+                : null,
+          );
+          if (!_current(generation) || dest == null) return null;
+          return _mutate(
+            BhpanMutation(
+              action == BhpanAction.move
+                  ? BhpanMutationKind.move
+                  : BhpanMutationKind.copy,
+              target: item.handle,
+              destination: dest.handle,
+            ),
+          );
+        case BhpanAction.share:
+          final settings = await bhpanShareDialog(
+            context,
+            scope: _scope,
+            title: item.name,
+            isFolder: item.isFolder,
+          );
+          if (!_current(generation) || settings == null) return null;
+          return _mutate(
+            BhpanMutation(
+              BhpanMutationKind.createShare,
+              target: item.handle,
+              settings: settings,
+            ),
+          );
+        case BhpanAction.recycle:
+          return _mutate(
+            BhpanMutation(BhpanMutationKind.recycle, target: item.handle),
+            style,
+          );
+        case BhpanAction.view:
+          await _download([item], preview: true);
+          return null;
+        case BhpanAction.restore || BhpanAction.deleteForever:
+          return null;
       }
-      if (action == '分享记录') {
-        final records = await service.shares(item: item.handle);
-        if (_current(generation))
-          setState(() {
-            _shares = records;
-            _page = null;
-          });
-        return null;
-      }
-      if (action == '下载') {
-        await _download([item]);
-        return null;
-      }
-      if (action == '重命名') {
-        final name = await bhpanText(
-          context,
-          scope: _scope,
-          title: '重命名',
-          label: '新名称',
-          initial: item.name,
-        );
-        if (!_current(generation) || name == null) return null;
-        return _mutate(
-          BhpanMutation(
-            BhpanMutationKind.rename,
-            target: item.handle,
-            name: name,
-          ),
-        );
-      }
-      if (action == '移动' || action == '复制' || action == '另存到网盘') {
-        final dest = await bhpanDestination(context, service, scope: _scope);
-        if (!_current(generation) || dest == null) return null;
-        return _mutate(
-          BhpanMutation(
-            action == '移动' ? BhpanMutationKind.move : BhpanMutationKind.copy,
-            target: item.handle,
-            destination: dest.handle,
-          ),
-        );
-      }
-      if (action == '分享') {
-        final settings = await bhpanShareDialog(
-          context,
-          scope: _scope,
-          title: item.name,
-        );
-        if (!_current(generation) || settings == null) return null;
-        return _mutate(
-          BhpanMutation(
-            BhpanMutationKind.createShare,
-            target: item.handle,
-            settings: settings,
-          ),
-        );
-      }
-      final kind = switch (action) {
-        '移入回收站' => BhpanMutationKind.recycle,
-        '恢复' => BhpanMutationKind.restore,
-        _ => BhpanMutationKind.deleteForever,
-      };
-      return _mutate(BhpanMutation(kind, target: item.handle));
     } on Object catch (e) {
-      if (_current(generation)) setState(() => _notice = _message(e));
+      if (_current(generation)) _notify(_message(e), UbaaFeedbackKind.error);
       return null;
     }
   }
 
-  Future<void> _showShare(BhpanShare s) async {
-    final service = _service;
-    if (service == null) return;
-    final generation = _generation;
-    try {
-      final link = await service.shareLink(s.handle);
-      if (!_current(generation)) return;
-      await showDialog<void>(
-        context: context,
-        builder: (c) => _dialogScope(
-          AlertDialog(
-            title: Text(s.title),
-            content: SelectableText(link),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(c),
-                child: const Text('关闭'),
-              ),
-              FilledButton(
-                onPressed: () async {
-                  await Clipboard.setData(ClipboardData(text: link));
-                  if (c.mounted) Navigator.pop(c);
-                },
-                child: const Text('复制分享链接'),
-              ),
-            ],
-          ),
-        ),
-      );
-    } on Object catch (e) {
-      if (_current(generation)) setState(() => _notice = _message(e));
+  bool _canPreview(BhpanItem item) =>
+      widget.access.previewFile != null && bhpanPreviewable(item);
+
+  /// 点文件：可预览且不太大时直接打开，其余弹出下载面板（仍可选择查看）。
+  Future<void> _tapFile(BhpanItem item) async {
+    if (_canPreview(item) && (item.bytes ?? 0) <= bhpanPreviewLimit) {
+      await _download([item], preview: true);
+      return;
     }
+    await _showDetails(item, primary: true);
   }
 
-  Future<void> _shareAction(String action, BhpanShare s) async {
-    if (action == '复制链接') {
-      await _showShare(s);
-      return;
-    }
-    if (action == '取消分享') {
-      await _mutate(
-        BhpanMutation(BhpanMutationKind.cancelShare, target: s.handle),
-      );
-      return;
-    }
-    final generation = _generation;
-    final settings = await bhpanShareDialog(
+  Future<void> _showDetails(BhpanItem item, {bool primary = false}) async {
+    final service = _service;
+    if (service == null) return;
+    final action = await showBhpanDetails(
       context,
-      scope: _scope,
-      title: s.title,
-      existing: s,
+      item: item,
+      location: _locationText,
+      folderSize: () => service.size(item.handle),
+      primary: primary
+          ? [BhpanAction.download, if (_canPreview(item)) BhpanAction.view]
+          : const [],
+      enabled: _actionEnabled,
+      boundary: _dialogScope,
     );
-    if (!_current(generation) || settings == null) return;
-    await _mutate(
-      BhpanMutation(
-        BhpanMutationKind.updateShare,
-        target: s.handle,
-        settings: settings,
-      ),
-    );
+    if (action != null && mounted) await _action(action, item);
   }
 
   Future<void> _receivedShare() async {
@@ -365,7 +538,9 @@ class _BhpanViewState extends State<BhpanView> {
     final input = await bhpanOpenShareDialog(context, scope: _scope);
     if (!_current(generation) || input == null) return;
     _trail.clear();
-    _query = BhpanRead(
+    _baseDepth = 0;
+    _clearSearch();
+    _base = _query = BhpanRead(
       BhpanReadView.receivedShare,
       link: input.$1,
       password: input.$2,
@@ -387,6 +562,7 @@ class _BhpanViewState extends State<BhpanView> {
       scope: _scope,
       title: '新建文件夹',
       label: '名称',
+      action: '新建',
     );
     if (!_current(generation) || name == null) return;
     await _mutate(
@@ -395,384 +571,267 @@ class _BhpanViewState extends State<BhpanView> {
         target: parent.handle,
         name: name,
       ),
+      const BhpanWriteStyle(confirmed: true),
     );
   }
 
-  Future<void> Function() _track(BhpanTransferTask transfer) {
-    _transfer = transfer;
-    Future<void> update() async {
-      try {
-        final progress = await transfer.progress();
-        if (mounted && identical(_transfer, transfer))
-          setState(() => _progress = progress);
-      } on Object catch (error) {
-        transfer.cancel();
-        if (mounted && identical(_transfer, transfer))
-          setState(() => _notice = _message(error));
-      }
-    }
+  List<BhpanItem> get _selectedItems =>
+      _page?.items.where((i) => _selected.contains(i.handle)).toList() ??
+      const [];
 
-    _progressTimer?.cancel();
-    _progressTimer = Timer.periodic(
-      const Duration(milliseconds: 150),
-      (_) => unawaited(update()),
-    );
-    return update;
-  }
-
-  Future<void> _upload({bool fast = false}) async {
-    final service = _service, pick = widget.access.pickFile;
-    if (service == null ||
-        pick == null ||
-        _trail.isEmpty ||
-        !_trail.last.isFolder ||
-        _trail.last.scope == BhpanScope.recycle)
+  Future<void> _batch(BhpanAction action) async {
+    final items = _selectedItems;
+    if (action == BhpanAction.download) {
+      await _download(items);
       return;
-    if (fast && _trail.last.scope != BhpanScope.personal) return;
-    final generation = _generation, parent = _trail.last;
-    BhpanTransferTask? task;
-    BhpanLocalFile? selected;
-    Future<void> Function()? refresh;
-    try {
-      final source = await pick();
-      selected = source;
-      if (!_current(generation) || source == null) return;
-      final transfer = service.createTransfer();
-      task = transfer;
-      // 同一个控制柄贯穿准备、确认和提交。
-      refresh = _track(transfer);
-      await _mutate(
-        BhpanMutation(
-          fast ? BhpanMutationKind.uploadFast : BhpanMutationKind.upload,
-          target: parent.handle,
-          source: source,
-          transfer: transfer,
-        ),
-      );
-      await refresh();
-    } on Object catch (error) {
-      if (mounted && identical(service, _service))
-        setState(() => _notice = _message(error));
-    } finally {
-      try {
-        await selected?.release();
-      } on Object catch (error) {
-        if (_current(generation)) setState(() => _notice = _message(error));
-      }
-      task?.cancel();
-      await refresh?.call();
-      if (identical(_transfer, task)) {
-        _progressTimer?.cancel();
-        _progressTimer = null;
-      }
     }
-  }
-
-  Future<void> _download(List<BhpanItem> items) async {
-    final service = _service, pick = widget.access.pickDownload;
-    if (service == null ||
-        pick == null ||
-        items.isEmpty ||
-        _working ||
-        _loading)
-      return;
-    final generation = _generation, activity = Object();
-    final base = items.length == 1
-        ? items.single.name.replaceAll(RegExp(r'[\\/\r\n]'), '_')
-        : '北航云盘下载';
-    final batch = items.length != 1 || items.single.isFolder;
-    final name = base.trim().isEmpty ? '北航云盘下载' : base;
-    final suggested = batch ? '$name.zip' : name;
-    BhpanDownloadDestination? destination;
-    BhpanTransferTask? task;
-    Future<void> Function()? refresh;
-    setState(() {
-      _working = true;
-      _mutationActivity = activity;
-      _notice = null;
-    });
-    try {
-      destination = await pick(
-        suggested,
-        () => _current(generation) && identical(service, _service),
-      );
-      if (destination == null || !_current(generation)) return;
-      final transfer = service.createTransfer();
-      task = transfer;
-      refresh = _track(transfer);
-      final receipt = await service.download(
-        items.map((item) => item.handle).toList(),
-        name,
-        destination.path,
-        destination.overwrite,
-        transfer,
-      );
-      if (!_current(generation)) return;
-      await destination.deliver(
-        () => _current(generation) && identical(service, _service),
-      );
-      await refresh();
-      if (_current(generation))
-        setState(() {
-          _notice = '已保存 $suggested（${bhpanBytes(receipt.bytes)}）';
-          _progress = BhpanTransferProgress(
-            phase: BhpanTransferPhase.completed,
-            bytes: receipt.bytes,
-            total: receipt.bytes,
-          );
-        });
-    } on Object catch (error) {
-      if (_current(generation)) setState(() => _notice = _message(error));
-    } finally {
-      task?.cancel();
-      if (identical(_transfer, task)) {
-        if (_progress?.phase != BhpanTransferPhase.completed)
-          await refresh?.call();
-        _progressTimer?.cancel();
-        _progressTimer = null;
-      }
-      try {
-        await destination?.discard();
-      } on Object catch (error) {
-        if (_current(generation)) setState(() => _notice = _message(error));
-      }
-      if (mounted && identical(_mutationActivity, activity))
-        setState(() {
-          _working = false;
-          _mutationActivity = null;
-        });
-    }
-  }
-
-  Future<void> _batch(String action) async {
-    final items =
-        _page?.items.where((i) => _selected.contains(i.handle)).toList() ?? [];
     final service = _service;
-    _batchResults.clear();
-    var stopped = false;
-    for (final item in items) {
-      if (!mounted || !identical(service, _service)) return;
-      if (stopped) {
-        _batchResults.add((item.name, '尚未执行'));
-        continue;
-      }
-      final result = await _action(action, item);
-      if (!mounted || !identical(service, _service)) return;
-      final unknown =
-          result?.error?.code == UbaaErrorCode.outcomeUnknown ||
-          result?.result?.outcomeUnknown == true;
-      final status = unknown
-          ? '结果待核对'
-          : result == null
-          ? '尚未执行'
-          : result.error != null || result.result?.success != true
-          ? '失败'
-          : '已完成';
-      _batchResults.add((item.name, status));
-      stopped = unknown || result == null;
+    if (service == null || items.isEmpty) return;
+    final generation = _generation;
+    final kind = switch (action) {
+      BhpanAction.move => BhpanMutationKind.move,
+      BhpanAction.copy => BhpanMutationKind.copy,
+      _ => BhpanMutationKind.recycle,
+    };
+    BhpanItem? destination;
+    if (kind != BhpanMutationKind.recycle) {
+      destination = await bhpanDestination(
+        context,
+        service,
+        scope: _scope,
+        title: '${action == BhpanAction.move ? '移动' : '复制'} ${items.length} 项到…',
+        action: action == BhpanAction.move ? '移动到此处' : '复制到此处',
+        exclude: {for (final i in items) i.handle},
+        start: _personalStart,
+        disabledTarget: action == BhpanAction.move ? _trail.lastOrNull?.handle : null,
+      );
+      if (!_current(generation) || destination == null) return;
     }
-    if (mounted) setState(() {});
+    if (!mounted ||
+        !await bhpanConfirmBatch(
+          context,
+          kind: kind,
+          items: items,
+          destination: destination?.name,
+          boundary: _dialogScope,
+        ) ||
+        !_current(generation))
+      return;
+    setState(() => _batchResults = null);
+    final results = await bhpanRunBatch(
+      items,
+      (item) => _mutate(
+        BhpanMutation(kind, target: item.handle, destination: destination?.handle),
+        const BhpanWriteStyle(confirmed: true),
+      ),
+      isCurrent: () => mounted && identical(service, _service),
+    );
+    if (mounted && results != null)
+      setState(() {
+        _batchResults = results;
+        _selected.clear();
+      });
   }
 
-  static const _rootNames = {
-    BhpanRootKind.all: '全部文档库',
-    BhpanRootKind.personal: '个人文档库',
-    BhpanRootKind.shared: '共享文档库',
-    BhpanRootKind.department: '部门文档库',
-    BhpanRootKind.group: '群组文档库',
-  };
+  /// 目标选择从当前个人目录开始；其他文档库只能选个人文档库作为目标。
+  List<BhpanItem>? get _personalStart =>
+      !_received && _rootKind == BhpanRootKind.personal && _baseDepth > 0
+      ? List.of(_trail)
+      : null;
 
-  bool get _busy => _loading || _working;
-  bool get _inRecycle => _query.view == BhpanReadView.recycle;
   bool get _canUpload =>
       !_busy &&
       widget.access.pickFile != null &&
       widget.access.runWrite != null &&
-      _shares == null &&
       _trail.isNotEmpty &&
       _trail.last.isFolder &&
       _trail.last.scope != BhpanScope.recycle;
-  bool get _personalFolder =>
+  /// 收到的分享不能新建目录；其他文档库是否可写由服务端判断，失败时说明原因。
+  bool get _canCreateFolder =>
+      !_received &&
+      widget.access.runWrite != null &&
       _trail.isNotEmpty &&
       _trail.last.scope == BhpanScope.personal &&
-      _shares == null &&
       _query.view == BhpanReadView.directory;
 
-  String get _viewLabel => _shares != null
-      ? '分享管理'
-      : _inRecycle
-      ? '回收站'
-      : _rootNames[_rootKind]!;
+  /// 只有个人文档库先试秒传。
+  bool get _tryFastUpload =>
+      !_received && _rootKind == BhpanRootKind.personal;
 
-  void _openRecycle() {
-    _trail.clear();
-    _selected.clear();
-    _query = const BhpanRead(BhpanReadView.recycle);
-    _load();
+  int _compare(BhpanItem a, BhpanItem b) {
+    if (a.isFolder != b.isFolder) return a.isFolder ? -1 : 1;
+    final order = switch (_sort) {
+      BhpanSortKey.name => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+      BhpanSortKey.modified => (a.modifiedAt ?? DateTime(0)).compareTo(
+        b.modifiedAt ?? DateTime(0),
+      ),
+      BhpanSortKey.size => (a.bytes ?? 0).compareTo(b.bytes ?? 0),
+    };
+    return _ascending ? order : -order;
   }
 
-  Widget _toolbar() => BhpanToolbar(
-    label: _viewLabel,
-    icon: _shares != null
-        ? Icons.link
-        : _inRecycle
-        ? Icons.delete_outline
-        : Icons.folder_shared_outlined,
-    rootNames: _rootNames,
-    current: _shares == null && !_inRecycle ? _rootKind : null,
-    busy: _busy,
-    showSearch: _shares == null,
-    searchVisible: _searchVisible,
-    showHome: _shares != null || _inRecycle,
-    showFast: _personalFolder && widget.access.pickFile != null,
-    fastEnabled: _writable,
-    onRoot: (kind) {
-      setState(() {
-        _rootKind = kind;
-        _selected.clear();
-      });
-      _root(kind);
-    },
-    onToggleSearch: () => setState(() {
-      _searchVisible = !_searchVisible;
-      if (!_searchVisible) _filter = '';
-    }),
-    onRefresh: () => _load(shares: _shares != null),
-    onMenu: (value) {
-      switch (value) {
-        case 'recycle':
-          _openRecycle();
-        case 'shares':
-          _selected.clear();
-          _load(shares: true);
-        case 'received':
-          _receivedShare();
-        case 'fast':
-          _upload(fast: true);
-        case 'home':
-          setState(() => _rootKind = BhpanRootKind.personal);
-          _root(BhpanRootKind.personal);
+  Widget _sortButton() => PopupMenuButton<Object>(
+    tooltip: '排序',
+    icon: const Icon(Icons.sort),
+    onSelected: (value) => setState(() {
+      if (value is BhpanSortKey) {
+        if (value != _sort) {
+          _sort = value;
+          // 时间和大小默认从新到旧、从大到小。
+          _ascending = value == BhpanSortKey.name;
+        }
+      } else if (value is bool) {
+        _ascending = value;
       }
-    },
+    }),
+    itemBuilder: (_) => [
+      for (final (key, label) in const [
+        (BhpanSortKey.name, '名称'),
+        (BhpanSortKey.modified, '修改时间'),
+        (BhpanSortKey.size, '大小'),
+      ])
+        CheckedPopupMenuItem<Object>(
+          value: key,
+          checked: _sort == key,
+          child: Text(label),
+        ),
+      const PopupMenuDivider(),
+      CheckedPopupMenuItem<Object>(
+        value: true,
+        checked: _ascending,
+        child: Text(switch (_sort) {
+          BhpanSortKey.name => 'A → Z',
+          BhpanSortKey.modified => '从旧到新',
+          BhpanSortKey.size => '从小到大',
+        }),
+      ),
+      CheckedPopupMenuItem<Object>(
+        value: false,
+        checked: !_ascending,
+        child: Text(switch (_sort) {
+          BhpanSortKey.name => 'Z → A',
+          BhpanSortKey.modified => '从新到旧',
+          BhpanSortKey.size => '从大到小',
+        }),
+      ),
+    ],
   );
 
-  Widget _selectionBar() {
-    final colors = Theme.of(context).colorScheme;
-    final selectedItems =
-        _page?.items.where((i) => _selected.contains(i.handle)).toList() ??
-        const <BhpanItem>[];
-    return Material(
-      color: colors.secondaryContainer,
-      child: SafeArea(
-        top: false,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-          child: Row(
-            children: [
-              IconButton(
-                tooltip: '取消选择',
-                onPressed: () => setState(_selected.clear),
-                icon: const Icon(Icons.close),
-              ),
-              Expanded(
-                child: Text(
-                  '已选 ${_selected.length} 项',
-                  style: TextStyle(
-                    color: colors.onSecondaryContainer,
-                    fontWeight: FontWeight.w600,
-                  ),
-                ),
-              ),
-              TextButton(
-                onPressed: () => setState(() {
-                  final all =
-                      _page?.items.map((i) => i.handle) ?? const <String>[];
-                  if (_selected.length == all.length) {
-                    _selected.clear();
-                  } else {
-                    _selected.addAll(all);
-                  }
-                }),
-                child: const Text('全选'),
-              ),
-              if (!_inRecycle)
-                IconButton(
-                  tooltip: '打包下载',
-                  onPressed: _busy ? null : () => _download(selectedItems),
-                  icon: const Icon(Icons.download_outlined),
-                ),
-              if (_inRecycle)
-                IconButton(
-                  tooltip: '逐项恢复',
-                  onPressed: _writable ? () => _batch('恢复') : null,
-                  icon: const Icon(Icons.restore),
-                ),
-              IconButton(
-                tooltip: _inRecycle ? '逐项永久删除' : '逐项移入回收站',
-                onPressed: _writable
-                    ? () => _batch(_inRecycle ? '永久删除' : '移入回收站')
-                    : null,
-                icon: Icon(
-                  _inRecycle
-                      ? Icons.delete_forever_outlined
-                      : Icons.delete_outline,
-                  color: colors.error,
-                ),
-              ),
-            ],
-          ),
-        ),
+  Widget _locationBar() => BhpanLocationBar(
+    rootLabel: _rootLabel,
+    rootIcon: _received
+        ? Icons.move_to_inbox_outlined
+        : bhpanLibraryIcons[_rootKind]!,
+    names: [for (final f in _trail.skip(_baseDepth)) f.name],
+    enabled: !_busy,
+    onPlaces: _places,
+    onRoot: _goRoot,
+    onIndex: (index) => _goTo(index + _baseDepth),
+    actions: [
+      IconButton(
+        tooltip: '搜索',
+        isSelected: _searchVisible,
+        onPressed: () => setState(() {
+          if (_searchVisible) {
+            _clearSearch();
+          } else {
+            _searchVisible = true;
+          }
+        }),
+        icon: const Icon(Icons.search),
       ),
-    );
+      _sortButton(),
+      if (!uiIsTouchPlatform(context))
+        IconButton(
+          tooltip: '刷新',
+          onPressed: _busy ? null : _refresh,
+          icon: const Icon(Icons.refresh),
+        ),
+    ],
+  );
+
+  Widget _errorPanel(Object error) {
+    final code = error is UiError ? error.code : null;
+    if (_received)
+      return BhpanStatePanel(
+        icon: Icons.link_off,
+        text: '没能打开这个分享',
+        detail: _message(error),
+        action: '重新输入链接',
+        onAction: _loading ? null : _receivedShare,
+      );
+    return switch (code) {
+      UbaaErrorCode.authenticationRequired ||
+      UbaaErrorCode.invalidCredentials => BhpanStatePanel(
+        icon: Icons.lock_outline,
+        text: '云盘登录已失效',
+        detail: '重新登录后会回到个人文档库',
+        action: '重新登录云盘',
+        onAction: _loading ? null : () => _load(reconnect: true),
+      ),
+      UbaaErrorCode.permissionDenied => BhpanStatePanel(
+        icon: Icons.block,
+        text: '没有权限访问这里',
+        detail: _message(error),
+        action: '重试',
+        onAction: _loading ? null : _load,
+      ),
+      UbaaErrorCode.networkError ||
+      UbaaErrorCode.timeout ||
+      UbaaErrorCode.upstreamUnavailable => BhpanStatePanel(
+        icon: Icons.wifi_off,
+        text: '暂时连不上北航云盘',
+        detail: '请检查网络后重试',
+        action: '重试',
+        onAction: _loading ? null : _load,
+      ),
+      _ => BhpanStatePanel(
+        icon: Icons.cloud_off_outlined,
+        text: '没能读取这个文件夹',
+        detail: _message(error),
+        action: '重试',
+        onAction: _loading ? null : _load,
+      ),
+    };
   }
 
-  Future<void> _createSheet() async {
-    final choice = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      builder: (context) => _dialogScope(
-        SafeArea(
-          top: false,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              ListTile(
-                leading: const Icon(Icons.upload_file),
-                title: const Text('上传文件'),
-                subtitle: const Text('从本机选择文件上传到当前文件夹'),
-                enabled: _canUpload,
-                onTap: () => Navigator.pop(context, 'upload'),
-              ),
-              if (_personalFolder) ...[
-                ListTile(
-                  leading: const Icon(Icons.create_new_folder_outlined),
-                  title: const Text('新建文件夹'),
-                  enabled: _writable,
-                  onTap: () => Navigator.pop(context, 'folder'),
+  Widget _content(List<BhpanItem> items, bool selecting) {
+    if (_error case final error?)
+      return PullToRefresh(
+        onRefresh: _refresh,
+        child: RefreshViewport(child: _errorPanel(error)),
+      );
+    if (_page == null) return const BhpanSkeletonList();
+    if (items.isEmpty)
+      return PullToRefresh(
+        onRefresh: _refresh,
+        child: RefreshViewport(
+          child: _filter.isNotEmpty
+              ? BhpanStatePanel(
+                  icon: Icons.search_off,
+                  text: '没有找到「$_filter」',
+                  detail: '只搜索当前文件夹里的名称',
+                )
+              : BhpanStatePanel(
+                  icon: Icons.folder_open_outlined,
+                  text: '这个文件夹是空的',
+                  action: _canUpload ? '上传文件' : null,
+                  onAction: _canUpload ? _upload : null,
                 ),
-                ListTile(
-                  leading: const Icon(Icons.bolt_outlined),
-                  title: const Text('秒传'),
-                  subtitle: const Text('云端已有相同文件时免上传内容'),
-                  enabled: _writable,
-                  onTap: () => Navigator.pop(context, 'fast'),
-                ),
-              ],
-              const SizedBox(height: 8),
-            ],
-          ),
         ),
+      );
+    return PullToRefresh(
+      onRefresh: _refresh,
+      child: ListView.builder(
+        key: ValueKey(
+          '${_base.view}/${_base.root}/${_base.link}/${_trail.map((f) => f.handle).join('/')}',
+        ),
+        padding: EdgeInsets.only(bottom: selecting ? 16 : 96),
+        itemCount: items.length + 1,
+        itemBuilder: (c, index) =>
+            index == items.length ? _footer(items.length) : _row(items[index], selecting),
       ),
     );
-    if (!mounted) return;
-    switch (choice) {
-      case 'upload':
-        await _upload();
-      case 'folder':
-        await _newFolder();
-      case 'fast':
-        await _upload(fast: true);
-    }
   }
 
   @override
@@ -783,153 +842,111 @@ class _BhpanViewState extends State<BhpanView> {
         text: '当前客户端未提供北航云盘能力',
       );
     }
+    final query = _filter.toLowerCase();
     final items =
-        _page?.items
-            .where((i) => i.name.toLowerCase().contains(_filter.toLowerCase()))
-            .toList() ??
-        [];
+        (_page?.items
+                  .where((i) => i.name.toLowerCase().contains(query))
+                  .toList() ??
+              <BhpanItem>[])
+          ..sort(_compare);
     final selecting = _selected.isNotEmpty;
+    final all = _page?.items ?? const <BhpanItem>[];
     final body = Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        _toolbar(),
-        if (_trail.isNotEmpty && _shares == null)
-          BhpanBreadcrumb(
-            rootLabel: _rootNames[_rootKind]!,
-            names: [for (final f in _trail) f.name],
-            enabled: !_busy,
-            onRoot: () => _root(_rootKind),
-            onIndex: (index) {
-              _trail.removeRange(index + 1, _trail.length);
-              _selected.clear();
-              _query = BhpanRead(
-                BhpanReadView.directory,
-                target: _trail[index].handle,
-              );
-              _load();
-            },
-          ),
-        if (_shares == null && (_searchVisible || _filter.isNotEmpty))
+        _locationBar(),
+        if (_searchVisible)
           Padding(
-            padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+            padding: const EdgeInsets.fromLTRB(16, 0, 16, 8),
             child: SearchBar(
+              controller: _search,
               autoFocus: true,
-              hintText: '筛选当前已加载的名称',
+              hintText: '在此文件夹中搜索',
               elevation: const WidgetStatePropertyAll(0),
               leading: const Icon(Icons.search),
+              trailing: [
+                if (_filter.isNotEmpty)
+                  IconButton(
+                    tooltip: '清除',
+                    onPressed: () => setState(() {
+                      _search.clear();
+                      _filter = '';
+                    }),
+                    icon: const Icon(Icons.close),
+                  ),
+              ],
               onChanged: (v) => setState(() => _filter = v),
             ),
           ),
-        SizedBox(
-          height: 2,
-          child: _busy ? const LinearProgressIndicator() : null,
-        ),
         if (_progress case final progress?)
-          BhpanProgressTile(progress: progress, onCancel: _transfer?.cancel),
-        if (_batchResults.isNotEmpty)
-          ConstrainedBox(
-            constraints: const BoxConstraints(maxHeight: 120),
-            child: ListView(
-              shrinkWrap: true,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              children: [
-                for (final (name, status) in _batchResults)
-                  Text(
-                    '$name：$status',
-                    style: Theme.of(context).textTheme.bodySmall,
-                  ),
-              ],
-            ),
+          BhpanProgressTile(
+            progress: progress,
+            label: _progressLabel,
+            upload: _progressUpload,
+            onCancel: _transfer?.cancel,
+            onClose: () => setState(() => _progress = null),
           ),
-        if (_notice case final notice?)
-          Padding(
-            padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-            child: Row(
-              children: [
-                const Icon(Icons.info_outline, size: 18),
-                const SizedBox(width: 8),
-                Expanded(child: Text(notice)),
-              ],
-            ),
+        if (_batchResults case final results?)
+          BhpanBatchResults(
+            results: results,
+            onClose: () => setState(() => _batchResults = null),
           ),
-        Expanded(
-          child: _error != null && items.isEmpty
-              ? BhpanStatePanel(
-                  icon: Icons.cloud_off_outlined,
-                  text: _error!,
-                  action: '重新连接个人网盘',
-                  onAction: _loading ? null : () => _load(reconnect: true),
-                )
-              : _shares != null
-              ? _shareList()
-              : items.isEmpty && !_loading
-              ? BhpanStatePanel(
-                  icon: _filter.isNotEmpty
-                      ? Icons.search_off
-                      : Icons.folder_open_outlined,
-                  text: _filter.isNotEmpty ? '已加载列表中没有匹配名称' : '这个文件夹是空的',
-                )
-              : RefreshIndicator(
-                  onRefresh: () => _load(shares: _shares != null),
-                  child: ListView.builder(
-                    physics: const AlwaysScrollableScrollPhysics(),
-                    padding: EdgeInsets.only(bottom: selecting ? 16 : 96),
-                    itemCount: items.length + 1,
-                    itemBuilder: (c, index) => index == items.length
-                        ? _footer(items.length)
-                        : _row(items[index], selecting),
-                  ),
-                ),
-        ),
-        if (selecting) _selectionBar(),
+        Expanded(child: _content(items, selecting)),
+        if (selecting)
+          BhpanSelectionBar(
+            count: _selected.length,
+            allSelected: _selected.length == all.length,
+            actions: _received
+                ? const [BhpanAction.download]
+                : const [
+                    BhpanAction.download,
+                    BhpanAction.move,
+                    BhpanAction.copy,
+                    BhpanAction.recycle,
+                  ],
+            enabled: (a) =>
+                a == BhpanAction.download ? !_busy : _writable,
+            onClear: () => setState(_selected.clear),
+            onToggleAll: () => setState(() {
+              if (_selected.length == all.length) {
+                _selected.clear();
+              } else {
+                _selected.addAll(all.map((i) => i.handle));
+              }
+            }),
+            onAction: _batch,
+          ),
       ],
     );
     final showFab =
-        !selecting &&
-        _shares == null &&
-        (_canUpload || (_personalFolder && widget.access.runWrite != null));
+        !selecting && _page != null && (_canUpload || _canCreateFolder);
     return Stack(
       children: [
         Positioned.fill(child: body),
         if (showFab)
-          Positioned(
-            right: 16,
-            bottom: 16,
-            child: FloatingActionButton(
-              key: const ValueKey('bhpan-create'),
-              tooltip: '上传或新建',
-              onPressed: _busy ? null : _createSheet,
-              child: const Icon(Icons.add),
+          Positioned.fill(
+            child: BhpanCreateMenu(
+              enabled: !_busy,
+              onUpload: _canUpload ? _upload : null,
+              onNewFolder: _canCreateFolder ? _newFolder : null,
             ),
           ),
       ],
     );
   }
 
-  Widget _footer(int count) {
-    final page = _page;
-    if (page == null) return const SizedBox.shrink();
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 16),
-      child: Text(
-        page.range == BhpanListRange.firstHundred
-            ? '回收站仅显示前 100 项'
-            : '已加载 $count 项',
-        textAlign: TextAlign.center,
-        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-          color: Theme.of(context).colorScheme.outline,
-        ),
+  Widget _footer(int count) => Padding(
+    padding: const EdgeInsets.symmetric(vertical: 16),
+    child: Text(
+      _filter.isNotEmpty ? '找到 $count 项' : '共 $count 项',
+      textAlign: TextAlign.center,
+      style: Theme.of(context).textTheme.bodySmall?.copyWith(
+        color: Theme.of(context).colorScheme.outline,
       ),
-    );
-  }
+    ),
+  );
 
   Widget _row(BhpanItem item, bool selecting) {
-    final recycle = item.scope == BhpanScope.recycle;
-    final actions = recycle
-        ? ['恢复', '永久删除']
-        : item.scope == BhpanScope.receivedShare
-        ? ['属性', '下载', '另存到网盘']
-        : ['属性', '重命名', '移动', '复制', '下载', '分享', '分享记录', '移入回收站'];
     void toggle() => setState(() {
       if (!_selected.remove(item.handle)) _selected.add(item.handle);
     });
@@ -940,48 +957,19 @@ class _BhpanViewState extends State<BhpanView> {
       enabled: !_busy,
       onTap: selecting
           ? toggle
-          : () => item.isFolder && !recycle ? _open(item) : _action('属性', item),
+          : () => item.isFolder ? _open(item) : _tapFile(item),
       onLongPress: toggle,
       onMore: () async {
         final action = await bhpanActionSheet(
           context,
-          title: item.name,
           item: item,
-          actions: actions,
-          enabled: (a) => const {'属性', '下载', '分享记录'}.contains(a) || _writable,
+          actions: _actionsFor(item),
+          enabled: _actionEnabled,
+          location: _locationText,
           boundary: _dialogScope,
         );
         if (action != null && mounted) await _action(action, item);
       },
     );
   }
-
-  Widget _shareList() => _shares!.isEmpty
-      ? const Center(child: Text('当前已读取范围没有分享记录'))
-      : ListView(
-          children: [
-            for (final s in _shares!)
-              ListTile(
-                leading: const Icon(Icons.link),
-                title: Text(s.title),
-                subtitle: Text(
-                  '${s.passwordRequired ? '有提取密码' : '无提取密码'} · ${s.limitedTimes == -1 ? '次数不限' : '限 ${s.limitedTimes} 次'}\n有效期：${s.expiresAt == '1970-01-01T08:00:00+08:00' ? '长期有效' : s.expiresAt}',
-                ),
-                isThreeLine: true,
-                trailing: PopupMenuButton<String>(
-                  enabled: _writable,
-                  onSelected: (a) => _shareAction(a, s),
-                  itemBuilder: (_) => [
-                    const PopupMenuItem(value: '复制链接', child: Text('查看与复制链接')),
-                    PopupMenuItem(
-                      value: '修改',
-                      enabled: s.canUpdate,
-                      child: const Text('修改设置'),
-                    ),
-                    const PopupMenuItem(value: '取消分享', child: Text('取消分享')),
-                  ],
-                ),
-              ),
-          ],
-        );
 }

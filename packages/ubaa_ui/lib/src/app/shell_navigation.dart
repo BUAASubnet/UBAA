@@ -63,10 +63,12 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       ? _utilityPage == '北航云盘'
             ? BhpanView(
                 key: ValueKey((widget.cacheAccountId, widget.routePolicy)),
+                backHandle: _bhpanBack,
                 access: BhpanAccess(
                   service: widget.bhpanService,
                   pickFile: widget.onPickBhpanFile,
                   pickDownload: widget.onPickBhpanDownload,
+                  previewFile: widget.onPreviewBhpanFile,
                   runWrite: _hasWriteCommands ? _runBhpanWrite : null,
                 ),
               )

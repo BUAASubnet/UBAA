@@ -27,12 +27,24 @@ Future<void> openItemActions(WidgetTester tester, String name) async {
   await tester.pumpAndSettle();
 }
 
-Future<void> openCloudMenu(WidgetTester tester, String action) async {
-  await tester.tap(find.byTooltip('更多云盘操作'));
+/// 打开「位置」面板并选择文档库或工具。
+Future<void> openPlace(WidgetTester tester, String label) async {
+  await tester.tap(find.byKey(const ValueKey('bhpan-places')));
   await tester.pumpAndSettle();
-  await tester.tap(find.text(action));
+  await tester.tap(
+    find.descendant(
+      of: find.byType(BottomSheet),
+      matching: find.widgetWithText(ListTile, label),
+    ),
+  );
   await tester.pumpAndSettle();
 }
+
+/// 底部面板里的文字按钮（快捷操作或列表项）。
+Finder sheetText(String label) => find.descendant(
+  of: find.byType(BottomSheet),
+  matching: find.text(label),
+);
 
 Future<void> openCreateSheet(WidgetTester tester) async {
   await tester.tap(find.byKey(const ValueKey('bhpan-create')));

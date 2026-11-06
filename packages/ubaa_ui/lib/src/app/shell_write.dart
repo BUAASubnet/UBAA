@@ -1,7 +1,10 @@
 part of 'shell.dart';
 
 extension UbaaShellWriteActions on _UbaaMainShellState {
-  Future<WriteOutcome?> _runBhpanWrite(BhpanMutation request) async {
+  Future<WriteOutcome?> _runBhpanWrite(
+    BhpanMutation request, [
+    BhpanWriteStyle style = const BhpanWriteStyle(),
+  ]) async {
     final run = widget.onRunWritePrepare,
         confirm = widget.onConfirmWrite,
         cancel = widget.onCancelWrite,
@@ -18,6 +21,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       return await runBhpanWriteFlow(
         context: context,
         request: request,
+        style: style,
         service: service,
         generation: _bhpanModalScope,
         run: run,

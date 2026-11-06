@@ -5,107 +5,146 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 import '../support.dart';
 import 'support.dart';
 
-const receivedFolder = BhpanItem(
-  handle: 'received-folder',
-  name: '分享目录',
+const sharedFolder = BhpanItem(
+  handle: 'shared-root',
+  name: '共享目录',
   kind: BhpanItemKind.folder,
-  scope: BhpanScope.receivedShare,
+  scope: BhpanScope.personal,
 );
 
-class ReceivedFolderFiles extends Files {
+class SharedFiles extends Files {
   @override
   Future<BhpanPage> read(BhpanRead query) async {
-    if (query.view == BhpanReadView.receivedShare) {
-      reads.add(query);
-      return page([receivedFolder]);
+    reads.add(query);
+    if (query.view == BhpanReadView.roots &&
+        query.root == BhpanRootKind.shared) {
+      return page([sharedFolder]);
     }
-    if (query.target == receivedFolder.handle) {
-      reads.add(query);
-      return page([]);
-    }
+    if (query.target == sharedFolder.handle) return page([]);
     return super.read(query);
   }
 }
 
+Future<void> openCreateMenu(WidgetTester tester) async {
+  await tester.tap(find.byKey(const ValueKey('bhpan-create')));
+  await tester.pumpAndSettle();
+}
+
 void main() {
-  testWidgets('个人目录新增面板三项可用，并分别交付上传、新建和秒传参数', (tester) async {
+  testWidgets('個人文档库上传先尝试秒传，blocked 后只提交一次普通上传', (
+    tester,
+  ) async {
     final requests = <BhpanMutation>[];
-    final files = Files();
-    const localFile = BhpanLocalFile(path: '/synthetic/notes', name: '笔记.txt');
-    var picks = 0;
+    final styles = <BhpanWriteStyle>[];
+    const source = BhpanLocalFile(path: '/synthetic/notes', name: '笔记.txt');
     await mountBhpan(
       tester,
       BhpanAccess(
-        service: files,
-        pickFile: () async {
-          picks++;
-          return localFile;
-        },
-        runWrite: (request) async {
+        service: Files(),
+        pickFile: () async => source,
+        runWrite: (request, [style = const BhpanWriteStyle()]) async {
           requests.add(request);
+          styles.add(style);
+          if (request.kind == BhpanMutationKind.uploadFast) {
+            (request.transfer as Transfer).phase = BhpanTransferPhase.blocked;
+            throw const UiError(
+              code: UbaaErrorCode.operationConflict,
+              title: '不支持秒传',
+              message: '改为普通上传',
+            );
+          }
           return null;
         },
       ),
     );
-    await openCreateSheet(tester);
-    for (final action in ['上传文件', '新建文件夹', '秒传']) {
-      expect(tester.widget<ListTile>(sheetAction(action)).enabled, isTrue);
-    }
-    await tester.tap(sheetAction('上传文件'));
+    await openCreateMenu(tester);
+    expect(find.byKey(const ValueKey('bhpan-create-upload')), findsOneWidget);
+    expect(find.byKey(const ValueKey('bhpan-create-folder')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('bhpan-create-upload')));
     await tester.pumpAndSettle();
-    await openCreateSheet(tester);
-    await tester.tap(sheetAction('新建文件夹'));
-    await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, '名称'), '实验笔记');
-    await tester.tap(find.text('继续'));
-    await tester.pumpAndSettle();
-    await openCreateSheet(tester);
-    await tester.tap(sheetAction('秒传'));
-    await tester.pumpAndSettle();
-    expect(requests.map((request) => request.kind), [
-      BhpanMutationKind.upload,
-      BhpanMutationKind.createFolder,
+    expect(requests.map((r) => r.kind), [
       BhpanMutationKind.uploadFast,
+      BhpanMutationKind.upload,
     ]);
-    expect(requests.map((request) => request.target), ['root', 'root', 'root']);
-    expect(requests[1].name, '实验笔记');
-    expect(picks, 2);
-    for (final request in [requests.first, requests.last]) {
-      expect(request.source, same(localFile));
-      expect(request.transfer, isNotNull);
-    }
-    expect(requests.first.transfer, isNot(same(requests.last.transfer)));
+    expect(requests.every((r) => r.source == source), isTrue);
+    expect(requests.every((r) => r.target == 'root'), isTrue);
+    expect(requests[0].transfer, isNot(same(requests[1].transfer)));
+    expect(styles[1].note, contains('云端没有相同的文件'));
+    expect(find.text('上传文件'), findsNothing);
   });
 
-  testWidgets('接收分享的目录只提供普通上传，上传目标保持分享目录', (tester) async {
+  testWidgets('秒传确认取消后不发起普通上传', (tester) async {
     final requests = <BhpanMutation>[];
     await mountBhpan(
       tester,
       BhpanAccess(
-        service: ReceivedFolderFiles(),
+        service: Files(),
         pickFile: () async =>
-            const BhpanLocalFile(path: '/synthetic/share', name: '附件.txt'),
-        runWrite: (request) async {
+            const BhpanLocalFile(path: '/synthetic/notes', name: '笔记.txt'),
+        runWrite: (request, [_ = const BhpanWriteStyle()]) async {
           requests.add(request);
           return null;
         },
       ),
     );
-    await openCloudMenu(tester, '接收分享');
-    await tester.enterText(
-      find.widgetWithText(TextField, '北航云盘分享链接或标识'),
-      'synthetic-share',
+    await openCreateMenu(tester);
+    await tester.tap(find.byKey(const ValueKey('bhpan-create-upload')));
+    await tester.pumpAndSettle();
+    expect(requests.map((r) => r.kind), [BhpanMutationKind.uploadFast]);
+  });
+
+  testWidgets('共享文档库仍显示上传和新建文件夹，上传不尝试秒传', (tester) async {
+    final requests = <BhpanMutation>[];
+    await mountBhpan(
+      tester,
+      BhpanAccess(
+        service: SharedFiles(),
+        pickFile: () async =>
+            const BhpanLocalFile(path: '/synthetic/share', name: '附件.txt'),
+        runWrite: (request, [_ = const BhpanWriteStyle()]) async {
+          requests.add(request);
+          return null;
+        },
+      ),
     );
-    await tester.tap(find.text('打开分享'));
+    await openPlace(tester, '共享文档库');
+    await tester.tap(find.text('共享目录'));
     await tester.pumpAndSettle();
-    await openCreateSheet(tester);
-    expect(tester.widget<ListTile>(sheetAction('上传文件')).enabled, isTrue);
-    expect(sheetAction('新建文件夹'), findsNothing);
-    expect(sheetAction('秒传'), findsNothing);
-    await tester.tap(sheetAction('上传文件'));
+    await openCreateMenu(tester);
+    expect(find.byKey(const ValueKey('bhpan-create-upload')), findsOneWidget);
+    expect(find.byKey(const ValueKey('bhpan-create-folder')), findsOneWidget);
+    await tester.tap(find.byKey(const ValueKey('bhpan-create-upload')));
     await tester.pumpAndSettle();
-    expect(requests.single.kind, BhpanMutationKind.upload);
-    expect(requests.single.target, receivedFolder.handle);
-    expect(requests.single.source!.name, '附件.txt');
+    expect(requests.map((r) => r.kind), [BhpanMutationKind.upload]);
+    expect(requests.single.target, sharedFolder.handle);
+  });
+
+  testWidgets('共享文档库的新建文件夹交付当前目录和已确认样式', (tester) async {
+    final requests = <BhpanMutation>[];
+    final styles = <BhpanWriteStyle>[];
+    await mountBhpan(
+      tester,
+      BhpanAccess(
+        service: SharedFiles(),
+        runWrite: (request, [style = const BhpanWriteStyle()]) async {
+          requests.add(request);
+          styles.add(style);
+          return null;
+        },
+      ),
+    );
+    await openPlace(tester, '共享文档库');
+    await tester.tap(find.text('共享目录'));
+    await tester.pumpAndSettle();
+    await openCreateMenu(tester);
+    await tester.tap(find.byKey(const ValueKey('bhpan-create-folder')));
+    await tester.pumpAndSettle();
+    await tester.enterText(find.widgetWithText(TextField, '名称'), '实验材料');
+    await tester.tap(find.text('新建'));
+    await tester.pumpAndSettle();
+    expect(requests.single.kind, BhpanMutationKind.createFolder);
+    expect(requests.single.target, sharedFolder.handle);
+    expect(requests.single.name, '实验材料');
+    expect(styles.single.confirmed, isTrue);
   });
 }

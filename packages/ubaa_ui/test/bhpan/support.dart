@@ -1,4 +1,6 @@
 import 'dart:async';
+import 'package:flutter/widgets.dart';
+import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 
 const root = BhpanItem(
@@ -83,6 +85,7 @@ class Files implements BhpanService {
 
 class Transfer implements BhpanTransferTask {
   bool cancelled = false;
+  BhpanTransferPhase phase = BhpanTransferPhase.queued;
   int reads = 0;
   @override
   void cancel() {
@@ -95,9 +98,15 @@ class Transfer implements BhpanTransferTask {
     return BhpanTransferProgress(
       phase: cancelled
           ? BhpanTransferPhase.cancelled
-          : BhpanTransferPhase.queued,
+          : phase,
       bytes: 0,
       total: 0,
     );
   }
+}
+
+/// 在列表上下拉触发统一的下拉刷新。
+Future<void> pullToRefresh(WidgetTester tester, Finder target) async {
+  await tester.fling(target, const Offset(0, 400), 1000);
+  await tester.pumpAndSettle();
 }

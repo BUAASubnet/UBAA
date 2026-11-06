@@ -59,6 +59,7 @@ class UbaaMainShell extends StatefulWidget {
     this.bhpanService,
     this.onPickBhpanFile,
     this.onPickBhpanDownload,
+    this.onPreviewBhpanFile,
     this.connecting = false,
     this.homeClock,
     this.connectionStatus,
@@ -183,6 +184,10 @@ class UbaaMainShell extends StatefulWidget {
   final Future<BhpanDownloadDestination?> Function(String, bool Function())?
   onPickBhpanDownload;
 
+  /// 云盘系统预览的临时位置；`deliver` 在预览关闭后才完成。
+  final Future<BhpanDownloadDestination?> Function(String, bool Function())?
+  onPreviewBhpanFile;
+
   /// 会话正在恢复；与页面刷新一起显示在标题栏右侧，不单独显示图标。
   final bool connecting;
   final String? connectionStatus;
@@ -290,6 +295,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   final Set<FeatureId> _visitedFeatures = <FeatureId>{};
   int _accountGeneration = 0;
   final _bhpanModalScope = ValueNotifier<int>(0);
+  final _bhpanBack = BhpanBackHandle();
   final _homeKey = GlobalKey<HomeViewState>();
 
   /// 进行中的下拉刷新数；大于零时标题栏只显示更新时间。
@@ -536,6 +542,9 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           ? IconButton(
               tooltip: '返回',
               onPressed: () {
+                if (_utilityPage == '北航云盘' && _bhpanBack.handleBack()) {
+                  return;
+                }
                 if (_utilityPage != null) {
                   setState(() => _utilityPage = null);
                 } else {
@@ -634,6 +643,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       canPop: _openedFeature == null && _utilityPage == null,
       onPopInvokedWithResult: (didPop, _) {
         if (!didPop) {
+          if (_utilityPage == '北航云盘' && _bhpanBack.handleBack()) return;
           if (_utilityPage != null) {
             setState(() => _utilityPage = null);
           } else {
