@@ -71,7 +71,68 @@ extension _AgendaDataSheet on AgendaViewState {
                     section('云端同步'),
                     _syncStatusCard(),
                   ],
-                  if (data != null) ...[
+                  if (data != null &&
+                      data.sources.every((s) => s.observations.isEmpty)) ...[
+                    section('学校数据'),
+                    Container(
+                      key: const ValueKey('agenda-school-empty'),
+                      margin: const EdgeInsets.only(bottom: 12),
+                      padding: const EdgeInsets.fromLTRB(14, 12, 14, 12),
+                      decoration: BoxDecoration(
+                        color: Color.alphaBlend(
+                          colors.tertiary.withValues(alpha: .08),
+                          colors.surfaceContainerLow,
+                        ),
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      child: Row(
+                        children: [
+                          Container(
+                            width: 40,
+                            height: 40,
+                            decoration: BoxDecoration(
+                              color: colors.tertiary.withValues(alpha: .15),
+                              shape: BoxShape.circle,
+                            ),
+                            child: schoolRefreshing
+                                ? Padding(
+                                    padding: const EdgeInsets.all(10),
+                                    child: CircularProgressIndicator(
+                                      strokeWidth: 2.4,
+                                      color: colors.tertiary,
+                                    ),
+                                  )
+                                : Icon(
+                                    Icons.cloud_download_outlined,
+                                    size: 22,
+                                    color: colors.tertiary,
+                                  ),
+                          ),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text(
+                                  schoolRefreshing ? '正在获取学校数据' : '还没有学校数据',
+                                  style: theme.textTheme.titleSmall?.copyWith(
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                                const SizedBox(height: 2),
+                                Text(
+                                  '课程、考试、作业等需要先从学校刷新一次；刷新后仍为空时，可到首页查看各来源状态。',
+                                  style: theme.textTheme.bodySmall?.copyWith(
+                                    color: colors.onSurfaceVariant,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ] else if (data != null) ...[
                     const SizedBox(height: 4),
                     AgendaCacheStatus(
                       sources: data.sources,
