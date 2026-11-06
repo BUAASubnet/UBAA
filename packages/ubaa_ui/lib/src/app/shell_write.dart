@@ -192,13 +192,10 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
   Future<void> _startCgyyCancelWrite(CgyyCancelAction action) async {
     final prepare = widget.onPrepareCgyyCancelWrite;
     if (prepare == null || _writeBusy) return;
-    if (!await uiConfirmIrreversible(
+    if (!await uiConfirmCancelReservation(
       context,
       title: '取消这条研讨室预约？',
       message: '取消后时段可能被他人预约，无法恢复。',
-      action: '确认取消',
-      danger: true,
-      dismiss: '保留预约',
     ))
       return;
     await _runDirectWrite(
@@ -221,13 +218,10 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
   Future<void> _startLibbookCancelWrite(LibbookCancelAction action) async {
     final prepare = widget.onPrepareLibbookCancelWrite;
     if (prepare == null || _writeBusy) return;
-    if (!await uiConfirmIrreversible(
+    if (!await uiConfirmCancelReservation(
       context,
       title: '取消这个座位预约？',
       message: '取消后座位可能被他人预约，无法恢复。',
-      action: '确认取消',
-      danger: true,
-      dismiss: '保留预约',
     ))
       return;
     await _runDirectWrite(

@@ -40,3 +40,17 @@ Future<bool> uiConfirmIrreversible(
       ),
     ) ==
     true;
+
+/// 取消预约类确认：错误色「确认取消」，关闭按钮为「保留预约」以免与操作混淆。
+Future<bool> uiConfirmCancelReservation(
+  BuildContext context, {
+  required String title,
+  required String message,
+}) => uiConfirmIrreversible(
+  context,
+  title: title,
+  message: message,
+  action: '确认取消',
+  danger: true,
+  dismiss: '保留预约',
+);
