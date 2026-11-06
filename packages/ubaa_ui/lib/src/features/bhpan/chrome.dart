@@ -283,7 +283,11 @@ class BhpanSkeletonList extends StatelessWidget {
                 const SizedBox(width: 12),
                 Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [bar(width, 14), const SizedBox(height: 8), bar(72, 10)],
+                  children: [
+                    bar(width, 14),
+                    const SizedBox(height: 8),
+                    bar(72, 10),
+                  ],
                 ),
               ],
             ),

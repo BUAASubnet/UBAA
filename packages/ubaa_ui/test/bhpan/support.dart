@@ -96,9 +96,7 @@ class Transfer implements BhpanTransferTask {
   Future<BhpanTransferProgress> progress() async {
     reads++;
     return BhpanTransferProgress(
-      phase: cancelled
-          ? BhpanTransferPhase.cancelled
-          : phase,
+      phase: cancelled ? BhpanTransferPhase.cancelled : phase,
       bytes: 0,
       total: 0,
     );

@@ -268,7 +268,9 @@ class _DestinationState extends State<_Destination> {
             ? const BhpanRead(BhpanReadView.personalRoot)
             : BhpanRead(BhpanReadView.directory, target: target.handle),
       );
-      if (target == null && page.items.length == 1 && page.items.single.isFolder) {
+      if (target == null &&
+          page.items.length == 1 &&
+          page.items.single.isFolder) {
         // 与主界面一致：自动进入唯一的个人根目录。
         _trail.add(page.items.single);
         _baseDepth = 1;
@@ -287,13 +289,16 @@ class _DestinationState extends State<_Destination> {
                       !widget.exclude.contains(i.handle),
                 )
                 .toList()
-              ..sort((a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase())),
+              ..sort(
+                (a, b) => a.name.toLowerCase().compareTo(b.name.toLowerCase()),
+              ),
       );
     } on Object catch (e) {
       if (mounted && generation == _generation)
         setState(() => _error = e is UiError ? e.message : '文件夹读取失败');
     } finally {
-      if (mounted && generation == _generation) setState(() => _loading = false);
+      if (mounted && generation == _generation)
+        setState(() => _loading = false);
     }
   }
 
@@ -327,7 +332,11 @@ class _DestinationState extends State<_Destination> {
             onPressed: () => Navigator.of(context).maybePop(),
             icon: const Icon(Icons.close),
           ),
-          title: Text(widget.title, maxLines: 1, overflow: TextOverflow.ellipsis),
+          title: Text(
+            widget.title,
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
         ),
         body: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -338,7 +347,9 @@ class _DestinationState extends State<_Destination> {
                 children: [
                   IconButton(
                     tooltip: '上一级',
-                    onPressed: _trail.length > _baseDepth && !_loading ? _up : null,
+                    onPressed: _trail.length > _baseDepth && !_loading
+                        ? _up
+                        : null,
                     icon: const Icon(Icons.arrow_upward),
                   ),
                   Expanded(
@@ -391,7 +402,10 @@ class _DestinationState extends State<_Destination> {
                               color: Color(0xFFF2B53A),
                             ),
                             title: Text(folder.name),
-                            trailing: Icon(Icons.chevron_right, color: colors.outline),
+                            trailing: Icon(
+                              Icons.chevron_right,
+                              color: colors.outline,
+                            ),
                             onTap: _loading
                                 ? null
                                 : () {
@@ -410,7 +424,8 @@ class _DestinationState extends State<_Destination> {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    if (current != null && current.handle == widget.disabledTarget)
+                    if (current != null &&
+                        current.handle == widget.disabledTarget)
                       Padding(
                         padding: const EdgeInsets.only(bottom: 8),
                         child: Text(

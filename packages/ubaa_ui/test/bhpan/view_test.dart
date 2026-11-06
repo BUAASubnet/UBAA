@@ -50,14 +50,21 @@ Future<void> openNewFolder(WidgetTester tester) async {
   await tester.pumpAndSettle();
 }
 
-Finder pathText(String name) =>
-    find.descendant(of: find.byType(BhpanLocationBar), matching: find.text(name));
+Finder pathText(String name) => find.descendant(
+  of: find.byType(BhpanLocationBar),
+  matching: find.text(name),
+);
 
 void main() {
   testWidgets('个人目录自动打开，搜索只筛选当前目录，返回逐级回到上一层', (tester) async {
     final files = Files();
     final back = BhpanBackHandle();
-    await mount(tester, files, run: (_, [_ = const BhpanWriteStyle()]) async => null, back: back);
+    await mount(
+      tester,
+      files,
+      run: (_, [_ = const BhpanWriteStyle()]) async => null,
+      back: back,
+    );
     expect(find.text('报告.txt'), findsOneWidget);
     // 自动进入的个人根目录不出现在路径里。
     expect(pathText('个人文档库'), findsOneWidget);
@@ -191,7 +198,11 @@ void main() {
   });
   testWidgets('账号服务替换关闭旧账号已经打开的编辑弹窗', (tester) async {
     final old = Files();
-    await mount(tester, old, run: (_, [_ = const BhpanWriteStyle()]) async => null);
+    await mount(
+      tester,
+      old,
+      run: (_, [_ = const BhpanWriteStyle()]) async => null,
+    );
     await openNewFolder(tester);
     expect(find.text('新建文件夹'), findsOneWidget);
     final next = Files()..contents = [];
@@ -200,7 +211,10 @@ void main() {
         theme: UbaaTheme.light(),
         home: Scaffold(
           body: BhpanView(
-            access: BhpanAccess(service: next, runWrite: (_, [_ = const BhpanWriteStyle()]) async => null),
+            access: BhpanAccess(
+              service: next,
+              runWrite: (_, [_ = const BhpanWriteStyle()]) async => null,
+            ),
           ),
         ),
       ),

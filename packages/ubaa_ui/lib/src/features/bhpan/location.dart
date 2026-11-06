@@ -231,11 +231,7 @@ Future<BhpanPlaceChoice?> showBhpanPlaces(
               ),
             const Divider(indent: 24, endIndent: 24),
             header('工具'),
-            tile(
-              Icons.link,
-              '分享管理',
-              const BhpanToolChoice(BhpanTool.shares),
-            ),
+            tile(Icons.link, '分享管理', const BhpanToolChoice(BhpanTool.shares)),
             tile(
               Icons.delete_outline,
               '回收站',

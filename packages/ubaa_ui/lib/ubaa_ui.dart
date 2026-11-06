@@ -1,8 +1,10 @@
 /// UBAA 跨平台共享界面组件。
 library;
 
-export 'src/features/bhpan/view.dart' show BhpanView, BhpanAccess, BhpanBackHandle;
-export 'src/features/bhpan/write_flow.dart' show BhpanWriteStyle, BhpanWriteRunner;
+export 'src/features/bhpan/view.dart'
+    show BhpanView, BhpanAccess, BhpanBackHandle;
+export 'src/features/bhpan/write_flow.dart'
+    show BhpanWriteStyle, BhpanWriteRunner;
 
 export 'src/theme.dart';
 export 'src/shared/feedback.dart';

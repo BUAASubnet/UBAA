@@ -50,9 +50,35 @@ class BhpanAccess {
 const bhpanPreviewLimit = 20 * 1024 * 1024;
 
 const _previewable = {
-  'pdf', 'doc', 'docx', 'ppt', 'pptx', 'xls', 'xlsx', 'csv', 'rtf', 'key',
-  'numbers', 'pages', 'txt', 'md', 'html', 'png', 'jpg', 'jpeg', 'gif',
-  'heic', 'webp', 'bmp', 'tiff', 'mp4', 'mov', 'm4v', 'mp3', 'm4a', 'wav',
+  'pdf',
+  'doc',
+  'docx',
+  'ppt',
+  'pptx',
+  'xls',
+  'xlsx',
+  'csv',
+  'rtf',
+  'key',
+  'numbers',
+  'pages',
+  'txt',
+  'md',
+  'html',
+  'png',
+  'jpg',
+  'jpeg',
+  'gif',
+  'heic',
+  'webp',
+  'bmp',
+  'tiff',
+  'mp4',
+  'mov',
+  'm4v',
+  'mp3',
+  'm4a',
+  'wav',
   'aac',
 };
 
@@ -173,7 +199,10 @@ class _BhpanViewState extends State<BhpanView> {
       UiScopeBoundary(generation: _scope, child: child);
   bool _current(int generation) => mounted && generation == _generation;
   String _message(Object e) => e is UiError ? e.message : '云盘操作未完成，请检查连接后重试';
-  void _notify(String message, [UbaaFeedbackKind kind = UbaaFeedbackKind.info]) {
+  void _notify(
+    String message, [
+    UbaaFeedbackKind kind = UbaaFeedbackKind.info,
+  ]) {
     if (mounted) UbaaFeedback.show(context, message, kind: kind);
   }
 
@@ -373,14 +402,11 @@ class _BhpanViewState extends State<BhpanView> {
     }
   }
 
-  String get _rootLabel =>
-      _received ? '收到的分享' : bhpanLibraryNames[_rootKind]!;
+  String get _rootLabel => _received ? '收到的分享' : bhpanLibraryNames[_rootKind]!;
 
   /// 详细信息里的位置：根名称加上已进入的目录。
-  String get _locationText => [
-    _rootLabel,
-    for (final f in _trail.skip(_baseDepth)) f.name,
-  ].join(' / ');
+  String get _locationText =>
+      [_rootLabel, for (final f in _trail.skip(_baseDepth)) f.name].join(' / ');
 
   List<BhpanAction> _actionsFor(BhpanItem item) =>
       item.scope == BhpanScope.receivedShare
@@ -402,8 +428,7 @@ class _BhpanViewState extends State<BhpanView> {
 
   bool _actionEnabled(BhpanAction a) => switch (a) {
     BhpanAction.details || BhpanAction.shareRecords => !_busy,
-    BhpanAction.download =>
-      !_busy && widget.access.pickDownload != null,
+    BhpanAction.download => !_busy && widget.access.pickDownload != null,
     BhpanAction.view => !_busy && widget.access.previewFile != null,
     _ => _writable,
   };
@@ -446,10 +471,12 @@ class _BhpanViewState extends State<BhpanView> {
             ),
             const BhpanWriteStyle(confirmed: true),
           );
-        case BhpanAction.move ||
-            BhpanAction.copy ||
-            BhpanAction.saveToMine:
-          final verb = action == BhpanAction.move ? '移动' : action == BhpanAction.copy ? '复制' : '保存';
+        case BhpanAction.move || BhpanAction.copy || BhpanAction.saveToMine:
+          final verb = action == BhpanAction.move
+              ? '移动'
+              : action == BhpanAction.copy
+              ? '复制'
+              : '保存';
           final dest = await bhpanDestination(
             context,
             service,
@@ -599,11 +626,14 @@ class _BhpanViewState extends State<BhpanView> {
         context,
         service,
         scope: _scope,
-        title: '${action == BhpanAction.move ? '移动' : '复制'} ${items.length} 项到…',
+        title:
+            '${action == BhpanAction.move ? '移动' : '复制'} ${items.length} 项到…',
         action: action == BhpanAction.move ? '移动到此处' : '复制到此处',
         exclude: {for (final i in items) i.handle},
         start: _personalStart,
-        disabledTarget: action == BhpanAction.move ? _trail.lastOrNull?.handle : null,
+        disabledTarget: action == BhpanAction.move
+            ? _trail.lastOrNull?.handle
+            : null,
       );
       if (!_current(generation) || destination == null) return;
     }
@@ -621,7 +651,11 @@ class _BhpanViewState extends State<BhpanView> {
     final results = await bhpanRunBatch(
       items,
       (item) => _mutate(
-        BhpanMutation(kind, target: item.handle, destination: destination?.handle),
+        BhpanMutation(
+          kind,
+          target: item.handle,
+          destination: destination?.handle,
+        ),
         const BhpanWriteStyle(confirmed: true),
       ),
       isCurrent: () => mounted && identical(service, _service),
@@ -646,6 +680,7 @@ class _BhpanViewState extends State<BhpanView> {
       _trail.isNotEmpty &&
       _trail.last.isFolder &&
       _trail.last.scope != BhpanScope.recycle;
+
   /// 收到的分享不能新建目录；其他文档库是否可写由服务端判断，失败时说明原因。
   bool get _canCreateFolder =>
       !_received &&
@@ -655,8 +690,7 @@ class _BhpanViewState extends State<BhpanView> {
       _query.view == BhpanReadView.directory;
 
   /// 只有个人文档库先试秒传。
-  bool get _tryFastUpload =>
-      !_received && _rootKind == BhpanRootKind.personal;
+  bool get _tryFastUpload => !_received && _rootKind == BhpanRootKind.personal;
 
   int _compare(BhpanItem a, BhpanItem b) {
     if (a.isFolder != b.isFolder) return a.isFolder ? -1 : 1;
@@ -828,8 +862,9 @@ class _BhpanViewState extends State<BhpanView> {
         ),
         padding: EdgeInsets.only(bottom: selecting ? 16 : 96),
         itemCount: items.length + 1,
-        itemBuilder: (c, index) =>
-            index == items.length ? _footer(items.length) : _row(items[index], selecting),
+        itemBuilder: (c, index) => index == items.length
+            ? _footer(items.length)
+            : _row(items[index], selecting),
       ),
     );
   }
@@ -904,8 +939,7 @@ class _BhpanViewState extends State<BhpanView> {
                     BhpanAction.copy,
                     BhpanAction.recycle,
                   ],
-            enabled: (a) =>
-                a == BhpanAction.download ? !_busy : _writable,
+            enabled: (a) => a == BhpanAction.download ? !_busy : _writable,
             onClear: () => setState(_selected.clear),
             onToggleAll: () => setState(() {
               if (_selected.length == all.length) {

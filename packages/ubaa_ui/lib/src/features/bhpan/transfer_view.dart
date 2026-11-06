@@ -10,12 +10,12 @@ const _finished = {
   BhpanTransferPhase.blocked,
 };
 
-bool bhpanTransferActive(BhpanTransferPhase phase) => !_finished.contains(phase);
+bool bhpanTransferActive(BhpanTransferPhase phase) =>
+    !_finished.contains(phase);
 
 String bhpanPhaseText(BhpanTransferPhase phase) => switch (phase) {
   BhpanTransferPhase.queued => '准备中',
-  BhpanTransferPhase.hashingMini ||
-  BhpanTransferPhase.checking => '正在检查能否秒传',
+  BhpanTransferPhase.hashingMini || BhpanTransferPhase.checking => '正在检查能否秒传',
   BhpanTransferPhase.hashingFull => '正在校验文件',
   BhpanTransferPhase.awaitingConfirmation => '等待确认',
   BhpanTransferPhase.submitting => '正在提交',
@@ -64,7 +64,10 @@ class BhpanProgressTile extends StatelessWidget {
     final (icon, tint) = switch (phase) {
       BhpanTransferPhase.completed => (Icons.check_circle, colors.primary),
       BhpanTransferPhase.failed => (Icons.error_outline, colors.error),
-      BhpanTransferPhase.outcomeUnknown => (Icons.help_outline, colors.tertiary),
+      BhpanTransferPhase.outcomeUnknown => (
+        Icons.help_outline,
+        colors.tertiary,
+      ),
       BhpanTransferPhase.cancelled => (Icons.cancel_outlined, colors.outline),
       _ => (
         upload ? Icons.upload_rounded : Icons.download_rounded,

@@ -32,7 +32,10 @@ void main() {
     final files = Files();
     await mountBhpan(
       tester,
-      BhpanAccess(service: files, runWrite: (_, [_ = const BhpanWriteStyle()]) async => null),
+      BhpanAccess(
+        service: files,
+        runWrite: (_, [_ = const BhpanWriteStyle()]) async => null,
+      ),
     );
     final reads = files.reads.length;
     expect(find.byType(Checkbox), findsNothing);
@@ -128,7 +131,12 @@ void main() {
       expect(find.byKey(const ValueKey('bhpan-batch-download')), findsNothing);
       await tester.tap(find.byKey(ValueKey('bhpan-batch-${action.$1}')));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(FilledButton, action.$2 == BhpanMutationKind.restore ? '恢复' : '永久删除'));
+      await tester.tap(
+        find.widgetWithText(
+          FilledButton,
+          action.$2 == BhpanMutationKind.restore ? '恢复' : '永久删除',
+        ),
+      );
       await tester.pumpAndSettle();
       await tester.tap(find.byKey(const ValueKey('bhpan-batch-results')));
       await tester.pumpAndSettle();

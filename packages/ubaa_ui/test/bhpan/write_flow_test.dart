@@ -27,15 +27,25 @@ class FlowFiles implements BhpanService {
   @override
   Future<BhpanSize> size(String item) => throw UnimplementedError();
   @override
-  Future<String> suggestName(String parent, String name) => throw UnimplementedError();
+  Future<String> suggestName(String parent, String name) =>
+      throw UnimplementedError();
   @override
   Future<List<BhpanShare>> shares({String? item}) => throw UnimplementedError();
   @override
   Future<String> shareLink(String share) => throw UnimplementedError();
   @override
-  Future<BhpanDownloadPreparation> downloadPreparation(List<String> handles, String name) => throw UnimplementedError();
+  Future<BhpanDownloadPreparation> downloadPreparation(
+    List<String> handles,
+    String name,
+  ) => throw UnimplementedError();
   @override
-  Future<BhpanDownloadReceipt> download(List<String> handles, String name, String path, bool overwrite, BhpanTransferTask transfer) => throw UnimplementedError();
+  Future<BhpanDownloadReceipt> download(
+    List<String> handles,
+    String name,
+    String path,
+    bool overwrite,
+    BhpanTransferTask transfer,
+  ) => throw UnimplementedError();
 }
 
 void main() {
@@ -43,10 +53,7 @@ void main() {
     final generation = ValueNotifier(0);
     addTearDown(generation.dispose);
     var committed = false;
-    const request = BhpanMutation(
-      BhpanMutationKind.upload,
-      target: 'root',
-    );
+    const request = BhpanMutation(BhpanMutationKind.upload, target: 'root');
     final intent = WriteIntent(
       intentId: 'intent-1',
       operation: WriteOperation.bhpan,

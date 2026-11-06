@@ -202,10 +202,7 @@ class _BhpanRecyclePageState extends State<BhpanRecyclePage> {
       content = PullToRefresh(
         onRefresh: _load,
         child: const RefreshViewport(
-          child: BhpanStatePanel(
-            icon: Icons.delete_outline,
-            text: '回收站是空的',
-          ),
+          child: BhpanStatePanel(icon: Icons.delete_outline, text: '回收站是空的'),
         ),
       );
     } else {

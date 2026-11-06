@@ -138,9 +138,11 @@ class UbaaMainShell extends StatefulWidget {
     super.key,
   });
   final UserSummary? user;
+
   /// 原生合成日期场景可显式传入时钟，避免引擎帧跨 Zone 丢失测试时间。
   final Clock? homeClock;
   final Map<FeatureId, FeatureSnapshot> snapshots;
+
   /// 仅用于呈现原协调器已完成的固定路线记录回读，不触发新读取。
   final FeatureSnapshot? ygdkRecordsReadback;
   final Map<FeatureId, FeatureSnapshot>? homeSnapshots;
@@ -169,17 +171,21 @@ class UbaaMainShell extends StatefulWidget {
   final Future<void> Function() onLogoutAndClearAccount;
   final ValueChanged<RoutePolicy> onRoutePolicyChanged;
   final ValueChanged<bool> onTelemetryChanged;
+
   /// 供宿主恢复上次导航位置或集成测试从指定功能分组启动。
   final UiDestination initialDestination;
+
   /// “我的”页面的门户资料、账户指标与流量读取；为空时页面显示占位。
   final CampusAccountService? campusAccountService;
   final BhpanService? bhpanService;
   final Future<BhpanLocalFile?> Function()? onPickBhpanFile;
   final Future<BhpanDownloadDestination?> Function(String, bool Function())?
   onPickBhpanDownload;
+
   /// 云盘系统预览的临时位置；`deliver` 在预览关闭后才完成。
   final Future<BhpanDownloadDestination?> Function(String, bool Function())?
   onPreviewBhpanFile;
+
   /// 会话正在恢复；与页面刷新一起显示在标题栏右侧，不单独显示图标。
   final bool connecting;
   final String? connectionStatus;
@@ -191,6 +197,7 @@ class UbaaMainShell extends StatefulWidget {
   final ValueChanged<BuildContext>? onCompleteLogin;
   final ThemeMode themeMode;
   final ValueChanged<ThemeMode>? onThemeModeChanged;
+
   /// 应用读取生命周期改变时使父返回缓存失效，当前页面草稿仍由页面持有。
   final int readCacheEpoch;
   final int businessCacheEpoch;
@@ -259,6 +266,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   void _setRecentFeatures(List<FeatureId> value) {
     setState(() => _recentFeatures = value);
   }
+
   YgdkReminderSettings? _reminderSettings;
   String? _reminderError;
   int _reminderRevision = 0;
@@ -271,6 +279,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       _bykcFilterError = error;
     });
   }
+
   late int _selectedIndex;
   late PageController _tabPager;
   FeatureId? _openedFeature;
@@ -285,6 +294,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
   final _bhpanModalScope = ValueNotifier<int>(0);
   final _bhpanBack = BhpanBackHandle();
   final _homeKey = GlobalKey<HomeViewState>();
+
   /// 进行中的下拉刷新数；大于零时标题栏只显示更新时间。
   int _pulling = 0;
   Future<void> _pull(Future<void> Function() refresh) async {
@@ -295,6 +305,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       if (mounted) setState(() => _pulling--);
     }
   }
+
   (bool, DateTime?) _homeSync = (false, null);
   CampusAccountOverview? _campusOverview;
   Future<void>? _campusRefresh;
@@ -330,6 +341,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
       );
     }
   }
+
   @override
   void didUpdateWidget(covariant UbaaMainShell oldWidget) {
     super.didUpdateWidget(oldWidget);

@@ -197,9 +197,7 @@ class BhpanBatchResults extends StatelessWidget {
             color: attention ? colors.tertiary : colors.primary,
           ),
           title: Text(summary, style: theme.textTheme.titleSmall),
-          subtitle: attention
-              ? const Text('结果待核对的操作请先刷新确认，不要重复提交')
-              : null,
+          subtitle: attention ? const Text('结果待核对的操作请先刷新确认，不要重复提交') : null,
           trailing: IconButton(
             tooltip: '关闭',
             onPressed: onClose,

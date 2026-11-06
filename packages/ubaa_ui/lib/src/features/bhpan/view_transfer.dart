@@ -203,7 +203,8 @@ extension _BhpanTransfers on _BhpanViewState {
         );
       }
     } on Object catch (error) {
-      if (_current(generation)) _notify(_message(error), UbaaFeedbackKind.error);
+      if (_current(generation))
+        _notify(_message(error), UbaaFeedbackKind.error);
     } finally {
       task?.cancel();
       if (identical(_transfer, task) &&

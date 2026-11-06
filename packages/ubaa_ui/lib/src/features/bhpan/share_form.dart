@@ -106,9 +106,8 @@ class _ShareFormState extends State<_ShareForm> {
       _Expiry.day => _campusRfc3339(now.add(const Duration(days: 1))),
       _Expiry.week => _campusRfc3339(now.add(const Duration(days: 7))),
       _Expiry.month => _campusRfc3339(now.add(const Duration(days: 30))),
-      _Expiry.custom => _customDay == null
-          ? null
-          : _campusRfc3339(endOf(_customDay!)),
+      _Expiry.custom =>
+        _customDay == null ? null : _campusRfc3339(endOf(_customDay!)),
     };
   }
 
@@ -216,13 +215,17 @@ class _ShareFormState extends State<_ShareForm> {
               padding: const EdgeInsets.symmetric(horizontal: 16),
               child: SegmentedButton<_PasswordMode>(
                 segments: const [
-                  ButtonSegment(value: _PasswordMode.keep, label: Text('保留原提取码')),
+                  ButtonSegment(
+                    value: _PasswordMode.keep,
+                    label: Text('保留原提取码'),
+                  ),
                   ButtonSegment(value: _PasswordMode.change, label: Text('修改')),
                   ButtonSegment(value: _PasswordMode.none, label: Text('不需要')),
                 ],
                 selected: {_passwordMode},
                 showSelectedIcon: false,
-                onSelectionChanged: (v) => setState(() => _passwordMode = v.first),
+                onSelectionChanged: (v) =>
+                    setState(() => _passwordMode = v.first),
               ),
             )
           else
@@ -231,7 +234,9 @@ class _ShareFormState extends State<_ShareForm> {
               subtitle: const Text('打开链接时需要输入提取码'),
               value: _passwordMode == _PasswordMode.change,
               onChanged: (on) => setState(
-                () => _passwordMode = on ? _PasswordMode.change : _PasswordMode.none,
+                () => _passwordMode = on
+                    ? _PasswordMode.change
+                    : _PasswordMode.none,
               ),
             ),
           if (_passwordMode == _PasswordMode.change)
@@ -242,7 +247,9 @@ class _ShareFormState extends State<_ShareForm> {
                 enableSuggestions: false,
                 autocorrect: false,
                 keyboardType: TextInputType.visiblePassword,
-                inputFormatters: [FilteringTextInputFormatter.deny(RegExp(r'\s'))],
+                inputFormatters: [
+                  FilteringTextInputFormatter.deny(RegExp(r'\s')),
+                ],
                 decoration: const InputDecoration(
                   labelText: '提取码',
                   border: OutlineInputBorder(),
@@ -294,7 +301,9 @@ class _ShareFormState extends State<_ShareForm> {
                 children: [
                   IconButton.outlined(
                     tooltip: '减少',
-                    onPressed: _times > 1 ? () => setState(() => _times--) : null,
+                    onPressed: _times > 1
+                        ? () => setState(() => _times--)
+                        : null,
                     icon: const Icon(Icons.remove),
                   ),
                   SizedBox(

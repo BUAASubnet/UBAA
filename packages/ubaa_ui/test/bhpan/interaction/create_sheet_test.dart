@@ -31,9 +31,7 @@ Future<void> openCreateMenu(WidgetTester tester) async {
 }
 
 void main() {
-  testWidgets('個人文档库上传先尝试秒传，blocked 后只提交一次普通上传', (
-    tester,
-  ) async {
+  testWidgets('個人文档库上传先尝试秒传，blocked 后只提交一次普通上传', (tester) async {
     final requests = <BhpanMutation>[];
     final styles = <BhpanWriteStyle>[];
     const source = BhpanLocalFile(path: '/synthetic/notes', name: '笔记.txt');
