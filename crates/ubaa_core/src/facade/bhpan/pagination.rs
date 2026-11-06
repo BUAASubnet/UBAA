@@ -138,6 +138,15 @@ impl UbaaClient {
             }
             marker = Some(page.next_marker);
         }
-        Ok(self.bhpan_page(items, authority.scope, None, "")?.items)
+        Ok(self
+            .bhpan_page(
+                items,
+                authority.scope,
+                authority.root_kind,
+                Some(&authority.root_id),
+                None,
+                "",
+            )?
+            .items)
     }
 }

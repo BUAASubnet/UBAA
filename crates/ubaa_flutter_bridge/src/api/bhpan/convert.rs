@@ -80,6 +80,7 @@ impl From<BridgeBhpanShareSettings> for c::BhpanShareSettings {
             title: s.title,
             expires_at: s.expires_at,
             password: c::SecretValue::new(s.password),
+            keep_password: s.keep_password,
             limited_times: s.limited_times,
             permissions: s.permissions.into_iter().map(Into::into).collect(),
         }

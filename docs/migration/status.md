@@ -75,7 +75,7 @@ SSO 图像验证码使用内置 ddddocr 默认模型、左右各 5 像素留白�
 ## 主线能力与合同
 
 - Rust Core 统一拥有学校协议、Direct/WebVPN/Auto 路线、会话、校园读写与加密缓存。宿主通过 facade 或专用 Bridge 使用 Core。
-- 当前整合合同为 CLI JSON schema v13、Flutter bridge contract v52；Session v2、配置 v1、业务缓存 v7、日程 v4 分别管理。
+- 当前整合合同为 CLI JSON schema v13、Flutter bridge contract v53；Session v2、配置 v1、业务缓存 v7、日程 v4 分别管理。
 - 日程每个事项和覆盖记录单独存储，按账号隔离，退出后保留，同账号重新登录后激活。缓存清理不删除日程，缓存密钥缺失不阻止本机日程操作。
 - 首页七类学校待办复用 Core 投影。学校本地标记保留原上游状态，不生成学校写资格。路线切换投影修复已放行至 `8075e64d`，Core 导出修复已放行至 `de797fce`。
 - 当前候选底栏为首页、学习、日程、校园、我的，首页“查看全部”进入日程待办筛选，具体交互见[日程设计](../design/agenda.md)。

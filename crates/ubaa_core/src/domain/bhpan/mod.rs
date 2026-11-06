@@ -5,7 +5,7 @@ use serde::{Deserialize, Serialize};
 pub(crate) mod transfer;
 
 /// 可浏览的文档库分类。
-#[derive(Clone, Copy, Debug, Deserialize, Eq, PartialEq, Serialize)]
+#[derive(Clone, Copy, Debug, Deserialize, Eq, Hash, PartialEq, Serialize)]
 #[serde(rename_all = "snake_case")]
 pub enum BhpanRootKind {
     All,
@@ -86,6 +86,7 @@ pub struct BhpanShareSettings {
     pub title: String,
     pub expires_at: String,
     pub password: SecretValue,
+    pub keep_password: bool,
     pub limited_times: i64,
     pub permissions: Vec<BhpanPermission>,
 }

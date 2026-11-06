@@ -308,6 +308,7 @@ async fn pending_commit(
                     title: "合成分享".into(),
                     expires_at: "1970-01-01T08:00:00+08:00".into(),
                     password: String::new(),
+                    keep_password: false,
                     limited_times: -1,
                     permissions: vec![models::BridgeBhpanPermission::Display],
                 }

@@ -130,6 +130,8 @@ impl UbaaClient {
         &mut self,
         items: Vec<parse::Item>,
         scope: BhpanScope,
+        root_kind: BhpanRootKind,
+        root_id: Option<&str>,
         token: Option<&SecretValue>,
         context: &str,
     ) -> Result<BhpanPage> {
@@ -146,9 +148,12 @@ impl UbaaClient {
             items: items
                 .into_iter()
                 .map(|item| {
+                    let root_id = root_id.unwrap_or(&item.id).to_owned();
                     self.bhpan.publish(Authority {
                         item,
                         scope,
+                        root_kind,
+                        root_id,
                         token: token.cloned(),
                         context: context.to_owned(),
                     })
@@ -176,7 +181,7 @@ impl UbaaClient {
     pub async fn bhpan_roots(&mut self, kind: BhpanRootKind) -> Result<BhpanPage> {
         let token = self.bhpan_ready().await?;
         let items = read::roots(&mut self.direct_runtime, &token, kind).await?;
-        self.bhpan_page(items, BhpanScope::Personal, None, "")
+        self.bhpan_page(items, BhpanScope::Personal, kind, None, None, "")
     }
     /// 读取唯一的个人文档库。
     /// # Errors
@@ -184,7 +189,14 @@ impl UbaaClient {
     pub async fn bhpan_personal_root(&mut self) -> Result<BhpanPage> {
         let token = self.bhpan_ready().await?;
         let root = read::personal(&mut self.direct_runtime, &token).await?;
-        self.bhpan_page(vec![root], BhpanScope::Personal, None, "")
+        self.bhpan_page(
+            vec![root],
+            BhpanScope::Personal,
+            BhpanRootKind::Personal,
+            None,
+            None,
+            "",
+        )
     }
     /// 浏览已签发目录，接收分享继续使用同一分享授权。
     /// # Errors
@@ -201,7 +213,14 @@ impl UbaaClient {
             None => self.bhpan_ready().await?,
         };
         let items = read::list(&mut self.direct_runtime, &token, &a.item.id, false).await?;
-        self.bhpan_page(items, a.scope, a.token.as_ref(), &a.context)
+        self.bhpan_page(
+            items,
+            a.scope,
+            a.root_kind,
+            Some(&a.root_id),
+            a.token.as_ref(),
+            &a.context,
+        )
     }
     /// 读取目标的文件数、目录数与总字节数。
     /// # Errors
@@ -260,7 +279,14 @@ impl UbaaClient {
         let token = self.bhpan_ready().await?;
         let root = read::personal(&mut self.direct_runtime, &token).await?;
         let items = read::list(&mut self.direct_runtime, &token, &root.id, true).await?;
-        self.bhpan_page(items, BhpanScope::Recycle, None, "")
+        self.bhpan_page(
+            items,
+            BhpanScope::Recycle,
+            BhpanRootKind::Personal,
+            None,
+            None,
+            "",
+        )
     }
     /// 查看当前账号的分享历史，密码不进入公开模型。
     /// # Errors
@@ -333,6 +359,8 @@ impl UbaaClient {
         self.bhpan_page(
             vec![item],
             BhpanScope::ReceivedShare,
+            BhpanRootKind::All,
+            None,
             Some(&token),
             &uuid::Uuid::new_v4().to_string(),
         )

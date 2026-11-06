@@ -178,6 +178,7 @@ BridgeBhpanShareSettings _settings(BhpanShareSettings? s) {
     title: s.title,
     expiresAt: s.expiresAt,
     password: s.password,
+    keepPassword: s.keepPassword,
     limitedTimes: s.limitedTimes,
     permissions: s.permissions
         .map((p) => BridgeBhpanPermission.values[p.index])

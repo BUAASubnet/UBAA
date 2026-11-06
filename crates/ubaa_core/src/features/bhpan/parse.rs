@@ -1,4 +1,7 @@
-use crate::domain::bhpan::{BhpanItemKind, BhpanPermission, BhpanSize};
+use crate::domain::{
+    SecretValue,
+    bhpan::{BhpanItemKind, BhpanPermission, BhpanSize},
+};
 use crate::error::{Result, UbaaError};
 use serde::Deserialize;
 
@@ -122,9 +125,16 @@ pub(crate) struct Share {
     pub id: String,
     pub title: String,
     pub expires_at: String,
-    pub password: String,
+    #[serde(deserialize_with = "secret_string")]
+    pub password: SecretValue,
     pub limited_times: i64,
     pub item: ShareItem,
+}
+fn secret_string<'de, D>(deserializer: D) -> std::result::Result<SecretValue, D::Error>
+where
+    D: serde::Deserializer<'de>,
+{
+    String::deserialize(deserializer).map(SecretValue::new)
 }
 pub(crate) fn share_records(bytes: &[u8]) -> Result<Vec<Share>> {
     let records: Vec<Share> = json(bytes)?;
@@ -171,7 +181,7 @@ pub(crate) fn share_history(bytes: &[u8]) -> Result<Vec<Share>> {
                 id: link.id,
                 title: link.title,
                 expires_at: link.expires_at,
-                password: link.password,
+                password: SecretValue::new(link.password),
                 limited_times: link.limited_times,
                 item: ShareItem {
                     id: Some(entry.doc.id.clone()),

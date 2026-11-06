@@ -79,6 +79,8 @@ Item 字段与类型：D:95–137 的 docid/name 为 String，size 为 i64，siz
 | share_delete；O:289–297；旧版不适用 | DELETE L`/document/anonymous/{分享id}`；空正文。 | P；仅检查通用请求成功。 | 删除分享访问入口，不删除文件。不存在、重复删除及撤销传播时效无来源保证。 |
 | share_parse；O:308–367、D:164–217；旧版不适用 | GET L`/links/{分享id}` 读 password_required。需要密码时 POST B`/link`，JSON `id,type=anonymous,password_required=true,password=<输入>`；否则 GET B`/link/{分享id}`。再 GET E`/entry-item`。 | 链接导航复用 Cookie jar；从对应 `link_token:<分享id>` Cookie 取临时 Token，以该 Token 作 entry-item Bearer。解析为单元素数组，created_at/modified_at 为时间字符串，id/name 为 String，size 为可选 i64，缺失视作目录；结果附内存 Token。 | 不要求个人登录。缺密码为参数错误；各段未统一校验 HTTP 状态，后续解析失败不可当空内容。成功路径删除临时 link Cookie 与入口 Cookie，异常路径未保证清理；无临时 Token expiry 或刷新协议。只支持一个分享根目标。 |
 
+分享历史的 `link_configs[].password` 是更新分享所需的原始协议字段。Core 在读取历史后仅在客户端内存的受保护值中保留该字段，公开的 `BhpanShare`、Bridge DTO、缓存、日志和错误均只保留 `password_required`。更新设置的 `keepPassword=true` 时，PUT 正文沿用这份 Core 内存值；`keepPassword=false` 时才使用用户输入的密码。来源中的旧版发布工具没有分享管理接口，不能从旧版补充该字段的替代来源。
+
 share_parse 时间字符串按 D:181–192 的解析和 UTC+8 转换处理，与普通 Item 的整数时间解析不同。不存在精确类型或边界的响应须先形成脱敏 Fixture，不以字符串相似代替时间证据。
 
 ## 上传与下载
@@ -90,7 +92,7 @@ share_parse 时间字符串按 D:181–192 的解析和 UTC+8 转换处理，与
 | get_download_url；O:374–438；旧版不适用 | 单文件 POST E`/file/osdownload`，JSON `docid,authtype=QUERY_STRING`；目录按下一行 batchdownload，name 使用目录名。 | P 或 A；单文件取 authrequest 第二项地址，目录取得 ZIP 地址。未实际 GET 文件。 | 签名地址及有效期是临时授权材料，来源只返回 String，未验证 URL、最终跳转、长度或内容。目录打包是否产生服务端临时资源未明，不扩展为业务文件写入。 |
 | get_batch_url；O:394–455；旧版不适用 | 空选择报错；单个文件分流 osdownload。其他情况 POST E`/file/batchdownload`，JSON `name=<输入>.zip,reqhost=<B主机>,dirs=[目录id],files=[文件id]`。 | 只取第一项 Token；响应抽取 url 并删除反斜杠，未按 JSON 字符串正常解码。 | 混合个人/分享或不同分享来源未校验，不能照搬。ZIP 命名与路径分隔符、地址解析和重定向需要明确验证。没有 Range、落盘、续传、解压或摘要校验实现。 |
 | upload_fast_check；O:463–474、D:491–530；旧版不适用 | POST E`/file/predupload`；JSON `slice_md5,length`。 | 固定 P，无目的目录与分享 Token；响应抽取 match，与 true 文本比较。 | 探测与创建分开。O 注释分享目录始终不匹配，不能作为分享上传预检。前 200 KiB 哈希必须按精确长度处理，普通 Read 的短读边界需要测试；探测结果不能保证下一次秒传成功。 |
-| upload_fast；O:481–501、D:536–574；旧版不适用 | POST E`/file/dupload`；JSON `client_mtime=<当前毫秒>,crc32,docid=<目的目录>,length,md5,name,ondup=1`。 | 固定 P；输入完整 MD5 与 CRC32，响应 success 必须为 true。 | 这是创建业务文件的写入。分享目录明确不支持；不因预检成功自动绕过确认。没有更新既有同名文件的依据。 |
+| upload_fast；O:481–501、D:536–574；旧版不适用 | POST E`/file/dupload`；JSON `client_mtime=<当前毫秒>,crc32,docid=<目的目录>,length,md5,name,ondup=1`。 | 固定 P；输入完整 MD5 与 CRC32，响应 success 必须为 true。Core 只允许个人文档库，文档库分类来自入口请求类型；All 入口需用 `owned-doc-lib` 核对个人根目录 ID，不能从名称或范围推断。 | 这是创建业务文件的写入。分享、共享、部门和群组文档库明确不支持；不因预检成功自动绕过确认。没有更新既有同名文件的依据。 |
 | upload_small；O:508–549、D:650–657；旧版 K:387–433、540–570 | POST E`/file/osbeginupload`，JSON `client_mtime,docid=<目录>,length,name,ondup=1`；对象 PUT 文件字节；最后 POST E`/file/osendupload`，JSON `docid=<授权返回>,rev=<授权返回>`。两源阶段与字段相同。 | P 或 A；开始响应为 `authrequest,docid,rev`。X 的 URL/头由上游返回；buaa-api authrequest 是 Vec<String>，旧版动态数组。 | buaa-api 将整个文件 Vec 作为正文；旧版流式读取文件。旧版非 2xx PUT 最多 3 次尝试，见 K:411–429，此写重试不可照搬。buaa-api 校验 PUT HTTP 状态；结束登记只检查 HTTP，旧版还检查 error 字段并轮询目录文件名。各阶段响应丢失均不能证明无写入。 |
 | upload_big；O:556–665、D:577–668；旧版 K:436–570，T:143–175 | POST E`/file/osinitmultiupload`，JSON `docid=<目录>,length,name,ondup=1`；POST E`/file/osuploadpart`，JSON `docid,rev,uploadid,parts=1-N`；逐块对象 PUT；POST E`/file/oscompleteupload`，JSON `docid,rev,uploadid,partinfo`；按返回 XML 与授权执行对象 POST 合并；最后 osendupload，JSON `docid,rev`。 | P 或 A；初始化返回 String 类型 docid/rev/uploadid；授权为编号到方法/地址/头数组的映射；partinfo 每项为 ETag 与块长。完成协议为 XML+JSON multipart，随后由 X 请求。 | 两源按数字编号顺序、20 MiB 块长上传并保留 ETag；仅末块可不足块长。buaa-api PUT 不检查状态即取 ETag，旧版先检查 HTTP。完成与结束登记必须分别确认。无断点恢复、上传取消接口、缺片/重复片/非法编号验证或持久传输日志。 |
 
@@ -132,7 +134,7 @@ share_parse 时间字符串按 D:181–192 的解析和 UTC+8 转换处理，与
 
 文件写入沿用每行精确 JSON 和 `ondup=1`。个人目标与分享目标分别检查，只有 copy 另存使用个人 Bearer 加来源分享的 `x-as-authorization`。每份确认只消费一次，网络发送后的响应丢失或成功收据解析失败返回 `OutcomeUnknown`。rename/delete 等来源没有收据的操作沿用 HTTP 成功语义，不补造版本证明。分享创建结果包含原输入的 item，history 的 D:294–343 明确保留 doc.id/type 与 allow，两种来源均可使用完整关联更新。record 的读取模型跳过 item.id/type，继续拒绝从缺失关联构造更新。
 
-个人秒传采用 O:463–511 的 predupload 与 dupload，前 200 KiB MD5 只用于探测，匹配后才计算完整 MD5/CRC32。文件读取缓冲为 64 KiB，计算摘要期间检查取消，确认后在发送边界重新核对文件长度、修改时间、账号与路线。每个进度控制只用于一个任务，未匹配时停止，最终提交响应丢失保持 OutcomeUnknown。CRC32 使用锁文件已有的 crc32fast 1.5.3，Core 将既有传递依赖声明为直接依赖，用于来源要求的 crc32 字段。
+个人秒传采用 O:463–511 的 predupload 与 dupload，前 200 KiB MD5 只用于探测，匹配后才计算完整 MD5/CRC32。Core 在 Authority 中保留文档库分类和根目录 ID；共享、部门、群组以及无法核实为个人根的目标在探测前以明确输入错误停止，All 入口先调用 `owned-doc-lib` 核对根目录 ID。文件读取缓冲为 64 KiB，计算摘要期间检查取消，确认后在发送边界重新核对文件长度、修改时间、账号与路线。每个进度控制只用于一个任务，未匹配时停止，最终提交响应丢失保持 OutcomeUnknown。CRC32 使用锁文件已有的 crc32fast 1.5.3，Core 将既有传递依赖声明为直接依赖，用于来源要求的 crc32 字段。
 
 业务 API 只发送显式 Bearer，导航 Cookie 与分享临时 Cookie 在各自边界内处理。下载准备消费 osdownload 或 batchdownload 授权结构后只公开方法、主机、端口与头名称，不公开或访问签名地址。Direct 对象传输按当次动态授权规则实现，未知重定向和额外认证分支拒绝；北航部署的同名条件覆盖和 WebVPN 继续等待验证。公开爱数开发者文档的检索入口为 <https://developers.aishutech.com/napi/documents/307>，文档检索摘要包含另一套“文件请求上传”接口的 version 比对说明，但未取得北航部署与冻结上传流程的对应证据。不能据该摘要把上传 rev 解释为 CAS，也不能据官方示例固定对象主机。
 

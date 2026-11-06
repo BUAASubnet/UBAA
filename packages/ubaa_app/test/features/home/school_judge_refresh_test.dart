@@ -140,7 +140,7 @@ class _Client implements BridgeClient {
   bool gated = false;
   int legacyReads = 0;
   @override
-  int contractVersion() => 52;
+  int contractVersion() => 53;
   @override
   Future<BridgeJudgeRefreshTask> beginJudgeRefresh({
     required BridgeOfflineCache cache,

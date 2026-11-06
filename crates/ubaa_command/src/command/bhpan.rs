@@ -216,6 +216,7 @@ impl BhpanShareOptions {
             expires_at: self.expires_at.clone(),
             limited_times: self.limited_times,
             password,
+            keep_password: false,
             permissions: self
                 .allow
                 .iter()

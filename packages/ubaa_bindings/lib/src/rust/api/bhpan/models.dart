@@ -327,6 +327,7 @@ class BridgeBhpanShareSettings {
   final String title;
   final String expiresAt;
   final String password;
+  final bool keepPassword;
   final PlatformInt64 limitedTimes;
   final List<BridgeBhpanPermission> permissions;
 
@@ -334,6 +335,7 @@ class BridgeBhpanShareSettings {
     required this.title,
     required this.expiresAt,
     required this.password,
+    required this.keepPassword,
     required this.limitedTimes,
     required this.permissions,
   });
@@ -343,6 +345,7 @@ class BridgeBhpanShareSettings {
       title.hashCode ^
       expiresAt.hashCode ^
       password.hashCode ^
+      keepPassword.hashCode ^
       limitedTimes.hashCode ^
       permissions.hashCode;
 
@@ -354,6 +357,7 @@ class BridgeBhpanShareSettings {
           title == other.title &&
           expiresAt == other.expiresAt &&
           password == other.password &&
+          keepPassword == other.keepPassword &&
           limitedTimes == other.limitedTimes &&
           permissions == other.permissions;
 }

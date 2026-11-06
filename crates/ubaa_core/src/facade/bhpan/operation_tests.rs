@@ -23,7 +23,7 @@ fn 文件管理与回收站使用逐操作来源字段() {
 fn 分享创建更新取消保持原目标与权限且密码不进入公开结果() {
     executor().block_on(async {
   let script=Script::default();let (mut client,root)=client(script.clone());let target=item(&mut client,BhpanScope::Personal);
-  let settings=BhpanShareSettings {title:"synthetic".into(),expires_at:"1970-01-01T08:00:00+08:00".into(),password:SecretValue::new("fixture-password"),limited_times:-1,permissions:vec![BhpanPermission::Display,BhpanPermission::Download]};
+  let settings=BhpanShareSettings {title:"synthetic".into(),expires_at:"1970-01-01T08:00:00+08:00".into(),password:SecretValue::new("fixture-password"),keep_password:false,limited_times:-1,permissions:vec![BhpanPermission::Display,BhpanPermission::Download]};
   let body=json!({"item":{"id":"gns://fixture/target","type":"folder","allow":["display","download"]},"title":"synthetic","expires_at":"1970-01-01T08:00:00+08:00","password":"fixture-password","limited_times":-1});
   script.add(HttpMethod::Post,"/api/shared-link/v1/document/anonymous",Some(body.clone()),br#"{"id":"synthetic-share"}"#);
   let p=client.bhpan_prepare_write(BhpanWriteIntent::CreateShare {item:target.handle,settings:settings.clone()}).await.unwrap();let share=client.bhpan_commit_write(&p.handle).await.unwrap().share.unwrap();
@@ -50,7 +50,7 @@ fn 分享历史保留显式doc关联并支持更新_缺关联的单项记录拒�
   let script=Script::default();let (mut client,root)=client(script.clone());
   script.add(HttpMethod::Get,"/api/doc-share/v1/docs-shared-with-anyone",None,br#"{"entries":[{"doc":{"id":"gns://fixture/target","type":"folder"},"link_configs":[{"id":"history-share","title":"old","allow":["display"],"expires_at":"1970-01-01T08:00:00+08:00","password":"","limited_times":-1}]}]}"#);
   let share=client.bhpan_share_history().await.unwrap().remove(0);assert!(share.can_update);
-  let settings=BhpanShareSettings {title:"new".into(),expires_at:share.expires_at.clone(),password:SecretValue::new(""),limited_times:-1,permissions:vec![BhpanPermission::Display]};
+  let settings=BhpanShareSettings {title:"new".into(),expires_at:share.expires_at.clone(),password:SecretValue::new(""),keep_password:false,limited_times:-1,permissions:vec![BhpanPermission::Display]};
   script.add(HttpMethod::Put,"/api/shared-link/v1/document/anonymous/history-share",Some(json!({"item":{"id":"gns://fixture/target","type":"folder","allow":["display"]},"title":"new","expires_at":"1970-01-01T08:00:00+08:00","password":"","limited_times":-1})),b"");
   let p=client.bhpan_prepare_write(BhpanWriteIntent::UpdateShare {share:share.handle,settings:settings.clone()}).await.unwrap();client.bhpan_commit_write(&p.handle).await.unwrap();
   let item=item(&mut client,BhpanScope::Personal);
@@ -58,6 +58,55 @@ fn 分享历史保留显式doc关联并支持更新_缺关联的单项记录拒�
   let share=client.bhpan_share_records(&item.handle).await.unwrap().remove(0);assert!(!share.can_update);
   assert!(client.bhpan_prepare_write(BhpanWriteIntent::UpdateShare {share:share.handle,settings}).await.is_err());script.done();drop(client);std::fs::remove_dir_all(root).unwrap();
  });
+}
+
+#[test]
+fn update_share_keeps_history_password_without_public_projection() {
+    executor().block_on(async {
+        let script = Script::default();
+        let (mut client, root) = client(script.clone());
+        script.add(
+            HttpMethod::Get,
+            "/api/doc-share/v1/docs-shared-with-anyone",
+            None,
+            br#"{"entries":[{"doc":{"id":"gns://fixture/target","type":"folder"},"link_configs":[{"id":"protected-share","title":"old","allow":["display"],"expires_at":"1970-01-01T08:00:00+08:00","password":"fixture-original-password","limited_times":-1}]}]}"#,
+        );
+        let share = client.bhpan_share_history().await.unwrap().remove(0);
+        assert!(share.password_required);
+
+        let settings = BhpanShareSettings {
+            title: "new".into(),
+            expires_at: share.expires_at.clone(),
+            password: SecretValue::new(""),
+            keep_password: true,
+            limited_times: -1,
+            permissions: vec![BhpanPermission::Display],
+        };
+        script.add(
+            HttpMethod::Put,
+            "/api/shared-link/v1/document/anonymous/protected-share",
+            Some(json!({
+                "item":{"id":"gns://fixture/target","type":"folder","allow":["display"]},
+                "title":"new",
+                "expires_at":"1970-01-01T08:00:00+08:00",
+                "password":"fixture-original-password",
+                "limited_times":-1
+            })),
+            b"",
+        );
+        let prepared = client
+            .bhpan_prepare_write(BhpanWriteIntent::UpdateShare {
+                share: share.handle,
+                settings,
+            })
+            .await
+            .unwrap();
+        let result = client.bhpan_commit_write(&prepared.handle).await.unwrap();
+        assert!(!serde_json::to_string(&result).unwrap().contains("fixture-original-password"));
+        script.done();
+        drop(client);
+        std::fs::remove_dir_all(root).unwrap();
+    });
 }
 
 #[test]

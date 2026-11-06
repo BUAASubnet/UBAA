@@ -53,7 +53,7 @@ version 保留普通文本行为。无效参数文本会归约为安全的 `inva
 
 ## 手动交互验证码
 
-Flutter 手动登录、已授权的自动登录与会话恢复使用 Bridge v52 静默验证码流程。本地模型最多尝试三次，耗尽后提供当前路线的受限像素图、答案提交、刷新与取消。服务器 challenge id、execution、URL、Cookie 及 token 只留 Core。句柄绑定实例、账号、路线、会话修订和单调期限，直接提交当前取图页的 execution，拒绝后使用新挑战。协议依据见[来源裁决](../migration/decision-log.md#2026-11-06sso-图像验证码按当前准备状态直接提交)。旧非交互 Core-live/CLI 入口保持交互拒绝，App 命令模式的恢复可使用相同自动识别，耗尽后要求在界面完成验证。
+Flutter 手动登录、已授权的自动登录与会话恢复使用 Bridge v53 静默验证码流程。本地模型最多尝试三次，耗尽后提供当前路线的受限像素图、答案提交、刷新与取消。服务器 challenge id、execution、URL、Cookie 及 token 只留 Core。句柄绑定实例、账号、路线、会话修订和单调期限，直接提交当前取图页的 execution，拒绝后使用新挑战。协议依据见[来源裁决](../migration/decision-log.md#2026-11-06sso-图像验证码按当前准备状态直接提交)。旧非交互 Core-live/CLI 入口保持交互拒绝，App 命令模式的恢复可使用相同自动识别，耗尽后要求在界面完成验证。
 
 原位登录保留离线页面，挑战等待不产生写资格；隐藏、返回、账号变化、退出与销毁撤销上下文，迟到结果不再发布。固定路线就绪后复用该结果进入；Auto 在校园网只认证 Direct，校外并发认证两条独立路线。校外任一路线就绪即可进入应用，不因另一条路线的验证码阻塞；业务按[域名路线规则](route-policy.md)选择。细节与证据见[整合来源](../migration/source-parity-interactive-integration-2026-10-02.md)与[阶段验证](../migration/evidence/project-interactive-auth-2026-10-02.md)。
 

@@ -150,6 +150,21 @@ fn client(script: Script) -> (UbaaClient, std::path::PathBuf) {
     (client, root)
 }
 pub(super) fn item(client: &mut UbaaClient, scope: BhpanScope) -> BhpanItem {
+    item_with_root(
+        client,
+        scope,
+        if scope == BhpanScope::Personal {
+            crate::domain::bhpan::BhpanRootKind::Personal
+        } else {
+            crate::domain::bhpan::BhpanRootKind::All
+        },
+    )
+}
+fn item_with_root(
+    client: &mut UbaaClient,
+    scope: BhpanScope,
+    root_kind: crate::domain::bhpan::BhpanRootKind,
+) -> BhpanItem {
     client.bhpan.publish(Authority {
         item: parse::Item {
             id: "gns://fixture/target".into(),
@@ -160,6 +175,8 @@ pub(super) fn item(client: &mut UbaaClient, scope: BhpanScope) -> BhpanItem {
             modified: None,
         },
         scope,
+        root_kind,
+        root_id: "gns://fixture/target".into(),
         token: None,
         context: String::new(),
     })
@@ -460,6 +477,72 @@ fn 秒传未匹配不自动创建普通上传或分片会话() {
                 .is_err()
         );
         assert_eq!(transfer.progress().phase, BhpanTransferPhase::Blocked);
+        script.done();
+        drop(client);
+        std::fs::remove_dir_all(root).unwrap();
+    });
+}
+
+#[test]
+fn 共享文档库拒绝秒传且不发送探测请求() {
+    executor().block_on(async {
+        for root_kind in [
+            crate::domain::bhpan::BhpanRootKind::Shared,
+            crate::domain::bhpan::BhpanRootKind::Department,
+            crate::domain::bhpan::BhpanRootKind::Group,
+        ] {
+            let script = Script::default();
+            let (mut client, root) = client(script.clone());
+            let parent = item_with_root(&mut client, BhpanScope::Personal, root_kind);
+            let path = root.join("upload.fixture");
+            std::fs::write(&path, b"hello").unwrap();
+            let transfer = super::BhpanTransfer::new();
+            let error = client
+                .bhpan_prepare_fast_upload(&parent.handle, path, "notes.txt", transfer)
+                .await
+                .unwrap_err();
+            assert_eq!(error.code, ErrorCode::InvalidInput);
+            assert_eq!(error.message, "秒传只支持个人文档库");
+            script.done();
+            drop(client);
+            std::fs::remove_dir_all(root).unwrap();
+        }
+    });
+}
+
+#[test]
+fn All入口核实个人根后允许秒传() {
+    executor().block_on(async {
+        let script = Script::default();
+        script.add(
+            HttpMethod::Get,
+            "/api/efast/v1/owned-doc-lib",
+            None,
+            br#"[{"id":"gns://fixture/target","name":"personal"}]"#,
+        );
+        script.add(
+            HttpMethod::Post,
+            "/api/efast/v1/file/predupload",
+            Some(json!({
+                "length": 5,
+                "slice_md5": "5d41402abc4b2a76b9719d911017c592"
+            })),
+            br#"{"match":false}"#,
+        );
+        let (mut client, root) = client(script.clone());
+        let parent = item_with_root(
+            &mut client,
+            BhpanScope::Personal,
+            crate::domain::bhpan::BhpanRootKind::All,
+        );
+        let path = root.join("upload.fixture");
+        std::fs::write(&path, b"hello").unwrap();
+        let transfer = super::BhpanTransfer::new();
+        let error = client
+            .bhpan_prepare_fast_upload(&parent.handle, path, "notes.txt", transfer)
+            .await
+            .unwrap_err();
+        assert_eq!(error.message, "该文件不支持秒传，请改用普通上传");
         script.done();
         drop(client);
         std::fs::remove_dir_all(root).unwrap();

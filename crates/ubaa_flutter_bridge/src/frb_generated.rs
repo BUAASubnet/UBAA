@@ -20014,6 +20014,7 @@ impl SseDecode for crate::api::bhpan::models::BridgeBhpanShareSettings {
         let mut var_title = <String>::sse_decode(deserializer);
         let mut var_expiresAt = <String>::sse_decode(deserializer);
         let mut var_password = <String>::sse_decode(deserializer);
+        let mut var_keepPassword = <bool>::sse_decode(deserializer);
         let mut var_limitedTimes = <i64>::sse_decode(deserializer);
         let mut var_permissions =
             <Vec<crate::api::bhpan::models::BridgeBhpanPermission>>::sse_decode(deserializer);
@@ -20021,6 +20022,7 @@ impl SseDecode for crate::api::bhpan::models::BridgeBhpanShareSettings {
             title: var_title,
             expires_at: var_expiresAt,
             password: var_password,
+            keep_password: var_keepPassword,
             limited_times: var_limitedTimes,
             permissions: var_permissions,
         };
@@ -31500,6 +31502,7 @@ impl flutter_rust_bridge::IntoDart for crate::api::bhpan::models::BridgeBhpanSha
             self.title.into_into_dart().into_dart(),
             self.expires_at.into_into_dart().into_dart(),
             self.password.into_into_dart().into_dart(),
+            self.keep_password.into_into_dart().into_dart(),
             self.limited_times.into_into_dart().into_dart(),
             self.permissions.into_into_dart().into_dart(),
         ]
@@ -40465,6 +40468,7 @@ impl SseEncode for crate::api::bhpan::models::BridgeBhpanShareSettings {
         <String>::sse_encode(self.title, serializer);
         <String>::sse_encode(self.expires_at, serializer);
         <String>::sse_encode(self.password, serializer);
+        <bool>::sse_encode(self.keep_password, serializer);
         <i64>::sse_encode(self.limited_times, serializer);
         <Vec<crate::api::bhpan::models::BridgeBhpanPermission>>::sse_encode(
             self.permissions,

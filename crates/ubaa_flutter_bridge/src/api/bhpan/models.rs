@@ -71,6 +71,7 @@ pub struct BridgeBhpanShareSettings {
     pub title: String,
     pub expires_at: String,
     pub password: String,
+    pub keep_password: bool,
     pub limited_times: i64,
     pub permissions: Vec<BridgeBhpanPermission>,
 }

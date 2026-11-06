@@ -16180,14 +16180,15 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
   BridgeBhpanShareSettings dco_decode_bridge_bhpan_share_settings(dynamic raw) {
     // Codec=Dco (DartCObject based), see doc to use other codecs
     final arr = raw as List<dynamic>;
-    if (arr.length != 5)
-      throw Exception('unexpected arr length: expect 5 but see ${arr.length}');
+    if (arr.length != 6)
+      throw Exception('unexpected arr length: expect 6 but see ${arr.length}');
     return BridgeBhpanShareSettings(
       title: dco_decode_String(arr[0]),
       expiresAt: dco_decode_String(arr[1]),
       password: dco_decode_String(arr[2]),
-      limitedTimes: dco_decode_i_64(arr[3]),
-      permissions: dco_decode_list_bridge_bhpan_permission(arr[4]),
+      keepPassword: dco_decode_bool(arr[3]),
+      limitedTimes: dco_decode_i_64(arr[4]),
+      permissions: dco_decode_list_bridge_bhpan_permission(arr[5]),
     );
   }
 
@@ -25089,12 +25090,14 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     var var_title = sse_decode_String(deserializer);
     var var_expiresAt = sse_decode_String(deserializer);
     var var_password = sse_decode_String(deserializer);
+    var var_keepPassword = sse_decode_bool(deserializer);
     var var_limitedTimes = sse_decode_i_64(deserializer);
     var var_permissions = sse_decode_list_bridge_bhpan_permission(deserializer);
     return BridgeBhpanShareSettings(
       title: var_title,
       expiresAt: var_expiresAt,
       password: var_password,
+      keepPassword: var_keepPassword,
       limitedTimes: var_limitedTimes,
       permissions: var_permissions,
     );
@@ -35629,6 +35632,7 @@ class RustLibApiImpl extends RustLibApiImplPlatform implements RustLibApi {
     sse_encode_String(self.title, serializer);
     sse_encode_String(self.expiresAt, serializer);
     sse_encode_String(self.password, serializer);
+    sse_encode_bool(self.keepPassword, serializer);
     sse_encode_i_64(self.limitedTimes, serializer);
     sse_encode_list_bridge_bhpan_permission(self.permissions, serializer);
   }

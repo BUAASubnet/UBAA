@@ -100,16 +100,16 @@ pub(super) fn settings(s: &BhpanShareSettings) -> Result<()> {
         .map_err(|_| UbaaError::invalid_input("分享有效期格式无效"))?;
     Ok(())
 }
-fn share_body(item: &parse::ShareItem, settings: &BhpanShareSettings) -> Value {
+fn share_body(item: &parse::ShareItem, settings: &BhpanShareSettings, password: &str) -> Value {
     json!({"item":{"id":item.id,"type":item.kind,"allow":settings.permissions},"title":settings.title,
-        "expires_at":settings.expires_at,"password":settings.password.expose_secret(),"limited_times":settings.limited_times})
+        "expires_at":settings.expires_at,"password":password,"limited_times":settings.limited_times})
 }
-fn share_from(item: parse::ShareItem, s: BhpanShareSettings) -> parse::Share {
+fn share_from(item: parse::ShareItem, s: BhpanShareSettings, password: &str) -> parse::Share {
     parse::Share {
         id: String::new(),
         title: s.title,
         expires_at: s.expires_at,
-        password: s.password.expose_secret().to_owned(),
+        password: crate::domain::SecretValue::new(password),
         limited_times: s.limited_times,
         item: parse::ShareItem {
             allow: s.permissions,
@@ -261,6 +261,8 @@ fn relocate(
         let a = Authority {
             token: None,
             scope: BhpanScope::Personal,
+            root_kind: dest.root_kind,
+            root_id: dest.root_id,
             context: String::new(),
             ..a
         };
@@ -311,10 +313,11 @@ fn shares(
                 ),
                 allow: s.permissions.clone(),
             };
+            let password = s.password.expose_secret().to_owned();
             (
                 format!("{}/document/anonymous", wire::LINKS),
-                Some(share_body(&item, &s)),
-                Receipt::Share(share_from(item, s)),
+                Some(share_body(&item, &s, &password)),
+                Receipt::Share(share_from(item, s, &password)),
                 "创建分享",
             )
         }
@@ -329,8 +332,14 @@ fn shares(
                     "该分享记录缺少完整目标关联，请从分享历史管理更新",
                 ));
             }
-            let body = share_body(&old.item, &s);
-            let mut updated = share_from(old.item, s);
+            let old_password = old.password.clone();
+            let password = if s.keep_password {
+                old_password.expose_secret().to_owned()
+            } else {
+                s.password.expose_secret().to_owned()
+            };
+            let body = share_body(&old.item, &s, &password);
+            let mut updated = share_from(old.item, s, &password);
             updated.id = old.id;
             method = HttpMethod::Put;
             (

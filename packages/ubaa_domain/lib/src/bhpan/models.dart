@@ -88,6 +88,7 @@ final class BhpanShareSettings {
     required this.title,
     this.expiresAt = '1970-01-01T08:00:00+08:00',
     this.password = '',
+    this.keepPassword = false,
     this.limitedTimes = -1,
     this.permissions = const [
       BhpanPermission.display,
@@ -95,6 +96,9 @@ final class BhpanShareSettings {
     ],
   });
   final String title, expiresAt, password;
+
+  /// 修改已有分享时沿用原提取码，此时忽略 [password]。
+  final bool keepPassword;
   final int limitedTimes;
   final List<BhpanPermission> permissions;
 }

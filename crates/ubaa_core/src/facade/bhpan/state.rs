@@ -1,6 +1,6 @@
 use crate::domain::{
     SecretValue,
-    bhpan::{BhpanItem, BhpanItemKind, BhpanScope, BhpanShare},
+    bhpan::{BhpanItem, BhpanItemKind, BhpanRootKind, BhpanScope, BhpanShare},
 };
 use crate::error::{Result, UbaaError};
 use crate::features::bhpan::parse;
@@ -10,6 +10,8 @@ use std::collections::HashMap;
 pub(super) struct Authority {
     pub item: parse::Item,
     pub scope: BhpanScope,
+    pub root_kind: BhpanRootKind,
+    pub root_id: String,
     pub token: Option<SecretValue>,
     pub context: String,
 }
@@ -45,6 +47,8 @@ pub(in crate::facade) struct BhpanState {
 struct ItemKey {
     id: String,
     scope: BhpanScope,
+    root_kind: BhpanRootKind,
+    root_id: String,
     context: String,
 }
 #[derive(Eq, PartialEq)]
@@ -71,6 +75,8 @@ impl BhpanState {
         let key = ItemKey {
             id: authority.item.id.clone(),
             scope: authority.scope,
+            root_kind: authority.root_kind,
+            root_id: authority.root_id.clone(),
             context: authority.context.clone(),
         };
         let handle = self
@@ -100,7 +106,7 @@ impl BhpanState {
             handle: handle.clone(),
             title: share.title.clone(),
             expires_at: share.expires_at.clone(),
-            password_required: !share.password.is_empty(),
+            password_required: !share.password.expose_secret().is_empty(),
             limited_times: share.limited_times,
             permissions: share.item.allow.clone(),
             can_update,

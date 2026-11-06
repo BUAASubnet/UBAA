@@ -1,5 +1,5 @@
 use super::{BhpanTransfer, BhpanUploadSource, UbaaClient, wire};
-use crate::domain::bhpan::{BhpanPreparedWrite, BhpanTransferPhase};
+use crate::domain::bhpan::{BhpanPreparedWrite, BhpanRootKind, BhpanTransferPhase};
 use crate::error::{Result, UbaaError};
 use crate::features::bhpan::{parse, upload::FileSnapshot};
 use crate::ports::HttpMethod;
@@ -44,6 +44,16 @@ impl UbaaClient {
         let binding = self.bhpan_binding();
         let parent = self.bhpan.item(parent)?;
         parent.personal()?;
+        if parent.root_kind == BhpanRootKind::All {
+            let token = self.bhpan_ready().await?;
+            let personal =
+                crate::features::bhpan::read::personal(&mut self.direct_runtime, &token).await?;
+            if personal.id != parent.root_id {
+                return Err(UbaaError::invalid_input("秒传只支持个人文档库"));
+            }
+        } else if parent.root_kind != BhpanRootKind::Personal {
+            return Err(UbaaError::invalid_input("秒传只支持个人文档库"));
+        }
         parent.folder()?;
         super::write::name(name)?;
         transfer.ensure_active()?;
