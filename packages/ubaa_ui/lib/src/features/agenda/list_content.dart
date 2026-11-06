@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'calendar_values.dart';
 import 'format.dart';
+import '../../common/state_panel.dart';
 
 const _weekdays = ['一', '二', '三', '四', '五', '六', '日'];
 
@@ -35,45 +36,14 @@ List<Widget> agendaListSlivers({
       SliverFillRemaining(
         hasScrollBody: false,
         child: Padding(
-          padding: const EdgeInsets.fromLTRB(32, 32, 32, 96),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Container(
-                width: 88,
-                height: 88,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  color: colors.primaryContainer.withValues(alpha: .5),
-                ),
-                child: Icon(
-                  Icons.wb_twilight_rounded,
-                  size: 40,
-                  color: colors.primary,
-                ),
-              ),
-              const SizedBox(height: 20),
-              Text(
-                '这段时间没有安排',
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              const SizedBox(height: 6),
-              Text(
-                '当前范围没有符合筛选的事项，可新建日程或待办',
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
-              ),
-              const SizedBox(height: 20),
-              FilledButton.tonalIcon(
-                onPressed: onCreate,
-                icon: const Icon(Icons.add),
-                label: const Text('新建事项'),
-              ),
-            ],
+          padding: const EdgeInsets.only(bottom: 64),
+          child: UiStatePanel(
+            icon: Icons.wb_twilight_rounded,
+            title: '这段时间没有安排',
+            detail: '当前范围没有符合筛选的事项，可新建日程或待办',
+            action: '新建事项',
+            actionIcon: Icons.add,
+            onAction: onCreate,
           ),
         ),
       ),

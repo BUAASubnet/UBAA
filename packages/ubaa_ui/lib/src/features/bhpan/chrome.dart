@@ -189,65 +189,6 @@ class BhpanItemTile extends StatelessWidget {
   }
 }
 
-class BhpanStatePanel extends StatelessWidget {
-  const BhpanStatePanel({
-    super.key,
-    required this.icon,
-    required this.text,
-    this.detail,
-    this.action,
-    this.onAction,
-  });
-  final IconData icon;
-  final String text;
-  final String? detail, action;
-  final VoidCallback? onAction;
-  @override
-  Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
-    return Center(
-      child: Padding(
-        padding: const EdgeInsets.all(32),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 72,
-              height: 72,
-              decoration: BoxDecoration(
-                color: colors.surfaceContainerHigh,
-                shape: BoxShape.circle,
-              ),
-              child: Icon(icon, size: 36, color: colors.onSurfaceVariant),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              text,
-              textAlign: TextAlign.center,
-              style: theme.textTheme.titleMedium,
-            ),
-            if (detail != null) ...[
-              const SizedBox(height: 6),
-              Text(
-                detail!,
-                textAlign: TextAlign.center,
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: colors.onSurfaceVariant,
-                ),
-              ),
-            ],
-            if (action != null) ...[
-              const SizedBox(height: 20),
-              FilledButton.tonal(onPressed: onAction, child: Text(action!)),
-            ],
-          ],
-        ),
-      ),
-    );
-  }
-}
-
 /// 首次进入目录时的占位行，尺寸与 [BhpanItemTile] 一致，避免内容跳动。
 class BhpanSkeletonList extends StatelessWidget {
   const BhpanSkeletonList({super.key});

@@ -5,6 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../academic/content.dart' show uiSupportsAcademicContent;
 import '../exam/timeline.dart' show uiAcademicSearchValues;
 import 'cards.dart' show GradeCard, GradeSummaryCard;
+import '../../common/state_panel.dart';
 
 /// 旧版两张统计卡和课程列表共用滚动区域，面板筛选不改变统计集合。
 class GradesFlow extends StatefulWidget {
@@ -292,9 +293,10 @@ class _GradesFlowState extends State<GradesFlow> {
         ),
         const SizedBox(height: 12),
         if (details.isEmpty)
-          Padding(
-            padding: const EdgeInsets.all(32),
-            child: Center(child: Text(filter.isNotEmpty ? '没有匹配的成绩' : '暂无成绩')),
+          UiStatePanel(
+            compact: true,
+            icon: filter.isNotEmpty ? Icons.search_off : Icons.inbox_outlined,
+            title: filter.isNotEmpty ? '没有匹配的成绩' : '暂无成绩',
           )
         else
           for (final detail in details)

@@ -9,6 +9,7 @@ import 'summary.dart' show YgdkSummary;
 import '../../write/ygdk/draft.dart' show YgdkFormContext;
 import '../../write/ygdk/form.dart' show uiCollectYgdkForm;
 import '../../shared/create_button.dart';
+import '../../common/state_panel.dart';
 
 /// 旧版阳光首页：概要在前、记录在后，运动项目收在新增流程。
 class YgdkHomeFlow extends StatefulWidget {
@@ -273,14 +274,12 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
             if (loading && visible.isEmpty && _page == null)
               const LoadingPlaceholder(compact: true),
             if (!loading &&
-                (_page?.errorCode != null ||
-                    widget.snapshot.error != null)) ...[
-              const Text('打卡记录加载失败，请重试。'),
-              TextButton(
-                onPressed: loading ? null : () => _load(widget.query),
-                child: const Text('重试记录'),
-              ),
-            ] else if (_page == null && !loading)
+                (_page?.errorCode != null || widget.snapshot.error != null))
+              UiInlineRetry(
+                message: '打卡记录加载失败',
+                onRetry: () => _load(widget.query),
+              )
+            else if (_page == null && !loading)
               TextButton(
                 onPressed: () => _load(widget.query),
                 child: const Text('加载打卡记录'),
@@ -289,7 +288,11 @@ class _YgdkHomeFlowState extends State<YgdkHomeFlow> {
                 _page!.errorCode == null &&
                 _page!.evidence?.complete != false &&
                 visible.isEmpty)
-              Text(filter.isEmpty ? '暂时还没有打卡记录' : '没有匹配的打卡记录'),
+              UiStatePanel(
+                compact: true,
+                icon: filter.isEmpty ? Icons.inbox_outlined : Icons.search_off,
+                title: filter.isEmpty ? '暂无打卡记录' : '没有匹配的打卡记录',
+              ),
             for (final record in visible) ...[
               YgdkRecordCard(record),
               const SizedBox(height: 12),

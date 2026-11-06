@@ -57,7 +57,11 @@ extension CgyyReservationTable on CgyyReservationFlowState {
 
   Widget _table(BuildContext context, CgyyDayPresentation day) {
     if (day.spaces.isEmpty)
-      return const Padding(padding: EdgeInsets.all(24), child: Text('暂无研讨室'));
+      return const UiStatePanel(
+        compact: true,
+        icon: Icons.meeting_room_outlined,
+        title: '暂无研讨室',
+      );
     final scale = MediaQuery.textScalerOf(context).scale(14) / 14;
     final rowHeight = 56 * scale;
     final headerHeight = 62 * scale;

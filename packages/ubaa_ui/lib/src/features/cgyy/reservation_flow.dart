@@ -12,6 +12,7 @@ import 'reservation_table.dart' show CgyyTableHeader;
 import '../../write/cgyy/draft.dart' show CgyyFormContext;
 import '../../write/cgyy/form.dart'
     show uiCgyyActionKey, uiCollectCgyyReservation, uiSelectCgyyAction;
+import '../../common/state_panel.dart';
 part 'table.dart';
 part 'choices.dart';
 part 'selection_bar.dart';

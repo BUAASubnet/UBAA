@@ -10,6 +10,7 @@ import '../../shared/dialogs/scope_boundary.dart';
 import '../../shared/feedback.dart';
 import '../../shared/refresh.dart';
 import '../../shared/loading.dart';
+import '../../common/state_panel.dart';
 
 /// 有效期的展示文字；过期时第二项为 true。
 (String, bool) bhpanShareExpiry(
@@ -161,9 +162,9 @@ class _BhpanSharesPageState extends State<BhpanSharesPage> {
       content = PullToRefresh(
         onRefresh: _load,
         child: RefreshViewport(
-          child: BhpanStatePanel(
+          child: UiStatePanel(
             icon: Icons.cloud_off_outlined,
-            text: '没能读取分享',
+            title: '没能读取分享',
             detail: error is UiError ? error.message : '请检查网络后重试',
             action: '重试',
             onAction: _loading ? null : _load,
@@ -176,9 +177,9 @@ class _BhpanSharesPageState extends State<BhpanSharesPage> {
       content = PullToRefresh(
         onRefresh: _load,
         child: RefreshViewport(
-          child: BhpanStatePanel(
+          child: UiStatePanel(
             icon: Icons.link_off,
-            text: widget.item == null ? '还没有分享' : '这个条目还没有分享',
+            title: widget.item == null ? '还没有分享' : '这个条目还没有分享',
             detail: '在文件的「更多操作」里选择「分享」即可创建链接',
           ),
         ),

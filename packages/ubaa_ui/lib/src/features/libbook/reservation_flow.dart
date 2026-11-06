@@ -10,6 +10,7 @@ import '../../shared/app_bar_slot.dart' show UiAppBarPicker, UiAppBarSlot;
 import '../../shared/place_memory.dart' show UiPlaceKeys, UiPlaceMemory;
 import 'reservation_content.dart' show uiCanReserveSeat;
 import '../../shared/when.dart' show uiShortDateTime;
+import '../../common/state_panel.dart';
 part 'schedule.dart';
 part 'choices.dart';
 part 'content.dart';
@@ -354,7 +355,11 @@ class LibbookReservationFlowState extends State<LibbookReservationFlow> {
             widget.query.view != FeatureQueryView.libbookSeats &&
             (widget.snapshot.status == FeatureLoadStatus.empty ||
                 (_busy && widget.snapshot.updatedAt != null)))
-          const Padding(padding: EdgeInsets.all(16), child: Text('暂无可显示的结果')),
+          const UiStatePanel(
+            compact: true,
+            icon: Icons.inbox_outlined,
+            title: '暂无可显示的结果',
+          ),
         if (!_hideSeats &&
             (widget.query.view == FeatureQueryView.libbookSeats ||
                 details.any((d) => d.presentation is LibbookSeatPresentation)))

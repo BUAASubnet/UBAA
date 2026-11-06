@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'loading.dart' show LoadingGlyph;
+import '../common/state_panel.dart';
 
 /// 在主列表接近底部时续载，忽略嵌套文本、横向表格和后台导航页。
 class InfiniteScroll extends StatefulWidget {
@@ -87,16 +88,9 @@ class _InfiniteScrollState extends State<InfiniteScroll> {
               else if (widget.error != null)
                 Padding(
                   padding: const EdgeInsets.all(8),
-                  child: Wrap(
-                    crossAxisAlignment: WrapCrossAlignment.center,
-                    spacing: 8,
-                    children: [
-                      Text(widget.error!),
-                      TextButton(
-                        onPressed: widget.onLoadMore,
-                        child: const Text('重试加载'),
-                      ),
-                    ],
+                  child: UiInlineRetry(
+                    message: widget.error!,
+                    onRetry: widget.onLoadMore,
                   ),
                 ),
             ],

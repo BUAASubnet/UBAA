@@ -97,15 +97,10 @@ extension _IhomeCards on _IhomeViewState {
           if (_detailErrors[id] != null)
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(_detailErrors[id]!),
-                  TextButton(
-                    onPressed: loading || busy ? null : () => _readDetail(id),
-                    child: Text(_uncertain.contains(id) ? '刷新核对' : '重试'),
-                  ),
-                ],
+              child: UiInlineRetry(
+                message: _detailErrors[id]!,
+                onRetry: loading || busy ? null : () => _readDetail(id),
+                label: _uncertain.contains(id) ? '刷新核对' : '重试',
               ),
             ),
           if (expanded && detail != null && detail.history.isNotEmpty)

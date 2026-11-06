@@ -4,6 +4,7 @@ import 'package:flutter/foundation.dart';
 import '../../shared/dialogs/scope_boundary.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/loading.dart';
+import '../../common/state_panel.dart';
 
 Future<String?> bhpanText(
   BuildContext context, {
@@ -369,30 +370,19 @@ class _DestinationState extends State<_Destination> {
             const Divider(height: 1),
             Expanded(
               child: _error != null
-                  ? Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(32),
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            Text(_error!, textAlign: TextAlign.center),
-                            const SizedBox(height: 12),
-                            FilledButton.tonal(
-                              onPressed: _load,
-                              child: const Text('重试'),
-                            ),
-                          ],
-                        ),
-                      ),
+                  ? UiStatePanel(
+                      icon: Icons.cloud_off_outlined,
+                      title: _error!,
+                      action: '重试',
+                      onAction: _load,
                     )
                   : folders == null
                   ? const LoadingPlaceholder()
                   : folders.isEmpty
-                  ? Center(
-                      child: Text(
-                        '这里没有子文件夹',
-                        style: TextStyle(color: colors.onSurfaceVariant),
-                      ),
+                  ? const UiStatePanel(
+                      compact: true,
+                      icon: Icons.folder_off_outlined,
+                      title: '这里没有子文件夹',
                     )
                   : ListView(
                       children: [

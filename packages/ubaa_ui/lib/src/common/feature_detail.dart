@@ -26,6 +26,7 @@ import '../features/ygdk/home_flow.dart' show YgdkHomeFlow;
 import '../shared/feature_icons.dart' show uiFeatureIcon;
 import '../write/cgyy/draft.dart' show CgyyFormContext, CgyyFormDraft;
 import '../write/ygdk/draft.dart' show YgdkFormContext, YgdkFormDraft;
+import 'state_panel.dart';
 
 bool uiReadableCachedContent(FeatureSnapshot snapshot) =>
     {
@@ -737,33 +738,17 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
                   widget.query?.week != null))
       ? ScheduleContent(details: const [], timeline: _scheduleTimeline)
       : RefreshViewport(
-          child: Center(
-            child: Padding(
-              padding: const EdgeInsets.all(24),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: <Widget>[
-                  Icon(
-                    uiFeatureIcon(widget.feature),
-                    size: 56,
-                    color: Theme.of(context).colorScheme.primary,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    widget.isBykcChosenDetail
-                        ? '暂时无法显示这条选课记录'
-                        : widget.snapshot.evidence?.complete == false
-                        ? '暂时没有可显示的内容'
-                        : '暂无${widget.feature.title}数据',
-                  ),
-                  if (widget.snapshot.summary case final summary?
-                      when summary.trim().isNotEmpty) ...<Widget>[
-                    const SizedBox(height: 8),
-                    Text(summary, textAlign: TextAlign.center),
-                  ],
-                ],
-              ),
-            ),
+          child: UiStatePanel(
+            icon: uiFeatureIcon(widget.feature),
+            title: widget.isBykcChosenDetail
+                ? '暂时无法显示这条选课记录'
+                : widget.snapshot.evidence?.complete == false
+                ? '暂时没有可显示的内容'
+                : '暂无${widget.feature.title}数据',
+            detail: switch (widget.snapshot.summary) {
+              final summary? when summary.trim().isNotEmpty => summary,
+              _ => null,
+            },
           ),
         );
 

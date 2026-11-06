@@ -1,6 +1,7 @@
 import '../../shared/feedback.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../common/state_panel.dart';
 
 /// 正常同步不占用课表空间，仅在失败时提供恢复入口。
 class ScheduleRefreshError extends StatelessWidget {
@@ -34,15 +35,7 @@ class ScheduleRefreshError extends StatelessWidget {
         : '课表刷新失败，请重试';
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      child: Wrap(
-        alignment: WrapAlignment.center,
-        crossAxisAlignment: WrapCrossAlignment.center,
-        spacing: 12,
-        children: [
-          Text(message),
-          TextButton(onPressed: () => _retry(context), child: const Text('重试')),
-        ],
-      ),
+      child: UiInlineRetry(message: message, onRetry: () => _retry(context)),
     );
   }
 }

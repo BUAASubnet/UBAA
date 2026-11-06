@@ -29,10 +29,10 @@ void main() {
     await tester.drag(list, const Offset(0, -3000));
     await tester.pumpAndSettle();
     expect(state.requests.map((q) => q.page), [2]);
-    expect(find.text('重试加载'), findsOneWidget);
+    expect(find.text('重试'), findsOneWidget);
     final position = tester.state<ScrollableState>(scroll).position;
     final beforeRetry = position.pixels;
-    await tester.tap(find.text('重试加载'));
+    await tester.tap(find.text('重试'));
     await tester.pumpAndSettle();
     expect(state.requests.map((q) => q.page), [2, 2]);
     expect(

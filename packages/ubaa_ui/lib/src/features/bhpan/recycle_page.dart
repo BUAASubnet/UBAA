@@ -9,6 +9,7 @@ import 'write_flow.dart';
 import '../../shared/dialogs/scope_boundary.dart';
 import '../../shared/feedback.dart';
 import '../../shared/refresh.dart';
+import '../../common/state_panel.dart';
 
 /// 回收站独立页面：恢复或永久删除；来源只提供最近 100 项。
 class BhpanRecyclePage extends StatefulWidget {
@@ -187,9 +188,9 @@ class _BhpanRecyclePageState extends State<BhpanRecyclePage> {
       content = PullToRefresh(
         onRefresh: _load,
         child: RefreshViewport(
-          child: BhpanStatePanel(
+          child: UiStatePanel(
             icon: Icons.cloud_off_outlined,
-            text: '没能读取回收站',
+            title: '没能读取回收站',
             detail: error is UiError ? error.message : '请检查网络后重试',
             action: '重试',
             onAction: _loading ? null : _load,
@@ -202,7 +203,7 @@ class _BhpanRecyclePageState extends State<BhpanRecyclePage> {
       content = PullToRefresh(
         onRefresh: _load,
         child: const RefreshViewport(
-          child: BhpanStatePanel(icon: Icons.delete_outline, text: '回收站是空的'),
+          child: UiStatePanel(icon: Icons.delete_outline, title: '回收站是空的'),
         ),
       );
     } else {

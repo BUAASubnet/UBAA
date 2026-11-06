@@ -4,6 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/loading.dart';
 import '../../shared/refresh.dart';
 import '../../theme.dart';
+import '../../common/state_panel.dart';
 part 'detail.dart';
 part 'filters.dart';
 part 'actions.dart';
@@ -254,24 +255,15 @@ class _IhomeViewState extends State<IhomeView> {
           if (_error != null)
             Padding(
               padding: const EdgeInsets.symmetric(vertical: 12),
-              child: Column(
-                children: [
-                  Text(_error!),
-                  TextButton(onPressed: () => _load(), child: const Text('重试')),
-                ],
-              ),
+              child: UiInlineRetry(message: _error!, onRetry: () => _load()),
             ),
           if (_configError != null && !_notices)
-            Row(
-              children: [
-                Expanded(child: Text(_configError!)),
-                TextButton(onPressed: _loadConfig, child: const Text('重试')),
-              ],
-            ),
+            UiInlineRetry(message: _configError!, onRetry: _loadConfig),
           if (!_loading && _error == null && empty)
-            const Padding(
-              padding: EdgeInsets.all(32),
-              child: Center(child: Text('暂无内容')),
+            const UiStatePanel(
+              compact: true,
+              icon: Icons.inbox_outlined,
+              title: '暂无内容',
             ),
           if (_notices)
             for (final notice in _announcements)

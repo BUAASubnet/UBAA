@@ -4,6 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/loading.dart';
 import '../../shared/schedule_values.dart';
 import '../../shared/text.dart';
+import '../../common/state_panel.dart';
 
 typedef HomeScheduleRoute = ({String label, ConnectionMode? route});
 
@@ -251,18 +252,14 @@ class _HomeScheduleSectionState extends State<HomeScheduleSection> {
             ),
           ),
         if (error != null)
-          Row(
-            children: [
-              Expanded(child: Text(error.message)),
-              if (remote && widget.onLoadDay != null)
-                TextButton(
-                  onPressed: () {
+          UiInlineRetry(
+            message: error.message,
+            onRetry: remote && widget.onLoadDay != null
+                ? () {
                     _queue(date, force: true);
                     setState(() {});
-                  },
-                  child: const Text('重试'),
-                ),
-            ],
+                  }
+                : null,
           ),
       ],
     );

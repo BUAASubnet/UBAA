@@ -18,6 +18,7 @@ import '../../shared/dialogs/scope_boundary.dart';
 import '../../shared/feedback.dart';
 import '../../shared/refresh.dart';
 import '../../shared/sync_status.dart';
+import '../../common/state_panel.dart';
 
 part 'view_transfer.dart';
 
@@ -743,41 +744,41 @@ class _BhpanViewState extends State<BhpanView> {
   Widget _errorPanel(Object error) {
     final code = error is UiError ? error.code : null;
     if (_received)
-      return BhpanStatePanel(
+      return UiStatePanel(
         icon: Icons.link_off,
-        text: '没能打开这个分享',
+        title: '没能打开这个分享',
         detail: _message(error),
         action: '重新输入链接',
         onAction: _loading ? null : _receivedShare,
       );
     return switch (code) {
       UbaaErrorCode.authenticationRequired ||
-      UbaaErrorCode.invalidCredentials => BhpanStatePanel(
+      UbaaErrorCode.invalidCredentials => UiStatePanel(
         icon: Icons.lock_outline,
-        text: '云盘登录已失效',
+        title: '云盘登录已失效',
         detail: '重新登录后会回到个人文档库',
         action: '重新登录云盘',
         onAction: _loading ? null : () => _load(reconnect: true),
       ),
-      UbaaErrorCode.permissionDenied => BhpanStatePanel(
+      UbaaErrorCode.permissionDenied => UiStatePanel(
         icon: Icons.block,
-        text: '没有权限访问这里',
+        title: '没有权限访问这里',
         detail: _message(error),
         action: '重试',
         onAction: _loading ? null : _load,
       ),
       UbaaErrorCode.networkError ||
       UbaaErrorCode.timeout ||
-      UbaaErrorCode.upstreamUnavailable => BhpanStatePanel(
+      UbaaErrorCode.upstreamUnavailable => UiStatePanel(
         icon: Icons.wifi_off,
-        text: '暂时连不上北航云盘',
+        title: '暂时连不上北航云盘',
         detail: '请检查网络后重试',
         action: '重试',
         onAction: _loading ? null : _load,
       ),
-      _ => BhpanStatePanel(
+      _ => UiStatePanel(
         icon: Icons.cloud_off_outlined,
-        text: '没能读取这个文件夹',
+        title: '没能读取这个文件夹',
         detail: _message(error),
         action: '重试',
         onAction: _loading ? null : _load,
@@ -797,14 +798,14 @@ class _BhpanViewState extends State<BhpanView> {
         onRefresh: _refresh,
         child: RefreshViewport(
           child: _filter.isNotEmpty
-              ? BhpanStatePanel(
+              ? UiStatePanel(
                   icon: Icons.search_off,
-                  text: '没有找到「$_filter」',
+                  title: '没有找到「$_filter」',
                   detail: '只搜索当前文件夹里的名称',
                 )
-              : BhpanStatePanel(
+              : UiStatePanel(
                   icon: Icons.folder_open_outlined,
-                  text: '这个文件夹是空的',
+                  title: '这个文件夹是空的',
                   action: _canUpload ? '上传文件' : null,
                   onAction: _canUpload ? _upload : null,
                 ),
@@ -828,9 +829,9 @@ class _BhpanViewState extends State<BhpanView> {
   @override
   Widget build(BuildContext context) {
     if (_service == null) {
-      return const BhpanStatePanel(
+      return const UiStatePanel(
         icon: Icons.cloud_off_outlined,
-        text: '当前客户端未提供北航云盘能力',
+        title: '当前客户端未提供北航云盘能力',
       );
     }
     final query = _filter.toLowerCase();

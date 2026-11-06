@@ -17,6 +17,7 @@ import 'detail_content.dart';
 import '../../shared/create_button.dart';
 import '../../shared/loading.dart';
 import '../../shared/refresh.dart';
+import '../../common/state_panel.dart';
 part 'details.dart';
 part 'export.dart';
 part 'filters.dart';
@@ -524,14 +525,7 @@ class AgendaViewState extends State<AgendaView> {
     if (error != null)
       Padding(
         padding: const EdgeInsets.fromLTRB(16, 8, 16, 0),
-        child: Row(
-          children: [
-            const Icon(Icons.info_outline, size: 18),
-            const SizedBox(width: 8),
-            Expanded(child: Text(error!)),
-            TextButton(onPressed: load, child: const Text('重试读取')),
-          ],
-        ),
+        child: UiInlineRetry(message: error!, onRetry: load),
       ),
   ];
 
