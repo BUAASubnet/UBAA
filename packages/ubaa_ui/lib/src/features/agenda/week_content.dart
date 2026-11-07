@@ -4,6 +4,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/layout/seven_day_grid.dart';
 import 'calendar_values.dart';
 import 'format.dart';
+import 'list_content.dart' show agendaSourceColor;
 
 typedef _Slot = ({
   AgendaEntry entry,
@@ -285,26 +286,6 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
       return Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
-          if (top.isNotEmpty) ...[
-            const Text('全天与截止'),
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: Row(
-                children: [
-                  for (final entry in top)
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6),
-                      child: ActionChip(
-                        label: Text(
-                          '${agendaEntryDate(entry) == null ? '无日期' : agendaMonthDay(agendaEntryDate(entry)!)} ${agendaWhen(entry)} · ${agendaTitle(entry)}${agendaEntryConflicts(entry, widget.allEntries).isEmpty ? '' : ' · 与课程重叠'}',
-                        ),
-                        onPressed: () => widget.onOpen(entry),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-          ],
           Expanded(
             child: Scrollbar(
               controller: horizontal,
@@ -339,6 +320,15 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
                             ),
                         ],
                       ),
+                      if (top.isNotEmpty)
+                        _AllDayRow(
+                          monday: monday,
+                          entries: top,
+                          allEntries: widget.allEntries,
+                          axis: axis,
+                          column: column,
+                          onOpen: widget.onOpen,
+                        ),
                       Expanded(
                         child: ListView(
                           controller: vertical,
@@ -458,4 +448,189 @@ class _WeekHeaderDay extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 周视图表头下的全天行：全天、截止与时间待定的事项落在各自那一天的列里。
+///
+/// 每天最多直接显示两项，其余收成「+N」，点开看当天全部；整周没有时不显示。
+class _AllDayRow extends StatelessWidget {
+  const _AllDayRow({
+    required this.monday,
+    required this.entries,
+    required this.allEntries,
+    required this.axis,
+    required this.column,
+    required this.onOpen,
+  });
+  final DateTime monday;
+  final List<AgendaEntry> entries, allEntries;
+  final double axis, column;
+  final ValueChanged<AgendaEntry> onOpen;
+  static const shown = 2;
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final days = List.generate(7, (_) => <AgendaEntry>[]);
+    final undated = <AgendaEntry>[];
+    for (final entry in entries) {
+      final date = agendaEntryDate(entry);
+      if (date == null) {
+        undated.add(entry);
+      } else {
+        days[agendaDay(date).difference(monday).inDays.clamp(0, 6)].add(entry);
+      }
+    }
+    final muted = theme.textTheme.labelSmall?.copyWith(
+      color: colors.onSurfaceVariant,
+    );
+    return Container(
+      decoration: BoxDecoration(
+        border: Border(bottom: BorderSide(color: colors.outlineVariant)),
+      ),
+      padding: const EdgeInsets.symmetric(vertical: 2),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          SizedBox(
+            width: axis,
+            child: undated.isEmpty
+                ? Padding(
+                    padding: const EdgeInsets.only(top: 3),
+                    child: Text(
+                      '全天',
+                      textAlign: TextAlign.center,
+                      style: muted,
+                    ),
+                  )
+                : InkWell(
+                    onTap: () => _showList(context, '没有日期', undated),
+                    child: Padding(
+                      padding: const EdgeInsets.only(top: 3),
+                      child: Text(
+                        '全天\n无日期 ${undated.length}',
+                        textAlign: TextAlign.center,
+                        style: muted,
+                      ),
+                    ),
+                  ),
+          ),
+          for (var i = 0; i < 7; i++)
+            SizedBox(
+              width: column,
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  for (final entry in days[i].take(shown))
+                    _pill(context, entry),
+                  if (days[i].length > shown)
+                    InkWell(
+                      borderRadius: BorderRadius.circular(4),
+                      onTap: () => _showList(
+                        context,
+                        agendaMonthDay(monday.add(Duration(days: i))),
+                        days[i],
+                      ),
+                      child: Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 2),
+                        child: Text(
+                          '+${days[i].length - shown}',
+                          textAlign: TextAlign.center,
+                          style: muted,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  /// 窄列只放标题；宽列在截止事项前加时刻，时间待定的加「待定」。
+  String _label(AgendaEntry entry) {
+    final title = agendaTitle(entry);
+    final timing = entry.timing;
+    if (timing.kind == AgendaTimingKind.period) return '待定 $title';
+    if (column < 90) return title;
+    if (timing.kind == AgendaTimingKind.deadline && timing.due != null)
+      return '${timing.due!.rfc3339.substring(11, 16)} $title';
+    return title;
+  }
+
+  Widget _pill(BuildContext context, AgendaEntry entry) {
+    final theme = Theme.of(context);
+    final source = agendaSourceColor(entry, theme.colorScheme);
+    // 与课程重叠时描红边，完整说明放在提示与读屏标签里。
+    final conflict = agendaEntryConflicts(entry, allEntries).isNotEmpty;
+    return Padding(
+      padding: const EdgeInsets.all(1),
+      child: Tooltip(
+        message:
+            '${agendaTitle(entry)} · ${agendaWhen(entry)}${conflict ? ' · 与课程重叠' : ''}',
+        child: Material(
+          color: source.withValues(alpha: .16),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(4),
+            side: conflict
+                ? BorderSide(color: theme.colorScheme.error)
+                : BorderSide.none,
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: InkWell(
+            onTap: () => onOpen(entry),
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 3, vertical: 2),
+              child: Text(
+                _label(entry),
+                // 手机列宽只放得下三四个字，窄列允许两行。
+                maxLines: column < 90 ? 2 : 1,
+                overflow: TextOverflow.clip,
+                softWrap: column < 90,
+                style: theme.textTheme.labelSmall?.copyWith(
+                  color: theme.colorScheme.onSurface,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  void _showList(
+    BuildContext context,
+    String title,
+    List<AgendaEntry> items,
+  ) => showModalBottomSheet<void>(
+    context: context,
+    showDragHandle: true,
+    builder: (sheet) => SafeArea(
+      child: ListView(
+        shrinkWrap: true,
+        children: [
+          Padding(
+            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
+            child: Text(title, style: Theme.of(sheet).textTheme.titleMedium),
+          ),
+          for (final entry in items)
+            ListTile(
+              leading: Icon(
+                Icons.circle,
+                size: 10,
+                color: agendaSourceColor(entry, Theme.of(sheet).colorScheme),
+              ),
+              title: Text(agendaTitle(entry)),
+              subtitle: Text(agendaWhen(entry)),
+              onTap: () {
+                Navigator.pop(sheet);
+                onOpen(entry);
+              },
+            ),
+        ],
+      ),
+    ),
+  );
 }

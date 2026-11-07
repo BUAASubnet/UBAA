@@ -66,9 +66,43 @@ void main() {
     await tester.pumpAndSettle();
     await reveal(tester, find.textContaining('全天避课安排'));
     expect(
-      tester.widget<Text>(find.textContaining('全天避课安排')).data,
+      tester
+          .widget<Tooltip>(
+            find.ancestor(
+              of: find.textContaining('全天避课安排'),
+              matching: find.byType(Tooltip),
+            ),
+          )
+          .message,
       contains('与课程重叠'),
     );
+  });
+
+  testWidgets('全天行每天直接显示两项，其余收成 +N 并可打开', (tester) async {
+    final backend = MemoryAgenda();
+    final service = await opened(backend);
+    for (final (title, hour) in [('第一项', 18), ('第二项', 20), ('第三项', 22)])
+      await service.create(
+        AgendaDraft(
+          content: AgendaContent(
+            kind: AgendaKind.task,
+            title: title,
+            allDay: false,
+            due: at(5, hour),
+          ),
+          exdates: [],
+        ),
+        at(1, 9),
+      );
+    await tester.pumpWidget(app(service));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('周'));
+    await tester.pumpAndSettle();
+    expect(find.textContaining('第三项'), findsNothing);
+    await tester.tap(find.text('+1'));
+    await tester.pumpAndSettle();
+    expect(find.text('第三项'), findsOneWidget);
+    expect(find.text('第一项'), findsOneWidget);
   });
 
   testWidgets('重叠时段并排可分别打开，跨午夜沿同一发生身份分列，截止项位于顶部', (tester) async {
