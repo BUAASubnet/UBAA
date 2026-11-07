@@ -17,23 +17,85 @@ pub fn map_submission_status(raw_status: Option<&str>, has_content: bool) -> Spo
     }
 }
 
-/// 将已知 HTML 标记转换为安全的纯文本描述。
+/// 将 HTML 片段转换为安全的纯文本描述。
+///
+/// 解码全部 HTML 命名与数字实体；块级边界、`<br>` 和原文换行转为换行，
+/// 每行折叠空白并去除首尾空白，丢弃空行，不执行脚本或样式内容。
 #[must_use]
 pub fn to_plain_text(html: &str) -> Option<String> {
-    let text = regex::Regex::new(r"(?is)<br\s*/?>|<[^>]+>")
-        .expect("static HTML regex")
-        .replace_all(html, " ")
-        .replace("&nbsp;", " ")
-        .replace("&amp;", "&")
-        .replace("&lt;", "<")
-        .replace("&gt;", ">")
-        .replace("&quot;", "\"")
-        .replace("&#39;", "'")
-        .replace("&#x27;", "'")
-        .split_whitespace()
+    let fragment = scraper::Html::parse_fragment(html);
+    let mut raw = String::new();
+    collect_plain_text(fragment.root_element(), &mut raw);
+    let text = raw
+        .lines()
+        .map(|line| line.split_whitespace().collect::<Vec<_>>().join(" "))
+        .filter(|line| !line.is_empty())
         .collect::<Vec<_>>()
-        .join(" ");
+        .join("\n");
     (!text.is_empty()).then_some(text)
+}
+
+fn collect_plain_text(element: scraper::ElementRef<'_>, out: &mut String) {
+    for child in element.children() {
+        if let Some(text) = child.value().as_text() {
+            out.push_str(&text.replace('\r', "\n"));
+            continue;
+        }
+        let Some(child) = scraper::ElementRef::wrap(child) else {
+            continue;
+        };
+        match child.value().name() {
+            "script" | "style" | "template" | "noscript" | "head" | "title" => {}
+            "br" | "hr" => out.push('\n'),
+            "td" | "th" => {
+                out.push(' ');
+                collect_plain_text(child, out);
+                out.push(' ');
+            }
+            name if is_block_element(name) => {
+                out.push('\n');
+                collect_plain_text(child, out);
+                out.push('\n');
+            }
+            _ => collect_plain_text(child, out),
+        }
+    }
+}
+
+fn is_block_element(name: &str) -> bool {
+    matches!(
+        name,
+        "p" | "div"
+            | "li"
+            | "ul"
+            | "ol"
+            | "dl"
+            | "dt"
+            | "dd"
+            | "h1"
+            | "h2"
+            | "h3"
+            | "h4"
+            | "h5"
+            | "h6"
+            | "tr"
+            | "table"
+            | "thead"
+            | "tbody"
+            | "tfoot"
+            | "caption"
+            | "blockquote"
+            | "pre"
+            | "section"
+            | "article"
+            | "header"
+            | "footer"
+            | "aside"
+            | "nav"
+            | "figure"
+            | "figcaption"
+            | "address"
+    )
 }
 
 /// 按冻结解析器规则，将成绩文本规范化为第一个数字值。

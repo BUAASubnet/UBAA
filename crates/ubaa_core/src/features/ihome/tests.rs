@@ -359,3 +359,13 @@ fn ihome_支持受平台开关约束且只提交一次无正文请求() {
             }
         });
 }
+#[test]
+fn ihome_公告正文解码实体并保留分段() {
+    let value = serde_json::json!({
+        "id": 1,
+        "title": "测试公告",
+        "content": "<p>&ldquo;甲&rdquo;</p>\n<p>乙&rarr;丙</p>",
+        "date": "2026-01-01"
+    });
+    assert_eq!(parser::notice(&value).unwrap().content, "“甲”\n乙→丙");
+}

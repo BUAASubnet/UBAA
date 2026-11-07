@@ -413,3 +413,37 @@ fn invalidated_login_generation_cannot_repopulate_route_credentials() {
     assert!(!stored);
     assert!(state.spoc.credential().is_none());
 }
+
+#[test]
+fn 纯文本解码命名与数字实体() {
+    assert_eq!(
+        super::to_plain_text(
+            "<p>&ldquo;通知&rdquo; &rarr; 第一步&mdash;完成&hellip; A&middot;B &#x4E2D;&#25991; &amp;</p>"
+        )
+        .as_deref(),
+        Some("“通知” → 第一步—完成… A·B 中文 &")
+    );
+}
+
+#[test]
+fn 纯文本以块级边界分行且不留空行() {
+    let html = "<div>  第一段  </div>\n<p>第二段<br/>第三行</p>\
+                <ul><li>甲</li><li>乙</li></ul><p>&nbsp;</p><p><br></p><p>结尾</p>";
+    assert_eq!(
+        super::to_plain_text(html).as_deref(),
+        Some("第一段\n第二段\n第三行\n甲\n乙\n结尾")
+    );
+}
+
+#[test]
+fn 纯文本保留原有换行且行内标签不插入空格() {
+    assert_eq!(
+        super::to_plain_text("第一行\r\n\r\n  北<strong>航</strong>  ").as_deref(),
+        Some("第一行\n北航")
+    );
+    assert_eq!(
+        super::to_plain_text("<style>p{}</style><script>x()</script>正文").as_deref(),
+        Some("正文")
+    );
+    assert_eq!(super::to_plain_text("<p>&nbsp;</p>\n<br>"), None);
+}
