@@ -4,7 +4,7 @@ import 'calendar_values.dart';
 import 'format.dart';
 import '../../common/tag.dart';
 
-/// 窄屏面板与宽屏详情栏共用操作和本地备注输入。
+/// 窄屏面板与宽屏详情栏共用操作和备注输入。
 class AgendaDetailContent extends StatefulWidget {
   const AgendaDetailContent({
     super.key,
@@ -47,7 +47,7 @@ class _AgendaDetailContentState extends State<AgendaDetailContent> {
         end = widget.displayEnd ?? agendaEnd(entry);
     if (entry.timing.kind != AgendaTimingKind.period || start == null)
       return agendaWhen(entry);
-    return '${agendaHm(start)} — ${end == null ? '结束待更新' : agendaHm(end)}';
+    return '${agendaHm(start)} — ${end == null ? '结束时间待定' : agendaHm(end)}';
   }
 
   Widget row(String label, String value) {
@@ -149,7 +149,7 @@ class _AgendaDetailContentState extends State<AgendaDetailContent> {
                 onChanged: (value) => setState(() => note = value),
                 maxLines: 3,
                 minLines: 1,
-                decoration: const InputDecoration(labelText: '本地备注'),
+                decoration: const InputDecoration(labelText: '备注'),
               ),
               if (note != savedNote)
                 Align(
@@ -172,16 +172,10 @@ class _AgendaDetailContentState extends State<AgendaDetailContent> {
                   label: const Text('添加备注'),
                 ),
               ),
-            Text(
-              '完成、隐藏与备注只保存在本机，不改变学校数据。',
-              style: theme.textTheme.bodySmall?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
             const SizedBox(height: 8),
             TextButton(
               onPressed: widget.busy ? null : widget.onOpenSchool,
-              child: const Text('打开原功能'),
+              child: const Text('查看原页面'),
             ),
             TextButton(
               onPressed: widget.busy ? null : widget.onHide,
@@ -207,7 +201,7 @@ class _AgendaDetailContentState extends State<AgendaDetailContent> {
               school?.navigation.feature != AgendaFeature.exam)
             OutlinedButton(
               onPressed: widget.busy ? null : widget.onComplete,
-              child: Text(entry.completed ? '重新挂起' : '标记完成'),
+              child: Text(entry.completed ? '标记未完成' : '标记完成'),
             ),
         ],
       ),

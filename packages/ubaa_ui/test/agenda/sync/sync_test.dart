@@ -63,7 +63,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     await openAgendaDataSheet(tester);
-    expect(find.text('1 条修改仅保存在本机'), findsOneWidget);
+    expect(find.text('1 条修改未同步'), findsOneWidget);
     expect(backend.calls, isEmpty);
     await tester.pumpWidget(const SizedBox());
     await service.dispose();
@@ -75,7 +75,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(backend.calls, isEmpty);
     await openAgendaDataSheet(tester);
-    expect(find.text('日程仅保存在本机'), findsOneWidget);
+    expect(find.text('未开启云端同步'), findsOneWidget);
     await tester.tap(find.widgetWithText(FilledButton, '启用云端同步'));
     await tester.pumpAndSettle();
     await tester.tap(find.widgetWithText(TextButton, '取消'));
@@ -115,8 +115,8 @@ void main() {
     await tester.pumpAndSettle();
     expect(backend.calls, [AgendaSyncAction.pull]);
     await openAgendaDataSheet(tester);
-    expect(find.text('上次云端操作结果待核对，2 条修改待同步'), findsOneWidget);
-    await tester.tap(find.widgetWithText(FilledButton, '核对云端'));
+    expect(find.text('上次同步结果未知，2 条修改未同步'), findsOneWidget);
+    await tester.tap(find.widgetWithText(FilledButton, '刷新'));
     await tester.pumpAndSettle();
     expect(backend.calls, [AgendaSyncAction.pull, AgendaSyncAction.pull]);
     await tester.pumpAndSettle();
@@ -159,7 +159,7 @@ void main() {
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
     await openAgendaDataSheet(tester);
-    expect(find.text('云端同步暂不可用，3 条修改保存在本机'), findsOneWidget);
+    expect(find.text('云端暂时无法同步，3 条修改未同步'), findsOneWidget);
     expect(
       tester
           .widget<ButtonStyleButton>(find.widgetWithText(FilledButton, '同步'))

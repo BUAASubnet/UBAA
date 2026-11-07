@@ -23,9 +23,9 @@ class AgendaSyncStatusCard extends StatelessWidget {
     } on Object catch (error) {
       final failure = error is AgendaException ? error.failure : null;
       UbaaFeedback.show(context, switch (failure) {
-        AgendaFailure.unavailable => '客户端忙，请稍后重试',
-        AgendaFailure.superseded => '当前路线不能确认创建，请重新拉取日程',
-        _ => '无法准备日程同步，请稍后重试',
+        AgendaFailure.unavailable => '请稍后重试',
+        AgendaFailure.superseded => '网络已切换，请刷新后再试',
+        _ => '暂时无法同步，请稍后重试',
       }, kind: UbaaFeedbackKind.warning);
       return;
     }
@@ -35,9 +35,7 @@ class AgendaSyncStatusCard extends StatelessWidget {
         builder: (context) => boundary(
           AlertDialog(
             title: Text(service.syncEnabled ? '创建云端日程' : '启用云端同步'),
-            content: const Text(
-              '将在个人云盘的 UBAA 日程目录保存自建事项和本机备注、完成与隐藏状态。启用后，打开日程页会拉取云端，修改后自动同步。云端保留历史快照。',
-            ),
+            content: const Text('把你添加的日程、备注和完成状态保存到北航云盘，换设备也能看到。之后会自动同步。'),
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context, false),
@@ -81,24 +79,23 @@ class AgendaSyncStatusCard extends StatelessWidget {
       final text = state.running
           ? '正在同步日程'
           : refreshBeforeCreate
-          ? '请重新拉取日程，再确认是否创建'
+          ? '请先刷新，再创建云端日程'
           : state.error != null
-          ? '同步未完成，修改已保存在本机'
+          ? '同步未完成'
           : !service.syncEnabled && status != AgendaSyncStatus.outcomeUnknown
           ? count > 0
-                ? '$count 条修改仅保存在本机'
-                : '日程仅保存在本机'
+                ? '$count 条修改未同步'
+                : '未开启云端同步'
           : switch (status) {
               AgendaSyncStatus.upToDate => '日程已同步',
               AgendaSyncStatus.pending => '$count 条修改待同步',
-              AgendaSyncStatus.needsCreation => '尚未创建云端日程，$count 条修改保存在本机',
-              AgendaSyncStatus.locationUnknown =>
-                '尚未找到可确认的云端日程，$count 条修改保存在本机',
-              AgendaSyncStatus.unverified => '云端同步暂不可用，$count 条修改保存在本机',
-              AgendaSyncStatus.failed => '同步未完成，$count 条修改保存在本机',
+              AgendaSyncStatus.needsCreation => '还没有云端日程，$count 条修改未同步',
+              AgendaSyncStatus.locationUnknown => '找不到云端日程，$count 条修改未同步',
+              AgendaSyncStatus.unverified => '云端暂时无法同步，$count 条修改未同步',
+              AgendaSyncStatus.failed => '同步失败，$count 条修改未同步',
               AgendaSyncStatus.conflict => '云端日程已更新，$count 条修改待同步',
-              AgendaSyncStatus.outcomeUnknown => '上次云端操作结果待核对，$count 条修改待同步',
-              null => service.syncEnabled ? '日程云端同步' : '日程仅保存在本机',
+              AgendaSyncStatus.outcomeUnknown => '上次同步结果未知，$count 条修改未同步',
+              null => service.syncEnabled ? '日程云端同步' : '未开启云端同步',
             };
       final reconcile = status == AgendaSyncStatus.outcomeUnknown;
       final theme = Theme.of(context);
@@ -130,22 +127,22 @@ class AgendaSyncStatusCard extends StatelessWidget {
           ? Icons.cloud_upload_outlined
           : Icons.cloud_off_outlined;
       final hint = state.running
-          ? '正在与个人云盘交换自建事项'
+          ? '正在同步到北航云盘'
           : ok
-          ? '自建事项与本机标记已保存到个人云盘'
+          ? '你添加的日程、备注和完成状态已保存到北航云盘'
           : enable
-          ? '在个人云盘保存自建事项，换设备也能看到'
+          ? '保存到北航云盘，换设备也能看到'
           : warn
-          ? '修改已保存在本机，可稍后重试'
+          ? '修改不会丢失，可稍后重试'
           : '修改后会自动同步，也可立即同步';
       final label = refreshBeforeCreate
-          ? '重新拉取'
+          ? '刷新'
           : enable
           ? '启用云端同步'
           : create
           ? '创建云端日程'
           : reconcile
-          ? '核对云端'
+          ? '刷新'
           : '同步';
       final onPressed =
           state.running ||

@@ -63,8 +63,6 @@ extension _AgendaToolbar on AgendaViewState {
                   unawaited(refreshSchool());
                 case 'import':
                   importSchedule();
-                case 'sync':
-                  unawaited(syncSettings());
                 case 'data':
                   unawaited(dataSheet());
               }
@@ -108,17 +106,9 @@ extension _AgendaToolbar on AgendaViewState {
                 enabled: !loading,
                 child: const ListTile(
                   leading: Icon(Icons.refresh),
-                  title: Text('刷新本机数据'),
+                  title: Text('重新加载'),
                 ),
               ),
-              if (available && service.supportsSync)
-                const PopupMenuItem(
-                  value: 'sync',
-                  child: ListTile(
-                    leading: Icon(Icons.sync),
-                    title: Text('云端同步设置'),
-                  ),
-                ),
             ],
           ),
         ],

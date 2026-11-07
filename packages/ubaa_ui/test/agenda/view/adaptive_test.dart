@@ -103,7 +103,7 @@ void main() {
     backend.gate = Completer<AgendaQueryResult>();
     await tester.tap(find.byTooltip('更多日程操作'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('刷新本机数据'));
+    await tester.tap(find.text('重新加载'));
     await tester.pump();
     backend.gate!.complete(snapshot);
     await tester.pumpAndSettle();
@@ -132,14 +132,14 @@ void main() {
       find.descendant(of: pane, matching: find.text('已缓存')),
       findsOneWidget,
     );
-    await selectAgendaMenu(tester, '刷新本机数据');
+    await selectAgendaMenu(tester, '重新加载');
     expect(
       find.descendant(of: pane, matching: find.text('已缓存')),
       findsOneWidget,
     );
     await tester.tap(find.text('添加备注'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, '本地备注'), '宽屏备注');
+    await tester.enterText(find.widgetWithText(TextField, '备注'), '宽屏备注');
     await tester.pump();
     await tester.tap(find.text('保存备注'));
     await tester.pumpAndSettle();
@@ -157,7 +157,7 @@ void main() {
     backend.gate = Completer();
     await tester.pumpWidget(app(service, scope: 2));
     await tester.pump();
-    expect(find.widgetWithText(TextField, '本地备注'), findsNothing);
+    expect(find.widgetWithText(TextField, '备注'), findsNothing);
     expect(
       find.descendant(of: pane, matching: find.text('选择事项查看详情')),
       findsOneWidget,
@@ -220,7 +220,7 @@ void main() {
     await setEditorTime(tester, 'start', 10, 0);
     await setEditorTime(tester, 'end', 11, 0);
     await saveEditor(tester);
-    expect(find.text('与已缓存课程重叠'), findsOneWidget);
+    expect(find.text('与课程时间冲突'), findsOneWidget);
     await tester.pumpWidget(app(service, scope: 2));
     await tester.pumpAndSettle();
     expect(

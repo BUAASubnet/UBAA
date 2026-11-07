@@ -41,15 +41,18 @@ String agendaSource(AgendaEntry e) => e.local != null
         AgendaFeature.judge => '希冀作业',
         AgendaFeature.signin => '签到',
         AgendaFeature.cgyy => '研讨室',
-        AgendaFeature.ygdk => '阳光提醒',
+        AgendaFeature.ygdk => '阳光打卡',
       };
 String agendaWhen(AgendaEntry e) => switch (e.timing.kind) {
   AgendaTimingKind.undated => '无日期',
   AgendaTimingKind.allDay => '全天',
   AgendaTimingKind.deadline =>
-    '${e.timing.due?.rfc3339.substring(11, 16) ?? '时间待更新'} 截止',
-  AgendaTimingKind.period =>
-    '${e.timing.start?.rfc3339.substring(11, 16) ?? '开始待更新'} — ${e.timing.end?.rfc3339.substring(11, 16) ?? '结束待更新'}',
+    '${e.timing.due?.rfc3339.substring(11, 16) ?? '时间待定'} 截止',
+  AgendaTimingKind.period => switch (e.timing.start) {
+    null => '时间待定',
+    final start =>
+      '${start.rfc3339.substring(11, 16)} — ${e.timing.end?.rfc3339.substring(11, 16) ?? '结束时间待定'}',
+  },
 };
 AgendaTime? recurrenceAt(AgendaOccurrence occurrence) =>
     occurrence.recurrenceId == 'undated'

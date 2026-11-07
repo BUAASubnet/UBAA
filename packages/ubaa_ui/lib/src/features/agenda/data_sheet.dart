@@ -116,7 +116,7 @@ extension _AgendaDataSheet on AgendaViewState {
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
-                                  '课程、考试、作业等需要先从学校刷新一次；刷新后仍为空时，可到首页查看各来源状态。',
+                                  '课程、考试、作业需要先从学校刷新一次。',
                                   style: theme.textTheme.bodySmall?.copyWith(
                                     color: colors.onSurfaceVariant,
                                   ),
@@ -131,7 +131,6 @@ extension _AgendaDataSheet on AgendaViewState {
                     const SizedBox(height: 4),
                     AgendaCacheStatus(
                       sources: data.sources,
-                      route: widget.route,
                       now: agendaTime(now),
                     ),
                     if (data.schoolCacheFailure != null ||
@@ -140,7 +139,7 @@ extension _AgendaDataSheet on AgendaViewState {
                               s.feature != AgendaFeature.schedule &&
                               s.missingScopes.isNotEmpty,
                         ))
-                      note(Icons.info_outline, '部分来源待补全，已有事项仍可查看。'),
+                      note(Icons.info_outline, '部分学校数据未加载，已有事项仍可查看。'),
                     if (data.sources.any(
                       (s) =>
                           s.feature == AgendaFeature.schedule &&
@@ -149,10 +148,14 @@ extension _AgendaDataSheet on AgendaViewState {
                     ))
                       note(
                         Icons.calendar_month_outlined,
-                        '目前只缓存了已查看周的课表，导入整学期课表后可查看全部周。',
+                        '只显示看过的几周课表，导入整学期课表可查看全部周。',
                       ),
-                    if (data.sources.any((s) => s.unprojectableCount > 0))
-                      note(Icons.info_outline, '部分学校事项缺少必要字段，未加入时间线。'),
+                    if (data.sources.fold<int>(
+                          0,
+                          (sum, s) => sum + s.unprojectableCount,
+                        )
+                        case final count when count > 0)
+                      note(Icons.info_outline, '有 $count 项学校事项时间不完整，未显示。'),
                   ],
                   const SizedBox(height: 8),
                   Row(
@@ -213,7 +216,7 @@ extension _AgendaDataSheet on AgendaViewState {
     // 正常状态不占位；只有学校事项需要处理时提示，详情在「数据与同步」里。
     final warn = noSchool || partial;
     if (!warn) return const SizedBox.shrink();
-    final text = noSchool ? '学校事项待刷新' : '部分来源待补全';
+    final text = noSchool ? '学校事项待刷新' : '部分学校数据未加载';
     return Padding(
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 0),
       child: Material(

@@ -286,7 +286,7 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
           if (top.isNotEmpty) ...[
-            const Text('全天、截止与时间待确认'),
+            const Text('全天与截止'),
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: Row(

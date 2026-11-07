@@ -154,7 +154,7 @@ void main() {
     await setEditorTime(tester, 'end', 10, 45);
     await saveEditor(tester);
     expect(backend.writes, 0, reason: '用户确认冲突前不得保存事项');
-    expect(find.widgetWithText(AlertDialog, '与已缓存课程重叠'), findsOneWidget);
+    expect(find.widgetWithText(AlertDialog, '与课程时间冲突'), findsOneWidget);
     await tester.tap(find.text('返回修改'));
     await tester.pumpAndSettle();
     expect(backend.items, isEmpty);

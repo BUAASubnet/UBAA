@@ -134,7 +134,7 @@ void main() {
     );
     final save = find.byKey(const ValueKey('agenda-editor-save'));
     final before = tester.getRect(save);
-    final note = find.text('所有时间均为北京时间。重复事项按校园时区展开。');
+    final note = find.text('时间均为北京时间');
     await tester.scrollUntilVisible(
       note,
       250,

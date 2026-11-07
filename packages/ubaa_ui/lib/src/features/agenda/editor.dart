@@ -329,13 +329,13 @@ class _AgendaEditorState extends State<AgendaEditor> {
           context: context,
           builder: (dialog) => widget.boundary(
             AlertDialog(
-              title: const Text('与已缓存课程重叠'),
+              title: const Text('与课程时间冲突'),
               content: SingleChildScrollView(
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Text('当前发生与以下课程重叠，是否继续保存？'),
+                    const Text('这个时间与以下课程冲突，仍要保存吗？'),
                     for (final course in conflicts)
                       Padding(
                         padding: const EdgeInsets.only(top: 8),
@@ -575,7 +575,7 @@ class _AgendaEditorState extends State<AgendaEditor> {
                 style: TextStyle(color: Theme.of(context).colorScheme.error),
               ),
             Text(
-              '所有时间均为北京时间。重复事项按校园时区展开。',
+              '时间均为北京时间',
               style: Theme.of(context).textTheme.bodySmall?.copyWith(
                 color: Theme.of(context).colorScheme.onSurfaceVariant,
               ),

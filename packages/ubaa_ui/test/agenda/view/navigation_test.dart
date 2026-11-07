@@ -162,7 +162,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('任务4'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('打开原功能'));
+    await tester.tap(find.text('查看原页面'));
     await tester.pumpAndSettle();
     expect(queries.last.assignmentId, 'a4');
     expect(find.byTooltip('返回'), findsOneWidget);
@@ -181,6 +181,13 @@ void main() {
     expect(
       tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '待办')).selected,
       isTrue,
+    );
+    // 待办只有截止时刻，切到周视图时退回全部，网格才不会空着。
+    await tester.tap(find.text('周'));
+    await tester.pumpAndSettle();
+    expect(
+      tester.widget<ChoiceChip>(find.widgetWithText(ChoiceChip, '待办')).selected,
+      isFalse,
     );
   });
   testWidgets('日程为中间入口，学习保留课表与成绩入口', (tester) async {

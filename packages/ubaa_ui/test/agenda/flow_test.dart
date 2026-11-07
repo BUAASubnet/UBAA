@@ -72,7 +72,7 @@ void main() {
       tester.state<AgendaViewState>(find.byType(AgendaView)).result,
       isNull,
     );
-    expect(find.text('登录本机账号后可使用日程'), findsOneWidget);
+    expect(find.text('登录后可使用日程'), findsOneWidget);
     expect(
       tester
           .widget<FloatingActionButton>(

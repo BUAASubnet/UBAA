@@ -63,7 +63,7 @@ void main() {
     await openAgendaDataSheet(tester);
     await tester.tap(find.widgetWithText(FilledButton, '启用云端同步'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(FilledButton, '重新拉取'));
+    await tester.tap(find.widgetWithText(FilledButton, '刷新'));
     await tester.pumpAndSettle();
     expect(service.syncState.report?.status, AgendaSyncStatus.unverified);
     expect(service.syncEnabled, isFalse);
@@ -75,7 +75,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(backend.calls.map((call) => call.$2), [AgendaSyncAction.pull]);
     await openAgendaDataSheet(tester);
-    final refresh = find.widgetWithText(FilledButton, '重新拉取');
+    final refresh = find.widgetWithText(FilledButton, '刷新');
     expect(refresh, findsOneWidget);
     expect(tester.widget<ButtonStyleButton>(refresh).onPressed, isNotNull);
     await tester.tap(refresh);
@@ -86,7 +86,7 @@ void main() {
       AgendaSyncAction.pull,
       AgendaSyncAction.pull,
     ]);
-    expectRefreshRunning(tester, actionLabel: '重新拉取');
+    expectRefreshRunning(tester, actionLabel: '刷新');
     expect(find.byType(AlertDialog), findsNothing);
     backend.refresh.complete(
       const AgendaSyncReport(
@@ -128,7 +128,7 @@ void main() {
     expect(backend.calls, isEmpty);
     expect(find.byType(AlertDialog), findsNothing);
 
-    final refresh = find.widgetWithText(FilledButton, '重新拉取');
+    final refresh = find.widgetWithText(FilledButton, '刷新');
     expect(refresh, findsOneWidget);
     await tester.tap(refresh);
     await tester.pump();
@@ -171,7 +171,7 @@ void expectRefreshRunning(WidgetTester tester, {required String actionLabel}) {
   Finder within(Finder matching) =>
       find.descendant(of: card, matching: matching);
   expect(within(find.text('正在同步日程')).hitTestable(), findsOneWidget);
-  expect(within(find.text('正在与个人云盘交换自建事项')), findsOneWidget);
+  expect(within(find.text('正在同步到北航云盘')), findsOneWidget);
   final progress = within(find.byType(CircularProgressIndicator));
   expect(progress.hitTestable(), findsOneWidget);
   expect(tester.widget<CircularProgressIndicator>(progress).value, isNull);

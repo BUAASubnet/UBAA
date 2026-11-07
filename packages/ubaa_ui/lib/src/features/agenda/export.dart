@@ -19,14 +19,14 @@ extension AgendaFileExport on AgendaViewState {
       context: context,
       builder: (dialog) => bound(
         SimpleDialog(
-          title: const Text('导出范围快照'),
+          title: const Text('导出日历'),
           children: [
             Padding(
               padding: const EdgeInsets.all(16),
               child: Text(
                 widget.term.trim().isEmpty
-                    ? '尚无学校学期信息，本次仅导出已选日期内的本机事项。'
-                    : '导出已选日期内的每次发生。学校内容使用本机缓存，缺失的数据不会联网补齐。',
+                    ? '还没有学期信息，只导出所选日期内你添加的日程。'
+                    : '导出所选日期内的日程。',
               ),
             ),
             SimpleDialogOption(
@@ -69,7 +69,7 @@ extension AgendaFileExport on AgendaViewState {
       if (current(token) && message != null)
         UbaaFeedback.show(
           context,
-          '$message · ${value.exportedCount}项${value.skippedUnknownTimeCount == 0 ? '' : '，跳过${value.skippedUnknownTimeCount}项未知时段'}',
+          '$message · ${value.exportedCount}项${value.skippedUnknownTimeCount == 0 ? '' : '，${value.skippedUnknownTimeCount} 项时间未定，未导出'}',
         );
     } on Object {
       if (current(token))

@@ -24,7 +24,7 @@ extension _AgendaFilters on AgendaViewState {
               '考试',
               '研讨室',
               '签到',
-              '阳光提醒',
+              '阳光打卡',
               '我的',
             ])
               ChoiceChip(

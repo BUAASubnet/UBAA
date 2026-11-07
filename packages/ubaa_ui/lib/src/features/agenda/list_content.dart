@@ -57,7 +57,7 @@ List<Widget> agendaListSlivers({
           child: UiStatePanel(
             icon: Icons.wb_twilight_rounded,
             title: '这段时间没有安排',
-            detail: '当前范围没有符合筛选的事项，可新建日程或待办',
+            detail: '没有符合筛选的事项，可新建日程或待办',
             action: '新建事项',
             actionIcon: Icons.add,
             onAction: onCreate,

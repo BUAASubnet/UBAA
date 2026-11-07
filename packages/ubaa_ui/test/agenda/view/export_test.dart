@@ -33,7 +33,7 @@ void main() {
     await selectAgendaMenu(tester, '导出日历');
     await tester.tap(find.text('保存'));
     await tester.pumpAndSettle();
-    expect(find.text('尚无学校学期信息，本次仅导出已选日期内的本机事项。'), findsOneWidget);
+    expect(find.text('还没有学期信息，只导出所选日期内你添加的日程。'), findsOneWidget);
     await tester.tap(find.text('包含已完成事项'));
     await tester.pumpAndSettle();
     expect(saved, isTrue);

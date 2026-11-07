@@ -87,12 +87,6 @@ void main() {
       find.descendant(of: exam, matching: find.text('1 小时前更新')),
       findsOneWidget,
     );
-    await tester.tap(find.descendant(of: exam, matching: find.text('考试')));
-    await tester.pumpAndSettle();
-    expect(
-      find.text('保存 2026-11-05 08:00\n核验 2026-11-05 08:00'),
-      findsOneWidget,
-    );
     final refresh = find.widgetWithText(FilledButton, '刷新学校日程');
     await tester.ensureVisible(refresh);
     await tester.tap(refresh);
@@ -117,10 +111,6 @@ void main() {
     expect(ModalRoute.of(tester.element(find.text('数据与同步'))), same(sheetRoute));
     expect(
       find.descendant(of: exam, matching: find.text('刚刚更新')),
-      findsOneWidget,
-    );
-    expect(
-      find.text('保存 2026-11-05 09:00\n核验 2026-11-05 09:00'),
       findsOneWidget,
     );
     expect(tester.widget<FilledButton>(refresh).onPressed, isNotNull);
@@ -200,7 +190,7 @@ void main() {
     // 正常状态不显示数据提示条，入口在更多菜单。
     expect(find.byKey(const ValueKey('agenda-data-notice')), findsNothing);
     await openAgendaDataSheet(tester);
-    expect(find.text('目前只缓存了已查看周的课表，导入整学期课表后可查看全部周。'), findsOneWidget);
+    expect(find.text('只显示看过的几周课表，导入整学期课表可查看全部周。'), findsOneWidget);
     expect(
       find.descendant(
         of: find.byKey(const ValueKey('agenda-cache-schedule')),
@@ -219,7 +209,7 @@ void main() {
     await service.dispose();
   });
 
-  testWidgets('学校来源分别展示保存与核验时间、更新失败和部分结果', (tester) async {
+  testWidgets('学校来源分别展示最近更新时间和更新失败', (tester) async {
     final backend = MemoryAgenda();
     int epoch(int day, int hour) =>
         DateTime.utc(2026, 11, day, hour).millisecondsSinceEpoch ~/ 1000;
@@ -280,8 +270,8 @@ void main() {
     );
     await tester.pumpAndSettle();
     await openAgendaDataSheet(tester);
-    expect(find.text('学校数据（直连）'), findsOneWidget);
-    expect(find.text('1 小时前更新 · 考试待补全'), findsOneWidget);
+    expect(find.text('学校数据'), findsOneWidget);
+    expect(find.text('1 小时前更新 · 考试更新失败'), findsOneWidget);
     final exam = find.byKey(const ValueKey('agenda-cache-exam'));
     final schedule = find.byKey(const ValueKey('agenda-cache-schedule'));
     expect(
@@ -289,7 +279,7 @@ void main() {
       findsOneWidget,
     );
     expect(
-      find.descendant(of: exam, matching: find.text('待补全')),
+      find.descendant(of: exam, matching: find.text('更新失败')),
       findsOneWidget,
     );
     expect(
@@ -300,30 +290,12 @@ void main() {
       find.descendant(of: schedule, matching: find.text('1 小时前更新')),
       findsOneWidget,
     );
-    await tester.ensureVisible(exam);
-    await tester.tap(find.descendant(of: exam, matching: find.text('考试')));
-    await tester.pumpAndSettle();
-    expect(find.text('考试 · 核验已超过5分钟 · 上次更新失败 · 部分结果'), findsOneWidget);
-    expect(
-      find.text('保存 2026-11-01 09:00\n核验 2026-11-02 09:00'),
-      findsOneWidget,
-    );
-    expect(find.textContaining('尝试 2026-11-05 11:00'), findsOneWidget);
-    await tester.ensureVisible(schedule);
-    await tester.tap(find.descendant(of: schedule, matching: find.text('课程')));
-    await tester.pumpAndSettle();
-    expect(find.text('课程 · 核验已超过5分钟'), findsOneWidget);
-    expect(
-      find.text('保存 2026-11-05 09:00\n核验 2026-11-05 10:00'),
-      findsOneWidget,
-    );
-    expect(find.text('第9教学周'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
     await service.dispose();
   });
 
   for (final route in ConnectionMode.values) {
-    testWidgets('${route.name} 来源不完整时概要使用最近核验时间，展开保留查询范围', (tester) async {
+    testWidgets('${route.name} 来源不完整时概要使用最近更新时间，不显示路线与查询范围', (tester) async {
       final now = DateTime.utc(2026, 11, 5, 2, 7);
       final latest = now.subtract(const Duration(minutes: 7));
       int epoch(DateTime time) => time.millisecondsSinceEpoch ~/ 1000;
@@ -332,7 +304,6 @@ void main() {
           home: Scaffold(
             body: SingleChildScrollView(
               child: AgendaCacheStatus(
-                route: route,
                 now: AgendaTime(
                   rfc3339: now.toIso8601String(),
                   timezone: 'Asia/Shanghai',
@@ -373,37 +344,12 @@ void main() {
           ),
         ),
       );
-      expect(
-        find.text('学校数据（${route == ConnectionMode.direct ? '直连' : 'WebVPN'}）'),
-        findsOneWidget,
-      );
-      expect(find.text('7 分钟前更新 · 课程待补全'), findsOneWidget);
+      expect(find.text('学校数据'), findsOneWidget);
+      // 概要与课程行各显示一次。
+      expect(find.text('7 分钟前更新'), findsNWidgets(2));
       final schedule = find.byKey(const ValueKey('agenda-cache-schedule'));
       expect(
-        find.descendant(of: schedule, matching: find.text('待补全')),
-        findsOneWidget,
-      );
-      await tester.tap(
-        find.descendant(of: schedule, matching: find.text('课程')),
-      );
-      await tester.pumpAndSettle();
-      expect(find.text('课程 · 核验已超过5分钟 · 部分结果'), findsOneWidget);
-      expect(
-        find.textContaining('保存 2026-11-05 08:00 — 2026-11-05 09:00'),
-        findsOneWidget,
-      );
-      expect(
-        find.textContaining('核验 2026-11-05 09:00 — 2026-11-05 10:00'),
-        findsOneWidget,
-      );
-      expect(find.text('synthetic · 第8教学周'), findsOneWidget);
-      expect(find.text('synthetic · 第9教学周'), findsOneWidget);
-      expect(
-        find.textContaining('尝试 2026-11-05 09:00 · 核验已超过5分钟'),
-        findsOneWidget,
-      );
-      expect(
-        find.textContaining('尝试 2026-11-05 10:00 · 核验已超过5分钟 · 部分结果'),
+        find.descendant(of: schedule, matching: find.text('7 分钟前更新')),
         findsOneWidget,
       );
     });

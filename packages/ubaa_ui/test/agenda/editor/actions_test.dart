@@ -163,7 +163,7 @@ void main() {
     );
     await tester.tap(find.text('添加备注'));
     await tester.pumpAndSettle();
-    await tester.enterText(find.widgetWithText(TextField, '本地备注'), '本机计划');
+    await tester.enterText(find.widgetWithText(TextField, '备注'), '本机计划');
     await tester.pump();
     await tester.tap(find.text('保存备注'));
     await tester.pumpAndSettle();
@@ -171,7 +171,7 @@ void main() {
     expect(backend.overlays.values.single.value.completedAt, isNotNull);
     await tester.tap(find.text('合成学校作业'));
     await tester.pumpAndSettle();
-    expect(find.text('打开原功能'), findsOneWidget);
+    expect(find.text('查看原页面'), findsOneWidget);
     await tester.tap(find.text('隐藏事项'));
     await tester.pumpAndSettle();
     expect(backend.overlays.values.single.value.hidden, isTrue);

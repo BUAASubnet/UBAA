@@ -416,6 +416,8 @@ class AgendaViewState extends State<AgendaView> {
 
   void goMode(AgendaViewMode value) {
     setState(() {
+      // 待办只有截止时刻，周、月网格里几乎为空；离开列表时退回全部。
+      if (value != AgendaViewMode.list) todos = false;
       mode = value;
       customRange = false;
       alignRange();
@@ -447,29 +449,6 @@ class AgendaViewState extends State<AgendaView> {
   Widget filters({VoidCallback? onUpdate}) => _buildFilters(onUpdate: onUpdate);
 
   Future<void> showFilters() => _showFilters();
-
-  Future<void> syncSettings() => showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    isScrollControlled: true,
-    builder: (context) => bound(
-      SafeArea(
-        child: Padding(
-          padding: const EdgeInsets.fromLTRB(24, 0, 24, 24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              Text('云端同步', style: Theme.of(context).textTheme.titleLarge),
-              const SizedBox(height: 12),
-              _syncStatusCard(),
-              const Text('学校事项来自本机缓存；自建事项和本机标记可同步到个人云盘。'),
-            ],
-          ),
-        ),
-      ),
-    ),
-  );
 
   void importSchedule() {
     if (widget.onImportSchedule case final action?) {
@@ -530,7 +509,7 @@ class AgendaViewState extends State<AgendaView> {
     '博雅',
     '研讨室',
     '签到',
-    '阳光提醒',
+    '阳光打卡',
     '我的',
   ];
 
@@ -544,9 +523,7 @@ class AgendaViewState extends State<AgendaView> {
     if (!available)
       Padding(
         padding: const EdgeInsets.all(24),
-        child: Text(
-          widget.failure == null ? '登录本机账号后可使用日程' : '本机日程暂不可用，原数据已保留',
-        ),
+        child: Text(widget.failure == null ? '登录后可使用日程' : '日程暂时无法打开，数据未丢失'),
       ),
     if (error != null)
       Padding(
