@@ -239,10 +239,10 @@ class _HomeScheduleSectionState extends State<HomeScheduleSection> {
                           : tomorrow
                           ? '明天没有课程安排'
                           : '今天没有课程安排'
-                    : original.evidence?.origin == DataOrigin.persisted &&
-                          original.evidence!.complete
-                    ? '暂无课程安排'
-                    : original.status == FeatureLoadStatus.empty
+                    // 本地完整缓存与联网确认的空课表用同一文案，刷新后不跳变。
+                    : (original.evidence?.origin == DataOrigin.persisted &&
+                              original.evidence!.complete) ||
+                          original.status == FeatureLoadStatus.empty
                     ? '今天没有课程安排'
                     : original.evidence?.complete == false
                     ? '课表暂未加载完整'

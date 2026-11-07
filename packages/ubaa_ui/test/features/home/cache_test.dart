@@ -86,10 +86,10 @@ void main() {
     await tester.pumpWidget(const SizedBox());
   });
 
-  testWidgets('本地空课表显示简洁空态', (tester) async {
+  testWidgets('本地空课表与联网空课表同一文案，刷新确认后不跳变', (tester) async {
     await mount(tester, date: '2026-09-21', empty: true);
-    expect(find.text('暂无课程安排'), findsOneWidget);
-    expect(find.text('今天没有课程安排'), findsNothing);
+    expect(find.text('今天没有课程安排'), findsOneWidget);
+    expect(find.text('暂无课程安排'), findsNothing);
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets('跨校园午夜后不把昨日缓存课程放在今日下', (tester) async {

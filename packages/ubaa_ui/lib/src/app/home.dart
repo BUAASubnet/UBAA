@@ -219,6 +219,9 @@ class HomeViewState extends State<HomeView> {
   Object? _projectionFailure;
   Map<FeatureId, FeatureSnapshot> _lastSnapshots = const {};
   List<HomeTodo> _todos = const [];
+
+  /// 本页是否已算出过一次待办；之前没有结果不等于没有待办。
+  bool _projected = false;
   bool uiScheduled = false;
   int? _gradeCheckEpoch;
   late final Timer _clock;
@@ -242,7 +245,8 @@ class HomeViewState extends State<HomeView> {
     if (old.businessCacheEpoch != widget.businessCacheEpoch) {
       // 本机缓存被清理：在途结果和已显示内容都作废。
       _generation++;
-
+      _todos = const [];
+      _projected = false;
       _supplements.clear();
       _loading.clear();
       _pending.clear();
@@ -430,11 +434,9 @@ class HomeViewState extends State<HomeView> {
     final generation = ++_projectionGeneration;
     _todos = _todos.map((v) => v.withoutSigninAction()).toList();
     final reader = widget.onProjectTodos;
-    if (reader == null) {
-      _todos = const [];
-      _projectionFailure = null;
-      return;
-    }
+    // 会话恢复等过渡期间宿主暂停投影：保留已显示的待办（签到按钮已在上面去掉），
+    // 恢复后重新投影再替换，首页不因过渡清空又重现。
+    if (reader == null) return;
     final time = _now;
     final weeks =
         _supplements[HomeSupplement.currentWeek]?.details
@@ -464,12 +466,14 @@ class HomeViewState extends State<HomeView> {
       }
       setState(() {
         _todos = value.todos;
+        _projected = true;
         _projectionFailure = value.overlayFailure;
       });
     } on Object catch (e) {
       if (!mounted || generation != _projectionGeneration) return;
       setState(() {
         _todos = const [];
+        _projected = true;
         _projectionFailure = e;
       });
     }
@@ -605,7 +609,12 @@ class HomeViewState extends State<HomeView> {
           ],
         ),
         // 首次加载才占位；刷新时保留已有结果，进度只在标题栏右侧显示。
+        // 还没算出过待办（如启动时等待会话恢复）时同样占位，不先说“没有待办”。
         if (tasks.isEmpty &&
+            !_projected &&
+            (widget.onProjectTodos != null || widget.deferSupplements))
+          const LoadingPlaceholder(compact: true)
+        else if (tasks.isEmpty &&
             loading.isNotEmpty &&
             loading.every(
               (f) =>

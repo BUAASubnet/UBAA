@@ -1,4 +1,5 @@
 import '../../support/home_todos.dart';
+import 'dart:async';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -159,4 +160,78 @@ void main() {
       await tester.pumpWidget(const SizedBox.shrink());
     });
   }
+
+  testWidgets('首次投影前不显示没有待办，投影暂不可用时保留已显示待办', (tester) async {
+    final gate = Completer<void>();
+    HomeTodoReader? reader = (r) async {
+      await gate.future;
+      return homeTodoFixture(r);
+    };
+    final snapshots = {
+      for (final feature in FeatureId.values)
+        feature: FeatureSnapshot(
+          feature: feature,
+          status: FeatureLoadStatus.empty,
+        ),
+      FeatureId.exam: const FeatureSnapshot(
+        feature: FeatureId.exam,
+        status: FeatureLoadStatus.success,
+        details: [
+          FeatureDetail(
+            title: '缓存考试',
+            presentation: ExamPresentation(
+              arranged: true,
+              date: '2026-10-25',
+              startTime: '14:00',
+              endTime: '16:00',
+              place: '合成考场',
+              seat: '8',
+            ),
+          ),
+        ],
+      ),
+    };
+    late StateSetter rebuild;
+    await tester.pumpWidget(
+      StatefulBuilder(
+        builder: (context, setState) {
+          rebuild = setState;
+          return MaterialApp(
+            home: Scaffold(
+              body: HomeView(
+                onProjectTodos: reader,
+                user: null,
+                visible: true,
+                cacheEpoch: 0,
+                homeClock: Clock.fixed(
+                  DateTime.parse('2026-10-25T11:00:00+08:00'),
+                ),
+                snapshots: snapshots,
+                onFeatureTap: (_) {},
+                onRetryFeature: (_) async {},
+                onRefresh: () async {},
+                onLoadSupplement: (_, _) async => FeatureResult.empty(),
+                onTodoTap: (_) {},
+              ),
+            ),
+          );
+        },
+      ),
+    );
+    await tester.pump();
+    await tester.pump();
+    // 缓存已在，只是投影还没算完：不能先告诉学生“没有待办”。
+    expect(find.text('当前没有待办'), findsNothing);
+    gate.complete();
+    await tester.pumpAndSettle();
+    expect(find.text('缓存考试'), findsOneWidget);
+    // 会话恢复期间宿主暂停投影：已显示的待办保持不动。
+    rebuild(() => reader = null);
+    await tester.pumpAndSettle();
+    expect(find.text('缓存考试'), findsOneWidget);
+    rebuild(() => reader = homeTodoFixture);
+    await tester.pumpAndSettle();
+    expect(find.text('缓存考试'), findsOneWidget);
+    await tester.pumpWidget(const SizedBox.shrink());
+  });
 }
