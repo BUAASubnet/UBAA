@@ -6,10 +6,10 @@ import 'package:ubaa_ui/ubaa_ui.dart';
 void main() {
   testWidgets('窄屏放大文字仍可展开核对提示且不提供写入确认', (tester) async {
     await mount(tester, width: 360, textScale: 2);
-    await tester.tap(find.text('1 次操作结果待核实'));
+    await tester.tap(find.text('1 项操作需要你确认结果'));
     await tester.pumpAndSettle();
-    expect(find.text('查看相关记录'), findsOneWidget);
-    expect(find.text('已核对，移除本机提示'), findsOneWidget);
+    expect(find.text('去查看'), findsOneWidget);
+    expect(find.text('已确认，关闭提醒'), findsOneWidget);
     expect(find.text('确认提交'), findsNothing);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
@@ -24,18 +24,18 @@ void main() {
         throw StateError('合成本地故障');
       },
     );
-    expect(find.text('1 次操作结果待核实'), findsOneWidget);
-    await tester.tap(find.text('1 次操作结果待核实'));
+    expect(find.text('1 项操作需要你确认结果'), findsOneWidget);
+    await tester.tap(find.text('1 项操作需要你确认结果'));
     await tester.pumpAndSettle();
     expect(find.textContaining('WebVPN'), findsWidgets);
     expect(find.textContaining('2026'), findsWidgets);
-    expect(find.text('查看相关记录'), findsOneWidget);
+    expect(find.text('去查看'), findsOneWidget);
     expect(find.text('确认提交'), findsNothing);
-    await tester.tap(find.text('已核对，移除本机提示'));
+    await tester.tap(find.text('已确认，关闭提醒'));
     await tester.pumpAndSettle();
     expect(dismissed, 1);
-    expect(find.text('提示未能移除，请重试'), findsOneWidget);
-    expect(find.text('1 次操作结果待核实'), findsOneWidget);
+    expect(find.text('没能关闭提醒，请重试'), findsOneWidget);
+    expect(find.text('1 项操作需要你确认结果'), findsOneWidget);
     expect(tester.takeException(), isNull);
     await tester.pumpWidget(const SizedBox());
   });

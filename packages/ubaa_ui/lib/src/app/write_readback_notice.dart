@@ -45,51 +45,100 @@ class _WriteReadbackNoticeState extends State<WriteReadbackNotice> {
   }
 
   @override
-  Widget build(BuildContext context) => Card(
-    child: ExpansionTile(
-      leading: const Icon(Icons.fact_check_outlined),
-      title: Text(
-        widget.hints.isEmpty ? '待核实提示暂不可用' : '${widget.hints.length} 次操作结果待核实',
-      ),
-      childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
-      expandedCrossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text('请核对学校记录；移除提示不会改变学校记录。'),
-        if (widget.error != null) ...[
-          const SizedBox(height: 8),
-          const Text('本机待核实提示读取失败，已有提示仍保留。'),
-          TextButton(onPressed: widget.onRefresh, child: const Text('重新读取提示')),
-        ],
-        for (final hint in widget.hints) ...[
-          const Divider(),
-          Text(hint.operation.title),
-          Text(
-            '${hint.startedAt.toUtc().add(const Duration(hours: 8)).year}年'
-            '${uiSavedScheduleTime(hint.startedAt)} · ${hint.route.label}',
-          ),
-          Wrap(
-            spacing: 8,
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final muted = theme.textTheme.bodySmall?.copyWith(
+      color: colors.onSurfaceVariant,
+    );
+    // 没有可显示的提醒、只是读取失败时，只占一行，不打扰首页。
+    if (widget.hints.isEmpty) {
+      return Card(
+        child: Padding(
+          padding: const EdgeInsets.fromLTRB(16, 8, 4, 8),
+          child: Row(
             children: [
-              TextButton(
-                onPressed: hint.feature == null
-                    ? null
-                    : () => widget.onOpenFeature(hint.feature!),
-                child: const Text('查看相关记录'),
+              Icon(
+                Icons.info_outline,
+                size: 20,
+                color: colors.onSurfaceVariant,
               ),
-              TextButton(
-                onPressed:
-                    widget.onDismiss == null || _removing.contains(hint.id)
-                    ? null
-                    : () => _dismiss(hint.id),
-                child: Text(
-                  _removing.contains(hint.id) ? '正在移除' : '已核对，移除本机提示',
+              const SizedBox(width: 12),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Text('之前的操作提醒暂时读不出来'),
+                    Text('最近签到、选课或预约若没看到结果，请到对应页面查看。', style: muted),
+                  ],
                 ),
               ),
+              TextButton(onPressed: widget.onRefresh, child: const Text('重试')),
             ],
           ),
-          if (_failed.contains(hint.id)) const Text('提示未能移除，请重试'),
-        ],
-      ],
-    ),
-  );
+        ),
+      );
+    }
+    return Card(
+      child: Theme(
+        data: theme.copyWith(dividerColor: Colors.transparent),
+        child: ExpansionTile(
+          leading: Icon(Icons.help_outline_rounded, color: colors.tertiary),
+          title: Text('${widget.hints.length} 项操作需要你确认结果'),
+          subtitle: Text('提交时网络中断，学校可能已收到，也可能没有', style: muted),
+          childrenPadding: const EdgeInsets.fromLTRB(16, 0, 16, 12),
+          expandedCrossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('请到对应页面查看学校记录，确认后可关闭提醒；关闭提醒不会改变学校记录。', style: muted),
+            if (widget.error != null)
+              Row(
+                children: [
+                  Expanded(child: Text('还有部分提醒暂时读不出来。', style: muted)),
+                  TextButton(
+                    onPressed: widget.onRefresh,
+                    child: const Text('重试'),
+                  ),
+                ],
+              ),
+            for (final hint in widget.hints) ...[
+              const Divider(),
+              Text(
+                hint.operation.title,
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+              Text(
+                '${hint.startedAt.toUtc().add(const Duration(hours: 8)).year}年'
+                '${uiSavedScheduleTime(hint.startedAt)} · ${hint.route.label}',
+                style: muted,
+              ),
+              Wrap(
+                spacing: 8,
+                children: [
+                  TextButton(
+                    onPressed: hint.feature == null
+                        ? null
+                        : () => widget.onOpenFeature(hint.feature!),
+                    child: const Text('去查看'),
+                  ),
+                  TextButton(
+                    onPressed:
+                        widget.onDismiss == null || _removing.contains(hint.id)
+                        ? null
+                        : () => _dismiss(hint.id),
+                    child: Text(
+                      _removing.contains(hint.id) ? '正在关闭' : '已确认，关闭提醒',
+                    ),
+                  ),
+                ],
+              ),
+              if (_failed.contains(hint.id))
+                Text('没能关闭提醒，请重试', style: TextStyle(color: colors.error)),
+            ],
+          ],
+        ),
+      ),
+    );
+  }
 }
