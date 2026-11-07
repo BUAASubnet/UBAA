@@ -7,6 +7,26 @@ import 'package:ubaa_test_support/recovery.dart';
 import '../support/controller/clock_accounts.dart';
 
 void main() {
+  for (final empty in [false, true]) {
+    test('认证前恢复实际展示的明日课表，空课表=$empty', () async {
+      final backend = _Backend()..emptyDay = empty;
+      final controller = AppController(
+        backend: backend,
+        localAccountStore: ClockAccounts(),
+      );
+      controller.attachHomePresentation();
+      addTearDown(controller.dispose);
+      await controller.initialize();
+      final day = controller.homeState.schedule;
+      expect(day.tomorrow, isTrue);
+      expect(day.snapshot.evidence?.origin, DataOrigin.persisted);
+      expect(day.snapshot.evidence?.complete, isTrue);
+      expect(day.snapshot.details.map((d) => d.title), empty ? [] : ['缓存明日课程']);
+      expect(day.snapshot.updatedAt, backend.fetched);
+      expect(backend.authCalls, 0);
+      expect(backend.readCalls, 0);
+    });
+  }
   test('缓存首屏同时带待办与按今天日期确定的周次，认证尚未发送', () async {
     final backend = _Backend();
     final controller = AppController(
@@ -44,6 +64,7 @@ class _Backend extends FakeRecoveryBackend
         HomeTodoBackend,
         RouteSettingsBackend {
   final policies = <RoutePolicy>[];
+  bool emptyDay = false;
   @override
   Future<BackendRouteSettings> routeSettings() async =>
       const BackendRouteSettings(
@@ -78,6 +99,7 @@ class _Backend extends FakeRecoveryBackend
   Future<OfflineHomeRead> readCachedHome(RoutePolicy policy) async =>
       OfflineHomeRead([
         cached(FeatureId.exam, const [FeatureDetail(title: '缓存考试')]),
+        cached(FeatureId.schedule, const []),
       ]);
   @override
   Future<OfflineQueryRead> readCachedQuery(
@@ -90,6 +112,32 @@ class _Backend extends FakeRecoveryBackend
       await Future<void>.delayed(const Duration(milliseconds: 30));
     }
     final today = homeCampusTime(DateTime.now());
+    if (query.view == FeatureQueryView.scheduleWeek) {
+      await Future<void>.delayed(const Duration(milliseconds: 30));
+      return OfflineQueryRead(
+        cached(
+          feature,
+          emptyDay
+              ? []
+              : [
+                  FeatureDetail(
+                    title: '缓存明日课程',
+                    presentation: ScheduleCoursePresentation(
+                      courseCode: 'cached',
+                      dayOfWeek: DateTime(
+                        today.year,
+                        today.month,
+                        today.day + 1,
+                      ).weekday,
+                      beginTime: '08:00',
+                      endTime: '09:35',
+                    ),
+                  ),
+                ],
+          query: query,
+        ),
+      );
+    }
     return OfflineQueryRead(
       cached(
         feature,

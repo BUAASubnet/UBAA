@@ -19,6 +19,7 @@ abstract class ControllerOperations extends ChangeNotifier {
   void internalDisposeHome();
   Future<void> internalFlushHomeProjection();
   Future<FeatureResult?> internalReadCachedHomeWeek(DateTime now);
+  Future<FeatureResult?> internalReadCachedHomeDay(String date);
   Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request);
   bool get homeTodoProjectionBlocked;
   Future<CacheUsageSummary> cacheUsage({required String accountId});

@@ -26,6 +26,7 @@ mixin ControllerHomePresentation on ControllerState {
     retryMain: (feature) =>
         internalRefreshHome(only: [feature], firstBatch: true),
     readCachedWeek: internalReadCachedHomeWeek,
+    readCachedDay: internalReadCachedHomeDay,
     changed: internalNotify,
   );
   HomeState get homeState => _home.state;
@@ -65,7 +66,7 @@ mixin ControllerHomePresentation on ControllerState {
               internalSessionRecoveryStatus == SessionRecoveryStatus.ready),
       blocked: homeTodoProjectionBlocked,
       foreground: internalAppForeground,
-      readDays: internalPhase == AppPhase.home && _homeVisible,
+      readDays: _homeVisible,
     );
   }
 

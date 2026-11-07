@@ -16,6 +16,7 @@ final class HomeCoordinator {
     required this.retryMain,
     required this.changed,
     this.readCachedWeek,
+    this.readCachedDay,
     DateTime Function()? now,
   }) : clock = now ?? DateTime.now;
   final Future<FeatureResult> Function(HomeSupplement, bool) loadSupplement;
@@ -24,6 +25,7 @@ final class HomeCoordinator {
   final Future<void> Function() refreshMain;
   final Future<void> Function(FeatureId) retryMain;
   final Future<FeatureResult?> Function(DateTime)? readCachedWeek;
+  final Future<FeatureResult?> Function(String)? readCachedDay;
   final VoidCallback changed;
   final DateTime Function() clock;
   final _supplements = <HomeSupplement, FeatureResult>{};
@@ -35,6 +37,7 @@ final class HomeCoordinator {
   final _supplementAttempts = <HomeSupplement>{};
   Future<void>? _projectionDone;
   Future<void>? _cachedWeekTask;
+  final _cachedDayTasks = <String, Future<void>>{};
   late String _observedToday = homeDateKey(homeCampusTime(clock()));
   Map<FeatureId, FeatureSnapshot> _snapshots = const {};
   Object? _owner;
@@ -75,6 +78,7 @@ final class HomeCoordinator {
       _observedToday = homeDateKey(homeCampusTime(clock()));
       _supplements.clear();
       _cachedWeekTask = null;
+      _cachedDayTasks.clear();
       _supplementTimes.clear();
       _refresh = null;
       _supplementTasks.clear();
@@ -113,6 +117,7 @@ final class HomeCoordinator {
       _timer = null;
     }
     if (newOwner || resumed) _restoreWeek();
+    if (_active && _readDays) _restoreVisibleDay();
     if (newOwner ||
         newEpoch ||
         contentChanged ||
@@ -175,7 +180,11 @@ final class HomeCoordinator {
           }
         }
         final schedule = _scheduleState();
-        if (_readDays && schedule.remote && _dayAttempts.add(schedule.date)) {
+        if (_readDays) _restoreVisibleDay();
+        if (_online &&
+            _readDays &&
+            schedule.remote &&
+            _dayAttempts.add(schedule.date)) {
           unawaited(_loadDay(schedule.date, force: _forceDayReads));
         }
         if (_dirtyProjection && !_projecting) unawaited(_project());

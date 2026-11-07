@@ -1,6 +1,30 @@
 part of 'coordinator.dart';
 
 extension _HomeSources on HomeCoordinator {
+  Future<void> _restoreVisibleDay() async {
+    final read = readCachedDay;
+    if (read == null || !_active || !_readDays || _blocked) return;
+    final schedule = _scheduleState();
+    if (!schedule.remote) return;
+    final date = schedule.date;
+    await _cachedDayTasks.putIfAbsent(date, () async {
+      final generation = _generation;
+      final result = await read(date);
+      if (_disposed ||
+          generation != _generation ||
+          result == null ||
+          result.overview is! HomeScheduleOverview ||
+          (result.overview! as HomeScheduleOverview).date != date)
+        return;
+      final previous = _days[date];
+      if (previous?.updatedAt != null || previous?.evidence != null) return;
+      _days[date] = _snapshot(FeatureId.schedule, result, previous);
+      _schedule();
+    });
+    // 午夜后先补今日，今日已结束时继续补实际展示的明日。
+    if (!_disposed && _scheduleState().date != date) await _restoreVisibleDay();
+  }
+
   Map<FeatureId, FeatureSnapshot> _sources() {
     final sources = <FeatureId, FeatureSnapshot>{
       for (final f in [

@@ -18,7 +18,15 @@ mixin ControllerHomeSources on ControllerState {
   @override
   @internal
   Future<FeatureResult?> internalReadCachedHomeWeek(DateTime now) =>
-      _cachedHomeWeek(this, now);
+      _cachedHomeCalendar(this, homeCampusTime(now));
+  @override
+  @internal
+  Future<FeatureResult?> internalReadCachedHomeDay(String date) async {
+    final day = homeParseDate(date);
+    if (day == null) return null;
+    return _cachedHomeCalendar(this, day, includeCourses: true);
+  }
+
   @internal
   Future<void> internalWaitHomeSchoolCache() async {
     await internalReadCaches

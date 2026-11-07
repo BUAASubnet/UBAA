@@ -224,7 +224,7 @@ class _HomeCalendarHarnessState extends State<HomeCalendarHarness> {
       epoch: widget.epoch,
       agenda: 0,
       active: true,
-      online: false,
+      online: widget.visible,
       blocked: false,
       foreground: widget.visible,
       readDays: widget.onLoadDay != null,

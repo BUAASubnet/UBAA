@@ -1,9 +1,10 @@
 part of 'sources.dart';
 
-Future<FeatureResult?> _cachedHomeWeek(
+Future<FeatureResult?> _cachedHomeCalendar(
   ControllerState owner,
-  DateTime now,
-) async {
+  DateTime day, {
+  bool includeCourses = false,
+}) async {
   final backend = owner.internalBackend, account = owner.internalLocalAccount;
   if (backend is! OfflineQueryBackend || account == null) return null;
   final scope = owner.internalCaptureReadScope();
@@ -61,10 +62,23 @@ Future<FeatureResult?> _cachedHomeWeek(
       return null;
     final week = homeWeekOn(
       weeks.details.map((d) => d.presentation).whereType<WeekPresentation>(),
-      homeCampusTime(now),
+      day,
       term: term,
     );
     if (week == null) return null;
+    if (includeCourses) {
+      final weekly = await read(
+        FeatureQuery(
+          view: FeatureQueryView.scheduleWeek,
+          term: term,
+          week: week.number,
+        ),
+      );
+      if (weekly == null || weekly.resolvedRoute != weeks.resolvedRoute)
+        return null;
+      final result = homeProjectScheduleDay(weekly, week, day);
+      return result.error == null ? result : null;
+    }
     return FeatureResult.success(
       details: [FeatureDetail(title: '第${week.number}周', presentation: week)],
       evidence: weeks.evidence,

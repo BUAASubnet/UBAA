@@ -10,13 +10,14 @@ void update(
   Object owner = 'account',
   bool online = false,
   bool readDays = false,
+  int epoch = 0,
   Map<FeatureId, FeatureSnapshot>? sources,
 }) => model.update(
   owner: owner,
   snapshots:
       sources ??
       {for (final f in FeatureId.values) f: FeatureSnapshot(feature: f)},
-  epoch: 0,
+  epoch: epoch,
   agenda: revision,
   active: true,
   online: online,
@@ -35,6 +36,63 @@ HomeTodo item(String title) => HomeTodo(
 );
 
 void main() {
+  test('全页刷新和联网失败始终保留预读的明日空课表', () async {
+    final network = Completer<FeatureResult>();
+    final cached = FeatureResult.empty(
+      overview: const HomeScheduleOverview(
+        date: '2026-11-08',
+        week: WeekPresentation(
+          requestTerm: 'term',
+          responseTerm: 'term',
+          number: 9,
+          current: true,
+          startDate: '2026-11-02',
+          endDate: '2026-11-08',
+        ),
+      ),
+      evidence: DataEvidence(
+        accountId: 'account',
+        origin: DataOrigin.persisted,
+        fetchedAt: now,
+        complete: true,
+        savedForOffline: true,
+      ),
+    );
+    final model = HomeCoordinator(
+      loadSupplement: (_, _) async => const FeatureResult.empty(),
+      readCachedDay: (_) async => cached,
+      loadDay: (_, _) => network.future,
+      project: (_) async => HomeTodoProjection([]),
+      refreshMain: () async {},
+      retryMain: (_) async {},
+      changed: () {},
+      now: () => now,
+    );
+    addTearDown(model.dispose);
+    const sources = {
+      FeatureId.schedule: FeatureSnapshot(
+        feature: FeatureId.schedule,
+        status: FeatureLoadStatus.empty,
+      ),
+    };
+    update(model, readDays: true, sources: sources);
+    await model.flushProjection();
+    expect(model.state.schedule.snapshot.evidence, same(cached.evidence));
+    update(model, readDays: true, online: true, epoch: 1, sources: sources);
+    await Future<void>.delayed(Duration.zero);
+    expect(model.state.schedule.snapshot.status, FeatureLoadStatus.loading);
+    expect(model.state.schedule.snapshot.evidence, same(cached.evidence));
+    network.complete(
+      const FeatureResult.failure(
+        UiError(code: UbaaErrorCode.networkError, title: '失败', message: '合成断网'),
+      ),
+    );
+    await Future<void>.delayed(Duration.zero);
+    expect(model.state.schedule.snapshot.status, FeatureLoadStatus.stale);
+    expect(model.state.schedule.snapshot.updatedAt, now);
+    expect(model.state.schedule.snapshot.evidence, same(cached.evidence));
+  });
+
   test('内容相同的重新投影保留待办列表，刷新等待最新在途投影', () async {
     var calls = 0;
     final pending = Completer<HomeTodoProjection>();

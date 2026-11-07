@@ -55,6 +55,7 @@ extension _HomeProjection on HomeCoordinator {
 
   Future<void> _flushProjection() async {
     await _cachedWeekTask;
+    await _restoreVisibleDay();
     while (!_disposed && !_blocked && _active) {
       if (_projecting) {
         await _projectionDone;
