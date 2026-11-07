@@ -1,7 +1,9 @@
 import 'dart:async';
+import 'dart:io';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import 'package:ubaa_platform/shared_accounts.dart';
 import 'package:ubaa_test_support/recovery.dart' as support;
 import '../../recovery/backend_rebuild/fakes.dart' as base;
 
@@ -51,6 +53,46 @@ void main() {
     expect(backend.commits, 1);
     expect(controller.writeReadbacks, hasLength(1));
     expect(controller.writeCoordinator.intent, isNull);
+  });
+
+  test('共享恢复重绑后重新读取提示，旧本机读取迟到作废不覆盖新结果', () async {
+    final evidence = Directory(
+      '../../.ubaa_local/cold_start_superseded',
+    ).absolute..createSync(recursive: true);
+    final root = evidence.createTempSync('readback_');
+    final materials = SecureMaterialStore(
+      coordinator: MaterialCoordinator(directory: root),
+      transport: support.MemoryMaterials(),
+    );
+    await materials.probe();
+    final accounts = SecureLocalAccountStore(materials);
+    final backend = _SharedHintBackend()..firstReadGate = Completer<void>();
+    await accounts.retain(backend.username, retainSession: true);
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: accounts,
+    );
+    try {
+      await base.cachedHome(controller, backend);
+      expect(backend.hintReads, 1);
+      final startup = controller.internalWriteReadbackRead!.completion.future;
+      await controller.recoverSession(refreshHomeAfter: false);
+      expect(controller.sessionRecoveryStatus, SessionRecoveryStatus.ready);
+      final refreshed = controller.internalWriteReadbackRead?.completion.future;
+      backend.firstReadGate!.complete();
+      await startup;
+      await refreshed;
+      expect(backend.hintReads, 2);
+      expect(controller.writeReadbacks, hasLength(1));
+      expect(controller.writeReadbackError, isNull);
+      expect(backend.commits, 0);
+    } finally {
+      if (!backend.firstReadGate!.isCompleted)
+        backend.firstReadGate!.complete();
+      controller.dispose();
+      await controller.internalDisposeBackendOnce(backend);
+      await root.delete(recursive: true);
+    }
   });
 
   test('提示读取失败保留旧提示，明确报本地故障且不改学校结果', () async {
@@ -205,4 +247,37 @@ class HintBackend extends base.Backend
   @override
   Future<CacheUsageSummary> cacheUsage({required String accountId}) =>
       throw UnimplementedError();
+}
+
+class _SharedHintBackend extends HintBackend
+    implements RequiredSessionBackend, SharedAccountBackend {
+  int bindingGeneration = 0;
+  @override
+  Future<void> bindSharedAccount(SharedAccountBinding binding) async {
+    await binding.validate();
+    bindingGeneration++;
+  }
+
+  @override
+  Future<RecoveredRouteSession> recoverRequiredSession(
+    FeatureId feature,
+  ) async => RecoveredRouteSession(
+    route: ConnectionMode.direct,
+    profile: UserSummary(username: username),
+  );
+  @override
+  Future<RecoveredRouteSession> loginRequiredRoute(
+    ConnectionMode route,
+    LoginInput input,
+  ) => throw StateError('共享恢复测试禁止登录请求');
+  @override
+  Future<List<WriteReadbackHint>> readWriteReadbackHints({
+    required String accountId,
+  }) async {
+    final generation = bindingGeneration;
+    final values = await super.readWriteReadbackHints(accountId: accountId);
+    if (generation != bindingGeneration)
+      throw const BackendException(UbaaErrorCode.operationConflict);
+    return values;
+  }
 }

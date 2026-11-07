@@ -193,7 +193,8 @@ mixin ControllerOfflineStartup on ControllerState {
           (deliveryScope != null && !deliveryScope.isCurrent))
         return;
       unawaited(internalQueueProfileRefresh());
-      unawaited(internalLoadWriteReadbacks());
+      // 共享身份重绑后使用新读取修订，避免合并到已撤销的旧任务。
+      unawaited(internalLoadWriteReadbacks(force: deliveryScope != null));
       internalNotify();
       for (final entry in request.queriesAfterRebuild.entries) {
         if (!internalRecoveryIsCurrent(epoch)) return;
