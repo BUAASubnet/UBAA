@@ -21,10 +21,14 @@ mixin ControllerAgenda on ControllerState {
     final generation = ++internalAgendaOpenEpoch;
     internalAgendaFailure = null;
     internalAgendaOpenFuture = () async {
+      var serviceGeneration = service.accountGeneration;
       try {
-        await service.openAccount(account.id);
+        final opening = service.openAccount(account.id);
+        serviceGeneration = service.accountGeneration;
+        await opening;
       } on Object catch (error) {
         if (generation != internalAgendaOpenEpoch ||
+            serviceGeneration != service.accountGeneration ||
             internalDisposed ||
             !identical(backend, internalBackend) ||
             internalLocalAccount?.id != account.id) {

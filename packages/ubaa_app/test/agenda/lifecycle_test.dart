@@ -294,6 +294,25 @@ void main() {
     );
     expect(backend.data.accounts, hasLength(1));
   });
+  test('共享身份重开日程后不保留冷启动旧打开的作废错误', () async {
+    final backend = _Backend()..data.openGate = Completer<void>();
+    final controller = AppController(
+      backend: backend,
+      localAccountStore: await support.savedAccounts(),
+    );
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await backend.data.openStarted.future;
+    final startup = controller.internalAgendaOpenFuture;
+    final account = backend.agenda.accountId!;
+    // 共享身份恢复直接重开同账号服务，旧打开随服务代次变化作废。
+    final reopened = backend.agenda.openAccount(account);
+    backend.data.openGate!.complete();
+    await startup;
+    await reopened;
+    expect(await backend.agenda.unsyncedCount(), 5);
+    expect(controller.localAgendaFailure, isNull);
+  });
   test('学校缓存投影更新不遮蔽仍在打开的日程错误', () async {
     final backend = _Backend()
       ..data.openGate = Completer<void>()
@@ -353,6 +372,7 @@ class _Agenda implements AgendaBackend {
   Completer<int>? countGate;
   final countStarted = Completer<void>();
   Completer<void>? openGate;
+  final openStarted = Completer<void>();
   bool active = false;
   Completer<void>? deactivateGate;
   Completer<void>? writeGate;
@@ -370,6 +390,7 @@ class _Agenda implements AgendaBackend {
   @override
   Future<void> openAccount(String id) async {
     accounts.add(id);
+    if (!openStarted.isCompleted) openStarted.complete();
     await openGate?.future;
     if (openError != null) throw openError!;
     active = true;
