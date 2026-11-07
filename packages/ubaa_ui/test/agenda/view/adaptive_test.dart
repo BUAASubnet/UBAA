@@ -152,7 +152,7 @@ void main() {
       find.descendant(of: pane, matching: find.text('已缓存')),
       findsOneWidget,
     );
-    await tester.tap(find.text('添加备注'));
+    await tester.tap(find.text('添加备注…'));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, '备注'), '宽屏备注');
     await tester.pump();

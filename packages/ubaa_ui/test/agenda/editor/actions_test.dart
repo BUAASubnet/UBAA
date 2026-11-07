@@ -161,7 +161,7 @@ void main() {
       find.descendant(of: find.byType(BottomSheet), matching: find.text('未提交')),
       findsOneWidget,
     );
-    await tester.tap(find.text('添加备注'));
+    await tester.tap(find.text('添加备注…'));
     await tester.pumpAndSettle();
     await tester.enterText(find.widgetWithText(TextField, '备注'), '本机计划');
     await tester.pump();

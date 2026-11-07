@@ -142,7 +142,11 @@ extension AgendaDetails on AgendaViewState {
     });
   }
 
-  Widget detailContent(AgendaEntry entry, VoidCallback close) {
+  Widget detailContent(
+    AgendaEntry entry,
+    VoidCallback close, {
+    bool modal = false,
+  }) {
     final token = generation.value;
     void action(VoidCallback run) {
       if (!current(token)) return;
@@ -156,6 +160,7 @@ extension AgendaDetails on AgendaViewState {
       displayEnd: agendaDisplayEnd(entry, result?.entries ?? []),
       conflicts: agendaEntryConflicts(entry, result?.entries ?? []),
       busy: busy,
+      modal: modal,
       onClose: close,
       onEdit: () => action(() => unawaited(editEntry(entry))),
       onDelete: () => action(() => unawaited(deleteEntry(entry))),
@@ -170,13 +175,10 @@ extension AgendaDetails on AgendaViewState {
   }
 
   Future<void> details(AgendaEntry entry) async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
-      builder: (sheet) => bound(
-        SafeArea(child: detailContent(entry, () => Navigator.pop(sheet))),
-      ),
+    await showUiSheet<void>(
+      context,
+      builder: (sheet) =>
+          bound(detailContent(entry, () => Navigator.pop(sheet), modal: true)),
     );
   }
 }

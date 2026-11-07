@@ -166,7 +166,7 @@ void main() {
     expect(find.text('12:15'), findsOneWidget);
     await tester.tap(find.text('合成连堂课'));
     await tester.pumpAndSettle();
-    expect(find.text('09:50 — 12:15'), findsOneWidget);
+    expect(find.textContaining('09:50 — 12:15'), findsOneWidget);
     expect(find.text('09:50 — 10:35'), findsNothing);
   });
 }

@@ -196,7 +196,8 @@ void main() {
     await tester.tapAt(a.center);
     await tester.pumpAndSettle();
     expect(find.text('编辑事项'), findsOneWidget);
-    await tester.tap(find.byTooltip('关闭详情'));
+    // 模态面板只留拖动条，点面板外关闭。
+    await tester.tapAt(const Offset(10, 10));
     await tester.pumpAndSettle();
     await tester.tapAt(b.center);
     await tester.pumpAndSettle();
