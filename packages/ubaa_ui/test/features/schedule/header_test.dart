@@ -64,6 +64,18 @@ void main() {
     expect(harness.header, isNull);
   });
 
+  testWidgets('课表正文左右滑动切换周次', (tester) async {
+    final harness = _Harness();
+    await tester.pumpWidget(harness.build());
+    await tester.pumpAndSettle();
+    await tester.fling(find.text('原有正文'), const Offset(-200, 0), 900);
+    await tester.pumpAndSettle();
+    expect(harness.queries.map((q) => q.week), [2]);
+    await tester.fling(find.text('原有正文'), const Offset(200, 0), 900);
+    await tester.pumpAndSettle();
+    expect(harness.queries.map((q) => q.week), [2], reason: '第1周没有上一周');
+  });
+
   testWidgets('旧路线迟到元数据不能覆盖新路线', (tester) async {
     final pending = Completer<FeatureResult>();
     final harness = _Harness()..pending = pending.future;
@@ -112,6 +124,7 @@ class _Harness {
   List<FeatureDetail>? metadata;
   Future<FeatureResult>? pending;
   WeekPresentation? header;
+  final queries = <FeatureQuery>[];
   Widget build({Key? key}) => MaterialApp(
     home: Scaffold(
       body: ScheduleFlow(
@@ -119,7 +132,7 @@ class _Harness {
         query: query,
         visible: true,
         epoch: epoch,
-        onQuery: (_) async {},
+        onQuery: (q) async => queries.add(q),
         snapshot: FeatureSnapshot(
           feature: FeatureId.schedule,
           status: status,

@@ -27,13 +27,7 @@ class ScheduleContent extends StatefulWidget {
 }
 
 class _ScheduleContentState extends State<ScheduleContent> {
-  final _horizontal = ScrollController();
   final _colors = ScheduleCourseColors();
-  @override
-  void dispose() {
-    _horizontal.dispose();
-    super.dispose();
-  }
 
   @override
   Widget build(BuildContext context) => LayoutBuilder(
@@ -43,7 +37,8 @@ class _ScheduleContentState extends State<ScheduleContent> {
       final colors = ScheduleWeekScope.colorsOf(context) ?? _colors;
       colors.register(widget.timeSource ?? widget.details);
       final gutter = UbaaTheme.pagePadding(MediaQuery.sizeOf(context).width);
-      final width = math.max(constraints.maxWidth - gutter * 2, 330 * scale);
+      // 七列始终占满屏宽：左右滑动留给切换周次，不做横向滚动。
+      final width = constraints.maxWidth - gutter * 2;
       final periodHeight = 64 * scale;
       final times =
           widget.timeline?.sectionTimes ??
@@ -107,225 +102,195 @@ class _ScheduleContentState extends State<ScheduleContent> {
       final accent = Theme.of(context).colorScheme.primary;
       return Padding(
         padding: EdgeInsets.symmetric(horizontal: gutter),
-        child: Scrollbar(
-          controller: _horizontal,
-          thumbVisibility: width > constraints.maxWidth - gutter * 2,
-          notificationPredicate: (n) => n.metrics.axis == Axis.horizontal,
-          child: SingleChildScrollView(
-            controller: _horizontal,
-            scrollDirection: Axis.horizontal,
-            child: SizedBox(
-              width: width,
-              height: constraints.maxHeight,
-              child: Column(
-                children: [
-                  SizedBox(
-                    height: 56 * scale,
-                    child: Row(
-                      children: [
-                        // 七列放不下“11月2日”：月份放在左上角，列内只写“2日”。
-                        SizedBox(
-                          width: axisWidth,
-                          child: Center(
-                            child: Text(
-                              _scheduleHeaderMonth(dates) ?? '',
-                              style: TextStyle(
-                                fontSize: 12,
-                                fontWeight: FontWeight.w500,
-                                color: Theme.of(
-                                  context,
-                                ).colorScheme.onSurfaceVariant,
-                              ),
+        child: SizedBox(
+          width: width,
+          height: constraints.maxHeight,
+          child: Column(
+            children: [
+              SizedBox(
+                height: 56 * scale,
+                child: Row(
+                  children: [
+                    // 七列放不下“11月2日”：月份放在左上角，列内只写“2日”。
+                    SizedBox(
+                      width: axisWidth,
+                      child: Center(
+                        child: Text(
+                          _scheduleHeaderMonth(dates) ?? '',
+                          style: TextStyle(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Theme.of(
+                              context,
+                            ).colorScheme.onSurfaceVariant,
+                          ),
+                        ),
+                      ),
+                    ),
+                    for (final (index, label) in const [
+                      '周一',
+                      '周二',
+                      '周三',
+                      '周四',
+                      '周五',
+                      '周六',
+                      '周日',
+                    ].take(dayCount).indexed)
+                      Expanded(
+                        child: Center(
+                          child: Container(
+                            padding: const EdgeInsets.symmetric(
+                              horizontal: 6,
+                              vertical: 2,
+                            ),
+                            decoration: index == today
+                                ? BoxDecoration(
+                                    color: accent.withValues(alpha: .12),
+                                    borderRadius: BorderRadius.circular(8),
+                                  )
+                                : null,
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                Text(
+                                  label,
+                                  style: TextStyle(
+                                    fontSize: 12,
+                                    fontWeight: index == today
+                                        ? FontWeight.bold
+                                        : FontWeight.w500,
+                                    color: index == today ? accent : null,
+                                  ),
+                                ),
+                                if (dates?[index] case final date?)
+                                  Text(
+                                    _scheduleHeaderDay(date),
+                                    style: TextStyle(
+                                      fontSize: 11,
+                                      color: index == today
+                                          ? accent
+                                          : Theme.of(
+                                              context,
+                                            ).colorScheme.onSurfaceVariant,
+                                    ),
+                                  ),
+                              ],
                             ),
                           ),
                         ),
-                        for (final (index, label) in const [
-                          '周一',
-                          '周二',
-                          '周三',
-                          '周四',
-                          '周五',
-                          '周六',
-                          '周日',
-                        ].take(dayCount).indexed)
-                          Expanded(
-                            child: Center(
-                              child: Container(
-                                padding: const EdgeInsets.symmetric(
-                                  horizontal: 6,
-                                  vertical: 2,
-                                ),
-                                decoration: index == today
-                                    ? BoxDecoration(
-                                        color: accent.withValues(alpha: .12),
-                                        borderRadius: BorderRadius.circular(8),
-                                      )
-                                    : null,
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    Text(
-                                      label,
-                                      style: TextStyle(
-                                        fontSize: 12,
-                                        fontWeight: index == today
-                                            ? FontWeight.bold
-                                            : FontWeight.w500,
-                                        color: index == today ? accent : null,
-                                      ),
-                                    ),
-                                    if (dates?[index] case final date?)
-                                      Text(
-                                        _scheduleHeaderDay(date),
-                                        style: TextStyle(
-                                          fontSize: 11,
-                                          color: index == today
-                                              ? accent
-                                              : Theme.of(
-                                                  context,
-                                                ).colorScheme.onSurfaceVariant,
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                  Expanded(
-                    child: ListView(
-                      key: const ValueKey('schedule-grid-scroll'),
-                      padding: const EdgeInsets.only(bottom: 16),
-                      children: [
-                        if (widget.details.isEmpty)
-                          Padding(
-                            padding: const EdgeInsets.symmetric(vertical: 12),
-                            child: Center(child: Text(widget.emptyMessage)),
-                          ),
-                        SevenDayTimeGrid(
-                          rows: periods,
-                          rowHeight: periodHeight,
-                          axisWidth: axisWidth,
-                          today: today,
-                          axis: _SchedulePinnedAxis(
-                            controller: _horizontal,
-                            width: axisWidth,
-                            rowHeight: periodHeight,
-                            periods: periods,
-                            times: times,
-                          ),
-                          children: [
-                            for (final (index, group) in groups.indexed)
-                              Positioned(
-                                key: ValueKey('schedule-block-$index'),
-                                left: axisWidth + (group.day - 1) * columnWidth,
-                                top: (group.begin - 1) * periodHeight,
-                                width: columnWidth,
-                                height:
-                                    (group.end - group.begin + 1) *
-                                    periodHeight,
-                                child: _ScheduleCell(
-                                  group: group,
-                                  background: colors.background(
-                                    group.details.first,
-                                    Theme.of(context).brightness,
-                                  ),
-                                ),
-                              ),
-                            if (today != null && nowOffset != null)
-                              Positioned(
-                                key: const ValueKey('schedule-now-line'),
-                                left: axisWidth + today * columnWidth - 4,
-                                top: nowOffset - 4,
-                                width: columnWidth + 4,
-                                height: 8,
-                                child: IgnorePointer(
-                                  child: Row(
-                                    children: [
-                                      Container(
-                                        width: 8,
-                                        height: 8,
-                                        decoration: BoxDecoration(
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.error,
-                                          shape: BoxShape.circle,
-                                        ),
-                                      ),
-                                      Expanded(
-                                        child: Container(
-                                          height: 2,
-                                          color: Theme.of(
-                                            context,
-                                          ).colorScheme.error,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                          ],
-                        ),
-                        if (unknown.isNotEmpty)
-                          Align(
-                            alignment: Alignment.centerLeft,
-                            child: AnimatedBuilder(
-                              animation: _horizontal,
-                              child: SizedBox(
-                                width: constraints.maxWidth - gutter * 2,
-                                child: Column(
-                                  crossAxisAlignment:
-                                      CrossAxisAlignment.stretch,
-                                  children: [
-                                    const Padding(
-                                      padding: EdgeInsets.symmetric(
-                                        vertical: 12,
-                                      ),
-                                      child: Text('时间待定'),
-                                    ),
-                                    for (final detail in unknown)
-                                      Card(
-                                        child: ListTile(
-                                          title: Text(detail.title),
-                                          subtitle: Text(
-                                            uiNonBlank(
-                                                  (detail.presentation!
-                                                          as ScheduleCoursePresentation)
-                                                      .place,
-                                                ) ??
-                                                '地点待公布',
-                                          ),
-                                          trailing: const Icon(
-                                            Icons.chevron_right,
-                                          ),
-                                          onTap: () => uiShowScheduleDetails(
-                                            context,
-                                            detail,
-                                          ),
-                                        ),
-                                      ),
-                                  ],
-                                ),
-                              ),
-                              builder: (context, child) => Transform.translate(
-                                offset: Offset(
-                                  _horizontal.hasClients
-                                      ? _horizontal.offset
-                                      : 0,
-                                  0,
-                                ),
-                                child: child,
-                              ),
-                            ),
-                          ),
-                      ],
-                    ),
-                  ),
-                ],
+                      ),
+                  ],
+                ),
               ),
-            ),
+              Expanded(
+                child: ListView(
+                  key: const ValueKey('schedule-grid-scroll'),
+                  padding: const EdgeInsets.only(bottom: 16),
+                  children: [
+                    if (widget.details.isEmpty)
+                      Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 12),
+                        child: Center(child: Text(widget.emptyMessage)),
+                      ),
+                    SevenDayTimeGrid(
+                      rows: periods,
+                      rowHeight: periodHeight,
+                      axisWidth: axisWidth,
+                      today: today,
+                      axis: _ScheduleAxis(
+                        width: axisWidth,
+                        rowHeight: periodHeight,
+                        periods: periods,
+                        times: times,
+                      ),
+                      children: [
+                        for (final (index, group) in groups.indexed)
+                          Positioned(
+                            key: ValueKey('schedule-block-$index'),
+                            left: axisWidth + (group.day - 1) * columnWidth,
+                            top: (group.begin - 1) * periodHeight,
+                            width: columnWidth,
+                            height:
+                                (group.end - group.begin + 1) * periodHeight,
+                            child: _ScheduleCell(
+                              group: group,
+                              background: colors.background(
+                                group.details.first,
+                                Theme.of(context).brightness,
+                              ),
+                            ),
+                          ),
+                        if (today != null && nowOffset != null)
+                          Positioned(
+                            key: const ValueKey('schedule-now-line'),
+                            left: axisWidth + today * columnWidth - 4,
+                            top: nowOffset - 4,
+                            width: columnWidth + 4,
+                            height: 8,
+                            child: IgnorePointer(
+                              child: Row(
+                                children: [
+                                  Container(
+                                    width: 8,
+                                    height: 8,
+                                    decoration: BoxDecoration(
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.error,
+                                      shape: BoxShape.circle,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    child: Container(
+                                      height: 2,
+                                      color: Theme.of(
+                                        context,
+                                      ).colorScheme.error,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ),
+                      ],
+                    ),
+                    if (unknown.isNotEmpty)
+                      Align(
+                        alignment: Alignment.centerLeft,
+                        child: SizedBox(
+                          width: constraints.maxWidth - gutter * 2,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 12),
+                                child: Text('时间待定'),
+                              ),
+                              for (final detail in unknown)
+                                Card(
+                                  child: ListTile(
+                                    title: Text(detail.title),
+                                    subtitle: Text(
+                                      uiNonBlank(
+                                            (detail.presentation!
+                                                    as ScheduleCoursePresentation)
+                                                .place,
+                                          ) ??
+                                          '地点待公布',
+                                    ),
+                                    trailing: const Icon(Icons.chevron_right),
+                                    onTap: () =>
+                                        uiShowScheduleDetails(context, detail),
+                                  ),
+                                ),
+                            ],
+                          ),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+            ],
           ),
         ),
       );
@@ -333,21 +298,21 @@ class _ScheduleContentState extends State<ScheduleContent> {
   );
 }
 
-class _SchedulePinnedAxis extends StatelessWidget {
-  const _SchedulePinnedAxis({
-    required this.controller,
+class _ScheduleAxis extends StatelessWidget {
+  const _ScheduleAxis({
     required this.width,
     required this.rowHeight,
     required this.periods,
     required this.times,
   });
-  final ScrollController controller;
   final List<ScheduleSectionTime> times;
   final double width, rowHeight;
   final int periods;
   @override
-  Widget build(BuildContext context) => PinnedWeekAxis(
-    controller: controller,
+  Widget build(BuildContext context) => Positioned(
+    left: 0,
+    top: 0,
+    bottom: 0,
     width: width,
     child: Column(
       children: [

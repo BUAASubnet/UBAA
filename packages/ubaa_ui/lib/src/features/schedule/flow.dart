@@ -465,6 +465,16 @@ class ScheduleFlowState extends State<ScheduleFlow> {
     final nextWeek = currentIndex >= 0 && currentIndex < candidates.length - 1
         ? (candidates[currentIndex + 1].presentation as WeekPresentation).number
         : (currentWeekNum != null ? currentWeekNum + 1 : null);
+    VoidCallback? goWeek(int? week) => week == null || widget.onQuery == null
+        ? null
+        : () => _request(
+            FeatureQuery(
+              view: FeatureQueryView.scheduleWeek,
+              term: term,
+              week: week,
+            ),
+          );
+    final goPrev = goWeek(prevWeek), goNext = goWeek(nextWeek);
 
     final weekHeader = Padding(
       padding: UbaaTheme.pageInsets(context, top: 4, bottom: 4),
@@ -474,15 +484,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
           IconButton(
             tooltip: '上一周',
             icon: const Icon(Icons.chevron_left),
-            onPressed: prevWeek == null || widget.onQuery == null
-                ? null
-                : () => _request(
-                    FeatureQuery(
-                      view: FeatureQueryView.scheduleWeek,
-                      term: term,
-                      week: prevWeek,
-                    ),
-                  ),
+            onPressed: goPrev,
           ),
           Flexible(
             child: InkWell(
@@ -518,15 +520,7 @@ class ScheduleFlowState extends State<ScheduleFlow> {
           IconButton(
             tooltip: '下一周',
             icon: const Icon(Icons.chevron_right),
-            onPressed: nextWeek == null || widget.onQuery == null
-                ? null
-                : () => _request(
-                    FeatureQuery(
-                      view: FeatureQueryView.scheduleWeek,
-                      term: term,
-                      week: nextWeek,
-                    ),
-                  ),
+            onPressed: goNext,
           ),
         ],
       ),
@@ -568,7 +562,19 @@ class ScheduleFlowState extends State<ScheduleFlow> {
               state: widget.imports[term],
               onRefresh: widget.onSave!,
             ),
-          Expanded(child: content),
+          // 正文左右滑动切换周次，与表头箭头一致。
+          Expanded(
+            child: GestureDetector(
+              key: const ValueKey('schedule-swipe'),
+              behavior: HitTestBehavior.translucent,
+              onHorizontalDragEnd: (details) {
+                final v = details.primaryVelocity ?? 0;
+                if (v.abs() < 200) return;
+                (v < 0 ? goNext : goPrev)?.call();
+              },
+              child: content,
+            ),
+          ),
         ],
       ),
     );

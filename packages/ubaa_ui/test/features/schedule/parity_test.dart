@@ -106,7 +106,7 @@ void main() {
     );
     expect(find.text('重试'), findsNothing);
   });
-  testWidgets('大字横滚保留节次列，单节长课程可查看', (tester) async {
+  testWidgets('大字时七列仍占满屏宽不横滚，单节长课程可查看', (tester) async {
     final name = List.filled(5, '合成很长课程').join();
     await showFeature(
       tester,
@@ -116,12 +116,15 @@ void main() {
       size: const Size(390, 844),
       textScale: 1.3,
     );
-    final horizontal = find.byWidgetPredicate(
-      (w) => w is SingleChildScrollView && w.scrollDirection == Axis.horizontal,
+    // 左右滑动留给切换周次，网格本身不再横向滚动。
+    expect(tester.getRect(find.text('周日')).right, lessThanOrEqualTo(390));
+    expect(
+      find.byWidgetPredicate(
+        (w) =>
+            w is SingleChildScrollView && w.scrollDirection == Axis.horizontal,
+      ),
+      findsNothing,
     );
-    await tester.drag(horizontal, const Offset(-250, 0));
-    await tester.pumpAndSettle();
-    expect(tester.getRect(find.text('1')).left, greaterThanOrEqualTo(8));
     await tester.tap(find.text(name));
     await tester.pumpAndSettle();
     expect(find.text('CODE-$name'), findsNothing);
@@ -136,8 +139,6 @@ void main() {
         matching: find.byType(Scrollable),
       ),
     );
-    await tester.drag(horizontal, const Offset(-250, 0));
-    await tester.pumpAndSettle();
     expect(tester.getRect(find.text('未知时间课程')).left, greaterThanOrEqualTo(8));
     await tester.tap(find.text('未知时间课程'));
     await tester.pumpAndSettle();
