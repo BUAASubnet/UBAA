@@ -61,7 +61,7 @@ void main() {
     expect(sheetText('文本'), findsOneWidget);
     expect(find.text('120 B'), findsWidgets);
     expect(sheetText('个人文档库'), findsOneWidget);
-    expect(sheetText('内容'), findsNothing);
+    expect(find.textContaining('个文件夹、'), findsNothing);
     await tester.tap(sheetText('下载'));
     await tester.pumpAndSettle();
     expect(picks, 1);

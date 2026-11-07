@@ -7,6 +7,7 @@ import 'chrome.dart';
 import 'share_form.dart';
 import 'write_flow.dart';
 import '../../shared/dialogs/scope_boundary.dart';
+import '../../shared/dialogs/sheet.dart';
 import '../../shared/feedback.dart';
 import '../../shared/refresh.dart';
 import '../../shared/loading.dart';
@@ -116,10 +117,8 @@ class _BhpanSharesPageState extends State<BhpanSharesPage> {
   }
 
   Future<void> _open(BhpanShare share) async {
-    final action = await showModalBottomSheet<String>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
+    final action = await showUiSheet<String>(
+      context,
       builder: (_) => _boundary(
         _ShareSheet(
           share: share,
@@ -270,117 +269,90 @@ class _ShareSheetState extends State<_ShareSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
+    final colors = Theme.of(context).colorScheme;
     final s = widget.share;
     final (expiry, expired) = bhpanShareExpiry(s.expiresAt);
-    return SafeArea(
-      top: false,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            Text(
-              s.title,
-              style: theme.textTheme.titleLarge,
-              maxLines: 2,
-              overflow: TextOverflow.ellipsis,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              bhpanShareRules(s),
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colors.onSurfaceVariant,
-              ),
-            ),
-            Text(
-              expiry,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: expired ? colors.error : colors.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 16),
-            Container(
-              padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
-              decoration: BoxDecoration(
-                color: colors.surfaceContainerHigh,
-                borderRadius: BorderRadius.circular(12),
-              ),
-              child: FutureBuilder<String>(
-                future: _link,
-                builder: (context, snap) => Row(
-                  children: [
-                    Expanded(
-                      child: snap.hasData
-                          ? SelectableText(
-                              snap.data!,
-                              style: theme.textTheme.bodyMedium,
-                            )
-                          : snap.hasError
-                          ? Text(
-                              '没能读取分享链接',
-                              style: TextStyle(color: colors.error),
-                            )
-                          : const Align(
-                              alignment: Alignment.centerLeft,
-                              child: LoadingGlyph(dimension: 18),
-                            ),
-                    ),
-                    IconButton(
-                      tooltip: '复制链接',
-                      onPressed: snap.hasData
-                          ? () async {
-                              await Clipboard.setData(
-                                ClipboardData(text: snap.data!),
-                              );
-                              if (context.mounted)
-                                UbaaFeedback.show(
-                                  context,
-                                  '已复制分享链接',
-                                  kind: UbaaFeedbackKind.success,
-                                );
-                            }
-                          : null,
-                      icon: const Icon(Icons.copy),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 16),
-            Row(
-              children: [
-                Expanded(
-                  child: OutlinedButton.icon(
-                    onPressed: widget.writable
-                        ? () => Navigator.pop(context, 'cancel')
-                        : null,
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: colors.error,
-                      side: BorderSide(
-                        color: colors.error.withValues(alpha: .5),
-                      ),
-                    ),
-                    icon: const Icon(Icons.link_off),
-                    label: const Text('取消分享'),
-                  ),
-                ),
-                const SizedBox(width: 12),
-                Expanded(
-                  child: FilledButton.tonalIcon(
-                    onPressed: widget.writable && s.canUpdate
-                        ? () => Navigator.pop(context, 'edit')
-                        : null,
-                    icon: const Icon(Icons.tune),
-                    label: const Text('修改设置'),
-                  ),
-                ),
-              ],
-            ),
-          ],
+    return UiSheetBody(
+      title: s.title,
+      subtitle: bhpanShareRules(s),
+      children: [
+        UiInfoRow(
+          icon: Icons.event_outlined,
+          text: expiry,
+          color: expired ? colors.error : null,
         ),
+        const SizedBox(height: 10),
+        FutureBuilder<String>(
+          future: _link,
+          builder: (context, snap) =>
+              _LinkBox(link: snap.data, failed: snap.hasError),
+        ),
+      ],
+      actions: [
+        OutlinedButton.icon(
+          onPressed: widget.writable && s.canUpdate
+              ? () => Navigator.pop(context, 'edit')
+              : null,
+          icon: const Icon(Icons.tune),
+          label: const Text('修改设置'),
+        ),
+        OutlinedButton.icon(
+          onPressed: widget.writable
+              ? () => Navigator.pop(context, 'cancel')
+              : null,
+          style: OutlinedButton.styleFrom(foregroundColor: colors.error),
+          icon: const Icon(Icons.link_off),
+          label: const Text('取消分享'),
+        ),
+      ],
+    );
+  }
+}
+
+/// 链接框：读取中显示加载，读到后可选中，右侧按钮复制。
+class _LinkBox extends StatelessWidget {
+  const _LinkBox({required this.link, this.failed = false});
+  final String? link;
+  final bool failed;
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final colors = theme.colorScheme;
+    final link = this.link;
+    return Container(
+      padding: const EdgeInsets.fromLTRB(16, 12, 8, 12),
+      decoration: BoxDecoration(
+        color: colors.surfaceContainerHigh,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: link != null
+                ? SelectableText(link, style: theme.textTheme.bodyMedium)
+                : failed
+                ? Text('没能读取分享链接', style: TextStyle(color: colors.error))
+                : const Align(
+                    alignment: Alignment.centerLeft,
+                    child: LoadingGlyph(dimension: 18),
+                  ),
+          ),
+          IconButton(
+            tooltip: '复制链接',
+            onPressed: link == null
+                ? null
+                : () async {
+                    await Clipboard.setData(ClipboardData(text: link));
+                    if (context.mounted)
+                      UbaaFeedback.show(
+                        context,
+                        '已复制分享链接',
+                        kind: UbaaFeedbackKind.success,
+                      );
+                  },
+            icon: const Icon(Icons.copy),
+          ),
+        ],
       ),
     );
   }
@@ -397,31 +369,25 @@ Future<void> bhpanShowShareLink(
   try {
     final link = await service.shareLink(share.handle);
     if (!isCurrent() || !context.mounted) return;
-    await showDialog<void>(
-      context: context,
+    await showUiSheet<void>(
+      context,
       builder: (c) => boundary(
-        AlertDialog(
-          title: Text(share.title),
-          content: SelectableText(link),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(c),
-              child: const Text('关闭'),
-            ),
-            FilledButton(
-              onPressed: () async {
-                await Clipboard.setData(ClipboardData(text: link));
-                if (c.mounted) Navigator.pop(c);
-                if (context.mounted)
-                  UbaaFeedback.show(
-                    context,
-                    '已复制分享链接',
-                    kind: UbaaFeedbackKind.success,
-                  );
-              },
-              child: const Text('复制分享链接'),
-            ),
-          ],
+        UiSheetBody(
+          title: share.title,
+          children: [SelectableText(link)],
+          primaryAction: FilledButton(
+            onPressed: () async {
+              await Clipboard.setData(ClipboardData(text: link));
+              if (c.mounted) Navigator.pop(c);
+              if (context.mounted)
+                UbaaFeedback.show(
+                  context,
+                  '已复制分享链接',
+                  kind: UbaaFeedbackKind.success,
+                );
+            },
+            child: const Text('复制分享链接'),
+          ),
         ),
       ),
     );

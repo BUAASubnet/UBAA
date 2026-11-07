@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'sheets.dart';
+import '../../shared/dialogs/confirmation.dart';
 import 'write_flow.dart';
 
 /// 多选底栏：数量、全选切换和当前位置可用的批量操作。
@@ -312,12 +313,7 @@ Future<bool> bhpanConfirmBatch(
             child: const Text('取消'),
           ),
           FilledButton(
-            style: danger
-                ? FilledButton.styleFrom(
-                    backgroundColor: colors.error,
-                    foregroundColor: colors.onError,
-                  )
-                : null,
+            style: danger ? uiDangerButtonStyle(context) : null,
             onPressed: () => Navigator.pop(context, true),
             child: Text(action),
           ),

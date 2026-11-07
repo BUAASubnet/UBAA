@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../write_callbacks.dart';
+import '../../shared/dialogs/confirmation.dart';
 import '../../shared/dialogs/scope_boundary.dart';
 
 /// 写入的确认方式。
@@ -159,12 +160,7 @@ class _ConfirmDialog extends StatelessWidget {
           child: const Text('取消'),
         ),
         FilledButton(
-          style: danger
-              ? FilledButton.styleFrom(
-                  backgroundColor: colors.error,
-                  foregroundColor: colors.onError,
-                )
-              : null,
+          style: danger ? uiDangerButtonStyle(context) : null,
           onPressed: () => Navigator.pop(context, true),
           child: Text(action),
         ),

@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'chrome.dart';
 import 'format.dart';
-import '../../shared/loading.dart';
+import '../../shared/dialogs/sheet.dart';
 
 /// 条目可执行的操作；标签与图标只在这里维护。
 enum BhpanAction {
@@ -54,53 +54,13 @@ String bhpanTypeName(BhpanItem item) {
   };
 }
 
-Widget _sheetHeader(
-  BuildContext context,
-  BhpanItem item, {
-  String? location,
-  double iconSize = 48,
-}) {
-  final theme = Theme.of(context);
+/// 面板标题下一行：大小、修改日期与位置。
+String? _sheetMeta(BhpanItem item, String? location) {
   final meta = [
     bhpanItemMeta(item),
-    if (location != null) location,
+    ?location,
   ].where((s) => s.isNotEmpty).join(' · ');
-  return Padding(
-    padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-    child: Row(
-      children: [
-        BhpanTypeIcon(item: item, size: iconSize),
-        const SizedBox(width: 14),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                item.name,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: theme.textTheme.titleMedium?.copyWith(
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-              if (meta.isNotEmpty)
-                Padding(
-                  padding: const EdgeInsets.only(top: 2),
-                  child: Text(
-                    meta,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: theme.textTheme.bodySmall?.copyWith(
-                      color: theme.colorScheme.onSurfaceVariant,
-                    ),
-                  ),
-                ),
-            ],
-          ),
-        ),
-      ],
-    ),
-  );
+  return meta.isEmpty ? null : meta;
 }
 
 /// 条目「更多操作」：快捷操作一行，其余列表，危险操作置底并以错误色显示。
@@ -111,10 +71,8 @@ Future<BhpanAction?> bhpanActionSheet(
   required bool Function(BhpanAction) enabled,
   String? location,
   Widget Function(Widget)? boundary,
-}) => showModalBottomSheet<BhpanAction>(
-  context: context,
-  showDragHandle: true,
-  isScrollControlled: true,
+}) => showUiSheet<BhpanAction>(
+  context,
   builder: (context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
@@ -172,7 +130,7 @@ Future<BhpanAction?> bhpanActionSheet(
 
     Widget tile(BhpanAction a) => ListTile(
       key: ValueKey('bhpan-action-${a.name}'),
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+      contentPadding: EdgeInsets.zero,
       enabled: enabled(a),
       leading: Icon(a.icon, color: a.danger ? colors.error : null),
       title: Text(
@@ -181,31 +139,24 @@ Future<BhpanAction?> bhpanActionSheet(
       ),
       onTap: () => Navigator.pop(context, a),
     );
-    final sheet = SafeArea(
-      top: false,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _sheetHeader(context, item, location: location),
-            if (quick.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 8),
-                child: Row(children: [for (final a in quick) quickButton(a)]),
-              ),
-            if (rest.isNotEmpty) ...[
-              const Divider(height: 1),
-              for (final a in rest) tile(a),
-            ],
-            if (danger.isNotEmpty) ...[
-              const Divider(height: 1),
-              for (final a in danger) tile(a),
-            ],
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+    final sheet = UiSheetBody(
+      title: item.name,
+      subtitle: _sheetMeta(item, location),
+      children: [
+        if (quick.isNotEmpty)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 8),
+            child: Row(children: [for (final a in quick) quickButton(a)]),
+          ),
+        if (rest.isNotEmpty) ...[
+          const Divider(height: 1),
+          for (final a in rest) tile(a),
+        ],
+        if (danger.isNotEmpty) ...[
+          const Divider(height: 1),
+          for (final a in danger) tile(a),
+        ],
+      ],
     );
     return boundary == null ? sheet : boundary(sheet);
   },
@@ -220,10 +171,8 @@ Future<BhpanAction?> showBhpanDetails(
   List<BhpanAction> primary = const [],
   bool Function(BhpanAction)? enabled,
   Widget Function(Widget)? boundary,
-}) => showModalBottomSheet<BhpanAction>(
-  context: context,
-  showDragHandle: true,
-  isScrollControlled: true,
+}) => showUiSheet<BhpanAction>(
+  context,
   builder: (context) {
     final sheet = _DetailsSheet(
       item: item,
@@ -258,100 +207,56 @@ class _DetailsSheetState extends State<_DetailsSheet> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-    final colors = theme.colorScheme;
     final item = widget.item;
-    Widget row(String label, Widget value) => Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 6),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          SizedBox(
-            width: 72,
-            child: Text(
-              label,
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: colors.onSurfaceVariant,
-              ),
+    VoidCallback? pick(BhpanAction a) =>
+        widget.enabled(a) ? () => Navigator.pop(context, a) : null;
+    final first = widget.primary.firstOrNull;
+    return UiSheetBody(
+      title: item.name,
+      subtitle: bhpanTypeName(item),
+      children: [
+        if (!item.isFolder && item.bytes != null)
+          UiInfoRow(icon: Icons.data_usage, text: bhpanBytes(item.bytes!)),
+        if (_size case final size?)
+          FutureBuilder<BhpanSize>(
+            future: size,
+            builder: (context, snap) => UiInfoRow(
+              icon: Icons.folder_copy_outlined,
+              text: snap.hasData
+                  ? '${snap.data!.folders} 个文件夹、${snap.data!.files} 个文件，共 ${bhpanBytes(snap.data!.bytes)}'
+                  : snap.hasError
+                  ? '暂时无法统计'
+                  : '正在统计内容…',
             ),
           ),
-          Expanded(child: value),
-        ],
-      ),
-    );
-    Widget text(String value) =>
-        SelectableText(value, style: theme.textTheme.bodyMedium);
-    final buttons = [
-      for (final (i, a) in widget.primary.indexed)
-        Expanded(
-          child: i == 0
-              ? FilledButton.icon(
-                  onPressed: widget.enabled(a)
-                      ? () => Navigator.pop(context, a)
-                      : null,
-                  icon: Icon(a.icon),
-                  label: Text(a.label),
-                )
-              : FilledButton.tonalIcon(
-                  onPressed: widget.enabled(a)
-                      ? () => Navigator.pop(context, a)
-                      : null,
-                  icon: Icon(a.icon),
-                  label: Text(a.label),
-                ),
-        ),
-    ];
-    return SafeArea(
-      top: false,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            _sheetHeader(context, item, iconSize: 56),
-            const Divider(height: 1),
-            const SizedBox(height: 8),
-            row('类型', text(bhpanTypeName(item))),
-            if (!item.isFolder && item.bytes != null)
-              row('大小', text(bhpanBytes(item.bytes!))),
-            if (_size case final size?)
-              row(
-                '内容',
-                FutureBuilder<BhpanSize>(
-                  future: size,
-                  builder: (context, snap) => snap.hasData
-                      ? text(
-                          '${snap.data!.folders} 个文件夹、${snap.data!.files} 个文件，共 ${bhpanBytes(snap.data!.bytes)}',
-                        )
-                      : snap.hasError
-                      ? text('暂时无法统计')
-                      : const Align(
-                          alignment: Alignment.centerLeft,
-                          child: LoadingGlyph(dimension: 16),
-                        ),
-                ),
-              ),
-            if (item.modifiedAt != null)
-              row('修改时间', text(bhpanDate(item.modifiedAt!))),
-            if (item.createdAt != null)
-              row('创建时间', text(bhpanDate(item.createdAt!))),
-            if (widget.location != null) row('位置', text(widget.location!)),
-            if (buttons.isNotEmpty)
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
-                child: Row(
-                  children: [
-                    for (final (i, b) in buttons.indexed) ...[
-                      if (i > 0) const SizedBox(width: 12),
-                      b,
-                    ],
-                  ],
-                ),
-              ),
-            const SizedBox(height: 8),
-          ],
-        ),
-      ),
+        if (item.modifiedAt != null)
+          UiInfoRow(
+            icon: Icons.update,
+            text: '修改于 ${bhpanDate(item.modifiedAt!)}',
+          ),
+        if (item.createdAt != null)
+          UiInfoRow(
+            icon: Icons.event_outlined,
+            text: '创建于 ${bhpanDate(item.createdAt!)}',
+          ),
+        if (widget.location case final location?)
+          UiInfoRow(icon: Icons.folder_outlined, text: location),
+      ],
+      primaryAction: first == null
+          ? null
+          : FilledButton.icon(
+              onPressed: pick(first),
+              icon: Icon(first.icon),
+              label: Text(first.label),
+            ),
+      actions: [
+        for (final a in widget.primary.skip(1))
+          OutlinedButton.icon(
+            onPressed: pick(a),
+            icon: Icon(a.icon),
+            label: Text(a.label),
+          ),
+      ],
     );
   }
 }

@@ -2,6 +2,7 @@ import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/foundation.dart';
 import '../../shared/dialogs/scope_boundary.dart';
+import '../../shared/dialogs/sheet.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../shared/loading.dart';
 import '../../common/state_panel.dart';
@@ -79,8 +80,8 @@ class _TextDialogState extends State<_TextDialog> {
 Future<(String, String?)?> bhpanOpenShareDialog(
   BuildContext context, {
   required ValueListenable<int> scope,
-}) => showDialog<(String, String?)>(
-  context: context,
+}) => showUiSheet<(String, String?)>(
+  context,
   builder: (_) =>
       UiScopeBoundary(generation: scope, child: const _OpenShareDialog()),
 );
@@ -134,59 +135,46 @@ class _OpenShareDialogState extends State<_OpenShareDialog> {
   }
 
   @override
-  Widget build(BuildContext context) => AlertDialog(
-    title: const Text('打开分享链接'),
-    content: SizedBox(
-      width: 420,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextField(
-            controller: _link,
-            autofocus: true,
-            keyboardType: TextInputType.url,
-            autocorrect: false,
-            enableSuggestions: false,
-            minLines: 1,
-            maxLines: 3,
-            onChanged: (text) {
-              if (text.contains('码')) _apply(text);
-            },
-            decoration: InputDecoration(
-              labelText: '分享链接',
-              hintText: '可直接粘贴含提取码的整段文字',
-              border: const OutlineInputBorder(),
-              suffixIcon: IconButton(
-                tooltip: '从剪贴板粘贴',
-                onPressed: _paste,
-                icon: const Icon(Icons.content_paste),
-              ),
-            ),
-          ),
-          const SizedBox(height: 16),
-          TextField(
-            controller: _password,
-            keyboardType: TextInputType.visiblePassword,
-            enableSuggestions: false,
-            autocorrect: false,
-            onSubmitted: (_) => _submit(),
-            decoration: const InputDecoration(
-              labelText: '提取码（没有可不填）',
-              border: OutlineInputBorder(),
-            ),
-          ),
-        ],
-      ),
+  Widget build(BuildContext context) => UiSheetBody(
+    title: '打开分享链接',
+    primaryAction: FilledButton(
+      onPressed: _link.text.trim().isEmpty ? null : _submit,
+      child: const Text('打开'),
     ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.pop(context),
-        child: const Text('取消'),
+    children: [
+      TextField(
+        controller: _link,
+        autofocus: true,
+        keyboardType: TextInputType.url,
+        autocorrect: false,
+        enableSuggestions: false,
+        minLines: 1,
+        maxLines: 3,
+        onChanged: (text) {
+          if (text.contains('码')) _apply(text);
+        },
+        decoration: InputDecoration(
+          labelText: '分享链接',
+          hintText: '可直接粘贴含提取码的整段文字',
+          border: const OutlineInputBorder(),
+          suffixIcon: IconButton(
+            tooltip: '从剪贴板粘贴',
+            onPressed: _paste,
+            icon: const Icon(Icons.content_paste),
+          ),
+        ),
       ),
-      FilledButton(
-        onPressed: _link.text.trim().isEmpty ? null : _submit,
-        child: const Text('打开'),
+      const SizedBox(height: 16),
+      TextField(
+        controller: _password,
+        keyboardType: TextInputType.visiblePassword,
+        enableSuggestions: false,
+        autocorrect: false,
+        onSubmitted: (_) => _submit(),
+        decoration: const InputDecoration(
+          labelText: '提取码（没有可不填）',
+          border: OutlineInputBorder(),
+        ),
       ),
     ],
   );

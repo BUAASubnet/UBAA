@@ -155,6 +155,6 @@ void main() {
     expect(files.reads.last.password, 'fixturepassword');
     await tester.tap(find.text('重新输入链接'));
     await tester.pumpAndSettle();
-    expect(find.widgetWithText(AlertDialog, '打开分享链接'), findsOneWidget);
+    expect(find.widgetWithText(BottomSheet, '打开分享链接'), findsOneWidget);
   });
 }

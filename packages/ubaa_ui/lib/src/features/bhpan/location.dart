@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../shared/dialogs/sheet.dart';
 
 /// 「位置」面板的选择：切换文档库，或进入回收站、分享管理、打开分享链接。
 sealed class BhpanPlaceChoice {
@@ -174,15 +175,13 @@ Future<BhpanPlaceChoice?> showBhpanPlaces(
   BuildContext context, {
   required BhpanRootKind? current,
   Widget Function(Widget)? boundary,
-}) => showModalBottomSheet<BhpanPlaceChoice>(
-  context: context,
-  showDragHandle: true,
-  isScrollControlled: true,
+}) => showUiSheet<BhpanPlaceChoice>(
+  context,
   builder: (context) {
     final theme = Theme.of(context);
     final colors = theme.colorScheme;
     Widget header(String text) => Padding(
-      padding: const EdgeInsets.fromLTRB(24, 8, 24, 4),
+      padding: const EdgeInsets.only(top: 8, bottom: 4),
       child: Text(
         text,
         style: theme.textTheme.labelLarge?.copyWith(
@@ -196,7 +195,7 @@ Future<BhpanPlaceChoice?> showBhpanPlaces(
       BhpanPlaceChoice choice, {
       bool selected = false,
     }) => ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 24),
+      contentPadding: EdgeInsets.zero,
       leading: Icon(icon, color: selected ? colors.primary : null),
       title: Text(
         label,
@@ -208,44 +207,37 @@ Future<BhpanPlaceChoice?> showBhpanPlaces(
       selected: selected,
       onTap: () => Navigator.pop(context, choice),
     );
-    final sheet = SafeArea(
-      top: false,
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.stretch,
-          children: [
-            header('文档库'),
-            for (final kind in const [
-              BhpanRootKind.personal,
-              BhpanRootKind.shared,
-              BhpanRootKind.department,
-              BhpanRootKind.group,
-              BhpanRootKind.all,
-            ])
-              tile(
-                bhpanLibraryIcons[kind]!,
-                bhpanLibraryNames[kind]!,
-                BhpanLibraryChoice(kind),
-                selected: kind == current,
-              ),
-            const Divider(indent: 24, endIndent: 24),
-            header('工具'),
-            tile(Icons.link, '分享管理', const BhpanToolChoice(BhpanTool.shares)),
-            tile(
-              Icons.delete_outline,
-              '回收站',
-              const BhpanToolChoice(BhpanTool.recycle),
-            ),
-            tile(
-              Icons.move_to_inbox_outlined,
-              '打开分享链接',
-              const BhpanToolChoice(BhpanTool.openLink),
-            ),
-            const SizedBox(height: 8),
-          ],
+    final sheet = UiSheetBody(
+      title: '切换位置',
+      children: [
+        header('文档库'),
+        for (final kind in const [
+          BhpanRootKind.personal,
+          BhpanRootKind.shared,
+          BhpanRootKind.department,
+          BhpanRootKind.group,
+          BhpanRootKind.all,
+        ])
+          tile(
+            bhpanLibraryIcons[kind]!,
+            bhpanLibraryNames[kind]!,
+            BhpanLibraryChoice(kind),
+            selected: kind == current,
+          ),
+        const Divider(),
+        header('工具'),
+        tile(Icons.link, '分享管理', const BhpanToolChoice(BhpanTool.shares)),
+        tile(
+          Icons.delete_outline,
+          '回收站',
+          const BhpanToolChoice(BhpanTool.recycle),
         ),
-      ),
+        tile(
+          Icons.move_to_inbox_outlined,
+          '打开分享链接',
+          const BhpanToolChoice(BhpanTool.openLink),
+        ),
+      ],
     );
     return boundary == null ? sheet : boundary(sheet);
   },
