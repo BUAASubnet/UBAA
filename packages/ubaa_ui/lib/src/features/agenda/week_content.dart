@@ -32,12 +32,15 @@ class AgendaWeekContent extends StatefulWidget {
 
 class _AgendaWeekContentState extends State<AgendaWeekContent> {
   final horizontal = ScrollController(), vertical = ScrollController();
-  bool positioned = false;
   bool focusPositioned = false;
   double? lastViewport, lastColumn;
 
-  /// 本周已排入网格的最早时刻（距当天零点的小时数），用于首屏定位。
-  double? earliestHour;
+  /// 网格显示的整点范围：本周最早事项的开始到最晚事项的结束。
+  int firstHour = 8, lastHour = 18;
+
+  /// 本周最早开始的事项距网格顶部的小时数；跨午夜后半段把范围拉大时用于首屏定位。
+  double? earliestStart;
+  bool positioned = false;
   @override
   void dispose() {
     horizontal.dispose();
@@ -48,6 +51,7 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
   @override
   void didUpdateWidget(covariant AgendaWeekContent old) {
     super.didUpdateWidget(old);
+    // 换周后网格范围会变，回到顶部从最早事项看起。
     if (agendaWeekStart(old.date) != agendaWeekStart(widget.date))
       positioned = false;
     if (agendaDay(old.date) != agendaDay(widget.date)) focusPositioned = false;
@@ -131,8 +135,8 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
     double axis,
     double hourHeight,
   ) {
-    final widgets = <Widget>[];
-    earliestHour = null;
+    final placements =
+        <({int day, _Slot slot, int lane, int lanes, DateTime base})>[];
     for (var i = 0; i < 7; i++) {
       final day = monday.add(Duration(days: i)),
           tomorrow = monday.add(Duration(days: i + 1));
@@ -144,11 +148,6 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
         final rawStart = agendaStart(entry), rawEnd = agendaEnd(entry);
         if (rawStart == null || rawEnd == null || !rawEnd.isAfter(rawStart))
           continue;
-        // 跨午夜的后半段从零点画起，但不参与首屏定位。
-        if (!rawStart.isBefore(day)) {
-          final hour = rawStart.difference(day).inSeconds / 3600;
-          if (earliestHour == null || hour < earliestHour!) earliestHour = hour;
-        }
         final start = rawStart.isBefore(day) ? day : rawStart;
         final end = rawEnd.isAfter(tomorrow) ? tomorrow : rawEnd;
         final minimum = start.add(const Duration(minutes: 30));
@@ -209,29 +208,58 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
           }
           lanes.add(lane);
         }
-        for (var j = 0; j < group.length; j++) {
-          final slot = group[j];
-          final top = math.min(
-            slot.start.difference(day).inSeconds / 3600 * hourHeight,
-            23.5 * hourHeight,
-          );
-          widgets.add(
-            Positioned(
-              key: ValueKey('agenda-week-${agendaEntryKey(slot.entry)}-$i'),
-              left: axis + i * column + lanes[j] * column / ends.length,
-              top: top,
-              width: column / ends.length,
-              height: math.max(
-                hourHeight / 2,
-                slot.end.difference(slot.start).inSeconds / 3600 * hourHeight,
-              ),
-              child: block(slot.entry),
-            ),
-          );
-        }
+        for (var j = 0; j < group.length; j++)
+          placements.add((
+            day: i,
+            slot: group[j],
+            lane: lanes[j],
+            lanes: ends.length,
+            base: day,
+          ));
       }
     }
-    return widgets;
+    double hours(DateTime t, DateTime base) =>
+        t.difference(base).inSeconds / 3600;
+    // 没有事项时保留 08:00–18:00，便于看清这一周是空的。
+    if (placements.isEmpty) {
+      firstHour = 8;
+      lastHour = 18;
+    } else {
+      // 跨午夜的后半段不把范围拉回零点，只保证露出它结束前的一小时。
+      firstHour = placements
+          .map(
+            (p) => p.slot.start.isAfter(p.base)
+                ? hours(p.slot.start, p.base).floor()
+                : hours(p.slot.end, p.base).ceil() - 1,
+          )
+          .reduce(math.min)
+          .clamp(0, 23);
+      lastHour = placements
+          .map((p) => hours(p.slot.displayEnd, p.base).ceil())
+          .reduce(math.max)
+          .clamp(firstHour + 1, 24);
+    }
+    final starts = [
+      for (final p in placements)
+        if (p.slot.start.isAfter(p.base)) hours(p.slot.start, p.base),
+    ];
+    earliestStart = starts.isEmpty ? null : starts.reduce(math.min) - firstHour;
+    final offset = firstHour * hourHeight;
+    return [
+      for (final p in placements)
+        Positioned(
+          key: ValueKey('agenda-week-${agendaEntryKey(p.slot.entry)}-${p.day}'),
+          left: axis + p.day * column + p.lane * column / p.lanes,
+          top: math.max(0, hours(p.slot.start, p.base) * hourHeight - offset),
+          width: column / p.lanes,
+          height: math.max(
+            hourHeight / 2,
+            hours(p.slot.end, p.base) * hourHeight -
+                math.max(hours(p.slot.start, p.base) * hourHeight, offset),
+          ),
+          child: block(p.slot.entry),
+        ),
+    ];
   }
 
   @override
@@ -243,7 +271,6 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
       final column = (width - axis) / 7;
       if (lastViewport != constraints.maxWidth || lastColumn != column) {
         focusPositioned = false;
-        if (lastColumn != column) positioned = false;
         lastViewport = constraints.maxWidth;
         lastColumn = column;
       }
@@ -271,15 +298,12 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
       final placed = blocks(monday, column, axis, hourHeight);
       if (!positioned) {
         positioned = true;
-        // 最早事项略低于顶部，留出上一整点刻度；无事项时从 08:00 开始。
-        final firstHour = math.max(0.0, (earliestHour ?? 8.25) - .25);
+        // 换周或首次显示时从最早开始的事项看起，上方留一刻钟。
+        final target = math.max(0.0, (earliestStart ?? 0) - .25) * hourHeight;
         WidgetsBinding.instance.addPostFrameCallback((_) {
           if (mounted && vertical.hasClients)
             vertical.jumpTo(
-              math.min(
-                firstHour * hourHeight,
-                vertical.position.maxScrollExtent,
-              ),
+              math.min(target, vertical.position.maxScrollExtent),
             );
         });
       }
@@ -333,9 +357,11 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
                         child: ListView(
                           controller: vertical,
                           key: const ValueKey('agenda-week-grid'),
+                          // 不继承状态栏等安全区内边距，网格紧贴全天行。
+                          padding: EdgeInsets.zero,
                           children: [
                             SevenDayTimeGrid(
-                              rows: 24,
+                              rows: lastHour - firstHour,
                               rowHeight: hourHeight,
                               axisWidth: axis,
                               today: agendaDay(
@@ -346,7 +372,11 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
                                 width: axis,
                                 child: Column(
                                   children: [
-                                    for (var hour = 0; hour < 24; hour++)
+                                    for (
+                                      var hour = firstHour;
+                                      hour < lastHour;
+                                      hour++
+                                    )
                                       SizedBox(
                                         height: hourHeight,
                                         child: Align(

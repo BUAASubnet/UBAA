@@ -105,6 +105,19 @@ void main() {
     expect(find.text('第一项'), findsOneWidget);
   });
 
+  testWidgets('周网格只显示本周最早开始到最晚结束的时段', (tester) async {
+    final backend = MemoryAgenda()..school.add(course());
+    final service = await opened(backend);
+    await tester.pumpWidget(app(service));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('周'));
+    await tester.pumpAndSettle();
+    expect(find.text('10:00'), findsOneWidget);
+    expect(find.text('09:00'), findsNothing);
+    expect(find.text('00:00'), findsNothing);
+    expect(find.text('11:00'), findsNothing);
+  });
+
   testWidgets('重叠时段并排可分别打开，跨午夜沿同一发生身份分列，截止项位于顶部', (tester) async {
     final backend = MemoryAgenda();
     final service = await opened(backend);

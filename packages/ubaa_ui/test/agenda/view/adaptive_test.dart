@@ -5,7 +5,7 @@ import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../flow_test.dart' show app, opened;
 import '../editor/actions_test.dart' show saveEditor;
-import 'view_modes_test.dart' show course, reveal;
+import 'view_modes_test.dart' show at, course, reveal;
 import '../support.dart';
 import 'view_support.dart';
 import '../editor/pickers_support.dart';
@@ -47,6 +47,21 @@ void main() {
     viewport(tester, const Size(360, 850));
     final backend = MemoryAgenda()..school.add(course());
     final service = await opened(backend);
+    // 网格只覆盖本周事项的时段，早晚各放一项让时间轴需要滚动。
+    for (final (title, hour) in [('早间安排', 6), ('晚间安排', 22)])
+      await service.create(
+        AgendaDraft(
+          content: AgendaContent(
+            kind: AgendaKind.event,
+            title: title,
+            allDay: false,
+            start: at(5, hour),
+            end: at(5, hour + 1),
+          ),
+          exdates: [],
+        ),
+        at(1, 9),
+      );
     await tester.pumpWidget(app(service));
     await tester.pumpAndSettle();
     await tester.tap(find.text('周'));
