@@ -144,10 +144,12 @@ class _HomeScheduleSectionState extends State<HomeScheduleSection> {
                   original.updatedAt != null)
         : todayResult?.overview is HomeScheduleOverview &&
               todayResult?.evidence?.complete != false;
+    // 今天确认没课或课已全部上完，都改看明日课表。
     final tomorrow =
         complete &&
         widget.onLoadDay != null &&
-        homeCoursesFinished(todayCourses, widget.now, widget.now);
+        (todayCourses.isEmpty ||
+            homeCoursesFinished(todayCourses, widget.now, widget.now));
     final day = DateTime(
       widget.now.year,
       widget.now.month,

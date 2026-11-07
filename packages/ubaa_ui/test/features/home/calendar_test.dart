@@ -94,19 +94,21 @@ void main() {
     expect(find.text('周一课程'), findsOneWidget);
     expect(requests, ['2026-10-26']);
   });
-  testWidgets('未知时间与今日无课不触发明日读取', (tester) async {
-    var calls = 0;
+  testWidgets('未知时间不触发明日读取，今日无课改看明日课表', (tester) async {
+    final requests = <String>[];
     Future<FeatureResult> read(String date, bool force) async {
-      calls++;
-      return dayResult(date, '不应读取');
+      requests.add(date);
+      return dayResult(date, '明日课程');
     }
 
     await calendar(tester, DateTime(2026, 10, 25, 20), read, time: '09:50-待定');
     expect(find.text('时间待定'), findsOneWidget);
-    expect(calls, 0);
-    await calendar(tester, DateTime(2026, 10, 25, 20), read, empty: true);
-    expect(find.text('今日课表'), findsOneWidget);
-    expect(calls, 0);
+    expect(requests, isEmpty);
+    // 今天本来就没课：和课已上完一样，首页直接看明天。
+    await calendar(tester, DateTime(2026, 10, 25, 9), read, empty: true);
+    expect(find.text('明日课表'), findsOneWidget);
+    expect(find.text('明日课程'), findsOneWidget);
+    expect(requests, ['2026-10-26']);
   });
   testWidgets('迟到的明日响应不覆盖午夜后的新目标，错误日期拒绝显示', (tester) async {
     final gate = Completer<FeatureResult>();
