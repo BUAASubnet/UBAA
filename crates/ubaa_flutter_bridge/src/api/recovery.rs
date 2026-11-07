@@ -9,6 +9,44 @@ use ubaa_core::facade::{self as core, ReadonlyFeature};
 pub mod control;
 pub use control::BridgeRequiredRecoveryControl;
 
+impl BridgeClient {
+    /// 开始一次首页只读刷新，身份校验仍按各功能实际路线隔离。
+    /// # Errors
+    /// 已关闭客户端拒绝开始。
+    pub async fn begin_read_recovery_batch(&self) -> Result<u32, BridgeError> {
+        let mut guard = self.inner.lock().await;
+        self.ensure_recovery_allowed().await?;
+        Ok(guard
+            .as_mut()
+            .ok_or_else(disposed_error)?
+            .begin_read_recovery_batch())
+    }
+
+    /// 结束原刷新批次，旧批次不能清除继任批次。
+    /// # Errors
+    /// 客户端关闭时返回已关闭错误。
+    pub async fn end_read_recovery_batch(&self, batch: u32) -> Result<(), BridgeError> {
+        let mut guard = self.inner.lock().await;
+        guard
+            .as_mut()
+            .ok_or_else(disposed_error)?
+            .end_read_recovery_batch(batch);
+        Ok(())
+    }
+
+    /// 显式恢复或认证失败后撤销本轮已校验结果。
+    /// # Errors
+    /// 客户端关闭时返回已关闭错误。
+    pub async fn invalidate_read_recovery_batch(&self) -> Result<(), BridgeError> {
+        let mut guard = self.inner.lock().await;
+        guard
+            .as_mut()
+            .ok_or_else(disposed_error)?
+            .invalidate_read_recovery_batch();
+        Ok(())
+    }
+}
+
 /// 当前任务需要校验的业务路线；Auto 仍由 Core 功能矩阵决定。
 #[derive(Clone, Copy, Debug)]
 pub enum BridgeRecoveryFeature {

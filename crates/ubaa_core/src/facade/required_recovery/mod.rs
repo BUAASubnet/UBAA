@@ -1,4 +1,6 @@
 //! 在所需路线恢复期间安装控制范围，并负责中断收尾。
+mod batch;
+pub(super) use batch::ReadRecoveryBatch;
 
 use super::{
     AuthStatus, CallerPinned, ConnectionMode, LoginInput, ReadonlyFeature, RequiredRecoveryControl,

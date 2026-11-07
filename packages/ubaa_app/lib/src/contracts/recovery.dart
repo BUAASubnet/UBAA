@@ -48,3 +48,10 @@ abstract interface class RequiredTargetSessionBackend
     implements RequiredSessionBackend {
   Future<RecoveredRouteSession> recoverTargetSession(RecoveryTarget target);
 }
+
+/// 一轮首页读取内复用已核实身份，不延长持久会话有效期。
+abstract interface class HomeRecoveryBatchBackend {
+  Future<int> beginHomeRecoveryBatch();
+  Future<void> endHomeRecoveryBatch(int batch);
+  Future<void> invalidateHomeRecoveryBatch();
+}

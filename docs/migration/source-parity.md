@@ -1,5 +1,16 @@
 # 协议来源对照与专项索引
 
+## 首页状态与读取编排
+
+本轮冻结引用为旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 和 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81`。核对旧版 `HomeBootstrapCoordinator.kt` 及并发、取消测试，`LocalConnectionAuth.kt` 的会话校验和分路线 Cookie 存储，以及 `LocalScheduleApi.kt` 的学期、教学周和日课表读取。核对 buaa-api 的 `api/user/auth.rs`、`api/aas/{core,opt,data}.rs`、`request.rs` 和 `store/{cookies,cred}.rs`。旧版统一启动来源、分别交付结果；示例没有首页编排或同等的共享账号代次。示例的 Cookie 简化、认证有效期和 TLS 设置不作为当前实现依据。
+
+| 操作 | CAS/引导与 service | 跳转与最终地址 | Cookie/会话作用域 | 方法与参数 | 请求头与编码 | 加密/签名 | DTO/解析 | 缓存/并发/重试 | 错误与产品语义 |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 首页主来源、博雅已选及研讨室订单 | 沿用各来源既有对照 | 原有最终地址检查 | 原账号和路线隔离 | 原精确请求，无新增端点 | 原请求头和正文 | 无新增 | 原 typed 结果 | App 统一编排，局部重试仅更新目标来源；八业务组及组内串行保持 | 首批可显示与后台补全分开；内部取代只在原请求仍有效时继续 |
+| 当前周与展示日期课表 | 沿既有教务及研究生分流 | 沿 Core 校验 | 原缓存账号、查询与路线来源 | 旧版学期 GET、教学周 GET termCode、周表 POST termCode/type/week；示例 currentUser 和 campusCode 不借用 | 原教务头与表单 | 无新增 | 原学期/周 DTO，缓存周按当前校园日期选取 | 本地缓存先交付，在线刷新仍走原调度；不新增缓存格式 | 缺学期、周范围或部分结果保持未知，完整空集合可替换旧内容 |
+| 本地待办投影与首页同步状态 | 本地操作，两源上游列不适用 | 不适用 | 同账号、读取范围和操作资格检查 | 不发学校请求 | 不适用 | 不适用 | 复用 Core 待办投影及本地完成标记 | 合并重复输入，保留时间变化触发；不持久化派生待办列表 | 刷新和失败保留适用内容，账号切换与失效动作及时撤销 |
+| 同一轮所需路线身份校验复用 | 沿 SSO 独立验票记录；两冻结源无相同验票流程 | 原取票与验票校验 | 每个实际路线独立，账号及会话代次变化失效 | 原 SSO GET 取票和 GET 验票参数 | 原头与编码 | 无新增 | 原已核实身份 DTO | 仅复用明确有效范围的成功校验，不延长持久会话期限，不并行提交登录；功能路线仍逐项解析 | 业务认证失败重新校验，身份不符、退出和路线变化撤销旧结果 |
+
 ## SSO 身份核验与 UC 解耦
 
 冻结旧版 `1f4b8f8412272b6a423d4ad92b396e3db721e6f3` 的 `LocalConnectionAuth.kt`、`AuthApi.kt`、`UserInfo.kt` 和认证/Cookie 测试以 UC 激活及 status 作为主会话依据。固定 buaa-api `a63712fa2ae0a6c8066197063ddee98e3a6b5b81` 的 `api/sso/auth.rs`、`api/user/{auth,opt}.rs`、`api/aas/core.rs`、`request.rs`、`store/{cookies,cred}.rs` 将 SSO 与 UC 分成两项操作，但 SSO 登录依赖默认落地页的 HTTP 成功。两份来源均没有直接验票操作，其验票 URL、参数和 DTO 列不适用。新行为依据本会话真实 SSO 响应及 [CAS 协议](https://apereo.github.io/cas/development/protocol/CAS-Protocol-Specification.html)，冲突取舍见[决策记录](decision-log.md#2026-11-06sso-直接验票与域名路线缓存)。

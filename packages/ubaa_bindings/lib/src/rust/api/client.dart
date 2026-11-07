@@ -165,6 +165,11 @@ abstract class BridgeClient implements RustOpaqueInterface {
     String? preferredCourse,
   });
 
+  /// 开始一次首页只读刷新，身份校验仍按各功能实际路线隔离。
+  /// # Errors
+  /// 已关闭客户端拒绝开始。
+  Future<int> beginReadRecoveryBatch();
+
   /// 核实原会话身份并登记指定学期导入，不自动开始逐周读取。
   ///
   /// # Errors
@@ -516,6 +521,11 @@ abstract class BridgeClient implements RustOpaqueInterface {
   /// 当前实现不会返回错误；保留 `Result` 以便未来生命周期清理失败时维持稳定 ABI。
   Future<void> dispose();
 
+  /// 结束原刷新批次，旧批次不能清除继任批次。
+  /// # Errors
+  /// 客户端关闭时返回已关闭错误。
+  Future<void> endReadRecoveryBatch({required int batch});
+
   Future<BridgeRoutedEvaluation> evaluationAll();
 
   /// 在调用方指定的已认证路线读取评教课程，不执行 Auto 探测或回退。
@@ -611,6 +621,11 @@ abstract class BridgeClient implements RustOpaqueInterface {
     required bool enabled,
     required BridgeConnectionMode expectedRoute,
   });
+
+  /// 显式恢复或认证失败后撤销本轮已校验结果。
+  /// # Errors
+  /// 客户端关闭时返回已关闭错误。
+  Future<void> invalidateReadRecoveryBatch();
 
   Future<BridgeRoutedJudgeAssignmentDetail> judgeAssignment({
     required String courseId,

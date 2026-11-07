@@ -19,8 +19,8 @@ UBAA 2 是面向北京航空航天大学服务的跨平台客户端。Rust Core 
 - Direct 与 WebVPN 的历史真实证据只覆盖对应提交的 Core-live 只读矩阵，不代表本轮真实 App 账号链路或真实写入；
 - 系统安全材料与统一加密缓存已接入，原生运行按平台分别验收；实体设备、签名、公证、商店上传和真实业务写入均不由模拟器或只读结果证明。
 
-当前公开合同版本为 CLI JSON schema v13 与 Flutter bridge contract v54；这两个版本都与磁盘
-`session.json` schema v2、`config.toml` 版本 1、业务缓存 schema v7 相互独立。
+当前公开合同版本为 CLI JSON schema v13 与 Flutter bridge contract v55；这两个版本都与磁盘
+`session.json` schema v2、`config.toml` 版本 1、业务缓存 schema v8 相互独立。
 
 产品代际名 UBAA 2 与包的 SemVer、平台构建号和合同版本相互独立，发布规则见[版本约定](docs/development/conventions.md#版本号与依赖)。
 
@@ -120,7 +120,7 @@ ubaa auth logout
 
 `UBAA_CONFIG_DIR` 或 `--config-dir` 覆盖业务资料目录，系统安全材料仍属于当前系统用户。隔离验证需要同时注入独立材料传输和协调目录。Linux SSH 使用已配置且解锁的 Secret Service，不依赖 DISPLAY、Wayland 或 GUI；服务不可用或锁定时明确失败。
 
-JSON 成功或失败只输出一个 schema-v13 信封，Engine 日志进入 stderr。合同见[认证与用户合同](docs/contracts/auth-and-user.md)和[CLI JSON Schema](docs/contracts/cli-json.schema.json)。当前 Flutter bridge contract 为 v54。协议开发继续使用 `just core-live`，真实账号授权和操作范围见[只读验证手册](docs/runbooks/live-readonly-verification.md)。
+JSON 成功或失败只输出一个 schema-v13 信封，Engine 日志进入 stderr。合同见[认证与用户合同](docs/contracts/auth-and-user.md)和[CLI JSON Schema](docs/contracts/cli-json.schema.json)。当前 Flutter bridge contract 为 v55。协议开发继续使用 `just core-live`，真实账号授权和操作范围见[只读验证手册](docs/runbooks/live-readonly-verification.md)。
 
 Windows 原生命令和正式签名分发的验收状态见[当前状态](docs/migration/status.md)，本地 Debug 构建不承担发布验收。
 

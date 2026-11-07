@@ -70,6 +70,100 @@ fn required_session_recovers_only_the_requested_feature_route() {
 }
 
 #[test]
+fn 首页批次同路线只校验一次且结束后重新校验() {
+    for route in [ConnectionMode::Direct, ConnectionMode::WebVpn] {
+        let root = test_root("required-session");
+        let store = FileSessionStore::new(&root).unwrap();
+        let slot = RouteSessionSnapshot {
+            cookies: Vec::new(),
+            authenticated_at: 1_000,
+            last_activity: 1_001,
+        };
+        store
+            .save_dual(&DualSessionSnapshot::new(Some(slot.clone()), Some(slot)))
+            .unwrap();
+        let calls = Arc::new(AtomicUsize::new(0));
+        let other = Arc::new(AtomicUsize::new(0));
+        let response = ubaa_core::facade::testing::sso_fixture_response(
+            200,
+            "https://sso.buaa.edu.cn/serviceValidate?service=https%3A%2F%2Fbyxt.buaa.edu.cn%2Fjwapp%2Fsys%2Fhomeapp%2Findex.do%3FcontextPath%3D%2Fjwapp&ticket=ST-fixture&format=JSON",
+            include_bytes!("../../../../fixtures/auth/userinfo-success.json").to_vec(),
+        );
+        let policy = if route == ConnectionMode::Direct {
+            "direct"
+        } else {
+            "webvpn"
+        };
+        let config = RouteConfig::parse(&format!("[route]\ndefault = \"{policy}\"\n")).unwrap();
+        let transport = RecoveryTransport {
+            calls: calls.clone(),
+            response,
+        };
+        let mut client = if route == ConnectionMode::Direct {
+            UbaaClient::with_routing(
+                transport,
+                CountingTransport(other.clone()),
+                store,
+                config,
+                NeverProbe,
+            )
+        } else {
+            UbaaClient::with_routing(
+                CountingTransport(other.clone()),
+                transport,
+                store,
+                config,
+                NeverProbe,
+            )
+        }
+        .unwrap();
+        let runtime = tokio::runtime::Builder::new_current_thread()
+            .enable_all()
+            .build()
+            .unwrap();
+        let batch = client.begin_read_recovery_batch();
+        let recovered = runtime
+            .block_on(client.recover_required_session(ReadonlyFeature::Signin))
+            .unwrap();
+        assert_eq!(recovered.resolution.mode, route);
+        assert_eq!(
+            recovered.data.user.username.as_deref(),
+            Some("fixture-user")
+        );
+        runtime
+            .block_on(client.recover_required_session(ReadonlyFeature::Spoc))
+            .unwrap();
+        runtime
+            .block_on(client.recover_required_session(ReadonlyFeature::Judge))
+            .unwrap();
+        assert_eq!(calls.load(Ordering::SeqCst), 1);
+        client.end_read_recovery_batch(batch);
+        runtime
+            .block_on(client.recover_required_session(ReadonlyFeature::Signin))
+            .unwrap();
+        assert_eq!(calls.load(Ordering::SeqCst), 2);
+        let previous = client.begin_read_recovery_batch();
+        let current = client.begin_read_recovery_batch();
+        runtime
+            .block_on(client.recover_required_session(ReadonlyFeature::Signin))
+            .unwrap();
+        client.end_read_recovery_batch(previous);
+        runtime
+            .block_on(client.recover_required_session(ReadonlyFeature::Spoc))
+            .unwrap();
+        assert_eq!(calls.load(Ordering::SeqCst), 3);
+        client.invalidate_read_recovery_batch();
+        runtime
+            .block_on(client.recover_required_session(ReadonlyFeature::Judge))
+            .unwrap();
+        assert_eq!(calls.load(Ordering::SeqCst), 4);
+        client.end_read_recovery_batch(current);
+        assert_eq!(other.load(Ordering::SeqCst), 0);
+        let _ = std::fs::remove_dir_all(root);
+    }
+}
+
+#[test]
 fn required_session_without_saved_material_never_contacts_upstream() {
     let root = test_root("required-session-missing");
     let calls = Arc::new(AtomicUsize::new(0));

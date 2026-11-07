@@ -78,8 +78,8 @@ import 'write/operations.dart'
         bridgePrepareYgdkSubmit,
         bridgeReadWriteReadbackHints;
 
-const _supportedBridgeContractVersion = 54;
-const _previousBridgeContractVersion = 53;
+const _supportedBridgeContractVersion = 55;
+const _previousBridgeContractVersion = 54;
 
 /// 基于 FRB opaque client 的生产后端。
 ///
@@ -115,6 +115,7 @@ class BridgeBackend
         EvaluationWriteBackend,
         RouteSettingsBackend,
         ControlledRequiredSessionBackend,
+        HomeRecoveryBatchBackend,
         OfflineCacheBackend,
         ProfileCacheBackend,
         CacheManagementBackend,
@@ -145,6 +146,18 @@ class BridgeBackend
   @override
   Future<CgyyLockDisplaySession> openLockDisplay() async =>
       BridgeLockDisplaySession(client, await client.openCgyyLockDisplay());
+
+  @override
+  Future<int> beginHomeRecoveryBatch() => client.contractVersion() < 55
+      ? Future.value(0)
+      : client.beginReadRecoveryBatch();
+  @override
+  Future<void> endHomeRecoveryBatch(int batch) =>
+      batch == 0 ? Future.value() : client.endReadRecoveryBatch(batch: batch);
+  @override
+  Future<void> invalidateHomeRecoveryBatch() => client.contractVersion() < 55
+      ? Future.value()
+      : client.invalidateReadRecoveryBatch();
 
   /// 从平台已经解析好的应用私有目录打开 Core。
   static Future<BridgeBackend> open(String configDirectory) async =>

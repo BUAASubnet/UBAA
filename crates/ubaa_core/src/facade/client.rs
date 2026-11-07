@@ -15,6 +15,7 @@ use crate::runtime::ClientRuntime;
 use crate::session::{DualSessionCoordinator, FileSessionStore};
 
 pub struct UbaaClient {
+    pub(super) read_recovery_batch: super::required_recovery::ReadRecoveryBatch,
     pub(super) domain_routes: Arc<std::sync::Mutex<super::routing::domains::DomainRoutes>>,
     pub(super) config_dir: Option<PathBuf>,
     pub(super) verified_login: Option<(String, uuid::Uuid, bool, std::time::Instant)>,
@@ -48,6 +49,14 @@ impl UbaaClient {
     }
     /// 绑定已捕获的本机撤销版本，不采用或恢复新会话。
     pub fn bind_shared_account(&mut self, guard: Option<super::SharedAccountGuard>) {
+        let same = match (&self.direct_runtime.shared_account, &guard) {
+            (Some(previous), Some(next)) => previous.same_scope(next),
+            (None, None) => true,
+            _ => false,
+        };
+        if !same {
+            self.invalidate_read_recovery_batch();
+        }
         self.direct_runtime.shared_account.clone_from(&guard);
         self.webvpn_runtime.shared_account = guard;
     }
@@ -218,6 +227,7 @@ impl UbaaClient {
         let direct_store = sessions.route_store(ConnectionMode::Direct);
         let webvpn_store = sessions.route_store(ConnectionMode::WebVpn);
         Ok(Self {
+            read_recovery_batch: super::required_recovery::ReadRecoveryBatch::default(),
             domain_routes: Arc::default(),
             config_dir: None,
             verified_login: None,

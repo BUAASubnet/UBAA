@@ -59,11 +59,18 @@ async fn 客户端(policy: &str) -> (UbaaClient, 合成传输) {
     let transport = 合成传输::default();
     *transport.status.lock().unwrap() = 200;
     let root = test_root("identity");
-    let mut client = UbaaClient::with_routing(
+    RouteConfig::parse(&format!(
+        r#"[route]
+default = "{policy}"
+"#
+    ))
+    .unwrap()
+    .save(&root)
+    .unwrap();
+    let mut client = ubaa_core::facade::testing::with_routing_in_config_directory(
         transport.clone(),
         transport.clone(),
-        FileSessionStore::new(root).unwrap(),
-        RouteConfig::parse(&format!("[route]\ndefault = \"{policy}\"\n")).unwrap(),
+        &root,
         NeverProbe,
     )
     .unwrap();
@@ -256,4 +263,63 @@ async fn 子恢复取消或到期不扩大为共享认证撤销() {
         );
         assert_eq!(parent.validate_login_identity(&old).unwrap(), "fixture-a");
     }
+}
+
+#[tokio::test]
+async fn 首页校验复用拒绝派生撤销和外部身份更新() {
+    for route in ["direct", "webvpn"] {
+        let (mut parent, transport) = 客户端(route).await;
+        parent.begin_read_recovery_batch();
+        parent
+            .recover_required_session(ReadonlyFeature::Schedule)
+            .await
+            .unwrap();
+        let mut child = parent.fork_parallel_readonly().unwrap();
+        *transport.status.lock().unwrap() = 401;
+        assert!(
+            child
+                .recover_required_session(ReadonlyFeature::Signin)
+                .await
+                .is_err()
+        );
+        assert!(
+            parent
+                .recover_required_session(ReadonlyFeature::Judge)
+                .await
+                .is_err()
+        );
+    }
+}
+
+#[tokio::test]
+async fn 首页校验复用在重新登录和路线变化后重新取身份() {
+    let (mut client, transport) = 客户端("direct").await;
+    client.begin_read_recovery_batch();
+    client
+        .recover_required_session(ReadonlyFeature::Schedule)
+        .await
+        .unwrap();
+    client.login(输入()).await.unwrap();
+    *transport.status.lock().unwrap() = 503;
+    assert!(
+        client
+            .recover_required_session(ReadonlyFeature::Judge)
+            .await
+            .is_err()
+    );
+    *transport.status.lock().unwrap() = 200;
+    client
+        .recover_required_session(ReadonlyFeature::Schedule)
+        .await
+        .unwrap();
+    client
+        .set_default_route_policy(ubaa_core::facade::RoutePolicy::WebVpn)
+        .unwrap();
+    *transport.status.lock().unwrap() = 503;
+    assert!(
+        client
+            .recover_required_session(ReadonlyFeature::Signin)
+            .await
+            .is_err()
+    );
 }

@@ -29,7 +29,13 @@ impl UbaaClient {
         &mut self,
         resolution: super::RouteResolution,
     ) -> RoutedResult<AuthStatus> {
+        if let Some(status) = self.cached_recovery_status(resolution.mode) {
+            return self.finish_routed(resolution, Ok(status));
+        }
         let result = self.auth_status_route(resolution.mode).await;
+        if let Ok(status) = &result {
+            self.remember_recovery_status(resolution.mode, status);
+        }
         self.finish_routed(resolution, result)
     }
 
