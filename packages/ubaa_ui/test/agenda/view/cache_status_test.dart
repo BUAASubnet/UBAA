@@ -114,9 +114,7 @@ void main() {
       findsOneWidget,
     );
     expect(tester.widget<FilledButton>(refresh).onPressed, isNotNull);
-    await tester.ensureVisible(find.byTooltip('关闭'));
-    await tester.tap(find.byTooltip('关闭'));
-    await tester.pumpAndSettle();
+    await closeAgendaDataSheet(tester);
     expect(find.text('刷新后读取的事项').hitTestable(), findsOneWidget);
     expect(
       ModalRoute.of(tester.element(find.byType(AgendaView)))!.isCurrent,

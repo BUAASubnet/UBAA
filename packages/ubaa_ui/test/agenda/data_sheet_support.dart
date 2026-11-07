@@ -9,6 +9,7 @@ Future<void> openAgendaDataSheet(WidgetTester tester) async {
 }
 
 Future<void> closeAgendaDataSheet(WidgetTester tester) async {
-  await tester.tap(find.byTooltip('关闭'));
+  // 模态面板只留拖动条，点面板外的遮罩关闭。
+  await tester.tapAt(const Offset(8, 8));
   await tester.pumpAndSettle();
 }

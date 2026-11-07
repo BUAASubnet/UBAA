@@ -58,51 +58,31 @@ extension _AgendaFilters on AgendaViewState {
   }
 
   Future<void> _showFilters() async {
-    await showModalBottomSheet<void>(
-      context: context,
-      isScrollControlled: true,
-      showDragHandle: true,
+    await showUiSheet<void>(
+      context,
       builder: (context) => bound(
         StatefulBuilder(
-          builder: (context, refresh) => SafeArea(
-            top: false,
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 16),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.stretch,
-                children: [
-                  Row(
-                    children: [
-                      Expanded(
-                        child: Text(
-                          '筛选日程',
-                          style: Theme.of(context).textTheme.titleLarge,
-                        ),
-                      ),
-                      TextButton(
-                        onPressed: () {
-                          update(() {
-                            filter = '全部';
-                            todos = false;
-                            includeCompleted = true;
-                            includeHidden = false;
-                          });
-                          refresh(() {});
-                        },
-                        child: const Text('重置'),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 12),
-                  filters(onUpdate: () => refresh(() {})),
-                  const SizedBox(height: 16),
-                  FilledButton(
-                    onPressed: () => Navigator.pop(context),
-                    child: const Text('完成'),
-                  ),
-                ],
-              ),
+          builder: (context, refresh) => UiSheetBody(
+            title: '筛选日程',
+            children: [filters(onUpdate: () => refresh(() {}))],
+            primaryAction: FilledButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('完成'),
             ),
+            actions: [
+              OutlinedButton(
+                onPressed: () {
+                  update(() {
+                    filter = '全部';
+                    todos = false;
+                    includeCompleted = true;
+                    includeHidden = false;
+                  });
+                  refresh(() {});
+                },
+                child: const Text('重置'),
+              ),
+            ],
           ),
         ),
       ),

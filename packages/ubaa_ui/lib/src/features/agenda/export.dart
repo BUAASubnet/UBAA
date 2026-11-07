@@ -15,26 +15,28 @@ extension AgendaFileExport on AgendaViewState {
       builder: (_, child) => bound(child!),
     );
     if (!current(token) || selected == null) return;
-    final include = await showDialog<bool>(
-      context: context,
-      builder: (dialog) => bound(
-        SimpleDialog(
-          title: const Text('导出日历'),
+    final include = await showUiSheet<bool>(
+      context,
+      builder: (sheet) => bound(
+        UiSheetBody(
+          title: '导出日历',
+          subtitle:
+              '${agendaDate(selected.start)} 至 ${agendaDate(selected.end)}',
           children: [
-            Padding(
-              padding: const EdgeInsets.all(16),
-              child: Text(
-                widget.term.trim().isEmpty
-                    ? '还没有学期信息，只导出所选日期内你添加的日程。'
-                    : '导出所选日期内的日程。',
-              ),
+            UiInfoRow(
+              icon: Icons.info_outline,
+              text: widget.term.trim().isEmpty
+                  ? '还没有学期信息，只导出所选日期内你添加的日程。'
+                  : '导出所选日期内的日程。',
             ),
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(dialog, false),
-              child: const Text('仅未完成事项'),
-            ),
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(dialog, true),
+          ],
+          primaryAction: FilledButton(
+            onPressed: () => Navigator.pop(sheet, false),
+            child: const Text('仅未完成事项'),
+          ),
+          actions: [
+            OutlinedButton(
+              onPressed: () => Navigator.pop(sheet, true),
               child: const Text('包含已完成事项'),
             ),
           ],

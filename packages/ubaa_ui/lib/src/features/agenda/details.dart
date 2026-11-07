@@ -1,20 +1,22 @@
 part of 'view.dart';
 
 extension AgendaDetails on AgendaViewState {
-  Future<AgendaEditScope?> chooseScope() => showDialog<AgendaEditScope>(
-    context: context,
-    builder: (context) => bound(
-      SimpleDialog(
-        title: const Text('处理重复事项'),
+  Future<AgendaEditScope?> chooseScope() => showUiSheet<AgendaEditScope>(
+    context,
+    builder: (sheet) => bound(
+      UiSheetBody(
+        title: '处理重复事项',
         children: [
-          for (final entry in {
-            AgendaEditScope.thisOccurrence: '仅此次',
-            AgendaEditScope.thisAndFuture: '此次及以后',
-            AgendaEditScope.all: '全部',
-          }.entries)
-            SimpleDialogOption(
-              onPressed: () => Navigator.pop(context, entry.key),
-              child: Text(entry.value),
+          for (final (scope, label, icon) in [
+            (AgendaEditScope.thisOccurrence, '仅此次', Icons.event_outlined),
+            (AgendaEditScope.thisAndFuture, '此次及以后', Icons.redo),
+            (AgendaEditScope.all, '全部', Icons.event_repeat_outlined),
+          ])
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              leading: Icon(icon),
+              title: Text(label),
+              onTap: () => Navigator.pop(sheet, scope),
             ),
         ],
       ),
@@ -88,6 +90,7 @@ extension AgendaDetails on AgendaViewState {
                     child: const Text('取消'),
                   ),
                   FilledButton(
+                    style: uiDangerButtonStyle(dialog),
                     onPressed: () => Navigator.pop(dialog, AgendaEditScope.all),
                     child: const Text('删除'),
                   ),

@@ -1,6 +1,7 @@
 import 'dart:async';
 import '../shared/layout/rail_identity.dart';
 import '../shared/dialogs/confirmation.dart';
+import '../shared/dialogs/sheet.dart' show showUiSheet, UiSheetBody, UiInfoRow;
 import '../features/bhpan/write_flow.dart';
 import '../features/bhpan/view.dart';
 import '../features/agenda/view.dart';
@@ -551,22 +552,22 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
                 widget.onCompleteLogin!(context);
                 return;
               }
-              final retry = await showDialog<bool>(
-                context: context,
-                builder: (context) => AlertDialog(
-                  title: const Text('连接状态'),
-                  content: Text(widget.connectionStatus ?? '连接已恢复'),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: const Text('关闭'),
+              final retry = await showUiSheet<bool>(
+                context,
+                builder: (context) => UiSheetBody(
+                  title: '连接状态',
+                  children: [
+                    UiInfoRow(
+                      icon: Icons.info_outline,
+                      text: widget.connectionStatus ?? '连接已恢复',
                     ),
-                    if (widget.onReconnect != null)
-                      TextButton(
-                        onPressed: () => Navigator.pop(context, true),
-                        child: const Text('重试'),
-                      ),
                   ],
+                  primaryAction: widget.onReconnect == null
+                      ? null
+                      : FilledButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          child: const Text('重试'),
+                        ),
                 ),
               );
               if (retry == true && mounted) widget.onReconnect?.call();

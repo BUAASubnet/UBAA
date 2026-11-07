@@ -5,6 +5,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import '../common/detail_fields.dart' show DetailField;
 import '../common/error_card.dart' show FriendlyErrorCard;
 import '../shared/loading.dart';
+import '../shared/dialogs/confirmation.dart' show uiDangerButtonStyle;
 
 /// 所有写操作共用的二次确认组件。
 ///
@@ -118,10 +119,7 @@ class _WriteConfirmationViewState extends State<WriteConfirmationView> {
           ),
           FilledButton(
             onPressed: expired || isSubmitting ? null : widget.onConfirm,
-            style: FilledButton.styleFrom(
-              backgroundColor: Theme.of(context).colorScheme.error,
-              foregroundColor: Theme.of(context).colorScheme.onError,
-            ),
+            style: uiDangerButtonStyle(context),
             child: Text(
               isSubmitting && !isDiscarding
                   ? '正在取消…'

@@ -35,7 +35,7 @@ void main() {
     await tester.pumpAndSettle();
     await tester.tap(find.text('编辑事项'));
     await tester.pumpAndSettle();
-    await tester.tap(find.widgetWithText(SimpleDialogOption, '全部'));
+    await tester.tap(find.widgetWithText(ListTile, '全部'));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.byKey(const ValueKey('agenda-skips')),
@@ -85,7 +85,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('编辑事项'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(SimpleDialogOption, scope.value));
+      await tester.tap(find.widgetWithText(ListTile, scope.value));
       await tester.pumpAndSettle();
       await tester.enterText(
         find.byKey(const ValueKey('agenda-title')),
@@ -120,7 +120,7 @@ void main() {
       await tester.pumpAndSettle();
       await tester.tap(find.text('删除事项'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(SimpleDialogOption, scope.value));
+      await tester.tap(find.widgetWithText(ListTile, scope.value));
       await tester.pumpAndSettle();
       expect(backend.lastDelete, scope.key);
       expect(backend.items, isEmpty);

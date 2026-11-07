@@ -7,7 +7,7 @@ import '../common/section.dart';
 import 'cache_settings.dart' show CacheSettings;
 import 'profile_details.dart' show ProfileIdentityCard;
 import '../common/error_card.dart' show uiShowDiagnosticsDialog;
-import '../shared/dialogs/confirmation.dart' show uiDangerButtonStyle;
+import '../shared/dialogs/confirmation.dart' show uiConfirmIrreversible;
 
 class ProfileView extends StatelessWidget {
   const ProfileView({
@@ -195,28 +195,16 @@ class ProfileView extends StatelessWidget {
   );
 
   Future<void> _confirmClearAccount(BuildContext context) async {
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('退出并清除数据？'),
-        content: const Text(
+    final confirmed = await uiConfirmIrreversible(
+      context,
+      title: '退出并清除数据？',
+      message:
           '这会退出登录，清除保存的密码、已保存的学校数据、成绩变化记录及提醒设置。本机日程和账号关联会保留，学校服务器上的数据不会被删除。',
-        ),
-        actions: <Widget>[
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            style: uiDangerButtonStyle(context),
-            onPressed: () => Navigator.of(context).pop(true),
-            child: const Text('退出并清除'),
-          ),
-        ],
-      ),
+      action: '退出并清除',
+      danger: true,
     );
     // 账号切换或退出已销毁原页面时，旧确认不得清理后来登录的账号。
-    if (confirmed == true && context.mounted) {
+    if (confirmed && context.mounted) {
       // 登录页替换资料页后，根Messenger仍可说明本机文件清理失败。
       final messenger = ScaffoldMessenger.maybeOf(context);
       try {

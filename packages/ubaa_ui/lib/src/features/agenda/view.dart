@@ -1,4 +1,6 @@
-import '../../shared/dialogs/sheet.dart' show showUiSheet;
+import '../../shared/dialogs/sheet.dart'
+    show showUiSheet, UiSheetBody, UiInfoRow;
+import '../../shared/dialogs/confirmation.dart' show uiDangerButtonStyle;
 import 'dart:async';
 import 'dart:math' as math;
 import 'package:flutter/services.dart';

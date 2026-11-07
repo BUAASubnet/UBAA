@@ -1,3 +1,4 @@
+import '../shared/dialogs/sheet.dart' show showUiSheet, UiSheetBody;
 import '../shared/feedback.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
@@ -174,24 +175,16 @@ Future<void> uiShowDiagnosticsDialog(
   } on Object {
     report = '当前无法读取诊断信息';
   }
-  await showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: const Text('诊断信息'),
-      content: SizedBox(
-        width: 560,
-        child: SingleChildScrollView(child: SelectableText(report)),
+  await showUiSheet<void>(
+    context,
+    builder: (context) => UiSheetBody(
+      title: '诊断信息',
+      children: [SelectableText(report)],
+      primaryAction: FilledButton.icon(
+        onPressed: () => _copyDiagnosticText(context, report),
+        icon: const Icon(Icons.copy_outlined, size: 18),
+        label: const Text('复制诊断信息'),
       ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('关闭'),
-        ),
-        TextButton(
-          onPressed: () => _copyDiagnosticText(context, report),
-          child: const Text('复制诊断信息'),
-        ),
-      ],
     ),
   );
 }

@@ -2,7 +2,7 @@ import '../shared/loading.dart' show LoadingGlyph;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import '../shared/dialogs/confirmation.dart' show uiDangerButtonStyle;
+import '../shared/dialogs/confirmation.dart' show uiConfirmIrreversible;
 
 class CacheSettings extends StatefulWidget {
   const CacheSettings({
@@ -59,27 +59,15 @@ class _CacheSettingsState extends State<CacheSettings> {
   Future<void> _clear() async {
     if (_busy || !widget.enabled) return;
     final accountId = widget.accountId, generation = _generation;
-    final confirmed = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('清理本机缓存？'),
-        content: const Text(
+    final confirmed = await uiConfirmIrreversible(
+      context,
+      title: '清理本机缓存？',
+      message:
           '将清除本机保存的课表、学校待办、查询内容和未确认的提交提醒，保留登录状态、账号和本机日程。查询内容之后可重新获取，未确认的提交提醒无法恢复。',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('取消'),
-          ),
-          FilledButton(
-            style: uiDangerButtonStyle(context),
-            onPressed: () => Navigator.pop(context, true),
-            child: const Text('确认清理'),
-          ),
-        ],
-      ),
+      action: '确认清理',
+      danger: true,
     );
-    if (confirmed != true ||
+    if (!confirmed ||
         !mounted ||
         _busy ||
         !widget.enabled ||

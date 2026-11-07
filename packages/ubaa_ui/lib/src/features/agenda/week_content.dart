@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../shared/dialogs/sheet.dart' show showUiSheet, UiSheetBody;
 import '../../shared/layout/seven_day_grid.dart';
 import 'calendar_values.dart';
 import 'format.dart';
@@ -632,37 +633,28 @@ class _AllDayRow extends StatelessWidget {
     );
   }
 
-  void _showList(
-    BuildContext context,
-    String title,
-    List<AgendaEntry> items,
-  ) => showModalBottomSheet<void>(
-    context: context,
-    showDragHandle: true,
-    builder: (sheet) => SafeArea(
-      child: ListView(
-        shrinkWrap: true,
-        children: [
-          Padding(
-            padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-            child: Text(title, style: Theme.of(sheet).textTheme.titleMedium),
-          ),
-          for (final entry in items)
-            ListTile(
-              leading: Icon(
-                Icons.circle,
-                size: 10,
-                color: agendaSourceColor(entry, Theme.of(sheet).colorScheme),
+  void _showList(BuildContext context, String title, List<AgendaEntry> items) =>
+      showUiSheet<void>(
+        context,
+        builder: (sheet) => UiSheetBody(
+          title: title,
+          children: [
+            for (final entry in items)
+              ListTile(
+                contentPadding: EdgeInsets.zero,
+                leading: Icon(
+                  Icons.circle,
+                  size: 10,
+                  color: agendaSourceColor(entry, Theme.of(sheet).colorScheme),
+                ),
+                title: Text(agendaTitle(entry)),
+                subtitle: Text(agendaWhen(entry)),
+                onTap: () {
+                  Navigator.pop(sheet);
+                  onOpen(entry);
+                },
               ),
-              title: Text(agendaTitle(entry)),
-              subtitle: Text(agendaWhen(entry)),
-              onTap: () {
-                Navigator.pop(sheet);
-                onOpen(entry);
-              },
-            ),
-        ],
-      ),
-    ),
-  );
+          ],
+        ),
+      );
 }
