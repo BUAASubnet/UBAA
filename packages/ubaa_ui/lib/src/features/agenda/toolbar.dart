@@ -161,6 +161,15 @@ extension _AgendaToolbar on AgendaViewState {
                 ),
               ),
             ),
+            // 放在翻页箭头左侧：出现或隐藏时只占用月份那侧的空间，箭头与视图切换不移动。
+            if (!_onToday)
+              IconButton(
+                visualDensity: VisualDensity.compact,
+                tooltip: '回到今天',
+                color: colors.primary,
+                onPressed: () => goDate(agendaDay(now)),
+                icon: const Icon(Icons.today),
+              ),
             IconButton(
               visualDensity: VisualDensity.compact,
               tooltip: prev,
@@ -172,21 +181,6 @@ extension _AgendaToolbar on AgendaViewState {
               tooltip: next,
               onPressed: () => move(1),
               icon: const Icon(Icons.chevron_right),
-            ),
-            // 只占一个图标位，不挤掉左侧月份；在今天时隐藏但保留位置，箭头不跳动。
-            // 窄屏放大文字时顶栏放不下空位，此时不保留。
-            Visibility(
-              visible: !_onToday,
-              maintainSize: MediaQuery.sizeOf(context).width >= 360,
-              maintainAnimation: MediaQuery.sizeOf(context).width >= 360,
-              maintainState: MediaQuery.sizeOf(context).width >= 360,
-              child: IconButton(
-                visualDensity: VisualDensity.compact,
-                tooltip: '回到今天',
-                color: colors.primary,
-                onPressed: () => goDate(agendaDay(now)),
-                icon: const Icon(Icons.today),
-              ),
             ),
             SegmentedButton<AgendaViewMode>(
               showSelectedIcon: false,
