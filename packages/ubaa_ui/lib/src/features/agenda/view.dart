@@ -657,6 +657,15 @@ class AgendaViewState extends State<AgendaView> {
             ),
           ],
         );
+        final fillsWeek = constraints.maxHeight >= 640;
+        final week = AgendaWeekContent(
+          key: const ValueKey('agenda-week-content'),
+          date: focusDate,
+          entries: visible,
+          allEntries: all,
+          onOpen: open,
+          onDate: goDate,
+        );
         final content = PullToRefresh(
           onRefresh: () async {
             setState(() => pulling = true);
@@ -673,19 +682,12 @@ class AgendaViewState extends State<AgendaView> {
               if (result != null && mode == AgendaViewMode.week)
                 SliverPadding(
                   padding: const EdgeInsets.symmetric(horizontal: 16),
-                  sliver: SliverToBoxAdapter(
-                    child: SizedBox(
-                      key: const ValueKey('agenda-week-content'),
-                      height: math.max(440, constraints.maxHeight * .7),
-                      child: AgendaWeekContent(
-                        date: focusDate,
-                        entries: visible,
-                        allEntries: all,
-                        onOpen: open,
-                        onDate: goDate,
-                      ),
-                    ),
-                  ),
+                  // 周网格撑满到底栏；矮窗口保留最小高度，整页可滚动。
+                  sliver: fillsWeek
+                      ? SliverFillRemaining(child: week)
+                      : SliverToBoxAdapter(
+                          child: SizedBox(height: 440, child: week),
+                        ),
                 )
               else if (result != null) ...[
                 if (mode == AgendaViewMode.month && !wide)
@@ -716,7 +718,8 @@ class AgendaViewState extends State<AgendaView> {
                       : null,
                 ),
               ],
-              const SliverToBoxAdapter(child: SizedBox(height: 88)),
+              if (!(fillsWeek && mode == AgendaViewMode.week))
+                const SliverToBoxAdapter(child: SizedBox(height: 88)),
             ],
           ),
         );
