@@ -83,7 +83,7 @@ class AgendaViewState extends State<AgendaView> {
   String filter = '全部', search = '';
   late DateTime from, to, focusDate;
   AgendaViewMode mode = AgendaViewMode.list;
-  bool dayOnly = false, customRange = false;
+  bool customRange = false;
   bool searchVisible = false, noticesDismissed = false;
   String? selectedKey;
   final searchField = TextEditingController();
@@ -221,7 +221,6 @@ class AgendaViewState extends State<AgendaView> {
     search = '';
     searchField.clear();
     searchVisible = false;
-    dayOnly = false;
     customRange = false;
     mode = AgendaViewMode.list;
     focusDate = agendaDay(now);
@@ -408,7 +407,6 @@ class AgendaViewState extends State<AgendaView> {
     setState(() {
       focusDate = agendaDay(date);
       customRange = false;
-      if (mode != AgendaViewMode.week) dayOnly = true;
       alignRange();
     });
     unawaited(load());
@@ -427,9 +425,16 @@ class AgendaViewState extends State<AgendaView> {
 
   void move(int offset) {
     setState(() {
-      focusDate = mode == AgendaViewMode.month
-          ? agendaShiftMonth(focusDate, offset)
-          : focusDate.add(Duration(days: offset * 7));
+      if (mode == AgendaViewMode.list) {
+        // 列表翻周从那周周一列起；回到本周时从今天列起。
+        final week = agendaWeekStart(focusDate).add(Duration(days: offset * 7));
+        final today = agendaDay(now);
+        focusDate = agendaWeekStart(today) == week ? today : week;
+      } else {
+        focusDate = mode == AgendaViewMode.month
+            ? agendaShiftMonth(focusDate, offset)
+            : focusDate.add(Duration(days: offset * 7));
+      }
       if (customRange) {
         from = from.add(Duration(days: offset * 7));
         to = to.add(Duration(days: offset * 7));
@@ -582,7 +587,7 @@ class AgendaViewState extends State<AgendaView> {
               ? agendaOverlaps(start, end, from, to)
               : !date.isBefore(from) && date.isBefore(to);
         }).toList();
-        final list = mode == AgendaViewMode.month || dayOnly
+        final list = mode == AgendaViewMode.month
             ? visible
                   .where(
                     (e) =>
@@ -757,12 +762,21 @@ class AgendaViewState extends State<AgendaView> {
                         const VerticalDivider(width: 1),
                       ],
                       Expanded(
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.stretch,
-                          children: [
-                            header,
-                            Expanded(child: content),
-                          ],
+                        // 日程内左右滑动切换日期范围，不交给外层分页切换底栏页面。
+                        child: GestureDetector(
+                          key: const ValueKey('agenda-swipe'),
+                          behavior: HitTestBehavior.translucent,
+                          onHorizontalDragEnd: (details) {
+                            final v = details.primaryVelocity ?? 0;
+                            if (v.abs() > 200) move(v < 0 ? 1 : -1);
+                          },
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: [
+                              header,
+                              Expanded(child: content),
+                            ],
+                          ),
                         ),
                       ),
                       if (detailPane) ...[
@@ -817,7 +831,6 @@ class AgendaViewState extends State<AgendaView> {
       focusDate = from;
       mode = AgendaViewMode.list;
       customRange = true;
-      dayOnly = false;
     });
     await load();
   }

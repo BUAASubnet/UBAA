@@ -7,7 +7,7 @@ import 'view_modes_test.dart' show at, course, reveal;
 import '../support.dart';
 
 void main() {
-  testWidgets('列表翻周保留范围内其他日期的事项，选日筛选仍可单独开启', (tester) async {
+  testWidgets('列表翻周保留范围内其他日期的事项，选日只移动起点，左右滑动切换周次', (tester) async {
     final semantics = tester.ensureSemantics();
     try {
       final backend = MemoryAgenda();
@@ -33,12 +33,21 @@ void main() {
       await tester.tap(find.byTooltip('上一周'));
       await tester.pumpAndSettle();
       expect(find.text('十三日待办'), findsOneWidget);
+      // 列表点选日期只移动起点，不收成单日，也不需要“显示全部日期”。
       await tester.tap(find.bySemanticsLabel('周四 11月5日'));
       await tester.pumpAndSettle();
-      expect(find.text('十三日待办'), findsNothing);
-      await tester.tap(find.text('显示全部日期'));
-      await tester.pumpAndSettle();
       expect(find.text('十三日待办'), findsOneWidget);
+      expect(find.text('显示全部日期'), findsNothing);
+      // 左右滑动切换周次，而不是切换底栏页面。
+      final before = find.bySemanticsLabel('周四 11月5日');
+      await tester.fling(
+        find.byKey(const ValueKey('agenda-swipe')),
+        const Offset(-300, 0),
+        1000,
+      );
+      await tester.pumpAndSettle();
+      expect(before, findsNothing);
+      expect(find.bySemanticsLabel('周四 11月12日'), findsOneWidget);
     } finally {
       semantics.dispose();
     }

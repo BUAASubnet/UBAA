@@ -318,6 +318,8 @@ class _AgendaWeekContentState extends State<AgendaWeekContent> {
               child: SingleChildScrollView(
                 controller: horizontal,
                 scrollDirection: Axis.horizontal,
+                // 七列始终放满一屏，横向滑动留给日程页切换周次。
+                physics: const NeverScrollableScrollPhysics(),
                 child: SizedBox(
                   width: width,
                   child: Column(

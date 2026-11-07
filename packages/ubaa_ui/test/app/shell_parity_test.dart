@@ -7,7 +7,7 @@ import 'package:ubaa_ui/src/app/home.dart' show HomeView;
 import 'package:ubaa_ui/src/features/agenda/view.dart';
 
 void main() {
-  testWidgets('功能页点另一底栏后内容与选中项一致，滑动继续沿该页切换', (tester) async {
+  testWidgets('功能页点另一底栏后内容与选中项一致，滑动从该页切到日程', (tester) async {
     await mount(tester, tab: UiDestination.study);
     await openGrade(tester);
     await tester.tap(
@@ -30,7 +30,10 @@ void main() {
       tester.widget<NavigationBar>(find.byType(NavigationBar)).selectedIndex,
       UiDestination.agenda.index,
     );
-    await tester.drag(find.byType(PageView), const Offset(350, 0));
+    // 日程页内左右滑动切换日期，回学习页改点底栏。
+    await tester.tap(
+      find.byType(NavigationDestination).at(UiDestination.study.index),
+    );
     await tester.pumpAndSettle();
     expect(find.widgetWithText(AppBar, '学习'), findsOneWidget);
     expect(

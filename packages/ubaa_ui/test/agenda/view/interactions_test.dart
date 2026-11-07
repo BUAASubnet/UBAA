@@ -36,7 +36,7 @@ List<String> visibleTitles(WidgetTester tester) => tester
     .toList();
 
 void main() {
-  testWidgets('402pt日期条七天等宽完整可见，逐日点选显示对应事项并可滑动换周', (tester) async {
+  testWidgets('402pt日期条七天等宽完整可见，逐日点选从该日开始列出并可滑动换周', (tester) async {
     tester.view.physicalSize = const Size(402, 874);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
@@ -63,7 +63,8 @@ void main() {
       await tester.tap(date);
       await tester.pumpAndSettle();
       expect(tester.widget<Semantics>(date).properties.selected, isTrue);
-      expect(visibleTitles(tester), ['$day日待办']);
+      // 列表从所选日期开始，之后的事项照常列出。
+      expect(visibleTitles(tester).first, '$day日待办');
     }
     expect(widths.every((width) => (width - widths.first).abs() < .01), isTrue);
     expect(right, closeTo(394, .01));
@@ -74,7 +75,7 @@ void main() {
     );
     await tester.pumpAndSettle();
     final state = tester.state<AgendaViewState>(find.byType(AgendaView));
-    expect(state.focusDate, DateTime.utc(2026, 11, 15));
+    expect(state.focusDate, DateTime.utc(2026, 11, 9), reason: "列表翻周从周一列起");
     expect(agendaDateButton('周一 11月9日').hitTestable(), findsOneWidget);
   });
 

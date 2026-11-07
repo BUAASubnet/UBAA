@@ -173,16 +173,21 @@ extension _AgendaToolbar on AgendaViewState {
               onPressed: () => move(1),
               icon: const Icon(Icons.chevron_right),
             ),
-            if (!_onToday)
-              Padding(
-                padding: const EdgeInsets.only(right: 6),
-                child: ActionChip(
-                  visualDensity: VisualDensity.compact,
-                  avatar: Icon(Icons.today, size: 16, color: colors.primary),
-                  label: const Text('今天'),
-                  onPressed: () => goDate(agendaDay(now)),
-                ),
+            // 只占一个图标位，不挤掉左侧月份；在今天时隐藏但保留位置，箭头不跳动。
+            // 窄屏放大文字时顶栏放不下空位，此时不保留。
+            Visibility(
+              visible: !_onToday,
+              maintainSize: MediaQuery.sizeOf(context).width >= 360,
+              maintainAnimation: MediaQuery.sizeOf(context).width >= 360,
+              maintainState: MediaQuery.sizeOf(context).width >= 360,
+              child: IconButton(
+                visualDensity: VisualDensity.compact,
+                tooltip: '回到今天',
+                color: colors.primary,
+                onPressed: () => goDate(agendaDay(now)),
+                icon: const Icon(Icons.today),
               ),
+            ),
             SegmentedButton<AgendaViewMode>(
               showSelectedIcon: false,
               style: ButtonStyle(
@@ -216,15 +221,6 @@ extension _AgendaToolbar on AgendaViewState {
             ),
           ],
         ),
-        if (dayOnly && mode == AgendaViewMode.list)
-          Align(
-            alignment: Alignment.centerLeft,
-            child: TextButton.icon(
-              onPressed: () => update(() => dayOnly = false),
-              icon: const Icon(Icons.unfold_more, size: 18),
-              label: const Text('显示全部日期'),
-            ),
-          ),
       ],
     );
   }
