@@ -122,39 +122,24 @@ extension CgyyFormFields on _CgyyReservationFormState {
   }
 
   Future<void> _choosePurpose() async {
-    final value = await showModalBottomSheet<int>(
-      context: context,
-      showDragHandle: true,
-      isScrollControlled: true,
-      useSafeArea: true,
-      builder: (context) => SafeArea(
-        child: ListView(
-          shrinkWrap: true,
-          padding: const EdgeInsets.only(bottom: 8),
-          children: [
-            Padding(
-              padding: const EdgeInsets.fromLTRB(24, 0, 24, 8),
-              child: Text(
-                '活动类型',
-                style: Theme.of(context).textTheme.titleMedium,
-              ),
+    final value = await showUiSheet<int>(
+      context,
+      builder: (context) => UiSheetBody(
+        title: '活动类型',
+        children: [
+          for (final p in options)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(_purposeParts(p.name).$1),
+              subtitle: switch (_purposeParts(p.name).$2) {
+                final example? => Text(example),
+                null => null,
+              },
+              selected: p.key == draft.purpose,
+              trailing: p.key == draft.purpose ? const Icon(Icons.check) : null,
+              onTap: () => Navigator.of(context).pop(p.key),
             ),
-            for (final p in options)
-              ListTile(
-                contentPadding: const EdgeInsets.symmetric(horizontal: 24),
-                title: Text(_purposeParts(p.name).$1),
-                subtitle: switch (_purposeParts(p.name).$2) {
-                  final example? => Text(example),
-                  null => null,
-                },
-                selected: p.key == draft.purpose,
-                trailing: p.key == draft.purpose
-                    ? const Icon(Icons.check)
-                    : null,
-                onTap: () => Navigator.of(context).pop(p.key),
-              ),
-          ],
-        ),
+        ],
       ),
     );
     if (!mounted || draft.generation != generation || value == null) return;

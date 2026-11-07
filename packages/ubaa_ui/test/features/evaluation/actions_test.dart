@@ -116,9 +116,9 @@ void _registerEvaluationWriteTests() {
     );
     await tester.tap(find.byTooltip('课程详情'));
     await tester.pumpAndSettle();
-    expect(find.text('展示任务（已改名）：wrong-task'), findsOneWidget);
+    expect(find.text('wrong-task'), findsOneWidget);
     expect(prepareCalls, 0);
-    await tester.tap(find.text('关闭'));
+    await tester.tapAt(const Offset(20, 20));
     await tester.pumpAndSettle();
     await tester.tap(
       find.byKey(ValueKey<String>('evaluation-${expectedTarget.selectionKey}')),

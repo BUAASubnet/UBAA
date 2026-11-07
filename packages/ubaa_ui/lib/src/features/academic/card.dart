@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../common/detail_fields.dart' show DetailField;
 import 'fields.dart' show uiCourseFields;
+import '../../shared/dialogs/sheet.dart';
 import '../../shared/text.dart'
     show uiNonBlank, uiTimeRange, uiHiddenAcademicField;
 
@@ -167,27 +168,66 @@ class AcademicCard extends StatelessWidget {
   }
 }
 
+/// 考试等教务条目的详情底部面板：日期与时间合为一行，空字段不显示。
 Future<void> uiShowAcademicDetails(
   BuildContext context,
   FeatureDetail detail,
-) => showDialog<void>(
-  context: context,
-  builder: (context) => AlertDialog(
-    title: const Text('详细信息'),
-    content: SizedBox(
-      width: 560,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.sizeOf(context).height * .65,
+) => showUiSheet<void>(
+  context,
+  builder: (context) {
+    final presentation = detail.presentation;
+    final extra = [
+      for (final field in detail.fields)
+        if (!uiHiddenAcademicField(field.label) &&
+            field.value.trim().isNotEmpty)
+          UiInfoRow(
+            icon: Icons.info_outline,
+            text: field.value,
+            detail: field.label,
+          ),
+    ];
+    if (presentation is! ExamPresentation) {
+      return UiSheetBody(
+        title: detail.title,
+        subtitle: uiNonBlank(detail.subtitle),
+        children: extra,
+      );
+    }
+    final p = presentation;
+    final when = [
+      uiNonBlank(p.date) ?? uiNonBlank(p.description),
+      uiTimeRange(p.startTime, p.endTime),
+    ].nonNulls.join(' · ');
+    return UiSheetBody(
+      title: detail.title,
+      subtitle: [
+        p.arranged ? '已安排考试' : '未安排考试',
+        ?uiNonBlank(p.type),
+      ].join(' · '),
+      children: [
+        if (uiNonBlank(detail.subtitle) case final subtitle?)
+          UiInfoRow(icon: Icons.notes_outlined, text: subtitle),
+        UiInfoRow(
+          icon: Icons.event_outlined,
+          text: when.isEmpty ? '时间待定' : when,
         ),
-        child: SingleChildScrollView(child: AcademicCard(detail: detail)),
-      ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: const Text('关闭'),
-      ),
-    ],
-  ),
+        UiInfoRow(
+          icon: Icons.place_outlined,
+          text: uiNonBlank(p.place) ?? '地点待公布',
+        ),
+        if (uiNonBlank(p.seat) case final seat?)
+          UiInfoRow(icon: Icons.event_seat_outlined, text: '座位 $seat'),
+        if (uiNonBlank(p.date) != null)
+          if (uiNonBlank(p.description) case final value?)
+            UiInfoRow(
+              icon: Icons.description_outlined,
+              text: value,
+              detail: '考试说明',
+            ),
+        if (p.week case final value?)
+          UiInfoRow(icon: Icons.date_range_outlined, text: '第$value周'),
+        ...extra,
+      ],
+    );
+  },
 );

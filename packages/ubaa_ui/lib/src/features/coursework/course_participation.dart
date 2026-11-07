@@ -3,7 +3,7 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
-import '../../common/detail_fields.dart' show DetailField;
+import '../../shared/dialogs/sheet.dart';
 import '../../shared/text.dart' show uiHiddenAcademicField;
 import '../../shared/when.dart'
     show uiCampusNow, uiClock, uiParseCampusTime, uiShortRange;
@@ -234,39 +234,29 @@ class _SigninCourseCard extends StatelessWidget {
 
   Future<void> _showDetails(BuildContext context) {
     final p = detail.presentation! as SigninPresentation;
-    return showDialog<void>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(detail.title),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(uiShortRange(p.classBeginTime, p.classEndTime) ?? '时间未提供'),
-              if (switch (p.signStatus) {
-                    0 => '未签到',
-                    1 => '已签到',
-                    _ => null,
-                  }
-                  case final state?)
-                Text(state),
-              const SizedBox(height: 12),
-              for (final field in detail.fields.where(
-                (f) => !uiHiddenAcademicField(f.label),
-              ))
-                Padding(
-                  padding: const EdgeInsets.only(top: 8),
-                  child: DetailField(label: field.label, value: field.value),
-                ),
-            ],
+    final state = switch (p.signStatus) {
+      0 => '未签到',
+      1 => '已签到',
+      _ => null,
+    };
+    return showUiSheet<void>(
+      context,
+      builder: (context) => UiSheetBody(
+        title: detail.title,
+        subtitle: state,
+        children: [
+          UiInfoRow(
+            icon: Icons.schedule_outlined,
+            text: uiShortRange(p.classBeginTime, p.classEndTime) ?? '时间未提供',
           ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.of(context).pop(),
-            child: const Text('关闭'),
-          ),
+          for (final field in detail.fields)
+            if (!uiHiddenAcademicField(field.label) &&
+                field.value.trim().isNotEmpty)
+              UiInfoRow(
+                icon: Icons.info_outline,
+                text: field.value,
+                detail: field.label,
+              ),
         ],
       ),
     );

@@ -77,7 +77,7 @@ void main() {
         await tester.tap(find.text('当天课程'));
         await tester.pumpAndSettle();
         expect(find.text('星期三 · 第1–2节 · 08:00–09:40'), findsOneWidget);
-        await tester.tap(find.widgetWithText(TextButton, '关闭'));
+        await tester.tapAt(const Offset(20, 20));
         await tester.pumpAndSettle();
         expect(tester.takeException(), isNull);
       }
@@ -126,7 +126,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(find.text('CODE-$name'), findsNothing);
     expect(find.text('星期日 · 第1节 · 08:00–09:40'), findsOneWidget);
-    await tester.tap(find.widgetWithText(TextButton, '关闭'));
+    await tester.tapAt(const Offset(20, 20));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
       find.text('未知时间课程'),
@@ -170,7 +170,7 @@ void main() {
       expect(find.byType(TextField), findsNothing);
       await tester.tap(find.text('周一早课'));
       await tester.pumpAndSettle();
-      expect(find.byType(AlertDialog), findsOneWidget);
+      expect(find.byType(BottomSheet), findsOneWidget);
       expect(find.text('CODE-周一早课'), findsNothing);
       expect(find.text('星期一 · 第1–2节 · 08:00–09:40'), findsOneWidget);
       expect(find.text('合成教师与第1–16周'), findsOneWidget);
@@ -199,7 +199,7 @@ void main() {
       400,
       scrollable: find
           .descendant(
-            of: find.byType(AlertDialog),
+            of: find.byType(BottomSheet),
             matching: find.byType(Scrollable),
           )
           .first,

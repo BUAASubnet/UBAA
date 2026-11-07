@@ -171,7 +171,7 @@ void main() {
     expect(tester.getRect(find.text('14')).right, lessThanOrEqualTo(390));
     await tester.tap(find.text('A101'));
     await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.byType(BottomSheet), findsOneWidget);
     expect(find.text('ID-A101'), findsNothing);
     expect(find.text('1,3,13'), findsOneWidget);
     expect(find.text('保留值'), findsOneWidget);

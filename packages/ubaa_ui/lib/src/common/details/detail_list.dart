@@ -7,6 +7,8 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../detail_fields.dart' show DetailField;
+import '../../shared/dialogs/sheet.dart'
+    show showUiSheet, UiSheetBody, UiInfoRow;
 import '../../features/academic/content.dart'
     show AcademicResultContent, uiSupportsAcademicContent;
 import '../../features/bykc/chosen_card.dart' show BykcChosenCard;

@@ -4,7 +4,7 @@ import 'dart:math' as math;
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import '../../common/detail_fields.dart' show DetailField;
+import '../../shared/dialogs/sheet.dart';
 import '../../shared/text.dart' show uiHiddenAcademicField;
 import '../../shared/app_bar_slot.dart' show UiAppBarPicker, UiAppBarSlot;
 import '../../shared/place_memory.dart' show UiPlaceKeys, UiPlaceMemory;
@@ -553,49 +553,37 @@ String uiClassroomCampusName(int campus) => switch (campus) {
 
 Future<void> _showClassroomDetails(BuildContext context, FeatureDetail detail) {
   final p = detail.presentation! as ClassroomPresentation;
-  return showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(detail.title),
-      content: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 560,
-          maxHeight: MediaQuery.sizeOf(context).height * .65,
+  return showUiSheet<void>(
+    context,
+    builder: (context) => UiSheetBody(
+      title: detail.title,
+      subtitle: [
+        if (p.campus case final campus?) uiClassroomCampusName(campus),
+        if (p.floorName.trim().isNotEmpty) p.floorName,
+      ].join(' · ').ifEmptyNull,
+      children: [
+        UiInfoRow(
+          icon: Icons.schedule_outlined,
+          text: p.availableSections.isEmpty ? '未提供' : p.availableSections,
+          detail: '空闲节次',
         ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              for (final field in <(String, String)>[
-                ('楼栋', p.floorName),
-                (
-                  '空闲节次',
-                  p.availableSections.isEmpty ? '未提供' : p.availableSections,
-                ),
-                if (p.queryDate case final date?) ('查询日期', date),
-                if (p.campus case final campus?)
-                  ('校区', uiClassroomCampusName(campus)),
-                for (final field in detail.fields)
-                  if (!uiHiddenAcademicField(field.label))
-                    (field.label, field.value),
-              ])
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 8),
-                  child: DetailField(label: field.$1, value: field.$2),
-                ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('关闭'),
-        ),
+        if (p.queryDate case final date?)
+          UiInfoRow(icon: Icons.event_outlined, text: date),
+        for (final field in detail.fields)
+          if (!uiHiddenAcademicField(field.label) &&
+              field.value.trim().isNotEmpty)
+            UiInfoRow(
+              icon: Icons.info_outline,
+              text: field.value,
+              detail: field.label,
+            ),
       ],
     ),
   );
+}
+
+extension on String {
+  String? get ifEmptyNull => isEmpty ? null : this;
 }
 
 /// 当前所在节次；课间返回下一节，晚于最后一节返回 null。

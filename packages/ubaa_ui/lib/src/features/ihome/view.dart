@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../shared/dialogs/confirmation.dart' show uiConfirmIrreversible;
 import '../../shared/loading.dart';
 import '../../shared/refresh.dart';
 import '../../theme.dart';

@@ -138,10 +138,8 @@ void main() {
     expect(find.text('更多信息'), findsNothing);
     await tester.tap(find.text('合成考试'));
     await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsOneWidget);
-    expect(find.text('2999-10-01'), findsOneWidget);
-    await tester.tap(find.text('更多信息'));
-    await tester.pumpAndSettle();
+    expect(find.byType(BottomSheet), findsOneWidget);
+    expect(find.text('2999-10-01 · 09:00 开始'), findsOneWidget);
     expect(find.text('TASK-KEEP'), findsNothing);
     expect(find.text('保留值'), findsOneWidget);
   });

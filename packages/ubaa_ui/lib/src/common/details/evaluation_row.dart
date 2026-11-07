@@ -29,33 +29,29 @@ extension EvaluationCourseRows on _FeatureDetailListState {
     final info = IconButton(
       tooltip: '课程详情',
       icon: const Icon(Icons.info_outline),
-      onPressed: () => showDialog<void>(
-        context: context,
-        builder: (dialogContext) => AlertDialog(
-          title: Text(detail.title),
-          content: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(uiNonBlank(detail.subtitle) ?? '教师未提供'),
-                Text(presentation.isEvaluated ? '已评' : '待评'),
-                if (reason != null) Text(reason),
-                for (final field in detail.fields.where(
-                  (f) => !uiHiddenAcademicField(f.label),
-                ))
-                  Padding(
-                    padding: const EdgeInsets.only(top: 8),
-                    child: Text('${field.label}：${field.value}'),
-                  ),
-              ],
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(dialogContext).pop(),
-              child: const Text('关闭'),
-            ),
+      onPressed: () => showUiSheet<void>(
+        context,
+        builder: (sheetContext) => UiSheetBody(
+          title: detail.title,
+          subtitle: [
+            uiNonBlank(detail.subtitle) ?? '教师未提供',
+            presentation.isEvaluated ? '已评' : '待评',
+          ].join(' · '),
+          children: [
+            if (reason != null)
+              UiInfoRow(
+                icon: Icons.block_outlined,
+                text: reason,
+                color: theme.colorScheme.error,
+              ),
+            for (final field in detail.fields)
+              if (!uiHiddenAcademicField(field.label) &&
+                  field.value.trim().isNotEmpty)
+                UiInfoRow(
+                  icon: Icons.info_outline,
+                  text: field.value,
+                  detail: field.label,
+                ),
           ],
         ),
       ),

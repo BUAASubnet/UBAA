@@ -28,7 +28,7 @@ void main() {
     await tester.pumpAndSettle();
     expect(controller.value.getMaxScaleOnAxis(), 1);
     expect(controller.value.getTranslation().x, 0);
-    await tester.tap(find.byTooltip('关闭'));
+    await tester.tapAt(const Offset(20, 20));
     await tester.pumpAndSettle();
     expect(find.byType(InteractiveViewer), findsNothing);
   });

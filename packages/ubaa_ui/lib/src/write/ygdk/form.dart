@@ -6,6 +6,7 @@ import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/write_callbacks.dart';
 import '../forms/action_bar.dart' show FormActionBar;
+import '../../shared/dialogs/sheet.dart' show showUiSheet, UiSheetBody;
 import 'draft.dart' show YgdkFormContext, YgdkFormDraft, uiYgdkItemKey;
 part 'form_ygdk_draft.dart';
 part 'form_defaults.dart';
@@ -96,35 +97,20 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
       : detail.title;
 
   Future<void> _chooseItem() async {
-    final selected = await showDialog<FeatureDetail>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('选择运动项目'),
-        content: SizedBox(
-          width: 420,
-          child: SingleChildScrollView(
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (final d in widget.items)
-                  ListTile(
-                    title: Text(_itemName(d)),
-                    enabled: _validItems.contains(d),
-                    subtitle: _validItems.contains(d)
-                        ? null
-                        : const Text('当前不可提交'),
-                    onTap: () => Navigator.pop(context, d),
-                  ),
-                if (widget.items.isEmpty) const Text('暂无可用运动项目'),
-              ],
+    final selected = await showUiSheet<FeatureDetail>(
+      context,
+      builder: (context) => UiSheetBody(
+        title: '选择运动项目',
+        children: [
+          for (final d in widget.items)
+            ListTile(
+              contentPadding: EdgeInsets.zero,
+              title: Text(_itemName(d)),
+              enabled: _validItems.contains(d),
+              subtitle: _validItems.contains(d) ? null : const Text('当前不可提交'),
+              onTap: () => Navigator.pop(context, d),
             ),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('关闭'),
-          ),
+          if (widget.items.isEmpty) const Text('暂无可用运动项目'),
         ],
       ),
     );

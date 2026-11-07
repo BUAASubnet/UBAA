@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import '../bykc/display.dart' show BykcInfoLine;
+import '../../shared/dialogs/sheet.dart';
 import '../../shared/text.dart' show uiNonBlank;
-import '../../shared/when.dart' show uiShortDateTime, uiShortRange;
+import '../../shared/when.dart' show uiShortRange;
 
 List<String> uiYgdkRecordSearchValues(YgdkRecordPresentation p) => [
   '记录编号',
@@ -31,9 +31,6 @@ String _ygdkRecordTime(YgdkRecordPresentation record) =>
     uiShortRange(uiNonBlank(record.startTime), uiNonBlank(record.endTime)) ??
     '时间待定';
 
-String? _ygdkTime(String? raw) =>
-    uiNonBlank(raw) == null ? null : uiShortDateTime(raw!);
-
 class YgdkRecordCard extends StatelessWidget {
   const YgdkRecordCard(this.record);
   final YgdkRecordPresentation record;
@@ -44,29 +41,28 @@ class YgdkRecordCard extends StatelessWidget {
     return Card(
       clipBehavior: Clip.antiAlias,
       child: InkWell(
-        onTap: () => showDialog<void>(
-          context: context,
-          builder: (context) => AlertDialog(
-            title: const Text('记录详情'),
-            content: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  BykcInfoLine('项目', p.itemName),
-                  BykcInfoLine('开始时间', _ygdkTime(p.startTime)),
-                  BykcInfoLine('结束时间', _ygdkTime(p.endTime)),
-                  BykcInfoLine('地点', p.place),
-                  BykcInfoLine('图片数量', '${p.imageCount}'),
-                  BykcInfoLine('分享状态', p.isOpen ? '已分享' : '未分享'),
-                  BykcInfoLine('提交时间', p.createdAtLabel ?? p.createdAt),
-                ],
+        onTap: () => showUiSheet<void>(
+          context,
+          builder: (context) => UiSheetBody(
+            title: uiNonBlank(p.itemName) ?? '运动打卡',
+            subtitle: switch (uiNonBlank(p.createdAtLabel ?? p.createdAt)) {
+              final submitted? => '提交于 $submitted',
+              null => null,
+            },
+            children: [
+              UiInfoRow(
+                icon: Icons.schedule_outlined,
+                text: _ygdkRecordTime(p),
               ),
-            ),
-            actions: [
-              TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('关闭'),
+              if (uiNonBlank(p.place) case final place?)
+                UiInfoRow(icon: Icons.place_outlined, text: place),
+              UiInfoRow(
+                icon: Icons.image_outlined,
+                text: '${p.imageCount} 张图片',
+              ),
+              UiInfoRow(
+                icon: p.isOpen ? Icons.public : Icons.lock_outline,
+                text: p.isOpen ? '已分享' : '未分享',
               ),
             ],
           ),

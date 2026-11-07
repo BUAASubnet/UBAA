@@ -5,14 +5,19 @@ import 'package:flutter/material.dart';
 ///
 /// 详情、选择与简单设置用它；需要确认的操作用 uiConfirmIrreversible，
 /// 内容较多的编辑用整页。
+///
+/// 内容本身需要纵向拖动（如可缩放的地图）时传 [enableDrag] 为 false，
+/// 只能点外面或返回关闭。
 Future<T?> showUiSheet<T>(
   BuildContext context, {
   required WidgetBuilder builder,
+  bool enableDrag = true,
 }) => showModalBottomSheet<T>(
   context: context,
   isScrollControlled: true,
   useSafeArea: true,
   showDragHandle: true,
+  enableDrag: enableDrag,
   constraints: BoxConstraints(
     maxHeight: MediaQuery.sizeOf(context).height * .9,
   ),

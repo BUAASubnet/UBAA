@@ -59,7 +59,7 @@ void main() {
     await tester.pumpAndSettle();
     final surface = find
         .descendant(
-          of: find.byType(AlertDialog),
+          of: find.byType(BottomSheet),
           matching: find.byType(Material),
         )
         .first;
@@ -125,7 +125,7 @@ void main() {
     expect(loads, [false]);
     await tester.tap(find.text('2026秋季学期'));
     await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
     expect(queries.single.term, 'term-safe');
   });
 

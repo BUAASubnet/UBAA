@@ -124,7 +124,7 @@ void main() {
     expect(find.text('记录编号'), findsNothing);
     await tester.tap(find.widgetWithText(Card, '合成历史运动'));
     await tester.pumpAndSettle();
-    expect(find.text('记录详情'), findsOneWidget);
+    expect(find.byType(BottomSheet), findsOneWidget);
     expect(find.text('记录编号'), findsNothing);
     expect(find.text('999'), findsNothing);
     expect(find.byType(Image), findsNothing);

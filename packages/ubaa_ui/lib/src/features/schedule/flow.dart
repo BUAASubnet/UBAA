@@ -9,6 +9,7 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'import.dart' show ScheduleRefreshError;
 import 'colors.dart' show ScheduleCourseColors;
 import 'week_picker.dart' show AcademicWeekDialog;
+import '../../shared/dialogs/sheet.dart' show showUiSheet;
 import '../academic/terms.dart' show AcademicTermDialog;
 import '../../shared/schedule_values.dart' show uiIsWeeklyScheduleQuery;
 
@@ -372,8 +373,8 @@ class ScheduleFlowState extends State<ScheduleFlow> {
       return;
     setState(() => _selectingTerm = true);
     final generation = _generation;
-    final selected = await showDialog<String>(
-      context: context,
+    final selected = await showUiSheet<String>(
+      context,
       builder: (_) => AcademicTermDialog(
         loader: loader,
         selected: widget.query?.term ?? '',
@@ -397,8 +398,8 @@ class ScheduleFlowState extends State<ScheduleFlow> {
   }
 
   Future<void> _openWeekDialog(BuildContext context, String term) async {
-    final selected = await showDialog<int>(
-      context: context,
+    final selected = await showUiSheet<int>(
+      context,
       builder: (_) => AcademicWeekDialog(
         term: term,
         selected: widget.query?.week,

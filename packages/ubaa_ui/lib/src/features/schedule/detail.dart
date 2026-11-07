@@ -2,7 +2,7 @@ import '../../shared/schedule_values.dart' show uiWeekdays;
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import '../../common/detail_fields.dart' show DetailField;
+import '../../shared/dialogs/sheet.dart';
 
 import '../../shared/text.dart'
     show uiHiddenAcademicField, uiNonBlank, uiTimeRange;
@@ -10,78 +10,69 @@ import '../../shared/text.dart'
 Future<void> uiShowScheduleGroup(
   BuildContext context,
   List<FeatureDetail> details,
-) => showDialog<void>(
-  context: context,
-  builder: (context) => AlertDialog(
-    title: const Text('同一时段的课程'),
-    content: SizedBox(
-      width: 560,
-      height: MediaQuery.sizeOf(context).height * .6,
-      child: ListView.builder(
-        itemCount: details.length,
-        itemBuilder: (context, index) {
-          final detail = details[index];
-          final p = detail.presentation! as ScheduleCoursePresentation;
-          return ListTile(
+) => showUiSheet<void>(
+  context,
+  builder: (context) => UiSheetBody(
+    title: '同一时段的课程',
+    subtitle: '${details.length}门课程',
+    children: [
+      for (final detail in details)
+        if (detail.presentation case final ScheduleCoursePresentation p)
+          ListTile(
+            contentPadding: EdgeInsets.zero,
             title: Text(detail.title),
             subtitle: Text(
               '第${p.beginSection}–${p.endSection}节 · ${uiNonBlank(p.place) ?? '地点待公布'}',
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () => uiShowScheduleDetails(context, detail),
-          );
-        },
-      ),
-    ),
-    actions: [
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: const Text('关闭'),
-      ),
+          ),
     ],
   ),
 );
 
 Future<void> uiShowScheduleDetails(BuildContext context, FeatureDetail detail) {
   final p = detail.presentation! as ScheduleCoursePresentation;
-  return showDialog<void>(
-    context: context,
-    builder: (context) => AlertDialog(
-      title: Text(detail.title),
-      content: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxWidth: 560,
-          maxHeight: MediaQuery.sizeOf(context).height * .65,
-        ),
-        child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              for (final field in <(String, String)>[
-                // 星期、节次和时间合成一行，便于一眼看懂何时上课。
-                if (_when(p) case final slot?) ('时间', slot),
-                ('地点', uiNonBlank(p.place) ?? '地点待公布'),
-                if (uiNonBlank(p.credit) case final credit?) ('学分', credit),
-                if (p.weeksAndTeachers != null) ('周次/教师', p.weeksAndTeachers!),
-                if (p.teachingTarget != null) ('教学对象', p.teachingTarget!),
-                for (final field in detail.fields)
-                  if (!uiHiddenAcademicField(field.label))
-                    (field.label, field.value),
-              ])
-                Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: DetailField(label: field.$1, value: field.$2),
-                ),
-            ],
-          ),
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.of(context).pop(),
-          child: const Text('关闭'),
-        ),
+  // 「1周,4-6周[理论]/谭火彬[主讲]」拆成副标题里的周次和单独的教师行。
+  final combined = uiNonBlank(p.weeksAndTeachers);
+  final parts = combined?.split('/');
+  final split =
+      parts != null &&
+      parts.length == 2 &&
+      parts.first.contains('周') &&
+      parts.every((part) => part.trim().isNotEmpty);
+  final weeks = split ? parts.first.trim() : null;
+  final teacher = split ? parts.last.trim() : combined;
+  final place = uiNonBlank(p.place);
+  // 上方已经显示的内容不再在附加字段里重复。
+  final shown = {?place, ?combined, ?weeks, ?teacher};
+  const shownLabels = {'时间', '地点', '周次', '教师', '周次/教师', '学分', '教学对象'};
+  return showUiSheet<void>(
+    context,
+    builder: (context) => UiSheetBody(
+      title: detail.title,
+      subtitle: weeks,
+      children: [
+        // 星期、节次和时间合成一行，便于一眼看懂何时上课。
+        if (_when(p) case final slot?)
+          UiInfoRow(icon: Icons.schedule_outlined, text: slot),
+        UiInfoRow(icon: Icons.place_outlined, text: place ?? '地点待公布'),
+        if (teacher != null)
+          UiInfoRow(icon: Icons.person_outline, text: teacher),
+        if (uiNonBlank(p.credit) case final credit?)
+          UiInfoRow(icon: Icons.school_outlined, text: credit, detail: '学分'),
+        if (uiNonBlank(p.teachingTarget) case final target?)
+          UiInfoRow(icon: Icons.groups_outlined, text: target, detail: '教学对象'),
+        for (final field in detail.fields)
+          if (!uiHiddenAcademicField(field.label) &&
+              !shownLabels.contains(field.label.trim()) &&
+              field.value.trim().isNotEmpty &&
+              !shown.contains(field.value.trim()))
+            UiInfoRow(
+              icon: Icons.info_outline,
+              text: field.value,
+              detail: field.label,
+            ),
       ],
     ),
   );

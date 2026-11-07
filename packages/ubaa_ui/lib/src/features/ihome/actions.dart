@@ -67,24 +67,14 @@ extension _IhomeActions on _IhomeViewState {
         : _config?.supportLabel ?? '支持';
     _update(() => _busy.add(id));
     try {
-      final confirmed = await showDialog<bool>(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text('${enabled ? '' : '取消'}$label'),
-          content: Text('确认${enabled ? '' : '取消'}$label这条诉求？'),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context, false),
-              child: Text(enabled ? '取消' : '保留'),
-            ),
-            FilledButton(
-              onPressed: () => Navigator.pop(context, true),
-              child: const Text('确认'),
-            ),
-          ],
-        ),
+      final confirmed = await uiConfirmIrreversible(
+        context,
+        title: '${enabled ? '' : '取消'}$label',
+        message: '确认${enabled ? '' : '取消'}$label这条诉求？',
+        action: '确认',
+        dismiss: enabled ? '取消' : '保留',
       );
-      if (confirmed != true || !mounted || epoch != _epoch) return;
+      if (!confirmed || !mounted || epoch != _epoch) return;
       _update(() {
         _detailErrors.remove(id);
         _submitting.add(id);

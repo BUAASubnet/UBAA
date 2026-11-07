@@ -44,7 +44,7 @@ void main() {
     expect(find.text('原顺序第二'), findsOneWidget);
     await tester.tap(find.text('原顺序第一'));
     await tester.pumpAndSettle();
-    expect(find.text('教务待确认'), findsOneWidget);
+    expect(find.text('教务待确认 · 午后 开始'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 
@@ -88,7 +88,7 @@ void main() {
     expect(find.textContaining('2 学分 · 百分制'), findsOneWidget);
     await tester.tap(find.text('可打开的课程'));
     await tester.pumpAndSettle();
-    expect(find.byType(AlertDialog), findsNothing);
+    expect(find.byType(BottomSheet), findsNothing);
     expect(find.text('2026-1'), findsNothing);
     expect(tester.takeException(), isNull);
   });
@@ -186,7 +186,7 @@ void main() {
     await tester.tap(find.text('程序设计'));
     await tester.pumpAndSettle();
     expect(find.text('星期二 · 第3–4节 · 10:00–11:40'), findsOneWidget);
-    await tester.tap(find.widgetWithText(TextButton, '关闭'));
+    await tester.tapAt(const Offset(20, 20));
     await tester.pumpAndSettle();
     final scroll = find.descendant(
       of: find.byKey(const ValueKey('schedule-grid-scroll')),
@@ -203,7 +203,7 @@ void main() {
     await tester.tap(find.text('时间字段异常的课程'));
     await tester.pumpAndSettle();
     expect(find.text('第4–2节'), findsOneWidget);
-    expect(find.byType(AlertDialog), findsOneWidget);
+    expect(find.byType(BottomSheet), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

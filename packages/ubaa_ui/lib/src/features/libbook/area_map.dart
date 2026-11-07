@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../shared/dialogs/sheet.dart' show showUiSheet;
 
 // 冻结LibBookReserveScreen的资源白名单；不以相似编号推断另一张地图。
 const _libraryMapIds = {
@@ -50,11 +51,7 @@ class LibraryMapControl extends StatelessWidget {
           TextButton.icon(
             onPressed: !available
                 ? null
-                : () => showDialog<void>(
-                    context: context,
-                    builder: (_) =>
-                        _LibraryAreaMap(areaId: areaId, areaName: areaName),
-                  ),
+                : () => _showAreaMapSheet(context, areaId, areaName),
             icon: const Icon(Icons.map_outlined),
             label: const Text('查看座位分布'),
           ),
@@ -62,6 +59,23 @@ class LibraryMapControl extends StatelessWidget {
       ),
     );
   }
+}
+
+/// 关闭整面拖动：否则在放大的地图上纵向平移会被当成下拉关闭。点外面或返回键关闭。
+Future<void> _showAreaMapSheet(
+  BuildContext context,
+  String areaId,
+  String areaName,
+) {
+  final height = MediaQuery.sizeOf(context).height * .9;
+  return showUiSheet<void>(
+    context,
+    enableDrag: false,
+    builder: (_) => SizedBox(
+      height: height,
+      child: _LibraryAreaMap(areaId: areaId, areaName: areaName),
+    ),
+  );
 }
 
 class _LibraryAreaMap extends StatefulWidget {
@@ -97,11 +111,17 @@ class _LibraryAreaMapState extends State<_LibraryAreaMap> {
   }
 
   @override
-  Widget build(BuildContext context) => Dialog(
-    insetPadding: const EdgeInsets.symmetric(horizontal: 12, vertical: 16),
-    child: Padding(
-      padding: const EdgeInsets.all(12),
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    return Padding(
+      padding: EdgeInsets.fromLTRB(
+        24,
+        0,
+        24,
+        16 + MediaQuery.paddingOf(context).bottom,
+      ),
       child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
@@ -110,7 +130,9 @@ class _LibraryAreaMapState extends State<_LibraryAreaMap> {
                   widget.areaName.isEmpty ? '座位分布' : widget.areaName,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: Theme.of(context).textTheme.titleMedium,
+                  style: theme.textTheme.titleLarge?.copyWith(
+                    fontWeight: FontWeight.w600,
+                  ),
                 ),
               ),
               IconButton(
@@ -124,16 +146,13 @@ class _LibraryAreaMapState extends State<_LibraryAreaMap> {
                 icon: const Icon(Icons.zoom_in),
               ),
               TextButton(onPressed: _reset, child: const Text('重置')),
-              IconButton(
-                tooltip: '关闭',
-                onPressed: () => Navigator.pop(context),
-                icon: const Icon(Icons.close),
-              ),
             ],
           ),
           Text(
             '静态示意图，颜色不代表座位可用状态',
-            style: Theme.of(context).textTheme.bodySmall,
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
           ),
           const SizedBox(height: 10),
           Expanded(
@@ -168,6 +187,6 @@ class _LibraryAreaMapState extends State<_LibraryAreaMap> {
           ),
         ],
       ),
-    ),
-  );
+    );
+  }
 }

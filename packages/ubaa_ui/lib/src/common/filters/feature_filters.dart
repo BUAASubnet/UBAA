@@ -1,6 +1,7 @@
 import 'package:flutter/foundation.dart' show setEquals;
 import 'package:flutter/material.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
+import '../../shared/dialogs/sheet.dart' show showUiSheet;
 import '../../shared/feedback.dart';
 import '../../features/academic/terms.dart' show AcademicTermDialog;
 import '../../features/bykc/display.dart'
@@ -220,8 +221,8 @@ class FeatureFilterControls extends StatelessWidget {
 
   Future<void> _chooseTerm(BuildContext context) async {
     final epoch = readCacheEpoch?.call();
-    final selected = await showDialog<String>(
-      context: context,
+    final selected = await showUiSheet<String>(
+      context,
       builder: (_) => AcademicTermDialog(
         loader: onLoadAcademicTerms!,
         selected: query.term ?? '',

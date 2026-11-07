@@ -32,32 +32,26 @@ extension LibbookBookingRows on _FeatureDetailListState {
                   tooltip: '预约详情',
                   icon: const Icon(Icons.info_outline, size: 20),
                   visualDensity: VisualDensity.compact,
-                  onPressed: () => showDialog<void>(
-                    context: context,
-                    builder: (context) => AlertDialog(
-                      title: Text(booking.name),
-                      content: SingleChildScrollView(
-                        child: Column(
-                          mainAxisSize: MainAxisSize.min,
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text('预约编号：${booking.id}'),
-                            for (final field in detail.fields)
-                              Padding(
-                                padding: const EdgeInsets.only(top: 8),
-                                child: DetailField(
-                                  label: field.label,
-                                  value: field.value,
-                                ),
-                              ),
-                          ],
+                  onPressed: () => showUiSheet<void>(
+                    context,
+                    builder: (context) => UiSheetBody(
+                      title: booking.name,
+                      subtitle: booking.statusName.isEmpty
+                          ? null
+                          : booking.statusName,
+                      children: [
+                        UiInfoRow(
+                          icon: Icons.confirmation_number_outlined,
+                          text: booking.id,
+                          detail: '预约编号',
                         ),
-                      ),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(context),
-                          child: const Text('关闭'),
-                        ),
+                        for (final field in detail.fields)
+                          if (field.value.trim().isNotEmpty)
+                            UiInfoRow(
+                              icon: Icons.info_outline,
+                              text: field.value,
+                              detail: field.label,
+                            ),
                       ],
                     ),
                   ),
