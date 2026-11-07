@@ -9,7 +9,7 @@ extension RoutePolicyText on RoutePolicy {
   };
 
   String get description => switch (this) {
-    RoutePolicy.auto => '优先使用可用的校园网路线',
+    RoutePolicy.auto => '自动选择直连或 WebVPN',
     RoutePolicy.direct => '直接连接校园服务',
     RoutePolicy.webvpn => '通过 WebVPN 连接校园服务',
   };

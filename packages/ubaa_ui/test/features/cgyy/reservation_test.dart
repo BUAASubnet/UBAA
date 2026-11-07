@@ -327,7 +327,16 @@ Finder _cgyyButtonFor(String title) {
 }
 
 Finder _cgyyChip(int timeId) =>
-    find.widgetWithText(FilterChip, '空间 4 · 时段 $timeId');
+    find.widgetWithText(FilterChip, switch (timeId) {
+      900 => '时段一',
+      100 => '时段二',
+      700 => '时段三',
+      710 => '跨站点时段',
+      720 => '跨日期时段',
+      730 => '跨空间时段',
+      740 => '跨空间组时段',
+      _ => '时段 $timeId',
+    });
 
 WriteIntent _cgyyIntent() => WriteIntent(
   intentId: 'cgyy-reserve-red',

@@ -64,7 +64,7 @@ class _CacheSettingsState extends State<CacheSettings> {
       builder: (context) => AlertDialog(
         title: const Text('清理本机缓存？'),
         content: const Text(
-          '将清除本机保存的课表、学校待办、查询内容和待核实提示，保留登录状态、账号和本机日程。查询内容之后可重新获取，待核实提示无法恢复。',
+          '将清除本机保存的课表、学校待办、查询内容和未确认的提交提醒，保留登录状态、账号和本机日程。查询内容之后可重新获取，未确认的提交提醒无法恢复。',
         ),
         actions: [
           TextButton(
@@ -97,10 +97,10 @@ class _CacheSettingsState extends State<CacheSettings> {
         _usage = result.usage;
         _failed = false;
         _notice = !result.cacheReady
-            ? '内容已清除，本机保存暂不可用，请稍后重试。'
+            ? '已清除，暂时无法保存新内容，请稍后重试。'
             : result.maintenanceError == null && result.compacted
             ? '缓存已清除。'
-            : '内容已清除，空间回收暂未完成。';
+            : '已清除，部分空间稍后释放。';
       });
     } on Object {
       if (mounted && generation == _generation)
@@ -130,8 +130,8 @@ class _CacheSettingsState extends State<CacheSettings> {
           else
             Text(
               _usage != null
-                  ? '${_usage!.entryCount} 条 · 内容 ${_bytes(_usage!.contentBytes)} · 文件 ${_bytes(_usage!.databaseBytes)}'
-                  : (_failed ? '用量暂不可用' : '用量暂无统计'),
+                  ? '已占用 ${_bytes(_usage!.databaseBytes)}'
+                  : (_failed ? '暂时无法读取占用空间' : '暂无占用统计'),
             ),
           if (_notice != null)
             Padding(

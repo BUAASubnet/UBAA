@@ -184,7 +184,7 @@ void main() {
   testWidgets('首页保留今日课表与待办状态', (tester) async {
     await mount(tester);
     expect(find.text('今日课表'), findsOneWidget);
-    expect(find.text('待办区'), findsOneWidget);
+    expect(find.text('待办'), findsOneWidget);
   });
   testWidgets('手机功能页保留全局底栏与父层返回', (tester) async {
     await mount(tester, tab: UiDestination.study);

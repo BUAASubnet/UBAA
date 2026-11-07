@@ -110,7 +110,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
       outcome = await confirm();
     } on Object {
       if (mounted && generation == _accountGeneration) {
-        failure = attempted ? '结果待核实，请刷新后确认，勿重复提交' : '未能提交，请刷新后重试';
+        failure = attempted ? '结果未确认，请刷新后查看，勿重复提交' : '未能提交，请刷新后重试';
       }
     } finally {
       // 过期或失效的准备结果不能在直接操作结束后变成意外确认页。
@@ -157,7 +157,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
         if (mounted && generation == _accountGeneration) {
           UbaaFeedback.show(
             context,
-            '列表暂未更新，请刷新后核对',
+            '列表暂未更新，请刷新后查看',
             kind: UbaaFeedbackKind.warning,
           );
         }
@@ -295,7 +295,7 @@ extension UbaaShellWriteActions on _UbaaMainShellState {
         if (outcome == null) failure = failureMessage;
       }
     } on Object {
-      failure = attempted ? '结果待核实，请刷新后确认，勿重复提交。' : failureMessage;
+      failure = attempted ? '结果未确认，请刷新后查看，勿重复提交。' : failureMessage;
     } finally {
       // 过期等原因未被消费的意图立即释放，避免阻塞下一次操作。
       if (mounted &&

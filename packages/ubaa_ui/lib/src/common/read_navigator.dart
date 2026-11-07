@@ -158,7 +158,7 @@ class FeatureReadNavigatorState extends State<FeatureReadNavigator> {
   static const _invalidatedError = UiError(
     code: UbaaErrorCode.operationConflict,
     title: '列表需要更新',
-    message: '读取状态已变化，请刷新重试。',
+    message: '请刷新后重试。',
     retryable: true,
   );
   _ReadFrame get currentFrame => _current;
@@ -885,7 +885,7 @@ class _ReadFrame {
               const UiError(
                 code: UbaaErrorCode.upstreamChanged,
                 title: '详情读取失败',
-                message: '课程补充详情尚未读取，请刷新。',
+                message: '详情未加载，请刷新。',
                 retryable: true,
               ),
         );

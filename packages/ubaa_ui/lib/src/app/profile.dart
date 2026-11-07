@@ -108,31 +108,34 @@ class ProfileView extends StatelessWidget {
                       ? null
                       : () => onRoutePolicyChanged(policy),
                 ),
-              const Divider(height: 1),
-              // 当前状态说明，不是可选项：小字、无点按反馈。
-              Padding(
-                padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      size: 16,
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        activeRoutes.isEmpty
-                            ? '暂无已认证路线'
-                            : '已认证路线：${activeRoutes.map((route) => route.label).join('、')}',
-                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
-                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+              // 当前状态说明，不是可选项：小字、无点按反馈；未连接时不显示。
+              if (activeRoutes.isNotEmpty) ...[
+                const Divider(height: 1),
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 10, 16, 12),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
+                        size: 16,
+                        color: Theme.of(context).colorScheme.onSurfaceVariant,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          '当前连接：${activeRoutes.map((route) => route.label).join('、')}',
+                          style: Theme.of(context).textTheme.bodySmall
+                              ?.copyWith(
+                                color: Theme.of(
+                                  context,
+                                ).colorScheme.onSurfaceVariant,
+                              ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         ),
@@ -165,7 +168,7 @@ class ProfileView extends StatelessWidget {
                 if (telemetryAvailable) const Divider(height: 1),
                 ListTile(
                   leading: const Icon(Icons.bug_report_outlined),
-                  title: const Text('本次运行诊断'),
+                  title: const Text('诊断信息'),
                   trailing: const Icon(Icons.chevron_right),
                   onTap: () =>
                       uiShowDiagnosticsDialog(context, onReadDiagnostics!),
@@ -179,7 +182,7 @@ class ProfileView extends StatelessWidget {
                   color: Theme.of(context).colorScheme.error,
                 ),
                 title: Text(
-                  '退出并清除登录材料',
+                  '退出并清除本机数据',
                   style: TextStyle(color: Theme.of(context).colorScheme.error),
                 ),
                 onTap: () => _confirmClearAccount(context),
@@ -195,9 +198,9 @@ class ProfileView extends StatelessWidget {
     final confirmed = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('清除登录材料与缓存？'),
+        title: const Text('退出并清除数据？'),
         content: const Text(
-          '这会退出登录，清除保存的密码、可清除的学校缓存、成绩变化记录及提醒设置。本机日程和账号关联会保留，学校服务器上的数据不会被删除。',
+          '这会退出登录，清除保存的密码、已保存的学校数据、成绩变化记录及提醒设置。本机日程和账号关联会保留，学校服务器上的数据不会被删除。',
         ),
         actions: <Widget>[
           TextButton(

@@ -177,7 +177,7 @@ Future<void> uiShowDiagnosticsDialog(
   await showDialog<void>(
     context: context,
     builder: (context) => AlertDialog(
-      title: const Text('本次运行诊断'),
+      title: const Text('诊断信息'),
       content: SizedBox(
         width: 560,
         child: SingleChildScrollView(child: SelectableText(report)),

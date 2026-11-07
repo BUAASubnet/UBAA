@@ -37,7 +37,7 @@ class _ExamTimelineState extends State<ExamTimeline> {
           ..._groups(upcoming),
         ],
         if (other.isNotEmpty) ...[
-          _heading(context, '未安排/其他'),
+          _heading(context, '未安排'),
           for (final detail in other)
             Padding(
               padding: const EdgeInsets.only(bottom: 12),
@@ -259,7 +259,7 @@ class _ExamCompactCard extends StatelessWidget {
                 text: [
                   uiTimeRange(p.startTime, p.endTime) ??
                       uiNonBlank(p.description) ??
-                      '时间待公布',
+                      '时间待定',
                   ?uiNonBlank(p.place),
                 ].join(' · '),
               ),

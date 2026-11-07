@@ -158,7 +158,7 @@ void main() {
     expect(queries.single.courseId, '7');
     expect(queries.single.view, FeatureQueryView.bykcDetail);
   });
-  testWidgets('博雅总体净有效次数为零仍显示，分类达标不由前端重算', (tester) async {
+  testWidgets('博雅有效次数为零仍显示，分类达标不由前端重算', (tester) async {
     await _open(tester, const [
       FeatureDetail(
         title: '总体净有效次数',
@@ -175,7 +175,7 @@ void main() {
         ),
       ),
     ], view: FeatureQueryView.bykcStatistics);
-    expect(find.text('总体净有效次数'), findsOneWidget);
+    expect(find.text('有效次数'), findsOneWidget);
     expect(find.text('0'), findsOneWidget);
     expect(find.text('课程小类'), findsOneWidget);
     expect(find.text('9 / 1'), findsOneWidget);

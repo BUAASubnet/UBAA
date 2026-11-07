@@ -95,9 +95,7 @@ extension _IhomeActions on _IhomeViewState {
       if (mounted && epoch == _epoch)
         _update(() {
           _uncertain.add(id);
-          _detailErrors[id] = error is UiError
-              ? error.message
-              : '操作结果未确认，请刷新后核对';
+          _detailErrors[id] = error is UiError ? error.message : '结果未确认，请刷新后查看';
         });
     } finally {
       if (mounted && epoch == _epoch)

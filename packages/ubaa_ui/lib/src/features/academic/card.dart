@@ -35,7 +35,7 @@ class AcademicCard extends StatelessWidget {
               TodayCoursePresentation p => [
                 AcademicInfo(
                   icon: Icons.schedule,
-                  text: uiNonBlank(p.time) ?? '时间待确认',
+                  text: uiNonBlank(p.time) ?? '时间待定',
                 ),
                 AcademicInfo(
                   icon: Icons.place_outlined,
@@ -44,7 +44,6 @@ class AcademicCard extends StatelessWidget {
               ],
               TermPresentation p => [
                 if (p.selected) const Chip(label: Text('当前学期')),
-                Text('学期编码 ${p.code}'),
               ],
               WeekPresentation p => [
                 if (p.current) const Chip(label: Text('当前周')),
@@ -65,9 +64,7 @@ class AcademicCard extends StatelessWidget {
                 AcademicInfo(
                   icon: Icons.event_outlined,
                   text:
-                      uiNonBlank(p.date) ??
-                      uiNonBlank(p.description) ??
-                      '时间待公布',
+                      uiNonBlank(p.date) ?? uiNonBlank(p.description) ?? '时间待定',
                 ),
                 if (uiTimeRange(p.startTime, p.endTime) case final time?)
                   AcademicInfo(icon: Icons.schedule, text: time),
@@ -85,7 +82,6 @@ class AcademicCard extends StatelessWidget {
                     if (uiNonBlank(p.description) case final value?)
                       ('考试说明', value),
                     if (p.week case final value?) ('周次', '$value'),
-                    if (p.status case final value?) ('上游状态', '$value'),
                     if (uiNonBlank(p.type) case final value?) ('考试类型', value),
                     for (final field in detail.fields.where(
                       (f) => !uiHiddenAcademicField(f.label),

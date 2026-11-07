@@ -17,7 +17,7 @@ void main() {
     );
     await tap(tester, '清理缓存');
     await tap(tester, '确认清理');
-    expect(find.text('内容已清除，本机保存暂不可用，请稍后重试。'), findsOneWidget);
+    expect(find.text('已清除，暂时无法保存新内容，请稍后重试。'), findsOneWidget);
     expect(find.text('缓存已清除。'), findsNothing);
   });
   testWidgets('用量尚未返回时清理失败不能显示内容已清除', (tester) async {
@@ -47,8 +47,7 @@ void main() {
         );
       },
     );
-    expect(find.textContaining('1 条'), findsOneWidget);
-    expect(find.textContaining('内容 1.0 KB'), findsOneWidget);
+    expect(find.text('已占用 4.0 KB'), findsOneWidget);
     await tap(tester, '清理缓存');
     expect(find.text('清理本机缓存？'), findsOneWidget);
     expect(calls, 0);
@@ -57,8 +56,8 @@ void main() {
     await tap(tester, '清理缓存');
     await tap(tester, '确认清理');
     expect(calls, 1);
-    expect(find.text('内容已清除，空间回收暂未完成。'), findsOneWidget);
-    expect(find.text('退出并清除登录材料'), findsOneWidget);
+    expect(find.text('已清除，部分空间稍后释放。'), findsOneWidget);
+    expect(find.text('退出并清除本机数据'), findsOneWidget);
   });
   testWidgets('事务失败不显示成功且保留重试入口', (tester) async {
     await mount(tester, onClear: (_) async => throw StateError('合成失败'));

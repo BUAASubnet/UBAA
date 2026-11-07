@@ -133,7 +133,7 @@ void main() {
         presentation: ExamPresentation(arranged: false),
       ),
     ], []);
-    expect(find.text('未安排/其他'), findsOneWidget);
+    expect(find.text('未安排'), findsOneWidget);
     expect(find.text('TASK-KEEP'), findsNothing);
     expect(find.text('更多信息'), findsNothing);
     await tester.tap(find.text('合成考试'));

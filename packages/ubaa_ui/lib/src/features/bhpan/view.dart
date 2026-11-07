@@ -831,7 +831,7 @@ class _BhpanViewState extends State<BhpanView> {
     if (_service == null) {
       return const UiStatePanel(
         icon: Icons.cloud_off_outlined,
-        title: '当前客户端未提供北航云盘能力',
+        title: '此版本暂不支持北航云盘',
       );
     }
     final query = _filter.toLowerCase();

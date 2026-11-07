@@ -39,7 +39,7 @@ class HomeTodoCard extends StatelessWidget {
     final status = item.feature == FeatureId.signin && signing
         ? '签到处理中'
         : signinUncertain
-        ? '结果待确认'
+        ? '结果未确认'
         : item.statusLabel;
     final subtitle = item.subtitle.trim();
     return Card(

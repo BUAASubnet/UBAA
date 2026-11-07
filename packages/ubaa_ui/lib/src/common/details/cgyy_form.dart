@@ -12,6 +12,11 @@ extension CgyyWriteForm on _FeatureDetailListState {
       target,
       availableActions,
       formContext: widget.cgyyFormContext,
+      actionLabels: {
+        for (final detail in widget.details)
+          if (detail.action<CgyyReserveAction>() case final action?)
+            uiCgyyActionKey(action): detail.title,
+      },
     );
     if (input != null &&
         mounted &&

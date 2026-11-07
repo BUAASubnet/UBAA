@@ -55,7 +55,7 @@ void main() {
       await tester.tap(find.widgetWithText(Card, '合成列表人数'));
       await tester.pumpAndSettle();
       expect(
-        find.text('已报名（列表）'),
+        find.text('已报名'),
         route == ConnectionMode.direct ? findsOneWidget : findsNothing,
       );
       await _show(tester, find.text('选课'));

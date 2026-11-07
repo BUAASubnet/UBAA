@@ -55,10 +55,7 @@ extension BykcDetails on _FeatureDetailListState {
           BykcInfoLine('教师', course.courseTeacher),
           BykcInfoLine('地点', course.coursePosition),
           BykcInfoLine(
-            course.courseCurrentCount == null &&
-                    listCourse?.courseCurrentCount != null
-                ? '已报名（列表）'
-                : '已报名',
+            '已报名',
             (course.courseCurrentCount ?? listCourse?.courseCurrentCount)
                 ?.toString(),
           ),
@@ -234,7 +231,6 @@ extension BykcDetails on _FeatureDetailListState {
           BykcInfoLine('考核', uiBykcPassLabel(course.pass)),
           BykcInfoLine('成绩', course.score == null ? null : '${course.score} 分'),
           ...uiBykcDisplaySignFields(course.fullDetail?.supplement?.signConfig),
-          BykcInfoLine('签到类型', course.courseSignType?.toString()),
         ]),
         const SizedBox(height: 12),
         Wrap(

@@ -892,11 +892,11 @@ void _registerSharedStateTests() {
       const UiError(
         code: UbaaErrorCode.operationConflict,
         title: '操作状态已变化',
-        message: '路线或会话已变化，请重新准备操作。',
+        message: '网络或登录状态已变化，请重新操作。',
       ),
     );
 
-    expect(find.text('路线或会话已变化，请重新准备操作。'), findsOneWidget);
+    expect(find.text('网络或登录状态已变化，请重新操作。'), findsOneWidget);
     expect(find.text('提交结果不确定，请先刷新相关状态，不要重复提交。'), findsNothing);
     expect(refreshCalls, 0);
   });

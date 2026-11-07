@@ -25,7 +25,7 @@ String bhpanPhaseText(BhpanTransferPhase phase) => switch (phase) {
   BhpanTransferPhase.completed => '已完成',
   BhpanTransferPhase.cancelled => '已取消',
   BhpanTransferPhase.failed => '没有完成',
-  BhpanTransferPhase.outcomeUnknown => '结果待核对，请刷新确认后再决定是否重试',
+  BhpanTransferPhase.outcomeUnknown => '结果未确认，请刷新查看后再决定是否重试',
   BhpanTransferPhase.blocked => '云端没有相同文件，改为普通上传',
 };
 

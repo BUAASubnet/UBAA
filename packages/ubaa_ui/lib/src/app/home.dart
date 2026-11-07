@@ -563,7 +563,7 @@ class HomeViewState extends State<HomeView> {
         Row(
           children: [
             Text(
-              '待办区',
+              '待办',
               style: Theme.of(
                 context,
               ).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold),
@@ -619,13 +619,13 @@ class HomeViewState extends State<HomeView> {
           Card(
             child: Padding(
               padding: const EdgeInsets.all(16),
-              child: Text(failed.isNotEmpty ? '已加载的来源中暂无近期待办' : '当前没有待办'),
+              child: Text(failed.isNotEmpty ? '暂无近期待办' : '当前没有待办'),
             ),
           ),
         if (_projectionFailure != null)
           const Padding(
             padding: EdgeInsets.only(top: 8),
-            child: Text('本机日程标记暂不可用，请刷新后重试'),
+            child: Text('完成状态暂时无法显示，请刷新'),
           ),
         if (failed.isNotEmpty)
           Padding(
@@ -673,18 +673,17 @@ class HomeViewState extends State<HomeView> {
           if (sources[feature]?.evidence?.cacheFailure case final failure?
               when !failed.contains(feature) &&
                   sources[feature]?.status != FeatureLoadStatus.loading)
-            Padding(
-              padding: const EdgeInsets.only(top: 8),
-              child: Text(
-                '${uiHomeFeatureLabel(feature)}：${uiCacheReadFailureText(failure)}',
+            if (uiCacheReadFailureText(failure) case final message?)
+              Padding(
+                padding: const EdgeInsets.only(top: 8),
+                child: Text('${uiHomeFeatureLabel(feature)}：$message'),
               ),
-            ),
         if (_supplements[HomeSupplement.currentWeek] case final result?
             when result.error != null &&
                 !_loading.contains(HomeSupplement.currentWeek))
           Row(
             children: [
-              const Expanded(child: Text('当前周次未确定，暂不显示阳光提醒')),
+              const Expanded(child: Text('当前周次未确定，暂不显示阳光打卡提醒')),
               TextButton(
                 onPressed: () => _load(HomeSupplement.currentWeek, force: true),
                 child: const Text('重试'),
@@ -723,10 +722,9 @@ class HomeViewState extends State<HomeView> {
   }
 }
 
-String uiCacheReadFailureText(CacheMaintenanceFailure failure) =>
-    failure == CacheMaintenanceFailure.capacity
-    ? '本机空间不足，在线内容已显示，暂未保存到本机。'
-    : '在线内容已显示，暂未保存到本机。';
+/// 只有存储空间不足时学生能自行处理；其他保存失败不影响已显示内容，不提示。
+String? uiCacheReadFailureText(CacheMaintenanceFailure failure) =>
+    failure == CacheMaintenanceFailure.capacity ? '手机存储空间不足，本次内容未能保存。' : null;
 
 class FeatureGridView extends StatelessWidget {
   const FeatureGridView({

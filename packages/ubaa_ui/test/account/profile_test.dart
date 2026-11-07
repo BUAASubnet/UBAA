@@ -67,8 +67,8 @@ void main() {
     var clears = 0;
     await _mount(tester, profile, [], onClear: () async => clears++);
     await openUtility(tester, '设置');
-    await _tap(tester, '退出并清除登录材料');
-    expect(find.text('清除登录材料与缓存？'), findsOneWidget);
+    await _tap(tester, '退出并清除本机数据');
+    expect(find.text('退出并清除数据？'), findsOneWidget);
     profile.value = const UserSummary(username: 'new-account');
     await tester.pumpAndSettle();
     await _tap(tester, '退出并清除');

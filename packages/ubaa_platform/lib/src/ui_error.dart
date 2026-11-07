@@ -135,9 +135,9 @@ class UiErrorMapper {
         kind: UiErrorKind.internal,
         title: '应用暂时无法打开',
         message: switch (failure) {
-          InitializationFailure.configuration => '本地配置无法读取，请检查配置或恢复备份后重新打开。',
-          InitializationFailure.session => '本地会话无法读取，请检查访问权限或恢复备份后重新打开。',
-          InitializationFailure.resourceBusy => '其他实例正在使用本地会话，请关闭其他实例后重新打开。',
+          InitializationFailure.configuration => '应用配置无法读取，请检查配置或恢复备份后重新打开。',
+          InitializationFailure.session => '登录信息无法读取，请检查访问权限或恢复备份后重新打开。',
+          InitializationFailure.resourceBusy => 'UBAA 已在另一个窗口打开，请先关闭它后重新打开。',
           InitializationFailure.bridgeIncompatible => '应用组件版本不一致，请重新安装完整的同一版本。',
           InitializationFailure.componentUnavailable =>
             '应用运行组件暂不可用，请重新打开；若仍失败，请重新安装完整版本。',
@@ -359,16 +359,16 @@ bool _defaultRetryable(UbaaErrorCode code) => switch (code) {
   ),
   UbaaErrorCode.intentExpired => (
     title: '确认已过期',
-    message: '操作确认已过期，请重新准备。',
-    actionLabel: '重新准备',
+    message: '操作确认已过期，请重新操作。',
+    actionLabel: '重新操作',
   ),
   UbaaErrorCode.operationConflict => (
     title: '操作状态已变化',
-    message: '路线或会话已变化，请重新准备操作。',
-    actionLabel: '重新准备',
+    message: '网络或登录状态已变化，请重新操作。',
+    actionLabel: '重新操作',
   ),
   UbaaErrorCode.outcomeUnknown => (
-    title: '结果待核对',
+    title: '结果未确认',
     message: '操作结果暂时无法确认，请先刷新相关状态，勿重复提交。',
     actionLabel: '刷新状态',
   ),

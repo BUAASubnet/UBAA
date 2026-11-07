@@ -42,7 +42,6 @@ extension LibbookBookingRows on _FeatureDetailListState {
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
                             Text('预约编号：${booking.id}'),
-                            Text('状态码：${booking.status?.toString() ?? '未提供'}'),
                             for (final field in detail.fields)
                               Padding(
                                 padding: const EdgeInsets.only(top: 8),

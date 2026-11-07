@@ -14,6 +14,7 @@ Future<CgyySubmitInput?> uiCollectCgyyReservation(
   CgyyFormContext? formContext,
   List<CgyyReserveAction>? initialSelection,
   String? selectionLabel,
+  Map<String, String> actionLabels = const {},
 }) async {
   final data = formContext ?? CgyyFormContext(draft: CgyyFormDraft());
   final generation = data.draft.generation;
@@ -25,6 +26,7 @@ Future<CgyySubmitInput?> uiCollectCgyyReservation(
         data: data,
         initialSelection: initialSelection,
         selectionLabel: selectionLabel,
+        actionLabels: actionLabels,
       ),
     ),
   );
@@ -40,12 +42,16 @@ class _CgyyReservationForm extends StatefulWidget {
     required this.data,
     this.initialSelection,
     this.selectionLabel,
+    this.actionLabels = const {},
   });
   final CgyyReserveAction target;
   final List<CgyyReserveAction> availableActions;
   final CgyyFormContext data;
   final List<CgyyReserveAction>? initialSelection;
   final String? selectionLabel;
+
+  /// 时段的可读名称（研讨室名与时间），按 [uiCgyyActionKey] 索引。
+  final Map<String, String> actionLabels;
   @override
   State<_CgyyReservationForm> createState() => _CgyyReservationFormState();
 }
@@ -306,7 +312,12 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
                       _section('已选时段', [
                         Text(
                           (widget.selectionLabel ??
-                                  '站点 ${widget.target.venueSiteId} · ${widget.target.reservationDate.trim()}\n空间 ${widget.target.spaceId} · 时段 ${widget.target.timeId}')
+                                  [
+                                    widget.target.reservationDate.trim(),
+                                    ?widget.actionLabels[uiCgyyActionKey(
+                                      widget.target,
+                                    )],
+                                  ].join('\n'))
                               .replaceAll('\n', ' · '),
                         ),
                         if (widget.initialSelection == null &&
@@ -318,10 +329,12 @@ class _CgyyReservationFormState extends State<_CgyyReservationForm> {
                             spacing: 8,
                             runSpacing: 4,
                             children: [
-                              for (final entry in actionsByKey.entries)
+                              for (final (index, entry)
+                                  in actionsByKey.entries.indexed)
                                 FilterChip(
                                   label: Text(
-                                    '空间 ${entry.value.spaceId} · 时段 ${entry.value.timeId}',
+                                    widget.actionLabels[entry.key] ??
+                                        '时段 ${index + 1}',
                                   ),
                                   selected: selected.contains(entry.key),
                                   onSelected: (value) => setState(() {

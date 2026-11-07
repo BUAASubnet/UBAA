@@ -283,7 +283,7 @@ class _ScheduleContentState extends State<ScheduleContent> {
                                       padding: EdgeInsets.symmetric(
                                         vertical: 12,
                                       ),
-                                      child: Text('时间待确认'),
+                                      child: Text('时间待定'),
                                     ),
                                     for (final detail in unknown)
                                       Card(

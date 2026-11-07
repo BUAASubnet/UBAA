@@ -124,7 +124,7 @@ class _BarAction extends StatelessWidget {
 enum BhpanBatchStatus {
   done('已完成'),
   failed('失败'),
-  unknown('结果待核对'),
+  unknown('结果未确认'),
   skipped('尚未执行');
 
   const BhpanBatchStatus(this.label);
@@ -197,7 +197,7 @@ class BhpanBatchResults extends StatelessWidget {
             color: attention ? colors.tertiary : colors.primary,
           ),
           title: Text(summary, style: theme.textTheme.titleSmall),
-          subtitle: attention ? const Text('结果待核对的操作请先刷新确认，不要重复提交') : null,
+          subtitle: attention ? const Text('结果未确认的操作请先刷新查看，不要重复提交') : null,
           trailing: IconButton(
             tooltip: '关闭',
             onPressed: onClose,

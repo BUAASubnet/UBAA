@@ -19,18 +19,38 @@ void main() {
     expect(find.text('缓存博雅待办'), findsOneWidget);
     expect(find.widgetWithText(TextButton, '重试'), findsWidgets);
   });
-  testWidgets('本地缓存故障在首页及作业页独立提示且保留在线内容', (tester) async {
+  testWidgets('存储空间不足在首页及作业页独立提示且保留在线内容', (tester) async {
     tester.view.physicalSize = const Size(900, 1800);
     tester.view.devicePixelRatio = 1;
     addTearDown(tester.view.resetPhysicalSize);
     addTearDown(tester.view.resetDevicePixelRatio);
-    await mount(tester, date: '2026-09-21', cacheFailure: true);
-    expect(find.textContaining('在线内容已显示，暂未保存到本机'), findsOneWidget);
+    await mount(
+      tester,
+      date: '2026-09-21',
+      cacheFailureKind: CacheMaintenanceFailure.capacity,
+    );
+    expect(find.textContaining('手机存储空间不足'), findsOneWidget);
     expect(find.textContaining('希冀：刷新失败'), findsNothing);
     await openFeature(tester, FeatureId.judge);
-    expect(find.textContaining('在线内容已显示，暂未保存到本机'), findsOneWidget);
+    expect(find.textContaining('手机存储空间不足'), findsOneWidget);
     expect(find.text('合成在线作业'), findsOneWidget);
     expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+  });
+  testWidgets('非空间原因的保存失败不打扰学生且保留在线内容', (tester) async {
+    tester.view.physicalSize = const Size(900, 1800);
+    tester.view.devicePixelRatio = 1;
+    addTearDown(tester.view.resetPhysicalSize);
+    addTearDown(tester.view.resetDevicePixelRatio);
+    await mount(
+      tester,
+      date: '2026-09-21',
+      cacheFailureKind: CacheMaintenanceFailure.corrupt,
+    );
+    expect(find.textContaining('未能保存'), findsNothing);
+    await openFeature(tester, FeatureId.judge);
+    expect(find.textContaining('未能保存'), findsNothing);
+    expect(find.text('合成在线作业'), findsOneWidget);
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets('博雅补充读取失败仍显示已保存待办', (tester) async {
@@ -86,8 +106,9 @@ Future<void> mount(
   bool empty = false,
   bool partial = false,
   bool failSupplement = false,
-  bool cacheFailure = false,
+  CacheMaintenanceFailure? cacheFailureKind,
 }) async {
+  final cacheFailure = cacheFailureKind != null;
   await withClock(Clock.fixed(DateTime.utc(2026, 9, 20, 16, 5)), () async {
     await tester.pumpWidget(
       MaterialApp(
@@ -169,9 +190,7 @@ Future<void> mount(
                       fetchedAt: DateTime.utc(2026, 9, 20, 15),
                       complete: cacheFailure,
                       savedForOffline: !cacheFailure,
-                      cacheFailure: cacheFailure
-                          ? CacheMaintenanceFailure.corrupt
-                          : null,
+                      cacheFailure: cacheFailureKind,
                     ),
                   )
                 : CachedFeatureProjection(

@@ -269,7 +269,7 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
                             ],
                           ),
                           const SizedBox(height: 8),
-                          const Text('单张图片不超过10 MiB'),
+                          const Text('单张图片不超过 10 MB'),
                           if (_previewBytes case final bytes?) ...[
                             const SizedBox(height: 8),
                             Align(
@@ -295,9 +295,6 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
                                   ),
                                 ),
                               ),
-                            ),
-                            Text(
-                              '${_photo!.mimeType} · ${_photo!.bytes.length} 字节',
                             ),
                             Align(
                               alignment: Alignment.centerLeft,
@@ -366,7 +363,7 @@ class _YgdkFormPageState extends State<_YgdkFormPage> {
       });
     } on Object {
       if (_valid) {
-        setState(() => _error = '无法读取照片，请使用不超过10 MiB的图片，并检查系统访问权限。');
+        setState(() => _error = '无法读取照片，请使用不超过 10 MB 的图片，并检查系统访问权限。');
       }
     } finally {
       if (_valid) setState(() => _picking = false);

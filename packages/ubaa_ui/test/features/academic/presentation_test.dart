@@ -37,7 +37,7 @@ void main() {
     ], width: 1280);
     expect(find.byType(DataTable), findsNothing);
     expect(find.text('已结束考试 (1)'), findsOneWidget);
-    expect(find.text('未安排/其他'), findsOneWidget);
+    expect(find.text('未安排'), findsOneWidget);
     expect(find.text('原顺序第二'), findsNothing);
     await tester.tap(find.text('已结束考试 (1)'));
     await tester.pumpAndSettle();
@@ -197,7 +197,7 @@ void main() {
       400,
       scrollable: scroll,
     );
-    expect(find.text('时间待确认'), findsOneWidget);
+    expect(find.text('时间待定'), findsOneWidget);
     await tester.ensureVisible(find.text('时间字段异常的课程'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('时间字段异常的课程'));
@@ -225,7 +225,7 @@ void main() {
     ]);
     expect(find.text('09:00 开始'), findsOneWidget);
     expect(find.text('座位 A018'), findsOneWidget);
-    expect(find.text('时间待公布'), findsOneWidget);
+    expect(find.text('时间待定'), findsOneWidget);
     expect(tester.takeException(), isNull);
   });
 

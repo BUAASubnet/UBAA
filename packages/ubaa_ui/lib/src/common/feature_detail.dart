@@ -316,10 +316,8 @@ class FeatureDetailViewState extends State<FeatureDetailView> {
           ),
         if (widget.snapshot.evidence?.cacheFailure case final failure?
             when widget.snapshot.status != FeatureLoadStatus.loading)
-          Padding(
-            padding: const EdgeInsets.all(12),
-            child: Text(uiCacheReadFailureText(failure)),
-          ),
+          if (uiCacheReadFailureText(failure) case final message?)
+            Padding(padding: const EdgeInsets.all(12), child: Text(message)),
         if (widget.snapshot.status == FeatureLoadStatus.stale &&
             widget.snapshot.error != null)
           MaterialBanner(

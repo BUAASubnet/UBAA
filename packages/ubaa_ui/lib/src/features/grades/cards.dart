@@ -63,7 +63,7 @@ class GradeSummaryCard extends StatelessWidget {
     String brief(GradeStatistics value) => [
       'GPA ${value.gpa?.toStringAsFixed(2) ?? '--'}',
       '加权 ${_gradeNumber(value.weightedAverage)}',
-      '算数 ${_gradeNumber(value.arithmeticAverage)}',
+      '算术 ${_gradeNumber(value.arithmeticAverage)}',
     ].join(' · ');
     return Card(
       margin: EdgeInsets.zero,
@@ -97,7 +97,7 @@ class GradeSummaryCard extends StatelessWidget {
                 children: [
                   metric('GPA', stats?.gpa?.toStringAsFixed(2) ?? '--'),
                   metric('加权平均分', _gradeNumber(stats?.weightedAverage)),
-                  metric('算数平均分', _gradeNumber(stats?.arithmeticAverage)),
+                  metric('算术平均分', _gradeNumber(stats?.arithmeticAverage)),
                 ],
               ),
             if (overallTitle != null) ...[

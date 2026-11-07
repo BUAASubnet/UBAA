@@ -84,14 +84,14 @@ class PagedResults {
               previous.evidence?.accountId != null &&
               incoming.evidence?.accountId != previous.evidence?.accountId)) {
         reset();
-        fail('数据来源已变化，请刷新列表');
+        fail('列表已更新，请刷新');
         return incoming.copyWith(
           status: FeatureLoadStatus.failure,
           clearDetails: true,
           error: const UiError(
             code: UbaaErrorCode.operationConflict,
             title: '请刷新列表',
-            message: '数据来源已变化',
+            message: '列表已更新，请刷新',
           ),
         );
       }
@@ -103,7 +103,7 @@ class PagedResults {
         return previous;
       }
       if (incoming.pagination?.page != _expected) {
-        fail('分页结果未更新，请重试');
+        fail('列表已更新，请刷新');
         return previous;
       }
       final oldCount = _details.length;

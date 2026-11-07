@@ -104,7 +104,7 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
         _subscription = session.cancelled.listen((_) {
           if (!current()) return;
           _close();
-          if (mounted) setState(() => _error = '会话已变化，请重新获取密码。');
+          if (mounted) setState(() => _error = '登录状态已变化，请重新获取密码。');
         });
       }
       final value = await _session!.read();
@@ -186,7 +186,7 @@ class _CgyyLockDisplayState extends State<UbaaCgyyLockDisplayView>
                   ] else if (!_busy)
                     Text(
                       value?.hasReservation == true
-                          ? '门锁密码会在可开门时段内返回。'
+                          ? '门锁密码将在可开门时段显示。'
                           : '当前没有可用于获取门锁密码的预约记录。',
                     ),
                 ],

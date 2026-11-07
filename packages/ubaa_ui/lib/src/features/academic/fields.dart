@@ -31,11 +31,20 @@ List<Widget> uiCourseFields(ScheduleCoursePresentation course) => [
     fields: [
       if (uiNonBlank(course.credit) case final value?) ('学分', value),
       if (uiNonBlank(course.teachingTarget) case final value?) ('教学对象', value),
-      if (!uiScheduled(course)) ...[
-        if (course.dayOfWeek case final value?) ('原周几', '$value'),
-        if (course.beginSection case final value?) ('原开始节次', '$value'),
-        if (course.endSection case final value?) ('原结束节次', '$value'),
-      ],
+      if (!uiScheduled(course))
+        if (_partialTime(course) case final value?) ('上课时间', value),
     ],
   ),
 ];
+
+/// 课表无法排入周视图时，仍把能看懂的部分合成一行；越界数值不显示。
+String? _partialTime(ScheduleCoursePresentation course) {
+  final day = course.dayOfWeek, begin = course.beginSection;
+  final end = course.endSection;
+  final parts = [
+    if (day != null && day >= 1 && day <= 7) uiWeekdays[day - 1],
+    if (begin != null && begin > 0)
+      end != null && end > begin ? '第$begin–$end节' : '第$begin节',
+  ];
+  return parts.isEmpty ? null : parts.join(' ');
+}

@@ -66,7 +66,7 @@ void _registerFeatureRenderingTests() {
     await tester.pumpAndSettle();
     expect(find.text('直连'), findsWidgets);
     await tester.scrollUntilVisible(
-      find.text('退出并清除登录材料'),
+      find.text('退出并清除本机数据'),
       200,
       scrollable: find.descendant(
         of: find.byType(ListView),
@@ -74,15 +74,15 @@ void _registerFeatureRenderingTests() {
       ),
     );
     await tester.pumpAndSettle();
-    await tester.tap(find.text('退出并清除登录材料'));
+    await tester.tap(find.text('退出并清除本机数据'));
     await tester.pumpAndSettle();
-    expect(find.text('清除登录材料与缓存？'), findsOneWidget);
+    expect(find.text('退出并清除数据？'), findsOneWidget);
     await tester.tap(find.text('取消'));
     await tester.pumpAndSettle();
     expect(clearedAccount, isFalse);
-    await tester.ensureVisible(find.text('退出并清除登录材料'));
+    await tester.ensureVisible(find.text('退出并清除本机数据'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('退出并清除登录材料'));
+    await tester.tap(find.text('退出并清除本机数据'));
     await tester.pumpAndSettle();
     await tester.tap(find.text('退出并清除'));
     await tester.pumpAndSettle();
@@ -223,8 +223,8 @@ void _registerFeatureInputTests() {
     await tester.tap(find.text('预约研讨室').first);
     await tester.pumpAndSettle();
     expect(find.text('选择预约时段（已选 1 个）'), findsOneWidget);
-    expect(find.widgetWithText(FilterChip, '空间 5 · 时段 7'), findsNothing);
-    await tester.tap(find.widgetWithText(FilterChip, '空间 4 · 时段 6'));
+    expect(find.widgetWithText(FilterChip, '另一空间'), findsNothing);
+    await tester.tap(find.widgetWithText(FilterChip, '讨论室 下午'));
     await tester.pumpAndSettle();
     await fixtureFillCgyyForm(tester, joiners: '合成参与人');
     await tester.tap(find.text('提交预约'));

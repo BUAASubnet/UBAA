@@ -41,7 +41,7 @@ class BykcStatisticsContent extends StatelessWidget {
               textBaseline: TextBaseline.alphabetic,
               children: [
                 Text(
-                  '总体净有效次数',
+                  '有效次数',
                   style: theme.textTheme.titleSmall?.copyWith(
                     color: theme.colorScheme.onPrimaryContainer,
                   ),

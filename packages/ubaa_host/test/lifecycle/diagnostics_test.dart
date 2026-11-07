@@ -8,13 +8,13 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 
 void main() {
-  testWidgets('个人页可查看本次运行诊断且不会包含账号资料', (tester) async {
+  testWidgets('个人页可查看诊断信息且不会包含账号资料', (tester) async {
     await tester.pumpWidget(UbaaAppHost(backend: _SignedInBackend()));
     await tester.pumpAndSettle();
     await tester.tap(find.byIcon(Icons.settings_outlined));
     await tester.pumpAndSettle();
     await tester.scrollUntilVisible(
-      find.text('本次运行诊断'),
+      find.text('诊断信息'),
       250,
       scrollable: find.descendant(
         of: find.byType(ProfileView),
@@ -22,10 +22,10 @@ void main() {
       ),
     );
     await tester.pumpAndSettle();
-    expect(find.text('本次运行诊断'), findsOneWidget);
-    await tester.ensureVisible(find.text('本次运行诊断'));
+    expect(find.text('诊断信息'), findsOneWidget);
+    await tester.ensureVisible(find.text('诊断信息'));
     await tester.pumpAndSettle();
-    await tester.tap(find.text('本次运行诊断'));
+    await tester.tap(find.text('诊断信息'));
     await tester.pumpAndSettle();
     final report = tester
         .widgetList<SelectableText>(find.byType(SelectableText))

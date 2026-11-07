@@ -570,7 +570,7 @@ Future<void> _showClassroomDetails(BuildContext context, FeatureDetail detail) {
               for (final field in <(String, String)>[
                 ('楼栋', p.floorName),
                 (
-                  '原空闲节次',
+                  '空闲节次',
                   p.availableSections.isEmpty ? '未提供' : p.availableSections,
                 ),
                 if (p.queryDate case final date?) ('查询日期', date),

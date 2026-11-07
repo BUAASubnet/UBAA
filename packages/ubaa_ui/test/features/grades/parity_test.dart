@@ -53,7 +53,7 @@ void main() {
     expect(summary.overall?.courseCount, 1);
     expect(summary.notice, isNull);
     expect(summary.statistics?.courseCount, 1);
-    expect(find.textContaining('加权 80 · 算数 80'), findsOneWidget);
+    expect(find.textContaining('加权 80 · 算术 80'), findsOneWidget);
     pending.complete(
       const GradesAggregate(
         terms: [

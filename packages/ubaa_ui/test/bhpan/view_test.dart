@@ -152,7 +152,7 @@ void main() {
     expect(requests.map((r) => r.target), ['folder']);
     expect(requests.single.kind, BhpanMutationKind.recycle);
     expect(find.text('提交结果不确定，请先刷新核对'), findsOneWidget);
-    expect(find.text('课程资料：结果待核对'), findsOneWidget);
+    expect(find.text('课程资料：结果未确认'), findsOneWidget);
     expect(find.text('报告.txt：尚未执行'), findsOneWidget);
   });
   testWidgets('移动目标页排除自身并禁用原目录', (tester) async {
