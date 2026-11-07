@@ -62,6 +62,7 @@ final class ProgressiveScope {
   ConnectionMode? route;
   bool restartRequested = false;
   final completion = Completer<void>();
+  Completer<void> firstResult = Completer<void>();
   bool cancelled = false;
   bool get valid => !cancelled && current();
   void cancel() {
@@ -177,6 +178,9 @@ final class RecoveryRequest {
   bool refreshHomeAfter;
   bool interactive;
   bool transientFailure = false;
+
+  /// 开始时账号主会话已就绪，本次只建立单个功能的目标会话。
+  bool targetOnly = false;
   ConnectionMode? replacedRoute;
   bool replacedAllRoutes = false;
   final queriesAfterRebuild = <FeatureId, FeatureQuery>{};

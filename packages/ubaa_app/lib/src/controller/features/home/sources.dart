@@ -12,8 +12,13 @@ import '../../state/state.dart' show ControllerState;
 import '../../state/types.dart' show AppPhase;
 
 part 'day_schedule.dart';
+part 'cached_week.dart';
 
 mixin ControllerHomeSources on ControllerState {
+  @override
+  @internal
+  Future<FeatureResult?> internalReadCachedHomeWeek(DateTime now) =>
+      _cachedHomeWeek(this, now);
   @internal
   Future<void> internalWaitHomeSchoolCache() async {
     await internalReadCaches

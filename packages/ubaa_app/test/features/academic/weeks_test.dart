@@ -64,7 +64,7 @@ void _registerAcademicWeeksTests() {
       if (route) {
         await controller.setRoutePolicy(RoutePolicy.direct);
       } else {
-        await controller.refreshHome(only: [FeatureId.grades]);
+        await controller.refreshHome();
       }
       final second = controller.loadAcademicWeeks('A');
       old.complete(_weekOptions('A'));

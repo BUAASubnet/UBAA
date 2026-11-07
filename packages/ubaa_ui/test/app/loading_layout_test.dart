@@ -1,3 +1,4 @@
+import '../support/home_harness.dart';
 import '../support/home_todos.dart';
 import 'dart:async';
 import 'package:clock/clock.dart';
@@ -7,7 +8,6 @@ import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/ubaa_ui.dart';
 import 'package:ubaa_ui/src/common/feature_detail.dart';
 import 'package:ubaa_ui/src/features/grades/flow.dart';
-import 'package:ubaa_ui/src/app/home.dart';
 import 'package:ubaa_ui/src/shared/loading.dart';
 
 void main() {
@@ -39,7 +39,7 @@ void main() {
       Future<void> mount(FeatureSnapshot spoc) => tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: HomeView(
+            body: HomeHarness(
               onProjectTodos: (_) async => HomeTodoProjection(const []),
               user: null,
               visible: true,
@@ -71,7 +71,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: HomeView(
+          body: HomeHarness(
             onProjectTodos: (_) async => HomeTodoProjection(const []),
             user: null,
             visible: true,
@@ -103,7 +103,7 @@ void main() {
     Future<void> mount(FeatureLoadStatus status) => tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: HomeView(
+          body: HomeHarness(
             onProjectTodos: homeTodoFixture,
             user: null,
             visible: true,

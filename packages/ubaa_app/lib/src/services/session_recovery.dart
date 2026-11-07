@@ -12,6 +12,7 @@ final class RequiredSessionRecovery {
     required RequiredSessionBackend backend,
     required this.credentials,
     this.rebuildBackend,
+    this.beforeSharedRebind,
   }) : _backend = backend;
   RequiredSessionBackend _backend;
   RequiredSessionBackend get backend => _backend;
@@ -20,6 +21,7 @@ final class RequiredSessionRecovery {
   final Future<RequiredSessionBackend> Function(RecoveryScope scope)?
   rebuildBackend;
   final CredentialVault credentials;
+  final void Function()? beforeSharedRebind;
   final _jobs = <Object, _RecoveryJob>{};
   final _draining = <_RecoveryJob>{};
   final _blockedCredentials = <Object, Set<RecoveryScope>>{};
@@ -276,9 +278,14 @@ final class _RecoveryJob {
               owner._publishedAccount !=
                   (state?.account?.id, state?.generation))
             await rebuild();
-          if (owner.backend case final SharedAccountBackend backend) {
+          if (owner.backend case final SharedAccountBackend backend
+              when owner._publishedAccount !=
+                  (state?.account?.id, state?.generation)) {
             final binding = await scope.sharedBinding();
-            if (binding != null) await backend.bindSharedAccount(binding);
+            if (binding != null) {
+              owner.beforeSharedRebind?.call();
+              await backend.bindSharedAccount(binding);
+            }
           }
           inBoundary = true;
           await execute();
@@ -401,10 +408,16 @@ final class _RecoveryJob {
       inBoundary = false;
       await validation;
       check();
-      await scope.publishRecovery();
-      if (owner.backend case final SharedAccountBackend backend) {
-        final binding = await scope.sharedBinding();
-        if (binding != null) await backend.bindSharedAccount(binding);
+      if (scope.publishReusedSession ||
+          disposition == RecoveryDisposition.reauthenticated) {
+        await scope.publishRecovery();
+        if (owner.backend case final SharedAccountBackend backend) {
+          final binding = await scope.sharedBinding();
+          if (binding != null) {
+            owner.beforeSharedRebind?.call();
+            await backend.bindSharedAccount(binding);
+          }
+        }
       }
       final published = scope.sharedSnapshot?.state;
       if (published != null)

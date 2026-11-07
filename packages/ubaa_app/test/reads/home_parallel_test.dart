@@ -6,6 +6,17 @@ import 'package:ubaa_test_support/recovery.dart' as support;
 import 'progressive_test.dart' show until;
 
 void main() {
+  test('单来源重试保留其他读取的缓存代次', () async {
+    final backend = _Backend()..release();
+    final controller = AppController(backend: backend);
+    addTearDown(controller.dispose);
+    await controller.initialize();
+    await controller.refreshHome();
+    final epoch = controller.readCacheEpoch;
+    await controller.refreshHome(only: [FeatureId.signin]);
+    expect(controller.readCacheEpoch, epoch);
+  });
+
   test('课表在途时其他首页业务开始，教务考试等待同组课表', () async {
     final backend = _Backend();
     final controller = AppController(backend: backend);

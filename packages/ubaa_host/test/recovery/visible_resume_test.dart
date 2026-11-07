@@ -2,10 +2,50 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_app/ubaa_app.dart';
+import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_host/ubaa_host.dart';
 import 'package:ubaa_test_support/recovery.dart' as fixtures;
+import 'package:ubaa_ui/ubaa_ui.dart';
 
 void main() {
+  testWidgets('单项目标恢复期间宿主保持非连接状态并提供待办投影', (tester) async {
+    tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
+    final accounts = await fixtures.widgetAccounts(tester);
+    final backend = _HomeTargetBackend();
+    addTearDown(() {
+      if (!backend.releaseSchedule.isCompleted)
+        backend.releaseSchedule.complete();
+      if (!backend.releaseSpoc.isCompleted) backend.releaseSpoc.complete();
+    });
+    await tester.pumpWidget(
+      UbaaAppHost(backend: backend, localAccountStore: accounts),
+    );
+    await accounts.settle(tester);
+    Future<void> pumpUntil(bool Function() completed) async {
+      for (var frame = 0; frame < 100 && !completed(); frame++) {
+        await tester.pump(const Duration(milliseconds: 16));
+      }
+      expect(completed(), isTrue, reason: '恢复未到达预期阶段');
+      await tester.pump();
+    }
+
+    await pumpUntil(() => backend.scheduleStarted.isCompleted);
+    expect(
+      tester.widget<UbaaMainShell>(find.byType(UbaaMainShell)).connecting,
+      isTrue,
+    );
+    backend.releaseSchedule.complete();
+    await pumpUntil(() => backend.spocStarted.isCompleted);
+
+    final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
+    expect(shell.connecting, isFalse);
+    expect(shell.homeState, isNotNull);
+
+    backend.releaseSpoc.complete();
+    await tester.pumpAndSettle();
+    await tester.pumpWidget(const SizedBox());
+  });
+
   testWidgets('后端打开期间进入后台，迟到实例等待窗口可见才订阅和恢复', (tester) async {
     tester.binding.handleAppLifecycleStateChanged(AppLifecycleState.resumed);
     final events = StreamController<void>.broadcast();
@@ -130,4 +170,53 @@ void main() {
     expect(backend.loginCalls, 0);
     await tester.pumpWidget(const SizedBox());
   });
+}
+
+class _HomeTargetBackend extends fixtures.FakeRecoveryBackend
+    implements RequiredSessionBackend, ProgressiveReadBackend, HomeTodoBackend {
+  final scheduleStarted = Completer<void>();
+  final releaseSchedule = Completer<void>();
+  final spocStarted = Completer<void>();
+  final releaseSpoc = Completer<void>();
+
+  @override
+  Future<RecoveredRouteSession> recoverRequiredSession(
+    FeatureId feature,
+  ) async {
+    if (feature == FeatureId.schedule) {
+      if (!scheduleStarted.isCompleted) scheduleStarted.complete();
+      await releaseSchedule.future;
+    }
+    if (feature == FeatureId.spoc) {
+      if (!spocStarted.isCompleted) spocStarted.complete();
+      await releaseSpoc.future;
+    }
+    return const RecoveredRouteSession(
+      route: ConnectionMode.direct,
+      profile: UserSummary(username: 'fixture-user'),
+    );
+  }
+
+  @override
+  Future<RecoveredRouteSession> loginRequiredRoute(
+    ConnectionMode route,
+    LoginInput input,
+  ) async => RecoveredRouteSession(
+    route: route,
+    profile: const UserSummary(username: 'fixture-user'),
+  );
+
+  @override
+  Future<FeatureReadTask?> beginFeatureRead(
+    FeatureId feature,
+    FeatureQuery? query,
+  ) async => null;
+
+  @override
+  Future<FeatureResult> loadFeature(FeatureId feature) async =>
+      FeatureResult.success(summary: feature.name);
+
+  @override
+  Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request) async =>
+      HomeTodoProjection(const []);
 }

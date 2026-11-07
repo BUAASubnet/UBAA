@@ -78,9 +78,12 @@ mixin ControllerDeferredRecovery on ControllerState {
     internalQueuedRecoveries.remove(request.feature);
     internalActiveRecovery = request;
     internalSessionRecoveryFuture = request.completion.future;
+    request.targetOnly = internalTargetRecoveryOnly;
     internalWriteTransitions++;
     internalError = null;
-    internalSessionRecoveryStatus = SessionRecoveryStatus.restoring;
+    // 单项目标恢复只标记该功能，全局状态保持已就绪，首页不进入“连接中”。
+    if (!request.targetOnly)
+      internalSessionRecoveryStatus = SessionRecoveryStatus.restoring;
     internalFeatureRecoveryStates[request.feature] =
         SessionRecoveryStatus.restoring;
     internalWriteCoordinator.invalidate();
@@ -95,6 +98,13 @@ mixin ControllerDeferredRecovery on ControllerState {
             internalFeatureRecoveryErrors.remove(request.feature);
           } else {
             internalFeatureRecoveryErrors[request.feature] = error;
+          }
+          // 单个功能暂不可用只记在该功能上；账号撤销、中断和重新登录状态保留。
+          if (request.targetOnly &&
+              internalSessionRecoveryStatus ==
+                  SessionRecoveryStatus.unavailable) {
+            internalSessionRecoveryStatus = SessionRecoveryStatus.ready;
+            internalError = null;
           }
         }
         internalWriteTransitions--;

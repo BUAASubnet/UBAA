@@ -1,3 +1,4 @@
+import '../support/home_harness.dart';
 import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -14,7 +15,7 @@ void main() {
     Future<void> mount() => tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: HomeView(
+          body: HomeHarness(
             key: key,
             user: null,
             visible: visible,
@@ -67,7 +68,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: HomeView(
+          body: HomeHarness(
             key: key,
             user: null,
             visible: false,
@@ -98,7 +99,7 @@ void main() {
     Future<void> mount(int epoch) => tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: HomeView(
+          body: HomeHarness(
             user: null,
             visible: true,
             cacheEpoch: epoch,
@@ -127,7 +128,7 @@ void main() {
     expect(calls.values, everyElement(1));
     await tester.pumpWidget(const SizedBox());
   });
-  testWidgets('补充来源结束不能提前完成尚未开始发布的主来源，首批结果后结束下拉', (tester) async {
+  testWidgets('补充来源与快照变化不替代应用层的刷新完成信号', (tester) async {
     final key = GlobalKey<HomeViewState>();
     final supplements = Completer<FeatureResult>();
     final core = Completer<void>();
@@ -136,7 +137,7 @@ void main() {
     Future<void> mount() => tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: HomeView(
+          body: HomeHarness(
             key: key,
             user: null,
             visible: true,
@@ -175,10 +176,10 @@ void main() {
     await mount();
     refining = true;
     await mount();
+    expect(done, isFalse, reason: 'UI 不根据快照推断应用层完成');
+    core.complete();
     await refresh;
     expect(done, isTrue);
-    expect(core.isCompleted, isFalse, reason: '后台补全不阻塞下拉');
-    core.complete();
     await tester.pumpWidget(const SizedBox());
   });
   testWidgets('刷新等待已有补充读取完成且不重复发起', (tester) async {
@@ -188,7 +189,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: HomeView(
+          body: HomeHarness(
             key: key,
             user: null,
             visible: true,

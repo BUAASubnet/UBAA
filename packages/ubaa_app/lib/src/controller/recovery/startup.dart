@@ -38,6 +38,12 @@ mixin ControllerOfflineStartup on ControllerState {
         internalSetPhase(AppPhase.login);
         return true;
       }
+      // 路线是本机配置；缓存首屏也必须沿已保存路线读取，不能先按 Auto 混用来源。
+      if (internalBackend case final RouteSettingsBackend settings) {
+        final routes = await settings.routeSettings();
+        if (internalDisposed || epoch != internalLifecycleEpoch) return true;
+        internalApplyRouteSettings(routes);
+      }
       if (store is SecureLocalAccountStore) {
         final shared = await store.capture();
         if (shared == null ||
@@ -141,6 +147,12 @@ mixin ControllerOfflineStartup on ControllerState {
     final epoch = request.epoch;
     var usesSharedRecovery = false;
     try {
+      if (request.refreshHomeAfter &&
+          internalBackend is HomeRecoveryBatchBackend) {
+        await (internalBackend as HomeRecoveryBatchBackend)
+            .invalidateHomeRecoveryBatch();
+        if (!internalRecoveryIsCurrent(epoch)) return;
+      }
       if (internalBackend case final RouteSettingsBackend settings) {
         final result = await settings.routeSettings();
         if (!internalRecoveryIsCurrent(epoch)) return;

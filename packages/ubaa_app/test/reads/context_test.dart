@@ -134,12 +134,12 @@ void _registerReadContextTests() {
     expect(snapshot.readContext?.requestRevision, 2);
   });
 
-  test('默认读取与显式summary不同且全局失效代次覆盖首页路线和写后读取', () async {
+  test('局部默认读取与显式summary隔离，路线和写后读取保留全局失效', () async {
     final controller = AppController(backend: FixtureRefreshMatrixBackend());
     addTearDown(controller.dispose);
     final initial = controller.readCacheEpoch;
     await controller.refreshHome(only: [FeatureId.schedule]);
-    expect(controller.readCacheEpoch, greaterThan(initial));
+    expect(controller.readCacheEpoch, initial);
     final context = controller.snapshots[FeatureId.schedule]!.readContext;
     expect(context, isNotNull);
     expect(context!.query, isNull);

@@ -42,7 +42,7 @@ void _registerAcademicTermsTests() {
     await controller.initialize();
     final first = controller.loadAcademicTerms();
     expect(calls, 1);
-    await controller.refreshHome(only: [FeatureId.grades]);
+    await controller.refreshHome();
     final second = controller.loadAcademicTerms();
     expect(calls, 2);
     oldRequest.complete(_termOptions());
@@ -200,7 +200,7 @@ void _registerAcademicTermsTests() {
       if (changeRoute) {
         await controller.setRoutePolicy(RoutePolicy.direct);
       } else {
-        await controller.refreshHome(only: [FeatureId.grades]);
+        await controller.refreshHome();
       }
       delayed.complete(_termOptions());
       expect((await old).error?.code, UbaaErrorCode.operationConflict);

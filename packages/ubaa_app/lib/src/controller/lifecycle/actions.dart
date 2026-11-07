@@ -694,6 +694,7 @@ mixin ControllerActions on ControllerState {
 
   @internal
   void internalNotify() {
+    internalSyncHome();
     internalLockDisplay?.validate();
     for (final service in internalRequiredRecoveryServices.values) {
       service.validateScopes();
@@ -738,6 +739,7 @@ mixin ControllerActions on ControllerState {
   @override
   void dispose() {
     if (internalDisposed) return;
+    internalDisposeHome();
     internalCancelLoginVerification(notify: false);
     // 密码释放属于销毁操作，不能等待已撤销的登录任务迟到收尾。
     internalReleaseLoginSecret();

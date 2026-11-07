@@ -67,7 +67,7 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
   Widget _buildHome() => switch (_controller.phase) {
     AppPhase.splash || AppPhase.checkingSession => const UbaaSplashView(),
     AppPhase.login || AppPhase.loggingIn => _buildLoginView(),
-    AppPhase.home => _placesReady ? _buildMainShell() : const UbaaSplashView(),
+    AppPhase.home => _buildMainShell(),
   };
 
   String? get _connectionStatus {
@@ -173,21 +173,17 @@ extension _UbaaAppHostCallbacks on _UbaaAppHostState {
       ),
       gradeScoreNotice: _gradeWatch.notice,
       gradeCheckRoute: _gradeWatch.checkedRoute,
-      onCheckGradeUpdates: _gradeWatch.check,
       onConsumeGradeNotice: _gradeWatch.consumeNotice,
       themeMode: _themeMode,
       onThemeModeChanged: _setThemeMode,
       user: _controller.displayUser,
       snapshots: _controller.snapshots,
-      homeSnapshots: _controller.homeSnapshots,
-      onProjectHomeTodos: _controller.homeTodoProjectionBlocked
-          ? null
-          : _controller.projectHomeTodos,
+      homeState: _controller.homeState,
+      onHomeVisibilityChanged: _controller.setHomeVisible,
+      onRefreshHome: _controller.refreshHomePage,
+      onRetryHomeSource: _controller.retryHomeSource,
+      onHomeReminderChanged: _controller.setHomeReminder,
       agendaEpoch: _controller.agendaProjectionEpoch,
-      onLoadHomeDaySchedule: (date, force) =>
-          _controller.loadHomeDaySchedule(date, forceRefresh: force),
-      onLoadHomeSupplement: (source, force) =>
-          _controller.loadHomeSupplement(source, forceRefresh: force),
       onLoadYgdkReminder: localOwner.accountKey.isEmpty
           ? null
           : () => _readReminder(localOwner),

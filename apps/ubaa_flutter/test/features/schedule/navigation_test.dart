@@ -53,13 +53,13 @@ void main() {
     final backend = ScheduleNavigationBackend();
     await mount(tester, backend);
     await tap(tester, find.byTooltip('选择学期'));
-    await tap(tester, find.widgetWithText(TextButton, '取消'));
+    await tap(tester, find.widgetWithText(OutlinedButton, '取消'));
     expect(backend.scheduleReads.length, 1);
     await tap(tester, find.byTooltip('选择学期'));
     await tap(tester, find.text('合成上一学期'));
     expect(backend.scheduleReads.last.term, '2025-2026-2');
     expect(backend.scheduleReads.last.week, 4);
-    expect(find.text('3-10'), findsOneWidget);
+    expect(find.text('10日'), findsOneWidget);
   });
 
   testWidgets('大字长周名称不被本周标记挤成窄列', (tester) async {
@@ -73,7 +73,7 @@ void main() {
     await mount(tester, backend);
     await tap(tester, find.text(backend.title('合成教学第4周')));
     Finder option(int n) => find.descendant(
-      of: find.byType(AlertDialog),
+      of: find.byType(BottomSheet),
       matching: find.text(backend.title('合成教学第$n周')),
     );
     expect(
@@ -116,7 +116,7 @@ void main() {
       await mount(tester, backend);
       backend.fail = true;
       await tap(tester, find.byTooltip('刷新当前查询'));
-      expect(find.text('9-7'), findsOneWidget);
+      expect(find.text('7日'), findsOneWidget);
       expect(find.text('合成教学第4周'), findsOneWidget);
     },
     variant: TargetPlatformVariant.only(TargetPlatform.macOS),
@@ -137,19 +137,19 @@ void main() {
     expect(backend.scheduleReads, isEmpty);
     await tap(tester, find.widgetWithText(Card, FeatureId.schedule.title));
     expect(backend.scheduleReads, hasLength(1));
-    expect(find.text('9-7'), findsOneWidget);
+    expect(find.text('7日'), findsOneWidget);
   });
 
   testWidgets('周次选择取消保留当前周，选择后立即更新课程与日期', (tester) async {
     final backend = ScheduleNavigationBackend();
     await mount(tester, backend);
     await tap(tester, find.text('合成教学第4周'));
-    await tap(tester, find.widgetWithText(TextButton, '取消'));
+    await tap(tester, find.widgetWithText(OutlinedButton, '取消'));
     expect(backend.scheduleReads, hasLength(1));
     await tap(tester, find.text('合成教学第4周'));
     await tap(tester, find.text('合成教学第5周'));
     expect(backend.scheduleReads.last.week, 5);
-    expect(find.text('9-14'), findsOneWidget);
+    expect(find.text('14日'), findsOneWidget);
   });
 
   testWidgets('换学期后按该学期真实周列表切换', (tester) async {
@@ -160,15 +160,15 @@ void main() {
     await tap(tester, find.byTooltip('上一周'));
     expect(backend.scheduleReads.last.term, '2025-2026-2');
     expect(backend.scheduleReads.last.week, 3);
-    expect(find.text('3-3'), findsOneWidget);
+    expect(find.text('3日'), findsOneWidget);
   });
 
   testWidgets('课表自动进入唯一当前周并使用真实七日日期', (tester) async {
     final backend = ScheduleNavigationBackend();
     await mount(tester, backend);
     expect(find.text('合成教学第4周'), findsOneWidget);
-    expect(find.text('9-7'), findsOneWidget);
-    expect(find.text('9-13'), findsOneWidget);
+    expect(find.text('7日'), findsOneWidget);
+    expect(find.text('13日'), findsOneWidget);
     expect(backend.scheduleReads.single.term, '2026-2027-1');
     expect(backend.scheduleReads.single.week, 4);
     expect(tester.takeException(), isNull);

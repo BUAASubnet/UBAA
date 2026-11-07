@@ -1,3 +1,4 @@
+import '../support/home_shell_harness.dart';
 import '../support/home_todos.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -255,32 +256,34 @@ Future<void> mount(
   await tester.pumpWidget(
     MaterialApp(
       theme: UbaaTheme.light(),
-      home: UbaaMainShell(
-        onProjectHomeTodos: homeTodoFixture,
-        user: UserSummary(username: username),
-        initialDestination: tab,
-        writeState: writeState,
-        snapshots: {
-          for (final id in FeatureId.values)
-            id: FeatureSnapshot(
-              feature: id,
-              status: FeatureLoadStatus.success,
-              resolvedRoute: ConnectionMode.direct,
-              details: [FeatureDetail(title: '合成${id.title}')],
-            ),
-        },
-        routePolicy: RoutePolicy.auto,
-        telemetryEnabled: false,
-        activeRoutes: const [ConnectionMode.direct],
-        onRefresh: () async {},
-        onRetryFeature: (_) async {},
-        onFeatureQuery: (_, query) async {
-          queries?.add(query);
-        },
-        onLogout: () async {},
-        onLogoutAndClearAccount: () async {},
-        onRoutePolicyChanged: onRoutePolicyChanged ?? (_) {},
-        onTelemetryChanged: (_) {},
+      home: HomeShellHarness(
+        project: homeTodoFixture,
+        child: UbaaMainShell(
+          user: UserSummary(username: username),
+          initialDestination: tab,
+          writeState: writeState,
+          snapshots: {
+            for (final id in FeatureId.values)
+              id: FeatureSnapshot(
+                feature: id,
+                status: FeatureLoadStatus.success,
+                resolvedRoute: ConnectionMode.direct,
+                details: [FeatureDetail(title: '合成${id.title}')],
+              ),
+          },
+          routePolicy: RoutePolicy.auto,
+          telemetryEnabled: false,
+          activeRoutes: const [ConnectionMode.direct],
+          onRefresh: () async {},
+          onRetryFeature: (_) async {},
+          onFeatureQuery: (_, query) async {
+            queries?.add(query);
+          },
+          onLogout: () async {},
+          onLogoutAndClearAccount: () async {},
+          onRoutePolicyChanged: onRoutePolicyChanged ?? (_) {},
+          onTelemetryChanged: (_) {},
+        ),
       ),
     ),
   );

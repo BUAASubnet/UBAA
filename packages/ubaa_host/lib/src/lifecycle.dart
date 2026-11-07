@@ -25,7 +25,6 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   late PlacePreferenceStore _placeStore;
   late ThemePreferenceStore _themeStore;
   String? _placeOwner;
-  bool _placesReady = false;
   Map<String, String> _placePreferences = {};
   int _themeRevision = 0;
   ThemeMode _themeMode = ThemeMode.system;
@@ -53,7 +52,6 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     if (_controller.phase != AppPhase.home) {
       _homeFrameReported = false;
       _placeOwner = null;
-      _placesReady = false;
       _placePreferences = {};
       return;
     }
@@ -61,8 +59,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
     if (_placeOwner == owner.accountKey) return;
     _placeOwner = owner.accountKey;
     _placePreferences = {};
-    _placesReady = owner.accountKey.isEmpty;
-    if (_placesReady) return;
+    if (owner.accountKey.isEmpty) return;
     unawaited(_restorePlaces(owner));
   }
 
@@ -72,8 +69,8 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       owner.checkCurrent();
       if (mounted)
         setState(() {
-          _placePreferences = value;
-          _placesReady = true;
+          // 本次打开后用户已选择的地点优先于迟到的普通偏好。
+          _placePreferences = {...value, ..._placePreferences};
         });
     } on Object {
       /* 旧账号的异步读取结果丢弃。 */
@@ -106,6 +103,21 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
   bool _recoveryInFlight = false;
   bool _disposed = false;
   ScheduleWidgetPublisher? _scheduleWidgetPublisher;
+  void _checkHomeGrades() {
+    if (_disposed ||
+        !_controller.homeVisible ||
+        _controller.phase != AppPhase.home ||
+        (_controller.usesLocalRecovery &&
+            _controller.sessionRecoveryStatus != SessionRecoveryStatus.ready))
+      return;
+    final home = _controller.homeState;
+    if (!home.projected ||
+        home.busy ||
+        home.sources.values.any((s) => s.status == FeatureLoadStatus.idle))
+      return;
+    unawaited(_gradeWatch.check());
+  }
+
   (String?, Object)? _scheduleWidgetStamp;
   Stream<void>? _networkChanges;
   StreamSubscription<void>? _networkSubscription;
@@ -177,6 +189,9 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       onReadSchedulerTrace: widget.onReadSchedulerTrace,
     );
     _controller.setAppForeground(!_wasBackgrounded);
+    _controller.attachHomePresentation(
+      visible: widget.initialDestination == UiDestination.home,
+    );
     _gradeScoreStore =
         widget.gradeScoreStore ??
         (backend != null
@@ -207,6 +222,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
             ? MemoryRecentFeatureStore()
             : PreferencesRecentFeatureStore(scope: defaultConfigDirectory()));
     _controller.addListener(_syncPlaces);
+    _controller.addListener(_checkHomeGrades);
     _controller.addListener(_retryPendingRecovery);
     _controller.addListener(_showHomeFeedback);
     _controller.addListener(_syncCaptchaDialog);
@@ -240,6 +256,7 @@ class _UbaaAppHostState extends State<UbaaAppHost> with WidgetsBindingObserver {
       return;
     }
     _controller.removeListener(_syncPlaces);
+    _controller.removeListener(_checkHomeGrades);
     _controller.removeListener(_retryPendingRecovery);
     _controller.removeListener(_showHomeFeedback);
     _controller.removeListener(_syncCaptchaDialog);

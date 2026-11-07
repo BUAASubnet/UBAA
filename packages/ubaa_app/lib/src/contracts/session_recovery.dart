@@ -15,6 +15,7 @@ final class RecoveryScope {
     required this.credentialGeneration,
     required this.routePolicy,
     required this.allowAutomaticLogin,
+    this.publishReusedSession = true,
     required bool Function() isCurrent,
     PersistentRecoveryScope? persistent,
   }) : _accountGeneration = accountGeneration,
@@ -30,6 +31,7 @@ final class RecoveryScope {
     required int credentialGeneration,
     required RoutePolicy routePolicy,
     required bool allowAutomaticLogin,
+    bool publishReusedSession = true,
     required bool Function() isCurrent,
   }) async {
     snapshot ??= await accounts.capture();
@@ -49,6 +51,7 @@ final class RecoveryScope {
       credentialGeneration: credentialGeneration,
       routePolicy: routePolicy,
       allowAutomaticLogin: allowAutomaticLogin,
+      publishReusedSession: publishReusedSession,
       isCurrent: isCurrent,
       persistent: PersistentRecoveryScope._(accounts, snapshot),
     );
@@ -153,6 +156,9 @@ final class RecoveryScope {
   final int credentialGeneration;
   final RoutePolicy routePolicy;
   final bool allowAutomaticLogin;
+
+  /// 单项目标校验沿用主会话代次；真正重新登录仍须发布新代次。
+  final bool publishReusedSession;
   final bool Function() _isCurrent;
   bool get isCurrent => _isCurrent();
 
@@ -165,6 +171,7 @@ final class RecoveryScope {
     credentialGeneration,
     routePolicy,
     allowAutomaticLogin,
+    publishReusedSession,
   );
   Object get credentialKey =>
       (accountAlias, _accountGeneration, credentialGeneration);

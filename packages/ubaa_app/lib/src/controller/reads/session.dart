@@ -23,6 +23,14 @@ mixin ControllerScheduledSession on ControllerState {
       !internalHasScheduledTargetRecovery &&
       internalSessionRecoveryStatus != SessionRecoveryStatus.ready;
 
+  /// 主会话就绪后，按功能建立目标会话只影响该功能的读取，
+  /// 不让首页反复进入“连接中”。恢复中的账号与路线变化仍按原交付检查处理。
+  /// 写入继续由过渡计数保护。
+  @internal
+  bool get internalTargetRecoveryOnly =>
+      internalHasScheduledTargetRecovery &&
+      internalSessionRecoveryStatus == SessionRecoveryStatus.ready;
+
   @internal
   bool get internalReadTransitionBlocked =>
       internalWriteTransitions != 0 &&
@@ -70,10 +78,24 @@ mixin ControllerScheduledSession on ControllerState {
   }) {
     if (!force && !internalReadTargetNeedsRecovery(feature))
       return Future.value();
+    if (force && internalBackend is HomeRecoveryBatchBackend) {
+      return (internalBackend as HomeRecoveryBatchBackend)
+          .invalidateHomeRecoveryBatch()
+          .then(
+            (_) => internalReadScheduler.run(
+              priority,
+              current,
+              () => internalEnsureReadTarget(feature, force: true),
+              demand: demand,
+              kind: ReadOperation.authentication,
+            ),
+          );
+    }
     return internalReadScheduler.run(
       priority,
       current,
       () => internalEnsureReadTarget(feature, force: force),
+      kind: ReadOperation.authentication,
       demand: demand,
     );
   }
@@ -96,6 +118,8 @@ mixin ControllerScheduledSession on ControllerState {
         discard: discard,
         continuation: true,
       );
+    if (internalHomeRecoveryBatch case final batch?) await batch;
+    if (!current()) throw const ReadCancelled();
     final recovered = internalReadTargetNeedsRecovery(feature);
     if (recovered)
       await internalScheduleReadAuthentication(

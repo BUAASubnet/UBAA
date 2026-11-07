@@ -1,10 +1,10 @@
+import '../../support/home_harness.dart';
 import '../../support/home_todos.dart';
 import 'dart:async';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'package:ubaa_ui/src/app/home.dart';
 
 void main() {
   testWidgets('待考试隐藏且考试中保留，类型与状态位于标题上方的元信息行', (tester) async {
@@ -15,7 +15,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: HomeView(
+          body: HomeHarness(
             onProjectTodos: (r) =>
                 homeTodoFixture(r, statuses: const {'当前考试': '考试中'}),
             user: null,
@@ -126,7 +126,7 @@ void main() {
             rebuild = setState;
             return MaterialApp(
               home: Scaffold(
-                body: HomeView(
+                body: HomeHarness(
                   onProjectTodos: (r) =>
                       homeTodoFixture(r, visible: projectVisible),
                   user: null,
@@ -161,35 +161,43 @@ void main() {
     });
   }
 
-  testWidgets('首次投影前不显示没有待办，投影暂不可用时保留已显示待办', (tester) async {
+  testWidgets('首次投影前与被取代的投影不显示没有待办，取代后自动重算；切换路线清空', (tester) async {
     final gate = Completer<void>();
-    HomeTodoReader? reader = (r) async {
+    var conflicts = 1;
+    Future<HomeTodoProjection> flaky(HomeTodoRequest r) async {
       await gate.future;
+      // 后端缓存代次变化（如共享账号重新绑定）会让在途投影以冲突结束。
+      if (conflicts-- > 0) {
+        throw const AgendaException(AgendaFailure.superseded);
+      }
       return homeTodoFixture(r);
-    };
+    }
+
+    HomeTodoReader? reader = flaky;
+    FeatureSnapshot exam() => const FeatureSnapshot(
+      feature: FeatureId.exam,
+      status: FeatureLoadStatus.success,
+      details: [
+        FeatureDetail(
+          title: '缓存考试',
+          presentation: ExamPresentation(
+            arranged: true,
+            date: '2026-10-25',
+            startTime: '14:00',
+            endTime: '16:00',
+            place: '合成考场',
+            seat: '8',
+          ),
+        ),
+      ],
+    );
     final snapshots = {
       for (final feature in FeatureId.values)
         feature: FeatureSnapshot(
           feature: feature,
           status: FeatureLoadStatus.empty,
         ),
-      FeatureId.exam: const FeatureSnapshot(
-        feature: FeatureId.exam,
-        status: FeatureLoadStatus.success,
-        details: [
-          FeatureDetail(
-            title: '缓存考试',
-            presentation: ExamPresentation(
-              arranged: true,
-              date: '2026-10-25',
-              startTime: '14:00',
-              endTime: '16:00',
-              place: '合成考场',
-              seat: '8',
-            ),
-          ),
-        ],
-      ),
+      FeatureId.exam: exam(),
     };
     late StateSetter rebuild;
     await tester.pumpWidget(
@@ -198,7 +206,7 @@ void main() {
           rebuild = setState;
           return MaterialApp(
             home: Scaffold(
-              body: HomeView(
+              body: HomeHarness(
                 onProjectTodos: reader,
                 user: null,
                 visible: true,
@@ -206,7 +214,7 @@ void main() {
                 homeClock: Clock.fixed(
                   DateTime.parse('2026-10-25T11:00:00+08:00'),
                 ),
-                snapshots: snapshots,
+                snapshots: Map.of(snapshots),
                 onFeatureTap: (_) {},
                 onRetryFeature: (_) async {},
                 onRefresh: () async {},
@@ -223,12 +231,31 @@ void main() {
     // 缓存已在，只是投影还没算完：不能先告诉学生“没有待办”。
     expect(find.text('当前没有待办'), findsNothing);
     gate.complete();
-    await tester.pumpAndSettle();
+    await tester.pump();
+    await tester.pump();
+    // 首次投影被取代：仍占位，不显示失败提示，稍后自动重算。
+    expect(find.text('当前没有待办'), findsNothing);
+    expect(find.text('完成状态暂时无法显示，请刷新'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
     expect(find.text('缓存考试'), findsOneWidget);
-    // 会话恢复期间宿主暂停投影：已显示的待办保持不动。
+
+    // 已显示待办后再次被取代：保留原有待办，不清空也不报错。
+    conflicts = 1;
+    rebuild(() => snapshots[FeatureId.exam] = exam());
+    await tester.pump();
+    await tester.pump();
+    expect(find.text('缓存考试'), findsOneWidget);
+    expect(find.text('完成状态暂时无法显示，请刷新'), findsNothing);
+    await tester.pump(const Duration(milliseconds: 300));
+    await tester.pump();
+    expect(find.text('缓存考试'), findsOneWidget);
+
+    // 切换路线等身份过渡时宿主暂停投影：旧路线待办不再显示，改为占位。
     rebuild(() => reader = null);
-    await tester.pumpAndSettle();
-    expect(find.text('缓存考试'), findsOneWidget);
+    await tester.pump();
+    expect(find.text('缓存考试'), findsNothing);
+    expect(find.text('当前没有待办'), findsNothing);
     rebuild(() => reader = homeTodoFixture);
     await tester.pumpAndSettle();
     expect(find.text('缓存考试'), findsOneWidget);

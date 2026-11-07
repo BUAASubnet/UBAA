@@ -1,3 +1,4 @@
+import '../../support/home_harness.dart';
 import '../../support/home_todos.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
@@ -19,7 +20,7 @@ void main() {
       await tester.pumpWidget(
         MaterialApp(
           home: Scaffold(
-            body: HomeView(
+            body: HomeHarness(
               onProjectTodos: homeTodoFixture,
               user: null,
               visible: true,
@@ -114,7 +115,7 @@ void main() {
             child: child!,
           ),
           home: Scaffold(
-            body: HomeView(
+            body: HomeHarness(
               onProjectTodos: homeTodoFixture,
               user: null,
               visible: true,

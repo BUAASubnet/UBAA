@@ -1,3 +1,4 @@
+import '../../support/home_shell_harness.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -63,60 +64,62 @@ void main() {
       MaterialApp(
         theme: UbaaTheme.light(),
         home: StatefulBuilder(
-          builder: (context, redraw) => UbaaMainShell(
-            user: const UserSummary(username: 'synthetic'),
-            cacheAccountId: 'synthetic',
-            agenda: AgendaAccess(service: service, term: 'synthetic'),
-            homeClock: Clock.fixed(DateTime(2026, 11, 5, 9)),
-            onProjectHomeTodos: homeTodoFixture,
-            snapshots: {
-              for (final id in FeatureId.values)
-                id: FeatureSnapshot(
-                  feature: id,
-                  status: FeatureLoadStatus.empty,
-                ),
-              FeatureId.spoc: FeatureSnapshot(
-                feature: FeatureId.spoc,
-                status: FeatureLoadStatus.success,
-                details: [
-                  for (var i = 0; i < 5; i++)
-                    FeatureDetail(
-                      title: '任务$i',
-                      presentation: SpocAssignmentPresentation(
-                        courseId: 'c',
-                        courseName: '合成课程',
-                        assignmentId: 'a$i',
-                        dueTime: '2026-11-05 20:00:00',
-                        status: AssignmentSubmissionStatus.unsubmitted,
-                        statusText: '未提交',
-                      ),
-                    ),
-                ],
-              ),
-              if (detail != null) FeatureId.spoc: detail!,
-            },
-            routePolicy: RoutePolicy.direct,
-            telemetryEnabled: false,
-            onFeatureQuery: (_, query) async {
-              queries.add(query);
-              redraw(
-                () => detail = FeatureSnapshot(
+          builder: (context, redraw) => HomeShellHarness(
+            project: homeTodoFixture,
+            child: UbaaMainShell(
+              user: const UserSummary(username: 'synthetic'),
+              cacheAccountId: 'synthetic',
+              agenda: AgendaAccess(service: service, term: 'synthetic'),
+              homeClock: Clock.fixed(DateTime(2026, 11, 5, 9)),
+              snapshots: {
+                for (final id in FeatureId.values)
+                  id: FeatureSnapshot(
+                    feature: id,
+                    status: FeatureLoadStatus.empty,
+                  ),
+                FeatureId.spoc: FeatureSnapshot(
                   feature: FeatureId.spoc,
                   status: FeatureLoadStatus.success,
-                  readContext: FeatureReadContext(
-                    query: query,
-                    requestRevision: queries.length + 1,
-                  ),
-                  details: const [FeatureDetail(title: '合成作业详情')],
+                  details: [
+                    for (var i = 0; i < 5; i++)
+                      FeatureDetail(
+                        title: '任务$i',
+                        presentation: SpocAssignmentPresentation(
+                          courseId: 'c',
+                          courseName: '合成课程',
+                          assignmentId: 'a$i',
+                          dueTime: '2026-11-05 20:00:00',
+                          status: AssignmentSubmissionStatus.unsubmitted,
+                          statusText: '未提交',
+                        ),
+                      ),
+                  ],
                 ),
-              );
-            },
-            onRefresh: () async => fail('本机导航不刷新学校'),
-            onRetryFeature: (_) async {},
-            onLogout: () async {},
-            onLogoutAndClearAccount: () async {},
-            onRoutePolicyChanged: (_) {},
-            onTelemetryChanged: (_) {},
+                if (detail != null) FeatureId.spoc: detail!,
+              },
+              routePolicy: RoutePolicy.direct,
+              telemetryEnabled: false,
+              onFeatureQuery: (_, query) async {
+                queries.add(query);
+                redraw(
+                  () => detail = FeatureSnapshot(
+                    feature: FeatureId.spoc,
+                    status: FeatureLoadStatus.success,
+                    readContext: FeatureReadContext(
+                      query: query,
+                      requestRevision: queries.length + 1,
+                    ),
+                    details: const [FeatureDetail(title: '合成作业详情')],
+                  ),
+                );
+              },
+              onRefresh: () async => fail('本机导航不刷新学校'),
+              onRetryFeature: (_) async {},
+              onLogout: () async {},
+              onLogoutAndClearAccount: () async {},
+              onRoutePolicyChanged: (_) {},
+              onTelemetryChanged: (_) {},
+            ),
           ),
         ),
       ),

@@ -21,6 +21,7 @@ mixin ControllerRefresh on ControllerState {
   Future<void> internalRefreshHome({
     Iterable<FeatureId>? only,
     bool writeReadback = false,
+    bool firstBatch = false,
   }) async {
     if (internalDisposed || internalClearingBusinessCache) return;
     final joining = <Future<void>>[];
@@ -28,7 +29,7 @@ mixin ControllerRefresh on ControllerState {
     for (final feature in (only ?? controllerHomeDefaultFeatures).toSet()) {
       final pending = writeReadback
           ? null
-          : internalPendingFeatureRead(feature, null);
+          : internalPendingFeatureRead(feature, null, firstBatch: firstBatch);
       if (pending != null) {
         joining.add(pending);
       } else {
@@ -39,7 +40,8 @@ mixin ControllerRefresh on ControllerState {
       await Future.wait(joining);
       return;
     }
-    internalCacheLifecycle.invalidateReads();
+    // 局部重试只推进目标请求修订，保留其他来源和辅助查询的在途归属。
+    if (only == null) internalCacheLifecycle.invalidateReads();
     final lifecycleEpoch = internalLifecycleEpoch;
     final generations = <FeatureId, int>{
       for (final feature in features) feature: ++internalReadRequestRevision,
@@ -62,19 +64,58 @@ mixin ControllerRefresh on ControllerState {
         internalBeginFeatureRead(feature, generation, null);
       }
     }
+    final batchBackend =
+        only == null &&
+            !writeReadback &&
+            internalBackend is HomeRecoveryBatchBackend
+        ? internalBackend as HomeRecoveryBatchBackend
+        : null;
+    final batch = batchBackend?.beginHomeRecoveryBatch();
+    if (batch != null) internalHomeRecoveryBatch = batch;
     internalNotify();
-    await Future.wait([
+    final visible = <Future<void>>[];
+    final all = Future.wait<void>([
       ...joining,
-      ...features.map(
-        (feature) => internalLoadFeature(
+      ...features.map((feature) {
+        final loading = internalLoadFeature(
           feature,
           generations[feature]!,
           lifecycleEpoch,
           writeReadback: writeReadback,
           ygdkGeneration: feature == FeatureId.ygdk ? ygdkGeneration : null,
-        ),
-      ),
+        );
+        visible.add(
+          internalPendingFeatureRead(feature, null, firstBatch: true) ??
+              loading,
+        );
+        return loading;
+      }),
     ]);
+    final complete = all.then<void>((_) {}).whenComplete(() async {
+      if (batchBackend != null && batch != null) {
+        try {
+          await batchBackend.endHomeRecoveryBatch(await batch);
+        } on Object catch (error) {
+          if (!internalDisposed && identical(internalBackend, batchBackend)) {
+            internalRecordFailure(error, DiagnosticOperation.read);
+          }
+        } finally {
+          if (identical(internalHomeRecoveryBatch, batch))
+            internalHomeRecoveryBatch = null;
+        }
+      }
+    });
+    if (firstBatch) {
+      unawaited(
+        complete.catchError((Object error) {
+          if (!internalDisposed)
+            internalRecordFailure(error, DiagnosticOperation.read);
+        }),
+      );
+      await Future.wait([...joining, ...visible]);
+    } else {
+      await complete;
+    }
   }
 
   @internal
@@ -197,6 +238,42 @@ mixin ControllerRefresh on ControllerState {
     int? ygdkGeneration,
     FeatureResult? cachedResult,
     bool writeReadback = false,
+    bool firstBatch = false,
+  }) {
+    final visible = Completer<void>();
+    final all = _loadFeature(
+      feature,
+      generation,
+      lifecycleEpoch,
+      query: query,
+      ygdkGeneration: ygdkGeneration,
+      cachedResult: cachedResult,
+      writeReadback: writeReadback,
+      visible: visible,
+    );
+    if (!firstBatch) return all;
+    unawaited(
+      all.then(
+        (_) {
+          if (!visible.isCompleted) visible.complete();
+        },
+        onError: (Object error, StackTrace stack) {
+          if (!visible.isCompleted) visible.completeError(error, stack);
+        },
+      ),
+    );
+    return visible.future;
+  }
+
+  Future<void> _loadFeature(
+    FeatureId feature,
+    int generation,
+    int lifecycleEpoch, {
+    FeatureQuery? query,
+    int? ygdkGeneration,
+    FeatureResult? cachedResult,
+    bool writeReadback = false,
+    required Completer<void> visible,
   }) async {
     // loading 通知可能同步触发注销或切换路线，发请求前再次核对归属。
     if (!internalIsFeatureLoadCurrent(
@@ -230,6 +307,7 @@ mixin ControllerRefresh on ControllerState {
                 lifecycleEpoch,
               )),
     );
+    scope.firstResult = visible;
     internalReadScopes.add(scope);
     if (query == null &&
         !writeReadback &&
@@ -341,6 +419,7 @@ mixin ControllerRefresh on ControllerState {
                     );
               }
               internalNotify();
+              if (!visible.isCompleted) visible.complete();
             },
           );
       final result = controllerRetainJudgePartial(
@@ -445,6 +524,7 @@ mixin ControllerRefresh on ControllerState {
       scope.cancel();
       internalReadScopes.remove(scope);
       if (!scope.completion.isCompleted) scope.completion.complete();
+      if (!visible.isCompleted) visible.complete();
       internalSyncRecoveryRetries();
     }
     internalNotify();

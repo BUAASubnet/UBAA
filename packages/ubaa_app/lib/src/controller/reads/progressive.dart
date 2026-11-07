@@ -16,8 +16,9 @@ mixin ControllerProgressive on ControllerState {
   @internal
   Future<void>? internalPendingFeatureRead(
     FeatureId feature,
-    FeatureQuery? query,
-  ) {
+    FeatureQuery? query, {
+    bool firstBatch = false,
+  }) {
     if (internalBackend is! ProgressiveReadBackend) return null;
     for (final scope in internalReadScopes) {
       if (scope.feature == feature &&
@@ -26,7 +27,7 @@ mixin ControllerProgressive on ControllerState {
             query: scope.query,
             requestRevision: 0,
           ).hasSameQuery(query))
-        return scope.completion.future;
+        return firstBatch ? scope.firstResult.future : scope.completion.future;
     }
     return null;
   }
@@ -66,7 +67,8 @@ mixin ControllerProgressive on ControllerState {
             !(!internalInitialized && internalPhase == AppPhase.splash)) ||
         isLoggingIn ||
         internalRebuildingBackend ||
-        internalWriteTransitions != 0 ||
+        // 单项目标会话恢复是读取的前置步骤，与其他读取同样放行在途批次。
+        internalReadTransitionBlocked ||
         internalInteractiveEngaged ||
         (internalUsesLocalRecovery &&
             !internalHomeFrameReported &&
@@ -75,8 +77,9 @@ mixin ControllerProgressive on ControllerState {
     if (priority == ReadPriority.writeReadback) return true;
     return internalAppForeground &&
         !internalWriteCoordinator.hasPendingOperation &&
-        internalActiveRecovery == null &&
-        internalQueuedRecoveries.isEmpty;
+        (internalTargetRecoveryOnly ||
+            (internalActiveRecovery == null &&
+                internalQueuedRecoveries.isEmpty));
   }
 
   @internal

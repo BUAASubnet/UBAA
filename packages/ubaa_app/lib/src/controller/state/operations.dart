@@ -15,6 +15,12 @@ import 'models.dart' show ProgressiveScope, RecoveryRequest;
 import 'types.dart' show AppPhase, SessionRecoveryStatus;
 
 abstract class ControllerOperations extends ChangeNotifier {
+  void internalSyncHome();
+  void internalDisposeHome();
+  Future<void> internalFlushHomeProjection();
+  Future<FeatureResult?> internalReadCachedHomeWeek(DateTime now);
+  Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request);
+  bool get homeTodoProjectionBlocked;
   Future<CacheUsageSummary> cacheUsage({required String accountId});
   Future<CacheClearOutcome> clearBusinessCache({required String accountId});
   SessionRecoveryStatus recoveryStatusFor(FeatureId feature);
@@ -100,6 +106,7 @@ abstract class ControllerOperations extends ChangeNotifier {
   Future<void> internalRefreshHome({
     Iterable<FeatureId>? only,
     bool writeReadback = false,
+    bool firstBatch = false,
   });
   @internal
   Future<void> internalWaitHomeSchoolCache();
@@ -144,8 +151,9 @@ abstract class ControllerOperations extends ChangeNotifier {
   @internal
   Future<void>? internalPendingFeatureRead(
     FeatureId feature,
-    FeatureQuery? query,
-  );
+    FeatureQuery? query, {
+    bool firstBatch = false,
+  });
   @internal
   Future<FeatureResult> internalScheduleAuxiliaryRead(
     UbaaBackend backend,
@@ -190,6 +198,8 @@ abstract class ControllerOperations extends ChangeNotifier {
   bool get internalLegacyReadSessionBlocked;
   @internal
   bool get internalReadTransitionBlocked;
+  @internal
+  bool get internalTargetRecoveryOnly;
 
   @internal
   bool internalReadTargetNeedsRecovery(FeatureId feature);

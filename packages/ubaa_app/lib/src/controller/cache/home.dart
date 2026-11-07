@@ -94,6 +94,7 @@ mixin ControllerOfflineCache on ControllerState {
               DiagnosticOperation.initialization,
             );
       internalNotify();
+      await internalFlushHomeProjection();
     } on Object catch (error, stackTrace) {
       if (!current()) return;
       internalLocalCacheError = internalRecordFailure(

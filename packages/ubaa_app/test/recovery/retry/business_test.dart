@@ -152,7 +152,12 @@ void main() {
       feature: FeatureId.grades,
       refreshHomeAfter: false,
     );
-    expect(controller.sessionRecoveryStatus, SessionRecoveryStatus.unavailable);
+    // 单个领域暂不可用只记在该领域上，账号主会话仍就绪。
+    expect(
+      controller.recoveryStatusFor(FeatureId.grades),
+      SessionRecoveryStatus.unavailable,
+    );
+    expect(controller.sessionRecoveryStatus, SessionRecoveryStatus.ready);
     backend.fail = false;
     await tester.pump(const Duration(seconds: 30));
     await tester.pumpAndSettle();

@@ -23,13 +23,13 @@ void main() {
         UbaaMainShell shell() =>
             tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
         expect(find.text('合成签到'), findsOneWidget);
-        final source = shell().homeSnapshots![FeatureId.signin]!;
+        final source = shell().homeState!.sources[FeatureId.signin]!;
         final received = backend.projections;
         backend.waiting = Completer<void>();
         shell().onRoutePolicyChanged(to);
         await backend.started.future;
         await tester.pump();
-        expect(shell().onProjectHomeTodos, isNull);
+        expect(shell().homeState!.projected, isFalse);
         expect(find.text('合成签到'), findsNothing);
         expect(backend.projections, received, reason: '切换窗口不进入纯投影后端');
         if (fails) {
@@ -40,31 +40,25 @@ void main() {
           backend.waiting!.complete();
         }
         await tester.pumpAndSettle();
-        expect(shell().onProjectHomeTodos, isNotNull);
+        expect(shell().homeState!.projected, isTrue);
         expect(
-          identical(shell().homeSnapshots![FeatureId.signin], source),
+          identical(shell().homeState!.sources[FeatureId.signin], source),
           isTrue,
         );
         expect(backend.projections, greaterThan(received), reason: '来源未变也恢复投影');
         final keepsSource = fails || to == RoutePolicy.auto;
         expect(find.text('合成签到'), keepsSource ? findsOneWidget : findsNothing);
-        final old = await shell().onProjectHomeTodos!(
-          HomeTodoRequest(
-            snapshots: {FeatureId.signin: source},
-            now: DateTime.now(),
-          ),
+        expect(
+          shell().homeState!.todos.every((todo) => todo.signinAction == null),
+          isTrue,
         );
-        expect(old.todos.every((todo) => todo.signinAction == null), isTrue);
         await shell().onRetryFeature(FeatureId.signin);
         await tester.pumpAndSettle();
         expect(find.text('合成签到'), findsOneWidget);
-        final fresh = await shell().onProjectHomeTodos!(
-          HomeTodoRequest(
-            snapshots: shell().homeSnapshots!,
-            now: DateTime.now(),
-          ),
+        expect(
+          shell().homeState!.todos.single.signinAction?.scheduleId,
+          'synthetic-target',
         );
-        expect(fresh.todos.single.signinAction?.scheduleId, 'synthetic-target');
         expect(tester.takeException(), isNull);
         await tester.pumpWidget(const SizedBox());
       });

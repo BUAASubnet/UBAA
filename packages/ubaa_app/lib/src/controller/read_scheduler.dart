@@ -6,6 +6,8 @@ enum ReadPriority { writeReadback, urgent, interactive, home, background }
 /// 共享业务状态的读取组；未指定分组的任务独占调度器。
 enum ReadLane { academic, signin, spoc, judge, ygdk, bykc, cgyy, profile }
 
+enum ReadOperation { authentication, read }
+
 enum ReadSchedulerTraceKind { queued, started, completed, cancelled }
 
 final class ReadSchedulerTrace {
@@ -15,12 +17,16 @@ final class ReadSchedulerTrace {
     required this.atUs,
     required this.waitUs,
     required this.runUs,
+    this.lane,
+    this.operation = ReadOperation.read,
   });
   final ReadSchedulerTraceKind kind;
   final ReadPriority priority;
   final int atUs;
   final int waitUs;
   final int runUs;
+  final ReadLane? lane;
+  final ReadOperation operation;
 }
 
 /// 合并的同一读取共享需求；只能提高尚未发送批次的优先级。
@@ -49,6 +55,7 @@ final class _ReadJob {
     this.demand,
     this.queuedAtUs,
     this.lane,
+    this.operation,
   );
   final ReadPriority initialPriority;
   final ReadDemand? demand;
@@ -59,6 +66,7 @@ final class _ReadJob {
   final void Function() cancel;
   final int queuedAtUs;
   final ReadLane? lane;
+  final ReadOperation operation;
 }
 
 /// 不同业务有限并发，同组和未分组操作串行；每批必须在 Core 安全边界结束。
@@ -88,6 +96,7 @@ final class ReadScheduler {
     bool continuation = false,
     ReadDemand? demand,
     ReadLane? lane,
+    ReadOperation kind = ReadOperation.read,
   }) {
     final completion = Completer<T>();
     if (_closed) return Future.error(const ReadCancelled());
@@ -95,6 +104,8 @@ final class ReadScheduler {
     _trace(
       ReadSchedulerTrace(
         kind: ReadSchedulerTraceKind.queued,
+        lane: lane,
+        operation: kind,
         priority: priority,
         atUs: queuedAtUs,
         waitUs: 0,
@@ -126,6 +137,7 @@ final class ReadScheduler {
         demand,
         queuedAtUs,
         lane,
+        kind,
       ),
     );
     pump();
@@ -140,6 +152,8 @@ final class ReadScheduler {
         _trace(
           ReadSchedulerTrace(
             kind: ReadSchedulerTraceKind.cancelled,
+            lane: job.lane,
+            operation: job.operation,
             priority: job.priority,
             atUs: cancelledAtUs,
             waitUs: (cancelledAtUs - job.queuedAtUs).clamp(0, 1 << 62),
@@ -191,6 +205,8 @@ final class ReadScheduler {
     _trace(
       ReadSchedulerTrace(
         kind: ReadSchedulerTraceKind.started,
+        lane: selected.lane,
+        operation: selected.operation,
         priority: selected.priority,
         atUs: startedAtUs,
         waitUs: (startedAtUs - selected.queuedAtUs).clamp(0, 1 << 62),
@@ -203,6 +219,8 @@ final class ReadScheduler {
         _trace(
           ReadSchedulerTrace(
             kind: ReadSchedulerTraceKind.completed,
+            lane: selected.lane,
+            operation: selected.operation,
             priority: selected.priority,
             atUs: completedAtUs,
             waitUs: (startedAtUs - selected.queuedAtUs).clamp(0, 1 << 62),

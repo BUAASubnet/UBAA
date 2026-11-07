@@ -45,8 +45,9 @@ void main() {
         credentialVault: MemoryCredentialVault(),
       ),
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('今天没有课程安排'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.byTooltip('打开课表'));
     Future<void> loadingFrames() async {
       for (var i = 0; i < 8; i++) {
         await tester.pump(const Duration(milliseconds: 16));
@@ -87,8 +88,9 @@ void main() {
     ]);
     final before = backend.calls.length;
     await tester.tap(find.byTooltip('返回'));
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('今天没有课程安排'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.byTooltip('打开课表'));
     await tester.pumpAndSettle();
     expect(find.text('合成课程1'), findsOneWidget);
     expect(backend.calls.length, before);
@@ -105,8 +107,9 @@ void main() {
         credentialVault: MemoryCredentialVault(),
       ),
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('今天没有课程安排'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.byTooltip('打开课表'));
     await tester.pumpAndSettle();
     expect(backend.scheduleReads, isEmpty);
     backend.failOptions = null;
@@ -125,15 +128,16 @@ void main() {
         credentialVault: MemoryCredentialVault(),
       ),
     );
-    await tester.pumpAndSettle();
-    await tester.tap(find.text('今天没有课程安排'));
+    await tester.pump();
+    await tester.pump(const Duration(milliseconds: 500));
+    await tester.tap(find.byTooltip('打开课表'));
     await tester.pump();
     await tester.pump(const Duration(milliseconds: 100));
     await tester.tap(find.byTooltip('选择学期'));
     await tester.pump();
     backend.terms.complete();
     await tester.pump(const Duration(milliseconds: 350));
-    await tester.tap(find.widgetWithText(TextButton, '取消'));
+    await tester.tap(find.widgetWithText(OutlinedButton, '取消'));
     await tester.pumpAndSettle();
     expect(find.text('合成课程1'), findsOneWidget);
     expect(backend.scheduleReads.map((q) => (q.term, q.week)), [

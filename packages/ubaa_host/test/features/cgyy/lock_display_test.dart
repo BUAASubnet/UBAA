@@ -24,7 +24,7 @@ void main() {
         await tester.pumpAndSettle();
         await tester.tap(find.text('研讨室预约').first);
         await tester.pumpAndSettle();
-        await tester.tap(find.text('查看密码').first);
+        await tester.tap(find.byTooltip('查看密码'));
         await tester.pump();
         await tester.pump();
         expect(backend.sessions, hasLength(1));

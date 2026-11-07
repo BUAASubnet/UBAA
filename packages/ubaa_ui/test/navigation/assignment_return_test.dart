@@ -1,3 +1,4 @@
+import '../support/home_shell_harness.dart';
 import '../support/home_todos.dart';
 import 'package:ubaa_ui/src/features/coursework/assignment_content.dart'
     show AssignmentCard;
@@ -165,23 +166,25 @@ class _HarnessState extends State<_Harness> {
   }
 
   @override
-  Widget build(BuildContext context) => UbaaMainShell(
-    onProjectHomeTodos: homeTodoFixture,
-    user: const UserSummary(username: 'synthetic'),
-    snapshots: {
-      for (final feature in FeatureId.values)
-        feature: feature == widget.feature
-            ? snapshot
-            : FeatureSnapshot(feature: feature),
-    },
-    routePolicy: RoutePolicy.auto,
-    telemetryEnabled: false,
-    onRefresh: () async {},
-    onRetryFeature: (feature) => query(feature, const FeatureQuery()),
-    onFeatureQuery: query,
-    onLogout: () async {},
-    onLogoutAndClearAccount: () async {},
-    onRoutePolicyChanged: (_) {},
-    onTelemetryChanged: (_) {},
+  Widget build(BuildContext context) => HomeShellHarness(
+    project: homeTodoFixture,
+    child: UbaaMainShell(
+      user: const UserSummary(username: 'synthetic'),
+      snapshots: {
+        for (final feature in FeatureId.values)
+          feature: feature == widget.feature
+              ? snapshot
+              : FeatureSnapshot(feature: feature),
+      },
+      routePolicy: RoutePolicy.auto,
+      telemetryEnabled: false,
+      onRefresh: () async {},
+      onRetryFeature: (feature) => query(feature, const FeatureQuery()),
+      onFeatureQuery: query,
+      onLogout: () async {},
+      onLogoutAndClearAccount: () async {},
+      onRoutePolicyChanged: (_) {},
+      onTelemetryChanged: (_) {},
+    ),
   );
 }

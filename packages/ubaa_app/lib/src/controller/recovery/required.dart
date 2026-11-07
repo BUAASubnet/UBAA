@@ -62,6 +62,12 @@ mixin ControllerRequiredRecovery on ControllerState {
       () => RequiredSessionRecovery(
         backend: backend,
         credentials: internalCredentialVault,
+        beforeSharedRebind: () {
+          if (internalActiveRecovery case final request?) {
+            request.replacedAllRoutes = true;
+            internalInvalidateReadPlansAfterLogin(request);
+          }
+        },
         rebuildBackend: internalLocalAccountStore is SecureLocalAccountStore
             ? (_) async => throw const BackendException(
                 UbaaErrorCode.operationConflict,
@@ -91,6 +97,9 @@ mixin ControllerRequiredRecovery on ControllerState {
                 !internalAutomaticCredentialBlocked &&
                 !internalAutomaticLoginDisabled &&
                 !internalManualAuthenticationRequired,
+            publishReusedSession:
+                internalActiveRecovery?.targetOnly != true ||
+                internalActiveRecovery?.refreshHomeAfter == true,
             isCurrent: current,
           )
         : RecoveryScope(

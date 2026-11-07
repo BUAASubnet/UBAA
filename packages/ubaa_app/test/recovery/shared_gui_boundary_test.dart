@@ -49,7 +49,7 @@ class _SettingsBackend extends _Backend implements RouteSettingsBackend {
   @override
   Future<BackendRouteSettings> routeSettings() async {
     calls++;
-    if (calls == 2) {
+    if (calls == 3) {
       entered.complete();
       await release.future;
     }

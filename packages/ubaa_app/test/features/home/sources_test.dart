@@ -122,7 +122,7 @@ void _registerHomeSourceTests() {
     addTearDown(controller.dispose);
     await controller.initialize();
     final a = controller.loadHomeSupplement(HomeSupplement.cgyyOrders);
-    await controller.refreshHome(only: [FeatureId.grades]);
+    await controller.refreshHome();
     backend.pending = fresh;
     final b = controller.loadHomeSupplement(HomeSupplement.cgyyOrders);
     old.complete(const FeatureResult.empty());

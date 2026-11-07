@@ -1,7 +1,6 @@
 import 'dart:async';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart' show mapEquals;
 import 'package:ubaa_domain/ubaa_domain.dart';
 import 'package:ubaa_ui/src/theme.dart';
 import '../common/section.dart';
@@ -16,147 +15,63 @@ import '../shared/refresh.dart' show PullToRefresh;
 class HomeView extends StatefulWidget {
   const HomeView({
     super.key,
-    required this.user,
-    required this.snapshots,
+    required this.state,
     required this.onFeatureTap,
     required this.onRetryFeature,
     required this.onRefresh,
     required this.visible,
-    required this.cacheEpoch,
-    this.businessCacheEpoch = 0,
     required this.onTodoTap,
-    this.onLoadSupplement,
-    this.onLoadDaySchedule,
+    this.onVisibilityChanged,
     this.onSignin,
-    this.reminderSettings,
     this.onObserveProgress,
     this.gradeScoreNotice,
     this.gradeCheckRoute,
-    this.onCheckGradeUpdates,
     this.onOpenGradeNotice,
     this.onDismissGradeNotice,
     this.writeReadbackNotice,
     this.homeClock,
-    this.onProjectTodos,
     this.onViewAllTodos,
-    this.agendaEpoch = 0,
     this.recentFeatures = const [],
-    this.onSyncStatus,
     this.onPullRefresh,
-    this.deferSupplements = false,
   });
-  final Clock? homeClock;
-  final HomeTodoReader? onProjectTodos;
-  final VoidCallback? onViewAllTodos;
-  final int agendaEpoch;
-  final List<FeatureId> recentFeatures;
-
-  /// 上报首页全部来源（含博雅已选、研讨室订单）是否刷新中及最早更新时间，供标题栏显示。
-  final void Function(bool busy, DateTime? updatedAt)? onSyncStatus;
-
-  /// 包装下拉触发的刷新，让外层知道这次刷新已有下拉指示器。
-  final Future<void> Function(Future<void> Function() refresh)? onPullRefresh;
-
-  /// 会话恢复期间暂缓补充来源，等首页刷新一起开始，避免排队后被刷新取消再重排。
-  final bool deferSupplements;
-  final Widget? writeReadbackNotice;
-  final GradeScoreNotice? gradeScoreNotice;
-  final ConnectionMode? gradeCheckRoute;
-  final Future<void> Function()? onCheckGradeUpdates;
-  final VoidCallback? onOpenGradeNotice, onDismissGradeNotice;
-  final UserSummary? user;
-  final Map<FeatureId, FeatureSnapshot> snapshots;
+  final HomeState state;
+  final ValueChanged<bool>? onVisibilityChanged;
   final ValueChanged<FeatureId> onFeatureTap;
   final Future<void> Function(FeatureId) onRetryFeature;
   final Future<void> Function() onRefresh;
   final bool visible;
-  final int cacheEpoch;
-  final int businessCacheEpoch;
   final ValueChanged<HomeTodo> onTodoTap;
   final Future<WriteOutcome?> Function(SigninPerformAction)? onSignin;
-  final Future<FeatureResult> Function(HomeSupplement, bool)? onLoadSupplement;
-  final Future<FeatureResult> Function(String, bool)? onLoadDaySchedule;
-  final YgdkReminderSettings? reminderSettings;
   final void Function(WeekPresentation, YgdkOverview)? onObserveProgress;
+  final GradeScoreNotice? gradeScoreNotice;
+  final ConnectionMode? gradeCheckRoute;
+  final VoidCallback? onOpenGradeNotice, onDismissGradeNotice, onViewAllTodos;
+  final Widget? writeReadbackNotice;
+  final Clock? homeClock;
+  final List<FeatureId> recentFeatures;
+  final Future<void> Function(Future<void> Function() refresh)? onPullRefresh;
   @override
   State<HomeView> createState() => HomeViewState();
 }
 
 class HomeViewState extends State<HomeView> {
-  /// 首页显示的全部来源；应用层刷新前 6 项，博雅与研讨室由本页作为补充来源读取。
-  static const _syncedFeatures = [
-    FeatureId.schedule,
-    FeatureId.signin,
-    FeatureId.spoc,
-    FeatureId.judge,
-    FeatureId.ygdk,
-    FeatureId.exam,
-    FeatureId.bykc,
-    FeatureId.cgyy,
-  ];
-  (bool, DateTime?)? _reportedSync;
-
-  /// 下拉、标题栏按钮或快捷键刷新：应用层来源、待办补充来源和当前周一起强制重读。
-  /// 主来源先推进读取代次，再发出补充请求，避免新请求立即被旧代次取消。
-  ///
-  /// 全部来源都拿到可显示结果（只剩希冀等后台补全细节）即视为刷新完成，
-  /// 下拉指示器不再等待后台补全结束。
-  Future<void> refresh() {
-    final settled = Completer<void>();
-    _refreshSettled = settled;
-    _sawBusy = false;
-    final core = widget.onRefresh();
-    final supplements = Future.wait([
-      _load(HomeSupplement.bykcChosen, force: true),
-      _load(HomeSupplement.cgyyOrders, force: true),
-      _load(HomeSupplement.currentWeek, force: true),
-    ]);
-    return Future.wait([
-      supplements,
-      Future.any([core, settled.future]),
-    ]).whenComplete(() {
-      if (identical(_refreshSettled, settled)) _refreshSettled = null;
-    });
+  void _reportVisibility() => WidgetsBinding.instance.addPostFrameCallback((_) {
+    if (mounted) widget.onVisibilityChanged?.call(widget.visible);
+  });
+  @override
+  void initState() {
+    super.initState();
+    _reportVisibility();
   }
 
-  Completer<void>? _refreshSettled;
-  bool _sawBusy = false;
-
-  void _reportSync(Map<FeatureId, FeatureSnapshot> sources) {
-    final report = widget.onSyncStatus;
-
-    var busy = false;
-    DateTime? oldest;
-    for (final feature in _syncedFeatures) {
-      final snapshot = sources[feature];
-      if (snapshot == null) continue;
-      // 已发布首批结果、后台补全细节时不算刷新中。
-      busy |=
-          snapshot.status == FeatureLoadStatus.loading && !snapshot.refining;
-      final at = snapshot.updatedAt;
-      if (at != null && (oldest == null || at.isBefore(oldest))) oldest = at;
-    }
-    // 刷新开始后先见到“刷新中”，再变为不忙，才算本次刷新已出结果。
-    if (_refreshSettled case final settled? when !settled.isCompleted) {
-      final coreBusy = _syncedFeatures.take(6).any((feature) {
-        final snapshot = sources[feature];
-        return snapshot?.status == FeatureLoadStatus.loading &&
-            !(snapshot?.refining ?? false);
-      });
-      if (coreBusy) {
-        _sawBusy = true;
-      } else if (_sawBusy) {
-        settled.complete();
-      }
-    }
-    final next = (busy, oldest);
-    if (report == null || next == _reportedSync) return;
-    _reportedSync = next;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (mounted && _reportedSync == next) report(busy, oldest);
-    });
+  @override
+  void didUpdateWidget(covariant HomeView oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.visible != widget.visible) _reportVisibility();
   }
 
+  Future<void> refresh() => widget.onRefresh();
+  DateTime get _now => widget.state.now;
   String? _signingTodo;
   final _completedSignins = <String>{};
   final _uncertainSignins = <String>{};
@@ -164,12 +79,10 @@ class HomeViewState extends State<HomeView> {
       '${homeCampusTime(_now).toIso8601String().split('T').first}:${item.id}';
 
   Future<void> _signin(HomeTodo item) async {
-    if (_signingTodo != null || widget.onProjectTodos == null) return;
+    if (_signingTodo != null) return;
     final currentTime = (widget.homeClock ?? clock).now();
     if (homeDateKey(homeCampusTime(currentTime)) !=
         homeDateKey(homeCampusTime(_now))) {
-      setState(() => _now = currentTime);
-      unawaited(_projectTodos());
       await _refreshSignin(item);
       return;
     }
@@ -201,7 +114,7 @@ class HomeViewState extends State<HomeView> {
     try {
       await widget.onRetryFeature(FeatureId.signin);
       if (mounted &&
-          widget.snapshots[FeatureId.signin]?.status ==
+          widget.state.sources[FeatureId.signin]?.status ==
               FeatureLoadStatus.success) {
         setState(() => _uncertainSignins.remove(_signinKey(item)));
       }
@@ -210,304 +123,19 @@ class HomeViewState extends State<HomeView> {
     }
   }
 
-  HomeScheduleRoute? _calendarRoute;
-  final _supplements = <HomeSupplement, FeatureResult>{};
-  final _loading = <HomeSupplement>{};
-  final _pending = <HomeSupplement, Future<void>>{};
-  int _generation = 0;
-  int _projectionGeneration = 0;
-  Object? _projectionFailure;
-  Map<FeatureId, FeatureSnapshot> _lastSnapshots = const {};
-  List<HomeTodo> _todos = const [];
-
-  /// 本页是否已算出过一次待办；之前没有结果不等于没有待办。
-  bool _projected = false;
-  bool uiScheduled = false;
-  int? _gradeCheckEpoch;
-  late final Timer _clock;
-  late DateTime _now = (widget.homeClock ?? clock).now();
-  @override
-  void initState() {
-    super.initState();
-    _lastSnapshots = Map.of(widget.snapshots);
-    unawaited(_projectTodos());
-    _clock = Timer.periodic(const Duration(minutes: 1), (_) {
-      if (mounted && widget.visible) {
-        setState(() => _now = (widget.homeClock ?? clock).now());
-        unawaited(_projectTodos());
-      }
-    });
-  }
-
-  @override
-  void didUpdateWidget(covariant HomeView old) {
-    super.didUpdateWidget(old);
-    if (old.businessCacheEpoch != widget.businessCacheEpoch) {
-      // 本机缓存被清理：在途结果和已显示内容都作废。
-      _generation++;
-      _todos = const [];
-      _projected = false;
-      _supplements.clear();
-      _loading.clear();
-      _pending.clear();
-    } else if (old.cacheEpoch != widget.cacheEpoch) {
-      // 读取代次变化（如首页刷新开始）：在途请求刚发出，结果继续采用，避免启动时整轮重发；
-      // 未在途的来源保留旧内容并重新读取。换账号时 Shell 会重建本页，不走这里。
-      final idle = HomeSupplement.values
-          .where((s) => !_loading.contains(s))
-          .toList();
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted || !widget.visible || widget.deferSupplements) return;
-        for (final source in idle) {
-          if (!_loading.contains(source)) unawaited(_load(source));
-        }
-      });
-    }
-    if (!old.visible && widget.visible)
-      _now = (widget.homeClock ?? clock).now();
-    if (old.cacheEpoch != widget.cacheEpoch ||
-        old.businessCacheEpoch != widget.businessCacheEpoch ||
-        old.agendaEpoch != widget.agendaEpoch ||
-        (old.onProjectTodos == null) != (widget.onProjectTodos == null) ||
-        old.reminderSettings != widget.reminderSettings ||
-        !mapEquals(_lastSnapshots, widget.snapshots) ||
-        (!old.visible && widget.visible)) {
-      _lastSnapshots = Map.of(widget.snapshots);
-      unawaited(_projectTodos());
-    }
-  }
-
-  @override
-  void dispose() {
-    _clock.cancel();
-    super.dispose();
-  }
-
-  void _scheduleLoads() {
-    if (uiScheduled ||
-        !widget.visible ||
-        widget.deferSupplements ||
-        widget.onLoadSupplement == null)
-      return;
-    final needed = HomeSupplement.values
-        .where((s) => !_supplements.containsKey(s) && !_loading.contains(s))
-        .toList();
-    if (needed.isEmpty) return;
-    uiScheduled = true;
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      uiScheduled = false;
-      if (mounted && widget.visible && !widget.deferSupplements) {
-        for (final source in needed) {
-          unawaited(_load(source));
-        }
-      }
-    });
-  }
-
-  Future<void> _load(HomeSupplement source, {bool force = false}) {
-    final pending = _pending[source];
-    if (pending != null) return pending;
-    late final Future<void> task;
-    task = _readSupplement(source, force: force).whenComplete(() {
-      if (identical(_pending[source], task)) _pending.remove(source);
-    });
-    _pending[source] = task;
-    return task;
-  }
-
-  Future<void> _readSupplement(
-    HomeSupplement source, {
-    bool force = false,
-  }) async {
-    final load = widget.onLoadSupplement;
-    if (load == null) return;
-    final generation = _generation;
-    final epoch = widget.cacheEpoch;
-    setState(() => _loading.add(source));
-    FeatureResult result;
-    try {
-      result = await load(source, force);
-    } on Object {
-      result = const FeatureResult.failure(
-        UiError(
-          code: UbaaErrorCode.internalError,
-          title: '读取失败',
-          message: '待办来源读取失败',
-        ),
-      );
-    }
-    if (!mounted || generation != _generation) return;
-    if (result.error != null && epoch != widget.cacheEpoch) {
-      // 读取代次在途中变化导致的取消或失败不显示，直接按新代次重读。
-      setState(() => _loading.remove(source));
-      if ((widget.visible || _refreshSettled != null) &&
-          !widget.deferSupplements) {
-        await _readSupplement(source, force: force || _refreshSettled != null);
-      }
-      return;
-    }
-    setState(() {
-      _loading.remove(source);
-      final previous = _supplements[source];
-      _supplements[source] =
-          result.error != null &&
-              result.details.isEmpty &&
-              previous != null &&
-              (previous.details.isNotEmpty ||
-                  previous.overview != null ||
-                  previous.evidence != null)
-          ? FeatureResult.partial(
-              error: result.error!,
-              details: previous.details,
-              overview: previous.overview,
-              pagination: previous.pagination,
-              resolvedRoute: previous.resolvedRoute,
-              evidence: previous.evidence,
-            )
-          : result;
-    });
-    unawaited(_projectTodos());
-  }
-
-  Map<FeatureId, FeatureSnapshot> _sources() {
-    final sources = Map<FeatureId, FeatureSnapshot>.of(widget.snapshots);
-    for (final (source, feature, view) in [
-      (
-        HomeSupplement.bykcChosen,
-        FeatureId.bykc,
-        FeatureQueryView.bykcChosenCourses,
-      ),
-      (HomeSupplement.cgyyOrders, FeatureId.cgyy, FeatureQueryView.cgyyOrders),
-    ]) {
-      final result = _supplements[source];
-      final saved = sources[feature];
-      if (saved?.evidence != null &&
-          saved?.readContext?.query?.view == view &&
-          (result == null ||
-              (result.error != null &&
-                  result.details.isEmpty &&
-                  result.overview == null))) {
-        sources[feature] = saved!.copyWith(
-          status: _loading.contains(source)
-              ? FeatureLoadStatus.loading
-              : FeatureLoadStatus.stale,
-          error: result?.error,
-          clearError: result?.error == null,
-        );
-        continue;
-      }
-      sources[feature] = FeatureSnapshot(
-        feature: feature,
-        status: _loading.contains(source)
-            ? FeatureLoadStatus.loading
-            : result == null
-            ? FeatureLoadStatus.idle
-            : result.error != null
-            ? (result.details.isNotEmpty || result.overview != null
-                  ? FeatureLoadStatus.stale
-                  : FeatureLoadStatus.failure)
-            : result.evidence?.complete == false ||
-                  result.evidence?.origin == DataOrigin.persisted
-            ? FeatureLoadStatus.stale
-            : result.isEmpty
-            ? FeatureLoadStatus.empty
-            : FeatureLoadStatus.success,
-        details: result?.details ?? const [],
-        overview: result?.overview,
-        evidence: result?.evidence,
-        updatedAt:
-            result?.evidence?.fetchedAt ??
-            (result != null && result.error == null ? _now : null),
-        error: result?.error,
-        resolvedRoute: result?.resolvedRoute,
-        pagination: result?.pagination,
-        readContext: FeatureReadContext(
-          requestRevision: widget.cacheEpoch,
-          query: FeatureQuery(view: view),
-        ),
-      );
-    }
-    return sources;
-  }
-
-  Future<void> _projectTodos() async {
-    final generation = ++_projectionGeneration;
-    _todos = _todos.map((v) => v.withoutSigninAction()).toList();
-    final reader = widget.onProjectTodos;
-    // 会话恢复等过渡期间宿主暂停投影：保留已显示的待办（签到按钮已在上面去掉），
-    // 恢复后重新投影再替换，首页不因过渡清空又重现。
-    if (reader == null) return;
-    final time = _now;
-    final weeks =
-        _supplements[HomeSupplement.currentWeek]?.details
-            .map((d) => d.presentation)
-            .whereType<WeekPresentation>()
-            .toList() ??
-        [];
-    try {
-      final value = await reader(
-        HomeTodoRequest(
-          snapshots: _sources(),
-          now: _now,
-          currentWeek: weeks.length == 1 ? weeks.single : null,
-          currentWeekRoute:
-              _supplements[HomeSupplement.currentWeek]?.resolvedRoute,
-          reminder:
-              widget.reminderSettings ??
-              const YgdkReminderSettings(enabled: false),
-        ),
-      );
-      if (!mounted || generation != _projectionGeneration) return;
-      if (homeDateKey(homeCampusTime((widget.homeClock ?? clock).now())) !=
-          homeDateKey(homeCampusTime(time))) {
-        _now = (widget.homeClock ?? clock).now();
-        unawaited(_projectTodos());
-        return;
-      }
-      setState(() {
-        _todos = value.todos;
-        _projected = true;
-        _projectionFailure = value.overlayFailure;
-      });
-    } on Object catch (e) {
-      if (!mounted || generation != _projectionGeneration) return;
-      setState(() {
-        _todos = const [];
-        _projected = true;
-        _projectionFailure = e;
-      });
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    _scheduleLoads();
-    if (widget.visible &&
-        widget.onCheckGradeUpdates != null &&
-        _gradeCheckEpoch != widget.cacheEpoch) {
-      final epoch = widget.cacheEpoch;
-      _gradeCheckEpoch = epoch;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (mounted && widget.visible && widget.cacheEpoch == epoch) {
-          unawaited(widget.onCheckGradeUpdates!());
-        } else if (mounted && _gradeCheckEpoch == epoch) {
-          _gradeCheckEpoch = null;
-        }
-      });
-    }
-    final schedule = widget.snapshots[FeatureId.schedule]!;
     final campusNow = homeCampusTime(_now);
-    final sources = _sources();
-    _reportSync(sources);
+    final sources = widget.state.sources;
 
     final weeks =
-        _supplements[HomeSupplement.currentWeek]?.details
+        widget.state.week?.details
             .map((d) => d.presentation)
             .whereType<WeekPresentation>()
             .toList() ??
         [];
     final week = weeks.length == 1 ? weeks.single : null;
-    final tasks = _todos
+    final tasks = widget.state.todos
         .where((task) => !_completedSignins.contains(_signinKey(task)))
         .toList();
     final overview = sources[FeatureId.ygdk]?.overview;
@@ -541,17 +169,10 @@ class HomeViewState extends State<HomeView> {
         )
         .toList();
     final courseSection = HomeScheduleSection(
-      today: schedule,
-      weekResult: _supplements[HomeSupplement.currentWeek],
+      state: widget.state.schedule,
+      weekResult: widget.state.week,
       now: campusNow,
-      visible: widget.visible,
-      epoch: widget.cacheEpoch,
-      businessEpoch: widget.businessCacheEpoch,
-      onLoadDay: widget.onLoadDaySchedule,
-      onRoute: (value) {
-        if (mounted && value != _calendarRoute)
-          setState(() => _calendarRoute = value);
-      },
+      onRetry: () => widget.onRetryFeature(FeatureId.schedule),
       onOpenSchedule: () => widget.onFeatureTap(FeatureId.schedule),
       trailing: widget.recentFeatures.isEmpty
           ? null
@@ -610,9 +231,7 @@ class HomeViewState extends State<HomeView> {
         ),
         // 首次加载才占位；刷新时保留已有结果，进度只在标题栏右侧显示。
         // 还没算出过待办（如启动时等待会话恢复）时同样占位，不先说“没有待办”。
-        if (tasks.isEmpty &&
-            !_projected &&
-            (widget.onProjectTodos != null || widget.deferSupplements))
+        if (tasks.isEmpty && !widget.state.projected)
           const LoadingPlaceholder(compact: true)
         else if (tasks.isEmpty &&
             loading.isNotEmpty &&
@@ -631,7 +250,7 @@ class HomeViewState extends State<HomeView> {
               child: Text(failed.isNotEmpty ? '暂无近期待办' : '当前没有待办'),
             ),
           ),
-        if (_projectionFailure != null)
+        if (widget.state.projectionFailure != null)
           const Padding(
             padding: EdgeInsets.only(top: 8),
             child: Text('完成状态暂时无法显示，请刷新'),
@@ -665,11 +284,7 @@ class HomeViewState extends State<HomeView> {
                       ),
                       onPressed: () => Future.wait([
                         for (final feature in failed)
-                          feature == FeatureId.bykc
-                              ? _load(HomeSupplement.bykcChosen, force: true)
-                              : feature == FeatureId.cgyy
-                              ? _load(HomeSupplement.cgyyOrders, force: true)
-                              : widget.onRetryFeature(feature),
+                          widget.onRetryFeature(feature),
                       ]),
                       child: const Text('重试'),
                     ),
@@ -687,16 +302,12 @@ class HomeViewState extends State<HomeView> {
                 padding: const EdgeInsets.only(top: 8),
                 child: Text('${uiHomeFeatureLabel(feature)}：$message'),
               ),
-        if (_supplements[HomeSupplement.currentWeek] case final result?
-            when result.error != null &&
-                !_loading.contains(HomeSupplement.currentWeek))
+        if (widget.state.week case final result?
+            when result.error != null && !widget.state.busy)
           Row(
             children: [
               const Expanded(child: Text('当前周次未确定，暂不显示阳光打卡提醒')),
-              TextButton(
-                onPressed: () => _load(HomeSupplement.currentWeek, force: true),
-                child: const Text('重试'),
-              ),
+              TextButton(onPressed: widget.onRefresh, child: const Text('重试')),
             ],
           ),
       ],

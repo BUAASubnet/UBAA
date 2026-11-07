@@ -1,10 +1,10 @@
+import '../../support/home_harness.dart';
 import 'dart:async';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
 import '../../support/write_harness.dart';
-import 'package:ubaa_ui/src/app/home.dart';
 
 void main() {
   testWidgets('午夜后尚未触发分钟刷新时点击旧签到先刷新，禁止交付旧动作', (tester) async {
@@ -13,7 +13,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: HomeView(
+          body: HomeHarness(
             user: null,
             visible: true,
             cacheEpoch: 0,

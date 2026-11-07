@@ -1,3 +1,4 @@
+import '../../support/home_harness.dart';
 import '../../support/home_todos.dart';
 import 'dart:async';
 import 'package:clock/clock.dart';
@@ -5,7 +6,6 @@ import 'package:ubaa_ui/src/features/home/schedule.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'package:ubaa_ui/src/app/home.dart';
 import 'package:ubaa_ui/src/shared/loading.dart';
 
 void main() {
@@ -154,7 +154,7 @@ void main() {
     await tester.pumpWidget(
       MaterialApp(
         home: Scaffold(
-          body: HomeView(
+          body: HomeHarness(
             onProjectTodos: homeTodoFixture,
             user: null,
             visible: true,
@@ -245,7 +245,7 @@ Future<void> calendar(
     MaterialApp(
       home: Scaffold(
         body: SingleChildScrollView(
-          child: HomeScheduleSection(
+          child: HomeCalendarHarness(
             today: FeatureSnapshot(
               feature: FeatureId.schedule,
               status: empty

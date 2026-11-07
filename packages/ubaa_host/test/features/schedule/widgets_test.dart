@@ -24,7 +24,7 @@ void main() {
     await accounts.settle(tester);
     expect(gateway.owners, contains(owner));
     expect(gateway.published, [owner]);
-    expect(backend.queries, 1);
+    expect(backend.queries, 2); // 首页周次和桌面组件分别读取本地学期范围。
     await tester.pump();
     final shell = tester.widget<UbaaMainShell>(find.byType(UbaaMainShell));
     final logout = shell.onLogout();

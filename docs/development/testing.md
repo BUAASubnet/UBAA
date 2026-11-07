@@ -1,6 +1,6 @@
 # 测试策略与日常入口
 
-当前合同：CLI JSON schema v13；Flutter bridge contract v54。CLI 验证 human/JSON schema v13，版本常量、JSON Schema、Dart 接受版本与现行文档由 `just contract-version-check` 同步检查。旧升级流水见[历史指南](../migration/history/testing-before-2026-10-07.md)。
+当前合同：CLI JSON schema v13；Flutter bridge contract v55。CLI 验证 human/JSON schema v13，版本常量、JSON Schema、Dart 接受版本与现行文档由 `just contract-version-check` 同步检查。旧升级流水见[历史指南](../migration/history/testing-before-2026-10-07.md)。
 
 ## 检查入口
 
@@ -51,6 +51,12 @@
 Golden 保留既有 macOS 基准，变更基准必须审阅实际差异。`ubaa_ui` 的 `flutter_test_config.dart` 允许不超过 0.2% 的像素差异，吸收 CI 与本机的字体抗锯齿差别，可见的颜色、间距和布局变化仍会失败；测试里的固定时钟使用带 `+08:00` 的校园时刻，不随运行机器时区变化。运行媒体遵守 [AGENTS 安全边界](../../AGENTS.md#安全边界)。offline_startup/analyze.py 只保留历史测量材料分析，不再提供已删除 driver 的测量启动器。
 
 ## 首页投影覆盖的归属
+
+首页编排由 App 的 `test/home/` 覆盖缓存首屏、教学周日期选择、投影合并、账号切换与首批完成。UI 的 `home_harness.dart`、`home_shell_harness.dart` 复用生产 `HomeCoordinator`，保留既有日课表、待办、签到、错误重试与导航交互测试。原 UI“先忙后闲即完成刷新”的断言改为等待应用层明确完成信号，首批可展示后后台继续读取的覆盖迁入 `refresh_completion_test.dart`。学期与教学周旧代测试改用整页刷新建立新代，局部重试不影响其他缓存由 `home_parallel_test.dart` 保留。
+
+单项目标恢复测试核对共享账号代次和后端绑定次数不变，主会话重绑仍重新准备旧计划。批次关闭回归覆盖客户端已关闭时的异步收尾。原生本机生命周期替身允许读取本地路线配置，仍拒绝网络入口。课表入口和选择面板、研讨室分段导航、阳光记录翻页与日程重复范围测试使用当前控件，原行为断言保留；课表窄屏大字表头基准图随单行修复更新。
+
+身份复用测试分别验证 Direct/WebVPN 的请求计数、批次结束、旧批次收尾、强制失效、重新登录、路线变化与派生读取撤销。测试计数只证明请求合并，不作为真实网络耗时。
 
 1c-b 移除 Domain 中按来源筛选、排序和判断紧迫的实现。原 `home_todo_test.dart` 的九组学校来源预期迁到原生 `synthetic/cache/home_todo_probe.dart`，通过生产 App 字段适配与真实 FFI 调用 Core。原 `home_calendar_test.dart` 的格式化和 48 小时判断中，业务边界由 Core `agenda::school_tests` 保留，格式化在原生预期中核对。Domain 继续保留课程日历测试。
 

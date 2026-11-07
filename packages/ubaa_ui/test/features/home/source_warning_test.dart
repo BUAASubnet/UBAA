@@ -1,8 +1,8 @@
+import '../../support/home_harness.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
-import 'package:ubaa_ui/src/app/home.dart';
 import 'package:ubaa_ui/src/theme.dart';
 
 void main() {
@@ -17,7 +17,7 @@ void main() {
         MaterialApp(
           theme: dark ? UbaaTheme.dark() : UbaaTheme.light(),
           home: Scaffold(
-            body: HomeView(
+            body: HomeHarness(
               user: null,
               visible: true,
               cacheEpoch: 0,
@@ -79,7 +79,7 @@ void main() {
       MaterialApp(
         home: StatefulBuilder(
           builder: (context, setState) => Scaffold(
-            body: HomeView(
+            body: HomeHarness(
               user: null,
               visible: true,
               cacheEpoch: 0,

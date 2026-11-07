@@ -23,10 +23,16 @@ void main() {
   testWidgets('阳光加载更多追加记录，向上滚动仍保留首批记录', (tester) async {
     final backend = await _mount(tester, state: 'many');
     await tapVisible(tester, find.widgetWithText(Card, FeatureId.ygdk.title));
+    final scroll = find
+        .descendant(
+          of: find.byType(ListView).last,
+          matching: find.byType(Scrollable),
+        )
+        .first;
     await tester.scrollUntilVisible(
       find.text('加载更多'),
       300,
-      scrollable: find.byType(Scrollable).hitTestable().last,
+      scrollable: scroll,
       maxScrolls: 40,
     );
     await tapVisible(tester, find.text('加载更多'));
@@ -34,14 +40,11 @@ void main() {
     await tester.scrollUntilVisible(
       find.text('合成运动记录 40'),
       300,
-      scrollable: find.byType(Scrollable).hitTestable().last,
+      scrollable: scroll,
       maxScrolls: 40,
     );
     expect(find.text('合成运动记录 40'), findsOneWidget);
-    await tester.drag(
-      find.byType(Scrollable).hitTestable().last,
-      const Offset(0, 30000),
-    );
+    await tester.drag(scroll, const Offset(0, 30000));
     await tester.pumpAndSettle();
     expect(find.text('合成运动记录 1'), findsOneWidget);
   });

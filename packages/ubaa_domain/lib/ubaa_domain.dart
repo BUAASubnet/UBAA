@@ -12,6 +12,7 @@ export 'src/feature/schedule/widget_snapshot.dart';
 export 'src/feature/ihome.dart';
 
 export 'src/feature/schedule/home.dart';
+export 'src/feature/home_state.dart';
 
 export 'src/agenda/models.dart';
 export 'src/agenda/school.dart';

@@ -33,8 +33,12 @@ extension UbaaShellSync on _UbaaMainShellState {
       );
     }
     if (_utilityPage == null && _selectedIndex == 0) {
-      // 首页状态由 HomeView 按其显示的全部来源上报，含博雅与研讨室补充来源。
-      return status('home', _homeSync.$1, _homeSync.$2);
+      // App 汇总首页全部来源，含博雅、研讨室和当前展示日期课表。
+      return status(
+        'home',
+        widget.homeState?.busy ?? false,
+        widget.homeState?.updatedAt,
+      );
     }
     if (_onMeTab && widget.campusAccountService != null) {
       final o = _campusOverview;

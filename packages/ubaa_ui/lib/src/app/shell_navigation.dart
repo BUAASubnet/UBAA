@@ -281,10 +281,8 @@ extension UbaaShellNavigation on _UbaaMainShellState {
       joinUiRefresh(_refreshes, key, action);
 
   /// 标题栏按钮与快捷键走首页自身的刷新，补充来源一起重读。
-  Future<void> _refreshHome() => _joinRefresh(
-    'home',
-    () => _homeKey.currentState?.refresh() ?? widget.onRefresh(),
-  );
+  Future<void> _refreshHome() =>
+      _joinRefresh('home', widget.onRefreshHome ?? widget.onRefresh);
 
   Future<void> _importAgendaSchedule() => importAgendaSchedule(
     context,

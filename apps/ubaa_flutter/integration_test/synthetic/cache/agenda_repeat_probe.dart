@@ -108,7 +108,7 @@ Future<void> probeAgendaRepeat(WidgetTester tester, String directory) async {
       await tester.pumpAndSettle();
       await tester.tap(find.text('编辑事项'));
       await tester.pumpAndSettle();
-      await tester.tap(find.widgetWithText(SimpleDialogOption, label));
+      await tester.tap(find.widgetWithText(ListTile, label));
       await tester.pumpAndSettle();
       final day = scope == AgendaEditScope.all ? 6 : 7;
       for (final field in ['start', 'end']) {

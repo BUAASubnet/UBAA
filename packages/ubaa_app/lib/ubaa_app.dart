@@ -9,4 +9,9 @@ export 'src/app_controller.dart';
 export 'src/write_controller.dart';
 export 'src/controller/grade_score_watch.dart';
 export 'src/controller/read_scheduler.dart'
-    show ReadSchedulerTrace, ReadSchedulerTraceKind, ReadPriority;
+    show
+        ReadSchedulerTrace,
+        ReadSchedulerTraceKind,
+        ReadPriority,
+        ReadLane,
+        ReadOperation;

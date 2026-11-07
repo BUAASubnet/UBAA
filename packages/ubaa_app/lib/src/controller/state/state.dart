@@ -233,6 +233,8 @@ abstract class ControllerState extends ControllerOperations {
   @internal
   Future<void> internalOfflineOpenFuture = Future<void>.value();
   @internal
+  Future<int>? internalHomeRecoveryBatch;
+  @internal
   Future<void> internalAgendaOpenFuture = Future<void>.value();
   @internal
   int internalAgendaEpoch = 0;

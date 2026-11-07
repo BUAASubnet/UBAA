@@ -24,6 +24,8 @@ class _LocalOnlyLogoutClient implements BridgeClient {
   @override
   int contractVersion() => _delegate.contractVersion();
   @override
+  Future<BridgeRouteSettings> routeSettings() => _delegate.routeSettings();
+  @override
   Future<void> bindSharedAccount({required BridgeSharedAccount scope}) =>
       _delegate.bindSharedAccount(scope: scope);
   @override

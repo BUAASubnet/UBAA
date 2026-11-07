@@ -140,7 +140,7 @@ class _ScheduleContentState extends State<ScheduleContent> {
                         child: Center(
                           child: Container(
                             padding: const EdgeInsets.symmetric(
-                              horizontal: 6,
+                              horizontal: 2,
                               vertical: 2,
                             ),
                             decoration: index == today
@@ -154,6 +154,8 @@ class _ScheduleContentState extends State<ScheduleContent> {
                               children: [
                                 Text(
                                   label,
+                                  maxLines: 1,
+                                  softWrap: false,
                                   style: TextStyle(
                                     fontSize: 12,
                                     fontWeight: index == today
@@ -165,6 +167,8 @@ class _ScheduleContentState extends State<ScheduleContent> {
                                 if (dates?[index] case final date?)
                                   Text(
                                     _scheduleHeaderDay(date),
+                                    maxLines: 1,
+                                    softWrap: false,
                                     style: TextStyle(
                                       fontSize: 11,
                                       color: index == today

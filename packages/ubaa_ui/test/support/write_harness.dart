@@ -1,4 +1,4 @@
-import 'home_todos.dart';
+import 'home_shell_harness.dart';
 import 'package:flutter/material.dart';
 import 'package:ubaa_app/ubaa_app.dart';
 import 'package:ubaa_domain/ubaa_domain.dart';
@@ -41,8 +41,8 @@ Widget coordinatedShell({
   Key? key,
 }) => _WriteHarness(
   key: key,
+  loadSupplement: onLoadHomeSupplement,
   shell: UbaaMainShell(
-    onProjectHomeTodos: homeTodoFixture,
     user: user,
     snapshots: snapshots,
     routePolicy: routePolicy,
@@ -54,7 +54,6 @@ Widget coordinatedShell({
     onRoutePolicyChanged: onRoutePolicyChanged,
     onTelemetryChanged: onTelemetryChanged,
     initialDestination: initialDestination,
-    onLoadHomeSupplement: onLoadHomeSupplement,
     activeRoutes: activeRoutes,
     onLoadCgyyPurposes: (_) async => const FeatureResult.success(
       details: [
@@ -91,7 +90,8 @@ Widget coordinatedShell({
 );
 
 class _WriteHarness extends StatefulWidget {
-  const _WriteHarness({required this.shell, super.key});
+  const _WriteHarness({required this.shell, this.loadSupplement, super.key});
+  final Future<FeatureResult> Function(HomeSupplement, bool)? loadSupplement;
 
   final UbaaMainShell shell;
 
@@ -135,45 +135,46 @@ class _WriteHarnessState extends State<_WriteHarness> {
     animation: _coordinator,
     builder: (context, _) {
       final shell = widget.shell;
-      return UbaaMainShell(
-        onProjectHomeTodos: homeTodoFixture,
-        user: shell.user,
-        snapshots: shell.snapshots,
-        routePolicy: shell.routePolicy,
-        telemetryEnabled: shell.telemetryEnabled,
-        onRefresh: shell.onRefresh,
-        onRetryFeature: shell.onRetryFeature,
-        onLogout: shell.onLogout,
-        onLogoutAndClearAccount: shell.onLogoutAndClearAccount,
-        onRoutePolicyChanged: shell.onRoutePolicyChanged,
-        onTelemetryChanged: shell.onTelemetryChanged,
-        initialDestination: shell.initialDestination,
-        onLoadHomeSupplement: shell.onLoadHomeSupplement,
-        activeRoutes: shell.activeRoutes,
-        writeState: _coordinator.state,
-        onRunWritePrepare: _coordinator.prepareForUi,
-        onCancelWrite: _coordinator.cancelForUi,
-        onConfirmWrite: _coordinator.confirmForUi,
-        onLoadCgyyPurposes: shell.onLoadCgyyPurposes,
-        onFeatureQuery: shell.onFeatureQuery,
-        onPrepareBykcWrite: shell.onPrepareBykcWrite,
-        onPrepareBykcSignWrite: shell.onPrepareBykcSignWrite,
-        onPrepareSigninWrite: shell.onPrepareSigninWrite,
-        onPrepareCgyyCancelWrite: shell.onPrepareCgyyCancelWrite,
-        onPrepareLibbookReserveWrite: shell.onPrepareLibbookReserveWrite,
-        onPrepareLibbookCancelWrite: shell.onPrepareLibbookCancelWrite,
-        onPrepareCgyySubmitWrite: shell.onPrepareCgyySubmitWrite,
-        onPrepareEvaluationWrite: shell.onPrepareEvaluationWrite,
-        onPrepareYgdkSubmitWrite: shell.onPrepareYgdkSubmitWrite,
-        onPickYgdkPhoto: shell.onPickYgdkPhoto,
-        onCaptureYgdkPhoto: shell.onCaptureYgdkPhoto,
-        onDiscardWriteIntent: shell.onDiscardWriteIntent,
-        onCommitWrite: shell.onCommitWrite,
-        onWriteSuccess: shell.onWriteSuccess,
-        onVerifyCgyyReceipt: shell.onVerifyCgyyReceipt,
-        onVerifyCgyyCancellation: shell.onVerifyCgyyCancellation,
-        onRefreshEvaluationAfterWrite: shell.onRefreshEvaluationAfterWrite,
-        onRefreshYgdkAfterWrite: shell.onRefreshYgdkAfterWrite,
+      return HomeShellHarness(
+        loadSupplement: widget.loadSupplement,
+        child: UbaaMainShell(
+          user: shell.user,
+          snapshots: shell.snapshots,
+          routePolicy: shell.routePolicy,
+          telemetryEnabled: shell.telemetryEnabled,
+          onRefresh: shell.onRefresh,
+          onRetryFeature: shell.onRetryFeature,
+          onLogout: shell.onLogout,
+          onLogoutAndClearAccount: shell.onLogoutAndClearAccount,
+          onRoutePolicyChanged: shell.onRoutePolicyChanged,
+          onTelemetryChanged: shell.onTelemetryChanged,
+          initialDestination: shell.initialDestination,
+          activeRoutes: shell.activeRoutes,
+          writeState: _coordinator.state,
+          onRunWritePrepare: _coordinator.prepareForUi,
+          onCancelWrite: _coordinator.cancelForUi,
+          onConfirmWrite: _coordinator.confirmForUi,
+          onLoadCgyyPurposes: shell.onLoadCgyyPurposes,
+          onFeatureQuery: shell.onFeatureQuery,
+          onPrepareBykcWrite: shell.onPrepareBykcWrite,
+          onPrepareBykcSignWrite: shell.onPrepareBykcSignWrite,
+          onPrepareSigninWrite: shell.onPrepareSigninWrite,
+          onPrepareCgyyCancelWrite: shell.onPrepareCgyyCancelWrite,
+          onPrepareLibbookReserveWrite: shell.onPrepareLibbookReserveWrite,
+          onPrepareLibbookCancelWrite: shell.onPrepareLibbookCancelWrite,
+          onPrepareCgyySubmitWrite: shell.onPrepareCgyySubmitWrite,
+          onPrepareEvaluationWrite: shell.onPrepareEvaluationWrite,
+          onPrepareYgdkSubmitWrite: shell.onPrepareYgdkSubmitWrite,
+          onPickYgdkPhoto: shell.onPickYgdkPhoto,
+          onCaptureYgdkPhoto: shell.onCaptureYgdkPhoto,
+          onDiscardWriteIntent: shell.onDiscardWriteIntent,
+          onCommitWrite: shell.onCommitWrite,
+          onWriteSuccess: shell.onWriteSuccess,
+          onVerifyCgyyReceipt: shell.onVerifyCgyyReceipt,
+          onVerifyCgyyCancellation: shell.onVerifyCgyyCancellation,
+          onRefreshEvaluationAfterWrite: shell.onRefreshEvaluationAfterWrite,
+          onRefreshYgdkAfterWrite: shell.onRefreshYgdkAfterWrite,
+        ),
       );
     },
   );

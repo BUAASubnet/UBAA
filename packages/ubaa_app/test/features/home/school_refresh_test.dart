@@ -24,9 +24,7 @@ void main() {
       backend.termsGate = Completer<void>();
       final refresh = switch (source) {
         '学校日程' => controller.refreshSchoolAgenda(),
-        '首页' => controller.refreshHome(only: [FeatureId.signin]).then((
-          _,
-        ) async {
+        '首页' => controller.refreshHome().then((_) async {
           await controller.loadHomeSupplement(HomeSupplement.currentWeek);
         }),
         _ =>

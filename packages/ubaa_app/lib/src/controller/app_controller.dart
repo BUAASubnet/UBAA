@@ -1,4 +1,5 @@
 import 'dart:async';
+import 'home/presentation.dart';
 import 'agenda/lifecycle.dart';
 import 'state/types.dart' show AppPhase;
 import 'features/ihome/service.dart';
@@ -63,6 +64,7 @@ class AppController extends ControllerState
         ControllerAcademicWeeks,
         ControllerCgyyPurposes,
         ControllerHomeSources,
+        ControllerHomePresentation,
         ControllerGrades,
         ControllerWriteLifecycle,
         ControllerWriteCache,
@@ -90,9 +92,12 @@ class AppController extends ControllerState
         ControllerActions {
   int _homeProjectionGeneration = 0;
 
-  /// 沿用 transition 计数；纯投影不采用学校读取在目标会话恢复中的放行特例。
+  /// 沿用 transition 计数，但扣除进行中的会话恢复所占的一个：投影只读取本机
+  /// 已显示的缓存，账号若在恢复中被判定不符，交付前的账号与读取范围核对会丢弃结果。
+  /// 其余过渡（原地登录、清缓存、写入等）仍阻塞纯本地投影。
   bool get homeTodoProjectionBlocked =>
-      internalRoutePolicyInFlight || internalWriteTransitions != 0;
+      internalRoutePolicyInFlight ||
+      internalWriteTransitions - (internalActiveRecovery != null ? 1 : 0) != 0;
 
   /// 纯本地投影沿用读取、账号和路线栅栏，不排入学校读取队列。
   Future<HomeTodoProjection> projectHomeTodos(HomeTodoRequest request) async {
@@ -106,7 +111,9 @@ class AppController extends ControllerState
         !internalDisposed &&
         !internalIsSigningOut &&
         !homeTodoProjectionBlocked &&
-        internalPhase == AppPhase.home &&
+        (internalPhase == AppPhase.home ||
+            (internalPhase == AppPhase.checkingSession &&
+                internalLocalAccount != null)) &&
         route == internalRoutePolicyGeneration &&
         policy == internalLoginForm.routePolicy &&
         account == internalLocalAccount?.id &&
@@ -150,8 +157,13 @@ class AppController extends ControllerState
               overlayFailure: internalAgendaFailure,
             )
           : value;
-    } on Object {
+    } on Object catch (error) {
       if (!current()) throw const AgendaException(AgendaFailure.superseded);
+      // 后端离线读取代次变化（如共享账号重新绑定）只是取代了本次投影，宿主可稍后重算。
+      if (error is BackendException &&
+          error.code == UbaaErrorCode.operationConflict) {
+        throw const AgendaException(AgendaFailure.superseded);
+      }
       rethrow;
     }
   }

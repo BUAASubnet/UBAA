@@ -57,8 +57,7 @@ void main() {
     '预约记录滚动续载保留零基请求，刷新从首页重新开始',
     (tester) async {
       final backend = await _open(tester, state: 'paged');
-      await tapVisible(tester, find.byTooltip('返回'));
-      await tapVisible(tester, find.widgetWithText(Card, '我的预约'));
+      await tapVisible(tester, find.text('我的预约'));
       expect(backend.roomReads.last.page, 0);
       final scroll = find
           .descendant(
@@ -110,7 +109,7 @@ void main() {
     expect(backend.roomReads.last.siteId, 7);
     expect(backend.roomReads.last.date, DateTime(2026, 9, 5));
     await tapVisible(tester, find.byTooltip('返回'));
-    expect(find.widgetWithText(Card, '我的预约'), findsOneWidget);
+    expect(find.widgetWithText(Card, FeatureId.cgyy.title), findsOneWidget);
     expect(backend.preparedRooms, isEmpty);
     expect(backend.commitCalls, 0);
   });
@@ -162,7 +161,6 @@ Future<RoomBackend> _open(
   );
   await tester.pumpAndSettle();
   await tapVisible(tester, find.widgetWithText(Card, FeatureId.cgyy.title));
-  await tapVisible(tester, find.widgetWithText(Card, '预约研讨室'));
   return backend;
 }
 

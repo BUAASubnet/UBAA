@@ -1,3 +1,4 @@
+import '../../support/home_shell_harness.dart';
 import '../../support/home_todos.dart';
 import 'package:clock/clock.dart';
 import 'package:flutter/material.dart';
@@ -112,118 +113,9 @@ Future<void> mount(
   await withClock(Clock.fixed(DateTime.utc(2026, 9, 20, 16, 5)), () async {
     await tester.pumpWidget(
       MaterialApp(
-        home: UbaaMainShell(
-          onProjectHomeTodos: homeTodoFixture,
-          homeClock: clock,
-          user: const UserSummary(username: 'synthetic'),
-          snapshots: {
-            for (final id in FeatureId.values) id: FeatureSnapshot(feature: id),
-            FeatureId.cgyy: CachedFeatureProjection(
-              feature: FeatureId.cgyy,
-              query: const FeatureQuery(view: FeatureQueryView.cgyyOrders),
-              accountId: 'synthetic',
-              route: ConnectionMode.direct,
-              fetchedAt: DateTime.utc(2026, 9, 20, 15),
-              complete: true,
-              details: const [
-                FeatureDetail(
-                  title: '缓存研讨室待办',
-                  presentation: CgyyOrderPresentation(
-                    id: 9,
-                    statusText: '审批通过',
-                    venueName: '缓存研讨室待办',
-                    reservationStartDate: '2026-09-21 09:00:00',
-                    reservationEndDate: '2026-09-21 10:00:00',
-                    orderStatus: 1,
-                    checkStatus: 1,
-                  ),
-                ),
-              ],
-            ).toSnapshot(),
-            FeatureId.bykc: CachedFeatureProjection(
-              feature: FeatureId.bykc,
-              query: const FeatureQuery(
-                view: FeatureQueryView.bykcChosenCourses,
-              ),
-              accountId: 'synthetic',
-              route: ConnectionMode.direct,
-              fetchedAt: DateTime.utc(2026, 9, 20, 15),
-              complete: true,
-              details: const [
-                FeatureDetail(
-                  title: '缓存博雅待办',
-                  presentation: BykcChosenPresentation(
-                    recordId: 1,
-                    courseId: 42,
-                    courseName: '缓存博雅待办',
-                    courseStartDate: '2026-09-21 08:00:00',
-                    courseEndDate: '2026-09-21 10:00:00',
-                  ),
-                ),
-              ],
-            ).toSnapshot(),
-            FeatureId.judge: partial || cacheFailure
-                ? FeatureSnapshot(
-                    feature: FeatureId.judge,
-                    status: cacheFailure
-                        ? FeatureLoadStatus.success
-                        : FeatureLoadStatus.stale,
-                    details: cacheFailure
-                        ? [
-                            FeatureDetail(
-                              title: '合成在线作业',
-                              presentation: JudgeAssignmentPresentation(
-                                courseId: 'c',
-                                courseName: '合成课程',
-                                assignmentId: 'a',
-                                status: AssignmentSubmissionStatus.unsubmitted,
-                                statusText: '未提交',
-                                totalProblems: 1,
-                                submittedCount: 0,
-                              ),
-                            ),
-                          ]
-                        : const [],
-                    evidence: DataEvidence(
-                      accountId: 'synthetic',
-                      origin: DataOrigin.online,
-                      fetchedAt: DateTime.utc(2026, 9, 20, 15),
-                      complete: cacheFailure,
-                      savedForOffline: !cacheFailure,
-                      cacheFailure: cacheFailureKind,
-                    ),
-                  )
-                : CachedFeatureProjection(
-                    feature: FeatureId.judge,
-                    accountId: 'synthetic',
-                    route: ConnectionMode.direct,
-                    fetchedAt: DateTime.utc(2026, 9, 20, 15),
-                    complete: true,
-                  ).toSnapshot(),
-            FeatureId.schedule: CachedFeatureProjection(
-              feature: FeatureId.schedule,
-              accountId: 'synthetic',
-              route: ConnectionMode.direct,
-              fetchedAt: DateTime.utc(2026, 9, 20, 15),
-              complete: true,
-              scopeDate: date,
-              details: empty
-                  ? []
-                  : const [
-                      FeatureDetail(
-                        title: '昨日合成课程',
-                        presentation: TodayCoursePresentation(
-                          time: '08:00',
-                          place: '合成教室',
-                        ),
-                      ),
-                    ],
-            ).toSnapshot(),
-          },
-          routePolicy: RoutePolicy.auto,
-          telemetryEnabled: false,
-          activeRoutes: const [],
-          onLoadHomeSupplement: failSupplement
+        home: HomeShellHarness(
+          project: homeTodoFixture,
+          loadSupplement: failSupplement
               ? (_, __) async => FeatureResult.failure(
                   const UiError(
                     code: UbaaErrorCode.networkError,
@@ -232,12 +124,125 @@ Future<void> mount(
                   ),
                 )
               : null,
-          onRefresh: () async {},
-          onRetryFeature: (_) async {},
-          onLogout: () async {},
-          onLogoutAndClearAccount: () async {},
-          onRoutePolicyChanged: (_) {},
-          onTelemetryChanged: (_) {},
+          child: UbaaMainShell(
+            homeClock: clock,
+            user: const UserSummary(username: 'synthetic'),
+            snapshots: {
+              for (final id in FeatureId.values)
+                id: FeatureSnapshot(feature: id),
+              FeatureId.cgyy: CachedFeatureProjection(
+                feature: FeatureId.cgyy,
+                query: const FeatureQuery(view: FeatureQueryView.cgyyOrders),
+                accountId: 'synthetic',
+                route: ConnectionMode.direct,
+                fetchedAt: DateTime.utc(2026, 9, 20, 15),
+                complete: true,
+                details: const [
+                  FeatureDetail(
+                    title: '缓存研讨室待办',
+                    presentation: CgyyOrderPresentation(
+                      id: 9,
+                      statusText: '审批通过',
+                      venueName: '缓存研讨室待办',
+                      reservationStartDate: '2026-09-21 09:00:00',
+                      reservationEndDate: '2026-09-21 10:00:00',
+                      orderStatus: 1,
+                      checkStatus: 1,
+                    ),
+                  ),
+                ],
+              ).toSnapshot(),
+              FeatureId.bykc: CachedFeatureProjection(
+                feature: FeatureId.bykc,
+                query: const FeatureQuery(
+                  view: FeatureQueryView.bykcChosenCourses,
+                ),
+                accountId: 'synthetic',
+                route: ConnectionMode.direct,
+                fetchedAt: DateTime.utc(2026, 9, 20, 15),
+                complete: true,
+                details: const [
+                  FeatureDetail(
+                    title: '缓存博雅待办',
+                    presentation: BykcChosenPresentation(
+                      recordId: 1,
+                      courseId: 42,
+                      courseName: '缓存博雅待办',
+                      courseStartDate: '2026-09-21 08:00:00',
+                      courseEndDate: '2026-09-21 10:00:00',
+                    ),
+                  ),
+                ],
+              ).toSnapshot(),
+              FeatureId.judge: partial || cacheFailure
+                  ? FeatureSnapshot(
+                      feature: FeatureId.judge,
+                      status: cacheFailure
+                          ? FeatureLoadStatus.success
+                          : FeatureLoadStatus.stale,
+                      details: cacheFailure
+                          ? [
+                              FeatureDetail(
+                                title: '合成在线作业',
+                                presentation: JudgeAssignmentPresentation(
+                                  courseId: 'c',
+                                  courseName: '合成课程',
+                                  assignmentId: 'a',
+                                  status:
+                                      AssignmentSubmissionStatus.unsubmitted,
+                                  statusText: '未提交',
+                                  totalProblems: 1,
+                                  submittedCount: 0,
+                                ),
+                              ),
+                            ]
+                          : const [],
+                      evidence: DataEvidence(
+                        accountId: 'synthetic',
+                        origin: DataOrigin.online,
+                        fetchedAt: DateTime.utc(2026, 9, 20, 15),
+                        complete: cacheFailure,
+                        savedForOffline: !cacheFailure,
+                        cacheFailure: cacheFailureKind,
+                      ),
+                    )
+                  : CachedFeatureProjection(
+                      feature: FeatureId.judge,
+                      accountId: 'synthetic',
+                      route: ConnectionMode.direct,
+                      fetchedAt: DateTime.utc(2026, 9, 20, 15),
+                      complete: true,
+                    ).toSnapshot(),
+              FeatureId.schedule: CachedFeatureProjection(
+                feature: FeatureId.schedule,
+                accountId: 'synthetic',
+                route: ConnectionMode.direct,
+                fetchedAt: DateTime.utc(2026, 9, 20, 15),
+                complete: true,
+                scopeDate: date,
+                details: empty
+                    ? []
+                    : const [
+                        FeatureDetail(
+                          title: '昨日合成课程',
+                          presentation: TodayCoursePresentation(
+                            time: '08:00',
+                            place: '合成教室',
+                          ),
+                        ),
+                      ],
+              ).toSnapshot(),
+            },
+            routePolicy: RoutePolicy.auto,
+            telemetryEnabled: false,
+            activeRoutes: const [],
+            onRefresh: () async {},
+            onRetryFeature: (_) async {},
+            onLogout: () async {},
+            onLogoutAndClearAccount: () async {},
+            onRoutePolicyChanged: (_) {},
+            onTelemetryChanged: (_) {},
+          ),
         ),
       ),
     );

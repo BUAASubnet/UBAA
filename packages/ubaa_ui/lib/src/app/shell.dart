@@ -91,16 +91,16 @@ class UbaaMainShell extends StatefulWidget {
     this.onLoadAllGrades,
     this.gradeScoreNotice,
     this.gradeCheckRoute,
-    this.onCheckGradeUpdates,
     this.onConsumeGradeNotice,
     this.ygdkRecordsReadback,
-    this.homeSnapshots,
-    this.onProjectHomeTodos,
+    this.homeState,
+    this.onRefreshHome,
+    this.onRetryHomeSource,
+    this.onHomeReminderChanged,
+    this.onHomeVisibilityChanged,
     this.agendaEpoch = 0,
     this.agendaSchoolRoute,
     this.agenda = const AgendaAccess(),
-    this.onLoadHomeSupplement,
-    this.onLoadHomeDaySchedule,
     this.onLoadYgdkReminder,
     this.onSaveYgdkReminder,
     this.onLoadBykcFilters,
@@ -143,15 +143,14 @@ class UbaaMainShell extends StatefulWidget {
   final Map<FeatureId, FeatureSnapshot> snapshots;
 
   final FeatureSnapshot? ygdkRecordsReadback;
-  final Map<FeatureId, FeatureSnapshot>? homeSnapshots;
-  final HomeTodoReader? onProjectHomeTodos;
+  final HomeState? homeState;
+  final ValueChanged<bool>? onHomeVisibilityChanged;
+  final Future<void> Function()? onRefreshHome;
+  final Future<void> Function(FeatureId)? onRetryHomeSource;
+  final ValueChanged<YgdkReminderSettings?>? onHomeReminderChanged;
   final int agendaEpoch;
   final ConnectionMode? agendaSchoolRoute;
   final AgendaAccess agenda;
-  final Future<FeatureResult> Function(HomeSupplement source, bool force)?
-  onLoadHomeSupplement;
-  final Future<FeatureResult> Function(String date, bool force)?
-  onLoadHomeDaySchedule;
   final Future<YgdkReminderSettings> Function()? onLoadYgdkReminder;
   final Future<void> Function(YgdkReminderSettings)? onSaveYgdkReminder;
   final Future<BykcCourseFilters?> Function()? onLoadBykcFilters;
@@ -213,7 +212,6 @@ class UbaaMainShell extends StatefulWidget {
   final GradesAggregateLoader? onLoadAllGrades;
   final GradeScoreNotice? gradeScoreNotice;
   final ConnectionMode? gradeCheckRoute;
-  final Future<void> Function()? onCheckGradeUpdates;
   final VoidCallback? onConsumeGradeNotice;
   final List<ConnectionMode> activeRoutes;
 
@@ -295,7 +293,6 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     }
   }
 
-  (bool, DateTime?) _homeSync = (false, null);
   CampusAccountOverview? _campusOverview;
   Future<void>? _campusRefresh;
   DateTime? _campusRefreshedAt;
@@ -391,12 +388,15 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     final load = widget.onLoadYgdkReminder;
     if (load == null) {
       _reminderSettings = const YgdkReminderSettings();
+      widget.onHomeReminderChanged?.call(_reminderSettings);
       return;
     }
     try {
       final value = await load();
-      if (mounted && generation == _accountGeneration)
+      if (mounted && generation == _accountGeneration) {
         setState(() => _reminderSettings = value);
+        widget.onHomeReminderChanged?.call(value);
+      }
     } on Object {
       if (mounted && generation == _accountGeneration)
         setState(() => _reminderError = '提醒设置读取失败');
@@ -410,6 +410,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
     final revision = ++_reminderRevision;
     setState(() {
       _reminderSettings = value;
+      widget.onHomeReminderChanged?.call(value);
       _reminderError = null;
     });
     try {
@@ -420,6 +421,7 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
           revision == _reminderRevision) {
         setState(() {
           _reminderSettings = before;
+          widget.onHomeReminderChanged?.call(before);
           _reminderError = '提醒设置保存失败，请重试';
         });
       }
@@ -827,32 +829,34 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
 
   Widget _buildTabPage(BuildContext context, int index) => switch (index) {
     0 => HomeView(
+      onVisibilityChanged: widget.onHomeVisibilityChanged,
       key: _homeKey,
       onPullRefresh: _pull,
-      deferSupplements: widget.connecting,
-      onSyncStatus: (busy, updatedAt) {
-        if (mounted) setState(() => _homeSync = (busy, updatedAt));
-      },
       homeClock: widget.homeClock,
       recentFeatures: _recentFeatures,
-      user: widget.user,
-      snapshots: widget.homeSnapshots ?? widget.snapshots,
+      state:
+          widget.homeState ??
+          HomeState(
+            now: (widget.homeClock ?? clock).now(),
+            sources: widget.snapshots,
+            projected: true,
+            schedule: HomeScheduleState(
+              date: homeDateKey(
+                homeCampusTime((widget.homeClock ?? clock).now()),
+              ),
+              snapshot: widget.snapshots[FeatureId.schedule]!,
+            ),
+          ),
       visible:
           _openedFeature == null &&
           _utilityPage == null &&
           _selectedIndex == 0 &&
           widget.writeState.intent == null,
-      cacheEpoch: widget.readCacheEpoch,
-      businessCacheEpoch: widget.businessCacheEpoch,
-      onLoadSupplement: widget.onLoadHomeSupplement,
-      onLoadDaySchedule: widget.onLoadHomeDaySchedule,
       onTodoTap: _openHomeTodo,
       onViewAllTodos: () {
         setState(() => _agendaTodoRequest++);
         _selectTab(UiDestination.agenda.index);
       },
-      onProjectTodos: widget.onProjectHomeTodos,
-      agendaEpoch: widget.agendaEpoch,
       writeReadbackNotice:
           widget.writeReadbacks.isEmpty && widget.writeReadbackError == null
           ? null
@@ -871,17 +875,16 @@ class _UbaaMainShellState extends State<UbaaMainShell> {
             ),
       gradeScoreNotice: widget.gradeScoreNotice,
       gradeCheckRoute: widget.gradeCheckRoute,
-      onCheckGradeUpdates: widget.onCheckGradeUpdates,
       onOpenGradeNotice: _openGradeNotice,
       onDismissGradeNotice: widget.onConsumeGradeNotice,
       onSignin: _hasWriteCommands && widget.onPrepareSigninWrite != null
           ? _performHomeSignin
           : null,
-      reminderSettings: _reminderSettings,
       onObserveProgress: _observeHomeProgress,
       onFeatureTap: _openFeatureList,
-      onRetryFeature: widget.onRetryFeature,
-      onRefresh: () => _joinRefresh('home-core', widget.onRefresh),
+      onRetryFeature: widget.onRetryHomeSource ?? widget.onRetryFeature,
+      onRefresh: () =>
+          _joinRefresh('home', widget.onRefreshHome ?? widget.onRefresh),
     ),
     2 => AgendaView(
       service: widget.agenda.service,
